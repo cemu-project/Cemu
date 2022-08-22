@@ -1,0 +1,1 @@
+void nnBoss_load();

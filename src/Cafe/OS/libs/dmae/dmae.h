@@ -1,0 +1,1 @@
+void dmae_load();

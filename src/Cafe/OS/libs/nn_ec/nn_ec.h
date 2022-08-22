@@ -1,0 +1,1 @@
+void nnEc_load();

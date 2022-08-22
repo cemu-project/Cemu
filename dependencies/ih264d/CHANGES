@@ -1,0 +1,6 @@
+Code adjustments made by Team Cemu for Cemu emulator project as of 2022-02-01:
+- Stripped encoder, tests and fuzzer. We only need the decoder
+- Extended ih264_platform_macros.h to support MSVC instrinsics
+- Extended ithread.c to use WinAPI natives instead of requiring pthread.h
+- The decoder will output images without regarding SPS crop flag and instead pass the crop values in the decode output structure
+- Modified decoder/x86/ih264d_function_selector.c ih264d_init_arch() to automatically choose the best e_processor_arch for the current CPU

@@ -1,0 +1,22 @@
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.exe
+*.out
+*.app
+.vs
+
+build/
+out/
+
+# Cemu bin files
+otp.bin
+seeprom.bin

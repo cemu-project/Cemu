@@ -1,0 +1,5 @@
+
+namespace avm
+{
+	void Initialize();
+}

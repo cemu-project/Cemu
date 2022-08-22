@@ -1,0 +1,22 @@
+#include "X_GAME_PROFILE.xpm"
+#include "M_WND_ICON128.xpm"
+#include "X_BOX.xpm"
+#include "X_SETTINGS.xpm"
+
+#include "icons8-checkmark-yes-32.hpng"
+#include "icons8-error-32.hpng"
+#include "PNG_HELP.hpng"
+#include "PNG_REFRESH.hpng"
+
+#include "DEBUGGER_BP.hpng"
+#include "DEBUGGER_BP_RED.hpng"
+#include "DEBUGGER_PAUSE.hpng"
+#include "DEBUGGER_PLAY.hpng"
+#include "DEBUGGER_STEP_INTO.hpng"
+#include "DEBUGGER_STEP_OUT.hpng"
+#include "DEBUGGER_STEP_OVER.hpng"
+#include "DEBUGGER_GOTO.hpng"
+
+#include "INPUT_LOW_BATTERY.hpng"
+#include "INPUT_CONNECTED.hpng"
+#include "INPUT_DISCONNECTED.hpng"

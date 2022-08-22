@@ -1,0 +1,37 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": ""
+    },
+    {
+      "name": "x64-Release",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ]
+    },
+    {
+      "name": "x64-Public-Release",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-DPUBLIC_RELEASE=ON",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ]
+    }
+  ]
+}
