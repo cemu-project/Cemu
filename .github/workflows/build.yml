@@ -187,7 +187,7 @@ jobs:
         
     - name: "Free up space"
       run: |
-        rmdir "./dependencies/vcpkg/downloads" /S /Q
+        Remove-Item './dependencies/vcpkg/downloads' -Recurse
         
     - name: "Build Cemu"
       run: |
