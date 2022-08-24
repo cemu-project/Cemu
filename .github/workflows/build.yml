@@ -2,11 +2,15 @@ name: Build Cemu
 
 on:
   pull_request_target:
+    paths-ignore:
+      - "*.md"
     types:
       - opened
       - synchronize
       - reopened
   push:
+    paths-ignore:
+      - "*.md"
     branches:
       - main
   workflow_call:
