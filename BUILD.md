@@ -34,7 +34,7 @@ For ubuntu and most derivatives:
 For Fedora and most derivatives:
 
 1) Make sure vulkansdk is installed and the VULKAN_SDK environment variable is set correctly.
-2) `sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel clang12-libs nasm cmake vcpkg`
+2) `sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel clang12-libs nasm cmake vcpkg perl-core zlib-devel`
 3) Run `git clone --recursive https://github.com/cemu-project/Cemu`
 4) `cd Cemu`
 5) `mkdir build && cd build`
