@@ -31,7 +31,7 @@ For Arch and most derivatives:
 
 For Fedora and most derivatives:
 
-`sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel clang12-libs nasm cmake vcpkg perl-core zlib-devel`
+`sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel nasm cmake vcpkg perl-core zlib-devel`
 
 1) Make sure vulkansdk is installed and the VULKAN_SDK environment variable is set correctly.
 2) Run `git clone --recursive https://github.com/cemu-project/Cemu`
