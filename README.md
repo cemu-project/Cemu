@@ -62,13 +62,5 @@ If coding isn't your thing, testing games and making detailed bug reports or upd
 
 Questions about Cemu's software architecture can also be answered on Discord. Alternative communication channels (like IRC) are being considered.
 
-## Donations
-
-If you'd like to support the project financially, Cemu has an active Patreon.
-
-<a href="https://www.patreon.com/cemu">
-    <img src="https://images.squarespace-cdn.com/content/v1/560c1d39e4b0b4fae0c9cf2a/1567548955044-WVD994WZP76EWF15T0L3/Patreon+Button.png?format=500w" width="150">
-</a>
-
 ## License
 Cemu is licensed under [Mozilla Public License 2.0](/LICENSE.txt). Exempt from this are all files in the dependencies directory for which the licenses of the original code apply as well as some individual files in the src folder, as specified in those file headers respectively.
