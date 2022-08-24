@@ -38,7 +38,7 @@ For Fedora and most derivatives:
 2) Run `git clone --recursive https://github.com/cemu-project/Cemu`
 3) `cd Cemu`
 4) `mkdir build && cd build`
-5) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+5) `cmake .. -DPUBLIC_RELEASE=ON -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 6) `ninja`
 
 Build instructions for other distributions will be added in the future!
