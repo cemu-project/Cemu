@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Cemu
+Type=Application
+Terminal=false
+Icon=info.cemu.cemu
+Exec=jdMinecraftLauncher
+Comment=Software to emulate Wii U games and applications on PC
+Categories=Game;Emulator;
+Keywords=Nintendo;
