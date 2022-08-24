@@ -22,12 +22,15 @@ You can also skip steps 3-5 and open the root folder of the cloned repo directly
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! We use clang 12, other compilers may work as well.
 
 For ubuntu and most derivatives:
+
 `sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm`
 
 For Arch and most derivatives:
+
 `sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm`
 
 For Fedora and most derivatives:
+
 `sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel clang12-libs nasm cmake vcpkg perl-core zlib-devel`
 
 1) Make sure vulkansdk is installed and the VULKAN_SDK environment variable is set correctly.
