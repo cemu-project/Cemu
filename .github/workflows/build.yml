@@ -185,10 +185,6 @@ jobs:
         cd build
         cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }}
         
-    - name: "Free up space"
-      run: |
-        Remove-Item './dependencies/vcpkg/downloads' -Recurse
-        
     - name: "Build Cemu"
       run: |
         cd build
