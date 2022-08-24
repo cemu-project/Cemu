@@ -1,37 +1,29 @@
 ﻿{
   "configurations": [
     {
-      "name": "x64-Debug",
+      "name": "Release",
+      "configurationType": "RelWithDebInfo",
       "generator": "Ninja",
-      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}"
+    },
+    {
+      "name": "Public Release",
+      "configurationType": "RelWithDebInfo",
+      "generator": "Ninja",
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": ""
+      "cmakeCommandArgs": "-DPUBLIC_RELEASE=ON"
     },
     {
-      "name": "x64-Release",
+      "name": "Debug",
+      "configurationType": "Debug",
       "generator": "Ninja",
-      "configurationType": "RelWithDebInfo",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ]
-    },
-    {
-      "name": "x64-Public-Release",
-      "generator": "Ninja",
-      "configurationType": "RelWithDebInfo",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "-DPUBLIC_RELEASE=ON",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ]
+      "installRoot": "${projectDir}\\out\\install\\${name}"
     }
   ]
 }
