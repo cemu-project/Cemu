@@ -23,11 +23,12 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 
 For ubuntu and most derivatives:
 
-`sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm`
+
+`sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm curl zip unzip tar git cmake ninja-build`
 
 For Arch and most derivatives:
 
-`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm`
+`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git`
 
 For Fedora and most derivatives:
 
