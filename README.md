@@ -1,12 +1,27 @@
-# **Cemu - Wii U emulator**
+<h1 align="center">
+  <br>
+  <a href="https://cemu.info/"><img src="https://i.imgur.com/dBzCLGH.png" alt="Cemu" width="150"></a>
+  <br>
+  <b>Cemu</b>
+  <br>
 
-[![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
-[![Discord](https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF)](https://discord.gg/5psYsup)
+</h1>
 
-This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
-It's written in C/C++ and is being actively developed with new features and fixes to increase compatibility, convenience and usability.
+<p align="center">
+       Cemu is a Nintendo Wii U emulator that is able to run most Wii U games and homebrew in a playable state. Created by Exzap, and written in C/C++.
+       This emulator aims at providing both high-accuracy and performance, and is actively being developed with new features and fixes to increase compatibility,              convenience and usability.
+       It was written from scratch and development on the project began roughly early 2015. Cemu is available on Github under the <a href="https://github.com/cemu-project/Cemu/blob/main/LICENSE.txt" target="_blank">MPL License</a>. <br />
 
-Cemu is currently only available for 64-bit Windows and Linux devices.
+</p>
+<p align="center">
+    <a href="https://github.com/cemu-project/Cemu/actions/workflows/build.yml">
+        <img src="https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg"
+            alt="">
+</a>
+    <a href="https://discord.gg/5psYsup">
+        <img src="https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF"
+            alt="Discord">
+</a>
 
 ### Links:
  - [Original 2.0 announcement post](https://www.reddit.com/r/cemu/comments/wwa22c/cemu_20_announcement_linux_builds_opensource_and/)
@@ -46,6 +61,14 @@ Pull requests are very welcome. For easier coordination you can visit the develo
 If coding isn't your thing, testing games and making detailed bug reports or updating the (usually outdated) compatibility wiki is also appreciated!
 
 Questions about Cemu's software architecture can also be answered on Discord. Alternative communication channels (like IRC) are being considered.
+
+## Donations
+
+If you'd like to support the project financially, Cemu has an active Patreon.
+
+<a href="https://www.patreon.com/cemu">
+    <img src="https://images.squarespace-cdn.com/content/v1/560c1d39e4b0b4fae0c9cf2a/1567548955044-WVD994WZP76EWF15T0L3/Patreon+Button.png?format=500w" width="150">
+</a>
 
 ## License
 Cemu is licensed under [Mozilla Public License 2.0](/LICENSE.txt). Exempt from this are all files in the dependencies directory for which the licenses of the original code apply as well as some individual files in the src folder, as specified in those file headers respectively.
