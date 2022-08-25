@@ -531,6 +531,6 @@ void VKRMemoryManager::appendOverlayHeapDebugInfo()
 		uint32 heapSizeMB = (heapSize / 1024 / 1024);
 		uint32 allocatedBytesMB = (allocatedBytes / 1024 / 1024);
 
-		ImGui::Text(fmt::format("{0:#08x} Size: {1}MB/{2}MB", itr.first, allocatedBytesMB, heapSizeMB).c_str());
+		ImGui::Text("%s", fmt::format("{0:#08x} Size: {1}MB/{2}MB", itr.first, allocatedBytesMB, heapSizeMB).c_str());
 	}
 }
