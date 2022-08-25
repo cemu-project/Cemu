@@ -529,7 +529,7 @@ prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key) : prudpC
 			break;
 	}
 	// set socket to non-blocking mode
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	u_long nonBlockingMode = 1;  // 1 to enable non-blocking socket
 	ioctlsocket(socketUdp, FIONBIO, &nonBlockingMode);
 #else

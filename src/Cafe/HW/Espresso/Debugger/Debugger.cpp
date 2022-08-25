@@ -8,7 +8,7 @@
 
 #include "Cafe/OS/libs/coreinit/coreinit.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #include <Windows.h>
 #endif
 
@@ -158,7 +158,7 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 {
 	std::vector<std::thread::native_handle_type> schedulerThreadHandles = coreinit::OSGetSchedulerThreads();
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	debuggerState.activeMemoryBreakpoint = bp;
 	for (auto& hThreadNH : schedulerThreadHandles)
 	{

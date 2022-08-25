@@ -1029,7 +1029,7 @@ bool FSTVerifier::VerifyContentFile(FileStream* fileContent, const NCrypto::AesK
 		SHA256_Init(&sha256Ctx);
 	while (remainingBytes > 0)
 	{
-		uint32 bytesToRead = (uint32)std::min(remainingBytes, buffer.size());
+		uint32 bytesToRead = (uint32)std::min(remainingBytes, (uint64)buffer.size());
 		uint32 bytesToReadPadded = ((bytesToRead + 0xF) & ~0xF);
 		uint32 bytesRead = fileContent->readData(buffer.data(), bytesToReadPadded);
 		if (bytesRead != bytesToReadPadded)

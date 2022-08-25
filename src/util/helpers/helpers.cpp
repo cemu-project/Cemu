@@ -46,7 +46,7 @@ std::string_view& trim(std::string_view& str, const std::string& chars)
 	return ltrim(rtrim(str, chars), chars);
 }
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 std::wstring GetSystemErrorMessageW()
 {
@@ -120,7 +120,7 @@ std::string GetSystemErrorMessage(const std::error_code& ec)
 	return fmt::format("{}\n{}",msg, ec.message());
 }
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 const DWORD MS_VC_EXCEPTION = 0x406D1388;
 #pragma pack(push,8)
 typedef struct tagTHREADNAME_INFO
@@ -135,7 +135,7 @@ typedef struct tagTHREADNAME_INFO
 
 void SetThreadName(const char* name)
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	
 #ifndef _PUBLIC_RELEASE
 	THREADNAME_INFO info;
@@ -154,12 +154,14 @@ void SetThreadName(const char* name)
 	
 #endif
 	
+#elif BOOST_OS_MACOS
+	pthread_setname_np(name);
 #else
     pthread_setname_np(pthread_self(), name);
 #endif
 }
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 std::pair<DWORD, DWORD> GetWindowsVersion()
 {
 	using RtlGetVersion_t = LONG(*)(POSVERSIONINFOEXW);

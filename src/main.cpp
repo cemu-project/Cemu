@@ -28,14 +28,14 @@
 #include "Cafe/OS/libs/vpad/vpad.h"
 
 #include "audio/IAudioAPI.h"
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #pragma comment(lib,"Dbghelp.lib")
 #endif
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-#if BOOST_OS_LINUX > 0
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #define _putenv(__s) putenv((char*)(__s))
 #endif
 
@@ -61,7 +61,7 @@ bool IsCemuhookLoaded()
 
 void checkForCemuhook()
 {
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	// check if there is a dbghelp.dll in the current working directory
 	if (!fs::exists(ActiveSettings::GetPath("cemuhook.dll")))
 		return;	
@@ -93,7 +93,7 @@ void checkForCemuhook()
 
 void logCPUAndMemoryInfo()
 {
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	int CPUInfo[4] = { -1 };
 	unsigned   nExIds, i = 0;
 	char CPUBrandString[0x40];
@@ -129,7 +129,7 @@ bool IsRunningInWine()
 
 void checkForWine()
 {
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	const HMODULE hmodule = GetModuleHandleA("ntdll.dll");
 	if (!hmodule)
 		return;
@@ -206,7 +206,7 @@ void reconfigureGLDrivers()
 	std::string nvCacheDirEnvOption("__GL_SHADER_DISK_CACHE_PATH=");
 	nvCacheDirEnvOption.append(_utf8Wrapper(nvCacheDir));
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	std::wstring tmpW = boost::nowide::widen(nvCacheDirEnvOption);
 	_wputenv(tmpW.c_str());
 #else
@@ -239,7 +239,7 @@ void mainEmulatorCommonInit()
 	__cpuidex(cpuInfo, 0x7, 0);
 	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	executablePath.resize(4096);
 	int i = GetModuleFileName(NULL, executablePath.data(), executablePath.size());
 	if(i >= 0)
@@ -324,7 +324,7 @@ int mainEmulatorHLE()
 bool isConsoleConnected = false;
 void requireConsole()
 {
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	if (isConsoleConnected)
 		return;
 
@@ -345,7 +345,7 @@ void HandlePostUpdate()
 	const auto filename = ActiveSettings::GetFullPath().replace_extension("exe.backup");
 	if (fs::exists(filename))
 	{
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 		HANDLE lock;
 		do
 		{
@@ -374,7 +374,7 @@ void HandlePostUpdate()
 
 void ToolShaderCacheMerger();
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 #ifndef PUBLIC_RELEASE
 #include <crtdbg.h>
@@ -411,7 +411,9 @@ int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ L
 #else
 int main(int argc, char *argv[])
 {
+#if BOOST_OS_LINUX
     XInitThreads();
+#endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
 
@@ -440,7 +442,7 @@ __declspec(dllexport) uint64 gameMeta_getTitleId()
 }
 
 /* Cemuhook loading */
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #pragma init_seg(".CRT$XCT")
 
 HANDLE dbgLib;

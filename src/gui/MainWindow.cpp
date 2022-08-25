@@ -50,12 +50,12 @@
 #include "gui/input/InputSettings2.h"
 #include "input/InputManager.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #define exit(__c) ExitProcess(__c)
 #endif
 
-#if BOOST_OS_LINUX > 0
-#include "resource/linux/resources.h"
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#include "resource/embedded/resources.h"
 #endif
 
 #include "Cafe/TitleList/TitleInfo.h"
@@ -296,7 +296,7 @@ MainWindow::MainWindow()
 	SetClientSize(1280, 720);
 	SetIcon(wxICON(M_WND_ICON128));
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	HICON hWindowIcon = (HICON)LoadImageA(NULL, "M_WND_ICON16", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 	SendMessage(this->GetHWND(), WM_SETICON, ICON_SMALL, (LPARAM)hWindowIcon);
 #endif
@@ -650,7 +650,7 @@ void MainWindow::OnInstallUpdate(wxCommandEvent& event)
 			break;
 		if (modalChoice == wxID_OK)
 		{
-			#if BOOST_OS_LINUX
+			#if BOOST_OS_LINUX || BOOST_OS_MACOS
 			fs::path dirPath((const char*)(openDirDialog.GetPath().fn_str()));
 			#else
 			fs::path dirPath(openDirDialog.GetPath().fn_str());

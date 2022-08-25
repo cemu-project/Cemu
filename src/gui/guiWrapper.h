@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#if BOOST_OS_LINUX > 0
+#if BOOST_OS_LINUX
 #include "xcb/xproto.h"
 #endif
 

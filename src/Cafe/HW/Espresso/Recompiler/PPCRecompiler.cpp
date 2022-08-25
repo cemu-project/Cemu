@@ -72,7 +72,7 @@ void PPCRecompiler_recompileIfUnvisited(uint32 enterAddress)
 
 void PPCRecompiler_enter(PPCInterpreter_t* hCPU, PPCREC_JUMP_ENTRY funcPtr)
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	uint32 prevState = _controlfp(0, 0);
 	_controlfp(_RC_NEAR, _MCW_RC);
 	PPCRecompiler_enterRecompilerCode((uint64)funcPtr, (uint64)hCPU);

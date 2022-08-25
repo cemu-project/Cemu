@@ -63,7 +63,8 @@ namespace coreinit
 		bool negativeAlignment = alignment < 0;
 		if (negativeAlignment)
 			alignment = -alignment;
-		if (!std::has_single_bit<uint32>((uint32)alignment))
+		uint32 bits = (uint32)alignment;
+		if (bits == 0 || (bits & (bits - 1)) != 0)
 		{
 			cemuLog_log(LogType::APIErrors, "MEMGetAllocatableSizeForFrmHeapEx(): Invalid alignment");
 			return 0;

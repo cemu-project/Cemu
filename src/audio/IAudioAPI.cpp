@@ -1,6 +1,6 @@
 #include "IAudioAPI.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #include "XAudio2API.h"
 #include "XAudio27API.h"
 #include "DirectSoundAPI.h"
@@ -37,7 +37,7 @@ void IAudioAPI::PrintLogging()
 
 void IAudioAPI::InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_sample)
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	// move this to Windows-specific audio API implementations and use a cross-platform format here
 	m_wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
 	m_wfx.Format.nChannels = channels;

@@ -104,7 +104,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	requiredExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-	#else
+	#elif BOOST_OS_LINUX
 	requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#endif
 
@@ -1143,7 +1143,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	requiredInstanceExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-	#else
+	#elif BOOST_OS_LINUX
 	requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#endif
 	if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION))
@@ -1319,8 +1319,11 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 {
 #if BOOST_OS_WINDOWS
 	return CreateWinSurface(instance, windowInfo.hwnd);
-#else
+#elif BOOST_OS_LINUX
 	return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
+#elif BOOST_OS_MACOS
+	cemu_assert_unimplemented();
+	return nullptr;
 #endif
 }
 

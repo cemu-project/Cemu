@@ -515,7 +515,7 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 {
 	event.Skip();
 	
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	if (m_restart_required && !m_restart_file.empty() && fs::exists(m_restart_file))
 	{
 		PROCESS_INFORMATION pi{};
