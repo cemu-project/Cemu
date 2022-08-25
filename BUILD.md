@@ -10,8 +10,8 @@ Prerequisites:
 Instructions:
 
 1) Run `git clone --recursive https://github.com/cemu-project/Cemu`
-2) Launch `Cemu/build_vs_solution.bat`. If you installed VS to a custom location you may need to manually adjust the path inside the bat file
-3) Wait until done, then open build/Cemu.sln in Visual Studio
+2) Launch `Cemu/generate_vs_solution.bat`. If you installed VS to a custom location you may need to manually adjust the path inside the bat file
+3) Wait until done, then open `Cemu/build/Cemu.sln` in Visual Studio
 4) Right click 'CemuBin' project -> Set as startup project
 5) Then build the solution and once finished you can run and debug it
 
