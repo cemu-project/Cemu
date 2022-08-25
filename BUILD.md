@@ -5,7 +5,6 @@
 Prerequisites:
 - A recent version of Visual Studio 2022 with CMake tools component
 - git
-- Vulkan SDK ([https://vulkan.lunarg.com/](https://vulkan.lunarg.com/)). Don't forget to restart after installing.
 
 Instructions:
 
@@ -23,12 +22,11 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 
 For ubuntu and most derivatives:
 
-1) Make sure vulkansdk is installed and the VULKAN_SDK environment variable is set correctly.
-2) `sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm`
-3) Run `git clone --recursive https://github.com/cemu-project/Cemu`
-4) `cd Cemu`
-5) `mkdir build && cd build`
-6) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
-8) `ninja`
+1) `sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm`
+2) Run `git clone --recursive https://github.com/cemu-project/Cemu`
+3) `cd Cemu`
+4) `mkdir build && cd build`
+5) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja
+6) `ninja`
 
 Build instructions for other distributions will be added in the future!
