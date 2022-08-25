@@ -46,7 +46,6 @@ extern "C"
 	DLLEXPORT DWORD NvOptimusEnablement = 0x00000001;
 }
 #endif
-#endif
 
 bool _cpuExtension_SSSE3 = false;
 bool _cpuExtension_SSE4_1 = false;
