@@ -26,7 +26,7 @@ For ubuntu and most derivatives:
 2) Run `git clone --recursive https://github.com/cemu-project/Cemu`
 3) `cd Cemu`
 4) `mkdir build && cd build`
-5) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja
+5) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja`
 6) `ninja`
 
 Build instructions for other distributions will be added in the future!
