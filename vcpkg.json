@@ -13,7 +13,6 @@
       "default-features": false
     },
     "rapidjson",
-    "vulkan",
     "sdl2",
     "boost-tokenizer",
     "boost-container",

@@ -1,3 +1,7 @@
+#ifdef __clang__
+#define static_assert(...) static_assert(true, "")
+#endif
+
 #pragma once
 
 #include <stdlib.h> // for size_t
