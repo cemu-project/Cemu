@@ -538,7 +538,6 @@ namespace coreinit
 
 	void coreinitExport_MEMAllocFromAllocator(PPCInterpreter_t* hCPU)
 	{
-		debug_printf("MEMAllocFromAllocator(0x%x, 0x%x)\n", hCPU->gpr[3], hCPU->gpr[4]);
 		MEMAllocator* memAllocator = (MEMAllocator*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 		// redirect execution to allocator alloc callback
 		hCPU->instructionPointer = memAllocator->func->funcAlloc.GetMPTR();
@@ -546,7 +545,6 @@ namespace coreinit
 
 	void coreinitExport_MEMFreeToAllocator(PPCInterpreter_t* hCPU)
 	{
-		debug_printf("MEMFreeToAllocator(0x%x, 0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4]);
 		MEMAllocator* memAllocator = (MEMAllocator*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 		// redirect execution to allocator free callback
 		hCPU->instructionPointer = memAllocator->func->funcFree.GetMPTR();
@@ -568,11 +566,10 @@ namespace coreinit
 
 	void coreinitExport_MEMInitAllocatorForDefaultHeap(PPCInterpreter_t* hCPU)
 	{
-		debug_printf("MEMInitAllocatorForDefaultHeap(0x%08x)", hCPU->gpr[3]);
 		ppcDefineParamStructPtr(memAllocator, MEMAllocator, 0);
 
-		gDefaultHeapAllocator->funcAlloc = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(_DefaultHeapAllocator_Alloc));
-		gDefaultHeapAllocator->funcFree = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(_DefaultHeapAllocator_Free));
+		gDefaultHeapAllocator->funcAlloc = PPCInterpreter_makeCallableExportDepr(_DefaultHeapAllocator_Alloc);
+		gDefaultHeapAllocator->funcFree = PPCInterpreter_makeCallableExportDepr(_DefaultHeapAllocator_Free);
 
 		memAllocator->func = gDefaultHeapAllocator.GetPtr();
 		memAllocator->heap = MEMPTR<void>(MEMGetBaseHeapHandle(1));

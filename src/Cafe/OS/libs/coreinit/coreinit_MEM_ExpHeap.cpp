@@ -831,8 +831,8 @@ SysAllocator<MEMAllocatorFunc> gExpHeapDefaultAllocator;
 void MEMInitAllocatorForExpHeap(MEMAllocator* allocator, MEMHeapHandle heap, sint32 alignment)
 {
 	allocator->func = gExpHeapDefaultAllocator.GetPtr();
-	gExpHeapDefaultAllocator->funcAlloc = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Alloc));
-	gExpHeapDefaultAllocator->funcFree = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Free));
+	gExpHeapDefaultAllocator->funcAlloc = PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Alloc);
+	gExpHeapDefaultAllocator->funcFree = PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Free);
 
 	allocator->heap = heap;
 	allocator->param1 = alignment;
