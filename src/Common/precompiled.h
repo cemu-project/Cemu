@@ -1,3 +1,5 @@
+//Temporary Workaround for static_assert related errors in libstdc++12
+//TODO: Make a proper fix
 #ifdef __clang__
 #define static_assert(...) static_assert(true, "")
 #endif
