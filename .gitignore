@@ -16,6 +16,7 @@
 
 build/
 out/
+.cache/
 
 # Cemu bin files
 otp.bin
