@@ -22,13 +22,13 @@ Cemu is currently only available for 64-bit Windows and Linux devices.
 
 ## Download
 
-You can download the latest Cemu releases from the [Github Releases](https://github.com/cemu-project/Cemu/releases/) or from [Cemu's website](http://cemu.info).
+You can download the latest Cemu releases from the [Github Releases](https://github.com/cemu-project/Cemu/releases/) or from [Cemu's website](https://cemu.info).
 
 Cemu is currently only available in a portable format so no installation is required besides extracting it in a safe place.
 
 See [Current State Of Linux builds](https://github.com/cemu-project/Cemu/issues/1) for information on using Cemu natively on Linux.
 
-Pre-2.0 releases can be found on Cemu's [changelog page](http://cemu.info/changelog.html).
+Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/changelog.html).
 
 ## Build Instructions
 

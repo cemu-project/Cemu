@@ -70,8 +70,7 @@ find_package(ZLIB REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 
 if (ENABLE_VULKAN)
-  find_package(Vulkan REQUIRED)
-  include_directories("${Vulkan_INCLUDE_DIRS}")
+  include_directories("dependencies/Vulkan-Headers/include")
 endif()
 
 if (ENABLE_OPENGL)
