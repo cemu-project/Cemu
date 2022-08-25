@@ -390,7 +390,7 @@ void swkbd_render(bool mainWindow)
 	ImGui::PushFont(font);
 	if (ImGui::Begin("Keyboard Input", nullptr, kPopupFlags))
 	{
-		ImGui::Text(_utf8WrapperPtr(ICON_FA_KEYBOARD));
+		ImGui::Text("%s", _utf8WrapperPtr(ICON_FA_KEYBOARD));
 		ImGui::SameLine(70);
 		auto text = boost::nowide::narrow(fmt::format(L"{}", swkbdInternalState->formStringBuffer));
 
