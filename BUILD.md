@@ -22,7 +22,7 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 
 For ubuntu and most derivatives:
 
-1) `sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm`
+1) `sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm ninja-build`
 2) Run `git clone --recursive https://github.com/cemu-project/Cemu`
 3) `cd Cemu`
 4) `mkdir build && cd build`
