@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/RendererShader.h"
-#include "Common\GLInclude\GLInclude.h"
+#include "Common/GLInclude/GLInclude.h"
 
 class RendererShaderGL : public RendererShader
 {

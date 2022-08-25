@@ -46,8 +46,8 @@ ChunkedFlatAllocator<64 * 1024> g_heapTrampolineArea;
 
 std::vector<rplDependency_t*> rplDependencyList = std::vector<rplDependency_t*>();
 
-__declspec(dllexport) RPLModule* rplModuleList[256];
-__declspec(dllexport) sint32 rplModuleCount = 0;
+DLLEXPORT RPLModule* rplModuleList[256];
+DLLEXPORT sint32 rplModuleCount = 0;
 
 uint32 _currentTLSModuleIndex = 1; // value 0 is reserved
 

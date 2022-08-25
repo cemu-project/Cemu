@@ -7,7 +7,7 @@
 #endif
 
 #include <glslang/Public/ShaderLang.h>
-#if GLSLANG_VERSION_LESS_OR_EQUAL_TO(11, 0, 0)
+#if 1 //GLSLANG_VERSION_LESS_OR_EQUAL_TO(11, 0, 0)
 #include <glslang/SPIRV/GlslangToSpv.h>
 #else
 #include <SPIRV/Logger.h>
@@ -131,7 +131,7 @@ const TBuiltInResource DefaultTBuiltInResource = {
 	/* .maxDualSourceDrawBuffersEXT = */ 1,
 #endif
 
-	/* .limits = */ {
+	/* .limits = */
 	/* .nonInductiveForLoops = */ 1,
 	/* .whileLoops = */ 1,
 	/* .doWhileLoops = */ 1,
@@ -141,7 +141,6 @@ const TBuiltInResource DefaultTBuiltInResource = {
 	/* .generalSamplerIndexing = */ 1,
 	/* .generalVariableIndexing = */ 1,
 	/* .generalConstantMatrixVectorIndexing = */ 1,
-}
 };
 
 class _ShaderVkThreadPool

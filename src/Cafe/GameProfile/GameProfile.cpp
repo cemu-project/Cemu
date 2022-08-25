@@ -22,7 +22,7 @@ struct gameProfileBooleanOption_t
 * If the option exists, true is returned.
 * The boolean is stored in *optionValue
 */
-__declspec(dllexport) bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameProfileBooleanOption_t* option)
+DLLEXPORT bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameProfileBooleanOption_t* option)
 {
 	auto option_value = iniParser->FindOption(optionName);
 	option->isPresent = false;
@@ -81,7 +81,7 @@ bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName
 * Attempts to load a integer option
 * Allows to specify min and max value (error is logged if out of range and default value is picked)
 */
-__declspec(dllexport) bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, sint32 minVal, sint32 maxVal)
+DLLEXPORT bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, sint32 minVal, sint32 maxVal)
 {
 	auto option_value = iniParser->FindOption(optionName);
 	option->isPresent = false;
@@ -167,7 +167,7 @@ bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, st
 }
 
 #pragma optimize( "", off )  
-__declspec(dllexport) __declspec(noinline) void gameProfile_categoryBegin(IniParser* iniParser)
+DLLEXPORT NOINLINE void gameProfile_categoryBegin(IniParser* iniParser)
 {
 	// do nothing
 }
@@ -381,11 +381,11 @@ void GameProfile::Reset()
 }
 
 // legacy code for Cemuhook
-__declspec(dllexport) char* gameProfile_loadStringOption(IniParser* iniParser, char* optionName)
+DLLEXPORT char* gameProfile_loadStringOption(IniParser* iniParser, char* optionName)
 {
 	return nullptr;
 }
-__declspec(dllexport) char* gameProfile_getCurrentCategoryName(IniParser* iniParser)
+DLLEXPORT char* gameProfile_getCurrentCategoryName(IniParser* iniParser)
 {
 	return nullptr;
 }
@@ -396,7 +396,7 @@ struct gpNamedOptionEntry_t
 	sint32 value;
 };
 
-__declspec(dllexport) bool gameProfile_loadIntegerNamedOption(IniParser* iniParser, char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, const gpNamedOptionEntry_t* nameValues, sint32 numNameValues)
+DLLEXPORT bool gameProfile_loadIntegerNamedOption(IniParser* iniParser, char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, const gpNamedOptionEntry_t* nameValues, sint32 numNameValues)
 {
 	return false;
 }

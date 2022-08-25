@@ -21,8 +21,9 @@ if(MSVC)
     # _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 elseif(UNIX)
     add_definitions(-fms-extensions)
-    add_definitions(-fms-compatibility-version=19.14)
-    add_definitions(-fdelayed-template-parsing)
+    # add_definitions(-fms-compatibility-version=19.14)
+    # add_definitions(-fdelayed-template-parsing)
+    add_definitions(-fpermissive)
     add_definitions(-DVK_USE_PLATFORM_XLIB_KHR) # legacy. Do we need to support XLIB surfaces?
     add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     add_definitions(-maes)

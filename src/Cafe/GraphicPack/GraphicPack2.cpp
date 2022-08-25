@@ -601,13 +601,13 @@ void GraphicPack2::LoadShaders()
 
 #pragma optimize( "", off )
 
-DLLEXPORT __declspec(noinline) void GraphicPack2_notifyActivate(GraphicPack2* gp, ExpressionParser* ep)
+DLLEXPORT NOINLINE void GraphicPack2_notifyActivate(GraphicPack2* gp, ExpressionParser* ep)
 {
 	// for Cemuhook
 	int placeholder = 0xDEADDEAD;
 }
 
-DLLEXPORT __declspec(noinline) void GraphicPack2_notifyDeactivate(GraphicPack2* gp)
+DLLEXPORT NOINLINE void GraphicPack2_notifyDeactivate(GraphicPack2* gp)
 {
 	// for Cemuhook
 	int placeholder = 0xDEADDEAD;

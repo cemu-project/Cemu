@@ -10,7 +10,7 @@ typedef struct
 }graphicPack_t;
 
 // scans the graphic pack directory for shaders
-__declspec(dllexport) void graphicPack_loadGraphicPackShaders(graphicPack_t* gp, wchar_t* graphicPackPath)
+DLLEXPORT void graphicPack_loadGraphicPackShaders(graphicPack_t* gp, wchar_t* graphicPackPath)
 {
 	// this function is part of the deprecated/removed v1 graphic pack code
 	// as of Cemuhook 0.5.7.3 this function must exist with a minimum length for detour
@@ -21,7 +21,7 @@ __declspec(dllexport) void graphicPack_loadGraphicPackShaders(graphicPack_t* gp,
 }
 
 // for cemuhook compatibility only
-__declspec(dllexport) bool config_isGraphicPackEnabled(uint64 id)
+DLLEXPORT bool config_isGraphicPackEnabled(uint64 id)
 {
 	forceLog_printf("STUB4");
 	forceLog_printf("STUB5");

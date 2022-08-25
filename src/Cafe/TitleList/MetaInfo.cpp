@@ -174,7 +174,7 @@ std::unique_ptr<uint8[]> MetaInfo::GetIcon(uint32& size) const
 		return nullptr;
 	}
 	default:
-		__assume(false);
+		ASSUME(false);
 	}
 	return nullptr;
 }

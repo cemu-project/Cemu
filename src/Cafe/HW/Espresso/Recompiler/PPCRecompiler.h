@@ -345,20 +345,20 @@ typedef struct
 	PPCRecFunction_t* ppcRecompilerFuncTable[PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE/4)]; // one virtual-function pointer for each potential ppc instruction
 	PPCREC_JUMP_ENTRY ppcRecompilerDirectJumpTable[PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE/4)]; // lookup table for ppc offset to native code function
 	// x64 data
-	uint64 __declspec(align(16)) _x64XMM_xorNegateMaskBottom[2];
-	uint64 __declspec(align(16)) _x64XMM_xorNegateMaskPair[2];
-	uint64 __declspec(align(16)) _x64XMM_xorNOTMask[2];
-	uint64 __declspec(align(16)) _x64XMM_andAbsMaskBottom[2];
-	uint64 __declspec(align(16)) _x64XMM_andAbsMaskPair[2];
-	uint32 __declspec(align(16)) _x64XMM_andFloatAbsMaskBottom[4];
-	uint64 __declspec(align(16)) _x64XMM_singleWordMask[2];
-	double __declspec(align(16)) _x64XMM_constDouble1_1[2];
-	double __declspec(align(16)) _x64XMM_constDouble0_0[2];
-	float  __declspec(align(16)) _x64XMM_constFloat0_0[2];
-	float  __declspec(align(16)) _x64XMM_constFloat1_1[2];
-	float  __declspec(align(16)) _x64XMM_constFloatMin[2];
-	uint32 __declspec(align(16)) _x64XMM_flushDenormalMask1[4];
-	uint32 __declspec(align(16)) _x64XMM_flushDenormalMaskResetSignBits[4];
+	uint64 ALIGN(16) _x64XMM_xorNegateMaskBottom[2];
+	uint64 ALIGN(16) _x64XMM_xorNegateMaskPair[2];
+	uint64 ALIGN(16) _x64XMM_xorNOTMask[2];
+	uint64 ALIGN(16) _x64XMM_andAbsMaskBottom[2];
+	uint64 ALIGN(16) _x64XMM_andAbsMaskPair[2];
+	uint32 ALIGN(16) _x64XMM_andFloatAbsMaskBottom[4];
+	uint64 ALIGN(16) _x64XMM_singleWordMask[2];
+	double ALIGN(16) _x64XMM_constDouble1_1[2];
+	double ALIGN(16) _x64XMM_constDouble0_0[2];
+	float  ALIGN(16) _x64XMM_constFloat0_0[2];
+	float  ALIGN(16) _x64XMM_constFloat1_1[2];
+	float  ALIGN(16) _x64XMM_constFloatMin[2];
+	uint32 ALIGN(16) _x64XMM_flushDenormalMask1[4];
+	uint32 ALIGN(16) _x64XMM_flushDenormalMaskResetSignBits[4];
 	// PSQ load/store scale tables
 	double _psq_ld_scale_ps0_ps1[64 * 2];
 	double _psq_ld_scale_ps0_1[64 * 2];
@@ -369,10 +369,10 @@ typedef struct
 	uint32 _x64XMM_mxCsr_ftzOff;
 }PPCRecompilerInstanceData_t;
 
-extern __declspec(dllexport) PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
+extern DLLEXPORT PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
 extern bool ppcRecompilerEnabled;
 
-__declspec(dllexport) void PPCRecompiler_init();
+DLLEXPORT void PPCRecompiler_init();
 
 void PPCRecompiler_allocateRange(uint32 startAddress, uint32 size);
 
@@ -385,10 +385,10 @@ extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 #define PPC_REC_INVALID_FUNCTION	((PPCRecFunction_t*)-1)
 
 // CPUID
-extern __declspec(dllexport) bool hasLZCNTSupport;
-extern __declspec(dllexport) bool hasMOVBESupport;
-extern __declspec(dllexport) bool hasBMI2Support;
-extern __declspec(dllexport) bool hasAVXSupport;
+extern DLLEXPORT bool hasLZCNTSupport;
+extern DLLEXPORT bool hasMOVBESupport;
+extern DLLEXPORT bool hasBMI2Support;
+extern DLLEXPORT bool hasAVXSupport;
 
 // todo - move some of the stuff above into PPCRecompilerInternal.h
 

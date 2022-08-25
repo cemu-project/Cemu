@@ -516,7 +516,7 @@ void LatteOverlay_translateScreenPosition(ScreenPosition pos, const Vector2f& wi
 		direction = -1;
 		break;
 	default:
-		__assume(false);
+		ASSUME(false);
 	}
 }
 

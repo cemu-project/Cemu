@@ -282,7 +282,7 @@ struct
 
 static_assert(sizeof(SharedDataEntry) == 0x1C);
 
-__declspec(dllexport) uint32 loadSharedData()
+DLLEXPORT uint32 loadSharedData()
 {
 	// check if font files are dumped
 	bool hasAllShareddataFiles = true;

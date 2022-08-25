@@ -72,9 +72,6 @@ private:
 		return iss && iss.eof();
 	}
 	
-	template <>
-	bool ConvertStringToType(const char* inValue, sint8& outValue) const;
-
 	using ListType_t = std::vector<MEMPTR<void>>;
 	ListType_t SearchValues(SearchDataType type, void* ptr, uint32 size)
 	{
@@ -196,6 +193,10 @@ wxDECLARE_EVENT_TABLE();
 
 	bool m_clear_state = false;
 };
+
+template <>
+bool MemorySearcherTool::ConvertStringToType(const char* inValue, sint8& outValue) const;
+
 
 
 

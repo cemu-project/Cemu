@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+
 uint32 coreinit_allocFromSysArea(uint32 size, uint32 alignment);
 class SysAllocatorBase;
 

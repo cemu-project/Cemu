@@ -166,6 +166,16 @@ inline sint16 _swapEndianS16(sint16 v)
     return (sint16)(((uint16)v >> 8) | ((uint16)v << 8));
 }
 
+inline uint64 _rotl64 (uint64 x, sint8 r)
+{
+    return (x << r) | (x >> (64 - r));
+}
+
+inline uint64 _rotr64 (uint64 x, sint8 r)
+{
+    return (x >> r) | (x << (64 - r));
+}
+
 typedef uint8_t BYTE;
 typedef uint32_t DWORD;
 typedef int32_t LONG;
@@ -200,10 +210,25 @@ typedef union _LARGE_INTEGER {
 
 // macros
 #if BOOST_OS_WINDOWS
-#define DLLEXPORT __declspec(dllexport)
+    #define DLLEXPORT __declspec(dllexport)
+    #define DLLIMPORT  __declspec(dllimport)
+    #define DEBUG_BREAK __debugbreak()
+    #define ALIGN(N) __declspec(align(N))
+    #define NOINLINE __declspec(noinline)
+    #define ASSUME(X) __assume((X)
+    #define THREAD_LOCAL __declspec(thread)
+    #define POPCNT(X) __popcnt((X))
 #else
-#define DLLEXPORT __declspec(dllexport)
+    #define DLLEXPORT
+    #define DLLIMPORT
+    #define DEBUG_BREAK
+    #define ALIGN(N) __attribute__((aligned (N)))
+    #define NOINLINE __attribute__((noinline))
+    #define ASSUME(X)
+    #define THREAD_LOCAL __thread
+    #define POPCNT(X) __builtin_popcount((X))
 #endif
+
 
 template <typename T1, typename T2>
 constexpr bool HAS_FLAG(T1 flags, T2 test_flag) { return (flags & (T1)test_flag) == (T1)test_flag; }
@@ -286,7 +311,7 @@ inline void cemu_assert(bool _condition)
 {
     if ((_condition) == false)
     {
-        __debugbreak();
+        DEBUG_BREAK;
     }
 }
 
@@ -307,32 +332,32 @@ inline void cemu_assert_suspicious()
 
 inline void cemu_assert_error()
 {
-	__debugbreak();
+	DEBUG_BREAK;
 }
 #else
 inline void cemu_assert_debug(bool _condition)
 {
     if ((_condition) == false)
-        __debugbreak();
+        DEBUG_BREAK;
 }
 
 inline void cemu_assert_unimplemented()
 {
-    __debugbreak();
+    DEBUG_BREAK;
 }
 
 inline void cemu_assert_suspicious()
 {
-    __debugbreak();
+    DEBUG_BREAK;
 }
 
 inline void cemu_assert_error()
 {
-    __debugbreak();
+    DEBUG_BREAK;
 }
 #endif
 
-#define assert_dbg() __debugbreak() // old style unconditional generic assert
+#define assert_dbg() DEBUG_BREAK // old style unconditional generic assert
 
 // Some string conversion helpers because C++20 std::u8string is too cumbersome to use in practice
 // mixing string types generally causes loads of issues and many of the libraries we use dont expose interfaces for u8string
@@ -383,7 +408,7 @@ public:
 template<typename T>
 bool future_is_ready(std::future<T>& f)
 {
-#ifdef __clang__
+#if defined(__clang__) || defined(__GNUC__)
     return f.wait_for(std::chrono::nanoseconds(0)) == std::future_status::ready;
 #else
 	return f._Is_ready();
@@ -399,7 +424,7 @@ std::atomic<T>* _rawPtrToAtomic(T* ptr)
     return reinterpret_cast<std::atomic<T>*>(ptr);
 }
 
-#if __clang__
+#if defined(__clang__) || defined(__GNUC__)
 #define ATTR_MS_ABI __attribute__((ms_abi))
 #else
 #define ATTR_MS_ABI
@@ -420,7 +445,7 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 	return titleId & 0xFFFFFFFF;
 }
 
-#ifdef __clang__
+#if defined(__clang__) || defined(__GNUC__)
 #define memcpy_dwords(__dest, __src, __numDwords) memcpy((__dest), (__src), (__numDwords) * sizeof(uint32))
 #define memcpy_qwords(__dest, __src, __numQwords) memcpy((__dest), (__src), (__numQwords) * sizeof(uint64))
 #else

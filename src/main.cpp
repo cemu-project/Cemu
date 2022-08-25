@@ -39,11 +39,14 @@
 #define _putenv(__s) putenv((char*)(__s))
 #endif
 
+#if BOOST_OS_WINDOWS > 0
 extern "C"
 {
-	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+	DLLEXPORT int AmdPowerXpressRequestHighPerformance = 1;
+	DLLEXPORT DWORD NvOptimusEnablement = 0x00000001;
 }
+#endif
+#endif
 
 bool _cpuExtension_SSSE3 = false;
 bool _cpuExtension_SSE4_1 = false;
@@ -51,7 +54,9 @@ bool _cpuExtension_AVX2 = false;
 
 std::atomic_bool g_isGPUInitFinished = false;
 
+#if BOOST_OS_WINDOWS > 0
 std::wstring executablePath;
+#endif
 
 bool g_cemuhook_loaded = false;
 bool IsCemuhookLoaded()
@@ -236,7 +241,7 @@ void mainEmulatorCommonInit()
 	_cpuExtension_SSSE3 = ((cpuInfo[2] >> 9) & 1) != 0;
 	_cpuExtension_SSE4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
 
-	__cpuidex(cpuInfo, 0x7, 0);
+	__cpuidex1(cpuInfo, 0x7, 0);
 	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
 
 #if BOOST_OS_WINDOWS > 0
@@ -426,7 +431,7 @@ int main(int argc, char *argv[])
 
 #pragma optimize("",off)
 
-__declspec(dllexport) void gameMeta_loadForCurrent()
+DLLEXPORT void gameMeta_loadForCurrent()
 {
 	int placeholderA = 0x11223344;
 	int placeholderB = 0x55667788;
@@ -434,7 +439,7 @@ __declspec(dllexport) void gameMeta_loadForCurrent()
 
 #pragma optimize("",on)
 
-__declspec(dllexport) uint64 gameMeta_getTitleId()
+DLLEXPORT uint64 gameMeta_getTitleId()
 {
 	return CafeSystem::GetForegroundTitleId();
 }

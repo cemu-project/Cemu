@@ -31,28 +31,28 @@
 #define CHECK_FOR_WX_EVT_STRING(strVar, strConst) if (strcmp(strVar, #strConst) == 0){ return static_cast<int>(strConst); }
 
 
-__declspec(dllexport) wxEvtHandler* wxEvtHandler_Initialize(uint8_t* allocMemory)
+DLLEXPORT wxEvtHandler* wxEvtHandler_Initialize(uint8_t* allocMemory)
 {
 	wxEvtHandler* handler = new (allocMemory) wxEvtHandler();
 	return handler;
 }
 
-__declspec(dllexport) void wxEvtHandler_Connect(wxEvtHandler* eventSource, int id, int lastId, int eventType, wxObjectEventFunction func, wxObject* userData, wxEvtHandler* eventSink)
+DLLEXPORT void wxEvtHandler_Connect(wxEvtHandler* eventSource, int id, int lastId, int eventType, wxObjectEventFunction func, wxObject* userData, wxEvtHandler* eventSink)
 {
 	eventSource->Connect(id, lastId, eventType, func, userData, eventSink);
 }
 
-__declspec(dllexport) void wxEvtHandler_Disconnect(wxEvtHandler* eventSource, int id, int lastId, int eventType, wxObjectEventFunction func, wxObject* userData, wxEvtHandler* eventSink)
+DLLEXPORT void wxEvtHandler_Disconnect(wxEvtHandler* eventSource, int id, int lastId, int eventType, wxObjectEventFunction func, wxObject* userData, wxEvtHandler* eventSink)
 {
 	eventSource->Disconnect(id, lastId, eventType, func, userData, eventSink);
 }
 
-__declspec(dllexport) const wchar_t* GetTranslationWChar(const wchar_t* text)
+DLLEXPORT const wchar_t* GetTranslationWChar(const wchar_t* text)
 {
 	return wxGetTranslation(text).wc_str();
 }
 
-__declspec(dllexport) int wxGetEventByName(const char* eventName)
+DLLEXPORT int wxGetEventByName(const char* eventName)
 {
 #define PROCESS_OWN_WXEVT(EventVarName,EventHookId) if (!strcmp(eventName,#EventVarName)){ return static_cast<int>(EventVarName); }
 #include "wxEvtHook.inl"
@@ -95,7 +95,7 @@ void FixupWxEvtIdsToMatchCemuHook()
 
 // these I added on my own since they might be useful
 
-__declspec(dllexport) void coreinitAPI_OSYieldThread()
+DLLEXPORT void coreinitAPI_OSYieldThread()
 {
 	PPCCore_switchToScheduler();
 }

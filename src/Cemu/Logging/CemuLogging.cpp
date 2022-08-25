@@ -243,7 +243,7 @@ void cafeLog_logW(uint32 type, const wchar_t* format, ...)
 		LoggingWindow::Log(it->second, logTempStr);
 }
 
-__declspec(dllexport) void cemuLog_log()
+DLLEXPORT void cemuLog_log()
 {
 	typedef void(*VoidFunc)();
 	const VoidFunc func = (VoidFunc)cafeLog_log;

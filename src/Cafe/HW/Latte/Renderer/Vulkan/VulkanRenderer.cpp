@@ -3409,7 +3409,7 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 		break;
 	}
 	default:
-		__assume(false);
+		ASSUME(false);
 	}
 	// update global stats
 	performanceMonitor.vk.numDescriptorSamplerTextures.decrement(statsNumSamplerTextures);

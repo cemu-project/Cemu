@@ -70,7 +70,7 @@ void unused_translation_dummy()
 
 
 #pragma optimize( "", off )
-DLLEXPORT _declspec(noinline) wxTopLevelWindow* wxMainWindowCreated(wxTopLevelWindow* wndPtr, uint32 magicConstant, CemuApp* appPointer)
+DLLEXPORT NOINLINE wxTopLevelWindow* wxMainWindowCreated(wxTopLevelWindow* wndPtr, uint32 magicConstant, CemuApp* appPointer)
 {
 	return wndPtr;
 }
