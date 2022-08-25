@@ -432,7 +432,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 				}
 
 				ImGui::SetCursorPosX(width - ImGui::CalcTextSize(text.c_str()).x / 2);
-				ImGui::Text(text.c_str());
+				ImGui::Text("%s", text.c_str());
 
 				float percentLoaded;
 				if(isPipelines)
@@ -446,7 +446,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 				else
 					text = fmt::format("{}/{} ({}%%)", g_shaderCacheLoaderState.loadedShaderFiles, g_shaderCacheLoaderState.shaderFileCount, (int)(percentLoaded * 100));
 				ImGui::SetCursorPosX(width - ImGui::CalcTextSize(text.c_str()).x / 2);
-				ImGui::Text(text.c_str());
+				ImGui::Text("%s", text.c_str());
 				ImGui::End();
 			}
 			ImGui::PopFont();
