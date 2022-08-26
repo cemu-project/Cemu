@@ -65,6 +65,9 @@ mainLLE.cpp
 )
 endif()
 
+add_executable(CemuBin
+badfile)
+
 target_precompile_headers(CemuBin PRIVATE Common/precompiled.h)
 
 if(WIN32)
