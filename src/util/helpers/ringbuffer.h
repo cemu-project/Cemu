@@ -6,7 +6,6 @@ template<typename T, uint32 elements, typename P = uint32>
 class RingBuffer
 {
 public:
-	//RingBuffer<T, elements, P>();
 	RingBuffer();
 
 	bool Push(const T& v);
