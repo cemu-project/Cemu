@@ -1,17 +1,21 @@
 <?xml version='1.0' encoding='utf-8'?>
 <component type="desktop">
   <!--Created with jdAppdataEdit 4.2-->
-  <id>info.cemu.cemu</id>
+  <id>info.cemu.Cemu</id>
   <name>Cemu</name>
   <summary>Software to emulate Wii U games and applications on PC</summary>
-  <developer_name>Cemu Project </developer_name>
-  <launchable type="desktop-id">info.cemu.cemu.desktop</launchable>
+  <summary xml:lang="de">Software zum emulieren von Wii U Spielen und Anwendungen auf dem PC</summary>
+  <developer_name>Cemu Project</developer_name>
+  <launchable type="desktop-id">info.cemu.Cemu.desktop</launchable>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MPL-2.0</project_license>
   <description>
     <p>Cemu is a Nintendo Wii U emulator that is able to run most Wii U games and homebrew in a playable state. Created by Exzap, and written in C/C++.</p>
+    <p xml:lang="de">Cemu ist ein Nintendo Wii U-Emulator, der die meisten Wii U Spiele und Homebrew in einem spielbaren Zustand ausführen kann. Erstellt von Exzap, und geschrieben in C/C++.</p>
     <p>This emulator aims at providing both high-accuracy and performance, and is actively being developed with new features and fixes to increase compatibility, convenience and usability.</p>
+    <p xml:lang="de">Dieser Emulator zielt darauf ab, sowohl hohe Genauigkeit als auch Leistung zu bieten, und wird aktiv mit neuen Funktionen und Korrekturen weiterentwickelt, um Kompatibilität, Komfort und Benutzerfreundlichkeit zu verbessern.</p>
     <p>It was written from scratch and development on the project began roughly early 2015.</p>
+    <p xml:lang="de">Er wird seit Anfang 2015 entwickelt.</p>
   </description>
   <screenshots>
     <screenshot type="default">
@@ -46,6 +50,7 @@
   <content_rating type="oars-1.1"/>
   <provides>
     <binary>cemu</binary>
+    <mediatype>application/x-wii-u-rom</mediatype>
   </provides>
   <keywords>
     <keyword>nintendo</keyword>
