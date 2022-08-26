@@ -647,8 +647,8 @@ std::string TitleInfo::GetInstallPath() const
 	TitleIdParser tip(titleId);
 	std::string tmp;
 	if (tip.IsSystemTitle())
-		tmp = fmt::format("sys\\title\\{:08x}\\{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+		tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
 	else
-		tmp = fmt::format("usr\\title\\{:08x}\\{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+		tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
 	return tmp;
 }
