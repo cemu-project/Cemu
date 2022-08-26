@@ -8,6 +8,7 @@
 
 #include <zarchive/zarchivereader.h>
 #include "config/ActiveSettings.h"
+#include <filesystem>
 
 // detect format by reading file header/footer
 CafeTitleFileType DetermineCafeSystemFileType(fs::path filePath)
@@ -646,9 +647,9 @@ std::string TitleInfo::GetInstallPath() const
 	TitleId titleId = GetAppTitleId();
 	TitleIdParser tip(titleId);
 	std::string tmp;
+        std::filesystem::path path = "usr";
 	if (tip.IsSystemTitle())
-		tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-	else
-		tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+               path = "sys";
+	tmp = (path / "title" / fmt::format("{:08x}",GetTitleIdHigh(titleId)) / fmt::format("{:08x}", GetTitleIdLow(titleId))).string();
 	return tmp;
 }
