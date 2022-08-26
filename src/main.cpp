@@ -27,6 +27,8 @@
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/vpad/vpad.h"
 
+#include "Common/platform.h"
+
 #include "audio/IAudioAPI.h"
 #if BOOST_OS_WINDOWS
 #pragma comment(lib,"Dbghelp.lib")
@@ -39,11 +41,13 @@
 #define _putenv(__s) putenv((char*)(__s))
 #endif
 
+#if BOOST_OS_WINDOWS
 extern "C"
 {
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
+#endif
 
 bool _cpuExtension_SSSE3 = false;
 bool _cpuExtension_SSE4_1 = false;

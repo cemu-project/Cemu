@@ -42,7 +42,7 @@ inline uint32_t GetExceptionError()
 
 // cpu id (somewhat hacky, reorganize later)
 void (__cpuid)(int __cpuVal[4], unsigned int __leaf);
-void __cpuidex1 (int __cpuid_info[4], int __leaf, int __subleaf);
+void __cpuidex (int __cpuid_info[4], int __leaf, int __subleaf);
 
 // placeholder
 uint32_t GetTickCount();
