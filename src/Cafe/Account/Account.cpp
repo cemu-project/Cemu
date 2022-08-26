@@ -412,7 +412,7 @@ fs::path Account::GetFileName(uint32 persistent_id)
 	if (persistent_id < kMinPersistendId)
 		throw std::invalid_argument(fmt::format("persistent id {:#x} is invalid", persistent_id));
 	
-	return CemuApp::GetMLCPath(fmt::format(L"usr\\save\\system\\act\\{:08x}\\account.dat", persistent_id)).ToStdWstring();
+	return CemuApp::GetMLCPath(fmt::format(L"usr/save/system/act/{:08x}/account.dat", persistent_id)).ToStdWstring();
 }
 
 OnlineValidator Account::ValidateOnlineFiles() const
