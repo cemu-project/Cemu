@@ -65,6 +65,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
 	did_show_graphic_pack_download = parser.get("gp_download", did_show_graphic_pack_download);
 	fullscreen = parser.get("fullscreen", fullscreen);
+	proxy_server = parser.get("proxy_server", "");
 
 	// cpu_mode = parser.get("cpu_mode", cpu_mode.GetInitValue());
 	//console_region = parser.get("console_region", console_region.GetInitValue());
@@ -340,6 +341,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("vk_warning", did_show_vulkan_warning);
 	config.set<bool>("gp_download", did_show_graphic_pack_download);
 	config.set<bool>("fullscreen", fullscreen);
+	config.set("proxy_server", proxy_server.GetValue().c_str());
 	
 	// config.set("cpu_mode", cpu_mode.GetValue());
 	//config.set("console_region", console_region.GetValue());
