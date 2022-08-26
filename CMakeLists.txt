@@ -24,6 +24,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if (MSVC)
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
+endif()
+
+if (MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise") # floating point model: precise
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GT") # fiber safe optimizations
