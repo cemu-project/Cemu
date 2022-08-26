@@ -366,7 +366,7 @@ namespace coreinit
 	void InitializeTimeAndCalendar()
 	{
 		osLib_addFunction("coreinit", "OSGetTime", export_OSGetTime);
-		osLib_addFunction("coreinit", "OSGetSystemTime", export_OSGetSystemTimeDummy); // register dummy HLE function to get Cemuhook to patch our dummy instead of the real function
+		osLib_addFunction("coreinit", "OSGetSystemTime", export_OSGetSystemTimeDummy);
 		osLib_addFunction("coreinit", "OSGetTick", export_OSGetTick);
 
 		cafeExportRegister("coreinit", OSTicksToCalendarTime, LogType::Placeholder);
