@@ -426,11 +426,3 @@ void LatteTC_UnloadAllTextures()
 	}
 	LatteRenderTarget_unloadAll();
 }
-
-/*
- * Asynchronous way to invalidate textures
- */
-__declspec(dllexport) void gpu7Texture_forceInvalidateByImagePtr(MPTR imagePtr)
-{
-	// deprecated. Texture cache heuristics are now good enough to detect moving frames
-}

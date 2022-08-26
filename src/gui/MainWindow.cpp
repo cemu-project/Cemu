@@ -65,8 +65,6 @@
 extern WindowInfo g_window_info;
 extern std::shared_mutex g_mutex;
 
-bool IsCemuhookLoaded();
-
 wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 
 enum
@@ -346,18 +344,6 @@ MainWindow::MainWindow()
 
 	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
 	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
-
-	if (fs::exists(ActiveSettings::GetPath("dbghelp.dll")) && !fs::exists(ActiveSettings::GetPath("cemuhook.dll")))
-	{
-		m_statusBar = CreateStatusBar(1);
-		wxStaticText* statusBarText = new wxStaticText(m_statusBar, wxID_ANY, wxT("The installed version of Cemuhook is not compatible. To get the latest version visit: "));
-		wxHyperlinkCtrl* cemuhookUrl = new wxHyperlinkCtrl(m_statusBar, wxID_ANY, "https://cemuhook.sshnuke.net/", "https://cemuhook.sshnuke.net/");
-		// align elements
-		auto textSize = statusBarText->GetSize();
-		statusBarText->SetPosition(wxPoint(6, (m_statusBar->GetSize().GetHeight() - textSize.GetHeight()) / 2));
-		if(cemuhookUrl)
-			cemuhookUrl->SetPosition(wxPoint(textSize.GetWidth() + 12, (m_statusBar->GetSize().GetHeight() - textSize.GetHeight()) / 2));
-	}
 
 	if (LaunchSettings::GetLoadFile().has_value())
 	{
@@ -2086,12 +2072,6 @@ void MainWindow::RecreateMenu()
 #ifndef PUBLIC_RELEASE
 		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("End emulation"));
 #endif
-		// destroy Cemuhook update indicator status bar
-		if (m_statusBar)
-		{
-			delete m_statusBar;
-			m_statusBar = nullptr;
-		}
 	}
 
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));

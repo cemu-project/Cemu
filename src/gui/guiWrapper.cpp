@@ -17,21 +17,17 @@ std::shared_mutex g_mutex;
 MainWindow* g_mainFrame = nullptr;
 
 #if BOOST_OS_WINDOWS
-void wxMatchCemuhookEventIds();
-
 void _wxLaunch()
 {
 	SetThreadName("MainThread_UI");
 	wxEntry();
 }
-
 #endif
 
 void gui_create()
 {
 	SetThreadName("MainThread");
 #if BOOST_OS_WINDOWS
-	wxMatchCemuhookEventIds();
 	// on Windows wxWidgets there is a bug where wxDirDialog->ShowModal will deadlock in Windows internals somehow
 	// moving the UI thread off the main thread fixes this
 	std::thread t = std::thread(_wxLaunch);

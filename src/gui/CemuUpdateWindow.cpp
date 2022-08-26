@@ -510,7 +510,6 @@ void CemuUpdateWindow::WorkerThread()
 	}
 }
 
-bool IsCemuhookLoaded();
 void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 {
 	event.Skip();
@@ -529,11 +528,8 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 
 		HANDLE lock = CreateMutex(nullptr, TRUE, L"Global\\cemu_update_lock");
 		CreateProcess(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
-
-		if (IsCemuhookLoaded())
-			TerminateProcess(GetCurrentProcess(), 0); 
-		else
-			exit(0);
+		
+		exit(0);
 	}
 #else
 	cemuLog_log(LogType::Force, "unimplemented - restart on update");

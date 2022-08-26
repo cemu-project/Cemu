@@ -53,44 +53,6 @@ std::atomic_bool g_isGPUInitFinished = false;
 
 std::wstring executablePath;
 
-bool g_cemuhook_loaded = false;
-bool IsCemuhookLoaded()
-{
-	return g_cemuhook_loaded;
-}
-
-void checkForCemuhook()
-{
-	#if BOOST_OS_WINDOWS
-	// check if there is a dbghelp.dll in the current working directory
-	if (!fs::exists(ActiveSettings::GetPath("cemuhook.dll")))
-		return;	
-	// check if Cemuhook can be detected
-	DWORD verHandle;
-	DWORD verLen = GetFileVersionInfoSizeW(L"cemuhook.dll", &verHandle);
-	if (verLen == 0)
-		return;
-	uint8* verData = (uint8*)malloc(verLen);
-	GetFileVersionInfoW(L"cemuhook.dll", 0, verLen, verData);
-	// get version
-	LPVOID lpBuffer;
-	UINT size;
-	if (VerQueryValueW(verData, L"\\", (LPVOID*)&lpBuffer, (PUINT)&size))
-	{
-		if (size)
-		{
-			VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
-			if (verInfo->dwSignature == 0xfeef04bd)
-			{
-				forceLog_printf("Cemuhook version: %d.%d.%d.%d", (verInfo->dwFileVersionMS >> 16) & 0xFFFF, (verInfo->dwFileVersionMS >> 0) & 0xFFFF, (verInfo->dwFileVersionLS >> 16) & 0xFFFF, (verInfo->dwFileVersionLS >> 0) & 0xFFFF);
-				g_cemuhook_loaded = true;
-			}
-		}
-	}
-	free(verData);
-	#endif
-}
-
 void logCPUAndMemoryInfo()
 {
 	#if BOOST_OS_WINDOWS
@@ -150,8 +112,6 @@ void infoLog_cemuStartup()
 	cemuLog_force("------- Init {} {}.{}{} -------", EMULATOR_NAME, EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
 	cemuLog_force("Init Wii U memory space (base: 0x{:016x})", (size_t)memory_base);
 	cemuLog_force(u8"mlc01 path: {}", ActiveSettings::GetMlcPath().generic_u8string());
-	// check if Cemuhook is installed
-	checkForCemuhook();
 	// check for wine version
 	checkForWine();
 	// CPU and RAM info
@@ -424,48 +384,7 @@ int main(int argc, char *argv[])
 }
 #endif
 
-/* Cemuhook legacy API */
-
-#pragma optimize("",off)
-
-__declspec(dllexport) void gameMeta_loadForCurrent()
-{
-	int placeholderA = 0x11223344;
-	int placeholderB = 0x55667788;
-}
-
-#pragma optimize("",on)
-
-__declspec(dllexport) uint64 gameMeta_getTitleId()
+extern "C" DLLEXPORT uint64 gameMeta_getTitleId()
 {
 	return CafeSystem::GetForegroundTitleId();
 }
-
-/* Cemuhook loading */
-#if BOOST_OS_WINDOWS
-#pragma init_seg(".CRT$XCT")
-
-HANDLE dbgLib;
-
-int dbghelp_init(void)
-{
-	// load dbghelp.dll from the system folder instead of loading outdated cemuhook via dbghelp.dll
-	WCHAR dllPath[MAX_PATH];
-	GetSystemDirectoryW(dllPath, MAX_PATH);
-	wcscat_s(dllPath, sizeof(dllPath) / sizeof(WCHAR), TEXT("\\dbghelp.dll"));
-
-	dbgLib = LoadLibraryW(dllPath);
-	if (dbgLib == NULL)
-		return -1;
-
-	return 0;
-}
-
-HMODULE _earlyInitFunction()
-{
-	dbghelp_init();
-	return LoadLibraryA("cemuhook2.dll");
-}
-
-HMODULE _cemuHookDllHandle = _earlyInitFunction();
-#endif

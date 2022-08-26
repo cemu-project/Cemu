@@ -10,7 +10,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/CafeSystem.h"
 
-extern bool DLLEXPORT alwaysDisplayDRC;
+extern bool alwaysDisplayDRC;
 
 void ActiveSettings::LoadOnce()
 {
