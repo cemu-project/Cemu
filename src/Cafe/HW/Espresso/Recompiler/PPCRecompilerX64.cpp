@@ -2242,7 +2242,7 @@ void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction,
 	}
 	else if( name >= PPCREC_NAME_SPR0 && name < PPCREC_NAME_SPR0+999 )
 	{
-		const uint32 sprIndex = (name - PPCREC_NAME_SPR0);
+		uint32 sprIndex = (name - PPCREC_NAME_SPR0);
 		if (sprIndex == SPR_LR)
 			x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, spr.LR), tempToRealRegister(imlInstruction->op_r_name.registerIndex));
 		else if (sprIndex == SPR_CTR)
