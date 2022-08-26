@@ -77,7 +77,7 @@ void ih264d_init_function_ptr(dec_struct_t *ps_codec)
     }
 }
 
-#ifndef __WIN32
+#ifdef __clang__
 #include <cpuid.h>
 
 void __cpuid2(signed int* cpuInfo, unsigned int level)

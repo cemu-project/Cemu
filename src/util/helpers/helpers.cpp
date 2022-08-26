@@ -9,7 +9,7 @@
 
 #include "config/ActiveSettings.h"
 
-#ifndef __WIN32
+#ifdef __clang__
 #include <boost/random/uniform_int.hpp>
 #endif
 
@@ -433,7 +433,7 @@ std::string GenerateRandomString(size_t length, std::string_view characters)
 	std::mt19937 gen(rd());
         //Workaround for static asserts using boost
         //TODO: Wait for fix in libstdc++
-        #ifdef __WIN32
+        #ifndef __clang__
         std::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
         #else
         boost::random::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);

@@ -72,7 +72,7 @@ Account::Account(uint32 persistent_id, std::wstring_view mii_name)
 
         //Use boost library to escape static asserts in Linux Builds
         //TODO: Look for fix in libstdc++
-        #ifndef __WIN32
+        #ifdef __clang__
         boost::random::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
         #else
         std::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());

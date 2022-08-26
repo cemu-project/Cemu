@@ -4,7 +4,7 @@
 #include<bitset>
 #include<random>
 
-#ifndef __WIN32
+#ifdef __clang__
 #include <boost/random/uniform_int.hpp>
 #endif
 
@@ -117,7 +117,7 @@ void releasePRUDPPort(uint16 port)
 std::mt19937_64 prudpRG(GetTickCount());
 //Workaround for static asserts when using uniform_int_distribution
 //TODO: Look for fix in libstdc++
-#ifdef __WIN32
+#ifndef __clang__
 std::uniform_int_distribution<int> prudpDis8(0, 0xFF);
 #else
 boost::random::uniform_int_distribution<int> prudpDis8(0, 0xFF);
