@@ -29,6 +29,7 @@
     "boost-ptr-container",
     "boost-property-tree",
     "boost-static-string",
+    "boost-random",
     "fmt",
     "glm",
     "glslang",
