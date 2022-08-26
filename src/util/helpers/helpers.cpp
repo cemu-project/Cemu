@@ -419,18 +419,20 @@ std::string GenerateRandomString(size_t length)
 	return GenerateRandomString(length, kCharacters);
 }
 
-std::string GenerateRandomString(size_t length, std::string_view characters)
+std::string GenerateRandomString(const size_t length, const std::string_view characters)
 {
 	assert(!characters.empty());
-	std::stringstream result;
+	std::string result;
+	result.resize(length);
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
-	for (uint32_t i = 0; i < length; ++i)
-	{
-		result << characters[index_dist(gen)];
-	}
+	std::generate_n(
+		result.begin(),
+		length,
+		[&] { return characters[index_dist(gen)]; }
+	);
 
-	return result.str();
+	return result;
 }
