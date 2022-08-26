@@ -73,6 +73,10 @@ CurlRequestHelper::CurlRequestHelper()
 
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, 2);
+
+	if(GetConfig().proxy_server.GetValue() != "") {
+		curl_easy_setopt(m_curl, CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());
+	}
 }
 
 CurlRequestHelper::~CurlRequestHelper()
