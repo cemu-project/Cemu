@@ -16,7 +16,7 @@ class GameProfile
 public:
 	static const uint32 kThreadQuantumDefault = 45000;
 
-	bool Load(uint64_t title_id, bool notifyCemuhook);
+	bool Load(uint64_t title_id);
 	void Save(uint64_t title_id);
 	void ResetOptional();
 	void Reset();
@@ -65,4 +65,4 @@ private:
 };
 extern std::unique_ptr<GameProfile> g_current_game_profile;
 
-__declspec(dllexport) void gameProfile_load();
+void gameProfile_load();

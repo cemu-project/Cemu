@@ -68,14 +68,6 @@ void unused_translation_dummy()
 	void(_("PrincipalId missing"));
 }
 
-
-#pragma optimize( "", off )
-DLLEXPORT _declspec(noinline) wxTopLevelWindow* wxMainWindowCreated(wxTopLevelWindow* wndPtr, uint32 magicConstant, CemuApp* appPointer)
-{
-	return wndPtr;
-}
-#pragma optimize( "", on )
-
 bool CemuApp::OnInit()
 {
 	wxInitAllImageHandlers();
@@ -140,9 +132,6 @@ bool CemuApp::OnInit()
 	g_window_info.app_active = true;
 
 	SetTopWindow(m_mainFrame);
-
-	// Cemuhook callback
-	wxMainWindowCreated(m_mainFrame, 0xDABABE, this);
 	m_mainFrame->Show();
 	return true;
 }

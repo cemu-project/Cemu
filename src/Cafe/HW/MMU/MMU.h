@@ -1,6 +1,6 @@
 #pragma once
 
-DLLEXPORT void memory_init();
+void memory_init();
 void memory_mapForCurrentTitle();
 void memory_logModifiedMemoryRanges();
 

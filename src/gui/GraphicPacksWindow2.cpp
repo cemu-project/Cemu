@@ -15,8 +15,6 @@
 #endif
 
 // main.cpp
-bool IsCemuhookLoaded();
-
 class wxGraphicPackData : public wxTreeItemData
 {
 public:

@@ -41,7 +41,6 @@ void crashlog_writeHeader(const char* header)
 }
 
 bool crashLogCreated = false;
-bool IsCemuhookLoaded();
 #include <boost/algorithm/string.hpp>
 BOOL CALLBACK MyMiniDumpCallback(PVOID pParam, const PMINIDUMP_CALLBACK_INPUT pInput, PMINIDUMP_CALLBACK_OUTPUT pOutput)
 {
@@ -375,10 +374,7 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 		fs::copy_file(ActiveSettings::GetPath("log.txt"), p, ec);
 	}
 
-	if (IsCemuhookLoaded())
-		TerminateProcess(GetCurrentProcess(), 0); // abort();
-	else
-		exit(0);
+	exit(0);
 
 	return;
 }

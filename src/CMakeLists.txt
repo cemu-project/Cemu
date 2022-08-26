@@ -48,11 +48,6 @@ add_subdirectory(imgui)
 add_subdirectory(resource)
 add_subdirectory(asm)
 
-if(ENABLE_CEMUHOOK)
-    add_definitions(-DUSE_CEMUHOOK)
-    add_subdirectory(cemuhook)
-endif()
-
 if(PUBLIC_RELEASE)
 add_executable(CemuBin WIN32
 main.cpp
@@ -70,7 +65,6 @@ target_precompile_headers(CemuBin PRIVATE Common/precompiled.h)
 if(WIN32)
   target_sources(CemuBin PRIVATE
   resource/cemu.rc
-  exports.def # for Cemuhook
   )
 endif()
 
@@ -90,10 +84,6 @@ target_link_libraries(CemuBin PRIVATE ${wxWidgets_LIBRARIES})
 target_link_libraries(CemuBin PRIVATE CURL::libcurl)
 target_link_libraries(CemuBin PRIVATE imgui::imgui)
 target_link_libraries(CemuBin PRIVATE pugixml pugixml::static pugixml::pugixml)
-
-if(ENABLE_CEMUHOOK)
-target_link_libraries(CemuBin PRIVATE CemuCemuhook)
-endif()
 
 target_link_libraries(CemuBin PUBLIC
 CemuCommon CemuAudio CemuInput CemuComponents CemuCafe CemuConfig CemuGui imguiImpl)

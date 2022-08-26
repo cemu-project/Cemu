@@ -41,10 +41,6 @@ option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
-if (WIN32)
-  option(ENABLE_CEMUHOOK "Enables Cemuhook compatibility" ON)
-endif()
-
 # input backends
 if (WIN32)
   option(ENABLE_XINPUT "Enables the usage of XInput" ON)
@@ -117,4 +113,3 @@ add_subdirectory(dependencies/ih264d)
 add_subdirectory(dependencies/ZArchive)
 
 add_subdirectory(src)
-
