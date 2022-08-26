@@ -15,6 +15,7 @@
 #include "Cafe/Filesystem/FST/FST.h"
 #include "Cafe/TitleList/TitleList.h"
 
+#include <cinttypes>
 #include <charconv>
 #include <curl/curl.h>
 #include <pugixml.hpp>
@@ -580,7 +581,7 @@ void DownloadManager::searchForIncompleteDownloads()
 		uint64 titleId;
 		uint32 version;
 		std::string name = p.path().filename().generic_string();
-		if( sscanf(name.c_str(), "cemu_%016llx_v%u", &titleId, &version) != 2)
+		if( sscanf(name.c_str(), "cemu_% " PRIx64 "_v%u", &titleId, &version) != 2)
 			continue;
 		std::unique_lock<std::recursive_mutex> _l(m_mutex);
 		for (auto& itr : m_ticketCache)
