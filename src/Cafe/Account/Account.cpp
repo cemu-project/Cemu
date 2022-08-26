@@ -9,6 +9,10 @@
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Common/filestream.h"
 
+#ifndef __WIN32
+#include <boost/random/uniform_int.hpp>
+#endif
+
 std::vector<Account> Account::s_account_list;
 
 Account::Account(uint32 persistent_id)
@@ -65,8 +69,16 @@ Account::Account(uint32 persistent_id, std::wstring_view mii_name)
 	
 	static std::random_device s_random_device;
 	static std::mt19937 s_mte(s_random_device());
-	std::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
-	std::generate(m_uuid.begin(), m_uuid.end(), [&]() { return (uint8)dist(s_mte); });
+
+        //Use boost library to escape static asserts in Linux Builds
+        //TODO: Look for fix in libstdc++
+        #ifndef __WIN32
+        boost::random::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
+        #else
+        std::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
+        #endif
+        
+        std::generate(m_uuid.begin(), m_uuid.end(), [&]() { return (uint8)dist(s_mte); });
 
 	// 1000004 or 2000004 | lower uint32 from uuid from uuid
 	m_transferable_id_base = (0x2000004ULL << 32);

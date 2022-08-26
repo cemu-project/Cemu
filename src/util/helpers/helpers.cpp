@@ -9,6 +9,11 @@
 
 #include "config/ActiveSettings.h"
 
+#ifndef __WIN32
+#include <boost/random/uniform_int.hpp>
+#endif
+
+
 #if BOOST_OS_WINDOWS
 #include <TlHelp32.h>
 #endif
@@ -426,8 +431,14 @@ std::string GenerateRandomString(size_t length, std::string_view characters)
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
-	for (uint32_t i = 0; i < length; ++i)
+        //Workaround for static asserts using boost
+        //TODO: Wait for fix in libstdc++
+        #ifdef __WIN32
+        std::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
+        #else
+        boost::random::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
+        #endif
+        for (uint32_t i = 0; i < length; ++i)
 	{
 		result << characters[index_dist(gen)];
 	}
