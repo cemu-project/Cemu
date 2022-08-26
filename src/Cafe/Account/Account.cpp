@@ -3,15 +3,12 @@
 #include "gui/CemuApp.h"
 #include "util/helpers/SystemException.h"
 
-#include <random>
-
 #include "config/ActiveSettings.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Common/filestream.h"
 
-#ifndef __clang__
+#include <random>
 #include <boost/random/uniform_int.hpp>
-#endif
 
 std::vector<Account> Account::s_account_list;
 
@@ -71,12 +68,7 @@ Account::Account(uint32 persistent_id, std::wstring_view mii_name)
 	static std::mt19937 s_mte(s_random_device());
 
         //Use boost library to escape static asserts in Linux Builds
-        //TODO: Look for fix in libstdc++
-        #ifdef __clang__
         boost::random::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
-        #else
-        std::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
-        #endif
         
         std::generate(m_uuid.begin(), m_uuid.end(), [&]() { return (uint8)dist(s_mte); });
 
