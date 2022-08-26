@@ -60,7 +60,7 @@ void libusbWrapper::init()
 
 libusbWrapper::~libusbWrapper()
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	// destroy default context
 	if(p_libusb_exit)
 		p_libusb_exit(nullptr);

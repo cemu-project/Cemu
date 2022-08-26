@@ -5,7 +5,7 @@
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 
-#if BOOST_OS_LINUX > 0
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 static __inline__
 unsigned __int64 _umul128(unsigned __int64,
                           unsigned __int64,
@@ -113,7 +113,7 @@ uint64 PPCTimer_microsecondsToTsc(uint64 us)
 uint64 PPCTimer_tscToMicroseconds(uint64 us)
 {
 	uint128_t r{};
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	r.low = _umul128(us, 1000000ULL, &r.high);
 	#else
 	r.low = _umul128(us, 1000000ULL, (unsigned long long*)&r.high);
@@ -153,7 +153,7 @@ uint64 PPCTimer_getFromRDTSC()
 	rdtscDif = rdtscDif & ~(uint64)((sint64)rdtscDif >> 63);
 
 	uint128_t diff{};
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	diff.low = _umul128(rdtscDif, Espresso::CORE_CLOCK, &diff.high);
 #else
 	diff.low = _umul128(rdtscDif, Espresso::CORE_CLOCK, (unsigned long long*)&diff.high);
@@ -163,7 +163,7 @@ uint64 PPCTimer_getFromRDTSC()
 		_rdtscLastMeasure = rdtscCurrentMeasure; // only travel forward in time
 
 	uint8 c = 0;
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	c = _addcarry_u64(c, _rdtscAcc.low, diff.low, &_rdtscAcc.low);
 	_addcarry_u64(c, _rdtscAcc.high, diff.high, &_rdtscAcc.high);
 	#else

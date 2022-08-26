@@ -2,7 +2,7 @@
 #define VKFUNC_DEFINE
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include <dlfcn.h>
 #endif
 

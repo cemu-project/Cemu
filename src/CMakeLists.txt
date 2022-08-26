@@ -20,11 +20,13 @@ if(MSVC)
     # _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
     # _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 elseif(UNIX)
+    if(NOT APPLE)
+        add_definitions(-DVK_USE_PLATFORM_XLIB_KHR) # legacy. Do we need to support XLIB surfaces?
+        add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+    endif()
     add_definitions(-fms-extensions)
     add_definitions(-fms-compatibility-version=19.14)
     add_definitions(-fdelayed-template-parsing)
-    add_definitions(-DVK_USE_PLATFORM_XLIB_KHR) # legacy. Do we need to support XLIB surfaces?
-    add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     add_definitions(-maes)
     # warnings
     add_compile_options(-Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion -Wno-ambiguous-reversed-operator)

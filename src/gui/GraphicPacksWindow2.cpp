@@ -10,8 +10,8 @@
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
 
-#if BOOST_OS_LINUX > 0
-#include "resource/linux/resources.h"
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#include "resource/embedded/resources.h"
 #endif
 
 // main.cpp

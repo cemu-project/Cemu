@@ -145,7 +145,7 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 		bool isCompressedFormat = hostTexture->IsCompressedFormat();
 		if( isCompressedFormat == false )
 		{
-			#if BOOST_OS_WINDOWS > 0
+			#if BOOST_OS_WINDOWS
 			if (_cpuExtension_AVX2)
 			{
 				__m256i h256 = { 0 };

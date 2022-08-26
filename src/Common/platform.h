@@ -6,11 +6,12 @@
 #if BOOST_OS_WINDOWS
 #include "Common/windows/platform.h"
 #elif BOOST_OS_LINUX
-#include "byteswap.h"
-//#include <boost/core/enable_if.hpp>
-// #include <boost/type_traits.hpp>
-#include "Common/linux/platform.h"
-
+#include <byteswap.h>
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrender.h>
+#include <X11/Xutil.h>
+#include "Common/unix/platform.h"
 #elif BOOST_OS_MACOS
-
+#include <libkern/OSByteOrder.h>
+#include "Common/unix/platform.h"
 #endif

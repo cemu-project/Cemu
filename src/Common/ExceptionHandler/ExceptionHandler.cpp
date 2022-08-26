@@ -1,7 +1,7 @@
 #include "Common/precompiled.h"
 #include "Cafe/CafeSystem.h"
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include <signal.h>
 #include <execinfo.h>
 #endif

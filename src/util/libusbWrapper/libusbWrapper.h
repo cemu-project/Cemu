@@ -41,7 +41,7 @@ public:
 	
 	
 private:
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	HMODULE m_module = nullptr;
 	bool m_isInitialized = false;
 #endif

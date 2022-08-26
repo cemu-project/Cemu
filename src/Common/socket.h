@@ -1,6 +1,6 @@
 #pragma once
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 #include <WinSock2.h>
 typedef int socklen_t;
