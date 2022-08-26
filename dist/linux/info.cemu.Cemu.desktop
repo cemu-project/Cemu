@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Cemu
+Type=Application
+Terminal=false
+Icon=info.cemu.Cemu
+Exec=cemu
+Comment=Software to emulate Wii U games and applications on PC
+Comment[de]=Software zum emulieren von Wii U Spielen und Anwendungen auf dem PC
+Categories=Game;Emulator;
+Keywords=Nintendo;
+MimeType=application/x-wii-u-rom;
