@@ -20,12 +20,12 @@ if(MSVC)
     # _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
     # _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 elseif(UNIX)
+    if(NOT APPLE)
+        add_definitions(-DVK_USE_PLATFORM_XLIB_KHR) # legacy. Do we need to support XLIB surfaces?
+        add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+    endif()
     add_definitions(-fms-extensions)
-    # add_definitions(-fms-compatibility-version=19.14)
-    # add_definitions(-fdelayed-template-parsing)
     add_definitions(-fpermissive)
-    add_definitions(-DVK_USE_PLATFORM_XLIB_KHR) # legacy. Do we need to support XLIB surfaces?
-    add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     add_definitions(-maes)
     # warnings
     add_compile_options(-Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion -Wno-ambiguous-reversed-operator)
@@ -47,11 +47,6 @@ add_subdirectory(imgui)
 add_subdirectory(resource)
 add_subdirectory(asm)
 
-if(ENABLE_CEMUHOOK)
-    add_definitions(-DUSE_CEMUHOOK)
-    add_subdirectory(cemuhook)
-endif()
-
 if(PUBLIC_RELEASE)
 add_executable(CemuBin WIN32
 main.cpp
@@ -69,7 +64,6 @@ target_precompile_headers(CemuBin PRIVATE Common/precompiled.h)
 if(WIN32)
   target_sources(CemuBin PRIVATE
   resource/cemu.rc
-  exports.def # for Cemuhook
   )
 endif()
 
@@ -89,10 +83,6 @@ target_link_libraries(CemuBin PRIVATE ${wxWidgets_LIBRARIES})
 target_link_libraries(CemuBin PRIVATE CURL::libcurl)
 target_link_libraries(CemuBin PRIVATE imgui::imgui)
 target_link_libraries(CemuBin PRIVATE pugixml pugixml::static pugixml::pugixml)
-
-if(ENABLE_CEMUHOOK)
-target_link_libraries(CemuBin PRIVATE CemuCemuhook)
-endif()
 
 target_link_libraries(CemuBin PUBLIC
 CemuCommon CemuAudio CemuInput CemuComponents CemuCafe CemuConfig CemuGui imguiImpl)

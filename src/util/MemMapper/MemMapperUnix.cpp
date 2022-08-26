@@ -1,6 +1,6 @@
 #include "util/MemMapper/MemMapper.h"
 
-#if BOOST_OS_LINUX > 0
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include <unistd.h>
 #include <sys/mman.h>
 

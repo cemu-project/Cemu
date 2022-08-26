@@ -100,11 +100,6 @@ PPCInterpreter_t* PPCCore_executeCallbackInternal(uint32 functionMPTR)
 	return hCPU;
 }
 
-DLLEXPORT void PPCCore_executeCallback(uint32 functionMPTR)
-{
-	PPCCore_executeCallbackInternal(functionMPTR);
-}
-
 void PPCCore_deleteAllThreads()
 {
 	assert_dbg();

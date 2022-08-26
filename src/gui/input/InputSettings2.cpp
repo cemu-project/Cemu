@@ -30,7 +30,7 @@
 #include "util/EventService.h"
 
 #if BOOST_OS_LINUX
-#include "resource/linux/resources.h"
+#include "resource/embedded/resources.h"
 #endif
 
 bool g_inputConfigWindowHasFocus = false;

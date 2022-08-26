@@ -3,7 +3,7 @@
 #include <bitset>
 #include "nsyshid.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 #include <setupapi.h>
 #include <initguid.h>

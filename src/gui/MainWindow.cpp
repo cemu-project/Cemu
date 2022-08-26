@@ -50,12 +50,12 @@
 #include "gui/input/InputSettings2.h"
 #include "input/InputManager.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #define exit(__c) ExitProcess(__c)
 #endif
 
-#if BOOST_OS_LINUX > 0
-#include "resource/linux/resources.h"
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#include "resource/embedded/resources.h"
 #endif
 
 #include "Cafe/TitleList/TitleInfo.h"
@@ -64,8 +64,6 @@
 
 extern WindowInfo g_window_info;
 extern std::shared_mutex g_mutex;
-
-bool IsCemuhookLoaded();
 
 wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 
@@ -296,7 +294,7 @@ MainWindow::MainWindow()
 	SetClientSize(1280, 720);
 	SetIcon(wxICON(M_WND_ICON128));
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	HICON hWindowIcon = (HICON)LoadImageA(NULL, "M_WND_ICON16", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 	SendMessage(this->GetHWND(), WM_SETICON, ICON_SMALL, (LPARAM)hWindowIcon);
 #endif
@@ -346,18 +344,6 @@ MainWindow::MainWindow()
 
 	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
 	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
-
-	if (fs::exists(ActiveSettings::GetPath("dbghelp.dll")) && !fs::exists(ActiveSettings::GetPath("cemuhook.dll")))
-	{
-		m_statusBar = CreateStatusBar(1);
-		wxStaticText* statusBarText = new wxStaticText(m_statusBar, wxID_ANY, wxT("The installed version of Cemuhook is not compatible. To get the latest version visit: "));
-		wxHyperlinkCtrl* cemuhookUrl = new wxHyperlinkCtrl(m_statusBar, wxID_ANY, "https://cemuhook.sshnuke.net/", "https://cemuhook.sshnuke.net/");
-		// align elements
-		auto textSize = statusBarText->GetSize();
-		statusBarText->SetPosition(wxPoint(6, (m_statusBar->GetSize().GetHeight() - textSize.GetHeight()) / 2));
-		if(cemuhookUrl)
-			cemuhookUrl->SetPosition(wxPoint(textSize.GetWidth() + 12, (m_statusBar->GetSize().GetHeight() - textSize.GetHeight()) / 2));
-	}
 
 	if (LaunchSettings::GetLoadFile().has_value())
 	{
@@ -650,7 +636,7 @@ void MainWindow::OnInstallUpdate(wxCommandEvent& event)
 			break;
 		if (modalChoice == wxID_OK)
 		{
-			#if BOOST_OS_LINUX
+			#if BOOST_OS_LINUX || BOOST_OS_MACOS
 			fs::path dirPath((const char*)(openDirDialog.GetPath().fn_str()));
 			#else
 			fs::path dirPath(openDirDialog.GetPath().fn_str());
@@ -2086,12 +2072,6 @@ void MainWindow::RecreateMenu()
 #ifndef PUBLIC_RELEASE
 		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("End emulation"));
 #endif
-		// destroy Cemuhook update indicator status bar
-		if (m_statusBar)
-		{
-			delete m_statusBar;
-			m_statusBar = nullptr;
-		}
 	}
 
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));

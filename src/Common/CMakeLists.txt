@@ -17,8 +17,8 @@ PRIVATE
 else()
 target_sources(CemuCommon
 PRIVATE
-    linux/platform.cpp
-    linux/platform.h
+    unix/platform.cpp
+    unix/platform.h
 )
 endif()
 

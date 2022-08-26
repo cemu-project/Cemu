@@ -242,7 +242,7 @@ namespace save
 		}
 		catch (const std::exception& ex)
 		{
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 			std::wstringstream errorMsg;
 			errorMsg << L"Couldn't move your save files!" << std::endl << std::endl;
 			errorMsg << L"Error: " << ex.what() << std::endl << std::endl;

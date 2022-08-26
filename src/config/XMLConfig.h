@@ -396,7 +396,7 @@ public:
 		}
 
 		FILE* file = nullptr;
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
         file = _wfopen(tmp_name.c_str(), L"wb");
 #else
 		file = fopen(boost::nowide::narrow(tmp_name).c_str(), "wb");

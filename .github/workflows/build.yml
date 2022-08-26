@@ -1,7 +1,7 @@
 name: Build Cemu
 
 on:
-  pull_request_target:
+  pull_request:
     paths-ignore:
       - "*.md"
     types:
@@ -26,9 +26,6 @@ env:
 jobs:
   build-ubuntu:
     runs-on: ubuntu-20.04
-    env:
-      install_vulkan_folder: "$GITHUB_WORKSPACE/vulkan_sdk"
-      install_vulkan_version: "1.3.216.0"
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v3
@@ -53,13 +50,9 @@ jobs:
       run: |
         sudo apt update -qq
         sudo apt install -y ninja-build cmake libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm
-        wget https://sdk.lunarg.com/sdk/download/${{ env.install_vulkan_version }}/linux/vulkansdk-linux-x86_64-${{ env.install_vulkan_version }}.tar.gz -q -O vulkansdk.tar.gz
-        mkdir -p "${{ env.install_vulkan_folder }}"
-        tar -xf vulkansdk.tar.gz --directory ${{ env.install_vulkan_folder }}
 
     - name: "Bootstrap vcpkg"
       run: |
-        export VULKAN_SDK="${{ env.install_vulkan_folder }}/${{ env.install_vulkan_version }}/x86_64"
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
         
     - name: 'Setup NuGet Credentials for vcpkg'
@@ -78,7 +71,6 @@ jobs:
         
     - name: "cmake"
       run: |
-        export VULKAN_SDK="${{ env.install_vulkan_folder }}/${{ env.install_vulkan_version }}/x86_64"
         mkdir -p build
         cd build
         cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
@@ -98,9 +90,6 @@ jobs:
         
   build-windows:
     runs-on: windows-2022
-    env:
-      install_vulkan_folder: "$GITHUB_WORKSPACE/vulkan_sdk"
-      install_vulkan_version: "1.3.216.0"
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v3
@@ -121,12 +110,6 @@ jobs:
         echo "BUILD_FLAGS=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "Build mode is debug"
         
-    - name: Prepare Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@v1.2.0
-      with:
-        vulkan-query-version: 1.3.216.0
-        vulkan-components: Vulkan-Headers, Vulkan-Loader
-        vulkan-use-cache: false
     
     - name: Workaround
       run: |

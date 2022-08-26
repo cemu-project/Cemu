@@ -16,7 +16,7 @@
 #include "config/CemuConfig.h"
 
 #include "audio/IAudioAPI.h"
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #include "audio/DirectSoundAPI.h"
 #include "audio/XAudio27API.h"
 #endif
@@ -31,7 +31,7 @@
 #include "gui/dialogs/CreateAccount/wxCreateAccountDialog.h"
 #include "config/PermanentStorage.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #include <VersionHelpers.h>
 #endif
 
@@ -39,8 +39,8 @@
 #include "config/ActiveSettings.h"
 #include "gui/helpers/wxHelpers.h"
 
-#if BOOST_OS_LINUX > 0
-#include "resource/linux/resources.h"
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#include "resource/embedded/resources.h"
 #endif
 
 #include "Cafe/CafeSystem.h"
@@ -649,7 +649,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 
 	{
 		m_account_information = new wxCollapsiblePane(online_panel, wxID_ANY, _("Account information"));
-		#if BOOST_OS_WINDOWS > 0
+		#if BOOST_OS_WINDOWS
 		m_account_information->GetControlWidget()->SetBackgroundColour(*wxWHITE);
 		#endif
 		auto win = m_account_information->GetPane();
@@ -1063,7 +1063,7 @@ void GeneralSettings2::ResetAccountInformation()
 
 	// refresh pane size
 	m_account_information->InvalidateBestSize();
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	m_account_information->OnStateChange(GetBestSize());
 	#endif
 }

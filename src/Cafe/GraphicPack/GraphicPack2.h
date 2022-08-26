@@ -166,8 +166,8 @@ public:
 	static bool DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack);
 	static void ClearGraphicPacks();
 private:
-	DLLEXPORT bool Activate();
-	DLLEXPORT bool Deactivate();
+	bool Activate();
+	bool Deactivate();
 
 	static std::vector<std::shared_ptr<GraphicPack2>> s_graphic_packs;
 	static std::vector<std::shared_ptr<GraphicPack2>> s_active_graphic_packs;

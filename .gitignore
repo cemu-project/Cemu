@@ -16,7 +16,20 @@
 
 build/
 out/
+.cache/
 
 # Cemu bin files
-otp.bin
-seeprom.bin
+bin/otp.bin
+bin/seeprom.bin
+bin/Cemu.pdb
+bin/mlc01/*
+bin/settings.xml
+bin/title_list_cache.xml
+
+!bin/shaderCache/info.txt
+bin/shaderCache/*
+
+bin/controllerProfiles/*
+
+!bin/gameProfiles/default/*
+bin/gameProfiles/*

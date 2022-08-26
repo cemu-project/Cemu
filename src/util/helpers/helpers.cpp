@@ -9,6 +9,9 @@
 
 #include "config/ActiveSettings.h"
 
+#include <boost/random/uniform_int.hpp>
+
+
 #if BOOST_OS_WINDOWS
 #include <TlHelp32.h>
 #endif
@@ -46,7 +49,7 @@ std::string_view& trim(std::string_view& str, const std::string& chars)
 	return ltrim(rtrim(str, chars), chars);
 }
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 std::wstring GetSystemErrorMessageW()
 {
@@ -120,7 +123,7 @@ std::string GetSystemErrorMessage(const std::error_code& ec)
 	return fmt::format("{}\n{}",msg, ec.message());
 }
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 const DWORD MS_VC_EXCEPTION = 0x406D1388;
 #pragma pack(push,8)
 typedef struct tagTHREADNAME_INFO
@@ -135,7 +138,7 @@ typedef struct tagTHREADNAME_INFO
 
 void SetThreadName(const char* name)
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	
 #ifndef _PUBLIC_RELEASE
 	THREADNAME_INFO info;
@@ -154,12 +157,14 @@ void SetThreadName(const char* name)
 	
 #endif
 	
+#elif BOOST_OS_MACOS
+	pthread_setname_np(name);
 #else
     pthread_setname_np(pthread_self(), name);
 #endif
 }
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 std::pair<DWORD, DWORD> GetWindowsVersion()
 {
 	using RtlGetVersion_t = LONG(*)(POSVERSIONINFOEXW);
@@ -417,18 +422,22 @@ std::string GenerateRandomString(size_t length)
 	return GenerateRandomString(length, kCharacters);
 }
 
-std::string GenerateRandomString(size_t length, std::string_view characters)
+std::string GenerateRandomString(const size_t length, const std::string_view characters)
 {
 	assert(!characters.empty());
-	std::stringstream result;
+	std::string result;
+	result.resize(length);
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
-	for (uint32_t i = 0; i < length; ++i)
-	{
-		result << characters[index_dist(gen)];
-	}
+     
+        // workaround for static asserts using boost
+        boost::random::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
+	std::generate_n(
+		result.begin(),
+		length,
+		[&] { return characters[index_dist(gen)]; }
+	);
 
-	return result.str();
+	return result;
 }

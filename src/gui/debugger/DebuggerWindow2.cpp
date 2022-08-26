@@ -20,7 +20,7 @@
 #include "util/helpers/helpers.h"
 
 #if BOOST_OS_LINUX
-#include "resource/linux/resources.h"
+#include "resource/embedded/resources.h"
 #endif
 
 enum

@@ -17,21 +17,17 @@ std::shared_mutex g_mutex;
 MainWindow* g_mainFrame = nullptr;
 
 #if BOOST_OS_WINDOWS
-void wxMatchCemuhookEventIds();
-
 void _wxLaunch()
 {
 	SetThreadName("MainThread_UI");
 	wxEntry();
 }
-
 #endif
 
 void gui_create()
 {
 	SetThreadName("MainThread");
 #if BOOST_OS_WINDOWS
-	wxMatchCemuhookEventIds();
 	// on Windows wxWidgets there is a bug where wxDirDialog->ShowModal will deadlock in Windows internals somehow
 	// moving the UI thread off the main thread fixes this
 	std::thread t = std::thread(_wxLaunch);
@@ -159,9 +155,9 @@ typedef void GdkDisplay;
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw)
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	handleInfoOut.hwnd = wxw->GetHWND();
-#else
+#elif BOOST_OS_LINUX
     /* dynamically retrieve GTK imports so we dont have to include and link the whole lib */
     void (*dyn_gtk_widget_realize)(GtkWidget *widget);
     dyn_gtk_widget_realize = (void(*)(GtkWidget* widget))dlsym(RTLD_NEXT, "gtk_widget_realize");

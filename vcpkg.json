@@ -13,7 +13,6 @@
       "default-features": false
     },
     "rapidjson",
-    "vulkan",
     "sdl2",
     "boost-tokenizer",
     "boost-container",
@@ -30,6 +29,7 @@
     "boost-ptr-container",
     "boost-property-tree",
     "boost-static-string",
+    "boost-random",
     "fmt",
     "glm",
     "glslang",

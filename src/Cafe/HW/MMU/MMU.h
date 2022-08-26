@@ -1,6 +1,6 @@
 #pragma once
 
-DLLEXPORT void memory_init();
+void memory_init();
 void memory_mapForCurrentTitle();
 void memory_logModifiedMemoryRanges();
 
@@ -201,6 +201,9 @@ static uint16 CPU_swapEndianU16(uint16 v)
 #elif BOOST_OS_LINUX
 #define CPU_swapEndianU64(_v) bswap_64((uint64)(_v))
 #define CPU_swapEndianU32(_v) bswap_32((uint32)(_v))
+#elif BOOST_OS_MACOS
+#define CPU_swapEndianU64(_v) OSSwapInt64((uint64)(_v))
+#define CPU_swapEndianU32(_v) OSSwapInt32((uint32)(_v))
 #endif
 
 // direct memory access (no hardware interface access)

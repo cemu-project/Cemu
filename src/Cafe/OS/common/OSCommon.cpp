@@ -99,7 +99,7 @@ void osLib_addFunctionInternal(const char* libraryName, const char* functionName
 	s_osFunctionTable->emplace_back(libHashA, libHashB, funcHashA, funcHashB, fmt::format("{}.{}", libraryName, functionName), PPCInterpreter_registerHLECall(osFunction));
 }
 
-DLLEXPORT void osLib_registerHLEFunction(const char* libraryName, const char* functionName, void(*osFunction)(PPCInterpreter_t* hCPU))
+extern "C" DLLEXPORT void osLib_registerHLEFunction(const char* libraryName, const char* functionName, void(*osFunction)(PPCInterpreter_t * hCPU))
 {
 	osLib_addFunctionInternal(libraryName, functionName, osFunction);
 }

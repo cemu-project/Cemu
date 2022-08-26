@@ -68,14 +68,6 @@ void unused_translation_dummy()
 	void(_("PrincipalId missing"));
 }
 
-
-#pragma optimize( "", off )
-DLLEXPORT NOINLINE wxTopLevelWindow* wxMainWindowCreated(wxTopLevelWindow* wndPtr, uint32 magicConstant, CemuApp* appPointer)
-{
-	return wndPtr;
-}
-#pragma optimize( "", on )
-
 bool CemuApp::OnInit()
 {
 	wxInitAllImageHandlers();
@@ -140,9 +132,6 @@ bool CemuApp::OnInit()
 	g_window_info.app_active = true;
 
 	SetTopWindow(m_mainFrame);
-
-	// Cemuhook callback
-	wxMainWindowCreated(m_mainFrame, 0xDABABE, this);
 	m_mainFrame->Show();
 	return true;
 }
@@ -150,7 +139,7 @@ bool CemuApp::OnInit()
 int CemuApp::OnExit()
 {
 	wxApp::OnExit();
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	ExitProcess(0);
 #else
 	exit(0);
@@ -306,7 +295,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 		std::stringstream errorMsg;
 		errorMsg << fmt::format(_("Couldn't create a required mlc01 subfolder or file!\n\nError: {0}\nTarget path:\n{1}").ToStdString(), ex.what(), boost::nowide::narrow(mlc));
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();
 		if (lastError != ERROR_SUCCESS)
 			errorMsg << fmt::format("\n\n{}", GetSystemErrorMessage(lastError));
@@ -332,7 +321,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 		std::stringstream errorMsg;
 		errorMsg << fmt::format(_("Couldn't create a required cemu directory or file!\n\nError: {0}").ToStdString(), ex.what());
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();
 		if (lastError != ERROR_SUCCESS)
 			errorMsg << fmt::format("\n\n{}", GetSystemErrorMessage(lastError));

@@ -22,7 +22,7 @@ struct gameProfileBooleanOption_t
 * If the option exists, true is returned.
 * The boolean is stored in *optionValue
 */
-DLLEXPORT bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameProfileBooleanOption_t* option)
+bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameProfileBooleanOption_t* option)
 {
 	auto option_value = iniParser->FindOption(optionName);
 	option->isPresent = false;
@@ -81,7 +81,7 @@ bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName
 * Attempts to load a integer option
 * Allows to specify min and max value (error is logged if out of range and default value is picked)
 */
-DLLEXPORT bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, sint32 minVal, sint32 maxVal)
+bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, sint32 minVal, sint32 maxVal)
 {
 	auto option_value = iniParser->FindOption(optionName);
 	option->isPresent = false;
@@ -166,17 +166,10 @@ bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, st
 	return result;
 }
 
-#pragma optimize( "", off )  
-DLLEXPORT NOINLINE void gameProfile_categoryBegin(IniParser* iniParser)
-{
-	// do nothing
-}
-#pragma optimize( "", on )  
-
 void gameProfile_load()
 {
 	g_current_game_profile->ResetOptional(); // reset with global values as optional
-	g_current_game_profile->Load(CafeSystem::GetForegroundTitleId(), true);
+	g_current_game_profile->Load(CafeSystem::GetForegroundTitleId());
 
 	// apply some settings immediately
 	ppcThreadQuantum = g_current_game_profile->GetThreadQuantum();
@@ -185,7 +178,7 @@ void gameProfile_load()
 		cemuLog_force("Thread quantum set to {}", ppcThreadQuantum);
 }
 
-bool GameProfile::Load(uint64_t title_id, bool notifyCemuhook)
+bool GameProfile::Load(uint64_t title_id)
 {
 	auto gameProfilePath = ActiveSettings::GetPath("gameProfiles/{:016x}.ini", title_id);
 
@@ -220,9 +213,6 @@ bool GameProfile::Load(uint64_t title_id, bool notifyCemuhook)
 	// parse ini
 	while (iniParser.NextSection())
 	{
-		//if (notifyCemuhook)
-		//	gameProfile_categoryBegin(gameProfile); // hookable export for Cemuhook
-
 		if (boost::iequals(iniParser.GetCurrentSectionName(), "General"))
 		{
 			gameProfile_loadBooleanOption2(iniParser, "loadSharedLibraries", m_loadSharedLibraries);
@@ -378,25 +368,4 @@ void GameProfile::Reset()
 	// controller settings
 	for (auto& profile : m_controllerProfile)
 		profile.reset();
-}
-
-// legacy code for Cemuhook
-DLLEXPORT char* gameProfile_loadStringOption(IniParser* iniParser, char* optionName)
-{
-	return nullptr;
-}
-DLLEXPORT char* gameProfile_getCurrentCategoryName(IniParser* iniParser)
-{
-	return nullptr;
-}
-
-struct gpNamedOptionEntry_t
-{
-	char* name;
-	sint32 value;
-};
-
-DLLEXPORT bool gameProfile_loadIntegerNamedOption(IniParser* iniParser, char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, const gpNamedOptionEntry_t* nameValues, sint32 numNameValues)
-{
-	return false;
 }

@@ -28,24 +28,22 @@
 #include "Cafe/OS/libs/vpad/vpad.h"
 
 #include "audio/IAudioAPI.h"
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #pragma comment(lib,"Dbghelp.lib")
 #endif
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-#if BOOST_OS_LINUX > 0
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #define _putenv(__s) putenv((char*)(__s))
 #endif
 
-#if BOOST_OS_WINDOWS > 0
 extern "C"
 {
-	DLLEXPORT int AmdPowerXpressRequestHighPerformance = 1;
-	DLLEXPORT DWORD NvOptimusEnablement = 0x00000001;
+	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+	__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
-#endif
 
 bool _cpuExtension_SSSE3 = false;
 bool _cpuExtension_SSE4_1 = false;
@@ -53,51 +51,11 @@ bool _cpuExtension_AVX2 = false;
 
 std::atomic_bool g_isGPUInitFinished = false;
 
-#if BOOST_OS_WINDOWS > 0
 std::wstring executablePath;
-#endif
-
-bool g_cemuhook_loaded = false;
-bool IsCemuhookLoaded()
-{
-	return g_cemuhook_loaded;
-}
-
-void checkForCemuhook()
-{
-	#if BOOST_OS_WINDOWS > 0
-	// check if there is a dbghelp.dll in the current working directory
-	if (!fs::exists(ActiveSettings::GetPath("cemuhook.dll")))
-		return;	
-	// check if Cemuhook can be detected
-	DWORD verHandle;
-	DWORD verLen = GetFileVersionInfoSizeW(L"cemuhook.dll", &verHandle);
-	if (verLen == 0)
-		return;
-	uint8* verData = (uint8*)malloc(verLen);
-	GetFileVersionInfoW(L"cemuhook.dll", 0, verLen, verData);
-	// get version
-	LPVOID lpBuffer;
-	UINT size;
-	if (VerQueryValueW(verData, L"\\", (LPVOID*)&lpBuffer, (PUINT)&size))
-	{
-		if (size)
-		{
-			VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
-			if (verInfo->dwSignature == 0xfeef04bd)
-			{
-				forceLog_printf("Cemuhook version: %d.%d.%d.%d", (verInfo->dwFileVersionMS >> 16) & 0xFFFF, (verInfo->dwFileVersionMS >> 0) & 0xFFFF, (verInfo->dwFileVersionLS >> 16) & 0xFFFF, (verInfo->dwFileVersionLS >> 0) & 0xFFFF);
-				g_cemuhook_loaded = true;
-			}
-		}
-	}
-	free(verData);
-	#endif
-}
 
 void logCPUAndMemoryInfo()
 {
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	int CPUInfo[4] = { -1 };
 	unsigned   nExIds, i = 0;
 	char CPUBrandString[0x40];
@@ -133,7 +91,7 @@ bool IsRunningInWine()
 
 void checkForWine()
 {
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	const HMODULE hmodule = GetModuleHandleA("ntdll.dll");
 	if (!hmodule)
 		return;
@@ -154,8 +112,6 @@ void infoLog_cemuStartup()
 	cemuLog_force("------- Init {} {}.{}{} -------", EMULATOR_NAME, EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
 	cemuLog_force("Init Wii U memory space (base: 0x{:016x})", (size_t)memory_base);
 	cemuLog_force(u8"mlc01 path: {}", ActiveSettings::GetMlcPath().generic_u8string());
-	// check if Cemuhook is installed
-	checkForCemuhook();
 	// check for wine version
 	checkForWine();
 	// CPU and RAM info
@@ -210,7 +166,7 @@ void reconfigureGLDrivers()
 	std::string nvCacheDirEnvOption("__GL_SHADER_DISK_CACHE_PATH=");
 	nvCacheDirEnvOption.append(_utf8Wrapper(nvCacheDir));
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	std::wstring tmpW = boost::nowide::widen(nvCacheDirEnvOption);
 	_wputenv(tmpW.c_str());
 #else
@@ -240,10 +196,10 @@ void mainEmulatorCommonInit()
 	_cpuExtension_SSSE3 = ((cpuInfo[2] >> 9) & 1) != 0;
 	_cpuExtension_SSE4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
 
-	__cpuidex1(cpuInfo, 0x7, 0);
+	__cpuidex(cpuInfo, 0x7, 0);
 	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	executablePath.resize(4096);
 	int i = GetModuleFileName(NULL, executablePath.data(), executablePath.size());
 	if(i >= 0)
@@ -328,7 +284,7 @@ int mainEmulatorHLE()
 bool isConsoleConnected = false;
 void requireConsole()
 {
-	#if BOOST_OS_WINDOWS > 0
+	#if BOOST_OS_WINDOWS
 	if (isConsoleConnected)
 		return;
 
@@ -349,7 +305,7 @@ void HandlePostUpdate()
 	const auto filename = ActiveSettings::GetFullPath().replace_extension("exe.backup");
 	if (fs::exists(filename))
 	{
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 		HANDLE lock;
 		do
 		{
@@ -378,7 +334,7 @@ void HandlePostUpdate()
 
 void ToolShaderCacheMerger();
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 #ifndef PUBLIC_RELEASE
 #include <crtdbg.h>
@@ -415,7 +371,9 @@ int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ L
 #else
 int main(int argc, char *argv[])
 {
+#if BOOST_OS_LINUX
     XInitThreads();
+#endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
 
@@ -426,48 +384,7 @@ int main(int argc, char *argv[])
 }
 #endif
 
-/* Cemuhook legacy API */
-
-#pragma optimize("",off)
-
-DLLEXPORT void gameMeta_loadForCurrent()
-{
-	int placeholderA = 0x11223344;
-	int placeholderB = 0x55667788;
-}
-
-#pragma optimize("",on)
-
-DLLEXPORT uint64 gameMeta_getTitleId()
+extern "C" DLLEXPORT uint64 gameMeta_getTitleId()
 {
 	return CafeSystem::GetForegroundTitleId();
 }
-
-/* Cemuhook loading */
-#if BOOST_OS_WINDOWS > 0
-#pragma init_seg(".CRT$XCT")
-
-HANDLE dbgLib;
-
-int dbghelp_init(void)
-{
-	// load dbghelp.dll from the system folder instead of loading outdated cemuhook via dbghelp.dll
-	WCHAR dllPath[MAX_PATH];
-	GetSystemDirectoryW(dllPath, MAX_PATH);
-	wcscat_s(dllPath, sizeof(dllPath) / sizeof(WCHAR), TEXT("\\dbghelp.dll"));
-
-	dbgLib = LoadLibraryW(dllPath);
-	if (dbgLib == NULL)
-		return -1;
-
-	return 0;
-}
-
-HMODULE _earlyInitFunction()
-{
-	dbghelp_init();
-	return LoadLibraryA("cemuhook2.dll");
-}
-
-HMODULE _cemuHookDllHandle = _earlyInitFunction();
-#endif

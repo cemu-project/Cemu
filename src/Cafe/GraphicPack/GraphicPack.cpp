@@ -4,31 +4,6 @@
 #include "config/ActiveSettings.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 
-typedef struct
-{
-	int placeholder;
-}graphicPack_t;
-
-// scans the graphic pack directory for shaders
-DLLEXPORT void graphicPack_loadGraphicPackShaders(graphicPack_t* gp, wchar_t* graphicPackPath)
-{
-	// this function is part of the deprecated/removed v1 graphic pack code
-	// as of Cemuhook 0.5.7.3 this function must exist with a minimum length for detour
-	// otherwise Cemuhook graphic pack stuff will error out, so we just create some pointless instructions which wont be optimized away
-	forceLog_printf("STUB1");
-	forceLog_printf("STUB2");
-	forceLog_printf("STUB3");
-}
-
-// for cemuhook compatibility only
-DLLEXPORT bool config_isGraphicPackEnabled(uint64 id)
-{
-	forceLog_printf("STUB4");
-	forceLog_printf("STUB5");
-	forceLog_printf("STUB6");
-	return false;
-}
-
 /*
  * Loads the graphic pack if the titleId is referenced in rules.ini
  */

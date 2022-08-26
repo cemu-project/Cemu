@@ -455,7 +455,7 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(exceptionFd, wu_fd_set, 3);
 	ppcDefineParamU32BEPtr(maxFd, 4);
 
-#if BOOST_OS_LINUX > 0
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 	cemuLog_log(LogType::Force, "curl_multi_fdset(...) - todo");
 
 	osLib_returnFromFunction(hCPU, 0);

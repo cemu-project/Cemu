@@ -369,14 +369,14 @@ typedef struct
 	uint32 _x64XMM_mxCsr_ftzOff;
 }PPCRecompilerInstanceData_t;
 
-extern DLLEXPORT PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
+extern PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
 extern bool ppcRecompilerEnabled;
 
-DLLEXPORT void PPCRecompiler_init();
+void PPCRecompiler_init();
 
 void PPCRecompiler_allocateRange(uint32 startAddress, uint32 size);
 
-DLLEXPORT void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr);
+void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr);
 
 extern void ATTR_MS_ABI (*PPCRecompiler_enterRecompilerCode)(uint64 codeMem, uint64 ppcInterpreterInstance);
 extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_visited)();
@@ -385,10 +385,10 @@ extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 #define PPC_REC_INVALID_FUNCTION	((PPCRecFunction_t*)-1)
 
 // CPUID
-extern DLLEXPORT bool hasLZCNTSupport;
-extern DLLEXPORT bool hasMOVBESupport;
-extern DLLEXPORT bool hasBMI2Support;
-extern DLLEXPORT bool hasAVXSupport;
+extern bool hasLZCNTSupport;
+extern bool hasMOVBESupport;
+extern bool hasBMI2Support;
+extern bool hasAVXSupport;
 
 // todo - move some of the stuff above into PPCRecompilerInternal.h
 

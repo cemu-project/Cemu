@@ -32,9 +32,6 @@ inline uint32_t GetExceptionError()
     return errno;
 }
 
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrender.h>
-#include <X11/Xutil.h>
 #undef False
 #undef True
 #undef None

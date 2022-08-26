@@ -2,7 +2,7 @@
 #include <set>
 #include <vector>
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #include <WinSock2.h>
 #else
 #include <sys/socket.h>

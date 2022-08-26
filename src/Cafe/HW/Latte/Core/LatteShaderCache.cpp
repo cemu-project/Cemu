@@ -27,7 +27,7 @@
 
 #include <wx/msgdlg.h>
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #include <psapi.h>
 #endif
 
@@ -189,7 +189,7 @@ void LatteShaderCache_load()
 
 	const auto timeLoadStart = now_cached();
 	// remember current amount of committed memory
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	PROCESS_MEMORY_COUNTERS pmc1;
 	GetProcessMemoryInfo(GetCurrentProcess(), &pmc1, sizeof(PROCESS_MEMORY_COUNTERS));
 	LONGLONG totalMem1 = pmc1.PagefileUsage;
@@ -285,7 +285,7 @@ void LatteShaderCache_load()
 	
 	LatteShaderCache_updateCompileQueue(0);
 	// write load time and RAM usage to log file (in dev build)
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	const auto timeLoadEnd = now_cached();
 	const auto timeLoad = std::chrono::duration_cast<std::chrono::milliseconds>(timeLoadEnd - timeLoadStart).count();
 	PROCESS_MEMORY_COUNTERS pmc2;
@@ -432,7 +432,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 				}
 
 				ImGui::SetCursorPosX(width - ImGui::CalcTextSize(text.c_str()).x / 2);
-				ImGui::Text(text.c_str());
+				ImGui::Text("%s", text.c_str());
 
 				float percentLoaded;
 				if(isPipelines)
@@ -446,7 +446,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 				else
 					text = fmt::format("{}/{} ({}%%)", g_shaderCacheLoaderState.loadedShaderFiles, g_shaderCacheLoaderState.shaderFileCount, (int)(percentLoaded * 100));
 				ImGui::SetCursorPosX(width - ImGui::CalcTextSize(text.c_str()).x / 2);
-				ImGui::Text(text.c_str());
+				ImGui::Text("%s", text.c_str());
 				ImGui::End();
 			}
 			ImGui::PopFont();

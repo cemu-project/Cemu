@@ -389,7 +389,7 @@ uint8 memory_readU8(uint32 address)
 	return *(uint8*)(memory_getPointerFromVirtualOffset(address));
 }
 
-DLLEXPORT void* memory_getBase()
+extern "C" DLLEXPORT void* memory_getBase()
 {
 	return memory_base;
 }

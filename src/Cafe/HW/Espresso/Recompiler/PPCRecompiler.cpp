@@ -72,7 +72,7 @@ void PPCRecompiler_recompileIfUnvisited(uint32 enterAddress)
 
 void PPCRecompiler_enter(PPCInterpreter_t* hCPU, PPCREC_JUMP_ENTRY funcPtr)
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	uint32 prevState = _controlfp(0, 0);
 	_controlfp(_RC_NEAR, _MCW_RC);
 	PPCRecompiler_enterRecompilerCode((uint64)funcPtr, (uint64)hCPU);
@@ -374,7 +374,7 @@ struct ppcRecompilerFuncRange_t
 	size_t  x86Size;
 };
 
-DLLEXPORT bool PPCRecompiler_findFuncRanges(uint32 addr, ppcRecompilerFuncRange_t* rangesOut, size_t* countInOut)
+bool PPCRecompiler_findFuncRanges(uint32 addr, ppcRecompilerFuncRange_t* rangesOut, size_t* countInOut)
 {
 	PPCRecompilerState.recompilerSpinlock.acquire();
 	size_t countIn = *countInOut;
@@ -399,7 +399,7 @@ DLLEXPORT bool PPCRecompiler_findFuncRanges(uint32 addr, ppcRecompilerFuncRange_
 	return true;
 }
 
-DLLEXPORT uintptr_t* PPCRecompiler_getJumpTableBase()
+extern "C" DLLEXPORT uintptr_t * PPCRecompiler_getJumpTableBase()
 {
 	if (ppcRecompilerInstanceData == nullptr)
 		return nullptr;
@@ -431,7 +431,7 @@ void PPCRecompiler_deleteFunction(PPCRecFunction_t* func)
 	// todo - free x86 code
 }
 
-DLLEXPORT void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr)
+void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr)
 {
 	if (ppcRecompilerEnabled == false)
 		return;

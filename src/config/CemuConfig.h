@@ -331,6 +331,7 @@ struct CemuConfig
 	ConfigValue<std::wstring> mlc_path {};
 	ConfigValue<bool> fullscreen_menubar{ false };
 	ConfigValue<bool> fullscreen{ false };
+	ConfigValue<std::string> proxy_server{};
 
 	std::vector<std::wstring> game_paths;
 	std::mutex game_cache_entries_mutex;

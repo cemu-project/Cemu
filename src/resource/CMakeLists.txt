@@ -7,8 +7,8 @@ target_precompile_headers(CemuResource PRIVATE ../Common/precompiled.h)
 # icon resources
 if(UNIX)
   target_sources(CemuResource PRIVATE
-  linux/resources.cpp
-  linux/resources.h
+  embedded/resources.cpp
+  embedded/resources.h
   )
 endif()
 

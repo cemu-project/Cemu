@@ -8,7 +8,7 @@
 #include "util/math/vector3.h"
 
 #ifdef __clang__
-#include "Common/linux/fast_float.h"
+#include "Common/unix/fast_float.h"
 #endif
 
 template <typename TType>
