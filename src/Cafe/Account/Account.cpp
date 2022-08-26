@@ -9,7 +9,7 @@
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Common/filestream.h"
 
-#ifndef __WIN32
+#ifndef __clang__
 #include <boost/random/uniform_int.hpp>
 #endif
 
