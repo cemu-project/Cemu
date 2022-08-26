@@ -67,7 +67,7 @@ Account::Account(uint32 persistent_id, std::wstring_view mii_name)
 	static std::random_device s_random_device;
 	static std::mt19937 s_mte(s_random_device());
 
-        //Use boost library to escape static asserts in Linux Builds
+        // use boost library to escape static asserts in linux builds
         boost::random::uniform_int_distribution<uint16> dist(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
         
         std::generate(m_uuid.begin(), m_uuid.end(), [&]() { return (uint8)dist(s_mte); });

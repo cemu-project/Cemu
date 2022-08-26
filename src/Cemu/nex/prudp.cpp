@@ -113,7 +113,7 @@ void releasePRUDPPort(uint16 port)
 }
 
 std::mt19937_64 prudpRG(GetTickCount());
-//Workaround for static asserts when using uniform_int_distribution
+// workaround for static asserts when using uniform_int_distribution
 boost::random::uniform_int_distribution<int> prudpDis8(0, 0xFF);
 
 uint8 prudp_generateRandomU8()

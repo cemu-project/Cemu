@@ -431,7 +431,7 @@ std::string GenerateRandomString(const size_t length, const std::string_view cha
 	std::random_device rd;
 	std::mt19937 gen(rd());
      
-        //Workaround for static asserts using boost
+        // workaround for static asserts using boost
         boost::random::uniform_int_distribution<decltype(characters.size())> index_dist(0, characters.size() - 1);
 	std::generate_n(
 		result.begin(),
