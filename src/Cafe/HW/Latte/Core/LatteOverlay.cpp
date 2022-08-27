@@ -13,6 +13,8 @@
 
 #include "input/InputManager.h"
 
+#include <cinttypes>
+
 #if BOOST_OS_WINDOWS
 #include <Psapi.h>
 #include <winternl.h>
@@ -405,16 +407,16 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					if (s_pipeline_count_async > 0)
 					{
 						if (s_pipeline_count > 1)
-							ImGui::Text("Compiled %d new pipelines... (%d async) TotalSync: %lldms", s_pipeline_count, s_pipeline_count_async, totalTime);
+							ImGui::Text("Compiled %d new pipelines... (%d async) TotalSync: %" PRIu64 "ms", s_pipeline_count, s_pipeline_count_async, totalTime);
 						else
-							ImGui::Text("Compiled %d new pipeline... (%d async) TotalSync: %lldms", s_pipeline_count, s_pipeline_count_async, totalTime);
+							ImGui::Text("Compiled %d new pipeline... (%d async) TotalSync: %" PRIu64 "ms", s_pipeline_count, s_pipeline_count_async, totalTime);
 					}
 					else
 					{
 						if (s_pipeline_count > 1)
-							ImGui::Text("Compiled %d new pipelines... TotalSync: %lldms", s_pipeline_count, totalTime);
+							ImGui::Text("Compiled %d new pipelines... TotalSync: %" PRIu64 "ms", s_pipeline_count, totalTime);
 						else
-							ImGui::Text("Compiled %d new pipeline... TotalSync: %lldms", s_pipeline_count, totalTime);
+							ImGui::Text("Compiled %d new pipeline... TotalSync: %" PRIu64 "ms", s_pipeline_count, totalTime);
 					}
 #else
 					if (s_pipeline_count_async > 0)

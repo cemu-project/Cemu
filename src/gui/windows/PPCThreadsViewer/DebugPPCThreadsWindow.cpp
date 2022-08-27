@@ -5,6 +5,8 @@
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 
+#include <cinttypes>
+
 enum
 {
 	// options
@@ -233,11 +235,11 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 		m_thread_list->SetItem(i, 7, tempStr);
 		// last awake in cycles
 		uint64 lastWakeUpTime = cafeThread->wakeUpTime;
-		sprintf(tempStr, "%I64u", lastWakeUpTime);
+		sprintf(tempStr, "%" PRIu64, lastWakeUpTime);
 		m_thread_list->SetItem(i, 8, tempStr);
 		// awake time in cycles
 		uint64 awakeTime = cafeThread->totalCycles;
-		sprintf(tempStr, "%I64u", awakeTime);
+		sprintf(tempStr, "%" PRIu64, awakeTime);
 		m_thread_list->SetItem(i, 9, tempStr);
 		// thread name
 		const char* threadName = "NULL";
