@@ -398,7 +398,7 @@ namespace coreinit
 		else
 			track = (MEMBlockHeapTrackDEPR*)memory_getPointerFromVirtualOffsetAllowNull(_swapEndianU32(blockHeapHead->headBlock));
 
-		cemu_assert_debug(POPCNT(alignment) == 1); // not a supported alignment value
+		cemu_assert_debug(std::popcount<unsigned int>(alignment) == 1); // not a supported alignment value
 		while (track)
 		{
 			if (track->isFree != _swapEndianU32(0))
