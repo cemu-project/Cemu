@@ -225,7 +225,7 @@ typedef union _LARGE_INTEGER {
     #define DEBUG_BREAK __debugbreak()
     #define ALIGN(N) __declspec(align(N))
     #define NOINLINE __declspec(noinline)
-    #define ASSUME(X) __assume((X)
+    #define ASSUME(X) __assume(X)
     #define THREAD_LOCAL __declspec(thread)
     #define POPCNT(X) __popcnt((X))
 #else
@@ -234,7 +234,8 @@ typedef union _LARGE_INTEGER {
     #define DEBUG_BREAK
     #define ALIGN(N) __attribute__((aligned (N)))
     #define NOINLINE __attribute__((noinline))
-    #define ASSUME(X)
+    // fixme: random github solution. use it with caution
+    #define ASSUME(X)  do { if (!(X)) __builtin_unreachable(); } while (0)
     #define THREAD_LOCAL __thread
     #define POPCNT(X) __builtin_popcount((X))
 #endif
