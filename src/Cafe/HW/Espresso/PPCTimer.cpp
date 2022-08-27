@@ -5,15 +5,6 @@
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-static __inline__
-uint64 _umul128(uint64 multiplier, uint64 multiplicand, uint64 *highProduct) {
-	unsigned __int128 x = (unsigned __int128)multiplier * (unsigned __int128)multiplicand;
-	*highProduct = (x >> 64);
-	return x & 0xFFFFFFFFFFFFFFFF;
-}
-#endif
-
 uint64 _rdtscLastMeasure = 0;
 uint64 _rdtscFrequency = 0;
 
