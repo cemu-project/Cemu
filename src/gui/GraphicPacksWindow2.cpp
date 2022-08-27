@@ -421,6 +421,10 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 {
 	wxWindowUpdateLocker lock(this);
 	
+	bool item_deselected = m_graphic_pack_tree->GetSelection() == m_graphic_pack_tree->GetRootItem(); 
+	if (item_deselected)
+		return;
+
 	const auto selection = m_graphic_pack_tree->GetSelection();
 	if (selection.IsOk())
 	{
