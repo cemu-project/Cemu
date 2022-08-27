@@ -231,10 +231,12 @@ typedef union _LARGE_INTEGER {
 #else
     #define DLLEXPORT
     #define DLLIMPORT
-    #define DEBUG_BREAK
+    // fixme: random stack overflow solution. use with caution
+    #include <csignal>
+    #define DEBUG_BREAK raise(SIGTRAP) 
     #define ALIGN(N) __attribute__((aligned (N)))
     #define NOINLINE __attribute__((noinline))
-    // fixme: random github solution. use it with caution
+    // fixme: random stack overflow solution. use it with caution
     #define ASSUME(X)  do { if (!(X)) __builtin_unreachable(); } while (0)
     #define THREAD_LOCAL __thread
     #define POPCNT(X) __builtin_popcount((X))
