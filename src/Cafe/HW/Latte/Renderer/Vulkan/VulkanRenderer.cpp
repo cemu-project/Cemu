@@ -12,6 +12,7 @@
 #include "Cafe/CafeSystem.h"
 
 #include "util/helpers/helpers.h"
+#include "util/helpers/StringHelpers.h"
 
 #include "config/ActiveSettings.h"
 #include "config/CemuConfig.h"
@@ -199,8 +200,8 @@ void VulkanRenderer::DetermineVendor()
 	{
 		forceLog_printf("Driver version: %s", driverProperties.driverInfo);
 
-		// needed for multithreaded pipelines on nvidia (requires 515.0 or higher)
-		sscanf(driverProperties.driverInfo, "%f", &driverVersion);
+		// needed for multithreaded pipelines on nvidia (requires 515 or higher)
+		driverVersion = StringHelpers::ToInt(std::string(driverProperties.driverInfo));
 	}
 
 	else
@@ -208,7 +209,7 @@ void VulkanRenderer::DetermineVendor()
 		forceLog_printf("Driver version (as stored in device info): %08X", properties.properties.driverVersion);
 
 		// disables multithreaded pipeline loading on nvidia (requires 515.0 or higher)
-		driverVersion = 0.0f;
+		driverVersion = -1;
 	}
 }
 

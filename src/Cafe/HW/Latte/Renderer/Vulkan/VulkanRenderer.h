@@ -1012,7 +1012,7 @@ private:
 
 
 public:
-	float GetDriverVersion() { return driverVersion; }
+	int GetDriverVersion() { return driverVersion; }
 	bool useTFViaSSBO() { return m_featureControl.mode.useTFEmulationViaSSBO; }
 	bool IsDebugUtilsEnabled() const
 	{
@@ -1021,7 +1021,7 @@ public:
 
 private:
 
-	float driverVersion;
+	int driverVersion;
 
 	// debug
 	void debug_genericBarrier();
