@@ -46,8 +46,11 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 	m_numCompilationThreads = std::clamp(cpuCoreCount, 1u, 8u);
 	if (g_renderer->GetVendor() == GfxVendor::Nvidia)
 	{
-		forceLog_printf("Disable multi-threaded pipeline loading due to an issue with Nvidia drivers");
-		m_numCompilationThreads = 1;
+		if (VulkanRenderer::GetInstance()->GetDriverVersion() < 515.0f)
+		{
+			forceLog_printf("Disable multi-threaded pipeline loading due to an issue with Nvidia drivers");
+			m_numCompilationThreads = 1;
+		}
 	}
 	for (uint32 i = 0; i < m_numCompilationThreads; i++)
 	{

@@ -194,10 +194,22 @@ void VulkanRenderer::DetermineVendor()
 		m_vendor = GfxVendor::Mesa;
 
 	forceLog_printf("Using GPU: %s", properties.properties.deviceName);
+
 	if (m_featureControl.deviceExtensions.driver_properties)
-		forceLog_printf("Driver version: %s", driverProperties.driverInfo)
+	{
+		forceLog_printf("Driver version: %s", driverProperties.driverInfo);
+
+		// needed for multithreaded pipelines on nvidia (requires 515.0 or higher)
+		sscanf(driverProperties.driverInfo, "%f", &driverVersion);
+	}
+
 	else
+	{
 		forceLog_printf("Driver version (as stored in device info): %08X", properties.properties.driverVersion);
+
+		// disables multithreaded pipeline loading on nvidia (requires 515.0 or higher)
+		driverVersion = 0.0f;
+	}
 }
 
 void VulkanRenderer::GetDeviceFeatures()

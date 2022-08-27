@@ -1012,13 +1012,16 @@ private:
 
 
 public:
-	bool useTFViaSSBO() { return m_featureControl.mode.useTFEmulationViaSSBO; };
+	float GetDriverVersion() { return driverVersion; }
+	bool useTFViaSSBO() { return m_featureControl.mode.useTFEmulationViaSSBO; }
 	bool IsDebugUtilsEnabled() const
 	{
 		return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils;
 	}
 
 private:
+
+	float driverVersion;
 
 	// debug
 	void debug_genericBarrier();
