@@ -55,6 +55,7 @@
 #include <stack>
 #include <array>
 #include <bitset>
+#include <bit>
 
 #include <filesystem>
 #include <memory>
@@ -176,12 +177,12 @@ inline sint16 _swapEndianS16(sint16 v)
     return (sint16)(((uint16)v >> 8) | ((uint16)v << 8));
 }
 
-inline uint64 _rotl64 (uint64 x, sint8 r)
+inline uint64 _rotl64(uint64 x, sint8 r)
 {
     return (x << r) | (x >> (64 - r));
 }
 
-inline uint64 _rotr64 (uint64 x, sint8 r)
+inline uint64 _rotr64(uint64 x, sint8 r)
 {
     return (x >> r) | (x << (64 - r));
 }
@@ -222,36 +223,48 @@ typedef union _LARGE_INTEGER {
 #if defined(_MSC_VER)
     #define UNREACHABLE __assume(false)
 #elif defined(__GNUC__)
-    #define UNREACHABLE __builtin_unreachable();
+    #define UNREACHABLE __builtin_unreachable()
 #else
-    #warning "No implementation for UNREACHABLE"
     #define UNREACHABLE
+#endif
+
+#if defined(_MSC_VER)
+    #define DEBUG_BREAK __debugbreak()
+#else
+    #include <csignal>
+    #define DEBUG_BREAK raise(SIGTRAP) 
+#endif
+
+#if defined(_MSC_VER)
+    #define THREAD_LOCAL __declspec(thread)
+#elif defined(__GNUC__)
+    #define THREAD_LOCAL __thread
+#else
+    #define THREAD_LOCAL thread_local
+#endif
+
+#if defined(_MSC_VER)
+    #define DLLEXPORT __declspec(dllexport)
+    #define DLLIMPORT __declspec(dllimport)
+#elif defined(__GNUC__)
+    #define DLLEXPORT __attribute__((dllexport))
+    #define DLLIMPORT __attribute__((dllimport))
+#else
+    #error No definition for DLLEXPORT and DLLIMPORT
+#endif
+
+#if defined(_MSC_VER)
+    #define NOINLINE __declspec(noinline)
+#elif defined(__GNUC__)
+    #define NOINLINE __attribute__((noinline))
+#else
+    #error No definition for NOINLINE
 #endif
 
 // MEMPTR
 #include "Common/MemPtr.h"
 
 #define MPTR_NULL	(0)
-
-// macros
-#if BOOST_OS_WINDOWS
-    #define DLLEXPORT __declspec(dllexport)
-    #define DLLIMPORT  __declspec(dllimport)
-    #define DEBUG_BREAK __debugbreak()
-    #define NOINLINE __declspec(noinline)
-    #define THREAD_LOCAL __declspec(thread)
-    #define POPCNT(X) __popcnt((X))
-#else
-    #define DLLEXPORT
-    #define DLLIMPORT
-    // fixme: random stack overflow solution. use with caution
-    #include <csignal>
-    #define DEBUG_BREAK raise(SIGTRAP) 
-    #define NOINLINE __attribute__((noinline))
-    #define THREAD_LOCAL __thread
-    #define POPCNT(X) __builtin_popcount((X))
-#endif
-
 
 template <typename T1, typename T2>
 constexpr bool HAS_FLAG(T1 flags, T2 test_flag) { return (flags & (T1)test_flag) == (T1)test_flag; }
