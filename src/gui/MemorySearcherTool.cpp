@@ -400,7 +400,7 @@ void MemorySearcherTool::OnResultListClick(wxMouseEvent& event)
 		auto currValue = m_listResults->GetItemText(selectedIndex, 1);
 
 		char addressString[256];
-		sprintf(addressString, "0x%08x", address);
+		sprintf(addressString, "0x%08lx", address);
 
 		// description, address, type, value, freeze
 		wxVector<wxVariant> data;

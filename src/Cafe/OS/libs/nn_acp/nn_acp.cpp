@@ -5,6 +5,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_IOS.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 
+#include <cinttypes>
 #include <filesystem>
 #include <fstream>
 
@@ -102,7 +103,7 @@ namespace acp
 					{
 						// found the entry! -> update timestamp
 						xml::XMLElement* timestamp = account->FirstChildElement("timestamp");
-						sprintf(tmp, "%016llx", _acpGetTimestamp());
+						sprintf(tmp, "%" PRIx64, _acpGetTimestamp());
 						if (timestamp)
 							timestamp->SetText(tmp);
 						else
@@ -125,7 +126,7 @@ namespace acp
 
 						tinyxml2::XMLElement* timestamp = doc.NewElement("timestamp");
 						{
-							sprintf(tmp, "%016llx", _acpGetTimestamp());
+							sprintf(tmp, "%" PRIx64, _acpGetTimestamp());
 							timestamp->SetText(tmp);
 						}
 

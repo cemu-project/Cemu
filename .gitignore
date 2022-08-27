@@ -17,6 +17,7 @@
 build/
 out/
 .cache/
+bin/Cemu
 
 # Cemu bin files
 bin/otp.bin
