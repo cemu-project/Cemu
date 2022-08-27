@@ -2,7 +2,7 @@ project(CemuCafe)
 
 include_directories(".")
 
-if((CMAKE_C_COMPILER_ID MATCHES "GNU") OR (CMAKE_C_COMPILER_ID MATCHES "Clang"))
+if((CMAKE_C_COMPILER_ID STREQUAL "GNU") OR (CMAKE_C_COMPILER_ID STREQUAL "Clang"))
 	add_compile_options(-mssse3 -mavx2)
 endif()
 
