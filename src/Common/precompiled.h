@@ -219,6 +219,15 @@ typedef union _LARGE_INTEGER {
     inline T& operator^= (T& a, T b) { return reinterpret_cast<T&>( reinterpret_cast<std::underlying_type<T>::type&>(a) ^= static_cast<std::underlying_type<T>::type>(b) ); }
 #endif
 
+#if defined(_MSC_VER)
+    #define UNREACHABLE __assume(false)
+#elif defined(__GNUC__)
+    #define UNREACHABLE __builtin_unreachable();
+#else
+    #warning "No implementation for UNREACHABLE"
+    #define UNREACHABLE
+#endif
+
 // MEMPTR
 #include "Common/MemPtr.h"
 
@@ -230,7 +239,6 @@ typedef union _LARGE_INTEGER {
     #define DLLIMPORT  __declspec(dllimport)
     #define DEBUG_BREAK __debugbreak()
     #define NOINLINE __declspec(noinline)
-    #define ASSUME(X) __assume(X)
     #define THREAD_LOCAL __declspec(thread)
     #define POPCNT(X) __popcnt((X))
 #else
@@ -240,8 +248,6 @@ typedef union _LARGE_INTEGER {
     #include <csignal>
     #define DEBUG_BREAK raise(SIGTRAP) 
     #define NOINLINE __attribute__((noinline))
-    // fixme: random stack overflow solution. use it with caution
-    #define ASSUME(X)  do { if (!(X)) __builtin_unreachable(); } while (0)
     #define THREAD_LOCAL __thread
     #define POPCNT(X) __builtin_popcount((X))
 #endif

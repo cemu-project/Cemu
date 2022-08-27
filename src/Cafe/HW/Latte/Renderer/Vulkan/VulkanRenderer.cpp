@@ -3412,7 +3412,7 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 		break;
 	}
 	default:
-		ASSUME(false);
+		UNREACHABLE;
 	}
 	// update global stats
 	performanceMonitor.vk.numDescriptorSamplerTextures.decrement(statsNumSamplerTextures);

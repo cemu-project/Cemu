@@ -518,7 +518,7 @@ void LatteOverlay_translateScreenPosition(ScreenPosition pos, const Vector2f& wi
 		direction = -1;
 		break;
 	default:
-		ASSUME(false);
+		UNREACHABLE;
 	}
 }
 

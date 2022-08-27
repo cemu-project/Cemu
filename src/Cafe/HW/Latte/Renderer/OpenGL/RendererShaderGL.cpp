@@ -270,7 +270,7 @@ void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)
 		usePrecompiled = false;
 		break;
 	default:
-		ASSUME(false);
+		UNREACHABLE;
 	}
 
 	forceLog_printf("Using precompiled shaders: %s", usePrecompiled ? "true" : "false");

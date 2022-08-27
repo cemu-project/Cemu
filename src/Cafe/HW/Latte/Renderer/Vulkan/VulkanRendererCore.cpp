@@ -528,7 +528,7 @@ uint64 VulkanRenderer::GetDescriptorSetStateHash(LatteDecompilerShader* shader)
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
 			break;
 		default:
-			ASSUME(false);
+			UNREACHABLE;
 		}
 
 		auto texture = m_state.boundTexture[hostTextureUnit];
@@ -590,7 +590,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		break;
 	}
 	default:
-		ASSUME(false);
+		UNREACHABLE;
 	}
 
 	// create new descriptor set
@@ -646,7 +646,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
 			break;
 		default:
-			ASSUME(false);
+			UNREACHABLE;
 		}
 
 		auto textureView = m_state.boundTexture[hostTextureUnit];
@@ -996,7 +996,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		break;
 	}
 	default:
-		ASSUME(false);
+		UNREACHABLE;
 	}
 
 	return dsInfo;
