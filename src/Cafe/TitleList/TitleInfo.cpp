@@ -645,9 +645,10 @@ std::string TitleInfo::GetInstallPath() const
 {
 	TitleId titleId = GetAppTitleId();
 	TitleIdParser tip(titleId);
-        std::filesystem::path path = "usr";
+        std::string tmp;
 	if (tip.IsSystemTitle())
-               path = "sys";
-        std::string tmp = (path / "title" / fmt::format("{:08x}",GetTitleIdHigh(titleId)) / fmt::format("{:08x}", GetTitleIdLow(titleId))).string();
+               tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+        else
+               tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
 	return tmp;
 }
