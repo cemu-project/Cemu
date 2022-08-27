@@ -284,7 +284,7 @@ void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 coun
 	indexMax = std::max(count, 1u) - 1;
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #pragma clang attribute push (__attribute__((target("avx2"))), apply_to=function)
 #endif
 
@@ -352,11 +352,11 @@ void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDat
 	indexMin = std::min(indexMin, _minIndex);
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #pragma clang attribute pop
 #endif
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #pragma clang attribute push (__attribute__((target("avx2"))), apply_to=function)
 #endif
 
@@ -423,11 +423,11 @@ void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDa
 	indexMin = std::min(indexMin, _minIndex);
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #pragma clang attribute pop
 #endif
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #pragma clang attribute push (__attribute__((target("avx2"))), apply_to=function)
 #endif
 
@@ -497,7 +497,7 @@ void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDat
 	indexMin = std::min(indexMin, _minIndex);
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #pragma clang attribute pop
 #endif
 

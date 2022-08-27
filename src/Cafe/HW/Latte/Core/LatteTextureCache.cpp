@@ -145,7 +145,7 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 		bool isCompressedFormat = hostTexture->IsCompressedFormat();
 		if( isCompressedFormat == false )
 		{
-			#if BOOST_OS_WINDOWS > 0
+			#if BOOST_OS_WINDOWS
 			if (_cpuExtension_AVX2)
 			{
 				__m256i h256 = { 0 };
@@ -425,12 +425,4 @@ void LatteTC_UnloadAllTextures()
 			LatteTexture_Delete(itr);
 	}
 	LatteRenderTarget_unloadAll();
-}
-
-/*
- * Asynchronous way to invalidate textures
- */
-__declspec(dllexport) void gpu7Texture_forceInvalidateByImagePtr(MPTR imagePtr)
-{
-	// deprecated. Texture cache heuristics are now good enough to detect moving frames
 }

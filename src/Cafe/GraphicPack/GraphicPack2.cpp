@@ -599,23 +599,6 @@ void GraphicPack2::LoadShaders()
 	}
 }
 
-#pragma optimize( "", off )
-
-DLLEXPORT __declspec(noinline) void GraphicPack2_notifyActivate(GraphicPack2* gp, ExpressionParser* ep)
-{
-	// for Cemuhook
-	int placeholder = 0xDEADDEAD;
-}
-
-DLLEXPORT __declspec(noinline) void GraphicPack2_notifyDeactivate(GraphicPack2* gp)
-{
-	// for Cemuhook
-	int placeholder = 0xDEADDEAD;
-}
-
-#pragma optimize( "", on )
-
-
 bool GraphicPack2::SetActivePreset(std::string_view name)
 {
 	return SetActivePreset("", name);
@@ -862,7 +845,6 @@ bool GraphicPack2::Activate()
 					m_output_settings.downscale_filter = LatteTextureView::MagFilter::kNearestNeighbor;
 			}
 		}
-		GraphicPack2_notifyActivate(this, &parser);
 	}
 	catch(const std::exception& ex)
 	{
@@ -932,7 +914,6 @@ bool GraphicPack2::Deactivate()
 		LatteTiming_disableCustomVsyncFrequency();
 	}
 
-	GraphicPack2_notifyDeactivate(this);
 	return true;
 }
 
@@ -1148,46 +1129,4 @@ std::vector<std::pair<MPTR, MPTR>> GraphicPack2::GetActiveRAMMappings()
 			return a.first < b.first;
 		});
 	return v;
-}
-
-// C-style exports for Cemuhook
-
-DLLEXPORT const wchar_t* GraphicPack2_GetFilename(GraphicPack2* gp)
-{
-	return gp->GetFilename().c_str();
-}
-
-DLLEXPORT const char* GraphicPack2_GetName(GraphicPack2* gp)
-{
-	if (!gp->HasName())
-		return "";
-
-	return gp->GetName().c_str();
-}
-
-DLLEXPORT const char* GraphicPack2_GetPath(GraphicPack2* gp)
-{
-	return gp->GetPath().c_str();
-}
-
-DLLEXPORT const char* GraphicPack2_GetDescription(GraphicPack2* gp)
-{
-	return gp->GetDescription().c_str();
-}
-
-DLLEXPORT const sint32 GraphicPack2_GetTitleIdCount(GraphicPack2* gp)
-{
-	return gp->GetTitleIds().size();
-}
-
-DLLEXPORT const uint64* GraphicPack2_GetTitleIdList(GraphicPack2* gp)
-{
-	return &gp->GetTitleIds()[0];
-}
-
-DLLEXPORT ExpressionParser* GraphicPack2_CreateExpressionParser(GraphicPack2* gp)
-{
-	auto ep = new ExpressionParser();
-	gp->AddConstantsForCurrentPreset((ExpressionParser&)*ep);
-	return ep;
 }

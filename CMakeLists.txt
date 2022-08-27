@@ -24,6 +24,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if (MSVC)
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
+endif()
+
+if (MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise") # floating point model: precise
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GT") # fiber safe optimizations
@@ -36,10 +40,6 @@ endif()
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
-
-if (WIN32)
-  option(ENABLE_CEMUHOOK "Enables Cemuhook compatibility" ON)
-endif()
 
 # input backends
 if (WIN32)
@@ -113,4 +113,3 @@ add_subdirectory(dependencies/ih264d)
 add_subdirectory(dependencies/ZArchive)
 
 add_subdirectory(src)
-

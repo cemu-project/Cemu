@@ -628,7 +628,7 @@ public:
 			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("\'{}\' does not end with valid memory register syntax. Memory operand must have the form offset(gpr). Example: 0x20(r3)", svOpText));
 			return false;
 		}
-		std::string_view svExpressionPart(startPtr, endPtr);
+		std::string_view svExpressionPart(startPtr, endPtr - startPtr);
 		std::string_view svRegPart(memoryRegBegin, memoryRegEnd - memoryRegBegin);
 		sint32 memGpr = _parseRegIndex(svRegPart, "r");
 		//if (_ppcAssembler_parseRegister(svRegPart, "r", memGpr) == false || (memGpr < 0 || memGpr >= 32))

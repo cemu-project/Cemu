@@ -6,7 +6,7 @@
 
 #include "Common/socket.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 #define WU_AF_INET			2
 
@@ -2085,7 +2085,7 @@ void nsysnet_load()
 	osLib_addFunction("nsysnet", "NSSLExportInternalClientCertificate", nsysnet::export_NSSLExportInternalClientCertificate);
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 void nsysnet_notifyCloseSharedSocket(SOCKET existingSocket)
 {
 

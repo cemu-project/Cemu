@@ -1,6 +1,6 @@
 #include "util/MemMapper/MemMapper.h"
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 
 #include <Windows.h>
 

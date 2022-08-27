@@ -10,13 +10,11 @@
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
 
-#if BOOST_OS_LINUX > 0
-#include "resource/linux/resources.h"
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#include "resource/embedded/resources.h"
 #endif
 
 // main.cpp
-bool IsCemuhookLoaded();
-
 class wxGraphicPackData : public wxTreeItemData
 {
 public:
@@ -423,6 +421,10 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 {
 	wxWindowUpdateLocker lock(this);
 	
+	bool item_deselected = m_graphic_pack_tree->GetSelection() == m_graphic_pack_tree->GetRootItem(); 
+	if (item_deselected)
+		return;
+
 	const auto selection = m_graphic_pack_tree->GetSelection();
 	if (selection.IsOk())
 	{

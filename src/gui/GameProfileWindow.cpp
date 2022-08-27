@@ -11,8 +11,8 @@
 #include "gui/helpers/wxHelpers.h"
 #include "input/InputManager.h"
 
-#if BOOST_OS_LINUX
-#include "resource/linux/resources.h"
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#include "resource/embedded/resources.h"
 #endif
 
 GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
@@ -21,7 +21,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 	SetIcon(wxICON(X_GAME_PROFILE));
 
 	m_game_profile.Reset();
-	m_game_profile.Load(title_id, false);
+	m_game_profile.Load(title_id);
 
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 

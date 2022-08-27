@@ -424,7 +424,7 @@ typedef struct
 
 static_assert(sizeof(UCParamStruct_t) == 0x54); // unsure
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #define _strcmpi strcasecmp
 #endif
 

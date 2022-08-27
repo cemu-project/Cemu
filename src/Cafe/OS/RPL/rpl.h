@@ -14,7 +14,7 @@ MPTR RPLLoader_AllocateCodeSpace(uint32 size, uint32 alignment);
 uint32 RPLLoader_GetMaxCodeOffset();
 uint32 RPLLoader_GetDataAllocatorAddr();
 
-__declspec(dllexport) RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name);
+RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name);
 uint32 rpl_mapHLEImport(RPLModule* rplLoaderContext, const char* rplName, const char* funcName, bool functionMustExist);
 void RPLLoader_Link();
 

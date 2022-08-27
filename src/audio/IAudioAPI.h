@@ -1,6 +1,6 @@
 #pragma once
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 #include <mmreg.h>
 #endif
 
@@ -64,7 +64,7 @@ public:
 	static std::vector<DeviceDescriptionPtr> GetDevices(AudioAPI api);
 
 protected:
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	WAVEFORMATEXTENSIBLE m_wfx{};
 #endif
 	

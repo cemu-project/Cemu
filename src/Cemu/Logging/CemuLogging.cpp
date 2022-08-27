@@ -200,7 +200,7 @@ void cafeLog_log(uint32 type, const char* format, ...)
 	char logTempStr[2048];
 	va_list(args);
 	va_start(args, format);
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	vsprintf_s(logTempStr, format, args);
 #else
 	vsprintf(logTempStr, format, args);
@@ -226,7 +226,7 @@ void cafeLog_logW(uint32 type, const wchar_t* format, ...)
 	wchar_t logTempStr[2048];
 	va_list(args);
 	va_start(args, format);
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	vswprintf_s(logTempStr, format, args);
 #else
 	vswprintf(logTempStr, 2048, format, args);
@@ -243,7 +243,7 @@ void cafeLog_logW(uint32 type, const wchar_t* format, ...)
 		LoggingWindow::Log(it->second, logTempStr);
 }
 
-__declspec(dllexport) void cemuLog_log()
+void cemuLog_log()
 {
 	typedef void(*VoidFunc)();
 	const VoidFunc func = (VoidFunc)cafeLog_log;

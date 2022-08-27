@@ -282,7 +282,7 @@ struct
 
 static_assert(sizeof(SharedDataEntry) == 0x1C);
 
-__declspec(dllexport) uint32 loadSharedData()
+uint32 loadSharedData()
 {
 	// check if font files are dumped
 	bool hasAllShareddataFiles = true;
@@ -364,7 +364,7 @@ void cemu_initForGame()
 	time_t theTime = (time(NULL) - 946684800);
 	{
 		tm* lt = localtime(&theTime);
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 		theTime = _mkgmtime(lt);
 #else
 		theTime = timegm(lt);

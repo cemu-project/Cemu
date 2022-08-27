@@ -12,7 +12,7 @@
 #include <fmt/format.h>
 
 #ifdef __clang__
-#include "Common/linux/fast_float.h"
+#include "Common/unix/fast_float.h"
  #define _EP_FROM_CHARS_DBL(...) _convFastFloatResult(fast_float::from_chars(__VA_ARGS__))
 
 inline std::from_chars_result _convFastFloatResult(fast_float::from_chars_result r)

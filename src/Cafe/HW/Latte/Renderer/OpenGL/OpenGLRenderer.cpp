@@ -95,7 +95,7 @@ OpenGLRenderer::OpenGLRenderer()
 		glRendererState.uploadIndex = 0;
 	}
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	try
 	{
 		m_dxgi_wrapper = std::make_unique<DXGIWrapper>();
@@ -191,7 +191,7 @@ void OpenGLRenderer::DeleteFontTextures()
 
 typedef void(*GL_IMPORT)();
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 GL_IMPORT _GetOpenGLFunction(HMODULE hLib, const char* name)
 {
 	GL_IMPORT r = (GL_IMPORT)wglGetProcAddress(name);
@@ -207,7 +207,7 @@ void LoadOpenGLImports()
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 }
-#else
+#elif BOOST_OS_LINUX
 GL_IMPORT _GetOpenGLFunction(void* hLib, PFNGLXGETPROCADDRESSPROC func, const char* name)
 {
 	GL_IMPORT r = (GL_IMPORT)func((const GLubyte*)name);
@@ -233,6 +233,11 @@ void LoadOpenGLImports()
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 }
+#elif BOOST_OS_MACOS
+void LoadOpenGLImports()
+{
+	cemu_assert_unimplemented();
+}
 #endif
 
 void OpenGLRenderer::Initialize()
@@ -244,7 +249,7 @@ void OpenGLRenderer::Initialize()
 	LoadOpenGLImports();
 	GetVendorInformation();	
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	if (wglSwapIntervalEXT)
 		wglSwapIntervalEXT(0); // disable V-Sync per default
 #endif
@@ -349,7 +354,7 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 
 void OpenGLRenderer::EnableVSync(int state)
 {
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 	if(wglSwapIntervalEXT)
 		wglSwapIntervalEXT(state); // 1 = enabled, 0 = disabled
 #else

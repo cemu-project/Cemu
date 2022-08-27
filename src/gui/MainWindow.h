@@ -161,8 +161,6 @@ private:
 	wxSize m_restored_size;
 	wxPoint m_restored_position;
 
-	wxStatusBar* m_statusBar{};
-
 	bool m_menu_visible = false;
 	bool m_game_launched = false;
 

@@ -78,7 +78,7 @@ void CafeInit()
 		rpxPathStart = 0;
 	}
 	
-	std::string_view rpxFileName = std::basic_string_view<char>(_pathToExecutable.data() + rpxPathStart, _pathToExecutable.data() + _pathToExecutable.size());
+	std::string_view rpxFileName(_pathToExecutable.data() + rpxPathStart, _pathToExecutable.size() - rpxPathStart);
 
 	argStorageIndex = 0;
 	_coreinitInfo->argc = 0;

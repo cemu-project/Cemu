@@ -1,9 +1,3 @@
-//Temporary Workaround for static_assert related errors in libstdc++12
-//TODO: Make a proper fix
-#ifdef __clang__
-#define static_assert(...) static_assert(true, "")
-#endif
-
 #pragma once
 
 #include <stdlib.h> // for size_t
@@ -144,22 +138,32 @@ inline sint16 _swapEndianS16(sint16 v)
 {
 	return (sint16)(((uint16)v >> 8) | ((uint16)v << 8));
 }
-#endif
-
-#if BOOST_OS_LINUX
+#else
 inline uint64 _swapEndianU64(uint64 v)
 {
+#if BOOST_OS_MACOS
+    return OSSwapInt64(v);
+#else
     return bswap_64(v);
+#endif
 }
 
 inline uint32 _swapEndianU32(uint32 v)
 {
+#if BOOST_OS_MACOS
+    return OSSwapInt32(v);
+#else
     return bswap_32(v);
+#endif
 }
 
 inline sint32 _swapEndianS32(sint32 v)
 {
+#if BOOST_OS_MACOS
+    return (sint32)OSSwapInt32((uint32)v);
+#else
     return (sint32)bswap_32((uint32)v);
+#endif
 }
 
 inline uint16 _swapEndianU16(uint16 v)
