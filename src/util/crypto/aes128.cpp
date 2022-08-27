@@ -759,7 +759,7 @@ void AESNI128_CBC_decryptWithExpandedKey(const unsigned char *in,
 
 void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv)
 {
-	ALIGN(16) uint8 expandedKey[11 * 16];
+	alignas(16) uint8 expandedKey[11 * 16];
 	AESNI128_KeyExpansionDecrypt(key, expandedKey);
 	if (iv)
 	{
@@ -774,7 +774,7 @@ void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, con
 
 void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
 {
-	ALIGN(16) uint8 expandedKey[11 * 16];
+	alignas(16) uint8 expandedKey[11 * 16];
 	AESNI128_KeyExpansionEncrypt(key, expandedKey);
 	// encrypt single ECB block
 	__m128i feedback;

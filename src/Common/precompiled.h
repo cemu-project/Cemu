@@ -229,7 +229,6 @@ typedef union _LARGE_INTEGER {
     #define DLLEXPORT __declspec(dllexport)
     #define DLLIMPORT  __declspec(dllimport)
     #define DEBUG_BREAK __debugbreak()
-    #define ALIGN(N) __declspec(align(N))
     #define NOINLINE __declspec(noinline)
     #define ASSUME(X) __assume(X)
     #define THREAD_LOCAL __declspec(thread)
@@ -240,7 +239,6 @@ typedef union _LARGE_INTEGER {
     // fixme: random stack overflow solution. use with caution
     #include <csignal>
     #define DEBUG_BREAK raise(SIGTRAP) 
-    #define ALIGN(N) __attribute__((aligned (N)))
     #define NOINLINE __attribute__((noinline))
     // fixme: random stack overflow solution. use it with caution
     #define ASSUME(X)  do { if (!(X)) __builtin_unreachable(); } while (0)

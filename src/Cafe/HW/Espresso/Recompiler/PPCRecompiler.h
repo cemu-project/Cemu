@@ -345,20 +345,20 @@ typedef struct
 	PPCRecFunction_t* ppcRecompilerFuncTable[PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE/4)]; // one virtual-function pointer for each potential ppc instruction
 	PPCREC_JUMP_ENTRY ppcRecompilerDirectJumpTable[PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE/4)]; // lookup table for ppc offset to native code function
 	// x64 data
-	uint64 ALIGN(16) _x64XMM_xorNegateMaskBottom[2];
-	uint64 ALIGN(16) _x64XMM_xorNegateMaskPair[2];
-	uint64 ALIGN(16) _x64XMM_xorNOTMask[2];
-	uint64 ALIGN(16) _x64XMM_andAbsMaskBottom[2];
-	uint64 ALIGN(16) _x64XMM_andAbsMaskPair[2];
-	uint32 ALIGN(16) _x64XMM_andFloatAbsMaskBottom[4];
-	uint64 ALIGN(16) _x64XMM_singleWordMask[2];
-	double ALIGN(16) _x64XMM_constDouble1_1[2];
-	double ALIGN(16) _x64XMM_constDouble0_0[2];
-	float  ALIGN(16) _x64XMM_constFloat0_0[2];
-	float  ALIGN(16) _x64XMM_constFloat1_1[2];
-	float  ALIGN(16) _x64XMM_constFloatMin[2];
-	uint32 ALIGN(16) _x64XMM_flushDenormalMask1[4];
-	uint32 ALIGN(16) _x64XMM_flushDenormalMaskResetSignBits[4];
+	alignas(16) uint64 _x64XMM_xorNegateMaskBottom[2];
+	alignas(16) uint64 _x64XMM_xorNegateMaskPair[2];
+	alignas(16) uint64 _x64XMM_xorNOTMask[2];
+	alignas(16) uint64 _x64XMM_andAbsMaskBottom[2];
+	alignas(16) uint64 _x64XMM_andAbsMaskPair[2];
+	alignas(16) uint32 _x64XMM_andFloatAbsMaskBottom[4];
+	alignas(16) uint64 _x64XMM_singleWordMask[2];
+	alignas(16) double _x64XMM_constDouble1_1[2];
+	alignas(16) double _x64XMM_constDouble0_0[2];
+	alignas(16) float  _x64XMM_constFloat0_0[2];
+	alignas(16) float  _x64XMM_constFloat1_1[2];
+	alignas(16) float  _x64XMM_constFloatMin[2];
+	alignas(16) uint32 _x64XMM_flushDenormalMask1[4];
+	alignas(16) uint32 _x64XMM_flushDenormalMaskResetSignBits[4];
 	// PSQ load/store scale tables
 	double _psq_ld_scale_ps0_ps1[64 * 2];
 	double _psq_ld_scale_ps0_1[64 * 2];
