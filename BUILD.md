@@ -27,7 +27,7 @@ For ubuntu and most derivatives:
 
 For Arch and most derivatives:
 
-`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git zlib vcpkg`
+`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git zlib vcpkg zip unzip`
 
 For Fedora and most derivatives:
 
