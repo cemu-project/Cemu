@@ -27,7 +27,7 @@ For ubuntu and most derivatives:
 
 For Arch and most derivatives:
 
-`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git zlib zip unzip linux-headers base-devel ninja cmake`
+`sudo pacman -S cmake git base-devel ninja nasm linux-headers`
 
 vcpkg is not needed to be installed and provided by cemu when git cloning.
 
