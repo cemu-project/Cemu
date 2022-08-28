@@ -131,7 +131,7 @@ const TBuiltInResource DefaultTBuiltInResource = {
 	/* .maxDualSourceDrawBuffersEXT = */ 1,
 #endif
 
-	/* .limits = */
+	/* .limits = */ {
 	/* .nonInductiveForLoops = */ 1,
 	/* .whileLoops = */ 1,
 	/* .doWhileLoops = */ 1,
@@ -140,7 +140,8 @@ const TBuiltInResource DefaultTBuiltInResource = {
 	/* .generalVaryingIndexing = */ 1,
 	/* .generalSamplerIndexing = */ 1,
 	/* .generalVariableIndexing = */ 1,
-	/* .generalConstantMatrixVectorIndexing = */ 1,
+	/* .generalConstantMatrixVectorIndexing = */ 1
+	}
 };
 
 class _ShaderVkThreadPool
