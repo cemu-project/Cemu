@@ -29,11 +29,6 @@ For Arch and most derivatives:
 
 `sudo pacman -S cmake git base-devel ninja nasm linux-headers zip spirv-headers`
 
-Vcpkg provides spirv-headers but for some it's needed in arch it seems. 
-
-Added zip incase the user runs KDE but with gnome zip is included.
-
-vcpkg is not needed to be installed and provided by cemu when git cloning.
 
 For Fedora and most derivatives:
 
