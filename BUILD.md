@@ -43,6 +43,7 @@ For Fedora and most derivatives:
 
 6) `ninja`
 
-Due to issue with clang and how ubuntu handles it's filesystem and libs some of
+Due to some issue and how ubuntu handles it's filesystem as cited here https://wiki.ubuntu.com/MultiarchSpec.
 You might not have audio and an option is to use pulseaudio instead of pipewire 
 But this is a very bad idea and could cause more issues with stability. 
+Sources : https://wiki.ubuntu.com/MultiarchSpec
