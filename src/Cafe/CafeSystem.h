@@ -40,5 +40,4 @@ namespace CafeSystem
 
 extern RPLModule* applicationRPX;
 
-extern std::atomic_bool g_isGameRunning;
 extern std::atomic_bool g_isGPUInitFinished;
