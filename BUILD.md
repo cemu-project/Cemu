@@ -27,7 +27,9 @@ For ubuntu and most derivatives:
 
 For Arch and most derivatives:
 
-`sudo pacman -S cmake git base-devel ninja nasm linux-headers zip`
+`sudo pacman -S cmake git base-devel ninja nasm linux-headers zip spirv-headers`
+
+Vcpkg provides spirv-headers but for some it's needed in arch it seems. 
 
 Added zip incase the user runs KDE but with gnome zip is included.
 
