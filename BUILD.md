@@ -41,5 +41,5 @@ For Fedora and most derivatives:
 2) `cd Cemu`
 3) `mkdir build && cd build`
 4) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja`
-5to build for gcc `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
-5) `ninja`
+4.5) To build for gcc `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+6) `ninja`
