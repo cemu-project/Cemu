@@ -27,9 +27,9 @@ For ubuntu and most derivatives:
 
 For Arch and most derivatives:
 
-`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git zlib zip unzip linux-headers base-devel`
+`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git zlib zip unzip linux-headers base-devel ninja cmake`
 
-Go here https://aur.archlinux.org/packages/vcpkg Press download snapshot next unzip it and go into the folder open terminal and type `makepkg -si`
+vcpkg is not needed to be installed and provided by cemu when git cloning.
 
 For Fedora and most derivatives:
 
