@@ -177,8 +177,6 @@ inline sint16 _swapEndianS16(sint16 v)
     return (sint16)(((uint16)v >> 8) | ((uint16)v << 8));
 }
 
-
-
 inline uint64 _umul128(uint64 multiplier, uint64 multiplicand, uint64 *highProduct) {
     unsigned __int128 x = (unsigned __int128)multiplier * (unsigned __int128)multiplicand;
     *highProduct = (x >> 64);

@@ -199,8 +199,6 @@ bool MemorySearcherTool::ConvertStringToType(const char* inValue, sint8& outValu
 
 
 
-
-
 //
 //template <typename T>
 //void MemorySearcherTool::FilterValues()
