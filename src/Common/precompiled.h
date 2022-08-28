@@ -427,7 +427,7 @@ public:
 template<typename T>
 bool future_is_ready(std::future<T>& f)
 {
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__GNUC__)
     return f.wait_for(std::chrono::nanoseconds(0)) == std::future_status::ready;
 #else
 	return f._Is_ready();
@@ -443,7 +443,7 @@ std::atomic<T>* _rawPtrToAtomic(T* ptr)
     return reinterpret_cast<std::atomic<T>*>(ptr);
 }
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__GNUC__)
 #define ATTR_MS_ABI __attribute__((ms_abi))
 #else
 #define ATTR_MS_ABI
@@ -464,7 +464,7 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 	return titleId & 0xFFFFFFFF;
 }
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__GNUC__)
 #define memcpy_dwords(__dest, __src, __numDwords) memcpy((__dest), (__src), (__numDwords) * sizeof(uint32))
 #define memcpy_qwords(__dest, __src, __numQwords) memcpy((__dest), (__src), (__numQwords) * sizeof(uint64))
 #else
