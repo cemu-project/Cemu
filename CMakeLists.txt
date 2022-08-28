@@ -1,19 +1,25 @@
 cmake_minimum_required(VERSION 3.21.1)
 
 option(PUBLIC_RELEASE "Compile with debug asserts disabled and no console" OFF)
+option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 
 if (PUBLIC_RELEASE)
   add_definitions(-DPUBLIC_RELEASE)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE) # enable LTO
 endif()
 
-if (WIN32)
-  set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+if (ENABLE_VCPKG)
+	set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
+	set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/vcpkg/scripts/buildsystems/vcpkg.cmake"
+		CACHE STRING "Vcpkg toolchain file")
+	# Set this so that all the various find_package() calls don't need an explicit
+	# CONFIG option
+	set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+	if (WIN32)
+		set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+	endif()
 endif()
 
-set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
 
 project(Cemu VERSION 0.1)
 set(CMAKE_CXX_STANDARD 20)
@@ -58,16 +64,16 @@ option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
-find_package(SDL2 CONFIG REQUIRED)
-find_package(CURL CONFIG REQUIRED)
-find_package(pugixml CONFIG REQUIRED)
-find_package(imgui CONFIG REQUIRED)
-find_package(RapidJSON CONFIG REQUIRED)
+find_package(SDL2 REQUIRED)
+find_package(CURL REQUIRED)
+find_package(pugixml REQUIRED)
+find_package(imgui REQUIRED)
+find_package(RapidJSON REQUIRED)
 find_package(Boost COMPONENTS program_options filesystem nowide REQUIRED)
 find_package(libzip REQUIRED)
 find_package(glslang REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(zstd CONFIG REQUIRED)
+find_package(zstd REQUIRED)
 
 if (ENABLE_VULKAN)
   include_directories("dependencies/Vulkan-Headers/include")
@@ -84,7 +90,7 @@ if (ENABLE_DISCORD_RPC)
 endif()
 
 if (ENABLE_WXWIDGETS)
-  find_package(wxWidgets CONFIG REQUIRED)
+	find_package(wxWidgets 3.2 REQUIRED COMPONENTS base core gl propgrid xrc)
 endif()
 
 find_package(OpenSSL REQUIRED)
