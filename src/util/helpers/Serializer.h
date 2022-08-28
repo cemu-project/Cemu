@@ -178,7 +178,6 @@ private:
 	std::vector<uint8> m_buffer;
 };
 
-
 class SerializerHelper 
 {
 public:
