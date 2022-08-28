@@ -7,7 +7,7 @@
 #endif
 
 #include <glslang/Public/ShaderLang.h>
-#if 1 //GLSLANG_VERSION_LESS_OR_EQUAL_TO(11, 0, 0)
+#if GLSLANG_VERSION_LESS_OR_EQUAL_TO(11, 0, 0)
 #include <glslang/SPIRV/GlslangToSpv.h>
 #else
 #include <SPIRV/Logger.h>
