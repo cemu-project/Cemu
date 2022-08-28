@@ -133,7 +133,6 @@ private:
 	bool m_hasError{ false };
 };
 
-
 class MemStreamWriter
 {
 public:
