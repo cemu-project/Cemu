@@ -5,13 +5,6 @@
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-static __inline__
-unsigned __int64 _umul128(unsigned __int64,
-                          unsigned __int64,
-                          unsigned __int64*);
-#endif
-
 uint64 _rdtscLastMeasure = 0;
 uint64 _rdtscFrequency = 0;
 
@@ -49,7 +42,7 @@ uint64 PPCTimer_estimateRDTSCFrequency()
 		forceLog_printf("Invariant TSC not supported");
 
 	_mm_mfence();
-	unsigned __int64 tscStart = __rdtsc();
+	uint64 tscStart = __rdtsc();
 	unsigned int startTime = GetTickCount();
 	HRTick startTick = HighResolutionTimer::now().getTick();
 	// wait roughly 3 seconds
@@ -61,7 +54,7 @@ uint64 PPCTimer_estimateRDTSCFrequency()
 	}
 	_mm_mfence();
 	HRTick stopTick = HighResolutionTimer::now().getTick();
-	unsigned __int64 tscEnd = __rdtsc();
+	uint64 tscEnd = __rdtsc();
 	// derive frequency approximation from measured time difference
 	uint64 tsc_diff = tscEnd - tscStart;
 	uint64 hrtFreq = 0;

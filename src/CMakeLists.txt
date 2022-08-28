@@ -25,11 +25,14 @@ elseif(UNIX)
         add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     endif()
     add_definitions(-fms-extensions)
-    add_definitions(-fms-compatibility-version=19.14)
-    add_definitions(-fdelayed-template-parsing)
+    add_definitions(-fpermissive)
     add_definitions(-maes)
     # warnings
-    add_compile_options(-Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion -Wno-ambiguous-reversed-operator)
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+	add_compile_options(-Wno-ambiguous-reversed-operator)
+    endif()
+
+    add_compile_options(-Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
 endif()
 
 add_definitions(-DVK_NO_PROTOTYPES)

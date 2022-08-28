@@ -225,8 +225,8 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 	// parameter gen
 	if (spi0_paramGen != 0)
 	{
-		key += _rotr64(spi0_paramGen, 7);
-		key += _rotr64(spi0_paramGenAddr, 3);
+		key += std::rotr<uint64>(spi0_paramGen, 7);
+		key += std::rotr<uint64>(spi0_paramGenAddr, 3);
 		_activePSImportTable.paramGen = spi0_paramGen;
 		_activePSImportTable.paramGenGPR = spi0_paramGenAddr;
 	}
@@ -263,7 +263,7 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 		cemu_assert_debug(psSemanticId != 0xFF);
 
 		key += (uint64)psInputControl;
-		key = _rotl64(key, 7);
+		key = std::rotl(key, 7);
 		if (spi0_positionEnable && f == spi0_positionAddr)
 		{
 			_activePSImportTable.import[f].semanticId = LATTE_ANALYZER_IMPORT_INDEX_SPIPOSITION;
@@ -546,7 +546,7 @@ uint64 LatteSHRC_CalcVSAuxHash(LatteDecompilerShader* vertexShader, uint32* cont
 			if(!vertexShader->streamoutBufferWriteMask2[i])
 				continue;
 			uint32 bufferStride = contextRegisters[mmVGT_STRMOUT_VTX_STRIDE_0 + i * 4];
-			auxHash = _rotl64(auxHash, 7);
+			auxHash = std::rotl(auxHash, 7);
 			auxHash += (uint64)bufferStride;
 		}
 	}
@@ -559,7 +559,7 @@ uint64 LatteSHRC_CalcVSAuxHash(LatteDecompilerShader* vertexShader, uint32* cont
 		if ((word4 & 0x300) == 0x100)
 		{
 			// integer format
-			auxHashTex = _rotl64(auxHashTex, 7);
+			auxHashTex = std::rotl(auxHashTex, 7);
 			auxHashTex += 0x333;
 		}
 	}

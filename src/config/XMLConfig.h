@@ -148,49 +148,41 @@ public:
 		return default_value;
 	}
 
-	template <>
 	bool value(bool default_value)
 	{
 		return m_current_element ? m_current_element->BoolText(default_value) : default_value;
 	}
 
-	template <>
 	float value(float default_value)
 	{
 		return m_current_element ? m_current_element->FloatText(default_value) : default_value;
 	}
 
-	template <>
 	double value(double default_value)
 	{
 		return m_current_element ? m_current_element->DoubleText(default_value) : default_value;
 	}
 
-	template <>
 	uint32 value(uint32 default_value)
 	{
 		return m_current_element ? m_current_element->UnsignedText(default_value) : default_value;
 	}
 
-	template <>
 	sint32 value(sint32 default_value)
 	{
 		return m_current_element ? m_current_element->IntText(default_value) : default_value;
 	}
 
-	template <>
 	uint64 value(uint64 default_value)
 	{
 		return m_current_element ? (uint64)m_current_element->Int64Text(default_value) : default_value;
 	}
 
-	template <>
 	sint64 value(sint64 default_value)
 	{
 		return m_current_element ? m_current_element->Int64Text(default_value) : default_value;
 	}
 
-	template <>
 	const char* value(const char* default_value)
 	{
 		if (m_current_element)
@@ -243,7 +235,6 @@ public:
 		set(name, value.load());
 	}
 
-	template <>
 	void set(const char* name, uint64 value)
 	{
 		set(name, (sint64)value);
@@ -300,7 +291,6 @@ public:
 		return set_attribute(name, value.GetValue());
 	}
 	
-	template <>
 	XMLConfigParser& set_attribute(const char* name, const std::string& value)
 	{
 		return set_attribute(name, value.c_str());

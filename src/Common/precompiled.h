@@ -55,6 +55,7 @@
 #include <stack>
 #include <array>
 #include <bitset>
+#include <bit>
 
 #include <filesystem>
 #include <memory>
@@ -176,6 +177,12 @@ inline sint16 _swapEndianS16(sint16 v)
     return (sint16)(((uint16)v >> 8) | ((uint16)v << 8));
 }
 
+inline uint64 _umul128(uint64 multiplier, uint64 multiplicand, uint64 *highProduct) {
+    unsigned __int128 x = (unsigned __int128)multiplier * (unsigned __int128)multiplicand;
+    *highProduct = (x >> 64);
+    return x & 0xFFFFFFFFFFFFFFFF;
+}
+
 typedef uint8_t BYTE;
 typedef uint32_t DWORD;
 typedef int32_t LONG;
@@ -203,17 +210,42 @@ typedef union _LARGE_INTEGER {
     inline T& operator^= (T& a, T b) { return reinterpret_cast<T&>( reinterpret_cast<std::underlying_type<T>::type&>(a) ^= static_cast<std::underlying_type<T>::type>(b) ); }
 #endif
 
+#if defined(_MSC_VER)
+    #define UNREACHABLE __assume(false)
+#elif defined(__GNUC__)
+    #define UNREACHABLE __builtin_unreachable()
+#else
+    #define UNREACHABLE
+#endif
+
+#if defined(_MSC_VER)
+    #define DEBUG_BREAK __debugbreak()
+#else
+    #include <csignal>
+    #define DEBUG_BREAK raise(SIGTRAP) 
+#endif
+
+#if defined(_MSC_VER)
+    #define THREAD_LOCAL __declspec(thread)
+#elif defined(__GNUC__)
+    #define THREAD_LOCAL __thread
+#else
+    #define THREAD_LOCAL thread_local
+#endif
+
+#if defined(_MSC_VER)
+    #define DLLEXPORT __declspec(dllexport)
+#elif defined(__GNUC__)
+    #define DLLEXPORT __attribute__((dllexport))
+#else
+    #error No definition for DLLEXPORT
+#endif
+
+
 // MEMPTR
 #include "Common/MemPtr.h"
 
 #define MPTR_NULL	(0)
-
-// macros
-#if BOOST_OS_WINDOWS
-#define DLLEXPORT __declspec(dllexport)
-#else
-#define DLLEXPORT __declspec(dllexport)
-#endif
 
 template <typename T1, typename T2>
 constexpr bool HAS_FLAG(T1 flags, T2 test_flag) { return (flags & (T1)test_flag) == (T1)test_flag; }
@@ -296,7 +328,7 @@ inline void cemu_assert(bool _condition)
 {
     if ((_condition) == false)
     {
-        __debugbreak();
+        DEBUG_BREAK;
     }
 }
 
@@ -317,32 +349,32 @@ inline void cemu_assert_suspicious()
 
 inline void cemu_assert_error()
 {
-	__debugbreak();
+	DEBUG_BREAK;
 }
 #else
 inline void cemu_assert_debug(bool _condition)
 {
     if ((_condition) == false)
-        __debugbreak();
+        DEBUG_BREAK;
 }
 
 inline void cemu_assert_unimplemented()
 {
-    __debugbreak();
+    DEBUG_BREAK;
 }
 
 inline void cemu_assert_suspicious()
 {
-    __debugbreak();
+    DEBUG_BREAK;
 }
 
 inline void cemu_assert_error()
 {
-    __debugbreak();
+    DEBUG_BREAK;
 }
 #endif
 
-#define assert_dbg() __debugbreak() // old style unconditional generic assert
+#define assert_dbg() DEBUG_BREAK // old style unconditional generic assert
 
 // Some string conversion helpers because C++20 std::u8string is too cumbersome to use in practice
 // mixing string types generally causes loads of issues and many of the libraries we use dont expose interfaces for u8string
@@ -393,7 +425,7 @@ public:
 template<typename T>
 bool future_is_ready(std::future<T>& f)
 {
-#ifdef __clang__
+#if defined(__GNUC__)
     return f.wait_for(std::chrono::nanoseconds(0)) == std::future_status::ready;
 #else
 	return f._Is_ready();
@@ -409,7 +441,7 @@ std::atomic<T>* _rawPtrToAtomic(T* ptr)
     return reinterpret_cast<std::atomic<T>*>(ptr);
 }
 
-#if __clang__
+#if defined(__GNUC__)
 #define ATTR_MS_ABI __attribute__((ms_abi))
 #else
 #define ATTR_MS_ABI
@@ -430,7 +462,7 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 	return titleId & 0xFFFFFFFF;
 }
 
-#ifdef __clang__
+#if defined(__GNUC__)
 #define memcpy_dwords(__dest, __src, __numDwords) memcpy((__dest), (__src), (__numDwords) * sizeof(uint32))
 #define memcpy_qwords(__dest, __src, __numQwords) memcpy((__dest), (__src), (__numQwords) * sizeof(uint64))
 #else

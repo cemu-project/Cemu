@@ -140,8 +140,8 @@ const TBuiltInResource DefaultTBuiltInResource = {
 	/* .generalVaryingIndexing = */ 1,
 	/* .generalSamplerIndexing = */ 1,
 	/* .generalVariableIndexing = */ 1,
-	/* .generalConstantMatrixVectorIndexing = */ 1,
-}
+	/* .generalConstantMatrixVectorIndexing = */ 1
+	}
 };
 
 class _ShaderVkThreadPool

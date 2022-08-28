@@ -941,7 +941,7 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 		//return wxStringFormat2("{}", entry.format);
 	}
 	default:
-		__assume(false);
+		UNREACHABLE;
 	}
 	
 	return wxEmptyString;

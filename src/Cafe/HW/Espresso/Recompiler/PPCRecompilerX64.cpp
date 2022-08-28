@@ -2221,7 +2221,10 @@ void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction,
 		else if (sprIndex == SPR_XER)
 			x64Emit_mov_reg64_mem32(x64GenContext, tempToRealRegister(imlInstruction->op_r_name.registerIndex), REG_RSP, offsetof(PPCInterpreter_t, spr.XER));
 		else if (sprIndex >= SPR_UGQR0 && sprIndex <= SPR_UGQR7)
-			x64Emit_mov_reg64_mem32(x64GenContext, tempToRealRegister(imlInstruction->op_r_name.registerIndex), REG_RSP, offsetof(PPCInterpreter_t, spr.UGQR[sprIndex - SPR_UGQR0]));
+		{
+			sint32 memOffset = offsetof(PPCInterpreter_t, spr.UGQR) + sizeof(PPCInterpreter_t::spr.UGQR[0]) * (sprIndex - SPR_UGQR0);
+			x64Emit_mov_reg64_mem32(x64GenContext, tempToRealRegister(imlInstruction->op_r_name.registerIndex), REG_RSP, memOffset);
+		}
 		else
 			assert_dbg();
 		//x64Emit_mov_reg64_mem32(x64GenContext, tempToRealRegister(imlInstruction->op_r_name.registerIndex), REG_RSP, offsetof(PPCInterpreter_t, spr)+sizeof(uint32)*(name-PPCREC_NAME_SPR0));
@@ -2247,7 +2250,10 @@ void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction,
 		else if (sprIndex == SPR_XER)
 			x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, spr.XER), tempToRealRegister(imlInstruction->op_r_name.registerIndex));
 		else if (sprIndex >= SPR_UGQR0 && sprIndex <= SPR_UGQR7)
-			x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, spr.UGQR[sprIndex-SPR_UGQR0]), tempToRealRegister(imlInstruction->op_r_name.registerIndex));
+		{
+			sint32 memOffset = offsetof(PPCInterpreter_t, spr.UGQR) + sizeof(PPCInterpreter_t::spr.UGQR[0]) * (sprIndex - SPR_UGQR0);
+			x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, memOffset, tempToRealRegister(imlInstruction->op_r_name.registerIndex));
+		}
 		else
 			assert_dbg();	
 	}

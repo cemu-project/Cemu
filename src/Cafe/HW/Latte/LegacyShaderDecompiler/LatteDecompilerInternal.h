@@ -124,8 +124,9 @@ struct LatteDecompilerCFInstruction
 	LatteDecompilerCFInstruction(LatteDecompilerCFInstruction&& mE) = default;
 #else
 	LatteDecompilerCFInstruction(const LatteDecompilerCFInstruction& mE) = default;
-	LatteDecompilerCFInstruction(const LatteDecompilerCFInstruction&& mE) = default;
+	LatteDecompilerCFInstruction(LatteDecompilerCFInstruction&& mE) = default;
 #endif
+
 	LatteDecompilerCFInstruction& operator=(LatteDecompilerCFInstruction&& mE) = default;
 };
 

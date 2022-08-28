@@ -1463,7 +1463,7 @@ void OpenGLRenderer::shader_bind(RendererShader* shader)
 		prevGeometryShaderProgram = program;
 		break;
 	default:
-		__assume(false);
+		UNREACHABLE;
 	}
 
 	catchOpenGLError();
@@ -1494,7 +1494,7 @@ void OpenGLRenderer::shader_unbind(RendererShader::ShaderType shaderType)
 		prevGeometryShaderProgram = -1;
 		break;
 	default: 
-		__assume(false);
+		UNREACHABLE;
 	}
 }
 
