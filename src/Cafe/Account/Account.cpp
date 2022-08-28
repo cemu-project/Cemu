@@ -101,6 +101,7 @@ Account::Account(uint32 persistent_id, std::wstring_view mii_name)
 	// set default name
 	FFLData_t* fflData = (FFLData_t*)m_mii_data.data();
 	const auto tmp_name = GetMiiName();
+	memset(fflData->miiName, 0, sizeof(fflData->miiName));
 	std::copy(tmp_name.cbegin(), tmp_name.cend(), fflData->miiName);
 
 	// calculate checksum
