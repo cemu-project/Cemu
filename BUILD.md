@@ -22,11 +22,23 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 
 For ubuntu and most derivatives:
 
-1) `sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm ninja-build`
-2) Run `git clone --recursive https://github.com/cemu-project/Cemu`
-3) `cd Cemu`
-4) `mkdir build && cd build`
-5) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja`
-6) `ninja`
 
-Build instructions for other distributions will be added in the future!
+`sudo apt install -y libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm ninja-build`
+
+For Arch and most derivatives:
+
+`sudo pacman -S cmake git base-devel ninja nasm linux-headers zip spirv-headers`
+
+
+For Fedora and most derivatives:
+
+`sudo dnf in cmake ninja-build vcpkg llvm kernel-headers gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel nasm perl-core zlib-devel cubeb-devel`
+
+1) Run `git clone --recursive https://github.com/cemu-project/Cemu`
+2) `cd Cemu`
+3) `mkdir build && cd build`
+4) `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja`
+
+4.5) To build for gcc `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+
+6) `ninja`
