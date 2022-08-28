@@ -225,8 +225,8 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 	// parameter gen
 	if (spi0_paramGen != 0)
 	{
-		key += _rotr64(spi0_paramGen, 7);
-		key += _rotr64(spi0_paramGenAddr, 3);
+		key += std::rotr<uint64>(spi0_paramGen, 7);
+		key += std::rotr<uint64>(spi0_paramGenAddr, 3);
 		_activePSImportTable.paramGen = spi0_paramGen;
 		_activePSImportTable.paramGenGPR = spi0_paramGenAddr;
 	}

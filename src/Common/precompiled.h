@@ -182,10 +182,6 @@ inline uint64 _rotl64(uint64 x, sint8 r)
     return (x << r) | (x >> (64 - r));
 }
 
-inline uint64 _rotr64(uint64 x, sint8 r)
-{
-    return (x >> r) | (x << (64 - r));
-}
 
 inline uint64 _umul128(uint64 multiplier, uint64 multiplicand, uint64 *highProduct) {
     unsigned __int128 x = (unsigned __int128)multiplier * (unsigned __int128)multiplicand;

@@ -743,7 +743,7 @@ private:
 			//h ^= *memU64;
 			//memU64++;
 
-			h = _rotr64(h, 7);
+			h = std::rotr(h, 7);
 			h += (*memU64 + (uint64)i);
 			memU64++;
 		}

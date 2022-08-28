@@ -551,7 +551,7 @@ uint64 VulkanRenderer::GetDescriptorSetStateHash(LatteDecompilerShader* shader)
 		hash = _rotl64(hash, 7);
 		// hash view id + swizzle mask
 		hash += (uint64)texture->GetUniqueId();
-		hash = _rotr64(hash, 21);
+		hash = std::rotr(hash, 21);
 		hash += (uint64)(word4 & 0x0FFF0000);
 	}
 
