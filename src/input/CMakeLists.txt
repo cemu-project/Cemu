@@ -1,7 +1,5 @@
 project(CemuInput)
 
-include_directories(".")
-
 add_library(CemuInput
 InputManager.cpp
 InputManager.h
@@ -95,4 +93,21 @@ endif()
 
 target_precompile_headers(CemuInput PRIVATE ../Common/precompiled.h)
 
-target_include_directories(CemuInput PRIVATE ../)
+target_include_directories(CemuInput PUBLIC "../")
+
+target_link_libraries(CemuInput PRIVATE
+	CemuCafe
+	CemuCommon
+	CemuConfig
+	CemuGui
+	CemuUtil
+	Boost::headers
+	Boost::program_options
+	glm::glm
+	pugixml::pugixml
+	SDL2::SDL2
+)
+
+if (ENABLE_WXWIDGETS)
+	target_link_libraries(CemuInput PRIVATE wx::base wx::core)
+endif()

@@ -22,6 +22,9 @@ endif()
 
 
 project(Cemu VERSION 0.1)
+
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -64,6 +67,8 @@ option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
+set(THREADS_PREFER_PTHREAD_FLAG true)
+find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(pugixml REQUIRED)
@@ -73,7 +78,20 @@ find_package(Boost COMPONENTS program_options filesystem nowide REQUIRED)
 find_package(libzip REQUIRED)
 find_package(glslang REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(zstd REQUIRED)
+find_package(zstd MODULE REQUIRED) # MODULE so that zstd::zstd is available
+find_package(OpenSSL COMPONENTS Crypto SSL REQUIRED)
+find_package(glm REQUIRED)
+find_package(fmt 7.0.0 REQUIRED)
+find_package(PNG REQUIRED)
+
+# glslang versions older than 11.11.0 define targets without a namespace
+if (NOT TARGET glslang::SPIRV AND TARGET SPIRV)
+	add_library(glslang::SPIRV ALIAS SPIRV)
+endif()
+
+if (UNIX)
+	find_package(X11 REQUIRED)
+endif()
 
 if (ENABLE_VULKAN)
   include_directories("dependencies/Vulkan-Headers/include")
@@ -93,29 +111,25 @@ if (ENABLE_WXWIDGETS)
 	find_package(wxWidgets 3.2 REQUIRED COMPONENTS base core gl propgrid xrc)
 endif()
 
-find_package(OpenSSL REQUIRED)
-find_package(X11)
-
-# find a better way to handle this
-link_libraries(${Boost_LIBRARIES})
-link_libraries(${X11_LIBRARIES})
-link_libraries(SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static)
-if (ENABLE_WXWIDGETS)
-  link_libraries(wx::core wx::base)
-endif()
-
 if (ENABLE_CUBEB)
-  option(BUILD_TESTS "" OFF)
-  option(BUILD_TOOLS "" OFF)
-  option(BUNDLE_SPEEX "" OFF)
-  set(USE_WINMM OFF CACHE BOOL "")
-  add_subdirectory(dependencies/cubeb)
-  set_property(TARGET cubeb PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  link_libraries(cubeb)
-  add_compile_definitions(HAS_CUBEB=1)
+	find_package(cubeb)
+	if (NOT cubeb_FOUND)
+		option(BUILD_TESTS "" OFF)
+		option(BUILD_TOOLS "" OFF)
+		option(BUNDLE_SPEEX "" OFF)
+		set(USE_WINMM OFF CACHE BOOL "")
+		add_subdirectory("dependencies/cubeb")
+		set_property(TARGET cubeb PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+		add_library(cubeb::cubeb ALIAS cubeb)
+	endif()
+	add_compile_definitions("HAS_CUBEB=1")
 endif()
 
-add_subdirectory(dependencies/ih264d)
-add_subdirectory(dependencies/ZArchive)
+add_subdirectory("dependencies/ih264d")
+
+find_package(ZArchive)
+if (NOT ZArchive_FOUND)
+	add_subdirectory("dependencies/ZArchive")
+endif()
 
 add_subdirectory(src)

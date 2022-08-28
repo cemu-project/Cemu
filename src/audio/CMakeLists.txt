@@ -34,9 +34,16 @@ endif()
 
 target_precompile_headers(CemuAudio PRIVATE ../Common/precompiled.h)
 
-#target_link_libraries(CemuAudio CemuCommon CemuGui CemuPlatform)
-target_include_directories(CemuAudio PRIVATE ../)
+target_include_directories(CemuAudio PUBLIC "../")
+
+target_link_libraries(CemuAudio PRIVATE CemuCafe CemuConfig CemuGui CemuUtil)
 
 if(ENABLE_CUBEB)
-  target_link_libraries(CemuAudio cubeb)
+	# PUBLIC because cubeb.h/cubeb.h is included in CubebAPI.h
+	target_link_libraries(CemuAudio PUBLIC cubeb::cubeb)
+endif()
+
+if (ENABLE_WXWIDGETS)
+	# PUBLIC because wx/wx.h is included in audioDebuggerWindow.h
+	target_link_libraries(CemuAudio PUBLIC wx::base wx::core)
 endif()
