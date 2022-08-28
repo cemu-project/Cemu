@@ -34,7 +34,7 @@ PPCInterpreter_t* PPCInterpreter_getCurrentInstance()
 	return ppcInterpreterCurrentInstance;
 }
 
-NOINLINE uint64 PPCInterpreter_getMainCoreCycleCounter()
+uint64 PPCInterpreter_getMainCoreCycleCounter()
 {
 	return PPCTimer_getFromRDTSC();
 }

@@ -253,13 +253,6 @@ typedef union _LARGE_INTEGER {
     #error No definition for DLLEXPORT and DLLIMPORT
 #endif
 
-#if defined(_MSC_VER)
-    #define NOINLINE __declspec(noinline)
-#elif defined(__GNUC__)
-    #define NOINLINE __attribute__((noinline))
-#else
-    #error No definition for NOINLINE
-#endif
 
 // MEMPTR
 #include "Common/MemPtr.h"

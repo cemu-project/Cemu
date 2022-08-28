@@ -28,7 +28,7 @@ namespace coreinit
 		osLib_returnFromFunction64(hCPU, osTime);
 	}
 
-	NOINLINE uint64 coreinit_getTimeBase_dummy()
+	uint64 coreinit_getTimeBase_dummy()
 	{
 		return __rdtsc();
 	}
