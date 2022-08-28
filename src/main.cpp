@@ -27,8 +27,6 @@
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/vpad/vpad.h"
 
-#include "Common/platform.h"
-
 #include "audio/IAudioAPI.h"
 #if BOOST_OS_WINDOWS
 #pragma comment(lib,"Dbghelp.lib")
