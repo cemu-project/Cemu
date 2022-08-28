@@ -35,6 +35,11 @@ if (MSVC)
     message(STATUS "Using additional optimization flags for MSVC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Oi /Ot") # enable intrinsic functions, favor speed
   endif()
+elseif(UNIX)
+  if (PUBLIC_RELEASE)
+    message(STATUS "Compiling with -O2 optimizations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+  endif()
 endif()
 
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
