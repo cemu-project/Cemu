@@ -33,7 +33,7 @@ vcpkg is not needed to be installed and provided by cemu when git cloning.
 
 For Fedora and most derivatives:
 
-`sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel nasm cmake vcpkg perl-core zlib-devel cubeb-devel kernel-headers`
+`sudo dnf in cmake ninja-build vcpkg llvm kernel-headers gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel nasm perl-core zlib-devel cubeb-devel`
 
 1) Run `git clone --recursive https://github.com/cemu-project/Cemu`
 2) `cd Cemu`
