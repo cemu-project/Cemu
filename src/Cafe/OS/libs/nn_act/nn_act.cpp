@@ -369,7 +369,7 @@ void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
 	sint32 miiNameLength = 0;
 	for (sint32 i = 0; i < MII_FFL_NAME_LENGTH; i++)
 	{
-		miiName[i] = _swapEndianU16(miiData->miiName[i]);
+		miiName[i] = miiData->miiName[i];
 		if (miiData->miiName[i] == (const uint16be)'\0')
 			break;
 		miiNameLength = i+1;
@@ -392,7 +392,7 @@ void nnActExport_GetMiiNameEx(PPCInterpreter_t* hCPU)
 	sint32 miiNameLength = 0;
 	for (sint32 i = 0; i < MII_FFL_NAME_LENGTH; i++)
 	{
-		miiName[i] = _swapEndianU16(miiData->miiName[i]);
+		miiName[i] = miiData->miiName[i];
 		if (miiData->miiName[i] == (const uint16be)'\0')
 			break;
 		miiNameLength = i + 1;
