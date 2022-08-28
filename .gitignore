@@ -17,13 +17,16 @@
 build/
 out/
 .cache/
-bin/Cemu
 
 # Cemu bin files
+bin/Cemu
+bin/dump
+bin/graphicPacks
+bin/mlc01/*
 bin/otp.bin
 bin/seeprom.bin
+bin/keys.txt
 bin/Cemu.pdb
-bin/mlc01/*
 bin/settings.xml
 bin/title_list_cache.xml
 
