@@ -245,10 +245,8 @@ typedef union _LARGE_INTEGER {
 
 #if defined(_MSC_VER)
     #define DLLEXPORT __declspec(dllexport)
-    #define DLLIMPORT __declspec(dllimport)
 #elif defined(__GNUC__)
     #define DLLEXPORT __attribute__((dllexport))
-    #define DLLIMPORT __attribute__((dllimport))
 #else
     #error No definition for DLLEXPORT and DLLIMPORT
 #endif
