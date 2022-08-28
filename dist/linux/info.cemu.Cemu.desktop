@@ -4,6 +4,7 @@ Type=Application
 Terminal=false
 Icon=info.cemu.Cemu
 Exec=cemu
+GenericName=Wii U Emulator
 Comment=Software to emulate Wii U games and applications on PC
 Comment[de]=Software zum emulieren von Wii U Spielen und Anwendungen auf dem PC
 Comment[ru]=Программа для эмуляции игр и приложений Wii U на PC
