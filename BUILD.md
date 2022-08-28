@@ -45,5 +45,4 @@ For Fedora and most derivatives:
 
 Due to some issue and how ubuntu handles it's filesystem as cited here https://wiki.ubuntu.com/MultiarchSpec.
 You might not have audio and an option is to use pulseaudio instead of pipewire 
-But this is a very bad idea and could cause more issues with stability. 
-Sources : https://wiki.ubuntu.com/MultiarchSpec
+But this is a very bad idea and could cause more issues with stability.
