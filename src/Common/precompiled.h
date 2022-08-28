@@ -240,7 +240,7 @@ typedef union _LARGE_INTEGER {
 #elif defined(__GNUC__)
     #define DLLEXPORT __attribute__((dllexport))
 #else
-    #error No definition for DLLEXPORT and DLLIMPORT
+    #error No definition for DLLEXPORT
 #endif
 
 
