@@ -27,7 +27,9 @@ For ubuntu and most derivatives:
 
 For Arch and most derivatives:
 
-`sudo pacman -S cmake git base-devel ninja nasm linux-headers`
+`sudo pacman -S cmake git base-devel ninja nasm linux-headers zip`
+
+Added zip incase the user runs KDE but with gnome zip is included.
 
 vcpkg is not needed to be installed and provided by cemu when git cloning.
 
