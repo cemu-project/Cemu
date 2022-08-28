@@ -42,7 +42,3 @@ For Fedora and most derivatives:
 4.5) To build for gcc `cmake .. -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 6) `ninja`
-
-Due to some issue and how ubuntu handles it's filesystem as cited here https://wiki.ubuntu.com/MultiarchSpec.
-You might not have audio and an option is to use pulseaudio instead of pipewire 
-But this is a very bad idea and could cause more issues with stability.
