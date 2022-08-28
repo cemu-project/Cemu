@@ -24,18 +24,18 @@ uint64 VulkanRenderer::draw_calculateMinimalGraphicsPipelineHash(const LatteFetc
 	for (auto& group : fetchShader->bufferGroups)
 	{
 		uint32 bufferStride = group.getCurrentBufferStride(lcr.GetRawView());
-		stateHash = _rotl64(stateHash, 7);
+		stateHash = std::rotl(stateHash, 7);
 		stateHash += bufferStride * 3;
 	}
 
 	stateHash += fetchShader->getVkPipelineHashFragment();
-	stateHash = _rotl64(stateHash, 7);
+	stateHash = std::rotl(stateHash, 7);
 
 	stateHash += lcr.GetRawView()[mmVGT_PRIMITIVE_TYPE];
-	stateHash = _rotl64(stateHash, 7);
+	stateHash = std::rotl(stateHash, 7);
 
 	stateHash += lcr.GetRawView()[mmVGT_STRMOUT_EN];
-	stateHash = _rotl64(stateHash, 7);
+	stateHash = std::rotl(stateHash, 7);
 
 	if(lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL())
 		stateHash += 0x333333;
@@ -66,24 +66,24 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 	if (vertexShader)
 		stateHash += vertexShader->baseHash;
 
-	stateHash = _rotl64(stateHash, 13);
+	stateHash = std::rotl(stateHash, 13);
 
 	if (geometryShader)
 		stateHash += geometryShader->baseHash;
 
-	stateHash = _rotl64(stateHash, 13);
+	stateHash = std::rotl(stateHash, 13);
 
 	if (pixelShader)
 		stateHash += pixelShader->baseHash + pixelShader->auxHash;
 
-	stateHash = _rotl64(stateHash, 13);
+	stateHash = std::rotl(stateHash, 13);
 
 	uint32 polygonCtrl = lcr.PA_SU_SC_MODE_CNTL.getRawValue();
 	stateHash += polygonCtrl;
-	stateHash = _rotl64(stateHash, 7);
+	stateHash = std::rotl(stateHash, 7);
 
 	stateHash += ctxRegister[Latte::REGADDR::PA_CL_CLIP_CNTL];
-	stateHash = _rotl64(stateHash, 7);
+	stateHash = std::rotl(stateHash, 7);
 
 	const auto colorControlReg = ctxRegister[Latte::REGADDR::CB_COLOR_CONTROL];
 	stateHash += colorControlReg;
@@ -97,7 +97,7 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 		{
 			if (((blendEnableMask & (1 << i))) == 0)
 				continue;
-			stateHash = _rotl64(stateHash, 7);
+			stateHash = std::rotl(stateHash, 7);
 			stateHash += ctxRegister[Latte::REGADDR::CB_BLEND0_CONTROL + i];
 		}
 	}
@@ -109,11 +109,11 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 	if (stencilTestEnable)
 	{
 		stateHash += ctxRegister[mmDB_STENCILREFMASK];
-		stateHash = _rotl64(stateHash, 17);
+		stateHash = std::rotl(stateHash, 17);
 		if(depthControl & (1<<7)) // back stencil enable
 		{ 
 			stateHash += ctxRegister[mmDB_STENCILREFMASK_BF];
-			stateHash = _rotl64(stateHash, 13);
+			stateHash = std::rotl(stateHash, 13);
 		}
 	}
 	else
@@ -122,7 +122,7 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 		depthControl &= 0xFF;
 	}
 
-	stateHash = _rotl64(stateHash, 17);
+	stateHash = std::rotl(stateHash, 17);
 	stateHash += depthControl;
 
 	// polygon offset
@@ -542,13 +542,13 @@ uint64 VulkanRenderer::GetDescriptorSetStateHash(LatteDecompilerShader* shader)
 		{
 			samplerIndex += LatteDecompiler_getTextureSamplerBaseIndex(shader->shaderType);
 			hash += LatteGPUState.contextRegister[Latte::REGADDR::SQ_TEX_SAMPLER_WORD0_0 + samplerIndex * 3 + 0];
-			hash = _rotl64(hash, 7);
+			hash = std::rotl(hash, 7);
 			hash += LatteGPUState.contextRegister[Latte::REGADDR::SQ_TEX_SAMPLER_WORD0_0 + samplerIndex * 3 + 1];
-			hash = _rotl64(hash, 7);
+			hash = std::rotl(hash, 7);
 			hash += LatteGPUState.contextRegister[Latte::REGADDR::SQ_TEX_SAMPLER_WORD0_0 + samplerIndex * 3 + 2];
-			hash = _rotl64(hash, 7);
+			hash = std::rotl(hash, 7);
 		}
-		hash = _rotl64(hash, 7);
+		hash = std::rotl(hash, 7);
 		// hash view id + swizzle mask
 		hash += (uint64)texture->GetUniqueId();
 		hash = std::rotr(hash, 21);

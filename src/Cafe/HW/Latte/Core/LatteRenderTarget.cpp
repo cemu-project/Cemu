@@ -158,15 +158,15 @@ void LatteMRT::ApplyCurrentState()
 		if (colorView)
 		{
 			key += ((uint64)colorView);
-			key = _rotl64(key, 5);
+			key = std::rotl(key, 5);
 			fboLookupView = colorView;
 		}
-		key = _rotl64(key, 7);
+		key = std::rotl(key, 7);
 	}
 	if (sLatteCurrentRendertargets.depthBuffer.view)
 	{
 		key += ((uint64)sLatteCurrentRendertargets.depthBuffer.view);
-		key = _rotl64(key, 5);
+		key = std::rotl(key, 5);
 		key += (sLatteCurrentRendertargets.depthBuffer.hasStencil);
 		if (fboLookupView == NULL)
 		{
