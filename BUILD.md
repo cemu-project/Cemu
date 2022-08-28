@@ -27,13 +27,13 @@ For ubuntu and most derivatives:
 
 For Arch and most derivatives:
 
-`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git zlib zip unzip`
+`sudo pacman -S --needed gtk3 libsecret libgcrypt systemd-libs freeglut nasm git zlib zip unzip linux-headers`
 
 Go here https://aur.archlinux.org/packages/vcpkg Press download snapshot next unzip it and go into the folder open terminal and type `makepkg -si`
 
 For Fedora and most derivatives:
 
-`sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel nasm cmake vcpkg perl-core zlib-devel cubeb-devel`
+`sudo dnf in -y gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel nasm cmake vcpkg perl-core zlib-devel cubeb-devel kernel-headers`
 
 1) Run `git clone --recursive https://github.com/cemu-project/Cemu`
 2) `cd Cemu`
