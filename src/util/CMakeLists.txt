@@ -1,7 +1,5 @@
 project(CemuUtil)
 
-include_directories(".")
-
 file(GLOB_RECURSE CPP_FILES *.cpp)
 file(GLOB_RECURSE H_FILES *.h)
 
@@ -11,5 +9,16 @@ set_property(TARGET CemuUtil PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CON
 
 target_precompile_headers(CemuUtil PRIVATE ../Common/precompiled.h)
 
-target_link_libraries(CemuUtil CemuCommon CemuConfig)
-target_include_directories(CemuUtil PRIVATE ../)
+target_include_directories(CemuUtil PUBLIC "../")
+
+target_link_libraries(CemuUtil PRIVATE
+	CemuCommon
+	CemuConfig
+	Boost::headers
+	Boost::nowide
+	OpenSSL::Crypto
+)
+
+if (ENABLE_WXWIDGETS)
+	target_link_libraries(CemuUtil PRIVATE wx::base wx::core)
+endif()

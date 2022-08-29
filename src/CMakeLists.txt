@@ -79,18 +79,21 @@ set_target_properties(CemuBin PROPERTIES
         OUTPUT_NAME "Cemu"
         )
 
-target_link_libraries(CemuBin PRIVATE CemuCommon CemuComponents CemuCafe CemuConfig CemuGui CemuAudio CemuInput CemuUtil)
+target_link_libraries(CemuBin PRIVATE
+	CemuAudio
+	CemuCafe
+	CemuCommon
+	CemuComponents
+	CemuConfig
+	CemuGui
+	CemuInput
+	CemuUtil
+)
+
 target_link_libraries(CemuBin PRIVATE CemuAsm)
-target_link_libraries(CemuBin PRIVATE OpenSSL::SSL)
-target_link_libraries(CemuBin PRIVATE ZLIB::ZLIB)
-target_link_libraries(CemuBin PRIVATE ${wxWidgets_LIBRARIES})
-target_link_libraries(CemuBin PRIVATE CURL::libcurl)
-target_link_libraries(CemuBin PRIVATE imgui::imgui)
-target_link_libraries(CemuBin PRIVATE pugixml pugixml::static pugixml::pugixml)
+target_link_libraries(CemuBin PRIVATE SDL2::SDL2 SDL2::SDL2main) # is SDL2main needed?
+target_link_libraries(CemuBin PRIVATE imguiImpl OpenGL::GL)
 
-target_link_libraries(CemuBin PUBLIC
-CemuCommon CemuAudio CemuInput CemuComponents CemuCafe CemuConfig CemuGui imguiImpl)
-
-# needed because of some cyclic dependencies. fix this
-target_link_libraries(CemuBin PUBLIC
-CemuCommon CemuInput CemuComponents CemuCafe CemuResource CemuGui CemuAsm)
+if (ENABLE_WXWIDGETS)
+	target_link_libraries(CemuBin PRIVATE wx::base wx::core)
+endif()
