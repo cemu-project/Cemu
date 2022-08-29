@@ -3,8 +3,12 @@
 </div>
 
 <div align="center">
-[![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
-[![Discord](https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF)](https://discord.gg/5psYsup)
+<a href="https://github.com/cemu-project/Cemu/actions/workflows/build.yml">
+ <img src="https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg" alt="Build Process"/>
+ </a>
+ <a href="https://discord.gg/5psYsup">
+  <img src="https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF" alt="Discord"/>
+ </a>
 </div>
 
 This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
