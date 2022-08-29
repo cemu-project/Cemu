@@ -1,3 +1,5 @@
+#include <fmt/format.h>
+
 #pragma once
 
 enum class LogType : sint32
@@ -58,8 +60,8 @@ bool cemuLog_log(LogType type, TFmt format, TArgs&&... args)
 	if (!cemuLog_isLoggingEnabled(type))
 		return false;
 
-	const auto format_view = fmt::to_string_view(format);
-	const auto text = fmt::vformat(format_view, fmt::make_args_checked<TArgs...>(format_view, args...));
+	const auto format_view = to_string_view(format);
+	const auto text = fmt::vformat(format_view, make_args_checked<TArgs...>(format_view, args...));
 	cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
 	return true;
 }

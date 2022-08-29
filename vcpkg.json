@@ -2,6 +2,9 @@
   "name": "cemu",
   "version-string": "1.0",
   "builtin-baseline": "1b0252ca70ca2244a711535462c7f981eb439e83",
+  "overrides": [
+        { "name": "fmt", "version": "7.0.2" }
+    ],
   "dependencies": [
     "imgui",
     "pugixml",
@@ -30,7 +33,11 @@
     "boost-property-tree",
     "boost-static-string",
     "boost-random",
-    "fmt",
+  "fmt",
+    {
+      "name": "fmt",
+      "version>=": "7.0.2"
+    },
     "glm",
     "glslang",
     "zstd",

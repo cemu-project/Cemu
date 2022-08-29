@@ -1,49 +1,30 @@
-project(CemuAudio)
+add_library(Audio IAudioAPI.cpp IAudioAPI.h)
 
-add_library(CemuAudio
-IAudioAPI.cpp
-IAudioAPI.h
-)
-
-set_property(TARGET CemuAudio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+target_precompile_headers(Audio PRIVATE ../Common/precompiled.h)
 
 # move these to UI folder
-target_sources(CemuAudio PRIVATE
-  audioDebuggerWindow.cpp
-  audioDebuggerWindow.h
-)
+target_sources(Audio PRIVATE audioDebuggerWindow.cpp audioDebuggerWindow.h)
 
-if(WIN32)
-  target_sources(CemuAudio PRIVATE
-      DirectSoundAPI.cpp
-      DirectSoundAPI.h
-      XAudio2API.cpp
-      XAudio2API.h
-      XAudio27API.cpp
-      XAudio27API.h
+if (WIN32)
+  target_sources(Audio PRIVATE
+    DirectSoundAPI.cpp
+    DirectSoundAPI.h
+    XAudio2API.cpp
+    XAudio2API.h
+    XAudio27API.cpp
+    XAudio27API.h
   )
 endif()
 
-if(ENABLE_CUBEB)
-  target_sources(CemuAudio PRIVATE
-          CubebAPI.cpp
-          CubebAPI.h
-  )
-  #add_definitions(HAS_CUBEB)
-endif()
+target_link_libraries(Audio PRIVATE Cafe Config Gui Util)
 
-target_precompile_headers(CemuAudio PRIVATE ../Common/precompiled.h)
-
-target_include_directories(CemuAudio PUBLIC "../")
-
-target_link_libraries(CemuAudio PRIVATE CemuCafe CemuConfig CemuGui CemuUtil)
-
-if(ENABLE_CUBEB)
-	# PUBLIC because cubeb.h/cubeb.h is included in CubebAPI.h
-	target_link_libraries(CemuAudio PUBLIC cubeb::cubeb)
+if (ENABLE_CUBEB)
+  target_sources(Audio PRIVATE CubebAPI.cpp CubebAPI.h)
+  # PUBLIC because cubeb.h/cubeb.h is included in CubebAPI.h
+  target_link_libraries(Audio PUBLIC cubeb::cubeb)
 endif()
 
 if (ENABLE_WXWIDGETS)
 	# PUBLIC because wx/wx.h is included in audioDebuggerWindow.h
-	target_link_libraries(CemuAudio PUBLIC wx::base wx::core)
+	target_link_libraries(Audio PUBLIC wx::base wx::core)
 endif()

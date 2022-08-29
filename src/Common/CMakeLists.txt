@@ -1,48 +1,51 @@
-project(CemuCommon)
-
-file(GLOB CPP_FILES *.cpp)
-file(GLOB H_FILES *.h)
-add_library(CemuCommon ${CPP_FILES} ${H_FILES})
-
-set_property(TARGET CemuCommon PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-if(WIN32)
-target_sources(CemuCommon
-PRIVATE
-    windows/platform.cpp
-    windows/platform.h
+add_library(Common
+  betype.h
+  enumFlags.h
+  ExceptionHandler/ExceptionHandler.cpp
+  ExceptionHandler/ExceptionHandler.h
+  filestream.h
+  GLInclude/glext.h
+  GLInclude/glFunctions.h
+  GLInclude/GLInclude.h
+  GLInclude/glxext.h
+  GLInclude/khrplatform.h
+  GLInclude/wglext.h
+  unix/date.h
+  unix/fast_float.h
+  MemPtr.h
+  platform.h
+  precompiled.cpp
+  precompiled.h
+  socket.h
+  StackAllocator.h
+  SysAllocator.cpp
+  SysAllocator.h
+  version.h
+  zstring_view.h
 )
+
+target_precompile_headers(Common PUBLIC precompiled.h)
+
+if (WIN32)
+  target_sources(Common PRIVATE windows/platform.cpp windows/platform.h)
 else()
-target_sources(CemuCommon
-PRIVATE
-    unix/platform.cpp
-    unix/platform.h
-)
+  target_sources(Common PRIVATE unix/platform.cpp unix/platform.h)
 endif()
 
-target_sources(CemuCommon
-        PRIVATE
-        ExceptionHandler/ExceptionHandler.cpp
-        ExceptionHandler/ExceptionHandler.h
-        )
 
-target_precompile_headers(CemuCommon PUBLIC precompiled.h)
-target_include_directories(CemuCommon PUBLIC "../")
+target_link_libraries(Common PRIVATE Cafe Config Components)
 
-target_link_libraries(CemuCommon PRIVATE
-	CemuCafe
-	CemuConfig
-	CemuComponents
-	Boost::nowide
-	Boost::filesystem
-	glm::glm
+target_link_libraries(Common PRIVATE
+  Boost::nowide
+  Boost::filesystem
+  glm::glm
 )
-
-if (UNIX)
-	target_link_libraries(CemuCommon PRIVATE X11::X11 X11::Xrender X11::Xutil)
-endif()
 
 # PUBLIC because:
 # - boost/predef/os.h is included in platform.h
 # - fmt/core.h is included in precompiled.h
-target_link_libraries(CemuCommon PUBLIC Boost::headers fmt::fmt)
+target_link_libraries(Common PUBLIC Boost::headers fmt::fmt)
+
+if (UNIX)
+  target_link_libraries(Common PRIVATE X11::X11 X11::Xrender X11::Xutil)
+endif()

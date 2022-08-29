@@ -1,21 +1,7 @@
-add_library(CemuResource)
+add_library(Resource CafeDefaultFont.cpp)
 
-set_property(TARGET CemuResource PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-target_precompile_headers(CemuResource PRIVATE ../Common/precompiled.h)
-
-# icon resources
-if(UNIX)
-  target_sources(CemuResource PRIVATE
-  embedded/resources.cpp
-  embedded/resources.h
-  )
+if (UNIX)
+  target_sources(Resource PRIVATE embedded/resources.cpp embedded/resources.h)
 endif()
 
-target_sources(CemuResource PRIVATE
-        CafeDefaultFont.cpp
-        )
-
-target_include_directories(CemuResource PUBLIC "../")
-
-target_link_libraries(CemuResource PRIVATE CemuComponents)
+target_precompile_headers(Resource PRIVATE ../Common/precompiled.h)
