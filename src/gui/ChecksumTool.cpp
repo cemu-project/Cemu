@@ -13,7 +13,8 @@
 #include <zip.h>
 #include <curl/curl.h>
 
-#include <openssl/sha.h>
+#include <openssl/evp.h> /* EVP_Digest */
+#include <openssl/sha.h> /* SHA256_DIGEST_LENGTH */
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
@@ -694,8 +695,8 @@ void ChecksumTool::DoWork()
 		const auto wud_size = wud_getWUDSize(wud);
 		std::vector<uint8> buffer(1024 * 1024 * 8);
 
-		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
+		EVP_MD_CTX *sha256 = EVP_MD_CTX_new();
+		EVP_DigestInit(sha256, EVP_sha256());
 
 		uint32 read = 0;
 		size_t offset = 0;
@@ -712,7 +713,7 @@ void ChecksumTool::DoWork()
 			offset += read;
 			size -= read;
 
-			SHA256_Update(&sha256, buffer.data(), read);
+			EVP_DigestUpdate(sha256, buffer.data(), read);
 
 			wxQueueEvent(this, new wxSetGaugeValue((int)((offset * 90) / wud_size), m_progress, m_status, wxStringFormat2(_("Reading game image: {}/{}kb"), offset / 1024, wud_size / 1024)));
 		} while (read != 0 && size > 0);
@@ -723,7 +724,8 @@ void ChecksumTool::DoWork()
 		if (!m_running.load(std::memory_order_relaxed))
 			return;
 
-		SHA256_Final(checksum.data(), &sha256);
+		EVP_DigestFinal_ex(sha256, checksum.data(), NULL);
+		EVP_MD_CTX_free(sha256);
 
 		std::stringstream str;
 		for (const auto& b : checksum)
@@ -757,10 +759,7 @@ void ChecksumTool::DoWork()
 				continue;
 			}
 
-			SHA256_CTX sha256;
-			SHA256_Init(&sha256);
-			SHA256_Update(&sha256, fileData->data(), fileData->size());
-			SHA256_Final(checksum.data(), &sha256);
+			SHA256(fileData->data(), fileData->size(), checksum.data());
 
 			std::stringstream str;
 			for (const auto& b : checksum)

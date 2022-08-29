@@ -124,12 +124,9 @@ namespace NAPI
 		// decrypt icon data and hash
 		_decryptIDBEAndHash(&iconDataV0, hash, keyIndex);
 		// verify hash of decrypted data
-		uint8 calcHash[32];
-		SHA256_CTX shaCtx;
-		SHA256_Init(&shaCtx);
-		SHA256_Update(&shaCtx, &iconDataV0, sizeof(IDBEIconDataV0));
-		SHA256_Final(calcHash, &shaCtx);
-		if (std::memcmp(calcHash, hash, 32) != 0)
+		uint8 calcHash[SHA256_DIGEST_LENGTH];
+		SHA256((const unsigned char*) &iconDataV0, sizeof(IDBEIconDataV0), calcHash);
+		if (std::memcmp(calcHash, hash, SHA256_DIGEST_LENGTH) != 0)
 		{
 			cemuLog_log(LogType::Force, "IDBE_Request: Hash mismatch");
 			return std::nullopt;

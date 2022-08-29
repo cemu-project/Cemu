@@ -100,13 +100,13 @@ namespace nn
 			// decrypt data
 			uint8 iv[16];
 			memcpy(iv, idbeAesIv, sizeof(iv));
-			uint8 decryptedSHA256[32];
+			uint8 decryptedSHA256[SHA256_DIGEST_LENGTH];
 			AES128_CBC_decrypt_updateIV(decryptedSHA256, iconInput->hashSHA256, sizeof(decryptedSHA256), idbeAesKeys + 16 * idbeHeader->keyIndex, iv);
 			AES128_CBC_decrypt((uint8*)iconOutput, (uint8*)&iconInput->iconData, sizeof(iconInput->iconData), idbeAesKeys + 16 * idbeHeader->keyIndex, iv);
 			// calculate and compare sha256
-			uint8 calculatedSHA256[32];
-			SHA256((const unsigned char*)iconOutput, sizeof(nnIdbeIconDataV0_t), (unsigned char*)&calculatedSHA256);
-			if (memcmp(calculatedSHA256, decryptedSHA256, 32) != 0)
+			uint8 calculatedSHA256[SHA256_DIGEST_LENGTH];
+			SHA256((const unsigned char*)iconOutput, sizeof(nnIdbeIconDataV0_t), calculatedSHA256);
+			if (memcmp(calculatedSHA256, decryptedSHA256, SHA256_DIGEST_LENGTH) != 0)
 			{
 				forceLogDebug_printf("Idbe icon has incorrect sha256 hash");
 				return false;

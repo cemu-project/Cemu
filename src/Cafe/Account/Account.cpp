@@ -562,9 +562,9 @@ void makePWHash(uint8* input, sint32 length, uint32 magic, uint8* output)
 	buffer[2] = (magic >> 16) & 0xFF;
 	buffer[3] = (magic >> 24) & 0xFF;
 	memcpy(buffer + 8, input, length);
-	uint8 md[32];
+	uint8 md[SHA256_DIGEST_LENGTH];
 	SHA256(buffer, 8 + length, md);
-	memcpy(output, md, 32);
+	memcpy(output, md, SHA256_DIGEST_LENGTH);
 }
 
 void actPwTest()

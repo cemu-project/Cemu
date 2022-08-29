@@ -6,7 +6,6 @@
 #include "openssl/ec.h"
 #include "openssl/x509.h"
 #include "openssl/ssl.h"
-#include "openssl/sha.h"
 #include "openssl/ecdsa.h"
 
 #include "util/crypto/aes128.h"
@@ -291,14 +290,6 @@ void iosuCrypto_generateDeviceCertificate()
 	EC_POINT_free(pubkey);
 	BN_CTX_end(context); // clears all BN variables
 	BN_CTX_free(context);
-}
-
-void CertECC_generateHashForSignature(CertECC_t& cert, CHash256& hashOut)
-{
-	SHA256_CTX sha256;
-	SHA256_Init(&sha256);
-	SHA256_Update(&sha256, cert.certificateSubject, 0x100);
-	SHA256_Final(hashOut.b, &sha256);
 }
 
 bool iosuCrypto_hasAllDataForLogin()

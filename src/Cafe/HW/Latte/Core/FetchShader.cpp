@@ -10,7 +10,8 @@
 #include "Cafe/HW/Latte/ISA/LatteInstructions.h"
 #include "util/containers/LookupTableL3.h"
 #include "util/helpers/fspinlock.h"
-#include <openssl/sha.h>
+#include <openssl/sha.h> /* SHA1_DIGEST_LENGTH */
+#include <openssl/evp.h> /* EVP_Digest */
 
 uint32 LatteShaderRecompiler_getAttributeSize(LatteParsedFetchShaderAttribute_t* attrib)
 {
@@ -122,20 +123,22 @@ uint32 LatteParsedFetchShaderBufferGroup_t::getCurrentBufferStride(uint32* conte
 void LatteFetchShader::CalculateFetchShaderVkHash()
 {
 	// calculate SHA1 of all states that are part of the Vulkan graphics pipeline
-	SHA_CTX ctx;
-	SHA1_Init(&ctx);
+	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+	EVP_DigestInit(ctx, EVP_sha1());
 	for(auto& group : bufferGroups)
 	{
 		// offsets
 		for (sint32 t = 0; t < group.attribCount; t++)
 		{
 			uint32 offset = group.attrib[t].offset;
-			SHA1_Update(&ctx, &t, sizeof(t));
-			SHA1_Update(&ctx, &offset, sizeof(offset));
+			EVP_DigestUpdate(ctx, &t, sizeof(t));
+			EVP_DigestUpdate(ctx, &offset, sizeof(offset));
 		}
 	}
-	uint8 shaDigest[20];
-	SHA1_Final(shaDigest, &ctx);
+	uint8 shaDigest[SHA_DIGEST_LENGTH];
+	EVP_DigestFinal_ex(ctx, shaDigest, NULL);
+	EVP_MD_CTX_free(ctx);
+
 	// fold SHA1 hash into a 64bit value
 	uint64 h = *(uint64*)(shaDigest + 0);
 	h += *(uint64*)(shaDigest + 8);
