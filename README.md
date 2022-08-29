@@ -1,7 +1,11 @@
-# **Cemu - Wii U emulator**
+<div align="center">
+<h1><strong>Cemu - Wii U emulator</strong></h1>
+</div>
 
+<div align="center">
 [![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
 [![Discord](https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF)](https://discord.gg/5psYsup)
+</div>
 
 This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
 It's written in C/C++ and is being actively developed with new features and fixes to increase compatibility, convenience and usability.
