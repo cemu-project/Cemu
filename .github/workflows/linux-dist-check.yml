@@ -17,7 +17,7 @@ on:
       - main
 
 jobs:
-  build-ubuntu:
+  linux-dist-check:
     runs-on: ubuntu-20.04
     container:
       image: archlinux:latest
@@ -28,6 +28,7 @@ jobs:
       run: |
         pacman --noconfirm -Syy
         pacman --noconfirm -S desktop-file-utils appstream
+
     - name: "Check .desktop"
       run: 
         desktop-file-validate ./dist/linux/info.cemu.Cemu.desktop
