@@ -1,0 +1,37 @@
+name: Linux dist check
+
+on:
+  pull_request:
+    paths:
+      - "dist/linux/info.cemu.Cemu.desktop"
+      - "dist/linux/info.cemu.Cemu.metainfo.xml"
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    paths:
+      - "dist/linux/info.cemu.Cemu.desktop"
+      - "dist/linux/info.cemu.Cemu.metainfo.xml"
+    branches:
+      - main
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-20.04
+    container:
+      image: archlinux:latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: "Install packages"
+      run: |
+        pacman --noconfirm -Syy
+        pacman --noconfirm -S desktop-file-utils appstream
+    - name: "Check .desktop"
+      run: 
+        desktop-file-validate ./dist/linux/info.cemu.Cemu.desktop
+        
+    - name: "Check AppStream"
+      run:
+        appstreamcli validate --explain ./dist/linux/info.cemu.Cemu.metainfo.xml
