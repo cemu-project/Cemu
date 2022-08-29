@@ -1,7 +1,5 @@
 project(CemuGui)
 
-include_directories(".")
-
 file(GLOB_RECURSE CPP_FILES *.cpp)
 file(GLOB_RECURSE H_FILES *.h)
 add_library(CemuGui ${CPP_FILES} ${H_FILES})
@@ -17,13 +15,32 @@ wxcomponents/checktree.h
 
 target_precompile_headers(CemuGui PRIVATE ../Common/precompiled.h)
 
-target_include_directories(CemuGui PRIVATE ../)
+target_include_directories(CemuGui PUBLIC "../")
+# PUBLIC because rapidjson/document.h is included in ChecksumTool.h
+target_include_directories(CemuGui PUBLIC ${RAPIDJSON_INCLUDE_DIRS})
 
-target_link_libraries(CemuGui ${wxWidgets_LIBRARIES})
-target_link_libraries(CemuGui libzip::zip)
-target_link_libraries(CemuGui CemuCafe CemuComponents CemuResource)
-target_link_libraries(CemuGui zarchive)
+target_link_libraries(CemuGui PRIVATE
+	CemuAudio
+	CemuCafe
+	CemuCommon
+	CemuComponents
+	CemuConfig
+	CemuInput
+	CemuResource
+	CemuUtil
+	Boost::headers
+	CURL::libcurl
+	libzip::zip
+	OpenSSL::Crypto
+	pugixml::pugixml
+	ZArchive::zarchive
+)
 
 if(ENABLE_CUBEB)
-    target_link_libraries(CemuGui cubeb)
+	target_link_libraries(CemuGui PRIVATE cubeb::cubeb)
+endif()
+
+if (ENABLE_WXWIDGETS)
+	# PUBLIC because wx/app.h is included in CemuApp.h
+	target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
 endif()

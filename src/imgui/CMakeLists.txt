@@ -1,7 +1,5 @@
 project(imguiImpl)
 
-include_directories(".")
-
 add_library(imguiImpl)
 
 set_property(TARGET imguiImpl PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -17,5 +15,14 @@ target_sources(imguiImpl PRIVATE
 
 target_precompile_headers(imguiImpl PRIVATE ../Common/precompiled.h)
 
-target_link_libraries(CemuCommon)
-target_include_directories(imguiImpl PRIVATE ../)
+target_include_directories(imguiImpl PUBLIC "../")
+
+target_link_libraries(imguiImpl PRIVATE
+	CemuCafe
+	CemuCommon
+	CemuGui
+	CemuInput
+	CemuResource
+	CemuUtil
+	imgui::imgui
+)

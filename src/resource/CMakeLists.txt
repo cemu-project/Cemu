@@ -16,4 +16,6 @@ target_sources(CemuResource PRIVATE
         CafeDefaultFont.cpp
         )
 
-target_include_directories(CemuResource PRIVATE ../)
+target_include_directories(CemuResource PUBLIC "../")
+
+target_link_libraries(CemuResource PRIVATE CemuComponents)
