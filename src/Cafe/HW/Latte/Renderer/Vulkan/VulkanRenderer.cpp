@@ -215,7 +215,7 @@ void VulkanRenderer::DetermineVendor()
 		{
 			// if the driver does not support the extension,
 			// it is assumed the driver is under version 515
-			m_featureControl.disableMultithreadedCompilation = 1;
+			m_featureControl.disableMultithreadedCompilation = true;
 		}
 	}
 }
