@@ -197,7 +197,7 @@ namespace NCrypto
 
 	DEFINE_ENUM_FLAG_OPERATORS(TMDParser::TMDContentFlags);
 
-	void GenerateHashSHA256(void* data, size_t len, CHash256& hashOut);
+	void GenerateHashSHA256(const void* data, size_t len, CHash256& hashOut);
 	ECCSig signHash(uint32 signerTitleIdHigh, uint32 signerTitleIdLow, uint8* hash, sint32 hashLen, CertECC& certChainOut);
 
 	uint32 GetDeviceId();

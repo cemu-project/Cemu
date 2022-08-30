@@ -3,7 +3,8 @@
 #include "Cemu/ncrypto/ncrypto.h"
 #include "Cafe/Filesystem/WUD/wud.h"
 #include "util/crypto/aes128.h"
-#include "openssl/sha.h"
+#include "openssl/evp.h" /* EVP_Digest */
+#include "openssl/sha.h" /* SHA1 / SHA256_DIGEST_LENGTH */
 #include "fstUtil.h"
 
 #include "FST.h"
@@ -1021,12 +1022,11 @@ bool FSTVerifier::VerifyContentFile(FileStream* fileContent, const NCrypto::AesK
 	iv[1] = (contentIndex >> 0) & 0xFF;
 	// raw content
 	uint64 remainingBytes = contentSize;
-	SHA_CTX sha1Ctx;
-	SHA256_CTX sha256Ctx;
-	if (isSHA1)
-		SHA1_Init(&sha1Ctx);
-	else
-		SHA256_Init(&sha256Ctx);
+	uint8 calculatedHash[SHA256_DIGEST_LENGTH];
+
+	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+	EVP_DigestInit(ctx, isSHA1 ? EVP_sha1() : EVP_sha256());
+
 	while (remainingBytes > 0)
 	{
 		uint32 bytesToRead = (uint32)std::min(remainingBytes, (uint64)buffer.size());
@@ -1035,26 +1035,13 @@ bool FSTVerifier::VerifyContentFile(FileStream* fileContent, const NCrypto::AesK
 		if (bytesRead != bytesToReadPadded)
 			return false;
 		AES128_CBC_decrypt_updateIV(buffer.data(), buffer.data(), bytesToReadPadded, key->b, iv);
-		if (isSHA1)
-			SHA1_Update(&sha1Ctx, buffer.data(), bytesToRead);
-		else
-			SHA256_Update(&sha256Ctx, buffer.data(), bytesToRead);
+		EVP_DigestUpdate(ctx, buffer.data(), bytesToRead);
 		remainingBytes -= bytesToRead;
 	}
-	uint8 calculatedHash[32];
-	if (isSHA1)
-		SHA1_Final(calculatedHash, &sha1Ctx);
-	else
-		SHA256_Final(calculatedHash, &sha256Ctx);
-	return memcmp(calculatedHash, tmdContentHash, isSHA1 ? 20 : 32) == 0;
-}
-
-void _SHA1Hash(void* data, size_t length, NCrypto::CHash160& hashOut)
-{
-	SHA_CTX sha1Ctx;
-	SHA1_Init(&sha1Ctx);
-	SHA1_Update(&sha1Ctx, data, length);
-	SHA1_Final(hashOut.b, &sha1Ctx);
+	unsigned int md_len;
+	EVP_DigestFinal_ex(ctx, calculatedHash, &md_len);
+	EVP_MD_CTX_free(ctx);
+	return memcmp(calculatedHash, tmdContentHash, md_len) == 0;
 }
 
 bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto::AesKey* key, uint32 contentIndex, uint32 contentSize, uint32 contentSizePadded, bool isSHA1, const uint8* tmdContentHash)
@@ -1083,10 +1070,10 @@ bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto
 
 		// generate H0 hash and compare
 		NCrypto::CHash160 h0;
-		_SHA1Hash(block.getFileData(), BLOCK_FILE_SIZE, h0);
-		if (memcmp(h0.b, block.getH0Hash(h0Index & 0xF), 20) != 0)
+		SHA1(block.getFileData(), BLOCK_FILE_SIZE, h0.b);
+		if (memcmp(h0.b, block.getH0Hash(h0Index & 0xF), sizeof(h0.b)) != 0)
 			return false;
-		std::memcpy(h0List[h0Index].b, h0.b, 20);
+		std::memcpy(h0List[h0Index].b, h0.b, sizeof(h0.b));
 
 		// Sixteen H0 hashes become one H1 hash
 		if (((h0Index + 1) % 16) == 0 && h0Index > 0)
@@ -1094,8 +1081,8 @@ bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto
 			uint32 h1Index = ((h0Index - 15) / 16);
 
 			NCrypto::CHash160 h1;
-			_SHA1Hash(h0List.data() + h1Index * 16, sizeof(NCrypto::CHash160) * 16, h1);
-			if (memcmp(h1.b, block.getH1Hash(h1Index&0xF), 20) != 0)
+			SHA1((unsigned char *) (h0List.data() + h1Index * 16), sizeof(NCrypto::CHash160) * 16, h1.b);
+			if (memcmp(h1.b, block.getH1Hash(h1Index&0xF), sizeof(h1.b)) != 0)
 				return false;
 		}
 		// todo - repeat same for H1 and H2
