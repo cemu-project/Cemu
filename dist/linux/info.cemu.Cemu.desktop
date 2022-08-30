@@ -14,6 +14,7 @@ Comment[fr]=Application pour émuler des jeux et des applications Wii U sur PC
 Comment[nl]=Applicatie om Wii U spellen en applicaties te emuleren op PC
 Comment[es]=Software para emular juegos y aplicaciones de Wii U en PC
 Comment[pt_BR]=Software para emular jogos e aplicativos de Wii U no PC
+Comment[it]=Software per emulare giochi ed applicazioni del Wii U su PC
 Categories=Game;Emulator;
 Keywords=Nintendo;
 MimeType=application/x-wii-u-rom;
