@@ -435,7 +435,7 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 
 enum ContextMenuEntries
 {
-	kContextMenuRefreshGames,
+	kContextMenuRefreshGames = wxID_HIGHEST + 1,
 	
 	kContextMenuStart,
 	kWikiPage,
@@ -655,7 +655,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 {
 	enum ItemIds
 	{
-		ResetWidth,
+		ResetWidth = wxID_HIGHEST + 1,
 		ResetOrder,
 		
 		ShowName,
