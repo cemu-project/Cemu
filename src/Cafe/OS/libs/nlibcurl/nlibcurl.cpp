@@ -201,8 +201,8 @@ static_assert(sizeof(CURLMsg_t) <= 0xC, "sizeof(CURLMsg_t)");
 
 size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata);
 
-THREAD_LOCAL PPCConcurrentQueue<QueueMsg_t>* g_callerQueue;
-THREAD_LOCAL ConcurrentQueue<QueueMsg_t>* g_threadQueue;
+thread_local PPCConcurrentQueue<QueueMsg_t>* g_callerQueue;
+thread_local ConcurrentQueue<QueueMsg_t>* g_threadQueue;
 void CurlWorkerThread(CURL_t* curl, PPCConcurrentQueue<QueueMsg_t>* callerQueue, ConcurrentQueue<QueueMsg_t>* threadQueue)
 {
 	g_callerQueue = callerQueue;

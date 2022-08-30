@@ -226,14 +226,6 @@ typedef union _LARGE_INTEGER {
 #endif
 
 #if defined(_MSC_VER)
-    #define THREAD_LOCAL __declspec(thread)
-#elif defined(__GNUC__)
-    #define THREAD_LOCAL __thread
-#else
-    #define THREAD_LOCAL thread_local
-#endif
-
-#if defined(_MSC_VER)
     #define DLLEXPORT __declspec(dllexport)
 #elif defined(__GNUC__)
     #define DLLEXPORT __attribute__((dllexport))
