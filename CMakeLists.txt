@@ -58,6 +58,13 @@ option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
+if (UNIX)
+  option(ENABLE_XDG_DIRS "Enable storage according to XDG specification" ON)
+endif()
+if (SYSTEM_DATA_PATH)
+  add_compile_definitions(SYSTEM_DATA_PATH=\"${SYSTEM_DATA_PATH}\")
+endif()
+
 # input backends
 if (WIN32)
 	option(ENABLE_XINPUT "Enables the usage of XInput" ON)
@@ -131,6 +138,10 @@ if (ENABLE_CUBEB)
 		add_library(cubeb::cubeb ALIAS cubeb)
 	endif()
 	add_compile_definitions("HAS_CUBEB=1")
+endif()
+
+if (ENABLE_XDG_DIRS)
+  add_compile_definitions(XDG)
 endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)

@@ -115,7 +115,7 @@ bool CemuApp::OnInit()
 
 	Bind(wxEVT_ACTIVATE_APP, &CemuApp::ActivateApp, this);
 
-	if (!TestWriteAccess(ActiveSettings::GetPath()))
+	if (!TestWriteAccess(ActiveSettings::GetConfigPath()))
 		wxMessageBox(_("Cemu can't write to its directory.\nPlease move it to a different location or run Cemu as administrator!"), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	auto& config = GetConfig();
@@ -187,7 +187,7 @@ int CemuApp::FilterEvent(wxEvent& event)
 
 std::vector<const wxLanguageInfo*> CemuApp::GetAvailableLanguages()
 {
-	const auto path = ActiveSettings::GetPath("resources");
+	const auto path = ActiveSettings::GetSystemDataPath("resources");
 	if (!exists(path))
 		return {};
 	
@@ -312,11 +312,15 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	// cemu directories
 	try
 	{
-		const auto controllerProfileFolder = GetCemuPath(L"controllerProfiles").ToStdWstring();
+		const auto controllerProfileFolder = ActiveSettings::GetConfigPath(L"controllerProfiles").generic_wstring();
 		if (!fs::exists(controllerProfileFolder))
 			fs::create_directories(controllerProfileFolder);
 
-		const auto memorySearcherFolder = GetCemuPath(L"memorySearcher").ToStdWstring();
+		const auto gameProfileFolder = ActiveSettings::GetConfigPath(L"gameProfiles").generic_wstring();
+		if (!fs::exists(gameProfileFolder))
+			fs::create_directories(gameProfileFolder);
+
+		const auto memorySearcherFolder = ActiveSettings::GetConfigPath(L"memorySearcher").generic_wstring();
 		if (!fs::exists(memorySearcherFolder))
 			fs::create_directories(memorySearcherFolder);
 	}
@@ -402,5 +406,4 @@ void CemuApp::ActivateApp(wxActivateEvent& event)
 	g_window_info.app_active = event.GetActive();
 	event.Skip();
 }
-
 

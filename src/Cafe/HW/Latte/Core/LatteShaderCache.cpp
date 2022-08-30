@@ -197,17 +197,17 @@ void LatteShaderCache_load()
 	LatteShaderCache_initCompileQueue();
 	// create directories
 	std::error_code ec;
-	fs::create_directories(ActiveSettings::GetPath("shaderCache/transferable"), ec);
-	fs::create_directories(ActiveSettings::GetPath("shaderCache/precompiled"), ec);
+	fs::create_directories(ActiveSettings::GetCachePath("shaderCache/transferable"), ec);
+	fs::create_directories(ActiveSettings::GetCachePath("shaderCache/precompiled"), ec);
 	// initialize renderer specific caches
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 		RendererShaderVk::ShaderCacheLoading_begin(cacheTitleId);
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
 		RendererShaderGL::ShaderCacheLoading_begin(cacheTitleId);
 	// get cache file name
-	const auto pathGeneric = ActiveSettings::GetPath("shaderCache/transferable/{:016x}_shaders.bin", cacheTitleId);
-	const auto pathGenericPre1_25_0 = ActiveSettings::GetPath("shaderCache/transferable/{:016x}.bin", cacheTitleId); // before 1.25.0
-	const auto pathGenericPre1_16_0 = ActiveSettings::GetPath("shaderCache/transferable/{:08x}.bin", CafeSystem::GetRPXHashBase()); // before 1.16.0
+	const auto pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_shaders.bin", cacheTitleId);
+	const auto pathGenericPre1_25_0 = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}.bin", cacheTitleId); // before 1.25.0
+	const auto pathGenericPre1_16_0 = ActiveSettings::GetCachePath("shaderCache/transferable/{:08x}.bin", CafeSystem::GetRPXHashBase()); // before 1.16.0
 
 	LatteShaderCache_handleDeprecatedCacheFiles(pathGeneric, pathGenericPre1_25_0, pathGenericPre1_16_0);
 	// calculate extraVersion for transferable and precompiled shader cache

@@ -2122,7 +2122,7 @@ void RPLLoader_LoadDependency(rplDependency_t* dependency)
 	// attempt to load rpl from Cemu's /cafeLibs/ directory
 	if (ActiveSettings::LoadSharedLibrariesEnabled())
 	{
-		const auto filePath = ActiveSettings::GetPath("cafeLibs/{}", dependency->filepath);
+		const auto filePath = ActiveSettings::GetDataPath("cafeLibs/{}", dependency->filepath);
 		auto fileData = FileStream::LoadIntoMemory(filePath);
 		if (fileData)
 		{

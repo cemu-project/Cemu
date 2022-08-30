@@ -180,12 +180,12 @@ void gameProfile_load()
 
 bool GameProfile::Load(uint64_t title_id)
 {
-	auto gameProfilePath = ActiveSettings::GetPath("gameProfiles/{:016x}.ini", title_id);
+	auto gameProfilePath = ActiveSettings::GetConfigPath("gameProfiles/{:016x}.ini", title_id);
 
 	std::optional<std::vector<uint8>> profileContents = FileStream::LoadIntoMemory(gameProfilePath);
 	if (!profileContents)
 	{
-		gameProfilePath = ActiveSettings::GetPath("gameProfiles/default/{:016x}.ini", title_id);
+		gameProfilePath = ActiveSettings::GetSystemDataPath("gameProfiles/default/{:016x}.ini", title_id);
 		profileContents = FileStream::LoadIntoMemory(gameProfilePath);
 		if (!profileContents)
 			return false;
@@ -276,7 +276,7 @@ bool GameProfile::Load(uint64_t title_id)
 
 void GameProfile::Save(uint64_t title_id)
 {
-	auto gameProfilePath = ActiveSettings::GetPath("gameProfiles/{:016x}.ini", title_id);
+	auto gameProfilePath = ActiveSettings::GetConfigPath("gameProfiles/{:016x}.ini", title_id);
 	FileStream* fs = FileStream::createFile2(gameProfilePath);
 	if (!fs)
 	{

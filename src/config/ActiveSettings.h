@@ -7,25 +7,30 @@ class ActiveSettings
 {
 public:
 	static void LoadOnce();
-	
+
 	[[nodiscard]] static fs::path GetFullPath() { return s_full_path; }
 	[[nodiscard]] static fs::path GetPath() { return s_path; }
 	[[nodiscard]] static fs::path GetFilename() { return s_filename; }
-	
-	[[nodiscard]] static fs::path GetMlcPath();
 
-	[[nodiscard]] static fs::path GetPath(std::string_view p) 
+	[[nodiscard]] static fs::path GetMlcPath();
+	[[nodiscard]] static fs::path GetCachePath();
+	[[nodiscard]] static fs::path GetConfigPath();
+	[[nodiscard]] static fs::path GetDataPath();
+	[[nodiscard]] static fs::path GetSystemDataPath();
+	[[nodiscard]] static std::string GetXDGPath(const char* envVar, const std::string& defaultValue);
+
+	[[nodiscard]] static fs::path GetPath(std::string_view p)
 	{
 		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
 		return s_path / fs::path(s);
 	}
 
-	[[nodiscard]] static fs::path GetMlcPath(std::string_view p) 
-	{ 
+	[[nodiscard]] static fs::path GetMlcPath(std::string_view p)
+	{
 		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
 		return GetMlcPath() / fs::path(s);
 	}
-	
+
 	template <typename ...TArgs>
 	[[nodiscard]] static fs::path GetPath(std::string_view format, TArgs&&... args)
 	{
@@ -34,14 +39,14 @@ public:
 		std::basic_string_view<char8_t> s((const char8_t*)tmpPathStr.data(), tmpPathStr.size());
 		return s_path / fs::path(s);
 	}
-	
+
 	template <typename ...TArgs>
 	[[nodiscard]] static fs::path GetPath(std::wstring_view format, TArgs&&... args)
 	{
 		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
-		return s_path / fmt::format(format, std::forward<TArgs>(args)...);
+		return s_path / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
 	}
-	
+
 	template <typename ...TArgs>
 	[[nodiscard]] static fs::path GetMlcPath(std::string_view format, TArgs&&... args)
 	{
@@ -49,14 +54,70 @@ public:
 		auto tmp = fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
 		return GetMlcPath() / _utf8ToPath(tmp);
 	}
-	
+
 	template <typename ...TArgs>
 	[[nodiscard]] static fs::path GetMlcPath(std::wstring_view format, TArgs&&... args)
 	{
 		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
 		return GetMlcPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
 	}
-	
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetCachePath(std::string_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetCachePath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetCachePath(std::wstring_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetCachePath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetConfigPath(std::string_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetConfigPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetConfigPath(std::wstring_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetConfigPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetDataPath(std::string_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetDataPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetDataPath(std::wstring_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetDataPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
+	template<typename ...TArgs>
+	[[nodiscard]] static fs::path GetSystemDataPath(std::string_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetSystemDataPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
+	template<typename ...TArgs>
+	[[nodiscard]] static fs::path GetSystemDataPath(std::wstring_view format, TArgs&&... args)
+	{
+		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
+		return GetSystemDataPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+	}
+
 	// get mlc path to default cemu root dir/mlc01
 	[[nodiscard]] static fs::path GetDefaultMLCPath();
 
@@ -66,18 +127,18 @@ private:
 	inline static fs::path s_filename; // cemu.exe
 	inline static fs::path s_mlc_path;
 
-public:	
+public:
 	// general
 	[[nodiscard]] static bool LoadSharedLibrariesEnabled();
 	[[nodiscard]] static bool DisplayDRCEnabled();
 	[[nodiscard]] static bool FullscreenEnabled();
-	
+
 	// cpu
 	[[nodiscard]] static CPUMode GetCPUMode();
 	[[nodiscard]] static uint8 GetTimerShiftFactor();
 
 	static void SetTimerShiftFactor(uint8 shiftFactor);
-	
+
 	// gpu
 	[[nodiscard]] static PrecompiledShaderOption GetPrecompiledShadersOption();
 	[[nodiscard]] static bool RenderUpsideDownEnabled();
@@ -126,4 +187,3 @@ private:
 
 	inline static bool s_has_required_online_files = false;
 };
-

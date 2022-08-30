@@ -669,10 +669,10 @@ void InputSettings2::on_profile_delete(wxCommandEvent& event)
 	}
 	try
 	{
-		const fs::path old_path = ActiveSettings::GetPath(fmt::format("controllerProfiles/{}.txt", selection));
+		const fs::path old_path = ActiveSettings::GetConfigPath(fmt::format("controllerProfiles/{}.txt", selection));
 		fs::remove(old_path);
 
-		const fs::path path = ActiveSettings::GetPath(fmt::format("controllerProfiles/{}.xml", selection));
+		const fs::path path = ActiveSettings::GetConfigPath(fmt::format("controllerProfiles/{}.xml", selection));
 		fs::remove(path);
 
 		profile_names->ChangeValue(kDefaultProfileName);

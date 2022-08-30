@@ -160,7 +160,7 @@ void _putenvSafe(const char* c)
 void reconfigureGLDrivers()
 {
 	// reconfigure GL drivers to store 
-	const fs::path nvCacheDir = ActiveSettings::GetPath("shaderCache/driver/nvidia/");
+	const fs::path nvCacheDir = ActiveSettings::GetCachePath("shaderCache/driver/nvidia/");
 
 	std::error_code err;
 	fs::create_directories(nvCacheDir, err);
@@ -242,7 +242,7 @@ void unitTests()
 
 int mainEmulatorHLE()
 {
-	if (!TestWriteAccess(ActiveSettings::GetPath()))
+	if (!TestWriteAccess(ActiveSettings::GetConfigPath()))
 		wxMessageBox("Cemu doesn't have write access to it's own directory.\nPlease move it to a different location or run Cemu as administrator!", "Warning", wxOK|wxICON_ERROR); // todo - different error messages per OS
 	LatteOverlay_init();
 	// run a couple of tests if in non-release mode
@@ -264,7 +264,7 @@ int mainEmulatorHLE()
 	// init Cafe system (todo - the stuff above should be part of this too)
 	CafeSystem::Initialize();
 	// init title list
-	CafeTitleList::Initialize(ActiveSettings::GetPath("title_list_cache.xml"));
+	CafeTitleList::Initialize(ActiveSettings::GetCachePath("title_list_cache.xml"));
 	for (auto& it : GetConfig().game_paths)
 		CafeTitleList::AddScanPath(it);
 	fs::path mlcPath = ActiveSettings::GetMlcPath();
