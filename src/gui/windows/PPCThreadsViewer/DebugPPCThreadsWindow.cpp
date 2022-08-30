@@ -10,7 +10,7 @@
 enum
 {
 	// options
-	REFRESH_ID,
+	REFRESH_ID = wxID_HIGHEST + 1,
 	AUTO_REFRESH_ID,
 	CLOSE_ID,
 	GPLIST_ID,
