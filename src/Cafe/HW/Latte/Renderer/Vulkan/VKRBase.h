@@ -50,6 +50,7 @@ public:
 	VKRMoveableRefCounter& operator=(VKRMoveableRefCounter&& rhs) noexcept
 	{
 		cemu_assert(false);
+		return *this;
 	}
 
 	void addRef(VKRMoveableRefCounter* refTarget)
