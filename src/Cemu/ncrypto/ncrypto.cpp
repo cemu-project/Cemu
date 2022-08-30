@@ -153,20 +153,14 @@ namespace NCrypto
 
 	/* Hashing */
 
-	void GenerateHashSHA256(void* data, size_t len, CHash256& hashOut)
+	void GenerateHashSHA1(const void* data, size_t len, CHash160& hashOut)
 	{
-		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
-		SHA256_Update(&sha256, data, len);
-		SHA256_Final(hashOut.b, &sha256);
+		SHA1((const unsigned char*) data, len, hashOut.b);
 	}
 
-	void GenerateHashSHA1(void* data, size_t len, CHash160& hashOut)
+	void GenerateHashSHA256(const void* data, size_t len, CHash256& hashOut)
 	{
-		SHA_CTX shaCtx;
-		SHA1_Init(&shaCtx);
-		SHA1_Update(&shaCtx, data, len);
-		SHA1_Final(hashOut.b, &shaCtx);
+		SHA256((const unsigned char*) data, len, hashOut.b);
 	}
 
 	/* Ticket */
@@ -373,7 +367,7 @@ namespace NCrypto
 		EC_POINT_free(ec_publicKey);
 
 		NCrypto::CHash160 sharedKeySHA1;
-		GenerateHashSHA1(sharedKey, sharedKeyLen, sharedKeySHA1);
+		NCrypto::GenerateHashSHA1(sharedKey, sharedKeyLen, sharedKeySHA1);
 
 		uint8 aesSharedKey[16]{};
 		std::memcpy(aesSharedKey, sharedKeySHA1.b, 16);
@@ -621,11 +615,8 @@ namespace NCrypto
 
 	bool CertECC::verifySignatureViaPubKey(ECCPubKey& signerPubKey)
 	{
-		uint8 hash[32];
-		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
-		SHA256_Update(&sha256, this->issuer, 0x100);
-		SHA256_Final(hash, &sha256);
+		uint8 hash[SHA256_DIGEST_LENGTH];
+		SHA256((const unsigned char *) this->issuer, 0x100, hash);
 
 		EC_KEY* ecPubKey = signerPubKey.getPublicKey();
 		ECDSA_SIG* ecSig = this->signature.getSignature();
@@ -640,11 +631,8 @@ namespace NCrypto
 
 	void CertECC::sign(ECCPrivKey& signerPrivKey)
 	{
-		uint8 hash[32];
-		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
-		SHA256_Update(&sha256, this->issuer, 0x100);
-		SHA256_Final(hash, &sha256);
+		uint8 hash[SHA256_DIGEST_LENGTH];
+		SHA256((const unsigned char *) this->issuer, 0x100, hash);
 
 		// generate signature
 		EC_KEY* ec_privKey = signerPrivKey.getPrivateKey();

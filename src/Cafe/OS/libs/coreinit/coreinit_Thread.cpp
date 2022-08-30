@@ -45,8 +45,8 @@ namespace coreinit
 
 	bool g_isMulticoreMode;
 
-	THREAD_LOCAL uint32 t_assignedCoreIndex;
-	THREAD_LOCAL Fiber* t_schedulerFiber;
+	thread_local uint32 t_assignedCoreIndex;
+	thread_local Fiber* t_schedulerFiber;
 
 	struct OSHostThread
 	{

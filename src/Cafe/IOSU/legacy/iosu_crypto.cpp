@@ -6,7 +6,6 @@
 #include "openssl/ec.h"
 #include "openssl/x509.h"
 #include "openssl/ssl.h"
-#include "openssl/sha.h"
 #include "openssl/ecdsa.h"
 
 #include "util/crypto/aes128.h"
@@ -54,7 +53,7 @@ bool iosuCrypto_getDeviceId(uint32* deviceId)
 {
 	uint32be deviceIdBE;
 	*deviceId = 0;
-	if (otpMem == nullptr)
+	if (!hasOtpMem)
 		return false;
 	iosuCrypto_readOtpData(&deviceIdBE, 0x87, sizeof(uint32));
 	*deviceId = (uint32)deviceIdBE;
@@ -228,7 +227,7 @@ void iosuCrypto_generateDeviceCertificate()
 {
 	static_assert(sizeof(g_wiiuDeviceCert) == 0x180);
 	memset(&g_wiiuDeviceCert, 0, sizeof(g_wiiuDeviceCert));
-	if (otpMem == nullptr)
+	if (!hasOtpMem)
 		return; // cant generate certificate without OPT
 
 	// set header based on otp security mode
@@ -291,14 +290,6 @@ void iosuCrypto_generateDeviceCertificate()
 	EC_POINT_free(pubkey);
 	BN_CTX_end(context); // clears all BN variables
 	BN_CTX_free(context);
-}
-
-void CertECC_generateHashForSignature(CertECC_t& cert, CHash256& hashOut)
-{
-	SHA256_CTX sha256;
-	SHA256_Init(&sha256);
-	SHA256_Update(&sha256, cert.certificateSubject, 0x100);
-	SHA256_Final(hashOut.b, &sha256);
 }
 
 bool iosuCrypto_hasAllDataForLogin()

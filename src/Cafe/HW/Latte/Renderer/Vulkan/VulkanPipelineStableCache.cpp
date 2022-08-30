@@ -420,11 +420,8 @@ void VulkanPipelineStableCache::WorkerThread()
 		SerializePipeline(memWriter, *job);
 		auto blob = memWriter.getResult();
 		// file name is derived from data hash
-		uint8 hash[256 / 8];
-		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
-		SHA256_Update(&sha256, blob.data(), blob.size());
-		SHA256_Final(hash, &sha256);
+		uint8 hash[SHA256_DIGEST_LENGTH];
+		SHA256(blob.data(), blob.size(), hash);
 		uint64 nameA = *(uint64be*)(hash + 0);
 		uint64 nameB = *(uint64be*)(hash + 8);
 		s_cache->AddFileAsync({ nameA, nameB }, blob.data(), blob.size());
