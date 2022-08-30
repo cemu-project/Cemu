@@ -226,6 +226,11 @@ std::vector<DirectSoundAPI::DeviceDescriptionPtr> DirectSoundAPI::GetDevices()
 			return TRUE;
 		}, &result);
 
+	//Exclude default primary sound device if no other sound devices are available
+	if (result.size() == 1 && result.at(0).get()->GetIdentifier() == L"default") {
+		result.clear();
+	}
+	
 	return result;
 }
 
