@@ -137,7 +137,7 @@ ChecksumTool::ChecksumTool(wxWindow* parent, wxTitleManagerList::TitleEntry& ent
 				const auto title_id_str = fmt::format("{:016x}", m_json_entry.title_id);
 				const auto default_file = fmt::format("{}_v{}.json", title_id_str, m_info.GetAppTitleVersion());
 
-				const auto checksum_path = ActiveSettings::GetPath("resources/checksums/{}", default_file);
+				const auto checksum_path = ActiveSettings::GetDataPath("resources/checksums/{}", default_file);
 				if (exists(checksum_path))
 					m_verify_online->Enable();
 			}
@@ -189,7 +189,7 @@ void ChecksumTool::LoadOnlineData() const
 
 		std::string latest_commit;
 
-		const auto checksum_path = ActiveSettings::GetPath("resources/checksums");
+		const auto checksum_path = ActiveSettings::GetDataPath("resources/checksums");
 		if (exists(checksum_path))
 		{
 			std::string current_commit;
@@ -600,7 +600,7 @@ void ChecksumTool::OnVerifyOnline(wxCommandEvent& event)
 	const auto title_id_str = fmt::format("{:016x}", m_json_entry.title_id);
 	const auto default_file = fmt::format("{}_v{}.json", title_id_str, m_info.GetAppTitleVersion());
 	
-	const auto checksum_path = ActiveSettings::GetPath("resources/checksums/{}", default_file);
+	const auto checksum_path = ActiveSettings::GetDataPath("resources/checksums/{}", default_file);
 	if(!exists(checksum_path))
 		return;
 	

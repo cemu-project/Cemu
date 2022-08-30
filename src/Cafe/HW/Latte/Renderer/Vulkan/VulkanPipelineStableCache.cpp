@@ -17,7 +17,7 @@ struct
 {
 	uint32 pipelineLoadIndex;
 	uint32 pipelineMaxFileIndex;
-	
+
 	std::atomic_uint32_t pipelinesQueued;
 	std::atomic_uint32_t pipelinesLoaded;
 }g_vkCacheState;
@@ -32,17 +32,15 @@ VulkanPipelineStableCache& VulkanPipelineStableCache::GetInstance()
 uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 {
 	std::error_code ec;
-	fs::create_directories(ActiveSettings::GetPath("shaderCache/transferable"), ec);
-	const auto pathCacheFile = ActiveSettings::GetPath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
-	
+	fs::create_directories(ActiveSettings::GetCachePath("shaderCache/transferable"), ec);
+	const auto pathCacheFile = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
 	// init cache loader state
 	g_vkCacheState.pipelineLoadIndex = 0;
 	g_vkCacheState.pipelineMaxFileIndex = 0;
 	g_vkCacheState.pipelinesLoaded = 0;
 	g_vkCacheState.pipelinesQueued = 0;
-	
 	// start async compilation threads
-	m_compilationCount.store(0);	
+	m_compilationCount.store(0);
 	m_compilationQueue.clear();
 
 	// get core count

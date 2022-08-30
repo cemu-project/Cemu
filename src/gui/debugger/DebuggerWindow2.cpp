@@ -272,7 +272,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 {
 	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
 
-	const auto file = ActiveSettings::GetPath("debugger/config.xml");
+	const auto file = ActiveSettings::GetConfigPath("debugger/config.xml");
 	m_config.SetFilename(file.generic_wstring());
 	m_config.Load();
 
@@ -472,7 +472,7 @@ bool DebuggerWindow2::Show(bool show)
 std::wstring DebuggerWindow2::GetModuleStoragePath(std::string module_name, uint32_t crc_hash) const
 {
 	if (module_name.empty() || crc_hash == 0) return std::wstring();
-	return ActiveSettings::GetPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
+	return ActiveSettings::GetConfigPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
 }
 
 void DebuggerWindow2::OnBreakpointHit(wxCommandEvent& event)

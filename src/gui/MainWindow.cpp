@@ -97,7 +97,7 @@ enum
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_12 = 20350 + 11,
-	
+
 	// options -> system language
 	MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_JAPANESE = 20500,
 	MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ENGLISH,
@@ -246,7 +246,7 @@ public:
 	{
 		if(!m_window->IsGameLaunched() && filenames.GetCount() == 1)
 			return m_window->FileLoad(filenames[0].wc_str(), wxLaunchGameEvent::INITIATED_BY::DRAG_AND_DROP);
-		
+
 		return false;
 	}
 
@@ -262,7 +262,7 @@ public:
 	{
 		if (!m_window->IsGameLaunched() || filenames.GetCount() != 1)
 			return false;
-		
+
 		uint32 nfcError;
 		if (nnNfp_touchNfcTagFromFile(filenames[0].wc_str(), &nfcError))
 		{
@@ -372,14 +372,14 @@ wxString MainWindow::GetInitialWindowTitle()
 }
 
 void MainWindow::ShowGettingStartedDialog()
-{	
+{
 	GettingStartedDialog dia(this);
 	dia.ShowModal();
 	if (dia.HasGamePathChanged() || dia.HasMLCChanged())
 		m_game_list->ReloadGameEntries();
-		
+
 	TogglePadView();
-	
+
 	auto& config = GetConfig();
 	m_padViewMenuItem->Check(config.pad_open.GetValue());
 	m_fullscreenMenuItem->Check(config.fullscreen.GetValue());
@@ -428,7 +428,7 @@ bool MainWindow::InstallUpdate(const fs::path& metaFilePath)
 			{
 				throw std::runtime_error(frame.GetExceptionMessage());
 			}
-		}		
+		}
 	}
 	catch(const AbortException&)
 	{
@@ -595,15 +595,15 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			_("Wii U image (wud, wux, iso, wad)"),
 			_("Wii U archive (wua)"),
 			_("Wii U executable (rpx, elf)"),
-			_("All files (*.*)")		
+			_("All files (*.*)")
 		);
-		
+
 		wxFileDialog openFileDialog(this, _("Open file to launch"), wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 		if (openFileDialog.ShowModal() == wxID_CANCEL)
 			return;
 
-		const wxString wxStrFilePath = openFileDialog.GetPath();	
+		const wxString wxStrFilePath = openFileDialog.GetPath();
 		FileLoad(wxStrFilePath.wc_str(), wxLaunchGameEvent::INITIATED_BY::MENU);
 	}
 	else if (menuId >= MAINFRAME_MENU_ID_FILE_RECENT_0 && menuId <= MAINFRAME_MENU_ID_FILE_RECENT_LAST)
@@ -731,7 +731,7 @@ void MainWindow::TogglePadView()
 	{
 		if (m_padView)
 			return;
-		
+
 		m_padView = new PadViewFrame(this);
 
 		m_padView->Bind(wxEVT_CLOSE_WINDOW, &MainWindow::OnPadClose, this);
@@ -899,7 +899,7 @@ void MainWindow::OnAccountSelect(wxCommandEvent& event)
 //	default:
 //		cemu_assert_debug(false);
 //	}
-//	
+//
 //	g_config.Save();
 //}
 
@@ -961,7 +961,7 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 //		GetConfig().cpu_mode = CPUMode::TriplecoreRecompiler;
 //	else
 //		cemu_assert_debug(false);
-//	
+//
 //	g_config.Save();
 //}
 
@@ -1002,7 +1002,7 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		{
 			try
 			{
-				const auto path = CemuApp::GetCemuPath(L"dump\\curl").ToStdWstring();
+				const auto path = ActiveSettings::GetDataPath(L"dump/curl").generic_wstring();
 				fs::create_directories(path);
 			}
 			catch (const std::exception& ex)
@@ -1029,7 +1029,7 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		ActiveSettings::SetTimerShiftFactor(6);
 	else
 		cemu_assert_debug(false);
-	
+
 	g_config.Save();
 }
 
@@ -1059,8 +1059,8 @@ void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const auto path = CemuApp::GetCemuPath(L"dump\\textures");
-			fs::create_directories(path.ToStdWstring());
+			const auto path = ActiveSettings::GetDataPath(L"dump/textures");
+			fs::create_directories(path.generic_wstring());
 		}
 		catch (const std::exception& ex)
 		{
@@ -1080,8 +1080,8 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const auto path = CemuApp::GetCemuPath(L"dump\\shaders");
-			fs::create_directories(path.ToStdWstring());
+			const auto path = ActiveSettings::GetDataPath(L"dump/shaders");
+			fs::create_directories(path.generic_wstring());
 		}
 		catch (const std::exception & ex)
 		{
@@ -1098,7 +1098,7 @@ void MainWindow::OnLoggingWindow(wxCommandEvent& event)
 		return;
 
 	m_logging_window = new LoggingWindow(this);
-	m_logging_window->Bind(wxEVT_CLOSE_WINDOW, 
+	m_logging_window->Bind(wxEVT_CLOSE_WINDOW,
 		[this](wxCloseEvent& event) {
 		m_logging_window = nullptr;
 		event.Skip();
@@ -1254,7 +1254,7 @@ void MainWindow::SaveSettings()
 {
 	auto lock = g_config.Lock();
 	auto& config = GetConfig();
-	
+
 	if (config.window_position != Vector2i{ -1,-1 })
 	{
 		config.window_position.x = m_restored_position.x;
@@ -1291,7 +1291,7 @@ void MainWindow::SaveSettings()
 
 	if(m_game_list)
 		m_game_list->SaveConfig();
-	
+
 	g_config.Save();
 }
 
@@ -1320,13 +1320,13 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 void MainWindow::OnMouseLeft(wxMouseEvent& event)
 {
 	auto& instance = InputManager::instance();
-	
+
 	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
 	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
 	instance.m_main_mouse.position = { event.GetPosition().x, event.GetPosition().y };
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
 		instance.m_main_mouse.left_down_toggle = true;
-	
+
 	event.Skip();
 }
 
@@ -1339,7 +1339,7 @@ void MainWindow::OnMouseRight(wxMouseEvent& event)
 	instance.m_main_mouse.position = { event.GetPosition().x, event.GetPosition().y };
 	if(event.ButtonDown(wxMOUSE_BTN_RIGHT))
 		instance.m_main_mouse.right_down_toggle = true;
-	
+
 	event.Skip();
 }
 
@@ -1393,7 +1393,7 @@ void MainWindow::OnChar(wxKeyEvent& event)
 {
 	if (swkbd_hasKeyboardInputHook())
 		swkbd_keyInput(event.GetUnicodeKey());
-	
+
 	event.Skip();
 }
 
@@ -1418,7 +1418,7 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 	case MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER:
 	{
 		const auto default_tab = id == MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER ? TitleManagerPage::TitleManager : TitleManagerPage::DownloadManager;
-			
+
 		if (m_title_manager)
 			m_title_manager->SetFocusAndTab(default_tab);
 		else
@@ -1444,7 +1444,7 @@ void MainWindow::OnGesturePan(wxPanGestureEvent& event)
 	instance.m_main_touch.left_down = event.IsGestureStart() || !event.IsGestureEnd();
 	if (event.IsGestureStart() || !event.IsGestureEnd())
 		instance.m_main_touch.left_down_toggle = true;
-	
+
 
 	event.Skip();
 }
@@ -1701,10 +1701,10 @@ void MainWindow::UpdateNFCMenu()
 		const auto& entry = config.recent_nfc_files[i];
 		if (entry.empty())
 			continue;
-		
+
 		if (!fs::exists(entry))
 			continue;
-		
+
 		if (recentFileIndex == 0)
 			m_nfcMenuSeparator0 = m_nfcMenu->AppendSeparator();
 
@@ -1756,7 +1756,7 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 	{
 		ShowCursor(false);
 	}
-		
+
 }
 
 void MainWindow::OnHelpVistWebpage(wxCommandEvent& event) {}
@@ -2030,9 +2030,9 @@ void MainWindow::RecreateMenu()
 		m_menuBar->Destroy();
 		m_menuBar = nullptr;
 	}
-	
+
 	auto& config = GetConfig();
-	
+
 	m_menuBar = new wxMenuBar;
 	// file submenu
 	m_fileMenu = new wxMenu;
@@ -2086,12 +2086,12 @@ void MainWindow::RecreateMenu()
 		item->Check(account_id == account.GetPersistentId());
 		if (m_game_launched || LaunchSettings::GetPersistentId().has_value())
 			item->Enable(false);
-		
+
 		++index;
 	}
 	//optionsAccountMenu->AppendSeparator(); TODO
 	//optionsAccountMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 + index, _("Online enabled"))->Check(config.account.online_enabled);
-	
+
 	// options->region submenu
 	//wxMenu* optionsRegionMenu = new wxMenu;
 	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_AUTO, _("&Auto"), wxEmptyString)->Check(config.console_region == ConsoleRegion::Auto);
@@ -2122,8 +2122,8 @@ void MainWindow::RecreateMenu()
 	// options submenu
 	wxMenu* optionsMenu = new wxMenu;
 	m_fullscreenMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN, _("&Fullscreen"), wxEmptyString);
-	m_fullscreenMenuItem->Check(ActiveSettings::FullscreenEnabled());		
-	
+	m_fullscreenMenuItem->Check(ActiveSettings::FullscreenEnabled());
+
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GRAPHIC_PACKS2, _("&Graphic packs"));
 	//optionsMenu->AppendSubMenu(optionsVCAMenu, _("&GPU buffer cache accuracy"));
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
@@ -2205,7 +2205,7 @@ void MainWindow::RecreateMenu()
 	debugMenu->AppendSubMenu(debugLoggingMenu, _("&Logging"));
 	debugMenu->AppendSubMenu(debugDumpMenu, _("&Dump"));
 	debugMenu->AppendSeparator();
-	
+
 	auto upsidedownItem = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, _("&Render upside-down"), wxEmptyString);
 	upsidedownItem->Check(ActiveSettings::RenderUpsideDownEnabled());
 	if(LaunchSettings::RenderUpsideDownEnabled().has_value())
@@ -2254,7 +2254,7 @@ void MainWindow::RecreateMenu()
 
 		m_memorySearcherMenuItem->Enable(true);
 		m_nfcMenu->Enable(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, true);
-		
+
 		// disable OpenGL logging (currently cant be toggled after OpenGL backend is initialized)
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_OPENGL, false);
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_VULKAN_VALIDATION, false);
@@ -2278,7 +2278,7 @@ void MainWindow::OnAfterCallShowErrorDialog()
 bool MainWindow::EnableOnlineMode() const
 {
 	// TODO: not used anymore
-	// 
+	//
 	// if enabling online mode, check if all requirements are met
 	std::wstring additionalErrorInfo;
 	const sint32 onlineReqError = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo);

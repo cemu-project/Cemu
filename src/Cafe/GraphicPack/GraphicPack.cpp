@@ -84,7 +84,7 @@ void graphicPack_loadAll()
 {
 	// recursively iterate all directories in graphicPacks/ folder
 	std::wstring graphicPackRelativePath;
-	graphicPack_scanForGFXPackFolders(ActiveSettings::GetPath("graphicPacks/"), graphicPackRelativePath);
+	graphicPack_scanForGFXPackFolders(ActiveSettings::GetDataPath("graphicPacks/"), graphicPackRelativePath);
 }
 
 void graphicPack_activateForCurrentTitle(uint64 titleId)

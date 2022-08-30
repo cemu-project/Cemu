@@ -30,7 +30,7 @@ void unused_translation_dummy()
 	void(_("Browse"));
 	void(_("Select a file"));
 	void(_("Select a directory"));
-	
+
 	void(_("base"));
 	void(_("update"));
 	void(_("dlc"));
@@ -110,12 +110,12 @@ bool CemuApp::OnInit()
 
 	// init input
 	InputManager::instance().load();
-	
+
 	InitializeGlobalVulkan();
 
 	Bind(wxEVT_ACTIVATE_APP, &CemuApp::ActivateApp, this);
 
-	if (!TestWriteAccess(ActiveSettings::GetPath()))
+	if (!TestWriteAccess(ActiveSettings::GetConfigPath()))
 		wxMessageBox(_("Cemu can't write to its directory.\nPlease move it to a different location or run Cemu as administrator!"), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	auto& config = GetConfig();
@@ -183,10 +183,10 @@ int CemuApp::FilterEvent(wxEvent& event)
 
 std::vector<const wxLanguageInfo*> CemuApp::GetAvailableLanguages()
 {
-	const auto path = ActiveSettings::GetPath("resources");
+	const auto path = ActiveSettings::GetSystemDataPath("resources");
 	if (!exists(path))
 		return {};
-	
+
 	std::vector<const wxLanguageInfo*> result;
 	for (const auto& p : fs::directory_iterator(path))
 	{
@@ -218,7 +218,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	if (!fs::exists(mlc) && !first_start)
 	{
 		const std::wstring message = fmt::format(_(L"Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?").ToStdWstring(), mlc);
-		
+
 		wxMessageDialog dialog(nullptr, message, "Error", wxCENTRE | wxYES_NO | wxCANCEL| wxICON_WARNING);
 		dialog.SetYesNoCancelLabels(_("Yes"), _("No"), _("Select a custom path"));
 		const auto dialogResult = dialog.ShowModal();
@@ -308,11 +308,11 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	// cemu directories
 	try
 	{
-		const auto controllerProfileFolder = GetCemuPath(L"controllerProfiles").ToStdWstring();
+		const auto controllerProfileFolder = ActiveSettings::GetConfigPath(L"controllerProfiles").generic_wstring();
 		if (!fs::exists(controllerProfileFolder))
 			fs::create_directories(controllerProfileFolder);
 
-		const auto memorySearcherFolder = GetCemuPath(L"memorySearcher").ToStdWstring();
+		const auto memorySearcherFolder = ActiveSettings::GetConfigPath(L"memorySearcher").generic_wstring();
 		if (!fs::exists(memorySearcherFolder))
 			fs::create_directories(memorySearcherFolder);
 	}
@@ -338,7 +338,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 bool CemuApp::SelectMLCPath(wxWindow* parent)
 {
 	auto& config = GetConfig();
-	
+
 	std::wstring default_path;
 	if (fs::exists(config.mlc_path.GetValue()))
 		default_path = config.mlc_path.GetValue();
@@ -357,7 +357,7 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 			const auto result = wxMessageBox(_("Cemu can't write to the selected mlc path!\nDo you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
 			if (result == wxYES)
 				continue;
-			
+
 			break;
 		}
 
@@ -406,4 +406,3 @@ extern "C"
 		return *static_cast<CemuApp*>(wxApp::GetInstance());
 	};
 }
-

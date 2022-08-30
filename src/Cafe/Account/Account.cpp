@@ -424,7 +424,7 @@ OnlineValidator Account::ValidateOnlineFiles() const
 {
 	OnlineValidator result{};
 	
-	const auto otp = ActiveSettings::GetPath("otp.bin");
+	const auto otp = ActiveSettings::GetDataPath("otp.bin");
 	if (!fs::exists(otp))
 		result.otp = OnlineValidator::FileState::Missing;
 	else if (fs::file_size(otp) != 1024)
@@ -432,7 +432,7 @@ OnlineValidator Account::ValidateOnlineFiles() const
 	else
 		result.otp = OnlineValidator::FileState::Ok;
 	
-	const auto seeprom = ActiveSettings::GetPath("seeprom.bin");
+	const auto seeprom = ActiveSettings::GetDataPath("seeprom.bin");
 	if (!fs::exists(seeprom))
 		result.seeprom = OnlineValidator::FileState::Missing;
 	else if (fs::file_size(seeprom) != 512)

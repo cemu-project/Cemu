@@ -18,7 +18,7 @@ void ActiveSettings::LoadOnce()
 	s_path = s_full_path.parent_path();
 	s_filename = s_full_path.filename();
 
-	g_config.SetFilename(GetPath("settings.xml").generic_wstring());
+	g_config.SetFilename(GetConfigPath("settings.xml").generic_wstring());
 	g_config.Load();
 
 	std::wstring additionalErrorInfo;
@@ -92,7 +92,7 @@ GraphicAPI ActiveSettings::GetGraphicsAPI()
 	// check if vulkan even available
 	if (api == kVulkan && !g_vulkan_available)
 		api = kOpenGL;
-	
+
 	return api;
 }
 
@@ -220,8 +220,59 @@ fs::path ActiveSettings::GetMlcPath()
 	return GetDefaultMLCPath();
 }
 
-fs::path ActiveSettings::GetDefaultMLCPath()
+#ifdef XDG
+std::string ActiveSettings::GetXDGPath(const char* envVar, const std::string& defaultValue)
 {
-	return GetPath("mlc01");
+	auto raw_value = std::getenv(envVar);
+	return !raw_value || std::strlen(raw_value) == 0 ? defaultValue : std::string(raw_value);
+}
+#endif
+
+fs::path ActiveSettings::GetConfigPath()
+{
+#ifdef XDG
+	auto config_home = GetXDGPath("XDG_CONFIG_HOME", fmt::format("{}/.config", std::getenv("HOME")));
+	auto dir = fs::path(fmt::format("{}/cemu", config_home));
+	if (!fs::exists(dir))
+		fs::create_directories(dir);
+	return dir;
+#endif
+	return s_full_path;
 }
 
+fs::path ActiveSettings::GetCachePath()
+{
+#ifdef XDG
+	auto config_home = GetXDGPath("XDG_CACHE_HOME", fmt::format("{}/.cache", std::getenv("HOME")));
+	auto dir = fs::path(fmt::format("{}/cemu", config_home));
+	if (!fs::exists(dir))
+		fs::create_directories(dir);
+	return dir;
+#endif
+	return s_full_path;
+}
+
+fs::path ActiveSettings::GetDataPath()
+{
+#ifdef XDG
+	auto config_home = GetXDGPath("XDG_DATA_HOME", fmt::format("{}/.local/share", std::getenv("HOME")));
+	auto dir = fs::path(fmt::format("{}/cemu", config_home));
+	if (!fs::exists(dir))
+		fs::create_directories(dir);
+	return dir;
+#endif
+	return s_full_path;
+}
+
+fs::path ActiveSettings::GetSystemDataPath()
+{
+#ifdef SYSTEM_DATA_PATH
+	return fs::path(SYSTEM_DATA_PATH);
+#endif
+	return s_full_path;
+}
+
+fs::path ActiveSettings::GetDefaultMLCPath()
+{
+	return GetDataPath("mlc01");
+}
