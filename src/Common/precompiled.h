@@ -237,6 +237,30 @@ typedef union _LARGE_INTEGER {
     #error No definition for DLLEXPORT
 #endif
 
+#ifdef __GNUC__
+#include <cpuid.h>
+#endif
+
+inline void cpuid(int cpuInfo[4], unsigned int functionId) {
+#if defined(_MSC_VER)
+    __cpuid(cpuInfo, functionId);
+#elif defined(__GNUC__)
+    __cpuid(functionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
+#else
+    #error No definition for cpuid
+#endif
+}
+
+inline void cpuidex(int cpuInfo[4], int functionId, int subFunctionId) {
+#if defined(_MSC_VER)
+    __cpuidex(cpuInfo, functionId, subFunctionId);
+#elif defined(__GNUC__)
+    __cpuid_count(functionId, subFunctionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
+#else
+    #error No definition for cpuidex
+#endif
+}
+
 
 // MEMPTR
 #include "Common/MemPtr.h"

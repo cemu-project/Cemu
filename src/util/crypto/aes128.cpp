@@ -837,7 +837,7 @@ void AES128_init()
 	}
 	// check if AES-NI is available
 	int v[4];
-	__cpuid(v, 1);
+	cpuid(v, 1);
 	useAESNI = (v[2] & 0x2000000) != 0;
 	if (useAESNI)
 	{

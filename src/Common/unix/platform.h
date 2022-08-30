@@ -40,10 +40,6 @@ inline uint32_t GetExceptionError()
 #undef Success
 #undef ClientMessage
 
-// cpu id (somewhat hacky, reorganize later)
-void (__cpuid)(int __cpuVal[4], unsigned int __leaf);
-void __cpuidex (int __cpuid_info[4], int __leaf, int __subleaf);
-
 // placeholder
 uint32_t GetTickCount();
 

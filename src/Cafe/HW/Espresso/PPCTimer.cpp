@@ -32,7 +32,7 @@ uint64 muldiv64(uint64 a, uint64 b, uint64 d)
 bool PPCTimer_hasInvariantRDTSCSupport()
 {
 	uint32 cpuv[4];
-	__cpuid((int*)cpuv, 0x80000007);
+	cpuid((int*)cpuv, 0x80000007);
 	return ((cpuv[3] >> 8) & 1);
 }
 
