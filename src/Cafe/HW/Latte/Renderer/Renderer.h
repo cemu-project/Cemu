@@ -21,6 +21,7 @@ enum class GfxVendor
 	IntelNoLegacy,
 	Intel,
 	Nvidia,
+	Apple,
 	Mesa,
 
 	MAX

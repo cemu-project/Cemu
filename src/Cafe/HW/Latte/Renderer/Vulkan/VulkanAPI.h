@@ -135,6 +135,10 @@ VKFUNC_INSTANCE(vkCreateXcbSurfaceKHR);
 VKFUNC_INSTANCE(vkCreateWin32SurfaceKHR);
 #endif
 
+#if BOOST_OS_MACOS
+VKFUNC_INSTANCE(vkCreateMetalSurfaceEXT);
+#endif
+
 VKFUNC_INSTANCE(vkDestroySurfaceKHR);
 VKFUNC_DEVICE(vkCreateSwapchainKHR);
 VKFUNC_DEVICE(vkDestroySwapchainKHR);

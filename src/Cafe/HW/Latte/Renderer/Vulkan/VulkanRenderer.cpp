@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/CocoaSurface.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
@@ -107,6 +108,8 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
 	requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	#elif BOOST_OS_MACOS
+	requiredExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
 
 	VkApplicationInfo app_info{};
@@ -188,6 +191,9 @@ void VulkanRenderer::DetermineVendor()
 		break;
 	case 0x1002:
 		m_vendor = GfxVendor::AMD;
+		break;
+	case 0x106B:
+		m_vendor = GfxVendor::Apple;
 		break;
 	}
 
@@ -402,8 +408,10 @@ VulkanRenderer::VulkanRenderer()
 	deviceFeatures.independentBlend = VK_TRUE;
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.imageCubeArray = VK_TRUE;
+#if !BOOST_OS_MACOS
 	deviceFeatures.geometryShader = VK_TRUE;
 	deviceFeatures.logicOp = VK_TRUE;
+#endif
 	deviceFeatures.occlusionQueryPrecise = VK_TRUE;
 	deviceFeatures.depthClamp = VK_TRUE;
 	deviceFeatures.depthBiasClamp = VK_TRUE;
@@ -1165,6 +1173,8 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
 	requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	#elif BOOST_OS_MACOS
+	requiredInstanceExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
 	if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION))
 		requiredInstanceExtensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -1342,8 +1352,7 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 #elif BOOST_OS_LINUX
 	return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
 #elif BOOST_OS_MACOS
-	cemu_assert_unimplemented();
-	return nullptr;
+	return CreateCocoaSurface(instance, windowInfo.handle);
 #endif
 }
 

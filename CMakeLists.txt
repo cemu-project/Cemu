@@ -89,7 +89,7 @@ if (NOT TARGET glslang::SPIRV AND TARGET SPIRV)
 	add_library(glslang::SPIRV ALIAS SPIRV)
 endif()
 
-if (UNIX)
+if (UNIX AND NOT APPLE)
 	find_package(X11 REQUIRED)
 endif()
 
