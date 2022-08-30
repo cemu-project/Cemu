@@ -106,11 +106,7 @@ uint64 PPCTimer_microsecondsToTsc(uint64 us)
 uint64 PPCTimer_tscToMicroseconds(uint64 us)
 {
 	uint128_t r{};
-	#if BOOST_OS_WINDOWS
 	r.low = _umul128(us, 1000000ULL, &r.high);
-	#else
-	r.low = _umul128(us, 1000000ULL, (unsigned long long*)&r.high);
-	#endif
 
 
 	uint64 remainder;
@@ -146,11 +142,7 @@ uint64 PPCTimer_getFromRDTSC()
 	rdtscDif = rdtscDif & ~(uint64)((sint64)rdtscDif >> 63);
 
 	uint128_t diff{};
-#if BOOST_OS_WINDOWS
 	diff.low = _umul128(rdtscDif, Espresso::CORE_CLOCK, &diff.high);
-#else
-	diff.low = _umul128(rdtscDif, Espresso::CORE_CLOCK, (unsigned long long*)&diff.high);
-#endif
 
 	if(rdtscCurrentMeasure > _rdtscLastMeasure)
 		_rdtscLastMeasure = rdtscCurrentMeasure; // only travel forward in time
