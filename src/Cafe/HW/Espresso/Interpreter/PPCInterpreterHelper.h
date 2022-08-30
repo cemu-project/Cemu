@@ -11,7 +11,7 @@ static uint32 ppc_cmp_and_mask[8] = {
 };
 
 
-#define ppc_word_rotl(_data, _n) (_rotl(_data,(_n)&0x1F))
+#define ppc_word_rotl(_data, _n) (std::rotl<unsigned int>(_data,(_n)&0x1F))
 
 static inline uint32 ppc_mask(int MB, int ME)
 {
