@@ -12,6 +12,7 @@
 #include "Cafe/CafeSystem.h"
 
 #include "util/helpers/helpers.h"
+#include "util/helpers/StringHelpers.h"
 
 #include "config/ActiveSettings.h"
 #include "config/CemuConfig.h"
@@ -194,10 +195,29 @@ void VulkanRenderer::DetermineVendor()
 		m_vendor = GfxVendor::Mesa;
 
 	forceLog_printf("Using GPU: %s", properties.properties.deviceName);
+
 	if (m_featureControl.deviceExtensions.driver_properties)
-		forceLog_printf("Driver version: %s", driverProperties.driverInfo)
+	{
+		forceLog_printf("Driver version: %s", driverProperties.driverInfo);
+
+		if(m_vendor == GfxVendor::Nvidia)
+		{
+			// multithreaded pipelines on nvidia (requires 515 or higher)
+			m_featureControl.disableMultithreadedCompilation = (StringHelpers::ToInt(std::string(driverProperties.driverInfo)) < 515);
+		}
+	}
+
 	else
+	{
 		forceLog_printf("Driver version (as stored in device info): %08X", properties.properties.driverVersion);
+		
+		if(m_vendor == GfxVendor::Nvidia)
+		{
+			// if the driver does not support the extension,
+			// it is assumed the driver is under version 515
+			m_featureControl.disableMultithreadedCompilation = true;
+		}
+	}
 }
 
 void VulkanRenderer::GetDeviceFeatures()

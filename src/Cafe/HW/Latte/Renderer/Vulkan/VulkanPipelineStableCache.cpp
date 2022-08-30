@@ -34,26 +34,29 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 	std::error_code ec;
 	fs::create_directories(ActiveSettings::GetPath("shaderCache/transferable"), ec);
 	const auto pathCacheFile = ActiveSettings::GetPath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
+	
 	// init cache loader state
 	g_vkCacheState.pipelineLoadIndex = 0;
 	g_vkCacheState.pipelineMaxFileIndex = 0;
 	g_vkCacheState.pipelinesLoaded = 0;
 	g_vkCacheState.pipelinesQueued = 0;
+	
 	// start async compilation threads
 	m_compilationCount.store(0);	
 	m_compilationQueue.clear();
+
+	// get core count
 	uint32 cpuCoreCount = GetPhysicalCoreCount();
 	m_numCompilationThreads = std::clamp(cpuCoreCount, 1u, 8u);
-	if (g_renderer->GetVendor() == GfxVendor::Nvidia)
-	{
-		forceLog_printf("Disable multi-threaded pipeline loading due to an issue with Nvidia drivers");
+	if (VulkanRenderer::GetInstance()->GetDisableMultithreadedCompilation())
 		m_numCompilationThreads = 1;
-	}
+
 	for (uint32 i = 0; i < m_numCompilationThreads; i++)
 	{
 		std::thread compileThread(&VulkanPipelineStableCache::CompilerThread, this);
 		compileThread.detach();
 	}
+
 	// open cache file or create it
 	cemu_assert_debug(s_cache == nullptr);
 	const uint32 cacheFileVersion = 1;
