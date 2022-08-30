@@ -200,16 +200,23 @@ void VulkanRenderer::DetermineVendor()
 	{
 		forceLog_printf("Driver version: %s", driverProperties.driverInfo);
 
-		// needed for multithreaded pipelines on nvidia (requires 515 or higher)
-		m_featureControl.disableMultithreadedCompilation = (StringHelpers::ToInt(std::string(driverProperties.driverInfo)) < 515);
+		if(m_vendor == GfxVendor::Nvidia)
+		{
+			// multithreaded pipelines on nvidia (requires 515 or higher)
+			m_featureControl.disableMultithreadedCompilation = (StringHelpers::ToInt(std::string(driverProperties.driverInfo)) < 515);
+		}
 	}
 
 	else
 	{
 		forceLog_printf("Driver version (as stored in device info): %08X", properties.properties.driverVersion);
-
-		// disableMultithreadedCompilation defaults to false, not like there's any other driver
-		// on the planet with broken multithreading except Nvidia, which will always have a driver version string
+		
+		if(m_vendor == GfxVendor::Nvidia)
+		{
+			// if the driver does not support the extension,
+			// it is assumed the driver is under version 515
+			m_featureControl.disableMultithreadedCompilation = 1;
+		}
 	}
 }
 
