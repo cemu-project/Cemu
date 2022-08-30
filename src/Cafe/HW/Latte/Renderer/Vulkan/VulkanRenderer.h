@@ -547,7 +547,8 @@ private:
 			uint32 nonCoherentAtomSize = 256;
 		}limits;
 
-		bool debugMarkersSupported = false; // frame debugger is attached 
+		bool debugMarkersSupported = false; // frame debugger is attached
+		bool disableMultithreadedCompilation = false; // for old nvidia drivers
 
 	}m_featureControl{};
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
@@ -1012,7 +1013,8 @@ private:
 
 
 public:
-	bool useTFViaSSBO() { return m_featureControl.mode.useTFEmulationViaSSBO; };
+	bool GetDisableMultithreadedCompilation() { return m_featureControl.disableMultithreadedCompilation; }
+	bool useTFViaSSBO() { return m_featureControl.mode.useTFEmulationViaSSBO; }
 	bool IsDebugUtilsEnabled() const
 	{
 		return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils;

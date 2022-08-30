@@ -310,7 +310,7 @@ void wxDownloadManagerList::OnItemSelected(wxListEvent& event)
 
 enum ContextMenuEntries
 {
-	kContextMenuRetry,
+	kContextMenuRetry = wxID_HIGHEST + 1,
 	kContextMenuDownload,
 	kContextMenuPause,
 	kContextMenuResume,

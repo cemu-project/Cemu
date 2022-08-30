@@ -728,7 +728,7 @@ void wxTitleManagerList::OnItemSelected(wxListEvent& event)
 
 enum ContextMenuEntries
 {
-	kContextMenuOpenDirectory,
+	kContextMenuOpenDirectory = wxID_HIGHEST + 1,
 	kContextMenuDelete,
 	kContextMenuLaunch,
 	kContextMenuVerifyGameFiles,

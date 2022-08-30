@@ -38,7 +38,7 @@ target_link_libraries(CemuCommon PRIVATE
 	glm::glm
 )
 
-if (UNIX)
+if (UNIX AND NOT APPLE)
 	target_link_libraries(CemuCommon PRIVATE X11::X11 X11::Xrender X11::Xutil)
 endif()
 

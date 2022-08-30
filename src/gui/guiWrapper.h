@@ -20,6 +20,8 @@ struct WindowHandleInfo
 	//xcb_window_t xcb_window{};
 	// Wayland
 	// todo
+#else
+	void* handle;
 #endif
 };
 

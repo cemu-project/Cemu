@@ -1,6 +1,5 @@
 #include "Fiber.h"
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
-#define _XOPEN_SOURCE
 #include <ucontext.h>
 
 thread_local Fiber* sCurrentFiber{};

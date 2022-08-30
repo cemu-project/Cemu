@@ -65,10 +65,14 @@ bool InitializeDeviceVulkan(VkDevice device)
 
 void* dlopen_vulkan_loader()
 {
-    void* vulkan_so = dlopen("libvulkan.so", RTLD_NOW);
-    if(!vulkan_so)
-        vulkan_so = dlopen("libvulkan.so.1", RTLD_NOW);
-    return vulkan_so;
+#if BOOST_OS_LINUX
+	void* vulkan_so = dlopen("libvulkan.so", RTLD_NOW);
+	if(!vulkan_so)
+		vulkan_so = dlopen("libvulkan.so.1", RTLD_NOW);
+#elif BOOST_OS_MACOS
+	void* vulkan_so = dlopen("libMoltenVK.dylib", RTLD_NOW);
+#endif
+	return vulkan_so;
 }
 
 bool InitializeGlobalVulkan()
