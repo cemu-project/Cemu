@@ -182,6 +182,8 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 			m_gfx_vendor = GfxVendor::Mesa;
 		else if (boost::iequals(*option_vendorFilter, "nvidia"))
 			m_gfx_vendor = GfxVendor::Nvidia;
+		else if (boost::iequals(*option_vendorFilter, "apple"))
+			m_gfx_vendor = GfxVendor::Apple;
 		else
 			cemuLog_force("Unknown value '{}' for vendorFilter", *option_vendorFilter);
 	}

@@ -90,6 +90,8 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 		graphicMode = "[Intel GPU]";
 	else if (LatteGPUState.glVendor == GLVENDOR_NVIDIA)
 		graphicMode = "[NVIDIA GPU]";
+	else if (LatteGPUState.glVendor == GLVENDOR_APPLE)
+		graphicMode = "[Apple GPU]";
 
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
     windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
@@ -197,6 +199,8 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
     {
         cemuLog_log(LogType::Force, "Unable to get xlib display");
     }
+#else
+	handleInfoOut.handle = wxw->GetHandle();
 #endif
 }
 

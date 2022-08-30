@@ -161,6 +161,8 @@ int Latte_ThreadEntry()
 	case GfxVendor::Nvidia: 
 		LatteGPUState.glVendor = GLVENDOR_NVIDIA; 
 		break;
+	case GfxVendor::Apple:
+		LatteGPUState.glVendor = GLVENDOR_APPLE;
 	default:
 		break;
 	}

@@ -20,7 +20,11 @@ if(MSVC)
     # _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
     # _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 elseif(UNIX)
-    if(NOT APPLE)
+    if(APPLE)
+        add_definitions(-D_XOPEN_SOURCE)
+        add_definitions(-DVK_USE_PLATFORM_MACOS_MVK)
+        add_definitions(-DVK_USE_PLATFORM_METAL_EXT)
+    else()
         add_definitions(-DVK_USE_PLATFORM_XLIB_KHR) # legacy. Do we need to support XLIB surfaces?
         add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
     endif()
