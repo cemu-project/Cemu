@@ -187,10 +187,6 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 	// this function must be called from the same thread as we called CoInitializeEx
 	s_devices.clear();
 
-	// always add the default device
-	auto default_device = std::make_shared<XAudio2DeviceDescription>(L"Primary Sound Driver", L"");
-	s_devices.emplace_back(default_device);
-
 	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
 		return s_devices;
 
@@ -262,6 +258,12 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 			}
 		}
 
+		// Only add default device if audio devices exist
+		if (s_devices.size() > 0) {
+			auto default_device = std::make_shared<XAudio2DeviceDescription>(L"Primary Sound Driver", L"");
+			s_devices.insert(s_devices.begin(), default_device);
+		}
+		
 		wbem_enum->Release();
 
 		// Clean up
