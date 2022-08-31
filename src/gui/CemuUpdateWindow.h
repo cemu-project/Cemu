@@ -15,12 +15,12 @@ public:
 	CemuUpdateWindow(wxWindow* parent);
 	~CemuUpdateWindow();
 
-	static std::future<bool> IsUpdateAvailable();
+	static std::future<bool> IsUpdateAvailableAsync();
 
 private:
 	wxStaticText* m_text;
 	wxGauge* m_gauge;
-	wxButton* m_cancel_button, *m_update_button;
+	wxButton* m_cancelButton, *m_updateButton;
 	wxHyperlinkCtrl* m_changelog;
 
 	void OnUpdateButton(const wxCommandEvent& event);
@@ -30,13 +30,12 @@ private:
 	void OnGaugeUpdate(wxCommandEvent& event);
 
 	static size_t WriteStringCallback(char* ptr, size_t size, size_t nmemb, void* userdata);
-	static bool GetServerVersion(uint64& version, std::string& filename, std::string& changelog_filename);
+	static bool QueryUpdateInfo(std::string& downloadUrlOut, std::string& changelogUrlOut);
 	static bool CheckVersion();
-	static bool IsUpdateAvailable(uint64 latest_version);
 
 	static int ProgressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
 	bool DownloadCemuZip(const std::string& url, const fs::path& filename);
-	bool ExtractUpdate(const fs::path& zipname, const fs::path& targetpath);
+	bool ExtractUpdate(const fs::path& zipname, const fs::path& targetpath, std::string& cemuFolderName);
 
 	enum class WorkerOrder
 	{
@@ -61,11 +60,10 @@ private:
 	WorkerOrder m_order = WorkerOrder::CheckVersion;
 	void WorkerThread();
 
-	uint64 m_version = 0;
-	std::string m_filename, m_changelog_filename;
-	int m_gauge_max_value = 0;
+	std::string m_downloadUrl, m_changelogUrl;
+	int m_gaugeMaxValue = 0;
 
 	std::thread m_thread;
-	fs::path m_restart_file;
-	bool m_restart_required = false;
+	fs::path m_restartFile;
+	bool m_restartRequired = false;
 };

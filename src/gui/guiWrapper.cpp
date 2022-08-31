@@ -47,7 +47,7 @@ WindowInfo& gui_getWindowInfo()
 void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 {
     std::string windowText;
-    windowText = fmt::format("" EMULATOR_NAME " {}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
+    windowText = BUILD_VERSION_WITH_NAME_STRING;
 
 	if (isIdle)
 	{
