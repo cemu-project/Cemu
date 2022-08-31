@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.21.1)
 
 option(PUBLIC_RELEASE "Compile with debug asserts disabled and no console" OFF)
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
+option(CMAKE_DISABLE_FIND_PACKAGE_Doxygen "Disable Doxygen in dependencies" TRUE)
 set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
 if (PUBLIC_RELEASE)
