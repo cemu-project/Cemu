@@ -37,13 +37,17 @@ Additionally, for ubuntu 20.04 only:
 #### For Fedora and derivatives:
 `sudo dnf install git cmake clang ninja-build nasm kernel-headers gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel perl-core zlib-devel cubeb-devel`
 
-### Build Cemu using cmake
+### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
 3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja`
 4. `cmake --build build`
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu`.
 
+#### Using GCC
+While we use and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).  
+You can use it by replacing the step 3 with the following:
+`cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
 
 #### Troubleshooting steps
  - If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja` to the command and running it again.
@@ -52,8 +56,4 @@ Additionally, for ubuntu 20.04 only:
  - If step 3 is still failing or if you're not able to find the cause, please make an issue on our Github about it!
  - If step 4 gives you an error that contains something like `main.cpp.o: in function 'std::__cxx11::basic_string...`, you likely are experiencing a clang-14 issue. This can only be fixed by either lowering the clang version or using GCC, see below.
  - If step 4 gives you a different error, you could report it to this repo or try using GCC. Just make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
-
-#### Using GCC
-While we use and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).  
-You can use it by replacing the step 3 with the following:
-`cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
+- If step 4 gives you undefined libdecor_xx, you are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile
