@@ -241,7 +241,7 @@ typedef union _LARGE_INTEGER {
 #include <cpuid.h>
 #endif
 
-inline void cpuid(int cpuInfo[4], unsigned int functionId) {
+inline void cpuid(int cpuInfo[4], int functionId) {
 #if defined(_MSC_VER)
     __cpuid(cpuInfo, functionId);
 #elif defined(__GNUC__)
