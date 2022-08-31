@@ -368,7 +368,7 @@ MainWindow::~MainWindow()
 
 wxString MainWindow::GetInitialWindowTitle()
 {
-	return wxStringFormat2(EMULATOR_NAME" {}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
+	return BUILD_VERSION_WITH_NAME_STRING;
 }
 
 void MainWindow::ShowGettingStartedDialog()
@@ -798,7 +798,7 @@ void MainWindow::OpenSettings()
 	#endif
 
 	if(config.check_update && !m_game_launched)
-		m_update_available = CemuUpdateWindow::IsUpdateAvailable();
+		m_update_available = CemuUpdateWindow::IsUpdateAvailableAsync();
 
 	if (mlc_modified)
 		RecreateMenu();
@@ -1217,7 +1217,7 @@ void MainWindow::LoadSettings()
 	const auto& config = GetConfig();
 
 	if(config.check_update)
-		m_update_available = CemuUpdateWindow::IsUpdateAvailable();
+		m_update_available = CemuUpdateWindow::IsUpdateAvailableAsync();
 
 	if (config.window_position != Vector2i{ -1,-1 })
 		this->SetPosition({ config.window_position.x, config.window_position.y });
@@ -1802,7 +1802,7 @@ public:
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
 		char versionString[512];
-		sprintf(versionString, "Cemu\nVersion %d.%d\nCompiled " BUILD_DATE "\nOriginal authors: Exzap, Petergov", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR);
+		sprintf(versionString, "Cemu\nVersion %s\nCompiled " BUILD_DATE "\nOriginal authors: Exzap, Petergov", BUILD_VERSION_STRING);
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
