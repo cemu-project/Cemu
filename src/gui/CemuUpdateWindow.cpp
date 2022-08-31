@@ -24,7 +24,7 @@ wxDEFINE_EVENT(wxEVT_PROGRESS, wxCommandEvent);
 
 CemuUpdateWindow::CemuUpdateWindow(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, "Cemu update", wxDefaultPosition, wxDefaultSize,
-	           wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
+		wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 	m_gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(500, 20), wxGA_HORIZONTAL);
@@ -110,6 +110,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 #elif BOOST_OS_MACOS
 	urlStr.append("&platform=macos_x86");
 #elif
+
 #error Name for current platform is missing
 #endif
 
@@ -132,19 +133,20 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 			cemu_assert_debug(false);
 			return false;
 		}
-		
+
 		std::vector<std::string> tokens;
 		const boost::char_separator<char> sep{ "|" };
 		for (const auto& token : boost::tokenizer(buffer, sep))
 			tokens.emplace_back(token);
 
-		if (tokens.size() >= 2)
+		if (tokens.size() >= 3 && tokens[0] == "UPDATE")
 		{
-			// first token: Download URL
-			// second token: Changelog URL
+			// first token: "UPDATE"
+			// second token: Download URL
+			// third token: Changelog URL
 			// we allow more tokens in case we ever want to add extra information for future releases
-			downloadUrlOut = _curlUrlUnescape(curl, tokens[0]);
-			changelogUrlOut = _curlUrlUnescape(curl, tokens[1]);
+			downloadUrlOut = _curlUrlUnescape(curl, tokens[1]);
+			changelogUrlOut = _curlUrlUnescape(curl, tokens[2]);
 			if (!downloadUrlOut.empty() && !changelogUrlOut.empty())
 				result = true;
 		}
@@ -172,7 +174,7 @@ bool CemuUpdateWindow::CheckVersion()
 
 
 int CemuUpdateWindow::ProgressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
-                                       curl_off_t ulnow)
+	curl_off_t ulnow)
 {
 	auto* thisptr = (CemuUpdateWindow*)clientp;
 	auto* event = new wxCommandEvent(wxEVT_PROGRESS);
@@ -205,7 +207,7 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 			curl_easy_cleanup(curl);
 			return false;
 		}
-		
+
 		curl_off_t update_size;
 		if (curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &update_size) == CURLE_OK)
 			m_gaugeMaxValue = (int)update_size;
@@ -227,11 +229,11 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 		curl_easy_setopt(curl, CURLOPT_XFERINFODATA, this);
 
 		auto curl_result = std::async(std::launch::async, [](CURL* curl, long* http_code)
-		{
-			const auto r = curl_easy_perform(curl);
-			curl_easy_cleanup(curl);
-			return r;
-		}, curl, &http_code);
+			{
+				const auto r = curl_easy_perform(curl);
+				curl_easy_cleanup(curl);
+				return r;
+			}, curl, &http_code);
 		while (!curl_result.valid())
 		{
 			if (m_order == WorkerOrder::Exit)
@@ -239,7 +241,7 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
-		
+
 		result = curl_result.get() == CURLE_OK;
 
 		delete fsUpdateFile;
@@ -313,7 +315,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 				{
 					if (!cemuFolderName.empty())
 						forceLog_printf("update zip has multiple folders in root");
-					cemuFolderName.assign(sb.name, len-1);
+					cemuFolderName.assign(sb.name, len - 1);
 				}
 				continue;
 			}
@@ -493,7 +495,7 @@ void CemuUpdateWindow::WorkerThread()
 						}
 						else
 						{
-							if(it.path().filename() == L"Cemu.exe")
+							if (it.path().filename() == L"Cemu.exe")
 								fs::rename(it.path(), fs::path(target_file).replace_filename(exec.filename()));
 							else
 								fs::rename(it.path(), target_file);
@@ -543,7 +545,7 @@ void CemuUpdateWindow::WorkerThread()
 void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 {
 	event.Skip();
-	
+
 #if BOOST_OS_WINDOWS
 	if (m_restartRequired && !m_restartFile.empty() && fs::exists(m_restartFile))
 	{
@@ -558,7 +560,7 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 
 		HANDLE lock = CreateMutex(nullptr, TRUE, L"Global\\cemu_update_lock");
 		CreateProcess(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
-		
+
 		exit(0);
 	}
 #else
@@ -577,21 +579,21 @@ void CemuUpdateWindow::OnResult(wxCommandEvent& event)
 		m_gauge->SetValue(100);
 		break;
 	case Result::UpdateAvailable:
+	{
+		if (!m_changelogUrl.empty())
 		{
-			if (!m_changelogUrl.empty())
-			{
-				m_changelog->SetURL(m_changelogUrl);
-				m_changelog->Show();
-			}
-			else
-				m_changelog->Hide();
-			
-			m_updateButton->Show();
-
-			m_text->SetLabel(_("Update available!"));
-			m_cancelButton->SetLabel(_("Exit"));
-			break;
+			m_changelog->SetURL(m_changelogUrl);
+			m_changelog->Show();
 		}
+		else
+			m_changelog->Hide();
+
+		m_updateButton->Show();
+
+		m_text->SetLabel(_("Update available!"));
+		m_cancelButton->SetLabel(_("Exit"));
+		break;
+	}
 	case Result::UpdateDownloaded:
 		m_text->SetLabel(_("Extracting update..."));
 		m_gauge->SetValue(0);
@@ -618,7 +620,7 @@ void CemuUpdateWindow::OnResult(wxCommandEvent& event)
 		m_cancelButton->SetLabel(_("Restart"));
 		m_restartRequired = true;
 		break;
-	default: ;
+	default:;
 	}
 }
 
