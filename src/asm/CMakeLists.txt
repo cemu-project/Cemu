@@ -9,6 +9,11 @@ x64util_masm.asm
 )
 set_source_files_properties(x64util_masm.asm PROPERTIES LANGUAGE ASM_MASM)
 
+# workaround for cr flag being passed to LINK.exe which considers it an input file and thus fails
+# doesn't always seem to happen. The Windows CI builds were fine, but locally I would run into this problem
+# possibly related to https://gitlab.kitware.com/cmake/cmake/-/issues/18889
+set(CMAKE_ASM_MASM_CREATE_STATIC_LIBRARY "<CMAKE_AR> /OUT:<TARGET> <LINK_FLAGS> <OBJECTS>")
+
 ELSE()
 
 # NASM
