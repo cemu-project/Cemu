@@ -23,6 +23,8 @@ bin/Cemu
 bin/otp.bin
 bin/seeprom.bin
 bin/Cemu.pdb
+bin/Cemu.ilk
+bin/Cemu.exe.backup
 bin/mlc01/*
 bin/settings.xml
 bin/title_list_cache.xml
