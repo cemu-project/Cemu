@@ -18,6 +18,9 @@ on:
       deploymode:
         required: false
         type: string
+      experimentalversion:
+        required: false
+        type: string
 
 env:
   VCPKG_ROOT: "${{github.workspace}}/dependencies/vcpkg"
@@ -38,7 +41,6 @@ jobs:
         echo "BUILD_MODE=release" >> $GITHUB_ENV
         echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
         echo "Build mode is release"
-
     - name: Setup debug mode parameters (for continous build)
       if: ${{ inputs.deploymode != 'release' }}
       run: |
@@ -46,11 +48,16 @@ jobs:
         echo "BUILD_FLAGS=" >> $GITHUB_ENV
         echo "Build mode is debug"
         
+    - name: Setup version for experimental
+      if: ${{ inputs.experimentalversion != '' }}
+      run: |
+        echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+        
     - name: "Install system dependencies"
       run: |
         sudo apt update -qq
         sudo apt install -y ninja-build cmake libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm
-
     - name: "Bootstrap vcpkg"
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
@@ -109,7 +116,11 @@ jobs:
         echo "BUILD_MODE=debug" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "BUILD_FLAGS=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "Build mode is debug"
-        
+    - name: Setup version for experimental
+      if: ${{ inputs.experimentalversion != '' }}
+      run: |
+        echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
     
     - name: Workaround
       run: |
@@ -140,7 +151,6 @@ jobs:
         # should be run twice
         $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
         $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
-
     - name: Configure MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
@@ -170,6 +180,8 @@ jobs:
       run: |
         mkdir -p build
         cd build
+        echo "[INFO] BUILD_FLAGS: ${{ env.BUILD_FLAGS }}"
+        echo "[INFO] BUILD_MODE: ${{ env.BUILD_MODE }}"
         cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }}
         
     - name: "Build Cemu"

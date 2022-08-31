@@ -37,13 +37,10 @@ void DiscordPresence::UpdatePresence(State state, const std::string& text) const
 		break;
 	}
 
-	char image_text[128];
-	sprintf(image_text, EMULATOR_NAME" %d.%d%s", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
-
 	discord_presence.details = details_string.c_str();
 	discord_presence.state = state_string.c_str();
 	discord_presence.startTimestamp = time(nullptr);
-	discord_presence.largeImageText = image_text;
+	discord_presence.largeImageText = BUILD_VERSION_WITH_NAME_STRING;
 	discord_presence.largeImageKey = "logo_icon_big_png";
 	Discord_UpdatePresence(&discord_presence);
 }
