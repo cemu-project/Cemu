@@ -195,7 +195,7 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 	char dumpLine[1024 * 4];
 
 	// info about Cemu version
-	sprintf(dumpLine, "\nCrashlog for Cemu %d.%d%s\n", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
+	sprintf(dumpLine, "\nCrashlog for %s\n", BUILD_VERSION_WITH_NAME_STRING);
 	cemuLog_writePlainToLog(dumpLine);
 
 	SYSTEMTIME sysTime;

@@ -212,7 +212,7 @@ void ChecksumTool::LoadOnlineData() const
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-			curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Cemu_{}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX).c_str());
+			curl_easy_setopt(curl, CURLOPT_USERAGENT, BUILD_VERSION_WITH_NAME_STRING);
 
 			curl_easy_perform(curl);
 
@@ -248,7 +248,7 @@ void ChecksumTool::LoadOnlineData() const
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Cemu_{}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX).c_str());
+			curl_easy_setopt(curl, CURLOPT_USERAGENT, BUILD_VERSION_WITH_NAME_STRING);
 
 			curl_easy_perform(curl);
 

@@ -54,9 +54,7 @@ bool DownloadGraphicPacksWindow::curlDownloadFile(const char *url, curlDownloadF
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 
-	char temp[128];
-	sprintf(temp, "Cemu_%d.%d%s", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, temp);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, BUILD_VERSION_WITH_NAME_STRING);
 	downloadState->fileData.resize(0);
 	const CURLcode res = curl_easy_perform(curl);
 	curl_easy_cleanup(curl);

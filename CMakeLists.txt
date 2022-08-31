@@ -2,10 +2,15 @@ cmake_minimum_required(VERSION 3.21.1)
 
 option(PUBLIC_RELEASE "Compile with debug asserts disabled and no console" OFF)
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
+set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
 if (PUBLIC_RELEASE)
   add_definitions(-DPUBLIC_RELEASE)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE) # enable LTO
+endif()
+
+if (EXPERIMENTAL_VERSION)
+  add_definitions(-DEMULATOR_VERSION_MINOR=${EXPERIMENTAL_VERSION})
 endif()
 
 if (ENABLE_VCPKG)

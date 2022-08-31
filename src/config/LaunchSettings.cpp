@@ -112,7 +112,12 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		if (vm.count("version"))
 		{
 			requireConsole();
-			std::string versionStr = fmt::format("{}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
+			std::string versionStr;
+#if EMULATOR_VERSION_MINOR == 0
+			versionStr = fmt::format("{}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
+#else
+			versionStr = fmt::format("{}.{}-{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_SUFFIX);
+#endif
 			std::cout << versionStr << std::endl;
 			return false; // exit in main
 		}
