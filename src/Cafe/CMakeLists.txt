@@ -20,6 +20,9 @@ target_precompile_headers(CemuCafe PRIVATE ../Common/precompiled.h)
 
 target_include_directories(CemuCafe PUBLIC "../")
 
+# PUBLIC because vulkan/vulkan.h is included in CocoaSurface.h, VulkanAPI.h and RendererShaderVk.h
+target_link_libraries(CemuCafe PUBLIC Vulkan::Headers)
+
 target_link_libraries(CemuCafe PRIVATE
 	CemuAsm
 	CemuAudio

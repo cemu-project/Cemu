@@ -28,5 +28,5 @@ target_link_libraries(CemuComponents PRIVATE
 target_link_libraries(CemuComponents PUBLIC fmt::fmt)
 
 if(ENABLE_DISCORD_RPC)
-target_link_libraries(CemuComponents PRIVATE discord-rpc)
+	target_link_libraries(CemuComponents PRIVATE DiscordRPC::discord-rpc)
 endif()
