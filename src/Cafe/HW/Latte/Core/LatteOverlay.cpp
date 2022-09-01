@@ -573,8 +573,8 @@ static void UpdateStats_CemuCpu()
 
 static void UpdateStats_CpuPerCore()
 {
-	ProcessorTime now[g_state.processor_count];
-	QueryCoreTimes(g_state.processor_count, now);
+	std::vector<ProcessorTime> now(g_state.processor_count);
+	QueryCoreTimes(g_state.processor_count, now.data());
 
 	for (int32_t i = 0; i < g_state.processor_count; ++i)
 	{
