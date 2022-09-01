@@ -19,6 +19,8 @@ out/
 .cache/
 bin/Cemu
 
+.DS_Store
+
 # Cemu bin files
 bin/otp.bin
 bin/seeprom.bin
