@@ -300,14 +300,14 @@ void MemorySearcherTool::Load()
 		bool found = false;
 		for (const auto& entry : kDataTypeNames)
 		{
-			if (boost::iequals(entry, *option_type))
+			if (boost::iequals(std::string(entry.mb_str()), *option_type))
 			{
 				found = true;
 				break;
 			}
 		}
 
-		if (!found && !boost::iequals(kDatatypeString, *option_type))
+		if (!found && !boost::iequals(std::string(kDatatypeString.mb_str()), *option_type))
 			continue;
 
 		wxVector<wxVariant> data;
