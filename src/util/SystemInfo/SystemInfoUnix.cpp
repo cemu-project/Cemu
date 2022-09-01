@@ -30,7 +30,7 @@ void QueryProcTime(uint64_t &out_now, uint64_t &out_user, uint64_t &out_kernel)
 	struct tms time_info;
 	clock_t clock_now = times(&time_info);
 	clock_t clock_user = time_info.tms_utime;
-	clock_t clock_kernel = time_info.tms_utime;
+	clock_t clock_kernel = time_info.tms_stime;
 	out_now = static_cast<uint64_t>(clock_now);
 	out_user = static_cast<uint64_t>(clock_user);
 	out_kernel = static_cast<uint64_t>(clock_kernel);
