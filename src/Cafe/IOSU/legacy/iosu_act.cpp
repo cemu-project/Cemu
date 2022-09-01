@@ -48,7 +48,7 @@ typedef struct
 	char country[8];
 	// Mii
 	FFLData_t miiData;
-	uint16be miiNickname[ACT_NICKNAME_LENGTH];
+	uint16le miiNickname[ACT_NICKNAME_LENGTH];
 }actAccountData_t;
 
 #define IOSU_ACT_ACCOUNT_MAX_COUNT (0xC)
@@ -103,6 +103,15 @@ void iosuAct_loadAccounts()
 	const auto& first_acc = Account::GetAccount(persistent_id);
 	FillAccountData(first_acc, online_enabled, counter);
 	++counter;
+	// enable multiple accounts for cafe functions (badly tested)
+	//for (const auto& account : Account::GetAccounts())
+	//{
+	//	if (first_acc.GetPersistentId() != account.GetPersistentId())
+	//	{
+	//		FillAccountData(account, online_enabled, counter);
+	//		++counter;
+	//	}
+	//}
 
 	cemuLog_force(L"IOSU_ACT: using account {} in first slot", first_acc.GetMiiName());
 	

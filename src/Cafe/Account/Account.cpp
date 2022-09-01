@@ -29,7 +29,7 @@ typedef struct
 	/* +0x0C */ uint8		ukn0C[0xA];
 	/* +0x16 */ uint8		ukn16[2];
 	/* +0x18 */ uint16		ukn18;
-	/* +0x1A */ uint16be	miiName[10];
+	/* +0x1A */ uint16le	miiName[10];
 	/* +0x2E */ uint16		ukn2E;
 	/* +0x30 */ uint8		ukn30[96 - 0x30];
 }FFLData_t;
@@ -102,7 +102,7 @@ Account::Account(uint32 persistent_id, std::wstring_view mii_name)
 	FFLData_t* fflData = (FFLData_t*)m_mii_data.data();
 	const auto tmp_name = GetMiiName();
 	memset(fflData->miiName, 0, sizeof(fflData->miiName));
-	std::copy(tmp_name.cbegin(), tmp_name.cend(), fflData->miiName);
+	std::copy(tmp_name.begin(), tmp_name.end(), fflData->miiName);
 
 	// calculate checksum
 	uint32 crcCounter = 0;

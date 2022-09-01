@@ -138,11 +138,9 @@ void nnActExport_GetNumOfAccounts(PPCInterpreter_t* hCPU)
 void nnActExport_IsSlotOccupied(PPCInterpreter_t* hCPU)
 {
 	forceLogDebug_printf("nn_act.IsSlotOccupied(%d)\n", hCPU->gpr[3]);
-	sint32 slotIndex = (sint32)hCPU->gpr[3] - 1; // first slot is 1
-	bool isOccupied = false;
-	if( slotIndex == 0 )
-		isOccupied = true;
-	osLib_returnFromFunction(hCPU, isOccupied?1:0);
+	ppcDefineParamU8(slot, 0);
+	
+	osLib_returnFromFunction(hCPU, nn::act::GetPersistentIdEx(slot) != 0 ? 1 : 0);
 }
 
 uint32 GetAccountIdEx(char* accountId, uint8 slot)
