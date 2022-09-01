@@ -36,9 +36,9 @@ void QueryProcTime(uint64_t &out_now, uint64_t &out_user, uint64_t &out_kernel)
 	user.LowPart = fuser.dwLowDateTime;
 	user.HighPart = fuser.dwHighDateTime;
 
-	out_now = static_cast<uint64_t>(now.QuadPart);
-	out_user = static_cast<uint64_t>(user.QuadPart);
-	out_kernel = static_cast<uint64_t>(kernel.QuadPart);
+	out_now = now.QuadPart;
+	out_user = user.QuadPart;
+	out_kernel = kernel.QuadPart;
 }
 
 void QueryCoreTimes(uint32_t count, ProcessorTime out[])
