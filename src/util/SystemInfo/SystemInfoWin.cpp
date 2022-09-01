@@ -1,6 +1,6 @@
 #if BOOST_OS_WINDOWS
 
-#include "util/ProcessorTime/ProcessorTime.h"
+#include "util/SystemInfo/SystemInfo.h"
 
 #include <Psapi.h>
 #include <winternl.h>

@@ -1,6 +1,6 @@
 #if BOOST_OS_LINUX
 
-#include "util/ProcessorTime/ProcessorTime.h"
+#include "util/SystemInfo/SystemInfo.h"
 
 #include <unistd.h>
 #include <sys/time.h>
