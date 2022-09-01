@@ -44,9 +44,9 @@ void OpenGLRenderer::uniformData_update()
 				for (sint32 f = 0; f < remappedArraySize; f++)
 				{
 					uniformDataHash[0] ^= remappedUniformData64[0];
-					uniformDataHash[0] = std::rotl(uniformDataHash[0], 11);
+					uniformDataHash[0] = std::rotl<uint64>(uniformDataHash[0], 11);
 					uniformDataHash[1] ^= remappedUniformData64[1];
-					uniformDataHash[1] = std::rotl(uniformDataHash[1], 11);
+					uniformDataHash[1] = std::rotl<uint64>(uniformDataHash[1], 11);
 					remappedUniformData64 += 2;
 				}
 				if (shader->uniformDataHash64[0] != uniformDataHash[0] || shader->uniformDataHash64[1] != uniformDataHash[1])

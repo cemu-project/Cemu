@@ -108,12 +108,12 @@ uint64 VulkanRenderer::copySurface_getPipelineStateHash(VkCopySurfaceState_t& st
 	uint64 h = 0;
 
 	h += (uintptr_t)state.destinationTexture->GetFormat();
-	h = std::rotr(h, 7);
+	h = std::rotr<uint64>(h, 7);
 
 	h += state.sourceTexture->isDepth ? 0x1111ull : 0;
-	h = std::rotr(h, 7);
+	h = std::rotr<uint64>(h, 7);
 	h += state.destinationTexture->isDepth ? 0x1112ull : 0;
-	h = std::rotr(h, 7);
+	h = std::rotr<uint64>(h, 7);
 
 	return h;
 }

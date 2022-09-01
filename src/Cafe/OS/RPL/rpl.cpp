@@ -713,8 +713,8 @@ void _calculateMappedImportNameHash(const char* rplName, const char* funcName, u
 		uint64 v = (uint64)*rplName;
 		h1 += v;
 		h2 ^= v;
-		h1 = std::rotl(h1, 3);
-		h2 = std::rotl(h2, 7);
+		h1 = std::rotl<uint64>(h1, 3);
+		h2 = std::rotl<uint64>(h2, 7);
 		rplName++;
 	}
 	// funcName
@@ -723,8 +723,8 @@ void _calculateMappedImportNameHash(const char* rplName, const char* funcName, u
 		uint64 v = (uint64)*funcName;
 		h1 += v;
 		h2 ^= v;
-		h1 = std::rotl(h1, 3);
-		h2 = std::rotl(h2, 7);
+		h1 = std::rotl<uint64>(h1, 3);
+		h2 = std::rotl<uint64>(h2, 7);
 		funcName++;
 	}
 	*h1Out = h1;

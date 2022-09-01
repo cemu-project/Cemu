@@ -81,31 +81,31 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 		{
 			LatteParsedFetchShaderAttribute_t* attrib = group.attrib + f;
 			key += (uint64)attrib->endianSwap;
-			key = std::rotl(key, 3);
+			key = std::rotl<uint64>(key, 3);
 			key += (uint64)attrib->nfa;
-			key = std::rotl(key, 3);
+			key = std::rotl<uint64>(key, 3);
 			key += (uint64)(attrib->isSigned?1:0);
-			key = std::rotl(key, 1);
+			key = std::rotl<uint64>(key, 1);
 			key += (uint64)attrib->format;
-			key = std::rotl(key, 7);
+			key = std::rotl<uint64>(key, 7);
 			key += (uint64)attrib->fetchType;
-			key = std::rotl(key, 8);
+			key = std::rotl<uint64>(key, 8);
 			key += (uint64)attrib->ds[0];
-			key = std::rotl(key, 2);
+			key = std::rotl<uint64>(key, 2);
 			key += (uint64)attrib->ds[1];
-			key = std::rotl(key, 2);
+			key = std::rotl<uint64>(key, 2);
 			key += (uint64)attrib->ds[2];
-			key = std::rotl(key, 2);
+			key = std::rotl<uint64>(key, 2);
 			key += (uint64)attrib->ds[3];
-			key = std::rotl(key, 2);
+			key = std::rotl<uint64>(key, 2);
 			key += (uint64)(attrib->aluDivisor+1);
-			key = std::rotl(key, 2);
+			key = std::rotl<uint64>(key, 2);
 			key += (uint64)attrib->attributeBufferIndex;
-			key = std::rotl(key, 8);
+			key = std::rotl<uint64>(key, 8);
 			key += (uint64)attrib->semanticId;
-			key = std::rotl(key, 8);
+			key = std::rotl<uint64>(key, 8);
 			key += (uint64)(attrib->offset & 3);
-			key = std::rotl(key, 2);
+			key = std::rotl<uint64>(key, 2);
 		}
 	}
 	// todo - also hash invalid buffer groups?
