@@ -7,12 +7,11 @@ add_library(CemuCommon ${CPP_FILES} ${H_FILES})
 set_property(TARGET CemuCommon PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 if(WIN32)
-target_sources(CemuCommon
-PRIVATE
-    windows/platform.cpp
-    windows/platform.h
-    ExceptionHandler/ExceptionHandler_win32.cpp
-)
+	target_sources(CemuCommon PRIVATE
+		windows/platform.cpp
+		windows/platform.h
+		ExceptionHandler/ExceptionHandler_win32.cpp
+	)
 else()
 target_sources(CemuCommon
 PRIVATE
@@ -22,11 +21,12 @@ PRIVATE
 )
 endif()
 
-target_sources(CemuCommon
-        PRIVATE
-        ExceptionHandler/ExceptionHandler.h
-        )
+target_sources(CemuCommon PRIVATE
+	ExceptionHandler/ExceptionHandler.h
+)
 
+# All the targets wanting to use the precompiled.h header
+# have to link to CemuCommon
 target_precompile_headers(CemuCommon PUBLIC precompiled.h)
 target_include_directories(CemuCommon PUBLIC "../")
 
