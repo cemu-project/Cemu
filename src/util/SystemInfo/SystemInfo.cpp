@@ -1,11 +1,11 @@
 #include "util/SystemInfo/SystemInfo.h"
 
-uint64_t ProcessorTime::work()
+uint64 ProcessorTime::work()
 {
 	return user + kernel;
 }
 
-uint64_t ProcessorTime::total()
+uint64 ProcessorTime::total()
 {
 	return idle + user + kernel;
 }
@@ -20,7 +20,7 @@ double ProcessorTime::Compare(ProcessorTime &last, ProcessorTime &now)
 
 void QueryProcTime(ProcessorTime &out)
 {
-	uint64_t now, user, kernel;
+	uint64 now, user, kernel;
 	QueryProcTime(now, user, kernel);
 
 	out.idle = now - (user + kernel);

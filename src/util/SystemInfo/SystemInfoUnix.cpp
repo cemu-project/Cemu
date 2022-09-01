@@ -7,42 +7,42 @@
 
 #include <string>
 
-uint32_t GetProcessorCount()
+uint32 GetProcessorCount()
 {
 	return std::thread::hardware_concurrency();
 }
 
-uint64_t QueryRamUsage()
+uint64 QueryRamUsage()
 {
 	long page_size = sysconf(_SC_PAGESIZE);
 
 	std::ifstream file("/proc/self/statm");
 	file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-	uint64_t no_pages;
+	uint64 no_pages;
 	file >> no_pages;
 
 	return no_pages * page_size;
 }
 
-void QueryProcTime(uint64_t &out_now, uint64_t &out_user, uint64_t &out_kernel)
+void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 {
 	struct tms time_info;
 	clock_t clock_now = times(&time_info);
 	clock_t clock_user = time_info.tms_utime;
 	clock_t clock_kernel = time_info.tms_stime;
-	out_now = static_cast<uint64_t>(clock_now);
-	out_user = static_cast<uint64_t>(clock_user);
-	out_kernel = static_cast<uint64_t>(clock_kernel);
+	out_now = static_cast<uint64>(clock_now);
+	out_user = static_cast<uint64>(clock_user);
+	out_kernel = static_cast<uint64>(clock_kernel);
 }
 
-void QueryCoreTimes(uint32_t count, ProcessorTime out[])
+void QueryCoreTimes(uint32 count, ProcessorTime out[])
 {
 	std::ifstream file("/proc/stat");
 	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
 	for (auto i = 0; i < count; ++i)
 	{
-		uint64_t user, nice, kernel, idle;
+		uint64 user, nice, kernel, idle;
 		file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
 		file >> user >> nice >> kernel >> idle;
 		file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

@@ -6,14 +6,14 @@
 #include <winternl.h>
 #pragma comment(lib, "ntdll.lib")
 
-uint32_t GetProcessorCount()
+uint32 GetProcessorCount()
 {
 	SYSTEM_INFO sys_info;
 	GetSystemInfo(&sys_info);
 	return sys_info.dwNumberOfProcessors;
 }
 
-uint64_t QueryRamUsage()
+uint64 QueryRamUsage()
 {
 	PROCESS_MEMORY_COUNTERS pmc{};
 	pmc.cb = sizeof(pmc);
@@ -21,7 +21,7 @@ uint64_t QueryRamUsage()
 	return pmc.WorkingSetSize;
 }
 
-void QueryProcTime(uint64_t &out_now, uint64_t &out_user, uint64_t &out_kernel)
+void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 {
 	FILETIME ftime, fkernel, fuser;
 	LARGE_INTEGER now, kernel, user;
@@ -41,7 +41,7 @@ void QueryProcTime(uint64_t &out_now, uint64_t &out_user, uint64_t &out_kernel)
 	out_kernel = kernel.QuadPart;
 }
 
-void QueryCoreTimes(uint32_t count, ProcessorTime out[])
+void QueryCoreTimes(uint32 count, ProcessorTime out[])
 {
 	std::vector<SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION> sppi(count);
 	if (NT_SUCCESS(NtQuerySystemInformation(SystemProcessorPerformanceInformation, sppi.data(), sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * count, nullptr)))
