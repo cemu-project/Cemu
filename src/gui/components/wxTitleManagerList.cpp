@@ -1170,7 +1170,13 @@ void wxTitleManagerList::SortEntries(int column)
 	RefreshPage();
 }
 
-void wxTitleManagerList::RefreshPage() { RefreshItems(GetTopItem(), GetTopItem() + GetCountPerPage() + 1); }
+void wxTitleManagerList::RefreshPage()
+{
+	long item_count = GetItemCount();
+
+	if (item_count > 0)
+		RefreshItems(GetTopItem(), std::min(item_count - 1, GetTopItem() + GetCountPerPage() + 1));
+}
 
 int wxTitleManagerList::Filter(const wxString& filter, const wxString& prefix, ItemColumn column)
 {

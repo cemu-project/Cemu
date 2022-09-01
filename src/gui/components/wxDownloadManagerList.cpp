@@ -629,7 +629,13 @@ void wxDownloadManagerList::SortEntries()
 	RefreshPage();
 }
 
-void wxDownloadManagerList::RefreshPage() { RefreshItems(GetTopItem(), GetTopItem() + GetCountPerPage() + 1); }
+void wxDownloadManagerList::RefreshPage()
+{
+	long item_count = GetItemCount();
+
+	if (item_count > 0)
+		RefreshItems(GetTopItem(), std::min(item_count - 1, GetTopItem() + GetCountPerPage() + 1));
+}
 
 int wxDownloadManagerList::Filter(const wxString& filter, const wxString& prefix, ItemColumn column)
 {
