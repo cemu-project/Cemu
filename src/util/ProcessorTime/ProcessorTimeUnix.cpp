@@ -13,6 +13,18 @@ uint32_t GetProcessorCount()
 	return std::thread::hardware_concurrency();
 }
 
+uint64_t QueryRamUsage()
+{
+	long page_size = sysconf(_SC_PAGESIZE);
+
+	std::ifstream file("/proc/self/statm");
+	file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
+	uint64_t no_pages;
+	file >> no_pages;
+
+	return no_pages * page_size;
+}
+
 void QueryProcTime(uint64_t &out_now, uint64_t &out_user, uint64_t &out_kernel)
 {
 	struct tms time_info;
@@ -40,18 +52,6 @@ void QueryCoreTimes(uint32_t count, ProcessorTime out[])
 		out[i].kernel = kernel;
 		out[i].user = user + nice;
 	}
-}
-
-uint64_t QueryRamUsage()
-{
-	long page_size = sysconf(_SC_PAGESIZE);
-
-	std::ifstream file("/proc/self/statm");
-	file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-	uint64_t no_pages;
-	file >> no_pages;
-
-	return no_pages * page_size;
 }
 
 #endif

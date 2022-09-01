@@ -13,6 +13,14 @@ uint32_t GetProcessorCount()
 	return sys_info.dwNumberOfProcessors;
 }
 
+uint64_t QueryRamUsage()
+{
+	PROCESS_MEMORY_COUNTERS pmc{};
+	pmc.cb = sizeof(pmc);
+	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+	return pmc.WorkingSetSize;
+}
+
 void QueryProcTime(uint64_t &out_now, uint64_t &out_user, uint64_t &out_kernel)
 {
 	FILETIME ftime, fkernel, fuser;
@@ -45,14 +53,6 @@ void QueryCoreTimes(uint32_t count, ProcessorTime out[])
 			out[i].user = sppi[i].UserTime.QuadPart;
 		}
 	}
-}
-
-uint64_t QueryRamUsage()
-{
-	PROCESS_MEMORY_COUNTERS pmc{};
-	pmc.cb = sizeof(pmc);
-	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-	return pmc.WorkingSetSize;
 }
 
 #endif
