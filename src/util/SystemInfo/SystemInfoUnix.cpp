@@ -3,9 +3,8 @@
 #include "util/SystemInfo/SystemInfo.h"
 
 #include <unistd.h>
-#include <sys/time.h>
 #include <sys/times.h>
-#include <sys/resource.h>
+
 #include <string>
 
 uint32_t GetProcessorCount()
