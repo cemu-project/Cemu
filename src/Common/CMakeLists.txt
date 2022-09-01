@@ -11,18 +11,19 @@ target_sources(CemuCommon
 PRIVATE
     windows/platform.cpp
     windows/platform.h
+    ExceptionHandler/ExceptionHandler_win32.cpp
 )
 else()
 target_sources(CemuCommon
 PRIVATE
     unix/platform.cpp
     unix/platform.h
+    ExceptionHandler/ExceptionHandler_posix.cpp
 )
 endif()
 
 target_sources(CemuCommon
         PRIVATE
-        ExceptionHandler/ExceptionHandler.cpp
         ExceptionHandler/ExceptionHandler.h
         )
 
