@@ -572,12 +572,12 @@ void LatteOverlay_init()
 	SYSTEM_INFO sys_info;
 	GetSystemInfo(&sys_info);
 	g_state.processor_count = sys_info.dwNumberOfProcessors;
+#else
+	g_state.processor_count = std::thread::hardware_concurrency();
+#endif
 
 	g_state.processor_times.resize(g_state.processor_count);
 	g_state.cpu_per_core.resize(g_state.processor_count);
-#else
-	g_state.processor_count = 1;
-#endif
 }
 
 void LatteOverlay_updateStats(double fps, sint32 drawcalls)
