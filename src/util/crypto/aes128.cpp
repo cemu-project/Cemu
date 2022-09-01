@@ -332,25 +332,25 @@ void InvMixColumns(aes128Ctx_t* aesCtx)
 	b = stateVal(0, 1);
 	c = stateVal(0, 2);
 	d = stateVal(0, 3);
-	stateValU32(0) = lookupTable_multiply[a] ^ std::rotl(lookupTable_multiply[b], 8) ^ std::rotl(lookupTable_multiply[c], 16) ^ std::rotl(lookupTable_multiply[d], 24);
+	stateValU32(0) = lookupTable_multiply[a] ^ std::rotl<uint32>(lookupTable_multiply[b], 8) ^ std::rotl<uint32>(lookupTable_multiply[c], 16) ^ std::rotl<uint32>(lookupTable_multiply[d], 24);
 	// i1
 	a = stateVal(1, 0);
 	b = stateVal(1, 1);
 	c = stateVal(1, 2);
 	d = stateVal(1, 3);
-	stateValU32(1) = lookupTable_multiply[a] ^ std::rotl(lookupTable_multiply[b], 8) ^ std::rotl(lookupTable_multiply[c], 16) ^ std::rotl(lookupTable_multiply[d], 24);
+	stateValU32(1) = lookupTable_multiply[a] ^ std::rotl<uint32>(lookupTable_multiply[b], 8) ^ std::rotl<uint32>(lookupTable_multiply[c], 16) ^ std::rotl<uint32>(lookupTable_multiply[d], 24);
 	// i2
 	a = stateVal(2, 0);
 	b = stateVal(2, 1);
 	c = stateVal(2, 2);
 	d = stateVal(2, 3);
-	stateValU32(2) = lookupTable_multiply[a] ^ std::rotl(lookupTable_multiply[b], 8) ^ std::rotl(lookupTable_multiply[c], 16) ^ std::rotl(lookupTable_multiply[d], 24);
+	stateValU32(2) = lookupTable_multiply[a] ^ std::rotl<uint32>(lookupTable_multiply[b], 8) ^ std::rotl<uint32>(lookupTable_multiply[c], 16) ^ std::rotl<uint32>(lookupTable_multiply[d], 24);
 	// i3
 	a = stateVal(3, 0);
 	b = stateVal(3, 1);
 	c = stateVal(3, 2);
 	d = stateVal(3, 3);
-	stateValU32(3) = lookupTable_multiply[a] ^ std::rotl(lookupTable_multiply[b], 8) ^ std::rotl(lookupTable_multiply[c], 16) ^ std::rotl(lookupTable_multiply[d], 24);
+	stateValU32(3) = lookupTable_multiply[a] ^ std::rotl<uint32>(lookupTable_multiply[b], 8) ^ std::rotl<uint32>(lookupTable_multiply[c], 16) ^ std::rotl<uint32>(lookupTable_multiply[d], 24);
 }
 
 // The SubBytes Function Substitutes the values in the
