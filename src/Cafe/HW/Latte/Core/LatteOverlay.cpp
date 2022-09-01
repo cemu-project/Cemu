@@ -585,16 +585,6 @@ static void UpdateStats_CpuPerCore()
 	}
 }
 
-static void UpdateStats_RamUsage()
-{
-#if BOOST_OS_WINDOWS
-	PROCESS_MEMORY_COUNTERS pmc{};
-	pmc.cb = sizeof(pmc);
-	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-	g_state.ram_usage = (pmc.WorkingSetSize / 1000) / 1000;
-#endif
-}
-
 void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 {
 	if (GetConfig().overlay.position == ScreenPosition::kDisabled)
@@ -604,7 +594,9 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 	g_state.draw_calls_per_frame = drawcalls;
 	UpdateStats_CemuCpu();
 	UpdateStats_CpuPerCore();
-	UpdateStats_RamUsage();
+
+	// update ram
+	g_state.ram_usage = (QueryRamUsage() / 1000) / 1000;
 
 	// update vram
 	g_renderer->GetVRAMInfo(g_state.vramUsage, g_state.vramTotal);

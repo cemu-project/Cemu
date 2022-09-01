@@ -2,6 +2,7 @@
 
 #include "util/ProcessorTime/ProcessorTime.h"
 
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/resource.h>
@@ -39,6 +40,18 @@ void QueryCoreTimes(uint32_t count, ProcessorTime out[])
 		out[i].kernel = kernel;
 		out[i].user = user + nice;
 	}
+}
+
+uint64_t QueryRamUsage()
+{
+	long page_size = sysconf(_SC_PAGESIZE);
+
+	std::ifstream file("/proc/self/statm");
+	file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
+	uint64_t no_pages;
+	file >> no_pages;
+
+	return no_pages * page_size;
 }
 
 #endif

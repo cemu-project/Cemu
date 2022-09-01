@@ -47,4 +47,12 @@ void QueryCoreTimes(uint32_t count, ProcessorTime out[])
 	}
 }
 
+uint64_t QueryRamUsage()
+{
+	PROCESS_MEMORY_COUNTERS pmc{};
+	pmc.cb = sizeof(pmc);
+	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+	return pmc.WorkingSetSize;
+}
+
 #endif
