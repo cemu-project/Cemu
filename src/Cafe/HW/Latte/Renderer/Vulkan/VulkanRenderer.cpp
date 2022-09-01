@@ -30,6 +30,9 @@
 
 #include <wx/msgdlg.h>
 
+#include <dlfcn.h>
+#include <variant>
+
 #define VK_API_VERSION_MAJOR(version) (((uint32_t)(version) >> 22) & 0x7FU)
 #define VK_API_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3FFU)
 
@@ -107,6 +110,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	#if BOOST_OS_WINDOWS
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
+	requiredExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 	requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_MACOS
 	requiredExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
@@ -1172,6 +1176,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	#if BOOST_OS_WINDOWS
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
+	requiredInstanceExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 	requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_MACOS
 	requiredInstanceExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
@@ -1325,6 +1330,27 @@ VkSurfaceKHR VulkanRenderer::CreateXlibSurface(VkInstance instance, Display* dpy
     return result;
 }
 
+VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_display* display, wl_surface* window)
+{
+	VkWaylandSurfaceCreateInfoKHR sci{
+		.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+		.flags = 0,
+		.display = display,
+		.surface = window,
+	};
+
+	VkSurfaceKHR result;
+    VkResult err;
+
+    if ((err = vkCreateWaylandSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
+    {
+		forceLog_printf("Cannot create a wayland Vulkan surface: %d", (sint32)err);
+        throw std::runtime_error(fmt::format("Cannot create a wayland Vulkan surface: {}", err));
+    }
+
+	return result;
+}
+
 VkSurfaceKHR VulkanRenderer::CreateXcbSurface(VkInstance instance, xcb_connection_t* connection, xcb_window_t window)
 {
     VkXcbSurfaceCreateInfoKHR sci{};
@@ -1350,7 +1376,21 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 #if BOOST_OS_WINDOWS
 	return CreateWinSurface(instance, windowInfo.hwnd);
 #elif BOOST_OS_LINUX
-	return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
+	switch (windowInfo.info.index()) {
+		case 1:
+		{
+			auto& info = std::get<X11WindowHandleInfo>(windowInfo.info);
+			return CreateXlibSurface(instance, info.display, info.window);
+		}
+		case 2:
+		{
+			auto& info = std::get<WaylandWindowHandleInfo>(windowInfo.info);
+			return CreateWaylandSurface(instance, info.display, info.window);
+		}
+
+		default:
+			return nullptr;
+	}
 #elif BOOST_OS_MACOS
 	return CreateCocoaSurface(instance, windowInfo.handle);
 #endif

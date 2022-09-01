@@ -200,6 +200,7 @@ public:
 #if BOOST_OS_LINUX
 	static VkSurfaceKHR CreateXlibSurface(VkInstance instance, Display* dpy, Window window);
     static VkSurfaceKHR CreateXcbSurface(VkInstance instance, xcb_connection_t* connection, xcb_window_t window);
+	static VkSurfaceKHR CreateWaylandSurface(VkInstance instance, wl_display* display, wl_surface* window);
 #endif
 
 	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo);

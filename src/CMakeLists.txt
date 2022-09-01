@@ -27,6 +27,7 @@ elseif(UNIX)
     else()
         add_definitions(-DVK_USE_PLATFORM_XLIB_KHR) # legacy. Do we need to support XLIB surfaces?
         add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+        add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
     endif()
     add_definitions(-maes)
     # warnings

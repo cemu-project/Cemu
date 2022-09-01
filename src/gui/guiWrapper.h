@@ -1,19 +1,31 @@
 #pragma once
 
 #include <atomic>
+#include <variant>
+
+#include <wayland-client-protocol.h>
 
 #if BOOST_OS_LINUX
-#include "xcb/xproto.h"
+
 #endif
+
+struct X11WindowHandleInfo {
+	Window window{};
+	Display* display{};
+};
+struct WaylandWindowHandleInfo {
+	struct wl_surface* window{};
+	struct wl_display* display{};
+};
 
 struct WindowHandleInfo
 {
 #if BOOST_OS_WINDOWS
 	std::atomic<HWND> hwnd;
 #elif BOOST_OS_LINUX
+
     // XLIB
-    Display* xlib_display{};
-    Window xlib_window{};
+	std::variant<std::monostate, X11WindowHandleInfo, WaylandWindowHandleInfo> info;
 
 	// XCB (not used by GTK so we cant retrieve these without making our own window)
 	//xcb_connection_t* xcb_con{};

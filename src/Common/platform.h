@@ -10,6 +10,7 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrender.h>
 #include <X11/Xutil.h>
+#include <wayland-client-protocol.h>
 #include "Common/unix/platform.h"
 #elif BOOST_OS_MACOS
 #include <libkern/OSByteOrder.h>

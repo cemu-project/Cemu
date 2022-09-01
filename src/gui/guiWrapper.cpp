@@ -1,6 +1,13 @@
+#if BOOST_OS_LINUX
+#include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <gdk/gdkwindow.h>
+#include <gdk/gdkwayland.h>
+#include <gdk/gdkx.h>
+#endif
+
 #include "gui/wxgui.h"
 #include "gui/guiWrapper.h"
-#include "gui/CemuApp.h"
 #include "gui/MainWindow.h"
 #include "gui/debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
@@ -8,8 +15,6 @@
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/CafeSystem.h"
-
-#include "wxHelper.h"
 
 WindowInfo g_window_info {};
 
@@ -152,7 +157,6 @@ bool gui_isPadWindowOpen()
 #include <wx/nativewin.h>
 #include <dlfcn.h>
 
-typedef void GdkDisplay;
 #endif
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw)
@@ -160,44 +164,33 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 #if BOOST_OS_WINDOWS
 	handleInfoOut.hwnd = wxw->GetHWND();
 #elif BOOST_OS_LINUX
-    /* dynamically retrieve GTK imports so we dont have to include and link the whole lib */
-    void (*dyn_gtk_widget_realize)(GtkWidget *widget);
-    dyn_gtk_widget_realize = (void(*)(GtkWidget* widget))dlsym(RTLD_NEXT, "gtk_widget_realize");
-
-    GdkWindow* (*dyn_gtk_widget_get_window)(GtkWidget *widget);
-    dyn_gtk_widget_get_window = (GdkWindow*(*)(GtkWidget* widget))dlsym(RTLD_NEXT, "gtk_widget_get_window");
-
-    GdkDisplay* (*dyn_gdk_window_get_display)(GdkWindow *widget);
-    dyn_gdk_window_get_display = (GdkDisplay*(*)(GdkWindow* window))dlsym(RTLD_NEXT, "gdk_window_get_display");
-
-    Display* (*dyn_gdk_x11_display_get_xdisplay)(GdkDisplay *display);
-    dyn_gdk_x11_display_get_xdisplay = (Display*(*)(GdkDisplay* display))dlsym(RTLD_NEXT, "gdk_x11_display_get_xdisplay");
-
-    Window (*dyn_gdk_x11_window_get_xid)(GdkWindow *window);
-    dyn_gdk_x11_window_get_xid = (Window(*)(GdkWindow *window))dlsym(RTLD_NEXT, "gdk_x11_window_get_xid");
-
-    if(!dyn_gtk_widget_realize || !dyn_gtk_widget_get_window ||
-    !dyn_gdk_window_get_display || !dyn_gdk_x11_display_get_xdisplay ||
-    !dyn_gdk_x11_window_get_xid)
-    {
-        cemuLog_log(LogType::Force, "Unable to load GDK symbols");
-        return;
-    }
-
     /* end of imports */
 
     // get window
     GtkWidget* gtkWidget = (GtkWidget*)wxw->GetHandle(); // returns GtkWidget
-    dyn_gtk_widget_realize(gtkWidget);
-    GdkWindow* gdkWindow = dyn_gtk_widget_get_window(gtkWidget);
-    handleInfoOut.xlib_window = dyn_gdk_x11_window_get_xid(gdkWindow);
+    gtk_widget_realize(gtkWidget);
 
-    // get display
-    GdkDisplay* gdkDisplay = dyn_gdk_window_get_display(gdkWindow);
-    handleInfoOut.xlib_display = dyn_gdk_x11_display_get_xdisplay(gdkDisplay);
-    if(!handleInfoOut.xlib_display)
+    GdkWindow* gdkWindow = gtk_widget_get_window(gtkWidget);
+	GdkDisplay* gdkDisplay = gdk_window_get_display(gdkWindow);
+
+	if(GDK_IS_WAYLAND_WINDOW(gdkWindow))
+	{
+		handleInfoOut.info = WaylandWindowHandleInfo{
+			.window = gdk_wayland_window_get_wl_surface(gdkWindow),
+			.display = gdk_wayland_display_get_wl_display(GDK_WAYLAND_DISPLAY(gdk_window_get_display(gdkWindow)))
+		};
+	}
+	else if(GDK_IS_X11_WINDOW(gdkWindow))
+	{
+		handleInfoOut.info = X11WindowHandleInfo{
+			.window = gdk_x11_window_get_xid(gdkWindow),
+			.display = gdk_x11_display_get_xdisplay(GDK_WAYLAND_DISPLAY(gdk_window_get_display(gdkWindow)))
+		};
+	}
+
+    if(handleInfoOut.info.index() == 0)
     {
-        cemuLog_log(LogType::Force, "Unable to get xlib display");
+        cemuLog_log(LogType::Force, "Unable to get display");
     }
 #else
 	handleInfoOut.handle = wxw->GetHandle();
