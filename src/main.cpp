@@ -62,11 +62,11 @@ void logCPUAndMemoryInfo()
 	unsigned   nExIds, i = 0;
 	char CPUBrandString[0x40];
 	// Get the information associated with each extended ID.
-	__cpuid(CPUInfo, 0x80000000);
+	cpuid(CPUInfo, 0x80000000);
 	nExIds = CPUInfo[0];
 	for (i = 0x80000000; i <= nExIds; ++i)
 	{
-		__cpuid(CPUInfo, i);
+		cpuid(CPUInfo, i);
 		// Interpret CPU brand string
 		if (i == 0x80000002)
 			memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
@@ -194,11 +194,11 @@ void mainEmulatorCommonInit()
 	PPCTimer_init();
 	// check available CPU extensions
 	int cpuInfo[4];
-	__cpuid(cpuInfo, 0x1);
+	cpuid(cpuInfo, 0x1);
 	_cpuExtension_SSSE3 = ((cpuInfo[2] >> 9) & 1) != 0;
 	_cpuExtension_SSE4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
 
-	__cpuidex(cpuInfo, 0x7, 0);
+	cpuidex(cpuInfo, 0x7, 0);
 	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
 
 #if BOOST_OS_WINDOWS

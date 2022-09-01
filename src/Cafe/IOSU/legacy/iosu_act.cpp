@@ -563,10 +563,10 @@ int iosuAct_thread()
 
 					uint32 name = (uint32)actCemuRequest->uuidName;
 					uint8 tempArray[] = {
-						(name >> 24) & 0xFF,
-						(name >> 16) & 0xFF,
-						(name >> 8) & 0xFF,
-						(name >> 0) & 0xFF,
+						static_cast<uint8>((name >> 24) & 0xFF),
+						static_cast<uint8>((name >> 16) & 0xFF),
+						static_cast<uint8>((name >> 8) & 0xFF),
+						static_cast<uint8>((name >> 0) & 0xFF),
 						0x3A,
 						0x27,
 						0x5E,

@@ -4050,13 +4050,13 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 		if (attachmentInfo.colorAttachment[i].isPresent || attachmentInfo.colorAttachment[i].viewObj)
 		{
 			stateHash += attachmentInfo.colorAttachment[i].format + i * 31;
-			stateHash = std::rotl(stateHash, 7);
+			stateHash = std::rotl<uint64>(stateHash, 7);
 		}
 	}
 	if (attachmentInfo.depthAttachment.isPresent || attachmentInfo.depthAttachment.viewObj)
 	{
 		stateHash += attachmentInfo.depthAttachment.format;
-		stateHash = std::rotl(stateHash, 7);
+		stateHash = std::rotl<uint64>(stateHash, 7);
 	}
 	m_hashForPipeline = stateHash;
 

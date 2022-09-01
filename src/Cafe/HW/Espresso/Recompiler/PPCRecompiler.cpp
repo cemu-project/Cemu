@@ -575,12 +575,12 @@ void PPCRecompiler_init()
 
 	// query processor extensions
 	int cpuInfo[4];
-	__cpuid(cpuInfo, 0x80000001);
+	cpuid(cpuInfo, 0x80000001);
 	hasLZCNTSupport = ((cpuInfo[2] >> 5) & 1) != 0;
-	__cpuid(cpuInfo, 0x1);
+	cpuid(cpuInfo, 0x1);
 	hasMOVBESupport = ((cpuInfo[2] >> 22) & 1) != 0;
 	hasAVXSupport = ((cpuInfo[2] >> 28) & 1) != 0;
-	__cpuidex(cpuInfo, 0x7, 0);
+	cpuidex(cpuInfo, 0x7, 0);
 	hasBMI2Support = ((cpuInfo[1] >> 8) & 1) != 0;
 
 	forceLog_printf("Recompiler initialized. CPU extensions: %s%s%s", hasLZCNTSupport ? "LZCNT " : "", hasMOVBESupport ? "MOVBE " : "", hasAVXSupport ? "AVX " : "");

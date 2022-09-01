@@ -1,6 +1,6 @@
 project(CemuCafe)
 
-if((CMAKE_C_COMPILER_ID STREQUAL "GNU") OR (CMAKE_C_COMPILER_ID STREQUAL "Clang"))
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	add_compile_options(-mssse3 -mavx2)
 endif()
 

@@ -8,7 +8,7 @@ uint32 RendererShader::GeneratePrecompiledCacheId()
 	const char* s = EMULATOR_VERSION_SUFFIX;
 	while (*s)
 	{
-		v = _rotl(v, 7);
+		v = std::rotl<uint32>(v, 7);
 		v += (uint32)(*s);
 		s++;
 	}

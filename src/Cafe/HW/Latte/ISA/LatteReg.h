@@ -984,7 +984,7 @@ float get_##__regname() const \
 			SRF_MODE_NO_ZERO = 1,
 		};
 
-		using E_ENDIAN_SWAP = E_ENDIAN_SWAP;
+		// using E_ENDIAN_SWAP = E_ENDIAN_SWAP;
 
 		enum class E_SEL
 		{
