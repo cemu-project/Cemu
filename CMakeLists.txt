@@ -4,11 +4,6 @@ option(PUBLIC_RELEASE "Compile with debug asserts disabled and no console" OFF)
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
-if (PUBLIC_RELEASE)
-  add_definitions(-DPUBLIC_RELEASE)
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE) # enable LTO
-endif()
-
 if (EXPERIMENTAL_VERSION)
   add_definitions(-DEMULATOR_VERSION_MINOR=${EXPERIMENTAL_VERSION})
 endif()
@@ -25,8 +20,7 @@ if (ENABLE_VCPKG)
 	endif()
 endif()
 
-
-project(Cemu VERSION 0.1)
+project(Cemu VERSION 2.0)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
@@ -35,20 +29,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if (PUBLIC_RELEASE)
+	add_compile_definitions(PUBLIC_RELEASE)
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE) # enable LTO
+endif()
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if (MSVC)
-    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
-endif()
-
-if (MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:precise") # floating point model: precise
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GT") # fiber safe optimizations
-  if (PUBLIC_RELEASE)
-    message(STATUS "Using additional optimization flags for MSVC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Oi /Ot") # enable intrinsic functions, favor speed
-  endif()
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
+	# floating point model: precise, fiber safe optimizations
+	add_compile_options(/EHsc /fp:precise /GT)
+	if (PUBLIC_RELEASE)
+		message(STATUS "Using additional optimization flags for MSVC")
+		add_compile_options(/Oi /Ot) # enable intrinsic functions, favor speed
+	endif()
 endif()
 
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
@@ -57,16 +52,16 @@ option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
 # input backends
 if (WIN32)
-  option(ENABLE_XINPUT "Enables the usage of XInput" ON)
-  option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
-  add_definitions(-DHAS_DIRECTINPUT)
+	option(ENABLE_XINPUT "Enables the usage of XInput" ON)
+	option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
+	add_compile_definitions(HAS_DIRECTINPUT)
 endif()
 option(ENABLE_SDL "Enables the SDLController backend" ON)
 
 # audio backends
 if (WIN32)
-  option(ENABLE_DIRECTAUDIO "Enables the directaudio backend" ON)
-  option(ENABLE_XAUDIO "Enables the xaudio backend" ON)
+	option(ENABLE_DIRECTAUDIO "Enables the directaudio backend" ON)
+	option(ENABLE_XAUDIO "Enables the xaudio backend" ON)
 endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
@@ -99,17 +94,17 @@ if (UNIX AND NOT APPLE)
 endif()
 
 if (ENABLE_VULKAN)
-  include_directories("dependencies/Vulkan-Headers/include")
+	include_directories("dependencies/Vulkan-Headers/include")
 endif()
 
 if (ENABLE_OPENGL)
-  find_package(OpenGL REQUIRED)
+	find_package(OpenGL REQUIRED)
 endif()
 
 if (ENABLE_DISCORD_RPC)
-  add_definitions(-DENABLE_DISCORD_RPC)
-  add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
-  target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
+	add_compile_definitions(ENABLE_DISCORD_RPC)
+	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
+	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
 endif()
 
 if (ENABLE_WXWIDGETS)
