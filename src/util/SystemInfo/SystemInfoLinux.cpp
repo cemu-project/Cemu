@@ -5,8 +5,6 @@
 #include <unistd.h>
 #include <sys/times.h>
 
-#include <string>
-
 uint64 QueryRamUsage()
 {
 	long page_size = sysconf(_SC_PAGESIZE);
