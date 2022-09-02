@@ -6,13 +6,6 @@
 #include <winternl.h>
 #pragma comment(lib, "ntdll.lib")
 
-uint32 GetProcessorCount()
-{
-	SYSTEM_INFO sys_info;
-	GetSystemInfo(&sys_info);
-	return sys_info.dwNumberOfProcessors;
-}
-
 uint64 QueryRamUsage()
 {
 	PROCESS_MEMORY_COUNTERS pmc{};

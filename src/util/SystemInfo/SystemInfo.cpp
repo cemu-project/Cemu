@@ -18,6 +18,11 @@ double ProcessorTime::Compare(ProcessorTime &last, ProcessorTime &now)
 	return (double)dwork / dtotal;
 }
 
+uint32 GetProcessorCount()
+{
+	return std::thread::hardware_concurrency();
+}
+
 void QueryProcTime(ProcessorTime &out)
 {
 	uint64 now, user, kernel;

@@ -7,11 +7,6 @@
 
 #include <string>
 
-uint32 GetProcessorCount()
-{
-	return std::thread::hardware_concurrency();
-}
-
 uint64 QueryRamUsage()
 {
 	long page_size = sysconf(_SC_PAGESIZE);
