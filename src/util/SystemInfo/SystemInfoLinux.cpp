@@ -12,11 +12,18 @@ uint64 QueryRamUsage()
 	long page_size = sysconf(_SC_PAGESIZE);
 
 	std::ifstream file("/proc/self/statm");
-	file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-	uint64 no_pages;
-	file >> no_pages;
+	if (file)
+	{
+		file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
+		uint64 no_pages;
+		file >> no_pages;
 
-	return no_pages * page_size;
+		return no_pages * page_size;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
@@ -33,18 +40,25 @@ void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 void QueryCoreTimes(uint32 count, ProcessorTime out[])
 {
 	std::ifstream file("/proc/stat");
-	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-	for (auto i = 0; i < count; ++i)
+	if (file)
 	{
-		uint64 user, nice, kernel, idle;
-		file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-		file >> user >> nice >> kernel >> idle;
 		file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-		out[i].idle = idle;
-		out[i].kernel = kernel;
-		out[i].user = user + nice;
+		for (auto i = 0; i < count; ++i)
+		{
+			uint64 user, nice, kernel, idle;
+			file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
+			file >> user >> nice >> kernel >> idle;
+			file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+			out[i].idle = idle;
+			out[i].kernel = kernel;
+			out[i].user = user + nice;
+		}
+	}
+	else
+	{
+		for (auto i = 0; i < count; ++i) out[i] = { }
 	}
 }
 
