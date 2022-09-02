@@ -48,6 +48,9 @@ bool GraphicPack2::LoadGraphicPack(const std::wstring& filename, IniParser& rule
 			}
 			
 			gp->SetEnabled(enabled);
+			
+			if (gp->IsEnabled())
+				s_active_graphic_packs.emplace_back(gp);
 		}
 
 		gp->UpdatePresetVisibility();
