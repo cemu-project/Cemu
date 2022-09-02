@@ -46,6 +46,13 @@ void QueryCoreTimes(uint32 count, ProcessorTime out[])
 			out[i].user = sppi[i].UserTime.QuadPart;
 		}
 	}
+	else
+	{
+		for (auto i = 0; i < count; ++i)
+		{
+			out[i] = { };
+		}
+	}
 }
 
 #endif
