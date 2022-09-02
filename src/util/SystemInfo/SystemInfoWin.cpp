@@ -10,8 +10,14 @@ uint64 QueryRamUsage()
 {
 	PROCESS_MEMORY_COUNTERS pmc{};
 	pmc.cb = sizeof(pmc);
-	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-	return pmc.WorkingSetSize;
+	if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
+	{
+		return pmc.WorkingSetSize;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
@@ -22,16 +28,24 @@ void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 	now.LowPart = ftime.dwLowDateTime;
 	now.HighPart = ftime.dwHighDateTime;
 
-	GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fkernel, &fuser);
-	kernel.LowPart = fkernel.dwLowDateTime;
-	kernel.HighPart = fkernel.dwHighDateTime;
+	if (GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fkernel, &fuser))
+	{	
+		kernel.LowPart = fkernel.dwLowDateTime;
+		kernel.HighPart = fkernel.dwHighDateTime;
 
-	user.LowPart = fuser.dwLowDateTime;
-	user.HighPart = fuser.dwHighDateTime;
+		user.LowPart = fuser.dwLowDateTime;
+		user.HighPart = fuser.dwHighDateTime;
 
-	out_now = now.QuadPart;
-	out_user = user.QuadPart;
-	out_kernel = kernel.QuadPart;
+		out_now = now.QuadPart;
+		out_user = user.QuadPart;
+		out_kernel = kernel.QuadPart;
+	}
+	else
+	{
+		out_now = 0;
+		out_user = 0;
+		out_kernel = 0;
+	}
 }
 
 void QueryCoreTimes(uint32 count, ProcessorTime out[])
