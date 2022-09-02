@@ -3,8 +3,16 @@
 
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 
-#if BOOST_OS_LINUX
+#if __GNUC__
 #include <immintrin.h>
+#endif
+
+#ifdef __GNUC__
+#define ATTRIBUTE_AVX2 __attribute__((target("avx2")))
+#define ATTRIBUTE_SSE41 __attribute__((target("sse4.1")))
+#else
+#define ATTRIBUTE_AVX2
+#define ATTRIBUTE_SSE41
 #endif
 
 struct  
@@ -284,10 +292,7 @@ void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 coun
 	indexMax = std::max(count, 1u) - 1;
 }
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-#pragma clang attribute push (__attribute__((target("avx2"))), apply_to=function)
-#endif
-
+ATTRIBUTE_AVX2
 void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	// using AVX + AVX2 we can process 16 indices at a time
@@ -352,14 +357,7 @@ void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDat
 	indexMin = std::min(indexMin, _minIndex);
 }
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-#pragma clang attribute pop
-#endif
-
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-#pragma clang attribute push (__attribute__((target("avx2"))), apply_to=function)
-#endif
-
+ATTRIBUTE_SSE41
 void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	// SSSE3 & SSE4.1 optimized decoding
@@ -423,14 +421,7 @@ void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDa
 	indexMin = std::min(indexMin, _minIndex);
 }
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-#pragma clang attribute pop
-#endif
-
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-#pragma clang attribute push (__attribute__((target("avx2"))), apply_to=function)
-#endif
-
+ATTRIBUTE_AVX2
 void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	// using AVX + AVX2 we can process 8 indices at a time
@@ -496,10 +487,6 @@ void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDat
 	indexMax = std::max(indexMax, _maxIndex);
 	indexMin = std::min(indexMin, _minIndex);
 }
-
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-#pragma clang attribute pop
-#endif
 
 template<typename T>
 void _LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, uint32 count, uint32 primitiveRestartIndex, uint32& indexMin, uint32& indexMax)

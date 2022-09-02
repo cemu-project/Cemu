@@ -1,9 +1,5 @@
 project(CemuCafe)
 
-if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-	add_compile_options(-mssse3 -mavx2)
-endif()
-
 file(GLOB_RECURSE CPP_FILES *.cpp)
 file(GLOB_RECURSE H_FILES *.h)
 
