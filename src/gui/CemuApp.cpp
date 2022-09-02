@@ -399,11 +399,4 @@ void CemuApp::ActivateApp(wxActivateEvent& event)
 	event.Skip();
 }
 
-extern "C"
-{
-	CemuApp& wxGetAppWrapper()
-	{
-		return *static_cast<CemuApp*>(wxApp::GetInstance());
-	};
-}
 

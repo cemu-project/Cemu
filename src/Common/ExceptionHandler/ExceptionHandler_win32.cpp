@@ -1,12 +1,6 @@
 #include "Common/precompiled.h"
 #include "Cafe/CafeSystem.h"
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-#include <signal.h>
-#include <execinfo.h>
-#endif
-
-#if BOOST_OS_WINDOWS
 #include <Windows.h>
 #include <Dbghelp.h>
 #include <shellapi.h>
@@ -16,16 +10,11 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/HW/Espresso/PPCState.h"
 
-#endif
-
 extern uint32 currentBaseApplicationHash;
 extern uint32 currentUpdatedApplicationHash;
 
-#if BOOST_OS_WINDOWS
-
 LONG handleException_SINGLE_STEP(PEXCEPTION_POINTERS pExceptionInfo)
 {
-
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
@@ -416,27 +405,3 @@ void ExceptionHandler_init()
 	AddVectoredExceptionHandler(1, VectoredExceptionHandler);
 	SetErrorMode(SEM_FAILCRITICALERRORS);
 }
-#else
-
-void handler_SIGSEGV(int sig)
-{
-    printf("SIGSEGV!\n");
-
-    void *array[32];
-    size_t size;
-
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 32);
-
-    // print out all the frames to stderr
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
-}
-
-void ExceptionHandler_init()
-{
-    signal(SIGSEGV, handler_SIGSEGV);
-}
-
-#endif
