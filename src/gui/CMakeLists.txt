@@ -7,13 +7,11 @@ add_library(CemuGui ${CPP_FILES} ${H_FILES})
 set_property(TARGET CemuGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_sources(CemuGui PRIVATE
-wxcomponents/checkedlistctrl.cpp
-wxcomponents/checkedlistctrl.h
-wxcomponents/checktree.cpp
-wxcomponents/checktree.h
+	wxcomponents/checkedlistctrl.cpp
+	wxcomponents/checkedlistctrl.h
+	wxcomponents/checktree.cpp
+	wxcomponents/checktree.h
 )
-
-target_precompile_headers(CemuGui PRIVATE ../Common/precompiled.h)
 
 target_include_directories(CemuGui PUBLIC "../")
 # PUBLIC because rapidjson/document.h is included in ChecksumTool.h

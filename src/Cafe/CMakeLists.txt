@@ -1,9 +1,5 @@
 project(CemuCafe)
 
-if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-	add_compile_options(-mssse3 -mavx2)
-endif()
-
 file(GLOB_RECURSE CPP_FILES *.cpp)
 file(GLOB_RECURSE H_FILES *.h)
 
@@ -15,8 +11,6 @@ else()
 endif()
 
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-target_precompile_headers(CemuCafe PRIVATE ../Common/precompiled.h)
 
 target_include_directories(CemuCafe PUBLIC "../")
 
