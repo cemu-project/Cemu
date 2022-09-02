@@ -51,6 +51,11 @@ if (MSVC)
   endif()
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14.0)
+  # Clang versions below 14 have issues with consteval in fmt: https://github.com/fmtlib/fmt/issues/2455
+  add_compile_definitions(FMT_CONSTEVAL=)
+endif()
+
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
