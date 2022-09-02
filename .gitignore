@@ -22,6 +22,7 @@ bin/Cemu
 # Cemu bin files
 bin/otp.bin
 bin/seeprom.bin
+bin/log.txt
 bin/Cemu.pdb
 bin/Cemu.ilk
 bin/Cemu.exe.backup
@@ -36,3 +37,5 @@ bin/controllerProfiles/*
 
 !bin/gameProfiles/default/*
 bin/gameProfiles/*
+
+bin/graphicPacks/*
