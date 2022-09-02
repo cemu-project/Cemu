@@ -372,7 +372,9 @@ void TextureRelationViewerWindow::RefreshTextureList()
 		}
 	}
 	textureRelationListA->Thaw();
-	textureRelationListA->EnsureVisible(scrollPos + textureRelationListA->GetCountPerPage() - 1);
+	long itemCount = textureRelationListA->GetItemCount();
+	if (itemCount > 0)
+		textureRelationListA->EnsureVisible(std::min<long>(itemCount - 1, scrollPos + textureRelationListA->GetCountPerPage() - 1));
 }
 
 void TextureRelationViewerWindow::OnTextureListRightClick(wxMouseEvent& event)

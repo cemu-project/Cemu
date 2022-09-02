@@ -25,7 +25,7 @@ typedef struct
 	/* +0x0C */ uint8		ukn0C[0xA];
 	/* +0x16 */ uint8		ukn16[2];
 	/* +0x18 */ uint16		ukn18;
-	/* +0x1A */ uint16be	miiName[MII_FFL_NAME_LENGTH];
+	/* +0x1A */ uint16le	miiName[MII_FFL_NAME_LENGTH];
 	/* +0x2E */ uint16		ukn2E;
 	/* +0x30 */ uint8		ukn30[MII_FFL_STORAGE_SIZE-0x30];
 }FFLData_t;
