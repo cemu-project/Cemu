@@ -56,6 +56,10 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION
   add_compile_definitions(FMT_CONSTEVAL=)
 endif()
 
+if (APPLE)
+	enable_language(OBJC OBJCXX)
+endif()
+
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
