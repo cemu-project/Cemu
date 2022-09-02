@@ -1176,7 +1176,14 @@ void MainWindow::ShowCursor(bool state)
 		} while (counter >= 0);
 	}
 	#else
-	cemuLog_log(LogType::Force, "MainWindow::ShowCursor - todo");
+	if (state)
+	{
+		wxSetCursor(wxNullCursor); // restore system default cursor
+	}
+	else
+	{
+		wxSetCursor(wxCursor(wxCURSOR_BLANK));
+	}
 	#endif
 }
 
