@@ -9,8 +9,10 @@
 
 #ifdef __GNUC__
 #define ATTRIBUTE_AVX2 __attribute__((target("avx2")))
+#define ATTRIBUTE_SSE41 __attribute__((target("sse4.1")))
 #else
 #define ATTRIBUTE_AVX2
+#define ATTRIBUTE_SSE41
 #endif
 
 struct  
@@ -355,7 +357,7 @@ void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDat
 	indexMin = std::min(indexMin, _minIndex);
 }
 
-ATTRIBUTE_AVX2
+ATTRIBUTE_SSE41
 void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	// SSSE3 & SSE4.1 optimized decoding
