@@ -243,7 +243,8 @@ void wxGameList::SetStyle(Style style, bool save)
 		g_config.Save();
 	}
 
-	ApplyGameListColumnWidths();
+	if (style == Style::kList)
+		ApplyGameListColumnWidths();
 }
 
 long wxGameList::GetStyleFlags(Style style) const

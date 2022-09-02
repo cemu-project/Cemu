@@ -73,7 +73,8 @@ void SymbolListCtrl::OnGameLoaded()
 	rplSymbolStorage_unlockSymbolMap();
 
 	SetItemCount(m_data.size());
-	RefreshItems(GetTopItem(), GetTopItem() + GetCountPerPage() + 1);
+	if (m_data.size() > 0)
+		RefreshItems(GetTopItem(), std::min<long>(m_data.size() - 1, GetTopItem() + GetCountPerPage() + 1));
 }
 
 wxString SymbolListCtrl::OnGetItemText(long item, long column) const
@@ -159,5 +160,6 @@ void SymbolListCtrl::ChangeListFilter(std::string filter)
 		}
 	}
 	SetItemCount(visible_entries);
-	RefreshItems(GetTopItem(), GetTopItem() + GetCountPerPage() + 1);
+	if (visible_entries > 0)
+		RefreshItems(GetTopItem(), std::min<long>(visible_entries - 1, GetTopItem() + GetCountPerPage() + 1));
 }
