@@ -8,6 +8,10 @@
 uint64 QueryRamUsage()
 {
 	long page_size = sysconf(_SC_PAGESIZE);
+	if (page_size == -1)
+	{
+		return 0;
+	}
 
 	std::ifstream file("/proc/self/statm");
 	if (file)
