@@ -61,7 +61,7 @@ namespace NAPI
 		return true;
 	}
 
-	void _ACTSetCommonHeaderParameters(CurlRequestHelper& req)
+	void _ACTSetCommonHeaderParameters(CurlRequestHelper& req, AuthInfo& authInfo)
 	{
 		req.addHeaderField("X-Nintendo-Platform-ID", "1");
 		req.addHeaderField("X-Nintendo-Device-Type", "2");
@@ -71,7 +71,10 @@ namespace NAPI
 
 		req.addHeaderField("Accept", "*/*");
 
-		req.addHeaderField("X-Nintendo-System-Version", "0260");
+		if(authInfo.region == CafeConsoleRegion::USA)
+			req.addHeaderField("X-Nintendo-System-Version", "0270");
+		else
+			req.addHeaderField("X-Nintendo-System-Version", "0260");
 	}
 
 	void _ACTSetDeviceParameters(CurlRequestHelper& req, AuthInfo& authInfo)
@@ -143,7 +146,7 @@ namespace NAPI
 		CurlRequestHelper req;
 
 		req.initate(fmt::format("{}/v1/api/oauth20/access_token/generate", LaunchSettings::GetActURLPrefix()), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
-		_ACTSetCommonHeaderParameters(req);
+		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
 		req.addHeaderField("X-Nintendo-Device-Cert", authInfo.deviceCertBase64);
@@ -229,7 +232,7 @@ namespace NAPI
 
 		req.initate(fmt::format("{}/v1/api/people/@me/profile", LaunchSettings::GetActURLPrefix()), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 
-		_ACTSetCommonHeaderParameters(req);
+		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 
 		// get oauth2 token
@@ -295,7 +298,7 @@ namespace NAPI
 		// do request
 		CurlRequestHelper req;
 		req.initate(fmt::format("{}/v1/api/provider/nex_token/@me?game_server_id={:08X}", LaunchSettings::GetActURLPrefix(), serverId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
-		_ACTSetCommonHeaderParameters(req);
+		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
 		req.addHeaderField("X-Nintendo-FPD-Version", "0000");
@@ -448,7 +451,7 @@ namespace NAPI
 		// do request
 		CurlRequestHelper req;
 		req.initate(fmt::format("{}/v1/api/provider/service_token/@me?client_id={}", LaunchSettings::GetActURLPrefix(), clientId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
-		_ACTSetCommonHeaderParameters(req);
+		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
 		req.addHeaderField("X-Nintendo-FPD-Version", "0000");
@@ -519,7 +522,7 @@ namespace NAPI
 		// do request
 		CurlRequestHelper req;
 		req.initate(fmt::format("{}/v1/api/admin/mapped_ids?input_type=user_id&output_type=pid&input={}", LaunchSettings::GetActURLPrefix(), nnid), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
-		_ACTSetCommonHeaderParameters(req);
+		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
 		req.addHeaderField("X-Nintendo-FPD-Version", "0000");
