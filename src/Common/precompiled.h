@@ -69,7 +69,6 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 

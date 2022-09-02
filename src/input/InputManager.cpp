@@ -808,9 +808,6 @@ std::vector<std::string> InputManager::get_profiles()
 
 bool InputManager::is_valid_profilename(const std::string& name)
 {
-	if (!boost::filesystem::windows_name(name))
-		return false;
-
 	// dont allow default profile names
 	for (size_t i = 0; i < kMaxController; i++)
 	{

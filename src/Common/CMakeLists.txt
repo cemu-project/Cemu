@@ -34,7 +34,6 @@ target_link_libraries(CemuCommon PRIVATE
 	CemuConfig
 	CemuComponents
 	Boost::nowide
-	Boost::filesystem
 	glm::glm
 )
 
