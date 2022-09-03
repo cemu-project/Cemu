@@ -34,7 +34,6 @@
 #include "gui/TitleManager.h"
 
 #include "Cafe/CafeSystem.h"
-#include "Cafe/GraphicPack/GraphicPack.h"
 #include "Cafe/TitleList/GameInfo.h"
 
 #include <boost/algorithm/string.hpp>

@@ -159,18 +159,26 @@ public:
 	LatteTextureView::MagFilter GetDownscalingMagFilter() const { return m_output_settings.downscale_filter; }
 
 	// static methods
+	static void LoadAll();
+
 	static const std::vector<std::shared_ptr<GraphicPack2>>& GetGraphicPacks() { return s_graphic_packs; }
 	static const std::vector<std::shared_ptr<GraphicPack2>>& GetActiveGraphicPacks() { return s_active_graphic_packs; }
+	static void LoadGraphicPack(fs::path graphicPackPath);
 	static bool LoadGraphicPack(const std::wstring& filename, class IniParser& rules);
 	static bool ActivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack);
 	static bool DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack);
 	static void ClearGraphicPacks();
+	static void WaitUntilReady(); // wait until all graphic packs finished activation
+
+	static void ActivateForCurrentTitle();
+	static void Reset();
 private:
 	bool Activate();
 	bool Deactivate();
 
 	static std::vector<std::shared_ptr<GraphicPack2>> s_graphic_packs;
 	static std::vector<std::shared_ptr<GraphicPack2>> s_active_graphic_packs;
+	static std::atomic_bool s_isReady;
 
 	template<typename TType>
 	void FillPresetConstants(TExpressionParser<TType>& parser) const

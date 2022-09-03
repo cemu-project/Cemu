@@ -5,6 +5,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 #include "Cafe/GameProfile/GameProfile.h"
+#include "Cafe/GraphicPack/GraphicPack2.h"
 #include "gui/guiWrapper.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
@@ -188,6 +189,8 @@ int Latte_ThreadEntry()
 
 	g_renderer->DrawEmptyFrame(true);
 
+	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
+	GraphicPack2::WaitUntilReady();
 	// load/init shader cache file
 	LatteShaderCache_load();
 
