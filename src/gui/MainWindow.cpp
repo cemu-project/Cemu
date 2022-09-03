@@ -37,10 +37,6 @@
 #include "Cafe/GraphicPack/GraphicPack.h"
 #include "Cafe/TitleList/GameInfo.h"
 
-#ifdef _WIN32
-#include <shellapi.h>
-#endif
-
 #include <boost/algorithm/string.hpp>
 #include "util/helpers/SystemException.h"
 #include "gui/DownloadGraphicPacksWindow.h"
@@ -1951,11 +1947,7 @@ public:
 						"/*****************************************************************************/\r\n"
 					);
 					delete fs;
-#ifdef _WIN32
-					ShellExecute(0, 0, tempPath.generic_wstring().c_str(), 0, 0, SW_SHOW);
-#else
-					assert_dbg();
-#endif
+					wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(tempPath)));
 				});
 			lineSizer->Add(noticeLink, 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);

@@ -4,9 +4,6 @@
 #include "util/helpers/helpers.h"
 #include "gui/GameProfileWindow.h"
 
-#ifdef _WIN32
-#include <shellapi.h>
-#endif
 #include <numeric>
 
 #include <wx/wupdlock.h>
@@ -473,6 +470,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.Append(kContextMenuStart, _("&Start"));
 
 			bool isFavorite = false;
+			std::error_code ec;
 
 			menu.AppendSeparator();
 			menu.AppendCheckItem(kContextMenuFavorite, _("&Favorite"))->Check(isFavorite);
@@ -481,7 +479,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.AppendSeparator();
 			menu.Append(kWikiPage, _("&Wiki page"));
 			menu.Append(kContextMenuGameFolder, _("&Game directory"));
-			menu.Append(kContextMenuSaveFolder, _("&Save directory"))->Enable(true);
+			menu.Append(kContextMenuSaveFolder, _("&Save directory"))->Enable(fs::is_directory(gameInfo.GetSaveFolder(), ec));
 			menu.Append(kContextMenuUpdateFolder, _("&Update directory"))->Enable(gameInfo.HasUpdate());
 			menu.Append(kContextMenuDLCFolder, _("&DLC directory"))->Enable(gameInfo.HasAOC());
 			
@@ -552,13 +550,9 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 			}
 			case kContextMenuGameFolder:
 				{
-#ifdef _WIN32
 				fs::path path(gameInfo.GetBase().GetPath());
 				_stripPathFilename(path);
-				ShellExecuteW(GetHWND(), L"open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-				assert_dbg();
-#endif
+				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
 				break;
 				}
 			case kWikiPage:
@@ -572,44 +566,28 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 					wxASSERT(!tokens.empty());
 					const std::string company_code = gameInfo.GetBase().GetMetaInfo()->GetCompanyCode();
 					wxASSERT(company_code.size() >= 2);
-#ifdef _WIN32
-					ShellExecuteA(GetHWND(), "open", fmt::format("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2)).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-					assert_dbg();
-#endif
+					wxLaunchDefaultBrowser(fmt::format("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2).c_str()));
 				}
 				break;
 				}
 				
 			case kContextMenuSaveFolder:
 			{
-#ifdef _WIN32
-				ShellExecuteW(GetHWND(), L"open", gameInfo.GetSaveFolder().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-				assert_dbg();
-#endif
+				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(gameInfo.GetSaveFolder())));
 				break;
 			}
 			case kContextMenuUpdateFolder:
 			{
-#ifdef _WIN32
 				fs::path path(gameInfo.GetUpdate().GetPath());
 				_stripPathFilename(path);
-				ShellExecuteW(GetHWND(), L"open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-				assert_dbg();
-#endif
+				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
 				break;
 			}
 			case kContextMenuDLCFolder:
 			{
-#ifdef _WIN32
 				fs::path path(gameInfo.GetAOC().front().GetPath());
 				_stripPathFilename(path);
-				ShellExecuteW(GetHWND(), L"open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-				assert_dbg();
-#endif
+				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
 				break;
 			}
 			case kContextMenuEditGraphicPacks:

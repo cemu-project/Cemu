@@ -1,9 +1,5 @@
 #include "gui/TitleManager.h"
 
-#ifdef _WIN32
-#include <shellapi.h>
-#endif
-
 #include "gui/helpers/wxCustomEvents.h"
 #include "gui/helpers/wxCustomData.h"
 #include "Cafe/TitleList/GameInfo.h"
@@ -483,11 +479,7 @@ void TitleManager::OnSaveOpenDirectory(wxCommandEvent& event)
 	if (!fs::exists(target) || !fs::is_directory(target))
 		return;
 
-#ifdef _WIN32
-	ShellExecuteW(GetHWND(), L"open", target.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-	assert_dbg();
-#endif
+	wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(target)));
 }
 
 void TitleManager::OnSaveDelete(wxCommandEvent& event)

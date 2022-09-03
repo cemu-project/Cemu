@@ -1,9 +1,5 @@
 #include "gui/ChecksumTool.h"
 
-#ifdef _WIN32
-#include <shellapi.h>
-#endif
-
 #include "Cafe/TitleList/GameInfo.h"
 #include "gui/helpers/wxCustomEvents.h"
 #include "util/helpers/helpers.h"
@@ -521,11 +517,8 @@ void ChecksumTool::VerifyJsonEntry(const rapidjson::Document& doc)
 					}
 					file.flush();
 					file.close();
-#ifdef _WIN32
-					ShellExecuteA(GetHWND(), "open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-					assert_dbg();
-#endif
+
+					wxLaunchDefaultBrowser(fmt::format("file:{}", path));
 				}
 				else
 					wxMessageBox(_("Can't open file to write!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
