@@ -1774,7 +1774,7 @@ class CemuAboutDialog : public wxDialog
 {
 public:
 	CemuAboutDialog(wxWindow* parent = NULL)
-		: wxDialog(NULL, wxID_ANY, "About Cemu", wxDefaultPosition, wxSize(500, 700))
+		: wxDialog(NULL, wxID_ANY, _("About Cemu"), wxDefaultPosition, wxSize(500, 700))
 	{
 		Create(parent);
 	}
