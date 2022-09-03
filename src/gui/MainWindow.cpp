@@ -1808,8 +1808,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		char versionString[512];
-		sprintf(versionString, "Cemu\nVersion %s\nCompiled " BUILD_DATE "\nOriginal authors: Exzap, Petergov", BUILD_VERSION_STRING);
+		auto versionString = fmt::format(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}").ToStdString(), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
@@ -1818,7 +1817,7 @@ public:
 		sizer->Add(new wxStaticLine(parent), wxSizerFlags().Expand().Border(wxRIGHT, 4));
 		sizer->AddSpacer(5);
 
-		wxString extraInfo("" EMULATOR_NAME " is a Wii U emulator.\n\nWii and Wii U are trademarks of Nintendo.\n" EMULATOR_NAME " is not affiliated with Nintendo.");
+		wxString extraInfo(_("Cemu is a Wii U emulator.\n\nWii and Wii U are trademarks of Nintendo.\nCemu is not affiliated with Nintendo."));
 		sizer->Add(new wxStaticText(parent, wxID_ANY, extraInfo), wxSizerFlags());
 	}
 
@@ -1828,7 +1827,7 @@ public:
 		sizer->Add(new wxStaticLine(parent), wxSizerFlags().Expand().Border(wxRIGHT, 4));
 		sizer->AddSpacer(3);
 
-		sizer->Add(new wxStaticText(parent, wxID_ANY, "Used libraries and utilities:"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 2));
+		sizer->Add(new wxStaticText(parent, wxID_ANY, _("Used libraries and utilities:")), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 2));
 		// zLib
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1973,7 +1972,7 @@ public:
 
 		sizer->AddSpacer(2);
 
-		sizer->Add(new wxStaticText(parent, wxID_ANY, "Thanks to our Patreon supporters:"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 2));
+		sizer->Add(new wxStaticText(parent, wxID_ANY, _("Thanks to our Patreon supporters:")), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 2));
 
 		std::vector<const char*> patreonSupporterNames{ "Maufeat", "lvlv", "F34R", "John Godgames", "Jameel Lewis", "skooks", "Cheesy", "Barrowsx", "Mored1984", "madmat007"
 			, "Kuhnnl", "Owen M", "lucianobugalu", "KimoMaka", "nick palma aka renaissance18", "TheGiantBros", "SpiGAndromeda"
@@ -2003,7 +2002,7 @@ public:
 		sizer->Add(gridSizer, 1, wxEXPAND);
 
 		sizer->AddSpacer(2);
-		sizer->Add(new wxStaticText(parent, wxID_ANY, "Special thanks:"), wxSizerFlags().Expand().Border(wxTOP, 2));
+		sizer->Add(new wxStaticText(parent, wxID_ANY, _("Special thanks:")), wxSizerFlags().Expand().Border(wxTOP, 2));
 		sizer->Add(new wxStaticText(parent, wxID_ANY, "espes - Also try XQEMU!\nWaltzz92"), wxSizerFlags().Expand().Border(wxTOP, 1));
 	}
 
