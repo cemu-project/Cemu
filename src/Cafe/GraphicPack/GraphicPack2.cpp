@@ -1,6 +1,6 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "GraphicPack.h"
 #include "config/CemuConfig.h"
+#include "config/ActiveSettings.h"
 #include "openssl/sha.h"
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
 #include "Cafe/Filesystem/fsc.h"
@@ -14,6 +14,69 @@
 
 std::vector<GraphicPackPtr> GraphicPack2::s_graphic_packs;
 std::vector<GraphicPackPtr> GraphicPack2::s_active_graphic_packs;
+std::atomic_bool GraphicPack2::s_isReady;
+
+#define GP_LEGACY_VERSION		(2)
+
+void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
+{
+	fs::path rulesPath = graphicPackPath;
+	rulesPath.append("rules.txt");
+	std::unique_ptr<FileStream> fs_rules(FileStream::openFile2(rulesPath));
+	if (!fs_rules)
+		return;
+	std::vector<uint8> rulesData;
+	fs_rules->extract(rulesData);
+	IniParser iniParser(rulesData, rulesPath.string());
+
+	if (!iniParser.NextSection())
+	{
+		cemuLog_force("{}: Does not contain any sections", _utf8Wrapper(rulesPath));
+		return;
+	}
+	if (!boost::iequals(iniParser.GetCurrentSectionName(), "Definition"))
+	{
+		cemuLog_force("{}: [Definition] must be the first section", _utf8Wrapper(rulesPath));
+		return;
+	}
+
+	auto option_version = iniParser.FindOption("version");
+	if (option_version)
+	{
+		sint32 versionNum = -1;
+		auto [ptr, ec] = std::from_chars(option_version->data(), option_version->data() + option_version->size(), versionNum);
+		if (ec != std::errc{})
+		{
+			cemuLog_force("{}: Unable to parse version", _utf8Wrapper(rulesPath));
+			return;
+		}
+
+		if (versionNum > GP_LEGACY_VERSION)
+		{
+			GraphicPack2::LoadGraphicPack(rulesPath.generic_wstring(), iniParser);
+			return;
+		}
+	}
+	cemuLog_force("{}: Outdated graphic pack", _utf8Wrapper(rulesPath));
+}
+
+void GraphicPack2::LoadAll()
+{
+	std::error_code ec;
+	fs::path basePath = ActiveSettings::GetPath("graphicPacks");
+	for (fs::recursive_directory_iterator it(basePath, ec); it != end(it); ++it)
+	{
+		if (!it->is_directory(ec))
+			continue;
+		fs::path gfxPackPath = it->path();
+		if (fs::exists(gfxPackPath / "rules.txt", ec))
+		{
+			LoadGraphicPack(gfxPackPath);
+			it.disable_recursion_pending(); // dont recurse deeper in a gfx pack directory
+			continue;
+		}
+	}
+}
 
 bool GraphicPack2::LoadGraphicPack(const std::wstring& filename, IniParser& rules)
 {
@@ -60,7 +123,6 @@ bool GraphicPack2::LoadGraphicPack(const std::wstring& filename, IniParser& rule
 	{
 		return false;
 	}
-	
 }
 
 bool GraphicPack2::ActivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack)
@@ -94,10 +156,63 @@ bool GraphicPack2::DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& gr
 	return true;
 }
 
+void GraphicPack2::ActivateForCurrentTitle()
+{
+	uint64 titleId = CafeSystem::GetForegroundTitleId();
+	// activate graphic packs
+	for (const auto& gp : GraphicPack2::GetGraphicPacks())
+	{
+		if (!gp->IsEnabled())
+			continue;
+
+		if (!gp->ContainsTitleId(titleId))
+			continue;
+
+		if (GraphicPack2::ActivateGraphicPack(gp))
+		{
+			if (gp->GetPresets().empty())
+			{
+				forceLog_printf("Activate graphic pack: %s", gp->GetPath().c_str());
+			}
+			else
+			{
+				std::string logLine;
+				logLine.assign(fmt::format("Activate graphic pack: {} [Presets: ", gp->GetPath()));
+				bool isFirst = true;
+				for (auto& itr : gp->GetPresets())
+				{
+					if (!itr->active)
+						continue;
+					if (isFirst)
+						isFirst = false;
+					else
+						logLine.append(",");
+					logLine.append(itr->name);
+				}
+				logLine.append("]");
+				cemuLog_log(LogType::Force, logLine);
+			}
+		}
+	}
+	s_isReady = true;
+}
+
+void GraphicPack2::Reset()
+{
+	s_active_graphic_packs.clear();
+	s_isReady = false;
+}
+
 void GraphicPack2::ClearGraphicPacks()
 {
 	s_graphic_packs.clear();
 	s_active_graphic_packs.clear();
+}
+
+void GraphicPack2::WaitUntilReady()
+{
+	while (!s_isReady)
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
 GraphicPack2::GraphicPack2(std::wstring filename)

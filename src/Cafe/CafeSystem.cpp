@@ -10,7 +10,7 @@
 #include "config/ActiveSettings.h"
 #include "Cafe/TitleList/GameInfo.h"
 #include "util/helpers/SystemException.h"
-#include "Cafe/GraphicPack/GraphicPack.h"
+#include "Cafe/GraphicPack/GraphicPack2.h"
 
 #include "input/InputManager.h"
 
@@ -399,7 +399,7 @@ void cemu_initForGame()
 	debugger_handleEntryBreakpoint(_entryPoint);
 	// load graphic packs
 	forceLog_printf("------- Activate graphic packs -------");
-	graphicPack_activateForCurrentTitle(CafeSystem::GetForegroundTitleId());
+	GraphicPack2::ActivateForCurrentTitle();
 	// print audio log
 	IAudioAPI::PrintLogging();
 	// everything initialized
@@ -766,6 +766,7 @@ namespace CafeSystem
 		iosu::act::Stop();
 		iosu::mcp::Shutdown();
 		iosu::fsa::Shutdown();
+		GraphicPack2::Reset();
 		UnmountCurrentTitle();
 		sSystemRunning = false;
 	}
