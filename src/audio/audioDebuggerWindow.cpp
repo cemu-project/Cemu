@@ -22,7 +22,7 @@ EVT_CLOSE(AudioDebuggerWindow::OnClose)
 wxEND_EVENT_TABLE()
 
 AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
-	: wxFrame(&parent, wxID_ANY, wxT("AX voice viewer"), wxDefaultPosition, wxSize(1126, 580), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
+	: wxFrame(&parent, wxID_ANY, _("AX voice viewer"), wxDefaultPosition, wxSize(1126, 580), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
 {
 	
 	wxPanel* mainPane = new wxPanel(this);

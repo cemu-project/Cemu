@@ -123,7 +123,7 @@ void wxTitleManagerList::AddColumns()
 {
 	wxListItem col0;
 	col0.SetId(ColumnTitleId);
-	col0.SetText(_("Title id"));
+	col0.SetText(_("Title ID"));
 	col0.SetWidth(120);
 	InsertColumn(ColumnTitleId, col0);
 

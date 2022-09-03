@@ -21,7 +21,7 @@
 extern WindowInfo g_window_info;
 
 PadViewFrame::PadViewFrame(wxFrame* parent)
-	: wxFrame(nullptr, wxID_ANY, "GamePad View", wxDefaultPosition, wxSize(854, 480), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxCLOSE_BOX | wxWANTS_CHARS)
+	: wxFrame(nullptr, wxID_ANY, _("GamePad View"), wxDefaultPosition, wxSize(854, 480), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxCLOSE_BOX | wxWANTS_CHARS)
 {
 	gui_initHandleContextFromWxWidgetsWindow(g_window_info.window_pad, this);
 	

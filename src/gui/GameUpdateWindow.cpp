@@ -166,13 +166,13 @@ GameUpdateWindow::GameUpdateWindow(wxWindow& parent, const fs::path& filePath)
 	TitleIdParser tip(GetTitleId());
 
 	if (tip.GetType() == TitleIdParser::TITLE_TYPE::AOC)
-		SetTitle(_("Installing DLC ..."));
+		SetTitle(_("Installing DLC..."));
 	else if (tip.GetType() == TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE)
-		SetTitle(_("Installing update ..."));
+		SetTitle(_("Installing update..."));
 	else if (tip.IsSystemTitle())
-		SetTitle(_("Installing system title ..."));
+		SetTitle(_("Installing system title..."));
 	else
-		SetTitle(_("Installing title ..."));
+		SetTitle(_("Installing title..."));
 
 	m_processBar = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(500, 20), wxGA_HORIZONTAL);
 	m_processBar->SetValue(0);

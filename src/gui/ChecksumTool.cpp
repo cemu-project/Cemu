@@ -141,13 +141,13 @@ ChecksumTool::ChecksumTool(wxWindow* parent, wxTitleManagerList::TitleEntry& ent
 		box_sizer->Add(m_verify_online, 0, wxALL | wxEXPAND, 5);
 		
 		m_verify_local = new wxButton(box, wxID_ANY, _("Verify with local file"));
-		m_verify_online->SetToolTip(_("Verifies the checksum with a local json file you can select"));
+		m_verify_online->SetToolTip(_("Verifies the checksum with a local JSON file you can select"));
 		m_verify_local->Disable();
 		m_verify_local->Bind(wxEVT_BUTTON, &ChecksumTool::OnVerifyLocal, this);
 		box_sizer->Add(m_verify_local, 0, wxALL | wxEXPAND, 5);
 		
 		m_export_button = new wxButton(box, wxID_ANY, _("Export"));
-		m_verify_online->SetToolTip(_("Export the title checksum data to a local json file"));
+		m_verify_online->SetToolTip(_("Export the title checksum data to a local JSON file"));
 		m_export_button->Disable();
 		m_export_button->Bind(wxEVT_BUTTON, &ChecksumTool::OnExportChecksums, this);
 		box_sizer->Add(m_export_button, 0, wxALL | wxEXPAND, 5);
@@ -477,7 +477,7 @@ void ChecksumTool::VerifyJsonEntry(const rapidjson::Document& doc)
 		{
 			if (test_entry.wud_hash.empty())
 			{
-				wxMessageBox(_("The verification data doesn't include a wud hash!"), _("Error"), wxOK | wxCENTRE | wxICON_WARNING, this);
+				wxMessageBox(_("The verification data doesn't include a WUD hash!"), _("Error"), wxOK | wxCENTRE | wxICON_WARNING, this);
 				return;
 			}
 			if(!boost::iequals(test_entry.wud_hash, m_json_entry.wud_hash))
@@ -708,7 +708,7 @@ void ChecksumTool::DoWork()
 
 			EVP_DigestUpdate(sha256, buffer.data(), read);
 
-			wxQueueEvent(this, new wxSetGaugeValue((int)((offset * 90) / wud_size), m_progress, m_status, wxStringFormat2(_("Reading game image: {}/{}kb"), offset / 1024, wud_size / 1024)));
+			wxQueueEvent(this, new wxSetGaugeValue((int)((offset * 90) / wud_size), m_progress, m_status, wxStringFormat2(_("Reading game image: {0}/{1} kB"), offset / 1024, wud_size / 1024)));
 		} while (read != 0 && size > 0);
 		wud_close(wud);
 

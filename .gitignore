@@ -13,6 +13,7 @@
 *.out
 *.app
 .vs
+.idea/
 
 build/
 out/
@@ -29,6 +30,7 @@ bin/Cemu.exe.backup
 bin/mlc01/*
 bin/settings.xml
 bin/title_list_cache.xml
+bin/debugger/*
 
 !bin/shaderCache/info.txt
 bin/shaderCache/*

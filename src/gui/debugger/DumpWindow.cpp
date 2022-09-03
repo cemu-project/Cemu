@@ -15,7 +15,7 @@ enum
 };
 
 DumpWindow::DumpWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
-	: wxFrame(&parent, wxID_ANY, wxT("Memory Dump"), wxDefaultPosition, wxSize(600, 250), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
+	: wxFrame(&parent, wxID_ANY, _("Memory Dump"), wxDefaultPosition, wxSize(600, 250), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
 {
 	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
 
