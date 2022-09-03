@@ -25,6 +25,7 @@ on:
 env:
   VCPKG_ROOT: "${{github.workspace}}/dependencies/vcpkg"
   VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
+  CMAKE_COLOR_DIAGNOSTICS: 'true'
 
 jobs:
   build-ubuntu:
@@ -34,7 +35,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: "recursive"
-        
+
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
@@ -47,13 +48,13 @@ jobs:
         echo "BUILD_MODE=debug" >> $GITHUB_ENV
         echo "BUILD_FLAGS=" >> $GITHUB_ENV
         echo "Build mode is debug"
-        
+
     - name: Setup version for experimental
       if: ${{ inputs.experimentalversion != '' }}
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
         echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
-        
+
     - name: "Install system dependencies"
       run: |
         sudo apt update -qq
@@ -61,7 +62,7 @@ jobs:
     - name: "Bootstrap vcpkg"
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
-        
+
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
       run: |
@@ -75,26 +76,21 @@ jobs:
         mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
         setapikey "${{ secrets.GITHUB_TOKEN }}" \
         -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-        
+
     - name: "cmake"
-      run: |
-        mkdir -p build
-        cd build
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
-        
+      run: cmake -B build ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
+
     - name: "Build Cemu"
-      run: |
-        cd build
-        ninja
-        
+      run: cmake --build build
+
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       if: ${{ inputs.deploymode == 'release' }}
       with:
         name: cemu-bin-linux-x64
         path: ./bin/Cemu
-        
-        
+
+
   build-windows:
     runs-on: windows-2022
     steps:
@@ -102,14 +98,14 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: "recursive"
-        
+
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
         echo "BUILD_MODE=release" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "Build mode is release"
-        
+
     - name: Setup debug mode parameters (for continous build)
       if: ${{ inputs.deploymode != 'release' }}
       run: |
@@ -121,7 +117,7 @@ jobs:
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
         echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-    
+
     - name: Workaround
       run: |
         Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
@@ -161,7 +157,7 @@ jobs:
     - name: "Bootstrap vcpkg"
       run: |
         ./dependencies/vcpkg/bootstrap-vcpkg.bat
-        
+
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
       run: |
@@ -175,20 +171,16 @@ jobs:
         `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
         setapikey "${{ secrets.GITHUB_TOKEN }}" \
         -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-        
+
     - name: "cmake"
       run: |
-        mkdir -p build
-        cd build
         echo "[INFO] BUILD_FLAGS: ${{ env.BUILD_FLAGS }}"
         echo "[INFO] BUILD_MODE: ${{ env.BUILD_MODE }}"
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }}
-        
+        cmake -B build ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }}
+
     - name: "Build Cemu"
-      run: |
-        cd build
-        cmake --build . --config ${{ env.BUILD_MODE }} -j 2
-        
+      run: cmake --build build --config ${{ env.BUILD_MODE }} -j 2
+
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       if: ${{ inputs.deploymode == 'release' }}
