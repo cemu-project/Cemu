@@ -476,7 +476,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 
 			menu.Append(kContextMenuStart, _("&Start"));
 
-			bool isFavorite = false;
+			bool isFavorite = GetConfig().IsGameListFavorite(title_id);
 
 			menu.AppendSeparator();
 			menu.AppendCheckItem(kContextMenuFavorite, _("&Favorite"))->Check(isFavorite);
