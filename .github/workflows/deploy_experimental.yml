@@ -10,7 +10,7 @@ jobs:
       experimentalversion: ${{ github.run_number }}
   deploy:
     name: Deploy experimental release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: call-release-build
     steps:
       - uses: actions/checkout@v2
