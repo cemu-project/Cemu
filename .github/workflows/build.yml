@@ -28,7 +28,7 @@ env:
 
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v3
@@ -96,7 +96,7 @@ jobs:
         
         
   build-windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v3
@@ -116,6 +116,7 @@ jobs:
         echo "BUILD_MODE=debug" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "BUILD_FLAGS=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "Build mode is debug"
+        
     - name: Setup version for experimental
       if: ${{ inputs.experimentalversion != '' }}
       run: |
@@ -151,6 +152,7 @@ jobs:
         # should be run twice
         $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
         $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+        
     - name: Configure MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
