@@ -591,10 +591,10 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			"|{}|*.wua"
 			"|{}|*.rpx;*.elf"
 			"|{}|*",
-			_("All Wii U files (wud, wux, wua, iso, rpx, elf)"),
-			_("Wii U image (wud, wux, iso, wad)"),
-			_("Wii U archive (wua)"),
-			_("Wii U executable (rpx, elf)"),
+			_("All Wii U files (*.wud, *.wux, *.wua, *.iso, *.rpx, *.elf)"),
+			_("Wii U image (*.wud, *.wux, *.iso, *.wad)"),
+			_("Wii U archive (*.wua)"),
+			_("Wii U executable (*.rpx, *.elf)"),
 			_("All files (*.*)")		
 		);
 		
@@ -2045,8 +2045,8 @@ void MainWindow::RecreateMenu()
 
 	if (!m_game_launched)
 	{
-		m_loadMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_LOAD, _("&Load"));
-		m_installUpdateMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, _("&Install game title, update or DLC"));
+		m_loadMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_LOAD, _("&Load..."));
+		m_installUpdateMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, _("&Install game title, update or DLC..."));
 
 		sint32 recentFileIndex = 0;
 		m_fileMenuSeparator0 = nullptr;

@@ -116,7 +116,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		m_graphic_api = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(gapi_values), gapi_values);
 		first_row->Add(m_graphic_api, 0, wxALL, 5);
 		
-		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Shader mul accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Shader multiplication accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		wxString mul_values[] = { _("false"), _("true"), _("minimal") };
 		m_shader_mul_accuracy = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(mul_values), mul_values);
