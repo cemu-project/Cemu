@@ -278,23 +278,27 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 	}
 }
 
+static inline int strongorder_to_int(const std::strong_ordering &wo)
+{
+	/* No easy conversion seems to exists in C++20 */
+	if (wo < 0)
+		return -1;
+	else if (wo > 0)
+		return 1;
+	return 0;
+}
+
 int wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortData)
 {
-	//if(sortData->column == ColumnGameStarted)
-	//	return boost::ilexicographical_compare(name1, name2) ? 0 : 1;
+	const auto isFavoriteA = GetConfig().IsGameListFavorite(titleId1);
+	const auto isFavoriteB = GetConfig().IsGameListFavorite(titleId2);
+	const auto& name1 = GetNameByTitleId(titleId1);
+	const auto& name2 = GetNameByTitleId(titleId2);
 
-
-	bool isFavoriteA = GetConfig().IsGameListFavorite(titleId1);
-	bool isFavoriteB = GetConfig().IsGameListFavorite(titleId2);
-	if (isFavoriteA != isFavoriteB)
-		return isFavoriteB;
-
-	// default to name
-	std::string name1 = GetNameByTitleId(titleId1);
-	std::string name2 = GetNameByTitleId(titleId2);
-	if(sortData->dir)
-		return boost::ilexicographical_compare(name1, name2) ? 0 : 1;
-	return boost::ilexicographical_compare(name1, name2) ? 1 : 0;
+	if(sortData->dir > 0)
+		return strongorder_to_int(std::tie(isFavoriteB, name1) <=> std::tie(isFavoriteA, name2));
+	else
+		return strongorder_to_int(std::tie(isFavoriteB, name2) <=> std::tie(isFavoriteA, name1));
 }
 
 int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
@@ -842,20 +846,13 @@ int wxGameList::FindInsertPosition(TitleId titleId)
 	if (itemCount == 0)
 		return 0;
 	// todo - optimize this with binary search
-	int linearScanIndex = 0;
-	if (SortComparator(titleId, (uint64)GetItemData(0), &data))
+
+	for (int i = 0; i < itemCount; i++)
 	{
-		linearScanIndex = itemCount;
-		for (int i = 1; i < itemCount - 1; i++)
-		{
-			if (!SortComparator(titleId, (uint64)GetItemData(i), &data))
-			{
-				linearScanIndex = i;
-				break;
-			}
-		}
+		if (SortComparator(titleId, (uint64)GetItemData(i), &data) <= 0)
+			return i;
 	}
-	return linearScanIndex;
+	return itemCount;
 }
 
 void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
