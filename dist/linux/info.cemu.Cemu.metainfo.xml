@@ -11,6 +11,7 @@
   <summary xml:lang="es">Software para emular juegos y aplicaciones de Wii U en PC</summary>
   <summary xml:lang="pt_BR">Software para emular jogos e aplicativos de Wii U no PC</summary>
   <summary xml:lang="it">Software per emulare giochi ed applicazioni del Wii U su PC</summary>
+  <summary xml:lang="fi">Ojelmisto Wii U -pelien ja -sovellusten emulointiin PC:llä</summary>
   <developer_name>Cemu Project</developer_name>
   <launchable type="desktop-id">info.cemu.Cemu.desktop</launchable>
   <metadata_license>CC0-1.0</metadata_license>
@@ -24,6 +25,7 @@
     <p xml:lang="es">Cemu es un emulador de Nintendo Wii U que es capaz de ejecutar la mayoría de los juegos de Wii U y homebrew en un estado jugable. Creado por Exzap, y escrito en C y C++.</p>
     <p xml:lang="pt_BR">Cemu é um emulador de Nintendo Wii U que é capaz de executar a maioría dos jogos de Wii U e homebrew em um estado jogavel. Criado por Exzap, e escrito em C e C++.</p>
     <p xml:lang="it">Cemu è un emulatore del Nintendo Wii U capace di riprodurre la maggior parte dei giochi ed homebrew Wii U in stato giocabile. Creato da Exzap, e scritto in C/C++.</p>
+    <p xml:lang="fi">Cemu on Wii U -emulaattori, joka pystyy toistamaan useimpia Wii U -pelejä ja homebrew'ta pelikelvollisesti. Luonut Exzap, kirjoitettu C:llä/C++:lla.</p>    
     <p>This emulator aims at providing both high-accuracy and performance, and is actively being developed with new features and fixes to increase compatibility, convenience and usability.</p>
     <p xml:lang="de">Dieser Emulator zielt darauf ab, sowohl hohe Genauigkeit als auch Leistung zu bieten, und wird aktiv mit neuen Funktionen und Korrekturen weiterentwickelt, um Kompatibilität, Komfort und Benutzerfreundlichkeit zu verbessern.</p>
     <p xml:lang="fr">Cet émulateur vise à la fois à offrir fidélité et performance, il est activement développé avec des nouvelles fonctionnalités et des correctifs pour augmenter la compatibilité, la commodité et la facilité d'utilisation.</p>
@@ -32,6 +34,7 @@
     <p xml:lang="es">Este emulador tiene como objetivo proporcionar tanto alta precisión como rendimiento y se desarrolla activamente con nuevas características y correcciones para mejorar la compatibilidad, la comodidad y la usabilidad.</p>
     <p xml:lang="pt_BR">Esse emulador visa proporcionar tanto alta precisão como rendimento e está sendo ativamente desenvolvido com novas características e correções para melhorar a compatibilidade, a comodidade e a usabilidade.</p>
     <p xml:lang="it">Questo emulatore ha l'obiettivo di fornire sia alta precisione che alte prestazioni, ed è in continuo sviluppo con nuove funzionalità e correzioni per aumentare la compatibilità, la comodità e la fuibilità.</p>
+    <p xml:lang="fi">Tämä emulaattori pyrkii tarjoamaan korkeaa tarkkuutta sekä suorituskykyä, ja sitä kehitetään aktiivisesti uusilla ominaisuuksilla ja korjauksilla, jotka parantavat yhteensopivuutta, mukavuutta ja käytettävyyttä..</p>
     <p>It was written from scratch and development on the project began roughly early 2015.</p>
     <p xml:lang="de">Er wird seit Anfang 2015 entwickelt.</p>
     <p xml:lang="fr">Il a été écrit à partir de zéro et son développement a débuté vers le début de l'année 2015.</p>
@@ -40,6 +43,8 @@
     <p xml:lang="es">Fue escrito desde cero y el desarrollo del proyecto comenzó aproximadamente a principios de 2015.</p>
     <p xml:lang="pt_BR">Foi escrito do zero e o desenvolvimento do projeto começou aproximadamente a princípio de 2015.</p>
     <p xml:lang="it">È stato scritto da zero e lo sviluppo del progetto è iniziato circa all'inizio del 2015.</p>
+    <p xml:lang="fi">Se kirjoitettiin tyhjästä ja sen kehitys alkoi suunnilleen vuoden 2015 alussa.</p>
+    
   </description>
   <screenshots>
     <screenshot type="default">
