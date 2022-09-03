@@ -264,11 +264,13 @@ namespace coreinit
 		return "Unknown";
 	}
 
+	std::mutex sCafeConsoleMutex;
+	
 	void WriteCafeConsole(CafeLogType cafeLogType, const char* msg, sint32 len)
 	{
-		// once a line is full or \n is written it will be posted to log
+		std::unique_lock _l(sCafeConsoleMutex);
 		CafeLogBuffer& logBuffer = getLogBuffer(cafeLogType);
-
+		// once a line is full or \n is written it will be posted to log
 		auto flushLine = [](CafeLogBuffer& cafeLogBuffer, std::string_view cafeLogName) -> void
 		{
 			cemuLog_log(LogType::CoreinitLogging, "[{0}] {1}", cafeLogName, std::basic_string_view(cafeLogBuffer.lineBuffer.data(), cafeLogBuffer.lineLength));
