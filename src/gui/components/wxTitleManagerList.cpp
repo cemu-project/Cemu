@@ -20,9 +20,6 @@
 #include "../wxHelper.h"
 
 #include <functional>
-#ifdef _WIN32
-#include <shellapi.h>
-#endif
 
 #include "config/ActiveSettings.h"
 #include "gui/ChecksumTool.h"
@@ -126,7 +123,7 @@ void wxTitleManagerList::AddColumns()
 {
 	wxListItem col0;
 	col0.SetId(ColumnTitleId);
-	col0.SetText(_("Title id"));
+	col0.SetText(_("Title ID"));
 	col0.SetWidth(120);
 	InsertColumn(ColumnTitleId, col0);
 
@@ -853,14 +850,10 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 	switch (event.GetId())
 	{
 	case kContextMenuOpenDirectory:
-	{
-		const auto path = fs::is_directory(entry->path) ? entry->path : entry->path.parent_path();
-#ifdef _WIN32
-		ShellExecuteW(GetHWND(), L"open", path.generic_wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-		assert_dbg();
-#endif
-	}
+		{
+			const auto path = fs::is_directory(entry->path) ? entry->path : entry->path.parent_path();
+			wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+		}
 		break;
 	case kContextMenuDelete:
 		m_context_worker = std::async(std::launch::async, &wxTitleManagerList::DeleteEntry, this, selection, entry.value());

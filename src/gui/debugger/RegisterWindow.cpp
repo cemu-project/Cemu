@@ -28,7 +28,7 @@ enum
 };
 
 RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
-	: wxFrame(&parent, wxID_ANY, "Register View", wxDefaultPosition, wxSize(400, 975), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
+	: wxFrame(&parent, wxID_ANY, _("Register View"), wxDefaultPosition, wxSize(400, 975), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
 	m_prev_snapshot({}), m_show_double_values(true), m_context_ctrl(nullptr)
 {
 	SetSizeHints(wxDefaultSize, wxDefaultSize);
@@ -75,7 +75,7 @@ RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_posi
 
 	sizer->Add(gpr_sizer, 1, wxEXPAND);
 
-	auto button = new wxButton(scrolled_win, wxID_ANY, "FP view mode");
+	auto button = new wxButton(scrolled_win, wxID_ANY, _("FP view mode"));
 	button->Bind(wxEVT_BUTTON, &RegisterWindow::OnFPViewModePress, this);
 	sizer->Add(button, 0, wxALL, 5);
 
