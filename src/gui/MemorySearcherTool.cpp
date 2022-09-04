@@ -84,12 +84,12 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	{
 		wxListItem col0;
 		col0.SetId(0);
-		col0.SetText(_("address"));
+		col0.SetText(_("Address"));
 		col0.SetWidth(100);
 		m_listResults->InsertColumn(0, col0);
 		wxListItem col1;
 		col1.SetId(1);
-		col1.SetText(_("value"));
+		col1.SetText(_("Value"));
 		col1.SetWidth(250);
 		m_listResults->InsertColumn(1, col1);
 	}
@@ -99,11 +99,11 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	m_listEntryTable->Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU, &MemorySearcherTool::OnEntryListRightClick, this);
 	m_listEntryTable->Bind(wxEVT_COMMAND_DATAVIEW_ITEM_EDITING_DONE, &MemorySearcherTool::OnItemEdited, this);
 	{
-		m_listEntryTable->AppendTextColumn(_("description"), wxDATAVIEW_CELL_EDITABLE, 150, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
-		m_listEntryTable->AppendTextColumn(_("address"), wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
-		m_listEntryTable->AppendTextColumn(_("type"));
-		m_listEntryTable->AppendTextColumn(_("value"), wxDATAVIEW_CELL_EDITABLE);
-		m_listEntryTable->AppendToggleColumn(_("freeze"), wxDATAVIEW_CELL_ACTIVATABLE, 50, wxALIGN_LEFT, 0);
+		m_listEntryTable->AppendTextColumn(_("Description"), wxDATAVIEW_CELL_EDITABLE, 150, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
+		m_listEntryTable->AppendTextColumn(_("Address"), wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
+		m_listEntryTable->AppendTextColumn(_("Type"));
+		m_listEntryTable->AppendTextColumn(_("Value"), wxDATAVIEW_CELL_EDITABLE);
+		m_listEntryTable->AppendToggleColumn(_("Freeze"), wxDATAVIEW_CELL_ACTIVATABLE, 50, wxALIGN_LEFT, 0);
 	}
 
 	row2->AddGrowableRow(3);

@@ -31,7 +31,7 @@ SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
 		row1->Add(new wxStaticText(this, wxID_ANY, _("Source")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_source_selection = new wxFilePickerCtrl(this, wxID_ANY, wxEmptyString,
 			_("Select a zipped save file"), 
-			wxStringFormat2(_("Import save entry {}"), "(*.zip)|*.zip"));
+			wxStringFormat2("{}|*.zip", _("Save entry (*.zip)")));
 		m_source_selection->SetMinSize({ 270, -1 });
 		row1->Add(m_source_selection, 1, wxALL | wxEXPAND, 5);
 

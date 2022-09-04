@@ -18,6 +18,8 @@ public:
 	~InputSettings2();
 
 private:
+	const wxString kDefaultProfileName = _("<profile name>");
+
 	wxNotebook* m_notebook;
 	wxTimer* m_timer;
 

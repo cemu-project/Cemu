@@ -6,7 +6,7 @@
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/GameProfile/GameProfile.h"
-#include "Cafe/GraphicPack/GraphicPack.h"
+#include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
 #include "gui/CemuApp.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
@@ -221,7 +221,7 @@ void mainEmulatorCommonInit()
 	// static initialization
 	IAudioAPI::InitializeStatic();
 	// load graphic packs (must happen before config is loaded)
-	graphicPack_loadAll();
+	GraphicPack2::LoadAll();
 	// initialize file system
 	fsc_init();
 }
