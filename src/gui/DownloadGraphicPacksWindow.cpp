@@ -92,7 +92,7 @@ void deleteDownloadedGraphicPacks()
 {
 	const auto path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks");
 	std::error_code er;
-	if (!fs::exists(path))
+	if (!fs::exists(path, er))
 		return;
 	try
 	{

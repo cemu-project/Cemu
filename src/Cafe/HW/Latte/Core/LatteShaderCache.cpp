@@ -5,7 +5,6 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cemu/FileCache/FileCache.h"
-#include "Cafe/GraphicPack/GraphicPack.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "gui/guiWrapper.h"
 

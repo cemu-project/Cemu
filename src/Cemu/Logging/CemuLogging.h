@@ -119,11 +119,6 @@ inline bool cemuLog_force(std::string_view msg)
 	return cemuLog_log(LogType::Force, msg);
 }
 
-inline bool cemuLog_force(std::u8string_view msg)
-{
-	return cemuLog_log(LogType::Force, msg);
-}
-
 inline bool cemuLog_force(std::wstring_view msg)
 {
 	return cemuLog_log(LogType::Force, msg);

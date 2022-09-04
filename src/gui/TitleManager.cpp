@@ -1,9 +1,5 @@
 #include "gui/TitleManager.h"
 
-#ifdef _WIN32
-#include <shellapi.h>
-#endif
-
 #include "gui/helpers/wxCustomEvents.h"
 #include "gui/helpers/wxCustomData.h"
 #include "Cafe/TitleList/GameInfo.h"
@@ -125,7 +121,7 @@ wxPanel* TitleManager::CreateTitleManagerPage()
 
 			auto* save_delete = new wxButton(m_save_panel, wxID_ANY, _("Delete"));
 			save_delete->Bind(wxEVT_BUTTON, &TitleManager::OnSaveDelete, this);
-			save_delete->SetToolTip(_("Irrevocable delete the save entry "));
+			save_delete->SetToolTip(_("Permanently delete the save entry"));
 			save_delete->Disable();
 			save_sizer->Add(save_delete, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
@@ -332,7 +328,7 @@ void TitleManager::OnTitleSearchComplete(wxCommandEvent& event)
 	}
 	// update status bar text
 	m_title_list->SortEntries(-1);
-	m_status_bar->SetStatusText(wxStringFormat2(_("Found {} titles, {} updates, {} DLCs and {} save entries"),
+	m_status_bar->SetStatusText(wxStringFormat2(_("Found {0} games, {1} updates, {2} DLCs and {3} save entries"),
 		m_title_list->GetCountByType(wxTitleManagerList::EntryType::Base) + m_title_list->GetCountByType(wxTitleManagerList::EntryType::System),
 		m_title_list->GetCountByType(wxTitleManagerList::EntryType::Update),
 		m_title_list->GetCountByType(wxTitleManagerList::EntryType::Dlc),
@@ -483,11 +479,7 @@ void TitleManager::OnSaveOpenDirectory(wxCommandEvent& event)
 	if (!fs::exists(target) || !fs::is_directory(target))
 		return;
 
-#ifdef _WIN32
-	ShellExecuteW(GetHWND(), L"open", target.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-#else
-	assert_dbg();
-#endif
+	wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(target)));
 }
 
 void TitleManager::OnSaveDelete(wxCommandEvent& event)
@@ -688,7 +680,7 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 	auto* metabuff = zip_source_buffer(zip, metacontent.data(), metacontent.size(), 0);
 	if(zip_file_add(zip, "cemu_meta", metabuff, ZIP_FL_ENC_UTF_8) < 0)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when trying to add a cemu_meta to the zip:\n{}"), zip_strerror(zip));
+		const auto error_msg = wxStringFormat2(_("Error when trying to add cemu_meta file to the zip:\n{}"), zip_strerror(zip));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 
 		zip_source_free(metabuff);

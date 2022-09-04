@@ -267,7 +267,7 @@ void DebuggerWindow2::LoadModuleStorage(const RPLModule* module)
 }
 
 DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
-	: wxFrame(&parent, wxID_ANY, wxT("PPC Debugger"), wxDefaultPosition, wxSize(1280, 300), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
+	: wxFrame(&parent, wxID_ANY, _("PPC Debugger"), wxDefaultPosition, wxSize(1280, 300), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
 		m_module_address(0)
 {
 	this->wxWindowBase::SetBackgroundColour(*wxWHITE);

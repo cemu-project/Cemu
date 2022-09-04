@@ -35,9 +35,6 @@
 
 bool g_inputConfigWindowHasFocus = false;
 
-// _("<profile name>")
-const wxString kDefaultProfileName = "<profile name>";
-
 using wxTypeData = wxCustomData<EmulatedController::Type>;
 using wxControllerData = wxCustomData<ControllerPtr>;
 
@@ -149,7 +146,7 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 	{
 		// profile
 		sizer->Add(new wxStaticText(page, wxID_ANY, _("Profile"), wxDefaultPosition, wxDefaultSize, 0), wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		auto* profiles = new wxComboBox(page, wxID_ANY, _(kDefaultProfileName));
+		auto* profiles = new wxComboBox(page, wxID_ANY, kDefaultProfileName);
 		sizer->Add(profiles, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL | wxEXPAND, 5);
 
 		if (emulated_controller && emulated_controller->has_profile_name())
@@ -678,7 +675,7 @@ void InputSettings2::on_profile_delete(wxCommandEvent& event)
 		const fs::path path = ActiveSettings::GetPath(fmt::format("controllerProfiles/{}.xml", selection));
 		fs::remove(path);
 
-		profile_names->ChangeValue(_(kDefaultProfileName));
+		profile_names->ChangeValue(kDefaultProfileName);
 		text->SetLabelText(_("profile deleted"));
 		text->SetForegroundColour(wxTheColourDatabase->Find("SUCCESS"));
 
