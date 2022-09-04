@@ -40,6 +40,9 @@
 
 #include <stdint.h>
 #include <immintrin.h>
+#if defined(_MSC_VER) && defined(__clang__)
+#include <intrin.h>
+#endif
 
 #define CLIP_U8(x) CLIP3(0, UINT8_MAX, (x))
 #define CLIP_S8(x) CLIP3(INT8_MIN, INT8_MAX, (x))
@@ -71,7 +74,7 @@
 
 /* For MSVC x64 */
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 
 static inline int __builtin_clz(unsigned x)
 {

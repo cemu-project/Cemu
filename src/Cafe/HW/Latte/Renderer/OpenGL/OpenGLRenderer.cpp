@@ -378,7 +378,7 @@ void OpenGLRenderer::GetVendorInformation()
 	forceLog_printf("GL_RENDERER: %s", glRendererString ? glRendererString : "unknown");
 	forceLog_printf("GL_VERSION: %s", glVersionString ? glVersionString : "unknown");
 
-	if(boost::icontains(glVersionString, "Mesa") || IsRunningInWine())
+	if(boost::icontains(glVersionString, "Mesa"))
 	{
 		m_vendor = GfxVendor::Mesa;
 		return;
