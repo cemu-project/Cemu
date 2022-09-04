@@ -1,7 +1,6 @@
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 #include "Cafe/HW/Latte/Core/LatteTextureView.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/GraphicPack/GraphicPack.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 
 LatteTextureView::LatteTextureView(LatteTexture* texture, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, bool registerView)

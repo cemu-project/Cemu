@@ -3,7 +3,6 @@
 #include "gui/DownloadGraphicPacksWindow.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
-#include "Cafe/GraphicPack/GraphicPack.h"
 
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 
@@ -184,7 +183,7 @@ void GraphicPacksWindow2::ExpandChildren(const std::vector<wxTreeItemId>& ids, s
 void GraphicPacksWindow2::RefreshGraphicPacks()
 {
 	GraphicPack2::ClearGraphicPacks();
-	graphicPack_loadAll();
+	GraphicPack2::LoadAll();
 }
 
 GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_filter)
