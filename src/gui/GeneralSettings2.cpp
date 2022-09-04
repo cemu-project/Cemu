@@ -1110,7 +1110,7 @@ void GeneralSettings2::OnAccountDelete(wxCommandEvent& event)
 	auto& account = obj->GetAccount();
 
 	const std::wstring format_str = _("Are you sure you want to delete the account {} with id {:x}?").ToStdWstring();
-	const std::wstring msg = fmt::format(format_str, 
+	const std::wstring msg = fmt::format(fmt::runtime(format_str),
 	                                     std::wstring{ account.GetMiiName() }, account.GetPersistentId());
 
 	const int answer = wxMessageBox(msg, _("Confirmation"), wxYES_NO | wxCENTRE | wxICON_QUESTION, this);

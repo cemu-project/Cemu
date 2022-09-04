@@ -35,7 +35,7 @@ public:
 	void appendFmt(const char* format_str, Args... args)
 	{
 		char* buf = (char*)(m_strBuffer + m_offsetEnd);
-		char* r = fmt::format_to(buf, format_str, std::forward<Args>(args)...);
+		char* r = fmt::format_to(buf, fmt::runtime(format_str), std::forward<Args>(args)...);
 		cemu_assert_debug(r <= (char*)(m_strBuffer + N));
 		m_offsetEnd += (uint32)(r - buf);
 	}
