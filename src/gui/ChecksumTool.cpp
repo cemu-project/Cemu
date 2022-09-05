@@ -4,6 +4,7 @@
 #include "gui/helpers/wxCustomEvents.h"
 #include "util/helpers/helpers.h"
 #include "gui/helpers/wxHelpers.h"
+#include "gui/wxHelper.h"
 #include "Cafe/Filesystem/WUD/wud.h"
 
 #include <zip.h>
@@ -518,7 +519,7 @@ void ChecksumTool::VerifyJsonEntry(const rapidjson::Document& doc)
 					file.flush();
 					file.close();
 
-					wxLaunchDefaultBrowser(fmt::format("file:{}", path));
+					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", path)));
 				}
 				else
 					wxMessageBox(_("Can't open file to write!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
