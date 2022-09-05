@@ -852,7 +852,7 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 	case kContextMenuOpenDirectory:
 		{
 			const auto path = fs::is_directory(entry->path) ? entry->path : entry->path.parent_path();
-			wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+			wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 		}
 		break;
 	case kContextMenuDelete:

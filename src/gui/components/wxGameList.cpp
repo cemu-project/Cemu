@@ -563,7 +563,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				{
 				fs::path path(gameInfo.GetBase().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 				break;
 				}
 			case kWikiPage:
@@ -577,28 +577,28 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 					wxASSERT(!tokens.empty());
 					const std::string company_code = gameInfo.GetBase().GetMetaInfo()->GetCompanyCode();
 					wxASSERT(company_code.size() >= 2);
-					wxLaunchDefaultBrowser(fmt::format("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2).c_str()));
+					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2).c_str())));
 				}
 				break;
 				}
 				
 			case kContextMenuSaveFolder:
 			{
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(gameInfo.GetSaveFolder())));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(gameInfo.GetSaveFolder()))));
 				break;
 			}
 			case kContextMenuUpdateFolder:
 			{
 				fs::path path(gameInfo.GetUpdate().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 				break;
 			}
 			case kContextMenuDLCFolder:
 			{
 				fs::path path(gameInfo.GetAOC().front().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 				break;
 			}
 			case kContextMenuEditGraphicPacks:
