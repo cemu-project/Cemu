@@ -1,24 +1,26 @@
 #include "gui/input/settings/WiimoteControllerSettings.h"
 
-#include <wx/sizer.h>
-#include <wx/stattext.h>
-#include <wx/slider.h>
 #include <wx/button.h>
-#include <wx/gbsizer.h>
-#include <wx/statline.h>
 #include <wx/checkbox.h>
+#include <wx/gbsizer.h>
+#include <wx/sizer.h>
+#include <wx/slider.h>
 #include <wx/statbox.h>
+#include <wx/statline.h>
+#include <wx/stattext.h>
 
+#include "gui/components/wxInputDraw.h"
 #include "gui/helpers/wxControlObject.h"
 #include "gui/helpers/wxHelpers.h"
-#include "gui/components/wxInputDraw.h"
 #include "gui/input/InputAPIAddWindow.h"
 
 #if BOOST_OS_WINDOWS
 
-WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxPoint& position, std::shared_ptr<NativeWiimoteController> controller)
+WiimoteControllerSettings::WiimoteControllerSettings(
+	wxWindow* parent, const wxPoint& position, std::shared_ptr<NativeWiimoteController> controller)
 	: wxDialog(parent, wxID_ANY, _("Controller settings"), position, wxDefaultSize,
-		wxDEFAULT_DIALOG_STYLE), m_controller(std::move(controller))
+			   wxDEFAULT_DIALOG_STYLE),
+	  m_controller(std::move(controller))
 {
 	m_settings = m_controller->get_settings();
 	m_rumble_backup = m_settings.rumble;
@@ -65,15 +67,17 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 			auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
 
 			// Delay
-			row_sizer->Add(new wxStaticText(box, wxID_ANY, _("Packet delay")), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			row_sizer->Add(new wxStaticText(box, wxID_ANY, _("Packet delay")), 0,
+						   wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			m_package_delay = new wxSlider(box, wxID_ANY, m_packet_delay_backup, 1, 100);
 			row_sizer->Add(m_package_delay, 1, wxALL | wxEXPAND, 5);
 
-			const auto range_text = new wxStaticText(box, wxID_ANY, wxString::Format("%dms", m_packet_delay_backup));
+			const auto range_text =
+				new wxStaticText(box, wxID_ANY, wxString::Format("%dms", m_packet_delay_backup));
 			row_sizer->Add(range_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-			m_package_delay->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_delay_change, this, wxID_ANY, wxID_ANY,
-				new wxControlObject(range_text));
+			m_package_delay->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_delay_change, this,
+								  wxID_ANY, wxID_ANY, new wxControlObject(range_text));
 
 			box_sizer->Add(row_sizer);
 		}
@@ -91,31 +95,35 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 
 			// Deadzone
 			const auto deadzone = (int)(m_settings.axis.deadzone * 100);
-			content_sizer->Add(new wxStaticText(m_nunchuck_settings, wxID_ANY, _("Deadzone")), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			content_sizer->Add(new wxStaticText(m_nunchuck_settings, wxID_ANY, _("Deadzone")), 0,
+							   wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			m_nunchuck_deadzone = new wxSlider(m_nunchuck_settings, wxID_ANY, deadzone, 0, 100);
 			content_sizer->Add(m_nunchuck_deadzone, 1, wxALL | wxEXPAND, 5);
 
-			const auto deadzone_text = new wxStaticText(m_nunchuck_settings, wxID_ANY, wxString::Format("%d%%", deadzone));
+			const auto deadzone_text =
+				new wxStaticText(m_nunchuck_settings, wxID_ANY, wxString::Format("%d%%", deadzone));
 			content_sizer->Add(deadzone_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-			m_nunchuck_deadzone->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY, wxID_ANY,
-				new wxControlObject(deadzone_text));
-
+			m_nunchuck_deadzone->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change,
+									  this, wxID_ANY, wxID_ANY, new wxControlObject(deadzone_text));
 
 			// Range
 			const auto range = (int)(m_settings.axis.range * 100);
-			content_sizer->Add(new wxStaticText(m_nunchuck_settings, wxID_ANY, _("Range")), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+			content_sizer->Add(new wxStaticText(m_nunchuck_settings, wxID_ANY, _("Range")), 0,
+							   wxALL | wxALIGN_CENTER_VERTICAL, 5);
 			m_nunchuck_range = new wxSlider(m_nunchuck_settings, wxID_ANY, range, 50, 200);
 			content_sizer->Add(m_nunchuck_range, 1, wxALL | wxEXPAND, 5);
 
-			const auto range_text = new wxStaticText(m_nunchuck_settings, wxID_ANY, wxString::Format("%d%%", range));
+			const auto range_text =
+				new wxStaticText(m_nunchuck_settings, wxID_ANY, wxString::Format("%d%%", range));
 			content_sizer->Add(range_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-			m_nunchuck_range->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY, wxID_ANY,
-				new wxControlObject(range_text));
+			m_nunchuck_range->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this,
+								   wxID_ANY, wxID_ANY, new wxControlObject(range_text));
 
 			content_sizer->AddSpacer(1);
-			m_nunchuck_draw = new wxInputDraw(m_nunchuck_settings, wxID_ANY, wxDefaultPosition, { 60, 60 });
+			m_nunchuck_draw =
+				new wxInputDraw(m_nunchuck_settings, wxID_ANY, wxDefaultPosition, {60, 60});
 			content_sizer->Add(m_nunchuck_draw, 0, wxTOP | wxBOTTOM | wxALIGN_CENTER, 5);
 
 			box_sizer->Add(content_sizer, 1, wxEXPAND, 0);
@@ -136,65 +144,82 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 			{
 				// Axis
 				const auto deadzone = (int)(m_settings.axis.deadzone * 100);
-				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Deadzone")), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-				m_classic_axis_deadzone = new wxSlider(m_classic_settings, wxID_ANY, deadzone, 0, 100);
+				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Deadzone")), 0,
+								   wxALL | wxALIGN_CENTER_VERTICAL, 5);
+				m_classic_axis_deadzone =
+					new wxSlider(m_classic_settings, wxID_ANY, deadzone, 0, 100);
 				content_sizer->Add(m_classic_axis_deadzone, 1, wxALL | wxEXPAND, 5);
 
-				const auto deadzone_text = new wxStaticText(m_classic_settings, wxID_ANY, wxString::Format("%d%%", deadzone));
+				const auto deadzone_text = new wxStaticText(m_classic_settings, wxID_ANY,
+															wxString::Format("%d%%", deadzone));
 				content_sizer->Add(deadzone_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-				m_classic_axis_deadzone->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY, wxID_ANY,
-					new wxControlObject(deadzone_text));
+				m_classic_axis_deadzone->Bind(
+					wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY,
+					wxID_ANY, new wxControlObject(deadzone_text));
 			}
 			{
 				// Range
 				const auto deadzone = (int)(m_settings.rotation.deadzone * 100);
-				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Deadzone")), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-				m_classic_rotation_deadzone = new wxSlider(m_classic_settings, wxID_ANY, deadzone, 0, 100);
+				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Deadzone")), 0,
+								   wxALL | wxALIGN_CENTER_VERTICAL, 5);
+				m_classic_rotation_deadzone =
+					new wxSlider(m_classic_settings, wxID_ANY, deadzone, 0, 100);
 				content_sizer->Add(m_classic_rotation_deadzone, 1, wxALL | wxEXPAND, 5);
 
-				const auto deadzone_text = new wxStaticText(m_classic_settings, wxID_ANY, wxString::Format("%d%%", deadzone));
+				const auto deadzone_text = new wxStaticText(m_classic_settings, wxID_ANY,
+															wxString::Format("%d%%", deadzone));
 				content_sizer->Add(deadzone_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-				m_classic_rotation_deadzone->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY, wxID_ANY,
-					new wxControlObject(deadzone_text));
+				m_classic_rotation_deadzone->Bind(
+					wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY,
+					wxID_ANY, new wxControlObject(deadzone_text));
 			}
 
 			// Range
 			{
 				// Axis
 				const auto range = (int)(m_settings.axis.range * 100);
-				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Range")), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Range")), 0,
+								   wxALL | wxALIGN_CENTER_VERTICAL, 5);
 				m_classic_axis_range = new wxSlider(m_classic_settings, wxID_ANY, range, 50, 200);
 				content_sizer->Add(m_classic_axis_range, 1, wxALL | wxEXPAND, 5);
 
-				const auto range_text = new wxStaticText(m_classic_settings, wxID_ANY, wxString::Format("%d%%", range));
+				const auto range_text =
+					new wxStaticText(m_classic_settings, wxID_ANY, wxString::Format("%d%%", range));
 				content_sizer->Add(range_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-				m_classic_axis_range->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY, wxID_ANY,
-					new wxControlObject(range_text));
+				m_classic_axis_range->Bind(wxEVT_SLIDER,
+										   &WiimoteControllerSettings::on_slider_change, this,
+										   wxID_ANY, wxID_ANY, new wxControlObject(range_text));
 			}
 			{
 				// Rotation
 				const auto range = (int)(m_settings.rotation.range * 100);
-				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Range")), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-				m_classic_rotation_range = new wxSlider(m_classic_settings, wxID_ANY, range, 50, 200);
+				content_sizer->Add(new wxStaticText(m_classic_settings, wxID_ANY, _("Range")), 0,
+								   wxALL | wxALIGN_CENTER_VERTICAL, 5);
+				m_classic_rotation_range =
+					new wxSlider(m_classic_settings, wxID_ANY, range, 50, 200);
 				content_sizer->Add(m_classic_rotation_range, 1, wxALL | wxEXPAND, 5);
 
-				const auto range_text = new wxStaticText(m_classic_settings, wxID_ANY, wxString::Format("%d%%", range));
+				const auto range_text =
+					new wxStaticText(m_classic_settings, wxID_ANY, wxString::Format("%d%%", range));
 				content_sizer->Add(range_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-				m_classic_rotation_range->Bind(wxEVT_SLIDER, &WiimoteControllerSettings::on_slider_change, this, wxID_ANY, wxID_ANY,
-					new wxControlObject(range_text));
+				m_classic_rotation_range->Bind(wxEVT_SLIDER,
+											   &WiimoteControllerSettings::on_slider_change, this,
+											   wxID_ANY, wxID_ANY, new wxControlObject(range_text));
 			}
 
 			content_sizer->AddSpacer(1);
-			m_classic_axis_draw = new wxInputDraw(m_classic_settings, wxID_ANY, wxDefaultPosition, { 60, 60 });
+			m_classic_axis_draw =
+				new wxInputDraw(m_classic_settings, wxID_ANY, wxDefaultPosition, {60, 60});
 			content_sizer->Add(m_classic_axis_draw, 0, wxTOP | wxBOTTOM | wxALIGN_CENTER, 5);
 			content_sizer->AddSpacer(1);
 
 			content_sizer->AddSpacer(1);
-			m_classic_rotation_draw = new wxInputDraw(m_classic_settings, wxID_ANY, wxDefaultPosition, { 60, 60 });
+			m_classic_rotation_draw =
+				new wxInputDraw(m_classic_settings, wxID_ANY, wxDefaultPosition, {60, 60});
 			content_sizer->Add(m_classic_rotation_draw, 0, wxTOP | wxBOTTOM | wxALIGN_CENTER, 5);
 
 			box_sizer->Add(content_sizer, 1, wxEXPAND, 0);
@@ -208,7 +233,12 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 		control_sizer->AddGrowableCol(3);
 
 		auto* ok_button = new wxButton(this, wxID_ANY, _("OK"));
-		ok_button->Bind(wxEVT_BUTTON, [this](auto&) { update_settings(); EndModal(wxID_OK); });
+		ok_button->Bind(wxEVT_BUTTON,
+						[this](auto&)
+						{
+							update_settings();
+							EndModal(wxID_OK);
+						});
 		control_sizer->Add(ok_button, 0, wxALL, 5);
 
 		control_sizer->Add(0, 0, 0, wxEXPAND, 5);
@@ -223,8 +253,6 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 
 		sizer->Add(control_sizer, 0, wxEXPAND, 5);
 	}
-
-
 
 	this->SetSizer(sizer);
 	this->Layout();
@@ -255,7 +283,9 @@ void WiimoteControllerSettings::update_settings()
 
 void WiimoteControllerSettings::on_timer(wxTimerEvent& event)
 {
-	if (m_rumble_time.has_value() && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_rumble_time.value()).count() > 500)
+	if (m_rumble_time.has_value() && std::chrono::duration_cast<std::chrono::milliseconds>(
+										 std::chrono::steady_clock::now() - m_rumble_time.value())
+											 .count() > 500)
 	{
 		m_controller->stop_rumble();
 		m_rumble_time = {};
@@ -290,18 +320,18 @@ void WiimoteControllerSettings::on_timer(wxTimerEvent& event)
 		label = _("Nunchuck");
 		m_nunchuck_settings->Enable();
 		m_classic_settings->Disable();
-		break; 
-	case NativeWiimoteController::Classic: 
+		break;
+	case NativeWiimoteController::Classic:
 		label = _("Classic");
 		m_nunchuck_settings->Disable();
 		m_classic_settings->Enable();
 		break;
-	default: 
+	default:
 		m_nunchuck_settings->Disable();
 		m_classic_settings->Disable();
 	}
 
-	if(m_controller->is_mpls_attached())
+	if (m_controller->is_mpls_attached())
 	{
 		const bool empty = label.empty();
 		if (!empty)
@@ -312,8 +342,8 @@ void WiimoteControllerSettings::on_timer(wxTimerEvent& event)
 		if (!empty)
 			label.Append(")");
 	}
-	
-	if(label.empty())
+
+	if (label.empty())
 	{
 		label = _("None");
 	}
@@ -338,11 +368,11 @@ void WiimoteControllerSettings::on_slider_change(wxCommandEvent& event)
 	if (obj == m_nunchuck_deadzone || obj == m_classic_axis_deadzone)
 		m_settings.axis.deadzone = new_value;
 	else if (obj == m_nunchuck_range || obj == m_classic_axis_range)
-			m_settings.axis.range = new_value;
+		m_settings.axis.range = new_value;
 	else if (obj == m_classic_rotation_deadzone)
-			m_settings.rotation.deadzone = new_value;
+		m_settings.rotation.deadzone = new_value;
 	else if (obj == m_classic_rotation_range)
-			m_settings.rotation.range = new_value;
+		m_settings.rotation.range = new_value;
 }
 
 void WiimoteControllerSettings::on_rumble_change(wxCommandEvent& event)

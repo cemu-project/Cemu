@@ -5,7 +5,7 @@
 
 namespace pugi
 {
-	class xml_node;
+class xml_node;
 }
 
 enum Buttons2 : uint64
@@ -73,7 +73,7 @@ enum Buttons2 : uint64
 
 	kTriggerXN,
 	kTriggerYN,
-	
+
 	kButtonMAX,
 
 	kButtonNoneAxisMAX = kButtonRight,
@@ -82,51 +82,99 @@ enum Buttons2 : uint64
 
 class ControllerBase
 {
-public:
+  public:
 	ControllerBase(std::string_view uuid, std::string_view display_name);
 	virtual ~ControllerBase() = default;
 
-	const std::string& uuid() const { return m_uuid; }
-	const std::string& display_name() const { return m_display_name; }
-	
+	const std::string& uuid() const
+	{
+		return m_uuid;
+	}
+	const std::string& display_name() const
+	{
+		return m_display_name;
+	}
+
 	virtual std::string_view api_name() const = 0;
 	virtual InputAPI::Type api() const = 0;
 
 	virtual void update() {}
 
-	virtual bool connect() { return is_connected(); }
+	virtual bool connect()
+	{
+		return is_connected();
+	}
 	virtual bool is_connected() = 0;
-		
-	virtual bool has_battery() { return false; }
-	virtual bool has_low_battery() { return false; }
+
+	virtual bool has_battery()
+	{
+		return false;
+	}
+	virtual bool has_low_battery()
+	{
+		return false;
+	}
 
 	const ControllerState& calibrate();
 	const ControllerState& update_state();
-	const ControllerState& get_state() const { return m_last_state; }
-	const ControllerState& get_default_state() { return is_calibrated() ? m_default_state : calibrate(); }
+	const ControllerState& get_state() const
+	{
+		return m_last_state;
+	}
+	const ControllerState& get_default_state()
+	{
+		return is_calibrated() ? m_default_state : calibrate();
+	}
 	virtual ControllerState raw_state() = 0;
 
-	bool is_calibrated() const { return m_is_calibrated; }
+	bool is_calibrated() const
+	{
+		return m_is_calibrated;
+	}
 
 	float get_axis_value(uint64 button) const;
-	virtual bool has_axis() const { return true; }
+	virtual bool has_axis() const
+	{
+		return true;
+	}
 
-	bool use_motion() { return has_motion() && m_settings.motion; }
-	virtual bool has_motion() { return false; }
-	virtual MotionSample get_motion_sample() { return {}; }
+	bool use_motion()
+	{
+		return has_motion() && m_settings.motion;
+	}
+	virtual bool has_motion()
+	{
+		return false;
+	}
+	virtual MotionSample get_motion_sample()
+	{
+		return {};
+	}
 
-	virtual bool has_position() { return false; }
-	virtual glm::vec2 get_position() { return {}; }
-	virtual glm::vec2 get_prev_position() { return {}; }
+	virtual bool has_position()
+	{
+		return false;
+	}
+	virtual glm::vec2 get_position()
+	{
+		return {};
+	}
+	virtual glm::vec2 get_prev_position()
+	{
+		return {};
+	}
 
-	virtual bool has_rumble() { return false; }
+	virtual bool has_rumble()
+	{
+		return false;
+	}
 	virtual void start_rumble() {}
 	virtual void stop_rumble() {}
 
 	virtual std::string get_button_name(uint64 button) const;
 
-	virtual void save(pugi::xml_node& node){}
-	virtual void load(const pugi::xml_node& node){}
+	virtual void save(pugi::xml_node& node) {}
+	virtual void load(const pugi::xml_node& node) {}
 
 	struct AxisSetting
 	{
@@ -148,12 +196,16 @@ public:
 	void set_rumble(float rumble);
 	void set_use_motion(bool state);
 
-	void apply_axis_setting(glm::vec2& axis, const glm::vec2& default_value, const AxisSetting& setting) const;
+	void apply_axis_setting(glm::vec2& axis, const glm::vec2& default_value,
+							const AxisSetting& setting) const;
 
 	bool operator==(const ControllerBase& c) const;
-	bool operator!=(const ControllerBase& c) const { return !(*this == c); }
+	bool operator!=(const ControllerBase& c) const
+	{
+		return !(*this == c);
+	}
 
-protected:
+  protected:
 	std::string m_uuid;
 	std::string m_display_name;
 
@@ -169,20 +221,23 @@ protected:
 template<class TProvider>
 class Controller : public ControllerBase
 {
-public:
+  public:
 	Controller(std::string_view uuid, std::string_view display_name)
 		: ControllerBase(uuid, display_name)
 	{
 		static_assert(std::is_base_of_v<ControllerProviderBase, TProvider>);
-		m_provider = std::dynamic_pointer_cast<TProvider>(InputManager::instance().get_api_provider(TProvider::kAPIType));
+		m_provider = std::dynamic_pointer_cast<TProvider>(
+			InputManager::instance().get_api_provider(TProvider::kAPIType));
 		cemu_assert_debug(m_provider != nullptr);
 	}
 
-	Controller(std::string_view uuid, std::string_view display_name, const ControllerProviderSettings& settings)
+	Controller(std::string_view uuid, std::string_view display_name,
+			   const ControllerProviderSettings& settings)
 		: ControllerBase(uuid, display_name)
 	{
 		static_assert(std::is_base_of_v<ControllerProviderBase, TProvider>);
-		m_provider = std::dynamic_pointer_cast<TProvider>(InputManager::instance().get_api_provider(TProvider::kAPIType, settings));
+		m_provider = std::dynamic_pointer_cast<TProvider>(
+			InputManager::instance().get_api_provider(TProvider::kAPIType, settings));
 		cemu_assert_debug(m_provider != nullptr);
 	}
 
@@ -192,10 +247,9 @@ public:
 		m_provider = provider;
 	}
 
-protected:
+  protected:
 	using base_type = Controller<TProvider>;
 	std::shared_ptr<TProvider> m_provider;
 };
 
 using ControllerPtr = std::shared_ptr<ControllerBase>;
-

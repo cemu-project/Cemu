@@ -5,7 +5,7 @@
 
 class LatteCachedFBO
 {
-public:
+  public:
 	LatteCachedFBO(uint64 key);
 
 	uint32 calculateNumColorBuffers()
@@ -27,9 +27,9 @@ public:
 		return m_referencedTextures;
 	}
 
-	virtual ~LatteCachedFBO() {};
+	virtual ~LatteCachedFBO(){};
 
-private:
+  private:
 	void calculateEffectiveRenderAreaSize()
 	{
 		Vector2i rtEffectiveSize;
@@ -39,10 +39,12 @@ private:
 		// derive extent from color buffers
 		for (sint32 i = 0; i < 8; i++)
 		{
-			if(colorBuffer[i].texture == nullptr)
+			if (colorBuffer[i].texture == nullptr)
 				continue;
 			sint32 effectiveWidth, effectiveHeight;
-			LatteTexture_getEffectiveSize(colorBuffer[i].texture->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, colorBuffer[i].texture->firstMip);
+			LatteTexture_getEffectiveSize(colorBuffer[i].texture->baseTexture, &effectiveWidth,
+										  &effectiveHeight, nullptr,
+										  colorBuffer[i].texture->firstMip);
 			if (rtEffectiveSize.x == 0 && rtEffectiveSize.y == 0)
 			{
 				rtEffectiveSize.x = effectiveWidth;
@@ -50,12 +52,16 @@ private:
 			}
 			if (effectiveWidth < rtEffectiveSize.x)
 			{
-				forceLogDebug_printf("Framebuffer has color texture with smaller effective width (%d -> %d)", rtEffectiveSize.x, effectiveWidth);
+				forceLogDebug_printf(
+					"Framebuffer has color texture with smaller effective width (%d -> %d)",
+					rtEffectiveSize.x, effectiveWidth);
 				rtEffectiveSize.x = effectiveWidth;
 			}
 			if (effectiveHeight < rtEffectiveSize.y)
 			{
-				forceLogDebug_printf("Framebuffer has color texture with smaller effective height (%d -> %d)", rtEffectiveSize.y, effectiveHeight);
+				forceLogDebug_printf(
+					"Framebuffer has color texture with smaller effective height (%d -> %d)",
+					rtEffectiveSize.y, effectiveHeight);
 				rtEffectiveSize.y = effectiveHeight;
 			}
 			numViews++;
@@ -64,7 +70,8 @@ private:
 		if (depthBuffer.texture)
 		{
 			sint32 effectiveWidth, effectiveHeight;
-			LatteTexture_getEffectiveSize(depthBuffer.texture->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, depthBuffer.texture->firstMip);
+			LatteTexture_getEffectiveSize(depthBuffer.texture->baseTexture, &effectiveWidth,
+										  &effectiveHeight, nullptr, depthBuffer.texture->firstMip);
 			if (rtEffectiveSize.x == 0 && rtEffectiveSize.y == 0)
 			{
 				rtEffectiveSize.x = effectiveWidth;
@@ -72,12 +79,16 @@ private:
 			}
 			if (effectiveWidth < rtEffectiveSize.x)
 			{
-				forceLogDebug_printf("Framebuffer has depth texture with smaller effective width (%d -> %d)", rtEffectiveSize.x, effectiveWidth);
+				forceLogDebug_printf(
+					"Framebuffer has depth texture with smaller effective width (%d -> %d)",
+					rtEffectiveSize.x, effectiveWidth);
 				rtEffectiveSize.x = effectiveWidth;
 			}
 			if (effectiveHeight < rtEffectiveSize.y)
 			{
-				forceLogDebug_printf("Framebuffer has depth texture with smaller effective height (%d -> %d)", rtEffectiveSize.y, effectiveHeight);
+				forceLogDebug_printf(
+					"Framebuffer has depth texture with smaller effective height (%d -> %d)",
+					rtEffectiveSize.y, effectiveHeight);
 				rtEffectiveSize.y = effectiveHeight;
 			}
 			numViews++;
@@ -93,19 +104,19 @@ private:
 		m_size = rtEffectiveSize;
 	}
 
-public:
+  public:
 	uint64 key;
 	Vector2i m_size;
 
 	struct
 	{
 		LatteTextureView* texture{};
-	}colorBuffer[8]{};
+	} colorBuffer[8]{};
 	struct
 	{
 		LatteTextureView* texture{};
 		bool hasStencil{};
-	}depthBuffer{};
+	} depthBuffer{};
 	uint32 drawBuffersMask{};
 
 	std::vector<LatteTexture*> m_referencedTextures; // color and depth views combined
@@ -113,14 +124,17 @@ public:
 
 class LatteMRT
 {
-public:
+  public:
 	static void NotifyTextureDeletion(LatteTexture* texture);
 
 	// GPU state
-	static LatteTextureView* GetColorAttachmentTexture(uint32 index, bool createNew, bool checkForTextureChanges);
-	static uint8 GetActiveColorBufferMask(const LatteDecompilerShader* pixelShader, const struct LatteContextRegister& lcr);
+	static LatteTextureView* GetColorAttachmentTexture(uint32 index, bool createNew,
+													   bool checkForTextureChanges);
+	static uint8 GetActiveColorBufferMask(const LatteDecompilerShader* pixelShader,
+										  const struct LatteContextRegister& lcr);
 	static bool GetActiveDepthBufferMask(const struct LatteContextRegister& lcr);
-	static Latte::E_GX2SURFFMT GetColorBufferFormat(const uint32 index, const LatteContextRegister& lcr);
+	static Latte::E_GX2SURFFMT GetColorBufferFormat(const uint32 index,
+													const LatteContextRegister& lcr);
 	static Latte::E_GX2SURFFMT GetDepthBufferFormat(const struct LatteContextRegister& lcr);
 
 	// FBO state management
@@ -138,11 +152,14 @@ public:
 	static void BindDepthBufferOnly(LatteTextureView* view);
 
 	static void GetCurrentFragCoordScale(float* coordScale);
-	static void GetVirtualViewportDimensions(sint32& width, sint32& height); // returns the width and height of the current GPU viewport (unaffected by graphic pack rules)
+	static void
+	GetVirtualViewportDimensions(sint32& width,
+								 sint32& height); // returns the width and height of the current GPU
+												  // viewport (unaffected by graphic pack rules)
 
 	// todo - move this into FBO destructor (?)
 	static void DeleteCachedFBO(LatteCachedFBO* cfbo);
 
-private:
+  private:
 	static LatteCachedFBO* CreateCachedFBO(uint64 key);
 };

@@ -15,34 +15,33 @@ extern bool g_vulkan_available;
 #endif
 
 #ifdef VKFUNC_DEFINE
-	#define VKFUNC(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
-	#define VKFUNC_INSTANCE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
-	#define VKFUNC_DEVICE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
+#define VKFUNC(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
+#define VKFUNC_INSTANCE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
+#define VKFUNC_DEVICE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
 #else
-	#if defined(VKFUNC_INIT)
-		#if BOOST_OS_WINDOWS
-		#define VKFUNC(__FUNC__) __FUNC__ = (PFN_##__FUNC__)GetProcAddress(hmodule, #__FUNC__)
-		#else
-		#define VKFUNC(__FUNC__) __FUNC__ = (PFN_##__FUNC__)dlsym(vulkan_so, #__FUNC__)
-		#endif
-		#define VKFUNC_INSTANCE(__FUNC__)
-		#define VKFUNC_DEVICE(__FUNC__)
-	#elif defined(VKFUNC_INSTANCE_INIT)
-		#define VKFUNC(__FUNC__) 
-		#define VKFUNC_INSTANCE(__FUNC__) __FUNC__ = (PFN_##__FUNC__)vkGetInstanceProcAddr(instance, #__FUNC__)
-		#define VKFUNC_DEVICE(__FUNC__)
-	#elif defined(VKFUNC_DEVICE_INIT)
-		#define VKFUNC(__FUNC__) 
-		#define VKFUNC_INSTANCE(__FUNC__)
-		#define VKFUNC_DEVICE(__FUNC__) __FUNC__ = (PFN_##__FUNC__)vkGetDeviceProcAddr(device, #__FUNC__)
-	#else
-		#define VKFUNC(__FUNC__) extern PFN_##__FUNC__ __FUNC__
-		#define VKFUNC_INSTANCE(__FUNC__) extern PFN_##__FUNC__ __FUNC__
-		#define VKFUNC_DEVICE(__FUNC__) extern PFN_##__FUNC__ __FUNC__
-	#endif
+#if defined(VKFUNC_INIT)
+#if BOOST_OS_WINDOWS
+#define VKFUNC(__FUNC__) __FUNC__ = (PFN_##__FUNC__)GetProcAddress(hmodule, #__FUNC__)
+#else
+#define VKFUNC(__FUNC__) __FUNC__ = (PFN_##__FUNC__)dlsym(vulkan_so, #__FUNC__)
 #endif
-
-
+#define VKFUNC_INSTANCE(__FUNC__)
+#define VKFUNC_DEVICE(__FUNC__)
+#elif defined(VKFUNC_INSTANCE_INIT)
+#define VKFUNC(__FUNC__)
+#define VKFUNC_INSTANCE(__FUNC__)                                                                  \
+	__FUNC__ = (PFN_##__FUNC__)vkGetInstanceProcAddr(instance, #__FUNC__)
+#define VKFUNC_DEVICE(__FUNC__)
+#elif defined(VKFUNC_DEVICE_INIT)
+#define VKFUNC(__FUNC__)
+#define VKFUNC_INSTANCE(__FUNC__)
+#define VKFUNC_DEVICE(__FUNC__) __FUNC__ = (PFN_##__FUNC__)vkGetDeviceProcAddr(device, #__FUNC__)
+#else
+#define VKFUNC(__FUNC__) extern PFN_##__FUNC__ __FUNC__
+#define VKFUNC_INSTANCE(__FUNC__) extern PFN_##__FUNC__ __FUNC__
+#define VKFUNC_DEVICE(__FUNC__) extern PFN_##__FUNC__ __FUNC__
+#endif
+#endif
 
 // global functions
 VKFUNC(vkGetInstanceProcAddr);
@@ -67,7 +66,7 @@ VKFUNC_INSTANCE(vkCreateDebugReportCallbackEXT);
 VKFUNC_INSTANCE(vkGetPhysicalDeviceToolPropertiesEXT);
 VKFUNC_INSTANCE(vkSetDebugUtilsObjectNameEXT);
 
-//VKFUNC_INSTANCE(vkCreateDebugReportCallbackEXT);
+// VKFUNC_INSTANCE(vkCreateDebugReportCallbackEXT);
 
 // getters
 VKFUNC_DEVICE(vkGetDeviceQueue);

@@ -2,34 +2,43 @@
 
 #define DIRECTSOUND_VERSION 0x0800
 #include <mmsystem.h>
-//#include <mmreg.h>
+// #include <mmreg.h>
 #include <dsound.h>
 
 #include "IAudioAPI.h"
 
 class DirectSoundAPI : public IAudioAPI
 {
-public:
+  public:
 	class DirectSoundDeviceDescription : public DeviceDescription
 	{
-	public:
+	  public:
 		DirectSoundDeviceDescription(const std::wstring& name, GUID* guid)
-			: DeviceDescription(name), m_guid(guid) { }
+			: DeviceDescription(name), m_guid(guid)
+		{
+		}
 
 		std::wstring GetIdentifier() const override;
-		GUID* GetGUID() const { return m_guid; }
+		GUID* GetGUID() const
+		{
+			return m_guid;
+		}
 
-	private:
+	  private:
 		GUID* m_guid;
 	};
 
 	using DirectSoundDeviceDescriptionPtr = std::shared_ptr<DirectSoundDeviceDescription>;
 
 	// output
-	DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
+	DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, sint32 samples_per_block,
+				   sint32 bits_per_sample);
 	~DirectSoundAPI();
 
-	AudioAPI GetType() const override { return DirectSound; }
+	AudioAPI GetType() const override
+	{
+		return DirectSound;
+	}
 
 	bool Play() override;
 	bool Stop() override;
@@ -40,14 +49,18 @@ public:
 	static std::vector<DeviceDescriptionPtr> GetDevices();
 	static std::vector<DeviceDescriptionPtr> GetInputDevices();
 
-private:
+  private:
 	struct DirectSoundDeleter
 	{
-		void operator()(IUnknown* ptr) const { if (ptr) ptr->Release(); }
+		void operator()(IUnknown* ptr) const
+		{
+			if (ptr)
+				ptr->Release();
+		}
 	};
 
 	std::unique_ptr<IDirectSound8, DirectSoundDeleter> m_direct_sound;
-	//std::unique_ptr<IDirectSoundCapture8, DirectSoundDeleter> m_direct_sound_capture;
+	// std::unique_ptr<IDirectSoundCapture8, DirectSoundDeleter> m_direct_sound_capture;
 	std::unique_ptr<IDirectSoundBuffer8, DirectSoundDeleter> m_sound_buffer;
 	std::unique_ptr<IDirectSoundNotify8, DirectSoundDeleter> m_notify;
 

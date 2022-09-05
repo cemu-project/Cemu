@@ -1,6 +1,6 @@
 #pragma once
-#include "util/math/vector3.h"
 #include "util/math/quaternion.h"
+#include "util/math/vector3.h"
 
 struct Quat
 {
@@ -57,7 +57,7 @@ struct Quat
 
 	void Normalize()
 	{
-		//printf("Normalizing: %.4f, %.4f, %.4f, %.4f\n", w, x, y, z);
+		// printf("Normalizing: %.4f, %.4f, %.4f, %.4f\n", w, x, y, z);
 		const float length = sqrtf(x * x + y * y + z * z);
 		float targetLength = 1.0f - w * w;
 		if (targetLength <= 0.0f || length <= 0.0f)
@@ -72,7 +72,7 @@ struct Quat
 		y *= fixFactor;
 		z *= fixFactor;
 
-		//printf("Normalized: %.4f, %.4f, %.4f, %.4f\n", w, x, y, z);
+		// printf("Normalized: %.4f, %.4f, %.4f, %.4f\n", w, x, y, z);
 		return;
 	}
 
@@ -103,14 +103,11 @@ struct Quat
 // supports retrieving values in their API-specific (VPAD, KPAD etc.) format
 class MotionSample
 {
-public:
-	MotionSample()
-	{
-	}
+  public:
+	MotionSample() {}
 
 	MotionSample(float acc[3], float accAcceleration, float gyro[3], float orientation[3],
-		float quaternion[4]
-	)
+				 float quaternion[4])
 	{
 		m_acc[0] = acc[0];
 		m_acc[1] = acc[1];
@@ -163,7 +160,8 @@ public:
 		return m_accMagnitude;
 	}
 
-	float getVPADAccAcceleration() // Possibly not entirely correct. Our results are smaller than VPAD API ones
+	float getVPADAccAcceleration() // Possibly not entirely correct. Our results are smaller than
+								   // VPAD API ones
 	{
 		return m_accAcceleration;
 	}
@@ -192,17 +190,18 @@ public:
 		float zz = Z * Z;
 		float zw = Z * W;
 		vOut[0] = 1.0f - 2.0f * (yy + zz); // x.x
-		vOut[2] = 2.0f * (xy + zw); // x.y
-		vOut[1] = 2.0f * (xz - yw); // x.z
+		vOut[2] = 2.0f * (xy + zw);		   // x.y
+		vOut[1] = 2.0f * (xz - yw);		   // x.z
 	}
 
 	void getVPADAttitudeMatrix(float mtx[9])
 	{
-		// VPADs attitude matrix has mixed axis handedness, the most sane way to replicate it is by generating Y and Z by rotating the X vector
+		// VPADs attitude matrix has mixed axis handedness, the most sane way to replicate it is by
+		// generating Y and Z by rotating the X vector
 		Quaternionf qImu(m_q[0], m_q[1], m_q[2], m_q[3]);
 		Quaternionf qY = qImu * Quaternionf::FromAngleAxis(1.5708f * 1.0f, 0.0f, 0.0f, 1.0f);
 		Quaternionf qZ = qImu * Quaternionf::FromAngleAxis(1.5708f * 1.0f, 0.0f, 1.0f, 0.0f);
- 		getXVector(mtx + 0, qImu);
+		getXVector(mtx + 0, qImu);
 		getXVector(mtx + 3, qY);
 		getXVector(mtx + 6, qZ);
 	}
@@ -228,7 +227,7 @@ public:
 		gyro[2] = m_gyro[2];
 	}
 
-private:
+  private:
 	static float _radToOrientation(float rad)
 	{
 		return rad / (2.0f * 3.14159265f);
@@ -286,20 +285,16 @@ After another 90° we end up in the initial position:
  0.12    0.12    0.99
 
 ------
-From initial position, lean the GamePad on its left side. 45° up. So the screen is pointing to the top left
- 0.66   -0.75   -0.03
- 0.74    0.66   -0.11
- 0.10    0.05    0.99
+From initial position, lean the GamePad on its left side. 45° up. So the screen is pointing to the
+top left 0.66   -0.75   -0.03 0.74    0.66   -0.11 0.10    0.05    0.99
 
 Further 45°, GamePad now on its left, screen pointing left:
 -0.03   -1.00   -0.00
  0.99   -0.03   -0.15
  0.15   -0.01    0.99
 
-From initial position, lean the GamePad on its right side. 45° up. So the screen is pointing to the top right
- 0.75    0.65   -0.11
--0.65    0.76    0.07
- 0.12    0.02    0.99
+From initial position, lean the GamePad on its right side. 45° up. So the screen is pointing to the
+top right 0.75    0.65   -0.11 -0.65    0.76    0.07 0.12    0.02    0.99
 
 From initial position, tilt the GamePad up 90° (bottom side remains in touch with surface):
  0.99   -0.05   -0.10

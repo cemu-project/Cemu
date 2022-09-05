@@ -1,12 +1,12 @@
-#include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/GameProfile/GameProfile.h"
+#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
-#include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
-#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
-#include "Cafe/GameProfile/GameProfile.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/ISA/RegDefines.h"
+#include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 
@@ -22,10 +22,16 @@ void rectGenerate4thVertex(uint32be* output, uint32be* input0, uint32be* input1,
 	for (sint32 i = 0; i < vectorLen; i++)
 		output[vectorLen * 2 + i] = _swapEndianU32(input2[i]);
 
-	float minX = std::min(v[vectorLen * 0 + 0], std::min(v[vectorLen * 1 + 0], v[vectorLen * 2 + 0]));
-	float maxX = std::max(v[vectorLen * 0 + 0], std::max(v[vectorLen * 1 + 0], v[vectorLen * 2 + 0]));
-	float minY = std::min(v[vectorLen * 0 + 1], std::min(v[vectorLen * 1 + 1], v[vectorLen * 2 + 1]));;
-	float maxY = std::max(v[vectorLen * 0 + 1], std::max(v[vectorLen * 1 + 1], v[vectorLen * 2 + 1]));;
+	float minX =
+		std::min(v[vectorLen * 0 + 0], std::min(v[vectorLen * 1 + 0], v[vectorLen * 2 + 0]));
+	float maxX =
+		std::max(v[vectorLen * 0 + 0], std::max(v[vectorLen * 1 + 0], v[vectorLen * 2 + 0]));
+	float minY =
+		std::min(v[vectorLen * 0 + 1], std::min(v[vectorLen * 1 + 1], v[vectorLen * 2 + 1]));
+	;
+	float maxY =
+		std::max(v[vectorLen * 0 + 1], std::max(v[vectorLen * 1 + 1], v[vectorLen * 2 + 1]));
+	;
 
 	float totalX = minX;
 	totalX += maxY;
@@ -35,15 +41,13 @@ void rectGenerate4thVertex(uint32be* output, uint32be* input0, uint32be* input1,
 	totalY += maxY;
 	float halfY = totalY / 2.0f;
 
-	sint32 countX =
-		((v[vectorLen * 0 + 0] < halfX) ? 1 : 0) +
-		((v[vectorLen * 1 + 0] < halfX) ? 1 : 0) +
-		((v[vectorLen * 2 + 0] < halfX) ? 1 : 0);
+	sint32 countX = ((v[vectorLen * 0 + 0] < halfX) ? 1 : 0) +
+					((v[vectorLen * 1 + 0] < halfX) ? 1 : 0) +
+					((v[vectorLen * 2 + 0] < halfX) ? 1 : 0);
 
-	sint32 countY =
-		((v[vectorLen * 0 + 1] < halfY) ? 1 : 0) +
-		((v[vectorLen * 1 + 1] < halfY) ? 1 : 0) +
-		((v[vectorLen * 2 + 1] < halfY) ? 1 : 0);
+	sint32 countY = ((v[vectorLen * 0 + 1] < halfY) ? 1 : 0) +
+					((v[vectorLen * 1 + 1] < halfY) ? 1 : 0) +
+					((v[vectorLen * 2 + 1] < halfY) ? 1 : 0);
 
 	if (countX < 2)
 		v[vectorLen * 3 + 0] = minX;
@@ -61,13 +65,13 @@ void rectGenerate4thVertex(uint32be* output, uint32be* input0, uint32be* input1,
 
 	// order of rectangle vertices is
 	// v0 v1
-	// v2 v3 
+	// v2 v3
 
-	for (sint32 f = 0; f < vectorLen*4; f++)
+	for (sint32 f = 0; f < vectorLen * 4; f++)
 		output[f] = _swapEndianU32(output[f]);
 }
 
-#define ATTRIBUTE_CACHE_RING_SIZE		(128) // up to 128 entries can be cached
+#define ATTRIBUTE_CACHE_RING_SIZE (128) // up to 128 entries can be cached
 
 void LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float* uniformData)
 {
@@ -104,7 +108,9 @@ void LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float*
 	// sourced from uniform buffers
 	for (auto& bufferGroup : shader->list_remappedUniformEntries_bufferGroups)
 	{
-		MPTR physicalAddr = LatteGPUState.contextRegister[shaderUniformRegisterOffset + bufferGroup.kcacheBankIdOffset / 4];
+		MPTR physicalAddr =
+			LatteGPUState
+				.contextRegister[shaderUniformRegisterOffset + bufferGroup.kcacheBankIdOffset / 4];
 		if (physicalAddr)
 		{
 			uint8* uniformBase = memory_base + physicalAddr;
@@ -127,7 +133,9 @@ void LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float*
 	}
 }
 
-void LatteBufferCache_syncGPUUniformBuffers(LatteDecompilerShader* shader, const uint32 uniformBufferRegOffset, LatteConst::ShaderType shaderType)
+void LatteBufferCache_syncGPUUniformBuffers(LatteDecompilerShader* shader,
+											const uint32 uniformBufferRegOffset,
+											LatteConst::ShaderType shaderType)
 {
 	if (shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
 	{
@@ -136,7 +144,8 @@ void LatteBufferCache_syncGPUUniformBuffers(LatteDecompilerShader* shader, const
 		{
 			sint32 i = shader->uniformBufferList[t];
 			MPTR physicalAddr = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 0];
-			uint32 uniformSize = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 1] + 1;
+			uint32 uniformSize =
+				LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 1] + 1;
 
 			if (physicalAddr == MPTR_NULL)
 			{
@@ -153,7 +162,8 @@ void LatteBufferCache_syncGPUUniformBuffers(LatteDecompilerShader* shader, const
 }
 
 // upload vertex and uniform buffers
-bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance, uint32 instanceCount)
+bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance,
+						   uint32 instanceCount)
 {
 	static uint32 s_syncBufferCounter = 0;
 
@@ -178,7 +188,8 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		MPTR bufferAddress = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 0];
 		uint32 bufferSize = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 1] + 1;
-		uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+		uint32 bufferStride =
+			(LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
 		if (bufferAddress == MPTR_NULL)
 		{
@@ -192,7 +203,8 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 			fixedBufferSize = bufferStride * (maxIndex + 1) + bufferGroup.maxOffset;
 		if (bufferGroup.hasInstanceIndexAccess)
 		{
-			uint32 fixedBufferSizeInstance = bufferStride * ((baseInstance + instanceCount) + 1) + bufferGroup.maxOffset;
+			uint32 fixedBufferSizeInstance =
+				bufferStride * ((baseInstance + instanceCount) + 1) + bufferGroup.maxOffset;
 			fixedBufferSize = std::max(fixedBufferSize, fixedBufferSizeInstance);
 		}
 		if (fixedBufferSize == 0 || bufferStride == 0)
@@ -204,12 +216,15 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 	// sync uniform buffers
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	if (vertexShader)
-		LatteBufferCache_syncGPUUniformBuffers(vertexShader, mmSQ_VTX_UNIFORM_BLOCK_START, LatteConst::ShaderType::Vertex);
+		LatteBufferCache_syncGPUUniformBuffers(vertexShader, mmSQ_VTX_UNIFORM_BLOCK_START,
+											   LatteConst::ShaderType::Vertex);
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
 	if (geometryShader)
-		LatteBufferCache_syncGPUUniformBuffers(geometryShader, mmSQ_GS_UNIFORM_BLOCK_START, LatteConst::ShaderType::Geometry);
+		LatteBufferCache_syncGPUUniformBuffers(geometryShader, mmSQ_GS_UNIFORM_BLOCK_START,
+											   LatteConst::ShaderType::Geometry);
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	if (pixelShader)
-		LatteBufferCache_syncGPUUniformBuffers(pixelShader, mmSQ_PS_UNIFORM_BLOCK_START, LatteConst::ShaderType::Pixel);
+		LatteBufferCache_syncGPUUniformBuffers(pixelShader, mmSQ_PS_UNIFORM_BLOCK_START,
+											   LatteConst::ShaderType::Pixel);
 	return true;
 }

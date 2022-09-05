@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gui/helpers/wxCustomData.h"
 #include "config/CemuConfig.h"
+#include "gui/helpers/wxCustomData.h"
 
 #include <wx/listctrl.h>
 
@@ -12,7 +12,8 @@
 class wxTitleManagerList : public wxListCtrl
 {
 	friend class TitleManager;
-public:
+
+  public:
 	wxTitleManagerList(wxWindow* parent, wxWindowID id = wxID_ANY);
 	~wxTitleManagerList();
 
@@ -55,7 +56,9 @@ public:
 	struct TitleEntry
 	{
 		TitleEntry(const EntryType& type, const EntryFormat& format, fs::path path)
-			: type(type), format(format), path(std::move(path)) {}
+			: type(type), format(format), path(std::move(path))
+		{
+		}
 
 		EntryType type;
 		EntryFormat format;
@@ -72,7 +75,7 @@ public:
 	};
 	boost::optional<const TitleEntry&> GetSelectedTitleEntry() const;
 
-private:
+  private:
 	void AddColumns();
 	int Filter(const wxString& filter, const wxString& prefix, ItemColumn column);
 	boost::optional<TitleEntry&> GetSelectedTitleEntry();
@@ -105,19 +108,18 @@ private:
 	[[nodiscard]] boost::optional<TitleEntry&> GetTitleEntry(long item);
 	[[nodiscard]] boost::optional<const TitleEntry&> GetTitleEntry(const fs::path& path) const;
 	[[nodiscard]] boost::optional<TitleEntry&> GetTitleEntry(const fs::path& path);
-	
+
 	bool VerifyEntryFiles(TitleEntry& entry);
 	void OnConvertToCompressedFormat(uint64 titleId);
 	bool DeleteEntry(long index, const TitleEntry& entry);
 
 	void RemoveItem(long item);
 	void RemoveItem(const TitleEntry& entry);
-	
+
 	struct ItemData
 	{
-		ItemData(bool visible, const TitleEntry& entry)
-			: visible(visible), entry(entry) {}
-		
+		ItemData(bool visible, const TitleEntry& entry) : visible(visible), entry(entry) {}
+
 		bool visible;
 		TitleEntry entry;
 	};
@@ -137,11 +139,11 @@ private:
 	uint64 m_callbackIdSaveList;
 };
 
-template <>
+template<>
 struct fmt::formatter<wxTitleManagerList::EntryType> : formatter<string_view>
 {
 	using base = fmt::formatter<fmt::string_view>;
-	template <typename FormatContext>
+	template<typename FormatContext>
 	auto format(const wxTitleManagerList::EntryType& type, FormatContext& ctx)
 	{
 		switch (type)
@@ -157,6 +159,9 @@ struct fmt::formatter<wxTitleManagerList::EntryType> : formatter<string_view>
 		case wxTitleManagerList::EntryType::System:
 			return base::format("system", ctx);
 		}
-		return base::format(std::to_string(static_cast<std::underlying_type_t<wxTitleManagerList::EntryType>>(type)), ctx);
+		return base::format(
+			std::to_string(
+				static_cast<std::underlying_type_t<wxTitleManagerList::EntryType>>(type)),
+			ctx);
 	}
 };

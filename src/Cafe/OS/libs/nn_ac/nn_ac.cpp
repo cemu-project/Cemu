@@ -1,6 +1,6 @@
+#include "nn_ac.h"
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/nn_common.h"
-#include "nn_ac.h"
 
 #if BOOST_OS_WINDOWS
 #include <iphlpapi.h>
@@ -26,7 +26,8 @@ void nn_acExport_Connect(PPCInterpreter_t* hCPU)
 	// investigate on the actual console
 	// maybe all success codes are always 0 and dont have any of the other fields set?
 
-	uint32 nnResultCode = 0;// BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0); // Splatoon freezes if this function fails?
+	uint32 nnResultCode = 0; // BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
+							 // // Splatoon freezes if this function fails?
 	osLib_returnFromFunction(hCPU, nnResultCode);
 }
 
@@ -34,11 +35,11 @@ static_assert(TRUE == 1, "TRUE not 1");
 
 void nn_acExport_IsApplicationConnected(PPCInterpreter_t* hCPU)
 {
-	//forceLogDebug_printf("nn_ac.IsApplicationConnected(0x%08x)", hCPU->gpr[3]);
+	// forceLogDebug_printf("nn_ac.IsApplicationConnected(0x%08x)", hCPU->gpr[3]);
 	ppcDefineParamMEMPTR(connected, uint8, 0);
 	if (connected)
 		*connected = TRUE;
-	//memory_writeU8(hCPU->gpr[3], 1); // always return true regardless of actual online state
+	// memory_writeU8(hCPU->gpr[3], 1); // always return true regardless of actual online state
 
 	const uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 	osLib_returnFromFunction(hCPU, nnResultCode);
@@ -56,7 +57,7 @@ void nn_acExport_GetConnectStatus(PPCInterpreter_t* hCPU)
 
 void nn_acExport_GetLastErrorCode(PPCInterpreter_t* hCPU)
 {
-	//forceLogDebug_printf("nn_ac.GetLastErrorCode();");
+	// forceLogDebug_printf("nn_ac.GetLastErrorCode();");
 	ppcDefineParamMEMPTR(errorCode, uint32, 0);
 	if (errorCode)
 		*errorCode = 0;
@@ -100,10 +101,12 @@ void _GetLocalIPAndSubnetMask(uint32& localIp, uint32& subnetMask)
 	DWORD buf_size;
 	DWORD r;
 
-	for (uint32 i = 0; i < 6; i++) 
+	for (uint32 i = 0; i < 6; i++)
 	{
 		buf_size = (uint32)(buf_adapter_addresses.size() * sizeof(IP_ADAPTER_ADDRESSES));
-		r = GetAdaptersAddresses(AF_INET, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_GATEWAYS, nullptr, buf_adapter_addresses.data(), &buf_size);
+		r = GetAdaptersAddresses(
+			AF_INET, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_GATEWAYS,
+			nullptr, buf_adapter_addresses.data(), &buf_size);
 		if (r != ERROR_BUFFER_OVERFLOW)
 			break;
 		buf_adapter_addresses.resize(buf_adapter_addresses.size() * 2);
@@ -122,7 +125,8 @@ void _GetLocalIPAndSubnetMask(uint32& localIp, uint32& subnetMask)
 			currentAddress = currentAddress->Next;
 			continue;
 		}
-		if (!currentAddress->FirstUnicastAddress || !currentAddress->FirstUnicastAddress->Address.lpSockaddr)
+		if (!currentAddress->FirstUnicastAddress ||
+			!currentAddress->FirstUnicastAddress->Address.lpSockaddr)
 		{
 			currentAddress = currentAddress->Next;
 			continue;
@@ -137,7 +141,8 @@ void _GetLocalIPAndSubnetMask(uint32& localIp, uint32& subnetMask)
 		if (sockAddr->sa_family == AF_INET)
 		{
 			ULONG mask = 0;
-			if (ConvertLengthToIpv4Mask(currentAddress->FirstUnicastAddress->OnLinkPrefixLength, &mask) != NO_ERROR)
+			if (ConvertLengthToIpv4Mask(currentAddress->FirstUnicastAddress->OnLinkPrefixLength,
+										&mask) != NO_ERROR)
 				mask = 0;
 			sockaddr_in* inAddr = (sockaddr_in*)sockAddr;
 			localIp = _byteswap_ulong(inAddr->sin_addr.S_un.S_addr);
@@ -146,7 +151,8 @@ void _GetLocalIPAndSubnetMask(uint32& localIp, uint32& subnetMask)
 		}
 		currentAddress = currentAddress->Next;
 	}
-	cemuLog_logDebug(LogType::Force, "_GetLocalIPAndSubnetMask(): Failed to find network IP and subnet mask");
+	cemuLog_logDebug(LogType::Force,
+					 "_GetLocalIPAndSubnetMask(): Failed to find network IP and subnet mask");
 	_GetLocalIPAndSubnetMaskFallback(localIp, subnetMask);
 }
 #else
@@ -219,7 +225,7 @@ void nnAcExport_IsConfigExisting(PPCInterpreter_t* hCPU)
 
 	ppcDefineParamU32(configId, 0);
 	ppcDefineParamTypePtr(isConfigExisting, uint8, 1);
-	
+
 	*isConfigExisting = 0;
 
 	osLib_returnFromFunction(hCPU, 0);
@@ -227,43 +233,47 @@ void nnAcExport_IsConfigExisting(PPCInterpreter_t* hCPU)
 
 namespace nn_ac
 {
-	bool ACIsSuccess(betype<nnResult>* r)
-	{
-		return NN_RESULT_IS_SUCCESS(*r) ? 1 : 0;
-	}
-
-	nnResult ACGetConnectStatus(uint32be* connectionStatus)
-	{
-
-		*connectionStatus = 0; // 0 means connected?
-
-		return NN_RESULT_SUCCESS;
-	}
-
-	void load()
-	{
-		cafeExportRegister("nn_ac", ACIsSuccess, LogType::Placeholder);
-		cafeExportRegister("nn_ac", ACGetConnectStatus, LogType::Placeholder);
-	}
-
+bool ACIsSuccess(betype<nnResult>* r)
+{
+	return NN_RESULT_IS_SUCCESS(*r) ? 1 : 0;
 }
+
+nnResult ACGetConnectStatus(uint32be* connectionStatus)
+{
+	*connectionStatus = 0; // 0 means connected?
+
+	return NN_RESULT_SUCCESS;
+}
+
+void load()
+{
+	cafeExportRegister("nn_ac", ACIsSuccess, LogType::Placeholder);
+	cafeExportRegister("nn_ac", ACGetConnectStatus, LogType::Placeholder);
+}
+
+} // namespace nn_ac
 
 void nnAc_load()
 {
 	osLib_addFunction("nn_ac", "Connect__Q2_2nn2acFv", nn_acExport_Connect);
 	osLib_addFunction("nn_ac", "ConnectAsync__Q2_2nn2acFv", nn_acExport_ConnectAsync);
-	osLib_addFunction("nn_ac", "IsApplicationConnected__Q2_2nn2acFPb", nn_acExport_IsApplicationConnected);
-	osLib_addFunction("nn_ac", "GetConnectStatus__Q2_2nn2acFPQ3_2nn2ac6Status", nn_acExport_GetConnectStatus);
-	osLib_addFunction("nn_ac", "GetConnectResult__Q2_2nn2acFPQ2_2nn6Result", nn_acExport_GetConnectResult);
+	osLib_addFunction("nn_ac", "IsApplicationConnected__Q2_2nn2acFPb",
+					  nn_acExport_IsApplicationConnected);
+	osLib_addFunction("nn_ac", "GetConnectStatus__Q2_2nn2acFPQ3_2nn2ac6Status",
+					  nn_acExport_GetConnectStatus);
+	osLib_addFunction("nn_ac", "GetConnectResult__Q2_2nn2acFPQ2_2nn6Result",
+					  nn_acExport_GetConnectResult);
 	osLib_addFunction("nn_ac", "GetLastErrorCode__Q2_2nn2acFPUi", nn_acExport_GetLastErrorCode);
 	osLib_addFunction("nn_ac", "GetStatus__Q2_2nn2acFPQ3_2nn2ac6Status", nn_acExport_GetStatus);
 
 	osLib_addFunction("nn_ac", "GetAssignedAddress__Q2_2nn2acFPUl", nnAcExport_GetAssignedAddress);
 	osLib_addFunction("nn_ac", "GetAssignedSubnet__Q2_2nn2acFPUl", nnAcExport_GetAssignedSubnet);
 
-	osLib_addFunction("nn_ac", "IsSystemConnected__Q2_2nn2acFPbPQ3_2nn2ac6ApType", nnAcExport_IsSystemConnected);
+	osLib_addFunction("nn_ac", "IsSystemConnected__Q2_2nn2acFPbPQ3_2nn2ac6ApType",
+					  nnAcExport_IsSystemConnected);
 
-	osLib_addFunction("nn_ac", "IsConfigExisting__Q2_2nn2acFQ3_2nn2ac11ConfigIdNumPb", nnAcExport_IsConfigExisting);
+	osLib_addFunction("nn_ac", "IsConfigExisting__Q2_2nn2acFQ3_2nn2ac11ConfigIdNumPb",
+					  nnAcExport_IsConfigExisting);
 
 	osLib_addFunction("nn_ac", "ACGetAssignedAddress", nnAcExport_ACGetAssignedAddress);
 

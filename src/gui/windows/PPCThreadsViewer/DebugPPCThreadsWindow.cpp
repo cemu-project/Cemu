@@ -1,9 +1,9 @@
-#include "gui/wxgui.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Scheduler.h"
 #include "DebugPPCThreadsWindow.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Scheduler.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+#include "gui/wxgui.h"
 
 #include <cinttypes>
 
@@ -26,21 +26,23 @@ enum
 };
 
 wxBEGIN_EVENT_TABLE(DebugPPCThreadsWindow, wxFrame)
-		EVT_BUTTON(CLOSE_ID,DebugPPCThreadsWindow::OnCloseButton)
-		EVT_BUTTON(REFRESH_ID,DebugPPCThreadsWindow::OnRefreshButton)
+	EVT_BUTTON(CLOSE_ID, DebugPPCThreadsWindow::OnCloseButton)
+		EVT_BUTTON(REFRESH_ID, DebugPPCThreadsWindow::OnRefreshButton)
 
-		EVT_CLOSE(DebugPPCThreadsWindow::OnClose)
-wxEND_EVENT_TABLE()
+			EVT_CLOSE(DebugPPCThreadsWindow::OnClose) wxEND_EVENT_TABLE()
 
-DebugPPCThreadsWindow::DebugPPCThreadsWindow(wxFrame& parent)
-	: wxFrame(&parent, wxID_ANY, _("PPC threads"), wxDefaultPosition, wxSize(930, 280), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
+				DebugPPCThreadsWindow::DebugPPCThreadsWindow(wxFrame& parent)
+	: wxFrame(&parent, wxID_ANY, _("PPC threads"), wxDefaultPosition, wxSize(930, 280),
+			  wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
 {
 	wxFrame::SetBackgroundColour(*wxWHITE);
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 	m_thread_list = new wxListCtrl(this, GPLIST_ID, wxPoint(0, 0), wxSize(930, 240), wxLC_REPORT);
 
-	m_thread_list->SetFont(wxFont(8, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Courier New")); //wxSystemSettings::GetFont(wxSYS_OEM_FIXED_FONT));
+	m_thread_list->SetFont(
+		wxFont(8, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false,
+			   "Courier New")); // wxSystemSettings::GetFont(wxSYS_OEM_FIXED_FONT));
 
 	// add columns
 	wxListItem col0;
@@ -121,7 +123,9 @@ DebugPPCThreadsWindow::DebugPPCThreadsWindow(wxFrame& parent)
 
 	sizer->Add(row, 0, wxEXPAND | wxALL, 5);
 
-	m_thread_list->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(DebugPPCThreadsWindow::OnThreadListRightClick), nullptr, this);
+	m_thread_list->Connect(wxEVT_RIGHT_DOWN,
+						   wxMouseEventHandler(DebugPPCThreadsWindow::OnThreadListRightClick),
+						   nullptr, this);
 
 	SetSizer(sizer);
 
@@ -158,7 +162,6 @@ void DebugPPCThreadsWindow::OnTimer(wxTimerEvent& event)
 		RefreshThreadList();
 }
 
-
 #define _r(__idx) _swapEndianU32(cafeThread->context.gpr[__idx])
 
 void DebugPPCThreadsWindow::RefreshThreadList()
@@ -183,7 +186,6 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 		char tempStr[512];
 		sprintf(tempStr, "%08X", threadItrMPTR);
 
-
 		wxListItem item;
 		item.SetId(i);
 		item.SetText(tempStr);
@@ -193,12 +195,14 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 		sprintf(tempStr, "%08X", _swapEndianU32(cafeThread->entrypoint));
 		m_thread_list->SetItem(i, 1, tempStr);
 		// stack base (low)
-		sprintf(tempStr, "%08X - %08X", _swapEndianU32(cafeThread->stackEnd), _swapEndianU32(cafeThread->stackBase));
+		sprintf(tempStr, "%08X - %08X", _swapEndianU32(cafeThread->stackEnd),
+				_swapEndianU32(cafeThread->stackBase));
 		m_thread_list->SetItem(i, 2, tempStr);
 		// pc
 		RPLStoredSymbol* symbol = rplSymbolStorage_getByAddress(cafeThread->context.srr0);
 		if (symbol)
-			sprintf(tempStr, "%s (0x%08x)", (const char*)symbol->symbolName, cafeThread->context.srr0);
+			sprintf(tempStr, "%s (0x%08x)", (const char*)symbol->symbolName,
+					cafeThread->context.srr0);
 		else
 			sprintf(tempStr, "%08X", cafeThread->context.srr0);
 		m_thread_list->SetItem(i, 3, tempStr);
@@ -222,12 +226,15 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 			threadStateStr = "MORIBUND";
 		m_thread_list->SetItem(i, 5, threadStateStr);
 		// affinity
-		uint8 affinity = cafeThread->attr&7;
+		uint8 affinity = cafeThread->attr & 7;
 		uint8 affinityReal = cafeThread->context.affinity;
-		if(affinity != affinityReal)
-			sprintf(tempStr, "(!) %d%d%d real: %d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, (affinityReal >> 0) & 1, (affinityReal >> 1) & 1, (affinityReal >> 2) & 1);
+		if (affinity != affinityReal)
+			sprintf(tempStr, "(!) %d%d%d real: %d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1,
+					(affinity >> 2) & 1, (affinityReal >> 0) & 1, (affinityReal >> 1) & 1,
+					(affinityReal >> 2) & 1);
 		else
-			sprintf(tempStr, "%d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1);
+			sprintf(tempStr, "%d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1,
+					(affinity >> 2) & 1);
 		m_thread_list->SetItem(i, 6, tempStr);
 		// priority
 		sint32 effectivePriority = cafeThread->effectivePriority;
@@ -247,12 +254,15 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 			threadName = cafeThread->threadName.GetPtr();
 		m_thread_list->SetItem(i, 10, threadName);
 		// GPR
-		sprintf(tempStr, "r3 %08x r4 %08x r5 %08x r6 %08x r7 %08x", _r(3), _r(4), _r(5), _r(6), _r(7));
+		sprintf(tempStr, "r3 %08x r4 %08x r5 %08x r6 %08x r7 %08x", _r(3), _r(4), _r(5), _r(6),
+				_r(7));
 		m_thread_list->SetItem(i, 11, tempStr);
 		// waiting condition / extra info
 		coreinit::OSMutex* mutex = cafeThread->waitingForMutex;
 		if (mutex)
-			sprintf(tempStr, "Mutex 0x%08x (Held by thread 0x%08X Lock-Count: %d)", memory_getVirtualOffsetFromPointer(mutex), mutex->owner.GetMPTR(), (uint32)mutex->lockCount);
+			sprintf(tempStr, "Mutex 0x%08x (Held by thread 0x%08X Lock-Count: %d)",
+					memory_getVirtualOffsetFromPointer(mutex), mutex->owner.GetMPTR(),
+					(uint32)mutex->lockCount);
 		else
 			sprintf(tempStr, "");
 
@@ -262,8 +272,9 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 
 		m_thread_list->SetItem(i, 12, tempStr);
 
-		if(selected_thread != 0 && selected_thread == (long)threadItrMPTR)
-			m_thread_list->SetItemState(i, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED);
+		if (selected_thread != 0 && selected_thread == (long)threadItrMPTR)
+			m_thread_list->SetItemState(i, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED,
+										wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED);
 	}
 	srwlock_activeThreadList.UnlockWrite();
 	__OSUnlockScheduler();
@@ -275,13 +286,15 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
 
 void DebugPPCThreadsWindow::DumpStackTrace(OSThread_t* thread)
 {
-	cemuLog_log(LogType::Force, fmt::format("Dumping stack trace for thread {0:08x} LR: {1:08x}", memory_getVirtualOffsetFromPointer(thread), _swapEndianU32(thread->context.lr)));
+	cemuLog_log(LogType::Force, fmt::format("Dumping stack trace for thread {0:08x} LR: {1:08x}",
+											memory_getVirtualOffsetFromPointer(thread),
+											_swapEndianU32(thread->context.lr)));
 	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]));
 }
 
 void DebugPPCThreadsWindow::OnThreadListPopupClick(wxCommandEvent& evt)
 {
-	MPTR threadMPTR = (MPTR)(size_t)static_cast<wxMenu *>(evt.GetEventObject())->GetClientData();
+	MPTR threadMPTR = (MPTR)(size_t) static_cast<wxMenu*>(evt.GetEventObject())->GetClientData();
 	// check if thread is still active
 	bool threadIsActive = false;
 	srwlock_activeThreadList.LockWrite();
@@ -337,8 +350,7 @@ void DebugPPCThreadsWindow::OnThreadListRightClick(wxMouseEvent& event)
 		return;
 	// select item
 	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_FOCUSED, wxLIST_STATE_FOCUSED);
-	long sel = m_thread_list->GetNextItem(-1, wxLIST_NEXT_ALL,
-	                                   wxLIST_STATE_SELECTED);
+	long sel = m_thread_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (sel != -1)
 		m_thread_list->SetItemState(sel, 0, wxLIST_STATE_SELECTED);
 	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
@@ -371,7 +383,9 @@ void DebugPPCThreadsWindow::OnThreadListRightClick(wxMouseEvent& event)
 	menu.Append(THREADLIST_MENU_SUSPEND, _("Suspend"));
 	menu.AppendSeparator();
 	menu.Append(THREADLIST_MENU_DUMP_STACK_TRACE, _("Write stack trace to log"));
-	menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(DebugPPCThreadsWindow::OnThreadListPopupClick), nullptr, this);
+	menu.Connect(wxEVT_COMMAND_MENU_SELECTED,
+				 wxCommandEventHandler(DebugPPCThreadsWindow::OnThreadListPopupClick), nullptr,
+				 this);
 	PopupMenu(&menu);
 }
 

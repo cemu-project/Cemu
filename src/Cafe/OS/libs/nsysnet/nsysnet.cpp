@@ -1,47 +1,46 @@
-#include "Cafe/OS/common/OSCommon.h"
 #include "nsysnet.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
+#include "Cafe/OS/common/OSCommon.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 
 #include "Common/socket.h"
 
 #if BOOST_OS_WINDOWS
 
-#define WU_AF_INET			2
+#define WU_AF_INET 2
 
-#define WU_SOCK_STREAM		1
-#define WU_SOCK_DGRAM		2
+#define WU_SOCK_STREAM 1
+#define WU_SOCK_DGRAM 2
 
-#define WU_IPPROTO_IP		0
-#define WU_IPPROTO_TCP		6
-#define WU_IPPROTO_UDP		17
+#define WU_IPPROTO_IP 0
+#define WU_IPPROTO_TCP 6
+#define WU_IPPROTO_UDP 17
 
-#define WU_SO_REUSEADDR		0x0004
-#define WU_SO_KEEPALIVE		0x0008
-#define WU_SO_WINSCALE		0x0400
-#define WU_SO_SNDBUF		0x1001
-#define WU_SO_RCVBUF		0x1002
-#define WU_SO_LASTERROR		0x1007
-#define WU_SO_NBIO			0x1014
-#define WU_SO_NONBLOCK		0x1016
+#define WU_SO_REUSEADDR 0x0004
+#define WU_SO_KEEPALIVE 0x0008
+#define WU_SO_WINSCALE 0x0400
+#define WU_SO_SNDBUF 0x1001
+#define WU_SO_RCVBUF 0x1002
+#define WU_SO_LASTERROR 0x1007
+#define WU_SO_NBIO 0x1014
+#define WU_SO_NONBLOCK 0x1016
 
-#define WU_TCP_NODELAY		0x2004
+#define WU_TCP_NODELAY 0x2004
 
-#define WU_SOL_SOCKET		-1 // this constant differs from Win32 socket API
+#define WU_SOL_SOCKET -1 // this constant differs from Win32 socket API
 
-#define WU_MSG_PEEK			0x02
-#define WU_MSG_DONTWAIT		0x20
+#define WU_MSG_PEEK 0x02
+#define WU_MSG_DONTWAIT 0x20
 
 // error codes
-#define WU_SO_SUCCESS		0x0000
-#define WU_SO_EWOULDBLOCK	0x0006
-#define WU_SO_ECONNRESET	0x0008
-#define WU_SO_EINVAL		0x000B
-#define WU_SO_EINPROGRESS	0x0016
+#define WU_SO_SUCCESS 0x0000
+#define WU_SO_EWOULDBLOCK 0x0006
+#define WU_SO_ECONNRESET 0x0008
+#define WU_SO_EINVAL 0x000B
+#define WU_SO_EINPROGRESS 0x0016
 
-#define WU_SO_ESHUTDOWN		0x000F
-
+#define WU_SO_ESHUTDOWN 0x000F
 
 typedef signed int WUSOCKET;
 
@@ -65,19 +64,19 @@ void _setSockError(sint32 errCode)
 {
 	// todo -> Call __gh_errno_ptr and then write 32bit error code
 	*(uint32*)__gh_errno_ptr() = _swapEndianU32(errCode);
-	//coreinitData->ghsErrno = _swapEndianU32(errCode);
+	// coreinitData->ghsErrno = _swapEndianU32(errCode);
 }
 
 sint32 _getSockError()
 {
 	return (sint32)_swapEndianU32(*(uint32*)__gh_errno_ptr());
-	//return (sint32)_swapEndianU32(coreinitData->ghsErrno);
+	// return (sint32)_swapEndianU32(coreinitData->ghsErrno);
 }
 
 // error translation modes for _translateError
-#define _ERROR_MODE_DEFAULT		0
-#define _ERROR_MODE_CONNECT		1
-#define _ERROR_MODE_ACCEPT		2
+#define _ERROR_MODE_DEFAULT 0
+#define _ERROR_MODE_CONNECT 1
+#define _ERROR_MODE_ACCEPT 2
 
 sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_MODE_DEFAULT)
 {
@@ -106,7 +105,7 @@ sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_
 		_setSockError(WU_SO_SUCCESS);
 		break;
 	case WSAEWOULDBLOCK:
-		if( mode == _ERROR_MODE_CONNECT )
+		if (mode == _ERROR_MODE_CONNECT)
 			_setSockError(WU_SO_EINPROGRESS);
 		else
 			_setSockError(WU_SO_EWOULDBLOCK);
@@ -136,7 +135,7 @@ void nsysnetExport_socketlasterr(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, _getSockError());
 }
 
-typedef struct  
+typedef struct
 {
 	uint32 handle;
 	bool isShutdownRecv;
@@ -149,17 +148,17 @@ typedef struct
 	SOCKET s;
 	// socket options
 	bool isNonBlocking;
-}virtualSocket_t;
+} virtualSocket_t;
 
 typedef struct
 {
 	uint32 wu_s_addr;
-}wu_in_addr;
+} wu_in_addr;
 
 struct wu_sockaddr
 {
 	uint16 sa_family;
-	uint8  sa_data[14]; // IPv4
+	uint8 sa_data[14]; // IPv4
 };
 
 void sockaddr_guest2host(wu_sockaddr* input, sockaddr* output)
@@ -174,21 +173,21 @@ void sockaddr_host2guest(sockaddr* input, wu_sockaddr* output)
 	memcpy(output->sa_data, input->sa_data, 14);
 }
 
-struct wu_addrinfo 
+struct wu_addrinfo
 {
 	sint32 ai_flags;
 	sint32 ai_family;
 	sint32 ai_socktype;
 	sint32 ai_protocol;
 	sint32 ai_addrlen;
-	MPTR   ai_canonname;
-	MPTR   ai_addr;
-	MPTR   ai_next;
+	MPTR ai_canonname;
+	MPTR ai_addr;
+	MPTR ai_next;
 };
 
-#define WU_SOCKET_LIMIT			(32) // only 32 socket handles are supported per running process
+#define WU_SOCKET_LIMIT (32) // only 32 socket handles are supported per running process
 
-virtualSocket_t* virtualSocketTable[WU_SOCKET_LIMIT] = { 0 };
+virtualSocket_t* virtualSocketTable[WU_SOCKET_LIMIT] = {0};
 
 sint32 _getFreeSocketHandle()
 {
@@ -200,7 +199,7 @@ sint32 _getFreeSocketHandle()
 	return 0;
 }
 
-#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR,12)
+#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
 
 WUSOCKET nsysnet_createVirtualSocket(sint32 family, sint32 type, sint32 protocol)
 {
@@ -224,7 +223,8 @@ WUSOCKET nsysnet_createVirtualSocket(sint32 family, sint32 type, sint32 protocol
 	{
 		BOOL bNewBehavior = FALSE;
 		DWORD dwBytesReturned = 0;
-		WSAIoctl(vs->s, SIO_UDP_CONNRESET, &bNewBehavior, sizeof bNewBehavior, NULL, 0, &dwBytesReturned, NULL, NULL);
+		WSAIoctl(vs->s, SIO_UDP_CONNRESET, &bNewBehavior, sizeof bNewBehavior, NULL, 0,
+				 &dwBytesReturned, NULL, NULL);
 	}
 	return vs->handle;
 }
@@ -236,11 +236,11 @@ WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket)
 	// SO_BSP_STATE -> protocol + other info
 	// SO_PROTOCOL_INFO -> protocol + type?
 
-	WSAPROTOCOL_INFO protocolInfo = { 0 };
+	WSAPROTOCOL_INFO protocolInfo = {0};
 	int optLen = sizeof(protocolInfo);
 	getsockopt(existingSocket, SOL_SOCKET, SO_PROTOCOL_INFO, (char*)&protocolInfo, &optLen);
 
-	// todo - translate protocolInfo 
+	// todo - translate protocolInfo
 
 	sint32 s = _getFreeSocketHandle();
 	if (s == 0)
@@ -398,7 +398,8 @@ void nsysnetExport_socketclose(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("setsockopt(%d,0x%x,0x%05x,0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+	socketLog_printf("setsockopt(%d,0x%x,0x%05x,0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4],
+					 hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamS32(level, 1);
 	ppcDefineParamS32(optname, 2);
@@ -429,7 +430,8 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else if (optname == WU_SO_NBIO)
 			{
-				// similar to WU_SO_NONBLOCK but always sets non-blocking mode regardless of option value
+				// similar to WU_SO_NONBLOCK but always sets non-blocking mode regardless of option
+				// value
 				if (optlen == 4)
 				{
 					sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
@@ -449,7 +451,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 				if (optlen != 4)
 					assert_dbg();
 				sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
-				u_long mode = optvalLE;  // 1 -> enable, 0 -> disable
+				u_long mode = optvalLE; // 1 -> enable, 0 -> disable
 				ioctlsocket(vs->s, FIONBIO, &mode);
 				vs->isNonBlocking = mode != 0;
 			}
@@ -463,22 +465,26 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else if (optname == WU_SO_RCVBUF)
 			{
-				socketLog_printf("Set receive buffer size to 0x%08x", _swapEndianU32(*(uint32*)optval));
+				socketLog_printf("Set receive buffer size to 0x%08x",
+								 _swapEndianU32(*(uint32*)optval));
 				if (optlen != 4)
 					assert_dbg();
 				sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
 				u_long mode = optvalLE;
-				if (setsockopt(vs->s, SOL_SOCKET, SO_RCVBUF, (const char*)&mode, sizeof(u_long)) != 0)
+				if (setsockopt(vs->s, SOL_SOCKET, SO_RCVBUF, (const char*)&mode, sizeof(u_long)) !=
+					0)
 					assert_dbg();
 			}
 			else if (optname == WU_SO_SNDBUF)
 			{
-				socketLog_printf("Set send buffer size to 0x%08x", _swapEndianU32(*(uint32*)optval));
+				socketLog_printf("Set send buffer size to 0x%08x",
+								 _swapEndianU32(*(uint32*)optval));
 				if (optlen != 4)
 					assert_dbg();
 				sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
 				u_long mode = optvalLE;
-				if (setsockopt(vs->s, SOL_SOCKET, SO_SNDBUF, (const char*)&mode, sizeof(u_long)) != 0)
+				if (setsockopt(vs->s, SOL_SOCKET, SO_SNDBUF, (const char*)&mode, sizeof(u_long)) !=
+					0)
 					assert_dbg();
 			}
 			else
@@ -494,8 +500,9 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 				if (optlen != 4)
 					assert_dbg();
 				sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
-				u_long mode = optvalLE;  // 1 -> enable, 0 -> disable
-				if (setsockopt(vs->s, IPPROTO_TCP, TCP_NODELAY, (const char*)&mode, sizeof(u_long)) != 0)
+				u_long mode = optvalLE; // 1 -> enable, 0 -> disable
+				if (setsockopt(vs->s, IPPROTO_TCP, TCP_NODELAY, (const char*)&mode,
+							   sizeof(u_long)) != 0)
 					assert_dbg();
 			}
 			else
@@ -508,13 +515,12 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			{
 				// unknown
 			}
-			else if( optname == 0x4 )
+			else if (optname == 0x4)
 			{
 				forceLogDebug_printf("setsockopt with unsupported opname 4 for IPPROTO_IP");
 			}
 			else
 				assert_dbg();
-
 		}
 		else
 			assert_dbg();
@@ -524,7 +530,8 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_getsockopt(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("getsockopt(%d,0x%x,0x%05x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+	socketLog_printf("getsockopt(%d,0x%x,0x%05x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4],
+					 hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamS32(level, 1);
 	ppcDefineParamS32(optname, 2);
@@ -558,7 +565,8 @@ void nsysnetExport_getsockopt(PPCInterpreter_t* hCPU)
 			if (optvalLE != 0)
 				assert_dbg(); // todo -> Translate error code/status
 			*(uint32*)optval = _swapEndianU32(optvalLE);
-			// YouTube app uses this to check if the connection attempt was successful after non-blocking connect()
+			// YouTube app uses this to check if the connection attempt was successful after
+			// non-blocking connect()
 		}
 		else if (optname == WU_SO_RCVBUF)
 		{
@@ -608,14 +616,11 @@ void nsysnetExport_inet_aton(PPCInterpreter_t* hCPU)
 	if (sscanf(ip, "%d.%d.%d.%d", &d0, &d1, &d2, &d3) != 4)
 	{
 		cemu_assert_debug(false);
-		osLib_returnFromFunction(hCPU,  0); // todo - return correct error code
+		osLib_returnFromFunction(hCPU, 0); // todo - return correct error code
 		return;
 	}
 
-	if (d0 < 0 || d0 > 255 ||
-		d1 < 0 || d1 > 255 ||
-		d2 < 0 || d2 > 255 ||
-		d3 < 0 || d3 > 255)
+	if (d0 < 0 || d0 > 255 || d1 < 0 || d1 > 255 || d2 < 0 || d2 > 255 || d3 < 0 || d3 > 255)
 	{
 		cemu_assert_debug(false);
 		osLib_returnFromFunction(hCPU, 0);
@@ -632,7 +637,7 @@ void nsysnetExport_inet_pton(PPCInterpreter_t* hCPU)
 	ppcDefineParamS32(af, 0);
 	ppcDefineParamStr(ip, 1);
 	ppcDefineParamStructPtr(addr, wu_in_addr, 2);
-	
+
 	if (af != 2)
 	{
 		forceLog_printf("inet_pton() only supports AF_INET");
@@ -679,7 +684,8 @@ void nsysnetExport_inet_ntoa(PPCInterpreter_t* hCPU)
 	if (_ntoa_tempString == nullptr)
 		_ntoa_tempString = (char*)memory_getPointerFromVirtualOffset(OSAllocFromSystem(64, 4));
 
-	sprintf(_ntoa_tempString.GetPtr(), "%d.%d.%d.%d", ((uint8*)addr)[0], ((uint8*)addr)[1], ((uint8*)addr)[2], ((uint8*)addr)[3]);
+	sprintf(_ntoa_tempString.GetPtr(), "%d.%d.%d.%d", ((uint8*)addr)[0], ((uint8*)addr)[1],
+			((uint8*)addr)[2], ((uint8*)addr)[3]);
 
 	osLib_returnFromFunction(hCPU, _ntoa_tempString.GetMPTR());
 }
@@ -719,7 +725,6 @@ void nsysnetExport_bind(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(addr, struct wu_sockaddr, 1);
 	ppcDefineParamS32(len, 2);
 
-
 	if (len != sizeof(struct wu_sockaddr))
 		assert_dbg();
 
@@ -739,9 +744,9 @@ void nsysnetExport_bind(PPCInterpreter_t* hCPU)
 		sint32 hr = bind(vs->s, &hostAddr, sizeof(sockaddr));
 		r = _translateError(hr, WSAGetLastError());
 
-
-		socketLog_printf("bind address: %d.%d.%d.%d:%d result: %d", addr->sa_data[2], addr->sa_data[3], addr->sa_data[4], addr->sa_data[5], _swapEndianU16(*(uint16*)addr->sa_data), hr);
-
+		socketLog_printf("bind address: %d.%d.%d.%d:%d result: %d", addr->sa_data[2],
+						 addr->sa_data[3], addr->sa_data[4], addr->sa_data[5],
+						 _swapEndianU16(*(uint16*)addr->sa_data), hr);
 	}
 
 	osLib_returnFromFunction(hCPU, r);
@@ -820,7 +825,6 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
-
 void nsysnetExport_connect(PPCInterpreter_t* hCPU)
 {
 	socketLog_printf("connect(%d,0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
@@ -842,7 +846,10 @@ void nsysnetExport_connect(PPCInterpreter_t* hCPU)
 	hostAddr.sa_family = _swapEndianU16(addr->sa_family);
 	memcpy(hostAddr.sa_data, addr->sa_data, 14);
 	sint32 hr = connect(vs->s, &hostAddr, sizeof(sockaddr));
-	forceLog_printf("Attempt connect to %d.%d.%d.%d:%d", (sint32)(uint8)hostAddr.sa_data[2], (sint32)(uint8)hostAddr.sa_data[3], (sint32)(uint8)hostAddr.sa_data[4], (sint32)(uint8)hostAddr.sa_data[5], _swapEndianU16(*(uint16*)hostAddr.sa_data+0));
+	forceLog_printf("Attempt connect to %d.%d.%d.%d:%d", (sint32)(uint8)hostAddr.sa_data[2],
+					(sint32)(uint8)hostAddr.sa_data[3], (sint32)(uint8)hostAddr.sa_data[4],
+					(sint32)(uint8)hostAddr.sa_data[5],
+					_swapEndianU16(*(uint16*)hostAddr.sa_data + 0));
 
 	r = _translateError(hr, WSAGetLastError(), _ERROR_MODE_CONNECT);
 
@@ -857,7 +864,8 @@ void _setSocketSendRecvNonBlockingMode(SOCKET s, bool isNonBlocking)
 
 void nsysnetExport_send(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("send(%d,0x%08x,%d,0x%x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	socketLog_printf("send(%d,0x%08x,%d,0x%x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5],
+					 hCPU->gpr[6]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -871,7 +879,7 @@ void nsysnetExport_send(PPCInterpreter_t* hCPU)
 		return;
 	}
 	int hostFlags = 0;
-	bool requestIsNonBlocking = (flags&WU_MSG_DONTWAIT) != 0;
+	bool requestIsNonBlocking = (flags & WU_MSG_DONTWAIT) != 0;
 	flags &= ~WU_MSG_DONTWAIT;
 	if (requestIsNonBlocking != vs->isNonBlocking && vs->isNonBlocking == false)
 		assert_dbg();
@@ -889,7 +897,9 @@ void nsysnetExport_send(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recv(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("recv(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	socketLog_printf("recv(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3],
+					 hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR,
+					 coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -903,16 +913,17 @@ void nsysnetExport_recv(PPCInterpreter_t* hCPU)
 		return;
 	}
 	int hostFlags = 0;
-	bool requestIsNonBlocking = (flags&WU_MSG_DONTWAIT) != 0;
+	bool requestIsNonBlocking = (flags & WU_MSG_DONTWAIT) != 0;
 	flags &= ~WU_MSG_DONTWAIT;
-	if (flags&WU_MSG_PEEK)
+	if (flags & WU_MSG_PEEK)
 	{
 		hostFlags |= MSG_PEEK;
 		flags &= ~WU_MSG_PEEK;
 	}
 
 	if (vs->isNonBlocking)
-		requestIsNonBlocking = vs->isNonBlocking; // non-blocking sockets always operate in MSG_DONTWAIT mode?
+		requestIsNonBlocking =
+			vs->isNonBlocking; // non-blocking sockets always operate in MSG_DONTWAIT mode?
 
 	if (flags)
 		assert_dbg();
@@ -933,8 +944,10 @@ void nsysnetExport_recv(PPCInterpreter_t* hCPU)
 			if (tr < 0 && WSAGetLastError() != WSAEWOULDBLOCK)
 				break;
 			// yield thread
-			coreinit::OSSleepTicks(coreinit::EspressoTime::GetTimerClock() / 5000); // let thread wait 0.2ms to give other threads CPU time
-			// todo - eventually we should find a way to asynchronously signal recv instead of busy-looping here
+			coreinit::OSSleepTicks(coreinit::EspressoTime::GetTimerClock() /
+								   5000); // let thread wait 0.2ms to give other threads CPU time
+			// todo - eventually we should find a way to asynchronously signal recv instead of
+			// busy-looping here
 		}
 		_setSocketSendRecvNonBlockingMode(vs->s, requestIsNonBlocking);
 	}
@@ -949,7 +962,7 @@ void nsysnetExport_recv(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
-struct wu_timeval 
+struct wu_timeval
 {
 	uint32 tv_sec;
 	uint32 tv_usec;
@@ -963,11 +976,11 @@ void _translateFDSet(fd_set* hostSet, struct wu_fd_set* fdset, sint32 nfds)
 	uint32 mask = fdset->mask;
 	for (sint32 i = 0; i < nfds; i++)
 	{
-		if( ((mask>>i)&1) == 0 )
+		if (((mask >> i) & 1) == 0)
 			continue;
 		sint32 socketHandle = i;
 		virtualSocket_t* vs = nsysnet_getVirtualSocketObject(socketHandle);
-		if(vs == NULL)
+		if (vs == NULL)
 			continue; // socket invalid
 		hostSet->fd_array[hostSet->fd_count] = vs->s;
 		hostSet->fd_count++;
@@ -981,24 +994,29 @@ void _translateFDSetRev(struct wu_fd_set* fdset, fd_set* hostSet, sint32 nfds)
 	uint32 mask = _swapEndianU32(0);
 	for (sint32 i = 0; i < (sint32)hostSet->fd_count; i++)
 	{
-		sint32 virtualSocketHandle = nsysnet_getVirtualSocketHandleFromHostHandle(hostSet->fd_array[i]);
+		sint32 virtualSocketHandle =
+			nsysnet_getVirtualSocketHandleFromHostHandle(hostSet->fd_array[i]);
 		if (virtualSocketHandle < 0)
 			cemu_assert_debug(false);
-		mask |= (1<<virtualSocketHandle);
+		mask |= (1 << virtualSocketHandle);
 	}
 	fdset->mask = mask;
 }
 
 void nsysnetExport_select(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("select(%d,0x%08x,0x%08x,0x%08x,0x%08x) LR 0x%08x Thread 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	socketLog_printf("select(%d,0x%08x,0x%08x,0x%08x,0x%08x) LR 0x%08x Thread 0x%08x", hCPU->gpr[3],
+					 hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR,
+					 coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(nfds, 0);
 	ppcDefineParamStructPtr(readfds, struct wu_fd_set, 1);
 	ppcDefineParamStructPtr(writefds, struct wu_fd_set, 2);
 	ppcDefineParamStructPtr(exceptfds, struct wu_fd_set, 3);
 	ppcDefineParamStructPtr(timeOut, struct wu_timeval, 4);
 
-	//socketLog_printf("rm %08x wm %08x em %08x", readfds ? _swapEndianU32(readfds->mask) : 0, writefds ? _swapEndianU32(writefds->mask) : 0, exceptfds ? _swapEndianU32(exceptfds->mask) : 0);
+	// socketLog_printf("rm %08x wm %08x em %08x", readfds ? _swapEndianU32(readfds->mask) : 0,
+	// writefds ? _swapEndianU32(writefds->mask) : 0, exceptfds ? _swapEndianU32(exceptfds->mask) :
+	// 0);
 
 	sint32 r = 0;
 
@@ -1006,7 +1024,8 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 	fd_set _readfds, _writefds, _exceptfds;
 
 	// handle empty select
-	if ((readfds == NULL || readfds->mask == 0) && (writefds == NULL || writefds->mask == 0) && (exceptfds == NULL || exceptfds->mask == 0))
+	if ((readfds == NULL || readfds->mask == 0) && (writefds == NULL || writefds->mask == 0) &&
+		(exceptfds == NULL || exceptfds->mask == 0))
 	{
 		if (timeOut == NULL || (timeOut->tv_sec == 0 && timeOut->tv_usec == 0))
 		{
@@ -1019,33 +1038,34 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 		{
 			//// empty select with timeout is not allowed
 			//_setSockError(WU_SO_EINVAL);
-			//osLib_returnFromFunction(hCPU, -1);
-			//socketLog_printf("select returned SO_EINVAL because of empty fdsets with timeout");
+			// osLib_returnFromFunction(hCPU, -1);
+			// socketLog_printf("select returned SO_EINVAL because of empty fdsets with timeout");
 
 			// when fd sets are empty but timeout is set, then just wait and do nothing?
-			// Lost Reavers seems to expect this case to return 0 (it hardcodes empty fd sets and timeout comes from curl_multi_timeout)
+			// Lost Reavers seems to expect this case to return 0 (it hardcodes empty fd sets and
+			// timeout comes from curl_multi_timeout)
 
 			//_setSockError(WU_SO_EINVAL);
 			// todo - sleep here
 			socketLog_printf("select returned 0 because of empty fdsets with timeout");
 			osLib_returnFromFunction(hCPU, 0);
-			
+
 			return;
 		}
 	}
 
+	timeval tv = {0};
 
-
-	timeval tv = { 0 };
-
-	uint64 msTimeout = (_swapEndianU32(timeOut->tv_usec) / 1000) + (_swapEndianU32(timeOut->tv_sec) * 1000);
+	uint64 msTimeout =
+		(_swapEndianU32(timeOut->tv_usec) / 1000) + (_swapEndianU32(timeOut->tv_sec) * 1000);
 	uint32 startTime = GetTickCount();
 	while (true)
 	{
 		_translateFDSet(&_readfds, readfds, nfds);
 		_translateFDSet(&_writefds, writefds, nfds);
 		_translateFDSet(&_exceptfds, exceptfds, nfds);
-		r = select(0, readfds ? &_readfds : NULL, writefds ? &_writefds : NULL, exceptfds ? &_exceptfds : NULL, &tv);
+		r = select(0, readfds ? &_readfds : NULL, writefds ? &_writefds : NULL,
+				   exceptfds ? &_exceptfds : NULL, &tv);
 		if (r < 0)
 		{
 			forceLogDebug_printf("select() failed");
@@ -1064,7 +1084,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 		else if (r == 0)
 		{
 			// check for timeout
-			if ((GetTickCount() - startTime) >= msTimeout )
+			if ((GetTickCount() - startTime) >= msTimeout)
 			{
 				// timeout
 				_setSockError(WU_SO_SUCCESS);
@@ -1083,17 +1103,17 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 		}
 		else
 		{
-			socketLog_printf("select returned %d. Read %d Write %d Except %d", r, _readfds.fd_count, _writefds.fd_count, _exceptfds.fd_count);
+			socketLog_printf("select returned %d. Read %d Write %d Except %d", r, _readfds.fd_count,
+							 _writefds.fd_count, _exceptfds.fd_count);
 			_translateFDSetRev(readfds, &_readfds, nfds);
 			_translateFDSetRev(writefds, &_writefds, nfds);
 			_translateFDSetRev(exceptfds, &_exceptfds, nfds);
 			break;
 		}
 	}
-	//forceLog_printf("selectEndTime %d", timeGetTime());
+	// forceLog_printf("selectEndTime %d", timeGetTime());
 
-
-	//extern int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+	// extern int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	//	struct timeval *timeout);
 
 	socketLog_printf("select returned %d", r);
@@ -1127,8 +1147,8 @@ void nsysnetExport_getsockname(PPCInterpreter_t* hCPU)
 		{
 			assert_dbg();
 		}
-		//sint32 hr = listen(vs->s, queueSize);
-		//if (hr != 0)
+		// sint32 hr = listen(vs->s, queueSize);
+		// if (hr != 0)
 		//	r = -1;
 		//// todo: Set proper coreinit errno (via _setSockError)
 	}
@@ -1173,12 +1193,12 @@ typedef struct
 	sint32 h_addrType;
 	sint32 h_length;
 	MPTR h_addr_list;
-}wu_hostent;
+} wu_hostent;
 
 MPTR _allocString(char* str)
 {
 	sint32 len = (sint32)strlen(str);
-	MPTR strMPTR = coreinit_allocFromSysArea(len+1, 4);
+	MPTR strMPTR = coreinit_allocFromSysArea(len + 1, 4);
 	strcpy((char*)memory_getPointerFromVirtualOffset(strMPTR), str);
 	return strMPTR;
 }
@@ -1196,8 +1216,7 @@ void nsysnetExport_gethostbyname(PPCInterpreter_t* hCPU)
 		return;
 	}
 
-
-	MPTR hostentMPTR = coreinit_allocFromSysArea(sizeof(wu_hostent)*1, 4);
+	MPTR hostentMPTR = coreinit_allocFromSysArea(sizeof(wu_hostent) * 1, 4);
 	MPTR hostentAddrListMPTR = coreinit_allocFromSysArea(sizeof(MPTR) * 2, 4);
 	MPTR hostentAddrListEntriesMPTR = coreinit_allocFromSysArea(sizeof(wu_in_addr) * 1, 4);
 
@@ -1210,10 +1229,12 @@ void nsysnetExport_gethostbyname(PPCInterpreter_t* hCPU)
 	wuHostent->h_name = _swapEndianU32(_allocString(he->h_name));
 	wuHostent->h_addr_list = _swapEndianU32(hostentAddrListMPTR);
 
-	//memory_writeU32(hostentAddrListEntriesMPTR, _swapEndianU32(*(uint32*)he->h_addr_list[0]));
- 
-	wu_in_addr* addrListEntries = (wu_in_addr*)memory_getPointerFromVirtualOffset(hostentAddrListEntriesMPTR);
-	addrListEntries->wu_s_addr = *(uint32*)he->h_addr_list[0]; // address is already in network (big-endian) order
+	// memory_writeU32(hostentAddrListEntriesMPTR, _swapEndianU32(*(uint32*)he->h_addr_list[0]));
+
+	wu_in_addr* addrListEntries =
+		(wu_in_addr*)memory_getPointerFromVirtualOffset(hostentAddrListEntriesMPTR);
+	addrListEntries->wu_s_addr =
+		*(uint32*)he->h_addr_list[0]; // address is already in network (big-endian) order
 
 	memory_writeU32(hostentAddrListMPTR + 4 * 0, hostentAddrListEntriesMPTR);
 	memory_writeU32(hostentAddrListMPTR + 4 * 1, MPTR_NULL);
@@ -1253,7 +1274,7 @@ void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 #endif
 
 	wu_hostent* wuHostent = _staticHostent.GetPtr();
-	// setup wuHostent->h_name	
+	// setup wuHostent->h_name
 	wuHostent->h_name = _swapEndianU32(_staticHostentName.GetMPTR());
 	if (he->h_name && strlen(he->h_name) < 255)
 	{
@@ -1276,7 +1297,8 @@ void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 			break;
 		}
 		memcpy(_staticHostentEntries.GetPtr() + i, he->h_addr_list[i], sizeof(in_addr));
-		_staticHostentPtrList.GetPtr()[i] = _swapEndianU32(memory_getVirtualOffsetFromPointer(_staticHostentEntries.GetPtr() + i));
+		_staticHostentPtrList.GetPtr()[i] =
+			_swapEndianU32(memory_getVirtualOffsetFromPointer(_staticHostentEntries.GetPtr() + i));
 	}
 	_staticHostentPtrList.GetPtr()[31] = MPTR_NULL;
 	// aliases are ignored for now
@@ -1293,14 +1315,15 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(hints, struct wu_addrinfo, 2);
 	ppcDefineParamMPTR(results, 3);
 
-	socketLog_printf("getaddrinfo(\"%s\",0x%08x,0x%08x,0x%08x)", nodeName, hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
-	
+	socketLog_printf("getaddrinfo(\"%s\",0x%08x,0x%08x,0x%08x)", nodeName, hCPU->gpr[4],
+					 hCPU->gpr[5], hCPU->gpr[6]);
+
 	sint32 r = 0;
 
 	// todo1: This is really slow. Make it asynchronous
-	// todo2: Should this set the socket last error code? 
+	// todo2: Should this set the socket last error code?
 
-	struct addrinfo hint = { 0 };
+	struct addrinfo hint = {0};
 	if (hints)
 	{
 		hint.ai_family = _swapEndianU32(hints->ai_family);
@@ -1348,8 +1371,9 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 			cemu_assert_debug(false);
 		}
 		// allocate entries
-		MPTR addrInfoMPTR = coreinit_allocFromSysArea(sizeof(wu_addrinfo)*resultCount + sizeof(wu_sockaddr)*resultCount, 4);
-		MPTR addrInfoSockAddrMPTR = addrInfoMPTR + sizeof(wu_addrinfo)*resultCount;
+		MPTR addrInfoMPTR = coreinit_allocFromSysArea(
+			sizeof(wu_addrinfo) * resultCount + sizeof(wu_sockaddr) * resultCount, 4);
+		MPTR addrInfoSockAddrMPTR = addrInfoMPTR + sizeof(wu_addrinfo) * resultCount;
 		wu_addrinfo* wuAddrInfo = (wu_addrinfo*)memory_getPointerFromVirtualOffset(addrInfoMPTR);
 		// fill entries
 		currentAddrInfo = result;
@@ -1358,7 +1382,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 		while (currentAddrInfo)
 		{
 			if (currentAddrInfo->ai_addrlen != 16)
-			{ 
+			{
 				// skip this entry (IPv6)
 				currentAddrInfo = currentAddrInfo->ai_next;
 				continue;
@@ -1366,25 +1390,29 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 
 			memset(&wuAddrInfo[entryIndex], 0, sizeof(wu_addrinfo));
 			// setup pointers
-			wuAddrInfo[entryIndex].ai_addr = _swapEndianU32(addrInfoSockAddrMPTR + sizeof(wu_sockaddr)*entryIndex);
+			wuAddrInfo[entryIndex].ai_addr =
+				_swapEndianU32(addrInfoSockAddrMPTR + sizeof(wu_sockaddr) * entryIndex);
 			wuAddrInfo[entryIndex].ai_next = MPTR_NULL;
 			wuAddrInfo[entryIndex].ai_canonname = _swapEndianU32(MPTR_NULL);
 			// set ai_next for previous element
 			if (previousWuAddrInfo)
 			{
-				previousWuAddrInfo->ai_next = _swapEndianU32(memory_getVirtualOffsetFromPointer(&wuAddrInfo[entryIndex]));
+				previousWuAddrInfo->ai_next =
+					_swapEndianU32(memory_getVirtualOffsetFromPointer(&wuAddrInfo[entryIndex]));
 			}
 			previousWuAddrInfo = &wuAddrInfo[entryIndex];
 			// fill addrinfo struct
 			wuAddrInfo[entryIndex].ai_addrlen = _swapEndianU32((uint32)currentAddrInfo->ai_addrlen);
-			//wuAddrInfo[entryIndex].ai_canonname; todo
+			// wuAddrInfo[entryIndex].ai_canonname; todo
 			wuAddrInfo[entryIndex].ai_family = _swapEndianU32(currentAddrInfo->ai_family);
-			wuAddrInfo[entryIndex].ai_flags = _swapEndianU32(currentAddrInfo->ai_flags); // todo: These flags might need to be translated
+			wuAddrInfo[entryIndex].ai_flags = _swapEndianU32(
+				currentAddrInfo->ai_flags); // todo: These flags might need to be translated
 			wuAddrInfo[entryIndex].ai_protocol = _swapEndianU32(currentAddrInfo->ai_protocol);
 			wuAddrInfo[entryIndex].ai_socktype = _swapEndianU32(currentAddrInfo->ai_socktype);
 
 			// fill ai_addr
-			wu_sockaddr* sockAddr = (wu_sockaddr*)memory_getPointerFromVirtualOffset(_swapEndianU32(wuAddrInfo[entryIndex].ai_addr));
+			wu_sockaddr* sockAddr = (wu_sockaddr*)memory_getPointerFromVirtualOffset(
+				_swapEndianU32(wuAddrInfo[entryIndex].ai_addr));
 			sockAddr->sa_family = _swapEndianU16(currentAddrInfo->ai_addr->sa_family);
 			memcpy(sockAddr->sa_data, currentAddrInfo->ai_addr->sa_data, 14);
 
@@ -1403,14 +1431,15 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("recvfrom(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	socketLog_printf("recvfrom(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3],
+					 hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR,
+					 coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
 	ppcDefineParamS32(flags, 3);
 	ppcDefineParamStructPtr(fromAddr, wu_sockaddr, 4);
 	ppcDefineParamU32BEPtr(fromLen, 5);
-
 
 	virtualSocket_t* vs = nsysnet_getVirtualSocketObject(s);
 	sint32 r = 0;
@@ -1421,9 +1450,9 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 	}
 
 	int hostFlags = 0;
-	bool requestIsNonBlocking = (flags&WU_MSG_DONTWAIT) != 0;
+	bool requestIsNonBlocking = (flags & WU_MSG_DONTWAIT) != 0;
 	flags &= ~WU_MSG_DONTWAIT;
-	if (flags&WU_MSG_PEEK)
+	if (flags & WU_MSG_PEEK)
 	{
 		assert_dbg();
 		hostFlags |= MSG_PEEK;
@@ -1436,7 +1465,7 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 	sockaddr fromAddrHost;
 	sint32 wsaError = 0;
 
-	while( true )
+	while (true)
 	{
 		// is socket recv shutdown?
 		if (vs->isShutdownRecv)
@@ -1509,7 +1538,7 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 			{
 				if (wsaError != WSAEWOULDBLOCK)
 					break;
-				coreinit::OSSleepTicks(ESPRESSO_CORE_CLOCK/100); // pause for 10ms
+				coreinit::OSSleepTicks(ESPRESSO_CORE_CLOCK / 100); // pause for 10ms
 				PPCCore_switchToScheduler();
 				continue;
 			}
@@ -1532,10 +1561,12 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
-
 void nsysnetExport_recvfrom_ex(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("recvfrom_ex(%d,0x%08x,%d,0x%x,0x%08x,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8], hCPU->gpr[9], hCPU->gpr[10], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	socketLog_printf(
+		"recvfrom_ex(%d,0x%08x,%d,0x%x,0x%08x,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x",
+		hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8],
+		hCPU->gpr[9], hCPU->gpr[10], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1554,9 +1585,9 @@ void nsysnetExport_recvfrom_ex(PPCInterpreter_t* hCPU)
 	}
 
 	int hostFlags = 0;
-	bool requestIsNonBlocking = (flags&WU_MSG_DONTWAIT) != 0;
+	bool requestIsNonBlocking = (flags & WU_MSG_DONTWAIT) != 0;
 	flags &= ~WU_MSG_DONTWAIT;
-	if (flags&WU_MSG_PEEK)
+	if (flags & WU_MSG_PEEK)
 	{
 		cemu_assert_debug(false);
 		hostFlags |= MSG_PEEK;
@@ -1643,17 +1674,17 @@ void nsysnetExport_recvfrom_ex(PPCInterpreter_t* hCPU)
 	cemu_assert_debug(false); // should no longer be reached
 }
 
-
 void _convertSockaddrToHostFormat(wu_sockaddr* sockaddru, sockaddr* sockaddrHost)
 {
 	sockaddrHost->sa_family = _swapEndianU16(sockaddru->sa_family);
 	memcpy(sockaddrHost->sa_data, sockaddru->sa_data, 14);
 }
 
-
 void nsysnetExport_sendto(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("sendto(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	socketLog_printf("sendto(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3],
+					 hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR,
+					 coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1670,9 +1701,9 @@ void nsysnetExport_sendto(PPCInterpreter_t* hCPU)
 	}
 
 	int hostFlags = 0;
-	bool requestIsNonBlocking = (flags&WU_MSG_DONTWAIT) != 0;
+	bool requestIsNonBlocking = (flags & WU_MSG_DONTWAIT) != 0;
 	flags &= ~WU_MSG_DONTWAIT;
-	if (flags&WU_MSG_PEEK)
+	if (flags & WU_MSG_PEEK)
 	{
 		assert_dbg();
 		hostFlags |= MSG_PEEK;
@@ -1720,10 +1751,11 @@ void nsysnetExport_sendto(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
-
 void nsysnetExport_sendto_multi(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("sendto_multi(%d,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	socketLog_printf("sendto_multi(%d,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3],
+					 hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR,
+					 coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(data, 1);
 	ppcDefineParamS32(dataLen, 2);
@@ -1758,19 +1790,21 @@ void nsysnetExport_sendto_multi(PPCInterpreter_t* hCPU)
 
 typedef struct
 {
-	MEMPTR<uint8>				data;
-	uint32be					dataLen;
-	MEMPTR<uint32be>			sendLenArray;
-	uint32be					sendLenArraySize;
-	MEMPTR<wu_sockaddr>			destArray;
-	uint32be					destArraySize;
-	MEMPTR<uint32be>			resultArray;
-	uint32be					resultArrayLen;
-}sendtomultiBuffer_t;
+	MEMPTR<uint8> data;
+	uint32be dataLen;
+	MEMPTR<uint32be> sendLenArray;
+	uint32be sendLenArraySize;
+	MEMPTR<wu_sockaddr> destArray;
+	uint32be destArraySize;
+	MEMPTR<uint32be> resultArray;
+	uint32be resultArrayLen;
+} sendtomultiBuffer_t;
 
 void nsysnetExport_sendto_multi_ex(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("sendto_multi_ex(%d,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	socketLog_printf("sendto_multi_ex(%d,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3],
+					 hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR,
+					 coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamU32(flags, 1);
 	ppcDefineParamStructPtr(multiBuf, sendtomultiBuffer_t, 2);
@@ -1785,11 +1819,10 @@ void nsysnetExport_sendto_multi_ex(PPCInterpreter_t* hCPU)
 		return;
 	}
 
-	// todo - lots of validation for multiBuf parameters (pointers must not be null and must be aligned, lens must be padded to alignment too)
-	// verify multiBuf
-	if ((uint32)multiBuf->sendLenArraySize < num ||
-		(uint32)multiBuf->destArraySize < num ||
-		(uint32)multiBuf->resultArrayLen < num )
+	// todo - lots of validation for multiBuf parameters (pointers must not be null and must be
+	// aligned, lens must be padded to alignment too) verify multiBuf
+	if ((uint32)multiBuf->sendLenArraySize < num || (uint32)multiBuf->destArraySize < num ||
+		(uint32)multiBuf->resultArrayLen < num)
 	{
 		cemu_assert_debug(false);
 	}
@@ -1822,217 +1855,216 @@ void nsysnetExport_sendto_multi_ex(PPCInterpreter_t* hCPU)
 
 namespace nsysnet
 {
-	std::vector<NSSLInternalState_t> g_nsslInternalStates;
+std::vector<NSSLInternalState_t> g_nsslInternalStates;
 
-	NSSLInternalState_t* GetNSSLContext(sint32 index)
-	{
-		if (g_nsslInternalStates.size() <= index)
-			return nullptr;
+NSSLInternalState_t* GetNSSLContext(sint32 index)
+{
+	if (g_nsslInternalStates.size() <= index)
+		return nullptr;
 
-		if (g_nsslInternalStates[index].destroyed)
-			cemu_assert_suspicious();
-	
-		return &g_nsslInternalStates[index];
-	}
+	if (g_nsslInternalStates[index].destroyed)
+		cemu_assert_suspicious();
 
-	void export_NSSLCreateContext(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(version, 0);
-
-		NSSLInternalState_t ssl = {};
-		ssl.sslVersion = version;
-		g_nsslInternalStates.push_back(ssl);
-
-		uint32 nsslHandle = (uint32)g_nsslInternalStates.size() - 1;
-
-		forceLogDebug_printf("NSSLCreateContext(0x%x) -> 0x%x", version, nsslHandle);
-
-		osLib_returnFromFunction(hCPU, nsslHandle);
-	}
-
-	void export_NSSLSetClientPKI(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(nsslHandle, 0);
-		ppcDefineParamU32(clientPKI, 1);
-		forceLogDebug_printf("NSSLSetClientPKI(0x%x, 0x%x)", nsslHandle, clientPKI);
-
-		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
-		{
-			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
-			return;
-		}
-
-		g_nsslInternalStates[nsslHandle].clientPKI = clientPKI;
-		osLib_returnFromFunction(hCPU, NSSL_OK);
-	}
-
-	void export_NSSLAddServerPKI(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(nsslHandle, 0);
-		ppcDefineParamU32(serverPKI, 1);
-		forceLogDebug_printf("NSSLAddServerPKI(0x%x, 0x%x)", nsslHandle, serverPKI);
-
-		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
-		{
-			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
-			return;
-		}
-
-		g_nsslInternalStates[nsslHandle].serverPKIs.insert(serverPKI);
-		osLib_returnFromFunction(hCPU, NSSL_OK);
-	}
-
-	void export_NSSLAddServerPKIExternal(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(nsslHandle, 0);
-		ppcDefineParamMEMPTR(certData, uint8, 1);
-		ppcDefineParamS32(certLen, 2);
-		ppcDefineParamS32(certType, 3);
-
-		forceLogDebug_printf("NSSLAddServerPKIExternal(0x%x, 0x%08x, 0x%x, %d)", nsslHandle, certData.GetMPTR(), certLen, certType);
-		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
-		{
-			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
-			return;
-		}
-
-		g_nsslInternalStates[nsslHandle].serverCustomPKIs.push_back(std::vector<uint8>(certData.GetPtr(), certData.GetPtr()+certLen));
-
-		osLib_returnFromFunction(hCPU, NSSL_OK);
-	}
-
-	void export_NSSLAddServerPKIGroups(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(nsslHandle, 0);
-		ppcDefineParamU32(groupMask, 1);
-		ppcDefineParamMEMPTR(validCountOut, sint32, 2);
-		ppcDefineParamMEMPTR(invalidCountOut, sint32, 3);
-		forceLogDebug_printf("NSSLAddServerPKIGroups(0x%x, 0x%x, 0x%08x, 0x%08x)", nsslHandle, groupMask, validCountOut.GetMPTR(), invalidCountOut.GetMPTR());
-
-		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
-		{
-			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
-			return;
-		}
-
-		if (HAS_FLAG(groupMask, 1))
-		{
-			g_nsslInternalStates[nsslHandle].serverPKIs.insert({ 100,101,102,103,104,105 });
-		}
-
-		if (HAS_FLAG(groupMask, 2))
-		{
-			g_nsslInternalStates[nsslHandle].serverPKIs.insert({
-				1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009,
-				1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019,
-				1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029,
-				1030, 1031, 1032, 1033 });
-		}
-
-		if (validCountOut)
-			*validCountOut = (sint32)g_nsslInternalStates[nsslHandle].serverPKIs.size();
-
-		if (invalidCountOut)
-			*invalidCountOut = 0;
-
-		osLib_returnFromFunction(hCPU, NSSL_OK);
-	}
-
-	void export_NSSLDestroyContext(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(nsslHandle, 0);
-		forceLogDebug_printf("NSSLDestroyContext(0x%x)", nsslHandle);
-
-		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
-		{
-			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
-			return;
-		}
-
-		g_nsslInternalStates[nsslHandle].destroyed = true;
-		osLib_returnFromFunction(hCPU, NSSL_OK);
-	}
-
-	void export_NSSLExportInternalServerCertificate(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(serverCertId, 0);
-		ppcDefineParamUStr(output, 1);
-		ppcDefineParamU32BEPtr(outputSize, 2);
-		ppcDefineParamU32BEPtr(certType, 3);
-
-		sint32 certificateSize = 0;
-		uint8* certificateData = iosuCrypto_getCertificateDataById(serverCertId, &certificateSize);
-		if (certificateData == nullptr)
-		{
-			cemu_assert_debug(false);
-		}
-
-		if( output )
-			memcpy(output, certificateData, certificateSize);
-		*outputSize = (uint32)certificateSize;
-		*certType = 0;
-
-		osLib_returnFromFunction(hCPU, NSSL_OK);
-	}
-
-	void export_NSSLExportInternalClientCertificate(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamU32(serverCertId, 0);
-		ppcDefineParamUStr(output, 1);
-		ppcDefineParamU32BEPtr(outputSize, 2);
-		ppcDefineParamU32BEPtr(certType, 3);
-		ppcDefineParamUStr(pkeyOutput, 4);
-		ppcDefineParamU32BEPtr(pkeyOutputSize, 5);
-		ppcDefineParamU32BEPtr(pkeyCertType, 6);
-
-		// certificate
-		sint32 certificateSize = 0;
-		uint8* certificateData = iosuCrypto_getCertificateDataById(serverCertId, &certificateSize);
-		if (certificateData == nullptr)
-		{
-			assert_dbg(); // todo
-		}
-		if (output)
-			memcpy(output, certificateData, certificateSize);
-		*outputSize = (uint32)certificateSize;
-		*certType = 0;
-
-		// private key
-		sint32 pkeySize = 0;
-		uint8* pkeyData = iosuCrypto_getCertificatePrivateKeyById(serverCertId, &pkeySize);
-		if (pkeyData == nullptr)
-		{
-			assert_dbg(); // todo
-		}
-		if (pkeyOutput)
-			memcpy(pkeyOutput, pkeyData, pkeySize);
-		*pkeyOutputSize = (uint32)pkeySize;
-		*pkeyCertType = 0;
-
-		osLib_returnFromFunction(hCPU, NSSL_OK);
-	}
-
-	void wuResetFD(struct wu_fd_set* fdset)
-	{
-		fdset->mask = 0;
-	}
-
-	void wuSetFD(struct wu_fd_set* fdset, sint32 fd)
-	{
-		fdset->mask |= (1 << fd);
-	}
-
+	return &g_nsslInternalStates[index];
 }
 
+void export_NSSLCreateContext(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(version, 0);
 
+	NSSLInternalState_t ssl = {};
+	ssl.sslVersion = version;
+	g_nsslInternalStates.push_back(ssl);
+
+	uint32 nsslHandle = (uint32)g_nsslInternalStates.size() - 1;
+
+	forceLogDebug_printf("NSSLCreateContext(0x%x) -> 0x%x", version, nsslHandle);
+
+	osLib_returnFromFunction(hCPU, nsslHandle);
+}
+
+void export_NSSLSetClientPKI(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(nsslHandle, 0);
+	ppcDefineParamU32(clientPKI, 1);
+	forceLogDebug_printf("NSSLSetClientPKI(0x%x, 0x%x)", nsslHandle, clientPKI);
+
+	if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
+	{
+		osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
+		return;
+	}
+
+	g_nsslInternalStates[nsslHandle].clientPKI = clientPKI;
+	osLib_returnFromFunction(hCPU, NSSL_OK);
+}
+
+void export_NSSLAddServerPKI(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(nsslHandle, 0);
+	ppcDefineParamU32(serverPKI, 1);
+	forceLogDebug_printf("NSSLAddServerPKI(0x%x, 0x%x)", nsslHandle, serverPKI);
+
+	if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
+	{
+		osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
+		return;
+	}
+
+	g_nsslInternalStates[nsslHandle].serverPKIs.insert(serverPKI);
+	osLib_returnFromFunction(hCPU, NSSL_OK);
+}
+
+void export_NSSLAddServerPKIExternal(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(nsslHandle, 0);
+	ppcDefineParamMEMPTR(certData, uint8, 1);
+	ppcDefineParamS32(certLen, 2);
+	ppcDefineParamS32(certType, 3);
+
+	forceLogDebug_printf("NSSLAddServerPKIExternal(0x%x, 0x%08x, 0x%x, %d)", nsslHandle,
+						 certData.GetMPTR(), certLen, certType);
+	if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
+	{
+		osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
+		return;
+	}
+
+	g_nsslInternalStates[nsslHandle].serverCustomPKIs.push_back(
+		std::vector<uint8>(certData.GetPtr(), certData.GetPtr() + certLen));
+
+	osLib_returnFromFunction(hCPU, NSSL_OK);
+}
+
+void export_NSSLAddServerPKIGroups(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(nsslHandle, 0);
+	ppcDefineParamU32(groupMask, 1);
+	ppcDefineParamMEMPTR(validCountOut, sint32, 2);
+	ppcDefineParamMEMPTR(invalidCountOut, sint32, 3);
+	forceLogDebug_printf("NSSLAddServerPKIGroups(0x%x, 0x%x, 0x%08x, 0x%08x)", nsslHandle,
+						 groupMask, validCountOut.GetMPTR(), invalidCountOut.GetMPTR());
+
+	if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
+	{
+		osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
+		return;
+	}
+
+	if (HAS_FLAG(groupMask, 1))
+	{
+		g_nsslInternalStates[nsslHandle].serverPKIs.insert({100, 101, 102, 103, 104, 105});
+	}
+
+	if (HAS_FLAG(groupMask, 2))
+	{
+		g_nsslInternalStates[nsslHandle].serverPKIs.insert(
+			{1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011,
+			 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022,
+			 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033});
+	}
+
+	if (validCountOut)
+		*validCountOut = (sint32)g_nsslInternalStates[nsslHandle].serverPKIs.size();
+
+	if (invalidCountOut)
+		*invalidCountOut = 0;
+
+	osLib_returnFromFunction(hCPU, NSSL_OK);
+}
+
+void export_NSSLDestroyContext(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(nsslHandle, 0);
+	forceLogDebug_printf("NSSLDestroyContext(0x%x)", nsslHandle);
+
+	if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
+	{
+		osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
+		return;
+	}
+
+	g_nsslInternalStates[nsslHandle].destroyed = true;
+	osLib_returnFromFunction(hCPU, NSSL_OK);
+}
+
+void export_NSSLExportInternalServerCertificate(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(serverCertId, 0);
+	ppcDefineParamUStr(output, 1);
+	ppcDefineParamU32BEPtr(outputSize, 2);
+	ppcDefineParamU32BEPtr(certType, 3);
+
+	sint32 certificateSize = 0;
+	uint8* certificateData = iosuCrypto_getCertificateDataById(serverCertId, &certificateSize);
+	if (certificateData == nullptr)
+	{
+		cemu_assert_debug(false);
+	}
+
+	if (output)
+		memcpy(output, certificateData, certificateSize);
+	*outputSize = (uint32)certificateSize;
+	*certType = 0;
+
+	osLib_returnFromFunction(hCPU, NSSL_OK);
+}
+
+void export_NSSLExportInternalClientCertificate(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(serverCertId, 0);
+	ppcDefineParamUStr(output, 1);
+	ppcDefineParamU32BEPtr(outputSize, 2);
+	ppcDefineParamU32BEPtr(certType, 3);
+	ppcDefineParamUStr(pkeyOutput, 4);
+	ppcDefineParamU32BEPtr(pkeyOutputSize, 5);
+	ppcDefineParamU32BEPtr(pkeyCertType, 6);
+
+	// certificate
+	sint32 certificateSize = 0;
+	uint8* certificateData = iosuCrypto_getCertificateDataById(serverCertId, &certificateSize);
+	if (certificateData == nullptr)
+	{
+		assert_dbg(); // todo
+	}
+	if (output)
+		memcpy(output, certificateData, certificateSize);
+	*outputSize = (uint32)certificateSize;
+	*certType = 0;
+
+	// private key
+	sint32 pkeySize = 0;
+	uint8* pkeyData = iosuCrypto_getCertificatePrivateKeyById(serverCertId, &pkeySize);
+	if (pkeyData == nullptr)
+	{
+		assert_dbg(); // todo
+	}
+	if (pkeyOutput)
+		memcpy(pkeyOutput, pkeyData, pkeySize);
+	*pkeyOutputSize = (uint32)pkeySize;
+	*pkeyCertType = 0;
+
+	osLib_returnFromFunction(hCPU, NSSL_OK);
+}
+
+void wuResetFD(struct wu_fd_set* fdset)
+{
+	fdset->mask = 0;
+}
+
+void wuSetFD(struct wu_fd_set* fdset, sint32 fd)
+{
+	fdset->mask |= (1 << fd);
+}
+
+} // namespace nsysnet
 
 // register nsysnet functions
 void nsysnet_load()
 {
-	
-	#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	osLib_addFunction("nsysnet", "socket_lib_init", nsysnetExport_socket_lib_init);
-	
+
 	// socket API
 	osLib_addFunction("nsysnet", "socket", nsysnetExport_socket);
 	osLib_addFunction("nsysnet", "mw_socket", nsysnetExport_mw_socket);
@@ -2077,17 +2109,17 @@ void nsysnet_load()
 	osLib_addFunction("nsysnet", "NSSLCreateContext", nsysnet::export_NSSLCreateContext);
 	osLib_addFunction("nsysnet", "NSSLSetClientPKI", nsysnet::export_NSSLSetClientPKI);
 	osLib_addFunction("nsysnet", "NSSLAddServerPKI", nsysnet::export_NSSLAddServerPKI);
-	osLib_addFunction("nsysnet", "NSSLAddServerPKIExternal", nsysnet::export_NSSLAddServerPKIExternal);
+	osLib_addFunction("nsysnet", "NSSLAddServerPKIExternal",
+					  nsysnet::export_NSSLAddServerPKIExternal);
 	osLib_addFunction("nsysnet", "NSSLAddServerPKIGroups", nsysnet::export_NSSLAddServerPKIGroups);
 	osLib_addFunction("nsysnet", "NSSLDestroyContext", nsysnet::export_NSSLDestroyContext);
 
-	osLib_addFunction("nsysnet", "NSSLExportInternalServerCertificate", nsysnet::export_NSSLExportInternalServerCertificate);
-	osLib_addFunction("nsysnet", "NSSLExportInternalClientCertificate", nsysnet::export_NSSLExportInternalClientCertificate);
+	osLib_addFunction("nsysnet", "NSSLExportInternalServerCertificate",
+					  nsysnet::export_NSSLExportInternalServerCertificate);
+	osLib_addFunction("nsysnet", "NSSLExportInternalClientCertificate",
+					  nsysnet::export_NSSLExportInternalClientCertificate);
 }
 
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
-void nsysnet_notifyCloseSharedSocket(SOCKET existingSocket)
-{
-
-}
+void nsysnet_notifyCloseSharedSocket(SOCKET existingSocket) {}
 #endif

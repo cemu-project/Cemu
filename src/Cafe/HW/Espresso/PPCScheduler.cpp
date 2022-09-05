@@ -1,19 +1,21 @@
-#include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
-#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/OS/libs/gx2/GX2.h"
 
-#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 
-uint32 ppcThreadQuantum = 45000; // execute 45000 instructions before thread reschedule happens, this value can be overwritten by game profiles
+uint32 ppcThreadQuantum = 45000; // execute 45000 instructions before thread reschedule happens,
+								 // this value can be overwritten by game profiles
 
 void PPCInterpreter_relinquishTimeslice()
 {
-	if( ppcInterpreterCurrentInstance->remainingCycles >= 0 )
+	if (ppcInterpreterCurrentInstance->remainingCycles >= 0)
 	{
-		ppcInterpreterCurrentInstance->skippedCycles = ppcInterpreterCurrentInstance->remainingCycles + 1;
+		ppcInterpreterCurrentInstance->skippedCycles =
+			ppcInterpreterCurrentInstance->remainingCycles + 1;
 		ppcInterpreterCurrentInstance->remainingCycles = -1;
 	}
 }
@@ -30,13 +32,15 @@ void PPCCore_deboostQuantum(sint32 numCycles)
 
 namespace coreinit
 {
-	void __OSThreadSwitchToNext();
+void __OSThreadSwitchToNext();
 }
 
 void PPCCore_switchToScheduler()
 {
-	cemu_assert_debug(__OSHasSchedulerLock() == false); // scheduler lock must not be hold past thread time slice
-	cemu_assert_debug(ppcInterpreterCurrentInstance->coreInterruptMask != 0 || CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
+	cemu_assert_debug(__OSHasSchedulerLock() ==
+					  false); // scheduler lock must not be hold past thread time slice
+	cemu_assert_debug(ppcInterpreterCurrentInstance->coreInterruptMask != 0 ||
+					  CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
 	__OSLockScheduler();
 	coreinit::__OSThreadSwitchToNext();
 	__OSUnlockScheduler();
@@ -45,7 +49,8 @@ void PPCCore_switchToScheduler()
 void PPCCore_switchToSchedulerWithLock()
 {
 	cemu_assert_debug(__OSHasSchedulerLock() == true); // scheduler lock must be hold
-	cemu_assert_debug(ppcInterpreterCurrentInstance->coreInterruptMask != 0 || CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
+	cemu_assert_debug(ppcInterpreterCurrentInstance->coreInterruptMask != 0 ||
+					  CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
 	coreinit::__OSThreadSwitchToNext();
 }
 
@@ -105,6 +110,4 @@ void PPCCore_deleteAllThreads()
 	assert_dbg();
 }
 
-void PPCCore_init()
-{
-}
+void PPCCore_init() {}

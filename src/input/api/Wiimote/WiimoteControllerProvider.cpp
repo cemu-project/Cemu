@@ -8,8 +8,7 @@
 
 #include <numbers>
 
-WiimoteControllerProvider::WiimoteControllerProvider()
-	: m_running(true)
+WiimoteControllerProvider::WiimoteControllerProvider() : m_running(true)
 {
 	m_reader_thread = std::thread(&WiimoteControllerProvider::reader_thread, this);
 	m_writer_thread = std::thread(&WiimoteControllerProvider::writer_thread, this);
@@ -35,8 +34,9 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
 		if (is_connected)
 		{
 			// only add unknown, connected devices to our list
-			const bool is_new_device = std::none_of(m_wiimotes.cbegin(), m_wiimotes.cend(),
-			                                        [&device](const auto& it) { return *it.device == *device; });
+			const bool is_new_device =
+				std::none_of(m_wiimotes.cbegin(), m_wiimotes.cend(),
+							 [&device](const auto& it) { return *it.device == *device; });
 			if (is_new_device)
 			{
 				m_wiimotes.push_back(std::make_unique<Wiimote>(device));
@@ -70,11 +70,11 @@ void WiimoteControllerProvider::set_rumble(size_t index, bool state)
 	std::shared_lock lock(m_device_mutex);
 	if (index >= m_wiimotes.size())
 		return;
-	
+
 	m_wiimotes[index].rumble = state;
 	lock.unlock();
 
-	send_packet(index, { kStatusRequest, 0x00 });
+	send_packet(index, {kStatusRequest, 0x00});
 }
 
 void WiimoteControllerProvider::request_status(size_t index)
@@ -130,7 +130,8 @@ void WiimoteControllerProvider::reader_thread()
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		const auto now = std::chrono::steady_clock::now();
-		if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck) > std::chrono::seconds(2))
+		if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck) >
+			std::chrono::seconds(2))
 		{
 			// check for new connected wiimotes
 			get_controllers();
@@ -162,452 +163,454 @@ void WiimoteControllerProvider::reader_thread()
 			switch (id)
 			{
 			case kStatus:
+			{
+#ifdef WIIMOTE_DEBUG
+				printf("WiimoteControllerProvider::read_thread: kStatus\n");
+#endif
+				new_state.buttons = (*(uint16*)data) & (~0x60E0);
+				data += 2;
+				new_state.flags = *data;
+				++data;
+				data += 2; // skip zeroes
+				new_state.battery_level = *data;
+				++data;
+
+				new_state.ir_camera.mode = set_ir_camera(index, true);
+				if (!new_state.m_calibrated)
+					calibrate(index);
+
+				if (!new_state.m_motion_plus)
+					detect_motion_plus(index);
+
+				if (HAS_FLAG(new_state.flags, kExtensionConnected))
 				{
 #ifdef WIIMOTE_DEBUG
-					printf("WiimoteControllerProvider::read_thread: kStatus\n");
+					printf("\tExtension flag is set\n");
 #endif
-					new_state.buttons = (*(uint16*)data) & (~0x60E0);
-					data += 2;
-					new_state.flags = *data;
-					++data;
-					data += 2; // skip zeroes
-					new_state.battery_level = *data;
-					++data;
-
-					new_state.ir_camera.mode = set_ir_camera(index, true);
-					if(!new_state.m_calibrated)
-						calibrate(index);
-
-					if(!new_state.m_motion_plus)
-						detect_motion_plus(index);
-
-					if (HAS_FLAG(new_state.flags, kExtensionConnected))
-					{
-#ifdef WIIMOTE_DEBUG
-						printf("\tExtension flag is set\n");
-#endif
-						if(new_state.m_extension.index() == 0)
-							request_extension(index);
-					}
-					else
-					{
-						new_state.m_extension = {};
-					}
-
-					update_report = true;
+					if (new_state.m_extension.index() == 0)
+						request_extension(index);
 				}
-				break;
+				else
+				{
+					new_state.m_extension = {};
+				}
+
+				update_report = true;
+			}
+			break;
 			case kRead:
+			{
+#ifdef WIIMOTE_DEBUG
+				printf("WiimoteControllerProvider::read_thread: kRead\n");
+#endif
+				new_state.buttons = (*(uint16*)data) & (~0x60E0);
+				data += 2;
+				const uint8 error_flag = *data & 0xF, size = (*data >> 4) + 1;
+				++data;
+
+				if (error_flag)
+				{
+					// 7 means that wiimote is already enabled or not available
+#ifdef WIIMOTE_DEBUG
+					printf("Received error on data read 0x%x\n", error_flag);
+#endif
+					continue;
+				}
+
+				auto address = *(betype<uint16>*)data;
+				data += 2;
+				if (address == (kRegisterCalibration & 0xFFFF))
 				{
 #ifdef WIIMOTE_DEBUG
-					printf("WiimoteControllerProvider::read_thread: kRead\n");
+					printf("Calibration received\n");
 #endif
-					new_state.buttons = (*(uint16*)data) & (~0x60E0);
-					data += 2;
-					const uint8 error_flag = *data & 0xF, size = (*data >> 4) + 1;
+
+					cemu_assert(size == 8);
+
+					new_state.m_calib_acceleration.zero.x = (uint16)*data << 2;
+					++data;
+					new_state.m_calib_acceleration.zero.y = (uint16)*data << 2;
+					++data;
+					new_state.m_calib_acceleration.zero.z = (uint16)*data << 2;
+					++data;
+					// --XXYYZZ
+					new_state.m_calib_acceleration.zero.x |= (*data >> 4) & 0x3; // 5|4 -> 1|0
+					new_state.m_calib_acceleration.zero.y |= (*data >> 2) & 0x3; // 3|4 -> 1|0
+					new_state.m_calib_acceleration.zero.z |= *data & 0x3;
 					++data;
 
-					if (error_flag)
-					{
-						// 7 means that wiimote is already enabled or not available
-#ifdef WIIMOTE_DEBUG
-						printf("Received error on data read 0x%x\n", error_flag);
-#endif
-						continue;
-					}
+					new_state.m_calib_acceleration.gravity.x = (uint16)*data << 2;
+					++data;
+					new_state.m_calib_acceleration.gravity.y = (uint16)*data << 2;
+					++data;
+					new_state.m_calib_acceleration.gravity.z = (uint16)*data << 2;
+					++data;
+					new_state.m_calib_acceleration.gravity.x |= (*data >> 4) & 0x3; // 5|4 -> 1|0
+					new_state.m_calib_acceleration.gravity.y |= (*data >> 2) & 0x3; // 3|4 -> 1|0
+					new_state.m_calib_acceleration.gravity.z |= *data & 0x3;
+					++data;
 
-					auto address = *(betype<uint16>*)data;
-					data += 2;
-					if (address == (kRegisterCalibration & 0xFFFF))
-					{
-#ifdef WIIMOTE_DEBUG
-						printf("Calibration received\n");
-#endif
-
-						cemu_assert(size == 8);
-
-						new_state.m_calib_acceleration.zero.x = (uint16)*data << 2;
-						++data;
-						new_state.m_calib_acceleration.zero.y = (uint16)*data << 2;
-						++data;
-						new_state.m_calib_acceleration.zero.z = (uint16)*data << 2;
-						++data;
-						// --XXYYZZ
-						new_state.m_calib_acceleration.zero.x |= (*data >> 4) & 0x3; // 5|4 -> 1|0
-						new_state.m_calib_acceleration.zero.y |= (*data >> 2) & 0x3; // 3|4 -> 1|0
-						new_state.m_calib_acceleration.zero.z |= *data & 0x3;
-						++data;
-
-						new_state.m_calib_acceleration.gravity.x = (uint16)*data << 2;
-						++data;
-						new_state.m_calib_acceleration.gravity.y = (uint16)*data << 2;
-						++data;
-						new_state.m_calib_acceleration.gravity.z = (uint16)*data << 2;
-						++data;
-						new_state.m_calib_acceleration.gravity.x |= (*data >> 4) & 0x3; // 5|4 -> 1|0
-						new_state.m_calib_acceleration.gravity.y |= (*data >> 2) & 0x3; // 3|4 -> 1|0
-						new_state.m_calib_acceleration.gravity.z |= *data & 0x3;
-						++data;
-
-						new_state.m_calibrated = true;
-					}
-					else if (address == (kRegisterExtensionType & 0xFFFF))
-					{
-						if (size == 0xf)
-						{
-#ifdef WIIMOTE_DEBUG
-							printf("Extension type received but no extension connected\n");
-#endif
-							continue;
-						}
-
-
-#ifdef WIIMOTE_DEBUG
-						printf("Extension type received\n");
-#endif
-
-						cemu_assert(size == 6);
-						auto be_type = *(betype<uint64>*)data;
-						data += 6; // 48
-						be_type >>= 16;
-						be_type &= 0xFFFFFFFFFFFF;
-						switch (be_type.value())
-						{
-						case kExtensionNunchuck:
-#ifdef WIIMOTE_DEBUG
-							printf("\tNunchuck\n");
-#endif
-							new_state.m_extension = NunchuckData{};
-							break;
-						case kExtensionClassic:
-#ifdef WIIMOTE_DEBUG
-							printf("\tClassic\n");
-#endif
-							new_state.m_extension = ClassicData{};
-							break;
-						case kExtensionClassicPro:
-							break;
-						case kExtensionGuitar:
-							break;
-						case kExtensionDrums:
-							break;
-						case kExtensionBalanceBoard:
-							break;
-						case kExtensionMotionPlus:
-							//m_motion_plus = true;
-#ifdef WIIMOTE_DEBUG
-							printf("\tMotion plus detected\n");
-#endif
-							set_motion_plus(index, true);
-							new_state.m_motion_plus = MotionPlusData{};
-							break;
-						case kExtensionPartialyInserted:
-#ifdef WIIMOTE_DEBUG
-							printf("\tExtension only partially inserted!\n");
-#endif
-							new_state.m_extension = {};
-							request_status(index);
-							break;
-						default:
-							new_state.m_extension = {};
-							break;
-						}
-
-						if (new_state.m_extension.index() != 0)
-							send_read_packet(index, kRegisterMemory, kRegisterExtensionCalibration, 0x10);
-					}
-					else if (address == (kRegisterExtensionCalibration & 0xFFFF))
-					{
-						cemu_assert(size == 0x10);
-#ifdef WIIMOTE_DEBUG
-						printf("Extension calibration received\n");
-#endif
-						std::visit(
-							overloaded
-							{
-								[](auto)
-								{
-								},
-								[data](MotionPlusData& mp)
-								{
-									// TODO fix
-								},
-								[data](NunchuckData& nunchuck)
-								{
-									std::array<uint8, 14> zero{};
-									if (memcmp(zero.data(), data, zero.size()) == 0)
-									{
-#ifdef WIIMOTE_DEBUG
-										printf("\tExtension calibration data is zero!\n");
-#endif
-										return;
-									}
-
-									nunchuck.calibration.zero.x = (uint16)data[0] << 2;
-									nunchuck.calibration.zero.y = (uint16)data[1] << 2;
-									nunchuck.calibration.zero.z = (uint16)data[2] << 2;
-									// --XXYYZZ
-									nunchuck.calibration.zero.x |= (data[3] >> 4) & 0x3; // 5|4 -> 1|0
-									nunchuck.calibration.zero.y |= (data[3] >> 2) & 0x3; // 3|4 -> 1|0
-									nunchuck.calibration.zero.z |= data[3] & 0x3;
-
-									nunchuck.calibration.gravity.x = (uint16)data[4] << 2;;
-									nunchuck.calibration.gravity.y = (uint16)data[5] << 2;;
-									nunchuck.calibration.gravity.z = (uint16)data[6] << 2;;
-									// --XXYYZZ
-									nunchuck.calibration.gravity.x |= (data[7] >> 4) & 0x3; // 5|4 -> 1|0
-									nunchuck.calibration.gravity.y |= (data[7] >> 2) & 0x3; // 3|4 -> 1|0
-									nunchuck.calibration.gravity.z |= data[7] & 0x3;
-
-									nunchuck.calibration.max.x = data[8];
-									nunchuck.calibration.max.y = data[11];
-
-									nunchuck.calibration.min.x = data[9];
-									nunchuck.calibration.min.y = data[12];
-
-									nunchuck.calibration.center.x = data[10];
-									nunchuck.calibration.center.y = data[13];
-								}
-							}, new_state.m_extension);
-					}
-					else
-					{
-#ifdef WIIMOTE_DEBUG
-						printf("Unhandled read data received\n");
-#endif
-						continue;
-					}
-
-					update_report = true;
+					new_state.m_calibrated = true;
 				}
-				break;
+				else if (address == (kRegisterExtensionType & 0xFFFF))
+				{
+					if (size == 0xf)
+					{
+#ifdef WIIMOTE_DEBUG
+						printf("Extension type received but no extension connected\n");
+#endif
+						continue;
+					}
+
+#ifdef WIIMOTE_DEBUG
+					printf("Extension type received\n");
+#endif
+
+					cemu_assert(size == 6);
+					auto be_type = *(betype<uint64>*)data;
+					data += 6; // 48
+					be_type >>= 16;
+					be_type &= 0xFFFFFFFFFFFF;
+					switch (be_type.value())
+					{
+					case kExtensionNunchuck:
+#ifdef WIIMOTE_DEBUG
+						printf("\tNunchuck\n");
+#endif
+						new_state.m_extension = NunchuckData{};
+						break;
+					case kExtensionClassic:
+#ifdef WIIMOTE_DEBUG
+						printf("\tClassic\n");
+#endif
+						new_state.m_extension = ClassicData{};
+						break;
+					case kExtensionClassicPro:
+						break;
+					case kExtensionGuitar:
+						break;
+					case kExtensionDrums:
+						break;
+					case kExtensionBalanceBoard:
+						break;
+					case kExtensionMotionPlus:
+						// m_motion_plus = true;
+#ifdef WIIMOTE_DEBUG
+						printf("\tMotion plus detected\n");
+#endif
+						set_motion_plus(index, true);
+						new_state.m_motion_plus = MotionPlusData{};
+						break;
+					case kExtensionPartialyInserted:
+#ifdef WIIMOTE_DEBUG
+						printf("\tExtension only partially inserted!\n");
+#endif
+						new_state.m_extension = {};
+						request_status(index);
+						break;
+					default:
+						new_state.m_extension = {};
+						break;
+					}
+
+					if (new_state.m_extension.index() != 0)
+						send_read_packet(index, kRegisterMemory, kRegisterExtensionCalibration,
+										 0x10);
+				}
+				else if (address == (kRegisterExtensionCalibration & 0xFFFF))
+				{
+					cemu_assert(size == 0x10);
+#ifdef WIIMOTE_DEBUG
+					printf("Extension calibration received\n");
+#endif
+					std::visit(overloaded{[](auto) {},
+										  [data](MotionPlusData& mp)
+										  {
+											  // TODO fix
+										  },
+										  [data](NunchuckData& nunchuck)
+										  {
+											  std::array<uint8, 14> zero{};
+											  if (memcmp(zero.data(), data, zero.size()) == 0)
+											  {
+#ifdef WIIMOTE_DEBUG
+												  printf("\tExtension calibration data is zero!\n");
+#endif
+												  return;
+											  }
+
+											  nunchuck.calibration.zero.x = (uint16)data[0] << 2;
+											  nunchuck.calibration.zero.y = (uint16)data[1] << 2;
+											  nunchuck.calibration.zero.z = (uint16)data[2] << 2;
+											  // --XXYYZZ
+											  nunchuck.calibration.zero.x |=
+												  (data[3] >> 4) & 0x3; // 5|4 -> 1|0
+											  nunchuck.calibration.zero.y |=
+												  (data[3] >> 2) & 0x3; // 3|4 -> 1|0
+											  nunchuck.calibration.zero.z |= data[3] & 0x3;
+
+											  nunchuck.calibration.gravity.x = (uint16)data[4] << 2;
+											  ;
+											  nunchuck.calibration.gravity.y = (uint16)data[5] << 2;
+											  ;
+											  nunchuck.calibration.gravity.z = (uint16)data[6] << 2;
+											  ;
+											  // --XXYYZZ
+											  nunchuck.calibration.gravity.x |=
+												  (data[7] >> 4) & 0x3; // 5|4 -> 1|0
+											  nunchuck.calibration.gravity.y |=
+												  (data[7] >> 2) & 0x3; // 3|4 -> 1|0
+											  nunchuck.calibration.gravity.z |= data[7] & 0x3;
+
+											  nunchuck.calibration.max.x = data[8];
+											  nunchuck.calibration.max.y = data[11];
+
+											  nunchuck.calibration.min.x = data[9];
+											  nunchuck.calibration.min.y = data[12];
+
+											  nunchuck.calibration.center.x = data[10];
+											  nunchuck.calibration.center.y = data[13];
+										  }},
+							   new_state.m_extension);
+				}
+				else
+				{
+#ifdef WIIMOTE_DEBUG
+					printf("Unhandled read data received\n");
+#endif
+					continue;
+				}
+
+				update_report = true;
+			}
+			break;
 			case kDataCore:
-				{
-					// 30 BB BB
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					data += 2;
-					break;
-				}
+			{
+				// 30 BB BB
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				data += 2;
+				break;
+			}
 			case kDataCoreAcc:
-				{
-					// 31 BB BB AA AA AA
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					parse_acceleration(new_state, data);
-					break;
-				}
+			{
+				// 31 BB BB AA AA AA
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				parse_acceleration(new_state, data);
+				break;
+			}
 			case kDataCoreExt8:
-				{
-					// 32 BB BB EE EE EE EE EE EE EE EE
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					data += 2;
-					break;
-				}
+			{
+				// 32 BB BB EE EE EE EE EE EE EE EE
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				data += 2;
+				break;
+			}
 			case kDataCoreAccIR:
-				{
-					// 33 BB BB AA AA AA II II II II II II II II II II II II 
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					parse_acceleration(new_state, data);
-					data += parse_ir(new_state, data);
-					break;
-				}
+			{
+				// 33 BB BB AA AA AA II II II II II II II II II II II II
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				parse_acceleration(new_state, data);
+				data += parse_ir(new_state, data);
+				break;
+			}
 			case kDataCoreExt19:
-				{
-					// 34 BB BB EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE 
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					data += 2;
-					break;
-				}
+			{
+				// 34 BB BB EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				data += 2;
+				break;
+			}
 			case kDataCoreAccExt:
-				{
-					// 35 BB BB AA AA AA EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					parse_acceleration(new_state, data);
-					break;
-				}
+			{
+				// 35 BB BB AA AA AA EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				parse_acceleration(new_state, data);
+				break;
+			}
 			case kDataCoreIRExt:
-				{
-					// 36 BB BB II II II II II II II II II II EE EE EE EE EE EE EE EE EE
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					data += 2;
-					break;
-				}
+			{
+				// 36 BB BB II II II II II II II II II II EE EE EE EE EE EE EE EE EE
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				data += 2;
+				break;
+			}
 			case kDataCoreAccIRExt:
-				{
-					// 37 BB BB AA AA AA II II II II II II II II II II EE EE EE EE EE EE
-					new_state.buttons = *(uint16*)data & (~0x60E0);
-					parse_acceleration(new_state, data);
-					data += parse_ir(new_state, data); // 10
+			{
+				// 37 BB BB AA AA AA II II II II II II II II II II EE EE EE EE EE EE
+				new_state.buttons = *(uint16*)data & (~0x60E0);
+				parse_acceleration(new_state, data);
+				data += parse_ir(new_state, data); // 10
 
-					std::visit(
-						overloaded
+				std::visit(
+					overloaded{
+						[](auto) {},
+						[data](MotionPlusData& mp) mutable
 						{
-							[](auto)
-							{
-							},
-							[data](MotionPlusData& mp) mutable
-							{
-								glm::vec<3, uint16> raw;
-								raw.x = *data;
-								++data;
-								raw.y = *data;
-								++data;
-								raw.z = *data;
-								++data;
+							glm::vec<3, uint16> raw;
+							raw.x = *data;
+							++data;
+							raw.y = *data;
+							++data;
+							raw.z = *data;
+							++data;
 
-								raw.x |= (uint16)*data << 6; // 7|2 -> 13|8
-								mp.slow_yaw = *data & 2;
-								mp.slow_pitch = *data & 1;
-								++data;
+							raw.x |= (uint16)*data << 6; // 7|2 -> 13|8
+							mp.slow_yaw = *data & 2;
+							mp.slow_pitch = *data & 1;
+							++data;
 
-								raw.y |= (uint16)*data << 6; // 7|2 -> 13|8
-								mp.slow_roll = *data & 2;
-								mp.extension_connected = *data & 1;
-								++data;
+							raw.y |= (uint16)*data << 6; // 7|2 -> 13|8
+							mp.slow_roll = *data & 2;
+							mp.extension_connected = *data & 1;
+							++data;
 
-								raw.z |= (uint16)*data << 6; // 7|2 -> 13|8
+							raw.z |= (uint16)*data << 6; // 7|2 -> 13|8
 
-								auto& calib = mp.calibration;
+							auto& calib = mp.calibration;
 
-								glm::vec3 orientation = raw;
-								/*orientation -= calib.zero;
-	
-								Vector3<float> tmp = calib.gravity;
-								tmp -= calib.zero;
-								orientation /= tmp;*/
+							glm::vec3 orientation = raw;
+							/*orientation -= calib.zero;
 
-								mp.orientation = orientation;
+							Vector3<float> tmp = calib.gravity;
+							tmp -= calib.zero;
+							orientation /= tmp;*/
+
+							mp.orientation = orientation;
 #ifdef WIIMOTE_DEBUG
-								printf("\tmp: %.2lf %.2lf %.2lf\n", mp.orientation.x, mp.orientation.y,
-								       mp.orientation.z);
+							printf("\tmp: %.2lf %.2lf %.2lf\n", mp.orientation.x, mp.orientation.y,
+								   mp.orientation.z);
 #endif
-							},
-							[data](NunchuckData& nunchuck) mutable
+						},
+						[data](NunchuckData& nunchuck) mutable
+						{
+							nunchuck.raw_axis.x = *data;
+							++data;
+							nunchuck.raw_axis.y = *data;
+							++data;
+
+							glm::vec<3, uint16> raw_acc;
+							raw_acc.x = (uint16)*data << 2;
+							++data;
+							raw_acc.y = (uint16)*data << 2;
+							++data;
+							raw_acc.z = (uint16)*data << 2;
+							++data;
+							nunchuck.z = (*data & 1) == 0;
+							nunchuck.c = (*data & 2) == 0;
+
+							raw_acc.x |= (*data >> 2) & 0x3; // 3|2 -> 1|0
+							raw_acc.y |= (*data >> 4) & 0x3; // 5|4 -> 1|0
+							raw_acc.z |= (*data >> 6) & 0x3; // 7|6 -> 1|0
+
+							auto& calib = nunchuck.calibration;
+
+							if (nunchuck.raw_axis.x < nunchuck.calibration.center.x) // [-1, 0]
+								nunchuck.axis.x = ((float)nunchuck.raw_axis.x - calib.min.x) /
+													  ((float)nunchuck.calibration.center.x -
+													   calib.min.x + 0.012f) -
+												  1.0f;
+							else // [0, 1]
+								nunchuck.axis.x =
+									(float)(nunchuck.raw_axis.x - nunchuck.calibration.center.x) /
+									(nunchuck.calibration.max.x - nunchuck.calibration.center.x +
+									 0.012f);
+
+							if (nunchuck.raw_axis.y <= nunchuck.calibration.center.y) // [-1, 0]
+								nunchuck.axis.y = ((float)nunchuck.raw_axis.y - calib.min.y) /
+													  ((float)nunchuck.calibration.center.y -
+													   calib.min.y + 0.012f) -
+												  1.0f;
+							else // [0, 1]
+								nunchuck.axis.y =
+									(float)(nunchuck.raw_axis.y - nunchuck.calibration.center.y) /
+									(nunchuck.calibration.max.y - nunchuck.calibration.center.y);
+
+							glm::vec3 acceleration = raw_acc;
+							nunchuck.prev_acceleration = nunchuck.acceleration;
+							nunchuck.acceleration = acceleration - glm::vec3(calib.zero);
+
+							float acc[3]{-nunchuck.acceleration.x, -nunchuck.acceleration.z,
+										 nunchuck.acceleration.y};
+							const auto grav =
+								nunchuck.calibration.gravity - nunchuck.calibration.zero;
+
+							auto tacc = nunchuck.acceleration;
+							auto pacc = nunchuck.prev_acceleration;
+							if (grav != glm::vec<3, uint16>{})
 							{
-								nunchuck.raw_axis.x = *data;
-								++data;
-								nunchuck.raw_axis.y = *data;
-								++data;
+								acc[0] /= (float)grav.x;
+								acc[1] /= (float)grav.y;
+								acc[2] /= (float)grav.z;
 
-								glm::vec<3, uint16> raw_acc;
-								raw_acc.x = (uint16)*data << 2;
-								++data;
-								raw_acc.y = (uint16)*data << 2;
-								++data;
-								raw_acc.z = (uint16)*data << 2;
-								++data;
-								nunchuck.z = (*data & 1) == 0;
-								nunchuck.c = (*data & 2) == 0;
+								tacc.x /= (float)grav.x;
+								pacc.x /= (float)grav.x;
 
-								raw_acc.x |= (*data >> 2) & 0x3; // 3|2 -> 1|0
-								raw_acc.y |= (*data >> 4) & 0x3; // 5|4 -> 1|0
-								raw_acc.z |= (*data >> 6) & 0x3; // 7|6 -> 1|0
+								tacc.y /= (float)grav.y;
+								pacc.y /= (float)grav.y;
 
-								auto& calib = nunchuck.calibration;
-
-								if (nunchuck.raw_axis.x < nunchuck.calibration.center.x) // [-1, 0]
-									nunchuck.axis.x = ((float)nunchuck.raw_axis.x - calib.min.x) / ((float)nunchuck.
-										calibration.center.x - calib.min.x + 0.012f) - 1.0f;
-								else // [0, 1]
-									nunchuck.axis.x = (float)(nunchuck.raw_axis.x - nunchuck.calibration.center.x) / (
-										nunchuck.calibration.max.x - nunchuck.calibration.center.x + 0.012f);
-
-								if (nunchuck.raw_axis.y <= nunchuck.calibration.center.y) // [-1, 0]
-									nunchuck.axis.y = ((float)nunchuck.raw_axis.y - calib.min.y) / ((float)nunchuck.
-										calibration.center.y - calib.min.y + 0.012f) - 1.0f;
-								else // [0, 1]
-									nunchuck.axis.y = (float)(nunchuck.raw_axis.y - nunchuck.calibration.center.y) / (
-										nunchuck.calibration.max.y - nunchuck.calibration.center.y);
-
-								glm::vec3 acceleration = raw_acc;
-								nunchuck.prev_acceleration = nunchuck.acceleration;
-								nunchuck.acceleration = acceleration - glm::vec3(calib.zero);
-
-								float acc[3]{ -nunchuck.acceleration.x, -nunchuck.acceleration.z, nunchuck.acceleration.y };
-								const auto grav = nunchuck.calibration.gravity - nunchuck.calibration.zero;
-
-								auto tacc = nunchuck.acceleration;
-								auto pacc = nunchuck.prev_acceleration;
-								if (grav != glm::vec<3, uint16>{})
-								{
-									acc[0] /= (float)grav.x;
-									acc[1] /= (float)grav.y;
-									acc[2] /= (float)grav.z;
-
-									tacc.x /= (float)grav.x;
-									pacc.x /= (float)grav.x;
-
-									tacc.y /= (float)grav.y;
-									pacc.y /= (float)grav.y;
-
-									tacc.z /= (float)grav.z;
-									pacc.z /= (float)grav.z;
-								}
-								float zero3[3]{};
-								float zero4[4]{};
-
-
-								nunchuck.motion_sample = MotionSample(
-									acc,
-									glm::length(tacc - pacc),
-									zero3,
-									zero3,
-									zero4
-								);
-#ifdef WIIMOTE_DEBUG
-								printf("\tn: %d,%d | %lf - %lf | %.2lf %.2lf %.2lf\n", nunchuck.z, nunchuck.c,
-								       nunchuck.axis.x, nunchuck.axis.y,
-								       RadToDeg(nunchuck.acceleration.x), RadToDeg(nunchuck.acceleration.y),
-								       RadToDeg(nunchuck.acceleration.z));
-#endif
-							},
-							[data](ClassicData& classic) mutable
-							{
-								classic.left_raw_axis.x = *data & 0x3F;
-								classic.right_raw_axis.x = (*data & 0xC0) >> 3; // 7|6 -> 4|3
-								++data;
-
-								classic.left_raw_axis.y = *data & 0x3F;
-								classic.right_raw_axis.x |= (*data & 0xC0) >> 5; // 7|6 -> 2|1
-								++data;
-
-								classic.right_raw_axis.y = *data & 0x1F;
-								classic.raw_trigger.x = (*data & 0x60) >> 2; // 6|5 -> 4|3
-								classic.right_raw_axis.x |= (*data & 0x80) >> 7; // 7 -> 0
-								++data;
-
-								classic.raw_trigger.x |= (*data & 0xE0) >> 5; // 7|5 -> 2|0
-								classic.raw_trigger.y = (*data & 0x1F);
-								++data;
-
-								classic.buttons = ~(*(uint16*)data);
-								data += 2;
-
-								classic.left_axis = classic.left_raw_axis;
-								classic.left_axis /= 63.0f;
-								classic.left_axis = classic.left_axis * 2.0f - 1.0f;
-
-								classic.right_axis = classic.right_raw_axis;
-								classic.right_axis /= 31.0f;
-								classic.right_axis = classic.right_axis * 2.0f - 1.0f;
-
-								classic.trigger = classic.raw_trigger;
-								classic.trigger /= 31.0f;
-#ifdef WIIMOTE_DEBUG
-								printf("\tc: %d | %lf - %lf | %lf - %lf | %lf - %lf\n", classic.buttons,
-								       classic.left_axis.x, classic.left_axis.y, classic.right_axis.x,
-								       classic.right_axis.y, classic.trigger.x, classic.trigger.y);
-#endif
+								tacc.z /= (float)grav.z;
+								pacc.z /= (float)grav.z;
 							}
-						}, new_state.m_extension);
+							float zero3[3]{};
+							float zero4[4]{};
 
+							nunchuck.motion_sample =
+								MotionSample(acc, glm::length(tacc - pacc), zero3, zero3, zero4);
+#ifdef WIIMOTE_DEBUG
+							printf("\tn: %d,%d | %lf - %lf | %.2lf %.2lf %.2lf\n", nunchuck.z,
+								   nunchuck.c, nunchuck.axis.x, nunchuck.axis.y,
+								   RadToDeg(nunchuck.acceleration.x),
+								   RadToDeg(nunchuck.acceleration.y),
+								   RadToDeg(nunchuck.acceleration.z));
+#endif
+						},
+						[data](ClassicData& classic) mutable
+						{
+							classic.left_raw_axis.x = *data & 0x3F;
+							classic.right_raw_axis.x = (*data & 0xC0) >> 3; // 7|6 -> 4|3
+							++data;
 
-					break;
-				}
+							classic.left_raw_axis.y = *data & 0x3F;
+							classic.right_raw_axis.x |= (*data & 0xC0) >> 5; // 7|6 -> 2|1
+							++data;
+
+							classic.right_raw_axis.y = *data & 0x1F;
+							classic.raw_trigger.x = (*data & 0x60) >> 2;	 // 6|5 -> 4|3
+							classic.right_raw_axis.x |= (*data & 0x80) >> 7; // 7 -> 0
+							++data;
+
+							classic.raw_trigger.x |= (*data & 0xE0) >> 5; // 7|5 -> 2|0
+							classic.raw_trigger.y = (*data & 0x1F);
+							++data;
+
+							classic.buttons = ~(*(uint16*)data);
+							data += 2;
+
+							classic.left_axis = classic.left_raw_axis;
+							classic.left_axis /= 63.0f;
+							classic.left_axis = classic.left_axis * 2.0f - 1.0f;
+
+							classic.right_axis = classic.right_raw_axis;
+							classic.right_axis /= 31.0f;
+							classic.right_axis = classic.right_axis * 2.0f - 1.0f;
+
+							classic.trigger = classic.raw_trigger;
+							classic.trigger /= 31.0f;
+#ifdef WIIMOTE_DEBUG
+							printf("\tc: %d | %lf - %lf | %lf - %lf | %lf - %lf\n", classic.buttons,
+								   classic.left_axis.x, classic.left_axis.y, classic.right_axis.x,
+								   classic.right_axis.y, classic.trigger.x, classic.trigger.y);
+#endif
+						}},
+					new_state.m_extension);
+
+				break;
+			}
 			case kDataExt:
-				{
-					// 3d EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
-					break;
-				}
+			{
+				// 3d EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
+				break;
+			}
 			default:
 #ifdef WIIMOTE_DEBUG
 				printf("unhandled input packet id %d for wiimote\n", data[0]);
@@ -615,12 +618,16 @@ void WiimoteControllerProvider::reader_thread()
 			}
 
 			// update motion data
-			//const auto motionnow = std::chrono::high_resolution_clock::now();
-			//const auto delta_time = (float)std::chrono::duration_cast<std::chrono::milliseconds>(motionnow - new_state.m_last_motion_timestamp).count() / 1000.0f;
-			//new_state.m_last_motion_timestamp = motionnow;
+			// const auto motionnow = std::chrono::high_resolution_clock::now();
+			// const auto delta_time =
+			// (float)std::chrono::duration_cast<std::chrono::milliseconds>(motionnow -
+			// new_state.m_last_motion_timestamp).count() / 1000.0f;
+			// new_state.m_last_motion_timestamp = motionnow;
 
-			float acc[3]{-new_state.m_acceleration.x, -new_state.m_acceleration.z, new_state.m_acceleration.y};
-			const auto grav = new_state.m_calib_acceleration.gravity - new_state.m_calib_acceleration.zero;
+			float acc[3]{-new_state.m_acceleration.x, -new_state.m_acceleration.z,
+						 new_state.m_acceleration.y};
+			const auto grav =
+				new_state.m_calib_acceleration.gravity - new_state.m_calib_acceleration.zero;
 
 			auto tacc = new_state.m_acceleration;
 			auto pacc = new_state.m_prev_acceleration;
@@ -642,14 +649,8 @@ void WiimoteControllerProvider::reader_thread()
 			float zero3[3]{};
 			float zero4[4]{};
 
-
-			new_state.motion_sample = MotionSample(
-				acc,
-				glm::length(tacc - pacc),
-				zero3,
-				zero3,
-				zero4
-			);
+			new_state.motion_sample =
+				MotionSample(acc, glm::length(tacc - pacc), zero3, zero3, zero4);
 
 			std::unique_lock data_lock(wiimote.mutex);
 			wiimote.state = new_state;
@@ -694,7 +695,7 @@ void WiimoteControllerProvider::parse_acceleration(WiimoteState& wiimote_state, 
 	tmp -= calib.zero;
 	acceleration = (wiimote_state.m_acceleration / tmp);
 
-	//printf("%d, %d, %d\n", (int)m_acceleration.x, (int)m_acceleration.y, (int)m_acceleration.z);
+	// printf("%d, %d, %d\n", (int)m_acceleration.x, (int)m_acceleration.y, (int)m_acceleration.z);
 	const float pi_2 = (float)std::numbers::pi / 2.0f;
 	wiimote_state.m_roll = std::atan2(acceleration.z, acceleration.x) - pi_2;
 }
@@ -713,8 +714,8 @@ void WiimoteControllerProvider::rotate_ir(WiimoteState& wiimote_state)
 		i++;
 		if (!dot.visible)
 			continue;
-		//printf("%d:\t%.02lf | %.02lf\n", i, dot.pos.x, dot.pos.y);
-		// move to center, rotate and move back
+		// printf("%d:\t%.02lf | %.02lf\n", i, dot.pos.x, dot.pos.y);
+		//  move to center, rotate and move back
 		dot.pos -= 0.5f;
 		dot.pos.x = (dot.pos.x * cos) + (dot.pos.y * (-sin));
 		dot.pos.y = (dot.pos.x * sin) + (dot.pos.y * cos);
@@ -752,7 +753,8 @@ void WiimoteControllerProvider::calculate_ir_position(WiimoteState& wiimote_stat
 					continue;
 
 				// check if distance between points is similar to last known distance
-				const float distance = std::abs(ir.distance - glm::length(ir.dots[i].pos - ir.dots[j].pos));
+				const float distance =
+					std::abs(ir.distance - glm::length(ir.dots[i].pos - ir.dots[j].pos));
 				if (distance > 0.1f && distance > best_distance)
 					continue;
 
@@ -783,7 +785,6 @@ void WiimoteControllerProvider::calculate_ir_position(WiimoteState& wiimote_stat
 	}
 }
 
-
 sint32 WiimoteControllerProvider::parse_ir(WiimoteState& wiimote_state, const uint8* data)
 {
 	switch (wiimote_state.ir_camera.mode)
@@ -792,63 +793,63 @@ sint32 WiimoteControllerProvider::parse_ir(WiimoteState& wiimote_state, const ui
 		wiimote_state.ir_camera.dots = {};
 		return 0;
 	case kBasicIR:
+	{
+		const auto ir = (BasicIR*)data;
+		for (int i = 0; i < 2; ++i)
 		{
-			const auto ir = (BasicIR*)data;
-			for (int i = 0; i < 2; ++i)
-			{
-				auto& dot1 = wiimote_state.ir_camera.dots[i * 2];
-				auto& dot2 = wiimote_state.ir_camera.dots[i * 2 + 1];
+			auto& dot1 = wiimote_state.ir_camera.dots[i * 2];
+			auto& dot2 = wiimote_state.ir_camera.dots[i * 2 + 1];
 
-				dot1.raw.x = ir[i].x1 | (ir[i].bits.x1 << 8); // 9|8
-				dot1.raw.y = ir[i].y1 | (ir[i].bits.y1 << 8);
-				dot1.size = 0;
+			dot1.raw.x = ir[i].x1 | (ir[i].bits.x1 << 8); // 9|8
+			dot1.raw.y = ir[i].y1 | (ir[i].bits.y1 << 8);
+			dot1.size = 0;
 
-				dot2.raw.x = ir[i].x2 | (ir[i].bits.x2 << 8);
-				dot2.raw.y = ir[i].y2 | (ir[i].bits.y2 << 8);
-				dot2.size = 0;
+			dot2.raw.x = ir[i].x2 | (ir[i].bits.x2 << 8);
+			dot2.raw.y = ir[i].y2 | (ir[i].bits.y2 << 8);
+			dot2.size = 0;
 
-				dot1.visible = dot1.raw != glm::vec<2, uint16>(0x3ff, 0x3ff);
-				if (dot1.visible)
-					dot1.pos = glm::vec2(1.0f - dot1.raw.x / 1023.0f, (float)dot1.raw.y / 768.0f);
-				else
-					dot1.pos = {};
+			dot1.visible = dot1.raw != glm::vec<2, uint16>(0x3ff, 0x3ff);
+			if (dot1.visible)
+				dot1.pos = glm::vec2(1.0f - dot1.raw.x / 1023.0f, (float)dot1.raw.y / 768.0f);
+			else
+				dot1.pos = {};
 
-				dot2.visible = dot2.raw != glm::vec<2, uint16>(0x3ff, 0x3ff);
-				if (dot2.visible)
-					dot2.pos = glm::vec2(1.0f - dot2.raw.x / 1023.0f, (float)dot2.raw.y / 768.0f);
-				else
-					dot2.pos = {};
-			}
-
-			rotate_ir(wiimote_state);
-			calculate_ir_position(wiimote_state);
-			return sizeof(BasicIR) * 2;
+			dot2.visible = dot2.raw != glm::vec<2, uint16>(0x3ff, 0x3ff);
+			if (dot2.visible)
+				dot2.pos = glm::vec2(1.0f - dot2.raw.x / 1023.0f, (float)dot2.raw.y / 768.0f);
+			else
+				dot2.pos = {};
 		}
+
+		rotate_ir(wiimote_state);
+		calculate_ir_position(wiimote_state);
+		return sizeof(BasicIR) * 2;
+	}
 	case kExtendedIR:
+	{
+		const auto ir = (ExtendedIR*)data;
+		for (int i = 0; i < 4; ++i)
 		{
-			const auto ir = (ExtendedIR*)data;
-			for (int i = 0; i < 4; ++i)
-			{
-				auto& dot = wiimote_state.ir_camera.dots[i];
-				dot.raw.x = ir[i].x;
-				dot.raw.y = ir[i].y;
+			auto& dot = wiimote_state.ir_camera.dots[i];
+			dot.raw.x = ir[i].x;
+			dot.raw.y = ir[i].y;
 
-				dot.raw.x |= (uint16)ir[i].bits.x << 8; // 9|8
-				dot.raw.y |= (uint16)ir[i].bits.y << 8; // 9|8
+			dot.raw.x |= (uint16)ir[i].bits.x << 8; // 9|8
+			dot.raw.y |= (uint16)ir[i].bits.y << 8; // 9|8
 
-				dot.size = ir[i].bits.size;
+			dot.size = ir[i].bits.size;
 
-				dot.visible = dot.raw != glm::vec<2, uint16>(0x3ff, 0x3ff);
-				if (dot.visible)
-					dot.pos = glm::vec2(1.0f - dot.raw.x / 1023.0f, (float)dot.raw.y / 768.0f);
-				else
-					dot.pos = {};
-			}
-
-			rotate_ir(wiimote_state);
-			calculate_ir_position(wiimote_state);
-			return sizeof(ExtendedIR) * 4;
+			dot.visible = dot.raw != glm::vec<2, uint16>(0x3ff, 0x3ff);
+			if (dot.visible)
+				dot.pos = glm::vec2(1.0f - dot.raw.x / 1023.0f, (float)dot.raw.y / 768.0f);
+			else
+				dot.pos = {};
 		}
+
+		rotate_ir(wiimote_state);
+		calculate_ir_position(wiimote_state);
+		return sizeof(ExtendedIR) * 4;
+	}
 	default:
 		cemu_assert(false);
 		break;
@@ -871,16 +872,16 @@ void WiimoteControllerProvider::detect_motion_plus(size_t index)
 
 void WiimoteControllerProvider::set_motion_plus(size_t index, bool state)
 {
-	if (state) {
-		send_write_packet(index, kRegisterMemory, kRegisterMotionPlusInit, { 0x55 });
-		send_write_packet(index, kRegisterMemory, kRegisterMotionPlusEnable, { 0x04 });
+	if (state)
+	{
+		send_write_packet(index, kRegisterMemory, kRegisterMotionPlusInit, {0x55});
+		send_write_packet(index, kRegisterMemory, kRegisterMotionPlusEnable, {0x04});
 	}
 	else
 	{
-		send_write_packet(index, kRegisterMemory, kRegisterExtension1, { 0x55 });
+		send_write_packet(index, kRegisterMemory, kRegisterExtension1, {0x55});
 	}
 }
-
 
 void WiimoteControllerProvider::writer_thread()
 {
@@ -890,7 +891,8 @@ void WiimoteControllerProvider::writer_thread()
 		std::unique_lock writer_lock(m_writer_mutex);
 		while (m_write_queue.empty())
 		{
-			if (m_writer_cond.wait_for(writer_lock, std::chrono::milliseconds(250)) == std::cv_status::timeout)
+			if (m_writer_cond.wait_for(writer_lock, std::chrono::milliseconds(250)) ==
+				std::cv_status::timeout)
 			{
 				if (!m_running.load(std::memory_order_relaxed))
 					return;
@@ -1006,7 +1008,7 @@ IRMode WiimoteControllerProvider::set_ir_camera(size_t index, bool state)
 	{
 		send_write_packet(index, kRegisterMemory, kRegisterIR, {0x08});
 		send_write_packet(index, kRegisterMemory, kRegisterIRSensitivity1,
-		                  {0x02, 0x00, 0x00, 0x71, 0x01, 0x00, 0xaa, 0x00, 0x64});
+						  {0x02, 0x00, 0x00, 0x71, 0x01, 0x00, 0xaa, 0x00, 0x64});
 		send_write_packet(index, kRegisterMemory, kRegisterIRSensitivity2, {0x63, 0x03});
 		send_write_packet(index, kRegisterMemory, kRegisterIRMode, {(uint8)mode});
 		send_write_packet(index, kRegisterMemory, kRegisterIR, {0x08});
@@ -1031,7 +1033,8 @@ void WiimoteControllerProvider::send_packet(size_t index, std::vector<uint8> dat
 	m_writer_cond.notify_one();
 }
 
-void WiimoteControllerProvider::send_read_packet(size_t index, MemoryType type, RegisterAddress address, uint16 size)
+void WiimoteControllerProvider::send_read_packet(size_t index, MemoryType type,
+												 RegisterAddress address, uint16 size)
 {
 	std::vector<uint8> data(7);
 	data[0] = kReadMemory;
@@ -1042,8 +1045,9 @@ void WiimoteControllerProvider::send_read_packet(size_t index, MemoryType type, 
 	send_packet(index, std::move(data));
 }
 
-void WiimoteControllerProvider::send_write_packet(size_t index, MemoryType type, RegisterAddress address,
-                                                  const std::vector<uint8>& data)
+void WiimoteControllerProvider::send_write_packet(size_t index, MemoryType type,
+												  RegisterAddress address,
+												  const std::vector<uint8>& data)
 {
 	cemu_assert(data.size() <= 16);
 	std::vector<uint8> packet(6 + 16);

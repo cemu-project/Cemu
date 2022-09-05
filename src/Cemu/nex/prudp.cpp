@@ -1,26 +1,26 @@
 #include "prudp.h"
 #include "util/crypto/md5.h"
 
-#include<bitset>
-#include<random>
+#include <bitset>
+#include <random>
 
 #include <boost/random/uniform_int.hpp>
 
-void swap(unsigned char *a, unsigned char *b) 
+void swap(unsigned char* a, unsigned char* b)
 {
 	int tmp = *a;
 	*a = *b;
 	*b = tmp;
 }
 
-void KSA(unsigned char *key, int keyLen, unsigned char *S)
+void KSA(unsigned char* key, int keyLen, unsigned char* S)
 {
 	int j = 0;
 
 	for (int i = 0; i < RC4_N; i++)
 		S[i] = i;
 
-	for (int i = 0; i < RC4_N; i++) 
+	for (int i = 0; i < RC4_N; i++)
 	{
 		j = (j + S[i] + key[i % keyLen]) % RC4_N;
 
@@ -28,12 +28,12 @@ void KSA(unsigned char *key, int keyLen, unsigned char *S)
 	}
 }
 
-void PRGA(unsigned char *S, unsigned char* input, int len, unsigned char* output) 
+void PRGA(unsigned char* S, unsigned char* input, int len, unsigned char* output)
 {
 	int i = 0;
 	int j = 0;
 
-	for (size_t n = 0; n < len; n++) 
+	for (size_t n = 0; n < len; n++)
 	{
 		i = (i + 1) % RC4_N;
 		j = (j + S[i]) % RC4_N;
@@ -45,7 +45,7 @@ void PRGA(unsigned char *S, unsigned char* input, int len, unsigned char* output
 	}
 }
 
-void RC4(char* key, unsigned char* input, int len, unsigned char* output) 
+void RC4(char* key, unsigned char* input, int len, unsigned char* output)
 {
 	unsigned char S[RC4_N];
 	KSA((unsigned char*)key, (int)strlen(key), S);
@@ -141,7 +141,7 @@ uint8 prudp_calculateChecksum(uint8 checksumBase, uint8* data, sint32 length)
 		checksum32 += *(uint32*)(data + i * 4);
 	}
 	uint8 checksum = checksumBase;
-	for (sint32 i = length&(~3); i < length; i++)
+	for (sint32 i = length & (~3); i < length; i++)
 	{
 		checksum += data[i];
 	}
@@ -161,17 +161,19 @@ sint32 prudpPacket::calculateSizeFromPacketData(uint8* data, sint32 length)
 		return 0;
 	// get flags fields
 	uint16 typeAndFlags = *(uint16*)(data + 0x02);
-	uint16 type = (typeAndFlags&0xF);
+	uint16 type = (typeAndFlags & 0xF);
 	uint16 flags = (typeAndFlags >> 4);
-	if ((flags&FLAG_HAS_SIZE) == 0)
+	if ((flags & FLAG_HAS_SIZE) == 0)
 		return length; // without a size field, we cant calculate the length
 	sint32 calculatedSize;
 	if (type == TYPE_SYN)
 	{
 		if (length < (0xB + 0x4 + 2))
 			return 0;
-		uint16 payloadSize = *(uint16*)(data+0xB+0x4);
-		calculatedSize = 0xB + 0x4 + 2 + (sint32)payloadSize + 1; // base header + connection signature (SYN param) + payloadSize field + checksum after payload
+		uint16 payloadSize = *(uint16*)(data + 0xB + 0x4);
+		calculatedSize = 0xB + 0x4 + 2 + (sint32)payloadSize +
+						 1; // base header + connection signature (SYN param) + payloadSize field +
+							// checksum after payload
 		if (calculatedSize > length)
 			return 0;
 		return calculatedSize;
@@ -181,7 +183,9 @@ sint32 prudpPacket::calculateSizeFromPacketData(uint8* data, sint32 length)
 		if (length < (0xB + 0x4 + 2))
 			return 0;
 		uint16 payloadSize = *(uint16*)(data + 0xB + 0x4);
-		calculatedSize = 0xB + 0x4 + 2 + (sint32)payloadSize + 1; // base header + connection signature (CON param) + payloadSize field + checksum after payload
+		calculatedSize = 0xB + 0x4 + 2 + (sint32)payloadSize +
+						 1; // base header + connection signature (CON param) + payloadSize field +
+							// checksum after payload
 		// note: For secure connections the extra data is part of the payload
 		if (calculatedSize > length)
 			return 0;
@@ -192,7 +196,9 @@ sint32 prudpPacket::calculateSizeFromPacketData(uint8* data, sint32 length)
 		if (length < (0xB + 1 + 2))
 			return 0;
 		uint16 payloadSize = *(uint16*)(data + 0xB + 1);
-		calculatedSize = 0xB + 1 + 2 + (sint32)payloadSize + 1; // base header + fragmentIndex (DATA param) + payloadSize field + checksum after payload
+		calculatedSize =
+			0xB + 1 + 2 + (sint32)payloadSize + 1; // base header + fragmentIndex (DATA param) +
+												   // payloadSize field + checksum after payload
 		if (calculatedSize > length)
 			return 0;
 		return calculatedSize;
@@ -202,17 +208,20 @@ sint32 prudpPacket::calculateSizeFromPacketData(uint8* data, sint32 length)
 		if (length < (0xB + 2))
 			return 0;
 		uint16 payloadSize = *(uint16*)(data + 0xB);
-		calculatedSize = 0xB + 2 + (sint32)payloadSize + 1; // base header + payloadSize field + checksum after payload
+		calculatedSize = 0xB + 2 + (sint32)payloadSize +
+						 1; // base header + payloadSize field + checksum after payload
 		if (calculatedSize > length)
 			return 0;
 		return calculatedSize;
 	}
 	else
-		assert_dbg(); // unknown packet type (todo - add disconnect and ping packet, then make this function return 0 for all unknown types)
+		assert_dbg(); // unknown packet type (todo - add disconnect and ping packet, then make this
+					  // function return 0 for all unknown types)
 	return length;
 }
 
-prudpPacket::prudpPacket(prudpStreamSettings_t* streamSettings, uint8 src, uint8 dst, uint8 type, uint16 flags, uint8 sessionId, uint16 sequenceId, uint32 packetSignature)
+prudpPacket::prudpPacket(prudpStreamSettings_t* streamSettings, uint8 src, uint8 dst, uint8 type,
+						 uint16 flags, uint8 sessionId, uint16 sequenceId, uint32 packetSignature)
 {
 	this->src = src;
 	this->dst = dst;
@@ -228,7 +237,7 @@ prudpPacket::prudpPacket(prudpStreamSettings_t* streamSettings, uint8 src, uint8
 
 bool prudpPacket::requiresAck()
 {
-	return (flags&FLAG_NEED_ACK) != 0;
+	return (flags & FLAG_NEED_ACK) != 0;
 }
 
 sint32 prudpPacket::buildData(uint8* output, sint32 maxLength)
@@ -242,7 +251,8 @@ sint32 prudpPacket::buildData(uint8* output, sint32 maxLength)
 		{
 			if (isEncrypted == false) // only encrypt once
 			{
-				RC4_transform(&streamSettings->rc4Client, &packetData.front(), (int)packetData.size(), &packetData.front());
+				RC4_transform(&streamSettings->rc4Client, &packetData.front(),
+							  (int)packetData.size(), &packetData.front());
 				isEncrypted = true;
 			}
 		}
@@ -350,7 +360,9 @@ prudpIncomingPacket::prudpIncomingPacket()
 	streamSettings = nullptr;
 }
 
-prudpIncomingPacket::prudpIncomingPacket(prudpStreamSettings_t* streamSettings, uint8* data, sint32 length) : prudpIncomingPacket()
+prudpIncomingPacket::prudpIncomingPacket(prudpStreamSettings_t* streamSettings, uint8* data,
+										 sint32 length)
+	: prudpIncomingPacket()
 {
 	if (length < 0xB + 1)
 	{
@@ -411,12 +423,13 @@ prudpIncomingPacket::prudpIncomingPacket(prudpStreamSettings_t* streamSettings, 
 	}
 	else if (this->type == prudpPacket::TYPE_DATA)
 	{
-		// can we assume that reliable data packets always need to have a unique sequence id? (Even if it's a multi-fragment frame)
-		// unreliable packets must have a sequence id too or how else would we know when to decrypt it?
+		// can we assume that reliable data packets always need to have a unique sequence id? (Even
+		// if it's a multi-fragment frame) unreliable packets must have a sequence id too or how
+		// else would we know when to decrypt it?
 
 		bool hasPayloadSize = (this->flags & prudpPacket::FLAG_HAS_SIZE) != 0;
 		// verify length
-		if ((length-readIndex) < 1+(hasPayloadSize?2:0))
+		if ((length - readIndex) < 1 + (hasPayloadSize ? 2 : 0))
 		{
 			// too short
 			isInvalid = true;
@@ -472,10 +485,11 @@ void prudpIncomingPacket::decrypt()
 {
 	if (packetData.empty())
 		return;
-	RC4_transform(&streamSettings->rc4Server, &packetData.front(), (int)packetData.size(), &packetData.front());
+	RC4_transform(&streamSettings->rc4Server, &packetData.front(), (int)packetData.size(),
+				  &packetData.front());
 }
 
-#define PRUDP_VPORT(__streamType, __port) (((__streamType)<<4) | (__port))
+#define PRUDP_VPORT(__streamType, __port) (((__streamType) << 4) | (__port))
 
 prudpClient::prudpClient()
 {
@@ -515,7 +529,7 @@ prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key) : prudpC
 		udpServer.sin_family = AF_INET;
 		udpServer.sin_addr.s_addr = INADDR_ANY;
 		udpServer.sin_port = htons(srcPort);
-		if (bind(socketUdp, (struct sockaddr *)&udpServer, sizeof(udpServer)) == SOCKET_ERROR)
+		if (bind(socketUdp, (struct sockaddr*)&udpServer, sizeof(udpServer)) == SOCKET_ERROR)
 		{
 			if (tries == 4)
 			{
@@ -533,7 +547,7 @@ prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key) : prudpC
 	}
 	// set socket to non-blocking mode
 #if BOOST_OS_WINDOWS
-	u_long nonBlockingMode = 1;  // 1 to enable non-blocking socket
+	u_long nonBlockingMode = 1; // 1 to enable non-blocking socket
 	ioctlsocket(socketUdp, FIONBIO, &nonBlockingMode);
 #else
 	int flags = fcntl(socketUdp, F_GETFL);
@@ -557,14 +571,17 @@ prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key) : prudpC
 	RC4_initCtx(&streamSettings.rc4Server, "CD&ML");
 	RC4_initCtx(&streamSettings.rc4Client, "CD&ML");
 	// send syn packet
-	prudpPacket* synPacket = new prudpPacket(&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_SYN, prudpPacket::FLAG_NEED_ACK, 0, 0, 0);
+	prudpPacket* synPacket =
+		new prudpPacket(&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_SYN,
+						prudpPacket::FLAG_NEED_ACK, 0, 0, 0);
 	queuePacket(synPacket, dstIp, dstPort);
 	outgoingSequenceId++;
 	// set incoming sequence id to 1
 	incomingSequenceId = 1;
 }
 
-prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key, authServerInfo_t* authInfo) : prudpClient(dstIp, dstPort, key)
+prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key, authServerInfo_t* authInfo)
+	: prudpClient(dstIp, dstPort, key)
 {
 	RC4_initCtx(&streamSettings.rc4Server, authInfo->secureKey, 16);
 	RC4_initCtx(&streamSettings.rc4Client, authInfo->secureKey, 16);
@@ -602,10 +619,10 @@ void prudpClient::sortIncomingDataPacket(prudpIncomingPacket* incomingPacket)
 	uint16 sequenceIdIncomingPacket = incomingPacket->sequenceId;
 	// find insert index
 	sint32 insertIndex = 0;
-	while (insertIndex < queue_incomingPackets.size() )
+	while (insertIndex < queue_incomingPackets.size())
 	{
 		uint16 seqDif = sequenceIdIncomingPacket - queue_incomingPackets[insertIndex]->sequenceId;
-		if (seqDif&0x8000)
+		if (seqDif & 0x8000)
 			break; // negative seqDif -> insert before current element
 #ifndef PUBLIC_RELEASE
 		if (seqDif == 0)
@@ -615,8 +632,8 @@ void prudpClient::sortIncomingDataPacket(prudpIncomingPacket* incomingPacket)
 	}
 	// insert
 	sint32 currentSize = (sint32)queue_incomingPackets.size();
-	queue_incomingPackets.resize(currentSize+1);
-	for(sint32 i=currentSize; i>insertIndex; i--)
+	queue_incomingPackets.resize(currentSize + 1);
+	for (sint32 i = currentSize; i > insertIndex; i--)
 	{
 		queue_incomingPackets[i] = queue_incomingPackets[i - 1];
 	}
@@ -630,17 +647,19 @@ sint32 prudpClient::kerberosEncryptData(uint8* input, sint32 length, uint8* outp
 	memcpy(output, input, length);
 	RC4_transform(&rc4Kerberos, output, length, output);
 	// calculate and append hmac
-	hmacMD5(this->authInfo.secureKey, 16, output, length, output+length);
+	hmacMD5(this->authInfo.secureKey, 16, output, length, output + length);
 	return length + 16;
 }
 
 void prudpClient::handleIncomingPacket(prudpIncomingPacket* incomingPacket)
 {
-	if (incomingPacket->flags&prudpPacket::FLAG_ACK)
+	if (incomingPacket->flags & prudpPacket::FLAG_ACK)
 	{
 		// ack packet
 		acknowledgePacket(incomingPacket->sequenceId);
-		if ((incomingPacket->type == prudpPacket::TYPE_DATA || incomingPacket->type == prudpPacket::TYPE_PING) && incomingPacket->packetData.empty())
+		if ((incomingPacket->type == prudpPacket::TYPE_DATA ||
+			 incomingPacket->type == prudpPacket::TYPE_PING) &&
+			incomingPacket->packetData.empty())
 		{
 			// ack packet
 			delete incomingPacket;
@@ -650,14 +669,18 @@ void prudpClient::handleIncomingPacket(prudpIncomingPacket* incomingPacket)
 	// special cases
 	if (incomingPacket->type == prudpPacket::TYPE_SYN)
 	{
-		if (hasSentCon == false && incomingPacket->hasData && incomingPacket->packetData.size() == 4)
+		if (hasSentCon == false && incomingPacket->hasData &&
+			incomingPacket->packetData.size() == 4)
 		{
 			this->serverConnectionSignature = *(uint32*)&incomingPacket->packetData.front();
 			this->clientSessionId = prudp_generateRandomU8();
 			// generate client session id
 			this->clientConnectionSignature = prudp_generateRandomU32();
 			// send con packet
-			prudpPacket* conPacket = new prudpPacket(&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_CON, prudpPacket::FLAG_NEED_ACK|prudpPacket::FLAG_RELIABLE, this->clientSessionId, outgoingSequenceId, serverConnectionSignature);
+			prudpPacket* conPacket = new prudpPacket(
+				&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_CON,
+				prudpPacket::FLAG_NEED_ACK | prudpPacket::FLAG_RELIABLE, this->clientSessionId,
+				outgoingSequenceId, serverConnectionSignature);
 			outgoingSequenceId++;
 
 			if (this->isSecureConnection)
@@ -673,7 +696,8 @@ void prudpClient::handleIncomingPacket(prudpIncomingPacket* incomingPacket)
 				*(uint32*)(requestData + 0x0) = authInfo.userPid;
 				*(uint32*)(requestData + 0x4) = authInfo.server.cid;
 				*(uint32*)(requestData + 0x8) = prudp_generateRandomU32(); // todo - check value
-				sint32 encryptedSize = kerberosEncryptData(requestData, sizeof(requestData), requestDataEncrypted);
+				sint32 encryptedSize =
+					kerberosEncryptData(requestData, sizeof(requestData), requestDataEncrypted);
 				conData.writeBuffer(requestDataEncrypted, encryptedSize);
 				conPacket->setData(conData.getDataPtr(), conData.getWriteIndex());
 			}
@@ -698,7 +722,8 @@ void prudpClient::handleIncomingPacket(prudpIncomingPacket* incomingPacket)
 			lastPingTimestamp = prudpGetMSTimestamp();
 			serverSessionId = incomingPacket->sessionId;
 			currentConnectionState = STATE_CONNECTED;
-			//printf("Connection established. ClientSession %02x ServerSession %02x\n", clientSessionId, serverSessionId);
+			// printf("Connection established. ClientSession %02x ServerSession %02x\n",
+			// clientSessionId, serverSessionId);
 		}
 		delete incomingPacket;
 		return;
@@ -739,10 +764,13 @@ void prudpClient::handleIncomingPacket(prudpIncomingPacket* incomingPacket)
 		return;
 	}
 
-	if (incomingPacket->flags&prudpPacket::FLAG_NEED_ACK && incomingPacket->type == prudpPacket::TYPE_DATA)
+	if (incomingPacket->flags & prudpPacket::FLAG_NEED_ACK &&
+		incomingPacket->type == prudpPacket::TYPE_DATA)
 	{
 		// send ack back
-		prudpPacket* ackPacket = new prudpPacket(&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_DATA, prudpPacket::FLAG_ACK, this->clientSessionId, incomingPacket->sequenceId, 0);
+		prudpPacket* ackPacket = new prudpPacket(
+			&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_DATA, prudpPacket::FLAG_ACK,
+			this->clientSessionId, incomingPacket->sequenceId, 0);
 		queuePacket(ackPacket, dstIp, dstPort);
 	}
 }
@@ -758,31 +786,35 @@ bool prudpClient::update()
 	uint8 receiveBuffer[4096];
 	while (true)
 	{
-		sockaddr receiveFrom = { 0 };
+		sockaddr receiveFrom = {0};
 		socklen_t receiveFromLen = sizeof(receiveFrom);
-		sint32 r = recvfrom(socketUdp, (char*)receiveBuffer, sizeof(receiveBuffer), 0, &receiveFrom, &receiveFromLen);
+		sint32 r = recvfrom(socketUdp, (char*)receiveBuffer, sizeof(receiveBuffer), 0, &receiveFrom,
+							&receiveFromLen);
 		if (r >= 0)
 		{
-			//printf("RECV 0x%04x byte\n", r);
-			// todo: Verify sender (receiveFrom)
-			// calculate packet size
+			// printf("RECV 0x%04x byte\n", r);
+			//  todo: Verify sender (receiveFrom)
+			//  calculate packet size
 			sint32 pIdx = 0;
 			while (pIdx < r)
 			{
-				sint32 packetLength = prudpPacket::calculateSizeFromPacketData(receiveBuffer + pIdx, r - pIdx);
+				sint32 packetLength =
+					prudpPacket::calculateSizeFromPacketData(receiveBuffer + pIdx, r - pIdx);
 				if (packetLength <= 0 || (pIdx + packetLength) > r)
 				{
-					//printf("Invalid packet length\n");
+					// printf("Invalid packet length\n");
 					break;
 				}
-				prudpIncomingPacket* incomingPacket = new prudpIncomingPacket(&streamSettings, receiveBuffer + pIdx, packetLength);
+				prudpIncomingPacket* incomingPacket =
+					new prudpIncomingPacket(&streamSettings, receiveBuffer + pIdx, packetLength);
 				pIdx += packetLength;
 				if (incomingPacket->hasError())
 				{
 					delete incomingPacket;
 					break;
 				}
-				if (incomingPacket->type != prudpPacket::TYPE_CON && incomingPacket->sessionId != serverSessionId)
+				if (incomingPacket->type != prudpPacket::TYPE_CON &&
+					incomingPacket->sessionId != serverSessionId)
 				{
 					delete incomingPacket;
 					continue; // different session
@@ -794,7 +826,7 @@ bool prudpClient::update()
 			break;
 	}
 	// check for ack timeouts
-	for (auto &it : list_packetsWithAckReq)
+	for (auto& it : list_packetsWithAckReq)
 	{
 		if ((currentTimestamp - it.lastRetryTimestamp) >= 2300)
 		{
@@ -810,11 +842,17 @@ bool prudpClient::update()
 		}
 	}
 	// check if we need to send another ping
-	if (currentConnectionState == STATE_CONNECTED && (currentTimestamp - lastPingTimestamp) >= 20000)
+	if (currentConnectionState == STATE_CONNECTED &&
+		(currentTimestamp - lastPingTimestamp) >= 20000)
 	{
 		// send ping
-		prudpPacket* pingPacket = new prudpPacket(&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_PING, prudpPacket::FLAG_NEED_ACK | prudpPacket::FLAG_RELIABLE, this->clientSessionId, this->outgoingSequenceId, serverConnectionSignature);
-		this->outgoingSequenceId++; // increase since prudpPacket::FLAG_RELIABLE is set (note: official Wii U friends client sends ping packets without FLAG_RELIABLE)
+		prudpPacket* pingPacket = new prudpPacket(
+			&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_PING,
+			prudpPacket::FLAG_NEED_ACK | prudpPacket::FLAG_RELIABLE, this->clientSessionId,
+			this->outgoingSequenceId, serverConnectionSignature);
+		this->outgoingSequenceId++; // increase since prudpPacket::FLAG_RELIABLE is set (note:
+									// official Wii U friends client sends ping packets without
+									// FLAG_RELIABLE)
 		queuePacket(pingPacket, dstIp, dstPort);
 		lastPingTimestamp = currentTimestamp;
 	}
@@ -831,7 +869,8 @@ void prudpClient::directSendPacket(prudpPacket* packet, uint32 dstIp, uint16 dst
 	destAddr.sin_family = AF_INET;
 	destAddr.sin_port = htons(dstPort);
 	destAddr.sin_addr.s_addr = dstIp;
-	sendto(socketUdp, (const char*)packetBuffer, len, 0, (const sockaddr*)&destAddr, sizeof(destAddr));
+	sendto(socketUdp, (const char*)packetBuffer, len, 0, (const sockaddr*)&destAddr,
+		   sizeof(destAddr));
 }
 
 void prudpClient::queuePacket(prudpPacket* packet, uint32 dstIp, uint16 dstPort)
@@ -839,7 +878,7 @@ void prudpClient::queuePacket(prudpPacket* packet, uint32 dstIp, uint16 dstPort)
 	if (packet->requiresAck())
 	{
 		// remember this packet until we receive the ack
-		prudpAckRequired_t ackRequired = { 0 };
+		prudpAckRequired_t ackRequired = {0};
 		ackRequired.packet = packet;
 		ackRequired.initialSendTimestamp = prudpGetMSTimestamp();
 		ackRequired.lastRetryTimestamp = ackRequired.initialSendTimestamp;
@@ -863,7 +902,10 @@ void prudpClient::sendDatagram(uint8* input, sint32 length, bool reliable)
 		assert_dbg(); // too long, need to split into multiple fragments
 
 	// single fragment data packet
-	prudpPacket* packet = new prudpPacket(&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_DATA, prudpPacket::FLAG_NEED_ACK | prudpPacket::FLAG_RELIABLE, clientSessionId, outgoingSequenceId, 0);
+	prudpPacket* packet =
+		new prudpPacket(&streamSettings, vport_src, vport_dst, prudpPacket::TYPE_DATA,
+						prudpPacket::FLAG_NEED_ACK | prudpPacket::FLAG_RELIABLE, clientSessionId,
+						outgoingSequenceId, 0);
 	outgoingSequenceId++;
 	packet->setFragmentIndex(0);
 	packet->setData(input, length);
@@ -904,7 +946,8 @@ sint32 prudpClient::receiveDatagram(std::vector<uint8>& outputBuffer)
 			// resize buffer if necessary
 			if (datagramLen > outputBuffer.size())
 				outputBuffer.resize(datagramLen);
-			// to conserve memory we will also shrink the buffer if it was previously extended beyond 64KB
+			// to conserve memory we will also shrink the buffer if it was previously extended
+			// beyond 64KB
 			constexpr size_t BUFFER_TARGET_SIZE = 1024 * 64;
 			if (datagramLen < BUFFER_TARGET_SIZE && outputBuffer.size() > BUFFER_TARGET_SIZE)
 				outputBuffer.resize(BUFFER_TARGET_SIZE);
@@ -932,16 +975,16 @@ sint32 prudpClient::receiveDatagram(std::vector<uint8>& outputBuffer)
 		// verify chain
 		sint32 packetIndex = 1;
 		sint32 chainLength = -1; // if full chain found, set to count of packets
-		for(sint32 i=1; i<queue_incomingPackets.size(); i++)
+		for (sint32 i = 1; i < queue_incomingPackets.size(); i++)
 		{
 			uint8 itFragmentIndex = queue_incomingPackets[packetIndex]->fragmentIndex;
 			// sequence id must increase by 1 for every packet
-			if (queue_incomingPackets[packetIndex]->sequenceId != (this->incomingSequenceId+i) )
+			if (queue_incomingPackets[packetIndex]->sequenceId != (this->incomingSequenceId + i))
 				return -1; // missing packets
 			// last fragment in chain is marked by fragment index 0
 			if (itFragmentIndex == 0)
 			{
-				chainLength = i+1;
+				chainLength = i + 1;
 				break;
 			}
 			packetIndex++;
@@ -962,7 +1005,8 @@ sint32 prudpClient::receiveDatagram(std::vector<uint8>& outputBuffer)
 				// make sure output buffer can fit the data
 				if ((writeIndex + datagramLen) > outputBuffer.size())
 					outputBuffer.resize(writeIndex + datagramLen + 4 * 1024);
-				memcpy(outputBuffer.data()+writeIndex, &incomingPacket->packetData.front(), datagramLen);
+				memcpy(outputBuffer.data() + writeIndex, &incomingPacket->packetData.front(),
+					   datagramLen);
 				writeIndex += datagramLen;
 			}
 			// free packet memory

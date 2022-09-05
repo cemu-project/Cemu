@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gui/helpers/wxCustomData.h"
 #include "config/CemuConfig.h"
+#include "gui/helpers/wxCustomData.h"
 
 #include <wx/listctrl.h>
 
@@ -12,9 +12,10 @@
 class wxDownloadManagerList : public wxListCtrl
 {
 	friend class TitleManager;
-public:
+
+  public:
 	wxDownloadManagerList(wxWindow* parent, wxWindowID id = wxID_ANY);
-	
+
 	enum ItemColumn
 	{
 		ColumnTitleId = 0,
@@ -37,11 +38,11 @@ public:
 	enum class TitleDownloadStatus
 	{
 		None,
-		Available, // available for download
-		Error, // error state
-		Queued, // queued for download
+		Available,	  // available for download
+		Error,		  // error state
+		Queued,		  // queued for download
 		Initializing, // downloading/parsing TMD
-		Checking, // checking for previously downloaded files
+		Checking,	  // checking for previously downloaded files
 		Downloading,
 		Verifying, // verifying downloaded files
 		Installing,
@@ -59,8 +60,12 @@ public:
 
 	struct TitleEntry
 	{
-		TitleEntry(const EntryType& type, bool isPackage, uint64 titleId, uint16 version, bool isPaused)
-			: type(type), isPackage(isPackage), titleId(titleId), version(version), isPaused(isPaused) {}
+		TitleEntry(const EntryType& type, bool isPackage, uint64 titleId, uint16 version,
+				   bool isPaused)
+			: type(type), isPackage(isPackage), titleId(titleId), version(version),
+			  isPaused(isPaused)
+		{
+		}
 
 		EntryType type;
 
@@ -69,9 +74,9 @@ public:
 		bool isPackage;
 		uint64 titleId;
 		wxString name;
-		uint32_t version{ 0 };
+		uint32_t version{0};
 		uint32 progress; // downloading: in 1/10th of a percent, installing: number of files
-		uint32 progressMax{ 0 };
+		uint32 progressMax{0};
 		CafeConsoleRegion region;
 
 		TitleDownloadStatus status = TitleDownloadStatus::None;
@@ -81,16 +86,19 @@ public:
 		{
 			return type == e.type && titleId == e.titleId && version == e.version;
 		}
-		bool operator!=(const TitleEntry& e) const { return !(*this == e); }
+		bool operator!=(const TitleEntry& e) const
+		{
+			return !(*this == e);
+		}
 	};
 	boost::optional<const TitleEntry&> GetSelectedTitleEntry() const;
 
-private:
+  private:
 	void AddColumns();
 	int Filter(const wxString& filter, const wxString& prefix, ItemColumn column);
 	boost::optional<TitleEntry&> GetSelectedTitleEntry();
 	boost::optional<TitleEntry&> GetTitleEntry(uint64 titleId, uint16 titleVersion);
-	
+
 	class wxPanel* m_tooltip_window;
 	class wxStaticText* m_tooltip_text;
 	class wxTimer* m_tooltip_timer;
@@ -114,23 +122,22 @@ private:
 	[[nodiscard]] boost::optional<TitleEntry&> GetTitleEntry(long item);
 	//[[nodiscard]] boost::optional<const TitleEntry&> GetTitleEntry(const fs::path& path) const;
 	//[[nodiscard]] boost::optional<TitleEntry&> GetTitleEntry(const fs::path& path);
-	
+
 	void SetCurrentDownloadMgr(class DownloadManager* dlMgr);
 
-	//bool FixEntry(TitleEntry& entry);
-	//bool VerifyEntryFiles(TitleEntry& entry);
+	// bool FixEntry(TitleEntry& entry);
+	// bool VerifyEntryFiles(TitleEntry& entry);
 	bool StartDownloadEntry(const TitleEntry& entry);
 	bool RetryDownloadEntry(const TitleEntry& entry);
 	bool PauseDownloadEntry(const TitleEntry& entry);
 
 	void RemoveItem(long item);
 	void RemoveItem(const TitleEntry& entry);
-	
+
 	struct ItemData
 	{
-		ItemData(bool visible, const TitleEntry& entry)
-			: visible(visible), entry(entry) {}
-		
+		ItemData(bool visible, const TitleEntry& entry) : visible(visible), entry(entry) {}
+
 		bool visible;
 		TitleEntry entry;
 	};
@@ -153,11 +160,11 @@ private:
 	std::future<bool> m_context_worker;
 };
 
-template <>
+template<>
 struct fmt::formatter<wxDownloadManagerList::EntryType> : formatter<string_view>
 {
 	using base = fmt::formatter<fmt::string_view>;
-	template <typename FormatContext>
+	template<typename FormatContext>
 	auto format(const wxDownloadManagerList::EntryType& type, FormatContext& ctx)
 	{
 		switch (type)
@@ -169,6 +176,9 @@ struct fmt::formatter<wxDownloadManagerList::EntryType> : formatter<string_view>
 		case wxDownloadManagerList::EntryType::DLC:
 			return base::format("DLC", ctx);
 		}
-		return base::format(std::to_string(static_cast<std::underlying_type_t<wxDownloadManagerList::EntryType>>(type)), ctx);
+		return base::format(
+			std::to_string(
+				static_cast<std::underlying_type_t<wxDownloadManagerList::EntryType>>(type)),
+			ctx);
 	}
 };

@@ -3,8 +3,8 @@
 #ifdef HAS_GAMECUBE
 
 GameCubeController::GameCubeController(uint32 adapter, uint32 index)
-	: base_type(fmt::format("{}_{}", adapter, index), fmt::format("Controller {}", index + 1)), m_adapter(adapter),
-	  m_index(index)
+	: base_type(fmt::format("{}_{}", adapter, index), fmt::format("Controller {}", index + 1)),
+	  m_adapter(adapter), m_index(index)
 {
 	// update names if multiple adapters are connected
 	if (adapter > 0)
@@ -42,21 +42,33 @@ std::string GameCubeController::get_button_name(uint64 button) const
 {
 	switch (button)
 	{
-	case kButton0: return "A";
-	case kButton1: return "B";
-	case kButton2: return "X";
-	case kButton3: return "Y";
+	case kButton0:
+		return "A";
+	case kButton1:
+		return "B";
+	case kButton2:
+		return "X";
+	case kButton3:
+		return "Y";
 
-	case kButton4: return "Left";
-	case kButton5: return "Right";
-	case kButton6: return "Down";
-	case kButton7: return "Up";
+	case kButton4:
+		return "Left";
+	case kButton5:
+		return "Right";
+	case kButton6:
+		return "Down";
+	case kButton7:
+		return "Up";
 
-	case kButton8: return "Start";
-	case kButton9: return "Z";
+	case kButton8:
+		return "Start";
+	case kButton9:
+		return "Z";
 
-	case kButton10: return "Trigger R";
-	case kButton11: return "Trigger L";
+	case kButton10:
+		return "Trigger R";
+	case kButton11:
+		return "Trigger L";
 	}
 
 	return base_type::get_button_name(button);
@@ -79,7 +91,8 @@ ControllerState GameCubeController::raw_state()
 			}
 		}
 
-		// printf("(%d, %d) - (%d, %d) - (%d, %d)\n", state.lstick_x, state.lstick_y, state.rstick_x, state.rstick_y, state.lstick, state.rstick);
+		// printf("(%d, %d) - (%d, %d) - (%d, %d)\n", state.lstick_x, state.lstick_y,
+		// state.rstick_x, state.rstick_y, state.lstick, state.rstick);
 		result.axis.x = (float)state.lstick_x / std::numeric_limits<uint8>::max();
 		result.axis.x = (result.axis.x * 2.0f) - 1.0f;
 
@@ -92,11 +105,10 @@ ControllerState GameCubeController::raw_state()
 		result.rotation.y = (float)state.rstick_y / std::numeric_limits<uint8>::max();
 		result.rotation.y = (result.rotation.y * 2.0f) - 1.0f;
 
-
 		result.trigger.x = (float)state.lstick / std::numeric_limits<uint8>::max();
 		result.trigger.y = (float)state.rstick / std::numeric_limits<uint8>::max();
 	}
-	
+
 	return result;
 }
 

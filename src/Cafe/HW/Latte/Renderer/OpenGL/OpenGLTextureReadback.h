@@ -4,7 +4,7 @@
 
 class LatteTextureReadbackInfoGL : public LatteTextureReadbackInfo
 {
-public:
+  public:
 	LatteTextureReadbackInfoGL(LatteTextureView* textureView);
 
 	~LatteTextureReadbackInfoGL();
@@ -15,7 +15,7 @@ public:
 	uint8* GetData() override;
 	void ReleaseData() override;
 
-private:
+  private:
 	GLuint m_texFormatGL;
 	GLuint m_texDataTypeGL;
 
@@ -24,4 +24,3 @@ private:
 	// sync
 	GLsync imageCopyFinSync = nullptr;
 };
-

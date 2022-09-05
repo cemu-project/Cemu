@@ -1,20 +1,20 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 #include "gui/guiWrapper.h"
 
-#include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
+#include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
 
+#include "Cafe/HW/Latte/Renderer/OpenGL/CachedFBOGL.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureGL.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
-#include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
-#include "Cafe/HW/Latte/Renderer/OpenGL/CachedFBOGL.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLTextureReadback.h"
+#include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 
-#include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_extension.h"
+#include "imgui/imgui_impl_opengl3.h"
 
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
@@ -24,7 +24,7 @@
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)
 
-#define GLFUNC(__type, __name)	__type __name;
+#define GLFUNC(__type, __name) __type __name;
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 
@@ -49,33 +49,13 @@ struct
 	std::vector<uint8> texUploadBuffer;
 	// FBO for fast clearing (on Nvidia or if glClearTexSubImage is not supported)
 	GLuint clearFBO;
-}glRendererState;
+} glRendererState;
 
-static const GLenum glDepthFuncTable[] =
-{
-	GL_NEVER,
-	GL_LESS,
-	GL_EQUAL,
-	GL_LEQUAL,
-	GL_GREATER,
-	GL_NOTEQUAL,
-	GL_GEQUAL,
-	GL_ALWAYS
-};
+static const GLenum glDepthFuncTable[] = {GL_NEVER,	  GL_LESS,	   GL_EQUAL,  GL_LEQUAL,
+										  GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, GL_ALWAYS};
 
-static const GLenum glAlphaTestFunc[] =
-{
-	GL_NEVER,
-	GL_LESS,
-	GL_EQUAL,
-	GL_LEQUAL,
-	GL_GREATER,
-	GL_NOTEQUAL,
-	GL_GEQUAL,
-	GL_ALWAYS
-};
-
-
+static const GLenum glAlphaTestFunc[] = {GL_NEVER,	 GL_LESS,	  GL_EQUAL,	 GL_LEQUAL,
+										 GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, GL_ALWAYS};
 
 OpenGLRenderer::OpenGLRenderer()
 {
@@ -83,11 +63,16 @@ OpenGLRenderer::OpenGLRenderer()
 	if (glRendererState.useTextureUploadBuffer)
 	{
 		glCreateBuffers(1, &glRendererState.uploadBuffer);
-		glNamedBufferStorage(glRendererState.uploadBuffer, TEXBUFFER_SIZE, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-		void* buffer = glMapNamedBufferRange(glRendererState.uploadBuffer, 0, TEXBUFFER_SIZE, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+		glNamedBufferStorage(glRendererState.uploadBuffer, TEXBUFFER_SIZE, nullptr,
+							 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+		void* buffer =
+			glMapNamedBufferRange(glRendererState.uploadBuffer, 0, TEXBUFFER_SIZE,
+								  GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT |
+									  GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 		if (buffer == nullptr)
 		{
-			forceLog_printf("Failed to allocate GL texture upload buffer. Using traditional API instead");
+			forceLog_printf(
+				"Failed to allocate GL texture upload buffer. Using traditional API instead");
 			cemu_assert_debug(false);
 		}
 		glRendererState.uploadBufferPtr = buffer;
@@ -102,14 +87,15 @@ OpenGLRenderer::OpenGLRenderer()
 	}
 	catch (const std::exception& ex)
 	{
-		forceLog_printf("Unable to create dxgi wrapper: %s (VRAM overlay stat won't be available)", ex.what());
+		forceLog_printf("Unable to create dxgi wrapper: %s (VRAM overlay stat won't be available)",
+						ex.what());
 	}
 #endif
 }
 
 OpenGLRenderer::~OpenGLRenderer()
 {
-	if(m_pipeline != 0)
+	if (m_pipeline != 0)
 		glDeleteProgramPipelines(1, &m_pipeline);
 }
 
@@ -127,9 +113,9 @@ bool OpenGLRenderer::ImguiBegin(bool mainWindow)
 		m_isPadViewContext = true;
 	}
 
-	if(!Renderer::ImguiBegin(mainWindow))
+	if (!Renderer::ImguiBegin(mainWindow))
 		return false;
-	
+
 	renderstate_resetColorControl();
 	renderstate_resetDepthControl();
 	renderstate_resetStencilMask();
@@ -171,7 +157,8 @@ ImTextureID OpenGLRenderer::GenerateTexture(const std::vector<uint8>& data, cons
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
 	glActiveTexture(GL_TEXTURE0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE,
+				 data.data());
 	return (ImTextureID)(uintptr_t)textureId;
 }
 
@@ -189,7 +176,7 @@ void OpenGLRenderer::DeleteFontTextures()
 	ImGui_ImplOpenGL3_DestroyFontsTexture();
 }
 
-typedef void(*GL_IMPORT)();
+typedef void (*GL_IMPORT)();
 
 #if BOOST_OS_WINDOWS
 GL_IMPORT _GetOpenGLFunction(HMODULE hLib, const char* name)
@@ -203,7 +190,7 @@ GL_IMPORT _GetOpenGLFunction(HMODULE hLib, const char* name)
 void LoadOpenGLImports()
 {
 	HMODULE hLib = LoadLibraryA("opengl32.dll");
-#define GLFUNC(__type, __name)	__name = (__type)_GetOpenGLFunction(hLib, STRINGIFY(__name));
+#define GLFUNC(__type, __name) __name = (__type)_GetOpenGLFunction(hLib, STRINGIFY(__name));
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 }
@@ -223,13 +210,14 @@ void LoadOpenGLImports()
 	PFNGLXGETPROCADDRESSPROC _glXGetProcAddress = nullptr;
 	void* libGL = dlopen("libGL.so.1", RTLD_NOW | RTLD_GLOBAL);
 	_glXGetProcAddress = (PFNGLXGETPROCADDRESSPROC)dlsym(libGL, "glXGetProcAddressARB");
-	if(!_glXGetProcAddress)
+	if (!_glXGetProcAddress)
 	{
 		libGL = dlopen("libGL.so", RTLD_NOW | RTLD_GLOBAL);
 		_glXGetProcAddress = (PFNGLXGETPROCADDRESSPROC)dlsym(libGL, "glXGetProcAddressARB");
 	}
 
-#define GLFUNC(__type, __name)	__name = (__type)_GetOpenGLFunction(libGL, _glXGetProcAddress, STRINGIFY(__name));
+#define GLFUNC(__type, __name)                                                                     \
+	__name = (__type)_GetOpenGLFunction(libGL, _glXGetProcAddress, STRINGIFY(__name));
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 }
@@ -247,7 +235,7 @@ void OpenGLRenderer::Initialize()
 
 	GLCanvas_MakeCurrent(false);
 	LoadOpenGLImports();
-	GetVendorInformation();	
+	GetVendorInformation();
 
 #if BOOST_OS_WINDOWS
 	if (wglSwapIntervalEXT)
@@ -259,10 +247,15 @@ void OpenGLRenderer::Initialize()
 
 	forceLog_printf("OpenGL extensions:");
 	forceLog_printf("ARB_clip_control: %s", glClipControl ? "available" : "not supported");
-	forceLog_printf("ARB_get_program_binary: %s", (glGetProgramBinary != NULL && glProgramBinary != NULL) ? "available" : "not supported");
-	forceLog_printf("ARB_clear_texture: %s", (glClearTexImage != NULL) ? "available" : "not supported");
-	forceLog_printf("ARB_copy_image: %s", (glCopyImageSubData != NULL) ? "available" : "not supported");
-	forceLog_printf("NV_depth_buffer_float: %s", (glDepthRangedNV != NULL) ? "available" : "not supported");
+	forceLog_printf("ARB_get_program_binary: %s",
+					(glGetProgramBinary != NULL && glProgramBinary != NULL) ? "available"
+																			: "not supported");
+	forceLog_printf("ARB_clear_texture: %s",
+					(glClearTexImage != NULL) ? "available" : "not supported");
+	forceLog_printf("ARB_copy_image: %s",
+					(glCopyImageSubData != NULL) ? "available" : "not supported");
+	forceLog_printf("NV_depth_buffer_float: %s",
+					(glDepthRangedNV != NULL) ? "available" : "not supported");
 
 	// generate default frame buffer
 	glGenFramebuffers(1, &m_defaultFramebufferId);
@@ -273,13 +266,14 @@ void OpenGLRenderer::Initialize()
 
 	if (this->m_vendor != GfxVendor::AMD)
 	{
-		// don't enable this for AMD because GL_PROGRAM_POINT_SIZE breaks shader binaries for some reason
-		// it also seems like AMD ignores GL_POINT_SPRITE and gl_PointCoord is always 0.0/0.0
+		// don't enable this for AMD because GL_PROGRAM_POINT_SIZE breaks shader binaries for some
+		// reason it also seems like AMD ignores GL_POINT_SPRITE and gl_PointCoord is always 0.0/0.0
 
 		// point size is always defined via shader
 		glEnable(GL_PROGRAM_POINT_SIZE);
 
-		// since we are using compatibility profile point sprites are disabled by default (e.g. gl_PointCoord wont work)
+		// since we are using compatibility profile point sprites are disabled by default (e.g.
+		// gl_PointCoord wont work)
 		glEnable(GL_POINT_SPRITE);
 	}
 
@@ -290,17 +284,18 @@ void OpenGLRenderer::Initialize()
 	}
 	else
 	{
-		cemuLog_log(LogType::Force, "ARB_CLIP_CONTROL not supported by graphics driver. This will lead to crashes or graphical artifacts.");
+		cemuLog_log(LogType::Force, "ARB_CLIP_CONTROL not supported by graphics driver. This will "
+									"lead to crashes or graphical artifacts.");
 	}
 
 	// set pixel unpack alignment to 1 byte
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	// on NVIDIA rendering to SNORM textures is clamped to [0.0,1.0] range for non-core profiles
-	// we can still disable the clamping using an older function (note that AMD and Intel don't need this, which is technically incorrect according to the compatibility profile spec)
+	// we can still disable the clamping using an older function (note that AMD and Intel don't need
+	// this, which is technically incorrect according to the compatibility profile spec)
 	if (m_vendor == GfxVendor::Nvidia)
 		glClampColor(GL_CLAMP_FRAGMENT_COLOR, GL_FALSE);
-
 
 	glEnable(GL_PRIMITIVE_RESTART);
 	glPrimitiveRestartIndex(0xFFFFFFFF);
@@ -326,7 +321,8 @@ void OpenGLRenderer::Initialize()
 
 	glGenBuffers(1, &glStreamoutCacheRingBuffer);
 	glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, glStreamoutCacheRingBuffer);
-	glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, LatteStreamout_GetRingBufferSize(), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, LatteStreamout_GetRingBufferSize(), NULL,
+				 GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, 0);
 
 	catchOpenGLError();
@@ -355,7 +351,7 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 void OpenGLRenderer::EnableVSync(int state)
 {
 #if BOOST_OS_WINDOWS
-	if(wglSwapIntervalEXT)
+	if (wglSwapIntervalEXT)
 		wglSwapIntervalEXT(state); // 1 = enabled, 0 = disabled
 #else
 	cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
@@ -368,7 +364,7 @@ void OpenGLRenderer::GetVendorInformation()
 {
 	// example vendor strings:
 	// ATI Technologies Inc.
-	// NVIDIA Corporation 
+	// NVIDIA Corporation
 	// Intel
 	char* glVendorString = (char*)glGetString(GL_VENDOR);
 	char* glRendererString = (char*)glGetString(GL_RENDERER);
@@ -378,7 +374,7 @@ void OpenGLRenderer::GetVendorInformation()
 	forceLog_printf("GL_RENDERER: %s", glRendererString ? glRendererString : "unknown");
 	forceLog_printf("GL_VERSION: %s", glVersionString ? glVersionString : "unknown");
 
-	if(boost::icontains(glVersionString, "Mesa"))
+	if (boost::icontains(glVersionString, "Mesa"))
 	{
 		m_vendor = GfxVendor::Mesa;
 		return;
@@ -386,8 +382,10 @@ void OpenGLRenderer::GetVendorInformation()
 
 	if (glVendorString)
 	{
-		if ((toupper(glVendorString[0]) == 'A' && toupper(glVendorString[1]) == 'T' && toupper(glVendorString[2]) == 'I') ||
-			(toupper(glVendorString[0]) == 'A' && toupper(glVendorString[1]) == 'M' && toupper(glVendorString[2]) == 'D'))
+		if ((toupper(glVendorString[0]) == 'A' && toupper(glVendorString[1]) == 'T' &&
+			 toupper(glVendorString[2]) == 'I') ||
+			(toupper(glVendorString[0]) == 'A' && toupper(glVendorString[1]) == 'M' &&
+			 toupper(glVendorString[2]) == 'D'))
 		{
 			m_vendor = GfxVendor::AMD;
 			return;
@@ -410,7 +408,8 @@ void OpenGLRenderer::GetVendorInformation()
 	m_vendor = GfxVendor::Generic;
 }
 
-void _glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
+void _glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+					  const GLchar* message, const void* userParam)
 {
 	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "Buffer"))
 		return;
@@ -419,7 +418,8 @@ void _glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "Dithering is enabled"))
 		return;
 
-	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "does not have a defined base level"))
+	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA &&
+		strstr(message, "does not have a defined base level"))
 		return;
 
 	forceLog_printf("GLDEBUG: %s", message);
@@ -458,7 +458,7 @@ void OpenGLRenderer::DrawEmptyFrame(bool mainWindow)
 {
 	if (!BeginFrame(mainWindow))
 		return;
-	
+
 	SwapBuffers(mainWindow, !mainWindow);
 }
 
@@ -468,11 +468,10 @@ void OpenGLRenderer::ClearColorbuffer(bool padView)
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-
 void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView)
 {
 	const bool hasScreenshotRequest = gui_hasScreenshotRequest();
-	if(!hasScreenshotRequest && m_screenshot_state == ScreenshotState::None)
+	if (!hasScreenshotRequest && m_screenshot_state == ScreenshotState::None)
 		return;
 
 	if (IsPadWindowActive())
@@ -505,10 +504,11 @@ void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, rgb_data.data());
 	texture_bindAndActivate(nullptr, 0);
-	
+
 	const bool srcUsesSRGB = HAS_FLAG(texView->format, Latte::E_GX2SURFFMT::FMT_BIT_SRGB);
-	const bool dstUsesSRGB = (!padView && LatteGPUState.tvBufferUsesSRGB) || (padView && LatteGPUState.drcBufferUsesSRGB);
-	if((srcUsesSRGB && !dstUsesSRGB) || (!srcUsesSRGB && dstUsesSRGB))
+	const bool dstUsesSRGB = (!padView && LatteGPUState.tvBufferUsesSRGB) ||
+							 (padView && LatteGPUState.drcBufferUsesSRGB);
+	if ((srcUsesSRGB && !dstUsesSRGB) || (!srcUsesSRGB && dstUsesSRGB))
 	{
 		for (sint32 iy = 0; iy < screenshotHeight; ++iy)
 		{
@@ -536,7 +536,10 @@ void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	SaveScreenshot(rgb_data, screenshotWidth, screenshotHeight, !padView);
 }
 
-void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, bool padView, bool clearBackground)
+void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader,
+										bool useLinearTexFilter, sint32 imageX, sint32 imageY,
+										sint32 imageWidth, sint32 imageHeight, bool padView,
+										bool clearBackground)
 {
 	if (padView && !IsPadWindowActive())
 		return;
@@ -565,13 +568,15 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	// calculate effective size
 	sint32 effectiveWidth;
 	sint32 effectiveHeight;
-	LatteTexture_getEffectiveSize(texView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, 0);
+	LatteTexture_getEffectiveSize(texView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr,
+								  0);
 
 	g_renderer->shader_unbind(RendererShader::ShaderType::kVertex);
 	g_renderer->shader_unbind(RendererShader::ShaderType::kGeometry);
 	g_renderer->shader_unbind(RendererShader::ShaderType::kFragment);
 	shader->Bind();
-	shader->SetUniformParameters(*texView, { effectiveWidth, effectiveHeight }, { imageWidth, imageHeight });
+	shader->SetUniformParameters(*texView, {effectiveWidth, effectiveHeight},
+								 {imageWidth, imageHeight});
 
 	// set viewport
 	glViewportIndexedf(0, imageX, imageY, imageWidth, imageHeight);
@@ -579,16 +584,19 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	LatteTextureViewGL* texViewGL = (LatteTextureViewGL*)texView;
 	g_renderer->texture_bindAndActivate(texView, 0);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, useLinearTexFilter ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+					useLinearTexFilter ? GL_LINEAR : GL_NEAREST);
 	texViewGL->samplerState.filterMag = 0xFFFFFFFF;
 
-	if ((!padView && !LatteGPUState.tvBufferUsesSRGB) || (padView && !LatteGPUState.drcBufferUsesSRGB))
+	if ((!padView && !LatteGPUState.tvBufferUsesSRGB) ||
+		(padView && !LatteGPUState.drcBufferUsesSRGB))
 		glDisable(GL_FRAMEBUFFER_SRGB);
 
-	uint16 indexData[6] = { 0,1,2,3,4,5 };
+	uint16 indexData[6] = {0, 1, 2, 3, 4, 5};
 	glDrawRangeElements(GL_TRIANGLES, 0, 5, 6, GL_UNSIGNED_SHORT, indexData);
 
-	if ((!padView && !LatteGPUState.tvBufferUsesSRGB) || (padView && !LatteGPUState.drcBufferUsesSRGB))
+	if ((!padView && !LatteGPUState.tvBufferUsesSRGB) ||
+		(padView && !LatteGPUState.drcBufferUsesSRGB))
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
 	// unbind texture
@@ -604,7 +612,8 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		GLCanvas_MakeCurrent(false);
 }
 
-void OpenGLRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ /*= false*/)
+void OpenGLRenderer::renderTarget_setViewport(float x, float y, float width, float height,
+											  float nearZ, float farZ, bool halfZ /*= false*/)
 {
 	if (prevNearZ != nearZ || prevFarZ != farZ || _prevHalfZ != halfZ)
 	{
@@ -637,7 +646,8 @@ void OpenGLRenderer::renderTarget_setViewport(float x, float y, float width, flo
 		_prevHalfZ = halfZ;
 	}
 
-	if (prevViewportX == x && prevViewportY == y && prevViewportWidth == width && prevViewportHeight == height)
+	if (prevViewportX == x && prevViewportY == y && prevViewportWidth == width &&
+		prevViewportHeight == height)
 		return; // viewport did not change
 	glViewportIndexedf(0, x, y, width, height);
 	prevViewportX = x;
@@ -646,7 +656,8 @@ void OpenGLRenderer::renderTarget_setViewport(float x, float y, float width, flo
 	prevViewportHeight = height;
 }
 
-void OpenGLRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, sint32 scissorWidth, sint32 scissorHeight)
+void OpenGLRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, sint32 scissorWidth,
+											 sint32 scissorHeight)
 {
 	if (prevScissorEnable != true)
 	{
@@ -699,7 +710,10 @@ void OpenGLRenderer::renderstate_setChannelTargetMask(uint32 renderTargetMask)
 			if (targetRGBAMask != ((prevTargetColorMask >> (i * 4)) & 0xF))
 			{
 				// update color mask
-				glColorMaski(i, (targetRGBAMask & 1) ? GL_TRUE : GL_FALSE, (targetRGBAMask & 2) ? GL_TRUE : GL_FALSE, (targetRGBAMask & 4) ? GL_TRUE : GL_FALSE, (targetRGBAMask & 8) ? GL_TRUE : GL_FALSE);
+				glColorMaski(i, (targetRGBAMask & 1) ? GL_TRUE : GL_FALSE,
+							 (targetRGBAMask & 2) ? GL_TRUE : GL_FALSE,
+							 (targetRGBAMask & 4) ? GL_TRUE : GL_FALSE,
+							 (targetRGBAMask & 8) ? GL_TRUE : GL_FALSE);
 			}
 		}
 		prevTargetColorMask = renderTargetMask;
@@ -717,8 +731,7 @@ void OpenGLRenderer::renderstate_setAlwaysWriteDepth()
 	prevDepthFunc = Latte::LATTE_DB_DEPTH_CONTROL::E_ZFUNC::ALWAYS;
 }
 
-static const GLuint table_glBlendSrcDst[] =
-{
+static const GLuint table_glBlendSrcDst[] = {
 	/* 0x00 */ GL_ZERO,
 	/* 0x01 */ GL_ONE,
 	/* 0x02 */ GL_SRC_COLOR,
@@ -739,8 +752,7 @@ static const GLuint table_glBlendSrcDst[] =
 	/* 0x11 */ GL_SRC1_ALPHA,
 	/* 0x12 */ GL_ONE_MINUS_SRC1_ALPHA,
 	/* 0x13 */ GL_CONSTANT_ALPHA,
-	/* 0x14 */ GL_ONE_MINUS_CONSTANT_ALPHA
-};
+	/* 0x14 */ GL_ONE_MINUS_CONSTANT_ALPHA};
 
 static GLuint GetGLBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR blendFactor)
 {
@@ -765,14 +777,8 @@ static GLuint GetGLBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR ble
 	return table_glBlendSrcDst[blendFactorU];
 }
 
-static const GLuint table_glBlendCombine[] =
-{
-	GL_FUNC_ADD,
-	GL_FUNC_SUBTRACT,
-	GL_MIN,
-	GL_MAX,
-	GL_FUNC_REVERSE_SUBTRACT
-};
+static const GLuint table_glBlendCombine[] = {GL_FUNC_ADD, GL_FUNC_SUBTRACT, GL_MIN, GL_MAX,
+											  GL_FUNC_REVERSE_SUBTRACT};
 
 GLuint GetGLBlendCombineFunc(Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC combineFunc)
 {
@@ -785,12 +791,12 @@ GLuint GetGLBlendCombineFunc(Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC combi
 	return table_glBlendCombine[combineFuncU];
 }
 
-
 void* OpenGLRenderer::texture_acquireTextureUploadBuffer(uint32 size)
 {
 	if (glRendererState.useTextureUploadBuffer)
 	{
-		glRendererState.texWorkBuffer = LatteRingBuffer_allocate(glRendererState.uploadRingBuffer, size, 1024);
+		glRendererState.texWorkBuffer =
+			LatteRingBuffer_allocate(glRendererState.uploadRingBuffer, size, 1024);
 		glRendererState.texWorkBufferSize = size;
 		return glRendererState.texWorkBuffer;
 	}
@@ -807,7 +813,9 @@ void OpenGLRenderer::texture_releaseTextureUploadBuffer(uint8* mem)
 	// do nothing
 }
 
-TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height)
+TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format,
+															bool isDepth, Latte::E_DIM dim,
+															uint32 width, uint32 height)
 {
 	TextureDecoder* texDecoder = nullptr;
 	if (isDepth)
@@ -876,7 +884,7 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 		if (texDecoder)
 			return texDecoder;
 	}
-	
+
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
 		texDecoder = TextureDecoder_R4_G4_UNORM_toRGBA4444::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM)
@@ -1010,7 +1018,11 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
 	}
 	// get format info
 	LatteTextureGL::FormatInfoGL glFormatInfo;
-	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth, hostTexture->overwriteInfo.hasFormatOverwrite ? (Latte::E_GX2SURFFMT)hostTexture->overwriteInfo.format : hostTexture->format, hostTexture->dim, &glFormatInfo);
+	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth,
+										hostTexture->overwriteInfo.hasFormatOverwrite
+											? (Latte::E_GX2SURFFMT)hostTexture->overwriteInfo.format
+											: hostTexture->format,
+										hostTexture->dim, &glFormatInfo);
 	// calculate mip count
 	sint32 mipLevels = std::min(hostTexture->mipLevels, hostTexture->maxPossibleMipLevels);
 	mipLevels = std::max(mipLevels, 1);
@@ -1018,7 +1030,8 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
 	if (hostTexture->dim == Latte::E_DIM::DIM_2D || hostTexture->dim == Latte::E_DIM::DIM_2D_MSAA)
 	{
 		cemu_assert_debug(effectiveBaseDepth == 1);
-		glTexStorage2D(GL_TEXTURE_2D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight);
+		glTexStorage2D(GL_TEXTURE_2D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth,
+					   effectiveBaseHeight);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_1D)
 	{
@@ -1026,17 +1039,21 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
 		cemu_assert_debug(effectiveBaseDepth == 1);
 		glTexStorage1D(GL_TEXTURE_1D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth);
 	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
+	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY ||
+			 hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
 	{
-		glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+		glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevels, glFormatInfo.glInternalFormat,
+					   effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_3D)
 	{
-		glTexStorage3D(GL_TEXTURE_3D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+		glTexStorage3D(GL_TEXTURE_3D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth,
+					   effectiveBaseHeight, std::max(1, effectiveBaseDepth));
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
 	{
-		glTexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
+		glTexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipLevels, glFormatInfo.glInternalFormat,
+					   effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
 	}
 	else
 	{
@@ -1045,18 +1062,26 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
 }
 
 // use standard API to upload texture data
-void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 imageSize)
+void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, sint32 width,
+											 sint32 height, sint32 depth, void* pixelData,
+											 sint32 sliceIndex, sint32 mipIndex, uint32 imageSize)
 {
 	auto hostTexture = (LatteTextureGL*)hostTextureGeneric;
 
 	sint32 effectiveWidth = width;
 	sint32 effectiveHeight = height;
 	sint32 effectiveDepth = depth;
-	cemu_assert_debug(hostTexture->overwriteInfo.hasResolutionOverwrite == false); // not supported in _loadSlice
-	cemu_assert_debug(hostTexture->overwriteInfo.hasFormatOverwrite == false); // not supported in _loadSlice
+	cemu_assert_debug(hostTexture->overwriteInfo.hasResolutionOverwrite ==
+					  false); // not supported in _loadSlice
+	cemu_assert_debug(hostTexture->overwriteInfo.hasFormatOverwrite ==
+					  false); // not supported in _loadSlice
 	// get format info
 	LatteTextureGL::FormatInfoGL glFormatInfo;
-	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth, hostTexture->overwriteInfo.hasFormatOverwrite ? (Latte::E_GX2SURFFMT)hostTexture->overwriteInfo.format : hostTexture->format, hostTexture->dim, &glFormatInfo);
+	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth,
+										hostTexture->overwriteInfo.hasFormatOverwrite
+											? (Latte::E_GX2SURFFMT)hostTexture->overwriteInfo.format
+											: hostTexture->format,
+										hostTexture->dim, &glFormatInfo);
 	// upload slice
 	catchOpenGLError();
 	if (hostTexture->dim == Latte::E_DIM::DIM_2D || hostTexture->dim == Latte::E_DIM::DIM_2D_MSAA)
@@ -1064,14 +1089,20 @@ void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, s
 		if (glFormatInfo.glIsCompressed)
 		{
 			if (glCompressedTextureSubImage2D)
-				glCompressedTextureSubImage2D(hostTexture->glId_texture, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glInternalFormat, imageSize, pixelData);
+				glCompressedTextureSubImage2D(hostTexture->glId_texture, mipIndex, 0, 0,
+											  effectiveWidth, effectiveHeight,
+											  glFormatInfo.glInternalFormat, imageSize, pixelData);
 			else
-				glCompressedTexSubImage2D(GL_TEXTURE_2D, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glInternalFormat, imageSize, pixelData);
+				glCompressedTexSubImage2D(GL_TEXTURE_2D, mipIndex, 0, 0, effectiveWidth,
+										  effectiveHeight, glFormatInfo.glInternalFormat, imageSize,
+										  pixelData);
 		}
 		else
 		{
 			if (mipIndex < hostTexture->maxPossibleMipLevels)
-				glTexSubImage2D(GL_TEXTURE_2D, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
+				glTexSubImage2D(GL_TEXTURE_2D, mipIndex, 0, 0, effectiveWidth, effectiveHeight,
+								glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType,
+								pixelData);
 			else
 				forceLogDebug_printf("2D texture mip level allocated out of range");
 		}
@@ -1080,28 +1111,42 @@ void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, s
 	{
 		if (glFormatInfo.glIsCompressed == true)
 			cemu_assert_unimplemented();
-		glTexSubImage1D(GL_TEXTURE_1D, mipIndex, 0, width, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
+		glTexSubImage1D(GL_TEXTURE_1D, mipIndex, 0, width, glFormatInfo.glSuppliedFormat,
+						glFormatInfo.glSuppliedFormatType, pixelData);
 	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
+	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY ||
+			 hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
 	{
 		if (glFormatInfo.glIsCompressed)
-			glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glInternalFormat, imageSize, pixelData);
+			glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, mipIndex, 0, 0, sliceIndex,
+									  effectiveWidth, effectiveHeight, 1,
+									  glFormatInfo.glInternalFormat, imageSize, pixelData);
 		else
-			glTexSubImage3D(GL_TEXTURE_2D_ARRAY, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
+			glTexSubImage3D(GL_TEXTURE_2D_ARRAY, mipIndex, 0, 0, sliceIndex, effectiveWidth,
+							effectiveHeight, 1, glFormatInfo.glSuppliedFormat,
+							glFormatInfo.glSuppliedFormatType, pixelData);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_3D)
 	{
 		if (glFormatInfo.glIsCompressed)
-			glCompressedTexSubImage3D(GL_TEXTURE_3D, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glInternalFormat, imageSize, pixelData);
+			glCompressedTexSubImage3D(GL_TEXTURE_3D, mipIndex, 0, 0, sliceIndex, effectiveWidth,
+									  effectiveHeight, 1, glFormatInfo.glInternalFormat, imageSize,
+									  pixelData);
 		else
-			glTexSubImage3D(GL_TEXTURE_3D, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
+			glTexSubImage3D(GL_TEXTURE_3D, mipIndex, 0, 0, sliceIndex, effectiveWidth,
+							effectiveHeight, 1, glFormatInfo.glSuppliedFormat,
+							glFormatInfo.glSuppliedFormatType, pixelData);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
 	{
 		if (glFormatInfo.glIsCompressed)
-			glCompressedTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipIndex, 0, 0, sliceIndex, width, height, 1, glFormatInfo.glInternalFormat, imageSize, pixelData);
+			glCompressedTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipIndex, 0, 0, sliceIndex, width,
+									  height, 1, glFormatInfo.glInternalFormat, imageSize,
+									  pixelData);
 		else
-			glTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipIndex, 0, 0, sliceIndex, width, height, 1, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
+			glTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipIndex, 0, 0, sliceIndex, width, height, 1,
+							glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType,
+							pixelData);
 	}
 	else
 	{
@@ -1110,9 +1155,11 @@ void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, s
 	catchOpenGLError();
 }
 
-
 // use persistent buffers to upload data
-void OpenGLRenderer_texture_loadSlice_viaBuffers(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 imageSize)
+void OpenGLRenderer_texture_loadSlice_viaBuffers(LatteTexture* hostTexture, sint32 width,
+												 sint32 height, sint32 depth, void* pixelData,
+												 sint32 sliceIndex, sint32 mipIndex,
+												 uint32 imageSize)
 {
 	// bind buffer
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, glRendererState.uploadBuffer);
@@ -1121,23 +1168,34 @@ void OpenGLRenderer_texture_loadSlice_viaBuffers(LatteTexture* hostTexture, sint
 	cemu_assert(imageSize <= TEXBUFFER_SIZE);
 
 	cemu_assert_debug(glRendererState.texWorkBufferSize == imageSize);
-	glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER, (GLintptr)(glRendererState.texWorkBuffer - (uint8*)glRendererState.uploadBufferPtr), imageSize);
+	glFlushMappedBufferRange(
+		GL_PIXEL_UNPACK_BUFFER,
+		(GLintptr)(glRendererState.texWorkBuffer - (uint8*)glRendererState.uploadBufferPtr),
+		imageSize);
 	catchOpenGLError();
-	OpenGLRenderer_texture_loadSlice_normal(hostTexture, width, height, depth, (void*)(glRendererState.texWorkBuffer - (uint8*)glRendererState.uploadBufferPtr), sliceIndex, mipIndex, imageSize);
+	OpenGLRenderer_texture_loadSlice_normal(
+		hostTexture, width, height, depth,
+		(void*)(glRendererState.texWorkBuffer - (uint8*)glRendererState.uploadBufferPtr),
+		sliceIndex, mipIndex, imageSize);
 	// unbind buffer and sync
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	catchOpenGLError();
 }
 
-void OpenGLRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 imageSize)
+void OpenGLRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height,
+									   sint32 depth, void* pixelData, sint32 sliceIndex,
+									   sint32 mipIndex, uint32 imageSize)
 {
 	if (glRendererState.useTextureUploadBuffer)
-		OpenGLRenderer_texture_loadSlice_viaBuffers(hostTexture, width, height, depth, pixelData, sliceIndex, mipIndex, imageSize);
+		OpenGLRenderer_texture_loadSlice_viaBuffers(hostTexture, width, height, depth, pixelData,
+													sliceIndex, mipIndex, imageSize);
 	else
-		OpenGLRenderer_texture_loadSlice_normal(hostTexture, width, height, depth, pixelData, sliceIndex, mipIndex, imageSize);
+		OpenGLRenderer_texture_loadSlice_normal(hostTexture, width, height, depth, pixelData,
+												sliceIndex, mipIndex, imageSize);
 }
 
-void OpenGLRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
+void OpenGLRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex,
+											 sint32 mipIndex, float r, float g, float b, float a)
 {
 	LatteTextureGL* texGL = (LatteTextureGL*)hostTexture;
 	cemu_assert_debug(!texGL->isDepth);
@@ -1151,7 +1209,9 @@ void OpenGLRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 s
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void OpenGLRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue)
+void OpenGLRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex,
+											 sint32 mipIndex, bool clearDepth, bool clearStencil,
+											 float depthValue, uint32 stencilValue)
 {
 	LatteTextureGL* texGL = (LatteTextureGL*)hostTexture;
 	cemu_assert_debug(texGL->isDepth);
@@ -1177,23 +1237,25 @@ void OpenGLRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 s
 	catchOpenGLError();
 }
 
-
-void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32 sliceIndex, sint32 mipIndex)
+void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32 sliceIndex,
+										sint32 mipIndex)
 {
 	auto hostTexture = (LatteTextureGL*)hostTextureGeneric;
 	// get OpenGL format info
 	LatteTextureGL::FormatInfoGL formatInfoGL;
-	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth, hostTexture->format, hostTexture->dim, &formatInfoGL);
+	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth, hostTexture->format, hostTexture->dim,
+										&formatInfoGL);
 	// get effective size of mip
 	sint32 effectiveWidth;
 	sint32 effectiveHeight;
-	LatteTexture_getEffectiveSize(hostTexture, &effectiveWidth, &effectiveHeight, nullptr, mipIndex);
+	LatteTexture_getEffectiveSize(hostTexture, &effectiveWidth, &effectiveHeight, nullptr,
+								  mipIndex);
 
-	// on Nvidia glClearTexImage and glClearTexSubImage has bad performance (clearing a 4K texture takes up to 50ms)
-	// clearing with glTextureSubImage2D from a CPU RAM buffer is only slightly slower
-	// clearing with glTextureSubImage2D from a OpenGL buffer is 10-20% faster than glClearTexImage)
-	// clearing with FBO and glClear is orders of magnitude faster than the other methods
-	// (these are results from 2018, may be different now)
+	// on Nvidia glClearTexImage and glClearTexSubImage has bad performance (clearing a 4K texture
+	// takes up to 50ms) clearing with glTextureSubImage2D from a CPU RAM buffer is only slightly
+	// slower clearing with glTextureSubImage2D from a OpenGL buffer is 10-20% faster than
+	// glClearTexImage) clearing with FBO and glClear is orders of magnitude faster than the other
+	// methods (these are results from 2018, may be different now)
 
 	if (this->m_vendor == GfxVendor::Nvidia || glClearTexSubImage == nullptr)
 	{
@@ -1211,9 +1273,11 @@ void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32
 		glBindFramebuffer(GL_FRAMEBUFFER_EXT, glRendererState.clearFBO);
 		// set attachment
 		if (hostTexture->dim == Latte::E_DIM::DIM_2D)
-			glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hostTexture->glId_texture, mipIndex);
+			glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+								   hostTexture->glId_texture, mipIndex);
 		else
-			glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, hostTexture->glId_texture, mipIndex, sliceIndex);
+			glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+									  hostTexture->glId_texture, mipIndex, sliceIndex);
 
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -1223,14 +1287,20 @@ void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32
 	if (glClearTexSubImage == nullptr)
 		return;
 	// clear
-	glClearTexSubImage(hostTexture->glId_texture, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, formatInfoGL.glSuppliedFormat, formatInfoGL.glSuppliedFormatType, NULL);
+	glClearTexSubImage(hostTexture->glId_texture, mipIndex, 0, 0, sliceIndex, effectiveWidth,
+					   effectiveHeight, 1, formatInfoGL.glSuppliedFormat,
+					   formatInfoGL.glSuppliedFormatType, NULL);
 }
 
-LatteTexture* OpenGLRenderer::texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
-	uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
+LatteTexture* OpenGLRenderer::texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim,
+													  MPTR physAddress, MPTR physMipAddress,
+													  Latte::E_GX2SURFFMT format, uint32 width,
+													  uint32 height, uint32 depth, uint32 pitch,
+													  uint32 mipLevels, uint32 swizzle,
+													  Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
-	return new LatteTextureGL(textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
-	
+	return new LatteTextureGL(textureUnit, dim, physAddress, physMipAddress, format, width, height,
+							  depth, pitch, mipLevels, swizzle, tileMode, isDepth);
 }
 
 void OpenGLRenderer::texture_setActiveTextureUnit(sint32 index)
@@ -1245,7 +1315,8 @@ void OpenGLRenderer::texture_setActiveTextureUnit(sint32 index)
 void OpenGLRenderer::texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit)
 {
 	const auto textureViewGL = (LatteTextureViewGL*)textureView;
-	cemu_assert_debug(textureUnit < (sizeof(LatteBoundTexturesBackup) / sizeof(LatteBoundTexturesBackup[0])));
+	cemu_assert_debug(textureUnit <
+					  (sizeof(LatteBoundTexturesBackup) / sizeof(LatteBoundTexturesBackup[0])));
 	// don't call glBindTexture if the texture is already bound
 	if (LatteBoundTextures[textureUnit] == textureViewGL)
 	{
@@ -1265,7 +1336,8 @@ void OpenGLRenderer::texture_bindAndActivate(LatteTextureView* textureView, uint
 
 void OpenGLRenderer::texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit)
 {
-	cemu_assert_debug(textureUnit < (sizeof(LatteBoundTexturesBackup) / sizeof(LatteBoundTexturesBackup[0])));
+	cemu_assert_debug(textureUnit <
+					  (sizeof(LatteBoundTexturesBackup) / sizeof(LatteBoundTexturesBackup[0])));
 	// don't call glBindTexture if the texture is already bound
 	if (LatteBoundTextures[textureUnit] == texture)
 	{
@@ -1293,7 +1365,8 @@ void OpenGLRenderer::texture_notifyDelete(LatteTextureView* textureView)
 	}
 }
 
-// similar to _bindAndActivate() but doesn't call _setActiveTextureUnit() if texture is already bound
+// similar to _bindAndActivate() but doesn't call _setActiveTextureUnit() if texture is already
+// bound
 void OpenGLRenderer::texture_bindOnly(LatteTextureView* textureView1, uint32 textureUnit)
 {
 	auto textureView = ((LatteTextureViewGL*)textureView1);
@@ -1346,18 +1419,25 @@ void OpenGLRenderer::texture_restoreBoundTexture(uint32 textureUnit)
 	glBindTexture(texUnitTexTargetBackup[textureUnit], texUnitTexIdBackup[textureUnit]);
 }
 
-void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY,
-	sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth)
+void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip,
+											  sint32 effectiveSrcX, sint32 effectiveSrcY,
+											  sint32 srcSlice, LatteTexture* dst, sint32 dstMip,
+											  sint32 effectiveDstX, sint32 effectiveDstY,
+											  sint32 dstSlice, sint32 effectiveCopyWidth,
+											  sint32 effectiveCopyHeight, sint32 srcDepth)
 {
 	auto srcGL = (LatteTextureGL*)src;
 	auto dstGL = (LatteTextureGL*)dst;
 
-	if ((srcGL->isAlternativeFormat || dstGL->isAlternativeFormat) && (srcGL->glInternalFormat != dstGL->glInternalFormat))
+	if ((srcGL->isAlternativeFormat || dstGL->isAlternativeFormat) &&
+		(srcGL->glInternalFormat != dstGL->glInternalFormat))
 	{
-		if (srcGL->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT && dstGL->format == Latte::E_GX2SURFFMT::BC4_UNORM)
+		if (srcGL->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT &&
+			dstGL->format == Latte::E_GX2SURFFMT::BC4_UNORM)
 		{
 			cemu_assert_debug(dstGL->dim != Latte::E_DIM::DIM_2D);
-			// special case where BC4 format is replaced with R16F for array/3d-textures (since OpenGL's BC4 compression only supports 2D textures)
+			// special case where BC4 format is replaced with R16F for array/3d-textures (since
+			// OpenGL's BC4 compression only supports 2D textures)
 			texture_syncSliceSpecialBC4(srcGL, srcSlice, srcMip, dstGL, dstSlice, dstMip);
 			return;
 		}
@@ -1368,17 +1448,20 @@ void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 		}
 	}
 
-	if (srcGL->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT && dstGL->format == Latte::E_GX2SURFFMT::BC3_UNORM)
+	if (srcGL->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT &&
+		dstGL->format == Latte::E_GX2SURFFMT::BC3_UNORM)
 	{
-		if ((dstGL->width >> dstMip) < 4 ||	(dstGL->height >> dstMip) < 4)
+		if ((dstGL->width >> dstMip) < 4 || (dstGL->height >> dstMip) < 4)
 		{
 			texture_syncSliceSpecialIntegerToBC3(srcGL, srcSlice, srcMip, dstGL, dstSlice, dstMip);
 			return;
-
 		}
 	}
 	catchOpenGLError();
-	glCopyImageSubData(srcGL->glId_texture, srcGL->glTexTarget, srcMip, effectiveSrcX, effectiveSrcY, srcSlice, dstGL->glId_texture, dstGL->glTexTarget, dstMip, effectiveDstX, effectiveDstY, dstSlice, effectiveCopyWidth, effectiveCopyHeight, srcDepth);
+	glCopyImageSubData(srcGL->glId_texture, srcGL->glTexTarget, srcMip, effectiveSrcX,
+					   effectiveSrcY, srcSlice, dstGL->glId_texture, dstGL->glTexTarget, dstMip,
+					   effectiveDstX, effectiveDstY, dstSlice, effectiveCopyWidth,
+					   effectiveCopyHeight, srcDepth);
 	catchOpenGLError();
 }
 
@@ -1426,7 +1509,9 @@ void OpenGLRenderer::attributeStream_unbindVertexBuffer()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-RendererShader* OpenGLRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
+RendererShader* OpenGLRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash,
+											  uint64 auxHash, const std::string& source,
+											  bool isGameShader, bool isGfxPackShader)
 {
 	return new RendererShaderGL(type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
 }
@@ -1434,12 +1519,12 @@ RendererShader* OpenGLRenderer::shader_create(RendererShader::ShaderType type, u
 void OpenGLRenderer::shader_bind(RendererShader* shader)
 {
 	auto shaderGL = (RendererShaderGL*)shader;
-	
+
 	GLbitfield shaderBit;
 
 	const auto program = shaderGL->GetProgram();
 
-	switch(shader->GetType())
+	switch (shader->GetType())
 	{
 	case RendererShader::ShaderType::kVertex:
 		if (program == prevVertexShaderProgram)
@@ -1480,27 +1565,30 @@ void OpenGLRenderer::shader_bind(GLuint program, GLbitfield shaderType)
 
 void OpenGLRenderer::shader_unbind(RendererShader::ShaderType shaderType)
 {
-	switch (shaderType) { 
-		case RendererShader::ShaderType::kVertex:
+	switch (shaderType)
+	{
+	case RendererShader::ShaderType::kVertex:
 		glUseProgramStages(m_pipeline, GL_VERTEX_SHADER_BIT, 0);
 		prevVertexShaderProgram = -1;
 		break;
-	case RendererShader::ShaderType::kFragment: 
+	case RendererShader::ShaderType::kFragment:
 		glUseProgramStages(m_pipeline, GL_FRAGMENT_SHADER_BIT, 0);
 		prevPixelShaderProgram = -1;
 		break;
-	case RendererShader::ShaderType::kGeometry: 
+	case RendererShader::ShaderType::kGeometry:
 		glUseProgramStages(m_pipeline, GL_GEOMETRY_SHADER_BIT, 0);
 		prevGeometryShaderProgram = -1;
 		break;
-	default: 
+	default:
 		UNREACHABLE;
 	}
 }
 
 void decodeBC4Block_UNORM(uint8* blockStorage, float* rOutput);
 
-void OpenGLRenderer::texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex)
+void OpenGLRenderer::texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint32 srcSliceIndex,
+												 sint32 srcMipIndex, LatteTexture* dstTexture,
+												 sint32 dstSliceIndex, sint32 dstMipIndex)
 {
 	auto srcTextureGL = (LatteTextureGL*)srcTexture;
 	auto dstTextureGL = (LatteTextureGL*)dstTexture;
@@ -1513,11 +1601,14 @@ void OpenGLRenderer::texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint3
 	sint32 compressedCopyWidth = std::min(sourceTexWidth, std::max(1, destTexWidth / 4));
 	sint32 compressedCopyHeight = std::min(sourceTexHeight, std::max(1, destTexHeight / 4));
 
-	uint8* texelData = (uint8*)malloc(compressedCopyWidth*compressedCopyHeight * 8);
-	float* pixelRGBA16fData = (float*)malloc(destTexWidth*destTexHeight * sizeof(float) * 2);
+	uint8* texelData = (uint8*)malloc(compressedCopyWidth * compressedCopyHeight * 8);
+	float* pixelRGBA16fData = (float*)malloc(destTexWidth * destTexHeight * sizeof(float) * 2);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	if (glGetTextureSubImage)
-		glGetTextureSubImage(srcTextureGL->glId_texture, 0, 0, 0, srcSliceIndex, compressedCopyWidth, compressedCopyHeight, 1, GL_RGBA_INTEGER, GL_UNSIGNED_SHORT, compressedCopyWidth * compressedCopyHeight * 8, texelData);
+		glGetTextureSubImage(srcTextureGL->glId_texture, 0, 0, 0, srcSliceIndex,
+							 compressedCopyWidth, compressedCopyHeight, 1, GL_RGBA_INTEGER,
+							 GL_UNSIGNED_SHORT, compressedCopyWidth * compressedCopyHeight * 8,
+							 texelData);
 	for (sint32 bx = 0; bx < compressedCopyWidth; bx++)
 	{
 		for (sint32 by = 0; by < compressedCopyHeight; by++)
@@ -1528,7 +1619,7 @@ void OpenGLRenderer::texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint3
 			{
 				for (sint32 sx = 0; sx < std::min(4, destTexWidth - bx * 4); sx++)
 				{
-					sint32 pixelIndex = (bx * 4 + sx) + (by * 4 + sy)*destTexWidth;
+					sint32 pixelIndex = (bx * 4 + sx) + (by * 4 + sy) * destTexWidth;
 					pixelRGBA16fData[pixelIndex * 2] = rBlock[sx + sy * 4];
 					pixelRGBA16fData[pixelIndex * 2 + 1] = rBlock[sx + sy * 4];
 				}
@@ -1537,13 +1628,17 @@ void OpenGLRenderer::texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint3
 	}
 	// upload mip
 	if (glGetTextureSubImage && glTextureSubImage3D)
-		glTextureSubImage3D(dstTextureGL->glId_texture, dstMipIndex, 0, 0, dstSliceIndex, destTexWidth, destTexHeight, 1, GL_RG, GL_FLOAT, pixelRGBA16fData);
+		glTextureSubImage3D(dstTextureGL->glId_texture, dstMipIndex, 0, 0, dstSliceIndex,
+							destTexWidth, destTexHeight, 1, GL_RG, GL_FLOAT, pixelRGBA16fData);
 	free(pixelRGBA16fData);
 	free(texelData);
 	catchOpenGLError();
 }
 
-void OpenGLRenderer::texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex)
+void OpenGLRenderer::texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTexture,
+														  sint32 srcSliceIndex, sint32 srcMipIndex,
+														  LatteTexture* dstTexture,
+														  sint32 dstSliceIndex, sint32 dstMipIndex)
 {
 	auto srcTextureGL = (LatteTextureGL*)srcTexture;
 	auto dstTextureGL = (LatteTextureGL*)dstTexture;
@@ -1556,15 +1651,18 @@ void OpenGLRenderer::texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTextu
 	sint32 compressedCopyWidth = std::min(sourceTexWidth, std::max(1, destTexWidth / 4));
 	sint32 compressedCopyHeight = std::min(sourceTexHeight, std::max(1, destTexHeight / 4));
 
-	uint8* texelData = (uint8*)malloc(compressedCopyWidth*compressedCopyHeight * 16);
+	uint8* texelData = (uint8*)malloc(compressedCopyWidth * compressedCopyHeight * 16);
 
 	catchOpenGLError();
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	catchOpenGLError();
 	if (glGetTextureSubImage)
-		glGetTextureSubImage(srcTextureGL->glId_texture, 0, 0, 0, srcSliceIndex, compressedCopyWidth, compressedCopyHeight, 1, GL_RGBA_INTEGER, GL_UNSIGNED_INT, compressedCopyWidth * compressedCopyHeight * 16, texelData);
-	//float* pixelRGBA16fData = (float*)malloc(destTexWidth*destTexHeight * sizeof(float) * 2);
-	//for (sint32 bx = 0; bx < compressedCopyWidth; bx++)
+		glGetTextureSubImage(srcTextureGL->glId_texture, 0, 0, 0, srcSliceIndex,
+							 compressedCopyWidth, compressedCopyHeight, 1, GL_RGBA_INTEGER,
+							 GL_UNSIGNED_INT, compressedCopyWidth * compressedCopyHeight * 16,
+							 texelData);
+	// float* pixelRGBA16fData = (float*)malloc(destTexWidth*destTexHeight * sizeof(float) * 2);
+	// for (sint32 bx = 0; bx < compressedCopyWidth; bx++)
 	//{
 	//	for (sint32 by = 0; by < compressedCopyHeight; by++)
 	//	{
@@ -1580,11 +1678,14 @@ void OpenGLRenderer::texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTextu
 	//			}
 	//		}
 	//	}
-	//}
-	// upload mip
+	// }
+	//  upload mip
 	catchOpenGLError();
 	if (glGetTextureSubImage && glCompressedTextureSubImage3D)
-		glCompressedTextureSubImage3D(dstTextureGL->glId_texture, dstMipIndex, 0, 0, dstSliceIndex, destTexWidth, destTexHeight, 1, dstTextureGL->glInternalFormat, compressedCopyWidth * compressedCopyHeight * 16, texelData);
+		glCompressedTextureSubImage3D(dstTextureGL->glId_texture, dstMipIndex, 0, 0, dstSliceIndex,
+									  destTexWidth, destTexHeight, 1,
+									  dstTextureGL->glInternalFormat,
+									  compressedCopyWidth * compressedCopyHeight * 16, texelData);
 	free(texelData);
 	catchOpenGLError();
 }
@@ -1628,23 +1729,17 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 
 	// get stencil control parameters
 	uint32 stencilCompareMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILMASK_F();
-	uint32 stencilWriteMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILWRITEMASK_F();
+	uint32 stencilWriteMaskFront =
+		LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILWRITEMASK_F();
 	uint32 stencilRefFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILREF_F();
-	uint32 stencilCompareMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
-	uint32 stencilWriteMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
+	uint32 stencilCompareMaskBack =
+		LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
+	uint32 stencilWriteMaskBack =
+		LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
 	uint32 stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
 
-	const static GLenum stencilActionGX2ToGL[] =
-	{
-		GL_KEEP,
-		GL_ZERO,
-		GL_REPLACE,
-		GL_INCR,
-		GL_DECR,
-		GL_INVERT,
-		GL_INCR_WRAP,
-		GL_DECR_WRAP
-	};
+	const static GLenum stencilActionGX2ToGL[] = {GL_KEEP, GL_ZERO,	  GL_REPLACE,	GL_INCR,
+												  GL_DECR, GL_INVERT, GL_INCR_WRAP, GL_DECR_WRAP};
 
 	if (prevStencilEnable != stencilEnable)
 	{
@@ -1670,16 +1765,22 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 			stencilWriteMaskBack = stencilWriteMaskFront;
 		}
 		// update stencil configuration for front side
-		if (prevFrontStencilFail != frontStencilFail || prevFrontStencilZFail != frontStencilZFail || prevFrontStencilZPass != frontStencilZPass)
+		if (prevFrontStencilFail != frontStencilFail ||
+			prevFrontStencilZFail != frontStencilZFail ||
+			prevFrontStencilZPass != frontStencilZPass)
 		{
-			glStencilOpSeparate(GL_FRONT, stencilActionGX2ToGL[(size_t)frontStencilFail], stencilActionGX2ToGL[(size_t)frontStencilZFail], stencilActionGX2ToGL[(size_t)frontStencilZPass]);
+			glStencilOpSeparate(GL_FRONT, stencilActionGX2ToGL[(size_t)frontStencilFail],
+								stencilActionGX2ToGL[(size_t)frontStencilZFail],
+								stencilActionGX2ToGL[(size_t)frontStencilZPass]);
 			prevFrontStencilFail = frontStencilFail;
 			prevFrontStencilZFail = frontStencilZFail;
 			prevFrontStencilZPass = frontStencilZPass;
 		}
-		if (prevFrontStencilFunc != frontStencilFunc || prevStencilRefFront != stencilRefFront || prevStencilCompareMaskFront != stencilCompareMaskFront)
+		if (prevFrontStencilFunc != frontStencilFunc || prevStencilRefFront != stencilRefFront ||
+			prevStencilCompareMaskFront != stencilCompareMaskFront)
 		{
-			glStencilFuncSeparate(GL_FRONT, glDepthFuncTable[(size_t)frontStencilFunc], stencilRefFront, stencilCompareMaskFront);
+			glStencilFuncSeparate(GL_FRONT, glDepthFuncTable[(size_t)frontStencilFunc],
+								  stencilRefFront, stencilCompareMaskFront);
 			prevFrontStencilFunc = frontStencilFunc;
 			prevStencilRefFront = stencilRefFront;
 			prevStencilCompareMaskFront = stencilCompareMaskFront;
@@ -1690,16 +1791,21 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 			prevStencilWriteMaskFront = stencilWriteMaskFront;
 		}
 		// update stencil configuration for back side
-		if (prevBackStencilFail != backStencilFail || prevBackStencilZFail != backStencilZFail || prevBackStencilZPass != backStencilZPass)
+		if (prevBackStencilFail != backStencilFail || prevBackStencilZFail != backStencilZFail ||
+			prevBackStencilZPass != backStencilZPass)
 		{
-			glStencilOpSeparate(GL_BACK, stencilActionGX2ToGL[(size_t)backStencilFail], stencilActionGX2ToGL[(size_t)backStencilZFail], stencilActionGX2ToGL[(size_t)backStencilZPass]);
+			glStencilOpSeparate(GL_BACK, stencilActionGX2ToGL[(size_t)backStencilFail],
+								stencilActionGX2ToGL[(size_t)backStencilZFail],
+								stencilActionGX2ToGL[(size_t)backStencilZPass]);
 			prevBackStencilFail = backStencilFail;
 			prevBackStencilZFail = backStencilZFail;
 			prevBackStencilZPass = backStencilZPass;
 		}
-		if (prevBackStencilFunc != backStencilFunc || prevStencilRefBack != stencilRefBack || prevStencilCompareMaskBack != stencilCompareMaskBack)
+		if (prevBackStencilFunc != backStencilFunc || prevStencilRefBack != stencilRefBack ||
+			prevStencilCompareMaskBack != stencilCompareMaskBack)
 		{
-			glStencilFuncSeparate(GL_BACK, glDepthFuncTable[(size_t)backStencilFunc], stencilRefBack, stencilCompareMaskBack);
+			glStencilFuncSeparate(GL_BACK, glDepthFuncTable[(size_t)backStencilFunc],
+								  stencilRefBack, stencilCompareMaskBack);
 			prevBackStencilFunc = backStencilFunc;
 			prevStencilRefBack = stencilRefBack;
 			prevStencilCompareMaskBack = stencilCompareMaskBack;
@@ -1758,7 +1864,8 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 		blendColorConstant[2] != prevBlendColorConstant[2] ||
 		blendColorConstant[3] != prevBlendColorConstant[3])
 	{
-		glBlendColor(*(float*)(blendColorConstant + 0), *(float*)(blendColorConstant + 1), *(float*)(blendColorConstant + 2), *(float*)(blendColorConstant + 3));
+		glBlendColor(*(float*)(blendColorConstant + 0), *(float*)(blendColorConstant + 1),
+					 *(float*)(blendColorConstant + 2), *(float*)(blendColorConstant + 3));
 		prevBlendColorConstant[0] = blendColorConstant[0];
 		prevBlendColorConstant[1] = blendColorConstant[1];
 		prevBlendColorConstant[2] = blendColorConstant[2];
@@ -1772,8 +1879,13 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 		{
 			if (blendControlReg.get_SEPARATE_ALPHA_BLEND())
 			{
-				glBlendFuncSeparatei(i, GetGLBlendFactor(blendControlReg.get_COLOR_SRCBLEND()), GetGLBlendFactor(blendControlReg.get_COLOR_DSTBLEND()), GetGLBlendFactor(blendControlReg.get_ALPHA_SRCBLEND()), GetGLBlendFactor(blendControlReg.get_ALPHA_DSTBLEND()));
-				glBlendEquationSeparatei(i, GetGLBlendCombineFunc(blendControlReg.get_COLOR_COMB_FCN()), GetGLBlendCombineFunc(blendControlReg.get_ALPHA_COMB_FCN()));
+				glBlendFuncSeparatei(i, GetGLBlendFactor(blendControlReg.get_COLOR_SRCBLEND()),
+									 GetGLBlendFactor(blendControlReg.get_COLOR_DSTBLEND()),
+									 GetGLBlendFactor(blendControlReg.get_ALPHA_SRCBLEND()),
+									 GetGLBlendFactor(blendControlReg.get_ALPHA_DSTBLEND()));
+				glBlendEquationSeparatei(
+					i, GetGLBlendCombineFunc(blendControlReg.get_COLOR_COMB_FCN()),
+					GetGLBlendCombineFunc(blendControlReg.get_ALPHA_COMB_FCN()));
 			}
 			else
 			{
@@ -1846,7 +1958,8 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 		else if (cullFront && cullBack == 0)
 			glCullFace(GL_FRONT);
 		else
-			; // front and back disabled, do nothing here since we force disable culling via glDisable(GL_CULL_FACE) above
+			; // front and back disabled, do nothing here since we force disable culling via
+			  // glDisable(GL_CULL_FACE) above
 		prevCullFront = cullFront;
 		prevCullBack = cullBack;
 	}
@@ -1858,35 +1971,44 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 		else
 			glDisable(GL_POLYGON_OFFSET_FILL);
 		prevPolygonOffsetFrontEnabled = polyOffsetFrontEnabled;
-
 	}
 
 	if (polyOffsetFrontEnabled)
 	{
 		// if polygon offset is enabled check if offset/scale register changed
-		if (LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.getRawValue() != prevPolygonFrontOffsetU32 || LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue() != prevPolygonFrontScaleU32 || LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.getRawValue() != prevPolygonClampU32)
+		if (LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.getRawValue() !=
+				prevPolygonFrontOffsetU32 ||
+			LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue() !=
+				prevPolygonFrontScaleU32 ||
+			LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.getRawValue() != prevPolygonClampU32)
 		{
 			float frontScale = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.get_SCALE();
-			float frontOffset = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.get_OFFSET();
+			float frontOffset =
+				LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.get_OFFSET();
 			float offsetClamp = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.get_CLAMP();
 
 			frontScale /= 16.0f;
 
-			//if( glPolygonOffsetClampEXT )
-			//	glPolygonOffsetClampEXT(frontOffset, frontScale, offsetClamp);		
-			//else
+			// if( glPolygonOffsetClampEXT )
+			//	glPolygonOffsetClampEXT(frontOffset, frontScale, offsetClamp);
+			// else
 			glPolygonOffset(frontScale, frontOffset);
 
-			prevPolygonFrontOffsetU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue();
-			prevPolygonFrontScaleU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue();
+			prevPolygonFrontOffsetU32 =
+				LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue();
+			prevPolygonFrontScaleU32 =
+				LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue();
 			prevPolygonClampU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.getRawValue();
 		}
 	}
 	// clip control
 	catchOpenGLError();
-	cemu_assert_debug(LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() == LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE()); // near/far clipping disabled individually
+	cemu_assert_debug(LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() ==
+					  LatteGPUState.contextNew.PA_CL_CLIP_CNTL
+						  .get_ZCLIP_FAR_DISABLE()); // near/far clipping disabled individually
 	uint32 zClipEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() == false;
-	// todo: Mass Effect 3 uses precompiled display lists which seem to write values to PA_CL_CLIP_CNTL which aren't available via the traditional GX2 API
+	// todo: Mass Effect 3 uses precompiled display lists which seem to write values to
+	// PA_CL_CLIP_CNTL which aren't available via the traditional GX2 API
 	if (prevZClipEnable != zClipEnable)
 	{
 		if (zClipEnable)
@@ -1916,7 +2038,8 @@ void OpenGLRenderer::renderstate_updateBlendingAndColorControl()
 		catchOpenGLError();
 	}
 	// primitive restart index
-	uint32 primitiveRestartIndex = LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
+	uint32 primitiveRestartIndex =
+		LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
 	if (prevPrimitiveRestartIndex != primitiveRestartIndex)
 	{
 		glPrimitiveRestartIndex(primitiveRestartIndex);
@@ -1931,10 +2054,10 @@ void OpenGLRenderer::renderstate_resetColorControl()
 	uint32 blendEnableMask = 0;
 	for (uint32 i = 0; i < 8; i++)
 	{
-		if (((blendEnableMask^prevBlendMask)&(1 << i)) != 0)
+		if (((blendEnableMask ^ prevBlendMask) & (1 << i)) != 0)
 		{
 			// bit changed -> blend mode was toggled
-			if ((blendEnableMask&(1 << i)) != 0)
+			if ((blendEnableMask & (1 << i)) != 0)
 				glEnablei(GL_BLEND, i);
 			else
 				glDisablei(GL_BLEND, i);
@@ -1996,11 +2119,11 @@ void OpenGLRenderer::renderstate_resetDepthControl()
 		glDisable(GL_STENCIL_TEST);
 		prevStencilEnable = false;
 	}
-	//if (prevZClipEnable == 0)
+	// if (prevZClipEnable == 0)
 	//{
 	//	glDisable(GL_DEPTH_CLAMP);
 	//	prevZClipEnable = 1;
-	//}
+	// }
 
 	glDisable(GL_DEPTH_CLAMP);
 	prevZClipEnable = 1;
@@ -2015,7 +2138,7 @@ void OpenGLRenderer::renderstate_resetDepthControl()
 void OpenGLRenderer::renderstate_resetStencilMask()
 {
 	uint32 stencilWriteMaskFront = 0xFFFFFFFF; // enable front mask
-	uint32 stencilWriteMaskBack = 0xFFFFFFFF; // enable back mask
+	uint32 stencilWriteMaskBack = 0xFFFFFFFF;  // enable back mask
 	if (prevStencilWriteMaskFront != stencilWriteMaskFront)
 	{
 		glStencilMaskSeparate(GL_FRONT, stencilWriteMaskFront);

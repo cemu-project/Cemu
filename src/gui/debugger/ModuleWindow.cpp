@@ -1,11 +1,11 @@
-#include "gui/wxgui.h"
-#include "gui/guiWrapper.h"
 #include "gui/debugger/ModuleWindow.h"
+#include "gui/guiWrapper.h"
+#include "gui/wxgui.h"
 
 #include <sstream>
 
-#include "gui/debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include "gui/debugger/DebuggerWindow2.h"
 
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
@@ -19,8 +19,11 @@ enum ItemColumns
 	ColumnSize,
 };
 
-ModuleWindow::ModuleWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
-	: wxFrame(&parent, wxID_ANY, _("Modules"), wxDefaultPosition, wxSize(420, 250), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
+ModuleWindow::ModuleWindow(DebuggerWindow2& parent, const wxPoint& main_position,
+						   const wxSize& main_size)
+	: wxFrame(&parent, wxID_ANY, _("Modules"), wxDefaultPosition, wxSize(420, 250),
+			  wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER |
+				  wxFRAME_FLOAT_ON_PARENT)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
@@ -76,7 +79,6 @@ void ModuleWindow::OnMainMove(const wxPoint& main_position, const wxSize& main_s
 	this->SetPosition(position);
 }
 
-
 void ModuleWindow::OnGameLoaded()
 {
 	Freeze();
@@ -95,7 +97,8 @@ void ModuleWindow::OnGameLoaded()
 			item.SetText(module->moduleName2.c_str());
 
 			const auto index = m_modules->InsertItem(item);
-			m_modules->SetItem(index, ColumnAddress, wxString::Format("%08x", module->regionMappingBase_text.GetMPTR()));
+			m_modules->SetItem(index, ColumnAddress,
+							   wxString::Format("%08x", module->regionMappingBase_text.GetMPTR()));
 			m_modules->SetItem(index, ColumnSize, wxString::Format("%x", module->regionSize_text));
 		}
 	}
@@ -112,8 +115,10 @@ void ModuleWindow::OnGameLoaded()
 				item.SetText(std::string(patch_group->getName()));
 
 				const auto index = m_modules->InsertItem(item);
-				m_modules->SetItem(index, ColumnAddress, wxString::Format("%08x", patch_group->getCodeCaveBase()));
-				m_modules->SetItem(index, ColumnSize, wxString::Format("%x", patch_group->getCodeCaveSize()));
+				m_modules->SetItem(index, ColumnAddress,
+								   wxString::Format("%08x", patch_group->getCodeCaveBase()));
+				m_modules->SetItem(index, ColumnSize,
+								   wxString::Format("%x", patch_group->getCodeCaveSize()));
 				patch_count++;
 			}
 		}
@@ -121,7 +126,6 @@ void ModuleWindow::OnGameLoaded()
 
 	Thaw();
 }
-
 
 void ModuleWindow::OnLeftDClick(wxMouseEvent& event)
 {

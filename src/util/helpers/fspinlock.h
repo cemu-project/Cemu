@@ -6,14 +6,15 @@
 
 class FSpinlock
 {
-public:
+  public:
 	void acquire()
 	{
-		while( true )
+		while (true)
 		{
-			if (!m_lockBool.exchange(true, std::memory_order_acquire)) 
+			if (!m_lockBool.exchange(true, std::memory_order_acquire))
 				break;
-			while (m_lockBool.load(std::memory_order_relaxed)) _mm_pause();
+			while (m_lockBool.load(std::memory_order_relaxed))
+				_mm_pause();
 		}
 	}
 
@@ -32,7 +33,6 @@ public:
 		return m_lockBool.load(std::memory_order_relaxed);
 	}
 
-private:
-	
+  private:
 	std::atomic<bool> m_lockBool = false;
 };

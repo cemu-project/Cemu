@@ -28,7 +28,9 @@ uint32 _quickStochasticHash(void* texData, uint32 memRange)
 	uint64 hashVal = 0;
 	memRange /= sizeof(uint64);
 
-	uint32 memStep = memRange / 37; // use prime here to avoid memStep aligning nicely with pitch of texture, leading to sampling only along the border of a texture
+	uint32 memStep =
+		memRange / 37; // use prime here to avoid memStep aligning nicely with pitch of texture,
+					   // leading to sampling only along the border of a texture
 	for (sint32 i = 0; i < 37; i++)
 	{
 		hashVal += *texDataU64;
@@ -40,32 +42,39 @@ uint32 _quickStochasticHash(void* texData, uint32 memRange)
 
 uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 {
-	if( hostTexture->texDataPtrHigh == hostTexture->texDataPtrLow )
+	if (hostTexture->texDataPtrHigh == hostTexture->texDataPtrLow)
 	{
 		return 0;
 	}
 	if (hostTexture->format == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)
 	{
 		// this is an exotic format that usually isn't generated or updated CPU-side
-		// therefore as an optimization we can risk to only check a minimal amount of bytes at the beginning of the texture data
-		// updates which change the entire texture should still be detected this way
-		// this also helps with a bug in BotW which seems to fill the empty areas of the textures with other data which causes unnecessary invalidations and texture reloads
+		// therefore as an optimization we can risk to only check a minimal amount of bytes at the
+		// beginning of the texture data updates which change the entire texture should still be
+		// detected this way this also helps with a bug in BotW which seems to fill the empty areas
+		// of the textures with other data which causes unnecessary invalidations and texture
+		// reloads
 
 		// Wonderful 101 generates this format in a 8x8x8 3D texture using tiling aperture
-		if (hostTexture->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THICK && hostTexture->depth == 8 && hostTexture->width == 8 && hostTexture->height == 8)
+		if (hostTexture->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THICK &&
+			hostTexture->depth == 8 && hostTexture->width == 8 && hostTexture->height == 8)
 		{
 			// special case for Wonderful 101
-			uint32* texDataU32 = (uint32*)memory_getPointerFromPhysicalOffset(hostTexture->texDataPtrLow);
-			return texDataU32[0] ^ texDataU32[0x100/4] ^ texDataU32[0x200/4] ^ texDataU32[0x300/4]; // check the first thick slice (each slice has 0x400 bytes, with 0x100 bytes between layers)
+			uint32* texDataU32 =
+				(uint32*)memory_getPointerFromPhysicalOffset(hostTexture->texDataPtrLow);
+			return texDataU32[0] ^ texDataU32[0x100 / 4] ^ texDataU32[0x200 / 4] ^
+				   texDataU32[0x300 / 4]; // check the first thick slice (each slice has 0x400
+										  // bytes, with 0x100 bytes between layers)
 		}
-		uint32* texDataU32 = (uint32*)memory_getPointerFromPhysicalOffset(hostTexture->texDataPtrLow);
+		uint32* texDataU32 =
+			(uint32*)memory_getPointerFromPhysicalOffset(hostTexture->texDataPtrLow);
 		return texDataU32[0] ^ texDataU32[1] ^ texDataU32[2] ^ texDataU32[3];
 	}
 
 	uint32 memRange = hostTexture->texDataPtrHigh - hostTexture->texDataPtrLow;
 	uint32* texDataU32 = (uint32*)memory_getPointerFromPhysicalOffset(hostTexture->texDataPtrLow);
 	uint32 hashVal = 0;
-	uint32 pixelCount = hostTexture->width*hostTexture->height;
+	uint32 pixelCount = hostTexture->width * hostTexture->height;
 
 	bool isCompressedFormat = hostTexture->IsCompressedFormat();
 	if (isCompressedFormat || hostTexture->useLightHash)
@@ -88,53 +97,52 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 		return hashVal;
 	}
 
-
-	if( pixelCount <= (700*700) )
+	if (pixelCount <= (700 * 700))
 	{
 		// small texture size
 		bool isCompressedFormat = hostTexture->IsCompressedFormat();
-		if( isCompressedFormat == false || memRange < 0x200 )
+		if (isCompressedFormat == false || memRange < 0x200)
 		{
-			memRange /= (4*sizeof(uint32));
-			while( memRange-- )
+			memRange /= (4 * sizeof(uint32));
+			while (memRange--)
 			{
 				hashVal += *texDataU32;
-				hashVal = (hashVal<<3)|(hashVal>>29);
+				hashVal = (hashVal << 3) | (hashVal >> 29);
 				texDataU32 += 4;
 			}
 		}
 		else
 		{
-			memRange /= (32*sizeof(uint32));
-			while( memRange-- )
+			memRange /= (32 * sizeof(uint32));
+			while (memRange--)
 			{
 				hashVal += *texDataU32;
-				hashVal = (hashVal<<3)|(hashVal>>29);
+				hashVal = (hashVal << 3) | (hashVal >> 29);
 				texDataU32 += 32;
 			}
 		}
 	}
-	else if( pixelCount <= (1200*1200) )
+	else if (pixelCount <= (1200 * 1200))
 	{
 		// medium texture size
 		bool isCompressedFormat = hostTexture->IsCompressedFormat();
-		if( isCompressedFormat == false )
+		if (isCompressedFormat == false)
 		{
-			memRange /= (12*sizeof(uint32));
-			while( memRange-- )
+			memRange /= (12 * sizeof(uint32));
+			while (memRange--)
 			{
 				hashVal += *texDataU32;
-				hashVal = (hashVal<<3)|(hashVal>>29);
+				hashVal = (hashVal << 3) | (hashVal >> 29);
 				texDataU32 += 12;
 			}
 		}
 		else
 		{
-			memRange /= (96*sizeof(uint32));
-			while( memRange-- )
+			memRange /= (96 * sizeof(uint32));
+			while (memRange--)
 			{
 				hashVal += *texDataU32;
-				hashVal = (hashVal<<3)|(hashVal>>29);
+				hashVal = (hashVal << 3) | (hashVal >> 29);
 				texDataU32 += 96;
 			}
 		}
@@ -143,12 +151,12 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 	{
 		// huge texture size
 		bool isCompressedFormat = hostTexture->IsCompressedFormat();
-		if( isCompressedFormat == false )
+		if (isCompressedFormat == false)
 		{
 #if BOOST_OS_WINDOWS
 			if (_cpuExtension_AVX2)
 			{
-				__m256i h256 = { 0 };
+				__m256i h256 = {0};
 				__m256i* readPtr = (__m256i*)texDataU32;
 				memRange /= (288);
 				while (memRange--)
@@ -158,13 +166,18 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 					h256 = _mm256_xor_si256(h256, temp);
 				}
 #ifdef __clang__
-				hashVal = h256[0] + h256[1] + h256[2] + h256[3] + h256[4] + h256[5] + h256[6] + h256[7];
+				hashVal =
+					h256[0] + h256[1] + h256[2] + h256[3] + h256[4] + h256[5] + h256[6] + h256[7];
 #else
-				hashVal = h256.m256i_u32[0] + h256.m256i_u32[1] + h256.m256i_u32[2] + h256.m256i_u32[3] + h256.m256i_u32[4] + h256.m256i_u32[5] + h256.m256i_u32[6] + h256.m256i_u32[7];
+				hashVal = h256.m256i_u32[0] + h256.m256i_u32[1] + h256.m256i_u32[2] +
+						  h256.m256i_u32[3] + h256.m256i_u32[4] + h256.m256i_u32[5] +
+						  h256.m256i_u32[6] + h256.m256i_u32[7];
 #endif
 			}
 #else
-			if( false ) {}
+			if (false)
+			{
+			}
 #endif
 			else
 			{
@@ -182,11 +195,11 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 		}
 		else
 		{
-			memRange /= (512*sizeof(uint32));
-			while( memRange-- )
+			memRange /= (512 * sizeof(uint32));
+			while (memRange--)
 			{
 				hashVal += *texDataU32;
-				hashVal = (hashVal<<3)|(hashVal>>29);
+				hashVal = (hashVal << 3) | (hashVal >> 29);
 				texDataU32 += 512;
 			}
 		}
@@ -213,20 +226,25 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 		hostTexture->texDataHash2 = LatteTexture_CalculateTextureDataHash(hostTexture);
 	}
 	// only check each texture for updates once a frame
-	// todo: Instead of relying on frames, it would be better to recheck only after any GPU wait operation occurred.
-	if( hostTexture->lastDataUpdateFrameCounter == LatteGPUState.frameCounter && force == false)
+	// todo: Instead of relying on frames, it would be better to recheck only after any GPU wait
+	// operation occurred.
+	if (hostTexture->lastDataUpdateFrameCounter == LatteGPUState.frameCounter && force == false)
 		return false;
 	hostTexture->lastDataUpdateFrameCounter = LatteGPUState.frameCounter;
-	// we assume that certain texture properties indicate that the texture will never be written by the CPU
-	if (hostTexture->width == 1280 && hostTexture->format != Latte::E_GX2SURFFMT::R8_UNORM && force == false)
+	// we assume that certain texture properties indicate that the texture will never be written by
+	// the CPU
+	if (hostTexture->width == 1280 && hostTexture->format != Latte::E_GX2SURFFMT::R8_UNORM &&
+		force == false)
 	{
-		// todo - remove this or find a better way to handle excluded texture invalidation checks (maybe via game profile?)
+		// todo - remove this or find a better way to handle excluded texture invalidation checks
+		// (maybe via game profile?)
 		return false;
 	}
 	// workaround for corrupted terrain texture in BotW after video playback
-	// probably would be fixed if we added support for invalidating individual slices/mips of a texture
+	// probably would be fixed if we added support for invalidating individual slices/mips of a
+	// texture
 	uint32 texDataHash = LatteTexture_CalculateTextureDataHash(hostTexture);
-	if( texDataHash != hostTexture->texDataHash2 )
+	if (texDataHash != hostTexture->texDataHash2)
 	{
 		hostTexture->texDataHash2 = texDataHash;
 		if (hostTexture->depth == 83 && hostTexture->width == 1024 && hostTexture->height == 1024)
@@ -235,7 +253,8 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 		}
 		return true;
 	}
-	if (_botwLargeTexHax != 0 && hostTexture->depth == 83 && hostTexture->width == 1024 && hostTexture->height == 1024 && _botwLargeTexHax != LatteGPUState.frameCounter)
+	if (_botwLargeTexHax != 0 && hostTexture->depth == 83 && hostTexture->width == 1024 &&
+		hostTexture->height == 1024 && _botwLargeTexHax != LatteGPUState.frameCounter)
 	{
 		_botwLargeTexHax = 0;
 		return true;
@@ -245,15 +264,16 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 
 void LatteTC_ResetTextureChangeTracker(LatteTexture* hostTexture, bool force)
 {
-	if( hostTexture->lastDataUpdateFrameCounter == LatteGPUState.frameCounter && force == false)
+	if (hostTexture->lastDataUpdateFrameCounter == LatteGPUState.frameCounter && force == false)
 		return;
 	hostTexture->lastDataUpdateFrameCounter = LatteGPUState.frameCounter;
 	LatteTC_HasTextureChanged(hostTexture, true);
 }
 
 /*
- * This function should be called whenever the texture is still used in some form (any kind of access counts)
- * The purpose of this function is to prevent garbage collection of textures that are still actively used
+ * This function should be called whenever the texture is still used in some form (any kind of
+ * access counts) The purpose of this function is to prevent garbage collection of textures that are
+ * still actively used
  */
 void LatteTC_MarkTextureStillInUse(LatteTexture* texture)
 {
@@ -277,11 +297,13 @@ bool LatteTC_IsTextureDataOverwritten(LatteTexture* texture)
 			mipSliceCount = sliceCount;
 		for (sint32 sliceIndex = 0; sliceIndex < mipSliceCount; sliceIndex++)
 		{
-			LatteTextureSliceMipInfo* sliceMipInfo = texture->sliceMipInfo + texture->GetSliceMipArrayIndex(sliceIndex, mipIndex);
+			LatteTextureSliceMipInfo* sliceMipInfo =
+				texture->sliceMipInfo + texture->GetSliceMipArrayIndex(sliceIndex, mipIndex);
 			bool isSliceMipOutdated = false;
 			for (auto& overlapData : sliceMipInfo->list_dataOverlap)
 			{
-				if (sliceMipInfo->lastDynamicUpdate < overlapData.destMipSliceInfo->lastDynamicUpdate)
+				if (sliceMipInfo->lastDynamicUpdate <
+					overlapData.destMipSliceInfo->lastDynamicUpdate)
 				{
 					isSliceMipOutdated = true;
 					break;
@@ -327,17 +349,17 @@ bool LatteTC_CleanupCheckTexture(LatteTexture* texture, uint32 currentTick)
 	uint32 currentFrameCount = LatteGPUState.frameCounter;
 	uint32 ticksSinceLastAccess = currentTick - texture->lastAccessTick;
 	uint32 framesSinceLastAccess = currentFrameCount - texture->lastAccessFrameCount;
-	if( !texture->isUpdatedOnGPU )
+	if (!texture->isUpdatedOnGPU)
 	{
 		// RAM-only textures are safe to be deleted since we can always restore them from RAM
-		if( ticksSinceLastAccess >= (120*1000) && framesSinceLastAccess >= 2000 )
+		if (ticksSinceLastAccess >= (120 * 1000) && framesSinceLastAccess >= 2000)
 		{
 			LatteTexture_Delete(texture);
 			return true;
 		}
 	}
 
-	if ((LatteGPUState.currentDrawCallTick - texture->lastAccessTick) >= 100 && 
+	if ((LatteGPUState.currentDrawCallTick - texture->lastAccessTick) >= 100 &&
 		LatteTC_IsTextureDataOverwritten(texture))
 	{
 		LatteTexture_Delete(texture);
@@ -385,7 +407,8 @@ void LatteTC_CleanupUnusedTextures()
 			{
 				maxDelete--;
 				if (maxDelete <= 0)
-					break; // deleting can be an expensive operation, dont delete too many at once to avoid micro stutter
+					break; // deleting can be an expensive operation, dont delete too many at once
+						   // to avoid micro stutter
 				if (allTextures.empty())
 					break;
 			}
@@ -401,10 +424,10 @@ std::vector<LatteTexture*> LatteTC_GetDeleteableTextures()
 
 	for (auto& itr : g_allTextures)
 	{
-		if(itr->lastAccessFrameCount == 0)
+		if (itr->lastAccessFrameCount == 0)
 			continue; // not initialized
 		uint32 framesSinceLastAccess = currentFrameCount - itr->lastAccessFrameCount;
-		if(framesSinceLastAccess < 3)
+		if (framesSinceLastAccess < 3)
 			continue;
 		if (itr->isUpdatedOnGPU)
 		{
@@ -425,7 +448,7 @@ void LatteTC_UnloadAllTextures()
 	std::vector<LatteTexture*> allTexturesCopy = LatteTexture::GetAllTextures();
 	for (auto& itr : allTexturesCopy)
 	{
-		if(itr)
+		if (itr)
 			LatteTexture_Delete(itr);
 	}
 	LatteRenderTarget_unloadAll();

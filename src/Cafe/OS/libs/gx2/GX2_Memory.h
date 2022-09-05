@@ -2,7 +2,7 @@
 
 namespace GX2
 {
-	void GX2MEMAllocatorsInit();
+void GX2MEMAllocatorsInit();
 
-	void GX2MemInit();
-};
+void GX2MemInit();
+}; // namespace GX2

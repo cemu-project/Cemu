@@ -1,8 +1,8 @@
-#include "gui/guiWrapper.h"
 #include "Debugger.h"
-#include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cemu/ExpressionParser/ExpressionParser.h"
+#include "Cemu/PPCAssembler/ppcAssembler.h"
+#include "gui/guiWrapper.h"
 
 #include "gui/debugger/DebuggerWindow2.h"
 
@@ -12,7 +12,7 @@
 #include <Windows.h>
 #endif
 
-debuggerState_t debuggerState{ };
+debuggerState_t debuggerState{};
 
 DebuggerBreakpoint* debugger_getFirstBP(uint32 address)
 {
@@ -87,7 +87,7 @@ void debugger_updateMemoryU32(uint32 address, uint32 newValue)
 	if (newValue != memory_readU32(address))
 		memChanged = true;
 	memory_writeU32(address, newValue);
-	if(memChanged)
+	if (memChanged)
 		PPCRecompiler_invalidateRange(address, address + 4);
 }
 
@@ -130,7 +130,8 @@ void debugger_createExecuteBreakpoint(uint32 address)
 	// get original opcode at address
 	uint32 originalOpcode = debugger_getAddressOriginalOpcode(address);
 	// init breakpoint object
-	DebuggerBreakpoint* bp = new DebuggerBreakpoint(address, originalOpcode, DEBUGGER_BP_T_NORMAL, true);
+	DebuggerBreakpoint* bp =
+		new DebuggerBreakpoint(address, originalOpcode, DEBUGGER_BP_T_NORMAL, true);
 	debuggerBPChain_add(address, bp);
 	debugger_updateExecutionBreakpoint(address);
 }
@@ -144,19 +145,21 @@ void debugger_createSingleShotExecuteBreakpoint(uint32 address)
 	// get original opcode at address
 	uint32 originalOpcode = debugger_getAddressOriginalOpcode(address);
 	// init breakpoint object
-	DebuggerBreakpoint* bp = new DebuggerBreakpoint(address, originalOpcode, DEBUGGER_BP_T_ONE_SHOT, true);
+	DebuggerBreakpoint* bp =
+		new DebuggerBreakpoint(address, originalOpcode, DEBUGGER_BP_T_ONE_SHOT, true);
 	debuggerBPChain_add(address, bp);
 	debugger_updateExecutionBreakpoint(address);
 }
 
 namespace coreinit
 {
-	std::vector<std::thread::native_handle_type>& OSGetSchedulerThreads();
+std::vector<std::thread::native_handle_type>& OSGetSchedulerThreads();
 }
 
 void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 {
-	std::vector<std::thread::native_handle_type> schedulerThreadHandles = coreinit::OSGetSchedulerThreads();
+	std::vector<std::thread::native_handle_type> schedulerThreadHandles =
+		coreinit::OSGetSchedulerThreads();
 
 #if BOOST_OS_WINDOWS
 	debuggerState.activeMemoryBreakpoint = bp;
@@ -171,7 +174,7 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 		{
 			ctx.Dr0 = (DWORD64)memory_getPointerFromVirtualOffset(bp->address);
 			ctx.Dr1 = (DWORD64)memory_getPointerFromVirtualOffset(bp->address);
-			ctx.Dr7 = 1 | (1 << 16) | (3 << 18); // enable dr0, track write, 4 byte length
+			ctx.Dr7 = 1 | (1 << 16) | (3 << 18);	// enable dr0, track write, 4 byte length
 			ctx.Dr7 |= (4 | (3 << 20) | (3 << 22)); // enable dr1, track read+write, 4 byte length
 		}
 		else
@@ -183,9 +186,9 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 		SetThreadContext(hThread, &ctx);
 		ResumeThread(hThread);
 	}
-	#else
+#else
 	cemuLog_log(LogType::Force, "Debugger breakpoints are not supported");
-	#endif
+#endif
 }
 
 void debugger_handleSingleStepException(uint32 drMask)
@@ -196,18 +199,21 @@ void debugger_handleSingleStepException(uint32 drMask)
 	if (triggeredDR0 && triggeredDR1)
 	{
 		// write (and read) access
-		if (debuggerState.activeMemoryBreakpoint && debuggerState.activeMemoryBreakpoint->bpType == DEBUGGER_BP_T_MEMORY_WRITE)
+		if (debuggerState.activeMemoryBreakpoint &&
+			debuggerState.activeMemoryBreakpoint->bpType == DEBUGGER_BP_T_MEMORY_WRITE)
 			catchBP = true;
 	}
 	else
 	{
 		// read access
-		if (debuggerState.activeMemoryBreakpoint && debuggerState.activeMemoryBreakpoint->bpType == DEBUGGER_BP_T_MEMORY_READ)
+		if (debuggerState.activeMemoryBreakpoint &&
+			debuggerState.activeMemoryBreakpoint->bpType == DEBUGGER_BP_T_MEMORY_READ)
 			catchBP = true;
 	}
 	if (catchBP)
 	{
-		debugger_createSingleShotExecuteBreakpoint(ppcInterpreterCurrentInstance->instructionPointer + 4);
+		debugger_createSingleShotExecuteBreakpoint(
+			ppcInterpreterCurrentInstance->instructionPointer + 4);
 	}
 }
 
@@ -258,7 +264,9 @@ void debugger_deleteBreakpoint(DebuggerBreakpoint* bp)
 			if (it == bp)
 			{
 				// remove first in list
-				debuggerState.breakpoints.erase(std::remove(debuggerState.breakpoints.begin(), debuggerState.breakpoints.end(), bp), debuggerState.breakpoints.end());
+				debuggerState.breakpoints.erase(std::remove(debuggerState.breakpoints.begin(),
+															debuggerState.breakpoints.end(), bp),
+												debuggerState.breakpoints.end());
 				DebuggerBreakpoint* nextBP = bp->next;
 				if (nextBP)
 					debuggerState.breakpoints.push_back(nextBP);
@@ -284,7 +292,7 @@ void debugger_toggleExecuteBreakpoint(uint32 address)
 {
 	auto existingBP = debugger_getFirstBP(address, DEBUGGER_BP_T_NORMAL);
 	if (existingBP)
-	{ 
+	{
 		// delete existing breakpoint
 		debugger_deleteBreakpoint(existingBP);
 		return;
@@ -331,7 +339,7 @@ void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* b
 					while (bpItr2)
 					{
 						if (bpItr2->isMemBP() && bpItr2 != bp)
-						{ 
+						{
 							bpItr2->enabled = false;
 						}
 						bpItr2 = bpItr2->next;
@@ -369,19 +377,22 @@ void debugger_createPatch(uint32 address, std::span<uint8> patchData)
 		{
 			if (bpItr->isExecuteBP())
 			{
-				*(uint32*)(&patch->origData.front() + i * 4) = _swapEndianU32(bpItr->originalOpcodeValue);
+				*(uint32*)(&patch->origData.front() + i * 4) =
+					_swapEndianU32(bpItr->originalOpcodeValue);
 			}
 			bpItr = bpItr->next;
 		}
 	}
 	// merge with existing patches if the ranges touch
-	for(sint32 i=0; i<debuggerState.patches.size(); i++)
+	for (sint32 i = 0; i < debuggerState.patches.size(); i++)
 	{
 		auto& patchItr = debuggerState.patches[i];
-		if (address + patchData.size() >= patchItr->address && address <= patchItr->address + patchItr->length)
+		if (address + patchData.size() >= patchItr->address &&
+			address <= patchItr->address + patchItr->length)
 		{
 			uint32 newAddress = std::min(patch->address, patchItr->address);
-			uint32 newEndAddress = std::max(patch->address + patch->length, patchItr->address + patchItr->length);
+			uint32 newEndAddress =
+				std::max(patch->address + patch->length, patchItr->address + patchItr->length);
 			uint32 newLength = newEndAddress - newAddress;
 
 			DebuggerPatch* newPatch = new DebuggerPatch();
@@ -389,17 +400,21 @@ void debugger_createPatch(uint32 address, std::span<uint8> patchData)
 			newPatch->length = newLength;
 			newPatch->data.resize(newLength);
 			newPatch->origData.resize(newLength);
-			memcpy(&newPatch->data.front() + (address - newAddress), &patch->data.front(), patch->length);
-			memcpy(&newPatch->data.front() + (patchItr->address - newAddress), &patchItr->data.front(), patchItr->length);
+			memcpy(&newPatch->data.front() + (address - newAddress), &patch->data.front(),
+				   patch->length);
+			memcpy(&newPatch->data.front() + (patchItr->address - newAddress),
+				   &patchItr->data.front(), patchItr->length);
 
-			memcpy(&newPatch->origData.front() + (address - newAddress), &patch->origData.front(), patch->length);
-			memcpy(&newPatch->origData.front() + (patchItr->address - newAddress), &patchItr->origData.front(), patchItr->length);
+			memcpy(&newPatch->origData.front() + (address - newAddress), &patch->origData.front(),
+				   patch->length);
+			memcpy(&newPatch->origData.front() + (patchItr->address - newAddress),
+				   &patchItr->origData.front(), patchItr->length);
 
 			delete patch;
 			patch = newPatch;
 			delete patchItr;
 			// remove currently iterated patch
-			debuggerState.patches.erase(debuggerState.patches.begin()+i);
+			debuggerState.patches.erase(debuggerState.patches.begin() + i);
 			i--;
 		}
 	}
@@ -425,7 +440,8 @@ void debugger_createPatch(uint32 address, std::span<uint8> patchData)
 		}
 		if (hasActiveExecuteBP == false)
 		{
-			memcpy(memory_getPointerFromVirtualOffset(address + i * 4), patchData.data() + i * 4, 4);
+			memcpy(memory_getPointerFromVirtualOffset(address + i * 4), patchData.data() + i * 4,
+				   4);
 			PPCRecompiler_invalidateRange(address, address + 4);
 		}
 	}
@@ -450,7 +466,7 @@ void debugger_stepInto(PPCInterpreter_t* hCPU, bool updateDebuggerWindow = true)
 	PPCInterpreterSlim_executeInstruction(hCPU);
 	debugger_updateExecutionBreakpoint(initialIP);
 	debuggerState.debugSession.instructionPointer = hCPU->instructionPointer;
-	if(updateDebuggerWindow)
+	if (updateDebuggerWindow)
 		debuggerWindow_moveIP();
 	ppcRecompilerEnabled = isRecEnabled;
 }
@@ -460,12 +476,11 @@ bool debugger_stepOver(PPCInterpreter_t* hCPU)
 	bool isRecEnabled = ppcRecompilerEnabled;
 	ppcRecompilerEnabled = false;
 	// disassemble current instruction
-	PPCDisassembledInstruction disasmInstr = { 0 };
+	PPCDisassembledInstruction disasmInstr = {0};
 	uint32 initialIP = debuggerState.debugSession.instructionPointer;
 	debugger_updateExecutionBreakpoint(initialIP, true);
 	ppcAssembler_disassemble(initialIP, memory_readU32(initialIP), &disasmInstr);
-	if (disasmInstr.ppcAsmCode != PPCASM_OP_BL &&
-		disasmInstr.ppcAsmCode != PPCASM_OP_BCTRL)
+	if (disasmInstr.ppcAsmCode != PPCASM_OP_BL && disasmInstr.ppcAsmCode != PPCASM_OP_BCTRL)
 	{
 		// nothing to skip, use step-into
 		debugger_stepInto(hCPU);
@@ -475,7 +490,7 @@ bool debugger_stepOver(PPCInterpreter_t* hCPU)
 		return false;
 	}
 	// create one-shot breakpoint at next instruction
-	debugger_createSingleShotExecuteBreakpoint(initialIP +4);
+	debugger_createSingleShotExecuteBreakpoint(initialIP + 4);
 	// step over current instruction (to avoid breakpoint)
 	debugger_stepInto(hCPU);
 	debuggerWindow_moveIP();
@@ -503,7 +518,8 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 	debuggerState.debugSession.hCPU = hCPU;
 	debugger_createPPCStateSnapshot(hCPU);
 	// remove one-shot breakpoint if it exists
-	DebuggerBreakpoint* singleshotBP = debugger_getFirstBP(debuggerState.debugSession.instructionPointer, DEBUGGER_BP_T_ONE_SHOT);
+	DebuggerBreakpoint* singleshotBP =
+		debugger_getFirstBP(debuggerState.debugSession.instructionPointer, DEBUGGER_BP_T_ONE_SHOT);
 	if (singleshotBP)
 		debugger_deleteBreakpoint(singleshotBP);
 	debuggerWindow_notifyDebugBreakpointHit2();
@@ -554,15 +570,17 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 
 void debugger_shouldBreak(PPCInterpreter_t* hCPU)
 {
-	if(debuggerState.debugSession.shouldBreak 
+	if (debuggerState.debugSession.shouldBreak
 		// exclude emulator trampoline area
-		&& (hCPU->instructionPointer < MEMORY_CODE_TRAMPOLINE_AREA_ADDR || hCPU->instructionPointer > MEMORY_CODE_TRAMPOLINE_AREA_ADDR + MEMORY_CODE_TRAMPOLINE_AREA_SIZE))
+		&& (hCPU->instructionPointer < MEMORY_CODE_TRAMPOLINE_AREA_ADDR ||
+			hCPU->instructionPointer >
+				MEMORY_CODE_TRAMPOLINE_AREA_ADDR + MEMORY_CODE_TRAMPOLINE_AREA_SIZE))
 	{
 		debuggerState.debugSession.shouldBreak = false;
 
 		const uint32 address = (uint32)hCPU->instructionPointer;
 		assert_dbg();
-		//debugger_createBreakpoint(address, DEBUGGER_BP_TYPE_ONE_SHOT);
+		// debugger_createBreakpoint(address, DEBUGGER_BP_TYPE_ONE_SHOT);
 	}
 }
 

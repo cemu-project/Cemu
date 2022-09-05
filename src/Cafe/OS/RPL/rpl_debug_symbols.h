@@ -17,7 +17,6 @@ struct rplDebugSymbolComment : rplDebugSymbolBase
 	std::wstring comment;
 };
 
-
 void rplDebugSymbol_createComment(MPTR address, const wchar_t* comment);
 rplDebugSymbolBase* rplDebugSymbol_getForAddress(MPTR address);
-const std::map<MPTR, rplDebugSymbolBase*>&  rplDebugSymbol_getSymbols();
+const std::map<MPTR, rplDebugSymbolBase*>& rplDebugSymbol_getSymbols();

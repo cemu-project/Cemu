@@ -1,42 +1,51 @@
 #pragma once
 
-#include "input/api/DirectInput/DirectInputControllerProvider.h"
 #include "input/api/Controller.h"
+#include "input/api/DirectInput/DirectInputControllerProvider.h"
 
 class DirectInputController : public Controller<DirectInputControllerProvider>
 {
-public:
+  public:
 	DirectInputController(const GUID& guid);
 	DirectInputController(const GUID& guid, std::string_view display_name);
 	~DirectInputController() override;
-	
+
 	std::string_view api_name() const override
 	{
 		static_assert(to_string(InputAPI::DirectInput) == "DirectInput");
 		return to_string(InputAPI::DirectInput);
 	}
-	InputAPI::Type api() const override { return InputAPI::DirectInput; }
+	InputAPI::Type api() const override
+	{
+		return InputAPI::DirectInput;
+	}
 
 	void save(pugi::xml_node& node) override;
 	void load(const pugi::xml_node& node) override;
-	
+
 	bool connect() override;
 	bool is_connected() override;
 
 	bool has_rumble() override;
-	
+
 	void start_rumble() override;
 	void stop_rumble() override;
 
 	std::string get_button_name(uint64 button) const override;
 
-	const GUID& get_guid() const { return m_guid; }
-	const GUID& get_product_guid() const { return m_product_guid; }
+	const GUID& get_guid() const
+	{
+		return m_guid;
+	}
+	const GUID& get_product_guid() const
+	{
+		return m_product_guid;
+	}
 
-protected:
+  protected:
 	ControllerState raw_state() override;
 
-private:
+  private:
 	GUID m_guid;
 	GUID m_product_guid{};
 

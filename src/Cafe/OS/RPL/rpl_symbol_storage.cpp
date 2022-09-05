@@ -1,5 +1,5 @@
-#include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
+#include "Cafe/OS/RPL/rpl.h"
 
 struct rplSymbolLib_t
 {
@@ -7,7 +7,7 @@ struct rplSymbolLib_t
 	rplSymbolLib_t* next;
 };
 
-struct  
+struct
 {
 	rplSymbolLib_t* libs;
 	std::mutex m_symbolStorageMutex;
@@ -16,14 +16,15 @@ struct
 	char* strAllocatorBlock;
 	sint32 strAllocatorOffset;
 	std::vector<void*> list_strAllocatedBlocks;
-}rplSymbolStorage = { 0 };
+} rplSymbolStorage = {0};
 
-#define STR_ALLOC_BLOCK_SIZE	(128*1024) // allocate 128KB blocks at once
+#define STR_ALLOC_BLOCK_SIZE (128 * 1024) // allocate 128KB blocks at once
 
 char* rplSymbolStorage_allocDupString(const char* str)
 {
 	sint32 len = (sint32)strlen(str);
-	if (rplSymbolStorage.strAllocatorBlock == nullptr || (rplSymbolStorage.strAllocatorOffset + len + 1) >= STR_ALLOC_BLOCK_SIZE)
+	if (rplSymbolStorage.strAllocatorBlock == nullptr ||
+		(rplSymbolStorage.strAllocatorOffset + len + 1) >= STR_ALLOC_BLOCK_SIZE)
 	{
 		// allocate new block
 		rplSymbolStorage.strAllocatorBlock = (char*)malloc(STR_ALLOC_BLOCK_SIZE);
@@ -107,7 +108,8 @@ void rplSymbolStorage_createJumpProxySymbol(MPTR jumpAddress, MPTR destAddress)
 {
 	RPLStoredSymbol* destSymbol = rplSymbolStorage_getByAddress(destAddress);
 	if (destSymbol)
-		rplSymbolStorage_store((char*)destSymbol->libName, (char*)destSymbol->symbolName, jumpAddress);
+		rplSymbolStorage_store((char*)destSymbol->libName, (char*)destSymbol->symbolName,
+							   jumpAddress);
 }
 
 std::unordered_map<uint32, RPLStoredSymbol*>& rplSymbolStorage_lockSymbolMap()

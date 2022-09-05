@@ -1,15 +1,18 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureGL.h"
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "config/LaunchSettings.h"
 
-LatteTextureViewGL::LatteTextureViewGL(LatteTextureGL* texture, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount, bool registerView, bool forceCreateNewTexId)
-	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format, registerView)
+LatteTextureViewGL::LatteTextureViewGL(LatteTextureGL* texture, Latte::E_DIM dim,
+									   Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount,
+									   sint32 firstSlice, sint32 sliceCount, bool registerView,
+									   bool forceCreateNewTexId)
+	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format,
+					   registerView)
 {
-	if (dim != texture->dim || format != texture->format ||
-		firstSlice != 0 || firstMip != 0 || mipCount != texture->mipLevels || sliceCount != texture->depth ||	
-		forceCreateNewTexId)
+	if (dim != texture->dim || format != texture->format || firstSlice != 0 || firstMip != 0 ||
+		mipCount != texture->mipLevels || sliceCount != texture->depth || forceCreateNewTexId)
 	{
 		LatteTextureGL::GenerateEmptyTextureFromGX2Dim(dim, glTexId, glTexTarget);
 		this->glInternalFormat = 0;
@@ -74,10 +77,12 @@ void LatteTextureViewGL::InitAliasView()
 	if (firstMip >= texture->maxPossibleMipLevels)
 	{
 		forceLogDebug_printf("_createNewView: Out of bounds mip level requested");
-		glTextureView(glTexId, glTexTarget, texture->glId_texture, glInternalFormat, texture->maxPossibleMipLevels - 1, numMip, firstSlice, this->numSlice);
+		glTextureView(glTexId, glTexTarget, texture->glId_texture, glInternalFormat,
+					  texture->maxPossibleMipLevels - 1, numMip, firstSlice, this->numSlice);
 	}
 	else
-		glTextureView(glTexId, glTexTarget, texture->glId_texture, glInternalFormat, firstMip, numMip, firstSlice, numSlice);
+		glTextureView(glTexId, glTexTarget, texture->glId_texture, glInternalFormat, firstMip,
+					  numMip, firstSlice, numSlice);
 
 	catchOpenGLError();
 
@@ -105,7 +110,9 @@ void LatteTextureViewGL::InitAliasView()
 	if (useGLDebugNames)
 	{
 		char textureDebugLabel[512];
-		sprintf(textureDebugLabel, "%08x_f%04x_p%04x_viewFMT%04x%s_org%d", baseTexture->physAddress, (uint32)baseTexture->format, baseTexture->pitch, (uint32)this->format, baseTexture->isDepth?"_d":"", texture->glId_texture);
+		sprintf(textureDebugLabel, "%08x_f%04x_p%04x_viewFMT%04x%s_org%d", baseTexture->physAddress,
+				(uint32)baseTexture->format, baseTexture->pitch, (uint32)this->format,
+				baseTexture->isDepth ? "_d" : "", texture->glId_texture);
 		glObjectLabel(GL_TEXTURE, glTexId, -1, textureDebugLabel);
 	}
 }
@@ -113,6 +120,8 @@ void LatteTextureViewGL::InitAliasView()
 LatteTextureViewGL* LatteTextureViewGL::GetAlternativeView()
 {
 	if (!m_alternativeView)
-		m_alternativeView = new LatteTextureViewGL((LatteTextureGL*)baseTexture, dim, format, firstMip, numMip, firstSlice, numSlice, false, true);
+		m_alternativeView =
+			new LatteTextureViewGL((LatteTextureGL*)baseTexture, dim, format, firstMip, numMip,
+								   firstSlice, numSlice, false, true);
 	return m_alternativeView;
 }

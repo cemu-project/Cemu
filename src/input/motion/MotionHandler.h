@@ -2,15 +2,14 @@
 #include "Mahony.h"
 #include "MotionSample.h"
 
-// utility class to translate external motion input (DSU, SDL GamePad sensors) into the values expected by VPAD API (and maybe others in the future)
+// utility class to translate external motion input (DSU, SDL GamePad sensors) into the values
+// expected by VPAD API (and maybe others in the future)
 class WiiUMotionHandler
 {
-public:
+  public:
 	// gyro is in radians/sec
-	void processMotionSample(
-		float deltaTime,
-		float gx, float gy, float gz,
-		float accx, float accy, float accz)
+	void processMotionSample(float deltaTime, float gx, float gy, float gz, float accx, float accy,
+							 float accz)
 	{
 		m_gyro[0] = gx;
 		m_gyro[1] = gy;
@@ -40,10 +39,11 @@ public:
 		gyroDebiased[0] = m_gyro[0] - gBias[0];
 		gyroDebiased[1] = m_gyro[1] - gBias[1];
 		gyroDebiased[2] = m_gyro[2] - gBias[2];
-		return MotionSample(m_acc, MotionSample::calculateAccAcceleration(m_prevAcc, m_acc), gyroDebiased, m_orientation, q);
+		return MotionSample(m_acc, MotionSample::calculateAccAcceleration(m_prevAcc, m_acc),
+							gyroDebiased, m_orientation, q);
 	}
-private:
 
+  private:
 	// VPAD orientation unit is 1.0 = one revolution around the axis
 	float _radToOrientation(float rad)
 	{

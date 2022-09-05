@@ -1,13 +1,13 @@
 #pragma once
 
-#include "config/CemuConfig.h"
 #include "MetaInfo.h"
 #include "TitleInfo.h"
 #include "config/ActiveSettings.h"
+#include "config/CemuConfig.h"
 
 class GameInfo2
 {
-public:
+  public:
 	~GameInfo2()
 	{
 		m_base.UnmountAll();
@@ -46,10 +46,12 @@ public:
 	{
 		TitleId aocTitleId = titleInfo.GetAppTitleId();
 		uint16 aocVersion = titleInfo.GetAppTitleVersion();
-		auto it = std::find_if(m_aoc.begin(), m_aoc.end(), [aocTitleId](const TitleInfo& rhs) { return rhs.GetAppTitleId() == aocTitleId; });
+		auto it = std::find_if(m_aoc.begin(), m_aoc.end(),
+							   [aocTitleId](const TitleInfo& rhs)
+							   { return rhs.GetAppTitleId() == aocTitleId; });
 		if (it != m_aoc.end())
 		{
-			if(it->GetAppTitleVersion() >= aocVersion)
+			if (it->GetAppTitleVersion() >= aocVersion)
 				return;
 			m_aoc.erase(it);
 		}
@@ -111,10 +113,11 @@ public:
 
 	fs::path GetSaveFolder()
 	{
-		return ActiveSettings::GetMlcPath(fmt::format("usr/save/{:08x}/{:08x}", (GetBaseTitleId() >> 32), GetBaseTitleId() & 0xFFFFFFFF));
+		return ActiveSettings::GetMlcPath(fmt::format(
+			"usr/save/{:08x}/{:08x}", (GetBaseTitleId() >> 32), GetBaseTitleId() & 0xFFFFFFFF));
 	}
 
-private:
+  private:
 	TitleInfo m_base;
 	TitleInfo m_update;
 	std::vector<TitleInfo> m_aoc;

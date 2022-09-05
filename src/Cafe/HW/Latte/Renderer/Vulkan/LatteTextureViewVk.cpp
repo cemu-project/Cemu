@@ -1,14 +1,15 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
+#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 
 uint32 LatteTextureVk_AdjustTextureCompSel(Latte::E_GX2SURFFMT format, uint32 compSel)
 {
 	switch (format)
 	{
-	case Latte::E_GX2SURFFMT::R8_UNORM: // R8 is replicated on all channels (while OpenGL would return 1.0 for BGA instead)
+	case Latte::E_GX2SURFFMT::R8_UNORM: // R8 is replicated on all channels (while OpenGL would
+										// return 1.0 for BGA instead)
 	case Latte::E_GX2SURFFMT::R8_SNORM: // probably the same as _UNORM, but needs testing
 		if (compSel >= 1 && compSel <= 3)
 			compSel = 0;
@@ -54,13 +55,17 @@ uint32 LatteTextureVk_AdjustTextureCompSel(Latte::E_GX2SURFFMT format, uint32 co
 	return compSel;
 }
 
-LatteTextureViewVk::LatteTextureViewVk(VkDevice device, LatteTextureVk* texture, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
-	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format), m_device(device)
+LatteTextureViewVk::LatteTextureViewVk(VkDevice device, LatteTextureVk* texture, Latte::E_DIM dim,
+									   Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount,
+									   sint32 firstSlice, sint32 sliceCount)
+	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format),
+	  m_device(device)
 {
 	if (dim != texture->dim || format != texture->format)
 	{
 		VulkanRenderer::FormatInfoVK texFormatInfo;
-		VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(format, texture->isDepth, dim, 0, 0, &texFormatInfo);
+		VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(format, texture->isDepth, dim, 0, 0,
+															  &texFormatInfo);
 		m_format = texFormatInfo.vkImageFormat;
 	}
 	else
@@ -105,7 +110,9 @@ VKRObjectTextureView* LatteTextureViewVk::CreateView(uint32 gpuSamplerSwizzle)
 	viewInfo.format = m_format;
 	viewInfo.subresourceRange.aspectMask = GetBaseImage()->GetImageAspect();
 	if (viewInfo.subresourceRange.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; // make sure stencil is never set, we only support sampling depth for now
+		viewInfo.subresourceRange.aspectMask =
+			VK_IMAGE_ASPECT_DEPTH_BIT; // make sure stencil is never set, we only support sampling
+									   // depth for now
 	viewInfo.subresourceRange.baseMipLevel = firstMip;
 	viewInfo.subresourceRange.levelCount = this->numMip;
 	if (viewInfo.viewType == VK_IMAGE_VIEW_TYPE_3D && baseTexture->Is3DTexture())
@@ -121,17 +128,10 @@ VKRObjectTextureView* LatteTextureViewVk::CreateView(uint32 gpuSamplerSwizzle)
 		viewInfo.subresourceRange.layerCount = this->numSlice;
 	}
 
-	static const VkComponentSwizzle swizzle[] =
-	{
-		VK_COMPONENT_SWIZZLE_R,
-		VK_COMPONENT_SWIZZLE_G,
-		VK_COMPONENT_SWIZZLE_B,
-		VK_COMPONENT_SWIZZLE_A,
-		VK_COMPONENT_SWIZZLE_ZERO,
-		VK_COMPONENT_SWIZZLE_ONE,
-		VK_COMPONENT_SWIZZLE_ZERO,
-		VK_COMPONENT_SWIZZLE_ZERO
-	};
+	static const VkComponentSwizzle swizzle[] = {
+		VK_COMPONENT_SWIZZLE_R,	   VK_COMPONENT_SWIZZLE_G,	  VK_COMPONENT_SWIZZLE_B,
+		VK_COMPONENT_SWIZZLE_A,	   VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE,
+		VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO};
 
 	viewInfo.components.r = swizzle[compSelR];
 	viewInfo.components.g = swizzle[compSelG];
@@ -146,7 +146,7 @@ VKRObjectTextureView* LatteTextureViewVk::CreateView(uint32 gpuSamplerSwizzle)
 }
 
 VKRObjectTextureView* LatteTextureViewVk::GetViewRGBA()
-{ 
+{
 	return GetSamplerView(0x06880000); // RGBA swizzle
 }
 

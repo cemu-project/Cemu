@@ -1,69 +1,87 @@
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h"
-#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Common/RegisterSerializer.h"
+#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/Serializer.h"
-#include "Cafe/HW/Latte/Common/RegisterSerializer.h"
 
 std::mutex s_nvidiaWorkaround;
 
 /* rects emulation */
 
-void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
+void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader,
+										 LatteShaderPSInputTable* psInputTable, sint32 vIdx,
+										 const LatteContextRegister& latteRegister)
 {
 	auto parameterMask = vertexShader->outputParameterMask;
 	for (uint32 i = 0; i < 32; i++)
 	{
 		if ((parameterMask & (1 << i)) == 0)
 			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		sint32 vsSemanticId =
+			psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
 		if (vsSemanticId < 0)
 			continue;
 		// make sure PS has matching input
 		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
 			continue;
-		gsSrc.append(fmt::format("passParameterSem{}Out = passParameterSem{}In[{}];\r\n", vsSemanticId, vsSemanticId, vIdx));
+		gsSrc.append(fmt::format("passParameterSem{}Out = passParameterSem{}In[{}];\r\n",
+								 vsSemanticId, vsSemanticId, vIdx));
 	}
 	gsSrc.append(fmt::format("gl_Position = gl_in[{}].gl_Position;\r\n", vIdx));
 	gsSrc.append("EmitVertex();\r\n");
 }
 
-void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant, const LatteContextRegister& latteRegister)
+void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader,
+											LatteShaderPSInputTable* psInputTable,
+											const char* variant,
+											const LatteContextRegister& latteRegister)
 {
 	auto parameterMask = vertexShader->outputParameterMask;
 	for (uint32 i = 0; i < 32; i++)
 	{
 		if ((parameterMask & (1 << i)) == 0)
 			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		sint32 vsSemanticId =
+			psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
 		if (vsSemanticId < 0)
 			continue;
 		// make sure PS has matching input
 		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
 			continue;
-		gsSrc.append(fmt::format("passParameterSem{}Out = gen4thVertex{}(passParameterSem{}In[0], passParameterSem{}In[1], passParameterSem{}In[2]);\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
+		gsSrc.append(fmt::format("passParameterSem{}Out = gen4thVertex{}(passParameterSem{}In[0], "
+								 "passParameterSem{}In[1], passParameterSem{}In[2]);\r\n",
+								 vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
 	}
-	gsSrc.append(fmt::format("gl_Position = gen4thVertex{}(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);\r\n", variant));
+	gsSrc.append(fmt::format("gl_Position = gen4thVertex{}(gl_in[0].gl_Position, "
+							 "gl_in[1].gl_Position, gl_in[2].gl_Position);\r\n",
+							 variant));
 	gsSrc.append("EmitVertex();\r\n");
 }
 
-void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
+void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, LatteDecompilerShader* vertexShader,
+										 LatteShaderPSInputTable* psInputTable, sint32 p0,
+										 sint32 p1, sint32 p2, sint32 p3, const char* variant,
+										 const LatteContextRegister& latteRegister)
 {
-	sint32 pList[4] = { p0, p1, p2, p3 };
+	sint32 pList[4] = {p0, p1, p2, p3};
 	for (sint32 i = 0; i < 4; i++)
 	{
 		if (pList[i] == 3)
-			rectsEmulationGS_outputGeneratedVertex(gsSrc, vertexShader, psInputTable, variant, latteRegister);
+			rectsEmulationGS_outputGeneratedVertex(gsSrc, vertexShader, psInputTable, variant,
+												   latteRegister);
 		else
-			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i], latteRegister);
+			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i],
+												latteRegister);
 	}
 }
 
-RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
+RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader,
+											const LatteContextRegister& latteRegister)
 {
 	std::string gsSrc;
 
@@ -84,14 +102,16 @@ RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader,
 		{
 			if ((parameterMask & (1 << i)) == 0)
 				continue;
-			sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+			sint32 vsSemanticId =
+				psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
 			if (vsSemanticId < 0)
 				continue;
 			auto psImport = psInputTable->getPSImportBySemanticId(vsSemanticId);
 			if (psImport == nullptr)
 				continue;
 
-			gsSrc.append(fmt::format("layout(location = {}) ", psInputTable->getPSImportLocationBySemanticId(vsSemanticId)));
+			gsSrc.append(fmt::format("layout(location = {}) ",
+									 psInputTable->getPSImportLocationBySemanticId(vsSemanticId)));
 			if (psImport->isFlat)
 				gsSrc.append("flat ");
 			if (psImport->isNoPerspective)
@@ -147,18 +167,22 @@ RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader,
 	gsSrc.append("if(dist0_1 > dist0_2 && dist0_1 > dist1_2)\r\n");
 	gsSrc.append("{\r\n");
 	// p0 to p1 is diagonal
-	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 2, 1, 0, 3, "A", latteRegister);
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 2, 1, 0, 3, "A",
+										latteRegister);
 	gsSrc.append("} else if ( dist0_2 > dist0_1 && dist0_2 > dist1_2 ) {\r\n");
 	// p0 to p2 is diagonal
-	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 1, 2, 0, 3, "B", latteRegister);
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 1, 2, 0, 3, "B",
+										latteRegister);
 	gsSrc.append("} else {\r\n");
 	// p1 to p2 is diagonal
-	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 0, 1, 2, 3, "C", latteRegister);
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 0, 1, 2, 3, "C",
+										latteRegister);
 	gsSrc.append("}\r\n");
 
 	gsSrc.append("}\r\n");
 
-	auto vkShader = new RendererShaderVk(RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
+	auto vkShader =
+		new RendererShaderVk(RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
 	vkShader->PreponeCompilation(true);
 	return vkShader;
 }
@@ -169,7 +193,7 @@ extern std::atomic_int g_compiling_pipelines;
 extern std::atomic_int g_compiling_pipelines_async;
 extern std::atomic_uint64_t g_compiling_pipelines_syncTimeSum;
 
-PipelineCompiler::PipelineCompiler() {};
+PipelineCompiler::PipelineCompiler(){};
 PipelineCompiler::~PipelineCompiler()
 {
 	if (m_vkrObjPipeline)
@@ -253,30 +277,27 @@ static VkBlendOp GetVkBlendOp(Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC comb
 
 static VkBlendFactor GetVkBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR factor)
 {
-	const VkBlendFactor factors[] =
-	{
-		/* 0x00 */ VK_BLEND_FACTOR_ZERO,
-		/* 0x01 */ VK_BLEND_FACTOR_ONE,
-		/* 0x02 */ VK_BLEND_FACTOR_SRC_COLOR,
-		/* 0x03 */ VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
-		/* 0x04 */ VK_BLEND_FACTOR_SRC_ALPHA,
-		/* 0x05 */ VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-		/* 0x06 */ VK_BLEND_FACTOR_DST_ALPHA,
-		/* 0x07 */ VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
-		/* 0x08 */ VK_BLEND_FACTOR_DST_COLOR,
-		/* 0x09 */ VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
-		/* 0x0A */ VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
-		/* 0x0B */ VK_BLEND_FACTOR_MAX_ENUM, // todo
-		/* 0x0C */ VK_BLEND_FACTOR_MAX_ENUM, // todo
-		/* 0x0D */ VK_BLEND_FACTOR_CONSTANT_COLOR,
-		/* 0x0E */ VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
-		/* 0x0F */ VK_BLEND_FACTOR_SRC1_COLOR,
-		/* 0x10 */ VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR,
-		/* 0x11 */ VK_BLEND_FACTOR_SRC1_ALPHA,
-		/* 0x12 */ VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA,
-		/* 0x13 */ VK_BLEND_FACTOR_CONSTANT_ALPHA,
-		/* 0x14 */ VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA
-	};
+	const VkBlendFactor factors[] = {/* 0x00 */ VK_BLEND_FACTOR_ZERO,
+									 /* 0x01 */ VK_BLEND_FACTOR_ONE,
+									 /* 0x02 */ VK_BLEND_FACTOR_SRC_COLOR,
+									 /* 0x03 */ VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
+									 /* 0x04 */ VK_BLEND_FACTOR_SRC_ALPHA,
+									 /* 0x05 */ VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+									 /* 0x06 */ VK_BLEND_FACTOR_DST_ALPHA,
+									 /* 0x07 */ VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+									 /* 0x08 */ VK_BLEND_FACTOR_DST_COLOR,
+									 /* 0x09 */ VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
+									 /* 0x0A */ VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
+									 /* 0x0B */ VK_BLEND_FACTOR_MAX_ENUM, // todo
+									 /* 0x0C */ VK_BLEND_FACTOR_MAX_ENUM, // todo
+									 /* 0x0D */ VK_BLEND_FACTOR_CONSTANT_COLOR,
+									 /* 0x0E */ VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
+									 /* 0x0F */ VK_BLEND_FACTOR_SRC1_COLOR,
+									 /* 0x10 */ VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR,
+									 /* 0x11 */ VK_BLEND_FACTOR_SRC1_ALPHA,
+									 /* 0x12 */ VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA,
+									 /* 0x13 */ VK_BLEND_FACTOR_CONSTANT_ALPHA,
+									 /* 0x14 */ VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA};
 	cemu_assert_debug((uint32)factor < std::size(factors));
 	return factors[(uint32)factor];
 }
@@ -291,7 +312,10 @@ bool PipelineCompiler::ConsumesBlendConstants(VkBlendFactor blendFactor)
 	return false;
 }
 
-void PipelineCompiler::CreateDescriptorSetLayout(VulkanRenderer* vkRenderer, LatteDecompilerShader* shader, VkDescriptorSetLayout& layout, PipelineInfo* vkrPipelineInfo)
+void PipelineCompiler::CreateDescriptorSetLayout(VulkanRenderer* vkRenderer,
+												 LatteDecompilerShader* shader,
+												 VkDescriptorSetLayout& layout,
+												 PipelineInfo* vkrPipelineInfo)
 {
 	// create vertex shader descriptor set
 	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings;
@@ -357,7 +381,8 @@ void PipelineCompiler::CreateDescriptorSetLayout(VulkanRenderer* vkRenderer, Lat
 			entry.stageFlags = stageFlags;
 			descriptorSetLayoutBindings.emplace_back(entry);
 
-			vkrPipelineInfo->dynamicOffsetInfo.list_uniformBuffers[stageIndex].emplace_back((uint8)i);
+			vkrPipelineInfo->dynamicOffsetInfo.list_uniformBuffers[stageIndex].emplace_back(
+				(uint8)i);
 		}
 	}
 
@@ -383,11 +408,18 @@ void PipelineCompiler::CreateDescriptorSetLayout(VulkanRenderer* vkRenderer, Lat
 	layoutInfo.bindingCount = descriptorSetLayoutBindings.size();
 	layoutInfo.pBindings = descriptorSetLayoutBindings.data();
 
-	if (vkCreateDescriptorSetLayout(vkRenderer->m_logicalDevice, &layoutInfo, nullptr, &layout) != VK_SUCCESS)
-		vkRenderer->UnrecoverableError(fmt::format("Failed to create descriptor set layout for shader {0:#x}", shader->baseHash).c_str());
+	if (vkCreateDescriptorSetLayout(vkRenderer->m_logicalDevice, &layoutInfo, nullptr, &layout) !=
+		VK_SUCCESS)
+		vkRenderer->UnrecoverableError(
+			fmt::format("Failed to create descriptor set layout for shader {0:#x}",
+						shader->baseHash)
+				.c_str());
 }
 
-bool PipelineCompiler::InitShaderStages(VulkanRenderer* vkRenderer, RendererShaderVk* vkVertexShader, RendererShaderVk* vkPixelShader, RendererShaderVk* vkGeometryShader)
+bool PipelineCompiler::InitShaderStages(VulkanRenderer* vkRenderer,
+										RendererShaderVk* vkVertexShader,
+										RendererShaderVk* vkPixelShader,
+										RendererShaderVk* vkGeometryShader)
 {
 	// prepare shader stages
 	cemu_assert_debug(vkVertexShader == nullptr || vkVertexShader->IsCompiled());
@@ -403,20 +435,26 @@ bool PipelineCompiler::InitShaderStages(VulkanRenderer* vkRenderer, RendererShad
 	}
 
 	if (vkVertexShader)
-		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vkVertexShader->GetShaderModule(), "main"));
+		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(
+			VK_SHADER_STAGE_VERTEX_BIT, vkVertexShader->GetShaderModule(), "main"));
 
 	if (vkGeometryShader)
-		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(VK_SHADER_STAGE_GEOMETRY_BIT, vkGeometryShader->GetShaderModule(), "main"));
+		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(
+			VK_SHADER_STAGE_GEOMETRY_BIT, vkGeometryShader->GetShaderModule(), "main"));
 	else if (m_rectEmulationGS)
-		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(VK_SHADER_STAGE_GEOMETRY_BIT, m_rectEmulationGS->GetShaderModule(), "main"));
+		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(
+			VK_SHADER_STAGE_GEOMETRY_BIT, m_rectEmulationGS->GetShaderModule(), "main"));
 
 	if (vkPixelShader)
-		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, vkPixelShader->GetShaderModule(), "main"));
+		shaderStages.emplace_back(vkRenderer->CreatePipelineShaderStageCreateInfo(
+			VK_SHADER_STAGE_FRAGMENT_BIT, vkPixelShader->GetShaderModule(), "main"));
 
 	return true;
 }
 
-void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteRegister, LatteDecompilerShader* vertexShader, LatteFetchShader* fetchShader)
+void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteRegister,
+											LatteDecompilerShader* vertexShader,
+											LatteFetchShader* fetchShader)
 {
 	vertexInputAttributeDescription.reserve(16);
 	vertexInputBindingDescription.reserve(fetchShader->bufferGroups.size());
@@ -448,13 +486,14 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 			if (attr.fetchType == LatteConst::INSTANCE_DATA)
 			{
 				cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
-				// use VK_EXT_vertex_attribute_divisor
+														 // use VK_EXT_vertex_attribute_divisor
 			}
 		}
 
 		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-		uint32 bufferStride = (latteRegister.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+		uint32 bufferStride =
+			(latteRegister.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
 		VkVertexInputBindingDescription entry{};
 		entry.stride = bufferStride;
@@ -477,7 +516,8 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 	vertexInputInfo.pVertexAttributeDescriptions = vertexInputAttributeDescription.data();
 }
 
-void PipelineCompiler::InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE primitiveMode)
+void PipelineCompiler::InitInputAssemblyState(
+	const Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE primitiveMode)
 {
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	inputAssembly.primitiveRestartEnable = VK_TRUE;
@@ -495,9 +535,12 @@ void PipelineCompiler::InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_T
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 		break;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_LOOP:
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; // line loops are emulated as line strips with an extra connecting strip at the end
+		inputAssembly.topology =
+			VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; // line loops are emulated as line strips with an
+											  // extra connecting strip at the end
 		break;
-	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_STRIP_ADJACENT: // Tropical Freeze level 3-6
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_STRIP_ADJACENT: // Tropical Freeze
+																				 // level 3-6
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
 		break;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLES:
@@ -511,19 +554,23 @@ void PipelineCompiler::InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_T
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 		break;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::QUADS:
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // quads are emulated as 2 triangles
+		inputAssembly.topology =
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // quads are emulated as 2 triangles
 		inputAssembly.primitiveRestartEnable = false;
 		break;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::QUAD_STRIP:
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // quad strips are emulated as (count-2)/2 triangles
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // quad strips are emulated as
+																	  // (count-2)/2 triangles
 		inputAssembly.primitiveRestartEnable = false;
 		break;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS:
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // rects are emulated as 2 triangles
+		inputAssembly.topology =
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // rects are emulated as 2 triangles
 		inputAssembly.primitiveRestartEnable = false;
 		break;
 	default:
-		forceLogDebug_printf("Vulkan-Unsupported: Graphics pipeline with primitive mode %d created", primitiveMode);
+		forceLogDebug_printf("Vulkan-Unsupported: Graphics pipeline with primitive mode %d created",
+							 primitiveMode);
 		cemu_assert_debug(false);
 	}
 }
@@ -535,7 +582,9 @@ void PipelineCompiler::InitViewportState()
 	viewportState.scissorCount = 1;
 }
 
-void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegister, VulkanRenderer* vkRenderer, bool isPrimitiveRect, bool& usesDepthBias)
+void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegister,
+										   VulkanRenderer* vkRenderer, bool isPrimitiveRect,
+										   bool& usesDepthBias)
 {
 	// polygon control
 	const auto& polygonControlReg = latteRegister.PA_SU_SC_MODE_CNTL;
@@ -544,7 +593,10 @@ void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegi
 	uint32 cullBack = polygonControlReg.get_CULL_BACK();
 	uint32 polyOffsetFrontEnable = polygonControlReg.get_OFFSET_FRONT_ENABLED();
 
-	cemu_assert_debug(LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() == LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE()); // near or far clipping can be disabled individually
+	cemu_assert_debug(
+		LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() ==
+		LatteGPUState.contextNew.PA_CL_CLIP_CNTL
+			.get_ZCLIP_FAR_DISABLE()); // near or far clipping can be disabled individually
 	bool zClipEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE() == false;
 
 	// z-clipping
@@ -554,7 +606,8 @@ void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegi
 
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.pNext = &rasterizerExt;
-	rasterizer.rasterizerDiscardEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+	rasterizer.rasterizerDiscardEnable =
+		LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
 	// GX2SetSpecialState(0, true) workaround
 	if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
 		rasterizer.rasterizerDiscardEnable = false;
@@ -609,7 +662,8 @@ void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegi
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 }
 
-void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister, PipelineInfo* pipelineInfo, bool& usesBlendConstants)
+void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister,
+									  PipelineInfo* pipelineInfo, bool& usesBlendConstants)
 {
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = latteRegister.CB_COLOR_CONTROL;
 	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
@@ -689,14 +743,19 @@ void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister,
 	colorBlending.blendConstants[3] = 0;
 }
 
-void PipelineCompiler::InitDescriptorSetLayouts(VulkanRenderer* vkRenderer, PipelineInfo* vkrPipelineInfo, LatteDecompilerShader* vertexShader, LatteDecompilerShader* pixelShader, LatteDecompilerShader* geometryShader)
+void PipelineCompiler::InitDescriptorSetLayouts(VulkanRenderer* vkRenderer,
+												PipelineInfo* vkrPipelineInfo,
+												LatteDecompilerShader* vertexShader,
+												LatteDecompilerShader* pixelShader,
+												LatteDecompilerShader* geometryShader)
 {
 	auto vkObjPipeline = vkrPipelineInfo->m_vkrObjPipeline;
 
 	if (vertexShader)
 	{
 		cemu_assert_debug(descriptorSetLayoutCount == 0);
-		CreateDescriptorSetLayout(vkRenderer, vertexShader, descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
+		CreateDescriptorSetLayout(vkRenderer, vertexShader,
+								  descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
 		vkObjPipeline->vertexDSL = descriptorSetLayout[descriptorSetLayoutCount];
 		descriptorSetLayoutCount++;
 	}
@@ -704,26 +763,34 @@ void PipelineCompiler::InitDescriptorSetLayouts(VulkanRenderer* vkRenderer, Pipe
 	if (pixelShader)
 	{
 		cemu_assert_debug(descriptorSetLayoutCount == 1);
-		CreateDescriptorSetLayout(vkRenderer, pixelShader, descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
+		CreateDescriptorSetLayout(vkRenderer, pixelShader,
+								  descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
 		vkObjPipeline->pixelDSL = descriptorSetLayout[descriptorSetLayoutCount];
 		descriptorSetLayoutCount++;
 	}
 	else if (geometryShader)
 	{
-		// if no pixel shader is present, create empty placeholder descriptor set layout (geometry shader set must be at index 2)
+		// if no pixel shader is present, create empty placeholder descriptor set layout (geometry
+		// shader set must be at index 2)
 		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		layoutInfo.bindingCount = 0;
 		layoutInfo.pBindings = nullptr;
-		if (vkCreateDescriptorSetLayout(vkRenderer->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout[descriptorSetLayoutCount]) != VK_SUCCESS)
-			vkRenderer->UnrecoverableError(fmt::format("Failed to create placeholder descriptor set layout for shader {0:#x}", geometryShader->baseHash).c_str());
+		if (vkCreateDescriptorSetLayout(vkRenderer->m_logicalDevice, &layoutInfo, nullptr,
+										&descriptorSetLayout[descriptorSetLayoutCount]) !=
+			VK_SUCCESS)
+			vkRenderer->UnrecoverableError(
+				fmt::format("Failed to create placeholder descriptor set layout for shader {0:#x}",
+							geometryShader->baseHash)
+					.c_str());
 		descriptorSetLayoutCount++;
 	}
 
 	if (geometryShader)
 	{
 		cemu_assert_debug(descriptorSetLayoutCount == 2);
-		CreateDescriptorSetLayout(vkRenderer, geometryShader, descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
+		CreateDescriptorSetLayout(vkRenderer, geometryShader,
+								  descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
 		vkObjPipeline->geometryDSL = descriptorSetLayout[descriptorSetLayoutCount];
 		descriptorSetLayoutCount++;
 	}
@@ -741,17 +808,14 @@ void PipelineCompiler::InitDepthStencilState()
 	depthStencilState.depthTestEnable = depthEnable ? VK_TRUE : VK_FALSE;
 	depthStencilState.depthWriteEnable = depthWriteEnable ? VK_TRUE : VK_FALSE;
 
-	static const VkCompareOp vkDepthCompareTable[8] =
-	{
-		VK_COMPARE_OP_NEVER,
-		VK_COMPARE_OP_LESS,
-		VK_COMPARE_OP_EQUAL,
-		VK_COMPARE_OP_LESS_OR_EQUAL,
-		VK_COMPARE_OP_GREATER,
-		VK_COMPARE_OP_NOT_EQUAL,
-		VK_COMPARE_OP_GREATER_OR_EQUAL,
-		VK_COMPARE_OP_ALWAYS
-	};
+	static const VkCompareOp vkDepthCompareTable[8] = {VK_COMPARE_OP_NEVER,
+													   VK_COMPARE_OP_LESS,
+													   VK_COMPARE_OP_EQUAL,
+													   VK_COMPARE_OP_LESS_OR_EQUAL,
+													   VK_COMPARE_OP_GREATER,
+													   VK_COMPARE_OP_NOT_EQUAL,
+													   VK_COMPARE_OP_GREATER_OR_EQUAL,
+													   VK_COMPARE_OP_ALWAYS};
 
 	depthStencilState.depthCompareOp = vkDepthCompareTable[(size_t)depthFunc];
 
@@ -772,22 +836,23 @@ void PipelineCompiler::InitDepthStencilState()
 	auto backStencilFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FAIL_B();
 	// get stencil control parameters
 	uint32 stencilCompareMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILMASK_F();
-	uint32 stencilWriteMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILWRITEMASK_F();
+	uint32 stencilWriteMaskFront =
+		LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILWRITEMASK_F();
 	uint32 stencilRefFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILREF_F();
-	uint32 stencilCompareMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
-	uint32 stencilWriteMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
+	uint32 stencilCompareMaskBack =
+		LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
+	uint32 stencilWriteMaskBack =
+		LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
 	uint32 stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
 
-	static const VkStencilOp stencilOpTable[8] = {
-		VK_STENCIL_OP_KEEP,
-		VK_STENCIL_OP_ZERO,
-		VK_STENCIL_OP_REPLACE,
-		VK_STENCIL_OP_INCREMENT_AND_CLAMP,
-		VK_STENCIL_OP_DECREMENT_AND_CLAMP,
-		VK_STENCIL_OP_INVERT,
-		VK_STENCIL_OP_INCREMENT_AND_WRAP,
-		VK_STENCIL_OP_DECREMENT_AND_WRAP
-	};
+	static const VkStencilOp stencilOpTable[8] = {VK_STENCIL_OP_KEEP,
+												  VK_STENCIL_OP_ZERO,
+												  VK_STENCIL_OP_REPLACE,
+												  VK_STENCIL_OP_INCREMENT_AND_CLAMP,
+												  VK_STENCIL_OP_DECREMENT_AND_CLAMP,
+												  VK_STENCIL_OP_INVERT,
+												  VK_STENCIL_OP_INCREMENT_AND_WRAP,
+												  VK_STENCIL_OP_DECREMENT_AND_WRAP};
 
 	depthStencilState.stencilTestEnable = stencilEnable ? VK_TRUE : VK_FALSE;
 
@@ -821,9 +886,9 @@ void PipelineCompiler::InitDepthStencilState()
 	}
 }
 
-void PipelineCompiler::InitDynamicState(PipelineInfo* pipelineInfo, bool usesBlendConstants, bool usesDepthBias)
+void PipelineCompiler::InitDynamicState(PipelineInfo* pipelineInfo, bool usesBlendConstants,
+										bool usesDepthBias)
 {
-
 	if (usesBlendConstants)
 	{
 		dynamicStates.emplace_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
@@ -840,7 +905,9 @@ void PipelineCompiler::InitDynamicState(PipelineInfo* pipelineInfo, bool usesBle
 	dynamicState.pDynamicStates = dynamicStates.data();
 }
 
-bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const LatteContextRegister& latteRegister, VKRObjectRenderPass* renderPassObj)
+bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo,
+											   const LatteContextRegister& latteRegister,
+											   VKRObjectRenderPass* renderPassObj)
 {
 	VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance();
 
@@ -859,7 +926,8 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	// if required generate RECT emulation geometry shader
 	if (!vkRenderer->m_featureControl.deviceExtensions.nv_fill_rectangle && isPrimitiveRect)
 	{
-		cemu_assert(m_vkGeometryShader == nullptr); // todo - handle cases where the game already provides a GS
+		cemu_assert(m_vkGeometryShader ==
+					nullptr); // todo - handle cases where the game already provides a GS
 		m_rectEmulationGS = rectsEmulationGS_generate(pipelineInfo->vertexShader, latteRegister);
 		pipelineInfo->rectEmulationGS = m_rectEmulationGS;
 	}
@@ -874,7 +942,8 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	InitRasterizerState(latteRegister, vkRenderer, isPrimitiveRect, usesDepthBias);
 	bool usesBlendConstants = false;
 	InitBlendState(latteRegister, pipelineInfo, usesBlendConstants);
-	InitDescriptorSetLayouts(vkRenderer, pipelineInfo, pipelineInfo->vertexShader, pipelineInfo->pixelShader, pipelineInfo->geometryShader);
+	InitDescriptorSetLayouts(vkRenderer, pipelineInfo, pipelineInfo->vertexShader,
+							 pipelineInfo->pixelShader, pipelineInfo->geometryShader);
 
 	// ##########################################################################################################################################
 
@@ -885,7 +954,8 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-	VkResult result = vkCreatePipelineLayout(vkRenderer->m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipeline_layout);
+	VkResult result = vkCreatePipelineLayout(vkRenderer->m_logicalDevice, &pipelineLayoutInfo,
+											 nullptr, &m_pipeline_layout);
 	if (result != VK_SUCCESS)
 	{
 		forceLog_printf("%s", fmt::format("Failed to create pipeline layout: {}", result).c_str());
@@ -905,7 +975,8 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 
 	pipelineInfo->m_vkrObjPipeline->pipeline_layout = m_pipeline_layout;
 
-	// increment ref counter for vkrObjPipeline and renderpass object to make sure they dont get released while we are using them
+	// increment ref counter for vkrObjPipeline and renderpass object to make sure they dont get
+	// released while we are using them
 	m_vkrObjPipeline->incRef();
 	renderPassObj->incRef();
 	return true;
@@ -916,7 +987,8 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance();
 
 	if (!vkRenderer->m_featureControl.deviceExtensions.pipeline_creation_cache_control)
-		forceCompile = true; // if VK_EXT_pipeline_creation_cache_control is not supported we always force synchronous compilation
+		forceCompile = true; // if VK_EXT_pipeline_creation_cache_control is not supported we always
+							 // force synchronous compilation
 
 	if (!forceCompile)
 	{
@@ -975,7 +1047,7 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 
 		creationStageFeedback.reserve(pipelineInfo.stageCount);
 		for (uint32_t i = 0; i < pipelineInfo.stageCount; ++i)
-			creationStageFeedback.data()[i] = { VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT, 0 };
+			creationStageFeedback.data()[i] = {VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT, 0};
 
 		creationFeedbackInfo = {};
 		creationFeedbackInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO_EXT;
@@ -991,7 +1063,9 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	while (retryCount < 3)
 	{
 		std::shared_lock lock(vkRenderer->m_pipeline_cache_save_mutex);
-		result = vkCreateGraphicsPipelines(vkRenderer->m_logicalDevice, vkRenderer->m_pipeline_cache, 1, &pipelineInfo, nullptr, &pipeline);
+		result =
+			vkCreateGraphicsPipelines(vkRenderer->m_logicalDevice, vkRenderer->m_pipeline_cache, 1,
+									  &pipelineInfo, nullptr, &pipeline);
 		lock.unlock();
 		if (result != VK_ERROR_OUT_OF_DEVICE_MEMORY)
 			break;
@@ -1010,7 +1084,8 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	{
 		forceLog_printf("Failed to create graphics pipeline. Error %d", (sint32)result);
 		cemu_assert_debug(false);
-		return true; // true indicates that caller should no longer attempt to compile this pipeline again
+		return true; // true indicates that caller should no longer attempt to compile this pipeline
+					 // again
 	}
 	vkRenderer->m_pipeline_cache_semaphore.notify();
 
@@ -1018,7 +1093,9 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	{
 		if (HAS_FLAG(creationFeedback.flags, VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT))
 		{
-			bool hasCacheHit = HAS_FLAG(creationFeedback.flags, VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT_EXT);
+			bool hasCacheHit =
+				HAS_FLAG(creationFeedback.flags,
+						 VK_PIPELINE_CREATION_FEEDBACK_APPLICATION_PIPELINE_CACHE_HIT_BIT_EXT);
 			if (!hasCacheHit)
 			{
 				if (showInOverlay)

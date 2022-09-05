@@ -1,10 +1,10 @@
 #pragma once
 
-#include <thread>
 #include <atomic>
+#include <thread>
 
-#include <wx/frame.h>
 #include <wx/button.h>
+#include <wx/frame.h>
 
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 
@@ -32,18 +32,18 @@ enum class DLMGR_STATUS_CODE;
 
 class TitleManager : public wxFrame
 {
-public:
+  public:
 	TitleManager(wxWindow* parent, TitleManagerPage default_page = TitleManagerPage::TitleManager);
 	~TitleManager();
 
 	void SetFocusAndTab(TitleManagerPage page);
 
 	void SetDownloadStatusText(const wxString& text);
-	
-private:
+
+  private:
 	wxPanel* CreateTitleManagerPage();
 	wxPanel* CreateDownloadManagerPage();
-	
+
 	// title manager
 	void OnTitleFound(wxCommandEvent& event);
 	void OnTitleSearchComplete(wxCommandEvent& event);
@@ -62,7 +62,7 @@ private:
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
 
 	wxNotebook* m_notebook;
-	
+
 	uint32 m_callbackId;
 
 	// title manager
@@ -74,7 +74,7 @@ private:
 	wxChoice* m_save_account_list;
 	wxButton* m_save_import;
 
-	bool m_isScanning{ true }; // set when CafeTitleList is scanning
+	bool m_isScanning{true}; // set when CafeTitleList is scanning
 
 	std::atomic_bool m_running = true;
 

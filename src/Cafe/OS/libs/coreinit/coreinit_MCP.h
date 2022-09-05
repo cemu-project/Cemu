@@ -2,10 +2,10 @@
 
 struct SysProdSettings
 {
-	uint8 ukn00;			// 0x00
-	uint8 ukn01;			// 0x01
-	uint8 ukn02;			// 0x02
-	uint8 platformRegion;	// 0x03
+	uint8 ukn00;		  // 0x00
+	uint8 ukn01;		  // 0x01
+	uint8 ukn02;		  // 0x02
+	uint8 platformRegion; // 0x03
 	uint8 ukn04;
 	uint8 ukn05;
 	uint8 ukn06;
@@ -13,7 +13,7 @@ struct SysProdSettings
 	uint8 prevBlock;
 	uint8 ukn09;
 	uint8 ukn0A;
-	uint8 gameRegion;		// game region?
+	uint8 gameRegion; // game region?
 	uint8 nextBlock;
 	uint8 ukn0D;
 	uint8 ukn0E;
@@ -50,5 +50,5 @@ void coreinitExport_UCReadSysConfig(PPCInterpreter_t* hCPU);
 
 namespace coreinit
 {
-	void InitializeMCP();
+void InitializeMCP();
 }

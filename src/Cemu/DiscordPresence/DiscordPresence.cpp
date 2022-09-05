@@ -2,8 +2,8 @@
 
 #ifdef ENABLE_DISCORD_RPC
 
-#include <discord_rpc.h>
 #include "Common/version.h"
+#include <discord_rpc.h>
 
 DiscordPresence::DiscordPresence()
 {

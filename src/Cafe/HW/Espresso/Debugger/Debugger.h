@@ -1,21 +1,21 @@
 #pragma once
 
-#include <set>
 #include "Cafe/HW/Espresso/PPCState.h"
+#include <set>
 
-//#define DEBUGGER_BP_TYPE_NORMAL			(1<<0) // normal breakpoint
-//#define DEBUGGER_BP_TYPE_ONE_SHOT		(1<<1) // normal breakpoint
-//#define DEBUGGER_BP_TYPE_MEMORY_READ	(1<<2) // memory breakpoint
-//#define DEBUGGER_BP_TYPE_MEMORY_WRITE	(1<<3) // memory breakpoint
+// #define DEBUGGER_BP_TYPE_NORMAL			(1<<0) // normal breakpoint
+// #define DEBUGGER_BP_TYPE_ONE_SHOT		(1<<1) // normal breakpoint
+// #define DEBUGGER_BP_TYPE_MEMORY_READ	(1<<2) // memory breakpoint
+// #define DEBUGGER_BP_TYPE_MEMORY_WRITE	(1<<3) // memory breakpoint
 
-#define DEBUGGER_BP_T_NORMAL		0 // normal breakpoint
-#define DEBUGGER_BP_T_ONE_SHOT		1 // normal breakpoint, deletes itself after trigger (used for stepping)
-#define DEBUGGER_BP_T_MEMORY_READ	2 // memory breakpoint
-#define DEBUGGER_BP_T_MEMORY_WRITE	3 // memory breakpoint
+#define DEBUGGER_BP_T_NORMAL 0 // normal breakpoint
+#define DEBUGGER_BP_T_ONE_SHOT                                                                     \
+	1 // normal breakpoint, deletes itself after trigger (used for stepping)
+#define DEBUGGER_BP_T_MEMORY_READ 2	 // memory breakpoint
+#define DEBUGGER_BP_T_MEMORY_WRITE 3 // memory breakpoint
 
-#define DEBUGGER_BP_T_GDBSTUB		1 // breakpoint created by GDBStub
-#define DEBUGGER_BP_T_DEBUGGER		2 // breakpoint created by Cemu's debugger
-
+#define DEBUGGER_BP_T_GDBSTUB 1	 // breakpoint created by GDBStub
+#define DEBUGGER_BP_T_DEBUGGER 2 // breakpoint created by Cemu's debugger
 
 struct DebuggerBreakpoint
 {
@@ -26,12 +26,13 @@ struct DebuggerBreakpoint
 	mutable std::wstring comment;
 	mutable uint8 dbType = DEBUGGER_BP_T_DEBUGGER;
 
-	DebuggerBreakpoint(uint32 address, uint32 originalOpcode, uint8 bpType = 0, bool enabled = true, std::wstring comment = std::wstring())
-		:address(address), originalOpcodeValue(originalOpcode), bpType(bpType), enabled(enabled), comment(std::move(comment)) 
+	DebuggerBreakpoint(uint32 address, uint32 originalOpcode, uint8 bpType = 0, bool enabled = true,
+					   std::wstring comment = std::wstring())
+		: address(address), originalOpcodeValue(originalOpcode), bpType(bpType), enabled(enabled),
+		  comment(std::move(comment))
 	{
 		next = nullptr;
 	}
-
 
 	bool operator<(const DebuggerBreakpoint& rhs) const
 	{
@@ -55,7 +56,7 @@ struct DebuggerBreakpoint
 	DebuggerBreakpoint* next;
 };
 
-struct DebuggerPatch 
+struct DebuggerPatch
 {
 	uint32 address;
 	sint32 length;
@@ -71,7 +72,7 @@ struct PPCSnapshot
 	uint32 spr_lr;
 };
 
-typedef struct  
+typedef struct
 {
 	bool breakOnEntry;
 	// breakpoints
@@ -79,10 +80,11 @@ typedef struct
 	std::vector<DebuggerPatch*> patches;
 	DebuggerBreakpoint* activeMemoryBreakpoint;
 	// debugging state
-	struct  
+	struct
 	{
 		volatile bool shouldBreak; // debugger window requests a break asap
-		volatile bool isTrapped; // if set, breakpoint is active and stepping through the code is possible
+		volatile bool
+			isTrapped; // if set, breakpoint is active and stepping through the code is possible
 		uint32 debuggedThreadMPTR;
 		volatile uint32 instructionPointer;
 		PPCInterpreter_t* hCPU;
@@ -92,9 +94,9 @@ typedef struct
 		volatile bool run;
 		// snapshot of PPC state
 		PPCSnapshot ppcSnapshot;
-	}debugSession;
+	} debugSession;
 
-}debuggerState_t;
+} debuggerState_t;
 
 extern debuggerState_t debuggerState;
 

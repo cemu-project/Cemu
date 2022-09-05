@@ -6,10 +6,12 @@
 
 class FileStream
 {
-public:
+  public:
 	static FileStream* openFile(std::string_view path)
 	{
-		HANDLE hFile = CreateFileW(boost::nowide::widen(path.data(), path.size()).c_str(), FILE_GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+		HANDLE hFile =
+			CreateFileW(boost::nowide::widen(path.data(), path.size()).c_str(), FILE_GENERIC_READ,
+						FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
 		if (hFile == INVALID_HANDLE_VALUE)
 			return nullptr;
 		return new FileStream(hFile);
@@ -17,7 +19,9 @@ public:
 
 	static FileStream* openFile(const wchar_t* path, bool allowWrite = false)
 	{
-		HANDLE hFile = CreateFileW(path, allowWrite ? (FILE_GENERIC_READ | FILE_GENERIC_WRITE) : FILE_GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+		HANDLE hFile = CreateFileW(
+			path, allowWrite ? (FILE_GENERIC_READ | FILE_GENERIC_WRITE) : FILE_GENERIC_READ,
+			FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
 		if (hFile == INVALID_HANDLE_VALUE)
 			return nullptr;
 		return new FileStream(hFile);
@@ -30,7 +34,8 @@ public:
 
 	static FileStream* createFile(const wchar_t* path)
 	{
-		HANDLE hFile = CreateFileW(path, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
+		HANDLE hFile = CreateFileW(path, FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+								   FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
 		if (hFile == INVALID_HANDLE_VALUE)
 			return nullptr;
 		return new FileStream(hFile);
@@ -39,7 +44,8 @@ public:
 	static FileStream* createFile(std::string_view path)
 	{
 		auto w = boost::nowide::widen(path.data(), path.size());
-		HANDLE hFile = CreateFileW(w.c_str(), FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
+		HANDLE hFile = CreateFileW(w.c_str(), FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+								   FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
 		if (hFile == INVALID_HANDLE_VALUE)
 			return nullptr;
 		return new FileStream(hFile);
@@ -49,7 +55,7 @@ public:
 	{
 		return createFile(path.generic_wstring().c_str());
 	}
-	
+
 	// helper function to load a file into memory
 	static std::optional<std::vector<uint8>> LoadIntoMemory(const fs::path& path)
 	{
@@ -57,7 +63,7 @@ public:
 		if (!fs)
 			return std::nullopt;
 		uint64 fileSize = fs->GetSize();
-		if(fileSize > 0xFFFFFFFFull)
+		if (fileSize > 0xFFFFFFFFull)
 		{
 			delete fs;
 			return std::nullopt;
@@ -133,7 +139,7 @@ public:
 		while (readU8(c))
 		{
 			isEOF = false;
-			if(c == '\r')
+			if (c == '\r')
 				continue;
 			if (c == '\n')
 				break;
@@ -188,13 +194,13 @@ public:
 
 	~FileStream()
 	{
-		if(m_isValid)
+		if (m_isValid)
 			CloseHandle(m_hFile);
 	}
 
-	FileStream() {};
+	FileStream(){};
 
-private:
+  private:
 	FileStream(HANDLE hFile)
 	{
 		m_hFile = hFile;
@@ -211,7 +217,7 @@ private:
 
 class FileStream
 {
-public:
+  public:
 	static FileStream* openFile(std::string_view path)
 	{
 		return openFile2(path, false);
@@ -224,7 +230,7 @@ public:
 
 	static FileStream* openFile2(const fs::path& path, bool allowWrite = false)
 	{
-		//return openFile(path.generic_wstring().c_str(), allowWrite);
+		// return openFile(path.generic_wstring().c_str(), allowWrite);
 		FileStream* fs = new FileStream(path, true, allowWrite);
 		if (fs->m_isValid)
 			return fs;
@@ -298,7 +304,7 @@ public:
 	{
 		assert_dbg();
 		return true;
-		//return ::SetEndOfFile(m_hFile) != 0;
+		// return ::SetEndOfFile(m_hFile) != 0;
 	}
 
 	// reading
@@ -403,19 +409,22 @@ public:
 		//	CloseHandle(m_hFile);
 	}
 
-	FileStream() {};
+	FileStream(){};
 
-private:
+  private:
 	FileStream(const fs::path& path, bool isOpen, bool isWriteable)
 	{
 		if (isOpen)
 		{
-			m_fileStream.open(path, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
+			m_fileStream.open(
+				path, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary)
+								  : (std::ios_base::in | std::ios_base::binary));
 			m_isValid = m_fileStream.is_open();
 		}
 		else
 		{
-			m_fileStream.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+			m_fileStream.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::binary |
+										std::ios_base::trunc);
 			m_isValid = m_fileStream.is_open();
 		}
 	}
@@ -436,6 +445,6 @@ private:
 	bool m_isValid{};
 	std::fstream m_fileStream;
 	bool m_prevOperationWasWrite{false};
-}; 
+};
 
 #endif

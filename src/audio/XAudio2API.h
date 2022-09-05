@@ -1,9 +1,9 @@
 #pragma once
 
 #define DIRECTSOUND_VERSION 0x0800
-#include <mmsystem.h>
-#include <mmreg.h>
 #include <dsound.h>
+#include <mmreg.h>
+#include <mmsystem.h>
 
 #include "IAudioAPI.h"
 
@@ -14,25 +14,37 @@ struct IXAudio2SourceVoice;
 
 class XAudio2API : public IAudioAPI
 {
-public:
+  public:
 	class XAudio2DeviceDescription : public DeviceDescription
 	{
-	public:
+	  public:
 		XAudio2DeviceDescription(const std::wstring& name, std::wstring device_id)
-			: DeviceDescription(name), m_device_id(std::move(device_id)) { }
+			: DeviceDescription(name), m_device_id(std::move(device_id))
+		{
+		}
 
-		std::wstring GetIdentifier() const override { return m_device_id.empty() ? L"default" : m_device_id; }
-		const std::wstring& GetDeviceId() const { return m_device_id; }
+		std::wstring GetIdentifier() const override
+		{
+			return m_device_id.empty() ? L"default" : m_device_id;
+		}
+		const std::wstring& GetDeviceId() const
+		{
+			return m_device_id;
+		}
 
-	private:
+	  private:
 		std::wstring m_device_id;
 	};
 
 	using XAudio2DeviceDescriptionPtr = std::shared_ptr<XAudio2DeviceDescription>;
 
-	AudioAPI GetType() const override { return XAudio27; }
+	AudioAPI GetType() const override
+	{
+		return XAudio27;
+	}
 
-	XAudio2API(std::wstring device_id, uint32 samplerate, uint32 channels, uint32 samples_per_block, uint32 bits_per_sample);
+	XAudio2API(std::wstring device_id, uint32 samplerate, uint32 channels, uint32 samples_per_block,
+			   uint32 bits_per_sample);
 	~XAudio2API();
 	void SetVolume(sint32 volume) override;
 
@@ -43,9 +55,12 @@ public:
 
 	static bool InitializeStatic();
 	static void Destroy();
-	static const std::vector<DeviceDescriptionPtr>& GetDevices() { return s_devices;	}
+	static const std::vector<DeviceDescriptionPtr>& GetDevices()
+	{
+		return s_devices;
+	}
 
-private:
+  private:
 	static const std::vector<DeviceDescriptionPtr>& RefreshDevices();
 
 	struct XAudioDeleter

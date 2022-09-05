@@ -1,10 +1,10 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "config/ActiveSettings.h"
 #include "util/ChunkedHeap/ChunkedHeap.h"
 #include "util/helpers/fspinlock.h"
-#include "config/ActiveSettings.h"
 
-#define CACHE_PAGE_SIZE		0x400
-#define CACHE_PAGE_SIZE_M1	(CACHE_PAGE_SIZE-1)
+#define CACHE_PAGE_SIZE 0x400
+#define CACHE_PAGE_SIZE_M1 (CACHE_PAGE_SIZE - 1)
 
 uint32 g_currentCacheChronon = 0;
 
@@ -13,40 +13,50 @@ class IntervalTree2
 {
 	// TNodeObject will be interfaced with via callbacks to static methods
 
-	// static TNodeObject* Create(TRangeData rangeBegin, TRangeData rangeEnd, std::span<TNodeObject*> overlappingObjects)
-	// Create a new node with the given range. overlappingObjects contains all the nodes that are replaced by this operation. The callee has to delete all objects in overlappingObjects (Delete callback wont be invoked)
+	// static TNodeObject* Create(TRangeData rangeBegin, TRangeData rangeEnd,
+	// std::span<TNodeObject*> overlappingObjects) Create a new node with the given range.
+	// overlappingObjects contains all the nodes that are replaced by this operation. The callee has
+	// to delete all objects in overlappingObjects (Delete callback wont be invoked)
 
 	// static void Delete(TNodeObject* nodeObject)
-	// Delete a node object. Replacement operations won't trigger this callback and instead pass the objects to Create()
+	// Delete a node object. Replacement operations won't trigger this callback and instead pass the
+	// objects to Create()
 
 	// static void Resize(TNodeObject* nodeObject, TRangeData rangeBegin, TRangeData rangeEnd)
 	// Shrink or extend an existing range
 
-	// static TNodeObject* Split(TNodeObject* nodeObject, TRangeData firstRangeBegin, TRangeData firstRangeEnd, TRangeData secondRangeBegin, TRangeData secondRangeEnd)
-	// Cut a hole into an existing range and split it in two. Should return the newly created node object after the hole
+	// static TNodeObject* Split(TNodeObject* nodeObject, TRangeData firstRangeBegin, TRangeData
+	// firstRangeEnd, TRangeData secondRangeBegin, TRangeData secondRangeEnd) Cut a hole into an
+	// existing range and split it in two. Should return the newly created node object after the
+	// hole
 
-	static_assert(std::is_pointer<TNodeObject>::value == false, "TNodeObject must be a non-pointer type");
+	static_assert(std::is_pointer<TNodeObject>::value == false,
+				  "TNodeObject must be a non-pointer type");
 
 	struct InternalRange
 	{
-		InternalRange() {};
-		InternalRange(TRangeData _rangeBegin, TRangeData _rangeEnd) : rangeBegin(_rangeBegin), rangeEnd(_rangeEnd) { cemu_assert_debug(_rangeBegin < _rangeEnd); };
+		InternalRange(){};
+		InternalRange(TRangeData _rangeBegin, TRangeData _rangeEnd)
+			: rangeBegin(_rangeBegin), rangeEnd(_rangeEnd)
+		{
+			cemu_assert_debug(_rangeBegin < _rangeEnd);
+		};
 
 		TRangeData rangeBegin;
 		TRangeData rangeEnd;
 
 		bool operator<(const InternalRange& rhs) const
 		{
-			// use <= instead of < because ranges are allowed to touch (e.g. 10-20 and 20-30 dont get merged)
+			// use <= instead of < because ranges are allowed to touch (e.g. 10-20 and 20-30 dont
+			// get merged)
 			return this->rangeEnd <= rhs.rangeBegin;
 		}
-
 	};
 
 	std::map<InternalRange, TNodeObject*> m_map;
 	std::vector<TNodeObject*> m_tempObjectArray;
 
-public:
+  public:
 	TNodeObject* getRange(TRangeData rangeBegin, TRangeData rangeEnd)
 	{
 		auto itr = m_map.find(InternalRange(rangeBegin, rangeEnd));
@@ -61,7 +71,8 @@ public:
 
 	TNodeObject* getRangeByPoint(TRangeData rangeOffset)
 	{
-		auto itr = m_map.find(InternalRange(rangeOffset, rangeOffset+1)); // todo - better to use custom comparator instead of +1?
+		auto itr = m_map.find(InternalRange(
+			rangeOffset, rangeOffset + 1)); // todo - better to use custom comparator instead of +1?
 		if (itr == m_map.cend())
 			return nullptr;
 		cemu_assert_debug(rangeOffset >= (*itr).first.rangeBegin);
@@ -78,7 +89,8 @@ public:
 		if (itr == m_map.cend())
 		{
 			// new entry
-			m_map.emplace(range, TNodeObject::Create(rangeBegin, rangeEnd, std::span<TNodeObject*>()));
+			m_map.emplace(range,
+						  TNodeObject::Create(rangeBegin, rangeEnd, std::span<TNodeObject*>()));
 		}
 		else
 		{
@@ -86,7 +98,8 @@ public:
 			if (rangeBegin >= (*itr).first.rangeBegin && rangeEnd <= (*itr).first.rangeEnd)
 				return; // do nothing if added range is already covered
 			rangeBegin = (std::min)(rangeBegin, (*itr).first.rangeBegin);
-			// DEBUG - make sure this is the start point of the merge process (the first entry that starts below minValue)
+			// DEBUG - make sure this is the start point of the merge process (the first entry that
+			// starts below minValue)
 #ifndef PUBLIC_RELEASE
 			if (itr != m_map.cbegin())
 			{
@@ -116,7 +129,8 @@ public:
 			}
 
 			// create callback
-			TNodeObject* newObject = TNodeObject::Create(rangeBegin, rangeEnd, std::span<TNodeObject*>(m_tempObjectArray.data(), count));
+			TNodeObject* newObject = TNodeObject::Create(
+				rangeBegin, rangeEnd, std::span<TNodeObject*>(m_tempObjectArray.data(), count));
 			m_map.emplace(InternalRange(rangeBegin, rangeEnd), newObject);
 		}
 	}
@@ -147,7 +161,9 @@ public:
 				TRangeData firstRangeEnd = rangeBegin;
 				TRangeData secondRangeBegin = rangeEnd;
 				TRangeData secondRangeEnd = (*itr).first.rangeEnd;
-				TNodeObject* newObject = TNodeObject::Split((*itr).second, firstRangeBegin, firstRangeEnd, secondRangeBegin, secondRangeEnd);
+				TNodeObject* newObject =
+					TNodeObject::Split((*itr).second, firstRangeBegin, firstRangeEnd,
+									   secondRangeBegin, secondRangeEnd);
 				// modify key
 				auto nh = m_map.extract(itr);
 				nh.key().rangeBegin = firstRangeBegin;
@@ -195,7 +211,8 @@ public:
 		cemu_assert_debug(itr != m_map.cend());
 		if (itr == m_map.cend())
 			return;
-		cemu_assert_debug((*itr).first.rangeBegin == rangeBegin && (*itr).first.rangeEnd == rangeEnd);
+		cemu_assert_debug((*itr).first.rangeBegin == rangeBegin &&
+						  (*itr).first.rangeEnd == rangeEnd);
 		// delete entire range
 		TNodeObject* t = (*itr).second;
 		m_map.erase(itr);
@@ -210,7 +227,8 @@ public:
 		cemu_assert_debug(itr != m_map.cend());
 		if (itr == m_map.cend())
 			return;
-		cemu_assert_debug((*itr).first.rangeBegin == rangeBegin && (*itr).first.rangeEnd == rangeEnd);
+		cemu_assert_debug((*itr).first.rangeBegin == rangeBegin &&
+						  (*itr).first.rangeEnd == rangeEnd);
 		// delete entire range
 		TNodeObject* t = (*itr).second;
 		m_map.erase(itr);
@@ -219,7 +237,7 @@ public:
 	void splitRange(TRangeData rangeOffset)
 	{
 		// not well tested
-		removeRange(rangeOffset, rangeOffset+1);
+		removeRange(rangeOffset, rangeOffset + 1);
 	}
 
 	template<typename TFunc>
@@ -257,7 +275,10 @@ public:
 		}
 	}
 
-	const std::map<InternalRange, TNodeObject*>& getAll() const { return m_map; };
+	const std::map<InternalRange, TNodeObject*>& getAll() const
+	{
+		return m_map;
+	};
 };
 
 std::unique_ptr<VHeap> g_gpuBufferHeap = nullptr;
@@ -271,13 +292,14 @@ class BufferCacheNode
 	static inline constexpr uint64 c_streamoutSig0 = 0xF0F0F0F0155C5B6Aull;
 	static inline constexpr uint64 c_streamoutSig1 = 0x8BE6336411814F4Full;
 
-public:
+  public:
 	// returns false if not enough space is available
 	bool allocateCacheMemory()
 	{
 		cemu_assert_debug(m_hasCacheAlloc == false);
 		cemu_assert_debug(m_rangeEnd > m_rangeBegin);
-		m_hasCacheAlloc = g_gpuBufferHeap->allocOffset(m_rangeEnd - m_rangeBegin, CACHE_PAGE_SIZE, m_cacheOffset);
+		m_hasCacheAlloc =
+			g_gpuBufferHeap->allocOffset(m_rangeEnd - m_rangeBegin, CACHE_PAGE_SIZE, m_cacheOffset);
 		return m_hasCacheAlloc;
 	}
 
@@ -304,7 +326,9 @@ public:
 	{
 		if ((rangeBegin & 0xF))
 		{
-			forceLogDebug_printf("writeStreamout(): RangeBegin not aligned to 16. Begin %08x End %08x", rangeBegin, rangeEnd);
+			forceLogDebug_printf(
+				"writeStreamout(): RangeBegin not aligned to 16. Begin %08x End %08x", rangeBegin,
+				rangeEnd);
 			rangeBegin = (rangeBegin + 0xF) & ~0xF;
 			rangeEnd = std::max(rangeBegin, rangeEnd);
 		}
@@ -313,10 +337,10 @@ public:
 			// todo - add support for 4 byte granularity for streamout writes and cache
 			// used by Affordable Space Adventures and YWW Level 1-8
 			// also used by CoD Ghosts (8 byte granularity)
-			//forceLogDebug_printf("Streamout write size is not aligned to 16 bytes");
+			// forceLogDebug_printf("Streamout write size is not aligned to 16 bytes");
 			rangeEnd &= ~0xF;
 		}
-		//cemu_assert_debug((rangeEnd & 0xF) == 0);
+		// cemu_assert_debug((rangeEnd & 0xF) == 0);
 		rangeBegin = std::max(rangeBegin, m_rangeBegin);
 		rangeEnd = std::min(rangeEnd, m_rangeEnd);
 		if (rangeBegin >= rangeEnd)
@@ -331,8 +355,8 @@ public:
 		{
 			pageWriteStreamoutSignatures(pageIndex, rangeBegin, rangeEnd);
 			pageIndex++;
-			//pageInfo->hasStreamoutData = true;
-			//pageInfo++;
+			// pageInfo->hasStreamoutData = true;
+			// pageInfo++;
 		}
 		if (numPages > 0)
 			m_hasStreamoutData = true;
@@ -368,8 +392,9 @@ public:
 				if (pageInfo->hash != pageHash)
 				{
 					pageInfo->hash = pageHash;
-					// for pages that contain streamout data we do uploads with a much smaller granularity
-					// and skip uploading any data that is marked with streamout filler bytes
+					// for pages that contain streamout data we do uploads with a much smaller
+					// granularity and skip uploading any data that is marked with streamout filler
+					// bytes
 					if (!uploadPageWithStreamoutFiltered(basePageIndex + i))
 						pageInfo->hasStreamoutData = false; // all streamout data was replaced
 				}
@@ -422,13 +447,15 @@ public:
 		}
 		if (m_hasInvalidation)
 		{
-			// ideally we would only upload the pages that intersect both the reserve range and the invalidation range
-			// but this would require complex per-page tracking of invalidation. Since this is on a hot path we do a cheap approximation
-			// where we only track one continous invalidation range
+			// ideally we would only upload the pages that intersect both the reserve range and the
+			// invalidation range but this would require complex per-page tracking of invalidation.
+			// Since this is on a hot path we do a cheap approximation where we only track one
+			// continous invalidation range
 
 			// try to bound uploads to the reserve range within the invalidation
 			uint32 resRangeBegin = reservePhysAddress & ~CACHE_PAGE_SIZE_M1;
-			uint32 resRangeEnd = ((reservePhysAddress + reserveSize) + CACHE_PAGE_SIZE_M1) & ~CACHE_PAGE_SIZE_M1;
+			uint32 resRangeEnd =
+				((reservePhysAddress + reserveSize) + CACHE_PAGE_SIZE_M1) & ~CACHE_PAGE_SIZE_M1;
 
 			uint32 uploadBegin = std::max(m_invalidationRangeBegin, resRangeBegin);
 			uint32 uploadEnd = std::min(resRangeEnd, m_invalidationRangeEnd);
@@ -436,7 +463,6 @@ public:
 			if (uploadBegin >= uploadEnd)
 				return; // reserve range not within invalidation or range is zero sized
 
-			
 			if (uploadBegin == m_invalidationRangeBegin)
 			{
 				m_invalidationRangeBegin = uploadEnd;
@@ -453,14 +479,14 @@ public:
 				checkAndSyncModifications(m_invalidationRangeBegin, m_invalidationRangeEnd, true);
 				m_invalidationRangeBegin = m_invalidationRangeEnd;
 			}
-			if(m_invalidationRangeEnd <= m_invalidationRangeBegin)
+			if (m_invalidationRangeEnd <= m_invalidationRangeBegin)
 				m_hasInvalidation = false;
 
-			//if (resRangeBegin <= m_invalidationRangeBegin)
+			// if (resRangeBegin <= m_invalidationRangeBegin)
 			//{
 			//	// shrink/replace invalidation range from the bottom
-			//	uint32 uploadBegin = m_invalidationRangeBegin;//std::max(m_invalidationRangeBegin, resRangeBegin);
-			//	uint32 uploadEnd = std::min(resRangeEnd, m_invalidationRangeEnd);
+			//	uint32 uploadBegin = m_invalidationRangeBegin;//std::max(m_invalidationRangeBegin,
+			// resRangeBegin); 	uint32 uploadEnd = std::min(resRangeEnd, m_invalidationRangeEnd);
 			//	cemu_assert_debug(uploadEnd >= uploadBegin);
 			//	if (uploadBegin != uploadEnd)
 			//		checkAndSyncModifications(uploadBegin, uploadEnd, true);
@@ -468,21 +494,21 @@ public:
 			//	cemu_assert_debug(m_invalidationRangeBegin <= m_invalidationRangeEnd);
 			//	if (m_invalidationRangeBegin >= m_invalidationRangeEnd)
 			//		m_hasInvalidation = false;
-			//}
-			//else if (resRangeEnd >= m_invalidationRangeEnd)
+			// }
+			// else if (resRangeEnd >= m_invalidationRangeEnd)
 			//{
 			//	// shrink/replace invalidation range from the top
 			//	uint32 uploadBegin = std::max(m_invalidationRangeBegin, resRangeBegin);
-			//	uint32 uploadEnd = m_invalidationRangeEnd;// std::min(resRangeEnd, m_invalidationRangeEnd);
-			//	cemu_assert_debug(uploadEnd >= uploadBegin);
-			//	if (uploadBegin != uploadEnd)
-			//		checkAndSyncModifications(uploadBegin, uploadEnd, true);
+			//	uint32 uploadEnd = m_invalidationRangeEnd;// std::min(resRangeEnd,
+			// m_invalidationRangeEnd); 	cemu_assert_debug(uploadEnd >= uploadBegin); 	if
+			// (uploadBegin
+			//!= uploadEnd) 		checkAndSyncModifications(uploadBegin, uploadEnd, true);
 			//	m_invalidationRangeEnd = uploadBegin;
 			//	cemu_assert_debug(m_invalidationRangeBegin <= m_invalidationRangeEnd);
 			//	if (m_invalidationRangeBegin >= m_invalidationRangeEnd)
 			//		m_hasInvalidation = false;
-			//}
-			//else
+			// }
+			// else
 			//{
 			//	// since we cant cut holes into the range upload it in it's entirety
 			//	cemu_assert_debug(m_invalidationRangeEnd <= m_rangeEnd);
@@ -490,13 +516,11 @@ public:
 			//	cemu_assert_debug(m_invalidationRangeBegin < m_invalidationRangeEnd);
 			//	checkAndSyncModifications(m_invalidationRangeBegin, m_invalidationRangeEnd, true);
 			//	m_hasInvalidation = false;
-			//}
-
-
+			// }
 
 			// todo - dont re-upload the whole range immediately
-			// under ideal circumstances we would only upload the data range requested for the current draw call
-			// but this is a hot path so we can't check
+			// under ideal circumstances we would only upload the data range requested for the
+			// current draw call but this is a hot path so we can't check
 		}
 	}
 
@@ -521,7 +545,8 @@ public:
 		cemu_assert_debug(m_invalidationRangeEnd <= m_rangeEnd);
 		cemu_assert_debug(m_invalidationRangeBegin < m_invalidationRangeEnd);
 		m_invalidationRangeBegin = m_invalidationRangeBegin & ~CACHE_PAGE_SIZE_M1;
-		m_invalidationRangeEnd = (m_invalidationRangeEnd + CACHE_PAGE_SIZE_M1) & ~CACHE_PAGE_SIZE_M1;
+		m_invalidationRangeEnd =
+			(m_invalidationRangeEnd + CACHE_PAGE_SIZE_M1) & ~CACHE_PAGE_SIZE_M1;
 	}
 
 	void flagInUse()
@@ -535,45 +560,61 @@ public:
 		return m_lastDrawcall == LatteGPUState.drawCallCounter;
 	}
 
-	// returns true if the range does not contain any GPU-cache-only data and can be fully restored from RAM
+	// returns true if the range does not contain any GPU-cache-only data and can be fully restored
+	// from RAM
 	bool isRAMOnly() const
 	{
 		return !m_hasStreamoutData;
 	}
 
-	MPTR GetRangeBegin() const { return m_rangeBegin; }
-	MPTR GetRangeEnd() const { return m_rangeEnd; }
+	MPTR GetRangeBegin() const
+	{
+		return m_rangeBegin;
+	}
+	MPTR GetRangeEnd() const
+	{
+		return m_rangeEnd;
+	}
 
-	uint32 GetDrawcallAge() const { return LatteGPUState.drawCallCounter - m_lastDrawcall; };
-	uint32 GetFrameAge() const { return LatteGPUState.frameCounter - m_lastFrame; };
+	uint32 GetDrawcallAge() const
+	{
+		return LatteGPUState.drawCallCounter - m_lastDrawcall;
+	};
+	uint32 GetFrameAge() const
+	{
+		return LatteGPUState.frameCounter - m_lastFrame;
+	};
 
-	bool HasStreamoutData() const { return m_hasStreamoutData; };
+	bool HasStreamoutData() const
+	{
+		return m_hasStreamoutData;
+	};
 
-private:
+  private:
 	struct CachePageInfo
 	{
-		uint64 hash{ 0 };
-		bool hasStreamoutData{ false };
+		uint64 hash{0};
+		bool hasStreamoutData{false};
 	};
 
 	MPTR m_rangeBegin;
 	MPTR m_rangeEnd; // (exclusive)
-	bool m_hasCacheAlloc{ false };
-	uint32 m_cacheOffset{ 0 };
+	bool m_hasCacheAlloc{false};
+	uint32 m_cacheOffset{0};
 	// usage
 	uint32 m_lastDrawcall;
 	uint32 m_lastFrame;
 	uint32 m_arrayIndex;
 	// state tracking
-	uint32 m_lastModifyCheckCronon{ g_currentCacheChronon - 1 };
+	uint32 m_lastModifyCheckCronon{g_currentCacheChronon - 1};
 	std::vector<CachePageInfo> m_pageInfo;
-	bool m_hasStreamoutData{ false };
+	bool m_hasStreamoutData{false};
 	// invalidation
 	bool m_hasInvalidation{false};
 	MPTR m_invalidationRangeBegin;
 	MPTR m_invalidationRangeEnd;
 
-	BufferCacheNode(MPTR rangeBegin, MPTR rangeEnd): m_rangeBegin(rangeBegin), m_rangeEnd(rangeEnd) 
+	BufferCacheNode(MPTR rangeBegin, MPTR rangeEnd) : m_rangeBegin(rangeBegin), m_rangeEnd(rangeEnd)
 	{
 		flagInUse();
 		cemu_assert_debug(rangeBegin < rangeEnd);
@@ -636,7 +677,8 @@ private:
 		// reset write tracking
 		checkAndSyncModifications(rangeBegin, rangeEnd, false);
 
-		g_renderer->bufferCache_upload(memory_getPointerFromPhysicalOffset(rangeBegin), rangeEnd - rangeBegin, getBufferOffset(rangeBegin));
+		g_renderer->bufferCache_upload(memory_getPointerFromPhysicalOffset(rangeBegin),
+									   rangeEnd - rangeBegin, getBufferOffset(rangeBegin));
 	}
 
 	void syncFromNode(BufferCacheNode* srcNode)
@@ -645,11 +687,14 @@ private:
 		MPTR rangeBegin = std::max(m_rangeBegin, srcNode->m_rangeBegin);
 		MPTR rangeEnd = std::min(m_rangeEnd, srcNode->m_rangeEnd);
 		cemu_assert_debug(rangeBegin < rangeEnd);
-		g_renderer->bufferCache_copy(srcNode->getBufferOffset(rangeBegin), this->getBufferOffset(rangeBegin), rangeEnd - rangeBegin);
+		g_renderer->bufferCache_copy(srcNode->getBufferOffset(rangeBegin),
+									 this->getBufferOffset(rangeBegin), rangeEnd - rangeBegin);
 		// copy page checksums and information
 		sint32 numPages = getPageCountFromRangeAligned(rangeBegin, rangeEnd);
-		CachePageInfo* pageInfoDst = this->m_pageInfo.data() + this->getPageIndexFromAddrAligned(rangeBegin);
-		CachePageInfo* pageInfoSrc = srcNode->m_pageInfo.data() + srcNode->getPageIndexFromAddrAligned(rangeBegin);
+		CachePageInfo* pageInfoDst =
+			this->m_pageInfo.data() + this->getPageIndexFromAddrAligned(rangeBegin);
+		CachePageInfo* pageInfoSrc =
+			srcNode->m_pageInfo.data() + srcNode->getPageIndexFromAddrAligned(rangeBegin);
 		for (sint32 i = 0; i < numPages; i++)
 		{
 			pageInfoDst[i] = pageInfoSrc[i];
@@ -669,12 +714,15 @@ private:
 		if (s_pageUploadBuffer.size() < (numPages * CACHE_PAGE_SIZE))
 			s_pageUploadBuffer.resize(numPages * CACHE_PAGE_SIZE);
 		// todo - improve performance by merging memcpy + hashPage() ?
-		memcpy(s_pageUploadBuffer.data(), memory_getPointerFromPhysicalOffset(uploadRangeBegin), numPages * CACHE_PAGE_SIZE);
+		memcpy(s_pageUploadBuffer.data(), memory_getPointerFromPhysicalOffset(uploadRangeBegin),
+			   numPages * CACHE_PAGE_SIZE);
 		for (uint32 i = 0; i < numPages; i++)
 		{
-			m_pageInfo[firstPage + i].hash = hashPage(s_pageUploadBuffer.data() + i * CACHE_PAGE_SIZE);
+			m_pageInfo[firstPage + i].hash =
+				hashPage(s_pageUploadBuffer.data() + i * CACHE_PAGE_SIZE);
 		}
-		g_renderer->bufferCache_upload(s_pageUploadBuffer.data(), uploadRangeEnd - uploadRangeBegin, getBufferOffset(uploadRangeBegin));
+		g_renderer->bufferCache_upload(s_pageUploadBuffer.data(), uploadRangeEnd - uploadRangeBegin,
+									   getBufferOffset(uploadRangeBegin));
 	}
 
 	// upload only non-streamout data of a single page
@@ -683,7 +731,9 @@ private:
 	sint32 uploadPageWithStreamoutFiltered(uint32 pageIndex)
 	{
 		uint8 pageCopy[CACHE_PAGE_SIZE];
-		memcpy(pageCopy, memory_getPointerFromPhysicalOffset(m_rangeBegin + pageIndex * CACHE_PAGE_SIZE), CACHE_PAGE_SIZE);
+		memcpy(pageCopy,
+			   memory_getPointerFromPhysicalOffset(m_rangeBegin + pageIndex * CACHE_PAGE_SIZE),
+			   CACHE_PAGE_SIZE);
 
 		MPTR pageBase = m_rangeBegin + pageIndex * CACHE_PAGE_SIZE;
 
@@ -701,7 +751,9 @@ private:
 					uint32 uploadRelRangeBegin = blockBegin * 16;
 					uint32 uploadRelRangeEnd = i * 16;
 					cemu_assert_debug(uploadRelRangeEnd > uploadRelRangeBegin);
-					g_renderer->bufferCache_upload(pageCopy + uploadRelRangeBegin, uploadRelRangeEnd - uploadRelRangeBegin, getBufferOffset(pageBase + uploadRelRangeBegin));
+					g_renderer->bufferCache_upload(pageCopy + uploadRelRangeBegin,
+												   uploadRelRangeEnd - uploadRelRangeBegin,
+												   getBufferOffset(pageBase + uploadRelRangeBegin));
 					blockBegin = -1;
 				}
 				pagePtrU64 += 2;
@@ -716,7 +768,9 @@ private:
 			uint32 uploadRelRangeBegin = blockBegin * 16;
 			uint32 uploadRelRangeEnd = CACHE_PAGE_SIZE;
 			cemu_assert_debug(uploadRelRangeEnd > uploadRelRangeBegin);
-			g_renderer->bufferCache_upload(pageCopy + uploadRelRangeBegin, uploadRelRangeEnd - uploadRelRangeBegin, getBufferOffset(pageBase + uploadRelRangeBegin));
+			g_renderer->bufferCache_upload(pageCopy + uploadRelRangeBegin,
+										   uploadRelRangeEnd - uploadRelRangeBegin,
+										   getBufferOffset(pageBase + uploadRelRangeBegin));
 			blockBegin = -1;
 		}
 		return hasStreamoutBlocks;
@@ -739,9 +793,9 @@ private:
 		uint64* memU64 = (uint64*)mem;
 		for (uint32 i = 0; i < CACHE_PAGE_SIZE / 8; i++)
 		{
-			//h = _rotr64(h, 7);
-			//h ^= *memU64;
-			//memU64++;
+			// h = _rotr64(h, 7);
+			// h ^= *memU64;
+			// memU64++;
 
 			h = std::rotr<uint64>(h, 7);
 			h += (*memU64 + (uint64)i);
@@ -751,7 +805,8 @@ private:
 	}
 
 	// flag page as having streamout data, also write streamout signatures to page memory
-	// also incrementally updates the page hash to include the written signatures, this prevents signature writes from triggering a data upload
+	// also incrementally updates the page hash to include the written signatures, this prevents
+	// signature writes from triggering a data upload
 	void pageWriteStreamoutSignatures(uint32 pageIndex, MPTR rangeBegin, MPTR rangeEnd)
 	{
 		uint32 pageRangeBegin = m_rangeBegin + pageIndex * CACHE_PAGE_SIZE;
@@ -763,7 +818,7 @@ private:
 		cemu_assert_debug(rangeEnd <= pageRangeEnd);
 		cemu_assert_debug((rangeBegin & 0xF) == 0);
 		cemu_assert_debug((rangeEnd & 0xF) == 0);
-		
+
 		auto pageInfo = m_pageInfo.data() + pageIndex;
 		pageInfo->hasStreamoutData = true;
 
@@ -812,16 +867,16 @@ private:
 	static inline uint64 c_fullStreamoutPageHash = genStreamoutPageHash();
 	static std::vector<uint32> g_deallocateQueue;
 
-public:
-	
+  public:
 	static void ProcessDeallocations()
 	{
-		for(auto& itr : g_deallocateQueue)
+		for (auto& itr : g_deallocateQueue)
 			g_gpuBufferHeap->freeOffset(itr);
 		g_deallocateQueue.clear();
 	}
 
-	// drops everything from the cache that isn't considered in use or unrestorable (ranges with streamout)
+	// drops everything from the cache that isn't considered in use or unrestorable (ranges with
+	// streamout)
 	static void CleanupCacheAggressive(MPTR excludedRangeBegin, MPTR excludedRangeEnd)
 	{
 		size_t i = 0;
@@ -833,12 +888,13 @@ public:
 				i++;
 				continue;
 			}
-			if(!node->isRAMOnly())
+			if (!node->isRAMOnly())
 			{
 				i++;
 				continue;
 			}
-			if(node->GetRangeBegin() < excludedRangeEnd && node->GetRangeEnd() > excludedRangeBegin)
+			if (node->GetRangeBegin() < excludedRangeEnd &&
+				node->GetRangeEnd() > excludedRangeBegin)
 			{
 				i++;
 				continue;
@@ -852,7 +908,8 @@ public:
 
 	/* callbacks from IntervalTree */
 
-	static BufferCacheNode* Create(MPTR rangeBegin, MPTR rangeEnd, std::span<BufferCacheNode*> overlappingObjects)
+	static BufferCacheNode* Create(MPTR rangeBegin, MPTR rangeEnd,
+								   std::span<BufferCacheNode*> overlappingObjects)
 	{
 		auto newRange = new BufferCacheNode(rangeBegin, rangeEnd);
 		if (!newRange->allocateCacheMemory())
@@ -871,7 +928,9 @@ public:
 			// retry allocation
 			if (!newRange->allocateCacheMemory())
 			{
-				forceLog_printf("Out-of-memory in GPU buffer (trying to allocate: %dKB) Cleaning up cache...", (rangeEnd - rangeBegin + 1023) / 1024);
+				forceLog_printf(
+					"Out-of-memory in GPU buffer (trying to allocate: %dKB) Cleaning up cache...",
+					(rangeEnd - rangeBegin + 1023) / 1024);
 				CleanupCacheAggressive(rangeBegin, rangeEnd);
 				if (!newRange->allocateCacheMemory())
 				{
@@ -880,10 +939,12 @@ public:
 				}
 			}
 		}
-		newRange->syncFromRAM(rangeBegin, rangeEnd); // possible small optimization: only load the ranges from RAM which are not overwritten by ->syncFromNode()
+		newRange->syncFromRAM(rangeBegin,
+							  rangeEnd); // possible small optimization: only load the ranges from
+										 // RAM which are not overwritten by ->syncFromNode()
 		for (auto itr : overlappingObjects)
 		{
-			if(itr == nullptr)
+			if (itr == nullptr)
 				continue;
 			newRange->syncFromNode(itr);
 			delete itr;
@@ -901,10 +962,12 @@ public:
 		nodeObject->shrink(rangeBegin, rangeEnd);
 	}
 
-	static BufferCacheNode* Split(BufferCacheNode* nodeObject, MPTR firstRangeBegin, MPTR firstRangeEnd, MPTR secondRangeBegin, MPTR secondRangeEnd)
+	static BufferCacheNode* Split(BufferCacheNode* nodeObject, MPTR firstRangeBegin,
+								  MPTR firstRangeEnd, MPTR secondRangeBegin, MPTR secondRangeEnd)
 	{
 		auto newRange = new BufferCacheNode(secondRangeBegin, secondRangeEnd);
-		// todo - add support for splitting BufferCacheNode memory allocations, then we dont need to do a separate allocation
+		// todo - add support for splitting BufferCacheNode memory allocations, then we dont need to
+		// do a separate allocation
 		if (!newRange->allocateCacheMemory())
 		{
 			forceLog_printf("Out-of-memory in GPU buffer during split operation");
@@ -942,7 +1005,6 @@ BufferCacheNode* LatteBufferCache_reserveRange(MPTR physAddress, uint32 size)
 	return range;
 }
 
-
 uint32 LatteBufferCache_retrieveDataInCache(MPTR physAddress, uint32 size)
 {
 	auto range = LatteBufferCache_reserveRange(physAddress, size);
@@ -953,7 +1015,8 @@ uint32 LatteBufferCache_retrieveDataInCache(MPTR physAddress, uint32 size)
 	return range->getBufferOffset(physAddress);
 }
 
-void LatteBufferCache_copyStreamoutDataToCache(MPTR physAddress, uint32 size, uint32 streamoutBufferOffset)
+void LatteBufferCache_copyStreamoutDataToCache(MPTR physAddress, uint32 size,
+											   uint32 streamoutBufferOffset)
 {
 	if (size == 0)
 		return;
@@ -962,7 +1025,8 @@ void LatteBufferCache_copyStreamoutDataToCache(MPTR physAddress, uint32 size, ui
 	auto range = LatteBufferCache_reserveRange(physAddress, size);
 	range->flagInUse();
 
-	g_renderer->bufferCache_copyStreamoutToMainBuffer(streamoutBufferOffset, range->getBufferOffset(physAddress), size);
+	g_renderer->bufferCache_copyStreamoutToMainBuffer(streamoutBufferOffset,
+													  range->getBufferOffset(physAddress), size);
 
 	// write streamout signatures, flag affected pages
 	range->writeStreamout(physAddress, (physAddress + size));
@@ -972,20 +1036,20 @@ void LatteBufferCache_invalidate(MPTR physAddress, uint32 size)
 {
 	if (size == 0)
 		return;
-	g_gpuBufferCache.forEachOverlapping(physAddress, physAddress + size, [](BufferCacheNode* node, MPTR invalidationRangeBegin, MPTR invalidationRangeEnd)
-		{
-			node->invalidate(invalidationRangeBegin, invalidationRangeEnd);
-		}
-	);
+	g_gpuBufferCache.forEachOverlapping(
+		physAddress, physAddress + size,
+		[](BufferCacheNode* node, MPTR invalidationRangeBegin, MPTR invalidationRangeEnd)
+		{ node->invalidate(invalidationRangeBegin, invalidationRangeEnd); });
 }
 
-// optimized version of LatteBufferCache_invalidate() if physAddress points to the beginning of a page
+// optimized version of LatteBufferCache_invalidate() if physAddress points to the beginning of a
+// page
 void LatteBufferCache_invalidatePage(MPTR physAddress)
 {
 	cemu_assert_debug((physAddress & CACHE_PAGE_SIZE_M1) == 0);
 	BufferCacheNode* node = g_gpuBufferCache.getRangeByPoint(physAddress);
 	if (node)
-		node->invalidate(physAddress, physAddress+CACHE_PAGE_SIZE);
+		node->invalidate(physAddress, physAddress + CACHE_PAGE_SIZE);
 }
 
 void LatteBufferCache_processDeallocations()
@@ -1023,7 +1087,9 @@ void LatteBufferCache_notifyDCFlush(MPTR address, uint32 size)
 
 void LatteBufferCache_processDCFlushQueue()
 {
-	if (g_DCFlushQueue->empty()) // accessing this outside of the lock is technically undefined/unsafe behavior but on all known implementations this is fine and we can avoid the spinlock
+	if (g_DCFlushQueue->empty()) // accessing this outside of the lock is technically
+								 // undefined/unsafe behavior but on all known implementations this
+								 // is fine and we can avoid the spinlock
 		return;
 	g_spinlockDCFlushQueue.acquire();
 	std::swap(g_DCFlushQueue, g_DCFlushQueueAlternate);
@@ -1033,14 +1099,11 @@ void LatteBufferCache_processDCFlushQueue()
 	g_DCFlushQueueAlternate->clear();
 }
 
-void LatteBufferCache_notifyDrawDone()
-{
-
-}
+void LatteBufferCache_notifyDrawDone() {}
 
 void LatteBufferCache_notifySwapTVScanBuffer()
 {
-	if( ActiveSettings::FlushGPUCacheOnSwap() )
+	if (ActiveSettings::FlushGPUCacheOnSwap())
 		g_currentCacheChronon++;
 }
 
@@ -1059,7 +1122,8 @@ void LatteBufferCache_incrementalCleanup()
 	if (range->HasStreamoutData())
 	{
 		// currently we never delete streamout ranges
-		// todo - check if streamout pages got overwritten + if the range would lose the hasStreamoutData flag
+		// todo - check if streamout pages got overwritten + if the range would lose the
+		// hasStreamoutData flag
 		return;
 	}
 

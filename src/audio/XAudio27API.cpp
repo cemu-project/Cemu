@@ -8,7 +8,8 @@ HMODULE XAudio27API::s_xaudio_dll = nullptr;
 bool XAudio27API::s_com_initialized = false;
 std::unique_ptr<IXAudio2, XAudio27API::XAudioDeleter> XAudio27API::s_xaudio;
 
-XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, uint32 samples_per_block, uint32 bits_per_sample)
+XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels,
+						 uint32 samples_per_block, uint32 bits_per_sample)
 	: IAudioAPI(samplerate, channels, samples_per_block, bits_per_sample)
 {
 	if (!s_xaudio)
@@ -25,8 +26,10 @@ XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, u
 	m_xaudio = decltype(m_xaudio)(xaudio);
 
 	IXAudio2MasteringVoice* mastering_voice;
-	if (FAILED((hres = m_xaudio->CreateMasteringVoice(&mastering_voice, channels, samplerate, 0, device_id))))
-		throw std::runtime_error(fmt::format("can't create xaudio mastering voice (hres: {:#x})", hres));
+	if (FAILED((hres = m_xaudio->CreateMasteringVoice(&mastering_voice, channels, samplerate, 0,
+													  device_id))))
+		throw std::runtime_error(
+			fmt::format("can't create xaudio mastering voice (hres: {:#x})", hres));
 
 	m_mastering_voice = decltype(m_mastering_voice)(mastering_voice);
 
@@ -34,8 +37,11 @@ XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, u
 	m_wfx.Format.nChannels = channels;
 	m_wfx.Format.nSamplesPerSec = samplerate;
 	m_wfx.Format.wBitsPerSample = bits_per_sample;
-	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels × wBitsPerSample) / 8
-	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec × nBlockAlign.
+	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) /
+							   8; // must equal (nChannels × wBitsPerSample) / 8
+	m_wfx.Format.nAvgBytesPerSec =
+		m_wfx.Format.nSamplesPerSec *
+		m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec × nBlockAlign.
 	m_wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
 
 	m_wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
@@ -43,13 +49,17 @@ XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, u
 	switch (channels)
 	{
 	case 8:
-		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT | SPEAKER_FRONT_LEFT_OF_CENTER | SPEAKER_FRONT_RIGHT_OF_CENTER);
+		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER |
+								SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT |
+								SPEAKER_FRONT_LEFT_OF_CENTER | SPEAKER_FRONT_RIGHT_OF_CENTER);
 		break;
 	case 6:
-		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
+		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER |
+								SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
 		break;
 	case 4:
-		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
+		m_wfx.dwChannelMask |=
+			(SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
 		break;
 	case 2:
 		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT);
@@ -61,7 +71,8 @@ XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, u
 
 	IXAudio2SourceVoice* source_voice;
 	if (FAILED((hres = m_xaudio->CreateSourceVoice(&source_voice, &m_wfx.Format, 0, 1.0f))))
-		throw std::runtime_error(fmt::format("can't create xaudio source voice (hres: {:#x})", hres));
+		throw std::runtime_error(
+			fmt::format("can't create xaudio source voice (hres: {:#x})", hres));
 	m_source_voice = decltype(m_source_voice)(source_voice);
 
 	m_sound_buffer_size = kBlockCount * (samples_per_block * channels * (bits_per_sample / 8));
@@ -74,7 +85,7 @@ XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, u
 
 XAudio27API::~XAudio27API()
 {
-	if(m_xaudio)
+	if (m_xaudio)
 		m_xaudio->StopEngine();
 
 	XAudio27API::Stop();
@@ -115,11 +126,12 @@ bool XAudio27API::InitializeStatic()
 	if (s_xaudio)
 		return true;
 
-	s_com_initialized = (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)));
+	s_com_initialized =
+		(SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)));
 
 #ifdef _DEBUG
 	s_xaudio_dll = LoadLibraryExW(L"XAudioD2_7.DLL", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-	if(!s_xaudio_dll)
+	if (!s_xaudio_dll)
 		s_xaudio_dll = LoadLibraryExW(L"XAudio2_7.DLL", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 #else
 	s_xaudio_dll = LoadLibraryExW(L"XAudio2_7.DLL", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -165,7 +177,8 @@ std::vector<XAudio27API::DeviceDescriptionPtr> XAudio27API::GetDevices()
 	std::vector<DeviceDescriptionPtr> result;
 
 	// always add the default device
-	auto default_device = std::make_shared<XAudio27DeviceDescription>(L"Primary Sound Driver", L"", -1);
+	auto default_device =
+		std::make_shared<XAudio27DeviceDescription>(L"Primary Sound Driver", L"", -1);
 	result.emplace_back(default_device);
 
 	uint32 count = 0;
@@ -183,7 +196,8 @@ std::vector<XAudio27API::DeviceDescriptionPtr> XAudio27API::GetDevices()
 		XAUDIO2_DEVICE_DETAILS details;
 		if (SUCCEEDED(s_xaudio->GetDeviceDetails(id, &details)))
 		{
-			auto device = std::make_shared<XAudio27DeviceDescription>(details.DisplayName, details.DeviceID, id);
+			auto device = std::make_shared<XAudio27DeviceDescription>(details.DisplayName,
+																	  details.DeviceID, id);
 			result.emplace_back(device);
 		}
 	}
@@ -193,20 +207,20 @@ std::vector<XAudio27API::DeviceDescriptionPtr> XAudio27API::GetDevices()
 
 void XAudio27API::XAudioDeleter::operator()(IXAudio2* ptr) const
 {
-	if (ptr) 
+	if (ptr)
 		ptr->Release();
 }
 
 void XAudio27API::VoiceDeleter::operator()(IXAudio2Voice* ptr) const
 {
-	if (ptr) 
+	if (ptr)
 		ptr->DestroyVoice();
 }
 
 bool XAudio27API::FeedBlock(sint16* data)
 {
 	// check if we queued too many blocks
-	if(m_blocks_queued >= kBlockCount)
+	if (m_blocks_queued >= kBlockCount)
 	{
 		XAUDIO2_VOICE_STATE state{};
 		m_source_voice->GetState(&state);

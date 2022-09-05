@@ -2,7 +2,7 @@
 
 namespace coreinit
 {
-	void InitializeMemory();
+void InitializeMemory();
 
-	void OSGetMemBound(sint32 memType, MPTR* offsetOutput, uint32* sizeOutput);
-}
+void OSGetMemBound(sint32 memType, MPTR* offsetOutput, uint32* sizeOutput);
+} // namespace coreinit

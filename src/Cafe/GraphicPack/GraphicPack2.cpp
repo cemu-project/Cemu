@@ -1,22 +1,22 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "config/CemuConfig.h"
-#include "config/ActiveSettings.h"
-#include "openssl/sha.h"
-#include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
-#include "Cafe/Filesystem/fsc.h"
-#include "boost/algorithm/string.hpp"
-#include "util/helpers/MapAdaptor.h"
-#include "util/helpers/StringParser.h"
-#include "Cafe/HW/Latte/Core/LatteTiming.h"
-#include "util/IniParser/IniParser.h"
-#include "util/helpers/StringHelpers.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/Filesystem/fsc.h"
+#include "Cafe/HW/Latte/Core/LatteTiming.h"
+#include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
+#include "boost/algorithm/string.hpp"
+#include "config/ActiveSettings.h"
+#include "config/CemuConfig.h"
+#include "openssl/sha.h"
+#include "util/IniParser/IniParser.h"
+#include "util/helpers/MapAdaptor.h"
+#include "util/helpers/StringHelpers.h"
+#include "util/helpers/StringParser.h"
 
 std::vector<GraphicPackPtr> GraphicPack2::s_graphic_packs;
 std::vector<GraphicPackPtr> GraphicPack2::s_active_graphic_packs;
 std::atomic_bool GraphicPack2::s_isReady;
 
-#define GP_LEGACY_VERSION		(2)
+#define GP_LEGACY_VERSION (2)
 
 void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 {
@@ -44,7 +44,8 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 	if (option_version)
 	{
 		sint32 versionNum = -1;
-		auto [ptr, ec] = std::from_chars(option_version->data(), option_version->data() + option_version->size(), versionNum);
+		auto [ptr, ec] = std::from_chars(
+			option_version->data(), option_version->data() + option_version->size(), versionNum);
 		if (ec != std::errc{})
 		{
 			cemuLog_force("{}: Unable to parse version", _utf8Wrapper(rulesPath));
@@ -109,7 +110,7 @@ bool GraphicPack2::LoadGraphicPack(const std::wstring& filename, IniParser& rule
 
 				gp->SetActivePreset(kv.first, kv.second, false);
 			}
-			
+
 			gp->SetEnabled(enabled);
 		}
 
@@ -141,12 +142,9 @@ bool GraphicPack2::DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& gr
 	if (!graphic_pack->IsActivated())
 		return false;
 
-	const auto it = std::find_if(s_active_graphic_packs.begin(), s_active_graphic_packs.end(), 
-		[graphic_pack](const GraphicPackPtr& gp)
-	{
-		return gp->GetFilename() == graphic_pack->GetFilename();
-	}
-	);
+	const auto it = std::find_if(s_active_graphic_packs.begin(), s_active_graphic_packs.end(),
+								 [graphic_pack](const GraphicPackPtr& gp)
+								 { return gp->GetFilename() == graphic_pack->GetFilename(); });
 
 	if (it == s_active_graphic_packs.end())
 		return false;
@@ -215,17 +213,17 @@ void GraphicPack2::WaitUntilReady()
 		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
-GraphicPack2::GraphicPack2(std::wstring filename)
-	: m_filename(std::move(filename))
+GraphicPack2::GraphicPack2(std::wstring filename) : m_filename(std::move(filename))
 {
 	// unused for now
 }
 
-std::unordered_map<std::string, GraphicPack2::PresetVar> GraphicPack2::ParsePresetVars(IniParser& rules) const
+std::unordered_map<std::string, GraphicPack2::PresetVar>
+GraphicPack2::ParsePresetVars(IniParser& rules) const
 {
 	ExpressionParser parser;
 	std::unordered_map<std::string, PresetVar> vars;
-	for(auto& itr : rules.GetAllOptions())
+	for (auto& itr : rules.GetAllOptions())
 	{
 		auto option_name = itr.first;
 		auto option_value = itr.second;
@@ -234,7 +232,7 @@ std::unordered_map<std::string, GraphicPack2::PresetVar> GraphicPack2::ParsePres
 		VarType type = kDouble;
 		std::string name(option_name);
 		const auto index = name.find(':');
-		if(index != std::string::npos)
+		if (index != std::string::npos)
 		{
 			auto type_name = name.substr(index + 1);
 			name = name.substr(0, index);
@@ -280,9 +278,10 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 	}
 
 	auto option_defaultEnabled = rules.FindOption("default");
-	if(option_defaultEnabled)
+	if (option_defaultEnabled)
 	{
-		m_default_enabled = boost::iequals(*option_defaultEnabled, "true") || boost::iequals(*option_defaultEnabled, "1");
+		m_default_enabled = boost::iequals(*option_defaultEnabled, "true") ||
+							boost::iequals(*option_defaultEnabled, "1");
 		m_enabled = m_default_enabled;
 	}
 
@@ -307,7 +306,8 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 	if (!option_path)
 	{
 		auto gp_name_log = rules.FindOption("name");
-		cemuLog_force("[Definition] section from '{}' graphic pack must contain option: path", gp_name_log.has_value() ? *gp_name_log : "Unknown");
+		cemuLog_force("[Definition] section from '{}' graphic pack must contain option: path",
+					  gp_name_log.has_value() ? *gp_name_log : "Unknown");
 		throw std::exception();
 	}
 	m_path = *option_path;
@@ -324,7 +324,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 	}
 
 	m_title_ids = ParseTitleIds(rules, "titleIds");
-	if(m_title_ids.empty())
+	if (m_title_ids.empty())
 		throw std::exception();
 
 	auto option_fsPriority = rules.FindOption("fsPriority");
@@ -347,10 +347,12 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 			const auto preset_name = rules.FindOption("name");
 			if (!preset_name)
 			{
-				cemuLog_force("Graphic pack \"{}\": Preset in line {} skipped because it has no name option defined", m_name, rules.GetCurrentSectionLineNumber());
+				cemuLog_force("Graphic pack \"{}\": Preset in line {} skipped because it has no "
+							  "name option defined",
+							  m_name, rules.GetCurrentSectionLineNumber());
 				continue;
 			}
-			
+
 			const auto category = rules.FindOption("category");
 			const auto condition = rules.FindOption("condition");
 			const auto default_selected = rules.FindOption("default");
@@ -369,9 +371,10 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 					preset->is_default = StringHelpers::ToInt(*default_selected) != 0;
 				m_presets.emplace_back(preset);
 			}
-			catch (const std::exception & ex)
+			catch (const std::exception& ex)
 			{
-				cemuLog_force("Graphic pack \"{}\": Can't parse preset \"{}\": {}", m_name, *preset_name, ex.what());
+				cemuLog_force("Graphic pack \"{}\": Can't parse preset \"{}\": {}", m_name,
+							  *preset_name, ex.what());
 			}
 		}
 		else if (boost::iequals(currentSectionName, "RAM"))
@@ -385,22 +388,29 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 				{
 					if (m_version <= 5)
 					{
-						cemuLog_force("Graphic pack \"{}\": [RAM] options are only available for graphic pack version 6 or higher", m_name, optionNameBuf);
+						cemuLog_force("Graphic pack \"{}\": [RAM] options are only available for "
+									  "graphic pack version 6 or higher",
+									  m_name, optionNameBuf);
 						throw std::exception();
 					}
 
 					StringTokenParser parser(*mappingOption);
 					uint32 addrStart = 0, addrEnd = 0;
-					if (parser.parseU32(addrStart) && parser.matchWordI("-") && parser.parseU32(addrEnd) && parser.isEndOfString())
+					if (parser.parseU32(addrStart) && parser.matchWordI("-") &&
+						parser.parseU32(addrEnd) && parser.isEndOfString())
 					{
 						if (addrEnd <= addrStart)
 						{
-							cemuLog_force("Graphic pack \"{}\": start address (0x{:08x}) must be greater than end address (0x{:08x}) for {}", m_name, addrStart, addrEnd, optionNameBuf);
+							cemuLog_force("Graphic pack \"{}\": start address (0x{:08x}) must be "
+										  "greater than end address (0x{:08x}) for {}",
+										  m_name, addrStart, addrEnd, optionNameBuf);
 							throw std::exception();
 						}
 						else if ((addrStart & 0xFFF) != 0 || (addrEnd & 0xFFF) != 0)
 						{
-							cemuLog_force("Graphic pack \"{}\": addresses for %s are not aligned to 0x1000", m_name, optionNameBuf);
+							cemuLog_force(
+								"Graphic pack \"{}\": addresses for %s are not aligned to 0x1000",
+								m_name, optionNameBuf);
 							throw std::exception();
 						}
 						else
@@ -410,7 +420,8 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 					}
 					else
 					{
-						cemuLog_force("Graphic pack \"{}\": has invalid syntax for option {}", m_name, optionNameBuf);
+						cemuLog_force("Graphic pack \"{}\": has invalid syntax for option {}",
+									  m_name, optionNameBuf);
 						throw std::exception();
 					}
 				}
@@ -422,18 +433,20 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 	{
 		// store by category
 		std::unordered_map<std::string, std::vector<PresetPtr>> tmp_map;
-		
+
 		// all vars must be defined in the default preset vars before
 		for (const auto& entry : m_presets)
 		{
 			tmp_map[entry->category].emplace_back(entry);
-			
+
 			for (auto& kv : entry->variables)
 			{
 				const auto it = m_preset_vars.find(kv.first);
 				if (it == m_preset_vars.cend())
 				{
-					cemuLog_force("Graphic pack: \"{}\" contains preset variables which are not defined in the default section", m_name);
+					cemuLog_force("Graphic pack: \"{}\" contains preset variables which are not "
+								  "defined in the default section",
+								  m_name);
 					throw std::exception();
 				}
 
@@ -443,11 +456,13 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 		}
 
 		// have first entry be default active for every category if no default= is set
-		for(auto entry : get_values(tmp_map))
+		for (auto entry : get_values(tmp_map))
 		{
 			if (!entry.empty())
 			{
-				const auto it = std::find_if(entry.cbegin(), entry.cend(), [](const PresetPtr& preset) { return preset->is_default; });
+				const auto it =
+					std::find_if(entry.cbegin(), entry.cend(),
+								 [](const PresetPtr& preset) { return preset->is_default; });
 				if (it != entry.cend())
 					(*it)->active = true;
 				else
@@ -471,22 +486,28 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 				auto& p2 = kv.second[i + 1];
 				if (p1->variables.size() != p2->variables.size())
 				{
-					cemuLog_force("Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
+					cemuLog_force("Graphic pack: \"{}\" contains inconsistent preset variables",
+								  m_name);
 					throw std::exception();
 				}
 
-				std::set<std::string> keys1(get_keys(p1->variables).begin(), get_keys(p1->variables).end());
-				std::set<std::string> keys2(get_keys(p2->variables).begin(), get_keys(p2->variables).end());
+				std::set<std::string> keys1(get_keys(p1->variables).begin(),
+											get_keys(p1->variables).end());
+				std::set<std::string> keys2(get_keys(p2->variables).begin(),
+											get_keys(p2->variables).end());
 				if (keys1 != keys2)
 				{
-					cemuLog_force("Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
+					cemuLog_force("Graphic pack: \"{}\" contains inconsistent preset variables",
+								  m_name);
 					throw std::exception();
 				}
 
-				if(p1->is_default)
+				if (p1->is_default)
 				{
-					if(has_default)
-						cemuLog_force("Graphic pack: \"{}\" has more than one preset with the default key set for the same category \"{}\"", m_name, p1->name);
+					if (has_default)
+						cemuLog_force("Graphic pack: \"{}\" has more than one preset with the "
+									  "default key set for the same category \"{}\"",
+									  m_name, p1->name);
 					p1->active = true;
 					has_default = true;
 				}
@@ -507,34 +528,31 @@ bool GraphicPack2::Reload()
 
 bool GraphicPack2::ContainsTitleId(uint64_t title_id) const
 {
-	const auto it = std::find_if(m_title_ids.begin(), m_title_ids.end(), [title_id](uint64 id) { return id == title_id; });
+	const auto it = std::find_if(m_title_ids.begin(), m_title_ids.end(),
+								 [title_id](uint64 id) { return id == title_id; });
 	return it != m_title_ids.end();
 }
 
 bool GraphicPack2::HasActivePreset() const
 {
-	return std::any_of(m_presets.cbegin(), m_presets.cend(), [](const PresetPtr& preset)
-		{
-			return preset->active;
-		});
+	return std::any_of(m_presets.cbegin(), m_presets.cend(),
+					   [](const PresetPtr& preset) { return preset->active; });
 }
 
 std::string GraphicPack2::GetActivePreset(std::string_view category) const
 {
-	const auto it = std::find_if(m_presets.cbegin(), m_presets.cend(), [category](const PresetPtr& preset)
-		{
-			return preset->active && preset->category == category;
-		});
-	return it != m_presets.cend() ? (*it)->name : std::string{ "" };
+	const auto it = std::find_if(m_presets.cbegin(), m_presets.cend(),
+								 [category](const PresetPtr& preset)
+								 { return preset->active && preset->category == category; });
+	return it != m_presets.cend() ? (*it)->name : std::string{""};
 }
 
 void GraphicPack2::UpdatePresetVisibility()
 {
 	// update visiblity of each preset
-	std::for_each(m_presets.begin(), m_presets.end(), [this](PresetPtr& p)
-	{
-		p->visible = m_version >= 5 ? IsPresetVisible(p) : true;
-	});
+	std::for_each(m_presets.begin(), m_presets.end(),
+				  [this](PresetPtr& p)
+				  { p->visible = m_version >= 5 ? IsPresetVisible(p) : true; });
 }
 
 void GraphicPack2::ValidatePresetSelections()
@@ -544,18 +562,21 @@ void GraphicPack2::ValidatePresetSelections()
 
 	// if any preset is changed then other categories might be affected indirectly
 	//
-	// example: selecting the aspect ratio in a resolution graphic pack would change the available presets in the resolution category
-	// how to handle: select the first available resolution (or the one marked as default)
+	// example: selecting the aspect ratio in a resolution graphic pack would change the available
+	// presets in the resolution category how to handle: select the first available resolution (or
+	// the one marked as default)
 	//
-	// example: a preset category might be hidden entirely (e.g. due to a separate advanced options dropdown)
-	// how to handle: leave the previously selected preset
-	// 
+	// example: a preset category might be hidden entirely (e.g. due to a separate advanced options
+	// dropdown) how to handle: leave the previously selected preset
+	//
 	// the logic is therefore as follows:
-	// if there is a preset category with at least 1 visible preset entry then make sure one of those is actually selected
-	// for completely hidden preset categories we leave the selection as-is
+	// if there is a preset category with at least 1 visible preset entry then make sure one of
+	// those is actually selected for completely hidden preset categories we leave the selection
+	// as-is
 
 	std::vector<std::string> order;
-	std::unordered_map<std::string, std::vector<GraphicPack2::PresetPtr>> categorizedPresets = GraphicPack2::GetCategorizedPresets(order);
+	std::unordered_map<std::string, std::vector<GraphicPack2::PresetPtr>> categorizedPresets =
+		GraphicPack2::GetCategorizedPresets(order);
 
 	bool changedPresets = false;
 	for (auto& categoryItr : categorizedPresets)
@@ -569,7 +590,9 @@ void GraphicPack2::ValidatePresetSelections()
 			if (presetItr->visible)
 			{
 				numVisiblePresets++;
-				if (!defaultSelection || presetItr->is_default) // the preset marked as default becomes the default selection, otherwise pick first visible one
+				if (!defaultSelection ||
+					presetItr->is_default) // the preset marked as default becomes the default
+										   // selection, otherwise pick first visible one
 					defaultSelection = presetItr;
 			}
 			if (presetItr->active)
@@ -596,7 +619,8 @@ void GraphicPack2::ValidatePresetSelections()
 			}
 			continue;
 		}
-		// if the currently selected preset is invisible, update it to the preferred visible selection
+		// if the currently selected preset is invisible, update it to the preferred visible
+		// selection
 		if (!selectedPreset->visible)
 		{
 			selectedPreset->active = false;
@@ -608,29 +632,32 @@ void GraphicPack2::ValidatePresetSelections()
 		UpdatePresetVisibility();
 }
 
-bool GraphicPack2::SetActivePreset(std::string_view category, std::string_view name, bool update_visibility)
+bool GraphicPack2::SetActivePreset(std::string_view category, std::string_view name,
+								   bool update_visibility)
 {
 	// disable currently active preset
-	std::for_each(m_presets.begin(), m_presets.end(), [category](PresetPtr& p)
-	{
-		if(p->category == category) 
-			p->active = false;
-	});
-	
+	std::for_each(m_presets.begin(), m_presets.end(),
+				  [category](PresetPtr& p)
+				  {
+					  if (p->category == category)
+						  p->active = false;
+				  });
+
 	if (name.empty())
 		return true;
-	
+
 	// enable new preset
-	const auto it = std::find_if(m_presets.cbegin(), m_presets.cend(), [category, name](const PresetPtr& preset)
-		{
-			return preset->category == category && preset->name == name; 
-		});
+	const auto it = std::find_if(m_presets.cbegin(), m_presets.cend(),
+								 [category, name](const PresetPtr& preset)
+								 { return preset->category == category && preset->name == name; });
 
 	bool result;
 	if (it != m_presets.cend())
 	{
 		(*it)->active = true;
-		cemu_assert_debug(std::count_if(m_presets.cbegin(), m_presets.cend(), [category](const PresetPtr& p) { return p->category == category && p->active; }) == 1);
+		cemu_assert_debug(std::count_if(m_presets.cbegin(), m_presets.cend(),
+										[category](const PresetPtr& p)
+										{ return p->category == category && p->active; }) == 1);
 		result = true;
 	}
 	else
@@ -660,52 +687,66 @@ void GraphicPack2::LoadShaders()
 			uint64 shader_base_hash = 0;
 			uint64 shader_aux_hash = 0;
 			wchar_t shader_type[256]{};
-			if (filename.size() < 256 && swscanf(filename.c_str(), L"%I64x_%I64x_%ls", &shader_base_hash, &shader_aux_hash, shader_type) == 3)
+			if (filename.size() < 256 &&
+				swscanf(filename.c_str(), L"%I64x_%I64x_%ls", &shader_base_hash, &shader_aux_hash,
+						shader_type) == 3)
 			{
 				if (shader_type[0] == 'p' && shader_type[1] == 's')
-					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::PIXEL));
+					m_custom_shaders.emplace_back(
+						LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::PIXEL));
 				else if (shader_type[0] == 'v' && shader_type[1] == 's')
-					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::VERTEX));
+					m_custom_shaders.emplace_back(
+						LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::VERTEX));
 				else if (shader_type[0] == 'g' && shader_type[1] == 's')
-					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::GEOMETRY));
+					m_custom_shaders.emplace_back(
+						LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::GEOMETRY));
 			}
 			else if (filename == L"output.glsl")
 			{
 				std::ifstream file(p);
 				if (!file.is_open())
-					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", p.filename().string()).c_str());
+					throw std::runtime_error(
+						fmt::format("can't open graphic pack file: {}", p.filename().string())
+							.c_str());
 
 				file.seekg(0, std::ios::end);
 				m_output_shader_source.reserve(file.tellg());
 				file.seekg(0, std::ios::beg);
 
-				m_output_shader_source.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+				m_output_shader_source.assign(std::istreambuf_iterator<char>(file),
+											  std::istreambuf_iterator<char>());
 				ApplyShaderPresets(m_output_shader_source);
 			}
 			else if (filename == L"upscaling.glsl")
 			{
 				std::ifstream file(p);
 				if (!file.is_open())
-					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", p.filename().string()).c_str());
+					throw std::runtime_error(
+						fmt::format("can't open graphic pack file: {}", p.filename().string())
+							.c_str());
 
 				file.seekg(0, std::ios::end);
 				m_upscaling_shader_source.reserve(file.tellg());
 				file.seekg(0, std::ios::beg);
 
-				m_upscaling_shader_source.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+				m_upscaling_shader_source.assign(std::istreambuf_iterator<char>(file),
+												 std::istreambuf_iterator<char>());
 				ApplyShaderPresets(m_upscaling_shader_source);
 			}
 			else if (filename == L"downscaling.glsl")
 			{
 				std::ifstream file(p);
 				if (!file.is_open())
-					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", p.filename().string()).c_str());
+					throw std::runtime_error(
+						fmt::format("can't open graphic pack file: {}", p.filename().string())
+							.c_str());
 
 				file.seekg(0, std::ios::end);
 				m_downscaling_shader_source.reserve(file.tellg());
 				file.seekg(0, std::ios::beg);
 
-				m_downscaling_shader_source.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+				m_downscaling_shader_source.assign(std::istreambuf_iterator<char>(file),
+												   std::istreambuf_iterator<char>());
 				ApplyShaderPresets(m_downscaling_shader_source);
 			}
 		}
@@ -739,14 +780,17 @@ bool GraphicPack2::IsPresetVisible(const PresetPtr& preset) const
 	}
 }
 
-std::optional<GraphicPack2::PresetVar> GraphicPack2::GetPresetVariable(const std::vector<PresetPtr>& presets, std::string_view var_name) const
+std::optional<GraphicPack2::PresetVar>
+GraphicPack2::GetPresetVariable(const std::vector<PresetPtr>& presets,
+								std::string_view var_name) const
 {
 	// no priority and visibility filter
-	if(m_version < 5)
+	if (m_version < 5)
 	{
 		for (const auto& preset : presets)
 		{
-			const auto it = std::find_if(preset->variables.cbegin(), preset->variables.cend(), [&var_name](auto p) { return p.first == var_name; });
+			const auto it = std::find_if(preset->variables.cbegin(), preset->variables.cend(),
+										 [&var_name](auto p) { return p.first == var_name; });
 			if (it != preset->variables.cend())
 				return it->second;
 		}
@@ -759,23 +803,26 @@ std::optional<GraphicPack2::PresetVar> GraphicPack2::GetPresetVariable(const std
 	{
 		if (preset->visible)
 		{
-			const auto it = std::find_if(preset->variables.cbegin(), preset->variables.cend(), [&var_name](auto p) { return p.first == var_name; });
+			const auto it = std::find_if(preset->variables.cbegin(), preset->variables.cend(),
+										 [&var_name](auto p) { return p.first == var_name; });
 			if (it != preset->variables.cend())
 				return it->second;
 		}
 	}
-	
+
 	for (const auto& preset : presets)
 	{
 		if (!preset->visible)
 		{
-			const auto it = std::find_if(preset->variables.cbegin(), preset->variables.cend(), [&var_name](auto p) { return p.first == var_name; });
+			const auto it = std::find_if(preset->variables.cbegin(), preset->variables.cend(),
+										 [&var_name](auto p) { return p.first == var_name; });
 			if (it != preset->variables.cend())
 				return it->second;
 		}
 	}
-	
-	const auto it = std::find_if(m_preset_vars.cbegin(), m_preset_vars.cend(), [&var_name](auto p) { return p.first == var_name; });
+
+	const auto it = std::find_if(m_preset_vars.cbegin(), m_preset_vars.cend(),
+								 [&var_name](auto p) { return p.first == var_name; });
 	if (it != m_preset_vars.cend())
 	{
 		return it->second;
@@ -802,7 +849,8 @@ void GraphicPack2::AddConstantsForCurrentPreset(ExpressionParser& ep)
 	}
 }
 
-void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, std::wstring& internalPath, bool isAOC)
+void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, std::wstring& internalPath,
+										 bool isAOC)
 {
 	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
 	uint64 aocTitleId = (currentTitleId & 0xFFFFFFFFull) | 0x0005000c00000000ull;
@@ -813,14 +861,16 @@ void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, std::wstri
 			fs::path virtualMountPath = fs::relative(it.path(), currentPath);
 			if (isAOC)
 			{
-				virtualMountPath = fs::path(fmt::format("/vol/aoc{:016x}/", aocTitleId)) / virtualMountPath;
+				virtualMountPath =
+					fs::path(fmt::format("/vol/aoc{:016x}/", aocTitleId)) / virtualMountPath;
 			}
 			else
 			{
 				virtualMountPath = fs::path("vol/content/") / virtualMountPath;
 			}
-			fscDeviceRedirect_add(virtualMountPath.generic_string(), it.path().generic_string(), m_fs_priority);
-		}		
+			fscDeviceRedirect_add(virtualMountPath.generic_string(), it.path().generic_string(),
+								  m_fs_priority);
+		}
 	}
 }
 
@@ -841,7 +891,7 @@ void GraphicPack2::LoadReplacedFiles()
 	if (fs::exists(contentPath, ec))
 	{
 		std::wstring internalPath(L"/vol/content/");
-		// setup redirections	
+		// setup redirections
 		fscDeviceRedirect_map();
 		_iterateReplacedFiles(contentPath, internalPath, false);
 	}
@@ -855,10 +905,11 @@ void GraphicPack2::LoadReplacedFiles()
 		aocTitleId = aocTitleId & 0xFFFFFFFFULL;
 		aocTitleId |= 0x0005000c00000000ULL;
 		wchar_t internalAocPath[128];
-		swprintf(internalAocPath, sizeof(internalAocPath)/sizeof(wchar_t), L"/aoc/%016llx/", aocTitleId);
+		swprintf(internalAocPath, sizeof(internalAocPath) / sizeof(wchar_t), L"/aoc/%016llx/",
+				 aocTitleId);
 
 		std::wstring internalPath(internalAocPath);
-		// setup redirections	
+		// setup redirections
 		fscDeviceRedirect_map();
 		_iterateReplacedFiles(aocPath, internalPath, true);
 	}
@@ -878,19 +929,19 @@ bool GraphicPack2::Activate()
 		auto vendor = g_renderer->GetVendor();
 		if (vendor == GfxVendor::IntelLegacy || vendor == GfxVendor::IntelNoLegacy)
 			vendor = GfxVendor::Intel;
-		
+
 		if (m_gfx_vendor.value() != vendor)
 			return false;
 	}
 
-	FileStream* fs_rules = FileStream::openFile2({ m_filename });
+	FileStream* fs_rules = FileStream::openFile2({m_filename});
 	if (!fs_rules)
 		return false;
 	std::vector<uint8> rulesData;
 	fs_rules->extract(rulesData);
 	delete fs_rules;
 
-	IniParser rules({ (char*)rulesData.data(), rulesData.size()}, boost::nowide::narrow(m_filename));
+	IniParser rules({(char*)rulesData.data(), rulesData.size()}, boost::nowide::narrow(m_filename));
 
 	// load rules
 	try
@@ -900,7 +951,7 @@ bool GraphicPack2::Activate()
 
 		while (rules.NextSection())
 		{
-			//const char* category_name = sPref_currentCategoryName(rules);
+			// const char* category_name = sPref_currentCategoryName(rules);
 			std::string_view category_name = rules.GetCurrentSectionName();
 			if (boost::iequals(category_name, "TextureRedefine"))
 			{
@@ -911,12 +962,17 @@ bool GraphicPack2::Activate()
 
 				bool inMem1 = false;
 				if (ParseRule(parser, rules, "inMEM1", &inMem1))
-					rule.filter_settings.inMEM1 = inMem1 ? TextureRule::FILTER_SETTINGS::MEM1_FILTER::INSIDE : TextureRule::FILTER_SETTINGS::MEM1_FILTER::OUTSIDE;
+					rule.filter_settings.inMEM1 =
+						inMem1 ? TextureRule::FILTER_SETTINGS::MEM1_FILTER::INSIDE
+							   : TextureRule::FILTER_SETTINGS::MEM1_FILTER::OUTSIDE;
 
 				rule.filter_settings.format_whitelist = ParseList<sint32>(parser, rules, "formats");
-				rule.filter_settings.format_blacklist = ParseList<sint32>(parser, rules, "formatsExcluded");
-				rule.filter_settings.tilemode_whitelist = ParseList<sint32>(parser, rules, "tilemodes");
-				rule.filter_settings.tilemode_blacklist = ParseList<sint32>(parser, rules, "tilemodesExcluded");
+				rule.filter_settings.format_blacklist =
+					ParseList<sint32>(parser, rules, "formatsExcluded");
+				rule.filter_settings.tilemode_whitelist =
+					ParseList<sint32>(parser, rules, "tilemodes");
+				rule.filter_settings.tilemode_blacklist =
+					ParseList<sint32>(parser, rules, "tilemodesExcluded");
 
 				ParseRule(parser, rules, "overwriteWidth", &rule.overwrite_settings.width);
 				ParseRule(parser, rules, "overwriteHeight", &rule.overwrite_settings.height);
@@ -924,10 +980,10 @@ bool GraphicPack2::Activate()
 				ParseRule(parser, rules, "overwriteFormat", &rule.overwrite_settings.format);
 
 				float lod_bias;
-				if(ParseRule(parser, rules, "overwriteLodBias", &lod_bias))
+				if (ParseRule(parser, rules, "overwriteLodBias", &lod_bias))
 					rule.overwrite_settings.lod_bias = (sint32)(lod_bias * 64.0f);
 
-				if(ParseRule(parser, rules, "overwriteRelativeLodBias", &lod_bias))
+				if (ParseRule(parser, rules, "overwriteRelativeLodBias", &lod_bias))
 					rule.overwrite_settings.relative_lod_bias = (sint32)(lod_bias * 64.0f);
 
 				sint32 anisotropyValue;
@@ -944,7 +1000,11 @@ bool GraphicPack2::Activate()
 					else if (anisotropyValue == 16)
 						rule.overwrite_settings.anistropic_value = 4;
 					else
-						cemuLog_log(LogType::Force, fmt::format(L"Invalid value {} for overwriteAnisotropy in graphic pack {}. Only the values 1, 2, 4, 8 or 16 are allowed.", anisotropyValue, m_filename));
+						cemuLog_log(
+							LogType::Force,
+							fmt::format(L"Invalid value {} for overwriteAnisotropy in graphic pack "
+										L"{}. Only the values 1, 2, 4, 8 or 16 are allowed.",
+										anisotropyValue, m_filename));
 				}
 				m_texture_rules.emplace_back(rule);
 			}
@@ -955,15 +1015,17 @@ bool GraphicPack2::Activate()
 			else if (boost::iequals(category_name, "OutputShader"))
 			{
 				auto option_upscale = rules.FindOption("upscaleMagFilter");
-				if(option_upscale && boost::iequals(*option_upscale, "NearestNeighbor"))
-					m_output_settings.upscale_filter = LatteTextureView::MagFilter::kNearestNeighbor;
+				if (option_upscale && boost::iequals(*option_upscale, "NearestNeighbor"))
+					m_output_settings.upscale_filter =
+						LatteTextureView::MagFilter::kNearestNeighbor;
 				auto option_downscale = rules.FindOption("NearestNeighbor");
 				if (option_downscale && boost::iequals(*option_downscale, "NearestNeighbor"))
-					m_output_settings.downscale_filter = LatteTextureView::MagFilter::kNearestNeighbor;
+					m_output_settings.downscale_filter =
+						LatteTextureView::MagFilter::kNearestNeighbor;
 			}
 		}
 	}
-	catch(const std::exception& ex)
+	catch (const std::exception& ex)
 	{
 		forceLog_printf((char*)ex.what());
 		return false;
@@ -977,7 +1039,7 @@ bool GraphicPack2::Activate()
 
 	// enable patch groups
 	EnablePatches();
-	
+
 	// load replaced files
 	LoadReplacedFiles();
 
@@ -989,11 +1051,14 @@ bool GraphicPack2::Activate()
 		if (LatteTiming_getCustomVsyncFrequency(globalCustomVsyncFreq))
 		{
 			if (customVsyncFreq != globalCustomVsyncFreq)
-				forceLog_printf("rules.txt error: Mismatching vsync frequency %d in graphic pack \'%s\'", customVsyncFreq, GetPath().c_str());
+				forceLog_printf(
+					"rules.txt error: Mismatching vsync frequency %d in graphic pack \'%s\'",
+					customVsyncFreq, GetPath().c_str());
 		}
 		else
 		{
-			forceLog_printf("Set vsync frequency to %d (graphic pack %s)", customVsyncFreq, GetPath().c_str());
+			forceLog_printf("Set vsync frequency to %d (graphic pack %s)", customVsyncFreq,
+							GetPath().c_str());
 			LatteTiming_setCustomVsyncFrequency(customVsyncFreq);
 		}
 	}
@@ -1023,7 +1088,7 @@ bool GraphicPack2::Deactivate()
 	m_output_shader_source = "";
 	m_upscaling_shader_source = "";
 	m_downscaling_shader_source = "";
-	
+
 	if (HasCustomVSyncFrequency())
 	{
 		m_vsync_frequency = -1;
@@ -1034,17 +1099,23 @@ bool GraphicPack2::Deactivate()
 	return true;
 }
 
-const std::string* GraphicPack2::FindCustomShaderSource(uint64 shaderBaseHash, uint64 shaderAuxHash, GP_SHADER_TYPE type, bool isVulkanRenderer)
+const std::string* GraphicPack2::FindCustomShaderSource(uint64 shaderBaseHash, uint64 shaderAuxHash,
+														GP_SHADER_TYPE type, bool isVulkanRenderer)
 {
 	for (const auto& gp : GraphicPack2::GetActiveGraphicPacks())
 	{
 		const auto it = std::find_if(gp->m_custom_shaders.begin(), gp->m_custom_shaders.end(),
-			[shaderBaseHash, shaderAuxHash, type](const auto& s) { return s.shader_base_hash == shaderBaseHash && s.shader_aux_hash == shaderAuxHash && s.type == type; });
+									 [shaderBaseHash, shaderAuxHash, type](const auto& s)
+									 {
+										 return s.shader_base_hash == shaderBaseHash &&
+												s.shader_aux_hash == shaderAuxHash &&
+												s.type == type;
+									 });
 
 		if (it == gp->m_custom_shaders.end())
 			continue;
 
-		if(isVulkanRenderer && (*it).isPreVulkanShader)
+		if (isVulkanRenderer && (*it).isPreVulkanShader)
 			continue;
 
 		return &it->source;
@@ -1052,37 +1123,40 @@ const std::string* GraphicPack2::FindCustomShaderSource(uint64 shaderBaseHash, u
 	return nullptr;
 }
 
-std::unordered_map<std::string, std::vector<GraphicPack2::PresetPtr>> GraphicPack2::GetCategorizedPresets(std::vector<std::string>& order) const
+std::unordered_map<std::string, std::vector<GraphicPack2::PresetPtr>>
+GraphicPack2::GetCategorizedPresets(std::vector<std::string>& order) const
 {
 	order.clear();
-	
+
 	std::unordered_map<std::string, std::vector<PresetPtr>> result;
-	for(const auto& entry : m_presets)
+	for (const auto& entry : m_presets)
 	{
 		result[entry->category].emplace_back(entry);
 		const auto it = std::find(order.cbegin(), order.cend(), entry->category);
 		if (it == order.cend())
 			order.emplace_back(entry->category);
 	}
-	
+
 	return result;
 }
 
 bool GraphicPack2::HasShaders() const
 {
-	return !GetCustomShaders().empty() 
-	|| !m_output_shader_source.empty() || !m_upscaling_shader_source.empty() || !m_downscaling_shader_source.empty();
+	return !GetCustomShaders().empty() || !m_output_shader_source.empty() ||
+		   !m_upscaling_shader_source.empty() || !m_downscaling_shader_source.empty();
 }
 
 RendererOutputShader* GraphicPack2::GetOuputShader(bool render_upside_down)
 {
-	if(render_upside_down)
+	if (render_upside_down)
 	{
 		if (m_output_shader_ud)
 			return m_output_shader_ud.get();
 
 		if (!m_output_shader_source.empty())
-			m_output_shader_ud = std::make_unique<RendererOutputShader>(RendererOutputShader::GetOpenGlVertexSource(render_upside_down), m_output_shader_source);
+			m_output_shader_ud = std::make_unique<RendererOutputShader>(
+				RendererOutputShader::GetOpenGlVertexSource(render_upside_down),
+				m_output_shader_source);
 
 		return m_output_shader_ud.get();
 	}
@@ -1092,7 +1166,9 @@ RendererOutputShader* GraphicPack2::GetOuputShader(bool render_upside_down)
 			return m_output_shader.get();
 
 		if (!m_output_shader_source.empty())
-			m_output_shader = std::make_unique<RendererOutputShader>(RendererOutputShader::GetOpenGlVertexSource(render_upside_down), m_output_shader_source);
+			m_output_shader = std::make_unique<RendererOutputShader>(
+				RendererOutputShader::GetOpenGlVertexSource(render_upside_down),
+				m_output_shader_source);
 
 		return m_output_shader.get();
 	}
@@ -1106,7 +1182,9 @@ RendererOutputShader* GraphicPack2::GetUpscalingShader(bool render_upside_down)
 			return m_upscaling_shader_ud.get();
 
 		if (!m_upscaling_shader_source.empty())
-			m_upscaling_shader_ud = std::make_unique<RendererOutputShader>(RendererOutputShader::GetOpenGlVertexSource(render_upside_down), m_upscaling_shader_source);
+			m_upscaling_shader_ud = std::make_unique<RendererOutputShader>(
+				RendererOutputShader::GetOpenGlVertexSource(render_upside_down),
+				m_upscaling_shader_source);
 
 		return m_upscaling_shader_ud.get();
 	}
@@ -1116,7 +1194,9 @@ RendererOutputShader* GraphicPack2::GetUpscalingShader(bool render_upside_down)
 			return m_upscaling_shader.get();
 
 		if (!m_upscaling_shader_source.empty())
-			m_upscaling_shader = std::make_unique<RendererOutputShader>(RendererOutputShader::GetOpenGlVertexSource(render_upside_down), m_upscaling_shader_source);
+			m_upscaling_shader = std::make_unique<RendererOutputShader>(
+				RendererOutputShader::GetOpenGlVertexSource(render_upside_down),
+				m_upscaling_shader_source);
 
 		return m_upscaling_shader.get();
 	}
@@ -1130,7 +1210,9 @@ RendererOutputShader* GraphicPack2::GetDownscalingShader(bool render_upside_down
 			return m_downscaling_shader_ud.get();
 
 		if (!m_downscaling_shader_source.empty())
-			m_downscaling_shader_ud = std::make_unique<RendererOutputShader>(RendererOutputShader::GetOpenGlVertexSource(render_upside_down), m_downscaling_shader_source);
+			m_downscaling_shader_ud = std::make_unique<RendererOutputShader>(
+				RendererOutputShader::GetOpenGlVertexSource(render_upside_down),
+				m_downscaling_shader_source);
 
 		return m_downscaling_shader_ud.get();
 	}
@@ -1140,18 +1222,20 @@ RendererOutputShader* GraphicPack2::GetDownscalingShader(bool render_upside_down
 			return m_downscaling_shader.get();
 
 		if (!m_downscaling_shader_source.empty())
-			m_downscaling_shader = std::make_unique<RendererOutputShader>(RendererOutputShader::GetOpenGlVertexSource(render_upside_down), m_downscaling_shader_source);
+			m_downscaling_shader = std::make_unique<RendererOutputShader>(
+				RendererOutputShader::GetOpenGlVertexSource(render_upside_down),
+				m_downscaling_shader_source);
 
 		return m_downscaling_shader.get();
 	}
 }
 
-
 std::vector<GraphicPack2::PresetPtr> GraphicPack2::GetActivePresets() const
 {
 	std::vector<PresetPtr> result;
 	result.reserve(m_presets.size());
-	std::copy_if(m_presets.cbegin(), m_presets.cend(), std::back_inserter(result), [](const PresetPtr& p) { return p->active; });
+	std::copy_if(m_presets.cbegin(), m_presets.cend(), std::back_inserter(result),
+				 [](const PresetPtr& p) { return p->active; });
 	return result;
 }
 
@@ -1169,7 +1253,9 @@ std::vector<uint64> GraphicPack2::ParseTitleIds(IniParser& rules, const char* op
 		{
 			result.emplace_back(ConvertString<uint64>(token, 16));
 		}
-		catch (const std::invalid_argument&) {}
+		catch (const std::invalid_argument&)
+		{
+		}
 	}
 
 	return result;
@@ -1190,7 +1276,7 @@ void GraphicPack2::ApplyShaderPresets(std::string& shader_source) const
 		const auto str = match.str();
 
 		std::optional<PresetVar> var = GetPresetVariable(active_presets, str);
-		if(!var)
+		if (!var)
 			throw std::runtime_error("using an unknown preset variable in shader");
 
 		std::string new_value;
@@ -1204,7 +1290,9 @@ void GraphicPack2::ApplyShaderPresets(std::string& shader_source) const
 	}
 }
 
-GraphicPack2::CustomShader GraphicPack2::LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type) const
+GraphicPack2::CustomShader GraphicPack2::LoadShader(const fs::path& path, uint64 shader_base_hash,
+													uint64 shader_aux_hash,
+													GP_SHADER_TYPE shader_type) const
 {
 	CustomShader shader;
 
@@ -1241,9 +1329,7 @@ std::vector<std::pair<MPTR, MPTR>> GraphicPack2::GetActiveRAMMappings()
 			v.insert(v.end(), gp->m_ramMappings.begin(), gp->m_ramMappings.end());
 	}
 	std::sort(v.begin(), v.end(),
-		[](const std::pair<MPTR, MPTR>& a, const std::pair<MPTR, MPTR>& b) -> bool
-		{
-			return a.first < b.first;
-		});
+			  [](const std::pair<MPTR, MPTR>& a, const std::pair<MPTR, MPTR>& b) -> bool
+			  { return a.first < b.first; });
 	return v;
 }

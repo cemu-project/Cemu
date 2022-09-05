@@ -31,11 +31,12 @@ SDLControllerProvider::SDLControllerProvider()
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STEAM, "1");
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_LUNA, "1");
 
-	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_EVENTS) < 0) 
+	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_EVENTS) <
+		0)
 		throw std::runtime_error(fmt::format("couldn't initialize SDL: %s", SDL_GetError()));
-		
 
-	if (SDL_GameControllerEventState(SDL_ENABLE) < 0) {
+	if (SDL_GameControllerEventState(SDL_ENABLE) < 0)
+	{
 		forceLog_printf("Couldn't enable SDL gamecontroller event polling: %s", SDL_GetError());
 	}
 
@@ -56,7 +57,8 @@ SDLControllerProvider::~SDLControllerProvider()
 		m_thread.join();
 	}
 
-	SDL_QuitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_EVENTS);
+	SDL_QuitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC |
+					  SDL_INIT_EVENTS);
 }
 
 std::vector<std::shared_ptr<ControllerBase>> SDLControllerProvider::get_controllers()
@@ -100,7 +102,7 @@ int SDLControllerProvider::get_index(size_t guid_index, const SDL_JoystickGUID& 
 	{
 		if (SDL_JoystickGetDeviceType(i) == SDL_JOYSTICK_TYPE_GAMECONTROLLER)
 		{
-			if(guid == SDL_JoystickGetDeviceGUID(i))
+			if (guid == SDL_JoystickGetDeviceGUID(i))
 			{
 				if (index == guid_index)
 				{
@@ -109,7 +111,6 @@ int SDLControllerProvider::get_index(size_t guid_index, const SDL_JoystickGUID& 
 
 				++index;
 			}
-			
 		}
 	}
 
@@ -135,7 +136,7 @@ void SDLControllerProvider::event_thread()
 		case SDL_QUIT:
 			m_running = false;
 			return;
-			
+
 		case SDL_CONTROLLERAXISMOTION: /**< Game controller axis motion */
 		{
 			break;
@@ -148,7 +149,8 @@ void SDLControllerProvider::event_thread()
 		{
 			break;
 		}
-		case SDL_CONTROLLERDEVICEADDED: /**< A new Game controller has been inserted into the system */
+		case SDL_CONTROLLERDEVICEADDED: /**< A new Game controller has been inserted into the system
+										 */
 		{
 			InputManager::instance().on_device_changed();
 			break;
@@ -162,19 +164,19 @@ void SDLControllerProvider::event_thread()
 		{
 			break;
 		}
-		case SDL_CONTROLLERTOUCHPADDOWN:        /**< Game controller touchpad was touched */
+		case SDL_CONTROLLERTOUCHPADDOWN: /**< Game controller touchpad was touched */
 		{
 			break;
 		}
-		case SDL_CONTROLLERTOUCHPADMOTION:      /**< Game controller touchpad finger was moved */
+		case SDL_CONTROLLERTOUCHPADMOTION: /**< Game controller touchpad finger was moved */
 		{
 			break;
 		}
-		case SDL_CONTROLLERTOUCHPADUP:          /**< Game controller touchpad finger was lifted */
+		case SDL_CONTROLLERTOUCHPADUP: /**< Game controller touchpad finger was lifted */
 		{
 			break;
 		}
-		case SDL_CONTROLLERSENSORUPDATE:        /**< Game controller sensor was updated */
+		case SDL_CONTROLLERSENSORUPDATE: /**< Game controller sensor was updated */
 		{
 			const auto index = event.csensor.which;
 			const auto ts = event.csensor.timestamp;
@@ -221,7 +223,8 @@ void SDLControllerProvider::event_thread()
 			}
 			if (motionTracking.hasAcc && motionTracking.hasGyro)
 			{
-				auto ts = std::max(motionTracking.lastTimestampGyro, motionTracking.lastTimestampAccel);
+				auto ts =
+					std::max(motionTracking.lastTimestampGyro, motionTracking.lastTimestampAccel);
 				if (ts > motionTracking.lastTimestampIntegrate)
 				{
 					const auto tsDif = ts - motionTracking.lastTimestampIntegrate;
@@ -229,7 +232,9 @@ void SDLControllerProvider::event_thread()
 					float tsDifD = (float)tsDif / 1000.0f;
 					if (tsDifD >= 1.0f)
 						tsDifD = 1.0f;
-					m_motion_handler[index].processMotionSample(tsDifD, motionTracking.gyro.x, motionTracking.gyro.y, motionTracking.gyro.z, motionTracking.acc.x, -motionTracking.acc.y, -motionTracking.acc.z);
+					m_motion_handler[index].processMotionSample(
+						tsDifD, motionTracking.gyro.x, motionTracking.gyro.y, motionTracking.gyro.z,
+						motionTracking.acc.x, -motionTracking.acc.y, -motionTracking.acc.z);
 
 					std::scoped_lock lock(m_motion_data_mtx[index]);
 					m_motion_data[index] = m_motion_handler[index].getMotionSample();

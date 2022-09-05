@@ -1,8 +1,8 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "Cafe/OS/RPL/rpl_structs.h"
+#include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Common/filestream.h"
 #include "util/helpers/StringParser.h"
-#include "Cemu/PPCAssembler/ppcAssembler.h"
-#include "Cafe/OS/RPL/rpl_structs.h"
 
 sint32 GraphicPack2::GetLengthWithoutComment(const char* str, size_t length)
 {
@@ -25,8 +25,10 @@ sint32 GraphicPack2::GetLengthWithoutComment(const char* str, size_t length)
 
 void GraphicPack2::LogPatchesSyntaxError(sint32 lineNumber, std::string_view errorMsg)
 {
-	cemuLog_log(LogType::Force, fmt::format(L"Syntax error while parsing patch for graphic pack '{}':", this->GetFilename()));
-	if(lineNumber >= 0)
+	cemuLog_log(LogType::Force,
+				fmt::format(L"Syntax error while parsing patch for graphic pack '{}':",
+							this->GetFilename()));
+	if (lineNumber >= 0)
 		cemuLog_log(LogType::Force, fmt::format("Line {0}: {1}", lineNumber, errorMsg));
 	else
 		cemuLog_log(LogType::Force, fmt::format("{0}", errorMsg));
@@ -43,7 +45,8 @@ void GraphicPack2::AddPatchGroup(PatchGroup* group)
 {
 	if (group->list_moduleMatches.empty())
 	{
-		LogPatchesSyntaxError(-1, fmt::format("Group \"{}\" has no moduleMatches definition", group->name));
+		LogPatchesSyntaxError(
+			-1, fmt::format("Group \"{}\" has no moduleMatches definition", group->name));
 		CancelParsingPatches();
 		delete group;
 		return;
@@ -62,13 +65,14 @@ void GraphicPack2::AddPatchGroup(PatchGroup* group)
 				codeCaveMaxAddr = std::max(codeCaveMaxAddr, patchAddr + patchData->getSize());
 			}
 		}
-
 	}
 	uint32 numEstimatedCodeCaveInstr = codeCaveMaxAddr / 4;
 	if (group->list_patches.size() < (numEstimatedCodeCaveInstr / 8))
 	{
 		// if less than 1/8th of the code cave is filled print a warning
-		forceLog_printf("Graphic pack patches: Code cave for group [%s] in gfx pack \"%s\" ranges from 0 to 0x%x but has only few instructions. Is this intentional?", group->name.c_str(), this->m_name.c_str(), codeCaveMaxAddr);
+		forceLog_printf("Graphic pack patches: Code cave for group [%s] in gfx pack \"%s\" ranges "
+						"from 0 to 0x%x but has only few instructions. Is this intentional?",
+						group->name.c_str(), this->m_name.c_str(), codeCaveMaxAddr);
 	}
 	group->codeCaveSize = codeCaveMaxAddr;
 	list_patchGroups.emplace_back(group);
@@ -103,7 +107,6 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 			sint32 groupNameLength = parser.skipToCharacter(']');
 			if (groupNameLength < 0)
 			{
-
 				LogPatchesSyntaxError(lineNumber, "Expected ']'");
 				CancelParsingPatches();
 				return;
@@ -147,11 +150,14 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 			ctx.virtualAddress = patchedAddress;
 			if (!ppcAssembler_assembleSingleInstruction(instrText.c_str(), &ctx))
 			{
-				LogPatchesSyntaxError(lineNumber, fmt::format("Error in assembler: {}", ctx.errorMsg));
+				LogPatchesSyntaxError(lineNumber,
+									  fmt::format("Error in assembler: {}", ctx.errorMsg));
 				CancelParsingPatches();
 				return;
 			}
-			currentGroup->list_patches.emplace_back(new PatchEntryInstruction(lineNumber, patchedAddress, { ctx.outputData.data(), ctx.outputData.size() }, ctx.list_relocs));
+			currentGroup->list_patches.emplace_back(new PatchEntryInstruction(
+				lineNumber, patchedAddress, {ctx.outputData.data(), ctx.outputData.size()},
+				ctx.list_relocs));
 		}
 		else if (parser.matchWordI("moduleMatches"))
 		{
@@ -192,9 +198,10 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 		}
 		else
 		{
-			// Cemuhook requires that user defined symbols start with _ but we are more lenient and allow them to start with letters too
-			// the downside is that there is some ambiguity and parsing gets a little bit more complex
-			
+			// Cemuhook requires that user defined symbols start with _ but we are more lenient and
+			// allow them to start with letters too the downside is that there is some ambiguity and
+			// parsing gets a little bit more complex
+
 			// check for <symbolName> = pattern
 			StringTokenParser bakParser;
 			const char* symbolStr;
@@ -208,7 +215,8 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 				const char* expressionStr = parser.getCurrentPtr();
 				sint32 expressionLen = parser.getCurrentLen();
 				// create entry for symbol value assignment
-				currentGroup->list_patches.emplace_back(new PatchEntryCemuhookSymbolValue(lineNumber, symbolStr, symbolLen, expressionStr, expressionLen));
+				currentGroup->list_patches.emplace_back(new PatchEntryCemuhookSymbolValue(
+					lineNumber, symbolStr, symbolLen, expressionStr, expressionLen));
 				continue;
 			}
 			else
@@ -230,7 +238,7 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 	sint32 lineNumber = 0;
 	PatchGroup* currentGroup = nullptr;
 
-	struct  
+	struct
 	{
 		void reset()
 		{
@@ -262,13 +270,12 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 
 		uint32 currentOrigin{};
 		uint32 codeCaveOrigin{};
-	}originInfo;
-	// labels dont get emitted immediately, instead they are assigned a VA after the next alignment zone
-	std::vector<PatchEntryLabel*> scheduledLabels; 
-	// this is to prevent code like this from putting alignment bytes after the label. (The label 'sticks' to the data after it)
-	// .byte 123
-	// Label:
-	// BLR
+	} originInfo;
+	// labels dont get emitted immediately, instead they are assigned a VA after the next alignment
+	// zone
+	std::vector<PatchEntryLabel*> scheduledLabels;
+	// this is to prevent code like this from putting alignment bytes after the label. (The label
+	// 'sticks' to the data after it) .byte 123 Label: BLR
 
 	auto flushLabels = [&]()
 	{
@@ -368,7 +375,8 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			continue;
 		}
 
-		// if a line starts with <hex_address> = then it temporarily overwrites the origin for the current line
+		// if a line starts with <hex_address> = then it temporarily overwrites the origin for the
+		// current line
 		uint32 overwriteOrigin = INVALID_ORIGIN;
 		if (parser.compareCharacter(0, '0') && parser.compareCharacterI(1, 'x'))
 		{
@@ -395,7 +403,9 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			// .origin = <origin> directive
 			if (overwriteOrigin != INVALID_ORIGIN)
 			{
-				LogPatchesSyntaxError(lineNumber, fmt::format(".origin directive must appear alone without <address> = prefix."));
+				LogPatchesSyntaxError(
+					lineNumber,
+					fmt::format(".origin directive must appear alone without <address> = prefix."));
 				CancelParsingPatches();
 				return false;
 			}
@@ -409,27 +419,29 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			uint32 originAddress;
 			if (parser.matchWordI("codecave"))
 			{
-				// keyword codecave means we set the origin to the end of the current known codecave size
+				// keyword codecave means we set the origin to the end of the current known codecave
+				// size
 				originInfo.setOriginCodeCave();
 			}
-			else if(parser.parseU32(originAddress))
+			else if (parser.parseU32(originAddress))
 			{
 				// hex address
 				originInfo.setOrigin(originAddress);
 			}
 			else
 			{
-				LogPatchesSyntaxError(lineNumber, fmt::format("\'.origin =\' must be followed by the keyword codecave or a valid address"));
+				LogPatchesSyntaxError(lineNumber,
+									  fmt::format("\'.origin =\' must be followed by the keyword "
+												  "codecave or a valid address"));
 				CancelParsingPatches();
 				return false;
 			}
 			continue;
 		}
-		
+
 		// next we attempt to parse symbol assignment
-		// symbols can be labels or variables. The type is determined by what comes after the symbol name
-		// <symbolName> = <expression> defines a variable
-		// <symbolName>: defines a label
+		// symbols can be labels or variables. The type is determined by what comes after the symbol
+		// name <symbolName> = <expression> defines a variable <symbolName>: defines a label
 
 		StringTokenParser bakParser;
 		const char* symbolStr;
@@ -454,7 +466,10 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			{
 				if (!originInfo.isValidOrigin())
 				{
-					LogPatchesSyntaxError(lineNumber, fmt::format("Defined label has no address assigned or there is no active .origin"));
+					LogPatchesSyntaxError(
+						lineNumber,
+						fmt::format(
+							"Defined label has no address assigned or there is no active .origin"));
 					CancelParsingPatches();
 					return false;
 				}
@@ -463,7 +478,8 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			if (overwriteOrigin == INVALID_ORIGIN)
 			{
 				// if label is part of code flow, delay emitting it until the next data instruction
-				// this is so we can avoid generating alignment padding, whose size is unknown in advance, between labels and data instructions
+				// this is so we can avoid generating alignment padding, whose size is unknown in
+				// advance, between labels and data instructions
 				scheduledLabels.emplace_back(new PatchEntryLabel(lineNumber, symbolStr, symbolLen));
 			}
 			else
@@ -484,21 +500,26 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			const char* expressionStr = parser.getCurrentPtr();
 			sint32 expressionLen = parser.getCurrentLen();
 			// create entry for symbol/variable value assignment
-			currentGroup->list_patches.emplace_back(new PatchEntryVariableValue(lineNumber, symbolStr, symbolLen, PATCHVARTYPE::UINT, expressionStr, expressionLen));
+			currentGroup->list_patches.emplace_back(
+				new PatchEntryVariableValue(lineNumber, symbolStr, symbolLen, PATCHVARTYPE::UINT,
+											expressionStr, expressionLen));
 			continue;
 		}
 		// if all patterns mismatch then we assume it's an assembly instruction
 		parser.restoreParserState(&bakParser);
 		std::string instrText(parser.getCurrentPtr(), parser.getCurrentLen());
 		PPCAssemblerInOut ctx{};
-		ctx.forceNoAlignment = overwriteOrigin != INVALID_ORIGIN; // dont auto-align when a fixed address is assigned
+		ctx.forceNoAlignment =
+			overwriteOrigin != INVALID_ORIGIN; // dont auto-align when a fixed address is assigned
 		if (overwriteOrigin != INVALID_ORIGIN)
 			ctx.virtualAddress = overwriteOrigin;
-		else if(originInfo.isValidOrigin())
+		else if (originInfo.isValidOrigin())
 			ctx.virtualAddress = originInfo.currentOrigin;
 		else
 		{
-			LogPatchesSyntaxError(lineNumber, fmt::format("Trying to assemble line but no address specified. (Declare .origin or prefix line with <address> = )"));
+			LogPatchesSyntaxError(
+				lineNumber, fmt::format("Trying to assemble line but no address specified. "
+										"(Declare .origin or prefix line with <address> = )"));
 			CancelParsingPatches();
 			return false;
 		}
@@ -511,8 +532,8 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 		cemu_assert_debug(ctx.alignmentRequirement != 0);
 		if (overwriteOrigin == INVALID_ORIGIN)
 		{
-			originInfo.incrementOrigin((sint32)ctx.alignmentPaddingSize); // alignment padding	
-			originInfo.incrementOrigin((sint32)ctx.outputData.size()); // instruction size
+			originInfo.incrementOrigin((sint32)ctx.alignmentPaddingSize); // alignment padding
+			originInfo.incrementOrigin((sint32)ctx.outputData.size());	  // instruction size
 		}
 		// flush labels
 		for (auto& itr : scheduledLabels)
@@ -522,7 +543,9 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 		}
 		scheduledLabels.clear();
 		// append instruction
-		currentGroup->list_patches.emplace_back(new PatchEntryInstruction(lineNumber, ctx.virtualAddressAligned, { ctx.outputData.data(), ctx.outputData.size() }, ctx.list_relocs));
+		currentGroup->list_patches.emplace_back(new PatchEntryInstruction(
+			lineNumber, ctx.virtualAddressAligned, {ctx.outputData.data(), ctx.outputData.size()},
+			ctx.list_relocs));
 	}
 	flushLabels();
 

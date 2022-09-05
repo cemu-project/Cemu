@@ -35,17 +35,15 @@ struct CertECC_t
 		ECC_SHA256 = 0x00010005
 	};
 
-	/* +0x000 */ betype<SIGTYPE>	sigType; // 01 00 02 00
-	/* +0x004 */ uint8				signature[0x3C]; // from OTP 0xA3*4
-	/* +0x040 */ uint8				ukn040[0x40]; // seems to be just padding
-	/* +0x080 */ char				certificateSubject[0x40]; // "Root - CA%08x - MS%08x" 
-	/* +0x0C0 */ char				ukn0C0[0x4]; // ??? 00 00 00 02 ?
-	/* +0x0C4 */ char				ngName[0x40]; // "NG%08X"
-	/* +0x104 */ uint32				ngKeyId; // big endian? (from OTP 0xA2*4)
-	/* +0x108 */ uint8				publicKey[0x3C];
-	/* +0x144 */ uint8				padding[0x180 - 0x144];
-
-	
+	/* +0x000 */ betype<SIGTYPE> sigType;		// 01 00 02 00
+	/* +0x004 */ uint8 signature[0x3C];			// from OTP 0xA3*4
+	/* +0x040 */ uint8 ukn040[0x40];			// seems to be just padding
+	/* +0x080 */ char certificateSubject[0x40]; // "Root - CA%08x - MS%08x"
+	/* +0x0C0 */ char ukn0C0[0x4];				// ??? 00 00 00 02 ?
+	/* +0x0C4 */ char ngName[0x40];				// "NG%08X"
+	/* +0x104 */ uint32 ngKeyId;				// big endian? (from OTP 0xA2*4)
+	/* +0x108 */ uint8 publicKey[0x3C];
+	/* +0x144 */ uint8 padding[0x180 - 0x144];
 };
 
 static_assert(sizeof(CertECC_t) == 0x180);

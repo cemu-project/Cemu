@@ -1,10 +1,10 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "Common/filestream.h"
-#include "Cemu/PPCAssembler/ppcAssembler.h"
+#include "Cafe/HW/Espresso/Debugger/DebugSymbolStorage.h"
+#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
-#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
-#include "Cafe/HW/Espresso/Debugger/DebugSymbolStorage.h"
+#include "Cemu/PPCAssembler/ppcAssembler.h"
+#include "Common/filestream.h"
 
 bool _relocateAddress(PatchGroup* group, PatchContext_t* ctx, uint32 addr, uint32& relocatedAddress)
 {
@@ -20,7 +20,9 @@ bool _relocateAddress(PatchGroup* group, PatchContext_t* ctx, uint32 addr, uint3
 		auto sect = ctx->matchedModule->sectionTablePtr + i;
 		if (addr >= sect->virtualAddress && addr < (sect->virtualAddress + sect->sectionSize))
 		{
-			relocatedAddress = addr - sect->virtualAddress + memory_getVirtualOffsetFromPointer(ctx->matchedModule->sectionAddressTable2[i].ptr);
+			relocatedAddress =
+				addr - sect->virtualAddress +
+				memory_getVirtualOffsetFromPointer(ctx->matchedModule->sectionAddressTable2[i].ptr);
 			return true;
 		}
 	}
@@ -28,7 +30,7 @@ bool _relocateAddress(PatchGroup* group, PatchContext_t* ctx, uint32 addr, uint3
 	return false;
 }
 
-struct  
+struct
 {
 	bool hasUnknownVariable;
 	PatchContext_t* activePatchContext;
@@ -36,7 +38,7 @@ struct
 	// additional error information tracking
 	sint32 lineNumber; // line number of the expression being processed, negative if not available
 	bool captureUnresolvedSymbols;
-}resolverState{};
+} resolverState{};
 
 bool GraphicPack2::ResolvePresetConstant(const std::string& varname, double& value) const
 {
@@ -78,9 +80,12 @@ T _expressionFuncReloc(T input)
 {
 	uint32 addr = (uint32)input;
 	uint32 relocatedAddress = 0;
-	if(!_relocateAddress(resolverState.currentGroup, resolverState.activePatchContext, addr, relocatedAddress))
+	if (!_relocateAddress(resolverState.currentGroup, resolverState.activePatchContext, addr,
+						  relocatedAddress))
 	{
-		resolverState.activePatchContext->errorHandler.printError(resolverState.currentGroup, resolverState.lineNumber, fmt::format("reloc({0:#08x}): Address does not point to a known memory region", addr));
+		resolverState.activePatchContext->errorHandler.printError(
+			resolverState.currentGroup, resolverState.lineNumber,
+			fmt::format("reloc({0:#08x}): Address does not point to a known memory region", addr));
 		return (T)0;
 	}
 	return (T)relocatedAddress;
@@ -106,11 +111,13 @@ double _cbResolveConstant(std::string_view varname)
 	if (varnameOnly.length() >= 1 && varnameOnly[0] == '$')
 	{
 		// resolve preset variable
-		if (!resolverState.activePatchContext->graphicPack->ResolvePresetConstant(varnameOnly, value))
+		if (!resolverState.activePatchContext->graphicPack->ResolvePresetConstant(varnameOnly,
+																				  value))
 		{
 			resolverState.hasUnknownVariable = true;
 			if (resolverState.captureUnresolvedSymbols)
-				resolverState.activePatchContext->unresolvedSymbols.emplace(resolverState.lineNumber, resolverState.currentGroup, varnameOnly);
+				resolverState.activePatchContext->unresolvedSymbols.emplace(
+					resolverState.lineNumber, resolverState.currentGroup, varnameOnly);
 			return 0.0;
 		}
 	}
@@ -133,7 +140,8 @@ double _cbResolveConstant(std::string_view varname)
 			}
 			else
 			{
-				MPTR exportResult = RPLLoader_FindModuleOrHLEExport(rplHandle, false, functionName.c_str());
+				MPTR exportResult =
+					RPLLoader_FindModuleOrHLEExport(rplHandle, false, functionName.c_str());
 				if (exportResult)
 				{
 					isValidImport = true;
@@ -154,7 +162,8 @@ double _cbResolveConstant(std::string_view varname)
 				std::string detailedSymbolName;
 				detailedSymbolName.assign(importName);
 				detailedSymbolName.append(importError);
-				resolverState.activePatchContext->unresolvedSymbols.emplace(resolverState.lineNumber, resolverState.currentGroup, detailedSymbolName);
+				resolverState.activePatchContext->unresolvedSymbols.emplace(
+					resolverState.lineNumber, resolverState.currentGroup, detailedSymbolName);
 			}
 			return 0.0;
 		}
@@ -167,7 +176,8 @@ double _cbResolveConstant(std::string_view varname)
 		{
 			resolverState.hasUnknownVariable = true;
 			if (resolverState.captureUnresolvedSymbols)
-				resolverState.activePatchContext->unresolvedSymbols.emplace(resolverState.lineNumber, resolverState.currentGroup, varnameOnly);
+				resolverState.activePatchContext->unresolvedSymbols.emplace(
+					resolverState.lineNumber, resolverState.currentGroup, varnameOnly);
 			return 0.0;
 		}
 		value = v->second;
@@ -198,7 +208,8 @@ double _cbResolveConstant(std::string_view varname)
 				detailedSymbolName.append("@");
 				detailedSymbolName.append(tokenOnly);
 				detailedSymbolName.append(" (invalid suffix)");
-				resolverState.activePatchContext->unresolvedSymbols.emplace(resolverState.lineNumber, resolverState.currentGroup, detailedSymbolName);
+				resolverState.activePatchContext->unresolvedSymbols.emplace(
+					resolverState.lineNumber, resolverState.currentGroup, detailedSymbolName);
 			}
 			return 0.0;
 		}
@@ -228,7 +239,8 @@ double _cbResolveFunction(std::string_view funcname, double input)
 			std::string detailedSymbolName;
 			detailedSymbolName.assign(funcname);
 			detailedSymbolName.append("() (unknown function)");
-			resolverState.activePatchContext->unresolvedSymbols.emplace(resolverState.lineNumber, resolverState.currentGroup, detailedSymbolName);
+			resolverState.activePatchContext->unresolvedSymbols.emplace(
+				resolverState.lineNumber, resolverState.currentGroup, detailedSymbolName);
 		}
 		return 0.0;
 	}
@@ -236,7 +248,8 @@ double _cbResolveFunction(std::string_view funcname, double input)
 }
 
 template<typename T>
-EXPRESSION_RESOLVE_RESULT _resolveExpression(PatchContext_t& ctx, std::string& expressionString, T& result, sint32 associatedLineNumber = -1)
+EXPRESSION_RESOLVE_RESULT _resolveExpression(PatchContext_t& ctx, std::string& expressionString,
+											 T& result, sint32 associatedLineNumber = -1)
 {
 	resolverState.lineNumber = associatedLineNumber;
 	ExpressionParser ep;
@@ -253,7 +266,8 @@ EXPRESSION_RESOLVE_RESULT _resolveExpression(PatchContext_t& ctx, std::string& e
 	catch (const std::exception&)
 	{
 		cemu_assert_debug(false);
-		ctx.errorHandler.printError(nullptr, -1, fmt::format("Unexpected error in expression \"{}\"", expressionString));
+		ctx.errorHandler.printError(
+			nullptr, -1, fmt::format("Unexpected error in expression \"{}\"", expressionString));
 		return EXPRESSION_RESOLVE_RESULT::EXPRESSION_ERROR;
 	}
 	return EXPRESSION_RESOLVE_RESULT::AVAILABLE;
@@ -271,7 +285,8 @@ PATCH_RESOLVE_RESULT translateExpressionResult(EXPRESSION_RESOLVE_RESULT express
 	return PATCH_RESOLVE_RESULT::EXPRESSION_ERROR;
 }
 
-PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PPCAssemblerReloc* reloc)
+PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx,
+														 PPCAssemblerReloc* reloc)
 {
 	MPTR finalRelocAddr = m_relocatedAddr + reloc->m_byteOffset;
 	if (reloc->m_relocType == PPCASM_RELOC::FLOAT)
@@ -353,7 +368,8 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 				// absolute
 				if (result >= 0x3FFFFFC)
 				{
-					forceLog_printf("Target \'%s\' for branch at line %d out of range", reloc->m_expression.c_str(), m_lineNumber);
+					forceLog_printf("Target \'%s\' for branch at line %d out of range",
+									reloc->m_expression.c_str(), m_lineNumber);
 					return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 				}
 				opcode &= ~0x3FFFFFC;
@@ -369,7 +385,11 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 					uint32 jumpB = instrAddr - result;
 					if (jumpB > 0x1FFFFFF)
 					{
-						ctx.errorHandler.printError(nullptr, m_lineNumber, fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR or similar for long distance branches)", reloc->m_expression.c_str()));
+						ctx.errorHandler.printError(
+							nullptr, m_lineNumber,
+							fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR "
+										"or similar for long distance branches)",
+										reloc->m_expression.c_str()));
 						return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 					}
 					opcode &= ~0x3FFFFFC;
@@ -381,7 +401,11 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 					uint32 jumpF = result - instrAddr;
 					if (jumpF >= 0x1FFFFFF)
 					{
-						ctx.errorHandler.printError(nullptr, m_lineNumber, fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR or similar for long distance branches)", reloc->m_expression.c_str()));
+						ctx.errorHandler.printError(
+							nullptr, m_lineNumber,
+							fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR "
+										"or similar for long distance branches)",
+										reloc->m_expression.c_str()));
 						return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 					}
 					opcode &= ~0x3FFFFFC;
@@ -402,7 +426,11 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 				uint32 jumpB = instrAddr - result;
 				if (jumpB > 0x8000)
 				{
-					ctx.errorHandler.printError(nullptr, m_lineNumber, fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR or similar for long distance branches)", reloc->m_expression.c_str()));
+					ctx.errorHandler.printError(
+						nullptr, m_lineNumber,
+						fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR or "
+									"similar for long distance branches)",
+									reloc->m_expression.c_str()));
 					return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 				}
 				opcode &= ~0xFFFC;
@@ -414,7 +442,11 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 				uint32 jumpF = result - instrAddr;
 				if (jumpF >= 0x8000)
 				{
-					ctx.errorHandler.printError(nullptr, m_lineNumber, fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR or similar for long distance branches)", reloc->m_expression.c_str()));
+					ctx.errorHandler.printError(
+						nullptr, m_lineNumber,
+						fmt::format("Target \'{0}\' for branch out of range (use MTCTR + BCTR or "
+									"similar for long distance branches)",
+									reloc->m_expression.c_str()));
 					return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 				}
 				opcode &= ~0xFFFC;
@@ -423,7 +455,6 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 			*(betype<uint32>*)(m_dataWithRelocs + reloc->m_byteOffset) = opcode;
 			return PATCH_RESOLVE_RESULT::RESOLVED;
 		}
-
 
 		// *internalCtx.opcode |= (relativeAddr & 0xFFFC);
 		cemu_assert_debug(false);
@@ -438,7 +469,9 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolve(PatchContext_t& ctx)
 	{
 		if (_relocateAddress(resolverState.currentGroup, &ctx, m_addr, m_relocatedAddr) == false)
 		{
-			forceLog_printf("Patches: Address 0x%08x (line %d) is not within code cave or any module section", this->getAddr(), this->m_lineNumber);
+			forceLog_printf(
+				"Patches: Address 0x%08x (line %d) is not within code cave or any module section",
+				this->getAddr(), this->m_lineNumber);
 			cemu_assert_debug(false);
 			return PATCH_RESOLVE_RESULT::INVALID_ADDRESS;
 		}
@@ -447,7 +480,7 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolve(PatchContext_t& ctx)
 	// apply relocations to instruction
 	for (auto& itr : this->m_relocs)
 	{
-		if(itr.isApplied())
+		if (itr.isApplied())
 			continue;
 		// evaluate expression and apply reloc to internal buffer
 		auto r = resolveReloc(ctx, &itr);
@@ -491,7 +524,9 @@ void PatchEntryInstruction::undoPatch()
 }
 
 // returns true on success, false if variable with same name already exists
-bool registerU32Variable(PatchContext_t& ctx, std::string& name, uint32 value, PatchGroup* associatedPatchGroup, uint32 associatedLineNumber, bool isAddress)
+bool registerU32Variable(PatchContext_t& ctx, std::string& name, uint32 value,
+						 PatchGroup* associatedPatchGroup, uint32 associatedLineNumber,
+						 bool isAddress)
 {
 	cemuLog_log(LogType::Patches, "Resolved symbol {} with value 0x{:08x}", name.c_str(), value);
 	if (ctx.map_values.find(name) != ctx.map_values.end())
@@ -515,10 +550,13 @@ PATCH_RESOLVE_RESULT PatchEntryCemuhookSymbolValue::resolve(PatchContext_t& ctx)
 		{
 			m_isResolved = true;
 			// register variable
-			if (!registerU32Variable(ctx, m_symbolName, m_resolvedValue, resolverState.currentGroup, getLineNumber(), true))
+			if (!registerU32Variable(ctx, m_symbolName, m_resolvedValue, resolverState.currentGroup,
+									 getLineNumber(), true))
 			{
 				if (resolverState.captureUnresolvedSymbols)
-					ctx.errorHandler.printError(resolverState.currentGroup, m_lineNumber, fmt::format("Symbol {} is already defined", m_symbolName));
+					ctx.errorHandler.printError(
+						resolverState.currentGroup, m_lineNumber,
+						fmt::format("Symbol {} is already defined", m_symbolName));
 				return PATCH_RESOLVE_RESULT::VARIABLE_CONFLICT;
 			}
 			return PATCH_RESOLVE_RESULT::RESOLVED;
@@ -534,16 +572,23 @@ PATCH_RESOLVE_RESULT PatchEntryLabel::resolve(PatchContext_t& ctx)
 	{
 		m_isResolved = true;
 		// register variable
-		if (!registerU32Variable(ctx, m_symbolName, m_relocatedAddress, resolverState.currentGroup, getLineNumber(), true))
+		if (!registerU32Variable(ctx, m_symbolName, m_relocatedAddress, resolverState.currentGroup,
+								 getLineNumber(), true))
 		{
 			if (resolverState.captureUnresolvedSymbols)
-				ctx.errorHandler.printError(resolverState.currentGroup, m_lineNumber, fmt::format("Label {} is already defined", m_symbolName));
+				ctx.errorHandler.printError(
+					resolverState.currentGroup, m_lineNumber,
+					fmt::format("Label {} is already defined", m_symbolName));
 			return PATCH_RESOLVE_RESULT::VARIABLE_CONFLICT;
 		}
 		return PATCH_RESOLVE_RESULT::RESOLVED;
 	}
-	if(resolverState.captureUnresolvedSymbols)
-		ctx.errorHandler.printError(resolverState.currentGroup, m_lineNumber, fmt::format("Address {:#08x} of label {} does not point to any module section or code cave", m_address, m_symbolName));
+	if (resolverState.captureUnresolvedSymbols)
+		ctx.errorHandler.printError(
+			resolverState.currentGroup, m_lineNumber,
+			fmt::format(
+				"Address {:#08x} of label {} does not point to any module section or code cave",
+				m_address, m_symbolName));
 	return PATCH_RESOLVE_RESULT::INVALID_ADDRESS;
 }
 
@@ -554,10 +599,13 @@ PATCH_RESOLVE_RESULT PatchEntryVariableValue::resolve(PatchContext_t& ctx)
 	if (r == EXPRESSION_RESOLVE_RESULT::AVAILABLE)
 	{
 		// register variable
-		if (!registerU32Variable(ctx, m_symbolName, v, resolverState.currentGroup, getLineNumber(), false))
+		if (!registerU32Variable(ctx, m_symbolName, v, resolverState.currentGroup, getLineNumber(),
+								 false))
 		{
 			if (resolverState.captureUnresolvedSymbols)
-				ctx.errorHandler.printError(resolverState.currentGroup, m_lineNumber, fmt::format("Variable {} is already defined", m_symbolName));
+				ctx.errorHandler.printError(
+					resolverState.currentGroup, m_lineNumber,
+					fmt::format("Variable {} is already defined", m_symbolName));
 			return PATCH_RESOLVE_RESULT::VARIABLE_CONFLICT;
 		}
 		return PATCH_RESOLVE_RESULT::RESOLVED;
@@ -572,7 +620,9 @@ struct UnresolvedPatches_t
 };
 
 // returns number of resolved entries
-bool _resolverPass(PatchContext_t& patchContext, std::vector<UnresolvedPatches_t>& unresolvedPatches, bool captureUnresolvedSymbols = false)
+bool _resolverPass(PatchContext_t& patchContext,
+				   std::vector<UnresolvedPatches_t>& unresolvedPatches,
+				   bool captureUnresolvedSymbols = false)
 {
 	resolverState.captureUnresolvedSymbols = captureUnresolvedSymbols;
 	sint32 numResolvedEntries = 0;
@@ -597,7 +647,7 @@ bool _resolverPass(PatchContext_t& patchContext, std::vector<UnresolvedPatches_t
 				continue;
 			}
 			else if (r == PATCH_RESOLVE_RESULT::INVALID_ADDRESS ||
-				r == PATCH_RESOLVE_RESULT::VARIABLE_CONFLICT)
+					 r == PATCH_RESOLVE_RESULT::VARIABLE_CONFLICT)
 			{
 				// errors handled and printed inside resolve()
 				it++;
@@ -606,7 +656,8 @@ bool _resolverPass(PatchContext_t& patchContext, std::vector<UnresolvedPatches_t
 			else
 			{
 				// unknown error
-				patchContext.errorHandler.printError(resolverState.currentGroup, -1, "Internal error");
+				patchContext.errorHandler.printError(resolverState.currentGroup, -1,
+													 "Internal error");
 				it++;
 			}
 		}
@@ -629,7 +680,8 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 	{
 		if (patchGroup->isApplied())
 		{
-			patchContext.errorHandler.printError(patchGroup, -1, "Group already applied to a different module.");
+			patchContext.errorHandler.printError(patchGroup, -1,
+												 "Group already applied to a different module.");
 			return;
 		}
 	}
@@ -639,7 +691,9 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 		if (patchGroup->codeCaveSize > 0)
 		{
 			auto codeCaveMem = RPLLoader_AllocateCodeCaveMem(256, patchGroup->codeCaveSize);
-			forceLog_printf("Applying patch group \'%s\' (Codecave: %08x-%08x)", patchGroup->name.c_str(), codeCaveMem.GetMPTR(), codeCaveMem.GetMPTR() + patchGroup->codeCaveSize);
+			forceLog_printf("Applying patch group \'%s\' (Codecave: %08x-%08x)",
+							patchGroup->name.c_str(), codeCaveMem.GetMPTR(),
+							codeCaveMem.GetMPTR() + patchGroup->codeCaveSize);
 			patchGroup->codeCaveMem = codeCaveMem;
 		}
 		else
@@ -654,7 +708,8 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 	// - calculating relocated addresses
 	// - applying relocations to temporary patch buffer
 
-	// multiple passes may be necessary since forward and backward references are allowed as well as references across group boundaries
+	// multiple passes may be necessary since forward and backward references are allowed as well as
+	// references across group boundaries
 
 	// create a copy of all the patch references and keep the group association intact
 	std::vector<UnresolvedPatches_t> unresolvedPatches;
@@ -687,10 +742,14 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 			patchContext.unresolvedSymbols.clear();
 			_resolverPass(patchContext, unresolvedPatches, true);
 			// generate messages
-			if(isLastPass)
-				patchContext.errorHandler.printError(nullptr, -1, "Some symbols could not be resolved because the dependency chain is too deep");
+			if (isLastPass)
+				patchContext.errorHandler.printError(
+					nullptr, -1,
+					"Some symbols could not be resolved because the dependency chain is too deep");
 			for (auto& itr : patchContext.unresolvedSymbols)
-				patchContext.errorHandler.printError(itr.patchGroup, itr.lineNumber, fmt::format("Unresolved symbol: {}", itr.symbolName));
+				patchContext.errorHandler.printError(
+					itr.patchGroup, itr.lineNumber,
+					fmt::format("Unresolved symbol: {}", itr.symbolName));
 			patchContext.errorHandler.showStageErrorMessageBox();
 			return;
 		}
@@ -749,5 +808,6 @@ void GraphicPack2::NotifyModuleLoaded(const RPLModule* rpl)
 void GraphicPack2::NotifyModuleUnloaded(const RPLModule* rpl)
 {
 	std::lock_guard<std::recursive_mutex> lock(mtx_patches);
-	list_modules.erase(std::remove(list_modules.begin(), list_modules.end(), rpl), list_modules.end());
+	list_modules.erase(std::remove(list_modules.begin(), list_modules.end(), rpl),
+					   list_modules.end());
 }

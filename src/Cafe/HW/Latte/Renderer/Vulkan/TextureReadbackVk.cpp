@@ -1,16 +1,15 @@
+#include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 
-LatteTextureReadbackInfoVk::LatteTextureReadbackInfoVk(VkDevice device, LatteTextureView* textureView)
+LatteTextureReadbackInfoVk::LatteTextureReadbackInfoVk(VkDevice device,
+													   LatteTextureView* textureView)
 	: LatteTextureReadbackInfo(textureView), m_device(device)
 {
 	m_image_size = GetImageSize(textureView);
 }
 
-LatteTextureReadbackInfoVk::~LatteTextureReadbackInfoVk()
-{
-}
+LatteTextureReadbackInfoVk::~LatteTextureReadbackInfoVk() {}
 
 uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 {
@@ -43,7 +42,7 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 		if (baseTexture->isDepth)
 			return baseTexture->width * baseTexture->height * 4;
 		else
-			return baseTexture->width * baseTexture->height * 4;		
+			return baseTexture->width * baseTexture->height * 4;
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R16_UNORM)
 	{
@@ -76,7 +75,8 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 	else if (textureView->format == Latte::E_GX2SURFFMT::D24_S8_UNORM)
 	{
 		cemu_assert(textureFormat == VK_FORMAT_D24_UNORM_S8_UINT);
-		// todo - if driver does not support VK_FORMAT_D24_UNORM_S8_UINT this is represented as VK_FORMAT_D32_SFLOAT_S8_UINT which is 8 bytes
+		// todo - if driver does not support VK_FORMAT_D24_UNORM_S8_UINT this is represented as
+		// VK_FORMAT_D32_SFLOAT_S8_UINT which is 8 bytes
 		return baseTexture->width * baseTexture->height * 4;
 	}
 	else
@@ -86,7 +86,6 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 		return 0;
 	}
 }
-
 
 void LatteTextureReadbackInfoVk::StartTransfer()
 {
@@ -109,22 +108,30 @@ void LatteTextureReadbackInfoVk::StartTransfer()
 	region.imageSubresource.layerCount = 1;
 	region.imageSubresource.mipLevel = 0;
 
-	region.imageOffset = {0,0,0};
-	region.imageExtent = {(uint32)baseTexture->width,(uint32)baseTexture->height,1};
+	region.imageOffset = {0, 0, 0};
+	region.imageExtent = {(uint32)baseTexture->width, (uint32)baseTexture->height, 1};
 
 	const auto renderer = VulkanRenderer::GetInstance();
 	renderer->draw_endRenderPass();
 
-	renderer->barrier_image<VulkanRenderer::ANY_TRANSFER | VulkanRenderer::IMAGE_WRITE, VulkanRenderer::TRANSFER_READ>(baseTexture, region.imageSubresource, VK_IMAGE_LAYOUT_GENERAL);
+	renderer->barrier_image<VulkanRenderer::ANY_TRANSFER | VulkanRenderer::IMAGE_WRITE,
+							VulkanRenderer::TRANSFER_READ>(baseTexture, region.imageSubresource,
+														   VK_IMAGE_LAYOUT_GENERAL);
 
 	renderer->barrier_sequentializeTransfer();
 
-	vkCmdCopyImageToBuffer(renderer->getCurrentCommandBuffer(), baseTexture->GetImageObj()->m_image, VK_IMAGE_LAYOUT_GENERAL, m_buffer, 1, &region);
+	vkCmdCopyImageToBuffer(renderer->getCurrentCommandBuffer(), baseTexture->GetImageObj()->m_image,
+						   VK_IMAGE_LAYOUT_GENERAL, m_buffer, 1, &region);
 
 	renderer->barrier_sequentializeTransfer();
 
-	renderer->barrier_image<VulkanRenderer::TRANSFER_READ, VulkanRenderer::ANY_TRANSFER | VulkanRenderer::IMAGE_WRITE>(baseTexture, region.imageSubresource, VK_IMAGE_LAYOUT_GENERAL); // make sure transfer is finished before image is modified
-	renderer->barrier_bufferRange<VulkanRenderer::TRANSFER_WRITE, VulkanRenderer::HOST_READ>(m_buffer, m_buffer_offset, m_image_size); // make sure transfer is finished before result is read
+	renderer->barrier_image<VulkanRenderer::TRANSFER_READ,
+							VulkanRenderer::ANY_TRANSFER | VulkanRenderer::IMAGE_WRITE>(
+		baseTexture, region.imageSubresource,
+		VK_IMAGE_LAYOUT_GENERAL); // make sure transfer is finished before image is modified
+	renderer->barrier_bufferRange<VulkanRenderer::TRANSFER_WRITE, VulkanRenderer::HOST_READ>(
+		m_buffer, m_buffer_offset,
+		m_image_size); // make sure transfer is finished before result is read
 
 	m_associatedCommandBufferId = renderer->GetCurrentCommandBufferId();
 	m_textureView = nullptr;
@@ -145,4 +152,3 @@ void LatteTextureReadbackInfoVk::ForceFinish()
 	const auto renderer = VulkanRenderer::GetInstance();
 	renderer->WaitCommandBufferFinished(m_associatedCommandBufferId);
 }
-

@@ -3,7 +3,7 @@
 
 class wxLogCtrl : public TextList
 {
-public:
+  public:
 	wxLogCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style);
 	~wxLogCtrl();
 
@@ -13,11 +13,11 @@ public:
 	[[nodiscard]] bool GetFilterMessage() const;
 
 	void PushEntry(const wxString& filter, const wxString& message);
-	
-protected:
+
+  protected:
 	void OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start_position);
 
-private:
+  private:
 	void OnTimer(wxTimerEvent& event);
 	void OnActiveListUpdated(wxEvent& event);
 

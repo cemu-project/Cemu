@@ -1,19 +1,19 @@
 #pragma once
 #include "Common/precompiled.h"
 
-#include <string>
+#include <charconv>
+#include <memory>
 #include <queue>
 #include <stack>
+#include <string>
 #include <unordered_map>
-#include <memory>
-#include <charconv>
 
 #include "boost/functional/hash_fwd.hpp"
 #include <fmt/format.h>
 
 #ifdef __clang__
 #include "Common/unix/fast_float.h"
- #define _EP_FROM_CHARS_DBL(...) _convFastFloatResult(fast_float::from_chars(__VA_ARGS__))
+#define _EP_FROM_CHARS_DBL(...) _convFastFloatResult(fast_float::from_chars(__VA_ARGS__))
 
 inline std::from_chars_result _convFastFloatResult(fast_float::from_chars_result r)
 {
@@ -23,16 +23,16 @@ inline std::from_chars_result _convFastFloatResult(fast_float::from_chars_result
 	return nr;
 }
 #else
- #define _EP_FROM_CHARS_DBL(...) std::from_chars(__VA_ARGS__)
+#define _EP_FROM_CHARS_DBL(...) std::from_chars(__VA_ARGS__)
 #endif
 
 template<class TType = double>
 class TExpressionParser
 {
-public:
+  public:
 	static_assert(std::is_arithmetic_v<TType>);
-	using ConstantCallback_t = TType(*)(std::string_view var_name);
-	using FunctionCallback_t = TType(*)(std::string_view var_name, TType parameter);
+	using ConstantCallback_t = TType (*)(std::string_view var_name);
+	using FunctionCallback_t = TType (*)(std::string_view var_name, TType parameter);
 
 	template<typename T>
 	T Evaluate(std::string_view expression) const
@@ -54,7 +54,7 @@ public:
 		bool last_operator_token = true;
 
 		// tokenize and apply shunting-yard
-		for (size_t i = 0; i < expression.size(); )
+		for (size_t i = 0; i < expression.size();)
 		{
 			const char c = expression[i];
 
@@ -100,7 +100,8 @@ public:
 					// todo skip whitespaces
 					if (j < expression.size() && expression[j] == '(')
 					{
-						operators.emplace(std::make_shared<TokenUnaryOperator>(TokenUnaryOperator::kFunction, view));
+						operators.emplace(std::make_shared<TokenUnaryOperator>(
+							TokenUnaryOperator::kFunction, view));
 						operators.emplace(std::make_shared<TokenParenthese>());
 						i += len + 1;
 
@@ -110,11 +111,12 @@ public:
 				}
 
 				TType value;
-				const auto it = m_constants.find(std::string{ view });
+				const auto it = m_constants.find(std::string{view});
 				if (it == m_constants.cend())
 				{
 					if (m_constant_callback == nullptr)
-						throw std::runtime_error(fmt::format("unknown constant found \"{}\" in expression: {}", view, expression));
+						throw std::runtime_error(fmt::format(
+							"unknown constant found \"{}\" in expression: {}", view, expression));
 
 					value = m_constant_callback(view);
 				}
@@ -204,7 +206,8 @@ public:
 			case '<':
 				if ((i + 1) < expression.size() && expression[i + 1] == '=')
 				{
-					operator_token = std::make_shared<TokenOperator>(TokenOperator::kLessOrEqual, 1);
+					operator_token =
+						std::make_shared<TokenOperator>(TokenOperator::kLessOrEqual, 1);
 					++i;
 				}
 				else
@@ -215,23 +218,27 @@ public:
 			case '>':
 				if ((i + 1) < expression.size() && expression[i + 1] == '=')
 				{
-					operator_token = std::make_shared<TokenOperator>(TokenOperator::kGreaterOrEqual, 1);
+					operator_token =
+						std::make_shared<TokenOperator>(TokenOperator::kGreaterOrEqual, 1);
 					++i;
 				}
 				else
 				{
-					operator_token = std::make_shared<TokenOperator>(TokenOperator::kGreaterThan, 1);
+					operator_token =
+						std::make_shared<TokenOperator>(TokenOperator::kGreaterThan, 1);
 				}
 				break;
 			}
 
 			if (!operator_token)
-				throw std::runtime_error(fmt::format("invalid operator found in expression: {}", expression));
+				throw std::runtime_error(
+					fmt::format("invalid operator found in expression: {}", expression));
 
 			while (!operators.empty())
 			{
 				const auto op = std::dynamic_pointer_cast<TokenOperator>(operators.top());
-				if (op && ((!operator_token->right_ass && operator_token->prec <= op->prec) || (operator_token->right_ass && operator_token->prec < op->prec)))
+				if (op && ((!operator_token->right_ass && operator_token->prec <= op->prec) ||
+						   (operator_token->right_ass && operator_token->prec < op->prec)))
 				{
 					output.emplace(operators.top());
 					operators.pop();
@@ -251,7 +258,8 @@ public:
 			const auto parenthese = std::dynamic_pointer_cast<TokenParenthese>(operators.top());
 			if (parenthese)
 			{
-				throw std::runtime_error(fmt::format("parentheses mismatch in expression: {}", expression));
+				throw std::runtime_error(
+					fmt::format("parentheses mismatch in expression: {}", expression));
 			}
 
 			output.push(operators.top());
@@ -313,8 +321,10 @@ public:
 					evaluation.emplace(lhs * rhs);
 					break;
 				case TokenOperator::kDivision:
-					if (rhs == 0.0) evaluation.emplace((TType)0.0);
-					else evaluation.emplace(lhs / rhs);
+					if (rhs == 0.0)
+						evaluation.emplace((TType)0.0);
+					else
+						evaluation.emplace(lhs / rhs);
 					break;
 				case TokenOperator::kPow:
 					evaluation.emplace((TType)std::pow(lhs, rhs));
@@ -323,7 +333,8 @@ public:
 					if (std::round(rhs) == 0.0)
 						evaluation.emplace((TType)0.0);
 					else
-						evaluation.emplace((TType)((sint64)std::round(lhs) % (sint64)std::round(rhs)));
+						evaluation.emplace(
+							(TType)((sint64)std::round(lhs) % (sint64)std::round(rhs)));
 					break;
 				case TokenOperator::kEqual:
 					if constexpr (std::is_floating_point_v<TType>)
@@ -366,11 +377,7 @@ public:
 		try
 		{
 			TExpressionParser<TType> ep;
-			ep.AddConstantCallback(
-				[](std::string_view sv) -> TType
-				{
-					return (TType)1;
-				});
+			ep.AddConstantCallback([](std::string_view sv) -> TType { return (TType)1; });
 			static_cast<void>(ep.Evaluate(expression));
 			return true;
 		}
@@ -401,7 +408,7 @@ public:
 	// only adds constant if not added yet
 	void TryAddConstant(std::string_view name, TType value)
 	{
-		m_constants.try_emplace(std::string{ name }, value);
+		m_constants.try_emplace(std::string{name}, value);
 	}
 
 	void AddConstant(std::string_view name, std::string_view value)
@@ -419,7 +426,7 @@ public:
 		m_function_callback = callback;
 	}
 
-private:
+  private:
 	std::unordered_map<std::string, TType> m_constants;
 	ConstantCallback_t m_constant_callback = nullptr;
 	FunctionCallback_t m_function_callback = nullptr;
@@ -449,18 +456,21 @@ private:
 			const auto end = std::find_if_not(str.cbegin(), str.cend(), isxdigit);
 
 			int64_t tmp;
-			chars_result = std::from_chars(str.data(), str.data() + std::distance(str.cbegin(), end), tmp, 16);
+			chars_result =
+				std::from_chars(str.data(), str.data() + std::distance(str.cbegin(), end), tmp, 16);
 			result = (double)tmp;
 		}
 		// a number prefixed with 0 and no decimal point is considered a hex number
-		else if (str.size() >= 2 && str[0] == '0' && isxdigit(str[1]) && !_isNumberWithDecimalPoint(str))
+		else if (str.size() >= 2 && str[0] == '0' && isxdigit(str[1]) &&
+				 !_isNumberWithDecimalPoint(str))
 		{
 			str = str.substr(1);
 			// find end of number
 			const auto end = std::find_if_not(str.cbegin(), str.cend(), isxdigit);
 
 			int64_t tmp;
-			chars_result = std::from_chars(str.data(), str.data() + std::distance(str.cbegin(), end), tmp, 16);
+			chars_result =
+				std::from_chars(str.data(), str.data() + std::distance(str.cbegin(), end), tmp, 16);
 			result = (double)tmp;
 		}
 		else
@@ -471,26 +481,28 @@ private:
 			bool has_point = false;
 			bool has_exponent = false;
 			const auto end = std::find_if_not(str.cbegin(), str.cend(),
-				[&has_point, &has_exponent](char c) -> bool
-				{
-					if (isdigit(c))
-						return true;
+											  [&has_point, &has_exponent](char c) -> bool
+											  {
+												  if (isdigit(c))
+													  return true;
 
-					if (c == '.' && !has_point)
-					{
-						has_point = true;
-						return true;
-					}
+												  if (c == '.' && !has_point)
+												  {
+													  has_point = true;
+													  return true;
+												  }
 
-					if (tolower(c) == 'e' && !has_exponent)
-					{
-						has_exponent = true;
-						// TODO: after exponent might be + and - allowed?
-						return true;
-					}
-					return false;
-				});
-			chars_result = _EP_FROM_CHARS_DBL(str.data(), str.data() + std::distance(str.cbegin(), end), result);
+												  if (tolower(c) == 'e' && !has_exponent)
+												  {
+													  has_exponent = true;
+													  // TODO: after exponent might be + and -
+													  // allowed?
+													  return true;
+												  }
+												  return false;
+											  });
+			chars_result = _EP_FROM_CHARS_DBL(
+				str.data(), str.data() + std::distance(str.cbegin(), end), result);
 		}
 
 		if (chars_result.ec == std::errc())
@@ -544,13 +556,18 @@ private:
 			kGreaterOrEqual,
 		};
 
-		TokenOperator(Operator op, int prec, bool right_ass = false) : op(op), prec(prec), right_ass(right_ass) {}
+		TokenOperator(Operator op, int prec, bool right_ass = false)
+			: op(op), prec(prec), right_ass(right_ass)
+		{
+		}
 		Operator op;
 		int prec;
 		bool right_ass;
 	};
 
-	struct TokenParenthese : TokenBase {};
+	struct TokenParenthese : TokenBase
+	{
+	};
 
 	struct TokenNumber : TokenBase
 	{
@@ -559,7 +576,8 @@ private:
 	};
 };
 
-class ExpressionParser : public TExpressionParser<double> {};
+class ExpressionParser : public TExpressionParser<double>
+{
+};
 
 void ExpressionParser_test();
-

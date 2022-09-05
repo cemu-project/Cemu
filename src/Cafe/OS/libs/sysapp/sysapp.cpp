@@ -1,22 +1,22 @@
-#include "Cafe/OS/common/OSCommon.h"
 #include "sysapp.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_FG.h"
 
-typedef struct  
+typedef struct
 {
 	MEMPTR<char> argStr;
 	uint32be size;
-}sysStandardArguments_t;
+} sysStandardArguments_t;
 
 typedef struct
 {
 	// guessed
-	/* +0x00 */ MEMPTR<uint8>	sysAnchor;
-	/* +0x04 */ uint32be		sysAnchorSize;
-	/* +0x08 */ MEMPTR<uint8>	sysResult;
-	/* +0x0C */ uint32be		sysResultSize;
-}sysDeserializeStandardArguments_t;
+	/* +0x00 */ MEMPTR<uint8> sysAnchor;
+	/* +0x04 */ uint32be sysAnchorSize;
+	/* +0x08 */ MEMPTR<uint8> sysResult;
+	/* +0x0C */ uint32be sysResultSize;
+} sysDeserializeStandardArguments_t;
 
 typedef struct
 {
@@ -25,9 +25,9 @@ typedef struct
 	/* +0x08 */ uint32be mode;
 	/* +0x0C */ uint32be slot_id;
 	/* +0x10 */ MEMPTR<uint8> mii;
-}sysMiiStudioArguments_t;
+} sysMiiStudioArguments_t;
 
-typedef struct  
+typedef struct
 {
 	// used for getting arguments
 	/* +0x00 */ sysStandardArguments_t standardArguments; // ?
@@ -37,15 +37,15 @@ typedef struct
 	/* +0x14 */ uint32be slot_id;
 	/* +0x18 */ MEMPTR<uint8> mii;
 	/* +0x1C */ uint32be miiSize;
-}sysMiiStudioArguments2_t;
+} sysMiiStudioArguments2_t;
 
-typedef struct  
+typedef struct
 {
 	/* +0x00 */ sysDeserializeStandardArguments_t standardArguments;
 	/* +0x10 */ uint32be jumpTo; // see below for list of available values
 	/* +0x14 */ uint32be needsReturn;
 	/* +0x18 */ uint32be firstBootMode;
-}sysSettingsArguments_t;
+} sysSettingsArguments_t;
 
 static_assert(sizeof(sysSettingsArguments_t) == 0x1C);
 static_assert(offsetof(sysSettingsArguments_t, jumpTo) == 0x10);
@@ -76,20 +76,22 @@ typedef struct
 	/* +0x00 */ sysDeserializeStandardArguments_t standardArguments; // guessed
 	/* +0x10 */ uint32be ukn10;
 	/* +0x14 */ uint32be ukn14;
-}eshopArguments_t;
+} eshopArguments_t;
 
 static_assert(sizeof(eshopArguments_t) == 0x18);
 
-#define SYS_STANDARD_ARGS_MAX_LEN		0x1000
+#define SYS_STANDARD_ARGS_MAX_LEN 0x1000
 
-#define OS_COPY_MAX_DATA_SIZE			(0x400000-4)
+#define OS_COPY_MAX_DATA_SIZE (0x400000 - 4)
 
 void appendDataToBuffer(uint32 currentCopyDataSize, char* str, sint32 size)
 {
 	cemu_assert_unimplemented();
 }
 
-sint32 _serializeArgsToBuffer(uint32 currentCopyDataSize, const char* argName, char* str, sint32 size, void (*appendFunc)(uint32 currentCopyDataSize, char* str, sint32 size))
+sint32
+_serializeArgsToBuffer(uint32 currentCopyDataSize, const char* argName, char* str, sint32 size,
+					   void (*appendFunc)(uint32 currentCopyDataSize, char* str, sint32 size))
 {
 	if (strnlen(argName, 0x41) == 0x40)
 		return -0x2710;
@@ -134,7 +136,8 @@ sint32 SYSSerializeSysArgs(const char* argName, char* str, sint32 size)
 
 sint32 _SYSSerializeStandardArgsIn(sysStandardArguments_t* standardArgs)
 {
-	if (strnlen(standardArgs->argStr.GetPtr(), SYS_STANDARD_ARGS_MAX_LEN + 4) > SYS_STANDARD_ARGS_MAX_LEN)
+	if (strnlen(standardArgs->argStr.GetPtr(), SYS_STANDARD_ARGS_MAX_LEN + 4) >
+		SYS_STANDARD_ARGS_MAX_LEN)
 	{
 		return 0xFFFF63C0;
 	}
@@ -149,22 +152,22 @@ sint32 _SYSAppendCallerInfo()
 	return 0;
 }
 
-typedef struct  
+typedef struct
 {
 	uint32be id;
 	uint32be type;
 	// union data here - todo
-}sysArgSlot_t;
+} sysArgSlot_t;
 
-#define SYS_ARG_ID_END				0	// indicates end of sysArgSlot_t array
-#define SYS_ARG_ID_ANCHOR			100
+#define SYS_ARG_ID_END 0 // indicates end of sysArgSlot_t array
+#define SYS_ARG_ID_ANCHOR 100
 
 typedef struct
 {
 	char* argument;
 	uint32 size;
 	uint8* data;
-}deserializedArg_t;
+} deserializedArg_t;
 
 uint32 _sysArg_packSize = 0;
 
@@ -180,7 +183,10 @@ void deserializeSysArg(deserializedArg_t* deserializedArg)
 	// todo
 }
 
-sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize, void(*cbDeserializeArg)(deserializedArg_t* deserializedArg, void* customParam), void* customParam)
+sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize,
+							  void (*cbDeserializeArg)(deserializedArg_t* deserializedArg,
+													   void* customParam),
+							  void* customParam)
 {
 	sint32 idx = copyDataSize - 1;
 	sint32 argSlotIndex = 0;
@@ -203,7 +209,7 @@ sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize, void(*cbD
 			// parse argument name
 			char argumentName[64];
 			sint32 idxCurrent = idxStart;
-			while( idxCurrent <= idx )
+			while (idxCurrent <= idx)
 			{
 				argumentName[idxCurrent - idxStart] = copyDataPtr[idxCurrent];
 				if ((idxCurrent - idxStart) >= 60)
@@ -223,7 +229,8 @@ sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize, void(*cbD
 			{
 				argumentDataSize = 0;
 			}
-			else if ((copyDataSize - idxCurrent) >= 5 && memcmp(copyDataPtr+idxCurrent, "size", 4) == 0)
+			else if ((copyDataSize - idxCurrent) >= 5 &&
+					 memcmp(copyDataPtr + idxCurrent, "size", 4) == 0)
 			{
 				idxCurrent += 4;
 				// skip whitespaces and '='
@@ -234,7 +241,7 @@ sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize, void(*cbD
 				sint32 sizeParamLen = idx - idxCurrent;
 				if (sizeParamLen < 0 || sizeParamLen >= 30)
 					return 1;
-				memcpy(tempSizeStr, copyDataPtr+idxCurrent, sizeParamLen);
+				memcpy(tempSizeStr, copyDataPtr + idxCurrent, sizeParamLen);
 				tempSizeStr[sizeParamLen] = '\0';
 				argumentDataSize = atol(tempSizeStr);
 			}
@@ -244,7 +251,7 @@ sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize, void(*cbD
 				return 1;
 			}
 			idx = idxStart - argumentDataSize - 1; // beginning of data
-			deserializedArg_t deserializedArg = { 0 };
+			deserializedArg_t deserializedArg = {0};
 			deserializedArg.argument = argumentName;
 			deserializedArg.size = argumentDataSize;
 			deserializedArg.data = copyDataPtr + idx;
@@ -264,19 +271,25 @@ sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize, void(*cbD
 	return 0;
 }
 
-void _deserializeSysArgsEx(void(*cbDeserializeArg)(deserializedArg_t* deserializedArg, void* customParam), void* customParam)
+void _deserializeSysArgsEx(void (*cbDeserializeArg)(deserializedArg_t* deserializedArg,
+													void* customParam),
+						   void* customParam)
 {
 	sint32 copyDataSize = coreinit::__OSGetCopyDataSize();
 	uint8* copyDataPtr = coreinit::__OSGetCopyDataPtr();
 	_deserializeSysArgsEx2(copyDataPtr, copyDataSize, cbDeserializeArg, customParam);
 }
 
-void SYSDeserializeSysArgs(void(*cbDeserializeArg)(deserializedArg_t* deserializedArg, void* customParam), sysArgSlot_t* argSlots)
+void SYSDeserializeSysArgs(void (*cbDeserializeArg)(deserializedArg_t* deserializedArg,
+													void* customParam),
+						   sysArgSlot_t* argSlots)
 {
 	_deserializeSysArgsEx(cbDeserializeArg, argSlots);
 }
 
-sint32 _deserializeArgs(void* customParam, sint32 customParamSize, void(*cbDeserializeArg)(deserializedArg_t* deserializedArg, void* customParam))
+sint32 _deserializeArgs(void* customParam, sint32 customParamSize,
+						void (*cbDeserializeArg)(deserializedArg_t* deserializedArg,
+												 void* customParam))
 {
 	memset(customParam, 0, customParamSize);
 	clearSysArgs();
@@ -358,7 +371,8 @@ sint32 _SYSGetSettingsArgs(sysSettingsArguments_t* settingsArgs)
 {
 	_unpackSysWorkaround();
 	memset(settingsArgs, 0, sizeof(sysSettingsArguments_t));
-	return _deserializeArgs(settingsArgs, sizeof(sysSettingsArguments_t), cbDeserializeArg_SysSettings);
+	return _deserializeArgs(settingsArgs, sizeof(sysSettingsArguments_t),
+							cbDeserializeArg_SysSettings);
 }
 
 void sysappExport__SYSGetSettingsArgs(PPCInterpreter_t* hCPU)
@@ -372,29 +386,30 @@ void sysappExport__SYSGetSettingsArgs(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
-struct  
+struct
 {
 	uint64 t0;
 	uint64 t1;
 	uint64 t2;
-}systemApplicationTitleId[] = {
-	{ 0x5001010040000, 0x5001010040100, 0x5001010040200 }, // Wii U Menu 
-	{ 0x5001010047000, 0x5001010047100, 0x5001010047200 }, // System Settings 
-	{ 0x5001010048000, 0x5001010048100, 0x5001010048200 }, // Parental Controls
-	{ 0x5001010049000, 0x5001010049100, 0x5001010049200 }, // User Settings 
-	{ 0x500101004A000, 0x500101004A100, 0x500101004A200 }, // Mii Maker 
-	{ 0x500101004B000, 0x500101004B100, 0x500101004B200 }, // Account Settings
-	{ 0x500101004C000, 0x500101004C100, 0x500101004C200 }, // Daily Log 
-	{ 0x500101004D000, 0x500101004D100, 0x500101004D200 }, // Notifications
-	{ 0x500101004E000, 0x500101004E100, 0x500101004E200 }, // Health and Safety Information 
-	{ 0x5001B10059000, 0x5001B10059100, 0x5001B10059200 }, // Wii U Electronic Manual 
-	{ 0x500101005A000, 0x500101005A100, 0x500101005A200 }, // Wii U Chat 
-	{ 0x5001010062000, 0x5001010062100, 0x5001010062200 }  // Software/Data Transfer 
+} systemApplicationTitleId[] = {
+	{0x5001010040000, 0x5001010040100, 0x5001010040200}, // Wii U Menu
+	{0x5001010047000, 0x5001010047100, 0x5001010047200}, // System Settings
+	{0x5001010048000, 0x5001010048100, 0x5001010048200}, // Parental Controls
+	{0x5001010049000, 0x5001010049100, 0x5001010049200}, // User Settings
+	{0x500101004A000, 0x500101004A100, 0x500101004A200}, // Mii Maker
+	{0x500101004B000, 0x500101004B100, 0x500101004B200}, // Account Settings
+	{0x500101004C000, 0x500101004C100, 0x500101004C200}, // Daily Log
+	{0x500101004D000, 0x500101004D100, 0x500101004D200}, // Notifications
+	{0x500101004E000, 0x500101004E100, 0x500101004E200}, // Health and Safety Information
+	{0x5001B10059000, 0x5001B10059100, 0x5001B10059200}, // Wii U Electronic Manual
+	{0x500101005A000, 0x500101005A100, 0x500101005A200}, // Wii U Chat
+	{0x5001010062000, 0x5001010062100, 0x5001010062200}	 // Software/Data Transfer
 };
 
 uint64 _SYSGetSystemApplicationTitleIdByProdArea(uint32 systemApplicationId, uint32 platformRegion)
 {
-	if (systemApplicationId >= (sizeof(systemApplicationTitleId) / sizeof(systemApplicationTitleId[0])) )
+	if (systemApplicationId >=
+		(sizeof(systemApplicationTitleId) / sizeof(systemApplicationTitleId[0])))
 		assert_dbg();
 
 	if (platformRegion == 1)
@@ -431,7 +446,7 @@ void __LaunchMiiMaker(sysMiiStudioArguments_t* args, uint32 platformRegion)
 		_SYSSerializeStandardArgsIn(&args->standardArguments);
 		SYSSerializeSysArgs("mode", (char*)&args->mode, 4);
 		SYSSerializeSysArgs("slot_id", (char*)&args->slot_id, 4);
-		if(args->mii)
+		if (args->mii)
 			SYSSerializeSysArgs("mii", (char*)args->mii.GetPtr(), 0x60);
 	}
 	_SYSAppendCallerInfo();
@@ -453,8 +468,10 @@ void sysappExport__SYSLaunchMiiStudio(PPCInterpreter_t* hCPU)
 void sysappExport__SYSReturnToCallerWithStandardResult(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32BEPtr(resultPtr, 0);
-	forceLog_printf("_SYSReturnToCallerWithStandardResult(0x%08x) result: 0x%08x", hCPU->gpr[3], (uint32)*resultPtr);
-	while (true) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	forceLog_printf("_SYSReturnToCallerWithStandardResult(0x%08x) result: 0x%08x", hCPU->gpr[3],
+					(uint32)*resultPtr);
+	while (true)
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 void sysappExport__SYSGetEShopArgs(PPCInterpreter_t* hCPU)
@@ -495,7 +512,7 @@ void sysappExport_SYSGetUPIDFromTitleID(PPCInterpreter_t* hCPU)
 		}
 		else if (ukn <= 0x19)
 		{
-			uint8 appletTable10[10] = { 5,6,8,3,0xA,0xB,9,4,0xC,7 };
+			uint8 appletTable10[10] = {5, 6, 8, 3, 0xA, 0xB, 9, 4, 0xC, 7};
 			osLib_returnFromFunction(hCPU, appletTable10[ukn - 0x10]);
 			return;
 		}
@@ -507,8 +524,8 @@ void sysappExport_SYSGetUPIDFromTitleID(PPCInterpreter_t* hCPU)
 		}
 		else if (ukn <= 0x29)
 		{
-			uint8 appletTable20[10] = {5,6,8,3,0xA,0xB,9,4,0xC,7};
-			osLib_returnFromFunction(hCPU, appletTable20[ukn-0x20]);
+			uint8 appletTable20[10] = {5, 6, 8, 3, 0xA, 0xB, 9, 4, 0xC, 7};
+			osLib_returnFromFunction(hCPU, appletTable20[ukn - 0x20]);
 			return;
 		}
 		assert_dbg();
@@ -562,16 +579,16 @@ void sysappExport__SYSGetLauncherArgs(PPCInterpreter_t* hCPU)
 	forceLogDebug_printf("_SYSGetLauncherArgs(0x%08x) - todo\n", hCPU->gpr[3]);
 
 	// todo: Handle OS library version. Older versions used a different struct (only 0x18 bytes?)
-	//ppcDefineParamStructPtr(launcherArgs, SysLauncherArgs, 0);
-	//memset(launcherArgs, 0, sizeof(SysLauncherArgs));
-
+	// ppcDefineParamStructPtr(launcherArgs, SysLauncherArgs, 0);
+	// memset(launcherArgs, 0, sizeof(SysLauncherArgs));
 
 	osLib_returnFromFunction(hCPU, 0); // return argument is todo (probably number of args?)
 }
 
 void sysappExport_SYSGetStandardResult(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SYSGetStandardResult(0x%08x,0x%08x,0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	forceLogDebug_printf("SYSGetStandardResult(0x%08x,0x%08x,0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4],
+						 hCPU->gpr[5]);
 	memset(memory_getPointerFromVirtualOffset(hCPU->gpr[3]), 0, 4);
 
 	osLib_returnFromFunction(hCPU, 0);
@@ -583,9 +600,11 @@ void sysapp_load()
 	osLib_addFunction("sysapp", "_SYSLaunchMiiStudio", sysappExport__SYSLaunchMiiStudio);
 	osLib_addFunction("sysapp", "_SYSGetMiiStudioArgs", sysappExport__SYSGetMiiStudioArgs);
 	osLib_addFunction("sysapp", "_SYSGetSettingsArgs", sysappExport__SYSGetSettingsArgs);
-	osLib_addFunction("sysapp", "_SYSReturnToCallerWithStandardResult", sysappExport__SYSReturnToCallerWithStandardResult);
-	
-	osLib_addFunction("sysapp", "_SYSGetSystemApplicationTitleId", sysappExport__SYSGetSystemApplicationTitleId);
+	osLib_addFunction("sysapp", "_SYSReturnToCallerWithStandardResult",
+					  sysappExport__SYSReturnToCallerWithStandardResult);
+
+	osLib_addFunction("sysapp", "_SYSGetSystemApplicationTitleId",
+					  sysappExport__SYSGetSystemApplicationTitleId);
 	osLib_addFunction("sysapp", "SYSGetUPIDFromTitleID", sysappExport_SYSGetUPIDFromTitleID);
 
 	osLib_addFunction("sysapp", "_SYSGetEShopArgs", sysappExport__SYSGetEShopArgs);

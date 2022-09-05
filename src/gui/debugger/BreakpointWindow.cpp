@@ -1,11 +1,11 @@
-#include "gui/wxgui.h"
 #include "gui/debugger/BreakpointWindow.h"
+#include "gui/wxgui.h"
 
 #include <sstream>
 
+#include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "gui/debugger/DebuggerWindow2.h"
 #include "gui/guiWrapper.h"
-#include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 
@@ -24,18 +24,21 @@ enum ItemColumns
 	ColumnComment,
 };
 
-BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
-	: wxFrame(&parent, wxID_ANY, _("Breakpoints"), wxDefaultPosition, wxSize(420, 250), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
+BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_position,
+								   const wxSize& main_size)
+	: wxFrame(&parent, wxID_ANY, _("Breakpoints"), wxDefaultPosition, wxSize(420, 250),
+			  wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER |
+				  wxFRAME_FLOAT_ON_PARENT)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
 	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
-	
+
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_breakpoints = new wxCheckedListCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
+	m_breakpoints =
+		new wxCheckedListCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
 
-	
 	wxListItem col0;
 	col0.SetId(ColumnEnabled);
 	col0.SetText(_("On"));
@@ -70,8 +73,10 @@ BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_
 	if (parent.GetConfig().data().pin_to_main)
 		OnMainMove(main_position, main_size);
 
-	m_breakpoints->Bind(wxEVT_COMMAND_LIST_ITEM_CHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
-	m_breakpoints->Bind(wxEVT_COMMAND_LIST_ITEM_UNCHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Bind(wxEVT_COMMAND_LIST_ITEM_CHECKED,
+						(wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Bind(wxEVT_COMMAND_LIST_ITEM_UNCHECKED,
+						(wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
 	m_breakpoints->Bind(wxEVT_LEFT_DCLICK, &BreakpointWindow::OnLeftDClick, this);
 	m_breakpoints->Bind(wxEVT_RIGHT_DOWN, &BreakpointWindow::OnRightDown, this);
 
@@ -80,8 +85,10 @@ BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_
 
 BreakpointWindow::~BreakpointWindow()
 {
-	m_breakpoints->Unbind(wxEVT_COMMAND_LIST_ITEM_CHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
-	m_breakpoints->Unbind(wxEVT_COMMAND_LIST_ITEM_UNCHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Unbind(wxEVT_COMMAND_LIST_ITEM_CHECKED,
+						  (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Unbind(wxEVT_COMMAND_LIST_ITEM_UNCHECKED,
+						  (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
 }
 
 void BreakpointWindow::OnMainMove(const wxPoint& main_position, const wxSize& main_size)
@@ -106,7 +113,6 @@ void BreakpointWindow::OnUpdateView()
 		uint32_t i = 0;
 		for (const auto bpBase : debuggerState.breakpoints)
 		{
-
 			DebuggerBreakpoint* bp = bpBase;
 			while (bp)
 			{
@@ -132,10 +138,9 @@ void BreakpointWindow::OnUpdateView()
 
 				bp = bp->next;
 			}
-
 		}
 	}
-	
+
 	Thaw();
 }
 
@@ -163,7 +168,7 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 	const sint32 index = (position.y / m_breakpoints->GetCharHeight()) - 2;
 	if (index < 0 || index >= m_breakpoints->GetItemCount())
 		return;
-	
+
 	sint32 x = position.x;
 	const auto enabled_width = m_breakpoints->GetColumnWidth(ColumnEnabled);
 	if (x <= enabled_width)
@@ -171,7 +176,7 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 
 	x -= enabled_width;
 	const auto address_width = m_breakpoints->GetColumnWidth(ColumnAddress);
-	if(x <= address_width)
+	if (x <= address_width)
 	{
 		const auto item = m_breakpoints->GetItemText(index, ColumnAddress);
 		const auto address = std::stoul(item.ToStdString(), nullptr, 16);
@@ -181,24 +186,27 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 	}
 
 	x -= address_width;
-	const auto type_width =  m_breakpoints->GetColumnWidth(ColumnType);
+	const auto type_width = m_breakpoints->GetColumnWidth(ColumnType);
 	if (x <= type_width)
 		return;
 
 	x -= type_width;
 	const auto comment_width = m_breakpoints->GetColumnWidth(ColumnComment);
-	if(x <= comment_width)
+	if (x <= comment_width)
 	{
 		if (index >= debuggerState.breakpoints.size())
 			return;
 
 		const auto item = m_breakpoints->GetItemText(index, ColumnAddress);
 		const auto address = std::stoul(item.ToStdString(), nullptr, 16);
-		
+
 		auto it = debuggerState.breakpoints.begin();
 		std::advance(it, index);
 
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new comment."), wxString::Format(_("Set comment for breakpoint at address %08x"), address), (*it)->comment);
+		wxTextEntryDialog set_value_dialog(
+			this, _("Enter a new comment."),
+			wxString::Format(_("Set comment for breakpoint at address %08x"), address),
+			(*it)->comment);
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
 			(*it)->comment = set_value_dialog.GetValue().ToStdWstring();
@@ -216,7 +224,8 @@ void BreakpointWindow::OnRightDown(wxMouseEvent& event)
 	menu.Append(MENU_ID_CREATE_MEM_BP_READ, _("Create memory breakpoint (read)"));
 	menu.Append(MENU_ID_CREATE_MEM_BP_WRITE, _("Create memory breakpoint (write)"));
 
-	menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(BreakpointWindow::OnContextMenuClick), nullptr, this);
+	menu.Connect(wxEVT_COMMAND_MENU_SELECTED,
+				 wxCommandEventHandler(BreakpointWindow::OnContextMenuClick), nullptr, this);
 	PopupMenu(&menu);
 }
 
@@ -235,14 +244,14 @@ void BreakpointWindow::OnContextMenuClick(wxCommandEvent& evt)
 
 void BreakpointWindow::MemoryBreakpointDialog(bool isWrite)
 {
-	wxTextEntryDialog goto_dialog(this, _("Enter a memory address"), _("Memory breakpoint"), wxEmptyString);
+	wxTextEntryDialog goto_dialog(this, _("Enter a memory address"), _("Memory breakpoint"),
+								  wxEmptyString);
 	if (goto_dialog.ShowModal() == wxID_OK)
 	{
 		ExpressionParser parser;
 
 		auto value = goto_dialog.GetValue().ToStdString();
 		std::transform(value.begin(), value.end(), value.begin(), tolower);
-
 
 		try
 		{
@@ -255,10 +264,9 @@ void BreakpointWindow::MemoryBreakpointDialog(bool isWrite)
 		}
 		catch (const std::exception& e)
 		{
-			//ctx.errorHandler.printError(nullptr, -1, fmt::format("Unexpected error in expression \"{}\"", expressionString));
-			//return EXPRESSION_RESOLVE_RESULT::EXPRESSION_ERROR;
+			// ctx.errorHandler.printError(nullptr, -1, fmt::format("Unexpected error in expression
+			// \"{}\"", expressionString)); return EXPRESSION_RESOLVE_RESULT::EXPRESSION_ERROR;
 			wxMessageBox(e.what(), "Invalid expression");
 		}
-		
 	}
 }

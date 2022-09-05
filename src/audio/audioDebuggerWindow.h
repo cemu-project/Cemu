@@ -4,7 +4,7 @@
 
 class AudioDebuggerWindow : public wxFrame
 {
-public:
+  public:
 	AudioDebuggerWindow(wxFrame& parent);
 
 	void OnCloseButton(wxCommandEvent& event);
@@ -13,16 +13,14 @@ public:
 	void RefreshVoiceList_sndgeneric();
 	void RefreshVoiceList();
 	void OnRefreshTimer(wxTimerEvent& event);
-	void OnVoiceListPopupClick(wxCommandEvent &evt);
+	void OnVoiceListPopupClick(wxCommandEvent& evt);
 	void OnVoiceListRightClick(wxMouseEvent& event);
-	
+
 	void Close();
 
-private:
+  private:
 	wxListCtrl* voiceListbox;
 	wxTimer* refreshTimer;
 
 	wxDECLARE_EVENT_TABLE();
-
-
 };

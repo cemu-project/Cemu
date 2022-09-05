@@ -1,7 +1,7 @@
 #pragma once
 
-#include <pugixml.hpp>
 #include "config/CemuConfig.h"
+#include <pugixml.hpp>
 
 struct ParsedMetaXml
 {
@@ -108,7 +108,7 @@ struct ParsedMetaXml
 		return parsedMetaXml;
 	}
 
-private:
+  private:
 	static sint32 GetLanguageIndex(std::string_view language) // move to NCrypto ?
 	{
 		if (language == "ja")

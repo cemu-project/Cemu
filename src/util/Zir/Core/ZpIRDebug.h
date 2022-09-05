@@ -4,36 +4,39 @@
 namespace ZpIR
 {
 
-	class DebugPrinter
+class DebugPrinter
+{
+  public:
+	void debugPrint(ZpIRFunction* irFunction);
+
+	void setShowPhysicalRegisters(bool showPhys)
 	{
+		m_showPhysicalRegisters = showPhys;
+	}
 
-	public:
-		void debugPrint(ZpIRFunction* irFunction);
+	void setVirtualRegisterNameSource(std::string (*getRegisterNameCustom)(ZpIRBasicBlock* block,
+																		   IRReg r))
+	{
+		m_getRegisterNameCustom = getRegisterNameCustom;
+	}
 
-		void setShowPhysicalRegisters(bool showPhys)
-		{
-			m_showPhysicalRegisters = showPhys;
-		}
+	void setPhysicalRegisterNameSource(std::string (*getRegisterNameCustom)(ZpIRBasicBlock* block,
+																			ZpIRPhysicalReg r))
+	{
+		m_getPhysicalRegisterNameCustom = getRegisterNameCustom;
+	}
 
-		void setVirtualRegisterNameSource(std::string(*getRegisterNameCustom)(ZpIRBasicBlock* block, IRReg r))
-		{
-			m_getRegisterNameCustom = getRegisterNameCustom;
-		}
+  private:
+	std::string getRegisterName(ZpIRBasicBlock* block, IRReg r);
+	std::string getInstructionHRF(ZpIRBasicBlock* block, IR::__InsBase* cmd);
+	void debugPrintBlock(ZpIRBasicBlock* block);
 
-		void setPhysicalRegisterNameSource(std::string(*getRegisterNameCustom)(ZpIRBasicBlock* block, ZpIRPhysicalReg r))
-		{
-			m_getPhysicalRegisterNameCustom = getRegisterNameCustom;
-		}
+	std::string (*m_getRegisterNameCustom)(ZpIRBasicBlock* block, IRReg r){nullptr};
+	std::string (*m_getPhysicalRegisterNameCustom)(ZpIRBasicBlock* block,
+												   ZpIRPhysicalReg r){nullptr};
 
-	private:
-		std::string getRegisterName(ZpIRBasicBlock* block, IRReg r);
-		std::string getInstructionHRF(ZpIRBasicBlock* block, IR::__InsBase* cmd);
-		void debugPrintBlock(ZpIRBasicBlock* block);
+	bool m_showPhysicalRegisters{}; // show global/physical register mapping instead of local IRReg
+									// indices
+};
 
-		std::string(*m_getRegisterNameCustom)(ZpIRBasicBlock* block, IRReg r) { nullptr };
-		std::string(*m_getPhysicalRegisterNameCustom)(ZpIRBasicBlock* block, ZpIRPhysicalReg r) { nullptr };
-
-		bool m_showPhysicalRegisters{}; // show global/physical register mapping instead of local IRReg indices
-	};
-
-}
+} // namespace ZpIR

@@ -1,5 +1,5 @@
 
 namespace nn::cmpt
 {
-	void Initialize();
+void Initialize();
 }

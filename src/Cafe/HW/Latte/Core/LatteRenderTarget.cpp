@@ -1,21 +1,21 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 
-#include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
-#include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "Cafe/HW/Latte/Core/LatteOverlay.h"
-#include "Cafe/HW/Latte/Core/LatteBufferCache.h"
-#include "Cafe/HW/Latte/Core/LatteTexture.h"
-#include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "config/ActiveSettings.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteBufferCache.h"
+#include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
+#include "Cafe/HW/Latte/Core/LatteOverlay.h"
+#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/LatteTexture.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "gui/guiWrapper.h"
 #include "Cafe/OS/libs/erreula/erreula.h"
-#include "input/InputManager.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
+#include "config/ActiveSettings.h"
+#include "gui/guiWrapper.h"
+#include "input/InputManager.h"
 
 uint32 prevScissorX = 0;
 uint32 prevScissorY = 0;
@@ -38,27 +38,27 @@ struct
 	{
 		sint32 width;
 		sint32 height;
-	}currentGuestViewport;
+	} currentGuestViewport;
 	bool renderTargetIsResized;
 	// tracking
 	sint32 rtUpdateListCount;
 	LatteTextureView* rtUpdateList[64];
 	sint32 rtUpdateListSlice[64];
 	sint32 rtUpdateListMip[64];
-}sLatteRenderTargetState;
+} sLatteRenderTargetState;
 
 struct
 {
 	struct
 	{
 		LatteTextureView* view{};
-	}colorBuffer[8];
+	} colorBuffer[8];
 	struct
 	{
 		LatteTextureView* view{};
 		bool hasStencil{false};
-	}depthBuffer;
-}sLatteCurrentRendertargets{};
+	} depthBuffer;
+} sLatteCurrentRendertargets{};
 
 LatteCachedFBO::LatteCachedFBO(uint64 key) : key(key)
 {
@@ -92,7 +92,8 @@ void LatteMRT::NotifyTextureDeletion(LatteTexture* texture)
 {
 	for (sint32 i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; i++)
 	{
-		if (sLatteCurrentRendertargets.colorBuffer[i].view && sLatteCurrentRendertargets.colorBuffer[i].view->baseTexture == texture)
+		if (sLatteCurrentRendertargets.colorBuffer[i].view &&
+			sLatteCurrentRendertargets.colorBuffer[i].view->baseTexture == texture)
 		{
 			sLatteCurrentRendertargets.colorBuffer[i].view = nullptr;
 		}
@@ -111,14 +112,26 @@ void LatteMRT::DeleteCachedFBO(LatteCachedFBO* cfbo)
 	{
 		if (cfbo->colorBuffer[i].texture == NULL)
 			continue;
-		cfbo->colorBuffer[i].texture->list_fboLookup.erase(std::remove(cfbo->colorBuffer[i].texture->list_fboLookup.begin(), cfbo->colorBuffer[i].texture->list_fboLookup.end(), cfbo), cfbo->colorBuffer[i].texture->list_fboLookup.end());
-		cfbo->colorBuffer[i].texture->list_associatedFbo.erase(std::remove(cfbo->colorBuffer[i].texture->list_associatedFbo.begin(), cfbo->colorBuffer[i].texture->list_associatedFbo.end(), cfbo), cfbo->colorBuffer[i].texture->list_associatedFbo.end());
+		cfbo->colorBuffer[i].texture->list_fboLookup.erase(
+			std::remove(cfbo->colorBuffer[i].texture->list_fboLookup.begin(),
+						cfbo->colorBuffer[i].texture->list_fboLookup.end(), cfbo),
+			cfbo->colorBuffer[i].texture->list_fboLookup.end());
+		cfbo->colorBuffer[i].texture->list_associatedFbo.erase(
+			std::remove(cfbo->colorBuffer[i].texture->list_associatedFbo.begin(),
+						cfbo->colorBuffer[i].texture->list_associatedFbo.end(), cfbo),
+			cfbo->colorBuffer[i].texture->list_associatedFbo.end());
 	}
 	// depth texture
 	if (cfbo->depthBuffer.texture)
 	{
-		cfbo->depthBuffer.texture->list_fboLookup.erase(std::remove(cfbo->depthBuffer.texture->list_fboLookup.begin(), cfbo->depthBuffer.texture->list_fboLookup.end(), cfbo), cfbo->depthBuffer.texture->list_fboLookup.end());
-		cfbo->depthBuffer.texture->list_associatedFbo.erase(std::remove(cfbo->depthBuffer.texture->list_associatedFbo.begin(), cfbo->depthBuffer.texture->list_associatedFbo.end(), cfbo), cfbo->depthBuffer.texture->list_associatedFbo.end());
+		cfbo->depthBuffer.texture->list_fboLookup.erase(
+			std::remove(cfbo->depthBuffer.texture->list_fboLookup.begin(),
+						cfbo->depthBuffer.texture->list_fboLookup.end(), cfbo),
+			cfbo->depthBuffer.texture->list_fboLookup.end());
+		cfbo->depthBuffer.texture->list_associatedFbo.erase(
+			std::remove(cfbo->depthBuffer.texture->list_associatedFbo.begin(),
+						cfbo->depthBuffer.texture->list_associatedFbo.end(), cfbo),
+			cfbo->depthBuffer.texture->list_associatedFbo.end());
 	}
 	g_renderer->rendertarget_deleteCachedFBO(cfbo);
 	delete cfbo;
@@ -196,9 +209,12 @@ void LatteMRT::ApplyCurrentState()
 	g_renderer->rendertarget_bindFramebufferObject(cfbo);
 	fboLookupView->list_fboLookup.push_back(cfbo);
 	// some extra checks to verify that looked up fbo matches active buffers
-	cemu_assert_debug(cfbo->colorBuffer[0].texture == sLatteCurrentRendertargets.colorBuffer[0].view);
-	cemu_assert_debug(cfbo->colorBuffer[1].texture == sLatteCurrentRendertargets.colorBuffer[1].view);
-	cemu_assert_debug(cfbo->colorBuffer[2].texture == sLatteCurrentRendertargets.colorBuffer[2].view);
+	cemu_assert_debug(cfbo->colorBuffer[0].texture ==
+					  sLatteCurrentRendertargets.colorBuffer[0].view);
+	cemu_assert_debug(cfbo->colorBuffer[1].texture ==
+					  sLatteCurrentRendertargets.colorBuffer[1].view);
+	cemu_assert_debug(cfbo->colorBuffer[2].texture ==
+					  sLatteCurrentRendertargets.colorBuffer[2].view);
 	cemu_assert_debug(cfbo->depthBuffer.texture == sLatteCurrentRendertargets.depthBuffer.view);
 }
 
@@ -223,34 +239,53 @@ void LatteMRT::BindDepthBufferOnly(LatteTextureView* view)
 
 /***************************************************/
 
-LatteTextureView* LatteMRT_FindColorBufferForClearing(MPTR colorBufferPtr, sint32 colorBufferWidth, sint32 colorBufferHeight, sint32 colorBufferPitch, uint32 format, sint32 sliceIndex, sint32* searchIndex)
+LatteTextureView* LatteMRT_FindColorBufferForClearing(MPTR colorBufferPtr, sint32 colorBufferWidth,
+													  sint32 colorBufferHeight,
+													  sint32 colorBufferPitch, uint32 format,
+													  sint32 sliceIndex, sint32* searchIndex)
 {
-	LatteTextureView* view = LatteTC_LookupTextureByData(colorBufferPtr, colorBufferWidth, colorBufferHeight, colorBufferPitch, 0, 1, sliceIndex, 1, searchIndex);
+	LatteTextureView* view =
+		LatteTC_LookupTextureByData(colorBufferPtr, colorBufferWidth, colorBufferHeight,
+									colorBufferPitch, 0, 1, sliceIndex, 1, searchIndex);
 	if (view == nullptr)
 		return nullptr;
 	return view;
 }
 
-LatteTextureView* LatteMRT_CreateColorBuffer(MPTR colorBufferPhysMem, uint32 width, uint32 height, uint32 pitch, Latte::E_GX2SURFFMT format, Latte::E_HWTILEMODE tileMode, uint32 swizzle, uint32 viewSlice)
+LatteTextureView* LatteMRT_CreateColorBuffer(MPTR colorBufferPhysMem, uint32 width, uint32 height,
+											 uint32 pitch, Latte::E_GX2SURFFMT format,
+											 Latte::E_HWTILEMODE tileMode, uint32 swizzle,
+											 uint32 viewSlice)
 {
 	cemu_assert_debug(colorBufferPhysMem != MPTR_NULL);
 	LatteTextureView* textureView;
-	if(viewSlice != 0)
-		textureView = LatteTexture_CreateMapping(colorBufferPhysMem, MPTR_NULL, width, height, viewSlice+1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, false);
+	if (viewSlice != 0)
+		textureView = LatteTexture_CreateMapping(
+			colorBufferPhysMem, MPTR_NULL, width, height, viewSlice + 1, pitch, tileMode, swizzle,
+			0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, false);
 	else
-		textureView = LatteTexture_CreateMapping(colorBufferPhysMem, MPTR_NULL, width, height, 1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, false);
+		textureView = LatteTexture_CreateMapping(
+			colorBufferPhysMem, MPTR_NULL, width, height, 1, pitch, tileMode, swizzle, 0, 1,
+			viewSlice, 1, format, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, false);
 	// unbind texture
 	g_renderer->texture_bindAndActivate(nullptr, 0);
 	return textureView;
 }
 
-LatteTextureView* LatteMRT_CreateDepthBuffer(MPTR depthBufferPhysMem, uint32 width, uint32 height, uint32 pitch, Latte::E_HWTILEMODE tileMode, Latte::E_GX2SURFFMT format, uint32 swizzle, sint32 viewSlice)
+LatteTextureView* LatteMRT_CreateDepthBuffer(MPTR depthBufferPhysMem, uint32 width, uint32 height,
+											 uint32 pitch, Latte::E_HWTILEMODE tileMode,
+											 Latte::E_GX2SURFFMT format, uint32 swizzle,
+											 sint32 viewSlice)
 {
 	LatteTextureView* textureView;
-	if(viewSlice == 0)
-		textureView = LatteTexture_CreateMapping(depthBufferPhysMem, MPTR_NULL, width, height, 1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
+	if (viewSlice == 0)
+		textureView = LatteTexture_CreateMapping(
+			depthBufferPhysMem, MPTR_NULL, width, height, 1, pitch, tileMode, swizzle, 0, 1,
+			viewSlice, 1, format, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
 	else
-		textureView = LatteTexture_CreateMapping(depthBufferPhysMem, MPTR_NULL, width, height, viewSlice+1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, true);
+		textureView = LatteTexture_CreateMapping(
+			depthBufferPhysMem, MPTR_NULL, width, height, viewSlice + 1, pitch, tileMode, swizzle,
+			0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, true);
 
 	LatteMRT::SetDepthAndStencilAttachment(textureView, textureView->baseTexture->hasStencil);
 	// unbind texture
@@ -260,10 +295,13 @@ LatteTextureView* LatteMRT_CreateDepthBuffer(MPTR depthBufferPhysMem, uint32 wid
 
 sint32 _depthBufferSizeWarningCount = 0;
 
-LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createNew, bool checkForTextureChanges)
+LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createNew,
+													  bool checkForTextureChanges)
 {
-	uint32* colorBufferRegBase = LatteGPUState.contextRegister+(mmCB_COLOR0_BASE + index);
-	uint32 regColorBufferBase = colorBufferRegBase[mmCB_COLOR0_BASE - mmCB_COLOR0_BASE] & 0xFFFFFF00; // the low 8 bits are ignored? How to Survive seems to rely on this
+	uint32* colorBufferRegBase = LatteGPUState.contextRegister + (mmCB_COLOR0_BASE + index);
+	uint32 regColorBufferBase =
+		colorBufferRegBase[mmCB_COLOR0_BASE - mmCB_COLOR0_BASE] &
+		0xFFFFFF00; // the low 8 bits are ignored? How to Survive seems to rely on this
 	uint32 regColorSize = colorBufferRegBase[mmCB_COLOR0_SIZE - mmCB_COLOR0_BASE];
 	uint32 regColorInfo = colorBufferRegBase[mmCB_COLOR0_INFO - mmCB_COLOR0_BASE];
 	uint32 regColorView = colorBufferRegBase[mmCB_COLOR0_VIEW - mmCB_COLOR0_BASE];
@@ -275,7 +313,7 @@ LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createN
 	MPTR colorBufferPhysMem = regColorBufferBase;
 
 	uint32 colorBufferSwizzle = 0;
-	if ( Latte::TM_IsMacroTiled(colorBufferTileMode) )
+	if (Latte::TM_IsMacroTiled(colorBufferTileMode))
 	{
 		colorBufferSwizzle = colorBufferPhysMem & 0x700;
 		colorBufferPhysMem = colorBufferPhysMem & ~(7 << 8);
@@ -300,12 +338,21 @@ LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createN
 
 	cemu_assert_debug(viewNumSlices == 1);
 
-	LatteTextureView* colorBufferView = LatteTextureViewLookupCache::lookupSliceEx(colorBufferPhysMem, colorBufferWidth, colorBufferHeight, colorBufferPitch, viewFirstMip, viewFirstSlice, colorBufferFormat, false);
+	LatteTextureView* colorBufferView = LatteTextureViewLookupCache::lookupSliceEx(
+		colorBufferPhysMem, colorBufferWidth, colorBufferHeight, colorBufferPitch, viewFirstMip,
+		viewFirstSlice, colorBufferFormat, false);
 
 	if (colorBufferView == nullptr)
 	{
 		// create color buffer view
-		colorBufferView = LatteTexture_CreateMapping(colorBufferPhysMem, 0, colorBufferWidth, colorBufferHeight, (viewFirstSlice + viewNumSlices), colorBufferPitch, colorBufferTileMode, colorBufferSwizzle>>8, viewFirstMip, 1, viewFirstSlice, viewNumSlices, (Latte::E_GX2SURFFMT)colorBufferFormat, (viewFirstSlice + viewNumSlices)>1? Latte::E_DIM::DIM_2D_ARRAY: Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, false);
+		colorBufferView = LatteTexture_CreateMapping(
+			colorBufferPhysMem, 0, colorBufferWidth, colorBufferHeight,
+			(viewFirstSlice + viewNumSlices), colorBufferPitch, colorBufferTileMode,
+			colorBufferSwizzle >> 8, viewFirstMip, 1, viewFirstSlice, viewNumSlices,
+			(Latte::E_GX2SURFFMT)colorBufferFormat,
+			(viewFirstSlice + viewNumSlices) > 1 ? Latte::E_DIM::DIM_2D_ARRAY
+												 : Latte::E_DIM::DIM_2D,
+			Latte::E_DIM::DIM_2D, false);
 		LatteGPUState.repeatTextureInitialization = true;
 		checkForTextureChanges = false;
 	}
@@ -324,7 +371,8 @@ LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createN
 }
 
 // get mask of all used color buffers
-uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
+uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShader,
+										 const LatteContextRegister& lcr)
 {
 	const uint32* regView = lcr.GetRawView();
 
@@ -336,13 +384,15 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 	}
 	// check if color buffer output is active
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
-	uint32 colorBufferDisable = colorControlReg.get_SPECIAL_OP() == Latte::LATTE_CB_COLOR_CONTROL::E_SPECIALOP::DISABLE;
+	uint32 colorBufferDisable =
+		colorControlReg.get_SPECIAL_OP() == Latte::LATTE_CB_COLOR_CONTROL::E_SPECIALOP::DISABLE;
 	if (colorBufferDisable)
 		return 0;
 	cemu_assert_debug(colorControlReg.get_DEGAMMA_ENABLE() == false); // not supported
 	// combine color buffer mask with pixel output mask from pixel shader
 	colorBufferMask &= pixelShader->pixelColorOutputMask;
-	// combine color buffer mask with color channel mask from mmCB_TARGET_MASK (disable render buffer if all colors are blocked)
+	// combine color buffer mask with color channel mask from mmCB_TARGET_MASK (disable render
+	// buffer if all colors are blocked)
 	uint32 channelTargetMask = lcr.CB_TARGET_MASK.get_MASK();
 	for (uint32 i = 0; i < 8; i++)
 	{
@@ -352,12 +402,13 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 
 	// render targets smaller than the scissor size are not allowed
 	// this fixes a few render issues in Cemu but we dont know if this matches HW behavior
-	cemu_assert_debug(lcr.PA_SC_GENERIC_SCISSOR_TL.get_WINDOW_OFFSET_DISABLE() == true); // todo (not exposed by GX2 API)
+	cemu_assert_debug(lcr.PA_SC_GENERIC_SCISSOR_TL.get_WINDOW_OFFSET_DISABLE() ==
+					  true); // todo (not exposed by GX2 API)
 	uint32 scissorAccessWidth = lcr.PA_SC_GENERIC_SCISSOR_BR.get_BR_X();
 	uint32 scissorAccessHeight = lcr.PA_SC_GENERIC_SCISSOR_BR.get_BR_Y();
 	for (uint32 i = 0; i < 8; i++)
 	{
-		if( (colorBufferMask&(1<<i)) == 0 )
+		if ((colorBufferMask & (1 << i)) == 0)
 			continue;
 		// get width/height
 		uint32 regColorSize = regView[mmCB_COLOR0_SIZE + i];
@@ -373,9 +424,8 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 		if ((colorBufferWidth < (sint32)scissorAccessWidth) ||
 			(colorBufferHeight < (sint32)scissorAccessHeight))
 		{
-			colorBufferMask &= ~(1<<i);
+			colorBufferMask &= ~(1 << i);
 		}
-
 	}
 
 	return colorBufferMask;
@@ -396,19 +446,19 @@ bool LatteMRT::GetActiveDepthBufferMask(const LatteContextRegister& lcr)
 	return depthBufferMask;
 }
 
-const uint32 _colorBufferFormatBits[] =
-{
-	0, // 0
+const uint32 _colorBufferFormatBits[] = {
+	0,	   // 0
 	0x200, // 1
-	0, // 2
-	0, // 3
+	0,	   // 2
+	0,	   // 3
 	0x100, // 4
 	0x300, // 5
 	0x400, // 6
 	0x800, // 7
 };
 
-Latte::E_GX2SURFFMT LatteMRT::GetColorBufferFormat(const uint32 index, const LatteContextRegister& lcr)
+Latte::E_GX2SURFFMT LatteMRT::GetColorBufferFormat(const uint32 index,
+												   const LatteContextRegister& lcr)
 {
 	cemu_assert_debug(index < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS);
 	uint32 regColorInfo = lcr.GetRawView()[mmCB_COLOR0_INFO + index];
@@ -458,7 +508,8 @@ bool LatteMRT::UpdateCurrentFBO()
 	if (!depthEnable && !stencilTestEnable && !backStencilEnable)
 		depthBufferMask = false;
 
-	bool hasResizedTexture = false; // set to true if any of the color buffers or the depth buffer reference a resized texture (via graphic pack texture rules)
+	bool hasResizedTexture = false; // set to true if any of the color buffers or the depth buffer
+									// reference a resized texture (via graphic pack texture rules)
 	sLatteRenderTargetState.renderTargetIsResized = false;
 	// real size
 	LatteMRTQuad* rtRealSize = &sLatteRenderTargetState.currentRenderSize;
@@ -469,7 +520,9 @@ bool LatteMRT::UpdateCurrentFBO()
 	rtEffectiveSize->width = 0;
 	rtEffectiveSize->height = 0;
 	// get scissor box
-	cemu_assert_debug(LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_TL.get_WINDOW_OFFSET_DISABLE() == true); // todo (not exposed by GX2 API?)
+	cemu_assert_debug(
+		LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_TL.get_WINDOW_OFFSET_DISABLE() ==
+		true); // todo (not exposed by GX2 API?)
 	uint32 scissorX = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_TL.get_TL_X();
 	uint32 scissorY = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_TL.get_TL_Y();
 	uint32 scissorWidth = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_BR.get_BR_X() - scissorX;
@@ -479,7 +532,7 @@ bool LatteMRT::UpdateCurrentFBO()
 	// color buffers
 	for (uint32 i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; i++)
 	{
-		if (((colorBufferMask)&(1 << i)) == 0)
+		if (((colorBufferMask) & (1 << i)) == 0)
 		{
 			// unbind
 			SetColorAttachment(i, nullptr);
@@ -488,25 +541,36 @@ bool LatteMRT::UpdateCurrentFBO()
 		LatteTextureView* colorAttachmentView = GetColorAttachmentTexture(i, true, true);
 		SetColorAttachment(i, colorAttachmentView);
 		// after the drawcall mark the texture as updated
-		sLatteRenderTargetState.rtUpdateList[sLatteRenderTargetState.rtUpdateListCount] = colorAttachmentView;
+		sLatteRenderTargetState.rtUpdateList[sLatteRenderTargetState.rtUpdateListCount] =
+			colorAttachmentView;
 		sLatteRenderTargetState.rtUpdateListCount++;
 
 		sint32 colorAttachmentWidth;
 		sint32 colorAttachmentHeight;
-		LatteTexture_getSize(colorAttachmentView->baseTexture, &colorAttachmentWidth, &colorAttachmentHeight, nullptr, colorAttachmentView->firstMip);
+		LatteTexture_getSize(colorAttachmentView->baseTexture, &colorAttachmentWidth,
+							 &colorAttachmentHeight, nullptr, colorAttachmentView->firstMip);
 
 		// set effective size
 		sint32 effectiveWidth, effectiveHeight;
-		LatteTexture_getEffectiveSize(colorAttachmentView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, colorAttachmentView->firstMip);
-		if( rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0 )
+		LatteTexture_getEffectiveSize(colorAttachmentView->baseTexture, &effectiveWidth,
+									  &effectiveHeight, nullptr, colorAttachmentView->firstMip);
+		if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
 		{
 			rtEffectiveSize->width = effectiveWidth;
 			rtEffectiveSize->height = effectiveHeight;
 		}
-		else if( rtEffectiveSize->width != effectiveWidth && rtEffectiveSize->height != effectiveHeight )
+		else if (rtEffectiveSize->width != effectiveWidth &&
+				 rtEffectiveSize->height != effectiveHeight)
 		{
 #ifndef PUBLIC_RELEASE
-			forceLog_printf("Color buffer size mismatch (%dx%d). Effective size: %dx%d Real size: %dx%d Mismatching texture: %08x %dx%d fmt %04x", rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, colorAttachmentView->baseTexture->physAddress, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, (uint32)colorAttachmentView->baseTexture->format);
+			forceLog_printf(
+				"Color buffer size mismatch (%dx%d). Effective size: %dx%d Real size: %dx%d "
+				"Mismatching texture: %08x %dx%d fmt %04x",
+				rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight,
+				colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height,
+				colorAttachmentView->baseTexture->physAddress,
+				colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height,
+				(uint32)colorAttachmentView->baseTexture->format);
 #endif
 		}
 		// currently the first color attachment defines the size of the current render target
@@ -528,7 +592,8 @@ bool LatteMRT::UpdateCurrentFBO()
 
 		// get format and tileMode from info reg
 		Latte::E_GX2SURFFMT depthBufferFormat = GetDepthBufferFormat(LatteGPUState.contextNew);
-		Latte::E_HWTILEMODE depthBufferTileMode = (Latte::E_HWTILEMODE)((regDepthBufferInfo >> 15) & 0xF);
+		Latte::E_HWTILEMODE depthBufferTileMode =
+			(Latte::E_HWTILEMODE)((regDepthBufferInfo >> 15) & 0xF);
 		MPTR depthBufferPhysMem = regDepthBuffer << 8;
 
 		uint32 depthBufferPitch = (((regDepthSize >> 0) & 0x3FF) + 1);
@@ -554,7 +619,7 @@ bool LatteMRT::UpdateCurrentFBO()
 			SetDepthAndStencilAttachment(nullptr, false);
 			blockDepthBuffer = true;
 			// set effective size
-			if( rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0 )
+			if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
 			{
 				rtEffectiveSize->width = rtRealSize->width;
 				rtEffectiveSize->height = rtRealSize->height;
@@ -570,8 +635,10 @@ bool LatteMRT::UpdateCurrentFBO()
 			}
 			uint32 regDepthView = LatteGPUState.contextRegister[mmDB_DEPTH_VIEW];
 			uint32 depthBufferViewFirstSlice = (regDepthView & 0x7FF);
-			uint32 depthBufferViewNumSlices = ((regDepthView >> 13) & 0x7FF) - depthBufferViewFirstSlice + 1;
-			cemu_assert_debug(depthBufferViewNumSlices == 1); // binding multiple layers makes no sense?
+			uint32 depthBufferViewNumSlices =
+				((regDepthView >> 13) & 0x7FF) - depthBufferViewFirstSlice + 1;
+			cemu_assert_debug(depthBufferViewNumSlices ==
+							  1); // binding multiple layers makes no sense?
 
 			uint32 depthBufferSwizzle = 0;
 			if (Latte::TM_IsMacroTiled(depthBufferTileMode))
@@ -583,15 +650,27 @@ bool LatteMRT::UpdateCurrentFBO()
 			if (depthBufferPhysMem != MPTR_NULL)
 			{
 				bool depthBufferWasFound = false;
-				LatteTextureView* depthBufferView = LatteTextureViewLookupCache::lookupSliceEx(depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0, depthBufferViewFirstSlice, depthBufferFormat, true);
+				LatteTextureView* depthBufferView = LatteTextureViewLookupCache::lookupSliceEx(
+					depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0,
+					depthBufferViewFirstSlice, depthBufferFormat, true);
 				if (depthBufferView == nullptr)
 				{
 					// create depth buffer view
-					forceLogDebug_printf("Creating depth buffer tex %08x %dx%d slice %d", depthBufferPhysMem, depthBufferHeight, depthBufferWidth, depthBufferViewFirstSlice);
-					if(depthBufferViewFirstSlice == 0)
-						depthBufferView = LatteTexture_CreateMapping(depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, 1, depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, 0, 1, depthBufferFormat, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
+					forceLogDebug_printf("Creating depth buffer tex %08x %dx%d slice %d",
+										 depthBufferPhysMem, depthBufferHeight, depthBufferWidth,
+										 depthBufferViewFirstSlice);
+					if (depthBufferViewFirstSlice == 0)
+						depthBufferView = LatteTexture_CreateMapping(
+							depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, 1,
+							depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, 0, 1,
+							depthBufferFormat, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
 					else
-						depthBufferView = LatteTexture_CreateMapping(depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, depthBufferViewFirstSlice+1, depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, depthBufferViewFirstSlice, 1, depthBufferFormat, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, true);
+						depthBufferView = LatteTexture_CreateMapping(
+							depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight,
+							depthBufferViewFirstSlice + 1, depthBufferPitch, depthBufferTileMode,
+							depthBufferSwizzle, 0, 1, depthBufferViewFirstSlice, 1,
+							depthBufferFormat, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D,
+							true);
 					LatteGPUState.repeatTextureInitialization = true;
 				}
 				else
@@ -601,25 +680,37 @@ bool LatteMRT::UpdateCurrentFBO()
 				}
 				// set effective size
 				sint32 effectiveWidth, effectiveHeight;
-				LatteTexture_getEffectiveSize(depthBufferView->baseTexture, &effectiveWidth, &effectiveHeight, NULL);
+				LatteTexture_getEffectiveSize(depthBufferView->baseTexture, &effectiveWidth,
+											  &effectiveHeight, NULL);
 				if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
 				{
 					rtEffectiveSize->width = effectiveWidth;
 					rtEffectiveSize->height = effectiveHeight;
 				}
-				else if (rtEffectiveSize->width > effectiveWidth && rtEffectiveSize->height > effectiveHeight)
+				else if (rtEffectiveSize->width > effectiveWidth &&
+						 rtEffectiveSize->height > effectiveHeight)
 				{
 					if (_depthBufferSizeWarningCount < 100)
 					{
-						forceLogDebug_printf("Depth buffer size too small. Effective size: %dx%d Real size: %dx%d Mismatching texture: %08x %dx%d fmt %04x", effectiveWidth, effectiveHeight, depthBufferView->baseTexture->width, depthBufferView->baseTexture->height, depthBufferView->baseTexture->physAddress, depthBufferView->baseTexture->width, depthBufferView->baseTexture->height, (uint32)depthBufferView->baseTexture->format);
+						forceLogDebug_printf(
+							"Depth buffer size too small. Effective size: %dx%d Real size: %dx%d "
+							"Mismatching texture: %08x %dx%d fmt %04x",
+							effectiveWidth, effectiveHeight, depthBufferView->baseTexture->width,
+							depthBufferView->baseTexture->height,
+							depthBufferView->baseTexture->physAddress,
+							depthBufferView->baseTexture->width,
+							depthBufferView->baseTexture->height,
+							(uint32)depthBufferView->baseTexture->format);
 						_depthBufferSizeWarningCount++;
 					}
 				}
 				LatteTC_MarkTextureStillInUse(depthBufferView->baseTexture);
 				// after the drawcall mark the texture as updated
-				sLatteRenderTargetState.rtUpdateList[sLatteRenderTargetState.rtUpdateListCount] = depthBufferView;
+				sLatteRenderTargetState.rtUpdateList[sLatteRenderTargetState.rtUpdateListCount] =
+					depthBufferView;
 				sLatteRenderTargetState.rtUpdateListCount++;
-				SetDepthAndStencilAttachment(depthBufferView, depthBufferView->baseTexture->hasStencil);
+				SetDepthAndStencilAttachment(depthBufferView,
+											 depthBufferView->baseTexture->hasStencil);
 			}
 		}
 		else
@@ -641,26 +732,32 @@ bool LatteMRT::UpdateCurrentFBO()
 		hasValidFramebufferAttached = false;
 		return true;
 	}
-	if( rtEffectiveSize->width != rtRealSize->width || rtEffectiveSize->height != rtRealSize->height )
+	if (rtEffectiveSize->width != rtRealSize->width ||
+		rtEffectiveSize->height != rtRealSize->height)
 	{
-		//debug_printf("RenderTarget rescaled. Real: %dx%d Resized: %dx%d\n", rtRealSize->width, rtRealSize->height, rtEffectiveSize->width, rtEffectiveSize->height);
+		// debug_printf("RenderTarget rescaled. Real: %dx%d Resized: %dx%d\n", rtRealSize->width,
+		// rtRealSize->height, rtEffectiveSize->width, rtEffectiveSize->height);
 		sLatteRenderTargetState.renderTargetIsResized = true;
 	}
 	if (sLatteRenderTargetState.currentEffectiveSize.width == 0)
 	{
-		debug_printf("Render target effective size is 0. May indicate a bug in Cemu or invalid color/depth buffers\n");
+		debug_printf("Render target effective size is 0. May indicate a bug in Cemu or invalid "
+					 "color/depth buffers\n");
 		return false;
 	}
 	return true;
 }
 
-// return a vec4 with xy being the scale ratio for render target extend and zw being the virtual viewport dimensions
+// return a vec4 with xy being the scale ratio for render target extend and zw being the virtual
+// viewport dimensions
 void LatteMRT::GetCurrentFragCoordScale(float* coordScale)
 {
 	if (sLatteRenderTargetState.renderTargetIsResized)
 	{
-		coordScale[0] = (float)sLatteRenderTargetState.currentRenderSize.width / (float)sLatteRenderTargetState.currentEffectiveSize.width;
-		coordScale[1] = (float)sLatteRenderTargetState.currentRenderSize.height / (float)sLatteRenderTargetState.currentEffectiveSize.height;
+		coordScale[0] = (float)sLatteRenderTargetState.currentRenderSize.width /
+						(float)sLatteRenderTargetState.currentEffectiveSize.width;
+		coordScale[1] = (float)sLatteRenderTargetState.currentRenderSize.height /
+						(float)sLatteRenderTargetState.currentEffectiveSize.height;
 		coordScale[2] = sLatteRenderTargetState.currentGuestViewport.width;
 		coordScale[3] = sLatteRenderTargetState.currentGuestViewport.height;
 	}
@@ -689,7 +786,8 @@ void LatteRenderTarget_trackUpdates()
 	{
 		LatteTextureView* texView = sLatteRenderTargetState.rtUpdateList[i];
 		LatteTexture* baseTexture = texView->baseTexture;
-		LatteTexture_TrackTextureGPUWrite(baseTexture, texView->firstSlice, texView->firstMip, eventCounter);
+		LatteTexture_TrackTextureGPUWrite(baseTexture, texView->firstSlice, texView->firstMip,
+										  eventCounter);
 		// texture readback
 		if (baseTexture->enableReadback)
 		{
@@ -701,7 +799,7 @@ void LatteRenderTarget_trackUpdates()
 void LatteRenderTarget_itHLESwapScanBuffer()
 {
 	performanceMonitor.cycle[performanceMonitor.cycleIndex].frameCounter++;
-	if(LatteGPUState.frameCounter > 5)
+	if (LatteGPUState.frameCounter > 5)
 		performanceMonitor.gpuTime_frameTime.endMeasuring();
 	LattePerformanceMonitor_frameEnd();
 	LatteGPUState.frameCounter++;
@@ -717,7 +815,9 @@ void LatteRenderTarget_itHLESwapScanBuffer()
 	LattePerformanceMonitor_frameBegin();
 }
 
-void LatteRenderTarget_applyTextureColorClear(LatteTexture* texture, uint32 sliceIndex, uint32 mipIndex, float r, float g, float b, float a, uint64 eventCounter)
+void LatteRenderTarget_applyTextureColorClear(LatteTexture* texture, uint32 sliceIndex,
+											  uint32 mipIndex, float r, float g, float b, float a,
+											  uint64 eventCounter)
 {
 	if (texture->isDepth)
 	{
@@ -726,32 +826,44 @@ void LatteRenderTarget_applyTextureColorClear(LatteTexture* texture, uint32 slic
 	else
 	{
 		g_renderer->texture_clearColorSlice(texture, sliceIndex, mipIndex, r, g, b, a);
-		LatteTexture_MarkDynamicTextureAsChanged(texture->baseView, sliceIndex, mipIndex, eventCounter);
+		LatteTexture_MarkDynamicTextureAsChanged(texture->baseView, sliceIndex, mipIndex,
+												 eventCounter);
 	}
 }
 
-void LatteRenderTarget_applyTextureDepthClear(LatteTexture* texture, uint32 sliceIndex, uint32 mipIndex, bool hasDepthClear, bool hasStencilClear, float depthValue, uint8 stencilValue, uint64 eventCounter)
+void LatteRenderTarget_applyTextureDepthClear(LatteTexture* texture, uint32 sliceIndex,
+											  uint32 mipIndex, bool hasDepthClear,
+											  bool hasStencilClear, float depthValue,
+											  uint8 stencilValue, uint64 eventCounter)
 {
-	if(texture->isDepth)	
-	{ 
-		g_renderer->texture_clearDepthSlice(texture, sliceIndex, mipIndex, hasDepthClear, hasStencilClear, depthValue, stencilValue);
+	if (texture->isDepth)
+	{
+		g_renderer->texture_clearDepthSlice(texture, sliceIndex, mipIndex, hasDepthClear,
+											hasStencilClear, depthValue, stencilValue);
 	}
 	else
 	{
 		// clearing a color texture using depth clear
 		if (hasStencilClear)
 			return; // operation likely not intended as a color clear
-		//cemu_assert_debug(!hasStencilClear);
+		// cemu_assert_debug(!hasStencilClear);
 		if (hasDepthClear)
 		{
-			g_renderer->texture_clearColorSlice(texture, sliceIndex, mipIndex, depthValue, depthValue, depthValue, depthValue);
+			g_renderer->texture_clearColorSlice(texture, sliceIndex, mipIndex, depthValue,
+												depthValue, depthValue, depthValue);
 		}
-
 	}
 	LatteTexture_MarkDynamicTextureAsChanged(texture->baseView, sliceIndex, mipIndex, eventCounter);
 }
 
-void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorBufferMPTR, MPTR colorBufferFormat, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferPitch, uint32 colorBufferViewFirstSlice, uint32 colorBufferViewNumSlice, MPTR depthBufferMPTR, MPTR depthBufferFormat, Latte::E_HWTILEMODE depthBufferTileMode, sint32 depthBufferWidth, sint32 depthBufferHeight, sint32 depthBufferPitch, sint32 depthBufferViewFirstSlice, sint32 depthBufferViewNumSlice, float r, float g, float b, float a, float clearDepth, uint32 clearStencil)
+void LatteRenderTarget_itHLEClearColorDepthStencil(
+	uint32 clearMask, MPTR colorBufferMPTR, MPTR colorBufferFormat,
+	Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferWidth, uint32 colorBufferHeight,
+	uint32 colorBufferPitch, uint32 colorBufferViewFirstSlice, uint32 colorBufferViewNumSlice,
+	MPTR depthBufferMPTR, MPTR depthBufferFormat, Latte::E_HWTILEMODE depthBufferTileMode,
+	sint32 depthBufferWidth, sint32 depthBufferHeight, sint32 depthBufferPitch,
+	sint32 depthBufferViewFirstSlice, sint32 depthBufferViewNumSlice, float r, float g, float b,
+	float a, float clearDepth, uint32 clearStencil)
 {
 	uint32 depthBufferMipIndex = 0; // todo
 	uint32 colorBufferMipIndex = 0; // todo
@@ -779,33 +891,44 @@ void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorB
 
 	// clear color buffer (if flag set)
 	uint64 eventCounter = LatteTexture_getNextUpdateEventCounter();
-	if ((clearMask & 1) != 0 && colorBufferMPTR != MPTR_NULL && colorBufferWidth > 0 && colorBufferHeight > 0)
+	if ((clearMask & 1) != 0 && colorBufferMPTR != MPTR_NULL && colorBufferWidth > 0 &&
+		colorBufferHeight > 0)
 	{
 		// clear color
 		sint32 searchIndex = 0;
 		bool targetFound = false;
 		while (true)
 		{
-			LatteTextureView* colorView = LatteMRT_FindColorBufferForClearing(colorBufferMPTR, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferFormat, colorBufferViewFirstSlice, &searchIndex);
+			LatteTextureView* colorView = LatteMRT_FindColorBufferForClearing(
+				colorBufferMPTR, colorBufferWidth, colorBufferHeight, colorBufferPitch,
+				colorBufferFormat, colorBufferViewFirstSlice, &searchIndex);
 			if (!colorView)
 				break;
-			if (Latte::GetFormatBits((Latte::E_GX2SURFFMT)colorBufferFormat) != Latte::GetFormatBits(colorView->baseTexture->format))
+			if (Latte::GetFormatBits((Latte::E_GX2SURFFMT)colorBufferFormat) !=
+				Latte::GetFormatBits(colorView->baseTexture->format))
 			{
 				continue;
 			}
 
-			if (colorView->baseTexture->pitch == colorBufferPitch && colorView->baseTexture->height == colorBufferHeight)
+			if (colorView->baseTexture->pitch == colorBufferPitch &&
+				colorView->baseTexture->height == colorBufferHeight)
 				targetFound = true;
 
-			LatteRenderTarget_applyTextureColorClear(colorView->baseTexture, colorBufferViewFirstSlice, colorBufferMipIndex, r, g, b, a, eventCounter);
-
+			LatteRenderTarget_applyTextureColorClear(colorView->baseTexture,
+													 colorBufferViewFirstSlice, colorBufferMipIndex,
+													 r, g, b, a, eventCounter);
 		}
 		if (targetFound == false)
 		{
 			// create new texture with matching format
 			cemu_assert_debug(colorBufferViewNumSlice <= 1);
-			LatteTextureView* newColorView = LatteMRT_CreateColorBuffer(colorBufferMPTR, colorBufferWidth, colorBufferHeight, colorBufferPitch, (Latte::E_GX2SURFFMT)colorBufferFormat, colorBufferTilemode, colorBufferSwizzle, colorBufferViewFirstSlice);
-			LatteRenderTarget_applyTextureColorClear(newColorView->baseTexture, colorBufferViewFirstSlice, colorBufferMipIndex, r, g, b, a, eventCounter);
+			LatteTextureView* newColorView = LatteMRT_CreateColorBuffer(
+				colorBufferMPTR, colorBufferWidth, colorBufferHeight, colorBufferPitch,
+				(Latte::E_GX2SURFFMT)colorBufferFormat, colorBufferTilemode, colorBufferSwizzle,
+				colorBufferViewFirstSlice);
+			LatteRenderTarget_applyTextureColorClear(newColorView->baseTexture,
+													 colorBufferViewFirstSlice, colorBufferMipIndex,
+													 r, g, b, a, eventCounter);
 		}
 	}
 	// clear depth or stencil buffer (if flag set)
@@ -828,14 +951,22 @@ void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorB
 			if (texItr->pitch == depthBufferPitch && texItr->height == depthBufferHeight)
 				foundMatchingDepthBuffer = true;
 
-			// todo - calculate actual sliceIndex and mipIndex since the textures in list_depthClearTextures dont necessarily share the same base
-			LatteRenderTarget_applyTextureDepthClear(texItr, depthBufferViewFirstSlice, depthBufferMipIndex, hasDepthClear, hasStencilClear, clearDepth, clearStencil, eventCounter);
+			// todo - calculate actual sliceIndex and mipIndex since the textures in
+			// list_depthClearTextures dont necessarily share the same base
+			LatteRenderTarget_applyTextureDepthClear(
+				texItr, depthBufferViewFirstSlice, depthBufferMipIndex, hasDepthClear,
+				hasStencilClear, clearDepth, clearStencil, eventCounter);
 		}
 
 		if (foundMatchingDepthBuffer == false)
 		{
-			LatteTextureView* newDepthBufferView = LatteMRT_CreateDepthBuffer(depthBufferMPTR, depthBufferWidth, depthBufferHeight, depthBufferPitch, depthBufferTileMode, (Latte::E_GX2SURFFMT)depthBufferFormat, depthBufferSwizzle, depthBufferViewFirstSlice);
-			LatteRenderTarget_applyTextureDepthClear(newDepthBufferView->baseTexture, depthBufferViewFirstSlice, depthBufferMipIndex, hasDepthClear, hasStencilClear, clearDepth, clearStencil, eventCounter);
+			LatteTextureView* newDepthBufferView = LatteMRT_CreateDepthBuffer(
+				depthBufferMPTR, depthBufferWidth, depthBufferHeight, depthBufferPitch,
+				depthBufferTileMode, (Latte::E_GX2SURFFMT)depthBufferFormat, depthBufferSwizzle,
+				depthBufferViewFirstSlice);
+			LatteRenderTarget_applyTextureDepthClear(
+				newDepthBufferView->baseTexture, depthBufferViewFirstSlice, depthBufferMipIndex,
+				hasDepthClear, hasStencilClear, clearDepth, clearStencil, eventCounter);
 		}
 	}
 }
@@ -843,10 +974,11 @@ void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorB
 sint32 _currentOutputImageWidth = 0;
 sint32 _currentOutputImageHeight = 0;
 
-void LatteRenderTarget_getScreenImageArea(sint32* x, sint32* y, sint32* width, sint32* height, sint32* fullWidth, sint32* fullHeight, bool padView)
+void LatteRenderTarget_getScreenImageArea(sint32* x, sint32* y, sint32* width, sint32* height,
+										  sint32* fullWidth, sint32* fullHeight, bool padView)
 {
 	int w, h;
-	if(padView && gui_isPadWindowOpen())
+	if (padView && gui_isPadWindowOpen())
 		gui_getPadWindowSize(&w, &h);
 	else
 		gui_getWindowSize(&w, &h);
@@ -895,15 +1027,17 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	sint32 effectiveWidth;
 	sint32 effectiveHeight;
 	sint32 effectiveDepth;
-	LatteTexture_getEffectiveSize(textureView->baseTexture, &effectiveWidth, &effectiveHeight, &effectiveDepth, 0);
+	LatteTexture_getEffectiveSize(textureView->baseTexture, &effectiveWidth, &effectiveHeight,
+								  &effectiveDepth, 0);
 	_currentOutputImageWidth = effectiveWidth;
 	_currentOutputImageHeight = effectiveHeight;
-	
+
 	sint32 imageX, imageY;
 	sint32 imageWidth, imageHeight;
 	sint32 fullscreenWidth, fullscreenHeight;
 
-	LatteRenderTarget_getScreenImageArea(&imageX, &imageY, &imageWidth, &imageHeight, &fullscreenWidth, &fullscreenHeight, isPadView);
+	LatteRenderTarget_getScreenImageArea(&imageX, &imageY, &imageWidth, &imageHeight,
+										 &fullscreenWidth, &fullscreenHeight, isPadView);
 
 	bool clearBackground = false;
 	if (imageWidth != fullscreenWidth || imageHeight != fullscreenHeight)
@@ -915,9 +1049,9 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	// check for graphic pack shaders
 	RendererOutputShader* shader = nullptr;
 	LatteTextureView::MagFilter filter = LatteTextureView::MagFilter::kLinear;
-	for(const auto& gp : GraphicPack2::GetActiveGraphicPacks())
+	for (const auto& gp : GraphicPack2::GetActiveGraphicPacks())
 	{
-		if(downscaling)
+		if (downscaling)
 		{
 			shader = gp->GetDownscalingShader(renderUpsideDown);
 			if (shader)
@@ -946,18 +1080,19 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 
 	if (shader == nullptr)
 	{
-		sint32 scaling_filter = downscaling ? GetConfig().downscale_filter : GetConfig().upscale_filter;
-		
+		sint32 scaling_filter =
+			downscaling ? GetConfig().downscale_filter : GetConfig().upscale_filter;
+
 		if (g_renderer->GetType() == RendererAPI::Vulkan)
 		{
 			// force linear or nearest neighbor filter
-			if(scaling_filter != kLinearFilter && scaling_filter != kNearestNeighborFilter)
+			if (scaling_filter != kLinearFilter && scaling_filter != kNearestNeighborFilter)
 				scaling_filter = kLinearFilter;
 		}
 
 		if (scaling_filter == kLinearFilter)
 		{
-			if(renderUpsideDown)
+			if (renderUpsideDown)
 				shader = RendererOutputShader::s_copy_shader_ud;
 			else
 				shader = RendererOutputShader::s_copy_shader;
@@ -993,7 +1128,9 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 		}
 	}
 	cemu_assert(shader);
-	g_renderer->DrawBackbufferQuad(textureView, shader, filter==LatteTextureView::MagFilter::kLinear, imageX, imageY, imageWidth, imageHeight, isPadView, clearBackground);
+	g_renderer->DrawBackbufferQuad(textureView, shader,
+								   filter == LatteTextureView::MagFilter::kLinear, imageX, imageY,
+								   imageWidth, imageHeight, isPadView, clearBackground);
 	g_renderer->HandleScreenshotRequest(textureView, isPadView);
 	if (!g_renderer->ImguiBegin(!isPadView))
 		return;
@@ -1006,10 +1143,15 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 bool alwaysDisplayDRC = false;
 bool ctrlTabHotkeyPressed = false;
 
-void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferSliceIndex, uint32 colorBufferFormat, uint32 colorBufferPitch, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferSwizzle, uint32 renderTarget)
+void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(
+	MPTR colorBufferPtr, uint32 colorBufferWidth, uint32 colorBufferHeight,
+	uint32 colorBufferSliceIndex, uint32 colorBufferFormat, uint32 colorBufferPitch,
+	Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferSwizzle, uint32 renderTarget)
 {
 	cemu_assert_debug(colorBufferSliceIndex == 0); // todo - support for non-zero slice
-	LatteTextureView* texView = LatteTC_GetTextureSliceViewOrTryCreate(colorBufferPtr, MPTR_NULL, (Latte::E_GX2SURFFMT)colorBufferFormat, colorBufferTilemode, colorBufferWidth, colorBufferHeight, 1, colorBufferPitch, colorBufferSwizzle, 0, 0, true);
+	LatteTextureView* texView = LatteTC_GetTextureSliceViewOrTryCreate(
+		colorBufferPtr, MPTR_NULL, (Latte::E_GX2SURFFMT)colorBufferFormat, colorBufferTilemode,
+		colorBufferWidth, colorBufferHeight, 1, colorBufferPitch, colorBufferSwizzle, 0, 0, true);
 	if (!texView)
 	{
 		return;
@@ -1042,7 +1184,7 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		{
 			controller = InputManager::instance().get_vpad_controller(1);
 			if (controller && controller->is_screen_active())
-				showDRC = true;	
+				showDRC = true;
 		}
 	}
 
@@ -1052,9 +1194,8 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		LatteRenderTarget_copyToBackbuffer(texView, false);
 }
 
-
-
-// returns the current size of the virtual viewport (not the same as effective size, which can be influenced by texture rules)
+// returns the current size of the virtual viewport (not the same as effective size, which can be
+// influenced by texture rules)
 void LatteRenderTarget_GetCurrentVirtualViewportSize(sint32* viewportWidth, sint32* viewportHeight)
 {
 	*viewportWidth = sLatteRenderTargetState.currentGuestViewport.width;
@@ -1064,10 +1205,12 @@ void LatteRenderTarget_GetCurrentVirtualViewportSize(sint32* viewportWidth, sint
 void LatteRenderTarget_updateViewport()
 {
 	float vpWidth = LatteGPUState.contextNew.PA_CL_VPORT_XSCALE.get_SCALE() / 0.5f;
-	float vpX = LatteGPUState.contextNew.PA_CL_VPORT_XOFFSET.get_OFFSET() - LatteGPUState.contextNew.PA_CL_VPORT_XSCALE.get_SCALE();
+	float vpX = LatteGPUState.contextNew.PA_CL_VPORT_XOFFSET.get_OFFSET() -
+				LatteGPUState.contextNew.PA_CL_VPORT_XSCALE.get_SCALE();
 	float vpHeight = LatteGPUState.contextNew.PA_CL_VPORT_YSCALE.get_SCALE() / -0.5f;
-	float vpY = LatteGPUState.contextNew.PA_CL_VPORT_YOFFSET.get_OFFSET() + LatteGPUState.contextNew.PA_CL_VPORT_YSCALE.get_SCALE();
-	
+	float vpY = LatteGPUState.contextNew.PA_CL_VPORT_YOFFSET.get_OFFSET() +
+				LatteGPUState.contextNew.PA_CL_VPORT_YSCALE.get_SCALE();
+
 	bool halfZ = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF();
 
 	// calculate near/far
@@ -1090,10 +1233,14 @@ void LatteRenderTarget_updateViewport()
 	sLatteRenderTargetState.currentGuestViewport.height = vpHeight;
 	if (sLatteRenderTargetState.renderTargetIsResized)
 	{
-		vpX *= ((float)sLatteRenderTargetState.currentEffectiveSize.width / (float)sLatteRenderTargetState.currentRenderSize.width);
-		vpY *= ((float)sLatteRenderTargetState.currentEffectiveSize.height / (float)sLatteRenderTargetState.currentRenderSize.height);
-		vpWidth *= ((float)sLatteRenderTargetState.currentEffectiveSize.width / (float)sLatteRenderTargetState.currentRenderSize.width);
-		vpHeight *= ((float)sLatteRenderTargetState.currentEffectiveSize.height / (float)sLatteRenderTargetState.currentRenderSize.height);
+		vpX *= ((float)sLatteRenderTargetState.currentEffectiveSize.width /
+				(float)sLatteRenderTargetState.currentRenderSize.width);
+		vpY *= ((float)sLatteRenderTargetState.currentEffectiveSize.height /
+				(float)sLatteRenderTargetState.currentRenderSize.height);
+		vpWidth *= ((float)sLatteRenderTargetState.currentEffectiveSize.width /
+					(float)sLatteRenderTargetState.currentRenderSize.width);
+		vpHeight *= ((float)sLatteRenderTargetState.currentEffectiveSize.height /
+					 (float)sLatteRenderTargetState.currentRenderSize.height);
 	}
 	g_renderer->renderTarget_setViewport(vpX, vpY, vpWidth, vpHeight, nearZ, farZ, halfZ);
 }
@@ -1105,15 +1252,24 @@ void LatteRenderTarget_updateScissorBox()
 	uint32 scissorY = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_TL.get_TL_Y();
 	uint32 scissorWidth = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_BR.get_BR_X() - scissorX;
 	uint32 scissorHeight = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_BR.get_BR_Y() - scissorY;
-	if( sLatteRenderTargetState.renderTargetIsResized )
+	if (sLatteRenderTargetState.renderTargetIsResized)
 	{
-		scissorX = (sint32)((float)scissorX * ((float)sLatteRenderTargetState.currentEffectiveSize.width / (float)sLatteRenderTargetState.currentRenderSize.width));
-		scissorY = (sint32)((float)scissorY * ((float)sLatteRenderTargetState.currentEffectiveSize.height / (float)sLatteRenderTargetState.currentRenderSize.height));
-		scissorWidth = (sint32)((float)scissorWidth * ((float)sLatteRenderTargetState.currentEffectiveSize.width / (float)sLatteRenderTargetState.currentRenderSize.width));
-		scissorHeight = (sint32)((float)scissorHeight * ((float)sLatteRenderTargetState.currentEffectiveSize.height / (float)sLatteRenderTargetState.currentRenderSize.height));
+		scissorX =
+			(sint32)((float)scissorX * ((float)sLatteRenderTargetState.currentEffectiveSize.width /
+										(float)sLatteRenderTargetState.currentRenderSize.width));
+		scissorY =
+			(sint32)((float)scissorY * ((float)sLatteRenderTargetState.currentEffectiveSize.height /
+										(float)sLatteRenderTargetState.currentRenderSize.height));
+		scissorWidth = (sint32)((float)scissorWidth *
+								((float)sLatteRenderTargetState.currentEffectiveSize.width /
+								 (float)sLatteRenderTargetState.currentRenderSize.width));
+		scissorHeight = (sint32)((float)scissorHeight *
+								 ((float)sLatteRenderTargetState.currentEffectiveSize.height /
+								  (float)sLatteRenderTargetState.currentRenderSize.height));
 	}
 
-	if( scissorX != prevScissorX || scissorY != prevScissorY || scissorWidth != prevScissorWidth || scissorHeight != prevScissorHeight )
+	if (scissorX != prevScissorX || scissorY != prevScissorY || scissorWidth != prevScissorWidth ||
+		scissorHeight != prevScissorHeight)
 	{
 		g_renderer->renderTarget_setScissor(scissorX, scissorY, scissorWidth, scissorHeight);
 		prevScissorX = scissorX;

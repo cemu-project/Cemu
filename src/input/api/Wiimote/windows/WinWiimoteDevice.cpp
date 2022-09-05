@@ -1,7 +1,7 @@
 #include "input/api/Wiimote/windows/WinWiimoteDevice.h"
 
-#include <hidsdi.h>
 #include <SetupAPI.h>
+#include <hidsdi.h>
 
 WinWiimoteDevice::WinWiimoteDevice(HANDLE handle, std::vector<uint8_t> identifier)
 	: m_handle(handle), m_identifier(std::move(identifier))
@@ -71,18 +71,21 @@ std::vector<WiimoteDevicePtr> WinWiimoteDevice::get_devices()
 	GUID hid_guid;
 	HidD_GetHidGuid(&hid_guid);
 
-	const auto device_info = SetupDiGetClassDevs(&hid_guid, nullptr, nullptr, (DIGCF_DEVICEINTERFACE | DIGCF_PRESENT));
+	const auto device_info =
+		SetupDiGetClassDevs(&hid_guid, nullptr, nullptr, (DIGCF_DEVICEINTERFACE | DIGCF_PRESENT));
 
-	for (DWORD index = 0; ; ++index)
+	for (DWORD index = 0;; ++index)
 	{
 		SP_DEVICE_INTERFACE_DATA device_data{};
 		device_data.cbSize = sizeof(device_data);
-		if (SetupDiEnumDeviceInterfaces(device_info, nullptr, &hid_guid, index, &device_data) == FALSE)
+		if (SetupDiEnumDeviceInterfaces(device_info, nullptr, &hid_guid, index, &device_data) ==
+			FALSE)
 			break;
 
 		DWORD device_data_len;
-		if (SetupDiGetDeviceInterfaceDetail(device_info, &device_data, nullptr, 0, &device_data_len, nullptr) == FALSE
-			&& GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+		if (SetupDiGetDeviceInterfaceDetail(device_info, &device_data, nullptr, 0, &device_data_len,
+											nullptr) == FALSE &&
+			GetLastError() != ERROR_INSUFFICIENT_BUFFER)
 			continue;
 
 		std::vector<uint8_t> detail_data_buffer;
@@ -91,13 +94,13 @@ std::vector<WiimoteDevicePtr> WinWiimoteDevice::get_devices()
 		const auto detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA)detail_data_buffer.data();
 		detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
-		if (SetupDiGetDeviceInterfaceDetail(device_info, &device_data, detail_data, device_data_len, nullptr, nullptr)
-			== FALSE)
+		if (SetupDiGetDeviceInterfaceDetail(device_info, &device_data, detail_data, device_data_len,
+											nullptr, nullptr) == FALSE)
 			continue;
 
 		HANDLE device_handle = CreateFile(detail_data->DevicePath, (GENERIC_READ | GENERIC_WRITE),
-		                                  (FILE_SHARE_READ | FILE_SHARE_WRITE), nullptr, OPEN_EXISTING,
-		                                  FILE_FLAG_OVERLAPPED, nullptr);
+										  (FILE_SHARE_READ | FILE_SHARE_WRITE), nullptr,
+										  OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
 		if (device_handle == INVALID_HANDLE_VALUE)
 			continue;
 
@@ -109,7 +112,8 @@ std::vector<WiimoteDevicePtr> WinWiimoteDevice::get_devices()
 			continue;
 		}
 
-		if (attributes.VendorID != 0x057e || (attributes.ProductID != 0x0306 && attributes.ProductID != 0x0330))
+		if (attributes.VendorID != 0x057e ||
+			(attributes.ProductID != 0x0306 && attributes.ProductID != 0x0330))
 		{
 			CloseHandle(device_handle);
 			continue;

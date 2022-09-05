@@ -1,21 +1,21 @@
-#include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "Cafe/HW/Latte/ISA/RegDefines.h"
+#include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "Cafe/GameProfile/GameProfile.h"
+#include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 
-#include "util/containers/IntervalBucketContainer.h"
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
+#include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "util/containers/IntervalBucketContainer.h"
 
 struct
 {
 	sint32 currentRingbufferOffset;
 	VirtualBufferHeap_t* mainBufferHeap;
-}streamoutManager;
+} streamoutManager;
 
 sint32 LatteStreamout_GetRingBufferSize()
 {
@@ -25,7 +25,7 @@ sint32 LatteStreamout_GetRingBufferSize()
 sint32 LatteStreamout_allocateGPURingbufferMem(sint32 size)
 {
 	// pad size to 256 byte alignment
-	size = (size + 255)&~255;
+	size = (size + 255) & ~255;
 	// get next offset
 	if ((streamoutManager.currentRingbufferOffset + size) > LatteStreamout_GetRingBufferSize())
 	{
@@ -54,8 +54,8 @@ struct
 		sint32 ringBufferOffset;
 		uint32 rangeAddr;
 		uint32 rangeSize; // size of written streamout data, bounded by buffer size
-	}streamoutBufferWrite[LATTE_NUM_STREAMOUT_BUFFER];
-}activeStreamoutOperation;
+	} streamoutBufferWrite[LATTE_NUM_STREAMOUT_BUFFER];
+} activeStreamoutOperation;
 
 uint32 LatteStreamout_getNumberOfWrittenVertices()
 {
@@ -63,11 +63,14 @@ uint32 LatteStreamout_getNumberOfWrittenVertices()
 	return activeStreamoutOperation.vertexCount * activeStreamoutOperation.instanceCount;
 }
 
-// returns the number of bytes that are written into the buffer by the current draw operation (ignoring buffer maximum size)
+// returns the number of bytes that are written into the buffer by the current draw operation
+// (ignoring buffer maximum size)
 uint32 LatteStreamout_getBufferWriteRangeSize(uint32 streamoutBufferIndex)
 {
-	uint32 bufferStride = LatteGPUState.contextRegister[mmVGT_STRMOUT_VTX_STRIDE_0 + streamoutBufferIndex * 4] << 2;
-	uint32 bufferSize = LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_SIZE_0 + streamoutBufferIndex * 4] << 2;
+	uint32 bufferStride =
+		LatteGPUState.contextRegister[mmVGT_STRMOUT_VTX_STRIDE_0 + streamoutBufferIndex * 4] << 2;
+	uint32 bufferSize =
+		LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_SIZE_0 + streamoutBufferIndex * 4] << 2;
 	uint32 writeSize = LatteStreamout_getNumberOfWrittenVertices() * bufferStride;
 	if (bufferSize < writeSize)
 		writeSize = bufferSize;
@@ -90,7 +93,8 @@ void LatteStreamout_PrepareDrawcall(uint32 count, uint32 instanceCount)
 	{
 		uint32 gsOutPrimType = LatteGPUState.contextRegister[mmVGT_GS_OUT_PRIM_TYPE];
 		uint32 bytesPerVertex = LatteGPUState.contextRegister[mmSQ_GS_VERT_ITEMSIZE] * 4;
-		maxVerticesInGS = ((LatteGPUState.contextRegister[mmSQ_GSVS_RING_ITEMSIZE] & 0x7FFF) * 4) / bytesPerVertex;
+		maxVerticesInGS = ((LatteGPUState.contextRegister[mmSQ_GSVS_RING_ITEMSIZE] & 0x7FFF) * 4) /
+						  bytesPerVertex;
 		cemu_assert_debug(maxVerticesInGS > 0);
 	}
 	// setup active streamout operation struct
@@ -117,17 +121,19 @@ void LatteStreamout_PrepareDrawcall(uint32 count, uint32 instanceCount)
 	// bind streamout buffers
 	for (uint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 	{
-		if ((streamoutWriteMask&(1 << i)) == 0)
+		if ((streamoutWriteMask & (1 << i)) == 0)
 		{
 			activeStreamoutOperation.streamoutBufferWrite[i].isActive = false;
 			continue;
 		}
-		uint32 bufferBaseMPTR = LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_BASE_0 + i * 4] << 8;
+		uint32 bufferBaseMPTR = LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_BASE_0 + i * 4]
+								<< 8;
 		uint32 bufferSize = LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_SIZE_0 + i * 4] << 2;
 		uint32 bufferOffset = LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_OFFSET_0 + i * 4];
 		uint32 streamoutWriteSize = LatteStreamout_getBufferWriteRangeSize(i);
 		uint32 rangeAddr = bufferBaseMPTR + bufferOffset;
-		sint32 ringBufferOffset = LatteStreamout_allocateGPURingbufferMem(streamoutWriteSize); // allocate memory for the entire streamout write
+		sint32 ringBufferOffset = LatteStreamout_allocateGPURingbufferMem(
+			streamoutWriteSize); // allocate memory for the entire streamout write
 		// calculate write size after bounding it to the buffer
 		uint32 remainingBytesToWrite = bufferOffset > bufferSize ? 0 : (bufferSize - bufferOffset);
 		uint32 rangeSize = std::min(streamoutWriteSize, remainingBytesToWrite);
@@ -150,17 +156,25 @@ void LatteStreamout_FinishDrawcall(bool useDirectMemoryMode)
 		_transformFeedbackIsActive = false;
 		for (uint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 		{
-			if ((activeStreamoutOperation.streamoutWriteMask&(1 << i)) == 0)
+			if ((activeStreamoutOperation.streamoutWriteMask & (1 << i)) == 0)
 				continue;
 			if (activeStreamoutOperation.streamoutBufferWrite[i].rangeSize > 0)
 			{
-				if(useDirectMemoryMode)
-					g_renderer->bufferCache_copyStreamoutToMainBuffer(activeStreamoutOperation.streamoutBufferWrite[i].ringBufferOffset, activeStreamoutOperation.streamoutBufferWrite[i].rangeAddr, activeStreamoutOperation.streamoutBufferWrite[i].rangeSize);
+				if (useDirectMemoryMode)
+					g_renderer->bufferCache_copyStreamoutToMainBuffer(
+						activeStreamoutOperation.streamoutBufferWrite[i].ringBufferOffset,
+						activeStreamoutOperation.streamoutBufferWrite[i].rangeAddr,
+						activeStreamoutOperation.streamoutBufferWrite[i].rangeSize);
 				else
-					LatteBufferCache_copyStreamoutDataToCache(activeStreamoutOperation.streamoutBufferWrite[i].rangeAddr, activeStreamoutOperation.streamoutBufferWrite[i].rangeSize, activeStreamoutOperation.streamoutBufferWrite[i].ringBufferOffset);
+					LatteBufferCache_copyStreamoutDataToCache(
+						activeStreamoutOperation.streamoutBufferWrite[i].rangeAddr,
+						activeStreamoutOperation.streamoutBufferWrite[i].rangeSize,
+						activeStreamoutOperation.streamoutBufferWrite[i].ringBufferOffset);
 			}
 			// advance streamout offset
-			uint32 newOffset = LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_OFFSET_0 + i * 4] + activeStreamoutOperation.streamoutBufferWrite[i].rangeSize;
+			uint32 newOffset =
+				LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_OFFSET_0 + i * 4] +
+				activeStreamoutOperation.streamoutBufferWrite[i].rangeSize;
 			LatteGPUState.contextRegister[mmVGT_STRMOUT_BUFFER_OFFSET_0 + i * 4] = newOffset;
 		}
 		g_renderer->streamout_rendererFinishDrawcall();

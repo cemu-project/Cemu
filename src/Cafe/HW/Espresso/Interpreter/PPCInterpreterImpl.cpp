@@ -1,10 +1,10 @@
-#include "PPCInterpreterInternal.h"
-#include "PPCInterpreterHelper.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include "PPCInterpreterHelper.h"
+#include "PPCInterpreterInternal.h"
 
 class PPCItpCafeOSUsermode
 {
-public:
+  public:
 	static const bool allowSupervisorMode = false;
 	static const bool allowDSI = false;
 
@@ -42,7 +42,7 @@ public:
 	{
 		*(uint8*)(memory_getPointerFromVirtualOffset(address)) = v;
 	}
-	
+
 	inline static double ppcMem_readDataDouble(PPCInterpreter_t* hCPU, uint32 address)
 	{
 		uint32 v[2];
@@ -103,7 +103,8 @@ uint32 debug_lastTranslatedHit;
 
 void generateDSIException(PPCInterpreter_t* hCPU, uint32 dataAddress)
 {
-	// todo - check if we are already inside an interrupt handler (in which case the DSI exception is queued and not executed immediately?)
+	// todo - check if we are already inside an interrupt handler (in which case the DSI exception
+	// is queued and not executed immediately?)
 
 	// set flag to cancel current instruction
 	hCPU->memoryException = true;
@@ -117,21 +118,20 @@ void generateDSIException(PPCInterpreter_t* hCPU, uint32 dataAddress)
 
 	hCPU->instructionPointer = 0xFFF00300;
 
-
 	uint32 dsisr = 0;
-	dsisr |= (1<<(31-1)); // set if no TLB/BAT match found
+	dsisr |= (1 << (31 - 1)); // set if no TLB/BAT match found
 
 	hCPU->sprExtended.dsisr = dsisr;
-
 }
 
 class PPCItpSupervisorWithMMU
 {
-public:
+  public:
 	static const bool allowSupervisorMode = true;
 	static const bool allowDSI = true;
 
-	inline static uint32 ppcMem_translateVirtualDataToPhysicalAddr(PPCInterpreter_t* hCPU, uint32 vAddr)
+	inline static uint32 ppcMem_translateVirtualDataToPhysicalAddr(PPCInterpreter_t* hCPU,
+																   uint32 vAddr)
 	{
 		// check if address translation is disabled for data accesses
 		if (GET_MSR_BIT(MSR_DR) == 0)
@@ -145,7 +145,8 @@ public:
 #endif
 
 		// how to determine if BAT is valid:
-		// BAT_entry_valid = (Vs & ~MSR[PR]) | (Vp & MSR[PR]) (The entry has separate enable flags for usermode and supervisor mode)
+		// BAT_entry_valid = (Vs & ~MSR[PR]) | (Vp & MSR[PR]) (The entry has separate enable flags
+		// for usermode and supervisor mode)
 		for (sint32 i = 0; i < 8; i++)
 		{
 			// upper
@@ -164,10 +165,10 @@ public:
 			uint32 BRPN = ((batL >> 17) & 0x7FFF) << 17;
 
 			// check for match
-			if ((vAddr&BL) == BEPI)
+			if ((vAddr & BL) == BEPI)
 			{
 				// match
-				vAddr = (vAddr&~BL) | (BRPN&BL);
+				vAddr = (vAddr & ~BL) | (BRPN & BL);
 				debug_lastTranslatedHit = vAddr;
 				return vAddr;
 			}
@@ -177,37 +178,37 @@ public:
 		debug_lastTranslatedHit = 0xFFFFFFFF;
 
 		// find segment
-		uint32 segmentIndex = (vAddr>>28);
-		//uint32 pageIndex = (vAddr >> 12) & 0xFFFF; // for 4KB pages
-		// uint32 byteOffset = vAddr & 0xFFF; // for 4KB pages
-		uint32 pageIndex = (vAddr >> 17) & 0x7FF; // for 128KB pages 
+		uint32 segmentIndex = (vAddr >> 28);
+		// uint32 pageIndex = (vAddr >> 12) & 0xFFFF; // for 4KB pages
+		//  uint32 byteOffset = vAddr & 0xFFF; // for 4KB pages
+		uint32 pageIndex = (vAddr >> 17) & 0x7FF; // for 128KB pages
 		uint32 byteOffset = vAddr & 0x1FFFF;
 		uint32 srValue = hCPU->sprExtended.sr[segmentIndex];
-		
+
 		uint8 sr_ks = (srValue >> 30) & 1; // supervisor
 		uint8 sr_kp = (srValue >> 29) & 1; // user mode
-		uint8 sr_n = (srValue >> 28) & 1; // no-execute
+		uint8 sr_n = (srValue >> 28) & 1;  // no-execute
 		uint32 sr_vsid = (srValue & 0xFFFFFF);
-		//uint32 vpn = pageIndex | (sr_vsid << 16); // 40bit virtual page number
-
+		// uint32 vpn = pageIndex | (sr_vsid << 16); // 40bit virtual page number
 
 		// look up in page table
-		//uint32 lookupHash = (sr_vsid ^ pageIndex) & 0x7FFFF; // not correct for 4KB pages? sr_vsid must be shifted?
-		//uint32 lookupHash = (sr_vsid ^ pageIndex) & 0x7FFFF;
-		//uint32 lookupHash = ((sr_vsid>>8) ^ pageIndex) & 0x7FFFF;
+		// uint32 lookupHash = (sr_vsid ^ pageIndex) & 0x7FFFF; // not correct for 4KB pages?
+		// sr_vsid must be shifted? uint32 lookupHash = (sr_vsid ^ pageIndex) & 0x7FFFF; uint32
+		// lookupHash = ((sr_vsid>>8) ^ pageIndex) & 0x7FFFF;
 		uint32 lookupHash = ((sr_vsid >> 0) ^ pageIndex) & 0x7FFFF;
 
-		//lookupHash ^= 0x7FFFF;
+		// lookupHash ^= 0x7FFFF;
 
-		uint32 pageTableAddr = hCPU->sprExtended.sdr1&0xFFFF0000;
-		uint32 pageTableMask = hCPU->sprExtended.sdr1&0x1FF;
+		uint32 pageTableAddr = hCPU->sprExtended.sdr1 & 0xFFFF0000;
+		uint32 pageTableMask = hCPU->sprExtended.sdr1 & 0x1FF;
 
 		for (uint32 ch = 0; ch < 2; ch++)
 		{
 			uint32 ptegSelectLow = (lookupHash & 0x3FF);
 			uint32 maskOR = (lookupHash >> 10) & pageTableMask;
 
-			uint32* pteg = (uint32*)(memory_base + (pageTableAddr | (maskOR << 16)) + ptegSelectLow * 64);
+			uint32* pteg =
+				(uint32*)(memory_base + (pageTableAddr | (maskOR << 16)) + ptegSelectLow * 64);
 			for (sint32 t = 0; t < 8; t++)
 			{
 				uint32 w0 = _swapEndianU32(pteg[0]);
@@ -229,14 +230,14 @@ public:
 					// replace page (128KB)
 					vAddr = (vAddr & ~0xFFFE0000) | (ptegPhysicalPage << 12);
 					return vAddr;
-
 				}
 			}
 			// calculate hash 2
 			lookupHash = ~lookupHash;
 		}
 
-		forceLogDebug_printf("DSI exception at 0x%08x LR 0x%08x DataAddress %08x", hCPU->instructionPointer, hCPU->spr.LR, vAddr);
+		forceLogDebug_printf("DSI exception at 0x%08x LR 0x%08x DataAddress %08x",
+							 hCPU->instructionPointer, hCPU->spr.LR, vAddr);
 
 		generateDSIException(hCPU, vAddr);
 
@@ -244,17 +245,18 @@ public:
 		// todo: Check protection bits
 		// todo: Check supervisor/usermode bits
 
-
 		// also use this function in all the mem stuff below
 
 		// note: bat has higher priority than TLB
 
-		// since iterating the bats and page table is too slow, we need to pre-process the data somehow.
+		// since iterating the bats and page table is too slow, we need to pre-process the data
+		// somehow.
 
 		return vAddr;
 	}
 
-	inline static uint32 ppcMem_translateVirtualCodeToPhysicalAddr(PPCInterpreter_t* hCPU, uint32 vAddr)
+	inline static uint32 ppcMem_translateVirtualCodeToPhysicalAddr(PPCInterpreter_t* hCPU,
+																   uint32 vAddr)
 	{
 		// check if address translation is disabled for instruction accesses
 		if (GET_MSR_BIT(MSR_IR) == 0)
@@ -263,7 +265,8 @@ public:
 		}
 
 		// how to determine if BAT is valid:
-		// BAT_entry_valid = (Vs & ~MSR[PR]) | (Vp & MSR[PR]) (The entry has separate enable flags for usermode and supervisor mode)
+		// BAT_entry_valid = (Vs & ~MSR[PR]) | (Vp & MSR[PR]) (The entry has separate enable flags
+		// for usermode and supervisor mode)
 		for (sint32 i = 0; i < 8; i++)
 		{
 			// upper
@@ -282,10 +285,10 @@ public:
 			uint32 BRPN = ((batL >> 17) & 0x7FFF) << 17;
 
 			// check for match
-			if ((vAddr&BL) == BEPI)
+			if ((vAddr & BL) == BEPI)
 			{
 				// match
-				vAddr = (vAddr&~BL) | (BRPN&BL);
+				vAddr = (vAddr & ~BL) | (BRPN & BL);
 				debug_lastTranslatedHit = vAddr;
 				return vAddr;
 			}
@@ -299,7 +302,8 @@ public:
 
 	static uint32 memory_readCodeU32(PPCInterpreter_t* hCPU, uint32 address)
 	{
-		return _swapEndianU32(*(uint32*)(memory_base + ppcMem_translateVirtualCodeToPhysicalAddr(hCPU, address)));
+		return _swapEndianU32(
+			*(uint32*)(memory_base + ppcMem_translateVirtualCodeToPhysicalAddr(hCPU, address)));
 	}
 
 	inline static uint8* ppcMem_getDataPtr(PPCInterpreter_t* hCPU, uint32 vAddr)
@@ -324,7 +328,7 @@ public:
 
 	inline static void ppcMem_writeDataU32(PPCInterpreter_t* hCPU, uint32 address, uint32 v)
 	{
-		uint32 pAddr = ppcMem_translateVirtualDataToPhysicalAddr(hCPU, address); 
+		uint32 pAddr = ppcMem_translateVirtualDataToPhysicalAddr(hCPU, address);
 		if (hCPU->memoryException)
 			return;
 
@@ -376,13 +380,18 @@ public:
 			return 0;
 		if (pAddr >= 0x01FFF000 && pAddr < 0x02000000)
 		{
-			debug_printf("Access u32 boot param block 0x%08x IP %08x LR %08x\n", pAddr, hCPU->instructionPointer, hCPU->spr.LR);
-			forceLogDebug_printf("Access u32 boot param block 0x%08x (org %08x) IP %08x LR %08x\n", pAddr, address, hCPU->instructionPointer, hCPU->spr.LR);
+			debug_printf("Access u32 boot param block 0x%08x IP %08x LR %08x\n", pAddr,
+						 hCPU->instructionPointer, hCPU->spr.LR);
+			forceLogDebug_printf("Access u32 boot param block 0x%08x (org %08x) IP %08x LR %08x\n",
+								 pAddr, address, hCPU->instructionPointer, hCPU->spr.LR);
 		}
-		if (pAddr >= 0xFFEB73B0 && pAddr < (0xFFEB73B0+0x40C))
+		if (pAddr >= 0xFFEB73B0 && pAddr < (0xFFEB73B0 + 0x40C))
 		{
-			debug_printf("Access cached u32 boot param block 0x%08x IP %08x LR %08x\n", pAddr, hCPU->instructionPointer, hCPU->spr.LR);
-			forceLogDebug_printf("Access cached u32 boot param block 0x%08x (org %08x) IP %08x LR %08x\n", pAddr, address, hCPU->instructionPointer, hCPU->spr.LR);
+			debug_printf("Access cached u32 boot param block 0x%08x IP %08x LR %08x\n", pAddr,
+						 hCPU->instructionPointer, hCPU->spr.LR);
+			forceLogDebug_printf(
+				"Access cached u32 boot param block 0x%08x (org %08x) IP %08x LR %08x\n", pAddr,
+				address, hCPU->instructionPointer, hCPU->spr.LR);
 		}
 
 		if (pAddr >= 0x0c000000 && pAddr < 0x0d100000)
@@ -430,18 +439,18 @@ public:
 uint32 testIP[100];
 uint32 testIPC = 0;
 
-template <typename ppcItpCtrl>
+template<typename ppcItpCtrl>
 class PPCInterpreterContainer
 {
-public:
-#include "PPCInterpreterSPR.hpp"
-#include "PPCInterpreterOPC.hpp"
-#include "PPCInterpreterLoadStore.hpp"
+  public:
 #include "PPCInterpreterALU.hpp"
+#include "PPCInterpreterLoadStore.hpp"
+#include "PPCInterpreterOPC.hpp"
+#include "PPCInterpreterSPR.hpp"
 
 	static void executeInstruction(PPCInterpreter_t* hCPU)
 	{
-		if constexpr(ppcItpCtrl::allowSupervisorMode)
+		if constexpr (ppcItpCtrl::allowSupervisorMode)
 		{
 			hCPU->global->tb++;
 		}
@@ -456,10 +465,11 @@ public:
 		{
 		case 0:
 			debug_printf("ZERO[NOP] | 0x%08X\n", (unsigned int)hCPU->instructionPointer);
-	#ifndef PUBLIC_RELEASE		
+#ifndef PUBLIC_RELEASE
 			assert_dbg();
-			while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
-	#endif
+			while (true)
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+#endif
 			hCPU->instructionPointer += 4;
 			break;
 		case 1: // virtual HLE
@@ -481,7 +491,8 @@ public:
 					PPCInterpreter_PS_CMPU1(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [4->0] at %08X\n", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
+					debug_printf("Unknown execute %04X as [4->0] at %08X\n",
+								 PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
 					cemu_assert_unimplemented();
 					break;
 				}
@@ -508,7 +519,8 @@ public:
 					PPCInterpreter_PS_ABS(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [4->8] at %08X\n", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
+					debug_printf("Unknown execute %04X as [4->8] at %08X\n",
+								 PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
 					cemu_assert_unimplemented();
 					break;
 				}
@@ -547,7 +559,8 @@ public:
 					PPCInterpreter_PS_MERGE11(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [4->16] at %08X\n", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
+					debug_printf("Unknown execute %04X as [4->16] at %08X\n",
+								 PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
 					debugBreakpoint();
 					break;
 				}
@@ -589,7 +602,8 @@ public:
 				PPCInterpreter_PS_NMADD(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [4] at %08X\n", PPC_getBits(opcode, 30, 5), hCPU->instructionPointer);
+				debug_printf("Unknown execute %04X as [4] at %08X\n", PPC_getBits(opcode, 30, 5),
+							 hCPU->instructionPointer);
 				cemu_assert_unimplemented();
 				break;
 			}
@@ -622,10 +636,12 @@ public:
 			PPCInterpreter_BCX(hCPU, opcode);
 			break;
 		case 17:
-			if (PPC_getBits(opcode, 30, 1) == 1) {
+			if (PPC_getBits(opcode, 30, 1) == 1)
+			{
 				PPCInterpreter_SC(hCPU, opcode);
 			}
-			else {
+			else
+			{
 				debug_printf("Unsupported Opcode [0x17 --> 0x0]\n");
 				cemu_assert_unimplemented();
 			}
@@ -673,7 +689,8 @@ public:
 				PPCInterpreter_BCCTR(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [19] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
+				debug_printf("Unknown execute %04X as [19] at %08X\n", PPC_getBits(opcode, 30, 10),
+							 hCPU->instructionPointer);
 				cemu_assert_unimplemented();
 				break;
 			}
@@ -712,9 +729,9 @@ public:
 				PPCInterpreter_CMP(hCPU, opcode);
 				break;
 			case 4:
-	#ifndef PUBLIC_RELEASE
+#ifndef PUBLIC_RELEASE
 				debug_printf("TW instruction executed at %08x\n", hCPU->instructionPointer);
-	#endif
+#endif
 				PPCInterpreter_TW(hCPU, opcode);
 				break;
 			case 8:
@@ -997,10 +1014,11 @@ public:
 				PPCInterpreter_DCBZ(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [31] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
-	#ifndef PUBLIC_RELEASE
+				debug_printf("Unknown execute %04X as [31] at %08X\n", PPC_getBits(opcode, 30, 10),
+							 hCPU->instructionPointer);
+#ifndef PUBLIC_RELEASE
 				assert_dbg();
-	#endif
+#endif
 				hCPU->instructionPointer += 4;
 				break;
 			}
@@ -1083,7 +1101,7 @@ public:
 		case 57:
 			PPCInterpreter_PSQ_LU(hCPU, opcode);
 			break;
-		case 59: //Opcode category
+		case 59: // Opcode category
 			switch (PPC_getBits(opcode, 30, 5))
 			{
 			case 18:
@@ -1114,7 +1132,8 @@ public:
 				PPCInterpreter_FNMADDS(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [59] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
+				debug_printf("Unknown execute %04X as [59] at %08X\n", PPC_getBits(opcode, 30, 10),
+							 hCPU->instructionPointer);
 				cemu_assert_unimplemented();
 				break;
 			}
@@ -1198,14 +1217,16 @@ public:
 					PPCInterpreter_MTFSF(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [63] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
+					debug_printf("Unknown execute %04X as [63] at %08X\n",
+								 PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
 					cemu_assert_unimplemented();
 					break;
 				}
 			}
 			break;
 		default:
-			debug_printf("Unknown execute %04X at %08X\n", PPC_getBits(opcode, 5, 6), (unsigned int)hCPU->instructionPointer);
+			debug_printf("Unknown execute %04X at %08X\n", PPC_getBits(opcode, 5, 6),
+						 (unsigned int)hCPU->instructionPointer);
 			cemu_assert_unimplemented();
 		}
 	}

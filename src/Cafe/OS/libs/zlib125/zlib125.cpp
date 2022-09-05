@@ -1,40 +1,41 @@
-#include "Cafe/OS/common/OSCommon.h"
 #include "zlib125.h"
+#include "Cafe/OS/common/OSCommon.h"
 #include "zlib.h"
 
-typedef struct {
-	/* +0x00 */ MEMPTR<uint8>		next_in;     /* next input byte */
-	/* +0x04 */ uint32be			avail_in;  /* number of bytes available at next_in */
-	/* +0x08 */ uint32be			total_in;  /* total number of input bytes read so far */
+typedef struct
+{
+	/* +0x00 */ MEMPTR<uint8> next_in; /* next input byte */
+	/* +0x04 */ uint32be avail_in;	   /* number of bytes available at next_in */
+	/* +0x08 */ uint32be total_in;	   /* total number of input bytes read so far */
 
-	/* +0x0C */ MEMPTR<uint8>		next_out; /* next output byte should be put there */
-	/* +0x10 */ uint32be			avail_out; /* remaining free space at next_out */
-	/* +0x14 */ uint32be			total_out; /* total number of bytes output so far */
+	/* +0x0C */ MEMPTR<uint8> next_out; /* next output byte should be put there */
+	/* +0x10 */ uint32be avail_out;		/* remaining free space at next_out */
+	/* +0x14 */ uint32be total_out;		/* total number of bytes output so far */
 
-	/* +0x18 */ MEMPTR<char>		msg;  /* last error message, NULL if no error */
-	/* +0x1C */ MEMPTR<void>		state; /* not visible by applications */
+	/* +0x18 */ MEMPTR<char> msg;	/* last error message, NULL if no error */
+	/* +0x1C */ MEMPTR<void> state; /* not visible by applications */
 
-	/* +0x20 */ MEMPTR<void>		zalloc;  /* used to allocate the internal state */
-	/* +0x24 */ MEMPTR<void>		zfree;   /* used to free the internal state */
-	/* +0x28 */ MEMPTR<void>		opaque;  /* private data object passed to zalloc and zfree */
+	/* +0x20 */ MEMPTR<void> zalloc; /* used to allocate the internal state */
+	/* +0x24 */ MEMPTR<void> zfree;	 /* used to free the internal state */
+	/* +0x28 */ MEMPTR<void> opaque; /* private data object passed to zalloc and zfree */
 
-	/* +0x2C */ uint32be			data_type;  /* best guess about the data type: binary or text */
-	/* +0x30 */ uint32be			adler;      /* adler32 value of the uncompressed data */
-	/* +0x34 */ uint32be			reserved;   /* reserved for future use */
-}z_stream_ppc2;
+	/* +0x2C */ uint32be data_type; /* best guess about the data type: binary or text */
+	/* +0x30 */ uint32be adler;		/* adler32 value of the uncompressed data */
+	/* +0x34 */ uint32be reserved;	/* reserved for future use */
+} z_stream_ppc2;
 
 static_assert(sizeof(z_stream_ppc2) == 0x38);
 
 voidpf zcallocWrapper(voidpf opaque, uInt items, uInt size)
 {
 	z_stream_ppc2* zstream = (z_stream_ppc2*)opaque;
-	
+
 	PPCInterpreter_t* hCPU = ppcInterpreterCurrentInstance;
 	hCPU->gpr[3] = zstream->opaque.GetMPTR();
 	hCPU->gpr[4] = items;
 	hCPU->gpr[5] = size;
 	PPCCore_executeCallbackInternal(zstream->zalloc.GetMPTR());
-	memset(memory_getPointerFromVirtualOffset(hCPU->gpr[3]), 0, items*size);
+	memset(memory_getPointerFromVirtualOffset(hCPU->gpr[3]), 0, items * size);
 	return memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 }
 
@@ -54,7 +55,7 @@ void zlib125_zcalloc(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(items, 1);
 	ppcDefineParamU32(size, 2);
 
-	hCPU->gpr[3] = items*size;
+	hCPU->gpr[3] = items * size;
 	hCPU->instructionPointer = gCoreinitData->MEMAllocFromDefaultHeap.GetMPTR();
 }
 
@@ -67,7 +68,8 @@ void zlib125_zcfree(PPCInterpreter_t* hCPU)
 	hCPU->instructionPointer = gCoreinitData->MEMFreeToDefaultHeap.GetMPTR();
 }
 
-void zlib125_setupHostZStream(z_stream_ppc2* input, z_stream* output, bool fixInternalStreamPtr = true)
+void zlib125_setupHostZStream(z_stream_ppc2* input, z_stream* output,
+							  bool fixInternalStreamPtr = true)
 {
 	output->next_in = input->next_in.GetPtr();
 	output->avail_in = (uint32)input->avail_in;
@@ -90,8 +92,8 @@ void zlib125_setupHostZStream(z_stream_ppc2* input, z_stream* output, bool fixIn
 
 	if (fixInternalStreamPtr && output->state)
 	{
-		// in newer zLib versions the internal state has a pointer to the stream at the beginning, we have to update it manually
-		// todo - find better solution
+		// in newer zLib versions the internal state has a pointer to the stream at the beginning,
+		// we have to update it manually todo - find better solution
 		(*(void**)(output->state)) = output;
 	}
 }
@@ -112,7 +114,6 @@ void zlib125_setupUpdateZStream(z_stream* input, z_stream_ppc2* output)
 	output->data_type = input->data_type;
 	output->adler = input->adler;
 	output->reserved = input->reserved;
-
 }
 
 void zlib125Export_inflateInit_(PPCInterpreter_t* hCPU)
@@ -234,14 +235,16 @@ void zlib125Export_deflateInit2_(PPCInterpreter_t* hCPU)
 	if (zstream->zfree == nullptr)
 		zstream->zfree = PPCInterpreter_makeCallableExportDepr(zlib125_zcfree);
 
-	// workaround for Splatoon (it allocates a too small buffer for our version of zLib and its zalloc returns NULL)
+	// workaround for Splatoon (it allocates a too small buffer for our version of zLib and its
+	// zalloc returns NULL)
 	zstream->zalloc = PPCInterpreter_makeCallableExportDepr(zlib125_zcalloc);
 	zstream->zfree = PPCInterpreter_makeCallableExportDepr(zlib125_zcfree);
 
 	if (streamsize != sizeof(z_stream_ppc2))
 		assert_dbg();
 
-	sint32 r = deflateInit2_(&hzs, level, method, windowBits, memLevel, strategy, version, sizeof(z_stream));
+	sint32 r = deflateInit2_(&hzs, level, method, windowBits, memLevel, strategy, version,
+							 sizeof(z_stream));
 
 	zlib125_setupUpdateZStream(&hzs, zstream);
 
@@ -336,25 +339,25 @@ void zlib125Export_compressBound(PPCInterpreter_t* hCPU)
 
 namespace zlib
 {
-	void load()
-	{
-		// zlib125
-		osLib_addFunction("zlib125", "inflateInit2_", zlib125Export_inflateInit2_);
-		osLib_addFunction("zlib125", "inflateInit_", zlib125Export_inflateInit_);
-		osLib_addFunction("zlib125", "inflateEnd", zlib125Export_inflateEnd);
-		osLib_addFunction("zlib125", "inflate", zlib125Export_inflate);
-		osLib_addFunction("zlib125", "inflateReset", zlib125Export_inflateReset);
-		osLib_addFunction("zlib125", "inflateReset2", zlib125Export_inflateReset2);
+void load()
+{
+	// zlib125
+	osLib_addFunction("zlib125", "inflateInit2_", zlib125Export_inflateInit2_);
+	osLib_addFunction("zlib125", "inflateInit_", zlib125Export_inflateInit_);
+	osLib_addFunction("zlib125", "inflateEnd", zlib125Export_inflateEnd);
+	osLib_addFunction("zlib125", "inflate", zlib125Export_inflate);
+	osLib_addFunction("zlib125", "inflateReset", zlib125Export_inflateReset);
+	osLib_addFunction("zlib125", "inflateReset2", zlib125Export_inflateReset2);
 
-		osLib_addFunction("zlib125", "deflateInit2_", zlib125Export_deflateInit2_);
-		osLib_addFunction("zlib125", "deflateBound", zlib125Export_deflateBound);
-		osLib_addFunction("zlib125", "deflate", zlib125Export_deflate);
-		osLib_addFunction("zlib125", "deflateEnd", zlib125Export_deflateEnd);
+	osLib_addFunction("zlib125", "deflateInit2_", zlib125Export_deflateInit2_);
+	osLib_addFunction("zlib125", "deflateBound", zlib125Export_deflateBound);
+	osLib_addFunction("zlib125", "deflate", zlib125Export_deflate);
+	osLib_addFunction("zlib125", "deflateEnd", zlib125Export_deflateEnd);
 
-		osLib_addFunction("zlib125", "uncompress", zlib125Export_uncompress);
-		osLib_addFunction("zlib125", "compress", zlib125Export_compress);
+	osLib_addFunction("zlib125", "uncompress", zlib125Export_uncompress);
+	osLib_addFunction("zlib125", "compress", zlib125Export_compress);
 
-		osLib_addFunction("zlib125", "crc32", zlib125Export_crc32);
-		osLib_addFunction("zlib125", "compressBound", zlib125Export_compressBound);
-	}
+	osLib_addFunction("zlib125", "crc32", zlib125Export_crc32);
+	osLib_addFunction("zlib125", "compressBound", zlib125Export_compressBound);
 }
+} // namespace zlib

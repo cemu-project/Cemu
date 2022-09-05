@@ -1,22 +1,21 @@
 #pragma once
 
 #include <dxgi1_4.h>
-//#include <atlbase.h>
+// #include <atlbase.h>
 
 class DXGIWrapper
 {
-public:
-	DXGIWrapper()
-		: DXGIWrapper(nullptr)
-	{}
-	
+  public:
+	DXGIWrapper() : DXGIWrapper(nullptr) {}
+
 	DXGIWrapper(uint8* deviceLUID)
 	{
 		m_moduleHandle = LoadLibraryA("dxgi.dll");
 		if (!m_moduleHandle)
 			throw std::runtime_error("can't load dxgi module");
 
-		const auto pCreateDXGIFactory1 = (decltype(&CreateDXGIFactory1))GetProcAddress(m_moduleHandle, "CreateDXGIFactory1");
+		const auto pCreateDXGIFactory1 =
+			(decltype(&CreateDXGIFactory1))GetProcAddress(m_moduleHandle, "CreateDXGIFactory1");
 		if (!pCreateDXGIFactory1)
 		{
 			FreeLibrary(m_moduleHandle);
@@ -60,10 +59,11 @@ public:
 
 	bool QueryVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO& info) const
 	{
-		return m_dxgiAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info) == S_OK;
+		return m_dxgiAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info) ==
+			   S_OK;
 	}
 
-private:
+  private:
 	HMODULE m_moduleHandle = nullptr;
 	IDXGIAdapter3* m_dxgiAdapter = nullptr;
 

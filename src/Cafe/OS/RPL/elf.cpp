@@ -1,11 +1,11 @@
-#include <zlib.h>
+#include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "util/VirtualHeap/VirtualHeap.h"
-#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
-#include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include <zlib.h>
 
-typedef struct  
+typedef struct
 {
 	/* +0x00 */ uint32be magic;
 	/* +0x04 */ uint8 eiClass;
@@ -28,7 +28,7 @@ typedef struct
 	/* +0x2E */ uint16be eSHEntrySize;
 	/* +0x30 */ uint16be eSHNum;
 	/* +0x32 */ uint16be eShStrIndex;
-}elfHeader_t;
+} elfHeader_t;
 
 static_assert(sizeof(elfHeader_t) == 0x34, "");
 
@@ -46,7 +46,7 @@ typedef struct
 
 	/* +0x20 */ uint32be shAddrAlign;
 	/* +0x24 */ uint32be shEntSize;
-}elfSectionEntry_t;
+} elfSectionEntry_t;
 
 static_assert(sizeof(elfSectionEntry_t) == 0x28, "");
 
@@ -63,7 +63,10 @@ uint32 ELF_LoadFromMemory(uint8* elfData, sint32 size, const char* name)
 	memory_enableHBLELFCodeArea();
 	for (uint32 i = 0; i < sectionCount; i++)
 	{
-		debug_printf("%02d Addr %08x Size %08x Offs %08x Flags %08x Type %08x EntSize %08x\n", i, (uint32)sectionTable[i].shAddr, (uint32)sectionTable[i].shSize, (uint32)sectionTable[i].shOffset, (uint32)sectionTable[i].shFlags, (uint32)sectionTable[i].shType, (uint32)sectionTable[i].shEntSize);
+		debug_printf("%02d Addr %08x Size %08x Offs %08x Flags %08x Type %08x EntSize %08x\n", i,
+					 (uint32)sectionTable[i].shAddr, (uint32)sectionTable[i].shSize,
+					 (uint32)sectionTable[i].shOffset, (uint32)sectionTable[i].shFlags,
+					 (uint32)sectionTable[i].shType, (uint32)sectionTable[i].shEntSize);
 		uint32 shAddr = (uint32)sectionTable[i].shAddr;
 		uint32 shSize = (uint32)sectionTable[i].shSize;
 		uint32 shOffset = (uint32)sectionTable[i].shOffset;
@@ -94,20 +97,20 @@ uint32 ELF_LoadFromMemory(uint8* elfData, sint32 size, const char* name)
 }
 
 // From Homebrew Launcher:
-//#define MEM_BASE                    (0x00800000)
-//#define ELF_DATA_ADDR               (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x00))
-//#define ELF_DATA_SIZE               (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x04))
-//#define HBL_CHANNEL                 (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x08))
-//#define RPX_MAX_SIZE                (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x0C))
-//#define RPX_MAX_CODE_SIZE           (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x10))
-//#define MAIN_ENTRY_ADDR             (*(volatile unsigned int*)(MEM_BASE + 0x1400 + 0x00))
-//#define OS_FIRMWARE                 (*(volatile unsigned int*)(MEM_BASE + 0x1400 + 0x04))
+// #define MEM_BASE                    (0x00800000)
+// #define ELF_DATA_ADDR               (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x00))
+// #define ELF_DATA_SIZE               (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x04))
+// #define HBL_CHANNEL                 (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x08))
+// #define RPX_MAX_SIZE                (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x0C))
+// #define RPX_MAX_CODE_SIZE           (*(volatile unsigned int*)(MEM_BASE + 0x1300 + 0x10))
+// #define MAIN_ENTRY_ADDR             (*(volatile unsigned int*)(MEM_BASE + 0x1400 + 0x00))
+// #define OS_FIRMWARE                 (*(volatile unsigned int*)(MEM_BASE + 0x1400 + 0x04))
 //
-//#define OS_SPECIFICS                ((OsSpecifics*)(MEM_BASE + 0x1500))
+// #define OS_SPECIFICS                ((OsSpecifics*)(MEM_BASE + 0x1500))
 //
-//#define MEM_AREA_TABLE              ((s_mem_area*)(MEM_BASE + 0x1600))
+// #define MEM_AREA_TABLE              ((s_mem_area*)(MEM_BASE + 0x1600))
 
-//typedef struct _OsSpecifics
+// typedef struct _OsSpecifics
 //{
 //	unsigned int addr_OSDynLoad_Acquire;
 //	unsigned int addr_OSDynLoad_FindExport;
@@ -126,4 +129,4 @@ uint32 ELF_LoadFromMemory(uint8* elfData, sint32 size, const char* name)
 //	unsigned int addr_sgIsLoadingBuffer;
 //	unsigned int addr_gDynloadInitialized;
 //	unsigned int orig_LiWaitOneChunkInstr;
-//} OsSpecifics;
+// } OsSpecifics;

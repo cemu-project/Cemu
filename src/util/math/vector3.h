@@ -1,9 +1,10 @@
 #pragma once
 #include <cassert>
 
-template <typename T>
-class Vector3 {
-public:
+template<typename T>
+class Vector3
+{
+  public:
 	T x;
 	T y;
 	T z;
@@ -11,9 +12,10 @@ public:
 	Vector3() : x{}, y{}, z{} {}
 	Vector3(T x, T y, T z) : x(x), y(y), z(z) {}
 
-	template <typename U=T>
-	Vector3(const Vector3<U>& v)
-		: x((T)v.x), y((T)v.y), z((T)v.z) {}
+	template<typename U = T>
+	Vector3(const Vector3<U>& v) : x((T)v.x), y((T)v.y), z((T)v.z)
+	{
+	}
 
 	float Length() const
 	{
@@ -42,17 +44,17 @@ public:
 	Vector3& Normalize()
 	{
 		const auto len = Length();
-		if (len != 0) 
+		if (len != 0)
 			*this /= len;
 
 		return *this;
 	}
 
-	//Vector3& Scale(const Vector3& v)
+	// Vector3& Scale(const Vector3& v)
 	//{
 	//	*this *= v;
 	//	return *this;
-	//}
+	// }
 
 	void Scale(const float s)
 	{
@@ -65,7 +67,6 @@ public:
 	Vector3& RotateY(float theta);
 	Vector3& RotateZ(float theta);
 
-
 	bool operator==(const Vector3& v)
 	{
 		return x == v.x && y == v.y && z == v.z;
@@ -76,7 +77,7 @@ public:
 		return !(*this == v);
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3& operator+=(const Vector3<U>& v)
 	{
 		x += (T)v.x;
@@ -85,7 +86,7 @@ public:
 		return *this;
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3& operator-=(const Vector3<U>& v)
 	{
 		x -= (T)v.x;
@@ -94,7 +95,7 @@ public:
 		return *this;
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3& operator*=(const Vector3<U>& v)
 	{
 		x *= (T)v.x;
@@ -103,7 +104,7 @@ public:
 		return *this;
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3& operator/=(const Vector3<U>& v)
 	{
 		assert(v.x != 0 && v.y != 0 && v.z != 0);
@@ -113,25 +114,25 @@ public:
 		return *this;
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3 operator+(const Vector3<U>& v) const
 	{
 		return Vector3(x + (T)v.x, y + (T)v.y, z + (T)v.z);
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3 operator-(const Vector3<U>& v) const
 	{
 		return Vector3(x - (T)v.x, y - (T)v.y, z - (T)v.z);
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3 operator*(const Vector3<U>& v) const
 	{
 		return Vector3(x * (T)v.x, y * (T)v.y, z * (T)v.z);
 	}
 
-	template <typename U = T>
+	template<typename U = T>
 	Vector3 operator/(const Vector3<U>& v) const
 	{
 		assert(v.x != 0 && v.y != 0 && v.z != 0);
@@ -196,9 +197,7 @@ public:
 	}
 };
 
-
-
-template <typename T>
+template<typename T>
 Vector3<T>& Vector3<T>::RotateX(float theta)
 {
 	const float sin = std::sin(theta);
@@ -208,7 +207,7 @@ Vector3<T>& Vector3<T>::RotateX(float theta)
 	return *this;
 }
 
-template <typename T>
+template<typename T>
 Vector3<T>& Vector3<T>::RotateY(float theta)
 {
 	const float sin = std::sin(theta);
@@ -218,7 +217,7 @@ Vector3<T>& Vector3<T>::RotateY(float theta)
 	return *this;
 }
 
-template <typename T>
+template<typename T>
 Vector3<T>& Vector3<T>::RotateZ(float theta)
 {
 	const float sin = std::sin(theta);
@@ -227,7 +226,6 @@ Vector3<T>& Vector3<T>::RotateZ(float theta)
 	y = x * sin + y * cos;
 	return *this;
 }
-
 
 using Vector3f = Vector3<float>;
 using Vector3i = Vector3<int>;

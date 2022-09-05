@@ -1,14 +1,14 @@
 #include "../PPCState.h"
-#include "PPCInterpreterInternal.h"
 #include "PPCInterpreterHelper.h"
+#include "PPCInterpreterInternal.h"
 
 #include "Cafe/OS/libs/coreinit/coreinit_CodeGen.h"
 
 #include "../Recompiler/PPCRecompiler.h"
 #include "../Recompiler/PPCRecompilerX64.h"
 
-#include <float.h>
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
+#include <float.h>
 
 void PPCInterpreter_MFMSR(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
@@ -23,7 +23,6 @@ void PPCInterpreter_MFMSR(PPCInterpreter_t* hCPU, uint32 Opcode)
 	hCPU->gpr[rD] = hCPU->sprExtended.msr;
 
 	PPCInterpreter_nextInstruction(hCPU);
-
 }
 
 void PPCInterpreter_MTMSR(PPCInterpreter_t* hCPU, uint32 Opcode)
@@ -46,11 +45,11 @@ void PPCInterpreter_MTFSB1X(PPCInterpreter_t* hCPU, uint32 Opcode)
 	forceLogDebug_printf("Rare instruction: MTFSB1X");
 	int crbD, n1, n2;
 	PPC_OPC_TEMPL_X(Opcode, crbD, n1, n2);
-	if (crbD != 1 && crbD != 2) 
+	if (crbD != 1 && crbD != 2)
 	{
 		hCPU->fpscr |= 1 << (31 - crbD);
 	}
-	if (Opcode & PPC_OPC_RC) 
+	if (Opcode & PPC_OPC_RC)
 	{
 		// update cr1 flags
 		PPC_ASSERT(true);
@@ -65,7 +64,7 @@ void PPCInterpreter_MCRF(PPCInterpreter_t* hCPU, uint32 Opcode)
 	PPC_OPC_TEMPL_X(Opcode, crD, crS, b);
 	crD >>= 2;
 	crS >>= 2;
-	for (sint32 i = 0; i<4; i++)
+	for (sint32 i = 0; i < 4; i++)
 		ppc_setCRBit(hCPU, crD * 4 + i, ppc_getCRBit(hCPU, crS * 4 + i));
 
 	PPCInterpreter_nextInstruction(hCPU);
@@ -76,7 +75,7 @@ void PPCInterpreter_MFCR(PPCInterpreter_t* hCPU, uint32 Opcode)
 	// frequently used by GCC compiled code (e.g. SM64 port)
 	int rD, rA, rB;
 	PPC_OPC_TEMPL_X(Opcode, rD, rA, rB);
-	
+
 	// in our array: cr0.LT is entry with index 0
 	// in GPR: cr0.LT is in MSB
 	uint32 cr = 0;
@@ -116,7 +115,7 @@ void PPCInterpreter_MTCRF(PPCInterpreter_t* hCPU, uint32 Opcode)
 }
 
 void PPCInterpreter_MCRXR(PPCInterpreter_t* hCPU, uint32 Opcode)
-{	
+{
 	// used in Dont Starve: Giant Edition
 	// also used frequently by Web Browser (webkit?)
 	uint32 cr;
@@ -133,7 +132,7 @@ void PPCInterpreter_MCRXR(PPCInterpreter_t* hCPU, uint32 Opcode)
 	ppc_setCRBit(hCPU, cr * 4 + 3, (xerBits >> 3) & 1);
 
 	// reset copied bits
-	PPCInterpreter_setXER(hCPU, xer&~0xF0000000);
+	PPCInterpreter_setXER(hCPU, xer & ~0xF0000000);
 
 	PPCInterpreter_nextInstruction(hCPU);
 }
@@ -160,7 +159,7 @@ void PPCInterpreter_BX(PPCInterpreter_t* hCPU, uint32 Opcode)
 	PPC_OPC_TEMPL_I(Opcode, li);
 	if ((Opcode & PPC_OPC_AA) == 0)
 		li += (unsigned int)hCPU->instructionPointer;
-	if (Opcode & PPC_OPC_LK) 
+	if (Opcode & PPC_OPC_LK)
 	{
 		// update LR and IP
 		hCPU->spr.LR = (unsigned int)hCPU->instructionPointer + 4;
@@ -172,7 +171,6 @@ void PPCInterpreter_BX(PPCInterpreter_t* hCPU, uint32 Opcode)
 	PPCInterpreter_jumpToInstruction(hCPU, li);
 }
 
-
 void PPCInterpreter_BCX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
 	uint32 BO, BI, BD;
@@ -182,8 +180,7 @@ void PPCInterpreter_BCX(PPCInterpreter_t* hCPU, uint32 Opcode)
 	bool bo2 = (BO & 2) != 0;
 	bool bo8 = (BO & 8) != 0; // branch condition true
 	bool cr = ppc_getCRBit(hCPU, BI) != 0;
-	if (((BO & 4) || ((hCPU->spr.CTR != 0) ^ bo2)) 
-		&& ((BO & 16) || (!(cr ^ bo8)))) 
+	if (((BO & 4) || ((hCPU->spr.CTR != 0) ^ bo2)) && ((BO & 16) || (!(cr ^ bo8))))
 	{
 		if (!(Opcode & PPC_OPC_AA))
 		{
@@ -219,8 +216,7 @@ void PPCInterpreter_BCLRX(PPCInterpreter_t* hCPU, uint32 Opcode)
 	bool bo2 = (BO & 2) ? true : false;
 	bool bo8 = (BO & 8) ? true : false;
 	bool cr = ppc_getCRBit(hCPU, BI) != 0;
-	if (((BO & 4) || ((hCPU->spr.CTR != 0) ^ bo2))
-		&& ((BO & 16) || (!(cr ^ bo8))))
+	if (((BO & 4) || ((hCPU->spr.CTR != 0) ^ bo2)) && ((BO & 16) || (!(cr ^ bo8))))
 	{
 		BD = hCPU->spr.LR & 0xfffffffc;
 		if (Opcode & PPC_OPC_LK)
@@ -283,7 +279,7 @@ void PPCInterpreter_DCBST(PPCInterpreter_t* hCPU, uint32 Opcode)
 	uint32 ea = (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB];
 
 	LatteBufferCache_notifyDCFlush(ea, 32);
-	
+
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
@@ -300,7 +296,7 @@ void PPCInterpreter_DCBF(PPCInterpreter_t* hCPU, uint32 Opcode)
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
-void PPCInterpreter_DCBZL(PPCInterpreter_t* hCPU, uint32 Opcode) //Undocumented
+void PPCInterpreter_DCBZL(PPCInterpreter_t* hCPU, uint32 Opcode) // Undocumented
 {
 	// no-op
 	PPCInterpreter_nextInstruction(hCPU);

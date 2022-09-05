@@ -1,9 +1,9 @@
 #include "Cafe/HW/Espresso/Const.h"
-#include <immintrin.h>
 #include "asm/x64util.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
+#include <immintrin.h>
 
 uint64 _rdtscLastMeasure = 0;
 uint64 _rdtscFrequency = 0;
@@ -62,12 +62,12 @@ uint64 PPCTimer_estimateRDTSCFrequency()
 	uint64 tsc_freq = muldiv64(tsc_diff, hrtFreq, hrtDiff);
 
 	// uint64 freqMultiplier = tsc_freq / hrtFreq;
-	//forceLog_printf("RDTSC measurement test:");
-	//forceLog_printf("TSC-diff:   0x%016llx", tsc_diff);
-	//forceLog_printf("TSC-freq:   0x%016llx", tsc_freq);
-	//forceLog_printf("HPC-diff:   0x%016llx", qpc_diff);
-	//forceLog_printf("HPC-freq:   0x%016llx", (uint64)qpc_freq.QuadPart);
-	//forceLog_printf("Multiplier: 0x%016llx", freqMultiplier);
+	// forceLog_printf("RDTSC measurement test:");
+	// forceLog_printf("TSC-diff:   0x%016llx", tsc_diff);
+	// forceLog_printf("TSC-freq:   0x%016llx", tsc_freq);
+	// forceLog_printf("HPC-diff:   0x%016llx", qpc_diff);
+	// forceLog_printf("HPC-freq:   0x%016llx", (uint64)qpc_freq.QuadPart);
+	// forceLog_printf("Multiplier: 0x%016llx", freqMultiplier);
 
 	return tsc_freq;
 }
@@ -108,7 +108,6 @@ uint64 PPCTimer_tscToMicroseconds(uint64 us)
 	uint128_t r{};
 	r.low = _umul128(us, 1000000ULL, &r.high);
 
-
 	uint64 remainder;
 
 #if _MSC_VER < 1923 || defined(__clang__)
@@ -127,7 +126,8 @@ bool PPCTimer_isReady()
 
 void PPCTimer_waitForInit()
 {
-	while (!PPCTimer_isReady()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	while (!PPCTimer_isReady())
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 FSpinlock sTimerSpinlock;
@@ -145,24 +145,24 @@ uint64 PPCTimer_getFromRDTSC()
 	uint128_t diff{};
 	diff.low = _umul128(rdtscDif, Espresso::CORE_CLOCK, &diff.high);
 
-	if(rdtscCurrentMeasure > _rdtscLastMeasure)
+	if (rdtscCurrentMeasure > _rdtscLastMeasure)
 		_rdtscLastMeasure = rdtscCurrentMeasure; // only travel forward in time
 
 	uint8 c = 0;
-	#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	c = _addcarry_u64(c, _rdtscAcc.low, diff.low, &_rdtscAcc.low);
 	_addcarry_u64(c, _rdtscAcc.high, diff.high, &_rdtscAcc.high);
-	#else
+#else
 	// requires casting because of long / long long nonesense
 	c = _addcarry_u64(c, _rdtscAcc.low, diff.low, (unsigned long long*)&_rdtscAcc.low);
 	_addcarry_u64(c, _rdtscAcc.high, diff.high, (unsigned long long*)&_rdtscAcc.high);
-	#endif
+#endif
 
 	uint64 remainder;
 #if _MSC_VER < 1923 || defined(__clang__)
-	 uint64 elapsedTick = udiv128(_rdtscAcc.low, _rdtscAcc.high, _rdtscFrequency, &remainder);
+	uint64 elapsedTick = udiv128(_rdtscAcc.low, _rdtscAcc.high, _rdtscFrequency, &remainder);
 #else
-	 uint64 elapsedTick = _udiv128(_rdtscAcc.high, _rdtscAcc.low, _rdtscFrequency, &remainder);
+	uint64 elapsedTick = _udiv128(_rdtscAcc.high, _rdtscAcc.low, _rdtscFrequency, &remainder);
 #endif
 
 	_rdtscAcc.low = remainder;

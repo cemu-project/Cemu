@@ -1,8 +1,8 @@
-#include "gui/wxgui.h"
 #include "gui/GraphicPacksWindow2.h"
-#include "gui/DownloadGraphicPacksWindow.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
+#include "gui/DownloadGraphicPacksWindow.h"
+#include "gui/wxgui.h"
 
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 
@@ -16,13 +16,15 @@
 // main.cpp
 class wxGraphicPackData : public wxTreeItemData
 {
-public:
-	wxGraphicPackData(GraphicPackPtr pack)
-	 : m_pack(std::move(pack)) {  }
+  public:
+	wxGraphicPackData(GraphicPackPtr pack) : m_pack(std::move(pack)) {}
 
-	const GraphicPackPtr& GetGraphicPack() const { return m_pack; }
+	const GraphicPackPtr& GetGraphicPack() const
+	{
+		return m_pack;
+	}
 
-private:
+  private:
 	GraphicPackPtr m_pack;
 };
 
@@ -37,7 +39,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 
 	const bool has_filter = !m_filter.empty();
 
-	for(auto& p : graphic_packs)
+	for (auto& p : graphic_packs)
 	{
 		// filter graphic packs by given title id
 		if (m_filter_installed_games && !m_installed_games.empty())
@@ -45,7 +47,8 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 			bool found = false;
 			for (uint64 titleId : p->GetTitleIds())
 			{
-				if (std::find(m_installed_games.cbegin(), m_installed_games.cend(), titleId) != m_installed_games.cend())
+				if (std::find(m_installed_games.cbegin(), m_installed_games.cend(), titleId) !=
+					m_installed_games.cend())
 				{
 					found = true;
 					break;
@@ -57,7 +60,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 		}
 
 		// filter graphic packs by given title id
-		if(has_filter)
+		if (has_filter)
 		{
 			bool found = false;
 
@@ -82,7 +85,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 		const auto& path = p->GetPath();
 		auto tokens = TokenizeView(path, '/');
 		auto node = root;
-		for(size_t i=0; i<tokens.size(); i++)
+		for (size_t i = 0; i < tokens.size(); i++)
 		{
 			auto& token = tokens[i];
 			const auto parent_node = node;
@@ -91,7 +94,8 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 				node = FindTreeItem(parent_node, wxString(token.data(), token.length()));
 				if (!node.IsOk())
 				{
-					node = m_graphic_pack_tree->AppendItem(parent_node, wxString(token.data(), token.length()));
+					node = m_graphic_pack_tree->AppendItem(parent_node,
+														   wxString(token.data(), token.length()));
 				}
 			}
 			else
@@ -103,7 +107,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 					wxString nodeName(token.data(), token.length());
 					if (s > 0)
 						nodeName.append(fmt::format(" #{}", s + 1));
-					
+
 					node = FindTreeItem(parent_node, nodeName);
 					if (!node.IsOk())
 					{
@@ -114,7 +118,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 			}
 		}
 
-		if(node.IsOk() && node != root)
+		if (node.IsOk() && node != root)
 		{
 			m_graphic_pack_tree->SetItemData(node, new wxGraphicPackData(p));
 			bool canEnable = true;
@@ -122,9 +126,11 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 			if (p->GetVersion() == 3)
 			{
 				auto tmp_text = m_graphic_pack_tree->GetItemText(node);
-				m_graphic_pack_tree->SetItemText(node, tmp_text + " (may not be compatible with Vulkan)");
+				m_graphic_pack_tree->SetItemText(node,
+												 tmp_text + " (may not be compatible with Vulkan)");
 			}
-			else if (p->GetVersion() != 3 && p->GetVersion() != 4 && p->GetVersion() != 5 && p->GetVersion() != 6 && p->GetVersion() != GraphicPack2::GFXPACK_VERSION_7)
+			else if (p->GetVersion() != 3 && p->GetVersion() != 4 && p->GetVersion() != 5 &&
+					 p->GetVersion() != 6 && p->GetVersion() != GraphicPack2::GFXPACK_VERSION_7)
 			{
 				auto tmp_text = m_graphic_pack_tree->GetItemText(node);
 				m_graphic_pack_tree->SetItemText(node, tmp_text + " (Unsupported version)");
@@ -145,12 +151,12 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 	if (!m_filter.empty())
 	{
 		size_t counter = 0;
-		ExpandChildren({ root }, counter);
+		ExpandChildren({root}, counter);
 	}
 }
 
-
-void GraphicPacksWindow2::GetChildren(const wxTreeItemId& id, std::vector<wxTreeItemId>& children) const
+void GraphicPacksWindow2::GetChildren(const wxTreeItemId& id,
+									  std::vector<wxTreeItemId>& children) const
 {
 	wxTreeItemIdValue cookie;
 	wxTreeItemId child = m_graphic_pack_tree->GetFirstChild(id, cookie);
@@ -161,7 +167,8 @@ void GraphicPacksWindow2::GetChildren(const wxTreeItemId& id, std::vector<wxTree
 	}
 }
 
-void GraphicPacksWindow2::ExpandChildren(const std::vector<wxTreeItemId>& ids, size_t& counter) const
+void GraphicPacksWindow2::ExpandChildren(const std::vector<wxTreeItemId>& ids,
+										 size_t& counter) const
 {
 	std::vector<wxTreeItemId> children;
 	for (const auto& id : ids)
@@ -173,7 +180,7 @@ void GraphicPacksWindow2::ExpandChildren(const std::vector<wxTreeItemId>& ids, s
 
 	for (const auto& id : ids)
 	{
-		if(id != m_graphic_pack_tree->GetRootItem() && m_graphic_pack_tree->HasChildren(id))
+		if (id != m_graphic_pack_tree->GetRootItem() && m_graphic_pack_tree->HasChildren(id))
 			m_graphic_pack_tree->Expand(id);
 	}
 
@@ -187,8 +194,9 @@ void GraphicPacksWindow2::RefreshGraphicPacks()
 }
 
 GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_filter)
-	: wxDialog(parent, wxID_ANY, _("Graphic packs"), wxDefaultPosition, wxSize(1000,670), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER),
-		m_installed_games(CafeTitleList::GetAllTitleIds())
+	: wxDialog(parent, wxID_ANY, _("Graphic packs"), wxDefaultPosition, wxSize(1000, 670),
+			   wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER),
+	  m_installed_games(CafeTitleList::GetAllTitleIds())
 {
 	if (title_id_filter != 0)
 		m_filter = fmt::format("{:x}", title_id_filter);
@@ -199,10 +207,12 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 	SetMinSize(wxSize(500, 400));
 	auto main_sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_splitter_window = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_3D);
+	m_splitter_window =
+		new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_3D);
 	m_splitter_window->Bind(wxEVT_SIZE, &GraphicPacksWindow2::OnSizeChanged, this);
-	m_splitter_window->Bind(wxEVT_SPLITTER_SASH_POS_CHANGED, &GraphicPacksWindow2::SashPositionChanged, this);
-	
+	m_splitter_window->Bind(wxEVT_SPLITTER_SASH_POS_CHANGED,
+							&GraphicPacksWindow2::SashPositionChanged, this);
+
 	// left side
 	auto left_panel = new wxPanel(m_splitter_window);
 	{
@@ -213,38 +223,48 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		filter_row->SetFlexibleDirection(wxBOTH);
 		filter_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-		const auto text = new wxStaticText(left_panel, wxID_ANY, _("Filter"), wxDefaultPosition, wxDefaultSize, 0);
+		const auto text = new wxStaticText(left_panel, wxID_ANY, _("Filter"), wxDefaultPosition,
+										   wxDefaultSize, 0);
 		text->Wrap(-1);
 		filter_row->Add(text, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		m_filter_text = new wxTextCtrl(left_panel, wxID_ANY, m_filter, wxDefaultPosition, wxDefaultSize, 0);
+		m_filter_text =
+			new wxTextCtrl(left_panel, wxID_ANY, m_filter, wxDefaultPosition, wxDefaultSize, 0);
 		filter_row->Add(m_filter_text, 0, wxALL | wxEXPAND, 5);
 		m_filter_text->Bind(wxEVT_COMMAND_TEXT_UPDATED, &GraphicPacksWindow2::OnFilterUpdate, this);
 
-		m_installed_games_only = new wxCheckBox(left_panel, wxID_ANY, _("Installed games"), wxDefaultPosition, wxDefaultSize, 0);
+		m_installed_games_only = new wxCheckBox(left_panel, wxID_ANY, _("Installed games"),
+												wxDefaultPosition, wxDefaultSize, 0);
 		m_installed_games_only->SetValue(m_filter_installed_games);
 		filter_row->Add(m_installed_games_only, 0, wxALL | wxEXPAND, 5);
-		m_installed_games_only->Bind(wxEVT_CHECKBOX, &GraphicPacksWindow2::OnInstalledGamesChanged, this);
+		m_installed_games_only->Bind(wxEVT_CHECKBOX, &GraphicPacksWindow2::OnInstalledGamesChanged,
+									 this);
 		if (m_installed_games.empty())
 			m_installed_games_only->Disable();
 
 		sizer->Add(filter_row, 0, wxEXPAND, 5);
 
-		m_graphic_pack_tree = new wxCheckTree(left_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT);
-		m_graphic_pack_tree->Bind(wxEVT_TREE_SEL_CHANGED, &GraphicPacksWindow2::OnTreeSelectionChanged, this);
-		m_graphic_pack_tree->Bind(wxEVT_CHECKTREE_CHOICE, &GraphicPacksWindow2::OnTreeChoiceChanged, this);
-		//m_graphic_pack_tree->SetMinSize(wxSize(600, 400));
+		m_graphic_pack_tree = new wxCheckTree(left_panel, wxID_ANY, wxDefaultPosition,
+											  wxDefaultSize, wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT);
+		m_graphic_pack_tree->Bind(wxEVT_TREE_SEL_CHANGED,
+								  &GraphicPacksWindow2::OnTreeSelectionChanged, this);
+		m_graphic_pack_tree->Bind(wxEVT_CHECKTREE_CHOICE, &GraphicPacksWindow2::OnTreeChoiceChanged,
+								  this);
+		// m_graphic_pack_tree->SetMinSize(wxSize(600, 400));
 		sizer->Add(m_graphic_pack_tree, 1, wxEXPAND | wxALL, 5);
 
 		left_panel->SetSizerAndFit(sizer);
 	}
 
 	// right side
-	m_right_panel = new wxPanel(m_splitter_window, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxFULL_REPAINT_ON_RESIZE);
+	m_right_panel = new wxPanel(m_splitter_window, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+								wxTAB_TRAVERSAL | wxNO_BORDER | wxFULL_REPAINT_ON_RESIZE);
 	{
 		auto* sizer = new wxBoxSizer(wxVERTICAL);
 		{
-			m_gp_options = new wxScrolled<wxPanel>(m_right_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxVSCROLL);
+			m_gp_options =
+				new wxScrolled<wxPanel>(m_right_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+										wxTAB_TRAVERSAL | wxNO_BORDER | wxVSCROLL);
 			m_gp_options->SetScrollRate(-1, 10);
 
 			auto* inner_sizer = new wxBoxSizer(wxVERTICAL);
@@ -283,7 +303,8 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 				inner_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
 			}
 
-			inner_sizer->Add(new wxStaticText(m_gp_options, wxID_ANY, wxEmptyString), 1, wxALL | wxEXPAND, 5);
+			inner_sizer->Add(new wxStaticText(m_gp_options, wxID_ANY, wxEmptyString), 1,
+							 wxALL | wxEXPAND, 5);
 
 			m_gp_options->SetSizerAndFit(inner_sizer);
 			m_gp_options->Hide();
@@ -291,11 +312,11 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 			sizer->Add(m_gp_options, 1, wxEXPAND | wxRESERVE_SPACE_EVEN_IF_HIDDEN);
 		}
 
-		
-		sizer->Add(new wxStaticLine(m_right_panel, wxID_ANY), 0, wxLEFT|wxRIGHT | wxEXPAND, 3);
+		sizer->Add(new wxStaticLine(m_right_panel, wxID_ANY), 0, wxLEFT | wxRIGHT | wxEXPAND, 3);
 
 		auto* row = new wxBoxSizer(wxHORIZONTAL);
-		m_update_graphicPacks = new wxButton(m_right_panel, wxID_ANY, _("Download latest community graphic packs"));
+		m_update_graphicPacks =
+			new wxButton(m_right_panel, wxID_ANY, _("Download latest community graphic packs"));
 		m_update_graphicPacks->Bind(wxEVT_BUTTON, &GraphicPacksWindow2::OnCheckForUpdates, this);
 		row->Add(m_update_graphicPacks, 0, wxALL, 5);
 
@@ -305,9 +326,10 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 	}
 
 	m_splitter_window->SetMinimumPaneSize(50);
-	m_splitter_window->SplitVertically(left_panel, m_right_panel, (sint32)(m_ratio * m_splitter_window->GetParent()->GetSize().GetWidth()));
+	m_splitter_window->SplitVertically(
+		left_panel, m_right_panel,
+		(sint32)(m_ratio * m_splitter_window->GetParent()->GetSize().GetWidth()));
 	main_sizer->Add(m_splitter_window, 1, wxEXPAND, 5);
-
 
 	m_info_bar = new wxInfoBar(this);
 	m_info_bar->SetShowHideEffects(wxSHOW_EFFECT_BLEND, wxSHOW_EFFECT_BLEND);
@@ -335,7 +357,7 @@ void GraphicPacksWindow2::SaveStateToConfig()
 			for (const auto& preset : gp->GetActivePresets())
 				it.try_emplace(preset->category, preset->name);
 		}
-		else if(gp->IsDefaultEnabled())
+		else if (gp->IsDefaultEnabled())
 		{
 			// save that its disabled
 			data.graphic_pack_entries.try_emplace(filename);
@@ -349,8 +371,10 @@ void GraphicPacksWindow2::SaveStateToConfig()
 
 GraphicPacksWindow2::~GraphicPacksWindow2()
 {
-	m_graphic_pack_tree->Unbind(wxEVT_CHECKTREE_CHOICE, &GraphicPacksWindow2::OnTreeSelectionChanged, this);
-	m_graphic_pack_tree->Unbind(wxEVT_CHECKTREE_CHOICE, &GraphicPacksWindow2::OnTreeChoiceChanged, this);
+	m_graphic_pack_tree->Unbind(wxEVT_CHECKTREE_CHOICE,
+								&GraphicPacksWindow2::OnTreeSelectionChanged, this);
+	m_graphic_pack_tree->Unbind(wxEVT_CHECKTREE_CHOICE, &GraphicPacksWindow2::OnTreeChoiceChanged,
+								this);
 	// m_active_preset->Unbind(wxEVT_CHOICE, &GraphicPacksWindow2::OnActivePresetChanged, this);
 	m_reload_shaders->Unbind(wxEVT_BUTTON, &GraphicPacksWindow2::OnReloadShaders, this);
 
@@ -360,7 +384,8 @@ GraphicPacksWindow2::~GraphicPacksWindow2()
 wxTreeItemId GraphicPacksWindow2::FindTreeItem(const wxTreeItemId& root, const wxString& text) const
 {
 	wxTreeItemIdValue cookie;
-	for(auto item = m_graphic_pack_tree->GetFirstChild(root, cookie); item.IsOk(); item = m_graphic_pack_tree->GetNextSibling(item))
+	for (auto item = m_graphic_pack_tree->GetFirstChild(root, cookie); item.IsOk();
+		 item = m_graphic_pack_tree->GetNextSibling(item))
 	{
 		if (m_graphic_pack_tree->GetItemText(item) == text)
 			return item;
@@ -373,19 +398,16 @@ void GraphicPacksWindow2::LoadPresetSelections(const GraphicPackPtr& gp)
 {
 	std::vector<std::string> order;
 	auto presets = gp->GetCategorizedPresets(order);
-	for(const auto& category : order)
+	for (const auto& category : order)
 	{
 		const auto& entry = presets[category];
-		
+
 		// test if any preset is visible and update its status
-		if (std::none_of(entry.cbegin(), entry.cend(), [gp](const auto& p)
-		{
-			return p->visible;
-		}))
+		if (std::none_of(entry.cbegin(), entry.cend(), [gp](const auto& p) { return p->visible; }))
 		{
 			continue;
 		}
-					
+
 		wxString label(category.empty() ? _("Active preset") : wxString(category));
 		auto* box = new wxStaticBox(m_preset_sizer->GetContainingWindow(), wxID_ANY, label);
 		auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
@@ -399,7 +421,7 @@ void GraphicPacksWindow2::LoadPresetSelections(const GraphicPackPtr& gp)
 		{
 			if (!pentry->visible)
 				continue;
-						
+
 			preset->AppendString(pentry->name);
 			if (pentry->active)
 				active_preset = pentry->name;
@@ -409,7 +431,7 @@ void GraphicPacksWindow2::LoadPresetSelections(const GraphicPackPtr& gp)
 			preset->SetStringSelection(active_preset.value());
 		else if (preset->GetCount() > 0)
 			preset->SetSelection(0);
-					
+
 		box_sizer->Add(preset, 1, wxEXPAND | wxALL, 5);
 
 		m_preset_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -419,20 +441,22 @@ void GraphicPacksWindow2::LoadPresetSelections(const GraphicPackPtr& gp)
 void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 {
 	wxWindowUpdateLocker lock(this);
-	
-	bool item_deselected = m_graphic_pack_tree->GetSelection() == m_graphic_pack_tree->GetRootItem(); 
+
+	bool item_deselected =
+		m_graphic_pack_tree->GetSelection() == m_graphic_pack_tree->GetRootItem();
 	if (item_deselected)
 		return;
 
 	const auto selection = m_graphic_pack_tree->GetSelection();
 	if (selection.IsOk())
 	{
-		const auto data = dynamic_cast<wxGraphicPackData*>(m_graphic_pack_tree->GetItemData(selection));
+		const auto data =
+			dynamic_cast<wxGraphicPackData*>(m_graphic_pack_tree->GetItemData(selection));
 		if (data)
 		{
-			if(!m_gp_options->IsShown())
+			if (!m_gp_options->IsShown())
 				m_gp_options->Show();
-			
+
 			const auto& gp = data->GetGraphicPack();
 			if (gp != m_shown_graphic_pack)
 			{
@@ -448,19 +472,21 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 				m_graphic_pack_description->SetLabel(m_gp_description);
 
 				LoadPresetSelections(gp);
-				
+
 				m_reload_shaders->Enable(gp->HasShaders());
 
 				m_shown_graphic_pack = gp;
 
-				m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 10);
+				m_graphic_pack_name->Wrap(
+					m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 10);
 				m_graphic_pack_name->GetGrandParent()->Layout();
 
-				m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 10);
+				m_graphic_pack_description->Wrap(
+					m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 10);
 				m_graphic_pack_description->GetGrandParent()->Layout();
 
 				m_right_panel->FitInside();
-				m_right_panel->Layout();	
+				m_right_panel->Layout();
 			}
 			return;
 		}
@@ -495,9 +521,10 @@ void GraphicPacksWindow2::OnTreeChoiceChanged(wxTreeEvent& event)
 	graphic_pack->SetEnabled(state);
 
 	bool has_texture_rules = false;
-	if (CafeSystem::IsTitleRunning() && graphic_pack->ContainsTitleId(CafeSystem::GetForegroundTitleId()))
+	if (CafeSystem::IsTitleRunning() &&
+		graphic_pack->ContainsTitleId(CafeSystem::GetForegroundTitleId()))
 	{
- 		if (state)
+		if (state)
 		{
 			GraphicPack2::ActivateGraphicPack(graphic_pack);
 			has_texture_rules = !graphic_pack->GetTextureRules().empty();
@@ -539,13 +566,13 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 	const auto string_data = dynamic_cast<wxStringClientData*>(obj->GetClientObject());
 	wxASSERT(string_data);
 	const auto preset = obj->GetStringSelection().ToStdString();
-	if(m_shown_graphic_pack->SetActivePreset(string_data->GetData().c_str().AsChar(), preset))
+	if (m_shown_graphic_pack->SetActivePreset(string_data->GetData().c_str().AsChar(), preset))
 	{
 		wxWindowUpdateLocker lock(this);
 		m_preset_sizer->Clear(true);
 		LoadPresetSelections(m_shown_graphic_pack);
-		//m_preset_sizer->GetContainingWindow()->Layout();
-		//m_right_panel->FitInside();
+		// m_preset_sizer->GetContainingWindow()->Layout();
+		// m_right_panel->FitInside();
 		m_right_panel->FitInside();
 		m_right_panel->Layout();
 	}
@@ -553,7 +580,7 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 	if (m_shown_graphic_pack->GetTextureRules().empty())
 		ReloadPack(m_shown_graphic_pack);
 	else if (!m_info_bar->IsShown())
-		m_info_bar->ShowMessage(_("Restart of Cemu required for changes to take effect"));		
+		m_info_bar->ShowMessage(_("Restart of Cemu required for changes to take effect"));
 }
 
 void GraphicPacksWindow2::OnReloadShaders(wxCommandEvent& event)
@@ -578,26 +605,29 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 			// check if enabled graphic packs are lost:
 			const auto& new_packs = GraphicPack2::GetGraphicPacks();
 			std::stringstream str;
-			for(const auto& p : old_packs)
+			for (const auto& p : old_packs)
 			{
 				if (!p->IsEnabled())
 					continue;
 
-				const auto it = std::find_if(new_packs.cbegin(), new_packs.cend(), [&p](const auto& gp)
-					{
-						return gp->GetFilename() == p->GetFilename();
-					});
-				
-				if(it == new_packs.cend())
+				const auto it = std::find_if(new_packs.cbegin(), new_packs.cend(),
+											 [&p](const auto& gp)
+											 { return gp->GetFilename() == p->GetFilename(); });
+
+				if (it == new_packs.cend())
 				{
 					str << p->GetPath() << std::endl;
 				}
 			}
 
 			const auto packs = str.str();
-			if(!packs.empty())
+			if (!packs.empty())
 			{
-				wxMessageBox(fmt::format("{}\n \n{} \n{}", _("This update removed or renamed the following graphic packs:").ToStdString(), packs, _("You may need to set them up again.").ToStdString()),
+				wxMessageBox(
+					fmt::format("{}\n \n{} \n{}",
+								_("This update removed or renamed the following graphic packs:")
+									.ToStdString(),
+								packs, _("You may need to set them up again.").ToStdString()),
 					_("Warning"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
 			}
 		}
@@ -609,7 +639,8 @@ void GraphicPacksWindow2::OnSizeChanged(wxSizeEvent& event)
 	const auto obj = (wxSplitterWindow*)event.GetEventObject();
 	wxASSERT(obj);
 
-	const auto width = std::max(obj->GetMinimumPaneSize(), obj->GetParent()->GetClientSize().GetWidth());
+	const auto width =
+		std::max(obj->GetMinimumPaneSize(), obj->GetParent()->GetClientSize().GetWidth());
 	obj->SetSashPosition((sint32)(m_ratio * width));
 
 	if (!m_gp_name.empty())
@@ -619,7 +650,8 @@ void GraphicPacksWindow2::OnSizeChanged(wxSizeEvent& event)
 		m_graphic_pack_description->SetLabel(m_gp_description);
 
 	m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 10);
-	m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 10);
+	m_graphic_pack_description->Wrap(
+		m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 10);
 
 	event.Skip();
 }
@@ -629,7 +661,8 @@ void GraphicPacksWindow2::SashPositionChanged(wxEvent& event)
 	const auto obj = (wxSplitterWindow*)event.GetEventObject();
 	wxASSERT(obj);
 
-	const auto width = std::max(obj->GetMinimumPaneSize(), obj->GetParent()->GetClientSize().GetWidth());
+	const auto width =
+		std::max(obj->GetMinimumPaneSize(), obj->GetParent()->GetClientSize().GetWidth());
 	m_ratio = (float)obj->GetSashPosition() / width;
 	event.Skip();
 }
@@ -650,7 +683,8 @@ void GraphicPacksWindow2::OnInstalledGamesChanged(wxCommandEvent& event)
 
 void GraphicPacksWindow2::ReloadPack(const GraphicPackPtr& graphic_pack) const
 {
-	if (graphic_pack->HasShaders() || graphic_pack->HasPatches() || graphic_pack->HasCustomVSyncFrequency())
+	if (graphic_pack->HasShaders() || graphic_pack->HasPatches() ||
+		graphic_pack->HasCustomVSyncFrequency())
 	{
 		if (graphic_pack->Reload())
 		{
@@ -670,7 +704,7 @@ void GraphicPacksWindow2::DeleteShadersFromRuntimeCache(const GraphicPackPtr& gr
 			shaderType = LatteConst::ShaderType::Geometry;
 		else if (shader.type == GraphicPack2::GP_SHADER_TYPE::PIXEL)
 			shaderType = LatteConst::ShaderType::Pixel;
-		LatteAsyncCommands_queueDeleteShader(shader.shader_base_hash, shader.shader_aux_hash, shaderType);
+		LatteAsyncCommands_queueDeleteShader(shader.shader_base_hash, shader.shader_aux_hash,
+											 shaderType);
 	}
 }
-

@@ -4,8 +4,8 @@
 
 #ifdef PUBLIC_RELEASE
 #define debug_printf //
-#define debug_puts //
-static void debugBreakpoint() { }
+#define debug_puts	 //
+static void debugBreakpoint() {}
 #else
 #define debug_printf printf
 #define debug_puts puts

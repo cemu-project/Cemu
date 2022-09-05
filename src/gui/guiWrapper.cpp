@@ -1,17 +1,17 @@
-#include "gui/wxgui.h"
 #include "gui/guiWrapper.h"
+#include "Cafe/CafeSystem.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "config/ActiveSettings.h"
+#include "config/CemuConfig.h"
 #include "gui/CemuApp.h"
 #include "gui/MainWindow.h"
 #include "gui/debugger/DebuggerWindow2.h"
-#include "Cafe/HW/Latte/Core/Latte.h"
-#include "config/ActiveSettings.h"
-#include "config/CemuConfig.h"
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/CafeSystem.h"
+#include "gui/wxgui.h"
 
 #include "wxHelper.h"
 
-WindowInfo g_window_info {};
+WindowInfo g_window_info{};
 
 std::shared_mutex g_mutex;
 MainWindow* g_mainFrame = nullptr;
@@ -28,8 +28,8 @@ void gui_create()
 {
 	SetThreadName("MainThread");
 #if BOOST_OS_WINDOWS
-	// on Windows wxWidgets there is a bug where wxDirDialog->ShowModal will deadlock in Windows internals somehow
-	// moving the UI thread off the main thread fixes this
+	// on Windows wxWidgets there is a bug where wxDirDialog->ShowModal will deadlock in Windows
+	// internals somehow moving the UI thread off the main thread fixes this
 	std::thread t = std::thread(_wxLaunch);
 	t.join();
 #else
@@ -46,8 +46,8 @@ WindowInfo& gui_getWindowInfo()
 
 void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 {
-    std::string windowText;
-    windowText = BUILD_VERSION_WITH_NAME_STRING;
+	std::string windowText;
+	windowText = BUILD_VERSION_WITH_NAME_STRING;
 
 	if (isIdle)
 	{
@@ -57,25 +57,25 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 	}
 	if (isLoading)
 	{
-        windowText.append(" - loading...");
+		windowText.append(" - loading...");
 		if (g_mainFrame)
 			g_mainFrame->AsyncSetTitle(windowText);
 		return;
 	}
 
 	const char* renderer = "";
-	if(g_renderer)
+	if (g_renderer)
 	{
-		switch(g_renderer->GetType())
+		switch (g_renderer->GetType())
 		{
 		case RendererAPI::OpenGL:
-			renderer =  "[OpenGL]";
+			renderer = "[OpenGL]";
 			break;
-		case RendererAPI::Vulkan: 
+		case RendererAPI::Vulkan:
 			renderer = "[Vulkan]";
 			break;
-		default: ;
-		}			
+		default:;
+		}
 	}
 
 	// get GPU vendor/mode
@@ -94,12 +94,14 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 		graphicMode = "[Apple GPU]";
 
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
-    windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
+	windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps,
+								  renderer, graphicMode, (uint32)(titleId >> 32),
+								  (uint32)(titleId & 0xFFFFFFFF)));
 
-    if (ActiveSettings::IsOnlineEnabled())
-        windowText.append(" [Online]");
+	if (ActiveSettings::IsOnlineEnabled())
+		windowText.append(" [Online]");
 
-    windowText.append(" ");
+	windowText.append(" ");
 	windowText.append(CafeSystem::GetForegroundTitleName());
 	// append region
 	CafeConsoleRegion region = CafeSystem::GetForegroundTitleRegion();
@@ -149,8 +151,8 @@ bool gui_isPadWindowOpen()
 }
 
 #if BOOST_OS_LINUX
-#include <wx/nativewin.h>
 #include <dlfcn.h>
+#include <wx/nativewin.h>
 
 typedef void GdkDisplay;
 #endif
@@ -160,45 +162,48 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 #if BOOST_OS_WINDOWS
 	handleInfoOut.hwnd = wxw->GetHWND();
 #elif BOOST_OS_LINUX
-    /* dynamically retrieve GTK imports so we dont have to include and link the whole lib */
-    void (*dyn_gtk_widget_realize)(GtkWidget *widget);
-    dyn_gtk_widget_realize = (void(*)(GtkWidget* widget))dlsym(RTLD_NEXT, "gtk_widget_realize");
+	/* dynamically retrieve GTK imports so we dont have to include and link the whole lib */
+	void (*dyn_gtk_widget_realize)(GtkWidget * widget);
+	dyn_gtk_widget_realize = (void (*)(GtkWidget * widget)) dlsym(RTLD_NEXT, "gtk_widget_realize");
 
-    GdkWindow* (*dyn_gtk_widget_get_window)(GtkWidget *widget);
-    dyn_gtk_widget_get_window = (GdkWindow*(*)(GtkWidget* widget))dlsym(RTLD_NEXT, "gtk_widget_get_window");
+	GdkWindow* (*dyn_gtk_widget_get_window)(GtkWidget * widget);
+	dyn_gtk_widget_get_window =
+		(GdkWindow * (*)(GtkWidget * widget)) dlsym(RTLD_NEXT, "gtk_widget_get_window");
 
-    GdkDisplay* (*dyn_gdk_window_get_display)(GdkWindow *widget);
-    dyn_gdk_window_get_display = (GdkDisplay*(*)(GdkWindow* window))dlsym(RTLD_NEXT, "gdk_window_get_display");
+	GdkDisplay* (*dyn_gdk_window_get_display)(GdkWindow * widget);
+	dyn_gdk_window_get_display =
+		(GdkDisplay * (*)(GdkWindow * window)) dlsym(RTLD_NEXT, "gdk_window_get_display");
 
-    Display* (*dyn_gdk_x11_display_get_xdisplay)(GdkDisplay *display);
-    dyn_gdk_x11_display_get_xdisplay = (Display*(*)(GdkDisplay* display))dlsym(RTLD_NEXT, "gdk_x11_display_get_xdisplay");
+	Display* (*dyn_gdk_x11_display_get_xdisplay)(GdkDisplay * display);
+	dyn_gdk_x11_display_get_xdisplay =
+		(Display * (*)(GdkDisplay * display)) dlsym(RTLD_NEXT, "gdk_x11_display_get_xdisplay");
 
-    Window (*dyn_gdk_x11_window_get_xid)(GdkWindow *window);
-    dyn_gdk_x11_window_get_xid = (Window(*)(GdkWindow *window))dlsym(RTLD_NEXT, "gdk_x11_window_get_xid");
+	Window (*dyn_gdk_x11_window_get_xid)(GdkWindow * window);
+	dyn_gdk_x11_window_get_xid =
+		(Window(*)(GdkWindow * window)) dlsym(RTLD_NEXT, "gdk_x11_window_get_xid");
 
-    if(!dyn_gtk_widget_realize || !dyn_gtk_widget_get_window ||
-    !dyn_gdk_window_get_display || !dyn_gdk_x11_display_get_xdisplay ||
-    !dyn_gdk_x11_window_get_xid)
-    {
-        cemuLog_log(LogType::Force, "Unable to load GDK symbols");
-        return;
-    }
+	if (!dyn_gtk_widget_realize || !dyn_gtk_widget_get_window || !dyn_gdk_window_get_display ||
+		!dyn_gdk_x11_display_get_xdisplay || !dyn_gdk_x11_window_get_xid)
+	{
+		cemuLog_log(LogType::Force, "Unable to load GDK symbols");
+		return;
+	}
 
-    /* end of imports */
+	/* end of imports */
 
-    // get window
-    GtkWidget* gtkWidget = (GtkWidget*)wxw->GetHandle(); // returns GtkWidget
-    dyn_gtk_widget_realize(gtkWidget);
-    GdkWindow* gdkWindow = dyn_gtk_widget_get_window(gtkWidget);
-    handleInfoOut.xlib_window = dyn_gdk_x11_window_get_xid(gdkWindow);
+	// get window
+	GtkWidget* gtkWidget = (GtkWidget*)wxw->GetHandle(); // returns GtkWidget
+	dyn_gtk_widget_realize(gtkWidget);
+	GdkWindow* gdkWindow = dyn_gtk_widget_get_window(gtkWidget);
+	handleInfoOut.xlib_window = dyn_gdk_x11_window_get_xid(gdkWindow);
 
-    // get display
-    GdkDisplay* gdkDisplay = dyn_gdk_window_get_display(gdkWindow);
-    handleInfoOut.xlib_display = dyn_gdk_x11_display_get_xdisplay(gdkDisplay);
-    if(!handleInfoOut.xlib_display)
-    {
-        cemuLog_log(LogType::Force, "Unable to get xlib display");
-    }
+	// get display
+	GdkDisplay* gdkDisplay = dyn_gdk_window_get_display(gdkWindow);
+	handleInfoOut.xlib_display = dyn_gdk_x11_display_get_xdisplay(gdkDisplay);
+	if (!handleInfoOut.xlib_display)
+	{
+		cemuLog_log(LogType::Force, "Unable to get xlib display");
+	}
 #else
 	handleInfoOut.handle = wxw->GetHandle();
 #endif
@@ -225,7 +230,7 @@ void gui_notifyGameLoaded()
 void gui_notifyGameExited()
 {
 	std::shared_lock lock(g_mutex);
-	if(g_mainFrame)
+	if (g_mainFrame)
 		g_mainFrame->RestoreSettingsAfterGameExited();
 }
 

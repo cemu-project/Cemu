@@ -1,23 +1,32 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "Common/filestream.h"
-#include "util/helpers/StringParser.h"
-#include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
+#include "Cemu/PPCAssembler/ppcAssembler.h"
+#include "Common/filestream.h"
 #include "boost/algorithm/string.hpp"
+#include "util/helpers/StringParser.h"
 
 #include "gui/wxgui.h" // for wxMessageBox
 
 // error handler
-void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumber, std::string_view errorMsg)
+void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumber,
+								   std::string_view errorMsg)
 {
 	if (m_anyErrorTriggered == false)
 	{
 		// stage error msg
 		cemu_assert(m_gp);
 		if (m_stage == STAGE::PARSER)
-			cemuLog_writeLineToLog(fmt::format("An error occurred while trying to parse the patches for graphic pack \'{}\'", m_gp->GetName()), true, true);
+			cemuLog_writeLineToLog(
+				fmt::format(
+					"An error occurred while trying to parse the patches for graphic pack \'{}\'",
+					m_gp->GetName()),
+				true, true);
 		else if (m_stage == STAGE::APPLY)
-			cemuLog_writeLineToLog(fmt::format("An error occurred while trying to apply the patches for graphic pack \'{}\'", m_gp->GetName()), true, true);
+			cemuLog_writeLineToLog(
+				fmt::format(
+					"An error occurred while trying to apply the patches for graphic pack \'{}\'",
+					m_gp->GetName()),
+				true, true);
 	}
 
 	std::string msg;
@@ -43,9 +52,11 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	if (m_gp)
 	{
 		if (m_stage == STAGE::PARSER)
-			errorMsg.assign(fmt::format("Failed to load patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg.assign(
+				fmt::format("Failed to load patches for graphic pack \'{}\'", m_gp->GetName()));
 		else
-			errorMsg.assign(fmt::format("Failed to apply patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg.assign(
+				fmt::format("Failed to apply patches for graphic pack \'{}\'", m_gp->GetName()));
 	}
 	else
 	{
@@ -70,13 +81,12 @@ bool GraphicPack2::LoadCemuPatches()
 {
 	// todo - once we have updated to C++20 we can replace these with the new std::string functions
 	auto startsWith = [](const std::wstring& str, const std::wstring& prefix)
-	{
-		return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-	};
+	{ return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix); };
 
 	auto endsWith = [](const std::wstring& str, const std::wstring& suffix)
 	{
-		return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+		return str.size() >= suffix.size() &&
+			   0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 	};
 
 	bool foundPatches = false;
@@ -102,9 +112,12 @@ bool GraphicPack2::LoadCemuPatches()
 					// load Cemu style patch file
 					if (!ParseCemuPatchesTxtInternal(patchesStream))
 					{
-						forceLog_printfW(L"Error while processing \"%s\". No patches for this graphic pack will be applied.", path.c_str());
+						forceLog_printfW(L"Error while processing \"%s\". No patches for this "
+										 L"graphic pack will be applied.",
+										 path.c_str());
 						cemu_assert_debug(list_patchGroups.empty());
-						return true; // return true since a .asm patch was found even if we could not parse it
+						return true; // return true since a .asm patch was found even if we could
+									 // not parse it
 					}
 				}
 				else
@@ -122,13 +135,15 @@ void GraphicPack2::LoadPatchFiles()
 {
 	// order of loading patches:
 	// 1) If Cemuhook is loaded:
-	//    1.1) Check if patches.txt exists and if it does, stop here and do nothing (Cemuhook takes over patching)
-	//    1.2) Load Cemu-style patches (patch_<name>.asm)
+	//    1.1) Check if patches.txt exists and if it does, stop here and do nothing (Cemuhook takes
+	//    over patching) 1.2) Load Cemu-style patches (patch_<name>.asm)
 	// 2) If Cemuhook is not loaded:
-	//    1.1) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
-	//    1.2) Load Cemuhook patches.txt
+	//    1.1) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file
+	//    exists 1.2) Load Cemuhook patches.txt
 
-	// update: As of 1.20.2b Cemu always takes over patching since Cemuhook patching broke due to other internal changes (memory allocation changed and some reordering on when graphic packs get loaded)
+	// update: As of 1.20.2b Cemu always takes over patching since Cemuhook patching broke due to
+	// other internal changes (memory allocation changed and some reordering on when graphic packs
+	// get loaded)
 	if (LoadCemuPatches())
 		return; // exit if at least one Cemu style patch file was found
 	// fall back to Cemuhook patches.txt to guarantee backward compatibility
@@ -180,7 +195,8 @@ bool GraphicPack2::HasPatches()
 	return !list_patchGroups.empty();
 }
 
-const std::vector<PatchGroup*>& GraphicPack2::GetPatchGroups() {
+const std::vector<PatchGroup*>& GraphicPack2::GetPatchGroups()
+{
 	return list_patchGroups;
 }
 

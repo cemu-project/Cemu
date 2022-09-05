@@ -1,14 +1,14 @@
-#include "gui/wxgui.h"
 #include "gui/DownloadGraphicPacksWindow.h"
+#include "gui/wxgui.h"
 
-#include <filesystem>
-#include <curl/curl.h>
-#include <zip.h>
-#include <rapidjson/document.h>
 #include <boost/algorithm/string.hpp>
+#include <curl/curl.h>
+#include <filesystem>
+#include <rapidjson/document.h>
+#include <zip.h>
 
-#include "config/ActiveSettings.h"
 #include "Common/filestream.h"
+#include "config/ActiveSettings.h"
 
 #include "Cafe/CafeSystem.h"
 
@@ -18,7 +18,9 @@ struct DownloadGraphicPacksWindow::curlDownloadFileState_t
 	double progress;
 };
 
-size_t DownloadGraphicPacksWindow::curlDownloadFile_writeData(void *ptr, size_t size, size_t nmemb, curlDownloadFileState_t* downloadState)
+size_t
+DownloadGraphicPacksWindow::curlDownloadFile_writeData(void* ptr, size_t size, size_t nmemb,
+													   curlDownloadFileState_t* downloadState)
 {
 	const size_t writeSize = size * nmemb;
 	const size_t currentSize = downloadState->fileData.size();
@@ -28,7 +30,9 @@ size_t DownloadGraphicPacksWindow::curlDownloadFile_writeData(void *ptr, size_t 
 	return writeSize;
 }
 
-int DownloadGraphicPacksWindow::progress_callback(curlDownloadFileState_t* downloadState, double dltotal, double dlnow, double ultotal, double ulnow)
+int DownloadGraphicPacksWindow::progress_callback(curlDownloadFileState_t* downloadState,
+												  double dltotal, double dlnow, double ultotal,
+												  double ulnow)
 {
 	if (dltotal > 1.0)
 		downloadState->progress = dlnow / dltotal;
@@ -37,12 +41,13 @@ int DownloadGraphicPacksWindow::progress_callback(curlDownloadFileState_t* downl
 	return 0;
 }
 
-bool DownloadGraphicPacksWindow::curlDownloadFile(const char *url, curlDownloadFileState_t* downloadState)
+bool DownloadGraphicPacksWindow::curlDownloadFile(const char* url,
+												  curlDownloadFileState_t* downloadState)
 {
 	CURL* curl = curl_easy_init();
 	if (curl == nullptr)
 		return false;
-	
+
 	downloadState->progress = 0.0;
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlDownloadFile_writeData);
@@ -112,23 +117,29 @@ void DownloadGraphicPacksWindow::UpdateThread()
 {
 	if (CafeSystem::IsTitleRunning())
 	{
-		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
+		wxMessageBox(_("Graphic packs cannot be updated while a game is running."),
+					 _("Graphic packs"), 5, this->GetParent());
 		// cancel update
 		m_threadState = ThreadFinished;
 		return;
 	}
-	
+
 	// get github url
 	std::string githubAPIUrl;
 	curlDownloadFileState_t tempDownloadState;
 	std::string queryUrl("https://cemu.info/api2/query_graphicpack_url.php?");
 	char temp[64];
-	sprintf(temp, "version=%d.%d.%d", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR);
+	sprintf(temp, "version=%d.%d.%d", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR,
+			EMULATOR_VERSION_MINOR);
 	queryUrl.append(temp);
 	queryUrl.append("&");
-	sprintf(temp, "t=%u", (uint32)std::chrono::seconds(std::time(NULL)).count()); // add a dynamic part to the url to bypass overly aggressive caching (like some proxies do)
+	sprintf(temp, "t=%u",
+			(uint32)std::chrono::seconds(std::time(NULL))
+				.count()); // add a dynamic part to the url to bypass overly aggressive caching
+						   // (like some proxies do)
 	queryUrl.append(temp);
-	if (curlDownloadFile(queryUrl.c_str(), &tempDownloadState) && boost::starts_with((const char*)tempDownloadState.fileData.data(), "http"))
+	if (curlDownloadFile(queryUrl.c_str(), &tempDownloadState) &&
+		boost::starts_with((const char*)tempDownloadState.fileData.data(), "http"))
 	{
 		// convert downloaded data to url string
 		githubAPIUrl.assign(tempDownloadState.fileData.cbegin(), tempDownloadState.fileData.cend());
@@ -136,13 +147,15 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	else
 	{
 		// cemu api request failed, use hardcoded github url
-		forceLog_printf("Graphic pack update request failed or returned invalid URL. Using default repository URL instead");
+		forceLog_printf("Graphic pack update request failed or returned invalid URL. Using default "
+						"repository URL instead");
 		githubAPIUrl = "https://api.github.com/repos/slashiee/cemu_graphic_packs/releases/latest";
 	}
 	// github API request
 	if (curlDownloadFile(githubAPIUrl.c_str(), &tempDownloadState) == false)
 	{
-		wxMessageBox( _("Error"), _(L"Failed to connect to server"), wxOK | wxCENTRE | wxICON_ERROR, this);
+		wxMessageBox(_("Error"), _(L"Failed to connect to server"), wxOK | wxCENTRE | wxICON_ERROR,
+					 this);
 		m_threadState = ThreadError;
 		return;
 	}
@@ -161,7 +174,7 @@ void DownloadGraphicPacksWindow::UpdateThread()
 		return;
 	}
 	const char* assetName = jsonName.GetString(); // name includes version
-	if( d.IsObject() == false)
+	if (d.IsObject() == false)
 	{
 		m_threadState = ThreadError;
 		return;
@@ -190,14 +203,18 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	if (checkGraphicPackDownloadedVersion(assetName, hasVersionFile))
 	{
 		// already up to date
-		wxMessageBox(_("No updates available."), _("Graphic packs"), wxOK | wxCENTRE, this->GetParent());
+		wxMessageBox(_("No updates available."), _("Graphic packs"), wxOK | wxCENTRE,
+					 this->GetParent());
 		m_threadState = ThreadFinished;
 		return;
 	}
 	if (hasVersionFile)
 	{
-		// if a version file already exists (and graphic packs are installed) ask the user if he really wants to update
-		if (wxMessageBox(_("Updated graphic packs are available. Do you want to download and install them?"), _("Graphic packs"), wxYES_NO, this->GetParent()) != wxYES)
+		// if a version file already exists (and graphic packs are installed) ask the user if he
+		// really wants to update
+		if (wxMessageBox(
+				_("Updated graphic packs are available. Do you want to download and install them?"),
+				_("Graphic packs"), wxYES_NO, this->GetParent()) != wxYES)
 		{
 			// cancel update
 			m_threadState = ThreadFinished;
@@ -208,7 +225,8 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	m_stage = StageDownloading;
 	if (curlDownloadFile(browserDownloadUrl, m_downloadState.get()) == false)
 	{
-		wxMessageBox(_("Error"), _(L"Failed to connect to server"), wxOK | wxCENTRE | wxICON_ERROR, this);
+		wxMessageBox(_("Error"), _(L"Failed to connect to server"), wxOK | wxCENTRE | wxICON_ERROR,
+					 this);
 		m_threadState = ThreadError;
 		return;
 	}
@@ -216,13 +234,14 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	m_extractionProgress = 0.0;
 	m_stage = StageExtracting;
 
-	zip_source_t *src;
-	zip_t *za;
+	zip_source_t* src;
+	zip_t* za;
 	zip_error_t error;
 
 	// init zip source
 	zip_error_init(&error);
-	if ((src = zip_source_buffer_create(m_downloadState->fileData.data(), m_downloadState->fileData.size(), 1, &error)) == NULL)
+	if ((src = zip_source_buffer_create(m_downloadState->fileData.data(),
+										m_downloadState->fileData.size(), 1, &error)) == NULL)
 	{
 		zip_error_fini(&error);
 		m_threadState = ThreadError;
@@ -240,7 +259,8 @@ void DownloadGraphicPacksWindow::UpdateThread()
 
 	auto path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks");
 	std::error_code er;
-	//fs::remove_all(path, er); -> Don't delete the whole folder and recreate it immediately afterwards because sometimes it just fails
+	// fs::remove_all(path, er); -> Don't delete the whole folder and recreate it immediately
+	// afterwards because sometimes it just fails
 	deleteDownloadedGraphicPacks();
 	fs::create_directories(path, er); // make sure downloadedGraphicPacks folder exists
 
@@ -248,27 +268,26 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	for (sint32 i = 0; i < numEntries; i++)
 	{
 		m_extractionProgress = (double)i / (double)numEntries;
-		zip_stat_t sb = { 0 };
+		zip_stat_t sb = {0};
 		if (zip_stat_index(za, i, 0, &sb) != 0)
 		{
 			assert_dbg();
 		}
 
-		if(std::strstr(sb.name, "../") != nullptr ||
-			std::strstr(sb.name, "..\\") != nullptr)
+		if (std::strstr(sb.name, "../") != nullptr || std::strstr(sb.name, "..\\") != nullptr)
 			continue; // bad path
 
 		path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks/{}", sb.name);
 
 		size_t sbNameLen = strlen(sb.name);
-		if(sbNameLen == 0)
+		if (sbNameLen == 0)
 			continue;
 		if (sb.name[sbNameLen - 1] == '/')
 		{
 			fs::create_directories(path, er);
 			continue;
 		}
-		if(sb.size == 0)
+		if (sb.size == 0)
 			continue;
 		if (sb.size > (1024 * 1024 * 128))
 			continue; // skip unusually huge files
@@ -289,27 +308,30 @@ void DownloadGraphicPacksWindow::UpdateThread()
 			}
 		}
 
-		delete [] fileBuffer;
+		delete[] fileBuffer;
 		zip_fclose(zipFile);
 	}
-	
+
 	zip_error_fini(&error);
 	createGraphicPackDownloadedVersionFile(assetName);
 	m_threadState = ThreadFinished;
 }
 
 DownloadGraphicPacksWindow::DownloadGraphicPacksWindow(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, _("Checking version..."), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
-	m_threadState(ThreadRunning), m_stage(StageCheckVersion), m_currentStage(StageCheckVersion)
+	: wxDialog(parent, wxID_ANY, _("Checking version..."), wxDefaultPosition, wxDefaultSize,
+			   wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
+	  m_threadState(ThreadRunning), m_stage(StageCheckVersion), m_currentStage(StageCheckVersion)
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_processBar = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(500, 20), wxGA_HORIZONTAL);
+	m_processBar =
+		new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(500, 20), wxGA_HORIZONTAL);
 	m_processBar->SetValue(0);
 	m_processBar->SetRange(100);
 	sizer->Add(m_processBar, 0, wxALL | wxEXPAND, 5);
 
-	auto* m_cancelButton = new wxButton(this, wxID_ANY, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0);
+	auto* m_cancelButton =
+		new wxButton(this, wxID_ANY, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0);
 	m_cancelButton->Bind(wxEVT_BUTTON, &DownloadGraphicPacksWindow::OnCancelButton, this);
 	sizer->Add(m_cancelButton, 0, wxALIGN_RIGHT | wxALL, 5);
 
@@ -323,7 +345,6 @@ DownloadGraphicPacksWindow::DownloadGraphicPacksWindow(wxWindow* parent)
 	this->Bind(wxEVT_TIMER, &DownloadGraphicPacksWindow::OnUpdate, this);
 	this->Bind(wxEVT_CLOSE_WINDOW, &DownloadGraphicPacksWindow::OnClose, this);
 	m_timer->Start(250);
-
 
 	m_downloadState = std::make_unique<curlDownloadFileState_t>();
 
@@ -352,9 +373,9 @@ void DownloadGraphicPacksWindow::OnClose(wxCloseEvent& event)
 {
 	if (m_threadState == ThreadRunning)
 	{
-		//wxMessageDialog dialog(this, _("Do you really want to cancel the update process?\n\nCanceling the process will delete the applied update."), _("Info"), wxCENTRE | wxYES_NO);
-		//if (dialog.ShowModal() != wxID_YES)
-		//	return;
+		// wxMessageDialog dialog(this, _("Do you really want to cancel the update
+		// process?\n\nCanceling the process will delete the applied update."), _("Info"), wxCENTRE
+		// | wxYES_NO); if (dialog.ShowModal() != wxID_YES) 	return;
 
 		m_threadState = ThreadCanceled;
 	}

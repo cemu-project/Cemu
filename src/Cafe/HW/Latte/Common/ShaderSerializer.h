@@ -3,6 +3,6 @@
 
 namespace Latte
 {
-	void SerializeShaderProgram(void* shaderProg, uint32 size, MemStreamWriter& memWriter);
-	bool DeserializeShaderProgram(std::vector<uint8>& progData, MemStreamReader& memReader);
-};
+void SerializeShaderProgram(void* shaderProg, uint32 size, MemStreamWriter& memWriter);
+bool DeserializeShaderProgram(std::vector<uint8>& progData, MemStreamReader& memReader);
+}; // namespace Latte

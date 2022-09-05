@@ -1,5 +1,5 @@
-#include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 
 GLint _gl_remappedUniformData[4 * 256];
 
@@ -9,7 +9,8 @@ void OpenGLRenderer::uniformData_update()
 	LatteDecompilerShader* shaderArray[3];
 	shaderArray[0] = LatteSHRC_GetActiveVertexShader();
 	shaderArray[1] = LatteSHRC_GetActivePixelShader();
-	shaderArray[2] = LatteSHRC_GetActiveGeometryShader();;
+	shaderArray[2] = LatteSHRC_GetActiveGeometryShader();
+	;
 
 	uint32 shaderBlockUniformRegisterOffset[3];
 	shaderBlockUniformRegisterOffset[0] = mmSQ_VTX_UNIFORM_BLOCK_START;
@@ -39,7 +40,7 @@ void OpenGLRenderer::uniformData_update()
 			// update values only when the hash changed
 			if (remappedArraySize > 0)
 			{
-				uint64 uniformDataHash[2] = { 0 };
+				uint64 uniformDataHash[2] = {0};
 				uint64* remappedUniformData64 = (uint64*)_gl_remappedUniformData;
 				for (sint32 f = 0; f < remappedArraySize; f++)
 				{
@@ -49,11 +50,13 @@ void OpenGLRenderer::uniformData_update()
 					uniformDataHash[1] = std::rotl<uint64>(uniformDataHash[1], 11);
 					remappedUniformData64 += 2;
 				}
-				if (shader->uniformDataHash64[0] != uniformDataHash[0] || shader->uniformDataHash64[1] != uniformDataHash[1])
+				if (shader->uniformDataHash64[0] != uniformDataHash[0] ||
+					shader->uniformDataHash64[1] != uniformDataHash[1])
 				{
 					shader->uniformDataHash64[0] = uniformDataHash[0];
 					shader->uniformDataHash64[1] = uniformDataHash[1];
-					hostShader->SetUniform4iv(shader->uniform.loc_remapped, _gl_remappedUniformData, remappedArraySize);
+					hostShader->SetUniform4iv(shader->uniform.loc_remapped, _gl_remappedUniformData,
+											  remappedArraySize);
 				}
 			}
 		}
@@ -61,8 +64,10 @@ void OpenGLRenderer::uniformData_update()
 		{
 			if (shaderALUConstOffset[s] == 0xFFFFFFFF)
 				assert_dbg();
-			GLint* uniformRegData = (GLint*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderALUConstOffset[s]);
-			hostShader->SetUniform4iv(shader->uniform.loc_uniformRegister, uniformRegData, shader->uniform.count_uniformRegister);
+			GLint* uniformRegData = (GLint*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 +
+											 shaderALUConstOffset[s]);
+			hostShader->SetUniform4iv(shader->uniform.loc_uniformRegister, uniformRegData,
+									  shader->uniform.count_uniformRegister);
 		}
 		else if (shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
 		{

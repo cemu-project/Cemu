@@ -7,10 +7,10 @@
 #include <algorithm>
 #include <mutex>
 
-#include "openssl/evp.h" /* EVP_Digest */
-#include "openssl/sha.h" /* SHA256_DIGEST_LENGTH */
 #include "Cafe/Account/Account.h"
 #include "config/ActiveSettings.h"
+#include "openssl/evp.h" /* EVP_Digest */
+#include "openssl/sha.h" /* SHA256_DIGEST_LENGTH */
 #include "util/helpers/helpers.h"
 
 #include "Cemu/napi/napi.h"
@@ -21,14 +21,14 @@
 
 using namespace iosu::kernel;
 
-struct  
+struct
 {
 	bool isInitialized;
-}iosuAct = { };
+} iosuAct = {};
 
 // account manager
 
-typedef struct  
+typedef struct
 {
 	bool isValid;
 	// options
@@ -49,7 +49,7 @@ typedef struct
 	// Mii
 	FFLData_t miiData;
 	uint16le miiNickname[ACT_NICKNAME_LENGTH];
-}actAccountData_t;
+} actAccountData_t;
 
 #define IOSU_ACT_ACCOUNT_MAX_COUNT (0xC)
 
@@ -72,16 +72,17 @@ void FillAccountData(const Account& account, const bool online_enabled, int inde
 	data.principalId = account.GetPrincipalId();
 	// NNID
 	std::copy(account.GetAccountId().begin(), account.GetAccountId().end(), data.accountId);
-	std::copy(account.GetAccountPasswordCache().begin(), account.GetAccountPasswordCache().end(), data.accountPasswordCache);
+	std::copy(account.GetAccountPasswordCache().begin(), account.GetAccountPasswordCache().end(),
+			  data.accountPasswordCache);
 	// country & language
 	data.countryIndex = account.GetCountry();
 	strcpy(data.country, NCrypto::GetCountryAsString(data.countryIndex));
 	// Mii
 	std::copy(account.GetMiiData().begin(), account.GetMiiData().end(), (uint8*)&data.miiData);
 	std::copy(account.GetMiiName().begin(), account.GetMiiName().end(), data.miiNickname);
-		
+
 	// if online mode is disabled, make all accounts offline
-	if(!online_enabled)
+	if (!online_enabled)
 	{
 		data.isNetworkAccount = false;
 		data.principalId = 0;
@@ -104,7 +105,7 @@ void iosuAct_loadAccounts()
 	FillAccountData(first_acc, online_enabled, counter);
 	++counter;
 	// enable multiple accounts for cafe functions (badly tested)
-	//for (const auto& account : Account::GetAccounts())
+	// for (const auto& account : Account::GetAccounts())
 	//{
 	//	if (first_acc.GetPersistentId() != account.GetPersistentId())
 	//	{
@@ -114,7 +115,7 @@ void iosuAct_loadAccounts()
 	//}
 
 	cemuLog_force(L"IOSU_ACT: using account {} in first slot", first_acc.GetMiiName());
-	
+
 	_actAccountDataInitialized = true;
 }
 
@@ -127,7 +128,8 @@ uint32 iosuAct_acquirePrincipalIdByAccountId(const char* nnid, uint32* pid)
 {
 	NAPI::AuthInfo authInfo;
 	NAPI::NAPI_MakeAuthInfoFromCurrentAccount(authInfo);
-	NAPI::ACTConvertNnidToPrincipalIdResult result = NAPI::ACT_ACTConvertNnidToPrincipalId(authInfo, nnid);
+	NAPI::ACTConvertNnidToPrincipalIdResult result =
+		NAPI::ACT_ACTConvertNnidToPrincipalId(authInfo, nnid);
 	if (result.isValid() && result.isFound)
 	{
 		*pid = result.principalId;
@@ -135,7 +137,9 @@ uint32 iosuAct_acquirePrincipalIdByAccountId(const char* nnid, uint32* pid)
 	else
 	{
 		*pid = 0;
-		return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT, 0); // what error should we return? The friend list app expects nn_act.AcquirePrincipalIdByAccountId to never return an error
+		return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT,
+							   0); // what error should we return? The friend list app expects
+								   // nn_act.AcquirePrincipalIdByAccountId to never return an error
 	}
 	return 0;
 }
@@ -161,107 +165,106 @@ uint32 iosuAct_getAccountIdOfCurrentAccount()
 
 namespace iosu
 {
-	namespace act
-	{
-		uint8 getCurrentAccountSlot()
-		{
-			return 1;
-		}
-
-		bool getPrincipalId(uint8 slot, uint32* principalId)
-		{
-			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
-			if (_actAccountData[accountIndex].isValid == false)
-			{
-				*principalId = 0;
-				return false;
-			}
-			*principalId = _actAccountData[accountIndex].principalId;
-			return true;
-		}
-
-		bool getAccountId(uint8 slot, char* accountId)
-		{
-			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
-			if (_actAccountData[accountIndex].isValid == false)
-			{
-				*accountId = '\0';
-				return false;
-			}
-			strcpy(accountId, _actAccountData[accountIndex].accountId);
-			return true;
-		}
-
-		bool getMii(uint8 slot, FFLData_t* fflData)
-		{
-			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
-			if (_actAccountData[accountIndex].isValid == false)
-			{
-				return false;
-			}
-			memcpy(fflData, &_actAccountData[accountIndex].miiData, sizeof(FFLData_t));
-			return true;
-		}
-
-		// return screenname in little-endian wide characters
-		bool getScreenname(uint8 slot, uint16 screenname[ACT_NICKNAME_LENGTH])
-		{
-			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
-			if (_actAccountData[accountIndex].isValid == false)
-			{
-				screenname[0] = '\0';
-				return false;
-			}
-			for (sint32 i = 0; i < ACT_NICKNAME_LENGTH; i++)
-			{
-				screenname[i] = (uint16)_actAccountData[accountIndex].miiNickname[i];
-			}
-			return true;
-		}
-
-		bool getCountryIndex(uint8 slot, uint32* countryIndex)
-		{
-			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
-			if (_actAccountData[accountIndex].isValid == false)
-			{
-				*countryIndex = 0;
-				return false;
-			}
-			*countryIndex = _actAccountData[accountIndex].countryIndex;
-			return true;
-		}
-
-		class ActService : public iosu::nn::IPCService
-		{
-		public:
-			ActService() : iosu::nn::IPCService("/dev/act") {}
-
-			nnResult ServiceCall(uint32 serviceId, void* request, void* response) override
-			{
-				cemuLog_log(LogType::Force, "Unsupported service call to /dec/act");
-				cemu_assert_unimplemented();
-				return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACT, 0);
-			}
-		};
-
-		ActService gActService;
-
-		void Initialize()
-		{
-			gActService.Start();
-		}
-
-		void Stop()
-		{
-			gActService.Stop();
-		}
-	}
+namespace act
+{
+uint8 getCurrentAccountSlot()
+{
+	return 1;
 }
 
+bool getPrincipalId(uint8 slot, uint32* principalId)
+{
+	sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+	if (_actAccountData[accountIndex].isValid == false)
+	{
+		*principalId = 0;
+		return false;
+	}
+	*principalId = _actAccountData[accountIndex].principalId;
+	return true;
+}
+
+bool getAccountId(uint8 slot, char* accountId)
+{
+	sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+	if (_actAccountData[accountIndex].isValid == false)
+	{
+		*accountId = '\0';
+		return false;
+	}
+	strcpy(accountId, _actAccountData[accountIndex].accountId);
+	return true;
+}
+
+bool getMii(uint8 slot, FFLData_t* fflData)
+{
+	sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+	if (_actAccountData[accountIndex].isValid == false)
+	{
+		return false;
+	}
+	memcpy(fflData, &_actAccountData[accountIndex].miiData, sizeof(FFLData_t));
+	return true;
+}
+
+// return screenname in little-endian wide characters
+bool getScreenname(uint8 slot, uint16 screenname[ACT_NICKNAME_LENGTH])
+{
+	sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+	if (_actAccountData[accountIndex].isValid == false)
+	{
+		screenname[0] = '\0';
+		return false;
+	}
+	for (sint32 i = 0; i < ACT_NICKNAME_LENGTH; i++)
+	{
+		screenname[i] = (uint16)_actAccountData[accountIndex].miiNickname[i];
+	}
+	return true;
+}
+
+bool getCountryIndex(uint8 slot, uint32* countryIndex)
+{
+	sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+	if (_actAccountData[accountIndex].isValid == false)
+	{
+		*countryIndex = 0;
+		return false;
+	}
+	*countryIndex = _actAccountData[accountIndex].countryIndex;
+	return true;
+}
+
+class ActService : public iosu::nn::IPCService
+{
+  public:
+	ActService() : iosu::nn::IPCService("/dev/act") {}
+
+	nnResult ServiceCall(uint32 serviceId, void* request, void* response) override
+	{
+		cemuLog_log(LogType::Force, "Unsupported service call to /dec/act");
+		cemu_assert_unimplemented();
+		return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACT, 0);
+	}
+};
+
+ActService gActService;
+
+void Initialize()
+{
+	gActService.Start();
+}
+
+void Stop()
+{
+	gActService.Stop();
+}
+} // namespace act
+} // namespace iosu
 
 // IOSU act IO
 
-typedef struct  
+typedef struct
 {
 	/* +0x00 */ uint32be ukn00;
 	/* +0x04 */ uint32be ukn04;
@@ -272,27 +275,29 @@ typedef struct
 	/* +0x12 */ uint8 ukn12;
 	/* +0x13 */ uint8 accountSlot;
 	/* +0x14 */ uint32be unique; // is this command specific?
-}cmdActRequest00_t;
+} cmdActRequest00_t;
 
-typedef struct  
+typedef struct
 {
 	uint32be returnCode;
 	uint8 transferableIdBase[8];
-}cmdActGetTransferableIDResult_t;
+} cmdActGetTransferableIDResult_t;
 
-#define ACT_SUBCMD_GET_TRANSFERABLE_ID		4
-#define ACT_SUBCMD_INITIALIZE				0x14
+#define ACT_SUBCMD_GET_TRANSFERABLE_ID 4
+#define ACT_SUBCMD_INITIALIZE 0x14
 
-#define _cancelIfAccountDoesNotExist() \
-if (_actAccountData[accountIndex].isValid == false) \
-{ \
-	/* account does not exist*/  \
-	ioctlReturnValue = 0; \
-	actCemuRequest->setACTReturnCode(BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT, NN_ACT_RESULT_ACCOUNT_DOES_NOT_EXIST)); /* 0xA071F480 */ \
-	actCemuRequest->resultU64.u64 = 0; \
-	iosuIoctl_completeRequest(ioQueueEntry, ioctlReturnValue); \
-	continue; \
-}
+#define _cancelIfAccountDoesNotExist()                                                             \
+	if (_actAccountData[accountIndex].isValid == false)                                            \
+	{                                                                                              \
+		/* account does not exist*/                                                                \
+		ioctlReturnValue = 0;                                                                      \
+		actCemuRequest->setACTReturnCode(                                                          \
+			BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT,                       \
+							NN_ACT_RESULT_ACCOUNT_DOES_NOT_EXIST)); /* 0xA071F480 */               \
+		actCemuRequest->resultU64.u64 = 0;                                                         \
+		iosuIoctl_completeRequest(ioQueueEntry, ioctlReturnValue);                                 \
+		continue;                                                                                  \
+	}
 
 nnResult ServerActErrorCodeToNNResult(NAPI::ACT_ERROR_CODE ec)
 {
@@ -513,14 +518,16 @@ int iosuAct_thread()
 			ioBufferVector_t* vectorsDebug = ioQueueEntry->bufferVectors.GetPtr();
 
 			void* outputBuffer = ioQueueEntry->bufferVectors[0].buffer.GetPtr();
-			cmdActRequest00_t* requestCmd = (cmdActRequest00_t*)ioQueueEntry->bufferVectors[0].unknownBuffer.GetPtr();
+			cmdActRequest00_t* requestCmd =
+				(cmdActRequest00_t*)ioQueueEntry->bufferVectors[0].unknownBuffer.GetPtr();
 			if (requestCmd->subcommandCode == ACT_SUBCMD_INITIALIZE)
 			{
 				// do nothing for now (there is no result?)
 			}
 			else if (requestCmd->subcommandCode == ACT_SUBCMD_GET_TRANSFERABLE_ID)
 			{
-				cmdActGetTransferableIDResult_t* cmdResult = (cmdActGetTransferableIDResult_t*)outputBuffer;
+				cmdActGetTransferableIDResult_t* cmdResult =
+					(cmdActGetTransferableIDResult_t*)outputBuffer;
 				cmdResult->returnCode = 0;
 				*(uint64*)cmdResult->transferableIdBase = _swapEndianU64(0x1122334455667788);
 			}
@@ -529,14 +536,16 @@ int iosuAct_thread()
 		}
 		else if (ioQueueEntry->request == IOSU_ACT_REQUEST_CEMU)
 		{
-			iosuActCemuRequest_t* actCemuRequest = (iosuActCemuRequest_t*)ioQueueEntry->bufferVectors[0].buffer.GetPtr();
+			iosuActCemuRequest_t* actCemuRequest =
+				(iosuActCemuRequest_t*)ioQueueEntry->bufferVectors[0].buffer.GetPtr();
 			sint32 accountIndex;
 			ioctlReturnValue = 0;
 			if (actCemuRequest->requestCode == IOSU_ARC_ACCOUNT_ID)
 			{
 				accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
 				_cancelIfAccountDoesNotExist();
-				strcpy(actCemuRequest->resultString.strBuffer, _actAccountData[accountIndex].accountId);
+				strcpy(actCemuRequest->resultString.strBuffer,
+					   _actAccountData[accountIndex].accountId);
 				actCemuRequest->setACTReturnCode(0);
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_UUID)
@@ -551,7 +560,8 @@ int iosuAct_thread()
 				else
 				{
 					_cancelIfAccountDoesNotExist();
-					memcpy(actCemuRequest->resultBinary.binBuffer, _actAccountData[accountIndex].uuid, 16);
+					memcpy(actCemuRequest->resultBinary.binBuffer,
+						   _actAccountData[accountIndex].uuid, 16);
 				}
 
 				cemu_assert_debug(actCemuRequest->uuidName != -1); // todo
@@ -567,7 +577,7 @@ int iosuAct_thread()
 					//   6 bytes from the end of UUID
 					// bytes 10-15 are used from the hash and replace the last 6 bytes of the UUID
 
-					EVP_MD_CTX *ctx_sha256 = EVP_MD_CTX_new();
+					EVP_MD_CTX* ctx_sha256 = EVP_MD_CTX_new();
 					EVP_DigestInit(ctx_sha256, EVP_sha256());
 
 					uint32 name = (uint32)actCemuRequest->uuidName;
@@ -582,7 +592,7 @@ int iosuAct_thread()
 						0x09,
 					};
 					EVP_DigestUpdate(ctx_sha256, tempArray, sizeof(tempArray));
-					EVP_DigestUpdate(ctx_sha256, actCemuRequest->resultBinary.binBuffer+10, 6);
+					EVP_DigestUpdate(ctx_sha256, actCemuRequest->resultBinary.binBuffer + 10, 6);
 					uint8 h[SHA256_DIGEST_LENGTH];
 					EVP_DigestFinal_ex(ctx_sha256, h, NULL);
 					EVP_MD_CTX_free(ctx_sha256);
@@ -632,7 +642,8 @@ int iosuAct_thread()
 			{
 				accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
 				_cancelIfAccountDoesNotExist();
-				strcpy(actCemuRequest->resultString.strBuffer, _actAccountData[accountIndex].country);
+				strcpy(actCemuRequest->resultString.strBuffer,
+					   _actAccountData[accountIndex].country);
 				actCemuRequest->setACTReturnCode(0);
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_ISNETWORKACCOUNT)
@@ -646,29 +657,36 @@ int iosuAct_thread()
 			{
 				NAPI::AuthInfo authInfo;
 				NAPI::NAPI_MakeAuthInfoFromCurrentAccount(authInfo);
-				NAPI::ACTGetNexTokenResult nexTokenResult = NAPI::ACT_GetNexToken_WithCache(authInfo, actCemuRequest->titleId, actCemuRequest->titleVersion, actCemuRequest->serverId);
+				NAPI::ACTGetNexTokenResult nexTokenResult = NAPI::ACT_GetNexToken_WithCache(
+					authInfo, actCemuRequest->titleId, actCemuRequest->titleVersion,
+					actCemuRequest->serverId);
 				uint32 returnCode = 0;
 				if (nexTokenResult.isValid())
 				{
-					*(NAPI::ACTNexToken*)actCemuRequest->resultBinary.binBuffer = nexTokenResult.nexToken;
+					*(NAPI::ACTNexToken*)actCemuRequest->resultBinary.binBuffer =
+						nexTokenResult.nexToken;
 					returnCode = NN_RESULT_SUCCESS;
 				}
 				else if (nexTokenResult.apiError == NAPI_RESULT::SERVICE_ERROR)
 				{
 					returnCode = ServerActErrorCodeToNNResult(nexTokenResult.serviceError);
-					cemu_assert_debug((returnCode&0x80000000) != 0);
+					cemu_assert_debug((returnCode & 0x80000000) != 0);
 				}
 				else
 				{
-					returnCode = nnResultStatus(NN_RESULT_MODULE_NN_ACT, NN_ERROR_CODE::ACT_UNKNOWN_SERVER_ERROR);
-				}				
+					returnCode = nnResultStatus(NN_RESULT_MODULE_NN_ACT,
+												NN_ERROR_CODE::ACT_UNKNOWN_SERVER_ERROR);
+				}
 				actCemuRequest->setACTReturnCode(returnCode);
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_ACQUIREINDEPENDENTTOKEN)
 			{
 				NAPI::AuthInfo authInfo;
 				NAPI::NAPI_MakeAuthInfoFromCurrentAccount(authInfo);
-				NAPI::ACTGetIndependentTokenResult tokenResult = NAPI::ACT_GetIndependentToken_WithCache(authInfo, actCemuRequest->titleId, actCemuRequest->titleVersion, actCemuRequest->clientId);
+				NAPI::ACTGetIndependentTokenResult tokenResult =
+					NAPI::ACT_GetIndependentToken_WithCache(authInfo, actCemuRequest->titleId,
+															actCemuRequest->titleVersion,
+															actCemuRequest->clientId);
 
 				uint32 returnCode = 0;
 				if (tokenResult.isValid())
@@ -687,16 +705,17 @@ int iosuAct_thread()
 				actCemuRequest->setACTReturnCode(returnCode);
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_ACQUIREPIDBYNNID)
-			{				
-				uint32 returnCode = iosuAct_acquirePrincipalIdByAccountId(actCemuRequest->clientId, &actCemuRequest->resultU32.u32);
+			{
+				uint32 returnCode = iosuAct_acquirePrincipalIdByAccountId(
+					actCemuRequest->clientId, &actCemuRequest->resultU32.u32);
 				actCemuRequest->setACTReturnCode(returnCode);
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_MIIDATA)
 			{
-
 				accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
 				_cancelIfAccountDoesNotExist();
-				memcpy(actCemuRequest->resultBinary.binBuffer, &_actAccountData[accountIndex].miiData, sizeof(FFLData_t));
+				memcpy(actCemuRequest->resultBinary.binBuffer,
+					   &_actAccountData[accountIndex].miiData, sizeof(FFLData_t));
 				actCemuRequest->setACTReturnCode(0);
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_INIT)

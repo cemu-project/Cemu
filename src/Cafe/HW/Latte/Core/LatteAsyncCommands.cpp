@@ -1,5 +1,5 @@
-#include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 
@@ -7,7 +7,7 @@ void LatteThread_Exit();
 
 SlimRWLock swl_gpuAsyncCommands;
 
-typedef struct  
+typedef struct
 {
 	uint32 type;
 	union
@@ -27,28 +27,32 @@ typedef struct
 			Latte::E_HWTILEMODE tilemode;
 			sint32 aa;
 			sint32 level;
-		}forceTextureReadback;
+		} forceTextureReadback;
 
 		struct
 		{
-			uint64 shaderBaseHash; 
-			uint64 shaderAuxHash; 
+			uint64 shaderBaseHash;
+			uint64 shaderAuxHash;
 			LatteConst::ShaderType shaderType;
-		}deleteShader;
+		} deleteShader;
 	};
-}LatteAsyncCommand_t;
+} LatteAsyncCommand_t;
 
-#define ASYNC_CMD_FORCE_TEXTURE_READBACK		1
-#define ASYNC_CMD_DELETE_SHADER					2
+#define ASYNC_CMD_FORCE_TEXTURE_READBACK 1
+#define ASYNC_CMD_DELETE_SHADER 2
 
 std::queue<LatteAsyncCommand_t> LatteAsyncCommandQueue;
 
-void LatteAsyncCommands_queueForceTextureReadback(MPTR physAddr, MPTR mipAddr, uint32 swizzle, sint32 format, sint32 width, sint32 height, sint32 depth, uint32 pitch, uint32 slice, sint32 dim, Latte::E_HWTILEMODE tilemode, sint32 aa, sint32 level)
+void LatteAsyncCommands_queueForceTextureReadback(MPTR physAddr, MPTR mipAddr, uint32 swizzle,
+												  sint32 format, sint32 width, sint32 height,
+												  sint32 depth, uint32 pitch, uint32 slice,
+												  sint32 dim, Latte::E_HWTILEMODE tilemode,
+												  sint32 aa, sint32 level)
 {
 	LatteAsyncCommand_t asyncCommand = {};
 	// setup command
 	asyncCommand.type = ASYNC_CMD_FORCE_TEXTURE_READBACK;
-	
+
 	asyncCommand.forceTextureReadback.physAddr = physAddr;
 	asyncCommand.forceTextureReadback.mipAddr = mipAddr;
 	asyncCommand.forceTextureReadback.swizzle = swizzle;
@@ -67,7 +71,8 @@ void LatteAsyncCommands_queueForceTextureReadback(MPTR physAddr, MPTR mipAddr, u
 	swl_gpuAsyncCommands.UnlockWrite();
 }
 
-void LatteAsyncCommands_queueDeleteShader(uint64 shaderBaseHash, uint64 shaderAuxHash, LatteConst::ShaderType shaderType)
+void LatteAsyncCommands_queueDeleteShader(uint64 shaderBaseHash, uint64 shaderAuxHash,
+										  LatteConst::ShaderType shaderType)
 {
 	LatteAsyncCommand_t asyncCommand = {};
 	// setup command
@@ -108,8 +113,16 @@ void LatteAsyncCommands_checkAndExecute()
 		swl_gpuAsyncCommands.UnlockWrite();
 		if (asyncCommand.type == ASYNC_CMD_FORCE_TEXTURE_READBACK)
 		{
-			cemu_assert_debug(asyncCommand.forceTextureReadback.level == 0); // implement mip swizzle and verify
-			LatteTextureView* textureView = LatteTC_GetTextureSliceViewOrTryCreate(asyncCommand.forceTextureReadback.physAddr, asyncCommand.forceTextureReadback.mipAddr, (Latte::E_GX2SURFFMT)asyncCommand.forceTextureReadback.format, asyncCommand.forceTextureReadback.tilemode, asyncCommand.forceTextureReadback.width, asyncCommand.forceTextureReadback.height, asyncCommand.forceTextureReadback.depth, asyncCommand.forceTextureReadback.pitch, 0, asyncCommand.forceTextureReadback.slice, asyncCommand.forceTextureReadback.level);
+			cemu_assert_debug(asyncCommand.forceTextureReadback.level ==
+							  0); // implement mip swizzle and verify
+			LatteTextureView* textureView = LatteTC_GetTextureSliceViewOrTryCreate(
+				asyncCommand.forceTextureReadback.physAddr,
+				asyncCommand.forceTextureReadback.mipAddr,
+				(Latte::E_GX2SURFFMT)asyncCommand.forceTextureReadback.format,
+				asyncCommand.forceTextureReadback.tilemode, asyncCommand.forceTextureReadback.width,
+				asyncCommand.forceTextureReadback.height, asyncCommand.forceTextureReadback.depth,
+				asyncCommand.forceTextureReadback.pitch, 0, asyncCommand.forceTextureReadback.slice,
+				asyncCommand.forceTextureReadback.level);
 			if (textureView != nullptr)
 			{
 				LatteTexture_UpdateDataToLatest(textureView->baseTexture);
@@ -125,7 +138,9 @@ void LatteAsyncCommands_checkAndExecute()
 		}
 		else if (asyncCommand.type == ASYNC_CMD_DELETE_SHADER)
 		{
-			LatteSHRC_RemoveFromCacheByHash(asyncCommand.deleteShader.shaderBaseHash, asyncCommand.deleteShader.shaderAuxHash, asyncCommand.deleteShader.shaderType);
+			LatteSHRC_RemoveFromCacheByHash(asyncCommand.deleteShader.shaderBaseHash,
+											asyncCommand.deleteShader.shaderAuxHash,
+											asyncCommand.deleteShader.shaderType);
 		}
 		else
 		{

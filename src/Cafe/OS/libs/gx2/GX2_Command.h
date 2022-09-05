@@ -1,6 +1,6 @@
 #pragma once
-#include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "Cafe/HW/Espresso/Const.h"
+#include "Cafe/HW/Latte/ISA/LatteReg.h"
 
 struct GX2WriteGatherPipeState
 {
@@ -24,14 +24,15 @@ void gx2WriteGather_submitU32AsLEArray(uint32* v, uint32 numValues);
 uint32 PPCInterpreter_getCurrentCoreIndex();
 
 // gx2WriteGather_submit functions
-template <typename ...Targs>
+template<typename... Targs>
 inline void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr)
 {
 	(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) = (uint8*)writePtr;
 }
 
-template <typename T, typename ...Targs>
-inline void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const betype<T>& arg, Targs... args)
+template<typename T, typename... Targs>
+inline void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const betype<T>& arg,
+								   Targs... args)
 {
 	static_assert(sizeof(betype<T>) == sizeof(uint32be));
 	*(betype<T>*)writePtr = arg;
@@ -39,9 +40,8 @@ inline void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const b
 	gx2WriteGather_submit_(coreIndex, writePtr, args...);
 }
 
-template <typename T, typename ...Targs>
-inline
-typename std::enable_if< std::is_floating_point<T>::value, void>::type
+template<typename T, typename... Targs>
+inline typename std::enable_if<std::is_floating_point<T>::value, void>::type
 gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
 {
 	static_assert(sizeof(T) == sizeof(uint32));
@@ -50,9 +50,8 @@ gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs
 	gx2WriteGather_submit_(coreIndex, writePtr, args...);
 }
 
-template <typename T, typename ...Targs>
-inline
-typename std::enable_if< std::is_base_of<Latte::LATTEREG, T>::value, void>::type
+template<typename T, typename... Targs>
+inline typename std::enable_if<std::is_base_of<Latte::LATTEREG, T>::value, void>::type
 gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
 {
 	static_assert(sizeof(Latte::LATTEREG) == sizeof(uint32be));
@@ -61,9 +60,9 @@ gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs
 	gx2WriteGather_submit_(coreIndex, writePtr, args...);
 }
 
-template <typename T, typename ...Targs>
-inline
-typename std::enable_if< !std::is_base_of<Latte::LATTEREG, T>::value && !std::is_floating_point<T>::value, void>::type
+template<typename T, typename... Targs>
+inline typename std::enable_if<
+	!std::is_base_of<Latte::LATTEREG, T>::value && !std::is_floating_point<T>::value, void>::type
 gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
 {
 	*writePtr = arg;
@@ -71,7 +70,7 @@ gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs
 	gx2WriteGather_submit_(coreIndex, writePtr, args...);
 }
 
-template <typename ...Targs>
+template<typename... Targs>
 inline void gx2WriteGather_submit(Targs... args)
 {
 	uint32 coreIndex = PPCInterpreter_getCurrentCoreIndex();
@@ -85,17 +84,17 @@ inline void gx2WriteGather_submit(Targs... args)
 namespace GX2
 {
 
-	bool GX2WriteGather_isDisplayListActive();
-	uint32 GX2WriteGather_getReadWriteDistance();
-	void GX2WriteGather_checkAndInsertWrapAroundMark();
+bool GX2WriteGather_isDisplayListActive();
+uint32 GX2WriteGather_getReadWriteDistance();
+void GX2WriteGather_checkAndInsertWrapAroundMark();
 
-	void GX2BeginDisplayList(MEMPTR<void> displayListAddr, uint32 size);
-	void GX2BeginDisplayListEx(MEMPTR<void> displayListAddr, uint32 size, bool profiling);
-	uint32 GX2EndDisplayList(MEMPTR<void> displayListAddr);
+void GX2BeginDisplayList(MEMPTR<void> displayListAddr, uint32 size);
+void GX2BeginDisplayListEx(MEMPTR<void> displayListAddr, uint32 size, bool profiling);
+uint32 GX2EndDisplayList(MEMPTR<void> displayListAddr);
 
-	void GX2CallDisplayList(MPTR addr, uint32 size);
-	void GX2DirectCallDisplayList(void* addr, uint32 size);
+void GX2CallDisplayList(MPTR addr, uint32 size);
+void GX2DirectCallDisplayList(void* addr, uint32 size);
 
-	void GX2Init_writeGather();
-	void GX2CommandInit();
-}
+void GX2Init_writeGather();
+void GX2CommandInit();
+} // namespace GX2

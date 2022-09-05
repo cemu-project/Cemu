@@ -1,7 +1,7 @@
-#include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
-#include "Cafe/OS/libs/coreinit/coreinit.h"
 #include "iosu_ioctl.h"
+#include "Cafe/OS/common/OSCommon.h"
+#include "Cafe/OS/libs/coreinit/coreinit.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "util/helpers/ringbuffer.h"
 
 #include "util/helpers/Semaphore.h"
@@ -15,7 +15,9 @@ std::mutex ioctlMutex;
 
 sint32 iosuIoctl_pushAndWait(uint32 ioctlHandle, ioQueueEntry_t* ioQueueEntry)
 {
-	if (ioctlHandle != IOS_DEVICE_ACT && ioctlHandle != IOS_DEVICE_ACP_MAIN && ioctlHandle != IOS_DEVICE_MCP && ioctlHandle != IOS_DEVICE_BOSS && ioctlHandle != IOS_DEVICE_NIM && ioctlHandle != IOS_DEVICE_FPD)
+	if (ioctlHandle != IOS_DEVICE_ACT && ioctlHandle != IOS_DEVICE_ACP_MAIN &&
+		ioctlHandle != IOS_DEVICE_MCP && ioctlHandle != IOS_DEVICE_BOSS &&
+		ioctlHandle != IOS_DEVICE_NIM && ioctlHandle != IOS_DEVICE_FPD)
 	{
 		forceLogDebug_printf("Unsupported IOSU device %d", ioctlHandle);
 		cemu_assert_debug(false);
@@ -24,7 +26,7 @@ sint32 iosuIoctl_pushAndWait(uint32 ioctlHandle, ioQueueEntry_t* ioQueueEntry)
 	__OSLockScheduler();
 	ioctlMutex.lock();
 	ioQueueEntry->ppcThread = coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance);
-	
+
 	_ioctlRingbuffer[ioctlHandle].Push(ioQueueEntry);
 	ioctlMutex.unlock();
 	_ioctlRingbufferSemaphore[ioctlHandle].increment();

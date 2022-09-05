@@ -2,7 +2,7 @@
 
 namespace coreinit
 {
-	void InitSysHeap();
+void InitSysHeap();
 
-	void InitializeSysHeap();
-}
+void InitializeSysHeap();
+} // namespace coreinit

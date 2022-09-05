@@ -1,6 +1,6 @@
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CachedFBOVk.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 
 void CachedFBOVk::CreateRenderPass()
 {
@@ -93,11 +93,12 @@ void CachedFBOVk::CreateFramebuffer()
 
 	cemu_assert_debug(imageViewIndex < 9);
 
-	m_vkrObjFramebuffer = new VKRObjectFramebuffer(m_vkrObjRenderPass, std::span<VKRObjectTextureView*>(imageViews.data(), imageViewIndex), m_size);
+	m_vkrObjFramebuffer = new VKRObjectFramebuffer(
+		m_vkrObjRenderPass, std::span<VKRObjectTextureView*>(imageViews.data(), imageViewIndex),
+		m_size);
 
-	m_extend = { (uint32)m_size.x, (uint32)m_size.y };
+	m_extend = {(uint32)m_size.x, (uint32)m_size.y};
 }
-
 
 void CachedFBOVk::InitDynamicRenderingData()
 {
@@ -183,16 +184,16 @@ void CachedFBOVk::InitDynamicRenderingData()
 	m_vkRenderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
 	m_vkRenderingInfo.pNext = nullptr;
 	m_vkRenderingInfo.flags = 0;
-	m_vkRenderingInfo.renderArea.offset = { 0, 0 };
+	m_vkRenderingInfo.renderArea.offset = {0, 0};
 	m_vkRenderingInfo.renderArea.extent = m_extend;
 	m_vkRenderingInfo.viewMask = 0; // multiview disabled
 	m_vkRenderingInfo.layerCount = 1;
 }
 
-
 uint32 s_currentCollisionCheckIndex = 1;
 
-bool CachedFBOVk::CheckForCollision(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS, VkDescriptorSetInfo* psDS) const
+bool CachedFBOVk::CheckForCollision(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS,
+									VkDescriptorSetInfo* psDS) const
 {
 	s_currentCollisionCheckIndex++;
 	const uint32 curColIndex = s_currentCollisionCheckIndex;

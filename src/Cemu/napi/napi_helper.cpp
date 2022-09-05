@@ -1,8 +1,8 @@
 #include "Common/precompiled.h"
 #include "napi.h"
 
-#include "curl/curl.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
+#include "curl/curl.h"
 
 #include "Cemu/ncrypto/ncrypto.h"
 #include "napi_helper.h"
@@ -11,9 +11,9 @@
 #include "pugixml.hpp"
 #include <charconv>
 
-#include"openssl/bn.h"
-#include"openssl/x509.h"
-#include"openssl/ssl.h"
+#include "openssl/bn.h"
+#include "openssl/ssl.h"
+#include "openssl/x509.h"
 
 CURLcode _sslctx_function_NUS(CURL* curl, void* sslctx, void* param)
 {
@@ -74,7 +74,7 @@ CurlRequestHelper::CurlRequestHelper()
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, 2);
 
-	if(GetConfig().proxy_server.GetValue() != "")
+	if (GetConfig().proxy_server.GetValue() != "")
 	{
 		curl_easy_setopt(m_curl, CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());
 	}
@@ -137,7 +137,9 @@ void CurlRequestHelper::addPostField(const char* fieldName, std::string_view val
 	m_postData.insert(m_postData.end(), (uint8*)value.data(), (uint8*)value.data() + value.size());
 }
 
-void CurlRequestHelper::setWriteCallback(bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData)
+void CurlRequestHelper::setWriteCallback(bool (*cbWriteCallback)(void* userData, const void* ptr,
+																 size_t len, bool isLast),
+										 void* userData)
 {
 	m_cbWriteCallback = cbWriteCallback;
 	m_writeCallbackUserData = userData;
@@ -154,7 +156,8 @@ size_t CurlRequestHelper::__curlWriteCallback(char* ptr, size_t size, size_t nme
 	CurlRequestHelper* curlHelper = (CurlRequestHelper*)userdata;
 	if (curlHelper->m_cbWriteCallback)
 	{
-		if (!curlHelper->m_cbWriteCallback(curlHelper->m_writeCallbackUserData, ptr, writeByteSize, false))
+		if (!curlHelper->m_cbWriteCallback(curlHelper->m_writeCallbackUserData, ptr, writeByteSize,
+										   false))
 			return 0;
 		return writeByteSize;
 	}
@@ -191,18 +194,19 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 		if (res != CURLE_OK)
 			return false;
 	}
-	
+
 	// check response code
 	long httpCode = 0;
 	curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &httpCode);
 	if (httpCode != 200)
 	{
 		cemuLog_log(LogType::Force, "HTTP request received response {} but expected 200", httpCode);
-		// error status codes (4xx or 5xx range) are always considered a failed request, except for code 400 which is usually returned as a response to failed logins etc.
+		// error status codes (4xx or 5xx range) are always considered a failed request, except for
+		// code 400 which is usually returned as a response to failed logins etc.
 		if (httpCode >= 400 && httpCode <= 599 && httpCode != 400)
 			return false;
 		// for other status codes we assume success if the message is non-empty
-		if(m_receiveBuffer.empty())
+		if (m_receiveBuffer.empty())
 			return false;
 	}
 
@@ -221,8 +225,8 @@ CurlSOAPHelper::CurlSOAPHelper()
 	// SSL
 	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
 	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
-	
-	if(GetConfig().proxy_server.GetValue() != "")
+
+	if (GetConfig().proxy_server.GetValue() != "")
 	{
 		curl_easy_setopt(m_curl, CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());
 	}
@@ -233,7 +237,8 @@ CurlSOAPHelper::~CurlSOAPHelper()
 	curl_easy_cleanup(m_curl);
 }
 
-void CurlSOAPHelper::SOAP_initate(std::string_view serviceType, std::string url, std::string_view requestMethod, std::string_view requestVersion)
+void CurlSOAPHelper::SOAP_initate(std::string_view serviceType, std::string url,
+								  std::string_view requestMethod, std::string_view requestVersion)
 {
 	curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
 	m_serviceType = serviceType;
@@ -246,7 +251,8 @@ void CurlSOAPHelper::SOAP_initate(std::string_view serviceType, std::string url,
 
 void CurlSOAPHelper::SOAP_addRequestField(const char* fieldName, std::string_view value)
 {
-	m_envelopeExtraParam.append(fmt::format("<{}:{}>{}</{}:{}>", m_serviceType, fieldName, value, m_serviceType, fieldName));
+	m_envelopeExtraParam.append(fmt::format("<{}:{}>{}</{}:{}>", m_serviceType, fieldName, value,
+											m_serviceType, fieldName));
 }
 
 void CurlSOAPHelper::SOAP_generateEnvelope()
@@ -256,20 +262,25 @@ void CurlSOAPHelper::SOAP_generateEnvelope()
 
 	m_envelopeStr.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 
-	m_envelopeStr.append("<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"\n");
+	m_envelopeStr.append(
+		"<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"\n");
 	m_envelopeStr.append(" xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\"\n");
 	m_envelopeStr.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n");
 	m_envelopeStr.append(" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n");
-	m_envelopeStr.append(fmt::format(" xmlns:{}=\"urn:{}.wsapi.broadon.com\">\n", m_serviceType, m_serviceType));
+	m_envelopeStr.append(
+		fmt::format(" xmlns:{}=\"urn:{}.wsapi.broadon.com\">\n", m_serviceType, m_serviceType));
 	m_envelopeStr.append("<SOAP-ENV:Body>\n");
-	m_envelopeStr.append(fmt::format("<{}:{} xsi:type=\"{}:{}RequestType\">\n", m_serviceType, m_requestMethod, m_serviceType, m_requestMethod));
-	m_envelopeStr.append(fmt::format("<{}:Version>{}</{}:Version>\n", m_serviceType, m_requestVersion, m_serviceType));
+	m_envelopeStr.append(fmt::format("<{}:{} xsi:type=\"{}:{}RequestType\">\n", m_serviceType,
+									 m_requestMethod, m_serviceType, m_requestMethod));
+	m_envelopeStr.append(fmt::format("<{}:Version>{}</{}:Version>\n", m_serviceType,
+									 m_requestVersion, m_serviceType));
 
 	// the server echos the message id
-	static uint64 s_msgHigh = 1 + (uint64)HighResolutionTimer::now().getTick()/7;
+	static uint64 s_msgHigh = 1 + (uint64)HighResolutionTimer::now().getTick() / 7;
 	uint64 msgId_high = s_msgHigh; // usually this is set to the deviceId
 	uint64 msgId_low = (uint64)HighResolutionTimer::now().getTick(); // uptime
-	m_envelopeStr.append(fmt::format("<{}:MessageId>EC-{}-{}</{}:MessageId>", m_serviceType, msgId_high, msgId_low, m_serviceType));
+	m_envelopeStr.append(fmt::format("<{}:MessageId>EC-{}-{}</{}:MessageId>", m_serviceType,
+									 msgId_high, msgId_low, m_serviceType));
 
 	m_envelopeStr.append(m_envelopeExtraParam);
 
@@ -293,9 +304,8 @@ void CurlSOAPHelper::SOAP_generateEnvelope()
 	// DeviceToken -> Everything except BGS and NUS
 
 	// ECS:
-	//m_envelopeStr.append(fmt::format("<{}:Region>EUR</{}:Region>", serviceType, serviceType));
-	//m_envelopeStr.append(fmt::format("<{}:Country>AT</{}:Country>", serviceType, serviceType));
-
+	// m_envelopeStr.append(fmt::format("<{}:Region>EUR</{}:Region>", serviceType, serviceType));
+	// m_envelopeStr.append(fmt::format("<{}:Country>AT</{}:Country>", serviceType, serviceType));
 
 	// device token format:
 	// <ECS:DeviceToken>WT-<md5hash_in_hex></ECS:DeviceToken>
@@ -303,11 +313,11 @@ void CurlSOAPHelper::SOAP_generateEnvelope()
 	// unknown fields:
 	// VirtualDeviceType (shared but optional?)
 
-
 	// device cert not needed for ECS:GetAccountStatus ? (it complains if present)
-	//char deviceCertStr[1024 * 4];
-	//iosuCrypto_getDeviceCertificateBase64Encoded(deviceCertStr);
-	//m_envelopeStr.append(fmt::format("<{}:DeviceCert>{}</{}:DeviceCert>", serviceType, deviceCertStr, serviceType));
+	// char deviceCertStr[1024 * 4];
+	// iosuCrypto_getDeviceCertificateBase64Encoded(deviceCertStr);
+	// m_envelopeStr.append(fmt::format("<{}:DeviceCert>{}</{}:DeviceCert>", serviceType,
+	// deviceCertStr, serviceType));
 
 	// only device token needed
 	// DeviceToken comes from GetRegistrationInfo and is then stored in ec_account_info.exi
@@ -316,8 +326,6 @@ void CurlSOAPHelper::SOAP_generateEnvelope()
 
 	m_envelopeStr.append("</SOAP-ENV:Body>\n");
 	m_envelopeStr.append("</SOAP-ENV:Envelope>\n");
-
-
 }
 
 sint32 iosuCrypto_getDeviceCertificateBase64Encoded(char* output);
@@ -333,7 +341,9 @@ bool CurlSOAPHelper::submitRequest()
 	struct curl_slist* headers = NULL;
 	headers = curl_slist_append(headers, "Content-Type: text/xml; charset=utf-8");
 	headers = curl_slist_append(headers, "Accept-Charset: UTF-8");
-	headers = curl_slist_append(headers, fmt::format("SOAPAction: urn:{}.wsapi.broadon.com/{}", m_serviceType, m_requestMethod).c_str());
+	headers = curl_slist_append(headers, fmt::format("SOAPAction: urn:{}.wsapi.broadon.com/{}",
+													 m_serviceType, m_requestMethod)
+											 .c_str());
 	headers = curl_slist_append(headers, "Accept: */*");
 	headers = curl_slist_append(headers, "User-Agent: EVL NUP 040800 Sep 18 2012 20:20:02");
 
@@ -348,56 +358,59 @@ bool CurlSOAPHelper::submitRequest()
 
 namespace NAPI
 {
-	bool _findXmlNode(pugi::xml_node& doc, pugi::xml_node& nodeOut, const char* name)
+bool _findXmlNode(pugi::xml_node& doc, pugi::xml_node& nodeOut, const char* name)
+{
+	for (auto& itr : doc.children())
 	{
-		for (auto& itr : doc.children())
+		if (boost::iequals(itr.name(), name))
 		{
-			if (boost::iequals(itr.name(), name))
-			{
-				nodeOut = itr;
-				return true;
-			}
-			if (_findXmlNode(itr, nodeOut, name))
-				return true;
+			nodeOut = itr;
+			return true;
 		}
+		if (_findXmlNode(itr, nodeOut, name))
+			return true;
+	}
+	return false;
+}
+
+bool _parseResponseInit(const CurlSOAPHelper& soapHelper, const char* responseNodeName,
+						pugi::xml_node& node, _NAPI_CommonResultSOAP& result,
+						pugi::xml_document& doc, pugi::xml_node& responseNode)
+{
+	// parse XML response
+	if (!doc.load_buffer(soapHelper.getReceivedData().data(), soapHelper.getReceivedData().size()))
+	{
+		forceLog_printf("Failed to parse GetRegistrationInfo() response");
+		result.apiError = NAPI_RESULT::XML_ERROR;
 		return false;
 	}
-
-	bool _parseResponseInit(const CurlSOAPHelper& soapHelper, const char* responseNodeName, pugi::xml_node& node, _NAPI_CommonResultSOAP& result, pugi::xml_document& doc, pugi::xml_node& responseNode)
+	if (!_findXmlNode(doc, node, responseNodeName))
 	{
-		// parse XML response
-		if (!doc.load_buffer(soapHelper.getReceivedData().data(), soapHelper.getReceivedData().size()))
-		{
-			forceLog_printf("Failed to parse GetRegistrationInfo() response");
-			result.apiError = NAPI_RESULT::XML_ERROR;
-			return false;
-		}
-		if (!_findXmlNode(doc, node, responseNodeName))
-		{
-			result.apiError = NAPI_RESULT::XML_ERROR;
-			return false;
-		}
-		// parse error code
-		auto errorCodeStr = node.child_value("ErrorCode");
-		if (!errorCodeStr)
-		{
-			result.apiError = NAPI_RESULT::XML_ERROR;
-			return false;
-		}
-		int parsedErrorCode = 0;
-		std::from_chars_result fcr = std::from_chars(errorCodeStr, errorCodeStr + strlen(errorCodeStr), parsedErrorCode);
-		if (fcr.ec == std::errc::invalid_argument || fcr.ec == std::errc::result_out_of_range)
-		{
-			result.apiError = NAPI_RESULT::XML_ERROR;
-			return false;
-		}
-		if (parsedErrorCode != 0)
-		{
-			result.serviceError = (EC_ERROR_CODE)parsedErrorCode;
-			result.apiError = NAPI_RESULT::SERVICE_ERROR;
-			return false;
-		}
-		result.apiError = NAPI_RESULT::SUCCESS;
-		return true;
+		result.apiError = NAPI_RESULT::XML_ERROR;
+		return false;
 	}
-};
+	// parse error code
+	auto errorCodeStr = node.child_value("ErrorCode");
+	if (!errorCodeStr)
+	{
+		result.apiError = NAPI_RESULT::XML_ERROR;
+		return false;
+	}
+	int parsedErrorCode = 0;
+	std::from_chars_result fcr =
+		std::from_chars(errorCodeStr, errorCodeStr + strlen(errorCodeStr), parsedErrorCode);
+	if (fcr.ec == std::errc::invalid_argument || fcr.ec == std::errc::result_out_of_range)
+	{
+		result.apiError = NAPI_RESULT::XML_ERROR;
+		return false;
+	}
+	if (parsedErrorCode != 0)
+	{
+		result.serviceError = (EC_ERROR_CODE)parsedErrorCode;
+		result.apiError = NAPI_RESULT::SERVICE_ERROR;
+		return false;
+	}
+	result.apiError = NAPI_RESULT::SUCCESS;
+	return true;
+}
+}; // namespace NAPI

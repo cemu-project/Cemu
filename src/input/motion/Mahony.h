@@ -1,15 +1,16 @@
 #pragma once
 
-#include <math.h>
-#include <cmath>
 #include "util/math/quaternion.h"
+#include <cmath>
+#include <math.h>
 
 class MahonySensorFusion
 {
-public:
+  public:
 	MahonySensorFusion()
 	{
-		// assume default forward pose (holding controller in hand, tilted forward so the sticks/buttons face upward)
+		// assume default forward pose (holding controller in hand, tilted forward so the
+		// sticks/buttons face upward)
 		m_imuQ.Assign(sqrtf(0.5), sqrtf(0.5), 0.0f, 0.0f);
 	}
 
@@ -33,7 +34,10 @@ public:
 		if (fabs(gv.z) < 0.015f)
 			gv.z = 0.0f;
 
-		// forceLogDebug_printf("[IMU Quat] time %7.4lf | %7.2lf %7.2lf %7.2lf %7.2lf | gyro( - bias) %7.4lf %7.4lf %7.4lf | acc %7.2lf %7.2lf %7.2lf | GyroBias %7.4lf %7.4lf %7.4lf", deltaTime, m_imuQ.x, m_imuQ.y, m_imuQ.z, m_imuQ.w, gv.x, gv.y, gv.z, ax, ay, az, m_gyroBias[0], m_gyroBias[1], m_gyroBias[2]);
+		// forceLogDebug_printf("[IMU Quat] time %7.4lf | %7.2lf %7.2lf %7.2lf %7.2lf | gyro( -
+		// bias) %7.4lf %7.4lf %7.4lf | acc %7.2lf %7.2lf %7.2lf | GyroBias %7.4lf %7.4lf %7.4lf",
+		// deltaTime, m_imuQ.x, m_imuQ.y, m_imuQ.z, m_imuQ.w, gv.x, gv.y, gv.z, ax, ay, az,
+		// m_gyroBias[0], m_gyroBias[1], m_gyroBias[2]);
 
 		if (fabs(av.x) > 0.000001f || fabs(av.y) > 0.000001f || fabs(av.z) > 0.000001f)
 		{
@@ -80,8 +84,7 @@ public:
 		gBias[2] = m_gyroBias[2];
 	}
 
-private:
-
+  private:
 	// calculate roll, yaw and pitch in radians. (-0.5 to 0.5)
 	void calcOrientation()
 	{
@@ -133,7 +136,8 @@ private:
 	void updateGyroBias(float gx, float gy, float gz)
 	{
 		// dont let actual movement influence the bias
-		// but be careful about setting this too low, there are controllers out there with really bad bias (my Switch Pro had -0.0933 0.0619 0.0179 in resting state)
+		// but be careful about setting this too low, there are controllers out there with really
+		// bad bias (my Switch Pro had -0.0933 0.0619 0.0179 in resting state)
 		if (fabs(gx) >= 0.35f || fabs(gy) >= 0.35f || fabs(gz) >= 0.35f)
 			return;
 
@@ -149,17 +153,17 @@ private:
 		}
 	}
 
-	private:
-		Quaternionf m_imuQ; // current orientation
-		// angle data
-		float m_roll{};
-		float m_pitch{};
-		float m_yaw{};
-		int m_rollWinding{};
-		int m_pitchWinding{};
-		int m_yawWinding{};
-		// gyro bias
-		float m_gyroBias[3]{};
-		double m_gyroTotalSum[3]{};
-		uint64 m_gyroTotalSampleCount{};
+  private:
+	Quaternionf m_imuQ; // current orientation
+	// angle data
+	float m_roll{};
+	float m_pitch{};
+	float m_yaw{};
+	int m_rollWinding{};
+	int m_pitchWinding{};
+	int m_yawWinding{};
+	// gyro bias
+	float m_gyroBias[3]{};
+	double m_gyroTotalSum[3]{};
+	uint64 m_gyroTotalSampleCount{};
 };

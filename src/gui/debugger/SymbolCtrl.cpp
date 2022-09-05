@@ -1,7 +1,7 @@
 #include "gui/debugger/SymbolCtrl.h"
-#include "gui/guiWrapper.h"
-#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include "Cafe/OS/RPL/rpl_symbol_storage.h"
+#include "gui/guiWrapper.h"
 
 enum ItemColumns
 {
@@ -10,9 +10,10 @@ enum ItemColumns
 	ColumnModule,
 };
 
-SymbolListCtrl::SymbolListCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size) :
-	wxListCtrl(parent, id, pos, size, wxLC_REPORT | wxLC_VIRTUAL)
-{    
+SymbolListCtrl::SymbolListCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos,
+							   const wxSize& size)
+	: wxListCtrl(parent, id, pos, size, wxLC_REPORT | wxLC_VIRTUAL)
+{
 	wxListItem col0;
 	col0.SetId(ColumnName);
 	col0.SetText(_("Name"));
@@ -53,13 +54,8 @@ void SymbolListCtrl::OnGameLoaded()
 		if (symbol_info == nullptr || symbol_info->symbolName == nullptr)
 			continue;
 
-		auto new_entry = m_data.try_emplace(
-			symbol_info->address,
-			(char*)(symbol_info->symbolName),
-            (char*)(symbol_info->libName),
-            "",
-			false
-		);
+		auto new_entry = m_data.try_emplace(symbol_info->address, (char*)(symbol_info->symbolName),
+											(char*)(symbol_info->libName), "", false);
 
 		new_entry.first->second.searchName += new_entry.first->second.name;
 		new_entry.first->second.searchName += new_entry.first->second.libName;
@@ -74,7 +70,8 @@ void SymbolListCtrl::OnGameLoaded()
 
 	SetItemCount(m_data.size());
 	if (m_data.size() > 0)
-		RefreshItems(GetTopItem(), std::min<long>(m_data.size() - 1, GetTopItem() + GetCountPerPage() + 1));
+		RefreshItems(GetTopItem(),
+					 std::min<long>(m_data.size() - 1, GetTopItem() + GetCountPerPage() + 1));
 }
 
 wxString SymbolListCtrl::OnGetItemText(long item, long column) const
@@ -103,7 +100,6 @@ wxString SymbolListCtrl::OnGetItemText(long item, long column) const
 	return wxEmptyString;
 }
 
-
 void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 {
 	long selected = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
@@ -128,7 +124,7 @@ void SymbolListCtrl::OnRightClick(wxListEvent& event)
 	if (OpenClipboard(nullptr))
 	{
 		EmptyClipboard();
-		const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, text.size()+1);
+		const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
 		if (hGlobal)
 		{
 			memcpy(GlobalLock(hGlobal), text.c_str(), text.size() + 1);
@@ -161,5 +157,6 @@ void SymbolListCtrl::ChangeListFilter(std::string filter)
 	}
 	SetItemCount(visible_entries);
 	if (visible_entries > 0)
-		RefreshItems(GetTopItem(), std::min<long>(visible_entries - 1, GetTopItem() + GetCountPerPage() + 1));
+		RefreshItems(GetTopItem(),
+					 std::min<long>(visible_entries - 1, GetTopItem() + GetCountPerPage() + 1));
 }

@@ -1,7 +1,7 @@
 #pragma once
-#include "util/crypto/aes128.h"
 #include "openssl/evp.h"
 #include "openssl/hmac.h"
+#include "util/crypto/aes128.h"
 
 typedef struct
 {
@@ -10,7 +10,7 @@ typedef struct
 	uint8 magicBytesLen;
 	uint8 xorPad[32];
 	uint8 hmacKey[16];
-}amiiboInternalKeys_t;
+} amiiboInternalKeys_t;
 
 void amiiboCalcSeed(AmiiboInternal* internalData, uint8* seed)
 {
@@ -21,13 +21,14 @@ void amiiboCalcSeed(AmiiboInternal* internalData, uint8* seed)
 	memcpy(seed + 0x20, (uint8*)internalData + 0x1E8, 0x20);
 }
 
-void amiiboGenKeyInternalPrepare(amiiboInternalKeys_t* keys, uint8* seed, uint8* output, sint32& outputLen)
+void amiiboGenKeyInternalPrepare(amiiboInternalKeys_t* keys, uint8* seed, uint8* output,
+								 sint32& outputLen)
 {
 	sint32 index = 0;
 
 	// concat:
 	// typeString (including '\0')
-	sint32 typeStringLen = (sint32)strlen(keys->typeString)+1;
+	sint32 typeStringLen = (sint32)strlen(keys->typeString) + 1;
 	memcpy(output + index, keys->typeString, typeStringLen);
 	index += typeStringLen;
 	// seed (16 - magic byte len)
@@ -48,20 +49,21 @@ void amiiboGenKeyInternalPrepare(amiiboInternalKeys_t* keys, uint8* seed, uint8*
 	outputLen = index;
 }
 
-typedef struct 
+typedef struct
 {
 	uint8 hmacKey[16];
 	uint8 buffer[sizeof(uint16) + 480];
 	sint32 bufferSize;
 	uint16 counter;
-}amiiboCryptCtx_t;
+} amiiboCryptCtx_t;
 
 typedef struct
 {
 	uint8 raw[32];
-}drgbOutput32_t;
+} drgbOutput32_t;
 
-void amiiboCryptInit(amiiboCryptCtx_t* ctx, const uint8* hmacKey, size_t hmacKeySize, const uint8* seed, sint32 seedSize)
+void amiiboCryptInit(amiiboCryptCtx_t* ctx, const uint8* hmacKey, size_t hmacKeySize,
+					 const uint8* seed, sint32 seedSize)
 {
 	ctx->counter = 0;
 	ctx->bufferSize = (sint32)sizeof(ctx->counter) + seedSize;
@@ -79,7 +81,8 @@ void amiiboCryptStep(amiiboCryptCtx_t* ctx, drgbOutput32_t* output)
 	ctx->counter++;
 	// generate bytes
 	uint32 mdLen = (uint32)sizeof(drgbOutput32_t);
-	HMAC(EVP_sha256(), ctx->hmacKey, sizeof(ctx->hmacKey), (const unsigned char *)ctx->buffer, ctx->bufferSize, output->raw, &mdLen);
+	HMAC(EVP_sha256(), ctx->hmacKey, sizeof(ctx->hmacKey), (const unsigned char*)ctx->buffer,
+		 ctx->bufferSize, output->raw, &mdLen);
 }
 
 typedef struct
@@ -87,11 +90,12 @@ typedef struct
 	uint8 aesKey[16];
 	uint8 aesIV[16];
 	uint8 hmacKey[16];
-}amiiboDerivedKeys_t;
+} amiiboDerivedKeys_t;
 
 static_assert(sizeof(amiiboDerivedKeys_t) == 0x30);
 
-void amiiboCrypto_genKey(amiiboInternalKeys_t* keys, AmiiboInternal* internalData, amiiboDerivedKeys_t* derivedKeys)
+void amiiboCrypto_genKey(amiiboInternalKeys_t* keys, AmiiboInternal* internalData,
+						 amiiboDerivedKeys_t* derivedKeys)
 {
 	// generate seed
 	uint8 seed[0x40];
@@ -139,12 +143,12 @@ void amiiboCrypto_internalToNfcFormat(AmiiboInternal* internalData, AmiiboRawNFC
 	memcpy(tag + 0x054, intl + 0x1DC, 0x02C);
 }
 
-void amiiboCrypto_transform(const amiiboDerivedKeys_t * keys, uint8 * in, uint8 * out)
+void amiiboCrypto_transform(const amiiboDerivedKeys_t* keys, uint8* in, uint8* out)
 {
 	uint8 nonce[16];
 
 	memcpy(nonce, keys->aesIV, sizeof(nonce));
-	
+
 	AmiiboInternal internalCopy;
 	memcpy(&internalCopy, in, sizeof(internalCopy));
 
@@ -161,17 +165,25 @@ void AES128_init();
 
 void amiiboInitMasterKeys(amiiboInternalKeys_t& kData, amiiboInternalKeys_t& kTag)
 {
-	uint8 dataKey_hmacKey[16] = { 0x1D, 0x16, 0x4B, 0x37, 0x5B, 0x72, 0xA5, 0x57, 0x28, 0xB9, 0x1D, 0x64, 0xB6, 0xA3, 0xC2, 0x05 };
-	uint8 dataKey_typeString[14] = { "unfixed infos" };
+	uint8 dataKey_hmacKey[16] = {0x1D, 0x16, 0x4B, 0x37, 0x5B, 0x72, 0xA5, 0x57,
+								 0x28, 0xB9, 0x1D, 0x64, 0xB6, 0xA3, 0xC2, 0x05};
+	uint8 dataKey_typeString[14] = {"unfixed infos"};
 	uint8 dataKey_magicBytesSize = 0x0E;
-	uint8 dataKey_magicBytes[14] = { 0xDB, 0x4B, 0x9E, 0x3F, 0x45, 0x27, 0x8F, 0x39, 0x7E, 0xFF, 0x9B, 0x4F, 0xB9, 0x93 };
-	uint8 dataKey_xorPad[32] = { 0x04, 0x49, 0x17, 0xDC, 0x76, 0xB4, 0x96, 0x40, 0xD6, 0xF8, 0x39, 0x39, 0x96, 0x0F, 0xAE, 0xD4, 0xEF, 0x39, 0x2F, 0xAA, 0xB2, 0x14, 0x28, 0xAA, 0x21, 0xFB, 0x54, 0xE5, 0x45, 0x05, 0x47, 0x66 };
+	uint8 dataKey_magicBytes[14] = {0xDB, 0x4B, 0x9E, 0x3F, 0x45, 0x27, 0x8F,
+									0x39, 0x7E, 0xFF, 0x9B, 0x4F, 0xB9, 0x93};
+	uint8 dataKey_xorPad[32] = {0x04, 0x49, 0x17, 0xDC, 0x76, 0xB4, 0x96, 0x40, 0xD6, 0xF8, 0x39,
+								0x39, 0x96, 0x0F, 0xAE, 0xD4, 0xEF, 0x39, 0x2F, 0xAA, 0xB2, 0x14,
+								0x28, 0xAA, 0x21, 0xFB, 0x54, 0xE5, 0x45, 0x05, 0x47, 0x66};
 
-	uint8 tagKey_hmacKey[16] = { 0x7F, 0x75, 0x2D, 0x28, 0x73, 0xA2, 0x00, 0x17, 0xFE, 0xF8, 0x5C, 0x05, 0x75, 0x90, 0x4B, 0x6D };
-	uint8 tagKey_typeString[14] = { "locked secret" };
+	uint8 tagKey_hmacKey[16] = {0x7F, 0x75, 0x2D, 0x28, 0x73, 0xA2, 0x00, 0x17,
+								0xFE, 0xF8, 0x5C, 0x05, 0x75, 0x90, 0x4B, 0x6D};
+	uint8 tagKey_typeString[14] = {"locked secret"};
 	uint8 tagKey_magicBytesSize = 0x10;
-	uint8 tagKey_magicBytes[16] = { 0xFD, 0xC8, 0xA0, 0x76, 0x94, 0xB8, 0x9E, 0x4C, 0x47, 0xD3, 0x7D, 0xE8, 0xCE, 0x5C, 0x74, 0xC1 };
-	uint8 tagKey_xorPad[32] = { 0x04, 0x49, 0x17, 0xDC, 0x76, 0xB4, 0x96, 0x40, 0xD6, 0xF8, 0x39, 0x39, 0x96, 0x0F, 0xAE, 0xD4, 0xEF, 0x39, 0x2F, 0xAA, 0xB2, 0x14, 0x28, 0xAA, 0x21, 0xFB, 0x54, 0xE5, 0x45, 0x05, 0x47, 0x66 };
+	uint8 tagKey_magicBytes[16] = {0xFD, 0xC8, 0xA0, 0x76, 0x94, 0xB8, 0x9E, 0x4C,
+								   0x47, 0xD3, 0x7D, 0xE8, 0xCE, 0x5C, 0x74, 0xC1};
+	uint8 tagKey_xorPad[32] = {0x04, 0x49, 0x17, 0xDC, 0x76, 0xB4, 0x96, 0x40, 0xD6, 0xF8, 0x39,
+							   0x39, 0x96, 0x0F, 0xAE, 0xD4, 0xEF, 0x39, 0x2F, 0xAA, 0xB2, 0x14,
+							   0x28, 0xAA, 0x21, 0xFB, 0x54, 0xE5, 0x45, 0x05, 0x47, 0x66};
 
 	memcpy(kData.hmacKey, dataKey_hmacKey, 16);
 	memcpy(kData.typeString, dataKey_typeString, 13);
@@ -200,19 +212,22 @@ void amiiboDecrypt()
 	amiiboCrypto_genKey(&kData, &nfp_data.amiiboInternal, &derivedKeysData);
 	amiiboCrypto_genKey(&kTag, &nfp_data.amiiboInternal, &derivedKeysTag);
 
-	amiiboCrypto_transform(&derivedKeysData, (uint8*)&nfp_data.amiiboInternal, (uint8*)&nfp_data.amiiboInternal);
+	amiiboCrypto_transform(&derivedKeysData, (uint8*)&nfp_data.amiiboInternal,
+						   (uint8*)&nfp_data.amiiboInternal);
 
 	// generate tag hmac
 	uint32 mdLen = 32;
-	HMAC(EVP_sha256(), derivedKeysTag.hmacKey, 16, (((uint8*)&nfp_data.amiiboInternal) + 0x1D4), 0x34,
-		nfp_data.amiiboInternal.tagHMAC, &mdLen);
+	HMAC(EVP_sha256(), derivedKeysTag.hmacKey, 16, (((uint8*)&nfp_data.amiiboInternal) + 0x1D4),
+		 0x34, nfp_data.amiiboInternal.tagHMAC, &mdLen);
 	// generate data hmac
 	mdLen = 32;
-	HMAC(EVP_sha256(), derivedKeysData.hmacKey, 16, (((uint8*)&nfp_data.amiiboInternal) + 0x29), 0x1DF,
-		((uint8*)&nfp_data.amiiboInternal) + 0x8, &mdLen);
+	HMAC(EVP_sha256(), derivedKeysData.hmacKey, 16, (((uint8*)&nfp_data.amiiboInternal) + 0x29),
+		 0x1DF, ((uint8*)&nfp_data.amiiboInternal) + 0x8, &mdLen);
 
-	bool isValidTagHMAC = memcmp(nfp_data.amiiboNFCData.tagHMAC, nfp_data.amiiboInternal.tagHMAC, 32) == 0;
-	bool isValidDataHMAC = memcmp(nfp_data.amiiboNFCData.dataHMAC, nfp_data.amiiboInternal.dataHMAC, 32) == 0;
+	bool isValidTagHMAC =
+		memcmp(nfp_data.amiiboNFCData.tagHMAC, nfp_data.amiiboInternal.tagHMAC, 32) == 0;
+	bool isValidDataHMAC =
+		memcmp(nfp_data.amiiboNFCData.dataHMAC, nfp_data.amiiboInternal.dataHMAC, 32) == 0;
 	if (!isValidTagHMAC)
 		forceLog_printf("Decrypt amiibo has invalid tag HMAC");
 	if (!isValidDataHMAC)
@@ -240,12 +255,12 @@ void amiiboEncrypt(AmiiboRawNFCData* nfcOutput)
 	// generate new HMACs
 	uint8 tagHMAC[32];
 	uint32 mdLen = 32;
-	HMAC(EVP_sha256(), derivedKeysTag.hmacKey, 16, (((uint8*)&internalCopy) + 0x1D4), 0x34,
-		tagHMAC, &mdLen);
+	HMAC(EVP_sha256(), derivedKeysTag.hmacKey, 16, (((uint8*)&internalCopy) + 0x1D4), 0x34, tagHMAC,
+		 &mdLen);
 	mdLen = 32;
 	uint8 dataHMAC[32];
 	HMAC(EVP_sha256(), derivedKeysData.hmacKey, 16, (((uint8*)&internalCopy) + 0x29), 0x1DF,
-		dataHMAC, &mdLen);
+		 dataHMAC, &mdLen);
 
 	memset(internalCopy.tagHMAC, 0, 32);
 	memset(internalCopy.dataHMAC, 0, 32);

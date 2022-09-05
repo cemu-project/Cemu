@@ -1,7 +1,7 @@
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
 #include "PPCRecompilerImlRanges.h"
+#include "PPCRecompilerX64.h"
 #include <queue>
 
 bool _isRangeDefined(PPCRecImlSegment_t* imlSegment, sint32 vGPR)
@@ -9,7 +9,8 @@ bool _isRangeDefined(PPCRecImlSegment_t* imlSegment, sint32 vGPR)
 	return (imlSegment->raDistances.reg[vGPR].usageStart != INT_MAX);
 }
 
-void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
+										   PPCRecImlSegment_t* imlSegment)
 {
 	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
 	{
@@ -32,8 +33,12 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 			if (virtualRegister < 0)
 				continue;
 			cemu_assert_debug(virtualRegister < PPC_REC_MAX_VIRTUAL_GPR);
-			imlSegment->raDistances.reg[virtualRegister].usageStart = std::min(imlSegment->raDistances.reg[virtualRegister].usageStart, index); // index before/at instruction
-			imlSegment->raDistances.reg[virtualRegister].usageEnd = std::max(imlSegment->raDistances.reg[virtualRegister].usageEnd, index+1); // index after instruction
+			imlSegment->raDistances.reg[virtualRegister].usageStart =
+				std::min(imlSegment->raDistances.reg[virtualRegister].usageStart,
+						 index); // index before/at instruction
+			imlSegment->raDistances.reg[virtualRegister].usageEnd =
+				std::max(imlSegment->raDistances.reg[virtualRegister].usageEnd,
+						 index + 1); // index after instruction
 		}
 		// next instruction
 		index++;
@@ -49,7 +54,9 @@ void PPCRecRA_calculateLivenessRangesV2(ppcImlGenContext_t* ppcImlGenContext)
 	}
 }
 
-raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment, sint32 vGPR, raLivenessRange_t* range)
+raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlGenContext,
+													 PPCRecImlSegment_t* imlSegment, sint32 vGPR,
+													 raLivenessRange_t* range)
 {
 	if (imlSegment->raDistances.isProcessed[vGPR])
 	{
@@ -61,19 +68,28 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlG
 		return nullptr;
 	// create subrange
 	cemu_assert_debug(imlSegment->raInfo.linkedList_perVirtualGPR[vGPR] == nullptr);
-	raLivenessSubrange_t* subrange = PPCRecRA_createSubrange(ppcImlGenContext, range, imlSegment, imlSegment->raDistances.reg[vGPR].usageStart, imlSegment->raDistances.reg[vGPR].usageEnd);
+	raLivenessSubrange_t* subrange = PPCRecRA_createSubrange(
+		ppcImlGenContext, range, imlSegment, imlSegment->raDistances.reg[vGPR].usageStart,
+		imlSegment->raDistances.reg[vGPR].usageEnd);
 	// traverse forward
 	if (imlSegment->raDistances.reg[vGPR].usageEnd == RA_INTER_RANGE_END)
 	{
-		if (imlSegment->nextSegmentBranchTaken && imlSegment->nextSegmentBranchTaken->raDistances.reg[vGPR].usageStart == RA_INTER_RANGE_START)
+		if (imlSegment->nextSegmentBranchTaken &&
+			imlSegment->nextSegmentBranchTaken->raDistances.reg[vGPR].usageStart ==
+				RA_INTER_RANGE_START)
 		{
-			subrange->subrangeBranchTaken = PPCRecRA_convertToMappedRanges(ppcImlGenContext, imlSegment->nextSegmentBranchTaken, vGPR, range);
+			subrange->subrangeBranchTaken = PPCRecRA_convertToMappedRanges(
+				ppcImlGenContext, imlSegment->nextSegmentBranchTaken, vGPR, range);
 			cemu_assert_debug(subrange->subrangeBranchTaken->start.index == RA_INTER_RANGE_START);
 		}
-		if (imlSegment->nextSegmentBranchNotTaken && imlSegment->nextSegmentBranchNotTaken->raDistances.reg[vGPR].usageStart == RA_INTER_RANGE_START)
+		if (imlSegment->nextSegmentBranchNotTaken &&
+			imlSegment->nextSegmentBranchNotTaken->raDistances.reg[vGPR].usageStart ==
+				RA_INTER_RANGE_START)
 		{
-			subrange->subrangeBranchNotTaken = PPCRecRA_convertToMappedRanges(ppcImlGenContext, imlSegment->nextSegmentBranchNotTaken, vGPR, range);
-			cemu_assert_debug(subrange->subrangeBranchNotTaken->start.index == RA_INTER_RANGE_START);
+			subrange->subrangeBranchNotTaken = PPCRecRA_convertToMappedRanges(
+				ppcImlGenContext, imlSegment->nextSegmentBranchNotTaken, vGPR, range);
+			cemu_assert_debug(subrange->subrangeBranchNotTaken->start.index ==
+							  RA_INTER_RANGE_START);
 		}
 	}
 	// traverse backward
@@ -89,15 +105,17 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlG
 	return subrange;
 }
 
-void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext,
+										  PPCRecImlSegment_t* imlSegment)
 {
 	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
 	{
-		if( _isRangeDefined(imlSegment, i) == false )
+		if (_isRangeDefined(imlSegment, i) == false)
 			continue;
-		if( imlSegment->raDistances.isProcessed[i])
+		if (imlSegment->raDistances.isProcessed[i])
 			continue;
-		raLivenessRange_t* range = PPCRecRA_createRangeBase(ppcImlGenContext, i, ppcImlGenContext->mappedRegister[i]);
+		raLivenessRange_t* range =
+			PPCRecRA_createRangeBase(ppcImlGenContext, i, ppcImlGenContext->mappedRegister[i]);
 		PPCRecRA_convertToMappedRanges(ppcImlGenContext, imlSegment, i, range);
 	}
 	// create lookup table of ranges
@@ -128,11 +146,12 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 				continue;
 			bool isWrite = (t == 3);
 			// add location
-			PPCRecRA_updateOrAddSubrangeLocation(vGPR2Subrange[virtualRegister], index, isWrite == false, isWrite);
+			PPCRecRA_updateOrAddSubrangeLocation(vGPR2Subrange[virtualRegister], index,
+												 isWrite == false, isWrite);
 #ifndef PUBLIC_RELEASE
 			if (index < vGPR2Subrange[virtualRegister]->start.index)
 				assert_dbg();
-			if (index+1 > vGPR2Subrange[virtualRegister]->end.index)
+			if (index + 1 > vGPR2Subrange[virtualRegister]->end.index)
 				assert_dbg();
 #endif
 		}
@@ -141,7 +160,8 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 }
 
-void PPCRecRA_extendRangeToEndOfSegment(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment, sint32 vGPR)
+void PPCRecRA_extendRangeToEndOfSegment(ppcImlGenContext_t* ppcImlGenContext,
+										PPCRecImlSegment_t* imlSegment, sint32 vGPR)
 {
 	if (_isRangeDefined(imlSegment, vGPR) == false)
 	{
@@ -152,7 +172,8 @@ void PPCRecRA_extendRangeToEndOfSegment(ppcImlGenContext_t* ppcImlGenContext, PP
 	imlSegment->raDistances.reg[vGPR].usageEnd = RA_INTER_RANGE_END;
 }
 
-void PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment, sint32 vGPR)
+void PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext_t* ppcImlGenContext,
+											  PPCRecImlSegment_t* imlSegment, sint32 vGPR)
 {
 	if (_isRangeDefined(imlSegment, vGPR) == false)
 	{
@@ -170,7 +191,8 @@ void PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext_t* ppcImlGenConte
 	}
 }
 
-void _PPCRecRA_connectRanges(ppcImlGenContext_t* ppcImlGenContext, sint32 vGPR, PPCRecImlSegment_t** route, sint32 routeDepth)
+void _PPCRecRA_connectRanges(ppcImlGenContext_t* ppcImlGenContext, sint32 vGPR,
+							 PPCRecImlSegment_t** route, sint32 routeDepth)
 {
 #ifndef PUBLIC_RELEASE
 	if (routeDepth < 2)
@@ -185,14 +207,18 @@ void _PPCRecRA_connectRanges(ppcImlGenContext_t* ppcImlGenContext, sint32 vGPR, 
 		PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext, route[i], vGPR);
 	}
 	// extend the final segment towards the beginning
-	PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext, route[routeDepth-1], vGPR);
+	PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext, route[routeDepth - 1], vGPR);
 }
 
-void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* currentSegment, sint32 vGPR, sint32 distanceLeft, PPCRecImlSegment_t** route, sint32 routeDepth)
+void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext,
+									  PPCRecImlSegment_t* currentSegment, sint32 vGPR,
+									  sint32 distanceLeft, PPCRecImlSegment_t** route,
+									  sint32 routeDepth)
 {
 	if (routeDepth >= 64)
 	{
-		forceLogDebug_printf("Recompiler RA route maximum depth exceeded for function 0x%08x\n", ppcImlGenContext->functionRef->ppcAddress);
+		forceLogDebug_printf("Recompiler RA route maximum depth exceeded for function 0x%08x\n",
+							 ppcImlGenContext->functionRef->ppcAddress);
 		return;
 	}
 	route[routeDepth] = currentSegment;
@@ -203,9 +229,13 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCR
 		if (distanceLeft > 0)
 		{
 			if (currentSegment->nextSegmentBranchNotTaken)
-				_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext, currentSegment->nextSegmentBranchNotTaken, vGPR, distanceLeft, route, routeDepth + 1);
+				_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext,
+												 currentSegment->nextSegmentBranchNotTaken, vGPR,
+												 distanceLeft, route, routeDepth + 1);
 			if (currentSegment->nextSegmentBranchTaken)
-				_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext, currentSegment->nextSegmentBranchTaken, vGPR, distanceLeft, route, routeDepth + 1);
+				_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext,
+												 currentSegment->nextSegmentBranchTaken, vGPR,
+												 distanceLeft, route, routeDepth + 1);
 		}
 		return;
 	}
@@ -217,14 +247,16 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCR
 			if (distanceLeft < currentSegment->imlListCount)
 				return; // range too far away
 		}
-		else if (currentSegment->raDistances.reg[vGPR].usageStart != RA_INTER_RANGE_START && currentSegment->raDistances.reg[vGPR].usageStart > distanceLeft)
+		else if (currentSegment->raDistances.reg[vGPR].usageStart != RA_INTER_RANGE_START &&
+				 currentSegment->raDistances.reg[vGPR].usageStart > distanceLeft)
 			return; // out of range
 		// found close range -> connect ranges
 		_PPCRecRA_connectRanges(ppcImlGenContext, vGPR, route, routeDepth + 1);
 	}
 }
 
-void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* currentSegment, sint32 vGPR)
+void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext,
+									 PPCRecImlSegment_t* currentSegment, sint32 vGPR)
 {
 #ifndef PUBLIC_RELEASE
 	if (currentSegment->raDistances.reg[vGPR].usageEnd < 0)
@@ -237,7 +269,8 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 	if (currentSegment->raDistances.reg[vGPR].usageEnd == RA_INTER_RANGE_END)
 		instructionsUntilEndOfSeg = 0;
 	else
-		instructionsUntilEndOfSeg = currentSegment->imlListCount - currentSegment->raDistances.reg[vGPR].usageEnd;
+		instructionsUntilEndOfSeg =
+			currentSegment->imlListCount - currentSegment->raDistances.reg[vGPR].usageEnd;
 
 #ifndef PUBLIC_RELEASE
 	if (instructionsUntilEndOfSeg < 0)
@@ -247,24 +280,31 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 	if (remainingScanDist <= 0)
 		return; // can't reach end
 
-	// also dont forget: Extending is easier if we allow 'non symetric' branches. E.g. register range one enters one branch
+	// also dont forget: Extending is easier if we allow 'non symetric' branches. E.g. register
+	// range one enters one branch
 	PPCRecImlSegment_t* route[64];
 	route[0] = currentSegment;
 	if (currentSegment->nextSegmentBranchNotTaken)
 	{
-		_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext, currentSegment->nextSegmentBranchNotTaken, vGPR, remainingScanDist, route, 1);
+		_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext,
+										 currentSegment->nextSegmentBranchNotTaken, vGPR,
+										 remainingScanDist, route, 1);
 	}
 	if (currentSegment->nextSegmentBranchTaken)
 	{
-		_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext, currentSegment->nextSegmentBranchTaken, vGPR, remainingScanDist, route, 1);
+		_PPCRecRA_checkAndTryExtendRange(ppcImlGenContext, currentSegment->nextSegmentBranchTaken,
+										 vGPR, remainingScanDist, route, 1);
 	}
 }
 
-void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext,
+										   PPCRecImlSegment_t* imlSegment)
 {
-	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty entries
+	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR;
+		 i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty
+			  // entries
 	{
-		if(imlSegment->raDistances.reg[i].usageStart == INT_MAX)
+		if (imlSegment->raDistances.reg[i].usageStart == INT_MAX)
 			continue; // not used
 		// check and extend if possible
 		PPCRecRA_checkAndTryExtendRange(ppcImlGenContext, imlSegment, i);
@@ -272,12 +312,15 @@ void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext,
 #ifndef PUBLIC_RELEASE
 	if (imlSegment->list_prevSegments.empty() == false && imlSegment->isEnterable)
 		assert_dbg();
-	if ((imlSegment->nextSegmentBranchNotTaken != nullptr || imlSegment->nextSegmentBranchTaken != nullptr) && imlSegment->nextSegmentIsUncertain)
+	if ((imlSegment->nextSegmentBranchNotTaken != nullptr ||
+		 imlSegment->nextSegmentBranchTaken != nullptr) &&
+		imlSegment->nextSegmentIsUncertain)
 		assert_dbg();
 #endif
 }
 
-void PPCRecRA_followFlowAndExtendRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_followFlowAndExtendRanges(ppcImlGenContext_t* ppcImlGenContext,
+										PPCRecImlSegment_t* imlSegment)
 {
 	std::vector<PPCRecImlSegment_t*> list_segments;
 	list_segments.reserve(1000);
@@ -289,12 +332,14 @@ void PPCRecRA_followFlowAndExtendRanges(ppcImlGenContext_t* ppcImlGenContext, PP
 		PPCRecImlSegment_t* currentSegment = list_segments[index];
 		PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext, currentSegment);
 		// follow flow
-		if (currentSegment->nextSegmentBranchNotTaken && currentSegment->nextSegmentBranchNotTaken->raRangeExtendProcessed == false)
+		if (currentSegment->nextSegmentBranchNotTaken &&
+			currentSegment->nextSegmentBranchNotTaken->raRangeExtendProcessed == false)
 		{
 			currentSegment->nextSegmentBranchNotTaken->raRangeExtendProcessed = true;
 			list_segments.push_back(currentSegment->nextSegmentBranchNotTaken);
 		}
-		if (currentSegment->nextSegmentBranchTaken && currentSegment->nextSegmentBranchTaken->raRangeExtendProcessed == false)
+		if (currentSegment->nextSegmentBranchTaken &&
+			currentSegment->nextSegmentBranchTaken->raRangeExtendProcessed == false)
 		{
 			currentSegment->nextSegmentBranchTaken->raRangeExtendProcessed = true;
 			list_segments.push_back(currentSegment->nextSegmentBranchTaken);
@@ -323,30 +368,37 @@ void PPCRecRA_extendRangesOutOfLoopsV2(ppcImlGenContext_t* ppcImlGenContext)
 	{
 		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList[s];
 		auto localLoopDepth = imlSegment->loopDepth;
-		if( localLoopDepth <= 0 )
+		if (localLoopDepth <= 0)
 			continue; // not inside a loop
 		// look for loop exit
 		bool hasLoopExit = false;
-		if (imlSegment->nextSegmentBranchTaken && imlSegment->nextSegmentBranchTaken->loopDepth < localLoopDepth)
+		if (imlSegment->nextSegmentBranchTaken &&
+			imlSegment->nextSegmentBranchTaken->loopDepth < localLoopDepth)
 		{
 			hasLoopExit = true;
 		}
-		if (imlSegment->nextSegmentBranchNotTaken && imlSegment->nextSegmentBranchNotTaken->loopDepth < localLoopDepth)
+		if (imlSegment->nextSegmentBranchNotTaken &&
+			imlSegment->nextSegmentBranchNotTaken->loopDepth < localLoopDepth)
 		{
 			hasLoopExit = true;
 		}
-		if(hasLoopExit == false)
+		if (hasLoopExit == false)
 			continue;
 
-		// extend looping ranges into all exits (this allows the data flow analyzer to move stores out of the loop)
-		for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty entries
+		// extend looping ranges into all exits (this allows the data flow analyzer to move stores
+		// out of the loop)
+		for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR;
+			 i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty
+				  // entries
 		{
 			if (imlSegment->raDistances.reg[i].usageEnd != RA_INTER_RANGE_END)
 				continue; // range not set or does not reach end of segment
-			if(imlSegment->nextSegmentBranchTaken)
-				PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext, imlSegment->nextSegmentBranchTaken, i);
-			if(imlSegment->nextSegmentBranchNotTaken)
-				PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext, imlSegment->nextSegmentBranchNotTaken, i);
+			if (imlSegment->nextSegmentBranchTaken)
+				PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext,
+														 imlSegment->nextSegmentBranchTaken, i);
+			if (imlSegment->nextSegmentBranchNotTaken)
+				PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext,
+														 imlSegment->nextSegmentBranchNotTaken, i);
 		}
 	}
 }
@@ -394,8 +446,8 @@ void _analyzeRangeDataFlow(raLivenessSubrange_t* subrange);
 
 void PPCRecRA_analyzeRangeDataFlowV2(ppcImlGenContext_t* ppcImlGenContext)
 {
-	// this function is called after _assignRegisters(), which means that all ranges are already final and wont change anymore
-	// first do a per-subrange pass
+	// this function is called after _assignRegisters(), which means that all ranges are already
+	// final and wont change anymore first do a per-subrange pass
 	for (auto& range : ppcImlGenContext->raInfo.list_ranges)
 	{
 		for (auto& subrange : range->list_subranges)
@@ -406,7 +458,9 @@ void PPCRecRA_analyzeRangeDataFlowV2(ppcImlGenContext_t* ppcImlGenContext)
 	// then do a second pass where we scan along subrange flow
 	for (auto& range : ppcImlGenContext->raInfo.list_ranges)
 	{
-		for (auto& subrange : range->list_subranges) // todo - traversing this backwards should be faster and yield better results due to the nature of the algorithm
+		for (auto& subrange :
+			 range->list_subranges) // todo - traversing this backwards should be faster and yield
+									// better results due to the nature of the algorithm
 		{
 			_analyzeRangeDataFlow(subrange);
 		}

@@ -2,7 +2,7 @@
 
 class SlimRWLock
 {
-public:
+  public:
 	void LockRead()
 	{
 		m_sm.lock_shared();
@@ -23,13 +23,13 @@ public:
 		m_sm.unlock();
 	}
 
-private:
+  private:
 	std::shared_mutex m_sm;
 };
 
-inline uint32_t GetExceptionError() 
+inline uint32_t GetExceptionError()
 {
-    return errno;
+	return errno;
 }
 
 #undef False
@@ -44,18 +44,18 @@ inline uint32_t GetExceptionError()
 uint32_t GetTickCount();
 
 // strcpy_s and strcat_s implementations
-template<size_t N> 
-void strcpy_s(char (&dst)[N], const char* src)  
+template<size_t N>
+void strcpy_s(char (&dst)[N], const char* src)
 {
-	if(N == 0)
+	if (N == 0)
 		return;
 	char* dstP = dst;
 	const char* end = src + N - 1;
-	while(src < end)
+	while (src < end)
 	{
 		char c = *src;
 		*dstP = c;
-		if(c == '\0')
+		if (c == '\0')
 			return;
 		dstP++;
 		src++;
@@ -65,20 +65,20 @@ void strcpy_s(char (&dst)[N], const char* src)
 	return;
 }
 
-template<size_t N> 
-void strcat_s(char (&dst)[N], const char* src)  
+template<size_t N>
+void strcat_s(char (&dst)[N], const char* src)
 {
-	if(N == 0)
+	if (N == 0)
 		return;
 	char* dstP = dst;
 	const char* end = dstP + N - 1;
-	while(dstP < end && *dstP != '\0')
+	while (dstP < end && *dstP != '\0')
 		dstP++;
-	while(dstP < end)
+	while (dstP < end)
 	{
 		char c = *src;
 		*dstP = c;
-		if(c == '\0')
+		if (c == '\0')
 			return;
 		dstP++;
 		src++;

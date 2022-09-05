@@ -1,7 +1,7 @@
 #pragma once
 
-#include "input/motion/MotionHandler.h"
 #include "input/api/DSU/DSUMessages.h"
+#include "input/motion/MotionHandler.h"
 
 #include "input/api/ControllerProvider.h"
 
@@ -20,10 +20,7 @@ struct DSUProviderSettings : public ControllerProviderSettings
 
 	DSUProviderSettings() : ip("127.0.0.1"), port(26760) {}
 
-	DSUProviderSettings(std::string ip, uint16 port)
-		: ip(std::move(ip)), port(port)
-	{
-	}
+	DSUProviderSettings(std::string ip, uint16 port) : ip(std::move(ip)), port(port) {}
 
 	bool operator==(const DSUProviderSettings& s) const
 	{
@@ -37,12 +34,12 @@ struct DSUProviderSettings : public ControllerProviderSettings
 	}
 };
 
-
 class DSUControllerProvider : public ControllerProvider<DSUProviderSettings>
 {
 	friend class DSUController;
 	using base_type = ControllerProvider<DSUProviderSettings>;
-public:
+
+  public:
 	constexpr static int kMaxClients = 8;
 
 	struct ControllerState
@@ -64,7 +61,10 @@ public:
 	~DSUControllerProvider();
 
 	inline static InputAPI::Type kAPIType = InputAPI::DSUClient;
-	InputAPI::Type api() const override { return kAPIType; }
+	InputAPI::Type api() const override
+	{
+		return kAPIType;
+	}
 
 	std::vector<std::shared_ptr<ControllerBase>> get_controllers() override;
 
@@ -75,7 +75,8 @@ public:
 	ControllerState get_prev_state(uint8_t index) const;
 	MotionSample get_motion_sample(uint8_t index) const;
 
-	std::array<bool, kMaxClients> wait_update(const std::array<uint8_t, kMaxClients>& indices, size_t timeout) const;
+	std::array<bool, kMaxClients> wait_update(const std::array<uint8_t, kMaxClients>& indices,
+											  size_t timeout) const;
 	bool wait_update(uint8_t index, uint32_t packet_index, size_t timeout) const;
 
 	uint32_t get_packet_index(uint8_t index) const;
@@ -87,8 +88,7 @@ public:
 	void request_pad_data();
 	void request_pad_data(uint8_t index);
 
-
-private:
+  private:
 	uint16 m_server_version = 0;
 
 	std::atomic_bool m_running = false;

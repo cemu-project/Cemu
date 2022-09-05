@@ -1,15 +1,15 @@
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h"
-#include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Common/RegisterSerializer.h"
 #include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
+#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/LatteShaderCache.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
+#include "Cemu/FileCache/FileCache.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/Serializer.h"
-#include "Cafe/HW/Latte/Common/RegisterSerializer.h"
-#include "Cemu/FileCache/FileCache.h"
-#include "Cafe/HW/Latte/Core/LatteShaderCache.h"
 #include "util/helpers/helpers.h"
 #include <openssl/sha.h>
 
@@ -17,10 +17,10 @@ struct
 {
 	uint32 pipelineLoadIndex;
 	uint32 pipelineMaxFileIndex;
-	
+
 	std::atomic_uint32_t pipelinesQueued;
 	std::atomic_uint32_t pipelinesLoaded;
-}g_vkCacheState;
+} g_vkCacheState;
 
 VulkanPipelineStableCache g_vkPipelineStableCacheInstance;
 
@@ -33,16 +33,17 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 {
 	std::error_code ec;
 	fs::create_directories(ActiveSettings::GetPath("shaderCache/transferable"), ec);
-	const auto pathCacheFile = ActiveSettings::GetPath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
-	
+	const auto pathCacheFile =
+		ActiveSettings::GetPath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
+
 	// init cache loader state
 	g_vkCacheState.pipelineLoadIndex = 0;
 	g_vkCacheState.pipelineMaxFileIndex = 0;
 	g_vkCacheState.pipelinesLoaded = 0;
 	g_vkCacheState.pipelinesQueued = 0;
-	
+
 	// start async compilation threads
-	m_compilationCount.store(0);	
+	m_compilationCount.store(0);
 	m_compilationQueue.clear();
 
 	// get core count
@@ -60,10 +61,12 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 	// open cache file or create it
 	cemu_assert_debug(s_cache == nullptr);
 	const uint32 cacheFileVersion = 1;
-	s_cache = FileCache::Open(pathCacheFile.generic_wstring(), true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
+	s_cache = FileCache::Open(pathCacheFile.generic_wstring(), true,
+							  LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
 	if (!s_cache)
 	{
-		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", pathCacheFile.generic_string());
+		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}",
+					pathCacheFile.generic_string());
 		return 0;
 	}
 	else
@@ -74,7 +77,8 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 	return s_cache->GetFileCount();
 }
 
-bool VulkanPipelineStableCache::UpdateLoading(uint32& pipelinesLoadedTotal, uint32& pipelinesMissingShaders)
+bool VulkanPipelineStableCache::UpdateLoading(uint32& pipelinesLoadedTotal,
+											  uint32& pipelinesMissingShaders)
 {
 	pipelinesLoadedTotal = g_vkCacheState.pipelinesLoaded;
 	pipelinesMissingShaders = 0;
@@ -88,7 +92,8 @@ bool VulkanPipelineStableCache::UpdateLoading(uint32& pipelinesLoadedTotal, uint
 
 		uint64 fileNameA, fileNameB;
 		std::vector<uint8> fileData;
-		if (s_cache->GetFileByIndex(g_vkCacheState.pipelineLoadIndex, &fileNameA, &fileNameB, fileData))
+		if (s_cache->GetFileByIndex(g_vkCacheState.pipelineLoadIndex, &fileNameA, &fileNameB,
+									fileData))
 		{
 			// queue for async compilation
 			g_vkCacheState.pipelinesQueued++;
@@ -113,7 +118,8 @@ void VulkanPipelineStableCache::EndLoading()
 	m_numCompilationThreads = 0; // signal thread shutdown
 	for (uint32 i = 0; i < threadCount; i++)
 	{
-		m_compilationQueue.push({}); // push empty workload for every thread. Threads then will shutdown after checking for m_numCompilationThreads == 0
+		m_compilationQueue.push({}); // push empty workload for every thread. Threads then will
+									 // shutdown after checking for m_numCompilationThreads == 0
 	}
 	// keep cache file open for writing of new pipelines
 }
@@ -145,7 +151,8 @@ VkFormat __getColorBufferVkFormat(const uint32 index, const LatteContextRegister
 {
 	Latte::E_GX2SURFFMT colorBufferFormat = LatteMRT::GetColorBufferFormat(index, lcr);
 	VulkanRenderer::FormatInfoVK texFormatInfo;
-	VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(colorBufferFormat, false, Latte::E_DIM::DIM_2D, 1280, 720, &texFormatInfo);
+	VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(
+		colorBufferFormat, false, Latte::E_DIM::DIM_2D, 1280, 720, &texFormatInfo);
 	return texFormatInfo.vkImageFormat;
 }
 
@@ -153,13 +160,15 @@ void __getDepthBufferVkFormat(const LatteContextRegister& lcr, VkFormat& dbForma
 {
 	Latte::E_GX2SURFFMT format = LatteMRT::GetDepthBufferFormat(lcr);
 	VulkanRenderer::FormatInfoVK texFormatInfo;
-	VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(format, true, Latte::E_DIM::DIM_2D, 1280, 720, &texFormatInfo);
+	VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(format, true, Latte::E_DIM::DIM_2D, 1280,
+														  720, &texFormatInfo);
 	dbFormat = texFormatInfo.vkImageFormat;
 	hasStencil = (texFormatInfo.vkImageAspect & VK_IMAGE_ASPECT_STENCIL_BIT) != 0;
 }
 
 // create placeholder renderpass for cached pipeline
-VKRObjectRenderPass* __CreateTemporaryRenderPass(const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
+VKRObjectRenderPass* __CreateTemporaryRenderPass(const LatteDecompilerShader* pixelShader,
+												 const LatteContextRegister& lcr)
 {
 	VKRObjectRenderPass::AttachmentInfo_t attachmentInfo;
 
@@ -225,7 +234,8 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// find vertex shader
 	if (cachedPipeline->vsHash.isPresent)
 	{
-		vertexShader = LatteSHRC_FindVertexShader(cachedPipeline->vsHash.baseHash, cachedPipeline->vsHash.auxHash);
+		vertexShader = LatteSHRC_FindVertexShader(cachedPipeline->vsHash.baseHash,
+												  cachedPipeline->vsHash.auxHash);
 		if (!vertexShader)
 		{
 			forceLogDebug_printf("Vertex shader not found in cache");
@@ -235,7 +245,8 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// find geometry shader
 	if (cachedPipeline->gsHash.isPresent)
 	{
-		geometryShader = LatteSHRC_FindGeometryShader(cachedPipeline->gsHash.baseHash, cachedPipeline->gsHash.auxHash);
+		geometryShader = LatteSHRC_FindGeometryShader(cachedPipeline->gsHash.baseHash,
+													  cachedPipeline->gsHash.auxHash);
 		if (!geometryShader)
 		{
 			forceLogDebug_printf("Geometry shader not found in cache");
@@ -245,7 +256,8 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// find pixel shader
 	if (cachedPipeline->psHash.isPresent)
 	{
-		pixelShader = LatteSHRC_FindPixelShader(cachedPipeline->psHash.baseHash, cachedPipeline->psHash.auxHash);
+		pixelShader = LatteSHRC_FindPixelShader(cachedPipeline->psHash.baseHash,
+												cachedPipeline->psHash.auxHash);
 		if (!pixelShader)
 		{
 			forceLogDebug_printf("Pixel shader not found in cache");
@@ -261,7 +273,8 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	auto renderPass = __CreateTemporaryRenderPass(pixelShader, *lcr);
 	// create pipeline info
 	m_pipelineIsCachedLock.acquire();
-	PipelineInfo* pipelineInfo = new PipelineInfo(0, 0, vertexShader->compatibleFetchShader, vertexShader, pixelShader, geometryShader);
+	PipelineInfo* pipelineInfo = new PipelineInfo(0, 0, vertexShader->compatibleFetchShader,
+												  vertexShader, pixelShader, geometryShader);
 	m_pipelineIsCachedLock.release();
 	// compile
 	{
@@ -279,7 +292,9 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	}
 	// on success, calculate pipeline hash and flag as present in cache
 	uint64 pipelineBaseHash = vertexShader->baseHash;
-	uint64 pipelineStateHash = VulkanRenderer::draw_calculateGraphicsPipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, renderPass, *lcr);
+	uint64 pipelineStateHash = VulkanRenderer::draw_calculateGraphicsPipelineHash(
+		vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, renderPass,
+		*lcr);
 	m_pipelineIsCachedLock.acquire();
 	m_pipelineIsCached.emplace(pipelineBaseHash, pipelineStateHash);
 	m_pipelineIsCachedLock.release();
@@ -305,13 +320,15 @@ void VulkanPipelineStableCache::AddCurrentStateToCache(uint64 baseHash, uint64 p
 	m_pipelineIsCached.emplace(baseHash, pipelineStateHash);
 	if (!m_pipelineCacheStoreThread)
 	{
-		m_pipelineCacheStoreThread = new std::thread(&VulkanPipelineStableCache::WorkerThread, this);
+		m_pipelineCacheStoreThread =
+			new std::thread(&VulkanPipelineStableCache::WorkerThread, this);
 		m_pipelineCacheStoreThread->detach();
 	}
 	// fill job structure with cached GPU state
 	// for each cached pipeline we store:
 	// - Active shaders (referenced by hash)
-	// - An almost-complete register state of the GPU (minus some ALU uniform constants which aren't relevant)
+	// - An almost-complete register state of the GPU (minus some ALU uniform constants which aren't
+	// relevant)
 	CachedPipeline* job = new CachedPipeline();
 	auto vs = LatteSHRC_GetActiveVertexShader();
 	auto gs = LatteSHRC_GetActiveGeometryShader();
@@ -327,7 +344,8 @@ void VulkanPipelineStableCache::AddCurrentStateToCache(uint64 baseHash, uint64 p
 	g_pipelineCachingQueue.push(job);
 }
 
-bool VulkanPipelineStableCache::SerializePipeline(MemStreamWriter& memWriter, CachedPipeline& cachedPipeline)
+bool VulkanPipelineStableCache::SerializePipeline(MemStreamWriter& memWriter,
+												  CachedPipeline& cachedPipeline)
 {
 	memWriter.writeBE<uint8>(0x01); // version
 	uint8 presentMask = 0;
@@ -357,7 +375,8 @@ bool VulkanPipelineStableCache::SerializePipeline(MemStreamWriter& memWriter, Ca
 	return true;
 }
 
-bool VulkanPipelineStableCache::DeserializePipeline(MemStreamReader& memReader, CachedPipeline& cachedPipeline)
+bool VulkanPipelineStableCache::DeserializePipeline(MemStreamReader& memReader,
+													CachedPipeline& cachedPipeline)
 {
 	// version
 	if (memReader.readBE<uint8>() != 1)
@@ -399,7 +418,7 @@ int VulkanPipelineStableCache::CompilerThread()
 	while (m_numCompilationThreads != 0)
 	{
 		std::vector<uint8> pipelineData = m_compilationQueue.pop();
-		if(pipelineData.empty())
+		if (pipelineData.empty())
 			continue;
 		LoadPipelineFromCache(pipelineData);
 		++g_vkCacheState.pipelinesLoaded;
@@ -427,7 +446,7 @@ void VulkanPipelineStableCache::WorkerThread()
 		SHA256(blob.data(), blob.size(), hash);
 		uint64 nameA = *(uint64be*)(hash + 0);
 		uint64 nameB = *(uint64be*)(hash + 8);
-		s_cache->AddFileAsync({ nameA, nameB }, blob.data(), blob.size());
+		s_cache->AddFileAsync({nameA, nameB}, blob.data(), blob.size());
 		delete job;
 	}
 }

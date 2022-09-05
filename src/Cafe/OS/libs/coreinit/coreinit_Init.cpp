@@ -1,16 +1,16 @@
-#include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/HW/Espresso/PPCCallback.h"
-#include "Cafe/OS/libs/coreinit/coreinit.h"
-#include "Cafe/OS/RPL/rpl.h"
-#include "Cafe/OS/libs/padscore/padscore.h"
-#include "Cafe/OS/libs/coreinit/coreinit_SysHeap.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
-#include "Cafe/OS/libs/vpad/vpad.h"
-#include "Cafe/OS/libs/coreinit/coreinit_GHS.h"
-#include "Cafe/OS/libs/coreinit/coreinit_DynLoad.h"
-#include "Cafe/OS/libs/coreinit/coreinit_MEM.h"
-#include "Cafe/OS/libs/coreinit/coreinit_FG.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/HW/Espresso/PPCCallback.h"
+#include "Cafe/OS/RPL/rpl.h"
+#include "Cafe/OS/common/OSCommon.h"
+#include "Cafe/OS/libs/coreinit/coreinit.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
+#include "Cafe/OS/libs/coreinit/coreinit_DynLoad.h"
+#include "Cafe/OS/libs/coreinit/coreinit_FG.h"
+#include "Cafe/OS/libs/coreinit/coreinit_GHS.h"
+#include "Cafe/OS/libs/coreinit/coreinit_MEM.h"
+#include "Cafe/OS/libs/coreinit/coreinit_SysHeap.h"
+#include "Cafe/OS/libs/padscore/padscore.h"
+#include "Cafe/OS/libs/vpad/vpad.h"
 
 extern MPTR _entryPoint;
 extern RPLModule* applicationRPX;
@@ -20,7 +20,7 @@ typedef struct
 	MPTR argv[32];
 	uint32be argc;
 	char argStorage[0x1000];
-}coreinitInit_t;
+} coreinitInit_t;
 
 coreinitInit_t* _coreinitInfo = nullptr;
 
@@ -47,7 +47,7 @@ void _AddArg(const char* arg, sint32 len)
 	argStorageIndex += (sint32)strlen(arg) + 1;
 
 	_coreinitInfo->argv[argc] = _swapEndianU32(memory_getVirtualOffsetFromPointer(argStorageStr));
-	_coreinitInfo->argc = argc+1;
+	_coreinitInfo->argc = argc + 1;
 }
 
 sint32 _GetArgLength(const char* arg)
@@ -56,7 +56,7 @@ sint32 _GetArgLength(const char* arg)
 	while (*arg)
 	{
 		if (*arg == ' ')
-			break; // end at whitespace
+			break;										 // end at whitespace
 		cemu_assert_debug(*arg != '\"' && *arg != '\''); // todo
 		arg++;
 		c++;
@@ -70,15 +70,16 @@ void CafeInit()
 	sint32 rpxPathStart = (sint32)_pathToExecutable.size() - 1;
 	if (rpxPathStart > 0)
 	{
-		while (rpxPathStart > 0 && _pathToExecutable[rpxPathStart-1] != '/')
+		while (rpxPathStart > 0 && _pathToExecutable[rpxPathStart - 1] != '/')
 			rpxPathStart--;
 	}
 	else
 	{
 		rpxPathStart = 0;
 	}
-	
-	std::string_view rpxFileName(_pathToExecutable.data() + rpxPathStart, _pathToExecutable.size() - rpxPathStart);
+
+	std::string_view rpxFileName(_pathToExecutable.data() + rpxPathStart,
+								 _pathToExecutable.size() - rpxPathStart);
 
 	argStorageIndex = 0;
 	_coreinitInfo->argc = 0;
@@ -146,12 +147,16 @@ void InitCafeHeaps()
 	g_preinitUserParam->heapTempMEM1 = nullptr;
 	g_preinitUserParam->heapTempFG = nullptr;
 	g_preinitUserParam->heapTempMEM2 = nullptr;
-	coreinit::InitDefaultHeaps(g_preinitUserParam->heapTempMEM1, g_preinitUserParam->heapTempFG, g_preinitUserParam->heapTempMEM2);
+	coreinit::InitDefaultHeaps(g_preinitUserParam->heapTempMEM1, g_preinitUserParam->heapTempFG,
+							   g_preinitUserParam->heapTempMEM2);
 	// if __preinit_user export exists in main executable, run it and pass our heaps
-	MPTR exportAddr = applicationRPX ? RPLLoader_FindRPLExport(applicationRPX, "__preinit_user", false) : MPTR_NULL;
+	MPTR exportAddr = applicationRPX
+						  ? RPLLoader_FindRPLExport(applicationRPX, "__preinit_user", false)
+						  : MPTR_NULL;
 	if (exportAddr != MPTR_NULL)
 	{
-		PPCCoreCallback(exportAddr, &g_preinitUserParam->heapTempMEM1, &g_preinitUserParam->heapTempFG, &g_preinitUserParam->heapTempMEM2);
+		PPCCoreCallback(exportAddr, &g_preinitUserParam->heapTempMEM1,
+						&g_preinitUserParam->heapTempFG, &g_preinitUserParam->heapTempMEM2);
 	}
 	// setup heaps
 	if (g_preinitUserParam->heapTempMEM1 != nullptr)
@@ -168,7 +173,8 @@ MPTR CoreInitEntry(sint32 argc, MPTR argv)
 	InitCafeHeaps();
 	// do a dummy allocation via the OSDynLoad allocator
 	// Watch Dogs relies on this to correctly set up its malloc() allocator
-	// must be larger than 0x190 to trigger creation of a new memory segment. But also must not be close to page alignment (0x1000) or else the bug will trigger
+	// must be larger than 0x190 to trigger creation of a new memory segment. But also must not be
+	// close to page alignment (0x1000) or else the bug will trigger
 	void* dummyAlloc = coreinit::OSDynLoad_AllocatorAlloc(0x500, 0x4);
 	if (dummyAlloc)
 		coreinit::OSDynLoad_AllocatorFree(dummyAlloc);
@@ -179,12 +185,14 @@ sint32 _coreinitTitleEntryPoint;
 
 void coreinit_start(PPCInterpreter_t* hCPU)
 {
-	_coreinitInfo = (coreinitInit_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(coreinitInit_t), 32));
+	_coreinitInfo = (coreinitInit_t*)memory_getPointerFromVirtualOffset(
+		coreinit_allocFromSysArea(sizeof(coreinitInit_t), 32));
 	memset(_coreinitInfo, 0, sizeof(coreinitInit_t));
 
 	CafeInit();
-	_coreinitTitleEntryPoint = CoreInitEntry(_coreinitInfo->argc, memory_getVirtualOffsetFromPointer(_coreinitInfo->argv));
-	
+	_coreinitTitleEntryPoint =
+		CoreInitEntry(_coreinitInfo->argc, memory_getVirtualOffsetFromPointer(_coreinitInfo->argv));
+
 	RPLLoader_CallEntrypoints();
 
 	// init vpadbase (todo - simulate entrypoints for HLE modules)

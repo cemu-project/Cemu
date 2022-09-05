@@ -4,7 +4,7 @@
 
 struct MEMLink_t
 {
-	MPTR prevObject; 
+	MPTR prevObject;
 	MPTR nextObject;
 };
 
@@ -52,132 +52,135 @@ namespace coreinit
 #define MEM_HEAP_INVALID_HANDLE (nullptr)
 #define MEM_HEAP_DEFAULT_ALIGNMENT 4
 #define MIN_ALIGNMENT 4
-#define MIN_ALIGNMENT_MINUS_ONE (MIN_ALIGNMENT-1)
+#define MIN_ALIGNMENT_MINUS_ONE (MIN_ALIGNMENT - 1)
 
-#define MEM_HEAP_OPTION_NONE		(0)
-#define MEM_HEAP_OPTION_CLEAR		(1 << 0)
-#define MEM_HEAP_OPTION_FILL		(1 << 1)
-#define MEM_HEAP_OPTION_THREADSAFE	(1 << 2)
+#define MEM_HEAP_OPTION_NONE (0)
+#define MEM_HEAP_OPTION_CLEAR (1 << 0)
+#define MEM_HEAP_OPTION_FILL (1 << 1)
+#define MEM_HEAP_OPTION_THREADSAFE (1 << 2)
 
-	enum class MEMHeapMagic : uint32
+enum class MEMHeapMagic : uint32
+{
+	UNIT_HEAP = 'UNTH',
+	BLOCK_HEAP = 'BLKH',
+	FRAME_HEAP = 'FRMH',
+	EXP_HEAP = 'EXPH',
+	USER_HEAP = 'USRH',
+};
+
+struct MEMLink
+{
+	MEMPTR<void> prev;
+	MEMPTR<void> next;
+};
+static_assert(sizeof(MEMLink) == 0x8);
+
+struct MEMList
+{
+	/* 0x00 */ MEMPTR<void> head;
+	/* 0x04 */ MEMPTR<void> tail;
+	/* 0x08 */ uint16be numObjects;
+	/* 0x0A */ uint16be offset;
+};
+static_assert(sizeof(MEMList) == 0xC);
+
+void MEMInitList(MEMList* list, uint32 offset);
+void MEMAppendListObject(MEMList* list, void* object);
+void MEMRemoveListObject(MEMList* list, void* object);
+
+void* MEMGetFirstListObject(MEMList* list);
+void* MEMGetNextListObject(MEMList* list, void* object);
+
+struct MEMHeapBase
+{
+	/* +0x00 */ betype<MEMHeapMagic> magic;
+	/* +0x04 */ MEMLink link;
+	/* +0x0C */ MEMList childList;
+	/* +0x18 */ MEMPTR<void> heapStart;
+	/* +0x1C */ MEMPTR<void> heapEnd; // heap end + 1
+	/* +0x20 */ OSSpinLock spinlock;
+	/* +0x30 */ uint8 _ukn[3];
+	/* +0x33 */ uint8 flags;
+
+	void AcquireLock()
 	{
-		UNIT_HEAP = 'UNTH',
-		BLOCK_HEAP = 'BLKH',
-		FRAME_HEAP = 'FRMH',
-		EXP_HEAP = 'EXPH',
-		USER_HEAP = 'USRH',
-	};
+		if (flags & MEM_HEAP_OPTION_THREADSAFE)
+			OSUninterruptibleSpinLock_Acquire(&spinlock);
+	}
 
-	struct MEMLink
+	void ReleaseLock()
 	{
-		MEMPTR<void> prev;
-		MEMPTR<void> next;
-	};
-	static_assert(sizeof(MEMLink) == 0x8);
+		if (flags & MEM_HEAP_OPTION_THREADSAFE)
+			OSUninterruptibleSpinLock_Release(&spinlock);
+	}
 
-	struct MEMList
+	// if set, memset allocations to zero
+	bool HasOptionClear() const
 	{
-		/* 0x00 */ MEMPTR<void> head;
-		/* 0x04 */ MEMPTR<void> tail;
-		/* 0x08 */ uint16be numObjects;
-		/* 0x0A */ uint16be offset;
-	};
-	static_assert(sizeof(MEMList) == 0xC);
+		return (flags & MEM_HEAP_OPTION_CLEAR) != 0;
+	}
 
-	void MEMInitList(MEMList* list, uint32 offset);
-	void MEMAppendListObject(MEMList* list, void* object);
-	void MEMRemoveListObject(MEMList* list, void* object);
-
-	void* MEMGetFirstListObject(MEMList* list);
-	void* MEMGetNextListObject(MEMList* list, void* object);
-
-	struct MEMHeapBase
+	// if set, memset allocations/releases to specific fill values
+	bool HasOptionFill() const
 	{
-		/* +0x00 */ betype<MEMHeapMagic> magic;
-		/* +0x04 */ MEMLink link;
-		/* +0x0C */ MEMList childList;
-		/* +0x18 */ MEMPTR<void> heapStart;
-		/* +0x1C */ MEMPTR<void> heapEnd; // heap end + 1
-		/* +0x20 */ OSSpinLock spinlock;
-		/* +0x30 */ uint8 _ukn[3];
-		/* +0x33 */ uint8 flags;
+		return (flags & MEM_HEAP_OPTION_FILL) != 0;
+	}
+};
 
-		void AcquireLock()
-		{
-			if (flags & MEM_HEAP_OPTION_THREADSAFE)
-				OSUninterruptibleSpinLock_Acquire(&spinlock);
-		}
+static_assert(offsetof(MEMHeapBase, childList) == 0xC);
+static_assert(offsetof(MEMHeapBase, spinlock) == 0x20);
+static_assert(offsetof(MEMHeapBase, flags) == 0x33);
+static_assert(sizeof(MEMHeapBase) ==
+			  0x34); // heap base is actually 0x40 but bytes 0x34 to 0x40 are padding?
 
-		void ReleaseLock()
-		{
-			if (flags & MEM_HEAP_OPTION_THREADSAFE)
-				OSUninterruptibleSpinLock_Release(&spinlock);
-		}
+typedef MEMHeapBase* MEMHeapHandle;
 
-		// if set, memset allocations to zero
-		bool HasOptionClear() const
-		{
-			return (flags & MEM_HEAP_OPTION_CLEAR) != 0;
-		}
+/* Heap base */
 
-		// if set, memset allocations/releases to specific fill values
-		bool HasOptionFill() const
-		{
-			return (flags & MEM_HEAP_OPTION_FILL) != 0;
-		}
-	};
+void MEMInitHeapBase(MEMHeapBase* heap, MEMHeapMagic magic, void* heapStart, void* heapEnd,
+					 uint32 createFlags);
+void MEMBaseDestroyHeap(MEMHeapBase* heap);
 
-	static_assert(offsetof(MEMHeapBase, childList) == 0xC);
-	static_assert(offsetof(MEMHeapBase, spinlock) == 0x20);
-	static_assert(offsetof(MEMHeapBase, flags) == 0x33);
-	static_assert(sizeof(MEMHeapBase) == 0x34); // heap base is actually 0x40 but bytes 0x34 to 0x40 are padding?
+MEMHeapBase* MEMGetBaseHeapHandle(uint32 index);
+MEMHeapBase* MEMSetBaseHeapHandle(uint32 index, MEMHeapBase* heapBase);
 
-	typedef MEMHeapBase* MEMHeapHandle;
+/* Heap list */
 
-	/* Heap base */
+bool MEMHeapTable_Add(MEMHeapBase* heap);
+bool MEMHeapTable_Remove(MEMHeapBase* heap);
+MEMHeapBase* _MEMList_FindContainingHeap(MEMList* list, MEMHeapBase* heap);
+bool MEMList_ContainsHeap(MEMList* list, MEMHeapBase* heap);
+MEMList* MEMList_FindContainingHeap(MEMHeapBase* head);
 
-	void MEMInitHeapBase(MEMHeapBase* heap, MEMHeapMagic magic, void* heapStart, void* heapEnd, uint32 createFlags);
-	void MEMBaseDestroyHeap(MEMHeapBase* heap);
+/* Heap settings */
 
-	MEMHeapBase* MEMGetBaseHeapHandle(uint32 index);
-	MEMHeapBase* MEMSetBaseHeapHandle(uint32 index, MEMHeapBase* heapBase);
+enum class HEAP_FILL_TYPE : uint32
+{
+	ON_HEAP_CREATE = 0,
+	ON_ALLOC = 1,
+	ON_FREE = 2,
+};
 
-	/* Heap list */
+uint32 MEMGetFillValForHeap(HEAP_FILL_TYPE type);
+uint32 MEMSetFillValForHeap(HEAP_FILL_TYPE type, uint32 value);
+MEMHeapHandle MEMFindContainHeap(const void* memBlock);
 
-	bool MEMHeapTable_Add(MEMHeapBase* heap);
-	bool MEMHeapTable_Remove(MEMHeapBase* heap);
-	MEMHeapBase* _MEMList_FindContainingHeap(MEMList* list, MEMHeapBase* heap);
-	bool MEMList_ContainsHeap(MEMList* list, MEMHeapBase* heap);
-	MEMList* MEMList_FindContainingHeap(MEMHeapBase* head);
+/* Heap default allocators */
 
-	/* Heap settings */
+void InitDefaultHeaps(MEMPTR<MEMHeapBase>& mem1Heap, MEMPTR<MEMHeapBase>& memFGHeap,
+					  MEMPTR<MEMHeapBase>& mem2Heap);
 
-	enum class HEAP_FILL_TYPE : uint32
-	{
-		ON_HEAP_CREATE = 0,
-		ON_ALLOC = 1,
-		ON_FREE = 2,
-	};
+void* default_MEMAllocFromDefaultHeap(uint32 size);
+void* default_MEMAllocFromDefaultHeapEx(uint32 size, sint32 alignment);
+void default_MEMFreeToDefaultHeap(void* mem);
 
-	uint32 MEMGetFillValForHeap(HEAP_FILL_TYPE type);
-	uint32 MEMSetFillValForHeap(HEAP_FILL_TYPE type, uint32 value);
-	MEMHeapHandle MEMFindContainHeap(const void* memBlock);
+void* _weak_MEMAllocFromDefaultHeapEx(uint32 size, sint32 alignment);
+void* _weak_MEMAllocFromDefaultHeap(uint32 size);
+void _weak_MEMFreeToDefaultHeap(void* ptr);
 
-	/* Heap default allocators */
+/* Unit heap */
 
-	void InitDefaultHeaps(MEMPTR<MEMHeapBase>& mem1Heap, MEMPTR<MEMHeapBase>& memFGHeap, MEMPTR<MEMHeapBase>& mem2Heap);
+void InitializeMEMUnitHeap();
 
-	void* default_MEMAllocFromDefaultHeap(uint32 size);
-	void* default_MEMAllocFromDefaultHeapEx(uint32 size, sint32 alignment);
-	void default_MEMFreeToDefaultHeap(void* mem);
-
-	void* _weak_MEMAllocFromDefaultHeapEx(uint32 size, sint32 alignment);
-	void* _weak_MEMAllocFromDefaultHeap(uint32 size);
-	void _weak_MEMFreeToDefaultHeap(void* ptr);
-
-	/* Unit heap */
-
-	void InitializeMEMUnitHeap();
-
-	void InitializeMEM();
-}
+void InitializeMEM();
+} // namespace coreinit

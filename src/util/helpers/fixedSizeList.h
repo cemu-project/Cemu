@@ -1,11 +1,11 @@
 #pragma once
 
-#include<array>
+#include <array>
 
 template<typename T, uint32 maxElements, bool checkMaxSize = true>
 class FixedSizeList
 {
-public:
+  public:
 	std::array<T, maxElements> m_elementArray;
 	int count = 0;
 
@@ -69,6 +69,5 @@ public:
 		return -1;
 	}
 
-private:
+  private:
 };
-

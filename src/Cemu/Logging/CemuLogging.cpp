@@ -1,12 +1,12 @@
 #include "CemuLogging.h"
+#include "config/ActiveSettings.h"
 #include "config/CemuConfig.h"
 #include "gui/LoggingWindow.h"
-#include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
 
-#include <mutex>
-#include <condition_variable>
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
 
 #include <fmt/printf.h>
 
@@ -29,10 +29,9 @@ struct _LogContext
 			log_writer.join();
 		}
 	}
-}LogContext;
+} LogContext;
 
-const std::map<LogType, std::string> g_logging_window_mapping
-{
+const std::map<LogType, std::string> g_logging_window_mapping{
 	{LogType::File, "Coreinit File-Access"},
 	{LogType::GX2, "GX2"},
 	{LogType::ThreadSync, "Coreinit Thread-Synchronization"},
@@ -64,8 +63,9 @@ bool cemuLog_isLoggingEnabled(LogType type)
 
 	if (type == LogType::None)
 		return false;
-	
-	return (type == LogType::Force)	|| ((GetConfig().log_flag.GetValue() & cemuLog_getFlag(type)) != 0);
+
+	return (type == LogType::Force) ||
+		   ((GetConfig().log_flag.GetValue() & cemuLog_getFlag(type)) != 0);
 }
 
 void cemuLog_thread()
@@ -122,10 +122,14 @@ void cemuLog_writeLineToLog(std::string_view text, bool date, bool new_line)
 		const auto& time = *std::localtime(&temp_time);
 
 #ifdef PUBLIC_RELEASE
-		auto time_str = fmt::format("[{:02d}:{:02d}:{:02d}] ", time.tm_hour, time.tm_min, time.tm_sec);
+		auto time_str =
+			fmt::format("[{:02d}:{:02d}:{:02d}] ", time.tm_hour, time.tm_min, time.tm_sec);
 #else
-		auto time_str = fmt::format("[{:02d}:{:02d}:{:02d}.{:03d}] ", time.tm_hour, time.tm_min, time.tm_sec,
-			std::chrono::duration_cast<std::chrono::milliseconds>(now - std::chrono::time_point_cast<std::chrono::seconds>(now)).count());
+		auto time_str =
+			fmt::format("[{:02d}:{:02d}:{:02d}.{:03d}] ", time.tm_hour, time.tm_min, time.tm_sec,
+						std::chrono::duration_cast<std::chrono::milliseconds>(
+							now - std::chrono::time_point_cast<std::chrono::seconds>(now))
+							.count());
 #endif
 
 		LogContext.text_cache.emplace_back(std::move(time_str));
@@ -148,7 +152,7 @@ bool cemuLog_log(LogType type, std::string_view text)
 	cemuLog_writeLineToLog(text);
 
 	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
-		[type](const auto& entry) { return entry.first == type; });
+								 [type](const auto& entry) { return entry.first == type; });
 	if (it == g_logging_window_mapping.cend())
 		LoggingWindow::Log(text);
 	else
@@ -159,7 +163,7 @@ bool cemuLog_log(LogType type, std::string_view text)
 
 bool cemuLog_log(LogType type, std::u8string_view text)
 {
-	std::basic_string_view<char> s((char*)text.data(), text.size());	
+	std::basic_string_view<char> s((char*)text.data(), text.size());
 	return cemuLog_log(type, s);
 }
 
@@ -175,14 +179,13 @@ void cemuLog_waitForFlush()
 {
 	cemuLog_createLogFile(false);
 	std::unique_lock lock(LogContext.log_mutex);
-	while(!LogContext.text_cache.empty())
+	while (!LogContext.text_cache.empty())
 	{
 		lock.unlock();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		std::this_thread::yield();
 		lock.lock();
 	}
-	
 }
 
 // used to atomically write multiple lines to the log
@@ -196,7 +199,7 @@ void cafeLog_log(uint32 type, const char* format, ...)
 	const auto logType = (LogType)type;
 	if (!cemuLog_isLoggingEnabled(logType))
 		return;
-	
+
 	char logTempStr[2048];
 	va_list(args);
 	va_start(args, format);
@@ -208,9 +211,9 @@ void cafeLog_log(uint32 type, const char* format, ...)
 	va_end(args);
 
 	cemuLog_writeLineToLog(logTempStr);
-	
+
 	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
-		[logType](const auto& entry) { return entry.first == logType; });
+								 [logType](const auto& entry) { return entry.first == logType; });
 	if (it == g_logging_window_mapping.cend())
 		LoggingWindow::Log(logTempStr);
 	else
@@ -222,7 +225,7 @@ void cafeLog_logW(uint32 type, const wchar_t* format, ...)
 	const auto logType = (LogType)type;
 	if (!cemuLog_isLoggingEnabled(logType))
 		return;
-	
+
 	wchar_t logTempStr[2048];
 	va_list(args);
 	va_start(args, format);
@@ -232,11 +235,11 @@ void cafeLog_logW(uint32 type, const wchar_t* format, ...)
 	vswprintf(logTempStr, 2048, format, args);
 #endif
 	va_end(args);
-	
+
 	cemuLog_log(logType, logTempStr);
 
 	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
-		[logType](const auto& entry) { return entry.first == logType; });
+								 [logType](const auto& entry) { return entry.first == logType; });
 	if (it == g_logging_window_mapping.cend())
 		LoggingWindow::Log(logTempStr);
 	else
@@ -245,7 +248,7 @@ void cafeLog_logW(uint32 type, const wchar_t* format, ...)
 
 void cemuLog_log()
 {
-	typedef void(*VoidFunc)();
+	typedef void (*VoidFunc)();
 	const VoidFunc func = (VoidFunc)cafeLog_log;
 	func();
 }
@@ -254,17 +257,19 @@ void cafeLog_logLine(uint32 type, const char* line)
 {
 	if (!cemuLog_isLoggingEnabled((LogType)type))
 		return;
-	
+
 	cemuLog_writeLineToLog(line);
 }
 
 void cafeLog_setLoggingFlagEnable(sint32 loggingType, bool isEnable)
 {
 	if (isEnable)
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() | cemuLog_getFlag((LogType)loggingType);
+		GetConfig().log_flag =
+			GetConfig().log_flag.GetValue() | cemuLog_getFlag((LogType)loggingType);
 	else
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag((LogType)loggingType);
-	
+		GetConfig().log_flag =
+			GetConfig().log_flag.GetValue() & ~cemuLog_getFlag((LogType)loggingType);
+
 	g_config.Save();
 }
 

@@ -1,22 +1,28 @@
 #pragma once
 
-#include <wx/dialog.h>
 #include <wx/checkbox.h>
+#include <wx/dialog.h>
 #include <wx/filepicker.h>
-#include <wx/statbmp.h>
-#include <wx/simplebook.h>
-#include <wx/stattext.h>
 #include <wx/panel.h>
+#include <wx/simplebook.h>
+#include <wx/statbmp.h>
+#include <wx/stattext.h>
 
 class GettingStartedDialog : public wxDialog
 {
-public:
+  public:
 	GettingStartedDialog(wxWindow* parent = nullptr);
 
-	[[nodiscard]] bool HasGamePathChanged() const { return m_game_path_changed; }
-	[[nodiscard]] bool HasMLCChanged() const { return m_mlc_changed; }
+	[[nodiscard]] bool HasGamePathChanged() const
+	{
+		return m_game_path_changed;
+	}
+	[[nodiscard]] bool HasMLCChanged() const
+	{
+		return m_mlc_changed;
+	}
 
-private:
+  private:
 	wxPanel* CreatePage1();
 	wxPanel* CreatePage2();
 	void ApplySettings();
@@ -41,4 +47,3 @@ private:
 	bool m_game_path_changed = false;
 	bool m_mlc_changed = false;
 };
-

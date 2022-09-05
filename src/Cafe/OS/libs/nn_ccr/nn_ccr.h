@@ -1,5 +1,5 @@
 
 namespace nn::ccr
 {
-	void Initialize();
+void Initialize();
 }

@@ -6,15 +6,13 @@ struct FSCMountPathNode
 	std::vector<FSCMountPathNode*> subnodes;
 	FSCMountPathNode* parent;
 	// device target and path (if list_subnodes is nullptr)
-	fscDeviceC* device{ nullptr };
-	void* ctx{ nullptr };
+	fscDeviceC* device{nullptr};
+	void* ctx{nullptr};
 	std::wstring targetPath;
 	// priority
 	sint32 priority{};
 
-	FSCMountPathNode(FSCMountPathNode* parent) : parent(parent)
-	{
-	}
+	FSCMountPathNode(FSCMountPathNode* parent) : parent(parent) {}
 
 	~FSCMountPathNode()
 	{
@@ -68,31 +66,33 @@ void fsc_reset()
 
 /*
  * Creates a node chain for the given mount path. Returns the bottom node.
- * If the path already exists for the given priority, NULL is returned (we can't mount two devices to the same path with the same priority)
- * But we can map devices to subdirectories. Something like this is possible:
- * /vol/content		 -> Map to WUD (includes all subdirectories except /data, which is handled by the entry below. This exclusion rule applies only if the priority of both mount entries is the same)
- * /vol/content/data -> Map to HostFS
- * If overlapping paths with different priority are created, then the higher priority one will be checked first
+ * If the path already exists for the given priority, NULL is returned (we can't mount two devices
+ * to the same path with the same priority) But we can map devices to subdirectories. Something like
+ * this is possible: /vol/content		 -> Map to WUD (includes all subdirectories except /data,
+ * which is handled by the entry below. This exclusion rule applies only if the priority of both
+ * mount entries is the same) /vol/content/data -> Map to HostFS If overlapping paths with different
+ * priority are created, then the higher priority one will be checked first
  */
 FSCMountPathNode* fsc_createMountPath(CoreinitFSParsedPath* parsedMountPath, sint32 priority)
 {
 	cemu_assert(priority >= 0 && priority < FSC_PRIORITY_COUNT);
 	fscEnter();
 	FSCMountPathNode* nodeParent = s_fscRootNodePerPrio[priority];
-	for(sint32 i=0; i<parsedMountPath->numNodes; i++)
+	for (sint32 i = 0; i < parsedMountPath->numNodes; i++)
 	{
 		// search for subdirectory
-		FSCMountPathNode* nodeSub = nullptr; // set if we found a subnode with a matching name, else this is used to store the new nodes
-		for(auto& nodeItr : nodeParent->subnodes)
+		FSCMountPathNode* nodeSub = nullptr; // set if we found a subnode with a matching name, else
+											 // this is used to store the new nodes
+		for (auto& nodeItr : nodeParent->subnodes)
 		{
-			if( coreinitFS_checkNodeName(parsedMountPath, i, nodeItr->path.c_str()) )
+			if (coreinitFS_checkNodeName(parsedMountPath, i, nodeItr->path.c_str()))
 			{
 				// subnode found
 				nodeSub = nodeItr;
 				break;
 			}
 		}
-		if( nodeSub )
+		if (nodeSub)
 		{
 			// traverse subnode
 			nodeParent = nodeSub;
@@ -103,7 +103,7 @@ FSCMountPathNode* fsc_createMountPath(CoreinitFSParsedPath* parsedMountPath, sin
 		nodeSub->path = coreinitFS_getNodeName(parsedMountPath, i);
 		nodeSub->priority = priority;
 		nodeParent->subnodes.emplace_back(nodeSub);
-		if( i == (parsedMountPath->numNodes-1) )
+		if (i == (parsedMountPath->numNodes - 1))
 		{
 			// last node
 			fscLeave();
@@ -120,7 +120,8 @@ FSCMountPathNode* fsc_createMountPath(CoreinitFSParsedPath* parsedMountPath, sin
 }
 
 // Map a virtual FSC directory to a device and device directory
-sint32 fsc_mount(const char* mountPath, const wchar_t* _targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority)
+sint32 fsc_mount(const char* mountPath, const wchar_t* _targetPath, fscDeviceC* fscDevice,
+				 void* ctx, sint32 priority)
 {
 	cemu_assert(fscDevice); // device must not be nullptr
 	// make sure the target path ends with a slash
@@ -134,7 +135,7 @@ sint32 fsc_mount(const char* mountPath, const wchar_t* _targetPath, fscDeviceC* 
 	// register path
 	fscEnter();
 	FSCMountPathNode* node = fsc_createMountPath(&parsedMountPath, priority);
-	if( !node )
+	if (!node)
 	{
 		// path empty, invalid or already used
 		cemuLog_log(LogType::Force, "fsc_mount failed (virtual path: %s)", mountPath);
@@ -169,7 +170,8 @@ bool fsc_unmount(const char* mountPath, sint32 priority)
 		cemu_assert(!(!mountPathNode->subnodes.empty() && mountPathNode->device));
 		if (!mountPathNode->subnodes.empty())
 			break;
-		parent->subnodes.erase(std::find(parent->subnodes.begin(), parent->subnodes.end(), mountPathNode));
+		parent->subnodes.erase(
+			std::find(parent->subnodes.begin(), parent->subnodes.end(), mountPathNode));
 		delete mountPathNode;
 		mountPathNode = parent;
 	}
@@ -185,7 +187,8 @@ void fsc_unmountAll()
 }
 
 // lookup virtual path and find mounted device and relative device directory
-bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** fscDeviceOut, void** ctxOut, sint32 priority = FSC_PRIORITY_BASE)
+bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** fscDeviceOut,
+					void** ctxOut, sint32 priority = FSC_PRIORITY_BASE)
 {
 	// parse path
 	CoreinitFSParsedPath parsedPath;
@@ -197,7 +200,7 @@ bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** 
 	{
 		// search for subdirectory
 		FSCMountPathNode* nodeSub = nullptr;
-		for(auto& nodeItr : nodeParent->subnodes)
+		for (auto& nodeItr : nodeParent->subnodes)
 		{
 			if (coreinitFS_checkNodeName(&parsedPath, i, nodeItr->path.c_str()))
 			{
@@ -272,10 +275,11 @@ FSCMountPathNode* fsc_lookupPathVirtualNode(const char* path, sint32 priority)
 	return nodeCurrentDir;
 }
 
-// this wraps multiple iterated directories from different devices into one unified virtual representation
+// this wraps multiple iterated directories from different devices into one unified virtual
+// representation
 class FSCVirtualFileDirectoryIterator : public FSCVirtualFile
 {
-public:
+  public:
 	sint32 fscGetType() override
 	{
 		return FSC_TYPE_DIRECTORY;
@@ -320,7 +324,7 @@ public:
 		dirIterator->dirEntries.emplace_back(dirEntry);
 	}
 
-private:
+  private:
 	void PopulateIterationList()
 	{
 		cemu_assert_debug(!dirIterator);
@@ -351,15 +355,19 @@ private:
 		fscLeave();
 	}
 
-private:
+  private:
 	std::string m_path;
-	std::vector<FSCVirtualFile*> m_folders; // list of all folders mapped to the same directory (at different priorities)
+	std::vector<FSCVirtualFile*>
+		m_folders; // list of all folders mapped to the same directory (at different priorities)
 };
 
 // Open file or directory from virtual file system
-FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus, sint32 maxPriority)
+FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus,
+						 sint32 maxPriority)
 {
-	cemu_assert_debug(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) || HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR)); // must open either file or directory
+	cemu_assert_debug(
+		HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) ||
+		HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR)); // must open either file or directory
 
 	FSCVirtualFile* dirList[FSC_PRIORITY_COUNT];
 	uint8 dirListCount = 0;
@@ -373,13 +381,14 @@ FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* 
 	{
 		if (fsc_lookupPath(path, devicePath, &fscDevice, &ctx, prio))
 		{
-			FSCVirtualFile* fscVirtualFile = fscDevice->fscDeviceOpenByPath(devicePath, accessFlags, ctx, fscStatus);
+			FSCVirtualFile* fscVirtualFile =
+				fscDevice->fscDeviceOpenByPath(devicePath, accessFlags, ctx, fscStatus);
 			if (fscVirtualFile)
 			{
 				if (fscVirtualFile->fscGetType() == FSC_TYPE_DIRECTORY)
 				{
 					cemu_assert_debug(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR));
-					// collect all folders 
+					// collect all folders
 					dirList[dirListCount] = fscVirtualFile;
 					dirListCount++;
 				}
@@ -389,14 +398,16 @@ FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* 
 					cemu_assert_debug(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE));
 					fscLeave();
 					return fscVirtualFile;
-				}				
+				}
 			}
 		}
 	}
-	// for directories we create a virtual representation of the enumerated files of all priorities as well as the FSC folder structure itself
+	// for directories we create a virtual representation of the enumerated files of all priorities
+	// as well as the FSC folder structure itself
 	if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
 	{
-		// create a virtual directory VirtualFile that represents all the mounted folders as well as the virtual FSC folder structure
+		// create a virtual directory VirtualFile that represents all the mounted folders as well as
+		// the virtual FSC folder structure
 		bool folderExists = dirListCount > 0;
 		for (sint32 prio = FSC_PRIORITY_COUNT - 1; prio >= 0; prio--)
 		{
@@ -406,7 +417,8 @@ FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* 
 		}
 		if (folderExists)
 		{
-			FSCVirtualFileDirectoryIterator* dirIteratorFile = new FSCVirtualFileDirectoryIterator(path, { dirList, dirListCount});
+			FSCVirtualFileDirectoryIterator* dirIteratorFile =
+				new FSCVirtualFileDirectoryIterator(path, {dirList, dirListCount});
 			*fscStatus = FSC_STATUS_OK;
 			fscLeave();
 			return dirIteratorFile;
@@ -430,9 +442,9 @@ FSCVirtualFile* fsc_openDirIterator(const char* path, sint32* fscStatus)
 }
 
 /*
-* Iterate next node in directory
-* Returns false if there is no node left
-*/
+ * Iterate next node in directory
+ * Returns false if there is no node left
+ */
 bool fsc_nextDir(FSCVirtualFile* fscFile, FSCDirEntry* dirEntry)
 {
 	fscEnter();
@@ -457,7 +469,7 @@ bool fsc_createDir(char* path, sint32* fscStatus)
 	void* ctx;
 	std::wstring devicePath;
 	fscEnter();
-	if( fsc_lookupPath(path, devicePath, &fscDevice, &ctx) )
+	if (fsc_lookupPath(path, devicePath, &fscDevice, &ctx))
 	{
 		sint32 status = fscDevice->fscDeviceCreateDir(devicePath, ctx, fscStatus);
 		fscLeave();
@@ -479,9 +491,10 @@ bool fsc_rename(char* srcPath, char* dstPath, sint32* fscStatus)
 	fscDeviceC* fscSrcDevice = NULL;
 	fscDeviceC* fscDstDevice = NULL;
 	*fscStatus = FSC_STATUS_UNDEFINED;
-	if( fsc_lookupPath(srcPath, srcDevicePath, &fscSrcDevice, &srcCtx) && fsc_lookupPath(dstPath, dstDevicePath, &fscDstDevice, &dstCtx) )
+	if (fsc_lookupPath(srcPath, srcDevicePath, &fscSrcDevice, &srcCtx) &&
+		fsc_lookupPath(dstPath, dstDevicePath, &fscDstDevice, &dstCtx))
 	{
-		if( fscSrcDevice == fscDstDevice )
+		if (fscSrcDevice == fscDstDevice)
 			return fscSrcDevice->fscDeviceRename(srcDevicePath, dstDevicePath, srcCtx, fscStatus);
 	}
 	return false;
@@ -496,7 +509,7 @@ bool fsc_remove(char* path, sint32* fscStatus)
 	fscDeviceC* fscDevice = NULL;
 	*fscStatus = FSC_STATUS_UNDEFINED;
 	void* ctx;
-	if( fsc_lookupPath(path, devicePath, &fscDevice, &ctx) )
+	if (fsc_lookupPath(path, devicePath, &fscDevice, &ctx))
 	{
 		return fscDevice->fscDeviceRemoveFileOrDir(devicePath, ctx, fscStatus);
 	}
@@ -579,7 +592,7 @@ bool fsc_isFile(FSCVirtualFile* fscFile)
  * Returns true if the file is writable
  */
 bool fsc_isWritable(FSCVirtualFile* fscFile)
-{	
+{
 	return fscFile->fscQueryValueU64(FSC_QUERY_WRITEABLE) != 0;
 }
 
@@ -618,8 +631,10 @@ uint8* fsc_extractFile(const char* path, uint32* fileSize, sint32 maxPriority)
 	fscDeviceC* fscDevice = nullptr;
 	sint32 fscStatus = FSC_STATUS_UNDEFINED;
 	fscEnter();
-	FSCVirtualFile* fscFile = fsc_open(path, FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus, maxPriority);
-	if( !fscFile )
+	FSCVirtualFile* fscFile =
+		fsc_open(path, FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus,
+				 maxPriority);
+	if (!fscFile)
 	{
 		*fileSize = 0;
 		fscLeave();
@@ -628,7 +643,7 @@ uint8* fsc_extractFile(const char* path, uint32* fileSize, sint32 maxPriority)
 	uint32 fscFileSize = fsc_getFileSize(fscFile);
 	*fileSize = fscFileSize;
 	uint8* fileMem = (uint8*)malloc(fscFileSize);
-	if( fsc_readFile(fscFile, fileMem, fscFileSize) != fscFileSize )
+	if (fsc_readFile(fscFile, fileMem, fscFileSize) != fscFileSize)
 	{
 		free(fileMem);
 		fsc_close(fscFile);
@@ -646,7 +661,9 @@ std::optional<std::vector<uint8>> fsc_extractFile(const char* path, sint32 maxPr
 	fscDeviceC* fscDevice = nullptr;
 	sint32 fscStatus = FSC_STATUS_UNDEFINED;
 	fscEnter();
-	FSCVirtualFile* fscFile = fsc_open(path, FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus, maxPriority);
+	FSCVirtualFile* fscFile =
+		fsc_open(path, FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus,
+				 maxPriority);
 	if (!fscFile)
 	{
 		fscLeave();
@@ -707,7 +724,6 @@ bool fsc_doesDirectoryExist(const char* path, sint32 maxPriority)
 	fscLeave();
 	return true;
 }
-
 
 void coreinitFS_parsePath(CoreinitFSParsedPath* parsedPath, const char* path)
 {

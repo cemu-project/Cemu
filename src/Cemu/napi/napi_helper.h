@@ -1,6 +1,6 @@
 #pragma once
-#include "napi.h"
 #include "curl/curl.h"
+#include "napi.h"
 #include "pugixml.hpp"
 
 typedef void CURL;
@@ -18,14 +18,15 @@ class CurlRequestHelper
 
 		std::string data;
 	};
-public:
+
+  public:
 	enum class SERVER_SSL_CONTEXT
 	{
-		ACT, // account.nintendo.net
-		ECS, // ecs.
-		IAS, // ias.
-		CCS, // ccs.
-		IDBE, // idbe-wup.
+		ACT,	// account.nintendo.net
+		ECS,	// ecs.
+		IAS,	// ias.
+		CCS,	// ccs.
+		IDBE,	// idbe-wup.
 		TAGAYA, // tagaya.wup.shop.nintendo.net
 	};
 
@@ -40,8 +41,11 @@ public:
 	void initate(std::string url, SERVER_SSL_CONTEXT sslContext);
 	void addHeaderField(const char* fieldName, std::string_view value);
 	void addPostField(const char* fieldName, std::string_view value);
-	void setWriteCallback(bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData);
-	void setTimeout(sint32 timeoutSeconds); // maximum duration of the request after connecting. Set to zero to disable limit
+	void setWriteCallback(bool (*cbWriteCallback)(void* userData, const void* ptr, size_t len,
+												  bool isLast),
+						  void* userData);
+	void setTimeout(sint32 timeoutSeconds); // maximum duration of the request after connecting. Set
+											// to zero to disable limit
 
 	bool submitRequest(bool isPost = false);
 
@@ -50,7 +54,7 @@ public:
 		return m_receiveBuffer;
 	}
 
-private:
+  private:
 	static size_t __curlWriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata);
 
 	CURL* m_curl;
@@ -65,7 +69,7 @@ private:
 
 class CurlSOAPHelper // todo - make this use CurlRequestHelper
 {
-public:
+  public:
 	CurlSOAPHelper();
 	~CurlSOAPHelper();
 
@@ -74,7 +78,8 @@ public:
 		return m_curl;
 	}
 
-	void SOAP_initate(std::string_view serviceType, std::string url, std::string_view requestMethod, std::string_view requestVersion);
+	void SOAP_initate(std::string_view serviceType, std::string url, std::string_view requestMethod,
+					  std::string_view requestVersion);
 
 	void SOAP_addRequestField(const char* fieldName, std::string_view value);
 
@@ -85,14 +90,15 @@ public:
 		return m_receiveBuffer;
 	}
 
-private:
+  private:
 	void SOAP_generateEnvelope();
 
 	static size_t __curlWriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
 	{
 		CurlSOAPHelper* curlHelper = (CurlSOAPHelper*)userdata;
 		sint32 writeByteSize = (sint32)(size * nmemb);
-		curlHelper->m_receiveBuffer.insert(curlHelper->m_receiveBuffer.end(), ptr, ptr + writeByteSize);
+		curlHelper->m_receiveBuffer.insert(curlHelper->m_receiveBuffer.end(), ptr,
+										   ptr + writeByteSize);
 		return writeByteSize;
 	}
 
@@ -109,7 +115,9 @@ private:
 
 namespace NAPI
 {
-	bool _findXmlNode(pugi::xml_node& doc, pugi::xml_node& nodeOut, const char* name);
-	bool _parseResponseInit(const CurlSOAPHelper& soapHelper, const char* responseNodeName, pugi::xml_node& node, _NAPI_CommonResultSOAP& result, pugi::xml_document& doc, pugi::xml_node& responseNode);
+bool _findXmlNode(pugi::xml_node& doc, pugi::xml_node& nodeOut, const char* name);
+bool _parseResponseInit(const CurlSOAPHelper& soapHelper, const char* responseNodeName,
+						pugi::xml_node& node, _NAPI_CommonResultSOAP& result,
+						pugi::xml_document& doc, pugi::xml_node& responseNode);
 
-};
+}; // namespace NAPI

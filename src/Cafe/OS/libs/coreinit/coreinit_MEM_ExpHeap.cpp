@@ -1,232 +1,239 @@
-#include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
+#include "Cafe/HW/Espresso/PPCCallback.h"
+#include "Cafe/OS/common/OSCommon.h"
 
 void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
 
-#define EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(__blockchain__) (MEMExpHeapHead2*)((uintptr_t)__blockchain__ - offsetof(MEMExpHeapHead2, expHeapHead) - offsetof(MEMExpHeapHead40_t, chainFreeBlocks))
+#define EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(__blockchain__)                                          \
+	(MEMExpHeapHead2*)((uintptr_t)__blockchain__ - offsetof(MEMExpHeapHead2, expHeapHead) -        \
+					   offsetof(MEMExpHeapHead40_t, chainFreeBlocks))
 
 namespace coreinit
 {
-	#define MBLOCK_TYPE_FREE ('FR')
-	#define MBLOCK_TYPE_USED ('UD')
+#define MBLOCK_TYPE_FREE ('FR')
+#define MBLOCK_TYPE_USED ('UD')
 
-	struct MBlock2_t
-	{
-		uint32be fields; // 0x00
-		uint32be dataSize; // 0x04 | size of raw data (excluding size of this struct)
-		MEMPTR<MBlock2_t> prevBlock; // 0x08
-		MEMPTR<MBlock2_t> nextBlock; // 0x0C
-		uint16be typeCode; // 0x10
-		uint16be padding; // 0x12
-	};
-	static_assert(sizeof(MBlock2_t) == 0x14);
+struct MBlock2_t
+{
+	uint32be fields;			 // 0x00
+	uint32be dataSize;			 // 0x04 | size of raw data (excluding size of this struct)
+	MEMPTR<MBlock2_t> prevBlock; // 0x08
+	MEMPTR<MBlock2_t> nextBlock; // 0x0C
+	uint16be typeCode;			 // 0x10
+	uint16be padding;			 // 0x12
+};
+static_assert(sizeof(MBlock2_t) == 0x14);
 
-	struct ExpMemBlockRegion
-	{
-		uintptr_t start;
-		uintptr_t end;
-	};
+struct ExpMemBlockRegion
+{
+	uintptr_t start;
+	uintptr_t end;
+};
 
 #define MBLOCK_GET_HEADER(__mblock__) (MBlock2_t*)((uintptr_t)__mblock__ - sizeof(MBlock2_t))
 #define MBLOCK_GET_MEMORY(__mblock__) ((uintptr_t)__mblock__ + sizeof(MBlock2_t))
-#define MBLOCK_GET_END(__mblock__) ((uintptr_t)__mblock__ + sizeof(MBlock2_t) + (uint32)__mblock__->dataSize)
+#define MBLOCK_GET_END(__mblock__)                                                                 \
+	((uintptr_t)__mblock__ + sizeof(MBlock2_t) + (uint32)__mblock__->dataSize)
 
 #pragma region internal
-	MBlock2_t* _MEMExpHeap_InitMBlock(ExpMemBlockRegion* region, uint16 typeCode)
-	{
-		MBlock2_t* mBlock = (MBlock2_t*)region->start;
-		memset(mBlock, 0x00, sizeof(MBlock2_t));
-		mBlock->typeCode = typeCode;
-		mBlock->dataSize = (uint32)(region->end - (region->start + sizeof(MBlock2_t)));
-		return mBlock;
-	}
+MBlock2_t* _MEMExpHeap_InitMBlock(ExpMemBlockRegion* region, uint16 typeCode)
+{
+	MBlock2_t* mBlock = (MBlock2_t*)region->start;
+	memset(mBlock, 0x00, sizeof(MBlock2_t));
+	mBlock->typeCode = typeCode;
+	mBlock->dataSize = (uint32)(region->end - (region->start + sizeof(MBlock2_t)));
+	return mBlock;
+}
 
-	bool _MEMExpHeap_CheckMBlock(MBlock2_t* mBlock, MEMHeapHandle heap, uint16 typeCode, const char* debugText, int options)
-	{
-#ifndef MBLOCK_DEBUG_ASSERT 
-		return true;
+bool _MEMExpHeap_CheckMBlock(MBlock2_t* mBlock, MEMHeapHandle heap, uint16 typeCode,
+							 const char* debugText, int options)
+{
+#ifndef MBLOCK_DEBUG_ASSERT
+	return true;
 #endif
-		const uintptr_t mBlockAddr = (uintptr_t)mBlock;
-		const uintptr_t mBlockRawAddr = MBLOCK_GET_MEMORY(mBlock);
-		uintptr_t heapStart = 0, heapEnd = 0;
-		if (heap)
+	const uintptr_t mBlockAddr = (uintptr_t)mBlock;
+	const uintptr_t mBlockRawAddr = MBLOCK_GET_MEMORY(mBlock);
+	uintptr_t heapStart = 0, heapEnd = 0;
+	if (heap)
+	{
+		heapStart = (uintptr_t)heap->heapStart.GetPtr();
+		heapEnd = (uintptr_t)heap->heapEnd.GetPtr();
+		if (heap == MEM_HEAP_INVALID_HANDLE)
 		{
-			heapStart = (uintptr_t)heap->heapStart.GetPtr();
-			heapEnd = (uintptr_t)heap->heapEnd.GetPtr();
-			if (heap == MEM_HEAP_INVALID_HANDLE)
+			if (mBlockAddr < heapStart || mBlockRawAddr > heapEnd)
 			{
-				if (mBlockAddr < heapStart || mBlockRawAddr > heapEnd)
-				{
-					return false;
-				}
+				return false;
 			}
 		}
-		if (typeCode == (uint16)mBlock->typeCode)
-		{
-			if (heap == MEM_HEAP_INVALID_HANDLE)
-				return true;
+	}
+	if (typeCode == (uint16)mBlock->typeCode)
+	{
+		if (heap == MEM_HEAP_INVALID_HANDLE)
+			return true;
 
-			const uint32 dataSize = mBlock->dataSize;
-			if (mBlockRawAddr + dataSize <= heapEnd)
-				return true;
-			return false;
-		}
+		const uint32 dataSize = mBlock->dataSize;
+		if (mBlockRawAddr + dataSize <= heapEnd)
+			return true;
 		return false;
 	}
+	return false;
+}
 
-	bool _MEMExpHeap_IsValidUsedMBlock(const void* memBlock, MEMHeapHandle heap)
-	{
-#ifndef MBLOCK_DEBUG_ASSERT 
-		return true;
+bool _MEMExpHeap_IsValidUsedMBlock(const void* memBlock, MEMHeapHandle heap)
+{
+#ifndef MBLOCK_DEBUG_ASSERT
+	return true;
 #endif
-		if (!memBlock)
-			return false;
+	if (!memBlock)
+		return false;
 
-		heap->AcquireLock();
+	heap->AcquireLock();
 
-		bool valid = false;
-		MBlock2_t* mBlock = MBLOCK_GET_HEADER(memBlock);
+	bool valid = false;
+	MBlock2_t* mBlock = MBLOCK_GET_HEADER(memBlock);
 
-		if (heap)
+	if (heap)
+	{
+		MEMExpHeapHead2* expHeap = (MEMExpHeapHead2*)heap;
+		MEMPTR<MBlock2_t> usedBlock = expHeap->expHeapHead.chainUsedBlocks.headMBlock;
+		while (usedBlock)
 		{
-			MEMExpHeapHead2* expHeap = (MEMExpHeapHead2*)heap;
-			MEMPTR<MBlock2_t> usedBlock = expHeap->expHeapHead.chainUsedBlocks.headMBlock;
-			while (usedBlock)
+			if (mBlock == usedBlock.GetPtr())
 			{
-				if (mBlock == usedBlock.GetPtr())
-				{
-					valid = _MEMExpHeap_CheckMBlock(mBlock, heap, MBLOCK_TYPE_USED, "used", 0);
-					break;
-				}
-
-				usedBlock = usedBlock->nextBlock;
-			}
-		}
-		else
-		{
-			valid = _MEMExpHeap_CheckMBlock(mBlock, heap, MBLOCK_TYPE_USED, "used", 0);
-		}
-
-		heap->ReleaseLock();
-
-		return valid;
-	}
-
-	void _MEMExpHeap_GetRegionOfMBlock(ExpMemBlockRegion* region, MBlock2_t* memBlock)
-	{
-		uint32 alignment = ((memBlock->fields) >> 8) & 0x7FFFFF;
-
-		uintptr_t memBlockAddr = (uintptr_t)memBlock;
-		region->start = memBlockAddr - alignment;
-		region->end = memBlockAddr + sizeof(MBlock2_t) + (uint32)memBlock->dataSize;
-	}
-
-	void* _MEMExpHeap_RemoveMBlock(MBlockChain2_t* blockChain, MBlock2_t* block)
-	{
-		MEMPTR<MBlock2_t> prevBlock = block->prevBlock;
-		MEMPTR<MBlock2_t> nextBlock = block->nextBlock;
-
-		if (prevBlock)
-			prevBlock->nextBlock = nextBlock;
-		else
-			blockChain->headMBlock = nextBlock;
-
-		if (nextBlock)
-			nextBlock->prevBlock = prevBlock;
-		else
-			blockChain->tailMBlock = prevBlock;
-
-		return prevBlock.GetPtr();
-	}
-
-	MBlock2_t* _MEMExpHeap_InsertMBlock(MBlockChain2_t* blockChain, MBlock2_t* newBlock, MBlock2_t* prevBlock)
-	{
-		newBlock->prevBlock = prevBlock;
-
-		MEMPTR<MBlock2_t> nextBlock;
-		if (prevBlock)
-		{
-			nextBlock = prevBlock->nextBlock;
-			prevBlock->nextBlock = newBlock;
-		}
-		else
-		{
-			nextBlock = blockChain->headMBlock;
-			blockChain->headMBlock = newBlock;
-		}
-
-		newBlock->nextBlock = nextBlock;
-		if (nextBlock)
-			nextBlock->prevBlock = newBlock;
-		else
-			blockChain->tailMBlock = newBlock;
-
-		return newBlock;
-	}
-
-	bool _MEMExpHeap_RecycleRegion(MBlockChain2_t* blockChain, ExpMemBlockRegion* region)
-	{
-		ExpMemBlockRegion newRegion;
-		newRegion.start = region->start;
-		newRegion.end = region->end;
-
-		MEMPTR<MBlock2_t> prev;
-		MEMPTR<MBlock2_t> find = blockChain->headMBlock;
-		while (find)
-		{
-			MBlock2_t* findMBlock = find.GetPtr();
-			const uintptr_t blockAddr = (uintptr_t)findMBlock;
-			if (blockAddr >= region->start)
-			{
-				if (blockAddr == region->end)
-				{
-					newRegion.end = MBLOCK_GET_END(findMBlock);
-					_MEMExpHeap_RemoveMBlock(blockChain, findMBlock);
-
-					MEMExpHeapHead2* heap = EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(blockChain);
-					uint8 options = heap->flags;
-					if (HAS_FLAG(options, MEM_HEAP_OPTION_FILL))
-					{
-						const uint32 fillVal = MEMGetFillValForHeap(HEAP_FILL_TYPE::ON_FREE);
-						memset(findMBlock, fillVal, sizeof(MBlock2_t));
-					}
-				}
-
+				valid = _MEMExpHeap_CheckMBlock(mBlock, heap, MBLOCK_TYPE_USED, "used", 0);
 				break;
 			}
 
-			prev = find;
-			find = findMBlock->nextBlock;
+			usedBlock = usedBlock->nextBlock;
 		}
-
-		if (prev)
-		{
-			MBlock2_t* prevMBlock = prev.GetPtr();
-			if (MBLOCK_GET_END(prevMBlock) == region->start)
-			{
-				newRegion.start = (uintptr_t)prevMBlock;
-				prev = (MBlock2_t*)_MEMExpHeap_RemoveMBlock(blockChain, prevMBlock);
-			}
-		}
-
-		if ((newRegion.end - newRegion.start) < sizeof(MBlock2_t))
-			return false;
-
-		MEMExpHeapHead2* heap = EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(blockChain);
-		uint8 options = heap->flags;
-		if (HAS_FLAG(options, MEM_HEAP_OPTION_FILL))
-		{
-			const uint32 fillVal = MEMGetFillValForHeap(HEAP_FILL_TYPE::ON_FREE);
-			memset((void*)region->start, fillVal, region->end - region->start);
-		}
-
-		MBlock2_t* newBlock = _MEMExpHeap_InitMBlock(&newRegion, MBLOCK_TYPE_FREE);
-		_MEMExpHeap_InsertMBlock(blockChain, newBlock, prev.GetPtr());
-		return true;
+	}
+	else
+	{
+		valid = _MEMExpHeap_CheckMBlock(mBlock, heap, MBLOCK_TYPE_USED, "used", 0);
 	}
 
-void* _MEMExpHeap_AllocUsedBlockFromFreeBlock(MBlockChain2_t* blockChain, MBlock2_t* freeBlock, uintptr_t blockMemStart, uint32 size, MEMExpHeapAllocDirection direction)
+	heap->ReleaseLock();
+
+	return valid;
+}
+
+void _MEMExpHeap_GetRegionOfMBlock(ExpMemBlockRegion* region, MBlock2_t* memBlock)
+{
+	uint32 alignment = ((memBlock->fields) >> 8) & 0x7FFFFF;
+
+	uintptr_t memBlockAddr = (uintptr_t)memBlock;
+	region->start = memBlockAddr - alignment;
+	region->end = memBlockAddr + sizeof(MBlock2_t) + (uint32)memBlock->dataSize;
+}
+
+void* _MEMExpHeap_RemoveMBlock(MBlockChain2_t* blockChain, MBlock2_t* block)
+{
+	MEMPTR<MBlock2_t> prevBlock = block->prevBlock;
+	MEMPTR<MBlock2_t> nextBlock = block->nextBlock;
+
+	if (prevBlock)
+		prevBlock->nextBlock = nextBlock;
+	else
+		blockChain->headMBlock = nextBlock;
+
+	if (nextBlock)
+		nextBlock->prevBlock = prevBlock;
+	else
+		blockChain->tailMBlock = prevBlock;
+
+	return prevBlock.GetPtr();
+}
+
+MBlock2_t* _MEMExpHeap_InsertMBlock(MBlockChain2_t* blockChain, MBlock2_t* newBlock,
+									MBlock2_t* prevBlock)
+{
+	newBlock->prevBlock = prevBlock;
+
+	MEMPTR<MBlock2_t> nextBlock;
+	if (prevBlock)
+	{
+		nextBlock = prevBlock->nextBlock;
+		prevBlock->nextBlock = newBlock;
+	}
+	else
+	{
+		nextBlock = blockChain->headMBlock;
+		blockChain->headMBlock = newBlock;
+	}
+
+	newBlock->nextBlock = nextBlock;
+	if (nextBlock)
+		nextBlock->prevBlock = newBlock;
+	else
+		blockChain->tailMBlock = newBlock;
+
+	return newBlock;
+}
+
+bool _MEMExpHeap_RecycleRegion(MBlockChain2_t* blockChain, ExpMemBlockRegion* region)
+{
+	ExpMemBlockRegion newRegion;
+	newRegion.start = region->start;
+	newRegion.end = region->end;
+
+	MEMPTR<MBlock2_t> prev;
+	MEMPTR<MBlock2_t> find = blockChain->headMBlock;
+	while (find)
+	{
+		MBlock2_t* findMBlock = find.GetPtr();
+		const uintptr_t blockAddr = (uintptr_t)findMBlock;
+		if (blockAddr >= region->start)
+		{
+			if (blockAddr == region->end)
+			{
+				newRegion.end = MBLOCK_GET_END(findMBlock);
+				_MEMExpHeap_RemoveMBlock(blockChain, findMBlock);
+
+				MEMExpHeapHead2* heap = EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(blockChain);
+				uint8 options = heap->flags;
+				if (HAS_FLAG(options, MEM_HEAP_OPTION_FILL))
+				{
+					const uint32 fillVal = MEMGetFillValForHeap(HEAP_FILL_TYPE::ON_FREE);
+					memset(findMBlock, fillVal, sizeof(MBlock2_t));
+				}
+			}
+
+			break;
+		}
+
+		prev = find;
+		find = findMBlock->nextBlock;
+	}
+
+	if (prev)
+	{
+		MBlock2_t* prevMBlock = prev.GetPtr();
+		if (MBLOCK_GET_END(prevMBlock) == region->start)
+		{
+			newRegion.start = (uintptr_t)prevMBlock;
+			prev = (MBlock2_t*)_MEMExpHeap_RemoveMBlock(blockChain, prevMBlock);
+		}
+	}
+
+	if ((newRegion.end - newRegion.start) < sizeof(MBlock2_t))
+		return false;
+
+	MEMExpHeapHead2* heap = EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(blockChain);
+	uint8 options = heap->flags;
+	if (HAS_FLAG(options, MEM_HEAP_OPTION_FILL))
+	{
+		const uint32 fillVal = MEMGetFillValForHeap(HEAP_FILL_TYPE::ON_FREE);
+		memset((void*)region->start, fillVal, region->end - region->start);
+	}
+
+	MBlock2_t* newBlock = _MEMExpHeap_InitMBlock(&newRegion, MBLOCK_TYPE_FREE);
+	_MEMExpHeap_InsertMBlock(blockChain, newBlock, prev.GetPtr());
+	return true;
+}
+
+void* _MEMExpHeap_AllocUsedBlockFromFreeBlock(MBlockChain2_t* blockChain, MBlock2_t* freeBlock,
+											  uintptr_t blockMemStart, uint32 size,
+											  MEMExpHeapAllocDirection direction)
 {
 	MEMExpHeapHead2* heap = EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(blockChain);
 
@@ -238,7 +245,9 @@ void* _MEMExpHeap_AllocUsedBlockFromFreeBlock(MBlockChain2_t* blockChain, MBlock
 
 	MBlock2_t* prevBlock = (MBlock2_t*)_MEMExpHeap_RemoveMBlock(blockChain, freeBlock);
 
-	if ((freeRegion.end - freeRegion.start) >= 0x18 && (direction != MEMExpHeapAllocDirection::HEAD || HAS_FLAG(heap->expHeapHead.fields, MEM_EXPHEAP_USE_ALIGN_MARGIN)))
+	if ((freeRegion.end - freeRegion.start) >= 0x18 &&
+		(direction != MEMExpHeapAllocDirection::HEAD ||
+		 HAS_FLAG(heap->expHeapHead.fields, MEM_EXPHEAP_USE_ALIGN_MARGIN)))
 	{
 		MBlock2_t* newBlock = _MEMExpHeap_InitMBlock(&freeRegion, MBLOCK_TYPE_FREE);
 		prevBlock = _MEMExpHeap_InsertMBlock(blockChain, newBlock, prevBlock);
@@ -246,7 +255,9 @@ void* _MEMExpHeap_AllocUsedBlockFromFreeBlock(MBlockChain2_t* blockChain, MBlock
 	else
 		freeRegion.end = freeRegion.start;
 
-	if ((newRegion.end - newRegion.start) >= 0x18 && (direction != MEMExpHeapAllocDirection::TAIL || HAS_FLAG(heap->expHeapHead.fields, MEM_EXPHEAP_USE_ALIGN_MARGIN)))
+	if ((newRegion.end - newRegion.start) >= 0x18 &&
+		(direction != MEMExpHeapAllocDirection::TAIL ||
+		 HAS_FLAG(heap->expHeapHead.fields, MEM_EXPHEAP_USE_ALIGN_MARGIN)))
 	{
 		MBlock2_t* newBlock = _MEMExpHeap_InitMBlock(&newRegion, MBLOCK_TYPE_FREE);
 		prevBlock = _MEMExpHeap_InsertMBlock(blockChain, newBlock, prevBlock);
@@ -269,7 +280,7 @@ void* _MEMExpHeap_AllocUsedBlockFromFreeBlock(MBlockChain2_t* blockChain, MBlock
 	MBlock2_t* newBlock = _MEMExpHeap_InitMBlock(&allocRegion, MBLOCK_TYPE_USED);
 
 	uint32 fields = (uint32)newBlock->fields;
-	if(direction == MEMExpHeapAllocDirection::TAIL)
+	if (direction == MEMExpHeapAllocDirection::TAIL)
 		fields |= 1 << 31;
 	else
 		fields &= ~(1 << 31);
@@ -277,7 +288,7 @@ void* _MEMExpHeap_AllocUsedBlockFromFreeBlock(MBlockChain2_t* blockChain, MBlock
 	fields |= (alignmentPadding & 0x7FFFFF) << 8;
 	fields |= ((uint32)heap->expHeapHead.groupID & 0xFF);
 	newBlock->fields = fields;
-	
+
 	MBlock2_t* tailBlock = heap->expHeapHead.chainUsedBlocks.tailMBlock.GetPtr();
 	_MEMExpHeap_InsertMBlock(&heap->expHeapHead.chainUsedBlocks, newBlock, tailBlock);
 
@@ -288,20 +299,23 @@ void* _MEMExpHeap_AllocFromTail(MEMHeapHandle heap, uint32 size, int alignment)
 {
 	MEMExpHeapHead2* expHeap = (MEMExpHeapHead2*)heap;
 
-	const bool searchForFirstEntry = (expHeap->expHeapHead.fields&1) == MEM_EXPHEAP_ALLOC_MODE_FIRST;
+	const bool searchForFirstEntry =
+		(expHeap->expHeapHead.fields & 1) == MEM_EXPHEAP_ALLOC_MODE_FIRST;
 	const int alignmentMinusOne = alignment - 1;
 
 	MBlock2_t* freeBlock = nullptr;
 	uintptr_t blockMemStart = 0;
 	uint32 foundSize = -1;
 
-	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.tailMBlock.GetPtr(); findBlock != nullptr; findBlock = findBlock->prevBlock.GetPtr())
+	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.tailMBlock.GetPtr();
+		 findBlock != nullptr; findBlock = findBlock->prevBlock.GetPtr())
 	{
 		const uintptr_t blockMemory = MBLOCK_GET_MEMORY(findBlock);
 
 		const uint32 dataSize = (uint32)findBlock->dataSize;
-		const uintptr_t alignedEndBlockMemory = (blockMemory + dataSize - size) & ~alignmentMinusOne;
-		
+		const uintptr_t alignedEndBlockMemory =
+			(blockMemory + dataSize - size) & ~alignmentMinusOne;
+
 		if (alignedEndBlockMemory < blockMemory)
 			continue;
 
@@ -321,7 +335,9 @@ void* _MEMExpHeap_AllocFromTail(MEMHeapHandle heap, uint32 size, int alignment)
 
 	void* mem = nullptr;
 	if (freeBlock)
-		mem = _MEMExpHeap_AllocUsedBlockFromFreeBlock(&expHeap->expHeapHead.chainFreeBlocks, freeBlock, blockMemStart, size, coreinit::MEMExpHeapAllocDirection::TAIL);
+		mem = _MEMExpHeap_AllocUsedBlockFromFreeBlock(&expHeap->expHeapHead.chainFreeBlocks,
+													  freeBlock, blockMemStart, size,
+													  coreinit::MEMExpHeapAllocDirection::TAIL);
 
 	return mem;
 }
@@ -330,14 +346,16 @@ void* _MEMExpHeap_AllocFromHead(MEMHeapHandle heap, uint32 size, int alignment)
 {
 	MEMExpHeapHead2* expHeap = (MEMExpHeapHead2*)heap;
 
-	const bool searchForFirstEntry = (expHeap->expHeapHead.fields&1) == MEM_EXPHEAP_ALLOC_MODE_FIRST;
+	const bool searchForFirstEntry =
+		(expHeap->expHeapHead.fields & 1) == MEM_EXPHEAP_ALLOC_MODE_FIRST;
 	const int alignmentMinusOne = alignment - 1;
 
 	MBlock2_t* freeBlock = nullptr;
 	uintptr_t blockMemStart = 0;
 	uint32 foundSize = -1;
 
-	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.headMBlock.GetPtr(); findBlock != nullptr; findBlock = findBlock->nextBlock.GetPtr())
+	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.headMBlock.GetPtr();
+		 findBlock != nullptr; findBlock = findBlock->nextBlock.GetPtr())
 	{
 		const uintptr_t blockMemory = MBLOCK_GET_MEMORY(findBlock);
 		const uintptr_t alignedBlockMemory = (blockMemory + alignmentMinusOne) & ~alignmentMinusOne;
@@ -362,7 +380,9 @@ void* _MEMExpHeap_AllocFromHead(MEMHeapHandle heap, uint32 size, int alignment)
 
 	void* mem = nullptr;
 	if (freeBlock)
-		mem = _MEMExpHeap_AllocUsedBlockFromFreeBlock(&expHeap->expHeapHead.chainFreeBlocks, freeBlock, blockMemStart, size, coreinit::MEMExpHeapAllocDirection::HEAD);
+		mem = _MEMExpHeap_AllocUsedBlockFromFreeBlock(&expHeap->expHeapHead.chainFreeBlocks,
+													  freeBlock, blockMemStart, size,
+													  coreinit::MEMExpHeapAllocDirection::HEAD);
 
 	return mem;
 }
@@ -372,7 +392,8 @@ MEMHeapHandle _MEMExpHeap_InitHeap(void* startAddress, void* endAddress, uint32 
 	MEMExpHeapHead2* header = (MEMExpHeapHead2*)startAddress;
 	uintptr_t heapStart = (uintptr_t)startAddress + sizeof(MEMExpHeapHead2);
 
-	MEMInitHeapBase(header, coreinit::MEMHeapMagic::EXP_HEAP, (void*)heapStart, endAddress, createFlags);
+	MEMInitHeapBase(header, coreinit::MEMHeapMagic::EXP_HEAP, (void*)heapStart, endAddress,
+					createFlags);
 
 	ExpMemBlockRegion region;
 	region.start = (uintptr_t)header->heapStart.GetPtr();
@@ -422,7 +443,8 @@ MEMHeapHandle MEMCreateExpHeapEx(void* startAddress, uint32 size, uint32 createF
 	if (startAddress == nullptr)
 		return MEM_HEAP_INVALID_HANDLE;
 
-	const uintptr_t alignedStart = ((uintptr_t)startAddress + MIN_ALIGNMENT_MINUS_ONE) & (~MIN_ALIGNMENT_MINUS_ONE);
+	const uintptr_t alignedStart =
+		((uintptr_t)startAddress + MIN_ALIGNMENT_MINUS_ONE) & (~MIN_ALIGNMENT_MINUS_ONE);
 	const uintptr_t alignedEnd = ((uintptr_t)startAddress + size) & (~MIN_ALIGNMENT_MINUS_ONE);
 
 	if (alignedStart > alignedEnd)
@@ -431,7 +453,8 @@ MEMHeapHandle MEMCreateExpHeapEx(void* startAddress, uint32 size, uint32 createF
 	if (alignedEnd - alignedStart < 0x6C)
 		return MEM_HEAP_INVALID_HANDLE;
 
-	MEMHeapHandle result = _MEMExpHeap_InitHeap((void*)alignedStart, (void*)alignedEnd, createFlags);
+	MEMHeapHandle result =
+		_MEMExpHeap_InitHeap((void*)alignedStart, (void*)alignedEnd, createFlags);
 	if (result)
 		MEMHeapTable_Add(result);
 
@@ -488,7 +511,8 @@ void MEMFreeToExpHeap(MEMHeapHandle heap, void* mem)
 		heap->AcquireLock();
 
 		cemu_assert_debug(_MEMExpHeap_IsValidUsedMBlock(mem, heap) == true);
-		cemu_assert_debug((uintptr_t)heap->heapStart.GetPtr() <= (uintptr_t)mem && (uintptr_t)mem < (uintptr_t)heap->heapEnd.GetPtr());
+		cemu_assert_debug((uintptr_t)heap->heapStart.GetPtr() <= (uintptr_t)mem &&
+						  (uintptr_t)mem < (uintptr_t)heap->heapEnd.GetPtr());
 
 		MEMExpHeapHead2* expHeap = (MEMExpHeapHead2*)heap;
 
@@ -610,7 +634,8 @@ uint32 MEMResizeForMBlockExpHeap(MEMHeapHandle heap, void* memBlock, uint32 size
 
 					ExpMemBlockRegion region;
 					_MEMExpHeap_GetRegionOfMBlock(&region, freeBlock);
-					MBlock2_t* prevBlock = (MBlock2_t*)_MEMExpHeap_RemoveMBlock(&expHeap->expHeapHead.chainFreeBlocks, freeBlock);
+					MBlock2_t* prevBlock = (MBlock2_t*)_MEMExpHeap_RemoveMBlock(
+						&expHeap->expHeapHead.chainFreeBlocks, freeBlock);
 
 					uintptr_t oldStart = region.start;
 					region.start = (uintptr_t)memBlock + size;
@@ -622,7 +647,8 @@ uint32 MEMResizeForMBlockExpHeap(MEMHeapHandle heap, void* memBlock, uint32 size
 					if (region.end - region.start >= sizeof(MBlock2_t))
 					{
 						MBlock2_t* newBlock = _MEMExpHeap_InitMBlock(&region, MBLOCK_TYPE_FREE);
-						_MEMExpHeap_InsertMBlock(&expHeap->expHeapHead.chainFreeBlocks, newBlock, prevBlock);
+						_MEMExpHeap_InsertMBlock(&expHeap->expHeapHead.chainFreeBlocks, newBlock,
+												 prevBlock);
 					}
 
 					if (HAS_FLAG(heap->flags, MEM_HEAP_OPTION_CLEAR))
@@ -686,13 +712,15 @@ uint32 MEMGetAllocatableSizeForExpHeapEx(MEMHeapHandle heap, sint32 alignment)
 	const sint32 alignment_minus_one = alignment - 1;
 
 	uint32 smallest_alignment_space = -1;
-	for(auto free_block = exp_heap->expHeapHead.chainFreeBlocks.headMBlock; free_block; free_block = free_block->nextBlock)
+	for (auto free_block = exp_heap->expHeapHead.chainFreeBlocks.headMBlock; free_block;
+		 free_block = free_block->nextBlock)
 	{
 		MBlock2_t* block = free_block.GetPtr();
 		const uintptr_t block_memory = MBLOCK_GET_MEMORY(block);
 		const uintptr_t block_end = MBLOCK_GET_END(block);
 
-		const uintptr_t aligned_memory = (block_memory + alignment_minus_one) & ~alignment_minus_one;
+		const uintptr_t aligned_memory =
+			(block_memory + alignment_minus_one) & ~alignment_minus_one;
 		if (aligned_memory >= block_end)
 			continue;
 
@@ -814,7 +842,8 @@ void _DefaultAllocatorForExpHeap_Alloc(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(allocator, MEMAllocator, 0);
 	ppcDefineParamU32(size, 1);
-	MEMPTR<void> result = MEMAllocFromExpHeapEx((MEMHeapHandle)allocator->heap.GetPtr(), size, (uint32)allocator->param1);
+	MEMPTR<void> result = MEMAllocFromExpHeapEx((MEMHeapHandle)allocator->heap.GetPtr(), size,
+												(uint32)allocator->param1);
 	osLib_returnFromFunction(hCPU, result.GetMPTR());
 }
 
@@ -831,8 +860,10 @@ SysAllocator<MEMAllocatorFunc> gExpHeapDefaultAllocator;
 void MEMInitAllocatorForExpHeap(MEMAllocator* allocator, MEMHeapHandle heap, sint32 alignment)
 {
 	allocator->func = gExpHeapDefaultAllocator.GetPtr();
-	gExpHeapDefaultAllocator->funcAlloc = PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Alloc);
-	gExpHeapDefaultAllocator->funcFree = PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Free);
+	gExpHeapDefaultAllocator->funcAlloc =
+		PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Alloc);
+	gExpHeapDefaultAllocator->funcFree =
+		PPCInterpreter_makeCallableExportDepr(_DefaultAllocatorForExpHeap_Free);
 
 	allocator->heap = heap;
 	allocator->param1 = alignment;
@@ -850,7 +881,8 @@ void export_MEMCreateExpHeapEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(size, 1);
 	ppcDefineParamU16(options, 2);
 	MEMPTR<MEMHeapBase> heap = MEMCreateExpHeapEx(startAddress.GetPtr(), size, options);
-	coreinitMemLog_printf("MEMCreateExpHeapEx(0x%08x, 0x%x, 0x%x) Result: 0x%08x", startAddress.GetMPTR(), size, options, heap.GetMPTR());
+	coreinitMemLog_printf("MEMCreateExpHeapEx(0x%08x, 0x%x, 0x%x) Result: 0x%08x",
+						  startAddress.GetMPTR(), size, options, heap.GetMPTR());
 	osLib_returnFromFunction(hCPU, heap.GetMPTR());
 }
 
@@ -868,7 +900,8 @@ void export_MEMAllocFromExpHeapEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(size, 1);
 	ppcDefineParamS32(alignment, 2);
 	MEMPTR<void> mem = MEMAllocFromExpHeapEx(heap.GetPtr(), size, alignment);
-	coreinitMemLog_printf("MEMAllocFromExpHeapEx(0x%08x, 0x%x, %d) Result: 0x%08x", heap.GetMPTR(), size, alignment, mem.GetMPTR());
+	coreinitMemLog_printf("MEMAllocFromExpHeapEx(0x%08x, 0x%x, %d) Result: 0x%08x", heap.GetMPTR(),
+						  size, alignment, mem.GetMPTR());
 	osLib_returnFromFunction(hCPU, mem.GetMPTR());
 }
 
@@ -912,7 +945,8 @@ void export_MEMResizeForMBlockExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(mem, void, 1);
 	ppcDefineParamU32(size, 2);
 	uint32 newSize = MEMResizeForMBlockExpHeap(heap.GetPtr(), mem.GetPtr(), size);
-	coreinitMemLog_printf("MEMResizeForMBlockExpHeap(0x%08x, 0x%08x, 0x%x) Result: 0x%x", heap.GetMPTR(), mem.GetMPTR(), size, newSize);
+	coreinitMemLog_printf("MEMResizeForMBlockExpHeap(0x%08x, 0x%08x, 0x%x) Result: 0x%x",
+						  heap.GetMPTR(), mem.GetMPTR(), size, newSize);
 	osLib_returnFromFunction(hCPU, newSize);
 }
 
@@ -920,7 +954,8 @@ void export_MEMGetTotalFreeSizeForExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	uint32 size = MEMGetTotalFreeSizeForExpHeap(heap.GetPtr());
-	coreinitMemLog_printf("MEMGetTotalFreeSizeForExpHeap(0x%08x) Result: 0x%x", heap.GetMPTR(), size);
+	coreinitMemLog_printf("MEMGetTotalFreeSizeForExpHeap(0x%08x) Result: 0x%x", heap.GetMPTR(),
+						  size);
 	osLib_returnFromFunction(hCPU, size);
 }
 
@@ -929,7 +964,8 @@ void export_MEMGetAllocatableSizeForExpHeapEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamS32(alignment, 1);
 	uint32 size = MEMGetAllocatableSizeForExpHeapEx(heap.GetPtr(), alignment);
-	coreinitMemLog_printf("MEMGetAllocatableSizeForExpHeapEx(0x%08x, 0x%x) Result: 0x%x", heap.GetMPTR(), alignment, size);
+	coreinitMemLog_printf("MEMGetAllocatableSizeForExpHeapEx(0x%08x, 0x%x) Result: 0x%x",
+						  heap.GetMPTR(), alignment, size);
 	osLib_returnFromFunction(hCPU, size);
 }
 
@@ -958,7 +994,8 @@ void export_MEMVisitAllocatedForExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamMEMPTR(visitor, void, 1);
 	ppcDefineParamU32(userParam, 2);
-	coreinitMemLog_printf("MEMVisitAllocatedForExpHeap(0x%08x, 0x%08x, 0x%x)", heap.GetMPTR(), visitor.GetMPTR(), userParam);
+	coreinitMemLog_printf("MEMVisitAllocatedForExpHeap(0x%08x, 0x%08x, 0x%x)", heap.GetMPTR(),
+						  visitor.GetMPTR(), userParam);
 	MEMVisitAllocatedForExpHeap(heap.GetPtr(), visitor, userParam);
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -967,7 +1004,8 @@ void export_MEMGetSizeForMBlockExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(memBlock, void, 0);
 	uint32 size = MEMGetSizeForMBlockExpHeap(memBlock.GetPtr());
-	coreinitMemLog_printf("MEMGetSizeForMBlockExpHeap(0x%08x) Result: 0x%x", memBlock.GetMPTR(), size);
+	coreinitMemLog_printf("MEMGetSizeForMBlockExpHeap(0x%08x) Result: 0x%x", memBlock.GetMPTR(),
+						  size);
 	osLib_returnFromFunction(hCPU, size);
 }
 
@@ -1002,7 +1040,8 @@ void export_MEMCheckForMBlockExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 1);
 	ppcDefineParamU32(options, 2);
 	bool result = MEMCheckForMBlockExpHeap(memBlock.GetPtr(), heap.GetPtr(), options);
-	coreinitMemLog_printf("MEMCheckForMBlockExpHeap(0x%08x, 0x%08x, 0x%x) Result: %d", memBlock.GetMPTR(), heap.GetMPTR(), options, result);
+	coreinitMemLog_printf("MEMCheckForMBlockExpHeap(0x%08x, 0x%08x, 0x%x) Result: %d",
+						  memBlock.GetMPTR(), heap.GetMPTR(), options, result);
 	osLib_returnFromFunction(hCPU, result ? 1 : 0);
 }
 
@@ -1011,7 +1050,8 @@ void export_MEMInitAllocatorForExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(allocator, MEMAllocator, 0);
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 1);
 	ppcDefineParamS32(alignment, 2);
-	coreinitMemLog_printf("MEMInitAllocatorForExpHeap(0x%08x, 0x%08x, %d)", allocator.GetMPTR(), heap.GetMPTR(), alignment);
+	coreinitMemLog_printf("MEMInitAllocatorForExpHeap(0x%08x, 0x%08x, %d)", allocator.GetMPTR(),
+						  heap.GetMPTR(), alignment);
 	MEMInitAllocatorForExpHeap(allocator.GetPtr(), heap.GetPtr(), alignment);
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -1020,16 +1060,20 @@ void expheap_test()
 {
 	srand(1000);
 
-	MEMHeapHandle heapHandle = MEMCreateExpHeapEx(memory_getPointerFromVirtualOffset(0x11000000), 0x10000000, 0);
+	MEMHeapHandle heapHandle =
+		MEMCreateExpHeapEx(memory_getPointerFromVirtualOffset(0x11000000), 0x10000000, 0);
 	MEMExpHeapHead2* expHeap = (MEMExpHeapHead2*)heapHandle;
 	sint32 idx = 0;
 
-	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.headMBlock.GetPtr(); findBlock != nullptr; findBlock = findBlock->nextBlock.GetPtr())
+	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.headMBlock.GetPtr();
+		 findBlock != nullptr; findBlock = findBlock->nextBlock.GetPtr())
 	{
 		const uintptr_t blockMemory = MBLOCK_GET_MEMORY(findBlock);
 		const uint32 dataSize = (uint32)findBlock->dataSize;
 
-		debug_printf(">> freeBlock %04d addr %08x - %08x\n", idx, memory_getVirtualOffsetFromPointer((void*)blockMemory), memory_getVirtualOffsetFromPointer((void*)blockMemory) + dataSize);
+		debug_printf(">> freeBlock %04d addr %08x - %08x\n", idx,
+					 memory_getVirtualOffsetFromPointer((void*)blockMemory),
+					 memory_getVirtualOffsetFromPointer((void*)blockMemory) + dataSize);
 		idx++;
 	}
 
@@ -1041,9 +1085,9 @@ void expheap_test()
 	{
 		// allocate a bunch of entries
 		sint32 r = rand() % 100;
-		//for (sint32 i = 0; i < r; i++)
+		// for (sint32 i = 0; i < r; i++)
 		{
-			if( allocCount >= 1024 )
+			if (allocCount >= 1024)
 				continue;
 
 			uint32 size = (rand() % 1000) * 12;
@@ -1052,7 +1096,6 @@ void expheap_test()
 			{
 				allocTable[allocCount] = mem;
 				allocCount++;
-				
 			}
 		}
 	}
@@ -1065,12 +1108,15 @@ void expheap_test()
 	// debug print free blocks (only one should remain)
 	expHeap = (MEMExpHeapHead2*)heapHandle;
 	idx = 0;
-	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.headMBlock.GetPtr(); findBlock != nullptr; findBlock = findBlock->nextBlock.GetPtr())
+	for (MBlock2_t* findBlock = expHeap->expHeapHead.chainFreeBlocks.headMBlock.GetPtr();
+		 findBlock != nullptr; findBlock = findBlock->nextBlock.GetPtr())
 	{
 		const uintptr_t blockMemory = MBLOCK_GET_MEMORY(findBlock);
 		const uint32 dataSize = (uint32)findBlock->dataSize;
 
-		debug_printf("freeBlock %04d addr %08x - %08x\n", idx, memory_getVirtualOffsetFromPointer((void*)blockMemory), memory_getVirtualOffsetFromPointer((void*)blockMemory) + dataSize);
+		debug_printf("freeBlock %04d addr %08x - %08x\n", idx,
+					 memory_getVirtualOffsetFromPointer((void*)blockMemory),
+					 memory_getVirtualOffsetFromPointer((void*)blockMemory) + dataSize);
 		idx++;
 	}
 
@@ -1087,19 +1133,23 @@ void expheap_load()
 	osLib_addFunction("coreinit", "MEMGetAllocModeForExpHeap", export_MEMGetAllocModeForExpHeap);
 	osLib_addFunction("coreinit", "MEMAdjustExpHeap", export_MEMAdjustExpHeap);
 	osLib_addFunction("coreinit", "MEMResizeForMBlockExpHeap", export_MEMResizeForMBlockExpHeap);
-	osLib_addFunction("coreinit", "MEMGetTotalFreeSizeForExpHeap", export_MEMGetTotalFreeSizeForExpHeap);
-	osLib_addFunction("coreinit", "MEMGetAllocatableSizeForExpHeapEx", export_MEMGetAllocatableSizeForExpHeapEx);
+	osLib_addFunction("coreinit", "MEMGetTotalFreeSizeForExpHeap",
+					  export_MEMGetTotalFreeSizeForExpHeap);
+	osLib_addFunction("coreinit", "MEMGetAllocatableSizeForExpHeapEx",
+					  export_MEMGetAllocatableSizeForExpHeapEx);
 	osLib_addFunction("coreinit", "MEMSetGroupIDForExpHeap", export_MEMSetGroupIDForExpHeap);
 	osLib_addFunction("coreinit", "MEMGetGroupIDForExpHeap", export_MEMGetGroupIDForExpHeap);
-	osLib_addFunction("coreinit", "MEMVisitAllocatedForExpHeap", export_MEMVisitAllocatedForExpHeap);
+	osLib_addFunction("coreinit", "MEMVisitAllocatedForExpHeap",
+					  export_MEMVisitAllocatedForExpHeap);
 	osLib_addFunction("coreinit", "MEMGetSizeForMBlockExpHeap", export_MEMGetSizeForMBlockExpHeap);
-	osLib_addFunction("coreinit", "MEMGetGroupIDForMBlockExpHeap", export_MEMGetGroupIDForMBlockExpHeap);
-	osLib_addFunction("coreinit", "MEMGetAllocDirForMBlockExpHeap", export_MEMGetAllocDirForMBlockExpHeap);
+	osLib_addFunction("coreinit", "MEMGetGroupIDForMBlockExpHeap",
+					  export_MEMGetGroupIDForMBlockExpHeap);
+	osLib_addFunction("coreinit", "MEMGetAllocDirForMBlockExpHeap",
+					  export_MEMGetAllocDirForMBlockExpHeap);
 	osLib_addFunction("coreinit", "MEMCheckExpHeap", export_MEMCheckExpHeap);
 	osLib_addFunction("coreinit", "MEMCheckForMBlockExpHeap", export_MEMCheckForMBlockExpHeap);
 
 	osLib_addFunction("coreinit", "MEMInitAllocatorForExpHeap", export_MEMInitAllocatorForExpHeap);
 }
 #pragma endregion
-}
-
+} // namespace coreinit

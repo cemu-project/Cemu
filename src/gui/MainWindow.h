@@ -1,12 +1,12 @@
 #pragma once
 
-#include <wx/wx.h>
+#include "wxcomponents/checkedlistctrl.h"
 #include <wx/dataview.h>
 #include <wx/infobar.h>
-#include "wxcomponents/checkedlistctrl.h"
+#include <wx/wx.h>
 
-#include "gui/PadViewFrame.h"
 #include "gui/MemorySearcherTool.h"
+#include "gui/PadViewFrame.h"
 
 #include "config/XMLConfig.h"
 
@@ -26,7 +26,7 @@ wxDECLARE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 
 class wxLaunchGameEvent : public wxCommandEvent
 {
-public:
+  public:
 	enum class INITIATED_BY
 	{
 		MENU, // via file menu
@@ -37,14 +37,25 @@ public:
 	};
 
 	wxLaunchGameEvent(fs::path path, INITIATED_BY initiatedBy)
-		: wxCommandEvent(wxEVT_LAUNCH_GAME), m_launchPath(path), m_initiatedBy(initiatedBy) {}
+		: wxCommandEvent(wxEVT_LAUNCH_GAME), m_launchPath(path), m_initiatedBy(initiatedBy)
+	{
+	}
 
-	[[nodiscard]] fs::path GetPath() const { return m_launchPath; }
-	[[nodiscard]] INITIATED_BY GetInitiatedBy() const { return m_initiatedBy; }
+	[[nodiscard]] fs::path GetPath() const
+	{
+		return m_launchPath;
+	}
+	[[nodiscard]] INITIATED_BY GetInitiatedBy() const
+	{
+		return m_initiatedBy;
+	}
 
-	wxEvent* Clone() const { return new wxLaunchGameEvent(*this); }
+	wxEvent* Clone() const
+	{
+		return new wxLaunchGameEvent(*this);
+	}
 
-private:
+  private:
 	fs::path m_launchPath;
 	INITIATED_BY m_initiatedBy;
 };
@@ -53,16 +64,19 @@ class MainWindow : public wxFrame
 {
 	friend class CemuApp;
 
-public:
+  public:
 	MainWindow();
 	~MainWindow();
-	
+
 	void UpdateSettingsAfterGameLaunch();
 	void RestoreSettingsAfterGameExited();
 
 	bool FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY initiatedBy);
 
-	[[nodiscard]] bool IsGameLaunched() const { return m_game_launched; }
+	[[nodiscard]] bool IsGameLaunched() const
+	{
+		return m_game_launched;
+	}
 
 	void SetFullScreen(bool state);
 	void SetMenuVisible(bool state);
@@ -75,7 +89,10 @@ public:
 #endif
 	void OpenSettings();
 
-	PadViewFrame* GetPadView() const { return m_padView; }
+	PadViewFrame* GetPadView() const
+	{
+		return m_padView;
+	}
 
 	void OnSizeEvent(wxSizeEvent& event);
 	void OnMove(wxMoveEvent& event);
@@ -138,7 +155,7 @@ public:
 	static void RequestGameListRefresh();
 	static void RequestLaunchGame(fs::path filePath, wxLaunchGameEvent::INITIATED_BY initiatedBy);
 
-private:
+  private:
 	void RecreateMenu();
 	static wxString GetInitialWindowTitle();
 	void ShowGettingStartedDialog();
@@ -164,9 +181,9 @@ private:
 	bool m_menu_visible = false;
 	bool m_game_launched = false;
 
-	#ifdef ENABLE_DISCORD_RPC
+#ifdef ENABLE_DISCORD_RPC
 	std::unique_ptr<DiscordPresence> m_discord;
-	#endif
+#endif
 
 	std::string m_launched_game_name;
 
@@ -185,7 +202,7 @@ private:
 	void OnGraphicWindowOpen(wxTitleIdEvent& event);
 
 	// panels
-	wxPanel* m_main_panel{}, * m_game_panel{};
+	wxPanel *m_main_panel{}, *m_game_panel{};
 
 	// rendering
 	wxWindow* m_render_canvas{};
@@ -206,7 +223,7 @@ private:
 	wxMenuItem* m_exitMenuItem;
 
 	// options
-	//wxMenu* m_gpuBufferCacheAccuracySubmenu;
+	// wxMenu* m_gpuBufferCacheAccuracySubmenu;
 	wxMenu* m_optionsAccountMenu;
 
 	wxMenuItem* m_fullscreenMenuItem;
@@ -216,7 +233,7 @@ private:
 	wxMenuItem* m_memorySearcherMenuItem;
 
 	// cpu
-	//wxMenu* m_cpuModeSubmenu;
+	// wxMenu* m_cpuModeSubmenu;
 	wxMenu* m_cpuTimerSubmenu;
 
 	// nfc
@@ -228,7 +245,7 @@ private:
 	wxMenu* m_loggingSubmenu;
 	wxMenuItem* m_asyncCompile;
 
-wxDECLARE_EVENT_TABLE();
+	wxDECLARE_EVENT_TABLE();
 };
 
 extern MainWindow* g_mainFrame;

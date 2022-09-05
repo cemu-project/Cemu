@@ -1,46 +1,40 @@
-#include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "Cafe/HW/Espresso/PPCCallback.h"
 #include "GX2.h"
-#include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/HW/Espresso/PPCCallback.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/ISA/RegDefines.h"
+#include "Cafe/OS/common/OSCommon.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 
-#include "GX2_Command.h"
-#include "GX2_State.h"
-#include "GX2_Memory.h"
-#include "GX2_Event.h"
-#include "GX2_Shader.h"
 #include "GX2_Blit.h"
+#include "GX2_Command.h"
 #include "GX2_Draw.h"
-#include "GX2_Query.h"
+#include "GX2_Event.h"
+#include "GX2_Memory.h"
 #include "GX2_Misc.h"
+#include "GX2_Query.h"
+#include "GX2_Shader.h"
+#include "GX2_State.h"
 #include "GX2_Surface.h"
 #include "GX2_Surface_Copy.h"
 #include "GX2_Texture.h"
 
-#define GX2_TV_RENDER_NONE			0
-#define GX2_TV_RENDER_480			1
-#define GX2_TV_RENDER_480_WIDE		2
-#define GX2_TV_RENDER_720			3
-#define GX2_TV_RENDER_720I			4
-#define GX2_TV_RENDER_1080			5
-#define GX2_TV_RENDER_COUNT			6
+#define GX2_TV_RENDER_NONE 0
+#define GX2_TV_RENDER_480 1
+#define GX2_TV_RENDER_480_WIDE 2
+#define GX2_TV_RENDER_720 3
+#define GX2_TV_RENDER_720I 4
+#define GX2_TV_RENDER_1080 5
+#define GX2_TV_RENDER_COUNT 6
 
 struct
 {
 	sint32 width;
 	sint32 height;
-}tvScanBufferResolutions[GX2_TV_RENDER_COUNT] = {
-0,0,
-640,480,
-854,480,
-1280,720,
-1280,720,
-1920,1080
-};
+} tvScanBufferResolutions[GX2_TV_RENDER_COUNT] = {0,	0,	 640,  480, 854,  480,
+												  1280, 720, 1280, 720, 1920, 1080};
 
 uint64 lastSwapTime = 0;
 
@@ -51,24 +45,28 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 	bool isPokken = false;
 
 	uint64 titleId = CafeSystem::GetForegroundTitleId();
-	if (titleId == 0x00050000101DF500ull || titleId == 0x00050000101C5800ull || titleId == 0x00050000101DF400ull)
+	if (titleId == 0x00050000101DF500ull || titleId == 0x00050000101C5800ull ||
+		titleId == 0x00050000101DF400ull)
 		isPokken = true;
 
 	if (isPokken)
 		GX2::GX2DrawDone();
 
-	GX2ReserveCmdSpace(5+2);
+	GX2ReserveCmdSpace(5 + 2);
 
 	uint64 tick64 = PPCInterpreter_getMainCoreCycleCounter() / 20ULL;
 	lastSwapTime = tick64;
 	// count flip request
 	// is this updated via a PM4 MEM_WRITE operation?
 
-	// Orochi Warriors seems to call GX2SwapScanBuffers on arbitrary threads/cores. The PM4 commands should go through to the GPU as long as there is no active display list and no other core is submitting commands simultaneously
-	// right now, we work around this by avoiding the infinite loop below (request counter incremented, but PM4 not sent)
+	// Orochi Warriors seems to call GX2SwapScanBuffers on arbitrary threads/cores. The PM4 commands
+	// should go through to the GPU as long as there is no active display list and no other core is
+	// submitting commands simultaneously right now, we work around this by avoiding the infinite
+	// loop below (request counter incremented, but PM4 not sent)
 	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
 	if (GX2::sGX2MainCoreIndex == coreIndex)
-		LatteGPUState.sharedArea->flipRequestCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE) + 1);
+		LatteGPUState.sharedArea->flipRequestCountBE =
+			_swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE) + 1);
 
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_REQUEST_SWAP_BUFFERS, 1));
 	gx2WriteGather_submitU32AsBE(0); // reserved
@@ -78,8 +76,10 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 	gx2WriteGather_submitU32AsBE(0); // reserved
 
 	// wait for flip if the CPU is too far ahead
-	// doing it after swap request is how the actual console does it, but that still causes issues in Pokken
-	while ((sint32)(_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE) - _swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE)) > 5)
+	// doing it after swap request is how the actual console does it, but that still causes issues
+	// in Pokken
+	while ((sint32)(_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE) -
+					_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE)) > 5)
 	{
 		GX2::GX2WaitForFlip();
 	}
@@ -95,8 +95,9 @@ void gx2Export_GX2CopyColorBufferToScanBuffer(PPCInterpreter_t* hCPU)
 
 	// todo: proper implementation
 
-	// hack: Avoid running to far ahead of GPU. Normally this would be guaranteed by the circular buffer model, which we currently dont fully emulate
-	if(GX2::GX2WriteGather_getReadWriteDistance() > 32*1024*1024 )
+	// hack: Avoid running to far ahead of GPU. Normally this would be guaranteed by the circular
+	// buffer model, which we currently dont fully emulate
+	if (GX2::GX2WriteGather_getReadWriteDistance() > 32 * 1024 * 1024)
 	{
 		debug_printf("Waiting for GPU to catch up...\n");
 		PPCInterpreter_relinquishTimeslice(); // release current thread
@@ -130,18 +131,19 @@ void gx2Export_GX2GetCurrentScanBuffer(PPCInterpreter_t* hCPU)
 {
 	// todo: proper implementation
 	uint32 scanTarget = hCPU->gpr[3];
-	GX2ColorBuffer* colorBufferBE = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
+	GX2ColorBuffer* colorBufferBE =
+		(GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
 	memset(colorBufferBE, 0x00, sizeof(GX2ColorBuffer));
 	colorBufferBE->surface.width = 100;
 	colorBufferBE->surface.height = 100;
 	// note: For now we abuse the tiling aperture memory area as framebuffer pointers
-	if( scanTarget == GX2_SCAN_TARGET_TV )
+	if (scanTarget == GX2_SCAN_TARGET_TV)
 	{
-		colorBufferBE->surface.imagePtr = MEMORY_TILINGAPERTURE_AREA_ADDR+0x200000;
+		colorBufferBE->surface.imagePtr = MEMORY_TILINGAPERTURE_AREA_ADDR + 0x200000;
 	}
-	else if( scanTarget == GX2_SCAN_TARGET_DRC_FIRST )
+	else if (scanTarget == GX2_SCAN_TARGET_DRC_FIRST)
 	{
-		colorBufferBE->surface.imagePtr = MEMORY_TILINGAPERTURE_AREA_ADDR+0x40000;
+		colorBufferBE->surface.imagePtr = MEMORY_TILINGAPERTURE_AREA_ADDR + 0x40000;
 	}
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -162,7 +164,8 @@ void gx2Export_GX2TempGetGPUVersion(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 2);
 }
 
-void _GX2InitScanBuffer(GX2ColorBuffer* colorBuffer, sint32 width, sint32 height, Latte::E_GX2SURFFMT format)
+void _GX2InitScanBuffer(GX2ColorBuffer* colorBuffer, sint32 width, sint32 height,
+						Latte::E_GX2SURFFMT format)
 {
 	colorBuffer->surface.resFlag = GX2_RESFLAG_USAGE_TEXTURE | GX2_RESFLAG_USAGE_COLOR_BUFFER;
 	colorBuffer->surface.width = width;
@@ -179,7 +182,8 @@ void _GX2InitScanBuffer(GX2ColorBuffer* colorBuffer, sint32 width, sint32 height
 	colorBuffer->surface.mipPtr = MPTR_NULL;
 	colorBuffer->surface.aa = 0;
 	GX2::GX2CalcSurfaceSizeAndAlignment(&colorBuffer->surface);
-	colorBuffer->surface.resFlag = GX2_RESFLAG_USAGE_TEXTURE | GX2_RESFLAG_USAGE_COLOR_BUFFER | GX2_RESFLAG_USAGE_SCAN_BUFFER;
+	colorBuffer->surface.resFlag =
+		GX2_RESFLAG_USAGE_TEXTURE | GX2_RESFLAG_USAGE_COLOR_BUFFER | GX2_RESFLAG_USAGE_SCAN_BUFFER;
 }
 
 void gx2Export_GX2CalcTVSize(PPCInterpreter_t* hCPU)
@@ -194,7 +198,7 @@ void gx2Export_GX2CalcTVSize(PPCInterpreter_t* hCPU)
 
 	uint32 width = tvScanBufferResolutions[tvRenderMode].width;
 	uint32 height = tvScanBufferResolutions[tvRenderMode].height;
-	
+
 	GX2ColorBuffer colorBuffer;
 	memset(&colorBuffer, 0, sizeof(GX2ColorBuffer));
 	_GX2InitScanBuffer(&colorBuffer, width, height, format);
@@ -202,7 +206,7 @@ void gx2Export_GX2CalcTVSize(PPCInterpreter_t* hCPU)
 	uint32 imageSize = colorBuffer.surface.imageSize;
 	uint32 alignment = colorBuffer.surface.alignment;
 
-	uint32 alignmentPaddingSize = (alignment - (imageSize%alignment)) % alignment;
+	uint32 alignmentPaddingSize = (alignment - (imageSize % alignment)) % alignment;
 
 	uint32 uknMult = 1; // probably for interlaced?
 	if (tvRenderMode == GX2_TV_RENDER_720I)
@@ -214,7 +218,7 @@ void gx2Export_GX2CalcTVSize(PPCInterpreter_t* hCPU)
 
 	uint32 bufferedImageSize = (imageSize + alignmentPaddingSize) * adjustedBufferingMode;
 	bufferedImageSize = bufferedImageSize * uknMult - alignmentPaddingSize;
-	
+
 	memory_writeU32(outputSizeMPTR, bufferedImageSize);
 	memory_writeU32(outputScaleNeededMPTR, 0); // todo
 	osLib_returnFromFunction(hCPU, 0);
@@ -222,7 +226,6 @@ void gx2Export_GX2CalcTVSize(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2CalcDRCSize(PPCInterpreter_t* hCPU)
 {
-
 	ppcDefineParamS32(drcMode, 0);
 	ppcDefineParamU32(format, 1);
 	ppcDefineParamU32(bufferingMode, 2);
@@ -244,8 +247,7 @@ void gx2Export_GX2CalcDRCSize(PPCInterpreter_t* hCPU)
 	uint32 imageSize = colorBuffer.surface.imageSize;
 	uint32 alignment = colorBuffer.surface.alignment;
 
-	uint32 alignmentPaddingSize = (alignment - (imageSize%alignment)) % alignment;
-
+	uint32 alignmentPaddingSize = (alignment - (imageSize % alignment)) % alignment;
 
 	uint32 adjustedBufferingMode = bufferingMode;
 
@@ -269,7 +271,7 @@ void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 	ppcDefineParamS32(channel, 0);
 	ppcDefineParamMEMPTR(callback, void, 1);
 	gx2Log_printf("GX2SetDRCConnectCallback(%d, 0x%08x)", channel, callback.GetMPTR());
-	if(callback.GetPtr())
+	if (callback.GetPtr())
 		PPCCoreCallback(callback, channel, TRUE);
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -301,7 +303,8 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 	uint32 semaphoreControl = (SEM_SEL << 29);
 	semaphoreControl |= 0x1000; // WAIT_ON_SIGNAL
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_MEM_SEMAPHORE, 2));
-	gx2WriteGather_submitU32AsBE(memory_virtualToPhysical(semaphoreMPTR)); // semaphore physical address
+	gx2WriteGather_submitU32AsBE(
+		memory_virtualToPhysical(semaphoreMPTR));	// semaphore physical address
 	gx2WriteGather_submitU32AsBE(semaphoreControl); // control
 
 	osLib_returnFromFunction(hCPU, 0);
@@ -337,7 +340,7 @@ void _GX2SubmitToTCL()
 		forceLogDebug_printf("_GX2SubmitToTCL() called on non-main GX2 core");
 		return;
 	}
-	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
+	if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
 		return; // quit if in display list
 	_GX2LastFlushPtr[coreIndex] = (gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex]);
 	// update last submitted CB timestamp
@@ -346,8 +349,8 @@ void _GX2SubmitToTCL()
 	gx2Log_printf("Submitting GX2 command buffer with timestamp %016I64x", commandBufferTimestamp);
 	// submit HLE packet to write retirement timestamp
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SET_CB_RETIREMENT_TIMESTAMP, 2));
-	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp>>32ULL));
-	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp&0xFFFFFFFFULL));
+	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp >> 32ULL));
+	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp & 0xFFFFFFFFULL));
 }
 
 uint32 _GX2GetUnflushedBytes(uint32 coreIndex)
@@ -356,27 +359,34 @@ uint32 _GX2GetUnflushedBytes(uint32 coreIndex)
 	if (_GX2LastFlushPtr[coreIndex] != NULL)
 	{
 		if (_GX2LastFlushPtr[coreIndex] > gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex])
-			unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - gx2WriteGatherPipe.gxRingBuffer + 4); // this isn't 100% correct since we ignore the bytes between the last flush address and the start of the wrap around
+			unflushedBytes =
+				(uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] -
+						 gx2WriteGatherPipe.gxRingBuffer +
+						 4); // this isn't 100% correct since we ignore the bytes between the last
+							 // flush address and the start of the wrap around
 		else
-			unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - _GX2LastFlushPtr[coreIndex]);
+			unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] -
+									  _GX2LastFlushPtr[coreIndex]);
 	}
 	else
-		unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - gx2WriteGatherPipe.gxRingBuffer);
+		unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] -
+								  gx2WriteGatherPipe.gxRingBuffer);
 	return unflushedBytes;
 }
 
 /*
  * Guarantees that the requested amount of space is available on the current command buffer
- * If the space is not available, the current command buffer is pushed to the GPU and a new one is allocated
+ * If the space is not available, the current command buffer is pushed to the GPU and a new one is
+ * allocated
  */
 void GX2ReserveCmdSpace(uint32 reservedFreeSpaceInU32)
 {
 	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
 	// if we are in a display list then do nothing
-	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
+	if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
 		return;
 	uint32 unflushedBytes = _GX2GetUnflushedBytes(coreIndex);
-	if( unflushedBytes >= 0x1000 )
+	if (unflushedBytes >= 0x1000)
 	{
 		_GX2SubmitToTCL();
 	}
@@ -384,20 +394,24 @@ void GX2ReserveCmdSpace(uint32 reservedFreeSpaceInU32)
 
 void gx2_load()
 {
-	osLib_addFunction("gx2", "GX2GetContextStateDisplayList", gx2Export_GX2GetContextStateDisplayList);
+	osLib_addFunction("gx2", "GX2GetContextStateDisplayList",
+					  gx2Export_GX2GetContextStateDisplayList);
 
 	// swap, vsync & timing
 	osLib_addFunction("gx2", "GX2SwapScanBuffers", gx2Export_GX2SwapScanBuffers);
 	osLib_addFunction("gx2", "GX2GetSwapStatus", gx2Export_GX2GetSwapStatus);
-	osLib_addFunction("gx2", "GX2CopyColorBufferToScanBuffer", gx2Export_GX2CopyColorBufferToScanBuffer);
+	osLib_addFunction("gx2", "GX2CopyColorBufferToScanBuffer",
+					  gx2Export_GX2CopyColorBufferToScanBuffer);
 	osLib_addFunction("gx2", "GX2WaitForFreeScanBuffer", gx2Export_GX2WaitForFreeScanBuffer);
 	osLib_addFunction("gx2", "GX2GetCurrentScanBuffer", gx2Export_GX2GetCurrentScanBuffer);
 
 	// shader stuff
 	osLib_addFunction("gx2", "GX2GetVertexShaderGPRs", gx2Export_GX2GetVertexShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetVertexShaderStackEntries", gx2Export_GX2GetVertexShaderStackEntries);
+	osLib_addFunction("gx2", "GX2GetVertexShaderStackEntries",
+					  gx2Export_GX2GetVertexShaderStackEntries);
 	osLib_addFunction("gx2", "GX2GetPixelShaderGPRs", gx2Export_GX2GetPixelShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetPixelShaderStackEntries", gx2Export_GX2GetPixelShaderStackEntries);
+	osLib_addFunction("gx2", "GX2GetPixelShaderStackEntries",
+					  gx2Export_GX2GetPixelShaderStackEntries);
 	osLib_addFunction("gx2", "GX2SetFetchShader", gx2Export_GX2SetFetchShader);
 	osLib_addFunction("gx2", "GX2SetVertexShader", gx2Export_GX2SetVertexShader);
 	osLib_addFunction("gx2", "GX2SetPixelShader", gx2Export_GX2SetPixelShader);
@@ -412,8 +426,10 @@ void gx2_load()
 	osLib_addFunction("gx2", "GX2SetGeometryUniformBlock", gx2Export_GX2SetGeometryUniformBlock);
 	osLib_addFunction("gx2", "GX2SetShaderModeEx", gx2Export_GX2SetShaderModeEx);
 
-	osLib_addFunction("gx2", "GX2CalcGeometryShaderInputRingBufferSize", gx2Export_GX2CalcGeometryShaderInputRingBufferSize);
-	osLib_addFunction("gx2", "GX2CalcGeometryShaderOutputRingBufferSize", gx2Export_GX2CalcGeometryShaderOutputRingBufferSize);
+	osLib_addFunction("gx2", "GX2CalcGeometryShaderInputRingBufferSize",
+					  gx2Export_GX2CalcGeometryShaderInputRingBufferSize);
+	osLib_addFunction("gx2", "GX2CalcGeometryShaderOutputRingBufferSize",
+					  gx2Export_GX2CalcGeometryShaderOutputRingBufferSize);
 
 	// color/depth buffers
 	osLib_addFunction("gx2", "GX2InitColorBufferRegs", gx2Export_GX2InitColorBufferRegs);
@@ -433,7 +449,7 @@ void gx2_load()
 
 	osLib_addFunction("gx2", "GX2GetSystemTVScanMode", coreinitExport_GX2GetSystemTVScanMode);
 	osLib_addFunction("gx2", "GX2GetSystemTVAspectRatio", coreinitExport_GX2GetSystemTVAspectRatio);
-	
+
 	osLib_addFunction("gx2", "GX2SetSwapInterval", gx2Export_GX2SetSwapInterval);
 	osLib_addFunction("gx2", "GX2GetSwapInterval", gx2Export_GX2GetSwapInterval);
 	osLib_addFunction("gx2", "GX2GetGPUTimeout", gx2Export_GX2GetGPUTimeout);

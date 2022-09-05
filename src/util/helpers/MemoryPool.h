@@ -3,17 +3,17 @@
 template<typename T>
 class MemoryPool
 {
-	static_assert(sizeof(T) >= sizeof(void*)); // object must be large enough to store a single pointer
+	static_assert(sizeof(T) >=
+				  sizeof(void*)); // object must be large enough to store a single pointer
 
-public:
-	MemoryPool(int allocationGranularity)
-		: m_numObjectsAllocated(0)
+  public:
+	MemoryPool(int allocationGranularity) : m_numObjectsAllocated(0)
 	{
 		m_allocationGranularity = allocationGranularity;
 		m_nextFreeObject = nullptr;
 	}
 
-	template <typename... Ts>
+	template<typename... Ts>
 	T* allocObj(Ts&&... args)
 	{
 		if (m_nextFreeObject)
@@ -37,7 +37,7 @@ public:
 		pushElementOnFreeStack(obj);
 	}
 
-private:
+  private:
 	void pushElementOnFreeStack(T* obj)
 	{
 		*(T**)obj = m_nextFreeObject;
@@ -46,7 +46,8 @@ private:
 
 	void increasePoolSize()
 	{
-		T* newElements = static_cast<T*>(::operator new(m_allocationGranularity * sizeof(T), std::nothrow));
+		T* newElements =
+			static_cast<T*>(::operator new(m_allocationGranularity * sizeof(T), std::nothrow));
 		m_numObjectsAllocated += m_allocationGranularity;
 		for (int i = 0; i < m_allocationGranularity; i++)
 		{
@@ -55,7 +56,7 @@ private:
 		}
 	}
 
-private:
+  private:
 	T* m_nextFreeObject;
 	int m_allocationGranularity;
 	int m_numObjectsAllocated;
@@ -72,15 +73,14 @@ class MemoryPoolPermanentObjects
 		internalObject_t* next;
 	};
 
-public:
-	MemoryPoolPermanentObjects(int allocationGranularity)
-		: m_numObjectsAllocated(0)
+  public:
+	MemoryPoolPermanentObjects(int allocationGranularity) : m_numObjectsAllocated(0)
 	{
 		m_allocationGranularity = allocationGranularity;
 		m_nextFreeObject = nullptr;
 	}
 
-	template <typename... Ts>
+	template<typename... Ts>
 	T* acquireObj(Ts&&... args)
 	{
 		if (m_nextFreeObject)
@@ -98,11 +98,12 @@ public:
 
 	void releaseObj(T* obj)
 	{
-		internalObject_t* internalObj = (internalObject_t*)((uint8*)obj - offsetof(internalObject_t, v));
+		internalObject_t* internalObj =
+			(internalObject_t*)((uint8*)obj - offsetof(internalObject_t, v));
 		pushElementOnFreeStack(internalObj);
 	}
 
-private:
+  private:
 	void pushElementOnFreeStack(internalObject_t* obj)
 	{
 		obj->next = m_nextFreeObject;
@@ -111,7 +112,8 @@ private:
 
 	void increasePoolSize()
 	{
-		internalObject_t* newElements = static_cast<internalObject_t*>(::operator new(m_allocationGranularity * sizeof(internalObject_t), std::nothrow));
+		internalObject_t* newElements = static_cast<internalObject_t*>(
+			::operator new(m_allocationGranularity * sizeof(internalObject_t), std::nothrow));
 		m_numObjectsAllocated += m_allocationGranularity;
 		for (int i = 0; i < m_allocationGranularity; i++)
 		{
@@ -121,7 +123,7 @@ private:
 		}
 	}
 
-private:
+  private:
 	internalObject_t* m_nextFreeObject;
 	int m_allocationGranularity;
 	int m_numObjectsAllocated;

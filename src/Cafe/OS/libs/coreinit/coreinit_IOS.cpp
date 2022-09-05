@@ -36,35 +36,37 @@ sint32 __depr__IOS_Open(char* path, uint32 mode)
 	return iosDevice;
 }
 
-sint32 __depr__IOS_Ioctl(uint32 fd, uint32 request, void* inBuffer, uint32 inSize, void* outBuffer, uint32 outSize)
+sint32 __depr__IOS_Ioctl(uint32 fd, uint32 request, void* inBuffer, uint32 inSize, void* outBuffer,
+						 uint32 outSize)
 {
 	switch (fd)
 	{
-		case IOS_DEVICE_ODM:
+	case IOS_DEVICE_ODM:
+	{
+		// Home Menu uses ioctl cmd 5 on startup and then repeats cmd 4 every frame
+		if (request == 4)
 		{
-			// Home Menu uses ioctl cmd 5 on startup and then repeats cmd 4 every frame
-			if (request == 4)
-			{
-				// check drive state
-				debug_printf("checkDriveState()\n");
-				*(uint32be*)outBuffer = 0xA;
-			}
-			else
-			{
-				debug_printf("odm unsupported ioctl %d\n", request);
-			}
-			break;
+			// check drive state
+			debug_printf("checkDriveState()\n");
+			*(uint32be*)outBuffer = 0xA;
 		}
-		default:
+		else
 		{
-			// todo
-			forceLogDebug_printf("Unsupported Ioctl command");
+			debug_printf("odm unsupported ioctl %d\n", request);
 		}
+		break;
+	}
+	default:
+	{
+		// todo
+		forceLogDebug_printf("Unsupported Ioctl command");
+	}
 	}
 	return 0;
 }
 
-sint32 __depr__IOS_Ioctlv(uint32 fd, uint32 request, uint32 countIn, uint32 countOut, ioBufferVector_t* ioBufferVectors)
+sint32 __depr__IOS_Ioctlv(uint32 fd, uint32 request, uint32 countIn, uint32 countOut,
+						  ioBufferVector_t* ioBufferVectors)
 {
 	StackAllocator<ioQueueEntry_t> _queueEntryBuf;
 	ioQueueEntry_t* queueEntry = _queueEntryBuf.GetPointer();

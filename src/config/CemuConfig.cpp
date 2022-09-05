@@ -1,19 +1,19 @@
 #include "config/CemuConfig.h"
 
-#include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
+#include "util/helpers/helpers.h"
 
 #include <wx/language.h>
 
-#include "PermanentConfig.h"
 #include "ActiveSettings.h"
+#include "PermanentConfig.h"
 
 XMLCemuConfig_t g_config(L"settings.xml");
 
 void CemuConfig::SetMLCPath(std::wstring_view path, bool save)
 {
 	mlc_path.SetValue(path);
-	if(save)
+	if (save)
 		g_config.Save();
 
 	// if custom mlc path has been selected, store it in permanent config
@@ -25,7 +25,9 @@ void CemuConfig::SetMLCPath(std::wstring_view path, bool save)
 			pconfig.custom_mlc_path = boost::nowide::narrow(path.data(), path.size());
 			pconfig.Store();
 		}
-		catch (const PSDisabledException&) {}
+		catch (const PSDisabledException&)
+		{
+		}
 		catch (const std::exception& ex)
 		{
 			forceLog_printf("can't store custom mlc path in permanent storage: %s", ex.what());
@@ -56,7 +58,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	}
 
 	permanent_storage = parser.get("permanent_storage", permanent_storage);
-	
+
 	language = parser.get<sint32>("language", wxLANGUAGE_DEFAULT);
 	use_discord_presence = parser.get("use_discord_presence", true);
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
@@ -68,7 +70,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	proxy_server = parser.get("proxy_server", "");
 
 	// cpu_mode = parser.get("cpu_mode", cpu_mode.GetInitValue());
-	//console_region = parser.get("console_region", console_region.GetInitValue());
+	// console_region = parser.get("console_region", console_region.GetInitValue());
 	console_language = parser.get("console_language", console_language.GetInitValue());
 
 	window_position.x = parser.get("window_position").get("x", -1);
@@ -98,7 +100,8 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	recent_launch_files.clear();
 	auto launch_parser = parser.get("RecentLaunchFiles");
-	for (auto element = launch_parser.get("Entry"); element.valid(); element = launch_parser.get("Entry", element))
+	for (auto element = launch_parser.get("Entry"); element.valid();
+		 element = launch_parser.get("Entry", element))
 	{
 		const std::string path = element.value("");
 		if (path.empty())
@@ -110,13 +113,15 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			forceLog_printf("config load error: can't load recently launched game file: %s", path.c_str());
+			forceLog_printf("config load error: can't load recently launched game file: %s",
+							path.c_str());
 		}
 	}
-	
+
 	recent_nfc_files.clear();
 	auto nfc_parser = parser.get("RecentNFCFiles");
-	for (auto element = nfc_parser.get("Entry"); element.valid(); element = nfc_parser.get("Entry", element))
+	for (auto element = nfc_parser.get("Entry"); element.valid();
+		 element = nfc_parser.get("Entry", element))
 	{
 		const std::string path = element.value("");
 		if (path.empty())
@@ -128,13 +133,15 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			forceLog_printf("config load error: can't load recently launched nfc file: %s", path.c_str());
+			forceLog_printf("config load error: can't load recently launched nfc file: %s",
+							path.c_str());
 		}
 	}
 
 	game_paths.clear();
 	auto game_path_parser = parser.get("GamePaths");
-	for (auto element = game_path_parser.get("Entry"); element.valid(); element = game_path_parser.get("Entry", element))
+	for (auto element = game_path_parser.get("Entry"); element.valid();
+		 element = game_path_parser.get("Entry", element))
 	{
 		const std::string path = element.value("");
 		if (path.empty())
@@ -153,7 +160,8 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	std::unique_lock _lock(game_cache_entries_mutex);
 	game_cache_entries.clear();
 	auto game_cache_parser = parser.get("GameCache");
-	for (auto element = game_cache_parser.get("Entry"); element.valid(); element = game_cache_parser.get("Entry", element))
+	for (auto element = game_cache_parser.get("Entry"); element.valid();
+		 element = game_cache_parser.get("Entry", element))
 	{
 		const char* rpx = element.get("path", "");
 		try
@@ -167,8 +175,10 @@ void CemuConfig::Load(XMLConfigParser& parser)
 			entry.legacy_version = element.get("version", 0);
 			entry.legacy_update_version = element.get("version", 0);
 			entry.legacy_dlc_version = element.get("dlc_version", 0);
-			entry.legacy_time_played = element.get<decltype(entry.legacy_time_played)>("time_played");
-			entry.legacy_last_played = element.get<decltype(entry.legacy_last_played)>("last_played");
+			entry.legacy_time_played =
+				element.get<decltype(entry.legacy_time_played)>("time_played");
+			entry.legacy_last_played =
+				element.get<decltype(entry.legacy_last_played)>("last_played");
 			entry.favorite = element.get("favorite", false);
 			game_cache_entries.emplace_back(entry);
 
@@ -189,10 +199,11 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	graphic_pack_entries.clear();
 	auto graphic_pack_parser = parser.get("GraphicPack");
-	for (auto element = graphic_pack_parser.get("Entry"); element.valid(); element = graphic_pack_parser.get("Entry", element))
+	for (auto element = graphic_pack_parser.get("Entry"); element.valid();
+		 element = graphic_pack_parser.get("Entry", element))
 	{
 		std::string filename = element.get_attribute("filename", "");
-		if(filename.empty()) // legacy loading
+		if (filename.empty()) // legacy loading
 		{
 			filename = element.get("filename", "");
 			fs::path path = fs::path(filename).lexically_normal();
@@ -211,15 +222,15 @@ void CemuConfig::Load(XMLConfigParser& parser)
 			{
 				graphic_pack_entries[path].try_emplace("_disabled", "true");
 			}
-			
-			for (auto preset = element.get("Preset"); preset.valid(); preset = element.get("Preset", preset))
+
+			for (auto preset = element.get("Preset"); preset.valid();
+				 preset = element.get("Preset", preset))
 			{
 				const std::string category = preset.get("category", "");
 				const std::string active_preset = preset.get("preset", "");
 				graphic_pack_entries[path].try_emplace(category, active_preset);
 			}
 		}
-		
 	}
 
 	// graphics
@@ -232,10 +243,13 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	downscale_filter = graphic.get("DownscaleFilter", kLinearFilter);
 	fullscreen_scaling = graphic.get("FullscreenScaling", kKeepAspectRatio);
 	async_compile = graphic.get("AsyncCompile", async_compile);
-	vk_accurate_barriers = graphic.get("vkAccurateBarriers", true); // this used to be "VulkanAccurateBarriers" but because we changed the default to true in 1.27.1 the option name had to be changed
+	vk_accurate_barriers =
+		graphic.get("vkAccurateBarriers",
+					true); // this used to be "VulkanAccurateBarriers" but because we changed the
+						   // default to true in 1.27.1 the option name had to be changed
 
 	auto overlay_node = graphic.get("Overlay");
-	if(overlay_node.valid())
+	if (overlay_node.valid())
 	{
 		overlay.position = overlay_node.get("Position", ScreenPosition::kDisabled);
 		overlay.text_color = overlay_node.get("TextColor", 0xFFFFFFFF);
@@ -342,11 +356,11 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("gp_download", did_show_graphic_pack_download);
 	config.set<bool>("fullscreen", fullscreen);
 	config.set("proxy_server", proxy_server.GetValue().c_str());
-	
+
 	// config.set("cpu_mode", cpu_mode.GetValue());
-	//config.set("console_region", console_region.GetValue());
+	// config.set("console_region", console_region.GetValue());
 	config.set("console_language", console_language.GetValue());
-	
+
 	auto wpos = config.set("window_position");
 	wpos.set<sint32>("x", window_position.x);
 	wpos.set<sint32>("y", window_position.y);
@@ -379,13 +393,13 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	{
 		launch_files_parser.set("Entry", boost::nowide::narrow(entry).c_str());
 	}
-	
+
 	auto nfc_files_parser = config.set("RecentNFCFiles");
 	for (const auto& entry : recent_nfc_files)
 	{
 		nfc_files_parser.set("Entry", boost::nowide::narrow(entry).c_str());
 	}
-		
+
 	// game paths
 	auto game_path_parser = config.set("GamePaths");
 	for (const auto& entry : game_paths)
@@ -417,20 +431,20 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	for (const auto& game : graphic_pack_entries)
 	{
 		auto entry = graphic_pack_parser.set("Entry");
-		entry.set_attribute("filename",_utf8Wrapper(game.first).c_str());
-		for(const auto& kv : game.second)
+		entry.set_attribute("filename", _utf8Wrapper(game.first).c_str());
+		for (const auto& kv : game.second)
 		{
 			// TODO: less hacky pls
-			if(boost::iequals(kv.first, "_disabled"))
+			if (boost::iequals(kv.first, "_disabled"))
 			{
 				entry.set_attribute("disabled", true);
 				continue;
 			}
-			
+
 			auto preset = entry.set("Preset");
-			if(!kv.first.empty())
+			if (!kv.first.empty())
 				preset.set("category", kv.first.c_str());
-			
+
 			preset.set("preset", kv.second.c_str());
 		}
 	}
@@ -441,7 +455,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	graphic.set("device", graphic_device_uuid);
 	graphic.set("VSync", vsync);
 	graphic.set("GX2DrawdoneSync", gx2drawdone_sync);
-	//graphic.set("PrecompiledShaders", precompiled_shaders.GetValue());
+	// graphic.set("PrecompiledShaders", precompiled_shaders.GetValue());
 	graphic.set("UpscaleFilter", upscale_filter);
 	graphic.set("DownscaleFilter", downscale_filter);
 	graphic.set("FullscreenScaling", fullscreen_scaling);
@@ -563,17 +577,17 @@ void CemuConfig::SetGameListCustomName(uint64 titleId, std::string customName)
 void CemuConfig::AddRecentlyLaunchedFile(std::wstring_view file)
 {
 	// insert into front
-	recent_launch_files.insert(recent_launch_files.begin(), std::wstring{ file });
+	recent_launch_files.insert(recent_launch_files.begin(), std::wstring{file});
 	RemoveDuplicatesKeepOrder(recent_launch_files);
 	// keep maximum of entries
-	while(recent_launch_files.size() > kMaxRecentEntries)
+	while (recent_launch_files.size() > kMaxRecentEntries)
 		recent_launch_files.pop_back();
 }
 
 void CemuConfig::AddRecentNfcFile(std::wstring_view file)
 {
 	// insert into front
-	recent_nfc_files.insert(recent_nfc_files.begin(), std::wstring{ file });
+	recent_nfc_files.insert(recent_nfc_files.begin(), std::wstring{file});
 	RemoveDuplicatesKeepOrder(recent_nfc_files);
 	// keep maximum of entries
 	while (recent_nfc_files.size() > kMaxRecentEntries)

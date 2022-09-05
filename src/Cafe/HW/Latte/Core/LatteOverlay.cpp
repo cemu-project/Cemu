@@ -7,9 +7,9 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "config/ActiveSettings.h"
 
-#include <imgui.h>
-#include "resource/IconsFontAwesome5.h"
 #include "imgui/imgui_extension.h"
+#include "resource/IconsFontAwesome5.h"
+#include <imgui.h>
 
 #include "input/InputManager.h"
 
@@ -23,7 +23,7 @@
 
 struct OverlayStats
 {
-	OverlayStats() {};
+	OverlayStats(){};
 
 	int processor_count = 1;
 
@@ -40,9 +40,9 @@ struct OverlayStats
 
 	double fps{};
 	uint32 draw_calls_per_frame{};
-	float cpu_usage{}; // cemu cpu usage in %
+	float cpu_usage{};				 // cemu cpu usage in %
 	std::vector<float> cpu_per_core; // global cpu usage in % per core
-	uint32 ram_usage{}; // ram usage in MB
+	uint32 ram_usage{};				 // ram usage in MB
 
 	int vramUsage{}, vramTotal{}; // vram usage in mb
 } g_state{};
@@ -55,10 +55,10 @@ std::atomic_int g_compiling_pipelines_async;
 std::atomic_uint64_t g_compiling_pipelines_syncTimeSum;
 
 extern std::mutex g_friend_notification_mutex;
-extern std::vector< std::pair<std::string, int> > g_friend_notifications;
+extern std::vector<std::pair<std::string, int>> g_friend_notifications;
 
 std::mutex g_notification_mutex;
-std::vector< std::pair<std::string, int> > g_notifications;
+std::vector<std::pair<std::string, int>> g_notifications;
 
 void LatteOverlay_pushNotification(const std::string& text, sint32 duration)
 {
@@ -73,24 +73,26 @@ struct OverlayList
 	float pos_y = 0;
 	float width;
 
-	OverlayList(std::wstring text, float width)
-		: text(std::move(text)), width(width) {}
+	OverlayList(std::wstring text, float width) : text(std::move(text)), width(width) {}
 };
 
-const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
+						 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+						 ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
 
 const float kBackgroundAlpha = 0.65f;
 void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 direction)
 {
 	auto& config = GetConfig();
-	
+
 	const auto font = ImGui_GetFont(14.0f * (float)config.overlay.text_scale / 100.0f);
 	ImGui::PushFont(font);
 
 	const ImVec4 color = ImGui::ColorConvertU32ToFloat4(config.overlay.text_color);
 	ImGui::PushStyleColor(ImGuiCol_Text, color);
 	// stats overlay
-	if (config.overlay.fps || config.overlay.drawcalls || config.overlay.cpu_usage || config.overlay.cpu_per_core_usage || config.overlay.ram_usage)
+	if (config.overlay.fps || config.overlay.drawcalls || config.overlay.cpu_usage ||
+		config.overlay.cpu_per_core_usage || config.overlay.ram_usage)
 	{
 		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 		ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
@@ -116,7 +118,7 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 			if (config.overlay.ram_usage)
 				ImGui::Text("RAM: %dMB", g_state.ram_usage);
 
-			if(config.overlay.vram_usage && g_state.vramUsage != -1 && g_state.vramTotal != -1)
+			if (config.overlay.vram_usage && g_state.vramUsage != -1 && g_state.vramTotal != -1)
 				ImGui::Text("VRAM: %dMB / %dMB", g_state.vramUsage, g_state.vramTotal);
 
 			if (config.overlay.debug)
@@ -150,7 +152,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			static std::chrono::steady_clock::time_point s_started = tick_cached();
 
 			const auto now = tick_cached();
-			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_started).count() <= 5000)
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_started).count() <=
+				5000)
 			{
 				// active account
 				ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
@@ -163,8 +166,9 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					static std::string s_mii_name;
 					if (s_mii_name.empty())
 					{
-						auto tmp_view = Account::GetAccount(ActiveSettings::GetPersistentId()).GetMiiName();
-						std::wstring tmp{ tmp_view };
+						auto tmp_view =
+							Account::GetAccount(ActiveSettings::GetPersistentId()).GetMiiName();
+						std::wstring tmp{tmp_view};
 						s_mii_name = boost::nowide::narrow(tmp);
 					}
 					ImGui::TextUnformatted(s_mii_name.c_str());
@@ -172,7 +176,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
 					ImGui::End();
 				}
-				
+
 				// controller
 				std::vector<std::pair<int, std::string>> profiles;
 				auto& input_manager = InputManager::instance();
@@ -222,7 +226,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 
 	if (config.notification.friends)
 	{
-		static std::vector< std::pair<std::string, std::chrono::steady_clock::time_point> > s_friend_list;
+		static std::vector<std::pair<std::string, std::chrono::steady_clock::time_point>>
+			s_friend_list;
 
 		std::unique_lock lock(g_friend_notification_mutex);
 		if (!g_friend_notifications.empty())
@@ -231,7 +236,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 
 			for (const auto& entry : g_friend_notifications)
 			{
-				s_friend_list.emplace_back(entry.first, tick + std::chrono::milliseconds(entry.second));
+				s_friend_list.emplace_back(entry.first,
+										   tick + std::chrono::milliseconds(entry.second));
 			}
 
 			g_friend_notifications.clear();
@@ -256,8 +262,6 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
 				ImGui::End();
 			}
-
-
 		}
 	}
 
@@ -282,7 +286,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			static bool s_blink_state = false;
 			const auto now = tick_cached();
 
-			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_last_tick).count() >= 750)
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_last_tick).count() >=
+				750)
 			{
 				s_blink_state = !s_blink_state;
 				s_last_tick = now;
@@ -293,14 +298,16 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			if (ImGui::Begin("Low battery overlay", nullptr, kPopupFlags))
 			{
 				auto it = batteries.cbegin();
-				ImGui::TextUnformatted((const char*)(s_blink_state ? ICON_FA_BATTERY_EMPTY : ICON_FA_BATTERY_QUARTER));
+				ImGui::TextUnformatted(
+					(const char*)(s_blink_state ? ICON_FA_BATTERY_EMPTY : ICON_FA_BATTERY_QUARTER));
 				ImGui::SameLine();
 				ImGui::Text("Player %d", *it + 1);
 
 				for (++it; it != batteries.cend(); ++it)
 				{
 					ImGui::Separator();
-					ImGui::TextUnformatted((const char*)(s_blink_state ? ICON_FA_BATTERY_EMPTY : ICON_FA_BATTERY_QUARTER));
+					ImGui::TextUnformatted((const char*)(s_blink_state ? ICON_FA_BATTERY_EMPTY
+																	   : ICON_FA_BATTERY_QUARTER));
 					ImGui::SameLine();
 					ImGui::Text("Player %d", *it + 1);
 				}
@@ -328,7 +335,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			if (tmp > 0)
 				s_last_tick = now;
 
-			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_last_tick).count() >= 2500)
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_last_tick).count() >=
+				2500)
 			{
 				s_shader_count = 0;
 				s_shader_count_async = 0;
@@ -347,12 +355,17 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					ImRotateEnd(0.001f * ticks.time_since_epoch().count());
 					ImGui::SameLine();
 
-					if (s_shader_count_async > 0 && GetConfig().async_compile) // the latter condition is to never show async count when async isn't enabled. Since it can be confusing to the user
+					if (s_shader_count_async > 0 &&
+						GetConfig().async_compile) // the latter condition is to never show async
+												   // count when async isn't enabled. Since it can
+												   // be confusing to the user
 					{
-						if(s_shader_count > 1)
-							ImGui::Text("Compiled %d new shaders... (%d async)", s_shader_count, s_shader_count_async);
+						if (s_shader_count > 1)
+							ImGui::Text("Compiled %d new shaders... (%d async)", s_shader_count,
+										s_shader_count_async);
 						else
-							ImGui::Text("Compiled %d new shader... (%d async)", s_shader_count, s_shader_count_async);
+							ImGui::Text("Compiled %d new shader... (%d async)", s_shader_count,
+										s_shader_count_async);
 					}
 					else
 					{
@@ -367,7 +380,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				}
 			}
 		}
-		
+
 		static int32_t s_pipeline_count = 0;
 		static int32_t s_pipeline_count_async = 0;
 		if (s_pipeline_count > 0 || g_compiling_pipelines > 0)
@@ -383,7 +396,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			if (tmp > 0)
 				s_last_tick = now;
 
-			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_last_tick).count() >= 2500)
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - s_last_tick).count() >=
+				2500)
 			{
 				s_pipeline_count = 0;
 				s_pipeline_count_async = 0;
@@ -407,24 +421,32 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					if (s_pipeline_count_async > 0)
 					{
 						if (s_pipeline_count > 1)
-							ImGui::Text("Compiled %d new pipelines... (%d async) TotalSync: %" PRIu64 "ms", s_pipeline_count, s_pipeline_count_async, totalTime);
+							ImGui::Text(
+								"Compiled %d new pipelines... (%d async) TotalSync: %" PRIu64 "ms",
+								s_pipeline_count, s_pipeline_count_async, totalTime);
 						else
-							ImGui::Text("Compiled %d new pipeline... (%d async) TotalSync: %" PRIu64 "ms", s_pipeline_count, s_pipeline_count_async, totalTime);
+							ImGui::Text("Compiled %d new pipeline... (%d async) TotalSync: %" PRIu64
+										"ms",
+										s_pipeline_count, s_pipeline_count_async, totalTime);
 					}
 					else
 					{
 						if (s_pipeline_count > 1)
-							ImGui::Text("Compiled %d new pipelines... TotalSync: %" PRIu64 "ms", s_pipeline_count, totalTime);
+							ImGui::Text("Compiled %d new pipelines... TotalSync: %" PRIu64 "ms",
+										s_pipeline_count, totalTime);
 						else
-							ImGui::Text("Compiled %d new pipeline... TotalSync: %" PRIu64 "ms", s_pipeline_count, totalTime);
+							ImGui::Text("Compiled %d new pipeline... TotalSync: %" PRIu64 "ms",
+										s_pipeline_count, totalTime);
 					}
 #else
 					if (s_pipeline_count_async > 0)
 					{
 						if (s_pipeline_count > 1)
-							ImGui::Text("Compiled %d new pipelines... (%d async)", s_pipeline_count, s_pipeline_count_async);
+							ImGui::Text("Compiled %d new pipelines... (%d async)", s_pipeline_count,
+										s_pipeline_count_async);
 						else
-							ImGui::Text("Compiled %d new pipeline... (%d async)", s_pipeline_count, s_pipeline_count_async);
+							ImGui::Text("Compiled %d new pipeline... (%d async)", s_pipeline_count,
+										s_pipeline_count_async);
 					}
 					else
 					{
@@ -442,7 +464,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 	}
 
 	// misc notifications
-	static std::vector< std::pair<std::string, std::chrono::steady_clock::time_point> > s_misc_notifications;
+	static std::vector<std::pair<std::string, std::chrono::steady_clock::time_point>>
+		s_misc_notifications;
 
 	std::unique_lock misc_lock(g_notification_mutex);
 	if (!g_notifications.empty())
@@ -451,7 +474,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 
 		for (const auto& entry : g_notifications)
 		{
-			s_misc_notifications.emplace_back(entry.first, tick + std::chrono::milliseconds(entry.second));
+			s_misc_notifications.emplace_back(entry.first,
+											  tick + std::chrono::milliseconds(entry.second));
 		}
 
 		g_notifications.clear();
@@ -483,38 +507,39 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 	ImGui::PopFont();
 }
 
-void LatteOverlay_translateScreenPosition(ScreenPosition pos, const Vector2f& window_size, ImVec2& position, ImVec2& pivot, sint32& direction)
+void LatteOverlay_translateScreenPosition(ScreenPosition pos, const Vector2f& window_size,
+										  ImVec2& position, ImVec2& pivot, sint32& direction)
 {
 	switch (pos)
 	{
 	case ScreenPosition::kTopLeft:
-		position = { 10, 10 };
-		pivot = { 0, 0 };
+		position = {10, 10};
+		pivot = {0, 0};
 		direction = 1;
 		break;
 	case ScreenPosition::kTopCenter:
-		position = { window_size.x / 2.0f, 10 };
-		pivot = { 0.5f, 0 };
+		position = {window_size.x / 2.0f, 10};
+		pivot = {0.5f, 0};
 		direction = 1;
 		break;
 	case ScreenPosition::kTopRight:
-		position = { window_size.x - 10, 10 };
-		pivot = { 1, 0 };
+		position = {window_size.x - 10, 10};
+		pivot = {1, 0};
 		direction = 1;
 		break;
 	case ScreenPosition::kBottomLeft:
-		position = { 10, window_size.y - 10 };
-		pivot = { 0, 1 };
+		position = {10, window_size.y - 10};
+		pivot = {0, 1};
 		direction = -1;
 		break;
 	case ScreenPosition::kBottomCenter:
-		position = { window_size.x / 2.0f, window_size.y - 10 };
-		pivot = { 0.5f, 1 };
+		position = {window_size.x / 2.0f, window_size.y - 10};
+		pivot = {0.5f, 1};
 		direction = -1;
 		break;
 	case ScreenPosition::kBottomRight:
-		position = { window_size.x - 10, window_size.y - 10 };
-		pivot = { 1, 1 };
+		position = {window_size.x - 10, window_size.y - 10};
+		pivot = {1, 1};
 		direction = -1;
 		break;
 	default:
@@ -525,7 +550,8 @@ void LatteOverlay_translateScreenPosition(ScreenPosition pos, const Vector2f& wi
 void LatteOverlay_render(bool pad_view)
 {
 	const auto& config = GetConfig();
-	if(config.overlay.position == ScreenPosition::kDisabled && config.notification.position == ScreenPosition::kDisabled)
+	if (config.overlay.position == ScreenPosition::kDisabled &&
+		config.notification.position == ScreenPosition::kDisabled)
 		return;
 
 	sint32 w = 0, h = 0;
@@ -537,12 +563,12 @@ void LatteOverlay_render(bool pad_view)
 	if (w == 0 || h == 0)
 		return;
 
-	const Vector2f window_size{ (float)w,(float)h };
-	
+	const Vector2f window_size{(float)w, (float)h};
+
 	// test if fonts are already precached
 	if (!ImGui_GetFont(14.0f * (float)config.overlay.text_scale / 100.0f))
 		return;
-	
+
 	if (!ImGui_GetFont(14.0f * (float)config.notification.text_scale / 100.0f))
 		return;
 
@@ -551,20 +577,20 @@ void LatteOverlay_render(bool pad_view)
 
 	if (config.overlay.position != ScreenPosition::kDisabled)
 	{
-		LatteOverlay_translateScreenPosition(config.overlay.position, window_size, position, pivot, direction);
+		LatteOverlay_translateScreenPosition(config.overlay.position, window_size, position, pivot,
+											 direction);
 		LatteOverlay_renderOverlay(position, pivot, direction);
 	}
-	
 
 	if (config.notification.position != ScreenPosition::kDisabled)
 	{
-		if(config.overlay.position != config.notification.position)
-			LatteOverlay_translateScreenPosition(config.notification.position, window_size, position, pivot, direction);
+		if (config.overlay.position != config.notification.position)
+			LatteOverlay_translateScreenPosition(config.notification.position, window_size,
+												 position, pivot, direction);
 
 		LatteOverlay_RenderNotifications(position, pivot, direction);
 	}
 }
-
 
 void LatteOverlay_init()
 {
@@ -613,11 +639,14 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 
 	// update cpu per core
 	std::vector<SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION> sppi(g_state.processor_count);
-	if (NT_SUCCESS(NtQuerySystemInformation(SystemProcessorPerformanceInformation, sppi.data(), sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * g_state.processor_count, nullptr)))
+	if (NT_SUCCESS(NtQuerySystemInformation(
+			SystemProcessorPerformanceInformation, sppi.data(),
+			sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * g_state.processor_count, nullptr)))
 	{
 		for (sint32 i = 0; i < g_state.processor_count; ++i)
 		{
-			const uint64 kernel_diff = sppi[i].KernelTime.QuadPart - g_state.processor_times[i].kernel;
+			const uint64 kernel_diff =
+				sppi[i].KernelTime.QuadPart - g_state.processor_times[i].kernel;
 			const uint64 user_diff = sppi[i].UserTime.QuadPart - g_state.processor_times[i].user;
 			const uint64 idle_diff = sppi[i].IdleTime.QuadPart - g_state.processor_times[i].idle;
 
@@ -625,15 +654,15 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 			const double cpu = total == 0 ? 0 : (1.0 - ((double)idle_diff / total)) * 100.0;
 
 			g_state.cpu_per_core[i] = cpu;
-			//total_cpu += cpu;
+			// total_cpu += cpu;
 
 			g_state.processor_times[i].idle = sppi[i].IdleTime.QuadPart;
 			g_state.processor_times[i].kernel = sppi[i].KernelTime.QuadPart;
 			g_state.processor_times[i].user = sppi[i].UserTime.QuadPart;
 		}
 
-		//total_cpu /= g_state.processor_count;
-		//g_state.cpu_usage = total_cpu;
+		// total_cpu /= g_state.processor_count;
+		// g_state.cpu_usage = total_cpu;
 	}
 
 	// update ram
@@ -652,36 +681,42 @@ void LatteOverlay_updateStatsPerFrame()
 	if (!ActiveSettings::FrameProfilerEnabled())
 		return;
 	// update frametime graph
-	uint32 frameTime_total = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_frameTime.getPreviousFrameValue());
-	uint32 frameTime_idle = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_idleTime.getPreviousFrameValue());
-	uint32 frameTime_dcStageTextures = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_dcStageTextures.getPreviousFrameValue());
-	uint32 frameTime_dcStageVertexMgr = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_dcStageVertexMgr.getPreviousFrameValue());
-	uint32 frameTime_dcStageShaderAndUniformMgr = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_dcStageShaderAndUniformMgr.getPreviousFrameValue());
-	uint32 frameTime_dcStageIndexMgr = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_dcStageIndexMgr.getPreviousFrameValue());
-	uint32 frameTime_dcStageMRT = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_dcStageMRT.getPreviousFrameValue());
-	uint32 frameTime_dcStageDrawcallAPI = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_dcStageDrawcallAPI.getPreviousFrameValue());
-	uint32 frameTime_waitForAsync = (uint32)PPCTimer_tscToMicroseconds(performanceMonitor.gpuTime_waitForAsync.getPreviousFrameValue());
+	uint32 frameTime_total = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_frameTime.getPreviousFrameValue());
+	uint32 frameTime_idle = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_idleTime.getPreviousFrameValue());
+	uint32 frameTime_dcStageTextures = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_dcStageTextures.getPreviousFrameValue());
+	uint32 frameTime_dcStageVertexMgr = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_dcStageVertexMgr.getPreviousFrameValue());
+	uint32 frameTime_dcStageShaderAndUniformMgr = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_dcStageShaderAndUniformMgr.getPreviousFrameValue());
+	uint32 frameTime_dcStageIndexMgr = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_dcStageIndexMgr.getPreviousFrameValue());
+	uint32 frameTime_dcStageMRT = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_dcStageMRT.getPreviousFrameValue());
+	uint32 frameTime_dcStageDrawcallAPI = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_dcStageDrawcallAPI.getPreviousFrameValue());
+	uint32 frameTime_waitForAsync = (uint32)PPCTimer_tscToMicroseconds(
+		performanceMonitor.gpuTime_waitForAsync.getPreviousFrameValue());
 
 	// make sure total frame time is not less than it's sums
 	uint32 minimumExpectedFrametime =
-		frameTime_idle +
-		frameTime_dcStageTextures +
-		frameTime_dcStageVertexMgr +
-		frameTime_dcStageShaderAndUniformMgr +
-		frameTime_dcStageIndexMgr +
-		frameTime_dcStageMRT +
-		frameTime_dcStageDrawcallAPI +
-		frameTime_waitForAsync;
+		frameTime_idle + frameTime_dcStageTextures + frameTime_dcStageVertexMgr +
+		frameTime_dcStageShaderAndUniformMgr + frameTime_dcStageIndexMgr + frameTime_dcStageMRT +
+		frameTime_dcStageDrawcallAPI + frameTime_waitForAsync;
 	frameTime_total = std::max(frameTime_total, minimumExpectedFrametime);
 
-	//g_state.frametimeGraph.appendEntry();
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFF404040, frameTime_idle);
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFFFFC0FF, frameTime_waitForAsync);
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFF000040, frameTime_dcStageTextures); // dark red
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFF004000, frameTime_dcStageVertexMgr); // dark green
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFFFFFF80, frameTime_dcStageShaderAndUniformMgr); // blueish
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFF800080, frameTime_dcStageIndexMgr); // purple
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFF00FF00, frameTime_dcStageMRT); // green
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFF00FFFF, frameTime_dcStageDrawcallAPI); // yellow
-	//g_state.frametimeGraph.setCurrentEntryValue(0xFFBBBBBB, frameTime_total - minimumExpectedFrametime);
+	// g_state.frametimeGraph.appendEntry();
+	// g_state.frametimeGraph.setCurrentEntryValue(0xFF404040, frameTime_idle);
+	// g_state.frametimeGraph.setCurrentEntryValue(0xFFFFC0FF, frameTime_waitForAsync);
+	// g_state.frametimeGraph.setCurrentEntryValue(0xFF000040, frameTime_dcStageTextures); // dark
+	// red g_state.frametimeGraph.setCurrentEntryValue(0xFF004000, frameTime_dcStageVertexMgr); //
+	// dark green g_state.frametimeGraph.setCurrentEntryValue(0xFFFFFF80,
+	// frameTime_dcStageShaderAndUniformMgr); // blueish
+	// g_state.frametimeGraph.setCurrentEntryValue(0xFF800080, frameTime_dcStageIndexMgr); // purple
+	// g_state.frametimeGraph.setCurrentEntryValue(0xFF00FF00, frameTime_dcStageMRT); // green
+	// g_state.frametimeGraph.setCurrentEntryValue(0xFF00FFFF, frameTime_dcStageDrawcallAPI); //
+	// yellow g_state.frametimeGraph.setCurrentEntryValue(0xFFBBBBBB, frameTime_total -
+	// minimumExpectedFrametime);
 }

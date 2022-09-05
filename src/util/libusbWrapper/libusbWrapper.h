@@ -18,7 +18,7 @@ public:
 
 	void init();
 	bool isAvailable() const { return p_libusb_init != nullptr; };
-	
+
 	decltype(&libusb_init) p_libusb_init = nullptr;
 	decltype(&libusb_exit) p_libusb_exit = nullptr;
 	decltype(&libusb_interrupt_transfer) p_libusb_interrupt_transfer;
@@ -38,8 +38,8 @@ public:
 	decltype(&libusb_error_name) p_libusb_error_name;
 	decltype(&libusb_get_string_descriptor) p_libusb_get_string_descriptor;
 	decltype(&libusb_get_string_descriptor_ascii) p_libusb_get_string_descriptor_ascii;
-	
-	
+
+
 private:
 #if BOOST_OS_WINDOWS
 	HMODULE m_module = nullptr;

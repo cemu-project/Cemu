@@ -3,8 +3,9 @@
 
 class DisasmCtrl : public TextList
 {
-public:
-	DisasmCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size, long style);
+  public:
+	DisasmCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size,
+			   long style);
 
 	void Init();
 	wxSize DoGetBestSize() const override;
@@ -18,9 +19,7 @@ public:
 	void CenterOffset(uint32 offset);
 	void GoToAddressDialog();
 
-	
-
-protected:
+  protected:
 	void OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start_position) override;
 	void OnMouseMove(const wxPoint& position, uint32 line) override;
 	void OnKeyPressed(sint32 key_code, const wxPoint& position) override;
@@ -29,12 +28,14 @@ protected:
 	bool OnShowTooltip(const wxPoint& position, uint32 line) override;
 	void ScrollWindow(int dx, int dy, const wxRect* prect) override;
 
-	void DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress, struct RPLModule* rplModule);
-	void DrawLabelName(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress, struct RPLStoredSymbol* storedSymbol);
+	void DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress,
+							 struct RPLModule* rplModule);
+	void DrawLabelName(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress,
+					   struct RPLStoredSymbol* storedSymbol);
 
 	void SelectCodeRegion(uint32 newAddress);
 
-private:
+  private:
 	void CopyToClipboard(std::string text);
 
 	sint32 m_mouse_line, m_mouse_line_drawn;

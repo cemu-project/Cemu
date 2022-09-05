@@ -1,11 +1,12 @@
-#include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "GX2.h"
-#include "GX2_Resource.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
+#include "Cafe/HW/Latte/ISA/RegDefines.h"
+#include "Cafe/OS/common/OSCommon.h"
+#include "GX2.h"
+#include "GX2_Resource.h"
 
-// default GX2 allocator (not the same as the GX2R allocator, but GX2R uses this allocator by default)
+// default GX2 allocator (not the same as the GX2R allocator, but GX2R uses this allocator by
+// default)
 MPTR gx2Mem_defaultAlloc = MPTR_NULL;
 MPTR gx2Mem_defaultFree = MPTR_NULL;
 
@@ -42,7 +43,8 @@ void gx2Export_GX2SetDefaultAllocator(PPCInterpreter_t* hCPU)
 
 void _GX2DefaultAllocR_Alloc(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2DefaultAllocate(0x%08x, 0x%08x, 0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	gx2Log_printf("GX2DefaultAllocate(0x%08x, 0x%08x, 0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4],
+				  hCPU->gpr[5]);
 	// parameters:
 	// r3	uint32	userParam
 	// r4	uint32  size
@@ -61,17 +63,18 @@ void _GX2DefaultAllocR_Free(PPCInterpreter_t* hCPU)
 
 namespace GX2
 {
-	void GX2MEMAllocatorsInit()
-	{
-		// set default allocators (can be overwritten by GX2SetDefaultAllocator)
-		gx2Mem_defaultAlloc = PPCInterpreter_makeCallableExportDepr(_GX2DefaultAlloc_Alloc);
-		gx2Mem_defaultFree = PPCInterpreter_makeCallableExportDepr(_GX2DefaultAlloc_Free);
-		// set resource default allocator
-		GX2::GX2RSetAllocator(PPCInterpreter_makeCallableExportDepr(_GX2DefaultAllocR_Alloc), PPCInterpreter_makeCallableExportDepr(_GX2DefaultAllocR_Free));
-	}
+void GX2MEMAllocatorsInit()
+{
+	// set default allocators (can be overwritten by GX2SetDefaultAllocator)
+	gx2Mem_defaultAlloc = PPCInterpreter_makeCallableExportDepr(_GX2DefaultAlloc_Alloc);
+	gx2Mem_defaultFree = PPCInterpreter_makeCallableExportDepr(_GX2DefaultAlloc_Free);
+	// set resource default allocator
+	GX2::GX2RSetAllocator(PPCInterpreter_makeCallableExportDepr(_GX2DefaultAllocR_Alloc),
+						  PPCInterpreter_makeCallableExportDepr(_GX2DefaultAllocR_Free));
+}
 
-	void GX2MemInit()
-	{
-		osLib_addFunction("gx2", "GX2SetDefaultAllocator", gx2Export_GX2SetDefaultAllocator);
-	}
-};
+void GX2MemInit()
+{
+	osLib_addFunction("gx2", "GX2SetDefaultAllocator", gx2Export_GX2SetDefaultAllocator);
+}
+}; // namespace GX2

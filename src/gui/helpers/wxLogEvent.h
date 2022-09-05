@@ -7,14 +7,21 @@ wxDECLARE_EVENT(EVT_LOG, wxLogEvent);
 
 class wxLogEvent : public wxCommandEvent
 {
-public:
-	wxLogEvent(const wxString& filter, const wxString& message) 
-		: wxCommandEvent(EVT_LOG), m_filter(filter), m_message(message) { }
+  public:
+	wxLogEvent(const wxString& filter, const wxString& message)
+		: wxCommandEvent(EVT_LOG), m_filter(filter), m_message(message)
+	{
+	}
 
 	wxLogEvent(const wxLogEvent& event)
-		:  wxCommandEvent(event), m_filter(event.m_filter), m_message(event.m_message) { }
+		: wxCommandEvent(event), m_filter(event.m_filter), m_message(event.m_message)
+	{
+	}
 
-	wxEvent* Clone() const { return new wxLogEvent(*this); }
+	wxEvent* Clone() const
+	{
+		return new wxLogEvent(*this);
+	}
 
 	[[nodiscard]] const wxString& GetFilter() const
 	{
@@ -26,7 +33,7 @@ public:
 		return m_message;
 	}
 
-private:
+  private:
 	wxString m_filter;
 	wxString m_message;
 };

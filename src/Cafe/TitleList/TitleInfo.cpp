@@ -1,13 +1,13 @@
 #include "TitleInfo.h"
 
-#include "Cafe/Filesystem/fscDeviceHostFS.h"
 #include "Cafe/Filesystem/FST/FST.h"
+#include "Cafe/Filesystem/fscDeviceHostFS.h"
 
-#include "pugixml.hpp"
 #include "Common/filestream.h"
+#include "pugixml.hpp"
 
-#include <zarchive/zarchivereader.h>
 #include "config/ActiveSettings.h"
+#include <zarchive/zarchivereader.h>
 
 // detect format by reading file header/footer
 CafeTitleFileType DetermineCafeSystemFileType(fs::path filePath)
@@ -23,20 +23,20 @@ CafeTitleFileType DetermineCafeSystemFileType(fs::path filePath)
 	uint8 headerRaw[32]{};
 	fs->readData(headerRaw, sizeof(headerRaw));
 	// check for WUX
-	uint8 wuxHeaderMagic[8] = { 0x57,0x55,0x58,0x30,0x2E,0xD0,0x99,0x10 };
+	uint8 wuxHeaderMagic[8] = {0x57, 0x55, 0x58, 0x30, 0x2E, 0xD0, 0x99, 0x10};
 	if (memcmp(headerRaw, wuxHeaderMagic, sizeof(wuxHeaderMagic)) == 0)
 		return CafeTitleFileType::WUX;
 	// check for RPX
-	uint8 rpxHeaderMagic[9] = { 0x7F,0x45,0x4C,0x46,0x01,0x02,0x01,0xCA,0xFE };
+	uint8 rpxHeaderMagic[9] = {0x7F, 0x45, 0x4C, 0x46, 0x01, 0x02, 0x01, 0xCA, 0xFE};
 	if (memcmp(headerRaw, rpxHeaderMagic, sizeof(rpxHeaderMagic)) == 0)
 		return CafeTitleFileType::RPX;
 	// check for ELF
-	uint8 elfHeaderMagic[9] = { 0x7F,0x45,0x4C,0x46,0x01,0x02,0x01,0x00,0x00 };
+	uint8 elfHeaderMagic[9] = {0x7F, 0x45, 0x4C, 0x46, 0x01, 0x02, 0x01, 0x00, 0x00};
 	if (memcmp(headerRaw, elfHeaderMagic, sizeof(elfHeaderMagic)) == 0)
 		return CafeTitleFileType::ELF;
 	// check for WUD
-	uint8 wudMagic1[4] = { 0x57,0x55,0x50,0x2D }; // wud files should always start with "WUP-..."
-	uint8 wudMagic2[4] = { 0xCC,0x54,0x9E,0xB9 };
+	uint8 wudMagic1[4] = {0x57, 0x55, 0x50, 0x2D}; // wud files should always start with "WUP-..."
+	uint8 wudMagic2[4] = {0xCC, 0x54, 0x9E, 0xB9};
 	if (fileSize >= 0x10000)
 	{
 		uint8 magic1[4];
@@ -104,7 +104,8 @@ TitleInfo::TitleInfo(const TitleInfo::CachedInfo& cachedInfo)
 	if (cachedInfo.path.empty())
 		return;
 	if (cachedInfo.titleDataFormat == TitleDataFormat::WIIU_ARCHIVE && m_subPath.empty())
-		return; // for wua files the subpath must never be empty (title must not be stored in root of archive)
+		return; // for wua files the subpath must never be empty (title must not be stored in root
+				// of archive)
 	m_isValid = true;
 	CalcUID();
 }
@@ -134,8 +135,10 @@ TitleInfo::CachedInfo TitleInfo::MakeCacheEntry()
 	return e;
 }
 
-// WUA can contain multiple titles. Root directory contains one directory for each title. The name must match: <titleId>_v<version>
-bool TitleInfo::ParseWuaTitleFolderName(std::string_view name, TitleId& titleIdOut, uint16& titleVersionOut)
+// WUA can contain multiple titles. Root directory contains one directory for each title. The name
+// must match: <titleId>_v<version>
+bool TitleInfo::ParseWuaTitleFolderName(std::string_view name, TitleId& titleIdOut,
+										uint16& titleVersionOut)
 {
 	std::string_view sv = name;
 	if (sv.size() < 16 + 2)
@@ -195,9 +198,8 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 				}
 			}
 		}
-		else if (boost::iends_with(filenameStr, ".wud") ||
-			boost::iends_with(filenameStr, ".wux") ||
-			boost::iends_with(filenameStr, ".iso"))
+		else if (boost::iends_with(filenameStr, ".wud") || boost::iends_with(filenameStr, ".wux") ||
+				 boost::iends_with(filenameStr, ".iso"))
 		{
 			formatOut = TitleDataFormat::WUD;
 			pathOut = path;
@@ -208,7 +210,8 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			formatOut = TitleDataFormat::WIIU_ARCHIVE;
 			pathOut = path;
 			// a Wii U archive file can contain multiple titles but TitleInfo only maps to one
-			// we use the first base title that we find. This is the most intuitive behavior when someone launches "game.wua"
+			// we use the first base title that we find. This is the most intuitive behavior when
+			// someone launches "game.wua"
 			ZArchiveReader* zar = ZArchiveReader::OpenFromFile(path);
 			if (!zar)
 				return false;
@@ -227,8 +230,10 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 					continue;
 				TitleIdParser tip(parsedId);
 				TitleIdParser::TITLE_TYPE tt = tip.GetType();
-				if (tt == TitleIdParser::TITLE_TYPE::BASE_TITLE || tt == TitleIdParser::TITLE_TYPE::BASE_TITLE_DEMO ||
-					tt == TitleIdParser::TITLE_TYPE::SYSTEM_TITLE || tt == TitleIdParser::TITLE_TYPE::SYSTEM_OVERLAY_TITLE)
+				if (tt == TitleIdParser::TITLE_TYPE::BASE_TITLE ||
+					tt == TitleIdParser::TITLE_TYPE::BASE_TITLE_DEMO ||
+					tt == TitleIdParser::TITLE_TYPE::SYSTEM_TITLE ||
+					tt == TitleIdParser::TITLE_TYPE::SYSTEM_OVERLAY_TITLE)
 				{
 					m_subPath = dirEntry.name;
 					foundBase = true;
@@ -238,12 +243,11 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			delete zar;
 			return foundBase;
 		}
-		// note: Since a Wii U archive file (.wua) contains multiple titles we shouldn't auto-detect them here
-		// instead TitleInfo has a second constructor which takes a subpath
-		// unable to determine type by extension, check contents
+		// note: Since a Wii U archive file (.wua) contains multiple titles we shouldn't auto-detect
+		// them here instead TitleInfo has a second constructor which takes a subpath unable to
+		// determine type by extension, check contents
 		CafeTitleFileType fileType = DetermineCafeSystemFileType(path);
-		if (fileType == CafeTitleFileType::WUD ||
-			fileType == CafeTitleFileType::WUX)
+		if (fileType == CafeTitleFileType::WUD || fileType == CafeTitleFileType::WUX)
 		{
 			formatOut = TitleDataFormat::WUD;
 			pathOut = path;
@@ -254,7 +258,8 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 	{
 		// does it point to the root folder of a title?
 		std::error_code ec;
-		if (fs::exists(path / "content", ec) && fs::exists(path / "meta", ec) && fs::exists(path / "code", ec))
+		if (fs::exists(path / "content", ec) && fs::exists(path / "meta", ec) &&
+			fs::exists(path / "code", ec))
 		{
 			formatOut = TitleDataFormat::HOST_FS;
 			pathOut = path;
@@ -340,10 +345,8 @@ ZArchiveReader* _ZArchivePool_AcquireInstance(const fs::path& path)
 		it->second.first++; // increment ref count
 		return it->second.second;
 	}
-	sZArchivePool.emplace(std::piecewise_construct,
-		std::forward_as_tuple(path),
-		std::forward_as_tuple(1, zar)
-	);
+	sZArchivePool.emplace(std::piecewise_construct, std::forward_as_tuple(path),
+						  std::forward_as_tuple(1, zar));
 	return zar;
 }
 
@@ -361,16 +364,21 @@ void _ZArchivePool_ReleaseInstance(const fs::path& path, ZArchiveReader* zar)
 	}
 }
 
-bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, sint32 mountPriority)
+bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder,
+					  sint32 mountPriority)
 {
-	cemu_assert_debug(subfolder.empty() || (subfolder.front() != '/' || subfolder.front() != '\\')); // only relative subfolder allowed
+	cemu_assert_debug(
+		subfolder.empty() ||
+		(subfolder.front() != '/' || subfolder.front() != '\\')); // only relative subfolder allowed
 
 	cemu_assert(m_isValid);
 	if (m_titleFormat == TitleDataFormat::HOST_FS)
 	{
 		fs::path hostFSPath = m_fullPath;
 		hostFSPath.append(subfolder);
-		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), boost::nowide::widen(_utf8Wrapper(hostFSPath)).c_str(), mountPriority);
+		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(),
+									   boost::nowide::widen(_utf8Wrapper(hostFSPath)).c_str(),
+									   mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{
@@ -387,7 +395,8 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 		}
 		if (!m_wudVolume)
 			return false;
-		bool r = FSCDeviceWUD_Mount(std::string(virtualPath).c_str(), subfolder, m_wudVolume, mountPriority);
+		bool r = FSCDeviceWUD_Mount(std::string(virtualPath).c_str(), subfolder, m_wudVolume,
+									mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{
@@ -404,7 +413,9 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 			if (!m_zarchive)
 				return false;
 		}
-		bool r = FSCDeviceWUA_Mount(std::string(virtualPath).c_str(), std::string(m_subPath).append("/").append(subfolder), m_zarchive, mountPriority);
+		bool r = FSCDeviceWUA_Mount(std::string(virtualPath).c_str(),
+									std::string(m_subPath).append("/").append(subfolder),
+									m_zarchive, mountPriority);
 		if (!r)
 		{
 			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
@@ -477,11 +488,11 @@ bool TitleInfo::ParseXmlInfo()
 		return false;
 	// meta/meta.xml
 	auto xmlData = fsc_extractFile(fmt::format("{}meta/meta.xml", mountPath).c_str());
-	if(xmlData)
+	if (xmlData)
 		m_parsedMetaXml = ParsedMetaXml::Parse(xmlData->data(), xmlData->size());
 	// code/app.xml
 	xmlData = fsc_extractFile(fmt::format("{}code/app.xml", mountPath).c_str());
-	if(xmlData)
+	if (xmlData)
 		ParseAppXml(*xmlData);
 	// code/cos.xml
 	xmlData = fsc_extractFile(fmt::format("{}code/cos.xml", mountPath).c_str());
@@ -495,7 +506,8 @@ bool TitleInfo::ParseXmlInfo()
 	if (!m_parsedMetaXml || !m_parsedAppXml || !m_parsedCosXml)
 	{
 		if (hasAnyXml)
-			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _utf8Wrapper(m_fullPath));
+			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}",
+						_utf8Wrapper(m_fullPath));
 		delete m_parsedMetaXml;
 		delete m_parsedAppXml;
 		delete m_parsedCosXml;
@@ -525,7 +537,8 @@ bool TitleInfo::ParseAppXml(std::vector<uint8>& appXmlData)
 	{
 		std::string_view name = child.name();
 		if (name == "title_version")
-			m_parsedAppXml->title_version = (uint16)std::stoull(child.text().as_string(), nullptr, 16);
+			m_parsedAppXml->title_version =
+				(uint16)std::stoull(child.text().as_string(), nullptr, 16);
 		else if (name == "title_id")
 			m_parsedAppXml->title_id = std::stoull(child.text().as_string(), nullptr, 16);
 		else if (name == "app_type")
@@ -645,10 +658,12 @@ std::string TitleInfo::GetInstallPath() const
 {
 	TitleId titleId = GetAppTitleId();
 	TitleIdParser tip(titleId);
-        std::string tmp;
+	std::string tmp;
 	if (tip.IsSystemTitle())
-               tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-        else
-               tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+		tmp =
+			fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+	else
+		tmp =
+			fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
 	return tmp;
 }
