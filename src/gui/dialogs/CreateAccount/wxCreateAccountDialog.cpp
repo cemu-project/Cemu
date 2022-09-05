@@ -71,7 +71,7 @@ void wxCreateAccountDialog::OnOK(wxCommandEvent& event)
 	const auto id = GetPersistentId();
 	if(id < Account::kMinPersistendId)
 	{
-		wxMessageBox(fmt::format(_("The persistent id must be greater than {:x}!").ToStdString(), Account::kMinPersistendId),
+		wxMessageBox(fmt::format(fmt::runtime(_("The persistent id must be greater than {:x}!").ToStdString()), Account::kMinPersistendId),
 			_("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
@@ -79,7 +79,7 @@ void wxCreateAccountDialog::OnOK(wxCommandEvent& event)
 	const auto& account = Account::GetAccount(id);
 	if(account.GetPersistentId() == id)
 	{
-		const std::wstring msg = fmt::format(_("The persistent id {:x} is already in use by account {}!").ToStdWstring(), 
+		const std::wstring msg = fmt::format(fmt::runtime(_("The persistent id {:x} is already in use by account {}!").ToStdWstring()), 
 			account.GetPersistentId(), std::wstring{ account.GetMiiName() });
 		wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;

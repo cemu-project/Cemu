@@ -219,7 +219,7 @@ namespace iosu
 	template <typename ... TArgs>
 	curl_slist* append_header_param(struct curl_slist* list, const char* format, TArgs&& ... args)
 	{
-		return curl_slist_append(list, fmt::format(format, std::forward<TArgs>(args)...).c_str());
+		return curl_slist_append(list, fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...).c_str());
 	}
 
 	bool starts_with(const char* str, const char* pre)

@@ -1,10 +1,10 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO fmtlib/fmt
-    REF 7bdf0628b1276379886c7f6dda2cef2b3b374f0b # v7.1.3
-    SHA512 52ea8f9d2c0cb52ec3a740e38fcdfd6a0318566e3b599bd2e8d557168642d005c0a59bc213cff2641a88fed3bb771d15f46c39035ccd64809569af982aba47aa
+    REF a33701196adfad74917046096bf5a2aa0ab0bb50 # v9.1.0
+    SHA512 0faf00e99b332fcb3d9fc50cc9649ddc004ca9035f3652c1a001facee725dab09f67b65a9dfcce0aedb47e76c74c45a9262a1fd6e250a9e9a27c7d021c8ee6b8
     HEAD_REF master
-    PATCHES fix-warning4189.patch
+    # PATCHES fix-warning4189.patch
 )
 
 vcpkg_cmake_configure(

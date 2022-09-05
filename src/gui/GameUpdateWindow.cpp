@@ -63,7 +63,7 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 					std::string typeStrCurrentlyInstalled = _GetTitleIdTypeStr(tmp.GetAppTitleId());
 
 					std::string wxMsg = wxHelper::MakeUTF8(_("It seems that there is already a title installed at the target location but it has a different type.\nCurrently installed: \'{}\' Installing: \'{}\'\n\nThis can happen for titles which were installed with very old Cemu versions.\nDo you still want to continue with the installation? It will replace the currently installed title."));
-					wxMessageDialog dialog(this, fmt::format(wxMsg, typeStrCurrentlyInstalled, typeStrToInstall), _("Warning"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
+					wxMessageDialog dialog(this, fmt::format(fmt::runtime(wxMsg), typeStrCurrentlyInstalled, typeStrToInstall), _("Warning"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
 					if (dialog.ShowModal() != wxID_YES)
 						return false;
 				}

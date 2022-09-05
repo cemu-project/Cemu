@@ -36,7 +36,8 @@ enum class LogType : sint32
 template <>
 struct fmt::formatter<std::u8string_view> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(std::u8string_view v, FormatContext& ctx) {
+	auto format(std::u8string_view v, FormatContext& ctx) 
+	{
 		string_view s((char*)v.data(), v.size());
 		return formatter<string_view>::format(s, ctx);
 	}
@@ -52,16 +53,38 @@ bool cemuLog_log(LogType type, std::u8string_view text);
 bool cemuLog_log(LogType type, std::wstring_view text);
 void cemuLog_waitForFlush(); // wait until all log lines are written
 
-template<typename TFmt, typename ... TArgs>
-bool cemuLog_log(LogType type, TFmt format, TArgs&&... args)
+template <typename T>
+auto ForwardEnum(T t) 
+{
+  if constexpr (std::is_enum_v<T>)
+    return fmt::underlying(t);
+  else
+    return std::forward<T>(t);
+}
+
+template <typename... TArgs>
+auto ForwardEnum(std::tuple<TArgs...> t) 
+{ 
+	return std::apply([](auto... x) { return std::make_tuple(ForwardEnum(x)...); }, t);
+}
+
+template<typename T, typename ... TArgs>
+bool cemuLog_log(LogType type, std::basic_string<T> format, TArgs&&... args)
 {
 	if (!cemuLog_isLoggingEnabled(type))
 		return false;
 
-	const auto format_view = fmt::to_string_view(format);
-	const auto text = fmt::vformat(format_view, fmt::make_args_checked<TArgs...>(format_view, args...));
+	const auto format_view = fmt::basic_string_view<T>(format);
+	const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(ForwardEnum(args)...));
 	cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
 	return true;
+}
+ 
+template<typename T, typename ... TArgs>
+bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
+{
+	auto format_str=std::basic_string<T>(format);
+	return cemuLog_log(type, format_str, std::forward<TArgs>(args)...);
 }
 
 // same as cemuLog_log, but only outputs in debug/release mode

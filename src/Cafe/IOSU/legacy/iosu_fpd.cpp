@@ -84,7 +84,7 @@ namespace iosu
 								name = tmp;
 						}
 
-						g_friend_notifications.emplace_back(fmt::format(msg_format, name), 5000);
+						g_friend_notifications.emplace_back(fmt::format(fmt::runtime(msg_format), name), 5000);
 					}
 				}
 			}

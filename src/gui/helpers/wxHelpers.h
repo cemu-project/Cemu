@@ -48,13 +48,13 @@ template<typename ...TArgs>
 wxString wxStringFormat2(const wxString& format, TArgs&&...args)
 {
 	// ignores locale?
-	return fmt::format(format.ToStdString(), std::forward<TArgs>(args)...);
+	return fmt::format(fmt::runtime(format.ToStdString()), std::forward<TArgs>(args)...);
 }
 
 template<typename ...TArgs>
 wxString wxStringFormat2W(const wxString& format, TArgs&&...args)
 {
-	return fmt::format(format.ToStdWstring(), std::forward<TArgs>(args)...);
+	return fmt::format(fmt::runtime(format.ToStdWstring()), std::forward<TArgs>(args)...);
 }
 
 // executes a function when destroying the obj

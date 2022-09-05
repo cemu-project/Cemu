@@ -242,7 +242,7 @@ bool DownloadManager::_connect_queryAccountStatusAndServiceURLs()
 	NAPI::NAPI_ECSGetAccountStatus_Result accountStatusResult = NAPI::ECS_GetAccountStatus(authInfo);
 	if (accountStatusResult.apiError != NAPI_RESULT::SUCCESS)
 	{
-		cemuLog_log(LogType::Force, fmt::format("ECS - Failed to query account status (error: {0} {1})", accountStatusResult.apiError, accountStatusResult.serviceError));
+		cemuLog_log(LogType::Force, "ECS - Failed to query account status (error: {0} {1})", accountStatusResult.apiError, accountStatusResult.serviceError);
 		return false;
 	}
 	if (accountStatusResult.accountStatus == NAPI::NAPI_ECSGetAccountStatus_Result::AccountStatus::UNREGISTERED)
