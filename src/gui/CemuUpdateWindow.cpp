@@ -4,7 +4,7 @@
 #include "util/helpers/helpers.h"
 #include "util/helpers/SystemException.h"
 #include "config/ActiveSettings.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include <wx/sizer.h>
 #include <wx/gauge.h>

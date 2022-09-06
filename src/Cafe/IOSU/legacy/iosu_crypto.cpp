@@ -9,7 +9,7 @@
 #include "openssl/ecdsa.h"
 
 #include "util/crypto/aes128.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 uint8 otpMem[1024];
 bool hasOtpMem = false;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "util/tinyxml2/tinyxml2.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "config/ConfigValue.h"
 
 #include <string>

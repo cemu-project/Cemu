@@ -1,4 +1,4 @@
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 static void _bmp_write(FileStream* fs, sint32 width, sint32 height, uint32 bits, void* pixelData)
 {

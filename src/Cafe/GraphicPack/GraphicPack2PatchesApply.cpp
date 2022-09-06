@@ -1,5 +1,5 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"

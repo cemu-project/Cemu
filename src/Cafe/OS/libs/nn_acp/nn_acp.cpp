@@ -14,7 +14,7 @@
 #include "Cafe/IOSU/legacy/iosu_ioctl.h"
 
 #include "Cafe/OS/libs/sysapp/sysapp.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "Cafe/CafeSystem.h"
 
 #define acpPrepareRequest() \
