@@ -233,7 +233,6 @@ FileStream* FileStream::createFile2(const fs::path& path)
   return nullptr;
 }
 
-// helper function to load a file into memory
 std::optional<std::vector<uint8>> FileStream::LoadIntoMemory(const fs::path& path)
 {
   FileStream* fs = openFile2(path);
@@ -255,7 +254,6 @@ std::optional<std::vector<uint8>> FileStream::LoadIntoMemory(const fs::path& pat
   return v;
 }
 
-// size and seek
 void FileStream::SetPosition(uint64 pos)
 {
   cemu_assert(m_isValid);
@@ -283,7 +281,6 @@ bool FileStream::SetEndOfFile()
   //return ::SetEndOfFile(m_hFile) != 0;
 }
 
-// reading
 void FileStream::extract(std::vector<uint8>& data)
 {
   uint64 fileSize = GetSize();
@@ -332,7 +329,6 @@ bool FileStream::readLine(std::string& line)
   return !isEOF;
 }
 
-// writing (binary)
 sint32 FileStream::writeData(const void* data, sint32 length)
 {
   SyncReadWriteSeek(true);
@@ -355,7 +351,6 @@ void FileStream::writeU8(uint8 v)
   writeData(&v, sizeof(uint8));
 }
 
-// writing (strings)
 void FileStream::writeStringFmt(const char* format, ...)
 {
   char buffer[2048];
