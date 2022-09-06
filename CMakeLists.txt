@@ -39,7 +39,15 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 if (MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
 	# floating point model: precise, fiber safe optimizations
-	add_compile_options(/EHsc /fp:precise /GT)
+	add_compile_options(/EHsc /fp:precise)
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		# Speeds up static linking (especially helpful in incremental compilation)
+		if((CMAKE_LINKER MATCHES ".*lld-link.*") AND (CMAKE_AR MATCHES ".*llvm-lib.*"))
+			set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY STATIC_LIBRARY_OPTIONS /llvmlibthin)
+		endif()
+  	else()
+	  add_compile_options(/GT)
+	endif()
 	if (PUBLIC_RELEASE)
 		message(STATUS "Using additional optimization flags for MSVC")
 		add_compile_options(/Oi /Ot) # enable intrinsic functions, favor speed
@@ -81,7 +89,7 @@ find_package(ZLIB REQUIRED)
 find_package(zstd MODULE REQUIRED) # MODULE so that zstd::zstd is available
 find_package(OpenSSL COMPONENTS Crypto SSL REQUIRED)
 find_package(glm REQUIRED)
-find_package(fmt 7.0.0 REQUIRED)
+find_package(fmt 9.1.0 REQUIRED)
 find_package(PNG REQUIRED)
 
 # glslang versions older than 11.11.0 define targets without a namespace

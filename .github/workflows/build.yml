@@ -86,7 +86,11 @@ jobs:
       run: |
         cd build
         ninja
-        
+
+    - name: Prepare artifact
+      if: ${{ inputs.deploymode == 'release' }}
+      run: mv bin/Cemu_release bin/Cemu
+              
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       if: ${{ inputs.deploymode == 'release' }}
@@ -188,7 +192,11 @@ jobs:
       run: |
         cd build
         cmake --build . --config ${{ env.BUILD_MODE }} -j 2
-        
+
+    - name: Prepare artifact
+      if: ${{ inputs.deploymode == 'release' }}
+      run: Rename-Item bin/Cemu_release.exe Cemu.exe
+      
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       if: ${{ inputs.deploymode == 'release' }}

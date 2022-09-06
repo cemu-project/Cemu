@@ -160,15 +160,15 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		{
 			GameEntry entry{};
 			entry.rpx_file = boost::nowide::widen(rpx);
-			entry.title_id = element.get("title_id", 0LL);
+			entry.title_id = element.get<decltype(entry.title_id)>("title_id");
 			entry.legacy_name = boost::nowide::widen(element.get("name", ""));
 			entry.custom_name = element.get("custom_name", "");
 			entry.legacy_region = element.get("region", 0);
 			entry.legacy_version = element.get("version", 0);
 			entry.legacy_update_version = element.get("version", 0);
 			entry.legacy_dlc_version = element.get("dlc_version", 0);
-			entry.legacy_time_played = element.get("time_played", 0ULL);
-			entry.legacy_last_played = element.get("last_played", 0ULL);
+			entry.legacy_time_played = element.get<decltype(entry.legacy_time_played)>("time_played");
+			entry.legacy_last_played = element.get<decltype(entry.legacy_last_played)>("last_played");
 			entry.favorite = element.get("favorite", false);
 			game_cache_entries.emplace_back(entry);
 

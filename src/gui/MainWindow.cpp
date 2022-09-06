@@ -1803,7 +1803,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = fmt::format(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}").ToStdString(), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = fmt::format(fmt::runtime(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}").ToStdString()), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
@@ -1945,7 +1945,7 @@ public:
 						"/*****************************************************************************/\r\n"
 					);
 					delete fs;
-					wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(tempPath)));
+					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(tempPath))));
 				});
 			lineSizer->Add(noticeLink, 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);

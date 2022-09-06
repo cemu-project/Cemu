@@ -293,23 +293,23 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 	std::string msg = wxHelper::MakeUTF8(_("The following content will be converted to a compressed Wii U archive file (.wua):\n \n"));
 	
 	if (titleInfo_base.IsValid())
-		msg.append(fmt::format(wxHelper::MakeUTF8(_("Base game: {}")), _utf8Wrapper(titleInfo_base.GetPath())));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game: {}"))), _utf8Wrapper(titleInfo_base.GetPath())));
 	else
-		msg.append(fmt::format(wxHelper::MakeUTF8(_("Base game: Not installed"))));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game: Not installed")))));
 
 	msg.append("\n");
 
 	if (titleInfo_update.IsValid())
-		msg.append(fmt::format(wxHelper::MakeUTF8(_("Update: {}")), _utf8Wrapper(titleInfo_update.GetPath())));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update: {}"))), _utf8Wrapper(titleInfo_update.GetPath())));
 	else
-		msg.append(fmt::format(wxHelper::MakeUTF8(_("Update: Not installed"))));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update: Not installed")))));
 
 	msg.append("\n");
 
 	if (titleInfo_aoc.IsValid())
-		msg.append(fmt::format(wxHelper::MakeUTF8(_("DLC: {}")), _utf8Wrapper(titleInfo_aoc.GetPath())));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC: {}"))), _utf8Wrapper(titleInfo_aoc.GetPath())));
 	else
-		msg.append(fmt::format(wxHelper::MakeUTF8(_("DLC: Not installed"))));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC: Not installed")))));
 
 	const int answer = wxMessageBox(wxString::FromUTF8(msg), _("Confirmation"), wxOK | wxCANCEL | wxCENTRE | wxICON_QUESTION, this);
 	if (answer != wxOK)
@@ -852,7 +852,7 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 	case kContextMenuOpenDirectory:
 		{
 			const auto path = fs::is_directory(entry->path) ? entry->path : entry->path.parent_path();
-			wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+			wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 		}
 		break;
 	case kContextMenuDelete:

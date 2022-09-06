@@ -20,7 +20,7 @@ public:
 	template<typename TFmt, typename ... TArgs>
 	void addFmt(const TFmt& format, TArgs&&... args)
 	{
-		auto r = fmt::vformat_to_n((char*)(this->str + this->length), (size_t)(this->limit - this->length), fmt::to_string_view(format), fmt::make_args_checked<TArgs...>(format, args...));
+		auto r = fmt::vformat_to_n((char*)(this->str + this->length), (size_t)(this->limit - this->length), fmt::detail::to_string_view(format), fmt::make_format_args(args...));
 		this->length += (uint32)r.size;
 	}
 

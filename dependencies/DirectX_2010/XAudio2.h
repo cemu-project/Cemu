@@ -48,10 +48,15 @@
 //DEFINE_CLSID(XAudio2_Debug, 47199894, 7cc2, 444d, 98, 73, ce, d2, 56, 2c, c6, 0e);
 
 // XAudio 2.7 (June 2010 SDK)
+#ifdef __clang__
+class __declspec(uuid("5a508685-a254-4fba-9b82-9a24b00306af")) XAudio2; extern "C" const GUID CLSID_XAudio2;
+class __declspec(uuid("db05ea35-0329-4d4b-a53a-6dead03d3852")) XAudio2_Debug; extern "C" const GUID CLSID_XAudio2_Debug;
+struct __declspec(uuid("8bcf1f58-9fe7-4583-8ac6-e2adc465c8bb")) IXAudio2; extern "C" const GUID IID_IXAudio2;
+#else
 DEFINE_CLSID(XAudio2, 5a508685, a254, 4fba, 9b, 82, 9a, 24, b0, 03, 06, af);
 DEFINE_CLSID(XAudio2_Debug, db05ea35, 0329, 4d4b, a5, 3a, 6d, ea, d0, 3d, 38, 52);
 DEFINE_IID(IXAudio2, 8bcf1f58, 9fe7, 4583, 8a, c6, e2, ad, c4, 65, c8, bb);
-
+#endif
 
 // Ignore the rest of this header if only the GUID definitions were requested
 #ifndef GUID_DEFS_ONLY

@@ -18,14 +18,15 @@
 build/
 out/
 .cache/
-bin/Cemu
+bin/Cemu_*
+bin/Cemu_*.exe
 
 # Cemu bin files
 bin/otp.bin
 bin/seeprom.bin
 bin/log.txt
-bin/Cemu.pdb
-bin/Cemu.ilk
+bin/Cemu_*.pdb
+bin/Cemu_*.ilk
 bin/Cemu.exe.backup
 bin/mlc01/*
 bin/settings.xml

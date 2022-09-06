@@ -197,7 +197,9 @@ void VulkanRenderer::DetermineVendor()
 		break;
 	}
 
-	if (IsRunningInWine())
+	VkDriverId driverId = driverProperties.driverID;
+
+	if(driverId == VK_DRIVER_ID_MESA_RADV || driverId == VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA)
 		m_vendor = GfxVendor::Mesa;
 
 	forceLog_printf("Using GPU: %s", properties.properties.deviceName);
@@ -216,7 +218,7 @@ void VulkanRenderer::DetermineVendor()
 	else
 	{
 		forceLog_printf("Driver version (as stored in device info): %08X", properties.properties.driverVersion);
-		
+
 		if(m_vendor == GfxVendor::Nvidia)
 		{
 			// if the driver does not support the extension,

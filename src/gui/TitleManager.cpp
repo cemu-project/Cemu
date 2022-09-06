@@ -5,6 +5,7 @@
 #include "Cafe/TitleList/GameInfo.h"
 #include "util/helpers/helpers.h"
 #include "gui/helpers/wxHelpers.h"
+#include "gui/wxHelper.h"
 #include "gui/components/wxTitleManagerList.h"
 #include "gui/components/wxDownloadManagerList.h"
 #include "gui/GameUpdateWindow.h"
@@ -479,7 +480,7 @@ void TitleManager::OnSaveOpenDirectory(wxCommandEvent& event)
 	if (!fs::exists(target) || !fs::is_directory(target))
 		return;
 
-	wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(target)));
+	wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(target))));
 }
 
 void TitleManager::OnSaveDelete(wxCommandEvent& event)

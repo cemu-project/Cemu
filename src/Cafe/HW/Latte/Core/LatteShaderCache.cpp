@@ -441,9 +441,9 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 				ImGui::ProgressBar(percentLoaded, { -1, 0 }, "");
 
 				if (isPipelines)
-					text = fmt::format("{}/{} ({}%%)", g_shaderCacheLoaderState.loadedPipelines, g_shaderCacheLoaderState.pipelineFileCount, (int)(percentLoaded * 100));
+					text = fmt::format("{}/{} ({}%)", g_shaderCacheLoaderState.loadedPipelines, g_shaderCacheLoaderState.pipelineFileCount, (int)(percentLoaded * 100));
 				else
-					text = fmt::format("{}/{} ({}%%)", g_shaderCacheLoaderState.loadedShaderFiles, g_shaderCacheLoaderState.shaderFileCount, (int)(percentLoaded * 100));
+					text = fmt::format("{}/{} ({}%)", g_shaderCacheLoaderState.loadedShaderFiles, g_shaderCacheLoaderState.shaderFileCount, (int)(percentLoaded * 100));
 				ImGui::SetCursorPosX(width - ImGui::CalcTextSize(text.c_str()).x / 2);
 				ImGui::Text("%s", text.c_str());
 				ImGui::End();

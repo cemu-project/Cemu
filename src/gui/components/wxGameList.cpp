@@ -51,11 +51,18 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
 {
 	CreateListColumns();
-	
+
+	const char transparent_bitmap[kIconWidth * kIconWidth * 4] = {0};
+	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
+	blank.UseAlpha(true);
+
 	m_image_list = new wxImageList(kIconWidth, kIconWidth);
+	m_image_list->Add(blank);
 	wxListCtrl::SetImageList(m_image_list, wxIMAGE_LIST_NORMAL);
 
 	m_image_list_small = new wxImageList(kListIconWidth, kListIconWidth);
+	wxBitmap::Rescale(blank, {kListIconWidth, kListIconWidth});
+	m_image_list_small->Add(blank);
 	wxListCtrl::SetImageList(m_image_list_small, wxIMAGE_LIST_SMALL);
 
 	m_tooltip_window = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER);
@@ -556,7 +563,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				{
 				fs::path path(gameInfo.GetBase().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 				break;
 				}
 			case kWikiPage:
@@ -570,28 +577,28 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 					wxASSERT(!tokens.empty());
 					const std::string company_code = gameInfo.GetBase().GetMetaInfo()->GetCompanyCode();
 					wxASSERT(company_code.size() >= 2);
-					wxLaunchDefaultBrowser(fmt::format("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2).c_str()));
+					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2).c_str())));
 				}
 				break;
 				}
 				
 			case kContextMenuSaveFolder:
 			{
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(gameInfo.GetSaveFolder())));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(gameInfo.GetSaveFolder()))));
 				break;
 			}
 			case kContextMenuUpdateFolder:
 			{
 				fs::path path(gameInfo.GetUpdate().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 				break;
 			}
 			case kContextMenuDLCFolder:
 			{
 				fs::path path(gameInfo.GetAOC().front().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(fmt::format("file:{}", _utf8Wrapper(path)));
+				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(path))));
 				break;
 			}
 			case kContextMenuEditGraphicPacks:
@@ -857,15 +864,14 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 		isNewEntry = true;
 	}
 
-	int icon = 0;
-	int icon_small = 0;
-	bool hasIcon = QueryIconForTitle(baseTitleId, icon, icon_small);
+	int icon = 0; /* 0 is the default empty icon */
+	int icon_small = 0; /* 0 is the default empty icon */
+	QueryIconForTitle(baseTitleId, icon, icon_small);
 
 	if (m_style == Style::kList)
 	{
-		if(hasIcon)
-			SetItemColumnImage(index, ColumnIcon, icon_small);
-		
+		SetItemColumnImage(index, ColumnIcon, icon_small);
+
 		SetItem(index, ColumnName, wxHelper::FromUtf8(GetNameByTitleId(baseTitleId)));
 
 		SetItem(index, ColumnVersion, fmt::format("{}", gameInfo.GetVersion()));
@@ -912,13 +918,11 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 	}
 	else if (m_style == Style::kIcons)
 	{
-		if(hasIcon)
-			SetItemImage(index, icon);
+		SetItemImage(index, icon);
 	}
 	else if (m_style == Style::kSmallIcons)
 	{
-		if (hasIcon)
-			SetItemImage(index, icon_small);
+		SetItemImage(index, icon_small);
 	}
 	if (isNewEntry)
 		UpdateItemColors(index);

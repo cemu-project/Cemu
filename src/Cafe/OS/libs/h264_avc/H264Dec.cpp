@@ -28,7 +28,7 @@ namespace H264
 		// both of these are required to allow Breath of the Wild to playback the higher res (1080p) videos from the Switch version
 		// we mirror these hacks for user convenience and because there are no downsides
 		uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
-		if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 || currentTitleId == 0x0005000e101c9300)
+		if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 || currentTitleId == 0x00050000101c9300)
 			return true;
 		return false;
 	}
