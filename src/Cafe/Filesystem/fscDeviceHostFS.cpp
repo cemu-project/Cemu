@@ -270,8 +270,7 @@ class fscDeviceHostFSC : public fscDeviceC {
 			return nullptr;
 		}
 
-		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(correctedPath, accessFlags, *fscStatus);
-		return vf;
+		return FSCVirtualFile_Host::OpenFile(correctedPath, accessFlags, *fscStatus);
 	}
 
 	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
