@@ -536,7 +536,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				std::string customName = "";
 				if (!GetConfig().GetGameListCustomName(title_id, customName))
 					customName.clear();
-				wxTextEntryDialog dialog(this, wxEmptyString, L"Enter a custom game title", customName);
+				wxTextEntryDialog dialog(this, wxEmptyString, _("Enter a custom game title"), wxHelper::FromUtf8(customName));
 				if(dialog.ShowModal() == wxID_OK)
 				{
 					const auto custom_name = dialog.GetValue();
@@ -859,7 +859,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 	if(index == wxNOT_FOUND)
 	{
 		// entry doesn't exist
-		index = InsertItem(FindInsertPosition(baseTitleId), wxHelper::FromUtf8(gameInfo.GetTitleName()));
+		index = InsertItem(FindInsertPosition(baseTitleId), wxHelper::FromUtf8(GetNameByTitleId(baseTitleId)));
 		SetItemPtrData(index, baseTitleId);
 		isNewEntry = true;
 	}
