@@ -2,6 +2,7 @@
 
 #include "TitleId.h"
 #include "ParsedMetaXml.h"
+#include "Cafe/Filesystem/FSPath.h"
 
 class SaveInfo
 {
