@@ -34,8 +34,11 @@ XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, u
 	m_wfx.Format.nChannels = channels;
 	m_wfx.Format.nSamplesPerSec = samplerate;
 	m_wfx.Format.wBitsPerSample = bits_per_sample;
-	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels × wBitsPerSample) / 8
-	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec × nBlockAlign.
+	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) /
+							   8; // must equal (nChannels * wBitsPerSample) / 8
+	m_wfx.Format.nAvgBytesPerSec =
+		m_wfx.Format.nSamplesPerSec *
+		m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec * nBlockAlign.
 	m_wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
 
 	m_wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
