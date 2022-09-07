@@ -235,12 +235,10 @@ class fscDeviceHostFSC : public fscDeviceC {
 		auto static lowercase_path = [](std::filesystem::path const & path)
 		{
 			std::wstring string = path.wstring();
-			std::transform(string.begin(), string.end(), string.begin(), [](const auto& item)
+			for (auto& i : string)
 			{
-				if (std::isalpha(item))
-					return static_cast<wchar_t>(std::tolower(item));
-				return item;
-			});
+				i = std::isalpha(i) ? std::tolower(i) : i;
+			}
 			return string;
 		};
 
