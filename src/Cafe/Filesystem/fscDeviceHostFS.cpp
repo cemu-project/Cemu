@@ -248,7 +248,8 @@ class fscDeviceHostFSC : public fscDeviceC {
 		for (auto const &it : relPath)
 		{
 			found = false;
-			for (auto const& dir_entry : std::filesystem::directory_iterator{correctedPath})
+			std::error_code listErr;
+			for (auto const& dir_entry : std::filesystem::directory_iterator{correctedPath, listErr})
 			{
 				std::filesystem::path entry_name = dir_entry.path().filename();
 				if (lowercase_path(entry_name) == lowercase_path(it))
@@ -258,6 +259,14 @@ class fscDeviceHostFSC : public fscDeviceC {
 					break;
 				}
 			}
+
+			// if we can't iterate directory, just copy the original case.
+			if(listErr)
+			{
+				correctedPath /= it;
+				found = true;
+			}
+
 			if (!found)
 				break;
 		}
