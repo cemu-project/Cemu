@@ -38,15 +38,15 @@ jobs:
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
-        echo "BUILD_MODE=release" >> $GITHUB_ENV
+        echo "BUILD_MODE=Release" >> $GITHUB_ENV
         echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
-        echo "Build mode is release"
+        echo "Build mode is Release"
     - name: Setup debug mode parameters (for continous build)
       if: ${{ inputs.deploymode != 'release' }}
       run: |
-        echo "BUILD_MODE=debug" >> $GITHUB_ENV
+        echo "BUILD_MODE=Debug" >> $GITHUB_ENV
         echo "BUILD_FLAGS=" >> $GITHUB_ENV
-        echo "Build mode is debug"
+        echo "Build mode is Debug"
         
     - name: Setup version for experimental
       if: ${{ inputs.experimentalversion != '' }}
