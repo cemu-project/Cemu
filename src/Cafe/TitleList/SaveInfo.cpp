@@ -16,7 +16,7 @@ std::string SaveInfo::GetStorageSubpathByTitleId(TitleId titleId)
 	return fmt::format("usr/save/{:08x}/{:08x}", ((uint64)titleId) >> 32, (uint64)titleId & 0xFFFFFFFF);
 }
 
-fs::path SaveInfo::GetSavePath(TitleId titleId)
+FSPath SaveInfo::GetSavePath(TitleId titleId)
 {
 	return ActiveSettings::GetMlcPath(GetStorageSubpathByTitleId(titleId));
 }

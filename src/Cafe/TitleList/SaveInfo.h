@@ -21,7 +21,7 @@ public:
 
 private:
 	static std::string GetStorageSubpathByTitleId(TitleId titleId);
-	static fs::path GetSavePath(TitleId titleId);
+	static FSPath GetSavePath(TitleId titleId);
 
 	TitleId m_titleId;
 	FSPath m_path;

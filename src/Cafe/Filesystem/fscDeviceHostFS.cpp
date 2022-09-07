@@ -234,7 +234,7 @@ public:
 
 	bool fscDeviceCreateDir(std::wstring_view path, void* ctx, sint32* fscStatus) override
 	{
-		fs::path dirPath(path);
+		auto dirPath = FSPath::Convert(path);
 		if (fs::exists(path))
 		{
 			if (!fs::is_directory(dirPath))
@@ -253,7 +253,7 @@ public:
 	bool fscDeviceRemoveFileOrDir(std::wstring_view path, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		fs::path _path(path);
+		auto _path = FSPath::Convert(path);
 		std::error_code ec;
 		if (!fs::exists(_path, ec))
 		{
@@ -272,7 +272,7 @@ public:
 	bool fscDeviceRename(std::wstring_view srcPath, std::wstring_view dstPath, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		fs::path _srcPath(srcPath);
+		auto _srcPath = FSPath::Convert(srcPath);
 		fs::path _dstPath(dstPath);
 		std::error_code ec;
 		if (!fs::exists(_srcPath, ec))
