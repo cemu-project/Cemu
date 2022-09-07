@@ -234,7 +234,7 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 
 	m_timer = new wxTimer(this);
 	Bind(wxEVT_TIMER, &WiimoteControllerSettings::on_timer, this);
-	m_timer->Start();
+	m_timer->Start(100);
 }
 
 WiimoteControllerSettings::~WiimoteControllerSettings()
