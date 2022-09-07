@@ -1303,7 +1303,16 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 
 	m_last_mouse_move_time = std::chrono::steady_clock::now();
 	m_mouse_position = wxGetMousePosition();
-	ShowCursor(true);
+
+	if (GetKeyState(VK_F1) & 1 && !(GetKeyState(VK_TAB) & 0x8000))
+	{
+		ShowCursor(false);
+	}
+	else
+	{
+		ShowCursor(true);
+	}
+	
 
 	auto& instance = InputManager::instance();
 	std::unique_lock lock(instance.m_main_mouse.m_mutex);
@@ -1749,7 +1758,16 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 	{
 		m_last_mouse_move_time = std::chrono::steady_clock::now();
 		m_mouse_position = mouse_position;
-		ShowCursor(true);
+
+		if (GetKeyState(VK_F1) & 1 && !(GetKeyState(VK_TAB) & 0x8000))
+		{
+			ShowCursor(false);
+		}
+		else
+		{
+			ShowCursor(true);
+		}
+
 		return;
 	}
 

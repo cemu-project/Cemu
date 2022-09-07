@@ -69,7 +69,21 @@ void VPADController::VPADRead(VPADStatus_t& status, const BtnRepeat& repeat)
 				continue;
 			}
 
+			
+
 			status.hold |= value;
+		}
+
+		if (GetKeyState(VK_F1) & 1 && !(GetKeyState(VK_TAB) & 0x8000))
+		{
+			if (i == kButtonId_ZR && (GetKeyState(MK_LBUTTON) & 0x8000))
+			{
+				status.hold |= VPAD_ZR;
+			}
+			else if (i == kButtonId_R && (GetKeyState(MK_RBUTTON) & 0x8000))
+			{
+				status.hold |= VPAD_R;
+			}
 		}
 	}
 
@@ -133,7 +147,10 @@ void VPADController::VPADRead(VPADStatus_t& status, const BtnRepeat& repeat)
 	m_last_holdvalue = status.hold;
 
 	// touch
-	update_touch(status);
+	if (!GetKeyState(VK_F1) & 1 || (GetKeyState(VK_TAB) & 0x8000))
+	{
+		update_touch(status);
+	}
 
 	// motion
 	status.dir.x = {1, 0, 0};
@@ -233,6 +250,9 @@ void VPADController::update_touch(VPADStatus_t& status)
 	status.tpProcessed2 = status.tpData;
 }
 
+float oldPosX, oldPosY = 0;
+float wx, wy = 0;
+
 void VPADController::update_motion(VPADStatus_t& status)
 {
 	if (has_motion())
@@ -280,25 +300,33 @@ void VPADController::update_motion(VPADStatus_t& status)
 
 	bool pad_view;
 	auto& input_manager = InputManager::instance();
-	if (const auto right_mouse = input_manager.get_right_down_mouse_info(&pad_view))
+	const float sensitivity = 1;
+
+	if (GetKeyState(VK_F1) & 1 && !(GetKeyState(VK_TAB) & 0x8000))
 	{
-		const Vector2<float> mousePos(right_mouse->x, right_mouse->y);
+		//auto mouse = input_manager.get_mouse_position(false);
 
-		int w, h;
-		if (pad_view)
-			gui_getPadWindowSize(&w, &h);
-		else
-			gui_getWindowSize(&w, &h);
+		//Vector2<float> mousePos(mouse.x, mouse.y);
 
-		float wx = mousePos.x / w;
-		float wy = mousePos.y / h;
+
+		POINT mousePos;
+
+		GetCursorPos(&mousePos);
+
+
+		float width = GetSystemMetrics(SM_CXSCREEN) / 2;
+		float height = GetSystemMetrics(SM_CYSCREEN) / 2;
+		
+
+		wx += (mousePos.x) - width;
+		wy += (mousePos.y) - height;
 
 		static glm::vec3 m_lastGyroRotation{}, m_startGyroRotation{};
 		static bool m_startGyroRotationSet{};
 
-		float rotX = (wy * 2 - 1.0f) * 135.0f; // up/down best
-		float rotY = (wx * 2 - 1.0f) * -180.0f; // left/right
-		float rotZ = input_manager.m_mouse_wheel * 14.0f + m_lastGyroRotation.z;
+		float rotX = (wy * 0.05) * 1; // up/down best
+		float rotY = (wx * -0.1) * 1; // left/right
+		float rotZ = 0; //input_manager.m_mouse_wheel * 14.0f + m_lastGyroRotation.z;
 		input_manager.m_mouse_wheel = 0.0f;
 
 		if (!m_startGyroRotationSet)
@@ -348,6 +376,8 @@ void VPADController::update_motion(VPADStatus_t& status)
 		status.accXY = {1.0f, 0.0f};
 
 		m_lastGyroRotation = {rotX, rotY, rotZ};
+
+		SetCursorPos(width, height);
 	}
 }
 
