@@ -213,10 +213,9 @@ typedef union _LARGE_INTEGER {
 #if !defined(_MSC_VER) || defined(__clang__) // clang-cl does not support _udiv128
 inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, uint64 *remainder)
 {
-    unsigned __int128 dividend128 = (((unsigned __int128)highDividend) << 64) | ((unsigned __int128)lowDividend);
-    unsigned __int128 divisor128 = (unsigned __int128)divisor;
-    *remainder = (uint64)((dividend128 % divisor128) & 0xFFFFFFFFFFFFFFFF);
-    return       (uint64)((dividend128 / divisor128) & 0xFFFFFFFFFFFFFFFF);
+    unsigned __int128 dividend = (((unsigned __int128)highDividend) << 64) | ((unsigned __int128)lowDividend);
+    *remainder = (uint64)((dividend % divisor) & 0xFFFFFFFFFFFFFFFF);
+    return       (uint64)((dividend / divisor) & 0xFFFFFFFFFFFFFFFF);
 }
 #endif
 
