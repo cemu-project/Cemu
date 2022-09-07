@@ -47,6 +47,8 @@
 
 #if BOOST_OS_WINDOWS
 #define exit(__c) ExitProcess(__c)
+#else
+#define exit(__c) _Exit(__c)
 #endif
 
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
