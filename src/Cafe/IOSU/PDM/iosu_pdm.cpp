@@ -1,6 +1,6 @@
 #include "iosu_pdm.h"
 #include "config/ActiveSettings.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "util/helpers/Semaphore.h"
 
 #if BOOST_OS_LINUX

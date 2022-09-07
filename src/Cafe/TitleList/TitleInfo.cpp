@@ -4,7 +4,7 @@
 #include "Cafe/Filesystem/FST/FST.h"
 
 #include "pugixml.hpp"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include <zarchive/zarchivereader.h>
 #include "config/ActiveSettings.h"

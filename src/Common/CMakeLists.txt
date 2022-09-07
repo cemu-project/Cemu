@@ -10,6 +10,7 @@ if(WIN32)
 	target_sources(CemuCommon PRIVATE
 		windows/platform.cpp
 		windows/platform.h
+		windows/FileStream_win32.cpp
 		ExceptionHandler/ExceptionHandler_win32.cpp
 	)
 else()
@@ -17,6 +18,7 @@ target_sources(CemuCommon
 PRIVATE
     unix/platform.cpp
     unix/platform.h
+    unix/FileStream_unix.cpp
     ExceptionHandler/ExceptionHandler_posix.cpp
 )
 endif()

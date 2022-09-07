@@ -1,5 +1,5 @@
 #include "TitleList.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include "util/helpers/helpers.h"
 

@@ -4,7 +4,7 @@
 #include "gui/CemuApp.h"
 #include "util/crypto/md5.h"
 #include "Cafe/TitleList/TitleId.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "Cemu/FileCache/FileCache.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "config/ActiveSettings.h"

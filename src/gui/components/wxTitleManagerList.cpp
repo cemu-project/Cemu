@@ -31,7 +31,7 @@
 #include <zarchive/zarchivewriter.h>
 #include <zarchive/zarchivereader.h>
 
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 wxDEFINE_EVENT(wxEVT_TITLE_FOUND, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TITLE_REMOVED, wxCommandEvent);

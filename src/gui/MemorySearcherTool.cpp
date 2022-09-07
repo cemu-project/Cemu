@@ -8,7 +8,7 @@
 
 #include "config/ActiveSettings.h"
 #include "gui/helpers/wxHelpers.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"
 #include "Cafe/CafeSystem.h"

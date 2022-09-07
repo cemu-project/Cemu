@@ -16,7 +16,7 @@
 
 #include "util/helpers/ConcurrentQueue.h"
 #include "Cafe/OS/common/PPCConcurrentQueue.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "config/ActiveSettings.h"
 
 namespace nlibcurl

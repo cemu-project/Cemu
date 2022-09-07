@@ -24,7 +24,7 @@
 
 #include "Cafe/Filesystem/FST/FST.h"
 
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include "GamePatch.h"
 

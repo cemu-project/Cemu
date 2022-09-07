@@ -5,7 +5,7 @@
 
 #include "config/ActiveSettings.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include <random>
 #include <boost/random/uniform_int.hpp>
