@@ -2,6 +2,10 @@
 #include <execinfo.h>
 #include <sys/resource.h>
 
+#ifdef BOOST_OS_LINUX
+#include <sys/prctl.h>
+#endif
+
 void handler_SIGSEGV(int sig)
 {
     printf("SIGSEGV!\n");
@@ -33,11 +37,15 @@ void handler_SIGINT(int sig)
 // stop large coredumps from clogging up the system disk.
 void disableCoreDump()
 {
+#ifndef BOOST_OS_LINUX
 	rlimit l;
 	if (!getrlimit(RLIMIT_CORE, &l))
 		return;
 	l.rlim_cur = 0;
 	setrlimit(RLIMIT_CORE, &l);
+#else
+	prctl(PR_SET_DUMPABLE, 0);
+#endif
 }
 
 void ExceptionHandler_init()
