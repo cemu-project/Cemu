@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Cemu/nex/nexTypes.h"
+
 #ifndef FFL_SIZE
 #define FFL_SIZE	0x60
 #endif

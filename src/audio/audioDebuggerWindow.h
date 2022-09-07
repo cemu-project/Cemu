@@ -1,5 +1,6 @@
 #pragma once
 
+#include <wx/listctrl.h>
 #include <wx/wx.h>
 
 class AudioDebuggerWindow : public wxFrame

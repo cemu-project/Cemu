@@ -1,4 +1,5 @@
 #pragma once
+
 #include "util/math/vector2.h"
 
 class VKRMoveableRefCounterRef

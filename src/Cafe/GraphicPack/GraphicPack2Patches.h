@@ -3,6 +3,7 @@
 class PatchGroup;
 
 #include "GraphicPackError.h"
+#include <variant>
 
 struct PatchContext_t
 {

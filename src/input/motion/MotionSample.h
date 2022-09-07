@@ -1,6 +1,7 @@
 #pragma once
-#include "util/math/vector3.h"
+
 #include "util/math/quaternion.h"
+#include "util/math/vector3.h"
 
 struct Quat
 {

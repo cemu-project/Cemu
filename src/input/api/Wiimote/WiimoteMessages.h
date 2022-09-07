@@ -1,5 +1,7 @@
 #pragma once
 
+#include "input/motion/MotionSample.h"
+
 // https://wiibrew.org/wiki/Wiimote
 
 enum InputReportId : uint8
