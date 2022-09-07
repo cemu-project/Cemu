@@ -242,7 +242,7 @@ LatteParsedGSCopyShader* LatteGSCopyShaderParser_parse(uint8* programData, uint3
 	// verify if all registers are exported
 	for(sint32 i=0; i<shaderContext->numParam; i++)
 	{
-		if( shaderContext->paramMapping[i].exportParam == 0xFFFF )
+		if( shaderContext->paramMapping[i].exportParam == 0xFF )
 			debugBreakpoint();
 	}
 	return shaderContext;

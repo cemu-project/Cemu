@@ -10,6 +10,8 @@
 #include "Cafe/Filesystem/fsc.h"
 #include "Cafe/HW/Espresso/PPCState.h"
 
+#include <inttypes.h>
+
 static_assert(sizeof(acpMetaXml_t) == 0x3440);
 static_assert(offsetof(acpMetaXml_t, title_id) == 0x0000);
 static_assert(offsetof(acpMetaXml_t, boss_id) == 0x0008);
@@ -85,7 +87,7 @@ namespace iosu
 			return;
 		const char* text = subElement->GetText();
 		uint64 value;
-		if (sscanf(text, "%llx", &value) == 0)
+		if (sscanf(text, "%" SCNx64, &value) == 0)
 			return;
 		*v = _swapEndianU64(value);
 	}
