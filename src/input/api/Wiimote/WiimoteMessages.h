@@ -144,8 +144,8 @@ enum ClassicButtons
 
 struct Calibration
 {
-	glm::vec<3, uint16> zero{ 0x200, 0x200, 0x200 };
-	glm::vec<3, uint16> gravity{ 0x240, 0x240, 0x240 };
+	glm::vec<3, uint16> zero{0x200, 0x200, 0x200};
+	glm::vec<3, uint16> gravity{0x240, 0x240, 0x240};
 };
 
 struct BasicIR
@@ -197,14 +197,14 @@ struct IRCamera
 	glm::vec2 position, m_prev_position;
 	glm::vec2 middle;
 	float distance;
-	std::pair<sint32, sint32> indices{ 0,1 };
+	std::pair<sint32, sint32> indices{0, 1};
 };
 
 struct NunchuchCalibration : Calibration
 {
 	glm::vec<2, uint8> min{};
-	glm::vec<2, uint8> center{ 0x7f, 0x7f };
-	glm::vec<2, uint8> max{ 0xff, 0xff };
+	glm::vec<2, uint8> center{0x7f, 0x7f};
+	glm::vec<2, uint8> max{0xff, 0xff};
 };
 
 struct MotionPlusData

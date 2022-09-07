@@ -18,11 +18,12 @@ struct gameProfileBooleanOption_t
 };
 
 /*
-* Attempts to load a boolean option
-* If the option exists, true is returned.
-* The boolean is stored in *optionValue
-*/
-bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameProfileBooleanOption_t* option)
+ * Attempts to load a boolean option
+ * If the option exists, true is returned.
+ * The boolean is stored in *optionValue
+ */
+bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName,
+								   gameProfileBooleanOption_t* option)
 {
 	auto option_value = iniParser->FindOption(optionName);
 	option->isPresent = false;
@@ -43,10 +44,10 @@ bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameP
 		return true;
 	}
 	else
-		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
+		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value,
+					  optionName);
 	return false;
 }
-
 
 bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName, bool& option)
 {
@@ -64,24 +65,28 @@ bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName
 		return true;
 	}
 	else
-		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
+		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value,
+					  optionName);
 	return false;
 }
 
-bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName, std::optional<bool>& option)
+bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName,
+									std::optional<bool>& option)
 {
 	bool tmp;
 	const auto result = gameProfile_loadBooleanOption2(iniParser, optionName, tmp);
-	if(result)
+	if (result)
 		option = tmp;
 	return result;
 }
 
 /*
-* Attempts to load a integer option
-* Allows to specify min and max value (error is logged if out of range and default value is picked)
-*/
-bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName, gameProfileIntegerOption_t* option, sint32 defaultValue, sint32 minVal, sint32 maxVal)
+ * Attempts to load a integer option
+ * Allows to specify min and max value (error is logged if out of range and default value is picked)
+ */
+bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName,
+								   gameProfileIntegerOption_t* option, sint32 defaultValue,
+								   sint32 minVal, sint32 maxVal)
 {
 	auto option_value = iniParser->FindOption(optionName);
 	option->isPresent = false;
@@ -94,7 +99,8 @@ bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName,
 	sint32 val = StringHelpers::ToInt(*option_value, defaultValue);
 	if (val < minVal || val > maxVal)
 	{
-		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value,
+					  optionName);
 		option->value = defaultValue;
 		return false;
 	}
@@ -103,8 +109,9 @@ bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName,
 	return true;
 }
 
-template <typename T>
-bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName, T& option, T minVal, T maxVal)
+template<typename T>
+bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName, T& option,
+								   T minVal, T maxVal)
 {
 	static_assert(std::is_integral<T>::value);
 	auto option_value = iniParser.FindOption(optionName);
@@ -116,18 +123,20 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 		T val = ConvertString<T>(*option_value);
 		if (val < minVal || val > maxVal)
 		{
-			cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+			cemuLog_force("Value '{}' is out of range for option '{}' in game profile",
+						  *option_value, optionName);
 			return false;
 		}
 
 		option = val;
 		return true;
 	}
-	catch(std::exception&)
+	catch (std::exception&)
 	{
-		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value,
+					  optionName);
 		return false;
-	}	
+	}
 }
 
 template<typename T>
@@ -137,17 +146,19 @@ bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, T&
 	auto option_value = iniParser.FindOption(optionName);
 	if (!option_value)
 		return false;
-	for(const T& v : T())
+	for (const T& v : T())
 	{
 		// test integer option
-		if (boost::iequals(fmt::format("{}", static_cast<typename std::underlying_type<T>::type>(v)), *option_value))
+		if (boost::iequals(
+				fmt::format("{}", static_cast<typename std::underlying_type<T>::type>(v)),
+				*option_value))
 		{
 			option = v;
 			return true;
 		}
 
 		// test enum name
-		if(boost::iequals(fmt::format("{}", v), *option_value))
+		if (boost::iequals(fmt::format("{}", v), *option_value))
 		{
 			option = v;
 			return true;
@@ -157,11 +168,12 @@ bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, T&
 }
 
 template<typename T>
-bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, std::optional<T>& option)
+bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName,
+								std::optional<T>& option)
 {
 	T tmp;
 	const auto result = gameProfile_loadEnumOption(iniParser, optionName, tmp);
-	if(result)
+	if (result)
 		option = tmp;
 	return result;
 }
@@ -201,7 +213,8 @@ bool GameProfile::Load(uint64_t title_id)
 	{
 		char c;
 		size_t idx = 1;
-		while (idx < profileContents->size() && (c = profileContents->data()[idx]) != '\n' && idx < 128)
+		while (idx < profileContents->size() && (c = profileContents->data()[idx]) != '\n' &&
+			   idx < 128)
 		{
 			game_name.emplace_back(c);
 			idx++;
@@ -224,16 +237,18 @@ bool GameProfile::Load(uint64_t title_id)
 			gameProfile_loadIntegerOption(&iniParser, "graphics_api", &graphicsApi, -1, 0, 1);
 			if (graphicsApi.value != -1)
 				m_graphics_api = (GraphicAPI)graphicsApi.value;
-			
+
 			gameProfile_loadEnumOption(iniParser, "accurateShaderMul", m_accurateShaderMul);
 
 			// legacy support
 			auto option_precompiledShaders = iniParser.FindOption("precompiledShaders");
 			if (option_precompiledShaders)
 			{
-				if (boost::iequals(*option_precompiledShaders, "1") || boost::iequals(*option_precompiledShaders, "true"))
+				if (boost::iequals(*option_precompiledShaders, "1") ||
+					boost::iequals(*option_precompiledShaders, "true"))
 					m_precompiledShaders = PrecompiledShaderOption::Enable;
-				else if (boost::iequals(*option_precompiledShaders, "0") || boost::iequals(*option_precompiledShaders, "false"))
+				else if (boost::iequals(*option_precompiledShaders, "0") ||
+						 boost::iequals(*option_precompiledShaders, "false"))
 					m_precompiledShaders = PrecompiledShaderOption::Disable;
 				else
 					m_precompiledShaders = PrecompiledShaderOption::Auto;
@@ -247,12 +262,14 @@ bool GameProfile::Load(uint64_t title_id)
 		}
 		else if (boost::iequals(iniParser.GetCurrentSectionName(), "CPU"))
 		{
-			gameProfile_loadIntegerOption(iniParser, "threadQuantum", m_threadQuantum, 1000U, 536870912U);
+			gameProfile_loadIntegerOption(iniParser, "threadQuantum", m_threadQuantum, 1000U,
+										  536870912U);
 			if (!gameProfile_loadEnumOption(iniParser, "cpuMode", m_cpuMode))
 			{
 				// try to load the old enum value strings
 				std::optional<CPUModeLegacy> cpu_mode_legacy;
-				if (gameProfile_loadEnumOption(iniParser, "cpuMode", cpu_mode_legacy) && cpu_mode_legacy.has_value())
+				if (gameProfile_loadEnumOption(iniParser, "cpuMode", cpu_mode_legacy) &&
+					cpu_mode_legacy.has_value())
 				{
 					m_cpuMode = (CPUMode)cpu_mode_legacy.value();
 					if (m_cpuMode == CPUMode::DualcoreRecompiler)
@@ -268,7 +285,6 @@ bool GameProfile::Load(uint64_t title_id)
 				if (option_value)
 					m_controllerProfile[i] = std::string(*option_value);
 			}
-
 		}
 	}
 	return true;
@@ -287,7 +303,9 @@ void GameProfile::Save(uint64_t title_id)
 	if (m_gameName)
 		fs->writeLine(fmt::format("# {}\n", m_gameName.value()).c_str());
 
-#define WRITE_OPTIONAL_ENTRY(__NAME) if (m_##__NAME) fs->writeLine(fmt::format("{} = {}", #__NAME, m_##__NAME.value()).c_str());
+#define WRITE_OPTIONAL_ENTRY(__NAME)                                                               \
+	if (m_##__NAME)                                                                                \
+		fs->writeLine(fmt::format("{} = {}", #__NAME, m_##__NAME.value()).c_str());
 #define WRITE_ENTRY(__NAME) fs->writeLine(fmt::format("{} = {}", #__NAME, m_##__NAME).c_str());
 
 	fs->writeLine("[General]");
@@ -296,7 +314,6 @@ void GameProfile::Save(uint64_t title_id)
 
 	fs->writeLine("");
 
-
 	fs->writeLine("[CPU]");
 	WRITE_OPTIONAL_ENTRY(cpuMode);
 	WRITE_ENTRY(threadQuantum);
@@ -304,7 +321,7 @@ void GameProfile::Save(uint64_t title_id)
 	fs->writeLine("");
 
 	fs->writeLine("[Graphics]");
-	//WRITE_OPTIONAL_ENTRY(gpuBufferCacheAccuracy);
+	// WRITE_OPTIONAL_ENTRY(gpuBufferCacheAccuracy);
 	WRITE_ENTRY(accurateShaderMul);
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
@@ -318,7 +335,8 @@ void GameProfile::Save(uint64_t title_id)
 	for (int i = 0; i < 8; ++i)
 	{
 		if (m_controllerProfile[i])
-			fs->writeLine(fmt::format("controller{} = {}", (i + 1), m_controllerProfile[i].value()).c_str());
+			fs->writeLine(
+				fmt::format("controller{} = {}", (i + 1), m_controllerProfile[i].value()).c_str());
 	}
 
 	fs->writeLine("");
@@ -356,7 +374,7 @@ void GameProfile::Reset()
 	// general settings
 	m_loadSharedLibraries = true;
 	m_startWithPadView = false;
-	
+
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_precompiledShaders = PrecompiledShaderOption::Auto;

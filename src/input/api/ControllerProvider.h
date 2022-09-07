@@ -12,12 +12,15 @@ struct ControllerProviderSettings
 
 class ControllerProviderBase
 {
-public:
+  public:
 	ControllerProviderBase() = default;
 	virtual ~ControllerProviderBase() = default;
 
 	virtual InputAPI::Type api() const = 0;
-	std::string_view api_name() const { return to_string(api()); }
+	std::string_view api_name() const
+	{
+		return to_string(api());
+	}
 
 	virtual std::vector<std::shared_ptr<ControllerBase>> get_controllers() = 0;
 
@@ -38,16 +41,15 @@ public:
 
 using ControllerProviderPtr = std::shared_ptr<ControllerProviderBase>;
 
-template <typename TSettings>
+template<typename TSettings>
 class ControllerProvider : public ControllerProviderBase
 {
 	using base_type = ControllerProviderBase;
-public:
+
+  public:
 	ControllerProvider() = default;
 
-	ControllerProvider(const TSettings& settings)
-		: m_settings(settings)
-	{}
+	ControllerProvider(const TSettings& settings) : m_settings(settings) {}
 
 	bool has_settings() const override
 	{
@@ -83,6 +85,6 @@ public:
 		return m_settings == *ptr;
 	}
 
-protected:
+  protected:
 	TSettings m_settings{};
 };

@@ -3,20 +3,16 @@
 template<typename _OBJ, typename _ADDR, size_t count, size_t granularity>
 class RangeStore
 {
-public:
-
+  public:
 	typedef struct
 	{
 		_ADDR start;
 		_ADDR end;
 		_OBJ data;
 		size_t lastIterationIndex;
-	}rangeEntry_t;
+	} rangeEntry_t;
 
-	RangeStore()
-	{
-
-	}
+	RangeStore() {}
 
 	size_t getBucket(_ADDR addr)
 	{
@@ -71,13 +67,17 @@ public:
 		size_t idx = bucketFirst;
 		for (size_t i = 0; i < bucketCount; i++)
 		{
-			rangeBuckets[idx].list_ranges.erase(std::remove(rangeBuckets[idx].list_ranges.begin(), rangeBuckets[idx].list_ranges.end(), rangeEntry), rangeBuckets[idx].list_ranges.end());
+			rangeBuckets[idx].list_ranges.erase(std::remove(rangeBuckets[idx].list_ranges.begin(),
+															rangeBuckets[idx].list_ranges.end(),
+															rangeEntry),
+												rangeBuckets[idx].list_ranges.end());
 			idx = (idx + 1) % count;
 		}
 		delete rangeEntry;
 	}
 
-	void findRanges(_ADDR start, _ADDR end, std::function <void(_ADDR start, _ADDR end, _OBJ data)> f)
+	void findRanges(_ADDR start, _ADDR end,
+					std::function<void(_ADDR start, _ADDR end, _OBJ data)> f)
 	{
 		currentIterationIndex++;
 		size_t bucketFirst;
@@ -89,7 +89,8 @@ public:
 		{
 			for (auto r : rangeBuckets[idx].list_ranges)
 			{
-				if (start < r->end && end > r->start && r->lastIterationIndex != currentIterationIndex)
+				if (start < r->end && end > r->start &&
+					r->lastIterationIndex != currentIterationIndex)
 				{
 					r->lastIterationIndex = currentIterationIndex;
 					f(r->start, r->end, r->data);
@@ -111,7 +112,8 @@ public:
 		{
 			for (auto r : rangeBuckets[idx].list_ranges)
 			{
-				if (start < r->end && end > r->start && r->lastIterationIndex != currentIterationIndex)
+				if (start < r->end && end > r->start &&
+					r->lastIterationIndex != currentIterationIndex)
 				{
 					r->lastIterationIndex = currentIterationIndex;
 					rStart = r->start;
@@ -125,11 +127,11 @@ public:
 		return false;
 	}
 
-private:
+  private:
 	typedef struct
 	{
 		std::vector<rangeEntry_t*> list_ranges;
-	}rangeBucket_t;
+	} rangeBucket_t;
 
 	std::array<rangeBucket_t, count> rangeBuckets;
 

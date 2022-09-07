@@ -17,7 +17,8 @@ void parse_hrd_parameters(h264ParserState_t* h264ParserState, RBSPInputBitstream
 	uint8 time_offset_length = nalStream.readBits<5>();
 }
 
-void parseNAL_scaling_list4x4(RBSPInputBitstream& rbspStream, h264_scaling_matrix4x4_t& scalingMatrix4x4)
+void parseNAL_scaling_list4x4(RBSPInputBitstream& rbspStream,
+							  h264_scaling_matrix4x4_t& scalingMatrix4x4)
 {
 	if (rbspStream.readBit() == 0)
 	{
@@ -42,7 +43,8 @@ void parseNAL_scaling_list4x4(RBSPInputBitstream& rbspStream, h264_scaling_matri
 	}
 }
 
-void parseNAL_scaling_list8x8(RBSPInputBitstream& rbspStream, h264_scaling_matrix8x8_t& scalingMatrix8x8)
+void parseNAL_scaling_list8x8(RBSPInputBitstream& rbspStream,
+							  h264_scaling_matrix8x8_t& scalingMatrix8x8)
 {
 	if (rbspStream.readBit() == 0)
 	{
@@ -102,28 +104,30 @@ void parseNAL_sps_scaling_lists(h264ParserState_t* h264ParserState, RBSPInputBit
 		cemu_assert(false); // todo - more scaling lists to parse
 }
 
-bool parseNAL_seq_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, RBSPInputBitstream& nalStream)
+bool parseNAL_seq_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264ParserOutput_t* output,
+									 RBSPInputBitstream& nalStream)
 {
 	memset(&h264ParserState->sps, 0, sizeof(h264State_seq_parameter_set_t));
 
 	h264ParserState->sps.profile_idc = nalStream.readU8(); // 0x64 = high profile
-	h264ParserState->sps.constraint = nalStream.readU8(); // 6 flags + 2 reserved bits
-	h264ParserState->sps.level_idc = nalStream.readU8(); // 0x29 = level 4.1
+	h264ParserState->sps.constraint = nalStream.readU8();  // 6 flags + 2 reserved bits
+	h264ParserState->sps.level_idc = nalStream.readU8();   // 0x29 = level 4.1
 
 	// some default values in case flags are not set
 	h264ParserState->sps.separate_colour_plane_flag = 0;
 	h264ParserState->sps.chroma_format_idc = 1; // Spec 7.4.2.1.1
 	h264ParserState->sps.qpprime_y_zero_transform_bypass_flag = 0;
 	h264ParserState->sps.seq_scaling_matrix_present_flag = 0;
-	//h264ParserState->sps.mb_adaptive_frame_field_flag = 0;
-
-
+	// h264ParserState->sps.mb_adaptive_frame_field_flag = 0;
 
 	uint32 seq_parameter_set_id = nalStream.readUV_E();
-	if (h264ParserState->sps.profile_idc == 100 || h264ParserState->sps.profile_idc == 110 || h264ParserState->sps.profile_idc == 122 ||
-		h264ParserState->sps.profile_idc == 244 || h264ParserState->sps.profile_idc == 44 || h264ParserState->sps.profile_idc == 83 ||
-		h264ParserState->sps.profile_idc == 86 || h264ParserState->sps.profile_idc == 118 || h264ParserState->sps.profile_idc == 128 ||
-		h264ParserState->sps.profile_idc == 138 || h264ParserState->sps.profile_idc == 139 || h264ParserState->sps.profile_idc == 134 || h264ParserState->sps.profile_idc == 135)
+	if (h264ParserState->sps.profile_idc == 100 || h264ParserState->sps.profile_idc == 110 ||
+		h264ParserState->sps.profile_idc == 122 || h264ParserState->sps.profile_idc == 244 ||
+		h264ParserState->sps.profile_idc == 44 || h264ParserState->sps.profile_idc == 83 ||
+		h264ParserState->sps.profile_idc == 86 || h264ParserState->sps.profile_idc == 118 ||
+		h264ParserState->sps.profile_idc == 128 || h264ParserState->sps.profile_idc == 138 ||
+		h264ParserState->sps.profile_idc == 139 || h264ParserState->sps.profile_idc == 134 ||
+		h264ParserState->sps.profile_idc == 135)
 	{
 		h264ParserState->sps.chroma_format_idc = nalStream.readUV_E();
 		if (h264ParserState->sps.chroma_format_idc == 3)
@@ -169,7 +173,8 @@ bool parseNAL_seq_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264Par
 		h264ParserState->sps.mb_adaptive_frame_field_flag = 0; // default is zero?
 
 	h264ParserState->sps.direct_8x8_inference_flag = nalStream.readBit();
-	if (h264ParserState->sps.frame_mbs_only_flag == 0 && h264ParserState->sps.direct_8x8_inference_flag != 1)
+	if (h264ParserState->sps.frame_mbs_only_flag == 0 &&
+		h264ParserState->sps.direct_8x8_inference_flag != 1)
 	{
 		cemu_assert_debug(false); // not allowed
 	}
@@ -260,14 +265,15 @@ bool parseNAL_seq_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264Par
 		nalValid = false;
 	if (nalValid)
 	{
-		if(output)
+		if (output)
 			output->hasSPS = true;
 		h264ParserState->hasSPS = true;
 	}
 	return true;
 }
 
-bool parseNAL_pic_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, RBSPInputBitstream& nalStream)
+bool parseNAL_pic_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264ParserOutput_t* output,
+									 RBSPInputBitstream& nalStream)
 {
 	memset(&h264ParserState->pps, 0, sizeof(h264State_pic_parameter_set_t));
 
@@ -312,14 +318,17 @@ bool parseNAL_pic_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264Par
 		nalValid = false;
 	if (nalValid)
 	{
-		if(output)
+		if (output)
 			output->hasPPS = true;
 		h264ParserState->hasPPS = true;
 	}
 	return true;
 }
 
-void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps, const h264State_pic_parameter_set_t& pps, RBSPInputBitstream& nalStream, nal_slice_header_t* sliceHeader)
+void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps,
+										const h264State_pic_parameter_set_t& pps,
+										RBSPInputBitstream& nalStream,
+										nal_slice_header_t* sliceHeader)
 {
 	if (!sliceHeader->slice_type.isSliceTypeI() && !sliceHeader->slice_type.isSliceTypeSI())
 	{
@@ -328,7 +337,7 @@ void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps
 		{
 			sliceHeader->pic_list_modification0Count = 0;
 			uint32 modType;
-			while(true)
+			while (true)
 			{
 				if (sliceHeader->pic_list_modification0Count >= 32)
 				{
@@ -336,14 +345,19 @@ void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps
 					return;
 				}
 				modType = nalStream.readUV_E();
-				sliceHeader->pic_list_modification0Array[sliceHeader->pic_list_modification0Count].type = modType;
+				sliceHeader->pic_list_modification0Array[sliceHeader->pic_list_modification0Count]
+					.type = modType;
 				if (modType == 0 || modType == 1)
 				{
-					sliceHeader->pic_list_modification0Array[sliceHeader->pic_list_modification0Count].abs_diff_pic_num_minus1 = nalStream.readUV_E();
+					sliceHeader
+						->pic_list_modification0Array[sliceHeader->pic_list_modification0Count]
+						.abs_diff_pic_num_minus1 = nalStream.readUV_E();
 				}
 				else if (modType == 2)
 				{
-					sliceHeader->pic_list_modification0Array[sliceHeader->pic_list_modification0Count].long_term_pic_num = nalStream.readUV_E();
+					sliceHeader
+						->pic_list_modification0Array[sliceHeader->pic_list_modification0Count]
+						.long_term_pic_num = nalStream.readUV_E();
 				}
 				else if (modType == 3)
 				{
@@ -373,16 +387,21 @@ void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps
 					return;
 				}
 				uint32 modType = nalStream.readUV_E(); // aka modification_of_pic_nums_idc
-				sliceHeader->pic_list_modification1Array[sliceHeader->pic_list_modification1Count].type = modType;
+				sliceHeader->pic_list_modification1Array[sliceHeader->pic_list_modification1Count]
+					.type = modType;
 				if (modType == 0 || modType == 1)
 				{
-					sliceHeader->pic_list_modification1Array[sliceHeader->pic_list_modification1Count].abs_diff_pic_num_minus1 = nalStream.readUV_E();
+					sliceHeader
+						->pic_list_modification1Array[sliceHeader->pic_list_modification1Count]
+						.abs_diff_pic_num_minus1 = nalStream.readUV_E();
 				}
 				else if (modType == 2)
 				{
-					sliceHeader->pic_list_modification1Array[sliceHeader->pic_list_modification1Count].long_term_pic_num = nalStream.readUV_E();
+					sliceHeader
+						->pic_list_modification1Array[sliceHeader->pic_list_modification1Count]
+						.long_term_pic_num = nalStream.readUV_E();
 				}
-				else if(modType == 3)
+				else if (modType == 3)
 				{
 					break;
 				}
@@ -395,14 +414,17 @@ void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps
 			}
 			if (sliceHeader->pic_list_modification1Count > 0)
 			{
-				forceLogDebug_printf("sliceHeader->pic_list_modification1Count non-zero is not supported");
+				forceLogDebug_printf(
+					"sliceHeader->pic_list_modification1Count non-zero is not supported");
 				cemu_assert_unimplemented();
 			}
 		}
 	}
 }
 
-void parseNAL_dec_ref_pic_marking(const h264State_seq_parameter_set_t& sps, const h264State_pic_parameter_set_t& pps, RBSPInputBitstream& nalStream, nal_slice_header_t* sliceHeader)
+void parseNAL_dec_ref_pic_marking(const h264State_seq_parameter_set_t& sps,
+								  const h264State_pic_parameter_set_t& pps,
+								  RBSPInputBitstream& nalStream, nal_slice_header_t* sliceHeader)
 {
 	sliceHeader->memory_management_control_operation_num = 0;
 	if (sliceHeader->IdrPicFlag)
@@ -431,22 +453,45 @@ void parseNAL_dec_ref_pic_marking(const h264State_seq_parameter_set_t& sps, cons
 					cemu_assert_debug(false);
 					return;
 				}
-				sliceHeader->memory_management_control_operation[sliceHeader->memory_management_control_operation_num].op = memory_management_control_operation;
-				if (memory_management_control_operation == nal_slice_header_t::MEMOP_REMOVE_REF_FROM_SHORT_TERM || memory_management_control_operation == nal_slice_header_t::MEMOP_MAKE_LONG_TERM_REF)
+				sliceHeader
+					->memory_management_control_operation
+						[sliceHeader->memory_management_control_operation_num]
+					.op = memory_management_control_operation;
+				if (memory_management_control_operation ==
+						nal_slice_header_t::MEMOP_REMOVE_REF_FROM_SHORT_TERM ||
+					memory_management_control_operation ==
+						nal_slice_header_t::MEMOP_MAKE_LONG_TERM_REF)
 				{
-					sliceHeader->memory_management_control_operation[sliceHeader->memory_management_control_operation_num].difference_of_pic_nums_minus1 = nalStream.readUV_E();
+					sliceHeader
+						->memory_management_control_operation
+							[sliceHeader->memory_management_control_operation_num]
+						.difference_of_pic_nums_minus1 = nalStream.readUV_E();
 				}
-				else if (memory_management_control_operation == nal_slice_header_t::MEMOP_REMOVE_REF_FROM_LONG_TERM)
+				else if (memory_management_control_operation ==
+						 nal_slice_header_t::MEMOP_REMOVE_REF_FROM_LONG_TERM)
 				{
-					sliceHeader->memory_management_control_operation[sliceHeader->memory_management_control_operation_num].long_term_pic_num = nalStream.readUV_E();
+					sliceHeader
+						->memory_management_control_operation
+							[sliceHeader->memory_management_control_operation_num]
+						.long_term_pic_num = nalStream.readUV_E();
 				}
-				if (memory_management_control_operation == nal_slice_header_t::MEMOP_MAKE_LONG_TERM_REF || memory_management_control_operation == nal_slice_header_t::MEMOP_MAKE_CURRENT_LONG_TERM_REF)
+				if (memory_management_control_operation ==
+						nal_slice_header_t::MEMOP_MAKE_LONG_TERM_REF ||
+					memory_management_control_operation ==
+						nal_slice_header_t::MEMOP_MAKE_CURRENT_LONG_TERM_REF)
 				{
-					sliceHeader->memory_management_control_operation[sliceHeader->memory_management_control_operation_num].long_term_frame_idx = nalStream.readUV_E();
+					sliceHeader
+						->memory_management_control_operation
+							[sliceHeader->memory_management_control_operation_num]
+						.long_term_frame_idx = nalStream.readUV_E();
 				}
-				if (memory_management_control_operation == nal_slice_header_t::MEMOP_MAX_LONG_TERM_INDEX)
+				if (memory_management_control_operation ==
+					nal_slice_header_t::MEMOP_MAX_LONG_TERM_INDEX)
 				{
-					sliceHeader->memory_management_control_operation[sliceHeader->memory_management_control_operation_num].max_long_term_frame_idx_plus1 = nalStream.readUV_E();
+					sliceHeader
+						->memory_management_control_operation
+							[sliceHeader->memory_management_control_operation_num]
+						.max_long_term_frame_idx_plus1 = nalStream.readUV_E();
 				}
 				sliceHeader->memory_management_control_operation_num++;
 			}
@@ -454,7 +499,9 @@ void parseNAL_dec_ref_pic_marking(const h264State_seq_parameter_set_t& sps, cons
 	}
 }
 
-void parseNAL_pred_weight_table(const h264State_seq_parameter_set_t& sps, const h264State_pic_parameter_set_t& pps, RBSPInputBitstream& nalStream, nal_slice_header_t* sliceHeader)
+void parseNAL_pred_weight_table(const h264State_seq_parameter_set_t& sps,
+								const h264State_pic_parameter_set_t& pps,
+								RBSPInputBitstream& nalStream, nal_slice_header_t* sliceHeader)
 {
 	uint8 luma_log2_weight_denom = nalStream.readUV_E();
 
@@ -472,7 +519,7 @@ void parseNAL_pred_weight_table(const h264State_seq_parameter_set_t& sps, const 
 	for (uint32 i = 0; i <= sliceHeader->num_ref_idx_l0_active_minus1; i++)
 	{
 		uint8 luma_weight_l0_flag = nalStream.readBit();
-		if (luma_weight_l0_flag) 
+		if (luma_weight_l0_flag)
 		{
 			uint32 luma_weight_l0 = nalStream.readSV_E();
 			uint32 luma_offset_l0 = nalStream.readSV_E();
@@ -498,14 +545,14 @@ void parseNAL_pred_weight_table(const h264State_seq_parameter_set_t& sps, const 
 			if (luma_weight_l1_flag)
 			{
 				cemu_assert_debug(false);
-				//luma_weight_l1[i]
-				//luma_offset_l1[i]
+				// luma_weight_l1[i]
+				// luma_offset_l1[i]
 			}
 			if (ChromaArrayType != 0)
 			{
 				cemu_assert_debug(false);
-				//chroma_weight_l1_flag
-				//if (chroma_weight_l1_flag)
+				// chroma_weight_l1_flag
+				// if (chroma_weight_l1_flag)
 				//{
 				//	for (j = 0; j < 2; j++)
 				//	{
@@ -518,7 +565,9 @@ void parseNAL_pred_weight_table(const h264State_seq_parameter_set_t& sps, const 
 	}
 }
 
-void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264State_pic_parameter_set_t& pps, RBSPInputBitstream& nalStream, uint8 nal_unit_type, uint8 nal_ref_idc, nal_slice_header_t* sliceHeader)
+void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps,
+						   const h264State_pic_parameter_set_t& pps, RBSPInputBitstream& nalStream,
+						   uint8 nal_unit_type, uint8 nal_ref_idc, nal_slice_header_t* sliceHeader)
 {
 	bool IdrPicFlag = nal_unit_type == 5;
 
@@ -526,7 +575,7 @@ void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264S
 	sliceHeader->nal_ref_idc = nal_ref_idc;
 	sliceHeader->nal_unit_type = nal_unit_type;
 	sliceHeader->first_mb_in_slice = nalStream.readUV_E(); // address of first macroblock in slice
-	sliceHeader->slice_type = { nalStream.readUV_E() };
+	sliceHeader->slice_type = {nalStream.readUV_E()};
 	sliceHeader->pic_parameter_set_id = nalStream.readUV_E();
 
 	if (sps.separate_colour_plane_flag == 1)
@@ -546,7 +595,7 @@ void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264S
 		}
 	}
 
-	sliceHeader->IdrPicFlag = IdrPicFlag?1:0;
+	sliceHeader->IdrPicFlag = IdrPicFlag ? 1 : 0;
 
 	if (IdrPicFlag)
 	{
@@ -554,7 +603,8 @@ void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264S
 	}
 	if (sps.pic_order_cnt_type == 0)
 	{
-		sliceHeader->pic_order_cnt_lsb = nalStream.readBits(sps.log2_max_pic_order_cnt_lsb_minus4 + 4);
+		sliceHeader->pic_order_cnt_lsb =
+			nalStream.readBits(sps.log2_max_pic_order_cnt_lsb_minus4 + 4);
 		if (pps.bottom_field_pic_order_in_frame_present_flag && sliceHeader->field_pic_flag == 0)
 			sliceHeader->delta_pic_order_cnt_bottom = nalStream.readSV_E();
 	}
@@ -575,7 +625,8 @@ void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264S
 	sliceHeader->num_ref_idx_l0_active_minus1 = pps.num_ref_idx_l0_default_active_minus1;
 	sliceHeader->num_ref_idx_l1_active_minus1 = pps.num_ref_idx_l1_default_active_minus1;
 
-	if (sliceHeader->slice_type.isSliceTypeP() || sliceHeader->slice_type.isSliceTypeSP() || sliceHeader->slice_type.isSliceTypeB())
+	if (sliceHeader->slice_type.isSliceTypeP() || sliceHeader->slice_type.isSliceTypeSP() ||
+		sliceHeader->slice_type.isSliceTypeB())
 	{
 		sliceHeader->num_ref_idx_active_override_flag = nalStream.readBit();
 		if (sliceHeader->num_ref_idx_active_override_flag)
@@ -598,7 +649,9 @@ void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264S
 		parseNAL_ref_pic_list_modification(sps, pps, nalStream, sliceHeader);
 	}
 
-	if ((pps.weighted_pred_flag && (sliceHeader->slice_type.isSliceTypeP() || sliceHeader->slice_type.isSliceTypeSP())) || (pps.weighted_bipred_idc == 1 && sliceHeader->slice_type.isSliceTypeB()))
+	if ((pps.weighted_pred_flag &&
+		 (sliceHeader->slice_type.isSliceTypeP() || sliceHeader->slice_type.isSliceTypeSP())) ||
+		(pps.weighted_bipred_idc == 1 && sliceHeader->slice_type.isSliceTypeB()))
 	{
 		parseNAL_pred_weight_table(sps, pps, nalStream, sliceHeader);
 	}
@@ -608,7 +661,8 @@ void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264S
 		parseNAL_dec_ref_pic_marking(sps, pps, nalStream, sliceHeader);
 	}
 
-	if (pps.entropy_coding_mode_flag && !sliceHeader->slice_type.isSliceTypeI() && !sliceHeader->slice_type.isSliceTypeSI())
+	if (pps.entropy_coding_mode_flag && !sliceHeader->slice_type.isSliceTypeI() &&
+		!sliceHeader->slice_type.isSliceTypeSI())
 	{
 		uint32 cabac_init_idc = nalStream.readUV_E();
 		cemu_assert_debug(cabac_init_idc <= 2); // invalid value
@@ -633,13 +687,16 @@ void parseNAL_slice_header(const h264State_seq_parameter_set_t& sps, const h264S
 			sint32 slice_beta_offset_div2 = nalStream.readSV_E();
 		}
 	}
-	if (pps.num_slice_groups_minus1 > 0 && pps.slice_group_map_type >= 3 && pps.slice_group_map_type <= 5)
+	if (pps.num_slice_groups_minus1 > 0 && pps.slice_group_map_type >= 3 &&
+		pps.slice_group_map_type <= 5)
 	{
 		cemu_assert_debug(false); // todo
 	}
 }
 
-void _calculateFrameOrder(h264ParserState_t* h264ParserState, const h264State_seq_parameter_set_t& sps, const h264State_pic_parameter_set_t& pps, nal_slice_header_t* sliceHeader)
+void _calculateFrameOrder(h264ParserState_t* h264ParserState,
+						  const h264State_seq_parameter_set_t& sps,
+						  const h264State_pic_parameter_set_t& pps, nal_slice_header_t* sliceHeader)
 {
 	if (sps.pic_order_cnt_type == 0)
 	{
@@ -652,25 +709,29 @@ void _calculateFrameOrder(h264ParserState_t* h264ParserState, const h264State_se
 
 			prevPicOrderCntMsb = 0;
 			prevPicOrderCntLsb = 0;
-
 		}
 		else
 		{
 			uint32 prevRefPic_PicOrderCntMsb = h264ParserState->picture_order.prevPicOrderCntMsb;
-			uint32 prevRefPic_pic_order_cnt_lsb = h264ParserState->picture_order.prevPicOrderCntLsb; // todo
+			uint32 prevRefPic_pic_order_cnt_lsb =
+				h264ParserState->picture_order.prevPicOrderCntLsb; // todo
 
 			prevPicOrderCntMsb = prevRefPic_PicOrderCntMsb;
 			prevPicOrderCntLsb = prevRefPic_pic_order_cnt_lsb;
-
 		}
 
-		uint32 MaxPicOrderCntLsb = 1 << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4); // todo - verify
+		uint32 MaxPicOrderCntLsb = 1
+								   << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4); // todo - verify
 
 		uint32 PicOrderCntMsb;
 
-		if ((sliceHeader->pic_order_cnt_lsb < prevPicOrderCntLsb) && (((sint32)prevPicOrderCntLsb - (sint32)sliceHeader->pic_order_cnt_lsb) >= (sint32)(MaxPicOrderCntLsb / 2)))
+		if ((sliceHeader->pic_order_cnt_lsb < prevPicOrderCntLsb) &&
+			(((sint32)prevPicOrderCntLsb - (sint32)sliceHeader->pic_order_cnt_lsb) >=
+			 (sint32)(MaxPicOrderCntLsb / 2)))
 			PicOrderCntMsb = prevPicOrderCntMsb + MaxPicOrderCntLsb;
-		else if ((sliceHeader->pic_order_cnt_lsb > prevPicOrderCntLsb) && (((sint32)sliceHeader->pic_order_cnt_lsb - (sint32)prevPicOrderCntLsb) > (sint32)(MaxPicOrderCntLsb / 2)))
+		else if ((sliceHeader->pic_order_cnt_lsb > prevPicOrderCntLsb) &&
+				 (((sint32)sliceHeader->pic_order_cnt_lsb - (sint32)prevPicOrderCntLsb) >
+				  (sint32)(MaxPicOrderCntLsb / 2)))
 			PicOrderCntMsb = prevPicOrderCntMsb - MaxPicOrderCntLsb;
 		else
 			PicOrderCntMsb = prevPicOrderCntMsb;
@@ -699,16 +760,14 @@ void _calculateFrameOrder(h264ParserState_t* h264ParserState, const h264State_se
 		else
 		{
 			// todo - check for memory_management_control_operation 5
-			// prevFrameNumOffset is set equal to the value of FrameNumOffset of the previous picture in decoding order.
+			// prevFrameNumOffset is set equal to the value of FrameNumOffset of the previous
+			// picture in decoding order.
 			uint32 prevFrameNumOffset = h264ParserState->picture_order.prevFrameNumOffset;
 
 			if (prevFrameNum > sliceHeader->frame_num)
 				FrameNumOffset = prevFrameNumOffset + sps.getMaxFrameNum();
 			else
 				FrameNumOffset = prevFrameNumOffset;
-
-
-
 		}
 
 		uint32 tempPicOrderCnt;
@@ -749,12 +808,18 @@ void _calculateFrameOrder(h264ParserState_t* h264ParserState, const h264State_se
 	}
 }
 
-void parseNAL_slice_layer_without_partitioning_rbsp(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, sint32 streamSubOffset, sint32 streamSubLength, RBSPInputBitstream& nalStream, uint8 nal_ref_idc, uint8 nal_unit_type)
+void parseNAL_slice_layer_without_partitioning_rbsp(h264ParserState_t* h264ParserState,
+													h264ParserOutput_t* output,
+													sint32 streamSubOffset, sint32 streamSubLength,
+													RBSPInputBitstream& nalStream,
+													uint8 nal_ref_idc, uint8 nal_unit_type)
 {
 	nal_slice_t slice = {};
 	cemu_assert_debug(h264ParserState->hasPPS && h264ParserState->hasSPS);
-	parseNAL_slice_header(h264ParserState->sps, h264ParserState->pps, nalStream, nal_unit_type, nal_ref_idc, &slice.slice_header);
-	_calculateFrameOrder(h264ParserState, h264ParserState->sps, h264ParserState->pps, &slice.slice_header);
+	parseNAL_slice_header(h264ParserState->sps, h264ParserState->pps, nalStream, nal_unit_type,
+						  nal_ref_idc, &slice.slice_header);
+	_calculateFrameOrder(h264ParserState, h264ParserState->sps, h264ParserState->pps,
+						 &slice.slice_header);
 	if (output->sliceCount >= output->sliceInfo.size())
 	{
 		cemu_assert_debug(false); // internal slice buffer full
@@ -766,7 +831,8 @@ void parseNAL_slice_layer_without_partitioning_rbsp(h264ParserState_t* h264Parse
 	output->sliceCount++;
 }
 
-void h264Parse(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, uint8* data, uint32 length, bool parseSlices)
+void h264Parse(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, uint8* data,
+			   uint32 length, bool parseSlices)
 {
 	memset(output, 0, sizeof(h264ParserOutput_t));
 	NALInputBitstream nalStream(data, length);
@@ -829,11 +895,15 @@ void h264Parse(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, u
 		{
 		case 1:
 			if (parseSlices)
-				parseNAL_slice_layer_without_partitioning_rbsp(h264ParserState, output, streamSubOffset, streamSubLength, rbspStream, nal_ref_idc, nal_unit_type);
+				parseNAL_slice_layer_without_partitioning_rbsp(
+					h264ParserState, output, streamSubOffset, streamSubLength, rbspStream,
+					nal_ref_idc, nal_unit_type);
 			break;
 		case 5:
 			if (parseSlices)
-				parseNAL_slice_layer_without_partitioning_rbsp(h264ParserState, output, streamSubOffset, streamSubLength, rbspStream, nal_ref_idc, nal_unit_type);
+				parseNAL_slice_layer_without_partitioning_rbsp(
+					h264ParserState, output, streamSubOffset, streamSubLength, rbspStream,
+					nal_ref_idc, nal_unit_type);
 			break;
 		case 6:
 			// SEI
@@ -878,7 +948,8 @@ sint32 h264GetUnitLength(h264ParserState_t* h264ParserState, uint8* data, uint32
 	bool hasStartcode = false;
 	while (startCodeOffset < (sint32)(length - 3))
 	{
-		if (data[startCodeOffset + 0] == 0x00 && data[startCodeOffset + 1] == 0x00 && data[startCodeOffset + 2] == 0x01)
+		if (data[startCodeOffset + 0] == 0x00 && data[startCodeOffset + 1] == 0x00 &&
+			data[startCodeOffset + 2] == 0x01)
 		{
 			hasStartcode = true;
 			break;
@@ -922,21 +993,25 @@ sint32 h264GetUnitLength(h264ParserState_t* h264ParserState, uint8* data, uint32
 		case 1:
 		case 5:
 		{
-			// note: We cant parse the slice data because we dont have SPS and PPS data reliably available
-			// 
+			// note: We cant parse the slice data because we dont have SPS and PPS data reliably
+			// available
+			//
 			// currently we just assume there is 1 slice per unit
-			return (sint32)((rbspStream.getBasePtr() + rbspStream.getBaseLength()) - data) + startCodeOffset;
-			
+			return (sint32)((rbspStream.getBasePtr() + rbspStream.getBaseLength()) - data) +
+				   startCodeOffset;
+
 			break;
 		}
 		case 6:
 			// SEI
 			break;
 		case 7:
-			cemu_assert_debug(parseNAL_seq_parameter_set_rbsp(h264ParserState, nullptr, rbspStream));
+			cemu_assert_debug(
+				parseNAL_seq_parameter_set_rbsp(h264ParserState, nullptr, rbspStream));
 			break;
 		case 8:
-			cemu_assert_debug(parseNAL_pic_parameter_set_rbsp(h264ParserState, nullptr, rbspStream));
+			cemu_assert_debug(
+				parseNAL_pic_parameter_set_rbsp(h264ParserState, nullptr, rbspStream));
 			break;
 		case 9:
 			// access unit delimiter
@@ -954,47 +1029,25 @@ sint32 h264GetUnitLength(h264ParserState_t* h264ParserState, uint8* data, uint32
 	return -1;
 }
 
-static const unsigned char h264_default_4x4_Intra[16] =
-{
-	6, 13, 13, 20,
-	20, 20, 28, 28,
-	28, 28, 32, 32,
-	32, 37, 37, 42
-};
+static const unsigned char h264_default_4x4_Intra[16] = {6,	 13, 13, 20, 20, 20, 28, 28,
+														 28, 28, 32, 32, 32, 37, 37, 42};
 
-static const unsigned char h264_default_4x4_Inter[16] =
-{
-	10, 14, 14, 20,
-	20, 20, 24, 24,
-	24, 24, 27, 27,
-	27, 30, 30, 34
-};
+static const unsigned char h264_default_4x4_Inter[16] = {10, 14, 14, 20, 20, 20, 24, 24,
+														 24, 24, 27, 27, 27, 30, 30, 34};
 
-static const unsigned char h264_default_8x8_Intra[64] =
-{
-	6, 10, 10, 13, 11, 13, 16, 16,
-	16, 16, 18, 18, 18, 18, 18, 23,
-	23, 23, 23, 23, 23, 25, 25, 25,
-	25, 25, 25, 25, 27, 27, 27, 27,
-	27, 27, 27, 27, 29, 29, 29, 29,
-	29, 29, 29, 31, 31, 31, 31, 31,
-	31, 33, 33, 33, 33, 33, 36, 36,
-	36, 36, 38, 38, 38, 40, 40, 42
-};
+static const unsigned char h264_default_8x8_Intra[64] = {
+	6,	10, 10, 13, 11, 13, 16, 16, 16, 16, 18, 18, 18, 18, 18, 23, 23, 23, 23, 23, 23, 25,
+	25, 25, 25, 25, 25, 25, 27, 27, 27, 27, 27, 27, 27, 27, 29, 29, 29, 29, 29, 29, 29, 31,
+	31, 31, 31, 31, 31, 33, 33, 33, 33, 33, 36, 36, 36, 36, 38, 38, 38, 40, 40, 42};
 
-static const unsigned char h264_default_8x8_Inter[64] =
-{
-	9, 13, 13, 15, 13, 15, 17, 17,
-	17, 17, 19, 19, 19, 19, 19, 21,
-	21, 21, 21, 21, 21, 22, 22, 22,
-	22, 22, 22, 22, 24, 24, 24, 24,
-	24, 24, 24, 24, 25, 25, 25, 25,
-	25, 25, 25, 27, 27, 27, 27, 27,
-	27, 28, 28, 28, 28, 28, 30, 30,
-	30, 30, 32, 32, 32, 33, 33, 35
-};
+static const unsigned char h264_default_8x8_Inter[64] = {
+	9,	13, 13, 15, 13, 15, 17, 17, 17, 17, 19, 19, 19, 19, 19, 21, 21, 21, 21, 21, 21, 22,
+	22, 22, 22, 22, 22, 22, 24, 24, 24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 27,
+	27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 30, 30, 30, 30, 32, 32, 32, 33, 33, 35};
 
-void h264Parser_getScalingMatrix4x4(h264State_seq_parameter_set_t* sps, h264State_pic_parameter_set_t* pps, nal_slice_header_t* sliceHeader, sint32 index, uint8* matrix4x4)
+void h264Parser_getScalingMatrix4x4(h264State_seq_parameter_set_t* sps,
+									h264State_pic_parameter_set_t* pps,
+									nal_slice_header_t* sliceHeader, sint32 index, uint8* matrix4x4)
 {
 	// use scaling lists from PPS first
 	if (pps->pic_scaling_matrix_present_flag)
@@ -1034,7 +1087,9 @@ void h264Parser_getScalingMatrix4x4(h264State_seq_parameter_set_t* sps, h264Stat
 	memset(matrix4x4, 16, 4 * 4 * sizeof(uint8));
 }
 
-void h264Parser_getScalingMatrix8x8(h264State_seq_parameter_set_t* sps, h264State_pic_parameter_set_t* pps, nal_slice_header_t* sliceHeader, sint32 index, uint8* matrix8x8)
+void h264Parser_getScalingMatrix8x8(h264State_seq_parameter_set_t* sps,
+									h264State_pic_parameter_set_t* pps,
+									nal_slice_header_t* sliceHeader, sint32 index, uint8* matrix8x8)
 {
 	// use scaling lists from PPS first
 	if (pps->pic_scaling_matrix_present_flag)
@@ -1046,7 +1101,7 @@ void h264Parser_getScalingMatrix8x8(h264State_seq_parameter_set_t* sps, h264Stat
 		}
 		else
 		{
-			if ((index&1) == 0)
+			if ((index & 1) == 0)
 				memcpy(matrix8x8, h264_default_8x8_Intra, 8 * 8 * sizeof(uint8));
 			else
 				memcpy(matrix8x8, h264_default_8x8_Inter, 8 * 8 * sizeof(uint8));

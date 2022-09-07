@@ -1,5 +1,5 @@
 #pragma once
 namespace nsyshid
 {
-	void load();
+void load();
 }

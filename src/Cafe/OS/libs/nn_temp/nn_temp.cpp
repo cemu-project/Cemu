@@ -2,23 +2,22 @@
 
 namespace nn::temp
 {
-	uint64 tempIdGenerator = 0xdc1b04bd961f2c04ULL;
+uint64 tempIdGenerator = 0xdc1b04bd961f2c04ULL;
 
-	void nnTempExport_TEMPCreateAndInitTempDir(PPCInterpreter_t* hCPU)
-	{
-		forceLogDebug_printf("TEMPCreateAndInitTempDir(...) - placeholder");
+void nnTempExport_TEMPCreateAndInitTempDir(PPCInterpreter_t* hCPU)
+{
+	forceLogDebug_printf("TEMPCreateAndInitTempDir(...) - placeholder");
 
-		// create random temp id
-		memory_writeU64Slow(hCPU->gpr[5], tempIdGenerator);
-		tempIdGenerator = (tempIdGenerator << 3) | (tempIdGenerator >> 61);
-		tempIdGenerator += 0x56e28bd5f4ULL;
+	// create random temp id
+	memory_writeU64Slow(hCPU->gpr[5], tempIdGenerator);
+	tempIdGenerator = (tempIdGenerator << 3) | (tempIdGenerator >> 61);
+	tempIdGenerator += 0x56e28bd5f4ULL;
 
-		osLib_returnFromFunction(hCPU, 0);
-	}
+	osLib_returnFromFunction(hCPU, 0);
+}
 
-	void Initialize()
-	{
-		osLib_addFunction("nn_temp", "TEMPCreateAndInitTempDir", nnTempExport_TEMPCreateAndInitTempDir);
-	}
-};
-
+void Initialize()
+{
+	osLib_addFunction("nn_temp", "TEMPCreateAndInitTempDir", nnTempExport_TEMPCreateAndInitTempDir);
+}
+}; // namespace nn::temp

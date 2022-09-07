@@ -7,23 +7,23 @@
 
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 
-#define COLOR_BLACK				0xFF000000
-#define COLOR_GREY				0xFFA0A0A0
-#define COLOR_WHITE				0xFFFFFFFF
+#define COLOR_BLACK 0xFF000000
+#define COLOR_GREY 0xFFA0A0A0
+#define COLOR_WHITE 0xFFFFFFFF
 
-#define COLOR_DEBUG_ACTIVE_BP	0xFFFFA0FF
-#define COLOR_DEBUG_ACTIVE		0xFFFFA080
-#define COLOR_DEBUG_BP			0xFF8080FF
+#define COLOR_DEBUG_ACTIVE_BP 0xFFFFA0FF
+#define COLOR_DEBUG_ACTIVE 0xFFFFA080
+#define COLOR_DEBUG_BP 0xFF8080FF
 
-#define SYNTAX_COLOR_GPR		0xFF000066
-#define SYNTAX_COLOR_FPR		0xFF006666
-#define SYNTAX_COLOR_SPR		0xFF666600
-#define SYNTAX_COLOR_CR			0xFF666600
-#define SYNTAX_COLOR_IMM		0xFF006600
-#define SYNTAX_COLOR_IMM_OFFSET	0xFF006600
-#define SYNTAX_COLOR_CIMM		0xFF880000
-#define SYNTAX_COLOR_PSEUDO		0xFFA0A0A0 // color for pseudo code
-#define SYNTAX_COLOR_SYMBOL		0xFF0000A0 // color for function symbol
+#define SYNTAX_COLOR_GPR 0xFF000066
+#define SYNTAX_COLOR_FPR 0xFF006666
+#define SYNTAX_COLOR_SPR 0xFF666600
+#define SYNTAX_COLOR_CR 0xFF666600
+#define SYNTAX_COLOR_IMM 0xFF006600
+#define SYNTAX_COLOR_IMM_OFFSET 0xFF006600
+#define SYNTAX_COLOR_CIMM 0xFF880000
+#define SYNTAX_COLOR_PSEUDO 0xFFA0A0A0 // color for pseudo code
+#define SYNTAX_COLOR_SYMBOL 0xFF0000A0 // color for function symbol
 
 #define OFFSET_ADDRESS (60)
 #define OFFSET_ADDRESS_RELATIVE (90)
@@ -31,8 +31,8 @@
 
 #define OFFSET_DISASSEMBLY_OPERAND (80)
 
-
-DumpCtrl::DumpCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size, long style)
+DumpCtrl::DumpCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size,
+				   long style)
 	: TextList(parent, id, pos, size, style)
 {
 	MMURange* range = memory_getMMURangeByAddress(0x10000000);
@@ -75,11 +75,16 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 		dc.SetTextForeground(wxColour(COLOR_GREY));
 		if (currentCodeRPL)
 		{
-			dc.DrawText(wxString::Format("+0x%-8x", virtual_address - currentCodeRPL->regionMappingBase_text.GetMPTR()), position);
+			dc.DrawText(
+				wxString::Format("+0x%-8x", virtual_address -
+												currentCodeRPL->regionMappingBase_text.GetMPTR()),
+				position);
 		}
 		else if (currentDataRPL)
 		{
-			dc.DrawText(wxString::Format("+0x%-8x", virtual_address - currentDataRPL->regionMappingBase_data), position);
+			dc.DrawText(wxString::Format("+0x%-8x",
+										 virtual_address - currentDataRPL->regionMappingBase_data),
+						position);
 		}
 		else
 		{
@@ -89,10 +94,10 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 		position.x += OFFSET_ADDRESS_RELATIVE;
 
 		sint32 start_width = position.x;
-		
+
 		if (!memory_isAddressRangeAccessible(virtual_address, 0x10))
 		{
-			for (sint32 f=0; f<0x10; f++)
+			for (sint32 f = 0; f < 0x10; f++)
 			{
 				wxPoint p(position);
 				WriteText(dc, wxString::Format("?? "), p);
@@ -125,7 +130,8 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 		// display goto indicator
 		if (m_lastGotoOffset >= virtual_address && m_lastGotoOffset < (virtual_address + 16))
 		{
-			sint32 indicatorX = start_position.x + OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE + (m_lastGotoOffset - virtual_address) * m_char_width * 3;
+			sint32 indicatorX = start_position.x + OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE +
+								(m_lastGotoOffset - virtual_address) * m_char_width * 3;
 			wxPoint line1(start_position.x + indicatorX - 2, position.y);
 			wxPoint line2(line1.x, line1.y + m_line_height);
 			dc.SetPen(*wxRED_PEN);
@@ -139,10 +145,8 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 
 	// draw vertical separator lines for 4 byte blocks
 	sint32 cursorOffsetHexBytes = start_position.x + OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE;
-	wxPoint line_from(
-		cursorOffsetHexBytes + m_char_width * (3 * 4 - 1) + m_char_width / 2,
-		start_position.y
-	);
+	wxPoint line_from(cursorOffsetHexBytes + m_char_width * (3 * 4 - 1) + m_char_width / 2,
+					  start_position.y);
 	wxPoint line_to(line_from.x, line_from.y + m_line_height * (count + 1));
 	dc.SetPen(*wxLIGHT_GREY_PEN);
 	for (sint32 i = 0; i < 3; i++)
@@ -174,10 +178,7 @@ void DumpCtrl::OnMouseMove(const wxPoint& start_position, uint32 line)
 	position.x -= OFFSET_ADDRESS_RELATIVE;
 
 	// byte code
-	if (position.x <= OFFSET_MEMORY)
-	{
-		
-	}
+	if (position.x <= OFFSET_MEMORY) {}
 
 	// string view
 	position.x -= OFFSET_MEMORY;
@@ -188,18 +189,21 @@ void DumpCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 	wxPoint pos = position;
 	if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE)
 		return;
-	 
+
 	pos.x -= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE;
-	if(pos.x <= OFFSET_MEMORY)
+	if (pos.x <= OFFSET_MEMORY)
 	{
 		const uint32 byte_index = (pos.x / m_char_width) / 3;
 		const uint32 offset = LineToOffset(line) + byte_index;
 		const uint8 value = memory_readU8(offset);
 
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), _(wxString::Format("Set byte at address %08x", offset)), wxString::Format("%02x", value));
+		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."),
+										   _(wxString::Format("Set byte at address %08x", offset)),
+										   wxString::Format("%02x", value));
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
-			const uint8 new_value = std::stoul(set_value_dialog.GetValue().ToStdString(), nullptr, 16);
+			const uint8 new_value =
+				std::stoul(set_value_dialog.GetValue().ToStdString(), nullptr, 16);
 			memory_writeU8(offset, new_value);
 			wxRect update_rect(0, line * m_line_height, GetSize().x, m_line_height);
 			RefreshControl(&update_rect);
@@ -211,7 +215,8 @@ void DumpCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 
 void DumpCtrl::GoToAddressDialog()
 {
-	wxTextEntryDialog goto_dialog(this, _("Enter a target address."), _("GoTo address"), wxEmptyString);
+	wxTextEntryDialog goto_dialog(this, _("Enter a target address."), _("GoTo address"),
+								  wxEmptyString);
 	if (goto_dialog.ShowModal() == wxID_OK)
 	{
 		try
@@ -220,7 +225,7 @@ void DumpCtrl::GoToAddressDialog()
 
 			auto value = goto_dialog.GetValue().ToStdString();
 			std::transform(value.begin(), value.end(), value.begin(), tolower);
-			//parser.SetExpr(value);
+			// parser.SetExpr(value);
 
 			const auto module_count = RPLLoader_GetModuleCount();
 			const auto module_list = RPLLoader_GetModuleList();
@@ -271,7 +276,7 @@ void DumpCtrl::CenterOffset(uint32 offset)
 		m_memoryRegion.size = range->getSize();
 		Init();
 	}
-	
+
 	const sint32 line = OffsetToLine(offset);
 	if (line < 0 || line >= (sint32)m_element_count)
 		return;
@@ -279,7 +284,7 @@ void DumpCtrl::CenterOffset(uint32 offset)
 	DoScroll(0, std::max(0, line - ((sint32)m_elements_visible / 2)));
 
 	RefreshControl();
-	//RefreshLine(line);
+	// RefreshLine(line);
 
 	debug_printf("scroll to %x\n", debuggerState.debugSession.instructionPointer);
 }
@@ -293,7 +298,6 @@ uint32 DumpCtrl::OffsetToLine(uint32 offset)
 {
 	return (offset - m_memoryRegion.baseAddress) / 0x10;
 }
-
 
 void DumpCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 {

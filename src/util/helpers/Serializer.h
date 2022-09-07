@@ -2,14 +2,16 @@
 
 class MemStreamReader
 {
-public:
+  public:
 	MemStreamReader(const uint8* data, sint32 size) : m_data(data), m_size(size)
 	{
 		m_cursorPos = 0;
 	}
 
-	template<typename T> T readBE();
-	template<typename T> T readLE();
+	template<typename T>
+	T readBE();
+	template<typename T>
+	T readLE();
 
 	template<typename T>
 	std::vector<T> readPODVector()
@@ -49,7 +51,7 @@ public:
 			}
 			m_cursorPos++;
 		}
-		if(lineStrEnd == nullptr)
+		if (lineStrEnd == nullptr)
 			lineStrEnd = (const char*)(m_data + m_cursorPos);
 		// truncate any '\r' at the beginning and end
 		while (lineStrBegin < lineStrEnd)
@@ -105,7 +107,7 @@ public:
 		return m_cursorPos == m_size;
 	}
 
-private:
+  private:
 	bool reserveReadLength(size_t length)
 	{
 		if (m_cursorPos + length > m_size)
@@ -130,12 +132,12 @@ private:
 	const uint8* m_data;
 	sint32 m_size;
 	sint32 m_cursorPos;
-	bool m_hasError{ false };
+	bool m_hasError{false};
 };
 
 class MemStreamWriter
 {
-public:
+  public:
 	MemStreamWriter(size_t reservedSize)
 	{
 		if (reservedSize > 0)
@@ -151,8 +153,10 @@ public:
 		memcpy(p, ptr, size);
 	}
 
-	template<typename T> void writeBE(const T& v);
-	template<typename T> void writeLE(const T& v);
+	template<typename T>
+	void writeBE(const T& v);
+	template<typename T>
+	void writeLE(const T& v);
 
 	template<typename T>
 	void writePODVector(const std::vector<T>& v)
@@ -174,13 +178,13 @@ public:
 		return std::span<uint8>(m_buffer.data(), m_buffer.size());
 	}
 
-private:
+  private:
 	std::vector<uint8> m_buffer;
 };
 
-class SerializerHelper 
+class SerializerHelper
 {
-public:
+  public:
 	bool serialize(std::vector<uint8>& data)
 	{
 		MemStreamWriter streamWriter(0);
@@ -197,7 +201,7 @@ public:
 		return deserializeImpl(memStreamReader);
 	}
 
-protected:
+  protected:
 	virtual bool serializeImpl(MemStreamWriter& streamWriter) = 0;
 	virtual bool deserializeImpl(MemStreamReader& streamReader) = 0;
 };

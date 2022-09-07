@@ -10,8 +10,8 @@ sint32 s_customVsyncFrequency = -1;
 void LatteTiming_NotifyHostVSync();
 
 // calculate time between vsync events in timer units
-// standard rate on Wii U is 59.94, however to prevent tearing and microstutter on ~60Hz displays it is better if we slightly overshoot 60 Hz
-// can be modified by graphic packs
+// standard rate on Wii U is 59.94, however to prevent tearing and microstutter on ~60Hz displays it
+// is better if we slightly overshoot 60 Hz can be modified by graphic packs
 HRTick LatteTime_CalculateTimeBetweenVSync()
 {
 	// 59.94 -> 60 * 0.999
@@ -68,7 +68,8 @@ void LatteTiming_Init()
 {
 	LatteGPUState.timer_frequency = HighResolutionTimer::getFrequency();
 	LatteGPUState.timer_bootUp = HighResolutionTimer::now().getTick();
-	LatteGPUState.timer_nextVSync = LatteGPUState.timer_bootUp + LatteTime_CalculateTimeBetweenVSync();
+	LatteGPUState.timer_nextVSync =
+		LatteGPUState.timer_bootUp + LatteTime_CalculateTimeBetweenVSync();
 }
 
 void LatteTiming_signalVsync()
@@ -89,18 +90,22 @@ void LatteTiming_signalVsync()
 		{
 			// hack/workaround - only execute flip if GX2SwapScanBuffers() isn't lagging behind
 			uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
-			if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 || currentTitleId == 0x0005000e101c9300)
+			if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 ||
+				currentTitleId == 0x0005000e101c9300)
 			{
-				uint32 currentFlipRequestCount = _swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE);
-				uint32 currentFlipExecuteCount = _swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE);
+				uint32 currentFlipRequestCount =
+					_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE);
+				uint32 currentFlipExecuteCount =
+					_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE);
 
-				if ((currentFlipRequestCount >= currentFlipExecuteCount) || (currentFlipExecuteCount - currentFlipRequestCount < 4))
+				if ((currentFlipRequestCount >= currentFlipExecuteCount) ||
+					(currentFlipExecuteCount - currentFlipRequestCount < 4))
 				{
-					LatteGPUState.sharedArea->flipExecuteCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE) + 1);
+					LatteGPUState.sharedArea->flipExecuteCountBE = _swapEndianU32(
+						_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE) + 1);
 				}
 
 				LatteGPUState.flipCounter++;
-
 			}
 			else
 			{
@@ -108,9 +113,9 @@ void LatteTiming_signalVsync()
 				if (LatteGPUState.flipRequestCount > 0)
 				{
 					LatteGPUState.flipRequestCount.fetch_sub(1);
-					LatteGPUState.sharedArea->flipExecuteCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE) + 1);
+					LatteGPUState.sharedArea->flipExecuteCountBE = _swapEndianU32(
+						_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE) + 1);
 				}
-
 			}
 		}
 		GX2::__GX2NotifyEvent(GX2::GX2CallbackEventType::FLIP);
@@ -130,7 +135,6 @@ void LatteTiming_NotifyHostVSync()
 	auto nowTimePoint = HighResolutionTimer::now().getTick();
 	auto dif = nowTimePoint - s_lastHostVsync;
 	auto vsyncPeriod = LatteTime_CalculateTimeBetweenVSync();
-
 
 	if (dif < vsyncPeriod)
 	{
@@ -153,11 +157,12 @@ void LatteTiming_HandleTimedVsync()
 {
 	// simulate VSync
 	uint64 currentTimer = HighResolutionTimer::now().getTick();
-	if( currentTimer >= LatteGPUState.timer_nextVSync )
+	if (currentTimer >= LatteGPUState.timer_nextVSync)
 	{
-		if(!LatteTiming_IsUsingHostDrivenVSync())
+		if (!LatteTiming_IsUsingHostDrivenVSync())
 			LatteTiming_signalVsync();
-		// even if vsync is delegated to the host device, we still use this virtual vsync timer to check finished states
+		// even if vsync is delegated to the host device, we still use this virtual vsync timer to
+		// check finished states
 		LatteQuery_UpdateFinishedQueries();
 		LatteTextureReadback_UpdateFinishedTransfers(false);
 		// update vsync timer
@@ -165,9 +170,9 @@ void LatteTiming_HandleTimedVsync()
 		uint64 missedVsyncCount = (currentTimer - LatteGPUState.timer_nextVSync) / vsyncTime;
 		if (missedVsyncCount >= 2)
 		{
-			LatteGPUState.timer_nextVSync += vsyncTime*(missedVsyncCount+1ULL);
+			LatteGPUState.timer_nextVSync += vsyncTime * (missedVsyncCount + 1ULL);
 		}
-		else	
+		else
 			LatteGPUState.timer_nextVSync += vsyncTime;
 	}
 }

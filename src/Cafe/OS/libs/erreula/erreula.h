@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-namespace nn 
+namespace nn
 {
-	namespace erreula
-	{
-		void render(bool mainWindow);
+namespace erreula
+{
+void render(bool mainWindow);
 
-		void load();
+void load();
 
-	}
-}
+} // namespace erreula
+} // namespace nn

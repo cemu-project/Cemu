@@ -15,7 +15,7 @@
 #define ATTRIBUTE_SSE41
 #endif
 
-struct  
+struct
 {
 	const void* lastPtr;
 	uint32 lastCount;
@@ -28,11 +28,11 @@ struct
 	uint32 outputCount;
 	uint32 indexBufferOffset;
 	uint32 indexBufferIndex;
-}LatteIndexCache{};
+} LatteIndexCache{};
 
 void LatteIndices_invalidate(const void* memPtr, uint32 size)
 {
-	if (LatteIndexCache.lastPtr >= memPtr && (LatteIndexCache.lastPtr < ((uint8*)memPtr + size)) )
+	if (LatteIndexCache.lastPtr >= memPtr && (LatteIndexCache.lastPtr < ((uint8*)memPtr + size)))
 	{
 		LatteIndexCache.lastPtr = nullptr;
 		LatteIndexCache.lastCount = 0;
@@ -45,14 +45,15 @@ void LatteIndices_invalidateAll()
 	LatteIndexCache.lastCount = 0;
 }
 
-uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode, LatteIndexType indexType, uint32 count)
+uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode,
+											 LatteIndexType indexType, uint32 count)
 {
 	if (primitiveMode == LattePrimitiveMode::QUADS)
 	{
 		sint32 numQuads = count / 4;
 		if (indexType == LatteIndexType::AUTO)
 		{
-			if(count <= 0xFFFF)
+			if (count <= 0xFFFF)
 				return numQuads * 6 * sizeof(uint16);
 			return numQuads * 6 * sizeof(uint32);
 		}
@@ -69,7 +70,7 @@ uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode, L
 		{
 			return 0;
 		}
-		sint32 numQuads = (count-2) / 2;
+		sint32 numQuads = (count - 2) / 2;
 		if (indexType == LatteIndexType::AUTO)
 		{
 			if (count <= 0xFFFF)
@@ -99,7 +100,7 @@ uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode, L
 		cemu_assert_suspicious();
 		return 0;
 	}
-	else if(indexType == LatteIndexType::AUTO)
+	else if (indexType == LatteIndexType::AUTO)
 		return 0;
 	else if (indexType == LatteIndexType::U16_BE || indexType == LatteIndexType::U16_LE)
 		return count * sizeof(uint16);
@@ -109,7 +110,8 @@ uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode, L
 }
 
 template<typename T>
-void LatteIndices_convertBE(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_convertBE(const void* indexDataInput, void* indexDataOutput, uint32 count,
+							uint32& indexMin, uint32& indexMax)
 {
 	const betype<T>* src = (betype<T>*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
@@ -125,7 +127,8 @@ void LatteIndices_convertBE(const void* indexDataInput, void* indexDataOutput, u
 }
 
 template<typename T>
-void LatteIndices_convertLE(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_convertLE(const void* indexDataInput, void* indexDataOutput, uint32 count,
+							uint32& indexMin, uint32& indexMax)
 {
 	const T* src = (T*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
@@ -141,7 +144,8 @@ void LatteIndices_convertLE(const void* indexDataInput, void* indexDataOutput, u
 }
 
 template<typename T>
-void LatteIndices_unpackQuadsAndConvert(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_unpackQuadsAndConvert(const void* indexDataInput, void* indexDataOutput,
+										uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	sint32 numQuads = count / 4;
 	const betype<T>* src = (betype<T>*)indexDataInput;
@@ -172,7 +176,8 @@ void LatteIndices_unpackQuadsAndConvert(const void* indexDataInput, void* indexD
 }
 
 template<typename T>
-void LatteIndices_generateAutoQuadIndices(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_generateAutoQuadIndices(const void* indexDataInput, void* indexDataOutput,
+										  uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	sint32 numQuads = count / 4;
 	const betype<T>* src = (betype<T>*)indexDataInput;
@@ -197,7 +202,8 @@ void LatteIndices_generateAutoQuadIndices(const void* indexDataInput, void* inde
 }
 
 template<typename T>
-void LatteIndices_unpackQuadStripAndConvert(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_unpackQuadStripAndConvert(const void* indexDataInput, void* indexDataOutput,
+											uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	if (count <= 3)
 		return;
@@ -230,7 +236,8 @@ void LatteIndices_unpackQuadStripAndConvert(const void* indexDataInput, void* in
 }
 
 template<typename T>
-void LatteIndices_unpackLineLoopAndConvert(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_unpackLineLoopAndConvert(const void* indexDataInput, void* indexDataOutput,
+										   uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	if (count <= 0)
 		return;
@@ -250,7 +257,8 @@ void LatteIndices_unpackLineLoopAndConvert(const void* indexDataInput, void* ind
 }
 
 template<typename T>
-void LatteIndices_generateAutoQuadStripIndices(void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_generateAutoQuadStripIndices(void* indexDataOutput, uint32 count,
+											   uint32& indexMin, uint32& indexMax)
 {
 	if (count <= 3)
 		return;
@@ -274,9 +282,9 @@ void LatteIndices_generateAutoQuadStripIndices(void* indexDataOutput, uint32 cou
 	indexMax = std::max(count, 1u) - 1;
 }
 
-
 template<typename T>
-void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 count, uint32& indexMin,
+											  uint32& indexMax)
 {
 	if (count == 0)
 		return;
@@ -293,7 +301,8 @@ void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 coun
 }
 
 ATTRIBUTE_AVX2
-void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDataOutput,
+									  uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	// using AVX + AVX2 we can process 16 indices at a time
 	const uint16* indicesU16BE = (const uint16*)indexDataInput;
@@ -302,10 +311,17 @@ void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDat
 	sint32 countRemaining = count & 15;
 	if (count16)
 	{
-		__m256i mMin = _mm256_set_epi16((sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, 
-						           		(sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF);
-		__m256i mMax = _mm256_set_epi16(0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
-		__m256i mShuffle16Swap = _mm256_set_epi8(30, 31, 28, 29, 26, 27, 24, 25, 22, 23, 20, 21, 18, 19, 16, 17, 14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1);
+		__m256i mMin =
+			_mm256_set_epi16((sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF,
+							 (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF,
+							 (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF,
+							 (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF);
+		__m256i mMax =
+			_mm256_set_epi16(0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+							 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
+		__m256i mShuffle16Swap =
+			_mm256_set_epi8(30, 31, 28, 29, 26, 27, 24, 25, 22, 23, 20, 21, 18, 19, 16, 17, 14, 15,
+							12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1);
 
 		do
 		{
@@ -324,8 +340,10 @@ void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDat
 		mMin = _mm256_min_epu16(mMin, _mm256_permute2x128_si256(mMin, mMin, 1));
 		mMax = _mm256_max_epu16(mMax, _mm256_permute2x128_si256(mMax, mMax, 1));
 		// fold 16 to 8 byte
-		mMin = _mm256_min_epu16(mMin, _mm256_shuffle_epi32(mMin, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
-		mMax = _mm256_max_epu16(mMax, _mm256_shuffle_epi32(mMax, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
+		mMin = _mm256_min_epu16(
+			mMin, _mm256_shuffle_epi32(mMin, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
+		mMax = _mm256_max_epu16(
+			mMax, _mm256_shuffle_epi32(mMax, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
 
 		uint16* mMinU16 = (uint16*)&mMin;
 		uint16* mMaxU16 = (uint16*)&mMax;
@@ -358,7 +376,8 @@ void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDat
 }
 
 ATTRIBUTE_SSE41
-void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDataOutput,
+									   uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	// SSSE3 & SSE4.1 optimized decoding
 	const uint16* indicesU16BE = (const uint16*)indexDataInput;
@@ -367,8 +386,10 @@ void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDa
 	sint32 countRemaining = count & 7;
 	if (count8)
 	{
-		__m128i mMin = _mm_set_epi16((short)0xFFFF, (short)0xFFFF, (short)0xFFFF, (short)0xFFFF, (short)0xFFFF, (short)0xFFFF, (short)0xFFFF, (short)0xFFFF);
-		__m128i mMax = _mm_set_epi16(0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
+		__m128i mMin = _mm_set_epi16((short)0xFFFF, (short)0xFFFF, (short)0xFFFF, (short)0xFFFF,
+									 (short)0xFFFF, (short)0xFFFF, (short)0xFFFF, (short)0xFFFF);
+		__m128i mMax =
+			_mm_set_epi16(0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
 		__m128i mTemp;
 		__m128i* mRawIndices = (__m128i*)indicesU16BE;
 		indicesU16BE += count8 * 8;
@@ -422,7 +443,8 @@ void LatteIndices_fastConvertU16_SSE41(const void* indexDataInput, void* indexDa
 }
 
 ATTRIBUTE_AVX2
-void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDataOutput,
+									  uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	// using AVX + AVX2 we can process 8 indices at a time
 	const uint32* indicesU32BE = (const uint32*)indexDataInput;
@@ -431,16 +453,13 @@ void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDat
 	sint32 countRemaining = count & 7;
 	if (count8)
 	{
-		__m256i mMin = _mm256_set_epi32((sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF);
+		__m256i mMin = _mm256_set_epi32((sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF,
+										(sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF,
+										(sint32)0xFFFFFFFF, (sint32)0xFFFFFFFF);
 		__m256i mMax = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
-		__m256i mShuffle32Swap = _mm256_set_epi8(28,29,30,31,
-			24,25,26,27,
-			20,21,22,23,
-			16,17,18,19,
-			12,13,14,15,
-			8,9,10,11,
-			4,5,6,7,
-			0,1,2,3);
+		__m256i mShuffle32Swap =
+			_mm256_set_epi8(28, 29, 30, 31, 24, 25, 26, 27, 20, 21, 22, 23, 16, 17, 18, 19, 12, 13,
+							14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3);
 		// unaligned
 		do
 		{
@@ -459,8 +478,10 @@ void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDat
 		mMin = _mm256_min_epu32(mMin, _mm256_permute2x128_si256(mMin, mMin, 1));
 		mMax = _mm256_max_epu32(mMax, _mm256_permute2x128_si256(mMax, mMax, 1));
 		// fold 16 to 8 byte
-		mMin = _mm256_min_epu32(mMin, _mm256_shuffle_epi32(mMin, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
-		mMax = _mm256_max_epu32(mMax, _mm256_shuffle_epi32(mMax, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
+		mMin = _mm256_min_epu32(
+			mMin, _mm256_shuffle_epi32(mMin, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
+		mMax = _mm256_max_epu32(
+			mMax, _mm256_shuffle_epi32(mMax, (2 << 0) | (3 << 2) | (2 << 4) | (3 << 6)));
 
 		uint32* mMinU32 = (uint32*)&mMin;
 		uint32* mMaxU32 = (uint32*)&mMax;
@@ -489,7 +510,9 @@ void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDat
 }
 
 template<typename T>
-void _LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, uint32 count, uint32 primitiveRestartIndex, uint32& indexMin, uint32& indexMax)
+void _LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, uint32 count,
+												   uint32 primitiveRestartIndex, uint32& indexMin,
+												   uint32& indexMax)
 {
 	cemu_assert_debug(count != 0);
 	const betype<T>* idxPtrT = (betype<T>*)indexData;
@@ -514,7 +537,8 @@ void _LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, uint32
 
 // calculate min and max index while taking primitive restart into account
 // fallback implementation in case the fast path gives us invalid results
-void LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, LatteIndexType indexType, uint32 count, uint32& indexMin, uint32& indexMax)
+void LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, LatteIndexType indexType,
+												  uint32 count, uint32& indexMin, uint32& indexMax)
 {
 	if (count == 0)
 	{
@@ -522,15 +546,18 @@ void LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, LatteIn
 		indexMax = 0;
 		return;
 	}
-	uint32 primitiveRestartIndex = LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
+	uint32 primitiveRestartIndex =
+		LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
 
 	if (indexType == LatteIndexType::U16_BE)
 	{
-		_LatteIndices_alternativeCalculateIndexMinMax<uint16>(indexData, count, primitiveRestartIndex, indexMin, indexMax);
+		_LatteIndices_alternativeCalculateIndexMinMax<uint16>(
+			indexData, count, primitiveRestartIndex, indexMin, indexMax);
 	}
 	else if (indexType == LatteIndexType::U32_BE)
 	{
-		_LatteIndices_alternativeCalculateIndexMinMax<uint32>(indexData, count, primitiveRestartIndex, indexMin, indexMax);
+		_LatteIndices_alternativeCalculateIndexMinMax<uint32>(
+			indexData, count, primitiveRestartIndex, indexMin, indexMax);
 	}
 	else
 	{
@@ -538,7 +565,10 @@ void LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, LatteIn
 	}
 }
 
-void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32 count, LattePrimitiveMode primitiveMode, uint32& indexMin, uint32& indexMax, Renderer::INDEX_TYPE& renderIndexType, uint32& outputCount, uint32& indexBufferOffset, uint32& indexBufferIndex)
+void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32 count,
+						 LattePrimitiveMode primitiveMode, uint32& indexMin, uint32& indexMax,
+						 Renderer::INDEX_TYPE& renderIndexType, uint32& outputCount,
+						 uint32& indexBufferOffset, uint32& indexBufferIndex)
 {
 	// what this should do:
 	// [x] use fast SIMD-based index decoding
@@ -548,8 +578,7 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 	// [ ] better cache implementation, allow to cache across frames
 
 	// reuse from cache if data didn't change
-	if (LatteIndexCache.lastPtr == indexData &&
-		LatteIndexCache.lastCount == count &&
+	if (LatteIndexCache.lastPtr == indexData && LatteIndexCache.lastCount == count &&
 		LatteIndexCache.lastPrimitiveMode == primitiveMode &&
 		LatteIndexCache.lastIndexType == indexType)
 	{
@@ -572,7 +601,8 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 	else
 		cemu_assert_debug(false);
 
-	uint32 primitiveRestartIndex = LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
+	uint32 primitiveRestartIndex =
+		LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
 
 	// calculate index output size
 	uint32 indexOutputSize = LatteIndices_calculateIndexOutputSize(primitiveMode, indexType, count);
@@ -580,12 +610,13 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 	{
 		outputCount = count;
 		indexMin = 0;
-		indexMax = std::max(count, 1u)-1;
+		indexMax = std::max(count, 1u) - 1;
 		renderIndexType = Renderer::INDEX_TYPE::NONE;
 		return; // no indices
 	}
 	// query index buffer from renderer
-	void* indexOutputPtr = g_renderer->indexData_reserveIndexMemory(indexOutputSize, indexBufferOffset, indexBufferIndex);
+	void* indexOutputPtr = g_renderer->indexData_reserveIndexMemory(
+		indexOutputSize, indexBufferOffset, indexBufferIndex);
 
 	// decode indices
 	indexMin = std::numeric_limits<uint32>::max();
@@ -597,19 +628,23 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 		{
 			if (count <= 0xFFFF)
 			{
-				LatteIndices_generateAutoQuadIndices<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_generateAutoQuadIndices<uint16>(indexData, indexOutputPtr, count,
+															 indexMin, indexMax);
 				renderIndexType = Renderer::INDEX_TYPE::U16;
 			}
 			else
 			{
-				LatteIndices_generateAutoQuadIndices<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_generateAutoQuadIndices<uint32>(indexData, indexOutputPtr, count,
+															 indexMin, indexMax);
 				renderIndexType = Renderer::INDEX_TYPE::U32;
 			}
 		}
 		else if (indexType == LatteIndexType::U16_BE)
-			LatteIndices_unpackQuadsAndConvert<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+			LatteIndices_unpackQuadsAndConvert<uint16>(indexData, indexOutputPtr, count, indexMin,
+													   indexMax);
 		else if (indexType == LatteIndexType::U32_BE)
-			LatteIndices_unpackQuadsAndConvert<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+			LatteIndices_unpackQuadsAndConvert<uint32>(indexData, indexOutputPtr, count, indexMin,
+													   indexMax);
 		else
 			cemu_assert_debug(false);
 		outputCount = count / 4 * 6;
@@ -621,19 +656,23 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 		{
 			if (count <= 0xFFFF)
 			{
-				LatteIndices_generateAutoQuadStripIndices<uint16>(indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_generateAutoQuadStripIndices<uint16>(indexOutputPtr, count, indexMin,
+																  indexMax);
 				renderIndexType = Renderer::INDEX_TYPE::U16;
 			}
 			else
 			{
-				LatteIndices_generateAutoQuadStripIndices<uint32>(indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_generateAutoQuadStripIndices<uint32>(indexOutputPtr, count, indexMin,
+																  indexMax);
 				renderIndexType = Renderer::INDEX_TYPE::U32;
 			}
 		}
 		else if (indexType == LatteIndexType::U16_BE)
-			LatteIndices_unpackQuadStripAndConvert<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+			LatteIndices_unpackQuadStripAndConvert<uint16>(indexData, indexOutputPtr, count,
+														   indexMin, indexMax);
 		else if (indexType == LatteIndexType::U32_BE)
-			LatteIndices_unpackQuadStripAndConvert<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+			LatteIndices_unpackQuadStripAndConvert<uint32>(indexData, indexOutputPtr, count,
+														   indexMin, indexMax);
 		else
 			cemu_assert_debug(false);
 		if (count >= 2)
@@ -648,19 +687,23 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 		{
 			if (count <= 0xFFFF)
 			{
-				LatteIndices_generateAutoLineLoopIndices<uint16>(indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_generateAutoLineLoopIndices<uint16>(indexOutputPtr, count, indexMin,
+																 indexMax);
 				renderIndexType = Renderer::INDEX_TYPE::U16;
 			}
 			else
 			{
-				LatteIndices_generateAutoLineLoopIndices<uint32>(indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_generateAutoLineLoopIndices<uint32>(indexOutputPtr, count, indexMin,
+																 indexMax);
 				renderIndexType = Renderer::INDEX_TYPE::U32;
 			}
 		}
 		else if (indexType == LatteIndexType::U16_BE)
-			LatteIndices_unpackLineLoopAndConvert<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+			LatteIndices_unpackLineLoopAndConvert<uint16>(indexData, indexOutputPtr, count,
+														  indexMin, indexMax);
 		else if (indexType == LatteIndexType::U32_BE)
-			LatteIndices_unpackLineLoopAndConvert<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+			LatteIndices_unpackLineLoopAndConvert<uint32>(indexData, indexOutputPtr, count,
+														  indexMin, indexMax);
 		else
 			cemu_assert_debug(false);
 		outputCount = count + 1;
@@ -670,18 +713,23 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 		if (indexType == LatteIndexType::U16_BE)
 		{
 			if (_cpuExtension_AVX2)
-				LatteIndices_fastConvertU16_AVX2(indexData, indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_fastConvertU16_AVX2(indexData, indexOutputPtr, count, indexMin,
+												 indexMax);
 			else if (_cpuExtension_SSE4_1 && _cpuExtension_SSSE3)
-				LatteIndices_fastConvertU16_SSE41(indexData, indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_fastConvertU16_SSE41(indexData, indexOutputPtr, count, indexMin,
+												  indexMax);
 			else
-				LatteIndices_convertBE<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_convertBE<uint16>(indexData, indexOutputPtr, count, indexMin,
+											   indexMax);
 		}
 		else if (indexType == LatteIndexType::U32_BE)
 		{
 			if (_cpuExtension_AVX2)
-				LatteIndices_fastConvertU32_AVX2(indexData, indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_fastConvertU32_AVX2(indexData, indexOutputPtr, count, indexMin,
+												 indexMax);
 			else
-				LatteIndices_convertBE<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+				LatteIndices_convertBE<uint32>(indexData, indexOutputPtr, count, indexMin,
+											   indexMax);
 		}
 		else if (indexType == LatteIndexType::U16_LE)
 		{
@@ -700,7 +748,8 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 	if (primitiveRestartIndex == indexMin || primitiveRestartIndex == indexMax)
 	{
 		// recalculate index range but filter out primitive restart index
-		LatteIndices_alternativeCalculateIndexMinMax(indexData, indexType, count, indexMin, indexMax);
+		LatteIndices_alternativeCalculateIndexMinMax(indexData, indexType, count, indexMin,
+													 indexMax);
 	}
 	g_renderer->indexData_uploadIndexMemory(indexBufferOffset, indexOutputSize);
 	// update cache

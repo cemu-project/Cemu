@@ -7,34 +7,32 @@ class SysAllocatorBase;
 
 class SysAllocatorContainer
 {
-public:
+  public:
 	void Initialize();
 	void PushSysAllocator(SysAllocatorBase* base);
 
 	static SysAllocatorContainer& GetInstance();
 
-private:
+  private:
 	std::vector<SysAllocatorBase*> m_sysAllocList;
 };
-
 
 class SysAllocatorBase
 {
 	friend class SysAllocatorContainer;
-public:
+
+  public:
 	SysAllocatorBase();
 	virtual ~SysAllocatorBase() = default;
 
-private:
+  private:
 	virtual void Initialize() = 0;
 };
-
-
 
 template<typename T, size_t count = 1, size_t alignment = 8>
 class SysAllocator : public SysAllocatorBase
 {
-public:
+  public:
 	SysAllocator()
 	{
 		m_tempData.resize(count);
@@ -99,12 +97,15 @@ public:
 		return this->GetPtr() - v;
 	}
 
-	operator void*() { return m_sysMem->GetPtr(); }
+	operator void*()
+	{
+		return m_sysMem->GetPtr();
+	}
 
 	// for all arrays except bool
 	template<class Q = T>
-	typename std::enable_if< count != 1 && !std::is_same<Q, bool>::value, Q >::type&
-		operator[](int index)
+	typename std::enable_if<count != 1 && !std::is_same<Q, bool>::value, Q>::type&
+	operator[](int index)
 	{
 		// return tmp data until we allocated in sys mem
 		if (m_sysMem.GetMPTR() == 0)
@@ -114,10 +115,9 @@ public:
 
 		return m_sysMem[index];
 	}
-private:
-	SysAllocator(uint32 memptr)
-		: m_sysMem(memptr)
-	{}
+
+  private:
+	SysAllocator(uint32 memptr) : m_sysMem(memptr) {}
 
 	void Initialize() override
 	{
@@ -125,9 +125,9 @@ private:
 			return;
 
 		// alloc mem
-		m_sysMem = { coreinit_allocFromSysArea(sizeof(T) * count, alignment) };
+		m_sysMem = {coreinit_allocFromSysArea(sizeof(T) * count, alignment)};
 		// copy temp buffer to mem and clear it
-		memcpy(m_sysMem.GetPtr(), m_tempData.data(), sizeof(T)*count);
+		memcpy(m_sysMem.GetPtr(), m_tempData.data(), sizeof(T) * count);
 		m_tempData.clear();
 	}
 
@@ -138,7 +138,7 @@ private:
 template<typename T>
 class SysAllocator<T, 1> : public SysAllocatorBase
 {
-public:
+  public:
 	SysAllocator()
 	{
 		m_tempData = {};
@@ -175,21 +175,24 @@ public:
 		return m_sysMem.GetMPTR();
 	}
 
-	T* operator&() { return (T*)m_sysMem.GetPtr(); }
+	T* operator&()
+	{
+		return (T*)m_sysMem.GetPtr();
+	}
 
 	T* operator->() const
 	{
 		return this->GetPtr();
 	}
 
-private:
+  private:
 	void Initialize() override
 	{
 		if (m_sysMem.GetMPTR() != 0)
 			return;
 
 		// alloc mem
-		m_sysMem = { coreinit_allocFromSysArea(sizeof(T), 8) };
+		m_sysMem = {coreinit_allocFromSysArea(sizeof(T), 8)};
 		// copy temp buffer to mem and clear it
 		*m_sysMem = m_tempData;
 	}

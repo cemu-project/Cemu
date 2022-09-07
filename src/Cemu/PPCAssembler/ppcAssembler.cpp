@@ -9,8 +9,8 @@
 
 struct ppcAssemblerStr_t
 {
-	ppcAssemblerStr_t(const char* start, const char* end) : str(start, end - start) {};
-	ppcAssemblerStr_t(const char* start, size_t len) : str(start, len) {};
+	ppcAssemblerStr_t(const char* start, const char* end) : str(start, end - start){};
+	ppcAssemblerStr_t(const char* start, size_t len) : str(start, len){};
 
 	std::string_view str;
 };
@@ -25,20 +25,20 @@ struct PPCAssemblerContext
 
 // table based assembler/disassembler
 
-#define operand0Bit	(1<<0)
-#define operand1Bit	(1<<1)
-#define operand2Bit	(1<<2)
-#define operand3Bit	(1<<3)
-#define operand4Bit	(1<<4)
+#define operand0Bit (1 << 0)
+#define operand1Bit (1 << 1)
+#define operand2Bit (1 << 2)
+#define operand3Bit (1 << 3)
+#define operand4Bit (1 << 4)
 
-#define OPC_NONE			(0xFFFF)
-#define OPC_EXTENDED_BIT	(0x8000) // use extended sub opcode
+#define OPC_NONE (0xFFFF)
+#define OPC_EXTENDED_BIT (0x8000) // use extended sub opcode
 
 enum
 {
 	OP_FORM_UNUSED,
 	OP_FORM_XL_CR, // CRXOR, CRAND etc.
-	OP_FORM_OP3_A_CMP, 
+	OP_FORM_OP3_A_CMP,
 	OP_FORM_OP3_A_IMM, // rA, rS, rB is imm - has RC bit
 	OP_FORM_BRANCH_S16,
 	OP_FORM_BRANCH_S24,
@@ -47,12 +47,13 @@ enum
 	OP_FORM_RLWINM_EXTENDED, // alternative mnemonics of rlwinm
 	OP_FORM_RLWNM,
 	OP_FORM_RLWNM_EXTENDED, // alternative mnemonics of rlwnm
-	OP_FORM_CMP_SIMM, // cr, rD, r
+	OP_FORM_CMP_SIMM,		// cr, rD, r
 	OP_FORM_NO_OPERAND,
 	// FP
 	OP_FORM_X_FP_CMP,
 
-	// new generic form with operand encoding stored in the table entry, everything above is deprecated
+	// new generic form with operand encoding stored in the table entry, everything above is
+	// deprecated
 	OP_FORM_DYNAMIC,
 };
 
@@ -60,266 +61,488 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 {
 	switch (ppcAsmOp)
 	{
-	case PPCASM_OP_UKN: return "UKN";
+	case PPCASM_OP_UKN:
+		return "UKN";
 
-	case PPCASM_OP_ADDI: return "ADDI";
-	case PPCASM_OP_SUBI: return "SUBI";
-	case PPCASM_OP_ADDIS: return "ADDIS";
-	case PPCASM_OP_ADDIC: return "ADDIC";
-	case PPCASM_OP_ADDIC_: return "ADDIC.";
+	case PPCASM_OP_ADDI:
+		return "ADDI";
+	case PPCASM_OP_SUBI:
+		return "SUBI";
+	case PPCASM_OP_ADDIS:
+		return "ADDIS";
+	case PPCASM_OP_ADDIC:
+		return "ADDIC";
+	case PPCASM_OP_ADDIC_:
+		return "ADDIC.";
 
-	case PPCASM_OP_ADD: return "ADD";
-	case PPCASM_OP_ADD_: return "ADD.";
-	case PPCASM_OP_SUBF: return "SUBF";
-	case PPCASM_OP_SUBF_: return "SUBF.";
-	case PPCASM_OP_SUBFC: return "SUBFC";
-	case PPCASM_OP_SUBFC_: return "SUBFC.";
-	case PPCASM_OP_SUBFE: return "SUBFE";
-	case PPCASM_OP_SUBFE_: return "SUBFE.";
-	case PPCASM_OP_SUBFIC: return "SUBFIC";
+	case PPCASM_OP_ADD:
+		return "ADD";
+	case PPCASM_OP_ADD_:
+		return "ADD.";
+	case PPCASM_OP_SUBF:
+		return "SUBF";
+	case PPCASM_OP_SUBF_:
+		return "SUBF.";
+	case PPCASM_OP_SUBFC:
+		return "SUBFC";
+	case PPCASM_OP_SUBFC_:
+		return "SUBFC.";
+	case PPCASM_OP_SUBFE:
+		return "SUBFE";
+	case PPCASM_OP_SUBFE_:
+		return "SUBFE.";
+	case PPCASM_OP_SUBFIC:
+		return "SUBFIC";
 
-	case PPCASM_OP_SUB: return "SUB";
-	case PPCASM_OP_SUB_: return "SUB.";
+	case PPCASM_OP_SUB:
+		return "SUB";
+	case PPCASM_OP_SUB_:
+		return "SUB.";
 
-	case PPCASM_OP_MULLI: return "MULLI";
-	case PPCASM_OP_MULLW: return "MULLW";
-	case PPCASM_OP_MULLW_: return "MULLW.";
-	case PPCASM_OP_MULHW: return "MULHW";
-	case PPCASM_OP_MULHW_: return "MULHW.";
-	case PPCASM_OP_MULHWU: return "MULHWU";
-	case PPCASM_OP_MULHWU_: return "MULHWU.";
+	case PPCASM_OP_MULLI:
+		return "MULLI";
+	case PPCASM_OP_MULLW:
+		return "MULLW";
+	case PPCASM_OP_MULLW_:
+		return "MULLW.";
+	case PPCASM_OP_MULHW:
+		return "MULHW";
+	case PPCASM_OP_MULHW_:
+		return "MULHW.";
+	case PPCASM_OP_MULHWU:
+		return "MULHWU";
+	case PPCASM_OP_MULHWU_:
+		return "MULHWU.";
 
-	case PPCASM_OP_DIVW: return "DIVW";
-	case PPCASM_OP_DIVW_: return "DIVW.";
-	case PPCASM_OP_DIVWU: return "DIVWU";
-	case PPCASM_OP_DIVWU_: return "DIVWU.";
+	case PPCASM_OP_DIVW:
+		return "DIVW";
+	case PPCASM_OP_DIVW_:
+		return "DIVW.";
+	case PPCASM_OP_DIVWU:
+		return "DIVWU";
+	case PPCASM_OP_DIVWU_:
+		return "DIVWU.";
 
-	case PPCASM_OP_AND:		return "AND";
-	case PPCASM_OP_AND_:	return "AND.";
-	case PPCASM_OP_ANDC:	return "ANDC";
-	case PPCASM_OP_ANDC_:	return "ANDC.";
+	case PPCASM_OP_AND:
+		return "AND";
+	case PPCASM_OP_AND_:
+		return "AND.";
+	case PPCASM_OP_ANDC:
+		return "ANDC";
+	case PPCASM_OP_ANDC_:
+		return "ANDC.";
 
-	case PPCASM_OP_ANDI_:	return "ANDI.";
-	case PPCASM_OP_ANDIS_:	return "ANDIS.";
-	case PPCASM_OP_OR:		return "OR";
-	case PPCASM_OP_OR_:		return "OR.";
-	case PPCASM_OP_ORI:		return "ORI";
-	case PPCASM_OP_ORIS:	return "ORIS";
-	case PPCASM_OP_ORC:		return "ORC";
-	case PPCASM_OP_XOR:		return "XOR";
-	case PPCASM_OP_NOR:		return "NOR";
-	case PPCASM_OP_NOR_:	return "NOR.";
-	case PPCASM_OP_NOT:		return "NOT";
-	case PPCASM_OP_NOT_:	return "NOT.";
-	case PPCASM_OP_NEG:		return "NEG";
-	case PPCASM_OP_NEG_:	return "NEG.";
-	case PPCASM_OP_XORI:	return "XORI";
-	case PPCASM_OP_XORIS:	return "XORIS";
-	case PPCASM_OP_SRAW:	return "SRAW";
-	case PPCASM_OP_SRAW_:	return "SRAW.";
-	case PPCASM_OP_SRAWI:	return "SRAWI";
-	case PPCASM_OP_SRAWI_:	return "SRAWI.";
-	case PPCASM_OP_SLW:		return "SLW";
-	case PPCASM_OP_SLW_:	return "SLW.";
-	case PPCASM_OP_SRW:		return "SRW";
-	case PPCASM_OP_SRW_:	return "SRW.";
+	case PPCASM_OP_ANDI_:
+		return "ANDI.";
+	case PPCASM_OP_ANDIS_:
+		return "ANDIS.";
+	case PPCASM_OP_OR:
+		return "OR";
+	case PPCASM_OP_OR_:
+		return "OR.";
+	case PPCASM_OP_ORI:
+		return "ORI";
+	case PPCASM_OP_ORIS:
+		return "ORIS";
+	case PPCASM_OP_ORC:
+		return "ORC";
+	case PPCASM_OP_XOR:
+		return "XOR";
+	case PPCASM_OP_NOR:
+		return "NOR";
+	case PPCASM_OP_NOR_:
+		return "NOR.";
+	case PPCASM_OP_NOT:
+		return "NOT";
+	case PPCASM_OP_NOT_:
+		return "NOT.";
+	case PPCASM_OP_NEG:
+		return "NEG";
+	case PPCASM_OP_NEG_:
+		return "NEG.";
+	case PPCASM_OP_XORI:
+		return "XORI";
+	case PPCASM_OP_XORIS:
+		return "XORIS";
+	case PPCASM_OP_SRAW:
+		return "SRAW";
+	case PPCASM_OP_SRAW_:
+		return "SRAW.";
+	case PPCASM_OP_SRAWI:
+		return "SRAWI";
+	case PPCASM_OP_SRAWI_:
+		return "SRAWI.";
+	case PPCASM_OP_SLW:
+		return "SLW";
+	case PPCASM_OP_SLW_:
+		return "SLW.";
+	case PPCASM_OP_SRW:
+		return "SRW";
+	case PPCASM_OP_SRW_:
+		return "SRW.";
 
-	case PPCASM_OP_RLWINM:	return "RLWINM";
-	case PPCASM_OP_RLWINM_:	return "RLWINM.";
-	case PPCASM_OP_RLWIMI:	return "RLWIMI";
-	case PPCASM_OP_RLWIMI_:	return "RLWIMI.";
+	case PPCASM_OP_RLWINM:
+		return "RLWINM";
+	case PPCASM_OP_RLWINM_:
+		return "RLWINM.";
+	case PPCASM_OP_RLWIMI:
+		return "RLWIMI";
+	case PPCASM_OP_RLWIMI_:
+		return "RLWIMI.";
 
-	case PPCASM_OP_EXTLWI: return "EXTLWI";
-	case PPCASM_OP_EXTLWI_: return "EXTLWI.";
-	case PPCASM_OP_EXTRWI: return "EXTRWI";
-	case PPCASM_OP_EXTRWI_: return "EXTRWI.";
+	case PPCASM_OP_EXTLWI:
+		return "EXTLWI";
+	case PPCASM_OP_EXTLWI_:
+		return "EXTLWI.";
+	case PPCASM_OP_EXTRWI:
+		return "EXTRWI";
+	case PPCASM_OP_EXTRWI_:
+		return "EXTRWI.";
 
-	case PPCASM_OP_ROTLWI: return "ROTLWI";
-	case PPCASM_OP_ROTLWI_: return "ROTLWI.";
-	case PPCASM_OP_ROTRWI: return "ROTRWI";
-	case PPCASM_OP_ROTRWI_: return "ROTRWI.";
+	case PPCASM_OP_ROTLWI:
+		return "ROTLWI";
+	case PPCASM_OP_ROTLWI_:
+		return "ROTLWI.";
+	case PPCASM_OP_ROTRWI:
+		return "ROTRWI";
+	case PPCASM_OP_ROTRWI_:
+		return "ROTRWI.";
 
-	case PPCASM_OP_SLWI: return "SLWI";
-	case PPCASM_OP_SLWI_: return "SLWI.";
-	case PPCASM_OP_SRWI: return "SRWI";
-	case PPCASM_OP_SRWI_: return "SRWI.";
+	case PPCASM_OP_SLWI:
+		return "SLWI";
+	case PPCASM_OP_SLWI_:
+		return "SLWI.";
+	case PPCASM_OP_SRWI:
+		return "SRWI";
+	case PPCASM_OP_SRWI_:
+		return "SRWI.";
 
-	case PPCASM_OP_CLRLWI: return "CLRLWI";
-	case PPCASM_OP_CLRLWI_: return "CLRLWI.";
-	case PPCASM_OP_CLRRWI: return "CLRRWI";
-	case PPCASM_OP_CLRRWI_: return "CLRRWI.";
+	case PPCASM_OP_CLRLWI:
+		return "CLRLWI";
+	case PPCASM_OP_CLRLWI_:
+		return "CLRLWI.";
+	case PPCASM_OP_CLRRWI:
+		return "CLRRWI";
+	case PPCASM_OP_CLRRWI_:
+		return "CLRRWI.";
 
-	case PPCASM_OP_RLWNM: return "RLWNM";
-	case PPCASM_OP_RLWNM_: return "RLWNM.";
+	case PPCASM_OP_RLWNM:
+		return "RLWNM";
+	case PPCASM_OP_RLWNM_:
+		return "RLWNM.";
 
-	case PPCASM_OP_ROTLW: return "ROTLW";
-	case PPCASM_OP_ROTLW_: return "ROTLW.";
+	case PPCASM_OP_ROTLW:
+		return "ROTLW";
+	case PPCASM_OP_ROTLW_:
+		return "ROTLW.";
 
-	case PPCASM_OP_CMPWI: return "CMPWI";
-	case PPCASM_OP_CMPLWI: return "CMPLWI";
-	case PPCASM_OP_CMPW: return "CMPW";
-	case PPCASM_OP_CMPLW: return "CMPLW";
+	case PPCASM_OP_CMPWI:
+		return "CMPWI";
+	case PPCASM_OP_CMPLWI:
+		return "CMPLWI";
+	case PPCASM_OP_CMPW:
+		return "CMPW";
+	case PPCASM_OP_CMPLW:
+		return "CMPLW";
 
-	case PPCASM_OP_MR: return "MR";
-	case PPCASM_OP_MR_: return "MR.";
+	case PPCASM_OP_MR:
+		return "MR";
+	case PPCASM_OP_MR_:
+		return "MR.";
 
-	case PPCASM_OP_EXTSB: return "EXTSB";
-	case PPCASM_OP_EXTSH: return "EXTSH";
-	case PPCASM_OP_CNTLZW: return "CNTLZW";
-	case PPCASM_OP_EXTSB_: return "EXTSB.";
-	case PPCASM_OP_EXTSH_: return "EXTSH.";
-	case PPCASM_OP_CNTLZW_: return "CNTLZW.";
+	case PPCASM_OP_EXTSB:
+		return "EXTSB";
+	case PPCASM_OP_EXTSH:
+		return "EXTSH";
+	case PPCASM_OP_CNTLZW:
+		return "CNTLZW";
+	case PPCASM_OP_EXTSB_:
+		return "EXTSB.";
+	case PPCASM_OP_EXTSH_:
+		return "EXTSH.";
+	case PPCASM_OP_CNTLZW_:
+		return "CNTLZW.";
 
-	case PPCASM_OP_MFSPR: return "MFSPR";
-	case PPCASM_OP_MTSPR: return "MTSPR";
+	case PPCASM_OP_MFSPR:
+		return "MFSPR";
+	case PPCASM_OP_MTSPR:
+		return "MTSPR";
 
-	case PPCASM_OP_LMW: return "LMW";
-	case PPCASM_OP_LWZ: return "LWZ";
-	case PPCASM_OP_LWZU: return "LWZU";
-	case PPCASM_OP_LWZX: return "LWZX";
-	case PPCASM_OP_LWZUX: return "LWZUX";
-	case PPCASM_OP_LHZ: return "LHZ";
-	case PPCASM_OP_LHZU: return "LHZU";
-	case PPCASM_OP_LHZX: return "LHZX";
-	case PPCASM_OP_LHZUX: return "LHZUX";
-	case PPCASM_OP_LHA: return "LHA";
-	case PPCASM_OP_LHAU: return "LHAU";
-	case PPCASM_OP_LHAX: return "LHAX";
-	case PPCASM_OP_LHAUX: return "LHAUX";
-	case PPCASM_OP_LBZ: return "LBZ";
-	case PPCASM_OP_LBZU: return "LBZU";
-	case PPCASM_OP_LBZX: return "LBZX";
-	case PPCASM_OP_LBZUX: return "LBZUX";
-	case PPCASM_OP_STMW: return "STMW";
-	case PPCASM_OP_STW: return "STW";
-	case PPCASM_OP_STWU: return "STWU";
-	case PPCASM_OP_STWX: return "STWX";
-	case PPCASM_OP_STWUX: return "STWUX";
-	case PPCASM_OP_STH: return "STH";
-	case PPCASM_OP_STHU: return "STHU";
-	case PPCASM_OP_STHX: return "STHX";
-	case PPCASM_OP_STHUX: return "STHUX";
-	case PPCASM_OP_STB: return "STB";
-	case PPCASM_OP_STBU: return "STBU";
-	case PPCASM_OP_STBX: return "STBX";
-	case PPCASM_OP_STBUX: return "STBUX";
-	case PPCASM_OP_STSWI: return "STSWI";
-	case PPCASM_OP_STWBRX: return "STWBRX";
-	case PPCASM_OP_STHBRX: return "STHBRX";
+	case PPCASM_OP_LMW:
+		return "LMW";
+	case PPCASM_OP_LWZ:
+		return "LWZ";
+	case PPCASM_OP_LWZU:
+		return "LWZU";
+	case PPCASM_OP_LWZX:
+		return "LWZX";
+	case PPCASM_OP_LWZUX:
+		return "LWZUX";
+	case PPCASM_OP_LHZ:
+		return "LHZ";
+	case PPCASM_OP_LHZU:
+		return "LHZU";
+	case PPCASM_OP_LHZX:
+		return "LHZX";
+	case PPCASM_OP_LHZUX:
+		return "LHZUX";
+	case PPCASM_OP_LHA:
+		return "LHA";
+	case PPCASM_OP_LHAU:
+		return "LHAU";
+	case PPCASM_OP_LHAX:
+		return "LHAX";
+	case PPCASM_OP_LHAUX:
+		return "LHAUX";
+	case PPCASM_OP_LBZ:
+		return "LBZ";
+	case PPCASM_OP_LBZU:
+		return "LBZU";
+	case PPCASM_OP_LBZX:
+		return "LBZX";
+	case PPCASM_OP_LBZUX:
+		return "LBZUX";
+	case PPCASM_OP_STMW:
+		return "STMW";
+	case PPCASM_OP_STW:
+		return "STW";
+	case PPCASM_OP_STWU:
+		return "STWU";
+	case PPCASM_OP_STWX:
+		return "STWX";
+	case PPCASM_OP_STWUX:
+		return "STWUX";
+	case PPCASM_OP_STH:
+		return "STH";
+	case PPCASM_OP_STHU:
+		return "STHU";
+	case PPCASM_OP_STHX:
+		return "STHX";
+	case PPCASM_OP_STHUX:
+		return "STHUX";
+	case PPCASM_OP_STB:
+		return "STB";
+	case PPCASM_OP_STBU:
+		return "STBU";
+	case PPCASM_OP_STBX:
+		return "STBX";
+	case PPCASM_OP_STBUX:
+		return "STBUX";
+	case PPCASM_OP_STSWI:
+		return "STSWI";
+	case PPCASM_OP_STWBRX:
+		return "STWBRX";
+	case PPCASM_OP_STHBRX:
+		return "STHBRX";
 
-	case PPCASM_OP_LWARX: return "LWARX";
-	case PPCASM_OP_STWCX_: return "STWCX.";
+	case PPCASM_OP_LWARX:
+		return "LWARX";
+	case PPCASM_OP_STWCX_:
+		return "STWCX.";
 
-	case PPCASM_OP_B: return "B";
-	case PPCASM_OP_BL: return "BL";
-	case PPCASM_OP_BA: return "BA";
-	case PPCASM_OP_BLA: return "BLA";
-		
-	case PPCASM_OP_BC: return "BC";
-	case PPCASM_OP_BNE: return "BNE";
-	case PPCASM_OP_BEQ: return "BEQ";
-	case PPCASM_OP_BGE: return "BGE";
-	case PPCASM_OP_BGT: return "BGT";
-	case PPCASM_OP_BLT: return "BLT";
-	case PPCASM_OP_BLE:	return "BLE";
-	case PPCASM_OP_BDZ: return "BDZ";
-	case PPCASM_OP_BDNZ: return "BDNZ";
+	case PPCASM_OP_B:
+		return "B";
+	case PPCASM_OP_BL:
+		return "BL";
+	case PPCASM_OP_BA:
+		return "BA";
+	case PPCASM_OP_BLA:
+		return "BLA";
 
-	case PPCASM_OP_BLR:   return "BLR";
-	case PPCASM_OP_BLTLR: return "BLTLR";
-	case PPCASM_OP_BLELR: return "BLELR";
-	case PPCASM_OP_BEQLR: return "BEQLR";
-	case PPCASM_OP_BGELR: return "BGELR";
-	case PPCASM_OP_BGTLR: return "BGTLR";
-	case PPCASM_OP_BNELR: return "BNELR";
+	case PPCASM_OP_BC:
+		return "BC";
+	case PPCASM_OP_BNE:
+		return "BNE";
+	case PPCASM_OP_BEQ:
+		return "BEQ";
+	case PPCASM_OP_BGE:
+		return "BGE";
+	case PPCASM_OP_BGT:
+		return "BGT";
+	case PPCASM_OP_BLT:
+		return "BLT";
+	case PPCASM_OP_BLE:
+		return "BLE";
+	case PPCASM_OP_BDZ:
+		return "BDZ";
+	case PPCASM_OP_BDNZ:
+		return "BDNZ";
 
-	case PPCASM_OP_BCTR: return "BCTR";
-	case PPCASM_OP_BCTRL: return "BCTRL";
-		
-	case PPCASM_OP_LFS:	return "LFS";
-	case PPCASM_OP_LFSU: return "LFSU";
-	case PPCASM_OP_LFSX: return "LFSX";
-	case PPCASM_OP_LFSUX: return "LFSUX";
-	case PPCASM_OP_LFD: return "LFD";
-	case PPCASM_OP_LFDU: return "LFDU";
-	case PPCASM_OP_LFDX: return "LFDX";
-	case PPCASM_OP_LFDUX: return "LFDUX";
-	case PPCASM_OP_STFS: return "STFS";
-	case PPCASM_OP_STFSU: return "STFSU";
-	case PPCASM_OP_STFSX: return "STFSX";
-	case PPCASM_OP_STFSUX: return "STFSUX";
-	case PPCASM_OP_STFD: return "STFD";
-	case PPCASM_OP_STFDU: return "STFDU";
-	case PPCASM_OP_STFDX: return "STFDX";
-	case PPCASM_OP_STFDUX: return "STFDUX";
+	case PPCASM_OP_BLR:
+		return "BLR";
+	case PPCASM_OP_BLTLR:
+		return "BLTLR";
+	case PPCASM_OP_BLELR:
+		return "BLELR";
+	case PPCASM_OP_BEQLR:
+		return "BEQLR";
+	case PPCASM_OP_BGELR:
+		return "BGELR";
+	case PPCASM_OP_BGTLR:
+		return "BGTLR";
+	case PPCASM_OP_BNELR:
+		return "BNELR";
 
-	case PPCASM_OP_STFIWX: return "STFIWX";
+	case PPCASM_OP_BCTR:
+		return "BCTR";
+	case PPCASM_OP_BCTRL:
+		return "BCTRL";
 
-	case PPCASM_OP_PS_MERGE00: return "PS_MERGE00";
-	case PPCASM_OP_PS_MERGE01: return "PS_MERGE01";
-	case PPCASM_OP_PS_MERGE10: return "PS_MERGE10";
-	case PPCASM_OP_PS_MERGE11: return "PS_MERGE11";
-	case PPCASM_OP_PS_ADD: return "PS_ADD";
-	case PPCASM_OP_PS_SUB: return "PS_SUB";
-	case PPCASM_OP_PS_DIV: return "PS_DIV";
-	case PPCASM_OP_PS_MUL: return "PS_MUL";
-	case PPCASM_OP_PS_MADD: return "PS_MADD";
-	case PPCASM_OP_PS_MSUB: return "PS_MSUB";
-	case PPCASM_OP_PS_NMADD: return "PS_NMADD";
-	case PPCASM_OP_PS_NMSUB: return "PS_NMSUB";
+	case PPCASM_OP_LFS:
+		return "LFS";
+	case PPCASM_OP_LFSU:
+		return "LFSU";
+	case PPCASM_OP_LFSX:
+		return "LFSX";
+	case PPCASM_OP_LFSUX:
+		return "LFSUX";
+	case PPCASM_OP_LFD:
+		return "LFD";
+	case PPCASM_OP_LFDU:
+		return "LFDU";
+	case PPCASM_OP_LFDX:
+		return "LFDX";
+	case PPCASM_OP_LFDUX:
+		return "LFDUX";
+	case PPCASM_OP_STFS:
+		return "STFS";
+	case PPCASM_OP_STFSU:
+		return "STFSU";
+	case PPCASM_OP_STFSX:
+		return "STFSX";
+	case PPCASM_OP_STFSUX:
+		return "STFSUX";
+	case PPCASM_OP_STFD:
+		return "STFD";
+	case PPCASM_OP_STFDU:
+		return "STFDU";
+	case PPCASM_OP_STFDX:
+		return "STFDX";
+	case PPCASM_OP_STFDUX:
+		return "STFDUX";
 
-	case PPCASM_OP_FMR: return "FMR";
-	case PPCASM_OP_FNEG: return "FNEG";
-	case PPCASM_OP_FRSP: return "FRSP";
-	case PPCASM_OP_FRSQRTE: return "FRSQRTE";
-	case PPCASM_OP_FADD: return "FADD";
-	case PPCASM_OP_FADDS: return "FADDS";
-	case PPCASM_OP_FSUB: return "FSUB";
-	case PPCASM_OP_FSUBS: return "FSUBS";
-	case PPCASM_OP_FMUL: return "FMUL";
-	case PPCASM_OP_FMULS: return "FMULS";
-	case PPCASM_OP_FDIV: return "FDIV";
-	case PPCASM_OP_FDIVS: return "FDIVS";
+	case PPCASM_OP_STFIWX:
+		return "STFIWX";
 
-	case PPCASM_OP_FMADD: return "FMADD";
-	case PPCASM_OP_FMADDS: return "FMADDS";
-	case PPCASM_OP_FNMADD: return "FNMADD";
-	case PPCASM_OP_FNMADDS: return "FNMADDS";
-	case PPCASM_OP_FMSUB: return "FMSUB";
-	case PPCASM_OP_FMSUBS: return "FMSUBS";
-	case PPCASM_OP_FNMSUB: return "FNMSUB";
-	case PPCASM_OP_FNMSUBS: return "FNMSUBS";
+	case PPCASM_OP_PS_MERGE00:
+		return "PS_MERGE00";
+	case PPCASM_OP_PS_MERGE01:
+		return "PS_MERGE01";
+	case PPCASM_OP_PS_MERGE10:
+		return "PS_MERGE10";
+	case PPCASM_OP_PS_MERGE11:
+		return "PS_MERGE11";
+	case PPCASM_OP_PS_ADD:
+		return "PS_ADD";
+	case PPCASM_OP_PS_SUB:
+		return "PS_SUB";
+	case PPCASM_OP_PS_DIV:
+		return "PS_DIV";
+	case PPCASM_OP_PS_MUL:
+		return "PS_MUL";
+	case PPCASM_OP_PS_MADD:
+		return "PS_MADD";
+	case PPCASM_OP_PS_MSUB:
+		return "PS_MSUB";
+	case PPCASM_OP_PS_NMADD:
+		return "PS_NMADD";
+	case PPCASM_OP_PS_NMSUB:
+		return "PS_NMSUB";
 
-	case PPCASM_OP_FCTIWZ: return "FCTIWZ";
+	case PPCASM_OP_FMR:
+		return "FMR";
+	case PPCASM_OP_FNEG:
+		return "FNEG";
+	case PPCASM_OP_FRSP:
+		return "FRSP";
+	case PPCASM_OP_FRSQRTE:
+		return "FRSQRTE";
+	case PPCASM_OP_FADD:
+		return "FADD";
+	case PPCASM_OP_FADDS:
+		return "FADDS";
+	case PPCASM_OP_FSUB:
+		return "FSUB";
+	case PPCASM_OP_FSUBS:
+		return "FSUBS";
+	case PPCASM_OP_FMUL:
+		return "FMUL";
+	case PPCASM_OP_FMULS:
+		return "FMULS";
+	case PPCASM_OP_FDIV:
+		return "FDIV";
+	case PPCASM_OP_FDIVS:
+		return "FDIVS";
 
-	case PPCASM_OP_FCMPU: return "FCMPU";
-	case PPCASM_OP_FCMPO: return "FCMPO";
+	case PPCASM_OP_FMADD:
+		return "FMADD";
+	case PPCASM_OP_FMADDS:
+		return "FMADDS";
+	case PPCASM_OP_FNMADD:
+		return "FNMADD";
+	case PPCASM_OP_FNMADDS:
+		return "FNMADDS";
+	case PPCASM_OP_FMSUB:
+		return "FMSUB";
+	case PPCASM_OP_FMSUBS:
+		return "FMSUBS";
+	case PPCASM_OP_FNMSUB:
+		return "FNMSUB";
+	case PPCASM_OP_FNMSUBS:
+		return "FNMSUBS";
 
-	case PPCASM_OP_ISYNC: return "ISYNC";
+	case PPCASM_OP_FCTIWZ:
+		return "FCTIWZ";
 
-	case PPCASM_OP_NOP: return "NOP";
-	case PPCASM_OP_LI: return "LI";
-	case PPCASM_OP_LIS: return "LIS";
+	case PPCASM_OP_FCMPU:
+		return "FCMPU";
+	case PPCASM_OP_FCMPO:
+		return "FCMPO";
 
-	case PPCASM_OP_MFLR: return "MFLR";
-	case PPCASM_OP_MTLR: return "MTLR";
-	case PPCASM_OP_MFCTR: return "MFCTR";
-	case PPCASM_OP_MTCTR: return "MTCTR";
+	case PPCASM_OP_ISYNC:
+		return "ISYNC";
 
-	case PPCASM_OP_CROR: return "CROR";
-	case PPCASM_OP_CRNOR: return "CRNOR";
-	case PPCASM_OP_CRORC: return "CRORC";
-	case PPCASM_OP_CRXOR: return "CRXOR";
-	case PPCASM_OP_CREQV: return "CREQV";
-	case PPCASM_OP_CRAND: return "CRAND";
-	case PPCASM_OP_CRNAND: return "CRNAND";
-	case PPCASM_OP_CRANDC: return "CRANDC";
+	case PPCASM_OP_NOP:
+		return "NOP";
+	case PPCASM_OP_LI:
+		return "LI";
+	case PPCASM_OP_LIS:
+		return "LIS";
 
-	case PPCASM_OP_CRSET: return "CRSET";
-	case PPCASM_OP_CRCLR: return "CRCLR";
-	case PPCASM_OP_CRMOVE: return "CRMOVE";
-	case PPCASM_OP_CRNOT: return "CRNOT";
+	case PPCASM_OP_MFLR:
+		return "MFLR";
+	case PPCASM_OP_MTLR:
+		return "MTLR";
+	case PPCASM_OP_MFCTR:
+		return "MFCTR";
+	case PPCASM_OP_MTCTR:
+		return "MTCTR";
 
+	case PPCASM_OP_CROR:
+		return "CROR";
+	case PPCASM_OP_CRNOR:
+		return "CRNOR";
+	case PPCASM_OP_CRORC:
+		return "CRORC";
+	case PPCASM_OP_CRXOR:
+		return "CRXOR";
+	case PPCASM_OP_CREQV:
+		return "CREQV";
+	case PPCASM_OP_CRAND:
+		return "CRAND";
+	case PPCASM_OP_CRNAND:
+		return "CRNAND";
+	case PPCASM_OP_CRANDC:
+		return "CRANDC";
+
+	case PPCASM_OP_CRSET:
+		return "CRSET";
+	case PPCASM_OP_CRCLR:
+		return "CRCLR";
+	case PPCASM_OP_CRMOVE:
+		return "CRMOVE";
+	case PPCASM_OP_CRNOT:
+		return "CRNOT";
 
 	default:
 		return "UNDEF";
@@ -327,28 +550,28 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 	return "";
 }
 
-#define C_MASK_RC		(PPC_OPC_RC)
-#define C_MASK_LK		(PPC_OPC_LK)
-#define C_MASK_AA		(PPC_OPC_AA)
-#define C_MASK_OE		(1<<10)
-#define C_MASK_BO		(0x1F<<21)
-#define C_MASK_BO_COND	(0x1E<<21) // BO mask for true/false conditions. With hint bit excluded
-#define C_MASK_BI_CRBIT	(0x3<<16)
-#define C_MASK_BI_CRIDX	(0x7<<18)
+#define C_MASK_RC (PPC_OPC_RC)
+#define C_MASK_LK (PPC_OPC_LK)
+#define C_MASK_AA (PPC_OPC_AA)
+#define C_MASK_OE (1 << 10)
+#define C_MASK_BO (0x1F << 21)
+#define C_MASK_BO_COND (0x1E << 21) // BO mask for true/false conditions. With hint bit excluded
+#define C_MASK_BI_CRBIT (0x3 << 16)
+#define C_MASK_BI_CRIDX (0x7 << 18)
 
-#define C_BIT_RC		(PPC_OPC_RC)
-#define C_BIT_LK		(PPC_OPC_LK)
-#define C_BIT_AA		(PPC_OPC_AA)
-#define C_BIT_BO_FALSE	(0x4<<21)	// CR bit not set
-#define C_BIT_BO_TRUE	(0xC<<21)	// CR bit set
-#define C_BIT_BO_ALWAYS	(0x14<<21)
-#define C_BIT_BO_DNZ	(0x10<<21)
-#define C_BIT_BO_DZ		(0x12<<21)
+#define C_BIT_RC (PPC_OPC_RC)
+#define C_BIT_LK (PPC_OPC_LK)
+#define C_BIT_AA (PPC_OPC_AA)
+#define C_BIT_BO_FALSE (0x4 << 21) // CR bit not set
+#define C_BIT_BO_TRUE (0xC << 21)  // CR bit set
+#define C_BIT_BO_ALWAYS (0x14 << 21)
+#define C_BIT_BO_DNZ (0x10 << 21)
+#define C_BIT_BO_DZ (0x12 << 21)
 
-#define C_BITS_BI_LT	(0x0<<16)	
-#define C_BITS_BI_GT	(0x1<<16)	
-#define C_BITS_BI_EQ	(0x2<<16)	
-#define C_BITS_BI_SO	(0x3<<16)	
+#define C_BITS_BI_LT (0x0 << 16)
+#define C_BITS_BI_GT (0x1 << 16)
+#define C_BITS_BI_EQ (0x2 << 16)
+#define C_BITS_BI_SO (0x3 << 16)
 
 void ppcAssembler_setError(PPCAssemblerInOut* ctx, std::string_view errorMsg);
 
@@ -406,27 +629,32 @@ bool ppcOp_extraCheck_rotlw(uint32 opcode)
 	return MB == 0 && ME == 31;
 }
 
-#define FLG_DEFAULT	0
+#define FLG_DEFAULT 0
 #define FLG_SKIP_OP0 operand0Bit
 #define FLG_SKIP_OP1 operand1Bit
 #define FLG_SKIP_OP2 operand2Bit
 #define FLG_SKIP_OP3 operand3Bit
 #define FLG_SKIP_OP4 operand4Bit
 
-#define FLG_SWAP_OP0_OP1	(1<<6)	// todo - maybe this should be implemented as a fully configurable matrix of indices instead of predefined constants?
-#define FLG_SWAP_OP1_OP2	(1<<7)
-#define FLG_SWAP_OP2_OP3	(1<<8)
+#define FLG_SWAP_OP0_OP1                                                                           \
+	(1 << 6) // todo - maybe this should be implemented as a fully configurable matrix of indices
+			 // instead of predefined constants?
+#define FLG_SWAP_OP1_OP2 (1 << 7)
+#define FLG_SWAP_OP2_OP3 (1 << 8)
 
-#define FLG_UNSIGNED_IMM	(1<<10) // always consider immediate unsigned but still allow signed values when assembling
+#define FLG_UNSIGNED_IMM                                                                           \
+	(1 << 10) // always consider immediate unsigned but still allow signed values when assembling
 
 class EncodedOperand_None
 {
-public:
+  public:
 	EncodedOperand_None() {}
 
-	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode,
+						 size_t index)
 	{
-		if (index < assemblerCtx->listOperandStr.size() && !assemblerCtx->listOperandStr[index].str.empty())
+		if (index < assemblerCtx->listOperandStr.size() &&
+			!assemblerCtx->listOperandStr[index].str.empty())
 		{
 			ppcAssembler_setError(assemblerCtx->ctx, "Too many operands");
 			return false;
@@ -434,9 +662,9 @@ public:
 		return true;
 	}
 
-	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+							const uint32 opcode, size_t index)
 	{
-
 	}
 };
 
@@ -466,10 +694,11 @@ static int _parseRegIndex(std::string_view sv, const char* prefix)
 template<bool TAllowEAZero = false> // if true, "r0" can be substituted with "0"
 class EncodedOperand_GPR
 {
-public:
+  public:
 	EncodedOperand_GPR(uint8 bitPos) : m_bitPos(bitPos) {}
 
-	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode,
+						 size_t index)
 	{
 		if (index >= assemblerCtx->listOperandStr.size())
 		{
@@ -489,7 +718,10 @@ public:
 		sint32 regIndex = _parseRegIndex(operandStr, "r");
 		if (regIndex < 0 || regIndex >= 32)
 		{
-			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("Operand \"{}\" is not a valid GPR (expected r0 - r31)", assemblerCtx->listOperandStr[index].str));
+			ppcAssembler_setError(
+				assemblerCtx->ctx,
+				fmt::format("Operand \"{}\" is not a valid GPR (expected r0 - r31)",
+							assemblerCtx->listOperandStr[index].str));
 			return false;
 		}
 		opcode &= ~((uint32)0x1F << m_bitPos);
@@ -497,23 +729,26 @@ public:
 		return true;
 	}
 
-	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+							const uint32 opcode, size_t index)
 	{
 		uint32 regIndex = (opcode >> m_bitPos) & 0x1F;
 		disInstr->operandMask |= (1 << index);
 		disInstr->operand[index].type = PPCASM_OPERAND_TYPE_GPR;
 		disInstr->operand[index].registerIndex = regIndex;
 	}
-private:
+
+  private:
 	uint8 m_bitPos;
 };
 
 class EncodedOperand_FPR
 {
-public:
+  public:
 	EncodedOperand_FPR(uint8 bitPos) : m_bitPos(bitPos) {}
 
-	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode,
+						 size_t index)
 	{
 		if (index >= assemblerCtx->listOperandStr.size())
 		{
@@ -523,7 +758,10 @@ public:
 		sint32 regIndex = _parseRegIndex(assemblerCtx->listOperandStr[index].str, "f");
 		if (regIndex < 0 || regIndex >= 32)
 		{
-			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("Operand \"{}\" is not a valid FPR (expected f0 - f31)", assemblerCtx->listOperandStr[index].str));
+			ppcAssembler_setError(
+				assemblerCtx->ctx,
+				fmt::format("Operand \"{}\" is not a valid FPR (expected f0 - f31)",
+							assemblerCtx->listOperandStr[index].str));
 			return false;
 		}
 		opcode &= ~((uint32)0x1F << m_bitPos);
@@ -531,23 +769,26 @@ public:
 		return true;
 	}
 
-	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+							const uint32 opcode, size_t index)
 	{
 		uint32 regIndex = (opcode >> m_bitPos) & 0x1F;
-		disInstr->operandMask |= (1<<index);
+		disInstr->operandMask |= (1 << index);
 		disInstr->operand[index].type = PPCASM_OPERAND_TYPE_FPR;
 		disInstr->operand[index].registerIndex = regIndex;
 	}
-private:
+
+  private:
 	uint8 m_bitPos;
 };
 
 class EncodedOperand_SPR
 {
-public:
+  public:
 	EncodedOperand_SPR() {}
 
-	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode,
+						 size_t index)
 	{
 		if (index >= assemblerCtx->listOperandStr.size())
 		{
@@ -557,11 +798,14 @@ public:
 		sint32 regIndex = _parseRegIndex(assemblerCtx->listOperandStr[index].str, "spr");
 		if (regIndex < 0 || regIndex >= 1024)
 		{
-			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("Operand \"{}\" is not a valid GPR (expected spr0 - spr1023)", assemblerCtx->listOperandStr[index].str));
+			ppcAssembler_setError(
+				assemblerCtx->ctx,
+				fmt::format("Operand \"{}\" is not a valid GPR (expected spr0 - spr1023)",
+							assemblerCtx->listOperandStr[index].str));
 			return false;
 		}
-		sint32 sprLow = (regIndex) & 0x1F;
-		sint32 sprHigh = (regIndex>>5) & 0x1F;
+		sint32 sprLow = (regIndex)&0x1F;
+		sint32 sprHigh = (regIndex >> 5) & 0x1F;
 		opcode &= ~((uint32)0x1F << 16);
 		opcode |= ((uint32)sprLow << 16);
 		opcode &= ~((uint32)0x1F << 11);
@@ -569,7 +813,8 @@ public:
 		return true;
 	}
 
-	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+							const uint32 opcode, size_t index)
 	{
 		uint32 sprLow = (opcode >> 16) & 0x1F;
 		uint32 sprHigh = (opcode >> 11) & 0x1F;
@@ -581,10 +826,11 @@ public:
 
 class EncodedOperand_MemLoc
 {
-public:
-	EncodedOperand_MemLoc()  {}
+  public:
+	EncodedOperand_MemLoc() {}
 
-	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode,
+						 size_t index)
 	{
 		if (index >= assemblerCtx->listOperandStr.size())
 		{
@@ -605,7 +851,11 @@ public:
 		}
 		if (endPtr == startPtr || endPtr[-1] != ')')
 		{
-			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("\'{}\' does not end with valid memory register syntax. Memory operand must have the form offset(gpr). Example: 0x20(r3)", svOpText));
+			ppcAssembler_setError(
+				assemblerCtx->ctx,
+				fmt::format("\'{}\' does not end with valid memory register syntax. Memory operand "
+							"must have the form offset(gpr). Example: 0x20(r3)",
+							svOpText));
 			return false;
 		}
 		endPtr--;
@@ -625,21 +875,29 @@ public:
 		}
 		if (memoryRegBegin == nullptr)
 		{
-			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("\'{}\' does not end with valid memory register syntax. Memory operand must have the form offset(gpr). Example: 0x20(r3)", svOpText));
+			ppcAssembler_setError(
+				assemblerCtx->ctx,
+				fmt::format("\'{}\' does not end with valid memory register syntax. Memory operand "
+							"must have the form offset(gpr). Example: 0x20(r3)",
+							svOpText));
 			return false;
 		}
 		std::string_view svExpressionPart(startPtr, endPtr - startPtr);
 		std::string_view svRegPart(memoryRegBegin, memoryRegEnd - memoryRegBegin);
 		sint32 memGpr = _parseRegIndex(svRegPart, "r");
-		//if (_ppcAssembler_parseRegister(svRegPart, "r", memGpr) == false || (memGpr < 0 || memGpr >= 32))
+		// if (_ppcAssembler_parseRegister(svRegPart, "r", memGpr) == false || (memGpr < 0 || memGpr
+		// >= 32))
 		//{
-		//	sprintf(_assemblerErrorMessageDepr, "\'%.*s\' is not a valid GPR", (int)(memoryRegEnd - memoryRegBegin), memoryRegBegin);
-		//	ppcAssembler_setError(internalCtx.ctx, _assemblerErrorMessageDepr);
-		//	return false;
+		//	sprintf(_assemblerErrorMessageDepr, "\'%.*s\' is not a valid GPR", (int)(memoryRegEnd -
+		// memoryRegBegin), memoryRegBegin); 	ppcAssembler_setError(internalCtx.ctx,
+		//_assemblerErrorMessageDepr); 	return false;
 		//}
 		if (memGpr < 0 || memGpr >= 32)
 		{
-			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("Memory operand register \"{}\" is not a valid GPR (expected r0 - r31)", svRegPart));
+			ppcAssembler_setError(
+				assemblerCtx->ctx,
+				fmt::format("Memory operand register \"{}\" is not a valid GPR (expected r0 - r31)",
+							svRegPart));
 			return false;
 		}
 		opcode &= ~(0x1F << 16);
@@ -655,7 +913,9 @@ public:
 				sint32 imm = (sint32)immD;
 				if (imm < -32768 && imm > 32767)
 				{
-					std::string msg = fmt::format("\"{}\" evaluates to offset out of range (Valid range is -32768 to 32767)", svExpressionPart);
+					std::string msg = fmt::format(
+						"\"{}\" evaluates to offset out of range (Valid range is -32768 to 32767)",
+						svExpressionPart);
 					ppcAssembler_setError(assemblerCtx->ctx, msg);
 					return false;
 				}
@@ -664,20 +924,23 @@ public:
 			}
 			else
 			{
-				assemblerCtx->ctx->list_relocs.emplace_back(PPCASM_RELOC::U32_MASKED_IMM, std::string(svExpressionPart), 0, 0, 16);
+				assemblerCtx->ctx->list_relocs.emplace_back(
+					PPCASM_RELOC::U32_MASKED_IMM, std::string(svExpressionPart), 0, 0, 16);
 				return true;
 			}
 		}
 		catch (std::exception* e)
 		{
-			std::string msg = fmt::format("\"{}\" could not be evaluated. Error: {}", svExpressionPart, e->what());
+			std::string msg = fmt::format("\"{}\" could not be evaluated. Error: {}",
+										  svExpressionPart, e->what());
 			ppcAssembler_setError(assemblerCtx->ctx, msg);
 			return false;
 		}
 		return true;
 	}
 
-	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+							const uint32 opcode, size_t index)
 	{
 		uint32 imm = (opcode & 0xFFFF);
 		if (imm & 0x8000)
@@ -710,10 +973,16 @@ bool _CanStoreInteger(uint32 value, uint32 numBits, bool isSigned)
 
 class EncodedOperand_IMM
 {
-public:
-	EncodedOperand_IMM(uint8 bitPos, uint8 bits, bool isSigned, bool negate = false, bool extendedRange = false) : m_bitPos(bitPos), m_bits(bits), m_isSigned(isSigned), m_negate(negate), m_extendedRange(extendedRange) {}
+  public:
+	EncodedOperand_IMM(uint8 bitPos, uint8 bits, bool isSigned, bool negate = false,
+					   bool extendedRange = false)
+		: m_bitPos(bitPos), m_bits(bits), m_isSigned(isSigned), m_negate(negate),
+		  m_extendedRange(extendedRange)
+	{
+	}
 
-	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode,
+						 size_t index)
 	{
 		if (index >= assemblerCtx->listOperandStr.size())
 		{
@@ -737,35 +1006,39 @@ public:
 			}
 			else
 			{
-				assemblerCtx->ctx->list_relocs.emplace_back(PPCASM_RELOC::U32_MASKED_IMM, expressionString, 0, m_bitPos, m_bits);
+				assemblerCtx->ctx->list_relocs.emplace_back(PPCASM_RELOC::U32_MASKED_IMM,
+															expressionString, 0, m_bitPos, m_bits);
 				return true;
 			}
 		}
 		catch (std::exception* e)
 		{
 			// check if expression is invalid or if it contains unknown constants
-			std::string msg = fmt::format("\"{}\" could not be evaluated. Error: {}", expressionString.c_str(), e->what());
+			std::string msg = fmt::format("\"{}\" could not be evaluated. Error: {}",
+										  expressionString.c_str(), e->what());
 			ppcAssembler_setError(assemblerCtx->ctx, msg);
 			return false;
 		}
 		uint32 imm = (uint32)(sint32)immD;
 		bool canStore = _CanStoreInteger(imm, m_bits, m_isSigned);
-		if(!canStore && m_extendedRange) // always allow unsigned
+		if (!canStore && m_extendedRange) // always allow unsigned
 			canStore = _CanStoreInteger(imm, m_bits, false);
 		if (!canStore)
 		{
-			std::string msg = fmt::format("Value of operand \"{}\" is out of range", assemblerCtx->listOperandStr[index].str);
+			std::string msg = fmt::format("Value of operand \"{}\" is out of range",
+										  assemblerCtx->listOperandStr[index].str);
 			ppcAssembler_setError(assemblerCtx->ctx, msg);
 			return false;
 		}
-		uint32 mask = (1<<m_bits)-1;
+		uint32 mask = (1 << m_bits) - 1;
 		imm &= mask;
 		opcode &= ~(mask << m_bitPos);
 		opcode |= (imm << m_bitPos);
 		return true;
 	}
 
-	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+							const uint32 opcode, size_t index)
 	{
 		uint32 mask = (1 << m_bits) - 1;
 		uint32 immValue = (opcode >> m_bitPos) & mask;
@@ -782,7 +1055,8 @@ public:
 		disInstr->operand[index].immWidth = m_bits;
 		disInstr->operand[index].isSignedImm = m_isSigned;
 	}
-private:
+
+  private:
 	uint8 m_bitPos;
 	uint8 m_bits;
 	bool m_isSigned;
@@ -792,10 +1066,11 @@ private:
 
 class EncodedOperand_U5Reverse
 {
-public:
+  public:
 	EncodedOperand_U5Reverse(uint8 bitPos, uint8 base) : m_bitPos(bitPos), m_base(base) {}
 
-	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode,
+						 size_t index)
 	{
 		if (index >= assemblerCtx->listOperandStr.size())
 		{
@@ -816,14 +1091,16 @@ public:
 			}
 			else
 			{
-				assemblerCtx->ctx->list_relocs.emplace_back(PPCASM_RELOC::U32_MASKED_IMM, expressionString, 0, m_bitPos, 5);
+				assemblerCtx->ctx->list_relocs.emplace_back(PPCASM_RELOC::U32_MASKED_IMM,
+															expressionString, 0, m_bitPos, 5);
 				return true;
 			}
 		}
 		catch (std::exception* e)
 		{
 			// check if expression is invalid or if it contains unknown constants
-			std::string msg = fmt::format("\"{}\" could not be evaluated. Error: {}", expressionString.c_str(), e->what());
+			std::string msg = fmt::format("\"{}\" could not be evaluated. Error: {}",
+										  expressionString.c_str(), e->what());
 			ppcAssembler_setError(assemblerCtx->ctx, msg);
 			return false;
 		}
@@ -831,7 +1108,8 @@ public:
 		bool canStore = _CanStoreInteger(imm, 5, false);
 		if (!canStore)
 		{
-			std::string msg = fmt::format("Value of operand \"{}\" is out of range", assemblerCtx->listOperandStr[index].str);
+			std::string msg = fmt::format("Value of operand \"{}\" is out of range",
+										  assemblerCtx->listOperandStr[index].str);
 			ppcAssembler_setError(assemblerCtx->ctx, msg);
 			return false;
 		}
@@ -842,7 +1120,8 @@ public:
 		return true;
 	}
 
-	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+							const uint32 opcode, size_t index)
 	{
 		uint32 mask = (1 << 5) - 1;
 		uint32 immValue = (opcode >> m_bitPos) & mask;
@@ -853,21 +1132,24 @@ public:
 		disInstr->operand[index].immWidth = 5;
 		disInstr->operand[index].isSignedImm = false;
 	}
-private:
+
+  private:
 	uint8 m_bitPos;
 	uint8 m_base;
 };
 
 class EncodedConstraint_None
 {
-public:
+  public:
 	EncodedConstraint_None() {}
 
-	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode)
+	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef,
+							uint32& opcode)
 	{
 	}
 
-	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode)
+	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+									const uint32 opcode)
 	{
 		return true;
 	}
@@ -875,34 +1157,43 @@ public:
 
 class EncodedConstraint_MirrorU5
 {
-public:
-	EncodedConstraint_MirrorU5(uint8 srcBitPos, uint8 dstBitPos) : m_srcBitPos(srcBitPos), m_dstBitPos(dstBitPos) {}
+  public:
+	EncodedConstraint_MirrorU5(uint8 srcBitPos, uint8 dstBitPos)
+		: m_srcBitPos(srcBitPos), m_dstBitPos(dstBitPos)
+	{
+	}
 
-	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode)
+	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef,
+							uint32& opcode)
 	{
 		uint32 regIndex = (opcode >> m_srcBitPos) & 0x1F;
 		opcode &= ~((uint32)0x1F << m_dstBitPos);
 		opcode |= ((uint32)regIndex << m_dstBitPos);
 	}
 
-	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode)
+	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+									const uint32 opcode)
 	{
 		uint32 regSrc = (opcode >> m_srcBitPos) & 0x1F;
 		uint32 regDst = (opcode >> m_dstBitPos) & 0x1F;
 		return regSrc == regDst;
 	}
 
-private:
+  private:
 	const uint8 m_srcBitPos, m_dstBitPos;
 };
 
 // same as _MirrorU5, but the destination must match invBase - src
 class EncodedConstraint_MirrorReverseU5
 {
-public:
-	EncodedConstraint_MirrorReverseU5(uint8 srcBitPos, uint8 dstBitPos, uint8 invBase) : m_srcBitPos(srcBitPos), m_dstBitPos(dstBitPos), m_invBase(invBase) {}
+  public:
+	EncodedConstraint_MirrorReverseU5(uint8 srcBitPos, uint8 dstBitPos, uint8 invBase)
+		: m_srcBitPos(srcBitPos), m_dstBitPos(dstBitPos), m_invBase(invBase)
+	{
+	}
 
-	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode)
+	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef,
+							uint32& opcode)
 	{
 		uint32 regIndex = (opcode >> m_srcBitPos) & 0x1F;
 		regIndex = m_invBase - regIndex;
@@ -910,7 +1201,8 @@ public:
 		opcode |= ((uint32)regIndex << m_dstBitPos);
 	}
 
-	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode)
+	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+									const uint32 opcode)
 	{
 		uint32 regSrc = (opcode >> m_srcBitPos) & 0x1F;
 		uint32 regDst = (opcode >> m_dstBitPos) & 0x1F;
@@ -920,29 +1212,34 @@ public:
 		return regSrc == regDst;
 	}
 
-private:
+  private:
 	const uint8 m_srcBitPos, m_dstBitPos, m_invBase;
 };
 
 class EncodedConstraint_FixedU5
 {
-public:
-	EncodedConstraint_FixedU5(uint8 bitPos, uint8 expectedReg) : m_bitPos(bitPos), m_expectedReg(expectedReg) {}
+  public:
+	EncodedConstraint_FixedU5(uint8 bitPos, uint8 expectedReg)
+		: m_bitPos(bitPos), m_expectedReg(expectedReg)
+	{
+	}
 
-	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode)
+	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef,
+							uint32& opcode)
 	{
 		uint32 regIndex = m_expectedReg;
 		opcode &= ~((uint32)0x1F << m_bitPos);
 		opcode |= ((uint32)regIndex << m_bitPos);
 	}
 
-	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode)
+	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+									const uint32 opcode)
 	{
 		uint32 reg = (opcode >> m_bitPos) & 0x1F;
 		return (uint8)reg == m_expectedReg;
 	}
 
-private:
+  private:
 	const uint8 m_bitPos;
 	const uint8 m_expectedReg;
 };
@@ -953,30 +1250,37 @@ using EncodedConstraint_MirrorRegister = EncodedConstraint_MirrorU5;
 // checks bit value, but does not overwrite it on assemble
 class EncodedConstraint_CheckSignBit
 {
-public:
-	EncodedConstraint_CheckSignBit(uint8 bitPos, uint8 expectedValue) : m_bitPos(bitPos), m_expectedValue(expectedValue) {}
+  public:
+	EncodedConstraint_CheckSignBit(uint8 bitPos, uint8 expectedValue)
+		: m_bitPos(bitPos), m_expectedValue(expectedValue)
+	{
+	}
 
-	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode)
+	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef,
+							uint32& opcode)
 	{
 		// dont overwrite the existing sign bit
 	}
 
-	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode)
+	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+									const uint32 opcode)
 	{
 		return ((opcode >> m_bitPos) & 1) == m_expectedValue;
 	}
 
-private:
+  private:
 	const uint8 m_bitPos;
 	const uint8 m_expectedValue;
 };
 
-//class EncodedConstraint_ExpectBit
+// class EncodedConstraint_ExpectBit
 //{
-//public:
-//	EncodedConstraint_ExpectBit(uint8 bitPos, bool val) : m_bitPos(bitPos), m_expectedValue(val ? 1 : 0) {}
+// public:
+//	EncodedConstraint_ExpectBit(uint8 bitPos, bool val) : m_bitPos(bitPos), m_expectedValue(val ? 1
+//: 0) {}
 //
-//	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode)
+//	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32&
+// opcode)
 //	{
 //		if (m_expectedValue)
 //			opcode |= (1 << m_bitPos);
@@ -984,24 +1288,26 @@ private:
 //			opcode &= ~(1 << m_bitPos);
 //	}
 //
-//	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode)
+//	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+// const uint32 opcode)
 //	{
 //		return ((opcode >> m_bitPos) & 1) == m_expectedValue;
 //	}
 //
-//private:
+// private:
 //	const uint8 m_bitPos;
 //	const uint8 m_expectedValue;
 //};
 
 class EncodedConstraint_FixedSPR
 {
-public:
+  public:
 	EncodedConstraint_FixedSPR(uint16 sprIndex) : m_sprIndex(sprIndex) {}
 
-	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode)
+	void AssembleConstraint(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef,
+							uint32& opcode)
 	{
-		sint32 sprLow = (m_sprIndex) & 0x1F;
+		sint32 sprLow = (m_sprIndex)&0x1F;
 		sint32 sprHigh = (m_sprIndex >> 5) & 0x1F;
 		opcode &= ~((uint32)0x1F << 16);
 		opcode |= ((uint32)sprLow << 16);
@@ -1009,7 +1315,8 @@ public:
 		opcode |= ((uint32)sprHigh << 11);
 	}
 
-	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode)
+	bool DisassembleCheckConstraint(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+									const uint32 opcode)
 	{
 		uint32 sprLow = (opcode >> 16) & 0x1F;
 		uint32 sprHigh = (opcode >> 11) & 0x1F;
@@ -1017,7 +1324,7 @@ public:
 		return (uint16)sprIndex == m_sprIndex;
 	}
 
-private:
+  private:
 	const uint16 m_sprIndex;
 };
 
@@ -1032,68 +1339,316 @@ struct PPCInstructionDef
 	uint16 flags;
 	uint32 maskBits;
 	uint32 compareBits;
-	bool(*extraCheck)(uint32 opcode); // used for unique criteria (e.g. SRWI checks SH/mask) -> Replaced by constraints
+	bool (*extraCheck)(uint32 opcode); // used for unique criteria (e.g. SRWI checks SH/mask) ->
+									   // Replaced by constraints
 
-	std::array<std::variant<EncodedOperand_None, EncodedOperand_GPR<false>, EncodedOperand_GPR<true>, EncodedOperand_FPR, EncodedOperand_SPR, EncodedOperand_IMM, EncodedOperand_U5Reverse, EncodedOperand_MemLoc>, 4> encodedOperands{}; // note: The default constructor of std::variant will default-construct the first type (which we want to be EncodedOperand_None)
-	std::array<std::variant<EncodedConstraint_None, EncodedConstraint_MirrorRegister, EncodedConstraint_MirrorReverseU5, EncodedConstraint_FixedRegister, EncodedConstraint_FixedSPR, EncodedConstraint_CheckSignBit>, 3> constraints{};
+	std::array<std::variant<EncodedOperand_None, EncodedOperand_GPR<false>,
+							EncodedOperand_GPR<true>, EncodedOperand_FPR, EncodedOperand_SPR,
+							EncodedOperand_IMM, EncodedOperand_U5Reverse, EncodedOperand_MemLoc>,
+			   4>
+		encodedOperands{}; // note: The default constructor of std::variant will default-construct
+						   // the first type (which we want to be EncodedOperand_None)
+	std::array<std::variant<EncodedConstraint_None, EncodedConstraint_MirrorRegister,
+							EncodedConstraint_MirrorReverseU5, EncodedConstraint_FixedRegister,
+							EncodedConstraint_FixedSPR, EncodedConstraint_CheckSignBit>,
+			   3>
+		constraints{};
 };
 
-PPCInstructionDef ppcInstructionTable[] =
-{
-	{PPCASM_OP_PS_MERGE00, 0, 4, 16, 16, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_MERGE01, 0, 4, 16, 17, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_MERGE10, 0, 4, 16, 18, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_MERGE11, 0, 4, 16, 19, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+PPCInstructionDef ppcInstructionTable[] = {
+	{PPCASM_OP_PS_MERGE00,
+	 0,
+	 4,
+	 16,
+	 16,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_MERGE01,
+	 0,
+	 4,
+	 16,
+	 17,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_MERGE10,
+	 0,
+	 4,
+	 16,
+	 18,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_MERGE11,
+	 0,
+	 4,
+	 16,
+	 19,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
 
-	{PPCASM_OP_PS_DIV, 0, 4, 18, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_SUB, 0, 4, 20, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_ADD, 0, 4, 21, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_MUL, 0, 4, 25, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6)}},
+	{PPCASM_OP_PS_DIV,
+	 0,
+	 4,
+	 18,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_SUB,
+	 0,
+	 4,
+	 20,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_ADD,
+	 0,
+	 4,
+	 21,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_MUL,
+	 0,
+	 4,
+	 25,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6)}},
 
-	{PPCASM_OP_PS_MSUB, 0, 4, 28, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_MADD, 0, 4, 29, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_NMSUB, 0, 4, 30, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_PS_NMADD, 0, 4, 31, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_MSUB,
+	 0,
+	 4,
+	 28,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_MADD,
+	 0,
+	 4,
+	 29,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_NMSUB,
+	 0,
+	 4,
+	 30,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_PS_NMADD,
+	 0,
+	 4,
+	 31,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
 
-	{PPCASM_OP_MULLI, 0, 7, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
+	{PPCASM_OP_MULLI,
+	 0,
+	 7,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
 
-	{PPCASM_OP_SUBFIC, 0, 8, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)} },
+	{PPCASM_OP_SUBFIC,
+	 0,
+	 8,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
 
 	{PPCASM_OP_CMPLWI, 0, 10, OPC_NONE, OPC_NONE, OP_FORM_CMP_SIMM, FLG_DEFAULT, 0, 0, nullptr},
 	{PPCASM_OP_CMPWI, 0, 11, OPC_NONE, OPC_NONE, OP_FORM_CMP_SIMM, FLG_DEFAULT, 0, 0, nullptr},
-	{PPCASM_OP_ADDIC, 0, 12, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
-	{PPCASM_OP_ADDIC_, 0, 13, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
-	{PPCASM_OP_ADDI, 0, 14, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
-	{PPCASM_OP_SUBI, 1, 14, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true, true)}, {EncodedConstraint_CheckSignBit(15, 1)}}, // special form of ADDI for negative immediate
-	{PPCASM_OP_LI, 1, 14, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, true, false, true)}, {EncodedConstraint_FixedRegister(16, 0)}},
-	{PPCASM_OP_ADDIS, 0, 15, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true, false, true)}},
-	{PPCASM_OP_LIS, 1, 15, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, true, false, true)}, {EncodedConstraint_FixedRegister(16, 0)}},
+	{PPCASM_OP_ADDIC,
+	 0,
+	 12,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
+	{PPCASM_OP_ADDIC_,
+	 0,
+	 13,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
+	{PPCASM_OP_ADDI,
+	 0,
+	 14,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true)}},
+	{PPCASM_OP_SUBI,
+	 1,
+	 14,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(0, 16, true, true)},
+	 {EncodedConstraint_CheckSignBit(15, 1)}}, // special form of ADDI for negative immediate
+	{PPCASM_OP_LI,
+	 1,
+	 14,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, true, false, true)},
+	 {EncodedConstraint_FixedRegister(16, 0)}},
+	{PPCASM_OP_ADDIS,
+	 0,
+	 15,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16),
+	  EncodedOperand_IMM(0, 16, true, false, true)}},
+	{PPCASM_OP_LIS,
+	 1,
+	 15,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, true, false, true)},
+	 {EncodedConstraint_FixedRegister(16, 0)}},
 
 	{PPCASM_OP_BC, 0, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, 0, 0, nullptr},
 
-	{PPCASM_OP_BNE, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_FALSE | C_BITS_BI_EQ, nullptr},
-	{PPCASM_OP_BEQ, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_TRUE | C_BITS_BI_EQ, nullptr},
-	{PPCASM_OP_BGE, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_FALSE | C_BITS_BI_LT, nullptr},
-	{PPCASM_OP_BGT, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_TRUE | C_BITS_BI_GT, nullptr},
-	{PPCASM_OP_BLT, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_TRUE | C_BITS_BI_LT, nullptr},
-	{PPCASM_OP_BLE, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_FALSE | C_BITS_BI_GT, nullptr},
+	{PPCASM_OP_BNE, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT,
+	 C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_FALSE | C_BITS_BI_EQ, nullptr},
+	{PPCASM_OP_BEQ, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT,
+	 C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_TRUE | C_BITS_BI_EQ, nullptr},
+	{PPCASM_OP_BGE, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT,
+	 C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_FALSE | C_BITS_BI_LT, nullptr},
+	{PPCASM_OP_BGT, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT,
+	 C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_TRUE | C_BITS_BI_GT, nullptr},
+	{PPCASM_OP_BLT, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT,
+	 C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_TRUE | C_BITS_BI_LT, nullptr},
+	{PPCASM_OP_BLE, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT,
+	 C_MASK_BO_COND | C_MASK_BI_CRBIT, C_BIT_BO_FALSE | C_BITS_BI_GT, nullptr},
 
-	{PPCASM_OP_BDZ, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO, C_BIT_BO_DZ, nullptr},
-	{PPCASM_OP_BDNZ, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO, C_BIT_BO_DNZ, nullptr},
+	{PPCASM_OP_BDZ, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO,
+	 C_BIT_BO_DZ, nullptr},
+	{PPCASM_OP_BDNZ, 1, 16, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S16, FLG_DEFAULT, C_MASK_BO,
+	 C_BIT_BO_DNZ, nullptr},
 
-	{PPCASM_OP_B, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT, C_MASK_LK | C_MASK_AA, 0, nullptr},
-	{PPCASM_OP_BL, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT, C_MASK_LK | C_MASK_AA, C_BIT_LK, nullptr},
-	{PPCASM_OP_BA, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT, C_MASK_LK | C_MASK_AA, C_BIT_AA, nullptr},
-	{PPCASM_OP_BLA, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT, C_MASK_LK | C_MASK_AA, C_BIT_LK|C_BIT_AA, nullptr},
+	{PPCASM_OP_B, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT, C_MASK_LK | C_MASK_AA,
+	 0, nullptr},
+	{PPCASM_OP_BL, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT,
+	 C_MASK_LK | C_MASK_AA, C_BIT_LK, nullptr},
+	{PPCASM_OP_BA, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT,
+	 C_MASK_LK | C_MASK_AA, C_BIT_AA, nullptr},
+	{PPCASM_OP_BLA, 0, 18, OPC_NONE, OPC_NONE, OP_FORM_BRANCH_S24, FLG_DEFAULT,
+	 C_MASK_LK | C_MASK_AA, C_BIT_LK | C_BIT_AA, nullptr},
 
-	{PPCASM_OP_BLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK, C_BIT_BO_ALWAYS, nullptr},
+	{PPCASM_OP_BLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK,
+	 C_BIT_BO_ALWAYS, nullptr},
 
-	{PPCASM_OP_BLTLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_TRUE | C_BITS_BI_LT, nullptr}, // less
-	{PPCASM_OP_BGTLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_TRUE | C_BITS_BI_GT, nullptr}, // greater
-	{PPCASM_OP_BEQLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_TRUE | C_BITS_BI_EQ, nullptr}, // equal
-	{PPCASM_OP_BLELR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_GT, nullptr}, // less or equal (not greater)
-	{PPCASM_OP_BGELR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_LT, nullptr}, // greater or equal (not less)
-	{PPCASM_OP_BNELR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_EQ, nullptr}, // not equal
+	{PPCASM_OP_BLTLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT,
+	 C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_TRUE | C_BITS_BI_LT, nullptr}, // less
+	{PPCASM_OP_BGTLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT,
+	 C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_TRUE | C_BITS_BI_GT, nullptr}, // greater
+	{PPCASM_OP_BEQLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT,
+	 C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_TRUE | C_BITS_BI_EQ, nullptr}, // equal
+	{PPCASM_OP_BLELR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT,
+	 C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_GT,
+	 nullptr}, // less or equal (not greater)
+	{PPCASM_OP_BGELR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT,
+	 C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_LT,
+	 nullptr}, // greater or equal (not less)
+	{PPCASM_OP_BNELR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT,
+	 C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_EQ, nullptr}, // not equal
 
 	{PPCASM_OP_ISYNC, 0, 19, 150, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, 0, 0, nullptr},
 
@@ -1106,229 +1661,1647 @@ PPCInstructionDef ppcInstructionTable[] =
 	{PPCASM_OP_CRORC, 0, 19, 417, OPC_NONE, OP_FORM_XL_CR, FLG_DEFAULT, 0, 0, nullptr},
 	{PPCASM_OP_CROR, 0, 19, 449, OPC_NONE, OP_FORM_XL_CR, FLG_DEFAULT, 0, 0, nullptr},
 
-	{PPCASM_OP_BCTR, 0, 19, 528, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK, C_BIT_BO_ALWAYS, nullptr},
-	{PPCASM_OP_BCTRL, 0, 19, 528, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK, C_BIT_BO_ALWAYS | C_BIT_LK, nullptr},
+	{PPCASM_OP_BCTR, 0, 19, 528, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK,
+	 C_BIT_BO_ALWAYS, nullptr},
+	{PPCASM_OP_BCTRL, 0, 19, 528, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK,
+	 C_BIT_BO_ALWAYS | C_BIT_LK, nullptr},
 
-	{PPCASM_OP_RLWIMI, 0, 20, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, 0, nullptr},
-	{PPCASM_OP_RLWIMI_, 0, 20, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr},
-	{PPCASM_OP_RLWINM, 0, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, 0, nullptr},
-	{PPCASM_OP_RLWINM_, 0, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr},
+	{PPCASM_OP_RLWIMI, 0, 20, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, 0,
+	 nullptr},
+	{PPCASM_OP_RLWIMI_, 0, 20, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC,
+	 nullptr},
+	{PPCASM_OP_RLWINM, 0, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, 0,
+	 nullptr},
+	{PPCASM_OP_RLWINM_, 0, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC,
+	 nullptr},
 
-	{PPCASM_OP_ROTLWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(11, 5, false)}, {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
-	{PPCASM_OP_ROTLWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(11, 5, false)}, {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
+	{PPCASM_OP_ROTLWI,
+	 2,
+	 21,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(11, 5, false)},
+	 {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
+	{PPCASM_OP_ROTLWI_,
+	 2,
+	 21,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(11, 5, false)},
+	 {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
 
 	// rotrwi RA, RS, n -> rlwinm RA, RS, 32-n, 0, 31
 	// only assembler
-	{PPCASM_OP_ROTRWI, 0, 21, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_U5Reverse(11, 32)}, {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
-	{PPCASM_OP_ROTRWI_, 0, 21, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_U5Reverse(11, 32)}, {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
+	{PPCASM_OP_ROTRWI,
+	 0,
+	 21,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_U5Reverse(11, 32)},
+	 {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
+	{PPCASM_OP_ROTRWI_,
+	 0,
+	 21,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_U5Reverse(11, 32)},
+	 {EncodedConstraint_FixedU5(6, 0), EncodedConstraint_FixedU5(1, 31)}},
 
-	{PPCASM_OP_EXTLWI, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0, ppcOp_extraCheck_extlwi},
-	{PPCASM_OP_EXTLWI_, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, ppcOp_extraCheck_extlwi},
-	{PPCASM_OP_EXTRWI, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0, ppcOp_extraCheck_extrwi},
-	{PPCASM_OP_EXTRWI_, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, ppcOp_extraCheck_extrwi},
+	{PPCASM_OP_EXTLWI, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 0, ppcOp_extraCheck_extlwi},
+	{PPCASM_OP_EXTLWI_, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 C_BIT_RC, ppcOp_extraCheck_extlwi},
+	{PPCASM_OP_EXTRWI, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 0, ppcOp_extraCheck_extrwi},
+	{PPCASM_OP_EXTRWI_, 1, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 C_BIT_RC, ppcOp_extraCheck_extrwi},
 
-	{PPCASM_OP_SLWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0, ppcOp_extraCheck_slwi},
-	{PPCASM_OP_SLWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, ppcOp_extraCheck_slwi},
-	{PPCASM_OP_SRWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0, ppcOp_extraCheck_srwi},
-	{PPCASM_OP_SRWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, ppcOp_extraCheck_srwi},
+	{PPCASM_OP_SLWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0,
+	 ppcOp_extraCheck_slwi},
+	{PPCASM_OP_SLWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 C_BIT_RC, ppcOp_extraCheck_slwi},
+	{PPCASM_OP_SRWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0,
+	 ppcOp_extraCheck_srwi},
+	{PPCASM_OP_SRWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 C_BIT_RC, ppcOp_extraCheck_srwi},
 
-	{PPCASM_OP_CLRLWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0, ppcOp_extraCheck_clrlwi},
-	{PPCASM_OP_CLRLWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, ppcOp_extraCheck_clrlwi},
-	{PPCASM_OP_CLRRWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0, ppcOp_extraCheck_clrrwi},
-	{PPCASM_OP_CLRRWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, ppcOp_extraCheck_clrrwi},
+	{PPCASM_OP_CLRLWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 0, ppcOp_extraCheck_clrlwi},
+	{PPCASM_OP_CLRLWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 C_BIT_RC, ppcOp_extraCheck_clrlwi},
+	{PPCASM_OP_CLRRWI, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 0, ppcOp_extraCheck_clrrwi},
+	{PPCASM_OP_CLRRWI_, 2, 21, OPC_NONE, OPC_NONE, OP_FORM_RLWINM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 C_BIT_RC, ppcOp_extraCheck_clrrwi},
 
 	{PPCASM_OP_RLWNM, 0, 23, OPC_NONE, OPC_NONE, OP_FORM_RLWNM, FLG_DEFAULT, C_MASK_RC, 0, nullptr},
-	{PPCASM_OP_RLWNM_, 0, 23, OPC_NONE, OPC_NONE, OP_FORM_RLWNM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr},
+	{PPCASM_OP_RLWNM_, 0, 23, OPC_NONE, OPC_NONE, OP_FORM_RLWNM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC,
+	 nullptr},
 
-	{PPCASM_OP_ROTLW, 0, 23, OPC_NONE, OPC_NONE, OP_FORM_RLWNM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0, ppcOp_extraCheck_rotlw},
-	{PPCASM_OP_ROTLW_, 0, 23, OPC_NONE, OPC_NONE, OP_FORM_RLWNM_EXTENDED, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, ppcOp_extraCheck_rotlw},
+	{PPCASM_OP_ROTLW, 0, 23, OPC_NONE, OPC_NONE, OP_FORM_RLWNM_EXTENDED, FLG_DEFAULT, C_MASK_RC, 0,
+	 ppcOp_extraCheck_rotlw},
+	{PPCASM_OP_ROTLW_, 0, 23, OPC_NONE, OPC_NONE, OP_FORM_RLWNM_EXTENDED, FLG_DEFAULT, C_MASK_RC,
+	 C_BIT_RC, ppcOp_extraCheck_rotlw},
 
+	{PPCASM_OP_ORI,
+	 0,
+	 24,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, false)}},
+	{PPCASM_OP_NOP, 1, 24, OPC_NONE, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, 0x3FFFFFF, 0,
+	 nullptr}, // ORI r0, r0, 0 -> NOP
+	{PPCASM_OP_ORIS,
+	 0,
+	 25,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21),
+	  EncodedOperand_IMM(0, 16, true, false, true)}},
 
-	{PPCASM_OP_ORI, 0, 24, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, false)}},
-	{PPCASM_OP_NOP, 1, 24, OPC_NONE, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, 0x3FFFFFF, 0, nullptr}, // ORI r0, r0, 0 -> NOP
-	{PPCASM_OP_ORIS, 0, 25, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, true, false, true)}},
+	{PPCASM_OP_XORI,
+	 0,
+	 26,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, false)}},
+	{PPCASM_OP_XORIS,
+	 0,
+	 27,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21),
+	  EncodedOperand_IMM(0, 16, true, false, true)}},
 
-	{PPCASM_OP_XORI, 0, 26, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, false)} },
-	{PPCASM_OP_XORIS, 0, 27, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, true, false, true)} },
-
-	{PPCASM_OP_ANDI_, 0, 28, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, false)} },
-	{PPCASM_OP_ANDIS_, 0, 29, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, true, false, true)} },
+	{PPCASM_OP_ANDI_,
+	 0,
+	 28,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_IMM(0, 16, false)}},
+	{PPCASM_OP_ANDIS_,
+	 0,
+	 29,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21),
+	  EncodedOperand_IMM(0, 16, true, false, true)}},
 
 	// group 31
 	{PPCASM_OP_CMPW, 0, 31, 0, OPC_NONE, OP_FORM_OP3_A_CMP, FLG_DEFAULT, 0, 0, nullptr},
 
-	{PPCASM_OP_SUBFC, 1, 31, 8, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SUBFC_, 1, 31, 8, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_SUBFC,
+	 1,
+	 31,
+	 8,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SUBFC_,
+	 1,
+	 31,
+	 8,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_MULHWU, 0, 31, 11, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_MULHWU_, 0, 31, 11, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_MULHWU,
+	 0,
+	 31,
+	 11,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_MULHWU_,
+	 0,
+	 31,
+	 11,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
 	{PPCASM_OP_CMPLW, 0, 31, 32, OPC_NONE, OP_FORM_OP3_A_CMP, FLG_DEFAULT, 0, 0, nullptr},
 
-	{PPCASM_OP_SUBF, 1, 31, 40, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SUBF_, 1, 31, 40, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SUB, 0, 31, 40, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(11), EncodedOperand_GPR(16)} },
-	{PPCASM_OP_SUB_, 0, 31, 40, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(11), EncodedOperand_GPR(16)} },
+	{PPCASM_OP_SUBF,
+	 1,
+	 31,
+	 40,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SUBF_,
+	 1,
+	 31,
+	 40,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SUB,
+	 0,
+	 31,
+	 40,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(11), EncodedOperand_GPR(16)}},
+	{PPCASM_OP_SUB_,
+	 0,
+	 31,
+	 40,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(11), EncodedOperand_GPR(16)}},
 
-	{PPCASM_OP_MULHW, 0, 31, 75, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_MULHW_, 0, 31, 75, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_MULHW,
+	 0,
+	 31,
+	 75,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_MULHW_,
+	 0,
+	 31,
+	 75,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_NEG, 0, 31, 104, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC | C_MASK_OE, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16)}},
-	{PPCASM_OP_NEG_, 0, 31, 104, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC | C_MASK_OE, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16)} },
+	{PPCASM_OP_NEG,
+	 0,
+	 31,
+	 104,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC | C_MASK_OE,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16)}},
+	{PPCASM_OP_NEG_,
+	 0,
+	 31,
+	 104,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC | C_MASK_OE,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16)}},
 
-	{PPCASM_OP_NOR, 0, 31, 124, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_NOR_, 0, 31, 124, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_NOR,
+	 0,
+	 31,
+	 124,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_NOR_,
+	 0,
+	 31,
+	 124,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
 
 	// alias for NOR where rA == rB
-	{PPCASM_OP_NOT, 1, 31, 124, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(11)}, {EncodedConstraint_MirrorRegister(11, 21)}},
-	{PPCASM_OP_NOT_, 1, 31, 124, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(11)}, {EncodedConstraint_MirrorRegister(11, 21)} },
+	{PPCASM_OP_NOT,
+	 1,
+	 31,
+	 124,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(11)},
+	 {EncodedConstraint_MirrorRegister(11, 21)}},
+	{PPCASM_OP_NOT_,
+	 1,
+	 31,
+	 124,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(11)},
+	 {EncodedConstraint_MirrorRegister(11, 21)}},
 
-	{PPCASM_OP_SUBFE, 1, 31, 136, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SUBFE_, 1, 31, 136, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_SUBFE,
+	 1,
+	 31,
+	 136,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SUBFE_,
+	 1,
+	 31,
+	 136,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_MULLW, 0, 31, 235, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_MULLW_, 0, 31, 235, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_MULLW,
+	 0,
+	 31,
+	 235,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_MULLW_,
+	 0,
+	 31,
+	 235,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_MFSPR, 0, 31, 339, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_SPR()} },
-	{PPCASM_OP_MTSPR, 0, 31, 467, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_SPR(), EncodedOperand_GPR(21)} },
+	{PPCASM_OP_MFSPR,
+	 0,
+	 31,
+	 339,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_SPR()}},
+	{PPCASM_OP_MTSPR,
+	 0,
+	 31,
+	 467,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_SPR(), EncodedOperand_GPR(21)}},
 
-	{PPCASM_OP_MFLR, 0, 31, 339, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(8)}},
-	{PPCASM_OP_MTLR, 0, 31, 467, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(8)} },
-	{PPCASM_OP_MFCTR, 0, 31, 339, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(9)} },
-	{PPCASM_OP_MTCTR, 0, 31, 467, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(9)} },
+	{PPCASM_OP_MFLR,
+	 0,
+	 31,
+	 339,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21)},
+	 {EncodedConstraint_FixedSPR(8)}},
+	{PPCASM_OP_MTLR,
+	 0,
+	 31,
+	 467,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21)},
+	 {EncodedConstraint_FixedSPR(8)}},
+	{PPCASM_OP_MFCTR,
+	 0,
+	 31,
+	 339,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21)},
+	 {EncodedConstraint_FixedSPR(9)}},
+	{PPCASM_OP_MTCTR,
+	 0,
+	 31,
+	 467,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21)},
+	 {EncodedConstraint_FixedSPR(9)}},
 
-	{PPCASM_OP_ADD, 0, 31, 266, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_ADD_, 0, 31, 266, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_ADD,
+	 0,
+	 31,
+	 266,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_ADD_,
+	 0,
+	 31,
+	 266,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_SLW, 0, 31, 24, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SLW_, 0, 31, 24, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SRW, 0, 31, 536, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SRW_, 0, 31, 536, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SRAW, 0, 31, 792, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_SRAW_, 0, 31, 792, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_SLW,
+	 0,
+	 31,
+	 24,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SLW_,
+	 0,
+	 31,
+	 24,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SRW,
+	 0,
+	 31,
+	 536,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SRW_,
+	 0,
+	 31,
+	 536,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SRAW,
+	 0,
+	 31,
+	 792,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_SRAW_,
+	 0,
+	 31,
+	 792,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_AND, 0, 31, 28, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_AND_, 0, 31, 28, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_AND,
+	 0,
+	 31,
+	 28,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_AND_,
+	 0,
+	 31,
+	 28,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_ANDC, 0, 31, 60, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_ANDC_, 0, 31, 60, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_ANDC,
+	 0,
+	 31,
+	 60,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_ANDC_,
+	 0,
+	 31,
+	 60,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_XOR, 0, 31, 316, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_XOR,
+	 0,
+	 31,
+	 316,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_ORC, 0, 31, 412, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} }, // has RC?
-	{PPCASM_OP_OR, 0, 31, 444, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_OR_, 0, 31, 444, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_MR, 1, 31, 444, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(11)}, {EncodedConstraint_MirrorRegister(11, 21)} },
-	{PPCASM_OP_MR_, 1, 31, 444, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(11)}, {EncodedConstraint_MirrorRegister(11, 21)} },
+	{PPCASM_OP_ORC,
+	 0,
+	 31,
+	 412,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}}, // has RC?
+	{PPCASM_OP_OR,
+	 0,
+	 31,
+	 444,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_OR_,
+	 0,
+	 31,
+	 444,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_MR,
+	 1,
+	 31,
+	 444,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(11)},
+	 {EncodedConstraint_MirrorRegister(11, 21)}},
+	{PPCASM_OP_MR_,
+	 1,
+	 31,
+	 444,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(11)},
+	 {EncodedConstraint_MirrorRegister(11, 21)}},
 
-	{PPCASM_OP_DIVWU, 0, 31, 459, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_DIVWU_, 0, 31, 459, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_DIVWU,
+	 0,
+	 31,
+	 459,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_DIVWU_,
+	 0,
+	 31,
+	 459,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_DIVW, 0, 31, 491, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_DIVW_, 0, 31, 491, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_DIVW,
+	 0,
+	 31,
+	 491,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_DIVW_,
+	 0,
+	 31,
+	 491,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)}},
 
 	{PPCASM_OP_SRAWI, 0, 31, 824, OPC_NONE, OP_FORM_OP3_A_IMM, FLG_DEFAULT, C_MASK_RC, 0, nullptr},
-	{PPCASM_OP_SRAWI_, 0, 31, 824, OPC_NONE, OP_FORM_OP3_A_IMM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr},
+	{PPCASM_OP_SRAWI_, 0, 31, 824, OPC_NONE, OP_FORM_OP3_A_IMM, FLG_DEFAULT, C_MASK_RC, C_BIT_RC,
+	 nullptr},
 
-	{PPCASM_OP_CNTLZW, 0, 31, 26, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21)} },
-	{PPCASM_OP_EXTSB, 0, 31, 954, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21)} },
-	{PPCASM_OP_EXTSH, 0, 31, 922, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21)} },
+	{PPCASM_OP_CNTLZW,
+	 0,
+	 31,
+	 26,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21)}},
+	{PPCASM_OP_EXTSB,
+	 0,
+	 31,
+	 954,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21)}},
+	{PPCASM_OP_EXTSH,
+	 0,
+	 31,
+	 922,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21)}},
 
-	{PPCASM_OP_CNTLZW_, 0, 31, 26, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21)} },
-	{PPCASM_OP_EXTSB_, 0, 31, 954, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21)} },
-	{PPCASM_OP_EXTSH_, 0, 31, 922, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(16), EncodedOperand_GPR(21)} },
+	{PPCASM_OP_CNTLZW_,
+	 0,
+	 31,
+	 26,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21)}},
+	{PPCASM_OP_EXTSB_,
+	 0,
+	 31,
+	 954,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21)}},
+	{PPCASM_OP_EXTSH_,
+	 0,
+	 31,
+	 922,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(16), EncodedOperand_GPR(21)}},
 
-	{PPCASM_OP_LWZX, 0, 31, 23, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LWZUX, 0, 31, 55, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LBZX, 0, 31, 87, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LBZUX, 0, 31, 119, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LHZX, 0, 31, 279, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LHZUX, 0, 31, 311, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LHAX, 0, 31, 343, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LHAUX, 0, 31, 375, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STWX, 0, 31, 151, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STWUX, 0, 31, 183, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STHX, 0, 31, 407, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STHUX, 0, 31, 439, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STBX, 0, 31, 215, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STBUX, 0, 31, 247, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STWBRX, 0, 31, 662, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STHBRX, 0, 31, 918, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_LWZX,
+	 0,
+	 31,
+	 23,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LWZUX,
+	 0,
+	 31,
+	 55,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LBZX,
+	 0,
+	 31,
+	 87,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LBZUX,
+	 0,
+	 31,
+	 119,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LHZX,
+	 0,
+	 31,
+	 279,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LHZUX,
+	 0,
+	 31,
+	 311,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LHAX,
+	 0,
+	 31,
+	 343,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LHAUX,
+	 0,
+	 31,
+	 375,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STWX,
+	 0,
+	 31,
+	 151,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STWUX,
+	 0,
+	 31,
+	 183,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STHX,
+	 0,
+	 31,
+	 407,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STHUX,
+	 0,
+	 31,
+	 439,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STBX,
+	 0,
+	 31,
+	 215,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STBUX,
+	 0,
+	 31,
+	 247,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STWBRX,
+	 0,
+	 31,
+	 662,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STHBRX,
+	 0,
+	 31,
+	 918,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_LFSX, 0, 31, 535, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LFSUX, 0, 31, 567, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STFSX, 0, 31, 663, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STFSUX, 0, 31, 695, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_LFSX,
+	 0,
+	 31,
+	 535,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LFSUX,
+	 0,
+	 31,
+	 567,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STFSX,
+	 0,
+	 31,
+	 663,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STFSUX,
+	 0,
+	 31,
+	 695,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_STSWI, 0, 31, 725, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(11, 5, false)} },
+	{PPCASM_OP_STSWI,
+	 0,
+	 31,
+	 725,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_IMM(11, 5, false)}},
 
-	{PPCASM_OP_LWARX, 0, 31, 20, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STWCX_, 0, 31, 150, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_LWARX,
+	 0,
+	 31,
+	 20,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STWCX_,
+	 0,
+	 31,
+	 150,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 C_MASK_RC,
+	 C_BIT_RC,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_LFDX, 0, 31, 599, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_LFDUX, 0, 31, 631, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STFDX, 0, 31, 727, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
-	{PPCASM_OP_STFDUX, 0, 31, 759, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_LFDX,
+	 0,
+	 31,
+	 599,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_LFDUX,
+	 0,
+	 31,
+	 631,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STFDX,
+	 0,
+	 31,
+	 727,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
+	{PPCASM_OP_STFDUX,
+	 0,
+	 31,
+	 759,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
 
-	{PPCASM_OP_STFIWX, 0, 31, 983, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_STFIWX,
+	 0,
+	 31,
+	 983,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)}},
 
 	// load/store
-	{PPCASM_OP_LWZ, 0, 32, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LWZU, 0, 33, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LBZ, 0, 34, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LBZU, 0, 35, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STW, 0, 36, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STWU, 0, 37, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STB, 0, 38, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STBU, 0, 39, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LHZ, 0, 40, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LHZU, 0, 41, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LHA, 0, 42, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LHAU, 0, 43, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STH, 0, 44, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STHU, 0, 45, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LMW, 0, 46, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STMW, 0, 47, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LFS, 0, 48, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LFSU, 0, 49, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LFD, 0, 50, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_LFDU, 0, 51, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STFS, 0, 52, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STFSU, 0, 53, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STFD, 0, 54, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
-	{PPCASM_OP_STFDU, 0, 55, OPC_NONE, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_MemLoc()} },
+	{PPCASM_OP_LWZ,
+	 0,
+	 32,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LWZU,
+	 0,
+	 33,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LBZ,
+	 0,
+	 34,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LBZU,
+	 0,
+	 35,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STW,
+	 0,
+	 36,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STWU,
+	 0,
+	 37,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STB,
+	 0,
+	 38,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STBU,
+	 0,
+	 39,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LHZ,
+	 0,
+	 40,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LHZU,
+	 0,
+	 41,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LHA,
+	 0,
+	 42,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LHAU,
+	 0,
+	 43,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STH,
+	 0,
+	 44,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STHU,
+	 0,
+	 45,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LMW,
+	 0,
+	 46,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STMW,
+	 0,
+	 47,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_GPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LFS,
+	 0,
+	 48,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LFSU,
+	 0,
+	 49,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LFD,
+	 0,
+	 50,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_LFDU,
+	 0,
+	 51,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STFS,
+	 0,
+	 52,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STFSU,
+	 0,
+	 53,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STFD,
+	 0,
+	 54,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
+	{PPCASM_OP_STFDU,
+	 0,
+	 55,
+	 OPC_NONE,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_MemLoc()}},
 
 	// FP
-	{PPCASM_OP_FDIVS, 0, 59, 18, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FSUBS, 0, 59, 20, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FADDS, 0, 59, 21, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FMULS, 0, 59, 25, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6) } },
-	{PPCASM_OP_FMSUBS, 0, 59, 28, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FMADDS, 0, 59, 29, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FNMSUBS, 0, 59, 30, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FNMADDS, 0, 59, 31, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
+	{PPCASM_OP_FDIVS,
+	 0,
+	 59,
+	 18,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FSUBS,
+	 0,
+	 59,
+	 20,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FADDS,
+	 0,
+	 59,
+	 21,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FMULS,
+	 0,
+	 59,
+	 25,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6)}},
+	{PPCASM_OP_FMSUBS,
+	 0,
+	 59,
+	 28,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FMADDS,
+	 0,
+	 59,
+	 29,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FNMSUBS,
+	 0,
+	 59,
+	 30,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FNMADDS,
+	 0,
+	 59,
+	 31,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
 
-	{PPCASM_OP_FCMPU, 0, 63, 0, OPC_NONE, OP_FORM_X_FP_CMP, FLG_DEFAULT, 0, 0, nullptr },
-	{PPCASM_OP_FCTIWZ, 0, 63, 15, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_FPR(21), EncodedOperand_FPR(11)}},
-	{PPCASM_OP_FDIV, 0, 63, 18, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FSUB, 0, 63, 20, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FADD, 0, 63, 21, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FMUL, 0, 63, 25, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6) } },
-	{PPCASM_OP_FRSQRTE, 0, 63, 26, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FMSUB, 0, 63, 28, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FMADD, 0, 63, 29, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FNMSUB, 0, 63, 30, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FNMADD, 0, 63, 31, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FRSP, 0, 63, 12, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(11) } },
+	{PPCASM_OP_FCMPU, 0, 63, 0, OPC_NONE, OP_FORM_X_FP_CMP, FLG_DEFAULT, 0, 0, nullptr},
+	{PPCASM_OP_FCTIWZ,
+	 0,
+	 63,
+	 15,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FDIV,
+	 0,
+	 63,
+	 18,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FSUB,
+	 0,
+	 63,
+	 20,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FADD,
+	 0,
+	 63,
+	 21,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FMUL,
+	 0,
+	 63,
+	 25,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6)}},
+	{PPCASM_OP_FRSQRTE,
+	 0,
+	 63,
+	 26,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FMSUB,
+	 0,
+	 63,
+	 28,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FMADD,
+	 0,
+	 63,
+	 29,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FNMSUB,
+	 0,
+	 63,
+	 30,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FNMADD,
+	 0,
+	 63,
+	 31,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(16), EncodedOperand_FPR(6),
+	  EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FRSP,
+	 0,
+	 63,
+	 12,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(11)}},
 
 	// 63 extended opcode
-	{PPCASM_OP_FCMPO, 0, 63, 32|OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_X_FP_CMP, FLG_DEFAULT, 0, 0, nullptr },
-	{PPCASM_OP_FNEG, 0, 63, 40|OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(11) } },
-	{PPCASM_OP_FMR, 0, 63, 72|OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(11) } },
+	{PPCASM_OP_FCMPO, 0, 63, 32 | OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_X_FP_CMP, FLG_DEFAULT, 0, 0,
+	 nullptr},
+	{PPCASM_OP_FNEG,
+	 0,
+	 63,
+	 40 | OPC_EXTENDED_BIT,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(11)}},
+	{PPCASM_OP_FMR,
+	 0,
+	 63,
+	 72 | OPC_EXTENDED_BIT,
+	 OPC_NONE,
+	 OP_FORM_DYNAMIC,
+	 FLG_DEFAULT,
+	 0,
+	 0,
+	 nullptr,
+	 {EncodedOperand_FPR(21), EncodedOperand_FPR(11)}},
 
 };
 
-#define opcMask_setBits(__index, __bitCount, __value) opcodeMask |= (((1<<__bitCount)-1)<<(31-__index)); opcodeBits |= ((__value)<<(31-__index));
+#define opcMask_setBits(__index, __bitCount, __value)                                              \
+	opcodeMask |= (((1 << __bitCount) - 1) << (31 - __index));                                     \
+	opcodeBits |= ((__value) << (31 - __index));
 
 void ppcAssembler_buildOpcMask(PPCInstructionDef* iDef, uint32& maskOut, uint32& bitsOut)
 {
@@ -1336,8 +3309,8 @@ void ppcAssembler_buildOpcMask(PPCInstructionDef* iDef, uint32& maskOut, uint32&
 	uint32 opc1 = iDef->opc1;
 	uint32 opc2 = iDef->opc2;
 
-	uint32 opcodeMask = 0x3F<<26;
-	uint32 opcodeBits = opc0<<26;
+	uint32 opcodeMask = 0x3F << 26;
+	uint32 opcodeBits = opc0 << 26;
 
 	// handle groups
 	if (opc0 == 31)
@@ -1354,26 +3327,26 @@ void ppcAssembler_buildOpcMask(PPCInstructionDef* iDef, uint32& maskOut, uint32&
 	{
 		// group 4 (paired single)
 		opcMask_setBits(30, 5, opc1);
-		//opc1 = PPC_getBits(opcode, 30, 5);
+		// opc1 = PPC_getBits(opcode, 30, 5);
 		if (opc1 == 16)
 		{
 			// group 4->16 (ps_merge)
 			opcMask_setBits(25, 5, opc2);
-			//opc2 = PPC_getBits(opcode, 25, 5);
+			// opc2 = PPC_getBits(opcode, 25, 5);
 		}
 	}
 	else if (opc0 == 59)
 	{
 		// group 59 (FP float)
 		opcMask_setBits(30, 5, opc1);
-		//opc1 = PPC_getBits(opcode, 30, 5);
+		// opc1 = PPC_getBits(opcode, 30, 5);
 	}
 	else if (opc0 == 63)
 	{
 		// group 63 (FP double)
-		if ((opc1&OPC_EXTENDED_BIT) != 0)
+		if ((opc1 & OPC_EXTENDED_BIT) != 0)
 		{
-			opcMask_setBits(30, 10, (opc1&~OPC_EXTENDED_BIT));
+			opcMask_setBits(30, 10, (opc1 & ~OPC_EXTENDED_BIT));
 		}
 		else
 		{
@@ -1391,20 +3364,24 @@ sint32 _getOpIndex(PPCInstructionDef* iDef, sint32 operandIndex)
 		operandIndex ^= 1;
 	if ((iDef->flags & FLG_SWAP_OP1_OP2) != 0)
 	{
-		if (operandIndex == 1) operandIndex = 2;
-		else if (operandIndex == 2) operandIndex = 1;
+		if (operandIndex == 1)
+			operandIndex = 2;
+		else if (operandIndex == 2)
+			operandIndex = 1;
 	}
 	if ((iDef->flags & FLG_SWAP_OP2_OP3) != 0)
 	{
-		if (operandIndex == 2) operandIndex = 3;
-		else if (operandIndex == 3) operandIndex = 2;
+		if (operandIndex == 2)
+			operandIndex = 3;
+		else if (operandIndex == 3)
+			operandIndex = 2;
 	}
 	return operandIndex;
 }
 
-// given an internal instruction operand index, return the operand index for the text encoding. Returns -1 when operand is not present
-// replaces _getOpIndex
-//sint32 _operandInternalToTextIndex(ppcInstructionDef_t* iDef, sint32 operandIndex)
+// given an internal instruction operand index, return the operand index for the text encoding.
+// Returns -1 when operand is not present replaces _getOpIndex
+// sint32 _operandInternalToTextIndex(ppcInstructionDef_t* iDef, sint32 operandIndex)
 //{
 //	if ((operandIndex == 0 || operandIndex == 1) && (iDef->flags & FLG_SWAP_OP0_OP1) != 0)
 //		operandIndex ^= 1;
@@ -1421,7 +3398,7 @@ sint32 _getOpIndex(PPCInstructionDef* iDef, sint32 operandIndex)
 //	return outputIndex;
 //}
 //
-//int _operandTextToInternalIndex(ppcInstructionDef_t* iDef, sint32 operandIndex)
+// int _operandTextToInternalIndex(ppcInstructionDef_t* iDef, sint32 operandIndex)
 //{
 //	for (sint32 i = 0; i < 8; i++)
 //	{
@@ -1431,7 +3408,8 @@ sint32 _getOpIndex(PPCInstructionDef* iDef, sint32 operandIndex)
 //	return -1;
 //}
 
-void _disasmOpGPR(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, uint32 operandIndex, sint32 regIndex)
+void _disasmOpGPR(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
+				  uint32 operandIndex, sint32 regIndex)
 {
 	if ((iDef->flags & (FLG_SKIP_OP0 << operandIndex)) != 0)
 		return;
@@ -1441,7 +3419,8 @@ void _disasmOpGPR(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef,
 	disInstr->operand[opIdx].registerIndex = regIndex;
 }
 
-void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode, PPCDisassembledInstruction* disInstr)
+void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode,
+							  PPCDisassembledInstruction* disInstr)
 {
 	auto makeOpCRBit = [&](size_t opIndex, uint8 regIndex)
 	{
@@ -1468,24 +3447,24 @@ void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode, PPCDisassemb
 		uint32 opcMask;
 		uint32 opcBits;
 		ppcAssembler_buildOpcMask(iDef, opcMask, opcBits);
-		if ((opcode&opcMask) != opcBits)
-			continue;		
+		if ((opcode & opcMask) != opcBits)
+			continue;
 		// check bits
-		if((opcode&iDef->maskBits) != iDef->compareBits)
+		if ((opcode & iDef->maskBits) != iDef->compareBits)
 			continue;
 		// check special condition
-		if(iDef->extraCheck && iDef->extraCheck(opcode) == false )
+		if (iDef->extraCheck && iDef->extraCheck(opcode) == false)
 			continue;
 		// check priority
-		if(iDef->priority < bestMatchPriority)
+		if (iDef->priority < bestMatchPriority)
 			continue;
 		// check constraints
 		bool allConstraintsMatch = true;
 		for (auto& it : iDef->constraints)
 		{
-			if (!std::visit([&](auto&& op) -> bool {
-				return op.DisassembleCheckConstraint(disInstr, iDef, opcode);
-				}, it))
+			if (!std::visit([&](auto&& op) -> bool
+							{ return op.DisassembleCheckConstraint(disInstr, iDef, opcode); },
+							it))
 			{
 				allConstraintsMatch = false;
 				break;
@@ -1509,20 +3488,21 @@ void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode, PPCDisassemb
 			disInstr->operandMask = 0;
 			for (size_t i = 0; i < iDef->encodedOperands.size(); i++)
 			{
-				std::visit([&](auto&& op) {
-					op.DisassembleOperand(disInstr, iDef, opcode, i);
-					}, iDef->encodedOperands[i]);
+				std::visit([&](auto&& op) { op.DisassembleOperand(disInstr, iDef, opcode, i); },
+						   iDef->encodedOperands[i]);
 			}
 		}
 		else if (iDef->instructionForm == OP_FORM_OP3_A_CMP)
 		{
 			sint32 rS, rA, rB;
 			PPC_OPC_TEMPL_X(opcode, rS, rA, rB);
-			disInstr->operandMask = (rS!=0?operand0Bit:0);
+			disInstr->operandMask = (rS != 0 ? operand0Bit : 0);
 			disInstr->operand[0].type = PPCASM_OPERAND_TYPE_CR;
 			disInstr->operand[0].registerIndex = rS >> 2;
-			if((rS & 3) != 0)
-				cemuLog_log(LogType::Force, "[PPC-Disassembler] Unexpected CR encoding for instruction 0x{0:08x}", opcode);
+			if ((rS & 3) != 0)
+				cemuLog_log(LogType::Force,
+							"[PPC-Disassembler] Unexpected CR encoding for instruction 0x{0:08x}",
+							opcode);
 			_disasmOpGPR(disInstr, iDef, 1, rA);
 			_disasmOpGPR(disInstr, iDef, 2, rB);
 		}
@@ -1665,7 +3645,8 @@ void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode, PPCDisassemb
 		{
 			sint32 rS, rA, SH, MB, ME;
 			PPC_OPC_TEMPL_M(opcode, rS, rA, SH, MB, ME);
-			disInstr->operandMask = operand0Bit | operand1Bit | operand2Bit | operand3Bit | operand4Bit;
+			disInstr->operandMask =
+				operand0Bit | operand1Bit | operand2Bit | operand3Bit | operand4Bit;
 			// operand 0
 			disInstr->operand[0].type = PPCASM_OPERAND_TYPE_GPR;
 			disInstr->operand[0].registerIndex = rA;
@@ -1708,7 +3689,7 @@ void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode, PPCDisassemb
 				disInstr->operand[3].type = PPCASM_OPERAND_TYPE_IMM;
 				disInstr->operand[3].immS32 = SH;
 				disInstr->operand[3].immWidth = 8;
-			}		
+			}
 			else if (iDef->ppcAsmOp == PPCASM_OP_EXTRWI || iDef->ppcAsmOp == PPCASM_OP_EXTRWI_)
 			{
 				disInstr->operandMask = operand0Bit | operand1Bit | operand2Bit | operand3Bit;
@@ -1768,7 +3749,8 @@ void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode, PPCDisassemb
 		{
 			sint32 rS, rA, rB, MB, ME;
 			PPC_OPC_TEMPL_M(opcode, rS, rA, rB, MB, ME);
-			disInstr->operandMask = operand0Bit | operand1Bit | operand2Bit | operand3Bit | operand4Bit;
+			disInstr->operandMask =
+				operand0Bit | operand1Bit | operand2Bit | operand3Bit | operand4Bit;
 			// operand 0
 			disInstr->operand[0].type = PPCASM_OPERAND_TYPE_GPR;
 			disInstr->operand[0].registerIndex = rA;
@@ -1840,12 +3822,13 @@ void ppcAssembler_setError(PPCAssemblerInOut* ctx, std::string_view errorMsg)
 
 char _assemblerErrorMessageDepr[1024];
 
-bool _ppcAssembler_getOperandTextIndex(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32& textIndex)
+bool _ppcAssembler_getOperandTextIndex(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+									   sint32& textIndex)
 {
 	// get swapped index
 	operandIndex = _getOpIndex(internalCtx.iDef, operandIndex);
 	// check if operand is optional
-	if ((internalCtx.iDef->flags&(1 << operandIndex)))
+	if ((internalCtx.iDef->flags & (1 << operandIndex)))
 	{
 		// operand not used
 		textIndex = -1;
@@ -1855,7 +3838,7 @@ bool _ppcAssembler_getOperandTextIndex(PPCAssemblerContext& internalCtx, sint32 
 	sint32 opTextIdx = 0;
 	for (sint32 i = 0; i < operandIndex; i++)
 	{
-		if ((internalCtx.iDef->flags&(1 << i)))
+		if ((internalCtx.iDef->flags & (1 << i)))
 			continue; // skip operand
 		opTextIdx++;
 	}
@@ -1915,7 +3898,9 @@ bool _ppcAssembler_parseRegister(std::string_view str, const char* prefix, sint3
 	return true;
 }
 
-bool _ppcAssembler_processRegisterOperand(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32 bitIndex, const char* prefix, const sint32 registerCount)
+bool _ppcAssembler_processRegisterOperand(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+										  sint32 bitIndex, const char* prefix,
+										  const sint32 registerCount)
 {
 	sint32 opTextIdx;
 	if (_ppcAssembler_getOperandTextIndex(internalCtx, operandIndex, opTextIdx) == false)
@@ -1924,32 +3909,44 @@ bool _ppcAssembler_processRegisterOperand(PPCAssemblerContext& internalCtx, sint
 		return true; // skipped operand
 	// parse GPR
 	sint32 gprIndex;
-	if (_ppcAssembler_parseRegister(internalCtx.listOperandStr[opTextIdx].str, prefix, gprIndex) == false)
+	if (_ppcAssembler_parseRegister(internalCtx.listOperandStr[opTextIdx].str, prefix, gprIndex) ==
+		false)
 	{
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("\'{0}\' is not a valid register operand (must be {1}0 to {1}{2})", internalCtx.listOperandStr[opTextIdx].str, prefix, registerCount-1));
+		ppcAssembler_setError(
+			internalCtx.ctx,
+			fmt::format("\'{0}\' is not a valid register operand (must be {1}0 to {1}{2})",
+						internalCtx.listOperandStr[opTextIdx].str, prefix, registerCount - 1));
 		return false;
 	}
 	if (gprIndex < 0 || gprIndex >= registerCount)
 	{
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("\'{0}\' is not a valid register operand (must be {1}0 to {1}{2})", internalCtx.listOperandStr[opTextIdx].str, prefix, registerCount - 1));
+		ppcAssembler_setError(
+			internalCtx.ctx,
+			fmt::format("\'{0}\' is not a valid register operand (must be {1}0 to {1}{2})",
+						internalCtx.listOperandStr[opTextIdx].str, prefix, registerCount - 1));
 		return false;
 	}
 	internalCtx.opcode |= (gprIndex << bitIndex);
 	return true;
 }
 
-bool _ppcAssembler_processGPROperand(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32 bitIndex)
+bool _ppcAssembler_processGPROperand(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+									 sint32 bitIndex)
 {
 	return _ppcAssembler_processRegisterOperand(internalCtx, operandIndex, bitIndex, "r", 32);
 }
 
-bool _ppcAssembler_processCROperand(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32 bitIndex, bool isEncodedAsBitIndex)
+bool _ppcAssembler_processCROperand(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+									sint32 bitIndex, bool isEncodedAsBitIndex)
 {
-	return _ppcAssembler_processRegisterOperand(internalCtx, operandIndex, bitIndex + (isEncodedAsBitIndex?2:0), "cr", 8);
+	return _ppcAssembler_processRegisterOperand(internalCtx, operandIndex,
+												bitIndex + (isEncodedAsBitIndex ? 2 : 0), "cr", 8);
 }
 
 template<typename TExprResult>
-bool _ppcAssembler_evaluateConstantExpression(PPCAssemblerContext& internalCtx, TExpressionParser<TExprResult>& ep, std::string_view expr, TExprResult& result)
+bool _ppcAssembler_evaluateConstantExpression(PPCAssemblerContext& internalCtx,
+											  TExpressionParser<TExprResult>& ep,
+											  std::string_view expr, TExprResult& result)
 {
 	if (!ep.IsValidExpression(expr))
 	{
@@ -1958,7 +3955,8 @@ bool _ppcAssembler_evaluateConstantExpression(PPCAssemblerContext& internalCtx, 
 	}
 	if (!ep.IsConstantExpression(expr))
 	{
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("'{}' does not evaluate to a constant expression", expr));
+		ppcAssembler_setError(internalCtx.ctx,
+							  fmt::format("'{}' does not evaluate to a constant expression", expr));
 		return false;
 	}
 	try
@@ -1967,13 +3965,16 @@ bool _ppcAssembler_evaluateConstantExpression(PPCAssemblerContext& internalCtx, 
 	}
 	catch (std::exception* e)
 	{
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("\'{0}\' could not be evaluated. Error: {1}", expr, e->what()));
+		ppcAssembler_setError(
+			internalCtx.ctx,
+			fmt::format("\'{0}\' could not be evaluated. Error: {1}", expr, e->what()));
 		return false;
 	}
 	return true;
 }
 
-bool _ppcAssembler_processBIOperand(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32 bitIndex)
+bool _ppcAssembler_processBIOperand(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+									sint32 bitIndex)
 {
 	sint32 opTextIdx;
 	if (_ppcAssembler_getOperandTextIndex(internalCtx, operandIndex, opTextIdx) == false)
@@ -2003,7 +4004,9 @@ bool _ppcAssembler_processBIOperand(PPCAssemblerContext& internalCtx, sint32 ope
 		return false;
 	if (bi < 0 || bi >= (8 * 4))
 	{
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("CR bit operand \'{0}\' evaluated to {1} which is out of range", expr, bi));
+		ppcAssembler_setError(
+			internalCtx.ctx,
+			fmt::format("CR bit operand \'{0}\' evaluated to {1} which is out of range", expr, bi));
 		return false;
 	}
 	internalCtx.opcode &= ~(0x1F << bitIndex);
@@ -2011,12 +4014,14 @@ bool _ppcAssembler_processBIOperand(PPCAssemblerContext& internalCtx, sint32 ope
 	return true;
 }
 
-bool _ppcAssembler_processFPROperand(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32 bitIndex)
+bool _ppcAssembler_processFPROperand(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+									 sint32 bitIndex)
 {
 	return _ppcAssembler_processRegisterOperand(internalCtx, operandIndex, bitIndex, "f", 32);
 }
 
-bool _ppcAssembler_processImmediateOperandS16(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32 bitIndex, bool isNegative = false)
+bool _ppcAssembler_processImmediateOperandS16(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+											  sint32 bitIndex, bool isNegative = false)
 {
 	sint32 opTextIdx;
 	if (_ppcAssembler_getOperandTextIndex(internalCtx, operandIndex, opTextIdx) == false)
@@ -2041,14 +4046,16 @@ bool _ppcAssembler_processImmediateOperandS16(PPCAssemblerContext& internalCtx, 
 		}
 		else
 		{
-			internalCtx.ctx->list_relocs.emplace_back(PPCASM_RELOC::U32_MASKED_IMM, expressionString, 0, bitIndex, 16);
+			internalCtx.ctx->list_relocs.emplace_back(PPCASM_RELOC::U32_MASKED_IMM,
+													  expressionString, 0, bitIndex, 16);
 			return true;
 		}
 	}
 	catch (std::exception* e)
 	{
 		// check if expression is invalid or if it contains unknown constants
-		sprintf(_assemblerErrorMessageDepr, "\'%s\' could not be evaluated. Error: %s", expressionString.c_str(), e->what());
+		sprintf(_assemblerErrorMessageDepr, "\'%s\' could not be evaluated. Error: %s",
+				expressionString.c_str(), e->what());
 		ppcAssembler_setError(internalCtx.ctx, _assemblerErrorMessageDepr);
 		return false;
 	}
@@ -2058,7 +4065,8 @@ bool _ppcAssembler_processImmediateOperandS16(PPCAssemblerContext& internalCtx, 
 	return true;
 }
 
-bool _ppcAssembler_processImmediateOperandU5(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint32 bitIndex)
+bool _ppcAssembler_processImmediateOperandU5(PPCAssemblerContext& internalCtx, sint32 operandIndex,
+											 sint32 bitIndex)
 {
 	sint32 opTextIdx;
 	if (_ppcAssembler_getOperandTextIndex(internalCtx, operandIndex, opTextIdx) == false)
@@ -2075,13 +4083,17 @@ bool _ppcAssembler_processImmediateOperandU5(PPCAssemblerContext& internalCtx, s
 	catch (std::exception*)
 	{
 		// check if expression is invalid or if it contains unknown constants
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("\'{}\' is not a valid expression", internalCtx.listOperandStr[opTextIdx].str));
+		ppcAssembler_setError(internalCtx.ctx,
+							  fmt::format("\'{}\' is not a valid expression",
+										  internalCtx.listOperandStr[opTextIdx].str));
 		return false;
 	}
 	sint32 immS32 = (sint32)immD;
 	if (immS32 < 0 || immS32 >= 32)
 	{
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("\'{}\' is not in range 0-31", internalCtx.listOperandStr[opTextIdx].str));
+		ppcAssembler_setError(
+			internalCtx.ctx,
+			fmt::format("\'{}\' is not in range 0-31", internalCtx.listOperandStr[opTextIdx].str));
 		return false;
 	}
 	uint32 imm = (uint32)immS32;
@@ -2090,7 +4102,8 @@ bool _ppcAssembler_processImmediateOperandU5(PPCAssemblerContext& internalCtx, s
 	return true;
 }
 
-bool _ppcAssembler_processImmediateOperandU5Const(PPCAssemblerContext& internalCtx, sint32 operandIndex, sint8& value)
+bool _ppcAssembler_processImmediateOperandU5Const(PPCAssemblerContext& internalCtx,
+												  sint32 operandIndex, sint8& value)
 {
 	sint32 opTextIdx;
 	if (_ppcAssembler_getOperandTextIndex(internalCtx, operandIndex, opTextIdx) == false)
@@ -2105,7 +4118,10 @@ bool _ppcAssembler_processImmediateOperandU5Const(PPCAssemblerContext& internalC
 		return false;
 	if (r < 0 || r >= 32)
 	{
-		ppcAssembler_setError(internalCtx.ctx, fmt::format("Expression '\'{0}\' which evaluates to {1} is not in range 0-31", expr, r));
+		ppcAssembler_setError(
+			internalCtx.ctx,
+			fmt::format("Expression '\'{0}\' which evaluates to {1} is not in range 0-31", expr,
+						r));
 		return false;
 	}
 	value = (sint8)r;
@@ -2149,7 +4165,7 @@ bool _ppcAssembler_processBranchOperandS16(PPCAssemblerContext& internalCtx, sin
 			ppcAssembler_setError(internalCtx.ctx, _assemblerErrorMessageDepr);
 			return false;
 		}
-		if (relativeAddr&3)
+		if (relativeAddr & 3)
 		{
 			sprintf(_assemblerErrorMessageDepr, "Branch target must be aligned to 4");
 			ppcAssembler_setError(internalCtx.ctx, _assemblerErrorMessageDepr);
@@ -2157,7 +4173,7 @@ bool _ppcAssembler_processBranchOperandS16(PPCAssemblerContext& internalCtx, sin
 		}
 		internalCtx.opcode |= (relativeAddr & 0xFFFC);
 		return true;
-	}			 
+	}
 	// create reloc
 	internalCtx.ctx->list_relocs.emplace_back(PPCASM_RELOC::BRANCH_S16, expressionString, 0, 0, 0);
 	return true;
@@ -2223,7 +4239,8 @@ enum class ASM_DATA_DIRECTIVE
 	U8, // alias to .string
 };
 
-bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo, ASM_DATA_DIRECTIVE dataDirective)
+bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo,
+									 ASM_DATA_DIRECTIVE dataDirective)
 {
 	PPCASM_RELOC relocType;
 
@@ -2250,7 +4267,7 @@ bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo, ASM_DATA
 	}
 
 	uint32 elementSize = 0;
-	
+
 	if (relocType == PPCASM_RELOC::FLOAT)
 		elementSize = 4;
 	else if (relocType == PPCASM_RELOC::DOUBLE)
@@ -2263,7 +4280,7 @@ bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo, ASM_DATA
 		elementSize = 1;
 	else
 		cemu_assert_debug(false);
-	
+
 	_ppcAssembler_setAlignment(internalInfo, elementSize);
 	size_t elementCount = internalInfo.listOperandStr.size();
 	internalInfo.ctx->outputData.reserve(elementSize * elementCount);
@@ -2276,17 +4293,23 @@ bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo, ASM_DATA
 		{
 			if (dataDirective != ASM_DATA_DIRECTIVE::U8)
 			{
-				ppcAssembler_setError(internalInfo.ctx, "Strings constants are only allowed in .byte or .string data directives");
+				ppcAssembler_setError(
+					internalInfo.ctx,
+					"Strings constants are only allowed in .byte or .string data directives");
 				return false;
 			}
-			if (expressionStr.size() < 2 || expressionStr[expressionStr.size()-1] != '"')
+			if (expressionStr.size() < 2 || expressionStr[expressionStr.size() - 1] != '"')
 			{
-				ppcAssembler_setError(internalInfo.ctx, "String constants must end with a quotation mark. Example: \"text\"");
+				ppcAssembler_setError(
+					internalInfo.ctx,
+					"String constants must end with a quotation mark. Example: \"text\"");
 				return false;
 			}
 			// write string bytes + null-termination character
 			size_t strConstantLength = expressionStr.size() - 2;
-			internalInfo.ctx->outputData.insert(internalInfo.ctx->outputData.end(), expressionStr.data() + 1, expressionStr.data() + 1 + strConstantLength);
+			internalInfo.ctx->outputData.insert(internalInfo.ctx->outputData.end(),
+												expressionStr.data() + 1,
+												expressionStr.data() + 1 + strConstantLength);
 			internalInfo.ctx->outputData.emplace_back(0);
 			continue;
 		}
@@ -2322,12 +4345,13 @@ bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo, ASM_DATA
 			default:
 				cemu_assert_debug(false);
 			}
-
 		}
 		else
 		{
 			// generate reloc if we cant resolve immediately
-			internalInfo.ctx->list_relocs.emplace_back(relocType, std::string(internalInfo.listOperandStr[i].str), (uint32)(elementPtr - internalInfo.ctx->outputData.data()), 0, 0);
+			internalInfo.ctx->list_relocs.emplace_back(
+				relocType, std::string(internalInfo.listOperandStr[i].str),
+				(uint32)(elementPtr - internalInfo.ctx->outputData.data()), 0, 0);
 		}
 	}
 	return true;
@@ -2359,7 +4383,7 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	// tokenize input
 	char const* currentPtr = text;
 	char const* startPtr = text;
-	char const* endPtr = startPtr+strlen(startPtr);
+	char const* endPtr = startPtr + strlen(startPtr);
 	// cut off comments
 	for (const char* itrPtr = startPtr; itrPtr < endPtr; itrPtr++)
 	{
@@ -2452,18 +4476,23 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 		dataDirective = ASM_DATA_DIRECTIVE::FLOAT;
 	else if (instructionName.compare(".DOUBLE") == 0)
 		dataDirective = ASM_DATA_DIRECTIVE::DOUBLE;
-	else if (instructionName.compare(".INT") == 0 || instructionName.compare(".UINT") == 0 || instructionName.compare(".PTR") == 0 || instructionName.compare(".U32") == 0 || instructionName.compare(".LONG") == 0)
+	else if (instructionName.compare(".INT") == 0 || instructionName.compare(".UINT") == 0 ||
+			 instructionName.compare(".PTR") == 0 || instructionName.compare(".U32") == 0 ||
+			 instructionName.compare(".LONG") == 0)
 		dataDirective = ASM_DATA_DIRECTIVE::U32;
-	else if (instructionName.compare(".WORD") == 0 || instructionName.compare(".U16") == 0 || instructionName.compare(".SHORT") == 0)
+	else if (instructionName.compare(".WORD") == 0 || instructionName.compare(".U16") == 0 ||
+			 instructionName.compare(".SHORT") == 0)
 		dataDirective = ASM_DATA_DIRECTIVE::U16;
-	else if (instructionName.compare(".BYTE") == 0 || instructionName.compare(".STRING") == 0 || instructionName.compare(".U8") == 0 || instructionName.compare(".CHAR") == 0)
+	else if (instructionName.compare(".BYTE") == 0 || instructionName.compare(".STRING") == 0 ||
+			 instructionName.compare(".U8") == 0 || instructionName.compare(".CHAR") == 0)
 		dataDirective = ASM_DATA_DIRECTIVE::U8;
 
 	if (dataDirective != ASM_DATA_DIRECTIVE::NONE)
 	{
 		if (internalInfo.listOperandStr.size() < 1)
 		{
-			ppcAssembler_setError(ctx, fmt::format("Value expected after data directive {}", instructionName.c_str()));
+			ppcAssembler_setError(ctx, fmt::format("Value expected after data directive {}",
+												   instructionName.c_str()));
 			return false;
 		}
 		return _ppcAssembler_emitDataDirective(internalInfo, dataDirective);
@@ -2485,7 +4514,10 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 				sint32 alignmentValue = ep.Evaluate<sint32>(internalInfo.listOperandStr[0].str);
 				if (alignmentValue <= 0 || alignmentValue >= 256)
 				{
-					ppcAssembler_setError(ctx, fmt::format("Alignment value \'{}\' is not within the allowed range (1-256)", alignmentValue));
+					ppcAssembler_setError(
+						ctx, fmt::format(
+								 "Alignment value \'{}\' is not within the allowed range (1-256)",
+								 alignmentValue));
 					return false;
 				}
 				_ppcAssembler_emitAlignDirective(internalInfo, alignmentValue);
@@ -2493,13 +4525,18 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 			}
 			else
 			{
-				ppcAssembler_setError(ctx, fmt::format("Expression \'{}\' for .align directive is not a constant", internalInfo.listOperandStr[0].str));
+				ppcAssembler_setError(
+					ctx, fmt::format("Expression \'{}\' for .align directive is not a constant",
+									 internalInfo.listOperandStr[0].str));
 				return false;
 			}
 		}
 		catch (std::exception* e)
 		{
-			ppcAssembler_setError(ctx, fmt::format("Expression \'{}\' for .align directive could not be evaluated. Error: {}", internalInfo.listOperandStr[0].str, e->what()));
+			ppcAssembler_setError(
+				ctx, fmt::format(
+						 "Expression \'{}\' for .align directive could not be evaluated. Error: {}",
+						 internalInfo.listOperandStr[0].str, e->what()));
 			return false;
 		}
 	}
@@ -2517,7 +4554,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	}
 	if (iDef == nullptr)
 	{
-		ppcAssembler_setError(ctx, fmt::format("Instruction \'{}\' is unknown or not supported", instructionName.c_str()));
+		ppcAssembler_setError(ctx, fmt::format("Instruction \'{}\' is unknown or not supported",
+											   instructionName.c_str()));
 		return false;
 	}
 	// build opcode
@@ -2526,23 +4564,24 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	uint32 opcBits;
 	ppcAssembler_buildOpcMask(iDef, opcMask, opcBits);
 	internalInfo.opcode = opcBits & opcMask;
-	internalInfo.opcode |= (iDef->compareBits&iDef->maskBits);
+	internalInfo.opcode |= (iDef->compareBits & iDef->maskBits);
 	// handle operands
 	if (iDef->instructionForm == OP_FORM_DYNAMIC)
 	{
 		for (size_t i = 0; i < iDef->encodedOperands.size(); i++)
 		{
-			bool r = std::visit([&](auto&& op) -> bool {
-				return op.AssembleOperand(&internalInfo, iDef, internalInfo.opcode, i);
-				}, iDef->encodedOperands[i]);
+			bool r = std::visit(
+				[&](auto&& op) -> bool
+				{ return op.AssembleOperand(&internalInfo, iDef, internalInfo.opcode, i); },
+				iDef->encodedOperands[i]);
 			if (!r)
 				return false;
 		}
-		for(auto& it : iDef->constraints)
+		for (auto& it : iDef->constraints)
 		{
-			std::visit([&](auto&& op) {
-				op.AssembleConstraint(&internalInfo, iDef, internalInfo.opcode);
-				}, it);
+			std::visit([&](auto&& op)
+					   { op.AssembleConstraint(&internalInfo, iDef, internalInfo.opcode); },
+					   it);
 		}
 	}
 	else if (iDef->instructionForm == OP_FORM_NO_OPERAND)
@@ -2595,7 +4634,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 			return false;
 		if (_ppcAssembler_processGPROperand(internalInfo, 1, 21) == false)
 			return false;
-		if (_ppcAssembler_processImmediateOperandU5(internalInfo, _getOpIndex(iDef, 2), 11) == false)
+		if (_ppcAssembler_processImmediateOperandU5(internalInfo, _getOpIndex(iDef, 2), 11) ==
+			false)
 			return false;
 	}
 	else if (iDef->instructionForm == OP_FORM_X_FP_CMP)
@@ -2642,7 +4682,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 		uint8 MB = 0;
 		uint8 ME = 0;
 
-		if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTLWI || internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTLWI_)
+		if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTLWI ||
+			internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTLWI_)
 		{
 			sint8 n, b;
 			if (!_ppcAssembler_processImmediateOperandU5Const(internalInfo, 2, n))
@@ -2654,7 +4695,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 			MB = 0;
 			ME = n - 1;
 		}
-		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTRWI || internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTRWI_)
+		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTRWI ||
+				 internalInfo.iDef->ppcAsmOp == PPCASM_OP_EXTRWI_)
 		{
 			sint8 n, b;
 			if (!_ppcAssembler_processImmediateOperandU5Const(internalInfo, 2, n))
@@ -2666,7 +4708,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 			MB = 32 - n;
 			ME = 31;
 		}
-		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_SLWI || internalInfo.iDef->ppcAsmOp == PPCASM_OP_SLWI_)
+		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_SLWI ||
+				 internalInfo.iDef->ppcAsmOp == PPCASM_OP_SLWI_)
 		{
 			sint8 n;
 			if (!_ppcAssembler_processImmediateOperandU5Const(internalInfo, 2, n))
@@ -2676,7 +4719,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 			MB = 0;
 			ME = 31 - n;
 		}
-		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_SRWI || internalInfo.iDef->ppcAsmOp == PPCASM_OP_SRWI_)
+		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_SRWI ||
+				 internalInfo.iDef->ppcAsmOp == PPCASM_OP_SRWI_)
 		{
 			sint8 n;
 			if (!_ppcAssembler_processImmediateOperandU5Const(internalInfo, 2, n))
@@ -2685,7 +4729,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 			MB = n;
 			ME = 31;
 		}
-		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRLWI || internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRLWI_)
+		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRLWI ||
+				 internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRLWI_)
 		{
 			sint8 n;
 			if (!_ppcAssembler_processImmediateOperandU5Const(internalInfo, 2, n))
@@ -2694,7 +4739,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 			MB = n;
 			ME = 31;
 		}
-		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRRWI || internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRRWI_)
+		else if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRRWI ||
+				 internalInfo.iDef->ppcAsmOp == PPCASM_OP_CLRRWI_)
 		{
 			sint8 n;
 			if (!_ppcAssembler_processImmediateOperandU5Const(internalInfo, 2, n))
@@ -2734,7 +4780,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 		if (_ppcAssembler_processGPROperand(internalInfo, 2, 11) == false)
 			return false;
 		uint32 MB = 0, ME = 0;
-		if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_ROTLW || internalInfo.iDef->ppcAsmOp == PPCASM_OP_ROTLW_)
+		if (internalInfo.iDef->ppcAsmOp == PPCASM_OP_ROTLW ||
+			internalInfo.iDef->ppcAsmOp == PPCASM_OP_ROTLW_)
 		{
 			MB = 0;
 			ME = 31;
@@ -2799,8 +4846,8 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	ctx->outputData.resize(4);
 	ctx->outputData[0] = (uint8)((internalInfo.opcode >> 24) & 0xFF);
 	ctx->outputData[1] = (uint8)((internalInfo.opcode >> 16) & 0xFF);
-	ctx->outputData[2] = (uint8)((internalInfo.opcode >>  8) & 0xFF);
-	ctx->outputData[3] = (uint8)((internalInfo.opcode >>  0) & 0xFF);
+	ctx->outputData[2] = (uint8)((internalInfo.opcode >> 8) & 0xFF);
+	ctx->outputData[3] = (uint8)((internalInfo.opcode >> 0) & 0xFF);
 	return true;
 }
 
@@ -2820,7 +4867,6 @@ void _testAsm(uint32 expected, const char* iText)
 	opcode |= ((uint32)ctx.outputData[2] << 8);
 	opcode |= ((uint32)ctx.outputData[3] << 0);
 	cemu_assert_debug(expected == opcode);
-
 }
 
 void _testAsmFail(const char* iText)
@@ -2863,12 +4909,13 @@ void ppcAsmTestDisassembler()
 
 	auto disassemble = [&](uint32 opcode, PPCASM_OP ppcAsmCode)
 	{
-		disasm = { 0 };
+		disasm = {0};
 		ppcAssembler_disassemble(0x10000000, opcode, &disasm);
 		cemu_assert_debug(disasm.ppcAsmCode == ppcAsmCode);
 	};
 
-	auto checkOperandMask = [&](bool op0 = false, bool op1 = false, bool op2 = false, bool op3 = false)
+	auto checkOperandMask =
+		[&](bool op0 = false, bool op1 = false, bool op2 = false, bool op3 = false)
 	{
 		bool hasOp0 = (disasm.operandMask & (1 << 0));
 		bool hasOp1 = (disasm.operandMask & (1 << 1));
@@ -2917,10 +4964,7 @@ void ppcAsmTestDisassembler()
 		cemu_assert_debug(disasm.operand[index].immU32 == 0x10000000 + relOffset);
 	};
 
-	auto checkBranchHint = [&](bool isSet)
-	{
-		cemu_assert_debug(disasm.branchHintBitSet == isSet);
-	};
+	auto checkBranchHint = [&](bool isSet) { cemu_assert_debug(disasm.branchHintBitSet == isSet); };
 
 	// addi / subi
 	_testAsm(0x3863FFFF, "addi r3, r3, -1");
@@ -3289,7 +5333,7 @@ void ppcAsmTestDisassembler()
 	_testAsm(0x7D29F8F8, "nor r9, r9, r31");
 	_testAsm(0x7F26C8F8, "nor r6, r25, r25");
 	_testAsm(0x7F26C8F8, "not r6, r25"); // alias for nor where rA == rB
-	_testAsm(0x7FE4FB78, "mr r4, r31"); // alias for or where rA == rB
+	_testAsm(0x7FE4FB78, "mr r4, r31");	 // alias for or where rA == rB
 	_testAsm(0x7C7EEAA6, "mfspr r3, spr958");
 	_testAsm(0x7C78E3A6, "mtspr spr920, r3");
 	_testAsm(0x7D6802A6, "mflr r11");
@@ -3486,13 +5530,13 @@ void ppcAsmTestDisassembler()
 	_testAsm(0x6fe9ffff, "xoris     r9, r31, 0xFFFF");
 
 	// data directives
-	_testAsmArray({ 0x00, 0x00, 0x00, 0x01 }, ".int 1");
-	_testAsmArray({ 0x00, 0x00, 0x00, 0x01, 0x11, 0x22, 0x33, 0x44 }, ".int 1, 0x11223344");
-	_testAsmArray({ 0x42, 0xf6, 0x00, 0x00 }, ".float 123.0");
-	_testAsmArray({ 0x7f }, ".byte 0x7f");
-	_testAsmArray({ 0x74, 0x65, 0x73, 0x74, 0x00 }, ".byte \"test\"");
-	_testAsmArray({ 0x41, 0x42, 0x43, 0x00, 0x74, 0x65, 0x73, 0x74, 0x00 }, ".byte \"ABC\", \"test\"");
-
+	_testAsmArray({0x00, 0x00, 0x00, 0x01}, ".int 1");
+	_testAsmArray({0x00, 0x00, 0x00, 0x01, 0x11, 0x22, 0x33, 0x44}, ".int 1, 0x11223344");
+	_testAsmArray({0x42, 0xf6, 0x00, 0x00}, ".float 123.0");
+	_testAsmArray({0x7f}, ".byte 0x7f");
+	_testAsmArray({0x74, 0x65, 0x73, 0x74, 0x00}, ".byte \"test\"");
+	_testAsmArray({0x41, 0x42, 0x43, 0x00, 0x74, 0x65, 0x73, 0x74, 0x00},
+				  ".byte \"ABC\", \"test\"");
 }
 
 void ppcAsmTest()

@@ -4,7 +4,7 @@ using HRTick = uint64;
 
 class HighResolutionTimer
 {
-public:
+  public:
 	HighResolutionTimer()
 	{
 		m_timePoint = 0;
@@ -20,7 +20,8 @@ public:
 		return m_timePoint / m_freq;
 	}
 
-	// return time difference in seconds, this is an utility function mainly intended for debugging/benchmarking purposes. Avoid using doubles for precise timing
+	// return time difference in seconds, this is an utility function mainly intended for
+	// debugging/benchmarking purposes. Avoid using doubles for precise timing
 	static double getTimeDiff(HRTick startTime, HRTick endTime)
 	{
 		return (double)(endTime - startTime) / (double)m_freq;
@@ -36,8 +37,8 @@ public:
 	static HighResolutionTimer now();
 	static HRTick getFrequency();
 
-private:
-	HighResolutionTimer(uint64 timePoint) : m_timePoint(timePoint) {};
+  private:
+	HighResolutionTimer(uint64 timePoint) : m_timePoint(timePoint){};
 
 	uint64 m_timePoint;
 	static uint64 m_freq;
@@ -47,7 +48,7 @@ private:
 // measures time between Start() and Stop() call
 class BenchmarkTimer
 {
-public:
+  public:
 	void Start()
 	{
 		m_startTime = HighResolutionTimer::now().getTick();
@@ -68,8 +69,7 @@ public:
 		return elapsedMS;
 	}
 
-private:
+  private:
 	HRTick m_startTime{};
 	HRTick m_stopTime{};
 };
-

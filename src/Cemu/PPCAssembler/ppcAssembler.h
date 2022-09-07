@@ -2,17 +2,18 @@
 
 #include <boost/container/small_vector.hpp>
 
-#define PPCASM_OPERAND_COUNT		5
+#define PPCASM_OPERAND_COUNT 5
 
-#define PPCASM_OPERAND_TYPE_GPR		0 // r0 - r31
-#define PPCASM_OPERAND_TYPE_FPR		1 // f0 - f31
-#define PPCASM_OPERAND_TYPE_SPR		2 // spr0 - spr511
-#define PPCASM_OPERAND_TYPE_IMM		3 // integer constants. E.g. 0x123 
-#define PPCASM_OPERAND_TYPE_MEM		4 // [r0 + 1234]
-#define PPCASM_OPERAND_TYPE_CIMM	5 // virtual addr of code destination (used for branches)
-#define PPCASM_OPERAND_TYPE_CR		6 // cr0-cr7
-#define PPCASM_OPERAND_TYPE_CR_BIT	7 // cr bit 0-31. Example display form: '4*cr1+eq'
-#define PPCASM_OPERAND_TYPE_PSQMODE	8 // single or paired mode control for PSQ_L*/PSQ_ST* instructions
+#define PPCASM_OPERAND_TYPE_GPR 0	 // r0 - r31
+#define PPCASM_OPERAND_TYPE_FPR 1	 // f0 - f31
+#define PPCASM_OPERAND_TYPE_SPR 2	 // spr0 - spr511
+#define PPCASM_OPERAND_TYPE_IMM 3	 // integer constants. E.g. 0x123
+#define PPCASM_OPERAND_TYPE_MEM 4	 // [r0 + 1234]
+#define PPCASM_OPERAND_TYPE_CIMM 5	 // virtual addr of code destination (used for branches)
+#define PPCASM_OPERAND_TYPE_CR 6	 // cr0-cr7
+#define PPCASM_OPERAND_TYPE_CR_BIT 7 // cr bit 0-31. Example display form: '4*cr1+eq'
+#define PPCASM_OPERAND_TYPE_PSQMODE                                                                \
+	8 // single or paired mode control for PSQ_L*/PSQ_ST* instructions
 
 enum PPCASM_OP
 {
@@ -110,10 +111,10 @@ enum PPCASM_OP
 	PPCASM_OP_CLRRWI_,
 
 	// rlwimi extended mnemonics
-	//PPCASM_OP_INSLWI, rlwimi
-	//PPCASM_OP_INSLWI_, rlwimi
-	//PPCASM_OP_INSRWI, rlwimi
-	//PPCASM_OP_INSRWI_, rlwimi
+	// PPCASM_OP_INSLWI, rlwimi
+	// PPCASM_OP_INSLWI_, rlwimi
+	// PPCASM_OP_INSRWI, rlwimi
+	// PPCASM_OP_INSRWI_, rlwimi
 
 	// rlwnm extended mnemonics
 	PPCASM_OP_RLWNM,
@@ -205,10 +206,10 @@ enum PPCASM_OP
 	PPCASM_OP_CRAND,
 	PPCASM_OP_CRNAND,
 	PPCASM_OP_CRANDC,
-	PPCASM_OP_CRSET, // simplified mnemonic for CREQV
-	PPCASM_OP_CRCLR, // simplified mnemonic for CRXOR
+	PPCASM_OP_CRSET,  // simplified mnemonic for CREQV
+	PPCASM_OP_CRCLR,  // simplified mnemonic for CRXOR
 	PPCASM_OP_CRMOVE, // simplified mnemonic for CROR
-	PPCASM_OP_CRNOT, // simplified mnemonic for CRNOR
+	PPCASM_OP_CRNOT,  // simplified mnemonic for CRNOR
 
 	// floating point load/store
 	PPCASM_OP_LFS,
@@ -279,11 +280,11 @@ enum PPCASM_OP
 	PPCASM_OP_ISYNC,
 
 	// extended mnemonics
-	PPCASM_OP_NOP, // ORI
-	PPCASM_OP_LI, // ADDI
-	PPCASM_OP_LIS, // ADDIS
-	PPCASM_OP_MFLR, // MFSPR
-	PPCASM_OP_MTLR, // MTSPR
+	PPCASM_OP_NOP,	 // ORI
+	PPCASM_OP_LI,	 // ADDI
+	PPCASM_OP_LIS,	 // ADDIS
+	PPCASM_OP_MFLR,	 // MFSPR
+	PPCASM_OP_MTLR,	 // MTSPR
 	PPCASM_OP_MFCTR, // MFSPR
 	PPCASM_OP_MTCTR, // MTSPR
 };
@@ -313,7 +314,8 @@ struct PPCDisassembledInstruction
 
 const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp);
 
-void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode, PPCDisassembledInstruction* disInstr);
+void ppcAssembler_disassemble(uint32 virtualAddress, uint32 opcode,
+							  PPCDisassembledInstruction* disInstr);
 
 enum class PPCASM_RELOC
 {
@@ -322,38 +324,49 @@ enum class PPCASM_RELOC
 	BRANCH_S16,
 	BRANCH_S26,
 	// data constants
-	FLOAT, // 4 byte float data
+	FLOAT,	// 4 byte float data
 	DOUBLE, // 8 byte double precision float data
-	U32, // 4 byte unsigned integer
-	U16, // 2 byte unsigned integer
-	U8, // 1 byte unsigned integer
+	U32,	// 4 byte unsigned integer
+	U16,	// 2 byte unsigned integer
+	U8,		// 1 byte unsigned integer
 
 };
 
 struct PPCAssemblerReloc
 {
-	PPCAssemblerReloc(PPCASM_RELOC relocType, std::string expression, uint32 byteOffset, uint8 bitOffset, uint8 bitCount) : m_relocType(relocType), m_expression(expression), m_byteOffset(byteOffset), m_bitOffset(bitOffset), m_bitCount(bitCount) {};
+	PPCAssemblerReloc(PPCASM_RELOC relocType, std::string expression, uint32 byteOffset,
+					  uint8 bitOffset, uint8 bitCount)
+		: m_relocType(relocType), m_expression(expression), m_byteOffset(byteOffset),
+		  m_bitOffset(bitOffset), m_bitCount(bitCount){};
 	PPCASM_RELOC m_relocType;
 	std::string m_expression;
 	uint32 m_byteOffset;
 	uint8 m_bitOffset;
 	uint8 m_bitCount;
 	bool m_isApplied{};
-	bool isApplied() { return m_isApplied; };
-	void setApplied() { m_isApplied = true; };
+	bool isApplied()
+	{
+		return m_isApplied;
+	};
+	void setApplied()
+	{
+		m_isApplied = true;
+	};
 };
 
 struct PPCAssemblerInOut
 {
 	// in
 	uint32 virtualAddress;
-	bool forceNoAlignment{}; // if set, alignment will always be set to 1 (even for .align directive!)
+	bool forceNoAlignment{}; // if set, alignment will always be set to 1 (even for .align
+							 // directive!)
 	// out
 	boost::container::small_vector<uint8, 16> outputData;
 	std::vector<PPCAssemblerReloc> list_relocs;
 	std::string errorMsg;
 	uint32 alignmentRequirement{}; // alignment requirement, 0 if none
-	uint32 alignmentPaddingSize{}; // number of bytes to fill with alignment padding before instruction
+	uint32
+		alignmentPaddingSize{}; // number of bytes to fill with alignment padding before instruction
 	uint32 virtualAddressAligned{}; // effective virtualAddress
 };
 

@@ -7,7 +7,7 @@
 MetaInfo::MetaInfo()
 {
 	m_type = GameType::FSC;
-	
+
 	uint32 meta_size;
 	const auto meta_data = ReadFSCFile("vol/meta/meta.xml", meta_size);
 	if (meta_size == 0 || !meta_data)
@@ -34,7 +34,7 @@ MetaInfo::MetaInfo(const fs::path& filename)
 
 std::string MetaInfo::GetName(CafeConsoleLanguage language) const
 {
-	std::string long_name{ GetLongName(language) };
+	std::string long_name{GetLongName(language)};
 	const auto nl = long_name.find(L'\n');
 	if (nl != std::string::npos)
 		long_name.replace(nl, 1, " - ");
@@ -44,17 +44,20 @@ std::string MetaInfo::GetName(CafeConsoleLanguage language) const
 
 const std::string& MetaInfo::GetLongName(CafeConsoleLanguage language) const
 {
-	return m_long_name[(int)language].empty() ? m_long_name[(int)CafeConsoleLanguage::EN] : m_long_name[(int)language];
+	return m_long_name[(int)language].empty() ? m_long_name[(int)CafeConsoleLanguage::EN]
+											  : m_long_name[(int)language];
 }
 
 const std::string& MetaInfo::GetShortName(CafeConsoleLanguage language) const
 {
-	return m_short_name[(int)language].empty() ? m_short_name[(int)CafeConsoleLanguage::EN] : m_short_name[(int)language];
+	return m_short_name[(int)language].empty() ? m_short_name[(int)CafeConsoleLanguage::EN]
+											   : m_short_name[(int)language];
 }
 
 const std::string& MetaInfo::GetPublisher(CafeConsoleLanguage language) const
 {
-	return m_publisher[(int)language].empty() ? m_publisher[(int)CafeConsoleLanguage::EN] : m_publisher[(int)language];
+	return m_publisher[(int)language].empty() ? m_publisher[(int)CafeConsoleLanguage::EN]
+											  : m_publisher[(int)language];
 }
 
 void MetaInfo::ParseDirectory(const fs::path& filename)
@@ -75,7 +78,7 @@ bool MetaInfo::ParseFile(const fs::path& filename)
 	const auto extension = filename.extension();
 	if (filename.filename() != "meta.xml")
 		return false;
-	
+
 	const auto base_dir = filename.parent_path().parent_path();
 
 	ParseMetaFile(filename);
@@ -94,7 +97,8 @@ void MetaInfo::ParseMetaFile(const fs::path& meta_file)
 void MetaInfo::ParseMetaFile(const pugi::xml_document& doc, const pugi::xml_parse_result& result)
 {
 	if (!result)
-		throw std::invalid_argument(fmt::format("error when parsing the meta.xml: {}", result.description()));
+		throw std::invalid_argument(
+			fmt::format("error when parsing the meta.xml: {}", result.description()));
 
 	const auto root = doc.child("menu");
 	if (!root)

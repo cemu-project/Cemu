@@ -9,19 +9,19 @@ typedef struct
 	unsigned char S[RC4_N];
 	int i;
 	int j;
-}RC4Ctx_t;
+} RC4Ctx_t;
 
-void RC4_initCtx(RC4Ctx_t* rc4Ctx, char *key);
+void RC4_initCtx(RC4Ctx_t* rc4Ctx, char* key);
 void RC4_initCtx(RC4Ctx_t* rc4Ctx, unsigned char* key, int keyLen);
 void RC4_transform(RC4Ctx_t* rc4Ctx, unsigned char* input, int len, unsigned char* output);
 
 typedef struct
 {
-	uint8 checksumBase; // calculated from key
+	uint8 checksumBase;		   // calculated from key
 	uint8 accessKeyDigest[16]; // MD5 hash of key
 	RC4Ctx_t rc4Client;
 	RC4Ctx_t rc4Server;
-}prudpStreamSettings_t;
+} prudpStreamSettings_t;
 
 typedef struct
 {
@@ -32,7 +32,7 @@ typedef struct
 	sint32 sid;
 	sint32 stream;
 	sint32 type;
-}stationUrl_t;
+} stationUrl_t;
 
 typedef struct
 {
@@ -42,13 +42,13 @@ typedef struct
 	uint8 secureTicket[1024];
 	sint32 secureTicketLength;
 	stationUrl_t server;
-}authServerInfo_t;
+} authServerInfo_t;
 
 uint8 prudp_calculateChecksum(uint8 checksumBase, uint8* data, sint32 length);
 
 class prudpPacket
 {
-public:
+  public:
 	static const int PACKET_RAW_SIZE_MAX = 500;
 
 	static const int TYPE_SYN = 0;
@@ -66,21 +66,22 @@ public:
 
 	static sint32 calculateSizeFromPacketData(uint8* data, sint32 length);
 
-	prudpPacket(prudpStreamSettings_t* streamSettings, uint8 src, uint8 dst, uint8 type, uint16 flags, uint8 sessionId, uint16 sequenceId, uint32 packetSignature);
+	prudpPacket(prudpStreamSettings_t* streamSettings, uint8 src, uint8 dst, uint8 type,
+				uint16 flags, uint8 sessionId, uint16 sequenceId, uint32 packetSignature);
 	bool requiresAck();
 	void setData(uint8* data, sint32 length);
 	void setFragmentIndex(uint8 fragmentIndex);
 	sint32 buildData(uint8* output, sint32 maxLength);
 
-private:
+  private:
 	uint32 packetSignature();
 
 	uint8 calculateChecksum(uint8* data, sint32 length);
 
-public:
+  public:
 	uint16 sequenceId;
 
-private:
+  private:
 	uint8 src;
 	uint8 dst;
 	uint8 type;
@@ -95,7 +96,7 @@ private:
 
 class prudpIncomingPacket
 {
-public:
+  public:
 	prudpIncomingPacket(prudpStreamSettings_t* streamSettings, uint8* data, sint32 length);
 
 	bool hasError();
@@ -103,10 +104,10 @@ public:
 	uint8 calculateChecksum(uint8* data, sint32 length);
 	void decrypt();
 
-private:
+  private:
 	prudpIncomingPacket();
 
-public:
+  public:
 	// prudp header
 	uint8 src;
 	uint8 dst;
@@ -119,10 +120,9 @@ public:
 	bool hasData = false;
 	std::vector<uint8> packetData;
 
-private:
+  private:
 	bool isInvalid = false;
 	prudpStreamSettings_t* streamSettings = nullptr;
-
 };
 
 typedef struct
@@ -131,16 +131,16 @@ typedef struct
 	uint32 initialSendTimestamp;
 	uint32 lastRetryTimestamp;
 	sint32 retryCount;
-}prudpAckRequired_t;
+} prudpAckRequired_t;
 
 class prudpClient
 {
-public:
+  public:
 	static const int STATE_CONNECTING = 0;
 	static const int STATE_CONNECTED = 1;
 	static const int STATE_DISCONNECTED = 2;
 
-public:
+  public:
 	prudpClient(uint32 dstIp, uint16 dstPort, const char* key);
 	prudpClient(uint32 dstIp, uint16 dstPort, const char* key, authServerInfo_t* authInfo);
 	~prudpClient();
@@ -151,7 +151,8 @@ public:
 	void acknowledgePacket(uint16 sequenceId);
 	void sortIncomingDataPacket(prudpIncomingPacket* incomingPacket);
 	void handleIncomingPacket(prudpIncomingPacket* incomingPacket);
-	bool update(); // check for new incoming packets, returns true if receiveDatagram() should be called
+	bool
+	update(); // check for new incoming packets, returns true if receiveDatagram() should be called
 
 	sint32 receiveDatagram(std::vector<uint8>& outputBuffer);
 	void sendDatagram(uint8* input, sint32 length, bool reliable = true);
@@ -160,13 +161,13 @@ public:
 
 	SOCKET getSocket();
 
-private:
+  private:
 	prudpClient();
 	void directSendPacket(prudpPacket* packet, uint32 dstIp, uint16 dstPort);
 	sint32 kerberosEncryptData(uint8* input, sint32 length, uint8* output);
 	void queuePacket(prudpPacket* packet, uint32 dstIp, uint16 dstPort);
 
-private:
+  private:
 	uint16 srcPort;
 	uint32 dstIp;
 	uint16 dstPort;
@@ -175,7 +176,7 @@ private:
 	prudpStreamSettings_t streamSettings;
 	std::vector<prudpAckRequired_t> list_packetsWithAckReq;
 	std::vector<prudpIncomingPacket*> queue_incomingPackets;
-	
+
 	// connection
 	uint8 currentConnectionState;
 	uint32 serverConnectionSignature;

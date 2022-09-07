@@ -21,14 +21,16 @@ void LatteDefaultShader_pixelCopyShader_generateVSBody(StringBuf* vs)
 }
 
 GLuint gxShaderDepr_compileRaw(StringBuf* strSourceVS, StringBuf* strSourceFS);
-GLuint gxShaderDepr_compileRaw(const std::string& vertex_source, const std::string& fragment_source);
+GLuint gxShaderDepr_compileRaw(const std::string& vertex_source,
+							   const std::string& fragment_source);
 
 LatteDefaultShader_t* LatteDefaultShader_getPixelCopyShader_depthToColor()
 {
 	if (_copyShader_depthToColor != 0)
 		return _copyShader_depthToColor;
 	catchOpenGLError();
-	LatteDefaultShader_t* defaultShader = (LatteDefaultShader_t*)malloc(sizeof(LatteDefaultShader_t));
+	LatteDefaultShader_t* defaultShader =
+		(LatteDefaultShader_t*)malloc(sizeof(LatteDefaultShader_t));
 	memset(defaultShader, 0, sizeof(LatteDefaultShader_t));
 
 	StringBuf fCStr_vertexShader(1024 * 16);
@@ -44,11 +46,14 @@ LatteDefaultShader_t* LatteDefaultShader_getPixelCopyShader_depthToColor()
 	fCStr_defaultFragShader.add("colorOut0 = vec4(texture(textureSrc, passUV).r,0.0,0.0,1.0);\r\n");
 	fCStr_defaultFragShader.add("}\r\n");
 
-	defaultShader->glProgamId = gxShaderDepr_compileRaw(&fCStr_vertexShader, &fCStr_defaultFragShader);
+	defaultShader->glProgamId =
+		gxShaderDepr_compileRaw(&fCStr_vertexShader, &fCStr_defaultFragShader);
 	catchOpenGLError();
 
-	defaultShader->copyShaderUniforms.uniformLoc_textureSrc = glGetUniformLocation(defaultShader->glProgamId, "textureSrc");
-	defaultShader->copyShaderUniforms.uniformLoc_vertexOffsets = glGetUniformLocation(defaultShader->glProgamId, "uf_vertexOffsets");
+	defaultShader->copyShaderUniforms.uniformLoc_textureSrc =
+		glGetUniformLocation(defaultShader->glProgamId, "textureSrc");
+	defaultShader->copyShaderUniforms.uniformLoc_vertexOffsets =
+		glGetUniformLocation(defaultShader->glProgamId, "uf_vertexOffsets");
 
 	_copyShader_depthToColor = defaultShader;
 	catchOpenGLError();
@@ -60,7 +65,8 @@ LatteDefaultShader_t* LatteDefaultShader_getPixelCopyShader_colorToDepth()
 	if (_copyShader_colorToDepth != 0)
 		return _copyShader_colorToDepth;
 	catchOpenGLError();
-	LatteDefaultShader_t* defaultShader = (LatteDefaultShader_t*)malloc(sizeof(LatteDefaultShader_t));
+	LatteDefaultShader_t* defaultShader =
+		(LatteDefaultShader_t*)malloc(sizeof(LatteDefaultShader_t));
 	memset(defaultShader, 0, sizeof(LatteDefaultShader_t));
 
 	StringBuf fCStr_vertexShader(1024 * 16);
@@ -76,10 +82,12 @@ LatteDefaultShader_t* LatteDefaultShader_getPixelCopyShader_colorToDepth()
 	fCStr_defaultFragShader.add("gl_FragDepth = texture(textureSrc, passUV).r;\r\n");
 	fCStr_defaultFragShader.add("}\r\n");
 
-
-	defaultShader->glProgamId = gxShaderDepr_compileRaw(&fCStr_vertexShader, &fCStr_defaultFragShader);
-	defaultShader->copyShaderUniforms.uniformLoc_textureSrc = glGetUniformLocation(defaultShader->glProgamId, "textureSrc");
-	defaultShader->copyShaderUniforms.uniformLoc_vertexOffsets = glGetUniformLocation(defaultShader->glProgamId, "uf_vertexOffsets");
+	defaultShader->glProgamId =
+		gxShaderDepr_compileRaw(&fCStr_vertexShader, &fCStr_defaultFragShader);
+	defaultShader->copyShaderUniforms.uniformLoc_textureSrc =
+		glGetUniformLocation(defaultShader->glProgamId, "textureSrc");
+	defaultShader->copyShaderUniforms.uniformLoc_vertexOffsets =
+		glGetUniformLocation(defaultShader->glProgamId, "uf_vertexOffsets");
 
 	_copyShader_colorToDepth = defaultShader;
 	catchOpenGLError();

@@ -5,7 +5,7 @@ SlimRWLock::SlimRWLock()
 	static_assert(sizeof(m_lock) == sizeof(SRWLOCK));
 	RTL_SRWLOCK* srwLock = (RTL_SRWLOCK*)&m_lock;
 	*srwLock = SRWLOCK_INIT;
-	//m_lock = { SRWLOCK_INIT };
+	// m_lock = { SRWLOCK_INIT };
 }
 
 void SlimRWLock::LockRead()

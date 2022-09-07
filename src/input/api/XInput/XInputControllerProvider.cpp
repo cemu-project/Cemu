@@ -18,7 +18,8 @@ XInputControllerProvider::XInputControllerProvider()
 		}
 	}
 
-#define GET_XINPUT_PROC(__FUNC__) m_##__FUNC__ = (decltype(m_##__FUNC__))GetProcAddress(m_module, #__FUNC__)
+#define GET_XINPUT_PROC(__FUNC__)                                                                  \
+	m_##__FUNC__ = (decltype(m_##__FUNC__))GetProcAddress(m_module, #__FUNC__)
 	GET_XINPUT_PROC(XInputGetCapabilities);
 	GET_XINPUT_PROC(XInputGetState);
 	GET_XINPUT_PROC(XInputSetState);
@@ -32,7 +33,6 @@ XInputControllerProvider::XInputControllerProvider()
 	// only available in XInput1_4 and XInput1_3
 	GET_XINPUT_PROC(XInputGetBatteryInformation);
 #undef GET_XINPUT_PROC
-
 }
 
 XInputControllerProvider::~XInputControllerProvider()
@@ -44,7 +44,7 @@ XInputControllerProvider::~XInputControllerProvider()
 std::vector<std::shared_ptr<ControllerBase>> XInputControllerProvider::get_controllers()
 {
 	std::vector<std::shared_ptr<ControllerBase>> result;
-	for(DWORD i = 0; i < XUSER_MAX_COUNT; ++i)
+	for (DWORD i = 0; i < XUSER_MAX_COUNT; ++i)
 	{
 		XINPUT_CAPABILITIES caps;
 		if (m_XInputGetCapabilities(i, XINPUT_FLAG_GAMEPAD, &caps) == ERROR_SUCCESS)

@@ -4,7 +4,8 @@
 
 /* VKRSynchronizedMemoryBuffer */
 
-void VKRSynchronizedRingAllocator::addUploadBufferSyncPoint(AllocatorBuffer_t& buffer, uint32 offset)
+void VKRSynchronizedRingAllocator::addUploadBufferSyncPoint(AllocatorBuffer_t& buffer,
+															uint32 offset)
 {
 	auto cmdBufferId = m_vkr->GetCurrentCommandBufferId();
 	if (cmdBufferId == buffer.lastSyncpointCmdBufferId)
@@ -15,7 +16,8 @@ void VKRSynchronizedRingAllocator::addUploadBufferSyncPoint(AllocatorBuffer_t& b
 
 void VKRSynchronizedRingAllocator::allocateAdditionalUploadBuffer(uint32 sizeRequiredForAlloc)
 {
-	// calculate buffer size, should be a multiple of bufferAllocSize that is at least as large as sizeRequiredForAlloc
+	// calculate buffer size, should be a multiple of bufferAllocSize that is at least as large as
+	// sizeRequiredForAlloc
 	uint32 bufferAllocSize = m_minimumBufferAllocSize;
 	while (bufferAllocSize < sizeRequiredForAlloc)
 		bufferAllocSize += m_minimumBufferAllocSize;
@@ -24,9 +26,14 @@ void VKRSynchronizedRingAllocator::allocateAdditionalUploadBuffer(uint32 sizeReq
 	newBuffer.writeIndex = 0;
 	newBuffer.basePtr = nullptr;
 	if (m_bufferType == BUFFER_TYPE::STAGING)
-		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+								  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, newBuffer.vk_buffer,
+								  newBuffer.vk_mem);
 	else if (m_bufferType == BUFFER_TYPE::INDEX)
-		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+								  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+									  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+								  newBuffer.vk_buffer, newBuffer.vk_mem);
 	else
 		cemu_assert_debug(false);
 
@@ -38,7 +45,8 @@ void VKRSynchronizedRingAllocator::allocateAdditionalUploadBuffer(uint32 sizeReq
 	m_buffers.push_back(newBuffer);
 }
 
-VKRSynchronizedRingAllocator::AllocatorReservation_t VKRSynchronizedRingAllocator::AllocateBufferMemory(uint32 size, uint32 alignment)
+VKRSynchronizedRingAllocator::AllocatorReservation_t
+VKRSynchronizedRingAllocator::AllocateBufferMemory(uint32 size, uint32 alignment)
 {
 	if (alignment < 128)
 		alignment = 128;
@@ -51,7 +59,7 @@ VKRSynchronizedRingAllocator::AllocatorReservation_t VKRSynchronizedRingAllocato
 		uint32 distanceToSyncPoint;
 		if (!itr.queue_syncPoints.empty())
 		{
-			if(itr.queue_syncPoints.front().offset < itr.writeIndex)
+			if (itr.queue_syncPoints.front().offset < itr.writeIndex)
 				distanceToSyncPoint = 0xFFFFFFFF;
 			else
 				distanceToSyncPoint = itr.queue_syncPoints.front().offset - itr.writeIndex;
@@ -98,7 +106,8 @@ VKRSynchronizedRingAllocator::AllocatorReservation_t VKRSynchronizedRingAllocato
 
 void VKRSynchronizedRingAllocator::FlushReservation(AllocatorReservation_t& uploadReservation)
 {
-	cemu_assert_debug(m_bufferType == BUFFER_TYPE::STAGING); // only the staging buffer isn't coherent
+	cemu_assert_debug(m_bufferType ==
+					  BUFFER_TYPE::STAGING); // only the staging buffer isn't coherent
 	// todo - use nonCoherentAtomSize for flush size (instead of hardcoded constant)
 	VkMappedMemoryRange flushedRange{};
 	flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
@@ -115,7 +124,8 @@ void VKRSynchronizedRingAllocator::CleanupBuffer(uint64 latestFinishedCommandBuf
 
 	for (auto& itr : m_buffers)
 	{
-		while (!itr.queue_syncPoints.empty() && latestFinishedCommandBufferId > itr.queue_syncPoints.front().commandBufferId)
+		while (!itr.queue_syncPoints.empty() &&
+			   latestFinishedCommandBufferId > itr.queue_syncPoints.front().commandBufferId)
 		{
 			itr.queue_syncPoints.pop();
 		}
@@ -142,7 +152,8 @@ VkBuffer VKRSynchronizedRingAllocator::GetBufferByIndex(uint32 index) const
 	return m_buffers[index].vk_buffer;
 }
 
-void VKRSynchronizedRingAllocator::GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const
+void VKRSynchronizedRingAllocator::GetStats(uint32& numBuffers, size_t& totalBufferSize,
+											size_t& freeBufferSize) const
 {
 	numBuffers = (uint32)m_buffers.size();
 	totalBufferSize = 0;
@@ -155,7 +166,8 @@ void VKRSynchronizedRingAllocator::GetStats(uint32& numBuffers, size_t& totalBuf
 		if (!itr.queue_syncPoints.empty())
 		{
 			if (itr.queue_syncPoints.front().offset < itr.writeIndex)
-				distanceToSyncPoint = (itr.size - itr.writeIndex) + itr.queue_syncPoints.front().offset; // size with wrap-around
+				distanceToSyncPoint = (itr.size - itr.writeIndex) +
+									  itr.queue_syncPoints.front().offset; // size with wrap-around
 			else
 				distanceToSyncPoint = itr.queue_syncPoints.front().offset - itr.writeIndex;
 		}
@@ -173,25 +185,31 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 	m_list_chunkInfo.resize(m_list_chunkInfo.size() + 1);
 
 	// pad minimumAllocationSize to 32KB alignment
-	minimumAllocationSize = (minimumAllocationSize + (32*1024-1)) & ~(32 * 1024 - 1);
+	minimumAllocationSize = (minimumAllocationSize + (32 * 1024 - 1)) & ~(32 * 1024 - 1);
 
 	uint32 allocationSize = 1024 * 1024 * 128;
 	if (chunkIndex == 0)
 	{
-		// make the first allocation smaller, this decreases wasted memory when there are textures that require specific flags (and thus separate heaps)
+		// make the first allocation smaller, this decreases wasted memory when there are textures
+		// that require specific flags (and thus separate heaps)
 		allocationSize = 1024 * 1024 * 16;
 	}
 	if (allocationSize < minimumAllocationSize)
 		allocationSize = minimumAllocationSize;
 	// get available memory types/heaps
-	std::vector<uint32> deviceLocalMemoryTypeIndices = m_vkrMemoryManager->FindMemoryTypes(m_typeFilter, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	std::vector<uint32> hostLocalMemoryTypeIndices = m_vkrMemoryManager->FindMemoryTypes(m_typeFilter, 0);
+	std::vector<uint32> deviceLocalMemoryTypeIndices =
+		m_vkrMemoryManager->FindMemoryTypes(m_typeFilter, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	std::vector<uint32> hostLocalMemoryTypeIndices =
+		m_vkrMemoryManager->FindMemoryTypes(m_typeFilter, 0);
 	// remove device local memory types from host local vector
-	auto pred = [&deviceLocalMemoryTypeIndices](const uint32& v) ->bool
+	auto pred = [&deviceLocalMemoryTypeIndices](const uint32& v) -> bool
 	{
-		return std::find(deviceLocalMemoryTypeIndices.begin(), deviceLocalMemoryTypeIndices.end(), v) != deviceLocalMemoryTypeIndices.end();
+		return std::find(deviceLocalMemoryTypeIndices.begin(), deviceLocalMemoryTypeIndices.end(),
+						 v) != deviceLocalMemoryTypeIndices.end();
 	};
-	hostLocalMemoryTypeIndices.erase(std::remove_if(hostLocalMemoryTypeIndices.begin(), hostLocalMemoryTypeIndices.end(), pred), hostLocalMemoryTypeIndices.end());
+	hostLocalMemoryTypeIndices.erase(
+		std::remove_if(hostLocalMemoryTypeIndices.begin(), hostLocalMemoryTypeIndices.end(), pred),
+		hostLocalMemoryTypeIndices.end());
 	// allocate chunk memory
 	for (sint32 t = 0; t < 3; t++)
 	{
@@ -207,7 +225,8 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 			VkResult r = vkAllocateMemory(m_device, &allocInfo, nullptr, &imageMemory);
 			if (r != VK_SUCCESS)
 				continue;
-			forceLog_printf("Vulkan-Info: Allocated additional memory for textures from device-local memory");
+			forceLog_printf(
+				"Vulkan-Info: Allocated additional memory for textures from device-local memory");
 			m_list_chunkInfo[chunkIndex].mem = imageMemory;
 			return allocationSize;
 		}
@@ -223,7 +242,8 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 			VkResult r = vkAllocateMemory(m_device, &allocInfo, nullptr, &imageMemory);
 			if (r != VK_SUCCESS)
 				continue;
-			forceLog_printf("Vulkan-Info: Allocated additional memory for textures from host-local memory");
+			forceLog_printf(
+				"Vulkan-Info: Allocated additional memory for textures from host-local memory");
 			m_list_chunkInfo[chunkIndex].mem = imageMemory;
 			return allocationSize;
 		}
@@ -231,28 +251,36 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 		allocationSize /= 2;
 		if (allocationSize < minimumAllocationSize)
 			break;
-		forceLog_printf("Failed to allocate texture memory chunk with size %dMB. Trying again with smaller allocation size\n", allocationSize / 1024 / 1024);
+		forceLog_printf("Failed to allocate texture memory chunk with size %dMB. Trying again with "
+						"smaller allocation size\n",
+						allocationSize / 1024 / 1024);
 	}
-	forceLog_printf("Unable to allocate image memory chunk (%d heaps)", deviceLocalMemoryTypeIndices.size());
+	forceLog_printf("Unable to allocate image memory chunk (%d heaps)",
+					deviceLocalMemoryTypeIndices.size());
 	throw std::runtime_error("failed to allocate image memory!");
 	return 0;
 }
 
-uint32_t VKRMemoryManager::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+uint32_t VKRMemoryManager::FindMemoryType(uint32_t typeFilter,
+										  VkMemoryPropertyFlags properties) const
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_vkr->GetPhysicalDevice(), &memProperties);
 
 	for (uint32 i = 0; i < memProperties.memoryTypeCount; i++)
 	{
-		if ((typeFilter & (1 << i)) != 0 && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		if ((typeFilter & (1 << i)) != 0 &&
+			(memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 			return i;
 	}
-	m_vkr->UnrecoverableError(fmt::format("failed to find suitable memory type ({0:#08x} {1:#08x})", typeFilter, properties).c_str());
+	m_vkr->UnrecoverableError(fmt::format("failed to find suitable memory type ({0:#08x} {1:#08x})",
+										  typeFilter, properties)
+								  .c_str());
 	return 0;
 }
 
-bool VKRMemoryManager::FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const
+bool VKRMemoryManager::FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties,
+									   uint32& memoryIndex) const
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_vkr->GetPhysicalDevice(), &memProperties);
@@ -268,7 +296,8 @@ bool VKRMemoryManager::FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags 
 	return false;
 }
 
-std::vector<uint32> VKRMemoryManager::FindMemoryTypes(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+std::vector<uint32> VKRMemoryManager::FindMemoryTypes(uint32_t typeFilter,
+													  VkMemoryPropertyFlags properties) const
 {
 	std::vector<uint32> memoryTypes;
 	memoryTypes.clear();
@@ -277,17 +306,23 @@ std::vector<uint32> VKRMemoryManager::FindMemoryTypes(uint32_t typeFilter, VkMem
 
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 	{
-		if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		if (typeFilter & (1 << i) &&
+			(memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 			memoryTypes.emplace_back(i);
 	}
 
 	if (memoryTypes.empty())
-		m_vkr->UnrecoverableError(fmt::format("Failed to find suitable memory type ({0:#08x} {1:#08x})", typeFilter, properties).c_str());
+		m_vkr->UnrecoverableError(
+			fmt::format("Failed to find suitable memory type ({0:#08x} {1:#08x})", typeFilter,
+						properties)
+				.c_str());
 
 	return memoryTypes;
 }
 
-size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, size_t minimumBufferSize)
+size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage,
+													 VkMemoryPropertyFlags properties,
+													 size_t minimumBufferSize)
 {
 	VkDevice logicalDevice = m_vkr->GetLogicalDevice();
 	// create temporary buffer object to get memory type
@@ -295,7 +330,8 @@ size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, V
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferInfo.usage = usage;
-	bufferInfo.size = minimumBufferSize; // the buffer size can theoretically influence the memory type, is there a better way to handle this?
+	bufferInfo.size = minimumBufferSize; // the buffer size can theoretically influence the memory
+										 // type, is there a better way to handle this?
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &temporaryBuffer) != VK_SUCCESS)
 	{
@@ -315,7 +351,8 @@ size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, V
 	vkGetPhysicalDeviceMemoryProperties(m_vkr->GetPhysicalDevice(), &memProperties);
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 	{
-		if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		if (typeFilter & (1 << i) &&
+			(memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 			list_heapIndices.emplace(memProperties.memoryTypes[i].heapIndex);
 	}
 	// sum up size of heaps
@@ -330,7 +367,9 @@ size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, V
 	return total;
 }
 
-void VKRMemoryManager::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+void VKRMemoryManager::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+									VkMemoryPropertyFlags properties, VkBuffer& buffer,
+									VkDeviceMemory& bufferMemory) const
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -348,13 +387,16 @@ void VKRMemoryManager::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 	allocInfo.allocationSize = memRequirements.size;
 	allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) !=
+		VK_SUCCESS)
 		m_vkr->UnrecoverableError("Failed to allocate buffer memory");
 	if (vkBindBufferMemory(m_vkr->GetLogicalDevice(), buffer, bufferMemory, 0) != VK_SUCCESS)
 		m_vkr->UnrecoverableError("Failed to bind buffer memory");
 }
 
-bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage,
+									 VkMemoryPropertyFlags properties, VkBuffer& buffer,
+									 VkDeviceMemory& bufferMemory) const
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -378,7 +420,8 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
 	}
-	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) !=
+		VK_SUCCESS)
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
@@ -392,7 +435,11 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 	return true;
 }
 
-bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSize size,
+												  VkBufferUsageFlags usage,
+												  VkMemoryPropertyFlags properties,
+												  VkBuffer& buffer,
+												  VkDeviceMemory& bufferMemory) const
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -423,7 +470,7 @@ bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSiz
 	importHostMem.sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT;
 	importHostMem.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
 	importHostMem.pHostPointer = hostPointer;
-	// VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT or 
+	// VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT or
 	// VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY_BIT_EXT
 	// whats the difference ?
 
@@ -434,7 +481,8 @@ bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSiz
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
 	}
-	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) !=
+		VK_SUCCESS)
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
@@ -492,7 +540,8 @@ VkImageMemAllocation* VKRMemoryManager::imageMemoryAllocate(VkImage image)
 				numDelete = 20;
 			for (size_t i = 0; i < numDelete; i++)
 				LatteTexture_Delete(deleteableTextures[i]);
-			deleteableTextures.erase(deleteableTextures.begin(), deleteableTextures.begin() + numDelete);
+			deleteableTextures.erase(deleteableTextures.begin(),
+									 deleteableTextures.begin() + numDelete);
 			mem = texHeap->allocMem(allocationSize, (uint32)memRequirements.alignment);
 			if (mem.isValid())
 				break;
@@ -503,7 +552,8 @@ VkImageMemAllocation* VKRMemoryManager::imageMemoryAllocate(VkImage image)
 		}
 	}
 
-	vkBindImageMemory(m_vkr->GetLogicalDevice(), image, texHeap->getChunkMem(mem.chunkIndex), mem.offset);
+	vkBindImageMemory(m_vkr->GetLogicalDevice(), image, texHeap->getChunkMem(mem.chunkIndex),
+					  mem.offset);
 
 	return new VkImageMemAllocation(typeFilter, mem, allocationSize);
 }
@@ -531,6 +581,8 @@ void VKRMemoryManager::appendOverlayHeapDebugInfo()
 		uint32 heapSizeMB = (heapSize / 1024 / 1024);
 		uint32 allocatedBytesMB = (allocatedBytes / 1024 / 1024);
 
-		ImGui::Text("%s", fmt::format("{0:#08x} Size: {1}MB/{2}MB", itr.first, allocatedBytesMB, heapSizeMB).c_str());
+		ImGui::Text(
+			"%s", fmt::format("{0:#08x} Size: {1}MB/{2}MB", itr.first, allocatedBytesMB, heapSizeMB)
+					  .c_str());
 	}
 }

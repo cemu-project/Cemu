@@ -2,5 +2,5 @@
 
 namespace nlibcurl
 {
-	void load();
+void load();
 }

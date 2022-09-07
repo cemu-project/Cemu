@@ -13,7 +13,7 @@ void nexThread_run()
 	{
 		// check for new services
 		mtx_queuedServices.lock();
-		for(auto& it : list_queuedServices)
+		for (auto& it : list_queuedServices)
 			list_activeNexServices.push_back(it);
 		list_queuedServices.clear();
 		mtx_queuedServices.unlock();
@@ -46,7 +46,8 @@ void nexThread_run()
 			list_activeNexServices.resize(listSize);
 		}
 		// idle for short time
-		// todo - find a better way to handle this with lower latency. Maybe using select() with loopback socket for interrupting the select on service change
+		// todo - find a better way to handle this with lower latency. Maybe using select() with
+		// loopback socket for interrupting the select on service change
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 }

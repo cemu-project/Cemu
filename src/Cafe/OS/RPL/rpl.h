@@ -2,7 +2,7 @@
 
 struct RPLModule;
 
-#define RPL_INVALID_HANDLE	(0xFFFFFFFF)
+#define RPL_INVALID_HANDLE (0xFFFFFFFF)
 
 void RPLLoader_InitState();
 void RPLLoader_ResetState();
@@ -15,7 +15,8 @@ uint32 RPLLoader_GetMaxCodeOffset();
 uint32 RPLLoader_GetDataAllocatorAddr();
 
 RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name);
-uint32 rpl_mapHLEImport(RPLModule* rplLoaderContext, const char* rplName, const char* funcName, bool functionMustExist);
+uint32 rpl_mapHLEImport(RPLModule* rplLoaderContext, const char* rplName, const char* funcName,
+						bool functionMustExist);
 void RPLLoader_Link();
 
 MPTR RPLLoader_FindRPLExport(RPLModule* rplLoaderContext, const char* symbolName, bool isData);
@@ -48,7 +49,7 @@ void RPLLoader_ReleaseCodeCaveMem(MEMPTR<void> addr);
 
 // exports
 
-uint32 RPLLoader_MakePPCCallable(void(*ppcCallableExport)(struct PPCInterpreter_t* hCPU));
+uint32 RPLLoader_MakePPCCallable(void (*ppcCallableExport)(struct PPCInterpreter_t* hCPU));
 
 // elf loader
 

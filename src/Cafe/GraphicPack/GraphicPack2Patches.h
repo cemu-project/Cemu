@@ -13,38 +13,41 @@ struct PatchContext_t
 		PatchGroup* patchGroup;
 		std::string symbolName;
 
-		UnresolvedSymbol(sint32 _lineNumber, PatchGroup* _patchGroup, std::string _symbolName) : lineNumber(_lineNumber), patchGroup(_patchGroup), symbolName(_symbolName) {};
+		UnresolvedSymbol(sint32 _lineNumber, PatchGroup* _patchGroup, std::string _symbolName)
+			: lineNumber(_lineNumber), patchGroup(_patchGroup), symbolName(_symbolName){};
 
-		bool operator < (const UnresolvedSymbol &other) const 
-		{ 
+		bool operator<(const UnresolvedSymbol& other) const
+		{
 			if (lineNumber == other.lineNumber)
 				return symbolName.compare(other.symbolName);
-			return lineNumber < other.lineNumber; 
+			return lineNumber < other.lineNumber;
 		}
 	};
 
 	class GraphicPack2* graphicPack;
-	//MEMPTR<void> codeCaveStart;
-	//MEMPTR<void> codeCaveEnd;
+	// MEMPTR<void> codeCaveStart;
+	// MEMPTR<void> codeCaveEnd;
 	const RPLModule* matchedModule;
 	std::unordered_map<std::string, uint32> map_values;
 	// error information
-	//std::unordered_set<std::string> unresolvedSymbols;
+	// std::unordered_set<std::string> unresolvedSymbols;
 	std::set<UnresolvedSymbol> unresolvedSymbols;
-	//std::unordered_multiset<sint32, std::greater<std::string>> unresolvedSymbols;
+	// std::unordered_multiset<sint32, std::greater<std::string>> unresolvedSymbols;
 	// error handler
 	PatchErrorHandler errorHandler{};
 };
 
 enum class PATCH_RESOLVE_RESULT
 {
-	RESOLVED, // successfully resolved any expressions or relocations
-	EXPRESSION_ERROR, // syntax error in expression (usually this should be detected during the parsing stage already)
-	VALUE_ERROR, // expression evaluated but the result is not useable (e.g. branch target out of range)
-	UNKNOWN_VARIABLE, // variable not known or referencing unresolved variable (try again)
+	RESOLVED,		  // successfully resolved any expressions or relocations
+	EXPRESSION_ERROR, // syntax error in expression (usually this should be detected during the
+					  // parsing stage already)
+	VALUE_ERROR, // expression evaluated but the result is not useable (e.g. branch target out of
+				 // range)
+	UNKNOWN_VARIABLE,  // variable not known or referencing unresolved variable (try again)
 	VARIABLE_CONFLICT, // a variable or label with the same name was already defined
-	INVALID_ADDRESS, // attempted to relocate address that is not within any known section
-	UNDEFINED_ERROR, // unexpected error
+	INVALID_ADDRESS,   // attempted to relocate address that is not within any known section
+	UNDEFINED_ERROR,   // unexpected error
 };
 
 enum class EXPRESSION_RESOLVE_RESULT
@@ -56,9 +59,9 @@ enum class EXPRESSION_RESOLVE_RESULT
 
 class PatchEntry
 {
-public:
-	PatchEntry() {};
-	virtual ~PatchEntry() {};
+  public:
+	PatchEntry(){};
+	virtual ~PatchEntry(){};
 
 	// apply relocation or evaluate any expressions for this entry
 	virtual PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) = 0;
@@ -68,20 +71,29 @@ public:
 // <symbolName> = <expression>
 class PatchEntryCemuhookSymbolValue : public PatchEntry
 {
-public:
-	PatchEntryCemuhookSymbolValue(sint32 lineNumber, const char* symbolName, const sint32 symbolNameLen, const char* expressionStr, const sint32 expressionLen) : PatchEntry(), m_lineNumber(lineNumber)
+  public:
+	PatchEntryCemuhookSymbolValue(sint32 lineNumber, const char* symbolName,
+								  const sint32 symbolNameLen, const char* expressionStr,
+								  const sint32 expressionLen)
+		: PatchEntry(), m_lineNumber(lineNumber)
 	{
 		m_symbolName.assign(symbolName, symbolNameLen);
 		m_expressionString.assign(expressionStr, expressionLen);
 	}
 
-	sint32 getLineNumber() { return m_lineNumber; }
+	sint32 getLineNumber()
+	{
+		return m_lineNumber;
+	}
 
 	PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) override;
 
-	std::string& getSymbolName() { return m_symbolName; }
+	std::string& getSymbolName()
+	{
+		return m_symbolName;
+	}
 
-private:
+  private:
 	sint32 m_lineNumber;
 	std::string m_symbolName;
 	std::string m_expressionString;
@@ -92,9 +104,9 @@ private:
 enum class PATCHVARTYPE
 {
 	DOUBLE,
-	INT, // 32bit signed integer
+	INT,  // 32bit signed integer
 	UINT, // 32bit unsigned integer or pointer
-	//BOOL, // boolean
+		  // BOOL, // boolean
 };
 
 // represents variable value assignment
@@ -102,22 +114,30 @@ enum class PATCHVARTYPE
 // <symbolName> = <expression>
 class PatchEntryVariableValue : public PatchEntry
 {
-public:
-
-	PatchEntryVariableValue(sint32 lineNumber, const char* symbolName, const sint32 symbolNameLen, PATCHVARTYPE varType, const char* expressionStr, const sint32 expressionLen) : PatchEntry(), m_lineNumber(lineNumber), m_varType(varType)
+  public:
+	PatchEntryVariableValue(sint32 lineNumber, const char* symbolName, const sint32 symbolNameLen,
+							PATCHVARTYPE varType, const char* expressionStr,
+							const sint32 expressionLen)
+		: PatchEntry(), m_lineNumber(lineNumber), m_varType(varType)
 	{
 		m_symbolName.assign(symbolName, symbolNameLen);
 		m_expressionString.assign(expressionStr, expressionLen);
 	}
 
-	sint32 getLineNumber() { return m_lineNumber; }
+	sint32 getLineNumber()
+	{
+		return m_lineNumber;
+	}
 
 	PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) override;
 
-	std::string& getSymbolName() { return m_symbolName; }
-	//uint32 getSymbolValue() { return m_resolvedValue; }
+	std::string& getSymbolName()
+	{
+		return m_symbolName;
+	}
+	// uint32 getSymbolValue() { return m_resolvedValue; }
 
-private:
+  private:
 	sint32 m_lineNumber;
 	std::string m_symbolName;
 	std::string m_expressionString;
@@ -129,25 +149,35 @@ private:
 // represents a label
 class PatchEntryLabel : public PatchEntry
 {
-public:
-	PatchEntryLabel(sint32 lineNumber, const char* symbolName, const sint32 symbolNameLen) : PatchEntry(), m_lineNumber(lineNumber)
+  public:
+	PatchEntryLabel(sint32 lineNumber, const char* symbolName, const sint32 symbolNameLen)
+		: PatchEntry(), m_lineNumber(lineNumber)
 	{
 		m_symbolName.assign(symbolName, symbolNameLen);
 	}
 
-	sint32 getLineNumber() { return m_lineNumber; }
+	sint32 getLineNumber()
+	{
+		return m_lineNumber;
+	}
 
 	PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) override;
 
-	std::string& getSymbolName() { return m_symbolName; }
-	uint32 getSymbolValue() { return m_relocatedAddress; }
+	std::string& getSymbolName()
+	{
+		return m_symbolName;
+	}
+	uint32 getSymbolValue()
+	{
+		return m_relocatedAddress;
+	}
 
 	void setAssignedVA(uint32 virtualAddress)
 	{
 		m_address = virtualAddress;
 	}
 
-private:
+  private:
 	sint32 m_lineNumber;
 	std::string m_symbolName;
 	uint32 m_address;
@@ -158,8 +188,11 @@ private:
 // represents assembled code/data
 class PatchEntryInstruction : public PatchEntry
 {
-public:
-	PatchEntryInstruction(sint32 lineNumber, uint32 patchAddr, std::span<uint8> data, std::vector<PPCAssemblerReloc>& list_relocs) : PatchEntry(), m_lineNumber(lineNumber), m_addr(patchAddr), m_size((uint32)data.size()), m_relocs(list_relocs)
+  public:
+	PatchEntryInstruction(sint32 lineNumber, uint32 patchAddr, std::span<uint8> data,
+						  std::vector<PPCAssemblerReloc>& list_relocs)
+		: PatchEntry(), m_lineNumber(lineNumber), m_addr(patchAddr), m_size((uint32)data.size()),
+		  m_relocs(list_relocs)
 	{
 		sint32 dataLength = (sint32)data.size();
 		m_length = dataLength;
@@ -200,10 +233,10 @@ public:
 	void applyPatch();
 	void undoPatch();
 
-private:
-	uint8* m_data{}; // original unrelocated data
+  private:
+	uint8* m_data{};		   // original unrelocated data
 	uint8* m_dataWithRelocs{}; // data with relocs applied
-	uint8* m_dataBackup{}; // original data before patch was applied
+	uint8* m_dataBackup{};	   // original data before patch was applied
 	sint32 m_length{};
 	std::vector<PPCAssemblerReloc> m_relocs;
 	uint32 m_lineNumber;
@@ -217,7 +250,7 @@ class PatchGroup
 {
 	friend class GraphicPack2;
 
-public:
+  public:
 	PatchGroup(class GraphicPack2* gp, const char* nameStr, sint32 nameLength) : graphicPack(gp)
 	{
 		name = std::string(nameStr, nameLength);
@@ -248,11 +281,20 @@ public:
 		return name;
 	}
 
-	void setApplied() { m_isApplied = true; }
-	void resetApplied() { m_isApplied = false; }
-	bool isApplied() const { return m_isApplied; }
+	void setApplied()
+	{
+		m_isApplied = true;
+	}
+	void resetApplied()
+	{
+		m_isApplied = false;
+	}
+	bool isApplied() const
+	{
+		return m_isApplied;
+	}
 
-private:
+  private:
 	class GraphicPack2* graphicPack;
 	std::string name;
 	std::vector<uint32> list_moduleMatches;

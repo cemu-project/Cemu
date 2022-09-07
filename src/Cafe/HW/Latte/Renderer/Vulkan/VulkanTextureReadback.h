@@ -3,7 +3,7 @@
 
 class LatteTextureReadbackInfoVk : public LatteTextureReadbackInfo
 {
-public:
+  public:
 	LatteTextureReadbackInfoVk(VkDevice device, LatteTextureView* textureView);
 	~LatteTextureReadbackInfoVk();
 
@@ -31,7 +31,7 @@ public:
 		m_buffer_offset = buffer_offset;
 	}
 
-private:
+  private:
 	VkDevice m_device = nullptr;
 
 	VkBuffer m_buffer = nullptr;

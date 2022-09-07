@@ -4,13 +4,13 @@
 
 class VKRMoveableRefCounterRef
 {
-public:
+  public:
 	class VKRMoveableRefCounter* ref;
 };
 
 class VKRMoveableRefCounter
 {
-public:
+  public:
 	VKRMoveableRefCounter()
 	{
 		selfRef = new VKRMoveableRefCounterRef();
@@ -65,7 +65,8 @@ public:
 #endif
 	}
 
-	// methods to directly increment/decrement ref counter (for situations where no external object is available)
+	// methods to directly increment/decrement ref counter (for situations where no external object
+	// is available)
 	void incRef()
 	{
 		this->refCount++;
@@ -76,9 +77,10 @@ public:
 		this->refCount--;
 	}
 
-protected:
+  protected:
 	int refCount{};
-private:
+
+  private:
 	VKRMoveableRefCounterRef* selfRef;
 	std::vector<VKRMoveableRefCounterRef*> refs;
 #ifndef PUBLIC_RELEASE
@@ -96,12 +98,13 @@ private:
 
 class VKRDestructibleObject : public VKRMoveableRefCounter
 {
-public:
+  public:
 	void flagForCurrentCommandBuffer();
 	bool canDestroy();
 
-	virtual ~VKRDestructibleObject() {};
-private:
+	virtual ~VKRDestructibleObject(){};
+
+  private:
 	uint64 m_lastCmdBufferId{};
 };
 
@@ -109,43 +112,45 @@ private:
 
 class VKRObjectTexture : public VKRDestructibleObject
 {
-public:
+  public:
 	VKRObjectTexture();
 	~VKRObjectTexture() override;
 
-	VkImage m_image{ VK_NULL_HANDLE };
+	VkImage m_image{VK_NULL_HANDLE};
 	VkFormat m_format = VK_FORMAT_UNDEFINED;
 	VkImageCreateFlags m_flags;
 	VkImageAspectFlags m_imageAspect;
 	struct VkImageMemAllocation* m_allocation{};
-
 };
 
 class VKRObjectTextureView : public VKRDestructibleObject
 {
-public:
+  public:
 	VKRObjectTextureView(VKRObjectTexture* tex, VkImageView view);
 	~VKRObjectTextureView() override;
 
-	VkImageView m_textureImageView{ VK_NULL_HANDLE };
-	VkSampler m_textureDefaultSampler[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE }; // relict from LatteTextureViewVk, get rid of it eventually
+	VkImageView m_textureImageView{VK_NULL_HANDLE};
+	VkSampler m_textureDefaultSampler[2] = {
+		VK_NULL_HANDLE, VK_NULL_HANDLE}; // relict from LatteTextureViewVk, get rid of it eventually
 };
 
 class VKRObjectRenderPass : public VKRDestructibleObject
 {
-public:
+  public:
 	struct AttachmentEntryColor_t
 	{
 		VKRObjectTextureView* viewObj{};
 		bool isPresent{};
-		VkFormat format; // todo - we dont need to track isPresent or viewObj, we can just compare this with VK_FORMAT_UNDEFINED
+		VkFormat format; // todo - we dont need to track isPresent or viewObj, we can just compare
+						 // this with VK_FORMAT_UNDEFINED
 	};
 
 	struct AttachmentEntryDepth_t
 	{
 		VKRObjectTextureView* viewObj{};
 		bool isPresent{};
-		VkFormat format; // todo - we dont need to track isPresent or viewObj, we can just compare this with VK_FORMAT_UNDEFINED
+		VkFormat format; // todo - we dont need to track isPresent or viewObj, we can just compare
+						 // this with VK_FORMAT_UNDEFINED
 		bool hasStencil;
 	};
 
@@ -155,40 +160,43 @@ public:
 		AttachmentEntryDepth_t depthAttachment;
 	};
 
-public:
+  public:
 	VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint32 colorAttachmentCount = 8);
 	~VKRObjectRenderPass() override;
-	VkRenderPass m_renderPass{ VK_NULL_HANDLE };
-	uint64 m_hashForPipeline; // helper var. Holds hash of all the renderpass creation parameters (mainly the formats) that affect the pipeline state
+	VkRenderPass m_renderPass{VK_NULL_HANDLE};
+	uint64 m_hashForPipeline; // helper var. Holds hash of all the renderpass creation parameters
+							  // (mainly the formats) that affect the pipeline state
 };
 
 class VKRObjectFramebuffer : public VKRDestructibleObject
 {
-public:
-	VKRObjectFramebuffer(VKRObjectRenderPass* renderPass, std::span<VKRObjectTextureView*> attachments, Vector2i size);
+  public:
+	VKRObjectFramebuffer(VKRObjectRenderPass* renderPass,
+						 std::span<VKRObjectTextureView*> attachments, Vector2i size);
 	~VKRObjectFramebuffer() override;
 
-	VkFramebuffer m_frameBuffer{ VK_NULL_HANDLE };
+	VkFramebuffer m_frameBuffer{VK_NULL_HANDLE};
 };
 
 class VKRObjectPipeline : public VKRDestructibleObject
 {
-public:
+  public:
 	VKRObjectPipeline();
 	~VKRObjectPipeline() override;
 
 	void setPipeline(VkPipeline newPipeline);
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
-	VkDescriptorSetLayout vertexDSL = VK_NULL_HANDLE, pixelDSL = VK_NULL_HANDLE, geometryDSL = VK_NULL_HANDLE;
+	VkDescriptorSetLayout vertexDSL = VK_NULL_HANDLE, pixelDSL = VK_NULL_HANDLE,
+						  geometryDSL = VK_NULL_HANDLE;
 	VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 };
 
 class VKRObjectDescriptorSet : public VKRDestructibleObject
 {
-public:
+  public:
 	VKRObjectDescriptorSet();
 	~VKRObjectDescriptorSet() override;
 
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
 };

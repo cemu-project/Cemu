@@ -57,14 +57,14 @@ sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 
 		uint32 returnAddress = 0;
 		returnAddress = memory_readU32(nextStackPtr + 4);
-		//cemuLog_log(LogType::Force, fmt::format("SP {0:08x} ReturnAddress {1:08x}", nextStackPtr, returnAddress));
-		if (returnAddress > 0 && returnAddress < 0x10000000 && (returnAddress&3) == 0)
+		// cemuLog_log(LogType::Force, fmt::format("SP {0:08x} ReturnAddress {1:08x}", nextStackPtr,
+		// returnAddress));
+		if (returnAddress > 0 && returnAddress < 0x10000000 && (returnAddress & 3) == 0)
 			score += 5; // within code region
 		else
 			score -= 5;
 
 		currentStackPtr = nextStackPtr;
-
 	}
 	return score;
 }
@@ -89,7 +89,8 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 	}
 
 	if (highestScoreSP != sp)
-		cemuLog_log(LogType::Force, fmt::format("Trace starting at SP {0:08x} r1 = {1:08x}", highestScoreSP, sp));
+		cemuLog_log(LogType::Force,
+					fmt::format("Trace starting at SP {0:08x} r1 = {1:08x}", highestScoreSP, sp));
 	else
 		cemuLog_log(LogType::Force, fmt::format("Trace starting at SP/r1 {0:08x}", highestScoreSP));
 
@@ -107,7 +108,8 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 
 		uint32 returnAddress = 0;
 		returnAddress = memory_readU32(nextStackPtr + 4);
-		cemuLog_log(LogType::Force, fmt::format("SP {0:08x} ReturnAddr {1:08x}", nextStackPtr, returnAddress));
+		cemuLog_log(LogType::Force,
+					fmt::format("SP {0:08x} ReturnAddr {1:08x}", nextStackPtr, returnAddress));
 
 		currentStackPtr = nextStackPtr;
 	}
@@ -121,7 +123,8 @@ void coreinitExport_OSPanic(PPCInterpreter_t* hCPU)
 	DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
 #ifndef PUBLIC_RELEASE
 	assert_dbg();
-	while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	while (true)
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 #endif
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -135,7 +138,7 @@ typedef struct
 	/* +0x10 */ uint32be size;
 	/* +0x14 */ uint32be ukn14;
 	/* +0x18 */ uint32be ukn18;
-}coreinitShareddataEntry_t;
+} coreinitShareddataEntry_t;
 
 static_assert(sizeof(coreinitShareddataEntry_t) == 0x1C, "");
 
@@ -161,7 +164,8 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 
 	uint32 sharedAreaId = hCPU->gpr[3];
 
-	coreinitShareddataEntry_t* shareddataTable = (coreinitShareddataEntry_t*)memory_getPointerFromVirtualOffset(MEMORY_SHAREDDATA_AREA_ADDR);
+	coreinitShareddataEntry_t* shareddataTable =
+		(coreinitShareddataEntry_t*)memory_getPointerFromVirtualOffset(MEMORY_SHAREDDATA_AREA_ADDR);
 
 	uint32 name = 0xFFCAFE01 + sharedAreaId;
 	for (sint32 i = 0; i < 4; i++)
@@ -174,8 +178,10 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 			return;
 		}
 	}
-	// some games require a valid result or they will crash, return a pointer to our placeholder font
-	forceLog_printf("OSGetSharedData() called by game but no shareddata fonts loaded. Use placeholder font");
+	// some games require a valid result or they will crash, return a pointer to our placeholder
+	// font
+	forceLog_printf(
+		"OSGetSharedData() called by game but no shareddata fonts loaded. Use placeholder font");
 	if (placeholderFont == MPTR_NULL)
 	{
 		// load and then return placeholder font
@@ -183,7 +189,8 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 		placeholderFont = coreinit_allocFromSysArea(placeholderFontSize, 256);
 		if (placeholderFont == MPTR_NULL)
 			forceLog_printf("Failed to alloc placeholder font sys memory");
-		memcpy(memory_getPointerFromVirtualOffset(placeholderFont), placeholderFontPtr, placeholderFontSize);
+		memcpy(memory_getPointerFromVirtualOffset(placeholderFont), placeholderFontPtr,
+			   placeholderFontSize);
 		free(placeholderFontPtr);
 	}
 	// return placeholder font
@@ -199,14 +206,16 @@ typedef struct
 	MPTR onAcquiredForeground;
 	MPTR onReleaseForeground;
 	MPTR ukn10;
-}OSDriverCallbacks_t;
+} OSDriverCallbacks_t;
 
 void coreinitExport_OSDriver_Register(PPCInterpreter_t* hCPU)
 {
 #ifndef PUBLIC_RELEASE
-	forceLog_printf("OSDriver_Register(0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
+	forceLog_printf("OSDriver_Register(0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3],
+					hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
 #endif
-	OSDriverCallbacks_t* driverCallbacks = (OSDriverCallbacks_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]);
+	OSDriverCallbacks_t* driverCallbacks =
+		(OSDriverCallbacks_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]);
 
 	// todo
 
@@ -215,99 +224,103 @@ void coreinitExport_OSDriver_Register(PPCInterpreter_t* hCPU)
 
 namespace coreinit
 {
-	sint32 OSGetCoreId()
+sint32 OSGetCoreId()
+{
+	return PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+}
+
+uint32 OSGetCoreCount()
+{
+	return Espresso::CORE_COUNT;
+}
+
+uint32 OSIsDebuggerInitialized()
+{
+	return 0;
+}
+
+uint32 OSGetConsoleType()
+{
+	return 0x03000050;
+}
+
+uint32 OSGetMainCoreId()
+{
+	return 1;
+}
+
+bool OSIsMainCore()
+{
+	return OSGetCoreId() == OSGetMainCoreId();
+}
+
+uint32 OSGetStackPointer()
+{
+	return ppcInterpreterCurrentInstance->gpr[1];
+}
+
+void coreinitExport_ENVGetEnvironmentVariable(PPCInterpreter_t* hCPU)
+{
+	forceLogDebug_printf("ENVGetEnvironmentVariable(\"%s\",0x08x,0x%x)\n",
+						 (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4],
+						 hCPU->gpr[5]);
+	char* envKeyStr = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
+	char* outputString = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
+	sint32 outputStringMaxLen = (sint32)hCPU->gpr[5];
+	// also return the string "" just in case
+	if (outputStringMaxLen > 0)
 	{
-		return PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		outputString[0] = '\0';
 	}
+	osLib_returnFromFunction(hCPU, 1);
+}
 
-	uint32 OSGetCoreCount()
-	{
-		return Espresso::CORE_COUNT;
-	}
+void coreinit_exit(uint32 r)
+{
+	forceLog_printf("coreinit.exit(%d)", r);
+	cemu_assert_debug(false);
+	// never return
+	while (true)
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
 
-	uint32 OSIsDebuggerInitialized()
-	{
-		return 0;
-	}
+bool OSIsOffBoot()
+{
+	return true;
+}
 
-	uint32 OSGetConsoleType()
-	{
-		return 0x03000050;
-	}
+uint32 OSGetBootPMFlags()
+{
+	forceLogDebug_printf("OSGetBootPMFlags() - placeholder");
+	return 0;
+}
 
-	uint32 OSGetMainCoreId()
-	{
-		return 1;
-	}
+uint32 OSGetSystemMode()
+{
+	forceLogDebug_printf("OSGetSystemMode() - placeholder");
+	// if this returns 2, barista softlocks shortly after boot
+	return 0;
+}
 
-	bool OSIsMainCore()
-	{
-		return OSGetCoreId() == OSGetMainCoreId();
-	}
+void InitializeCore()
+{
+	cafeExportRegister("coreinit", OSGetCoreId, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSGetCoreCount, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSIsDebuggerInitialized, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSGetConsoleType, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSGetMainCoreId, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSIsMainCore, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSGetStackPointer, LogType::CoreinitThread);
 
-	uint32 OSGetStackPointer()
-	{
-		return ppcInterpreterCurrentInstance->gpr[1];
-	}
+	osLib_addFunction("coreinit", "ENVGetEnvironmentVariable",
+					  coreinitExport_ENVGetEnvironmentVariable);
 
-	void coreinitExport_ENVGetEnvironmentVariable(PPCInterpreter_t* hCPU)
-	{
-		forceLogDebug_printf("ENVGetEnvironmentVariable(\"%s\",0x08x,0x%x)\n", (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4], hCPU->gpr[5]);
-		char* envKeyStr = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-		char* outputString = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
-		sint32 outputStringMaxLen = (sint32)hCPU->gpr[5];
-		// also return the string "" just in case
-		if (outputStringMaxLen > 0)
-		{
-			outputString[0] = '\0';
-		}
-		osLib_returnFromFunction(hCPU, 1);
-	}
-
-	void coreinit_exit(uint32 r)
-	{
-		forceLog_printf("coreinit.exit(%d)", r);
-		cemu_assert_debug(false);
-		// never return
-		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-
-	bool OSIsOffBoot()
-	{
-		return true;
-	}
-
-	uint32 OSGetBootPMFlags()
-	{
-		forceLogDebug_printf("OSGetBootPMFlags() - placeholder");
-		return 0;
-	}
-
-	uint32 OSGetSystemMode()
-	{
-		forceLogDebug_printf("OSGetSystemMode() - placeholder");
-		// if this returns 2, barista softlocks shortly after boot
-		return 0;
-	}
-
-	void InitializeCore()
-	{
-		cafeExportRegister("coreinit", OSGetCoreId, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSGetCoreCount, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSIsDebuggerInitialized, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSGetConsoleType, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSGetMainCoreId, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSIsMainCore, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSGetStackPointer, LogType::CoreinitThread);
-
-		osLib_addFunction("coreinit", "ENVGetEnvironmentVariable", coreinitExport_ENVGetEnvironmentVariable);
-
-		cafeExportRegisterFunc(coreinit_exit, "coreinit", "exit", LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSIsOffBoot, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSGetBootPMFlags, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSGetSystemMode, LogType::CoreinitThread);
-	}
-};
+	cafeExportRegisterFunc(coreinit_exit, "coreinit", "exit", LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSIsOffBoot, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSGetBootPMFlags, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSGetSystemMode, LogType::CoreinitThread);
+}
+}; // namespace coreinit
 
 void coreinit_load()
 {
@@ -316,17 +329,30 @@ void coreinit_load()
 	coreinit::InitializeSysHeap();
 
 	// allocate coreinit global data
-	gCoreinitData = (coreinitData_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(coreinitData_t), 32));
+	gCoreinitData = (coreinitData_t*)memory_getPointerFromVirtualOffset(
+		coreinit_allocFromSysArea(sizeof(coreinitData_t), 32));
 	memset(gCoreinitData, 0x00, sizeof(coreinitData_t));
 
 	// coreinit weak links
-	osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeap));
-	osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeapEx", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeapEx));
-	osLib_addVirtualPointer("coreinit", "MEMFreeToDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMFreeToDefaultHeap));
-	osLib_addVirtualPointer("coreinit", "__atexit_cleanup", memory_getVirtualOffsetFromPointer(&gCoreinitData->__atexit_cleanup));
-	osLib_addVirtualPointer("coreinit", "__stdio_cleanup", memory_getVirtualOffsetFromPointer(&gCoreinitData->__stdio_cleanup));
-	osLib_addVirtualPointer("coreinit", "__cpp_exception_cleanup_ptr", memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_cleanup_ptr));
-	osLib_addVirtualPointer("coreinit", "__cpp_exception_init_ptr", memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_init_ptr));
+	osLib_addVirtualPointer(
+		"coreinit", "MEMAllocFromDefaultHeap",
+		memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeap));
+	osLib_addVirtualPointer(
+		"coreinit", "MEMAllocFromDefaultHeapEx",
+		memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeapEx));
+	osLib_addVirtualPointer(
+		"coreinit", "MEMFreeToDefaultHeap",
+		memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMFreeToDefaultHeap));
+	osLib_addVirtualPointer("coreinit", "__atexit_cleanup",
+							memory_getVirtualOffsetFromPointer(&gCoreinitData->__atexit_cleanup));
+	osLib_addVirtualPointer("coreinit", "__stdio_cleanup",
+							memory_getVirtualOffsetFromPointer(&gCoreinitData->__stdio_cleanup));
+	osLib_addVirtualPointer(
+		"coreinit", "__cpp_exception_cleanup_ptr",
+		memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_cleanup_ptr));
+	osLib_addVirtualPointer(
+		"coreinit", "__cpp_exception_init_ptr",
+		memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_init_ptr));
 
 	// init GHS and threads
 	coreinit::PrepareGHSRuntime();

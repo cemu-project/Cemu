@@ -2,11 +2,11 @@
 
 class StringTokenParser
 {
-public:
-	StringTokenParser() : m_str(nullptr), m_len(0) {};
+  public:
+	StringTokenParser() : m_str(nullptr), m_len(0){};
 
-	StringTokenParser(const char* input, sint32 inputLen) : m_str(input), m_len(inputLen) {};
-	StringTokenParser(std::string_view str) : m_str(str.data()), m_len((sint32)str.size()) {};
+	StringTokenParser(const char* input, sint32 inputLen) : m_str(input), m_len(inputLen){};
+	StringTokenParser(std::string_view str) : m_str(str.data()), m_len((sint32)str.size()){};
 
 	// skip whitespaces at current ptr position
 	void skipWhitespaces()
@@ -181,17 +181,14 @@ public:
 		// symbols must start with a letter or _
 		if (length <= 0)
 			return false;
-		if (!(str[0] >= 'a' && str[0] <= 'z') &&
-			!(str[0] >= 'A' && str[0] <= 'Z') &&
+		if (!(str[0] >= 'a' && str[0] <= 'z') && !(str[0] >= 'A' && str[0] <= 'Z') &&
 			!(str[0] == '_'))
 			return false;
 		sint32 idx = 1;
 		while (idx < length)
 		{
 			const char c = str[idx];
-			if (!(c >= 'a' && c <= 'z') &&
-				!(c >= 'A' && c <= 'Z') &&
-				!(c >= '0' && c <= '9') &&
+			if (!(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z') && !(c >= '0' && c <= '9') &&
 				!(c == '_') && !(c == '.'))
 				break;
 			idx++;
@@ -225,28 +222,27 @@ public:
 		m_len = bak->m_len;
 	}
 
-	private:
-		const char* _skipWhitespaces(const char* str, sint32& length)
+  private:
+	const char* _skipWhitespaces(const char* str, sint32& length)
+	{
+		while (length > 0)
 		{
-			while (length > 0)
-			{
-				if (*str != ' ' && *str != '\t')
-					break;
-				str++;
-				length--;
-			}
-			return str;
+			if (*str != ' ' && *str != '\t')
+				break;
+			str++;
+			length--;
 		}
+		return str;
+	}
 
-		char _toUpperCase(const char c)
-		{
-			if (c >= 'a' && c <= 'z') 
-				return c + ('A' - 'a');
-			return c;
-		}
+	char _toUpperCase(const char c)
+	{
+		if (c >= 'a' && c <= 'z')
+			return c + ('A' - 'a');
+		return c;
+	}
 
-	private:
-		const char* m_str;
-		sint32 m_len;
+  private:
+	const char* m_str;
+	sint32 m_len;
 };
-

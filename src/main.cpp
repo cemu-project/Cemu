@@ -29,7 +29,7 @@
 
 #include "audio/IAudioAPI.h"
 #if BOOST_OS_WINDOWS
-#pragma comment(lib,"Dbghelp.lib")
+#pragma comment(lib, "Dbghelp.lib")
 #endif
 
 #define SDL_MAIN_HANDLED
@@ -57,9 +57,9 @@ std::wstring executablePath;
 
 void logCPUAndMemoryInfo()
 {
-	#if BOOST_OS_WINDOWS
-	int CPUInfo[4] = { -1 };
-	unsigned   nExIds, i = 0;
+#if BOOST_OS_WINDOWS
+	int CPUInfo[4] = {-1};
+	unsigned nExIds, i = 0;
 	char CPUBrandString[0x40];
 	// Get the information associated with each extended ID.
 	cpuid(CPUInfo, 0x80000000);
@@ -82,7 +82,7 @@ void logCPUAndMemoryInfo()
 	GlobalMemoryStatusEx(&statex);
 	uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
 	forceLog_printf("RAM: %uMB", memoryInMB);
-	#endif
+#endif
 }
 
 bool g_running_in_wine = false;
@@ -93,20 +93,21 @@ bool IsRunningInWine()
 
 void checkForWine()
 {
-	#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	const HMODULE hmodule = GetModuleHandleA("ntdll.dll");
 	if (!hmodule)
 		return;
 
-	const auto pwine_get_version = (const char*(__cdecl*)())GetProcAddress(hmodule, "wine_get_version");
+	const auto pwine_get_version =
+		(const char*(__cdecl*)())GetProcAddress(hmodule, "wine_get_version");
 	if (pwine_get_version)
 	{
 		g_running_in_wine = true;
 		forceLog_printf("Wine version: %s", pwine_get_version());
 	}
-	#else
+#else
 	g_running_in_wine = false;
-	#endif
+#endif
 }
 
 void infoLog_cemuStartup()
@@ -152,14 +153,14 @@ std::vector<std::string*> sPutEnvMap;
 
 void _putenvSafe(const char* c)
 {
-    auto s = new std::string(c);
-    sPutEnvMap.emplace_back(s);
-    _putenv(s->c_str());
+	auto s = new std::string(c);
+	sPutEnvMap.emplace_back(s);
+	_putenv(s->c_str());
 }
 
 void reconfigureGLDrivers()
 {
-	// reconfigure GL drivers to store 
+	// reconfigure GL drivers to store
 	const fs::path nvCacheDir = ActiveSettings::GetPath("shaderCache/driver/nvidia/");
 
 	std::error_code err;
@@ -172,16 +173,15 @@ void reconfigureGLDrivers()
 	std::wstring tmpW = boost::nowide::widen(nvCacheDirEnvOption);
 	_wputenv(tmpW.c_str());
 #else
-    _putenvSafe(nvCacheDirEnvOption.c_str());
+	_putenvSafe(nvCacheDirEnvOption.c_str());
 #endif
-    _putenvSafe("__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1");
-
+	_putenvSafe("__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1");
 }
 
 void reconfigureVkDrivers()
 {
-    _putenvSafe("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1");
-    _putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
+	_putenvSafe("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1");
+	_putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
 }
 
 void mainEmulatorCommonInit()
@@ -190,7 +190,8 @@ void mainEmulatorCommonInit()
 	reconfigureVkDrivers();
 	// crypto init
 	AES128_init();
-	// init PPC timer (call this as early as possible because it measures frequency of RDTSC using an asynchronous thread over 3 seconds)
+	// init PPC timer (call this as early as possible because it measures frequency of RDTSC using
+	// an asynchronous thread over 3 seconds)
 	PPCTimer_init();
 	// check available CPU extensions
 	int cpuInfo[4];
@@ -204,7 +205,7 @@ void mainEmulatorCommonInit()
 #if BOOST_OS_WINDOWS
 	executablePath.resize(4096);
 	int i = GetModuleFileName(NULL, executablePath.data(), executablePath.size());
-	if(i >= 0)
+	if (i >= 0)
 		executablePath.resize(i);
 	else
 		executablePath.clear();
@@ -213,7 +214,7 @@ void mainEmulatorCommonInit()
 	// set high priority
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
 #endif
-    ExceptionHandler_init();
+	ExceptionHandler_init();
 	// read config
 	g_config.Load();
 	// symbol storage
@@ -243,7 +244,9 @@ void unitTests()
 int mainEmulatorHLE()
 {
 	if (!TestWriteAccess(ActiveSettings::GetPath()))
-		wxMessageBox("Cemu doesn't have write access to it's own directory.\nPlease move it to a different location or run Cemu as administrator!", "Warning", wxOK|wxICON_ERROR); // todo - different error messages per OS
+		wxMessageBox("Cemu doesn't have write access to it's own directory.\nPlease move it to a "
+					 "different location or run Cemu as administrator!",
+					 "Warning", wxOK | wxICON_ERROR); // todo - different error messages per OS
 	LatteOverlay_init();
 	// run a couple of tests if in non-release mode
 #ifndef PUBLIC_RELEASE
@@ -286,7 +289,7 @@ int mainEmulatorHLE()
 bool isConsoleConnected = false;
 void requireConsole()
 {
-	#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	if (isConsoleConnected)
 		return;
 
@@ -297,7 +300,7 @@ void requireConsole()
 		freopen("CONOUT$", "w", stderr);
 		isConsoleConnected = true;
 	}
-	#endif
+#endif
 }
 
 void HandlePostUpdate()
@@ -324,10 +327,10 @@ void HandlePostUpdate()
 			fs::remove(filename, ec);
 		}
 #else
-		while( fs::exists(filename) )
+		while (fs::exists(filename))
 		{
 			std::error_code ec;
-			fs::remove(filename, ec);		
+			fs::remove(filename, ec);
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		}
 #endif
@@ -344,18 +347,19 @@ int wmain(int argc, wchar_t* argv[])
 {
 	SDL_SetMainReady();
 	_CrtSetDbgFlag(_CRTDBG_CHECK_DEFAULT_DF);
-	//ToolShaderCacheMerger();
+	// ToolShaderCacheMerger();
 
 	if (!LaunchSettings::HandleCommandline(argc, argv))
-		return 0;	
+		return 0;
 
 	ActiveSettings::LoadOnce();
-	
+
 	HandlePostUpdate();
 	return mainEmulatorHLE();
 }
 #else
-int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine, _In_ int nShowCmd)
+int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine,
+			 _In_ int nShowCmd)
 {
 	SDL_SetMainReady();
 
@@ -371,12 +375,12 @@ int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ L
 #endif
 
 #else
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 #if BOOST_OS_LINUX
-    XInitThreads();
+	XInitThreads();
 #endif
-    if (!LaunchSettings::HandleCommandline(argc, argv))
+	if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
 
 	ActiveSettings::LoadOnce();

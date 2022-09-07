@@ -6,7 +6,8 @@ std::unordered_set<std::string> sUnsupportedHLECalls;
 
 void PPCInterpreter_handleUnsupportedHLECall(PPCInterpreter_t* hCPU)
 {
-	const char* libFuncName = (char*)memory_getPointerFromVirtualOffset(hCPU->instructionPointer + 8);
+	const char* libFuncName =
+		(char*)memory_getPointerFromVirtualOffset(hCPU->instructionPointer + 8);
 	std::string tempString = fmt::format("Unsupported lib call: {}", libFuncName);
 	if (sUnsupportedHLECalls.find(tempString) == sUnsupportedHLECalls.end())
 	{
@@ -17,12 +18,12 @@ void PPCInterpreter_handleUnsupportedHLECall(PPCInterpreter_t* hCPU)
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
-std::vector<void(*)(PPCInterpreter_t* hCPU)>* sPPCHLETable{};
+std::vector<void (*)(PPCInterpreter_t* hCPU)>* sPPCHLETable{};
 
 HLEIDX PPCInterpreter_registerHLECall(HLECALL hleCall)
 {
 	if (!sPPCHLETable)
-		sPPCHLETable = new std::vector<void(*)(PPCInterpreter_t* hCPU)>();
+		sPPCHLETable = new std::vector<void (*)(PPCInterpreter_t * hCPU)>();
 	for (sint32 i = 0; i < sPPCHLETable->size(); i++)
 	{
 		if ((*sPPCHLETable)[i] == hleCall)

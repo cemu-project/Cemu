@@ -5,7 +5,7 @@ class FSCDeviceWuaFileCtx : public FSCVirtualFile
 {
 	friend class fscDeviceWUAC;
 
-protected:
+  protected:
 	FSCDeviceWuaFileCtx(ZArchiveReader* archive, ZArchiveNodeHandle fstFileHandle, uint32 fscType)
 	{
 		this->m_archive = archive;
@@ -14,7 +14,7 @@ protected:
 		this->m_seek = 0;
 	};
 
-public:
+  public:
 	sint32 fscGetType() override
 	{
 		return m_fscType;
@@ -53,10 +53,12 @@ public:
 	{
 		if (m_fscType != FSC_TYPE_FILE)
 			return 0;
-		cemu_assert(size < (2ULL * 1024 * 1024 * 1024)); // single read operation larger than 2GiB not supported
+		cemu_assert(size < (2ULL * 1024 * 1024 *
+							1024)); // single read operation larger than 2GiB not supported
 		uint32 bytesLeft = fscDeviceWuaFile_getFileSize() - m_seek;
 		uint32 bytesToRead = (std::min)(bytesLeft, (uint32)size);
-		uint32 bytesSuccessfullyRead = (uint32)m_archive->ReadFromFile(m_nodeHandle, m_seek, bytesToRead, buffer);
+		uint32 bytesSuccessfullyRead =
+			(uint32)m_archive->ReadFromFile(m_nodeHandle, m_seek, bytesToRead, buffer);
 		m_seek += bytesSuccessfullyRead;
 		return bytesSuccessfullyRead;
 	}
@@ -92,7 +94,7 @@ public:
 			dirEntry->isFile = false;
 			dirEntry->fileSize = 0;
 		}
-		else if(zarDirEntry.isFile)
+		else if (zarDirEntry.isFile)
 		{
 			dirEntry->isDirectory = false;
 			dirEntry->isFile = true;
@@ -103,11 +105,12 @@ public:
 			cemu_assert_suspicious();
 		}
 		std::memset(dirEntry->path, 0, sizeof(dirEntry->path));
-		std::strncpy(dirEntry->path, zarDirEntry.name.data(), std::min(sizeof(dirEntry->path) - 1, zarDirEntry.name.size()));
+		std::strncpy(dirEntry->path, zarDirEntry.name.data(),
+					 std::min(sizeof(dirEntry->path) - 1, zarDirEntry.name.size()));
 		return true;
 	}
 
-private:
+  private:
 	ZArchiveReader* m_archive{nullptr};
 	sint32 m_fscType;
 	ZArchiveNodeHandle m_nodeHandle;
@@ -119,13 +122,15 @@ private:
 
 class fscDeviceWUAC : public fscDeviceC
 {
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags,
+										void* ctx, sint32* fscStatus) override
 	{
 		ZArchiveReader* archive = (ZArchiveReader*)ctx;
-		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUA is not supported
+		cemu_assert_debug(!HAS_FLAG(
+			accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUA is not supported
 
 		std::string pathU8 = boost::nowide::narrow(path.data(), path.size());
-		
+
 		ZArchiveNodeHandle fileHandle = archive->LookUp(pathU8, true, true);
 		if (fileHandle == ZARCHIVE_INVALID_NODE)
 		{
@@ -161,7 +166,7 @@ class fscDeviceWUAC : public fscDeviceC
 	}
 
 	// singleton
-public:
+  public:
 	static fscDeviceWUAC& instance()
 	{
 		static fscDeviceWUAC _instance;
@@ -169,10 +174,13 @@ public:
 	}
 };
 
-bool FSCDeviceWUA_Mount(const char* mountPath, std::string_view destinationBaseDir, ZArchiveReader* archive, sint32 priority)
+bool FSCDeviceWUA_Mount(const char* mountPath, std::string_view destinationBaseDir,
+						ZArchiveReader* archive, sint32 priority)
 {
-	std::wstring hostTargetPath(boost::nowide::widen(destinationBaseDir.data(), destinationBaseDir.size()));
+	std::wstring hostTargetPath(
+		boost::nowide::widen(destinationBaseDir.data(), destinationBaseDir.size()));
 	if (!hostTargetPath.empty() && (hostTargetPath.back() != '/' && hostTargetPath.back() != '\\'))
 		hostTargetPath.push_back('/');
-	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceWUAC::instance(), archive, priority) == FSC_STATUS_OK;
+	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceWUAC::instance(), archive,
+					 priority) == FSC_STATUS_OK;
 }

@@ -13,11 +13,11 @@ class ControllerBase;
 
 class InputSettings2 : public wxDialog
 {
-public:
+  public:
 	InputSettings2(wxWindow* parent);
 	~InputSettings2();
 
-private:
+  private:
 	const wxString kDefaultProfileName = _("<profile name>");
 
 	wxNotebook* m_notebook;
@@ -28,8 +28,8 @@ private:
 	wxWindow* initialize_page(size_t index);
 
 	// count active <vpad, wpad> controllers
-	std::pair<size_t, size_t> get_emulated_controller_types() const; 
-	
+	std::pair<size_t, size_t> get_emulated_controller_types() const;
+
 	// currently selected controller from active tab
 	std::shared_ptr<ControllerBase> get_active_controller() const;
 
@@ -71,6 +71,4 @@ private:
 
 	// void on_controller_dropdown(wxCommandEvent& event);
 	// void on_controllers_refreshed(wxCommandEvent& event);
-
 };
-

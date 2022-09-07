@@ -11,13 +11,13 @@ struct WindowHandleInfo
 #if BOOST_OS_WINDOWS
 	std::atomic<HWND> hwnd;
 #elif BOOST_OS_LINUX
-    // XLIB
-    Display* xlib_display{};
-    Window xlib_window{};
+	// XLIB
+	Display* xlib_display{};
+	Window xlib_window{};
 
 	// XCB (not used by GTK so we cant retrieve these without making our own window)
-	//xcb_connection_t* xcb_con{};
-	//xcb_window_t xcb_window{};
+	// xcb_connection_t* xcb_con{};
+	// xcb_window_t xcb_window{};
 	// Wayland
 	// todo
 #else
@@ -29,10 +29,10 @@ struct WindowInfo
 {
 	std::atomic_bool app_active; // our app is active/has focus
 
-	std::atomic_int32_t width, height; 	// client size of main window
+	std::atomic_int32_t width, height; // client size of main window
 
-	std::atomic_bool pad_open; // if separate pad view is open
-	std::atomic_int32_t pad_width, pad_height; 	// client size of pad window
+	std::atomic_bool pad_open;				   // if separate pad view is open
+	std::atomic_int32_t pad_width, pad_height; // client size of pad window
 
 	std::atomic_bool pad_maximized = false;
 	std::atomic_int32_t restored_pad_x = -1, restored_pad_y = -1;
@@ -69,10 +69,10 @@ bool gui_isFullScreen();
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw);
 
 /*
-* Returns true if a screenshot request is queued
-* Once this function has returned true, it will reset back to
-* false until the next time a screenshot is requested
-*/
+ * Returns true if a screenshot request is queued
+ * Once this function has returned true, it will reset back to
+ * false until the next time a screenshot is requested
+ */
 bool gui_hasScreenshotRequest();
 
 // debugger stuff

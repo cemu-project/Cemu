@@ -2,8 +2,10 @@
 
 IniParser::IniParser(std::span<char> iniContents, std::string_view name) : m_name(name)
 {
-	// we dont support utf8 but still skip the byte order mark in case the user saved the document with the wrong encoding
-	if (iniContents.size() >= 3 && (uint8)iniContents[0] == 0xEF && (uint8)iniContents[1] == 0xBB && (uint8)iniContents[2] == 0xBF)
+	// we dont support utf8 but still skip the byte order mark in case the user saved the document
+	// with the wrong encoding
+	if (iniContents.size() >= 3 && (uint8)iniContents[0] == 0xEF && (uint8)iniContents[1] == 0xBB &&
+		(uint8)iniContents[2] == 0xBF)
 		iniContents = iniContents.subspan(3);
 
 	m_iniFileData.assign(iniContents.begin(), iniContents.end());
@@ -33,7 +35,7 @@ bool IniParser::ReadNextLine(std::string_view& lineString)
 			break;
 	}
 	size_t lineEnd = m_parseOffset;
-	lineString = { m_iniFileData.data() + lineStart, lineEnd - lineStart };
+	lineString = {m_iniFileData.data() + lineStart, lineEnd - lineStart};
 	return true;
 }
 
@@ -84,7 +86,7 @@ bool IniParser::parse()
 				break;
 			}
 		}
-		if(lineView.empty())
+		if (lineView.empty())
 			continue;
 		// handle section headers
 		if (lineView[0] == '[')
@@ -118,11 +120,10 @@ bool IniParser::parse()
 			if (lineView[i] == '=')
 			{
 				option_name = lineView.substr(0, i);
-				option_value = lineView.substr(i+1);
+				option_value = lineView.substr(i + 1);
 				invalidName = false;
 				break;
 			}
-
 		}
 		if (invalidName)
 		{
@@ -151,12 +152,14 @@ bool IniParser::parse()
 			}
 			else if (c < 32 || c > 128 || c == ' ')
 			{
-				PrintWarning(lineNumber, "Option name may only contain ANSI characters and no spaces", lineView);
+				PrintWarning(lineNumber,
+							 "Option name may only contain ANSI characters and no spaces",
+							 lineView);
 				invalidCharacter = true;
 				break;
 			}
 		}
-		if(invalidCharacter)
+		if (invalidCharacter)
 			continue;
 		// remove quotes from value
 		if (!option_value.empty() && option_value.front() == '\"')
@@ -168,7 +171,10 @@ bool IniParser::parse()
 			}
 			else
 			{
-				PrintWarning(lineNumber, "Option value starts with a quote character \" but does not end with one", lineView);
+				PrintWarning(
+					lineNumber,
+					"Option value starts with a quote character \" but does not end with one",
+					lineView);
 				continue;
 			}
 		}
@@ -204,28 +210,31 @@ bool IniParser::NextSection()
 
 std::string_view IniParser::GetCurrentSectionName()
 {
-	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() || m_currentSectionIndex >= m_sectionList.size())
+	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() ||
+		m_currentSectionIndex >= m_sectionList.size())
 		return "";
 	return m_sectionList[m_currentSectionIndex].m_sectionName;
 }
 
 size_t IniParser::GetCurrentSectionLineNumber()
 {
-	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() || m_currentSectionIndex >= m_sectionList.size())
+	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() ||
+		m_currentSectionIndex >= m_sectionList.size())
 		return 0;
 	return m_sectionList[m_currentSectionIndex].m_lineNumber;
 }
 
 std::optional<std::string_view> IniParser::FindOption(std::string_view optionName)
 {
-	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() || m_currentSectionIndex >= m_sectionList.size())
+	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() ||
+		m_currentSectionIndex >= m_sectionList.size())
 		return std::nullopt;
 	auto& optionPairsList = m_sectionList[m_currentSectionIndex].m_optionPairs;
 	for (auto& itr : optionPairsList)
 	{
 		auto& itrOptionName = itr.first;
 		// case insensitive ANSI string comparison
-		if(itrOptionName.size() != optionName.size())
+		if (itrOptionName.size() != optionName.size())
 			continue;
 		bool isMatch = true;
 		for (size_t i = 0; i < itrOptionName.size(); i++)
@@ -251,7 +260,8 @@ std::optional<std::string_view> IniParser::FindOption(std::string_view optionNam
 
 std::span<std::pair<std::string_view, std::string_view>> IniParser::GetAllOptions()
 {
-	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() || m_currentSectionIndex >= m_sectionList.size())
+	if (m_currentSectionIndex == std::numeric_limits<size_t>::max() ||
+		m_currentSectionIndex >= m_sectionList.size())
 		return {};
 	return m_sectionList[m_currentSectionIndex].m_optionPairs;
 }

@@ -117,7 +117,6 @@ void MemStreamWriter::writeBE<uint32>(const uint32& v)
 	std::memcpy(p, &tmp, sizeof(tmp));
 }
 
-
 template<>
 void MemStreamWriter::writeBE<uint16>(const uint16& v)
 {
@@ -127,13 +126,11 @@ void MemStreamWriter::writeBE<uint16>(const uint16& v)
 	std::memcpy(p, &tmp, sizeof(tmp));
 }
 
-
 template<>
 void MemStreamWriter::writeBE<uint8>(const uint8& v)
 {
 	m_buffer.emplace_back(v);
 }
-
 
 template<>
 void MemStreamWriter::writeBE<std::string>(const std::string& v)
@@ -150,7 +147,6 @@ void MemStreamWriter::writeLE<uint64>(const uint64& v)
 	uint64 tmp = _LE(v);
 	std::memcpy(p, &tmp, sizeof(tmp));
 }
-
 
 template<>
 void MemStreamWriter::writeLE<uint32>(const uint32& v)

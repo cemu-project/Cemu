@@ -11,14 +11,23 @@
 #include "gui/helpers/wxHelpers.h"
 #include "gui/components/wxInputDraw.h"
 
-constexpr ClassicController::ButtonId g_kFirstColumnItems[] = { ClassicController::kButtonId_A, ClassicController::kButtonId_B, ClassicController::kButtonId_X, ClassicController::kButtonId_Y, ClassicController::kButtonId_L, ClassicController::kButtonId_R, ClassicController::kButtonId_ZL, ClassicController::kButtonId_ZR, ClassicController::kButtonId_Plus, ClassicController::kButtonId_Minus };
-constexpr ClassicController::ButtonId g_kSecondColumnItems[] = { ClassicController::kButtonId_StickL_Up, ClassicController::kButtonId_StickL_Down, ClassicController::kButtonId_StickL_Left, ClassicController::kButtonId_StickL_Right };
-constexpr ClassicController::ButtonId g_kThirdColumnItems[] = { ClassicController::kButtonId_StickR_Up, ClassicController::kButtonId_StickR_Down, ClassicController::kButtonId_StickR_Left, ClassicController::kButtonId_StickR_Right };
-constexpr ClassicController::ButtonId g_kFourthRowItems[] = { ClassicController::kButtonId_Up, ClassicController::kButtonId_Down, ClassicController::kButtonId_Left, ClassicController::kButtonId_Right };
+constexpr ClassicController::ButtonId g_kFirstColumnItems[] = {
+	ClassicController::kButtonId_A,	   ClassicController::kButtonId_B,
+	ClassicController::kButtonId_X,	   ClassicController::kButtonId_Y,
+	ClassicController::kButtonId_L,	   ClassicController::kButtonId_R,
+	ClassicController::kButtonId_ZL,   ClassicController::kButtonId_ZR,
+	ClassicController::kButtonId_Plus, ClassicController::kButtonId_Minus};
+constexpr ClassicController::ButtonId g_kSecondColumnItems[] = {
+	ClassicController::kButtonId_StickL_Up, ClassicController::kButtonId_StickL_Down,
+	ClassicController::kButtonId_StickL_Left, ClassicController::kButtonId_StickL_Right};
+constexpr ClassicController::ButtonId g_kThirdColumnItems[] = {
+	ClassicController::kButtonId_StickR_Up, ClassicController::kButtonId_StickR_Down,
+	ClassicController::kButtonId_StickR_Left, ClassicController::kButtonId_StickR_Right};
+constexpr ClassicController::ButtonId g_kFourthRowItems[] = {
+	ClassicController::kButtonId_Up, ClassicController::kButtonId_Down,
+	ClassicController::kButtonId_Left, ClassicController::kButtonId_Right};
 
-
-ClassicControllerInputPanel::ClassicControllerInputPanel(wxWindow* parent)
-	: InputPanel(parent)
+ClassicControllerInputPanel::ClassicControllerInputPanel(wxWindow* parent) : InputPanel(parent)
 {
 	auto bold_font = GetFont();
 	bold_font.MakeBold();
@@ -30,20 +39,26 @@ ClassicControllerInputPanel::ClassicControllerInputPanel(wxWindow* parent)
 	{
 		row++;
 
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		main_sizer->Add(
+			new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))),
+			wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+		auto* text_ctrl =
+			new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+						   wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
 		text_ctrl->SetClientData(reinterpret_cast<void*>(id));
 		text_ctrl->SetMinSize(wxSize(150, -1));
 		text_ctrl->SetEditable(false);
 		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
 		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND,
+						5);
 	}
 
 	//////////////////////////////////////////////////////////////////
 
-	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL), wxGBPosition(0, column + 2), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
+	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL),
+					wxGBPosition(0, column + 2), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
 
 	row = 0;
 	column += 3;
@@ -56,24 +71,31 @@ ClassicControllerInputPanel::ClassicControllerInputPanel(wxWindow* parent)
 	{
 		row++;
 
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		main_sizer->Add(
+			new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))),
+			wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+		auto* text_ctrl =
+			new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+						   wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
 		text_ctrl->SetClientData(reinterpret_cast<void*>(id));
 		text_ctrl->SetMinSize(wxSize(150, -1));
 		text_ctrl->SetEditable(false);
 		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
 		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND,
+						5);
 	}
 
 	row++;
-	
-	// input drawer
-	m_left_draw = new wxInputDraw(this, wxID_ANY, wxDefaultPosition, { 60, 60 });
-	main_sizer->Add(m_left_draw, wxGBPosition(row, column + 1), wxGBSpan(2, 1), wxTOP | wxBOTTOM | wxEXPAND | wxALIGN_CENTER, 5);
 
-	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL), wxGBPosition(0, column + 3), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
+	// input drawer
+	m_left_draw = new wxInputDraw(this, wxID_ANY, wxDefaultPosition, {60, 60});
+	main_sizer->Add(m_left_draw, wxGBPosition(row, column + 1), wxGBSpan(2, 1),
+					wxTOP | wxBOTTOM | wxEXPAND | wxALIGN_CENTER, 5);
+
+	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL),
+					wxGBPosition(0, column + 3), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
 
 	//////////////////////////////////////////////////////////////////
 
@@ -88,24 +110,31 @@ ClassicControllerInputPanel::ClassicControllerInputPanel(wxWindow* parent)
 	{
 		row++;
 
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		main_sizer->Add(
+			new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))),
+			wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+		auto* text_ctrl =
+			new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+						   wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
 		text_ctrl->SetClientData(reinterpret_cast<void*>(id));
 		text_ctrl->SetMinSize(wxSize(150, -1));
 		text_ctrl->SetEditable(false);
 		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
 		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND,
+						5);
 	}
 
 	row++;
 
 	// input drawer
-	m_right_draw = new wxInputDraw(this, wxID_ANY, wxDefaultPosition, { 60, 60 });
-	main_sizer->Add(m_right_draw, wxGBPosition(row, column + 1), wxGBSpan(2, 1), wxTOP | wxBOTTOM | wxEXPAND | wxALIGN_CENTER, 5);
+	m_right_draw = new wxInputDraw(this, wxID_ANY, wxDefaultPosition, {60, 60});
+	main_sizer->Add(m_right_draw, wxGBPosition(row, column + 1), wxGBSpan(2, 1),
+					wxTOP | wxBOTTOM | wxEXPAND | wxALIGN_CENTER, 5);
 
-	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL), wxGBPosition(0, column + 3), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
+	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL),
+					wxGBPosition(0, column + 3), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
 
 	//////////////////////////////////////////////////////////////////
 
@@ -120,20 +149,24 @@ ClassicControllerInputPanel::ClassicControllerInputPanel(wxWindow* parent)
 	{
 		row++;
 
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		main_sizer->Add(
+			new wxStaticText(this, wxID_ANY, to_wxString(ClassicController::get_button_name(id))),
+			wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+		auto* text_ctrl =
+			new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+						   wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
 		text_ctrl->SetClientData(reinterpret_cast<void*>(id));
 		text_ctrl->SetMinSize(wxSize(150, -1));
 		text_ctrl->SetEditable(false);
 		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
 		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND,
+						5);
 	}
 
 	//////////////////////////////////////////////////////////////////
 
-	
 	SetSizer(main_sizer);
 	Layout();
 }

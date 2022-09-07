@@ -4,7 +4,7 @@
 
 namespace Latte
 {
-	class LATTEREG;
+class LATTEREG;
 };
 
 template<class T, std::size_t... N>
@@ -19,7 +19,7 @@ constexpr T bswap(T i)
 	return (T)bswap_impl<U>((U)i, std::make_index_sequence<sizeof(T)>{});
 }
 
-template <typename T>
+template<typename T>
 constexpr T SwapEndian(T value)
 {
 	if constexpr (std::is_integral<T>::value)
@@ -55,49 +55,49 @@ constexpr T SwapEndian(T value)
 		const auto tmp = bswap<uint32_t>(*(uint32_t*)&value);
 		return *(T*)&tmp;
 	}
-    else
-    {
-        static_assert(std::is_integral<T>::value, "unsupported betype specialization!");
-    }
+	else
+	{
+		static_assert(std::is_integral<T>::value, "unsupported betype specialization!");
+	}
 
 	return value;
 }
 
 #ifndef WIN32
-//static_assert(false, "_BE and _LE need to be adjusted");
+// static_assert(false, "_BE and _LE need to be adjusted");
 #endif
 
 // swap if native isn't big endian
-template <typename T>
+template<typename T>
 constexpr T _BE(T value)
 {
 	return SwapEndian(value);
 }
 
 // swap if native isn't little endian
-template <typename T>
+template<typename T>
 constexpr T _LE(T value)
 {
 	return value;
 }
 
-template <typename T>
+template<typename T>
 class betype
 {
-public:
+  public:
 	constexpr betype() = default;
 
 	// copy
-	constexpr betype(T value)
-		: m_value(SwapEndian(value)) {}
+	constexpr betype(T value) : m_value(SwapEndian(value)) {}
 
 	constexpr betype(const betype& value) = default; // required for trivially_copyable
-	//constexpr betype(const betype& value)
+	// constexpr betype(const betype& value)
 	//	: m_value(value.m_value) {}
 
-	template <typename U>
-	constexpr betype(const betype<U>& value)
-		: betype((T)value.value()) {}
+	template<typename U>
+	constexpr betype(const betype<U>& value) : betype((T)value.value())
+	{
+	}
 
 	// assigns
 	static betype from_bevalue(T value)
@@ -108,12 +108,21 @@ public:
 	}
 
 	// returns LE value
-	constexpr T value() const { return SwapEndian<T>(m_value); }
+	constexpr T value() const
+	{
+		return SwapEndian<T>(m_value);
+	}
 
 	// returns BE value
-	constexpr T bevalue() const { return m_value; }
+	constexpr T bevalue() const
+	{
+		return m_value;
+	}
 
-	constexpr operator T() const { return value(); }
+	constexpr operator T() const
+	{
+		return value();
+	}
 
 	betype<T>& operator+=(const betype<T>& v)
 	{
@@ -139,26 +148,26 @@ public:
 		return *this;
 	}
 
-	betype<T>& operator&=(const betype<T>& v) requires (requires (T& x, const T& y) { x &= y; })
+	betype<T>& operator&=(const betype<T>& v) requires(requires(T& x, const T& y) { x &= y; })
 	{
 		m_value &= v.m_value;
 		return *this;
 	}
 
-	betype<T>& operator|=(const betype<T>& v) requires (requires (T& x, const T& y) { x |= y; })
+	betype<T>& operator|=(const betype<T>& v) requires(requires(T& x, const T& y) { x |= y; })
 	{
 		m_value |= v.m_value;
 		return *this;
 	}
 
-	betype<T>& operator|(const betype<T>& v) const requires (requires (T& x, const T& y) { x | y; })
+	betype<T>& operator|(const betype<T>& v) const requires(requires(T& x, const T& y) { x | y; })
 	{
 		betype<T> tmp(*this);
 		tmp.m_value = tmp.m_value | v.m_value;
 		return tmp;
 	}
 
-	betype<T> operator|(const T& v) const requires (requires (T& x, const T& y) { x | y; })
+	betype<T> operator|(const T& v) const requires(requires(T& x, const T& y) { x | y; })
 	{
 		betype<T> tmp(*this);
 		tmp.m_value = tmp.m_value | SwapEndian(v);
@@ -199,9 +208,10 @@ public:
 		m_value = SwapEndian(T(value() - 1));
 		return *this;
 	}
-private:
-	//T m_value{}; // before 1.26.2
-	T m_value;
+
+  private :
+	  // T m_value{}; // before 1.26.2
+	  T m_value;
 };
 
 using uint64be = betype<uint64>;

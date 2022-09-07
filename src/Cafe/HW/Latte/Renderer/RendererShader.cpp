@@ -17,12 +17,15 @@ uint32 RendererShader::GeneratePrecompiledCacheId()
 	v += (EMULATOR_VERSION_MINOR * 100u);
 
 	// settings that can influence shaders
-	v += (uint32)g_current_game_profile->GetAccurateShaderMul() * 133; // this option modifies shaders
+	v += (uint32)g_current_game_profile->GetAccurateShaderMul() *
+		 133; // this option modifies shaders
 
 	return v;
 }
 
-void RendererShader::GenerateShaderPrecompiledCacheFilename(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, uint64& h1, uint64& h2)
+void RendererShader::GenerateShaderPrecompiledCacheFilename(RendererShader::ShaderType type,
+															uint64 baseHash, uint64 auxHash,
+															uint64& h1, uint64& h2)
 {
 	h1 = baseHash;
 	h2 = auxHash;

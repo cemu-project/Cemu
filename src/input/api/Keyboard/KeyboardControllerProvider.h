@@ -9,9 +9,13 @@
 class KeyboardControllerProvider : public ControllerProviderBase
 {
 	friend class KeyboardController;
-public:
+
+  public:
 	inline static InputAPI::Type kAPIType = InputAPI::Keyboard;
-	InputAPI::Type api() const override { return kAPIType; }
+	InputAPI::Type api() const override
+	{
+		return kAPIType;
+	}
 
 	std::vector<std::shared_ptr<ControllerBase>> get_controllers() override;
 };

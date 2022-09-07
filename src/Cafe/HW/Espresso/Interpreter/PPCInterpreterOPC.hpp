@@ -33,7 +33,7 @@ static void PPCInterpreter_MTSR(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	uint32 rS, SR, rB;
 	PPC_OPC_TEMPL_X(opcode, rS, SR, rB);
-	setSR(hCPU, SR&0xF, hCPU->gpr[rS]);
+	setSR(hCPU, SR & 0xF, hCPU->gpr[rS]);
 	// next instruction
 	PPCInterpreter_nextInstruction(hCPU);
 }

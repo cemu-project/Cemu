@@ -25,17 +25,20 @@ struct LatteDecompilerALUInstruction
 		uint8 abs{};
 		uint8 neg{};
 		uint8 chan{};
-		// register backup information (used for instruction groups where the same register is read and written)
+		// register backup information (used for instruction groups where the same register is read
+		// and written)
 		bool requiredRegisterBackup{};
-		uint8 registerBackupIndex{}; // index of the used register backup variable (at the beginning of the group the register value is copied to the temporary register with this index)
-	}sourceOperand[3];
+		uint8 registerBackupIndex{}; // index of the used register backup variable (at the beginning
+									 // of the group the register value is copied to the temporary
+									 // register with this index)
+	} sourceOperand[3];
 	union
 	{
 		uint32 w[4];
 		float f[4];
-	}literalData;
+	} literalData;
 	// information from analyzer stage
-	uint8 aluUnit{}; // 0-3 -> ALU.x/y/u/w (PV), 4 -> Trans unit (PS)
+	uint8 aluUnit{};	  // 0-3 -> ALU.x/y/u/w (PV), 4 -> Trans unit (PS)
 	uint8 indexInGroup{}; // index of instruction within instruction group
 	bool isLastInstructionOfGroup{};
 };
@@ -50,7 +53,7 @@ struct LatteDecompilerTEXInstruction
 	sint32 dstGpr;
 	sint8 dstSel[4];
 	// texture fetch
-	struct  
+	struct
 	{
 		sint32 textureIndex{};
 		sint32 samplerIndex{};
@@ -60,7 +63,7 @@ struct LatteDecompilerTEXInstruction
 		sint8 offsetY{};
 		sint8 offsetZ{};
 		bool unnormalized[4]{}; // set if texture coordinates are in [0,dim] range instead of [0,1]
-	}textureFetch;
+	} textureFetch;
 	// memRead
 	struct
 	{
@@ -69,7 +72,7 @@ struct LatteDecompilerTEXInstruction
 		uint32 format{};
 		uint8 nfa{};
 		uint8 isSigned{};
-	}memRead;
+	} memRead;
 	// custom shadow function
 	sint32 shadowFunctionIndex{};
 };
@@ -91,7 +94,7 @@ struct LatteDecompilerCFInstruction
 	uint32 cBank1AddrBase{};
 	// for exports
 	uint32 exportType{};
-	uint8  exportComponentSel[4]{};
+	uint8 exportComponentSel[4]{};
 	uint32 exportBurstCount{};
 	// for mem write
 	uint32 memWriteArraySize{};
@@ -109,14 +112,14 @@ struct LatteDecompilerCFInstruction
 	uint32 numPredInstructions{};
 	sint32 activeStackDepth{}; // stack depth during the clause/CF instruction
 
-	LatteDecompilerCFInstruction()
-	{
-
-	}
+	LatteDecompilerCFInstruction() {}
 
 	~LatteDecompilerCFInstruction()
 	{
-		cemu_assert_debug(!(instructionsALU.size() != 0 && instructionsTEX.size() != 0)); // make sure we dont accidentally added the wrong instruction type
+		cemu_assert_debug(
+			!(instructionsALU.size() != 0 &&
+			  instructionsTEX.size() !=
+				  0)); // make sure we dont accidentally added the wrong instruction type
 	}
 
 #if BOOST_OS_WINDOWS
@@ -132,7 +135,8 @@ struct LatteDecompilerCFInstruction
 
 struct LatteDecompilerCFileAccess
 {
-	LatteDecompilerCFileAccess(uint8 index, bool isRelative) : index(index), isRelative(isRelative) {};
+	LatteDecompilerCFileAccess(uint8 index, bool isRelative)
+		: index(index), isRelative(isRelative){};
 	uint8 index;
 	bool isRelative;
 };
@@ -165,49 +169,58 @@ struct LatteDecompilerShaderContext
 	{
 		// data type tracker
 		uint8 defaultDataType;
-		bool genFloatReg; // if set, generate R*f register variables
-		bool genIntReg; // if set, generate R*i register variables
-		bool useArrayGPRs; // if set, an array is used to represent GPRs instead of individual variables
-	}typeTracker;
-	// analyzer	
+		bool genFloatReg;  // if set, generate R*f register variables
+		bool genIntReg;	   // if set, generate R*i register variables
+		bool useArrayGPRs; // if set, an array is used to represent GPRs instead of individual
+						   // variables
+	} typeTracker;
+	// analyzer
 	struct
 	{
 		// general
 		bool hasStreamoutEnable{}; // set if streamout is enabled
-		bool hasLoops{}; // loop directives present in shader
+		bool hasLoops{};		   // loop directives present in shader
 		// vertex shader
 		bool isPointsPrimitive{}; // set if current render primitive is points
-		bool outputPointSize{}; // set if the current shader should output the point size
-		std::bitset<256> inputAttributSemanticMask; // one set bit for every used semanticId - todo: there are only 128 bit available semantic locations? The MSB has special meaning?
+		bool outputPointSize{};	  // set if the current shader should output the point size
+		std::bitset<256> inputAttributSemanticMask; // one set bit for every used semanticId - todo:
+													// there are only 128 bit available semantic
+													// locations? The MSB has special meaning?
 		// uniform
-		bool uniformRegisterAccess; // set to true if cfile (uniform register) is accessed
-		bool uniformRegisterDynamicAccess; // set to true if cfile (uniform register) is accessed with a dynamic index
+		bool uniformRegisterAccess;		   // set to true if cfile (uniform register) is accessed
+		bool uniformRegisterDynamicAccess; // set to true if cfile (uniform register) is accessed
+										   // with a dynamic index
 		uint32 uniformBufferAccessMask; // 1 bit per buffer, set if the uniform buffer is accessed
-		uint32 uniformBufferDynamicAccessMask; // 1 bit per buffer, set if the uniform buffer is accessed by dynamic index
+		uint32 uniformBufferDynamicAccessMask; // 1 bit per buffer, set if the uniform buffer is
+											   // accessed by dynamic index
 		std::vector<LatteDecompilerCFileAccess> uniformRegisterAccessIndices;
 		// ssbo
-		bool hasSSBORead; // shader has instructions that read from SSBO
+		bool hasSSBORead;  // shader has instructions that read from SSBO
 		bool hasSSBOWrite; // shader has instructions that write to SSBO
 		// textures
 		std::bitset<LATTE_NUM_MAX_TEX_UNITS> texUnitUsesTexelCoordinates;
 		bool hasCubeMapTexture; // set to true if a cubemap texture is used
 		bool hasGradientLookup; // set to true if texture lookup with custom gradients is used
 		// misc
-		bool usesRelativeGPRRead; // set if indexed GPR reads are used
+		bool usesRelativeGPRRead;  // set if indexed GPR reads are used
 		bool usesRelativeGPRWrite; // set if indexed GPR writes are used
-		uint8 gprUseMask[(LATTE_NUM_GPR + 7) / 8]; // 1 bit per GPR, set if GPR is read/written anywhere in the program (ignores GPR accesses with relative index)
+		uint8 gprUseMask[(LATTE_NUM_GPR + 7) /
+						 8];	// 1 bit per GPR, set if GPR is read/written anywhere in the program
+								// (ignores GPR accesses with relative index)
 		bool hasStreamoutWrite; // stream-out CF instructions are used
-		bool hasRedcCUBE; // has cube reduction instruction
-		bool modifiesPixelActiveState; // set if the active mask is changed anywhere in the shader (If false, we can skip active mask checks)
-		bool usesIntegerValues; // set if the shader uses any kind of integer instruction or integer-based GPR/AR access
-		sint32 activeStackMaxDepth; // maximum depth of pixel state stack
+		bool hasRedcCUBE;		// has cube reduction instruction
+		bool modifiesPixelActiveState; // set if the active mask is changed anywhere in the shader
+									   // (If false, we can skip active mask checks)
+		bool usesIntegerValues;		   // set if the shader uses any kind of integer instruction or
+									   // integer-based GPR/AR access
+		sint32 activeStackMaxDepth;	   // maximum depth of pixel state stack
 		// analyzer stage (vs)
 		bool writesPointSize{};
 		// streamout (vs and gs)
 		bool useSSBOForStreamout{};
 		// geometry shader
 		uint32 numEmitVertex{}; // counts how often emit vertex instruction is found
-	}analyzer;
+	} analyzer;
 
 	// set while generating code for subroutine
 	bool isSubroutine;
@@ -224,12 +237,16 @@ struct LatteDecompilerShaderContext
 	std::vector<LatteDecompilerSubroutineInfo> list_subroutines;
 };
 
-void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
+void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext,
+							 LatteDecompilerShader* shader);
 void LatteDecompiler_analyzeDataTypes(LatteDecompilerShaderContext* shaderContext);
-void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
+void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
+									LatteDecompilerShader* shader);
 
 void LatteDecompiler_cleanup(LatteDecompilerShaderContext* shaderContext);
 
 // helper functions
 
-sint32 LatteDecompiler_getColorOutputIndexFromExportIndex(LatteDecompilerShaderContext* shaderContext, sint32 exportIndex);
+sint32
+LatteDecompiler_getColorOutputIndexFromExportIndex(LatteDecompilerShaderContext* shaderContext,
+												   sint32 exportIndex);

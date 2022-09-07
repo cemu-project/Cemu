@@ -22,8 +22,9 @@ using wxTypeData = wxCustomData<InputAPI::Type>;
 using wxControllerData = wxCustomData<ControllerPtr>;
 
 InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
-                                     const std::vector<ControllerPtr>& controllers)
-	: wxDialog(parent, wxID_ANY, _("Add input API"), position, wxDefaultSize, 0), m_controllers(controllers)
+									 const std::vector<ControllerPtr>& controllers)
+	: wxDialog(parent, wxID_ANY, _("Add input API"), position, wxDefaultSize, 0),
+	  m_controllers(controllers)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
@@ -33,7 +34,8 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 		auto* api_row = new wxFlexGridSizer(2);
 
 		// API
-		api_row->Add(new wxStaticText(this, wxID_ANY, _("API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		api_row->Add(new wxStaticText(this, wxID_ANY, _("API")), 0, wxALIGN_CENTER_VERTICAL | wxALL,
+					 5);
 
 		m_input_api = new wxChoice(this, wxID_ANY);
 		auto& providers = InputManager::instance().get_api_providers();
@@ -50,11 +52,13 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 		api_row->Add(m_input_api, 1, wxALL | wxEXPAND, 5);
 
 		// Controller
-		api_row->Add(new wxStaticText(this, wxID_ANY, _("Controller")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		api_row->Add(new wxStaticText(this, wxID_ANY, _("Controller")), 0,
+					 wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		m_controller_list = new wxComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr,
-		                                   wxCB_READONLY);
-		m_controller_list->Bind(wxEVT_COMBOBOX_DROPDOWN, &InputAPIAddWindow::on_controller_dropdown, this);
+		m_controller_list = new wxComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
+										   wxDefaultSize, 0, nullptr, wxCB_READONLY);
+		m_controller_list->Bind(wxEVT_COMBOBOX_DROPDOWN, &InputAPIAddWindow::on_controller_dropdown,
+								this);
 		m_controller_list->Bind(wxEVT_COMBOBOX, &InputAPIAddWindow::on_controller_selected, this);
 		m_controller_list->SetMinSize(wxSize(240, -1));
 		m_controller_list->Disable();
@@ -82,18 +86,21 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 
 	{
 		// optional settings
-		m_settings_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+		m_settings_panel =
+			new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 		auto* panel_sizer = new wxBoxSizer(wxVERTICAL);
 		panel_sizer->Add(new wxStaticLine(m_settings_panel), 0, wxEXPAND, 0);
 
 		{
 			auto* row = new wxBoxSizer(wxHORIZONTAL);
 			// we only have dsu settings atm, so add elements now
-			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("IP")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("IP")), 0,
+					 wxALIGN_CENTER_VERTICAL | wxALL, 5);
 			m_ip = new wxTextCtrl(m_settings_panel, wxID_ANY, wxT("127.0.0.1"));
 			row->Add(m_ip, 0, wxALL, 5);
 
-			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("Port")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("Port")), 0,
+					 wxALIGN_CENTER_VERTICAL | wxALL, 5);
 			m_port = new wxTextCtrl(m_settings_panel, wxID_ANY, wxT("26760"));
 			row->Add(m_port, 0, wxALL, 5);
 
@@ -128,7 +135,8 @@ void InputAPIAddWindow::on_add_button(wxCommandEvent& event)
 	{
 		if (*c == *m_controller)
 		{
-			wxMessageBox(_("The controller is already added!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+			wxMessageBox(_("The controller is already added!"), _("Error"),
+						 wxOK | wxCENTRE | wxICON_ERROR, this);
 			return;
 		}
 	}
@@ -153,8 +161,8 @@ std::unique_ptr<ControllerProviderSettings> InputAPIAddWindow::get_settings() co
 	if (!has_custom_settings())
 		return {};
 
-	return std::make_unique<DSUProviderSettings>(m_ip->GetValue().ToStdString(),
-	                                             ConvertString<uint16>(m_port->GetValue().ToStdString()));
+	return std::make_unique<DSUProviderSettings>(
+		m_ip->GetValue().ToStdString(), ConvertString<uint16>(m_port->GetValue().ToStdString()));
 }
 
 void InputAPIAddWindow::on_api_selected(wxCommandEvent& event)
@@ -165,11 +173,12 @@ void InputAPIAddWindow::on_api_selected(wxCommandEvent& event)
 	m_controller_list->Enable();
 	m_controller_list->SetSelection(wxNOT_FOUND);
 
-    const auto selection = m_input_api->GetStringSelection();
+	const auto selection = m_input_api->GetStringSelection();
 	// keyboard is a special case, as theres only one device supported atm
 	if (selection == to_wxString(to_string(InputAPI::Keyboard)))
 	{
-		const auto controllers = InputManager::instance().get_api_provider(InputAPI::Keyboard)->get_controllers();
+		const auto controllers =
+			InputManager::instance().get_api_provider(InputAPI::Keyboard)->get_controllers();
 		if (!controllers.empty())
 		{
 			m_controller = controllers[0];
@@ -177,20 +186,21 @@ void InputAPIAddWindow::on_api_selected(wxCommandEvent& event)
 
 			m_controller_list->Clear();
 			const auto display_name = controllers[0]->display_name();
-			const auto index = m_controller_list->Append(display_name, new wxCustomData(controllers[0]));
+			const auto index =
+				m_controller_list->Append(display_name, new wxCustomData(controllers[0]));
 			m_controller_list->SetSelection(index);
 		}
 	}
-    else
-    {
+	else
+	{
 #if BOOST_OS_LINUX
-        // We rely on the wxEVT_COMBOBOX_DROPDOWN event to trigger filling the controller list,
-        // but on wxGTK the dropdown button cannot be clicked if the list is empty
-        // so as a quick and dirty workaround we fill the list here
-        wxCommandEvent tmpCmdEvt;
-        on_controller_dropdown(tmpCmdEvt);
+		// We rely on the wxEVT_COMBOBOX_DROPDOWN event to trigger filling the controller list,
+		// but on wxGTK the dropdown button cannot be clicked if the list is empty
+		// so as a quick and dirty workaround we fill the list here
+		wxCommandEvent tmpCmdEvt;
+		on_controller_dropdown(tmpCmdEvt);
 #endif
-    }
+	}
 
 	const auto show_settings = has_custom_settings();
 	// dsu has special settings for ip/port
@@ -239,19 +249,21 @@ void InputAPIAddWindow::on_controller_dropdown(wxCommandEvent& event)
 	m_controller_list->Append(_("Searching for controllers..."), (wxClientData*)nullptr);
 	m_controller_list->SetSelection(wxNOT_FOUND);
 
-	std::thread([this, provider, selected_uuid]()
-	{
-		auto available_controllers = provider->get_controllers();
+	std::thread(
+		[this, provider, selected_uuid]()
+		{
+			auto available_controllers = provider->get_controllers();
 
-		wxCommandEvent event(wxControllersRefreshed);
-		event.SetEventObject(m_controller_list);
-		event.SetClientObject(new wxCustomData(std::move(available_controllers)));
-		event.SetInt(provider->api());
-		event.SetString(selected_uuid);
-		wxPostEvent(this, event);
+			wxCommandEvent event(wxControllersRefreshed);
+			event.SetEventObject(m_controller_list);
+			event.SetClientObject(new wxCustomData(std::move(available_controllers)));
+			event.SetInt(provider->api());
+			event.SetString(selected_uuid);
+			wxPostEvent(this, event);
 
-		m_search_running = false;
-	}).detach();
+			m_search_running = false;
+		})
+		.detach();
 }
 
 void InputAPIAddWindow::on_controller_selected(wxCommandEvent& event)
@@ -282,8 +294,10 @@ void InputAPIAddWindow::on_controllers_refreshed(wxCommandEvent& event)
 	auto* controllers = dynamic_cast<wxComboBox*>(event.GetEventObject());
 	wxASSERT(controllers);
 
-	const auto available_controllers = static_cast<wxCustomData<std::vector<std::shared_ptr<ControllerBase>>>*>(event.
-		GetClientObject())->get();
+	const auto available_controllers =
+		static_cast<wxCustomData<std::vector<std::shared_ptr<ControllerBase>>>*>(
+			event.GetClientObject())
+			->get();
 	const auto selected_uuid = event.GetString().ToStdString();
 	bool item_selected = false;
 

@@ -16,13 +16,13 @@ class wxChoice;
 
 class GraphicPacksWindow2 : public wxDialog
 {
-public:
+  public:
 	GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_filter);
 	~GraphicPacksWindow2();
 
 	static void RefreshGraphicPacks();
 
-private:
+  private:
 	std::string m_filter;
 	bool m_filter_installed_games;
 	std::vector<uint64_t> m_installed_games;
@@ -30,17 +30,17 @@ private:
 	void FillGraphicPackList() const;
 	void GetChildren(const wxTreeItemId& id, std::vector<wxTreeItemId>& children) const;
 	void ExpandChildren(const std::vector<wxTreeItemId>& ids, size_t& counter) const;
-	
-	wxSplitterWindow * m_splitter_window;
+
+	wxSplitterWindow* m_splitter_window;
 
 	wxPanel* m_right_panel;
 	wxScrolled<wxPanel>* m_gp_options;
-	
-	wxCheckTree * m_graphic_pack_tree;
+
+	wxCheckTree* m_graphic_pack_tree;
 	wxTextCtrl* m_filter_text;
 	wxCheckBox* m_installed_games_only;
 
-	wxStaticText* m_graphic_pack_name, *m_graphic_pack_description;
+	wxStaticText *m_graphic_pack_name, *m_graphic_pack_description;
 	wxBoxSizer* m_preset_sizer;
 	std::vector<wxChoice*> m_active_preset;
 	wxButton* m_reload_shaders;
@@ -69,5 +69,4 @@ private:
 
 	void ReloadPack(const GraphicPackPtr& graphic_pack) const;
 	void DeleteShadersFromRuntimeCache(const GraphicPackPtr& graphic_pack) const;
-
 };

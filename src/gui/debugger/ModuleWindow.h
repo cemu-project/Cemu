@@ -4,13 +4,13 @@ class DebuggerWindow2;
 
 class ModuleWindow : public wxFrame
 {
-public:
+  public:
 	ModuleWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size);
 
 	void OnMainMove(const wxPoint& position, const wxSize& main_size);
 	void OnGameLoaded();
 
-private:
+  private:
 	void OnLeftDClick(wxMouseEvent& event);
 
 	wxListView* m_modules;

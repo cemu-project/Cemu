@@ -8,10 +8,9 @@
 #include <wx/timer.h>
 #include <wx/gauge.h>
 
-
 class DownloadGraphicPacksWindow : public wxDialog
 {
-public:
+  public:
 	DownloadGraphicPacksWindow(wxWindow* parent);
 	~DownloadGraphicPacksWindow();
 
@@ -23,7 +22,7 @@ public:
 	void OnUpdate(const wxTimerEvent& event);
 	void OnCancelButton(const wxCommandEvent& event);
 
-private:
+  private:
 	void UpdateThread();
 
 	enum ThreadState_t
@@ -54,7 +53,9 @@ private:
 	struct curlDownloadFileState_t;
 	std::unique_ptr<curlDownloadFileState_t> m_downloadState;
 
-	static size_t curlDownloadFile_writeData(void* ptr, size_t size, size_t nmemb, curlDownloadFileState_t* downloadState);
-	static int progress_callback(curlDownloadFileState_t* downloadState, double dltotal, double dlnow, double ultotal, double ulnow);
+	static size_t curlDownloadFile_writeData(void* ptr, size_t size, size_t nmemb,
+											 curlDownloadFileState_t* downloadState);
+	static int progress_callback(curlDownloadFileState_t* downloadState, double dltotal,
+								 double dlnow, double ultotal, double ulnow);
 	static bool curlDownloadFile(const char* url, curlDownloadFileState_t* downloadState);
 };

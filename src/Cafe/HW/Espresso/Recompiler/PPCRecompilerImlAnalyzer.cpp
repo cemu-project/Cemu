@@ -15,18 +15,23 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 	// loops using BDNZ are assumed to always be finite
 	for (sint32 t = 0; t < imlSegment->imlListCount; t++)
 	{
-		if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 && imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB && imlSegment->imlList[t].crRegister == 8)
+		if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 &&
+			imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB &&
+			imlSegment->imlList[t].crRegister == 8)
 		{
 			return true;
 		}
 	}
 	// for non-BDNZ loops, check for common patterns
-	// risky approach, look for ADD/SUB operations and assume that potential overflow means finite (does not include r_r_s32 ADD/SUB)
-	// this catches most loops with load-update and store-update instructions, but also those with decrementing counters
+	// risky approach, look for ADD/SUB operations and assume that potential overflow means finite
+	// (does not include r_r_s32 ADD/SUB) this catches most loops with load-update and store-update
+	// instructions, but also those with decrementing counters
 	FixedSizeList<sint32, 64, true> list_modifiedRegisters;
 	for (sint32 t = 0; t < imlSegment->imlListCount; t++)
 	{
-		if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 && (imlSegment->imlList[t].operation == PPCREC_IML_OP_ADD || imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB) )
+		if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 &&
+			(imlSegment->imlList[t].operation == PPCREC_IML_OP_ADD ||
+			 imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB))
 		{
 			list_modifiedRegisters.addUnique(imlSegment->imlList[t].op_r_immS32.registerIndex);
 		}
@@ -34,14 +39,17 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 	if (list_modifiedRegisters.count > 0)
 	{
 		// remove all registers from the list that are modified by non-ADD/SUB instructions
-		// todo: We should also cover the case where ADD+SUB on the same register cancel the effect out
+		// todo: We should also cover the case where ADD+SUB on the same register cancel the effect
+		// out
 		PPCImlOptimizerUsedRegisters_t registersUsed;
 		for (sint32 t = 0; t < imlSegment->imlListCount; t++)
 		{
-			if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 && (imlSegment->imlList[t].operation == PPCREC_IML_OP_ADD || imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB))
+			if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 &&
+				(imlSegment->imlList[t].operation == PPCREC_IML_OP_ADD ||
+				 imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB))
 				continue;
 			PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList + t, &registersUsed);
-			if(registersUsed.writtenNamedReg1 < 0)
+			if (registersUsed.writtenNamedReg1 < 0)
 				continue;
 			list_modifiedRegisters.remove(registersUsed.writtenNamedReg1);
 		}
@@ -54,8 +62,8 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 }
 
 /*
-* Returns true if the imlInstruction can overwrite CR (depending on value of ->crRegister)
-*/
+ * Returns true if the imlInstruction can overwrite CR (depending on value of ->crRegister)
+ */
 bool PPCRecompilerImlAnalyzer_canTypeWriteCR(PPCRecImlInstruction_t* imlInstruction)
 {
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_R)
@@ -77,7 +85,8 @@ bool PPCRecompilerImlAnalyzer_canTypeWriteCR(PPCRecImlInstruction_t* imlInstruct
 	return false;
 }
 
-void PPCRecompilerImlAnalyzer_getCRTracking(PPCRecImlInstruction_t* imlInstruction, PPCRecCRTracking_t* crTracking)
+void PPCRecompilerImlAnalyzer_getCRTracking(PPCRecImlInstruction_t* imlInstruction,
+											PPCRecCRTracking_t* crTracking)
 {
 	crTracking->readCRBits = 0;
 	crTracking->writtenCRBits = 0;
@@ -85,22 +94,27 @@ void PPCRecompilerImlAnalyzer_getCRTracking(PPCRecImlInstruction_t* imlInstructi
 	{
 		if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
 		{
-			uint32 crBitFlag = 1 << (imlInstruction->op_conditionalJump.crRegisterIndex * 4 + imlInstruction->op_conditionalJump.crBitIndex);
+			uint32 crBitFlag = 1 << (imlInstruction->op_conditionalJump.crRegisterIndex * 4 +
+									 imlInstruction->op_conditionalJump.crBitIndex);
 			crTracking->readCRBits = (crBitFlag);
 		}
 	}
 	else if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
 	{
-		uint32 crBitFlag = 1 << (imlInstruction->op_conditional_r_s32.crRegisterIndex * 4 + imlInstruction->op_conditional_r_s32.crBitIndex);
+		uint32 crBitFlag = 1 << (imlInstruction->op_conditional_r_s32.crRegisterIndex * 4 +
+								 imlInstruction->op_conditional_r_s32.crBitIndex);
 		crTracking->readCRBits = crBitFlag;
 	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_MFCR)
+	else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 &&
+			 imlInstruction->operation == PPCREC_IML_OP_MFCR)
 	{
 		crTracking->readCRBits = 0xFFFFFFFF;
 	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_MTCRF)
+	else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 &&
+			 imlInstruction->operation == PPCREC_IML_OP_MTCRF)
 	{
-		crTracking->writtenCRBits |= ppc_MTCRFMaskToCRBitMask((uint32)imlInstruction->op_r_immS32.immS32);
+		crTracking->writtenCRBits |=
+			ppc_MTCRFMaskToCRBitMask((uint32)imlInstruction->op_r_immS32.immS32);
 	}
 	else if (imlInstruction->type == PPCREC_IML_TYPE_CR)
 	{
@@ -111,9 +125,9 @@ void PPCRecompilerImlAnalyzer_getCRTracking(PPCRecImlInstruction_t* imlInstructi
 			crTracking->writtenCRBits = crBitFlag;
 		}
 		else if (imlInstruction->operation == PPCREC_IML_OP_CR_OR ||
-			imlInstruction->operation == PPCREC_IML_OP_CR_ORC ||
-			imlInstruction->operation == PPCREC_IML_OP_CR_AND || 
-			imlInstruction->operation == PPCREC_IML_OP_CR_ANDC)
+				 imlInstruction->operation == PPCREC_IML_OP_CR_ORC ||
+				 imlInstruction->operation == PPCREC_IML_OP_CR_AND ||
+				 imlInstruction->operation == PPCREC_IML_OP_CR_ANDC)
 		{
 			uint32 crBitFlag = 1 << (imlInstruction->op_cr.crD);
 			crTracking->writtenCRBits = crBitFlag;
@@ -125,11 +139,14 @@ void PPCRecompilerImlAnalyzer_getCRTracking(PPCRecImlInstruction_t* imlInstructi
 		else
 			assert_dbg();
 	}
-	else if (PPCRecompilerImlAnalyzer_canTypeWriteCR(imlInstruction) && imlInstruction->crRegister >= 0 && imlInstruction->crRegister <= 7)
+	else if (PPCRecompilerImlAnalyzer_canTypeWriteCR(imlInstruction) &&
+			 imlInstruction->crRegister >= 0 && imlInstruction->crRegister <= 7)
 	{
 		crTracking->writtenCRBits |= (0xF << (imlInstruction->crRegister * 4));
 	}
-	else if ((imlInstruction->type == PPCREC_IML_TYPE_STORE || imlInstruction->type == PPCREC_IML_TYPE_STORE_INDEXED) && imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER)
+	else if ((imlInstruction->type == PPCREC_IML_TYPE_STORE ||
+			  imlInstruction->type == PPCREC_IML_TYPE_STORE_INDEXED) &&
+			 imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER)
 	{
 		// overwrites CR0
 		crTracking->writtenCRBits |= (0xF << 0);

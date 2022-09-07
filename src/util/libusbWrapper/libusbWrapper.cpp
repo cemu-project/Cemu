@@ -11,7 +11,7 @@ libusbWrapper::libusbWrapper()
 void libusbWrapper::init()
 {
 #if BOOST_OS_WINDOWS
-    if (m_isInitialized)
+	if (m_isInitialized)
 		return;
 	m_isInitialized = true;
 	// load module
@@ -28,9 +28,8 @@ void libusbWrapper::init()
 	}
 
 	// grab imports
-#define FETCH_IMPORT(__NAME__) p_##__NAME__ = (decltype(&__NAME__))GetProcAddress(m_module, #__NAME__)
-	FETCH_IMPORT(libusb_init);
-	FETCH_IMPORT(libusb_exit);
+#define FETCH_IMPORT(__NAME__) p_##__NAME__ = (decltype(&__NAME__))GetProcAddress(m_module,
+#__NAME__) FETCH_IMPORT(libusb_init); FETCH_IMPORT(libusb_exit);
 	FETCH_IMPORT(libusb_interrupt_transfer);
 	FETCH_IMPORT(libusb_get_device_list);
 	FETCH_IMPORT(libusb_get_device_descriptor);

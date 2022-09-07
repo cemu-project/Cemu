@@ -2,28 +2,28 @@
 
 struct wuxHeader_t
 {
-	unsigned int		magic0;
-	unsigned int		magic1;
-	unsigned int		sectorSize;
-	unsigned long long	uncompressedSize;
-	unsigned int		flags;
+	unsigned int magic0;
+	unsigned int magic1;
+	unsigned int sectorSize;
+	unsigned long long uncompressedSize;
+	unsigned int flags;
 };
 
 struct wud_t
 {
 	class FileStream* fs;
-	long long		uncompressedSize;
-	bool			isCompressed;
+	long long uncompressedSize;
+	bool isCompressed;
 	// data used when compressed
-	unsigned int	sectorSize;
-	unsigned int	indexTableEntryCount;
-	unsigned int*	indexTable;
-	long long		offsetIndexTable;
-	long long		offsetSectorArray;
+	unsigned int sectorSize;
+	unsigned int indexTableEntryCount;
+	unsigned int* indexTable;
+	long long offsetIndexTable;
+	long long offsetSectorArray;
 };
 
-#define WUX_MAGIC_0	'0XUW' // "WUX0"
-#define WUX_MAGIC_1	0x1099d02e
+#define WUX_MAGIC_0 '0XUW' // "WUX0"
+#define WUX_MAGIC_1 0x1099d02e
 
 // wud and wux functions
 wud_t* wud_open(const fs::path& path); // transparently handles wud and wux files

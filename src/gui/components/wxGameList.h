@@ -14,13 +14,15 @@
 
 class wxTitleIdEvent : public wxCommandEvent
 {
-public:
-	wxTitleIdEvent(int type, uint64 title_id)
-		: wxCommandEvent(type), m_title_id(title_id) {}
+  public:
+	wxTitleIdEvent(int type, uint64 title_id) : wxCommandEvent(type), m_title_id(title_id) {}
 
-	[[nodiscard]] uint64 GetTitleId() const { return m_title_id; }
+	[[nodiscard]] uint64 GetTitleId() const
+	{
+		return m_title_id;
+	}
 
-private:
+  private:
 	uint64 m_title_id;
 };
 
@@ -32,7 +34,8 @@ wxDECLARE_EVENT(wxEVT_GAMELIST_END_UPDATE, wxCommandEvent);
 class wxGameList : public wxListCtrl
 {
 	friend class MainWindow;
-public:
+
+  public:
 	enum class Style
 	{
 		kList,
@@ -53,15 +56,15 @@ public:
 
 	long FindListItemByTitleId(uint64 title_id) const;
 	void OnClose(wxCloseEvent& event);
-	
-private:
+
+  private:
 	std::atomic_bool m_exit = false;
 	Style m_style;
 	long GetStyleFlags(Style style) const;
 
-	inline static const wxColour kUpdateColor{ 0x3939c3 };
-	inline static const wxColour kFavoriteColor{ 0xD3F6FD };
-	inline static const wxColour kSecondColor{ 0xFDF9F2 };
+	inline static const wxColour kUpdateColor{0x3939c3};
+	inline static const wxColour kFavoriteColor{0xD3F6FD};
+	inline static const wxColour kSecondColor{0xFDF9F2};
 	void UpdateItemColors(sint32 startIndex = 0);
 
 	enum ItemColumns
@@ -104,7 +107,7 @@ private:
 	std::vector<TitleId> m_icon_load_queue;
 
 	uint64 m_callbackIdTitleList;
-	
+
 	std::string GetNameByTitleId(uint64 titleId);
 
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
@@ -115,7 +118,7 @@ private:
 
 	inline static constexpr int kListIconWidth = 64;
 	inline static constexpr int kIconWidth = 128;
-	wxImageList* m_image_list, *m_image_list_small;
+	wxImageList *m_image_list, *m_image_list_small;
 
 	std::mutex m_icon_cache_mtx;
 	std::set<TitleId> m_icon_loaded;
@@ -132,7 +135,7 @@ private:
 	void OnColumnBeginResize(wxListEvent& event);
 	void OnColumnResize(wxListEvent& event);
 	void OnColumnDrag(wxListEvent& event);
-	
+
 	// generic events
 	void OnKeyDown(wxListEvent& event);
 	void OnContextMenu(wxContextMenuEvent& event);
@@ -145,4 +148,3 @@ private:
 
 	static inline std::once_flag s_launch_file_once;
 };
-

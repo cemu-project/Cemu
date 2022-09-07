@@ -3,7 +3,7 @@
 
 class FileStream
 {
- public:
+  public:
 	static FileStream* openFile(std::string_view path);
 	static FileStream* openFile(const wchar_t* path, bool allowWrite = false);
 	static FileStream* openFile2(const fs::path& path, bool allowWrite = false);
@@ -43,14 +43,13 @@ class FileStream
 	void writeLine(const char* str);
 
 	~FileStream();
-	FileStream() {};
+	FileStream(){};
 
- private:
+  private:
 	void SyncReadWriteSeek(bool nextOpIsWrite);
 	FileStream(const fs::path& path, bool isOpen, bool isWriteable);
 
 	bool m_isValid{};
 	std::fstream m_fileStream;
 	bool m_prevOperationWasWrite{false};
-
 };

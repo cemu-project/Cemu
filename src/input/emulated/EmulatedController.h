@@ -16,7 +16,8 @@ class ControllerBase;
 class EmulatedController
 {
 	friend class InputManager;
-public:
+
+  public:
 	EmulatedController(size_t player_index);
 	virtual ~EmulatedController() = default;
 
@@ -33,14 +34,26 @@ public:
 		MAX
 	};
 	virtual Type type() const = 0;
-	std::string_view type_string() const { return type_to_string(type()); }
+	std::string_view type_string() const
+	{
+		return type_to_string(type());
+	}
 
 	static std::string_view type_to_string(Type type);
 	static Type type_from_string(std::string_view str);
 
-	size_t player_index() const { return m_player_index; }
-	const std::string& get_profile_name() const { return m_profile_name; }
-	bool has_profile_name() const { return !m_profile_name.empty() && m_profile_name != "default"; }
+	size_t player_index() const
+	{
+		return m_player_index;
+	}
+	const std::string& get_profile_name() const
+	{
+		return m_profile_name;
+	}
+	bool has_profile_name() const
+	{
+		return !m_profile_name.empty() && m_profile_name != "default";
+	}
 
 	void calibrate();
 
@@ -67,19 +80,24 @@ public:
 	bool has_position() const;
 	glm::vec2 get_position() const;
 	glm::vec2 get_prev_position() const;
-	
-	std::shared_ptr<ControllerBase> find_controller(std::string_view uuid, InputAPI::Type type) const;
+
+	std::shared_ptr<ControllerBase> find_controller(std::string_view uuid,
+													InputAPI::Type type) const;
 	void add_controller(std::shared_ptr<ControllerBase> controller);
 	void remove_controller(const std::shared_ptr<ControllerBase>& controller);
 	void clear_controllers();
-	const std::vector<std::shared_ptr<ControllerBase>>& get_controllers() const { return m_controllers; }
+	const std::vector<std::shared_ptr<ControllerBase>>& get_controllers() const
+	{
+		return m_controllers;
+	}
 
 	bool is_mapping_down(uint64 mapping) const;
 	std::string get_mapping_name(uint64 mapping) const;
 	std::shared_ptr<ControllerBase> get_mapping_controller(uint64 mapping) const;
 	void delete_mapping(uint64 mapping);
 	void clear_mappings();
-	void set_mapping(uint64 mapping, const std::shared_ptr<ControllerBase>& controller_base, uint64 button);
+	void set_mapping(uint64 mapping, const std::shared_ptr<ControllerBase>& controller_base,
+					 uint64 button);
 
 	virtual uint32 get_emulated_button_flag(uint32 mapping) const = 0;
 
@@ -98,11 +116,17 @@ public:
 	virtual bool is_b_down() const = 0;
 	virtual bool is_home_down() const = 0;
 
-	bool was_home_button_down() { return std::exchange(m_homebutton_down, false); }
+	bool was_home_button_down()
+	{
+		return std::exchange(m_homebutton_down, false);
+	}
 
-	virtual bool set_default_mapping(const std::shared_ptr<ControllerBase>& controller) { return false; }
+	virtual bool set_default_mapping(const std::shared_ptr<ControllerBase>& controller)
+	{
+		return false;
+	}
 
-protected:
+  protected:
 	size_t m_player_index;
 	std::string m_profile_name = "default";
 
@@ -124,17 +148,24 @@ protected:
 
 using EmulatedControllerPtr = std::shared_ptr<EmulatedController>;
 
-template <>
-struct fmt::formatter<EmulatedController::Type> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(EmulatedController::Type v, FormatContext& ctx) {
+template<>
+struct fmt::formatter<EmulatedController::Type> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(EmulatedController::Type v, FormatContext& ctx)
+	{
 		switch (v)
 		{
-		case EmulatedController::Type::VPAD: return formatter<string_view>::format("Wii U Gamepad", ctx);
-		case EmulatedController::Type::Pro: return formatter<string_view>::format("Wii U Pro Controller", ctx);
-		case EmulatedController::Type::Classic: return formatter<string_view>::format("Wii U Classic Controller Pro", ctx);
-		case EmulatedController::Type::Wiimote: return formatter<string_view>::format("Wiimote", ctx);
+		case EmulatedController::Type::VPAD:
+			return formatter<string_view>::format("Wii U Gamepad", ctx);
+		case EmulatedController::Type::Pro:
+			return formatter<string_view>::format("Wii U Pro Controller", ctx);
+		case EmulatedController::Type::Classic:
+			return formatter<string_view>::format("Wii U Classic Controller Pro", ctx);
+		case EmulatedController::Type::Wiimote:
+			return formatter<string_view>::format("Wiimote", ctx);
 		}
-		throw std::invalid_argument(fmt::format("invalid emulated controller type with value {}", to_underlying(v)));
+		throw std::invalid_argument(
+			fmt::format("invalid emulated controller type with value {}", to_underlying(v)));
 	}
 };

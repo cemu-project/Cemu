@@ -4,10 +4,10 @@
 #include <condition_variable>
 #include <queue>
 
-template <typename T> 
+template<typename T>
 class ConcurrentQueue
 {
-public:
+  public:
 	ConcurrentQueue() = default;
 	ConcurrentQueue(const ConcurrentQueue&) = delete;
 	ConcurrentQueue& operator=(const ConcurrentQueue&) = delete;
@@ -22,8 +22,8 @@ public:
 		return result;
 	}
 
-	template<typename ... Args>
-	size_t push(Args&& ... args)
+	template<typename... Args>
+	size_t push(Args&&... args)
 	{
 		std::unique_lock<std::mutex> mlock(m_mutex);
 		m_queue.emplace(std::forward<Args>(args)...);
@@ -98,7 +98,7 @@ public:
 		return m_queue.empty();
 	}
 
-private:
+  private:
 	std::mutex m_mutex;
 	std::condition_variable m_condVar;
 	std::queue<T> m_queue;

@@ -5,9 +5,8 @@
 
 class CachedFBOGL : public LatteCachedFBO
 {
-public:
-	CachedFBOGL(uint64 key)
-		: LatteCachedFBO(key)
+  public:
+	CachedFBOGL(uint64 key) : LatteCachedFBO(key)
 	{
 		// generate framebuffer
 		if (glCreateFramebuffers && false)
@@ -21,15 +20,20 @@ public:
 		{
 			LatteTextureViewGL* colorTexViewGL = (LatteTextureViewGL*)colorBuffer[i].texture;
 			if (!colorTexViewGL)
-				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_TEXTURE_2D, 0, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i,
+									   GL_TEXTURE_2D, 0, 0);
 			else if (colorTexViewGL->dim == Latte::E_DIM::DIM_2D)
-				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_TEXTURE_2D, colorTexViewGL->glTexId, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i,
+									   GL_TEXTURE_2D, colorTexViewGL->glTexId, 0);
 			else if (colorTexViewGL->dim == Latte::E_DIM::DIM_3D)
-				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0_EXT + i, colorTexViewGL->glTexId, 0, 0);
+				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0_EXT + i,
+										  colorTexViewGL->glTexId, 0, 0);
 			else if (colorTexViewGL->dim == Latte::E_DIM::DIM_2D_ARRAY)
-				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0_EXT + i, colorTexViewGL->glTexId, 0, 0);
+				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0_EXT + i,
+										  colorTexViewGL->glTexId, 0, 0);
 			else if (colorTexViewGL->dim == Latte::E_DIM::DIM_CUBEMAP)
-				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0_EXT + i, colorTexViewGL->glTexId, 0, 0);
+				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0_EXT + i,
+										  colorTexViewGL->glTexId, 0, 0);
 			else
 			{
 				cemu_assert_suspicious();
@@ -40,23 +44,28 @@ public:
 		{
 			LatteTextureViewGL* depthTexViewGL = (LatteTextureViewGL*)depthBuffer.texture;
 			if (depthTexViewGL->dim == Latte::E_DIM::DIM_2D)
-				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexViewGL->glTexId, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+									   depthTexViewGL->glTexId, 0);
 			else if (depthTexViewGL->dim == Latte::E_DIM::DIM_2D_ARRAY)
-				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexViewGL->glTexId, 0, 0);
+				glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+										  depthTexViewGL->glTexId, 0, 0);
 			else
 				cemu_assert_suspicious();
 			if (depthBuffer.hasStencil)
 			{
 				if (depthTexViewGL->dim == Latte::E_DIM::DIM_2D)
-					glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTexViewGL->glTexId, 0);
+					glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
+										   depthTexViewGL->glTexId, 0);
 				else if (depthTexViewGL->dim == Latte::E_DIM::DIM_2D_ARRAY)
-					glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, depthTexViewGL->glTexId, 0, 0);
+					glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
+											  depthTexViewGL->glTexId, 0, 0);
 				else
 					cemu_assert_suspicious();
 			}
 			else
 			{
-				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0,
+									   0);
 			}
 		}
 		else
@@ -67,7 +76,7 @@ public:
 		SetDrawBuffers();
 	}
 
-private:
+  private:
 	void SetDrawBuffers()
 	{
 		GLenum buffers[8];
@@ -81,7 +90,8 @@ private:
 			}
 			else
 			{
-				// pad with GL_NONE entries to make sure that draw buffer indices match up with color attachment indices
+				// pad with GL_NONE entries to make sure that draw buffer indices match up with
+				// color attachment indices
 				buffers[bufferCount] = GL_NONE;
 				bufferCount++;
 			}
@@ -96,6 +106,6 @@ private:
 			glDrawBuffers(bufferCount, buffers);
 	}
 
-public:
+  public:
 	GLuint glId_fbo{};
 };

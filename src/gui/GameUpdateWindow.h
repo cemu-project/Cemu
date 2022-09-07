@@ -12,23 +12,42 @@
 #include <memory>
 
 // thrown if users doesn't wish to reinstall update/dlc
-class AbortException : public std::exception {};
+class AbortException : public std::exception
+{
+};
 
 class GameUpdateWindow : public wxDialog
 {
-public:
-
+  public:
 	GameUpdateWindow(wxWindow& parent, const fs::path& metaPath);
 	~GameUpdateWindow();
 
-	uint64 GetTitleId() const { return m_title_info.GetAppTitleId(); }
-	bool HasException() const { return !m_thread_exception.empty(); }
-	//bool IsDLC() const { return m_game_info->IsDLC(); }
-	//bool IsUpdate() const { return m_game_info->IsUpdate(); }
-	const std::string& GetExceptionMessage() const { return m_thread_exception; }
-	const std::string GetGameName() const { return m_title_info.GetTitleName(); }
-	uint32 GetTargetVersion() const { return m_title_info.GetAppTitleVersion(); }
-	fs::path GetTargetPath() const { return fs::path(m_target_path); }
+	uint64 GetTitleId() const
+	{
+		return m_title_info.GetAppTitleId();
+	}
+	bool HasException() const
+	{
+		return !m_thread_exception.empty();
+	}
+	// bool IsDLC() const { return m_game_info->IsDLC(); }
+	// bool IsUpdate() const { return m_game_info->IsUpdate(); }
+	const std::string& GetExceptionMessage() const
+	{
+		return m_thread_exception;
+	}
+	const std::string GetGameName() const
+	{
+		return m_title_info.GetTitleName();
+	}
+	uint32 GetTargetVersion() const
+	{
+		return m_title_info.GetAppTitleVersion();
+	}
+	fs::path GetTargetPath() const
+	{
+		return fs::path(m_target_path);
+	}
 
 	int ShowModal() override;
 	void OnClose(wxCloseEvent& event);
@@ -36,11 +55,11 @@ public:
 	void OnUpdate(const wxTimerEvent& event);
 	void OnCancelButton(const wxCommandEvent& event);
 
-	//uint64 GetUpdateTitleId() const { return m_title_info->GetUpdateTitleId(); }
-	//uint64 GetDLCTitleId() const { return m_game_info->GetDLCTitleId(); }
-	
-private:
-	//std::unique_ptr<GameInfoDEPRECATED> m_game_info;
+	// uint64 GetUpdateTitleId() const { return m_title_info->GetUpdateTitleId(); }
+	// uint64 GetDLCTitleId() const { return m_game_info->GetDLCTitleId(); }
+
+  private:
+	// std::unique_ptr<GameInfoDEPRECATED> m_game_info;
 	TitleInfo m_title_info;
 	enum ThreadState_t
 	{

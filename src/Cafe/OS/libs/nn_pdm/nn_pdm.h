@@ -1,7 +1,7 @@
 namespace nn
 {
-	namespace pdm
-	{
-		void Initialize();
-	};
+namespace pdm
+{
+void Initialize();
 };
+}; // namespace nn

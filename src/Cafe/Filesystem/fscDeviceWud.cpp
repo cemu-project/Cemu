@@ -5,7 +5,7 @@ class FSCDeviceWudFileCtx : public FSCVirtualFile
 {
 	friend class fscDeviceWUDC;
 
-protected:
+  protected:
 	FSCDeviceWudFileCtx(FSTVolume* _volume, FSTFileHandle _fstFileHandle)
 	{
 		this->m_volume = _volume;
@@ -21,7 +21,7 @@ protected:
 		this->m_dirIterator = _dirIterator;
 	}
 
-public:
+  public:
 	sint32 fscGetType() override
 	{
 		return m_fscType;
@@ -60,10 +60,12 @@ public:
 	{
 		if (m_fscType != FSC_TYPE_FILE)
 			return 0;
-		cemu_assert(size < (2ULL * 1024 * 1024 * 1024)); // single read operation larger than 2GiB not supported
+		cemu_assert(size < (2ULL * 1024 * 1024 *
+							1024)); // single read operation larger than 2GiB not supported
 		uint32 bytesLeft = fscDeviceWudFile_getFileSize() - m_seek;
 		uint32 bytesToRead = (std::min)(bytesLeft, (uint32)size);
-		uint32 bytesSuccessfullyRead = m_volume->ReadFile(m_fstFileHandle, m_seek, bytesToRead, buffer);
+		uint32 bytesSuccessfullyRead =
+			m_volume->ReadFile(m_fstFileHandle, m_seek, bytesToRead, buffer);
 		m_seek += bytesSuccessfullyRead;
 		return bytesSuccessfullyRead;
 	}
@@ -104,11 +106,12 @@ public:
 		}
 		auto path = m_volume->GetName(entryItr);
 		std::memset(dirEntry->path, 0, sizeof(dirEntry->path));
-		std::strncpy(dirEntry->path, path.data(), std::min(sizeof(dirEntry->path) - 1, path.size()));
+		std::strncpy(dirEntry->path, path.data(),
+					 std::min(sizeof(dirEntry->path) - 1, path.size()));
 		return true;
 	}
 
-private:
+  private:
 	FSTVolume* m_volume{nullptr};
 	sint32 m_fscType;
 	FSTFileHandle m_fstFileHandle;
@@ -120,10 +123,12 @@ private:
 
 class fscDeviceWUDC : public fscDeviceC
 {
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags,
+										void* ctx, sint32* fscStatus) override
 	{
 		FSTVolume* mountedVolume = (FSTVolume*)ctx;
-		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to FST is never allowed
+		cemu_assert_debug(!HAS_FLAG(
+			accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to FST is never allowed
 
 		std::string pathU8 = boost::nowide::narrow(path.data(), path.size());
 		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
@@ -149,7 +154,7 @@ class fscDeviceWUDC : public fscDeviceC
 	}
 
 	// singleton
-public:
+  public:
 	static fscDeviceWUDC& instance()
 	{
 		static fscDeviceWUDC _instance;
@@ -157,10 +162,13 @@ public:
 	}
 };
 
-bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir, FSTVolume* mountedVolume, sint32 priority)
+bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir,
+						FSTVolume* mountedVolume, sint32 priority)
 {
-	std::wstring hostTargetPath(boost::nowide::widen(destinationBaseDir.data(), destinationBaseDir.size()));
+	std::wstring hostTargetPath(
+		boost::nowide::widen(destinationBaseDir.data(), destinationBaseDir.size()));
 	if (!hostTargetPath.empty() && (hostTargetPath.back() != '/' && hostTargetPath.back() != '\\'))
 		hostTargetPath.push_back('/');
-	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceWUDC::instance(), mountedVolume, priority) == FSC_STATUS_OK;
+	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceWUDC::instance(), mountedVolume,
+					 priority) == FSC_STATUS_OK;
 }

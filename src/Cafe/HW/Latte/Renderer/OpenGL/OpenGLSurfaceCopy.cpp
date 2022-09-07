@@ -17,14 +17,19 @@ void _setDepthCompareMode(LatteTextureViewGL* textureView, uint8 depthCompareMod
 	if (depthCompareMode != textureView->samplerState.depthCompareMode)
 	{
 		if (depthCompareMode != 0)
-			glTexParameteri(textureView->glTexTarget, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+			glTexParameteri(textureView->glTexTarget, GL_TEXTURE_COMPARE_MODE,
+							GL_COMPARE_REF_TO_TEXTURE);
 		else
 			glTexParameteri(textureView->glTexTarget, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 		textureView->samplerState.depthCompareMode = depthCompareMode;
 	}
 }
 
-void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
+void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture,
+																 sint32 srcMip, sint32 srcSlice,
+																 LatteTexture* destinationTexture,
+																 sint32 dstMip, sint32 dstSlice,
+																 sint32 width, sint32 height)
 {
 	// scale copy size to effective size
 	sint32 effectiveCopyWidth = width;
@@ -32,7 +37,8 @@ void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
 	sint32 sourceEffectiveWidth;
 	sint32 sourceEffectiveHeight;
-	LatteTexture_getEffectiveSize(sourceTexture, &sourceEffectiveWidth, &sourceEffectiveHeight, nullptr, srcMip);
+	LatteTexture_getEffectiveSize(sourceTexture, &sourceEffectiveWidth, &sourceEffectiveHeight,
+								  nullptr, srcMip);
 	// reset everything
 	renderstate_resetColorControl();
 	renderstate_resetDepthControl();
@@ -46,7 +52,8 @@ void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 		SetAttributeArrayState(i, false, -1);
 	catchOpenGLError();
 	// set viewport
-	g_renderer->renderTarget_setViewport(0, 0, (float)effectiveCopyWidth, (float)effectiveCopyHeight, 0.0f, 1.0f);
+	g_renderer->renderTarget_setViewport(0, 0, (float)effectiveCopyWidth,
+										 (float)effectiveCopyHeight, 0.0f, 1.0f);
 	catchOpenGLError();
 	// get a view of the copied slice/mip in the source and destination texture
 	LatteTextureView* sourceView = sourceTexture->GetOrCreateView(srcMip, 1, srcSlice, 1);
@@ -108,7 +115,7 @@ void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 	catchOpenGLError();
 
 	// draw
-	uint16 indexData[6] = { 0,1,3,0,2,3 };
+	uint16 indexData[6] = {0, 1, 3, 0, 2, 3};
 	glDrawRangeElements(GL_TRIANGLES, 0, 5, 6, GL_UNSIGNED_SHORT, indexData);
 	catchOpenGLError();
 

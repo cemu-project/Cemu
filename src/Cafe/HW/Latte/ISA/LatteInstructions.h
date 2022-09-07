@@ -3,12 +3,12 @@
 
 namespace Latte
 {
-	using GPRType = uint8;
+using GPRType = uint8;
 };
 
 class LatteCFInstruction
 {
-public:
+  public:
 	enum class CF_COND
 	{
 		CF_COND_ACTIVE = 0,
@@ -22,8 +22,8 @@ public:
 		// SQ_CF_INST_*
 		INST_NOP = 0x00,
 		INST_TEX = 0x01,
-		INST_VTX = 0x02, // vertex fetch clause, used only in GS copy program?
-		INST_VTX_TC = 0x03, // vertex fetch clause, through texture cache
+		INST_VTX = 0x02,		// vertex fetch clause, used only in GS copy program?
+		INST_VTX_TC = 0x03,		// vertex fetch clause, through texture cache
 		INST_LOOP_START = 0x04, // DX9 style loop
 		INST_LOOP_END = 0x05,
 		INST_LOOP_START_DX10 = 0x06,
@@ -35,7 +35,7 @@ public:
 		INST_CALL = 0x12,
 		INST_CALL_FS = 0x13,
 		INST_RETURN = 0x14,
-		INST_EMIT_VERTEX = 0x15, // only available in geometry shader
+		INST_EMIT_VERTEX = 0x15,	   // only available in geometry shader
 		INST_MEM_STREAM0_WRITE = 0x20, // for stream out (index selects buffer)
 		INST_MEM_STREAM1_WRITE = 0x21,
 		INST_MEM_STREAM2_WRITE = 0x22,
@@ -60,7 +60,8 @@ public:
 	{
 		uint32 cf_inst23_7 = (word1 >> 23) & 0x7F;
 		// check the bigger opcode fields first
-		if (cf_inst23_7 < 0x40) // starting at 0x40 the bits overlap with the ALU instruction encoding
+		if (cf_inst23_7 <
+			0x40) // starting at 0x40 the bits overlap with the ALU instruction encoding
 		{
 			// cf_inst23_7 is opcode
 			return (OPCODE)cf_inst23_7;
@@ -112,7 +113,7 @@ public:
 		word1 |= ((uint32)opcode << 23);
 	}
 
-protected:
+  protected:
 	uint32 word0;
 	uint32 word1;
 };
@@ -121,7 +122,7 @@ protected:
 // used for opcodes: See list in MatchesOpcode()
 class LatteCFInstruction_DEFAULT : public LatteCFInstruction
 {
-public:
+  public:
 	LatteCFInstruction_DEFAULT()
 	{
 		word0 = 0;
@@ -130,33 +131,27 @@ public:
 
 	static bool MatchesOpcode(const OPCODE opcode)
 	{
-		return opcode == OPCODE::INST_NOP ||
-			opcode == OPCODE::INST_VTX ||
-			opcode == OPCODE::INST_VTX_TC ||
-			opcode == OPCODE::INST_TEX ||
-			opcode == OPCODE::INST_CALL_FS ||
-			opcode == OPCODE::INST_CALL ||
-			opcode == OPCODE::INST_RETURN ||
-			opcode == OPCODE::INST_LOOP_START ||
-			opcode == OPCODE::INST_LOOP_END ||
-			opcode == OPCODE::INST_LOOP_START_DX10 ||
-			//opcode == OPCODE::INST_LOOP_CONTINUE ||
-			//opcode == OPCODE::INST_LOOP_BREAK ||
-			opcode == OPCODE::INST_JUMP ||
-			//opcode == OPCODE::INST_PUSH ||
-			//opcode == OPCODE::INST_PUSH_ELSE ||
-			opcode == OPCODE::INST_ELSE ||
-			opcode == OPCODE::INST_POP ||
-			//opcode == OPCODE::INST_POP_JUMP ||
-			opcode == OPCODE::INST_JUMP ||
-			//opcode == OPCODE::INST_POP_PUSH ||
-			//opcode == OPCODE::INST_PUSH ||
-			//opcode == OPCODE::INST_POP_PUSH_ELSE ||
-			//opcode == OPCODE::INST_PUSH_ELSE ||
-			opcode == OPCODE::INST_EMIT_VERTEX
-			//opcode == OPCODE::INST_EMIT_CUT_VERTEX ||
-			//opcode == OPCODE::INST_CUT_VERTEX ||
-			//opcode == OPCODE::INST_KILL
+		return opcode == OPCODE::INST_NOP || opcode == OPCODE::INST_VTX ||
+			   opcode == OPCODE::INST_VTX_TC || opcode == OPCODE::INST_TEX ||
+			   opcode == OPCODE::INST_CALL_FS || opcode == OPCODE::INST_CALL ||
+			   opcode == OPCODE::INST_RETURN || opcode == OPCODE::INST_LOOP_START ||
+			   opcode == OPCODE::INST_LOOP_END || opcode == OPCODE::INST_LOOP_START_DX10 ||
+			   // opcode == OPCODE::INST_LOOP_CONTINUE ||
+			   // opcode == OPCODE::INST_LOOP_BREAK ||
+			   opcode == OPCODE::INST_JUMP ||
+			   // opcode == OPCODE::INST_PUSH ||
+			   // opcode == OPCODE::INST_PUSH_ELSE ||
+			   opcode == OPCODE::INST_ELSE || opcode == OPCODE::INST_POP ||
+			   // opcode == OPCODE::INST_POP_JUMP ||
+			   opcode == OPCODE::INST_JUMP ||
+			   // opcode == OPCODE::INST_POP_PUSH ||
+			   // opcode == OPCODE::INST_PUSH ||
+			   // opcode == OPCODE::INST_POP_PUSH_ELSE ||
+			   // opcode == OPCODE::INST_PUSH_ELSE ||
+			   opcode == OPCODE::INST_EMIT_VERTEX
+			// opcode == OPCODE::INST_EMIT_CUT_VERTEX ||
+			// opcode == OPCODE::INST_CUT_VERTEX ||
+			// opcode == OPCODE::INST_KILL
 			;
 	}
 
@@ -182,9 +177,9 @@ public:
 	}
 
 	uint32 getField_COUNT() const
-	{		
+	{
 		uint32 count = (word1 >> 10) & 0x7; // R600 field
-		count |= ((word1 >> 16)&0x8); // R700 has an extra bit at 19
+		count |= ((word1 >> 16) & 0x8);		// R700 has an extra bit at 19
 		return count + 1;
 	}
 
@@ -210,7 +205,8 @@ public:
 
 	std::span<uint8> getClauseCode(std::span<uint8> programCode) const
 	{
-		cemu_assert_debug(getField_Opcode() == LatteCFInstruction::INST_VTX || getField_Opcode() == LatteCFInstruction::INST_VTX_TC);
+		cemu_assert_debug(getField_Opcode() == LatteCFInstruction::INST_VTX ||
+						  getField_Opcode() == LatteCFInstruction::INST_VTX_TC);
 		cemu_assert_debug(getField_ADDR() <= programCode.size());
 		cemu_assert_debug((programCode.size() - getField_ADDR()) >= getField_COUNT() * 16);
 		return programCode.subspan(getField_ADDR(), getField_COUNT() * 16);
@@ -228,7 +224,7 @@ public:
 		count--;
 		word1 &= ~((0x7 << 10) | (1 << 19));
 		word1 |= ((count & 0x7) << 10);
-		word1 |= ((count << 16) & (1<<19));
+		word1 |= ((count << 16) & (1 << 19));
 	}
 
 	void setField_BARRIER(bool isEnabled)
@@ -238,25 +234,23 @@ public:
 		else
 			word1 &= ~(1 << 31);
 	}
-
 };
 
 // CF_ALLOC_EXPORT_DWORD0 + CF_ALLOC_EXPORT_DWORD1_BUF / CF_ALLOC_EXPORT_DWORD1_SWIZ
 // this has two different encoding. Use isEncodingBUF() to determine which fields are valid
 class LatteCFInstruction_EXPORT_IMPORT : public LatteCFInstruction // CF_ALLOC_EXPORT_DWORD1_SWIZ
 {
-public:
+  public:
 	static bool MatchesOpcode(const OPCODE opcode)
 	{
 		return opcode == OPCODE::INST_MEM_STREAM0_WRITE ||
-			opcode == OPCODE::INST_MEM_STREAM1_WRITE ||
-			opcode == OPCODE::INST_MEM_STREAM2_WRITE ||
-			opcode == OPCODE::INST_MEM_STREAM3_WRITE ||
-			//opcode == OPCODE::INST_MEM_SCRATCH ||
-			//opcode == OPCODE::INST_MEM_REDUCTION ||
-			opcode == OPCODE::INST_MEM_RING_WRITE ||
-			opcode == OPCODE::INST_EXPORT ||
-			opcode == OPCODE::INST_EXPORT_DONE;
+			   opcode == OPCODE::INST_MEM_STREAM1_WRITE ||
+			   opcode == OPCODE::INST_MEM_STREAM2_WRITE ||
+			   opcode == OPCODE::INST_MEM_STREAM3_WRITE ||
+			   // opcode == OPCODE::INST_MEM_SCRATCH ||
+			   // opcode == OPCODE::INST_MEM_REDUCTION ||
+			   opcode == OPCODE::INST_MEM_RING_WRITE || opcode == OPCODE::INST_EXPORT ||
+			   opcode == OPCODE::INST_EXPORT_DONE;
 	}
 
 	enum EXPORT_TYPE : uint8
@@ -317,21 +311,38 @@ public:
 	}
 
 	// word1 bits 0-15 differ depending on BUF/SWIZ encoding
-	// returns true if BUF encoding is used (BUF fields valid, SWIZ invalid). Otherwise SWIZ encoding is used (BUF fields invalid, SWIZ fields valid)
+	// returns true if BUF encoding is used (BUF fields valid, SWIZ invalid). Otherwise SWIZ
+	// encoding is used (BUF fields invalid, SWIZ fields valid)
 	bool isEncodingBUF() const
 	{
 		return ((word1 >> 12) & 0xF) != 0;
 	}
 
-	// fields specific to SWIZ encoding 
+	// fields specific to SWIZ encoding
 
-	COMPSEL getSwizField_SEL_X() const { cemu_assert_debug(!isEncodingBUF()); return (COMPSEL)((word1 >> 0) & 0x7); }
-	COMPSEL getSwizField_SEL_Y() const { cemu_assert_debug(!isEncodingBUF()); return (COMPSEL)((word1 >> 3) & 0x7); }
-	COMPSEL getSwizField_SEL_Z() const { cemu_assert_debug(!isEncodingBUF()); return (COMPSEL)((word1 >> 6) & 0x7); }
-	COMPSEL getSwizField_SEL_W() const { cemu_assert_debug(!isEncodingBUF()); return (COMPSEL)((word1 >> 9) & 0x7); }
+	COMPSEL getSwizField_SEL_X() const
+	{
+		cemu_assert_debug(!isEncodingBUF());
+		return (COMPSEL)((word1 >> 0) & 0x7);
+	}
+	COMPSEL getSwizField_SEL_Y() const
+	{
+		cemu_assert_debug(!isEncodingBUF());
+		return (COMPSEL)((word1 >> 3) & 0x7);
+	}
+	COMPSEL getSwizField_SEL_Z() const
+	{
+		cemu_assert_debug(!isEncodingBUF());
+		return (COMPSEL)((word1 >> 6) & 0x7);
+	}
+	COMPSEL getSwizField_SEL_W() const
+	{
+		cemu_assert_debug(!isEncodingBUF());
+		return (COMPSEL)((word1 >> 9) & 0x7);
+	}
 
 	// fields specific to BUF encoding (word1 bits 0-15)
-	
+
 	uint32 getBufField_ARRAY_SIZE() const
 	{
 		cemu_assert_debug(isEncodingBUF());
@@ -354,12 +365,11 @@ public:
 	bool getWholeQuadMode() const
 	{
 		return ((word1 >> 30) & 0x1) != 0;
-
 	}
 };
 
 // encoding for CF_ALU_DWORD0 + CF_ALU_DWORD1
-// used for: 
+// used for:
 // CF_INST_ALU
 // CF_INST_ALU_PUSH_BEFORE
 // CF_INST_ALU_POP_AFTER
@@ -369,16 +379,13 @@ public:
 // CF_INST_ALU_ELSE_AFTER
 class LatteCFInstruction_ALU : public LatteCFInstruction
 {
-public:
+  public:
 	static bool MatchesOpcode(const OPCODE opcode)
 	{
-		return opcode == OPCODE::INST_ALU ||
-			opcode == OPCODE::INST_ALU_PUSH_BEFORE ||
-			opcode == OPCODE::INST_ALU_POP_AFTER ||
-			opcode == OPCODE::INST_ALU_POP2_AFTER ||
-			opcode == OPCODE::INST_ALU_CONTINUE ||
-			opcode == OPCODE::INST_ALU_BREAK ||
-			opcode == OPCODE::INST_ALU_ELSE_AFTER;
+		return opcode == OPCODE::INST_ALU || opcode == OPCODE::INST_ALU_PUSH_BEFORE ||
+			   opcode == OPCODE::INST_ALU_POP_AFTER || opcode == OPCODE::INST_ALU_POP2_AFTER ||
+			   opcode == OPCODE::INST_ALU_CONTINUE || opcode == OPCODE::INST_ALU_BREAK ||
+			   opcode == OPCODE::INST_ALU_ELSE_AFTER;
 	}
 
 	uint32 getField_ADDR() const
@@ -413,7 +420,7 @@ public:
 
 	bool getField_USES_WATERFALL() const
 	{
-		return ((word1 >> 25)&1) !=0;
+		return ((word1 >> 25) & 1) != 0;
 	}
 
 	// todo - KCACHE_MODE0, KCACHE_MODE1, WHOLE_QUAD_MODE, BARRIER
@@ -428,7 +435,7 @@ static_assert(sizeof(LatteCFInstruction_ALU) == 8);
 
 class LatteClauseInstruction_VTX // used by CF VTX and VTX_TC clauses
 {
-public:
+  public:
 	LatteClauseInstruction_VTX()
 	{
 		word0 = 0;
@@ -467,7 +474,8 @@ public:
 
 	enum class NUM_FORMAT_ALL // NFA
 	{
-		NUM_FORMAT_NORM = 0, // normalized to float (-1.0 to 1.0 for signed, 0.0 to 1.0 for unsigned)
+		NUM_FORMAT_NORM =
+			0,				// normalized to float (-1.0 to 1.0 for signed, 0.0 to 1.0 for unsigned)
 		NUM_FORMAT_INT = 1, // interpreted as integer
 		NUM_FORMAT_SCALED = 2,
 	};
@@ -509,7 +517,7 @@ public:
 	{
 		return (word0 >> 16) & 0x7F;
 	}
-	
+
 	bool getField_SRC_REL() const
 	{
 		return ((word0 >> 23) & 1) != 0;
@@ -526,10 +534,10 @@ public:
 	DST_SEL getField_DST_SEL(uint32 index) const // shared field
 	{
 		cemu_assert_debug(index <= 3);
-		return (DST_SEL)((word1 >> (9 + index*3)) & 0x7);
+		return (DST_SEL)((word1 >> (9 + index * 3)) & 0x7);
 	}
 
-	bool getField_USE_CONST_FIELDS() const  // shared field
+	bool getField_USE_CONST_FIELDS() const // shared field
 	{
 		return ((word1 >> 21) & 1) != 0;
 	}
@@ -610,7 +618,7 @@ public:
 
 	LatteClauseInstruction_VTX& setField_SRC_REL(bool isRel)
 	{
-		if(isRel)
+		if (isRel)
 			word0 |= (1 << 23);
 		else
 			word0 &= ~(0x1 << 23);
@@ -642,9 +650,9 @@ public:
 
 	LatteClauseInstruction_VTX& setField_DATA_FORMAT(LatteConst::VertexFetchFormat fetchFormat)
 	{
-		 word1 &= ~(0x3F << 22);
-		 word1 |= ((uint32)fetchFormat << 22);
-		 return *this;
+		word1 &= ~(0x3F << 22);
+		word1 |= ((uint32)fetchFormat << 22);
+		return *this;
 	}
 
 	LatteClauseInstruction_VTX& setField_NUM_FORMAT_ALL(NUM_FORMAT_ALL nfa)
@@ -676,8 +684,7 @@ public:
 		return *this;
 	}
 
-
-protected:
+  protected:
 	uint32 word0;
 	uint32 word1;
 	uint32 word2;
@@ -688,7 +695,7 @@ static_assert(sizeof(LatteClauseInstruction_VTX) == 16);
 
 class LatteClauseInstruction_ALU
 {
-public:
+  public:
 	enum OPCODE_OP2
 	{
 		ADD = 0x00,
@@ -731,10 +738,10 @@ public:
 		//#define ALU_OP2_INST_SETNE_INT		(0x03D) // integer instruction
 		//#define ALU_OP2_INST_SETGT_UINT		(0x03E) // integer instruction
 		//#define ALU_OP2_INST_SETGE_UINT		(0x03F) // integer instruction
-		//#define ALU_OP2_INST_PRED_SETE_INT	(0x042) // integer instruction 
+		//#define ALU_OP2_INST_PRED_SETE_INT	(0x042) // integer instruction
 		//#define ALU_OP2_INST_PRED_SETGT_INT	(0x043) // integer instruction
 		//#define ALU_OP2_INST_PRED_SETGE_INT	(0x044) // integer instruction
-		//#define ALU_OP2_INST_PRED_SETNE_INT	(0x045) // integer instruction 
+		//#define ALU_OP2_INST_PRED_SETNE_INT	(0x045) // integer instruction
 		//#define ALU_OP2_INST_KILLE			(0x02C)
 		//#define ALU_OP2_INST_KILLGT			(0x02D)
 		//#define ALU_OP2_INST_KILLGE			(0x02E)
@@ -788,32 +795,53 @@ public:
 		return (const class LatteClauseInstruction_ALU_OP2*)this;
 	}
 
-protected:
+  protected:
 	const uint32 word0 = 0;
 	const uint32 word1 = 0;
 };
 
 class LatteALUSrcSel
 {
-public:
-	LatteALUSrcSel(const uint16 op) : m_op(op) {};
+  public:
+	LatteALUSrcSel(const uint16 op) : m_op(op){};
 
-	bool isGPR() const { return m_op < 128; };
-	bool isAnyConst() const { return m_op >= 248 && m_op <= 252; };
-	bool isConst_0F() const { return m_op == 248; };
-	bool isLiteral() const { return m_op == 253; };
-	bool isCFile() const { return m_op >= 256; };
+	bool isGPR() const
+	{
+		return m_op < 128;
+	};
+	bool isAnyConst() const
+	{
+		return m_op >= 248 && m_op <= 252;
+	};
+	bool isConst_0F() const
+	{
+		return m_op == 248;
+	};
+	bool isLiteral() const
+	{
+		return m_op == 253;
+	};
+	bool isCFile() const
+	{
+		return m_op >= 256;
+	};
 
-	uint32 getGPR() const { return m_op; };
-	uint32 getCFile() const { return (m_op & 0xFF); };
+	uint32 getGPR() const
+	{
+		return m_op;
+	};
+	uint32 getCFile() const
+	{
+		return (m_op & 0xFF);
+	};
 
-private:
+  private:
 	const uint16 m_op; // 0 - 511
 };
 
 class LatteClauseInstruction_ALU_OP2 : public LatteClauseInstruction_ALU
 {
-public:
+  public:
 	uint32 getDestGpr() const
 	{
 		return (word1 >> 21) & 0x7F;
@@ -886,7 +914,8 @@ public:
 
 	uint8 getIndexMode() const
 	{
-		return (word0 >> 26) & 7;;
+		return (word0 >> 26) & 7;
+		;
 	}
 
 	bool isTranscedentalUnit() const
@@ -896,11 +925,11 @@ public:
 		{
 		case COS:
 		case SIN:
-		case RECIP_FF: // todo: verify
-		case RECIP_IEEE: // todo: verify
-		case RECIPSQRT_IEEE: // todo: verify
+		case RECIP_FF:			// todo: verify
+		case RECIP_IEEE:		// todo: verify
+		case RECIPSQRT_IEEE:	// todo: verify
 		case RECIPSQRT_CLAMPED: // todo: verify
-		case RECIPSQRT_FF: // todo: verify
+		case RECIPSQRT_FF:		// todo: verify
 		case MULLO_INT:
 		case MULLO_UINT:
 		case FLT_TO_INT:
@@ -917,8 +946,6 @@ public:
 		}
 		return false;
 	}
-
 };
 
 static_assert(sizeof(LatteClauseInstruction_ALU) == 8);
-

@@ -1,8 +1,8 @@
 
 namespace nn
 {
-	namespace idbe
-	{
-		void load();
-	}
+namespace idbe
+{
+void load();
 }
+} // namespace nn

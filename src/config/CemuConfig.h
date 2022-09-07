@@ -29,7 +29,7 @@ struct GameEntry
 	std::wstring save_folder;
 	std::wstring update_folder;
 	std::wstring dlc_folder;
-	
+
 	uint64 legacy_time_played = 0;
 	uint64 legacy_last_played = 0;
 
@@ -40,21 +40,18 @@ struct GameEntry
 
 struct GraphicPackEntry
 {
-	GraphicPackEntry(std::wstring_view filename,std::string_view category, std::string_view preset)
+	GraphicPackEntry(std::wstring_view filename, std::string_view category, std::string_view preset)
 		: filename(filename)
 	{
 		presets[std::string{category}] = preset;
 	}
 
-	GraphicPackEntry(std::wstring_view filename, std::string_view preset)
-		: filename(filename)
+	GraphicPackEntry(std::wstring_view filename, std::string_view preset) : filename(filename)
 	{
 		presets[""] = preset;
 	}
 
-	GraphicPackEntry(std::wstring filename)
-		: filename(std::move(filename))
-	{}
+	GraphicPackEntry(std::wstring filename) : filename(std::move(filename)) {}
 
 	struct Preset
 	{
@@ -102,7 +99,7 @@ enum class ScreenPosition
 	kTopRight,
 	kBottomLeft,
 	kBottomCenter,
-	kBottomRight,	
+	kBottomRight,
 };
 
 enum class PrecompiledShaderOption
@@ -111,15 +108,17 @@ enum class PrecompiledShaderOption
 	Enable,
 	Disable,
 };
-ENABLE_ENUM_ITERATORS(PrecompiledShaderOption, PrecompiledShaderOption::Auto, PrecompiledShaderOption::Disable);
+ENABLE_ENUM_ITERATORS(PrecompiledShaderOption, PrecompiledShaderOption::Auto,
+					  PrecompiledShaderOption::Disable);
 
 enum class AccurateShaderMulOption
 {
 	False = 0, // ignore non-ieee MUL special cases
-	True = 1, // fully emulate non-ieee MUL special cases
-	Min = 2, // similar to true, but avoids conditionals (instead relies on min() and abs())
+	True = 1,  // fully emulate non-ieee MUL special cases
+	Min = 2,   // similar to true, but avoids conditionals (instead relies on min() and abs())
 };
-ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False, AccurateShaderMulOption::Min);
+ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False,
+					  AccurateShaderMulOption::Min);
 
 enum class CPUMode
 {
@@ -131,8 +130,7 @@ enum class CPUMode
 };
 ENABLE_ENUM_ITERATORS(CPUMode, CPUMode::SinglecoreInterpreter, CPUMode::Auto);
 
-
-enum class CPUModeLegacy 
+enum class CPUModeLegacy
 {
 	SinglecoreInterpreter = 0,
 	SinglecoreRecompiler = 1,
@@ -180,138 +178,240 @@ enum class CrashDump
 };
 ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Full);
 
-template <>
-struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const PrecompiledShaderOption c, FormatContext &ctx) {
+template<>
+struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(const PrecompiledShaderOption c, FormatContext& ctx)
+	{
 		string_view name;
 		switch (c)
 		{
-		case PrecompiledShaderOption::Auto: name = "auto"; break;
-		case PrecompiledShaderOption::Enable: name = "true"; break;
-		case PrecompiledShaderOption::Disable: name = "false"; break;
-		default: name = "unknown"; break;
+		case PrecompiledShaderOption::Auto:
+			name = "auto";
+			break;
+		case PrecompiledShaderOption::Enable:
+			name = "true";
+			break;
+		case PrecompiledShaderOption::Disable:
+			name = "false";
+			break;
+		default:
+			name = "unknown";
+			break;
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
 };
-template <>
-struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const AccurateShaderMulOption c, FormatContext &ctx) {
+template<>
+struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(const AccurateShaderMulOption c, FormatContext& ctx)
+	{
 		string_view name;
 		switch (c)
 		{
-		case AccurateShaderMulOption::True: name = "true"; break;
-		case AccurateShaderMulOption::False: name = "false"; break;
-		case AccurateShaderMulOption::Min: name = "min"; break;
-		default: name = "unknown"; break;
+		case AccurateShaderMulOption::True:
+			name = "true";
+			break;
+		case AccurateShaderMulOption::False:
+			name = "false";
+			break;
+		case AccurateShaderMulOption::Min:
+			name = "min";
+			break;
+		default:
+			name = "unknown";
+			break;
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
 };
-template <>
-struct fmt::formatter<CPUMode> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const CPUMode c, FormatContext &ctx) {
+template<>
+struct fmt::formatter<CPUMode> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(const CPUMode c, FormatContext& ctx)
+	{
 		string_view name;
 		switch (c)
 		{
-		case CPUMode::SinglecoreInterpreter: name = "Single-core interpreter"; break;
-		case CPUMode::SinglecoreRecompiler: name = "Single-core recompiler"; break;
-		case CPUMode::DualcoreRecompiler: name = "Dual-core recompiler"; break;
-		case CPUMode::MulticoreRecompiler: name = "Multi-core recompiler"; break;
-		case CPUMode::Auto: name = "Auto"; break;
-		default: name = "unknown"; break;
+		case CPUMode::SinglecoreInterpreter:
+			name = "Single-core interpreter";
+			break;
+		case CPUMode::SinglecoreRecompiler:
+			name = "Single-core recompiler";
+			break;
+		case CPUMode::DualcoreRecompiler:
+			name = "Dual-core recompiler";
+			break;
+		case CPUMode::MulticoreRecompiler:
+			name = "Multi-core recompiler";
+			break;
+		case CPUMode::Auto:
+			name = "Auto";
+			break;
+		default:
+			name = "unknown";
+			break;
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
 };
-template <>
-struct fmt::formatter<CPUModeLegacy> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const CPUModeLegacy c, FormatContext &ctx) {
+template<>
+struct fmt::formatter<CPUModeLegacy> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(const CPUModeLegacy c, FormatContext& ctx)
+	{
 		string_view name;
 		switch (c)
 		{
-		case CPUModeLegacy::SinglecoreInterpreter: name = "Singlecore-Interpreter"; break;
-		case CPUModeLegacy::SinglecoreRecompiler: name = "Singlecore-Recompiler"; break;
-		case CPUModeLegacy::DualcoreRecompiler: name = "Dualcore-Recompiler"; break;
-		case CPUModeLegacy::TriplecoreRecompiler: name = "Triplecore-Recompiler"; break;
-		case CPUModeLegacy::Auto: name = "Auto"; break;
-		default: name = "unknown"; break;
+		case CPUModeLegacy::SinglecoreInterpreter:
+			name = "Singlecore-Interpreter";
+			break;
+		case CPUModeLegacy::SinglecoreRecompiler:
+			name = "Singlecore-Recompiler";
+			break;
+		case CPUModeLegacy::DualcoreRecompiler:
+			name = "Dualcore-Recompiler";
+			break;
+		case CPUModeLegacy::TriplecoreRecompiler:
+			name = "Triplecore-Recompiler";
+			break;
+		case CPUModeLegacy::Auto:
+			name = "Auto";
+			break;
+		default:
+			name = "unknown";
+			break;
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
 };
-template <>
-struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const CafeConsoleRegion v, FormatContext &ctx) {
+template<>
+struct fmt::formatter<CafeConsoleRegion> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(const CafeConsoleRegion v, FormatContext& ctx)
+	{
 		string_view name;
 		switch (v)
 		{
-		case CafeConsoleRegion::JPN: name = "Japan"; break;
-		case CafeConsoleRegion::USA: name = "USA"; break;
-		case CafeConsoleRegion::EUR: name = "Europe"; break;
-		case CafeConsoleRegion::AUS_DEPR: name = "Australia"; break;
-		case CafeConsoleRegion::CHN: name = "China"; break;
-		case CafeConsoleRegion::KOR: name = "Korea"; break;
-		case CafeConsoleRegion::TWN: name = "Taiwan"; break;
-		case CafeConsoleRegion::Auto: name = "Auto"; break;
-		default: name = "many"; break;
-		
+		case CafeConsoleRegion::JPN:
+			name = "Japan";
+			break;
+		case CafeConsoleRegion::USA:
+			name = "USA";
+			break;
+		case CafeConsoleRegion::EUR:
+			name = "Europe";
+			break;
+		case CafeConsoleRegion::AUS_DEPR:
+			name = "Australia";
+			break;
+		case CafeConsoleRegion::CHN:
+			name = "China";
+			break;
+		case CafeConsoleRegion::KOR:
+			name = "Korea";
+			break;
+		case CafeConsoleRegion::TWN:
+			name = "Taiwan";
+			break;
+		case CafeConsoleRegion::Auto:
+			name = "Auto";
+			break;
+		default:
+			name = "many";
+			break;
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
 };
-template <>
-struct fmt::formatter<CafeConsoleLanguage> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const CafeConsoleLanguage v, FormatContext &ctx) {
+template<>
+struct fmt::formatter<CafeConsoleLanguage> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(const CafeConsoleLanguage v, FormatContext& ctx)
+	{
 		string_view name;
 		switch (v)
 		{
-		case CafeConsoleLanguage::JA: name = "Japanese"; break;
-		case CafeConsoleLanguage::EN: name = "English"; break;
-		case CafeConsoleLanguage::FR: name = "French"; break;
-		case CafeConsoleLanguage::DE: name = "German"; break;
-		case CafeConsoleLanguage::IT: name = "Italian"; break;
-		case CafeConsoleLanguage::ES: name = "Spanish"; break;
-		case CafeConsoleLanguage::ZH: name = "Chinese"; break;
-		case CafeConsoleLanguage::KO: name = "Korean"; break;
-		case CafeConsoleLanguage::NL: name = "Dutch"; break;
-		case CafeConsoleLanguage::PT: name = "Portugese"; break;
-		case CafeConsoleLanguage::RU: name = "Russian"; break;
-		case CafeConsoleLanguage::TW: name = "Taiwanese"; break;
-		default: name = "unknown"; break;
+		case CafeConsoleLanguage::JA:
+			name = "Japanese";
+			break;
+		case CafeConsoleLanguage::EN:
+			name = "English";
+			break;
+		case CafeConsoleLanguage::FR:
+			name = "French";
+			break;
+		case CafeConsoleLanguage::DE:
+			name = "German";
+			break;
+		case CafeConsoleLanguage::IT:
+			name = "Italian";
+			break;
+		case CafeConsoleLanguage::ES:
+			name = "Spanish";
+			break;
+		case CafeConsoleLanguage::ZH:
+			name = "Chinese";
+			break;
+		case CafeConsoleLanguage::KO:
+			name = "Korean";
+			break;
+		case CafeConsoleLanguage::NL:
+			name = "Dutch";
+			break;
+		case CafeConsoleLanguage::PT:
+			name = "Portugese";
+			break;
+		case CafeConsoleLanguage::RU:
+			name = "Russian";
+			break;
+		case CafeConsoleLanguage::TW:
+			name = "Taiwanese";
+			break;
+		default:
+			name = "unknown";
+			break;
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
 };
 
-template <>
-struct fmt::formatter<CrashDump> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const CrashDump v, FormatContext &ctx) {
+template<>
+struct fmt::formatter<CrashDump> : formatter<string_view>
+{
+	template<typename FormatContext>
+	auto format(const CrashDump v, FormatContext& ctx)
+	{
 		string_view name;
 		switch (v)
 		{
-		case CrashDump::Disabled: name = "Disabled"; break;
-		case CrashDump::Lite: name = "Lite"; break;
-		case CrashDump::Full: name = "Full"; break;
-		default: name = "unknown"; break;
-		
+		case CrashDump::Disabled:
+			name = "Disabled";
+			break;
+		case CrashDump::Lite:
+			name = "Lite";
+			break;
+		case CrashDump::Full:
+			name = "Full";
+			break;
+		default:
+			name = "unknown";
+			break;
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
 };
-
 
 struct CemuConfig
 {
-	CemuConfig()
-	{
+	CemuConfig(){
 
 	};
 
@@ -321,16 +421,16 @@ struct CemuConfig
 	// sets mlc path, updates permanent config value, saves config
 	void SetMLCPath(std::wstring_view path, bool save = true);
 
-	ConfigValue<uint64> log_flag{ 0 };
-	ConfigValue<bool> advanced_ppc_logging{ false };
+	ConfigValue<uint64> log_flag{0};
+	ConfigValue<bool> advanced_ppc_logging{false};
 
-	ConfigValue<bool> permanent_storage{ true };
-	
-	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
-	ConfigValue<bool> use_discord_presence{ true };
-	ConfigValue<std::wstring> mlc_path {};
-	ConfigValue<bool> fullscreen_menubar{ false };
-	ConfigValue<bool> fullscreen{ false };
+	ConfigValue<bool> permanent_storage{true};
+
+	ConfigValue<sint32> language{wxLANGUAGE_DEFAULT};
+	ConfigValue<bool> use_discord_presence{true};
+	ConfigValue<std::wstring> mlc_path{};
+	ConfigValue<bool> fullscreen_menubar{false};
+	ConfigValue<bool> fullscreen{false};
 	ConfigValue<std::string> proxy_server{};
 
 	std::vector<std::wstring> game_paths;
@@ -339,30 +439,33 @@ struct CemuConfig
 
 	// optimized access
 	std::set<uint64> game_cache_favorites; // per titleId
-	
-	struct _path_hash {
-		std::size_t operator()(const fs::path& path) const {
+
+	struct _path_hash
+	{
+		std::size_t operator()(const fs::path& path) const
+		{
 			return fs::hash_value(path);
 		}
 	};
 	// <filename, <category, preset>>
-	std::unordered_map<fs::path, std::unordered_map<std::string, std::string>, _path_hash> graphic_pack_entries;
+	std::unordered_map<fs::path, std::unordered_map<std::string, std::string>, _path_hash>
+		graphic_pack_entries;
 
-	ConfigValueBounds<CPUMode> cpu_mode{ CPUMode::Auto };
-	ConfigValueBounds<CafeConsoleLanguage> console_language{ CafeConsoleLanguage::EN };
+	ConfigValueBounds<CPUMode> cpu_mode{CPUMode::Auto};
+	ConfigValueBounds<CafeConsoleLanguage> console_language{CafeConsoleLanguage::EN};
 
 	// max 15 entries
 	static constexpr size_t kMaxRecentEntries = 15;
 	std::vector<std::wstring> recent_launch_files;
 	std::vector<std::wstring> recent_nfc_files;
 
-	Vector2i window_position{-1,-1};
-	Vector2i window_size{ -1,-1 };
+	Vector2i window_position{-1, -1};
+	Vector2i window_size{-1, -1};
 	ConfigValue<bool> window_maximized;
 
 	ConfigValue<bool> pad_open;
-	Vector2i pad_position{ -1,-1 };
-	Vector2i pad_size{ -1,-1 };
+	Vector2i pad_position{-1, -1};
+	Vector2i pad_size{-1, -1};
 	ConfigValue<bool> pad_maximized;
 
 	ConfigValue<bool> check_update{false};
@@ -379,14 +482,14 @@ struct CemuConfig
 	} column_width{};
 
 	// graphics
-	ConfigValue<GraphicAPI> graphic_api{ kVulkan };
+	ConfigValue<GraphicAPI> graphic_api{kVulkan};
 	std::array<uint8, 16> graphic_device_uuid;
-	ConfigValue<int> vsync{ 0 }; // 0 = off, 1+ = on depending on render backend
-	ConfigValue<bool> gx2drawdone_sync {true};
-	ConfigValue<bool> render_upside_down{ false };
-	ConfigValue<bool> async_compile{ false };
+	ConfigValue<int> vsync{0}; // 0 = off, 1+ = on depending on render backend
+	ConfigValue<bool> gx2drawdone_sync{true};
+	ConfigValue<bool> render_upside_down{false};
+	ConfigValue<bool> async_compile{false};
 
-	ConfigValue<bool> vk_accurate_barriers{ true };
+	ConfigValue<bool> vk_accurate_barriers{true};
 
 	struct
 	{
@@ -422,24 +525,25 @@ struct CemuConfig
 	sint32 audio_delay = 2;
 	AudioChannels tv_channels = kStereo, pad_channels = kStereo;
 	sint32 tv_volume = 50, pad_volume = 0;
-	std::wstring tv_device{ L"default" }, pad_device;
+	std::wstring tv_device{L"default"}, pad_device;
 
 	// account
 	struct
 	{
-		ConfigValueBounds<uint32> m_persistent_id{ Account::kMinPersistendId, Account::kMinPersistendId, 0xFFFFFFFF };
+		ConfigValueBounds<uint32> m_persistent_id{Account::kMinPersistendId,
+												  Account::kMinPersistendId, 0xFFFFFFFF};
 		ConfigValue<bool> online_enabled{false};
-	}account{};
+	} account{};
 
 	// input
 	struct
 	{
 		ConfigValue<std::string> host{"127.0.0.1"};
-		ConfigValue<uint16> port{ 26760 };
-	}dsu_client{};
+		ConfigValue<uint16> port{26760};
+	} dsu_client{};
 
 	// debug
-	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
+	ConfigValueBounds<CrashDump> crash_dump{CrashDump::Disabled};
 
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
@@ -452,13 +556,14 @@ struct CemuConfig
 	bool GetGameListCustomName(uint64 titleId, std::string& customName);
 	void SetGameListCustomName(uint64 titleId, std::string customName);
 
-	private:
+  private:
 	GameEntry* GetGameEntryByTitleId(uint64 titleId);
 	GameEntry* CreateGameEntry(uint64 titleId);
 };
 
 typedef XMLDataConfig<CemuConfig, &CemuConfig::Load, &CemuConfig::Save> XMLCemuConfig_t;
 extern XMLCemuConfig_t g_config;
-inline CemuConfig& GetConfig() { return g_config.data(); }
-
-
+inline CemuConfig& GetConfig()
+{
+	return g_config.data();
+}

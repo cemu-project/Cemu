@@ -1,7 +1,7 @@
 namespace nn
 {
-	namespace ndm
-	{
-		void load();
-	}
+namespace ndm
+{
+void load();
 }
+} // namespace nn

@@ -5,10 +5,10 @@
 template<size_t N>
 class SmallBitset
 {
-public:
-	SmallBitset() {};
+  public:
+	SmallBitset(){};
 	static_assert(N <= 32);
-	
+
 	bool test(size_t index) const
 	{
 		cemu_assert_debug(index < N);
@@ -29,6 +29,6 @@ public:
 		m_bits |= (1u << index);
 	}
 
-private:
+  private:
 	uint32 m_bits{};
 };

@@ -1,33 +1,42 @@
 #ifndef EMULATOR_NAME
 
-#define EMULATOR_NAME					"Cemu"
-#define EMULATOR_VERSION_LEAD			2
-#define EMULATOR_VERSION_MAJOR			0
+#define EMULATOR_NAME "Cemu"
+#define EMULATOR_VERSION_LEAD 2
+#define EMULATOR_VERSION_MAJOR 0
 
-// the minor version is used for experimental builds to indicate the build index. Set by command line option from CI build script
-// if zero, the version text will be constructed as LEAD.MAJOR, otherwise as LEAD.MAJOR-MINOR
+// the minor version is used for experimental builds to indicate the build index. Set by command
+// line option from CI build script if zero, the version text will be constructed as LEAD.MAJOR,
+// otherwise as LEAD.MAJOR-MINOR
 
 #if !defined(PUBLIC_RELEASE)
-#define EMULATOR_VERSION_SUFFIX			" (dev)"
+#define EMULATOR_VERSION_SUFFIX " (dev)"
 #elif defined(EMULATOR_VERSION_MINOR) && EMULATOR_VERSION_MINOR == 0
-#define EMULATOR_VERSION_SUFFIX			"" // stable
+#define EMULATOR_VERSION_SUFFIX "" // stable
 #else
-#define EMULATOR_VERSION_SUFFIX			" (experimental)"
+#define EMULATOR_VERSION_SUFFIX " (experimental)"
 #endif
 
 #ifndef EMULATOR_VERSION_MINOR
-#define EMULATOR_VERSION_MINOR			0	
+#define EMULATOR_VERSION_MINOR 0
 #endif
 
 #define _XSTRINGFY(s) _STRINGFY(s)
 #define _STRINGFY(s) #s
 
 #if EMULATOR_VERSION_MINOR != 0
-#define BUILD_VERSION_WITH_NAME_STRING (EMULATOR_NAME " " _XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(EMULATOR_VERSION_MAJOR) "-" _XSTRINGFY(EMULATOR_VERSION_MINOR) EMULATOR_VERSION_SUFFIX)
-#define BUILD_VERSION_STRING (_XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(EMULATOR_VERSION_MAJOR) "-" _XSTRINGFY(EMULATOR_VERSION_MINOR) EMULATOR_VERSION_SUFFIX)
+#define BUILD_VERSION_WITH_NAME_STRING                                                             \
+	(EMULATOR_NAME " " _XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(                           \
+		EMULATOR_VERSION_MAJOR) "-" _XSTRINGFY(EMULATOR_VERSION_MINOR) EMULATOR_VERSION_SUFFIX)
+#define BUILD_VERSION_STRING                                                                       \
+	(_XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(EMULATOR_VERSION_MAJOR) "-" _XSTRINGFY(      \
+		EMULATOR_VERSION_MINOR) EMULATOR_VERSION_SUFFIX)
 #else
-#define BUILD_VERSION_STRING (_XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(EMULATOR_VERSION_MAJOR) EMULATOR_VERSION_SUFFIX)
-#define BUILD_VERSION_WITH_NAME_STRING (EMULATOR_NAME " " _XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(EMULATOR_VERSION_MAJOR) EMULATOR_VERSION_SUFFIX)
+#define BUILD_VERSION_STRING                                                                       \
+	(_XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(EMULATOR_VERSION_MAJOR)                      \
+		 EMULATOR_VERSION_SUFFIX)
+#define BUILD_VERSION_WITH_NAME_STRING                                                             \
+	(EMULATOR_NAME " " _XSTRINGFY(EMULATOR_VERSION_LEAD) "." _XSTRINGFY(EMULATOR_VERSION_MAJOR)    \
+		 EMULATOR_VERSION_SUFFIX)
 #endif
 
 #endif

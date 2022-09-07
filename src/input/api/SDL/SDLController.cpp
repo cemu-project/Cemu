@@ -3,16 +3,18 @@
 #include "input/api/SDL/SDLControllerProvider.h"
 
 SDLController::SDLController(const SDL_JoystickGUID& guid, size_t guid_index)
-	: base_type(fmt::format("{}_", guid_index), fmt::format("Controller {}", guid_index + 1)), m_guid_index(guid_index),
-	  m_guid(guid)
+	: base_type(fmt::format("{}_", guid_index), fmt::format("Controller {}", guid_index + 1)),
+	  m_guid_index(guid_index), m_guid(guid)
 {
 	char tmp[64];
 	SDL_JoystickGetGUIDString(m_guid, tmp, std::size(tmp));
 	m_uuid += tmp;
 }
 
-SDLController::SDLController(const SDL_JoystickGUID& guid, size_t guid_index, std::string_view display_name)
-	: base_type(fmt::format("{}_", guid_index), display_name), m_guid_index(guid_index), m_guid(guid)
+SDLController::SDLController(const SDL_JoystickGUID& guid, size_t guid_index,
+							 std::string_view display_name)
+	: base_type(fmt::format("{}_", guid_index), display_name), m_guid_index(guid_index),
+	  m_guid(guid)
 {
 	char tmp[64];
 	SDL_JoystickGetGUIDString(m_guid, tmp, std::size(tmp));
@@ -104,8 +106,8 @@ void SDLController::start_rumble()
 	if (m_settings.rumble <= 0)
 		return;
 
-	SDL_GameControllerRumble(m_controller, (Uint16)(m_settings.rumble * 0xFFFF), (Uint16)(m_settings.rumble * 0xFFFF),
-	                         5 * 1000);
+	SDL_GameControllerRumble(m_controller, (Uint16)(m_settings.rumble * 0xFFFF),
+							 (Uint16)(m_settings.rumble * 0xFFFF), 5 * 1000);
 }
 
 void SDLController::stop_rumble()
@@ -152,22 +154,30 @@ ControllerState SDLController::raw_state()
 	}
 
 	if (m_axis[SDL_CONTROLLER_AXIS_LEFTX])
-		result.axis.x = (float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
+		result.axis.x =
+			(float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTX) / 32767.0f;
 
 	if (m_axis[SDL_CONTROLLER_AXIS_LEFTY])
-		result.axis.y = (float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
+		result.axis.y =
+			(float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY) / 32767.0f;
 
 	if (m_axis[SDL_CONTROLLER_AXIS_RIGHTX])
-		result.rotation.x = (float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_RIGHTX) / 32767.0f;
+		result.rotation.x =
+			(float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_RIGHTX) / 32767.0f;
 
 	if (m_axis[SDL_CONTROLLER_AXIS_RIGHTY])
-		result.rotation.y = (float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_RIGHTY) / 32767.0f;
+		result.rotation.y =
+			(float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_RIGHTY) / 32767.0f;
 
 	if (m_axis[SDL_CONTROLLER_AXIS_TRIGGERLEFT])
-		result.trigger.x = (float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0f;
+		result.trigger.x =
+			(float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) /
+			32767.0f;
 
 	if (m_axis[SDL_CONTROLLER_AXIS_TRIGGERRIGHT])
-		result.trigger.y = (float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0f;
+		result.trigger.y =
+			(float)SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) /
+			32767.0f;
 
 	return result;
 }

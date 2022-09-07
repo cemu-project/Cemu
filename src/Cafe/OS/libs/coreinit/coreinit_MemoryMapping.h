@@ -1,5 +1,5 @@
 
 namespace coreinit
 {
-	void InitializeMemoryMapping();
+void InitializeMemoryMapping();
 }

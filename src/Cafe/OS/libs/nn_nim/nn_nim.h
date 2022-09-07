@@ -2,8 +2,8 @@
 
 namespace nn
 {
-	namespace nim
-	{
-		void load();
-	}
+namespace nim
+{
+void load();
 }
+} // namespace nn

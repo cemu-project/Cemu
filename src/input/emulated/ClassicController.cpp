@@ -3,7 +3,6 @@
 #include "input/api/Controller.h"
 #include "input/api/SDL/SDLController.h"
 
-
 ClassicController::ClassicController(size_t player_index)
 	: WPADController(player_index, kDataFormat_CLASSIC)
 {
@@ -58,33 +57,56 @@ std::string_view ClassicController::get_button_name(ButtonId id)
 {
 	switch (id)
 	{
-	case kButtonId_A: return "A";
-	case kButtonId_B: return "B";
-	case kButtonId_X: return "X";
-	case kButtonId_Y: return "Y";
-	case kButtonId_L: return "L";
-	case kButtonId_R: return "R";
-	case kButtonId_ZL: return "ZL";
-	case kButtonId_ZR: return "ZR";
+	case kButtonId_A:
+		return "A";
+	case kButtonId_B:
+		return "B";
+	case kButtonId_X:
+		return "X";
+	case kButtonId_Y:
+		return "Y";
+	case kButtonId_L:
+		return "L";
+	case kButtonId_R:
+		return "R";
+	case kButtonId_ZL:
+		return "ZL";
+	case kButtonId_ZR:
+		return "ZR";
 
-	case kButtonId_Plus: return "+";
-	case kButtonId_Minus: return "-";
-	case kButtonId_Home: return "home";
+	case kButtonId_Plus:
+		return "+";
+	case kButtonId_Minus:
+		return "-";
+	case kButtonId_Home:
+		return "home";
 
-	case kButtonId_Up: return "up";
-	case kButtonId_Down: return "down";
-	case kButtonId_Left: return "left";
-	case kButtonId_Right: return "right";
+	case kButtonId_Up:
+		return "up";
+	case kButtonId_Down:
+		return "down";
+	case kButtonId_Left:
+		return "left";
+	case kButtonId_Right:
+		return "right";
 
-	case kButtonId_StickL_Up: return "up";
-	case kButtonId_StickL_Down: return "down";
-	case kButtonId_StickL_Left: return "left";
-	case kButtonId_StickL_Right: return "right";
+	case kButtonId_StickL_Up:
+		return "up";
+	case kButtonId_StickL_Down:
+		return "down";
+	case kButtonId_StickL_Left:
+		return "left";
+	case kButtonId_StickL_Right:
+		return "right";
 
-	case kButtonId_StickR_Up: return "up";
-	case kButtonId_StickR_Down: return "down";
-	case kButtonId_StickR_Left: return "left";
-	case kButtonId_StickR_Right: return "right";
+	case kButtonId_StickR_Up:
+		return "up";
+	case kButtonId_StickR_Down:
+		return "down";
+	case kButtonId_StickR_Left:
+		return "left";
+	case kButtonId_StickR_Right:
+		return "right";
 
 	default:
 		return "";
@@ -123,7 +145,7 @@ glm::vec2 ClassicController::get_trigger() const
 {
 	const auto left = get_axis_value(kButtonId_ZL);
 	const auto right = get_axis_value(kButtonId_ZR);
-	return { left, right };
+	return {left, right};
 }
 
 bool ClassicController::set_default_mapping(const std::shared_ptr<ControllerBase>& controller)
@@ -131,32 +153,26 @@ bool ClassicController::set_default_mapping(const std::shared_ptr<ControllerBase
 	std::vector<std::pair<uint64, uint64>> mapping;
 	switch (controller->api())
 	{
-	case InputAPI::SDLController: {
+	case InputAPI::SDLController:
+	{
 		const auto sdl_controller = std::static_pointer_cast<SDLController>(controller);
 		if (sdl_controller->get_guid() == SDLController::kLeftJoyCon)
 		{
-			mapping =
-			{
-				{kButtonId_L, kButton9},
-				{kButtonId_ZL, kTriggerXP},
+			mapping = {
+				{kButtonId_L, kButton9},		  {kButtonId_ZL, kTriggerXP},
 
 				{kButtonId_Minus, kButton4},
 
-				{kButtonId_Up, kButton11},
-				{kButtonId_Down, kButton12},
-				{kButtonId_Left, kButton13},
-				{kButtonId_Right, kButton14},
+				{kButtonId_Up, kButton11},		  {kButtonId_Down, kButton12},
+				{kButtonId_Left, kButton13},	  {kButtonId_Right, kButton14},
 
-				{kButtonId_StickL_Up, kAxisYN},
-				{kButtonId_StickL_Down, kAxisYP},
-				{kButtonId_StickL_Left, kAxisXN},
-				{kButtonId_StickL_Right, kAxisXP},
+				{kButtonId_StickL_Up, kAxisYN},	  {kButtonId_StickL_Down, kAxisYP},
+				{kButtonId_StickL_Left, kAxisXN}, {kButtonId_StickL_Right, kAxisXP},
 			};
 		}
 		else if (sdl_controller->get_guid() == SDLController::kRightJoyCon)
 		{
-			mapping =
-			{
+			mapping = {
 				{kButtonId_A, kButton0},
 				{kButtonId_B, kButton1},
 				{kButtonId_X, kButton2},
@@ -175,8 +191,7 @@ bool ClassicController::set_default_mapping(const std::shared_ptr<ControllerBase
 		}
 		else
 		{
-			mapping =
-			{
+			mapping = {
 				{kButtonId_A, kButton1},
 				{kButtonId_B, kButton0},
 				{kButtonId_X, kButton3},
@@ -209,8 +224,7 @@ bool ClassicController::set_default_mapping(const std::shared_ptr<ControllerBase
 	}
 	case InputAPI::XInput:
 	{
-		mapping =
-		{
+		mapping = {
 			{kButtonId_A, kButton13},
 			{kButtonId_B, kButton12},
 			{kButtonId_X, kButton15},
@@ -239,20 +253,21 @@ bool ClassicController::set_default_mapping(const std::shared_ptr<ControllerBase
 			{kButtonId_StickR_Left, kRotationXN},
 			{kButtonId_StickR_Right, kRotationXP},
 		};
-		
+
 		break;
 	}
 	}
 
 	bool mapping_updated = false;
-	std::for_each(mapping.cbegin(), mapping.cend(), [this, &controller, &mapping_updated](const auto& m)
-		{
-			if (m_mappings.find(m.first) == m_mappings.cend())
-			{
-				set_mapping(m.first, controller, m.second);
-				mapping_updated = true;
-			}
-		});
+	std::for_each(mapping.cbegin(), mapping.cend(),
+				  [this, &controller, &mapping_updated](const auto& m)
+				  {
+					  if (m_mappings.find(m.first) == m_mappings.cend())
+					  {
+						  set_mapping(m.first, controller, m.second);
+						  mapping_updated = true;
+					  }
+				  });
 
 	return mapping_updated;
 }

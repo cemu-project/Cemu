@@ -15,21 +15,21 @@
 #include "Cafe/HW/Espresso/Debugger/DebugSymbolStorage.h"
 #include <wx/mstream.h> // for wxMemoryInputStream
 
-#define MAX_SYMBOL_LEN			(120)
+#define MAX_SYMBOL_LEN (120)
 
-#define COLOR_DEBUG_ACTIVE_BP	0xFFFFA0FF
-#define COLOR_DEBUG_ACTIVE		0xFFFFA080
-#define COLOR_DEBUG_BP			0xFF8080FF
+#define COLOR_DEBUG_ACTIVE_BP 0xFFFFA0FF
+#define COLOR_DEBUG_ACTIVE 0xFFFFA080
+#define COLOR_DEBUG_BP 0xFF8080FF
 
-#define SYNTAX_COLOR_GPR		0xFF000066
-#define SYNTAX_COLOR_FPR		0xFF006666
-#define SYNTAX_COLOR_SPR		0xFF666600
-#define SYNTAX_COLOR_CR			0xFF666600
-#define SYNTAX_COLOR_IMM		0xFF006600
-#define SYNTAX_COLOR_IMM_OFFSET	0xFF006600
-#define SYNTAX_COLOR_CIMM		0xFF880000
-#define SYNTAX_COLOR_PSEUDO		0xFFA0A0A0 // color for pseudo code
-#define SYNTAX_COLOR_SYMBOL		0xFF0000A0 // color for function symbol
+#define SYNTAX_COLOR_GPR 0xFF000066
+#define SYNTAX_COLOR_FPR 0xFF006666
+#define SYNTAX_COLOR_SPR 0xFF666600
+#define SYNTAX_COLOR_CR 0xFF666600
+#define SYNTAX_COLOR_IMM 0xFF006600
+#define SYNTAX_COLOR_IMM_OFFSET 0xFF006600
+#define SYNTAX_COLOR_CIMM 0xFF880000
+#define SYNTAX_COLOR_PSEUDO 0xFFA0A0A0 // color for pseudo code
+#define SYNTAX_COLOR_SYMBOL 0xFF0000A0 // color for function symbol
 
 #define OFFSET_ADDRESS (60)
 #define OFFSET_ADDRESS_RELATIVE (90)
@@ -39,28 +39,24 @@
 
 wxBitmap* g_ipArrowBitmap = nullptr;
 
-uint8 _arrowRightPNG[] =
-{
-	0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-	0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x0B,
-	0x08, 0x03, 0x00, 0x00, 0x00, 0x41, 0x3C, 0xFD, 0x0B, 0x00, 0x00, 0x00,
-	0x01, 0x73, 0x52, 0x47, 0x42, 0x00, 0xAE, 0xCE, 0x1C, 0xE9, 0x00, 0x00,
-	0x00, 0x04, 0x67, 0x41, 0x4D, 0x41, 0x00, 0x00, 0xB1, 0x8F, 0x0B, 0xFC,
-	0x61, 0x05, 0x00, 0x00, 0x00, 0x06, 0x50, 0x4C, 0x54, 0x45, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0xA5, 0x67, 0xB9, 0xCF, 0x00, 0x00, 0x00, 0x02,
-	0x74, 0x52, 0x4E, 0x53, 0xFF, 0x00, 0xE5, 0xB7, 0x30, 0x4A, 0x00, 0x00,
-	0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC3, 0x00, 0x00,
-	0x0E, 0xC3, 0x01, 0xC7, 0x6F, 0xA8, 0x64, 0x00, 0x00, 0x00, 0x2C, 0x49,
-	0x44, 0x41, 0x54, 0x18, 0x57, 0x63, 0x60, 0x84, 0x03, 0x08, 0x13, 0x59,
-	0x00, 0xCC, 0x46, 0x11, 0x00, 0x71, 0x80, 0x24, 0x32, 0xC0, 0x10, 0x60,
-	0xC0, 0x10, 0xC0, 0x00, 0x58, 0xCC, 0x80, 0xD8, 0x00, 0x02, 0x60, 0x3E,
-	0x7E, 0x77, 0x00, 0x31, 0x23, 0x23, 0x00, 0x21, 0x95, 0x00, 0x5B, 0x20,
-	0x73, 0x8D, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-	0x42, 0x60, 0x82
-};
+uint8 _arrowRightPNG[] = {
+	0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+	0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x0B, 0x08, 0x03, 0x00, 0x00, 0x00, 0x41, 0x3C, 0xFD,
+	0x0B, 0x00, 0x00, 0x00, 0x01, 0x73, 0x52, 0x47, 0x42, 0x00, 0xAE, 0xCE, 0x1C, 0xE9, 0x00, 0x00,
+	0x00, 0x04, 0x67, 0x41, 0x4D, 0x41, 0x00, 0x00, 0xB1, 0x8F, 0x0B, 0xFC, 0x61, 0x05, 0x00, 0x00,
+	0x00, 0x06, 0x50, 0x4C, 0x54, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA5, 0x67, 0xB9, 0xCF,
+	0x00, 0x00, 0x00, 0x02, 0x74, 0x52, 0x4E, 0x53, 0xFF, 0x00, 0xE5, 0xB7, 0x30, 0x4A, 0x00, 0x00,
+	0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC3, 0x00, 0x00, 0x0E, 0xC3, 0x01, 0xC7,
+	0x6F, 0xA8, 0x64, 0x00, 0x00, 0x00, 0x2C, 0x49, 0x44, 0x41, 0x54, 0x18, 0x57, 0x63, 0x60, 0x84,
+	0x03, 0x08, 0x13, 0x59, 0x00, 0xCC, 0x46, 0x11, 0x00, 0x71, 0x80, 0x24, 0x32, 0xC0, 0x10, 0x60,
+	0xC0, 0x10, 0xC0, 0x00, 0x58, 0xCC, 0x80, 0xD8, 0x00, 0x02, 0x60, 0x3E, 0x7E, 0x77, 0x00, 0x31,
+	0x23, 0x23, 0x00, 0x21, 0x95, 0x00, 0x5B, 0x20, 0x73, 0x8D, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x49,
+	0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82};
 
-DisasmCtrl::DisasmCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size, long style)
-	: TextList(parent, id, pos, size, style), m_mouse_line(-1), m_mouse_line_drawn(-1), m_active_line(-1)
+DisasmCtrl::DisasmCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos,
+					   const wxSize& size, long style)
+	: TextList(parent, id, pos, size, style), m_mouse_line(-1), m_mouse_line_drawn(-1),
+	  m_active_line(-1)
 {
 	Init();
 
@@ -113,7 +109,8 @@ void DisasmCtrl::SelectCodeRegion(uint32 newAddress)
 	}
 }
 
-void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress, RPLModule* rplModule)
+void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress,
+									 RPLModule* rplModule)
 {
 	wxPoint position = linePosition;
 
@@ -138,7 +135,8 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 
 	ppcAssembler_disassemble(virtualAddress, opcode, &disasmInstr);
 
-	const bool is_active_bp = debuggerState.debugSession.isTrapped && debuggerState.debugSession.instructionPointer == virtualAddress;
+	const bool is_active_bp = debuggerState.debugSession.isTrapped &&
+							  debuggerState.debugSession.instructionPointer == virtualAddress;
 
 	// write virtual address
 	wxColour background_colour;
@@ -148,7 +146,7 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 		background_colour = wxColour(0xFF80A0FF);
 	else if (bp != nullptr)
 		background_colour = wxColour(0xFF8080FF);
-	else if(virtualAddress == m_lastGotoTarget)
+	else if (virtualAddress == m_lastGotoTarget)
 		background_colour = wxColour(0xFFE0E0E0);
 	else
 		background_colour = wxColour(COLOR_WHITE);
@@ -161,14 +159,16 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 
 	dc.SetTextForeground(COLOR_GREY);
 	if (rplModule)
-		dc.DrawText(wxString::Format("+0x%-8x", virtualAddress - rplModule->regionMappingBase_text.GetMPTR()), position);
+		dc.DrawText(wxString::Format("+0x%-8x",
+									 virtualAddress - rplModule->regionMappingBase_text.GetMPTR()),
+					position);
 	else
 		dc.DrawText("???", position);
 
 	position.x += OFFSET_ADDRESS_RELATIVE;
 
 	// draw arrow to clearly indicate instruction pointer
-	if(is_active_bp)
+	if (is_active_bp)
 		dc.DrawBitmap(*g_ipArrowBitmap, wxPoint(position.x - 24, position.y + 2), false);
 
 	// handle data symbols
@@ -204,7 +204,8 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 	dc.DrawText(wxString::Format("%-12s", opName), position);
 	position.x += OFFSET_DISASSEMBLY_OPERAND;
 
-	bool isRLWINM = disasmInstr.ppcAsmCode == PPCASM_OP_RLWINM || disasmInstr.ppcAsmCode == PPCASM_OP_RLWINM_ ||
+	bool isRLWINM =
+		disasmInstr.ppcAsmCode == PPCASM_OP_RLWINM || disasmInstr.ppcAsmCode == PPCASM_OP_RLWINM_ ||
 		disasmInstr.ppcAsmCode == PPCASM_OP_CLRLWI || disasmInstr.ppcAsmCode == PPCASM_OP_CLRLWI_ ||
 		disasmInstr.ppcAsmCode == PPCASM_OP_CLRRWI || disasmInstr.ppcAsmCode == PPCASM_OP_CLRRWI_ ||
 		disasmInstr.ppcAsmCode == PPCASM_OP_EXTLWI || disasmInstr.ppcAsmCode == PPCASM_OP_EXTLWI_ ||
@@ -218,7 +219,11 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 	if (disasmInstr.ppcAsmCode == PPCASM_OP_UKN)
 	{
 		// show raw bytes
-		WriteText(dc, wxString::Format("%02x %02x %02x %02x", (opcode >> 24) & 0xFF, (opcode >> 16) & 0xFF, (opcode >> 8) & 0xFF, (opcode >> 0) & 0xFF), position, SYNTAX_COLOR_PSEUDO);
+		WriteText(dc,
+				  wxString::Format("%02x %02x %02x %02x", (opcode >> 24) & 0xFF,
+								   (opcode >> 16) & 0xFF, (opcode >> 8) & 0xFF,
+								   (opcode >> 0) & 0xFF),
+				  position, SYNTAX_COLOR_PSEUDO);
 	}
 
 	bool is_first_operand = true;
@@ -234,19 +239,23 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 		switch (disasmInstr.operand[o].type)
 		{
 		case PPCASM_OPERAND_TYPE_GPR:
-			WriteText(dc, wxString::Format("r%d", disasmInstr.operand[o].registerIndex), position, SYNTAX_COLOR_GPR);
+			WriteText(dc, wxString::Format("r%d", disasmInstr.operand[o].registerIndex), position,
+					  SYNTAX_COLOR_GPR);
 			break;
 
 		case PPCASM_OPERAND_TYPE_FPR:
-			WriteText(dc, wxString::Format("f%d", disasmInstr.operand[o].registerIndex), position, SYNTAX_COLOR_FPR);
+			WriteText(dc, wxString::Format("f%d", disasmInstr.operand[o].registerIndex), position,
+					  SYNTAX_COLOR_FPR);
 			break;
 
 		case PPCASM_OPERAND_TYPE_SPR:
-			WriteText(dc, wxString::Format("spr%d", disasmInstr.operand[o].registerIndex), position, SYNTAX_COLOR_SPR);
+			WriteText(dc, wxString::Format("spr%d", disasmInstr.operand[o].registerIndex), position,
+					  SYNTAX_COLOR_SPR);
 			break;
 
 		case PPCASM_OPERAND_TYPE_CR:
-			WriteText(dc, wxString::Format("cr%d", disasmInstr.operand[o].registerIndex), position, SYNTAX_COLOR_CR);
+			WriteText(dc, wxString::Format("cr%d", disasmInstr.operand[o].registerIndex), position,
+					  SYNTAX_COLOR_CR);
 			break;
 
 		case PPCASM_OPERAND_TYPE_IMM:
@@ -277,7 +286,6 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 					string = wxString::Format("0x%x", uImm);
 			}
 
-
 			WriteText(dc, string, position, SYNTAX_COLOR_IMM);
 			break;
 		}
@@ -292,7 +300,7 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 		case PPCASM_OPERAND_TYPE_CIMM:
 		{
 			wxString string;
-			// use symbol for function calls if available 
+			// use symbol for function calls if available
 			uint32 callDest = disasmInstr.operand[o].immU32;
 			RPLStoredSymbol* storedSymbol = nullptr;
 			if (disasmInstr.ppcAsmCode == PPCASM_OP_BL || disasmInstr.ppcAsmCode == PPCASM_OP_BLA)
@@ -301,11 +309,16 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 			if (storedSymbol)
 			{
 				// if symbol is within same module then don't display libname prefix
-				RPLModule* rplModuleCurrent = RPLLoader_FindModuleByCodeAddr(virtualAddress); // cache this
-				if (rplModuleCurrent && callDest >= rplModuleCurrent->regionMappingBase_text.GetMPTR() && callDest < (rplModuleCurrent->regionMappingBase_text.GetMPTR() + rplModuleCurrent->regionSize_text))
+				RPLModule* rplModuleCurrent =
+					RPLLoader_FindModuleByCodeAddr(virtualAddress); // cache this
+				if (rplModuleCurrent &&
+					callDest >= rplModuleCurrent->regionMappingBase_text.GetMPTR() &&
+					callDest < (rplModuleCurrent->regionMappingBase_text.GetMPTR() +
+								rplModuleCurrent->regionSize_text))
 					string = wxString((char*)storedSymbol->symbolName);
 				else
-					string = wxString::Format("%s.%s", (char*)storedSymbol->libName, (char*)storedSymbol->symbolName);
+					string = wxString::Format("%s.%s", (char*)storedSymbol->libName,
+											  (char*)storedSymbol->symbolName);
 
 				// truncate name after 36 characters
 				if (string.Length() >= 36)
@@ -347,7 +360,8 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 			WriteText(dc, "(", position, COLOR_BLACK);
 
 			// register
-			WriteText(dc, wxString::Format("r%d", disasmInstr.operand[o].registerIndex), position, SYNTAX_COLOR_GPR);
+			WriteText(dc, wxString::Format("r%d", disasmInstr.operand[o].registerIndex), position,
+					  SYNTAX_COLOR_GPR);
 			WriteText(dc, ")", position, COLOR_BLACK);
 			break;
 		}
@@ -358,7 +372,8 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 	}
 
 	position.x = start_width + OFFSET_DISASSEMBLY;
-	const auto comment = static_cast<rplDebugSymbolComment*>(rplDebugSymbol_getForAddress(virtualAddress));
+	const auto comment =
+		static_cast<rplDebugSymbolComment*>(rplDebugSymbol_getForAddress(virtualAddress));
 	if (comment && comment->type == RplDebugSymbolComment)
 		WriteText(dc, comment->comment, position, COLOR_BLACK);
 	else if (isRLWINM)
@@ -396,7 +411,8 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 	}
 }
 
-void DisasmCtrl::DrawLabelName(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress, RPLStoredSymbol* storedSymbol)
+void DisasmCtrl::DrawLabelName(wxDC& dc, const wxPoint& linePosition, MPTR virtualAddress,
+							   RPLStoredSymbol* storedSymbol)
 {
 	wxString symbol_string = wxString::Format("%s:", (char*)storedSymbol->symbolName);
 	if (symbol_string.Length() > MAX_SYMBOL_LEN)
@@ -413,7 +429,7 @@ void DisasmCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& sta
 	wxPoint position(0, 0);
 
 	RPLModule* current_rpl_module = RPLLoader_FindModuleByCodeAddr(GetViewBaseAddress());
-	
+
 	if (currentCodeRegionStart == currentCodeRegionEnd)
 		return;
 
@@ -426,22 +442,21 @@ void DisasmCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& sta
 	sint32 numLinesToUpdate = lineOffset + count;
 	numLinesToUpdate = std::min(numLinesToUpdate, (sint32)m_elements_visible);
 
-	if(m_lineToAddress.size() != m_elements_visible)
+	if (m_lineToAddress.size() != m_elements_visible)
 		m_lineToAddress.resize(m_elements_visible);
 
 	sint32 lineIndex = 0;
-	while(lineIndex < numLinesToUpdate)
+	while (lineIndex < numLinesToUpdate)
 	{
 		const uint32 virtualAddress = GetViewBaseAddress() + instructionIndex * 4;
 		instructionIndex++;
 
-		if (virtualAddress < currentCodeRegionStart ||
-			virtualAddress >= currentCodeRegionEnd)
+		if (virtualAddress < currentCodeRegionStart || virtualAddress >= currentCodeRegionEnd)
 		{
 			NextLine(position, &start_position);
 			m_lineToAddress[lineIndex] = std::nullopt;
 			lineIndex++;
-			continue;	
+			continue;
 		}
 
 		// check if valid memory address
@@ -457,7 +472,7 @@ void DisasmCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& sta
 		RPLStoredSymbol* storedSymbol = rplSymbolStorage_getByAddress(virtualAddress);
 		if (storedSymbol)
 		{
-			if(lineIndex >= lineOffset)
+			if (lineIndex >= lineOffset)
 				DrawLabelName(dc, position, virtualAddress, storedSymbol);
 			m_lineToAddress[lineIndex] = virtualAddress;
 			lineIndex++;
@@ -515,10 +530,7 @@ void DisasmCtrl::OnMouseMove(const wxPoint& start_position, uint32 line)
 	// disassembly code
 	if (position.x <= OFFSET_DISASSEMBLY)
 	{
-		if(m_mouse_down)
-		{
-			
-		}
+		if (m_mouse_down) {}
 
 		if (position.x <= OFFSET_DISASSEMBLY_OPERAND)
 		{
@@ -535,28 +547,27 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 	switch (key_code)
 	{
 	case WXK_F9:
+	{
+		if (optVirtualAddress)
 		{
-			if (optVirtualAddress)
-			{
-				debugger_toggleExecuteBreakpoint(*optVirtualAddress);
+			debugger_toggleExecuteBreakpoint(*optVirtualAddress);
 
-				RefreshControl();
+			RefreshControl();
 
-				wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
-				wxPostEvent(this->m_parent, evt);
-			}
+			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
+			wxPostEvent(this->m_parent, evt);
+		}
+		return;
+	}
+	case 'G':
+	{
+		if (IsKeyDown(WXK_CONTROL))
+		{
+			GoToAddressDialog();
 			return;
 		}
-	case 'G':
-		{
-			if(IsKeyDown(WXK_CONTROL))
-			{
-				GoToAddressDialog();
-				return;
-			}
-		}
 	}
-
+	}
 
 	// debugger currently in break state
 	if (debuggerState.debugSession.isTrapped)
@@ -564,19 +575,19 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 		switch (key_code)
 		{
 		case WXK_F5:
-			{
-				debuggerState.debugSession.run = true;
-				return;
-			}
+		{
+			debuggerState.debugSession.run = true;
+			return;
+		}
 		case WXK_F10:
-			{
-				debuggerState.debugSession.stepOver = true;
-				return;
-			}
+		{
+			debuggerState.debugSession.stepOver = true;
+			return;
+		}
 		case WXK_F11:
-			{
-				debuggerState.debugSession.stepInto = true;
-			}
+		{
+			debuggerState.debugSession.stepInto = true;
+		}
 		}
 	}
 	else
@@ -584,9 +595,9 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 		switch (key_code)
 		{
 		case WXK_F5:
-			{
-				debuggerState.debugSession.shouldBreak = true;
-			}
+		{
+			debuggerState.debugSession.shouldBreak = true;
+		}
 		}
 	}
 }
@@ -613,14 +624,18 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 	{
 		// double-clicked on disassembly (operation and operand data)
 		wxString currentInstruction = wxEmptyString;
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new instruction."), _(wxString::Format("Overwrite instruction at address %08x", virtualAddress)), currentInstruction);
+		wxTextEntryDialog set_value_dialog(
+			this, _("Enter a new instruction."),
+			_(wxString::Format("Overwrite instruction at address %08x", virtualAddress)),
+			currentInstruction);
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
-			PPCAssemblerInOut ctx = { 0 };
+			PPCAssemblerInOut ctx = {0};
 			ctx.virtualAddress = virtualAddress;
 			if (ppcAssembler_assembleSingleInstruction(set_value_dialog.GetValue().c_str(), &ctx))
 			{
-				debugger_createPatch(virtualAddress, { ctx.outputData.data(), ctx.outputData.size() });
+				debugger_createPatch(virtualAddress,
+									 {ctx.outputData.data(), ctx.outputData.size()});
 				RefreshLine(line);
 			}
 		}
@@ -629,13 +644,16 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 	else
 	{
 		// comment
-		const auto comment = static_cast<rplDebugSymbolComment*>(rplDebugSymbol_getForAddress(virtualAddress));
+		const auto comment =
+			static_cast<rplDebugSymbolComment*>(rplDebugSymbol_getForAddress(virtualAddress));
 
 		wxString old_comment = wxEmptyString;
 		if (comment && comment->type == RplDebugSymbolComment)
 			old_comment = comment->comment;
 
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new comment."), _(wxString::Format("Create comment at address %08x", virtualAddress)), old_comment);
+		wxTextEntryDialog set_value_dialog(
+			this, _("Enter a new comment."),
+			_(wxString::Format("Create comment at address %08x", virtualAddress)), old_comment);
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
 			rplDebugSymbol_createComment(virtualAddress, set_value_dialog.GetValue().wc_str());
@@ -645,7 +663,8 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 	}
 }
 
-void DisasmCtrl::CopyToClipboard(std::string text) {
+void DisasmCtrl::CopyToClipboard(std::string text)
+{
 #if BOOST_OS_WINDOWS
 	if (OpenClipboard(nullptr))
 	{
@@ -724,7 +743,6 @@ std::optional<MPTR> DisasmCtrl::LinePixelPosToAddress(sint32 posY)
 	if (posY < 0)
 		return std::nullopt;
 
-
 	sint32 lineIndex = posY / m_line_height;
 	if (lineIndex >= m_lineToAddress.size())
 		return std::nullopt;
@@ -759,7 +777,8 @@ void DisasmCtrl::CenterOffset(uint32 offset)
 
 void DisasmCtrl::GoToAddressDialog()
 {
-	wxTextEntryDialog goto_dialog(this, _("Enter a target address."), _("GoTo address"), wxEmptyString);
+	wxTextEntryDialog goto_dialog(this, _("Enter a target address."), _("GoTo address"),
+								  wxEmptyString);
 	if (goto_dialog.ShowModal() == wxID_OK)
 	{
 		ExpressionParser parser;
@@ -799,7 +818,7 @@ void DisasmCtrl::GoToAddressDialog()
 			CenterOffset(result);
 			debuggerWindow_updateViewThreadsafe2();
 		}
-		catch (const std::exception& )
+		catch (const std::exception&)
 		{
 		}
 	}

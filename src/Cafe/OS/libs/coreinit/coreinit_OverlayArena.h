@@ -1,4 +1,4 @@
 namespace coreinit
 {
-	void InitializeOverlayArena();
+void InitializeOverlayArena();
 };

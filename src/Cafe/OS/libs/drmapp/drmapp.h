@@ -1,5 +1,5 @@
 
 namespace drmapp
 {
-	void Initialize();
+void Initialize();
 }

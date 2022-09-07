@@ -5,15 +5,15 @@
 
 class Semaphore
 {
-public:
-	void notify() 
+  public:
+	void notify()
 	{
 		std::lock_guard lock(m_mutex);
 		++m_count;
 		m_condition.notify_one();
 	}
 
-	void wait() 
+	void wait()
 	{
 		std::unique_lock lock(m_mutex);
 		while (m_count == 0)
@@ -24,7 +24,7 @@ public:
 		--m_count;
 	}
 
-	bool try_wait() 
+	bool try_wait()
 	{
 		std::lock_guard lock(m_mutex);
 		if (m_count == 0)
@@ -40,7 +40,7 @@ public:
 		m_count = 0;
 	}
 
-private:
+  private:
 	std::mutex m_mutex;
 	std::condition_variable m_condition;
 	uint64 m_count = 0;
@@ -48,7 +48,7 @@ private:
 
 class CounterSemaphore
 {
-public:
+  public:
 	void reset()
 	{
 		std::lock_guard lock(m_mutex);
@@ -117,7 +117,7 @@ public:
 		return m_count == 0;
 	}
 
-private:
+  private:
 	std::mutex m_mutex;
 	std::condition_variable m_condition;
 	sint64 m_count = 0;
@@ -126,8 +126,8 @@ private:
 template<typename T>
 class StateSemaphore
 {
-public:
-	StateSemaphore(T initialState) : m_state(initialState) {};
+  public:
+	StateSemaphore(T initialState) : m_state(initialState){};
 
 	T getValue()
 	{
@@ -164,7 +164,7 @@ public:
 			m_condition.wait(lock);
 	}
 
-private:
+  private:
 	std::mutex m_mutex;
 	std::condition_variable m_condition;
 	T m_state;

@@ -5,19 +5,24 @@
 
 struct VkImageMemAllocation
 {
-	VkImageMemAllocation(uint32 _typeFilter, CHAddr _mem, uint32 _allocationSize) : typeFilter(_typeFilter), mem(_mem), allocationSize(_allocationSize) { };
+	VkImageMemAllocation(uint32 _typeFilter, CHAddr _mem, uint32 _allocationSize)
+		: typeFilter(_typeFilter), mem(_mem), allocationSize(_allocationSize){};
 
 	uint32 typeFilter;
 	CHAddr mem;
 	uint32 allocationSize;
 
-	uint32 getAllocationSize() { return allocationSize; }
+	uint32 getAllocationSize()
+	{
+		return allocationSize;
+	}
 };
 
 class VkTextureChunkedHeap : private ChunkedHeap
 {
-public:
-	VkTextureChunkedHeap(class VKRMemoryManager* memoryManager, uint32 typeFilter, VkDevice device) : m_vkrMemoryManager(memoryManager), m_typeFilter(typeFilter), m_device(device) { };
+  public:
+	VkTextureChunkedHeap(class VKRMemoryManager* memoryManager, uint32 typeFilter, VkDevice device)
+		: m_vkrMemoryManager(memoryManager), m_typeFilter(typeFilter), m_device(device){};
 
 	struct ChunkInfo
 	{
@@ -62,7 +67,7 @@ public:
 	}
 
 	VkDevice m_device;
-	uint32 m_typeFilter{ 0xFFFFFFFF };
+	uint32 m_typeFilter{0xFFFFFFFF};
 	class VKRMemoryManager* m_vkrMemoryManager;
 	std::vector<ChunkInfo> m_list_chunkInfo;
 };
@@ -70,14 +75,18 @@ public:
 // a circular ring-buffer which tracks and releases memory per command-buffer
 class VKRSynchronizedRingAllocator
 {
-public:
+  public:
 	enum class BUFFER_TYPE
 	{
 		STAGING, // staging upload buffer
-		INDEX, // buffer for index data
+		INDEX,	 // buffer for index data
 	};
 
-	VKRSynchronizedRingAllocator(class VulkanRenderer* vkRenderer, class VKRMemoryManager* vkMemoryManager, BUFFER_TYPE bufferType, uint32 minimumBufferAllocSize) : m_vkr(vkRenderer), m_vkrMemMgr(vkMemoryManager), m_bufferType(bufferType), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
+	VKRSynchronizedRingAllocator(class VulkanRenderer* vkRenderer,
+								 class VKRMemoryManager* vkMemoryManager, BUFFER_TYPE bufferType,
+								 uint32 minimumBufferAllocSize)
+		: m_vkr(vkRenderer), m_vkrMemMgr(vkMemoryManager), m_bufferType(bufferType),
+		  m_minimumBufferAllocSize(minimumBufferAllocSize){};
 	VKRSynchronizedRingAllocator(const VKRSynchronizedRingAllocator&) = delete; // disallow copy
 
 	struct BufferSyncPoint_t
@@ -86,7 +95,8 @@ public:
 		uint64 commandBufferId;
 		uint32 offset;
 
-		BufferSyncPoint_t(uint64 _commandBufferId, uint32 _offset) : commandBufferId(_commandBufferId), offset(_offset) {};
+		BufferSyncPoint_t(uint64 _commandBufferId, uint32 _offset)
+			: commandBufferId(_commandBufferId), offset(_offset){};
 	};
 
 	struct AllocatorBuffer_t
@@ -97,9 +107,10 @@ public:
 		uint32 size;
 		uint32 writeIndex;
 		std::queue<BufferSyncPoint_t> queue_syncPoints;
-		uint64 lastSyncpointCmdBufferId{ 0xFFFFFFFFFFFFFFFFull };
+		uint64 lastSyncpointCmdBufferId{0xFFFFFFFFFFFFFFFFull};
 		uint32 index;
-		uint32 cleanupCounter{ 0 }; // increased by one every time CleanupBuffer() is called if there is no sync point. If it reaches 300 then the buffer is released
+		uint32 cleanupCounter{0}; // increased by one every time CleanupBuffer() is called if there
+								  // is no sync point. If it reaches 300 then the buffer is released
 	};
 
 	struct AllocatorReservation_t
@@ -119,7 +130,7 @@ public:
 
 	void GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const;
 
-private:
+  private:
 	void allocateAdditionalUploadBuffer(uint32 sizeRequiredForAlloc);
 	void addUploadBufferSyncPoint(AllocatorBuffer_t& buffer, uint32 offset);
 
@@ -129,7 +140,6 @@ private:
 	const uint32 m_minimumBufferAllocSize;
 
 	std::vector<AllocatorBuffer_t> m_buffers;
-
 };
 
 void LatteIndices_invalidateAll();
@@ -137,8 +147,13 @@ void LatteIndices_invalidateAll();
 class VKRMemoryManager
 {
 	friend class VKRSynchronizedRingAllocator;
-public:
-	VKRMemoryManager(class VulkanRenderer* renderer) : m_stagingBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::STAGING, 32u * 1024 * 1024), m_indexBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::INDEX, 4u * 1024 * 1024)
+
+  public:
+	VKRMemoryManager(class VulkanRenderer* renderer)
+		: m_stagingBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::STAGING,
+						  32u * 1024 * 1024),
+		  m_indexBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::INDEX,
+						4u * 1024 * 1024)
 	{
 		m_vkr = renderer;
 	}
@@ -162,8 +177,14 @@ public:
 		m_textureUploadBuffer.clear();
 	}
 
-	VKRSynchronizedRingAllocator& getStagingAllocator() { return m_stagingBuffer; }; // allocator for texture/attribute/uniform uploads
-	VKRSynchronizedRingAllocator& getIndexAllocator() { return m_indexBuffer; }; // allocator for index data
+	VKRSynchronizedRingAllocator& getStagingAllocator()
+	{
+		return m_stagingBuffer;
+	}; // allocator for texture/attribute/uniform uploads
+	VKRSynchronizedRingAllocator& getIndexAllocator()
+	{
+		return m_indexBuffer;
+	}; // allocator for index data
 
 	void cleanupBuffers(uint64 latestFinishedCommandBufferId)
 	{
@@ -174,27 +195,38 @@ public:
 
 	// memory helpers
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-	bool FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const; // searches for exact properties. Can gracefully fail without throwing exception (returns false)
-	std::vector<uint32> FindMemoryTypes(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+	bool
+	FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties,
+					uint32& memoryIndex) const; // searches for exact properties. Can gracefully
+												// fail without throwing exception (returns false)
+	std::vector<uint32> FindMemoryTypes(uint32_t typeFilter,
+										VkMemoryPropertyFlags properties) const;
 
 	// image memory allocation
 	void imageMemoryFree(VkImageMemAllocation* imageMemAllocation);
 	VkImageMemAllocation* imageMemoryAllocate(VkImage image);
 
 	// buffer management
-	size_t GetTotalMemoryForBufferType(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, size_t minimumBufferSize = 16 * 1024 * 1024);
+	size_t GetTotalMemoryForBufferType(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+									   size_t minimumBufferSize = 16 * 1024 * 1024);
 
-	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
-	bool CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const; // same as CreateBuffer but doesn't throw exception on failure
-	bool CreateBufferFromHostMemory(void* hostPointer, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+					  VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+	bool CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage,
+					   VkMemoryPropertyFlags properties, VkBuffer& buffer,
+					   VkDeviceMemory& bufferMemory)
+		const; // same as CreateBuffer but doesn't throw exception on failure
+	bool CreateBufferFromHostMemory(void* hostPointer, VkDeviceSize size, VkBufferUsageFlags usage,
+									VkMemoryPropertyFlags properties, VkBuffer& buffer,
+									VkDeviceMemory& bufferMemory) const;
 
 	void DeleteBuffer(VkBuffer& buffer, VkDeviceMemory& deviceMem) const;
 
 	// overlay info
 	void appendOverlayHeapDebugInfo();
 
-	private:
-		class VulkanRenderer* m_vkr;
-		VKRSynchronizedRingAllocator m_stagingBuffer;
-		VKRSynchronizedRingAllocator m_indexBuffer;
+  private:
+	class VulkanRenderer* m_vkr;
+	VKRSynchronizedRingAllocator m_stagingBuffer;
+	VKRSynchronizedRingAllocator m_indexBuffer;
 };

@@ -14,20 +14,20 @@
 
 class FSTDataSource
 {
-public:
-	virtual uint64 readData(uint16 clusterIndex, uint64 clusterOffset, uint64 offset, void* data, uint64 size) = 0;
-	virtual ~FSTDataSource() {};
+  public:
+	virtual uint64 readData(uint16 clusterIndex, uint64 clusterOffset, uint64 offset, void* data,
+							uint64 size) = 0;
+	virtual ~FSTDataSource(){};
 
-protected:
-	FSTDataSource() {};
+  protected:
+	FSTDataSource(){};
 
 	bool m_isOpen;
 };
 
 class FSTDataSourceWUD : public FSTDataSource
 {
-public:
-
+  public:
 	static FSTDataSourceWUD* Open(const fs::path& path)
 	{
 		wud_t* wudFile = wud_open(path);
@@ -48,7 +48,8 @@ public:
 		return m_baseOffset;
 	}
 
-	uint64 readData(uint16 clusterIndex, uint64 clusterOffset, uint64 offset, void* data, uint64 size) override
+	uint64 readData(uint16 clusterIndex, uint64 clusterOffset, uint64 offset, void* data,
+					uint64 size) override
 	{
 		cemu_assert_debug(size <= 0xFFFFFFFF);
 		return wud_readData(m_wudFile, data, (uint32)size, clusterOffset + offset + m_baseOffset);
@@ -56,12 +57,12 @@ public:
 
 	~FSTDataSourceWUD() override
 	{
-		if(m_wudFile)
+		if (m_wudFile)
 			wud_close(m_wudFile);
 	}
 
-protected:
-	FSTDataSourceWUD() {}	
+  protected:
+	FSTDataSourceWUD() {}
 	wud_t* m_wudFile;
 	uint64 m_baseOffset{};
 	std::vector<uint64> m_clusterOffset;
@@ -69,7 +70,7 @@ protected:
 
 class FSTDataSourceApp : public FSTDataSource
 {
-public:
+  public:
 	static FSTDataSourceApp* Open(fs::path path, NCrypto::TMDParser& tmd)
 	{
 		std::vector<std::unique_ptr<FileStream>> clusterFile;
@@ -80,7 +81,8 @@ public:
 		// open all the app files
 		for (auto& itr : tmd.GetContentList())
 		{
-			FileStream* appFile = FileStream::openFile2(path / fmt::format("{:08x}.app", itr.contentId));
+			FileStream* appFile =
+				FileStream::openFile2(path / fmt::format("{:08x}.app", itr.contentId));
 			if (!appFile)
 				return nullptr;
 			clusterFile[itr.index].reset(appFile);
@@ -90,9 +92,11 @@ public:
 		return dsApp;
 	}
 
-	uint64 readData(uint16 clusterIndex, uint64 clusterOffset, uint64 offset, void* data, uint64 size) override
+	uint64 readData(uint16 clusterIndex, uint64 clusterOffset, uint64 offset, void* data,
+					uint64 size) override
 	{
-		// ignore clusterOffset for .app files since each file is already relative to the cluster base
+		// ignore clusterOffset for .app files since each file is already relative to the cluster
+		// base
 		cemu_assert_debug(clusterIndex < m_clusterFile.size());
 		cemu_assert_debug(m_clusterFile[clusterIndex].get());
 		cemu_assert_debug(size <= 0xFFFFFFFF);
@@ -102,11 +106,9 @@ public:
 		return m_clusterFile[clusterIndex].get()->readData(data, (uint32)size);
 	}
 
-	~FSTDataSourceApp() override
-	{
-	}
+	~FSTDataSourceApp() override {}
 
-private:
+  private:
 	FSTDataSourceApp(std::vector<std::unique_ptr<FileStream>>&& clusterFiles)
 	{
 		m_clusterFile = std::move(clusterFiles);
@@ -140,7 +142,8 @@ struct DiscPartitionTableHeader
 
 	/* +0x00 */ uint32be magic;
 	/* +0x04 */ uint32be sectorSize; // must be 0x8000?
-	/* +0x08 */ uint8 partitionTableHash[20]; // hash of the data range at +0x800 to end of sector (0x8000)
+	/* +0x08 */ uint8
+		partitionTableHash[20]; // hash of the data range at +0x800 to end of sector (0x8000)
 	/* +0x1C */ uint32be numPartitions;
 };
 
@@ -149,7 +152,7 @@ static_assert(sizeof(DiscPartitionTableHeader) == 0x20);
 struct DiscPartitionTableEntry
 {
 	/* +0x00 */ uint8be partitionName[31];
-	/* +0x1F */ uint8be numAddresses; // ?
+	/* +0x1F */ uint8be numAddresses;	   // ?
 	/* +0x20 */ uint32be partitionAddress; // this is an array?
 	/* +0x24 */ uint8 padding[0x80 - 0x24];
 };
@@ -167,14 +170,16 @@ struct DiscPartitionHeader
 	/* +0x08 */ uint32be ukn008;
 	/* +0x0C */ uint32be ukn00C;
 	/* +0x10 */ uint32be h3HashNum;
-	/* +0x14 */ uint32be fstSize; // in bytes
+	/* +0x14 */ uint32be fstSize;	// in bytes
 	/* +0x18 */ uint32be fstSector; // relative to partition start
 	/* +0x1C */ uint32be ukn01C;
 	/* +0x20 */ uint32be ukn020;
 
 	// the hash and encryption mode for the FST cluster
 	/* +0x24 */ uint8 fstHashType;
-	/* +0x25 */ uint8 fstEncryptionType; // purpose of this isn't really understood. Maybe it controls which key is being used? (1 -> disc key, 2 -> partition key)
+	/* +0x25 */ uint8
+		fstEncryptionType; // purpose of this isn't really understood. Maybe it controls which key
+						   // is being used? (1 -> disc key, 2 -> partition key)
 
 	/* +0x26 */ uint8 versionA;
 	/* +0x27 */ uint8 ukn027; // also a version field?
@@ -191,19 +196,20 @@ bool FSTVolume::FindDiscKey(const fs::path& path, NCrypto::AesKey& discTitleKey)
 		return false;
 
 	// read section of header which should only contain zero bytes if decrypted
-	uint8 header[16*3];
+	uint8 header[16 * 3];
 	if (dataSource->readData(0, 0, 0x18000 + 0x100, header, sizeof(header)) != sizeof(header))
 		return false;
 
 	// try all the keys
-	uint8 headerDecrypted[sizeof(header)-16];
+	uint8 headerDecrypted[sizeof(header) - 16];
 	for (sint32 i = 0; i < 0x7FFFFFFF; i++)
 	{
 		uint8* key128 = KeyCache_GetAES128(i);
 		if (key128 == NULL)
 			break;
 		AES128_CBC_decrypt(headerDecrypted, header + 16, sizeof(headerDecrypted), key128, header);
-		if (std::all_of(headerDecrypted, headerDecrypted + sizeof(headerDecrypted), [](const uint8 v) {return v == 0; }))
+		if (std::all_of(headerDecrypted, headerDecrypted + sizeof(headerDecrypted),
+						[](const uint8 v) { return v == 0; }))
 		{
 			// key found
 			std::memcpy(discTitleKey.b, key128, 16);
@@ -221,11 +227,11 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, bool* keyFound)
 	NCrypto::AesKey discTitleKey;
 	if (!FindDiscKey(path, discTitleKey))
 	{
-		if(keyFound)
+		if (keyFound)
 			*keyFound = false;
 		return nullptr;
 	}
-	if(keyFound)
+	if (keyFound)
 		*keyFound = true;
 	return OpenFromDiscImage(path, discTitleKey);
 }
@@ -249,14 +255,16 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 		return nullptr;
 	// check HeaderB
 	DiscHeaderB headerB{};
-	if (dataSource->readData(0, 0, DISC_SECTOR_SIZE * 2, &headerB, sizeof(headerB)) != sizeof(headerB))
+	if (dataSource->readData(0, 0, DISC_SECTOR_SIZE * 2, &headerB, sizeof(headerB)) !=
+		sizeof(headerB))
 		return nullptr;
 	if (headerB.magic != headerB.MAGIC_VALUE)
 		return nullptr;
 
 	// read, decrypt and parse partition table
 	uint8 partitionSector[DISC_SECTOR_SIZE];
-	if (dataSource->readData(0, 0, DISC_SECTOR_SIZE * 3, partitionSector, DISC_SECTOR_SIZE) != DISC_SECTOR_SIZE)
+	if (dataSource->readData(0, 0, DISC_SECTOR_SIZE * 3, partitionSector, DISC_SECTOR_SIZE) !=
+		DISC_SECTOR_SIZE)
 		return nullptr;
 	uint8 iv[16]{};
 	AES128_CBC_decrypt(partitionSector, partitionSector, DISC_SECTOR_SIZE, discTitleKey.b, iv);
@@ -273,9 +281,12 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 		return nullptr;
 	}
 	uint32 numPartitions = partitionHeader->numPartitions;
-	if (numPartitions > 30) // there is space for up to 240 partitions but we use a more reasonable limit
+	if (numPartitions >
+		30) // there is space for up to 240 partitions but we use a more reasonable limit
 	{
-		cemuLog_log(LogType::Force, "Disc image rejected due to exceeding the partition limit (has {} partitions)", numPartitions);
+		cemuLog_log(LogType::Force,
+					"Disc image rejected due to exceeding the partition limit (has {} partitions)",
+					numPartitions);
 		return nullptr;
 	}
 	DiscPartitionTableEntry* partitionArray = (DiscPartitionTableEntry*)(partitionSector + 0x800);
@@ -286,7 +297,8 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 	{
 		if (partitionArray[i].numAddresses != 1)
 		{
-			cemuLog_log(LogType::Force, "Disc image has unsupported partition with {} addresses", (uint32)partitionArray[i].numAddresses);
+			cemuLog_log(LogType::Force, "Disc image has unsupported partition with {} addresses",
+						(uint32)partitionArray[i].numAddresses);
 			return nullptr;
 		}
 		auto& name = partitionArray[i].partitionName;
@@ -302,22 +314,29 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 		if (name[0] == 'G' && name[1] == 'M')
 		{
 			if (gmPartitionIndex == std::numeric_limits<uint32>::max())
-				gmPartitionIndex = i; // we use the first GM partition we find. This is likely not correct but it seems to work for practically all disc images
+				gmPartitionIndex =
+					i; // we use the first GM partition we find. This is likely not correct but it
+					   // seems to work for practically all disc images
 		}
 	}
-	if (siPartitionIndex == std::numeric_limits<uint32>::max() || gmPartitionIndex == std::numeric_limits<uint32>::max())
+	if (siPartitionIndex == std::numeric_limits<uint32>::max() ||
+		gmPartitionIndex == std::numeric_limits<uint32>::max())
 	{
 		cemuLog_log(LogType::Force, "Disc image has no SI or GM partition. Cannot read game data");
 		return nullptr;
 	}
 
 	// read and verify partition headers for SI and GM
-	auto readPartitionHeader = [&](DiscPartitionHeader& partitionHeader, uint32 partitionIndex) -> bool
+	auto readPartitionHeader = [&](DiscPartitionHeader& partitionHeader,
+								   uint32 partitionIndex) -> bool
 	{
 		cemu_assert_debug(dataSource->GetBaseOffset() == 0);
-		if (dataSource->readData(0, 0, partitionArray[partitionIndex].partitionAddress * DISC_SECTOR_SIZE, &partitionHeader, sizeof(DiscPartitionHeader)) != sizeof(DiscPartitionHeader))
+		if (dataSource->readData(
+				0, 0, partitionArray[partitionIndex].partitionAddress * DISC_SECTOR_SIZE,
+				&partitionHeader, sizeof(DiscPartitionHeader)) != sizeof(DiscPartitionHeader))
 			return false;
-		if (partitionHeader.magic != partitionHeader.MAGIC_VALUE && partitionHeader.sectorSize != DISC_SECTOR_SIZE)
+		if (partitionHeader.magic != partitionHeader.MAGIC_VALUE &&
+			partitionHeader.sectorSize != DISC_SECTOR_SIZE)
 			return false;
 		return true;
 	};
@@ -346,13 +365,17 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 
 	// if decryption is necessary
 	// load SI FST
-	dataSource->SetBaseOffset((uint64)partitionArray[siPartitionIndex].partitionAddress * DISC_SECTOR_SIZE);
-	auto siFST = OpenFST(dataSource.get(), (uint64)partitionHeaderSI.fstSector * DISC_SECTOR_SIZE, partitionHeaderSI.fstSize, &discTitleKey, static_cast<FSTVolume::ClusterHashMode>(partitionHeaderSI.fstHashType));
+	dataSource->SetBaseOffset((uint64)partitionArray[siPartitionIndex].partitionAddress *
+							  DISC_SECTOR_SIZE);
+	auto siFST = OpenFST(dataSource.get(), (uint64)partitionHeaderSI.fstSector * DISC_SECTOR_SIZE,
+						 partitionHeaderSI.fstSize, &discTitleKey,
+						 static_cast<FSTVolume::ClusterHashMode>(partitionHeaderSI.fstHashType));
 	if (!siFST)
 		return nullptr;
 	// load ticket file for partition that we want to decrypt
 	NCrypto::ETicketParser ticketParser;
-	std::vector<uint8> ticketData = siFST->ExtractFile(fmt::format("{:02x}/title.tik", gmPartitionIndex));
+	std::vector<uint8> ticketData =
+		siFST->ExtractFile(fmt::format("{:02x}/title.tik", gmPartitionIndex));
 	if (ticketData.empty() || !ticketParser.parse(ticketData.data(), ticketData.size()))
 	{
 		cemuLog_log(LogType::Force, "Disc image ticket file is invalid");
@@ -364,8 +387,11 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 	ticketParser.GetTitleKey(gmTitleKey);
 
 	// load GM partition
-	dataSource->SetBaseOffset((uint64)partitionArray[gmPartitionIndex].partitionAddress * DISC_SECTOR_SIZE);
-	return OpenFST(std::move(dataSource), (uint64)partitionHeaderGM.fstSector * DISC_SECTOR_SIZE, partitionHeaderGM.fstSize, &gmTitleKey, static_cast<FSTVolume::ClusterHashMode>(partitionHeaderGM.fstHashType));
+	dataSource->SetBaseOffset((uint64)partitionArray[gmPartitionIndex].partitionAddress *
+							  DISC_SECTOR_SIZE);
+	return OpenFST(std::move(dataSource), (uint64)partitionHeaderGM.fstSector * DISC_SECTOR_SIZE,
+				   partitionHeaderGM.fstSize, &gmTitleKey,
+				   static_cast<FSTVolume::ClusterHashMode>(partitionHeaderGM.fstHashType));
 }
 
 FSTVolume* FSTVolume::OpenFromContentFolder(fs::path folderPath)
@@ -396,14 +422,16 @@ FSTVolume* FSTVolume::OpenFromContentFolder(fs::path folderPath)
 	std::unique_ptr<FSTDataSource> dataSource(FSTDataSourceApp::Open(folderPath, tmdParser));
 	if (!dataSource)
 		return nullptr;
-	// get info about FST from first cluster (todo - is this correct or does the TMD store info about the fst?)
+	// get info about FST from first cluster (todo - is this correct or does the TMD store info
+	// about the fst?)
 	ClusterHashMode fstHashMode = ClusterHashMode::RAW;
 	uint32 fstSize = 0;
 	for (auto& itr : tmdParser.GetContentList())
 	{
 		if (itr.index == 0)
 		{
-			if (HAS_FLAG(itr.contentFlags, NCrypto::TMDParser::TMDContentFlags::FLAG_HASHED_CONTENT))
+			if (HAS_FLAG(itr.contentFlags,
+						 NCrypto::TMDParser::TMDContentFlags::FLAG_HASHED_CONTENT))
 				fstHashMode = ClusterHashMode::HASH_INTERLEAVED;
 			cemu_assert_debug(itr.size <= 0xFFFFFFFF);
 			fstSize = (uint32)itr.size;
@@ -411,11 +439,13 @@ FSTVolume* FSTVolume::OpenFromContentFolder(fs::path folderPath)
 	}
 	// load FST
 	// fstSize = size of first cluster?
-	FSTVolume* fstVolume = FSTVolume::OpenFST(std::move(dataSource), 0, fstSize, &titleKey, fstHashMode);
+	FSTVolume* fstVolume =
+		FSTVolume::OpenFST(std::move(dataSource), 0, fstSize, &titleKey, fstHashMode);
 	return fstVolume;
 }
 
-FSTVolume* FSTVolume::OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode)
+FSTVolume* FSTVolume::OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint32 fstSize,
+							  NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode)
 {
 	cemu_assert_debug(fstHashMode != ClusterHashMode::RAW || fstHashMode != ClusterHashMode::RAW2);
 	if (fstSize < sizeof(FSTHeader))
@@ -424,7 +454,8 @@ FSTVolume* FSTVolume::OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint3
 	uint32 fstSizePadded = (fstSize + 15) & ~15; // pad to AES block size
 	// read FST data and decrypt
 	std::vector<uint8> fstData(fstSizePadded);
-	if (dataSource->readData(0, FST_CLUSTER_OFFSET, fstOffset, fstData.data(), fstSizePadded) != fstSizePadded)
+	if (dataSource->readData(0, FST_CLUSTER_OFFSET, fstOffset, fstData.data(), fstSizePadded) !=
+		fstSizePadded)
 		return nullptr;
 	uint8 iv[16]{};
 	AES128_CBC_decrypt(fstData.data(), fstData.data(), fstSizePadded, partitionTitleKey->b, iv);
@@ -438,7 +469,8 @@ FSTVolume* FSTVolume::OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint3
 	}
 	// load cluster table
 	uint32 numCluster = fstHeader->numCluster;
-	FSTHeader_ClusterEntry* clusterDataTable = (FSTHeader_ClusterEntry*)(fstData.data() + sizeof(FSTHeader));
+	FSTHeader_ClusterEntry* clusterDataTable =
+		(FSTHeader_ClusterEntry*)(fstData.data() + sizeof(FSTHeader));
 	if ((clusterDataTable + numCluster) > fstEnd)
 		return nullptr;
 	std::vector<FSTCluster> clusterTable;
@@ -447,7 +479,8 @@ FSTVolume* FSTVolume::OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint3
 	{
 		clusterTable[i].offset = clusterDataTable[i].offset;
 		clusterTable[i].size = clusterDataTable[i].size;
-		clusterTable[i].hashMode = static_cast<FSTVolume::ClusterHashMode>((uint8)clusterDataTable[i].hashMode);
+		clusterTable[i].hashMode =
+			static_cast<FSTVolume::ClusterHashMode>((uint8)clusterDataTable[i].hashMode);
 	}
 	// preprocess FST table
 	FSTHeader_FileEntry* fileTable = (FSTHeader_FileEntry*)(clusterDataTable + numCluster);
@@ -459,7 +492,8 @@ FSTVolume* FSTVolume::OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint3
 	if (numFileEntries == 0 || (fileTable + numFileEntries) > fstEnd)
 		return nullptr;
 	// load name string table
-	ptrdiff_t nameLookupTableSize = ((const uint8*)fstEnd - (const uint8*)(fileTable + numFileEntries));
+	ptrdiff_t nameLookupTableSize =
+		((const uint8*)fstEnd - (const uint8*)(fileTable + numFileEntries));
 	if (nameLookupTableSize < 1)
 		return nullptr;
 	std::vector<char> nameStringTable(nameLookupTableSize);
@@ -480,7 +514,9 @@ FSTVolume* FSTVolume::OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint3
 	return fstVolume;
 }
 
-FSTVolume* FSTVolume::OpenFST(std::unique_ptr<FSTDataSource> dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode)
+FSTVolume* FSTVolume::OpenFST(std::unique_ptr<FSTDataSource> dataSource, uint64 fstOffset,
+							  uint32 fstSize, NCrypto::AesKey* partitionTitleKey,
+							  ClusterHashMode fstHashMode)
 {
 	FSTDataSource* ds = dataSource.release();
 	FSTVolume* fstVolume = OpenFST(ds, fstOffset, fstSize, partitionTitleKey, fstHashMode);
@@ -493,24 +529,29 @@ FSTVolume* FSTVolume::OpenFST(std::unique_ptr<FSTDataSource> dataSource, uint64 
 	return fstVolume;
 }
 
-bool FSTVolume::ProcessFST(FSTHeader_FileEntry* fileTable, uint32 numFileEntries, uint32 numCluster, std::vector<char>& nameStringTable, std::vector<FSTEntry>& fstEntries)
+bool FSTVolume::ProcessFST(FSTHeader_FileEntry* fileTable, uint32 numFileEntries, uint32 numCluster,
+						   std::vector<char>& nameStringTable, std::vector<FSTEntry>& fstEntries)
 {
 	struct DirHierachyInfo
 	{
-		DirHierachyInfo(uint32 parentIndex, uint32 endIndex) : parentIndex(parentIndex), endIndex(endIndex) {};
+		DirHierachyInfo(uint32 parentIndex, uint32 endIndex)
+			: parentIndex(parentIndex), endIndex(endIndex){};
 
 		uint32 parentIndex;
 		uint32 endIndex;
 	};
 	std::vector<DirHierachyInfo> currentDirEnd;
 	currentDirEnd.reserve(32);
-	currentDirEnd.emplace_back(0, numFileEntries); // create a fake parent for the root directory, the root's parent index is zero (referencing itself)
+	currentDirEnd.emplace_back(0,
+							   numFileEntries); // create a fake parent for the root directory, the
+												// root's parent index is zero (referencing itself)
 	uint32 currentIndex = 0;
 	FSTHeader_FileEntry* pFileIn = fileTable + currentIndex;
 	fstEntries.resize(numFileEntries);
 	FSTEntry* pFileOut = fstEntries.data();
 	// validate root directory
-	if (pFileIn->GetType() != FSTHeader_FileEntry::TYPE::DIRECTORY || pFileIn->GetDirectoryEndIndex() != numFileEntries || pFileIn->GetDirectoryParent() != 0)
+	if (pFileIn->GetType() != FSTHeader_FileEntry::TYPE::DIRECTORY ||
+		pFileIn->GetDirectoryEndIndex() != numFileEntries || pFileIn->GetDirectoryParent() != 0)
 	{
 		cemuLog_log(LogType::Force, "FSTVolume::ProcessFST() - root node is invalid");
 		return false;
@@ -535,9 +576,9 @@ bool FSTVolume::ProcessFST(FSTHeader_FileEntry* fileTable, uint32 numFileEntries
 		pFileOut->nameHash = _QuickNameHash(nameStringTable.data() + nameOffset, nameLen);
 		// parent directory index
 		pFileOut->parentDirIndex = currentDirEnd.back().parentIndex;
-		//if (currentDirEnd.back().parentIndex == 0)
+		// if (currentDirEnd.back().parentIndex == 0)
 		//	pFileOut->parentDirIndex = std::numeric_limits<uint32>::max();
-		//else
+		// else
 		//	pFileOut->parentDirIndex = currentDirEnd.back().parentIndex;
 		// process type specific data
 		auto entryType = pFileIn->GetType();
@@ -617,7 +658,7 @@ bool FSTVolume::OpenFile(std::string_view path, FSTFileHandle& fileHandleOut, bo
 	if (fscPath.GetNodeCount() == 0)
 	{
 		// empty path pointers to root directory
-		if(openOnlyFiles)
+		if (openOnlyFiles)
 			return false;
 		fileHandleOut.m_fstIndex = 0;
 		return true;
@@ -625,13 +666,15 @@ bool FSTVolume::OpenFile(std::string_view path, FSTFileHandle& fileHandleOut, bo
 
 	// scan directory and find sub folder or file
 	// skips iterating subdirectories
-	auto findSubentry = [this](size_t firstIndex, size_t lastIndex, std::string_view nodeName) -> sint32
+	auto findSubentry = [this](size_t firstIndex, size_t lastIndex,
+							   std::string_view nodeName) -> sint32
 	{
 		uint16 nodeHash = _QuickNameHash(nodeName.data(), nodeName.size());
 		size_t index = firstIndex;
 		while (index < lastIndex)
 		{
-			if (m_entries[index].nameHash == nodeHash && MatchFSTEntryName(m_entries[index], nodeName))
+			if (m_entries[index].nameHash == nodeHash &&
+				MatchFSTEntryName(m_entries[index], nodeName))
 				return (sint32)index;
 			if (m_entries[index].GetType() == FSTEntry::TYPE::DIRECTORY)
 				index = m_entries[index].dirInfo.endIndex;
@@ -660,7 +703,8 @@ bool FSTVolume::OpenFile(std::string_view path, FSTFileHandle& fileHandleOut, bo
 		curDirEnd = m_entries[fstIndex].dirInfo.endIndex;
 	}
 	// find the entry
-	sint32 fstIndex = findSubentry(curDirStart, curDirEnd, fscPath.GetNodeName(fscPath.GetNodeCount() - 1));
+	sint32 fstIndex =
+		findSubentry(curDirStart, curDirEnd, fscPath.GetNodeName(fscPath.GetNodeCount() - 1));
 	if (fstIndex < 0)
 		return false;
 	if (openOnlyFiles && m_entries[fstIndex].GetType() != FSTEntry::TYPE::FILE)
@@ -748,7 +792,8 @@ uint32 FSTVolume::ReadFile(FSTFileHandle& fileHandle, uint32 offset, uint32 size
 	return 0;
 }
 
-uint32 FSTVolume::ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset, uint32 readSize, void* dataOut)
+uint32 FSTVolume::ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset,
+									   uint32 readSize, void* dataOut)
 {
 	const uint32 readSizeInput = readSize;
 	uint8* dataOutU8 = (uint8*)dataOut;
@@ -768,16 +813,20 @@ uint32 FSTVolume::ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uin
 	bool usesInitialIV = readOffset < 16;
 	if (!usesInitialIV)
 		readAddrStart -= 16; // read previous AES block since we require it for the IV
-	uint32 prePadding = (uint32)(absFileOffset - readAddrStart); // number of extra bytes we read before readOffset (for AES alignment and IV calculation)
+	uint32 prePadding =
+		(uint32)(absFileOffset - readAddrStart); // number of extra bytes we read before readOffset
+												 // (for AES alignment and IV calculation)
 	uint32 postPadding = (uint32)(readAddrEnd - (absFileOffset + readSize));
 
 	uint8 readBuffer[64 * 1024];
 	// read first chunk
-	// if file read offset (readOffset) is within the first AES-block then use initial IV calculated from cluster index
-	// otherwise read previous AES-block is the IV (AES-CBC)
+	// if file read offset (readOffset) is within the first AES-block then use initial IV calculated
+	// from cluster index otherwise read previous AES-block is the IV (AES-CBC)
 	uint64 readAddrCurrent = readAddrStart;
-	uint32 rawBytesToRead = (uint32)std::min((readAddrEnd - readAddrStart), (uint64)sizeof(readBuffer));
-	if (m_dataSource->readData(clusterIndex, clusterOffset, readAddrCurrent, readBuffer, rawBytesToRead) != rawBytesToRead)
+	uint32 rawBytesToRead =
+		(uint32)std::min((readAddrEnd - readAddrStart), (uint64)sizeof(readBuffer));
+	if (m_dataSource->readData(clusterIndex, clusterOffset, readAddrCurrent, readBuffer,
+							   rawBytesToRead) != rawBytesToRead)
 	{
 		cemuLog_log(LogType::Force, "FST read error in raw content");
 		return 0;
@@ -790,7 +839,8 @@ uint32 FSTVolume::ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uin
 		// for the first AES block, the IV is initialized from cluster index
 		iv[0] = (uint8)(clusterIndex >> 8);
 		iv[1] = (uint8)(clusterIndex >> 0);
-		AES128_CBC_decrypt_updateIV(readBuffer, readBuffer, rawBytesToRead, m_partitionTitlekey.b, iv);
+		AES128_CBC_decrypt_updateIV(readBuffer, readBuffer, rawBytesToRead, m_partitionTitlekey.b,
+									iv);
 		std::memcpy(dataOutU8, readBuffer + prePadding, rawBytesToRead - prePadding - postPadding);
 		dataOutU8 += (rawBytesToRead - prePadding - postPadding);
 		readSize -= (rawBytesToRead - prePadding - postPadding);
@@ -799,7 +849,8 @@ uint32 FSTVolume::ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uin
 	{
 		// IV is initialized from previous AES block (AES-CBC)
 		std::memcpy(iv, readBuffer, 16);
-		AES128_CBC_decrypt_updateIV(readBuffer + 16, readBuffer + 16, rawBytesToRead - 16, m_partitionTitlekey.b, iv);
+		AES128_CBC_decrypt_updateIV(readBuffer + 16, readBuffer + 16, rawBytesToRead - 16,
+									m_partitionTitlekey.b, iv);
 		std::memcpy(dataOutU8, readBuffer + prePadding, rawBytesToRead - prePadding - postPadding);
 		dataOutU8 += (rawBytesToRead - prePadding - postPadding);
 		readSize -= (rawBytesToRead - prePadding - postPadding);
@@ -810,12 +861,14 @@ uint32 FSTVolume::ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uin
 	{
 		uint32 bytesToRead = (uint32)std::min((uint32)sizeof(readBuffer), readSize);
 		uint32 alignedBytesToRead = (bytesToRead + 15) & ~0xF;
-		if (m_dataSource->readData(clusterIndex, clusterOffset, readAddrCurrent, readBuffer, alignedBytesToRead) != alignedBytesToRead)
+		if (m_dataSource->readData(clusterIndex, clusterOffset, readAddrCurrent, readBuffer,
+								   alignedBytesToRead) != alignedBytesToRead)
 		{
 			cemuLog_log(LogType::Force, "FST read error in raw content");
 			return 0;
 		}
-		AES128_CBC_decrypt_updateIV(readBuffer, readBuffer, alignedBytesToRead, m_partitionTitlekey.b, iv);
+		AES128_CBC_decrypt_updateIV(readBuffer, readBuffer, alignedBytesToRead,
+									m_partitionTitlekey.b, iv);
 		std::memcpy(dataOutU8, readBuffer, bytesToRead);
 		dataOutU8 += bytesToRead;
 		readSize -= bytesToRead;
@@ -870,7 +923,7 @@ struct FSTHashedBlock
 
 static_assert(sizeof(FSTHashedBlock) == BLOCK_SIZE);
 
-struct FSTCachedHashedBlock 
+struct FSTCachedHashedBlock
 {
 	FSTHashedBlock blockData;
 	uint64 lastAccess;
@@ -891,11 +944,14 @@ FSTCachedHashedBlock* FSTVolume::GetDecryptedHashedBlock(uint32 clusterIndex, ui
 		block->lastAccess = ++m_cacheAccessCounter;
 		return block;
 	}
-	// if cache already full, drop least recently accessed block (but recycle the FSTHashedBlock* object)
+	// if cache already full, drop least recently accessed block (but recycle the FSTHashedBlock*
+	// object)
 	if (m_cacheDecryptedHashedBlocks.size() >= 16)
 	{
-		auto dropItr = std::min_element(m_cacheDecryptedHashedBlocks.begin(), m_cacheDecryptedHashedBlocks.end(), [](const auto& a, const auto& b) -> bool
-		{ return a.second->lastAccess < b.second->lastAccess; });
+		auto dropItr = std::min_element(m_cacheDecryptedHashedBlocks.begin(),
+										m_cacheDecryptedHashedBlocks.end(),
+										[](const auto& a, const auto& b) -> bool
+										{ return a.second->lastAccess < b.second->lastAccess; });
 		block = dropItr->second;
 		m_cacheDecryptedHashedBlocks.erase(dropItr);
 	}
@@ -903,7 +959,8 @@ FSTCachedHashedBlock* FSTVolume::GetDecryptedHashedBlock(uint32 clusterIndex, ui
 		block = new FSTCachedHashedBlock();
 	// block not cached, read new
 	block->lastAccess = ++m_cacheAccessCounter;
-	if (m_dataSource->readData(clusterIndex, clusterOffset, blockIndex * BLOCK_SIZE, block->blockData.rawData, BLOCK_SIZE) != BLOCK_SIZE)
+	if (m_dataSource->readData(clusterIndex, clusterOffset, blockIndex * BLOCK_SIZE,
+							   block->blockData.rawData, BLOCK_SIZE) != BLOCK_SIZE)
 	{
 		cemuLog_log(LogType::Force, "Failed to read FST block");
 		delete block;
@@ -911,15 +968,19 @@ FSTCachedHashedBlock* FSTVolume::GetDecryptedHashedBlock(uint32 clusterIndex, ui
 	}
 	// decrypt hash data
 	uint8 iv[16]{};
-	AES128_CBC_decrypt(block->blockData.getHashData(), block->blockData.getHashData(), BLOCK_HASH_SIZE, m_partitionTitlekey.b, iv);
+	AES128_CBC_decrypt(block->blockData.getHashData(), block->blockData.getHashData(),
+					   BLOCK_HASH_SIZE, m_partitionTitlekey.b, iv);
 	// decrypt file data
-	AES128_CBC_decrypt(block->blockData.getFileData(), block->blockData.getFileData(), BLOCK_FILE_SIZE, m_partitionTitlekey.b, block->blockData.getH0Hash(blockIndex%16));
+	AES128_CBC_decrypt(block->blockData.getFileData(), block->blockData.getFileData(),
+					   BLOCK_FILE_SIZE, m_partitionTitlekey.b,
+					   block->blockData.getH0Hash(blockIndex % 16));
 	// register in cache
 	m_cacheDecryptedHashedBlocks.emplace(cacheBlockId, block);
 	return block;
 }
 
-uint32 FSTVolume::ReadFile_HashModeHashed(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset, uint32 readSize, void* dataOut)
+uint32 FSTVolume::ReadFile_HashModeHashed(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset,
+										  uint32 readSize, void* dataOut)
 {
 	/*
 		Data is divided into 0x10000 (64KiB) blocks
@@ -929,22 +990,20 @@ uint32 FSTVolume::ReadFile_HashModeHashed(uint32 clusterIndex, FSTEntry& entry, 
 		+0x0240		Hash20[16]		H2 hashes
 		+0x03C0		uint8[64]		padding
 		+0x0400		uint8[0xFC00]	fileData
-	
+
 		The hash part (0-0x3FF) uses AES-CBC with IV initialized to zero
-		The file part (0x400 - 0xFFFF) uses AES-CBC with IV initialized to block->h0Hash[blockIndex % 16]
+		The file part (0x400 - 0xFFFF) uses AES-CBC with IV initialized to block->h0Hash[blockIndex
+	   % 16]
 
-		The hash data itself is calculated over 4096 blocks. Where each individual H0 entry hashes a single 0xFC00 file data block (unencrypted)
-		Each H1 hash is calculated from 16 H0 hashes
-		Each H2 hash is calculated from 16 H1 hashes.
-		The  H3 hash is calculated from 16 H2 hashes.
-		Thus for each 4096 block group we end up with:
-		4096 H0 hashes
-		256  H1 hashes
-		16	 H2 hashes
-		1    H3 hash
+		The hash data itself is calculated over 4096 blocks. Where each individual H0 entry hashes a
+	   single 0xFC00 file data block (unencrypted) Each H1 hash is calculated from 16 H0 hashes Each
+	   H2 hash is calculated from 16 H1 hashes. The  H3 hash is calculated from 16 H2 hashes. Thus
+	   for each 4096 block group we end up with: 4096 H0 hashes 256  H1 hashes 16	 H2 hashes 1 H3
+	   hash
 
-		The embedded H0/H1 hashes per block are only a slice of the larger array. Whereas H2 always get embedded as a whole, due to only having 16 hashes in total
-		There is also a H4 hash that covers all H3 hashes and is stored in the TMD
+		The embedded H0/H1 hashes per block are only a slice of the larger array. Whereas H2 always
+	   get embedded as a whole, due to only having 16 hashes in total There is also a H4 hash that
+	   covers all H3 hashes and is stored in the TMD
 
 	*/
 
@@ -969,7 +1028,8 @@ uint32 FSTVolume::ReadFile_HashModeHashed(uint32 clusterIndex, FSTEntry& entry, 
 	return readSize - bytesRemaining;
 }
 
-bool FSTVolume::OpenDirectoryIterator(std::string_view path, FSTDirectoryIterator& directoryIteratorOut)
+bool FSTVolume::OpenDirectoryIterator(std::string_view path,
+									  FSTDirectoryIterator& directoryIteratorOut)
 {
 	FSTFileHandle fileHandle;
 	if (!OpenFile(path, fileHandle, false))
@@ -1007,10 +1067,13 @@ FSTVolume::~FSTVolume()
 		delete m_dataSource;
 }
 
-bool FSTVerifier::VerifyContentFile(FileStream* fileContent, const NCrypto::AesKey* key, uint32 contentIndex, uint32 contentSize, uint32 contentSizePadded, bool isSHA1, const uint8* tmdContentHash)
+bool FSTVerifier::VerifyContentFile(FileStream* fileContent, const NCrypto::AesKey* key,
+									uint32 contentIndex, uint32 contentSize,
+									uint32 contentSizePadded, bool isSHA1,
+									const uint8* tmdContentHash)
 {
 	cemu_assert_debug(isSHA1); // test this case
-	cemu_assert_debug(((contentSize+0xF)&~0xF) == contentSizePadded);
+	cemu_assert_debug(((contentSize + 0xF) & ~0xF) == contentSizePadded);
 
 	std::vector<uint8> buffer;
 	buffer.resize(64 * 1024);
@@ -1024,7 +1087,7 @@ bool FSTVerifier::VerifyContentFile(FileStream* fileContent, const NCrypto::AesK
 	uint64 remainingBytes = contentSize;
 	uint8 calculatedHash[SHA256_DIGEST_LENGTH];
 
-	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+	EVP_MD_CTX* ctx = EVP_MD_CTX_new();
 	EVP_DigestInit(ctx, isSHA1 ? EVP_sha1() : EVP_sha256());
 
 	while (remainingBytes > 0)
@@ -1044,7 +1107,10 @@ bool FSTVerifier::VerifyContentFile(FileStream* fileContent, const NCrypto::AesK
 	return memcmp(calculatedHash, tmdContentHash, md_len) == 0;
 }
 
-bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto::AesKey* key, uint32 contentIndex, uint32 contentSize, uint32 contentSizePadded, bool isSHA1, const uint8* tmdContentHash)
+bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto::AesKey* key,
+										  uint32 contentIndex, uint32 contentSize,
+										  uint32 contentSizePadded, bool isSHA1,
+										  const uint8* tmdContentHash)
 {
 	if (!isSHA1)
 		return false; // not supported
@@ -1066,7 +1132,8 @@ bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto
 		// decrypt hash data and file data
 		uint8 iv[16]{};
 		AES128_CBC_decrypt(block.getHashData(), block.getHashData(), BLOCK_HASH_SIZE, key->b, iv);
-		AES128_CBC_decrypt(block.getFileData(), block.getFileData(), BLOCK_FILE_SIZE, key->b, block.getH0Hash(blockIndex % 16));
+		AES128_CBC_decrypt(block.getFileData(), block.getFileData(), BLOCK_FILE_SIZE, key->b,
+						   block.getH0Hash(blockIndex % 16));
 
 		// generate H0 hash and compare
 		NCrypto::CHash160 h0;
@@ -1081,15 +1148,18 @@ bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto
 			uint32 h1Index = ((h0Index - 15) / 16);
 
 			NCrypto::CHash160 h1;
-			SHA1((unsigned char *) (h0List.data() + h1Index * 16), sizeof(NCrypto::CHash160) * 16, h1.b);
-			if (memcmp(h1.b, block.getH1Hash(h1Index&0xF), sizeof(h1.b)) != 0)
+			SHA1((unsigned char*)(h0List.data() + h1Index * 16), sizeof(NCrypto::CHash160) * 16,
+				 h1.b);
+			if (memcmp(h1.b, block.getH1Hash(h1Index & 0xF), sizeof(h1.b)) != 0)
 				return false;
 		}
 		// todo - repeat same for H1 and H2
-		//        At the end all H3 hashes are hashed into a single H4 hash which is then compared with the content hash from the TMD
+		//        At the end all H3 hashes are hashed into a single H4 hash which is then compared
+		//        with the content hash from the TMD
 
 		// Checking only H0 and H1 is sufficient enough for verifying if the file data is intact
-		// but if we wanted to be strict and only allow correctly signed data we would have to hash all the way up to H4
+		// but if we wanted to be strict and only allow correctly signed data we would have to hash
+		// all the way up to H4
 	}
 	return true;
 }
