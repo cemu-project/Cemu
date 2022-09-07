@@ -1,10 +1,14 @@
 #include "FSPath.h"
 
-#ifndef BOOST_OS_UNIX
-FSPath& FSPath::operator/= (const FSPath & other)
+FSPath& FSPath::operator/ (const FSPath & other)
 {
 	*this /= other;
 	return *this;
+}
+#ifndef BOOST_OS_UNIX
+FSPath& FSPath::operator/= (const FSPath & other)
+{
+	fs::path::operator/=(other);
 }
 #else
 FSPath& FSPath::operator/= (const FSPath & other)

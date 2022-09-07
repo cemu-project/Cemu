@@ -222,25 +222,10 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const FSPath& path, FSC_ACCESS_FLA
 class fscDeviceHostFSC : public fscDeviceC {
  public:
 
-	FSCVirtualFile* fscDeviceOpenByPathIgnoreCase(std::wstring_view pathString, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus)
-	{
-		*fscStatus = FSC_STATUS_OK;
-
-		FSPath correctedPath = FSPath::Convert(pathString);
-		return FSCVirtualFile_Host::OpenFile(correctedPath, accessFlags, *fscStatus);
-	}
-
 	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(path, accessFlags, *fscStatus);
-#ifdef BOOST_OS_UNIX
-		// failed to open file. maybe the case is different?
-		if (!vf)
-		{
-			vf = fscDeviceOpenByPathIgnoreCase(path, accessFlags, fscStatus);
-		}
-#endif
+		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(FSPath::Convert(path), accessFlags, *fscStatus);
 		cemu_assert_debug((bool)vf == (*fscStatus == FSC_STATUS_OK));
 		return vf;
 	}

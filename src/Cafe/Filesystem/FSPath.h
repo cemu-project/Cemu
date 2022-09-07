@@ -9,10 +9,10 @@ class FSPath : public fs::path {
 	FSPath(const T & other) : fs::path(other) {};
 
 	template <class T>
-	static FSPath Convert(const T& input) {
-		FSPath p;
-		p /= input;
-		return p;
+	static FSPath Convert(const T& input)
+	{
+		return FSPath{} / input;
 	}
 	FSPath& operator/= (const FSPath & other);
+	FSPath& operator/ (const FSPath & other);
 };

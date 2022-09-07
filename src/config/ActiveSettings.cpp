@@ -223,7 +223,7 @@ FSPath ActiveSettings::GetMlcPath()
 FSPath ActiveSettings::GetMlcPath(std::string_view p)
 {
 	std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
-	return GetMlcPath() / fs::path(s);
+	return GetMlcPath() / FSPath(s);
 }
 
 fs::path ActiveSettings::GetDefaultMLCPath()
