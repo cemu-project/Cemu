@@ -247,12 +247,12 @@ class fscDeviceHostFSC : public fscDeviceC {
 		{
 			found = false;
 			std::error_code listErr;
-			for (auto const& dir_entry : std::filesystem::directory_iterator{correctedPath, listErr})
+			for (auto const& dirEntry : std::filesystem::directory_iterator{correctedPath, listErr})
 			{
-				std::filesystem::path entry_name = dir_entry.path().filename();
-				if (lowercase_path(entry_name) == lowercase_path(it))
+				std::filesystem::path entryName = dirEntry.path().filename();
+				if (lowercase_path(entryName) == lowercase_path(it))
 				{
-					correctedPath /= entry_name;
+					correctedPath /= entryName;
 					found = true;
 					break;
 				}
