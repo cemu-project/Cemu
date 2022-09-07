@@ -235,9 +235,10 @@ class fscDeviceHostFSC : public fscDeviceC {
 		auto static lowercase_path = [](std::filesystem::path const & path)
 		{
 			std::wstring string = path.wstring();
-			std::transform(string.begin(), string.end(), string.begin(), [](const auto& item) {
+			std::transform(string.begin(), string.end(), string.begin(), [](const auto& item)
+			{
 				if (std::isalpha(item))
-					return (wchar_t)std::tolower(item);
+					return static_cast<wchar_t>(std::tolower(item));
 				return item;
 			});
 			return string;
@@ -268,8 +269,6 @@ class fscDeviceHostFSC : public fscDeviceC {
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			return nullptr;
 		}
-
-		std::wcout << correctedPath << std::endl;
 
 		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(correctedPath, accessFlags, *fscStatus);
 		return vf;
