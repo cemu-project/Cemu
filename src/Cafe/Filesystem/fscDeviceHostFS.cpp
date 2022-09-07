@@ -218,13 +218,74 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 
 /* Device implementation */
 
-class fscDeviceHostFSC : public fscDeviceC
-{
-public:
+class fscDeviceHostFSC : public fscDeviceC {
+ public:
+
+	FSCVirtualFile* fscDeviceOpenByPathIgnoreCase(std::wstring_view pathString, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus)
+	{
+		// todo: implement caching.
+		*fscStatus = FSC_STATUS_OK;
+
+		// explore directories recursively and find the matching cases.
+		std::filesystem::path path = pathString;
+		std::filesystem::path relPath = path.relative_path();
+		std::filesystem::path correctedPath = path.root_path();
+
+		// helper function to convert a path's alphabet characters to lowercase.
+		auto static lowercase_path = [](std::filesystem::path const & path)
+		{
+			std::wstring string = path.wstring();
+			std::transform(string.begin(), string.end(), string.begin(), [](const auto& item) {
+				if (std::isalpha(item))
+					return (wchar_t)std::tolower(item);
+				return item;
+			});
+			return string;
+		};
+
+		bool found;
+		for (auto const &it : relPath)
+		{
+			found = false;
+			std::wcout << correctedPath << std::endl;
+			for (auto const& dir_entry : std::filesystem::directory_iterator{correctedPath})
+			{
+				std::wcout << dir_entry << std::endl;
+				std::filesystem::path entry_name = dir_entry.path().filename();
+				if (lowercase_path(entry_name) == lowercase_path(it))
+				{
+					correctedPath /= entry_name;
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+				break;
+		}
+
+		if(!found)
+		{
+			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
+			return nullptr;
+		}
+
+		std::wcout << correctedPath << std::endl;
+
+		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(correctedPath, accessFlags, *fscStatus);
+		return vf;
+	}
+
 	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
 		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(path, accessFlags, *fscStatus);
+#ifdef BOOST_OS_UNIX
+		// failed to open file. maybe the case is different?
+		if (!vf)
+		{
+			vf = fscDeviceOpenByPathIgnoreCase(path, accessFlags, fscStatus);
+		}
+#endif
 		cemu_assert_debug((bool)vf == (*fscStatus == FSC_STATUS_OK));
 		return vf;
 	}
