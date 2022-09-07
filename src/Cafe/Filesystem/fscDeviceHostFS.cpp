@@ -219,9 +219,9 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const FSPath& path, FSC_ACCESS_FLA
 
 /* Device implementation */
 
-class fscDeviceHostFSC : public fscDeviceC {
- public:
-
+class fscDeviceHostFSC : public fscDeviceC
+{
+public:
 	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;

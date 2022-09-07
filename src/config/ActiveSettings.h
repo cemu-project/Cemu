@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/CemuConfig.h"
+#include "Cafe/Filesystem/FSPath.h"
 
 // global active settings for fast access (reflects settings from command line and game profile)
 class ActiveSettings
@@ -39,15 +40,15 @@ public:
 	}
 	
 	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetMlcPath(std::string_view format, TArgs&&... args)
+	[[nodiscard]] static FSPath GetMlcPath(std::string_view format, TArgs&&... args)
 	{
 		cemu_assert_debug(format.empty() || (format[0] != '/' && format[0] != '\\'));
 		auto tmp = fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-		return GetMlcPath() / FSPath(_asUtf8(tmp));
+		return GetMlcPath() / _asUtf8(tmp);
 	}
 	
 	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetMlcPath(std::wstring_view format, TArgs&&... args)
+	[[nodiscard]] static FSPath GetMlcPath(std::wstring_view format, TArgs&&... args)
 	{
 		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
 		return GetMlcPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);

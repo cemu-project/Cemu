@@ -1,16 +1,13 @@
 #include "FSPath.h"
 
+#ifdef BOOST_OS_LINUX
+
 FSPath& FSPath::operator/ (const FSPath & other)
 {
 	*this /= other;
 	return *this;
 }
-#ifndef BOOST_OS_UNIX
-FSPath& FSPath::operator/= (const FSPath & other)
-{
-	fs::path::operator/=(other);
-}
-#else
+
 FSPath& FSPath::operator/= (const FSPath & other)
 {
 	// todo: implement caching.
@@ -20,9 +17,9 @@ FSPath& FSPath::operator/= (const FSPath & other)
 	fs::path correctedPath = empty() ? other.root_path() : *this;
 
 	// helper function to convert a path's alphabet characters to lowercase.
-	auto static lowercase_path = [](fs::path const & path)
+	auto static lowercase_path = [](FSPath const & path)
 	{
-		std::wstring string = path.wstring();
+		std::string string = path.string();
 		for (auto& i : string)
 		{
 			i = std::isalpha(i) ? std::tolower(i) : i;
@@ -47,19 +44,13 @@ FSPath& FSPath::operator/= (const FSPath & other)
 		}
 
 		// if we can't iterate directory, just copy the original case.
-		if(listErr)
+		if(listErr || !found)
 		{
 			correctedPath /= it;
-			found = true;
 		}
-
-		if (!found)
-			break;
 	}
 
-	if (found)
-		*this = correctedPath;
-
+	*this = FSPath(correctedPath);
 	return *this;
 }
 

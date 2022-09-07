@@ -23,7 +23,7 @@ private:
 	static fs::path GetSavePath(TitleId titleId);
 
 	TitleId m_titleId;
-	fs::path m_path;
+	FSPath m_path;
 	bool m_isValid{false};
 	bool m_hasMetaLoaded{false};
 	ParsedMetaXml* m_parsedMetaXml{nullptr};

@@ -6,8 +6,9 @@ class FSPath : public fs::path {
 	FSPath() = default;
 
 	template <class T>
-	FSPath(const T & other) : fs::path(other) {};
+	FSPath(const T& other) : fs::path(other) {};
 
+#ifdef BOOST_OS_UNIX
 	template <class T>
 	static FSPath Convert(const T& input)
 	{
@@ -15,4 +16,5 @@ class FSPath : public fs::path {
 	}
 	FSPath& operator/= (const FSPath & other);
 	FSPath& operator/ (const FSPath & other);
+#endif
 };
