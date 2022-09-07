@@ -1,5 +1,31 @@
 #include "Common/unix/FileStream_unix.h"
 
+std::optional<fs::path> findPathCI(const fs::path& path)
+{
+	if (fs::exists(path)) return path;
+	if (!path.has_parent_path()) return {};
+	auto parrentPath = path.parent_path();
+	if (!fs::exists(parrentPath))
+	{
+		auto tempParrentPath = findPathCI(parrentPath);
+		if (tempParrentPath.has_value())
+			parrentPath = std::move(tempParrentPath.value());
+		else
+			return {};
+	}
+	std::string fName = path.filename().string();
+	if (fs::exists(parrentPath))
+		for (auto&& dirEntry : fs::directory_iterator(parrentPath))
+		{
+			std::string dirFName = dirEntry.path().filename().string();
+			if (boost::iequals(dirFName, fName))
+			{
+				return dirEntry;
+			}
+		}
+	return parrentPath / fName;
+}
+
 FileStream* FileStream::openFile(std::string_view path)
 {
 	return openFile2(path, false);
@@ -13,7 +39,7 @@ FileStream* FileStream::openFile(const wchar_t* path, bool allowWrite)
 FileStream* FileStream::openFile2(const fs::path& path, bool allowWrite)
 {
 	//return openFile(path.generic_wstring().c_str(), allowWrite);
-	FileStream* fs = new FileStream(path, true, allowWrite);
+	FileStream* fs = new FileStream(findPathCI(path).value_or(path), true, allowWrite);
 	if (fs->m_isValid)
 		return fs;
 	delete fs;
@@ -32,7 +58,7 @@ FileStream* FileStream::createFile(std::string_view path)
 
 FileStream* FileStream::createFile2(const fs::path& path)
 {
-	FileStream* fs = new FileStream(path, false, false);
+	FileStream* fs = new FileStream(findPathCI(path).value_or(path), false, false);
 	if (fs->m_isValid)
 		return fs;
 	delete fs;
@@ -190,12 +216,12 @@ FileStream::FileStream(const fs::path& path, bool isOpen, bool isWriteable)
 {
 	if (isOpen)
 	{
-		m_fileStream.open(path, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
+		m_fileStream.open(findPathCI(path).value_or(path), isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
 		m_isValid = m_fileStream.is_open();
 	}
 	else
 	{
-		m_fileStream.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+		m_fileStream.open(findPathCI(path).value_or(path), std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 		m_isValid = m_fileStream.is_open();
 	}
 }
