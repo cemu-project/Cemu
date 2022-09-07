@@ -8,7 +8,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "config/ActiveSettings.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include "Cafe/CafeSystem.h"
 

@@ -4,7 +4,7 @@
 #include <mutex>
 #include <condition_variable>
 #include "zlib.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 struct FileCacheAsyncJob
 {

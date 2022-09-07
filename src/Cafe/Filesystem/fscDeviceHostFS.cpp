@@ -2,7 +2,7 @@
 #include "Cafe/Filesystem/fsc.h"
 #include "Cafe/Filesystem/fscDeviceHostFS.h"
 
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 /* FSCVirtualFile implementation for HostFS */
 

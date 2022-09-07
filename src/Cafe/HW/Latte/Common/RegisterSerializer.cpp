@@ -1,7 +1,7 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include <zstd.h>
 #include <zlib.h>

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "wud.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 wud_t* wud_open(const fs::path& path)
 {
