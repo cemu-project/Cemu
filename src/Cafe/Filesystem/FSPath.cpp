@@ -1,6 +1,6 @@
 #include "FSPath.h"
 
-#ifdef BOOST_OS_LINUX
+#ifdef BOOST_OS_UNIX
 
 FSPath& FSPath::operator/ (const FSPath & other)
 {
