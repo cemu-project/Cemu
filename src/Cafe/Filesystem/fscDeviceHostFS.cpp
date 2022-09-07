@@ -224,7 +224,6 @@ class fscDeviceHostFSC : public fscDeviceC {
 
 	FSCVirtualFile* fscDeviceOpenByPathIgnoreCase(std::wstring_view pathString, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus)
 	{
-		// todo: implement caching.
 		*fscStatus = FSC_STATUS_OK;
 
 		FSPath correctedPath = FSPath::Convert(pathString);
