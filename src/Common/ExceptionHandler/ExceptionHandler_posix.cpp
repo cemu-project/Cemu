@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <execinfo.h>
+#include <sys/resource.h>
 
 void handler_SIGSEGV(int sig)
 {
@@ -29,8 +30,19 @@ void handler_SIGINT(int sig)
     _Exit(0);
 }
 
+// stop large coredumps from clogging up the system disk.
+void disableCoreDump()
+{
+	rlimit l;
+	if (!getrlimit(RLIMIT_CORE, &l))
+		return;
+	l.rlim_cur = 0;
+	setrlimit(RLIMIT_CORE, &l);
+}
+
 void ExceptionHandler_init()
 {
-    signal(SIGSEGV, handler_SIGSEGV);
-    signal(SIGINT, handler_SIGINT);
+	disableCoreDump();
+	signal(SIGSEGV, handler_SIGSEGV);
+	signal(SIGINT, handler_SIGINT);
 }
