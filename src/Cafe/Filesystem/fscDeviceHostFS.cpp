@@ -248,10 +248,8 @@ class fscDeviceHostFSC : public fscDeviceC {
 		for (auto const &it : relPath)
 		{
 			found = false;
-			std::wcout << correctedPath << std::endl;
 			for (auto const& dir_entry : std::filesystem::directory_iterator{correctedPath})
 			{
-				std::wcout << dir_entry << std::endl;
 				std::filesystem::path entry_name = dir_entry.path().filename();
 				if (lowercase_path(entry_name) == lowercase_path(it))
 				{
