@@ -24,9 +24,9 @@ static void _bmp_write(FileStream* fs, sint32 width, sint32 height, uint32 bits,
 	bmp_ih.biClrImportant = 0;
 
 	sint32 rowPitch = (width * bits / 8);
-	rowPitch = (rowPitch + 3)&~3;
+	rowPitch = (rowPitch + 3) & ~3;
 
-	uint8 padding[4] = { 0 };
+	uint8 padding[4] = {0};
 	sint32 paddingLength = rowPitch - (width * bits / 8);
 
 	bmp_ih.biSize = sizeof(BITMAPINFOHEADER);
@@ -40,15 +40,16 @@ static void _bmp_write(FileStream* fs, sint32 width, sint32 height, uint32 bits,
 		for (sint32 y = 0; y < height; y++)
 		{
 			void* rowInput = ((uint8*)pixelData) + rowPitch * (height - y - 1);
-			fs->writeData(rowInput, width*bits/8);
+			fs->writeData(rowInput, width * bits / 8);
 			// write padding
-			if(paddingLength > 0)
+			if (paddingLength > 0)
 				fs->writeData(padding, paddingLength);
 		}
-	}	
+	}
 }
 
-static bool bmp_store8BitAs24(wchar_t* path, sint32 width, sint32 height, sint32 bytesPerRow, void* pixelData)
+static bool bmp_store8BitAs24(wchar_t* path, sint32 width, sint32 height, sint32 bytesPerRow,
+							  void* pixelData)
 {
 	FileStream* fs = FileStream::createFile(path);
 	if (fs == nullptr)
@@ -74,7 +75,8 @@ static bool bmp_store8BitAs24(wchar_t* path, sint32 width, sint32 height, sint32
 	return true;
 }
 
-static bool bmp_store16BitAs24(wchar_t* path, sint32 width, sint32 height, sint32 bytesPerRow, void* pixelData)
+static bool bmp_store16BitAs24(wchar_t* path, sint32 width, sint32 height, sint32 bytesPerRow,
+							   void* pixelData)
 {
 	FileStream* fs = FileStream::createFile(path);
 	if (fs == nullptr)
@@ -100,7 +102,8 @@ static bool bmp_store16BitAs24(wchar_t* path, sint32 width, sint32 height, sint3
 	return true;
 }
 
-static bool bmp_store24BitAs24(wchar_t* path, sint32 width, sint32 height, sint32 bytesPerRow, void* pixelData)
+static bool bmp_store24BitAs24(wchar_t* path, sint32 width, sint32 height, sint32 bytesPerRow,
+							   void* pixelData)
 {
 	FileStream* fs = FileStream::createFile(path);
 	if (fs == nullptr)

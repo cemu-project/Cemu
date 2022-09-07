@@ -7,10 +7,10 @@ void __OSUnlockScheduler(void* obj = nullptr);
 
 namespace coreinit
 {
-	uint32 OSIsInterruptEnabled();
-	uint32 OSDisableInterrupts();
-	uint32 OSRestoreInterrupts(uint32 interruptMask);
-	uint32 OSEnableInterrupts();
+uint32 OSIsInterruptEnabled();
+uint32 OSDisableInterrupts();
+uint32 OSRestoreInterrupts(uint32 interruptMask);
+uint32 OSEnableInterrupts();
 
-	void InitializeSchedulerLock();
-}
+void InitializeSchedulerLock();
+} // namespace coreinit

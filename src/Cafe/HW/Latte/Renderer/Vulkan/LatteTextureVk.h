@@ -8,16 +8,27 @@
 
 class LatteTextureVk : public LatteTexture
 {
-public:
-	LatteTextureVk(class VulkanRenderer* vkRenderer, uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
-		uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
+  public:
+	LatteTextureVk(class VulkanRenderer* vkRenderer, uint32 textureUnit, Latte::E_DIM dim,
+				   MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width,
+				   uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
+				   Latte::E_HWTILEMODE tileMode, bool isDepth);
 
 	~LatteTextureVk();
 
-	VKRObjectTexture* GetImageObj() const { return vkObjTex; };
-	
-	VkFormat GetFormat() const { return vkObjTex->m_format; }
-	VkImageAspectFlags GetImageAspect() const { return vkObjTex->m_imageAspect; }
+	VKRObjectTexture* GetImageObj() const
+	{
+		return vkObjTex;
+	};
+
+	VkFormat GetFormat() const
+	{
+		return vkObjTex->m_format;
+	}
+	VkImageAspectFlags GetImageAspect() const
+	{
+		return vkObjTex->m_imageAspect;
+	}
 
 	void setAllocation(struct VkImageMemAllocation* memAllocation);
 	struct VkImageMemAllocation* getAllocation() const;
@@ -41,10 +52,12 @@ public:
 		cemu_assert_debug(subresource.layerCount > 0);
 		if (subresource.layerCount > 1)
 		{
-			VkImageLayout imgLayout = m_layouts[subresource.baseMipLevel * m_layoutsDepth + subresource.baseArrayLayer];
+			VkImageLayout imgLayout =
+				m_layouts[subresource.baseMipLevel * m_layoutsDepth + subresource.baseArrayLayer];
 			for (uint32 i = 1; i < subresource.layerCount; i++)
 			{
-				cemu_assert_debug(m_layouts[subresource.baseMipLevel * m_layoutsDepth + subresource.baseArrayLayer + i] == imgLayout);
+				cemu_assert_debug(m_layouts[subresource.baseMipLevel * m_layoutsDepth +
+											subresource.baseArrayLayer + i] == imgLayout);
 			}
 			return imgLayout;
 		}
@@ -70,23 +83,26 @@ public:
 			m_layouts[subresource.baseMipLevel] = newLayout;
 		else
 		{
-			for(uint32 i=0; i<subresource.layerCount; i++)
-				m_layouts[subresource.baseMipLevel * m_layoutsDepth + subresource.baseArrayLayer + i] = newLayout;
+			for (uint32 i = 0; i < subresource.layerCount; i++)
+				m_layouts[subresource.baseMipLevel * m_layoutsDepth + subresource.baseArrayLayer +
+						  i] = newLayout;
 		}
 	}
 
-protected:
-	LatteTextureView* CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount) override;
+  protected:
+	LatteTextureView* CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip,
+								 sint32 mipCount, sint32 firstSlice, sint32 sliceCount) override;
 
-public:
+  public:
 	uint64 m_vkFlushIndex{}; // used to track read-write dependencies within the same renderpass
 
 	uint64 m_vkFlushIndex_read{};
 	uint64 m_vkFlushIndex_write{};
 
-	uint32 m_collisionCheckIndex{}; // used to track if texture is being both sampled and output to during drawcall
+	uint32 m_collisionCheckIndex{}; // used to track if texture is being both sampled and output to
+									// during drawcall
 
-private:
+  private:
 	class VulkanRenderer* m_vkr;
 
 	VKRObjectTexture* vkObjTex{};

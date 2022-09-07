@@ -86,62 +86,71 @@ enum WPADProButtons
 	kProButton_StickL = 0x20000
 };
 
-enum WPADDataFormat {
-	 kDataFormat_CORE = 0,
-	 kDataFormat_CORE_ACC = 1,
-	 kDataFormat_CORE_ACC_DPD = 2,
-	 kDataFormat_FREESTYLE = 3,
-	 kDataFormat_FREESTYLE_ACC = 4,
-	 kDataFormat_FREESTYLE_ACC_DPD = 5,
-	 kDataFormat_CLASSIC = 6,
-	 kDataFormat_CLASSIC_ACC = 7,
-	 kDataFormat_CLASSIC_ACC_DPD = 8,
-	 kDataFormat_CORE_ACC_DPD_FULL = 9, // buttons, motion, pointing
-	 kDataFormat_TRAIN = 10,
-	 kDataFormat_GUITAR = 11,
-	 kDataFormat_BALANCE_CHECKER = 12,
-	 kDataFormat_DRUM = 15,
-	 kDataFormat_MPLS = 16, // buttons, motion, pointing, motion plus
-	 kDataFormat_TAIKO = 17,
-	 kDataFormat_URCC = 22, // buttons, URCC aka pro
+enum WPADDataFormat
+{
+	kDataFormat_CORE = 0,
+	kDataFormat_CORE_ACC = 1,
+	kDataFormat_CORE_ACC_DPD = 2,
+	kDataFormat_FREESTYLE = 3,
+	kDataFormat_FREESTYLE_ACC = 4,
+	kDataFormat_FREESTYLE_ACC_DPD = 5,
+	kDataFormat_CLASSIC = 6,
+	kDataFormat_CLASSIC_ACC = 7,
+	kDataFormat_CLASSIC_ACC_DPD = 8,
+	kDataFormat_CORE_ACC_DPD_FULL = 9, // buttons, motion, pointing
+	kDataFormat_TRAIN = 10,
+	kDataFormat_GUITAR = 11,
+	kDataFormat_BALANCE_CHECKER = 12,
+	kDataFormat_DRUM = 15,
+	kDataFormat_MPLS = 16, // buttons, motion, pointing, motion plus
+	kDataFormat_TAIKO = 17,
+	kDataFormat_URCC = 22, // buttons, URCC aka pro
 };
 
 class WPADController : public EmulatedController
 {
 	using base_type = EmulatedController;
-public:
+
+  public:
 	WPADController(size_t player_index, WPADDataFormat data_format);
 
 	uint32 get_emulated_button_flag(WPADDataFormat format, uint32 id) const;
 
 	virtual WPADDeviceType get_device_type() const = 0;
 
-	WPADDataFormat get_data_format() const { return m_data_format; }
-	void set_data_format(WPADDataFormat data_format) { m_data_format = data_format; }
+	WPADDataFormat get_data_format() const
+	{
+		return m_data_format;
+	}
+	void set_data_format(WPADDataFormat data_format)
+	{
+		m_data_format = data_format;
+	}
 
 	void WPADRead(WPADStatus_t* status);
 
 	void KPADRead(KPADStatus_t& status, const BtnRepeat& repeat);
-	virtual bool is_mpls_attached() { return false; }
+	virtual bool is_mpls_attached()
+	{
+		return false;
+	}
 
 	enum class ConnectCallbackStatus
 	{
-		None, // do nothing
+		None,			  // do nothing
 		ReportDisconnect, // call disconnect
-		ReportConnect, // call connect
+		ReportConnect,	  // call connect
 	};
 	ConnectCallbackStatus m_status = ConnectCallbackStatus::ReportConnect;
 	ConnectCallbackStatus m_extension_status = ConnectCallbackStatus::ReportConnect;
 
 	WPADDataFormat get_default_data_format() const;
 
-protected:
+  protected:
 	WPADDataFormat m_data_format;
 
-private:
+  private:
 	uint32be m_last_holdvalue = 0;
 
 	std::chrono::steady_clock::time_point m_last_hold_change{}, m_last_pulse{};
-
-	
 };

@@ -2,9 +2,9 @@
 
 #include <wx/wx.h>
 
-class DebugPPCThreadsWindow: public wxFrame
+class DebugPPCThreadsWindow : public wxFrame
 {
-public:
+  public:
 	DebugPPCThreadsWindow(wxFrame& parent);
 	~DebugPPCThreadsWindow();
 
@@ -12,14 +12,14 @@ public:
 	void OnRefreshButton(wxCommandEvent& event);
 	void OnClose(wxCloseEvent& event);
 	void RefreshThreadList();
-	void OnThreadListPopupClick(wxCommandEvent &evt);
+	void OnThreadListPopupClick(wxCommandEvent& evt);
 	void OnThreadListRightClick(wxMouseEvent& event);
 
 	void DumpStackTrace(struct OSThread_t* thread);
 
 	void Close();
 
-private:
+  private:
 	wxListCtrl* m_thread_list;
 	wxCheckBox* m_auto_refresh;
 	wxTimer* m_timer;
@@ -27,6 +27,4 @@ private:
 	void OnTimer(wxTimerEvent& event);
 
 	wxDECLARE_EVENT_TABLE();
-
-
 };

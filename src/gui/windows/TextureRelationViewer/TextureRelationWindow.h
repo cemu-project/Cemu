@@ -4,7 +4,7 @@
 
 class TextureRelationViewerWindow : public wxFrame
 {
-public:
+  public:
 	TextureRelationViewerWindow(wxFrame& parent);
 	~TextureRelationViewerWindow();
 
@@ -17,12 +17,14 @@ public:
 
 	void Close();
 
-private:
-
+  private:
 	wxDECLARE_EVENT_TABLE();
 
-	void _setTextureRelationListItemTexture(wxListCtrl* uiList, sint32 rowIndex, struct LatteTextureInformation* texInfo);
-	void _setTextureRelationListItemView(wxListCtrl* uiList, sint32 rowIndex, struct LatteTextureInformation* texInfo, struct LatteTextureViewInformation* viewInfo);
+	void _setTextureRelationListItemTexture(wxListCtrl* uiList, sint32 rowIndex,
+											struct LatteTextureInformation* texInfo);
+	void _setTextureRelationListItemView(wxListCtrl* uiList, sint32 rowIndex,
+										 struct LatteTextureInformation* texInfo,
+										 struct LatteTextureViewInformation* viewInfo);
 
 	bool showOnlyActive;
 	bool showTextureViews;

@@ -1,16 +1,15 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "proc_ui.h"
 
-#define PROCUI_STATUS_FOREGROUND	0
-#define PROCUI_STATUS_BACKGROUND	1
-#define PROCUI_STATUS_RELEASING		2
-#define PROCUI_STATUS_EXIT			3
+#define PROCUI_STATUS_FOREGROUND 0
+#define PROCUI_STATUS_BACKGROUND 1
+#define PROCUI_STATUS_RELEASING 2
+#define PROCUI_STATUS_EXIT 3
 
 uint32 ProcUIProcessMessages()
 {
 	return PROCUI_STATUS_FOREGROUND;
 }
-
 
 uint32 ProcUIInForeground(PPCInterpreter_t* hCPU)
 {

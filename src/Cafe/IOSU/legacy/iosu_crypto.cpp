@@ -17,10 +17,10 @@ bool hasOtpMem = false;
 uint8 seepromMem[512];
 bool hasSeepromMem = false;
 
-struct  
+struct
 {
 	bool hasCertificates;
-	struct  
+	struct
 	{
 		bool isValid;
 		sint32 id;
@@ -28,9 +28,9 @@ struct
 		std::vector<uint8> certData;
 		RSA* pkey;
 		std::vector<uint8> pkeyDERData;
-	}certList[256];
+	} certList[256];
 	sint32 certListCount;
-}iosuCryptoCertificates = { 0 };
+} iosuCryptoCertificates = {0};
 
 CertECC_t g_wiiuDeviceCert;
 
@@ -76,12 +76,12 @@ void iosuCrypto_getDeviceSerialString(char* serialString)
 	sprintf(serialString, "%s%s", serialStringPart0, serialStringPart1);
 }
 
-static const char* base64_charset =
-"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-"abcdefghijklmnopqrstuvwxyz"
-"0123456789+/";
+static const char* base64_charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+									"abcdefghijklmnopqrstuvwxyz"
+									"0123456789+/";
 
-int iosuCrypto_base64Encode(unsigned char const* bytes_to_encode, unsigned int inputLen, char* output)
+int iosuCrypto_base64Encode(unsigned char const* bytes_to_encode, unsigned int inputLen,
+							char* output)
 {
 	int i = 0;
 	int j = 0;
@@ -164,10 +164,10 @@ ECDSA_SIG* ECCPubKey_getSignature(CertECC_t& cert)
 	BN_bin2bn(cert.signature + 0, 30, bn_r);
 	BN_bin2bn(cert.signature + 30, 30, bn_s);
 
-	//EC_KEY* ec_pubKey = EC_KEY_new_by_curve_name(NID_sect233r1);
-	//int r = EC_KEY_set_public_key_affine_coordinates(ec_pubKey, bn_r, bn_s);
+	// EC_KEY* ec_pubKey = EC_KEY_new_by_curve_name(NID_sect233r1);
+	// int r = EC_KEY_set_public_key_affine_coordinates(ec_pubKey, bn_r, bn_s);
 	ECDSA_SIG* ec_sig = ECDSA_SIG_new();
-	//ECDSA_do_sign_ex
+	// ECDSA_do_sign_ex
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	ECDSA_SIG_set0(ec_sig, bn_r, bn_s);
 #else
@@ -184,7 +184,7 @@ ECDSA_SIG* ECCPubKey_getSignature(CertECC_t& cert)
 void ECCPubKey_setSignature(CertECC_t& cert, ECDSA_SIG* sig)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-	const BIGNUM* sig_r = nullptr, * sig_s = nullptr;
+	const BIGNUM *sig_r = nullptr, *sig_s = nullptr;
 	ECDSA_SIG_get0(sig, &sig_r, &sig_s);
 
 	sint32 lenR = BN_num_bytes(sig_r);
@@ -238,7 +238,6 @@ void iosuCrypto_generateDeviceCertificate()
 	g_wiiuDeviceCert.ukn0C0[2] = 0x00;
 	g_wiiuDeviceCert.ukn0C0[3] = 0x02;
 
-
 	iosuCrypto_readOtpData(g_wiiuDeviceCert.signature, 0xA3, 0x3C);
 
 	uint32be caValue;
@@ -246,14 +245,14 @@ void iosuCrypto_generateDeviceCertificate()
 	uint32be msValue;
 	iosuCrypto_readOtpData(msValue, 0xA0);
 
-	sprintf(g_wiiuDeviceCert.certificateSubject, "Root-CA%08x-MS%08x", (uint32)caValue, (uint32)msValue);
+	sprintf(g_wiiuDeviceCert.certificateSubject, "Root-CA%08x-MS%08x", (uint32)caValue,
+			(uint32)msValue);
 
 	uint32be ngNameValue;
 	iosuCrypto_readOtpData(ngNameValue, 0x87);
 	sprintf(g_wiiuDeviceCert.ngName, "NG%08x", (uint32)ngNameValue);
 
 	iosuCrypto_readOtpData(&g_wiiuDeviceCert.ngKeyId, 0xA2, sizeof(uint32));
-
 
 	uint8 privateKey[0x20];
 	memset(privateKey, 0, sizeof(privateKey));
@@ -265,13 +264,13 @@ void iosuCrypto_generateDeviceCertificate()
 	BIGNUM* bn_privKey = BN_CTX_get(context);
 	BN_bin2bn(privateKey, 0x1E, bn_privKey);
 
-	EC_GROUP *group = EC_GROUP_new_by_curve_name(NID_sect233r1);
-	EC_POINT *pubkey = EC_POINT_new(group);
+	EC_GROUP* group = EC_GROUP_new_by_curve_name(NID_sect233r1);
+	EC_POINT* pubkey = EC_POINT_new(group);
 
 	EC_POINT_mul(group, pubkey, bn_privKey, NULL, NULL, NULL);
 
 	BIGNUM* bn_x = BN_CTX_get(context);
-	BIGNUM* bn_y = BN_CTX_get(context);	
+	BIGNUM* bn_y = BN_CTX_get(context);
 
 	EC_POINT_get_affine_coordinates_GF2m(group, pubkey, bn_x, bn_y, NULL);
 
@@ -310,7 +309,8 @@ sint32 iosuCrypto_getDeviceCertificateBase64Encoded(char* output)
 	return len;
 }
 
-bool iosuCrypto_loadCertificate(uint32 id, std::wstring_view mlcSubpath, std::wstring_view pkeyMlcSubpath)
+bool iosuCrypto_loadCertificate(uint32 id, std::wstring_view mlcSubpath,
+								std::wstring_view pkeyMlcSubpath)
 {
 	X509* cert = nullptr;
 	// load cert data
@@ -331,7 +331,8 @@ bool iosuCrypto_loadCertificate(uint32 id, std::wstring_view mlcSubpath, std::ws
 		}
 		else if ((pkeyData->size() % 16) != 0)
 		{
-			cemuLog_force("Private key file has invalid length. Possibly corrupted? File: {}", pkeyPath.generic_string());
+			cemuLog_force("Private key file has invalid length. Possibly corrupted? File: {}",
+						  pkeyPath.generic_string());
 			return false;
 		}
 	}
@@ -340,7 +341,8 @@ bool iosuCrypto_loadCertificate(uint32 id, std::wstring_view mlcSubpath, std::ws
 	cert = d2i_X509(nullptr, (const unsigned char**)&tempPtr, certData->size());
 	if (cert == nullptr)
 	{
-		cemuLog_log(LogType::Force, "IOSU_CRYPTO: Unable to load certificate \"{}\"", boost::nowide::narrow(std::wstring(mlcSubpath)));
+		cemuLog_log(LogType::Force, "IOSU_CRYPTO: Unable to load certificate \"{}\"",
+					boost::nowide::narrow(std::wstring(mlcSubpath)));
 		return false;
 	}
 	// load optional rsa key
@@ -349,28 +351,30 @@ bool iosuCrypto_loadCertificate(uint32 id, std::wstring_view mlcSubpath, std::ws
 	{
 		cemu_assert((pkeyData->size() & 15) == 0);
 		uint8 aesKey[16];
-		uint8 iv[16] = { 0 };
+		uint8 iv[16] = {0};
 		uint8 pkeyDecryptedData[4096];
 		// decrypt pkey
 		iosuCrypto_readOtpData(aesKey, 0x120 / 4, 16);
 		AES128_CBC_decrypt(pkeyDecryptedData, pkeyData->data(), pkeyData->size(), aesKey, iv);
 		// convert to OpenSSL RSA pkey
 		unsigned char* pkeyTempPtr = pkeyDecryptedData;
-		pkeyRSA = d2i_RSAPrivateKey(nullptr, (const unsigned char **)&pkeyTempPtr, pkeyData->size());
+		pkeyRSA = d2i_RSAPrivateKey(nullptr, (const unsigned char**)&pkeyTempPtr, pkeyData->size());
 		if (pkeyRSA == nullptr)
 		{
-			cemuLog_log(LogType::Force, "IOSU_CRYPTO: Unable to decrypt private key \"{}\"", boost::nowide::narrow(std::wstring(pkeyMlcSubpath)));
+			cemuLog_log(LogType::Force, "IOSU_CRYPTO: Unable to decrypt private key \"{}\"",
+						boost::nowide::narrow(std::wstring(pkeyMlcSubpath)));
 			return false;
 		}
 		// encode private key as DER
-		EVP_PKEY *evpPkey = EVP_PKEY_new();
+		EVP_PKEY* evpPkey = EVP_PKEY_new();
 		EVP_PKEY_assign_RSA(evpPkey, pkeyRSA);
 		std::vector<uint8> derPKeyData(1024 * 32);
 		unsigned char* derPkeyTemp = derPKeyData.data();
 		sint32 derPkeySize = i2d_PrivateKey(evpPkey, &derPkeyTemp);
 		derPKeyData.resize(derPkeySize);
 		derPKeyData.shrink_to_fit();
-		iosuCryptoCertificates.certList[iosuCryptoCertificates.certListCount].pkeyDERData = derPKeyData;
+		iosuCryptoCertificates.certList[iosuCryptoCertificates.certListCount].pkeyDERData =
+			derPKeyData;
 	}
 
 	// register certificate and optional pkey
@@ -389,7 +393,8 @@ bool iosuCrypto_addClientCertificate(void* sslctx, sint32 certificateId)
 	// find entry
 	for (sint32 i = 0; i < iosuCryptoCertificates.certListCount; i++)
 	{
-		if (iosuCryptoCertificates.certList[i].isValid && iosuCryptoCertificates.certList[i].id == certificateId)
+		if (iosuCryptoCertificates.certList[i].isValid &&
+			iosuCryptoCertificates.certList[i].id == certificateId)
 		{
 			if (SSL_CTX_use_certificate(ctx, iosuCryptoCertificates.certList[i].cert) != 1)
 			{
@@ -404,13 +409,15 @@ bool iosuCrypto_addClientCertificate(void* sslctx, sint32 certificateId)
 
 			if (SSL_CTX_check_private_key(ctx) == false)
 			{
-				forceLog_printf("Certificate private key could not be validated (verify required files for online mode or disable online mode)");
+				forceLog_printf("Certificate private key could not be validated (verify required "
+								"files for online mode or disable online mode)");
 			}
 
 			return true;
 		}
 	}
-	forceLog_printf("Certificate not found (verify required files for online mode or disable online mode)");
+	forceLog_printf(
+		"Certificate not found (verify required files for online mode or disable online mode)");
 	return false;
 }
 
@@ -420,7 +427,8 @@ bool iosuCrypto_addCACertificate(void* sslctx, sint32 certificateId)
 	// find entry
 	for (sint32 i = 0; i < iosuCryptoCertificates.certListCount; i++)
 	{
-		if (iosuCryptoCertificates.certList[i].isValid && iosuCryptoCertificates.certList[i].id == certificateId)
+		if (iosuCryptoCertificates.certList[i].isValid &&
+			iosuCryptoCertificates.certList[i].id == certificateId)
 		{
 			X509_STORE* store = SSL_CTX_get_cert_store((SSL_CTX*)sslctx);
 			X509_STORE_add_cert(store, iosuCryptoCertificates.certList[i].cert);
@@ -449,7 +457,8 @@ uint8* iosuCrypto_getCertificateDataById(sint32 certificateId, sint32* certifica
 {
 	for (sint32 i = 0; i < iosuCryptoCertificates.certListCount; i++)
 	{
-		if (iosuCryptoCertificates.certList[i].isValid && iosuCryptoCertificates.certList[i].id == certificateId)
+		if (iosuCryptoCertificates.certList[i].isValid &&
+			iosuCryptoCertificates.certList[i].id == certificateId)
 		{
 			*certificateSize = iosuCryptoCertificates.certList[i].certData.size();
 			return iosuCryptoCertificates.certList[i].certData.data();
@@ -462,7 +471,8 @@ uint8* iosuCrypto_getCertificatePrivateKeyById(sint32 certificateId, sint32* cer
 {
 	for (sint32 i = 0; i < iosuCryptoCertificates.certListCount; i++)
 	{
-		if (iosuCryptoCertificates.certList[i].isValid && iosuCryptoCertificates.certList[i].id == certificateId)
+		if (iosuCryptoCertificates.certList[i].isValid &&
+			iosuCryptoCertificates.certList[i].id == certificateId)
 		{
 			*certificateSize = iosuCryptoCertificates.certList[i].pkeyDERData.size();
 			return iosuCryptoCertificates.certList[i].pkeyDERData.data();
@@ -478,56 +488,56 @@ struct
 	const wchar_t key[256];
 } const g_certificates[] = {
 	// NINTENDO CLIENT CERTS
-	{ 1, L"ccerts/WIIU_COMMON_1_CERT.der", L"ccerts/WIIU_COMMON_1_RSA_KEY.aes" },
-	{ 3, L"ccerts/WIIU_ACCOUNT_1_CERT.der", L"ccerts/WIIU_ACCOUNT_1_RSA_KEY.aes" },
-	{ 4, L"ccerts/WIIU_OLIVE_1_CERT.der", L"ccerts/WIIU_OLIVE_1_RSA_KEY.aes" },
-	{ 5, L"ccerts/WIIU_VINO_1_CERT.der", L"ccerts/WIIU_VINO_1_RSA_KEY.aes" },
-	{ 6, L"ccerts/WIIU_WOOD_1_CERT.der", L"ccerts/WIIU_WOOD_1_RSA_KEY.aes" },
-	{ 7, L"ccerts/WIIU_OLIVE_1_CERT.der", L"ccerts/WIIU_OLIVE_1_RSA_KEY.aes" },
-	{ 8, L"ccerts/WIIU_WOOD_1_CERT.der", L"ccerts/WIIU_WOOD_1_RSA_KEY.aes" },
+	{1, L"ccerts/WIIU_COMMON_1_CERT.der", L"ccerts/WIIU_COMMON_1_RSA_KEY.aes"},
+	{3, L"ccerts/WIIU_ACCOUNT_1_CERT.der", L"ccerts/WIIU_ACCOUNT_1_RSA_KEY.aes"},
+	{4, L"ccerts/WIIU_OLIVE_1_CERT.der", L"ccerts/WIIU_OLIVE_1_RSA_KEY.aes"},
+	{5, L"ccerts/WIIU_VINO_1_CERT.der", L"ccerts/WIIU_VINO_1_RSA_KEY.aes"},
+	{6, L"ccerts/WIIU_WOOD_1_CERT.der", L"ccerts/WIIU_WOOD_1_RSA_KEY.aes"},
+	{7, L"ccerts/WIIU_OLIVE_1_CERT.der", L"ccerts/WIIU_OLIVE_1_RSA_KEY.aes"},
+	{8, L"ccerts/WIIU_WOOD_1_CERT.der", L"ccerts/WIIU_WOOD_1_RSA_KEY.aes"},
 
 	// NINTENDO CA CERTS
-	{ 100, L"scerts/CACERT_NINTENDO_CA.der", L"" },
-	{ 101, L"scerts/CACERT_NINTENDO_CA_G2.der", L"" },
-	{ 102, L"scerts/CACERT_NINTENDO_CA_G3.der", L"" },
-	{ 103, L"scerts/CACERT_NINTENDO_CLASS2_CA.der", L"" },
-	{ 104, L"scerts/CACERT_NINTENDO_CLASS2_CA_G2.der", L"" },
-	{ 105, L"scerts/CACERT_NINTENDO_CLASS2_CA_G3.der", L"" },
+	{100, L"scerts/CACERT_NINTENDO_CA.der", L""},
+	{101, L"scerts/CACERT_NINTENDO_CA_G2.der", L""},
+	{102, L"scerts/CACERT_NINTENDO_CA_G3.der", L""},
+	{103, L"scerts/CACERT_NINTENDO_CLASS2_CA.der", L""},
+	{104, L"scerts/CACERT_NINTENDO_CLASS2_CA_G2.der", L""},
+	{105, L"scerts/CACERT_NINTENDO_CLASS2_CA_G3.der", L""},
 
 	// COMMERCIAL CA CERTS
-	{ 1001, L"scerts/BALTIMORE_CYBERTRUST_ROOT_CA.der", L"" },
-	{ 1002, L"scerts/CYBERTRUST_GLOBAL_ROOT_CA.der", L"" },
-	{ 1003, L"scerts/VERIZON_GLOBAL_ROOT_CA.der", L"" },
-	{ 1004, L"scerts/GLOBALSIGN_ROOT_CA.der", L"" },
-	{ 1005, L"scerts/GLOBALSIGN_ROOT_CA_R2.der", L"" },
-	{ 1006, L"scerts/GLOBALSIGN_ROOT_CA_R3.der", L"" },
-	{ 1007, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA_G3.der", L"" },
-	{ 1008, L"scerts/VERISIGN_UNIVERSAL_ROOT_CA.der", L"" },
-	{ 1009, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA_G5.der", L"" },
-	{ 1010, L"scerts/THAWTE_PRIMARY_ROOT_CA_G3.der", L"" },
-	{ 1011, L"scerts/THAWTE_PRIMARY_ROOT_CA.der", L"" },
-	{ 1012, L"scerts/GEOTRUST_GLOBAL_CA.der", L"" },
-	{ 1013, L"scerts/GEOTRUST_GLOBAL_CA2.der", L"" },
-	{ 1014, L"scerts/GEOTRUST_PRIMARY_CA.der", L"" },
-	{ 1015, L"scerts/GEOTRUST_PRIMARY_CA_G3.der", L"" },
-	{ 1016, L"scerts/ADDTRUST_EXT_CA_ROOT.der", L"" },
-	{ 1017, L"scerts/COMODO_CA.der", L"" },
-	{ 1018, L"scerts/UTN_DATACORP_SGC_CA.der", L"" },
-	{ 1019, L"scerts/UTN_USERFIRST_HARDWARE_CA.der" , L"" },
-	{ 1020, L"scerts/DIGICERT_HIGH_ASSURANCE_EV_ROOT_CA.der", L"" },
-	{ 1021, L"scerts/DIGICERT_ASSURED_ID_ROOT_CA.der", L"" },
-	{ 1022, L"scerts/DIGICERT_GLOBAL_ROOT_CA.der", L"" },
-	{ 1023, L"scerts/GTE_CYBERTRUST_GLOBAL_ROOT.der", L"" },
-	{ 1024, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA.der", L"" },
-	{ 1025, L"scerts/THAWTE_PREMIUM_SERVER_CA.der", L"" },
-	{ 1026, L"scerts/EQUIFAX_SECURE_CA.der", L"" },
-	{ 1027, L"scerts/ENTRUST_SECURE_SERVER_CA.der", L"" },
-	{ 1028, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA_G2.der", L"" },
-	{ 1029, L"scerts/ENTRUST_CA_2048.der", L"" },
-	{ 1030, L"scerts/ENTRUST_ROOT_CA.der", L"" },
-	{ 1031, L"scerts/ENTRUST_ROOT_CA_G2.der", L"" },
-	{ 1032, L"scerts/DIGICERT_ASSURED_ID_ROOT_CA_G2.der", L"" },
-	{ 1033, L"scerts/DIGICERT_GLOBAL_ROOT_CA_G2.der", L"" },
+	{1001, L"scerts/BALTIMORE_CYBERTRUST_ROOT_CA.der", L""},
+	{1002, L"scerts/CYBERTRUST_GLOBAL_ROOT_CA.der", L""},
+	{1003, L"scerts/VERIZON_GLOBAL_ROOT_CA.der", L""},
+	{1004, L"scerts/GLOBALSIGN_ROOT_CA.der", L""},
+	{1005, L"scerts/GLOBALSIGN_ROOT_CA_R2.der", L""},
+	{1006, L"scerts/GLOBALSIGN_ROOT_CA_R3.der", L""},
+	{1007, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA_G3.der", L""},
+	{1008, L"scerts/VERISIGN_UNIVERSAL_ROOT_CA.der", L""},
+	{1009, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA_G5.der", L""},
+	{1010, L"scerts/THAWTE_PRIMARY_ROOT_CA_G3.der", L""},
+	{1011, L"scerts/THAWTE_PRIMARY_ROOT_CA.der", L""},
+	{1012, L"scerts/GEOTRUST_GLOBAL_CA.der", L""},
+	{1013, L"scerts/GEOTRUST_GLOBAL_CA2.der", L""},
+	{1014, L"scerts/GEOTRUST_PRIMARY_CA.der", L""},
+	{1015, L"scerts/GEOTRUST_PRIMARY_CA_G3.der", L""},
+	{1016, L"scerts/ADDTRUST_EXT_CA_ROOT.der", L""},
+	{1017, L"scerts/COMODO_CA.der", L""},
+	{1018, L"scerts/UTN_DATACORP_SGC_CA.der", L""},
+	{1019, L"scerts/UTN_USERFIRST_HARDWARE_CA.der", L""},
+	{1020, L"scerts/DIGICERT_HIGH_ASSURANCE_EV_ROOT_CA.der", L""},
+	{1021, L"scerts/DIGICERT_ASSURED_ID_ROOT_CA.der", L""},
+	{1022, L"scerts/DIGICERT_GLOBAL_ROOT_CA.der", L""},
+	{1023, L"scerts/GTE_CYBERTRUST_GLOBAL_ROOT.der", L""},
+	{1024, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA.der", L""},
+	{1025, L"scerts/THAWTE_PREMIUM_SERVER_CA.der", L""},
+	{1026, L"scerts/EQUIFAX_SECURE_CA.der", L""},
+	{1027, L"scerts/ENTRUST_SECURE_SERVER_CA.der", L""},
+	{1028, L"scerts/VERISIGN_CLASS3_PUBLIC_PRIMARY_CA_G2.der", L""},
+	{1029, L"scerts/ENTRUST_CA_2048.der", L""},
+	{1030, L"scerts/ENTRUST_ROOT_CA.der", L""},
+	{1031, L"scerts/ENTRUST_ROOT_CA_G2.der", L""},
+	{1032, L"scerts/DIGICERT_ASSURED_ID_ROOT_CA_G2.der", L""},
+	{1033, L"scerts/DIGICERT_GLOBAL_ROOT_CA_G2.der", L""},
 };
 
 void iosuCrypto_loadSSLCertificates()
@@ -540,20 +550,21 @@ void iosuCrypto_loadSSLCertificates()
 
 	// load CA certificate
 	bool hasAllCertificates = true;
-	for( const auto& c : g_certificates )
+	for (const auto& c : g_certificates)
 	{
 		std::wstring certDir = L"sys/title/0005001b/10054000/content/";
 		std::wstring certFilePath = certDir + c.name;
-		std::wstring keyFilePath;		
+		std::wstring keyFilePath;
 
-		if( *c.key )
+		if (*c.key)
 			keyFilePath = certDir + c.key;
 		else
 			keyFilePath.clear();
 
 		if (iosuCrypto_loadCertificate(c.id, certFilePath, keyFilePath) == false)
 		{
-			cemuLog_log(LogType::Force, "Unable to load certificate \"{}\"", boost::nowide::narrow(certFilePath));
+			cemuLog_log(LogType::Force, "Unable to load certificate \"{}\"",
+						boost::nowide::narrow(certFilePath));
 			hasAllCertificates = false;
 		}
 	}
@@ -563,13 +574,16 @@ void iosuCrypto_loadSSLCertificates()
 void iosuCrypto_init()
 {
 	// load OTP dump
-	if (std::ifstream otp_file(ActiveSettings::GetPath("otp.bin"), std::ifstream::in | std::ios::binary); otp_file.is_open())
+	if (std::ifstream otp_file(ActiveSettings::GetPath("otp.bin"),
+							   std::ifstream::in | std::ios::binary);
+		otp_file.is_open())
 	{
 		otp_file.seekg(0, std::ifstream::end);
 		const auto length = otp_file.tellg();
 		otp_file.seekg(0, std::ifstream::beg);
 		// verify if OTP is ok
-		if (length != 1024) // todo - should also check some fixed values to verify integrity of otp dump
+		if (length !=
+			1024) // todo - should also check some fixed values to verify integrity of otp dump
 		{
 			forceLog_printf("IOSU_CRYPTO: otp.bin has wrong size (must be 1024 bytes)");
 			hasOtpMem = false;
@@ -586,7 +600,9 @@ void iosuCrypto_init()
 		hasOtpMem = false;
 	}
 
-	if (std::ifstream seeprom_file(ActiveSettings::GetPath("seeprom.bin"), std::ifstream::in | std::ios::binary); seeprom_file.is_open())
+	if (std::ifstream seeprom_file(ActiveSettings::GetPath("seeprom.bin"),
+								   std::ifstream::in | std::ios::binary);
+		seeprom_file.is_open())
 	{
 		seeprom_file.seekg(0, std::ifstream::end);
 		const auto length = seeprom_file.tellg();
@@ -594,7 +610,8 @@ void iosuCrypto_init()
 		// verify if seeprom is ok
 		if (length != 512) // todo - maybe check some known values to verify integrity of seeprom
 		{
-			cemuLog_log(LogType::Force, "IOSU_CRYPTO: seeprom.bin has wrong size (must be 512 bytes)");
+			cemuLog_log(LogType::Force,
+						"IOSU_CRYPTO: seeprom.bin has wrong size (must be 512 bytes)");
 			hasSeepromMem = false;
 		}
 		else
@@ -605,17 +622,19 @@ void iosuCrypto_init()
 	}
 	else
 	{
-		cemuLog_log(LogType::Force, "IOSU_CRYPTO: No Seeprom.bin found. Online mode cannot be used");
+		cemuLog_log(LogType::Force,
+					"IOSU_CRYPTO: No Seeprom.bin found. Online mode cannot be used");
 		hasSeepromMem = false;
 	}
-	
+
 	// generate device certificate
 	iosuCrypto_generateDeviceCertificate();
 	// load SSL certificates
 	iosuCrypto_loadSSLCertificates();
 }
 
-bool iosuCrypto_checkRequirementMLCFile(std::string_view mlcSubpath, std::wstring& additionalErrorInfo_filePath)
+bool iosuCrypto_checkRequirementMLCFile(std::string_view mlcSubpath,
+										std::wstring& additionalErrorInfo_filePath)
 {
 	const auto path = ActiveSettings::GetMlcPath(mlcSubpath);
 	additionalErrorInfo_filePath = path.generic_wstring();
@@ -631,9 +650,9 @@ sint32 iosuCrypt_checkRequirementsForOnlineMode(std::wstring& additionalErrorInf
 	std::error_code ec;
 	// check if otp.bin is present
 	const auto otp_file = ActiveSettings::GetPath("otp.bin");
-	if(!fs::exists(otp_file, ec))
+	if (!fs::exists(otp_file, ec))
 		return IOS_CRYPTO_ONLINE_REQ_OTP_MISSING;
-	if(fs::file_size(otp_file, ec) != 1024)
+	if (fs::file_size(otp_file, ec) != 1024)
 		return IOS_CRYPTO_ONLINE_REQ_OTP_CORRUPTED;
 	// check if seeprom.bin is present
 	const auto seeprom_file = ActiveSettings::GetPath("seeprom.bin");
@@ -641,10 +660,11 @@ sint32 iosuCrypt_checkRequirementsForOnlineMode(std::wstring& additionalErrorInf
 		return IOS_CRYPTO_ONLINE_REQ_SEEPROM_MISSING;
 	if (fs::file_size(seeprom_file, ec) != 512)
 		return IOS_CRYPTO_ONLINE_REQ_SEEPROM_CORRUPTED;
-	
+
 	for (const auto& c : g_certificates)
 	{
-		std::string subPath = fmt::format("sys/title/0005001b/10054000/content/{}", boost::nowide::narrow(c.name));
+		std::string subPath =
+			fmt::format("sys/title/0005001b/10054000/content/{}", boost::nowide::narrow(c.name));
 		if (iosuCrypto_checkRequirementMLCFile(subPath, additionalErrorInfo) == false)
 		{
 			cemuLog_log(LogType::Force, "Missing dumped file for online mode: {}", subPath);
@@ -653,7 +673,8 @@ sint32 iosuCrypt_checkRequirementsForOnlineMode(std::wstring& additionalErrorInf
 
 		if (*c.key)
 		{
-			std::string subPath = fmt::format("sys/title/0005001b/10054000/content/{}", boost::nowide::narrow(c.key));
+			std::string subPath =
+				fmt::format("sys/title/0005001b/10054000/content/{}", boost::nowide::narrow(c.key));
 			if (iosuCrypto_checkRequirementMLCFile(subPath, additionalErrorInfo) == false)
 			{
 				cemuLog_log(LogType::Force, "Missing dumped file for online mode: {}", subPath);
@@ -672,7 +693,7 @@ std::vector<const wchar_t*> iosuCrypt_getCertificateKeys()
 	{
 		if (c.key[0] == '\0')
 			continue;
-		
+
 		result.emplace_back(c.key);
 	}
 	return result;

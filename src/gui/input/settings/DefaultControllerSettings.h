@@ -11,11 +11,11 @@ class wxInputDraw;
 
 class DefaultControllerSettings : public wxDialog
 {
-public:
+  public:
 	DefaultControllerSettings(wxWindow* parent, const wxPoint& position, ControllerPtr controller);
 	~DefaultControllerSettings();
 
-private:
+  private:
 	void update_settings();
 
 	ControllerPtr m_controller;
@@ -25,14 +25,14 @@ private:
 	wxTimer* m_timer;
 	std::optional<std::chrono::steady_clock::time_point> m_rumble_time{};
 
-	wxSlider* m_axis_deadzone, *m_axis_range;
-	wxSlider* m_rotation_deadzone, *m_rotation_range;
-	wxSlider* m_trigger_deadzone, *m_trigger_range;
+	wxSlider *m_axis_deadzone, *m_axis_range;
+	wxSlider *m_rotation_deadzone, *m_rotation_range;
+	wxSlider *m_trigger_deadzone, *m_trigger_range;
 	wxSlider* m_rumble;
 
 	wxCheckBox* m_use_motion = nullptr;
 
-	wxInputDraw* m_axis_draw, * m_rotation_draw, *m_trigger_draw;
+	wxInputDraw *m_axis_draw, *m_rotation_draw, *m_trigger_draw;
 
 	void on_timer(wxTimerEvent& event);
 	void on_close(wxCloseEvent& event);

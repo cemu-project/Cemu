@@ -20,13 +20,24 @@ void LattePerformanceMonitor_frameEnd()
 	performanceMonitor.gpuTime_dcStageDrawcallAPI.frameFinished();
 	performanceMonitor.gpuTime_waitForAsync.frameFinished();
 
-	uint32 elapsedTime = GetTickCount() - performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate;
+	uint32 elapsedTime =
+		GetTickCount() - performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate;
 	if (elapsedTime >= 1000)
 	{
-		bool isFirstUpdate = performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate == 0;
+		bool isFirstUpdate =
+			performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate == 0;
 		// sum up raw stats
-		uint32 totalElapsedTime = GetTickCount() - performanceMonitor.cycle[(performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES].lastUpdate;
-		uint32 totalElapsedTimeFPS = GetTickCount() - performanceMonitor.cycle[(performanceMonitor.cycleIndex + PERFORMANCE_MONITOR_TRACK_CYCLES - 1) % PERFORMANCE_MONITOR_TRACK_CYCLES].lastUpdate;
+		uint32 totalElapsedTime =
+			GetTickCount() -
+			performanceMonitor
+				.cycle[(performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES]
+				.lastUpdate;
+		uint32 totalElapsedTimeFPS =
+			GetTickCount() -
+			performanceMonitor
+				.cycle[(performanceMonitor.cycleIndex + PERFORMANCE_MONITOR_TRACK_CYCLES - 1) %
+					   PERFORMANCE_MONITOR_TRACK_CYCLES]
+				.lastUpdate;
 		uint32 elapsedFrames = 0;
 		uint32 elapsedFrames2S = 0; // elapsed frames for last two entries (seconds)
 		uint64 skippedCycles = 0;
@@ -58,11 +69,23 @@ void LattePerformanceMonitor_frameEnd()
 			threadLeaveCount += performanceMonitor.cycle[i].threadLeaveCount;
 		}
 		elapsedFrames = std::max<uint32>(elapsedFrames, 1);
-		elapsedFrames2S = performanceMonitor.cycle[(performanceMonitor.cycleIndex + PERFORMANCE_MONITOR_TRACK_CYCLES - 0) % PERFORMANCE_MONITOR_TRACK_CYCLES].frameCounter;
-		elapsedFrames2S += performanceMonitor.cycle[(performanceMonitor.cycleIndex + PERFORMANCE_MONITOR_TRACK_CYCLES - 1) % PERFORMANCE_MONITOR_TRACK_CYCLES].frameCounter;
+		elapsedFrames2S =
+			performanceMonitor
+				.cycle[(performanceMonitor.cycleIndex + PERFORMANCE_MONITOR_TRACK_CYCLES - 0) %
+					   PERFORMANCE_MONITOR_TRACK_CYCLES]
+				.frameCounter;
+		elapsedFrames2S +=
+			performanceMonitor
+				.cycle[(performanceMonitor.cycleIndex + PERFORMANCE_MONITOR_TRACK_CYCLES - 1) %
+					   PERFORMANCE_MONITOR_TRACK_CYCLES]
+				.frameCounter;
 		elapsedFrames2S = std::max<uint32>(elapsedFrames2S, 1);
 		// calculate stats
-		uint64 passedCycles = PPCInterpreter_getMainCoreCycleCounter() - performanceMonitor.cycle[(performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES].lastCycleCount;
+		uint64 passedCycles =
+			PPCInterpreter_getMainCoreCycleCounter() -
+			performanceMonitor
+				.cycle[(performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES]
+				.lastCycleCount;
 		passedCycles -= skippedCycles;
 		uint64 vertexDataUploadPerFrame = (vertexDataUploaded / (uint64)elapsedFrames);
 		vertexDataUploadPerFrame /= 1024ULL;
@@ -70,7 +93,8 @@ void LattePerformanceMonitor_frameEnd()
 		vertexDataCachedPerFrame /= 1024ULL;
 		uint64 uniformBankDataUploadedPerFrame = (uniformBankUploadedData / (uint64)elapsedFrames);
 		uniformBankDataUploadedPerFrame /= 1024ULL;
-		uint32 uniformBankCountUploadedPerFrame = (uint32)(uniformBankUploadedCount / (uint64)elapsedFrames);
+		uint32 uniformBankCountUploadedPerFrame =
+			(uint32)(uniformBankUploadedCount / (uint64)elapsedFrames);
 		uint64 indexDataUploadPerFrame = (indexDataUploaded / (uint64)elapsedFrames);
 		indexDataUploadPerFrame /= 1024ULL;
 
@@ -83,11 +107,13 @@ void LattePerformanceMonitor_frameEnd()
 		// set stats
 
 		// next counter cycle
-		sint32 nextCycleIndex = (performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES;
+		sint32 nextCycleIndex =
+			(performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES;
 		performanceMonitor.cycle[nextCycleIndex].drawCallCounter = 0;
 		performanceMonitor.cycle[nextCycleIndex].frameCounter = 0;
 		performanceMonitor.cycle[nextCycleIndex].shaderBindCount = 0;
-		performanceMonitor.cycle[nextCycleIndex].lastCycleCount = PPCInterpreter_getMainCoreCycleCounter();
+		performanceMonitor.cycle[nextCycleIndex].lastCycleCount =
+			PPCInterpreter_getMainCoreCycleCounter();
 		performanceMonitor.cycle[nextCycleIndex].skippedCycles = 0;
 		performanceMonitor.cycle[nextCycleIndex].vertexDataUploaded = 0;
 		performanceMonitor.cycle[nextCycleIndex].vertexDataCached = 0;
@@ -98,7 +124,7 @@ void LattePerformanceMonitor_frameEnd()
 		performanceMonitor.cycle[nextCycleIndex].recompilerLeaveCount = 0;
 		performanceMonitor.cycle[nextCycleIndex].threadLeaveCount = 0;
 		performanceMonitor.cycleIndex = nextCycleIndex;
-		
+
 		if (isFirstUpdate)
 		{
 			LatteOverlay_updateStats(0.0, 0);
@@ -112,10 +138,10 @@ void LattePerformanceMonitor_frameEnd()
 		// next update in 1 second
 		performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate = GetTickCount();
 
-		// prevent hibernation and screen saver/monitor off
-		#if BOOST_OS_WINDOWS
+// prevent hibernation and screen saver/monitor off
+#if BOOST_OS_WINDOWS
 		SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED);
-		#endif
+#endif
 	}
 	LatteOverlay_updateStatsPerFrame();
 }

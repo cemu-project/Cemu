@@ -26,7 +26,10 @@ wxDECLARE_EVENT(wxEVT_NOTIFY_MODULE_UNLOADED, wxCommandEvent);
 struct DebuggerConfig
 {
 	DebuggerConfig()
-	: pin_to_main(true), break_on_start(true), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true) {}
+		: pin_to_main(true), break_on_start(true), show_register(true), show_dump(true),
+		  show_stack(true), show_breakpoints(true), show_modules(true)
+	{
+	}
 
 	bool pin_to_main;
 
@@ -42,7 +45,8 @@ struct DebuggerConfig
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
 };
-typedef XMLDataConfig<DebuggerConfig, &DebuggerConfig::Load, &DebuggerConfig::Save> XMLDebuggerConfig;
+typedef XMLDataConfig<DebuggerConfig, &DebuggerConfig::Load, &DebuggerConfig::Save>
+	XMLDebuggerConfig;
 
 struct DebuggerModuleStorage
 {
@@ -54,11 +58,13 @@ struct DebuggerModuleStorage
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
 };
-typedef XMLDataConfig<DebuggerModuleStorage, &DebuggerModuleStorage::Load, &DebuggerModuleStorage::Save> XMLDebuggerModuleConfig;
+typedef XMLDataConfig<DebuggerModuleStorage, &DebuggerModuleStorage::Load,
+					  &DebuggerModuleStorage::Save>
+	XMLDebuggerModuleConfig;
 
 class DebuggerWindow2 : public wxFrame
 {
-public:
+  public:
 	void CreateToolBar();
 	void LoadModuleStorage(const RPLModule* module);
 	void SaveModuleStorage(const RPLModule* module, bool delete_breakpoints);
@@ -72,7 +78,8 @@ public:
 
 	bool Show(bool show = true) override;
 	std::wstring GetModuleStoragePath(std::string module_name, uint32_t crc_hash) const;
-private:
+
+  private:
 	void OnBreakpointHit(wxCommandEvent& event);
 	void OnRunProgram(wxCommandEvent& event);
 	void OnToolClicked(wxCommandEvent& event);
@@ -110,7 +117,5 @@ private:
 	uint32 m_module_address;
 	wxStaticText* m_module_label;
 
-
-wxDECLARE_EVENT_TABLE();
+	wxDECLARE_EVENT_TABLE();
 };
-

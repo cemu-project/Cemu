@@ -19,9 +19,12 @@ static GLuint _genTextureHandleGL()
 	return texIdPool[texIdPoolIndex - 1];
 }
 
-LatteTextureGL::LatteTextureGL(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
-	Latte::E_HWTILEMODE tileMode, bool isDepth)
-	: LatteTexture(textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth)
+LatteTextureGL::LatteTextureGL(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress,
+							   MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width,
+							   uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
+							   uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
+	: LatteTexture(textureUnit, dim, physAddress, physMipAddress, format, width, height, depth,
+				   pitch, mipLevels, swizzle, tileMode, isDepth)
 {
 	GenerateEmptyTextureFromGX2Dim(dim, this->glId_texture, this->glTexTarget);
 	// set format info
@@ -43,7 +46,8 @@ LatteTextureGL::LatteTextureGL(uint32 textureUnit, Latte::E_DIM dim, MPTR physAd
 	if (useGLDebugNames)
 	{
 		char textureDebugLabel[512];
-		sprintf(textureDebugLabel, "%08x_f%04x%s_p%04x_%dx%d", physAddress, (uint32)format, this->isDepth ? "_d" : "", pitch, width, height);
+		sprintf(textureDebugLabel, "%08x_f%04x%s_p%04x_%dx%d", physAddress, (uint32)format,
+				this->isDepth ? "_d" : "", pitch, width, height);
 		glObjectLabel(GL_TEXTURE, this->glId_texture, -1, textureDebugLabel);
 	}
 }
@@ -54,7 +58,8 @@ LatteTextureGL::~LatteTextureGL()
 	catchOpenGLError();
 }
 
-void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget)
+void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId,
+													GLint& texTarget)
 {
 	texId = _genTextureHandleGL();
 	if (dim == Latte::E_DIM::DIM_2D)
@@ -75,14 +80,17 @@ void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& te
 	}
 }
 
-LatteTextureView* LatteTextureGL::CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
+LatteTextureView* LatteTextureGL::CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format,
+											 sint32 firstMip, sint32 mipCount, sint32 firstSlice,
+											 sint32 sliceCount)
 {
 	return new LatteTextureViewGL(this, dim, format, firstMip, mipCount, firstSlice, sliceCount);
 }
 
-void  LatteTextureGL::InitTextureState()
+void LatteTextureGL::InitTextureState()
 {
-	// init texture with some default parameters (todo - this shouldn't be necessary if we properly set parameters when a texture is used)
+	// init texture with some default parameters (todo - this shouldn't be necessary if we properly
+	// set parameters when a texture is used)
 	catchOpenGLError();
 	glTexParameteri(glTexTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(glTexTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -92,7 +100,8 @@ void  LatteTextureGL::InitTextureState()
 	catchOpenGLError();
 }
 
-void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT format, Latte::E_DIM dim, FormatInfoGL* formatInfoOut)
+void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT format, Latte::E_DIM dim,
+										 FormatInfoGL* formatInfoOut)
 {
 	formatInfoOut->isUsingAlternativeFormat = false;
 
@@ -100,47 +109,55 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	{
 		if (format == Latte::E_GX2SURFFMT::D24_S8_UNORM)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, true);
+			formatInfoOut->setDepthFormat(GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
+										  GL_UNSIGNED_INT_24_8, true);
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D24_S8_FLOAT)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, true);
+			formatInfoOut->setDepthFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL,
+										  GL_FLOAT_32_UNSIGNED_INT_24_8_REV, true);
 			formatInfoOut->markAsAlternativeFormat();
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D32_S8_FLOAT)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, true);
+			formatInfoOut->setDepthFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL,
+										  GL_FLOAT_32_UNSIGNED_INT_24_8_REV, true);
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D32_FLOAT)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, false);
+			formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT,
+										  false);
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D16_UNORM)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, false);
+			formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT,
+										  GL_UNSIGNED_SHORT, false);
 			return;
 		}
 		// unsupported depth format
 		forceLog_printf("OpenGL: Unsupported texture depth format 0x%04x", (uint32)format);
 		// use placeholder format
-		formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, false);
+		formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT,
+									  false);
 		formatInfoOut->markAsAlternativeFormat();
 		return;
 	}
 
 	bool glIsCompressed = false;
-	bool isUsingAlternativeFormat = false; // set to true if there is no bit-perfect matching OpenGL format
+	bool isUsingAlternativeFormat =
+		false; // set to true if there is no bit-perfect matching OpenGL format
 	sint32 glInternalFormat;
 	sint32 glSuppliedFormat;
 	sint32 glSuppliedFormatType;
 	// check if compressed textures should be used
 	bool allowCompressedGLFormat = true;
 	if (LatteGPUState.glVendor == GLVENDOR_INTEL_LEGACY)
-		allowCompressedGLFormat = false; // compressed formats seem to cause more harm than good on Intel
+		allowCompressedGLFormat =
+			false; // compressed formats seem to cause more harm than good on Intel
 	// get format information
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
 	{
@@ -173,8 +190,7 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 		formatInfoOut->setFormat(GL_R16F, GL_RED, GL_HALF_FLOAT);
 		return;
 	}
-	else if (format == Latte::E_GX2SURFFMT::BC1_UNORM ||
-		format == Latte::E_GX2SURFFMT::BC1_SRGB)
+	else if (format == Latte::E_GX2SURFFMT::BC1_UNORM || format == Latte::E_GX2SURFFMT::BC1_SRGB)
 	{
 		if (allowCompressedGLFormat)
 		{
@@ -290,7 +306,8 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 		formatInfoOut->setFormat(GL_RGBA32F, GL_RGBA, GL_FLOAT);
 		return;
 	}
-	else if (format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM || format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB)
+	else if (format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM ||
+			 format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB)
 	{
 		if (format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB)
 			glInternalFormat = GL_SRGB8_ALPHA8;
@@ -464,7 +481,8 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	}
 	else if (format == Latte::E_GX2SURFFMT::R24_X8_UNORM)
 	{
-		// OpenGL has no color version of GL_DEPTH24_STENCIL8, therefore we use a 32-bit floating-point format instead
+		// OpenGL has no color version of GL_DEPTH24_STENCIL8, therefore we use a 32-bit
+		// floating-point format instead
 		glInternalFormat = GL_R32F;
 		isUsingAlternativeFormat = true;
 		// supplied format
@@ -475,7 +493,8 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	else if (format == Latte::E_GX2SURFFMT::X24_G8_UINT)
 	{
 		// OpenGL has no X24_G8 format, we use RGBA8UI instead and manually swizzle the channels
-		// this format is used in Resident Evil Revelations when scanning with the Genesis. It's also used in Cars 3: Driven to Win?
+		// this format is used in Resident Evil Revelations when scanning with the Genesis. It's
+		// also used in Cars 3: Driven to Win?
 
 		glInternalFormat = GL_RGBA8UI;
 		isUsingAlternativeFormat = true;

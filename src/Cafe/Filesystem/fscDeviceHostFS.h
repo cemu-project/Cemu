@@ -2,8 +2,9 @@
 
 class FSCVirtualFile_Host : public FSCVirtualFile
 {
-public:
-	static FSCVirtualFile* OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus);
+  public:
+	static FSCVirtualFile* OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags,
+									sint32& fscStatus);
 	~FSCVirtualFile_Host() override;
 
 	sint32 fscGetType() override;
@@ -18,16 +19,16 @@ public:
 	void fscSetFileLength(uint64 endOffset) override;
 	bool fscDirNext(FSCDirEntry* dirEntry) override;
 
-private:
-	FSCVirtualFile_Host(uint32 type) : m_type(type) {};
+  private:
+	FSCVirtualFile_Host(uint32 type) : m_type(type){};
 
-private:
+  private:
 	uint32 m_type; // FSC_TYPE_*
 	class FileStream* m_fs{};
 	// file
-	uint64 m_seek{ 0 };
-	uint64 m_fileSize{ 0 };
-	bool m_isWritable{ false };
+	uint64 m_seek{0};
+	uint64 m_fileSize{0};
+	bool m_isWritable{false};
 	// directory
 	std::unique_ptr<std::filesystem::path> m_path{};
 	std::unique_ptr<std::filesystem::directory_iterator> m_dirIterator{};

@@ -2,5 +2,5 @@
 
 namespace coreinit
 {
-	void InitializeLC();
+void InitializeLC();
 }

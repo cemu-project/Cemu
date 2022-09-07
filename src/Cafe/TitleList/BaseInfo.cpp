@@ -33,13 +33,14 @@ sint32 BaseInfo::GetLanguageIndex(std::string_view language)
 	return -1;
 }
 
-
 std::unique_ptr<uint8[]> BaseInfo::ReadFSCFile(std::string_view filename, uint32& size) const
 {
 	size = 0;
 	sint32 fscStatus = 0;
 	// load and parse meta.xml
-	FSCVirtualFile* file = fsc_open(const_cast<char*>(std::string(filename).c_str()), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+	FSCVirtualFile* file =
+		fsc_open(const_cast<char*>(std::string(filename).c_str()),
+				 FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
 	if (file)
 	{
 		size = fsc_getFileSize(file);
@@ -52,7 +53,8 @@ std::unique_ptr<uint8[]> BaseInfo::ReadFSCFile(std::string_view filename, uint32
 	return nullptr;
 }
 
-std::unique_ptr<uint8[]> BaseInfo::ReadVirtualFile(FSTVolume* volume, std::string_view filename, uint32& size) const
+std::unique_ptr<uint8[]> BaseInfo::ReadVirtualFile(FSTVolume* volume, std::string_view filename,
+												   uint32& size) const
 {
 	size = 0;
 	FSTFileHandle fileHandle;
@@ -65,4 +67,3 @@ std::unique_ptr<uint8[]> BaseInfo::ReadVirtualFile(FSTVolume* volume, std::strin
 
 	return buffer;
 }
-

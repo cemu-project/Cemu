@@ -5,10 +5,9 @@
 // base class for all render interfaces
 class IRenderCanvas
 {
-public:
-	IRenderCanvas(bool is_main_window)
-		: m_is_main_window(is_main_window) {}
+  public:
+	IRenderCanvas(bool is_main_window) : m_is_main_window(is_main_window) {}
 
-protected:
+  protected:
 	bool m_is_main_window;
 };

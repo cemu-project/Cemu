@@ -28,21 +28,20 @@ sint32 nsysnet_getVirtualSocketHandleFromHostHandle(SOCKET s);
 
 namespace nsysnet
 {
-
 #define NSSL_OK (0)
 #define NSSL_INVALID_CTX (0xFFD7FFFF)
 
-	struct NSSLInternalState_t
-	{
-		bool destroyed;
-		uint32 sslVersion;
-		uint32 clientPKI;
-		std::set<uint32> serverPKIs;
-		std::vector<std::vector<uint8>> serverCustomPKIs;
-	};
+struct NSSLInternalState_t
+{
+	bool destroyed;
+	uint32 sslVersion;
+	uint32 clientPKI;
+	std::set<uint32> serverPKIs;
+	std::vector<std::vector<uint8>> serverCustomPKIs;
+};
 
-	NSSLInternalState_t* GetNSSLContext(sint32 index);
+NSSLInternalState_t* GetNSSLContext(sint32 index);
 
-	void wuResetFD(struct wu_fd_set* fdset);
-	void wuSetFD(struct wu_fd_set* fdset, sint32 fd);
-}
+void wuResetFD(struct wu_fd_set* fdset);
+void wuSetFD(struct wu_fd_set* fdset, sint32 fd);
+} // namespace nsysnet

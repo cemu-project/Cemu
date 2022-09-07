@@ -2,5 +2,5 @@
 
 namespace coreinit
 {
-	void miscInit();
+void miscInit();
 };

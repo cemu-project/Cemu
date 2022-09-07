@@ -2,12 +2,16 @@
 #include "nex.h"
 #include "nexFriends.h"
 
-static const int NOTIFICATION_SRV_FRIEND_OFFLINE = 0x0A; // the opposite event (friend online) is notified via _PRESENCE_CHANGE
+static const int NOTIFICATION_SRV_FRIEND_OFFLINE =
+	0x0A; // the opposite event (friend online) is notified via _PRESENCE_CHANGE
 static const int NOTIFICATION_SRV_FRIEND_PRESENCE_CHANGE = 0x18;
 
-static const int NOTIFICATION_SRV_FRIEND_REMOVED = 0x1A; // also used to indicate that an incoming friend request was canceled
-static const int NOTIFICATION_SRV_FRIEND_REQUEST_INCOMING = 0x1B; // someone sent a friend request to us
-static const int NOTIFICATION_SRV_FRIEND_ADDED = 0x1E; // not sent when friend request is accepted locally
+static const int NOTIFICATION_SRV_FRIEND_REMOVED =
+	0x1A; // also used to indicate that an incoming friend request was canceled
+static const int NOTIFICATION_SRV_FRIEND_REQUEST_INCOMING =
+	0x1B; // someone sent a friend request to us
+static const int NOTIFICATION_SRV_FRIEND_ADDED =
+	0x1E; // not sent when friend request is accepted locally
 
 void NexFriends::processServerNotification_friendOffline(uint32 pid)
 {
@@ -33,7 +37,9 @@ void NexFriends::processServerNotification_presenceChange(uint32 pid, nexPresenc
 			bool isOnlineChange = (presence.isOnline != it.presence.isOnline);
 			it.presence = presence;
 			if (isOnlineChange)
-				generateNotification((presence.isOnline!=0)?NOTIFICATION_TYPE_FRIEND_LOGIN:NOTIFICATION_TYPE_FRIEND_LOGOFF, pid);
+				generateNotification((presence.isOnline != 0) ? NOTIFICATION_TYPE_FRIEND_LOGIN
+															  : NOTIFICATION_TYPE_FRIEND_LOGOFF,
+									 pid);
 			generateNotification(NOTIFICATION_TYPE_FRIEND_PRESENCE_CHANGE, pid);
 			return;
 		}
@@ -65,7 +71,8 @@ void NexFriends::processServerNotification_removeFriendOrFriendRequest(uint32 pi
 	}
 }
 
-void NexFriends::processServerNotification_incomingFriendRequest(uint32 pid, nexFriendRequest& friendRequest)
+void NexFriends::processServerNotification_incomingFriendRequest(uint32 pid,
+																 nexFriendRequest& friendRequest)
 {
 	std::unique_lock listLock(mtx_lists);
 	// check for duplicate
@@ -115,7 +122,8 @@ void NexFriends::processServerNotification_addedFriend(uint32 pid, nexFriend& fr
 	generateNotification(NOTIFICATION_TYPE_ADDED_FRIEND, pid);
 }
 
-void NexFriends::processServerNotification(uint32 notificationType, uint32 pid, nexPacketBuffer* notificationData)
+void NexFriends::processServerNotification(uint32 notificationType, uint32 pid,
+										   nexPacketBuffer* notificationData)
 {
 	nexNotificationEventGeneral notificationGeneral;
 	if (notificationType == NOTIFICATION_SRV_FRIEND_PRESENCE_CHANGE)
@@ -168,7 +176,8 @@ void NexFriends::processServerNotification(uint32 notificationType, uint32 pid, 
 	}
 	else if (true)
 	{
-		forceLogDebug_printf("Unsupported friend server notification type 0x%02x", notificationType);
+		forceLogDebug_printf("Unsupported friend server notification type 0x%02x",
+							 notificationType);
 	}
 }
 
@@ -185,7 +194,8 @@ void nexFriends_protocolNotification_processRequest(nexServiceRequest_t* request
 			request->nex->sendRequestResponse(request, 0, nullptr, 0);
 			return;
 		}
-		forceLogDebug_printf("NN_NOTIFICATION methodId %d type %02x pid %08x", request->methodId, notificationType, pid);
+		forceLogDebug_printf("NN_NOTIFICATION methodId %d type %02x pid %08x", request->methodId,
+							 notificationType, pid);
 		nexFriends->processServerNotification(notificationType, pid, &request->data);
 		request->nex->sendRequestResponse(request, 0, nullptr, 0);
 		return;
@@ -194,7 +204,10 @@ void nexFriends_protocolNotification_processRequest(nexServiceRequest_t* request
 	request->nex->sendRequestResponse(request, 0x80000000, nullptr, 0);
 }
 
-NexFriends::NexFriends(uint32 authServerIp, uint16 authServerPort, const char* accessKey, uint32 pid, const char* nexPassword, const char* nexToken, const char* nnid, uint8* miiData, const wchar_t* miiNickname, uint8 countryCode, nexPresenceV2& myPresence)
+NexFriends::NexFriends(uint32 authServerIp, uint16 authServerPort, const char* accessKey,
+					   uint32 pid, const char* nexPassword, const char* nexToken, const char* nnid,
+					   uint8* miiData, const wchar_t* miiNickname, uint8 countryCode,
+					   nexPresenceV2& myPresence)
 	: nexCon(nullptr)
 {
 	memcpy(this->miiData, miiData, FFL_SIZE);
@@ -203,14 +216,14 @@ NexFriends::NexFriends(uint32 authServerIp, uint16 authServerPort, const char* a
 	this->countryCode = countryCode;
 	this->myPresence = myPresence;
 	this->miiNickname = boost::nowide::narrow(miiNickname);
-	cemu_assert_debug(this->miiNickname.size() <= 96-1);
+	cemu_assert_debug(this->miiNickname.size() <= 96 - 1);
 	auth.serverIp = authServerIp;
 	auth.port = authServerPort;
 	auth.accessKey = std::string(accessKey);
 	auth.nexPassword = std::string(nexPassword);
 	auth.nexToken = std::string(nexToken);
 	// login related variables
-	this->lastLoginAttemptTime = prudpGetMSTimestamp() - 1000*60*60;
+	this->lastLoginAttemptTime = prudpGetMSTimestamp() - 1000 * 60 * 60;
 	this->isCurrentlyConnected = false;
 	this->hasData = false;
 	this->loginInProcess = false;
@@ -225,7 +238,8 @@ NexFriends::~NexFriends()
 
 void NexFriends::doAsyncLogin()
 {
-	nexCon = nex_establishSecureConnection(auth.serverIp, auth.port, auth.accessKey.c_str(), pid, auth.nexPassword.c_str(), auth.nexToken.c_str());
+	nexCon = nex_establishSecureConnection(auth.serverIp, auth.port, auth.accessKey.c_str(), pid,
+										   auth.nexPassword.c_str(), auth.nexToken.c_str());
 	if (nexCon == nullptr)
 	{
 		this->numFailedLogins++;
@@ -233,7 +247,8 @@ void NexFriends::doAsyncLogin()
 		return;
 	}
 
-	nexCon->registerProtocolRequestHandler(0x64, nexFriends_protocolNotification_processRequest, this);
+	nexCon->registerProtocolRequestHandler(0x64, nexFriends_protocolNotification_processRequest,
+										   this);
 	nexCon->registerForAsyncProcessing();
 	this->isCurrentlyConnected = true;
 	this->firstInformationRequest = true;
@@ -265,7 +280,9 @@ void NexFriends::initiateLogin()
 	t.detach();
 }
 
-void NexFriends::handleResponse_getAllInformation(nexServiceResponse_t* response, NexFriends* nexFriends, std::function<void(uint32)> cb)
+void NexFriends::handleResponse_getAllInformation(nexServiceResponse_t* response,
+												  NexFriends* nexFriends,
+												  std::function<void(uint32)> cb)
 {
 	if (response->isSuccessful == false)
 	{
@@ -328,14 +345,16 @@ void NexFriends::handleResponse_getAllInformation(nexServiceResponse_t* response
 	for (uint32 i = 0; i < perstNotificationCount; i++)
 	{
 		nexPersistentNotification notification(&response->data);
-		//printf("--- Notification ---\n");
-		//printf("ID %016llx pid1 %08x pid2 %08x type %08x\n", notification.messageId, notification.pid1, notification.pid2, notification.type);
-		//printf("Msg %s\n", notification.msg.c_str());
+		// printf("--- Notification ---\n");
+		// printf("ID %016llx pid1 %08x pid2 %08x type %08x\n", notification.messageId,
+		// notification.pid1, notification.pid2, notification.type); printf("Msg %s\n",
+		// notification.msg.c_str());
 	}
 	uint8 isPreferenceInvalid = response->data.readU8(); // if not zero, preferences must be setup
 	if (isPreferenceInvalid)
 	{
-		forceLog_printf("NEX: First time login into friend account, setting up default preferences");
+		forceLog_printf(
+			"NEX: First time login into friend account, setting up default preferences");
 		session->updatePreferences(nexPrincipalPreference(1, 1, 0));
 	}
 
@@ -359,10 +378,14 @@ bool NexFriends::requestGetAllInformation()
 {
 	uint8 tempNexBufferArray[1024];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
-	nexNNAInfo(this->countryCode, 0, nexPrincipalBasicInfo(pid, nnid, nexMiiV2(miiNickname.c_str(), miiData))).writeData(&packetBuffer);
+	nexNNAInfo(this->countryCode, 0,
+			   nexPrincipalBasicInfo(pid, nnid, nexMiiV2(miiNickname.c_str(), miiData)))
+		.writeData(&packetBuffer);
 	myPresence.writeData(&packetBuffer);
 	packetBuffer.writeU64(0x1f18420000); // birthday (set to 1990-1-1)
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 1, &packetBuffer, std::bind(handleResponse_getAllInformation, std::placeholders::_1, this, nullptr), true);
+	nexCon->callMethod(
+		NEX_PROTOCOL_FRIENDS_WIIU, 1, &packetBuffer,
+		std::bind(handleResponse_getAllInformation, std::placeholders::_1, this, nullptr), true);
 	return true;
 }
 
@@ -370,14 +393,20 @@ bool NexFriends::requestGetAllInformation(std::function<void(uint32)> cb)
 {
 	uint8 tempNexBufferArray[1024];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
-	nexNNAInfo(this->countryCode, 0, nexPrincipalBasicInfo(pid, nnid, nexMiiV2(miiNickname.c_str(), miiData))).writeData(&packetBuffer);
+	nexNNAInfo(this->countryCode, 0,
+			   nexPrincipalBasicInfo(pid, nnid, nexMiiV2(miiNickname.c_str(), miiData)))
+		.writeData(&packetBuffer);
 	nexPresenceV2(0).writeData(&packetBuffer);
 	packetBuffer.writeU64(0x1f18420000); // birthday (set to 1990-1-1)
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 1, &packetBuffer, std::bind(handleResponse_getAllInformation, std::placeholders::_1, this, cb), true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 1, &packetBuffer,
+					   std::bind(handleResponse_getAllInformation, std::placeholders::_1, this, cb),
+					   true);
 	return true;
 }
 
-void NexFriends::handleResponse_updatePreferences(nexServiceResponse_t* response, NexFriends* nexFriends, std::function<void(uint32)> cb)
+void NexFriends::handleResponse_updatePreferences(nexServiceResponse_t* response,
+												  NexFriends* nexFriends,
+												  std::function<void(uint32)> cb)
 {
 	// todo
 }
@@ -387,7 +416,9 @@ bool NexFriends::updatePreferences(const nexPrincipalPreference& newPreferences)
 	uint8 tempNexBufferArray[1024];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	newPreferences.writeData(&packetBuffer);
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 16, &packetBuffer, std::bind(handleResponse_updatePreferences, std::placeholders::_1, this, nullptr), true);
+	nexCon->callMethod(
+		NEX_PROTOCOL_FRIENDS_WIIU, 16, &packetBuffer,
+		std::bind(handleResponse_updatePreferences, std::placeholders::_1, this, nullptr), true);
 	return true;
 }
 
@@ -397,7 +428,7 @@ bool NexFriends::addProvisionalFriendByPidGuessed(uint32 principalId)
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	packetBuffer.writeU32(principalId);
 	cemu_assert_unimplemented();
-	//nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 2, &packetBuffer, handleResponse_test, this);
+	// nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 2, &packetBuffer, handleResponse_test, this);
 	return true;
 }
 
@@ -409,10 +440,12 @@ bool NexFriends::isOnline()
 void NexFriends::handleResponse_acceptFriendRequest(nexService* nex, nexServiceResponse_t* response)
 {
 	NexFriends* session = (NexFriends*)response->custom;
-	// returns new state of FriendRequest + FriendInfo (if friend request holds no valid data, it means the friend request was successfully accepted?)
+	// returns new state of FriendRequest + FriendInfo (if friend request holds no valid data, it
+	// means the friend request was successfully accepted?)
 }
 
-void NexFriends::setNotificationHandler(void(*notificationHandler)(NOTIFICATION_TYPE notificationType, uint32 pid))
+void NexFriends::setNotificationHandler(
+	void (*notificationHandler)(NOTIFICATION_TYPE notificationType, uint32 pid))
 {
 	this->notificationHandler = notificationHandler;
 }
@@ -433,7 +466,8 @@ void NexFriends::trackNotifications()
 		bool entryFound = false;
 		for (auto& frPrevious : previousState.list_friends)
 		{
-			if (frNew.nnaInfo.principalInfo.principalId == frPrevious.nnaInfo.principalInfo.principalId)
+			if (frNew.nnaInfo.principalInfo.principalId ==
+				frPrevious.nnaInfo.principalInfo.principalId)
 			{
 				// todo - scan for changes
 				entryFound = true;
@@ -443,7 +477,8 @@ void NexFriends::trackNotifications()
 		if (entryFound == false)
 		{
 			// friend added
-			generateNotification(NOTIFICATION_TYPE_ADDED_FRIEND, frNew.nnaInfo.principalInfo.principalId);
+			generateNotification(NOTIFICATION_TYPE_ADDED_FRIEND,
+								 frNew.nnaInfo.principalInfo.principalId);
 		}
 	}
 	// search for removed friends
@@ -452,7 +487,8 @@ void NexFriends::trackNotifications()
 		bool entryFound = false;
 		for (auto& frNew : list_friends)
 		{
-			if (frNew.nnaInfo.principalInfo.principalId == frPrevious.nnaInfo.principalInfo.principalId)
+			if (frNew.nnaInfo.principalInfo.principalId ==
+				frPrevious.nnaInfo.principalInfo.principalId)
 			{
 				entryFound = true;
 				break;
@@ -461,7 +497,8 @@ void NexFriends::trackNotifications()
 		if (entryFound == false)
 		{
 			// friend removed
-			generateNotification(NOTIFICATION_TYPE_REMOVED_FRIEND, frPrevious.nnaInfo.principalInfo.principalId);
+			generateNotification(NOTIFICATION_TYPE_REMOVED_FRIEND,
+								 frPrevious.nnaInfo.principalInfo.principalId);
 		}
 	}
 	// search for added friend requests (incoming)
@@ -479,7 +516,8 @@ void NexFriends::trackNotifications()
 		if (entryFound == false)
 		{
 			// incoming friend request added
-			generateNotification(NOTIFICATION_TYPE_ADDED_INCOMING_REQUEST, frqNew.principalInfo.principalId);
+			generateNotification(NOTIFICATION_TYPE_ADDED_INCOMING_REQUEST,
+								 frqNew.principalInfo.principalId);
 		}
 	}
 	// search for removed friend requests (incoming)
@@ -487,7 +525,7 @@ void NexFriends::trackNotifications()
 	{
 		bool entryFound = false;
 		for (auto& frqNew : list_friendReqIncoming)
-		{	
+		{
 			if (frqNew.principalInfo.principalId == frqPrevious.principalInfo.principalId)
 			{
 				entryFound = true;
@@ -497,7 +535,8 @@ void NexFriends::trackNotifications()
 		if (entryFound == false)
 		{
 			// incoming friend request removed
-			generateNotification(NOTIFICATION_TYPE_REMOVED_INCOMING_REQUEST, frqPrevious.principalInfo.principalId);
+			generateNotification(NOTIFICATION_TYPE_REMOVED_INCOMING_REQUEST,
+								 frqPrevious.principalInfo.principalId);
 		}
 	}
 	// search for added friend requests (outgoing)
@@ -515,7 +554,8 @@ void NexFriends::trackNotifications()
 		if (entryFound == false)
 		{
 			// outgoing friend request added
-			generateNotification(NOTIFICATION_TYPE_ADDED_OUTGOING_REQUEST, frqNew.principalInfo.principalId);
+			generateNotification(NOTIFICATION_TYPE_ADDED_OUTGOING_REQUEST,
+								 frqNew.principalInfo.principalId);
 		}
 	}
 	// search for removed friend requests (outgoing)
@@ -533,7 +573,8 @@ void NexFriends::trackNotifications()
 		if (entryFound == false)
 		{
 			// outgoing friend request removed
-			generateNotification(NOTIFICATION_TYPE_REMOVED_OUTGOING_REQUEST, frqPrevious.principalInfo.principalId);
+			generateNotification(NOTIFICATION_TYPE_REMOVED_OUTGOING_REQUEST,
+								 frqPrevious.principalInfo.principalId);
 		}
 	}
 }
@@ -554,7 +595,8 @@ void addUniquePidToList(std::vector<uint32>& pidList, uint32 pid)
 	pidList.push_back(pid);
 }
 
-void NexFriends::getFriendPIDs(uint32* pidList, uint32* pidCount, sint32 offset, sint32 count, bool includeFriendRequests)
+void NexFriends::getFriendPIDs(uint32* pidList, uint32* pidCount, sint32 offset, sint32 count,
+							   bool includeFriendRequests)
 {
 	if (count < 0)
 	{
@@ -588,7 +630,8 @@ void NexFriends::getFriendPIDs(uint32* pidList, uint32* pidCount, sint32 offset,
 	*pidCount = copyCount;
 }
 
-void NexFriends::getFriendRequestPIDs(uint32* pidList, uint32* pidCount, sint32 offset, sint32 count, bool includeIncoming, bool includeOutgoing)
+void NexFriends::getFriendRequestPIDs(uint32* pidList, uint32* pidCount, sint32 offset,
+									  sint32 count, bool includeIncoming, bool includeOutgoing)
 {
 	if (count < 0)
 	{
@@ -630,7 +673,7 @@ std::string NexFriends::getAccountNameByPid(uint32 principalId)
 		return this->nnid;
 
 	nexFriend friendData{};
-	if(getFriendByPID(friendData, principalId))
+	if (getFriendByPID(friendData, principalId))
 		return friendData.nnaInfo.principalInfo.nnid;
 
 	nexFriendRequest requestData{};
@@ -645,7 +688,6 @@ int NexFriends::getPendingFriendRequestCount()
 	std::unique_lock listLock(this->mtx_lists);
 	return (int)this->list_friendReqIncoming.size();
 }
-
 
 bool NexFriends::getFriendByPID(nexFriend& friendData, uint32 searchedPid)
 {
@@ -662,7 +704,8 @@ bool NexFriends::getFriendByPID(nexFriend& friendData, uint32 searchedPid)
 	return false;
 }
 
-bool NexFriends::getFriendRequestByPID(nexFriendRequest& friendRequestData, bool* isIncoming, uint32 searchedPid)
+bool NexFriends::getFriendRequestByPID(nexFriendRequest& friendRequestData, bool* isIncoming,
+									   uint32 searchedPid)
 {
 	std::unique_lock listLock(this->mtx_lists);
 	for (auto& it : this->list_friendReqIncoming)
@@ -671,7 +714,7 @@ bool NexFriends::getFriendRequestByPID(nexFriendRequest& friendRequestData, bool
 		if (pid == searchedPid)
 		{
 			friendRequestData = it;
-			if(isIncoming)
+			if (isIncoming)
 				*isIncoming = true;
 			return true;
 		}
@@ -683,20 +726,21 @@ bool NexFriends::getFriendRequestByPID(nexFriendRequest& friendRequestData, bool
 		{
 			friendRequestData = it;
 			if (isIncoming)
-			*isIncoming = false;
+				*isIncoming = false;
 			return true;
 		}
 	}
 	return false;
 }
 
-bool NexFriends::getFriendRequestByMessageId(nexFriendRequest& friendRequestData, bool* isIncoming, uint64 messageId)
+bool NexFriends::getFriendRequestByMessageId(nexFriendRequest& friendRequestData, bool* isIncoming,
+											 uint64 messageId)
 {
 	std::unique_lock listLock(this->mtx_lists);
 	for (auto& it : this->list_friendReqIncoming)
 	{
 		uint64 mid = it.message.messageId;
-		if(mid == 0)
+		if (mid == 0)
 			continue;
 		if (mid == messageId)
 		{
@@ -742,11 +786,13 @@ bool NexFriends::addProvisionalFriend(char* name, std::function<void(uint32)> cb
 	uint8 tempNexBufferArray[128];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	packetBuffer.writeString(name);
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 3, &packetBuffer, std::bind(addProvisionalFriendHandler, std::placeholders::_1, cb), true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 3, &packetBuffer,
+					   std::bind(addProvisionalFriendHandler, std::placeholders::_1, cb), true);
 	return true;
 }
 
-void addFriendRequestHandler(nexServiceResponse_t* nexResponse, NexFriends* nexFriends, std::function<void(uint32)> cb)
+void addFriendRequestHandler(nexServiceResponse_t* nexResponse, NexFriends* nexFriends,
+							 std::function<void(uint32)> cb)
 {
 	if (nexResponse->isSuccessful)
 		cb(0);
@@ -772,11 +818,12 @@ void NexFriends::addFriendRequest(uint32 pid, const char* comment, std::function
 	packetBuffer.writeU32(pid);
 	packetBuffer.writeU8(0); // ukn (language of comment?)
 	packetBuffer.writeString(comment);
-	packetBuffer.writeU8(0); // ukn (language of next string?)
+	packetBuffer.writeU8(0);	  // ukn (language of next string?)
 	packetBuffer.writeString(""); // ukn
 	nexGameKey(0, 0).writeData(&packetBuffer);
 	packetBuffer.writeU64(0); // ukn
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 5, &packetBuffer, std::bind(addFriendRequestHandler, std::placeholders::_1, this, cb), true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 5, &packetBuffer,
+					   std::bind(addFriendRequestHandler, std::placeholders::_1, this, cb), true);
 }
 
 typedef struct
@@ -785,14 +832,15 @@ typedef struct
 	void* customParam;
 	NexFriends* nexFriends;
 	// command specific
-	struct  
+	struct
 	{
 		nexPrincipalBasicInfo* basicInfo;
 		sint32 count;
-	}principalBaseInfo;
-}nexFriendsCallInfo_t;
+	} principalBaseInfo;
+} nexFriendsCallInfo_t;
 
-void NexFriends_handleResponse_requestPrincipleBaseInfoByPID(nexService* nex, nexServiceResponse_t* response)
+void NexFriends_handleResponse_requestPrincipleBaseInfoByPID(nexService* nex,
+															 nexServiceResponse_t* response)
 {
 	nexFriendsCallInfo_t* callInfo = (nexFriendsCallInfo_t*)response->custom;
 	if (response->isSuccessful == false)
@@ -806,7 +854,8 @@ void NexFriends_handleResponse_requestPrincipleBaseInfoByPID(nexService* nex, ne
 	uint32 count = response->data.readU32();
 	if (count != callInfo->principalBaseInfo.count)
 	{
-		callInfo->cb(callInfo->nexFriends, NexFriends::ERR_UNEXPECTED_RESULT, callInfo->customParam);
+		callInfo->cb(callInfo->nexFriends, NexFriends::ERR_UNEXPECTED_RESULT,
+					 callInfo->customParam);
 		free(callInfo);
 		return;
 	}
@@ -816,7 +865,8 @@ void NexFriends_handleResponse_requestPrincipleBaseInfoByPID(nexService* nex, ne
 	}
 	if (response->data.hasReadOutOfBounds())
 	{
-		callInfo->cb(callInfo->nexFriends, NexFriends::ERR_UNEXPECTED_RESULT, callInfo->customParam);
+		callInfo->cb(callInfo->nexFriends, NexFriends::ERR_UNEXPECTED_RESULT,
+					 callInfo->customParam);
 		free(callInfo);
 		return;
 	}
@@ -825,7 +875,9 @@ void NexFriends_handleResponse_requestPrincipleBaseInfoByPID(nexService* nex, ne
 	free(callInfo);
 }
 
-void NexFriends::requestPrincipleBaseInfoByPID(nexPrincipalBasicInfo* basicInfo, uint32* pidList, sint32 count, NEXFRIENDS_CALLBACK cb, void* customParam)
+void NexFriends::requestPrincipleBaseInfoByPID(nexPrincipalBasicInfo* basicInfo, uint32* pidList,
+											   sint32 count, NEXFRIENDS_CALLBACK cb,
+											   void* customParam)
 {
 	if (nexCon == nullptr || nexCon->getState() != nexService::STATE_CONNECTED)
 	{
@@ -836,7 +888,7 @@ void NexFriends::requestPrincipleBaseInfoByPID(nexPrincipalBasicInfo* basicInfo,
 	uint8 tempNexBufferArray[512];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	packetBuffer.writeU32(count);
-	for(sint32 i=0; i<count; i++)
+	for (sint32 i = 0; i < count; i++)
 		packetBuffer.writeU32(pidList[i]);
 	nexFriendsCallInfo_t* callInfo = (nexFriendsCallInfo_t*)malloc(sizeof(nexFriendsCallInfo_t));
 	callInfo->principalBaseInfo.basicInfo = basicInfo;
@@ -844,10 +896,12 @@ void NexFriends::requestPrincipleBaseInfoByPID(nexPrincipalBasicInfo* basicInfo,
 	callInfo->cb = cb;
 	callInfo->customParam = customParam;
 	callInfo->nexFriends = this;
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 17, &packetBuffer, NexFriends_handleResponse_requestPrincipleBaseInfoByPID, callInfo, true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 17, &packetBuffer,
+					   NexFriends_handleResponse_requestPrincipleBaseInfoByPID, callInfo, true);
 }
 
-void genericFriendServiceNoResponseHandler(nexServiceResponse_t* nexResponse, std::function<void(uint32)> cb)
+void genericFriendServiceNoResponseHandler(nexServiceResponse_t* nexResponse,
+										   std::function<void(uint32)> cb)
 {
 	if (nexResponse->isSuccessful)
 		cb(0);
@@ -869,7 +923,9 @@ void NexFriends::removeFriend(uint32 pid, std::function<void(uint32)> cb)
 	uint8 tempNexBufferArray[512];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	packetBuffer.writeU32(pid);
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 4, &packetBuffer, std::bind(genericFriendServiceNoResponseHandler, std::placeholders::_1, cb), true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 4, &packetBuffer,
+					   std::bind(genericFriendServiceNoResponseHandler, std::placeholders::_1, cb),
+					   true);
 }
 
 void NexFriends::cancelOutgoingProvisionalFriendRequest(uint32 pid, std::function<void(uint32)> cb)
@@ -883,7 +939,9 @@ void NexFriends::cancelOutgoingProvisionalFriendRequest(uint32 pid, std::functio
 	uint8 tempNexBufferArray[512];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	packetBuffer.writeU32(pid);
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 4, &packetBuffer, std::bind(genericFriendServiceNoResponseHandler, std::placeholders::_1, cb), true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 4, &packetBuffer,
+					   std::bind(genericFriendServiceNoResponseHandler, std::placeholders::_1, cb),
+					   true);
 }
 
 void NexFriends::acceptFriendRequest(uint64 messageId, std::function<void(uint32)> cb)
@@ -897,10 +955,13 @@ void NexFriends::acceptFriendRequest(uint64 messageId, std::function<void(uint32
 	uint8 tempNexBufferArray[128];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	packetBuffer.writeU64(messageId);
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 7, &packetBuffer, std::bind(genericFriendServiceNoResponseHandler, std::placeholders::_1, cb), true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 7, &packetBuffer,
+					   std::bind(genericFriendServiceNoResponseHandler, std::placeholders::_1, cb),
+					   true);
 }
 
-void markFriendRequestsAsReceivedHandler(nexServiceResponse_t* nexResponse, std::function<void(uint32)> cb)
+void markFriendRequestsAsReceivedHandler(nexServiceResponse_t* nexResponse,
+										 std::function<void(uint32)> cb)
 {
 	if (nexResponse->isSuccessful)
 		cb(0);
@@ -911,7 +972,8 @@ void markFriendRequestsAsReceivedHandler(nexServiceResponse_t* nexResponse, std:
 	}
 }
 
-void NexFriends::markFriendRequestsAsReceived(uint64* messageIdList, sint32 count, std::function<void(uint32)> cb)
+void NexFriends::markFriendRequestsAsReceived(uint64* messageIdList, sint32 count,
+											  std::function<void(uint32)> cb)
 {
 	if (nexCon == nullptr || nexCon->getState() != nexService::STATE_CONNECTED)
 	{
@@ -922,15 +984,14 @@ void NexFriends::markFriendRequestsAsReceived(uint64* messageIdList, sint32 coun
 	uint8 tempNexBufferArray[1024];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	packetBuffer.writeU32(count);
-	for(sint32 i=0; i<count; i++)
+	for (sint32 i = 0; i < count; i++)
 		packetBuffer.writeU64(messageIdList[i]);
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 10, &packetBuffer, std::bind(markFriendRequestsAsReceivedHandler, std::placeholders::_1, cb), true);
+	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 10, &packetBuffer,
+					   std::bind(markFriendRequestsAsReceivedHandler, std::placeholders::_1, cb),
+					   true);
 }
 
-void genericFriendServiceNoResponseHandlerWithoutCB(nexServiceResponse_t* nexResponse)
-{
-
-}
+void genericFriendServiceNoResponseHandlerWithoutCB(nexServiceResponse_t* nexResponse) {}
 
 void NexFriends::updateMyPresence(nexPresenceV2& myPresence)
 {
@@ -943,7 +1004,9 @@ void NexFriends::updateMyPresence(nexPresenceV2& myPresence)
 	uint8 tempNexBufferArray[1024];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	myPresence.writeData(&packetBuffer);
-	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 13, &packetBuffer, std::bind(genericFriendServiceNoResponseHandlerWithoutCB, std::placeholders::_1), false);
+	nexCon->callMethod(
+		NEX_PROTOCOL_FRIENDS_WIIU, 13, &packetBuffer,
+		std::bind(genericFriendServiceNoResponseHandlerWithoutCB, std::placeholders::_1), false);
 }
 
 void NexFriends::update()
@@ -968,7 +1031,8 @@ void NexFriends::update()
 					return; // never try again
 				if (this->numFailedLogins >= 10)
 					return; // stop after 10 failed attempts
-				delayTime = 60 + (this->numFailedLogins - 3) * 60; // add one minute each time it fails
+				delayTime =
+					60 + (this->numFailedLogins - 3) * 60; // add one minute each time it fails
 			}
 			if (timeSinceLastLoginAttempt < delayTime)
 				return;

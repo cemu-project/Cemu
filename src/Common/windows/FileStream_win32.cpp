@@ -2,7 +2,9 @@
 
 FileStream* FileStream::openFile(std::string_view path)
 {
-	HANDLE hFile = CreateFileW(boost::nowide::widen(path.data(), path.size()).c_str(), FILE_GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+	HANDLE hFile =
+		CreateFileW(boost::nowide::widen(path.data(), path.size()).c_str(), FILE_GENERIC_READ,
+					FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return nullptr;
 	return new FileStream(hFile);
@@ -10,7 +12,9 @@ FileStream* FileStream::openFile(std::string_view path)
 
 FileStream* FileStream::openFile(const wchar_t* path, bool allowWrite)
 {
-	HANDLE hFile = CreateFileW(path, allowWrite ? (FILE_GENERIC_READ | FILE_GENERIC_WRITE) : FILE_GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+	HANDLE hFile =
+		CreateFileW(path, allowWrite ? (FILE_GENERIC_READ | FILE_GENERIC_WRITE) : FILE_GENERIC_READ,
+					FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return nullptr;
 	return new FileStream(hFile);
@@ -23,7 +27,8 @@ FileStream* FileStream::openFile2(const fs::path& path, bool allowWrite)
 
 FileStream* FileStream::createFile(const wchar_t* path)
 {
-	HANDLE hFile = CreateFileW(path, FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
+	HANDLE hFile = CreateFileW(path, FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+							   FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return nullptr;
 	return new FileStream(hFile);
@@ -32,7 +37,8 @@ FileStream* FileStream::createFile(const wchar_t* path)
 FileStream* FileStream::createFile(std::string_view path)
 {
 	auto w = boost::nowide::widen(path.data(), path.size());
-	HANDLE hFile = CreateFileW(w.c_str(), FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
+	HANDLE hFile = CreateFileW(w.c_str(), FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+							   FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return nullptr;
 	return new FileStream(hFile);
@@ -49,7 +55,7 @@ std::optional<std::vector<uint8>> FileStream::LoadIntoMemory(const fs::path& pat
 	if (!fs)
 		return std::nullopt;
 	uint64 fileSize = fs->GetSize();
-	if(fileSize > 0xFFFFFFFFull)
+	if (fileSize > 0xFFFFFFFFull)
 	{
 		delete fs;
 		return std::nullopt;
@@ -123,7 +129,7 @@ bool FileStream::readLine(std::string& line)
 	while (readU8(c))
 	{
 		isEOF = false;
-		if(c == '\r')
+		if (c == '\r')
 			continue;
 		if (c == '\n')
 			break;
@@ -176,7 +182,7 @@ void FileStream::writeLine(const char* str)
 
 FileStream::~FileStream()
 {
-	if(m_isValid)
+	if (m_isValid)
 		CloseHandle(m_hFile);
 }
 

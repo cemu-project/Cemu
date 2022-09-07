@@ -11,7 +11,10 @@
 #include "imgui/imgui_extension.h"
 #include "config/CemuConfig.h"
 
-PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash, LatteFetchShader* fetchShader, LatteDecompilerShader* vertexShader, LatteDecompilerShader* pixelShader, LatteDecompilerShader* geometryShader)
+PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash,
+						   LatteFetchShader* fetchShader, LatteDecompilerShader* vertexShader,
+						   LatteDecompilerShader* pixelShader,
+						   LatteDecompilerShader* geometryShader)
 {
 	this->minimalStateHash = minimalStateHash;
 	this->stateHash = pipelineHash;
@@ -37,17 +40,20 @@ PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash, LatteFe
 	if (pixelShaderVk)
 		pixelShaderVk->TrackDependency(this);
 
-	// "Accurate barriers" is usually enabled globally but since the CPU cost is substantial we allow users to disable it (debug -> 'Accurate barriers' option)
-	// We always force accurate barriers for known problematic shaders
+	// "Accurate barriers" is usually enabled globally but since the CPU cost is substantial we
+	// allow users to disable it (debug -> 'Accurate barriers' option) We always force accurate
+	// barriers for known problematic shaders
 	if (pixelShader)
 	{
-		if (pixelShader->baseHash == 0x6f6f6e7b9aae57af && pixelShader->auxHash == 0x00078787f9249249) // BotW lava
+		if (pixelShader->baseHash == 0x6f6f6e7b9aae57af &&
+			pixelShader->auxHash == 0x00078787f9249249) // BotW lava
 			neverSkipAccurateBarrier = true;
-		if (pixelShader->baseHash == 0x4c0bd596e3aef4a6 && pixelShader->auxHash == 0x003c3c3fc9269249) // BotW foam layer for water on the bottom of waterfalls
+		if (pixelShader->baseHash == 0x4c0bd596e3aef4a6 &&
+			pixelShader->auxHash ==
+				0x003c3c3fc9269249) // BotW foam layer for water on the bottom of waterfalls
 			neverSkipAccurateBarrier = true;
 	}
 }
-
 
 PipelineInfo::~PipelineInfo()
 {

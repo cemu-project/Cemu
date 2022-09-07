@@ -4,5 +4,5 @@ void swkbd_keyInput(uint32 keyCode);
 
 namespace swkbd
 {
-	void load();
+void load();
 }

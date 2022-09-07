@@ -4,14 +4,16 @@
 struct FSTFileHandle
 {
 	friend class FSTVolume;
-private:
+
+  private:
 	uint32 m_fstIndex;
 };
 
 struct FSTDirectoryIterator
 {
 	friend class FSTVolume;
-private:
+
+  private:
 	uint32 startIndex;
 	uint32 endIndex;
 	uint32 currentIndex;
@@ -19,7 +21,7 @@ private:
 
 class FSTVolume
 {
-public:
+  public:
 	static bool FindDiscKey(const fs::path& path, NCrypto::AesKey& discTitleKey);
 
 	static FSTVolume* OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& discTitleKey);
@@ -64,14 +66,14 @@ public:
 		return fileData;
 	}
 
-private:
-
+  private:
 	/* FST data (in memory) */
 	enum class ClusterHashMode : uint8
 	{
-		RAW = 0, // raw data + encryption, no hashing?
-		RAW2 = 1, // raw data + encryption, with hash stored in tmd?
-		HASH_INTERLEAVED = 2, // hashes + raw interleaved in 0x10000 blocks (0x400 bytes of hashes at the beginning, followed by 0xFC00 bytes of data)
+		RAW = 0,			  // raw data + encryption, no hashing?
+		RAW2 = 1,			  // raw data + encryption, with hash stored in tmd?
+		HASH_INTERLEAVED = 2, // hashes + raw interleaved in 0x10000 blocks (0x400 bytes of hashes
+							  // at the beginning, followed by 0xFC00 bytes of data)
 	};
 
 	struct FSTCluster
@@ -134,19 +136,19 @@ private:
 			struct
 			{
 				uint32 endIndex;
-			}dirInfo;
+			} dirInfo;
 			struct
 			{
 				uint32 fileOffset;
 				uint32 fileSize;
 				uint16 clusterIndex;
-			}fileInfo;
+			} fileInfo;
 		};
 	};
 
 	class FSTDataSource* m_dataSource;
 	bool m_sourceIsOwned{};
-	uint32 m_sectorSize{}; // for cluster offsets
+	uint32 m_sectorSize{};	 // for cluster offsets
 	uint32 m_offsetFactor{}; // for file offsets
 	std::vector<FSTCluster> m_cluster;
 	std::vector<FSTEntry> m_entries;
@@ -160,8 +162,10 @@ private:
 	struct FSTCachedHashedBlock* GetDecryptedHashedBlock(uint32 clusterIndex, uint32 blockIndex);
 
 	/* File reading */
-	uint32 ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset, uint32 readSize, void* dataOut);
-	uint32 ReadFile_HashModeHashed(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset, uint32 readSize, void* dataOut);
+	uint32 ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset,
+								uint32 readSize, void* dataOut);
+	uint32 ReadFile_HashModeHashed(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset,
+								   uint32 readSize, void* dataOut);
 
 	/* FST parsing */
 	struct FSTHeader
@@ -184,8 +188,8 @@ private:
 		/* +0x04 */ uint32be size;
 		/* +0x08 */ uint64be ownerTitleId;
 		/* +0x10 */ uint32be groupId;
-		/* +0x14 */ uint8be  hashMode;
-		/* +0x15 */ uint8be  padding[0xB]; // ?
+		/* +0x14 */ uint8be hashMode;
+		/* +0x15 */ uint8be padding[0xB]; // ?
 	};
 	static_assert(sizeof(FSTHeader_ClusterEntry) == 0x20);
 
@@ -199,8 +203,10 @@ private:
 
 		/* +0x00 */ uint32be typeAndNameOffset;
 		/* +0x04 */ uint32be offset; // for directories: parent directory index
-		/* +0x08 */ uint32be size; // for directories: end index
-		/* +0x0C */ uint16be flagsOrPermissions; // three entries, each one shifted by 4. (so 0xXYZ). Possible bits per value seem to be 0x1 and 0x4 ? These are probably permissions
+		/* +0x08 */ uint32be size;	 // for directories: end index
+		/* +0x0C */ uint16be
+			flagsOrPermissions; // three entries, each one shifted by 4. (so 0xXYZ). Possible bits
+								// per value seem to be 0x1 and 0x4 ? These are probably permissions
 		/* +0x0E */ uint16be clusterIndex;
 
 		TYPE GetType()
@@ -237,7 +243,7 @@ private:
 			return size;
 		}
 
-	private:
+	  private:
 		uint8 GetTypeFlagField()
 		{
 			return static_cast<uint8>((typeAndNameOffset >> 24) & 0xFF);
@@ -246,9 +252,13 @@ private:
 
 	static_assert(sizeof(FSTHeader_FileEntry) == 0x10);
 
-	static FSTVolume* OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode);
-	static FSTVolume* OpenFST(std::unique_ptr<FSTDataSource> dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode);
-	static bool ProcessFST(FSTHeader_FileEntry* fileTable, uint32 numFileEntries, uint32 numCluster, std::vector<char>& nameStringTable, std::vector<FSTEntry>& fstEntries);
+	static FSTVolume* OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint32 fstSize,
+							  NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode);
+	static FSTVolume* OpenFST(std::unique_ptr<FSTDataSource> dataSource, uint64 fstOffset,
+							  uint32 fstSize, NCrypto::AesKey* partitionTitleKey,
+							  ClusterHashMode fstHashMode);
+	static bool ProcessFST(FSTHeader_FileEntry* fileTable, uint32 numFileEntries, uint32 numCluster,
+						   std::vector<char>& nameStringTable, std::vector<FSTEntry>& fstEntries);
 
 	bool MatchFSTEntryName(FSTEntry& entry, std::string_view comparedName)
 	{
@@ -287,13 +297,16 @@ private:
 		}
 		return v;
 	}
-
 };
 
 class FSTVerifier
 {
-public:
-	static bool VerifyContentFile(class FileStream* fileContent, const NCrypto::AesKey* key, uint32 contentIndex, uint32 contentSize, uint32 contentSizePadded, bool isSHA1, const uint8* tmdContentHash);
-	static bool VerifyHashedContentFile(class FileStream* fileContent, const NCrypto::AesKey* key, uint32 contentIndex, uint32 contentSize, uint32 contentSizePadded, bool isSHA1, const uint8* tmdContentHash);
-
+  public:
+	static bool VerifyContentFile(class FileStream* fileContent, const NCrypto::AesKey* key,
+								  uint32 contentIndex, uint32 contentSize, uint32 contentSizePadded,
+								  bool isSHA1, const uint8* tmdContentHash);
+	static bool VerifyHashedContentFile(class FileStream* fileContent, const NCrypto::AesKey* key,
+										uint32 contentIndex, uint32 contentSize,
+										uint32 contentSizePadded, bool isSHA1,
+										const uint8* tmdContentHash);
 };

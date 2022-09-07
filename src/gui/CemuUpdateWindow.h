@@ -11,16 +11,16 @@
 
 class CemuUpdateWindow : public wxDialog
 {
-public:
+  public:
 	CemuUpdateWindow(wxWindow* parent);
 	~CemuUpdateWindow();
 
 	static std::future<bool> IsUpdateAvailableAsync();
 
-private:
+  private:
 	wxStaticText* m_text;
 	wxGauge* m_gauge;
-	wxButton* m_cancelButton, *m_updateButton;
+	wxButton *m_cancelButton, *m_updateButton;
 	wxHyperlinkCtrl* m_changelog;
 
 	void OnUpdateButton(const wxCommandEvent& event);
@@ -33,9 +33,11 @@ private:
 	static bool QueryUpdateInfo(std::string& downloadUrlOut, std::string& changelogUrlOut);
 	static bool CheckVersion();
 
-	static int ProgressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
+	static int ProgressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow,
+								curl_off_t ultotal, curl_off_t ulnow);
 	bool DownloadCemuZip(const std::string& url, const fs::path& filename);
-	bool ExtractUpdate(const fs::path& zipname, const fs::path& targetpath, std::string& cemuFolderName);
+	bool ExtractUpdate(const fs::path& zipname, const fs::path& targetpath,
+					   std::string& cemuFolderName);
 
 	enum class WorkerOrder
 	{

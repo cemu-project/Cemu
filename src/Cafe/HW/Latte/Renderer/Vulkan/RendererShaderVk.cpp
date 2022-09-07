@@ -14,7 +14,6 @@
 #include <SPIRV/GlslangToSpv.h>
 #endif
 
-
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 
@@ -26,7 +25,7 @@
 
 #include "Cemu/FileCache/FileCache.h"
 
-bool s_isLoadingShadersVk{ false };
+bool s_isLoadingShadersVk{false};
 class FileCache* s_spirvCache{nullptr};
 
 extern std::atomic_int g_compiled_shaders_total;
@@ -143,7 +142,7 @@ consteval TBuiltInResource GetDefaultBuiltInResource()
 
 class _ShaderVkThreadPool
 {
-public:
+  public:
 	void StartThreads()
 	{
 		if (s_threads.empty())
@@ -181,30 +180,34 @@ public:
 			RendererShaderVk* job = s_compilationQueue.front();
 			s_compilationQueue.pop_front();
 			// set compilation state
-			cemu_assert_debug(job->m_compilationState.getValue() == RendererShaderVk::COMPILATION_STATE::QUEUED);
+			cemu_assert_debug(job->m_compilationState.getValue() ==
+							  RendererShaderVk::COMPILATION_STATE::QUEUED);
 			job->m_compilationState.setValue(RendererShaderVk::COMPILATION_STATE::COMPILING);
 			s_compilationQueueMutex.unlock();
 			// compile
 			job->CompileInternal(false);
 			++g_compiled_shaders_async;
 			// mark as compiled
-			cemu_assert_debug(job->m_compilationState.getValue() == RendererShaderVk::COMPILATION_STATE::COMPILING);
+			cemu_assert_debug(job->m_compilationState.getValue() ==
+							  RendererShaderVk::COMPILATION_STATE::COMPILING);
 			job->m_compilationState.setValue(RendererShaderVk::COMPILATION_STATE::DONE);
 		}
 	}
 
-public:
+  public:
 	std::vector<std::thread> s_threads;
 
 	std::deque<RendererShaderVk*> s_compilationQueue;
 	CounterSemaphore s_compilationQueueCount;
 	std::mutex s_compilationQueueMutex;
 
-private:
+  private:
 	std::atomic<bool> m_shutdownThread;
-}ShaderVkThreadPool;
+} ShaderVkThreadPool;
 
-RendererShaderVk::RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslCode)
+RendererShaderVk::RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxHash,
+								   bool isGameShader, bool isGfxPackShader,
+								   const std::string& glslCode)
 	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_glslCode(glslCode)
 {
 	// start async compilation
@@ -289,10 +292,11 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 		uint64 h1, h2;
 		GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
 		std::vector<uint8> cacheFileData;
-		if (s_spirvCache->GetFile({ h1, h2 }, cacheFileData))
+		if (s_spirvCache->GetFile({h1, h2}, cacheFileData))
 		{
 			// generate shader from cached SPIR-V buffer
-			CreateVkShaderModule(std::span<uint32>((uint32*)cacheFileData.data(), cacheFileData.size() / sizeof(uint32)));
+			CreateVkShaderModule(std::span<uint32>((uint32*)cacheFileData.data(),
+												   cacheFileData.size() / sizeof(uint32)));
 			FinishCompilation();
 			return;
 		}
@@ -318,7 +322,8 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	const char* cstr = m_glslCode.c_str();
 	Shader.setStrings(&cstr, 1);
 	Shader.setEnvInput(glslang::EShSourceGlsl, state, glslang::EShClientVulkan, 100);
-	Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_1);
+	Shader.setEnvClient(glslang::EShClientVulkan,
+						glslang::EShTargetClientVersion::EShTargetVulkan_1_1);
 
 	Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_3);
 
@@ -334,9 +339,12 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 		messagesPreprocess = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
 
 	glslang::TShader::ForbidIncluder Includer;
-	if (!Shader.preprocess(&Resources, 450, ENoProfile, false, false, messagesPreprocess, &PreprocessedGLSL, Includer))
+	if (!Shader.preprocess(&Resources, 450, ENoProfile, false, false, messagesPreprocess,
+						   &PreprocessedGLSL, Includer))
 	{
-		cemuLog_log(LogType::Force, fmt::format("GLSL Preprocessing Failed For {:016x}_{:016x}: \"{}\"", m_baseHash, m_auxHash, Shader.getInfoLog()));
+		cemuLog_log(LogType::Force,
+					fmt::format("GLSL Preprocessing Failed For {:016x}_{:016x}: \"{}\"", m_baseHash,
+								m_auxHash, Shader.getInfoLog()));
 		FinishCompilation();
 		return;
 	}
@@ -351,7 +359,8 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	Shader.setStrings(&PreprocessedCStr, 1);
 	if (!Shader.parse(&Resources, 100, false, messagesParseLink))
 	{
-		cemuLog_log(LogType::Force, fmt::format("GLSL parsing failed for {:016x}_{:016x}: \"{}\"", m_baseHash, m_auxHash, Shader.getInfoLog()));
+		cemuLog_log(LogType::Force, fmt::format("GLSL parsing failed for {:016x}_{:016x}: \"{}\"",
+												m_baseHash, m_auxHash, Shader.getInfoLog()));
 		cemu_assert_debug(false);
 		FinishCompilation();
 		return;
@@ -362,7 +371,8 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 
 	if (!Program.link(messagesParseLink))
 	{
-		cemuLog_log(LogType::Force, fmt::format("GLSL linking failed for {:016x}_{:016x}: \"{}\"", m_baseHash, m_auxHash, Program.getInfoLog()));
+		cemuLog_log(LogType::Force, fmt::format("GLSL linking failed for {:016x}_{:016x}: \"{}\"",
+												m_baseHash, m_auxHash, Program.getInfoLog()));
 		cemu_assert_debug(false);
 		FinishCompilation();
 		return;
@@ -370,12 +380,13 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 
 	if (!Program.mapIO())
 	{
-		cemuLog_log(LogType::Force, fmt::format("GLSL linking failed for {:016x}_{:016x}: \"{}\"", m_baseHash, m_auxHash, Program.getInfoLog()));
+		cemuLog_log(LogType::Force, fmt::format("GLSL linking failed for {:016x}_{:016x}: \"{}\"",
+												m_baseHash, m_auxHash, Program.getInfoLog()));
 		FinishCompilation();
 		return;
 	}
 
-	// temp storage for SPIR-V after translation 
+	// temp storage for SPIR-V after translation
 	std::vector<uint32> spirvBuffer;
 	spv::SpvBuildLogger logger;
 
@@ -385,18 +396,20 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	spvOptions.validate = false;
 	spvOptions.optimizeSize = true;
 
-	//auto beginTime = benchmarkTimer_start();
+	// auto beginTime = benchmarkTimer_start();
 
 	GlslangToSpv(*Program.getIntermediate(state), spirvBuffer, &logger, &spvOptions);
 
-	//double timeDur = benchmarkTimer_stop(beginTime);
-	//forceLogRemoveMe_printf("Shader GLSL-to-SPIRV compilation took %lfms Size %08x", timeDur, spirvBuffer.size()*4);
-	
+	// double timeDur = benchmarkTimer_stop(beginTime);
+	// forceLogRemoveMe_printf("Shader GLSL-to-SPIRV compilation took %lfms Size %08x", timeDur,
+	// spirvBuffer.size()*4);
+
 	if (s_spirvCache && m_isGameShader && m_isGfxPackShader == false)
 	{
 		uint64 h1, h2;
 		GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
-		s_spirvCache->AddFile({ h1, h2 }, (const uint8*)spirvBuffer.data(), spirvBuffer.size() * sizeof(uint32));
+		s_spirvCache->AddFile({h1, h2}, (const uint8*)spirvBuffer.data(),
+							  spirvBuffer.size() * sizeof(uint32));
 	}
 
 	CreateVkShaderModule(spirvBuffer);
@@ -404,7 +417,7 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	// count compiled shader
 	if (!s_isLoadingShadersVk)
 	{
-		if( m_isGameShader )
+		if (m_isGameShader)
 			++g_compiled_shaders_total;
 	}
 
@@ -418,14 +431,18 @@ void RendererShaderVk::PreponeCompilation(bool isRenderThread)
 	if (isStillQueued)
 	{
 		// remove from queue
-		ShaderVkThreadPool.s_compilationQueue.erase(std::remove(ShaderVkThreadPool.s_compilationQueue.begin(), ShaderVkThreadPool.s_compilationQueue.end(), this), ShaderVkThreadPool.s_compilationQueue.end());
+		ShaderVkThreadPool.s_compilationQueue.erase(
+			std::remove(ShaderVkThreadPool.s_compilationQueue.begin(),
+						ShaderVkThreadPool.s_compilationQueue.end(), this),
+			ShaderVkThreadPool.s_compilationQueue.end());
 		m_compilationState.setValue(COMPILATION_STATE::COMPILING);
 	}
 	ShaderVkThreadPool.s_compilationQueueMutex.unlock();
 	if (!isStillQueued)
 	{
 		m_compilationState.waitUntilValue(COMPILATION_STATE::DONE);
-		--g_compiled_shaders_async; // compilation caused a stall so we don't consider this one async
+		--g_compiled_shaders_async; // compilation caused a stall so we don't consider this one
+									// async
 		return;
 	}
 	else
@@ -456,7 +473,8 @@ void RendererShaderVk::ShaderCacheLoading_begin(uint64 cacheTitleId)
 	}
 	uint32 spirvCacheMagic = GeneratePrecompiledCacheId();
 	const std::string cacheFilename = fmt::format("{:016x}_spirv.bin", cacheTitleId);
-	const std::wstring cachePath = ActiveSettings::GetPath("shaderCache/precompiled/{}", cacheFilename).generic_wstring();
+	const std::wstring cachePath =
+		ActiveSettings::GetPath("shaderCache/precompiled/{}", cacheFilename).generic_wstring();
 	s_spirvCache = FileCache::Open(cachePath, true, spirvCacheMagic);
 	if (s_spirvCache == nullptr)
 		cemuLog_log(LogType::Force, "Unable to open SPIR-V cache {}", cacheFilename);

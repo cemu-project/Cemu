@@ -9,7 +9,7 @@ class LatteQueryObjectGL : public LatteQueryObject
 	void begin() override;
 	void end() override;
 
-private:
+  private:
 	GLuint m_queryId{};
 	GLenum m_glTarget{};
 };

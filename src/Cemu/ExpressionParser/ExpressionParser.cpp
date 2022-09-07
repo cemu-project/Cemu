@@ -21,7 +21,8 @@ void ExpressionParser_test()
 	cemu_assert_debug(_testEvaluateToType<sint64>("01C+(+0x10)") == 0x2C);
 
 	// arithmetic
-	cemu_assert_debug(_testEvaluateToType<sint64>("(62156250 / 1000) * 30") == 1864687); // truncated 1864687.5
+	cemu_assert_debug(_testEvaluateToType<sint64>("(62156250 / 1000) * 30") ==
+					  1864687); // truncated 1864687.5
 
 	// arithmetic with internal type sint64
 	cemu_assert_debug(_testEvaluateToType<sint64, sint64>("(62156250 / 1000) * 30") == 1864680);
@@ -40,7 +41,11 @@ void ExpressionParser_test()
 	cemu_assert_debug(_testEvaluateToType<float>("10 >= 5") == 1.0f);
 
 	// complex operations
-	cemu_assert_debug(_testEvaluateToType<float>("5 > 4 > 3 > 2") == 0.0f); // this should evaluate the operations from left to right, (5 > 4) -> 0.0, (0.0 > 4) -> 0.0, (0.0 > 3) -> 0.0, (0.0 > 2) -> 0.0
-	cemu_assert_debug(_testEvaluateToType<float>("5 > 4 > 3 > -2") == 1.0f); // this should evaluate the operations from left to right, (5 > 4) -> 0.0, (0.0 > 4) -> 0.0, (0.0 > 3) -> 0.0, (0.0 > -2) -> 1.0
+	cemu_assert_debug(_testEvaluateToType<float>("5 > 4 > 3 > 2") ==
+					  0.0f); // this should evaluate the operations from left to right, (5 > 4) ->
+							 // 0.0, (0.0 > 4) -> 0.0, (0.0 > 3) -> 0.0, (0.0 > 2) -> 0.0
+	cemu_assert_debug(_testEvaluateToType<float>("5 > 4 > 3 > -2") ==
+					  1.0f); // this should evaluate the operations from left to right, (5 > 4) ->
+							 // 0.0, (0.0 > 4) -> 0.0, (0.0 > 3) -> 0.0, (0.0 > -2) -> 1.0
 	cemu_assert_debug(_testEvaluateToType<float>("(5 == 5) > (5 == 6)") == 1.0f);
 }

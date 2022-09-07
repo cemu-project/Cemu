@@ -7,23 +7,21 @@ extern uint8* PPCInterpreterGetStackPointer();
 extern uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);
 extern void PPCInterpreterModifyStackPointer(sint32 offset);
 
-class MEMPTRBase {};
+class MEMPTRBase
+{
+};
 
-template <typename T>
+template<typename T>
 class MEMPTR : MEMPTRBase
 {
-public:
-	constexpr MEMPTR()
-		: m_value(0) { }
+  public:
+	constexpr MEMPTR() : m_value(0) {}
 
-	explicit constexpr MEMPTR(uint32 offset)
-		: m_value(offset) { }
+	explicit constexpr MEMPTR(uint32 offset) : m_value(offset) {}
 
-	explicit constexpr MEMPTR(const uint32be& offset)
-		: m_value(offset) { }
+	explicit constexpr MEMPTR(const uint32be& offset) : m_value(offset) {}
 
-	constexpr MEMPTR(std::nullptr_t)
-		: m_value(0) { }
+	constexpr MEMPTR(std::nullptr_t) : m_value(0) {}
 
 	MEMPTR(T* ptr)
 	{
@@ -33,8 +31,7 @@ public:
 			m_value = (uint32)((uintptr_t)ptr - (uintptr_t)memory_base);
 	}
 
-	constexpr MEMPTR(const MEMPTR& memptr)
-		: m_value(memptr.m_value) { }
+	constexpr MEMPTR(const MEMPTR& memptr) : m_value(memptr.m_value) {}
 
 	constexpr MEMPTR& operator=(const MEMPTR& memptr)
 	{
@@ -71,29 +68,44 @@ public:
 		return thisValueAtomic->compare_exchange_strong(mp_compare.m_value, mp_new.m_value);
 	}
 
-	explicit constexpr operator bool() const noexcept { return m_value != 0; }
-	
-	constexpr operator T*() const noexcept { return GetPtr(); } // allow implicit cast to wrapped pointer type
+	explicit constexpr operator bool() const noexcept
+	{
+		return m_value != 0;
+	}
 
+	constexpr operator T*() const noexcept
+	{
+		return GetPtr();
+	} // allow implicit cast to wrapped pointer type
 
-	template <typename X>
-	explicit operator MEMPTR<X>() const { return MEMPTR<X>(this->m_value); }
+	template<typename X>
+	explicit operator MEMPTR<X>() const
+	{
+		return MEMPTR<X>(this->m_value);
+	}
 
-	//bool operator==(const MEMPTR<T>& v) const { return m_value == v.m_value; }
-	//bool operator==(const T* rhs) const { return (T*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value) == rhs; } -> ambigious (implicit cast to T* allows for T* == T*)
-	//bool operator==(std::nullptr_t rhs) const { return m_value == 0; }
+	// bool operator==(const MEMPTR<T>& v) const { return m_value == v.m_value; }
+	// bool operator==(const T* rhs) const { return (T*)(m_value == 0 ? nullptr : memory_base +
+	// (uint32)m_value) == rhs; } -> ambigious (implicit cast to T* allows for T* == T*) bool
+	// operator==(std::nullptr_t rhs) const { return m_value == 0; }
 
-	//bool operator!=(const MEMPTR<T>& v) const { return !(*this == v); }
-	//bool operator!=(const void* rhs) const { return !(*this == rhs); }
-	//bool operator!=(int rhs) const { return !(*this == rhs); }
+	// bool operator!=(const MEMPTR<T>& v) const { return !(*this == v); }
+	// bool operator!=(const void* rhs) const { return !(*this == rhs); }
+	// bool operator!=(int rhs) const { return !(*this == rhs); }
 
-	//bool operator==(const void* rhs) const { return (void*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value) == rhs; }
+	// bool operator==(const void* rhs) const { return (void*)(m_value == 0 ? nullptr : memory_base
+	// + (uint32)m_value) == rhs; }
 
-	//explicit bool operator==(int rhs) const { return *this == (const void*)(size_t)rhs; }
-	
+	// explicit bool operator==(int rhs) const { return *this == (const void*)(size_t)rhs; }
 
-	MEMPTR operator+(const MEMPTR& ptr) { return MEMPTR(this->GetMPTR() + ptr.GetMPTR()); }
-	MEMPTR operator-(const MEMPTR& ptr) { return MEMPTR(this->GetMPTR() - ptr.GetMPTR()); }
+	MEMPTR operator+(const MEMPTR& ptr)
+	{
+		return MEMPTR(this->GetMPTR() + ptr.GetMPTR());
+	}
+	MEMPTR operator-(const MEMPTR& ptr)
+	{
+		return MEMPTR(this->GetMPTR() - ptr.GetMPTR());
+	}
 
 	MEMPTR operator+(sint32 v)
 	{
@@ -107,33 +119,64 @@ public:
 		return MEMPTR(this->GetMPTR() - v * 4);
 	}
 
-	template <class Q = T>
-	typename std::enable_if<!std::is_same<Q, void>::value, Q>::type&
-	operator*() const { return *GetPtr(); }
+	template<class Q = T>
+	typename std::enable_if<!std::is_same<Q, void>::value, Q>::type& operator*() const
+	{
+		return *GetPtr();
+	}
 
-	T* operator->() const { return GetPtr(); }
+	T* operator->() const
+	{
+		return GetPtr();
+	}
 
-	template <class Q = T>
-	typename std::enable_if<!std::is_same<Q, void>::value, Q>::type&
-	operator[](int index) { return GetPtr()[index]; }
+	template<class Q = T>
+	typename std::enable_if<!std::is_same<Q, void>::value, Q>::type& operator[](int index)
+	{
+		return GetPtr()[index];
+	}
 
-	T* GetPtr() const { return (T*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value); }
+	T* GetPtr() const
+	{
+		return (T*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value);
+	}
 
-	template <typename C>
-	C* GetPtr() const { return (C*)(GetPtr()); }
+	template<typename C>
+	C* GetPtr() const
+	{
+		return (C*)(GetPtr());
+	}
 
-	constexpr uint32 GetMPTR() const { return m_value.value(); }
-	constexpr uint32 GetRawValue() const { return m_value.bevalue(); } // accesses value using host-endianness
+	constexpr uint32 GetMPTR() const
+	{
+		return m_value.value();
+	}
+	constexpr uint32 GetRawValue() const
+	{
+		return m_value.bevalue();
+	} // accesses value using host-endianness
 
-	constexpr const uint32be& GetBEValue() const { return m_value; }
+	constexpr const uint32be& GetBEValue() const
+	{
+		return m_value;
+	}
 
-	constexpr bool IsNull() const { return m_value == 0; }
+	constexpr bool IsNull() const
+	{
+		return m_value == 0;
+	}
 
-	constexpr uint32 GetMPTRBE() const { return m_value.bevalue(); }
+	constexpr uint32 GetMPTRBE() const
+	{
+		return m_value.bevalue();
+	}
 
-	uint32be* GetBEPtr() { return &m_value; }
+	uint32be* GetBEPtr()
+	{
+		return &m_value;
+	}
 
-private:
+  private:
 	uint32be m_value;
 };
 
@@ -142,9 +185,12 @@ static_assert(sizeof(MEMPTR<void*>) == sizeof(uint32be));
 #include "StackAllocator.h"
 #include "SysAllocator.h"
 
-template <typename T>
+template<typename T>
 struct fmt::formatter<MEMPTR<T>> : formatter<string_view>
 {
-	template <typename FormatContext>
-	auto format(const MEMPTR<T>& v, FormatContext& ctx) { return formatter<string_view>::format(fmt::format("{:#x}", v.GetMPTR()), ctx); }
+	template<typename FormatContext>
+	auto format(const MEMPTR<T>& v, FormatContext& ctx)
+	{
+		return formatter<string_view>::format(fmt::format("{:#x}", v.GetMPTR()), ctx);
+	}
 };

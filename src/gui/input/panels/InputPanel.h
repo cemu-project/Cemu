@@ -11,7 +11,7 @@ class wxComboBox;
 
 class InputPanel : public wxPanel
 {
-public:
+  public:
 	const wxColour kKeyColourNormalMode = 0xfafafa;
 	const wxColour kKeyColourEditMode = 0x99ccff;
 	const wxColour kKeyColourActiveMode = 0xE0E0E0;
@@ -20,16 +20,18 @@ public:
 
 	ControllerPtr get_active_controller() const;
 
-	virtual void on_timer(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller);
+	virtual void on_timer(const EmulatedControllerPtr& emulated_controller,
+						  const ControllerPtr& controller);
 	void on_left_click(wxMouseEvent& event);
 
 	void reset_configuration();
 	virtual void load_controller(const EmulatedControllerPtr& controller);
 
-	void set_selected_controller(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller_base);
+	void set_selected_controller(const EmulatedControllerPtr& emulated_controller,
+								 const ControllerPtr& controller_base);
 	void reset_colours();
 
-protected:
+  protected:
 	void bind_hotkey_events(wxTextCtrl* text_ctrl);
 
 	void on_edit_key_focus(wxFocusEvent& event);
@@ -42,4 +44,3 @@ protected:
 	int m_focused_element = wxID_NONE;
 	std::unordered_map<int, wxColour> m_color_backup;
 };
-

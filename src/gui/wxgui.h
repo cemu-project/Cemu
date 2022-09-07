@@ -46,14 +46,15 @@ struct wxStringFormatParameters
 	wchar_t* substitude_parameter;
 };
 
-template <typename ...Args>
+template<typename... Args>
 wxString wxStringFormat(std::wstring& format, wxStringFormatParameters& parameters)
 {
 	return format;
 }
 
-template <typename T, typename ...Args>
-wxString wxStringFormat(std::wstring& format, wxStringFormatParameters& parameters, T arg, Args... args)
+template<typename T, typename... Args>
+wxString wxStringFormat(std::wstring& format, wxStringFormatParameters& parameters, T arg,
+						Args... args)
 {
 	wchar_t tmp[64];
 	swprintf(tmp, 64, LR"(\{[%d]+\})", parameters.parameter_index);
@@ -62,7 +63,8 @@ wxString wxStringFormat(std::wstring& format, wxStringFormatParameters& paramete
 	auto result = format;
 	while (std::regex_search(result, placeholder_regex))
 	{
-		result = std::regex_replace(result, placeholder_regex, parameters.substitude_parameter, std::regex_constants::format_first_only);
+		result = std::regex_replace(result, placeholder_regex, parameters.substitude_parameter,
+									std::regex_constants::format_first_only);
 		result = wxString::Format(wxString(result), arg);
 	}
 
@@ -74,7 +76,7 @@ wxString wxStringFormat(std::wstring& format, wxStringFormatParameters& paramete
 	return wxStringFormat(result, parameters, args...);
 }
 
-template <typename ...T>
+template<typename... T>
 wxString wxStringFormat(const wxString& format, const wchar_t* parameters, T... args)
 {
 	const auto parameter_count = std::count(parameters, parameters + wcslen(parameters), '%');

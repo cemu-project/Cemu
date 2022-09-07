@@ -3,7 +3,7 @@
 template<uint8 op0, bool rex64Bit = false>
 class x64_opc_1byte
 {
-public:
+  public:
 	static void emitBytes(x64GenContext_t* x64GenContext)
 	{
 		// write out op0
@@ -24,7 +24,7 @@ public:
 template<uint8 op0, bool rex64Bit = false>
 class x64_opc_1byte_rev
 {
-public:
+  public:
 	static void emitBytes(x64GenContext_t* x64GenContext)
 	{
 		// write out op0
@@ -45,7 +45,7 @@ public:
 template<uint8 op0, uint8 op1, bool rex64Bit = false>
 class x64_opc_2byte
 {
-public:
+  public:
 	static void emitBytes(x64GenContext_t* x64GenContext)
 	{
 		x64Gen_writeU8(x64GenContext, op0);
@@ -71,7 +71,7 @@ enum class MODRM_OPR_TYPE
 
 class x64MODRM_opr_reg64
 {
-public:
+  public:
 	x64MODRM_opr_reg64(uint8 reg)
 	{
 		this->reg = reg;
@@ -87,13 +87,13 @@ public:
 		return reg;
 	}
 
-private:
+  private:
 	uint8 reg;
 };
 
 class x64MODRM_opr_memReg64
 {
-public:
+  public:
 	x64MODRM_opr_memReg64(uint8 reg)
 	{
 		this->reg = reg;
@@ -130,14 +130,15 @@ public:
 	{
 		return false;
 	}
-private:
+
+  private:
 	uint8 reg;
 	sint32 offset;
 };
 
 class x64MODRM_opr_memRegPlusReg
 {
-public:
+  public:
 	x64MODRM_opr_memRegPlusReg(uint8 regBase, uint8 regIndex)
 	{
 		if ((regIndex & 7) == 4)
@@ -166,7 +167,7 @@ public:
 
 	static constexpr MODRM_OPR_TYPE getType()
 	{
-return MODRM_OPR_TYPE::MEM;
+		return MODRM_OPR_TYPE::MEM;
 	}
 
 	const uint8 getBaseReg() const
@@ -193,7 +194,8 @@ return MODRM_OPR_TYPE::MEM;
 	{
 		return true;
 	}
-private:
+
+  private:
 	uint8 regBase;
 	uint8 regIndex; // multiplied by scaler which is fixed to 1
 	sint32 offset;
@@ -212,19 +214,26 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 		{
 			// opA -> REX.B
 			// baseReg -> REX.R
-			x64Gen_writeU8(x64GenContext, 0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) | ((opB.getReg() & 8) ? (1 << 0) : 0) | (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
+			x64Gen_writeU8(x64GenContext, 0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) |
+											  ((opB.getReg() & 8) ? (1 << 0) : 0) |
+											  (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
 		}
 	}
 	else if constexpr (TA::getType() == MODRM_OPR_TYPE::REG && TB::getType() == MODRM_OPR_TYPE::MEM)
 	{
 		if constexpr (opB.hasBaseReg() && opB.hasIndexReg())
 		{
-			if (opA.getReg() & 8 || opB.getBaseReg() & 8 || opB.getIndexReg() & 8 || opcodeBytes::hasRex64BitPrefix())
+			if (opA.getReg() & 8 || opB.getBaseReg() & 8 || opB.getIndexReg() & 8 ||
+				opcodeBytes::hasRex64BitPrefix())
 			{
 				// opA -> REX.B
 				// baseReg -> REX.R
 				// indexReg -> REX.X
-				x64Gen_writeU8(x64GenContext, 0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) | ((opB.getBaseReg() & 8) ? (1 << 0) : 0) | ((opB.getIndexReg() & 8) ? (1 << 1) : 0) | (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
+				x64Gen_writeU8(x64GenContext,
+							   0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) |
+								   ((opB.getBaseReg() & 8) ? (1 << 0) : 0) |
+								   ((opB.getIndexReg() & 8) ? (1 << 1) : 0) |
+								   (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
 			}
 		}
 		else if constexpr (opB.hasBaseReg())
@@ -233,7 +242,10 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 			{
 				// opA -> REX.B
 				// baseReg -> REX.R
-				x64Gen_writeU8(x64GenContext, 0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) | ((opB.getBaseReg() & 8) ? (1 << 0) : 0) | (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
+				x64Gen_writeU8(x64GenContext,
+							   0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) |
+								   ((opB.getBaseReg() & 8) ? (1 << 0) : 0) |
+								   (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
 			}
 		}
 		else
@@ -242,7 +254,9 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 			{
 				// todo - verify
 				// opA -> REX.B
-				x64Gen_writeU8(x64GenContext, 0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) | (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
+				x64Gen_writeU8(x64GenContext,
+							   0x40 | ((opA.getReg() & 8) ? (1 << 2) : 0) |
+								   (opcodeBytes::hasRex64BitPrefix() ? (1 << 3) : 0));
 			}
 		}
 	}
@@ -256,7 +270,8 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 	}
 	else if constexpr (TA::getType() == MODRM_OPR_TYPE::REG && TB::getType() == MODRM_OPR_TYPE::MEM)
 	{
-		if constexpr (TB::hasBaseReg() == false) // todo - also check for index reg and secondary sib reg
+		if constexpr (TB::hasBaseReg() ==
+					  false) // todo - also check for index reg and secondary sib reg
 		{
 			// form: [offset]
 			// instruction is just offset
@@ -267,19 +282,22 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 			// form: [base+index*scaler+offset], scaler is currently fixed to 1
 			cemu_assert((opB.getIndexReg() & 7) != 4); // RSP not allowed as index register
 			const uint32 offset = opB.getOffset();
-			if (offset == 0 && (opB.getBaseReg() & 7) != 5) // RBP/R13 has special meaning in no-offset encoding
+			if (offset == 0 &&
+				(opB.getBaseReg() & 7) != 5) // RBP/R13 has special meaning in no-offset encoding
 			{
 				// [form: index*1+base]
 				x64Gen_writeU8(x64GenContext, 0x00 + (4) + ((opA.getReg() & 7) << 3));
 				// SIB byte
-				x64Gen_writeU8(x64GenContext, ((opB.getIndexReg()&7) << 3) + (opB.getBaseReg() & 7));
+				x64Gen_writeU8(x64GenContext,
+							   ((opB.getIndexReg() & 7) << 3) + (opB.getBaseReg() & 7));
 			}
 			else if (offset == (uint32)(sint32)(sint8)offset)
 			{
 				// [form: index*1+base+sbyte]
 				x64Gen_writeU8(x64GenContext, 0x40 + (4) + ((opA.getReg() & 7) << 3));
 				// SIB byte
-				x64Gen_writeU8(x64GenContext, ((opB.getIndexReg() & 7) << 3) + (opB.getBaseReg() & 7));
+				x64Gen_writeU8(x64GenContext,
+							   ((opB.getIndexReg() & 7) << 3) + (opB.getBaseReg() & 7));
 				x64Gen_writeU8(x64GenContext, (uint8)offset);
 			}
 			else
@@ -287,7 +305,8 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 				// [form: index*1+base+sdword]
 				x64Gen_writeU8(x64GenContext, 0x80 + (4) + ((opA.getReg() & 7) << 3));
 				// SIB byte
-				x64Gen_writeU8(x64GenContext, ((opB.getIndexReg() & 7) << 3) + (opB.getBaseReg() & 7));
+				x64Gen_writeU8(x64GenContext,
+							   ((opB.getIndexReg() & 7) << 3) + (opB.getBaseReg() & 7));
 				x64Gen_writeU32(x64GenContext, (uint32)offset);
 			}
 		}
@@ -295,7 +314,8 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 		{
 			// form: [baseReg + offset]
 			const uint32 offset = opB.getOffset();
-			if (offset == 0 && (opB.getBaseReg() & 7) != 5) // RBP/R13 has special meaning in no-offset encoding
+			if (offset == 0 &&
+				(opB.getBaseReg() & 7) != 5) // RBP/R13 has special meaning in no-offset encoding
 			{
 				// form: [baseReg]
 				// if base reg is RSP/R12 we need to use SIB form of instruction
@@ -307,7 +327,8 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 				}
 				else
 				{
-					x64Gen_writeU8(x64GenContext, 0x00 + (opB.getBaseReg() & 7) + ((opA.getReg() & 7) << 3));
+					x64Gen_writeU8(x64GenContext,
+								   0x00 + (opB.getBaseReg() & 7) + ((opA.getReg() & 7) << 3));
 				}
 			}
 			else if (offset == (uint32)(sint32)(sint8)offset)
@@ -322,7 +343,8 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 				}
 				else
 				{
-					x64Gen_writeU8(x64GenContext, 0x40 + (opB.getBaseReg() & 7) + ((opA.getReg() & 7) << 3));
+					x64Gen_writeU8(x64GenContext,
+								   0x40 + (opB.getBaseReg() & 7) + ((opA.getReg() & 7) << 3));
 				}
 				x64Gen_writeU8(x64GenContext, (uint8)offset);
 			}
@@ -338,7 +360,8 @@ void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 				}
 				else
 				{
-					x64Gen_writeU8(x64GenContext, 0x80 + (opB.getBaseReg() & 7) + ((opA.getReg() & 7) << 3));
+					x64Gen_writeU8(x64GenContext,
+								   0x80 + (opB.getBaseReg() & 7) + ((opA.getReg() & 7) << 3));
 				}
 				x64Gen_writeU32(x64GenContext, (uint32)offset);
 			}

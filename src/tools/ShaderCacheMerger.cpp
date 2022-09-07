@@ -35,12 +35,13 @@ void MergeShaderCacheFile(std::string fileName)
 		if (!sourceCache->GetFileByIndex(i, &name1, &name2, fileData))
 			continue;
 		std::vector<uint8> existingfileData;
-		if (mainCache->HasFile({ name1, name2 }))
+		if (mainCache->HasFile({name1, name2}))
 			continue;
-		mainCache->AddFile({ name1, name2 }, fileData.data(), (sint32)fileData.size());
+		mainCache->AddFile({name1, name2}, fileData.data(), (sint32)fileData.size());
 		numMergedEntries++;
 	}
-	printf(" -> Added %d new shaders for a total of %d\n", numMergedEntries, mainCache->GetFileCount());
+	printf(" -> Added %d new shaders for a total of %d\n", numMergedEntries,
+		   mainCache->GetFileCount());
 
 	delete mainCache;
 	delete sourceCache;
@@ -82,12 +83,13 @@ void MergePipelineCacheFile(std::string fileName)
 		if (!sourceCache->GetFileByIndex(i, &name1, &name2, fileData))
 			continue;
 		std::vector<uint8> existingfileData;
-		if (mainCache->HasFile({ name1, name2 }))
+		if (mainCache->HasFile({name1, name2}))
 			continue;
-		mainCache->AddFile({ name1, name2 }, fileData.data(), (sint32)fileData.size());
+		mainCache->AddFile({name1, name2}, fileData.data(), (sint32)fileData.size());
 		numMergedEntries++;
 	}
-	printf(" -> Added %d new pipelines for a total of %d\n", numMergedEntries, mainCache->GetFileCount());
+	printf(" -> Added %d new pipelines for a total of %d\n", numMergedEntries,
+		   mainCache->GetFileCount());
 
 	delete mainCache;
 	delete sourceCache;
@@ -131,7 +133,6 @@ void ToolShaderCacheMerger()
 	printf("\n");
 
 	MergeShaderAndPipelineCacheFiles();
-
 
 	printf("done!\n");
 	while (true)

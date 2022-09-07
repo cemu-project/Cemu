@@ -5,9 +5,8 @@
 
 class CachedFBOVk : public LatteCachedFBO
 {
-public:
-	CachedFBOVk(uint64 key, VkDevice device)
-		: LatteCachedFBO(key), m_device(device)
+  public:
+	CachedFBOVk(uint64 key, VkDevice device) : LatteCachedFBO(key), m_device(device)
 	{
 		CreateRenderPass();
 		CreateFramebuffer();
@@ -34,7 +33,6 @@ public:
 		return &m_vkRenderingInfo;
 	}
 
-
 	void TrackDependency(class PipelineInfo* pipelineInfo)
 	{
 		s_spinlockDependency.acquire();
@@ -49,13 +47,16 @@ public:
 		s_spinlockDependency.release();
 	}
 
-	[[nodiscard]] const VkExtent2D& GetExtend() const { return m_extend;}
+	[[nodiscard]] const VkExtent2D& GetExtend() const
+	{
+		return m_extend;
+	}
 
 	// checks if any of the sampled textures are output by the FBO
-	bool CheckForCollision(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS, VkDescriptorSetInfo* psDS) const;
+	bool CheckForCollision(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS,
+						   VkDescriptorSetInfo* psDS) const;
 
-private:
-
+  private:
 	void CreateRenderPass();
 	void CreateFramebuffer();
 
@@ -75,10 +76,10 @@ private:
 	VkRenderingAttachmentInfoKHR m_vkColorAttachments[8];
 	VkRenderingAttachmentInfoKHR m_vkDepthAttachment;
 	VkRenderingAttachmentInfoKHR m_vkStencilAttachment;
-	//uint8 m_vkColorAttachmentsCount{0};
-	bool m_vkHasDepthAttachment{ false };
-	bool m_vkHasStencilAttachment{ false };
+	// uint8 m_vkColorAttachmentsCount{0};
+	bool m_vkHasDepthAttachment{false};
+	bool m_vkHasStencilAttachment{false};
 
-
-	std::vector<class PipelineInfo*> m_usedByPipelines; // PipelineInfo objects which use this renderpass/framebuffer
+	std::vector<class PipelineInfo*>
+		m_usedByPipelines; // PipelineInfo objects which use this renderpass/framebuffer
 };

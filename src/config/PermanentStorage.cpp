@@ -6,13 +6,13 @@ PermanentStorage::PermanentStorage()
 {
 	if (!GetConfig().permanent_storage)
 		throw PSDisabledException();
-	
+
 	const char* appdata = std::getenv("LOCALAPPDATA");
 	if (!appdata)
 		throw std::runtime_error("can't get LOCALAPPDATA");
 	m_storage_path = appdata;
 	m_storage_path /= "Cemu";
-	
+
 	fs::create_directories(m_storage_path);
 }
 
@@ -72,5 +72,4 @@ std::string PermanentStorage::ReadFile(std::string_view filename) noexcept
 	{
 		return {};
 	}
-	
 }

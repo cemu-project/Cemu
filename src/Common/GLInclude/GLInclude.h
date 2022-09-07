@@ -21,8 +21,8 @@ typedef XID GLXDrawable;
 typedef XID GLXPbuffer;
 typedef XID GLXWindow;
 typedef XID GLXFBConfigID;
-typedef struct __GLXcontextRec *GLXContext;
-typedef struct __GLXFBConfigRec *GLXFBConfig;
+typedef struct __GLXcontextRec* GLXContext;
+typedef struct __GLXFBConfigRec* GLXFBConfig;
 
 #include "glxext.h"
 
@@ -33,7 +33,7 @@ typedef struct __GLXFBConfigRec *GLXFBConfig;
 
 #endif
 
-#define GLFUNC(__type, __name)	extern __type __name;
+#define GLFUNC(__type, __name) extern __type __name;
 #include "glFunctions.h"
 #undef GLFUNC
 

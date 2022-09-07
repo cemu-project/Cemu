@@ -2,5 +2,5 @@
 
 namespace coreinit
 {
-	void InitializeIM();
+void InitializeIM();
 };

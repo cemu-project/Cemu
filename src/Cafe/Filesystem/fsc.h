@@ -2,42 +2,45 @@
 
 struct FSCVirtualFile;
 
-#define FSC_TYPE_INVALID				(0)
-#define FSC_TYPE_FILE					(1)
-#define FSC_TYPE_DIRECTORY				(2)
+#define FSC_TYPE_INVALID (0)
+#define FSC_TYPE_FILE (1)
+#define FSC_TYPE_DIRECTORY (2)
 
-#define FSC_QUERY_SIZE					(1) // file size, 0 for directories
-#define FSC_QUERY_WRITEABLE				(2) // non-zero if file is writeable, else 0
+#define FSC_QUERY_SIZE (1)		// file size, 0 for directories
+#define FSC_QUERY_WRITEABLE (2) // non-zero if file is writeable, else 0
 
 enum class FSC_ACCESS_FLAG : uint8
 {
 	NONE = 0,
 
 	// file permissions
-	READ_PERMISSION = (1<<0),
-	WRITE_PERMISSION = (1<<1),
+	READ_PERMISSION = (1 << 0),
+	WRITE_PERMISSION = (1 << 1),
 
 	// file open mode (incompatible with OPEN_DIR flag)
-	FILE_ALLOW_CREATE = (1 << 2), // create file if it does not exist
+	FILE_ALLOW_CREATE = (1 << 2),  // create file if it does not exist
 	FILE_ALWAYS_CREATE = (1 << 3), // overwrite any existing file
 
 	// which types can be opened
 	// invalid operation if neither is set
-	OPEN_DIR = (1 << 4), 
+	OPEN_DIR = (1 << 4),
 	OPEN_FILE = (1 << 5)
 };
 DEFINE_ENUM_FLAG_OPERATORS(FSC_ACCESS_FLAG);
 
-#define FSC_STATUS_UNDEFINED			(-1)
-#define FSC_STATUS_OK					(0)
-#define FSC_STATUS_INVALID_PATH			(1)
-#define FSC_STATUS_FILE_NOT_FOUND		(2)
-#define FSC_STATUS_ALREADY_EXISTS		(3)
-// note: Unlike the native Wii U filesystem, FSC does not provide separate error codes for NOT_A_FILE and NOT_A_DIRECTORY
-// to determine them manually, open with both modes (file and dir) and check the type
+#define FSC_STATUS_UNDEFINED (-1)
+#define FSC_STATUS_OK (0)
+#define FSC_STATUS_INVALID_PATH (1)
+#define FSC_STATUS_FILE_NOT_FOUND (2)
+#define FSC_STATUS_ALREADY_EXISTS (3)
+// note: Unlike the native Wii U filesystem, FSC does not provide separate error codes for
+// NOT_A_FILE and NOT_A_DIRECTORY to determine them manually, open with both modes (file and dir)
+// and check the type
 
-#define FSC_MAX_DIR_NAME_LENGTH			(256)
-#define FSC_MAX_DEVICE_PATH_LENGTH		((std::max)(260,FSA_PATH_SIZE_MAX))	// max length for FSC device paths (should be at least equal or greater than supported by host filesystem)
+#define FSC_MAX_DIR_NAME_LENGTH (256)
+#define FSC_MAX_DEVICE_PATH_LENGTH                                                                 \
+	((std::max)(260, FSA_PATH_SIZE_MAX)) // max length for FSC device paths (should be at least
+										 // equal or greater than supported by host filesystem)
 
 struct FSCDirEntry
 {
@@ -56,8 +59,9 @@ struct FSCDirEntry
 
 class fscDeviceC
 {
-public:
-	virtual FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus)
+  public:
+	virtual FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags,
+												void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return nullptr;
@@ -75,14 +79,13 @@ public:
 		return false;
 	}
 
-	virtual bool fscDeviceRename(std::wstring_view srcPath, std::wstring_view dstPath, void* ctx, sint32* fscStatus)
+	virtual bool fscDeviceRename(std::wstring_view srcPath, std::wstring_view dstPath, void* ctx,
+								 sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return false;
 	}
-
 };
-
 
 struct FSCVirtualFile
 {
@@ -92,10 +95,7 @@ struct FSCVirtualFile
 		std::vector<FSCDirEntry> dirEntries;
 	};
 
-	FSCVirtualFile()
-	{
-
-	}
+	FSCVirtualFile() {}
 
 	virtual ~FSCVirtualFile()
 	{
@@ -152,20 +152,22 @@ struct FSCVirtualFile
 	FSCDirIteratorState* dirIterator{};
 };
 
-#define FSC_PRIORITY_BASE				(0)
-#define FSC_PRIORITY_AOC				(1)
-#define FSC_PRIORITY_PATCH				(2)
-#define FSC_PRIORITY_REDIRECT			(3)
-#define FSC_PRIORITY_MAX				(3)
+#define FSC_PRIORITY_BASE (0)
+#define FSC_PRIORITY_AOC (1)
+#define FSC_PRIORITY_PATCH (2)
+#define FSC_PRIORITY_REDIRECT (3)
+#define FSC_PRIORITY_MAX (3)
 
-#define FSC_PRIORITY_COUNT				(4)
+#define FSC_PRIORITY_COUNT (4)
 
 void fsc_init();
-sint32 fsc_mount(const char* mountPath, const wchar_t* targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority=0);
+sint32 fsc_mount(const char* mountPath, const wchar_t* targetPath, fscDeviceC* fscDevice, void* ctx,
+				 sint32 priority = 0);
 bool fsc_unmount(const char* mountPath, sint32 priority);
 void fsc_unmountAll();
 
-FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus, sint32 maxPriority=FSC_PRIORITY_MAX);
+FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus,
+						 sint32 maxPriority = FSC_PRIORITY_MAX);
 FSCVirtualFile* fsc_openDirIterator(const char* path, sint32* fscStatus);
 bool fsc_createDir(char* path, sint32* fscStatus);
 bool fsc_rename(char* srcPath, char* dstPath, sint32* fscStatus);
@@ -183,15 +185,18 @@ uint32 fsc_readFile(FSCVirtualFile* fscFile, void* buffer, uint32 size);
 uint32 fsc_writeFile(FSCVirtualFile* fscFile, void* buffer, uint32 size);
 
 uint8* fsc_extractFile(const char* path, uint32* fileSize, sint32 maxPriority = FSC_PRIORITY_MAX);
-std::optional<std::vector<uint8>> fsc_extractFile(const char* path, sint32 maxPriority = FSC_PRIORITY_MAX);
+std::optional<std::vector<uint8>> fsc_extractFile(const char* path,
+												  sint32 maxPriority = FSC_PRIORITY_MAX);
 bool fsc_doesFileExist(const char* path, sint32 maxPriority = FSC_PRIORITY_MAX);
 bool fsc_doesDirectoryExist(const char* path, sint32 maxPriority = FSC_PRIORITY_MAX);
 
 // wud device
-bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir, class FSTVolume* mountedVolume, sint32 priority);
+bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir,
+						class FSTVolume* mountedVolume, sint32 priority);
 
 // wua device
-bool FSCDeviceWUA_Mount(const char* mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
+bool FSCDeviceWUA_Mount(const char* mountPath, std::string_view destinationBaseDir,
+						class ZArchiveReader* archive, sint32 priority);
 
 // hostFS device
 void fscDeviceHostFS_mapBaseDirectories_deprecated();
@@ -199,13 +204,13 @@ bool FSCDeviceHostFS_Mount(const char* mountPath, const wchar_t* hostFSPath, sin
 
 // redirect device
 void fscDeviceRedirect_map();
-void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority);
-
+void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath,
+						   sint32 priority);
 
 // Old path parser helper functions
 // Replace with FSCPath
 
-#define FSC_PARSED_PATH_NODES_MAX   (32)
+#define FSC_PARSED_PATH_NODES_MAX (32)
 
 struct CoreinitFSParsedPath
 {

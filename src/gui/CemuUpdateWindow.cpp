@@ -15,7 +15,6 @@
 #include <zip.h>
 #include <boost/tokenizer.hpp>
 
-
 wxDECLARE_EVENT(wxEVT_RESULT, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_RESULT, wxCommandEvent);
 
@@ -24,7 +23,7 @@ wxDEFINE_EVENT(wxEVT_PROGRESS, wxCommandEvent);
 
 CemuUpdateWindow::CemuUpdateWindow(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, "Cemu update", wxDefaultPosition, wxDefaultSize,
-		wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
+			   wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 	m_gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(500, 20), wxGA_HORIZONTAL);
@@ -135,7 +134,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 		}
 
 		std::vector<std::string> tokens;
-		const boost::char_separator<char> sep{ "|" };
+		const boost::char_separator<char> sep{"|"};
 		for (const auto& token : boost::tokenizer(buffer, sep))
 			tokens.emplace_back(token);
 
@@ -144,7 +143,8 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 			// first token: "UPDATE"
 			// second token: Download URL
 			// third token: Changelog URL
-			// we allow more tokens in case we ever want to add extra information for future releases
+			// we allow more tokens in case we ever want to add extra information for future
+			// releases
 			downloadUrlOut = _curlUrlUnescape(curl, tokens[1]);
 			changelogUrlOut = _curlUrlUnescape(curl, tokens[2]);
 			if (!downloadUrlOut.empty() && !changelogUrlOut.empty())
@@ -172,9 +172,8 @@ bool CemuUpdateWindow::CheckVersion()
 	return QueryUpdateInfo(downloadUrl, changelogUrl);
 }
 
-
-int CemuUpdateWindow::ProgressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal,
-	curl_off_t ulnow)
+int CemuUpdateWindow::ProgressCallback(void* clientp, curl_off_t dltotal, curl_off_t dlnow,
+									   curl_off_t ultotal, curl_off_t ulnow)
 {
 	auto* thisptr = (CemuUpdateWindow*)clientp;
 	auto* event = new wxCommandEvent(wxEVT_PROGRESS);
@@ -203,7 +202,9 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 		if (http_code != 0 && http_code != 200)
 		{
-			cemuLog_log(LogType::Force, "Unable to download cemu update zip file from {} (http error: {})", url, http_code);
+			cemuLog_log(LogType::Force,
+						"Unable to download cemu update zip file from {} (http error: {})", url,
+						http_code);
 			curl_easy_cleanup(curl);
 			return false;
 		}
@@ -211,7 +212,6 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 		curl_off_t update_size;
 		if (curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &update_size) == CURLE_OK)
 			m_gaugeMaxValue = (int)update_size;
-
 
 		auto _curlWriteData = +[](void* ptr, size_t size, size_t nmemb, void* ctx) -> size_t
 		{
@@ -228,12 +228,15 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 		curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, ProgressCallback);
 		curl_easy_setopt(curl, CURLOPT_XFERINFODATA, this);
 
-		auto curl_result = std::async(std::launch::async, [](CURL* curl, long* http_code)
+		auto curl_result = std::async(
+			std::launch::async,
+			[](CURL* curl, long* http_code)
 			{
 				const auto r = curl_easy_perform(curl);
 				curl_easy_cleanup(curl);
 				return r;
-			}, curl, &http_code);
+			},
+			curl, &http_code);
 		while (!curl_result.valid())
 		{
 			if (m_order == WorkerOrder::Exit)
@@ -266,7 +269,8 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 	return result;
 }
 
-bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& targetpath, std::string& cemuFolderName)
+bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& targetpath,
+									 std::string& cemuFolderName)
 {
 	cemuFolderName.clear();
 	// open downloaded zip
@@ -308,10 +312,12 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 				catch (const std::exception& ex)
 				{
 					SystemException sys(ex);
-					forceLog_printf("can't create folder \"%s\" for update: %s", sb.name, sys.what());
+					forceLog_printf("can't create folder \"%s\" for update: %s", sb.name,
+									sys.what());
 				}
 				// the root should have only one Cemu_... directory, we track it here
-				if ((std::count(sb.name, sb.name + len, '/') + std::count(sb.name, sb.name + len, '\\')) == 1)
+				if ((std::count(sb.name, sb.name + len, '/') +
+					 std::count(sb.name, sb.name + len, '\\')) == 1)
 				{
 					if (!cemuFolderName.empty())
 						forceLog_printf("update zip has multiple folders in root");
@@ -333,7 +339,8 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			const auto read = zip_fread(zf, buffer.data(), sb.size);
 			if (read != (sint64)sb.size)
 			{
-				forceLog_printf("could only read 0x%x of 0x%x bytes from zip file \"%s\"", read, sb.size, sb.name);
+				forceLog_printf("could only read 0x%x of 0x%x bytes from zip file \"%s\"", read,
+								sb.size, sb.name);
 				zip_close(za);
 				return false;
 			}
@@ -472,7 +479,8 @@ void CemuUpdateWindow::WorkerThread()
 				// apply update
 				std::wstring target_directory = ActiveSettings::GetPath().generic_wstring();
 				if (target_directory[target_directory.size() - 1] == '/')
-					target_directory = target_directory.substr(0, target_directory.size() - 1); // remove trailing /
+					target_directory = target_directory.substr(0, target_directory.size() -
+																	  1); // remove trailing /
 
 				// get exe name
 				const auto exec = ActiveSettings::GetFullPath();
@@ -496,7 +504,8 @@ void CemuUpdateWindow::WorkerThread()
 						else
 						{
 							if (it.path().filename() == L"Cemu.exe")
-								fs::rename(it.path(), fs::path(target_file).replace_filename(exec.filename()));
+								fs::rename(it.path(),
+										   fs::path(target_file).replace_filename(exec.filename()));
 							else
 								fs::rename(it.path(), target_file);
 						}
@@ -559,7 +568,8 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 		cmdline = L"\"" + m_restartFile.wstring() + L"\"" + cmdline.substr(index + 1);
 
 		HANDLE lock = CreateMutex(nullptr, TRUE, L"Global\\cemu_update_lock");
-		CreateProcess(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+		CreateProcess(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr,
+					  nullptr, &si, &pi);
 
 		exit(0);
 	}
@@ -567,7 +577,6 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 	cemuLog_log(LogType::Force, "unimplemented - restart on update");
 #endif
 }
-
 
 void CemuUpdateWindow::OnResult(wxCommandEvent& event)
 {

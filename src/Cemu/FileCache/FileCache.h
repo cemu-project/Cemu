@@ -5,10 +5,10 @@
 
 class FileCache
 {
-public:
-	struct FileName 
+  public:
+	struct FileName
 	{
-		FileName(uint64 name1, uint64 name2) : name1(name1), name2(name2) {};
+		FileName(uint64 name1, uint64 name2) : name1(name1), name2(name2){};
 		FileName(std::string_view filePath)
 		{
 			// name from string hash
@@ -28,7 +28,8 @@ public:
 			name2 = h2;
 		};
 
-		FileName(const std::string& filePath) : FileName(std::basic_string_view(filePath.data(), filePath.size())) {};
+		FileName(const std::string& filePath)
+			: FileName(std::basic_string_view(filePath.data(), filePath.size())){};
 
 		uint64 name1;
 		uint64 name2;
@@ -40,7 +41,10 @@ public:
 	static FileCache* Open(wzstring_view path, bool allowCreate, uint32 extraVersion = 0);
 	static FileCache* Open(wzstring_view path); // open without extraVersion check
 
-	void UseCompression(bool enable) { enableCompression = enable; };
+	void UseCompression(bool enable)
+	{
+		enableCompression = enable;
+	};
 
 	void AddFile(const FileName&& name, const uint8* fileData, sint32 fileSize);
 	void AddFileAsync(const FileName& name, const uint8* fileData, sint32 fileSize);
@@ -53,7 +57,7 @@ public:
 
 	sint32 GetMaximumFileIndex();
 
-private:
+  private:
 	struct FileTableEntry
 	{
 		enum FLAGS : uint8
@@ -73,12 +77,14 @@ private:
 
 	static_assert(sizeof(FileTableEntry) == 0x20);
 
-	FileCache() {};
+	FileCache(){};
 
-	static FileCache* _OpenExisting(wzstring_view path, bool compareExtraVersion, uint32 extraVersion = 0);
+	static FileCache* _OpenExisting(wzstring_view path, bool compareExtraVersion,
+									uint32 extraVersion = 0);
 
 	void fileCache_updateFiletable(sint32 extraEntriesToAllocate);
-	void _addFileInternal(uint64 name1, uint64 name2, const uint8* fileData, sint32 fileSize, bool noCompression);
+	void _addFileInternal(uint64 name1, uint64 name2, const uint8* fileData, sint32 fileSize,
+						  bool noCompression);
 	bool _getFileDataInternal(const FileTableEntry* entry, std::vector<uint8>& dataOut);
 
 	class FileStream* fileStream{};

@@ -4,8 +4,8 @@ namespace nn
 {
 namespace save
 {
-	void load();
+void load();
 
-	bool GetPersistentIdEx(uint8 accountSlot, uint32* persistentId);
-}
-}
+bool GetPersistentIdEx(uint8 accountSlot, uint32* persistentId);
+} // namespace save
+} // namespace nn

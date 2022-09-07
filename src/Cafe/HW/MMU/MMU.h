@@ -45,10 +45,12 @@ struct MMURange
 	enum MFLAG
 	{
 		FLAG_OPTIONAL = (1 << 0), // allocate only on explicit request
-		FLAG_MAP_EARLY = (1 << 1), // map at Cemu launch, normally memory is mapped when a game is loaded
+		FLAG_MAP_EARLY =
+			(1 << 1), // map at Cemu launch, normally memory is mapped when a game is loaded
 	};
 
-	MMURange(const uint32 baseAddress, const uint32 size, MMU_MEM_AREA_ID areaId, const std::string_view name, MFLAG flags = (MFLAG)0);
+	MMURange(const uint32 baseAddress, const uint32 size, MMU_MEM_AREA_ID areaId,
+			 const std::string_view name, MFLAG flags = (MFLAG)0);
 
 	void mapMem();
 	void unmapMem();
@@ -103,9 +105,18 @@ struct MMURange
 		return addr >= getBase() && addr < getEnd();
 	}
 
-	bool isMapped() const { return m_isMapped; };
-	bool isOptional() const { return (flags & MFLAG::FLAG_OPTIONAL) != 0; };
-	bool isMappedEarly() const { return (flags & MFLAG::FLAG_MAP_EARLY) != 0; };
+	bool isMapped() const
+	{
+		return m_isMapped;
+	};
+	bool isOptional() const
+	{
+		return (flags & MFLAG::FLAG_OPTIONAL) != 0;
+	};
+	bool isMappedEarly() const
+	{
+		return (flags & MFLAG::FLAG_MAP_EARLY) != 0;
+	};
 
 	const uint32 baseAddress;
 	const uint32 initSize; // initial size
@@ -116,7 +127,6 @@ struct MMURange
 	uint32 size;
 	bool m_isMapped{};
 };
-
 
 extern MMURange mmuRange_LOW0;
 extern MMURange mmuRange_TRAMPOLINE_AREA;
@@ -138,61 +148,68 @@ MMURange* memory_getMMURangeByAddress(MPTR address);
 
 bool memory_isAddressRangeAccessible(MPTR virtualAddress, uint32 size);
 
-#define MEMORY_PAGE_SIZE					(0x20000)
+#define MEMORY_PAGE_SIZE (0x20000)
 
-#define MEMORY_CODELOW0_ADDR				(0x00010000)
-#define MEMORY_CODELOW0_SIZE				(0x000F0000) // ~1MB
+#define MEMORY_CODELOW0_ADDR (0x00010000)
+#define MEMORY_CODELOW0_SIZE (0x000F0000) // ~1MB
 
-#define MEMORY_CODE_TRAMPOLINE_AREA_ADDR	(0x00E00000) // code area for trampolines and imports
-#define MEMORY_CODE_TRAMPOLINE_AREA_SIZE	(0x00200000) // 2MB
+#define MEMORY_CODE_TRAMPOLINE_AREA_ADDR (0x00E00000) // code area for trampolines and imports
+#define MEMORY_CODE_TRAMPOLINE_AREA_SIZE (0x00200000) // 2MB
 
-#define MEMORY_CODECAVEAREA_ADDR			(0x01800000)
-#define MEMORY_CODECAVEAREA_SIZE			(0x00400000) // 4MB
+#define MEMORY_CODECAVEAREA_ADDR (0x01800000)
+#define MEMORY_CODECAVEAREA_SIZE (0x00400000) // 4MB
 
-#define MEMORY_CODEAREA_ADDR				(0x02000000)
-#define MEMORY_CODEAREA_SIZE				(0x0E000000) // 224MB
+#define MEMORY_CODEAREA_ADDR (0x02000000)
+#define MEMORY_CODEAREA_SIZE (0x0E000000) // 224MB
 
-#define MEMORY_DATA_AREA_ADDR				(0x10000000)
-#define MEMORY_DATA_AREA_SIZE				(0x40000000)
+#define MEMORY_DATA_AREA_ADDR (0x10000000)
+#define MEMORY_DATA_AREA_SIZE (0x40000000)
 
-#define MEMORY_FGBUCKET_AREA_ADDR			(0xE0000000) // actual offset is 0xE0000000 according to PPC kernel
-#define MEMORY_FGBUCKET_AREA_SIZE			(0x04000000) // 64MB split up into multiple subareas, size is verified with value from PPC kernel
+#define MEMORY_FGBUCKET_AREA_ADDR                                                                  \
+	(0xE0000000) // actual offset is 0xE0000000 according to PPC kernel
+#define MEMORY_FGBUCKET_AREA_SIZE                                                                  \
+	(0x04000000) // 64MB split up into multiple subareas, size is verified with value from PPC
+				 // kernel
 
 // move these to rpl loader
-#define MEMORY_SDA_SIZE						(0x10000)
-#define MEMORY_SDA2_SIZE					(0x10000)
+#define MEMORY_SDA_SIZE (0x10000)
+#define MEMORY_SDA2_SIZE (0x10000)
 
 //#define MEMORY_SYSTEM_AREA_ADDR				(0x90000000)
-//#define MEMORY_SYSTEM_AREA_SIZE				(0x02000000) // 32MB of memory area that can't be allocated by the game directly - this is emulator specific.
+//#define MEMORY_SYSTEM_AREA_SIZE				(0x02000000) // 32MB of memory area that can't be
+// allocated by the game directly - this is emulator specific.
 
 //#define MEMORY_SYSTEM_AREA_ADDR				(0x7C000000)
-//#define MEMORY_SYSTEM_AREA_SIZE				(0x02000000) // 32MB of memory area that can't be allocated by the game directly - this is emulator specific.
-// moved the sys area below 0x80000000. Turns out that some games treat stack/os-object pointers as signed and run into issues if the highest bit is set (e.g. Monster Hunter Frontier G)
+//#define MEMORY_SYSTEM_AREA_SIZE				(0x02000000) // 32MB of memory area that can't be
+// allocated by the game directly - this is emulator specific.
+// moved the sys area below 0x80000000. Turns out that some games treat stack/os-object pointers as
+// signed and run into issues if the highest bit is set (e.g. Monster Hunter Frontier G)
 
-#define MEMORY_TILINGAPERTURE_AREA_ADDR		(0xE8000000)
-#define MEMORY_TILINGAPERTURE_AREA_SIZE		(0x02000000) // 32MB
+#define MEMORY_TILINGAPERTURE_AREA_ADDR (0xE8000000)
+#define MEMORY_TILINGAPERTURE_AREA_SIZE (0x02000000) // 32MB
 
-#define MEMORY_OVERLAY_AREA_OFFSET			(0xA0000000)
-#define MEMORY_OVERLAY_AREA_SIZE			(448*1024*1024) // 448MB (todo: verify if correct)
+#define MEMORY_OVERLAY_AREA_OFFSET (0xA0000000)
+#define MEMORY_OVERLAY_AREA_SIZE (448 * 1024 * 1024) // 448MB (todo: verify if correct)
 
-#define MEMORY_MAPABLE_PHYS_AREA_OFFSET		(0x80000000) // todo: verify offset
-#define MEMORY_MAPABLE_PHYS_AREA_SIZE		(32*1024*1024) // todo: verify size
-#define MEMORY_MAPABLE_VIRT_AREA_OFFSET		(0x70000000) // todo: verify offset
-#define MEMORY_MAPABLE_VIRT_AREA_SIZE		(32*1024*1024) // todo: verify size
+#define MEMORY_MAPABLE_PHYS_AREA_OFFSET (0x80000000)	 // todo: verify offset
+#define MEMORY_MAPABLE_PHYS_AREA_SIZE (32 * 1024 * 1024) // todo: verify size
+#define MEMORY_MAPABLE_VIRT_AREA_OFFSET (0x70000000)	 // todo: verify offset
+#define MEMORY_MAPABLE_VIRT_AREA_SIZE (32 * 1024 * 1024) // todo: verify size
 
-#define MEMORY_MEM1_AREA_ADDR				(0xF4000000)
-#define MEMORY_MEM1_AREA_SIZE				(0x02000000) // 32MB
+#define MEMORY_MEM1_AREA_ADDR (0xF4000000)
+#define MEMORY_MEM1_AREA_SIZE (0x02000000) // 32MB
 
-#define MEMORY_RPLLOADER_AREA_ADDR			(0xF6000000) // workarea for RPLLoader (normally this is kernel workspace)
-#define MEMORY_RPLLOADER_AREA_SIZE			(0x02000000) // 32MB
+#define MEMORY_RPLLOADER_AREA_ADDR                                                                 \
+	(0xF6000000) // workarea for RPLLoader (normally this is kernel workspace)
+#define MEMORY_RPLLOADER_AREA_SIZE (0x02000000) // 32MB
 
-#define MEMORY_SHAREDDATA_AREA_ADDR			(0xF8000000)
-#define MEMORY_SHAREDDATA_AREA_SIZE			(0x02000000) // 32MB
+#define MEMORY_SHAREDDATA_AREA_ADDR (0xF8000000)
+#define MEMORY_SHAREDDATA_AREA_SIZE (0x02000000) // 32MB
 
 static uint16 CPU_swapEndianU16(uint16 v)
 {
-	//return _byteswap_ushort(v);
-	return (v>>8)|(v<<8);
+	// return _byteswap_ushort(v);
+	return (v >> 8) | (v << 8);
 }
 
 #if BOOST_OS_WINDOWS
@@ -234,16 +251,17 @@ void memory_readBytes(uint32 address, std::array<uint8, count>& buffer)
 	memcpy(buffer.data(), memory_getPointerFromVirtualOffset(address), count);
 }
 
-template <typename T> T memory_read(uint32 address)
+template<typename T>
+T memory_read(uint32 address)
 {
-	if constexpr(std::is_floating_point<T>::value)
+	if constexpr (std::is_floating_point<T>::value)
 	{
-		if constexpr(sizeof(T) == sizeof(float))
+		if constexpr (sizeof(T) == sizeof(float))
 			return memory_readFloat(address);
 		else
 			return memory_readDouble(address);
 	}
-	else if(std::is_integral<T>::value)
+	else if (std::is_integral<T>::value)
 	{
 		if constexpr (sizeof(T) == sizeof(uint8))
 			return (T)memory_readU8(address);
@@ -255,7 +273,7 @@ template <typename T> T memory_read(uint32 address)
 			return (T)memory_readU64(address);
 	}
 
-	debugBreakpoint(); 
+	debugBreakpoint();
 	return {};
 }
 
@@ -268,44 +286,41 @@ using PAddr = uint32; // physical address
 
 namespace MMU
 {
-	using MMIOFuncWrite32 = void (*)(PAddr addr, uint32 value);
-	using MMIOFuncWrite16 = void (*)(PAddr addr, uint16 value);
+using MMIOFuncWrite32 = void (*)(PAddr addr, uint32 value);
+using MMIOFuncWrite16 = void (*)(PAddr addr, uint16 value);
 
-	using MMIOFuncRead32 = uint32(*)(PAddr addr);
-	using MMIOFuncRead16 = uint16(*)(PAddr addr);
+using MMIOFuncRead32 = uint32 (*)(PAddr addr);
+using MMIOFuncRead16 = uint16 (*)(PAddr addr);
 
-	enum class MMIOInterface
-	{
-		INTERFACE_0C000000,
-		INTERFACE_0D000000,
-		//INTERFACE_0D000000,
-	};
+enum class MMIOInterface
+{
+	INTERFACE_0C000000,
+	INTERFACE_0D000000,
+	// INTERFACE_0D000000,
+};
 
-	void RegisterMMIO_W16(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncWrite16 ptr);
-	void RegisterMMIO_W32(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncWrite32 ptr);
-	void RegisterMMIO_R32(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncRead32 ptr);
-	void RegisterMMIO_R16(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncRead16 ptr);
+void RegisterMMIO_W16(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncWrite16 ptr);
+void RegisterMMIO_W32(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncWrite32 ptr);
+void RegisterMMIO_R32(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncRead32 ptr);
+void RegisterMMIO_R16(MMIOInterface interfaceLocation, uint32 relativeAddress, MMIOFuncRead16 ptr);
 
-	template<typename TRegType, auto TReadFunc, auto TWriteFunc>
-	void RegisterMMIO_32(MMIOInterface interfaceLocation, uint32 relativeAddress)
-	{
-		RegisterMMIO_W32(interfaceLocation, relativeAddress,
-			[](PAddr addr, uint32 value) -> void
-		{
-			TRegType temp;
-			temp.setFromRaw(value);
-			TWriteFunc(addr, temp);
-		});
-		RegisterMMIO_R32(interfaceLocation, relativeAddress,
-			[](PAddr addr) -> uint32
-		{
-			return TReadFunc(addr).getRawValue();
-		});
-	}
-
-	void WriteMMIO_32(PAddr address, uint32 value);
-	void WriteMMIO_16(PAddr address, uint16 value);
-	uint16 ReadMMIO_32(PAddr address);
-	uint16 ReadMMIO_16(PAddr address);
-
+template<typename TRegType, auto TReadFunc, auto TWriteFunc>
+void RegisterMMIO_32(MMIOInterface interfaceLocation, uint32 relativeAddress)
+{
+	RegisterMMIO_W32(interfaceLocation, relativeAddress,
+					 [](PAddr addr, uint32 value) -> void
+					 {
+						 TRegType temp;
+						 temp.setFromRaw(value);
+						 TWriteFunc(addr, temp);
+					 });
+	RegisterMMIO_R32(interfaceLocation, relativeAddress,
+					 [](PAddr addr) -> uint32 { return TReadFunc(addr).getRawValue(); });
 }
+
+void WriteMMIO_32(PAddr address, uint32 value);
+void WriteMMIO_16(PAddr address, uint16 value);
+uint16 ReadMMIO_32(PAddr address);
+uint16 ReadMMIO_16(PAddr address);
+
+} // namespace MMU

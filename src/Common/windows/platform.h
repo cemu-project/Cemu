@@ -13,7 +13,7 @@
 
 class SlimRWLock
 {
-public:
+  public:
 	SlimRWLock();
 
 	void LockRead();
@@ -21,7 +21,7 @@ public:
 	void LockWrite();
 	void UnlockWrite();
 
-private:
+  private:
 	/*SRWLOCK*/ void* m_lock;
 };
 

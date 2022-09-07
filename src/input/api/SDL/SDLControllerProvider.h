@@ -15,22 +15,26 @@ static bool operator==(const SDL_JoystickGUID& g1, const SDL_JoystickGUID& g2)
 class SDLControllerProvider : public ControllerProviderBase
 {
 	friend class SDLController;
-public:
+
+  public:
 	SDLControllerProvider();
 	~SDLControllerProvider();
 
 	inline static InputAPI::Type kAPIType = InputAPI::SDLController;
-	InputAPI::Type api() const override { return kAPIType; }
+	InputAPI::Type api() const override
+	{
+		return kAPIType;
+	}
 
 	std::vector<std::shared_ptr<ControllerBase>> get_controllers() override;
-	
+
 	int get_index(size_t guid_index, const SDL_JoystickGUID& guid) const;
 
 	MotionSample motion_sample(int diid);
 
-private:
+  private:
 	void event_thread();
-	
+
 	std::atomic_bool m_running = false;
 	std::thread m_thread;
 
@@ -50,5 +54,4 @@ private:
 	};
 
 	std::array<MotionInfoTracking, 8> m_motion_tracking{};
-
 };

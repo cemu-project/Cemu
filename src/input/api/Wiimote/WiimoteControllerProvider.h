@@ -19,14 +19,18 @@
 class WiimoteControllerProvider : public ControllerProviderBase
 {
 	friend class WiimoteController;
-public:
+
+  public:
 	constexpr static uint32 kDefaultPacketDelay = 25;
 
 	WiimoteControllerProvider();
 	~WiimoteControllerProvider();
 
 	inline static InputAPI::Type kAPIType = InputAPI::Wiimote;
-	InputAPI::Type api() const override { return kAPIType; }
+	InputAPI::Type api() const override
+	{
+		return kAPIType;
+	}
 
 	std::vector<std::shared_ptr<ControllerBase>> get_controllers() override;
 
@@ -61,18 +65,17 @@ public:
 			std::array<IRDot, 4> dots{}, prev_dots{};
 
 			glm::vec2 position{}, m_prev_position{};
-			glm::vec2 middle {};
+			glm::vec2 middle{};
 			float distance = 0;
-			std::pair<sint32, sint32> indices{ 0,1 };
-		}ir_camera{};
+			std::pair<sint32, sint32> indices{0, 1};
+		} ir_camera{};
 
 		std::optional<MotionPlusData> m_motion_plus;
 		std::variant<std::monostate, NunchuckData, ClassicData> m_extension{};
 	};
 	WiimoteState get_state(size_t index);
-	
 
-private:
+  private:
 	std::atomic_bool m_running = false;
 	std::thread m_reader_thread, m_writer_thread;
 
@@ -80,8 +83,7 @@ private:
 
 	struct Wiimote
 	{
-		Wiimote(WiimoteDevicePtr device)
-			: device(std::move(device)) {}
+		Wiimote(WiimoteDevicePtr device) : device(std::move(device)) {}
 
 		WiimoteDevicePtr device;
 		std::atomic_bool connected = true;
@@ -95,7 +97,7 @@ private:
 	};
 	boost::ptr_vector<Wiimote> m_wiimotes;
 
-	std::list<std::pair<size_t,std::vector<uint8>>> m_write_queue;
+	std::list<std::pair<size_t, std::vector<uint8>>> m_write_queue;
 	std::mutex m_writer_mutex;
 	std::condition_variable m_writer_cond;
 
@@ -107,7 +109,8 @@ private:
 
 	void send_packet(size_t index, std::vector<uint8> data);
 	void send_read_packet(size_t index, MemoryType type, RegisterAddress address, uint16 size);
-	void send_write_packet(size_t index, MemoryType type, RegisterAddress address, const std::vector<uint8>& data);
+	void send_write_packet(size_t index, MemoryType type, RegisterAddress address,
+						   const std::vector<uint8>& data);
 
 	void parse_acceleration(WiimoteState& wiimote_state, const uint8*& data);
 
@@ -121,6 +124,3 @@ private:
 
 	void update_report_type(size_t index);
 };
-
-
-

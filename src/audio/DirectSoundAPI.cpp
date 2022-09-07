@@ -12,7 +12,8 @@ std::wstring DirectSoundAPI::DirectSoundDeviceDescription::GetIdentifier() const
 	return m_guid ? WStringFromGUID(*m_guid) : L"default";
 }
 
-DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample)
+DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels,
+							   sint32 samples_per_block, sint32 bits_per_sample)
 	: IAudioAPI(samplerate, channels, samples_per_block, bits_per_sample)
 {
 	LPDIRECTSOUND8 direct_sound;
@@ -21,13 +22,17 @@ DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, s
 
 	m_direct_sound = decltype(m_direct_sound)(direct_sound);
 
-	if (FAILED(m_direct_sound->SetCooperativeLevel(gui_getWindowInfo().window_main.hwnd, DSSCL_PRIORITY)))
+	if (FAILED(m_direct_sound->SetCooperativeLevel(gui_getWindowInfo().window_main.hwnd,
+												   DSSCL_PRIORITY)))
 		throw std::runtime_error("can't set directsound priority");
 
 	DSBUFFERDESC bd{};
 	bd.dwSize = sizeof(DSBUFFERDESC);
-	bd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLVOLUME | DSBCAPS_GLOBALFOCUS | DSBCAPS_CTRLPOSITIONNOTIFY;
-	bd.dwBufferBytes = kBufferCount * m_bytesPerBlock; // kBlockCount * (samples_per_block * channels * (bits_per_sample / 8));
+	bd.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLVOLUME | DSBCAPS_GLOBALFOCUS |
+				 DSBCAPS_CTRLPOSITIONNOTIFY;
+	bd.dwBufferBytes =
+		kBufferCount *
+		m_bytesPerBlock; // kBlockCount * (samples_per_block * channels * (bits_per_sample / 8));
 	bd.lpwfxFormat = (LPWAVEFORMATEX)&m_wfx;
 
 	LPDIRECTSOUNDBUFFER sound_buffer;
@@ -81,7 +86,7 @@ DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, s
 		m_notify_event[i] = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
 		notify[i].hEventNotify = m_notify_event[i];
-		//notify[i].dwOffset = ((i*2) + 1) * (m_bytes_per_block / 2);
+		// notify[i].dwOffset = ((i*2) + 1) * (m_bytes_per_block / 2);
 		notify[i].dwOffset = (i * m_bytesPerBlock);
 	}
 
@@ -99,7 +104,8 @@ void DirectSoundAPI::AudioThread()
 {
 	while (m_running)
 	{
-		HRESULT hr = WaitForMultipleObjects(m_notify_event.size(), m_notify_event.data(), FALSE, 10);
+		HRESULT hr =
+			WaitForMultipleObjects(m_notify_event.size(), m_notify_event.data(), FALSE, 10);
 		if (WAIT_OBJECT_0 <= hr && hr <= WAIT_OBJECT_0 + kBufferCount)
 		{
 			// write to the following buffer
@@ -107,11 +113,13 @@ void DirectSoundAPI::AudioThread()
 
 			void *ptr1, *ptr2;
 			DWORD bytes1, bytes2;
-			hr = m_sound_buffer->Lock(position * m_bytesPerBlock, m_bytesPerBlock, &ptr1, &bytes1, &ptr2, &bytes2, 0);
+			hr = m_sound_buffer->Lock(position * m_bytesPerBlock, m_bytesPerBlock, &ptr1, &bytes1,
+									  &ptr2, &bytes2, 0);
 			if (hr == DSERR_BUFFERLOST)
 			{
 				m_sound_buffer->Restore();
-				hr = m_sound_buffer->Lock(position * m_bytesPerBlock, m_bytesPerBlock, &ptr1, &bytes1, &ptr2, &bytes2, 0);
+				hr = m_sound_buffer->Lock(position * m_bytesPerBlock, m_bytesPerBlock, &ptr1,
+										  &bytes1, &ptr2, &bytes2, 0);
 			}
 
 			if (FAILED(hr))
@@ -124,7 +132,7 @@ void DirectSoundAPI::AudioThread()
 				std::unique_lock lock(m_mutex);
 				if (m_buffer.empty())
 				{
-					//forceLogDebug_printf("DirectSound: writing silence");
+					// forceLogDebug_printf("DirectSound: writing silence");
 
 					// we got no data, just write silence
 					memset(ptr1, 0x00, bytes1);
@@ -151,15 +159,15 @@ DirectSoundAPI::~DirectSoundAPI()
 {
 	m_running = false;
 	DirectSoundAPI::Stop();
-	
-	if(m_thread.joinable())
+
+	if (m_thread.joinable())
 		m_thread.join();
 
 	m_notify.reset();
 	m_sound_buffer.reset();
 	m_direct_sound.reset();
 
-	for(auto entry : m_notify_event)
+	for (auto entry : m_notify_event)
 	{
 		if (entry)
 			CloseHandle(entry);
@@ -203,7 +211,8 @@ void DirectSoundAPI::SetVolume(sint32 volume)
 {
 	IAudioAPI::SetVolume(volume);
 
-	const LONG value = pow((float)volume / 100.0f, 0.20f) * (DSBVOLUME_MAX - DSBVOLUME_MIN) + DSBVOLUME_MIN;
+	const LONG value =
+		pow((float)volume / 100.0f, 0.20f) * (DSBVOLUME_MAX - DSBVOLUME_MIN) + DSBVOLUME_MIN;
 	m_sound_buffer->SetVolume(value);
 }
 
@@ -224,13 +233,15 @@ std::vector<DirectSoundAPI::DeviceDescriptionPtr> DirectSoundAPI::GetDevices()
 			auto obj = std::make_shared<DirectSoundDeviceDescription>(lpcstrDescription, lpGuid);
 			results->emplace_back(obj);
 			return TRUE;
-		}, &result);
+		},
+		&result);
 
-	//Exclude default primary sound device if no other sound devices are available
-	if (result.size() == 1 && result.at(0).get()->GetIdentifier() == L"default") {
+	// Exclude default primary sound device if no other sound devices are available
+	if (result.size() == 1 && result.at(0).get()->GetIdentifier() == L"default")
+	{
 		result.clear();
 	}
-	
+
 	return result;
 }
 
@@ -240,12 +251,13 @@ std::vector<DirectSoundAPI::DeviceDescriptionPtr> DirectSoundAPI::GetInputDevice
 
 	DirectSoundCaptureEnumerateW(
 		[](LPGUID lpGuid, LPCWSTR lpcstrDescription, LPCWSTR lpcstrModule, LPVOID lpContext) -> BOOL
-	{
-		auto results = (std::vector<DirectSoundDeviceDescriptionPtr>*)lpContext;
-		auto obj = std::make_shared<DirectSoundDeviceDescription>(lpcstrDescription, lpGuid);
-		results->emplace_back(obj);
-		return TRUE;
-	}, &result);
+		{
+			auto results = (std::vector<DirectSoundDeviceDescriptionPtr>*)lpContext;
+			auto obj = std::make_shared<DirectSoundDeviceDescription>(lpcstrDescription, lpGuid);
+			results->emplace_back(obj);
+			return TRUE;
+		},
+		&result);
 
 	return result;
 }

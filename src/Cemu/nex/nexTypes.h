@@ -1,22 +1,22 @@
 #pragma once
-#include<string>
+#include <string>
 
 #ifndef FFL_SIZE
-#define FFL_SIZE	(0x60)
+#define FFL_SIZE (0x60)
 #endif
 
 class nexPacketBuffer;
 
 class nexMetaType
 {
-public:
+  public:
 	virtual const char* getMetaName() const = 0;
 	virtual void writeData(nexPacketBuffer* pb) const = 0;
 };
 
 class nexType
 {
-public:
+  public:
 	virtual const char* getMetaName()
 	{
 		cemu_assert_unimplemented();
@@ -28,7 +28,7 @@ public:
 
 class nexPacketBuffer
 {
-public:
+  public:
 	nexPacketBuffer(uint8* data, sint32 size, bool isWrite)
 	{
 		this->buffer = data;
@@ -226,7 +226,7 @@ public:
 			return 0;
 		}
 		sint32 copiedLength = bufferLength;
-		if (bufferLength > 0 && this->buffer[this->currentIndex+bufferLength-1] == '\0')
+		if (bufferLength > 0 && this->buffer[this->currentIndex + bufferLength - 1] == '\0')
 		{
 			// cut off trailing '\0'
 			copiedLength--;
@@ -240,7 +240,7 @@ public:
 	{
 		char name[128];
 		readString(name, sizeof(name));
-		name[sizeof(name)-1] = '\0';
+		name[sizeof(name) - 1] = '\0';
 		if (hasReadOutOfBounds())
 			return false;
 		if (strcmp(name, v.getMetaName()) != 0)
@@ -258,17 +258,17 @@ public:
 			return false;
 		return true;
 		//// write meta name
-		//writeString(v.getMetaName());
+		// writeString(v.getMetaName());
 		//// write length 0 placeholder
-		//uint32* lengthPtr0 = (uint32*)(this->buffer + this->currentIndex);
-		//writeU32(0);
+		// uint32* lengthPtr0 = (uint32*)(this->buffer + this->currentIndex);
+		// writeU32(0);
 		//// write length 1 placeholder
-		//uint32* lengthPtr1 = (uint32*)(this->buffer + this->currentIndex);
-		//writeU32(0);
+		// uint32* lengthPtr1 = (uint32*)(this->buffer + this->currentIndex);
+		// writeU32(0);
 		//// write data
-		//uint32 preWriteIndex = this->currentIndex;
-		//v.writeData(this);
-		//uint32 writeSize = this->currentIndex - preWriteIndex;
+		// uint32 preWriteIndex = this->currentIndex;
+		// v.writeData(this);
+		// uint32 writeSize = this->currentIndex - preWriteIndex;
 		//// update lengths
 		//*lengthPtr1 = writeSize;
 		//*lengthPtr0 = writeSize + 4;
@@ -299,7 +299,7 @@ public:
 		size = length;
 	}
 
-private:
+  private:
 	uint8* buffer;
 	sint32 size;
 	sint32 currentIndex;
@@ -309,7 +309,7 @@ private:
 
 class nexNintendoLoginData : public nexMetaType
 {
-public:
+  public:
 	nexNintendoLoginData(const char* nexToken)
 	{
 		this->nexToken = new std::string(nexToken);
@@ -324,17 +324,15 @@ public:
 	{
 		pb->writeString(nexToken->c_str());
 	}
-private:
+
+  private:
 	std::string* nexToken;
 };
 
 class nexNotificationEventGeneral : public nexType
 {
-public:
-	nexNotificationEventGeneral()
-	{
-
-	}
+  public:
+	nexNotificationEventGeneral() {}
 
 	nexNotificationEventGeneral(nexPacketBuffer* pb)
 	{
@@ -358,7 +356,8 @@ public:
 		param3 = pb->readU64();
 		pb->readStdString(paramStr);
 	}
-public:
+
+  public:
 	uint32 param1;
 	uint64 param2;
 	uint64 param3;

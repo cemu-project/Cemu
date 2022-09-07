@@ -19,7 +19,8 @@ void __OSLockScheduler(void* obj)
 	pthread_mutex_lock(&s_ptmSchedulerLock);
 #endif
 	s_schedulerLockCount++;
-	cemu_assert_debug(s_schedulerLockCount <= 1); // >= 2 should not happen. Scheduler lock does not allow recursion
+	cemu_assert_debug(s_schedulerLockCount <=
+					  1); // >= 2 should not happen. Scheduler lock does not allow recursion
 }
 
 bool __OSHasSchedulerLock()
@@ -56,73 +57,76 @@ void __OSUnlockScheduler(void* obj)
 
 namespace coreinit
 {
-	uint32 OSIsInterruptEnabled()
-	{
-		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
-		if (hCPU == nullptr)
-			return 0;
+uint32 OSIsInterruptEnabled()
+{
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	if (hCPU == nullptr)
+		return 0;
 
-		return hCPU->coreInterruptMask;
-	}
+	return hCPU->coreInterruptMask;
+}
 
-	// disables interrupts and scheduling
-	uint32 OSDisableInterrupts()
+// disables interrupts and scheduling
+uint32 OSDisableInterrupts()
+{
+	// todo - rename SchedulerLock.cpp/h to Scheduler.cpp and move this there?
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	if (hCPU == nullptr)
+		return 0;
+	uint32 prevInterruptMask = hCPU->coreInterruptMask;
+	if (hCPU->coreInterruptMask != 0)
 	{
-		// todo - rename SchedulerLock.cpp/h to Scheduler.cpp and move this there?
-		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
-		if (hCPU == nullptr)
-			return 0;
-		uint32 prevInterruptMask = hCPU->coreInterruptMask;
-		if (hCPU->coreInterruptMask != 0)
+		// we have no efficient method to turn off scheduling completely, so instead we just
+		// increase the remaining cycles
+		if (hCPU->remainingCycles >= 0x40000000)
 		{
-			// we have no efficient method to turn off scheduling completely, so instead we just increase the remaining cycles
-			if (hCPU->remainingCycles >= 0x40000000)
-			{
-				forceLogDebug_printf("OSDisableInterrupts(): Warning - Interrupts already disabled? remCycles %08x LR %08x", hCPU->remainingCycles, hCPU->spr.LR);
-			}
-			hCPU->remainingCycles += 0x40000000;
+			forceLogDebug_printf("OSDisableInterrupts(): Warning - Interrupts already disabled? "
+								 "remCycles %08x LR %08x",
+								 hCPU->remainingCycles, hCPU->spr.LR);
 		}
-		hCPU->coreInterruptMask = 0;
-		return prevInterruptMask;
+		hCPU->remainingCycles += 0x40000000;
 	}
+	hCPU->coreInterruptMask = 0;
+	return prevInterruptMask;
+}
 
-	uint32 OSRestoreInterrupts(uint32 interruptMask)
+uint32 OSRestoreInterrupts(uint32 interruptMask)
+{
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	if (hCPU == nullptr)
+		return 0;
+	uint32 prevInterruptMask = hCPU->coreInterruptMask;
+	if (hCPU->coreInterruptMask == 0 && interruptMask != 0)
 	{
-		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
-		if (hCPU == nullptr)
-			return 0;
-		uint32 prevInterruptMask = hCPU->coreInterruptMask;
-		if (hCPU->coreInterruptMask == 0 && interruptMask != 0)
-		{
-			hCPU->remainingCycles -= 0x40000000;
-		}
-		hCPU->coreInterruptMask = interruptMask;
-		return prevInterruptMask;
+		hCPU->remainingCycles -= 0x40000000;
 	}
+	hCPU->coreInterruptMask = interruptMask;
+	return prevInterruptMask;
+}
 
-	uint32 OSEnableInterrupts()
-	{
-		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
-		uint32 prevInterruptMask = hCPU->coreInterruptMask;
-		OSRestoreInterrupts(1);
-		return prevInterruptMask;
-	}
+uint32 OSEnableInterrupts()
+{
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	uint32 prevInterruptMask = hCPU->coreInterruptMask;
+	OSRestoreInterrupts(1);
+	return prevInterruptMask;
+}
 
-	void InitializeSchedulerLock()
-	{
+void InitializeSchedulerLock()
+{
 #if BOOST_OS_WINDOWS
-		InitializeCriticalSection(&s_csSchedulerLock);
+	InitializeCriticalSection(&s_csSchedulerLock);
 #else
-		pthread_mutexattr_t ma;
-		pthread_mutexattr_init(&ma);
-		pthread_mutexattr_settype(&ma, PTHREAD_MUTEX_RECURSIVE);
-		pthread_mutex_init(&s_ptmSchedulerLock, &ma);
+	pthread_mutexattr_t ma;
+	pthread_mutexattr_init(&ma);
+	pthread_mutexattr_settype(&ma, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&s_ptmSchedulerLock, &ma);
 #endif
-		cafeExportRegister("coreinit", __OSLockScheduler, LogType::Placeholder);
-		cafeExportRegister("coreinit", __OSUnlockScheduler, LogType::Placeholder);
+	cafeExportRegister("coreinit", __OSLockScheduler, LogType::Placeholder);
+	cafeExportRegister("coreinit", __OSUnlockScheduler, LogType::Placeholder);
 
-		cafeExportRegister("coreinit", OSDisableInterrupts, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSEnableInterrupts, LogType::CoreinitThread);
-		cafeExportRegister("coreinit", OSRestoreInterrupts, LogType::CoreinitThread);
-	}
-};
+	cafeExportRegister("coreinit", OSDisableInterrupts, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSEnableInterrupts, LogType::CoreinitThread);
+	cafeExportRegister("coreinit", OSRestoreInterrupts, LogType::CoreinitThread);
+}
+}; // namespace coreinit

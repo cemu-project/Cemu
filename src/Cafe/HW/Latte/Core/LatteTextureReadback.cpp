@@ -16,7 +16,9 @@ struct LatteTextureReadbackQueueEntry
 	LatteTextureView* textureView;
 };
 
-std::vector<LatteTextureReadbackQueueEntry> sTextureScheduledReadbacks; // readbacks that have been queued but the actual transfer has not yet been started
+std::vector<LatteTextureReadbackQueueEntry>
+	sTextureScheduledReadbacks; // readbacks that have been queued but the actual transfer has not
+								// yet been started
 std::queue<LatteTextureReadbackInfo*> sTextureActiveReadbackQueue; // readbacks in flight
 
 void LatteTextureReadback_StartTransfer(LatteTextureView* textureView)
@@ -25,14 +27,17 @@ void LatteTextureReadback_StartTransfer(LatteTextureView* textureView)
 	LatteTextureReadbackInfo* readbackInfo = g_renderer->texture_createReadback(textureView);
 	sTextureActiveReadbackQueue.push(readbackInfo);
 	readbackInfo->StartTransfer();
-	//debug_printf("[Tex-Readback] %08x %dx%d TM %d FMT %04x\n", textureView->baseTexture->physAddress, textureView->baseTexture->width, textureView->baseTexture->height, textureView->baseTexture->tileMode, textureView->baseTexture->format);
+	// debug_printf("[Tex-Readback] %08x %dx%d TM %d FMT %04x\n",
+	// textureView->baseTexture->physAddress, textureView->baseTexture->width,
+	// textureView->baseTexture->height, textureView->baseTexture->tileMode,
+	// textureView->baseTexture->format);
 	readbackInfo->transferStartTime = HighResolutionTimer().now().getTick();
 }
 
 /*
- * Checks for queued transfers and starts them if at least one drawcall has passed since the last write
- * Called after a draw operation has finished
- * Returns true if at least one transfer was started
+ * Checks for queued transfers and starts them if at least one drawcall has passed since the last
+ * write Called after a draw operation has finished Returns true if at least one transfer was
+ * started
  */
 bool LatteTextureReadback_Update(bool forceStart)
 {
@@ -73,7 +78,8 @@ void LatteTextureReadback_Initate(LatteTextureView* textureView)
 	// currently we don't support readback for resized textures
 	if (textureView->baseTexture->overwriteInfo.hasResolutionOverwrite)
 	{
-		forceLog_printf("_initate(): Readback is not supported for textures with modified resolution");
+		forceLog_printf(
+			"_initate(): Readback is not supported for textures with modified resolution");
 		return;
 	}
 	// check if texture isn't already queued for transfer
@@ -110,7 +116,8 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 			{
 				readbackInfo->waitStartTime = HighResolutionTimer().now().getTick();
 				readbackInfo->ForceFinish();
-				// rerun logic since ->ForceFinish() can recurively call this function and thus modify the queue
+				// rerun logic since ->ForceFinish() can recurively call this function and thus
+				// modify the queue
 				continue;
 			}
 		}
@@ -123,15 +130,27 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 		// performance testing
 #ifdef LOG_READBACK_TIME
 		HRTick currentTick = HighResolutionTimer().now().getTick();
-		double elapsedSecondsTransfer = HighResolutionTimer::getTimeDiff(readbackInfo->transferStartTime, currentTick);
-		double elapsedSecondsWaiting = HighResolutionTimer::getTimeDiff(readbackInfo->waitStartTime, currentTick);
-		forceLog_printf("[Texture-Readback] %08x Res %4d/%4d TM %d FMT %04x ReadbackLatency: %6.3lfms WaitTime: %6.3lfms ForcedWait %s", readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode, (uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0, elapsedSecondsWaiting * 1000.0, forceFinish?"yes":"no");
+		double elapsedSecondsTransfer =
+			HighResolutionTimer::getTimeDiff(readbackInfo->transferStartTime, currentTick);
+		double elapsedSecondsWaiting =
+			HighResolutionTimer::getTimeDiff(readbackInfo->waitStartTime, currentTick);
+		forceLog_printf(
+			"[Texture-Readback] %08x Res %4d/%4d TM %d FMT %04x ReadbackLatency: %6.3lfms "
+			"WaitTime: %6.3lfms ForcedWait %s",
+			readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width,
+			readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode,
+			(uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0,
+			elapsedSecondsWaiting * 1000.0, forceFinish ? "yes" : "no");
 #endif
 		uint8* pixelData = readbackInfo->GetData();
-		LatteTextureLoader_writeReadbackTextureToMemory(&readbackInfo->hostTextureCopy, 0, 0, pixelData);
+		LatteTextureLoader_writeReadbackTextureToMemory(&readbackInfo->hostTextureCopy, 0, 0,
+														pixelData);
 		readbackInfo->ReleaseData();
 		// get the original texture if it still exists and invalidate the current data hash
-		LatteTextureView* origTexView = LatteTextureViewLookupCache::lookupSlice(readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.pitch, 0, 0, readbackInfo->hostTextureCopy.format);
+		LatteTextureView* origTexView = LatteTextureViewLookupCache::lookupSlice(
+			readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width,
+			readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.pitch, 0, 0,
+			readbackInfo->hostTextureCopy.format);
 		if (origTexView)
 			LatteTC_ResetTextureChangeTracker(origTexView->baseTexture, true);
 		delete readbackInfo;

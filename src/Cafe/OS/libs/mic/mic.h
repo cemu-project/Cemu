@@ -3,5 +3,5 @@ void mic_updateOnAXFrame();
 
 namespace mic
 {
-	void Initialize();
+void Initialize();
 };

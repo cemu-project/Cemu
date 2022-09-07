@@ -9,8 +9,9 @@ std::vector<SaveInfo*> sSLList;
 // callback list
 struct SaveListCallbackEntry
 {
-	SaveListCallbackEntry(void(*cb)(CafeSaveListCallbackEvent* evt, void* ctx), void* ctx, uint64 uniqueId) :
-		cb(cb), ctx(ctx), uniqueId(uniqueId) {};
+	SaveListCallbackEntry(void (*cb)(CafeSaveListCallbackEvent* evt, void* ctx), void* ctx,
+						  uint64 uniqueId)
+		: cb(cb), ctx(ctx), uniqueId(uniqueId){};
 	void (*cb)(CafeSaveListCallbackEvent* evt, void* ctx);
 	void* ctx;
 	uint64 uniqueId;
@@ -20,11 +21,7 @@ std::vector<SaveListCallbackEntry> sSLCallbackList;
 // worker thread
 std::atomic_bool sSLWorkerThreadActive{false};
 
-
-void CafeSaveList::Initialize()
-{
-
-}
+void CafeSaveList::Initialize() {}
 
 void CafeSaveList::SetMLCPath(fs::path mlcPath)
 {
@@ -64,13 +61,14 @@ void CafeSaveList::RefreshThreadWorker()
 	std::error_code ec;
 	for (auto it_titleHigh : fs::directory_iterator(mlcPath / "usr/save", ec))
 	{
-		if(!it_titleHigh.is_directory(ec))
+		if (!it_titleHigh.is_directory(ec))
 			continue;
 		std::string dirName = _utf8Wrapper(it_titleHigh.path().filename());
-		if(dirName.empty())
-			continue;		
+		if (dirName.empty())
+			continue;
 		uint32 titleIdHigh;
-		std::from_chars_result r = std::from_chars(dirName.data(), dirName.data() + dirName.size(), titleIdHigh, 16);
+		std::from_chars_result r =
+			std::from_chars(dirName.data(), dirName.data() + dirName.size(), titleIdHigh, 16);
 		if (r.ec != std::errc())
 			continue;
 		fs::path tmp = it_titleHigh.path();
@@ -82,7 +80,8 @@ void CafeSaveList::RefreshThreadWorker()
 			if (dirName.empty())
 				continue;
 			uint32 titleIdLow;
-			std::from_chars_result r = std::from_chars(dirName.data(), dirName.data() + dirName.size(), titleIdLow, 16);
+			std::from_chars_result r =
+				std::from_chars(dirName.data(), dirName.data() + dirName.size(), titleIdLow, 16);
 			if (r.ec != std::errc())
 				continue;
 			// found save
@@ -115,7 +114,9 @@ void CafeSaveList::DiscoveredSave(SaveInfo* saveInfo)
 		return;
 	}
 	std::unique_lock _lock(sSLMutex);
-	auto it = std::find_if(sSLList.begin(), sSLList.end(), [saveInfo](const SaveInfo* rhs) { return saveInfo->GetTitleId() == rhs->GetTitleId(); });
+	auto it = std::find_if(sSLList.begin(), sSLList.end(),
+						   [saveInfo](const SaveInfo* rhs)
+						   { return saveInfo->GetTitleId() == rhs->GetTitleId(); });
 	if (it != sSLList.end())
 	{
 		// save already known
@@ -133,7 +134,8 @@ void CafeSaveList::DiscoveredSave(SaveInfo* saveInfo)
 	}
 }
 
-uint64 CafeSaveList::RegisterCallback(void(*cb)(CafeSaveListCallbackEvent* evt, void* ctx), void* ctx)
+uint64 CafeSaveList::RegisterCallback(void (*cb)(CafeSaveListCallbackEvent* evt, void* ctx),
+									  void* ctx)
 {
 	static std::atomic<uint64_t> sCallbackIdGen = 1;
 	uint64 id = sCallbackIdGen.fetch_add(1);
@@ -162,7 +164,8 @@ uint64 CafeSaveList::RegisterCallback(void(*cb)(CafeSaveListCallbackEvent* evt, 
 void CafeSaveList::UnregisterCallback(uint64 id)
 {
 	std::unique_lock _lock(sSLMutex);
-	auto it = std::find_if(sSLCallbackList.begin(), sSLCallbackList.end(), [id](auto& e) { return e.uniqueId == id; });
+	auto it = std::find_if(sSLCallbackList.begin(), sSLCallbackList.end(),
+						   [id](auto& e) { return e.uniqueId == id; });
 	cemu_assert(it != sSLCallbackList.end());
 	sSLCallbackList.erase(it);
 }

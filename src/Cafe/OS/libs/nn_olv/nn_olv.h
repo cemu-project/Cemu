@@ -2,8 +2,8 @@
 
 namespace nn
 {
-	namespace olv
-	{
-		void load();
-	}
+namespace olv
+{
+void load();
 }
+} // namespace nn

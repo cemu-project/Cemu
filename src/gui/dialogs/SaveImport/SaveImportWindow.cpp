@@ -19,8 +19,9 @@
 #include "gui/helpers/wxHelpers.h"
 
 SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
-	: wxDialog(parent, wxID_ANY, _("Import save entry"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxFRAME_TOOL_WINDOW | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
-	m_title_id(title_id)
+	: wxDialog(parent, wxID_ANY, _("Import save entry"), wxDefaultPosition, wxDefaultSize,
+			   wxCAPTION | wxFRAME_TOOL_WINDOW | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
+	  m_title_id(title_id)
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -28,21 +29,25 @@ SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
 		auto* row1 = new wxFlexGridSizer(0, 2, 0, 0);
 		row1->AddGrowableCol(1);
 
-		row1->Add(new wxStaticText(this, wxID_ANY, _("Source")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		m_source_selection = new wxFilePickerCtrl(this, wxID_ANY, wxEmptyString,
-			_("Select a zipped save file"), 
-			wxStringFormat2("{}|*.zip", _("Save entry (*.zip)")));
-		m_source_selection->SetMinSize({ 270, -1 });
+		row1->Add(new wxStaticText(this, wxID_ANY, _("Source")), 0, wxALIGN_CENTER_VERTICAL | wxALL,
+				  5);
+		m_source_selection =
+			new wxFilePickerCtrl(this, wxID_ANY, wxEmptyString, _("Select a zipped save file"),
+								 wxStringFormat2("{}|*.zip", _("Save entry (*.zip)")));
+		m_source_selection->SetMinSize({270, -1});
 		row1->Add(m_source_selection, 1, wxALL | wxEXPAND, 5);
 
-		row1->Add(new wxStaticText(this, wxID_ANY, _("Target")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		row1->Add(new wxStaticText(this, wxID_ANY, _("Target")), 0, wxALIGN_CENTER_VERTICAL | wxALL,
+				  5);
 
 		const auto& accounts = Account::GetAccounts();
 		m_target_selection = new wxComboBox(this, wxID_ANY);
 		for (const auto& account : accounts)
 		{
-			m_target_selection->Append(fmt::format("{:x} ({})", account.GetPersistentId(),
-				boost::nowide::narrow(account.GetMiiName().data(), account.GetMiiName().size())),
+			m_target_selection->Append(
+				fmt::format("{:x} ({})", account.GetPersistentId(),
+							boost::nowide::narrow(account.GetMiiName().data(),
+												  account.GetMiiName().size())),
 				(void*)(uintptr_t)account.GetPersistentId());
 		}
 		row1->Add(m_target_selection, 1, wxALL | wxEXPAND, 5);
@@ -56,16 +61,19 @@ SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
 		row2->SetFlexibleDirection(wxBOTH);
 		row2->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-		auto* ok_button = new wxButton(this, wxID_ANY, _("OK"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* ok_button =
+			new wxButton(this, wxID_ANY, _("OK"), wxDefaultPosition, wxDefaultSize, 0);
 		ok_button->Bind(wxEVT_BUTTON, &SaveImportWindow::OnImport, this);
 		row2->Add(ok_button, 0, wxALL, 5);
 
-		auto* cancel_button = new wxButton(this, wxID_ANY, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0);
-		cancel_button->Bind(wxEVT_BUTTON, [this](auto&)
-			{
-				m_return_code = wxCANCEL;
-				Close();
-			});
+		auto* cancel_button =
+			new wxButton(this, wxID_ANY, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0);
+		cancel_button->Bind(wxEVT_BUTTON,
+							[this](auto&)
+							{
+								m_return_code = wxCANCEL;
+								Close();
+							});
 		row2->Add(cancel_button, 0, wxALIGN_RIGHT | wxALL, 5);
 
 		sizer->Add(row2, 1, wxEXPAND, 5);
@@ -89,7 +97,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 
 	// try to find cemu_meta file to verify targetid
 	const std::string zipfile = source_path.ToUTF8().data();
-	
+
 	int ziperr;
 	auto* zip = zip_open(zipfile.c_str(), ZIP_RDONLY, &ziperr);
 	if (zip)
@@ -111,16 +119,22 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 			auto buffer = std::make_unique<char[]>(sb.size);
 			if (zip_fread(zip_file, buffer.get(), sb.size) == sb.size)
 			{
-				std::string_view str{ buffer.get(), sb.size };
+				std::string_view str{buffer.get(), sb.size};
 				// titleId = {:#016x}
-				if(boost::starts_with(str, "titleId = "))
+				if (boost::starts_with(str, "titleId = "))
 				{
-					const uint64_t titleId = ConvertString<uint64>(str.substr(sizeof("titleId = ") + 1), 16);
-					if(titleId != 0 && titleId != m_title_id)
+					const uint64_t titleId =
+						ConvertString<uint64>(str.substr(sizeof("titleId = ") + 1), 16);
+					if (titleId != 0 && titleId != m_title_id)
 					{
-						const auto msg = wxStringFormat2(_("You are trying to import a savegame for a different title than your currently selected one: {:016x} vs {:016x}\nAre you sure that you want to continue?"), titleId, m_title_id);
-						const auto res = wxMessageBox(msg, _("Error"), wxYES_NO | wxCENTRE | wxICON_WARNING, this);
-						if(res == wxNO)
+						const auto msg =
+							wxStringFormat2(_("You are trying to import a savegame for a different "
+											  "title than your currently selected one: {:016x} vs "
+											  "{:016x}\nAre you sure that you want to continue?"),
+											titleId, m_title_id);
+						const auto res = wxMessageBox(msg, _("Error"),
+													  wxYES_NO | wxCENTRE | wxICON_WARNING, this);
+						if (res == wxNO)
 						{
 							m_return_code = wxCANCEL;
 							Close();
@@ -140,14 +154,14 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 
 	// unzip to tmp folder -> using target path directly now
 	std::error_code ec;
-	//auto tmp_source = fs::temp_directory_path(ec);
-	//if(ec)
+	// auto tmp_source = fs::temp_directory_path(ec);
+	// if(ec)
 	//{
-	//	const auto error_msg = wxStringFormat2(_("Error when getting the temp directory path:\n{}"), GetSystemErrorMessage(ec));
-	//	wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
-	//	return;
+	//	const auto error_msg = wxStringFormat2(_("Error when getting the temp directory path:\n{}"),
+	// GetSystemErrorMessage(ec)); 	wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE |
+	// wxICON_ERROR, this); 	return;
 	//}
-	
+
 	uint32 target_id = 0;
 	const auto selection = m_target_selection->GetCurrentSelection();
 	if (selection != wxNOT_FOUND)
@@ -158,27 +172,35 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 		target_id = ConvertString<uint32>(m_target_selection->GetValue().ToStdString(), 16);
 		if (target_id < Account::kMinPersistendId)
 		{
-			const auto msg = wxStringFormat2(_("The given account id is not valid!\nIt must be a hex number bigger or equal than {:08x}"), Account::kMinPersistendId);
+			const auto msg = wxStringFormat2(_("The given account id is not valid!\nIt must be a "
+											   "hex number bigger or equal than {:08x}"),
+											 Account::kMinPersistendId);
 			wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			return;
 		}
-
 	}
 
-	fs::path target_path = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/{:08x}", (uint32)(m_title_id >> 32), (uint32)(m_title_id & 0xFFFFFFFF), target_id);
+	fs::path target_path =
+		ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/{:08x}", (uint32)(m_title_id >> 32),
+								   (uint32)(m_title_id & 0xFFFFFFFF), target_id);
 	if (fs::exists(target_path))
 	{
 		if (!fs::is_directory(target_path))
 		{
-			const auto msg = wxStringFormat2(_("There's already a file at the target directory:\n{}"), _utf8Wrapper(target_path));
+			const auto msg =
+				wxStringFormat2(_("There's already a file at the target directory:\n{}"),
+								_utf8Wrapper(target_path));
 			wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			m_return_code = wxCANCEL;
 			Close();
 			return;
 		}
 
-		const auto msg = _("There's already a save game available for the target account, do you want to overwrite it?\nThis will delete the existing save files for the account and replace them.");
-		const auto result = wxMessageBox(msg, _("Error"), wxYES_NO | wxCENTRE | wxICON_WARNING, this);
+		const auto msg = _("There's already a save game available for the target account, do you "
+						   "want to overwrite it?\nThis will delete the existing save files for "
+						   "the account and replace them.");
+		const auto result =
+			wxMessageBox(msg, _("Error"), wxYES_NO | wxCENTRE | wxICON_WARNING, this);
 		if (result == wxNO)
 		{
 			m_return_code = wxCANCEL;
@@ -193,7 +215,9 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 
 			if (ec)
 			{
-				const auto error_msg = wxStringFormat2(_("Error when trying to delete the former save game:\n{}"), GetSystemErrorMessage(ec));
+				const auto error_msg =
+					wxStringFormat2(_("Error when trying to delete the former save game:\n{}"),
+									GetSystemErrorMessage(ec));
 				wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 				return;
 			}
@@ -204,16 +228,18 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 
 	// extract zip file
 
-	//tmp_source.append("Cemu").append(fmt::format("{}", rand()));
+	// tmp_source.append("Cemu").append(fmt::format("{}", rand()));
 
-	//tmp_source = getMlcPath(L"usr/save");
-	//tmp_source /= fmt::format("{:08x}/{:08x}/user/{:08x}_tmp", (uint32)(m_title_id >> 32), (uint32)(m_title_id & 0xFFFFFFFF), target_id);
+	// tmp_source = getMlcPath(L"usr/save");
+	// tmp_source /= fmt::format("{:08x}/{:08x}/user/{:08x}_tmp", (uint32)(m_title_id >> 32),
+	// (uint32)(m_title_id & 0xFFFFFFFF), target_id);
 	auto tmp_source = target_path;
-	
+
 	fs::create_directories(tmp_source, ec);
 	if (ec)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when creating the extraction path:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = wxStringFormat2(_("Error when creating the extraction path:\n{}"),
+											   GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
@@ -221,7 +247,8 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 	zip = zip_open(zipfile.c_str(), ZIP_RDONLY, &ziperr);
 	if (!zip)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when opening the import zip file:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = wxStringFormat2(_("Error when opening the import zip file:\n{}"),
+											   GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
@@ -281,7 +308,9 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 	// extracted all files to tmp_source
 
 	// edit meta saveinfo.xml
-	fs::path saveinfo = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/meta/saveinfo.xml", (uint32)(m_title_id >> 32), (uint32)(m_title_id & 0xFFFFFFFF));
+	fs::path saveinfo =
+		ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/meta/saveinfo.xml",
+								   (uint32)(m_title_id >> 32), (uint32)(m_title_id & 0xFFFFFFFF));
 	if (fs::exists(saveinfo) || fs::is_regular_file(saveinfo))
 	{
 		pugi::xml_document doc;
@@ -292,36 +321,41 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 			{
 				// delete old node if available
 				auto old_persistend_id_string = fmt::format("{:08x}", target_id);
-				const auto node_entry = info_node.find_child([&old_persistend_id_string](const pugi::xml_node& node)
-					{
-						return boost::iequals(node.attribute("persistentId").as_string(), old_persistend_id_string);
+				const auto node_entry = info_node.find_child(
+					[&old_persistend_id_string](const pugi::xml_node& node) {
+						return boost::iequals(node.attribute("persistentId").as_string(),
+											  old_persistend_id_string);
 					});
 				// add save-entry node if not available yet
 				if (!node_entry)
 				{
-					// add new node 
+					// add new node
 					auto new_persistend_id_string = fmt::format("{:08x}", target_id);
 					auto new_node = info_node.append_child("account");
-					new_node.append_attribute("persistentId").set_value(new_persistend_id_string.c_str());
+					new_node.append_attribute("persistentId")
+						.set_value(new_persistend_id_string.c_str());
 					auto timestamp = new_node.append_child("timestamp");
-					timestamp.text().set(fmt::format("{:016x}", coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK).c_str()); // TODO time not initialized yet?
-					
-					if(!doc.save_file(saveinfo.c_str()))
-						forceLog_printf("couldn't insert save entry in saveinfo.xml: %s", saveinfo.generic_u8string().c_str());
+					timestamp.text().set(fmt::format("{:016x}", coreinit::coreinit_getOSTime() /
+																	ESPRESSO_TIMER_CLOCK)
+											 .c_str()); // TODO time not initialized yet?
+
+					if (!doc.save_file(saveinfo.c_str()))
+						forceLog_printf("couldn't insert save entry in saveinfo.xml: %s",
+										saveinfo.generic_u8string().c_str());
 				}
 			}
 		}
 	} // todo create saveinfo if doesnt exist
 
-	
-	/*wxMessageBox(fmt::format("{}\n{}", tmp_source.generic_u8string(), target_path.generic_u8string()), _("Error"), wxOK | wxCENTRE, this);
+	/*wxMessageBox(fmt::format("{}\n{}", tmp_source.generic_u8string(),
+	target_path.generic_u8string()), _("Error"), wxOK | wxCENTRE, this);
 
 	fs::rename(tmp_source, target_path, ec);
 	if (ec)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when trying to move the extracted save game:\n{}"), GetSystemErrorMessage(ec));
-		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
-		return;
+		const auto error_msg = wxStringFormat2(_("Error when trying to move the extracted save
+	game:\n{}"), GetSystemErrorMessage(ec)); wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE,
+	this); return;
 	}*/
 
 	m_target_id = target_id;

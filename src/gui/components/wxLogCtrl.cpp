@@ -4,7 +4,8 @@
 
 wxDEFINE_EVENT(EVT_ON_LIST_UPDATED, wxEvent);
 
-wxLogCtrl::wxLogCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
+wxLogCtrl::wxLogCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size,
+					 long style)
 	: TextList(parent, id, pos, size, style)
 {
 	m_timer = new wxTimer(this);
@@ -18,21 +19,21 @@ wxLogCtrl::~wxLogCtrl()
 	this->Unbind(wxEVT_TIMER, &wxLogCtrl::OnTimer, this);
 	this->Unbind(EVT_ON_LIST_UPDATED, &wxLogCtrl::OnActiveListUpdated, this);
 
-	if(m_timer)
+	if (m_timer)
 		m_timer->Stop();
 
-	if(m_update_worker.joinable())
+	if (m_update_worker.joinable())
 		m_update_worker.join();
 }
 
 void wxLogCtrl::SetActiveFilter(const std::string& active_filter)
 {
-	if(m_active_filter == active_filter)
+	if (m_active_filter == active_filter)
 		return;
 
 	m_active_filter = active_filter;
 
-	if(m_update_worker.joinable())
+	if (m_update_worker.joinable())
 		m_update_worker.join();
 
 	m_update_worker = std::thread(&wxLogCtrl::UpdateActiveEntries, this);
@@ -45,12 +46,12 @@ const std::string& wxLogCtrl::GetActiveFilter() const
 
 void wxLogCtrl::SetFilterMessage(bool state)
 {
-	if(m_filter_messages == state)
+	if (m_filter_messages == state)
 		return;
 
 	m_filter_messages = state;
 
-	if(m_update_worker.joinable())
+	if (m_update_worker.joinable())
 		m_update_worker.join();
 
 	m_update_worker = std::thread(&wxLogCtrl::UpdateActiveEntries, this);
@@ -68,14 +69,15 @@ void wxLogCtrl::PushEntry(const wxString& filter, const wxString& message)
 	ListIt_t it = m_log_entries.back();
 	lock.unlock();
 
-	if(m_active_filter.empty() || filter == m_active_filter || (m_filter_messages && boost::icontains(message, m_active_filter)))
+	if (m_active_filter.empty() || filter == m_active_filter ||
+		(m_filter_messages && boost::icontains(message, m_active_filter)))
 	{
 		std::unique_lock active_lock(m_active_mutex);
 		m_active_entries.emplace_back(std::cref(it));
 		const auto entry_count = m_active_entries.size();
 		active_lock.unlock();
-		
-		if(entry_count <= m_elements_visible)
+
+		if (entry_count <= m_elements_visible)
 		{
 			RefreshLine(entry_count - 1);
 		}
@@ -88,13 +90,13 @@ void wxLogCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& star
 
 	std::scoped_lock lock(m_active_mutex);
 	auto it = std::next(m_active_entries.cbegin(), start);
-	if(it == m_active_entries.cend())
+	if (it == m_active_entries.cend())
 		return;
 
 	for (sint32 i = 0; i <= count && it != m_active_entries.cend(); ++i, ++it)
 	{
 		wxColour background_colour;
-		if((start + i) % 2 == 0)
+		if ((start + i) % 2 == 0)
 			background_colour = COLOR_WHITE;
 		else
 			background_colour = 0xFFFDF9F2;
@@ -112,13 +114,13 @@ void wxLogCtrl::OnTimer(wxTimerEvent& event)
 {
 	std::unique_lock lock(m_active_mutex);
 	const auto count = m_active_entries.size();
-	if(count == m_element_count)
+	if (count == m_element_count)
 		return;
 
 	lock.unlock();
 	SetElementCount(count);
 
-	if(m_scrolled_to_end)
+	if (m_scrolled_to_end)
 	{
 		Scroll(0, count);
 		RefreshControl();
@@ -140,7 +142,7 @@ void wxLogCtrl::UpdateActiveEntries()
 	{
 		std::scoped_lock lock(m_mutex, m_active_mutex);
 		m_active_entries.clear();
-		if(m_active_filter.empty())
+		if (m_active_filter.empty())
 		{
 			for (const auto& it : m_log_entries)
 				m_active_entries.emplace_back(it);
@@ -149,7 +151,8 @@ void wxLogCtrl::UpdateActiveEntries()
 		{
 			for (const auto& it : m_log_entries)
 			{
-				if(it.first == m_active_filter || (m_filter_messages && boost::icontains(it.second, m_active_filter)) )
+				if (it.first == m_active_filter ||
+					(m_filter_messages && boost::icontains(it.second, m_active_filter)))
 					m_active_entries.emplace_back(it);
 			}
 		}
@@ -157,4 +160,3 @@ void wxLogCtrl::UpdateActiveEntries()
 
 	wxQueueEvent(this, new wxCommandEvent(EVT_ON_LIST_UPDATED));
 }
-

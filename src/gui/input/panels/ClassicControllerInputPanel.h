@@ -6,10 +6,9 @@ class wxInputDraw;
 
 class ClassicControllerInputPanel : public InputPanel
 {
-public:
+  public:
 	ClassicControllerInputPanel(wxWindow* parent);
 
-private:
-	wxInputDraw* m_left_draw, * m_right_draw;
+  private:
+	wxInputDraw *m_left_draw, *m_right_draw;
 };
-

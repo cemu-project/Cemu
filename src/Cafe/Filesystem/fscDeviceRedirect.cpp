@@ -4,14 +4,17 @@
 
 struct RedirectEntry
 {
-	RedirectEntry(const fs::path& dstPath, sint32 priority) : dstPath(dstPath), priority(priority) {}
+	RedirectEntry(const fs::path& dstPath, sint32 priority) : dstPath(dstPath), priority(priority)
+	{
+	}
 	fs::path dstPath;
 	sint32 priority;
 };
 
 FileTree<RedirectEntry, false> redirectTree;
 
-void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority)
+void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath,
+						   sint32 priority)
 {
 	std::wstring virtualSourcePathW = boost::nowide::widen(std::string(virtualSourcePath));
 	// check if source already has a redirection
@@ -30,15 +33,17 @@ void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& t
 
 class fscDeviceTypeRedirect : public fscDeviceC
 {
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view pathW, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view pathW, FSC_ACCESS_FLAG accessFlags,
+										void* ctx, sint32* fscStatus) override
 	{
 		RedirectEntry* redirectionEntry;
 		if (redirectTree.getFile(pathW, redirectionEntry))
-			return FSCVirtualFile_Host::OpenFile(redirectionEntry->dstPath, accessFlags, *fscStatus);
+			return FSCVirtualFile_Host::OpenFile(redirectionEntry->dstPath, accessFlags,
+												 *fscStatus);
 		return nullptr;
 	}
 
-public:
+  public:
 	static fscDeviceTypeRedirect& instance()
 	{
 		static fscDeviceTypeRedirect _instance;

@@ -5,7 +5,7 @@
 struct PermanentConfig
 {
 	static constexpr const char* kFileName = "perm_setting.xml";
-	
+
 	std::string custom_mlc_path;
 
 	[[nodiscard]] std::string ToXMLString() const noexcept;

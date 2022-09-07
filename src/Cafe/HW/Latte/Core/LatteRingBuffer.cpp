@@ -15,7 +15,7 @@ uint8* LatteRingBuffer_allocate(LatteRingBuffer_t* rb, sint32 size, sint32 align
 	cemu_assert_debug(size < rb->size);
 #endif
 	// align
-	rb->writeIndex = (rb->writeIndex + alignment - 1)&~(alignment-1);
+	rb->writeIndex = (rb->writeIndex + alignment - 1) & ~(alignment - 1);
 	// handle wrap-around
 	if ((rb->writeIndex + size) >= rb->size)
 		rb->writeIndex = 0;

@@ -24,7 +24,7 @@ struct ParsedAppXml
 	uint32 group_id;
 };
 
-struct ParsedCosXml 
+struct ParsedCosXml
 {
 	std::string argstr;
 
@@ -52,11 +52,12 @@ struct ParsedCosXml
 
 class TitleInfo
 {
-public:
+  public:
 	enum class TitleDataFormat
 	{
-		HOST_FS = 1, // host filesystem directory (fullPath points to root with content/code/meta subfolders)
-		WUD = 2, // WUD or WUX
+		HOST_FS = 1, // host filesystem directory (fullPath points to root with content/code/meta
+					 // subfolders)
+		WUD = 2,		  // WUD or WUX
 		WIIU_ARCHIVE = 3, // Wii U compressed single-file archive (.wua)
 		// error
 		INVALID_STRUCTURE = 0,
@@ -75,7 +76,7 @@ public:
 		uint32 app_type;
 	};
 
-	TitleInfo() : m_isValid(false) {};
+	TitleInfo() : m_isValid(false){};
 	TitleInfo(const fs::path& path);
 	TitleInfo(const fs::path& path, std::string_view subPath);
 	TitleInfo(const CachedInfo& cachedInfo);
@@ -92,23 +93,37 @@ public:
 		return *this;
 	}
 
-	bool IsCached() { return m_cachedInfo; }; // returns true if this TitleInfo was loaded from cache and has not yet been parsed
+	bool IsCached()
+	{
+		return m_cachedInfo;
+	}; // returns true if this TitleInfo was loaded from cache and has not yet been parsed
 
 	CachedInfo MakeCacheEntry();
 
 	bool IsValid() const;
-	uint64 GetUID(); // returns a unique identifier derived from the absolute canonical title location which can be used to identify this title by its location. May not persist across sessions, especially when Cemu is used portable
+	uint64 GetUID(); // returns a unique identifier derived from the absolute canonical title
+					 // location which can be used to identify this title by its location. May not
+					 // persist across sessions, especially when Cemu is used portable
 
 	fs::path GetPath() const;
-	TitleDataFormat GetFormat() const { return m_titleFormat; };
+	TitleDataFormat GetFormat() const
+	{
+		return m_titleFormat;
+	};
 
 	bool Mount(std::string_view virtualPath, std::string_view subfolder, sint32 mountPriority);
 	void Unmount(std::string_view virtualPath);
 	void UnmountAll();
-	bool IsMounted() const { return !m_mountpoints.empty(); }
+	bool IsMounted() const
+	{
+		return !m_mountpoints.empty();
+	}
 
 	bool ParseXmlInfo();
-	bool HasValidXmlInfo() const { return m_parsedMetaXml && m_parsedAppXml && m_parsedCosXml; };
+	bool HasValidXmlInfo() const
+	{
+		return m_parsedMetaXml && m_parsedAppXml && m_parsedCosXml;
+	};
 
 	bool IsEqualByLocation(const TitleInfo& rhs) const
 	{
@@ -116,18 +131,19 @@ public:
 	}
 
 	// API which requires parsed meta data or cached info
-	TitleId GetAppTitleId() const; // from app.xml
-	uint16 GetAppTitleVersion() const; // from app.xml
-	uint32 GetAppGroup() const; // from app.xml
-	uint32 GetAppType() const; // from app.xml
-	std::string GetTitleName() const; // from meta.xml
+	TitleId GetAppTitleId() const;			 // from app.xml
+	uint16 GetAppTitleVersion() const;		 // from app.xml
+	uint32 GetAppGroup() const;				 // from app.xml
+	uint32 GetAppType() const;				 // from app.xml
+	std::string GetTitleName() const;		 // from meta.xml
 	CafeConsoleRegion GetMetaRegion() const; // from meta.xml
 
 	// cos.xml
 	std::string GetArgStr() const;
 
 	// meta.xml also contains a version which seems to match the one from app.xml
-	// the titleId in meta.xml seems to be the title id of the base game for updates specifically. For AOC content it's the AOC's titleId
+	// the titleId in meta.xml seems to be the title id of the base game for updates specifically.
+	// For AOC content it's the AOC's titleId
 
 	TitleIdParser::TITLE_TYPE GetTitleType();
 	ParsedMetaXml* GetMetaInfo()
@@ -135,13 +151,15 @@ public:
 		return m_parsedMetaXml;
 	}
 
-	std::string GetPrintPath() const; // formatted path for log writing
-	std::string GetInstallPath() const; // installation subpath, relative to storage base. E.g. "usr/title/.../..." or "sys/title/.../..."
+	std::string GetPrintPath() const;	// formatted path for log writing
+	std::string GetInstallPath() const; // installation subpath, relative to storage base. E.g.
+										// "usr/title/.../..." or "sys/title/.../..."
 
 	static std::string GetUniqueTempMountingPath();
-	static bool ParseWuaTitleFolderName(std::string_view name, TitleId& titleIdOut, uint16& titleVersionOut);
+	static bool ParseWuaTitleFolderName(std::string_view name, TitleId& titleIdOut,
+										uint16& titleVersionOut);
 
-private:
+  private:
 	void Copy(const TitleInfo& other)
 	{
 		m_isValid = other.m_isValid;
@@ -171,8 +189,8 @@ private:
 
 	bool ParseAppXml(std::vector<uint8>& appXmlData);
 
-	bool m_isValid{ false };
-	TitleDataFormat m_titleFormat{ TitleDataFormat::INVALID_STRUCTURE };
+	bool m_isValid{false};
+	TitleDataFormat m_titleFormat{TitleDataFormat::INVALID_STRUCTURE};
 	fs::path m_fullPath;
 	std::string m_subPath; // used for formats where fullPath isn't unique on its own (like WUA)
 	uint64 m_uid{};
@@ -181,7 +199,7 @@ private:
 	class FSTVolume* m_wudVolume{};
 	class ZArchiveReader* m_zarchive{};
 	// xml info
-	bool m_hasParsedXmlFiles{ false };
+	bool m_hasParsedXmlFiles{false};
 	ParsedMetaXml* m_parsedMetaXml{};
 	ParsedAppXml* m_parsedAppXml{};
 	ParsedCosXml* m_parsedCosXml{};

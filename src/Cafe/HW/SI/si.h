@@ -1,5 +1,5 @@
 
 namespace HW_SI
 {
-	void Initialize();
+void Initialize();
 };

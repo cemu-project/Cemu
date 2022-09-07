@@ -6,16 +6,18 @@
 #include "gui/helpers/wxHelpers.h"
 
 InputPanel::InputPanel(wxWindow* parent)
-	: wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
+	: wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+			  wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
 {
 	Bind(wxEVT_LEFT_UP, &InputPanel::on_left_click, this);
 }
 
-void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller)
+void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller,
+						  const ControllerPtr& controller)
 {
 	const auto& state = controller->update_state();
 
-	if(m_focused_element == wxID_NONE)
+	if (m_focused_element == wxID_NONE)
 	{
 		return;
 	}
@@ -26,13 +28,13 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 	const auto mapping = reinterpret_cast<uint64>(element->GetClientData());
 
 	// reset mapping
-	if(std::exchange(m_right_down, false) || wxGetKeyState(WXK_ESCAPE))
+	if (std::exchange(m_right_down, false) || wxGetKeyState(WXK_ESCAPE))
 	{
 		element->SetBackgroundColour(kKeyColourNormalMode);
 		m_color_backup[element->GetId()] = kKeyColourNormalMode;
 
 		emulated_controller->delete_mapping(mapping);
-		if(element->IsEmpty())
+		if (element->IsEmpty())
 			reset_focused_element();
 		else
 			element->SetValue(wxEmptyString);
@@ -41,12 +43,14 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 	}
 
 	static bool s_was_idle = true;
-	if (state.buttons.none()) {
+	if (state.buttons.none())
+	{
 		s_was_idle = true;
 		return;
 	}
 
-	if (!s_was_idle) {
+	if (!s_was_idle)
+	{
 		return;
 	}
 
@@ -55,34 +59,41 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 	{
 		if (state.buttons[i])
 		{
-			if (controller->has_axis()) {
+			if (controller->has_axis())
+			{
 				// test if one axis direction is pressed more than the other
-				if ((i == kAxisXP || i == kAxisXN) && (state.buttons[kAxisYP] || state.buttons[kAxisYN]))
+				if ((i == kAxisXP || i == kAxisXN) &&
+					(state.buttons[kAxisYP] || state.buttons[kAxisYN]))
 				{
 					if (std::abs(state.axis.y) > std::abs(state.axis.x))
 						continue;
 				}
-				else if ((i == kAxisYP || i == kAxisYN) && (state.buttons[kAxisXP] || state.buttons[kAxisXN]))
+				else if ((i == kAxisYP || i == kAxisYN) &&
+						 (state.buttons[kAxisXP] || state.buttons[kAxisXN]))
 				{
 					if (std::abs(state.axis.x) > std::abs(state.axis.y))
 						continue;
 				}
-				else if ((i == kRotationXP || i == kRotationXN) && (state.buttons[kRotationYP] || state.buttons[kRotationYN]))
+				else if ((i == kRotationXP || i == kRotationXN) &&
+						 (state.buttons[kRotationYP] || state.buttons[kRotationYN]))
 				{
 					if (std::abs(state.rotation.y) > std::abs(state.rotation.x))
 						continue;
 				}
-				else if ((i == kRotationYP || i == kRotationYN) && (state.buttons[kRotationXP] || state.buttons[kRotationXN]))
+				else if ((i == kRotationYP || i == kRotationYN) &&
+						 (state.buttons[kRotationXP] || state.buttons[kRotationXN]))
 				{
 					if (std::abs(state.rotation.x) > std::abs(state.rotation.y))
 						continue;
 				}
-				else if ((i == kTriggerXP || i == kTriggerXN) && (state.buttons[kTriggerYP] || state.buttons[kTriggerYN]))
+				else if ((i == kTriggerXP || i == kTriggerXN) &&
+						 (state.buttons[kTriggerYP] || state.buttons[kTriggerYN]))
 				{
 					if (std::abs(state.trigger.y) > std::abs(state.trigger.x))
 						continue;
 				}
-				else if ((i == kTriggerYP || i == kTriggerYN) && (state.buttons[kTriggerXP] || state.buttons[kTriggerXN]))
+				else if ((i == kTriggerYP || i == kTriggerYN) &&
+						 (state.buttons[kTriggerXP] || state.buttons[kTriggerXN]))
 				{
 					if (std::abs(state.trigger.x) > std::abs(state.trigger.y))
 						continue;
@@ -91,8 +102,10 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 				// ignore too low button values on configuration
 				if (i >= kButtonAxisStart)
 				{
-					if (controller->get_axis_value(i) < 0.33f) {
-						forceLogDebug_printf("skipping since value too low %f", controller->get_axis_value(i));
+					if (controller->get_axis_value(i) < 0.33f)
+					{
+						forceLogDebug_printf("skipping since value too low %f",
+											 controller->get_axis_value(i));
 						s_was_idle = true;
 						return;
 					}
@@ -109,7 +122,7 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 
 	if (const auto sibling = get_next_sibling(element))
 		sibling->SetFocus();
-	else // last element reached 
+	else // last element reached
 	{
 		reset_focused_element();
 		this->SetFocusIgnoringChildren();
@@ -147,16 +160,15 @@ void InputPanel::reset_colours()
 	}
 }
 
-
 void InputPanel::load_controller(const EmulatedControllerPtr& controller)
 {
 	reset_configuration();
-	if(!controller)
+	if (!controller)
 	{
 		return;
 	}
 
-	if(controller->get_controllers().empty())
+	if (controller->get_controllers().empty())
 	{
 		return;
 	}
@@ -168,7 +180,6 @@ void InputPanel::load_controller(const EmulatedControllerPtr& controller)
 		if (text == nullptr)
 			continue;
 
-
 		const auto mapping = reinterpret_cast<sint64>(text->GetClientData());
 		if (mapping <= 0)
 			continue;
@@ -177,13 +188,14 @@ void InputPanel::load_controller(const EmulatedControllerPtr& controller)
 #if BOOST_OS_WINDOWS
 		text->SetLabelText(button_name);
 #else
-        // SetLabelText doesn't seem to work here for some reason on wxGTK
-        text->ChangeValue(button_name);
+		// SetLabelText doesn't seem to work here for some reason on wxGTK
+		text->ChangeValue(button_name);
 #endif
 	}
 }
 
-void InputPanel::set_selected_controller(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller)
+void InputPanel::set_selected_controller(const EmulatedControllerPtr& emulated_controller,
+										 const ControllerPtr& controller)
 {
 	wxWindowUpdateLocker lock(this);
 	for (auto* child : this->GetChildren())
@@ -203,7 +215,8 @@ void InputPanel::set_selected_controller(const EmulatedControllerPtr& emulated_c
 		if (!mapping_controller)
 			continue;
 
-		text->SetBackgroundColour(*mapping_controller == *controller ? kKeyColourNormalMode : kKeyColourActiveMode);
+		text->SetBackgroundColour(*mapping_controller == *controller ? kKeyColourNormalMode
+																	 : kKeyColourActiveMode);
 		text->Refresh();
 	}
 }
@@ -238,9 +251,9 @@ void InputPanel::on_edit_key_focus(wxFocusEvent& event)
 	m_color_backup[text->GetId()] = text->GetBackgroundColour();
 
 	text->SetBackgroundColour(kKeyColourEditMode);
-	#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	text->HideNativeCaret();
-	#endif
+#endif
 	text->Refresh();
 
 	m_focused_element = text->GetId();
@@ -256,7 +269,7 @@ void InputPanel::on_edit_key_kill_focus(wxFocusEvent& event)
 void InputPanel::on_right_click(wxMouseEvent& event)
 {
 	m_right_down = true;
-	if(m_focused_element == wxID_NONE)
+	if (m_focused_element == wxID_NONE)
 	{
 		auto* text = dynamic_cast<wxTextCtrl*>(event.GetEventObject());
 		wxASSERT(text);
@@ -272,7 +285,7 @@ bool InputPanel::reset_focused_element()
 	auto* prev_element = dynamic_cast<wxTextCtrl*>(FindWindow(m_focused_element));
 	wxASSERT(prev_element);
 
-	if(m_color_backup.find(prev_element->GetId()) != m_color_backup.cend())
+	if (m_color_backup.find(prev_element->GetId()) != m_color_backup.cend())
 		prev_element->SetBackgroundColour(m_color_backup[prev_element->GetId()]);
 	else
 		prev_element->SetBackgroundColour(kKeyColourNormalMode);
@@ -281,7 +294,7 @@ bool InputPanel::reset_focused_element()
 	prev_element->HideNativeCaret();
 #endif
 	prev_element->Refresh();
-	
+
 	m_focused_element = wxID_NONE;
 	return true;
 }

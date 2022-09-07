@@ -2,7 +2,7 @@
 
 class StringBuf
 {
-public:
+  public:
 	StringBuf(uint32 bufferSize)
 	{
 		this->str = (uint8*)malloc(bufferSize + 4);
@@ -17,10 +17,12 @@ public:
 			free(this->str);
 	}
 
-	template<typename TFmt, typename ... TArgs>
+	template<typename TFmt, typename... TArgs>
 	void addFmt(const TFmt& format, TArgs&&... args)
 	{
-		auto r = fmt::vformat_to_n((char*)(this->str + this->length), (size_t)(this->limit - this->length), fmt::detail::to_string_view(format), fmt::make_format_args(args...));
+		auto r = fmt::vformat_to_n(
+			(char*)(this->str + this->length), (size_t)(this->limit - this->length),
+			fmt::detail::to_string_view(format), fmt::make_format_args(args...));
 		this->length += (uint32)r.size;
 	}
 
@@ -78,9 +80,9 @@ public:
 		this->limit = newLimit;
 	}
 
-private:
-	uint8*	str;
-	uint32	length; /* in bytes */
-	uint32	limit; /* in bytes */
-	bool	allocated;
+  private:
+	uint8* str;
+	uint32 length; /* in bytes */
+	uint32 limit;  /* in bytes */
+	bool allocated;
 };

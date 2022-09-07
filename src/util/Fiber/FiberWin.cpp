@@ -4,9 +4,11 @@
 
 thread_local Fiber* sCurrentFiber{};
 
-Fiber::Fiber(void(*FiberEntryPoint)(void* userParam), void* userParam, void* privateData) : m_privateData(privateData)
+Fiber::Fiber(void (*FiberEntryPoint)(void* userParam), void* userParam, void* privateData)
+	: m_privateData(privateData)
 {
-	HANDLE fiberHandle = CreateFiber(2 * 1024 * 1024, (LPFIBER_START_ROUTINE)FiberEntryPoint, userParam);
+	HANDLE fiberHandle =
+		CreateFiber(2 * 1024 * 1024, (LPFIBER_START_ROUTINE)FiberEntryPoint, userParam);
 	this->m_implData = (void*)fiberHandle;
 }
 

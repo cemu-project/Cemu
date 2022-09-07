@@ -9,8 +9,8 @@
 
 class cafeExportParamWrapper
 {
-public:
-	template <typename T>
+  public:
+	template<typename T>
 	static void getParamWrapper(PPCInterpreter_t* hCPU, int& gprIndex, int& fprIndex, T& v)
 	{
 		if constexpr (std::is_pointer_v<T>)
@@ -45,11 +45,12 @@ public:
 		{
 			if constexpr (sizeof(T) == sizeof(uint64))
 			{
-				gprIndex = (gprIndex + 1)&~1;
+				gprIndex = (gprIndex + 1) & ~1;
 				if (gprIndex >= 8)
 					v = (T)memory_readU64(hCPU->gpr[1] + 8 + (gprIndex - 8) * 4);
 				else
-					v = (T)(((uint64)hCPU->gpr[3 + gprIndex]) << 32) | ((uint64)hCPU->gpr[3 + gprIndex + 1]);
+					v = (T)(((uint64)hCPU->gpr[3 + gprIndex]) << 32) |
+						((uint64)hCPU->gpr[3 + gprIndex + 1]);
 
 				gprIndex += 2;
 			}
@@ -92,11 +93,11 @@ public:
 		}
 		else if constexpr (std::is_integral_v<T>)
 		{
-			if constexpr(sizeof(T) == 8)
+			if constexpr (sizeof(T) == 8)
 			{
 				const auto t = static_cast<uint64>(r);
 				hCPU->gpr[3] = (uint32)(t >> 32); // high
-				hCPU->gpr[4] = (uint32)(t); // low
+				hCPU->gpr[4] = (uint32)(t);		  // low
 			}
 			else
 			{
@@ -106,7 +107,7 @@ public:
 		else
 		{
 			cemu_assert_unimplemented();
-			//static_assert(false);
+			// static_assert(false);
 		}
 	}
 
@@ -117,9 +118,9 @@ public:
 			return MEMPTR(r).GetMPTR();
 		else if constexpr (std::is_enum_v<T>)
 			return static_cast<std::underlying_type_t<T>>(r);
-		else if constexpr(!std::is_fundamental_v<T>)
+		else if constexpr (!std::is_fundamental_v<T>)
 			return MEMPTR(&r).GetMPTR();
-		else 
+		else
 			return r;
 	}
 };
@@ -132,26 +133,27 @@ T cafeExportGetParamWrapper(PPCInterpreter_t* hCPU, int& gprIndex, int& fprIndex
 	return v;
 }
 
-template <typename R, typename ... Args>
+template<typename R, typename... Args>
 static std::tuple<Args...> cafeExportBuildArgTuple(PPCInterpreter_t* hCPU, R(fn)(Args...))
 {
 	int gprIndex = 0;
 	int fprIndex = 0;
-	return std::tuple<Args...>{ cafeExportGetParamWrapper<Args>(hCPU, gprIndex, fprIndex)... };
+	return std::tuple<Args...>{cafeExportGetParamWrapper<Args>(hCPU, gprIndex, fprIndex)...};
 }
 
 template<typename T>
-using _CAFE_FORMAT_ARG = std::conditional_t<std::is_pointer_v<T>,
-	std::conditional_t<std::is_same_v<T, char*> || std::is_same_v<T, const char*>, T, MEMPTR<T>>, T>;
+using _CAFE_FORMAT_ARG = std::conditional_t<
+	std::is_pointer_v<T>,
+	std::conditional_t<std::is_same_v<T, char*> || std::is_same_v<T, const char*>, T, MEMPTR<T>>,
+	T>;
 
-template <typename R, typename... Args>
+template<typename R, typename... Args>
 static auto cafeExportBuildFormatTuple(PPCInterpreter_t* hCPU, R(fn)(Args...))
 {
 	int gprIndex = 0;
 	int fprIndex = 0;
 	return std::tuple<_CAFE_FORMAT_ARG<Args>...>{
-		cafeExportGetParamWrapper<_CAFE_FORMAT_ARG<Args>>(hCPU, gprIndex, fprIndex)...
-	};
+		cafeExportGetParamWrapper<_CAFE_FORMAT_ARG<Args>>(hCPU, gprIndex, fprIndex)...};
 }
 
 template<auto fn, typename TNames, LogType TLogType>
@@ -162,19 +164,24 @@ void cafeExportCallWrapper(PPCInterpreter_t* hCPU)
 	if (cemuLog_isLoggingEnabled(TLogType))
 	{
 		const auto format_tup = cafeExportBuildFormatTuple(hCPU, fn);
-		if(cemuLog_advancedPPCLoggingEnabled())
+		if (cemuLog_advancedPPCLoggingEnabled())
 		{
 			MPTR threadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 			if constexpr (std::tuple_size<decltype(format_tup)>::value > 0)
-				shouldLog = cemuLog_log(TLogType, "{}.{}{} # LR: {:#x} | Thread: {:#x}", TNames::GetLib(), TNames::GetFunc(), format_tup, hCPU->spr.LR, threadMPTR);
+				shouldLog =
+					cemuLog_log(TLogType, "{}.{}{} # LR: {:#x} | Thread: {:#x}", TNames::GetLib(),
+								TNames::GetFunc(), format_tup, hCPU->spr.LR, threadMPTR);
 			else
-				shouldLog = cemuLog_log(TLogType, "{}.{}() # LR: {:#x} | Thread: {:#x}", TNames::GetLib(), TNames::GetFunc(), hCPU->spr.LR, threadMPTR);
+				shouldLog =
+					cemuLog_log(TLogType, "{}.{}() # LR: {:#x} | Thread: {:#x}", TNames::GetLib(),
+								TNames::GetFunc(), hCPU->spr.LR, threadMPTR);
 		}
 		else
 		{
 			if constexpr (std::tuple_size<decltype(format_tup)>::value > 0)
 			{
-				shouldLog = cemuLog_log(TLogType, "{}.{}{}", TNames::GetLib(), TNames::GetFunc(), format_tup);
+				shouldLog = cemuLog_log(TLogType, "{}.{}{}", TNames::GetLib(), TNames::GetFunc(),
+										format_tup);
 			}
 			else
 				shouldLog = cemuLog_log(TLogType, "{}.{}()", TNames::GetLib(), TNames::GetFunc());
@@ -186,8 +193,9 @@ void cafeExportCallWrapper(PPCInterpreter_t* hCPU)
 		// has non-void return type
 		decltype(auto) result = std::apply(fn, tup);
 		cafeExportParamWrapper::setReturnResult<decltype(std::apply(fn, tup))>(hCPU, result);
-		if(shouldLog)
-			cemuLog_log(TLogType, "\t\t{}.{} -> {}", TNames::GetLib(), TNames::GetFunc(), cafeExportParamWrapper::getFormatResult(result));
+		if (shouldLog)
+			cemuLog_log(TLogType, "\t\t{}.{} -> {}", TNames::GetLib(), TNames::GetFunc(),
+						cafeExportParamWrapper::getFormatResult(result));
 	}
 	else
 	{
@@ -198,7 +206,8 @@ void cafeExportCallWrapper(PPCInterpreter_t* hCPU)
 	hCPU->instructionPointer = hCPU->spr.LR;
 }
 
-void osLib_addFunctionInternal(const char* libraryName, const char* functionName, void(*osFunction)(PPCInterpreter_t* hCPU));
+void osLib_addFunctionInternal(const char* libraryName, const char* functionName,
+							   void (*osFunction)(PPCInterpreter_t* hCPU));
 
 template<auto fn, typename TNames, LogType TLogType>
 void cafeExportMakeWrapper(const char* libname, const char* funcname)
@@ -206,22 +215,36 @@ void cafeExportMakeWrapper(const char* libname, const char* funcname)
 	osLib_addFunctionInternal(libname, funcname, &cafeExportCallWrapper<fn, TNames, TLogType>);
 }
 
-#define cafeExportRegister(__libname, __func, __logtype) \
-	 { \
-		struct StringWrapper { \
-			static const char* GetLib() { return __libname; }; \
-			static const char* GetFunc() { return #__func; }; \
-		}; \
-		cafeExportMakeWrapper<__func, StringWrapper, __logtype>(__libname, # __func);\
+#define cafeExportRegister(__libname, __func, __logtype)                                           \
+	{                                                                                              \
+		struct StringWrapper                                                                       \
+		{                                                                                          \
+			static const char* GetLib()                                                            \
+			{                                                                                      \
+				return __libname;                                                                  \
+			};                                                                                     \
+			static const char* GetFunc()                                                           \
+			{                                                                                      \
+				return #__func;                                                                    \
+			};                                                                                     \
+		};                                                                                         \
+		cafeExportMakeWrapper<__func, StringWrapper, __logtype>(__libname, #__func);               \
 	}
 
-#define cafeExportRegisterFunc(__func, __libname, __funcname, __logtype) \
-	 {\
-		struct StringWrapper { \
-			static const char* GetLib() { return __libname; }; \
-			static const char* GetFunc() { return __funcname; }; \
-		}; \
-		cafeExportMakeWrapper<__func, StringWrapper, __logtype>(__libname, __funcname);\
+#define cafeExportRegisterFunc(__func, __libname, __funcname, __logtype)                           \
+	{                                                                                              \
+		struct StringWrapper                                                                       \
+		{                                                                                          \
+			static const char* GetLib()                                                            \
+			{                                                                                      \
+				return __libname;                                                                  \
+			};                                                                                     \
+			static const char* GetFunc()                                                           \
+			{                                                                                      \
+				return __funcname;                                                                 \
+			};                                                                                     \
+		};                                                                                         \
+		cafeExportMakeWrapper<__func, StringWrapper, __logtype>(__libname, __funcname);            \
 	}
 
 template<auto fn>

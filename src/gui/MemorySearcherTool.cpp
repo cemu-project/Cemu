@@ -28,14 +28,12 @@ enum
 
 wxDEFINE_EVENT(wxEVT_SEARCH_FINISHED, wxCommandEvent);
 
-wxBEGIN_EVENT_TABLE(MemorySearcherTool, wxFrame)
-EVT_CLOSE(MemorySearcherTool::OnClose)
-EVT_BUTTON(BUTTON_START, MemorySearcherTool::OnSearch)
-EVT_BUTTON(BUTTON_FILTER, MemorySearcherTool::OnFilter)
-EVT_TIMER(TIMER_REFRESH, MemorySearcherTool::OnTimerTick)
-wxEND_EVENT_TABLE()
+wxBEGIN_EVENT_TABLE(MemorySearcherTool, wxFrame) EVT_CLOSE(MemorySearcherTool::OnClose)
+	EVT_BUTTON(BUTTON_START, MemorySearcherTool::OnSearch)
+		EVT_BUTTON(BUTTON_FILTER, MemorySearcherTool::OnFilter)
+			EVT_TIMER(TIMER_REFRESH, MemorySearcherTool::OnTimerTick) wxEND_EVENT_TABLE()
 
-constexpr auto kMaxResultCount = 5000;
+				constexpr auto kMaxResultCount = 5000;
 
 const wxString kDatatypeFloat = "float";
 const wxString kDatatypeDouble = "double";
@@ -44,10 +42,13 @@ const wxString kDatatypeInt8 = "int8";
 const wxString kDatatypeInt16 = "int16";
 const wxString kDatatypeInt32 = "int32";
 const wxString kDatatypeInt64 = "int64";
-const wxString kDataTypeNames[] = {kDatatypeFloat,kDatatypeDouble,/*DATATYPE_STRING,*/kDatatypeInt8,kDatatypeInt16,kDatatypeInt32,kDatatypeInt64};
+const wxString kDataTypeNames[] = {
+	kDatatypeFloat, kDatatypeDouble, /*DATATYPE_STRING,*/ kDatatypeInt8,
+	kDatatypeInt16, kDatatypeInt32,	 kDatatypeInt64};
 
 MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
-	: wxFrame(parent, wxID_ANY, _("Memory Searcher"), wxDefaultPosition, wxSize(600, 540), wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
+	: wxFrame(parent, wxID_ANY, _("Memory Searcher"), wxDefaultPosition, wxSize(600, 540),
+			  wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
@@ -58,7 +59,9 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	auto* row1 = new wxFlexGridSizer(0, 4, 0, 0);
 	row1->AddGrowableCol(1);
 
-	m_cbDataType = new wxComboBox(this, COMBOBOX_DATATYPE, kDatatypeFloat, wxDefaultPosition, wxDefaultSize, std::size(kDataTypeNames), kDataTypeNames, wxCB_READONLY);
+	m_cbDataType =
+		new wxComboBox(this, COMBOBOX_DATATYPE, kDatatypeFloat, wxDefaultPosition, wxDefaultSize,
+					   std::size(kDataTypeNames), kDataTypeNames, wxCB_READONLY);
 	m_textValue = new wxTextCtrl(this, TEXT_VALUE);
 	m_buttonStart = new wxButton(this, BUTTON_START, _("Search"));
 	m_buttonFilter = new wxButton(this, BUTTON_FILTER, _("Filter"));
@@ -79,7 +82,8 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	m_gauge->Enable(false);
 
 	m_textEntryTable = new wxStaticText(this, wxID_ANY, _("Results"));
-	m_listResults = new wxListCtrl(this, LIST_RESULTS, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_SORT_ASCENDING);
+	m_listResults = new wxListCtrl(this, LIST_RESULTS, wxDefaultPosition, wxDefaultSize,
+								   wxLC_REPORT | wxLC_SORT_ASCENDING);
 	m_listResults->Bind(wxEVT_LEFT_DCLICK, &MemorySearcherTool::OnResultListClick, this);
 	{
 		wxListItem col0;
@@ -95,15 +99,21 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	}
 
 	auto textEntryTable = new wxStaticText(this, wxID_ANY, _("Stored Entries"));
-	m_listEntryTable = new wxDataViewListCtrl(this, LIST_ENTRYTABLE, wxDefaultPosition, wxSize(420, 200), wxDV_HORIZ_RULES);
-	m_listEntryTable->Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU, &MemorySearcherTool::OnEntryListRightClick, this);
-	m_listEntryTable->Bind(wxEVT_COMMAND_DATAVIEW_ITEM_EDITING_DONE, &MemorySearcherTool::OnItemEdited, this);
+	m_listEntryTable = new wxDataViewListCtrl(this, LIST_ENTRYTABLE, wxDefaultPosition,
+											  wxSize(420, 200), wxDV_HORIZ_RULES);
+	m_listEntryTable->Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU,
+						   &MemorySearcherTool::OnEntryListRightClick, this);
+	m_listEntryTable->Bind(wxEVT_COMMAND_DATAVIEW_ITEM_EDITING_DONE,
+						   &MemorySearcherTool::OnItemEdited, this);
 	{
-		m_listEntryTable->AppendTextColumn(_("Description"), wxDATAVIEW_CELL_EDITABLE, 150, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
-		m_listEntryTable->AppendTextColumn(_("Address"), wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
+		m_listEntryTable->AppendTextColumn(_("Description"), wxDATAVIEW_CELL_EDITABLE, 150,
+										   wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
+		m_listEntryTable->AppendTextColumn(_("Address"), wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
+										   wxDATAVIEW_COL_SORTABLE);
 		m_listEntryTable->AppendTextColumn(_("Type"));
 		m_listEntryTable->AppendTextColumn(_("Value"), wxDATAVIEW_CELL_EDITABLE);
-		m_listEntryTable->AppendToggleColumn(_("Freeze"), wxDATAVIEW_CELL_ACTIVATABLE, 50, wxALIGN_LEFT, 0);
+		m_listEntryTable->AppendToggleColumn(_("Freeze"), wxDATAVIEW_CELL_ACTIVATABLE, 50,
+											 wxALIGN_LEFT, 0);
 	}
 
 	row2->AddGrowableRow(3);
@@ -126,7 +136,7 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 
 	m_refresh_timer = new wxTimer(this, TIMER_REFRESH);
 	m_refresh_timer->Start(250);
-	
+
 	this->SetSizer(sizer);
 	this->wxWindowBase::Layout();
 
@@ -136,7 +146,7 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 MemorySearcherTool::~MemorySearcherTool()
 {
 	m_refresh_timer->Stop();
-	
+
 	m_running = false;
 	if (m_worker.joinable())
 		m_worker.join();
@@ -172,8 +182,9 @@ void MemorySearcherTool::OnUpdateGauge(wxSetGaugeValue& event)
 		gauge->SetValue(value);
 		return;
 	}
-	
-	debug_printf("update gauge: %d + %d = %d (/%d)\n", gauge->GetValue(), value, gauge->GetValue() + value, gauge->GetRange());
+
+	debug_printf("update gauge: %d + %d = %d (/%d)\n", gauge->GetValue(), value,
+				 gauge->GetValue() + value, gauge->GetRange());
 	gauge->SetValue(gauge->GetValue() + value);
 }
 
@@ -195,7 +206,8 @@ void MemorySearcherTool::OnSearch(wxCommandEvent&)
 
 	if (!VerifySearchValue())
 	{
-		wxMessageBox(_("Your entered value is not valid for the selected datatype."), _("Error"), wxICON_ERROR);
+		wxMessageBox(_("Your entered value is not valid for the selected datatype."), _("Error"),
+					 wxICON_ERROR);
 		return;
 	}
 	m_buttonStart->Disable();
@@ -207,7 +219,8 @@ void MemorySearcherTool::OnSearch(wxCommandEvent&)
 	if (m_worker.joinable())
 		m_worker.join();
 
-	m_worker = std::thread([this]()
+	m_worker = std::thread(
+		[this]()
 		{
 			m_search_jobs.clear();
 			uint32 total_size = 0;
@@ -223,22 +236,24 @@ void MemorySearcherTool::OnSearch(wxCommandEvent&)
 				const uint32 size = itr->getSize();
 
 				total_size += (size / kGaugeStep);
-				m_search_jobs.emplace_back(std::async(std::launch::async, [this, ptr, size]() { return SearchValues(m_searchDataType, ptr, size); }));
+				m_search_jobs.emplace_back(
+					std::async(std::launch::async, [this, ptr, size]()
+							   { return SearchValues(m_searchDataType, ptr, size); }));
 			}
 
 			wxQueueEvent(this, new wxSetGaugeValue(0, total_size, m_gauge));
-			
+
 			ListType_t tmp;
 			for (auto& it : m_search_jobs)
 			{
 				const auto result = it.get();
 				tmp.insert(tmp.end(), result.cbegin(), result.cend());
 			}
-		
+
 			std::unique_lock lock(m_mutex);
 			m_searchBuffer.swap(tmp);
 			lock.unlock();
-			
+
 			wxQueueEvent(this, new wxCommandEvent(wxEVT_SEARCH_FINISHED));
 		});
 }
@@ -251,11 +266,12 @@ void MemorySearcherTool::OnFilter(wxCommandEvent& event)
 	if (m_worker.joinable())
 		m_worker.join();
 
-	m_worker = std::thread([this]()
+	m_worker = std::thread(
+		[this]()
 		{
 			const auto count = (uint32)m_searchBuffer.size();
 			wxQueueEvent(this, new wxSetGaugeValue(0, count, m_gauge));
-		
+
 			auto tmp = FilterValues(m_searchDataType);
 
 			std::unique_lock lock(m_mutex);
@@ -270,7 +286,8 @@ void MemorySearcherTool::OnFilter(wxCommandEvent& event)
 
 void MemorySearcherTool::Load()
 {
-	const auto memorySearcherPath = ActiveSettings::GetPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
+	const auto memorySearcherPath =
+		ActiveSettings::GetPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
 	auto memSearcherIniContents = FileStream::LoadIntoMemory(memorySearcherPath);
 	if (!memSearcherIniContents)
 		return;
@@ -322,7 +339,8 @@ void MemorySearcherTool::Load()
 
 void MemorySearcherTool::Save()
 {
-	const auto memorySearcherPath = ActiveSettings::GetPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
+	const auto memorySearcherPath =
+		ActiveSettings::GetPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
 	FileStream* fs = FileStream::createFile2(memorySearcherPath);
 	if (fs)
 	{
@@ -330,7 +348,8 @@ void MemorySearcherTool::Save()
 		{
 			fs->writeLine("[Entry]");
 
-			std::string tmp = "description=" + std::string(m_listEntryTable->GetTextValue(i, 0).mbc_str());
+			std::string tmp =
+				"description=" + std::string(m_listEntryTable->GetTextValue(i, 0).mbc_str());
 			fs->writeLine(tmp.c_str());
 
 			tmp = "address=" + std::string(m_listEntryTable->GetTextValue(i, 1).mbc_str());
@@ -377,12 +396,13 @@ bool MemorySearcherTool::IsAddressValid(uint32 addr)
 
 void MemorySearcherTool::OnEntryListRightClick(wxDataViewEvent& event)
 {
-	//void *data = reinterpret_cast<void *>(event.GetItem().GetData());
+	// void *data = reinterpret_cast<void *>(event.GetItem().GetData());
 	wxMenu mnu;
-	//mnu.SetClientData(data);
+	// mnu.SetClientData(data);
 	mnu.Append(LIST_ENTRY_ADD, _("&Add new entry"))->Enable(false);
 	mnu.Append(LIST_ENTRY_REMOVE, _("&Remove entry"));
-	mnu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MemorySearcherTool::OnPopupClick), nullptr, this);
+	mnu.Connect(wxEVT_COMMAND_MENU_SELECTED,
+				wxCommandEventHandler(MemorySearcherTool::OnPopupClick), nullptr, this);
 	PopupMenu(&mnu);
 }
 
@@ -392,7 +412,8 @@ void MemorySearcherTool::OnResultListClick(wxMouseEvent& event)
 
 	while (true)
 	{
-		selectedIndex = m_listResults->GetNextItem(selectedIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+		selectedIndex =
+			m_listResults->GetNextItem(selectedIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 		if (selectedIndex == -1)
 			break;
 
@@ -436,35 +457,35 @@ bool MemorySearcherTool::VerifySearchValue() const
 	case SearchDataType_String:
 		return true;
 	case SearchDataType_Float:
-		{
-			float value;
-			return ConvertStringToType(inputString, value);
-		}
+	{
+		float value;
+		return ConvertStringToType(inputString, value);
+	}
 	case SearchDataType_Double:
-		{
-			double value;
-			return ConvertStringToType(inputString, value);
-		}
+	{
+		double value;
+		return ConvertStringToType(inputString, value);
+	}
 	case SearchDataType_Int8:
-		{
-			sint8 value;
-			return ConvertStringToType(inputString, value);
-		}
+	{
+		sint8 value;
+		return ConvertStringToType(inputString, value);
+	}
 	case SearchDataType_Int16:
-		{
-			sint16 value;
-			return ConvertStringToType(inputString, value);
-		}
+	{
+		sint16 value;
+		return ConvertStringToType(inputString, value);
+	}
 	case SearchDataType_Int32:
-		{
-			sint32 value;
-			return ConvertStringToType(inputString, value);
-		}
+	{
+		sint32 value;
+		return ConvertStringToType(inputString, value);
+	}
 	case SearchDataType_Int64:
-		{
-			sint64 value;
-			return ConvertStringToType(inputString, value);
-		}
+	{
+		sint64 value;
+		return ConvertStringToType(inputString, value);
+	}
 	default:
 		return false;
 	}
@@ -472,8 +493,8 @@ bool MemorySearcherTool::VerifySearchValue() const
 
 void MemorySearcherTool::FillResultList()
 {
-	//char text[128];
-	//sprintf(text, "Results (%u)", (uint32)m_searchBuffer.size());
+	// char text[128];
+	// sprintf(text, "Results (%u)", (uint32)m_searchBuffer.size());
 	auto text = wxStringFormat(_("Results ({0})"), L"%llu", m_searchBuffer.size());
 	m_textEntryTable->SetLabelText(text);
 
@@ -502,46 +523,46 @@ void MemorySearcherTool::RefreshResultList()
 		switch (m_searchDataType)
 		{
 		case SearchDataType_String:
-			{
-				// TODO Peter
-				break;
-			}
+		{
+			// TODO Peter
+			break;
+		}
 		case SearchDataType_Float:
-			{
+		{
 			const auto value = memory_read<float>(addr);
-				m_listResults->SetItem(i, 1, fmt::format("{}", value));
-				break;
-			}
+			m_listResults->SetItem(i, 1, fmt::format("{}", value));
+			break;
+		}
 		case SearchDataType_Double:
-			{
+		{
 			const auto value = memory_read<double>(addr);
-				m_listResults->SetItem(i, 1, fmt::format("{}", value));
-				break;
-			}
+			m_listResults->SetItem(i, 1, fmt::format("{}", value));
+			break;
+		}
 		case SearchDataType_Int8:
-			{
+		{
 			const auto value = memory_read<sint8>(addr);
-				m_listResults->SetItem(i, 1, fmt::format("{}", value));
-				break;
-			}
+			m_listResults->SetItem(i, 1, fmt::format("{}", value));
+			break;
+		}
 		case SearchDataType_Int16:
-			{
+		{
 			const auto value = memory_read<sint16>(addr);
-				m_listResults->SetItem(i, 1, fmt::format("{}", value));
-				break;
-			}
+			m_listResults->SetItem(i, 1, fmt::format("{}", value));
+			break;
+		}
 		case SearchDataType_Int32:
-			{
-				const auto value = memory_read<sint32>(addr);
-				m_listResults->SetItem(i, 1, fmt::format("{}", value));
-				break;
-			}
+		{
+			const auto value = memory_read<sint32>(addr);
+			m_listResults->SetItem(i, 1, fmt::format("{}", value));
+			break;
+		}
 		case SearchDataType_Int64:
-			{
+		{
 			const auto value = memory_read<sint64>(addr);
-				m_listResults->SetItem(i, 1, fmt::format("{}", value));
-				break;
-			}
+			m_listResults->SetItem(i, 1, fmt::format("{}", value));
+			break;
+		}
 		}
 	}
 }
@@ -682,14 +703,14 @@ std::string MemorySearcherTool::GetSearchTypeName() const
 		return from_wxString(kDatatypeInt32);
 	case SearchDataType_Int64:
 		return from_wxString(kDatatypeInt64);
-	default: 
+	default:
 		return "";
 	}
-	
 }
 
-template <>
-bool MemorySearcherTool::ConvertStringToType<signed char>(const char* inValue, sint8& outValue) const
+template<>
+bool MemorySearcherTool::ConvertStringToType<signed char>(const char* inValue,
+														  sint8& outValue) const
 {
 	sint16 tmp;
 	std::istringstream iss(inValue);
@@ -712,7 +733,7 @@ void MemorySearcherTool::OnPopupClick(wxCommandEvent& event)
 		const int row = m_listEntryTable->GetSelectedRow();
 		if (row == -1)
 			return;
-		
+
 		m_listEntryTable->DeleteItem(row);
 	}
 }
@@ -721,8 +742,8 @@ void MemorySearcherTool::OnItemEdited(wxDataViewEvent& event)
 {
 	auto column = event.GetColumn();
 	// Edit description
-	if (column == 0) { }
-		// Edit value
+	if (column == 0) {}
+	// Edit value
 	else if (column == 3)
 	{
 		auto row = m_listEntryTable->GetSelectedRow();

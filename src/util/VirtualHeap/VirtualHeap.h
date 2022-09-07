@@ -20,11 +20,11 @@ struct VirtualBufferHeap_t
 	// update tracking
 	uint32 updateTrackIndex;
 	// stats
-	struct  
+	struct
 	{
 		uint32 numActiveAllocs;
 		uint32 allocatedMemory;
-	}stats;
+	} stats;
 };
 
 VirtualBufferHeap_t* virtualBufferHeap_create(uint32 virtualHeapSize, void* baseAddr = nullptr);

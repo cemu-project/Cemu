@@ -13,7 +13,8 @@ SaveInfo::SaveInfo(TitleId titleId) : m_titleId(titleId)
 std::string SaveInfo::GetStorageSubpathByTitleId(TitleId titleId)
 {
 	// usr/save/<titleIdHigh>/<titleIdLow>/
-	return fmt::format("usr/save/{:08x}/{:08x}", ((uint64)titleId) >> 32, (uint64)titleId & 0xFFFFFFFF);
+	return fmt::format("usr/save/{:08x}/{:08x}", ((uint64)titleId) >> 32,
+					   (uint64)titleId & 0xFFFFFFFF);
 }
 
 fs::path SaveInfo::GetSavePath(TitleId titleId)

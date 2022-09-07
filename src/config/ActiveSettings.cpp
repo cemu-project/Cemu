@@ -22,7 +22,8 @@ void ActiveSettings::LoadOnce()
 	g_config.Load();
 
 	std::wstring additionalErrorInfo;
-	s_has_required_online_files = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo) == IOS_CRYPTO_ONLINE_REQ_OK;
+	s_has_required_online_files =
+		iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo) == IOS_CRYPTO_ONLINE_REQ_OK;
 }
 
 bool ActiveSettings::LoadSharedLibrariesEnabled()
@@ -73,7 +74,8 @@ void ActiveSettings::SetTimerShiftFactor(uint8 shiftFactor)
 
 PrecompiledShaderOption ActiveSettings::GetPrecompiledShadersOption()
 {
-	return PrecompiledShaderOption::Auto; // g_current_game_profile->GetPrecompiledShadersState().value_or(GetConfig().precompiled_shaders);
+	return PrecompiledShaderOption::
+		Auto; // g_current_game_profile->GetPrecompiledShadersState().value_or(GetConfig().precompiled_shaders);
 }
 
 bool ActiveSettings::RenderUpsideDownEnabled()
@@ -92,7 +94,7 @@ GraphicAPI ActiveSettings::GetGraphicsAPI()
 	// check if vulkan even available
 	if (api == kVulkan && !g_vulkan_available)
 		api = kOpenGL;
-	
+
 	return api;
 }
 
@@ -113,7 +115,9 @@ uint32 ActiveSettings::GetPersistentId()
 
 bool ActiveSettings::IsOnlineEnabled()
 {
-	return GetConfig().account.online_enabled && Account::GetAccount(GetPersistentId()).IsValidOnlineAccount() && HasRequiredOnlineFiles();
+	return GetConfig().account.online_enabled &&
+		   Account::GetAccount(GetPersistentId()).IsValidOnlineAccount() &&
+		   HasRequiredOnlineFiles();
 }
 
 bool ActiveSettings::HasRequiredOnlineFiles()
@@ -166,22 +170,22 @@ bool ActiveSettings::VPADDelayEnabled()
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
 	// workaround for Art Academy spamming VPADRead
 	return /* Art Academy: Home Studio (US) */ titleId == 0x000500001017BF00 ||
-		/* Art Academy: Home Studio (JP) */ titleId == 0x000500001017BE00 ||
-		/* Art Academy: Atelier (EU) */ titleId == 0x000500001017B500;
+		   /* Art Academy: Home Studio (JP) */ titleId == 0x000500001017BE00 ||
+		   /* Art Academy: Atelier (EU) */ titleId == 0x000500001017B500;
 }
 
 bool ActiveSettings::ShaderPreventInfiniteLoopsEnabled()
 {
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
-	// workaround for NSMBU (and variants) having a bug where shaders can get stuck in infinite loops
-	// update: As of Cemu 1.20.0 this should no longer be required
+	// workaround for NSMBU (and variants) having a bug where shaders can get stuck in infinite
+	// loops update: As of Cemu 1.20.0 this should no longer be required
 	return /* NSMBU JP */ titleId == 0x0005000010101C00 ||
-		/* NSMBU US */ titleId == 0x0005000010101D00 ||
-		/* NSMBU EU */ titleId == 0x0005000010101E00 ||
-		/* NSMBU+L US */ titleId == 0x000500001014B700 ||
-		/* NSMBU+L EU */ titleId == 0x000500001014B800 ||
-		/* NSLU US */ titleId == 0x0005000010142300 ||
-		/* NSLU EU */ titleId == 0x0005000010142400;
+		   /* NSMBU US */ titleId == 0x0005000010101D00 ||
+		   /* NSMBU EU */ titleId == 0x0005000010101E00 ||
+		   /* NSMBU+L US */ titleId == 0x000500001014B700 ||
+		   /* NSMBU+L EU */ titleId == 0x000500001014B800 ||
+		   /* NSLU US */ titleId == 0x0005000010142300 ||
+		   /* NSLU EU */ titleId == 0x0005000010142400;
 }
 
 bool ActiveSettings::FlushGPUCacheOnSwap()
@@ -197,9 +201,12 @@ bool ActiveSettings::FlushGPUCacheOnSwap()
 
 bool ActiveSettings::ForceSamplerRoundToPrecision()
 {
-	// some Wayforward games (Duck Tales, Adventure Time Explore The Dungeon) sample textures exactly on the texel edge. On Wii U this is fine because the rounding mode can be controlled
-	// on OpenGL/Vulkan when uv coordinates are converted from (un)normalized to integer the implementation always truncates which causes an off-by-one error in edge cases
-	// In the future we should look into optionally correctly emulating sampler behavior (its quite complex, Latte supports flexible precision levels)
+	// some Wayforward games (Duck Tales, Adventure Time Explore The Dungeon) sample textures
+	// exactly on the texel edge. On Wii U this is fine because the rounding mode can be controlled
+	// on OpenGL/Vulkan when uv coordinates are converted from (un)normalized to integer the
+	// implementation always truncates which causes an off-by-one error in edge cases In the future
+	// we should look into optionally correctly emulating sampler behavior (its quite complex, Latte
+	// supports flexible precision levels)
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
 	return
 		/* Adventure Time ETDBIDK (EU) */ titleId == 0x000500001014E100 ||
@@ -211,10 +218,10 @@ bool ActiveSettings::ForceSamplerRoundToPrecision()
 
 fs::path ActiveSettings::GetMlcPath()
 {
-	if(const auto launch_mlc = LaunchSettings::GetMLCPath(); launch_mlc.has_value())
+	if (const auto launch_mlc = LaunchSettings::GetMLCPath(); launch_mlc.has_value())
 		return launch_mlc.value();
 
-	if(const auto config_mlc = GetConfig().mlc_path.GetValue(); !config_mlc.empty())
+	if (const auto config_mlc = GetConfig().mlc_path.GetValue(); !config_mlc.empty())
 		return config_mlc;
 
 	return GetDefaultMLCPath();
@@ -224,4 +231,3 @@ fs::path ActiveSettings::GetDefaultMLCPath()
 {
 	return GetPath("mlc01");
 }
-

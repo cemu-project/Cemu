@@ -2,5 +2,5 @@
 
 namespace nlibnss
 {
-	void load();
+void load();
 }

@@ -1,4 +1,4 @@
 namespace coreinit
 {
-	void InitializeHWInterface();
+void InitializeHWInterface();
 };

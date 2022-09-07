@@ -6,13 +6,14 @@ class wxInputDraw;
 
 class VPADInputPanel : public InputPanel
 {
-public:
+  public:
 	VPADInputPanel(wxWindow* parent);
 
-	void on_timer(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller) override;
+	void on_timer(const EmulatedControllerPtr& emulated_controller,
+				  const ControllerPtr& controller) override;
 
-private:
+  private:
 	void OnVolumeChange(wxCommandEvent& event);
 
-	wxInputDraw* m_left_draw, * m_right_draw;
+	wxInputDraw *m_left_draw, *m_right_draw;
 };

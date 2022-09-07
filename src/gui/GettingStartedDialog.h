@@ -10,13 +10,19 @@
 
 class GettingStartedDialog : public wxDialog
 {
-public:
+  public:
 	GettingStartedDialog(wxWindow* parent = nullptr);
 
-	[[nodiscard]] bool HasGamePathChanged() const { return m_game_path_changed; }
-	[[nodiscard]] bool HasMLCChanged() const { return m_mlc_changed; }
+	[[nodiscard]] bool HasGamePathChanged() const
+	{
+		return m_game_path_changed;
+	}
+	[[nodiscard]] bool HasMLCChanged() const
+	{
+		return m_mlc_changed;
+	}
 
-private:
+  private:
 	wxPanel* CreatePage1();
 	wxPanel* CreatePage2();
 	void ApplySettings();
@@ -41,4 +47,3 @@ private:
 	bool m_game_path_changed = false;
 	bool m_mlc_changed = false;
 };
-

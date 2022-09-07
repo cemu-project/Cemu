@@ -39,8 +39,10 @@ struct osFunctionEntry_t
 	std::string name;
 	HLEIDX hleFunc;
 
-	osFunctionEntry_t(uint32 libHashA, uint32 libHashB, uint32 funcHashA, uint32 funcHashB, std::string_view name, HLEIDX hleFunc) :
-		libHashA(libHashA), libHashB(libHashB), funcHashA(funcHashA), funcHashB(funcHashB), name(name), hleFunc(hleFunc) {};
+	osFunctionEntry_t(uint32 libHashA, uint32 libHashB, uint32 funcHashA, uint32 funcHashB,
+					  std::string_view name, HLEIDX hleFunc)
+		: libHashA(libHashA), libHashB(libHashB), funcHashA(funcHashA), funcHashB(funcHashB),
+		  name(name), hleFunc(hleFunc){};
 };
 
 typedef struct
@@ -50,7 +52,7 @@ typedef struct
 	uint32 funcHashA;
 	uint32 funcHashB;
 	uint32 vPtr;
-}osPointerEntry_t;
+} osPointerEntry_t;
 
 std::vector<osFunctionEntry_t>* s_osFunctionTable;
 std::vector<osPointerEntry_t> osDataTable;
@@ -59,26 +61,29 @@ void osLib_generateHashFromName(const char* name, uint32* hashA, uint32* hashB)
 {
 	uint32 h1 = 0x688BA2BA;
 	uint32 h2 = 0xF64A71D5;
-	while( *name )
+	while (*name)
 	{
 		uint32 c = (uint32)*name;
 		h1 += c;
-		h1 = (h1<<3)|((h1>>29));
+		h1 = (h1 << 3) | ((h1 >> 29));
 		h2 ^= c;
-		h2 = (h2<<7)|((h2>>25));
+		h2 = (h2 << 7) | ((h2 >> 25));
 		h1 += h2;
 		h2 += c;
-		h2 = (h2<<3)|((h2>>29));
+		h2 = (h2 << 3) | ((h2 >> 29));
 		name++;
 	}
 	*hashA = h1;
 	*hashB = h2;
 }
 
-void osLib_addFunctionInternal(const char* libraryName, const char* functionName, void(*osFunction)(PPCInterpreter_t* hCPU))
+void osLib_addFunctionInternal(const char* libraryName, const char* functionName,
+							   void (*osFunction)(PPCInterpreter_t* hCPU))
 {
 	if (!s_osFunctionTable)
-		s_osFunctionTable = new std::vector<osFunctionEntry_t>(); // replace with static allocation + constinit once we have C++20 available
+		s_osFunctionTable =
+			new std::vector<osFunctionEntry_t>(); // replace with static allocation + constinit once
+												  // we have C++20 available
 	// calculate hash
 	uint32 libHashA, libHashB;
 	uint32 funcHashA, funcHashB;
@@ -87,19 +92,21 @@ void osLib_addFunctionInternal(const char* libraryName, const char* functionName
 	// if entry already exists, update it
 	for (auto& it : *s_osFunctionTable)
 	{
-		if (it.libHashA == libHashA &&
-			it.libHashB == libHashB &&
-			it.funcHashA == funcHashA &&
+		if (it.libHashA == libHashA && it.libHashB == libHashB && it.funcHashA == funcHashA &&
 			it.funcHashB == funcHashB)
 		{
 			it.hleFunc = PPCInterpreter_registerHLECall(osFunction);
 			return;
 		}
 	}
-	s_osFunctionTable->emplace_back(libHashA, libHashB, funcHashA, funcHashB, fmt::format("{}.{}", libraryName, functionName), PPCInterpreter_registerHLECall(osFunction));
+	s_osFunctionTable->emplace_back(libHashA, libHashB, funcHashA, funcHashB,
+									fmt::format("{}.{}", libraryName, functionName),
+									PPCInterpreter_registerHLECall(osFunction));
 }
 
-extern "C" DLLEXPORT void osLib_registerHLEFunction(const char* libraryName, const char* functionName, void(*osFunction)(PPCInterpreter_t * hCPU))
+extern "C" DLLEXPORT void osLib_registerHLEFunction(const char* libraryName,
+													const char* functionName,
+													void (*osFunction)(PPCInterpreter_t* hCPU))
 {
 	osLib_addFunctionInternal(libraryName, functionName, osFunction);
 }
@@ -112,9 +119,7 @@ sint32 osLib_getFunctionIndex(const char* libraryName, const char* functionName)
 	osLib_generateHashFromName(functionName, &funcHashA, &funcHashB);
 	for (auto& it : *s_osFunctionTable)
 	{
-		if (it.libHashA == libHashA &&
-			it.libHashB == libHashB &&
-			it.funcHashA == funcHashA &&
+		if (it.libHashA == libHashA && it.libHashB == libHashB && it.funcHashA == funcHashA &&
 			it.funcHashB == funcHashB)
 		{
 			return it.hleFunc;
@@ -133,9 +138,7 @@ void osLib_addVirtualPointer(const char* libraryName, const char* functionName, 
 	// if entry already exists, update it
 	for (auto& it : osDataTable)
 	{
-		if (it.libHashA == libHashA &&
-			it.libHashB == libHashB &&
-			it.funcHashA == funcHashA &&
+		if (it.libHashA == libHashA && it.libHashB == libHashB && it.funcHashA == funcHashA &&
 			it.funcHashB == funcHashB)
 		{
 			it.vPtr = vPtr;
@@ -160,9 +163,7 @@ uint32 osLib_getPointer(const char* libraryName, const char* functionName)
 	osLib_generateHashFromName(functionName, &funcHashA, &funcHashB);
 	for (auto& it : osDataTable)
 	{
-		if (it.libHashA == libHashA &&
-			it.libHashB == libHashB &&
-			it.funcHashA == funcHashA &&
+		if (it.libHashA == libHashA && it.libHashB == libHashB && it.funcHashA == funcHashA &&
 			it.funcHashB == funcHashB)
 		{
 			return it.vPtr;
@@ -179,8 +180,8 @@ void osLib_returnFromFunction(PPCInterpreter_t* hCPU, uint32 returnValue)
 
 void osLib_returnFromFunction64(PPCInterpreter_t* hCPU, uint64 returnValue64)
 {
-	hCPU->gpr[3] = (returnValue64>>32)&0xFFFFFFFF;
-	hCPU->gpr[4] = (returnValue64>>0)&0xFFFFFFFF;
+	hCPU->gpr[3] = (returnValue64 >> 32) & 0xFFFFFFFF;
+	hCPU->gpr[4] = (returnValue64 >> 0) & 0xFFFFFFFF;
 	hCPU->instructionPointer = hCPU->spr.LR;
 }
 

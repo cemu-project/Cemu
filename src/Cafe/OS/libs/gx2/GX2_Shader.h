@@ -28,16 +28,15 @@ static_assert(sizeof(betype<GX2FetchShader_t::FetchShaderType>) == 4);
 
 namespace GX2
 {
-
-	void GX2ShaderInit();
+void GX2ShaderInit();
 }
 
 // code below still needs to be modernized (use betype, enum classes)
 
-#define GX2_SHADER_MODE_UNIFORM_REGISTER	0
-#define GX2_SHADER_MODE_UNIFORM_BLOCK		1
-#define GX2_SHADER_MODE_GEOMETRY_SHADER		2
-#define GX2_SHADER_MODE_COMPUTE_SHADER		3
+#define GX2_SHADER_MODE_UNIFORM_REGISTER 0
+#define GX2_SHADER_MODE_UNIFORM_BLOCK 1
+#define GX2_SHADER_MODE_GEOMETRY_SHADER 2
+#define GX2_SHADER_MODE_COMPUTE_SHADER 3
 
 struct GX2VertexShader_t
 {
@@ -53,7 +52,7 @@ struct GX2VertexShader_t
 	/* +0x0F0 */ MPTR uknF0;
 	/* +0x0F4 */ uint32 uknF4;
 	/* +0x0F8 */ MPTR uknF8; // each entry has 8 byte?
-	/* +0x0FC */ uint32	samplerCount;
+	/* +0x0FC */ uint32 samplerCount;
 	/* +0x100 */ MPTR samplerInfo;
 	/* +0x104 */ uint32 attribCount;
 	/* +0x108 */ MPTR attribInfo;
@@ -74,7 +73,7 @@ static_assert(sizeof(GX2VertexShader_t) == 0x134);
 
 typedef struct _GX2PixelShader
 {
-	uint32  regs[41];
+	uint32 regs[41];
 	// regs:
 	// 0 ?		Used by GPR count API?
 	// 1 ?
@@ -110,7 +109,7 @@ typedef struct _GX2PixelShader
 			return _swapEndianU32(shaderPtr);
 		return rBuffer.GetVirtualAddr();
 	}
-}GX2PixelShader_t;
+} GX2PixelShader_t;
 
 static_assert(sizeof(GX2PixelShader_t) == 0xE8);
 
@@ -130,7 +129,7 @@ struct GX2GeometryShader_t
 			uint32be reg6;
 			uint32be reg7;
 			// todo
-		}reg;
+		} reg;
 	};
 	/* +0x4C */ uint32 shaderSize;
 	/* +0x50 */ MPTR shaderPtr;
@@ -166,7 +165,6 @@ struct GX2GeometryShader_t
 			return _swapEndianU32(copyShaderPtr);
 		return rBufferCopyProgram.GetVirtualAddr();
 	}
-
 };
 
 static_assert(sizeof(GX2GeometryShader_t) == 0xC0);

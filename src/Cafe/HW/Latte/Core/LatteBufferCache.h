@@ -3,7 +3,8 @@
 void LatteBufferCache_init(size_t bufferSize);
 
 uint32 LatteBufferCache_retrieveDataInCache(MPTR physAddress, uint32 size);
-void LatteBufferCache_copyStreamoutDataToCache(MPTR physAddress, uint32 size, uint32 streamoutBufferOffset);
+void LatteBufferCache_copyStreamoutDataToCache(MPTR physAddress, uint32 size,
+											   uint32 streamoutBufferOffset);
 void LatteBufferCache_invalidate(MPTR physAddress, uint32 size);
 
 void LatteBufferCache_notifyDCFlush(MPTR address, uint32 size);

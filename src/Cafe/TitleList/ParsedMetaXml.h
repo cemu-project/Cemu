@@ -108,7 +108,7 @@ struct ParsedMetaXml
 		return parsedMetaXml;
 	}
 
-private:
+  private:
 	static sint32 GetLanguageIndex(std::string_view language) // move to NCrypto ?
 	{
 		if (language == "ja")

@@ -2,5 +2,5 @@
 
 namespace GX2
 {
-	void GX2SurfaceCopyInit();
+void GX2SurfaceCopyInit();
 };

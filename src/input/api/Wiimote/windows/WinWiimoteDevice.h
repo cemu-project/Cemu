@@ -4,7 +4,7 @@
 
 class WinWiimoteDevice : public WiimoteDevice
 {
-public:
+  public:
 	WinWiimoteDevice(HANDLE handle, std::vector<uint8_t> identifier);
 	~WinWiimoteDevice();
 
@@ -15,7 +15,7 @@ public:
 
 	bool operator==(WiimoteDevice& o) const override;
 
-private:
+  private:
 	HANDLE m_handle;
 	OVERLAPPED m_overlapped{};
 	std::vector<uint8_t> m_identifier;

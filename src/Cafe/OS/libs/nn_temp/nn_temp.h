@@ -2,5 +2,5 @@
 
 namespace nn::temp
 {
-	void Initialize();
+void Initialize();
 };

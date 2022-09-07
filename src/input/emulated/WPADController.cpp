@@ -34,7 +34,7 @@ WPADDataFormat WPADController::get_default_data_format() const
 
 uint32 WPADController::get_emulated_button_flag(WPADDataFormat format, uint32 id) const
 {
-	switch(format)
+	switch (format)
 	{
 	case kDataFormat_CORE:
 	case kDataFormat_CORE_ACC:
@@ -49,16 +49,20 @@ uint32 WPADController::get_emulated_button_flag(WPADDataFormat format, uint32 id
 	case kDataFormat_CLASSIC_ACC:
 	case kDataFormat_CLASSIC_ACC_DPD:
 		return ClassicController::s_get_emulated_button_flag(id);
-	
-	case kDataFormat_TRAIN: break;
-	case kDataFormat_GUITAR: break;
-	case kDataFormat_BALANCE_CHECKER: break;
-	case kDataFormat_DRUM: break;
-	
-	case kDataFormat_TAIKO: break;
+
+	case kDataFormat_TRAIN:
+		break;
+	case kDataFormat_GUITAR:
+		break;
+	case kDataFormat_BALANCE_CHECKER:
+		break;
+	case kDataFormat_DRUM:
+		break;
+
+	case kDataFormat_TAIKO:
+		break;
 	case kDataFormat_URCC:
 		return ProController::s_get_emulated_button_flag(id);
-
 	}
 
 	return 0;
@@ -118,7 +122,7 @@ void WPADController::WPADRead(WPADStatus_t* status)
 		WPADCLStatus_t* ex_status = (WPADCLStatus_t*)status;
 		memset(ex_status, 0x00, sizeof(*ex_status));
 		ex_status->clButton = button;
-		
+
 		auto axis = get_axis();
 		axis *= 2048.0f;
 		ex_status->clLStickX = (uint16)axis.x;
@@ -180,7 +184,7 @@ void WPADController::WPADRead(WPADStatus_t* status)
 
 void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 {
-	uint32be* hold, *release, *trigger;
+	uint32be *hold, *release, *trigger;
 	switch (type())
 	{
 	case Pro:
@@ -210,7 +214,7 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 	}
 
 	m_homebutton_down |= is_home_down();
-	
+
 	// button repeat
 	const auto now = std::chrono::steady_clock::now();
 	if (*hold != m_last_holdvalue)
@@ -235,9 +239,9 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 	const auto rotation = get_rotation();
 
 	*release = m_last_holdvalue & ~*hold;
-	//status.release = m_last_holdvalue & ~*hold;
+	// status.release = m_last_holdvalue & ~*hold;
 	*trigger = ~m_last_holdvalue & *hold;
-	//status.trig = ~m_last_holdvalue & *hold;
+	// status.trig = ~m_last_holdvalue & *hold;
 	m_last_holdvalue = *hold;
 
 	if (is_mpls_attached())
@@ -268,10 +272,10 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 		status.acc_value = motion_sample.getVPADAccMagnitude();
 		status.acc_speed = motion_sample.getVPADAccAcceleration();
 
-		//glm::vec2 acc_vert;
-		//motion_sample.getVPADAccXY(&acc_vert[0]);
-		//status.acc_vertical.x = acc_vert.x;
-		//status.acc_vertical.y = acc_vert.y;
+		// glm::vec2 acc_vert;
+		// motion_sample.getVPADAccXY(&acc_vert[0]);
+		// status.acc_vertical.x = acc_vert.x;
+		// status.acc_vertical.y = acc_vert.y;
 
 		status.accVertical.x = std::min(1.0f, std::abs(acc.x + acc.y));
 		status.accVertical.y = std::min(std::max(-1.0f, -acc.z), 1.0f);
@@ -281,16 +285,17 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 			// todo
 			glm::vec3 gyroChange;
 			motion_sample.getVPADGyroChange(&gyroChange[0]);
-			//const auto& gyroChange = motionSample.getVPADGyroChange();
+			// const auto& gyroChange = motionSample.getVPADGyroChange();
 			status.mpls.mpls.x = gyroChange.x;
 			status.mpls.mpls.y = gyroChange.y;
 			status.mpls.mpls.z = gyroChange.z;
 
-			//debug_printf("GyroChange %7.2lf %7.2lf %7.2lf\n", (float)status.gyroChange.x, (float)status.gyroChange.y, (float)status.gyroChange.z);
+			// debug_printf("GyroChange %7.2lf %7.2lf %7.2lf\n", (float)status.gyroChange.x,
+			// (float)status.gyroChange.y, (float)status.gyroChange.z);
 
 			glm::vec3 gyroOrientation;
 			motion_sample.getVPADOrientation(&gyroOrientation[0]);
-			//const auto& gyroOrientation = motionSample.getVPADOrientation();
+			// const auto& gyroOrientation = motionSample.getVPADOrientation();
 			status.mpls.angle.x = gyroOrientation.x;
 			status.mpls.angle.y = gyroOrientation.y;
 			status.mpls.angle.z = gyroOrientation.z;
@@ -331,7 +336,7 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 		status.ex_status.fs.stick.x = axis.x;
 		status.ex_status.fs.stick.y = axis.y;
 
-		if(has_second_motion())
+		if (has_second_motion())
 		{
 			auto motion_sample = get_second_motion_data();
 
@@ -373,6 +378,4 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 	default:
 		cemu_assert(false);
 	}
-
-	
 }

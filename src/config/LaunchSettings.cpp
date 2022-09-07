@@ -17,24 +17,24 @@ void requireConsole();
 
 bool LaunchSettings::HandleCommandline(const wchar_t* lpCmdLine)
 {
-	#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	const std::vector<std::wstring> args = boost::program_options::split_winmain(lpCmdLine);
 	return HandleCommandline(args);
-	#else
+#else
 	cemu_assert_unimplemented();
 	return false;
-	#endif
+#endif
 }
 
 bool LaunchSettings::HandleCommandline(int argc, wchar_t* argv[])
 {
 	std::vector<std::wstring> args;
 	args.reserve(argc);
-	for(int i = 0; i < argc; ++i)
+	for (int i = 0; i < argc; ++i)
 	{
 		args.emplace_back(argv[i]);
 	}
-	
+
 	return HandleCommandline(args);
 }
 
@@ -42,47 +42,46 @@ bool LaunchSettings::HandleCommandline(int argc, char* argv[])
 {
 	std::vector<std::wstring> args;
 	args.reserve(argc);
-	for(int i = 0; i < argc; ++i)
+	for (int i = 0; i < argc; ++i)
 	{
 		args.emplace_back(boost::nowide::widen(argv[i]));
 	}
-	
+
 	return HandleCommandline(args);
 }
 
 bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 {
 	namespace po = boost::program_options;
-	po::options_description desc{ "Launch options" };
-	desc.add_options()
-		("help,h", "This help screen")
-		("version,v", "Displays the version of Cemu")
+	po::options_description desc{"Launch options"};
+	desc.add_options()("help,h", "This help screen")("version,v", "Displays the version of Cemu")
 
-		("game,g", po::wvalue<std::wstring>(), "Path of game to launch")
-		("mlc,m", po::wvalue<std::wstring>(), "Custom mlc folder location")
+		("game,g", po::wvalue<std::wstring>(), "Path of game to launch")(
+			"mlc,m", po::wvalue<std::wstring>(), "Custom mlc folder location")
 
-		("fullscreen,f", po::value<bool>()->implicit_value(true), "Launch games in fullscreen mode")
-		("ud,u", po::value<bool>()->implicit_value(true), "Render output upside-down")
+			("fullscreen,f", po::value<bool>()->implicit_value(true),
+			 "Launch games in fullscreen mode")("ud,u", po::value<bool>()->implicit_value(true),
+												"Render output upside-down")
 
-		("account,a", po::value<std::string>(), "Persistent id of account")
+				("account,a", po::value<std::string>(), "Persistent id of account")
 
-		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler")
+					("force-interpreter", po::value<bool>()->implicit_value(true),
+					 "Force interpreter CPU emulation, disables recompiler")
 
-		("act-url", po::value<std::string>(), "URL prefix for account server")
-		("ecs-url", po::value<std::string>(), "URL for ECS service");
+						("act-url", po::value<std::string>(), "URL prefix for account server")(
+							"ecs-url", po::value<std::string>(), "URL for ECS service");
 
+	po::options_description hidden{"Hidden options"};
+	hidden.add_options()("nsight", po::value<bool>()->implicit_value(true),
+						 "NSight debugging options")(
+		"legacy", po::value<bool>()->implicit_value(true), "Intel legacy graphic mode");
 
-	po::options_description hidden{ "Hidden options" };
-	hidden.add_options()
-		("nsight", po::value<bool>()->implicit_value(true), "NSight debugging options")
-		("legacy", po::value<bool>()->implicit_value(true), "Intel legacy graphic mode");
+	po::options_description extractor{"Extractor tool"};
+	extractor.add_options()("extract,e", po::wvalue<std::wstring>(),
+							"Path to WUD or WUX file for extraction")(
+		"path,p", po::value<std::string>(), "Path of file to extract (for example meta/meta.xml)")(
+		"output,o", po::wvalue<std::wstring>(), "Output path for extracted file.");
 
-	po::options_description extractor{ "Extractor tool" };
-	extractor.add_options()
-		("extract,e", po::wvalue<std::wstring>(), "Path to WUD or WUX file for extraction")
-		("path,p", po::value<std::string>(), "Path of file to extract (for example meta/meta.xml)")
-		("output,o", po::wvalue<std::wstring>(), "Output path for extracted file.");
-	
 	po::options_description all;
 	all.add(desc).add(hidden).add(extractor);
 
@@ -91,11 +90,12 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 
 	try
 	{
-		po::wcommand_line_parser parser{ args };
-		parser.allow_unregistered().options(all).style(po::command_line_style::allow_long | po::command_line_style::allow_short | po::command_line_style::allow_dash_for_short | po::command_line_style::case_insensitive |
-			po::command_line_style::long_allow_next |
-			po::command_line_style::short_allow_next |
-			po::command_line_style::allow_long_disguise);
+		po::wcommand_line_parser parser{args};
+		parser.allow_unregistered().options(all).style(
+			po::command_line_style::allow_long | po::command_line_style::allow_short |
+			po::command_line_style::allow_dash_for_short |
+			po::command_line_style::case_insensitive | po::command_line_style::long_allow_next |
+			po::command_line_style::short_allow_next | po::command_line_style::allow_long_disguise);
 
 		const auto parsed_options = parser.run();
 
@@ -114,9 +114,11 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			requireConsole();
 			std::string versionStr;
 #if EMULATOR_VERSION_MINOR == 0
-			versionStr = fmt::format("{}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
+			versionStr = fmt::format("{}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR,
+									 EMULATOR_VERSION_SUFFIX);
 #else
-			versionStr = fmt::format("{}.{}-{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_SUFFIX);
+			versionStr = fmt::format("{}.{}-{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR,
+									 EMULATOR_VERSION_MINOR, EMULATOR_VERSION_SUFFIX);
 #endif
 			std::cout << versionStr << std::endl;
 			return false; // exit in main
@@ -125,17 +127,19 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		if (vm.count("game"))
 		{
 			std::wstring tmp = vm["game"].as<std::wstring>();
-			// workaround for boost command_line_parser not trimming token for short name parameters despite short_allow_adjacent
+			// workaround for boost command_line_parser not trimming token for short name parameters
+			// despite short_allow_adjacent
 			if (tmp.size() > 0 && tmp.front() == '=')
-				tmp.erase(tmp.begin()+0);
-			
+				tmp.erase(tmp.begin() + 0);
+
 			s_load_game_file = tmp;
 		}
-			
+
 		if (vm.count("mlc"))
 		{
 			std::wstring tmp = vm["mlc"].as<std::wstring>();
-			// workaround for boost command_line_parser not trimming token for short name parameters despite short_allow_adjacent
+			// workaround for boost command_line_parser not trimming token for short name parameters
+			// despite short_allow_adjacent
 			if (tmp.size() > 0 && tmp.front() == '=')
 				tmp.erase(tmp.begin() + 0);
 
@@ -148,18 +152,18 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			if (id >= Account::kMinPersistendId)
 				s_persistent_id = id;
 		}
-		
+
 		if (vm.count("fullscreen"))
 			s_fullscreen = vm["fullscreen"].as<bool>();
 		if (vm.count("ud"))
 			s_render_upside_down = vm["ud"].as<bool>();
-		
+
 		if (vm.count("nsight"))
 			s_nsight_mode = vm["nsight"].as<bool>();
 		if (vm.count("legacy"))
 			s_force_intel_legacy = vm["legacy"].as<bool>();
 
-		if(vm.count("force-interpreter"))
+		if (vm.count("force-interpreter"))
 			s_force_interpreter = vm["force-interpreter"].as<bool>();
 
 		std::wstring extract_path, log_path;
@@ -181,7 +185,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		if (vm.count("ecs-url"))
 			serviceURL_ECS = vm["ecs-url"].as<std::string>();
 
-		if(!extract_path.empty())
+		if (!extract_path.empty())
 		{
 			ExtractorTool(extract_path, output_path, log_path);
 			return false;
@@ -195,14 +199,14 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		errorMsg.append("Error while trying to parse command line parameter:\n");
 		errorMsg.append(ex.what());
 		wxMessageBox(errorMsg, wxT("Parameter error"), wxICON_ERROR);
-		//cemuLog_log(LogType::Force, ex.what());
-		//std::cout << "Command line parameter error: " << ex.what() << std::endl;
+		// cemuLog_log(LogType::Force, ex.what());
+		// std::cout << "Command line parameter error: " << ex.what() << std::endl;
 		return false;
 	}
-	
 }
 
-bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view output_path, std::wstring_view log_path)
+bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view output_path,
+								   std::wstring_view log_path)
 {
 	// extracting requires path of file
 	if (output_path.empty())
@@ -234,13 +238,13 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 	{
 		try
 		{
-			fs::path filename(std::wstring{ log_path });
+			fs::path filename(std::wstring{log_path});
 
 			filename /= boost::nowide::widen(std::string(output_path));
-			
+
 			fs::path p = filename;
 			p.remove_filename();
-			
+
 			fs::create_directories(p);
 			std::ofstream file(filename, std::ios::out | std::ios::binary);
 			file.write((const char*)fileData.data(), fileData.size());
@@ -260,8 +264,6 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 		printf("%.*s", (int)fileData.size(), fileData.data());
 		fflush(stdout);
 	}
-	
+
 	return true;
 }
-
-

@@ -31,7 +31,7 @@ PermanentConfig PermanentConfig::FromXMLString(std::string_view str) noexcept
 	PermanentConfig result{};
 
 	pugi::xml_document doc;
-	if(doc.load_buffer(str.data(), str.size()))
+	if (doc.load_buffer(str.data(), str.size()))
 	{
 		result.custom_mlc_path = doc.select_node("/config/MlcPath").node().text().as_string();
 	}

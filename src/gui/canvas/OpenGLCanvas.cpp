@@ -6,22 +6,16 @@
 #include "Common/GLInclude/GLInclude.h"
 #include <wx/glcanvas.h> // this includes GL/gl.h, avoid using this in a header because it would contaminate our own OpenGL definitions (GLInclude)
 
-static const int g_gl_attribute_list[] =
-{
-	WX_GL_RGBA,
-	WX_GL_DOUBLEBUFFER,
-	WX_GL_DEPTH_SIZE, 16,
+static const int g_gl_attribute_list[] = {
+	WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16,
 
-	WX_GL_MIN_RED, 8,
-	WX_GL_MIN_GREEN, 8,
-	WX_GL_MIN_BLUE, 8,
-	WX_GL_MIN_ALPHA, 8,
+	WX_GL_MIN_RED, 8, WX_GL_MIN_GREEN, 8, WX_GL_MIN_BLUE, 8, WX_GL_MIN_ALPHA, 8,
 
 	WX_GL_STENCIL_SIZE, 8,
 
-	//WX_GL_MAJOR_VERSION, 4,
-	//WX_GL_MINOR_VERSION, 1,
-	//wx_GL_COMPAT_PROFILE,
+	// WX_GL_MAJOR_VERSION, 4,
+	// WX_GL_MINOR_VERSION, 1,
+	// wx_GL_COMPAT_PROFILE,
 
 	0, // end of list
 };
@@ -32,9 +26,11 @@ class OpenGLCanvas* sGLPadView = nullptr;
 
 class OpenGLCanvas : public IRenderCanvas, public wxGLCanvas
 {
-public:
+  public:
 	OpenGLCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)
-		: IRenderCanvas(is_main_window), wxGLCanvas(parent, wxID_ANY, g_gl_attribute_list, wxDefaultPosition, size, wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
+		: IRenderCanvas(is_main_window),
+		  wxGLCanvas(parent, wxID_ANY, g_gl_attribute_list, wxDefaultPosition, size,
+					 wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
 	{
 		cemuLog_logDebug(LogType::Force, "Creating OpenGL canvas");
 
@@ -64,8 +60,8 @@ public:
 			delete sGLContext;
 	}
 
-private:
-	//wxGLContext* m_context = nullptr;
+  private:
+	// wxGLContext* m_context = nullptr;
 };
 
 wxWindow* GLCanvas_Create(wxWindow* parent, const wxSize& size, bool is_main_window)

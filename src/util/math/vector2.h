@@ -1,22 +1,21 @@
 #pragma once
 #include <cassert>
 
-template <typename T>
+template<typename T>
 class Vector2
 {
-public:
+  public:
 	T x;
 	T y;
 
-	Vector2()
-		: x{}, y{} {}
+	Vector2() : x{}, y{} {}
 
-	Vector2(T x, T y)
-		: x(x), y(y) {}
+	Vector2(T x, T y) : x(x), y(y) {}
 
-	template <typename U = T>
-	Vector2(const Vector2<U>& v)
-		: x((T)v.x), y((T)v.y) {}
+	template<typename U = T>
+	Vector2(const Vector2<U>& v) : x((T)v.x), y((T)v.y)
+	{
+	}
 
 	float Length() const
 	{
@@ -147,4 +146,3 @@ public:
 
 using Vector2f = Vector2<float>;
 using Vector2i = Vector2<int>;
-

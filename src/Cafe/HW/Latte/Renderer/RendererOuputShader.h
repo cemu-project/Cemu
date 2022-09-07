@@ -7,7 +7,7 @@
 
 class RendererOutputShader
 {
-public:
+  public:
 	enum Shader
 	{
 		kCopy,
@@ -17,7 +17,8 @@ public:
 	RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source);
 	virtual ~RendererOutputShader() = default;
 
-	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res, const Vector2i& output_res) const;
+	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res,
+							  const Vector2i& output_res) const;
 	void Bind() const;
 
 	RendererShader* GetVertexShader() const
@@ -44,7 +45,7 @@ public:
 	static std::string GetVulkanVertexSource(bool render_upside_down);
 	static std::string GetOpenGlVertexSource(bool render_upside_down);
 
-protected:
+  protected:
 	RendererShader* m_vertex_shader;
 	RendererShader* m_fragment_shader;
 
@@ -55,7 +56,7 @@ protected:
 		sint32 m_loc_output_resolution = -1;
 	} m_attributes[2]{};
 
-private:
+  private:
 	static const std::string s_copy_shader_source;
 	static const std::string s_bicubic_shader_source;
 	static const std::string s_hermite_shader_source;

@@ -7,20 +7,23 @@ bool GamePatch_IsNonReturnFunction(uint32 hleIndex);
 // utility class to determine shape of a function
 class PPCFunctionBoundaryTracker
 {
-public:
+  public:
 	struct PPCRange_t
 	{
-		PPCRange_t() {};
-		PPCRange_t(uint32 _startAddress) : startAddress(_startAddress) {};
+		PPCRange_t(){};
+		PPCRange_t(uint32 _startAddress) : startAddress(_startAddress){};
 
 		uint32 startAddress{};
 		uint32 length{};
-		//bool isProcessed{false};
+		// bool isProcessed{false};
 
-		uint32 getEndAddress() const { return startAddress + length; };
+		uint32 getEndAddress() const
+		{
+			return startAddress + length;
+		};
 	};
 
-public:
+  public:
 	void trackStartPoint(MPTR startAddress)
 	{
 		processRange(startAddress, nullptr, nullptr);
@@ -40,7 +43,7 @@ public:
 		return false;
 	}
 
-private:
+  private:
 	void addBranchDestination(PPCRange_t* sourceRange, MPTR address)
 	{
 		map_branchTargets.emplace(address);
@@ -85,7 +88,7 @@ private:
 				addBranchDestination(range, branchTarget);
 			break;
 		}
-		case Espresso::PrimaryOpcode::B:	
+		case Espresso::PrimaryOpcode::B:
 		{
 			uint32 LI;
 			bool AA, LK;
@@ -94,11 +97,18 @@ private:
 			if (!LK)
 			{
 				addBranchDestination(range, branchTarget);
-				// if the next two or previous two instructions are branch instructions, we assume that they are destinations of a jump table
-				// todo - can we make this more reliable by checking for BCTR or similar instructions first?
-				// example: The Swapper 0x01B1FC04
-				if (PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(memory_readU32(address + 4)) && PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(memory_readU32(address + 8)) ||
-					PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(memory_readU32(address - 8)) && PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(memory_readU32(address - 4)))
+				// if the next two or previous two instructions are branch instructions, we assume
+				// that they are destinations of a jump table todo - can we make this more reliable
+				// by checking for BCTR or similar instructions first? example: The Swapper
+				// 0x01B1FC04
+				if (PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(
+						memory_readU32(address + 4)) &&
+						PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(
+							memory_readU32(address + 8)) ||
+					PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(
+						memory_readU32(address - 8)) &&
+						PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(
+							memory_readU32(address - 4)))
 				{
 					return true;
 				}
@@ -126,14 +136,17 @@ private:
 				if (opcode == 0x4E800420)
 				{
 					// unconditional BCTR
-					// this instruction is often used for switch statements, therefore we should be wary of ending the function here
-					// It's better to overestimate function size than to predict sizes that are too short
+					// this instruction is often used for switch statements, therefore we should be
+					// wary of ending the function here It's better to overestimate function size
+					// than to predict sizes that are too short
 
-					// Currently we only end the function if the BCTR is followed by a NOP (alignment) or invalid instruction
-					// todo: improve robustness, find better ways to handle false positives
+					// Currently we only end the function if the BCTR is followed by a NOP
+					// (alignment) or invalid instruction todo: improve robustness, find better ways
+					// to handle false positives
 					uint32 nextOpcode = memory_readU32(address + 4);
 
-					if (nextOpcode == 0x60000000 || PPCRecompilerCalcFuncSize_isValidInstruction(nextOpcode) == false)
+					if (nextOpcode == 0x60000000 ||
+						PPCRecompilerCalcFuncSize_isValidInstruction(nextOpcode) == false)
 					{
 						return false;
 					}
@@ -170,7 +183,8 @@ private:
 	void processRange(MPTR startAddress, PPCRange_t* previousRange, PPCRange_t* nextRange)
 	{
 		checkForCollisions();
-		cemu_assert_debug(previousRange == nullptr || (startAddress == (previousRange->startAddress + previousRange->length)));
+		cemu_assert_debug(previousRange == nullptr ||
+						  (startAddress == (previousRange->startAddress + previousRange->length)));
 		PPCRange_t* newRange;
 		if (previousRange && (previousRange->startAddress + previousRange->length) == startAddress)
 		{
@@ -201,7 +215,8 @@ private:
 		if (nextRange && currentAddress >= nextRange->startAddress)
 		{
 			// merge with next range
-			newRange->length = (nextRange->startAddress + nextRange->length) - newRange->startAddress;
+			newRange->length =
+				(nextRange->startAddress + nextRange->length) - newRange->startAddress;
 			map_ranges.erase(nextRange);
 			delete nextRange;
 			checkForCollisions();
@@ -218,9 +233,11 @@ private:
 		auto rangeItr = map_ranges.begin();
 
 		PPCRange_t* previousRange = nullptr;
-		for (std::set<uint32_t>::const_iterator targetItr = map_branchTargets.begin() ; targetItr != map_branchTargets.end(); )
+		for (std::set<uint32_t>::const_iterator targetItr = map_branchTargets.begin();
+			 targetItr != map_branchTargets.end();)
 		{
-			while (rangeItr != map_ranges.end() && ((*rangeItr)->startAddress + (*rangeItr)->length) <= (*targetItr))
+			while (rangeItr != map_ranges.end() &&
+				   ((*rangeItr)->startAddress + (*rangeItr)->length) <= (*targetItr))
 			{
 				previousRange = *rangeItr;
 				rangeItr++;
@@ -244,7 +261,8 @@ private:
 			}
 
 			cemu_assert_debug((*rangeItr)->startAddress > (*targetItr));
-			if (previousRange && (previousRange->startAddress + previousRange->length) == *targetItr)
+			if (previousRange &&
+				(previousRange->startAddress + previousRange->length) == *targetItr)
 				processRange(*targetItr, previousRange, *rangeItr); // extend previousRange
 			else
 				processRange(*targetItr, nullptr, *rangeItr);
@@ -255,10 +273,11 @@ private:
 
 	void processBranchTargets()
 	{
-		while (processBranchTargetsSinglePass());
+		while (processBranchTargetsSinglePass())
+			;
 	}
 
-	private:
+  private:
 	bool PPCRecompilerCalcFuncSize_isUnconditionalBranchInstruction(uint32 opcode)
 	{
 		if (Espresso::GetPrimaryOpcode(opcode) == Espresso::PrimaryOpcode::B)
@@ -279,7 +298,7 @@ private:
 		return true;
 	}
 
-private:
+  private:
 	struct RangePtrCmp
 	{
 		bool operator()(const PPCRange_t* lhs, const PPCRange_t* rhs) const

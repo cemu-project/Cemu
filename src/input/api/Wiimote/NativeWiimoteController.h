@@ -6,7 +6,7 @@
 // todo: find better name because of emulated nameclash
 class NativeWiimoteController : public Controller<WiimoteControllerProvider>
 {
-public:
+  public:
 	NativeWiimoteController(size_t index);
 
 	enum Extension
@@ -16,13 +16,16 @@ public:
 		Classic,
 		MotionPlus,
 	};
-	
+
 	std::string_view api_name() const override
 	{
 		static_assert(to_string(InputAPI::Wiimote) == "Wiimote");
 		return to_string(InputAPI::Wiimote);
 	}
-	InputAPI::Type api() const override { return InputAPI::Wiimote; }
+	InputAPI::Type api() const override
+	{
+		return InputAPI::Wiimote;
+	}
 
 	void save(pugi::xml_node& node) override;
 	void load(const pugi::xml_node& node) override;
@@ -40,13 +43,22 @@ public:
 	bool has_position() override;
 	glm::vec2 get_position() override;
 	glm::vec2 get_prev_position() override;
-	
-	bool has_motion() override { return true; }
-	bool has_rumble() override { return true; }
 
-	bool has_battery() override { return true; }
+	bool has_motion() override
+	{
+		return true;
+	}
+	bool has_rumble() override
+	{
+		return true;
+	}
+
+	bool has_battery() override
+	{
+		return true;
+	}
 	bool has_low_battery() override;
-	
+
 	void start_rumble() override;
 	void stop_rumble() override;
 
@@ -58,9 +70,8 @@ public:
 	uint32 get_packet_delay();
 	void set_packet_delay(uint32 delay);
 
-private:
+  private:
 	size_t m_index;
 	size_t m_player_index = 0;
 	uint32 m_packet_delay = WiimoteControllerProvider::kDefaultPacketDelay;
 };
-

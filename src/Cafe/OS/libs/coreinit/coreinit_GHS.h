@@ -2,7 +2,7 @@
 
 namespace coreinit
 {
-	void PrepareGHSRuntime();
+void PrepareGHSRuntime();
 
-	void InitializeGHS();
-};
+void InitializeGHS();
+}; // namespace coreinit

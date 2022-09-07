@@ -2,5 +2,5 @@
 
 namespace coreinit
 {
-	void InitializeIPCBuf();
+void InitializeIPCBuf();
 }

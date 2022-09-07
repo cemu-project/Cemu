@@ -5,11 +5,17 @@ struct CHAddr
 	uint32 offset;
 	uint32 chunkIndex;
 
-	CHAddr(uint32 _offset, uint32 _chunkIndex) : offset(_offset), chunkIndex(_chunkIndex) {};
-	CHAddr() : offset(0xFFFFFFFF), chunkIndex(0xFFFFFFFF) {};
+	CHAddr(uint32 _offset, uint32 _chunkIndex) : offset(_offset), chunkIndex(_chunkIndex){};
+	CHAddr() : offset(0xFFFFFFFF), chunkIndex(0xFFFFFFFF){};
 
-	bool isValid() { return chunkIndex != 0xFFFFFFFF; };
-	static CHAddr getInvalid() { return CHAddr(0xFFFFFFFF, 0xFFFFFFFF); };
+	bool isValid()
+	{
+		return chunkIndex != 0xFFFFFFFF;
+	};
+	static CHAddr getInvalid()
+	{
+		return CHAddr(0xFFFFFFFF, 0xFFFFFFFF);
+	};
 };
 
 class ChunkedHeap
@@ -24,7 +30,9 @@ class ChunkedHeap
 		uint32 chunkIndex;
 		uint32 size;
 		bool isFree;
-		allocRange_t(uint32 _offset, uint32 _chunkIndex, uint32 _size, bool _isFree) : offset(_offset), chunkIndex(_chunkIndex), size(_size), isFree(_isFree), nextFree(nullptr) {};
+		allocRange_t(uint32 _offset, uint32 _chunkIndex, uint32 _size, bool _isFree)
+			: offset(_offset), chunkIndex(_chunkIndex), size(_size), isFree(_isFree),
+			  nextFree(nullptr){};
 	};
 
 	struct chunk_t
@@ -32,10 +40,8 @@ class ChunkedHeap
 		std::unordered_map<uint32, allocRange_t*> map_allocatedRange;
 	};
 
-public:
-	ChunkedHeap()
-	{
-	}
+  public:
+	ChunkedHeap() {}
 
 	CHAddr alloc(uint32 size, uint32 alignment = 4)
 	{
@@ -52,14 +58,12 @@ public:
 		return 0;
 	}
 
-private:
+  private:
 	unsigned ulog2(uint32 v)
 	{
-		static const unsigned MUL_DE_BRUIJN_BIT[] =
-		{
-		   0,  9,  1, 10, 13, 21,  2, 29, 11, 14, 16, 18, 22, 25,  3, 30,
-		   8, 12, 20, 28, 15, 17, 24,  7, 19, 27, 23,  6, 26,  5,  4, 31
-		};
+		static const unsigned MUL_DE_BRUIJN_BIT[] = {0,	 9,	 1,	 10, 13, 21, 2,	 29, 11, 14, 16,
+													 18, 22, 25, 3,	 30, 8,	 12, 20, 28, 15, 17,
+													 24, 7,	 19, 27, 23, 6,	 26, 5,	 4,	 31};
 
 		v |= v >> 1;
 		v |= v >> 2;
@@ -123,7 +127,8 @@ private:
 		if (allocOffset > range->offset)
 		{
 			// alignment padding -> create free range
-			allocRange_t* head = new allocRange_t(range->offset, range->chunkIndex, allocOffset - range->offset, true);
+			allocRange_t* head = new allocRange_t(range->offset, range->chunkIndex,
+												  allocOffset - range->offset, true);
 			trackFreeRange(head);
 			if (range->prevOrdered)
 				range->prevOrdered->nextOrdered = head;
@@ -131,10 +136,14 @@ private:
 			head->nextOrdered = range;
 			range->prevOrdered = head;
 		}
-		if ((allocOffset + allocSize) < (range->offset + range->size)) // todo - create only if it's more than a couple of bytes?
+		if ((allocOffset + allocSize) <
+			(range->offset +
+			 range->size)) // todo - create only if it's more than a couple of bytes?
 		{
 			// tail -> create free range
-			allocRange_t* tail = new allocRange_t((allocOffset + allocSize), range->chunkIndex, (range->offset + range->size) - (allocOffset + allocSize), true);
+			allocRange_t* tail =
+				new allocRange_t((allocOffset + allocSize), range->chunkIndex,
+								 (range->offset + range->size) - (allocOffset + allocSize), true);
 			trackFreeRange(tail);
 			if (range->nextOrdered)
 				range->nextOrdered->prevOrdered = tail;
@@ -165,7 +174,8 @@ private:
 					if (alignmentLoss < range->size && (range->size - alignmentLoss) >= size)
 					{
 						_allocFrom(range, bucketIndex, alignedOffset, size);
-						list_chunks[range->chunkIndex]->map_allocatedRange.emplace(alignedOffset, range);
+						list_chunks[range->chunkIndex]->map_allocatedRange.emplace(alignedOffset,
+																				   range);
 						numAllocatedBytes += size;
 						return CHAddr(alignedOffset, range->chunkIndex);
 					}
@@ -174,7 +184,7 @@ private:
 			}
 			bucketIndex++; // try higher bucket
 		}
-		if(allocationLimitReached)
+		if (allocationLimitReached)
 			return CHAddr(0xFFFFFFFF, 0xFFFFFFFF);
 		if (!allocateChunk(size))
 		{
@@ -277,7 +287,8 @@ private:
 				{
 					if (itr.chunkIndex != dbgRange.chunkIndex)
 						continue;
-					if (itr.offset < (dbgRange.offset + dbgRange.size) && (itr.offset + itr.size) >(dbgRange.offset))
+					if (itr.offset < (dbgRange.offset + dbgRange.size) &&
+						(itr.offset + itr.size) > (dbgRange.offset))
 						assert_dbg();
 				}
 
@@ -286,15 +297,14 @@ private:
 				ar = ar->nextFree;
 			}
 		}
-
 	}
 
-private:
+  private:
 	std::vector<chunk_t*> list_chunks;
 	allocRange_t* bucketFreeRange[32]{};
 	bool allocationLimitReached = false;
 
-public:
+  public:
 	// statistics
 	uint32 numHeapBytes{}; // total size of the heap
 	uint32 numAllocatedBytes{};
@@ -302,7 +312,7 @@ public:
 
 class VGenericHeap
 {
-public:
+  public:
 	virtual void* alloc(uint32 size, uint32 alignment) = 0;
 	virtual void free(void* addr) = 0;
 };
@@ -318,7 +328,8 @@ class VHeap : public VGenericHeap
 		uint32 offset;
 		uint32 size;
 		bool isFree;
-		allocRange_t(uint32 _offset, uint32 _size, bool _isFree) : offset(_offset), size(_size), isFree(_isFree), nextFree(nullptr) {};
+		allocRange_t(uint32 _offset, uint32 _size, bool _isFree)
+			: offset(_offset), size(_size), isFree(_isFree), nextFree(nullptr){};
 	};
 
 	struct chunk_t
@@ -326,7 +337,7 @@ class VHeap : public VGenericHeap
 		std::unordered_map<uint32, allocRange_t*> map_allocatedRange;
 	};
 
-public:
+  public:
 	VHeap(void* heapBase, uint32 heapSize) : m_heapBase((uint8*)heapBase), m_heapSize(heapSize)
 	{
 		allocRange_t* range = new allocRange_t(0, heapSize, true);
@@ -348,13 +359,16 @@ public:
 
 	void setHeapBase(void* heapBase)
 	{
-		cemu_assert_debug(map_allocatedRange.empty()); // heap base can only be changed when there are no active allocations
+		cemu_assert_debug(
+			map_allocatedRange
+				.empty()); // heap base can only be changed when there are no active allocations
 		m_heapBase = (uint8*)heapBase;
 	}
 
 	void* alloc(uint32 size, uint32 alignment = 4) override
 	{
-		cemu_assert_debug(m_heapBase != nullptr); // if this is null, we cant use alloc() == nullptr to determine if an allocation failed
+		cemu_assert_debug(m_heapBase != nullptr); // if this is null, we cant use alloc() == nullptr
+												  // to determine if an allocation failed
 		uint32 allocOffset = 0;
 		bool r = _alloc(size, alignment, allocOffset);
 		if (!r)
@@ -403,14 +417,12 @@ public:
 		allocNum = (uint32)map_allocatedRange.size();
 	}
 
-private:
+  private:
 	unsigned ulog2(uint32 v)
 	{
-		static const unsigned MUL_DE_BRUIJN_BIT[] =
-		{
-		   0,  9,  1, 10, 13, 21,  2, 29, 11, 14, 16, 18, 22, 25,  3, 30,
-		   8, 12, 20, 28, 15, 17, 24,  7, 19, 27, 23,  6, 26,  5,  4, 31
-		};
+		static const unsigned MUL_DE_BRUIJN_BIT[] = {0,	 9,	 1,	 10, 13, 21, 2,	 29, 11, 14, 16,
+													 18, 22, 25, 3,	 30, 8,	 12, 20, 28, 15, 17,
+													 24, 7,	 19, 27, 23, 6,	 26, 5,	 4,	 31};
 
 		v |= v >> 1;
 		v |= v >> 2;
@@ -470,10 +482,14 @@ private:
 			head->nextOrdered = range;
 			range->prevOrdered = head;
 		}
-		if ((allocOffset + allocSize) < (range->offset + range->size)) // todo - create only if it's more than a couple of bytes?
+		if ((allocOffset + allocSize) <
+			(range->offset +
+			 range->size)) // todo - create only if it's more than a couple of bytes?
 		{
 			// tail -> create free range
-			allocRange_t* tail = new allocRange_t((allocOffset + allocSize), (range->offset + range->size) - (allocOffset + allocSize), true);
+			allocRange_t* tail =
+				new allocRange_t((allocOffset + allocSize),
+								 (range->offset + range->size) - (allocOffset + allocSize), true);
 			trackFreeRange(tail);
 			if (range->nextOrdered)
 				range->nextOrdered->prevOrdered = tail;
@@ -575,18 +591,18 @@ private:
 		}
 	}
 
-private:
+  private:
 	allocRange_t* bucketFreeRange[32]{};
 	std::unordered_map<uint32, allocRange_t*> map_allocatedRange;
 	uint8* m_heapBase;
 	const uint32 m_heapSize;
-	uint32 m_statsMemAllocated{ 0 };
+	uint32 m_statsMemAllocated{0};
 };
 
 template<uint32 TChunkSize>
 class ChunkedFlatAllocator
 {
-public:
+  public:
 	void setBaseAllocator(VGenericHeap* baseHeap)
 	{
 		m_currentBaseAllocator = baseHeap;
@@ -597,7 +613,7 @@ public:
 		if (m_currentBlockPtr)
 		{
 			m_currentBlockOffset = (m_currentBlockOffset + alignment - 1) & ~(alignment - 1);
-			if ((m_currentBlockOffset+size) <= TChunkSize)
+			if ((m_currentBlockOffset + size) <= TChunkSize)
 			{
 				void* allocPtr = m_currentBlockPtr + m_currentBlockOffset;
 				m_currentBlockOffset += size;
@@ -617,16 +633,22 @@ public:
 		m_currentBlockOffset = 0;
 	}
 
-	void forEachBlock(void(*funcCb)(void* mem, uint32 size))
+	void forEachBlock(void (*funcCb)(void* mem, uint32 size))
 	{
 		for (auto it : m_allocatedBlocks)
 			funcCb(it, TChunkSize);
 	}
 
-	uint32 getCurrentBlockOffset() const { return m_currentBlockOffset; }
-	uint8* getCurrentBlockPtr() const { return m_currentBlockPtr; }
-	
-private:
+	uint32 getCurrentBlockOffset() const
+	{
+		return m_currentBlockOffset;
+	}
+	uint8* getCurrentBlockPtr() const
+	{
+		return m_currentBlockPtr;
+	}
+
+  private:
 	void allocateAdditionalChunk()
 	{
 		m_currentBlockPtr = (uint8*)m_currentBaseAllocator->alloc(TChunkSize, 256);

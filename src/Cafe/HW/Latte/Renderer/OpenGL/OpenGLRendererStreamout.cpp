@@ -6,10 +6,12 @@
 
 #include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
 
-void OpenGLRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize)
+void OpenGLRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset,
+											  uint32 rangeAddr, uint32 rangeSize)
 {
 	catchOpenGLError();
-	glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, bufferIndex, glStreamoutCacheRingBuffer, ringBufferOffset, rangeSize);
+	glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, bufferIndex, glStreamoutCacheRingBuffer,
+					  ringBufferOffset, rangeSize);
 	catchOpenGLError();
 }
 
@@ -20,7 +22,7 @@ void OpenGLRenderer::streamout_begin()
 	auto primitiveMode = LatteGPUState.contextNew.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
 	if (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::POINTS)
 		glTransformFeedbackPrimitiveMode = GL_POINTS;
-	else if(primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLES)
+	else if (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLES)
 		glTransformFeedbackPrimitiveMode = GL_POINTS;
 	else if (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::QUADS)
 		glTransformFeedbackPrimitiveMode = GL_POINTS;
@@ -36,10 +38,12 @@ void OpenGLRenderer::streamout_begin()
 	m_isXfbActive = true;
 }
 
-void OpenGLRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
+void OpenGLRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset,
+														   uint32 size)
 {
 	if (glCopyNamedBufferSubData)
-		glCopyNamedBufferSubData(glStreamoutCacheRingBuffer, glAttributeCacheAB, srcOffset, dstOffset, size);
+		glCopyNamedBufferSubData(glStreamoutCacheRingBuffer, glAttributeCacheAB, srcOffset,
+								 dstOffset, size);
 	else
 		forceLog_printf("glCopyNamedBufferSubData() not supported");
 }
@@ -54,5 +58,4 @@ void OpenGLRenderer::streamout_rendererFinishDrawcall()
 
 		m_isXfbActive = false;
 	}
-
 }

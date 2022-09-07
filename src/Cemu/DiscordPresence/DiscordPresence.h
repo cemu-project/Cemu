@@ -4,7 +4,7 @@
 
 class DiscordPresence
 {
-public:
+  public:
 	enum State
 	{
 		Idling,

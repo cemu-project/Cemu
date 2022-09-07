@@ -5,7 +5,7 @@ class parsedPathW
 {
 	static const int MAX_NODES = 32;
 
-public:
+  public:
 	parsedPathW(std::wstring_view path)
 	{
 		// init vars
@@ -18,7 +18,7 @@ public:
 		// start parsing
 		sint32 offset = 0;
 		sint32 startOffset = 0;
-		if (offset < pathData.size()-1)
+		if (offset < pathData.size() - 1)
 		{
 			this->nodeOffset[this->numNodes] = offset;
 			this->numNodes++;
@@ -139,57 +139,57 @@ public:
 				pathStr.append(L"/");
 			pathStr.append(pathData.data() + nodeOffset[i]);
 		}
-		if(appendSlash)
+		if (appendSlash)
 			pathStr.append(L"/");
 	}
-private:
-		void updateOffsets(sint32 newBaseOffset)
+
+  private:
+	void updateOffsets(sint32 newBaseOffset)
+	{
+		if (numNodes == 0 || newBaseOffset == 0)
+			return;
+		cemu_assert_debug(newBaseOffset <= nodeOffset[0]);
+		if (newBaseOffset > 0)
 		{
-			if (numNodes == 0 || newBaseOffset == 0)
-				return;
-			cemu_assert_debug(newBaseOffset <= nodeOffset[0]);
-			if (newBaseOffset > 0)
+			// decrease size
+			memmove(pathData.data(), pathData.data() + newBaseOffset,
+					(pathData.size() - newBaseOffset) * sizeof(wchar_t));
+			pathData.resize(pathData.size() - newBaseOffset);
+			// update node offsets
+			for (sint32 i = 0; i < numNodes; i++)
 			{
-				// decrease size
-				memmove(pathData.data(), pathData.data() + newBaseOffset, (pathData.size() - newBaseOffset) * sizeof(wchar_t));
-				pathData.resize(pathData.size() - newBaseOffset);
-				// update node offsets
-				for (sint32 i = 0; i < numNodes; i++)
-				{
-					nodeOffset[i] -= newBaseOffset;
-				}
-			}
-			else
-			{
-				// increase size
-				newBaseOffset = -newBaseOffset;
-				pathData.resize(pathData.size() + newBaseOffset);
-				memmove(pathData.data() + newBaseOffset, pathData.data(), (pathData.size() - newBaseOffset) * sizeof(wchar_t));
-				// update node offsets
-				for (sint32 i = 0; i < numNodes; i++)
-				{
-					nodeOffset[i] += newBaseOffset;
-				}
+				nodeOffset[i] -= newBaseOffset;
 			}
 		}
+		else
+		{
+			// increase size
+			newBaseOffset = -newBaseOffset;
+			pathData.resize(pathData.size() + newBaseOffset);
+			memmove(pathData.data() + newBaseOffset, pathData.data(),
+					(pathData.size() - newBaseOffset) * sizeof(wchar_t));
+			// update node offsets
+			for (sint32 i = 0; i < numNodes; i++)
+			{
+				nodeOffset[i] += newBaseOffset;
+			}
+		}
+	}
 
-private:
-	//std::wstring pathData;
+  private:
+	// std::wstring pathData;
 	std::vector<wchar_t> pathData;
 	sint32 nodeOffset[MAX_NODES + 1];
 
-public:
+  public:
 	sint32 numNodes;
 };
-
 
 template<typename F, bool isCaseSensitive>
 class FileTree
 {
-public:
-
-private:
-
+  public:
+  private:
 	enum NODETYPE : uint8
 	{
 		NODETYPE_DIRECTORY,
@@ -202,7 +202,7 @@ private:
 		std::vector<_node_t*> subnodes;
 		F* custom;
 		NODETYPE type;
-	}node_t;
+	} node_t;
 
 	node_t* getByNodePath(parsedPathW& p, sint32 numNodes, bool createAsDirectories)
 	{
@@ -254,7 +254,7 @@ private:
 		return newNode;
 	}
 
-public:
+  public:
 	FileTree()
 	{
 		rootNode.type = NODETYPE_DIRECTORY;
@@ -275,7 +275,7 @@ public:
 		return true;
 	}
 
-	bool getFile(std::wstring_view path, F* &custom)
+	bool getFile(std::wstring_view path, F*& custom)
 	{
 		parsedPathW p(path);
 		if (p.numNodes == 0)
@@ -309,7 +309,9 @@ public:
 			assert(false);
 		}
 		// remove node from parent
-		directoryNode->subnodes.erase(std::remove(directoryNode->subnodes.begin(), directoryNode->subnodes.end(), fileNode), directoryNode->subnodes.end());
+		directoryNode->subnodes.erase(
+			std::remove(directoryNode->subnodes.begin(), directoryNode->subnodes.end(), fileNode),
+			directoryNode->subnodes.end());
 		// delete node
 		delete fileNode;
 		return true;
@@ -338,7 +340,7 @@ public:
 		return true;
 	}
 
-private:
+  private:
 	node_t rootNode;
 };
 
@@ -348,9 +350,9 @@ private:
 // optimized to be allocation-free for common path lengths
 class FSCPath
 {
-	struct PathNode 
+	struct PathNode
 	{
-		PathNode(uint16 offset, uint16 len) : offset(offset), len(len) {};
+		PathNode(uint16 offset, uint16 len) : offset(offset), len(len){};
 
 		uint16 offset;
 		uint16 len;
@@ -373,7 +375,7 @@ class FSCPath
 		m_names.insert(m_names.end(), name, name + nameLen);
 	}
 
-public:
+  public:
 	FSCPath(std::string_view path)
 	{
 		if (path.empty())
@@ -383,7 +385,7 @@ public:
 			m_isAbsolute = true;
 			path.remove_prefix(1);
 			// skip any additional leading slashes
-			while(!path.empty() && isSlash(path.front()))
+			while (!path.empty() && isSlash(path.front()))
 				path.remove_prefix(1);
 		}
 		// parse nodes
@@ -424,7 +426,8 @@ public:
 	{
 		if (index < 0 || index >= m_nodes.size())
 			return std::basic_string_view<char>();
-		return std::basic_string_view<char>(m_names.data() + m_nodes[index].offset, m_nodes[index].len);
+		return std::basic_string_view<char>(m_names.data() + m_nodes[index].offset,
+											m_nodes[index].len);
 	}
 
 	bool MatchNode(sint32 index, std::string_view name) const
@@ -482,9 +485,3 @@ static void FSTPathUnitTest()
 	p6 = FSCPath("/////////////");
 	cemu_assert_debug(p6.GetNodeCount() == 0);
 }
-
-
-
-
-
-

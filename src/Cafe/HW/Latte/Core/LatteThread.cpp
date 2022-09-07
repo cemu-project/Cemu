@@ -36,23 +36,32 @@ void Latte_LoadInitialRegisters()
 
 extern bool gx2WriteGatherInited;
 
-LatteTextureView* osScreenTVTex[2] = { nullptr };
-LatteTextureView* osScreenDRCTex[2] = { nullptr };
+LatteTextureView* osScreenTVTex[2] = {nullptr};
+LatteTextureView* osScreenDRCTex[2] = {nullptr};
 
-LatteTextureView* LatteHandleOSScreen_getOrCreateScreenTex(MPTR physAddress, uint32 width, uint32 height, uint32 pitch)
+LatteTextureView* LatteHandleOSScreen_getOrCreateScreenTex(MPTR physAddress, uint32 width,
+														   uint32 height, uint32 pitch)
 {
-	LatteTextureView* texView = LatteTextureViewLookupCache::lookup(physAddress, width, height, 1, pitch, 0, 1, 0, 1, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, Latte::E_DIM::DIM_2D);
+	LatteTextureView* texView = LatteTextureViewLookupCache::lookup(
+		physAddress, width, height, 1, pitch, 0, 1, 0, 1, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM,
+		Latte::E_DIM::DIM_2D);
 	if (texView)
 		return texView;
-	return LatteTexture_CreateTexture(0, Latte::E_DIM::DIM_2D, physAddress, 0, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, width, height, 1, pitch, 1, 0, Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED, false);
+	return LatteTexture_CreateTexture(0, Latte::E_DIM::DIM_2D, physAddress, 0,
+									  Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, width, height, 1,
+									  pitch, 1, 0, Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED, false);
 }
 
 void LatteHandleOSScreen_prepareTextures()
 {
-	osScreenTVTex[0] = LatteHandleOSScreen_getOrCreateScreenTex(LatteGPUState.osScreen.screen[0].physPtr, 1280, 720, 1280);
-	osScreenTVTex[1] = LatteHandleOSScreen_getOrCreateScreenTex(LatteGPUState.osScreen.screen[0].physPtr + 1280 * 720 * 4, 1280, 720, 1280);
-	osScreenDRCTex[0] = LatteHandleOSScreen_getOrCreateScreenTex(LatteGPUState.osScreen.screen[1].physPtr, 854, 480, 0x380);
-	osScreenDRCTex[1] = LatteHandleOSScreen_getOrCreateScreenTex(LatteGPUState.osScreen.screen[1].physPtr + 896 * 480 * 4, 854, 480, 0x380);
+	osScreenTVTex[0] = LatteHandleOSScreen_getOrCreateScreenTex(
+		LatteGPUState.osScreen.screen[0].physPtr, 1280, 720, 1280);
+	osScreenTVTex[1] = LatteHandleOSScreen_getOrCreateScreenTex(
+		LatteGPUState.osScreen.screen[0].physPtr + 1280 * 720 * 4, 1280, 720, 1280);
+	osScreenDRCTex[0] = LatteHandleOSScreen_getOrCreateScreenTex(
+		LatteGPUState.osScreen.screen[1].physPtr, 854, 480, 0x380);
+	osScreenDRCTex[1] = LatteHandleOSScreen_getOrCreateScreenTex(
+		LatteGPUState.osScreen.screen[1].physPtr + 896 * 480 * 4, 854, 480, 0x380);
 }
 
 void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPadView);
@@ -61,7 +70,8 @@ bool LatteHandleOSScreen_TV()
 {
 	if (!LatteGPUState.osScreen.screen[0].isEnabled)
 		return false;
-	if (LatteGPUState.osScreen.screen[0].flipExecuteCount == LatteGPUState.osScreen.screen[0].flipRequestCount)
+	if (LatteGPUState.osScreen.screen[0].flipExecuteCount ==
+		LatteGPUState.osScreen.screen[0].flipRequestCount)
 		return false;
 	LatteHandleOSScreen_prepareTextures();
 
@@ -76,9 +86,11 @@ bool LatteHandleOSScreen_TV()
 
 	// TV screen
 	LatteRenderTarget_copyToBackbuffer(osScreenTVTex[bufferIndexTV]->baseTexture->baseView, false);
-	
-	if (LatteGPUState.osScreen.screen[0].flipExecuteCount != LatteGPUState.osScreen.screen[0].flipRequestCount)
-		LatteGPUState.osScreen.screen[0].flipExecuteCount = LatteGPUState.osScreen.screen[0].flipRequestCount;
+
+	if (LatteGPUState.osScreen.screen[0].flipExecuteCount !=
+		LatteGPUState.osScreen.screen[0].flipRequestCount)
+		LatteGPUState.osScreen.screen[0].flipExecuteCount =
+			LatteGPUState.osScreen.screen[0].flipRequestCount;
 	return true;
 }
 
@@ -86,7 +98,8 @@ bool LatteHandleOSScreen_DRC()
 {
 	if (!LatteGPUState.osScreen.screen[1].isEnabled)
 		return false;
-	if (LatteGPUState.osScreen.screen[1].flipExecuteCount == LatteGPUState.osScreen.screen[1].flipRequestCount)
+	if (LatteGPUState.osScreen.screen[1].flipExecuteCount ==
+		LatteGPUState.osScreen.screen[1].flipRequestCount)
 		return false;
 	LatteHandleOSScreen_prepareTextures();
 
@@ -100,8 +113,10 @@ bool LatteHandleOSScreen_DRC()
 	// GamePad screen
 	LatteRenderTarget_copyToBackbuffer(osScreenDRCTex[bufferIndexDRC]->baseTexture->baseView, true);
 
-	if (LatteGPUState.osScreen.screen[1].flipExecuteCount != LatteGPUState.osScreen.screen[1].flipRequestCount)
-		LatteGPUState.osScreen.screen[1].flipExecuteCount = LatteGPUState.osScreen.screen[1].flipRequestCount;
+	if (LatteGPUState.osScreen.screen[1].flipExecuteCount !=
+		LatteGPUState.osScreen.screen[1].flipRequestCount)
+		LatteGPUState.osScreen.screen[1].flipExecuteCount =
+			LatteGPUState.osScreen.screen[1].flipRequestCount;
 	return true;
 }
 
@@ -109,15 +124,15 @@ void LatteThread_HandleOSScreen()
 {
 	bool swapTV = LatteHandleOSScreen_TV();
 	bool swapDRC = LatteHandleOSScreen_DRC();
-	if(swapTV || swapDRC)
+	if (swapTV || swapDRC)
 		g_renderer->SwapBuffers(swapTV, swapDRC);
 }
 
 int Latte_ThreadEntry()
 {
 	SetThreadName("LatteThread");
-	sint32 w,h;
-	gui_getWindowSize(&w,&h);
+	sint32 w, h;
+	gui_getWindowSize(&w, &h);
 
 	// imgui
 	ImGui::CreateContext();
@@ -140,27 +155,27 @@ int Latte_ThreadEntry()
 	LatteStreamout_InitCache();
 
 	g_renderer->renderTarget_setViewport(0, 0, w, h, 0.0f, 1.0f);
-	
+
 	// enable GLSL gl_PointSize support
 	// glEnable(GL_PROGRAM_POINT_SIZE); // breaks shader caching on AMD (as of 2018)
-	
+
 	LatteGPUState.glVendor = GLVENDOR_UNKNOWN;
-	switch(g_renderer->GetVendor())
+	switch (g_renderer->GetVendor())
 	{
-	case GfxVendor::AMD: 
+	case GfxVendor::AMD:
 		LatteGPUState.glVendor = GLVENDOR_AMD;
 		break;
-	case GfxVendor::IntelLegacy: 
-		LatteGPUState.glVendor = GLVENDOR_INTEL_LEGACY; 
+	case GfxVendor::IntelLegacy:
+		LatteGPUState.glVendor = GLVENDOR_INTEL_LEGACY;
 		break;
-	case GfxVendor::IntelNoLegacy: 
-		LatteGPUState.glVendor = GLVENDOR_INTEL_NOLEGACY; 
+	case GfxVendor::IntelNoLegacy:
+		LatteGPUState.glVendor = GLVENDOR_INTEL_NOLEGACY;
 		break;
-	case GfxVendor::Intel: 
-		LatteGPUState.glVendor = GLVENDOR_INTEL; 
+	case GfxVendor::Intel:
+		LatteGPUState.glVendor = GLVENDOR_INTEL;
 		break;
-	case GfxVendor::Nvidia: 
-		LatteGPUState.glVendor = GLVENDOR_NVIDIA; 
+	case GfxVendor::Nvidia:
+		LatteGPUState.glVendor = GLVENDOR_NVIDIA;
 		break;
 	case GfxVendor::Apple:
 		LatteGPUState.glVendor = GLVENDOR_APPLE;
@@ -175,21 +190,22 @@ int Latte_ThreadEntry()
 		g_renderer->EnableDebugMode();
 
 	// wait till a game is started
-	while( true )
+	while (true)
 	{
-		if( CafeSystem::IsTitleRunning() )
+		if (CafeSystem::IsTitleRunning())
 			break;
 
 		g_renderer->DrawEmptyFrame(true);
 		g_renderer->DrawEmptyFrame(false);
 
 		gui_hasScreenshotRequest(); // keep the screenshot request queue empty
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000/60));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 60));
 	}
 
 	g_renderer->DrawEmptyFrame(true);
 
-	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
+	// before doing anything with game specific shaders, we need to wait for graphic packs to finish
+	// loading
 	GraphicPack2::WaitUntilReady();
 	// load/init shader cache file
 	LatteShaderCache_load();
@@ -253,7 +269,8 @@ void LatteThread_Exit()
 	LatteTC_UnloadAllTextures();
 	// clean up runtime shader cache
 	// todo
-	// destroy renderer but make sure that g_renderer remains valid until the destructor has finished
+	// destroy renderer but make sure that g_renderer remains valid until the destructor has
+	// finished
 	if (g_renderer)
 	{
 		Renderer* renderer = g_renderer.get();
@@ -262,10 +279,10 @@ void LatteThread_Exit()
 	}
 	// reset GPU7 state
 	std::memset(&LatteGPUState, 0, sizeof(LatteGPUState));
-	#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	ExitThread(0);
-	#else
+#else
 	pthread_exit(nullptr);
-	#endif
+#endif
 	cemu_assert_unimplemented();
 }

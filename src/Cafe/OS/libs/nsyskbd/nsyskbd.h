@@ -1,5 +1,4 @@
 namespace nsyskbd
 {
-	void nsyskbd_load();
+void nsyskbd_load();
 }
-

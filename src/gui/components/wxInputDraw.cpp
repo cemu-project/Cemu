@@ -9,7 +9,10 @@ wxInputDraw::wxInputDraw(wxWindow* parent, wxWindowID id, const wxPoint& pos, co
 	Bind(wxEVT_PAINT, &wxInputDraw::OnPaintEvent, this);
 }
 
-wxInputDraw::~wxInputDraw() { Unbind(wxEVT_PAINT, &wxInputDraw::OnPaintEvent, this); }
+wxInputDraw::~wxInputDraw()
+{
+	Unbind(wxEVT_PAINT, &wxInputDraw::OnPaintEvent, this);
+}
 
 void wxInputDraw::OnPaintEvent(wxPaintEvent& event)
 {
@@ -24,7 +27,7 @@ void wxInputDraw::OnRender(wxDC& dc)
 	glm::vec2 position;
 	const wxPen *black, *red, *grey;
 	const wxBrush *black_brush, *red_brush, *grey_brush;
-	if(IsEnabled())
+	if (IsEnabled())
 	{
 		position = m_position;
 
@@ -66,10 +69,7 @@ void wxInputDraw::OnRender(wxDC& dc)
 		dc.SetPen(*grey);
 		dc.SetBrush(*wxLIGHT_GREY_BRUSH);
 		const auto deadzone_size = m_deadzone * min_size / 2.0f;
-		dc.DrawCircle(
-			static_cast<int>(middle.x),
-			static_cast<int>(middle.x),
-			(int)deadzone_size);
+		dc.DrawCircle(static_cast<int>(middle.x), static_cast<int>(middle.x), (int)deadzone_size);
 
 		if (length(position) >= m_deadzone)
 		{
@@ -95,11 +95,8 @@ void wxInputDraw::OnRender(wxDC& dc)
 	}
 
 	// draw axis
-	const wxPoint pos
-	{
-		static_cast<int>(middle.x + position.x * middle.x),
-		static_cast<int>(middle.y - position.y * middle.y)
-	};
+	const wxPoint pos{static_cast<int>(middle.x + position.x * middle.x),
+					  static_cast<int>(middle.y - position.y * middle.y)};
 	dc.DrawCircle(pos.x, pos.y, 2);
 
 	dc.SetBrush(*wxTRANSPARENT_BRUSH);

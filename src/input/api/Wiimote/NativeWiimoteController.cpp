@@ -14,8 +14,9 @@ void NativeWiimoteController::save(pugi::xml_node& node)
 {
 	base_type::save(node);
 
-	node.append_child("packet_delay").append_child(pugi::node_pcdata).set_value(
-		fmt::format("{}", m_packet_delay).c_str());
+	node.append_child("packet_delay")
+		.append_child(pugi::node_pcdata)
+		.set_value(fmt::format("{}", m_packet_delay).c_str());
 }
 
 void NativeWiimoteController::load(const pugi::xml_node& node)
@@ -84,7 +85,7 @@ bool NativeWiimoteController::has_position()
 {
 	const auto state = m_provider->get_state(m_index);
 	return std::any_of(state.ir_camera.dots.cbegin(), state.ir_camera.dots.cend(),
-	                   [](const IRDot& v) { return v.visible; });
+					   [](const IRDot& v) { return v.visible; });
 }
 
 glm::vec2 NativeWiimoteController::get_position()
@@ -141,47 +142,75 @@ std::string NativeWiimoteController::get_button_name(uint64 button) const
 {
 	switch (button)
 	{
-	case kWiimoteButton_A: return "A";
-	case kWiimoteButton_B: return "B";
+	case kWiimoteButton_A:
+		return "A";
+	case kWiimoteButton_B:
+		return "B";
 
-	case kWiimoteButton_One: return "1";
-	case kWiimoteButton_Two: return "2";
+	case kWiimoteButton_One:
+		return "1";
+	case kWiimoteButton_Two:
+		return "2";
 
-	case kWiimoteButton_Plus: return "+";
-	case kWiimoteButton_Minus: return "-";
+	case kWiimoteButton_Plus:
+		return "+";
+	case kWiimoteButton_Minus:
+		return "-";
 
-	case kWiimoteButton_Home: return "HOME";
+	case kWiimoteButton_Home:
+		return "HOME";
 
-	case kWiimoteButton_Up: return "UP";
-	case kWiimoteButton_Down: return "DOWN";
-	case kWiimoteButton_Left: return "LEFT";
-	case kWiimoteButton_Right: return "RIGHT";
+	case kWiimoteButton_Up:
+		return "UP";
+	case kWiimoteButton_Down:
+		return "DOWN";
+	case kWiimoteButton_Left:
+		return "LEFT";
+	case kWiimoteButton_Right:
+		return "RIGHT";
 
 	// nunchuck
-	case kWiimoteButton_C: return "C";
-	case kWiimoteButton_Z: return "Z";
+	case kWiimoteButton_C:
+		return "C";
+	case kWiimoteButton_Z:
+		return "Z";
 
 	// classic
-	case kHighestWiimote + kClassicButton_A: return "A";
-	case kHighestWiimote + kClassicButton_B: return "B";
-	case kHighestWiimote + kClassicButton_Y: return "Y";
-	case kHighestWiimote + kClassicButton_X: return "X";
+	case kHighestWiimote + kClassicButton_A:
+		return "A";
+	case kHighestWiimote + kClassicButton_B:
+		return "B";
+	case kHighestWiimote + kClassicButton_Y:
+		return "Y";
+	case kHighestWiimote + kClassicButton_X:
+		return "X";
 
-	case kHighestWiimote + kClassicButton_Plus: return "+";
-	case kHighestWiimote + kClassicButton_Minus: return "-";
+	case kHighestWiimote + kClassicButton_Plus:
+		return "+";
+	case kHighestWiimote + kClassicButton_Minus:
+		return "-";
 
-	case kHighestWiimote + kClassicButton_Home: return "HOME";
+	case kHighestWiimote + kClassicButton_Home:
+		return "HOME";
 
-	case kHighestWiimote + kClassicButton_Up: return "UP";
-	case kHighestWiimote + kClassicButton_Down: return "DOWN";
-	case kHighestWiimote + kClassicButton_Left: return "LEFT";
-	case kHighestWiimote + kClassicButton_Right: return "RIGHT";
+	case kHighestWiimote + kClassicButton_Up:
+		return "UP";
+	case kHighestWiimote + kClassicButton_Down:
+		return "DOWN";
+	case kHighestWiimote + kClassicButton_Left:
+		return "LEFT";
+	case kHighestWiimote + kClassicButton_Right:
+		return "RIGHT";
 
-	case kHighestWiimote + kClassicButton_L: return "L";
-	case kHighestWiimote + kClassicButton_R: return "R";
+	case kHighestWiimote + kClassicButton_L:
+		return "L";
+	case kHighestWiimote + kClassicButton_R:
+		return "R";
 
-	case kHighestWiimote + kClassicButton_ZL: return "ZL";
-	case kHighestWiimote + kClassicButton_ZR: return "ZR";
+	case kHighestWiimote + kClassicButton_ZL:
+		return "ZL";
+	case kHighestWiimote + kClassicButton_ZR:
+		return "ZR";
 	}
 
 	return base_type::get_button_name(button);

@@ -1,7 +1,7 @@
 #pragma once
 
-// staged lookup table suited for cases where the lookup index range can be very large (e.g. memory addresses)
-// performs 3 consecutive table lookups, where each table's width is defined by TBitsN
+// staged lookup table suited for cases where the lookup index range can be very large (e.g. memory
+// addresses) performs 3 consecutive table lookups, where each table's width is defined by TBitsN
 // empty subtables consume no memory beyond the initial two default tables for TBitsY and TBitsZ
 template<int TBitsX, int TBitsY, int TBitsZ, typename T>
 class LookupTableL3
@@ -16,12 +16,12 @@ class LookupTableL3
 		TableZ* arr[1 << TBitsY];
 	};
 
-	// by generating placeholder tables we can avoid conditionals in the lookup code since no null-pointer checking is necessary
+	// by generating placeholder tables we can avoid conditionals in the lookup code since no
+	// null-pointer checking is necessary
 	TableY* m_placeholderTableY{};
 	TableZ* m_placeholderTableZ{};
 
-
-public:
+  public:
 	LookupTableL3()
 	{
 		// init placeholder table Z
@@ -50,7 +50,7 @@ public:
 		uint32 indexY = offset & ((1u << TBitsY) - 1);
 		offset >>= TBitsY;
 		uint32 indexX = offset & ((1u << TBitsX) - 1);
-		//offset >>= TBitsX;
+		// offset >>= TBitsX;
 		return m_tableXArr[indexX]->arr[indexY]->arr[indexZ];
 	}
 
@@ -70,8 +70,9 @@ public:
 		lookupZ->arr[indexZ] = t;
 	}
 
-private:
-	// generate a new Y lookup table which will initially contain only pointers to m_placeholderTableZ
+  private:
+	// generate a new Y lookup table which will initially contain only pointers to
+	// m_placeholderTableZ
 	TableY* GenerateNewTableY()
 	{
 		TableY* tableY = new TableY();

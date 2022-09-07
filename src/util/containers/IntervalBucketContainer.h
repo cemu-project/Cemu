@@ -9,13 +9,14 @@ class IntervalBucketContainer
 		TAddr rangeEnd;
 		TData* data;
 		int bucketStartIndex;
-		bucketEntry_t(TAddr rangeStart, TAddr rangeEnd, TData* data, int bucketStartIndex) : rangeStart(rangeStart), rangeEnd(rangeEnd), data(data), bucketStartIndex(bucketStartIndex) {};
+		bucketEntry_t(TAddr rangeStart, TAddr rangeEnd, TData* data, int bucketStartIndex)
+			: rangeStart(rangeStart), rangeEnd(rangeEnd), data(data),
+			  bucketStartIndex(bucketStartIndex){};
 	};
 	std::vector<bucketEntry_t> list_bucket[TBucketCount];
 
-public:
-
-	IntervalBucketContainer() {};
+  public:
+	IntervalBucketContainer(){};
 
 	// range is defined as inclusive rangeStart and exclusive rangeEnd
 	void addRange(TAddr rangeStart, TAddr rangeEnd, TData* data)
@@ -30,7 +31,8 @@ public:
 		assert(bucketItrCount != 0);
 		while (bucketItrCount--)
 		{
-			list_bucket[bucketStartIndex].emplace_back(rangeStart, rangeEnd, data, bucketFirstIndex);
+			list_bucket[bucketStartIndex].emplace_back(rangeStart, rangeEnd, data,
+													   bucketFirstIndex);
 			bucketStartIndex = (bucketStartIndex + 1) % TBucketCount;
 		}
 	}
@@ -47,7 +49,8 @@ public:
 		int eraseCountVerifier = bucketItrCount;
 		while (bucketItrCount--)
 		{
-			for (auto it = list_bucket[bucketStartIndex].begin(); it != list_bucket[bucketStartIndex].end(); it++)
+			for (auto it = list_bucket[bucketStartIndex].begin();
+				 it != list_bucket[bucketStartIndex].end(); it++)
 			{
 				if (it->data == data)
 				{
@@ -60,7 +63,8 @@ public:
 			}
 			bucketStartIndex = (bucketStartIndex + 1) % TBucketCount;
 		}
-		assert(eraseCountVerifier == 0); // triggers if rangeStart/End doesn't match up with any registered range
+		assert(eraseCountVerifier ==
+			   0); // triggers if rangeStart/End doesn't match up with any registered range
 	}
 
 	template<typename TRangeCallback>
@@ -88,7 +92,8 @@ public:
 		{
 			for (auto& itr : list_bucket[bucketStartIndex])
 			{
-				if (itr.rangeStart < rangeEnd && itr.rangeEnd > rangeStart && itr.bucketStartIndex == bucketStartIndex)
+				if (itr.rangeStart < rangeEnd && itr.rangeEnd > rangeStart &&
+					itr.bucketStartIndex == bucketStartIndex)
 				{
 					cb(itr.data);
 				}
@@ -96,5 +101,4 @@ public:
 			bucketStartIndex = (bucketStartIndex + 1) % TBucketCount;
 		}
 	}
-
 };

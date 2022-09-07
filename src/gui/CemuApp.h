@@ -6,14 +6,18 @@ class MainWindow;
 
 class CemuApp : public wxApp
 {
-public:
+  public:
 	bool OnInit() override;
 	int OnExit() override;
 
-	void OnAssertFailure(const wxChar* file, int line, const wxChar* func, const wxChar* cond, const wxChar* msg) override;
+	void OnAssertFailure(const wxChar* file, int line, const wxChar* func, const wxChar* cond,
+						 const wxChar* msg) override;
 	int FilterEvent(wxEvent& event) override;
 
-	const std::vector<const wxLanguageInfo*>& GetLanguages() const { return m_languages; }
+	const std::vector<const wxLanguageInfo*>& GetLanguages() const
+	{
+		return m_languages;
+	}
 	static std::vector<const wxLanguageInfo*> GetAvailableLanguages();
 
 	static void CreateDefaultFiles(bool first_start = false);
@@ -23,7 +27,8 @@ public:
 	static wxString GetCemuPath(const wxString& cat);
 	static wxString GetMLCPath();
 	static wxString GetMLCPath(const wxString& cat);
-private:
+
+  private:
 	void ActivateApp(wxActivateEvent& event);
 
 	MainWindow* m_mainFrame = nullptr;

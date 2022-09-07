@@ -2,33 +2,41 @@
 
 class PipelineCompiler : public VKRMoveableRefCounter
 {
-private:
+  private:
 	// helper functions
 	VkFormat GetVertexFormat(uint8 format);
 	bool ConsumesBlendConstants(VkBlendFactor blendFactor);
 
-	void CreateDescriptorSetLayout(VulkanRenderer* vkRenderer, LatteDecompilerShader* shader, VkDescriptorSetLayout& layout, PipelineInfo* vkrPipelineInfo);
+	void CreateDescriptorSetLayout(VulkanRenderer* vkRenderer, LatteDecompilerShader* shader,
+								   VkDescriptorSetLayout& layout, PipelineInfo* vkrPipelineInfo);
 
-private:
-
+  private:
 	/* shader stages (requires compiled shader) */
 
 	RendererShaderVk* m_rectEmulationGS{};
 
-	bool InitShaderStages(VulkanRenderer* vkRenderer, RendererShaderVk* vkVertexShader, RendererShaderVk* vkPixelShader, RendererShaderVk* vkGeometryShader);
+	bool InitShaderStages(VulkanRenderer* vkRenderer, RendererShaderVk* vkVertexShader,
+						  RendererShaderVk* vkPixelShader, RendererShaderVk* vkGeometryShader);
 
 	/* vertex input state */
 
-	void InitVertexInputState(const LatteContextRegister& latteRegister, LatteDecompilerShader* vertexShader, LatteFetchShader* fetchShader);
-	void InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE primitiveMode);
+	void InitVertexInputState(const LatteContextRegister& latteRegister,
+							  LatteDecompilerShader* vertexShader, LatteFetchShader* fetchShader);
+	void
+	InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE primitiveMode);
 	void InitViewportState();
-	void InitRasterizerState(const LatteContextRegister& latteRegister, VulkanRenderer* vkRenderer, bool isPrimitiveRect, bool& usesDepthBias);
-	void InitBlendState(const LatteContextRegister& latteRegister, PipelineInfo* pipelineInfo, bool& usesBlendConstants);
-	void InitDescriptorSetLayouts(VulkanRenderer* vkRenderer, PipelineInfo* vkrPipelineInfo, LatteDecompilerShader* vertexShader, LatteDecompilerShader* pixelShader, LatteDecompilerShader* geometryShader);
+	void InitRasterizerState(const LatteContextRegister& latteRegister, VulkanRenderer* vkRenderer,
+							 bool isPrimitiveRect, bool& usesDepthBias);
+	void InitBlendState(const LatteContextRegister& latteRegister, PipelineInfo* pipelineInfo,
+						bool& usesBlendConstants);
+	void InitDescriptorSetLayouts(VulkanRenderer* vkRenderer, PipelineInfo* vkrPipelineInfo,
+								  LatteDecompilerShader* vertexShader,
+								  LatteDecompilerShader* pixelShader,
+								  LatteDecompilerShader* geometryShader);
 	void InitDepthStencilState();
 	void InitDynamicState(PipelineInfo* pipelineInfo, bool usesBlendConstants, bool usesDepthBias);
 
-public:
+  public:
 	PipelineCompiler();
 	~PipelineCompiler();
 
@@ -38,8 +46,13 @@ public:
 	RendererShaderVk* m_vkPixelShader{};
 	RendererShaderVk* m_vkGeometryShader{};
 
-	bool InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const LatteContextRegister& latteRegister, VKRObjectRenderPass* renderPassObj);
-	void TrackAsCached(uint64 baseHash, uint64 pipelineStateHash); // stores pipeline to permanent cache if not yet cached. Must be called synchronously from render thread due to dependency on GPU state
+	bool InitFromCurrentGPUState(PipelineInfo* pipelineInfo,
+								 const LatteContextRegister& latteRegister,
+								 VKRObjectRenderPass* renderPassObj);
+	void TrackAsCached(uint64 baseHash,
+					   uint64 pipelineStateHash); // stores pipeline to permanent cache if not yet
+												  // cached. Must be called synchronously from
+												  // render thread due to dependency on GPU state
 
 	VkPipelineLayout m_pipeline_layout;
 	VKRObjectRenderPass* m_renderPassObj{};
@@ -75,10 +88,10 @@ public:
 	VkPipelineDepthStencilStateCreateInfo depthStencilState{};
 
 	/* dynamic state */
-	std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT,
+												 VK_DYNAMIC_STATE_SCISSOR};
 	VkPipelineDynamicStateCreateInfo dynamicState = {};
 
 	// returns true if the shader was compiled (even if errors occurred)
 	bool Compile(bool forceCompile, bool isRenderThread, bool showInOverlay);
-
 };

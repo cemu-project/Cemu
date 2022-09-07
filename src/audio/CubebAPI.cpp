@@ -8,7 +8,6 @@
 #pragma comment(lib, "ksuser.lib")
 #endif
 
-
 void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 {
 	if (!stream)
@@ -30,13 +29,14 @@ void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 	}*/
 }
 
-long CubebAPI::data_cb(cubeb_stream* stream, void* user, const void* inputbuffer, void* outputbuffer, long nframes)
+long CubebAPI::data_cb(cubeb_stream* stream, void* user, const void* inputbuffer,
+					   void* outputbuffer, long nframes)
 {
 	auto* thisptr = (CubebAPI*)user;
-	//const auto size = (size_t)thisptr->m_bytesPerBlock; // (size_t)nframes* thisptr->m_channels;
+	// const auto size = (size_t)thisptr->m_bytesPerBlock; // (size_t)nframes* thisptr->m_channels;
 
 	// m_bytesPerBlock = samples_per_block * channels * (bits_per_sample / 8);
-	const auto size = (size_t)nframes * thisptr->m_channels * (thisptr->m_bitsPerSample/8);
+	const auto size = (size_t)nframes * thisptr->m_channels * (thisptr->m_bitsPerSample / 8);
 
 	std::unique_lock lock(thisptr->m_mutex);
 	if (thisptr->m_buffer.empty())
@@ -48,7 +48,8 @@ long CubebAPI::data_cb(cubeb_stream* stream, void* user, const void* inputbuffer
 	{
 		const auto copied = std::min(thisptr->m_buffer.size(), size);
 		memcpy(outputbuffer, thisptr->m_buffer.data(), copied);
-		thisptr->m_buffer.erase(thisptr->m_buffer.begin(), std::next(thisptr->m_buffer.begin(), copied));
+		thisptr->m_buffer.erase(thisptr->m_buffer.begin(),
+								std::next(thisptr->m_buffer.begin(), copied));
 		lock.unlock();
 		// fill rest with silence
 		if (copied != size)
@@ -59,7 +60,7 @@ long CubebAPI::data_cb(cubeb_stream* stream, void* user, const void* inputbuffer
 }
 
 CubebAPI::CubebAPI(cubeb_devid devid, uint32 samplerate, uint32 channels, uint32 samples_per_block,
-                   uint32 bits_per_sample)
+				   uint32 bits_per_sample)
 	: IAudioAPI(samplerate, channels, samples_per_block, bits_per_sample)
 {
 	cubeb_stream_params output_params;
@@ -93,10 +94,8 @@ CubebAPI::CubebAPI(cubeb_devid devid, uint32 samplerate, uint32 channels, uint32
 
 	m_buffer.reserve((size_t)m_bytesPerBlock * kBlockCount);
 
-	if (cubeb_stream_init(s_context, &m_stream, "Cemu Cubeb output",
-	                      nullptr, nullptr,
-	                      devid, &output_params,
-	                      latency, data_cb, state_cb, this) != CUBEB_OK)
+	if (cubeb_stream_init(s_context, &m_stream, "Cemu Cubeb output", nullptr, nullptr, devid,
+						  &output_params, latency, data_cb, state_cb, this) != CUBEB_OK)
 	{
 		throw std::runtime_error("can't initialize cubeb device");
 	}
@@ -164,7 +163,6 @@ void CubebAPI::SetVolume(sint32 volume)
 	cubeb_stream_set_volume(m_stream, (float)volume / 100.0f);
 }
 
-
 bool CubebAPI::InitializeStatic()
 {
 #if BOOST_OS_WINDOWS
@@ -209,12 +207,12 @@ std::vector<IAudioAPI::DeviceDescriptionPtr> CubebAPI::GetDevices()
 	result.reserve(devices.count);
 	for (size_t i = 0; i < devices.count; ++i)
 	{
-		//const auto& device = devices.device[i];
+		// const auto& device = devices.device[i];
 		if (devices.device[i].state == CUBEB_DEVICE_STATE_ENABLED)
 		{
-			auto device = std::make_shared<CubebDeviceDescription>(devices.device[i].devid, devices.device[i].device_id,
-			                                                       boost::nowide::widen(
-				                                                       devices.device[i].friendly_name));
+			auto device = std::make_shared<CubebDeviceDescription>(
+				devices.device[i].devid, devices.device[i].device_id,
+				boost::nowide::widen(devices.device[i].friendly_name));
 			result.emplace_back(device);
 		}
 	}

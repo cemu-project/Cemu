@@ -4,9 +4,9 @@
 
 namespace vpad
 {
-	void load();
-	void start();
-}
+void load();
+void start();
+} // namespace vpad
 
 #define VPAD_MAX_CONTROLLERS (2)
 
@@ -36,9 +36,7 @@ struct VPADDir
 	beVec3D_t z;
 
 	VPADDir() = default;
-	VPADDir(const beVec3D_t& x, const beVec3D_t& y, const beVec3D_t& z)
-		: x(x), y(y), z(z) {}
-
+	VPADDir(const beVec3D_t& x, const beVec3D_t& y, const beVec3D_t& z) : x(x), y(y), z(z) {}
 };
 
 static_assert(sizeof(VPADDir) == 0x24);
@@ -71,7 +69,7 @@ typedef struct VPADStatus
 	/* +0x52 */ VPADTPData_t tpData;
 	/* +0x5A */ VPADTPData_t tpProcessed1;
 	/* +0x62 */ VPADTPData_t tpProcessed2;
-	/* +0x6A */	uint8 padding2[2];
+	/* +0x6A */ uint8 padding2[2];
 	/* +0x6C */ VPADDir dir;
 	/* +0x90 */ uint8 headphoneStatus;
 	/* +0x91 */ uint8 padding3[3];
@@ -81,6 +79,6 @@ typedef struct VPADStatus
 	/* +0xA2 */ uint8 micStatus;
 	/* +0xA3 */ uint8 slideVolume2;
 	/* +0xA4 */ uint8 padding4[8];
-}VPADStatus_t;
+} VPADStatus_t;
 
 static_assert(sizeof(VPADStatus) == 0xAC);

@@ -22,24 +22,25 @@ const ControllerState& ControllerBase::update_state()
 	apply_axis_setting(result.rotation, m_default_state.rotation, m_settings.rotation);
 	apply_axis_setting(result.trigger, m_default_state.trigger, m_settings.trigger);
 
-#define APPLY_AXIS_BUTTON(_axis_, _flag_) \
-	if (result._axis_.x < -ControllerState::kAxisThreshold) \
-		result.buttons.set((_flag_) + (kAxisXN - kAxisXP)); \
-	else if (result._axis_.x > ControllerState::kAxisThreshold) \
-		result.buttons.set((_flag_)); \
-	if (result._axis_.y < -ControllerState::kAxisThreshold) \
-		result.buttons.set((_flag_) + 1 + (kAxisXN - kAxisXP)); \
-	else if (result._axis_.y > ControllerState::kAxisThreshold) \
+#define APPLY_AXIS_BUTTON(_axis_, _flag_)                                                          \
+	if (result._axis_.x < -ControllerState::kAxisThreshold)                                        \
+		result.buttons.set((_flag_) + (kAxisXN - kAxisXP));                                        \
+	else if (result._axis_.x > ControllerState::kAxisThreshold)                                    \
+		result.buttons.set((_flag_));                                                              \
+	if (result._axis_.y < -ControllerState::kAxisThreshold)                                        \
+		result.buttons.set((_flag_) + 1 + (kAxisXN - kAxisXP));                                    \
+	else if (result._axis_.y > ControllerState::kAxisThreshold)                                    \
 		result.buttons.set((_flag_) + 1);
 
-	if (result.axis.x < -ControllerState::kAxisThreshold) 
+	if (result.axis.x < -ControllerState::kAxisThreshold)
 		result.buttons.set((kAxisXP) + (kAxisXN - kAxisXP));
-	else if (result.axis.x > ControllerState::kAxisThreshold) 
+	else if (result.axis.x > ControllerState::kAxisThreshold)
 		result.buttons.set((kAxisXP));
-	if (result.axis.y < -ControllerState::kAxisThreshold) 
+	if (result.axis.y < -ControllerState::kAxisThreshold)
 		result.buttons.set((kAxisXP) + 1 + (kAxisXN - kAxisXP));
-	else if (result.axis.y > ControllerState::kAxisThreshold) 
-		result.buttons.set((kAxisXP) + 1);;
+	else if (result.axis.y > ControllerState::kAxisThreshold)
+		result.buttons.set((kAxisXP) + 1);
+	;
 	APPLY_AXIS_BUTTON(rotation, kRotationXP);
 	APPLY_AXIS_BUTTON(trigger, kTriggerXP);
 
@@ -65,7 +66,6 @@ const ControllerState& ControllerBase::update_state()
 	kTriggerYN,
 	 */
 
-
 #undef APPLY_AXIS_BUTTON
 
 	m_last_state = result;
@@ -73,7 +73,7 @@ const ControllerState& ControllerBase::update_state()
 }
 
 void ControllerBase::apply_axis_setting(glm::vec2& axis, const glm::vec2& default_value,
-                                        const AxisSetting& setting) const
+										const AxisSetting& setting) const
 {
 	constexpr float kMaxValue = 1.0f + ControllerState::kMinAxisValue;
 	if (setting.deadzone < 1.0f)
@@ -94,7 +94,8 @@ void ControllerBase::apply_axis_setting(glm::vec2& axis, const glm::vec2& defaul
 			axis *= setting.range;
 			len = length(axis);
 
-			// Scaled Radial Dead Zone: stickInput = stickInput.normalized * ((stickInput.magnitude - deadzone) / (1 - deadzone));
+			// Scaled Radial Dead Zone: stickInput = stickInput.normalized * ((stickInput.magnitude
+			// - deadzone) / (1 - deadzone));
 			if (len > 0)
 			{
 				axis = normalize(axis);
@@ -167,38 +168,54 @@ const ControllerState& ControllerBase::calibrate()
 	return m_default_state;
 }
 
-
 std::string ControllerBase::get_button_name(uint64 button) const
 {
 	switch (button)
 	{
-	case kButtonZL: return "ZL";
-	case kButtonZR: return "ZR";
+	case kButtonZL:
+		return "ZL";
+	case kButtonZR:
+		return "ZR";
 
-	case kButtonUp: return "DPAD-Up";
-	case kButtonDown: return "DPAD-Down";
-	case kButtonLeft: return "DPAD-Left";
-	case kButtonRight: return "DPAD-Right";
+	case kButtonUp:
+		return "DPAD-Up";
+	case kButtonDown:
+		return "DPAD-Down";
+	case kButtonLeft:
+		return "DPAD-Left";
+	case kButtonRight:
+		return "DPAD-Right";
 
-	case kAxisXP: return "X-Axis+";
-	case kAxisYP: return "Y-Axis+";
+	case kAxisXP:
+		return "X-Axis+";
+	case kAxisYP:
+		return "Y-Axis+";
 
-	case kAxisXN: return "X-Axis-";
-	case kAxisYN: return "Y-Axis-";
+	case kAxisXN:
+		return "X-Axis-";
+	case kAxisYN:
+		return "Y-Axis-";
 
-	case kRotationXP: return "X-Rotation+";
-	case kRotationYP: return "Y-Rotation+";
+	case kRotationXP:
+		return "X-Rotation+";
+	case kRotationYP:
+		return "Y-Rotation+";
 
-	case kRotationXN: return "X-Rotation-";
-	case kRotationYN: return "Y-Rotation-";
+	case kRotationXN:
+		return "X-Rotation-";
+	case kRotationYN:
+		return "Y-Rotation-";
 
-	case kTriggerXP: return "X-Trigger+";
-	case kTriggerYP: return "Y-Trigger+";
+	case kTriggerXP:
+		return "X-Trigger+";
+	case kTriggerYP:
+		return "Y-Trigger+";
 
-	case kTriggerXN: return "X-Trigger-";
-	case kTriggerYN: return "y-Trigger-";
+	case kTriggerXN:
+		return "X-Trigger-";
+	case kTriggerYN:
+		return "y-Trigger-";
 	}
-
 
 	return fmt::format("Button {}", (uint64)button);
 }

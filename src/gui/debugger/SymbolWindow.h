@@ -6,7 +6,7 @@ class DebuggerWindow2;
 
 class SymbolWindow : public wxFrame
 {
-public:
+  public:
 	SymbolWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size);
 
 	void OnMainMove(const wxPoint& position, const wxSize& main_size);
@@ -14,7 +14,7 @@ public:
 
 	void OnLeftDClick(wxListEvent& event);
 
-private:
+  private:
 	wxTextCtrl* m_filter;
 	SymbolListCtrl* m_symbol_ctrl;
 

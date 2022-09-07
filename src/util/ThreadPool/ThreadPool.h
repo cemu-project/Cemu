@@ -2,7 +2,7 @@
 
 class ThreadPool
 {
-public:
+  public:
 	template<class TFunction, class... TArgs>
 	static void FireAndForget(TFunction&& f, TArgs&&... args)
 	{
@@ -10,6 +10,4 @@ public:
 		std::thread t(std::forward<TFunction>(f), std::forward<TArgs>(args)...);
 		t.detach();
 	}
-
-
 };

@@ -12,7 +12,7 @@ FileStream* FileStream::openFile(const wchar_t* path, bool allowWrite)
 
 FileStream* FileStream::openFile2(const fs::path& path, bool allowWrite)
 {
-	//return openFile(path.generic_wstring().c_str(), allowWrite);
+	// return openFile(path.generic_wstring().c_str(), allowWrite);
 	FileStream* fs = new FileStream(path, true, allowWrite);
 	if (fs->m_isValid)
 		return fs;
@@ -84,7 +84,7 @@ bool FileStream::SetEndOfFile()
 {
 	assert_dbg();
 	return true;
-	//return ::SetEndOfFile(m_hFile) != 0;
+	// return ::SetEndOfFile(m_hFile) != 0;
 }
 
 void FileStream::extract(std::vector<uint8>& data)
@@ -190,12 +190,15 @@ FileStream::FileStream(const fs::path& path, bool isOpen, bool isWriteable)
 {
 	if (isOpen)
 	{
-		m_fileStream.open(path, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
+		m_fileStream.open(
+			path, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary)
+							  : (std::ios_base::in | std::ios_base::binary));
 		m_isValid = m_fileStream.is_open();
 	}
 	else
 	{
-		m_fileStream.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+		m_fileStream.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::binary |
+									std::ios_base::trunc);
 		m_isValid = m_fileStream.is_open();
 	}
 }

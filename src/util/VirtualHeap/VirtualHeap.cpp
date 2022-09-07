@@ -5,13 +5,14 @@ VirtualBufferHeap_t* virtualBufferHeap_create(uint32 virtualHeapSize, void* base
 	VirtualBufferHeap_t* bufferHeap = (VirtualBufferHeap_t*)malloc(sizeof(VirtualBufferHeap_t));
 	memset(bufferHeap, 0, sizeof(VirtualBufferHeap_t));
 	bufferHeap->firstEntry = nullptr;
-	virtualHeapSize = (virtualHeapSize + 31)&~31;
+	virtualHeapSize = (virtualHeapSize + 31) & ~31;
 	bufferHeap->virtualSize = virtualHeapSize;
 	bufferHeap->baseAddress = baseAddr;
 	bufferHeap->updateTrackIndex = 0;
 	// create pool of unused entries
 	sint32 unusedEntryPoolSize = 1024 * 16;
-	VirtualBufferHeapEntry_t* unusedEntryPool = (VirtualBufferHeapEntry_t*)malloc(sizeof(VirtualBufferHeapEntry_t)*unusedEntryPoolSize);
+	VirtualBufferHeapEntry_t* unusedEntryPool =
+		(VirtualBufferHeapEntry_t*)malloc(sizeof(VirtualBufferHeapEntry_t) * unusedEntryPoolSize);
 	for (sint32 i = 0; i < unusedEntryPoolSize - 1; i++)
 	{
 		unusedEntryPool[i].next = unusedEntryPool + i + 1;
@@ -35,7 +36,8 @@ VirtualBufferHeapEntry_t* virtualBufferHeap_createEntry(VirtualBufferHeap_t* buf
 	return newEntry;
 }
 
-void virtualBufferHeap_releaseEntry(VirtualBufferHeap_t* bufferHeap, VirtualBufferHeapEntry_t* entry)
+void virtualBufferHeap_releaseEntry(VirtualBufferHeap_t* bufferHeap,
+									VirtualBufferHeapEntry_t* entry)
 {
 	bufferHeap->stats.allocatedMemory -= (entry->endOffset - entry->startOffset);
 	bufferHeap->stats.numActiveAllocs--;
@@ -47,7 +49,7 @@ void virtualBufferHeap_releaseEntry(VirtualBufferHeap_t* bufferHeap, VirtualBuff
 VirtualBufferHeapEntry_t* virtualBufferHeap_allocate(VirtualBufferHeap_t* bufferHeap, uint32 size)
 {
 	// align size
-	size = (size + 255)&~255;
+	size = (size + 255) & ~255;
 	// iterate already allocated entries and try to find free space between them
 	VirtualBufferHeapEntry_t* entryItr = bufferHeap->firstEntry;
 	if (entryItr == NULL)
@@ -73,7 +75,7 @@ VirtualBufferHeapEntry_t* virtualBufferHeap_allocate(VirtualBufferHeap_t* buffer
 			{
 				// space occupied
 				currentAllocationOffset = entryItr->endOffset;
-				currentAllocationOffset = (currentAllocationOffset + 255)&~255;
+				currentAllocationOffset = (currentAllocationOffset + 255) & ~255;
 				// next
 				entryPrev = entryItr;
 				entryItr = entryItr->next;
@@ -146,10 +148,10 @@ void* virtualBufferHeap_allocateAddr(VirtualBufferHeap_t* bufferHeap, uint32 siz
 void virtualBufferHeap_freeAddr(VirtualBufferHeap_t* bufferHeap, void* addr)
 {
 	auto entry = bufferHeap->firstEntry;
-	while(entry)
+	while (entry)
 	{
 		const auto entry_address = (uint8*)bufferHeap->baseAddress + entry->startOffset;
-		if(entry_address == (uint8*)addr)
+		if (entry_address == (uint8*)addr)
 		{
 			virtualBufferHeap_free(bufferHeap, entry);
 			return;

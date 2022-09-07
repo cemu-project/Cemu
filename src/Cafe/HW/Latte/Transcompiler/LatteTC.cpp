@@ -7,8 +7,9 @@
 
 class CFBlockNode
 {
-public:
-	CFBlockNode(uint32 cfAddress, const LatteCFInstruction& cfInstruction) : cfAddress(cfAddress), cfNext(cfAddress + sizeof(LatteCFInstruction))
+  public:
+	CFBlockNode(uint32 cfAddress, const LatteCFInstruction& cfInstruction)
+		: cfAddress(cfAddress), cfNext(cfAddress + sizeof(LatteCFInstruction))
 	{
 		m_cfInstructions.emplace_back(cfInstruction);
 		irBasicBlock = new ZpIR::ZpIRBasicBlock();
@@ -26,13 +27,13 @@ public:
 	}
 
 	uint32 cfAddress; // offset of the first cf instruction
-	uint32 cfNext{ 0 }; // offset of the next cf instruction if no branch happens
+	uint32 cfNext{0}; // offset of the next cf instruction if no branch happens
 
 	ZpIR::ZpIRBasicBlock* irBasicBlock{};
 
 	std::vector<LatteCFInstruction> m_cfInstructions;
 
-private:
+  private:
 };
 
 // emit IR code for all clauses in a DAG node
@@ -48,19 +49,19 @@ void LatteTCGenIR::genIRForNode(CFBlockNode& node)
 		for (uint32 channel = 0; channel < 4; channel++)
 		{
 			ZpIR::IRReg irReg = m_irGenContext.irBuilder->createReg(ZpIR::DataType::U32);
-			m_irGenContext.irBuilder->emit_RR(ZpIR::IR::OpCode::MOV, irReg, m_irGenContext.irBuilder->createConstU32(0));
+			m_irGenContext.irBuilder->emit_RR(ZpIR::IR::OpCode::MOV, irReg,
+											  m_irGenContext.irBuilder->createConstU32(0));
 			this->m_irGenContext.activeVars.set(0, channel, irReg);
 		}
 		// todo - correctly init R0 based on currently set context register state
 	}
-
 
 	for (auto& itr : node.m_cfInstructions)
 	{
 		const auto opcode = itr.getField_Opcode();
 		if (const auto cfInstr = itr.getParserIfOpcodeMatch<LatteCFInstruction_DEFAULT>())
 		{
-			if(opcode == LatteCFInstruction::OPCODE::INST_CALL_FS)
+			if (opcode == LatteCFInstruction::OPCODE::INST_CALL_FS)
 				processCF_CALL_FS(*cfInstr);
 			else
 				assert_dbg();
@@ -72,9 +73,10 @@ void LatteTCGenIR::genIRForNode(CFBlockNode& node)
 			else
 				assert_dbg();
 		}
-		else if (const auto cfInstr = itr.getParserIfOpcodeMatch<LatteCFInstruction_EXPORT_IMPORT>())
+		else if (const auto cfInstr =
+					 itr.getParserIfOpcodeMatch<LatteCFInstruction_EXPORT_IMPORT>())
 		{
-			if (opcode == LatteCFInstruction::OPCODE::INST_EXPORT || 
+			if (opcode == LatteCFInstruction::OPCODE::INST_EXPORT ||
 				opcode == LatteCFInstruction::OPCODE::INST_EXPORT_DONE)
 				processCF_EXPORT(*cfInstr);
 			else
@@ -97,19 +99,20 @@ void LatteTCGenIR::parseCF_createNodes(NodeDAG& nodeDAG)
 	// quick prepass to gather a list of jump destinations used by the next pass
 	// todo
 
-	// linear pass where we turn uninterrupted sequences of CF instructions (no branch to or from) into CFBlockNode
-	// algorithm description:
-	// 1) Create CFBlockNode from first CF instruction. Make it the currently active node
-	// 2) For each remaining (1 .. n) CF instruction of program
-	// 2.1) If CF instruction can be merged into active node (no branch destination, no conditionals or other control flow branches) then add it to the currently active node
-	// 2.2) Otherwise finalize active node, add it to node list. Then create new CFBlockNode node from CF instruction and make it active node
-	// 3) Finalize active node and add to node list
+	// linear pass where we turn uninterrupted sequences of CF instructions (no branch to or from)
+	// into CFBlockNode algorithm description: 1) Create CFBlockNode from first CF instruction. Make
+	// it the currently active node 2) For each remaining (1 .. n) CF instruction of program 2.1) If
+	// CF instruction can be merged into active node (no branch destination, no conditionals or
+	// other control flow branches) then add it to the currently active node 2.2) Otherwise finalize
+	// active node, add it to node list. Then create new CFBlockNode node from CF instruction and
+	// make it active node 3) Finalize active node and add to node list
 
 	cemu_assert_debug(cfMaxCount != 0); // zero not allowed
 
-	CFBlockNode* activeNode = new CFBlockNode(0, cfCode[0]); // first instruction becomes the initial node
+	CFBlockNode* activeNode =
+		new CFBlockNode(0, cfCode[0]); // first instruction becomes the initial node
 	size_t cfIndex = 1;
-	//m_nodes.emplace_back(activeNode);
+	// m_nodes.emplace_back(activeNode);
 	while (cfIndex < cfMaxCount)
 	{
 		const LatteCFInstruction* baseInstr = cfCode + cfIndex;
@@ -121,12 +124,12 @@ void LatteTCGenIR::parseCF_createNodes(NodeDAG& nodeDAG)
 			cemu_assert_debug(cfInstr->getField_WHOLE_QUAD_MODE() == 0);
 
 			cemu_assert_debug(cfInstr->getField_CALL_COUNT() == 0); // todo
-			cemu_assert_debug(cfInstr->getField_POP_COUNT() == 0); // todo
+			cemu_assert_debug(cfInstr->getField_POP_COUNT() == 0);	// todo
 
 			auto cond = cfInstr->getField_COND();
 
 			assert_dbg();
-			//cfInstr->getField_COND() == LatteCFInstruction::CF_COND::CF_COND_ACTIVE;
+			// cfInstr->getField_COND() == LatteCFInstruction::CF_COND::CF_COND_ACTIVE;
 		}
 		else if (const auto cfInstr = baseInstr->getParserIfOpcodeMatch<LatteCFInstruction_ALU>())
 		{
@@ -135,14 +138,16 @@ void LatteTCGenIR::parseCF_createNodes(NodeDAG& nodeDAG)
 			canMerge = true;
 			isALU = true;
 		}
-		else if (const auto cfInstr = baseInstr->getParserIfOpcodeMatch<LatteCFInstruction_EXPORT_IMPORT>())
+		else if (const auto cfInstr =
+					 baseInstr->getParserIfOpcodeMatch<LatteCFInstruction_EXPORT_IMPORT>())
 		{
 			// no extra conditions, always merge
 			canMerge = true;
 		}
 		else
 		{
-			debug_printf("Missing implementation for CF opcode 0x%02x\n", baseInstr->getField_Opcode());
+			debug_printf("Missing implementation for CF opcode 0x%02x\n",
+						 baseInstr->getField_Opcode());
 			assert_dbg(); // todo
 		}
 
@@ -186,27 +191,27 @@ void LatteTCGenIR::emitIR()
 	{
 		genIRForNode(*itr);
 	}
-
 }
 
 void LatteTCGenIR::cleanup()
 {
 	// clean up
-	//for (auto itr : m_ctx.list_irNodesCtx)
+	// for (auto itr : m_ctx.list_irNodesCtx)
 	//	delete itr;
-	//m_ctx.list_irNodesCtx.clear();
+	// m_ctx.list_irNodesCtx.clear();
 }
 
-void LatteTCGenIR::setVertexShaderContext(const LatteFetchShader* parsedFetchShader, const uint32* vtxSemanticTable)
+void LatteTCGenIR::setVertexShaderContext(const LatteFetchShader* parsedFetchShader,
+										  const uint32* vtxSemanticTable)
 {
 	m_vertexShaderCtx.parsedFetchShader = parsedFetchShader;
 	m_vertexShaderCtx.vtxSemanticTable = vtxSemanticTable;
 }
 
-
-ZpIR::ZpIRFunction* LatteTCGenIR::transcompileLatteToIR(const void* programData, uint32 programSize, SHADER_TYPE shaderType)
+ZpIR::ZpIRFunction* LatteTCGenIR::transcompileLatteToIR(const void* programData, uint32 programSize,
+														SHADER_TYPE shaderType)
 {
-	//return nullptr;
+	// return nullptr;
 	ZpIR::ZpIRFunction* irObject = new ZpIR::ZpIRFunction();
 
 	// init context

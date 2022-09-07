@@ -2,5 +2,5 @@
 
 namespace coreinit
 {
-	void InitializeOSScreen();
+void InitializeOSScreen();
 }
