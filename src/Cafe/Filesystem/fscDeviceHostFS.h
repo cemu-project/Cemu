@@ -1,9 +1,10 @@
 #include "Cafe/Filesystem/fsc.h"
+#include "FSPath.h"
 
 class FSCVirtualFile_Host : public FSCVirtualFile
 {
 public:
-	static FSCVirtualFile* OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus);
+	static FSCVirtualFile* OpenFile(const FSPath& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus);
 	~FSCVirtualFile_Host() override;
 
 	sint32 fscGetType() override;

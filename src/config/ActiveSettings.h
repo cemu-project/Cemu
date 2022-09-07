@@ -12,7 +12,7 @@ public:
 	[[nodiscard]] static fs::path GetPath() { return s_path; }
 	[[nodiscard]] static fs::path GetFilename() { return s_filename; }
 	
-	[[nodiscard]] static fs::path GetMlcPath();
+	[[nodiscard]] static FSPath GetMlcPath();
 
 	[[nodiscard]] static fs::path GetPath(std::string_view p) 
 	{
@@ -20,12 +20,8 @@ public:
 		return s_path / fs::path(s);
 	}
 
-	[[nodiscard]] static fs::path GetMlcPath(std::string_view p) 
-	{ 
-		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
-		return GetMlcPath() / fs::path(s);
-	}
-	
+	[[nodiscard]] static FSPath GetMlcPath(std::string_view p);
+
 	template <typename ...TArgs>
 	[[nodiscard]] static fs::path GetPath(std::string_view format, TArgs&&... args)
 	{

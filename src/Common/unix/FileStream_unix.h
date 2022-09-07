@@ -1,4 +1,5 @@
 #pragma once
+#include <Cafe/Filesystem/FSPath.h>
 #include "Common/precompiled.h"
 
 class FileStream
@@ -6,7 +7,7 @@ class FileStream
  public:
 	static FileStream* openFile(std::string_view path);
 	static FileStream* openFile(const wchar_t* path, bool allowWrite = false);
-	static FileStream* openFile2(const fs::path& path, bool allowWrite = false);
+	static FileStream* openFile2(const FSPath& path, bool allowWrite = false);
 
 	static FileStream* createFile(const wchar_t* path);
 	static FileStream* createFile(std::string_view path);

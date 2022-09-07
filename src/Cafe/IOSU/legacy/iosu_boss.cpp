@@ -649,7 +649,7 @@ namespace iosu
 
 					// create/open fad db content
 					BossStorageFadFile fad_content{};
-					fs::path db_file = ActiveSettings::GetMlcPath("usr/boss/{:08x}/{:08x}/user/common/{:08x}/{}", (uint32)(it->title_id >> 32), (uint32)(it->title_id & 0xFFFFFFFF), it->account_id, taskIdStr);
+					FSPath db_file = ActiveSettings::GetMlcPath("usr/boss/{:08x}/{:08x}/user/common/{:08x}/{}", (uint32)(it->title_id >> 32), (uint32)(it->title_id & 0xFFFFFFFF), it->account_id, taskIdStr);
 					if (!fs::exists(db_file))
 						fs::create_directories(db_file);
 
@@ -800,7 +800,7 @@ namespace iosu
 			strncpy(fileName, (char*)&it->task_settings.settings[TaskSetting::kFileName], TaskSetting::kFileNameLen);
 
 			//  mcl01\usr\boss\00050000\1018dd00\user\<persistentId>\<storageName>\<filename>
-			fs::path path = ActiveSettings::GetMlcPath("usr/boss/{:08x}/{:08x}/user/{:08x}", (uint32)(it->title_id >> 32),
+			FSPath path = ActiveSettings::GetMlcPath("usr/boss/{:08x}/{:08x}/user/{:08x}", (uint32)(it->title_id >> 32),
 				(uint32)(it->title_id & 0xFFFFFFFF), iosuAct_getAccountIdOfCurrentAccount());
 			path /= directoryName;
 

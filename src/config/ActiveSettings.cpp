@@ -209,7 +209,7 @@ bool ActiveSettings::ForceSamplerRoundToPrecision()
 	return false;
 }
 
-fs::path ActiveSettings::GetMlcPath()
+FSPath ActiveSettings::GetMlcPath()
 {
 	if(const auto launch_mlc = LaunchSettings::GetMLCPath(); launch_mlc.has_value())
 		return launch_mlc.value();
@@ -218,6 +218,12 @@ fs::path ActiveSettings::GetMlcPath()
 		return config_mlc;
 
 	return GetDefaultMLCPath();
+}
+
+FSPath ActiveSettings::GetMlcPath(std::string_view p)
+{
+	std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
+	return GetMlcPath() / fs::path(s);
 }
 
 fs::path ActiveSettings::GetDefaultMLCPath()

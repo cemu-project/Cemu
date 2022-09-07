@@ -1,6 +1,7 @@
 #include "config/ActiveSettings.h"
 #include "Cafe/Filesystem/fsc.h"
 #include "Cafe/Filesystem/fscDeviceHostFS.h"
+#include "Cafe/Filesystem/FSPath.h"
 
 #include "Common/FileStream.h"
 
@@ -157,7 +158,7 @@ bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
 	return true;
 }
 
-FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus)
+FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const FSPath& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus)
 {
 	if (!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) && !HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
 		cemu_assert_debug(false); // not allowed. At least one of both flags must be set
@@ -226,55 +227,7 @@ class fscDeviceHostFSC : public fscDeviceC {
 		// todo: implement caching.
 		*fscStatus = FSC_STATUS_OK;
 
-		// explore directories recursively and find the matching cases.
-		std::filesystem::path path = pathString;
-		std::filesystem::path relPath = path.relative_path();
-		std::filesystem::path correctedPath = path.root_path();
-
-		// helper function to convert a path's alphabet characters to lowercase.
-		auto static lowercase_path = [](std::filesystem::path const & path)
-		{
-			std::wstring string = path.wstring();
-			for (auto& i : string)
-			{
-				i = std::isalpha(i) ? std::tolower(i) : i;
-			}
-			return string;
-		};
-
-		bool found;
-		for (auto const &it : relPath)
-		{
-			found = false;
-			std::error_code listErr;
-			for (auto const& dirEntry : std::filesystem::directory_iterator{correctedPath, listErr})
-			{
-				std::filesystem::path entryName = dirEntry.path().filename();
-				if (lowercase_path(entryName) == lowercase_path(it))
-				{
-					correctedPath /= entryName;
-					found = true;
-					break;
-				}
-			}
-
-			// if we can't iterate directory, just copy the original case.
-			if(listErr)
-			{
-				correctedPath /= it;
-				found = true;
-			}
-
-			if (!found)
-				break;
-		}
-
-		if(!found)
-		{
-			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
-			return nullptr;
-		}
-
+		FSPath correctedPath = FSPath::Convert(pathString);
 		return FSCVirtualFile_Host::OpenFile(correctedPath, accessFlags, *fscStatus);
 	}
 
