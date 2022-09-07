@@ -4,8 +4,6 @@ file(GLOB CPP_FILES *.cpp)
 file(GLOB H_FILES *.h)
 add_library(CemuCommon ${CPP_FILES} ${H_FILES})
 
-set_property(TARGET CemuCommon PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 if(WIN32)
 	target_sources(CemuCommon PRIVATE
 		windows/platform.cpp

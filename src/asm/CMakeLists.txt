@@ -35,5 +35,3 @@ else()
 	set_target_properties(CemuAsm PROPERTIES LINKER_LANGUAGE C)
 
 endif()
-
-set_property(TARGET CemuAsm PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

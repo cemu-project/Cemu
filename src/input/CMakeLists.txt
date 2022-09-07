@@ -25,8 +25,6 @@ add_library(CemuInput
 	emulated/ClassicController.h
 )
 
-set_property(TARGET CemuInput PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 # SDL
 target_sources(CemuInput PRIVATE
 	api/SDL/SDLController.cpp

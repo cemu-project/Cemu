@@ -5,8 +5,6 @@ add_library(CemuAudio
 	IAudioAPI.h
 )
 
-set_property(TARGET CemuAudio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 # move these to UI folder
 target_sources(CemuAudio PRIVATE
 	audioDebuggerWindow.cpp

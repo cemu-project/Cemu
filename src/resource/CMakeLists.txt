@@ -1,7 +1,5 @@
 add_library(CemuResource)
 
-set_property(TARGET CemuResource PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 # icon resources
 if(UNIX)
 	target_sources(CemuResource PRIVATE

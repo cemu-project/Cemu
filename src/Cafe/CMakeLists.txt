@@ -10,8 +10,6 @@ else()
 	add_library(CemuCafe ${CPP_FILES} ${H_FILES})
 endif()
 
-set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 target_include_directories(CemuCafe PUBLIC "../")
 
 target_link_libraries(CemuCafe PRIVATE
