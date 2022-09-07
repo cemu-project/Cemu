@@ -158,10 +158,12 @@ bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
 	return true;
 }
 
-FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const FSPath& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus)
+FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& rawPath, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus)
 {
 	if (!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) && !HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
 		cemu_assert_debug(false); // not allowed. At least one of both flags must be set
+
+	auto path = FSPath::Convert(rawPath);
 
 	// attempt to open as file
 	if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
@@ -225,7 +227,7 @@ public:
 	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(FSPath::Convert(path), accessFlags, *fscStatus);
+		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(path, accessFlags, *fscStatus);
 		cemu_assert_debug((bool)vf == (*fscStatus == FSC_STATUS_OK));
 		return vf;
 	}

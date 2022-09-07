@@ -12,7 +12,7 @@ class FSPath : public fs::path {
 	template <class T>
 	static FSPath Convert(const T& input)
 	{
-		return FSPath{} / input;
+		return FSPath{} / FSPath{input};
 	}
 	FSPath& operator/= (const FSPath & other);
 	FSPath& operator/ (const FSPath & other);
