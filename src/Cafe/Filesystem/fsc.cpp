@@ -1,4 +1,5 @@
 #include "Cafe/Filesystem/fsc.h"
+#include "Cafe/Filesystem/FST/fstUtil.h"
 
 struct FSCMountPathNode
 {
@@ -24,7 +25,7 @@ struct FSCMountPathNode
 	}
 };
 
-// compare two file or directory names using FS rules
+// compare two file or directory names using FSA rules
 bool FSA_CompareNodeName(std::string_view a, std::string_view b)
 {
 	if (a.size() != b.size())
@@ -74,25 +75,25 @@ void fsc_reset()
  * /vol/content/data -> Map to HostFS
  * If overlapping paths with different priority are created, then the higher priority one will be checked first
  */
-FSCMountPathNode* fsc_createMountPath(CoreinitFSParsedPath* parsedMountPath, sint32 priority)
+FSCMountPathNode* fsc_createMountPath(const FSCPath& mountPath, sint32 priority)
 {
 	cemu_assert(priority >= 0 && priority < FSC_PRIORITY_COUNT);
 	fscEnter();
 	FSCMountPathNode* nodeParent = s_fscRootNodePerPrio[priority];
-	for(sint32 i=0; i<parsedMountPath->numNodes; i++)
+	for (size_t i=0; i< mountPath.GetNodeCount(); i++)
 	{
 		// search for subdirectory
 		FSCMountPathNode* nodeSub = nullptr; // set if we found a subnode with a matching name, else this is used to store the new nodes
-		for(auto& nodeItr : nodeParent->subnodes)
+		for (auto& nodeItr : nodeParent->subnodes)
 		{
-			if( coreinitFS_checkNodeName(parsedMountPath, i, nodeItr->path.c_str()) )
+			if (mountPath.MatchNode(i, nodeItr->path))
 			{
 				// subnode found
 				nodeSub = nodeItr;
 				break;
 			}
 		}
-		if( nodeSub )
+		if (nodeSub)
 		{
 			// traverse subnode
 			nodeParent = nodeSub;
@@ -100,10 +101,10 @@ FSCMountPathNode* fsc_createMountPath(CoreinitFSParsedPath* parsedMountPath, sin
 		}
 		// no matching subnode, add new entry
 		nodeSub = new FSCMountPathNode(nodeParent);
-		nodeSub->path = coreinitFS_getNodeName(parsedMountPath, i);
+		nodeSub->path = mountPath.GetNodeName(i);
 		nodeSub->priority = priority;
 		nodeParent->subnodes.emplace_back(nodeSub);
-		if( i == (parsedMountPath->numNodes-1) )
+		if (i == (mountPath.GetNodeCount() - 1))
 		{
 			// last node
 			fscLeave();
@@ -114,7 +115,7 @@ FSCMountPathNode* fsc_createMountPath(CoreinitFSParsedPath* parsedMountPath, sin
 	}
 	// path is empty or already mounted
 	fscLeave();
-	if (parsedMountPath->numNodes == 0)
+	if (mountPath.GetNodeCount() == 0)
 		return nodeParent;
 	return nullptr;
 }
@@ -129,12 +130,10 @@ sint32 fsc_mount(std::string_view mountPath, std::string_view targetPath, fscDev
 	if (!targetPathWithSlash.empty() && (targetPathWithSlash.back() != '/' && targetPathWithSlash.back() != '\\'))
 		targetPathWithSlash.push_back('/');
 
-	// parse mount path
-	CoreinitFSParsedPath parsedMountPath;
-	coreinitFS_parsePath(&parsedMountPath, mountPathTmp.c_str());
+	FSCPath parsedMountPath(mountPathTmp);
 	// register path
 	fscEnter();
-	FSCMountPathNode* node = fsc_createMountPath(&parsedMountPath, priority);
+	FSCMountPathNode* node = fsc_createMountPath(parsedMountPath, priority);
 	if( !node )
 	{
 		// path empty, invalid or already used
@@ -152,9 +151,6 @@ sint32 fsc_mount(std::string_view mountPath, std::string_view targetPath, fscDev
 bool fsc_unmount(std::string_view mountPath, sint32 priority)
 {
 	std::string _tmp(mountPath);
-	CoreinitFSParsedPath parsedMountPath;
-	coreinitFS_parsePath(&parsedMountPath, _tmp.c_str());
-
 	fscEnter();
 	FSCMountPathNode* mountPathNode = fsc_lookupPathVirtualNode(_tmp.c_str(), priority);
 	if (!mountPathNode)
@@ -189,19 +185,17 @@ void fsc_unmountAll()
 // lookup virtual path and find mounted device and relative device directory
 bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** fscDeviceOut, void** ctxOut, sint32 priority = FSC_PRIORITY_BASE)
 {
-	// parse path
-	CoreinitFSParsedPath parsedPath;
-	coreinitFS_parsePath(&parsedPath, path);
+	FSCPath parsedPath(path);
 	FSCMountPathNode* nodeParent = s_fscRootNodePerPrio[priority];
-	sint32 i;
+	size_t i;
 	fscEnter();
-	for (i = 0; i < parsedPath.numNodes; i++)
+	for (i = 0; i < parsedPath.GetNodeCount(); i++)
 	{
 		// search for subdirectory
 		FSCMountPathNode* nodeSub = nullptr;
 		for(auto& nodeItr : nodeParent->subnodes)
-		{
-			if (coreinitFS_checkNodeName(&parsedPath, i, nodeItr->path.c_str()))
+		{			
+			if (parsedPath.MatchNode(i, nodeItr->path))
 			{
 				nodeSub = nodeItr;
 				break;
@@ -215,17 +209,17 @@ bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** 
 		// no matching subnode
 		break;
 	}
-	// find deepest device mount point
+	// if the found node is not a device mount point, then travel back towards the root until we find one
 	while (nodeParent)
 	{
 		if (nodeParent->device)
 		{
 			devicePathOut = boost::nowide::widen(nodeParent->deviceTargetPath);
-			for (sint32 f = i; f < parsedPath.numNodes; f++)
+			for (size_t f = i; f < parsedPath.GetNodeCount(); f++)
 			{
-				const char* nodeName = coreinitFS_getNodeName(&parsedPath, f);
+				auto nodeName = parsedPath.GetNodeName(f);
 				devicePathOut.append(boost::nowide::widen(nodeName));
-				if (f < (parsedPath.numNodes - 1))
+				if (f < (parsedPath.GetNodeCount() - 1))
 					devicePathOut.push_back('/');
 			}
 			*fscDeviceOut = nodeParent->device;
@@ -243,19 +237,16 @@ bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** 
 // lookup path and find virtual device node
 FSCMountPathNode* fsc_lookupPathVirtualNode(const char* path, sint32 priority)
 {
-	// parse path
-	CoreinitFSParsedPath parsedPath;
-	coreinitFS_parsePath(&parsedPath, path);
+	FSCPath parsedPath(path);
 	FSCMountPathNode* nodeCurrentDir = s_fscRootNodePerPrio[priority];
-	sint32 i;
 	fscEnter();
-	for (i = 0; i < parsedPath.numNodes; i++)
+	for (size_t i = 0; i < parsedPath.GetNodeCount(); i++)
 	{
 		// search for subdirectory
 		FSCMountPathNode* nodeSub = nullptr;
 		for (auto& nodeItr : nodeCurrentDir->subnodes)
 		{
-			if (coreinitFS_checkNodeName(&parsedPath, i, nodeItr->path.c_str()))
+			if (parsedPath.MatchNode(i, nodeItr->path))
 			{
 				nodeSub = nodeItr;
 				break;
@@ -693,7 +684,7 @@ bool fsc_doesFileExist(const char* path, sint32 maxPriority)
 	return true;
 }
 
-// helper function to check if a folder exists
+// helper function to check if a directory exists
 bool fsc_doesDirectoryExist(const char* path, sint32 maxPriority)
 {
 	fscDeviceC* fscDevice = nullptr;
@@ -710,93 +701,7 @@ bool fsc_doesDirectoryExist(const char* path, sint32 maxPriority)
 	return true;
 }
 
-
-void coreinitFS_parsePath(CoreinitFSParsedPath* parsedPath, const char* path)
-{
-	// if the path starts with a '/', skip it
-	if (*path == '/')
-		path++;
-	// init parsedPath struct
-	memset(parsedPath, 0x00, sizeof(CoreinitFSParsedPath));
-	// init parsed path data
-	size_t pathLength = std::min((size_t)640, strlen(path));
-	memcpy(parsedPath->pathData, path, pathLength);
-	// start parsing
-	sint32 offset = 0;
-	sint32 startOffset = 0;
-	if (offset < pathLength)
-	{
-		parsedPath->nodeOffset[parsedPath->numNodes] = offset;
-		parsedPath->numNodes++;
-	}
-	while (offset < pathLength)
-	{
-		if (parsedPath->pathData[offset] == '/' || parsedPath->pathData[offset] == '\\')
-		{
-			parsedPath->pathData[offset] = '\0';
-			offset++;
-			// double slashes are ignored and instead are handled like a single slash
-			if (parsedPath->pathData[offset] == '/' || parsedPath->pathData[offset] == '\\')
-			{
-				// if we're in the beginning and having a \\ it's a network path
-				if (offset != 1)
-				{
-					parsedPath->pathData[offset] = '\0';
-					offset++;
-				}
-			}
-			// start new node
-			if (parsedPath->numNodes < FSC_PARSED_PATH_NODES_MAX)
-			{
-				if (offset < pathLength)
-				{
-					parsedPath->nodeOffset[parsedPath->numNodes] = offset;
-					parsedPath->numNodes++;
-				}
-			}
-			continue;
-		}
-		offset++;
-	}
-	// handle special nodes like '.' or '..'
-	sint32 nodeIndex = 0;
-	while (nodeIndex < parsedPath->numNodes)
-	{
-		if (coreinitFS_checkNodeName(parsedPath, nodeIndex, ".."))
-			cemu_assert_suspicious(); // how does Cafe OS handle .. ?
-		else if (coreinitFS_checkNodeName(parsedPath, nodeIndex, "."))
-		{
-			// remove this node and shift back all following nodes by 1
-			parsedPath->numNodes--;
-			for (sint32 i = nodeIndex; i < parsedPath->numNodes; i++)
-			{
-				parsedPath->nodeOffset[i] = parsedPath->nodeOffset[i + 1];
-			}
-			// continue without increasing nodeIndex
-			continue;
-		}
-		nodeIndex++;
-	}
-}
-
-bool coreinitFS_checkNodeName(CoreinitFSParsedPath* parsedPath, sint32 index, const char* name)
-{
-	if (index < 0 || index >= parsedPath->numNodes)
-		return false;
-	char* nodeName = parsedPath->pathData + parsedPath->nodeOffset[index];
-	if (boost::iequals(nodeName, name))
-		return true;
-	return false;
-}
-
-char* coreinitFS_getNodeName(CoreinitFSParsedPath* parsedPath, sint32 index)
-{
-	if (index < 0 || index >= parsedPath->numNodes)
-		return nullptr;
-	return parsedPath->pathData + parsedPath->nodeOffset[index];
-}
-
-// Initialize Cemu's virtual filesystem
+// initialize Cemu's virtual filesystem
 void fsc_init()
 {
 	fsc_reset();

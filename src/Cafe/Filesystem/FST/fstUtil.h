@@ -1,7 +1,115 @@
 #pragma once
 #include <wchar.h>
 
-class parsedPathW
+#include <boost/container/small_vector.hpp>
+
+// path parser and utility class for Wii U paths
+// optimized to be allocation-free for common path lengths
+class FSCPath
+{
+	struct PathNode
+	{
+		PathNode(uint16 offset, uint16 len) : offset(offset), len(len) {};
+
+		uint16 offset;
+		uint16 len;
+	};
+
+	boost::container::small_vector<PathNode, 8> m_nodes;
+	boost::container::small_vector<char, 64> m_names;
+	bool m_isAbsolute{};
+
+	inline bool isSlash(char c)
+	{
+		return c == '\\' || c == '/';
+	}
+
+	void appendNode(const char* name, uint16 nameLen)
+	{
+		if (m_names.size() > 0xFFFF)
+			return;
+		m_nodes.emplace_back((uint16)m_names.size(), nameLen);
+		m_names.insert(m_names.end(), name, name + nameLen);
+	}
+
+public:
+	FSCPath(std::string_view path)
+	{
+		if (path.empty())
+			return;
+		if (isSlash(path.front()))
+		{
+			m_isAbsolute = true;
+			path.remove_prefix(1);
+			// skip any additional leading slashes
+			while (!path.empty() && isSlash(path.front()))
+				path.remove_prefix(1);
+		}
+		// parse nodes
+		size_t n = 0;
+		size_t nodeNameStartIndex = 0;
+		while (n < path.size())
+		{
+			if (isSlash(path[n]))
+			{
+				size_t nodeNameLen = n - nodeNameStartIndex;
+				if (nodeNameLen > 0xFFFF)
+					nodeNameLen = 0xFFFF; // truncate suspiciously long node names
+				cemu_assert_debug(nodeNameLen > 0);
+				appendNode(path.data() + nodeNameStartIndex, (uint16)nodeNameLen);
+				// skip any repeating slashes
+				while (n < path.size() && isSlash(path[n]))
+					n++;
+				nodeNameStartIndex = n;
+				continue;
+			}
+			n++;
+		}
+		if (nodeNameStartIndex < n)
+		{
+			size_t nodeNameLen = n - nodeNameStartIndex;
+			if (nodeNameLen > 0xFFFF)
+				nodeNameLen = 0xFFFF; // truncate suspiciously long node names
+			appendNode(path.data() + nodeNameStartIndex, (uint16)nodeNameLen);
+		}
+	}
+
+	size_t GetNodeCount() const
+	{
+		return m_nodes.size();
+	}
+
+	std::string_view GetNodeName(size_t index) const
+	{
+		if (index < 0 || index >= m_nodes.size())
+			return std::basic_string_view<char>();
+		return std::basic_string_view<char>(m_names.data() + m_nodes[index].offset, m_nodes[index].len);
+	}
+
+	// returns true if the node names match according to FSA case-insensitivity rules
+	bool MatchNode(sint32 index, std::string_view name) const
+	{
+		if (index < 0 || index >= (sint32)m_nodes.size())
+			return false;
+		auto nodeName = GetNodeName(index);
+		if (nodeName.size() != name.size())
+			return false;
+		for (size_t i = 0; i < nodeName.size(); i++)
+		{
+			char c1 = nodeName[i];
+			char c2 = name[i];
+			if (c1 >= 'A' && c1 <= 'Z')
+				c1 += ('a' - 'A');
+			if (c2 >= 'A' && c2 <= 'Z')
+				c2 += ('a' - 'A');
+			if (c1 != c2)
+				return false;
+		}
+		return true;
+	}
+};
+
+class parsedPathW // todo - replaces this with FSCPath (using ascii/utf8 strings instead of wchar)
 {
 	static const int MAX_NODES = 32;
 
@@ -182,7 +290,6 @@ public:
 	sint32 numNodes;
 };
 
-
 template<typename F, bool isCaseSensitive>
 class FileTree
 {
@@ -340,113 +447,6 @@ public:
 
 private:
 	node_t rootNode;
-};
-
-#include <boost/container/small_vector.hpp>
-
-// path parser and utility class for Wii U paths
-// optimized to be allocation-free for common path lengths
-class FSCPath
-{
-	struct PathNode 
-	{
-		PathNode(uint16 offset, uint16 len) : offset(offset), len(len) {};
-
-		uint16 offset;
-		uint16 len;
-	};
-
-	boost::container::small_vector<PathNode, 8> m_nodes;
-	boost::container::small_vector<char, 64> m_names;
-	bool m_isAbsolute{};
-
-	inline bool isSlash(char c)
-	{
-		return c == '\\' || c == '/';
-	}
-
-	void appendNode(const char* name, uint16 nameLen)
-	{
-		if (m_names.size() > 0xFFFF)
-			return;
-		m_nodes.emplace_back((uint16)m_names.size(), nameLen);
-		m_names.insert(m_names.end(), name, name + nameLen);
-	}
-
-public:
-	FSCPath(std::string_view path)
-	{
-		if (path.empty())
-			return;
-		if (isSlash(path.front()))
-		{
-			m_isAbsolute = true;
-			path.remove_prefix(1);
-			// skip any additional leading slashes
-			while(!path.empty() && isSlash(path.front()))
-				path.remove_prefix(1);
-		}
-		// parse nodes
-		size_t n = 0;
-		size_t nodeNameStartIndex = 0;
-		while (n < path.size())
-		{
-			if (isSlash(path[n]))
-			{
-				size_t nodeNameLen = n - nodeNameStartIndex;
-				if (nodeNameLen > 0xFFFF)
-					nodeNameLen = 0xFFFF; // truncate suspiciously long node names
-				cemu_assert_debug(nodeNameLen > 0);
-				appendNode(path.data() + nodeNameStartIndex, (uint16)nodeNameLen);
-				// skip any repeating slashes
-				while (n < path.size() && isSlash(path[n]))
-					n++;
-				nodeNameStartIndex = n;
-				continue;
-			}
-			n++;
-		}
-		if (nodeNameStartIndex < n)
-		{
-			size_t nodeNameLen = n - nodeNameStartIndex;
-			if (nodeNameLen > 0xFFFF)
-				nodeNameLen = 0xFFFF; // truncate suspiciously long node names
-			appendNode(path.data() + nodeNameStartIndex, (uint16)nodeNameLen);
-		}
-	}
-
-	size_t GetNodeCount() const
-	{
-		return m_nodes.size();
-	}
-
-	std::string_view GetNodeName(size_t index) const
-	{
-		if (index < 0 || index >= m_nodes.size())
-			return std::basic_string_view<char>();
-		return std::basic_string_view<char>(m_names.data() + m_nodes[index].offset, m_nodes[index].len);
-	}
-
-	bool MatchNode(sint32 index, std::string_view name) const
-	{
-		if (index < 0 || index >= (sint32)m_nodes.size())
-			return false;
-		auto nodeName = GetNodeName(index);
-		if (nodeName.size() != name.size())
-			return false;
-		for (size_t i = 0; i < nodeName.size(); i++)
-		{
-			char c1 = nodeName[i];
-			char c2 = name[i];
-			if (c1 >= 'A' && c1 <= 'Z')
-				c1 += ('a' - 'A');
-			if (c2 >= 'A' && c2 <= 'Z')
-				c2 += ('a' - 'A');
-			if (c1 != c2)
-				return false;
-		}
-		return true;
-	}
 };
 
 static void FSTPathUnitTest()

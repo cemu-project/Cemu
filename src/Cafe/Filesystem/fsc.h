@@ -200,20 +200,3 @@ bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTarg
 // redirect device
 void fscDeviceRedirect_map();
 void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority);
-
-
-// Old path parser helper functions
-// Replace with FSCPath
-
-#define FSC_PARSED_PATH_NODES_MAX   (32)
-
-struct CoreinitFSParsedPath
-{
-	char pathData[640 + 1];
-	uint16 nodeOffset[FSC_PARSED_PATH_NODES_MAX];
-	sint32 numNodes;
-};
-
-void coreinitFS_parsePath(CoreinitFSParsedPath* parsedPath, const char* path);
-bool coreinitFS_checkNodeName(CoreinitFSParsedPath* parsedPath, sint32 index, const char* name);
-char* coreinitFS_getNodeName(CoreinitFSParsedPath* parsedPath, sint32 index);
