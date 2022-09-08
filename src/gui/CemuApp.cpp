@@ -142,7 +142,7 @@ int CemuApp::OnExit()
 #if BOOST_OS_WINDOWS
 	ExitProcess(0);
 #else
-	exit(0);
+	_Exit(0);
 #endif
 }
 
