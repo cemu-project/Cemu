@@ -1,7 +1,7 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "1b0252ca70ca2244a711535462c7f981eb439e83",
+  "builtin-baseline": "a291bcad8093f9f17988fe66543aefd674812f0e",
   "dependencies": [
     "imgui",
     "pugixml",
@@ -14,6 +14,7 @@
     },
     "rapidjson",
     "sdl2",
+    "cubeb",
     "boost-tokenizer",
     "boost-container",
     "boost-program-options",
