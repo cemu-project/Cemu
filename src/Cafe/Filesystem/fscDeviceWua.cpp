@@ -169,10 +169,7 @@ public:
 	}
 };
 
-bool FSCDeviceWUA_Mount(const char* mountPath, std::string_view destinationBaseDir, ZArchiveReader* archive, sint32 priority)
+bool FSCDeviceWUA_Mount(std::string_view mountPath, std::string_view destinationBaseDir, ZArchiveReader* archive, sint32 priority)
 {
-	std::wstring hostTargetPath(boost::nowide::widen(destinationBaseDir.data(), destinationBaseDir.size()));
-	if (!hostTargetPath.empty() && (hostTargetPath.back() != '/' && hostTargetPath.back() != '\\'))
-		hostTargetPath.push_back('/');
-	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceWUAC::instance(), archive, priority) == FSC_STATUS_OK;
+	return fsc_mount(mountPath, destinationBaseDir, &fscDeviceWUAC::instance(), archive, priority) == FSC_STATUS_OK;
 }

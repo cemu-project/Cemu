@@ -52,6 +52,6 @@ void fscDeviceRedirect_map()
 {
 	if (_redirectMapped)
 		return;
-	fsc_mount("/", L"/", &fscDeviceTypeRedirect::instance(), nullptr, FSC_PRIORITY_REDIRECT);
+	fsc_mount("/", "/", &fscDeviceTypeRedirect::instance(), nullptr, FSC_PRIORITY_REDIRECT);
 	_redirectMapped = true;
 }

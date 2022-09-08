@@ -157,10 +157,7 @@ public:
 	}
 };
 
-bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir, FSTVolume* mountedVolume, sint32 priority)
+bool FSCDeviceWUD_Mount(std::string_view mountPath, std::string_view destinationBaseDir, FSTVolume* mountedVolume, sint32 priority)
 {
-	std::wstring hostTargetPath(boost::nowide::widen(destinationBaseDir.data(), destinationBaseDir.size()));
-	if (!hostTargetPath.empty() && (hostTargetPath.back() != '/' && hostTargetPath.back() != '\\'))
-		hostTargetPath.push_back('/');
-	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceWUDC::instance(), mountedVolume, priority) == FSC_STATUS_OK;
+	return fsc_mount(mountPath, destinationBaseDir, &fscDeviceWUDC::instance(), mountedVolume, priority) == FSC_STATUS_OK;
 }

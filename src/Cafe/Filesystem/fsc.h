@@ -161,8 +161,8 @@ struct FSCVirtualFile
 #define FSC_PRIORITY_COUNT				(4)
 
 void fsc_init();
-sint32 fsc_mount(const char* mountPath, const wchar_t* targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority=0);
-bool fsc_unmount(const char* mountPath, sint32 priority);
+sint32 fsc_mount(std::string_view mountPath, std::string_view targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority=0);
+bool fsc_unmount(std::string_view mountPath, sint32 priority);
 void fsc_unmountAll();
 
 FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus, sint32 maxPriority=FSC_PRIORITY_MAX);
@@ -188,14 +188,14 @@ bool fsc_doesFileExist(const char* path, sint32 maxPriority = FSC_PRIORITY_MAX);
 bool fsc_doesDirectoryExist(const char* path, sint32 maxPriority = FSC_PRIORITY_MAX);
 
 // wud device
-bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir, class FSTVolume* mountedVolume, sint32 priority);
+bool FSCDeviceWUD_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class FSTVolume* mountedVolume, sint32 priority);
 
 // wua device
-bool FSCDeviceWUA_Mount(const char* mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
+bool FSCDeviceWUA_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
 
 // hostFS device
 void fscDeviceHostFS_mapBaseDirectories_deprecated();
-bool FSCDeviceHostFS_Mount(const char* mountPath, const wchar_t* hostFSPath, sint32 priority);
+bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority);
 
 // redirect device
 void fscDeviceRedirect_map();

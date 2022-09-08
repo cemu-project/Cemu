@@ -626,7 +626,7 @@ namespace CafeSystem
 			if (fs::is_directory(contentPath, ec))
 			{
 				// mounting content folder
-				bool r = FSCDeviceHostFS_Mount(std::string("/vol/content").c_str(), boost::nowide::widen(_utf8Wrapper(contentPath)).c_str(), FSC_PRIORITY_BASE);
+				bool r = FSCDeviceHostFS_Mount(std::string("/vol/content").c_str(), _utf8Wrapper(contentPath), FSC_PRIORITY_BASE);
 				if (!r)
 				{
 					cemuLog_log(LogType::Force, "Failed to mount {}", _utf8Wrapper(contentPath).c_str());
@@ -635,7 +635,7 @@ namespace CafeSystem
 			}
 		}
 		// mount code folder to a virtual temporary path
-		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), boost::nowide::widen(_utf8Wrapper(executablePath.parent_path())).c_str(), FSC_PRIORITY_BASE);
+		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), _utf8Wrapper(executablePath.parent_path()), FSC_PRIORITY_BASE);
 		std::string internalExecutablePath = "/internal/code/";
 		internalExecutablePath.append(_utf8Wrapper(executablePath.filename()));
 		_pathToExecutable = internalExecutablePath;

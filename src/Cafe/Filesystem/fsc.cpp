@@ -5,10 +5,10 @@ struct FSCMountPathNode
 	std::string path;
 	std::vector<FSCMountPathNode*> subnodes;
 	FSCMountPathNode* parent;
-	// device target and path (if list_subnodes is nullptr)
+	// device target and path (if subnodes is empty)
 	fscDeviceC* device{ nullptr };
 	void* ctx{ nullptr };
-	std::wstring targetPath;
+	std::string deviceTargetPath; // the destination base path for the device, utf8
 	// priority
 	sint32 priority{};
 
@@ -119,42 +119,44 @@ FSCMountPathNode* fsc_createMountPath(CoreinitFSParsedPath* parsedMountPath, sin
 	return nullptr;
 }
 
-// Map a virtual FSC directory to a device and device directory
-sint32 fsc_mount(const char* mountPath, const wchar_t* _targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority)
+// Map a virtual FSC directory to a device. targetPath points to the destination base directory within the device
+sint32 fsc_mount(std::string_view mountPath, std::string_view targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority)
 {
-	cemu_assert(fscDevice); // device must not be nullptr
+	cemu_assert(fscDevice);
+	std::string mountPathTmp(mountPath);
 	// make sure the target path ends with a slash
-	std::wstring targetPath(_targetPath);
-	if (!targetPath.empty() && (targetPath.back() != '/' && targetPath.back() != '\\'))
-		targetPath.push_back('/');
+	std::string targetPathWithSlash(targetPath);
+	if (!targetPathWithSlash.empty() && (targetPathWithSlash.back() != '/' && targetPathWithSlash.back() != '\\'))
+		targetPathWithSlash.push_back('/');
 
 	// parse mount path
 	CoreinitFSParsedPath parsedMountPath;
-	coreinitFS_parsePath(&parsedMountPath, mountPath);
+	coreinitFS_parsePath(&parsedMountPath, mountPathTmp.c_str());
 	// register path
 	fscEnter();
 	FSCMountPathNode* node = fsc_createMountPath(&parsedMountPath, priority);
 	if( !node )
 	{
 		// path empty, invalid or already used
-		cemuLog_log(LogType::Force, "fsc_mount failed (virtual path: %s)", mountPath);
+		cemuLog_log(LogType::Force, "fsc_mount failed (virtual path: {})", mountPath);
 		fscLeave();
 		return FSC_STATUS_INVALID_PATH;
 	}
 	node->device = fscDevice;
 	node->ctx = ctx;
-	node->targetPath = targetPath;
+	node->deviceTargetPath = targetPathWithSlash;
 	fscLeave();
 	return FSC_STATUS_OK;
 }
 
-bool fsc_unmount(const char* mountPath, sint32 priority)
+bool fsc_unmount(std::string_view mountPath, sint32 priority)
 {
+	std::string _tmp(mountPath);
 	CoreinitFSParsedPath parsedMountPath;
-	coreinitFS_parsePath(&parsedMountPath, mountPath);
+	coreinitFS_parsePath(&parsedMountPath, _tmp.c_str());
 
 	fscEnter();
-	FSCMountPathNode* mountPathNode = fsc_lookupPathVirtualNode(mountPath, priority);
+	FSCMountPathNode* mountPathNode = fsc_lookupPathVirtualNode(_tmp.c_str(), priority);
 	if (!mountPathNode)
 	{
 		fscLeave();
@@ -218,7 +220,7 @@ bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** 
 	{
 		if (nodeParent->device)
 		{
-			devicePathOut = nodeParent->targetPath;
+			devicePathOut = boost::nowide::widen(nodeParent->deviceTargetPath);
 			for (sint32 f = i; f < parsedPath.numNodes; f++)
 			{
 				const char* nodeName = coreinitFS_getNodeName(&parsedPath, f);

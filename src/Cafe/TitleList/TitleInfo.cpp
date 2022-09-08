@@ -370,7 +370,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 	{
 		fs::path hostFSPath = m_fullPath;
 		hostFSPath.append(subfolder);
-		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), boost::nowide::widen(_utf8Wrapper(hostFSPath)).c_str(), mountPriority);
+		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), _utf8Wrapper(hostFSPath), mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{
@@ -387,7 +387,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 		}
 		if (!m_wudVolume)
 			return false;
-		bool r = FSCDeviceWUD_Mount(std::string(virtualPath).c_str(), subfolder, m_wudVolume, mountPriority);
+		bool r = FSCDeviceWUD_Mount(virtualPath, subfolder, m_wudVolume, mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{
@@ -404,7 +404,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 			if (!m_zarchive)
 				return false;
 		}
-		bool r = FSCDeviceWUA_Mount(std::string(virtualPath).c_str(), std::string(m_subPath).append("/").append(subfolder), m_zarchive, mountPriority);
+		bool r = FSCDeviceWUA_Mount(virtualPath, std::string(m_subPath).append("/").append(subfolder), m_zarchive, mountPriority);
 		if (!r)
 		{
 			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);

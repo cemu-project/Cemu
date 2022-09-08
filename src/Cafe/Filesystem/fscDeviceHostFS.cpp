@@ -293,14 +293,11 @@ public:
 void fscDeviceHostFS_mapBaseDirectories_deprecated()
 {
 	const auto mlc = ActiveSettings::GetMlcPath();
-	fsc_mount("/cemuBossStorage/", (mlc / "usr/boss/").generic_wstring().c_str(), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
-	fsc_mount("/vol/storage_mlc01/", (mlc / "").generic_wstring().c_str(), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
+	fsc_mount("/cemuBossStorage/", _utf8Wrapper(mlc / "usr/boss/"), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
+	fsc_mount("/vol/storage_mlc01/", _utf8Wrapper(mlc / ""), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
 }
 
-bool FSCDeviceHostFS_Mount(const char* mountPath, const wchar_t* hostFSPath, sint32 priority)
+bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority)
 {
-	std::wstring hostTargetPath(hostFSPath);
-	if (!hostTargetPath.empty() && (hostTargetPath.back() != '/' && hostTargetPath.back() != '\\'))
-		hostTargetPath.push_back('/');
-	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceHostFSC::instance(), nullptr, priority) == FSC_STATUS_OK;
+	return fsc_mount(mountPath, hostTargetPath, &fscDeviceHostFSC::instance(), nullptr, priority) == FSC_STATUS_OK;
 }
