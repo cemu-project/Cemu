@@ -4,7 +4,7 @@
 FSPath operator/ (const FSPath& lhs, const FSPath& rhs)
 {
 	FSPath res{lhs};
-	res /= FSPath{rhs};
+	res /= rhs;
 	return res;
 }
 
@@ -56,7 +56,7 @@ FSPath& FSPath::operator/= (const FSPath & rhs)
 		}
 	}
 
-	*this = FSPath(correctedPath);
+	*this = correctedPath;
 	return *this;
 }
 
