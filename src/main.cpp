@@ -19,6 +19,9 @@
 
 #include "Common/ExceptionHandler/ExceptionHandler.h"
 
+#include <boost/locale/generator.hpp>
+#include <boost/locale.hpp>
+#include <locale>
 #include <wx/setup.h>
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
@@ -378,7 +381,8 @@ int main(int argc, char *argv[])
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-
+	boost::locale::generator gen;
+	std::locale::global(gen(""));
 	ActiveSettings::LoadOnce();
 
 	HandlePostUpdate();

@@ -38,6 +38,7 @@ target_link_libraries(CemuCommon PRIVATE
 	CemuComponents
 	Boost::nowide
 	Boost::filesystem
+	Boost::locale
 	glm::glm
 )
 
