@@ -102,6 +102,13 @@ jobs:
         name: cemu-bin-linux-x64-debug
         path: ./Cemu_debug
         
+    - name: Upload artifact (experimental)
+      if: ${{ inputs.experimentalversion != '' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: cemu-bin-linux-x64-experimental
+        path: ./Cemu_debug 
+        
   build-windows:
     runs-on: windows-2022
     steps:
@@ -210,4 +217,11 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-debug
+        path: ./Cemu_debug
+        
+    - name: Upload artifact (experimental)
+      if: ${{ inputs.experimentalversion != '' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: cemu-bin-windows-x64-experimental
         path: ./Cemu_debug
