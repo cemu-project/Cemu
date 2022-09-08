@@ -210,18 +210,18 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-release
-        path: ./bin/Cemu_release
+        path: ./bin/Cemu_release.exe
     
     - name: Upload artifact (debug)
       if: ${{ inputs.deploymode != 'release' }}
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-debug
-        path: ./bin/Cemu_debug
+        path: ./bin/Cemu_debug.exe
         
     - name: Upload artifact (experimental)
       if: ${{ inputs.experimentalversion != '' }}
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-experimental
-        path: ./bin/Cemu_experimental
+        path: ./bin/Cemu_experimental.exe
