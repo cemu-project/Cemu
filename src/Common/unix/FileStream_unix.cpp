@@ -1,5 +1,4 @@
 #include "Common/unix/FileStream_unix.h"
-#include <locale>
 
 std::optional<fs::path> findPathCI(const fs::path& path)
 {
@@ -14,12 +13,12 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 		else
 			return {};
 	}
-	std::wstring fName = path.filename().wstring();
+	std::string fName = path.filename().string();
 	if (fs::exists(parrentPath))
 		for (auto&& dirEntry : fs::directory_iterator(parrentPath))
 		{
-			std::wstring dirFName = dirEntry.path().filename().wstring();
-			if (boost::iequals(dirFName, fName, std::locale::classic()))
+			std::string dirFName = dirEntry.path().filename().string();
+			if (boost::iequals(dirFName, fName))
 			{
 				return dirEntry;
 			}
