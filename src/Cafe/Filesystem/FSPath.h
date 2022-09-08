@@ -14,7 +14,7 @@ class FSPath : public fs::path {
 	{
 		return FSPath{} / FSPath{input};
 	}
-	FSPath& operator/= (const FSPath & other);
+	FSPath& operator/= (const FSPath & rhs);
 	FSPath& operator/ (const FSPath & rhs);
 #endif
 };

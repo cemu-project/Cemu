@@ -14,13 +14,13 @@ FSPath& FSPath::operator/ (const FSPath & rhs)
 	return *this;
 }
 
-FSPath& FSPath::operator/= (const FSPath & other)
+FSPath& FSPath::operator/= (const FSPath & rhs)
 {
 	// todo: implement caching.
 
 	// explore directories recursively and find the matching cases.
-	fs::path relPath = other.relative_path();
-	fs::path correctedPath = empty() ? other.root_path() : *this;
+	fs::path relPath = rhs.relative_path();
+	fs::path correctedPath = empty() ? rhs.root_path() : *this;
 
 	// helper function to convert a path's alphabet characters to lowercase.
 	auto static lowercase_path = [](fs::path const & path)
