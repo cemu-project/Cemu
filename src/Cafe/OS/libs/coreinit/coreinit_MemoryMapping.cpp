@@ -34,7 +34,7 @@ namespace coreinit
 			{
 				debug_printf("coreinitVirtualMemory_alloc(): Unable to allocate memory\n");
 				debugBreakpoint();
-				return NULL;
+				return MPTR_NULL;
 			}
 			// check for overlapping regions
 			OSVirtMemory* virtMemItr = virtualMemoryList;
@@ -66,7 +66,7 @@ namespace coreinit
 				return currentAddress;
 			}
 		}
-		return NULL;
+		return MPTR_NULL;
 	}
 
 	void coreinitExport_OSGetAvailPhysAddrRange(PPCInterpreter_t* hCPU)

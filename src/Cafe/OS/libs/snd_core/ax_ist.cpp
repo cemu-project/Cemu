@@ -99,7 +99,7 @@ namespace snd_core
 		}
 		coreinit::OSInitMutexEx(__AXAppFrameCallbackMutex.GetPtr(), NULL);
 		for (sint32 i = 0; i < AX_DEV_COUNT; i++)
-			__AXDeviceFinalMixCallback[i] = NULL;
+			__AXDeviceFinalMixCallback[i] = MPTR_NULL;
 	}
 
 	sint32 AXRegisterAppFrameCallback(MPTR funcAddr)

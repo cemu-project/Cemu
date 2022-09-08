@@ -470,7 +470,7 @@ namespace coreinit
 			// mark current block as free
 			block->isFree = _swapEndianU32(1);
 			// attempt to merge with previous block
-			if (_swapEndianU32(block->previousBlock) != NULL)
+			if (_swapEndianU32(block->previousBlock) != MPTR_NULL)
 			{
 				MPTR previousBlockMPTR = _swapEndianU32(block->previousBlock);
 				MEMBlockHeapTrackDEPR* previousBlock = (MEMBlockHeapTrackDEPR*)memory_getPointerFromVirtualOffset(previousBlockMPTR);
@@ -494,7 +494,7 @@ namespace coreinit
 				}
 			}
 			// attempt to merge with next block
-			if (_swapEndianU32(block->nextBlock) != NULL)
+			if (_swapEndianU32(block->nextBlock) != MPTR_NULL)
 			{
 				MPTR nextBlockMPTR = _swapEndianU32(block->nextBlock);
 				MEMBlockHeapTrackDEPR* nextBlock = (MEMBlockHeapTrackDEPR*)memory_getPointerFromVirtualOffset(nextBlockMPTR);

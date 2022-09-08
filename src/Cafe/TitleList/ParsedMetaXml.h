@@ -18,12 +18,12 @@ struct ParsedMetaXml
 
 	std::string GetShortName(CafeConsoleLanguage languageId) const
 	{
-		return m_short_name[(size_t)languageId];
+		return m_short_name[(size_t)languageId].empty() ? m_short_name[(size_t)CafeConsoleLanguage::EN] : m_short_name[(size_t)languageId];
 	}
 
 	std::string GetLongName(CafeConsoleLanguage languageId) const
 	{
-		return m_long_name[(size_t)languageId];
+		return m_long_name[(size_t)languageId].empty() ? m_long_name[(size_t)CafeConsoleLanguage::EN] : m_long_name[(size_t)languageId];
 	}
 
 	TitleId GetTitleId() const
@@ -134,7 +134,7 @@ private:
 		else if (language == "ru")
 			return (sint32)CafeConsoleLanguage::RU;
 		else if (language == "zht")
-			return (sint32)CafeConsoleLanguage::ZH;
+			return (sint32)CafeConsoleLanguage::TW; // if return ZH here, xxx_zht values may cover xxx_zh values in function Parse()
 		return -1;
 	}
 };
