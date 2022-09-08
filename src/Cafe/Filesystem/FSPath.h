@@ -15,6 +15,10 @@ class FSPath : public fs::path {
 		return FSPath{} / FSPath{input};
 	}
 	FSPath& operator/= (const FSPath & other);
-	FSPath& operator/ (const FSPath & other);
+	FSPath& operator/ (const FSPath & rhs);
 #endif
 };
+
+#ifdef BOOST_OS_UNIX
+FSPath operator/ (const FSPath& lhs, const FSPath& rhs);
+#endif

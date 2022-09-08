@@ -1,10 +1,16 @@
 #include "FSPath.h"
 
 #ifdef BOOST_OS_UNIX
-
-FSPath& FSPath::operator/ (const FSPath & other)
+FSPath operator/ (const FSPath& lhs, const FSPath& rhs)
 {
-	*this /= other;
+	FSPath res{lhs};
+	res /= FSPath{rhs};
+	return res;
+}
+
+FSPath& FSPath::operator/ (const FSPath & rhs)
+{
+	*this /= rhs;
 	return *this;
 }
 
@@ -17,7 +23,7 @@ FSPath& FSPath::operator/= (const FSPath & other)
 	fs::path correctedPath = empty() ? other.root_path() : *this;
 
 	// helper function to convert a path's alphabet characters to lowercase.
-	auto static lowercase_path = [](FSPath const & path)
+	auto static lowercase_path = [](fs::path const & path)
 	{
 		std::string string = path.string();
 		for (auto& i : string)
