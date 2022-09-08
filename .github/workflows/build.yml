@@ -94,21 +94,21 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-linux-x64-release
-        path: ./Cemu_release
+        path: ./bin/Cemu_release
     
     - name: Upload artifact (debug)
       if: ${{ inputs.deploymode != 'release' }}
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-linux-x64-debug
-        path: ./Cemu_debug
+        path: ./bin/Cemu_debug
         
     - name: Upload artifact (experimental)
       if: ${{ inputs.experimentalversion != '' }}
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-linux-x64-experimental
-        path: ./Cemu_debug 
+        path: ./bin/Cemu_debug 
         
   build-windows:
     runs-on: windows-2022
@@ -212,18 +212,18 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-release
-        path: ./Cemu_release
+        path: ./bin/Cemu_release
     
     - name: Upload artifact (debug)
       if: ${{ inputs.deploymode != 'release' }}
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-debug
-        path: ./Cemu_debug
+        path: ./bin/Cemu_debug
         
     - name: Upload artifact (experimental)
       if: ${{ inputs.experimentalversion != '' }}
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-experimental
-        path: ./Cemu_debug
+        path: ./bin/Cemu_debug
