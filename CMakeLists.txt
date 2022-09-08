@@ -105,7 +105,7 @@ if (UNIX AND NOT APPLE)
 endif()
 
 if (ENABLE_VULKAN)
-	include_directories("dependencies/Vulkan-Headers/include")
+	find_package(VulkanHeaders REQUIRED)
 endif()
 
 if (ENABLE_OPENGL)

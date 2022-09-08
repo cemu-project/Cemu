@@ -33,6 +33,7 @@
     "fmt",
     "glm",
     "glslang",
+    "vulkan-headers",
     "zstd",
     {
       "name": "wxwidgets",
