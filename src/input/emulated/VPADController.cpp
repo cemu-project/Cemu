@@ -324,7 +324,7 @@ void VPADController::update_motion(VPADStatus_t& status)
 		static glm::vec3 m_lastGyroRotation{}, m_startGyroRotation{};
 		static bool m_startGyroRotationSet{};
 
-		float rotX = (wy * 0.05) * 1; // up/down best
+		float rotX = (wy * 0.025) * 1; // up/down best
 		float rotY = (wx * -0.1) * 1; // left/right
 		float rotZ = 0; //input_manager.m_mouse_wheel * 14.0f + m_lastGyroRotation.z;
 		input_manager.m_mouse_wheel = 0.0f;
