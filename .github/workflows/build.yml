@@ -92,21 +92,21 @@ jobs:
       if: ${{ inputs.deploymode == 'release' }}
       uses: actions/upload-artifact@v3
       with:
-        name: cemu-bin-linux-x64-release
+        name: cemu-bin-linux-ubuntu22.04-x64-release
         path: ./bin/Cemu_release
     
     - name: Upload artifact (debug)
       if: ${{ inputs.deploymode != 'release' }}
       uses: actions/upload-artifact@v3
       with:
-        name: cemu-bin-linux-x64-debug
+        name: cemu-bin-linux-ubuntu22.04-x64-debug
         path: ./bin/Cemu_debug
         
     - name: Upload artifact (experimental)
       if: ${{ inputs.experimentalversion != '' }}
       uses: actions/upload-artifact@v3
       with:
-        name: cemu-bin-linux-x64-experimental
+        name: cemu-bin-linux-ubuntu22.04-x64-experimental
         path: ./bin/Cemu_experimental 
         
   build-windows:
