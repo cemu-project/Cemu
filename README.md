@@ -37,7 +37,7 @@ To compile Cemu yourself on Windows or Linux, view the [BUILD.md file](/BUILD.md
 ## Issues
 
 Issues with the emulator should be filed using [Github Issues](https://github.com/cemu-project/Cemu/issues).  
-The old bug tracker can be found at [bugs.cemu.info](http://bugs.cemu.info) and still contains relevant issues and feature suggestions.
+The old bug tracker can be found at [bugs.cemu.info](https://bugs.cemu.info) and still contains relevant issues and feature suggestions.
 
 ## Contributing
 
