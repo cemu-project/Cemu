@@ -41,6 +41,7 @@ jobs:
         echo "BUILD_MODE=release" >> $GITHUB_ENV
         echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
         echo "Build mode is release"
+        
     - name: Setup debug mode parameters (for continous build)
       if: ${{ inputs.deploymode != 'release' }}
       run: |
@@ -88,16 +89,13 @@ jobs:
         ninja
 
     - name: Prepare artifact
-      if: ${{ inputs.deploymode == 'release' }}
       run: mv bin/Cemu_release bin/Cemu
               
     - name: Upload artifact
       uses: actions/upload-artifact@v3
-      if: ${{ inputs.deploymode == 'release' }}
       with:
         name: cemu-bin-linux-x64
         path: ./bin/Cemu
-        
         
   build-windows:
     runs-on: windows-2022
@@ -120,6 +118,7 @@ jobs:
         echo "BUILD_MODE=debug" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "BUILD_FLAGS=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "Build mode is debug"
+        
     - name: Setup version for experimental
       if: ${{ inputs.experimentalversion != '' }}
       run: |
@@ -155,6 +154,7 @@ jobs:
         # should be run twice
         $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
         $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+        
     - name: Configure MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
@@ -194,12 +194,10 @@ jobs:
         cmake --build . --config ${{ env.BUILD_MODE }} -j 2
 
     - name: Prepare artifact
-      if: ${{ inputs.deploymode == 'release' }}
       run: Rename-Item bin/Cemu_release.exe Cemu.exe
       
     - name: Upload artifact
       uses: actions/upload-artifact@v3
-      if: ${{ inputs.deploymode == 'release' }}
       with:
         name: cemu-bin-windows-x64
         path: ./bin/Cemu.exe
