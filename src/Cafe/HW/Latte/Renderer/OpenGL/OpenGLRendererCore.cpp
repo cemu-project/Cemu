@@ -551,34 +551,36 @@ void LatteDraw_handleSpecialState8_clearAsDepth()
 	while (true)
 	{
 		LatteTextureView* view = LatteTC_LookupTextureByData(depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0, 1, sliceIndex, 1, &searchIndex);
-		if (view != nullptr)
+		if (!view)
 		{
-			sint32 effectiveClearWidth = view->baseTexture->width;
-			sint32 effectiveClearHeight = view->baseTexture->height;
-			LatteTexture_scaleToEffectiveSize(view->baseTexture, &effectiveClearWidth, &effectiveClearHeight, 0);
+			// should we clear in RAM instead?
+			break;
+		}
+		sint32 effectiveClearWidth = view->baseTexture->width;
+		sint32 effectiveClearHeight = view->baseTexture->height;
+		LatteTexture_scaleToEffectiveSize(view->baseTexture, &effectiveClearWidth, &effectiveClearHeight, 0);
 
-			// hacky way to get clear color
-			float* regClearColor = (float*)(LatteGPUState.contextRegister + 0xC000 + 0); // REG_BASE_ALU_CONST
+		// hacky way to get clear color
+		float* regClearColor = (float*)(LatteGPUState.contextRegister + 0xC000 + 0); // REG_BASE_ALU_CONST
 
-			uint8 clearColor[4] = { 0 };
-			clearColor[0] = (uint8)(regClearColor[0] * 255.0f);
-			clearColor[1] = (uint8)(regClearColor[1] * 255.0f);
-			clearColor[2] = (uint8)(regClearColor[2] * 255.0f);
-			clearColor[3] = (uint8)(regClearColor[3] * 255.0f);
+		uint8 clearColor[4] = { 0 };
+		clearColor[0] = (uint8)(regClearColor[0] * 255.0f);
+		clearColor[1] = (uint8)(regClearColor[1] * 255.0f);
+		clearColor[2] = (uint8)(regClearColor[2] * 255.0f);
+		clearColor[3] = (uint8)(regClearColor[3] * 255.0f);
 
-			// todo - use fragment shader software emulation (evoke for one pixel) to determine clear color
-			// todo - dont clear entire slice, use effectiveClearWidth, effectiveClearHeight
+		// todo - use fragment shader software emulation (evoke for one pixel) to determine clear color
+		// todo - dont clear entire slice, use effectiveClearWidth, effectiveClearHeight
 
-			if (g_renderer->GetType() == RendererAPI::OpenGL)
-			{
-				//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
-				if (glClearTexSubImage)
-					glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
-			}
-			else
-			{
-				g_renderer->texture_clearColorSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-			}
+		if (g_renderer->GetType() == RendererAPI::OpenGL)
+		{
+			//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
+			if (glClearTexSubImage)
+				glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
+		}
+		else
+		{
+			g_renderer->texture_clearColorSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		}
 	}
 }
