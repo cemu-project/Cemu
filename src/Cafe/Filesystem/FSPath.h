@@ -8,12 +8,12 @@ class FSPath : public fs::path {
 	template <class T>
 	FSPath(const T& other) : fs::path(other) {};
 
-#ifdef BOOST_OS_UNIX
 	template <class T>
 	static FSPath Convert(const T& input)
 	{
 		return FSPath{} / FSPath{input};
 	}
+#ifdef BOOST_OS_UNIX
 	FSPath& operator/= (const FSPath & rhs);
 	FSPath& operator/ (const FSPath & rhs);
 #endif
