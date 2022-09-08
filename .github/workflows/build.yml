@@ -87,7 +87,6 @@ jobs:
       run: |
         cd build
         ninja
-        pwd
               
     - name: Upload artifact (release)
       if: ${{ inputs.deploymode == 'release' }}
@@ -205,7 +204,6 @@ jobs:
       run: |
         cd build
         cmake --build . --config ${{ env.BUILD_MODE }} -j 2
-        echo %cd%
       
     - name: Upload artifact (release)
       if: ${{ inputs.deploymode == 'release' }}
