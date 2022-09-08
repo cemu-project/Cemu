@@ -26,8 +26,7 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 				return dirEntry;
 			}
 		}
-		if (listErr)
-			return fName;
+		return fName;
 	}
 	return parentPath / fName;
 }
