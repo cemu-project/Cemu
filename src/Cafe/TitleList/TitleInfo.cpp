@@ -289,7 +289,7 @@ void TitleInfo::CalcUID()
 	}
 	std::error_code ec;
 	// get absolute normalized path
-	FSPath normalizedPath;
+	fs::path normalizedPath;
 	if (m_fullPath.is_relative())
 	{
 		normalizedPath = ActiveSettings::GetPath();

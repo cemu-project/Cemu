@@ -175,7 +175,7 @@ std::error_code Account::Load()
 
 std::error_code Account::Save()
 {
-	FSPath path = CemuApp::GetMLCPath(fmt::format(L"usr/save/system/act/{:08x}", m_persistent_id)).ToStdWstring();
+	fs::path path = CemuApp::GetMLCPath(fmt::format(L"usr/save/system/act/{:08x}", m_persistent_id)).ToStdWstring();
 	if (!fs::exists(path))
 	{
 		std::error_code ec;

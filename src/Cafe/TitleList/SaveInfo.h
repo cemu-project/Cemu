@@ -2,7 +2,6 @@
 
 #include "TitleId.h"
 #include "ParsedMetaXml.h"
-#include "Cafe/Filesystem/FSPath.h"
 
 class SaveInfo
 {
@@ -21,10 +20,10 @@ public:
 
 private:
 	static std::string GetStorageSubpathByTitleId(TitleId titleId);
-	static FSPath GetSavePath(TitleId titleId);
+	static fs::path GetSavePath(TitleId titleId);
 
 	TitleId m_titleId;
-	FSPath m_path;
+	fs::path m_path;
 	bool m_isValid{false};
 	bool m_hasMetaLoaded{false};
 	ParsedMetaXml* m_parsedMetaXml{nullptr};

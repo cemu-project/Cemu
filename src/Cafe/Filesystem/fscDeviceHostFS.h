@@ -1,5 +1,5 @@
 #include "Cafe/Filesystem/fsc.h"
-#include "FSPath.h"
+#include "Cafe/Filesystem/FSPath.h"
 
 class FSCVirtualFile_Host : public FSCVirtualFile
 {

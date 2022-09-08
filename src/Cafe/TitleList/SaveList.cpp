@@ -2,7 +2,7 @@
 #include <charconv>
 
 std::mutex sSLMutex;
-FSPath sSLMLCPath;
+fs::path sSLMLCPath;
 
 std::vector<SaveInfo*> sSLList;
 
@@ -59,7 +59,7 @@ void CafeSaveList::RefreshThreadWorker()
 	sSLList.clear();
 
 	sSLMutex.lock();
-	FSPath mlcPath = sSLMLCPath;
+	fs::path mlcPath = sSLMLCPath;
 	sSLMutex.unlock();
 	std::error_code ec;
 	for (auto it_titleHigh : fs::directory_iterator(mlcPath / "usr/save", ec))
