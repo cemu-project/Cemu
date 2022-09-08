@@ -87,15 +87,20 @@ jobs:
       run: |
         cd build
         ninja
-
-    - name: Prepare artifact
-      run: mv bin/Cemu_release bin/Cemu
               
-    - name: Upload artifact
+    - name: Upload artifact (release)
+      if: ${{ inputs.deploymode == 'release' }}
       uses: actions/upload-artifact@v3
       with:
-        name: cemu-bin-linux-x64
-        path: ./bin/Cemu
+        name: cemu-bin-linux-x64-release
+        path: ./Cemu_release
+    
+    - name: Upload artifact (debug)
+      if: ${{ inputs.deploymode != 'release' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: cemu-bin-linux-x64-debug
+        path: ./Cemu_debug
         
   build-windows:
     runs-on: windows-2022
@@ -192,12 +197,17 @@ jobs:
       run: |
         cd build
         cmake --build . --config ${{ env.BUILD_MODE }} -j 2
-
-    - name: Prepare artifact
-      run: Rename-Item bin/Cemu_release.exe Cemu.exe
       
-    - name: Upload artifact
+    - name: Upload artifact (release)
+      if: ${{ inputs.deploymode == 'release' }}
       uses: actions/upload-artifact@v3
       with:
-        name: cemu-bin-windows-x64
-        path: ./bin/Cemu.exe
+        name: cemu-bin-windows-x64-release
+        path: ./Cemu_release
+    
+    - name: Upload artifact (debug)
+      if: ${{ inputs.deploymode != 'release' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: cemu-bin-windows-x64-debug
+        path: ./Cemu_debug
