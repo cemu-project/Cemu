@@ -1,5 +1,4 @@
 #include "Common/unix/FileStream_unix.h"
-#include <boost/locale/conversion.hpp>
 
 std::optional<fs::path> findPathCI(const fs::path& path)
 {
@@ -19,7 +18,7 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 		for (auto&& dirEntry : fs::directory_iterator(parrentPath))
 		{
 			std::string dirFName = dirEntry.path().filename().string();
-			if (boost::equals(boost::locale::to_lower(dirFName), boost::locale::to_lower(fName)))
+			if (boost::iequals(dirFName, fName))
 			{
 				return dirEntry;
 			}

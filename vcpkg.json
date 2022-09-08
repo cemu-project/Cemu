@@ -22,7 +22,6 @@
     "boost-range",
     "boost-functional",
     "boost-dll",
-    "boost-locale",
     "boost-optional",
     "boost-signals2",
     "boost-crc",
