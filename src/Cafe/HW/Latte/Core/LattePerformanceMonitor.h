@@ -76,23 +76,23 @@ typedef struct
 	struct
 	{
 		// CPU
-		volatile uint64 lastCycleCount;
-		volatile uint64 skippedCycles;
-		volatile uint32 recompilerLeaveCount; // increased everytime the recompiler switches back to interpreter
-		volatile uint32 threadLeaveCount; // increased everytime a thread gives up it's timeslice
+		uint64 lastCycleCount;
+		uint64 skippedCycles;
+		uint32 recompilerLeaveCount; // increased everytime the recompiler switches back to interpreter
+		uint32 threadLeaveCount; // increased everytime a thread gives up it's timeslice
 		// GPU
-		volatile uint32 lastUpdate;
-		volatile uint32 frameCounter;
-		volatile uint32 drawCallCounter;
-		volatile uint32 shaderBindCount;
-		volatile uint64 vertexDataUploaded; // amount of vertex data uploaded to GPU (bytes)
-		volatile uint64 vertexDataCached; // amount of vertex data reused from GPU cache (bytes)
-		volatile uint64 uniformBankUploadedData; // amount of uniform buffer data (excluding remapped uniforms) uploaded to GPU
-		volatile uint64 uniformBankUploadedCount; // number of separate uploads for uniformBankDataUploaded
-		volatile uint64 indexDataUploaded;
-		volatile uint64 indexDataCached;
+		uint32 lastUpdate;
+		uint32 frameCounter;
+		uint32 drawCallCounter;
+		uint32 shaderBindCount;
+		uint64 vertexDataUploaded; // amount of vertex data uploaded to GPU (bytes)
+		uint64 vertexDataCached; // amount of vertex data reused from GPU cache (bytes)
+		uint64 uniformBankUploadedData; // amount of uniform buffer data (excluding remapped uniforms) uploaded to GPU
+		uint64 uniformBankUploadedCount; // number of separate uploads for uniformBankDataUploaded
+		uint64 indexDataUploaded;
+		uint64 indexDataCached;
 	}cycle[PERFORMANCE_MONITOR_TRACK_CYCLES];
-	volatile sint32 cycleIndex;
+	sint32 cycleIndex;
 	// new stats
 	LattePerfStatTimer gpuTime_frameTime;
 	LattePerfStatTimer gpuTime_shaderCreate;

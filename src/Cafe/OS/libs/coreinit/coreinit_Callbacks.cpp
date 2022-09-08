@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "util/helpers/fspinlock.h"
 

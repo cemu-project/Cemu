@@ -210,6 +210,15 @@ typedef union _LARGE_INTEGER {
     inline T& operator^= (T& a, T b) { return reinterpret_cast<T&>( reinterpret_cast<std::underlying_type<T>::type&>(a) ^= static_cast<std::underlying_type<T>::type>(b) ); }
 #endif
 
+#if !defined(_MSC_VER) || defined(__clang__) // clang-cl does not have built-in _udiv128
+inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, uint64 *remainder)
+{
+    unsigned __int128 dividend = (((unsigned __int128)highDividend) << 64) | ((unsigned __int128)lowDividend);
+    *remainder = (uint64)((dividend % divisor) & 0xFFFFFFFFFFFFFFFF);
+    return       (uint64)((dividend / divisor) & 0xFFFFFFFFFFFFFFFF);
+}
+#endif
+
 #if defined(_MSC_VER)
     #define UNREACHABLE __assume(false)
 #elif defined(__GNUC__)
