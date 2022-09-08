@@ -74,7 +74,8 @@ private:
 		ColumnGameTime,
 		ColumnGameStarted,
 		ColumnRegion,
-		ColumnFavorite
+
+		ColumnMax
 	};
 
 	int s_last_column = ColumnName;
@@ -124,14 +125,13 @@ private:
 	std::map<TitleId, std::string> m_name_cache;
 
 	// list mode
-	void CreateListColumns();
-
+	void OnWindowSize(wxSizeEvent& event);
 	void OnColumnClick(wxListEvent& event);
 	void OnColumnRightClick(wxListEvent& event);
+	void AdjustLastColumnWidth();
 	void ApplyGameListColumnWidths();
 	void OnColumnBeginResize(wxListEvent& event);
 	void OnColumnResize(wxListEvent& event);
-	void OnColumnDrag(wxListEvent& event);
 	
 	// generic events
 	void OnKeyDown(wxListEvent& event);

@@ -89,12 +89,26 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto gamelist = parser.get("GameList");
 	game_list_style = gamelist.get("style", 0);
 	game_list_column_order = gamelist.get("order", "");
-	column_width.name = gamelist.get("name_width", -3);
-	column_width.version = gamelist.get("version_width", -3);
-	column_width.dlc = gamelist.get("dlc_width", -3);
-	column_width.game_time = gamelist.get("game_time_width", -3);
-	column_width.game_started = gamelist.get("game_started_width", -3);
-	column_width.region = gamelist.get("region_width", -3);
+
+	/*
+	 * gamelist.get() relies on TinyXML that itself relies on sscanf to read
+	 * data. sscanf does succeed when reading a negative number into a
+	 * uint32, it's simply cast to an unsigned. This is not what we want
+	 * so we read the signed integer and return the default column width if
+	 * the value in the config is negative.
+	 */
+	auto loadColumnSize = [&gamelist] (const char *name, uint32 defaultWidth) {
+		sint64 val = gamelist.get(name, DefaultColumnSize::name);
+		if (val < 0 || val > (sint64) std::numeric_limits<uint32>::max)
+			return defaultWidth;
+		return static_cast<uint32>(val);
+	};
+	column_width.name = loadColumnSize("name_width", DefaultColumnSize::name);
+	column_width.version = loadColumnSize("version_width", DefaultColumnSize::version);
+	column_width.dlc = loadColumnSize("dlc_width", DefaultColumnSize::dlc);
+	column_width.game_time = loadColumnSize("game_time_width", DefaultColumnSize::game_time);
+	column_width.game_started = loadColumnSize("game_started_width", DefaultColumnSize::game_started);
+	column_width.region = loadColumnSize("region_width", DefaultColumnSize::region);
 
 	recent_launch_files.clear();
 	auto launch_parser = parser.get("RecentLaunchFiles");

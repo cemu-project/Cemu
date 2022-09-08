@@ -6,13 +6,14 @@
 
 #include <numeric>
 
-#include <wx/wupdlock.h>
+#include <wx/imaglist.h>
 #include <wx/menu.h>
 #include <wx/mstream.h>
-#include <wx/imaglist.h>
-#include <wx/textdlg.h>
-#include <wx/stattext.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <wx/textdlg.h>
+#include <wx/wupdlock.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -50,7 +51,16 @@ void _stripPathFilename(fs::path& path)
 wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
 {
-	CreateListColumns();
+	const auto& config = GetConfig();
+
+	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
+	InsertColumn(ColumnIcon, "", wxLIST_FORMAT_LEFT, kListIconWidth + 8);
+	InsertColumn(ColumnName, _("Game"), wxLIST_FORMAT_LEFT, config.column_width.name);
+	InsertColumn(ColumnVersion, _("Version"), wxLIST_FORMAT_RIGHT, config.column_width.version);
+	InsertColumn(ColumnDLC, _("DLC"), wxLIST_FORMAT_RIGHT, config.column_width.dlc);
+	InsertColumn(ColumnGameTime, _("You've played"), wxLIST_FORMAT_LEFT, config.column_width.game_time);
+	InsertColumn(ColumnGameStarted, _("Last played"), wxLIST_FORMAT_LEFT, config.column_width.game_started);
+	InsertColumn(ColumnRegion, _("Region"), wxLIST_FORMAT_LEFT, config.column_width.region);
 
 	const char transparent_bitmap[kIconWidth * kIconWidth * 4] = {0};
 	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
@@ -82,6 +92,7 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	Bind(wxEVT_GAME_ENTRY_ADDED_OR_REMOVED, &wxGameList::OnGameEntryUpdatedByTitleId, this);
 	Bind(wxEVT_TIMER, &wxGameList::OnTimer, this);
 	Bind(wxEVT_LEAVE_WINDOW, &wxGameList::OnLeaveWindow, this);
+	Bind(wxEVT_SIZE, &wxGameList::OnWindowSize, this);
 
 	Bind(wxEVT_LIST_COL_CLICK, &wxGameList::OnColumnClick, this);
 	Bind(wxEVT_LIST_COL_BEGIN_DRAG, &wxGameList::OnColumnBeginResize, this);
@@ -124,7 +135,7 @@ void wxGameList::LoadConfig()
 	if (!config.game_list_column_order.empty())
 	{
 		wxArrayInt order;
-		order.reserve(ColumnFavorite);
+		order.reserve(ColumnMax);
 		
 		const auto order_string = std::string_view(config.game_list_column_order).substr(1);
 		
@@ -135,10 +146,10 @@ void wxGameList::LoadConfig()
 			order.push_back(ConvertString<int>(token, 10));
 		}
 		
-		#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
-		if(order.GetCount() == ColumnFavorite)
+#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
+		if(order.GetCount() == ColumnMax)
 			SetColumnsOrder(order);
-		#endif
+#endif
 	}
 }
 
@@ -147,9 +158,9 @@ void wxGameList::SaveConfig(bool flush)
 	auto& config = GetConfig();
 
 	config.game_list_style = (int)m_style;
-	#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
+#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
 	config.game_list_column_order = fmt::format("{}", GetColumnsOrder());
-	#endif
+#endif
 
 	if (flush)
 		g_config.Save();
@@ -346,61 +357,7 @@ void wxGameList::SortEntries(int column)
 	}
 }
 
-void wxGameList::CreateListColumns()
-{
-	DeleteAllColumns();
-	
-	const auto& config = GetConfig();
-	wxListItem col0;
-	col0.SetId(ColumnHiddenName);
-	col0.SetWidth(0);
-	InsertColumn(ColumnHiddenName, col0);
-
-	wxListItem col1;
-	col1.SetId(ColumnIcon);
-	col1.SetWidth(kListIconWidth);
-	InsertColumn(ColumnIcon, col1);
-
-	wxListItem col2;
-	col2.SetId(ColumnName);
-	col2.SetText(_("Game"));
-	col2.SetWidth(config.column_width.name);
-	InsertColumn(ColumnName, col2);
-
-	wxListItem col3;
-	col3.SetId(ColumnVersion);
-	col3.SetText(_("Version"));
-	col3.SetWidth(config.column_width.version);
-	col3.SetAlign(wxLIST_FORMAT_RIGHT);
-	InsertColumn(ColumnVersion, col3);
-
-	wxListItem col4;
-	col4.SetId(ColumnDLC);
-	col4.SetText(_("DLC"));
-	col4.SetWidth(config.column_width.dlc);
-	col4.SetAlign(wxLIST_FORMAT_RIGHT);
-	InsertColumn(ColumnDLC, col4);
-
-	wxListItem col5;
-	col5.SetId(ColumnGameTime);
-	col5.SetText(_("You've played"));
-	col5.SetWidth(config.column_width.game_time);
-	InsertColumn(ColumnGameTime, col5);
-
-	wxListItem col6;
-	col6.SetId(ColumnGameStarted);
-	col6.SetText(_("Last played"));
-	col6.SetWidth(config.column_width.game_started);
-	InsertColumn(ColumnGameStarted, col6);
-	
-	wxListItem col7;
-	col7.SetId(ColumnRegion);
-	col7.SetText(_("Region"));
-	col7.SetWidth(config.column_width.region);
-	InsertColumn(ColumnRegion, col7);
-}
-
-void wxGameList::OnKeyDown(wxListEvent& event)
+void wxGameList::OnKeyDown(wxListEvent& event)	
 {
 	event.Skip();
 	if (m_style != Style::kList)
@@ -633,6 +590,12 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 	}
 }
 
+void wxGameList::OnWindowSize(wxSizeEvent& event)
+{
+	AdjustLastColumnWidth();
+	event.Skip();
+}
+
 void wxGameList::OnColumnClick(wxListEvent& event)
 {
 	const int column = event.GetColumn();
@@ -660,17 +623,16 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 	menu.SetClientObject(new wxCustomData(column));
 	
 	menu.Append(ResetWidth, _("Reset &width"));
-	menu.Append(ResetOrder, _("Reset &order"))	;
-	
+#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
+	menu.Append(ResetOrder, _("Reset &order"));
+#endif
 	menu.AppendSeparator();
 	menu.AppendCheckItem(ShowName, _("Show &name"))->Check(GetColumnWidth(ColumnName) > 0);
 	menu.AppendCheckItem(ShowVersion, _("Show &version"))->Check(GetColumnWidth(ColumnVersion) > 0);
 	menu.AppendCheckItem(ShowDlc, _("Show &dlc"))->Check(GetColumnWidth(ColumnDLC) > 0);
 	menu.AppendCheckItem(ShowGameTime, _("Show &game time"))->Check(GetColumnWidth(ColumnGameTime) > 0);
 	menu.AppendCheckItem(ShowLastPlayed, _("Show &last played"))->Check(GetColumnWidth(ColumnGameStarted) > 0);
-	menu.AppendCheckItem(ColumnRegion, _("Show &region"))->Check(GetColumnWidth(ColumnRegion) > 0);
-	//menu.AppendSeparator();
-	//menu.Append(ResetOrder, _("&Reset order"));
+	menu.AppendCheckItem(ShowRegion, _("Show &region"))->Check(GetColumnWidth(ColumnRegion) > 0);
 
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED,
 		[this](wxCommandEvent& event) {
@@ -683,44 +645,44 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			switch (event.GetId())
 			{
 			case ShowName:
-				config.column_width.name = menu->IsChecked(ShowName) ? 500 : 0;
+				config.column_width.name = menu->IsChecked(ShowName) ? DefaultColumnSize::name : 0;
 				break;
 			case ShowVersion:
-				config.column_width.version = menu->IsChecked(ShowVersion) ? 60 : 0;
+				config.column_width.version = menu->IsChecked(ShowVersion) ? DefaultColumnSize::version : 0;
 				break;
 			case ShowDlc:
-				config.column_width.dlc = menu->IsChecked(ShowDlc) ? 50 : 0;
+				config.column_width.dlc = menu->IsChecked(ShowDlc) ? DefaultColumnSize::dlc : 0;
 				break;
 			case ShowGameTime:
-				config.column_width.game_time = menu->IsChecked(ShowGameTime) ? 140 : 0;
+				config.column_width.game_time = menu->IsChecked(ShowGameTime) ? DefaultColumnSize::game_time : 0;
 				break;
 			case ShowLastPlayed:
-				config.column_width.game_started = menu->IsChecked(ShowLastPlayed) ? 160 : 0;
+				config.column_width.game_started = menu->IsChecked(ShowLastPlayed) ? DefaultColumnSize::game_started : 0;
 				break;
-			case ColumnRegion:
-				config.column_width.region = menu->IsChecked(ColumnRegion) ? 80 : 0;
+			case ShowRegion:
+				config.column_width.region = menu->IsChecked(ShowRegion) ? DefaultColumnSize::region : 0;
 				break;
 			case ResetWidth:
 			{
 				switch (column)
 				{
 				case ColumnName:
-					config.column_width.name = 500;
+					config.column_width.name = DefaultColumnSize::name;
 					break;
 				case ColumnVersion:
-					config.column_width.version = 60;
+					config.column_width.version = DefaultColumnSize::version;
 					break;
 				case ColumnDLC:
-					config.column_width.dlc = 50;
+					config.column_width.dlc = DefaultColumnSize::dlc;
 					break;
 				case ColumnGameTime:
-					config.column_width.game_time = 140;
+					config.column_width.game_time = DefaultColumnSize::game_time;
 					break;
 				case ColumnGameStarted:
-					config.column_width.game_started = 160;
+					config.column_width.game_started = DefaultColumnSize::game_started;
 					break;
 				case ColumnRegion:
-					config.column_width.region = 80;
+					config.column_width.region = DefaultColumnSize::region;
 					break;
 				default:
 					return;
@@ -731,11 +693,11 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			case ResetOrder:
 			{
 				config.game_list_column_order.clear();
-				wxArrayInt order(ColumnFavorite);
+				wxArrayInt order(ColumnMax);
 				std::iota(order.begin(), order.end(), 0);
-				#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
+#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
 				SetColumnsOrder(order);
-				#endif
+#endif
 				Refresh();
 				return;
 			}
@@ -749,31 +711,60 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 	event.Skip();
 }
 
+void wxGameList::AdjustLastColumnWidth()
+{
+	int totalWidth = 0;
+	int lastColumn = 0;
+	size_t size;
+
+#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
+	wxArrayInt order = GetColumnsOrder();
+	size = order.GetCount();
+#else
+	std::vector<int> order(ColumnMax);
+	std::iota(order.begin(), order.end(), 0);
+	size = ColumnMax;
+#endif
+	for (size_t i = 0; i < size; ++i) {
+#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
+		int colNum = order.Item(i);
+#else
+		int colNum = order[i];
+#endif
+		int colWidth = GetColumnWidth(colNum);
+		if (colWidth > 0) {
+			totalWidth += colWidth;
+			lastColumn = colNum;
+		}
+	}
+
+	totalWidth -= GetColumnWidth(lastColumn);
+	int colWidth = GetClientSize().GetWidth() - totalWidth;
+	if (colWidth > 50)
+		SetColumnWidth(lastColumn, colWidth);
+}
+
 void wxGameList::ApplyGameListColumnWidths()
 {
-	auto set_width = [this](int id, int width)
-	{
-		if (width == -3)
-			wxAutosizeColumn(this, id);
-		else
-			this->SetColumnWidth(id, width);
-	};
-	
 	const auto& config = GetConfig();
 	wxWindowUpdateLocker lock(this);
-	set_width(ColumnName, config.column_width.name);
-	set_width(ColumnVersion, config.column_width.version);
-	set_width(ColumnDLC, config.column_width.dlc);
-	set_width(ColumnGameTime, config.column_width.game_time);
-	set_width(ColumnGameStarted, config.column_width.game_started);
-	set_width(ColumnRegion, config.column_width.region);
+
+	SetColumnWidth(ColumnIcon, kListIconWidth + 8);
+	SetColumnWidth(ColumnName, config.column_width.name);
+	SetColumnWidth(ColumnVersion, config.column_width.version);
+	SetColumnWidth(ColumnDLC, config.column_width.dlc);
+	SetColumnWidth(ColumnGameTime, config.column_width.game_time);
+	SetColumnWidth(ColumnGameStarted, config.column_width.game_started);
+	SetColumnWidth(ColumnRegion, config.column_width.region);
+
+	AdjustLastColumnWidth();
 }
 
 void wxGameList::OnColumnBeginResize(wxListEvent& event)
 {
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
-	if (width == 0)
+	if (width == 0 || column == ColumnIcon)
 		event.Veto();
 	else
 		event.Skip();
@@ -803,19 +794,16 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 	case ColumnGameStarted:
 		config.column_width.game_started = width;
 		break;
+	case ColumnRegion:
+		config.column_width.region = width;
+		break;
+
 	default:
 		return;
 	}
+	AdjustLastColumnWidth();
 
 	g_config.Save();
-}
-
-void wxGameList::OnColumnDrag(wxListEvent& event)
-{
-	const auto column = event.GetColumn();
-	const auto width = GetColumnWidth(column);
-	if (column == ColumnHiddenName || width == 0)
-		event.Veto();
 }
 
 void wxGameList::OnClose(wxCloseEvent& event)
@@ -828,8 +816,6 @@ int wxGameList::FindInsertPosition(TitleId titleId)
 {
 	SortData data{ this, s_last_column, s_direction };
 	const auto itemCount = GetItemCount();
-	if (itemCount == 0)
-		return 0;
 	// todo - optimize this with binary search
 
 	for (int i = 0; i < itemCount; i++)
