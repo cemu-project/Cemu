@@ -107,7 +107,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-linux-x64-experimental
-        path: ./bin/Cemu_debug 
+        path: ./bin/Cemu_experimental 
         
   build-windows:
     runs-on: windows-2022
@@ -224,4 +224,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cemu-bin-windows-x64-experimental
-        path: ./bin/Cemu_debug
+        path: ./bin/Cemu_experimental
