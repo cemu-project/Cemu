@@ -171,14 +171,14 @@ int CemuApp::FilterEvent(wxEvent& event)
 		const auto& key_event = (wxKeyEvent&)event;
 		wxGetKeyState(wxKeyCode::WXK_F17);
 		uint32 keycode=fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags());
-		if(0<=keycode && keycode<256)
+		if(keycode<256)
 			g_window_info.keydown[keycode] = true;
 	}
 	else if(event.GetEventType() == wxEVT_KEY_UP)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
 		uint32 keycode=fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags());
-		if(0<=keycode && keycode<256)
+		if(keycode<256)
 			g_window_info.keydown[keycode] = false;
 	}
 
