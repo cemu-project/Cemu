@@ -49,7 +49,7 @@ jobs:
           ls ./
           ls ./bin/
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-windows-x64-release/Cemu.exe ./${{ env.CEMU_FOLDER_NAME }}/Cemu.exe
+          mv cemu-bin-windows-x64-release/Cemu_release.exe ./${{ env.CEMU_FOLDER_NAME }}/Cemu_release.exe
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-windows-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
           
@@ -58,7 +58,7 @@ jobs:
           ls ./
           ls ./bin/
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-linux-ubuntu22.04-x64-release/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
+          mv cemu-bin-linux-ubuntu22.04-x64-release/Cemu_release ./${{ env.CEMU_FOLDER_NAME }}/Cemu_release
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-20.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
   
