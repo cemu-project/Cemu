@@ -12,11 +12,11 @@ Instructions:
 
 1. Run `git clone --recursive https://github.com/cemu-project/Cemu`
 2. Launch `Cemu/generate_vs_solution.bat`.
-    - If you installed VS to a custom location or use VS 2019, you may need to manually change the path inside the .bat file
-3. Wait until it's done, then open `Cemu/build/Cemu.sln` in Visual Studio
+    - If you installed VS to a custom location or use VS 2019, you may need to manually change the path inside the .bat file.
+3. Wait until it's done, then open `Cemu/build/Cemu.sln` in Visual Studio.
 4. Then build the solution and once finished you can run and debug it, or build it and check the /bin folder for the final Cemu_release.exe.
 
-You can also skip steps 3-5 and open the root folder of the cloned repo directly in Visual Studio (as a folder) and use the built-in cmake support but be warned that cmake support in VS can be a bit finicky.
+You can also skip steps 3-5 and open the root folder of the cloned repo directly in Visual Studio (as a folder) and use the built-in CMake support but be warned that cmake support in VS can be a bit finicky.
 
 ## Linux
 
@@ -57,10 +57,10 @@ You can use it by replacing the step 3 with the following:
  - If step 3 is still failing or if you're not able to find the cause, please make an issue on our Github about it!
  - If step 4 gives you an error that contains something like `main.cpp.o: in function 'std::__cxx11::basic_string...`, you likely are experiencing a clang-14 issue. This can only be fixed by either lowering the clang version or using GCC, see below.
  - If step 4 gives you a different error, you could report it to this repo or try using GCC. Just make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
-- If step 4 gives you undefined libdecor_xx, you are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile
+- If step 4 gives you undefined libdecor_xx, you are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
 
-## Updating Cemu version
-1. To update your Cemu local repository, use the command `git pull --recurse-submodules`
+## Updating Cemu and source code
+1. To update your Cemu local repository, use the command `git pull --recurse-submodules` (run this command on the Cemu root).
     - This should update your local copy of Cemu and all of its dependencies.
 2. Then, you can rebuild Cemu using the steps listed above, according to whether you use Linux or Windows.
-If cmake complains about Cemu already being compiled or similar, try deleting the `CMakeCache.txt` file on the `build` folder.
+If CMake complains about Cemu already being compiled or another similar error, try deleting the `CMakeCache.txt` file inside the `build` folder and retry building.
