@@ -120,16 +120,15 @@ private:
 
 class fscDeviceWUDC : public fscDeviceC
 {
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		FSTVolume* mountedVolume = (FSTVolume*)ctx;
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to FST is never allowed
 
-		std::string pathU8 = boost::nowide::narrow(path.data(), path.size());
 		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
 		{
 			FSTFileHandle fstFileHandle;
-			if (mountedVolume->OpenFile(pathU8, fstFileHandle, true))
+			if (mountedVolume->OpenFile(path, fstFileHandle, true))
 			{
 				*fscStatus = FSC_STATUS_OK;
 				return new FSCDeviceWudFileCtx(mountedVolume, fstFileHandle);
@@ -138,7 +137,7 @@ class fscDeviceWUDC : public fscDeviceC
 		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
 		{
 			FSTDirectoryIterator dirIterator;
-			if (mountedVolume->OpenDirectoryIterator(pathU8, dirIterator))
+			if (mountedVolume->OpenDirectoryIterator(path, dirIterator))
 			{
 				*fscStatus = FSC_STATUS_OK;
 				return new FSCDeviceWudFileCtx(mountedVolume, dirIterator);

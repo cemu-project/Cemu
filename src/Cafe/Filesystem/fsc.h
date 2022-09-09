@@ -57,25 +57,25 @@ struct FSCDirEntry
 class fscDeviceC
 {
 public:
-	virtual FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus)
+	virtual FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return nullptr;
 	}
 
-	virtual bool fscDeviceCreateDir(std::wstring_view path, void* ctx, sint32* fscStatus)
+	virtual bool fscDeviceCreateDir(std::string_view path, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return false;
 	}
 
-	virtual bool fscDeviceRemoveFileOrDir(std::wstring_view path, void* ctx, sint32* fscStatus)
+	virtual bool fscDeviceRemoveFileOrDir(std::string_view path, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return false;
 	}
 
-	virtual bool fscDeviceRename(std::wstring_view srcPath, std::wstring_view dstPath, void* ctx, sint32* fscStatus)
+	virtual bool fscDeviceRename(std::string_view srcPath, std::string_view dstPath, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return false;

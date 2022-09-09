@@ -47,7 +47,7 @@ public:
 	{
 		cemu_assert_debug(format.empty() || (format[0] != '/' && format[0] != '\\'));
 		auto tmp = fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-		return GetMlcPath() / fs::path(_asUtf8(tmp));
+		return GetMlcPath() / _utf8ToPath(tmp);
 	}
 	
 	template <typename ...TArgs>

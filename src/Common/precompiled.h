@@ -435,10 +435,11 @@ inline std::string _utf8Wrapper(const fs::path& path)
     return _utf8Wrapper(path.generic_u8string());
 }
 
-inline std::u8string_view _asUtf8(std::string_view input)
+// convert utf8 encoded string to fs::path
+inline fs::path _utf8ToPath(std::string_view input)
 {
-	std::basic_string_view<char8_t> v((char8_t*)input.data(), input.size());
-	return v;
+    std::basic_string_view<char8_t> v((char8_t*)input.data(), input.size());
+    return fs::path(v);
 }
 
 class RunAtCemuBoot // -> replaces this with direct function calls. Linkers other than MSVC may optimize way object files entirely if they are not referenced from outside. So a source file self-registering using this would be causing issues

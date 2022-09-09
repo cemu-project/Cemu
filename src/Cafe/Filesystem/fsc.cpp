@@ -183,7 +183,7 @@ void fsc_unmountAll()
 }
 
 // lookup virtual path and find mounted device and relative device directory
-bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** fscDeviceOut, void** ctxOut, sint32 priority = FSC_PRIORITY_BASE)
+bool fsc_lookupPath(const char* path, std::string& devicePathOut, fscDeviceC** fscDeviceOut, void** ctxOut, sint32 priority = FSC_PRIORITY_BASE)
 {
 	FSCPath parsedPath(path);
 	FSCMountPathNode* nodeParent = s_fscRootNodePerPrio[priority];
@@ -214,11 +214,11 @@ bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** 
 	{
 		if (nodeParent->device)
 		{
-			devicePathOut = boost::nowide::widen(nodeParent->deviceTargetPath);
+			devicePathOut = nodeParent->deviceTargetPath;
 			for (size_t f = i; f < parsedPath.GetNodeCount(); f++)
 			{
 				auto nodeName = parsedPath.GetNodeName(f);
-				devicePathOut.append(boost::nowide::widen(nodeName));
+				devicePathOut.append(nodeName);
 				if (f < (parsedPath.GetNodeCount() - 1))
 					devicePathOut.push_back('/');
 			}
@@ -353,11 +353,9 @@ private:
 FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus, sint32 maxPriority)
 {
 	cemu_assert_debug(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) || HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR)); // must open either file or directory
-
 	FSCVirtualFile* dirList[FSC_PRIORITY_COUNT];
 	uint8 dirListCount = 0;
-
-	std::wstring devicePath;
+	std::string devicePath;
 	fscDeviceC* fscDevice = NULL;
 	*fscStatus = FSC_STATUS_UNDEFINED;
 	void* ctx;
@@ -448,7 +446,7 @@ bool fsc_createDir(char* path, sint32* fscStatus)
 	fscDeviceC* fscDevice = NULL;
 	*fscStatus = FSC_STATUS_UNDEFINED;
 	void* ctx;
-	std::wstring devicePath;
+	std::string devicePath;
 	fscEnter();
 	if( fsc_lookupPath(path, devicePath, &fscDevice, &ctx) )
 	{
@@ -465,8 +463,8 @@ bool fsc_createDir(char* path, sint32* fscStatus)
  */
 bool fsc_rename(char* srcPath, char* dstPath, sint32* fscStatus)
 {
-	std::wstring srcDevicePath;
-	std::wstring dstDevicePath;
+	std::string srcDevicePath;
+	std::string dstDevicePath;
 	void* srcCtx;
 	void* dstCtx;
 	fscDeviceC* fscSrcDevice = NULL;
@@ -485,7 +483,7 @@ bool fsc_rename(char* srcPath, char* dstPath, sint32* fscStatus)
  */
 bool fsc_remove(char* path, sint32* fscStatus)
 {
-	std::wstring devicePath;
+	std::string devicePath;
 	fscDeviceC* fscDevice = NULL;
 	*fscStatus = FSC_STATUS_UNDEFINED;
 	void* ctx;

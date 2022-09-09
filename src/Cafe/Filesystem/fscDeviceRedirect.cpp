@@ -29,11 +29,10 @@ void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& t
 
 class fscDeviceTypeRedirect : public fscDeviceC
 {
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view pathW, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		RedirectEntry* redirectionEntry;
-		std::string pathTmp = boost::nowide::narrow(pathW);
-		if (redirectTree.getFile(pathTmp, redirectionEntry))
+		if (redirectTree.getFile(path, redirectionEntry))
 			return FSCVirtualFile_Host::OpenFile(redirectionEntry->dstPath, accessFlags, *fscStatus);
 		return nullptr;
 	}

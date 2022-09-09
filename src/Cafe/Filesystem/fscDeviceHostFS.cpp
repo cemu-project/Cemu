@@ -221,36 +221,36 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 class fscDeviceHostFSC : public fscDeviceC
 {
 public:
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(path, accessFlags, *fscStatus);
+		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(_utf8ToPath(path), accessFlags, *fscStatus);
 		cemu_assert_debug((bool)vf == (*fscStatus == FSC_STATUS_OK));
 		return vf;
 	}
 
-	bool fscDeviceCreateDir(std::wstring_view path, void* ctx, sint32* fscStatus) override
+	bool fscDeviceCreateDir(std::string_view path, void* ctx, sint32* fscStatus) override
 	{
-		fs::path dirPath(path);
-		if (fs::exists(path))
+		fs::path dirPath = _utf8ToPath(path);
+		if (fs::exists(dirPath))
 		{
 			if (!fs::is_directory(dirPath))
-				cemuLog_force("CreateDir: {} already exists but is not a directory", _utf8Wrapper(dirPath));
+				cemuLog_force("CreateDir: {} already exists but is not a directory", path);
 			*fscStatus = FSC_STATUS_ALREADY_EXISTS;
 			return false;
 		}
 		std::error_code ec;
 		bool r = fs::create_directories(dirPath, ec);
-		if(!r)
-			cemuLog_force("CreateDir: Failed to create {}", _utf8Wrapper(dirPath));
+		if (!r)
+			cemuLog_force("CreateDir: Failed to create {}", path);
 		*fscStatus = FSC_STATUS_OK;
 		return true;
 	}
 
-	bool fscDeviceRemoveFileOrDir(std::wstring_view path, void* ctx, sint32* fscStatus) override
+	bool fscDeviceRemoveFileOrDir(std::string_view path, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		fs::path _path(path);
+		fs::path _path = _utf8ToPath(path);
 		std::error_code ec;
 		if (!fs::exists(_path, ec))
 		{
@@ -266,11 +266,11 @@ public:
 		return true;
 	}
 
-	bool fscDeviceRename(std::wstring_view srcPath, std::wstring_view dstPath, void* ctx, sint32* fscStatus) override
+	bool fscDeviceRename(std::string_view srcPath, std::string_view dstPath, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		fs::path _srcPath(srcPath);
-		fs::path _dstPath(dstPath);
+		fs::path _srcPath = _utf8ToPath(srcPath);
+		fs::path _dstPath = _utf8ToPath(dstPath);
 		std::error_code ec;
 		if (!fs::exists(_srcPath, ec))
 		{

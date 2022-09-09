@@ -119,14 +119,12 @@ private:
 
 class fscDeviceWUAC : public fscDeviceC
 {
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		ZArchiveReader* archive = (ZArchiveReader*)ctx;
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUA is not supported
 
-		std::string pathU8 = boost::nowide::narrow(path.data(), path.size());
-		
-		ZArchiveNodeHandle fileHandle = archive->LookUp(pathU8, true, true);
+		ZArchiveNodeHandle fileHandle = archive->LookUp(path, true, true);
 		if (fileHandle == ZARCHIVE_INVALID_NODE)
 		{
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
