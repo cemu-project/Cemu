@@ -177,12 +177,12 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 	std::error_code ec;
 	if (path.has_extension() && fs::is_regular_file(path, ec))
 	{
-		std::string filenameStr = _utf8Wrapper(path.filename());
+		std::string filenameStr = _pathToUtf8(path.filename());
 		if (boost::iends_with(filenameStr, ".rpx"))
 		{
 			// is in code folder?
 			fs::path parentPath = path.parent_path();
-			if (boost::iequals(_utf8Wrapper(parentPath.filename()), "code"))
+			if (boost::iequals(_pathToUtf8(parentPath.filename()), "code"))
 			{
 				parentPath = parentPath.parent_path();
 				// next to content and meta?
@@ -370,7 +370,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 	{
 		fs::path hostFSPath = m_fullPath;
 		hostFSPath.append(subfolder);
-		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), _utf8Wrapper(hostFSPath), mountPriority);
+		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), _pathToUtf8(hostFSPath), mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{
@@ -495,7 +495,7 @@ bool TitleInfo::ParseXmlInfo()
 	if (!m_parsedMetaXml || !m_parsedAppXml || !m_parsedCosXml)
 	{
 		if (hasAnyXml)
-			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _utf8Wrapper(m_fullPath));
+			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _pathToUtf8(m_fullPath));
 		delete m_parsedMetaXml;
 		delete m_parsedAppXml;
 		delete m_parsedCosXml;
@@ -621,7 +621,7 @@ std::string TitleInfo::GetPrintPath() const
 	if (!m_isValid)
 		return "invalid";
 	std::string tmp;
-	tmp.append(_utf8Wrapper(m_fullPath));
+	tmp.append(_pathToUtf8(m_fullPath));
 	switch (m_titleFormat)
 	{
 	case TitleDataFormat::HOST_FS:

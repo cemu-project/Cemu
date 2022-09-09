@@ -166,7 +166,7 @@ void reconfigureGLDrivers()
 	fs::create_directories(nvCacheDir, err);
 
 	std::string nvCacheDirEnvOption("__GL_SHADER_DISK_CACHE_PATH=");
-	nvCacheDirEnvOption.append(_utf8Wrapper(nvCacheDir));
+	nvCacheDirEnvOption.append(_pathToUtf8(nvCacheDir));
 
 #if BOOST_OS_WINDOWS
 	std::wstring tmpW = boost::nowide::widen(nvCacheDirEnvOption);

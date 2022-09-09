@@ -420,19 +420,12 @@ inline std::string_view _utf8Wrapper(std::u8string_view input)
     return v;
 }
 
-// returns a std::u8string as std::string, the contents are left as-is
-inline std::string _utf8Wrapper(const std::u8string& u8str)
+// convert fs::path to utf8 encoded string
+inline std::string _pathToUtf8(const fs::path& path)
 {
-    std::string v;
-    v.resize(u8str.size());
-    memcpy(v.data(), u8str.data(), u8str.size());
+    std::u8string strU8 = path.generic_u8string();
+    std::string v((const char*)strU8.data(), strU8.size());
     return v;
-}
-
-// get utf8 generic path string directly from std::filesystem::path
-inline std::string _utf8Wrapper(const fs::path& path)
-{
-    return _utf8Wrapper(path.generic_u8string());
 }
 
 // convert utf8 encoded string to fs::path

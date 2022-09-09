@@ -417,7 +417,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	for (const auto& game : graphic_pack_entries)
 	{
 		auto entry = graphic_pack_parser.set("Entry");
-		entry.set_attribute("filename",_utf8Wrapper(game.first).c_str());
+		entry.set_attribute("filename",_pathToUtf8(game.first).c_str());
 		for(const auto& kv : game.second)
 		{
 			// TODO: less hacky pls

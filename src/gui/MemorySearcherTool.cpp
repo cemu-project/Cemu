@@ -275,7 +275,7 @@ void MemorySearcherTool::Load()
 	if (!memSearcherIniContents)
 		return;
 
-	IniParser iniParser(*memSearcherIniContents, _utf8Wrapper(memorySearcherPath));
+	IniParser iniParser(*memSearcherIniContents, _pathToUtf8(memorySearcherPath));
 	while (iniParser.NextSection())
 	{
 		auto option_description = iniParser.FindOption("description");

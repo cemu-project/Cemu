@@ -127,7 +127,7 @@ bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
 		m_dirIterator.reset(new fs::directory_iterator(*m_path));
 		if (!m_dirIterator)
 		{
-			cemuLog_force("Failed to iterate directory: {}", _utf8Wrapper(m_path->generic_u8string()));
+			cemuLog_force("Failed to iterate directory: {}", _pathToUtf8(*m_path));
 			return false;
 		}
 	}
@@ -175,14 +175,14 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 				cemu_assert_debug(writeAccessRequested);
 				fs = FileStream::createFile2(path);
 				if (!fs)
-					cemuLog_force("FSC: File create failed for {}", _utf8Wrapper(path));
+					cemuLog_force("FSC: File create failed for {}", _pathToUtf8(path));
 			}
 		}
 		else if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::FILE_ALWAYS_CREATE))
 		{
 			fs = FileStream::createFile2(path);
 			if (!fs)
-				cemuLog_force("FSC: File create failed for {}", _utf8Wrapper(path));
+				cemuLog_force("FSC: File create failed for {}", _pathToUtf8(path));
 		}
 		else
 		{
@@ -293,8 +293,8 @@ public:
 void fscDeviceHostFS_mapBaseDirectories_deprecated()
 {
 	const auto mlc = ActiveSettings::GetMlcPath();
-	fsc_mount("/cemuBossStorage/", _utf8Wrapper(mlc / "usr/boss/"), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
-	fsc_mount("/vol/storage_mlc01/", _utf8Wrapper(mlc / ""), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
+	fsc_mount("/cemuBossStorage/", _pathToUtf8(mlc / "usr/boss/"), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
+	fsc_mount("/vol/storage_mlc01/", _pathToUtf8(mlc / ""), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
 }
 
 bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority)
