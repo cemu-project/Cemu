@@ -33,7 +33,7 @@ Additionally, for Ubuntu 22.04 only:
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Arch and derivatives:
-`sudo pacman -S git cmake clang ninja nasm base-devel linux-headers gtk3 libsecret libgcrypt systemd freeglut zip libpulse`
+`sudo pacman -S git cmake clang ninja nasm base-devel linux-headers gtk3 libsecret libgcrypt systemd freeglut zip unzip libpulse`
 
 #### For Fedora and derivatives:
 `sudo dnf install git cmake clang ninja-build nasm kernel-headers gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel perl-core zlib-devel cubeb-devel`
@@ -61,6 +61,6 @@ You can use it by replacing the step 3 with the following:
 
 ## Updating Cemu version
 1. To update your Cemu local repository, use the command `git pull --recurse-submodules`
-   - This should update your local copy of Cemu and all of its dependencies
+    - This should update your local copy of Cemu and all of its dependencies.
 2. Then, you can rebuild Cemu using the steps listed above, acording to your Operating System (OS)
 If cmake complains about Cemu already being compiled or similar, try deleting the `CMakeCache.txt` file on the `build` folder.
