@@ -34,7 +34,7 @@ FileStream* FileStream::openFile(const wchar_t* path, bool allowWrite)
 FileStream* FileStream::openFile2(const fs::path& path, bool allowWrite)
 {
 	//return openFile(path.generic_wstring().c_str(), allowWrite);
-	FileStream* fs = new FileStream(findPathCI(path), true, allowWrite);
+	FileStream* fs = new FileStream(path, true, allowWrite);
 	if (fs->m_isValid)
 		return fs;
 	delete fs;
@@ -53,7 +53,7 @@ FileStream* FileStream::createFile(std::string_view path)
 
 FileStream* FileStream::createFile2(const fs::path& path)
 {
-	FileStream* fs = new FileStream(findPathCI(path), false, false);
+	FileStream* fs = new FileStream(path, false, false);
 	if (fs->m_isValid)
 		return fs;
 	delete fs;
@@ -209,14 +209,15 @@ FileStream::~FileStream()
 
 FileStream::FileStream(const fs::path& path, bool isOpen, bool isWriteable)
 {
+	fs::path CIPath = findPathCI(path);
 	if (isOpen)
 	{
-		m_fileStream.open(findPathCI(path), isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
+		m_fileStream.open(CIPath, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
 		m_isValid = m_fileStream.is_open();
 	}
 	else
 	{
-		m_fileStream.open(findPathCI(path), std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+		m_fileStream.open(CIPath, std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 		m_isValid = m_fileStream.is_open();
 	}
 }
