@@ -108,7 +108,7 @@ void SaveTransfer::OnTransfer(wxCommandEvent& event)
 	{
 		if(!fs::is_directory(target_path))
 		{
-			const auto msg = wxStringFormat2(_("There's already a file at the target directory:\n{}"), _utf8Wrapper(target_path));
+			const auto msg = wxStringFormat2(_("There's already a file at the target directory:\n{}"), _pathToUtf8(target_path));
 			wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			m_return_code = wxCANCEL;
 			Close();

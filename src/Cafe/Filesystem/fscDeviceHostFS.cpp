@@ -127,7 +127,7 @@ bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
 		m_dirIterator.reset(new fs::directory_iterator(*m_path));
 		if (!m_dirIterator)
 		{
-			cemuLog_force("Failed to iterate directory: {}", _utf8Wrapper(m_path->generic_u8string()));
+			cemuLog_force("Failed to iterate directory: {}", _pathToUtf8(*m_path));
 			return false;
 		}
 	}
@@ -175,14 +175,14 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 				cemu_assert_debug(writeAccessRequested);
 				fs = FileStream::createFile2(path);
 				if (!fs)
-					cemuLog_force("FSC: File create failed for {}", _utf8Wrapper(path));
+					cemuLog_force("FSC: File create failed for {}", _pathToUtf8(path));
 			}
 		}
 		else if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::FILE_ALWAYS_CREATE))
 		{
 			fs = FileStream::createFile2(path);
 			if (!fs)
-				cemuLog_force("FSC: File create failed for {}", _utf8Wrapper(path));
+				cemuLog_force("FSC: File create failed for {}", _pathToUtf8(path));
 		}
 		else
 		{
@@ -221,36 +221,36 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 class fscDeviceHostFSC : public fscDeviceC
 {
 public:
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(path, accessFlags, *fscStatus);
+		FSCVirtualFile* vf = FSCVirtualFile_Host::OpenFile(_utf8ToPath(path), accessFlags, *fscStatus);
 		cemu_assert_debug((bool)vf == (*fscStatus == FSC_STATUS_OK));
 		return vf;
 	}
 
-	bool fscDeviceCreateDir(std::wstring_view path, void* ctx, sint32* fscStatus) override
+	bool fscDeviceCreateDir(std::string_view path, void* ctx, sint32* fscStatus) override
 	{
-		fs::path dirPath(path);
-		if (fs::exists(path))
+		fs::path dirPath = _utf8ToPath(path);
+		if (fs::exists(dirPath))
 		{
 			if (!fs::is_directory(dirPath))
-				cemuLog_force("CreateDir: {} already exists but is not a directory", _utf8Wrapper(dirPath));
+				cemuLog_force("CreateDir: {} already exists but is not a directory", path);
 			*fscStatus = FSC_STATUS_ALREADY_EXISTS;
 			return false;
 		}
 		std::error_code ec;
 		bool r = fs::create_directories(dirPath, ec);
-		if(!r)
-			cemuLog_force("CreateDir: Failed to create {}", _utf8Wrapper(dirPath));
+		if (!r)
+			cemuLog_force("CreateDir: Failed to create {}", path);
 		*fscStatus = FSC_STATUS_OK;
 		return true;
 	}
 
-	bool fscDeviceRemoveFileOrDir(std::wstring_view path, void* ctx, sint32* fscStatus) override
+	bool fscDeviceRemoveFileOrDir(std::string_view path, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		fs::path _path(path);
+		fs::path _path = _utf8ToPath(path);
 		std::error_code ec;
 		if (!fs::exists(_path, ec))
 		{
@@ -266,11 +266,11 @@ public:
 		return true;
 	}
 
-	bool fscDeviceRename(std::wstring_view srcPath, std::wstring_view dstPath, void* ctx, sint32* fscStatus) override
+	bool fscDeviceRename(std::string_view srcPath, std::string_view dstPath, void* ctx, sint32* fscStatus) override
 	{
 		*fscStatus = FSC_STATUS_OK;
-		fs::path _srcPath(srcPath);
-		fs::path _dstPath(dstPath);
+		fs::path _srcPath = _utf8ToPath(srcPath);
+		fs::path _dstPath = _utf8ToPath(dstPath);
 		std::error_code ec;
 		if (!fs::exists(_srcPath, ec))
 		{
@@ -293,14 +293,11 @@ public:
 void fscDeviceHostFS_mapBaseDirectories_deprecated()
 {
 	const auto mlc = ActiveSettings::GetMlcPath();
-	fsc_mount("/cemuBossStorage/", (mlc / "usr/boss/").generic_wstring().c_str(), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
-	fsc_mount("/vol/storage_mlc01/", (mlc / "").generic_wstring().c_str(), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
+	fsc_mount("/cemuBossStorage/", _pathToUtf8(mlc / "usr/boss/"), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
+	fsc_mount("/vol/storage_mlc01/", _pathToUtf8(mlc / ""), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
 }
 
-bool FSCDeviceHostFS_Mount(const char* mountPath, const wchar_t* hostFSPath, sint32 priority)
+bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority)
 {
-	std::wstring hostTargetPath(hostFSPath);
-	if (!hostTargetPath.empty() && (hostTargetPath.back() != '/' && hostTargetPath.back() != '\\'))
-		hostTargetPath.push_back('/');
-	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceHostFSC::instance(), nullptr, priority) == FSC_STATUS_OK;
+	return fsc_mount(mountPath, hostTargetPath, &fscDeviceHostFSC::instance(), nullptr, priority) == FSC_STATUS_OK;
 }

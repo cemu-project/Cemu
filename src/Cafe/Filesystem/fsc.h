@@ -57,25 +57,25 @@ struct FSCDirEntry
 class fscDeviceC
 {
 public:
-	virtual FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus)
+	virtual FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return nullptr;
 	}
 
-	virtual bool fscDeviceCreateDir(std::wstring_view path, void* ctx, sint32* fscStatus)
+	virtual bool fscDeviceCreateDir(std::string_view path, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return false;
 	}
 
-	virtual bool fscDeviceRemoveFileOrDir(std::wstring_view path, void* ctx, sint32* fscStatus)
+	virtual bool fscDeviceRemoveFileOrDir(std::string_view path, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return false;
 	}
 
-	virtual bool fscDeviceRename(std::wstring_view srcPath, std::wstring_view dstPath, void* ctx, sint32* fscStatus)
+	virtual bool fscDeviceRename(std::string_view srcPath, std::string_view dstPath, void* ctx, sint32* fscStatus)
 	{
 		cemu_assert_unimplemented();
 		return false;
@@ -161,8 +161,8 @@ struct FSCVirtualFile
 #define FSC_PRIORITY_COUNT				(4)
 
 void fsc_init();
-sint32 fsc_mount(const char* mountPath, const wchar_t* targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority=0);
-bool fsc_unmount(const char* mountPath, sint32 priority);
+sint32 fsc_mount(std::string_view mountPath, std::string_view targetPath, fscDeviceC* fscDevice, void* ctx, sint32 priority=0);
+bool fsc_unmount(std::string_view mountPath, sint32 priority);
 void fsc_unmountAll();
 
 FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus, sint32 maxPriority=FSC_PRIORITY_MAX);
@@ -188,32 +188,15 @@ bool fsc_doesFileExist(const char* path, sint32 maxPriority = FSC_PRIORITY_MAX);
 bool fsc_doesDirectoryExist(const char* path, sint32 maxPriority = FSC_PRIORITY_MAX);
 
 // wud device
-bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir, class FSTVolume* mountedVolume, sint32 priority);
+bool FSCDeviceWUD_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class FSTVolume* mountedVolume, sint32 priority);
 
 // wua device
-bool FSCDeviceWUA_Mount(const char* mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
+bool FSCDeviceWUA_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
 
 // hostFS device
 void fscDeviceHostFS_mapBaseDirectories_deprecated();
-bool FSCDeviceHostFS_Mount(const char* mountPath, const wchar_t* hostFSPath, sint32 priority);
+bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority);
 
 // redirect device
 void fscDeviceRedirect_map();
 void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority);
-
-
-// Old path parser helper functions
-// Replace with FSCPath
-
-#define FSC_PARSED_PATH_NODES_MAX   (32)
-
-struct CoreinitFSParsedPath
-{
-	char pathData[640 + 1];
-	uint16 nodeOffset[FSC_PARSED_PATH_NODES_MAX];
-	sint32 numNodes;
-};
-
-void coreinitFS_parsePath(CoreinitFSParsedPath* parsedPath, const char* path);
-bool coreinitFS_checkNodeName(CoreinitFSParsedPath* parsedPath, sint32 index, const char* name);
-char* coreinitFS_getNodeName(CoreinitFSParsedPath* parsedPath, sint32 index);

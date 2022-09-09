@@ -51,7 +51,7 @@ namespace acp
 
 		// mount save path
 		const auto mlc = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/", high, low);
-		FSCDeviceHostFS_Mount("/vol/save/", mlc.generic_wstring().c_str(), FSC_PRIORITY_BASE);
+		FSCDeviceHostFS_Mount("/vol/save/", _pathToUtf8(mlc), FSC_PRIORITY_BASE);
 		nnResult mountResult = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACP, 0);
 		return _ACPConvertResultToACPStatus(&mountResult, "ACPMountSaveDir", 0x60);
 	}
