@@ -198,6 +198,9 @@ FileStream::FileStream(const fs::path& path, bool isOpen, bool isWriteable)
 		m_fileStream.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 		m_isValid = m_fileStream.is_open();
 	}
+	m_isValid &= !is_directory(path);
+	if(!m_isValid)
+		m_fileStream.close();
 }
 
 void FileStream::SyncReadWriteSeek(bool nextOpIsWrite)
