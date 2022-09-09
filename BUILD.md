@@ -61,6 +61,6 @@ You can use it by replacing the step 3 with the following:
 
 ## Updating Cemu version
 1. To update your Cemu local repository, use the command `git pull --recurse-submodules`
-    * This should update your local copy of Cemu and all of its dependencies.
+    - This should update your local copy of Cemu and all of its dependencies.
 2. Then, you can rebuild Cemu using the steps listed above, acording to your Operating System (OS)
 If cmake complains about Cemu already being compiled or similar, try deleting the `CMakeCache.txt` file on the `build` folder.
