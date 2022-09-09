@@ -19,13 +19,13 @@ jobs:
  
       - uses: actions/download-artifact@v3
         with:
-          name: cemu-bin-linux-x64-release
-          path: cemu-bin-linux-x64-release
+          name: cemu-bin-linux-ubuntu22.04-x64-release
+          path: cemu-bin-linux-ubuntu22.04-x64-release
 
       - uses: actions/download-artifact@v3
         with:
-          name: cemu-bin-windows-x64-release
-          path: cemu-bin-windows-x64-release
+          name: cemu-bin-linux-ubuntu22.04-x64-release
+          path: cemu-bin-linux-ubuntu22.04-x64-release
 
       - name: Initialize
         run: |
@@ -58,7 +58,7 @@ jobs:
           ls ./
           ls ./bin/
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-linux-x64-release/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
+          mv cemu-bin-linux-ubuntu22.04-x64-release/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-20.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
   
