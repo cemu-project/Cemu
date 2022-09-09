@@ -5,6 +5,7 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 	if (fs::exists(path)) return path;
 	if (!path.has_parent_path()) return {};
 	auto parentPath = path.parent_path();
+	std::string fName = path.filename().string();
 	if (!fs::exists(parentPath))
 	{
 		auto tempParentPath = findPathCI(parentPath);
@@ -12,20 +13,18 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 			parentPath = std::move(tempParentPath.value());
 		else
 			return {};
+		if (fs::exists(parentPath / fName))
+			return parentPath / fName;
 	}
-	std::string fName = path.filename().string();
-	if (fs::exists(parentPath))
+
+	std::error_code listErr;
+	for (auto&& dirEntry: fs::directory_iterator(parentPath, listErr))
 	{
-		std::error_code listErr;
-		for (auto&& dirEntry: fs::directory_iterator(parentPath, listErr))
+		std::string dirFName = dirEntry.path().filename().string();
+		if (boost::iequals(dirFName, fName))
 		{
-			std::string dirFName = dirEntry.path().filename().string();
-			if (boost::iequals(dirFName, fName))
-			{
-				return dirEntry;
-			}
+			return dirEntry;
 		}
-		return fName;
 	}
 	return parentPath / fName;
 }
