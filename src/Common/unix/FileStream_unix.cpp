@@ -4,18 +4,20 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 {
 	if (fs::exists(path)) return path;
 	if (!path.has_parent_path()) return {};
-	auto parrentPath = path.parent_path();
-	if (!fs::exists(parrentPath))
+	auto parentPath = path.parent_path();
+	if (!fs::exists(parentPath))
 	{
-		auto tempParrentPath = findPathCI(parrentPath);
-		if (tempParrentPath.has_value())
-			parrentPath = std::move(tempParrentPath.value());
+		auto tempParentPath = findPathCI(parentPath);
+		if (tempParentPath.has_value())
+			parentPath = std::move(tempParentPath.value());
 		else
 			return {};
 	}
 	std::string fName = path.filename().string();
-	if (fs::exists(parrentPath))
-		for (auto&& dirEntry : fs::directory_iterator(parrentPath))
+	if (fs::exists(parentPath))
+	{
+		std::error_code listErr;
+		for (auto&& dirEntry: fs::directory_iterator(parentPath, listErr))
 		{
 			std::string dirFName = dirEntry.path().filename().string();
 			if (boost::iequals(dirFName, fName))
@@ -23,7 +25,9 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 				return dirEntry;
 			}
 		}
-	return parrentPath / fName;
+		return fName;
+	}
+	return parentPath / fName;
 }
 
 FileStream* FileStream::openFile(std::string_view path)
