@@ -7,7 +7,11 @@ fs::path findPathCI(const fs::path& path)
 	fs::path fName = path.filename();
 	fs::path parentPath = path.parent_path();
 	if (!fs::exists(parentPath))
-		return findPathCI(findPathCI(parentPath) / fName);
+	{
+		auto CIParent = findPathCI(parentPath);
+		if (fs::exists(CIParent))
+			return findPathCI(CIParent / fName);
+	}
 
 	std::error_code listErr;
 	for (auto&& dirEntry : fs::directory_iterator(parentPath, listErr))
