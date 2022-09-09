@@ -13,19 +13,20 @@ std::optional<fs::path> findPathCI(const fs::path& path)
 		else
 			return {};
 	}
+
 	std::string fName = path.filename().string();
-	if (fs::exists(parentPath))
+
+	if (fs::exists(parentPath / fName))
+		return parentPath / fName;
+
+	std::error_code listErr;
+	for (auto&& dirEntry: fs::directory_iterator(parentPath, listErr))
 	{
-		std::error_code listErr;
-		for (auto&& dirEntry: fs::directory_iterator(parentPath, listErr))
+		std::string dirFName = dirEntry.path().filename().string();
+		if (boost::iequals(dirFName, fName))
 		{
-			std::string dirFName = dirEntry.path().filename().string();
-			if (boost::iequals(dirFName, fName))
-			{
-				return dirEntry;
-			}
+			return dirEntry;
 		}
-		return fName;
 	}
 	return parentPath / fName;
 }
