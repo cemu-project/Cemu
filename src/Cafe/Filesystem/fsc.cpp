@@ -86,7 +86,7 @@ FSCMountPathNode* fsc_createMountPath(const FSCPath& mountPath, sint32 priority)
 		FSCMountPathNode* nodeSub = nullptr; // set if we found a subnode with a matching name, else this is used to store the new nodes
 		for (auto& nodeItr : nodeParent->subnodes)
 		{
-			if (mountPath.MatchNode(i, nodeItr->path))
+			if (mountPath.MatchNodeName(i, nodeItr->path))
 			{
 				// subnode found
 				nodeSub = nodeItr;
@@ -195,7 +195,7 @@ bool fsc_lookupPath(const char* path, std::wstring& devicePathOut, fscDeviceC** 
 		FSCMountPathNode* nodeSub = nullptr;
 		for(auto& nodeItr : nodeParent->subnodes)
 		{			
-			if (parsedPath.MatchNode(i, nodeItr->path))
+			if (parsedPath.MatchNodeName(i, nodeItr->path))
 			{
 				nodeSub = nodeItr;
 				break;
@@ -246,7 +246,7 @@ FSCMountPathNode* fsc_lookupPathVirtualNode(const char* path, sint32 priority)
 		FSCMountPathNode* nodeSub = nullptr;
 		for (auto& nodeItr : nodeCurrentDir->subnodes)
 		{
-			if (parsedPath.MatchNode(i, nodeItr->path))
+			if (parsedPath.MatchNodeName(i, nodeItr->path))
 			{
 				nodeSub = nodeItr;
 				break;
