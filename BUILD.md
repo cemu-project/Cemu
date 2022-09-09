@@ -25,8 +25,9 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 ### Installing dependencies
 
 #### For Ubuntu and derivatives:
-`sudo apt install -y git curl cmake ninja-build nasm libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev libpulse-dev`  
-Additionally, for ubuntu 20.04 only:
+`sudo apt install -y git curl cmake ninja-build nasm libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev libpulse-dev` 
+
+Additionally, for Ubuntu 22.04 only:
  - `sudo apt install -y clang-12`
  - At step 3 while building, use  
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
@@ -60,6 +61,6 @@ You can use it by replacing the step 3 with the following:
 
 ## Updating Cemu version
 1. To update your Cemu local repository, use the command `git pull --recurse-submodules`
- - This should update your local copy of Cemu and all of its dependencies
+   - This should update your local copy of Cemu and all of its dependencies
 2. Then, you can rebuild Cemu using the steps listed above, acording to your Operating System (OS)
-If cmake complains about Cemu already being compiled and similar, try deleting the `CMakeCache.txt` file on the `build` folder.
+If cmake complains about Cemu already being compiled or similar, try deleting the `CMakeCache.txt` file on the `build` folder.
