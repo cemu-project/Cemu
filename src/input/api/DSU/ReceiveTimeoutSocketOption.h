@@ -1,10 +1,15 @@
 #pragma once
 
 #if BOOST_OS_WINDOWS
+
 #include <boost/asio/detail/socket_option.hpp>
 #include <winsock2.h> // For SOL_SOCKET, SO_RCVTIMEO
+
 using ReceiveTimeoutSocketOption = boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>;
+
 #elif BOOST_OS_LINUX || BOOST_OS_MACOS
+
+#include <sys/time.h>
 
 class ReceiveTimeoutSocketOption {
     timeval m_data; // POSIX only allows timeeval to be parameter to option SO_RCVTIMEO
