@@ -3,17 +3,16 @@
 #if BOOST_OS_WINDOWS
 #include <boost/asio/detail/socket_option.hpp>
 #include <winsock2.h> // For SOL_SOCKET, SO_RCVTIMEO
-using TimeoutSocketOption = boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>;
+using ReceiveTimeoutSocketOption = boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>;
 #elif BOOST_OS_LINUX || BOOST_OS_MACOS
 
-// For making RCVTIME0 work on Linux and probably Mac too
-class TimeoutSocketOption {
-    timeval m_data;
+class ReceiveTimeoutSocketOption {
+    timeval m_data; // POSIX only allows timeeval to be parameter to option SO_RCVTIMEO
 public:
-    constexpr explicit TimeoutSocketOption(int time_ms)
+    constexpr explicit ReceiveTimeoutSocketOption(int time_ms)
     : m_data(timeval{.tv_usec = time_ms * 1000}){
     }
-    TimeoutSocketOption& operator=(int time_ms){
+    ReceiveTimeoutSocketOption& operator=(int time_ms){
         m_data = timeval{.tv_usec = time_ms * 1000};
         return *this;
     }

@@ -1,6 +1,6 @@
 #include "input/api/DSU/DSUControllerProvider.h"
 #include "input/api/DSU/DSUController.h"
-#include "input/api/DSU/TimeoutSocketOption.h"
+#include "input/api/DSU/ReceiveTimeoutSocketOption.h"
 
 DSUControllerProvider::DSUControllerProvider()
 	: base_type(), m_uid(rand()), m_socket(m_io_service)
@@ -80,7 +80,7 @@ bool DSUControllerProvider::connect()
 		m_socket.open(ip::udp::v4());
 
 		// set timeout for our threads to give a chance to exit
-		m_socket.set_option(TimeoutSocketOption{200});
+		m_socket.set_option(ReceiveTimeoutSocketOption{200});
 
 		// reset data
 		m_state = {};
