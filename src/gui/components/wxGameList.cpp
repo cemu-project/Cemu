@@ -274,11 +274,20 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 	{
 		const auto titleId = (uint64)GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))//entry->favorite)
+		{
 			SetItemBackgroundColour(i, kFavoriteColor);
+			SetItemTextColour(i, 0x000000UL);
+		}
 		else if ((i&1) != 0)
-			SetItemBackgroundColour(i, kSecondColor);
+		{
+			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+		}
 		else
-			SetItemBackgroundColour(i, 0xFFFFFFUL);
+		{
+			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWFRAME));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+		}
 	}
 }
 
