@@ -39,20 +39,14 @@ struct ProcessorTime
 {
 	uint64 user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
 
-	// formulas borrowed and modified from htop source code
 	uint64 idleSum() const
 	{
 		return idle + iowait;
 	}
 
-	uint64 systemSum() const
-	{
-		return system + irq + softirq;
-	}
-
 	uint64 total() const
 	{
-		return user + nice + systemSum() + idleSum() + steal;
+		return user + nice + system + idleSum() + irq + softirq + steal;
 	}
 
 	double percentageActive(const ProcessorTime& before) const {
