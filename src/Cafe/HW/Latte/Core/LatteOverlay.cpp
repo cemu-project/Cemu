@@ -49,7 +49,8 @@ struct ProcessorTime
 		return user + nice + system + idleSum() + irq + softirq + steal;
 	}
 
-	double percentageActive(const ProcessorTime& before) const {
+	double percentageActive(const ProcessorTime& before) const
+	{
 		uint64 elapsed = total() - before.total();
 		uint64 idle_elapsed = idleSum() - before.idleSum();
 		return 100.0 - (static_cast<double>(idle_elapsed) / elapsed * 100.0);
@@ -712,7 +713,8 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 	gotSysTime = !clock_gettime(CLOCK_MONOTONIC, &now_nano);
 	gotResUsage = !getrusage(RUSAGE_SELF, &usageData);
 
-	if (gotSysTime && gotResUsage) {
+	if (gotSysTime && gotResUsage)
+	{
 		now = timespecToU64(now_nano);
 
 		uint64 kernelTime = timevalToU64(usageData.ru_stime);
@@ -732,7 +734,6 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 	std::ifstream procStatFile{"/proc/stat"};
 	if (procStatFile)
 	{
-
 		std::vector<ProcessorTime> times(g_state.processor_count);
 		procStatFile >> times[0];
 		for (sint32 i = 0; i < g_state.processor_count; ++i)
@@ -743,7 +744,6 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 
 		for (sint32 i = 0; i < g_state.processor_count; ++i)
 			g_state.processor_times[i] = times[i];
-
 	}
 
 	// update ram
