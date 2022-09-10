@@ -2,30 +2,21 @@
 
 #include "util/SystemInfo/SystemInfo.h"
 
-#include <unistd.h>
 #include <sys/times.h>
 
 uint64 QueryRamUsage()
 {
-	long page_size = sysconf(_SC_PAGESIZE);
-	if (page_size == -1)
-	{
-		return 0;
-	}
-
-	std::ifstream file("/proc/self/statm");
+	std::ifstream file("/proc/self/smaps_rollup");
 	if (file)
 	{
+		file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 		file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-		uint64 no_pages;
-		file >> no_pages;
+		uint64 kilobytes;
+		file >> kilobytes;
 
-		return no_pages * page_size;
+		return kilobytes / 1000;
 	}
-	else
-	{
-		return 0;
-	}
+	return 0;
 }
 
 void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
