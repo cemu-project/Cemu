@@ -609,7 +609,10 @@ namespace iosu
 #ifndef PUBLIC_RELEASE
 			cemuLog_force("FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", _swapEndianU32(cmd->cmdAppendFile.size), _swapEndianU32(cmd->cmdAppendFile.count));
 #endif
-			return _swapEndianU32(cmd->cmdAppendFile.size) * _swapEndianU32(cmd->cmdAppendFile.count);
+			MPTR destOffset = _swapEndianU32(cmd->cmdDefault.destBufferMPTR);
+			void* destPtr = memory_getPointerFromVirtualOffset(destOffset);
+			fsc_setFileSeek(fscFile, fsc_getFileSize(fscFile));
+			return fsc_writeFile(fscFile, destPtr, cmd->cmdAppendFile.count);
 		}
 
 		FSStatus FSAProcessCmd_truncateFile(FSAClient* client, FSAIpcCommand* cmd)

@@ -83,11 +83,14 @@ namespace coreinit
 		fsCmdBlock->data.mount_it++;
 		
 		// SD
-		if (mountSourceType == MOUNT_TYPE::SD && fsCmdBlock->data.mount_it == 1)
+		if (mountSourceType == MOUNT_TYPE::SD)
 		{
-			mountSourceInfo->sourceType = 0;
-			strcpy(mountSourceInfo->path, "/sd");
-			return FS_RESULT::SUCCESS;
+			if (fsCmdBlock->data.mount_it == 1 || fsCmdBlock->data.mount_it == 2)
+			{
+				mountSourceInfo->sourceType = 0;
+				strcpy(mountSourceInfo->path, "/sd");
+				return FS_RESULT::SUCCESS;
+			}
 		}
 
 		return FS_RESULT::END_ITERATION;
