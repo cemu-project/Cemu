@@ -62,7 +62,6 @@ struct ProcessorTime
 	}
 
 };
-#endif
 
 std::istream& operator>>(std::istream& input, ProcessorTime & times)
 {
@@ -80,6 +79,7 @@ std::istream& operator>>(std::istream& input, ProcessorTime & times)
 	input >> times.guest_nice;
 	return input;
 }
+#endif
 
 struct OverlayStats
 {
