@@ -164,5 +164,8 @@ ControllerState DSUController::raw_state()
 	result.rotation.y = (float)state.data.ry / std::numeric_limits<uint8>::max();
 	result.rotation.y = (result.rotation.y * 2.0f) - 1.0f;
 
-	return result;
+    result.trigger.x = (float)state.data.l2 / std::numeric_limits<uint8>::max();
+    result.trigger.y = (float)state.data.r2 / std::numeric_limits<uint8>::max();
+
+    return result;
 }
