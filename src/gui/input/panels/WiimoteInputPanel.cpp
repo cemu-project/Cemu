@@ -211,9 +211,6 @@ void WiimoteInputPanel::on_volume_change(wxCommandEvent& event)
 
 void WiimoteInputPanel::on_extension_change(wxCommandEvent& event)
 {
-	const auto obj = dynamic_cast<wxCheckBox*>(event.GetEventObject());
-	wxASSERT(obj);
-
 	if(m_motion_plus->GetValue() && m_nunchuck->GetValue())
 		set_active_device_type(kWAPDevMPLSFreeStyle);
 	else if(m_motion_plus->GetValue() && m_classic->GetValue())

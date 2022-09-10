@@ -139,13 +139,8 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 
 	//////////////////////////////////////////////////////////////////
 
-	//LoadController(controller);
-
 	SetSizer(main_sizer);
 	Layout();
-
-	//SetSizerAndFit(main_sizer);
-	//wxWindow::Show(show);
 }
 
 void VPADInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const VPADController::ButtonId &button_id) {

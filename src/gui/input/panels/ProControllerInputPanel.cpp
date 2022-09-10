@@ -96,10 +96,7 @@ ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)
 
 	//////////////////////////////////////////////////////////////////
 
-	// LoadController(controller);
-
 	SetSizerAndFit(main_sizer);
-	//wxWindow::Show(show);
 }
 
 void ProControllerInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const ProController::ButtonId &button_id) {
