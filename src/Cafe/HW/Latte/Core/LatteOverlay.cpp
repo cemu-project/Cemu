@@ -702,7 +702,7 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 	g_state.ram_usage = (pmc.WorkingSetSize / 1000) / 1000;
 #endif
 
-#if BOOS_OS_LINUX
+#if BOOST_OS_LINUX
 	// update cemu cpu
 	timespec now_nano;
 	rusage usageData;
