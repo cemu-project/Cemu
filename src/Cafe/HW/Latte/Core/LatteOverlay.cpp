@@ -64,22 +64,21 @@ struct ProcessorTime
 };
 #endif
 
-template <class T, class Traits = std::char_traits<T>>
-std::basic_istream<T, Traits>& operator>>(std::basic_istream<T, Traits>& istream, ProcessorTime & times)
+std::istream& operator>>(std::istream& input, ProcessorTime & times)
 {
 	std::string discard;
-	istream >> discard;
-	istream >> times.user;
-	istream >> times.nice;
-	istream >> times.system;
-	istream >> times.idle;
-	istream >> times.iowait;
-	istream >> times.irq;
-	istream >> times.softirq;
-	istream >> times.steal;
-	istream >> times.guest;
-	istream >> times.guest_nice;
-	return istream;
+	input >> discard;
+	input >> times.user;
+	input >> times.nice;
+	input >> times.system;
+	input >> times.idle;
+	input >> times.iowait;
+	input >> times.irq;
+	input >> times.softirq;
+	input >> times.steal;
+	input >> times.guest;
+	input >> times.guest_nice;
+	return input;
 }
 
 struct OverlayStats
