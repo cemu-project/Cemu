@@ -480,7 +480,7 @@ void TitleManager::OnSaveOpenDirectory(wxCommandEvent& event)
 	if (!fs::exists(target) || !fs::is_directory(target))
 		return;
 
-	wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(target))));
+	wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(target))));
 }
 
 void TitleManager::OnSaveDelete(wxCommandEvent& event)

@@ -1947,7 +1947,7 @@ public:
 						"/*****************************************************************************/\r\n"
 					);
 					delete fs;
-					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(tempPath))));
+					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(tempPath))));
 				});
 			lineSizer->Add(noticeLink, 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
