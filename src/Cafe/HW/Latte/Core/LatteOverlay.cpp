@@ -15,11 +15,72 @@
 
 #include <cinttypes>
 
+#if BOOST_OS_UNIX
+#include <time.h>
+#include <sys/resource.h>
+#endif
+
 #if BOOST_OS_WINDOWS
 #include <Psapi.h>
 #include <winternl.h>
 #pragma comment(lib, "ntdll.lib")
 #endif
+
+#if BOOST_OS_WINDOWS
+// global cpu stats
+struct ProcessorTime
+{
+	uint64_t idle{}, kernel{}, user{};
+};
+#endif
+
+#if BOOST_OS_LINUX
+struct ProcessorTime
+{
+	uint64 user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
+
+	// formulas borrowed and modified from htop source code
+	uint64 idleSum() const
+	{
+		return idle + iowait;
+	}
+
+	uint64 systemSum() const
+	{
+		return system + irq + softirq;
+	}
+
+	uint64 total() const
+	{
+		return user + nice + systemSum() + idleSum() + steal;
+	}
+
+	double percentageActive(const ProcessorTime& before) const {
+		uint64 elapsed = total() - before.total();
+		uint64 idle_elapsed = idleSum() - before.idleSum();
+		return 100.0 - (static_cast<double>(idle_elapsed) / elapsed * 100.0);
+	}
+
+};
+#endif
+
+template <class T, class Traits = std::char_traits<T>>
+std::basic_istream<T, Traits>& operator>>(std::basic_istream<T, Traits>& istream, ProcessorTime & times)
+{
+	std::string discard;
+	istream >> discard;
+	istream >> times.user;
+	istream >> times.nice;
+	istream >> times.system;
+	istream >> times.idle;
+	istream >> times.iowait;
+	istream >> times.irq;
+	istream >> times.softirq;
+	istream >> times.steal;
+	istream >> times.guest;
+	istream >> times.guest_nice;
+	return istream;
+}
 
 struct OverlayStats
 {
@@ -29,12 +90,6 @@ struct OverlayStats
 
 	// cemu cpu stats
 	uint64_t last_cpu{}, kernel{}, user{};
-
-	// global cpu stats
-	struct ProcessorTime
-	{
-		uint64_t idle{}, kernel{}, user{};
-	};
 
 	std::vector<ProcessorTime> processor_times;
 
@@ -573,12 +628,23 @@ void LatteOverlay_init()
 	GetSystemInfo(&sys_info);
 	g_state.processor_count = sys_info.dwNumberOfProcessors;
 
+#else
+	g_state.processor_count = std::thread::hardware_concurrency();
+#endif
 	g_state.processor_times.resize(g_state.processor_count);
 	g_state.cpu_per_core.resize(g_state.processor_count);
-#else
-	g_state.processor_count = 1;
-#endif
 }
+
+#if BOOST_OS_UNIX
+constexpr uint64_t timevalToU64 (const timeval& tv)
+{
+	return tv.tv_sec * 1'000 + tv.tv_usec / 1'000;
+}
+constexpr uint64_t timespecToU64 (const timespec& tv)
+{
+	return tv.tv_sec * 1'000 + tv.tv_nsec / 1'000'000;
+}
+#endif
 
 void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 {
@@ -642,6 +708,64 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
 	g_state.ram_usage = (pmc.WorkingSetSize / 1000) / 1000;
 #endif
+
+	// update cemu cpu
+	timespec now_nano;
+	rusage usageData;
+	uint64 now;
+
+	bool gotSysTime, gotResUsage;
+	gotSysTime = !clock_gettime(CLOCK_MONOTONIC, &now_nano);
+	gotResUsage = !getrusage(RUSAGE_SELF, &usageData);
+
+	if (gotSysTime && gotResUsage) {
+		now = timespecToU64(now_nano);
+
+		uint64 kernelTime = timevalToU64(usageData.ru_stime);
+		uint64 userTime = timevalToU64(usageData.ru_utime);
+
+		double percent = (kernelTime - g_state.kernel) + (userTime - g_state.user);
+		if (now - g_state.last_cpu != 0)
+			percent /= (now - g_state.last_cpu);
+		percent /= g_state.processor_count;
+		g_state.cpu_usage = percent * 100.0;
+		g_state.last_cpu = now;
+		g_state.user = userTime;
+		g_state.kernel = kernelTime;
+	}
+
+	// update cpu per core
+	std::ifstream procStatFile{"/proc/stat"};
+	if (procStatFile)
+	{
+
+		std::vector<ProcessorTime> times(g_state.processor_count);
+		procStatFile >> times[0];
+		for (sint32 i = 0; i < g_state.processor_count; ++i)
+			procStatFile >> times[i];
+
+		for (sint32 i = 0; i < g_state.processor_count; ++i)
+			g_state.cpu_per_core[i] = times[i].percentageActive(g_state.processor_times[i]);
+
+		for (sint32 i = 0; i < g_state.processor_count; ++i)
+			g_state.processor_times[i] = times[i];
+
+	}
+
+	// update ram
+	auto pid = getpid();
+	std::ifstream smapsFile{fmt::format("/proc/{}/smaps_rollup", pid)};
+	if (smapsFile)
+	{
+		std::string discard;
+		uint64_t usage;
+
+		std::getline(smapsFile, discard);
+		smapsFile >> discard;
+		smapsFile >> usage;
+
+		g_state.ram_usage = usage / 1000;
+	}
 
 	// update vram
 	g_renderer->GetVRAMInfo(g_state.vramUsage, g_state.vramTotal);
