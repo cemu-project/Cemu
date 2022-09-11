@@ -2,6 +2,7 @@
 
 [![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
 [![Discord](https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF)](https://discord.gg/5psYsup)
+[![Matrix Server](https://img.shields.io/matrix/dev:cemu.info?server_fqdn=matrix.cemu.info&label=dev:cemu.info&logo=matrix&logoColor=FFFFFF)](https://matrix.to/#/#dev:cemu.info)
 
 This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
 It's written in C/C++ and is being actively developed with new features and fixes to increase compatibility, convenience and usability.

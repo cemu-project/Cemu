@@ -1,18 +1,6 @@
 name: Build Cemu
 
 on:
-  pull_request:
-    paths-ignore:
-      - "*.md"
-    types:
-      - opened
-      - synchronize
-      - reopened
-  push:
-    paths-ignore:
-      - "*.md"
-    branches:
-      - main
   workflow_call:
     inputs:
       deploymode:
