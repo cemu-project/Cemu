@@ -43,7 +43,6 @@ target_sources(CemuInput PRIVATE
 	api/DSU/DSUControllerProvider.h
 	api/DSU/DSUMessages.h
 	api/DSU/DSUMessages.cpp
-	api/DSU/ReceiveTimeoutSocketOption.h
 )
 
 # Keyboard controller
