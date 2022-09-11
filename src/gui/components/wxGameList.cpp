@@ -281,12 +281,12 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 		else if ((i&1) != 0)
 		{
 			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENUBAR));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENUTEXT));
 		}
 		else
 		{
 			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENUHILIGHT));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENUTEXT));
 		}
 	}
 }
