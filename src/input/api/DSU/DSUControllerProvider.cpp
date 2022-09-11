@@ -88,7 +88,7 @@ bool DSUControllerProvider::connect()
 
         // set timeout for our threads to give a chance to exit
 #if BOOST_OS_WINDOWS
-        m_socket.set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200})
+        m_socket.set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
 #elif BOOST_OS_LINUX || BOOST_OS_MACOS
         timeval timeout{.tv_usec = 200 * 1000};
         setsockopt(m_socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeval));
