@@ -21,7 +21,7 @@ ControllerState KeyboardController::raw_state()
 	ControllerState result{};
 	if (g_window_info.app_active)
 	{
-		result.buttons=g_window_info.get_keystates();
+		g_window_info.get_keystates(result.buttons);
 	}
 	return result;
 }

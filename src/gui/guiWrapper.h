@@ -54,9 +54,13 @@ struct WindowInfo
 			return false;
 		return result->second;
 	}
-	std::unordered_map<uint32, bool> get_keystates() const
+	void get_keystates(std::unordered_map<uint32, bool>& buttons_out)
 	{
-		return m_keydown;
+		const std::lock_guard<std::mutex> lock(keycode_mutex);
+		for (auto&& button : m_keydown)
+		{
+			buttons_out[button.first] = button.second;
+		}
 	}
 	void set_keystatesdown()
 	{
