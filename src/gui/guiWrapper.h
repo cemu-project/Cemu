@@ -1,8 +1,6 @@
 #pragma once
 
-#include <algorithm>
 #include <atomic>
-#include <unordered_map>
 
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
