@@ -280,13 +280,13 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 		}
 		else if ((i&1) != 0)
 		{
-			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENU));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENUTEXT));
+      		SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
 		}
 		else
 		{
-			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENUBAR));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_MENUTEXT));
+			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 	}
 }
