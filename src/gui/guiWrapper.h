@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic>
+#include <unordered_map>
 
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
@@ -41,14 +43,44 @@ struct WindowInfo
 	std::atomic_bool has_screenshot_request;
 	std::atomic_bool is_fullscreen;
 
-	std::atomic_bool keydown[256]{};
-
+	void set_keystate(uint32 keycode, bool state)
+	{
+		const std::lock_guard<std::mutex> lock(keycode_mutex);
+		m_keydown[keycode] = state;
+	};
+	bool get_keystate(uint32 keycode)
+	{
+		const std::lock_guard<std::mutex> lock(keycode_mutex);
+		auto result = m_keydown.find(keycode);
+		if (result == m_keydown.end())
+			return false;
+		return result->second;
+	}
+	std::unordered_map<uint32, bool> get_keystates() const
+	{
+		return m_keydown;
+	}
+	void set_keystatesdown()
+	{
+		const std::lock_guard<std::mutex> lock(keycode_mutex);
+		std::for_each(m_keydown.begin(), m_keydown.end(), [](std::pair<const uint32, bool>& el){ el.second = false; });
+	}
+	template <typename fn>
+	void iter_keystates(fn f)
+	{
+		const std::lock_guard<std::mutex> lock(keycode_mutex);
+		std::for_each(m_keydown.cbegin(), m_keydown.cend(), f);
+	}
 	WindowHandleInfo window_main;
 	WindowHandleInfo window_pad;
 
 	// canvas
 	WindowHandleInfo canvas_main;
 	WindowHandleInfo canvas_pad;
+   private:
+   	std::mutex keycode_mutex;
+	// m_keydown keys must be valid ImGuiKey values
+	std::unordered_map<uint32, bool> m_keydown;
 };
 
 void gui_create();

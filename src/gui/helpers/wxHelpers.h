@@ -122,5 +122,3 @@ T get_prev_sibling(const T element)
 }
 
 void update_slider_text(wxCommandEvent& event, const wxFormatString& format = "%d%%");
-
-uint32 fix_raw_keycode(uint32 keycode, uint32 raw_flags);

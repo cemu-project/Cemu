@@ -206,10 +206,7 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 
 bool gui_isKeyDown(int key)
 {
-	if (key >= 256)
-		return false;
-
-	return g_window_info.keydown[key];
+	return g_window_info.get_keystate(key);
 }
 
 void gui_notifyGameLoaded()

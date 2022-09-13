@@ -1,0 +1,111 @@
+#include "wxVirtualKeyToImGuiKey.h"
+
+#include <wx/defs.h>
+
+ImGuiKey wxVirtualKeyToImGuiKey(int keycode)
+{
+	switch (keycode)
+	{
+		case WXK_BACK: return ImGuiKey_Backspace;
+		case WXK_TAB: return ImGuiKey_Tab;
+		case WXK_RETURN: return ImGuiKey_Enter;
+		case WXK_ESCAPE: return ImGuiKey_Escape;
+		case WXK_SPACE: return ImGuiKey_Space;
+		case WXK_DELETE: return ImGuiKey_Delete;
+		case WXK_SHIFT: return ImGuiKey_LeftShift;
+		case WXK_ALT: return ImGuiKey_LeftAlt;
+		case WXK_CONTROL: return ImGuiKey_LeftCtrl;
+		case WXK_MENU: return ImGuiKey_Menu;
+		case WXK_PAUSE: return ImGuiKey_Pause;
+		case WXK_END: return ImGuiKey_End;
+		case WXK_HOME: return ImGuiKey_Home;
+		case WXK_LEFT: return ImGuiKey_LeftArrow;
+		case WXK_UP: return ImGuiKey_UpArrow;
+		case WXK_RIGHT: return ImGuiKey_RightArrow;
+		case WXK_DOWN: return ImGuiKey_DownArrow;
+		case WXK_PRINT: return ImGuiKey_PrintScreen;
+		case WXK_INSERT: return ImGuiKey_Insert;
+		case WXK_NUMPAD0: return ImGuiKey_Keypad0;
+		case WXK_NUMPAD1: return ImGuiKey_Keypad1;
+		case WXK_NUMPAD2: return ImGuiKey_Keypad2;
+		case WXK_NUMPAD3: return ImGuiKey_Keypad3;
+		case WXK_NUMPAD4: return ImGuiKey_Keypad4;
+		case WXK_NUMPAD5: return ImGuiKey_Keypad5;
+		case WXK_NUMPAD6: return ImGuiKey_Keypad6;
+		case WXK_NUMPAD7: return ImGuiKey_Keypad7;
+		case WXK_NUMPAD8: return ImGuiKey_Keypad8;
+		case WXK_NUMPAD9: return ImGuiKey_Keypad9;
+		case WXK_MULTIPLY: return ImGuiKey_KeypadMultiply;
+		case WXK_ADD: return ImGuiKey_KeypadAdd;
+		case WXK_F1: return ImGuiKey_F1;
+		case WXK_F2: return ImGuiKey_F2;
+		case WXK_F3: return ImGuiKey_F3;
+		case WXK_F4: return ImGuiKey_F4;
+		case WXK_F5: return ImGuiKey_F5;
+		case WXK_F6: return ImGuiKey_F6;
+		case WXK_F7: return ImGuiKey_F7;
+		case WXK_F8: return ImGuiKey_F8;
+		case WXK_F9: return ImGuiKey_F9;
+		case WXK_F10: return ImGuiKey_F10;
+		case WXK_F11: return ImGuiKey_F11;
+		case WXK_F12: return ImGuiKey_F12;
+		case WXK_NUMLOCK: return ImGuiKey_NumLock;
+		case WXK_SCROLL: return ImGuiKey_ScrollLock;
+		case WXK_NUMPAD_ENTER: return ImGuiKey_KeypadEnter;
+		case WXK_NUMPAD_EQUAL: return ImGuiKey_KeypadEqual;
+		case WXK_NUMPAD_MULTIPLY: return ImGuiKey_KeypadMultiply;
+		case WXK_NUMPAD_ADD: return ImGuiKey_KeypadAdd;
+		case WXK_NUMPAD_SUBTRACT: return ImGuiKey_KeypadSubtract;
+		case WXK_NUMPAD_DECIMAL: return ImGuiKey_KeypadDecimal;
+		case WXK_NUMPAD_DIVIDE: return ImGuiKey_KeypadDivide;
+		case WXK_CAPITAL: return ImGuiKey_CapsLock;
+		case '0': return ImGuiKey_0;
+		case '1': return ImGuiKey_1;
+		case '2': return ImGuiKey_2;
+		case '3': return ImGuiKey_3;
+		case '4': return ImGuiKey_4;
+		case '5': return ImGuiKey_5;
+		case '6': return ImGuiKey_6;
+		case '7': return ImGuiKey_7;
+		case '8': return ImGuiKey_8;
+		case '9': return ImGuiKey_9;
+		case 'A': return ImGuiKey_A;
+		case 'B': return ImGuiKey_B;
+		case 'C': return ImGuiKey_C;
+		case 'D': return ImGuiKey_D;
+		case 'E': return ImGuiKey_E;
+		case 'F': return ImGuiKey_F;
+		case 'G': return ImGuiKey_G;
+		case 'H': return ImGuiKey_H;
+		case 'I': return ImGuiKey_I;
+		case 'J': return ImGuiKey_J;
+		case 'K': return ImGuiKey_K;
+		case 'L': return ImGuiKey_L;
+		case 'M': return ImGuiKey_M;
+		case 'N': return ImGuiKey_N;
+		case 'O': return ImGuiKey_O;
+		case 'P': return ImGuiKey_P;
+		case 'Q': return ImGuiKey_Q;
+		case 'R': return ImGuiKey_R;
+		case 'S': return ImGuiKey_S;
+		case 'T': return ImGuiKey_T;
+		case 'U': return ImGuiKey_U;
+		case 'V': return ImGuiKey_V;
+		case 'W': return ImGuiKey_W;
+		case 'X': return ImGuiKey_X;
+		case 'Y': return ImGuiKey_Y;
+		case 'Z': return ImGuiKey_Z;
+		case '\'': return ImGuiKey_Apostrophe;
+		case ',': return ImGuiKey_Comma;
+		case '-': return ImGuiKey_Minus;
+		case '.': return ImGuiKey_Period;
+		case '/': return ImGuiKey_Slash;
+		case ';': return ImGuiKey_Semicolon;
+		case '=': return ImGuiKey_Equal;
+		case '(': return ImGuiKey_LeftBracket;
+		case '\\': return ImGuiKey_Backslash;
+		case ')': return ImGuiKey_RightBracket;
+		case '`': return ImGuiKey_GraveAccent;
+		default: return ImGuiKey_None;
+	}
+}

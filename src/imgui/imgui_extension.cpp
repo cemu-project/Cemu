@@ -130,9 +130,7 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 	bool padDown;
 	const auto pos = instance.get_left_down_mouse_info(&padDown);
 	io.MouseDown[0] = padDown != mainWindow && pos.has_value();
-
-	std::fill_n(io.KeysDown, std::size(io.KeysDown), false);
-	std::copy(std::cbegin(g_window_info.keydown), std::cend(g_window_info.keydown), io.KeysDown);
+	g_window_info.iter_keystates([&](auto&& el){ io.AddKeyEvent(el.first, el.second); });
 
 	// printf("%f %f %d\n", io.MousePos.x, io.MousePos.y, io.MouseDown[0]);
 
