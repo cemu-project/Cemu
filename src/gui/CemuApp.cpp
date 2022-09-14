@@ -10,7 +10,6 @@
 #include "config/PermanentStorage.h"
 #include "input/InputManager.h"
 #include "gui/helpers/wxHelpers.h"
-#include "gui/helpers/wxVirtualKeyToImGuiKey.h"
 #include "Cemu/ncrypto/ncrypto.h"
 
 #include <wx/image.h>
@@ -171,12 +170,12 @@ int CemuApp::FilterEvent(wxEvent& event)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
 		wxGetKeyState(wxKeyCode::WXK_F17);
-		g_window_info.set_keystate(wxVirtualKeyToImGuiKey(key_event.GetKeyCode()), true);
+		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
 	}
 	else if(event.GetEventType() == wxEVT_KEY_UP)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
-		g_window_info.set_keystate(wxVirtualKeyToImGuiKey(key_event.GetKeyCode()), false);
+		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
 	}
 	else if(event.GetEventType() == wxEVT_KILL_FOCUS)
 	{

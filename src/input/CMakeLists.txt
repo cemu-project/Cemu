@@ -47,7 +47,6 @@ target_sources(CemuInput PRIVATE
 
 # Keyboard controller
 target_sources(CemuInput PRIVATE
-	api/Keyboard/KeyToString.cpp
 	api/Keyboard/KeyboardControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.cpp
 	api/Keyboard/KeyboardController.cpp
