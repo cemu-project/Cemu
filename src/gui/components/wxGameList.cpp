@@ -270,14 +270,14 @@ long wxGameList::GetStyleFlags(Style style) const
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
 
-	wxWindowUpdateLocker lock(this);
+    wxWindowUpdateLocker lock(this);
 
     // Get the background color so we can determine the theme in use
     const wxColour bgColour = GetBackgroundColour();
 
-	for (int i = startIndex; i < GetItemCount(); ++i)
-	{
-		const auto titleId = (uint64)GetItemData(i);
+    for (int i = startIndex; i < GetItemCount(); ++i)
+    {
+        const auto titleId = (uint64)GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))//entry->favorite)
 		{
 			SetItemBackgroundColour(i, kFavoriteColor);
