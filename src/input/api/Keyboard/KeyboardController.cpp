@@ -35,8 +35,11 @@ std::string KeyboardController::get_button_name(uint64 button) const
 	char key_name[128];
 	if (GetKeyNameTextA(scan_code, key_name, std::size(key_name)) != 0)
 		return key_name;
-#endif
+#elif BOOST_OS_LINUX
+	return gui_gtkRawKeyCodeToString(button);
+#else
 	return fmt::format("key_{}", button);
+#endif
 }
 
 extern WindowInfo g_window_info;
