@@ -290,7 +290,8 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 		}
 	}
 
-	std::string msg = wxHelper::MakeUTF8(_("The following content will be converted to a compressed Wii U archive file (.wua):\n \n"));
+	std::string msg = wxHelper::MakeUTF8(_("The following content will be converted to a compressed Wii U archive file (.wua):"));
+	msg.append("\n \n");
 	
 	if (titleInfo_base.IsValid())
 		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game: {}"))), _pathToUtf8(titleInfo_base.GetPath())));

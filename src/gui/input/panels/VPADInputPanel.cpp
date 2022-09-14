@@ -48,16 +48,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 	for (const auto& id : g_kFirstColumnItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(VPADController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -74,16 +65,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 	for (const auto& id : g_kSecondColumnItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(VPADController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	row++;
@@ -106,16 +88,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 	for (const auto& id : g_kThirdColumnItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(VPADController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	row++;
@@ -154,50 +127,41 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 	for (const auto& id : g_kFourthRowItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(VPADController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	// Blow Mic
 	row = 9;
-	main_sizer->Add(new wxStaticText(this, wxID_ANY, _("blow mic")), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-	auto text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-	text_ctrl->SetClientData((void*)VPADController::kButtonId_Mic);
-	text_ctrl->SetMinSize(wxSize(150, -1));
-	text_ctrl->SetEditable(false);
-	text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-	bind_hotkey_events(text_ctrl);
-	main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+	add_button_row(main_sizer, row, column, VPADController::kButtonId_Mic, _("blow mic"));
 	row++;
 
-	main_sizer->Add(new wxStaticText(this, wxID_ANY, _("show screen")), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-	text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-	text_ctrl->SetClientData((void*)VPADController::kButtonId_Screen);
-	text_ctrl->SetMinSize(wxSize(150, -1));
-	text_ctrl->SetEditable(false);
-	text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-	bind_hotkey_events(text_ctrl);
-	main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+	add_button_row(main_sizer, row, column, VPADController::kButtonId_Screen, _("show screen"));
 
 	//////////////////////////////////////////////////////////////////
 
-	//LoadController(controller);
-
 	SetSizer(main_sizer);
 	Layout();
+}
 
-	//SetSizerAndFit(main_sizer);
-	//wxWindow::Show(show);
+void VPADInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const VPADController::ButtonId &button_id) {
+	add_button_row(sizer, row, column, button_id, wxGetTranslation(to_wxString(VPADController::get_button_name(button_id))));
+}
+
+void VPADInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column,
+                                    const VPADController::ButtonId &button_id, const wxString &label) {
+	sizer->Add(
+		new wxStaticText(this, wxID_ANY, label),
+		wxGBPosition(row, column),
+		wxDefaultSpan,
+		wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+	auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+	text_ctrl->SetClientData((void*)button_id);
+	text_ctrl->SetMinSize(wxSize(150, -1));
+	text_ctrl->SetEditable(false);
+	text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
+	bind_hotkey_events(text_ctrl);
+	sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
 }
 
 void VPADInputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller_base)

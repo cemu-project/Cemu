@@ -4,9 +4,7 @@
 #include <wx/stattext.h>
 #include <wx/statline.h>
 #include <wx/textctrl.h>
-#include <wx/slider.h>
 
-#include "gui/helpers/wxControlObject.h"
 #include "input/emulated/ProController.h"
 #include "gui/helpers/wxHelpers.h"
 #include "gui/components/wxInputDraw.h"
@@ -30,16 +28,7 @@ ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)
 	for (auto id : g_kFirstColumnItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ProController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	//////////////////////////////////////////////////////////////////
@@ -56,16 +45,7 @@ ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)
 	for (auto id : g_kSecondColumnItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ProController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	row++;
@@ -88,16 +68,7 @@ ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)
 	for (auto id : g_kThirdColumnItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ProController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	row++;
@@ -120,24 +91,28 @@ ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)
 	for (auto id : g_kFourthRowItems)
 	{
 		row++;
-
-		main_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(ProController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		main_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(main_sizer, row, column, id);
 	}
 
 	//////////////////////////////////////////////////////////////////
 
-	// LoadController(controller);
-
 	SetSizerAndFit(main_sizer);
-	//wxWindow::Show(show);
+}
+
+void ProControllerInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const ProController::ButtonId &button_id) {
+	sizer->Add(
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(ProController::get_button_name(button_id)))),
+		wxGBPosition(row, column),
+		wxDefaultSpan,
+		wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+	auto text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+	text_ctrl->SetClientData((void*)button_id);
+	text_ctrl->SetMinSize(wxSize(150, -1));
+	text_ctrl->SetEditable(false);
+	text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
+	bind_hotkey_events(text_ctrl);
+	sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
 }
 
 void ProControllerInputPanel::on_timer(const EmulatedControllerPtr& emulated_controller,
