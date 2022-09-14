@@ -269,7 +269,12 @@ long wxGameList::GetStyleFlags(Style style) const
 
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
+
 	wxWindowUpdateLocker lock(this);
+
+    // Get the background color so we can determine the theme in use
+    const wxColour bgColour = GetBackgroundColour();
+
 	for (int i = startIndex; i < GetItemCount(); ++i)
 	{
 		const auto titleId = (uint64)GetItemData(i);
@@ -280,13 +285,25 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 		}
 		else if ((i&1) != 0)
 		{
-      		SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
+            // Depending on the background RGB value:
+            // Light theme row color will be 10% darker (90)
+            // Dark theme row color will be 10% brighter (110)
+            int alpha = bgColour.GetRGB() > 0x808080 ? 90 : 110;
+            SetItemBackgroundColour(i, bgColour.ChangeLightness(alpha));
+
+            // Text can be changed to other values for alternating rows if needed
+            SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else
 		{
-			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+            // Depending on the background RGB value:
+            // Light theme row color will be 0% darker (100)
+            // Dark theme row color will be 0% brighter (100)
+            int alpha = bgColour.GetRGB() > 0x808080 ? 100 : 100;
+            SetItemBackgroundColour(i, bgColour.ChangeLightness(alpha));
+
+            // Text color can be modified to other values for alternating rows if needed
+            SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 	}
 }
