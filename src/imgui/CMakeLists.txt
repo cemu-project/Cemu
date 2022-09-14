@@ -1,10 +1,4 @@
-project(imguiImpl)
-
-add_library(imguiImpl)
-
-set_property(TARGET imguiImpl PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-target_sources(imguiImpl PRIVATE
+add_library(imguiImpl
 	imgui_impl_opengl3.cpp
 	imgui_impl_opengl3.h
 	imgui_impl_vulkan.cpp
@@ -12,6 +6,8 @@ target_sources(imguiImpl PRIVATE
 	imgui_extension.cpp
 	imgui_extension.h
 )
+
+set_property(TARGET imguiImpl PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(imguiImpl PUBLIC "../")
 
