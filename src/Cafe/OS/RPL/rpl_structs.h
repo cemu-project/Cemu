@@ -149,13 +149,6 @@ struct RPLModule
 	rplHeaderNew_t rplHeader;
 	rplSectionEntryNew_t* sectionTablePtr; // copy of section table
 
-	RPLFileInfoData* fileInfoPtr__depr{}; // copy of fileinfo section
-	uint32 fileInfoSize__depr{}; // size of fileInfo section
-	uint32 fileInfoAllocSize__depr{}; // aligned alloc size
-
-	uint32be* crcTablePtr_depr{}; // copy of CRC section
-	uint32 crcTableAllocSize_depr{};
-
 	uint32 entrypoint;
 
 	MPTR textRegionTemp; // temporary memory for text section?
