@@ -300,34 +300,45 @@ long wxGameList::GetStyleFlags(Style style) const
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
 	wxWindowUpdateLocker lock(this);
+
+	wxColor ForegroundColor, BackgroundColor1, BackgroundColor2;
+	wxSystemAppearance SysAppearance = wxSystemSettings::GetAppearance();	
+#if BOOST_OS_WINDOWS
+	ForegroundColor = kGameListForegroundColor_Light;
+	BackgroundColor1 = kGameListBackgroundColor1_Light;
+	BackgroundColor2 = kGameListBackgroundColor2_Light;
+#else
+	if(SysAppearance.IsDark())
+	{
+		ForegroundColor = kGameListForegroundColor_Dark;
+		BackgroundColor1 = kGameListBackgroundColor1_Dark;
+		BackgroundColor2 = kGameListBackgroundColor2_Dark;
+	}
+	else
+	{
+		ForegroundColor = kGameListForegroundColor_Light;
+		BackgroundColor1 = kGameListBackgroundColor1_Light;
+		BackgroundColor2 = kGameListBackgroundColor2_Light;
+	}
+#endif
 	for (int i = startIndex; i < GetItemCount(); ++i)
 	{
 		const auto titleId = (uint64)GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))//entry->favorite)
-#if BOOST_OS_WINDOWS
-			SetItemBackgroundColour(i, kFavoriteColor);
-		else if ((i&1) != 0)
-			//SetItemBackgroundColour(i, kSecondColor);
-			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX).ChangeLightness(98));
-		else
-			//SetItemBackgroundColour(i, 0xFFFFFFUL);
-			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX));
-#else
 		{
-			SetItemBackgroundColour(i, kFavoriteColor);y
-			SetItemTextColour(i, 0x000000UL);
-		}	
-		else if ((i&1) != 0)
+			SetItemBackgroundColour(i, kFavoriteBackgroundColor);
+			SetItemTextColour(i, kFavoriteForegroundColor);
+		}
+		else if ((i & 1) != 0)
 		{
-			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+			SetItemBackgroundColour(i, BackgroundColor2);
+			SetItemTextColour(i, ForegroundColor);
 		}
 		else
 		{
-			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWFRAME));
-			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+			SetItemBackgroundColour(i, BackgroundColor1);
+			SetItemTextColour(i, ForegroundColor);
 		}
-#endif
 	}
 }
 
