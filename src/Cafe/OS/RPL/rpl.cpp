@@ -244,6 +244,7 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	if (fileinfoSection->sectionSize < sizeof(RPLFileInfoData))
 	{
 		cemuLog_force("RPLLoader: FILEINFO section size is below expected size");
+		delete rplLoaderContext;
 		return false;
 	}
 

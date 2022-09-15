@@ -1216,7 +1216,6 @@ void DownloadManager::asyncPackageDownloadContentFile(Package* package, uint16 i
 void DownloadManager::asyncPackageVerifyFile(Package* package, uint16 index, bool isCheckState)
 {
 	uint8 tmdContentHash[32];
-	std::string filePathStr;
 	// get titleId, contentId and file path
 	std::unique_lock<std::recursive_mutex> _l(m_mutex);
 	uint64 titleId = package->titleId;

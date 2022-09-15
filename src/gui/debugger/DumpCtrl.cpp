@@ -251,7 +251,7 @@ void DumpCtrl::GoToAddressDialog()
 			m_lastGotoOffset = result;
 			CenterOffset(result);
 		}
-		catch (const std::exception ex)
+		catch (const std::exception& ex)
 		{
 			wxMessageBox(ex.what(), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		}
