@@ -6,7 +6,7 @@ template<size_t N>
 class SmallBitset
 {
 public:
-	SmallBitset() {};
+	SmallBitset() = default;
 	static_assert(N <= 32);
 	
 	bool test(size_t index) const

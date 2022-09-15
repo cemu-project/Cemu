@@ -7,10 +7,7 @@
 class nexGameKey : public nexType
 {
 public:
-	nexGameKey()
-	{
-
-	}
+	nexGameKey() = default;
 
 	nexGameKey(uint64 titleId, uint16 ukn)
 	{
@@ -250,10 +247,7 @@ public:
 class nexPrincipalPreference : public nexType
 {
 public:
-	nexPrincipalPreference()
-	{
-
-	}
+	nexPrincipalPreference() = default;
 
 	nexPrincipalPreference(uint8 ukn0, uint8 ukn1, uint8 ukn2)
 	{
