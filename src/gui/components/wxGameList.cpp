@@ -87,6 +87,7 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	Bind(wxEVT_LIST_COL_BEGIN_DRAG, &wxGameList::OnColumnBeginResize, this);
 	Bind(wxEVT_LIST_COL_END_DRAG, &wxGameList::OnColumnResize, this);
 	Bind(wxEVT_LIST_COL_RIGHT_CLICK, &wxGameList::OnColumnRightClick, this);
+	Bind(wxEVT_SIZE, &wxGameList::OnGameListSize, this);
 
 	m_callbackIdTitleList = CafeTitleList::RegisterCallback([](CafeTitleListCallbackEvent* evt, void* ctx) { ((wxGameList*)ctx)->HandleTitleListCallback(evt); }, this);
 
@@ -140,6 +141,35 @@ void wxGameList::LoadConfig()
 			SetColumnsOrder(order);
 		#endif
 	}
+}
+
+// For the problem mentioned earlier, I found a workaround, here's my code.
+// We want to resize the last column of gamelist to fit window when size changed.
+// But there are some issues if we change column size in a SizeEvent handler func when use sizer-based layout.
+// So we DO NOT change column size here, just send a ColumnResize event to ColumnResize handler, resize will be done over there.
+void wxGameList::OnGameListSize(wxSizeEvent &event)
+{
+	event.Skip();
+
+	int last_col_index = GetColumnIndexFromOrder(GetColumnCount() - 1);
+	wxListEvent column_resize_event(wxEVT_LIST_COL_END_DRAG);
+	column_resize_event.SetColumn(last_col_index);
+	wxPostEvent(this, column_resize_event);
+}
+
+void wxGameList::AdjustLastColumnWidth()
+{
+	wxWindowUpdateLocker windowlock(this);
+	int last_col_index = GetColumnIndexFromOrder(GetColumnCount() - 1);
+	int last_col_width = GetClientSize().GetWidth();
+	for (int i = 1; i < GetColumnCount(); i++)
+	{
+		if (i != last_col_index)
+			last_col_width -= GetColumnWidth(i);
+	}
+	if (last_col_width < 80)
+		last_col_width = 80;
+	SetColumnWidth(last_col_index, last_col_width);
 }
 
 void wxGameList::SaveConfig(bool flush)
@@ -274,11 +304,30 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 	{
 		const auto titleId = (uint64)GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))//entry->favorite)
+#if BOOST_OS_WINDOWS
 			SetItemBackgroundColour(i, kFavoriteColor);
 		else if ((i&1) != 0)
-			SetItemBackgroundColour(i, kSecondColor);
+			//SetItemBackgroundColour(i, kSecondColor);
+			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX).ChangeLightness(98));
 		else
-			SetItemBackgroundColour(i, 0xFFFFFFUL);
+			//SetItemBackgroundColour(i, 0xFFFFFFUL);
+			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX));
+#else
+		{
+			SetItemBackgroundColour(i, kFavoriteColor);y
+			SetItemTextColour(i, 0x000000UL);
+		}	
+		else if ((i&1) != 0)
+		{
+			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+		}
+		else
+		{
+			SetItemBackgroundColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWFRAME));
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+		}
+#endif
 	}
 }
 
@@ -743,6 +792,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 
 			g_config.Save();
 			ApplyGameListColumnWidths();
+			AdjustLastColumnWidth(); ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		});
 
 	PopupMenu(&menu);
@@ -782,6 +832,8 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 {
 	event.Skip();
 
+	AdjustLastColumnWidth();
+
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
 
@@ -802,6 +854,9 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 		break;
 	case ColumnGameStarted:
 		config.column_width.game_started = width;
+		break;
+	case ColumnRegion:
+		config.column_width.region = width;
 		break;
 	default:
 		return;

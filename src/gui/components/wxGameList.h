@@ -53,7 +53,7 @@ public:
 
 	long FindListItemByTitleId(uint64 title_id) const;
 	void OnClose(wxCloseEvent& event);
-	
+
 private:
 	std::atomic_bool m_exit = false;
 	Style m_style;
@@ -142,6 +142,9 @@ private:
 	void OnTimer(wxTimerEvent& event);
 	void OnMouseMove(wxMouseEvent& event);
 	void OnLeaveWindow(wxMouseEvent& event);
+
+	void OnGameListSize(wxSizeEvent& event);
+	void AdjustLastColumnWidth();
 
 	static inline std::once_flag s_launch_file_once;
 };
