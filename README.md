@@ -2,7 +2,7 @@
 
 [![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
 [![Discord](https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF)](https://discord.gg/5psYsup)
-[![Matrix Server](https://img.shields.io/matrix/dev:cemu.info?server_fqdn=matrix.cemu.info&label=dev:cemu.info&logo=matrix&logoColor=FFFFFF)](https://matrix.to/#/#dev:cemu.info)
+[![Matrix Server](https://img.shields.io/matrix/cemu:cemu.info?server_fqdn=matrix.cemu.info&label=cemu:cemu.info&logo=matrix&logoColor=FFFFFF)](https://matrix.to/#/#cemu:cemu.info)
 
 This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
 It's written in C/C++ and is being actively developed with new features and fixes to increase compatibility, convenience and usability.
@@ -15,6 +15,7 @@ Cemu is currently only available for 64-bit Windows and Linux devices.
  - [Compatibility List/Wiki](https://wiki.cemu.info/wiki/Main_Page)
  - [Official Subreddit](https://reddit.com/r/Cemu)
  - [Official Discord](https://discord.gg/5psYsup)
+ - [Official Matrix Server](https://matrix.to/#/#cemu:cemu.info)
  - [Unofficial Setup Guide](https://cemu.cfw.guide)
 
 #### Other relevant repositories:
@@ -27,7 +28,7 @@ You can download the latest Cemu releases from the [GitHub Releases](https://git
 
 Cemu is currently only available in a portable format so no installation is required besides extracting it in a safe place.
 
-See [Current State Of Linux builds](https://github.com/cemu-project/Cemu/issues/1) for information on using Cemu natively on Linux.
+The native Linux build is currently a work-in-progress. See [Current State Of Linux builds](https://github.com/cemu-project/Cemu/issues/107) for more information about the things to be aware of. 
 
 Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/changelog.html).
 
@@ -42,11 +43,11 @@ The old bug tracker can be found at [bugs.cemu.info](https://bugs.cemu.info) and
 
 ## Contributing
 
-Pull requests are very welcome. For easier coordination you can visit the developer discussion channel on Discord: [https://discord.gg/5psYsup](https://discord.gg/5psYsup).
+Pull requests are very welcome. For easier coordination you can visit the developer discussion channel on [Discord](https://discord.gg/5psYsup) or alternatively the [Matrix Server](https://matrix.to/#/#cemu:cemu.info).
 
 If coding isn't your thing, testing games and making detailed bug reports or updating the (usually outdated) compatibility wiki is also appreciated!
 
-Questions about Cemu's software architecture can also be answered on Discord. Alternative communication channels (like IRC) are being considered.
+Questions about Cemu's software architecture can also be answered on Discord (through the Matrix bridge).
 
 ## License
 Cemu is licensed under [Mozilla Public License 2.0](/LICENSE.txt). Exempt from this are all files in the dependencies directory for which the licenses of the original code apply as well as some individual files in the src folder, as specified in those file headers respectively.
