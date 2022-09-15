@@ -1,4 +1,4 @@
-#include "CubebAPI.h"
+#include "CubebInputAPI.h"
 
 #if BOOST_OS_WINDOWS
 #include <combaseapi.h>
@@ -7,7 +7,6 @@
 #pragma comment(lib, "Avrt.lib")
 #pragma comment(lib, "ksuser.lib")
 #endif
-
 
 static void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 {
@@ -30,79 +29,69 @@ static void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 	}*/
 }
 
-long CubebAPI::data_cb(cubeb_stream* stream, void* user, const void* inputbuffer, void* outputbuffer, long nframes)
+long CubebInputAPI::data_cb(cubeb_stream* stream, void* user, const void* inputbuffer, void* outputbuffer, long nframes)
 {
-	auto* thisptr = (CubebAPI*)user;
-	//const auto size = (size_t)thisptr->m_bytesPerBlock; // (size_t)nframes* thisptr->m_channels;
+	auto* thisptr = (CubebInputAPI*)user;
 
-	// m_bytesPerBlock = samples_per_block * channels * (bits_per_sample / 8);
-	const auto size = (size_t)nframes * thisptr->m_channels * (thisptr->m_bitsPerSample/8);
+	const auto size = (size_t)nframes * thisptr->m_channels * (thisptr->m_bitsPerSample / 8);
 
 	std::unique_lock lock(thisptr->m_mutex);
-	if (thisptr->m_buffer.empty())
+	if (thisptr->m_buffer.capacity() <= thisptr->m_buffer.size() + size)
 	{
-		// we got no data, just write silence
-		memset(outputbuffer, 0x00, size);
+		forceLogDebug_printf("dropped input sound block since too many buffers are queued");
+		return nframes;
 	}
-	else
-	{
-		const auto copied = std::min(thisptr->m_buffer.size(), size);
-		memcpy(outputbuffer, thisptr->m_buffer.data(), copied);
-		thisptr->m_buffer.erase(thisptr->m_buffer.begin(), std::next(thisptr->m_buffer.begin(), copied));
-		lock.unlock();
-		// fill rest with silence
-		if (copied != size)
-			memset((uint8*)outputbuffer + copied, 0x00, size - copied);
-	}
+
+	thisptr->m_buffer.insert(thisptr->m_buffer.end(), (uint8*)inputbuffer, (uint8*)inputbuffer + size);
 
 	return nframes;
 }
 
-CubebAPI::CubebAPI(cubeb_devid devid, uint32 samplerate, uint32 channels, uint32 samples_per_block,
+CubebInputAPI::CubebInputAPI(cubeb_devid devid, uint32 samplerate, uint32 channels, uint32 samples_per_block,
                    uint32 bits_per_sample)
-	: IAudioAPI(samplerate, channels, samples_per_block, bits_per_sample)
+	: IAudioInputAPI(samplerate, channels, samples_per_block, bits_per_sample)
 {
-	cubeb_stream_params output_params;
+	cubeb_stream_params input_params;
 
-	output_params.format = CUBEB_SAMPLE_S16LE;
-	output_params.rate = samplerate;
-	output_params.channels = channels;
-	output_params.prefs = CUBEB_STREAM_PREF_NONE;
+	input_params.format = CUBEB_SAMPLE_S16LE;
+	input_params.rate = samplerate;
+	input_params.channels = channels;
+	input_params.prefs = CUBEB_STREAM_PREF_NONE;
 
 	switch (channels)
 	{
 	case 8:
-		output_params.layout = CUBEB_LAYOUT_3F4_LFE;
+		input_params.layout = CUBEB_LAYOUT_3F4_LFE;
 		break;
 	case 6:
-		output_params.layout = CUBEB_LAYOUT_QUAD_LFE | CHANNEL_FRONT_CENTER;
+		input_params.layout = CUBEB_LAYOUT_QUAD_LFE | CHANNEL_FRONT_CENTER;
 		break;
 	case 4:
-		output_params.layout = CUBEB_LAYOUT_QUAD;
+		input_params.layout = CUBEB_LAYOUT_QUAD;
 		break;
 	case 2:
-		output_params.layout = CUBEB_LAYOUT_STEREO;
+		input_params.layout = CUBEB_LAYOUT_STEREO;
 		break;
 	default:
-		output_params.layout = CUBEB_LAYOUT_MONO;
+		input_params.layout = CUBEB_LAYOUT_MONO;
 		break;
 	}
 
 	uint32 latency = 1;
-	cubeb_get_min_latency(s_context, &output_params, &latency);
+	cubeb_get_min_latency(s_context, &input_params, &latency);
 
 	m_buffer.reserve((size_t)m_bytesPerBlock * kBlockCount);
 
-	if (cubeb_stream_init(s_context, &m_stream, "Cemu Cubeb output",
-	                      nullptr, nullptr,
-	                      devid, &output_params,
+	if (cubeb_stream_init(s_context, &m_stream, "Cemu Cubeb input",
+	                      devid, &input_params,
+                          nullptr, nullptr,
 	                      latency, data_cb, state_cb, this) != CUBEB_OK)
 	{
 		throw std::runtime_error("can't initialize cubeb device");
 	}
 }
 
-CubebAPI::~CubebAPI()
+CubebInputAPI::~CubebInputAPI()
 {
 	if (m_stream)
 	{
@@ -111,26 +100,29 @@ CubebAPI::~CubebAPI()
 	}
 }
 
-bool CubebAPI::NeedAdditionalBlocks() const
-{
-	std::shared_lock lock(m_mutex);
-	return m_buffer.size() < s_audioDelay * m_bytesPerBlock;
-}
-
-bool CubebAPI::FeedBlock(sint16* data)
+bool CubebInputAPI::ConsumeBlock(sint16* data)
 {
 	std::unique_lock lock(m_mutex);
-	if (m_buffer.capacity() <= m_buffer.size() + m_bytesPerBlock)
+	if (m_buffer.empty())
 	{
-		forceLogDebug_printf("dropped direct sound block since too many buffers are queued");
-		return false;
+		// we got no data, just write silence
+		memset(data, 0x00, m_bytesPerBlock);
+	}
+	else
+	{
+		const auto copied = std::min(m_buffer.size(), (size_t)m_bytesPerBlock);
+		memcpy(data, m_buffer.data(), copied);
+		m_buffer.erase(m_buffer.begin(), std::next(m_buffer.begin(), copied));
+		lock.unlock();
+		// fill rest with silence
+		if (copied != m_bytesPerBlock)
+			memset((uint8*)data + copied, 0x00, m_bytesPerBlock - copied);
 	}
 
-	m_buffer.insert(m_buffer.end(), (uint8*)data, (uint8*)data + m_bytesPerBlock);
 	return true;
 }
 
-bool CubebAPI::Play()
+bool CubebInputAPI::Play()
 {
 	if (m_is_playing)
 		return true;
@@ -144,7 +136,7 @@ bool CubebAPI::Play()
 	return false;
 }
 
-bool CubebAPI::Stop()
+bool CubebInputAPI::Stop()
 {
 	if (!m_is_playing)
 		return true;
@@ -158,20 +150,19 @@ bool CubebAPI::Stop()
 	return false;
 }
 
-void CubebAPI::SetVolume(sint32 volume)
+void CubebInputAPI::SetVolume(sint32 volume)
 {
-	IAudioAPI::SetVolume(volume);
+	IAudioInputAPI::SetVolume(volume);
 	cubeb_stream_set_volume(m_stream, (float)volume / 100.0f);
 }
 
-
-bool CubebAPI::InitializeStatic()
+bool CubebInputAPI::InitializeStatic()
 {
 #if BOOST_OS_WINDOWS
 	s_com_initialized = (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)));
 #endif
 
-	if (cubeb_init(&s_context, "Cemu Cubeb", nullptr))
+	if (cubeb_init(&s_context, "Cemu Input Cubeb", nullptr))
 	{
 		cemuLog_force("can't create cubeb audio api");
 
@@ -189,7 +180,7 @@ bool CubebAPI::InitializeStatic()
 	return true;
 }
 
-void CubebAPI::Destroy()
+void CubebInputAPI::Destroy()
 {
 	if (s_context)
 		cubeb_destroy(s_context);
@@ -199,10 +190,10 @@ void CubebAPI::Destroy()
 #endif
 }
 
-std::vector<IAudioAPI::DeviceDescriptionPtr> CubebAPI::GetDevices()
+std::vector<IAudioInputAPI::DeviceDescriptionPtr> CubebInputAPI::GetDevices()
 {
 	cubeb_device_collection devices;
-	if (cubeb_enumerate_devices(s_context, CUBEB_DEVICE_TYPE_OUTPUT, &devices) != CUBEB_OK)
+	if (cubeb_enumerate_devices(s_context, CUBEB_DEVICE_TYPE_INPUT, &devices) != CUBEB_OK)
 		return {};
 
 	std::vector<DeviceDescriptionPtr> result;
