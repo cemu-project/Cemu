@@ -2,7 +2,6 @@
 
 #include <wx/textctrl.h>
 #include <wx/wupdlock.h>
-#include <algorithm>
 
 #include "gui/helpers/wxHelpers.h"
 
