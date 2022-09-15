@@ -905,11 +905,11 @@ void vpadExport_VPADStopMotor(PPCInterpreter_t* hCPU)
 void vpadExport_VPADSetTPCalibrationParam(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	ppcDefineParamMEMPTR(params, VPADTPCalibrationParam, 1);
 
 	debugBreakpoint();
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
+		ppcDefineParamMEMPTR(params, VPADTPCalibrationParam, 1);
 		VPADTPCalibrationParam* calibrationParam = params.GetPtr();
 
 		inputLog_printf("VPADSetTPCalibrationParam(%d, %d, %d, %f, %f)", channel, (uint16)calibrationParam->offsetX, (uint16)calibrationParam->offsetX, (float)calibrationParam->scaleX, (float)calibrationParam->scaleY);

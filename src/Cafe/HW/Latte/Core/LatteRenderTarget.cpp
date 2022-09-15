@@ -486,38 +486,41 @@ bool LatteMRT::UpdateCurrentFBO()
 			continue;
 		}
 		LatteTextureView* colorAttachmentView = GetColorAttachmentTexture(i, true, true);
-		SetColorAttachment(i, colorAttachmentView);
-		// after the drawcall mark the texture as updated
-		sLatteRenderTargetState.rtUpdateList[sLatteRenderTargetState.rtUpdateListCount] = colorAttachmentView;
-		sLatteRenderTargetState.rtUpdateListCount++;
-
-		sint32 colorAttachmentWidth;
-		sint32 colorAttachmentHeight;
-		LatteTexture_getSize(colorAttachmentView->baseTexture, &colorAttachmentWidth, &colorAttachmentHeight, nullptr, colorAttachmentView->firstMip);
-
-		// set effective size
-		sint32 effectiveWidth, effectiveHeight;
-		LatteTexture_getEffectiveSize(colorAttachmentView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, colorAttachmentView->firstMip);
-		if( rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0 )
-		{
-			rtEffectiveSize->width = effectiveWidth;
-			rtEffectiveSize->height = effectiveHeight;
-		}
-		else if( rtEffectiveSize->width != effectiveWidth && rtEffectiveSize->height != effectiveHeight )
-		{
-#ifndef PUBLIC_RELEASE
-			forceLog_printf("Color buffer size mismatch (%dx%d). Effective size: %dx%d Real size: %dx%d Mismatching texture: %08x %dx%d fmt %04x", rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, colorAttachmentView->baseTexture->physAddress, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, (uint32)colorAttachmentView->baseTexture->format);
-#endif
-		}
-		// currently the first color attachment defines the size of the current render target
-		if (rtRealSize->width == 0 && rtRealSize->height == 0)
-		{
-			rtRealSize->width = colorAttachmentWidth;
-			rtRealSize->height = colorAttachmentHeight;
-		}
-
 		if (colorAttachmentView)
+		{
+			SetColorAttachment(i, colorAttachmentView);
+			// after the drawcall mark the texture as updated
+			sLatteRenderTargetState.rtUpdateList[sLatteRenderTargetState.rtUpdateListCount] = colorAttachmentView;
+			sLatteRenderTargetState.rtUpdateListCount++;
+
+			sint32 colorAttachmentWidth;
+			sint32 colorAttachmentHeight;
+
+			LatteTexture_getSize(colorAttachmentView->baseTexture, &colorAttachmentWidth, &colorAttachmentHeight, nullptr, colorAttachmentView->firstMip);
+
+			// set effective size
+			sint32 effectiveWidth, effectiveHeight;
+			LatteTexture_getEffectiveSize(colorAttachmentView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, colorAttachmentView->firstMip);
+			if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
+			{
+				rtEffectiveSize->width = effectiveWidth;
+				rtEffectiveSize->height = effectiveHeight;
+			}
+			else if (rtEffectiveSize->width != effectiveWidth && rtEffectiveSize->height != effectiveHeight)
+			{
+#ifndef PUBLIC_RELEASE
+				forceLog_printf("Color buffer size mismatch (%dx%d). Effective size: %dx%d Real size: %dx%d Mismatching texture: %08x %dx%d fmt %04x", rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, colorAttachmentView->baseTexture->physAddress, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, (uint32)colorAttachmentView->baseTexture->format);
+#endif
+			}
+			// currently the first color attachment defines the size of the current render target
+			if (rtRealSize->width == 0 && rtRealSize->height == 0)
+			{
+				rtRealSize->width = colorAttachmentWidth;
+				rtRealSize->height = colorAttachmentHeight;
+			}
+
 			continue;
+		}
 	}
 	// depth buffer
 	if (depthBufferMask)

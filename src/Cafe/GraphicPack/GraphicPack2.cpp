@@ -1020,9 +1020,9 @@ bool GraphicPack2::Deactivate()
 	m_upscaling_shader_ud.reset();
 	m_downscaling_shader_ud.reset();
 
-	m_output_shader_source = "";
-	m_upscaling_shader_source = "";
-	m_downscaling_shader_source = "";
+	m_output_shader_source.clear();
+	m_upscaling_shader_source.clear();
+	m_downscaling_shader_source.clear();
 	
 	if (HasCustomVSyncFrequency())
 	{

@@ -1971,7 +1971,7 @@ void RPLLoader_AddDependency(const char* name)
 	if (rplLoader_currentTlsModuleIndex == 0x7FFF)
 		cemuLog_force("RPLLoader: Exhausted TLS module indices pool");
 	// convert name to path/filename if it isn't already one
-	if (strstr(name, "."))
+	if (strchr(name, '.'))
 	{
 		strcpy_s(newDependency->filepath, name);
 	}

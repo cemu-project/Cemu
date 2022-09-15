@@ -474,7 +474,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 		{
 			std::string temporaryMountPath = TitleInfo::GetUniqueTempMountingPath();
 			titleInfo->Mount(temporaryMountPath.c_str(), "", FSC_PRIORITY_BASE);
-			bool r = RecursivelyAddFiles(fmt::format("{:016x}_v{}/", titleInfo->GetAppTitleId(), titleInfo->GetAppTitleVersion()), temporaryMountPath.c_str());
+			bool r = RecursivelyAddFiles(fmt::format("{:016x}_v{}/", titleInfo->GetAppTitleId(), titleInfo->GetAppTitleVersion()), temporaryMountPath);
 			titleInfo->Unmount(temporaryMountPath.c_str());
 			return r;
 		}

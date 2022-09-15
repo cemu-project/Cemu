@@ -225,7 +225,6 @@ bool InputManager::migrate_config(const fs::path& file_path)
 
 		const auto emulate_string = m_data.get<std::string>("General.emulate");
 		const auto api_string = m_data.get<std::string>("General.api");
-		auto uuid_opt = m_data.get_optional<std::string>("General.controller");
 		const auto display_name = m_data.get_optional<std::string>("General.display");
 
 		std::string uuid;
@@ -233,6 +232,7 @@ bool InputManager::migrate_config(const fs::path& file_path)
 			uuid = to_string(InputAPI::Keyboard);
 		else
 		{
+			auto uuid_opt = m_data.get_optional<std::string>("General.controller");
 			if (!uuid_opt)
 				return false;
 

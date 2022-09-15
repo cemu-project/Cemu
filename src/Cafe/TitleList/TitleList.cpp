@@ -482,7 +482,7 @@ void CafeTitleList::AddTitle(TitleInfo* titleInfo)
 		}
 	}
 	sTLList.emplace_back(titleInfo);
-	sTLMap.insert(std::pair(titleInfo->GetAppTitleId(), titleInfo));
+	sTLMap.emplace(titleInfo->GetAppTitleId(), titleInfo);
 	// send out notification
 	CafeTitleListCallbackEvent evt;
 	evt.eventType = CafeTitleListCallbackEvent::TYPE::TITLE_DISCOVERED;
