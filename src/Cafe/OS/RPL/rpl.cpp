@@ -217,7 +217,6 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	// setup RPL info struct
 	RPLModule* rplLoaderContext = new RPLModule();
 	rplLoaderContext->RPLRawData = std::span<uint8>(rplData, rplSize);
-	rplLoaderContext->rplData_depr = rplData;
 	rplLoaderContext->heapTrampolineArea.setBaseAllocator(&rplLoaderHeap_lowerAreaCodeMem2);
 	// load section table
 	if ((uint32)rplHeader->sectionTableEntrySize != sizeof(rplSectionEntryNew_t))
@@ -282,12 +281,6 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	// convert modulename to lower-case
 	for(auto& c : rplLoaderContext->moduleName2)
 		c = _ansiToLower(c);
-	// cemuhook compatibility
-	rplLoaderContext->moduleNamePtr__depr = rplLoaderContext->moduleName2.data();
-	rplLoaderContext->moduleNameLength__depr = rplLoaderContext->moduleName2.size();
-	rplLoaderContext->moduleNameSize = 0;
-	rplLoaderContext->sectionAddressTable__depr = rplLoaderContext->sectionAddressTable2.data();
-	rplLoaderContext->sectionAddressTableSize__depr = rplLoaderContext->sectionAddressTable2.size() * sizeof(rplSectionAddressEntry_t);
 
 	// load CRC section
 	uint32 crcTableExpectedSize = sectionCount * sizeof(uint32be);
