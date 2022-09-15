@@ -78,9 +78,9 @@ void CafeTitleList::LoadCacheFile()
 		cacheEntry.titleVersion = titleVersion;
 		cacheEntry.titleDataFormat = format;
 		cacheEntry.region = region;
-		cacheEntry.titleName = name;
+		cacheEntry.titleName = std::move(name);
 		cacheEntry.path = _utf8ToPath(path);
-		cacheEntry.subPath = sub_path;
+		cacheEntry.subPath = std::move(sub_path);
 		cacheEntry.group_id = group_id;
 		cacheEntry.app_type = app_type;
 

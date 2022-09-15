@@ -967,7 +967,7 @@ void DownloadManager::setPackageError(Package* package, std::string errorMsg)
 	if (package->state.hasError)
 		return; // dont overwrite already set error message
 	package->state.hasError = true;
-	package->state.errorMsg = errorMsg;
+	package->state.errorMsg = std::move(errorMsg);
 	reportPackageStatus(package);
 }
 

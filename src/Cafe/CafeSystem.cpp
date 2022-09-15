@@ -577,7 +577,7 @@ namespace CafeSystem
 					const auto file = fsc_open(rpxPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status);
 					if (file)
 					{
-						_pathToExecutable = rpxPath;
+						_pathToExecutable = std::move(rpxPath);
 						fsc_close(file);
 					}
 				}
@@ -638,7 +638,7 @@ namespace CafeSystem
 		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), _pathToUtf8(executablePath.parent_path()), FSC_PRIORITY_BASE);
 		std::string internalExecutablePath = "/internal/code/";
 		internalExecutablePath.append(_pathToUtf8(executablePath.filename()));
-		_pathToExecutable = internalExecutablePath;
+		_pathToExecutable = std::move(internalExecutablePath);
 		// since a lot of systems (including save folder location) rely on a TitleId, we derive a placeholder id from the executable hash
 		auto execData = fsc_extractFile(_pathToExecutable.c_str());
 		if (!execData)
