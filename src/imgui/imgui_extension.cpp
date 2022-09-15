@@ -111,7 +111,7 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 {
 	extern WindowInfo g_window_info;
 	static std::map<uint32, ImGuiKey> keyboard_mapping;
-	static uint32 current_key = ImGuiKey_NamedKey_BEGIN;
+	static uint32 current_key = 0;
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -136,8 +136,8 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 		auto key = keyboard_mapping.find(key_code);
 		if (key != keyboard_mapping.end())
 			return key->second;
-		ImGuiKey mapped_key = current_key;
-		current_key = (current_key + 1) % ImGuiKey_NamedKey_COUNT + ImGuiKey_NamedKey_BEGIN;
+		ImGuiKey mapped_key = current_key + ImGuiKey_NamedKey_BEGIN;
+		current_key = (current_key + 1) % ImGuiKey_NamedKey_COUNT ;
 		keyboard_mapping[key_code] = mapped_key;
 		return mapped_key;
 	};
