@@ -14,7 +14,7 @@ uint64 QueryRamUsage()
 		uint64 kilobytes;
 		file >> kilobytes;
 
-		return kilobytes / 1000;
+		return kilobytes * 1000;
 	}
 	return 0;
 }
