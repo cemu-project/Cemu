@@ -28,7 +28,7 @@ enum
 };
 
 RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
-	: wxFrame(&parent, wxID_ANY, _("Register View"), wxDefaultPosition, wxSize(400, 975), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
+	: wxFrame(&parent, wxID_ANY, _("Registers"), wxDefaultPosition, wxSize(400, 975), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
 	m_prev_snapshot({}), m_show_double_values(true), m_context_ctrl(nullptr)
 {
 	SetSizeHints(wxDefaultSize, wxDefaultSize);

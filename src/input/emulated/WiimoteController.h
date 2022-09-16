@@ -1,7 +1,6 @@
 #pragma once
 
 #include "input/emulated/WPADController.h"
-#include "gui/input/panels/WiimoteInputPanel.h"
 
 class WiimoteController : public WPADController
 {

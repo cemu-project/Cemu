@@ -1,6 +1,14 @@
 #include "input/api/DSU/DSUControllerProvider.h"
 #include "input/api/DSU/DSUController.h"
 
+#if BOOST_OS_WINDOWS
+#include <boost/asio/detail/socket_option.hpp>
+#include <winsock2.h>
+#elif BOOST_OS_LINUX || BOOST_OS_MACOS
+#include <sys/time.h>
+#include <sys/socket.h>
+#endif
+
 DSUControllerProvider::DSUControllerProvider()
 	: base_type(), m_uid(rand()), m_socket(m_io_service)
 {
@@ -77,9 +85,14 @@ bool DSUControllerProvider::connect()
 			m_socket.close();
 
 		m_socket.open(ip::udp::v4());
-		// set timeout for our threads to give a chance to exit
-		m_socket.set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
 
+        // set timeout for our threads to give a chance to exit
+#if BOOST_OS_WINDOWS
+        m_socket.set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
+#elif BOOST_OS_LINUX || BOOST_OS_MACOS
+        timeval timeout{.tv_usec = 200 * 1000};
+        setsockopt(m_socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeval));
+#endif
 		// reset data
 		m_state = {};
 		m_prev_state = {};
