@@ -65,7 +65,6 @@ struct PPCInterpreter_t
 	// LWARX and STWCX
 	uint32 reservedMemAddr;
 	uint32 reservedMemValue;
-	/* Note: Everything above is potentially hardcoded into Cemuhook. Do not touch anything or it will risk breaking compatibility */
 	// temporary storage for recompiler
 	FPR_t temporaryFPR[8];
 	uint32 temporaryGPR[4];

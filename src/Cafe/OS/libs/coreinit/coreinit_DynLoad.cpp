@@ -105,15 +105,12 @@ namespace coreinit
 		return 0;
 	}
 
-	uint32 OSDynLoad_Release(uint32 moduleHandle)
+	void OSDynLoad_Release(uint32 moduleHandle)
 	{
 		if (moduleHandle == RPL_INVALID_HANDLE)
-			return 0;
+			return;
 		RPLLoader_RemoveDependency(moduleHandle);
 		RPLLoader_UpdateDependencies();
-
-		// this function isn't supposed to return anything, but early versions of Cemu did and Cemuhook (up to 0.5.7.6) now relies on it. We still keep the return value around for compatibility
-		return 0;
 	}
 
 	uint32 OSDynLoad_FindExport(uint32 moduleHandle, uint32 isData, const char* exportName, betype<MPTR>* addrOut)
