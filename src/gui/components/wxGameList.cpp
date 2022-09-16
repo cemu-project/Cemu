@@ -763,6 +763,8 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			{
 				switch (column)
 				{
+				case ColumnIcon: // do nothing but wont return, will reset width in ApplyGameListColumnWidths() later
+					break;
 				case ColumnName:
 					config.column_width.name = 500;
 					break;
@@ -795,6 +797,8 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 				#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
 				SetColumnsOrder(order);
 				#endif
+				ApplyGameListColumnWidths();
+				AdjustLastColumnWidth();
 				Refresh();
 				return;
 			}
@@ -802,7 +806,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 
 			g_config.Save();
 			ApplyGameListColumnWidths();
-			AdjustLastColumnWidth(); ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			AdjustLastColumnWidth();
 		});
 
 	PopupMenu(&menu);
@@ -821,6 +825,7 @@ void wxGameList::ApplyGameListColumnWidths()
 	
 	const auto& config = GetConfig();
 	wxWindowUpdateLocker lock(this);
+	set_width(ColumnIcon, kListIconWidth);
 	set_width(ColumnName, config.column_width.name);
 	set_width(ColumnVersion, config.column_width.version);
 	set_width(ColumnDLC, config.column_width.dlc);
@@ -833,7 +838,7 @@ void wxGameList::OnColumnBeginResize(wxListEvent& event)
 {
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
-	if (width == 0)
+	if (width == 0 || column == ColumnIcon || column == GetColumnIndexFromOrder(GetColumnCount() - 1))
 		event.Veto();
 	else
 		event.Skip();
