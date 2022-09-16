@@ -172,9 +172,8 @@ public:
 	}
 
 	nexPrincipalBasicInfo(uint32 principalId, char* nnid, const nexMiiV2& mii)
-		: mii(mii)
+		: principalId(principalId), mii(mii)
 	{
-		this->principalId = principalId;
 		strcpy(this->nnid, nnid);
 	}
 
@@ -215,10 +214,8 @@ public:
 	}
 
 	nexNNAInfo(uint8 countryCode, uint8 countrySubCode, const nexPrincipalBasicInfo& principalBasicInfo)
-		: principalInfo(principalBasicInfo)
+		: countryCode(countryCode), countrySubCode(countrySubCode), principalInfo(principalBasicInfo)
 	{
-		this->countryCode = countryCode;
-		this->countrySubCode = countrySubCode;
 	}
 
 	nexNNAInfo(nexPacketBuffer* pb)

@@ -125,6 +125,7 @@ double _cbResolveConstant(std::string_view varname)
 		if (idxDot != std::string_view::npos)
 		{
 			std::string moduleName = importName.substr(0, idxDot);
+			std::string functionName = importName.substr(idxDot + 1);
 			uint32 rplHandle = RPLLoader_GetHandleByModuleName(moduleName.c_str());
 			if (rplHandle == RPL_INVALID_HANDLE)
 			{
@@ -132,7 +133,6 @@ double _cbResolveConstant(std::string_view varname)
 			}
 			else
 			{
-				std::string functionName = importName.substr(idxDot + 1);
 				MPTR exportResult = RPLLoader_FindModuleOrHLEExport(rplHandle, false, functionName.c_str());
 				if (exportResult)
 				{

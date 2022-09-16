@@ -850,12 +850,9 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 			cemu_assert_unimplemented();
 	}
 	// analyze subroutines
-	if (!list_subroutineAddrs.empty())
+	for (auto subroutineAddr : list_subroutineAddrs)
 	{
-		for (auto subroutineAddr : list_subroutineAddrs)
-		{
-			LatteDecompiler_analyzeSubroutine(shaderContext, subroutineAddr);
-		}
+		LatteDecompiler_analyzeSubroutine(shaderContext, subroutineAddr);
 	}
 	// decide which uniform mode to use
 	if(shaderContext->analyzer.uniformBufferAccessMask != 0 && shaderContext->analyzer.uniformRegisterAccess )

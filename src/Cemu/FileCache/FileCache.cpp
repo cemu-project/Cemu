@@ -288,7 +288,7 @@ uint8* _fileCache_compressFileData(const uint8* fileData, uint32 fileSize, sint3
 	int zret = compress2(compressedData + 4, &compressedLen, uncompressedInput, uncompressedLen, 4); // level 4 has good compression to performance ratio
 	if (zret != Z_OK)
 	{
-		delete compressedData;
+		free(compressedData);
 		return nullptr;
 	}
 	compressedData[0] = ((uint32)fileSize >> 24) & 0xFF;
