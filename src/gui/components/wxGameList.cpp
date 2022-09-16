@@ -71,8 +71,8 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	m_tooltip_window->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_INFOBK));
 	m_tooltip_window->SetSizerAndFit(tooltip_sizer);
 	m_tooltip_window->Hide();
-	
-	m_tooltip_timer = new wxTimer(this);	
+
+	m_tooltip_timer = new wxTimer(this);
 
 	Bind(wxEVT_CLOSE_WINDOW, &wxGameList::OnClose, this);
 	Bind(wxEVT_MOTION, &wxGameList::OnMouseMove, this);
@@ -125,16 +125,16 @@ void wxGameList::LoadConfig()
 	{
 		wxArrayInt order;
 		order.reserve(ColumnFavorite);
-		
+
 		const auto order_string = std::string_view(config.game_list_column_order).substr(1);
-		
+
 		const boost::char_separator<char> sep(",");
 		boost::tokenizer tokens(order_string.begin(), order_string.end(), sep);
 		for(const auto& token : tokens)
 		{
 			order.push_back(ConvertString<int>(token, 10));
 		}
-		
+
 		#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
 		if(order.GetCount() == ColumnFavorite)
 			SetColumnsOrder(order);
@@ -209,10 +209,10 @@ void wxGameList::SetStyle(Style style, bool save)
 		return;
 
 	wxWindowUpdateLocker updatelock(this);
-	
+
 	m_style = style;
 	SetWindowStyleFlag(GetStyleFlags(m_style));
-	
+
 	uint64 selected_title_id = 0;
 	auto selection = GetNextItem(wxNOT_FOUND, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (selection != wxNOT_FOUND)
@@ -230,7 +230,7 @@ void wxGameList::SetStyle(Style style, bool save)
 		wxListCtrl::SetImageList(m_image_list_small, wxIMAGE_LIST_NORMAL);
 		break;
 	}
-	
+
 	ReloadGameEntries();
 	SortEntries();
 	UpdateItemColors();
@@ -269,16 +269,42 @@ long wxGameList::GetStyleFlags(Style style) const
 
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
-	wxWindowUpdateLocker lock(this);
-	for (int i = startIndex; i < GetItemCount(); ++i)
-	{
-		const auto titleId = (uint64)GetItemData(i);
+
+    wxWindowUpdateLocker lock(this);
+
+    // Get the background color so we can determine the theme in use
+    const wxColour bgColour = GetBackgroundColour();
+
+    for (int i = startIndex; i < GetItemCount(); ++i)
+    {
+        const auto titleId = (uint64)GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))//entry->favorite)
+		{
 			SetItemBackgroundColour(i, kFavoriteColor);
+			SetItemTextColour(i, 0x000000UL);
+		}
 		else if ((i&1) != 0)
-			SetItemBackgroundColour(i, kSecondColor);
+		{
+            // Depending on the background RGB value:
+            // Light theme row color will be 10% darker (90)
+            // Dark theme row color will be 10% brighter (110)
+            int alpha = bgColour.GetRGB() > 0x808080 ? 90 : 110;
+            SetItemBackgroundColour(i, bgColour.ChangeLightness(alpha));
+
+            // Text can be changed to other values for alternating rows if needed
+            SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+		}
 		else
-			SetItemBackgroundColour(i, 0xFFFFFFUL);
+		{
+            // Depending on the background RGB value:
+            // Light theme row color will be 0% darker (100)
+            // Dark theme row color will be 0% brighter (100)
+            int alpha = bgColour.GetRGB() > 0x808080 ? 100 : 100;
+            SetItemBackgroundColour(i, bgColour.ChangeLightness(alpha));
+
+            // Text color can be modified to other values for alternating rows if needed
+            SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+		}
 	}
 }
 
@@ -309,7 +335,7 @@ int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
 {
 	const auto sort_data = (SortData*)sortData;
 	const int dir = sort_data->dir;
-	
+
 	return sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data);
 }
 
@@ -331,7 +357,7 @@ void wxGameList::SortEntries(int column)
 			s_direction = 1;
 		}
 	}
-	
+
 	switch (column)
 	{
 	case ColumnName:
@@ -349,7 +375,7 @@ void wxGameList::SortEntries(int column)
 void wxGameList::CreateListColumns()
 {
 	DeleteAllColumns();
-	
+
 	const auto& config = GetConfig();
 	wxListItem col0;
 	col0.SetId(ColumnHiddenName);
@@ -392,7 +418,7 @@ void wxGameList::CreateListColumns()
 	col6.SetText(_("Last played"));
 	col6.SetWidth(config.column_width.game_started);
 	InsertColumn(ColumnGameStarted, col6);
-	
+
 	wxListItem col7;
 	col7.SetId(ColumnRegion);
 	col7.SetText(_("Region"));
@@ -405,7 +431,7 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 	event.Skip();
 	if (m_style != Style::kList)
 		return;
-	
+
 	const auto keycode = std::tolower(event.m_code);
 	if (keycode == WXK_LEFT)
 	{
@@ -445,12 +471,12 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 enum ContextMenuEntries
 {
 	kContextMenuRefreshGames = wxID_HIGHEST + 1,
-	
+
 	kContextMenuStart,
 	kWikiPage,
 	kContextMenuFavorite,
 	kContextMenuEditName,
-	
+
 	kContextMenuGameFolder,
 	kContextMenuSaveFolder,
 	kContextMenuUpdateFolder,
@@ -465,10 +491,10 @@ enum ContextMenuEntries
 void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 {
 	auto& config = GetConfig();
-	
+
 	wxMenu menu;
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxGameList::OnContextMenuSelected, this);
-	
+
 	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (selection != wxNOT_FOUND)
 	{
@@ -486,18 +512,18 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.AppendSeparator();
 			menu.AppendCheckItem(kContextMenuFavorite, _("&Favorite"))->Check(isFavorite);
 			menu.Append(kContextMenuEditName, _("&Edit name"));
-			
+
 			menu.AppendSeparator();
 			menu.Append(kWikiPage, _("&Wiki page"));
 			menu.Append(kContextMenuGameFolder, _("&Game directory"));
 			menu.Append(kContextMenuSaveFolder, _("&Save directory"))->Enable(fs::is_directory(gameInfo.GetSaveFolder(), ec));
 			menu.Append(kContextMenuUpdateFolder, _("&Update directory"))->Enable(gameInfo.HasUpdate());
 			menu.Append(kContextMenuDLCFolder, _("&DLC directory"))->Enable(gameInfo.HasAOC());
-			
+
 			menu.AppendSeparator();
 			menu.Append(kContextMenuEditGraphicPacks, _("&Edit graphic packs"));
 			menu.Append(kContextMenuEditGameProfile, _("&Edit game profile"));
-			
+
 			menu.AppendSeparator();
 		}
 	}
@@ -581,7 +607,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				}
 				break;
 				}
-				
+
 			case kContextMenuSaveFolder:
 			{
 				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(gameInfo.GetSaveFolder()))));
@@ -647,7 +673,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 	{
 		ResetWidth = wxID_HIGHEST + 1,
 		ResetOrder,
-		
+
 		ShowName,
 		ShowVersion,
 		ShowDlc,
@@ -658,10 +684,10 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 	const int column = event.GetColumn();
 	wxMenu menu;
 	menu.SetClientObject(new wxCustomData(column));
-	
+
 	menu.Append(ResetWidth, _("Reset &width"));
 	menu.Append(ResetOrder, _("Reset &order"))	;
-	
+
 	menu.AppendSeparator();
 	menu.AppendCheckItem(ShowName, _("Show &name"))->Check(GetColumnWidth(ColumnName) > 0);
 	menu.AppendCheckItem(ShowVersion, _("Show &version"))->Check(GetColumnWidth(ColumnVersion) > 0);
@@ -758,7 +784,7 @@ void wxGameList::ApplyGameListColumnWidths()
 		else
 			this->SetColumnWidth(id, width);
 	};
-	
+
 	const auto& config = GetConfig();
 	wxWindowUpdateLocker lock(this);
 	set_width(ColumnName, config.column_width.name);
@@ -943,7 +969,7 @@ void wxGameList::OnItemActivated(wxListEvent& event)
 		wxPostEvent(this, open_settings_event);
 		return;
 	}
-	
+
 	TitleInfo titleInfo;
 	if (!CafeTitleList::GetFirstByTitleId(item_data, titleInfo))
 		return;
@@ -974,7 +1000,7 @@ void wxGameList::OnTimer(wxTimerEvent& event)
 			//}
 		}
 	}
-		
+
 }
 
 void wxGameList::OnMouseMove(wxMouseEvent& event)
