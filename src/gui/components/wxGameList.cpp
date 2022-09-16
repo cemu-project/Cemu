@@ -324,6 +324,7 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 	for (int i = startIndex; i < GetItemCount(); ++i)
 	{
 		const auto titleId = (uint64)GetItemData(i);
+		SetItemTextColour(i, ForegroundColor);
 		if (GetConfig().IsGameListFavorite(titleId))//entry->favorite)
 		{
 			SetItemBackgroundColour(i, kFavoriteBackgroundColor);
@@ -332,12 +333,10 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 		else if ((i & 1) != 0)
 		{
 			SetItemBackgroundColour(i, BackgroundColor2);
-			SetItemTextColour(i, ForegroundColor);
 		}
 		else
 		{
 			SetItemBackgroundColour(i, BackgroundColor1);
-			SetItemTextColour(i, ForegroundColor);
 		}
 	}
 }
