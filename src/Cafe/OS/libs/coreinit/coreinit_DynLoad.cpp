@@ -94,14 +94,13 @@ namespace coreinit
 			RPLLoader_Link();
 			RPLLoader_CallEntrypoints();
 			rplHandle = RPLLoader_GetHandleByModuleName(libName);
-			if (rplHandle == RPL_INVALID_HANDLE)
-				rplHandle = 0;
 		}
-
-		*moduleHandleOut = rplHandle;
-		// return module not found error code
 		if (rplHandle == RPL_INVALID_HANDLE)
-			return 0xFFFCFFE9;
+			*moduleHandleOut = 0;
+		else
+			*moduleHandleOut = rplHandle;
+		if (rplHandle == RPL_INVALID_HANDLE)
+			return 0xFFFCFFE9; // module not found
 		return 0;
 	}
 
