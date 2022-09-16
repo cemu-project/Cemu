@@ -159,7 +159,9 @@ namespace ska
 		template<typename T>
 		struct sherwood_v3_entry
 		{
-			sherwood_v3_entry() = default;
+			sherwood_v3_entry()
+			{
+			}
 			sherwood_v3_entry(int8_t distance_from_desired)
 				: distance_from_desired(distance_from_desired)
 			{
