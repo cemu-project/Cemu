@@ -156,35 +156,9 @@ typedef void GdkDisplay;
 namespace
 {
 const char* (*gdk_keyval_name)(unsigned int keyval);
-uint32 (*gdk_keyval_to_unicode)(unsigned int keyval);
 }
 std::string gui_gtkRawKeyCodeToString(uint32 keyCode)
 {
-	uint32 unicode_val = gdk_keyval_to_unicode(keyCode);
-	if (unicode_val &&
-		(unicode_val > 128 || std::isgraph(unicode_val)) &&
-		!(std::isdigit(unicode_val) && unicode_val != keyCode))
-	{
-		if (unicode_val < 128)
-			return {static_cast<char>(unicode_val)};
-		char utf_8[4];
-		std::fill(utf_8, utf_8 + 4, '\0');
-		int i = 0;
-		char bits = 0b10000000;
-		do
-		{
-			char utf8_str = 0b00111111 & unicode_val;
-			unicode_val >>= 6;
-			if (unicode_val)
-				utf8_str = 0b10000000 | utf8_str;
-			else
-				utf8_str = bits | utf8_str;
-			bits = (0b10000000 | (bits >> 1));
-			utf_8[i++] = utf8_str;
-		} while (unicode_val && i < 4);
-		std::reverse(utf_8, utf_8 + i);
-		return utf_8;
-	}
 	return gdk_keyval_name(keyCode);
 }
 
@@ -212,7 +186,6 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
     dyn_gdk_x11_window_get_xid = (Window(*)(GdkWindow *window))dlsym(RTLD_NEXT, "gdk_x11_window_get_xid");
 
 	gdk_keyval_name = (const char* (*)(unsigned int))dlsym(RTLD_NEXT, "gdk_keyval_name");
-	gdk_keyval_to_unicode = (uint32 (*)(unsigned int))dlsym(RTLD_NEXT, "gdk_keyval_to_unicode");
 
     if(!dyn_gtk_widget_realize || !dyn_gtk_widget_get_window ||
     !dyn_gdk_window_get_display || !dyn_gdk_x11_display_get_xdisplay ||
