@@ -66,7 +66,7 @@ void CafeSaveList::RefreshThreadWorker()
 	{
 		if(!it_titleHigh.is_directory(ec))
 			continue;
-		std::string dirName = _utf8Wrapper(it_titleHigh.path().filename());
+		std::string dirName = _pathToUtf8(it_titleHigh.path().filename());
 		if(dirName.empty())
 			continue;		
 		uint32 titleIdHigh;
@@ -78,7 +78,7 @@ void CafeSaveList::RefreshThreadWorker()
 		{
 			if (!it_titleLow.is_directory(ec))
 				continue;
-			dirName = _utf8Wrapper(it_titleLow.path().filename());
+			dirName = _pathToUtf8(it_titleLow.path().filename());
 			if (dirName.empty())
 				continue;
 			uint32 titleIdLow;

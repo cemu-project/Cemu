@@ -15,7 +15,7 @@ class IntervalBucketContainer
 
 public:
 
-	IntervalBucketContainer() {};
+	IntervalBucketContainer() = default;
 
 	// range is defined as inclusive rangeStart and exclusive rangeEnd
 	void addRange(TAddr rangeStart, TAddr rangeEnd, TData* data)

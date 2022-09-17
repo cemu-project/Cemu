@@ -1,6 +1,6 @@
 #include "SaveInfo.h"
 #include "config/ActiveSettings.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "ParsedMetaXml.h"
 
 SaveInfo::SaveInfo(TitleId titleId) : m_titleId(titleId)

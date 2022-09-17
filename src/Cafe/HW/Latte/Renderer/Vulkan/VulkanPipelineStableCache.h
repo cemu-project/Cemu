@@ -3,7 +3,7 @@
 
 struct VulkanPipelineHash
 {
-	VulkanPipelineHash() {};
+	VulkanPipelineHash() = default;
 	VulkanPipelineHash(uint64 h0, uint64 h1) : h0(h0), h1(h1) {};
 
 	uint64 h0;

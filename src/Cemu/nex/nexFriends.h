@@ -7,10 +7,7 @@
 class nexGameKey : public nexType
 {
 public:
-	nexGameKey()
-	{
-
-	}
+	nexGameKey() = default;
 
 	nexGameKey(uint64 titleId, uint16 ukn)
 	{
@@ -175,10 +172,9 @@ public:
 	}
 
 	nexPrincipalBasicInfo(uint32 principalId, char* nnid, const nexMiiV2& mii)
+		: principalId(principalId), mii(mii)
 	{
-		this->principalId = principalId;
 		strcpy(this->nnid, nnid);
-		this->mii = mii;
 	}
 
 	nexPrincipalBasicInfo(nexPacketBuffer* pb)
@@ -218,10 +214,8 @@ public:
 	}
 
 	nexNNAInfo(uint8 countryCode, uint8 countrySubCode, const nexPrincipalBasicInfo& principalBasicInfo)
+		: countryCode(countryCode), countrySubCode(countrySubCode), principalInfo(principalBasicInfo)
 	{
-		this->countryCode = countryCode;
-		this->countrySubCode = countrySubCode;
-		this->principalInfo = principalBasicInfo;
 	}
 
 	nexNNAInfo(nexPacketBuffer* pb)
@@ -250,10 +244,7 @@ public:
 class nexPrincipalPreference : public nexType
 {
 public:
-	nexPrincipalPreference()
-	{
-
-	}
+	nexPrincipalPreference() = default;
 
 	nexPrincipalPreference(uint8 ukn0, uint8 ukn1, uint8 ukn2)
 	{

@@ -216,7 +216,7 @@ DefaultControllerSettings::DefaultControllerSettings(wxWindow* parent, const wxP
 
 	m_timer = new wxTimer(this);
 	Bind(wxEVT_TIMER, &DefaultControllerSettings::on_timer, this);
-	m_timer->Start();
+	m_timer->Start(100);
 }
 
 DefaultControllerSettings::~DefaultControllerSettings()

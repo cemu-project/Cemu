@@ -31,12 +31,12 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 
 	if (!iniParser.NextSection())
 	{
-		cemuLog_force("{}: Does not contain any sections", _utf8Wrapper(rulesPath));
+		cemuLog_force("{}: Does not contain any sections", _pathToUtf8(rulesPath));
 		return;
 	}
 	if (!boost::iequals(iniParser.GetCurrentSectionName(), "Definition"))
 	{
-		cemuLog_force("{}: [Definition] must be the first section", _utf8Wrapper(rulesPath));
+		cemuLog_force("{}: [Definition] must be the first section", _pathToUtf8(rulesPath));
 		return;
 	}
 
@@ -47,7 +47,7 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 		auto [ptr, ec] = std::from_chars(option_version->data(), option_version->data() + option_version->size(), versionNum);
 		if (ec != std::errc{})
 		{
-			cemuLog_force("{}: Unable to parse version", _utf8Wrapper(rulesPath));
+			cemuLog_force("{}: Unable to parse version", _pathToUtf8(rulesPath));
 			return;
 		}
 
@@ -57,7 +57,7 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 			return;
 		}
 	}
-	cemuLog_force("{}: Outdated graphic pack", _utf8Wrapper(rulesPath));
+	cemuLog_force("{}: Outdated graphic pack", _pathToUtf8(rulesPath));
 }
 
 void GraphicPack2::LoadAll()
@@ -1020,9 +1020,9 @@ bool GraphicPack2::Deactivate()
 	m_upscaling_shader_ud.reset();
 	m_downscaling_shader_ud.reset();
 
-	m_output_shader_source = "";
-	m_upscaling_shader_source = "";
-	m_downscaling_shader_source = "";
+	m_output_shader_source.clear();
+	m_upscaling_shader_source.clear();
+	m_downscaling_shader_source.clear();
 	
 	if (HasCustomVSyncFrequency())
 	{

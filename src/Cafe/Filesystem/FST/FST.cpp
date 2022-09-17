@@ -1,5 +1,5 @@
 #include "Common/precompiled.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "Cafe/Filesystem/WUD/wud.h"
 #include "util/crypto/aes128.h"

@@ -108,14 +108,8 @@ uint64 PPCTimer_tscToMicroseconds(uint64 us)
 	uint128_t r{};
 	r.low = _umul128(us, 1000000ULL, &r.high);
 
-
 	uint64 remainder;
-
-#if _MSC_VER < 1923 || defined(__clang__)
-	const uint64 microseconds = udiv128(r.low, r.high, _rdtscFrequency, &remainder);
-#else
 	const uint64 microseconds = _udiv128(r.high, r.low, _rdtscFrequency, &remainder);
-#endif
 
 	return microseconds;
 }
@@ -159,11 +153,7 @@ uint64 PPCTimer_getFromRDTSC()
 	#endif
 
 	uint64 remainder;
-#if _MSC_VER < 1923 || defined(__clang__)
-	 uint64 elapsedTick = udiv128(_rdtscAcc.low, _rdtscAcc.high, _rdtscFrequency, &remainder);
-#else
-	 uint64 elapsedTick = _udiv128(_rdtscAcc.high, _rdtscAcc.low, _rdtscFrequency, &remainder);
-#endif
+	uint64 elapsedTick = _udiv128(_rdtscAcc.high, _rdtscAcc.low, _rdtscFrequency, &remainder);
 
 	_rdtscAcc.low = remainder;
 	_rdtscAcc.high = 0;

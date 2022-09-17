@@ -609,7 +609,7 @@ void LatteShaderCache_loadOrCompileSeparableShader(LatteDecompilerShader* shader
 
 bool LatteShaderCache_readSeparableVertexShader(MemStreamReader& streamReader, uint8 version)
 {
-	std::unique_ptr<LatteContextRegister> lcr(new LatteContextRegister());
+	auto lcr = std::make_unique<LatteContextRegister>();
 	if (version != 1)
 		return false;
 	uint64 shaderBaseHash = streamReader.readBE<uint64>();
@@ -658,7 +658,7 @@ bool LatteShaderCache_readSeparableGeometryShader(MemStreamReader& streamReader,
 {
 	if (version != 1)
 		return false;
-	std::unique_ptr<LatteContextRegister> lcr(new LatteContextRegister());
+	auto lcr = std::make_unique<LatteContextRegister>();
 	uint64 shaderBaseHash = streamReader.readBE<uint64>();
 	uint64 shaderAuxHash = streamReader.readBE<uint64>();
 	uint32 vsRingParameterCount = streamReader.readBE<uint16>();
@@ -698,7 +698,7 @@ bool LatteShaderCache_readSeparablePixelShader(MemStreamReader& streamReader, ui
 {
 	if (version != 1)
 		return false;
-	std::unique_ptr<LatteContextRegister> lcr(new LatteContextRegister());
+	auto lcr = std::make_unique<LatteContextRegister>();
 	uint64 shaderBaseHash = streamReader.readBE<uint64>();
 	uint64 shaderAuxHash = streamReader.readBE<uint64>();
 	bool usesGeometryShader = streamReader.readBE<uint8>() != 0;

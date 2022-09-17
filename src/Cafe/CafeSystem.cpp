@@ -24,7 +24,7 @@
 
 #include "Cafe/Filesystem/FST/FST.h"
 
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 #include "GamePatch.h"
 
@@ -209,7 +209,7 @@ void InfoLog_TitleLoaded()
 	fs::path effectiveSavePath = getTitleSavePath();
 	std::error_code ec;
 	const bool saveDirExists = fs::exists(effectiveSavePath, ec);
-	cemuLog_force("Save path:   {}{}", _utf8Wrapper(effectiveSavePath), saveDirExists ? "" : " (not present)");
+	cemuLog_force("Save path:   {}{}", _pathToUtf8(effectiveSavePath), saveDirExists ? "" : " (not present)");
 
 	// log shader cache name
 	cemuLog_log(LogType::Force, "Shader cache file: shaderCache/transferable/{:016x}.bin", titleId);
@@ -577,7 +577,7 @@ namespace CafeSystem
 					const auto file = fsc_open(rpxPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status);
 					if (file)
 					{
-						_pathToExecutable = rpxPath;
+						_pathToExecutable = std::move(rpxPath);
 						fsc_close(file);
 					}
 				}
@@ -617,7 +617,7 @@ namespace CafeSystem
 		sLaunchModeIsStandalone = true;
 		cemuLog_log(LogType::Force, "Launching executable in standalone mode due to incorrect layout or missing meta files");
 		fs::path executablePath = path;
-		std::string dirName = _utf8Wrapper(executablePath.parent_path().filename());
+		std::string dirName = _pathToUtf8(executablePath.parent_path().filename());
 		if (boost::iequals(dirName, "code"))
 		{
 			// check for content folder
@@ -626,18 +626,18 @@ namespace CafeSystem
 			if (fs::is_directory(contentPath, ec))
 			{
 				// mounting content folder
-				bool r = FSCDeviceHostFS_Mount(std::string("/vol/content").c_str(), boost::nowide::widen(_utf8Wrapper(contentPath)).c_str(), FSC_PRIORITY_BASE);
+				bool r = FSCDeviceHostFS_Mount(std::string("/vol/content").c_str(), _pathToUtf8(contentPath), FSC_PRIORITY_BASE);
 				if (!r)
 				{
-					cemuLog_log(LogType::Force, "Failed to mount {}", _utf8Wrapper(contentPath).c_str());
+					cemuLog_log(LogType::Force, "Failed to mount {}", _pathToUtf8(contentPath));
 					return STATUS_CODE::UNABLE_TO_MOUNT;
 				}
 			}
 		}
 		// mount code folder to a virtual temporary path
-		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), boost::nowide::widen(_utf8Wrapper(executablePath.parent_path())).c_str(), FSC_PRIORITY_BASE);
+		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), _pathToUtf8(executablePath.parent_path()), FSC_PRIORITY_BASE);
 		std::string internalExecutablePath = "/internal/code/";
-		internalExecutablePath.append(_utf8Wrapper(executablePath.filename()));
+		internalExecutablePath.append(_pathToUtf8(executablePath.filename()));
 		_pathToExecutable = internalExecutablePath;
 		// since a lot of systems (including save folder location) rely on a TitleId, we derive a placeholder id from the executable hash
 		auto execData = fsc_extractFile(_pathToExecutable.c_str());

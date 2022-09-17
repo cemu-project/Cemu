@@ -3,7 +3,7 @@
 
 #include "config/ActiveSettings.h"
 #include "util/crypto/aes128.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "util/helpers/StringHelpers.h"
 
 std::mutex mtxKeyCache;

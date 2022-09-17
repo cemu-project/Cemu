@@ -29,7 +29,7 @@ class IntervalTree2
 
 	struct InternalRange
 	{
-		InternalRange() {};
+		InternalRange() = default;
 		InternalRange(TRangeData _rangeBegin, TRangeData _rangeEnd) : rangeBegin(_rangeBegin), rangeEnd(_rangeEnd) { cemu_assert_debug(_rangeBegin < _rangeEnd); };
 
 		TRangeData rangeBegin;

@@ -213,7 +213,6 @@ void GameUpdateWindow::ThreadWork()
 			create_directories(targetDir);
 		}
 
-		const auto target_path = fs::path(m_target_path);
 		for (auto& path : m_source_paths)
 		{
 			if (m_thread_state == ThreadCanceled)
@@ -251,7 +250,7 @@ void GameUpdateWindow::ThreadWork()
 		error_msg << GetSystemErrorMessage(ex);
 
 		if(currentDirEntry != fs::directory_entry{})
-			error_msg << fmt::format("\n{}\n{}",_("Current file:").ToStdString(), _utf8Wrapper(currentDirEntry.path()));
+			error_msg << fmt::format("\n{}\n{}",_("Current file:").ToStdString(), _pathToUtf8(currentDirEntry.path()));
 
 		m_thread_exception = error_msg.str();
 		m_thread_state = ThreadCanceled;

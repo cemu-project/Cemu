@@ -64,16 +64,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	for (const auto& id : g_kFirstColumnItems)
 	{
 		row++;
-
-		m_item_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(WiimoteController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		m_item_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(row, column, id);
 	}
 
 	m_item_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL), wxGBPosition(0, column + 2), wxGBSpan(11, 1), wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 5);
@@ -90,16 +81,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	for (const auto& id : g_kSecondColumnItems)
 	{
 		row++;
-
-		m_item_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(WiimoteController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		m_item_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(row, column, id);
 	}
 
 	row = 8;
@@ -135,7 +117,11 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 		if (id == WiimoteController::kButtonId_None)
 			continue;
 
-		m_item_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(WiimoteController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		m_item_sizer->Add(
+			new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(WiimoteController::get_button_name(id)))),
+			wxGBPosition(row, column),
+			wxDefaultSpan,
+			wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
 		text_ctrl->SetClientData((void*)id);
@@ -164,6 +150,22 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	
 	SetSizer(main_sizer);
 	Layout();
+}
+
+void WiimoteInputPanel::add_button_row(sint32 row, sint32 column, const WiimoteController::ButtonId &button_id) {
+	m_item_sizer->Add(
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(WiimoteController::get_button_name(button_id)))),
+		wxGBPosition(row, column),
+		wxDefaultSpan,
+		wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+	auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+	text_ctrl->SetClientData((void*)button_id);
+	text_ctrl->SetMinSize(wxSize(150, -1));
+	text_ctrl->SetEditable(false);
+	text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
+	bind_hotkey_events(text_ctrl);
+	m_item_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
 }
 
 void WiimoteInputPanel::set_active_device_type(WPADDeviceType type)
@@ -209,9 +211,6 @@ void WiimoteInputPanel::on_volume_change(wxCommandEvent& event)
 
 void WiimoteInputPanel::on_extension_change(wxCommandEvent& event)
 {
-	const auto obj = dynamic_cast<wxCheckBox*>(event.GetEventObject());
-	wxASSERT(obj);
-
 	if(m_motion_plus->GetValue() && m_nunchuck->GetValue())
 		set_active_device_type(kWAPDevMPLSFreeStyle);
 	else if(m_motion_plus->GetValue() && m_classic->GetValue())

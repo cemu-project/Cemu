@@ -8,7 +8,7 @@
 
 #include "config/ActiveSettings.h"
 #include "gui/helpers/wxHelpers.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"
 #include "Cafe/CafeSystem.h"
@@ -275,7 +275,7 @@ void MemorySearcherTool::Load()
 	if (!memSearcherIniContents)
 		return;
 
-	IniParser iniParser(*memSearcherIniContents, _utf8Wrapper(memorySearcherPath));
+	IniParser iniParser(*memSearcherIniContents, _pathToUtf8(memorySearcherPath));
 	while (iniParser.NextSection())
 	{
 		auto option_description = iniParser.FindOption("description");

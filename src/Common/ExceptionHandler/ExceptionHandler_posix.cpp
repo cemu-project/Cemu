@@ -26,7 +26,7 @@ void handler_SIGINT(int sig)
      * by any mean ends up with a SIGABRT from the standard library destroying
      * threads.
      */
-    exit(0);
+    _Exit(0);
 }
 
 void ExceptionHandler_init()

@@ -3,7 +3,7 @@
 #include "Cafe/OS/libs/nn_common.h"
 #include "nn_nfp.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include "Cafe/CafeSystem.h"
 
 std::recursive_mutex g_nfpMutex;

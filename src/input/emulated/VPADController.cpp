@@ -5,6 +5,7 @@
 #include "input/InputManager.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/CafeSystem.h"
+#include <wx/intl.h>
 
 enum ControllerVPADMapping2 : uint32
 {
@@ -366,21 +367,21 @@ std::string_view VPADController::get_button_name(ButtonId id)
 	case kButtonId_ZR: return "ZR";
 	case kButtonId_Plus: return "+";
 	case kButtonId_Minus: return "-";
-	case kButtonId_Up: return "up";
-	case kButtonId_Down: return "down";
-	case kButtonId_Left: return "left";
-	case kButtonId_Right: return "right";
-	case kButtonId_StickL: return "click";
-	case kButtonId_StickR: return "click";
-	case kButtonId_StickL_Up: return "up";
-	case kButtonId_StickL_Down: return "down";
-	case kButtonId_StickL_Left: return "left";
-	case kButtonId_StickL_Right: return "right";
-	case kButtonId_StickR_Up: return "up";
-	case kButtonId_StickR_Down: return "down";
-	case kButtonId_StickR_Left: return "left";
-	case kButtonId_StickR_Right: return "right";
-	case kButtonId_Home: return "home";
+	case kButtonId_Up: return wxTRANSLATE("up");
+	case kButtonId_Down: return wxTRANSLATE("down");
+	case kButtonId_Left: return wxTRANSLATE("left");
+	case kButtonId_Right: return wxTRANSLATE("right");
+	case kButtonId_StickL: return wxTRANSLATE("click");
+	case kButtonId_StickR: return wxTRANSLATE("click");
+	case kButtonId_StickL_Up: return wxTRANSLATE("up");
+	case kButtonId_StickL_Down: return wxTRANSLATE("down");
+	case kButtonId_StickL_Left: return wxTRANSLATE("left");
+	case kButtonId_StickL_Right: return wxTRANSLATE("right");
+	case kButtonId_StickR_Up: return wxTRANSLATE("up");
+	case kButtonId_StickR_Down: return wxTRANSLATE("down");
+	case kButtonId_StickR_Left: return wxTRANSLATE("left");
+	case kButtonId_StickR_Right: return wxTRANSLATE("right");
+	case kButtonId_Home: return wxTRANSLATE("home");
 	default:
 		cemu_assert_debug(false);
 		return "";

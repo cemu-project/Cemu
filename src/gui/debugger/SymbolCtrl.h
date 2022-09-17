@@ -11,7 +11,7 @@ public:
 	void ChangeListFilter(std::string filter);
 private:
 	struct SymbolItem {
-        SymbolItem() {}
+        SymbolItem() = default;
         SymbolItem(wxString name, wxString libName, wxString searchName, bool visible) : name(name), libName(libName), searchName(searchName), visible(visible) {}
 
 

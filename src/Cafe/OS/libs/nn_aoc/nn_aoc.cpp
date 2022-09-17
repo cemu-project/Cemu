@@ -6,7 +6,7 @@
 #include "Cafe/TitleList/TitleId.h"
 
 #include "Cemu/ncrypto/ncrypto.h"
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 
 namespace nn
 {

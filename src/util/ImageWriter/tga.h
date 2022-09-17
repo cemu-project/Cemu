@@ -1,4 +1,4 @@
-#include "Common/filestream.h"
+#include "Common/FileStream.h"
 #include <vector>
 
 static bool tga_write_rgba(wchar_t* path, sint32 width, sint32 height, uint8* pixelData) 
