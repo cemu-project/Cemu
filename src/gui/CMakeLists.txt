@@ -1,17 +1,130 @@
-project(CemuGui)
-
-file(GLOB_RECURSE CPP_FILES *.cpp)
-file(GLOB_RECURSE H_FILES *.h)
-add_library(CemuGui ${CPP_FILES} ${H_FILES})
+add_library(CemuGui 
+  canvas/IRenderCanvas.h
+  canvas/OpenGLCanvas.cpp
+  canvas/OpenGLCanvas.h
+  canvas/VulkanCanvas.cpp
+  canvas/VulkanCanvas.h
+  CemuApp.cpp
+  CemuApp.h
+  CemuUpdateWindow.cpp
+  CemuUpdateWindow.h
+  ChecksumTool.cpp
+  ChecksumTool.h
+  components/TextList.cpp
+  components/TextList.h
+  components/wxDownloadManagerList.cpp
+  components/wxDownloadManagerList.h
+  components/wxGameList.cpp
+  components/wxGameList.h
+  components/wxInputDraw.cpp
+  components/wxInputDraw.h
+  components/wxLogCtrl.cpp
+  components/wxLogCtrl.h
+  components/wxTitleManagerList.cpp
+  components/wxTitleManagerList.h
+  debugger/BreakpointWindow.cpp
+  debugger/BreakpointWindow.h
+  debugger/DebuggerWindow2.cpp
+  debugger/DebuggerWindow2.h
+  debugger/DisasmCtrl.cpp
+  debugger/DisasmCtrl.h
+  debugger/DumpCtrl.cpp
+  debugger/DumpCtrl.h
+  debugger/DumpWindow.cpp
+  debugger/DumpWindow.h
+  debugger/ModuleWindow.cpp
+  debugger/ModuleWindow.h
+  debugger/RegisterCtrl.cpp
+  debugger/RegisterCtrl.h
+  debugger/RegisterWindow.cpp
+  debugger/RegisterWindow.h
+  debugger/SymbolCtrl.cpp
+  debugger/SymbolCtrl.h
+  debugger/SymbolWindow.cpp
+  debugger/SymbolWindow.h
+  dialogs/CreateAccount/wxCreateAccountDialog.cpp
+  dialogs/CreateAccount/wxCreateAccountDialog.h
+  dialogs/SaveImport/SaveImportWindow.cpp
+  dialogs/SaveImport/SaveImportWindow.h
+  dialogs/SaveImport/SaveTransfer.cpp
+  dialogs/SaveImport/SaveTransfer.h
+  DownloadGraphicPacksWindow.cpp
+  DownloadGraphicPacksWindow.h
+  GameProfileWindow.cpp
+  GameProfileWindow.h
+  GameUpdateWindow.cpp
+  GameUpdateWindow.h
+  GeneralSettings2.cpp
+  GeneralSettings2.h
+  GettingStartedDialog.cpp
+  GettingStartedDialog.h
+  GraphicPacksWindow2.cpp
+  GraphicPacksWindow2.h
+  guiWrapper.cpp
+  guiWrapper.h
+  helpers/wxControlObject.h
+  helpers/wxCustomData.h
+  helpers/wxCustomEvents.cpp
+  helpers/wxCustomEvents.h
+  helpers/wxHelpers.cpp
+  helpers/wxHelpers.h
+  helpers/wxLogEvent.h
+  input/InputAPIAddWindow.cpp
+  input/InputAPIAddWindow.h
+  input/InputSettings2.cpp
+  input/InputSettings2.h
+  input/panels/ClassicControllerInputPanel.cpp
+  input/panels/ClassicControllerInputPanel.h
+  input/panels/InputPanel.cpp
+  input/panels/InputPanel.h
+  input/panels/ProControllerInputPanel.cpp
+  input/panels/ProControllerInputPanel.h
+  input/panels/VPADInputPanel.cpp
+  input/panels/VPADInputPanel.h
+  input/panels/WiimoteInputPanel.cpp
+  input/panels/WiimoteInputPanel.h
+  input/settings/DefaultControllerSettings.cpp
+  input/settings/DefaultControllerSettings.h
+  input/settings/WiimoteControllerSettings.cpp
+  input/settings/WiimoteControllerSettings.h
+  LoggingWindow.cpp
+  LoggingWindow.h
+  MainWindow.cpp
+  MainWindow.h
+  MemorySearcherTool.cpp
+  MemorySearcherTool.h
+  PadViewFrame.cpp
+  PadViewFrame.h
+  TitleManager.cpp
+  TitleManager.h
+  windows/PPCThreadsViewer
+  windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp
+  windows/PPCThreadsViewer/DebugPPCThreadsWindow.h
+  windows/TextureRelationViewer
+  windows/TextureRelationViewer/TextureRelationWindow.cpp
+  windows/TextureRelationViewer/TextureRelationWindow.h
+  wxcomponents/checked2.xpm
+  wxcomponents/checked_dis.xpm
+  wxcomponents/checked_d.xpm
+  wxcomponents/checked_ld.xpm
+  wxcomponents/checkedlistctrl.cpp
+  wxcomponents/checkedlistctrl.h
+  wxcomponents/checked_mo.xpm
+  wxcomponents/checked.xpm
+  wxcomponents/checktree.cpp
+  wxcomponents/checktree.h
+  wxcomponents/unchecked2.xpm
+  wxcomponents/unchecked_dis.xpm
+  wxcomponents/unchecked_d.xpm
+  wxcomponents/unchecked_ld.xpm
+  wxcomponents/unchecked_mo.xpm
+  wxcomponents/unchecked.xpm
+  wxgui.h
+  wxHelper.h
+)
 
 set_property(TARGET CemuGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-target_sources(CemuGui PRIVATE
-	wxcomponents/checkedlistctrl.cpp
-	wxcomponents/checkedlistctrl.h
-	wxcomponents/checktree.cpp
-	wxcomponents/checktree.h
-)
 
 target_include_directories(CemuGui PUBLIC "../")
 # PUBLIC because rapidjson/document.h is included in ChecksumTool.h

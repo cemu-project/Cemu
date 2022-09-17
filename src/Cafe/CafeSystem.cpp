@@ -577,7 +577,7 @@ namespace CafeSystem
 					const auto file = fsc_open(rpxPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status);
 					if (file)
 					{
-						_pathToExecutable = rpxPath;
+						_pathToExecutable = std::move(rpxPath);
 						fsc_close(file);
 					}
 				}

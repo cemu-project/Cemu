@@ -143,7 +143,7 @@ sint32 fsc_mount(std::string_view mountPath, std::string_view targetPath, fscDev
 	}
 	node->device = fscDevice;
 	node->ctx = ctx;
-	node->deviceTargetPath = targetPathWithSlash;
+	node->deviceTargetPath = std::move(targetPathWithSlash);
 	fscLeave();
 	return FSC_STATUS_OK;
 }

@@ -104,9 +104,7 @@ struct Quat
 class MotionSample
 {
 public:
-	MotionSample()
-	{
-	}
+	MotionSample() = default;
 
 	MotionSample(float acc[3], float accAcceleration, float gyro[3], float orientation[3],
 		float quaternion[4]

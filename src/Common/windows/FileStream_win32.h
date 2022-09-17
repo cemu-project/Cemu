@@ -43,7 +43,7 @@ class FileStream
 	void writeLine(const char* str);
 
 	~FileStream();
-	FileStream() {};
+	FileStream() = default;
 
  private:
 	FileStream(HANDLE hFile);

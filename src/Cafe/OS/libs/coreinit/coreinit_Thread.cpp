@@ -54,9 +54,7 @@ namespace coreinit
 		{
 		}
 
-		~OSHostThread()
-		{
-		}
+		~OSHostThread() = default;
 
 		OSThread_t* m_thread;
 		Fiber m_fiber;
@@ -1223,7 +1221,7 @@ namespace coreinit
 	{
 		struct DeallocatorQueueEntry
 		{
-			DeallocatorQueueEntry() {};
+			DeallocatorQueueEntry() = default;
 			DeallocatorQueueEntry(OSThread_t* thread, MEMPTR<void> stack, MEMPTR<void> deallocatorFunc) : thread(thread), stack(stack), deallocatorFunc(deallocatorFunc) {};
 
 			OSThread_t* thread{};

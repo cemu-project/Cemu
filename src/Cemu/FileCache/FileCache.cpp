@@ -287,7 +287,10 @@ uint8* _fileCache_compressFileData(const uint8* fileData, uint32 fileSize, sint3
 	Bytef* compressedData = (Bytef*)malloc(4 + compressedLen);
 	int zret = compress2(compressedData + 4, &compressedLen, uncompressedInput, uncompressedLen, 4); // level 4 has good compression to performance ratio
 	if (zret != Z_OK)
+	{
+		free(compressedData);
 		return nullptr;
+	}
 	compressedData[0] = ((uint32)fileSize >> 24) & 0xFF;
 	compressedData[1] = ((uint32)fileSize >> 16) & 0xFF;
 	compressedData[2] = ((uint32)fileSize >> 8) & 0xFF;

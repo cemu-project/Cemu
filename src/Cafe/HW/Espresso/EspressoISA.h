@@ -101,7 +101,7 @@ namespace Espresso
 
 	struct BOField 
 	{
-		BOField() {};
+		BOField() = default;
 		BOField(uint8 bo) : bo(bo) {};
 
 		bool conditionInverted() const

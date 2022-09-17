@@ -121,12 +121,8 @@ bool GraphicPack2::LoadCemuPatches()
 void GraphicPack2::LoadPatchFiles()
 {
 	// order of loading patches:
-	// 1) If Cemuhook is loaded:
-	//    1.1) Check if patches.txt exists and if it does, stop here and do nothing (Cemuhook takes over patching)
-	//    1.2) Load Cemu-style patches (patch_<name>.asm)
-	// 2) If Cemuhook is not loaded:
-	//    1.1) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
-	//    1.2) Load Cemuhook patches.txt
+	// 1) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
+	// 2) Load Cemuhook patches.txt
 
 	// update: As of 1.20.2b Cemu always takes over patching since Cemuhook patching broke due to other internal changes (memory allocation changed and some reordering on when graphic packs get loaded)
 	if (LoadCemuPatches())

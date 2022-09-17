@@ -835,8 +835,11 @@ namespace H264
 		auto asyncTask = std::async(std::launch::async, _async_H264DECEnd, executeDoneEvent.GetPointer(), session, ctx, &results);
 		coreinit::OSWaitEvent(executeDoneEvent);
 		_ReleaseDecoderSession(session);
-		for (auto& itr : results)
-			H264DoFrameOutputCallback(ctx, itr);
+		if (!results.empty())
+		{
+			for (auto& itr : results)
+				H264DoFrameOutputCallback(ctx, itr);
+		}
 		return H264DEC_STATUS::SUCCESS;
 	}
 

@@ -446,7 +446,7 @@ public:
 		std::unique_lock<std::recursive_mutex> _l(m_mutex);
 		m_packageList.clear();
 		m_statusCode = DLMGR_STATUS_CODE::UNINITIALIZED;
-		m_statusMessage = "";
+		m_statusMessage.clear();
 	}
 
 private:

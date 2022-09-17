@@ -360,7 +360,7 @@ namespace NAPI
 			// ticketVersion starts at 0 and increments every time the ticket is updated (e.g. for AOC content, when purchasing additional DLC packages)
 			const char* tivValue = tivNode.child_value();
 			const char* tivValueEnd = tivValue + strlen(tivValue);
-			const char* tivValueSeparator = std::strstr(tivValue, ".");
+			const char* tivValueSeparator = std::strchr(tivValue, '.');
 			if (tivValueSeparator == nullptr)
 				tivValueSeparator = tivValueEnd;
 

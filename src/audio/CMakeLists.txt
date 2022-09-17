@@ -1,5 +1,3 @@
-project(CemuAudio)
-
 add_library(CemuAudio
 	IAudioAPI.cpp
 	IAudioAPI.h

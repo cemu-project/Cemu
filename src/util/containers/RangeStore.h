@@ -13,10 +13,7 @@ public:
 		size_t lastIterationIndex;
 	}rangeEntry_t;
 
-	RangeStore()
-	{
-
-	}
+	RangeStore() = default;
 
 	size_t getBucket(_ADDR addr)
 	{

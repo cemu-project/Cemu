@@ -289,7 +289,7 @@ namespace ZpIR
 	// IR register constant definition stored in basic block
 	struct IRRegConstDef
 	{
-		IRRegConstDef() {};
+		IRRegConstDef() = default;
 		// todo - support for constants with more than one element?
 
 		IRRegConstDef& setU32(uint32 v) { value_u32 = v; type = DataType::U32; return *this; };
@@ -513,7 +513,7 @@ namespace ZpIR
 				LOC_TYPE_ATTRIBUTE = 3,
 			};
 		public:
-			ShaderImportLocation() {}
+			ShaderImportLocation() = default;
 			ShaderImportLocation(LocationSymbolName loc) 
 			{
 				uint64 v = (uint64)loc;
@@ -598,7 +598,7 @@ namespace ZpIR
 				LOC_TYPE_OUTPUT = 2,
 			};
 		public:
-			ShaderExportLocation() {}
+			ShaderExportLocation() = default;
 			ShaderExportLocation(LocationSymbolName loc)
 			{
 				uint64 v = (uint64)loc;

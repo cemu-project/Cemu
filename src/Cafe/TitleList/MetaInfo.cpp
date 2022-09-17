@@ -72,7 +72,6 @@ void MetaInfo::ParseDirectory(const fs::path& filename)
 
 bool MetaInfo::ParseFile(const fs::path& filename)
 {
-	const auto extension = filename.extension();
 	if (filename.filename() != "meta.xml")
 		return false;
 	
