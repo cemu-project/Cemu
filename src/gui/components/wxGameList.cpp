@@ -269,40 +269,34 @@ long wxGameList::GetStyleFlags(Style style) const
 
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
-
     wxWindowUpdateLocker lock(this);
+	// get the background color so we can determine the theme in use
+	wxColour bgColour = GetBackgroundColour();
+	uint32 bgLightness = (bgColour.GetRed() + bgColour.GetGreen() + bgColour.GetBlue()) / 3;
+	bool isDarkTheme = bgLightness < 128;
+	wxColour bgColourPrimary = bgColour; // color for odd rows
+	wxColour bgColourSecondary = bgColour.ChangeLightness(isDarkTheme ? 110 : 90); // color for even rows
 
-    // Get the background color so we can determine the theme in use
-    const wxColour bgColour = GetBackgroundColour();
+	// for very light themes we'll use a blue tint to match the older Windows Cemu look
+	if (bgLightness > 250)
+		bgColourSecondary = wxColour(bgColour.Red() - 13, bgColour.Green() - 6, bgColour.Blue() - 2);
 
     for (int i = startIndex; i < GetItemCount(); ++i)
     {
         const auto titleId = (uint64)GetItemData(i);
-		if (GetConfig().IsGameListFavorite(titleId))//entry->favorite)
+		if (GetConfig().IsGameListFavorite(titleId))
 		{
 			SetItemBackgroundColour(i, kFavoriteColor);
 			SetItemTextColour(i, 0x000000UL);
 		}
 		else if ((i&1) != 0)
 		{
-            // Depending on the background RGB value:
-            // Light theme row color will be 10% darker (90)
-            // Dark theme row color will be 10% brighter (110)
-            int alpha = bgColour.GetRGB() > 0x808080 ? 90 : 110;
-            SetItemBackgroundColour(i, bgColour.ChangeLightness(alpha));
-
-            // Text can be changed to other values for alternating rows if needed
+            SetItemBackgroundColour(i, bgColourPrimary);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else
 		{
-            // Depending on the background RGB value:
-            // Light theme row color will be 0% darker (100)
-            // Dark theme row color will be 0% brighter (100)
-            int alpha = bgColour.GetRGB() > 0x808080 ? 100 : 100;
-            SetItemBackgroundColour(i, bgColour.ChangeLightness(alpha));
-
-            // Text color can be modified to other values for alternating rows if needed
+            SetItemBackgroundColour(i, bgColourSecondary);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 	}
@@ -310,7 +304,7 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 
 static inline int strongorder_to_int(const std::strong_ordering &wo)
 {
-	/* No easy conversion seems to exists in C++20 */
+	// no easy conversion seems to exists in C++20
 	if (wo < 0)
 		return -1;
 	else if (wo > 0)
