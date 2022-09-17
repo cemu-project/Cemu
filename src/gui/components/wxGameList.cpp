@@ -87,6 +87,7 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	Bind(wxEVT_LIST_COL_BEGIN_DRAG, &wxGameList::OnColumnBeginResize, this);
 	Bind(wxEVT_LIST_COL_END_DRAG, &wxGameList::OnColumnResize, this);
 	Bind(wxEVT_LIST_COL_RIGHT_CLICK, &wxGameList::OnColumnRightClick, this);
+	Bind(wxEVT_SIZE, &wxGameList::OnGameListSize, this);
 
 	m_callbackIdTitleList = CafeTitleList::RegisterCallback([](CafeTitleListCallbackEvent* evt, void* ctx) { ((wxGameList*)ctx)->HandleTitleListCallback(evt); }, this);
 
@@ -139,6 +140,60 @@ void wxGameList::LoadConfig()
 		if(order.GetCount() == ColumnFavorite)
 			SetColumnsOrder(order);
 		#endif
+	}
+}
+
+// for unknow reasons of wxWidgets, there are some issues if we change column size in a SizeEvent handler func when use sizer-based layout.
+// the list may not redraw correctly, or extra blank rows/columns shown in list...
+// So we DO NOT change column size here, just send a ColumnResize event to ColumnResize handler, resize will be done over there.
+void wxGameList::OnGameListSize(wxSizeEvent &event)
+{
+	event.Skip();
+
+	int last_col_index = GetColumnIndexFromOrder(GetColumnCount() - 1);
+	wxListEvent column_resize_event(wxEVT_LIST_COL_END_DRAG);
+	column_resize_event.SetColumn(last_col_index);
+	wxPostEvent(this, column_resize_event);
+}
+
+// adjust the width of the last column to fit the window, whether or not the column order has been changed
+void wxGameList::AdjustLastColumnWidth()
+{
+	wxWindowUpdateLocker windowlock(this);
+	int last_col_index = GetColumnIndexFromOrder(GetColumnCount() - 1);
+	int last_col_width = GetClientSize().GetWidth();
+	for (int i = 1; i < GetColumnCount(); i++)
+	{
+		if (i != last_col_index)
+			last_col_width -= GetColumnWidth(i);
+	}
+	if (last_col_width < GetColumnDefaultWidth(last_col_index)) // keep a minimum width
+		last_col_width = GetColumnDefaultWidth(last_col_index);
+	SetColumnWidth(last_col_index, last_col_width);
+}
+
+// it's not elegant for use this GetColumnDefaultWidth() here, but it does work at the moment before we have better solution
+// return default width of column by index col
+int wxGameList::GetColumnDefaultWidth(int col)
+{
+	switch (col)
+	{
+	case ColumnIcon:
+		return kListIconWidth;
+	case ColumnName:
+		return 500;
+	case ColumnVersion:
+		return 60;
+	case ColumnDLC:
+		return 50;
+	case ColumnGameTime:
+		return 140;
+	case ColumnGameStarted:
+		return 160;
+	case ColumnRegion:
+		return 80;
+	default:
+		return 80;
 	}
 }
 
@@ -724,6 +779,8 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			{
 				switch (column)
 				{
+				case ColumnIcon: // do nothing but wont return, will reset width in ApplyGameListColumnWidths() later
+					break;
 				case ColumnName:
 					config.column_width.name = 500;
 					break;
@@ -756,6 +813,8 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 				#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
 				SetColumnsOrder(order);
 				#endif
+				ApplyGameListColumnWidths();
+				AdjustLastColumnWidth();
 				Refresh();
 				return;
 			}
@@ -763,6 +822,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 
 			g_config.Save();
 			ApplyGameListColumnWidths();
+			AdjustLastColumnWidth();
 		});
 
 	PopupMenu(&menu);
@@ -781,6 +841,7 @@ void wxGameList::ApplyGameListColumnWidths()
 
 	const auto& config = GetConfig();
 	wxWindowUpdateLocker lock(this);
+	set_width(ColumnIcon, kListIconWidth);
 	set_width(ColumnName, config.column_width.name);
 	set_width(ColumnVersion, config.column_width.version);
 	set_width(ColumnDLC, config.column_width.dlc);
@@ -793,7 +854,7 @@ void wxGameList::OnColumnBeginResize(wxListEvent& event)
 {
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
-	if (width == 0)
+	if (width == 0 || column == ColumnIcon || column == GetColumnIndexFromOrder(GetColumnCount() - 1)) // dont resize hidden name, icon, and last column
 		event.Veto();
 	else
 		event.Skip();
@@ -801,6 +862,8 @@ void wxGameList::OnColumnBeginResize(wxListEvent& event)
 void wxGameList::OnColumnResize(wxListEvent& event)
 {
 	event.Skip();
+
+	AdjustLastColumnWidth();
 
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
@@ -822,6 +885,9 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 		break;
 	case ColumnGameStarted:
 		config.column_width.game_started = width;
+		break;
+	case ColumnRegion:
+		config.column_width.region = width;
 		break;
 	default:
 		return;
