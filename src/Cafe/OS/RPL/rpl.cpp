@@ -243,6 +243,7 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	if (fileinfoSection->sectionSize < sizeof(RPLFileInfoData))
 	{
 		cemuLog_force("RPLLoader: FILEINFO section size is below expected size");
+		delete rplLoaderContext;
 		return false;
 	}
 
@@ -1963,7 +1964,7 @@ void RPLLoader_AddDependency(const char* name)
 	if (rplLoader_currentTlsModuleIndex == 0x7FFF)
 		cemuLog_force("RPLLoader: Exhausted TLS module indices pool");
 	// convert name to path/filename if it isn't already one
-	if (strstr(name, "."))
+	if (strchr(name, '.'))
 	{
 		strcpy_s(newDependency->filepath, name);
 	}

@@ -214,6 +214,10 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	if (!DeserializePipeline(streamReader, *cachedPipeline))
 	{
 		// failed to deserialize
+		s_spinlockSharedInternal.acquire();
+		delete lcr;
+		delete cachedPipeline;
+		s_spinlockSharedInternal.release();
 		return;
 	}
 	// restored register view from compacted state

@@ -843,7 +843,7 @@ void GeneralSettings2::StoreConfig()
 	config.tv_volume = m_tv_volume->GetValue();
 	config.pad_volume = m_pad_volume->GetValue();
 
-	config.tv_device = L"";
+	config.tv_device.clear();
 	const auto tv_device = m_tv_device->GetSelection();
 	if (tv_device != wxNOT_FOUND && tv_device != 0 && m_tv_device->HasClientObjectData())
 	{
@@ -852,7 +852,7 @@ void GeneralSettings2::StoreConfig()
 			config.tv_device = device_description->GetDescription()->GetIdentifier();
 	}
 
-	config.pad_device = L"";
+	config.pad_device.clear();
 	const auto pad_device = m_pad_device->GetSelection();
 	if (pad_device != wxNOT_FOUND && pad_device != 0 && m_pad_device->HasClientObjectData())
 	{

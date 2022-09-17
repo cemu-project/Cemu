@@ -557,7 +557,7 @@ void CemuConfig::SetGameListCustomName(uint64 titleId, std::string customName)
 			return;
 		gameEntry = CreateGameEntry(titleId);
 	}
-	gameEntry->custom_name = customName;
+	gameEntry->custom_name = std::move(customName);
 }
 
 void CemuConfig::AddRecentlyLaunchedFile(std::wstring_view file)

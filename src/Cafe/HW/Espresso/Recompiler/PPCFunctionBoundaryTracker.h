@@ -10,7 +10,7 @@ class PPCFunctionBoundaryTracker
 public:
 	struct PPCRange_t
 	{
-		PPCRange_t() {};
+		PPCRange_t() = default;
 		PPCRange_t(uint32 _startAddress) : startAddress(_startAddress) {};
 
 		uint32 startAddress{};

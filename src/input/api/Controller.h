@@ -189,7 +189,7 @@ public:
 	// update provider if settings are different from default provider
 	void update_provider(std::shared_ptr<TProvider> provider)
 	{
-		m_provider = provider;
+		m_provider = std::move(provider);
 	}
 
 protected:
