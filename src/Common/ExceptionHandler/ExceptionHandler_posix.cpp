@@ -1,14 +1,22 @@
 #include <signal.h>
 #include <execinfo.h>
-#include <sys/resource.h>
+#include <string.h>
 
-#ifdef BOOST_OS_LINUX
-#include <sys/prctl.h>
-#endif
+#include "config/CemuConfig.h"
 
-void handler_SIGSEGV(int sig)
+// handle signals that would dump core, print stacktrace and then dump depending on config
+void handlerDumpingSignal(int sig)
 {
-    printf("SIGSEGV!\n");
+	char* sigName = strsignal(sig);
+	if (sigName)
+	{
+		printf("%s!\n", sigName);
+	}
+	else
+	{
+		// should never be the case
+		printf("Unknown core dumping signal!\n");
+	}
 
     void *array[32];
     size_t size;
@@ -19,7 +27,16 @@ void handler_SIGSEGV(int sig)
     // print out all the frames to stderr
     fprintf(stderr, "Error: signal %d:\n", sig);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
+
+	if (GetConfig().crash_dump == CrashDump::Full)
+	{
+		// reset signal handler to default and re-raise signal to dump core
+		signal(sig, SIG_DFL);
+		raise(sig);
+		return;
+	}
+	// Exit process ignoring all issues.
+    _Exit(1);
 }
 
 void handler_SIGINT(int sig)
@@ -34,23 +51,23 @@ void handler_SIGINT(int sig)
     _Exit(0);
 }
 
-// stop large coredumps from clogging up the system disk.
-void disableCoreDump()
-{
-#ifndef BOOST_OS_LINUX
-	rlimit l;
-	if (!getrlimit(RLIMIT_CORE, &l))
-		return;
-	l.rlim_cur = 0;
-	setrlimit(RLIMIT_CORE, &l);
-#else
-	prctl(PR_SET_DUMPABLE, 0);
-#endif
-}
-
 void ExceptionHandler_init()
 {
-	disableCoreDump();
-	signal(SIGSEGV, handler_SIGSEGV);
-	signal(SIGINT, handler_SIGINT);
+	struct sigaction action;
+	action.sa_handler = handler_SIGINT;
+	action.sa_flags = 0;
+	sigfillset(&action.sa_mask); // don't allow signals to be interrupted
+
+	sigaction(SIGINT, &action, nullptr);
+
+	action.sa_handler = handlerDumpingSignal;
+	sigaction(SIGABRT, &action, nullptr);
+	sigaction(SIGBUS, &action, nullptr);
+	sigaction(SIGFPE, &action, nullptr);
+	sigaction(SIGILL, &action, nullptr);
+	sigaction(SIGIOT, &action, nullptr);
+	sigaction(SIGQUIT, &action, nullptr);
+	sigaction(SIGSEGV, &action, nullptr);
+	sigaction(SIGSYS, &action, nullptr);
+	sigaction(SIGTRAP, &action, nullptr);
 }
