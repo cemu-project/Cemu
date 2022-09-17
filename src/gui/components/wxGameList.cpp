@@ -142,6 +142,7 @@ void wxGameList::LoadConfig()
 		#endif
 	}
 }
+
 // for unknow reasons of wxWidgets, there are some issues if we change column size in a SizeEvent handler func when use sizer-based layout.
 // the list may not redraw correctly, or extra blank rows/columns shown in list...
 // So we DO NOT change column size here, just send a ColumnResize event to ColumnResize handler, resize will be done over there.
