@@ -142,10 +142,8 @@ void wxGameList::LoadConfig()
 		#endif
 	}
 }
-
-// For the problem mentioned earlier, I found a workaround, here's my code.
-// We want to resize the last column of gamelist to fit window when size changed.
-// But there are some issues if we change column size in a SizeEvent handler func when use sizer-based layout.
+// for unknow reasons of wxWidgets, there are some issues if we change column size in a SizeEvent handler func when use sizer-based layout.
+// the list may not redraw correctly, or extra blank rows/columns shown in list...
 // So we DO NOT change column size here, just send a ColumnResize event to ColumnResize handler, resize will be done over there.
 void wxGameList::OnGameListSize(wxSizeEvent &event)
 {
@@ -157,6 +155,7 @@ void wxGameList::OnGameListSize(wxSizeEvent &event)
 	wxPostEvent(this, column_resize_event);
 }
 
+// adjust the width of the last column to fit the window, whether or not the column order has been changed
 void wxGameList::AdjustLastColumnWidth()
 {
 	wxWindowUpdateLocker windowlock(this);
@@ -167,9 +166,34 @@ void wxGameList::AdjustLastColumnWidth()
 		if (i != last_col_index)
 			last_col_width -= GetColumnWidth(i);
 	}
-	if (last_col_width < 80)
-		last_col_width = 80;
+	if (last_col_width < GetColumnDefaultWidth(last_col_index)) // keep a minimum width
+		last_col_width = GetColumnDefaultWidth(last_col_index);
 	SetColumnWidth(last_col_index, last_col_width);
+}
+
+// it's not elegant for use this GetColumnDefaultWidth() here, but it does work at the moment before we have better solution
+// return default width of column by index col
+int wxGameList::GetColumnDefaultWidth(int col)
+{
+	switch (col)
+	{
+	case ColumnIcon:
+		return kListIconWidth;
+	case ColumnName:
+		return 500;
+	case ColumnVersion:
+		return 60;
+	case ColumnDLC:
+		return 50;
+	case ColumnGameTime:
+		return 140;
+	case ColumnGameStarted:
+		return 160;
+	case ColumnRegion:
+		return 80;
+	default:
+		return 80;
+	}
 }
 
 void wxGameList::SaveConfig(bool flush)
@@ -829,7 +853,7 @@ void wxGameList::OnColumnBeginResize(wxListEvent& event)
 {
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
-	if (width == 0 || column == ColumnIcon || column == GetColumnIndexFromOrder(GetColumnCount() - 1))
+	if (width == 0 || column == ColumnIcon || column == GetColumnIndexFromOrder(GetColumnCount() - 1)) // dont resize hidden name, icon, and last column
 		event.Veto();
 	else
 		event.Skip();

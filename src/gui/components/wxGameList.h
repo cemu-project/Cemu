@@ -60,18 +60,8 @@ private:
 	long GetStyleFlags(Style style) const;
 
 	inline static const wxColour kUpdateColor{ 0x3939c3 };
-
-	inline static const wxColour kFavoriteForegroundColor{ 0x000000UL };
-	inline static const wxColour kFavoriteBackgroundColor{ 0xD3F6FD };
-
-	inline static const wxColour kGameListForegroundColor_Light{ 0x000000UL };
-	inline static const wxColour kGameListBackgroundColor1_Light{ 0xFFFFFF };
-	inline static const wxColour kGameListBackgroundColor2_Light{ 0xFDF9F2 };
-	
-	inline static const wxColour kGameListForegroundColor_Dark{ 0xFFFFFF };
-	inline static const wxColour kGameListBackgroundColor1_Dark{ 0x1E1E1E };
-	inline static const wxColour kGameListBackgroundColor2_Dark{ 0x252526 };
-
+	inline static const wxColour kFavoriteColor{ 0xD3F6FD };
+	inline static const wxColour kSecondColor{ 0xFDF9F2 };
 	void UpdateItemColors(sint32 startIndex = 0);
 
 	enum ItemColumns
@@ -155,6 +145,7 @@ private:
 
 	void OnGameListSize(wxSizeEvent& event);
 	void AdjustLastColumnWidth();
+	int  GetColumnDefaultWidth(int col);
 
 	static inline std::once_flag s_launch_file_once;
 };
