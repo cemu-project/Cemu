@@ -112,8 +112,34 @@ namespace GX2
 		return levels;
 	}
 
+	void _GX2CalcSurfaceSizeAndAlignmentWorkaround(GX2Surface* surface)
+	{
+		// this workaround catches an issue where the FFL (Mii) library embedded into games tries to use an uninitialized texture
+		// and subsequently crashes. It only happens when FFL files are not present in mlc.
+		// seen in Sonic Lost World and in Super Mario 3D World
+		if ((uint32)surface->dim.value() >= 50 || surface->aa.value() >= 0x100 || (uint32)surface->width.value() >= 0x01000000 || 
+			(uint32)surface->height.value() >= 0x01000000 || (uint32)surface->depth.value() >= 0x01000000 || (uint32)surface->format.value() >= 0x10000)
+		{
+			cemuLog_log(LogType::Force, "GX2CalcSurfaceSizeAndAlignment(): Uninitialized surface encountered\n");
+			// overwrite surface parameters with placeholder values to avoid crashing later down the line
+			surface->dim = Latte::E_DIM::DIM_2D;
+			surface->width = 8;
+			surface->height = 8;
+			surface->depth = 1;
+			surface->tileMode = Latte::E_GX2TILEMODE::TM_2D_TILED_THIN1;
+			surface->pitch = 8;
+			surface->numLevels = 0;
+			surface->imagePtr = MEMORY_TILINGAPERTURE_AREA_ADDR;
+			surface->swizzle = 0;
+			surface->aa = 0;
+			surface->format = Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM;
+			surface->alignment = 0x400;
+		}
+	}
+
 	void GX2CalcSurfaceSizeAndAlignment(GX2Surface* surface)
 	{
+		_GX2CalcSurfaceSizeAndAlignmentWorkaround(surface);
 		LatteAddrLib::AddrSurfaceInfo_OUT surfOut = { 0 };
 		uint32 firstMipOffset = 0;
 		bool changeTilemode = false;
