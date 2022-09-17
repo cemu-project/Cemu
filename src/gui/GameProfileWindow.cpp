@@ -168,7 +168,6 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		{
 			profile_sizer->Add(new wxStaticText(panel, wxID_ANY, fmt::format("{} {}", _("Controller").ToStdString(), (i + 1))), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-			wxArrayString m_controller_profileChoices;
 			m_controller_profile[i] = new wxComboBox(panel, wxID_ANY,"", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN| wxCB_READONLY);
 			m_controller_profile[i]->SetMinSize(wxSize(250, -1));
 			m_controller_profile[i]->Bind(wxEVT_COMBOBOX_DROPDOWN, &GameProfileWindow::OnControllerProfileDropdown, this);

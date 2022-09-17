@@ -197,7 +197,7 @@ struct raLivenessLocation_t
 	bool isRead;
 	bool isWrite;
 
-	raLivenessLocation_t() {};
+	raLivenessLocation_t() = default;
 
 	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
 		: index(index), isRead(isRead), isWrite(isWrite) {};

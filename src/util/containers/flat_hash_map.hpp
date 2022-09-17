@@ -166,9 +166,7 @@ namespace ska
 				: distance_from_desired(distance_from_desired)
 			{
 			}
-			~sherwood_v3_entry()
-			{
-			}
+			~sherwood_v3_entry() = default;
 			static sherwood_v3_entry* empty_default_table()
 			{
 				static sherwood_v3_entry result[min_lookups] = { {}, {}, {}, {special_end_value} };
@@ -297,9 +295,7 @@ namespace ska
 			using pointer = value_type*;
 			using const_pointer = const value_type*;
 
-			sherwood_v3_table()
-			{
-			}
+			sherwood_v3_table() = default;
 			explicit sherwood_v3_table(size_type bucket_count, const ArgumentHash& hash = ArgumentHash(), const ArgumentEqual& equal = ArgumentEqual(), const ArgumentAlloc& alloc = ArgumentAlloc())
 				: EntryAlloc(alloc), Hasher(hash), Equal(equal)
 			{
@@ -1324,9 +1320,7 @@ namespace ska
 		using mapped_type = V;
 
 		using Table::Table;
-		flat_hash_map()
-		{
-		}
+		flat_hash_map() = default;
 
 		inline V& operator[](const K& key)
 		{
@@ -1442,9 +1436,7 @@ namespace ska
 		using key_type = T;
 
 		using Table::Table;
-		flat_hash_set()
-		{
-		}
+		flat_hash_set() = default;
 
 		template<typename... Args>
 		std::pair<typename Table::iterator, bool> emplace(Args &&... args)

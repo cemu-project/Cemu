@@ -568,8 +568,6 @@ void InputSettings2::on_profile_text_changed(wxCommandEvent& event)
 
 	auto& page_data = get_current_page_data();
 
-	const auto selection = page_data.m_emulated_controller->GetStringSelection();
-
 	// load_bttn, save_bttn, delete_bttn, profile_status
 	const auto text = event.GetString();
 	const auto text_str = from_wxString(text);

@@ -213,7 +213,6 @@ void GameUpdateWindow::ThreadWork()
 			create_directories(targetDir);
 		}
 
-		const auto target_path = fs::path(m_target_path);
 		for (auto& path : m_source_paths)
 		{
 			if (m_thread_state == ThreadCanceled)

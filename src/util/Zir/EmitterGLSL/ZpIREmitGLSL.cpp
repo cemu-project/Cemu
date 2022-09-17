@@ -12,9 +12,7 @@ class DualStringBuffer
 public:
 	DualStringBuffer() : m_offsetBegin(N / 2), m_offsetEnd(N / 2) { }
 
-	~DualStringBuffer()
-	{
-	}
+	~DualStringBuffer() = default;
 
 	static_assert(sizeof(char) == sizeof(uint8));
 

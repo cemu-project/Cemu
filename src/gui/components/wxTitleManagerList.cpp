@@ -343,7 +343,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 	if (!GetConfig().game_paths.empty())
 		defaultDir = GetConfig().game_paths.front();
 	// get the short name, which we will use as a suggested default file name
-	std::string defaultFileName = shortName;
+	std::string defaultFileName = std::move(shortName);
 	boost::replace_all(defaultFileName, "/", "");
 	boost::replace_all(defaultFileName, "\\", "");
 
@@ -474,7 +474,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 		{
 			std::string temporaryMountPath = TitleInfo::GetUniqueTempMountingPath();
 			titleInfo->Mount(temporaryMountPath.c_str(), "", FSC_PRIORITY_BASE);
-			bool r = RecursivelyAddFiles(fmt::format("{:016x}_v{}/", titleInfo->GetAppTitleId(), titleInfo->GetAppTitleVersion()), temporaryMountPath.c_str());
+			bool r = RecursivelyAddFiles(fmt::format("{:016x}_v{}/", titleInfo->GetAppTitleId(), titleInfo->GetAppTitleVersion()), temporaryMountPath);
 			titleInfo->Unmount(temporaryMountPath.c_str());
 			return r;
 		}

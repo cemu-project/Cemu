@@ -355,7 +355,6 @@ namespace NAPI
 
 		std::string_view host = tokenNode.child_value("host");
 		std::string_view nex_password = tokenNode.child_value("nex_password");
-		std::string_view pid = tokenNode.child_value("pid");
 		std::string_view port = tokenNode.child_value("port");
 		std::string_view token = tokenNode.child_value("token");
 

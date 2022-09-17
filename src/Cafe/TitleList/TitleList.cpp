@@ -78,9 +78,9 @@ void CafeTitleList::LoadCacheFile()
 		cacheEntry.titleVersion = titleVersion;
 		cacheEntry.titleDataFormat = format;
 		cacheEntry.region = region;
-		cacheEntry.titleName = name;
+		cacheEntry.titleName = std::move(name);
 		cacheEntry.path = _utf8ToPath(path);
-		cacheEntry.subPath = sub_path;
+		cacheEntry.subPath = std::move(sub_path);
 		cacheEntry.group_id = group_id;
 		cacheEntry.app_type = app_type;
 
@@ -482,7 +482,7 @@ void CafeTitleList::AddTitle(TitleInfo* titleInfo)
 		}
 	}
 	sTLList.emplace_back(titleInfo);
-	sTLMap.insert(std::pair(titleInfo->GetAppTitleId(), titleInfo));
+	sTLMap.emplace(titleInfo->GetAppTitleId(), titleInfo);
 	// send out notification
 	CafeTitleListCallbackEvent evt;
 	evt.eventType = CafeTitleListCallbackEvent::TYPE::TITLE_DISCOVERED;
