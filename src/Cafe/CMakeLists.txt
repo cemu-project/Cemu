@@ -467,7 +467,7 @@ add_library(CemuCafe
 )
 
 if(APPLE)
-	target_sources(CemuCafe"HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
+	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
 endif()
 
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
