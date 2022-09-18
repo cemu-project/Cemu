@@ -29,9 +29,7 @@
 #include "gui/input/settings/WiimoteControllerSettings.h"
 #include "util/EventService.h"
 
-#if BOOST_OS_LINUX
 #include "resource/embedded/resources.h"
-#endif
 
 bool g_inputConfigWindowHasFocus = false;
 
@@ -70,9 +68,9 @@ InputSettings2::InputSettings2(wxWindow* parent)
 
 	g_inputConfigWindowHasFocus = true;
 
-	m_connected = wxBITMAP_PNG(INPUT_CONNECTED);
-	m_disconnected = wxBITMAP_PNG(INPUT_DISCONNECTED);
-	m_low_battery = wxBITMAP_PNG(INPUT_LOW_BATTERY);
+	m_connected = wxBITMAP_PNG_FROM_DATA(INPUT_CONNECTED);
+	m_disconnected = wxBITMAP_PNG_FROM_DATA(INPUT_DISCONNECTED);
+	m_low_battery = wxBITMAP_PNG_FROM_DATA(INPUT_LOW_BATTERY);
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
