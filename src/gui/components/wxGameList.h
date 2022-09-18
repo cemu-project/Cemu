@@ -145,7 +145,7 @@ private:
 
 	void OnGameListSize(wxSizeEvent& event);
 	void AdjustLastColumnWidth();
-	int  GetColumnDefaultWidth(int col);
+	int GetColumnDefaultWidth(int column);
 
 	static inline std::once_flag s_launch_file_once;
 };
