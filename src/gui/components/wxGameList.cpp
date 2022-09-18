@@ -302,12 +302,12 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 	}
 }
 
-static inline int strongorder_to_int(const std::strong_ordering &wo)
+static inline int order_to_int(const std::weak_ordering &wo)
 {
 	// no easy conversion seems to exists in C++20
-	if (wo < 0)
+	if (wo == std::weak_ordering::less)
 		return -1;
-	else if (wo > 0)
+	else if (wo == std::weak_ordering::greater)
 		return 1;
 	return 0;
 }
@@ -320,9 +320,9 @@ int wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortD
 	const auto& name2 = GetNameByTitleId(titleId2);
 
 	if(sortData->dir > 0)
-		return strongorder_to_int(std::tie(isFavoriteB, name1) <=> std::tie(isFavoriteA, name2));
+		return order_to_int(std::tie(isFavoriteB, name1) <=> std::tie(isFavoriteA, name2));
 	else
-		return strongorder_to_int(std::tie(isFavoriteB, name2) <=> std::tie(isFavoriteA, name1));
+		return order_to_int(std::tie(isFavoriteB, name2) <=> std::tie(isFavoriteA, name1));
 }
 
 int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
