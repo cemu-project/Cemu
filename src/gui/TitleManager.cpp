@@ -39,9 +39,8 @@
 
 #include "Cafe/TitleList/TitleList.h"
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include "resource/embedded/resources.h"
-#endif
+
 #include "Cafe/TitleList/SaveList.h"
 
 wxDEFINE_EVENT(wxEVT_TITLE_FOUND, wxCommandEvent);
