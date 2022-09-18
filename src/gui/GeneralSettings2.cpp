@@ -39,9 +39,7 @@
 #include "config/ActiveSettings.h"
 #include "gui/helpers/wxHelpers.h"
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include "resource/embedded/resources.h"
-#endif
 
 #include "Cafe/CafeSystem.h"
 #include "Cemu/ncrypto/ncrypto.h"
@@ -630,7 +628,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		row->SetFlexibleDirection(wxBOTH);
 		row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 		
-		const wxImage tmp = wxBITMAP_PNG(PNG_ERROR).ConvertToImage();
+		const wxImage tmp = wxBITMAP_PNG_FROM_DATA(PNG_ERROR).ConvertToImage();
 		m_validate_online = new wxBitmapButton(box, wxID_ANY, tmp.Scale(16, 16));
 		m_validate_online->Bind(wxEVT_BUTTON, &GeneralSettings2::OnShowOnlineValidator, this);
 		row->Add(m_validate_online, 0, wxEXPAND | wxALL, 5);
@@ -1220,7 +1218,7 @@ void GeneralSettings2::UpdateAccountInformation()
 	const auto selection = m_active_account->GetSelection();
 	if(selection == wxNOT_FOUND)
 	{
-		m_validate_online->SetBitmap(wxBITMAP_PNG(PNG_ERROR).ConvertToImage().Scale(16, 16));
+		m_validate_online->SetBitmap(wxBITMAP_PNG_FROM_DATA(PNG_ERROR).ConvertToImage().Scale(16, 16));
 		m_validate_online->SetWindowStyleFlag(m_validate_online->GetWindowStyleFlag() & ~wxBORDER_NONE);
 		ResetAccountInformation();
 		return;
@@ -1253,12 +1251,12 @@ void GeneralSettings2::UpdateAccountInformation()
 	{
 		
 		m_online_status->SetLabel(_("Your account is a valid online account"));
-		m_validate_online->SetBitmap(wxBITMAP_PNG(PNG_CHECK_YES).ConvertToImage().Scale(16, 16));
+		m_validate_online->SetBitmap(wxBITMAP_PNG_FROM_DATA(PNG_CHECK_YES).ConvertToImage().Scale(16, 16));
 		m_validate_online->SetWindowStyleFlag(m_validate_online->GetWindowStyleFlag() | wxBORDER_NONE);
 	}
 	else
 	{
-		m_validate_online->SetBitmap(wxBITMAP_PNG(PNG_ERROR).ConvertToImage().Scale(16, 16));
+		m_validate_online->SetBitmap(wxBITMAP_PNG_FROM_DATA(PNG_ERROR).ConvertToImage().Scale(16, 16));
 		m_validate_online->SetWindowStyleFlag(m_validate_online->GetWindowStyleFlag() & ~wxBORDER_NONE);
 	}
 	
