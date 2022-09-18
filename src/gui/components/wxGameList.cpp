@@ -143,13 +143,11 @@ void wxGameList::LoadConfig()
 	}
 }
 
-// for unknow reasons of wxWidgets, there are some issues if we change column size in a SizeEvent handler func when use sizer-based layout.
-// the list may not redraw correctly, or extra blank rows/columns shown in list...
-// So we DO NOT change column size here, just send a ColumnResize event to ColumnResize handler, resize will be done over there.
 void wxGameList::OnGameListSize(wxSizeEvent &event)
 {
 	event.Skip();
 
+	// don't change wxComponent size in a wxEvent handler when use sizer-based layout, to avoid some UI issues
 	int last_col_index = GetColumnIndexFromOrder(GetColumnCount() - 1);
 	wxListEvent column_resize_event(wxEVT_LIST_COL_END_DRAG);
 	column_resize_event.SetColumn(last_col_index);
@@ -174,7 +172,7 @@ void wxGameList::AdjustLastColumnWidth()
 // todo: scale all columns using a ratio instead of hardcoding exact widths
 int wxGameList::GetColumnDefaultWidth(int column)
 {
-	switch (col)
+	switch (column)
 	{
 	case ColumnIcon:
 		return kListIconWidth;
