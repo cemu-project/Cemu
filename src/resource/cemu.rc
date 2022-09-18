@@ -109,36 +109,6 @@ END
 // RCDATA
 //
 
-DEBUGGER_BP             RCDATA                  "resource\\debugger\\icons8-full-moon-filled-50.png"
-
-DEBUGGER_BP_RED         RCDATA                  "resource\\debugger\\icons8-full-moon-filled-50-red.png"
-
-DEBUGGER_PAUSE          RCDATA                  "resource\\debugger\\icons8-pause-filled-50.png"
-
-DEBUGGER_PLAY           RCDATA                  "resource\\debugger\\icons8-play-filled-50.png"
-
-DEBUGGER_STEP_INTO      RCDATA                  "resource\\debugger\\icons8-step-into-50.png"
-
-DEBUGGER_STEP_OUT       RCDATA                  "resource\\debugger\\icons8-step-out-50.png"
-
-DEBUGGER_STEP_OVER      RCDATA                  "resource\\debugger\\icons8-step-over-50.png"
-
-DEBUGGER_GOTO           RCDATA                  "resource\\debugger\\icons8-drop-down-50.png"
-
-INPUT_CONNECTED         RCDATA                  "resource\\input\\icons8-connected-50.png"
-
-INPUT_DISCONNECTED      RCDATA                  "resource\\input\\icons8-disconnected-50.png"
-
-INPUT_LOW_BATTERY       RCDATA                  "resource\\input\\icons8-low-battery-30.png"
-
-PNG_HELP                RCDATA                 "resource\\icons8-help-24.png"
-
-PNG_REFRESH             RCDATA                 "resource\\icons8-refresh-32.png"
-
-PNG_ERROR               RCDATA                 "resource\\icons8-error-32.png"
-
-PNG_CHECK_YES           RCDATA                 "resource\\icons8-checkmark-yes-32.png"
-
 IDR_FONTAWESOME         RCDATA                  "resource\\fontawesome-webfont.ttf"
 
 #endif    // Neutral (Default) (unknown sub-lang: 0x8) resources
