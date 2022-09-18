@@ -777,7 +777,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			{
 				switch (column)
 				{
-				case ColumnIcon: // do nothing but wont return, will reset width in ApplyGameListColumnWidths() later
+				case ColumnIcon:
 					break;
 				case ColumnName:
 					config.column_width.name = 500;
