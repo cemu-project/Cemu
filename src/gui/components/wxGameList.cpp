@@ -156,7 +156,6 @@ void wxGameList::OnGameListSize(wxSizeEvent &event)
 	wxPostEvent(this, column_resize_event);
 }
 
-// adjust the width of the last column to fit the window, whether or not the column order has been changed
 void wxGameList::AdjustLastColumnWidth()
 {
 	wxWindowUpdateLocker windowlock(this);
