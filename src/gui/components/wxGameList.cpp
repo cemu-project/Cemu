@@ -172,8 +172,7 @@ void wxGameList::AdjustLastColumnWidth()
 	SetColumnWidth(last_col_index, last_col_width);
 }
 
-// it's not elegant for use this GetColumnDefaultWidth() here, but it does work at the moment before we have better solution
-// return default width of column by index col
+// todo: scale all columns using a ratio instead of hardcoding exact widths
 int wxGameList::GetColumnDefaultWidth(int column)
 {
 	switch (col)
