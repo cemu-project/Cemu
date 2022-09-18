@@ -147,7 +147,7 @@ void wxGameList::OnGameListSize(wxSizeEvent &event)
 {
 	event.Skip();
 
-	// don't change wxComponent size in a wxEvent handler when use sizer-based layout, to avoid some UI issues
+	// when using a sizer-based layout, do not change the size of the wxComponent in its own wxSizeEvent handler to avoid some UI issues.
 	int last_col_index = GetColumnIndexFromOrder(GetColumnCount() - 1);
 	wxListEvent column_resize_event(wxEVT_LIST_COL_END_DRAG);
 	column_resize_event.SetColumn(last_col_index);
