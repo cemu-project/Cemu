@@ -54,6 +54,10 @@ if (MSVC)
 	endif()
 endif()
 
+if (APPLE)
+    enable_language(OBJC OBJCXX)
+endif()
+
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
