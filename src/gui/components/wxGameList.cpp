@@ -174,7 +174,7 @@ void wxGameList::AdjustLastColumnWidth()
 
 // it's not elegant for use this GetColumnDefaultWidth() here, but it does work at the moment before we have better solution
 // return default width of column by index col
-int wxGameList::GetColumnDefaultWidth(int col)
+int wxGameList::GetColumnDefaultWidth(int column)
 {
 	switch (col)
 	{
