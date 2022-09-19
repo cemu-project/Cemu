@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.21.1)
 
-option(PUBLIC_RELEASE "Compile with debug asserts disabled and no console" OFF)
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
@@ -29,7 +28,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if (PUBLIC_RELEASE)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
 	add_compile_definitions(PUBLIC_RELEASE)
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE) # enable LTO
 endif()
@@ -48,7 +47,7 @@ if (MSVC)
   	else()
 	  add_compile_options(/GT)
 	endif()
-	if (PUBLIC_RELEASE)
+	if (CMAKE_BUILD_TYPE STREQUAL "Release")
 		message(STATUS "Using additional optimization flags for MSVC")
 		add_compile_options(/Oi /Ot) # enable intrinsic functions, favor speed
 	endif()

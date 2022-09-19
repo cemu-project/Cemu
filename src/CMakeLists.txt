@@ -54,22 +54,11 @@ add_subdirectory(imgui)
 add_subdirectory(resource)
 add_subdirectory(asm)
 
-if(PUBLIC_RELEASE)
-	add_executable(CemuBin WIN32
-		main.cpp
-		mainLLE.cpp
-	)
-else()
-	add_executable(CemuBin
-		main.cpp
-		mainLLE.cpp
-	)
-endif()
+add_executable(CemuBin main.cpp mainLLE.cpp)
 
-if(WIN32)
-	target_sources(CemuBin PRIVATE
-	resource/cemu.rc
-)
+if (WIN32)
+	target_sources(CemuBin PRIVATE resource/cemu.rc)
+	set_target_properties(CemuBin PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
 set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
