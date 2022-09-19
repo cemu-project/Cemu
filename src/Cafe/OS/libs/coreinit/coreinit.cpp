@@ -230,6 +230,11 @@ namespace coreinit
 		return 0;
 	}
 
+	uint32 OSIsDebuggerPresent()
+	{
+		return 0;
+	}
+
 	uint32 OSGetConsoleType()
 	{
 		return 0x03000050;
@@ -295,6 +300,7 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSGetCoreId, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetCoreCount, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSIsDebuggerInitialized, LogType::CoreinitThread);
+		cafeExportRegister("coreinit", OSIsDebuggerPresent, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetConsoleType, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetMainCoreId, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSIsMainCore, LogType::CoreinitThread);
