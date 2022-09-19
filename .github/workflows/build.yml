@@ -15,59 +15,6 @@ env:
   VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
 jobs:
-  build-macos:
-    runs-on: macos-12
-    steps:
-    - name: "Checkout repo"
-      uses: actions/checkout@v3
-      with:
-        submodules: "recursive"
-    - name: Setup release mode parameters (for deploy)
-      if: ${{ inputs.deploymode == 'release' }}
-      run: |
-        echo "BUILD_MODE=release" >> $GITHUB_ENV
-        echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
-        echo "Build mode is release"
-    - name: Setup debug mode parameters (for continous build)
-      if: ${{ inputs.deploymode != 'release' }}
-      run: |
-        echo "BUILD_MODE=debug" >> $GITHUB_ENV
-        echo "BUILD_FLAGS=" >> $GITHUB_ENV
-        echo "Build mode is debug"
-        
-    - name: Setup version for experimental
-      if: ${{ inputs.experimentalversion != '' }}
-      run: |
-        echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
-        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
-        
-    - name: "Install system dependencies"
-      run: |
-        brew install llvm@12 molten-vk vulkan-headers sdl2 nasm qt@5 ninja glew wxwidgets
-        
-    - name: "cmake"
-      run: |
-        mkdir -p build
-        cd build
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang -G Ninja -DCMAKE_MAKE_PROGRAM=ninja
-        
-    - name: "Build Cemu"
-      run: |
-        cd build
-        ninja
-
-    - name: Prepare artifact
-      if: ${{ inputs.deploymode == 'release' }}
-      run: mv bin/Cemu_release bin/Cemu
-              
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      if: ${{ inputs.deploymode == 'release' }}
-      with:
-        name: cemu-bin-macos-x64
-        path: ./bin/Cemu
-        
-        
   build-ubuntu:
     runs-on: ubuntu-20.04
     steps:
@@ -244,3 +191,71 @@ jobs:
       with:
         name: cemu-bin-windows-x64
         path: ./bin/Cemu.exe
+  build-macos:
+    runs-on: macos-12
+    steps:
+    - name: "Checkout repo"
+      uses: actions/checkout@v3
+      with:
+        submodules: "recursive"
+    - name: Setup release mode parameters (for deploy)
+      if: ${{ inputs.deploymode == 'release' }}
+      run: |
+        echo "BUILD_MODE=release" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
+        echo "Build mode is release"
+    - name: Setup debug mode parameters (for continous build)
+      if: ${{ inputs.deploymode != 'release' }}
+      run: |
+        echo "BUILD_MODE=debug" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=" >> $GITHUB_ENV
+        echo "Build mode is debug"
+        
+    - name: Setup version for experimental
+      if: ${{ inputs.experimentalversion != '' }}
+      run: |
+        echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+        
+    - name: "Install system dependencies"
+      run: |
+        brew install llvm@12 molten-vk vulkan-headers sdl2 nasm qt@5 ninja glew wxwidgets
+    - name: "Bootstrap vcpkg"
+      run: |
+        bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+        
+    - name: 'Setup NuGet Credentials for vcpkg'
+      shell: 'bash'
+      run: |
+        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+        sources add \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+        -storepasswordincleartext \
+        -name "GitHub" \
+        -username "${{ github.repository_owner }}" \
+        -password "${{ secrets.GITHUB_TOKEN }}"
+        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+        setapikey "${{ secrets.GITHUB_TOKEN }}" \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+        
+    - name: "cmake"
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang
+        
+    - name: "Build Cemu"
+      run: |
+        cd build
+        make -j
+
+    - name: Prepare artifact
+      if: ${{ inputs.deploymode == 'release' }}
+      run: mv bin/Cemu_release bin/Cemu
+              
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ inputs.deploymode == 'release' }}
+      with:
+        name: cemu-bin-macos-x64
+        path: ./bin/Cemu
