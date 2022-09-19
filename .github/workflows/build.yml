@@ -43,7 +43,7 @@ jobs:
         
     - name: "Install system dependencies"
       run: |
-        brew install llvm@12 molten-vk vulkan-headers sdl2 nasm qt@5 ninja cmake glew git wxwidgets
+        brew install llvm@12 molten-vk vulkan-headers sdl2 nasm qt@5 ninja glew wxwidgets
         
     - name: "cmake"
       run: |
@@ -55,3 +55,192 @@ jobs:
       run: |
         cd build
         ninja
+
+    - name: Prepare artifact
+      if: ${{ inputs.deploymode == 'release' }}
+      run: mv bin/Cemu_release bin/Cemu
+              
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ inputs.deploymode == 'release' }}
+      with:
+        name: cemu-bin-macos-x64
+        path: ./bin/Cemu
+        
+        
+  build-ubuntu:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: "Checkout repo"
+      uses: actions/checkout@v3
+      with:
+        submodules: "recursive"
+        
+    - name: Setup release mode parameters (for deploy)
+      if: ${{ inputs.deploymode == 'release' }}
+      run: |
+        echo "BUILD_MODE=release" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
+        echo "Build mode is release"
+    - name: Setup debug mode parameters (for continous build)
+      if: ${{ inputs.deploymode != 'release' }}
+      run: |
+        echo "BUILD_MODE=debug" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=" >> $GITHUB_ENV
+        echo "Build mode is debug"
+        
+    - name: Setup version for experimental
+      if: ${{ inputs.experimentalversion != '' }}
+      run: |
+        echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+        
+    - name: "Install system dependencies"
+      run: |
+        sudo apt update -qq
+        sudo apt install -y ninja-build cmake libgtk-3-dev libsecret-1-dev libgcrypt20-dev libsystemd-dev freeglut3-dev clang-12 nasm
+    - name: "Bootstrap vcpkg"
+      run: |
+        bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+        
+    - name: 'Setup NuGet Credentials for vcpkg'
+      shell: 'bash'
+      run: |
+        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+        sources add \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+        -storepasswordincleartext \
+        -name "GitHub" \
+        -username "${{ github.repository_owner }}" \
+        -password "${{ secrets.GITHUB_TOKEN }}"
+        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+        setapikey "${{ secrets.GITHUB_TOKEN }}" \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+        
+    - name: "cmake"
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
+        
+    - name: "Build Cemu"
+      run: |
+        cd build
+        ninja
+
+    - name: Prepare artifact
+      if: ${{ inputs.deploymode == 'release' }}
+      run: mv bin/Cemu_release bin/Cemu
+              
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ inputs.deploymode == 'release' }}
+      with:
+        name: cemu-bin-linux-x64
+        path: ./bin/Cemu
+        
+        
+  build-windows:
+    runs-on: windows-2022
+    steps:
+    - name: "Checkout repo"
+      uses: actions/checkout@v3
+      with:
+        submodules: "recursive"
+        
+    - name: Setup release mode parameters (for deploy)
+      if: ${{ inputs.deploymode == 'release' }}
+      run: |
+        echo "BUILD_MODE=release" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "Build mode is release"
+        
+    - name: Setup debug mode parameters (for continous build)
+      if: ${{ inputs.deploymode != 'release' }}
+      run: |
+        echo "BUILD_MODE=debug" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_FLAGS=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "Build mode is debug"
+    - name: Setup version for experimental
+      if: ${{ inputs.experimentalversion != '' }}
+      run: |
+        echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+    
+    - name: Workaround
+      run: |
+        Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+        $InstallPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
+        $componentsToRemove= @(
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ARM"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ARM.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ARM64"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ARM64.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.x86.x64"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.x86.x64.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ATL"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ATL.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ATL.ARM"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ATL.ARM.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ATL.ARM64"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.ATL.ARM64.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.MFC"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.MFC.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.MFC.ARM"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.MFC.ARM.Spectre"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.MFC.ARM64"
+          "Microsoft.VisualStudio.Component.VC.14.32.17.2.MFC.ARM64.Spectre"
+        )
+        [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --remove " +  $_}
+        $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
+        # should be run twice
+        $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+        $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+    - name: Configure MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+        toolset: 14.33.31629
+        spectre: false
+
+    - name: "Bootstrap vcpkg"
+      run: |
+        ./dependencies/vcpkg/bootstrap-vcpkg.bat
+        
+    - name: 'Setup NuGet Credentials for vcpkg'
+      shell: 'bash'
+      run: |
+        `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
+        sources add \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+        -storepasswordincleartext \
+        -name "GitHub" \
+        -username "${{ github.repository_owner }}" \
+        -password "${{ secrets.GITHUB_TOKEN }}"
+        `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
+        setapikey "${{ secrets.GITHUB_TOKEN }}" \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+        
+    - name: "cmake"
+      run: |
+        mkdir -p build
+        cd build
+        echo "[INFO] BUILD_FLAGS: ${{ env.BUILD_FLAGS }}"
+        echo "[INFO] BUILD_MODE: ${{ env.BUILD_MODE }}"
+        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }}
+        
+    - name: "Build Cemu"
+      run: |
+        cd build
+        cmake --build . --config ${{ env.BUILD_MODE }} -j 2
+
+    - name: Prepare artifact
+      if: ${{ inputs.deploymode == 'release' }}
+      run: Rename-Item bin/Cemu_release.exe Cemu.exe
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      if: ${{ inputs.deploymode == 'release' }}
+      with:
+        name: cemu-bin-windows-x64
+        path: ./bin/Cemu.exe
