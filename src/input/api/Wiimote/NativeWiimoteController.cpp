@@ -206,23 +206,26 @@ ControllerState NativeWiimoteController::raw_state()
 		return result;
 
 	const auto state = m_provider->get_state(m_index);
-	result.buttons = state.buttons;
+	for (int i = 0; i < std::numeric_limits<uint16>::digits; i++)
+		result.buttons[i] = state.buttons & (1<<i);
 
 	if (std::holds_alternative<NunchuckData>(state.m_extension))
 	{
 		const auto nunchuck = std::get<NunchuckData>(state.m_extension);
 		if (nunchuck.c)
-			result.buttons.set(kWiimoteButton_C);
+			result.buttons[kWiimoteButton_C]=true;
 
 		if (nunchuck.z)
-			result.buttons.set(kWiimoteButton_Z);
+			result.buttons[kWiimoteButton_Z]=true;
 
 		result.axis = nunchuck.axis;
 	}
 	else if (std::holds_alternative<ClassicData>(state.m_extension))
 	{
 		const auto classic = std::get<ClassicData>(state.m_extension);
-		result.buttons |= (uint64)classic.buttons << kHighestWiimote;
+		uint64 buttons = (uint64)classic.buttons << kHighestWiimote;
+		for (int i = 0; i < std::numeric_limits<uint64>::digits; i++)
+			result.buttons[i] = result.buttons[i] || (buttons & (1 << i));
 
 		result.axis = classic.left_axis;
 		result.rotation = classic.right_axis;

@@ -147,7 +147,7 @@ ControllerState SDLController::raw_state()
 	{
 		if (m_buttons[i] && SDL_GameControllerGetButton(m_controller, (SDL_GameControllerButton)i))
 		{
-			result.buttons.set(i);
+			result.buttons[i]=true;
 		}
 	}
 

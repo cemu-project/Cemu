@@ -153,6 +153,15 @@ bool gui_isPadWindowOpen()
 #include <dlfcn.h>
 
 typedef void GdkDisplay;
+namespace
+{
+const char* (*gdk_keyval_name)(unsigned int keyval);
+}
+std::string gui_gtkRawKeyCodeToString(uint32 keyCode)
+{
+	return gdk_keyval_name(keyCode);
+}
+
 #endif
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw)
@@ -176,9 +185,11 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
     Window (*dyn_gdk_x11_window_get_xid)(GdkWindow *window);
     dyn_gdk_x11_window_get_xid = (Window(*)(GdkWindow *window))dlsym(RTLD_NEXT, "gdk_x11_window_get_xid");
 
+	gdk_keyval_name = (const char* (*)(unsigned int))dlsym(RTLD_NEXT, "gdk_keyval_name");
+
     if(!dyn_gtk_widget_realize || !dyn_gtk_widget_get_window ||
     !dyn_gdk_window_get_display || !dyn_gdk_x11_display_get_xdisplay ||
-    !dyn_gdk_x11_window_get_xid)
+    !dyn_gdk_x11_window_get_xid || !gdk_keyval_name)
     {
         cemuLog_log(LogType::Force, "Unable to load GDK symbols");
         return;
@@ -206,10 +217,7 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 
 bool gui_isKeyDown(int key)
 {
-	if (key >= 256)
-		return false;
-
-	return g_window_info.keydown[key];
+	return g_window_info.get_keystate(key);
 }
 
 void gui_notifyGameLoaded()

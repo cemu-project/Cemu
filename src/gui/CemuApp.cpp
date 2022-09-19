@@ -170,16 +170,16 @@ int CemuApp::FilterEvent(wxEvent& event)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
 		wxGetKeyState(wxKeyCode::WXK_F17);
-		uint32 keycode=fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags());
-		if(keycode<256)
-			g_window_info.keydown[keycode] = true;
+		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
 	}
 	else if(event.GetEventType() == wxEVT_KEY_UP)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
-		uint32 keycode=fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags());
-		if(keycode<256)
-			g_window_info.keydown[keycode] = false;
+		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
+	}
+	else if(event.GetEventType() == wxEVT_KILL_FOCUS)
+	{
+		g_window_info.set_keystatesdown();
 	}
 
 	return wxApp::FilterEvent(event);

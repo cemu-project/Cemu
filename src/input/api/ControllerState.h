@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <bitset>
 #include <glm/vec2.hpp>
 
 struct ControllerState
@@ -18,7 +17,7 @@ struct ControllerState
 	glm::vec2 rotation{ };
 	glm::vec2 trigger{ };
 
-	std::bitset<256> buttons{};
+	std::unordered_map<uint32, bool> buttons{};
 
 	uint64 last_state = 0;
 
