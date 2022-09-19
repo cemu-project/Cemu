@@ -278,7 +278,7 @@ ControllerState DirectInputController::raw_state()
 	{
 		if (HAS_BIT(state.rgbButtons[i], 7))
 		{
-			result.buttons.set(i);
+			result.buttons[i]=true;
 		}
 	}
 	
@@ -316,19 +316,19 @@ ControllerState DirectInputController::raw_state()
 	{
 		switch (pov)
 		{
-		case 0: result.buttons.set(kButtonUp);
+		case 0: result.buttons[kButtonUp]=true;
 			break;
-		case 4500: result.buttons.set(kButtonUp); // up + right
-		case 9000: result.buttons.set(kButtonRight);
+		case 4500: result.buttons[kButtonUp]=true; // up + right
+		case 9000: result.buttons[kButtonRight]=true;
 			break;
-		case 13500: result.buttons.set(kButtonRight); // right + down
-		case 18000: result.buttons.set(kButtonDown);
+		case 13500: result.buttons[kButtonRight] = true; // right + down
+		case 18000: result.buttons[kButtonDown] = true;
 			break;
-		case 22500: result.buttons.set(kButtonDown); // down + left
-		case 27000: result.buttons.set(kButtonLeft);
+		case 22500: result.buttons[kButtonDown] = true; // down + left
+		case 27000: result.buttons[kButtonLeft] = true;
 			break;
-		case 31500: result.buttons.set(kButtonLeft);; // left + up
-		result.buttons.set(kButtonUp); // left + up
+		case 31500: result.buttons[kButtonLeft] = true; // left + up
+		result.buttons[kButtonUp] = true; // left + up
 			break;
 		}
 	}

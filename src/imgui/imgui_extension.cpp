@@ -110,7 +110,8 @@ ImFont* ImGui_GetFont(float size)
 void ImGui_UpdateWindowInformation(bool mainWindow)
 {
 	extern WindowInfo g_window_info;
-
+	static std::map<uint32, ImGuiKey> keyboard_mapping;
+	static uint32 current_key = 0;
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -130,9 +131,17 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 	bool padDown;
 	const auto pos = instance.get_left_down_mouse_info(&padDown);
 	io.MouseDown[0] = padDown != mainWindow && pos.has_value();
-
-	std::fill_n(io.KeysDown, std::size(io.KeysDown), false);
-	std::copy(std::cbegin(g_window_info.keydown), std::cend(g_window_info.keydown), io.KeysDown);
+	auto get_mapping = [&](uint32 key_code)
+	{
+		auto key = keyboard_mapping.find(key_code);
+		if (key != keyboard_mapping.end())
+			return key->second;
+		ImGuiKey mapped_key = current_key + ImGuiKey_NamedKey_BEGIN;
+		current_key = (current_key + 1) % ImGuiKey_NamedKey_COUNT ;
+		keyboard_mapping[key_code] = mapped_key;
+		return mapped_key;
+	};
+	g_window_info.iter_keystates([&](auto&& el){ io.AddKeyEvent(get_mapping(el.first), el.second); });
 
 	// printf("%f %f %d\n", io.MousePos.x, io.MousePos.y, io.MouseDown[0]);
 
