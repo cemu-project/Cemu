@@ -6,14 +6,14 @@ jobs:
   call-release-build:
     uses: ./.github/workflows/build.yml
     with:
-      deploymode: release
-      experimentalversion: ${{ github.run_number }}
+      deploymode: Release
+      experimentalversion: ${{github.run_number}}
   deploy:
     name: Deploy experimental release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: call-release-build
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
  
       - uses: actions/download-artifact@v3
         with:
@@ -32,35 +32,35 @@ jobs:
           
       - name: Get version
         run: |
-          echo "Experimental version: ${{ github.run_number }}"
+          echo "Experimental version: ${{github.run_number}}"
           ls
           gcc -o getversion .github/getversion.cpp
           ./getversion
           echo "Cemu CI version: $(./getversion)"
-          echo "CEMU_FOLDER_NAME=Cemu_$(./getversion)-${{ github.run_number }}" >> $GITHUB_ENV
-          echo "CEMU_VERSION=$(./getversion)-${{ github.run_number }}" >> $GITHUB_ENV
+          echo "CEMU_FOLDER_NAME=Cemu_$(./getversion)-${{github.run_number}}" >> $GITHUB_ENV
+          echo "CEMU_VERSION=$(./getversion)-${{github.run_number}}" >> $GITHUB_ENV
 
       - name: Create release from windows-bin
         run: |
           ls ./
           ls ./bin/
-          cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-windows-x64/Cemu.exe ./${{ env.CEMU_FOLDER_NAME }}/Cemu.exe
-          zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-windows-x64.zip ${{ env.CEMU_FOLDER_NAME }}
-          rm -r ./${{ env.CEMU_FOLDER_NAME }}
+          cp -R ./bin ./${{env.CEMU_FOLDER_NAME}}
+          mv cemu-bin-windows-x64/Cemu.exe ./${{env.CEMU_FOLDER_NAME}}/Cemu.exe
+          zip -9 -r upload/cemu-${{env.CEMU_VERSION}}-windows-x64.zip ${{env.CEMU_FOLDER_NAME}}
+          rm -r ./${{env.CEMU_FOLDER_NAME}}
           
       - name: Create release from linux-bin
         run: |
           ls ./
           ls ./bin/
-          cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-linux-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
-          zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-20.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
-          rm -r ./${{ env.CEMU_FOLDER_NAME }}
+          cp -R ./bin ./${{env.CEMU_FOLDER_NAME}}
+          mv cemu-bin-linux-x64/Cemu ./${{env.CEMU_FOLDER_NAME}}/Cemu
+          zip -9 -r upload/cemu-${{env.CEMU_VERSION}}-ubuntu-20.04-x64.zip ${{env.CEMU_FOLDER_NAME}}
+          rm -r ./${{env.CEMU_FOLDER_NAME}}
   
       - name: Create release
         run: |
           wget -O ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.15.0/ghr_v0.15.0_linux_amd64.tar.gz
           tar xvzf ghr.tar.gz; rm ghr.tar.gz
-          echo "[INFO] Release tag: v${{ env.CEMU_VERSION }}"
-          ghr_v0.15.0_linux_amd64/ghr -prerelease -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }} (Experimental)" -b "Cemu experimental release - [changelog](https://cemu.info/changelog.html)" "v${{ env.CEMU_VERSION }}" ./upload
+          echo "[INFO] Release tag: v${{env.CEMU_VERSION}}"
+          ghr_v0.15.0_linux_amd64/ghr -prerelease -t ${{secrets.GITHUB_TOKEN}} -n "Cemu ${{env.CEMU_VERSION}} (Experimental)" -b "Cemu experimental release - [changelog](https://cemu.info/changelog.html)" "v${{env.CEMU_VERSION}}" ./upload
