@@ -59,6 +59,28 @@ You can use it by replacing the step 3 with the following:
  - If step 4 gives you a different error, you could report it to this repo or try using GCC. Just make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
 - If step 4 gives you undefined libdecor_xx, you are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
 
+## MacOS
+
+To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and 
+below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. Currently, 
+LLVM 15 isn't supported due to compatibility issues with Boost dependency. The OpenGL graphics
+API isn't support on MacOS, Vulkan must be used. Additionally Vulkan must be used through the 
+Molten-VK compatibility layer.
+
+### Installing dependencies
+`brew install git cmake llvm@14 ninja nasm molten-vk`
+
+### Build Cemu using cmake and clang
+1. `git clone --recursive https://github.com/cemu-project/Cemu`
+2. `cd Cemu`
+3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DPUBLIC_RELEASE=ON 
+   -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja`
+4. `cmake --build build`
+5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
+
+#### Troubleshooting steps
+- If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja` to the command and running it again.
+
 ## Updating Cemu and source code
 1. To update your Cemu local repository, use the command `git pull --recurse-submodules` (run this command on the Cemu root).
     - This should update your local copy of Cemu and all of its dependencies.
