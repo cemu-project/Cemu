@@ -74,7 +74,8 @@ private:
 		ColumnGameTime,
 		ColumnGameStarted,
 		ColumnRegion,
-		ColumnFavorite
+		//ColumnFavorite,
+		ColumnCounts
 	};
 
 	int s_last_column = ColumnName;
