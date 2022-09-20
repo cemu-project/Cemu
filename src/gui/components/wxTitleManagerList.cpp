@@ -197,10 +197,10 @@ boost::optional<wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetTitleEnt
 
 boost::optional<const wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetTitleEntry(const fs::path& path) const
 {
-	const auto tmp = path.generic_u8string();
+	const auto tmp = _pathToUtf8(path);
 	for (const auto& data : m_data)
 	{
-		if (boost::iequals(data->entry.path.generic_u8string(), tmp))
+		if (boost::iequals(_pathToUtf8(data->entry.path), tmp))
 			return data->entry;
 	}
 
@@ -208,10 +208,10 @@ boost::optional<const wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetTi
 }
 boost::optional<wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetTitleEntry(const fs::path& path)
 {
-	const auto tmp = path.generic_u8string();
+	const auto tmp = _pathToUtf8(path);
 	for (const auto& data : m_data)
 	{
-		if (boost::iequals(data->entry.path.generic_u8string(), tmp))
+		if (boost::iequals(_pathToUtf8(data->entry.path), tmp))
 			return data->entry;
 	}
 
