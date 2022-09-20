@@ -59,22 +59,37 @@ You can use it by replacing the step 3 with the following:
  - If step 4 gives you a different error, you could report it to this repo or try using GCC. Just make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
 - If step 4 gives you undefined libdecor_xx, you are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
 
-## MacOS
+## macOS
 
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and 
 below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. Currently, 
 LLVM 15 isn't supported due to compatibility issues with Boost dependency. The OpenGL graphics
-API isn't support on MacOS, Vulkan must be used. Additionally Vulkan must be used through the 
+API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
 Molten-VK compatibility layer.
 
+### On Apple Silicon Macs, Rosetta and the x86_64 version of Homebrew must be used
+You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 1 & 3.
+1. `arch -x86_64 zsh` # run an x64 shell
+2. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` # install x86_64 brew. Only has to be run once
+3. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
+4. Optional. Verify zsh and brew are x86_64
+```
+~$ arch
+i386
+~$ brew --prefix
+/usr/local
+~$ 
+```
+
 ### Installing dependencies
+
+
 `brew install git cmake llvm@14 ninja nasm molten-vk`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
-3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DPUBLIC_RELEASE=ON 
-   -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja`
+3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DPUBLIC_RELEASE=ON -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja`
 4. `cmake --build build`
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
