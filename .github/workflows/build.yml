@@ -219,7 +219,7 @@ jobs:
         
     - name: "Install system dependencies"
       run: |
-        brew install llvm@12 molten-vk vulkan-headers sdl2 nasm qt@5 ninja glew wxwidgets
+        brew install llvm@14 ninja nasm molten-vk
     - name: "Bootstrap vcpkg"
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
@@ -240,14 +240,14 @@ jobs:
         
     - name: "cmake"
       run: |
-        mkdir -p build
+        mkdir build
         cd build
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang
+        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja
         
     - name: "Build Cemu"
       run: |
         cd build
-        make -j
+        cmake --build build
 
     - name: Prepare artifact
       if: ${{ inputs.deploymode == 'release' }}
