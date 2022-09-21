@@ -68,7 +68,7 @@ void wxLogCtrl::PushEntry(const wxString& filter, const wxString& message)
 	ListIt_t it = m_log_entries.back();
 	lock.unlock();
 
-	if(m_active_filter.empty() || filter == m_active_filter || (m_filter_messages && boost::icontains(message, m_active_filter)))
+	if(m_active_filter.empty() || filter == m_active_filter || (m_filter_messages && boost::icontains(message.ToStdString(), m_active_filter)))
 	{
 		std::unique_lock active_lock(m_active_mutex);
 		m_active_entries.emplace_back(std::cref(it));
@@ -149,7 +149,8 @@ void wxLogCtrl::UpdateActiveEntries()
 		{
 			for (const auto& it : m_log_entries)
 			{
-				if(it.first == m_active_filter || (m_filter_messages && boost::icontains(it.second, m_active_filter)) )
+				if(it.first == m_active_filter ||
+                              (m_filter_messages && boost::icontains(it.second.ToStdString(), m_active_filter)) )
 					m_active_entries.emplace_back(it);
 			}
 		}
