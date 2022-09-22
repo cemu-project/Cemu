@@ -174,7 +174,7 @@ jobs:
         cd build
         echo "[INFO] BUILD_FLAGS: ${{ env.BUILD_FLAGS }}"
         echo "[INFO] BUILD_MODE: ${{ env.BUILD_MODE }}"
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }}
+        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DVCPKG_INSTALL_OPTIONS="--clean-after-build"
         
     - name: "Build Cemu"
       run: |
