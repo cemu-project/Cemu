@@ -246,7 +246,6 @@ jobs:
         
     - name: "Build Cemu"
       run: |
-        cd build
         cmake --build build
 
     - name: Prepare artifact
