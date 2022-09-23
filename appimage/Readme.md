@@ -1,0 +1,1 @@
+Not an AppImage *yet*. Still ironing out dll quirks first.

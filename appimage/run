@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+DIR=$(dirname $BASH_SOURCE)
+export LD_LIBRARY_PATH=$DIR/shared_libs
+$DIR/Cemu_release
