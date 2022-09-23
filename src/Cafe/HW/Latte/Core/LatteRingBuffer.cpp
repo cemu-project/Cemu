@@ -11,7 +11,7 @@ LatteRingBuffer_t* LatteRingBuffer_create(uint8* data, uint32 size)
 
 uint8* LatteRingBuffer_allocate(LatteRingBuffer_t* rb, sint32 size, sint32 alignment)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug(size < rb->size);
 #endif
 	// align

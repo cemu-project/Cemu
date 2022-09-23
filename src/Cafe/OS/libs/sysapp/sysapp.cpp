@@ -309,13 +309,13 @@ void cbDeserializeArg_MiiMaker(deserializedArg_t* deserializedArg, void* customP
 	}
 	else if (strcmp(deserializedArg->argument, "slot_id") == 0)
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 	}
 	else
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 	}

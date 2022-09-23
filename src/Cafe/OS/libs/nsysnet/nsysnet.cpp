@@ -116,7 +116,7 @@ sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_
 		break;
 	case WSAECONNABORTED:
 		debug_printf("WSAECONNABORTED\n");
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 		break;
@@ -652,7 +652,7 @@ void nsysnetExport_inet_pton(PPCInterpreter_t* hCPU)
 		invalidIp = true;
 	if (d3 < 0 || d3 > 255)
 		invalidIp = true;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (invalidIp)
 		assert_dbg();
 #endif
@@ -1245,7 +1245,7 @@ void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 		return;
 	}
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (he->h_addrtype != AF_INET)
 		assert_dbg();
 	if (he->h_length != sizeof(in_addr))

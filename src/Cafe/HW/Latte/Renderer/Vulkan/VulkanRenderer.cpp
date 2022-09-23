@@ -54,7 +54,7 @@ const std::vector<const char*> kRequiredDeviceExtensions =
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 
 	if (strstr(pCallbackData->pMessage, "consumes input location"))
 		return VK_FALSE; // false means we dont care
@@ -636,7 +636,7 @@ VulkanRenderer::~VulkanRenderer()
 
 VulkanRenderer* VulkanRenderer::GetInstance()
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug(g_renderer && dynamic_cast<VulkanRenderer*>(g_renderer.get()));
 	// Use #if here because dynamic_casts dont get optimized away even if the result is not stored as with cemu_assert_debug
 #endif

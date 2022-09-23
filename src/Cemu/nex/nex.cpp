@@ -29,7 +29,7 @@ sint32 nexService_parseResponse(uint8* data, sint32 length, nexServiceResponse_t
 	protocolId &= 0x7F;
 	if (isRequest)
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg(); // should never reach since we handle requests before this function is called
 #endif
 	}

@@ -839,7 +839,7 @@ size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
 	if (msg.order != QueueOrder_CBDone)
 		cemu_assert_suspicious();
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	char debug[500];
 	cemu_assert_debug((size*nitems) < 500);
 	memcpy(debug, buffer, size*nitems);

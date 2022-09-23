@@ -20,7 +20,7 @@ void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 	LatteAddrLib::GX2CalculateSurfaceInfo(colorBuffer->surface.format, colorBuffer->surface.width, colorBuffer->surface.height, colorBuffer->surface.depth, colorBuffer->surface.dim, colorBuffer->surface.tileMode, colorBuffer->surface.aa, _swapEndianU32(colorBuffer->viewMip), &surfaceInfo);
 
 	uint32 pitchHeight = (surfaceInfo.height * surfaceInfo.pitch) >> 6;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (colorBuffer->viewNumSlices != _swapEndianU32(1))
 		forceLogDebug_printf("GX2InitColorBufferRegs(): With unsupported slice count %d", _swapEndianU32(colorBuffer->viewNumSlices));
 	if (surfaceInfo.pitch < 7)
@@ -139,7 +139,7 @@ void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 
 	GX2ColorBuffer* colorBufferBE = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	gx2Log_printf("ColorBuffer tileMode %01x PhysAddr %08x fmt %04x res %dx%d Mip %d Slice %d", (uint32)colorBufferBE->surface.tileMode.value(), (uint32)colorBufferBE->surface.imagePtr, (uint32)colorBufferBE->surface.format.value(), (uint32)colorBufferBE->surface.width, (uint32)colorBufferBE->surface.height, _swapEndianU32(colorBufferBE->viewMip), _swapEndianU32(colorBufferBE->viewFirstSlice));
 #endif
 

@@ -139,7 +139,7 @@ public:
 			return vAddr;
 		}
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (hCPU->memoryException)
 			assert_dbg(); // should not be set anymore
 #endif
@@ -456,7 +456,7 @@ public:
 		{
 		case 0:
 			debug_printf("ZERO[NOP] | 0x%08X\n", (unsigned int)hCPU->instructionPointer);
-	#ifndef PUBLIC_RELEASE		
+	#ifdef CEMU_DEBUG_ASSERT		
 			assert_dbg();
 			while (true) std::this_thread::sleep_for(std::chrono::seconds(1));
 	#endif
@@ -712,7 +712,7 @@ public:
 				PPCInterpreter_CMP(hCPU, opcode);
 				break;
 			case 4:
-	#ifndef PUBLIC_RELEASE
+	#ifdef CEMU_DEBUG_ASSERT
 				debug_printf("TW instruction executed at %08x\n", hCPU->instructionPointer);
 	#endif
 				PPCInterpreter_TW(hCPU, opcode);
@@ -998,7 +998,7 @@ public:
 				break;
 			default:
 				debug_printf("Unknown execute %04X as [31] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
-	#ifndef PUBLIC_RELEASE
+	#ifdef CEMU_DEBUG_ASSERT
 				assert_dbg();
 	#endif
 				hCPU->instructionPointer += 4;

@@ -246,7 +246,7 @@ int mainEmulatorHLE()
 		wxMessageBox("Cemu doesn't have write access to it's own directory.\nPlease move it to a different location or run Cemu as administrator!", "Warning", wxOK|wxICON_ERROR); // todo - different error messages per OS
 	LatteOverlay_init();
 	// run a couple of tests if in non-release mode
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	unitTests();
 #endif
 	// init common
@@ -338,39 +338,30 @@ void ToolShaderCacheMerger();
 
 #if BOOST_OS_WINDOWS
 
-#ifndef PUBLIC_RELEASE
-#include <crtdbg.h>
-int wmain(int argc, wchar_t* argv[])
-{
-	SDL_SetMainReady();
-	_CrtSetDbgFlag(_CRTDBG_CHECK_DEFAULT_DF);
-	//ToolShaderCacheMerger();
-
-	if (!LaunchSettings::HandleCommandline(argc, argv))
-		return 0;	
-
-	ActiveSettings::LoadOnce();
-	
-	HandlePostUpdate();
-	return mainEmulatorHLE();
-}
-#else
+// entrypoint for release builds
 int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine, _In_ int nShowCmd)
 {
 	SDL_SetMainReady();
-
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
-
 	ActiveSettings::LoadOnce();
-
 	HandlePostUpdate();
 	return mainEmulatorHLE();
 }
 
-#endif
+// entrypoint for debug builds with console
+int main(int argc, char* argv[])
+{
+	SDL_SetMainReady();
+	if (!LaunchSettings::HandleCommandline(argc, argv))
+		return 0;
+	ActiveSettings::LoadOnce();
+	HandlePostUpdate();
+	return mainEmulatorHLE();
+}
 
 #else
+
 int main(int argc, char *argv[])
 {
 #if BOOST_OS_LINUX
