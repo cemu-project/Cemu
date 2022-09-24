@@ -2571,7 +2571,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			else
 			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R4G4_UNORM_PACK8;
-				formatInfoOut->decoder = TextureDecoder_R4_G4::getInstance(); // todo - verify if order of R/G matches between GX2/Vulkan
+				formatInfoOut->decoder = TextureDecoder_R4_G4::getInstance();
 			}
 			break;
 			// R formats
