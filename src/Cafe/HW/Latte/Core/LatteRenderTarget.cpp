@@ -506,7 +506,7 @@ bool LatteMRT::UpdateCurrentFBO()
 		}
 		else if (rtEffectiveSize->width != effectiveWidth && rtEffectiveSize->height != effectiveHeight)
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			forceLog_printf("Color buffer size mismatch (%dx%d). Effective size: %dx%d Real size: %dx%d Mismatching texture: %08x %dx%d fmt %04x", rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, colorAttachmentView->baseTexture->physAddress, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, (uint32)colorAttachmentView->baseTexture->format);
 #endif
 		}

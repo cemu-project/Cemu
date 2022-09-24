@@ -78,7 +78,7 @@ void PPCRecompiler_enter(PPCInterpreter_t* hCPU, PPCREC_JUMP_ENTRY funcPtr)
 	PPCRecompiler_enterRecompilerCode((uint64)funcPtr, (uint64)hCPU);
 	_controlfp(prevState, _MCW_RC);
 	// debug recompiler exit - useful to find frequently executed functions which couldn't be recompiled
-	#ifndef PUBLIC_RELEASE
+	#ifdef CEMU_DEBUG_ASSERT
 	if (hCPU->remainingCycles > 0 && GetAsyncKeyState(VK_F4))
 	{
 		auto t = std::chrono::high_resolution_clock::now();

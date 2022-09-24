@@ -30,7 +30,7 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 *Additionally, for Ubuntu 22.04 only:*
  - `sudo apt install -y clang-12`
  - At step 3 while building, use  
-   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DPUBLIC_RELEASE=ON -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Arch and derivatives:
 `sudo pacman -S git cmake clang ninja nasm base-devel linux-headers gtk3 libsecret libgcrypt systemd freeglut zip unzip libpulse`
@@ -41,14 +41,14 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
-3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DPUBLIC_RELEASE=ON -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja`
+3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja`
 4. `cmake --build build`
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
 #### Using GCC
 While we use and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).  
 You can use it by replacing the step 3 with the following:
-`cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DPUBLIC_RELEASE=ON -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
+`cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
 
 #### Troubleshooting steps
  - If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja` to the command and running it again.

@@ -236,7 +236,7 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 	}
 
 	// semantic imports from vertex shader
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	uint8 semanticMask[256 / 8] = { 0 };
 #endif
 	cemu_assert_debug(numPSInputs <= GPU7_PS_MAX_INPUTS);
@@ -273,7 +273,7 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 		}
 		else
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (semanticMask[psSemanticId >> 3] & (1 << (psSemanticId & 7)))
 			{
 				forceLogDebug_printf("SemanticId already used");

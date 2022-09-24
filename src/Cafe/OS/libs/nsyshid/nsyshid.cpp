@@ -537,7 +537,7 @@ namespace nsyshid
 
 		_debugPrintHex("HIDSetReport", data, dataLength);
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (reportRelatedUkn != 2 || reportId != 0)
 			assert_dbg();
 #endif

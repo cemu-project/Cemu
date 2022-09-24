@@ -54,17 +54,10 @@ add_subdirectory(imgui)
 add_subdirectory(resource)
 add_subdirectory(asm)
 
-if(PUBLIC_RELEASE)
-	add_executable(CemuBin WIN32
-		main.cpp
-		mainLLE.cpp
-	)
-else()
-	add_executable(CemuBin
-		main.cpp
-		mainLLE.cpp
-	)
-endif()
+add_executable(CemuBin
+	main.cpp
+	mainLLE.cpp
+)
 
 if(WIN32)
 	target_sources(CemuBin PRIVATE
@@ -73,6 +66,7 @@ if(WIN32)
 endif()
 
 set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
 
 set_target_properties(CemuBin PROPERTIES
 	# multi-configuration generators will add a config subdirectory to RUNTIME_OUTPUT_DIRECTORY if no generator expression is used

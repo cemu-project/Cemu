@@ -97,7 +97,7 @@ void LatteTextureViewGL::InitAliasView()
 
 	// set debug name
 	bool useGLDebugNames = false;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	useGLDebugNames = true;
 #endif
 	if (LaunchSettings::NSightModeEnabled())

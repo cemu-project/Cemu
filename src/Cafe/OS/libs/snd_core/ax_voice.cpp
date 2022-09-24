@@ -702,7 +702,7 @@ namespace snd_core
 	{
 		AXVPBInternal_t* internal = __AXVPBInternalVoiceArray + (sint32)vpb->index;
 		ratio *= 65536.0f;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (ratio >= 4294967296.0f)
 			assert_dbg();
 #endif

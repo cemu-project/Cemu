@@ -27,7 +27,7 @@ jobs:
       if: ${{ inputs.deploymode == 'release' }}
       run: |
         echo "BUILD_MODE=release" >> $GITHUB_ENV
-        echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=" >> $GITHUB_ENV
         echo "Build mode is release"
     - name: Setup debug mode parameters (for continous build)
       if: ${{ inputs.deploymode != 'release' }}
@@ -99,7 +99,7 @@ jobs:
       if: ${{ inputs.deploymode == 'release' }}
       run: |
         echo "BUILD_MODE=release" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_FLAGS=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         echo "Build mode is release"
         
     - name: Setup debug mode parameters (for continous build)
@@ -173,7 +173,7 @@ jobs:
       if: ${{ inputs.deploymode == 'release' }}
       run: |
         echo "BUILD_MODE=release" >> $GITHUB_ENV
-        echo "BUILD_FLAGS=-DPUBLIC_RELEASE=ON" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=" >> $GITHUB_ENV
         echo "Build mode is release"
     - name: Setup debug mode parameters (for continous build)
       if: ${{ inputs.deploymode != 'release' }}

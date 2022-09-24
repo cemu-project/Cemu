@@ -7,10 +7,8 @@
 // the minor version is used for experimental builds to indicate the build index. Set by command line option from CI build script
 // if zero, the version text will be constructed as LEAD.MAJOR, otherwise as LEAD.MAJOR-MINOR
 
-#if !defined(PUBLIC_RELEASE)
-#define EMULATOR_VERSION_SUFFIX			" (dev)"
-#elif defined(EMULATOR_VERSION_MINOR) && EMULATOR_VERSION_MINOR == 0
-#define EMULATOR_VERSION_SUFFIX			"" // stable
+#if defined(EMULATOR_VERSION_MINOR) && EMULATOR_VERSION_MINOR == 0
+#define EMULATOR_VERSION_SUFFIX			""
 #else
 #define EMULATOR_VERSION_SUFFIX			" (experimental)"
 #endif

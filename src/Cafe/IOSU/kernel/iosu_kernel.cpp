@@ -10,7 +10,7 @@ namespace iosu
 
 		static void _assume_lock()
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			cemu_assert_debug(!sInternalMutex.try_lock());
 #endif
 		}

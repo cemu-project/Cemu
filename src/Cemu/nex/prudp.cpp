@@ -452,7 +452,7 @@ prudpIncomingPacket::prudpIncomingPacket(prudpStreamSettings_t* streamSettings, 
 	}
 	else
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 	}
@@ -607,7 +607,7 @@ void prudpClient::sortIncomingDataPacket(prudpIncomingPacket* incomingPacket)
 		uint16 seqDif = sequenceIdIncomingPacket - queue_incomingPackets[insertIndex]->sequenceId;
 		if (seqDif&0x8000)
 			break; // negative seqDif -> insert before current element
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (seqDif == 0)
 			assert_dbg(); // same sequence id, sort by fragment index?
 #endif

@@ -139,8 +139,6 @@ typedef struct tagTHREADNAME_INFO
 void SetThreadName(const char* name)
 {
 #if BOOST_OS_WINDOWS
-	
-#ifndef _PUBLIC_RELEASE
 	THREADNAME_INFO info;
 	info.dwType = 0x1000;
 	info.szName = name;
@@ -154,9 +152,6 @@ void SetThreadName(const char* name)
 	__except (EXCEPTION_EXECUTE_HANDLER) {
 	}
 #pragma warning(pop)
-	
-#endif
-	
 #elif BOOST_OS_MACOS
 	pthread_setname_np(name);
 #else

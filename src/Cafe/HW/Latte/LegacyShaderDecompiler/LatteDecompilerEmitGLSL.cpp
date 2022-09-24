@@ -2643,7 +2643,7 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 	src->add(");");
 
 	// debug
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if(texInstruction->opcode == GPU7_TEX_INST_LD )
 		src->add(" // TEX_INST_LD");
 	else if(texInstruction->opcode == GPU7_TEX_INST_SAMPLE )
@@ -3460,7 +3460,7 @@ void _emitStreamWriteCode(LatteDecompilerShaderContext* shaderContext, LatteDeco
 	StringBuf* src = shaderContext->shaderSource;
 	if (shaderContext->analyzer.hasStreamoutEnable == false)
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		src->add("// omitted streamout write" _CRLF);
 #endif
 		return;
@@ -3842,7 +3842,7 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 
 void _addPixelShaderExtraDebugInfo(LatteDecompilerShaderContext* shaderContext, StringBuf* fCStr_shaderSource)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	fCStr_shaderSource->add("// Color buffers:" _CRLF);
 	for(uint32 i=0; i<8; i++)
 	{
@@ -3958,7 +3958,7 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 	
 	// debug info
 	src->addFmt("// shader %08x%08x" _CRLF, (uint32)(shaderContext->shaderBaseHash >> 32), (uint32)(shaderContext->shaderBaseHash & 0xFFFFFFFF));
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	src->addFmt("// usesIntegerValues: {}" _CRLF, shaderContext->analyzer.usesIntegerValues?"true":"false");
 	src->addFmt(_CRLF);
 
