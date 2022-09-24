@@ -84,7 +84,7 @@ i386
 ### Installing dependencies
 
 
-`brew install git cmake llvm@14 ninja nasm molten-vk`
+`brew install boost git cmake llvm@14 ninja nasm molten-vk`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
