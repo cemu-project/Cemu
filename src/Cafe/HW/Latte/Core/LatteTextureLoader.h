@@ -612,8 +612,8 @@ public:
 				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
 				sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
 				uint8 v = (*(uint8*)(blockData + 0));
-				*(uint8*)(outputData + pixelOffset + 1) = 0;
-				*(uint8*)(outputData + pixelOffset + 0) = ((v >> 4) & 0xF) | ((v << 4) & 0xF0); // todo: Is this nibble swap correct?
+				*(uint8*)(outputData + pixelOffset + 0) = 0;
+				*(uint8*)(outputData + pixelOffset + 1) = v;
 			}
 		}
 	}
