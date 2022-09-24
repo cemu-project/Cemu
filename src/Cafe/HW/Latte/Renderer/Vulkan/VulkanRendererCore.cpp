@@ -334,7 +334,7 @@ PipelineInfo* VulkanRenderer::draw_getOrCreateGraphicsPipeline(uint32 indexCount
 	if (cache_object != nullptr)
 	{
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		cemu_assert_debug(cache_object->vertexShader == LatteSHRC_GetActiveVertexShader());
 		cemu_assert_debug(cache_object->geometryShader == LatteSHRC_GetActiveGeometryShader());
 		cemu_assert_debug(cache_object->pixelShader == LatteSHRC_GetActivePixelShader());
@@ -1456,7 +1456,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		else
 		{
 			pipeline_info = m_state.activePipelineInfo;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			auto pipeline_info2 = draw_getOrCreateGraphicsPipeline(count);
 			if (pipeline_info != pipeline_info2)
 			{

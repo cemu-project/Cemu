@@ -149,7 +149,7 @@ namespace coreinit
 
 		void _debugCheckChain(OSThread_t* thread, OSThreadLink* threadLink)
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			cemu_assert_debug(tail.IsNull() == head.IsNull());
 			size_t linkOffset = getLinkOffset(thread, threadLink);
 			// expects thread to be in the chain

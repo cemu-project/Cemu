@@ -91,7 +91,7 @@ bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 template<typename TFmt, typename ... TArgs>
 bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	return cemuLog_log(type, format, std::forward<TArgs>(args)...);
 #else
 	return false;
@@ -164,7 +164,7 @@ void cemuLog_force(TFmt format, TArgs&&... args)
 #define saveLog_printf(...)			if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_SAVE) ) cafeLog_log(LOG_TYPE_SAVE, __VA_ARGS__);
 #define nfpLog_printf(...)			if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_NFP) ) cafeLog_log(LOG_TYPE_NFP, __VA_ARGS__);
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 #define forceLogDebug_printf(...)		cafeLog_log(LOG_TYPE_FORCE, __VA_ARGS__);
 #define forceLogDebug_printfW(...)		cafeLog_logW(LOG_TYPE_FORCE, __VA_ARGS__);
 

@@ -1089,7 +1089,7 @@ LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, si
 				// for accesses to mips/slices using a physAddress offset we manually need to create a new view lookup
 				// by default views only create a lookup for the base texture physAddress
 				view->CreateLookupForSubTexture(relativeMipIndex, relativeSliceIndex);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 				LatteTextureView* testView = LatteTextureViewLookupCache::lookup(physAddr, width, height, depth, pitch, firstMip, numMip, firstSlice, numSlice, format, dimView);
 				cemu_assert(testView);
 #endif

@@ -119,7 +119,7 @@ void coreinitExport_OSPanic(PPCInterpreter_t* hCPU)
 	debug_printf("File: %s:%d\n", memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4]);
 	debug_printf("Msg: %s\n", memory_getPointerFromVirtualOffset(hCPU->gpr[5]));
 	DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	assert_dbg();
 	while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
 #endif
@@ -203,7 +203,7 @@ typedef struct
 
 void coreinitExport_OSDriver_Register(PPCInterpreter_t* hCPU)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	forceLog_printf("OSDriver_Register(0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
 #endif
 	OSDriverCallbacks_t* driverCallbacks = (OSDriverCallbacks_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]);

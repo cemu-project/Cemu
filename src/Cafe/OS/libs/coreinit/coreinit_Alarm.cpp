@@ -70,7 +70,7 @@ namespace coreinit
 				return;
 
 			// debug begin
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			uint64 prevTick = 0;
 			auto itr = g_activeAlarmList.begin();
 			while (itr != g_activeAlarmList.end())

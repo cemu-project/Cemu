@@ -1,7 +1,7 @@
 ﻿{
   "configurations": [
     {
-      "name": "Release",
+      "name": "RelWithDebInfo",
       "configurationType": "RelWithDebInfo",
       "generator": "Ninja",
       "inheritEnvironments": [ "msvc_x64_x64" ],
@@ -9,13 +9,12 @@
       "installRoot": "${projectDir}\\out\\install\\${name}"
     },
     {
-      "name": "Public Release",
-      "configurationType": "RelWithDebInfo",
+      "name": "Release",
+      "configurationType": "Release",
       "generator": "Ninja",
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "-DPUBLIC_RELEASE=ON"
     },
     {
       "name": "Debug",

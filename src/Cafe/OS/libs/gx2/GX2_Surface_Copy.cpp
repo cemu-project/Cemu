@@ -397,7 +397,7 @@ void gx2Export_GX2CopySurfaceEx(PPCInterpreter_t* hCPU)
 		forceLogDebug_printf("rect left-top: %d/%d size: %d/%d", _swapEndianU32(rectSrc->left), _swapEndianU32(rectSrc->top), _swapEndianU32(rectSrc->right) - _swapEndianU32(rectSrc->left), _swapEndianU32(rectSrc->bottom) - _swapEndianU32(rectSrc->top));
 	}
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if( rectCount != 1 )
 		assert_dbg();
 	if( srcMip != 0 )
@@ -440,7 +440,7 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 	uint32 srcSlice = _swapEndianU32(srcColorBuffer->viewFirstSlice);
 	uint32 dstSlice = hCPU->gpr[6];
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if( _swapEndianU32(srcColorBuffer->viewMip) != 0 || _swapEndianU32(srcColorBuffer->viewFirstSlice) != 0 )
 		assert_dbg();
 #endif

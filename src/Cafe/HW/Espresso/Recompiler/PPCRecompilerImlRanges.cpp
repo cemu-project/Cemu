@@ -6,7 +6,7 @@
 
 void PPCRecRARange_addLink_perVirtualGPR(raLivenessSubrange_t** root, raLivenessSubrange_t* subrange)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if ((*root) && (*root)->range->virtualRegister != subrange->range->virtualRegister)
 		assert_dbg();
 #endif
@@ -35,7 +35,7 @@ void PPCRecRARange_removeLink_perVirtualGPR(raLivenessSubrange_t** root, raLiven
 		(*root) = subrange->link_sameVirtualRegisterGPR.next;
 	if (subrange->link_sameVirtualRegisterGPR.next)
 		subrange->link_sameVirtualRegisterGPR.next->link_sameVirtualRegisterGPR.prev = tempPrev;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	subrange->link_sameVirtualRegisterGPR.prev = (raLivenessSubrange_t*)1;
 	subrange->link_sameVirtualRegisterGPR.next = (raLivenessSubrange_t*)1;
 #endif
@@ -50,7 +50,7 @@ void PPCRecRARange_removeLink_allSubrangesGPR(raLivenessSubrange_t** root, raLiv
 		(*root) = subrange->link_segmentSubrangesGPR.next;
 	if (subrange->link_segmentSubrangesGPR.next)
 		subrange->link_segmentSubrangesGPR.next->link_segmentSubrangesGPR.prev = tempPrev;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	subrange->link_segmentSubrangesGPR.prev = (raLivenessSubrange_t*)1;
 	subrange->link_segmentSubrangesGPR.next = (raLivenessSubrange_t*)1;
 #endif
@@ -162,7 +162,7 @@ void PPCRecRA_mergeRanges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_
 
 void PPCRecRA_mergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessSubrange_t* subrange, raLivenessSubrange_t* absorbedSubrange)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	PPCRecRA_debugValidateSubrange(subrange);
 	PPCRecRA_debugValidateSubrange(absorbedSubrange);
 	if (subrange->imlSegment != absorbedSubrange->imlSegment)
@@ -212,7 +212,7 @@ void PPCRecRA_explodeRange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange
 	PPCRecRA_deleteRange(ppcImlGenContext, range);
 }
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 void PPCRecRA_debugValidateSubrange(raLivenessSubrange_t* subrange)
 {
 	// validate subrange
@@ -236,7 +236,7 @@ void PPCRecRA_debugValidateSubrange(raLivenessSubrange_t* subrange) {}
 raLivenessSubrange_t* PPCRecRA_splitLocalSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessSubrange_t* subrange, sint32 splitIndex, bool trimToHole)
 {
 	// validation
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (subrange->end.index == RA_INTER_RANGE_END || subrange->end.index == RA_INTER_RANGE_START)
 		assert_dbg();
 	if (subrange->start.index >= splitIndex)
@@ -364,7 +364,7 @@ sint32 PPCRecRARange_estimateAdditionalCostAfterRangeExplode(raLivenessRange_t* 
 sint32 PPCRecRARange_estimateAdditionalCostAfterSplit(raLivenessSubrange_t* subrange, sint32 splitIndex)
 {
 	// validation
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (subrange->end.index == RA_INTER_RANGE_END)
 		assert_dbg();
 #endif

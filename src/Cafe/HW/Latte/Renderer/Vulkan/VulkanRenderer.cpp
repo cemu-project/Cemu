@@ -54,7 +54,7 @@ const std::vector<const char*> kRequiredDeviceExtensions =
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 
 	if (strstr(pCallbackData->pMessage, "consumes input location"))
 		return VK_FALSE; // false means we dont care
@@ -636,7 +636,7 @@ VulkanRenderer::~VulkanRenderer()
 
 VulkanRenderer* VulkanRenderer::GetInstance()
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug(g_renderer && dynamic_cast<VulkanRenderer*>(g_renderer.get()));
 	// Use #if here because dynamic_casts dont get optimized away even if the result is not stored as with cemu_assert_debug
 #endif
@@ -2571,7 +2571,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			else
 			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R4G4_UNORM_PACK8;
-				formatInfoOut->decoder = TextureDecoder_R4_G4::getInstance(); // todo - verify if order of R/G matches between GX2/Vulkan
+				formatInfoOut->decoder = TextureDecoder_R4_G4::getInstance();
 			}
 			break;
 			// R formats

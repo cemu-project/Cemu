@@ -233,7 +233,7 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP2_INST_SETNE_DX10:
 			return true;
 		default:
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			debug_printf("_isIntegerInstruction(): OP3=%s opcode=%02x\n", aluInstruction.isOP3 ? "true" : "false", aluInstruction.opcode);
 			cemu_assert_debug(false);
 #endif
@@ -259,7 +259,7 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP3_INST_CMOVGE_INT:
 			return true;
 		default:
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			debug_printf("_isIntegerInstruction(): OP3=%s opcode=%02x\n", aluInstruction.isOP3?"true":"false", aluInstruction.opcode);
 #endif
 			break;

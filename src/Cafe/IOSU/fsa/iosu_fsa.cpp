@@ -606,7 +606,7 @@ namespace iosu
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return (FSStatus)FS_RESULT::ERR_PLACEHOLDER;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			cemuLog_force("FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", _swapEndianU32(cmd->cmdAppendFile.size), _swapEndianU32(cmd->cmdAppendFile.count));
 #endif
 			return _swapEndianU32(cmd->cmdAppendFile.size) * _swapEndianU32(cmd->cmdAppendFile.count);

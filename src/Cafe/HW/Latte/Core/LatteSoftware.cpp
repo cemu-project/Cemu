@@ -252,7 +252,7 @@ float LatteSoftware_omod(uint32 omod, float f)
 	return 0.0f;
 }
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 #define _clamp(__v) if(destClamp != 0) cemu_assert_unimplemented()
 #else
 #define _clamp(__v) // todo

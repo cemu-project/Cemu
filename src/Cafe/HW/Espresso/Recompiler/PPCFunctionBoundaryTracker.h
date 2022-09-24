@@ -153,7 +153,7 @@ private:
 
 	void checkForCollisions()
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		uint32 endOfPrevious = 0;
 		for (auto itr : map_ranges)
 		{

@@ -349,7 +349,7 @@ namespace coreinit
 			}
 			if (entryFound == false)
 			{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 				assert_dbg();
 #endif
 			}

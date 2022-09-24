@@ -136,7 +136,7 @@ uint32 LatteCP_readU32Deprc()
 	}
 	v = *(uint32*)gxRingBufferReadPtr;
 	gxRingBufferReadPtr += 4;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (v == 0xcdcdcdcd)
 		assert_dbg();
 #endif
@@ -299,7 +299,7 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 	uint32 registerIndex = TRegisterBase + registerOffset;
 	uint32 registerStartIndex = registerIndex;
 	uint32 registerEndIndex = registerStartIndex + nWords;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug((registerIndex + nWords) <= LATTE_MAX_REGISTER);
 #endif
 	uint32* outputReg = (uint32*)(LatteGPUState.contextRegister + registerIndex);
@@ -340,7 +340,7 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords, TRegRa
 	uint32 registerIndex = TRegisterBase + registerOffset;
 	uint32 registerStartIndex = registerIndex;
 	uint32 registerEndIndex = registerStartIndex + nWords;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug((registerIndex + nWords) <= LATTE_MAX_REGISTER);
 #endif
 	cbRegRange(registerStartIndex, registerEndIndex);
@@ -1069,7 +1069,7 @@ void LatteCP_processCommandBuffer(uint8* cmdBuffer, sint32 cmdSize, DrawPassCont
 		{
 			uint32 itCode = (itHeader >> 8) & 0xFF;
 			uint32 nWords = ((itHeader >> 16) & 0x3FFF) + 1;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			LatteCMDPtr expectedPostCmd = cmd + nWords;
 #endif
 			switch (itCode)
@@ -1126,7 +1126,7 @@ void LatteCP_processCommandBuffer(uint8* cmdBuffer, sint32 cmdSize, DrawPassCont
 						return;
 					cemu_assert_debug(!drawPassCtx.isWithinDrawPass());
 				}
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 				expectedPostCmd = cmd;
 #endif
 			}
@@ -1156,7 +1156,7 @@ void LatteCP_processCommandBuffer(uint8* cmdBuffer, sint32 cmdSize, DrawPassCont
 				cmd = LatteCP_itDrawIndex2(cmd, nWords, drawPassCtx);
 				cmd = LatteCP_processCommandBuffer_continuousDrawPass(cmd, cmdStart, cmdEnd, drawPassCtx);
 				cemu_assert_debug(cmd == cmdEnd || drawPassCtx.isWithinDrawPass() == false); // draw sequence should have ended if we didn't reach the end of the command buffer
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 				expectedPostCmd = cmd;
 #endif
 			}
@@ -1167,7 +1167,7 @@ void LatteCP_processCommandBuffer(uint8* cmdBuffer, sint32 cmdSize, DrawPassCont
 				cmd = LatteCP_itDrawIndexAuto(cmd, nWords, drawPassCtx);
 				cmd = LatteCP_processCommandBuffer_continuousDrawPass(cmd, cmdStart, cmdEnd, drawPassCtx);
 				cemu_assert_debug(cmd == cmdEnd || drawPassCtx.isWithinDrawPass() == false); // draw sequence should have ended if we didn't reach the end of the command buffer
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 				expectedPostCmd = cmd;
 #endif
 #ifdef FAST_DRAW_LOGGING
@@ -1313,7 +1313,7 @@ void LatteCP_processCommandBuffer(uint8* cmdBuffer, sint32 cmdSize, DrawPassCont
 				cemu_assert_debug(false);
 				LatteSkipCMD(nWords);	
 			}
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if(cmd != expectedPostCmd)
 				debug_printf("cmd %016p expectedPostCmd %016p\n", cmd, expectedPostCmd);
 			cemu_assert_debug(cmd == expectedPostCmd);
