@@ -505,7 +505,7 @@ LatteFetchShader* LatteFetchShader::FindByGPUState()
 		lookupInfo->programSize = _getFSProgramSize();
 		lookupInfo->lastFrameAccessed = LatteGPUState.frameCounter;
 		g_fetchShaderLookupCache.store(fsPhysAddr24, lookupInfo);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		cemu_assert_debug(g_fetchShaderLookupCache.lookup(fsPhysAddr24) == lookupInfo);
 #endif
 	}

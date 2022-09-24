@@ -21,7 +21,7 @@ public:
 		cemu_assert_debug(refCount == 0);
 
 		// remove references
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		for (auto itr : refs)
 		{
 			auto& rev = itr->ref->reverseRefs;
@@ -58,7 +58,7 @@ public:
 		this->refs.emplace_back(refTarget->selfRef);
 		refTarget->refCount++;
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		// add reverse ref
 		refTarget->reverseRefs.emplace_back(this->selfRef);
 #endif
@@ -80,7 +80,7 @@ protected:
 private:
 	VKRMoveableRefCounterRef* selfRef;
 	std::vector<VKRMoveableRefCounterRef*> refs;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	std::vector<VKRMoveableRefCounterRef*> reverseRefs;
 #endif
 

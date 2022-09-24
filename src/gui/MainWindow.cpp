@@ -1375,11 +1375,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		SetFullScreen(false);
 	else if (code == WXK_RETURN && event.AltDown())
 		SetFullScreen(!IsFullScreen());
-#ifdef PUBLIC_RELEASE
 	else if (code == WXK_F12)
-#else
-	else if (code == WXK_F11)
-#endif
 		g_window_info.has_screenshot_request = true; // async screenshot request
 }
 
@@ -2058,7 +2054,7 @@ void MainWindow::RecreateMenu()
 	else
 	{
 		// add 'Stop emulation' menu entry to file menu
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("End emulation"));
 #endif
 	}
@@ -2179,7 +2175,7 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendSeparator();
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_OPENGL, _("&OpenGL debug output"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_OPENGL));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_VULKAN_VALIDATION, _("&Vulkan validation layer (slow)"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION));
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, _("&Log PPC context for API"), wxEmptyString)->Check(cemuLog_advancedPPCLoggingEnabled());
 #endif
 	m_loggingSubmenu = debugLoggingMenu;
@@ -2205,12 +2201,12 @@ void MainWindow::RecreateMenu()
 
 	debugMenu->AppendSeparator();
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	auto audioAuxOnly = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, _("&Audio AUX only"), wxEmptyString);
 	audioAuxOnly->Check(ActiveSettings::AudioOutputOnlyAux());
 #endif
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW, _("&Open logging window"));
 #endif
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS, _("&View PPC threads"));

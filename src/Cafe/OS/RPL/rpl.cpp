@@ -1015,7 +1015,7 @@ bool RPLLoader_FixImportSymbols(RPLModule* rplLoaderContext, sint32 symtabSectio
 				}
 				if (foundExport == false)
 				{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 					if (nameOffset > 0)
 					{
 						forceLogDebug_printf("export not found - force lookup in function exports");

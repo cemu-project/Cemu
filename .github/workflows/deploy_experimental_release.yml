@@ -25,6 +25,11 @@ jobs:
           name: cemu-bin-windows-x64
           path: cemu-bin-windows-x64
 
+      - uses: actions/download-artifact@v3
+        with:
+          name: cemu-bin-macos-x64
+          path: cemu-bin-macos-x64
+
       - name: Initialize
         run: |
           mkdir upload
@@ -57,10 +62,19 @@ jobs:
           mv cemu-bin-linux-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-20.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
-  
+          
+      - name: Create release from macos-bin
+        run: |
+          ls ./
+          ls ./bin/
+          cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
+          mv cemu-bin-macos-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
+          zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-macos-12-x64.zip ${{ env.CEMU_FOLDER_NAME }}
+          rm -r ./${{ env.CEMU_FOLDER_NAME }}
+
       - name: Create release
         run: |
           wget -O ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.15.0/ghr_v0.15.0_linux_amd64.tar.gz
           tar xvzf ghr.tar.gz; rm ghr.tar.gz
           echo "[INFO] Release tag: v${{ env.CEMU_VERSION }}"
-          ghr_v0.15.0_linux_amd64/ghr -prerelease -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }} (Experimental)" -b "Cemu experimental release - [changelog](https://cemu.info/changelog.html)" "v${{ env.CEMU_VERSION }}" ./upload
+          ghr_v0.15.0_linux_amd64/ghr -prerelease -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }} (Experimental)" -b "Cemu experimental release" "v${{ env.CEMU_VERSION }}" ./upload

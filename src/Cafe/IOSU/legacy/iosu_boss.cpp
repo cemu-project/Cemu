@@ -485,7 +485,7 @@ namespace iosu
 		CURL* curl = it->curl.get();
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 2);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 		char errbuf[CURL_ERROR_SIZE]{};
 		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -579,7 +579,7 @@ namespace iosu
 
 		if (curl_result != CURLE_OK)
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			forceLogDebug_printf("curl error buff: %s", errbuf);
 #endif
 			it->turn_state = kError;
