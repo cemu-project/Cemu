@@ -8,6 +8,7 @@
 #include "Cemu/ncrypto/ncrypto.h"
 #include "util/crypto/md5.h"
 #include "config/LaunchSettings.h"
+#include "config/ActiveSettings.h"
 
 #include "pugixml.hpp"
 #include <charconv>
@@ -26,14 +27,20 @@ namespace NAPI
 	{
 		if (!s_serviceURL_NusURL.empty())
 			return s_serviceURL_NusURL;
+		if (ActiveSettings::GetNetworkService() == 0)
 		return "https://nus.wup.shop.nintendo.net/nus/services/NetUpdateSOAP";
+		if  (ActiveSettings::GetNetworkService() == 1)
+		return "https://nus.c.shop.pretendo.cc/nus/services/NetUpdateSOAP";
 	}
 
 	std::string _getIASUrl()
 	{
 		if (!s_serviceURL_IasURL.empty())
 			return s_serviceURL_IasURL;
+		if (ActiveSettings::GetNetworkService() == 0)
 		return "https://ias.wup.shop.nintendo.net/ias/services/IdentityAuthenticationSOAP";
+		if (ActiveSettings::GetNetworkService() == 1)
+		return "https://ias.c.shop.pretendo.cc/ias/services/IdentityAuthenticationSOAP";
 	}
 
 	std::string _getECSUrl()
@@ -48,14 +55,20 @@ namespace NAPI
 	{
 		if (!s_serviceURL_UncachedContentPrefixURL.empty())
 			return s_serviceURL_UncachedContentPrefixURL;
+		if (ActiveSettings::GetNetworkService() == 0)
 		return "https://ccs.wup.shop.nintendo.net/ccs/download";
+		if (ActiveSettings::GetNetworkService() == 1)
+		return "https://ccs.c.shop.pretendo.cc/ccs/download";
 	}
 
 	std::string _getCCSUrl() // used for game data downloads
 	{
 		if (!s_serviceURL_ContentPrefixURL.empty())
 			return s_serviceURL_ContentPrefixURL;
+		if (ActiveSettings::GetNetworkService() == 0)
 		return "http://ccs.cdn.wup.shop.nintendo.net/ccs/download";
+		if (ActiveSettings::GetNetworkService() == 1)
+		return "http://ccs.cdn.c.shop.pretendo.cc/ccs/download";
 	}
 
 	/* NUS */

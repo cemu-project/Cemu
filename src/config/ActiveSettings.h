@@ -92,7 +92,7 @@ public:
 	[[nodiscard]] static uint32 GetPersistentId();
 	[[nodiscard]] static bool IsOnlineEnabled();
 	[[nodiscard]] static bool HasRequiredOnlineFiles();
-
+	[[nodiscard]] static int GetNetworkService();
 	// dump options
 	[[nodiscard]] static bool DumpShadersEnabled();
 	[[nodiscard]] static bool DumpTexturesEnabled();

@@ -429,6 +429,7 @@ struct CemuConfig
 	{
 		ConfigValueBounds<uint32> m_persistent_id{ Account::kMinPersistendId, Account::kMinPersistendId, 0xFFFFFFFF };
 		ConfigValue<bool> online_enabled{false};
+		ConfigValue<int> active_service{1};
 	}account{};
 
 	// input

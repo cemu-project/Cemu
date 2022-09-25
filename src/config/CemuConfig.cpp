@@ -313,7 +313,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto acc = parser.get("Account");
 	account.m_persistent_id = acc.get("PersistentId", account.m_persistent_id);
 	account.online_enabled = acc.get("OnlineEnabled", account.online_enabled);
-
+	account.active_service = acc.get("ActiveService",account.active_service);
 	// debug
 	auto debug = parser.get("Debug");
 	crash_dump = debug.get("CrashDump", crash_dump);
@@ -484,7 +484,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto acc = config.set("Account");
 	acc.set("PersistentId", account.m_persistent_id.GetValue());
 	acc.set("OnlineEnabled", account.online_enabled.GetValue());
-
+	acc.set("ActiveService",account.active_service.GetValue());
 	// debug
 	auto debug = config.set("Debug");
 	debug.set("CrashDump", crash_dump.GetValue());

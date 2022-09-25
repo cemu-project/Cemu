@@ -7,6 +7,7 @@
 
 #include "Cemu/ncrypto/ncrypto.h"
 #include <charconv>
+#include "config/ActiveSettings.h"
 
 namespace NAPI
 {
@@ -14,7 +15,12 @@ namespace NAPI
 	{
 		NAPI_VersionListVersion_Result result;
 		CurlRequestHelper req;
+		if (ActiveSettings::GetNetworkService() == 0) {
 		req.initate(fmt::format("https://tagaya.wup.shop.nintendo.net/tagaya/versionlist/{}/{}/latest_version", NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+		}else if (ActiveSettings::GetNetworkService() == 1) {
+		req.initate(fmt::format("https://tagaya.wup.shop.pretendo.cc/tagaya/versionlist/{}/{}/latest_version", NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+		}
+
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request version of update list"));

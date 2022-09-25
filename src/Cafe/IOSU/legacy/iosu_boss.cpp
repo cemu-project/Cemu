@@ -562,7 +562,11 @@ namespace iosu
 			char boss_code[0x20];
 			strncpy(boss_code, (char*)&it->task_settings.settings[TaskSetting::kBossCode], TaskSetting::kBossCodeLen);
 
+		if (ActiveSettings::GetNetworkService() == 0) {
 			sprintf(url, "https://npts.app.nintendo.net/p01/tasksheet/%s/%s/%s?c=%s&l=%s", "1", boss_code, it->task_id, countryCode, languageCode);
+		}else if (ActiveSettings::GetNetworkService() == 1) {
+			sprintf(url, "https://npts.app.pretendo.cc/p01/tasksheet/%s/%s/%s?c=%s&l=%s", "1", boss_code, it->task_id, countryCode, languageCode);
+		}
 		}
 
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list_headerParam);

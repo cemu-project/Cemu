@@ -30,6 +30,7 @@ public:
 
 	static std::string GetActURLPrefix() { return serviceURL_ACT; }
 	static std::string GetServiceURL_ecs() { return serviceURL_ECS; }
+	static void ChangeNetworkServiceURL(int ID);
 
 private:
 	inline static std::optional<fs::path> s_load_game_file{};
