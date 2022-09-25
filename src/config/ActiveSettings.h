@@ -93,6 +93,7 @@ public:
 	[[nodiscard]] static bool IsOnlineEnabled();
 	[[nodiscard]] static bool HasRequiredOnlineFiles();
 	[[nodiscard]] static int GetNetworkService();
+	[[nodiscard]] static bool IsSSLDisabled();
 	// dump options
 	[[nodiscard]] static bool DumpShadersEnabled();
 	[[nodiscard]] static bool DumpTexturesEnabled();

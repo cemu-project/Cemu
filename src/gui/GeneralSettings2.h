@@ -66,6 +66,7 @@ private:
 	wxButton* m_create_account, * m_delete_account;
 	wxChoice* m_active_account;
 	wxRadioBox* m_active_service;
+	wxCheckBox* m_disable_ssl;
 	wxCheckBox* m_online_enabled;
 	wxCollapsiblePane* m_account_information;
 	wxPropertyGrid* m_account_grid;

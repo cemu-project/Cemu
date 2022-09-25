@@ -497,9 +497,13 @@ namespace iosu
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, task_header_callback);
 		curl_easy_setopt(curl, CURLOPT_HEADERDATA, &(*it));
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0x3C);
+		if (ActiveSettings::IsSSLDisabled()){
+			curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
+		} else {
 		curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, task_sslctx_function);
 		curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, &it->task_settings);
 		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_0);
+		}
 
 		char url[512];
 		if(it->task_settings.taskType == kRawDlTaskSetting)

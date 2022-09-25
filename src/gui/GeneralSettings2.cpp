@@ -609,6 +609,9 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		m_active_service->SetToolTip(_("Connect to which Network Service"));
 		m_active_service->Bind(wxEVT_RADIOBOX, &GeneralSettings2::OnAccountServiceChanged,this);
 		content->Add(m_active_service, 0, wxEXPAND | wxALL, 5);
+		m_disable_ssl = new wxCheckBox(box, wxID_ANY, _("Disable SSL Verification"));
+		box_sizer->Add(m_disable_ssl, 0, wxEXPAND | wxALL, 5);
+
 		box_sizer->Add(content, 1, wxEXPAND, 5);
 
 		online_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -619,6 +622,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 			m_create_account->Enable(false);
 			m_delete_account->Enable(false);
 			m_active_service->Enable(false);
+			m_disable_ssl->Enable(false);
 		}
 	}
 	
@@ -918,6 +922,7 @@ void GeneralSettings2::StoreConfig()
 
 	config.account.online_enabled = m_online_enabled->GetValue();
 	config.account.active_service = m_active_service->GetSelection();
+	config.account.disable_ssl = m_disable_ssl->GetValue();
 
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
@@ -1488,6 +1493,7 @@ void GeneralSettings2::ApplyConfig()
 	
 	m_online_enabled->SetValue(config.account.online_enabled);
 	m_active_service->SetSelection(config.account.active_service);
+	m_disable_ssl->SetValue(config.account.disable_ssl);
 	UpdateAccountInformation();
 
 	// debug
