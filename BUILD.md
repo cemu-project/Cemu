@@ -82,7 +82,7 @@ Molten-VK compatibility layer.
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
 #### Troubleshooting steps
-- If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja` to the command and running it again.
+- If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/opt/homebrew/bin/ninja` to the command and running it again.
 
 ## Updating Cemu and source code
 1. To update your Cemu local repository, use the command `git pull --recurse-submodules` (run this command on the Cemu root).
