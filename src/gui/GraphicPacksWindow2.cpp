@@ -529,6 +529,38 @@ void GraphicPacksWindow2::OnTreeChoiceChanged(wxTreeEvent& event)
 	m_graphic_pack_tree->SelectItem(item);
 }
 
+// In some environments with GTK (e.g. a flatpak app with org.freedesktop.Platform 22.08 runtime),
+// destroying the event source inside the handler crashes the app.
+// As a workaround to that, the wxWindow that needs to be destroyed is hidden and then 
+// destroyed at a later time, outside the handler.
+void GraphicPacksWindow2::ClearPresets()
+{
+	size_t item_count = m_preset_sizer->GetItemCount();
+	std::vector<wxSizer*> sizers;
+	sizers.reserve(item_count);
+	for (size_t i = 0; i < item_count; i++)
+		sizers.push_back(m_preset_sizer->GetItem(i)->GetSizer());
+
+	for (auto&& sizer : sizers)
+	{
+		auto static_box_sizer = dynamic_cast<wxStaticBoxSizer*>(sizer);
+		if (static_box_sizer)
+		{
+			wxStaticBox* parent_window = static_box_sizer->GetStaticBox();
+			if (parent_window)
+			{
+				m_preset_sizer->Detach(sizer);
+				parent_window->Hide();
+				CallAfter([=]()
+				{
+					parent_window->DestroyChildren();
+					delete static_box_sizer;
+				});
+			}
+		}
+	}
+}
+
 void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 {
 	if (!m_shown_graphic_pack)
@@ -542,30 +574,7 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 	if(m_shown_graphic_pack->SetActivePreset(string_data->GetData().c_str().AsChar(), preset))
 	{
 		wxWindowUpdateLocker lock(this);
-		size_t item_count = m_preset_sizer->GetItemCount();
-		std::vector<wxSizer*> sizers;
-		sizers.reserve(item_count);
-		for (size_t i = 0; i < item_count; i++)
-			sizers.push_back(m_preset_sizer->GetItem(i)->GetSizer());
-
-		for (auto&& sizer : sizers)
-		{
-			auto static_box_sizer = dynamic_cast<wxStaticBoxSizer*>(sizer);
-			if (static_box_sizer)
-			{
-				wxStaticBox* parent_window = static_box_sizer->GetStaticBox();
-				if (parent_window)
-				{
-					m_preset_sizer->Detach(sizer);
-					parent_window->Hide();
-					CallAfter([=]()
-					{ 
-						parent_window->DestroyChildren();
-						delete static_box_sizer;
-					});
-				}
-			}
-		}
+		ClearPresets();
 		LoadPresetSelections(m_shown_graphic_pack);
 		//m_preset_sizer->GetContainingWindow()->Layout();
 		//m_right_panel->FitInside();
