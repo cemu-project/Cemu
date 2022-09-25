@@ -542,7 +542,30 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 	if(m_shown_graphic_pack->SetActivePreset(string_data->GetData().c_str().AsChar(), preset))
 	{
 		wxWindowUpdateLocker lock(this);
-		m_preset_sizer->Clear(true);
+		size_t item_count = m_preset_sizer->GetItemCount();
+		std::vector<wxSizer*> sizers;
+		sizers.reserve(item_count);
+		for (size_t i = 0; i < item_count; i++)
+			sizers.push_back(m_preset_sizer->GetItem(i)->GetSizer());
+
+		for (auto&& sizer : sizers)
+		{
+			auto static_box_sizer = dynamic_cast<wxStaticBoxSizer*>(sizer);
+			if (static_box_sizer)
+			{
+				wxStaticBox* parent_window = static_box_sizer->GetStaticBox();
+				if (parent_window)
+				{
+					m_preset_sizer->Detach(sizer);
+					parent_window->Hide();
+					CallAfter([=]()
+					{ 
+						parent_window->DestroyChildren();
+						delete static_box_sizer;
+					});
+				}
+			}
+		}
 		LoadPresetSelections(m_shown_graphic_pack);
 		//m_preset_sizer->GetContainingWindow()->Layout();
 		//m_right_panel->FitInside();
