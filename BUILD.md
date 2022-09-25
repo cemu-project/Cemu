@@ -65,7 +65,10 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. Currently, 
 LLVM 15 isn't supported due to compatibility issues with Boost dependency. The OpenGL graphics
 API isn't support on MacOS, Vulkan must be used. Additionally Vulkan must be used through the 
-Molten-VK compatibility layer.
+Molten-VK compatibility layer.  
+
+### Installing brew
+`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 
 ### Installing dependencies
 `brew install git cmake llvm@14 ninja nasm molten-vk`
