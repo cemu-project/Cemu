@@ -96,9 +96,15 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
     windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
 
-    if (ActiveSettings::IsOnlineEnabled())
+    if (ActiveSettings::IsOnlineEnabled()){
         windowText.append(" [Online]");
-
+	if (ActiveSettings::GetNetworkService() == 0) {
+		 windowText.append("[Nintendo]");
+	}
+	else if (ActiveSettings::GetNetworkService() == 1) {
+		 windowText.append("[Pretendo]");
+	}
+	}
     windowText.append(" ");
 	windowText.append(CafeSystem::GetForegroundTitleName());
 	// append region
