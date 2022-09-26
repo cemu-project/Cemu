@@ -35,7 +35,7 @@ void handlerDumpingSignal(int sig)
 		raise(sig);
 		return;
 	}
-	// Exit process ignoring all issues.
+	// exit process ignoring all issues
 	_Exit(1);
 }
 
@@ -54,10 +54,10 @@ void handler_SIGINT(int sig)
 void ExceptionHandler_init()
 {
 	struct sigaction action;
-	action.sa_handler = handler_SIGINT;
 	action.sa_flags = 0;
 	sigfillset(&action.sa_mask); // don't allow signals to be interrupted
 
+	action.sa_handler = handler_SIGINT;
 	sigaction(SIGINT, &action, nullptr);
 
 	action.sa_handler = handlerDumpingSignal;
