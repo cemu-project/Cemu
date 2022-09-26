@@ -28,7 +28,7 @@ void handlerDumpingSignal(int sig)
 	fprintf(stderr, "Error: signal %d:\n", sig);
 	backtrace_symbols_fd(array, size, STDERR_FILENO);
 
-	if (GetConfig().crash_dump == CrashDump::Full)
+	if (GetConfig().crash_dump == CrashDump::Enabled)
 	{
 		// reset signal handler to default and re-raise signal to dump core
 		signal(sig, SIG_DFL);

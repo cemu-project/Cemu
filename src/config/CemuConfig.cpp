@@ -316,7 +316,11 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	// debug
 	auto debug = parser.get("Debug");
-	crash_dump = debug.get("CrashDump", crash_dump);
+#if BOOST_OS_WINDOWS
+	crash_dump = debug.get("CrashDumpWindows", crash_dump);
+#elif BOOST_OS_UNIX
+	crash_dump = debug.get("CrashDumpUnix", crash_dump);
+#endif
 
 	// input
 	auto input = parser.get("Input");
@@ -487,7 +491,11 @@ void CemuConfig::Save(XMLConfigParser& parser)
 
 	// debug
 	auto debug = config.set("Debug");
-	debug.set("CrashDump", crash_dump.GetValue());
+#if BOOST_OS_WINDOWS
+	debug.set("CrashDumpWindows", crash_dump.GetValue());
+#elif BOOST_OS_UNIX
+	debug.set("CrashDumpUnix", crash_dump.GetValue());
+#endif
 
 	// input
 	auto input = config.set("Input");
