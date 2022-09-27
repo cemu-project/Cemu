@@ -709,10 +709,18 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 
 	debug_row->Add(new wxStaticText(panel, wxID_ANY, _("Crash dump"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
+#if BOOST_OS_WINDOWS
 	wxString dump_choices[] = { _("Disabled"), _("Lite"), _("Full") };
+#elif BOOST_OS_UNIX
+	wxString dump_choices[] = { _("Disabled"), _("Enabled") };
+#endif
 	m_crash_dump = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(dump_choices), dump_choices);
 	m_crash_dump->SetSelection(0);
+#if BOOST_OS_WINDOWS
 	m_crash_dump->SetToolTip(_("Creates a dump when Cemu crashes\nOnly enable when requested by a developer!\nThe Full option will create a very large dump file (includes a full RAM dump of the Cemu process)"));
+#elif BOOST_OS_UNIX
+	m_crash_dump->SetToolTip(_("Creates a core dump when Cemu crashes\nOnly enable when requested by a developer!"));
+#endif
 	debug_row->Add(m_crash_dump, 0, wxALL | wxEXPAND, 5);
 
 	debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
