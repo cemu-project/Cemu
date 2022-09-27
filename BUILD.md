@@ -76,7 +76,7 @@ Molten-VK compatibility layer.
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
-3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DPUBLIC_RELEASE=ON 
+3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release
    -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja`
 4. `cmake --build build`
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
