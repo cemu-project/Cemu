@@ -67,14 +67,15 @@ LLVM 15 isn't supported due to compatibility issues with Boost dependency. The O
 API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
 Molten-VK compatibility layer
 
-### On Apple Silicon Macs, Rosetta and the x86_64 version of Homebrew must be used
+### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
 
-You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 1 & 3.
+You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 2 & 4.
 
-1. `arch -x86_64 zsh` # run an x64 shell
-2. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` # install x86_64 brew. Only has to be run once
-3. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
-4. Optional. Verify zsh and brew are x86_64
+1. `softwareupdate --install-rosetta` # Install Rosetta 2 if you don't have it
+2. `arch -x86_64 zsh` # run an x64 shell
+3. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` # install x86_64 brew. Only has to be run once
+4. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
+5. Optional. Verify zsh and brew are x86_64
 
 ```bash
 ~$ arch
