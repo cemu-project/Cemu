@@ -35,6 +35,8 @@ elseif(UNIX)
 		add_compile_options(-Wno-ambiguous-reversed-operator)
 	endif()
 
+	add_link_options(-rdynamic)
+
     add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
 endif()
 

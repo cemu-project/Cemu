@@ -1,8 +1,42 @@
 #include <signal.h>
 #include <execinfo.h>
 #include <string.h>
+#include <string>
 
 #include "config/CemuConfig.h"
+
+void demangleAndPrintBacktrace(char** backtrace, size_t size)
+{
+	for (char** i = backtrace; i < backtrace + size; i++)
+	{
+		std::string traceLine{*i};
+		size_t parenthesesOpen = traceLine.find_last_of('(');
+		size_t parenthesesClose = traceLine.find_last_of(')');
+		size_t offsetPlus = traceLine.find_last_of('+');
+		if (!parenthesesOpen || !parenthesesClose || !offsetPlus ||
+			 offsetPlus < parenthesesOpen || offsetPlus > parenthesesClose)
+		{
+			// something unexpected was read. fall back to default string
+			std::cerr << traceLine << std::endl;
+			continue;
+		}
+
+		std::string symbolName = traceLine.substr(parenthesesOpen+1,offsetPlus-parenthesesOpen-1);
+		int status = -1;
+		char* demangled = abi::__cxa_demangle(symbolName.c_str(), nullptr, nullptr, &status);
+		if (demangled)
+		{
+			std::cerr << traceLine.substr(0, parenthesesOpen+1);
+			std::cerr << demangled;
+			std::cerr << traceLine.substr(offsetPlus) << std::endl;
+			free(demangled);
+		}
+		else
+		{
+			std::cerr << traceLine << std::endl;
+		}
+	}
+}
 
 // handle signals that would dump core, print stacktrace and then dump depending on config
 void handlerDumpingSignal(int sig)
@@ -18,15 +52,26 @@ void handlerDumpingSignal(int sig)
 		printf("Unknown core dumping signal!\n");
 	}
 
-	void *array[32];
+	void *array[128];
 	size_t size;
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 32);
+	size = backtrace(array, 128);
 
 	// print out all the frames to stderr
 	fprintf(stderr, "Error: signal %d:\n", sig);
-	backtrace_symbols_fd(array, size, STDERR_FILENO);
+
+	char** symbol_trace = backtrace_symbols(array, size);
+
+	if (symbol_trace)
+	{
+		demangleAndPrintBacktrace(symbol_trace, size);
+		free(symbol_trace);
+	}
+	else
+	{
+		std::cerr << "Failed to read backtrace" << std::endl;
+	}
 
 	if (GetConfig().crash_dump == CrashDump::Enabled)
 	{
