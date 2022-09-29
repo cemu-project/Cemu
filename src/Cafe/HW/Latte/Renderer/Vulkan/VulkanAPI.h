@@ -15,9 +15,15 @@ extern bool g_vulkan_available;
 #endif
 
 #ifdef VKFUNC_DEFINE
+#if BOOST_OS_WINDOWS
 	#define VKFUNC(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
 	#define VKFUNC_INSTANCE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
 	#define VKFUNC_DEVICE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
+#else
+	#define VKFUNC(__FUNC__) __attribute__ ((visibility ("hidden"))) PFN_##__FUNC__ __FUNC__ = nullptr
+	#define VKFUNC_INSTANCE(__FUNC__) __attribute__ ((visibility ("hidden"))) PFN_##__FUNC__ __FUNC__ = nullptr
+	#define VKFUNC_DEVICE(__FUNC__) __attribute__ ((visibility ("hidden"))) PFN_##__FUNC__ __FUNC__ = nullptr
+#endif
 #else
 	#if defined(VKFUNC_INIT)
 		#if BOOST_OS_WINDOWS
