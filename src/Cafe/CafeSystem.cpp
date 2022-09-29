@@ -340,7 +340,7 @@ uint32 loadSharedData()
 		return memory_getVirtualOffsetFromPointer(dataWritePtr);
 	}
 	// alternative method: load RAM dump
-	const auto path = GetPath(ActiveSettings::GetDataPath(), "shareddata.bin");
+	const auto path = GetPath(ActiveSettings::GetUserDataPath(), "shareddata.bin");
 	FileStream* ramDumpFile = FileStream::openFile2(path);
 	if (ramDumpFile)
 	{
