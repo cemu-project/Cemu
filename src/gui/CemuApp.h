@@ -19,8 +19,12 @@ public:
 	static void CreateDefaultFiles(bool first_start = false);
 	static bool SelectMLCPath(wxWindow* parent = nullptr);
 
-	static wxString GetCemuPath();
-	static wxString GetCemuPath(const wxString& cat);
+	static wxString GetConfigPath();
+	static wxString GetConfigPath(const wxString& cat);
+
+	static wxString GetUserDataPath();
+	static wxString GetUserDataPath(const wxString& cat);
+
 	static wxString GetMLCPath();
 	static wxString GetMLCPath(const wxString& cat);
 private:

@@ -107,7 +107,7 @@ namespace coreinit
 			return;
 
 		std::error_code ec;
-		const auto path = ActiveSettings::GetPath("sdcard/");
+		const auto path = GetPath(ActiveSettings::GetUserDataPath(), "sdcard/");
 		fs::create_directories(path, ec);
 		FSCDeviceHostFS_Mount("/vol/external01", _pathToUtf8(path), FSC_PRIORITY_BASE);
 
@@ -140,7 +140,7 @@ namespace coreinit
 				return FS_RESULT::ERR_PLACEHOLDER;
 
 			std::error_code ec;
-			const auto path = ActiveSettings::GetPath("sdcard/");
+			const auto path = GetPath(ActiveSettings::GetUserDataPath(), "sdcard/");
 			fs::create_directories(path, ec);
 			if (!FSCDeviceHostFS_Mount(mountPathOut, _pathToUtf8(path), FSC_PRIORITY_BASE))
 				return FS_RESULT::ERR_PLACEHOLDER;

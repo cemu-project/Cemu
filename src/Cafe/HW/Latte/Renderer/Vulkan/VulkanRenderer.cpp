@@ -2305,7 +2305,7 @@ void VulkanRenderer::WaitCommandBufferFinished(uint64 commandBufferId)
 
 void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 {
-	const auto dir = ActiveSettings::GetPath("shaderCache/driver/vk");
+	const auto dir = GetPath(ActiveSettings::GetCachePath(), "shaderCache/driver/vk");
 	if (!fs::exists(dir))
 	{
 		try
@@ -2382,7 +2382,7 @@ void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 void VulkanRenderer::CreatePipelineCache()
 {
 	std::vector<uint8_t> cacheData;
-	const auto dir = ActiveSettings::GetPath("shaderCache/driver/vk");
+	const auto dir = GetPath(ActiveSettings::GetCachePath(), "shaderCache/driver/vk");
 	if (fs::exists(dir))
 	{
 		const auto filename = dir / fmt::format("{:016x}.bin", CafeSystem::GetForegroundTitleId());

@@ -32,8 +32,8 @@ VulkanPipelineStableCache& VulkanPipelineStableCache::GetInstance()
 uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 {
 	std::error_code ec;
-	fs::create_directories(ActiveSettings::GetPath("shaderCache/transferable"), ec);
-	const auto pathCacheFile = ActiveSettings::GetPath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
+	fs::create_directories(GetPath(ActiveSettings::GetCachePath(), "shaderCache/transferable"), ec);
+	const auto pathCacheFile = GetPath(ActiveSettings::GetCachePath(), "shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
 	
 	// init cache loader state
 	g_vkCacheState.pipelineLoadIndex = 0;

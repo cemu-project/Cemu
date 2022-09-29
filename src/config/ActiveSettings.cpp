@@ -1,6 +1,7 @@
 #include "config/ActiveSettings.h"
 
 #include "Cafe/GameProfile/GameProfile.h"
+#include "Cemu/Logging/CemuLogging.h"
 #include "LaunchSettings.h"
 #include "util/helpers/helpers.h"
 
@@ -12,13 +13,31 @@
 
 extern bool alwaysDisplayDRC;
 
-void ActiveSettings::LoadOnce()
+void ActiveSettings::LoadOnce(const fs::path& user_data_path,
+							  const fs::path& config_path,
+							  const fs::path& cache_path,
+							  const fs::path& data_path)
 {
 	s_full_path = boost::dll::program_location().generic_wstring();
-	s_path = s_full_path.parent_path();
+
+	s_user_data_path = user_data_path;
+	s_config_path = config_path;
+	s_cache_path = cache_path;
+	s_data_path = data_path;
+	for (auto&& path : {user_data_path, config_path, cache_path})
+	{
+		if (!fs::exists(path))
+		{
+			std::error_code ec;
+			fs::create_directories(path, ec);
+		}
+		if (!TestWriteAccess(path))
+			cemuLog_log(LogType::Force, "Failed to write to {}", path.generic_string());
+	}
+
 	s_filename = s_full_path.filename();
 
-	g_config.SetFilename(GetPath("settings.xml").generic_wstring());
+	g_config.SetFilename(GetPath(GetConfigPath(), "settings.xml").generic_wstring());
 	g_config.Load();
 
 	std::wstring additionalErrorInfo;
@@ -222,6 +241,6 @@ fs::path ActiveSettings::GetMlcPath()
 
 fs::path ActiveSettings::GetDefaultMLCPath()
 {
-	return GetPath("mlc01");
+	return GetPath(GetUserDataPath(), "mlc01");
 }
 

@@ -160,7 +160,7 @@ void _putenvSafe(const char* c)
 void reconfigureGLDrivers()
 {
 	// reconfigure GL drivers to store 
-	const fs::path nvCacheDir = ActiveSettings::GetPath("shaderCache/driver/nvidia/");
+	const fs::path nvCacheDir = GetPath(ActiveSettings::GetCachePath(), "shaderCache/driver/nvidia/");
 
 	std::error_code err;
 	fs::create_directories(nvCacheDir, err);
@@ -242,8 +242,6 @@ void unitTests()
 
 int mainEmulatorHLE()
 {
-	if (!TestWriteAccess(ActiveSettings::GetPath()))
-		wxMessageBox("Cemu doesn't have write access to it's own directory.\nPlease move it to a different location or run Cemu as administrator!", "Warning", wxOK|wxICON_ERROR); // todo - different error messages per OS
 	LatteOverlay_init();
 	// run a couple of tests if in non-release mode
 #ifdef CEMU_DEBUG_ASSERT
@@ -264,7 +262,7 @@ int mainEmulatorHLE()
 	// init Cafe system (todo - the stuff above should be part of this too)
 	CafeSystem::Initialize();
 	// init title list
-	CafeTitleList::Initialize(ActiveSettings::GetPath("title_list_cache.xml"));
+	CafeTitleList::Initialize(GetPath(ActiveSettings::GetUserDataPath(), "title_list_cache.xml"));
 	for (auto& it : GetConfig().game_paths)
 		CafeTitleList::AddScanPath(it);
 	fs::path mlcPath = ActiveSettings::GetMlcPath();
@@ -278,8 +276,6 @@ int mainEmulatorHLE()
 		CafeSaveList::SetMLCPath(mlcPath);
 		CafeSaveList::Refresh();
 	}
-	// Create UI
-	gui_create();
 	return 0;
 }
 
@@ -344,9 +340,8 @@ int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ L
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
-	ActiveSettings::LoadOnce();
-	HandlePostUpdate();
-	return mainEmulatorHLE();
+	gui_create();
+	return 0;
 }
 
 // entrypoint for debug builds with console
@@ -355,9 +350,8 @@ int main(int argc, char* argv[])
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-	ActiveSettings::LoadOnce();
-	HandlePostUpdate();
-	return mainEmulatorHLE();
+	gui_create();
+	return 0;
 }
 
 #else
@@ -369,11 +363,8 @@ int main(int argc, char *argv[])
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-
-	ActiveSettings::LoadOnce();
-
-	HandlePostUpdate();
-	return mainEmulatorHLE();
+	gui_create();
+	return 0;
 }
 #endif
 
