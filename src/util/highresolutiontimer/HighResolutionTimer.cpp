@@ -9,7 +9,7 @@ HighResolutionTimer HighResolutionTimer::now()
 	return HighResolutionTimer(pc.QuadPart);
 #else
     timespec pc;
-    clock_gettime(CLOCK_MONOTONIC, &pc);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &pc);
     uint64 nsec = (uint64)pc.tv_sec * (uint64)1000000000 + (uint64)pc.tv_nsec;
     return HighResolutionTimer(nsec);
 #endif
@@ -28,7 +28,7 @@ uint64 HighResolutionTimer::m_freq = []() -> uint64 {
 	return (uint64)(freq.QuadPart);
 #else
     timespec pc;
-    clock_getres(CLOCK_MONOTONIC, &pc);
+    clock_getres(CLOCK_MONOTONIC_RAW, &pc);
     return (uint64)1000000000 / (uint64)pc.tv_nsec;
 #endif
 }();
