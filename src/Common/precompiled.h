@@ -246,6 +246,12 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
     #error No definition for DLLEXPORT
 #endif
 
+#if BOOST_OS_WINDOWS
+	#define NOEXPORT
+#elif defined(__GNUC__)
+	#define NOEXPORT __attribute__ ((visibility ("hidden")))
+#endif
+
 #ifdef __GNUC__
 #include <cpuid.h>
 #endif
