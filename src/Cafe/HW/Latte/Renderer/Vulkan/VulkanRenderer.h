@@ -15,6 +15,8 @@ struct VkSupportedFormatInfo_t
 {
 	bool fmt_d24_unorm_s8_uint{};
 	bool fmt_r4g4_unorm_pack{};
+	bool fmt_r4g4b4a4_unorm_pack{};
+	bool fmt_a1r5g5b5_unorm_pack{};
 };
 
 struct VkDescriptorSetInfo
