@@ -81,7 +81,7 @@ bool CemuApp::OnInit()
 #else
 	SetAppName("cemu");
 	wxString appName=GetAppName();
-	#if defined(BOOST_OS_UNIX)
+	#ifdef BOOST_OS_LINUX
 	standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
 	auto getEnvDir = [&](const wxString& varName, const wxString& defaultValue)
 	{
