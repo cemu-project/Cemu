@@ -2565,8 +2565,15 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::R4_G4_UNORM:
 			if (m_supportedFormatInfo.fmt_r4g4_unorm_pack == false)
 			{
+#if BOOST_OS_MACOS
+				// On Molten-VK, this pixel format isn't supported,
+				// replaced with generic format
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_R8_G8_B8_A8::getInstance();
+#else
 				formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
 				formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_toRGBA4444_vk::getInstance();
+#endif
 			}
 			else
 			{
@@ -2647,8 +2654,15 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->decoder = TextureDecoder_R11_G11_B10_FLOAT::getInstance();
 			break;
 		case Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM:
+#if BOOST_OS_MACOS
+			// On Molten-VK, this pixel format isn't supported,
+			// replaced with generic format
+			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+			formatInfoOut->decoder = TextureDecoder_R8_G8_B8_A8::getInstance();
+#else
 			formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16; // verify order of channels
 			formatInfoOut->decoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
+#endif
 			break;
 			// special formats - R10G10B10_A2
 		case Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM:
