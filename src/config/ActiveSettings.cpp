@@ -247,6 +247,6 @@ fs::path ActiveSettings::GetMlcPath()
 
 fs::path ActiveSettings::GetDefaultMLCPath()
 {
-	return GetPath(GetUserDataPath(), "mlc01");
+	return GetUserDataPath("mlc01");
 }
 
