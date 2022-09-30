@@ -89,12 +89,7 @@ private:
 
 FileCache* FileCache::Create(wzstring_view path, uint32 extraVersion)
 {
-	std::wstring wpath(path);
-	fs::path pathParent = fs::path(wpath).parent_path();
-	if (!fs::exists(pathParent))
-		fs::create_directories(pathParent);
-
-	FileStream* fs = FileStream::createFile(wpath.c_str());
+	FileStream* fs = FileStream::createFile(std::wstring(path).c_str());
 	if (!fs)
 	{
 		forceLog_printf("Failed to create cache file \"%ls\"", path);
