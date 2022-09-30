@@ -437,7 +437,7 @@ wxString CemuApp::GetUserDataPath()
 
 wxString CemuApp::GetUserDataPath(const wxString& cat)
 {
-	ActiveSettings::GetUserDataPath(cat.ToStdString()).generic_wstring();
+	return ActiveSettings::GetUserDataPath(cat.ToStdString()).generic_wstring();
 };
 
 void CemuApp::ActivateApp(wxActivateEvent& event)
