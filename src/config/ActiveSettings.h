@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include "config/CemuConfig.h"
 
 // global active settings for fast access (reflects settings from command line and game profile)
@@ -18,7 +19,7 @@ private:
 	static fs::path GetPath(const fs::path& path, std::wstring_view format, TArgs&&... args)
 	{
 		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
-		return path / fmt::format(format, std::forward<TArgs>(args)...);
+		return path / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
 	}
 	static fs::path GetPath(const fs::path& path, std::string_view p) 
 	{
@@ -49,27 +50,9 @@ public:
 
 	[[nodiscard]] static fs::path GetMlcPath();
 
-	[[nodiscard]] static fs::path GetMlcPath(std::string_view p) 
-	{ 
-		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
-		return GetMlcPath() / fs::path(s);
-	}
-	
 	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetMlcPath(std::string_view format, TArgs&&... args)
-	{
-		cemu_assert_debug(format.empty() || (format[0] != '/' && format[0] != '\\'));
-		auto tmp = fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-		return GetMlcPath() / _utf8ToPath(tmp);
-	}
-	
-	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetMlcPath(std::wstring_view format, TArgs&&... args)
-	{
-		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
-		return GetMlcPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-	}
-	
+	[[nodiscard]] static fs::path GetMlcPath(TArgs&&... args){ return GetPath(GetMlcPath(), std::forward<TArgs>(args)...); };
+
 	// get mlc path to default cemu root dir/mlc01
 	[[nodiscard]] static fs::path GetDefaultMLCPath();
 
