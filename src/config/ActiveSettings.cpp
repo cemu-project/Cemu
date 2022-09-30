@@ -37,7 +37,7 @@ void ActiveSettings::LoadOnce(const fs::path& user_data_path,
 
 	s_filename = s_full_path.filename();
 
-	g_config.SetFilename(GetPath(GetConfigPath(), "settings.xml").generic_wstring());
+	g_config.SetFilename(GetConfigPath("settings.xml").generic_wstring());
 	g_config.Load();
 
 	std::wstring additionalErrorInfo;
