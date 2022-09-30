@@ -1739,14 +1739,17 @@ void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
 
 	if(event.GetKeyCode() == WXK_DELETE || event.GetKeyCode() == WXK_BACK)
 	{
-		auto defaultPath = ActiveSettings::GetDefaultMLCPath().wstring();
-		if(!CemuApp::TrySelectMLCPath(defaultPath))
+		std::wstring newPath = L"";
+		if(!CemuApp::TrySelectMLCPath(newPath))
 		{
-			wxMessageBox(_("Cemu can't write to the default MLC path: ") + "\"" + defaultPath + "\"!\n"
-			+ _("Please pick a folder using button instead."), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-			return;
+			const auto res = wxMessageBox(_("The default MLC path is inaccessible.") + "\n"
+				+ _("Would you like to pick a different folder?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
+			if (res == wxYES && CemuApp::SelectMLCPath(this))
+				newPath = ActiveSettings::GetMlcPath().wstring();
+			else
+				return;
 		}
-		m_mlc_path->SetValue(wxEmptyString);
+		m_mlc_path->SetValue(newPath);
 		m_reload_gamelist = true;
 		m_mlc_modified = true;
 	}

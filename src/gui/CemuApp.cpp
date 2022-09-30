@@ -338,8 +338,11 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 }
 
 
-bool CemuApp::TrySelectMLCPath(const std::wstring& path)
+bool CemuApp::TrySelectMLCPath(std::wstring path)
 {
+	if (path.empty())
+		path = ActiveSettings::GetDefaultMLCPath().wstring();
+
 	if (!TestWriteAccess(fs::path{ path }))
 		return false;
 

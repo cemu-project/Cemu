@@ -17,7 +17,7 @@ public:
 	static std::vector<const wxLanguageInfo*> GetAvailableLanguages();
 
 	static void CreateDefaultFiles(bool first_start = false);
-	static bool TrySelectMLCPath(const std::wstring &path);
+	static bool TrySelectMLCPath(std::wstring path);
 	static bool SelectMLCPath(wxWindow* parent = nullptr);
 
 	static wxString GetCemuPath();
