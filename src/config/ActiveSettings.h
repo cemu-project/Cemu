@@ -11,8 +11,7 @@ private:
 	{
 		cemu_assert_debug(format.empty() || (format[0] != '/' && format[0] != '\\'));
 		std::string tmpPathStr = fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-		std::basic_string_view<char8_t> s((const char8_t*)tmpPathStr.data(), tmpPathStr.size());
-		return path / fs::path(s);
+		return path / _utf8ToPath(tmpPathStr);
 	}
 
 	template <typename ...TArgs>
