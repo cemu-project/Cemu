@@ -1068,7 +1068,7 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 		{
 			// create directory
 			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
-			fs::create_directories(path / "path" / "shaders");
+			fs::create_directories(path / "dump" / "shaders");
 		}
 		catch (const std::exception & ex)
 		{
