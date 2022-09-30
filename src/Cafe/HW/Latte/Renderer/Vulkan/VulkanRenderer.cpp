@@ -1929,6 +1929,13 @@ void VulkanRenderer::QueryAvailableFormats()
 	{
 		m_supportedFormatInfo.fmt_r4g4_unorm_pack = true;
 	}
+	// R5G6B5
+	fmtProp = {};
+	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_R5G6B5_UNORM_PACK16, &fmtProp);
+	if (fmtProp.optimalTilingFeatures != 0)
+	{
+		m_supportedFormatInfo.fmt_r5g6b5_unorm_pack = true;
+	}
 	// R4G4B4A4
 	fmtProp = {};
 	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_R4G4B4A4_UNORM_PACK16, &fmtProp);
@@ -2633,9 +2640,15 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			break;
 			// special formats
 		case Latte::E_GX2SURFFMT::R5_G6_B5_UNORM:
-			// Vulkan has R in MSB, GPU7 has it in LSB
-			formatInfoOut->vkImageFormat = VK_FORMAT_R5G6B5_UNORM_PACK16;
-			formatInfoOut->decoder = TextureDecoder_R5_G6_B5_swappedRB::getInstance();
+			if (m_supportedFormatInfo.fmt_r5g6b5_unorm_pack == false) {
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = nullptr;
+			}
+			else {
+				// Vulkan has R in MSB, GPU7 has it in LSB
+				formatInfoOut->vkImageFormat = VK_FORMAT_R5G6B5_UNORM_PACK16;
+				formatInfoOut->decoder = TextureDecoder_R5_G6_B5_swappedRB::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM:
 			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
