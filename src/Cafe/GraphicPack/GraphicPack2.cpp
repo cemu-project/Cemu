@@ -63,7 +63,7 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 void GraphicPack2::LoadAll()
 {
 	std::error_code ec;
-	fs::path basePath = ActiveSettings::GetUserDataPath() / "graphicPacks";
+	fs::path basePath = ActiveSettings::GetUserDataPath("graphicPacks");
 	for (fs::recursive_directory_iterator it(basePath, ec); it != end(it); ++it)
 	{
 		if (!it->is_directory(ec))
