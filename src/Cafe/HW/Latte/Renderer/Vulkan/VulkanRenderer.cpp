@@ -4085,7 +4085,7 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 {
 	// generate helper hash for pipeline state
 	uint64 stateHash = 0;
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; ++i)
 	{
 		if (attachmentInfo.colorAttachment[i].isPresent || attachmentInfo.colorAttachment[i].viewObj)
 		{
@@ -4102,7 +4102,7 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 
 	// setup Vulkan renderpass
 	std::vector<VkAttachmentDescription> attachments_descriptions;
-	std::array<VkAttachmentReference, 8> color_attachments_references{};
+	std::array<VkAttachmentReference, Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS> color_attachments_references{};
 	cemu_assert(colorAttachmentCount <= color_attachments_references.size());
 	sint32 numColorAttachments = 0;
 	for (int i = 0; i < 8; ++i)
@@ -4110,8 +4110,10 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 		if (attachmentInfo.colorAttachment[i].viewObj == nullptr && attachmentInfo.colorAttachment[i].isPresent == false)
 		{
 			color_attachments_references[i].attachment = VK_ATTACHMENT_UNUSED;
+			m_colorAttachmentFormat[i] = VK_FORMAT_UNDEFINED;
 			continue;
 		}
+		m_colorAttachmentFormat[i] = attachmentInfo.colorAttachment[i].format;
 
 		color_attachments_references[i].attachment = (uint32)attachments_descriptions.size();
 		color_attachments_references[i].layout = VK_IMAGE_LAYOUT_GENERAL;
@@ -4135,12 +4137,14 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 	if (attachmentInfo.depthAttachment.viewObj == nullptr && attachmentInfo.depthAttachment.isPresent == false)
 	{
 		depth_stencil_attachments_references.attachment = VK_ATTACHMENT_UNUSED;
+		m_depthAttachmentFormat = VK_FORMAT_UNDEFINED;
 	}
 	else
 	{
 		hasDepthStencilAttachment = true;
 		depth_stencil_attachments_references.attachment = (uint32)attachments_descriptions.size();
 		depth_stencil_attachments_references.layout = VK_IMAGE_LAYOUT_GENERAL;
+		m_depthAttachmentFormat = attachmentInfo.depthAttachment.format;
 
 		VkAttachmentDescription entry{};
 		entry.format = attachmentInfo.depthAttachment.format;
