@@ -289,7 +289,7 @@ uint32 loadSharedData()
 	for (sint32 i = 0; i < sizeof(shareddataDef) / sizeof(shareddataDef[0]); i++)
 	{
 		bool existsInMLC = fs::exists(ActiveSettings::GetMlcPath(shareddataDef[i].mlcPath));
-		bool existsInResources = fs::exists(GetPath(ActiveSettings::GetDataPath(), shareddataDef[i].resourcePath));
+		bool existsInResources = fs::exists(ActiveSettings::GetDataPath(shareddataDef[i].resourcePath));
 
 		if (!existsInMLC && !existsInResources)
 		{
@@ -314,7 +314,7 @@ uint32 loadSharedData()
 			// alternatively fall back to our shared fonts
 			if (!fontFile)
 			{
-				path = GetPath(ActiveSettings::GetDataPath(), shareddataDef[i].resourcePath);
+				path = ActiveSettings::GetDataPath(shareddataDef[i].resourcePath);
 				fontFile = FileStream::openFile2(path);
 			}
 			if (!fontFile)
@@ -340,7 +340,7 @@ uint32 loadSharedData()
 		return memory_getVirtualOffsetFromPointer(dataWritePtr);
 	}
 	// alternative method: load RAM dump
-	const auto path = GetPath(ActiveSettings::GetUserDataPath(), "shareddata.bin");
+	const auto path = ActiveSettings::GetUserDataPath("shareddata.bin");
 	FileStream* ramDumpFile = FileStream::openFile2(path);
 	if (ramDumpFile)
 	{

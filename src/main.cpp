@@ -160,7 +160,7 @@ void _putenvSafe(const char* c)
 void reconfigureGLDrivers()
 {
 	// reconfigure GL drivers to store 
-	const fs::path nvCacheDir = GetPath(ActiveSettings::GetCachePath(), "shaderCache/driver/nvidia/");
+	const fs::path nvCacheDir = ActiveSettings::GetCachePath("shaderCache/driver/nvidia/");
 
 	std::error_code err;
 	fs::create_directories(nvCacheDir, err);
@@ -262,7 +262,7 @@ int mainEmulatorHLE()
 	// init Cafe system (todo - the stuff above should be part of this too)
 	CafeSystem::Initialize();
 	// init title list
-	CafeTitleList::Initialize(GetPath(ActiveSettings::GetUserDataPath(), "title_list_cache.xml"));
+	CafeTitleList::Initialize(ActiveSettings::GetUserDataPath("title_list_cache.xml"));
 	for (auto& it : GetConfig().game_paths)
 		CafeTitleList::AddScanPath(it);
 	fs::path mlcPath = ActiveSettings::GetMlcPath();

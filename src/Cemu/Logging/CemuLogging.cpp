@@ -98,7 +98,7 @@ void cemuLog_createLogFile(bool triggeredByCrash)
 	if (LogContext.file_stream.is_open())
 		return;
 
-	const auto path = GetPath(ActiveSettings::GetUserDataPath(), "log.txt");
+	const auto path = ActiveSettings::GetUserDataPath("log.txt");
 	LogContext.file_stream.open(path, std::ios::out);
 	if (LogContext.file_stream.fail())
 	{

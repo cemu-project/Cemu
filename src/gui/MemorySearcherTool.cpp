@@ -270,7 +270,7 @@ void MemorySearcherTool::OnFilter(wxCommandEvent& event)
 
 void MemorySearcherTool::Load()
 {
-	const auto memorySearcherPath = GetPath(ActiveSettings::GetUserDataPath(), "memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
+	const auto memorySearcherPath = ActiveSettings::GetUserDataPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
 	auto memSearcherIniContents = FileStream::LoadIntoMemory(memorySearcherPath);
 	if (!memSearcherIniContents)
 		return;
@@ -322,7 +322,7 @@ void MemorySearcherTool::Load()
 
 void MemorySearcherTool::Save()
 {
-	const auto memorySearcherPath = GetPath(ActiveSettings::GetUserDataPath(), "memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
+	const auto memorySearcherPath = ActiveSettings::GetUserDataPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
 	FileStream* fs = FileStream::createFile2(memorySearcherPath);
 	if (fs)
 	{

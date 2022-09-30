@@ -118,7 +118,7 @@ bool CemuApp::OnInit()
 		{
 			if (m_locale.Init(language))
 			{
-				m_locale.AddCatalogLookupPathPrefix(GetPath(ActiveSettings::GetDataPath(), "resources").generic_string());
+				m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
 				m_locale.AddCatalog("cemu");
 			}
 		}
@@ -219,7 +219,7 @@ int CemuApp::FilterEvent(wxEvent& event)
 
 std::vector<const wxLanguageInfo*> CemuApp::GetAvailableLanguages()
 {
-	const auto path = GetPath(ActiveSettings::GetDataPath(), "resources");
+	const auto path = ActiveSettings::GetDataPath("resources");
 	if (!exists(path))
 		return {};
 	
@@ -427,7 +427,7 @@ wxString CemuApp::GetConfigPath()
 
 wxString CemuApp::GetConfigPath(const wxString& cat)
 {
-	return GetPath(ActiveSettings::GetConfigPath(), cat.ToStdString()).generic_wstring();
+	return ActiveSettings::GetConfigPath(cat.ToStdString()).generic_wstring();
 };
 
 wxString CemuApp::GetUserDataPath()
@@ -437,7 +437,7 @@ wxString CemuApp::GetUserDataPath()
 
 wxString CemuApp::GetUserDataPath(const wxString& cat)
 {
-	return GetPath(ActiveSettings::GetUserDataPath(), cat.ToStdString()).generic_wstring();
+	ActiveSettings::GetUserDataPath(cat.ToStdString()).generic_wstring();
 };
 
 void CemuApp::ActivateApp(wxActivateEvent& event)

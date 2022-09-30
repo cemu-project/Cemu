@@ -76,9 +76,9 @@ bool InputManager::load(size_t player_index, std::string_view filename)
 {
 	fs::path file_path;
 	if (filename.empty())
-		file_path = GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles/controller{}", player_index);
+		file_path = ActiveSettings::GetConfigPath("controllerProfiles/controller{}", player_index);
 	else
-		file_path = GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles/{}", filename);
+		file_path = ActiveSettings::GetConfigPath("controllerProfiles/{}", filename);
 
 	auto old_file = file_path;
 	old_file.replace_extension(".txt"); // test .txt extension
@@ -448,7 +448,7 @@ bool InputManager::save(size_t player_index, std::string_view filename)
 	if (!emulated_controller)
 		return false;
 
-	fs::path file_path = GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles");
+	fs::path file_path = ActiveSettings::GetConfigPath("controllerProfiles");
 	fs::create_directories(file_path);
 
 	const auto is_default_file = filename.empty();
@@ -664,8 +664,8 @@ EmulatedControllerPtr InputManager::delete_controller(size_t player_index, bool 
 			if(delete_profile)
 			{
 				std::error_code ec{};
-				fs::remove(GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles/controller{}.xml", player_index), ec);
-				fs::remove(GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles/controller{}.txt", player_index), ec);
+				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.xml", player_index), ec);
+				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.txt", player_index), ec);
 			}
 
 			return result;
@@ -680,8 +680,8 @@ EmulatedControllerPtr InputManager::delete_controller(size_t player_index, bool 
 			controller = {};
 
 			std::error_code ec{};
-			fs::remove(GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles/controller{}.xml", player_index), ec);
-			fs::remove(GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles/controller{}.txt", player_index), ec);
+			fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.xml", player_index), ec);
+			fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.txt", player_index), ec);
 
 			return result;
 		}
@@ -782,7 +782,7 @@ void InputManager::apply_game_profile()
 
 std::vector<std::string> InputManager::get_profiles()
 {
-	const auto path = GetPath(ActiveSettings::GetConfigPath(), "controllerProfiles");
+	const auto path = ActiveSettings::GetConfigPath("controllerProfiles");
 	if (!exists(path))
 		return {};
 
