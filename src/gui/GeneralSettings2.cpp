@@ -1730,7 +1730,6 @@ void GeneralSettings2::OnMLCPathSelect(wxCommandEvent& event)
 	m_mlc_path->SetValue(ActiveSettings::GetMlcPath().generic_string());
 	m_reload_gamelist = true;
 	m_mlc_modified = true;
-	CemuApp::CreateDefaultFiles();
 }
 
 void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
@@ -1740,14 +1739,16 @@ void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
 
 	if(event.GetKeyCode() == WXK_DELETE || event.GetKeyCode() == WXK_BACK)
 	{
+		auto defaultPath = ActiveSettings::GetDefaultMLCPath().wstring();
+		if(!CemuApp::TrySelectMLCPath(defaultPath))
+		{
+			wxMessageBox(_("Cemu can't write to the default MLC path: ") + "\"" + defaultPath + "\"!\n"
+			+ _("Please pick a folder using button instead."), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+			return;
+		}
 		m_mlc_path->SetValue(wxEmptyString);
 		m_reload_gamelist = true;
-
-		GetConfig().mlc_path = L"";
-		g_config.Save();
 		m_mlc_modified = true;
-		
-		CemuApp::CreateDefaultFiles();
 	}
 }
 

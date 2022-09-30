@@ -338,6 +338,21 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 }
 
 
+bool CemuApp::TrySelectMLCPath(const std::wstring& path)
+{
+	if (!TestWriteAccess(fs::path{ path }))
+		return false;
+
+	GetConfig().SetMLCPath(path);
+	CemuApp::CreateDefaultFiles();
+
+	// update TitleList and SaveList scanner with new MLC path
+	CafeTitleList::SetMLCPath(path);
+	CafeTitleList::Refresh();
+	CafeSaveList::SetMLCPath(path);
+	CafeSaveList::Refresh();
+	return true;
+}
 
 bool CemuApp::SelectMLCPath(wxWindow* parent)
 {
@@ -348,33 +363,22 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 		default_path = config.mlc_path.GetValue();
 
 	// try until users selects a valid path or aborts
-	while(true)
+	retry:
+	wxDirDialog path_dialog(parent, _("Select a mlc directory"), default_path, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+	if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().empty())
+		return false;
+
+	const auto path = path_dialog.GetPath().ToStdWstring();
+	if (!TrySelectMLCPath(path))
 	{
-		wxDirDialog path_dialog(parent, _("Select a mlc directory"), default_path, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
-		if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().empty())
+		const auto result = wxMessageBox(_("Cemu can't write to the selected mlc path!\nDo you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
+		if (result == wxYES)
+			goto retry;
+		else
 			return false;
-
-		const auto path = path_dialog.GetPath().ToStdWstring();
-
-		if (!TestWriteAccess(fs::path{ path }))
-		{
-			const auto result = wxMessageBox(_("Cemu can't write to the selected mlc path!\nDo you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
-			if (result == wxYES)
-				continue;
-			
-			break;
-		}
-
-		config.SetMLCPath(path);
-		// update TitleList and SaveList scanner with new MLC path
-		CafeTitleList::SetMLCPath(path);
-		CafeTitleList::Refresh();
-		CafeSaveList::SetMLCPath(path);
-		CafeSaveList::Refresh();
-		return true;
 	}
 
-	return false;
+	return true;
 }
 
 wxString CemuApp::GetCemuPath()
