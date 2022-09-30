@@ -13,10 +13,11 @@
 
 extern bool alwaysDisplayDRC;
 
-void ActiveSettings::LoadOnce(const fs::path& user_data_path,
-							  const fs::path& config_path,
-							  const fs::path& cache_path,
-							  const fs::path& data_path)
+std::set<fs::path>
+ActiveSettings::LoadOnce(const fs::path& user_data_path,
+						 const fs::path& config_path,
+						 const fs::path& cache_path,
+						 const fs::path& data_path)
 {
 	s_full_path = boost::dll::program_location().generic_wstring();
 
@@ -24,6 +25,7 @@ void ActiveSettings::LoadOnce(const fs::path& user_data_path,
 	s_config_path = config_path;
 	s_cache_path = cache_path;
 	s_data_path = data_path;
+	std::set<fs::path> failed_write_access;
 	for (auto&& path : {user_data_path, config_path, cache_path})
 	{
 		if (!fs::exists(path))
@@ -32,7 +34,10 @@ void ActiveSettings::LoadOnce(const fs::path& user_data_path,
 			fs::create_directories(path, ec);
 		}
 		if (!TestWriteAccess(path))
+		{
 			cemuLog_log(LogType::Force, "Failed to write to {}", path.generic_string());
+			failed_write_access.insert(path);
+		}
 	}
 
 	s_filename = s_full_path.filename();
@@ -42,6 +47,7 @@ void ActiveSettings::LoadOnce(const fs::path& user_data_path,
 
 	std::wstring additionalErrorInfo;
 	s_has_required_online_files = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo) == IOS_CRYPTO_ONLINE_REQ_OK;
+	return failed_write_access;
 }
 
 bool ActiveSettings::LoadSharedLibrariesEnabled()

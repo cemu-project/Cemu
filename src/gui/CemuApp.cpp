@@ -100,8 +100,9 @@ bool CemuApp::OnInit()
 	cache_path = standardPaths.GetUserDir(wxStandardPaths::Dir::Dir_Cache).ToStdString();
 	cache_path /= appName.ToStdString();
 #endif
-	ActiveSettings::LoadOnce(user_data_path, config_path, cache_path, data_path);
-
+	auto failed_write_access = ActiveSettings::LoadOnce(user_data_path, config_path, cache_path, data_path);
+	for (auto&& path : failed_write_access)
+		wxMessageBox(fmt::format("Cemu can't write to {} !", path.generic_string()), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 	HandlePostUpdate();
 	mainEmulatorHLE();
 

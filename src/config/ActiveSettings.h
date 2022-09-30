@@ -32,10 +32,12 @@ private:
 	}
 
 public:
-	static void LoadOnce(const fs::path& user_data_path,
-						 const fs::path& config_path,
-						 const fs::path& cache_path,
-						 const fs::path& data_path);
+	// Set directories and return all directories that failed write access test
+	static std::set<fs::path> 
+	LoadOnce(const fs::path& user_data_path,
+			 const fs::path& config_path,
+			 const fs::path& cache_path,
+			 const fs::path& data_path);
 
 	[[nodiscard]] static fs::path GetFullPath() { return s_full_path; }
 	[[nodiscard]] static fs::path GetFilename() { return s_filename; }
