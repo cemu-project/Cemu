@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "curl/curl.h"
 #include "openssl/bn.h"
 #include "openssl/x509.h"
@@ -497,7 +498,7 @@ namespace iosu
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, task_header_callback);
 		curl_easy_setopt(curl, CURLOPT_HEADERDATA, &(*it));
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0x3C);
-		if (ActiveSettings::IsSSLDisabled()){
+		if (GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() == Custom || ActiveSettings::GetNetworkService() == Pretendo){ //Remove Pretendo Function once SSL is in the Service
 			curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
 		} else {
 		curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, task_sslctx_function);
@@ -565,12 +566,21 @@ namespace iosu
 
 			char boss_code[0x20];
 			strncpy(boss_code, (char*)&it->task_settings.settings[TaskSetting::kBossCode], TaskSetting::kBossCodeLen);
-
-		if (ActiveSettings::GetNetworkService() == 0) {
-			sprintf(url, "https://npts.app.nintendo.net/p01/tasksheet/%s/%s/%s?c=%s&l=%s", "1", boss_code, it->task_id, countryCode, languageCode);
-		}else if (ActiveSettings::GetNetworkService() == 1) {
-			sprintf(url, "https://npts.app.pretendo.cc/p01/tasksheet/%s/%s/%s?c=%s&l=%s", "1", boss_code, it->task_id, countryCode, languageCode);
-		}
+			switch (ActiveSettings::GetNetworkService())
+			{
+			case Nintendo:
+				sprintf(url, NintendoURLs::BOSSURL.append("/%s/%s/%s?c=%s&l=%s").c_str(), "1", boss_code, it->task_id, countryCode, languageCode);
+				break;
+			case Pretendo:
+				sprintf(url, PretendoURLs::BOSSURL.append("/%s/%s/%s?c=%s&l=%s").c_str(), "1", boss_code, it->task_id, countryCode, languageCode);
+				break;
+			case Custom:
+				sprintf(url, GetNetworkConfig().urls.BOSS.GetValue().append("/%s/%s/%s?c=%s&l=%s").c_str(), "1", boss_code, it->task_id, countryCode, languageCode);
+				break;
+			default:
+			sprintf(url, NintendoURLs::BOSSURL.append("/%s/%s/%s?c=%s&l=%s").c_str(), "1", boss_code, it->task_id, countryCode, languageCode);
+				break;
+			}
 		}
 
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list_headerParam);

@@ -8,6 +8,7 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
+#include "config/NetworkSettings.h"
 #include "gui/CemuApp.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "config/LaunchSettings.h"
@@ -216,6 +217,8 @@ void mainEmulatorCommonInit()
     ExceptionHandler_init();
 	// read config
 	g_config.Load();
+	if (NetworkConfig::XMLExists())
+	n_config.Load();
 	// symbol storage
 	rplSymbolStorage_init();
 	// static initialization
@@ -356,6 +359,7 @@ int main(int argc, char* argv[])
 	if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
 	ActiveSettings::LoadOnce();
+	NetworkConfig::LoadOnce();
 	HandlePostUpdate();
 	return mainEmulatorHLE();
 }

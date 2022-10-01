@@ -9,7 +9,7 @@
 #include "util/crypto/md5.h"
 #include "config/LaunchSettings.h"
 #include "config/ActiveSettings.h"
-
+#include "config/NetworkSettings.h"
 #include "pugixml.hpp"
 #include <charconv>
 
@@ -27,20 +27,42 @@ namespace NAPI
 	{
 		if (!s_serviceURL_NusURL.empty())
 			return s_serviceURL_NusURL;
-		if (ActiveSettings::GetNetworkService() == 0)
-		return "https://nus.wup.shop.nintendo.net/nus/services/NetUpdateSOAP";
-		if  (ActiveSettings::GetNetworkService() == 1)
-		return "https://nus.c.shop.pretendo.cc/nus/services/NetUpdateSOAP";
+			switch (ActiveSettings::GetNetworkService())
+			{
+			case Nintendo:
+				return NintendoURLs::NUSURL;
+				break;
+			case Pretendo:
+				return PretendoURLs::NUSURL;
+				break;
+			case Custom:
+				return GetNetworkConfig().urls.NUS;
+				break;
+			default:
+				return NintendoURLs::NUSURL;
+				break;
+			}
 	}
 
 	std::string _getIASUrl()
 	{
 		if (!s_serviceURL_IasURL.empty())
 			return s_serviceURL_IasURL;
-		if (ActiveSettings::GetNetworkService() == 0)
-		return "https://ias.wup.shop.nintendo.net/ias/services/IdentityAuthenticationSOAP";
-		if (ActiveSettings::GetNetworkService() == 1)
-		return "https://ias.c.shop.pretendo.cc/ias/services/IdentityAuthenticationSOAP";
+		switch (ActiveSettings::GetNetworkService())
+			{
+			case Nintendo:
+				return NintendoURLs::IASURL;
+				break;
+			case Pretendo:
+				return PretendoURLs::IASURL;
+				break;
+			case Custom:
+				return GetNetworkConfig().urls.IAS;
+				break;
+			default:
+				return NintendoURLs::IASURL;
+				break;
+			}
 	}
 
 	std::string _getECSUrl()
@@ -55,20 +77,42 @@ namespace NAPI
 	{
 		if (!s_serviceURL_UncachedContentPrefixURL.empty())
 			return s_serviceURL_UncachedContentPrefixURL;
-		if (ActiveSettings::GetNetworkService() == 0)
-		return "https://ccs.wup.shop.nintendo.net/ccs/download";
-		if (ActiveSettings::GetNetworkService() == 1)
-		return "https://ccs.c.shop.pretendo.cc/ccs/download";
+		switch (ActiveSettings::GetNetworkService())
+			{
+			case Nintendo:
+				return NintendoURLs::CCSUURL;
+				break;
+			case Pretendo:
+				return PretendoURLs::CCSUURL;
+				break;
+			case Custom:
+				return GetNetworkConfig().urls.CCSU;
+				break;
+			default:
+				return NintendoURLs::CCSUURL;
+				break;
+			}
 	}
 
 	std::string _getCCSUrl() // used for game data downloads
 	{
 		if (!s_serviceURL_ContentPrefixURL.empty())
 			return s_serviceURL_ContentPrefixURL;
-		if (ActiveSettings::GetNetworkService() == 0)
-		return "http://ccs.cdn.wup.shop.nintendo.net/ccs/download";
-		if (ActiveSettings::GetNetworkService() == 1)
-		return "http://ccs.cdn.c.shop.pretendo.cc/ccs/download";
+		switch (ActiveSettings::GetNetworkService())
+			{
+			case Nintendo:
+				return NintendoURLs::CCSURL;
+				break;
+			case Pretendo:
+				return PretendoURLs::CCSURL;
+				break;
+			case Custom:
+				return GetNetworkConfig().urls.CCS;
+				break;
+			default:
+				return NintendoURLs::CCSURL;
+				break;
+			}
 	}
 
 	/* NUS */

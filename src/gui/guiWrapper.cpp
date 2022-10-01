@@ -5,6 +5,7 @@
 #include "gui/debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/CafeSystem.h"
@@ -98,11 +99,14 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 
     if (ActiveSettings::IsOnlineEnabled()){
         windowText.append(" [Online]");
-	if (ActiveSettings::GetNetworkService() == 0) {
+	if (ActiveSettings::GetNetworkService() == Nintendo) {
 		 windowText.append("[Nintendo]");
 	}
-	else if (ActiveSettings::GetNetworkService() == 1) {
+	else if (ActiveSettings::GetNetworkService() == Pretendo) {
 		 windowText.append("[Pretendo]");
+	}
+	else if (ActiveSettings::GetNetworkService() == Custom) {
+		 windowText.append(GetNetworkConfig().networkname);
 	}
 	}
     windowText.append(" ");

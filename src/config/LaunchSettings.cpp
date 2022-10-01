@@ -9,6 +9,7 @@
 #include <wx/msgdlg.h>
 
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "util/crypto/aes128.h"
 
 #include "Cafe/Filesystem/FST/FST.h"
@@ -266,14 +267,24 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 
 
 void LaunchSettings::ChangeNetworkServiceURL(int ID){
-	if (ID == 0){
-		//Nintendo so change URLs
+	switch (ID)
+	{
+	case Nintendo:
 		serviceURL_ACT = "https://account.nintendo.net";
 	 	serviceURL_ECS = "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP";
-	}
-	else if (ID == 1) {
-		//Pretendo so change URLs
+		break;
+	case Pretendo:
 		serviceURL_ACT = "https://account.pretendo.cc";
 	 	serviceURL_ECS = "https://ecs.wup.shop.pretendo.cc/ecs/services/ECommerceSOAP";
+		break;
+	case Custom:
+		serviceURL_ACT = GetNetworkConfig().urls.ACT.GetValue();
+	 	serviceURL_ECS = GetNetworkConfig().urls.ECS.GetValue();
+		break;
+	default:
+		serviceURL_ACT = "https://account.nintendo.net";
+	 	serviceURL_ECS = "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP";
+		break;
 	}
+
 }

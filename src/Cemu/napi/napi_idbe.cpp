@@ -11,6 +11,7 @@
 #include "util/crypto/aes128.h"
 #include "util/helpers/StringHelpers.h"
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 
 namespace NAPI
 {
@@ -56,11 +57,21 @@ namespace NAPI
 	std::vector<uint8> IDBE_RequestRawEncrypted(uint64 titleId)
 	{
 		CurlRequestHelper req;
-		if (ActiveSettings::GetNetworkService() == 0) {
-		req.initate(fmt::format("https://idbe-wup.cdn.nintendo.net/icondata/{0:02X}/{1:016X}.idbe", (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
-		}else if (ActiveSettings::GetNetworkService() == 1) {
-		req.initate(fmt::format("https://idbe-wup.cdn.pretendo.cc/icondata/{0:02X}/{1:016X}.idbe", (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
-		}
+	switch (ActiveSettings::GetNetworkService())
+			{
+			case Nintendo:
+				req.initate(fmt::format(fmt::runtime(NintendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			case Pretendo:
+				req.initate(fmt::format(fmt::runtime(PretendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			case Custom:
+				req.initate(fmt::format(fmt::runtime(GetNetworkConfig().urls.IDBE.GetValue() + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			default:
+				req.initate(fmt::format(fmt::runtime(NintendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			}
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request IDBE icon for title {0:016X}", titleId));
@@ -89,11 +100,21 @@ namespace NAPI
 		}
 
 		CurlRequestHelper req;
-		if (ActiveSettings::GetNetworkService() == 0) {
-		req.initate(fmt::format("https://idbe-wup.cdn.nintendo.net/icondata/{0:02X}/{1:016X}.idbe", (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
-		}else if (ActiveSettings::GetNetworkService() == 1) {
-		req.initate(fmt::format("https://idbe-wup.cdn.pretendo.cc/icondata/{0:02X}/{1:016X}.idbe", (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
-		}
+		switch (ActiveSettings::GetNetworkService())
+			{
+			case Nintendo:
+				req.initate(fmt::format(fmt::runtime(NintendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			case Pretendo:
+				req.initate(fmt::format(fmt::runtime(PretendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			case Custom:
+				req.initate(fmt::format(fmt::runtime(GetNetworkConfig().urls.IDBE.GetValue() + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			default:
+				req.initate(fmt::format(fmt::runtime(NintendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+				break;
+			}
 
 		if (!req.submitRequest(false))
 		{
