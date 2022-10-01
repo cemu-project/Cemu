@@ -348,6 +348,7 @@ int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ L
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
 	ActiveSettings::LoadOnce();
+	NetworkConfig::LoadOnce();
 	HandlePostUpdate();
 	return mainEmulatorHLE();
 }
@@ -375,7 +376,7 @@ int main(int argc, char *argv[])
 		return 0;
 
 	ActiveSettings::LoadOnce();
-
+	NetworkConfig::LoadOnce();
 	HandlePostUpdate();
 	return mainEmulatorHLE();
 }
