@@ -125,10 +125,6 @@ int ActiveSettings::GetNetworkService() {
 	return GetConfig().account.active_service;
 }
 
-bool ActiveSettings::IsSSLDisabled() {
-	return GetConfig().account.disable_ssl;
-}
-
 bool ActiveSettings::DumpShadersEnabled()
 {
 	return s_dump_shaders;
