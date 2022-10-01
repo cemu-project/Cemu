@@ -978,7 +978,7 @@ public:
 	}
 };
 
-class TextueDecoder_R5G6B5_UNORM_toR8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextueDecoder_R5G6B5_UNORM_toR8G8B8A8_UNORM>
+class TextueDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextueDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
