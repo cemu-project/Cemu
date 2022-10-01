@@ -986,7 +986,7 @@ public:
 		return 4;
 	}
 
-	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData)
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
 		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
 		{
@@ -1013,7 +1013,7 @@ public:
 		}
 	}
 
-	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY)
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
 	{
 		uint16 v0 = *(uint16*)(blockData + 0);
 		uint8 c0 = (v0 & 0x1F);// red
