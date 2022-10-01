@@ -2642,7 +2642,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::R5_G6_B5_UNORM:
 			if (m_supportedFormatInfo.fmt_r5g6b5_unorm_pack == false) {
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-				formatInfoOut->decoder = TextueDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM::getInstance();
+				formatInfoOut->decoder = TextureDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM::getInstance();
 			}
 			else {
 				// Vulkan has R in MSB, GPU7 has it in LSB

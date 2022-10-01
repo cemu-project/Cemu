@@ -978,7 +978,7 @@ public:
 	}
 };
 
-class TextueDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextueDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM>
+class TextureDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextureDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -1005,7 +1005,7 @@ public:
 				c1 = (c1 << 2) | c1 >> 4;// green
 				c2 = (c2 << 3) | c2 >> 3;// red
 
-				*(uint8*)(outputData + pixelOffset + 0) = c0;// blue, intro
+				*(uint8*)(outputData + pixelOffset + 0) = c0;// blue
 				*(uint8*)(outputData + pixelOffset + 1) = c1;// green
 				*(uint8*)(outputData + pixelOffset + 2) = c2;// red
 				*(uint8*)(outputData + pixelOffset + 3) = 255;//alpha
