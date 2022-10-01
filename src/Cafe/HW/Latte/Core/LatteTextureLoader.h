@@ -978,6 +978,57 @@ public:
 	}
 };
 
+class TextueDecoder_R5G6B5_UNORM_toR8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextueDecoder_R5G6B5_UNORM_toR8G8B8A8_UNORM>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return 4;
+	}
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData)
+	{
+		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
+		{
+			sint32 yc = y;
+			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
+			{
+				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
+				sint32 pixelOffset = (x + yc * textureLoader->width) * 4;
+				uint16 v0 = (*(uint16*)(blockData + 0));
+
+				uint8 c0 = (v0 & 0x1F);
+				uint8 c1 = (v0 >> 5) & 0x3F;
+				uint8 c2 = (v0 >> 11) & 0x1F;
+
+				c0 = (c0 << 3) | c0 >> 3;// blue
+				c1 = (c1 << 2) | c1 >> 4;// green
+				c2 = (c2 << 3) | c2 >> 3;// red
+
+				*(uint8*)(outputData + pixelOffset + 0) = c0;// blue, intro
+				*(uint8*)(outputData + pixelOffset + 1) = c1;// green
+				*(uint8*)(outputData + pixelOffset + 2) = c2;// red
+				*(uint8*)(outputData + pixelOffset + 3) = 255;//alpha
+			}
+		}
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY)
+	{
+		uint16 v0 = *(uint16*)(blockData + 0);
+		uint8 c0 = (v0 & 0x1F);// red
+		uint8 c1 = (v0 >> 5) & 0x3F;// green
+		uint8 c2 = (v0 >> 11) & 0x1F; // blue
+		c0 = (c0 << 3) | c0 >> 3;
+		c1 = (c1 << 2) | c1 >> 4;
+		c2 = (c2 << 3) | c2 >> 3;
+		*(outputPixel + 0) = c0;// red
+		*(outputPixel + 1) = c1;// green
+		*(outputPixel + 2) = c2;// blue
+		*(outputPixel + 3) = 255;// alpha
+	}
+};
+
 class TextureDecoder_R5_G5_B5_A1_UNORM : public TextureDecoder, public SingletonClass<TextureDecoder_R5_G5_B5_A1_UNORM>
 {
 public:
