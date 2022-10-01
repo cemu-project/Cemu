@@ -261,7 +261,7 @@ void amiiboEncrypt(AmiiboRawNFCData* nfcOutput)
 	amiiboCrypto_internalToNfcFormat(&internalCopy, nfcOutput);
 
 	// restore NFC values that aren't part of the internal representation
-	memcpy(nfcOutput->lockBytes, nfp_data.amiiboNFCData.lockBytes, 4);
+	memcpy(nfcOutput->dynamicLock, nfp_data.amiiboNFCData.dynamicLock, 4);
 	memcpy(nfcOutput->cfg0, nfp_data.amiiboNFCData.cfg0, 4);
 	memcpy(nfcOutput->cfg1, nfp_data.amiiboNFCData.cfg1, 4);
 }

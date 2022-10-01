@@ -25,16 +25,20 @@ void nnNfpUnlock()
 
 struct AmiiboInternal
 {
-	/* +0x000 */ uint32 ukn000;
-	/* +0x004 */ uint32 ukn004;
+	/* +0x000 */ uint16 lockBytes;
+	/* +0x002 */ uint16 staticLock;
+	/* +0x004 */ uint32 cc;
 	/* +0x008 */ uint8 dataHMAC[32];
-	/* +0x028 */ uint32 ukn028;
+	/* +0x028 */ uint8 ukn_A5; // always 0xA5
+	/* +0x029 */ uint8 writeCounterHigh;
+	/* +0x029 */ uint8 writeCounterLow;
+	/* +0x02B */ uint8 unk02B;
 	/* encrypted region starts here */
-	struct  
+	struct
 	{
 		/* +0x02C */ uint8 flags;
 		/* +0x02D */ uint8 countryCode;
-		/* +0x02E */ uint16be writeCounter;
+		/* +0x02E */ uint16be crcWriteCounter;
 		/* +0x030 */ uint16be date1;
 		/* +0x032 */ uint16be date2;
 		/* +0x034 */ uint32be crc;
@@ -42,7 +46,7 @@ struct AmiiboInternal
 		/* +0x04C */ uint8 mii[0x60];
 		/* +0x0AC */ uint32be appDataTitleIdHigh;
 		/* +0x0B0 */ uint32be appDataTitleIdLow;
-		/* +0x0B4 */ uint16be writeCounter2;
+		/* +0x0B4 */ uint16be appWriteCounter;
 		/* +0x0B6 */ uint16be appDataIdHigh;
 		/* +0x0B8 */ uint16be appDataIdLow;
 		/* +0x0BA */ uint16be ukn0BA;
@@ -70,11 +74,19 @@ struct AmiiboInternal
 	/* +0x0DC */ uint8 applicationData[0xD8];
 	/* encrypted region ends here */
 	/* +0x1B4 */ uint8 tagHMAC[32];
-	/* +0x1D4 */ uint32 ukn1D4;
-	/* +0x1D8 */ uint32 ukn1D8;
-	/* +0x1DC */ uint32 ukn1DC;
-	/* +0x1E0 */ uint8 ukn1E0[0x20];
-	/* +0x200 */ uint8 ukn200[0x8];
+	/* +0x1D4 */ uint8 ntagSerial[7];
+	/* +0x1DB */ uint8 nintendoId;
+	struct
+	{
+		/* +0x1DC */ uint8 gameAndCharacterId[2];
+		/* +0x1DE */ uint8 characterVariation;
+		/* +0x1DF */ uint8 amiiboFigureType;
+		/* +0x1E0 */ uint8 amiiboModelNumber[2];
+		/* +0x1E2 */ uint8 amiiboSeries;
+		/* +0x1E3 */ uint8 ukn_02; // always 0x02 ?
+		/* +0x1E4 */ uint8 ukn5C[4];
+	}amiiboIdentificationBlock;
+	/* +0x1E8 */ uint8 keygenSalt[32];
 };
 
 static_assert(sizeof(AmiiboInternal) == 0x208);
@@ -87,7 +99,7 @@ static_assert(offsetof(AmiiboInternal, tagHMAC) == 0x1B4);
 union AmiiboRawNFCData
 {
 	// each page is 4 bytes
-	struct  
+	struct
 	{
 		uint8 page0[4];
 		uint8 page1[4];
@@ -107,21 +119,24 @@ union AmiiboRawNFCData
 		uint8 page15[4];
 		uint8 page16[4];
 	};
-	struct  
+	struct
 	{
-		uint8 rawByte[16*4];
+		uint8 rawByte[16 * 4];
 	};
-	struct  
+	struct
 	{
-		/*+0x000 */ uint8 ntagSerial[9];
-		/*+0x009 */ uint8 ukn009;
-		/*+0x00A */ uint8 lockBytes[2];
-		/*+0x00C */ uint8 cc[4];
-		/*+0x010 */ uint8 ukn010[4];
-		/*+0x014 */ uint8 ukn014[32]; // crypto related?
-		/*+0x034 */ uint8 tagHMAC[32]; // data hmac
-		/*+0x054 */ 
-		struct  
+		/* +0x000 */ uint8 ntagSerial[7];
+		/* +0x007 */ uint8 nintendoId;
+		/* +0x008 */ uint8 lockBytes[2];
+		/* +0x00A */ uint8 staticLock[2];
+		/* +0x00C */ uint8 cc[4]; // compatibility container
+		/* +0x010 */ uint8 ukn_A5; // always 0xA5
+		/* +0x011 */ uint8 writeCounter[2];
+		/* +0x013 */ uint8 unk013;
+		/* +0x014 */ uint8 encryptedSettings[32];
+		/* +0x034 */ uint8 tagHMAC[32]; // data hmac
+		/* +0x054 */
+		struct
 		{
 			/* +0x54 */ uint8 gameAndCharacterId[2];
 			/* +0x56 */ uint8 characterVariation;
@@ -129,15 +144,20 @@ union AmiiboRawNFCData
 			/* +0x58 */ uint8 amiiboModelNumber[2];
 			/* +0x5A */ uint8 amiiboSeries;
 			/* +0x5B */ uint8 ukn_02; // always 0x02 ?
-
-			/* +0x5C */ uint8 ukn00[0x80-0x5C]; // not part of identification block?
+			/* +0x5C */ uint8 ukn5C[4];
 		}amiiboIdentificationBlock;
-		/*+0x080 */ uint8 dataHMAC[32];
-		/*+0x0A0 */ uint8 ukn0A0[0x114];
-		/*+0x1B4 */ uint8 ukn1B4[0x54];
-		/*+0x208 */ uint8 lockBytes208[4];
-		/*+0x20C */ uint8 cfg0[4];
-		/*+0x210 */ uint8 cfg1[4];
+		/* +0x060 */ uint8 keygenSalt[32];
+		/* +0x080 */ uint8 dataHMAC[32];
+		/* +0x0A0 */ uint8 encryptedMii[0x60];
+		/* +0x100 */ uint8 encryptedTitleId[8];
+		/* +0x108 */ uint8 encryptedApplicationWriteCounter[2];
+		/* +0x10A */ uint8 encryptedApplicationAreaId[4];
+		/* +0x10E */ uint8 ukn10E[2];
+		/* +0x110 */ uint8 unk110[32];
+		/* +0x130 */ uint8 encryptedApplicationArea[0xD8];
+		/* +0x208 */ uint8 dynamicLock[4];
+		/* +0x20C */ uint8 cfg0[4];
+		/* +0x210 */ uint8 cfg1[4];
 	};
 };
 
@@ -400,7 +420,7 @@ typedef struct
 typedef struct  
 {
 	/* +0x00 */ nfpDate_t date;
-	/* +0x04 */ uint16be writeCount;
+	/* +0x04 */ uint8 writeCount[2];
 	/* +0x06 */ uint8 characterId[3];
 	/* +0x09 */ uint8 amiiboSeries;
 	/* +0x0A */ uint16be number;
@@ -434,6 +454,9 @@ void nnNfpExport_GetNfpCommonInfo(PPCInterpreter_t* hCPU)
 	memset(commonInfo, 0x00, sizeof(nfpCommonData_t));
 
 	forceLogDebug_printf("GetNfpCommonInfo(0x%08x)");
+
+	commonInfo->writeCount[0] = nfp_data.amiiboNFCData.writeCounter[0];
+	commonInfo->writeCount[1] = nfp_data.amiiboNFCData.writeCounter[1];
 
 	commonInfo->characterId[0] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.gameAndCharacterId[0];
 	commonInfo->characterId[1] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.gameAndCharacterId[1];
@@ -590,6 +613,8 @@ void nnNfpExport_WriteApplicationArea(PPCInterpreter_t* hCPU)
 	for (uint32 i = len; i < sizeof(nfp_data.amiiboInternal.applicationData); i++)
 		nfp_data.amiiboInternal.applicationData[i] = rand() & 0xFF;
 
+	nfp_data.amiiboInternal.amiiboSettings.appWriteCounter = nfp_data.amiiboInternal.amiiboSettings.appWriteCounter + 1;
+
 	osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NFP, 0));
 }
 
@@ -629,6 +654,7 @@ void nnNfpExport_CreateApplicationArea(PPCInterpreter_t* hCPU)
 
 	nfp_data.amiiboInternal.amiiboSettings.setAppDataAppId(createInfo->appAreaId);
 	nfp_data.amiiboInternal.amiiboSettings.flags |= 0x20; // set application data exists bit
+	nfp_data.amiiboInternal.amiiboSettings.appWriteCounter = nfp_data.amiiboInternal.amiiboSettings.appWriteCounter + 1;
 
 	nfp_data.hasOpenApplicationArea = false;
 
@@ -666,6 +692,7 @@ void nnNfpExport_DeleteApplicationArea(PPCInterpreter_t* hCPU)
 
 	nfp_data.amiiboInternal.amiiboSettings.setAppDataAppId(0);
 	nfp_data.amiiboInternal.amiiboSettings.flags &= ~0x20;
+	nfp_data.amiiboInternal.amiiboSettings.appWriteCounter = nfp_data.amiiboInternal.amiiboSettings.appWriteCounter + 1;
 
 	// this API forces a flush
 	if (!nnNfp_writeCurrentAmiibo())
@@ -760,6 +787,17 @@ bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError)
 	memcpy(&rawData, nfcData->data(), sizeof(AmiiboRawNFCData));
 
 	// verify if the file is a valid ntag215/amiibo file
+	if (rawData.dynamicLock[0] != 0x01 || rawData.dynamicLock[1] != 0x00 || rawData.dynamicLock[2] != 0x0F || rawData.dynamicLock[3] != 0xBD)
+	{
+		// Temporary workaround to fix corrupted files by old cemu versions
+		rawData.dynamicLock[0] = 0x01;
+		rawData.dynamicLock[1] = 0x00;
+		rawData.dynamicLock[2] = 0x0F;
+		rawData.dynamicLock[3] = 0xBD;
+
+		// *nfcError = NFC_ERROR_INVALID_FILE_FORMAT;
+		// return false;
+	}
 	if (rawData.cfg0[0] != 0x00 || rawData.cfg0[1] != 0x00 || rawData.cfg0[2] != 0x00 || rawData.cfg0[3] != 0x04)
 	{
 		*nfcError = NFC_ERROR_INVALID_FILE_FORMAT;
@@ -770,7 +808,7 @@ bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError)
 		*nfcError = NFC_ERROR_INVALID_FILE_FORMAT;
 		return false;
 	}
-	if (rawData.lockBytes[0] != 0x0F || rawData.lockBytes[1] != 0xE0 )
+	if (rawData.staticLock[0] != 0x0F || rawData.staticLock[1] != 0xE0)
 	{
 		*nfcError = NFC_ERROR_INVALID_FILE_FORMAT;
 		return false;
@@ -789,10 +827,10 @@ bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError)
 	serialNumber[3] = rawData.ntagSerial[4];
 	serialNumber[4] = rawData.ntagSerial[5];
 	serialNumber[5] = rawData.ntagSerial[6];
-	serialNumber[6] = rawData.ntagSerial[7];
+	serialNumber[6] = rawData.nintendoId;
 
 	uint8 serialCheckByte0 = rawData.ntagSerial[3];
-	uint8 serialCheckByte1 = rawData.ntagSerial[8];
+	uint8 serialCheckByte1 = rawData.lockBytes[0];
 
 	uint8 bcc0 = serialNumber[0] ^ serialNumber[1] ^ serialNumber[2] ^ 0x88;
 	uint8 bcc1 = serialNumber[3] ^ serialNumber[4] ^ serialNumber[5] ^ serialNumber[6];
@@ -830,6 +868,12 @@ bool nnNfp_writeCurrentAmiibo()
 		nnNfpUnlock();
 		return false;
 	}
+
+	uint16 writeCounter = nfp_data.amiiboInternal.writeCounterLow + (nfp_data.amiiboInternal.writeCounterHigh << 8);
+	writeCounter++;
+	nfp_data.amiiboInternal.writeCounterLow = writeCounter & 0xFF;
+	nfp_data.amiiboInternal.writeCounterHigh = (writeCounter >> 8) & 0xFF;
+
 	// open file for writing
 	FileStream* fs = FileStream::openFile2(nfp_data.amiiboPath, true);
 	if (!fs)
