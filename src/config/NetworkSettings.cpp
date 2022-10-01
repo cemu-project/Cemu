@@ -16,7 +16,7 @@ void NetworkConfig::LoadOnce() {
 
 void NetworkConfig::Load(XMLConfigParser& parser){
     auto config = parser.get("content");
-    networkname = config.get("networkname",networkname);
+    networkname = config.get("networkname","[Nintendo]");
     disablesslver = config.get("disablesslverification",disablesslver);
     auto u = config.get("urls");
     urls.ACT = u.get("act","https://account.nintendo.net");

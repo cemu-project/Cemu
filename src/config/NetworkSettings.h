@@ -17,7 +17,7 @@ struct NetworkConfig {
 
 	NetworkConfig(const NetworkConfig&) = delete;
 
-    ConfigValue<std::string> networkname = "[Nintendo]";
+    ConfigValue<std::string> networkname;
     ConfigValue<bool> disablesslver = false;
     struct
 	{
