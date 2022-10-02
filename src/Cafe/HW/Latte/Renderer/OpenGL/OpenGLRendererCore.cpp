@@ -580,7 +580,7 @@ void LatteDraw_handleSpecialState8_clearAsDepth()
 		}
 		else
 		{
-			g_renderer->texture_clearDepthSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip,true, view->baseTexture->hasStencil, 0.0f, 0);
+			g_renderer->texture_clearDepthSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, true, view->baseTexture->hasStencil, 0.0f, 0);
 		}
 	}
 }
