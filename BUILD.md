@@ -33,7 +33,7 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Arch and derivatives:
-`sudo pacman -S git cmake llvm clang ninja nasm base-devel linux-headers gtk3 libsecret libgcrypt systemd freeglut zip unzip libpulse`
+`sudo pacman -S --needed git cmake llvm clang ninja nasm base-devel linux-headers gtk3 libsecret libgcrypt systemd freeglut zip unzip libpulse`
 
 #### For Fedora and derivatives:
 `sudo dnf install git cmake clang ninja-build nasm kernel-headers gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel perl-core zlib-devel cubeb-devel`

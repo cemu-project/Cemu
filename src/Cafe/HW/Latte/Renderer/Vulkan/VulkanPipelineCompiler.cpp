@@ -609,7 +609,29 @@ void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegi
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 }
 
-void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister, PipelineInfo* pipelineInfo, bool& usesBlendConstants)
+bool _IsVkIntegerFormat(VkFormat fmt)
+{
+	return
+		// 8bit integer formats
+		fmt == VK_FORMAT_R8_UINT || fmt == VK_FORMAT_R8_SINT ||
+		fmt == VK_FORMAT_R8G8_UINT || fmt == VK_FORMAT_R8G8_SINT ||
+		fmt == VK_FORMAT_R8G8B8_UINT || fmt == VK_FORMAT_R8G8B8_SINT ||
+		fmt == VK_FORMAT_R8G8B8A8_UINT || fmt == VK_FORMAT_R8G8B8A8_SINT ||
+		fmt == VK_FORMAT_B8G8R8A8_UINT || fmt == VK_FORMAT_B8G8R8A8_SINT ||
+		// 16bit integer formats
+		fmt == VK_FORMAT_R16_UINT || fmt == VK_FORMAT_R16_SINT ||
+		fmt == VK_FORMAT_R16G16_UINT || fmt == VK_FORMAT_R16G16_SINT ||
+		fmt == VK_FORMAT_R16G16B16_UINT || fmt == VK_FORMAT_R16G16B16_SINT ||
+		fmt == VK_FORMAT_R16G16B16A16_UINT || fmt == VK_FORMAT_R16G16B16A16_SINT ||
+		// 32bit integer formats
+		fmt == VK_FORMAT_R32_UINT || fmt == VK_FORMAT_R32_SINT ||
+		fmt == VK_FORMAT_R32G32_UINT || fmt == VK_FORMAT_R32G32_SINT ||
+		fmt == VK_FORMAT_R32G32B32_UINT || fmt == VK_FORMAT_R32G32B32_SINT ||
+		fmt == VK_FORMAT_R32G32B32A32_UINT || fmt == VK_FORMAT_R32G32B32A32_SINT;
+}
+
+
+void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister, PipelineInfo* pipelineInfo, bool& usesBlendConstants, VKRObjectRenderPass* renderPassObj)
 {
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = latteRegister.CB_COLOR_CONTROL;
 	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
@@ -625,6 +647,12 @@ void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister,
 		else
 			entry.blendEnable = VK_FALSE;
 
+		if (entry.blendEnable != VK_FALSE && _IsVkIntegerFormat(renderPassObj->GetColorFormat(i)))
+		{
+			// force-disable blending for integer formats
+			entry.blendEnable = VK_FALSE;
+		}
+		
 		const auto& blendControlReg = latteRegister.CB_BLENDN_CONTROL[i];
 
 		entry.colorWriteMask = (renderTargetMask >> (i * 4)) & 0xF;
@@ -873,7 +901,7 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	bool usesDepthBias = false;
 	InitRasterizerState(latteRegister, vkRenderer, isPrimitiveRect, usesDepthBias);
 	bool usesBlendConstants = false;
-	InitBlendState(latteRegister, pipelineInfo, usesBlendConstants);
+	InitBlendState(latteRegister, pipelineInfo, usesBlendConstants, renderPassObj);
 	InitDescriptorSetLayouts(vkRenderer, pipelineInfo, pipelineInfo->vertexShader, pipelineInfo->pixelShader, pipelineInfo->geometryShader);
 
 	// ##########################################################################################################################################
