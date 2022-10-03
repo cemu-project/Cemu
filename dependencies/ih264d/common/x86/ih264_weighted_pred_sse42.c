@@ -51,9 +51,9 @@
 #include "ih264_weighted_pred.h"
 
 #ifdef __GNUC__
-#define ATTRIBUTE_SSE41 __attribute__((target("sse4.1")))
+#define ATTRIBUTE_SSE42 __attribute__((target("sse4.2")))
 #else
-#define ATTRIBUTE_SSE41
+#define ATTRIBUTE_SSE42
 #endif
 
 /*****************************************************************************/
@@ -88,7 +88,7 @@
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_default_weighted_pred_luma_sse42(UWORD8 *pu1_src1,
                                             UWORD8 *pu1_src2,
                                             UWORD8 *pu1_dst,
@@ -252,7 +252,7 @@ void ih264_default_weighted_pred_luma_sse42(UWORD8 *pu1_src1,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_default_weighted_pred_chroma_sse42(UWORD8 *pu1_src1,
                                               UWORD8 *pu1_src2,
                                               UWORD8 *pu1_dst,
@@ -383,7 +383,7 @@ void ih264_default_weighted_pred_chroma_sse42(UWORD8 *pu1_src1,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_weighted_pred_luma_sse42(UWORD8 *pu1_src,
                                     UWORD8 *pu1_dst,
                                     WORD32 src_strd,
@@ -614,7 +614,7 @@ void ih264_weighted_pred_luma_sse42(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_weighted_pred_chroma_sse42(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
                                       WORD32 src_strd,
@@ -824,7 +824,7 @@ void ih264_weighted_pred_chroma_sse42(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_weighted_bi_pred_luma_sse42(UWORD8 *pu1_src1,
                                        UWORD8 *pu1_src2,
                                        UWORD8 *pu1_dst,
@@ -1112,7 +1112,7 @@ void ih264_weighted_bi_pred_luma_sse42(UWORD8 *pu1_src1,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_weighted_bi_pred_chroma_sse42(UWORD8 *pu1_src1,
                                          UWORD8 *pu1_src2,
                                          UWORD8 *pu1_dst,

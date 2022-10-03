@@ -53,9 +53,9 @@
 #include <immintrin.h>
 
 #ifdef __GNUC__
-#define ATTRIBUTE_SSE41 __attribute__((target("sse4.1")))
+#define ATTRIBUTE_SSE42 __attribute__((target("sse4.2")))
 #else
-#define ATTRIBUTE_SSE41
+#define ATTRIBUTE_SSE42
 #endif
 /**
  *******************************************************************************
@@ -109,7 +109,7 @@
  *
  *******************************************************************************
  */
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_resi_trans_quant_4x4_sse42(UWORD8 *pu1_src, UWORD8 *pu1_pred,
                                       WORD16 *pi2_out, WORD32 src_strd, WORD32 pred_strd,
                                       const UWORD16 *pu2_scale_matrix, const UWORD16 *pu2_threshold_matrix,
@@ -383,7 +383,7 @@ void ih264_resi_trans_quant_4x4_sse42(UWORD8 *pu1_src, UWORD8 *pu1_pred,
  *
  *******************************************************************************
  */
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_resi_trans_quant_chroma_4x4_sse42(UWORD8 *pu1_src,UWORD8 *pu1_pred,WORD16 *pi2_out,
                                             WORD32 src_strd,WORD32 pred_strd,
                                             const UWORD16 *pu2_scale_matrix,
@@ -671,7 +671,7 @@ void ih264_resi_trans_quant_chroma_4x4_sse42(UWORD8 *pu1_src,UWORD8 *pu1_pred,WO
  *
  */
 
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_hadamard_quant_4x4_sse42(WORD16 *pi2_src, WORD16 *pi2_dst,
                           const UWORD16 *pu2_scale_matrix,
                           const UWORD16 *pu2_threshold_matrix, UWORD32 u4_qbits,
@@ -901,7 +901,7 @@ void ih264_hadamard_quant_4x4_sse42(WORD16 *pi2_src, WORD16 *pi2_dst,
  *
  */
 
-ATTRIBUTE_SSE41
+ATTRIBUTE_SSE42
 void ih264_hadamard_quant_2x2_uv_sse42(WORD16 *pi2_src, WORD16 *pi2_dst,
                             const UWORD16 *pu2_scale_matrix,
                             const UWORD16 *pu2_threshold_matrix, UWORD32 u4_qbits,
