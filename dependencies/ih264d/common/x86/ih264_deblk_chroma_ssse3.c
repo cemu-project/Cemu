@@ -53,6 +53,12 @@
 #include "ih264_deblk_edge_filters.h"
 #include "ih264_macros.h"
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
+
 /*****************************************************************************/
 /* Function Definitions                                                      */
 /*****************************************************************************/
@@ -91,6 +97,8 @@
 /*         12 02 2015   Naveen Kumar P  Initial version                      */
 /*                                                                           */
 /*****************************************************************************/
+
+ATTRIBUTE_SSSE3
 void ih264_deblk_chroma_vert_bs4_ssse3(UWORD8 *pu1_src,
                                        WORD32 src_strd,
                                        WORD32 alpha_cb,
@@ -274,6 +282,8 @@ void ih264_deblk_chroma_vert_bs4_ssse3(UWORD8 *pu1_src,
 /*         12 02 2015   Naveen Kumar P  Initial version                      */
 /*                                                                           */
 /*****************************************************************************/
+
+ATTRIBUTE_SSSE3
 void ih264_deblk_chroma_horz_bs4_ssse3(UWORD8 *pu1_src,
                                        WORD32 src_strd,
                                        WORD32 alpha_cb,
@@ -424,6 +434,8 @@ void ih264_deblk_chroma_horz_bs4_ssse3(UWORD8 *pu1_src,
 /*         12 02 2015   Naveen Kumar P  Initial version                      */
 /*                                                                           */
 /*****************************************************************************/
+
+ATTRIBUTE_SSSE3
 void ih264_deblk_chroma_vert_bslt4_ssse3(UWORD8 *pu1_src,
                                          WORD32 src_strd,
                                          WORD32 alpha_cb,
@@ -645,6 +657,8 @@ void ih264_deblk_chroma_vert_bslt4_ssse3(UWORD8 *pu1_src,
 /*         12 02 2015   Naveen Kumar P  Initial version                      */
 /*                                                                           */
 /*****************************************************************************/
+
+ATTRIBUTE_SSSE3
 void ih264_deblk_chroma_horz_bslt4_ssse3(UWORD8 *pu1_src,
                                          WORD32 src_strd,
                                          WORD32 alpha_cb,
@@ -829,6 +843,8 @@ void ih264_deblk_chroma_horz_bslt4_ssse3(UWORD8 *pu1_src,
 /*         12 02 2015   Naveen Kumar P  Initial version                      */
 /*                                                                           */
 /*****************************************************************************/
+
+ATTRIBUTE_SSSE3
 void ih264_deblk_chroma_vert_bs4_mbaff_ssse3(UWORD8 *pu1_src,
                                              WORD32 src_strd,
                                              WORD32 alpha_cb,
@@ -963,6 +979,8 @@ void ih264_deblk_chroma_vert_bs4_mbaff_ssse3(UWORD8 *pu1_src,
 /*         12 02 2015   Naveen Kumar P  Initial version                      */
 /*                                                                           */
 /*****************************************************************************/
+
+ATTRIBUTE_SSSE3
 void ih264_deblk_chroma_vert_bslt4_mbaff_ssse3(UWORD8 *pu1_src,
                                                WORD32 src_strd,
                                                WORD32 alpha_cb,
