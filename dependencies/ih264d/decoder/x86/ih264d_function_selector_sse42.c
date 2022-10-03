@@ -60,6 +60,12 @@
 
 #include "ih264d_structs.h"
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSE41 __attribute__((target("sse4.1")))
+#else
+#define ATTRIBUTE_SSE41
+#endif
+
 
 /**
 *******************************************************************************
@@ -79,6 +85,7 @@
 *
 *******************************************************************************
 */
+ATTRIBUTE_SSE41
 void ih264d_init_function_ptr_sse42(dec_struct_t *ps_codec)
 {
     ps_codec->pf_default_weighted_pred_luma = ih264_default_weighted_pred_luma_sse42;
