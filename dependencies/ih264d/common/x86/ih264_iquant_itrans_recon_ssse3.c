@@ -50,6 +50,12 @@
 #include "ih264_trans_quant_itrans_iquant.h"
 #include <immintrin.h>
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
+
 /*
  ********************************************************************************
  *
@@ -97,6 +103,7 @@
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSSE3
 void ih264_iquant_itrans_recon_4x4_ssse3(WORD16 *pi2_src,
                                          UWORD8 *pu1_pred,
                                          UWORD8 *pu1_out,
@@ -366,6 +373,7 @@ void ih264_iquant_itrans_recon_4x4_ssse3(WORD16 *pi2_src,
  *******************************************************************************
  */
 
+ATTRIBUTE_SSSE3
 void ih264_iquant_itrans_recon_8x8_ssse3(WORD16 *pi2_src,
                                          UWORD8 *pu1_pred,
                                          UWORD8 *pu1_out,
