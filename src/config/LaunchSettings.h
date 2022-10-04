@@ -47,8 +47,8 @@ private:
 	inline static std::optional<uint32> s_persistent_id{};
 
 	// service URLS
-	inline static std::string serviceURL_ACT = "https://account.nintendo.net";
-	inline static std::string serviceURL_ECS = "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP";
+	inline static std::string serviceURL_ACT;
+	inline static std::string serviceURL_ECS;
 	// todo - npts and other boss urls
 
 

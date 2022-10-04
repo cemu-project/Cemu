@@ -29,6 +29,7 @@ struct NetworkConfig {
          ConfigValue<std::string> CCS;
          ConfigValue<std::string> IDBE;
          ConfigValue<std::string> BOSS;
+         ConfigValue<std::string> TAGAYA;
 	}urls{};
 
     public:
@@ -48,21 +49,27 @@ struct NetworkConfig {
 };
 
 struct NintendoURLs {
+   inline static std::string ACTURL = "https://account.nintendo.net";
+   inline static std::string ECSURL = "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP";
    inline static std::string NUSURL = "https://nus.wup.shop.nintendo.net/nus/services/NetUpdateSOAP";
    inline static std::string IASURL = "https://ias.wup.shop.nintendo.net/ias/services/IdentityAuthenticationSOAP";
    inline static std::string CCSUURL = "https://ccs.wup.shop.nintendo.net/ccs/download";
    inline static std::string CCSURL = "http://ccs.cdn.wup.shop.nintendo.net/ccs/download";
    inline static std::string IDBEURL = "https://idbe-wup.cdn.nintendo.net/icondata";
    inline static std::string BOSSURL = "https://npts.app.nintendo.net/p01/tasksheet";
+   inline static std::string TAGAYAURL = "https://tagaya.wup.shop.nintendo.net/tagaya/versionlist";
 };
 
 struct PretendoURLs {
+   inline static std::string ACTURL =  "https://account.pretendo.cc";
+   inline static std::string ECSURL = "https://ecs.wup.shop.pretendo.cc/ecs/services/ECommerceSOAP";
    inline static std::string NUSURL = "https://nus.c.shop.pretendo.cc/nus/services/NetUpdateSOAP";
    inline static std::string IASURL = "https://ias.c.shop.pretendo.cc/ias/services/IdentityAuthenticationSOAP";
    inline static std::string CCSUURL = "https://ccs.c.shop.pretendo.cc/ccs/download";
    inline static std::string CCSURL = "http://ccs.cdn.c.shop.pretendo.cc/ccs/download";
    inline static std::string IDBEURL = "https://idbe-wup.cdn.pretendo.cc/icondata";
    inline static std::string BOSSURL = "https://npts.app.pretendo.cc/p01/tasksheet";
+   inline static std::string TAGAYAURL = "https://tagaya.wup.shop.pretendo.cc/tagaya/versionlist";
 };
 
 typedef XMLDataConfig<NetworkConfig, &NetworkConfig::Load, &NetworkConfig::Save> XMLNetworkConfig_t;

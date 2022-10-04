@@ -8,6 +8,7 @@
 #include "Cemu/ncrypto/ncrypto.h"
 #include <charconv>
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 
 namespace NAPI
 {
@@ -15,10 +16,20 @@ namespace NAPI
 	{
 		NAPI_VersionListVersion_Result result;
 		CurlRequestHelper req;
-		if (ActiveSettings::GetNetworkService() == 0) {
-		req.initate(fmt::format("https://tagaya.wup.shop.nintendo.net/tagaya/versionlist/{}/{}/latest_version", NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
-		}else if (ActiveSettings::GetNetworkService() == 1) {
-		req.initate(fmt::format("https://tagaya.wup.shop.pretendo.cc/tagaya/versionlist/{}/{}/latest_version", NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+		switch (ActiveSettings::GetNetworkService())
+		{
+		case NetworkService::Nintendo:
+			req.initate(fmt::format(fmt::runtime(NintendoURLs::TAGAYAURL + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+			break;
+		case NetworkService::Pretendo:
+			req.initate(fmt::format(fmt::runtime(PretendoURLs::TAGAYAURL + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+			break;
+		case NetworkService::Custom:
+			req.initate(fmt::format(fmt::runtime(GetNetworkConfig().urls.TAGAYA.GetValue() + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+			break;
+		default:
+		req.initate(fmt::format(fmt::runtime(NintendoURLs::TAGAYAURL + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+			break;
 		}
 
 		if (!req.submitRequest(false))
