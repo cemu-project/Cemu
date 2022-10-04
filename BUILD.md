@@ -67,6 +67,14 @@ LLVM 15 isn't supported due to compatibility issues with Boost dependency. The O
 API isn't support on MacOS, Vulkan must be used. Additionally Vulkan must be used through the 
 Molten-VK compatibility layer.  
 
+### Apple Silicon
+
+Cemu is an x86 (Intel) application and must be run through Rosetta. As such, you must also compile it under Rosetta. If you are running an ARM (Apple Silicon) based Mac, run the following command in your terminal before continuing.
+
+`arch -x86_64 zsh`
+ 
+Note that if you have brew installed already, it is likely an ARM installation, and you must also install the x86 version of brew, and any dependencies. This will not conflict with your ARM installation.
+
 ### Installing brew
 `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 
