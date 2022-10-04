@@ -100,6 +100,10 @@ if (NOT TARGET glslang::SPIRV AND TARGET SPIRV)
 	add_library(glslang::SPIRV ALIAS SPIRV)
 endif()
 
+if (NOT TARGET glm::glm AND TARGET glm)
+	add_library(glm::glm ALIAS glm)
+endif()
+
 if (UNIX AND NOT APPLE)
 	find_package(X11 REQUIRED)
 endif()
