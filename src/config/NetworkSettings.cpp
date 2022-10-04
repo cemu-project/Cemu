@@ -33,8 +33,7 @@ void NetworkConfig::Load(XMLConfigParser& parser){
     }
 }
 bool NetworkConfig::XMLExists() {
-    FileStream* fs = FileStream::openFile(GetPath("network_services.xml").c_str());
-    if (fs == nullptr) {
+    if (!fs::exists(GetPath("network_services.xml"))) {
      LaunchSettings::ChangeNetworkServiceURL(0);
      GetConfig().account.active_service = 0;
    return false;

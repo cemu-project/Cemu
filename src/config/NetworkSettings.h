@@ -37,7 +37,7 @@ struct NetworkConfig {
     void Load(XMLConfigParser& parser);
     void Save(XMLConfigParser& parser);
     
-    inline static bool XMLExists();
+    static bool XMLExists();
     private:
     inline static fs::path s_path;
     inline static fs::path s_full_path;
