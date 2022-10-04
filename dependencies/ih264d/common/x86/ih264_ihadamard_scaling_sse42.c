@@ -52,6 +52,12 @@
 #include <immintrin.h>
 #include <smmintrin.h>
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSE42 __attribute__((target("sse4.2")))
+#else
+#define ATTRIBUTE_SSE42
+#endif
+
 /*
  ********************************************************************************
  *
@@ -87,6 +93,7 @@
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSE42
 void ih264_ihadamard_scaling_4x4_sse42(WORD16* pi2_src,
                                        WORD16* pi2_out,
                                        const UWORD16 *pu2_iscal_mat,
@@ -202,6 +209,7 @@ void ih264_ihadamard_scaling_4x4_sse42(WORD16* pi2_src,
     _mm_storeu_si128((__m128i *) (&pi2_out[8]), src_r2_r3);
 }
 
+ATTRIBUTE_SSE42
 void ih264_ihadamard_scaling_2x2_uv_sse42(WORD16* pi2_src,
                                           WORD16* pi2_out,
                                           const UWORD16 *pu2_iscal_mat,

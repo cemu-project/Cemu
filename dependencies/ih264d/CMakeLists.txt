@@ -6,10 +6,6 @@ set(LIBAVCDEC_X86_INCLUDES "common/x86" "decoder/x86")
 
 include_directories("common/" "decoder/" ${LIBAVCDEC_X86_INCLUDES})
 
-if((CMAKE_C_COMPILER_ID MATCHES "GNU") OR (CMAKE_C_COMPILER_ID MATCHES "Clang"))
-	add_compile_options(-mssse3 -mavx2)
-endif()
-
 add_library (ih264d 
 "common/ih264_buf_mgr.c"
 "common/ih264_buf_mgr.h"
