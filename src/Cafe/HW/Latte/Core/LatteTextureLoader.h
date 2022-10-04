@@ -1096,6 +1096,16 @@ public:
 	}
 };
 
+class TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_torgba8888 : public TextureDecoder, public SingletonClass<TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_torgba8888>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override;
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override;
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override;
+};
+
 class uint16_R5_G5_B5_A1_swapOpenGL
 {
 public:
@@ -1207,6 +1217,16 @@ public:
 		*(outputPixel + 2) = (blue5 << 3) | (blue5 >> 2);
 		*(outputPixel + 3) = (alpha1 << 3);
 	}
+};
+
+class TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_toRGBA8888 : public TextureDecoder, public SingletonClass<TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_toRGBA8888>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override;
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override;
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override;
 };
 
 
