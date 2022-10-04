@@ -267,23 +267,24 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 
 
 void LaunchSettings::ChangeNetworkServiceURL(int ID){
-	switch (ID)
+	NetworkService Network = static_cast<NetworkService>(ID);
+	switch (Network)
 	{
-	case Nintendo:
-		serviceURL_ACT = "https://account.nintendo.net";
-	 	serviceURL_ECS = "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP";
+	case NetworkService::Nintendo:
+		serviceURL_ACT = NintendoURLs::ACTURL;
+	 	serviceURL_ECS = NintendoURLs::ECSURL;
 		break;
-	case Pretendo:
-		serviceURL_ACT = "https://account.pretendo.cc";
-	 	serviceURL_ECS = "https://ecs.wup.shop.pretendo.cc/ecs/services/ECommerceSOAP";
+	case NetworkService::Pretendo:
+		serviceURL_ACT = PretendoURLs::ACTURL;
+	 	serviceURL_ECS = PretendoURLs::ECSURL;
 		break;
-	case Custom:
+	case NetworkService::Custom:
 		serviceURL_ACT = GetNetworkConfig().urls.ACT.GetValue();
 	 	serviceURL_ECS = GetNetworkConfig().urls.ECS.GetValue();
 		break;
 	default:
-		serviceURL_ACT = "https://account.nintendo.net";
-	 	serviceURL_ECS = "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP";
+		serviceURL_ACT = NintendoURLs::ACTURL;
+	 	serviceURL_ECS = NintendoURLs::ECSURL;
 		break;
 	}
 

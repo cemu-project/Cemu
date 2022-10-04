@@ -99,14 +99,14 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 
     if (ActiveSettings::IsOnlineEnabled()){
         windowText.append(" [Online]");
-	if (ActiveSettings::GetNetworkService() == Nintendo) {
+	if (ActiveSettings::GetNetworkService() == NetworkService::Nintendo) {
 		 windowText.append("[Nintendo]");
 	}
-	else if (ActiveSettings::GetNetworkService() == Pretendo) {
+	else if (ActiveSettings::GetNetworkService() == NetworkService::Pretendo) {
 		 windowText.append("[Pretendo]");
 	}
-	else if (ActiveSettings::GetNetworkService() == Custom) {
-		 windowText.append(GetNetworkConfig().networkname);
+	else if (ActiveSettings::GetNetworkService() == NetworkService::Custom) {
+		 windowText.append("[" + GetNetworkConfig().networkname.GetValue() + "]");
 	}
 	}
     windowText.append(" ");

@@ -99,7 +99,7 @@ void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
 	curl_easy_setopt(m_curl, CURLOPT_TIMEOUT, 60);
 
 	// SSL
-	if (GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() == Custom || ActiveSettings::GetNetworkService() == Pretendo){ //Remove once Pretendo has SSL
+	if (GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() == NetworkService::Custom || ActiveSettings::GetNetworkService() == NetworkService::Pretendo){ //Remove once Pretendo has SSL
 	curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	}
 	else if (sslContext == SERVER_SSL_CONTEXT::ACT || sslContext == SERVER_SSL_CONTEXT::TAGAYA)
@@ -224,7 +224,7 @@ CurlSOAPHelper::CurlSOAPHelper()
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, this);
 
 	// SSL
-	if (!GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() != Pretendo  && ActiveSettings::GetNetworkService() != Custom) { //Remove once Pretendo has SSL
+	if (!GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() != NetworkService::Pretendo  && ActiveSettings::GetNetworkService() != NetworkService::Custom) { //Remove once Pretendo has SSL
 	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
 	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
 	}

@@ -59,13 +59,13 @@ namespace NAPI
 		CurlRequestHelper req;
 	switch (ActiveSettings::GetNetworkService())
 			{
-			case Nintendo:
+			case NetworkService::Nintendo:
 				req.initate(fmt::format(fmt::runtime(NintendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
 				break;
-			case Pretendo:
+			case NetworkService::Pretendo:
 				req.initate(fmt::format(fmt::runtime(PretendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
 				break;
-			case Custom:
+			case NetworkService::Custom:
 				req.initate(fmt::format(fmt::runtime(GetNetworkConfig().urls.IDBE.GetValue() + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
 				break;
 			default:
@@ -102,13 +102,13 @@ namespace NAPI
 		CurlRequestHelper req;
 		switch (ActiveSettings::GetNetworkService())
 			{
-			case Nintendo:
+			case NetworkService::Nintendo:
 				req.initate(fmt::format(fmt::runtime(NintendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
 				break;
-			case Pretendo:
+			case NetworkService::Pretendo:
 				req.initate(fmt::format(fmt::runtime(PretendoURLs::IDBEURL + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
 				break;
-			case Custom:
+			case NetworkService::Custom:
 				req.initate(fmt::format(fmt::runtime(GetNetworkConfig().urls.IDBE.GetValue() + "/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
 				break;
 			default:

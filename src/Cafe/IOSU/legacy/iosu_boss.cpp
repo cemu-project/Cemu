@@ -498,7 +498,7 @@ namespace iosu
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, task_header_callback);
 		curl_easy_setopt(curl, CURLOPT_HEADERDATA, &(*it));
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0x3C);
-		if (GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() == Custom || ActiveSettings::GetNetworkService() == Pretendo){ //Remove Pretendo Function once SSL is in the Service
+		if (GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() == NetworkService::Custom || ActiveSettings::GetNetworkService() == NetworkService::Pretendo){ //Remove Pretendo Function once SSL is in the Service
 			curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
 		} else {
 		curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, task_sslctx_function);
@@ -568,13 +568,13 @@ namespace iosu
 			strncpy(boss_code, (char*)&it->task_settings.settings[TaskSetting::kBossCode], TaskSetting::kBossCodeLen);
 			switch (ActiveSettings::GetNetworkService())
 			{
-			case Nintendo:
+			case NetworkService::Nintendo:
 				sprintf(url, NintendoURLs::BOSSURL.append("/%s/%s/%s?c=%s&l=%s").c_str(), "1", boss_code, it->task_id, countryCode, languageCode);
 				break;
-			case Pretendo:
+			case NetworkService::Pretendo:
 				sprintf(url, PretendoURLs::BOSSURL.append("/%s/%s/%s?c=%s&l=%s").c_str(), "1", boss_code, it->task_id, countryCode, languageCode);
 				break;
-			case Custom:
+			case NetworkService::Custom:
 				sprintf(url, GetNetworkConfig().urls.BOSS.GetValue().append("/%s/%s/%s?c=%s&l=%s").c_str(), "1", boss_code, it->task_id, countryCode, languageCode);
 				break;
 			default:

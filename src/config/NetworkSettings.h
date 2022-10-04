@@ -4,10 +4,10 @@
 #include "XMLConfig.h"
 
 
-enum NetworkService {
-Nintendo = 0,
-Pretendo = 1,
-Custom = 2
+enum class NetworkService {
+Nintendo,
+Pretendo,
+Custom,
 };
 struct NetworkConfig {
     NetworkConfig()

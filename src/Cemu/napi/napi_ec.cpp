@@ -29,13 +29,13 @@ namespace NAPI
 			return s_serviceURL_NusURL;
 			switch (ActiveSettings::GetNetworkService())
 			{
-			case Nintendo:
+			case NetworkService::Nintendo:
 				return NintendoURLs::NUSURL;
 				break;
-			case Pretendo:
+			case NetworkService::Pretendo:
 				return PretendoURLs::NUSURL;
 				break;
-			case Custom:
+			case NetworkService::Custom:
 				return GetNetworkConfig().urls.NUS;
 				break;
 			default:
@@ -50,13 +50,13 @@ namespace NAPI
 			return s_serviceURL_IasURL;
 		switch (ActiveSettings::GetNetworkService())
 			{
-			case Nintendo:
+			case NetworkService::Nintendo:
 				return NintendoURLs::IASURL;
 				break;
-			case Pretendo:
+			case NetworkService::Pretendo:
 				return PretendoURLs::IASURL;
 				break;
-			case Custom:
+			case NetworkService::Custom:
 				return GetNetworkConfig().urls.IAS;
 				break;
 			default:
@@ -79,13 +79,13 @@ namespace NAPI
 			return s_serviceURL_UncachedContentPrefixURL;
 		switch (ActiveSettings::GetNetworkService())
 			{
-			case Nintendo:
+			case NetworkService::Nintendo:
 				return NintendoURLs::CCSUURL;
 				break;
-			case Pretendo:
+			case NetworkService::Pretendo:
 				return PretendoURLs::CCSUURL;
 				break;
-			case Custom:
+			case NetworkService::Custom:
 				return GetNetworkConfig().urls.CCSU;
 				break;
 			default:
@@ -100,13 +100,13 @@ namespace NAPI
 			return s_serviceURL_ContentPrefixURL;
 		switch (ActiveSettings::GetNetworkService())
 			{
-			case Nintendo:
+			case NetworkService::Nintendo:
 				return NintendoURLs::CCSURL;
 				break;
-			case Pretendo:
+			case NetworkService::Pretendo:
 				return PretendoURLs::CCSURL;
 				break;
-			case Custom:
+			case NetworkService::Custom:
 				return GetNetworkConfig().urls.CCS;
 				break;
 			default:

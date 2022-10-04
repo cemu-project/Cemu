@@ -121,8 +121,8 @@ bool ActiveSettings::HasRequiredOnlineFiles()
 	return s_has_required_online_files;
 }
 
-int ActiveSettings::GetNetworkService() {
-	return GetConfig().account.active_service;
+NetworkService ActiveSettings::GetNetworkService() {
+	return static_cast<NetworkService>(GetConfig().account.active_service.GetValue());
 }
 
 bool ActiveSettings::DumpShadersEnabled()
