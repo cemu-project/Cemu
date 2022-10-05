@@ -50,6 +50,12 @@
 #include "ih264_trans_quant_itrans_iquant.h"
 #include <immintrin.h>
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSE42 __attribute__((target("sse4.2")))
+#else
+#define ATTRIBUTE_SSE42
+#endif
+
 /*
  ********************************************************************************
  *
@@ -97,6 +103,7 @@
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSE42
 void ih264_iquant_itrans_recon_4x4_sse42(WORD16 *pi2_src,
                                    UWORD8 *pu1_pred,
                                    UWORD8 *pu1_out,
@@ -348,6 +355,7 @@ void ih264_iquant_itrans_recon_4x4_sse42(WORD16 *pi2_src,
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSE42
 void ih264_iquant_itrans_recon_chroma_4x4_sse42(WORD16 *pi2_src,
                                    UWORD8 *pu1_pred,
                                    UWORD8 *pu1_out,

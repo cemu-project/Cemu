@@ -49,6 +49,12 @@
 
 #include <immintrin.h>
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
+
 
 /**
 *******************************************************************************
@@ -89,6 +95,7 @@
 *******************************************************************************
 */
 
+ATTRIBUTE_SSSE3
 void ih264_pad_left_luma_ssse3(UWORD8 *pu1_src,
                                WORD32 src_strd,
                                WORD32 ht,
@@ -156,6 +163,7 @@ void ih264_pad_left_luma_ssse3(UWORD8 *pu1_src,
 *******************************************************************************
 */
 
+ATTRIBUTE_SSSE3
 void ih264_pad_left_chroma_ssse3(UWORD8 *pu1_src,
                                  WORD32 src_strd,
                                  WORD32 ht,
@@ -222,6 +230,7 @@ void ih264_pad_left_chroma_ssse3(UWORD8 *pu1_src,
 *******************************************************************************
 */
 
+ATTRIBUTE_SSSE3
 void ih264_pad_right_luma_ssse3(UWORD8 *pu1_src,
                                 WORD32 src_strd,
                                 WORD32 ht,
@@ -289,6 +298,7 @@ void ih264_pad_right_luma_ssse3(UWORD8 *pu1_src,
 *******************************************************************************
 */
 
+ATTRIBUTE_SSSE3
 void ih264_pad_right_chroma_ssse3(UWORD8 *pu1_src,
                                   WORD32 src_strd,
                                   WORD32 ht,

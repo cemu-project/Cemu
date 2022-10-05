@@ -75,6 +75,12 @@
 #include "ih264_platform_macros.h"
 #include "ih264_intra_pred_filters.h"
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
+
 
 
 /*******************    LUMA INTRAPREDICTION    *******************/
@@ -114,6 +120,7 @@
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_vert_ssse3(UWORD8 *pu1_src,
                                                UWORD8 *pu1_dst,
                                                WORD32 src_strd,
@@ -173,6 +180,7 @@ void ih264_intra_pred_luma_4x4_mode_vert_ssse3(UWORD8 *pu1_src,
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_horz_ssse3(UWORD8 *pu1_src,
                                                UWORD8 *pu1_dst,
                                                WORD32 src_strd,
@@ -238,6 +246,7 @@ void ih264_intra_pred_luma_4x4_mode_horz_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_dc_ssse3(UWORD8 *pu1_src,
                                              UWORD8 *pu1_dst,
                                              WORD32 src_strd,
@@ -316,6 +325,7 @@ void ih264_intra_pred_luma_4x4_mode_dc_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_diag_dl_ssse3(UWORD8 *pu1_src,
                                                   UWORD8 *pu1_dst,
                                                   WORD32 src_strd,
@@ -400,6 +410,7 @@ void ih264_intra_pred_luma_4x4_mode_diag_dl_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_diag_dr_ssse3(UWORD8 *pu1_src,
                                                   UWORD8 *pu1_dst,
                                                   WORD32 src_strd,
@@ -487,6 +498,7 @@ void ih264_intra_pred_luma_4x4_mode_diag_dr_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_vert_r_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -579,6 +591,7 @@ void ih264_intra_pred_luma_4x4_mode_vert_r_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_horz_d_ssse3(UWORD8 *pu1_src,
                                            UWORD8 *pu1_dst,
                                            WORD32 src_strd,
@@ -675,6 +688,7 @@ void ih264_intra_pred_luma_4x4_mode_horz_d_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_vert_l_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -764,6 +778,7 @@ void ih264_intra_pred_luma_4x4_mode_vert_l_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_4x4_mode_horz_u_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -864,6 +879,7 @@ void ih264_intra_pred_luma_4x4_mode_horz_u_ssse3(UWORD8 *pu1_src,
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_vert_ssse3(UWORD8 *pu1_src,
                                                UWORD8 *pu1_dst,
                                                WORD32 src_strd,
@@ -921,6 +937,7 @@ void ih264_intra_pred_luma_8x8_mode_vert_ssse3(UWORD8 *pu1_src,
  *
  *******************************************************************************
  */
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_horz_ssse3(UWORD8 *pu1_src,
                                                UWORD8 *pu1_dst,
                                                WORD32 src_strd,
@@ -985,6 +1002,7 @@ void ih264_intra_pred_luma_8x8_mode_horz_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_dc_ssse3(UWORD8 *pu1_src,
                                              UWORD8 *pu1_dst,
                                              WORD32 src_strd,
@@ -1078,6 +1096,7 @@ void ih264_intra_pred_luma_8x8_mode_dc_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_diag_dl_ssse3(UWORD8 *pu1_src,
                                                   UWORD8 *pu1_dst,
                                                   WORD32 src_strd,
@@ -1176,6 +1195,7 @@ void ih264_intra_pred_luma_8x8_mode_diag_dl_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_diag_dr_ssse3(UWORD8 *pu1_src,
                                                   UWORD8 *pu1_dst,
                                                   WORD32 src_strd,
@@ -1278,6 +1298,7 @@ void ih264_intra_pred_luma_8x8_mode_diag_dr_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_vert_r_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -1398,6 +1419,7 @@ void ih264_intra_pred_luma_8x8_mode_vert_r_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_horz_d_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -1502,6 +1524,7 @@ void ih264_intra_pred_luma_8x8_mode_horz_d_ssse3(UWORD8 *pu1_src,
  *
  *******************************************************************************/
 
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_vert_l_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -1598,6 +1621,7 @@ void ih264_intra_pred_luma_8x8_mode_vert_l_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_8x8_mode_horz_u_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -1699,6 +1723,7 @@ void ih264_intra_pred_luma_8x8_mode_horz_u_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_16x16_mode_vert_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -1778,6 +1803,7 @@ void ih264_intra_pred_luma_16x16_mode_vert_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_16x16_mode_horz_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -1875,6 +1901,7 @@ void ih264_intra_pred_luma_16x16_mode_horz_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_16x16_mode_dc_ssse3(UWORD8 *pu1_src,
                                                UWORD8 *pu1_dst,
                                                WORD32 src_strd,
@@ -1998,6 +2025,7 @@ void ih264_intra_pred_luma_16x16_mode_dc_ssse3(UWORD8 *pu1_src,
  *  None
  *
  *******************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_luma_16x16_mode_plane_ssse3(UWORD8 *pu1_src,
                                                   UWORD8 *pu1_dst,
                                                   WORD32 src_strd,
