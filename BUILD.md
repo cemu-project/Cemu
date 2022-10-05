@@ -73,8 +73,6 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 
 1. `softwareupdate --install-rosetta` # Install Rosetta 2 if you don't have it
 2. `arch -x86_64 zsh` # run an x64 shell
-3. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` # install x86_64 brew. Only has to be run once
-4. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
 5. Optional. Verify zsh and brew are x86_64
 
 ```bash
@@ -86,7 +84,8 @@ i386
 ```
 
 ### Installing brew
-`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+2. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
 
 ### Installing dependencies
 
