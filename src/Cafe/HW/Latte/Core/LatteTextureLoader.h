@@ -659,6 +659,8 @@ public:
 
 				*(uint8*)(outputData + pixelOffset + 0) = red4;
 				*(uint8*)(outputData + pixelOffset + 1) = green4;
+				*(uint8*)(outputData + pixelOffset + 2) = 0;
+				*(uint8*)(outputData + pixelOffset + 3) = 255;
 			}
 		}
 	}
