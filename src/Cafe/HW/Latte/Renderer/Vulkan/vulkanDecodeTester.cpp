@@ -17,14 +17,20 @@ void TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_torgba8888::decode(LatteTextureL
         {
             uint16* blockData = (uint16*)LatteTextureLoader_GetInput(textureLoader, x, y);
             sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
-            uint16 colorData = (*(uint16*)(blockData + 0));
+            uint32 colorData = (*(uint16*)(blockData + 0));
             // swap order of components
-            uint8 red5 = (colorData >> 11) & 0x1F;
-            uint8 green5 = (colorData >> 6) & 0x1F;
-            uint8 blue5 = (colorData >> 1) & 0x1F;
-            uint8 alpha1 = (colorData >> 0) & 0x1;
-            colorData = blue5 | (green5 << 5) | (red5 << 10) | (alpha1 << 15);
-            *(uint16*)(outputData + pixelOffset + 0) = colorData;
+            uint8 red = (colorData >> 11) & 0x1F;
+            uint8 green = (colorData >> 6) & 0x1F;
+            uint8 blue = (colorData >> 1) & 0x1F;
+            uint8 alpha = (colorData >> 0) & 0x1;
+
+            red = red << 3 | red >> 2;
+            green = green << 3 | green >> 2;
+            blue = blue << 3 | blue >> 2;
+            alpha = alpha * 0xff;
+
+            colorData = blue | (green << 8) | (red << 16) | (alpha << 24);
+            *(uint32*)(outputData + pixelOffset + 0) = colorData;
         }
     }
 }
@@ -57,14 +63,20 @@ void TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_toRGBA8888::decode(LatteTextureLoad
 		{
             uint16* blockData = (uint16*)LatteTextureLoader_GetInput(textureLoader, x, y);
 			sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
-			uint16 colorData = (*(uint16*)(blockData + 0));
-			// swap order of components
-			uint8 red5 = (colorData >> 11) & 0x1F;
-			uint8 green5 = (colorData >> 6) & 0x1F;
-			uint8 blue5 = (colorData >> 1) & 0x1F;
-			uint8 alpha1 = (colorData >> 0) & 0x1;
-			colorData = blue5 | (green5 << 5) | (red5 << 10) | (alpha1 << 15);
-			*(uint16*)(outputData + pixelOffset + 0) = colorData;
+			uint32 colorData = (*(uint16*)(blockData + 0));
+            // swap order of components
+            uint8 red = (colorData >> 11) & 0x1F;
+            uint8 green = (colorData >> 6) & 0x1F;
+            uint8 blue = (colorData >> 1) & 0x1F;
+            uint8 alpha = (colorData >> 0) & 0x1;
+
+            red = red << 3 | red >> 2;
+            green = green << 3 | green >> 2;
+            blue = blue << 3 | blue >> 2;
+            alpha = alpha * 0xff;
+
+            colorData = blue | (green << 8) | (red << 16) | (alpha << 24);
+			*(uint32*)(outputData + pixelOffset + 0) = colorData;
 		}
 	}
 }
