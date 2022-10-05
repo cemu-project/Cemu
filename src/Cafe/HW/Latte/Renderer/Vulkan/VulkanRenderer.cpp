@@ -2655,7 +2655,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM:
 			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-				formatInfoOut->decoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_torgba8888::getInstance();
+				formatInfoOut->decoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_To_RGBA8::getInstance();
 			}
 			else {
 				// used in Super Mario 3D World for the hidden Luigi sprites
@@ -2667,7 +2667,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM:
 			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_toRGBA8888::getInstance();
+				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8::getInstance();
 			}
 			else {
 				// used by VC64 (e.g. Ocarina of Time)

@@ -1096,14 +1096,56 @@ public:
 	}
 };
 
-class TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_torgba8888 : public TextureDecoder, public SingletonClass<TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_torgba8888>
+class TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_To_RGBA8>
 {
 public:
-	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override;
+//2656
+    sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+    {
+        return 4;
+    }
 
-	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override;
+    void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+    {
+        for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
+        {
+            sint32 yc = y;
+            for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
+            {
+                uint16* blockData = (uint16*)LatteTextureLoader_GetInput(textureLoader, x, y);
+                sint32 pixelOffset = (x + yc * textureLoader->width) * 4;
+                uint32 colorData = (*(uint16*)(blockData + 0));
+                // swap order of components
+                uint8 red = (colorData >> 0) & 0x1F;
+                uint8 green = (colorData >> 5) & 0x1F;
+                uint8 blue = (colorData >> 10) & 0x1F;
+                uint8 alpha = (colorData >> 15) & 0x1;
 
-	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override;
+                red = red << 3 | red >> 2;
+                green = green << 3 | green >> 2;
+                blue = blue << 3 | blue >> 2;
+                alpha = alpha * 0xff;
+
+                // MSB...LSB : ABGR
+                colorData = (alpha << 24) | (blue << 16) | (green << 8) | red;
+                *(uint32*)(outputData + pixelOffset + 0) = colorData;
+            }
+        }
+    }
+
+    void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+    {
+        uint16 colorData = (*(uint16*)blockData);
+        uint8 red = (colorData >> 0) & 0x1F;
+        uint8 green = (colorData >> 5) & 0x1F;
+        uint8 blue = (colorData >> 10) & 0x1F;
+        uint8 alpha = (colorData >> 15) & 0x1;
+        *(outputPixel + 0) = (red << 3) | (red >> 2);
+        *(outputPixel + 1) = (green << 3) | (green >> 2);
+        *(outputPixel + 2) = (blue << 3) | (blue >> 2);
+        *(outputPixel + 3) = alpha * 0xff;
+    }
+
 };
 
 class uint16_R5_G5_B5_A1_swapOpenGL
@@ -1219,7 +1261,7 @@ public:
 	}
 };
 
-class TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_toRGBA8888 : public TextureDecoder, public SingletonClass<TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_toRGBA8888>
+class TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override;
