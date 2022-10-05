@@ -24,12 +24,12 @@ struct NetworkConfig {
 		 ConfigValue<std::string> ACT;
 		 ConfigValue<std::string> ECS;
 		 ConfigValue<std::string> NUS;
-         ConfigValue<std::string> IAS;
-         ConfigValue<std::string> CCSU;
-         ConfigValue<std::string> CCS;
-         ConfigValue<std::string> IDBE;
-         ConfigValue<std::string> BOSS;
-         ConfigValue<std::string> TAGAYA;
+		 ConfigValue<std::string> IAS;
+		 ConfigValue<std::string> CCSU;
+		 ConfigValue<std::string> CCS;
+		 ConfigValue<std::string> IDBE;
+		 ConfigValue<std::string> BOSS;
+		 ConfigValue<std::string> TAGAYA;
 	}urls{};
 
     public:
