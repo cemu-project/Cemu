@@ -34,8 +34,10 @@ void NetworkConfig::Load(XMLConfigParser& parser){
 }
 bool NetworkConfig::XMLExists() {
     if (!fs::exists(GetPath("network_services.xml"))) {
-     LaunchSettings::ChangeNetworkServiceURL(0);
-     GetConfig().account.active_service = 0;
+         if (static_cast<NetworkService>(GetConfig().account.active_service.GetValue()) == NetworkService::Custom) {
+         LaunchSettings::ChangeNetworkServiceURL(0);
+         GetConfig().account.active_service = 0;
+         }
    return false;
     } else {return true;}
 }
