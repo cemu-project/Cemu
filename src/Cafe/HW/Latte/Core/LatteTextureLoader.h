@@ -556,7 +556,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4_G4_UNORM_toRGBA4444 : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_toRGBA4444>
+class TextureDecoder_R4_G4_UNORM_To_RGBA4 : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_To_RGBA4>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -594,7 +594,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4_G4_UNORM_toRGBA4444_vk : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_toRGBA4444_vk>
+class TextureDecoder_R4_G4_UNORM_To_RGBA4_vk : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_To_RGBA4_vk>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -632,7 +632,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4G4_UNORM_to_R8G8B8A8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4_UNORM_to_R8G8B8A8>
+class TextureDecoder_R4G4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4_UNORM_To_RGBA8>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -724,7 +724,7 @@ public:
 };
 
 
-class TextureDecoder_R4G4B4A4_UNORM_To_R8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_R8G8B8A8_UNORM>
+class TextureDecoder_R4G4B4A4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_RGBA8>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -1085,7 +1085,7 @@ public:
 	}
 };
 
-class TextureDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextureDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM>
+class TextureDecoder_R5G6B5_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R5G6B5_UNORM_To_RGBA8>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -1343,7 +1343,7 @@ public:
 	}
 };
 
-class TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16>
+class TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -1388,7 +1388,7 @@ public:
 	}
 };
 
-class TextureDecoder_A2_B10_G10_R10_UNORM_toRGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_A2_B10_G10_R10_UNORM_toRGBA16>
+class TextureDecoder_A2_B10_G10_R10_UNORM_To_RGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_A2_B10_G10_R10_UNORM_To_RGBA16>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
