@@ -75,6 +75,7 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 2. `arch -x86_64 zsh` # run an x64 shell
 
 ### Installing brew
+
 1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 2. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
 
