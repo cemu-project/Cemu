@@ -69,19 +69,10 @@ Molten-VK compatibility layer
 
 ### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
 
-You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 2 & 4.
+You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 2.
 
-1. `softwareupdate --install-rosetta` # Install Rosetta 2 if you don't have it
+1. `softwareupdate --install-rosetta` # Install Rosetta 2 if you don't have it. This only has to be done once
 2. `arch -x86_64 zsh` # run an x64 shell
-5. Optional. Verify zsh and brew are x86_64
-
-```bash
-~$ arch
-i386
-~$ brew --prefix
-/usr/local
-~$ 
-```
 
 ### Installing brew
 1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
