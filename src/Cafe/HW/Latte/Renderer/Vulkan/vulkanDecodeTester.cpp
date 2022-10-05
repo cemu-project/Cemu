@@ -16,20 +16,21 @@ void TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_torgba8888::decode(LatteTextureL
         for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
         {
             uint16* blockData = (uint16*)LatteTextureLoader_GetInput(textureLoader, x, y);
-            sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
+            sint32 pixelOffset = (x + yc * textureLoader->width) * 4;
             uint32 colorData = (*(uint16*)(blockData + 0));
             // swap order of components
-            uint8 red = (colorData >> 11) & 0x1F;
-            uint8 green = (colorData >> 6) & 0x1F;
-            uint8 blue = (colorData >> 1) & 0x1F;
-            uint8 alpha = (colorData >> 0) & 0x1;
+            uint8 red = (colorData >> 0) & 0x1F;
+            uint8 green = (colorData >> 5) & 0x1F;
+            uint8 blue = (colorData >> 10) & 0x1F;
+            uint8 alpha = (colorData >> 15) & 0x1;
 
             red = red << 3 | red >> 2;
             green = green << 3 | green >> 2;
             blue = blue << 3 | blue >> 2;
             alpha = alpha * 0xff;
 
-            colorData = blue | (green << 8) | (red << 16) | (alpha << 24);
+            // MSB...LSB : ABGR
+            colorData = (alpha << 24) | (blue << 16) | (green << 8) | red;
             *(uint32*)(outputData + pixelOffset + 0) = colorData;
         }
     }
