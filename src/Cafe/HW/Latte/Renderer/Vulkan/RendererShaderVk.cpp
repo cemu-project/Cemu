@@ -1,18 +1,8 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 
-#if __has_include(<glslang/build_info.h>)
-#include <glslang/build_info.h>
-#else
-#define GLSLANG_VERSION_LESS_OR_EQUAL_TO (false)
-#endif
-
 #include <glslang/Public/ShaderLang.h>
-#if GLSLANG_VERSION_LESS_OR_EQUAL_TO(11, 0, 0)
 #include <glslang/SPIRV/GlslangToSpv.h>
-#else
-#include <SPIRV/Logger.h>
-#include <SPIRV/GlslangToSpv.h>
-#endif
+#include <glslang/SPIRV/GlslangToSpv.h>
 
 
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
