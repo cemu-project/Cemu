@@ -878,7 +878,7 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	}
 	
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
-		texDecoder = TextureDecoder_R4_G4_UNORM_toRGBA4444::getInstance();
+		texDecoder = TextureDecoder_R4_G4_UNORM_To_RGBA4::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM)
 		texDecoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT)
@@ -964,9 +964,9 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM)
 		texDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::A2_B10_G10_R10_UNORM)
-		texDecoder = TextureDecoder_A2_B10_G10_R10_UNORM_toRGBA16::getInstance();
+		texDecoder = TextureDecoder_A2_B10_G10_R10_UNORM_To_RGBA16::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM)
-		texDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16::getInstance();
+		texDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB)
 		texDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)
