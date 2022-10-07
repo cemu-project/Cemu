@@ -30,8 +30,6 @@
 
 #include <wx/msgdlg.h>
 
-#include "Cafe/HW/Latte/Renderer/Vulkan/vulkanDecodeTester.cpp"
-
 #define VK_API_VERSION_MAJOR(version) (((uint32_t)(version) >> 22) & 0x7FU)
 #define VK_API_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3FFU)
 
@@ -2665,15 +2663,15 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			}
 			break;
 		case Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM:
-//			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
+			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8::getInstance();
-//			}
-//			else {
-//				// used by VC64 (e.g. Ocarina of Time)
-//				formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16; // A 15 R 10..14, G 5..9 B 0..4
-//				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan::getInstance();
-//			}
+			}
+			else {
+				// used by VC64 (e.g. Ocarina of Time)
+				formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16; // A 15 R 10..14, G 5..9 B 0..4
+				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT:
 			formatInfoOut->vkImageFormat = VK_FORMAT_B10G11R11_UFLOAT_PACK32; // verify if order of channels is still the same as GX2
