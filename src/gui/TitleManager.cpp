@@ -219,7 +219,7 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 }
 
 TitleManager::TitleManager(wxWindow* parent, TitleManagerPage default_page)
-	: wxFrame(parent, wxID_ANY, _("Title manager"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
+	: wxFrame(parent, wxID_ANY, _("Title Manager"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
 	SetIcon(wxICON(X_BOX));
 	
