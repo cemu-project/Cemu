@@ -16,7 +16,7 @@ void TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8::decode(LatteTextureLoader
 		for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
 		{
             uint16* blockData = (uint16*)LatteTextureLoader_GetInput(textureLoader, x, y);
-			sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
+			sint32 pixelOffset = (x + yc * textureLoader->width) * 4;
 			uint32 colorData = (*(uint16*)(blockData + 0));
             // swap order of components
             uint8 red = (colorData >> 11) & 0x1F;
