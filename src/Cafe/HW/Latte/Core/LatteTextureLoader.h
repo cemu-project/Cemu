@@ -556,7 +556,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4_G4_UNORM_toRGBA4444 : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_toRGBA4444>
+class TextureDecoder_R4_G4_UNORM_To_RGBA4 : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_To_RGBA4>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -594,7 +594,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4_G4_UNORM_toRGBA4444_vk : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_toRGBA4444_vk>
+class TextureDecoder_R4_G4_UNORM_To_RGBA4_vk : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_To_RGBA4_vk>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -632,6 +632,52 @@ public:
 	}
 };
 
+class TextureDecoder_R4G4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4_UNORM_To_RGBA8>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return 4;
+	}
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
+		{
+			sint32 yc = y;
+			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
+			{
+				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
+				sint32 pixelOffset = (x + yc * textureLoader->width) * 4;
+				uint8 v0 = (*(uint8*)(blockData + 0));
+
+				uint8 red4 = (v0 >> 4) & 0xF;
+				uint8 green4 = (v0 & 0xF);
+
+				red4 = (red4 << 4) | red4;
+				green4 = (green4 << 4) | green4;
+
+				*(uint8*)(outputData + pixelOffset + 0) = red4;
+				*(uint8*)(outputData + pixelOffset + 1) = green4;
+				*(uint8*)(outputData + pixelOffset + 2) = 0;
+				*(uint8*)(outputData + pixelOffset + 3) = 255;
+			}
+		}
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		uint8 v0 = *(blockData + 0);
+		uint8 red4 = (v0 >> 4) & 0xF;
+		uint8 green4 = (v0 & 0xF);
+		red4 = (red4 << 4) | red4;
+		green4 = (green4 << 4) | green4;
+		*(outputPixel + 0) = red4;
+		*(outputPixel + 1) = green4;
+		*(outputPixel + 2) = 0;
+		*(outputPixel + 3) = 255;
+	}
+};
 
 class TextureDecoder_R4_G4_B4_A4_UNORM : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_B4_A4_UNORM>
 {
@@ -674,6 +720,67 @@ public:
 		*(outputPixel + 1) = c1;
 		*(outputPixel + 2) = c2;
 		*(outputPixel + 3) = c3;
+	}
+};
+
+
+class TextureDecoder_R4G4B4A4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_RGBA8>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return 4;
+	}
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
+		{
+			sint32 yc = y;
+			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
+			{
+				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
+				sint32 pixelOffset = (x + yc * textureLoader->width) * 4;
+				uint8 v0 = (*(uint8*)(blockData + 0));
+				uint8 v1 = (*(uint8*)(blockData + 1));
+
+				uint8 red4 = (v0 & 0xF);
+				uint8 green4 = (v0 >> 4) & 0xF;
+				uint8 blue4 = (v1) & 0xF;
+				uint8 alpha4 = (v1 >> 4) & 0xF;
+
+				red4 = (red4 << 4) | red4;
+				green4 = (green4 << 4) | green4;
+				blue4 = (blue4 << 4) | blue4;
+				alpha4 = (alpha4 << 4) | alpha4;
+
+				*(uint8*)(outputData + pixelOffset + 0) = red4;
+				*(uint8*)(outputData + pixelOffset + 1) = green4;
+				*(uint8*)(outputData + pixelOffset + 2) = blue4;
+				*(uint8*)(outputData + pixelOffset + 3) = alpha4;
+			}
+		}
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		uint8 v0 = *(blockData + 0);
+		uint8 v1 = *(blockData + 1);
+
+		uint8 red4 = (v0 & 0xF);
+		uint8 green4 = (v0 >> 4) & 0xF;
+		uint8 blue4 = (v1) & 0xF;
+		uint8 alpha4 = (v1 >> 4) & 0xF;
+
+		red4 = (red4 << 4) | red4;
+		green4 = (green4 << 4) | green4;
+		blue4 = (blue4 << 4) | blue4;
+		alpha4 = (alpha4 << 4) | alpha4;
+
+		*(outputPixel + 0) = red4;
+		*(outputPixel + 1) = green4;
+		*(outputPixel + 2) = blue4;
+		*(outputPixel + 3) = alpha4;
 	}
 };
 
@@ -978,7 +1085,7 @@ public:
 	}
 };
 
-class TextureDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM : public TextureDecoder, public SingletonClass<TextureDecoder_R5G6B5_UNORM_To_R8G8B8A8_UNORM>
+class TextureDecoder_R5G6B5_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R5G6B5_UNORM_To_RGBA8>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -1236,7 +1343,7 @@ public:
 	}
 };
 
-class TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16>
+class TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -1281,7 +1388,7 @@ public:
 	}
 };
 
-class TextureDecoder_A2_B10_G10_R10_UNORM_toRGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_A2_B10_G10_R10_UNORM_toRGBA16>
+class TextureDecoder_A2_B10_G10_R10_UNORM_To_RGBA16 : public TextureDecoder, public SingletonClass<TextureDecoder_A2_B10_G10_R10_UNORM_To_RGBA16>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
