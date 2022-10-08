@@ -9,6 +9,21 @@ InputPanel::InputPanel(wxWindow* parent)
 	: wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
 {
 	Bind(wxEVT_LEFT_UP, &InputPanel::on_left_click, this);
+
+    // get the background color so we can determine the theme in use
+    wxColour bgColour = GetBackgroundColour();
+    uint32 bgLightness = (bgColour.GetRed() + bgColour.GetGreen() + bgColour.GetBlue()) / 3;
+    bool isDarkTheme = bgLightness < 128;
+    wxColour bgColourPrimary = bgColour; // color for odd rows
+    wxColour bgColourSecondary = bgColour.ChangeLightness(isDarkTheme ? 110 : 90); // color for even rows
+
+    // for very light themes we'll use a blue tint to match the older Windows Cemu look
+    if (bgLightness > 250)
+        bgColourSecondary = wxColour(bgColour.Red() - 13, bgColour.Green() - 6, bgColour.Blue() - 2);
+
+
+    kKeyColourNormalMode = bgColourPrimary;
+    kKeyColourActiveMode = bgColourSecondary;
 }
 
 void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, const ControllerPtr& controller)

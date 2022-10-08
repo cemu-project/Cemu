@@ -12,9 +12,9 @@ class wxComboBox;
 class InputPanel : public wxPanel
 {
 public:
-	const wxColour kKeyColourNormalMode = 0xfafafa;
-	const wxColour kKeyColourEditMode = 0x99ccff;
-	const wxColour kKeyColourActiveMode = 0xE0E0E0;
+	wxColour kKeyColourNormalMode = 0xfafafa;
+	wxColour kKeyColourEditMode = 0x99ccff;
+	wxColour kKeyColourActiveMode = 0xE0E0E0;
 
 	InputPanel(wxWindow* parent);
 
