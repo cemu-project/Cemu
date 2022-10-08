@@ -21,7 +21,6 @@ InputPanel::InputPanel(wxWindow* parent)
     if (bgLightness > 250)
         bgColourSecondary = wxColour(bgColour.Red() - 13, bgColour.Green() - 6, bgColour.Blue() - 2);
 
-
     kKeyColourNormalMode = bgColourPrimary;
     kKeyColourActiveMode = bgColourSecondary;
 }
