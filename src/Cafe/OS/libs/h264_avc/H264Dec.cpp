@@ -194,8 +194,9 @@ namespace H264
 #ifdef _WIN32
 			return _aligned_malloc(size, alignment);
 #else
-			size += ((size % alignment) == 0) ? 0 : alignment - (size % alignment);
-			return aligned_alloc(alignment, size);
+			void* temp;
+			posix_memalign(&temp, (size_t)alignment, (size_t)size);
+			return temp;
 #endif
 		}
 
