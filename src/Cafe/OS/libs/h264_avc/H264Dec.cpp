@@ -823,11 +823,11 @@ namespace H264
 	H264DEC_STATUS H264DECEnd(void* workMemory)
 	{
 		H264Context* ctx = (H264Context*)workMemory;
-        if (!ctx)
-        {
-            cemuLog_log(LogType::Force, "H264DECEnd(): Invalid context");
-            return H264DEC_STATUS::SUCCESS;
-        }
+		if (!ctx)
+		{
+			cemuLog_log(LogType::Force, "H264DECEnd(): Invalid context");
+			return H264DEC_STATUS::SUCCESS;
+		}
 		H264AVCDecoder* session = _AcquireDecoderSession(ctx->sessionHandle);
 		if (!session)
 		{
