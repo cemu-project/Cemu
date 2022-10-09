@@ -194,6 +194,7 @@ namespace H264
 #ifdef _WIN32
 			return _aligned_malloc(size, alignment);
 #else
+			alignment = std::max<WORD32>(alignment, sizeof(void*));
 			void* temp;
 			posix_memalign(&temp, (size_t)alignment, (size_t)size);
 			return temp;
