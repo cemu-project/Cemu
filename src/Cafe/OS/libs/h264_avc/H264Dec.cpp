@@ -194,6 +194,7 @@ namespace H264
 #ifdef _WIN32
 			return _aligned_malloc(size, alignment);
 #else
+            size += alignment - (size%alignment);
 			return aligned_alloc(alignment, size);
 #endif
 		}
@@ -823,11 +824,6 @@ namespace H264
 	H264DEC_STATUS H264DECEnd(void* workMemory)
 	{
 		H264Context* ctx = (H264Context*)workMemory;
-		if (!ctx)
-		{
-			cemuLog_log(LogType::Force, "H264DECEnd(): Invalid context");
-			return H264DEC_STATUS::SUCCESS;
-		}
 		H264AVCDecoder* session = _AcquireDecoderSession(ctx->sessionHandle);
 		if (!session)
 		{
