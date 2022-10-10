@@ -17,6 +17,7 @@
 
 build/
 out/
+bin/
 .cache/
 bin/Cemu_*
 bin/Cemu_*.exe
