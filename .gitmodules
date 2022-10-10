@@ -13,3 +13,6 @@
 [submodule "dependencies/Vulkan-Headers"]
 	path = dependencies/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers
+[submodule "dependencies/imgui"]
+	path = dependencies/imgui
+	url = https://github.com/ocornut/imgui

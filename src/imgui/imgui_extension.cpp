@@ -136,8 +136,8 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 		auto key = keyboard_mapping.find(key_code);
 		if (key != keyboard_mapping.end())
 			return key->second;
-		ImGuiKey mapped_key = current_key + ImGuiKey_NamedKey_BEGIN;
-		current_key = (current_key + 1) % ImGuiKey_NamedKey_COUNT ;
+		ImGuiKey mapped_key = (ImGuiKey)((uint32)current_key + ImGuiKey_NamedKey_BEGIN);
+		current_key = (current_key + 1) % (uint32)ImGuiKey_NamedKey_COUNT;
 		keyboard_mapping[key_code] = mapped_key;
 		return mapped_key;
 	};
