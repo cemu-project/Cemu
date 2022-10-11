@@ -103,6 +103,9 @@ bool CemuApp::OnInit()
 	auto failed_write_access = ActiveSettings::LoadOnce(user_data_path, config_path, cache_path, data_path);
 	for (auto&& path : failed_write_access)
 		wxMessageBox(fmt::format("Cemu can't write to {} !", path.generic_string()), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
+
+	NetworkConfig::LoadOnce();
+
 	HandlePostUpdate();
 	mainEmulatorHLE();
 
