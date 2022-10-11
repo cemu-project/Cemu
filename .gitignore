@@ -34,6 +34,7 @@ bin/network_services.xml
 bin/title_list_cache.xml
 bin/debugger/*
 bin/sdcard/*
+bin/screenshots/*
 
 !bin/shaderCache/info.txt
 bin/shaderCache/*
