@@ -605,14 +605,12 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		content->Add(m_delete_account, 0, wxEXPAND | wxALL | wxALIGN_RIGHT, 5);
 		m_delete_account->Bind(wxEVT_BUTTON, &GeneralSettings2::OnAccountDelete, this);
 
-		if (NetworkConfig::XMLExists()) {
-			wxString choices[] = { _("Nintendo"), _("Pretendo"), _("Custom") };
-			m_active_service= new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 3, wxRA_SPECIFY_COLS);
-		}
-		else {
-			wxString choices[] = { _("Nintendo"), _("Pretendo") };
-			m_active_service= new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 2, wxRA_SPECIFY_COLS);
-		}
+		wxString choices[] = { _("Nintendo"), _("Pretendo"), _("Custom") };
+		m_active_service = new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 3, wxRA_SPECIFY_COLS);
+		if (!NetworkConfig::XMLExists())
+			m_active_service->Enable(2, false);
+
+
 		m_active_service->SetToolTip(_("Connect to which Network Service"));
 		m_active_service->Bind(wxEVT_RADIOBOX, &GeneralSettings2::OnAccountServiceChanged,this);
 		content->Add(m_active_service, 0, wxEXPAND | wxALL, 5);
