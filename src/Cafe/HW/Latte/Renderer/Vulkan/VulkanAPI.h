@@ -15,9 +15,9 @@ extern bool g_vulkan_available;
 #endif
 
 #ifdef VKFUNC_DEFINE
-	#define VKFUNC(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
-	#define VKFUNC_INSTANCE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
-	#define VKFUNC_DEVICE(__FUNC__) PFN_##__FUNC__ __FUNC__ = nullptr
+	#define VKFUNC(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
+	#define VKFUNC_INSTANCE(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
+	#define VKFUNC_DEVICE(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
 #else
 	#if defined(VKFUNC_INIT)
 		#if BOOST_OS_WINDOWS

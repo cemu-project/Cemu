@@ -44,7 +44,7 @@ ActiveSettings::LoadOnce(const fs::path& user_data_path,
 
 	g_config.SetFilename(GetConfigPath("settings.xml").generic_wstring());
 	g_config.Load();
-
+	LaunchSettings::ChangeNetworkServiceURL(GetConfig().account.active_service);
 	std::wstring additionalErrorInfo;
 	s_has_required_online_files = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo) == IOS_CRYPTO_ONLINE_REQ_OK;
 	return failed_write_access;
@@ -144,6 +144,10 @@ bool ActiveSettings::IsOnlineEnabled()
 bool ActiveSettings::HasRequiredOnlineFiles()
 {
 	return s_has_required_online_files;
+}
+
+NetworkService ActiveSettings::GetNetworkService() {
+	return static_cast<NetworkService>(GetConfig().account.active_service.GetValue());
 }
 
 bool ActiveSettings::DumpShadersEnabled()

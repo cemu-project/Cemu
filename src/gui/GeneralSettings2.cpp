@@ -14,6 +14,7 @@
 #include <wx/hyperlink.h>
 
 #include "config/CemuConfig.h"
+#include "config/NetworkSettings.h"
 
 #include "audio/IAudioAPI.h"
 #if BOOST_OS_WINDOWS
@@ -604,6 +605,18 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		content->Add(m_delete_account, 0, wxEXPAND | wxALL | wxALIGN_RIGHT, 5);
 		m_delete_account->Bind(wxEVT_BUTTON, &GeneralSettings2::OnAccountDelete, this);
 
+		if (NetworkConfig::XMLExists()) {
+			wxString choices[] = { _("Nintendo"), _("Pretendo"), _("Custom") };
+			m_active_service= new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 3, wxRA_SPECIFY_COLS);
+		}
+		else {
+			wxString choices[] = { _("Nintendo"), _("Pretendo") };
+			m_active_service= new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 2, wxRA_SPECIFY_COLS);
+		}
+		m_active_service->SetToolTip(_("Connect to which Network Service"));
+		m_active_service->Bind(wxEVT_RADIOBOX, &GeneralSettings2::OnAccountServiceChanged,this);
+		content->Add(m_active_service, 0, wxEXPAND | wxALL, 5);
+
 		box_sizer->Add(content, 1, wxEXPAND, 5);
 
 		online_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -613,6 +626,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 			m_active_account->Enable(false);
 			m_create_account->Enable(false);
 			m_delete_account->Enable(false);
+			m_active_service->Enable(false);
 		}
 	}
 	
@@ -919,6 +933,7 @@ void GeneralSettings2::StoreConfig()
 		config.account.m_persistent_id = dynamic_cast<wxAccountData*>(m_active_account->GetClientObject(active_account))->GetAccount().GetPersistentId();
 
 	config.account.online_enabled = m_online_enabled->GetValue();
+	config.account.active_service = m_active_service->GetSelection();
 
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
@@ -1488,6 +1503,7 @@ void GeneralSettings2::ApplyConfig()
 	}
 	
 	m_online_enabled->SetValue(config.account.online_enabled);
+	m_active_service->SetSelection(config.account.active_service);
 	UpdateAccountInformation();
 
 	// debug
@@ -1720,6 +1736,13 @@ void GeneralSettings2::OnActiveAccountChanged(wxCommandEvent& event)
 {
 	UpdateAccountInformation();
 	m_has_account_change = true;
+}
+
+void GeneralSettings2::OnAccountServiceChanged(wxCommandEvent& event)
+{
+	LaunchSettings::ChangeNetworkServiceURL(m_active_service->GetSelection());
+
+	UpdateAccountInformation();
 }
 
 void GeneralSettings2::OnMLCPathSelect(wxCommandEvent& event)

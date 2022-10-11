@@ -89,12 +89,21 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto gamelist = parser.get("GameList");
 	game_list_style = gamelist.get("style", 0);
 	game_list_column_order = gamelist.get("order", "");
-	column_width.name = gamelist.get("name_width", -3);
-	column_width.version = gamelist.get("version_width", -3);
-	column_width.dlc = gamelist.get("dlc_width", -3);
-	column_width.game_time = gamelist.get("game_time_width", -3);
-	column_width.game_started = gamelist.get("game_started_width", -3);
-	column_width.region = gamelist.get("region_width", -3);
+
+	// return default width if value in config file out of range
+	auto loadColumnSize = [&gamelist] (const char *name, uint32 defaultWidth)
+	{
+		sint64 val = gamelist.get(name, DefaultColumnSize::name);
+		if (val < 0 || val > (sint64) std::numeric_limits<uint32>::max)
+			return defaultWidth;
+		return static_cast<uint32>(val);
+	};
+	column_width.name = loadColumnSize("name_width", DefaultColumnSize::name);
+	column_width.version = loadColumnSize("version_width", DefaultColumnSize::version);
+	column_width.dlc = loadColumnSize("dlc_width", DefaultColumnSize::dlc);
+	column_width.game_time = loadColumnSize("game_time_width", DefaultColumnSize::game_time);
+	column_width.game_started = loadColumnSize("game_started_width", DefaultColumnSize::game_started);
+	column_width.region = loadColumnSize("region_width", DefaultColumnSize::region);
 
 	recent_launch_files.clear();
 	auto launch_parser = parser.get("RecentLaunchFiles");
@@ -313,7 +322,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto acc = parser.get("Account");
 	account.m_persistent_id = acc.get("PersistentId", account.m_persistent_id);
 	account.online_enabled = acc.get("OnlineEnabled", account.online_enabled);
-
+	account.active_service = acc.get("ActiveService",account.active_service);
 	// debug
 	auto debug = parser.get("Debug");
 #if BOOST_OS_WINDOWS
@@ -488,7 +497,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto acc = config.set("Account");
 	acc.set("PersistentId", account.m_persistent_id.GetValue());
 	acc.set("OnlineEnabled", account.online_enabled.GetValue());
-
+	acc.set("ActiveService",account.active_service.GetValue());
 	// debug
 	auto debug = config.set("Debug");
 #if BOOST_OS_WINDOWS

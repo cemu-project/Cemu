@@ -56,6 +56,11 @@
 #include "ih264_platform_macros.h"
 #include "ih264_intra_pred_filters.h"
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
 
 /*****************************************************************************/
 /* Chroma Intra prediction 8x8 filters                                       */
@@ -93,6 +98,8 @@
 *
 ******************************************************************************
 */
+
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_chroma_8x8_mode_horz_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -169,6 +176,8 @@ void ih264_intra_pred_chroma_8x8_mode_horz_ssse3(UWORD8 *pu1_src,
 *
 *******************************************************************************
 */
+
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_chroma_8x8_mode_vert_ssse3(UWORD8 *pu1_src,
                                                  UWORD8 *pu1_dst,
                                                  WORD32 src_strd,
@@ -237,6 +246,8 @@ void ih264_intra_pred_chroma_8x8_mode_vert_ssse3(UWORD8 *pu1_src,
 *
 ******************************************************************************
 */
+
+ATTRIBUTE_SSSE3
 void ih264_intra_pred_chroma_8x8_mode_plane_ssse3(UWORD8 *pu1_src,
                                                   UWORD8 *pu1_dst,
                                                   WORD32 src_strd,

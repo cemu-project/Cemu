@@ -1929,6 +1929,27 @@ void VulkanRenderer::QueryAvailableFormats()
 	{
 		m_supportedFormatInfo.fmt_r4g4_unorm_pack = true;
 	}
+	// R5G6B5
+	fmtProp = {};
+	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_R5G6B5_UNORM_PACK16, &fmtProp);
+	if (fmtProp.optimalTilingFeatures != 0)
+	{
+		m_supportedFormatInfo.fmt_r5g6b5_unorm_pack = true;
+	}
+	// R4G4B4A4
+	fmtProp = {};
+	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_R4G4B4A4_UNORM_PACK16, &fmtProp);
+	if (fmtProp.optimalTilingFeatures != 0)
+	{
+		m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack = true;
+	}
+	// A1R5G5B5
+	fmtProp = {};
+	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_A1R5G5B5_UNORM_PACK16, &fmtProp);
+	if (fmtProp.optimalTilingFeatures != 0)
+	{
+		m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack = true;
+	}
 	// print info about unsupported formats to log
 	for (auto& it : requestedFormatList)
 	{
@@ -2565,8 +2586,14 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::R4_G4_UNORM:
 			if (m_supportedFormatInfo.fmt_r4g4_unorm_pack == false)
 			{
-				formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
-				formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_toRGBA4444_vk::getInstance();
+				if (m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack == false) {
+					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+					formatInfoOut->decoder = TextureDecoder_R4G4_UNORM_To_RGBA8::getInstance();
+				}
+				else {
+					formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+					formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_To_RGBA4_vk::getInstance();
+				}
 			}
 			else
 			{
@@ -2613,28 +2640,52 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			break;
 			// special formats
 		case Latte::E_GX2SURFFMT::R5_G6_B5_UNORM:
-			// Vulkan has R in MSB, GPU7 has it in LSB
-			formatInfoOut->vkImageFormat = VK_FORMAT_R5G6B5_UNORM_PACK16;
-			formatInfoOut->decoder = TextureDecoder_R5_G6_B5_swappedRB::getInstance();
+			if (m_supportedFormatInfo.fmt_r5g6b5_unorm_pack == false) {
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_R5G6B5_UNORM_To_RGBA8::getInstance();
+			}
+			else {
+				// Vulkan has R in MSB, GPU7 has it in LSB
+				formatInfoOut->vkImageFormat = VK_FORMAT_R5G6B5_UNORM_PACK16;
+				formatInfoOut->decoder = TextureDecoder_R5_G6_B5_swappedRB::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM:
-			// used in Super Mario 3D World for the hidden Luigi sprites
-			// since order of channels is reversed in Vulkan compared to GX2 the format we need is A1B5G5R5
-			formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16;
-			formatInfoOut->decoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
+			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_To_RGBA8::getInstance();
+			}
+			else {
+				// used in Super Mario 3D World for the hidden Luigi sprites
+				// since order of channels is reversed in Vulkan compared to GX2 the format we need is A1B5G5R5
+				formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16;
+				formatInfoOut->decoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM:
-			// used by VC64 (e.g. Ocarina of Time)
-			formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16; // A 15 R 10..14, G 5..9 B 0..4
-			formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan::getInstance();
+			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8::getInstance();
+			}
+			else {
+				// used by VC64 (e.g. Ocarina of Time)
+				formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16; // A 15 R 10..14, G 5..9 B 0..4
+				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT:
 			formatInfoOut->vkImageFormat = VK_FORMAT_B10G11R11_UFLOAT_PACK32; // verify if order of channels is still the same as GX2
 			formatInfoOut->decoder = TextureDecoder_R11_G11_B10_FLOAT::getInstance();
 			break;
 		case Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16; // verify order of channels
-			formatInfoOut->decoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
+			if (m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack == false) {
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_R4G4B4A4_UNORM_To_RGBA8::getInstance();
+			}
+			else {
+				formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+ 				formatInfoOut->decoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
+			}
 			break;
 			// special formats - R10G10B10_A2
 		case Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM:
@@ -2643,11 +2694,11 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			break;
 		case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM:
 			formatInfoOut->vkImageFormat = VK_FORMAT_R16G16B16A16_SNORM; // Vulkan has VK_FORMAT_A2R10G10B10_SNORM_PACK32 but it doesnt work?
-			formatInfoOut->decoder = TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16::getInstance();
+			formatInfoOut->decoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
 			break;
 		case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB:
 			//formatInfoOut->vkImageFormat = VK_FORMAT_R16G16B16A16_SNORM; // Vulkan has no uncompressed SRGB format with more than 8 bits per channel
-			//formatInfoOut->decoder = TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16::getInstance();
+			//formatInfoOut->decoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
 			//break;
 			formatInfoOut->vkImageFormat = VK_FORMAT_A2B10G10R10_UNORM_PACK32; // todo - verify
 			formatInfoOut->decoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
@@ -4047,7 +4098,7 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 {
 	// generate helper hash for pipeline state
 	uint64 stateHash = 0;
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; ++i)
 	{
 		if (attachmentInfo.colorAttachment[i].isPresent || attachmentInfo.colorAttachment[i].viewObj)
 		{
@@ -4064,7 +4115,7 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 
 	// setup Vulkan renderpass
 	std::vector<VkAttachmentDescription> attachments_descriptions;
-	std::array<VkAttachmentReference, 8> color_attachments_references{};
+	std::array<VkAttachmentReference, Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS> color_attachments_references{};
 	cemu_assert(colorAttachmentCount <= color_attachments_references.size());
 	sint32 numColorAttachments = 0;
 	for (int i = 0; i < 8; ++i)
@@ -4072,8 +4123,10 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 		if (attachmentInfo.colorAttachment[i].viewObj == nullptr && attachmentInfo.colorAttachment[i].isPresent == false)
 		{
 			color_attachments_references[i].attachment = VK_ATTACHMENT_UNUSED;
+			m_colorAttachmentFormat[i] = VK_FORMAT_UNDEFINED;
 			continue;
 		}
+		m_colorAttachmentFormat[i] = attachmentInfo.colorAttachment[i].format;
 
 		color_attachments_references[i].attachment = (uint32)attachments_descriptions.size();
 		color_attachments_references[i].layout = VK_IMAGE_LAYOUT_GENERAL;
@@ -4097,12 +4150,14 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 	if (attachmentInfo.depthAttachment.viewObj == nullptr && attachmentInfo.depthAttachment.isPresent == false)
 	{
 		depth_stencil_attachments_references.attachment = VK_ATTACHMENT_UNUSED;
+		m_depthAttachmentFormat = VK_FORMAT_UNDEFINED;
 	}
 	else
 	{
 		hasDepthStencilAttachment = true;
 		depth_stencil_attachments_references.attachment = (uint32)attachments_descriptions.size();
 		depth_stencil_attachments_references.layout = VK_IMAGE_LAYOUT_GENERAL;
+		m_depthAttachmentFormat = attachmentInfo.depthAttachment.format;
 
 		VkAttachmentDescription entry{};
 		entry.format = attachmentInfo.depthAttachment.format;

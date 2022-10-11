@@ -30,6 +30,7 @@ public:
 
 	static std::string GetActURLPrefix() { return serviceURL_ACT; }
 	static std::string GetServiceURL_ecs() { return serviceURL_ECS; }
+	static void ChangeNetworkServiceURL(int ID);
 
 private:
 	inline static std::optional<fs::path> s_load_game_file{};
@@ -46,8 +47,8 @@ private:
 	inline static std::optional<uint32> s_persistent_id{};
 
 	// service URLS
-	inline static std::string serviceURL_ACT = "https://account.nintendo.net";
-	inline static std::string serviceURL_ECS = "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP";
+	inline static std::string serviceURL_ACT;
+	inline static std::string serviceURL_ECS;
 	// todo - npts and other boss urls
 
 

@@ -491,7 +491,6 @@ target_link_libraries(CemuCafe PRIVATE
 	fmt::fmt
 	glslang::SPIRV
 	ih264d
-	imgui::imgui
 	OpenSSL::Crypto
 	OpenSSL::SSL
 	PNG::PNG
