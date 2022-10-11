@@ -9,6 +9,7 @@
 #include <wx/msgdlg.h>
 
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "util/crypto/aes128.h"
 
 #include "Cafe/Filesystem/FST/FST.h"
@@ -265,3 +266,26 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 }
 
 
+void LaunchSettings::ChangeNetworkServiceURL(int ID){
+	NetworkService Network = static_cast<NetworkService>(ID);
+	switch (Network)
+	{
+	case NetworkService::Nintendo:
+		serviceURL_ACT = NintendoURLs::ACTURL;
+	 	serviceURL_ECS = NintendoURLs::ECSURL;
+		break;
+	case NetworkService::Pretendo:
+		serviceURL_ACT = PretendoURLs::ACTURL;
+	 	serviceURL_ECS = PretendoURLs::ECSURL;
+		break;
+	case NetworkService::Custom:
+		serviceURL_ACT = GetNetworkConfig().urls.ACT.GetValue();
+	 	serviceURL_ECS = GetNetworkConfig().urls.ECS.GetValue();
+		break;
+	default:
+		serviceURL_ACT = NintendoURLs::ACTURL;
+	 	serviceURL_ECS = NintendoURLs::ECSURL;
+		break;
+	}
+
+}

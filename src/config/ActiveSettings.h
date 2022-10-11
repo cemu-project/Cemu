@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/CemuConfig.h"
+#include "config/NetworkSettings.h"
 
 // global active settings for fast access (reflects settings from command line and game profile)
 class ActiveSettings
@@ -92,7 +93,7 @@ public:
 	[[nodiscard]] static uint32 GetPersistentId();
 	[[nodiscard]] static bool IsOnlineEnabled();
 	[[nodiscard]] static bool HasRequiredOnlineFiles();
-
+	[[nodiscard]] static NetworkService GetNetworkService();
 	// dump options
 	[[nodiscard]] static bool DumpShadersEnabled();
 	[[nodiscard]] static bool DumpTexturesEnabled();
