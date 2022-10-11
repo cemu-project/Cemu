@@ -38,14 +38,6 @@ struct NetworkConfig {
     void Save(XMLConfigParser& parser);
     
     static bool XMLExists();
-    private:
-    inline static fs::path s_path;
-    inline static fs::path s_full_path;
-    [[nodiscard]] static fs::path GetPath(std::string_view p) 
-	{
-		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
-		return s_path / fs::path(s);
-	}
 };
 
 struct NintendoURLs {
