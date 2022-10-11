@@ -196,8 +196,6 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		errorMsg.append("Error while trying to parse command line parameter:\n");
 		errorMsg.append(ex.what());
 		wxMessageBox(errorMsg, wxT("Parameter error"), wxICON_ERROR);
-		//cemuLog_log(LogType::Force, ex.what());
-		//std::cout << "Command line parameter error: " << ex.what() << std::endl;
 		return false;
 	}
 	
@@ -270,10 +268,6 @@ void LaunchSettings::ChangeNetworkServiceURL(int ID){
 	NetworkService Network = static_cast<NetworkService>(ID);
 	switch (Network)
 	{
-	case NetworkService::Nintendo:
-		serviceURL_ACT = NintendoURLs::ACTURL;
-	 	serviceURL_ECS = NintendoURLs::ECSURL;
-		break;
 	case NetworkService::Pretendo:
 		serviceURL_ACT = PretendoURLs::ACTURL;
 	 	serviceURL_ECS = PretendoURLs::ECSURL;
@@ -282,10 +276,10 @@ void LaunchSettings::ChangeNetworkServiceURL(int ID){
 		serviceURL_ACT = GetNetworkConfig().urls.ACT.GetValue();
 	 	serviceURL_ECS = GetNetworkConfig().urls.ECS.GetValue();
 		break;
+	case NetworkService::Nintendo:
 	default:
 		serviceURL_ACT = NintendoURLs::ACTURL;
 	 	serviceURL_ECS = NintendoURLs::ECSURL;
 		break;
 	}
-
 }

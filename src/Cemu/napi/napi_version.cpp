@@ -16,21 +16,23 @@ namespace NAPI
 	{
 		NAPI_VersionListVersion_Result result;
 		CurlRequestHelper req;
+
+		std::string requestUrl;
 		switch (ActiveSettings::GetNetworkService())
 		{
-		case NetworkService::Nintendo:
-			req.initate(fmt::format(fmt::runtime(NintendoURLs::TAGAYAURL + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
-			break;
 		case NetworkService::Pretendo:
-			req.initate(fmt::format(fmt::runtime(PretendoURLs::TAGAYAURL + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+			requestUrl = PretendoURLs::TAGAYAURL;
 			break;
 		case NetworkService::Custom:
-			req.initate(fmt::format(fmt::runtime(GetNetworkConfig().urls.TAGAYA.GetValue() + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+			requestUrl = GetNetworkConfig().urls.TAGAYA.GetValue();
 			break;
+		case NetworkService::Nintendo:
 		default:
-		req.initate(fmt::format(fmt::runtime(NintendoURLs::TAGAYAURL + "/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+			requestUrl = NintendoURLs::TAGAYAURL;
 			break;
 		}
+		requestUrl.append(fmt::format(fmt::runtime("/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country));
+		req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
 
 		if (!req.submitRequest(false))
 		{
