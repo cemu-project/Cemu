@@ -366,22 +366,28 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 		default_path = config.mlc_path.GetValue();
 
 	// try until users selects a valid path or aborts
-	retry:
-	wxDirDialog path_dialog(parent, _("Select a mlc directory"), default_path, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
-	if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().empty())
-		return false;
-
-	const auto path = path_dialog.GetPath().ToStdWstring();
-	if (!TrySelectMLCPath(path))
+	while(true)
 	{
-		const auto result = wxMessageBox(_("Cemu can't write to the selected mlc path!\nDo you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
-		if (result == wxYES)
-			goto retry;
-		else
+		wxDirDialog path_dialog(parent, _("Select a mlc directory"), default_path, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+		if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().empty())
 			return false;
+
+		const auto path = path_dialog.GetPath().ToStdWstring();
+
+		if (!TrySelectMLCPath(path))
+		{
+			const auto result = wxMessageBox(
+					_("Cemu can't write to the selected mlc path!") + "\n" + _("Do you want to select another path?"),
+					_("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
+			if (result == wxYES)
+				continue;
+			break;
+		}
+
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 wxString CemuApp::GetCemuPath()
