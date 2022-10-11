@@ -79,7 +79,7 @@ bool CemuApp::OnInit()
 	fs::path exePath(standardPaths.GetExecutablePath().ToStdString());
 	user_data_path = config_path = cache_path = data_path = exePath.parent_path();
 #else
-	SetAppName("cemu");
+	SetAppName("Cemu");
 	wxString appName=GetAppName();
 	#ifdef BOOST_OS_LINUX
 	standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
