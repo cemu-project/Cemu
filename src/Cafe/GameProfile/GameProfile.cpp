@@ -277,10 +277,8 @@ bool GameProfile::Load(uint64_t title_id)
 void GameProfile::Save(uint64_t title_id)
 {
 	auto gameProfileDir = ActiveSettings::GetConfigPath("gameProfiles");
-	if (std::error_code ex_ec; !fs::exists(gameProfileDir, ex_ec) && !ex_ec) {
-		std::error_code cr_ec;
-		fs::create_directories(gameProfileDir, cr_ec);
-	}
+	if (std::error_code ex_ec; !fs::exists(gameProfileDir, ex_ec)) 
+		fs::create_directories(gameProfileDir, ex_ec);
 	auto gameProfilePath = gameProfileDir / fmt::format("{:016x}.ini", title_id);
 	FileStream* fs = FileStream::createFile2(gameProfilePath);
 	if (!fs)
@@ -309,15 +307,10 @@ void GameProfile::Save(uint64_t title_id)
 	fs->writeLine("");
 
 	fs->writeLine("[Graphics]");
-	//WRITE_OPTIONAL_ENTRY(gpuBufferCacheAccuracy);
 	WRITE_ENTRY(accurateShaderMul);
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
-
-	/*stream_writeLine(stream_gameProfile, "[Audio]");
-	WRITE_ENTRY(disableAudio);
-	stream_writeLine(stream_gameProfile, "");*/
 
 	fs->writeLine("[Controller]");
 	for (int i = 0; i < 8; ++i)
