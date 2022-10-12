@@ -291,7 +291,7 @@ void TitleInfo::CalcUID()
 	fs::path normalizedPath;
 	if (m_fullPath.is_relative())
 	{
-		normalizedPath = ActiveSettings::GetPath();
+		normalizedPath = ActiveSettings::GetUserDataPath();
 		normalizedPath /= m_fullPath;
 	}
 	else

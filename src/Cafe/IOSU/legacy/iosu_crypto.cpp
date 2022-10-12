@@ -563,7 +563,7 @@ void iosuCrypto_loadSSLCertificates()
 void iosuCrypto_init()
 {
 	// load OTP dump
-	if (std::ifstream otp_file(ActiveSettings::GetPath("otp.bin"), std::ifstream::in | std::ios::binary); otp_file.is_open())
+	if (std::ifstream otp_file(ActiveSettings::GetUserDataPath("otp.bin"), std::ifstream::in | std::ios::binary); otp_file.is_open())
 	{
 		otp_file.seekg(0, std::ifstream::end);
 		const auto length = otp_file.tellg();
@@ -586,7 +586,7 @@ void iosuCrypto_init()
 		hasOtpMem = false;
 	}
 
-	if (std::ifstream seeprom_file(ActiveSettings::GetPath("seeprom.bin"), std::ifstream::in | std::ios::binary); seeprom_file.is_open())
+	if (std::ifstream seeprom_file(ActiveSettings::GetUserDataPath("seeprom.bin"), std::ifstream::in | std::ios::binary); seeprom_file.is_open())
 	{
 		seeprom_file.seekg(0, std::ifstream::end);
 		const auto length = seeprom_file.tellg();
@@ -630,13 +630,13 @@ sint32 iosuCrypt_checkRequirementsForOnlineMode(std::wstring& additionalErrorInf
 {
 	std::error_code ec;
 	// check if otp.bin is present
-	const auto otp_file = ActiveSettings::GetPath("otp.bin");
+	const auto otp_file = ActiveSettings::GetUserDataPath("otp.bin");
 	if(!fs::exists(otp_file, ec))
 		return IOS_CRYPTO_ONLINE_REQ_OTP_MISSING;
 	if(fs::file_size(otp_file, ec) != 1024)
 		return IOS_CRYPTO_ONLINE_REQ_OTP_CORRUPTED;
 	// check if seeprom.bin is present
-	const auto seeprom_file = ActiveSettings::GetPath("seeprom.bin");
+	const auto seeprom_file = ActiveSettings::GetUserDataPath("seeprom.bin");
 	if (!fs::exists(seeprom_file, ec))
 		return IOS_CRYPTO_ONLINE_REQ_SEEPROM_MISSING;
 	if (fs::file_size(seeprom_file, ec) != 512)

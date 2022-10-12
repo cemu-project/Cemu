@@ -989,8 +989,8 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		{
 			try
 			{
-				const auto path = CemuApp::GetCemuPath(L"dump\\curl").ToStdWstring();
-				fs::create_directories(path);
+				const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+				fs::create_directories(path / "dump" / "curl");
 			}
 			catch (const std::exception& ex)
 			{
@@ -1046,8 +1046,8 @@ void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const auto path = CemuApp::GetCemuPath(L"dump\\textures");
-			fs::create_directories(path.ToStdWstring());
+			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+			fs::create_directories(path / "dump" / "textures");
 		}
 		catch (const std::exception& ex)
 		{
@@ -1067,8 +1067,8 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const auto path = CemuApp::GetCemuPath(L"dump\\shaders");
-			fs::create_directories(path.ToStdWstring());
+			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+			fs::create_directories(path / "dump" / "shaders");
 		}
 		catch (const std::exception & ex)
 		{

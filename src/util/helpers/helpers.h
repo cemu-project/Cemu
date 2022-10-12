@@ -52,7 +52,7 @@ uint32_t GetPhysicalCoreCount();
 // Creates a temporary file to test for write access
 bool TestWriteAccess(const fs::path& p);
 
-fs::path MakeRelativePath(const fs::path& path);
+fs::path MakeRelativePath(const fs::path& base, const fs::path& path);
 
 #ifdef HAS_DIRECTINPUT
 bool GUIDFromString(const char* string, GUID& guid);

@@ -10,6 +10,7 @@
 #include <wx/gauge.h>
 #include <wx/button.h>
 #include <wx/msgdlg.h>
+#include <wx/stdpaths.h>
 
 #include <curl/curl.h>
 #include <zip.h>
@@ -470,7 +471,8 @@ void CemuUpdateWindow::WorkerThread()
 					break;
 
 				// apply update
-				std::wstring target_directory = ActiveSettings::GetPath().generic_wstring();
+				fs::path exePath = fs::path(wxStandardPaths::Get().GetExecutablePath().ToStdString());
+				std::wstring target_directory = exePath.parent_path().generic_wstring();
 				if (target_directory[target_directory.size() - 1] == '/')
 					target_directory = target_directory.substr(0, target_directory.size() - 1); // remove trailing /
 

@@ -133,7 +133,7 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 		// save to png file
 		if (save_screenshot)
 		{
-			fs::path screendir = ActiveSettings::GetPath("screenshots");
+			fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
 			if (!fs::exists(screendir))
 				fs::create_directory(screendir);
 

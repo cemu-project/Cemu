@@ -1,4 +1,5 @@
 #include "NetworkSettings.h"
+#include "ActiveSettings.h"
 #include "LaunchSettings.h"
 #include "CemuConfig.h"
 #include <boost/dll/runtime_symbol_info.hpp>
@@ -6,11 +7,10 @@
 
 XMLNetworkConfig_t n_config(L"network_services.xml");
 
+
 void NetworkConfig::LoadOnce() 
 {
-	s_full_path = boost::dll::program_location().generic_wstring();
-	s_path = s_full_path.parent_path();
-	n_config.SetFilename(GetPath("network_services.xml").generic_wstring());
+	n_config.SetFilename(ActiveSettings::GetConfigPath("network_services.xml").generic_wstring());
 	if (XMLExists())
 		n_config.Load();
 }
@@ -37,7 +37,7 @@ void NetworkConfig::Load(XMLConfigParser& parser)
 bool NetworkConfig::XMLExists() 
 {
 	std::error_code ec;
-	if (!fs::exists(GetPath("network_services.xml"), ec))
+	if (!fs::exists(ActiveSettings::GetConfigPath("network_services.xml"), ec))
 	{
 		if (static_cast<NetworkService>(GetConfig().account.active_service.GetValue()) == NetworkService::Custom)
 		{

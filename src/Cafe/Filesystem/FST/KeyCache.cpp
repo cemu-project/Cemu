@@ -59,7 +59,7 @@ void KeyCache_Prepare()
 	sKeyCachePrepared = true;
 	g_keyCache.clear();
 	// load keys
-	auto keysPath = ActiveSettings::GetPath("keys.txt");
+	auto keysPath = ActiveSettings::GetUserDataPath("keys.txt");
 	FileStream* fs_keys = FileStream::openFile2(keysPath);
 	if( !fs_keys )
 	{
