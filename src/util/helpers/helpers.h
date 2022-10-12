@@ -231,6 +231,26 @@ inline uint64 MakeU64(uint32 high, uint32 low)
 	return ((uint64)high << 32) | ((uint64)low);
 }
 
+static bool IsValidFilename(std::string_view sv)
+{
+	for (auto& it : sv)
+	{
+		uint8 c = (uint8)it;
+		if (c < 0x20)
+			return false;
+		if (c == '.' || c == '#' || c == '/' || c == '\\' ||
+			c == '<' || c == '>' || c == '|' || c == ':' ||
+			c == '\"')
+			return false;
+	}
+	if (!sv.empty())
+	{
+		if (sv.back() == ' ' || sv.back() == '.')
+			return false;
+	}
+	return true;
+}
+
 // MAJOR; MINOR
 std::pair<DWORD, DWORD> GetWindowsVersion();
 bool IsWindows81OrGreater();
