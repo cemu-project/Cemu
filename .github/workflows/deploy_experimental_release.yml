@@ -69,12 +69,9 @@ jobs:
           ls ./bin/
           ln -s /Applications ${{ env.CEMU_FOLDER_NAME }}
           echo "CEMU_APP_FOLDER_PATH=${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents"
-          for folder in MacOS Frameworks
-          do
-            mkdir -p ./${{ env.CEMU_APP_FOLDER_PATH }}/$folder
-          done
+          mkdir -p ./${{ env.CEMU_APP_FOLDER_PATH }}/MacOS
+          mv ./bin/macOS_Frameworks ./${{ env.CEMU_APP_FOLDER_PATH }}/Frameworks
           cp -R ./bin ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents
-          cp -R ./macOS_Frameworks ./${{ env.CEMU_APP_FOLDER_PATH }}/Frameworks
           mv cemu-bin-macos-x64/Cemu ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents/Cemu
           chmod a+x ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents/Cemu
           install_name_tool -add_rpath @executable_path/../Frameworks ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents/Cemu
