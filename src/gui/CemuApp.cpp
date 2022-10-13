@@ -127,7 +127,12 @@ bool CemuApp::OnInit()
 
 	if (!m_locale.IsOk())
 	{
-		m_locale.Init(wxLANGUAGE_DEFAULT);
+		if (!wxLocale::IsAvailable(wxLANGUAGE_DEFAULT) || !m_locale.Init(wxLANGUAGE_DEFAULT))
+		{
+            m_locale.Init(wxLANGUAGE_ENGLISH);
+            m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
+            m_locale.AddCatalog("cemu");
+		}
 	}
 
 	// fill colour db
