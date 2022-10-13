@@ -72,11 +72,15 @@ jobs:
           ls ./
           ls ./bin/
           ln -s /Applications ${{ env.CEMU_FOLDER_NAME }}
-          echo "CEMU_APP_FOLDER_PATH=${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents/macOS"
-          mkdir -p ./{{ env.CEMU_APP_FOLDER_PATH }}
-          cp -R ./bin ./${{ env.CEMU_APP_FOLDER_PATH }}
-          mv cemu-bin-macos-x64/Cemu ./${{ env.CEMU_APP_FOLDER_PATH }}/Cemu
-          chmod a+x ./${{ env.CEMU_APP_FOLDER_PATH }}/Cemu
+          echo "CEMU_APP_FOLDER_PATH=${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents"
+          for folder in MacOS Frameworks
+          do
+            mkdir -p ./${{ env.CEMU_APP_FOLDER_PATH }}/$folder
+          done
+          cp -R ./bin ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents
+          mv cemu-bin-macos-x64/Cemu ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents/Cemu
+          chmod a+x ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents/Cemu
+          install_name_tool -add_rpath @executable_path/../Frameworks ./${{ env.CEMU_APP_FOLDER_PATH }}/Contents/Cemu
           hdiutil create ./${{ env.CEMU_FOLDER_NAME }}/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./${{ env.CEMU_FOLDER_NAME }}"
           hdiutil convert ./${{ env.CEMU_FOLDER_NAME }}/tmp.dmg -format UDZO -o upload/cemu-${{ env.CEMU_VERSION }}-macos-12-x64.zip
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
