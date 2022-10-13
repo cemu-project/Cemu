@@ -187,7 +187,8 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 	// this function must be called from the same thread as we called CoInitializeEx
 	s_devices.clear();
 
-	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
+	HRESULT r = CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE);
+	if (r != RPC_E_CHANGED_MODE && FAILED(r))
 		return s_devices;
 
 	try
