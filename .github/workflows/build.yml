@@ -223,7 +223,11 @@ jobs:
 
     - name: Prepare artifact
       if: ${{ inputs.deploymode == 'release' }}
-      run: chmod a+x bin/Cemu_release && mv bin/Cemu_release bin/Cemu
+      run: |
+        chmod a+x bin/Cemu_release && mv bin/Cemu_release bin/Cemu
+        mkdir macOS_Frameworks
+        cp /usr/local/lib/libMoltenVK.dylib macOS_Frameworks/
+        cp /usr/local/bin/MoltenVKShaderConverter macOS_Frameworks/
               
     - name: Upload artifact
       uses: actions/upload-artifact@v3
