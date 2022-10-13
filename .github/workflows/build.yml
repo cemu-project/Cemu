@@ -162,6 +162,8 @@ jobs:
       with:
         name: cemu-bin-windows-x64
         path: ./bin/Cemu.exe
+
+
   build-macos:
     runs-on: macos-12
     steps:
@@ -213,7 +215,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja
+        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DPORTABLE=OFF -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja
         
     - name: "Build Cemu"
       run: |
