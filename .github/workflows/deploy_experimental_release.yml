@@ -67,6 +67,7 @@ jobs:
         run: |
           ls ./
           ls ./bin/
+          ls ./cemu-bin-macos-x64/
           ln -s /Applications ./${{ env.CEMU_FOLDER_NAME }}
           mv cemu-bin-macos-x64/Cemu.app ./${{ env.CEMU_FOLDER_NAME }}/Cemu.app
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents/MacOS
