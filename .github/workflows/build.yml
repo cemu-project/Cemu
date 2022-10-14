@@ -226,7 +226,7 @@ jobs:
       run: |
         mv bin/Cemu_release.app bin/Cemu.app
         mv bin/Cemu.app/Contents/MacOS/Cemu_release bin/Cemu.app/Contents/MacOS/Cemu
-        sed -i '' 's/Cemu_release/Cemu/g' Info.plist
+        sed -i '' 's/Cemu_release/Cemu/g' bin/Cemu.app/Contents/Info.plist
               
     - name: Upload artifact
       uses: actions/upload-artifact@v3
