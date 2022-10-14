@@ -72,6 +72,16 @@ endif()
 set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
 
+if (APPLE)
+	set(RESOURCE_FILES "${CMAKE_SOURCE_DIR}/src/resource/cemu.icns")
+	target_sources(CemuBin PRIVATE "${RESOURCE_FILES}")
+
+	set_target_properties(CemuBin PROPERTIES
+		MACOSX_BUNDLE true
+		RESOURCE "${RESOURCE_FILES}"
+	)
+endif()
+
 set_target_properties(CemuBin PROPERTIES
 	# multi-configuration generators will add a config subdirectory to RUNTIME_OUTPUT_DIRECTORY if no generator expression is used
 	# to get the same behavior everywhere we append an empty generator expression
