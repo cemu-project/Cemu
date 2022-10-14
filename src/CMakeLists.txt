@@ -91,6 +91,8 @@ target_link_libraries(CemuBin PRIVATE
 	OpenGL::GL
 	SDL2::SDL2
 )
+set_target_properties(CemuBin PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/src/version-script.txt)
+target_link_options(CemuBin PRIVATE "-Wl,--version-script=${CMAKE_SOURCE_DIR}/src/version-script.txt")
 
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuBin PRIVATE wx::base wx::core)
