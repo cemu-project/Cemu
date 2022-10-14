@@ -52,6 +52,11 @@ struct
 	sint32 pipelineFileCount;
 }g_shaderCacheLoaderState;
 
+struct
+{
+	ImTextureID textureId;
+}d_shaderCacheLoaderState;
+
 FileCache* fc_shaderCacheGeneric = nullptr;	// contains hardware and Cemu version independent shader information
 
 #define SHADER_CACHE_GENERIC_EXTRA_VERSION		2 // changing this constant will invalidate all hardware-independent cache files
@@ -251,7 +256,27 @@ void LatteShaderCache_load()
 
 		fsc_close(fscfile);
 	}
+	//get game background loading image for DRC
+	TGAFILE file2{};
+	d_shaderCacheLoaderState.textureId = nullptr;
 
+	std::string drcTexPath = fmt::format("{}/meta/bootDRCTex.tga", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()));
+	sint32 status2;
+	auto fscfile2 = fsc_open(drcTexPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status2);
+	if (fscfile2)
+	{
+		uint32 size = fsc_getFileSize(fscfile2);
+		if (size > 0)
+		{
+			std::vector<uint8> tmpData(size);
+			fsc_readFile(fscfile2, tmpData.data(), size);
+			const bool backgroundLoaded = LoadTGAFile(tmpData, &file2);
+
+			if (backgroundLoaded)
+				d_shaderCacheLoaderState.textureId = g_renderer->GenerateTexture(file2.imageData, { file2.imageWidth, file2.imageHeight });
+		}
+		fsc_close(fscfile2);
+	}
 	sint32 numLoadedShaders = 0;
 	uint32 loadIndex = 0;
 
@@ -330,16 +355,48 @@ void LatteShaderCache_load()
 					ImGui::GetWindowDrawList()->AddImage(g_shaderCacheLoaderState.textureId, ImVec2(paddingLeftAndRight, paddingTopAndBottom), ImVec2(io.DisplaySize.x-paddingLeftAndRight, io.DisplaySize.y-paddingTopAndBottom), { 0,1 }, { 1,0 });
 				}
 				ImGui::End();
+				ImGui::PopStyleVar(2);
+				g_renderer->ImguiEnd();
 			}
-			ImGui::PopStyleVar(2);
-
-			g_renderer->ImguiEnd();
 		}
+
+				g_renderer->BeginFrame(false);
+				if (g_renderer->ImguiBegin(false)) {
+				ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Always);
+				ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Always);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
+				if (ImGui::Begin("Background texture2", nullptr, kPopupFlags))
+				{
+					if (d_shaderCacheLoaderState.textureId)
+				{
+					float imageDisplayWidth = io.DisplaySize.x;
+					float imageDisplayHeight = 480 * imageDisplayWidth / 854;
+
+					float paddingLeftAndRight = 0.0f;
+					float paddingTopAndBottom = (io.DisplaySize.y - imageDisplayHeight)/2.0f;
+					if (imageDisplayHeight > io.DisplaySize.y)
+					{
+						imageDisplayHeight = io.DisplaySize.y;
+						imageDisplayWidth = 854 * imageDisplayHeight / 480;
+						paddingLeftAndRight = (io.DisplaySize.x - imageDisplayWidth)/2.0f;
+						paddingTopAndBottom = 0.0f;
+					}
+					ImGui::GetWindowDrawList()->AddImage(d_shaderCacheLoaderState.textureId, ImVec2(paddingLeftAndRight, paddingTopAndBottom), ImVec2(io.DisplaySize.x-paddingLeftAndRight, io.DisplaySize.y-paddingTopAndBottom), { 0,1 }, { 1,0 });
+				}
+					ImGui::End();
+					ImGui::PopStyleVar(2);
+					g_renderer->ImguiEnd();
+				}
+				}
+				
 		g_renderer->SwapBuffers(true, true);
 	}
 
 	if (g_shaderCacheLoaderState.textureId)
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureId);
+	if (d_shaderCacheLoaderState.textureId)
+		g_renderer->DeleteTexture(d_shaderCacheLoaderState.textureId);
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
@@ -483,6 +540,36 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 			g_renderer->ImguiEnd();
 			lastFrameUpdate = tick_cached();
 		}
+
+				g_renderer->BeginFrame(false);
+				if (g_renderer->ImguiBegin(false)) {
+				ImGui::SetNextWindowPos({ 0,0 }, ImGuiCond_Always);
+				ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Always);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
+				if (ImGui::Begin("Background texture2", nullptr, kPopupFlags))
+				{
+					if (d_shaderCacheLoaderState.textureId)
+				{
+					float imageDisplayWidth = io.DisplaySize.x;
+					float imageDisplayHeight = 480 * imageDisplayWidth / 854;
+
+					float paddingLeftAndRight = 0.0f;
+					float paddingTopAndBottom = (io.DisplaySize.y - imageDisplayHeight)/2.0f;
+					if (imageDisplayHeight > io.DisplaySize.y)
+					{
+						imageDisplayHeight = io.DisplaySize.y;
+						imageDisplayWidth = 854 * imageDisplayHeight / 480;
+						paddingLeftAndRight = (io.DisplaySize.x - imageDisplayWidth)/2.0f;
+						paddingTopAndBottom = 0.0f;
+					}
+					ImGui::GetWindowDrawList()->AddImage(d_shaderCacheLoaderState.textureId, ImVec2(paddingLeftAndRight, paddingTopAndBottom), ImVec2(io.DisplaySize.x-paddingLeftAndRight, io.DisplaySize.y-paddingTopAndBottom), { 0,1 }, { 1,0 });
+				}
+					ImGui::End();
+					ImGui::PopStyleVar(2);
+					g_renderer->ImguiEnd();
+				}
+				}
 
 		// finish frame
 		g_renderer->SwapBuffers(true, true);
