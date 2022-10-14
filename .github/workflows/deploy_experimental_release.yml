@@ -70,8 +70,6 @@ jobs:
           ln -s /Applications ./${{ env.CEMU_FOLDER_NAME }}
           mv cemu-bin-macos-x64/Cemu.app ./${{ env.CEMU_FOLDER_NAME }}/Cemu.app
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents/MacOS
-          chmod a+x ./${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents/MacOS/Cemu
-          install_name_tool -add_rpath @executable_path/../Frameworks ./${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents/MacOS/Cemu
           hdiutil create ./${{ env.CEMU_FOLDER_NAME }}/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./${{ env.CEMU_FOLDER_NAME }}"
           hdiutil convert ./${{ env.CEMU_FOLDER_NAME }}/tmp.dmg -format UDZO -o upload/cemu-${{ env.CEMU_VERSION }}-macos-12-x64.dmg
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
