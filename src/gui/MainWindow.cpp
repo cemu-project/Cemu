@@ -1721,7 +1721,6 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 			{
 				CemuUpdateWindow update_window(this);
 				update_window.ShowModal();
-				update_window.Destroy();
 			}
 		}
 
@@ -1998,7 +1997,6 @@ void MainWindow::OnHelpUpdate(wxCommandEvent& event)
 {
 	CemuUpdateWindow test(this);
 	test.ShowModal();
-	test.Destroy();
 }
 
 void MainWindow::OnHelpGettingStarted(wxCommandEvent& event)
