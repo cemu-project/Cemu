@@ -759,11 +759,12 @@ void MainWindow::OpenSettings()
 	auto& config = GetConfig();
 	const auto language = config.language;
 
-	GeneralSettings2 frame(this, m_game_launched);
-	frame.ShowModal();
-	const bool paths_modified = frame.ShouldReloadGamelist();
-	const bool mlc_modified = frame.MLCModified();
-	frame.Destroy();
+	GeneralSettings2* frame = new GeneralSettings2(this, m_game_launched);
+	frame->ShowModal();
+	const bool paths_modified = frame->ShouldReloadGamelist();
+	const bool mlc_modified = frame->MLCModified();
+	frame->Destroy();
+	frame = nullptr;
 
 	if (paths_modified)
 		m_game_list->ReloadGameEntries(false);
