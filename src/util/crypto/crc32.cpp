@@ -322,7 +322,7 @@ unsigned int crc32_calc_slice_by_8(unsigned int previousCrc32, const void* data,
 	// process eight bytes at once (Slicing-by-8)
 	while (length >= 8)
 	{
-		if (std::endian::native == std::endian::big){
+		if constexpr (std::endian::native == std::endian::big){
 			uint32_t one = *current++ ^ swap(crc);
 			uint32_t two = *current++;
 			crc = Crc32Lookup[0][two & 0xFF] ^
@@ -334,7 +334,7 @@ unsigned int crc32_calc_slice_by_8(unsigned int previousCrc32, const void* data,
 				  Crc32Lookup[6][(one >> 16) & 0xFF] ^
 				  Crc32Lookup[7][(one >> 24) & 0xFF];
 		}
-		else if (std::endian::native == std::endian::little)
+		else if constexpr (std::endian::native == std::endian::little)
 		{
 			uint32_t one = *current++ ^ crc;
 			uint32_t two = *current++;
