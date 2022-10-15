@@ -36,7 +36,13 @@ elseif(UNIX)
 	endif()
 
 	if(NOT APPLE)
+		# needed for backtraces to have function symbols
 		add_link_options(-rdynamic)
+
+		# statically linking libpng for wxWidgets exports libpng symbols from the Cemu executable (not -rdynamic)
+		# this causes crashes when other dynamic libraries load the system's libpng which can be a different version.
+		# this option removes the symbols of the statically linked version from the dynamic symbol table
+		add_link_options(-Wl,--exclude-libs,libpng16:libpng16d)
 	endif()
 
     add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
@@ -91,8 +97,6 @@ target_link_libraries(CemuBin PRIVATE
 	OpenGL::GL
 	SDL2::SDL2
 )
-set_target_properties(CemuBin PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/src/version-script.txt)
-target_link_options(CemuBin PRIVATE "-Wl,--version-script=${CMAKE_SOURCE_DIR}/src/version-script.txt")
 
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuBin PRIVATE wx::base wx::core)
