@@ -54,7 +54,6 @@ target_link_libraries(CemuCommon PRIVATE
 	CemuComponents
 	Boost::nowide
 	Boost::filesystem
-	glm::glm
 )
 
 if (UNIX AND NOT APPLE)

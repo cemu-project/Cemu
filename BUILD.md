@@ -33,7 +33,7 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Arch and derivatives:
-`sudo pacman -S --needed git cmake llvm clang ninja nasm base-devel linux-headers gtk3 libsecret libgcrypt systemd freeglut zip unzip libpulse`
+`sudo pacman -S --needed git cmake llvm clang ninja nasm base-devel linux-headers gtk3 libsecret libgcrypt systemd freeglut zip unzip libpulse zlib libpng pugixml ztd rapidjson sdl2 boost boost-libs fmt glm glslang`
 
 #### For Fedora and derivatives:
 `sudo dnf install git cmake clang ninja-build nasm kernel-headers gtk3-devel libsecret-devel libgcrypt-devel systemd-devel freeglut-devel perl-core zlib-devel cubeb-devel`
@@ -49,6 +49,10 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 While we use and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).  
 You can use it by replacing the step 3 with the following:
 `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
+
+#### Regarding Arch Linux
+Building Cemu using vcpkg packages on Arch Linux will cause the emulator to raise a segmentation fault at launch.
+To fix this, add `-DENABLE_VCPKG=OFF` to the cmake command.
 
 #### Troubleshooting steps
  - If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja` to the command and running it again.
