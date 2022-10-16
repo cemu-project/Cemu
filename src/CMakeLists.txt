@@ -73,8 +73,12 @@ set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONF
 set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
 
 if (MACOS_ENABLE_BUNDLE)
+	set_property(TARGET CemuBin PROPERTY MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resource/MacOSXBundleInfo.plist.in")
+
 	set(RESOURCE_FILES "${CMAKE_SOURCE_DIR}/src/resource/cemu.icns")
 	target_sources(CemuBin PRIVATE "${RESOURCE_FILES}")
+
+	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
 
 	set_target_properties(CemuBin PROPERTIES
 		MACOSX_BUNDLE true
