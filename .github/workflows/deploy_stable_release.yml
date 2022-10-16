@@ -12,7 +12,7 @@ jobs:
       deploymode: release
   deploy:
     name: Deploy release
-    runs-on: ubuntu-20.04
+    runs-on: macos-12
     needs: call-release-build
     steps:
       - uses: actions/checkout@v2
@@ -82,6 +82,6 @@ jobs:
           
       - name: Create release
         run: |
-          wget -O ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.15.0/ghr_v0.15.0_linux_amd64.tar.gz
+          wget -O ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.15.0/ghr_v0.15.0_darwin_amd64.zip
           tar xvzf ghr.tar.gz; rm ghr.tar.gz
-          ghr_v0.15.0_linux_amd64/ghr -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }}" -b "Changelog:" v${{ env.CEMU_VERSION }} ./upload
+          ghr_v0.15.0_darwin_amd64/ghr -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }}" -b "Changelog:" v${{ env.CEMU_VERSION }} ./upload
