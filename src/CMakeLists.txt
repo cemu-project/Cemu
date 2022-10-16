@@ -93,6 +93,9 @@ if (MACOS_ENABLE_BUNDLE)
 
 	add_custom_command (TARGET CemuBin POST_BUILD
 		COMMAND ${CMAKE_COMMAND} ARGS -E copy "/usr/local/lib/libMoltenVK.dylib" "${CMAKE_SOURCE_DIR}/bin/Cemu_release.app/Contents/Frameworks/libMoltenVK.dylib")
+
+	add_custom_command (TARGET CemuBin POST_BUILD
+		COMMAND bash -c "install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_SOURCE_DIR}/bin/Cemu_release.app/Contents/MacOS/Cemu_release")
 endif()
 
 set_target_properties(CemuBin PROPERTIES
