@@ -84,6 +84,17 @@ if (MACOS_ENABLE_BUNDLE)
 		MACOSX_BUNDLE true
 		RESOURCE "${RESOURCE_FILES}"
 	)
+
+	set(SHARED_SUPPORT "${CMAKE_SOURCE_DIR}/bin/Cemu_release.app/Contents/SharedSupport")
+	set(FOLDERS gameProfiles resources)
+	foreach(folder ${FOLDERS})
+		add_custom_command (TARGET CemuBin POST_BUILD
+			COMMAND ${CMAKE_COMMAND} ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/bin/${folder}" "${CMAKE_SOURCE_DIR}/bin/Cemu_release.app/Contents/SharedSupport/${folder}")
+	endforeach(folder)
+
+	set(FRAMEWORKS "${CMAKE_SOURCE_DIR}/bin/Cemu_release.app/Contents/Frameworks")
+	add_custom_command (TARGET CemuBin POST_BUILD
+		COMMAND ${CMAKE_COMMAND} ARGS -E copy "/usr/local/lib/libMoltenVK.dylib" "${FRAMEWORKS}/libMoltenVK.dylib")
 endif()
 
 set_target_properties(CemuBin PROPERTIES
