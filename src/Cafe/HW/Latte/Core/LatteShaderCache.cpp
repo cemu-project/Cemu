@@ -235,8 +235,8 @@ void LatteShaderCache_load()
 	g_shaderCacheLoaderState.textureTVId = nullptr;
 
 	std::string tvTexPath = fmt::format("{}/meta/bootTvTex.tga", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()));
-	sint32 status;
-	auto fscfile = fsc_open(tvTexPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status);
+	sint32 statusTV;
+	auto fscfile = fsc_open(tvTexPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &statusTV);
 	if (fscfile)
 	{
 		uint32 size = fsc_getFileSize(fscfile);
@@ -257,8 +257,8 @@ void LatteShaderCache_load()
 	g_shaderCacheLoaderState.textureDRCId = nullptr;
 
 	std::string drcTexPath = fmt::format("{}/meta/bootDRCTex.tga", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()));
-	sint32 status2;
-	auto fscfile2 = fsc_open(drcTexPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status2);
+	sint32 statusDRC;
+	auto fscfile2 = fsc_open(drcTexPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &statusDRC);
 	if (fscfile2)
 	{
 		uint32 size = fsc_getFileSize(fscfile2);
