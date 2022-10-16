@@ -33,7 +33,7 @@ jobs:
       - name: Initialize
         run: |
           mkdir upload
-          sudo apt install zip
+          brew install zip
           
       - name: Get version
         run: |

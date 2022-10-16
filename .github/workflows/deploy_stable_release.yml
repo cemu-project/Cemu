@@ -35,8 +35,7 @@ jobs:
       - name: Initialize
         run: |
           mkdir upload
-          sudo apt update -qq
-          sudo apt install -y zip
+          brew install zip
           
       - name: Get Cemu release version
         run: |
