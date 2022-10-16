@@ -229,6 +229,8 @@ jobs:
         mv bin/Cemu/Cemu.app/Contents/MacOS/Cemu_release bin/Cemu/Cemu.app/Contents/MacOS/Cemu
         sed -i '' 's/Cemu_release/Cemu/g' bin/Cemu/Cemu.app/Contents/Info.plist
         chmod a+x bin/Cemu/Cemu.app/Contents/MacOS/Cemu
+        mkdir bin/Cemu/Cemu.app/Contents/SharedSupport
+        cp -R ./bin/* ./bin/Cemu/Cemu.app/Contents/SharedSupport
         mkdir bin/Cemu/Cemu.app/Contents/Frameworks
         cp /usr/local/lib/libMoltenVK.dylib bin/Cemu/Cemu.app/Contents/Frameworks
         install_name_tool -add_rpath @executable_path/../Frameworks bin/Cemu/Cemu.app/Contents/MacOS/Cemu
