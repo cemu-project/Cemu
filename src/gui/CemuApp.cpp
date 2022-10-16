@@ -118,22 +118,24 @@ bool CemuApp::OnInit()
 	m_languages = GetAvailableLanguages();
 
 	const sint32 language = GetConfig().language;
-	if (language != wxLANGUAGE_ENGLISH)
+	const auto it = std::find_if(m_languages.begin(), m_languages.end(), [language](const wxLanguageInfo* info) { return info->Language == language; });
+	if (it != m_languages.end() && wxLocale::IsAvailable(language))
 	{
-		const auto it = std::find_if(m_languages.begin(), m_languages.end(), [language](const wxLanguageInfo* info) { return info->Language == language; });
-		if (it != m_languages.end() && wxLocale::IsAvailable(language))
+		if (m_locale.Init(language))
 		{
-			if (m_locale.Init(language))
-			{
-				m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
-				m_locale.AddCatalog("cemu");
-			}
+			m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
+			m_locale.AddCatalog("cemu");
 		}
 	}
 
 	if (!m_locale.IsOk())
 	{
-		m_locale.Init(wxLANGUAGE_DEFAULT);
+		if (!wxLocale::IsAvailable(wxLANGUAGE_DEFAULT) || !m_locale.Init(wxLANGUAGE_DEFAULT))
+		{
+            m_locale.Init(wxLANGUAGE_ENGLISH);
+            m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
+            m_locale.AddCatalog("cemu");
+		}
 	}
 
 	// fill colour db

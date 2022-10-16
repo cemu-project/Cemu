@@ -763,7 +763,6 @@ void MainWindow::OpenSettings()
 	frame.ShowModal();
 	const bool paths_modified = frame.ShouldReloadGamelist();
 	const bool mlc_modified = frame.MLCModified();
-	frame.Destroy();
 
 	if (paths_modified)
 		m_game_list->ReloadGameEntries(false);
@@ -1722,7 +1721,6 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 			{
 				CemuUpdateWindow update_window(this);
 				update_window.ShowModal();
-				update_window.Destroy();
 			}
 		}
 
@@ -1999,7 +1997,6 @@ void MainWindow::OnHelpUpdate(wxCommandEvent& event)
 {
 	CemuUpdateWindow test(this);
 	test.ShowModal();
-	test.Destroy();
 }
 
 void MainWindow::OnHelpGettingStarted(wxCommandEvent& event)

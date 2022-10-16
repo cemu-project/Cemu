@@ -323,10 +323,10 @@ void HandlePostUpdate()
 			fs::remove(filename, ec);
 		}
 #else
-		while( fs::exists(filename) )
+		while (fs::exists(filename))
 		{
 			std::error_code ec;
-			fs::remove(filename, ec);		
+			fs::remove(filename, ec);
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		}
 #endif
@@ -338,8 +338,10 @@ void ToolShaderCacheMerger();
 #if BOOST_OS_WINDOWS
 
 // entrypoint for release builds
-int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine, _In_ int nShowCmd)
+int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine, _In_ int nShowCmd)
 {
+	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
+		cemuLog_log(LogType::Force, "CoInitializeEx() failed");
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
@@ -350,6 +352,8 @@ int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ L
 // entrypoint for debug builds with console
 int main(int argc, char* argv[])
 {
+	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
+		cemuLog_log(LogType::Force, "CoInitializeEx() failed");
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
