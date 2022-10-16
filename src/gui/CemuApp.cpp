@@ -376,11 +376,10 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 
 		if (!TrySelectMLCPath(path))
 		{
-			const auto result = wxMessageBox(
-					_("Cemu can't write to the selected mlc path!") + "\n" + _("Do you want to select another path?"),
-					_("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
+			const auto result = wxMessageBox(_("Cemu can't write to the selected mlc path!\nDo you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
 			if (result == wxYES)
 				continue;
+
 			break;
 		}
 

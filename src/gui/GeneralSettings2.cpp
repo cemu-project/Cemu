@@ -1742,8 +1742,7 @@ void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
 		std::wstring newPath = L"";
 		if(!CemuApp::TrySelectMLCPath(newPath))
 		{
-			const auto res = wxMessageBox(_("The default MLC path is inaccessible.") + "\n"
-				+ _("Do you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
+			const auto res = wxMessageBox(_("The default MLC path is inaccessible.\nDo you want to select a different path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
 			if (res == wxYES && CemuApp::SelectMLCPath(this))
 				newPath = ActiveSettings::GetMlcPath().wstring();
 			else
