@@ -5,8 +5,8 @@
   "dependencies": [
     "pugixml",
     "zlib",
-	"zstd",
-	{
+    "zstd",
+    {
       "name": "libpng",
       "platform": "!linux"
     },
