@@ -5,8 +5,11 @@
   "dependencies": [
     "pugixml",
     "zlib",
-    "libpng",
 	"zstd",
+	{
+      "name": "libpng",
+      "platform": "!linux"
+    },
     {
       "name": "libzip",
       "default-features": false
@@ -23,7 +26,6 @@
     "boost-dll",
     "boost-optional",
     "boost-signals2",
-    "boost-crc",
     "boost-asio",
     "boost-ptr-container",
     "boost-property-tree",
