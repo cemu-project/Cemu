@@ -130,7 +130,6 @@ public:
 	void CreateCanvas();
 	void DestroyCanvas();
 
-	std::wstring GetGameName(std::wstring_view file_name);
 	static void ShowCursor(bool state);
 
 	uintptr_t GetRenderCanvasHWND();

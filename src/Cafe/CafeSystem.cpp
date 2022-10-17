@@ -704,9 +704,8 @@ namespace CafeSystem
 	std::string GetForegroundTitleName()
 	{
 		if (sLaunchModeIsStandalone)
-			return "Missing meta data";
-		// todo - use language based on Cemu console language
-		return sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
+			return "Unknown Game";
+		return sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(GetConfig().console_language);
 	}
 
 	std::string GetForegroundTitleArgStr()
