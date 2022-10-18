@@ -32,7 +32,8 @@ void demangleAndPrintBacktrace(char** backtrace, size_t size)
 		// attempt to resolve symbol from regular symbol table if missing from dynamic symbol table
 		uint64 newOffset = -1;
 		std::string_view symbolName = traceLine.substr(parenthesesOpen+1, offsetPlus-parenthesesOpen-1);
-		if (symbolName.empty()){
+		if (symbolName.empty())
+		{
 			uint64 symbolOffset = StringHelpers::ToInt64(traceLine.substr(offsetPlus+1,offsetPlus+1-parenthesesClose-1));
 			symbolName = symTable.OffsetToSymbol(symbolOffset, newOffset);
 		}
