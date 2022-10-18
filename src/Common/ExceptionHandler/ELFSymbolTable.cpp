@@ -70,6 +70,9 @@ ELFSymbolTable::ELFSymbolTable()
 	strTable = (char*)SectionPointer(FindSection(SHT_STRTAB, ".strtab"));
 
 	Elf64_Shdr& symTabShdr = shTable[FindSection(SHT_SYMTAB, ".symtab")];
+	if (symTabShdr.sh_entsize == 0)
+		return;
+
 	symTableLen = symTabShdr.sh_size / symTabShdr.sh_entsize;
 	symTable = (Elf64_Sym*)(SectionPointer(symTabShdr));
 }
