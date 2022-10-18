@@ -543,8 +543,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		m_game_list = nullptr;
 	}
 
-	const auto game_name = GetGameName(fileName);
-	m_launched_game_name = boost::nowide::narrow(game_name);
+	m_launched_game_name = CafeSystem::GetForegroundTitleName();
 	#ifdef ENABLE_DISCORD_RPC
 	if (m_discord)
 		m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name);
@@ -1494,79 +1493,6 @@ void MainWindow::DestroyCanvas()
 		m_render_canvas->Destroy();
 		m_render_canvas = nullptr;
 	}
-}
-
-
-std::wstring MainWindow::GetGameName(std::wstring_view file_name)
-{
-	fs::path path{ std::wstring{file_name} };
-	const auto extension = path.extension();
-	if (extension == ".wud" || extension == ".wux")
-	{
-		std::unique_ptr<FSTVolume> volume(FSTVolume::OpenFromDiscImage(path));
-		if (!volume)
-			return path.filename().generic_wstring();
-
-		bool foundFile = false;
-		std::vector<uint8> metaContent = volume->ExtractFile("meta/meta.xml", &foundFile);
-		if (!foundFile)
-			return path.filename().generic_wstring();
-
-		namespace xml = tinyxml2;
-		xml::XMLDocument doc;
-		doc.Parse((const char*)metaContent.data(), metaContent.size());
-
-		// parse meta.xml
-		xml::XMLElement* root = doc.FirstChildElement("menu");
-		if (root)
-		{
-			xml::XMLElement* element = root->FirstChildElement("longname_en");
-			if (element)
-			{
-
-				auto game_name = boost::nowide::widen(element->GetText());
-				const auto it = game_name.find(L'\n');
-				if (it != std::wstring::npos)
-					game_name.replace(it, 1, L" - ");
-
-				return game_name;
-			}
-		}
-		return path.filename().generic_wstring();
-	}
-	else if (extension == ".rpx")
-	{
-		if (path.has_parent_path() && path.parent_path().has_parent_path())
-		{
-			auto meta_xml = path.parent_path().parent_path() / "meta/meta.xml";
-			auto metaXmlData = FileStream::LoadIntoMemory(meta_xml);
-			if (metaXmlData)
-			{
-				namespace xml = tinyxml2;
-				xml::XMLDocument doc;
-				if (doc.Parse((const char*)metaXmlData->data(), metaXmlData->size()) == xml::XML_SUCCESS)
-				{
-					xml::XMLElement* root = doc.FirstChildElement("menu");
-					if (root)
-					{
-						xml::XMLElement* element = root->FirstChildElement("longname_en");
-						if (element)
-						{
-
-							auto game_name = boost::nowide::widen(element->GetText());
-							const auto it = game_name.find(L'\n');
-							if (it != std::wstring::npos)
-								game_name.replace(it, 1, L" - ");
-
-							return game_name;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return path.filename().generic_wstring();
 }
 
 void MainWindow::OnSizeEvent(wxSizeEvent& event)
