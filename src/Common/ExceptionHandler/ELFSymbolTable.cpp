@@ -19,29 +19,26 @@ uint16 ELFSymbolTable::FindSection(int type, const std::string_view& name)
 	return 0;
 }
 
-template <typename T>
-T* ELFSymbolTable::SectionPointer(uint16 index)
+void* ELFSymbolTable::SectionPointer(uint16 index)
 {
-	return SectionPointer<T>(shTable[index]);
+	return SectionPointer(shTable[index]);
 }
 
-template <typename T>
-T* ELFSymbolTable::SectionPointer(const Elf64_Shdr& section)
+void* ELFSymbolTable::SectionPointer(const Elf64_Shdr& section)
 {
-	return (T*)(mappedExecutable + section.sh_offset);
+	return (void*)(mappedExecutable + section.sh_offset);
 }
 
 ELFSymbolTable::ELFSymbolTable()
 {
 	// create file handle
-	int err;
 	int fd = open("/proc/self/exe", O_RDONLY);
 	if (!fd)
 		return;
 
 	// retrieve file size.
 	struct stat filestats;
-	if ((err = fstat(fd, &filestats)))
+	if (fstat(fd, &filestats))
 	{
 		close(fd);
 		return;
@@ -70,11 +67,11 @@ ELFSymbolTable::ELFSymbolTable()
 	Elf64_Shdr& shStrn = shTable[header->e_shstrndx];
 	shStrTable = (char*)(mappedExecutable + shStrn.sh_offset);
 
-	strTable = SectionPointer<char>(FindSection(SHT_STRTAB, ".strtab"));
+	strTable = (char*)SectionPointer(FindSection(SHT_STRTAB, ".strtab"));
 
 	Elf64_Shdr& symTabShdr = shTable[FindSection(SHT_SYMTAB, ".symtab")];
 	symTableLen = symTabShdr.sh_size / symTabShdr.sh_entsize;
-	symTable = SectionPointer<Elf64_Sym>(symTabShdr);
+	symTable = (Elf64_Sym*)(SectionPointer(symTabShdr));
 }
 
 ELFSymbolTable::~ELFSymbolTable()

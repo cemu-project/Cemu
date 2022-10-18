@@ -24,11 +24,8 @@ private:
 
 	uint16 FindSection(int type, const std::string_view& name);
 
-	template <typename T>
-	T* SectionPointer(const Elf64_Shdr& section);
-
-	template <typename T>
-	T* SectionPointer (uint16 index);
+	void* SectionPointer (uint16 index);
+	void* SectionPointer(const Elf64_Shdr& section);
 
 	// ownership of mapped memory, cannot copy.
 	ELFSymbolTable(const ELFSymbolTable&) = delete;
