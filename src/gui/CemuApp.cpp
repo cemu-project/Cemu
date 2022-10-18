@@ -77,7 +77,7 @@ bool CemuApp::OnInit()
 	auto standardPaths = wxStandardPaths::Get();
 #ifdef PORTABLE
 	fs::path exePath(standardPaths.GetExecutablePath().ToStdString());
-#if MACOS_ENABLE_BUNDLE
+#if MACOS_BUNDLE
     exePath = exePath.parent_path().parent_path().parent_path();
 #endif
 	user_data_path = config_path = cache_path = data_path = exePath.parent_path();
