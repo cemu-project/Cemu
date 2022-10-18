@@ -1,0 +1,5 @@
+#!/bin/sh
+export CURDIR=$(dirname $(readlink -f "${0}"))
+export PATH="${CURDIR}:${PATH}"
+export LD_LIBRARY_PATH="${CURDIR}/shared_libs:${LD_LIBRARY_PATH}"
+"${CURDIR}/Cemu_release"

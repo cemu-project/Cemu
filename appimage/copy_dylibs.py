@@ -4,7 +4,6 @@ import re
 import sys
 import shutil
 import pathlib
-import tempfile
 import subprocess
 from typing import Dict, List
 
@@ -55,31 +54,12 @@ def copy_libs(dlls: Dict[str, str], to: str):
         pass
     mkdirp(to)
 
-    with tempfile.TemporaryDirectory() as tmp:
-        for wanted, target in dlls.items():
-            if target is None:
-                continue
-            dst = os.path.join(to, wanted)
-            if wanted.startswith("libselinux.so.1"):
-                source_path = os.path.join(tmp, "selinux_mock.c")
-                dummy_path = os.path.join(tmp, "libselinux.so.1")
-                with open(source_path, "w") as f:
-                    f.write("extern int is_selinux_enabled(void){return 0;}\n")
-                subprocess.check_call(
-                    [
-                        "gcc",
-                        "-s",
-                        "-shared",
-                        "-o",
-                        dummy_path,
-                        "-Wl,-soname,libselinux.so.1",
-                        source_path,
-                    ]
-                )
-                subprocess.check_call(["strip", dummy_path])
-                target = dummy_path
-            shutil.copyfile(target, dst)
-            print(f"Copied {target} to {dst}.")
+    for wanted, target in dlls.items():
+        if target is None:
+            continue
+        dst = os.path.join(to, wanted)
+        shutil.copyfile(target, dst)
+        print(f"Copied {target} to {dst}.")
 
 
 if __name__ == "__main__":

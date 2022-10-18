@@ -3,7 +3,7 @@ FROM centos:centos7
 # Dependencies
 ENV INST yum install -y --setopt=skip_missing_names_on_install=False
 RUN $INST https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm centos-release-scl
-RUN $INST autoconf devtoolset-11 ninja-build kernel-headers perl-core python36 python36-pip\
+RUN $INST autoconf devtoolset-11 ninja-build kernel-headers perl-core python36 python36-pip bzip2 file\
     libsecret-devel libgcrypt-devel systemd-devel freeglut-devel zlib-devel\
     libmount-devel bzip2-devel libselinux-devel libffi-devel gtk3-devel\
     pulseaudio-libs-devel libcurl-devel
@@ -15,19 +15,18 @@ ENV CC=/opt/rh/devtoolset-11/root/usr/bin/gcc \
     PATH=/opt/rh/devtoolset-11/root/usr/bin:$PATH \
     LD_LIBRARY_PATH=/opt/rh/devtoolset-11/root/usr/lib64:/opt/rh/devtoolset-11/root/usr/lib:/opt/rh/devtoolset-11/root/usr/lib64/dyninst:/opt/rh/devtoolset-11/root/usr/lib/dyninst:/opt/rh/devtoolset-11/root/usr/lib64:/opt/rh/devtoolset-11/root/usr/lib:$LD_LIBRARY_PATH
 
+## Python
+RUN python3 -m pip install --upgrade pip wheel
+RUN python3 -m pip install cmake
+
 ## Git
 WORKDIR /git
-RUN yum remove -y git
 RUN curl -L https://github.com/git/git/tarball/e9d7761bb94f20acc98824275e317fa82436c25d |\
     tar -xzC . --strip-components=1 &&\
     make configure &&\
     ./configure --prefix=/usr &&\
     make -j$(nproc)&&\
     make install
-
-## Python
-RUN python3 -m pip install --upgrade pip wheel
-RUN python3 -m pip install cmake
 
 ## Cubeb
 RUN git clone https://github.com/mozilla/cubeb /cubeb &&\
@@ -36,8 +35,7 @@ RUN git clone https://github.com/mozilla/cubeb /cubeb &&\
     git submodule update --init --recursive &&\
     cmake -B ./build . &&\
     cmake --build ./build &&\
-    cd ./build &&\
-    make install
+    make -C build install
 
 ## nasm
 WORKDIR /nasm
@@ -47,7 +45,15 @@ RUN curl -L https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/nasm-2.15.05.tar.
     make -j$(nproc)&&\
     make install
 
-## Cemu
+## AppImageTool
+WORKDIR /appimagetool
+RUN curl -L "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-$(uname -m).AppImage" > appimagetool
+RUN chmod +x appimagetool
+
+### Workaround for https://github.com/AppImage/AppImageKit/issues/828
+RUN sed -i '0,/AI\x02/{s|AI\x02|\x00\x00\x00|}' appimagetool
+
+## Cemu 
 WORKDIR /cemu
 COPY . .
 RUN cmake -S . -B build\
@@ -58,4 +64,7 @@ RUN cmake -S . -B build\
     cmake --build build &&\
     rm -rf ./dependencies/vcpkg/buildtrees
 
+
 RUN python3 ./appimage/copy_dylibs.py ./bin/Cemu_release
+RUN cp ./appimage/rsc/* ./bin 
+RUN /appimagetool/appimagetool --appimage-extract-and-run ./bin

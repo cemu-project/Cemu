@@ -1,1 +1,8 @@
 ./dependencies/vcpkg/buildtrees
+./build
+./appimage/Dockerfile
+./appimage/Makefile
+./appimage/Readme.md
+./appimage/bin
+./bin/Cemu*
+./bin/settings.xml
