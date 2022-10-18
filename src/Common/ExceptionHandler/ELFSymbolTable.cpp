@@ -5,6 +5,8 @@
 
 uint16 ELFSymbolTable::FindSection(int type, const std::string_view& name)
 {
+	if (!shTable || !shStrTable)
+		return 0;
 
 	for (uint16 i = 0; i < header->e_shnum; ++i)
 	{
@@ -44,19 +46,16 @@ ELFSymbolTable::ELFSymbolTable()
 		close(fd);
 		return;
 	}
-
 	mappedExecutableSize = filestats.st_size;
 
 	// attempt to map the file
 	mappedExecutable = (uint8*)(mmap(nullptr, mappedExecutableSize, PROT_READ, MAP_PRIVATE, fd, 0));
-
 	close(fd);
-
 	if (!mappedExecutable)
 		return;
 
+	// verify signature
 	header = (Elf64_Ehdr*)(mappedExecutable);
-
 	constexpr uint8 signature[] = {0x7f, 0x45, 0x4c, 0x46};
 	for (size_t i = 0; i < 4; ++i)
 	{
@@ -84,20 +83,14 @@ ELFSymbolTable::~ELFSymbolTable()
 		munmap(mappedExecutable, mappedExecutableSize);
 }
 
-std::ptrdiff_t ELFSymbolTable::SymbolToOffset(const std::string_view& name) const
+std::string_view ELFSymbolTable::OffsetToSymbol(uint64 ptr, uint64& fromStart) const
 {
-	for (auto entry = symTable+1; entry < symTable+symTableLen; ++entry)
+	if(!symTable || !strTable)
 	{
-		if (ELF64_ST_TYPE(entry->st_info) != STT_FUNC)
-			continue;
-		if (&strTable[entry->st_name] == name)
-			return entry->st_value;
+		fromStart = -1;
+		return {};
 	}
-	return 0;
-}
 
-std::string_view ELFSymbolTable::OffsetToSymbol(uint64 ptr) const
-{
 	for (auto entry = symTable+1; entry < symTable+symTableLen; ++entry)
 	{
 		if (ELF64_ST_TYPE(entry->st_info) != STT_FUNC)
@@ -106,9 +99,10 @@ std::string_view ELFSymbolTable::OffsetToSymbol(uint64 ptr) const
 		auto size = entry->st_size;
 		if(ptr >= begin && ptr < begin+size)
 		{
+			fromStart = ptr-begin;
 			return &strTable[entry->st_name];
 		}
 	}
-
+	fromStart = -1;
 	return {};
 }

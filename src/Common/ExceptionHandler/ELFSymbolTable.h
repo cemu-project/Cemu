@@ -5,8 +5,7 @@
 class ELFSymbolTable
 {
 public:
-	ptrdiff_t SymbolToOffset(const std::string_view& name) const;
-	std::string_view OffsetToSymbol(uint64 ptr) const;
+	std::string_view OffsetToSymbol(uint64 ptr, uint64& fromStart) const;
 
 	ELFSymbolTable();
 	~ELFSymbolTable();

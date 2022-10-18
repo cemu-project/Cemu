@@ -2,45 +2,72 @@
 #include <execinfo.h>
 #include <string.h>
 #include <string>
-
 #include "config/CemuConfig.h"
-#include "ELFSymbolTable.h"
 #include "util/helpers/StringHelpers.h"
 
+#if BOOST_OS_LINUX
+#include "ELFSymbolTable.h"
+#endif
+
+#if BOOST_OS_LINUX
 void demangleAndPrintBacktrace(char** backtrace, size_t size)
 {
-	ELFSymbolTable symbols;
+	ELFSymbolTable symTable;
 	for (char** i = backtrace; i < backtrace + size; i++)
 	{
-		std::string traceLine{*i};
+		std::string_view traceLine{*i};
+
+		// basic check to see if the backtrace line matches expected format
 		size_t parenthesesOpen = traceLine.find_last_of('(');
 		size_t parenthesesClose = traceLine.find_last_of(')');
 		size_t offsetPlus = traceLine.find_last_of('+');
 		if (!parenthesesOpen || !parenthesesClose || !offsetPlus ||
 			 offsetPlus < parenthesesOpen || offsetPlus > parenthesesClose)
 		{
-			// something unexpected was read. fall back to default string
+			// fall back to default string
 			std::cerr << traceLine << std::endl;
 			continue;
 		}
 
-		uint64 symbolOffset = StringHelpers::ToInt64(traceLine.substr(offsetPlus+1,offsetPlus+1-parenthesesClose-1));
-		std::string_view symbolName = symbols.OffsetToSymbol(symbolOffset);
+		// attempt to resolve symbol from regular symbol table if missing from dynamic symbol table
+		uint64 newOffset = -1;
+		std::string_view symbolName = traceLine.substr(parenthesesOpen+1, offsetPlus-parenthesesOpen-1);
+		if (symbolName.empty()){
+			uint64 symbolOffset = StringHelpers::ToInt64(traceLine.substr(offsetPlus+1,offsetPlus+1-parenthesesClose-1));
+			symbolName = symTable.OffsetToSymbol(symbolOffset, newOffset);
+		}
+
+		std::cerr << traceLine.substr(0, parenthesesOpen+1);
+
+		// attempt demangle
 		int status = -1;
 		char* demangled = abi::__cxa_demangle(symbolName.data(), nullptr, nullptr, &status);
-		if (demangled)
+
+		// print demangled or unmodified symbol name
+		if(demangled)
 		{
-			std::cerr << traceLine.substr(0, parenthesesOpen+1);
 			std::cerr << demangled;
-			std::cerr << traceLine.substr(offsetPlus) << std::endl;
 			free(demangled);
 		}
 		else
 		{
-			std::cerr << traceLine << std::endl;
+			std::cerr << symbolName;
+		}
+
+		// print relative or existing symbol offset.
+		std::cerr << '+';
+		if (newOffset != -1)
+		{
+			std::cerr << std::hex << newOffset;
+			std::cerr << traceLine.substr(parenthesesClose) << std::endl;
+		}
+		else
+		{
+			std::cerr << traceLine.substr(offsetPlus+1) << std::endl;
 		}
 	}
 }
+#endif
 
 // handle signals that would dump core, print stacktrace and then dump depending on config
 void handlerDumpingSignal(int sig)
@@ -65,6 +92,7 @@ void handlerDumpingSignal(int sig)
 	// print out all the frames to stderr
 	fprintf(stderr, "Error: signal %d:\n", sig);
 
+#if BOOST_OS_LINUX
 	char** symbol_trace = backtrace_symbols(array, size);
 
 	if (symbol_trace)
@@ -76,6 +104,9 @@ void handlerDumpingSignal(int sig)
 	{
 		std::cerr << "Failed to read backtrace" << std::endl;
 	}
+#else
+	backtrace_symbols_fd(array, size, STDERR_FILENO);
+#endif
 
 	if (GetConfig().crash_dump == CrashDump::Enabled)
 	{
