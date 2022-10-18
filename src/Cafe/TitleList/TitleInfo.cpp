@@ -9,6 +9,8 @@
 #include <zarchive/zarchivereader.h>
 #include "config/ActiveSettings.h"
 
+std::string titleNameCfgLanguage;
+
 // detect format by reading file header/footer
 CafeTitleFileType DetermineCafeSystemFileType(fs::path filePath)
 {
@@ -589,7 +591,12 @@ std::string TitleInfo::GetTitleName() const
 {
 	cemu_assert_debug(m_isValid);
 	if (m_parsedMetaXml)
-		return m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+		titleNameCfgLanguage = m_parsedMetaXml->GetShortName(GetConfig().console_language);
+		if (titleNameCfgLanguage.empty())
+			titleNameCfgLanguage = m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+		if (titleNameCfgLanguage.empty())
+		titleNameCfgLanguage = "Unknown Title";
+		return titleNameCfgLanguage;
 	if (m_cachedInfo)
 		return m_cachedInfo->titleName;
 	cemu_assert_suspicious();

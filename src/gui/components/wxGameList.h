@@ -50,6 +50,7 @@ public:
 	bool IsVisible(long item) const; // only available in wxwidgets 3.1.3
 
 	void ReloadGameEntries(bool cached = false);
+	void DeleteCachedStrings();
 
 	long FindListItemByTitleId(uint64 title_id) const;
 	void OnClose(wxCloseEvent& event);
