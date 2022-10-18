@@ -4,6 +4,7 @@
 #include <string>
 
 #include "config/CemuConfig.h"
+#include "ELFSymbolTable.h"
 
 void demangleAndPrintBacktrace(char** backtrace, size_t size)
 {
@@ -51,6 +52,9 @@ void handlerDumpingSignal(int sig)
 		// should never be the case
 		printf("Unknown core dumping signal!\n");
 	}
+
+	auto symbols = ELFSymbolTable();
+	std::cout << symbols.ProcPtrToSymbol((void*)handlerDumpingSignal) << std::endl;
 
 	void *array[128];
 	size_t size;
