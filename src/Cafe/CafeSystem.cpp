@@ -710,7 +710,7 @@ namespace CafeSystem
 		if (applicationName.empty())
 			applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
 		if (applicationName.empty())
-			applicationName = "Unkown Game";
+			applicationName = "Unknown Game";
 		return applicationName;
 	}
 
