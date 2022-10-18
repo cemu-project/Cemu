@@ -40,20 +40,7 @@ void demangleAndPrintBacktrace(char** backtrace, size_t size)
 
 		std::cerr << traceLine.substr(0, parenthesesOpen+1);
 
-		// attempt demangle
-		int status = -1;
-		char* demangled = abi::__cxa_demangle(symbolName.data(), nullptr, nullptr, &status);
-
-		// print demangled or unmodified symbol name
-		if(demangled)
-		{
-			std::cerr << demangled;
-			free(demangled);
-		}
-		else
-		{
-			std::cerr << symbolName;
-		}
+		std::cerr << boost::core::demangle(symbolName.empty() ? "" : symbolName.data());
 
 		// print relative or existing symbol offset.
 		std::cerr << '+';
