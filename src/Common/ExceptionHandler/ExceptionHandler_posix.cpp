@@ -5,9 +5,11 @@
 
 #include "config/CemuConfig.h"
 #include "ELFSymbolTable.h"
+#include "util/helpers/StringHelpers.h"
 
 void demangleAndPrintBacktrace(char** backtrace, size_t size)
 {
+	ELFSymbolTable symbols;
 	for (char** i = backtrace; i < backtrace + size; i++)
 	{
 		std::string traceLine{*i};
@@ -22,9 +24,10 @@ void demangleAndPrintBacktrace(char** backtrace, size_t size)
 			continue;
 		}
 
-		std::string symbolName = traceLine.substr(parenthesesOpen+1,offsetPlus-parenthesesOpen-1);
+		uint64 symbolOffset = StringHelpers::ToInt64(traceLine.substr(offsetPlus+1,offsetPlus+1-parenthesesClose-1));
+		std::string_view symbolName = symbols.OffsetToSymbol(symbolOffset);
 		int status = -1;
-		char* demangled = abi::__cxa_demangle(symbolName.c_str(), nullptr, nullptr, &status);
+		char* demangled = abi::__cxa_demangle(symbolName.data(), nullptr, nullptr, &status);
 		if (demangled)
 		{
 			std::cerr << traceLine.substr(0, parenthesesOpen+1);
@@ -52,9 +55,6 @@ void handlerDumpingSignal(int sig)
 		// should never be the case
 		printf("Unknown core dumping signal!\n");
 	}
-
-	auto symbols = ELFSymbolTable();
-	std::cout << symbols.ProcPtrToSymbol((void*)handlerDumpingSignal) << std::endl;
 
 	void *array[128];
 	size_t size;

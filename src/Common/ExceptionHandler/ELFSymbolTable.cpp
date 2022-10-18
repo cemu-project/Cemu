@@ -29,12 +29,6 @@ T* ELFSymbolTable::SectionPointer(const Elf64_Shdr& section)
 	return (T*)(mappedExecutable + section.sh_offset);
 }
 
-extern "C"
-std::ptrdiff_t FindTextOffset(const ELFSymbolTable& table)
-{
-	return table.SymbolToOffset("FindTextOffset") - (std::ptrdiff_t) FindTextOffset;
-}
-
 ELFSymbolTable::ELFSymbolTable()
 {
 	// create file handle
@@ -82,8 +76,6 @@ ELFSymbolTable::ELFSymbolTable()
 	Elf64_Shdr& symTabShdr = shTable[FindSection(SHT_SYMTAB, ".symtab")];
 	symTableLen = symTabShdr.sh_size / symTabShdr.sh_entsize;
 	symTable = SectionPointer<Elf64_Sym>(symTabShdr);
-
-	textOffset = FindTextOffset(*this);
 }
 
 ELFSymbolTable::~ELFSymbolTable()
@@ -119,15 +111,4 @@ std::string_view ELFSymbolTable::OffsetToSymbol(uint64 ptr) const
 	}
 
 	return {};
-}
-
-uint64 ELFSymbolTable::ProcPtrToOffset(void* ptr) const
-{
-	return (uint64)((uint64)ptr + textOffset);
-}
-
-
-std::string_view ELFSymbolTable::ProcPtrToSymbol(void* ptr) const
-{
-	return OffsetToSymbol(ProcPtrToOffset(ptr));
 }
