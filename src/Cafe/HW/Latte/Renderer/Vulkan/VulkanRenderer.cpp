@@ -659,7 +659,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	}
 	else
 	{
-		m_isPadWindowOpen = true;
+		m_padCanvasDestroying = false;
 		m_usingPadFrameSurface.acquire();
 		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
 		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
@@ -668,7 +668,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 
 void VulkanRenderer::ClosePadWindow()
 {
-	m_isPadWindowOpen = false;
+	m_padCanvasDestroying = true;
 	m_usingPadFrameSurface.acquire();
 	m_usingPadFrameSurface.release();
 }
@@ -1519,7 +1519,7 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow)
 
 	bool valid = m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
 
-	if(valid && !m_isPadWindowOpen)
+	if(valid && m_padCanvasDestroying)
 	{
 		m_padSwapchainInfo.reset();
 		m_usingPadFrameSurface.release();

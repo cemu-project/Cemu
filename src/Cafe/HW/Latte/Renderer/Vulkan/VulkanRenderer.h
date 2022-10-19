@@ -486,7 +486,7 @@ private:
 		VkRenderPass m_imguiRenderPass = nullptr;
 	};
 	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	bool m_isPadWindowOpen = false;
+	bool m_padCanvasDestroying = false;
 	std::binary_semaphore m_usingPadFrameSurface{1};
 	bool IsSwapchainInfoValid(bool mainWindow);
 	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);
