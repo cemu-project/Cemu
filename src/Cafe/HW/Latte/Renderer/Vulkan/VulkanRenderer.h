@@ -187,6 +187,7 @@ public:
 	void DetermineVendor();
 	void Initialize(const Vector2i& size, bool isMainWindow);
 
+	void ClosePadWindow();
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
@@ -485,7 +486,9 @@ private:
 		VkRenderPass m_imguiRenderPass = nullptr;
 	};
 	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	bool IsSwapchainInfoValid(bool mainWindow) const;
+	bool m_isPadWindowOpen = false;
+	std::binary_semaphore m_usingPadFrameSurface{1};
+	bool IsSwapchainInfoValid(bool mainWindow);
 	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);
 
 	struct

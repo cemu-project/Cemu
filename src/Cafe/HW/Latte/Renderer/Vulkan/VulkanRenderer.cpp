@@ -34,6 +34,7 @@
 #define VK_API_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3FFU)
 
 extern std::atomic_int g_compiling_pipelines;
+extern WindowInfo g_window_info;
 
 const  std::vector<const char*> kOptionalDeviceExtensions =
 {
@@ -658,9 +659,20 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	}
 	else
 	{
+		m_isPadWindowOpen = true;
+		m_usingPadFrameSurface.acquire();
+		std::cout << "renderer acquired" << std::endl;
 		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
 		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
 	}
+}
+
+void VulkanRenderer::ClosePadWindow()
+{
+	m_isPadWindowOpen = false;
+	std::cout << "Pad closing and getting semaphore" << std::endl;
+	m_usingPadFrameSurface.acquire();
+	m_usingPadFrameSurface.release();
 }
 
 bool VulkanRenderer::IsPadWindowActive()
@@ -1501,12 +1513,23 @@ VkSwapchainCreateInfoKHR VulkanRenderer::CreateSwapchainCreateInfo(VkSurfaceKHR 
 	return createInfo;
 }
 
-bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
+bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow)
 {
 	if (mainWindow)
 		return m_mainSwapchainInfo && m_mainSwapchainInfo->swapChain && m_mainSwapchainInfo->m_imageAvailableFence;
 
-	return m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
+
+	bool valid = m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
+
+	if(valid && !m_isPadWindowOpen)
+	{
+		std::cout << "Validity check occurred with closed window destroying swapchain" << std::endl;
+		m_padSwapchainInfo.reset();
+		std::cout << "Renderer releasing semaphore" << std::endl;
+		m_usingPadFrameSurface.release();
+		return false;
+	}
+	return valid;
 }
 
 VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow)
