@@ -46,9 +46,7 @@ VulkanCanvas::~VulkanCanvas()
 	if(!is_main_window)
 	{
 		auto vulkan_renderer = VulkanRenderer::GetInstance();
-		std::cout << "Canvas signalling close to renderer" << std::endl;
 		vulkan_renderer->ClosePadWindow();
-		std::cout << "Destroyed canvas";
 	}
 }
 

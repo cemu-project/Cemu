@@ -661,7 +661,6 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	{
 		m_isPadWindowOpen = true;
 		m_usingPadFrameSurface.acquire();
-		std::cout << "renderer acquired" << std::endl;
 		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
 		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
 	}
@@ -670,7 +669,6 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 void VulkanRenderer::ClosePadWindow()
 {
 	m_isPadWindowOpen = false;
-	std::cout << "Pad closing and getting semaphore" << std::endl;
 	m_usingPadFrameSurface.acquire();
 	m_usingPadFrameSurface.release();
 }
@@ -1523,9 +1521,7 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow)
 
 	if(valid && !m_isPadWindowOpen)
 	{
-		std::cout << "Validity check occurred with closed window destroying swapchain" << std::endl;
 		m_padSwapchainInfo.reset();
-		std::cout << "Renderer releasing semaphore" << std::endl;
 		m_usingPadFrameSurface.release();
 		return false;
 	}
