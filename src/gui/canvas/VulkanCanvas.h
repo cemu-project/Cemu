@@ -17,8 +17,6 @@ public:
 
 private:
 
-	bool is_main_window;
-
 	void OnPaint(wxPaintEvent& event);
 	void OnResize(wxSizeEvent& event);
 };

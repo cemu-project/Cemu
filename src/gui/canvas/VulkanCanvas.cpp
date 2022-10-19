@@ -6,7 +6,6 @@
 
 VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)
 	: IRenderCanvas(is_main_window), wxWindow(parent, wxID_ANY, wxDefaultPosition, size, wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
-	, is_main_window(is_main_window)
 {
 	Bind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Bind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
@@ -43,7 +42,7 @@ VulkanCanvas::~VulkanCanvas()
 	Unbind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Unbind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
 
-	if(!is_main_window)
+	if(!m_is_main_window)
 	{
 		auto vulkan_renderer = VulkanRenderer::GetInstance();
 		vulkan_renderer->ClosePadWindow();
