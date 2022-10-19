@@ -34,7 +34,6 @@
 #define VK_API_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3FFU)
 
 extern std::atomic_int g_compiling_pipelines;
-extern WindowInfo g_window_info;
 
 const  std::vector<const char*> kOptionalDeviceExtensions =
 {
