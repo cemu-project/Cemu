@@ -658,18 +658,17 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	}
 	else
 	{
-		m_padCanvasDestroying = false;
-		m_usingPadFrameSurface.acquire();
-		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
-		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
+		m_swapchainState.drcSurfaceLost = false;
+		if (!m_padSwapchainInfo)
+		{
+			m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
+			CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
+		}
+		else
+		{
+			m_padSwapchainInfo->surface = surface;
+		}
 	}
-}
-
-void VulkanRenderer::ClosePadWindow()
-{
-	m_padCanvasDestroying = true;
-	m_usingPadFrameSurface.acquire();
-	m_usingPadFrameSurface.release();
 }
 
 bool VulkanRenderer::IsPadWindowActive()
@@ -1223,6 +1222,9 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 
 VulkanRenderer::SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device)
 {
+	if(surface == VK_NULL_HANDLE)
+		throw std::runtime_error("No surface for swapchain creation");
+
 	SwapChainSupportDetails details;
 
 	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -1510,21 +1512,12 @@ VkSwapchainCreateInfoKHR VulkanRenderer::CreateSwapchainCreateInfo(VkSurfaceKHR 
 	return createInfo;
 }
 
-bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow)
+bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 {
 	if (mainWindow)
 		return m_mainSwapchainInfo && m_mainSwapchainInfo->swapChain && m_mainSwapchainInfo->m_imageAvailableFence;
 
-
-	bool valid = m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
-
-	if(valid && m_padCanvasDestroying)
-	{
-		m_padSwapchainInfo.reset();
-		m_usingPadFrameSurface.release();
-		return false;
-	}
-	return valid;
+	return m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence && !m_swapchainState.drcSurfaceLost;
 }
 
 VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow)
@@ -2917,7 +2910,13 @@ void VulkanRenderer::AcquireNextSwapchainImage(bool main_window)
 	auto& acquireInfo = swapInfo.m_acquireInfo[swapInfo.m_acquireIndex];
 
 	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapInfo.swapChain, std::numeric_limits<uint64_t>::max(), acquireInfo.acquireSemaphore, swapInfo.m_imageAvailableFence, &swapInfo.swapchainImageIndex);
-	if (result != VK_SUCCESS)
+	if (!main_window && result == VK_ERROR_SURFACE_LOST_KHR)
+	{
+		std::cout << "lost in acquirenext" << std::endl;
+		m_swapchainState.drcSurfaceLost = true;
+		return;
+	}
+	else if (result != VK_SUCCESS)
 	{
 		while (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // todo: handle error state correctly. Looping doesnt always make sense?
 		{
@@ -2966,6 +2965,11 @@ void VulkanRenderer::RecreateSwapchain(bool main_window)
 
 	if (swapinfo.swapChain != VK_NULL_HANDLE)
 	{
+		if(m_swapchainState.drcSurfaceLost)
+		{
+			vkDestroySurfaceKHR(m_instance, swapinfo.surface, nullptr);
+			swapinfo.surface = VK_NULL_HANDLE;
+		}
 		// todo - for some reason using the swapchain replacement method (old var being set) causes crashes and other issues
 		vkDestroySwapchainKHR(m_logicalDevice, swapinfo.swapChain, nullptr);
 		swapinfo.m_swapchainImages.clear(); // swapchain images are automatically destroyed
@@ -3054,7 +3058,13 @@ void VulkanRenderer::SwapBuffer(bool main_window)
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (result != VK_SUCCESS)
+	if (!main_window && result == VK_ERROR_SURFACE_LOST_KHR)
+	{
+		std::cout << "lost in queue" << std::endl;
+		m_swapchainState.drcSurfaceLost = true;
+		return;
+	}
+	else if (result != VK_SUCCESS)
 	{
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // todo: dont loop but handle error state?
 		{

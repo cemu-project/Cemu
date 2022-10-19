@@ -41,12 +41,6 @@ VulkanCanvas::~VulkanCanvas()
 {
 	Unbind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Unbind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
-
-	if(!m_is_main_window)
-	{
-		auto vulkan_renderer = VulkanRenderer::GetInstance();
-		vulkan_renderer->ClosePadWindow();
-	}
 }
 
 void VulkanCanvas::OnPaint(wxPaintEvent& event)
