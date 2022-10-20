@@ -5,7 +5,7 @@
 
 struct SwapChainInfo
 {
-	void Cleanup(bool semaphores);
+	void Cleanup();
 
 	bool Ready();
 
@@ -14,7 +14,7 @@ struct SwapChainInfo
 	SwapChainInfo(SwapChainInfo&&) noexcept = default;
 	~SwapChainInfo()
 	{
-		Cleanup(true);
+		Cleanup();
 	}
 
 	bool shouldExist{};

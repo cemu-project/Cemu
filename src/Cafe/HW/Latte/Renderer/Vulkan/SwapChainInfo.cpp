@@ -1,19 +1,16 @@
 #include "SwapChainInfo.h"
 
-void SwapChainInfo::Cleanup(bool semaphores)
+void SwapChainInfo::Cleanup()
 {
 	m_swapchainImages.clear();
 
-	if(semaphores)
-	{
-		for (auto& sem: m_swapchainPresentSemaphores)
-			vkDestroySemaphore(m_device, sem, nullptr);
-		m_swapchainPresentSemaphores.clear();
+	for (auto& sem: m_swapchainPresentSemaphores)
+		vkDestroySemaphore(m_device, sem, nullptr);
+	m_swapchainPresentSemaphores.clear();
 
-		for (auto& itr: m_acquireSemaphores)
-			vkDestroySemaphore(m_device, itr, nullptr);
-		m_acquireSemaphores.clear();
-	}
+	for (auto& itr: m_acquireSemaphores)
+		vkDestroySemaphore(m_device, itr, nullptr);
+	m_acquireSemaphores.clear();
 
 	if (m_swapChainRenderPass)
 	{

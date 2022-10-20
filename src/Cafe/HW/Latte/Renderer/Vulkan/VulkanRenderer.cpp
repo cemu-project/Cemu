@@ -1517,6 +1517,8 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 
 VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 {
+	chainInfo.Cleanup();
+
 	const SwapChainSupportDetails details = QuerySwapChainSupport(chainInfo.surface, m_physical_device);
 	m_swapchainFormat = ChooseSwapSurfaceFormat(details.formats, chainInfo.mainWindow);
 	chainInfo.swapchainExtend = ChooseSwapExtent(details.capabilities, chainInfo.desiredExtent);
@@ -1529,8 +1531,6 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(chainInfo.surface, details, m_swapchainFormat, image_count, chainInfo.swapchainExtend);
 	create_info.oldSwapchain = nullptr;
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-	chainInfo.Cleanup(false);
 
 	VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &create_info, nullptr, &chainInfo.swapChain);
 	if (result != VK_SUCCESS)
@@ -1618,28 +1618,22 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create framebuffer for swapchain");
 	}
-	if(chainInfo.m_swapchainPresentSemaphores.empty())
-	{
-		chainInfo.m_swapchainPresentSemaphores.resize(chainInfo.m_swapchainImages.size());
-		// create present semaphore
-		VkSemaphoreCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		for (auto& semaphore : chainInfo.m_swapchainPresentSemaphores){
-			if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
-				UnrecoverableError("Failed to create semaphore for swapchain present");
-		}
+	chainInfo.m_swapchainPresentSemaphores.resize(chainInfo.m_swapchainImages.size());
+	// create present semaphore
+	VkSemaphoreCreateInfo info = {};
+	info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	for (auto& semaphore : chainInfo.m_swapchainPresentSemaphores){
+		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
+			UnrecoverableError("Failed to create semaphore for swapchain present");
 	}
 
-	if(chainInfo.m_acquireSemaphores.empty())
+	chainInfo.m_acquireSemaphores.resize(chainInfo.m_swapchainImages.size());
+	for (auto& availableSemaphore : chainInfo.m_acquireSemaphores)
 	{
-		chainInfo.m_acquireSemaphores.resize(chainInfo.m_swapchainImages.size());
-		for (auto& availableSemaphore : chainInfo.m_acquireSemaphores)
-		{
-			VkSemaphoreCreateInfo info = {};
-			info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-			if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &availableSemaphore) != VK_SUCCESS)
-				UnrecoverableError("Failed to create semaphore for swapchain acquire");
-		}
+		VkSemaphoreCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &availableSemaphore) != VK_SUCCESS)
+			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 
 	VkFenceCreateInfo fenceInfo = {};
