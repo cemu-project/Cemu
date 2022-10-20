@@ -1599,6 +1599,7 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 
 	// create swapchain framebuffers
 	chainInfo.m_swapchainFramebuffers.resize(chainInfo.m_swapchainImages.size());
+	chainInfo.m_swapchainPresentSemaphores.resize(chainInfo.m_swapchainImages.size());
 	for (size_t i = 0; i < chainInfo.m_swapchainImages.size(); i++)
 	{
 		VkImageView attachments[1];
@@ -1615,22 +1616,19 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 		result = vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &chainInfo.m_swapchainFramebuffers[i]);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create framebuffer for swapchain");
-	}
-	chainInfo.m_swapchainPresentSemaphores.resize(chainInfo.m_swapchainImages.size());
-	// create present semaphore
-	VkSemaphoreCreateInfo info = {};
-	info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	for (auto& semaphore : chainInfo.m_swapchainPresentSemaphores){
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
+		// create present semaphore
+		VkSemaphoreCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &chainInfo.m_swapchainPresentSemaphores[i]) != VK_SUCCESS)
 			UnrecoverableError("Failed to create semaphore for swapchain present");
 	}
 
 	chainInfo.m_acquireSemaphores.resize(chainInfo.m_swapchainImages.size());
-	for (auto& availableSemaphore : chainInfo.m_acquireSemaphores)
+	for (auto& itr : chainInfo.m_acquireSemaphores)
 	{
 		VkSemaphoreCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &availableSemaphore) != VK_SUCCESS)
+		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &itr) != VK_SUCCESS)
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 	chainInfo.m_acquireIndex = 0;
