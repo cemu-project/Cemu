@@ -197,6 +197,8 @@ add_library(CemuCafe
   HW/Latte/Renderer/Vulkan/VulkanRenderer.h
   HW/Latte/Renderer/Vulkan/VulkanSurfaceCopy.cpp
   HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h
+  HW/Latte/Renderer/Vulkan/SwapChainInfo.cpp
+  HW/Latte/Renderer/Vulkan/SwapChainInfo.h
   HW/Latte/ShaderInfo/ShaderDescription.cpp
   HW/Latte/ShaderInfo/ShaderInfo.h
   HW/Latte/ShaderInfo/ShaderInstanceInfo.cpp
