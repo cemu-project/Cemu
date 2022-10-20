@@ -6,6 +6,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CachedFBOVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VKRMemoryManager.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/SwapChainInfo.h"
 #include "util/math/vector2.h"
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
@@ -185,12 +186,16 @@ public:
 
 	void GetDeviceFeatures();
 	void DetermineVendor();
-	void Initialize(const Vector2i& size, bool isMainWindow);
+	void Initialize(const Vector2i& size, bool mainWindow);
+
+	void WaitForCanvasClose(bool mainWindow);
+	std::unique_ptr<SwapChainInfo>& GetChainInfoPtr(bool mainWindow);
+	SwapChainInfo& GetChainInfo(bool mainWindow);
 
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
-	void ResizeSwapchain(const Vector2i& size, bool isMainWindow);
+	void ResizeSwapchain(const Vector2i& size, bool mainWindow);
 
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();
@@ -433,104 +438,22 @@ private:
 		bool drawSequenceSkip; // if true, skip draw_execute()
 	}m_state;
 
-	// swapchain - todo move this to m_swapchainState
-	struct SwapChainInfo
-	{
-		void Cleanup()
-		{
-			m_swapchainImages.clear();
 
-			for (auto& sem : m_swapchainPresentSemaphores)
-				vkDestroySemaphore(m_device, sem, nullptr);
-			m_swapchainPresentSemaphores.clear();
-
-			if (m_swapChainRenderPass)
-			{
-				vkDestroyRenderPass(m_device, m_swapChainRenderPass, nullptr);
-				m_swapChainRenderPass = nullptr;
-			}
-
-			for (auto& imageView : m_swapchainImageViews)
-				vkDestroyImageView(m_device, imageView, nullptr);
-			m_swapchainImageViews.clear();
-
-			for (auto& framebuffer : m_swapchainFramebuffers)
-				vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-			m_swapchainFramebuffers.clear();
-
-			for (auto& itr : m_acquireInfo)
-				vkDestroySemaphore(m_device, itr.acquireSemaphore, nullptr);
-			m_acquireInfo.clear();
-
-
-			if (m_imageAvailableFence)
-			{
-				vkDestroyFence(m_device, m_imageAvailableFence, nullptr);
-				m_imageAvailableFence = nullptr;
-			}
-
-			if (swapChain)
-			{
-				vkDestroySwapchainKHR(m_device, swapChain, nullptr);
-				swapChain = VK_NULL_HANDLE;
-			}
-		}
-
-		SwapChainInfo(VkDevice device, VkSurfaceKHR surface) : m_device(device), surface(surface) {}
-		SwapChainInfo(const SwapChainInfo&) = delete;
-		SwapChainInfo(SwapChainInfo&&) noexcept = default;
-		~SwapChainInfo()
-		{
-			Cleanup();
-		}
-
-		VkDevice m_device;
-
-		VkSurfaceKHR surface{};
-		VkSwapchainKHR swapChain{};
-		VkExtent2D swapchainExtend{};
-		uint32 swapchainImageIndex = (uint32)-1;
-		uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
-
-		struct AcquireInfo
-		{
-			// move fence here?
-			VkSemaphore acquireSemaphore;
-		};
-		std::vector<AcquireInfo> m_acquireInfo; // indexed by acquireIndex
-
-		// swapchain image ringbuffer (indexed by swapchainImageIndex)
-		std::vector<VkImage> m_swapchainImages;
-		std::vector<VkImageView> m_swapchainImageViews;
-		std::vector<VkFramebuffer> m_swapchainFramebuffers;
-		std::vector<VkSemaphore> m_swapchainPresentSemaphores;
-
-		VkFence m_imageAvailableFence = nullptr;
-		VkRenderPass m_swapChainRenderPass = nullptr;
-	};
 	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	bool PrepareSwapchainUse(bool mainWindow);
-	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);
+	bool UpdateAndGetSwapchainValidity(bool mainWindow);
+	VkSwapchainKHR CreateSwapChain(SwapChainInfo& chainInfo);
 
 	struct
 	{
 		VkRenderPass m_imguiRenderPass = nullptr;
-		bool resizeRequestedMainWindow{};
-		Vector2i newExtentMainWindow;
-		bool resizeRequestedPadWindow{};
-		Vector2i newExtentPadWindow;
-		bool tvHasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
-		bool drcHasDefinedSwapchainImage{};
-		bool drcSurfaceLost{};
 	}m_swapchainState;
+
+	Semaphore canvasSemaphore;
 
 	VkDescriptorPool m_descriptorPool;
 	VkSurfaceFormatKHR m_swapchainFormat;
 
-	bool m_tvBufferUsesSRGB = false;
-	bool m_drvBufferUsesSRGB = false;
-
-	struct QueueFamilyIndices 
+	struct QueueFamilyIndices
 	{
 		int32_t graphicsFamily = -1;
 		int32_t presentFamily = -1;
@@ -583,7 +506,7 @@ private:
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
 	static std::vector<const char*> CheckInstanceExtensionSupport(FeatureControl& info);
 
-	void SwapBuffer(bool main_window);
+	void SwapBuffer(bool mainWindow);
 	VSync m_vsync_state = VSync::Immediate;
 
 	struct SwapChainSupportDetails 
@@ -668,8 +591,8 @@ private:
 	void CreatePipelineCache();
 	VkPipelineShaderStageCreateInfo CreatePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule& module, const char* entryName) const;
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
-	void AcquireNextSwapchainImage(bool main_window);
-	void RecreateSwapchain(bool mainwindow);
+	bool AcquireNextSwapchainImage(bool mainWindow);
+	void RecreateSwapchain(bool mainWindow);
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;

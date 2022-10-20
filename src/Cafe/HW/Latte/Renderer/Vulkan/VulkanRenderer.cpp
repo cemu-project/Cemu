@@ -558,7 +558,7 @@ VulkanRenderer::VulkanRenderer()
 VulkanRenderer::~VulkanRenderer()
 {
 	SubmitCommandBuffer();
-	vkDeviceWaitIdle(m_logicalDevice);
+	WaitDeviceIdle();
 	WaitCommandBufferFinished(GetCurrentCommandBufferId());
 	// shut down pipeline save thread
 	m_destructionRequested = true;
@@ -644,15 +644,16 @@ VulkanRenderer* VulkanRenderer::GetInstance()
 	return (VulkanRenderer*)g_renderer.get();
 }
 
-void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
+void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 {
-	auto& windowHandleInfo = isMainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
+	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
 
 	const auto surface = CreateFramebufferSurface(m_instance, windowHandleInfo);
-	if (isMainWindow)
+	if (mainWindow)
 	{
-		m_mainSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
-		CreateSwapChain(*m_mainSwapchainInfo, size, isMainWindow);
+		m_mainSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface, mainWindow);
+		ResizeSwapchain(size, mainWindow);
+		m_mainSwapchainInfo->shouldExist = true;
 
 		// aquire first command buffer
 		InitFirstCommandBuffer();
@@ -661,17 +662,35 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	{
 		if (!m_padSwapchainInfo)
 		{
-			m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
+			m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface, mainWindow);
 		}
+		ResizeSwapchain(size, mainWindow);
 		m_padSwapchainInfo->surface = surface;
-		ResizeSwapchain(size, false);
-		m_swapchainState.drcSurfaceLost = false;
+		m_mainSwapchainInfo->shouldExist = true;
+
 	}
+}
+
+void VulkanRenderer::WaitForCanvasClose(bool mainWindow)
+{
+	GetChainInfo(mainWindow).shouldExist = false;
+	canvasSemaphore.wait();
+	canvasSemaphore.notify();
+}
+
+std::unique_ptr<SwapChainInfo>& VulkanRenderer::GetChainInfoPtr(bool mainWindow)
+{
+	return mainWindow ? m_mainSwapchainInfo : m_padSwapchainInfo;
+}
+
+SwapChainInfo& VulkanRenderer::GetChainInfo(bool mainWindow)
+{
+	return *GetChainInfoPtr(mainWindow);
 }
 
 bool VulkanRenderer::IsPadWindowActive()
 {
-	return PrepareSwapchainUse(false);
+	return UpdateAndGetSwapchainValidity(false);
 }
 
 void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView)
@@ -680,7 +699,7 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	if (!hasScreenshotRequest && m_screenshot_state == ScreenshotState::None)
 		return;
 
-	if (PrepareSwapchainUse(false))
+	if (UpdateAndGetSwapchainValidity(false))
 	{
 		// we already took a pad view screenshow and want a main window screenshot
 		if (m_screenshot_state == ScreenshotState::Main && padView)
@@ -964,18 +983,11 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 		SaveScreenshot(rgb_data, width, height, !padView);
 }
 
-void VulkanRenderer::ResizeSwapchain(const Vector2i& size, bool isMainWindow)
+void VulkanRenderer::ResizeSwapchain(const Vector2i& size, bool mainWindow)
 {
-	if (isMainWindow)
-	{
-		m_swapchainState.newExtentMainWindow = size;
-		m_swapchainState.resizeRequestedMainWindow = true;
-	}
-	else
-	{
-		m_swapchainState.newExtentPadWindow = size;
-		m_swapchainState.resizeRequestedPadWindow = true;
-	}
+	auto& chainInfo = GetChainInfo(mainWindow);
+	chainInfo.desiredExtent = size;
+	chainInfo.resizeRequested = true;
 }
 
 static const float kQueuePriority = 1.0f;
@@ -1510,51 +1522,50 @@ VkSwapchainCreateInfoKHR VulkanRenderer::CreateSwapchainCreateInfo(VkSurfaceKHR 
 	return createInfo;
 }
 
-bool VulkanRenderer::PrepareSwapchainUse(bool mainWindow)
+bool VulkanRenderer::UpdateAndGetSwapchainValidity(bool mainWindow)
 {
-	if (mainWindow)
-		return m_mainSwapchainInfo && m_mainSwapchainInfo->swapChain && m_mainSwapchainInfo->m_imageAvailableFence;
+	auto& chainInfo = GetChainInfoPtr(mainWindow);
+	if(!chainInfo)
+		return false;
 
-	bool valid = m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
-	if (!valid && m_padSwapchainInfo && !m_swapchainState.drcSurfaceLost)
+	if(!chainInfo->swapChain && chainInfo->shouldExist && chainInfo->surface)
 	{
-		CreateSwapChain(*m_padSwapchainInfo, m_swapchainState.newExtentPadWindow, false);
-		return true;
+		CreateSwapChain(*chainInfo);
 	}
-	return valid;
+
+	return chainInfo->Ready();
 }
 
-VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow)
+VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 {
 
-	if (!mainwindow && m_swapchainState.drcSurfaceLost)
+	if (!chainInfo.surface)
 	{
-		swap_chain_info.Cleanup();
-		vkDestroySurfaceKHR(m_instance, swap_chain_info.surface, nullptr);
-		swap_chain_info.surface = VK_NULL_HANDLE;
+		if(chainInfo.mainWindow)
+			std::cout << "main swapchain create aborted due to surface" << std::endl;
 		return VK_NULL_HANDLE;
 	}
 
-	const SwapChainSupportDetails details = QuerySwapChainSupport(swap_chain_info.surface, m_physical_device);
-	m_swapchainFormat = ChooseSwapSurfaceFormat(details.formats, mainwindow);
-	swap_chain_info.swapchainExtend = ChooseSwapExtent(details.capabilities, size);
+	const SwapChainSupportDetails details = QuerySwapChainSupport(chainInfo.surface, m_physical_device);
+	m_swapchainFormat = ChooseSwapSurfaceFormat(details.formats, chainInfo.mainWindow);
+	chainInfo.swapchainExtend = ChooseSwapExtent(details.capabilities, chainInfo.desiredExtent);
 
 	// calculate number of swapchain presentation images
 	uint32_t image_count = details.capabilities.minImageCount + 1;
 	if (details.capabilities.maxImageCount > 0 && image_count > details.capabilities.maxImageCount)
 		image_count = details.capabilities.maxImageCount;
 
-	auto oldSwapChain = swap_chain_info.swapChain;
+	auto oldSwapChain = chainInfo.swapChain;
 
-	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(swap_chain_info.surface, details, m_swapchainFormat, image_count, swap_chain_info.swapchainExtend);
+	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(chainInfo.surface, details, m_swapchainFormat, image_count, chainInfo.swapchainExtend);
 	create_info.oldSwapchain = oldSwapChain;
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	//set to null so Cleanup doesn't destroy swapchain
-	swap_chain_info.swapChain = nullptr;
-	swap_chain_info.Cleanup();
+	chainInfo.swapChain = nullptr;
+	chainInfo.Cleanup(false);
 
-	VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &create_info, nullptr, &swap_chain_info.swapChain);
+	VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &create_info, nullptr, &chainInfo.swapChain);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to create a swapchain");
 
@@ -1563,13 +1574,13 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, c
 		vkDestroySwapchainKHR(m_logicalDevice, oldSwapChain, nullptr);
 
 
-	result = vkGetSwapchainImagesKHR(m_logicalDevice, swap_chain_info.swapChain, &image_count, nullptr);
+	result = vkGetSwapchainImagesKHR(m_logicalDevice, chainInfo.swapChain, &image_count, nullptr);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to retrieve the count of swapchain images");
 
 
-	swap_chain_info.m_swapchainImages.resize(image_count);
-	result = vkGetSwapchainImagesKHR(m_logicalDevice, swap_chain_info.swapChain, &image_count, swap_chain_info.m_swapchainImages.data());
+	chainInfo.m_swapchainImages.resize(image_count);
+	result = vkGetSwapchainImagesKHR(m_logicalDevice, chainInfo.swapChain, &image_count, chainInfo.m_swapchainImages.data());
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to retrieve swapchain images");
 	// create default renderpass
@@ -1597,17 +1608,17 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, c
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
-	result = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &swap_chain_info.m_swapChainRenderPass);
+	result = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &chainInfo.m_swapChainRenderPass);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Failed to create renderpass for swapchain");
 
 	// create swapchain image views
-	swap_chain_info.m_swapchainImageViews.resize(swap_chain_info.m_swapchainImages.size());
-	for (sint32 i = 0; i < swap_chain_info.m_swapchainImages.size(); i++)
+	chainInfo.m_swapchainImageViews.resize(chainInfo.m_swapchainImages.size());
+	for (sint32 i = 0; i < chainInfo.m_swapchainImages.size(); i++)
 	{
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = swap_chain_info.m_swapchainImages[i];
+		createInfo.image = chainInfo.m_swapchainImages[i];
 		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		createInfo.format = m_swapchainFormat.format;
 		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1619,56 +1630,60 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, c
 		createInfo.subresourceRange.levelCount = 1;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
-		result = vkCreateImageView(m_logicalDevice, &createInfo, nullptr, &swap_chain_info.m_swapchainImageViews[i]);
+		result = vkCreateImageView(m_logicalDevice, &createInfo, nullptr, &chainInfo.m_swapchainImageViews[i]);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create imageviews for swapchain");
 	}
 
 	// create swapchain framebuffers
-	swap_chain_info.m_swapchainFramebuffers.resize(swap_chain_info.m_swapchainImages.size());
-	swap_chain_info.m_swapchainPresentSemaphores.resize(swap_chain_info.m_swapchainImages.size());
-	for (size_t i = 0; i < swap_chain_info.m_swapchainImages.size(); i++)
+	chainInfo.m_swapchainFramebuffers.resize(chainInfo.m_swapchainImages.size());
+	for (size_t i = 0; i < chainInfo.m_swapchainImages.size(); i++)
 	{
 		VkImageView attachments[1];
-		attachments[0] = swap_chain_info.m_swapchainImageViews[i];
+		attachments[0] = chainInfo.m_swapchainImageViews[i];
 		// create framebuffer
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = swap_chain_info.m_swapChainRenderPass;
+		framebufferInfo.renderPass = chainInfo.m_swapChainRenderPass;
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swap_chain_info.swapchainExtend.width;
-		framebufferInfo.height = swap_chain_info.swapchainExtend.height;
+		framebufferInfo.width = chainInfo.swapchainExtend.width;
+		framebufferInfo.height = chainInfo.swapchainExtend.height;
 		framebufferInfo.layers = 1;
-		result = vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &swap_chain_info.m_swapchainFramebuffers[i]);
+		result = vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &chainInfo.m_swapchainFramebuffers[i]);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create framebuffer for swapchain");
+	}
+	if(chainInfo.m_renderFinishedSemaphores.empty())
+	{
+		chainInfo.m_renderFinishedSemaphores.resize(chainInfo.m_swapchainImages.size());
 		// create present semaphore
 		VkSemaphoreCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &swap_chain_info.m_swapchainPresentSemaphores[i]) != VK_SUCCESS)
-			UnrecoverableError("Failed to create semaphore for swapchain present");
+		for (auto& semaphore : chainInfo.m_renderFinishedSemaphores){
+			std::cout << "creating semaphore present" << std::endl;
+			if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
+				UnrecoverableError("Failed to create semaphore for swapchain present");
+		}
 	}
 
-	// init m_acquireInfo
-	swap_chain_info.m_acquireInfo.resize(swap_chain_info.m_swapchainImages.size());
-	for (auto& itr : swap_chain_info.m_acquireInfo)
+	if(chainInfo.m_imageAvailableSemaphores.empty())
 	{
-		VkSemaphoreCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &itr.acquireSemaphore) != VK_SUCCESS)
-			UnrecoverableError("Failed to create semaphore for swapchain acquire");
+		chainInfo.m_imageAvailableSemaphores.resize(chainInfo.m_swapchainImages.size());
+		for (auto& availableSemaphore: chainInfo.m_imageAvailableSemaphores)
+		{
+			VkSemaphoreCreateInfo info = {};
+			info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			std::cout << "creating semaphore acquire" << std::endl;
+			if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &availableSemaphore) != VK_SUCCESS)
+				UnrecoverableError("Failed to create semaphore for swapchain acquire");
+		}
 	}
-	swap_chain_info.m_acquireIndex = 0;
+	chainInfo.m_acquireIndex = 0;
 
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	result = vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &swap_chain_info.m_imageAvailableFence);
-	if (result != VK_SUCCESS)
-		UnrecoverableError("Failed to create fence for swapchain");
-
-	return swap_chain_info.swapChain;
+	if(chainInfo.mainWindow)
+		std::cout << "swapchain create done" << std::endl;
+	return chainInfo.swapChain;
 }
 
 void VulkanRenderer::CreateNullTexture(NullTexture& nullTex, VkImageType imageType)
@@ -1815,7 +1830,9 @@ void VulkanRenderer::ImguiInit()
 
 void VulkanRenderer::Initialize()
 {
+	std::cout << "Vulkan renderer initialise called" << std::endl;
 	CreatePipelineCache();
+	CreateSwapChain(*m_mainSwapchainInfo);
 	ImguiInit();
 	CreateNullObjects();
 }
@@ -1823,7 +1840,7 @@ void VulkanRenderer::Initialize()
 void VulkanRenderer::Shutdown()
 {
 	SubmitCommandBuffer();
-	vkDeviceWaitIdle(m_logicalDevice);
+	WaitDeviceIdle();
 }
 
 void VulkanRenderer::UnrecoverableError(const char* errMsg) const
@@ -1995,9 +2012,10 @@ void VulkanRenderer::EnableVSync(int state)
 
 	m_vsync_state = (VSync)state;
 
-	// recreate spawn chains (vsync state is checked from config in ChooseSwapPresentMode)
-	RecreateSwapchain(true);
-	if (m_padSwapchainInfo)
+	// recreate swapchains (vsync state is checked from config in ChooseSwapPresentMode)
+	if (m_mainSwapchainInfo && m_mainSwapchainInfo->swapChain)
+		RecreateSwapchain(true);
+	if (m_padSwapchainInfo && m_padSwapchainInfo->swapChain)
 		RecreateSwapchain(false);
 }
 
@@ -2006,15 +2024,16 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 	if (!Renderer::ImguiBegin(mainWindow))
 		return false;
 
-	if (!PrepareSwapchainUse(mainWindow))
+	if (!UpdateAndGetSwapchainValidity(mainWindow))
 		return false;
 
 	draw_endRenderPass();
 	m_state.currentPipeline = VK_NULL_HANDLE;
 
-	AcquireNextSwapchainImage(mainWindow);
+	if(!AcquireNextSwapchainImage(mainWindow))
+		return false;
 
-	auto& swapchain_info = mainWindow ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
+	auto& swapchain_info = GetChainInfo(mainWindow);
 
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
 	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, swapchain_info.m_swapchainFramebuffers[swapchain_info.swapchainImageIndex], swapchain_info.swapchainExtend);
@@ -2056,7 +2075,7 @@ ImTextureID VulkanRenderer::GenerateTexture(const std::vector<uint8>& data, cons
 
 void VulkanRenderer::DeleteTexture(ImTextureID id)
 {
-	vkDeviceWaitIdle(m_logicalDevice);
+	WaitDeviceIdle();
 	ImGui_ImplVulkan_DeleteTexture(id);
 }
 
@@ -2068,21 +2087,19 @@ void VulkanRenderer::DeleteFontTextures()
 
 bool VulkanRenderer::BeginFrame(bool mainWindow)
 {
-	if (!PrepareSwapchainUse(mainWindow))
+	if (!UpdateAndGetSwapchainValidity(mainWindow))
 		return false;
 
-	AcquireNextSwapchainImage(mainWindow);
+	if(!AcquireNextSwapchainImage(mainWindow))
+		return false;
 
-	auto& swap_info = mainWindow ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
+	auto& chainInfo = GetChainInfo(mainWindow);
 
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
-	ClearColorImageRaw(swap_info.m_swapchainImages[swap_info.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 	// mark current swapchain image as well defined
-	if (!mainWindow)
-		m_swapchainState.drcHasDefinedSwapchainImage = true;
-	else
-		m_swapchainState.tvHasDefinedSwapchainImage = true;
+	chainInfo.hasDefinedSwapchainImage = true;
 
 	return true;
 }
@@ -2096,7 +2113,7 @@ void VulkanRenderer::DrawEmptyFrame(bool mainWindow)
 
 void VulkanRenderer::PreparePresentationFrame(bool mainWindow)
 {
-	if (!PrepareSwapchainUse(mainWindow))
+	if (!UpdateAndGetSwapchainValidity(mainWindow))
 		return;
 
 	AcquireNextSwapchainImage(mainWindow);
@@ -2768,7 +2785,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::CreatePipelineShaderStageCreateI
 
 VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader)
 {
-	auto& swap_info = !padView ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
+	auto& swap_info = GetChainInfo(!padView);
 
 	RendererShaderVk* vertexRendererShader = static_cast<RendererShaderVk*>(shader->GetVertexShader());
 	RendererShaderVk* fragmentRendererShader = static_cast<RendererShaderVk*>(shader->GetFragmentShader());
@@ -2776,7 +2793,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	uint64 hash = 0;
 	hash += (uint64)vertexRendererShader;
 	hash += (uint64)fragmentRendererShader;
-	hash += (uint64)(padView ? m_drvBufferUsesSRGB : m_tvBufferUsesSRGB);
+	hash += (uint64)(swap_info.m_usesSRGB);
 	hash += ((uint64)padView) << 1;
 
 	static std::unordered_map<uint64, VkPipeline> s_pipeline_cache;
@@ -2883,24 +2900,23 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	return pipeline;
 }
 
-void VulkanRenderer::AcquireNextSwapchainImage(bool main_window)
+bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 {
-	auto& swapInfo = main_window ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
+	auto& swapInfo = GetChainInfo(mainWindow);
 	if (swapInfo.swapchainImageIndex != -1)
-		return; // image already reserved
+		return true; // image already reserved
 
+	auto& availableSemaphore = swapInfo.m_imageAvailableSemaphores[swapInfo.m_acquireIndex];
 
-	vkWaitForFences(m_logicalDevice, 1, &swapInfo.m_imageAvailableFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-	vkResetFences(m_logicalDevice, 1, &swapInfo.m_imageAvailableFence);
-
-	auto& acquireInfo = swapInfo.m_acquireInfo[swapInfo.m_acquireIndex];
-
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapInfo.swapChain, std::numeric_limits<uint64_t>::max(), acquireInfo.acquireSemaphore, swapInfo.m_imageAvailableFence, &swapInfo.swapchainImageIndex);
-	if (!main_window && result == VK_ERROR_SURFACE_LOST_KHR)
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapInfo.swapChain, UINT64_MAX, availableSemaphore, VK_NULL_HANDLE, &swapInfo.swapchainImageIndex);
+	if (result == VK_ERROR_SURFACE_LOST_KHR)
 	{
 		std::cout << "lost in acquirenext" << std::endl;
-		m_swapchainState.drcSurfaceLost = true;
-		return;
+		WaitDeviceIdle();
+		swapInfo.Cleanup(false);
+		vkDestroySurfaceKHR(m_instance, swapInfo.surface, nullptr);
+		swapInfo.surface = VK_NULL_HANDLE;
+		return false;
 	}
 	else if (result != VK_SUCCESS)
 	{
@@ -2908,38 +2924,34 @@ void VulkanRenderer::AcquireNextSwapchainImage(bool main_window)
 		{
 			try
 			{
-				RecreateSwapchain(main_window);
-				if (vkWaitForFences(m_logicalDevice, 1, &swapInfo.m_imageAvailableFence, VK_TRUE, 0) == VK_SUCCESS)
-					vkResetFences(m_logicalDevice, 1, &swapInfo.m_imageAvailableFence);
-				result = vkAcquireNextImageKHR(m_logicalDevice, swapInfo.swapChain, std::numeric_limits<uint64_t>::max(), acquireInfo.acquireSemaphore, swapInfo.m_imageAvailableFence, &swapInfo.swapchainImageIndex);
+				RecreateSwapchain(mainWindow);
+				result = vkAcquireNextImageKHR(m_logicalDevice, swapInfo.swapChain, UINT64_MAX, availableSemaphore, VK_NULL_HANDLE, &swapInfo.swapchainImageIndex);
 				if (result == VK_SUCCESS)
-					return;
+					break;
 			}
 			catch (std::exception&) {}
 
 			std::this_thread::yield();
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
-
-		throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+		if(result != VK_SUCCESS)
+			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
 
-	swapInfo.m_acquireIndex = (swapInfo.m_acquireIndex + 1) % swapInfo.m_acquireInfo.size();
+	swapInfo.m_acquireIndex = (swapInfo.m_acquireIndex + 1) % swapInfo.m_imageAvailableSemaphores.size();
 
-	SubmitCommandBuffer(nullptr, &acquireInfo.acquireSemaphore);
+	SubmitCommandBuffer(nullptr, &availableSemaphore);
+	return true;
 }
 
-void VulkanRenderer::RecreateSwapchain(bool main_window)
+void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 {
 	SubmitCommandBuffer();
-	vkDeviceWaitIdle(m_logicalDevice);
-	auto& swapinfo = main_window ? m_mainSwapchainInfo : m_padSwapchainInfo;
-	vkWaitForFences(m_logicalDevice, 1, &swapinfo->m_imageAvailableFence, VK_TRUE,
-		std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(10)).count()
-	);
+	WaitDeviceIdle();
+	auto& swapinfo = GetChainInfo(mainWindow);
 
 	Vector2i size;
-	if (main_window)
+	if (mainWindow)
 	{
 		ImGui_ImplVulkan_Shutdown();
 		gui_getWindowSize(&size.x, &size.y);
@@ -2949,55 +2961,35 @@ void VulkanRenderer::RecreateSwapchain(bool main_window)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
-	swapinfo->swapChain = CreateSwapChain(*swapinfo, size, main_window);
-	swapinfo->swapchainImageIndex = -1;
+	CreateSwapChain(swapinfo);
+	swapinfo.swapchainImageIndex = -1;
 
-	if (main_window)
+	if (mainWindow)
 		ImguiInit();
 }
 
-void VulkanRenderer::SwapBuffer(bool main_window)
+void VulkanRenderer::SwapBuffer(bool mainWindow)
 {
-	auto& swapInfo = main_window ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
+	auto& swapInfo = GetChainInfo(mainWindow);
 
-	if (main_window)
+	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+	const bool resize = swapInfo.resizeRequested;
+	swapInfo.resizeRequested = false;
+	if (resize || swapInfo.m_usesSRGB != latteBufferUsesSRGB)
 	{
-		const bool resize = m_swapchainState.resizeRequestedMainWindow;
-		m_swapchainState.resizeRequestedMainWindow = false;
-
-		if (resize || m_tvBufferUsesSRGB != LatteGPUState.tvBufferUsesSRGB)
+		try
 		{
-			try
-			{
-				RecreateSwapchain(main_window);
-				m_tvBufferUsesSRGB = LatteGPUState.tvBufferUsesSRGB;
-			}
-			catch (std::exception&) { cemu_assert_debug(false); }
-			return;
+			RecreateSwapchain(mainWindow);
+			swapInfo.m_usesSRGB = latteBufferUsesSRGB;
 		}
-	}
-	else
-	{
-		const bool resize = m_swapchainState.resizeRequestedPadWindow;
-		m_swapchainState.resizeRequestedPadWindow = false;
-
-		if (resize || m_drvBufferUsesSRGB != LatteGPUState.drcBufferUsesSRGB)
-		{
-			try
-			{
-				RecreateSwapchain(main_window);
-				m_drvBufferUsesSRGB = LatteGPUState.drcBufferUsesSRGB;
-			}
-			catch (std::exception&) { cemu_assert_debug(false); }
-			return;
-		}
+		catch (std::exception&) { cemu_assert_debug(false); }
+		return;
 	}
 
-	auto& swapinfo = main_window ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
-	AcquireNextSwapchainImage(main_window);
+	if(!AcquireNextSwapchainImage(mainWindow))
+		return;
 
-	if ((main_window && m_swapchainState.tvHasDefinedSwapchainImage == false) ||
-		(!main_window && m_swapchainState.drcHasDefinedSwapchainImage == false))
+	if (!swapInfo.hasDefinedSwapchainImage == false)
 	{
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
@@ -3014,7 +3006,7 @@ void VulkanRenderer::SwapBuffer(bool main_window)
 	vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
 
 
-	VkSemaphore presentSemaphore = swapInfo.m_swapchainPresentSemaphores[swapInfo.swapchainImageIndex];
+	VkSemaphore presentSemaphore = swapInfo.m_renderFinishedSemaphores[swapInfo.swapchainImageIndex];
 	SubmitCommandBuffer(&presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
@@ -3023,17 +3015,20 @@ void VulkanRenderer::SwapBuffer(bool main_window)
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &swapinfo.swapChain;
-	presentInfo.pImageIndices = &swapinfo.swapchainImageIndex;
+	presentInfo.pSwapchains = &swapInfo.swapChain;
+	presentInfo.pImageIndices = &swapInfo.swapchainImageIndex;
 	// wait on command buffer semaphore
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (!main_window && result == VK_ERROR_SURFACE_LOST_KHR)
+	if (result == VK_ERROR_SURFACE_LOST_KHR)
 	{
 		std::cout << "lost in queue" << std::endl;
-		m_swapchainState.drcSurfaceLost = true;
+		WaitDeviceIdle();
+		swapInfo.Cleanup(false);
+		vkDestroySurfaceKHR(m_instance, swapInfo.surface, nullptr);
+		swapInfo.surface = VK_NULL_HANDLE;
 		return;
 	}
 	else if (result != VK_SUCCESS)
@@ -3045,7 +3040,7 @@ void VulkanRenderer::SwapBuffer(bool main_window)
 			{
 				try
 				{
-					RecreateSwapchain(main_window);
+					RecreateSwapchain(mainWindow);
 					return;
 				}
 				catch (std::exception&)
@@ -3071,12 +3066,9 @@ void VulkanRenderer::SwapBuffer(bool main_window)
 		throw std::runtime_error(fmt::format("Failed to present draw command buffer: {}", result));
 	}
 
-	if (main_window)
-		m_swapchainState.tvHasDefinedSwapchainImage = false;
-	else
-		m_swapchainState.drcHasDefinedSwapchainImage = false;
+	swapInfo.hasDefinedSwapchainImage = true;
 
-	swapinfo.swapchainImageIndex = -1;
+	swapInfo.swapchainImageIndex = -1;
 }
 
 void VulkanRenderer::Flush(bool waitIdle)
@@ -3097,19 +3089,19 @@ void VulkanRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
 	SubmitCommandBuffer();
 
-	if (swapTV && PrepareSwapchainUse(true))
+	if (swapTV && UpdateAndGetSwapchainValidity(true))
 		SwapBuffer(true);
 
-	if (swapDRC && PrepareSwapchainUse(false))
+	if (swapDRC && UpdateAndGetSwapchainValidity(false))
 		SwapBuffer(false);
 }
 
 void VulkanRenderer::ClearColorbuffer(bool padView)
 {
-	if (!PrepareSwapchainUse(!padView))
+	if (!UpdateAndGetSwapchainValidity(!padView))
 		return;
 
-	auto& swap_info = padView ? *m_padSwapchainInfo : *m_mainSwapchainInfo;
+	auto& swap_info = GetChainInfo(!padView);
 	if (swap_info.swapchainImageIndex == -1)
 		return;
 
@@ -3196,17 +3188,18 @@ void VulkanRenderer::CreateBackbufferIndexBuffer()
 
 void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, bool padView, bool clearBackground)
 {
-	if (!PrepareSwapchainUse(!padView))
+	if (!UpdateAndGetSwapchainValidity(!padView))
 		return;
 
-	auto& swapInfo = !padView ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
+	auto& swapInfo = GetChainInfo(!padView);
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
 	if (clearBackground)
 		ClearColorbuffer(padView);
 
-	AcquireNextSwapchainImage(!padView);
+	if(!AcquireNextSwapchainImage(!padView))
+		return;
 
 	// barrier for input texture
 	VkMemoryBarrier memoryBarrier{};
@@ -3259,10 +3252,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &m_state.currentViewport);
 
 	// mark current swapchain image as well defined
-	if (padView)
-		m_swapchainState.drcHasDefinedSwapchainImage = true;
-	else
-		m_swapchainState.tvHasDefinedSwapchainImage = true;
+	swapInfo.hasDefinedSwapchainImage = true;
 }
 
 void VulkanRenderer::CreateDescriptorPool()
