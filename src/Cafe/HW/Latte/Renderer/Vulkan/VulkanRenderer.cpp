@@ -1635,6 +1635,7 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &availableSemaphore) != VK_SUCCESS)
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
+	chainInfo.m_acquireIndex = 0;
 
 	VkFenceCreateInfo fenceInfo = {};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
