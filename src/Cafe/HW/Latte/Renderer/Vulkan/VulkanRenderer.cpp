@@ -2033,10 +2033,10 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 	if(!AcquireNextSwapchainImage(mainWindow))
 		return false;
 
-	auto& swapchain_info = GetChainInfo(mainWindow);
+	auto& chainInfo = GetChainInfo(mainWindow);
 
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
-	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, swapchain_info.m_swapchainFramebuffers[swapchain_info.swapchainImageIndex], swapchain_info.swapchainExtend);
+	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.swapchainExtend);
 	ImGui_UpdateWindowInformation(mainWindow);
 	ImGui::NewFrame();
 	return true;
@@ -2785,7 +2785,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::CreatePipelineShaderStageCreateI
 
 VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader)
 {
-	auto& swap_info = GetChainInfo(!padView);
+	auto& chainInfo = GetChainInfo(!padView);
 
 	RendererShaderVk* vertexRendererShader = static_cast<RendererShaderVk*>(shader->GetVertexShader());
 	RendererShaderVk* fragmentRendererShader = static_cast<RendererShaderVk*>(shader->GetFragmentShader());
@@ -2793,7 +2793,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	uint64 hash = 0;
 	hash += (uint64)vertexRendererShader;
 	hash += (uint64)fragmentRendererShader;
-	hash += (uint64)(swap_info.m_usesSRGB);
+	hash += (uint64)(chainInfo.m_usesSRGB);
 	hash += ((uint64)padView) << 1;
 
 	static std::unordered_map<uint64, VkPipeline> s_pipeline_cache;
@@ -2881,7 +2881,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.layout = m_pipelineLayout;
-	pipelineInfo.renderPass = swap_info.m_swapChainRenderPass;
+	pipelineInfo.renderPass = chainInfo.m_swapChainRenderPass;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
@@ -2902,20 +2902,20 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 
 bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 {
-	auto& swapInfo = GetChainInfo(mainWindow);
-	if (swapInfo.swapchainImageIndex != -1)
+	auto& chainInfo = GetChainInfo(mainWindow);
+	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
 
-	auto& availableSemaphore = swapInfo.m_imageAvailableSemaphores[swapInfo.m_acquireIndex];
+	auto& availableSemaphore = chainInfo.m_imageAvailableSemaphores[chainInfo.m_acquireIndex];
 
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapInfo.swapChain, UINT64_MAX, availableSemaphore, VK_NULL_HANDLE, &swapInfo.swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapChain, UINT64_MAX, availableSemaphore, VK_NULL_HANDLE, &chainInfo.swapchainImageIndex);
 	if (result == VK_ERROR_SURFACE_LOST_KHR)
 	{
 		std::cout << "lost in acquirenext" << std::endl;
 		WaitDeviceIdle();
-		swapInfo.Cleanup(false);
-		vkDestroySurfaceKHR(m_instance, swapInfo.surface, nullptr);
-		swapInfo.surface = VK_NULL_HANDLE;
+		chainInfo.Cleanup(false);
+		vkDestroySurfaceKHR(m_instance, chainInfo.surface, nullptr);
+		chainInfo.surface = VK_NULL_HANDLE;
 		return false;
 	}
 	else if (result != VK_SUCCESS)
@@ -2925,7 +2925,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 			try
 			{
 				RecreateSwapchain(mainWindow);
-				result = vkAcquireNextImageKHR(m_logicalDevice, swapInfo.swapChain, UINT64_MAX, availableSemaphore, VK_NULL_HANDLE, &swapInfo.swapchainImageIndex);
+				result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapChain, UINT64_MAX, availableSemaphore, VK_NULL_HANDLE, &chainInfo.swapchainImageIndex);
 				if (result == VK_SUCCESS)
 					break;
 			}
@@ -2938,7 +2938,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
 
-	swapInfo.m_acquireIndex = (swapInfo.m_acquireIndex + 1) % swapInfo.m_imageAvailableSemaphores.size();
+	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_imageAvailableSemaphores.size();
 
 	SubmitCommandBuffer(nullptr, &availableSemaphore);
 	return true;
@@ -2948,7 +2948,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 {
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
-	auto& swapinfo = GetChainInfo(mainWindow);
+	auto& chainInfo = GetChainInfo(mainWindow);
 
 	Vector2i size;
 	if (mainWindow)
@@ -2961,8 +2961,8 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
-	CreateSwapChain(swapinfo);
-	swapinfo.swapchainImageIndex = -1;
+	CreateSwapChain(chainInfo);
+	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)
 		ImguiInit();
@@ -2970,17 +2970,17 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 
 void VulkanRenderer::SwapBuffer(bool mainWindow)
 {
-	auto& swapInfo = GetChainInfo(mainWindow);
+	auto& chainInfo = GetChainInfo(mainWindow);
 
 	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	const bool resize = swapInfo.resizeRequested;
-	swapInfo.resizeRequested = false;
-	if (resize || swapInfo.m_usesSRGB != latteBufferUsesSRGB)
+	const bool resize = chainInfo.resizeRequested;
+	chainInfo.resizeRequested = false;
+	if (resize || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
 	{
 		try
 		{
 			RecreateSwapchain(mainWindow);
-			swapInfo.m_usesSRGB = latteBufferUsesSRGB;
+			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
 		}
 		catch (std::exception&) { cemu_assert_debug(false); }
 		return;
@@ -2989,11 +2989,11 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	if(!AcquireNextSwapchainImage(mainWindow))
 		return;
 
-	if (!swapInfo.hasDefinedSwapchainImage == false)
+	if (!chainInfo.hasDefinedSwapchainImage == false)
 	{
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
-		ClearColorImageRaw(swapInfo.m_swapchainImages[swapInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
 	// make sure any writes to the image have finished (is this necessary? End of command buffer implicitly flushes everything?)
@@ -3006,7 +3006,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
 
 
-	VkSemaphore presentSemaphore = swapInfo.m_renderFinishedSemaphores[swapInfo.swapchainImageIndex];
+	VkSemaphore presentSemaphore = chainInfo.m_renderFinishedSemaphores[chainInfo.swapchainImageIndex];
 	SubmitCommandBuffer(&presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
@@ -3015,8 +3015,8 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &swapInfo.swapChain;
-	presentInfo.pImageIndices = &swapInfo.swapchainImageIndex;
+	presentInfo.pSwapchains = &chainInfo.swapChain;
+	presentInfo.pImageIndices = &chainInfo.swapchainImageIndex;
 	// wait on command buffer semaphore
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
@@ -3026,9 +3026,9 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	{
 		std::cout << "lost in queue" << std::endl;
 		WaitDeviceIdle();
-		swapInfo.Cleanup(false);
-		vkDestroySurfaceKHR(m_instance, swapInfo.surface, nullptr);
-		swapInfo.surface = VK_NULL_HANDLE;
+		chainInfo.Cleanup(false);
+		vkDestroySurfaceKHR(m_instance, chainInfo.surface, nullptr);
+		chainInfo.surface = VK_NULL_HANDLE;
 		return;
 	}
 	else if (result != VK_SUCCESS)
@@ -3066,9 +3066,9 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		throw std::runtime_error(fmt::format("Failed to present draw command buffer: {}", result));
 	}
 
-	swapInfo.hasDefinedSwapchainImage = true;
+	chainInfo.hasDefinedSwapchainImage = true;
 
-	swapInfo.swapchainImageIndex = -1;
+	chainInfo.swapchainImageIndex = -1;
 }
 
 void VulkanRenderer::Flush(bool waitIdle)
@@ -3101,12 +3101,12 @@ void VulkanRenderer::ClearColorbuffer(bool padView)
 	if (!UpdateAndGetSwapchainValidity(!padView))
 		return;
 
-	auto& swap_info = GetChainInfo(!padView);
-	if (swap_info.swapchainImageIndex == -1)
+	auto& chainInfo = GetChainInfo(!padView);
+	if (chainInfo.swapchainImageIndex == -1)
 		return;
 
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
-	ClearColorImageRaw(swap_info.m_swapchainImages[swap_info.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 }
 
 void VulkanRenderer::ClearColorImageRaw(VkImage image, uint32 sliceIndex, uint32 mipIndex, const VkClearColorValue& color, VkImageLayout inputLayout, VkImageLayout outputLayout)
@@ -3191,7 +3191,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	if (!UpdateAndGetSwapchainValidity(!padView))
 		return;
 
-	auto& swapInfo = GetChainInfo(!padView);
+	auto& chainInfo = GetChainInfo(!padView);
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
@@ -3214,10 +3214,10 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = swapInfo.m_swapChainRenderPass;
-	renderPassInfo.framebuffer = swapInfo.m_swapchainFramebuffers[swapInfo.swapchainImageIndex];
+	renderPassInfo.renderPass = chainInfo.m_swapChainRenderPass;
+	renderPassInfo.framebuffer = chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex];
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = swapInfo.swapchainExtend;
+	renderPassInfo.renderArea.extent = chainInfo.swapchainExtend;
 	renderPassInfo.clearValueCount = 0;
 
 	VkViewport viewport{};
@@ -3230,7 +3230,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
-	scissor.extent = swapInfo.swapchainExtend;
+	scissor.extent = chainInfo.swapchainExtend;
 	vkCmdSetScissor(m_state.currentCommandBuffer, 0, 1, &scissor);
 
 	auto descriptSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);
@@ -3252,7 +3252,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &m_state.currentViewport);
 
 	// mark current swapchain image as well defined
-	swapInfo.hasDefinedSwapchainImage = true;
+	chainInfo.hasDefinedSwapchainImage = true;
 }
 
 void VulkanRenderer::CreateDescriptorPool()
