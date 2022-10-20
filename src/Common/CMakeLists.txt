@@ -43,6 +43,13 @@ PRIVATE
 )
 endif()
 
+if(UNIX AND NOT APPLE)
+	target_sources(CemuCommon PRIVATE
+		ExceptionHandler/ELFSymbolTable.cpp
+		ExceptionHandler/ELFSymbolTable.h
+	)
+endif()
+
 # All the targets wanting to use the precompiled.h header
 # have to link to CemuCommon
 target_precompile_headers(CemuCommon PUBLIC precompiled.h)
