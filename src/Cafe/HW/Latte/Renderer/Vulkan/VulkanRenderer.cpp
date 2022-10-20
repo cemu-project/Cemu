@@ -3009,7 +3009,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		throw std::runtime_error(fmt::format("Failed to present draw command buffer: {}", result));
 	}
 
-	chainInfo.hasDefinedSwapchainImage = true;
+	chainInfo.hasDefinedSwapchainImage = false;
 
 	chainInfo.swapchainImageIndex = -1;
 }
