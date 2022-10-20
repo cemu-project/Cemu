@@ -1810,7 +1810,7 @@ void VulkanRenderer::ImguiInit()
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
-	const auto result = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_swapchainState.m_imguiRenderPass);
+	const auto result = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_imguiRenderPass);
 	if (result != VK_SUCCESS)
 		throw VkException(result, "can't create imgui renderpass");
 
@@ -1825,7 +1825,7 @@ void VulkanRenderer::ImguiInit()
 	info.MinImageCount = m_mainSwapchainInfo->m_swapchainImages.size();
 	info.ImageCount = info.MinImageCount;
 
-	ImGui_ImplVulkan_Init(&info, m_swapchainState.m_imguiRenderPass);
+	ImGui_ImplVulkan_Init(&info, m_imguiRenderPass);
 }
 
 void VulkanRenderer::Initialize()

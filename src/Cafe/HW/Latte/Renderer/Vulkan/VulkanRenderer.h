@@ -443,10 +443,7 @@ private:
 	bool UpdateAndGetSwapchainValidity(bool mainWindow);
 	VkSwapchainKHR CreateSwapChain(SwapChainInfo& chainInfo);
 
-	struct
-	{
-		VkRenderPass m_imguiRenderPass = nullptr;
-	}m_swapchainState;
+	VkRenderPass m_imguiRenderPass = nullptr;
 
 	Semaphore canvasSemaphore;
 
