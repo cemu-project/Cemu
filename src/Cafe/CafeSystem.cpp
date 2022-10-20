@@ -68,7 +68,6 @@
 
 std::string _pathToExecutable;
 std::string _pathToBaseExecutable;
-std::string applicationName;
 
 RPLModule* applicationRPX = nullptr;
 uint32 currentBaseApplicationHash = 0;
@@ -706,10 +705,11 @@ namespace CafeSystem
 	{
 		if (sLaunchModeIsStandalone)
 			return "Unknown Game";
+		std::string applicationName;
 		applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(GetConfig().console_language);
-		if (applicationName.empty())
+		if (applicationName.empty()) //Try to get the English Title
 			applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
-		if (applicationName.empty())
+		if (applicationName.empty()) //Unknown Game
 			applicationName = "Unknown Game";
 		return applicationName;
 	}
