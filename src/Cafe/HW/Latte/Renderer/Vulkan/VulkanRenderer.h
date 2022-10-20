@@ -510,7 +510,7 @@ private:
 	};
 	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
 	bool PrepareSwapchainUse(bool mainWindow);
-	VkSwapchainKHR CreateSwapChain(std::unique_ptr<SwapChainInfo>& swap_chain_info, const Vector2i& size, bool mainwindow);
+	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);
 
 	struct
 	{

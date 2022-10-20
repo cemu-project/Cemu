@@ -652,7 +652,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	if (isMainWindow)
 	{
 		m_mainSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
-		CreateSwapChain(m_mainSwapchainInfo, size, isMainWindow);
+		CreateSwapChain(*m_mainSwapchainInfo, size, isMainWindow);
 
 		// aquire first command buffer
 		InitFirstCommandBuffer();
@@ -1518,43 +1518,43 @@ bool VulkanRenderer::PrepareSwapchainUse(bool mainWindow)
 	bool valid = m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
 	if (!valid && m_padSwapchainInfo && !m_swapchainState.drcSurfaceLost)
 	{
-		CreateSwapChain(m_padSwapchainInfo, m_swapchainState.newExtentPadWindow, false);
+		CreateSwapChain(*m_padSwapchainInfo, m_swapchainState.newExtentPadWindow, false);
 		return true;
 	}
 	return valid;
 }
 
-VkSwapchainKHR VulkanRenderer::CreateSwapChain(std::unique_ptr<SwapChainInfo>& swap_chain_info, const Vector2i& size, bool mainwindow)
+VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow)
 {
 
 	if (!mainwindow && m_swapchainState.drcSurfaceLost)
 	{
-		swap_chain_info->Cleanup();
-		vkDestroySurfaceKHR(m_instance, swap_chain_info->surface, nullptr);
-		swap_chain_info->surface = VK_NULL_HANDLE;
+		swap_chain_info.Cleanup();
+		vkDestroySurfaceKHR(m_instance, swap_chain_info.surface, nullptr);
+		swap_chain_info.surface = VK_NULL_HANDLE;
 		return VK_NULL_HANDLE;
 	}
 
-	const SwapChainSupportDetails details = QuerySwapChainSupport(swap_chain_info->surface, m_physical_device);
+	const SwapChainSupportDetails details = QuerySwapChainSupport(swap_chain_info.surface, m_physical_device);
 	m_swapchainFormat = ChooseSwapSurfaceFormat(details.formats, mainwindow);
-	swap_chain_info->swapchainExtend = ChooseSwapExtent(details.capabilities, size);
+	swap_chain_info.swapchainExtend = ChooseSwapExtent(details.capabilities, size);
 
 	// calculate number of swapchain presentation images
 	uint32_t image_count = details.capabilities.minImageCount + 1;
 	if (details.capabilities.maxImageCount > 0 && image_count > details.capabilities.maxImageCount)
 		image_count = details.capabilities.maxImageCount;
 
-	auto oldSwapChain = swap_chain_info->swapChain;
+	auto oldSwapChain = swap_chain_info.swapChain;
 
-	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(swap_chain_info->surface, details, m_swapchainFormat, image_count, swap_chain_info->swapchainExtend);
+	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(swap_chain_info.surface, details, m_swapchainFormat, image_count, swap_chain_info.swapchainExtend);
 	create_info.oldSwapchain = oldSwapChain;
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	//set to null so Cleanup doesn't destroy swapchain
-	swap_chain_info->swapChain = nullptr;
-	swap_chain_info->Cleanup();
+	swap_chain_info.swapChain = nullptr;
+	swap_chain_info.Cleanup();
 
-	VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &create_info, nullptr, &swap_chain_info->swapChain);
+	VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &create_info, nullptr, &swap_chain_info.swapChain);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to create a swapchain");
 
@@ -1563,13 +1563,13 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(std::unique_ptr<SwapChainInfo>& s
 		vkDestroySwapchainKHR(m_logicalDevice, oldSwapChain, nullptr);
 
 
-	result = vkGetSwapchainImagesKHR(m_logicalDevice, swap_chain_info->swapChain, &image_count, nullptr);
+	result = vkGetSwapchainImagesKHR(m_logicalDevice, swap_chain_info.swapChain, &image_count, nullptr);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to retrieve the count of swapchain images");
 
 
-	swap_chain_info->m_swapchainImages.resize(image_count);
-	result = vkGetSwapchainImagesKHR(m_logicalDevice, swap_chain_info->swapChain, &image_count, swap_chain_info->m_swapchainImages.data());
+	swap_chain_info.m_swapchainImages.resize(image_count);
+	result = vkGetSwapchainImagesKHR(m_logicalDevice, swap_chain_info.swapChain, &image_count, swap_chain_info.m_swapchainImages.data());
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to retrieve swapchain images");
 	// create default renderpass
@@ -1597,17 +1597,17 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(std::unique_ptr<SwapChainInfo>& s
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
-	result = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &swap_chain_info->m_swapChainRenderPass);
+	result = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &swap_chain_info.m_swapChainRenderPass);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Failed to create renderpass for swapchain");
 
 	// create swapchain image views
-	swap_chain_info->m_swapchainImageViews.resize(swap_chain_info->m_swapchainImages.size());
-	for (sint32 i = 0; i < swap_chain_info->m_swapchainImages.size(); i++)
+	swap_chain_info.m_swapchainImageViews.resize(swap_chain_info.m_swapchainImages.size());
+	for (sint32 i = 0; i < swap_chain_info.m_swapchainImages.size(); i++)
 	{
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = swap_chain_info->m_swapchainImages[i];
+		createInfo.image = swap_chain_info.m_swapchainImages[i];
 		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		createInfo.format = m_swapchainFormat.format;
 		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1619,56 +1619,56 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(std::unique_ptr<SwapChainInfo>& s
 		createInfo.subresourceRange.levelCount = 1;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
-		result = vkCreateImageView(m_logicalDevice, &createInfo, nullptr, &swap_chain_info->m_swapchainImageViews[i]);
+		result = vkCreateImageView(m_logicalDevice, &createInfo, nullptr, &swap_chain_info.m_swapchainImageViews[i]);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create imageviews for swapchain");
 	}
 
 	// create swapchain framebuffers
-	swap_chain_info->m_swapchainFramebuffers.resize(swap_chain_info->m_swapchainImages.size());
-	swap_chain_info->m_swapchainPresentSemaphores.resize(swap_chain_info->m_swapchainImages.size());
-	for (size_t i = 0; i < swap_chain_info->m_swapchainImages.size(); i++)
+	swap_chain_info.m_swapchainFramebuffers.resize(swap_chain_info.m_swapchainImages.size());
+	swap_chain_info.m_swapchainPresentSemaphores.resize(swap_chain_info.m_swapchainImages.size());
+	for (size_t i = 0; i < swap_chain_info.m_swapchainImages.size(); i++)
 	{
 		VkImageView attachments[1];
-		attachments[0] = swap_chain_info->m_swapchainImageViews[i];
+		attachments[0] = swap_chain_info.m_swapchainImageViews[i];
 		// create framebuffer
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = swap_chain_info->m_swapChainRenderPass;
+		framebufferInfo.renderPass = swap_chain_info.m_swapChainRenderPass;
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swap_chain_info->swapchainExtend.width;
-		framebufferInfo.height = swap_chain_info->swapchainExtend.height;
+		framebufferInfo.width = swap_chain_info.swapchainExtend.width;
+		framebufferInfo.height = swap_chain_info.swapchainExtend.height;
 		framebufferInfo.layers = 1;
-		result = vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &swap_chain_info->m_swapchainFramebuffers[i]);
+		result = vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &swap_chain_info.m_swapchainFramebuffers[i]);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create framebuffer for swapchain");
 		// create present semaphore
 		VkSemaphoreCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &swap_chain_info->m_swapchainPresentSemaphores[i]) != VK_SUCCESS)
+		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &swap_chain_info.m_swapchainPresentSemaphores[i]) != VK_SUCCESS)
 			UnrecoverableError("Failed to create semaphore for swapchain present");
 	}
 
 	// init m_acquireInfo
-	swap_chain_info->m_acquireInfo.resize(swap_chain_info->m_swapchainImages.size());
-	for (auto& itr : swap_chain_info->m_acquireInfo)
+	swap_chain_info.m_acquireInfo.resize(swap_chain_info.m_swapchainImages.size());
+	for (auto& itr : swap_chain_info.m_acquireInfo)
 	{
 		VkSemaphoreCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &itr.acquireSemaphore) != VK_SUCCESS)
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
-	swap_chain_info->m_acquireIndex = 0;
+	swap_chain_info.m_acquireIndex = 0;
 
 	VkFenceCreateInfo fenceInfo = {};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	result = vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &swap_chain_info->m_imageAvailableFence);
+	result = vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &swap_chain_info.m_imageAvailableFence);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Failed to create fence for swapchain");
 
-	return swap_chain_info->swapChain;
+	return swap_chain_info.swapChain;
 }
 
 void VulkanRenderer::CreateNullTexture(NullTexture& nullTex, VkImageType imageType)
@@ -2949,7 +2949,7 @@ void VulkanRenderer::RecreateSwapchain(bool main_window)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
-	swapinfo->swapChain = CreateSwapChain(swapinfo, size, main_window);
+	swapinfo->swapChain = CreateSwapChain(*swapinfo, size, main_window);
 	swapinfo->swapchainImageIndex = -1;
 
 	if (main_window)
