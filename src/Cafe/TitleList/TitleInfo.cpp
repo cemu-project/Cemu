@@ -589,7 +589,15 @@ std::string TitleInfo::GetTitleName() const
 {
 	cemu_assert_debug(m_isValid);
 	if (m_parsedMetaXml)
-		return m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+	{
+		std::string titleNameCfgLanguage;
+		titleNameCfgLanguage = m_parsedMetaXml->GetShortName(GetConfig().console_language);
+		if (titleNameCfgLanguage.empty()) //Get English Title
+			titleNameCfgLanguage = m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+		if (titleNameCfgLanguage.empty()) //Unknown Title
+			titleNameCfgLanguage = "Unknown Title";
+		return titleNameCfgLanguage;
+	}
 	if (m_cachedInfo)
 		return m_cachedInfo->titleName;
 	cemu_assert_suspicious();
