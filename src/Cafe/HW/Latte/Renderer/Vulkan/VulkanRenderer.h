@@ -436,10 +436,7 @@ private:
 	// swapchain - todo move this to m_swapchainState
 	struct SwapChainInfo
 	{
-		SwapChainInfo(VkDevice device, VkSurfaceKHR surface) : m_device(device), surface(surface) {}
-		SwapChainInfo(const SwapChainInfo&) = delete;
-		SwapChainInfo(SwapChainInfo&&) noexcept = default;
-		~SwapChainInfo()
+		void Cleanup()
 		{
 			m_swapchainImages.clear();
 
@@ -479,6 +476,14 @@ private:
 			}
 		}
 
+		SwapChainInfo(VkDevice device, VkSurfaceKHR surface) : m_device(device), surface(surface) {}
+		SwapChainInfo(const SwapChainInfo&) = delete;
+		SwapChainInfo(SwapChainInfo&&) noexcept = default;
+		~SwapChainInfo()
+		{
+			Cleanup();
+		}
+
 		VkDevice m_device;
 
 		VkSurfaceKHR surface{};
@@ -504,7 +509,7 @@ private:
 		VkRenderPass m_swapChainRenderPass = nullptr;
 	};
 	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	bool IsSwapchainInfoValid(bool mainWindow) const;
+	bool PrepareSwapchainUse(bool mainWindow);
 	VkSwapchainKHR CreateSwapChain(std::unique_ptr<SwapChainInfo>& swap_chain_info, const Vector2i& size, bool mainwindow);
 
 	struct
