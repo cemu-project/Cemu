@@ -973,9 +973,7 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 
 void VulkanRenderer::SetSwapchainTargetSize(const Vector2i& size, bool mainWindow)
 {
-	auto& chainInfo = GetChainInfo(mainWindow);
-	chainInfo.desiredExtent = size;
-	chainInfo.sizeOutOfDate = true;
+	GetChainInfo(mainWindow).setSize(size);
 }
 
 static const float kQueuePriority = 1.0f;
@@ -1521,7 +1519,7 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 
 	const SwapChainSupportDetails details = QuerySwapChainSupport(chainInfo.surface, m_physical_device);
 	m_swapchainFormat = ChooseSwapSurfaceFormat(details.formats, chainInfo.mainWindow);
-	chainInfo.swapchainExtend = ChooseSwapExtent(details.capabilities, chainInfo.desiredExtent);
+	chainInfo.swapchainExtend = ChooseSwapExtent(details.capabilities, chainInfo.getSize());
 
 	// calculate number of swapchain presentation images
 	uint32_t image_count = details.capabilities.minImageCount + 1;

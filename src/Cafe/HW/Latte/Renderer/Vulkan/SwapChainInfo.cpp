@@ -38,8 +38,3 @@ void SwapChainInfo::Cleanup()
 		swapChain = VK_NULL_HANDLE;
 	}
 }
-
-bool SwapChainInfo::Ready()
-{
-	return surface && swapChain;
-}

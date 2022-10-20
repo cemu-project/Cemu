@@ -7,7 +7,14 @@ struct SwapChainInfo
 {
 	void Cleanup();
 
-	bool Ready();
+	void setSize(const Vector2i& newSize) {
+		desiredExtent = newSize;
+		sizeOutOfDate = true;
+	}
+
+	const Vector2i& getSize() const {
+		return desiredExtent;
+	}
 
 	SwapChainInfo(VkDevice device, VkSurfaceKHR surface, bool mainWindow) : m_device(device), surface(surface), mainWindow(mainWindow) {}
 	SwapChainInfo(const SwapChainInfo&) = delete;
@@ -17,7 +24,6 @@ struct SwapChainInfo
 		Cleanup();
 	}
 
-	bool shouldExist{};
 	bool mainWindow{};
 
 	bool m_usesSRGB = false;
@@ -33,7 +39,6 @@ struct SwapChainInfo
 	uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
 
 	bool sizeOutOfDate{};
-	Vector2i desiredExtent;
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
 	std::vector<VkImage> m_swapchainImages;
@@ -43,4 +48,7 @@ struct SwapChainInfo
 	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by acquireIndex
 
 	VkRenderPass m_swapChainRenderPass = nullptr;
+
+private:
+	Vector2i desiredExtent;
 };
