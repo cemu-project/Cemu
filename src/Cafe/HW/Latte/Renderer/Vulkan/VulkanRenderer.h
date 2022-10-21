@@ -6,7 +6,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CachedFBOVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VKRMemoryManager.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/SwapChainInfo.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h"
 #include "util/math/vector2.h"
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
@@ -188,8 +188,8 @@ public:
 	void DetermineVendor();
 	void Initialize(const Vector2i& size, bool mainWindow);
 
-	const std::unique_ptr<SwapChainInfo>& GetChainInfoPtr(bool mainWindow) const;
-	SwapChainInfo& GetChainInfo(bool mainWindow) const;
+	const std::unique_ptr<SwapchainInfoVk>& GetChainInfoPtr(bool mainWindow) const;
+	SwapchainInfoVk& GetChainInfo(bool mainWindow) const;
 
 	bool IsPadWindowActive() override;
 
@@ -438,9 +438,9 @@ private:
 	}m_state;
 
 
-	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
+	std::unique_ptr<SwapchainInfoVk> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
 	bool IsSwapchainInfoValid(bool mainWindow) const;
-	VkSwapchainKHR CreateSwapChain(SwapChainInfo& chainInfo);
+	VkSwapchainKHR CreateSwapchain(SwapchainInfoVk& chainInfo);
 
 	VkRenderPass m_imguiRenderPass = nullptr;
 
@@ -502,7 +502,7 @@ private:
 	void SwapBuffer(bool mainWindow);
 	VSync m_vsync_state = VSync::Immediate;
 
-	struct SwapChainSupportDetails 
+	struct SwapchainSupportDetails
 	{
 		VkSurfaceCapabilitiesKHR capabilities;
 		std::vector<VkSurfaceFormatKHR> formats;
@@ -515,14 +515,14 @@ private:
 
 	// swapchain
 
-	static SwapChainSupportDetails QuerySwapChainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device);
+	static SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device);
 	std::vector<VkDeviceQueueCreateInfo> CreateQueueCreateInfos(const std::set<int>& uniqueQueueFamilies) const;
 	VkDeviceCreateInfo CreateDeviceCreateInfo(const std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos, const VkPhysicalDeviceFeatures& deviceFeatures, const void* deviceExtensionStructs, std::vector<const char*>& used_extensions) const;
 	static bool IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats, bool mainWindow) const;
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const;
-	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapChainSupportDetails& swapChainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
+	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
 
 	void CreateCommandPool();
 	void CreateCommandBuffers();

@@ -3,7 +3,7 @@
 #include "util/math/vector2.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 
-struct SwapChainInfo
+struct SwapchainInfoVk
 {
 	void Cleanup();
 
@@ -18,10 +18,10 @@ struct SwapChainInfo
 		return desiredExtent;
 	}
 
-	SwapChainInfo(VkDevice device, VkSurfaceKHR surface, bool mainWindow) : m_device(device), surface(surface), mainWindow(mainWindow) {}
-	SwapChainInfo(const SwapChainInfo&) = delete;
-	SwapChainInfo(SwapChainInfo&&) noexcept = default;
-	~SwapChainInfo()
+	SwapchainInfoVk(VkDevice device, VkSurfaceKHR surface, bool mainWindow) : m_device(device), surface(surface), mainWindow(mainWindow) {}
+	SwapchainInfoVk(const SwapchainInfoVk&) = delete;
+	SwapchainInfoVk(SwapchainInfoVk&&) noexcept = default;
+	~SwapchainInfoVk()
 	{
 		Cleanup();
 	}
@@ -36,7 +36,7 @@ struct SwapChainInfo
 
 	VkSurfaceKHR surface{};
 	VkSurfaceFormatKHR m_surfaceFormat;
-	VkSwapchainKHR swapChain{};
+	VkSwapchainKHR swapchain{};
 	VkExtent2D swapchainExtend{};
 	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
@@ -50,7 +50,7 @@ struct SwapChainInfo
 	std::vector<VkSemaphore> m_swapchainPresentSemaphores;
 	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by acquireIndex
 
-	VkRenderPass m_swapChainRenderPass = nullptr;
+	VkRenderPass m_swapchainRenderPass = nullptr;
 
 private:
 	Vector2i desiredExtent;

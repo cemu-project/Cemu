@@ -1,6 +1,6 @@
-#include "SwapChainInfo.h"
+#include "SwapchainInfoVk.h"
 
-void SwapChainInfo::Cleanup()
+void SwapchainInfoVk::Cleanup()
 {
 	m_swapchainImages.clear();
 
@@ -12,10 +12,10 @@ void SwapChainInfo::Cleanup()
 		vkDestroySemaphore(m_device, itr, nullptr);
 	m_acquireSemaphores.clear();
 
-	if (m_swapChainRenderPass)
+	if (m_swapchainRenderPass)
 	{
-		vkDestroyRenderPass(m_device, m_swapChainRenderPass, nullptr);
-		m_swapChainRenderPass = nullptr;
+		vkDestroyRenderPass(m_device, m_swapchainRenderPass, nullptr);
+		m_swapchainRenderPass = nullptr;
 	}
 
 	for (auto& imageView : m_swapchainImageViews)
@@ -32,9 +32,9 @@ void SwapChainInfo::Cleanup()
 		vkDestroyFence(m_device, m_imageAvailableFence, nullptr);
 		m_imageAvailableFence = nullptr;
 	}
-	if (swapChain)
+	if (swapchain)
 	{
-		vkDestroySwapchainKHR(m_device, swapChain, nullptr);
-		swapChain = VK_NULL_HANDLE;
+		vkDestroySwapchainKHR(m_device, swapchain, nullptr);
+		swapchain = VK_NULL_HANDLE;
 	}
 }
