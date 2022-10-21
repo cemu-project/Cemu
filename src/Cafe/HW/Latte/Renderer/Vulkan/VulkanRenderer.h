@@ -125,7 +125,9 @@ class VulkanRenderer : public Renderer
 	friend class LatteQueryObjectVk;
 	friend class LatteTextureReadbackInfoVk;
 	friend class PipelineCompiler;
+
 	using VSync = SwapchainInfoVk::VSync;
+	using QueueFamilyIndices = SwapchainInfoVk::QueueFamilyIndices;
 
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
 	static const inline int INDEX_STREAM_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
@@ -584,7 +586,7 @@ private:
 	VkDebugUtilsMessengerEXT m_debugCallback = nullptr;
 	volatile bool m_destructionRequested = false;
 	
-	SwapchainInfoVk::QueueFamilyIndices m_indices{};
+	QueueFamilyIndices m_indices{};
 
 	Semaphore m_pipeline_cache_semaphore;
 	std::shared_mutex m_pipeline_cache_save_mutex;
