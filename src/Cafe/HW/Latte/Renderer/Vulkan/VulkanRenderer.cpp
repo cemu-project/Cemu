@@ -1993,15 +1993,9 @@ void VulkanRenderer::QueryAvailableFormats()
 
 void VulkanRenderer::EnableVSync(int state)
 {
-	if (m_vsync_state == (VSync)state)
-		return;
-
-	m_vsync_state = (VSync)state;
-
-	// recreate spawn chains (vsync state is checked from config in ChooseSwapPresentMode)
-	RecreateSwapchain(true);
-	if (m_padSwapchainInfo)
-		RecreateSwapchain(false);
+	// todo: cannot recreate swapchain from a UI thread
+	wxMessageBox(_("Changing vulkan vsync mode requires restart."));
+	return;
 }
 
 bool VulkanRenderer::ImguiBegin(bool mainWindow)
