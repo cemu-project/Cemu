@@ -75,7 +75,7 @@ struct SwapchainInfoVk
 	VkPhysicalDevice m_physicalDevice{};
 	VkDevice m_logicalDevice{};
 	VkSurfaceKHR surface{};
-	VkSurfaceFormatKHR m_surfaceFormat;
+	VkSurfaceFormatKHR m_surfaceFormat{};
 	VkSwapchainKHR swapchain{};
 	VkExtent2D swapchainExtend{};
 	VkFence m_imageAvailableFence{};
