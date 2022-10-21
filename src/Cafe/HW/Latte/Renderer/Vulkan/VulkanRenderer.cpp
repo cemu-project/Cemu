@@ -2967,9 +2967,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	auto& chainInfo = GetChainInfo(mainWindow);
 
 	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	bool resize = chainInfo.sizeOutOfDate;
-	chainInfo.sizeOutOfDate = false;
-	if (resize || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+	if (chainInfo.sizeOutOfDate || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
 	{
 		try
 		{
