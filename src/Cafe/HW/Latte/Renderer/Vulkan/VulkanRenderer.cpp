@@ -1186,8 +1186,6 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	return enabledInstanceExtensions;
 }
 
-
-
 bool VulkanRenderer::IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device)
 {
 	if (!SwapchainInfoVk::FindQueueFamilies(surface, device).IsComplete())
@@ -1336,7 +1334,6 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 }
 
 
-
 void VulkanRenderer::CreateNullTexture(NullTexture& nullTex, VkImageType imageType)
 {
 	// these are used when the game requests NULL ptr textures or buffers
@@ -1482,6 +1479,7 @@ void VulkanRenderer::ImguiInit()
 void VulkanRenderer::Initialize()
 {
 	m_vsync_state = (VSync)GetConfig().vsync.GetValue();
+	m_mainSwapchainInfo->m_vsyncState = m_padSwapchainInfo->m_vsyncState  = m_vsync_state;
 	CreatePipelineCache();
 	ImguiInit();
 	CreateNullObjects();
