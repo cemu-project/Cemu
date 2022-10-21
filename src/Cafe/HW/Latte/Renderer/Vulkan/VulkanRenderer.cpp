@@ -1515,8 +1515,6 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 
 VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 {
-	chainInfo.Cleanup();
-
 	const SwapChainSupportDetails details = QuerySwapChainSupport(chainInfo.surface, m_physical_device);
 	m_swapchainFormat = ChooseSwapSurfaceFormat(details.formats, chainInfo.mainWindow);
 	chainInfo.swapchainExtend = ChooseSwapExtent(details.capabilities, chainInfo.getSize());
@@ -1527,7 +1525,8 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 		image_count = details.capabilities.maxImageCount;
 
 	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(chainInfo.surface, details, m_swapchainFormat, image_count, chainInfo.swapchainExtend);
-	create_info.oldSwapchain = nullptr;
+	create_info.oldSwapchain = chainInfo.swapChain;
+	chainInfo.swapChain = nullptr;
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &create_info, nullptr, &chainInfo.swapChain);
@@ -1540,6 +1539,13 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to retrieve the count of swapchain images");
 
+	// clean up previously initialized swapchain
+	for (const auto& image : chainInfo.m_swapchainImages)
+		vkDestroyImage(m_logicalDevice, image, nullptr);
+	chainInfo.m_swapchainImages.clear();
+	for (auto& sem : chainInfo.m_swapchainPresentSemaphores)
+		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
+	chainInfo.m_swapchainPresentSemaphores.clear();
 
 	chainInfo.m_swapchainImages.resize(image_count);
 	result = vkGetSwapchainImagesKHR(m_logicalDevice, chainInfo.swapChain, &image_count, chainInfo.m_swapchainImages.data());
@@ -1564,6 +1570,12 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 
+	if (chainInfo.m_swapChainRenderPass)
+	{
+		vkDestroyRenderPass(m_logicalDevice, chainInfo.m_swapChainRenderPass, nullptr);
+		chainInfo.m_swapChainRenderPass = nullptr;
+	}
+
 	VkRenderPassCreateInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = 1;
@@ -1575,6 +1587,12 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 		UnrecoverableError("Failed to create renderpass for swapchain");
 
 	// create swapchain image views
+	for (const auto& image_view : chainInfo.m_swapchainImageViews)
+	{
+		vkDestroyImageView(m_logicalDevice, image_view, nullptr);
+	}
+	chainInfo.m_swapchainImageViews.clear();
+
 	chainInfo.m_swapchainImageViews.resize(chainInfo.m_swapchainImages.size());
 	for (sint32 i = 0; i < chainInfo.m_swapchainImages.size(); i++)
 	{
@@ -1598,6 +1616,12 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 	}
 
 	// create swapchain framebuffers
+	for (const auto& framebuffer : chainInfo.m_swapchainFramebuffers)
+	{
+		vkDestroyFramebuffer(m_logicalDevice, framebuffer, nullptr);
+	}
+	chainInfo.m_swapchainFramebuffers.clear();
+
 	chainInfo.m_swapchainFramebuffers.resize(chainInfo.m_swapchainImages.size());
 	chainInfo.m_swapchainPresentSemaphores.resize(chainInfo.m_swapchainImages.size());
 	for (size_t i = 0; i < chainInfo.m_swapchainImages.size(); i++)
@@ -1623,6 +1647,11 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 			UnrecoverableError("Failed to create semaphore for swapchain present");
 	}
 
+	for (auto& itr : chainInfo.m_acquireSemaphores)
+	{
+		vkDestroySemaphore(m_logicalDevice, itr, nullptr);
+	}
+	chainInfo.m_acquireSemaphores.clear();
 	chainInfo.m_acquireSemaphores.resize(chainInfo.m_swapchainImages.size());
 	for (auto& itr : chainInfo.m_acquireSemaphores)
 	{
@@ -1632,6 +1661,12 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 	chainInfo.m_acquireIndex = 0;
+
+	if (chainInfo.m_imageAvailableFence)
+	{
+		vkDestroyFence(m_logicalDevice, chainInfo.m_imageAvailableFence, nullptr);
+		chainInfo.m_imageAvailableFence = nullptr;
+	}
 
 	VkFenceCreateInfo fenceInfo = {};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -2911,7 +2946,16 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
-	CreateSwapChain(chainInfo);
+	if (chainInfo.swapChain != VK_NULL_HANDLE)
+	{
+		// todo - for some reason using the swapchain replacement method (old var being set) causes crashes and other issues
+		vkDestroySwapchainKHR(m_logicalDevice, chainInfo.swapChain, nullptr);
+		chainInfo.m_swapchainImages.clear(); // swapchain images are automatically destroyed
+		chainInfo.swapChain = VK_NULL_HANDLE;
+	}
+
+	chainInfo.swapChain = nullptr;
+	chainInfo.swapChain = CreateSwapChain(chainInfo);
 	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)
@@ -2923,8 +2967,9 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	auto& chainInfo = GetChainInfo(mainWindow);
 
 	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+	bool resize = chainInfo.sizeOutOfDate;
 	chainInfo.sizeOutOfDate = false;
-	if (chainInfo.sizeOutOfDate || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+	if (resize || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
 	{
 		try
 		{
