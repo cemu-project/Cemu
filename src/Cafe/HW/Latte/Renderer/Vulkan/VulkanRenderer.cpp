@@ -1624,11 +1624,11 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 	}
 
 	chainInfo.m_acquireSemaphores.resize(chainInfo.m_swapchainImages.size());
-	for (auto& availableSemaphore : chainInfo.m_acquireSemaphores)
+	for (auto& semaphore : chainInfo.m_acquireSemaphores)
 	{
 		VkSemaphoreCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &availableSemaphore) != VK_SUCCESS)
+		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 	chainInfo.m_acquireIndex = 0;
