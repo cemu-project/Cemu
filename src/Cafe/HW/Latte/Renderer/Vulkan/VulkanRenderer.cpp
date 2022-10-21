@@ -2980,7 +2980,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 
 	AcquireNextSwapchainImage(mainWindow);
 
-	if (!chainInfo.hasDefinedSwapchainImage == false)
+	if (!chainInfo.hasDefinedSwapchainImage)
 	{
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
