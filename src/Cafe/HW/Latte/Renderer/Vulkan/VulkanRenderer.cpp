@@ -1516,7 +1516,7 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 	chainInfo.Cleanup();
 
 	const SwapChainSupportDetails details = QuerySwapChainSupport(chainInfo.surface, m_physical_device);
-	m_swapchainFormat = ChooseSwapSurfaceFormat(details.formats, chainInfo.mainWindow);
+	chainInfo.m_surfaceFormat = ChooseSwapSurfaceFormat(details.formats, chainInfo.mainWindow);
 	chainInfo.swapchainExtend = ChooseSwapExtent(details.capabilities, chainInfo.getSize());
 
 	// calculate number of swapchain presentation images
@@ -1524,7 +1524,7 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 	if (details.capabilities.maxImageCount > 0 && image_count > details.capabilities.maxImageCount)
 		image_count = details.capabilities.maxImageCount;
 
-	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(chainInfo.surface, details, m_swapchainFormat, image_count, chainInfo.swapchainExtend);
+	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(chainInfo.surface, details, chainInfo.m_surfaceFormat, image_count, chainInfo.swapchainExtend);
 	create_info.oldSwapchain = nullptr;
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
@@ -1545,7 +1545,7 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 		UnrecoverableError("Error attempting to retrieve swapchain images");
 	// create default renderpass
 	VkAttachmentDescription colorAttachment = {};
-	colorAttachment.format = m_swapchainFormat.format;
+	colorAttachment.format = chainInfo.m_surfaceFormat.format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1580,7 +1580,7 @@ VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		createInfo.image = chainInfo.m_swapchainImages[i];
 		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = m_swapchainFormat.format;
+		createInfo.format = chainInfo.m_surfaceFormat.format;
 		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1744,7 +1744,7 @@ void VulkanRenderer::ImguiInit()
 {
 	// TODO: renderpass swapchain format may change between srgb and rgb -> need reinit
 	VkAttachmentDescription colorAttachment = {};
-	colorAttachment.format = m_swapchainFormat.format;
+	colorAttachment.format = m_mainSwapchainInfo->m_surfaceFormat.format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

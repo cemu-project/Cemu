@@ -35,6 +35,7 @@ struct SwapChainInfo
 	VkDevice m_device;
 
 	VkSurfaceKHR surface{};
+	VkSurfaceFormatKHR m_surfaceFormat;
 	VkSwapchainKHR swapChain{};
 	VkExtent2D swapchainExtend{};
 	VkFence m_imageAvailableFence{};

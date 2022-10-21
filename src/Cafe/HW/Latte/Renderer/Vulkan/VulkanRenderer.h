@@ -445,7 +445,6 @@ private:
 	VkRenderPass m_imguiRenderPass = nullptr;
 
 	VkDescriptorPool m_descriptorPool;
-	VkSurfaceFormatKHR m_swapchainFormat;
 
 	struct QueueFamilyIndices
 	{
