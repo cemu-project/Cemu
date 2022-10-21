@@ -258,6 +258,7 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_vsync = new wxChoice(box, wxID_ANY, wxDefaultPosition, { 230, -1 });
 		m_vsync->SetToolTip(_("Controls the vsync state"));
 		row->Add(m_vsync, 0, wxALL, 5);
+		m_vsync->Bind(wxEVT_CHOICE, &GeneralSettings2::OnVSyncSelection, this);
 
 		box_sizer->Add(row, 0, wxEXPAND, 5);
 
@@ -951,6 +952,11 @@ void GeneralSettings2::OnClose(wxCloseEvent& event)
 	{
 		wxCommandEvent refresh_event(wxEVT_ACCOUNTLIST_REFRESH);
 		GetParent()->ProcessWindowEvent(refresh_event);
+	}
+	if (m_has_vsync_change)
+	{
+		if(g_renderer)
+			g_renderer->EnableVSync(GetConfig().vsync);
 	}
 	event.Skip();
 }
@@ -1689,6 +1695,11 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 void GeneralSettings2::OnGraphicAPISelected(wxCommandEvent& event)
 {
 	HandleGraphicsApiSelection();
+}
+
+void GeneralSettings2::OnVSyncSelection(wxCommandEvent& event)
+{
+	m_has_vsync_change = event.GetSelection() != GetConfig().vsync;
 }
 
 void GeneralSettings2::OnAddPathClicked(wxCommandEvent& event)

@@ -26,6 +26,7 @@ private:
 	bool m_game_launched;
 
 	bool m_has_account_change = false; // keep track of dirty state of accounts
+	bool m_has_vsync_change = false;
 
 	
 	wxPanel* AddGeneralPage(wxNotebook* notebook);
@@ -87,6 +88,7 @@ private:
 	void OnAudioDeviceSelected(wxCommandEvent& event);
 	void OnAudioChannelsSelected(wxCommandEvent& event);
 	void OnGraphicAPISelected(wxCommandEvent& event);
+	void OnVSyncSelection(wxCommandEvent& event);
 	void OnAddPathClicked(wxCommandEvent& event);
 	void OnRemovePathClicked(wxCommandEvent& event);
 	void OnActiveAccountChanged(wxCommandEvent& event);
