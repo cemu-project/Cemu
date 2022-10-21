@@ -7,12 +7,14 @@ struct SwapChainInfo
 {
 	void Cleanup();
 
-	void setSize(const Vector2i& newSize) {
+	void setSize(const Vector2i& newSize)
+	{
 		desiredExtent = newSize;
 		sizeOutOfDate = true;
 	}
 
-	const Vector2i& getSize() const {
+	const Vector2i& getSize() const
+	{
 		return desiredExtent;
 	}
 
@@ -26,6 +28,7 @@ struct SwapChainInfo
 
 	bool mainWindow{};
 
+	bool sizeOutOfDate{};
 	bool m_usesSRGB = false;
 	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
 
@@ -38,7 +41,6 @@ struct SwapChainInfo
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
 
-	bool sizeOutOfDate{};
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
 	std::vector<VkImage> m_swapchainImages;
