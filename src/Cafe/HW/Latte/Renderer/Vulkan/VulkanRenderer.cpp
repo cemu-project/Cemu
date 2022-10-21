@@ -650,19 +650,19 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	const auto surface = CreateFramebufferSurface(m_instance, windowHandleInfo);
 	if (mainWindow)
 	{
-		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(m_logicalDevice, surface, mainWindow);
+		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(*this, surface, mainWindow);
 		SetSwapchainTargetSize(size, mainWindow);
-		CreateSwapchain(*m_mainSwapchainInfo);
+		m_mainSwapchainInfo->Create();
 
 		// aquire first command buffer
 		InitFirstCommandBuffer();
 	}
 	else
 	{
-		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(m_logicalDevice, surface, mainWindow);
+		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(*this, surface, mainWindow);
 		SetSwapchainTargetSize(size, mainWindow);
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
-		CreateSwapchain(*m_padSwapchainInfo);
+		m_padSwapchainInfo->Create();
 	}
 }
 
@@ -1054,7 +1054,7 @@ void VulkanRenderer::shader_unbind(RendererShader::ShaderType shaderType)
 	// does nothing on Vulkan
 }
 
-VulkanRenderer::QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkSurfaceKHR surface, const VkPhysicalDevice& device)
+QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device)
 {
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -1216,7 +1216,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	return enabledInstanceExtensions;
 }
 
-VulkanRenderer::SwapchainSupportDetails VulkanRenderer::QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device)
+SwapchainSupportDetails VulkanRenderer::QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device)
 {
 	SwapchainSupportDetails details;
 
@@ -1362,69 +1362,9 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 #endif
 }
 
-VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats, bool mainWindow) const
-{
-	if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
-		return{ VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 
-	for (const auto& format : formats)
-	{
-		if ((mainWindow && LatteGPUState.tvBufferUsesSRGB) || (!mainWindow && LatteGPUState.drcBufferUsesSRGB))
-		{
-			if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-				return format;
-		}
-		else
-		{
-			if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-				return format;
-		}
-	}
 
-	return formats[0];
-}
 
-VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes)
-{
-	m_vsync_state = (VSync)GetConfig().vsync.GetValue();
-	if (m_vsync_state == VSync::MAILBOX)
-	{
-		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
-			return VK_PRESENT_MODE_MAILBOX_KHR;
-
-		forceLog_printf("Vulkan: Can't find mailbox present mode");
-	}
-	else if (m_vsync_state == VSync::Immediate)
-	{
-		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
-			return VK_PRESENT_MODE_IMMEDIATE_KHR;
-
-		forceLog_printf("Vulkan: Can't find immediate present mode");
-	}
-	else if (m_vsync_state == VSync::SYNC_AND_LIMIT)
-	{
-		LatteTiming_EnableHostDrivenVSync();
-		// use immediate mode if available, other wise fall back to 
-		//if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
-		//	return VK_PRESENT_MODE_IMMEDIATE_KHR;
-		//else
-		//	forceLog_printf("Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
-		return VK_PRESENT_MODE_FIFO_KHR;
-	}
-
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const
-{
-	if (capabilities.currentExtent.width != std::numeric_limits<uint32>::max())
-		return capabilities.currentExtent;
-
-	VkExtent2D actualExtent = { (uint32)size.x, (uint32)size.y };
-	actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-	actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
-	return actualExtent;
-}
 
 void VulkanRenderer::CreateCommandPool()
 {
@@ -1474,174 +1414,13 @@ void VulkanRenderer::CreateCommandBuffers()
 	}
 }
 
-VkSwapchainCreateInfoKHR VulkanRenderer::CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent)
-{
-	VkSwapchainCreateInfoKHR createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = surface;
-	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = surfaceFormat.format;
-	createInfo.imageExtent = extent;
-	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	const QueueFamilyIndices indices = FindQueueFamilies(surface, m_physical_device);
-	uint32_t queueFamilyIndices[] = { (uint32)indices.graphicsFamily, (uint32)indices.presentFamily };
-	if (indices.graphicsFamily != indices.presentFamily)
-	{
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		createInfo.queueFamilyIndexCount = 2;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
-	}
-	else
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode = ChooseSwapPresentMode(swapchainSupport.presentModes);
-	createInfo.clipped = VK_TRUE;
-
-	forceLogDebug_printf("vulkan presentation mode: %d", createInfo.presentMode);
-	return createInfo;
-}
-
 bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 {
 	auto& chainInfo = GetChainInfoPtr(mainWindow);
-	return chainInfo && chainInfo->swapchain && chainInfo->m_imageAvailableFence;
+	return chainInfo && chainInfo->IsValid();
 }
 
-VkSwapchainKHR VulkanRenderer::CreateSwapchain(SwapchainInfoVk& chainInfo)
-{
-	chainInfo.Cleanup();
 
-	const SwapchainSupportDetails details = QuerySwapchainSupport(chainInfo.surface, m_physical_device);
-	chainInfo.m_surfaceFormat = ChooseSwapSurfaceFormat(details.formats, chainInfo.mainWindow);
-	chainInfo.swapchainExtend = ChooseSwapExtent(details.capabilities, chainInfo.getSize());
-
-	// calculate number of swapchain presentation images
-	uint32_t image_count = details.capabilities.minImageCount + 1;
-	if (details.capabilities.maxImageCount > 0 && image_count > details.capabilities.maxImageCount)
-		image_count = details.capabilities.maxImageCount;
-
-	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(chainInfo.surface, details, chainInfo.m_surfaceFormat, image_count, chainInfo.swapchainExtend);
-	create_info.oldSwapchain = nullptr;
-	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-	VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &create_info, nullptr, &chainInfo.swapchain);
-	if (result != VK_SUCCESS)
-		UnrecoverableError("Error attempting to create a swapchain");
-
-	chainInfo.sizeOutOfDate = false;
-
-	result = vkGetSwapchainImagesKHR(m_logicalDevice, chainInfo.swapchain, &image_count, nullptr);
-	if (result != VK_SUCCESS)
-		UnrecoverableError("Error attempting to retrieve the count of swapchain images");
-
-
-	chainInfo.m_swapchainImages.resize(image_count);
-	result = vkGetSwapchainImagesKHR(m_logicalDevice, chainInfo.swapchain, &image_count, chainInfo.m_swapchainImages.data());
-	if (result != VK_SUCCESS)
-		UnrecoverableError("Error attempting to retrieve swapchain images");
-	// create default renderpass
-	VkAttachmentDescription colorAttachment = {};
-	colorAttachment.format = chainInfo.m_surfaceFormat.format;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	
-	VkAttachmentReference colorAttachmentRef = {};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	VkSubpassDescription subpass = {};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkRenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	result = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &chainInfo.m_swapchainRenderPass);
-	if (result != VK_SUCCESS)
-		UnrecoverableError("Failed to create renderpass for swapchain");
-
-	// create swapchain image views
-	chainInfo.m_swapchainImageViews.resize(chainInfo.m_swapchainImages.size());
-	for (sint32 i = 0; i < chainInfo.m_swapchainImages.size(); i++)
-	{
-		VkImageViewCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = chainInfo.m_swapchainImages[i];
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.format = chainInfo.m_surfaceFormat.format;
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
-		result = vkCreateImageView(m_logicalDevice, &createInfo, nullptr, &chainInfo.m_swapchainImageViews[i]);
-		if (result != VK_SUCCESS)
-			UnrecoverableError("Failed to create imageviews for swapchain");
-	}
-
-	// create swapchain framebuffers
-	chainInfo.m_swapchainFramebuffers.resize(chainInfo.m_swapchainImages.size());
-	for (size_t i = 0; i < chainInfo.m_swapchainImages.size(); i++)
-	{
-		VkImageView attachments[1];
-		attachments[0] = chainInfo.m_swapchainImageViews[i];
-		// create framebuffer
-		VkFramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = chainInfo.m_swapchainRenderPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = chainInfo.swapchainExtend.width;
-		framebufferInfo.height = chainInfo.swapchainExtend.height;
-		framebufferInfo.layers = 1;
-		result = vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &chainInfo.m_swapchainFramebuffers[i]);
-		if (result != VK_SUCCESS)
-			UnrecoverableError("Failed to create framebuffer for swapchain");
-	}
-	chainInfo.m_swapchainPresentSemaphores.resize(chainInfo.m_swapchainImages.size());
-	// create present semaphore
-	VkSemaphoreCreateInfo info = {};
-	info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	for (auto& semaphore : chainInfo.m_swapchainPresentSemaphores){
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
-			UnrecoverableError("Failed to create semaphore for swapchain present");
-	}
-
-	chainInfo.m_acquireSemaphores.resize(chainInfo.m_swapchainImages.size());
-	for (auto& semaphore : chainInfo.m_acquireSemaphores)
-	{
-		VkSemaphoreCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(m_logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
-			UnrecoverableError("Failed to create semaphore for swapchain acquire");
-	}
-	chainInfo.m_acquireIndex = 0;
-
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	result = vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &chainInfo.m_imageAvailableFence);
-	if (result != VK_SUCCESS)
-		UnrecoverableError("Failed to create fence for swapchain");
-
-	return chainInfo.swapchain;
-}
 
 void VulkanRenderer::CreateNullTexture(NullTexture& nullTex, VkImageType imageType)
 {
@@ -1787,6 +1566,7 @@ void VulkanRenderer::ImguiInit()
 
 void VulkanRenderer::Initialize()
 {
+	m_vsync_state = (VSync)GetConfig().vsync.GetValue();
 	CreatePipelineCache();
 	ImguiInit();
 	CreateNullObjects();
@@ -1967,16 +1747,23 @@ void VulkanRenderer::EnableVSync(int state)
 
 	m_vsync_state = (VSync)state;
 
-	// recreate spawn chains (vsync state is checked from config in ChooseSwapPresentMode)
+	// recreate spawn chains (vsync state is checked from config in ChoosePresentMode)
 	RecreateSwapchain(true);
 	if (m_padSwapchainInfo)
 		RecreateSwapchain(false);
+}
+
+VSync VulkanRenderer::GetVSyncState()
+{
+	return m_vsync_state;
 }
 
 bool VulkanRenderer::ImguiBegin(bool mainWindow)
 {
 	if (!Renderer::ImguiBegin(mainWindow))
 		return false;
+
+	auto& chainInfo = GetChainInfo(mainWindow);
 
 	if (!IsSwapchainInfoValid(mainWindow))
 		return false;
@@ -1986,7 +1773,6 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 
 	AcquireNextSwapchainImage(mainWindow);
 
-	auto& chainInfo = GetChainInfo(mainWindow);
 
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
 	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.swapchainExtend);
@@ -2911,7 +2697,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
-	CreateSwapchain(chainInfo);
+	chainInfo.Create();
 	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)

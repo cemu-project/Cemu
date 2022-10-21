@@ -1,11 +1,25 @@
 #pragma once
 
+struct SwapchainInfoVk;
+
 #include "util/math/vector2.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/MiscStructs.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 
 struct SwapchainInfoVk
 {
 	void Cleanup();
+	void Create();
+
+	bool IsValid() const;
+
+	VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) const;
+	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const;
+	VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes);
+
+	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
+
 
 	void setSize(const Vector2i& newSize)
 	{
@@ -18,7 +32,8 @@ struct SwapchainInfoVk
 		return desiredExtent;
 	}
 
-	SwapchainInfoVk(VkDevice device, VkSurfaceKHR surface, bool mainWindow) : m_device(device), surface(surface), mainWindow(mainWindow) {}
+	SwapchainInfoVk(VulkanRenderer& renderer, VkSurfaceKHR surface, bool mainWindow)
+		: renderer(renderer), surface(surface), mainWindow(mainWindow) {}
 	SwapchainInfoVk(const SwapchainInfoVk&) = delete;
 	SwapchainInfoVk(SwapchainInfoVk&&) noexcept = default;
 	~SwapchainInfoVk()
@@ -26,13 +41,13 @@ struct SwapchainInfoVk
 		Cleanup();
 	}
 
+	VulkanRenderer& renderer;
+
 	bool mainWindow{};
 
 	bool sizeOutOfDate{};
 	bool m_usesSRGB = false;
 	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
-
-	VkDevice m_device;
 
 	VkSurfaceKHR surface{};
 	VkSurfaceFormatKHR m_surfaceFormat;

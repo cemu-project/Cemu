@@ -176,8 +176,11 @@ add_library(CemuCafe
   HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h
   HW/Latte/Renderer/Vulkan/LatteTextureVk.cpp
   HW/Latte/Renderer/Vulkan/LatteTextureVk.h
+  HW/Latte/Renderer/Vulkan/MiscStructs.h
   HW/Latte/Renderer/Vulkan/RendererShaderVk.cpp
   HW/Latte/Renderer/Vulkan/RendererShaderVk.h
+  HW/Latte/Renderer/Vulkan/SwapchainInfoVk.cpp
+  HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h
   HW/Latte/Renderer/Vulkan/TextureReadbackVk.cpp
   HW/Latte/Renderer/Vulkan/VKRBase.h
   HW/Latte/Renderer/Vulkan/VKRMemoryManager.cpp
@@ -197,8 +200,6 @@ add_library(CemuCafe
   HW/Latte/Renderer/Vulkan/VulkanRenderer.h
   HW/Latte/Renderer/Vulkan/VulkanSurfaceCopy.cpp
   HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h
-  HW/Latte/Renderer/Vulkan/SwapchainInfoVk.cpp
-  HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h
   HW/Latte/ShaderInfo/ShaderDescription.cpp
   HW/Latte/ShaderInfo/ShaderInfo.h
   HW/Latte/ShaderInfo/ShaderInstanceInfo.cpp

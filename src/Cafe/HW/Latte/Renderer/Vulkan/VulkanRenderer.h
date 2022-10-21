@@ -1,6 +1,8 @@
 #pragma once
+
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/MiscStructs.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
@@ -124,6 +126,7 @@ class VulkanRenderer : public Renderer
 	friend class LatteQueryObjectVk;
 	friend class LatteTextureReadbackInfoVk;
 	friend class PipelineCompiler;
+	friend class SwapchainInfoVk;
 
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
 	static const inline int INDEX_STREAM_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
@@ -133,15 +136,7 @@ class VulkanRenderer : public Renderer
 	static const inline int OCCLUSION_QUERY_POOL_SIZE = 1024;
 
 public:
-	enum class VSync
-	{
-		// values here must match GeneralSettings2::m_vsync
-		Immediate = 0,
-		FIFO = 1,
-		MAILBOX = 2,
-		SYNC_AND_LIMIT = 3, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
-	};
-	
+
 	// memory management
 	VKRMemoryManager* memoryManager{};
 	VKRMemoryManager* GetMemoryManager() const { return memoryManager; };
@@ -200,6 +195,7 @@ public:
 	void QueryAvailableFormats();
 
 	void EnableVSync(int state) override;
+	VSync GetVSyncState();
 
 #if BOOST_OS_WINDOWS
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
@@ -437,23 +433,14 @@ private:
 		bool drawSequenceSkip; // if true, skip draw_execute()
 	}m_state;
 
-
 	std::unique_ptr<SwapchainInfoVk> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
 	bool IsSwapchainInfoValid(bool mainWindow) const;
-	VkSwapchainKHR CreateSwapchain(SwapchainInfoVk& chainInfo);
 
 	VkRenderPass m_imguiRenderPass = nullptr;
 
 	VkDescriptorPool m_descriptorPool;
 
-	struct QueueFamilyIndices
-	{
-		int32_t graphicsFamily = -1;
-		int32_t presentFamily = -1;
-
-		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
-	};
-	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, const VkPhysicalDevice& device);
+	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
 
 	struct FeatureControl
 	{
@@ -502,13 +489,6 @@ private:
 	void SwapBuffer(bool mainWindow);
 	VSync m_vsync_state = VSync::Immediate;
 
-	struct SwapchainSupportDetails
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
 
 	VkQueue m_graphicsQueue, m_presentQueue;
@@ -519,9 +499,7 @@ private:
 	std::vector<VkDeviceQueueCreateInfo> CreateQueueCreateInfos(const std::set<int>& uniqueQueueFamilies) const;
 	VkDeviceCreateInfo CreateDeviceCreateInfo(const std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos, const VkPhysicalDeviceFeatures& deviceFeatures, const void* deviceExtensionStructs, std::vector<const char*>& used_extensions) const;
 	static bool IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device);
-	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats, bool mainWindow) const;
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes);
-	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const;
 	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
 
 	void CreateCommandPool();
