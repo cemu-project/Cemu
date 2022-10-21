@@ -176,7 +176,6 @@ add_library(CemuCafe
   HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h
   HW/Latte/Renderer/Vulkan/LatteTextureVk.cpp
   HW/Latte/Renderer/Vulkan/LatteTextureVk.h
-  HW/Latte/Renderer/Vulkan/MiscStructs.h
   HW/Latte/Renderer/Vulkan/RendererShaderVk.cpp
   HW/Latte/Renderer/Vulkan/RendererShaderVk.h
   HW/Latte/Renderer/Vulkan/SwapchainInfoVk.cpp
