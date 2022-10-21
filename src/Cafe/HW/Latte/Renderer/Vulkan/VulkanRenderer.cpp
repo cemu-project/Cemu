@@ -666,12 +666,12 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	}
 }
 
-std::unique_ptr<SwapChainInfo>& VulkanRenderer::GetChainInfoPtr(bool mainWindow)
+const std::unique_ptr<SwapChainInfo>& VulkanRenderer::GetChainInfoPtr(bool mainWindow) const
 {
 	return mainWindow ? m_mainSwapchainInfo : m_padSwapchainInfo;
 }
 
-SwapChainInfo& VulkanRenderer::GetChainInfo(bool mainWindow)
+SwapChainInfo& VulkanRenderer::GetChainInfo(bool mainWindow) const
 {
 	return *GetChainInfoPtr(mainWindow);
 }
@@ -1507,10 +1507,8 @@ VkSwapchainCreateInfoKHR VulkanRenderer::CreateSwapchainCreateInfo(VkSurfaceKHR 
 
 bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 {
-	if (mainWindow)
-		return m_mainSwapchainInfo && m_mainSwapchainInfo->swapChain && m_mainSwapchainInfo->m_imageAvailableFence;
-
-	return m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
+	auto& chainInfo = GetChainInfoPtr(mainWindow);
+	return chainInfo && chainInfo->swapChain && chainInfo->m_imageAvailableFence;
 }
 
 VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& chainInfo)

@@ -188,8 +188,8 @@ public:
 	void DetermineVendor();
 	void Initialize(const Vector2i& size, bool mainWindow);
 
-	std::unique_ptr<SwapChainInfo>& GetChainInfoPtr(bool mainWindow);
-	SwapChainInfo& GetChainInfo(bool mainWindow);
+	const std::unique_ptr<SwapChainInfo>& GetChainInfoPtr(bool mainWindow) const;
+	SwapChainInfo& GetChainInfo(bool mainWindow) const;
 
 	bool IsPadWindowActive() override;
 
