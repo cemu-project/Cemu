@@ -180,7 +180,7 @@ void VulkanRenderer::DetermineVendor()
 	if (m_featureControl.deviceExtensions.driver_properties)
 		properties.pNext = &driverProperties;
 
-	vkGetPhysicalDeviceProperties2(m_physical_device, &properties);
+	vkGetPhysicalDeviceProperties2(m_physicalDevice, &properties);
 	switch (properties.properties.vendorID)
 	{
 	case 0x10DE:
@@ -241,7 +241,7 @@ void VulkanRenderer::GetDeviceFeatures()
 	physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	physicalDeviceFeatures2.pNext = &pcc;
 
-	vkGetPhysicalDeviceFeatures2(m_physical_device, &physicalDeviceFeatures2);
+	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &physicalDeviceFeatures2);
 
 	m_featureControl.deviceExtensions.pipeline_creation_cache_control = pcc.pipelineCreationCacheControl;
 	m_featureControl.deviceExtensions.custom_border_color_without_format = m_featureControl.deviceExtensions.custom_border_color && bcf.customBorderColorWithoutFormat;
@@ -267,7 +267,7 @@ void VulkanRenderer::GetDeviceFeatures()
 	// retrieve limits
 	VkPhysicalDeviceProperties2 p2{};
 	p2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-	vkGetPhysicalDeviceProperties2(m_physical_device, &p2);
+	vkGetPhysicalDeviceProperties2(m_physicalDevice, &p2);
 	m_featureControl.limits.minUniformBufferOffsetAlignment = std::max(p2.properties.limits.minUniformBufferOffsetAlignment, (VkDeviceSize)4);
 	m_featureControl.limits.nonCoherentAtomSize = std::max(p2.properties.limits.nonCoherentAtomSize, (VkDeviceSize)4);
 	cemuLog_log(LogType::Force, fmt::format("VulkanLimits: UBAlignment {0} nonCoherentAtomSize {1}", p2.properties.limits.minUniformBufferOffsetAlignment, p2.properties.limits.nonCoherentAtomSize));
@@ -358,24 +358,24 @@ VulkanRenderer::VulkanRenderer()
 					continue;
 			}
 
-			m_physical_device = device;
+			m_physicalDevice = device;
 			break;
 		}
 	}
 
-	if (m_physical_device == VK_NULL_HANDLE && fallbackDevice != VK_NULL_HANDLE)
+	if (m_physicalDevice == VK_NULL_HANDLE && fallbackDevice != VK_NULL_HANDLE)
 	{
 		forceLog_printf("The selected GPU could not be found or is not suitable. Falling back to first available device instead");
-		m_physical_device = fallbackDevice;
+		m_physicalDevice = fallbackDevice;
 		config.graphic_device_uuid = {}; // resetting device selection
 	}
-	else if (m_physical_device == VK_NULL_HANDLE)
+	else if (m_physicalDevice == VK_NULL_HANDLE)
 	{
 		forceLog_printf("No physical GPU could be found with the required extensions and swap chain support.");
 		throw std::runtime_error("No physical GPU could be found with the required extensions and swap chain support.");
 	}
 
-	CheckDeviceExtensionSupport(m_physical_device, m_featureControl); // todo - merge this with GetDeviceFeatures and separate from IsDeviceSuitable?
+	CheckDeviceExtensionSupport(m_physicalDevice, m_featureControl); // todo - merge this with GetDeviceFeatures and separate from IsDeviceSuitable?
 	if (m_featureControl.debugMarkersSupported)
 		forceLog_printf("Debug: Frame debugger attached, will use vkDebugMarkerSetObjectNameEXT");
 
@@ -390,7 +390,7 @@ VulkanRenderer::VulkanRenderer()
 		VkPhysicalDeviceIDProperties physDeviceIDProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES };
 		VkPhysicalDeviceProperties2 physDeviceProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
 		physDeviceProps.pNext = &physDeviceIDProps;
-		vkGetPhysicalDeviceProperties2(m_physical_device, &physDeviceProps);
+		vkGetPhysicalDeviceProperties2(m_physicalDevice, &physDeviceProps);
 
 		#if BOOST_OS_WINDOWS
 		m_dxgi_wrapper = std::make_unique<DXGIWrapper>(physDeviceIDProps.deviceLUID);
@@ -402,7 +402,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	// create logical device
-	m_indices = SwapchainInfoVk::FindQueueFamilies(surface, m_physical_device);
+	m_indices = SwapchainInfoVk::FindQueueFamilies(surface, m_physicalDevice);
 	std::set<int> uniqueQueueFamilies = { m_indices.graphicsFamily, m_indices.presentFamily };
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = CreateQueueCreateInfos(uniqueQueueFamilies);
 	VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -452,7 +452,7 @@ VulkanRenderer::VulkanRenderer()
 	std::vector<const char*> used_extensions;
 	VkDeviceCreateInfo createInfo = CreateDeviceCreateInfo(queueCreateInfos, deviceFeatures, deviceExtensionFeatures, used_extensions);
 
-	VkResult result = vkCreateDevice(m_physical_device, &createInfo, nullptr, &m_logicalDevice);
+	VkResult result = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_logicalDevice);
 	if (result != VK_SUCCESS)
 	{
 		forceLog_printf("Vulkan: Unable to create a logical device. Error %d", (sint32)result);
@@ -652,7 +652,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	{
 		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
 		SetSwapchainTargetSize(size, mainWindow);
-		m_mainSwapchainInfo->Create(nullptr, nullptr);
+		m_mainSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 
 		// aquire first command buffer
 		InitFirstCommandBuffer();
@@ -662,7 +662,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
 		SetSwapchainTargetSize(size, mainWindow);
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
-		m_padSwapchainInfo->Create(nullptr, nullptr);
+		m_padSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 	}
 }
 
@@ -725,13 +725,13 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	if (format != VK_FORMAT_R8G8B8A8_UNORM && format != VK_FORMAT_R8G8B8A8_SRGB && format != VK_FORMAT_R8G8B8_UNORM && format != VK_FORMAT_R8G8B8_SNORM)
 	{
 		VkFormatProperties formatProps;
-		vkGetPhysicalDeviceFormatProperties(m_physical_device, format, &formatProps);
+		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &formatProps);
 		bool supportsBlit = (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0;
 
 		const bool dstUsesSRGB = (!padView && LatteGPUState.tvBufferUsesSRGB) || (padView && LatteGPUState.drcBufferUsesSRGB);
 		const auto blitFormat = dstUsesSRGB ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 
-		vkGetPhysicalDeviceFormatProperties(m_physical_device, blitFormat, &formatProps);
+		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, blitFormat, &formatProps);
 		supportsBlit &= (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0;
 
 		// convert texture using blitting
@@ -1467,7 +1467,7 @@ void VulkanRenderer::ImguiInit()
 
 	ImGui_ImplVulkan_InitInfo info{};
 	info.Instance = m_instance;
-	info.PhysicalDevice = m_physical_device;
+	info.PhysicalDevice = m_physicalDevice;
 	info.Device = m_logicalDevice;
 	info.QueueFamily = m_indices.presentFamily;
 	info.Queue = m_presentQueue;
@@ -1565,7 +1565,7 @@ VulkanRequestedFormat_t requestedFormatList[] =
 void VulkanRenderer::QueryMemoryInfo()
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &memProperties);
+	vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
 	forceLog_printf("Vulkan device memory info:");
 	for (uint32 i = 0; i < memProperties.memoryHeapCount; i++)
 	{
@@ -1580,7 +1580,7 @@ void VulkanRenderer::QueryMemoryInfo()
 void VulkanRenderer::QueryAvailableFormats()
 {
 	VkFormatProperties fmtProp{};
-	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_D24_UNORM_S8_UINT, &fmtProp);
+	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_D24_UNORM_S8_UINT, &fmtProp);
 	// D24S8
 	if (fmtProp.optimalTilingFeatures != 0) // todo - more restrictive check
 	{
@@ -1588,28 +1588,28 @@ void VulkanRenderer::QueryAvailableFormats()
 	}
 	// R4G4
 	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_R4G4_UNORM_PACK8, &fmtProp);
+	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_R4G4_UNORM_PACK8, &fmtProp);
 	if (fmtProp.optimalTilingFeatures != 0)
 	{
 		m_supportedFormatInfo.fmt_r4g4_unorm_pack = true;
 	}
 	// R5G6B5
 	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_R5G6B5_UNORM_PACK16, &fmtProp);
+	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_R5G6B5_UNORM_PACK16, &fmtProp);
 	if (fmtProp.optimalTilingFeatures != 0)
 	{
 		m_supportedFormatInfo.fmt_r5g6b5_unorm_pack = true;
 	}
 	// R4G4B4A4
 	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_R4G4B4A4_UNORM_PACK16, &fmtProp);
+	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_R4G4B4A4_UNORM_PACK16, &fmtProp);
 	if (fmtProp.optimalTilingFeatures != 0)
 	{
 		m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack = true;
 	}
 	// A1R5G5B5
 	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physical_device, VK_FORMAT_A1R5G5B5_UNORM_PACK16, &fmtProp);
+	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_A1R5G5B5_UNORM_PACK16, &fmtProp);
 	if (fmtProp.optimalTilingFeatures != 0)
 	{
 		m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack = true;
@@ -1618,7 +1618,7 @@ void VulkanRenderer::QueryAvailableFormats()
 	for (auto& it : requestedFormatList)
 	{
 		fmtProp = {};
-		vkGetPhysicalDeviceFormatProperties(m_physical_device, it.fmt, &fmtProp);
+		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, it.fmt, &fmtProp);
 		VkFormatFeatureFlags requestedBits = 0;
 		if (it.mustSupportAttachment)
 		{
@@ -2611,7 +2611,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
-	chainInfo.Create(nullptr, nullptr);
+	chainInfo.Create(m_physicalDevice, m_logicalDevice);
 	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)

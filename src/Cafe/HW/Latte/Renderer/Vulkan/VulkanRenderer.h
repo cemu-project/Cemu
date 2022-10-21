@@ -212,7 +212,7 @@ public:
 	void ImguiInit();
 	VkInstance GetVkInstance() const { return m_instance; }
 	VkDevice GetLogicalDevice() const { return m_logicalDevice; }
-	VkPhysicalDevice GetPhysicalDevice() const { return m_physical_device; }
+	VkPhysicalDevice GetPhysicalDevice() const { return m_physicalDevice; }
 
 	VkDescriptorPool GetDescriptorPool() const { return m_descriptorPool; }
 
@@ -581,7 +581,7 @@ private:
 	
 	std::vector<const char*> m_layerNames;
 	VkInstance m_instance = VK_NULL_HANDLE;
-	VkPhysicalDevice m_physical_device = VK_NULL_HANDLE;
+	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 	VkDevice  m_logicalDevice = VK_NULL_HANDLE;
 	VkDebugUtilsMessengerEXT m_debugCallback = nullptr;
 	volatile bool m_destructionRequested = false;
