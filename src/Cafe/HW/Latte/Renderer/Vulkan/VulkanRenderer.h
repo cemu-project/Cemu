@@ -2,7 +2,6 @@
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/MiscStructs.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
@@ -126,6 +125,7 @@ class VulkanRenderer : public Renderer
 	friend class LatteQueryObjectVk;
 	friend class LatteTextureReadbackInfoVk;
 	friend class PipelineCompiler;
+	using VSync = SwapchainInfoVk::VSync;
 
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
 	static const inline int INDEX_STREAM_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
@@ -194,7 +194,6 @@ public:
 	void QueryAvailableFormats();
 
 	void EnableVSync(int state) override;
-	VSync GetVSyncState();
 
 #if BOOST_OS_WINDOWS
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
@@ -439,10 +438,6 @@ private:
 
 	VkDescriptorPool m_descriptorPool;
 
-public:
-	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
-private:
-
 	struct FeatureControl
 	{
 		struct
@@ -496,9 +491,6 @@ private:
 
 	// swapchain
 
-public:
-	static SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device);
-private:
 	std::vector<VkDeviceQueueCreateInfo> CreateQueueCreateInfos(const std::set<int>& uniqueQueueFamilies) const;
 	VkDeviceCreateInfo CreateDeviceCreateInfo(const std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos, const VkPhysicalDeviceFeatures& deviceFeatures, const void* deviceExtensionStructs, std::vector<const char*>& used_extensions) const;
 	static bool IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device);
@@ -592,7 +584,7 @@ private:
 	VkDebugUtilsMessengerEXT m_debugCallback = nullptr;
 	volatile bool m_destructionRequested = false;
 	
-	QueueFamilyIndices m_indices{};
+	SwapchainInfoVk::QueueFamilyIndices m_indices{};
 
 	Semaphore m_pipeline_cache_semaphore;
 	std::shared_mutex m_pipeline_cache_save_mutex;

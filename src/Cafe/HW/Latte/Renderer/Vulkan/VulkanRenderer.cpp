@@ -402,7 +402,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	// create logical device
-	m_indices = FindQueueFamilies(surface, m_physical_device);
+	m_indices = SwapchainInfoVk::FindQueueFamilies(surface, m_physical_device);
 	std::set<int> uniqueQueueFamilies = { m_indices.graphicsFamily, m_indices.presentFamily };
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = CreateQueueCreateInfos(uniqueQueueFamilies);
 	VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -650,19 +650,19 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	const auto surface = CreateFramebufferSurface(m_instance, windowHandleInfo);
 	if (mainWindow)
 	{
-		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(*this, surface, mainWindow);
+		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
 		SetSwapchainTargetSize(size, mainWindow);
-		m_mainSwapchainInfo->Create();
+		m_mainSwapchainInfo->Create(nullptr, nullptr);
 
 		// aquire first command buffer
 		InitFirstCommandBuffer();
 	}
 	else
 	{
-		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(*this, surface, mainWindow);
+		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
 		SetSwapchainTargetSize(size, mainWindow);
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
-		m_padSwapchainInfo->Create();
+		m_padSwapchainInfo->Create(nullptr, nullptr);
 	}
 }
 
@@ -1054,36 +1054,6 @@ void VulkanRenderer::shader_unbind(RendererShader::ShaderType shaderType)
 	// does nothing on Vulkan
 }
 
-QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device)
-{
-	uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-	QueueFamilyIndices indices;
-	for (int i = 0; i < (int)queueFamilies.size(); ++i)
-	{
-		const auto& queueFamily = queueFamilies[i];
-		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-			indices.graphicsFamily = i;
-
-		VkBool32 presentSupport = false;
-		const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-		if (result != VK_SUCCESS)
-			throw std::runtime_error(fmt::format("Error while attempting to check if a surface supports presentation: {}", result));
-
-		if (queueFamily.queueCount > 0 && presentSupport)
-			indices.presentFamily = i;
-
-		if (indices.IsComplete())
-			break;
-	}
-
-	return indices;
-}
-
 bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info)
 {
 	std::vector<VkExtensionProperties> availableDeviceExtensions;
@@ -1216,62 +1186,11 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	return enabledInstanceExtensions;
 }
 
-SwapchainSupportDetails VulkanRenderer::QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device)
-{
-	SwapchainSupportDetails details;
 
-	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-	if (result != VK_SUCCESS)
-	{
-		if (result != VK_ERROR_SURFACE_LOST_KHR)
-			forceLog_printf("vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed. Error %d", (sint32)result);
-		throw std::runtime_error(fmt::format("Unable to retrieve physical device surface capabilities: {}", result));
-	}
-
-	uint32_t formatCount = 0;
-	result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-	if (result != VK_SUCCESS)
-	{
-		forceLog_printf("vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error %d", (sint32)result);
-		throw std::runtime_error(fmt::format("Unable to retrieve the number of formats for a surface on a physical device: {}", result));
-	}
-
-	if (formatCount != 0)
-	{
-		details.formats.resize(formatCount);
-		result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
-		if (result != VK_SUCCESS)
-		{
-			forceLog_printf("vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error %d", (sint32)result);
-			throw std::runtime_error(fmt::format("Unable to retrieve the formats for a surface on a physical device: {}", result));
-		}
-	}
-
-	uint32_t presentModeCount = 0;
-	result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-	if (result != VK_SUCCESS)
-	{
-		forceLog_printf("vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error %d", (sint32)result);
-		throw std::runtime_error(fmt::format("Unable to retrieve the count of present modes for a surface on a physical device: {}", result));
-	}
-
-	if (presentModeCount != 0)
-	{
-		details.presentModes.resize(presentModeCount);
-		result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-		if (result != VK_SUCCESS)
-		{
-			forceLog_printf("vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error %d", (sint32)result);
-			throw std::runtime_error(fmt::format("Unable to retrieve the present modes for a surface on a physical device: {}", result));
-		}
-	}
-
-	return details;
-}
 
 bool VulkanRenderer::IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device)
 {
-	if (!FindQueueFamilies(surface, device).IsComplete())
+	if (!SwapchainInfoVk::FindQueueFamilies(surface, device).IsComplete())
 		return false;
 
 	// check API version (using Vulkan 1.0 way of querying properties)
@@ -1286,7 +1205,7 @@ bool VulkanRenderer::IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevi
 	if (!CheckDeviceExtensionSupport(device, info))
 		return false;
 
-	const SwapchainSupportDetails swapchainSupport = QuerySwapchainSupport(surface, device);
+	const auto swapchainSupport = SwapchainInfoVk::QuerySwapchainSupport(surface, device);
 
 	return !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
 }
@@ -1361,10 +1280,6 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 	return CreateCocoaSurface(instance, windowInfo.handle);
 #endif
 }
-
-
-
-
 
 void VulkanRenderer::CreateCommandPool()
 {
@@ -1745,17 +1660,17 @@ void VulkanRenderer::EnableVSync(int state)
 	if (m_vsync_state == (VSync)state)
 		return;
 
-	m_vsync_state = (VSync)state;
+	if (m_mainSwapchainInfo && m_mainSwapchainInfo->m_vsyncState != (VSync)state)
+	{
+		m_mainSwapchainInfo->m_vsyncState = (VSync)state;
+		RecreateSwapchain(true);
+	}
 
-	// recreate spawn chains (vsync state is checked from config in ChoosePresentMode)
-	RecreateSwapchain(true);
-	if (m_padSwapchainInfo)
+	if (m_padSwapchainInfo && m_padSwapchainInfo->m_vsyncState != (VSync)state)
+	{
+		m_padSwapchainInfo->m_vsyncState = (VSync)state;
 		RecreateSwapchain(false);
-}
-
-VSync VulkanRenderer::GetVSyncState()
-{
-	return m_vsync_state;
+	}
 }
 
 bool VulkanRenderer::ImguiBegin(bool mainWindow)
@@ -1780,7 +1695,6 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 	ImGui::NewFrame();
 	return true;
 }
-
 
 void VulkanRenderer::ImguiEnd()
 {
@@ -2697,7 +2611,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
-	chainInfo.Create();
+	chainInfo.Create(nullptr, nullptr);
 	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)

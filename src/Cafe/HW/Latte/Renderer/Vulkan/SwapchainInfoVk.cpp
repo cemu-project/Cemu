@@ -3,14 +3,15 @@
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteTiming.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 
-void SwapchainInfoVk::Create()
+void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
 {
-	const auto details = renderer.QuerySwapchainSupport(surface, renderer.GetPhysicalDevice());
+	m_physicalDevice = physicalDevice;
+	m_logicalDevice = logicalDevice;
+	const auto details = QuerySwapchainSupport(surface, physicalDevice);
 	m_surfaceFormat = ChooseSurfaceFormat(details.formats);
 	swapchainExtend = ChooseSwapExtent(details.capabilities, getSize());
-
-	const auto logicalDevice = renderer.GetLogicalDevice();
 
 	// calculate number of swapchain presentation images
 	uint32_t image_count = details.capabilities.minImageCount + 1;
@@ -23,19 +24,19 @@ void SwapchainInfoVk::Create()
 
 	VkResult result = vkCreateSwapchainKHR(logicalDevice, &create_info, nullptr, &swapchain);
 	if (result != VK_SUCCESS)
-		renderer.UnrecoverableError("Error attempting to create a swapchain");
+		UnrecoverableError("Error attempting to create a swapchain");
 
 	sizeOutOfDate = false;
 
 	result = vkGetSwapchainImagesKHR(logicalDevice, swapchain, &image_count, nullptr);
 	if (result != VK_SUCCESS)
-		renderer.UnrecoverableError("Error attempting to retrieve the count of swapchain images");
+		UnrecoverableError("Error attempting to retrieve the count of swapchain images");
 
 
 	m_swapchainImages.resize(image_count);
 	result = vkGetSwapchainImagesKHR(logicalDevice, swapchain, &image_count, m_swapchainImages.data());
 	if (result != VK_SUCCESS)
-		renderer.UnrecoverableError("Error attempting to retrieve swapchain images");
+		UnrecoverableError("Error attempting to retrieve swapchain images");
 	// create default renderpass
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = m_surfaceFormat.format;
@@ -63,7 +64,7 @@ void SwapchainInfoVk::Create()
 	renderPassInfo.pSubpasses = &subpass;
 	result = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &m_swapchainRenderPass);
 	if (result != VK_SUCCESS)
-		renderer.UnrecoverableError("Failed to create renderpass for swapchain");
+		UnrecoverableError("Failed to create renderpass for swapchain");
 
 	// create swapchain image views
 	m_swapchainImageViews.resize(m_swapchainImages.size());
@@ -85,7 +86,7 @@ void SwapchainInfoVk::Create()
 		createInfo.subresourceRange.layerCount = 1;
 		result = vkCreateImageView(logicalDevice, &createInfo, nullptr, &m_swapchainImageViews[i]);
 		if (result != VK_SUCCESS)
-			renderer.UnrecoverableError("Failed to create imageviews for swapchain");
+			UnrecoverableError("Failed to create imageviews for swapchain");
 	}
 
 	// create swapchain framebuffers
@@ -105,7 +106,7 @@ void SwapchainInfoVk::Create()
 		framebufferInfo.layers = 1;
 		result = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &m_swapchainFramebuffers[i]);
 		if (result != VK_SUCCESS)
-			renderer.UnrecoverableError("Failed to create framebuffer for swapchain");
+			UnrecoverableError("Failed to create framebuffer for swapchain");
 	}
 	m_swapchainPresentSemaphores.resize(m_swapchainImages.size());
 	// create present semaphore
@@ -113,7 +114,7 @@ void SwapchainInfoVk::Create()
 	info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	for (auto& semaphore : m_swapchainPresentSemaphores){
 		if (vkCreateSemaphore(logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
-			renderer.UnrecoverableError("Failed to create semaphore for swapchain present");
+			UnrecoverableError("Failed to create semaphore for swapchain present");
 	}
 
 	m_acquireSemaphores.resize(m_swapchainImages.size());
@@ -122,7 +123,7 @@ void SwapchainInfoVk::Create()
 		VkSemaphoreCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		if (vkCreateSemaphore(logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
-			renderer.UnrecoverableError("Failed to create semaphore for swapchain acquire");
+			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 	m_acquireIndex = 0;
 
@@ -131,46 +132,44 @@ void SwapchainInfoVk::Create()
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 	result = vkCreateFence(logicalDevice, &fenceInfo, nullptr, &m_imageAvailableFence);
 	if (result != VK_SUCCESS)
-		renderer.UnrecoverableError("Failed to create fence for swapchain");
+		UnrecoverableError("Failed to create fence for swapchain");
 }
 
 void SwapchainInfoVk::Cleanup()
 {
 	m_swapchainImages.clear();
 
-	auto logicalDevice = renderer.GetLogicalDevice();
-
 	for (auto& sem: m_swapchainPresentSemaphores)
-		vkDestroySemaphore(logicalDevice, sem, nullptr);
+		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
 	m_swapchainPresentSemaphores.clear();
 
 	for (auto& itr: m_acquireSemaphores)
-		vkDestroySemaphore(logicalDevice, itr, nullptr);
+		vkDestroySemaphore(m_logicalDevice, itr, nullptr);
 	m_acquireSemaphores.clear();
 
 	if (m_swapchainRenderPass)
 	{
-		vkDestroyRenderPass(logicalDevice, m_swapchainRenderPass, nullptr);
+		vkDestroyRenderPass(m_logicalDevice, m_swapchainRenderPass, nullptr);
 		m_swapchainRenderPass = nullptr;
 	}
 
 	for (auto& imageView : m_swapchainImageViews)
-		vkDestroyImageView(logicalDevice, imageView, nullptr);
+		vkDestroyImageView(m_logicalDevice, imageView, nullptr);
 	m_swapchainImageViews.clear();
 
 	for (auto& framebuffer : m_swapchainFramebuffers)
-		vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
+		vkDestroyFramebuffer(m_logicalDevice, framebuffer, nullptr);
 	m_swapchainFramebuffers.clear();
 
 
 	if (m_imageAvailableFence)
 	{
-		vkDestroyFence(logicalDevice, m_imageAvailableFence, nullptr);
+		vkDestroyFence(m_logicalDevice, m_imageAvailableFence, nullptr);
 		m_imageAvailableFence = nullptr;
 	}
 	if (swapchain)
 	{
-		vkDestroySwapchainKHR(logicalDevice, swapchain, nullptr);
+		vkDestroySwapchainKHR(m_logicalDevice, swapchain, nullptr);
 		swapchain = VK_NULL_HANDLE;
 	}
 }
@@ -180,6 +179,95 @@ bool SwapchainInfoVk::IsValid() const
 	return swapchain && m_imageAvailableFence;
 }
 
+void SwapchainInfoVk::UnrecoverableError(const char* errMsg)
+{
+	forceLog_printf("Unrecoverable error in Vulkan swapchain");
+	forceLog_printf("Msg: %s", errMsg);
+	throw std::runtime_error(errMsg);
+}
+
+SwapchainInfoVk::QueueFamilyIndices SwapchainInfoVk::FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device)
+{
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+	QueueFamilyIndices indices;
+	for (int i = 0; i < (int)queueFamilies.size(); ++i)
+	{
+		const auto& queueFamily = queueFamilies[i];
+		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			indices.graphicsFamily = i;
+
+		VkBool32 presentSupport = false;
+		const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+		if (result != VK_SUCCESS)
+			throw std::runtime_error(fmt::format("Error while attempting to check if a surface supports presentation: {}", result));
+
+		if (queueFamily.queueCount > 0 && presentSupport)
+			indices.presentFamily = i;
+
+		if (indices.IsComplete())
+			break;
+	}
+
+	return indices;
+}
+
+SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device)
+{
+	SwapchainSupportDetails details;
+
+	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+	if (result != VK_SUCCESS)
+	{
+		if (result != VK_ERROR_SURFACE_LOST_KHR)
+			forceLog_printf("vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed. Error %d", (sint32)result);
+		throw std::runtime_error(fmt::format("Unable to retrieve physical device surface capabilities: {}", result));
+	}
+
+	uint32_t formatCount = 0;
+	result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+	if (result != VK_SUCCESS)
+	{
+		forceLog_printf("vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error %d", (sint32)result);
+		throw std::runtime_error(fmt::format("Unable to retrieve the number of formats for a surface on a physical device: {}", result));
+	}
+
+	if (formatCount != 0)
+	{
+		details.formats.resize(formatCount);
+		result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+		if (result != VK_SUCCESS)
+		{
+			forceLog_printf("vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error %d", (sint32)result);
+			throw std::runtime_error(fmt::format("Unable to retrieve the formats for a surface on a physical device: {}", result));
+		}
+	}
+
+	uint32_t presentModeCount = 0;
+	result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+	if (result != VK_SUCCESS)
+	{
+		forceLog_printf("vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error %d", (sint32)result);
+		throw std::runtime_error(fmt::format("Unable to retrieve the count of present modes for a surface on a physical device: {}", result));
+	}
+
+	if (presentModeCount != 0)
+	{
+		details.presentModes.resize(presentModeCount);
+		result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+		if (result != VK_SUCCESS)
+		{
+			forceLog_printf("vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error %d", (sint32)result);
+			throw std::runtime_error(fmt::format("Unable to retrieve the present modes for a surface on a physical device: {}", result));
+		}
+	}
+
+	return details;
+}
 
 VkSurfaceFormatKHR SwapchainInfoVk::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) const
 {
@@ -216,6 +304,36 @@ VkExtent2D SwapchainInfoVk::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 	return actualExtent;
 }
 
+VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes)
+{
+	if (m_vsyncState == VSync::MAILBOX)
+	{
+		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
+			return VK_PRESENT_MODE_MAILBOX_KHR;
+
+		forceLog_printf("Vulkan: Can't find mailbox present mode");
+	}
+	else if (m_vsyncState == VSync::Immediate)
+	{
+		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
+			return VK_PRESENT_MODE_IMMEDIATE_KHR;
+
+		forceLog_printf("Vulkan: Can't find immediate present mode");
+	}
+	else if (m_vsyncState == VSync::SYNC_AND_LIMIT)
+	{
+		LatteTiming_EnableHostDrivenVSync();
+		// use immediate mode if available, other wise fall back to
+		//if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
+		//	return VK_PRESENT_MODE_IMMEDIATE_KHR;
+		//else
+		//	forceLog_printf("Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
+		return VK_PRESENT_MODE_FIFO_KHR;
+	}
+
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
 VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent)
 {
 	VkSwapchainCreateInfoKHR createInfo{};
@@ -227,7 +345,7 @@ VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	const QueueFamilyIndices indices = VulkanRenderer::FindQueueFamilies(surface, renderer.GetPhysicalDevice());
+	const QueueFamilyIndices indices = FindQueueFamilies(surface, m_physicalDevice);
 	uint32_t queueFamilyIndices[] = { (uint32)indices.graphicsFamily, (uint32)indices.presentFamily };
 	if (indices.graphicsFamily != indices.presentFamily)
 	{
@@ -245,37 +363,4 @@ VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR
 
 	forceLogDebug_printf("vulkan presentation mode: %d", createInfo.presentMode);
 	return createInfo;
-}
-
-
-
-VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes)
-{
-	VSync vsyncState = renderer.GetVSyncState();
-	if (vsyncState == VSync::MAILBOX)
-	{
-		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
-			return VK_PRESENT_MODE_MAILBOX_KHR;
-
-		forceLog_printf("Vulkan: Can't find mailbox present mode");
-	}
-	else if (vsyncState == VSync::Immediate)
-	{
-		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
-			return VK_PRESENT_MODE_IMMEDIATE_KHR;
-
-		forceLog_printf("Vulkan: Can't find immediate present mode");
-	}
-	else if (vsyncState == VSync::SYNC_AND_LIMIT)
-	{
-		LatteTiming_EnableHostDrivenVSync();
-		// use immediate mode if available, other wise fall back to
-		//if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
-		//	return VK_PRESENT_MODE_IMMEDIATE_KHR;
-		//else
-		//	forceLog_printf("Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
-		return VK_PRESENT_MODE_FIFO_KHR;
-	}
-
-	return VK_PRESENT_MODE_FIFO_KHR;
 }
