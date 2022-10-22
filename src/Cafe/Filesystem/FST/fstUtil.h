@@ -278,7 +278,7 @@ static void FSTPathUnitTest()
 	cemu_assert_debug(p1.MatchNodeName(0, "vol"));
 	cemu_assert_debug(p1.MatchNodeName(1, "CONTENT"));
 	// test 2
-	FSCPath p2("/vol/content/.");
+	FSCPath p2("/vol/content/");
 	cemu_assert_debug(p2.GetNodeCount() == 2);
 	cemu_assert_debug(p2.MatchNodeName(0, "vol"));
 	cemu_assert_debug(p2.MatchNodeName(1, "content"));
@@ -301,6 +301,11 @@ static void FSTPathUnitTest()
 	cemu_assert_debug(p6.GetNodeCount() == 0);
 	p6 = FSCPath("/////////////");
 	cemu_assert_debug(p6.GetNodeCount() == 0);
+	// test 7 - period in path
+	FSCPath p7("/vol/content/.");
+	cemu_assert_debug(p2.GetNodeCount() == 2);
+	cemu_assert_debug(p2.MatchNodeName(0, "vol"));
+	cemu_assert_debug(p2.MatchNodeName(1, "content"));
 }
 
 
