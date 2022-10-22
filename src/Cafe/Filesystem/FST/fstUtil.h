@@ -28,9 +28,8 @@ class FSCPath
 	{
 		if (m_names.size() > 0xFFFF)
 			return;
-		if (nameLen == 1 && *name == '.'){
+		if (nameLen == 1 && *name == '.')
 			return;
-		}
 		m_nodes.emplace_back((uint16)m_names.size(), nameLen);
 		m_names.insert(m_names.end(), name, name + nameLen);
 	}
@@ -300,7 +299,7 @@ static void FSTPathUnitTest()
 	cemu_assert_debug(p6.GetNodeCount() == 0);
 	p6 = FSCPath("/////////////");
 	cemu_assert_debug(p6.GetNodeCount() == 0);
-	// test 7 - period in path
+	// test 7 - periods in path
 	FSCPath p7("/vol/content/./..");
 	cemu_assert_debug(p7.GetNodeCount() == 3);
 	cemu_assert_debug(p7.MatchNodeName(0, "vol"));
