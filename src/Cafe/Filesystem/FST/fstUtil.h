@@ -45,6 +45,10 @@ public:
 			while (!path.empty() && isSlash(path.front()))
 				path.remove_prefix(1);
 		}
+		if (path.back() == '.')
+		{
+			path.remove_suffix(1);
+		}
 		// parse nodes
 		size_t n = 0;
 		size_t nodeNameStartIndex = 0;
@@ -274,7 +278,7 @@ static void FSTPathUnitTest()
 	cemu_assert_debug(p1.MatchNodeName(0, "vol"));
 	cemu_assert_debug(p1.MatchNodeName(1, "CONTENT"));
 	// test 2
-	FSCPath p2("/vol/content/");
+	FSCPath p2("/vol/content/.");
 	cemu_assert_debug(p2.GetNodeCount() == 2);
 	cemu_assert_debug(p2.MatchNodeName(0, "vol"));
 	cemu_assert_debug(p2.MatchNodeName(1, "content"));
