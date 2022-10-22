@@ -1751,7 +1751,6 @@ void GeneralSettings2::OnMLCPathSelect(wxCommandEvent& event)
 	m_mlc_path->SetValue(ActiveSettings::GetMlcPath().generic_string());
 	m_reload_gamelist = true;
 	m_mlc_modified = true;
-	CemuApp::CreateDefaultFiles();
 }
 
 void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
@@ -1761,14 +1760,18 @@ void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
 
 	if(event.GetKeyCode() == WXK_DELETE || event.GetKeyCode() == WXK_BACK)
 	{
-		m_mlc_path->SetValue(wxEmptyString);
+		std::wstring newPath = L"";
+		if(!CemuApp::TrySelectMLCPath(newPath))
+		{
+			const auto res = wxMessageBox(_("The default MLC path is inaccessible.\nDo you want to select a different path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
+			if (res == wxYES && CemuApp::SelectMLCPath(this))
+				newPath = ActiveSettings::GetMlcPath().wstring();
+			else
+				return;
+		}
+		m_mlc_path->SetValue(newPath);
 		m_reload_gamelist = true;
-
-		GetConfig().mlc_path = L"";
-		g_config.Save();
 		m_mlc_modified = true;
-		
-		CemuApp::CreateDefaultFiles();
 	}
 }
 
