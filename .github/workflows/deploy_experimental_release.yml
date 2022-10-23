@@ -68,8 +68,9 @@ jobs:
           ls ./
           ls ./bin/
           mkdir ./${{ env.CEMU_FOLDER_NAME }}
+          hdiutil attach cemu-bin-macos-x64/Cemu.dmg
+          cp -r /Volumes/Cemu/Cemu.app ./${{ env.CEMU_FOLDER_NAME }}/
           ln -s /Applications ./${{ env.CEMU_FOLDER_NAME }}/Applications
-          mv cemu-bin-macos-x64/Cemu.app ./${{ env.CEMU_FOLDER_NAME }}/
           chmod a+x ./${{ env.CEMU_FOLDER_NAME }}/Cemu.app/Contents/MacOS/Cemu
           hdiutil create ./${{ env.CEMU_FOLDER_NAME }}/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./${{ env.CEMU_FOLDER_NAME }}"
           hdiutil convert ./${{ env.CEMU_FOLDER_NAME }}/tmp.dmg -format UDZO -o upload/cemu-${{ env.CEMU_VERSION }}-macos-12-x64.dmg
