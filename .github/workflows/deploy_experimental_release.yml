@@ -33,7 +33,7 @@ jobs:
       - name: Initialize
         run: |
           mkdir upload
-          sudo apt install -y zip
+          sudo apt install zip
           
       - name: Get version
         run: |
@@ -68,7 +68,7 @@ jobs:
 
       - name: Create release
         run: |
-          wget -O ghr.zip https://github.com/tcnksm/ghr/releases/download/v0.15.0/ghr_v0.15.0_darwin_amd64.zip
-          unzip ghr.zip; rm ghr.zip
+          wget -O ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.15.0/ghr_v0.15.0_linux_amd64.tar.gz
+          tar xvzf ghr.tar.gz; rm ghr.tar.gz
           echo "[INFO] Release tag: v${{ env.CEMU_VERSION }}"
-          ghr_v0.15.0_darwin_amd64/ghr -prerelease -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }} (Experimental)" -b "Cemu experimental release" "v${{ env.CEMU_VERSION }}" ./upload
+          ghr_v0.15.0_linux_amd64/ghr -prerelease -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }} (Experimental)" -b "Cemu experimental release" "v${{ env.CEMU_VERSION }}" ./upload
