@@ -279,13 +279,9 @@ bool EmulatedController::is_mapping_down(uint64 mapping) const
 	const auto it = m_mappings.find(mapping);
 	if (it != m_mappings.cend())
 	{
-		if (const auto controller = it->second.controller.lock()) {
-			auto& buttons=controller->get_state().buttons;
-			auto buttonState=buttons.find(it->second.button);
-			return buttonState!=buttons.end() && buttonState->second;
-		}
+		if (const auto controller = it->second.controller.lock())
+			return controller->get_state().buttons.GetButtonState(it->second.button);
 	}
-
 	return false;
 }
 

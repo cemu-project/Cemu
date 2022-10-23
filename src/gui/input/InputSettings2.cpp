@@ -111,7 +111,7 @@ InputSettings2::InputSettings2(wxWindow* parent)
 	Bind(wxEVT_TIMER, &InputSettings2::on_timer, this);
 
 	m_timer = new wxTimer(this);
-	m_timer->Start(100);
+	m_timer->Start(25);
 
 	m_controller_changed = EventService::instance().connect<Events::ControllerChanged>(&InputSettings2::on_controller_changed, this);
 }

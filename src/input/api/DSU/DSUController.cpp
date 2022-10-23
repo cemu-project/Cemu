@@ -137,7 +137,7 @@ ControllerState DSUController::raw_state()
 	{
 		if (HAS_BIT(state.data.state1, i))
 		{
-			result.buttons[bitindex]=true;
+			result.buttons.SetButtonState(bitindex, true);
 		}
 	}
 
@@ -145,12 +145,12 @@ ControllerState DSUController::raw_state()
 	{
 		if (HAS_BIT(state.data.state2, i))
 		{
-			result.buttons[bitindex]=true;
+			result.buttons.SetButtonState(bitindex, true);
 		}
 	}
 
 	if (state.data.touch)
-		result.buttons[kButton16]=true;
+		result.buttons.SetButtonState(kButton16, true);
 
 	result.axis.x = (float)state.data.lx / std::numeric_limits<uint8>::max();
 	result.axis.x = (result.axis.x * 2.0f) - 1.0f;
