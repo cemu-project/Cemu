@@ -383,3 +383,12 @@ unsigned int crc32_calc(unsigned int c, const void* data, int length)
 	}
 	return ~c;
 }
+
+void CRCTest()
+{
+	std::vector<uint8> testData;
+	for (uint8 i = 0; i < 89; i++)
+		testData.emplace_back(i);
+	uint32 r = crc32_calc(0, testData.data(), testData.size());
+	cemu_assert(r == 0x3fc61683);
+}

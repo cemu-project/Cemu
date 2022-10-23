@@ -234,6 +234,7 @@ void ppcAsmTest();
 void gx2CopySurfaceTest();
 void ExpressionParser_test();
 void FSTVolumeTest();
+void CRCTest();
 
 void unitTests()
 {
@@ -241,6 +242,7 @@ void unitTests()
 	gx2CopySurfaceTest();
 	ppcAsmTest();
 	FSTVolumeTest();
+	CRCTest();
 }
 
 int mainEmulatorHLE()
