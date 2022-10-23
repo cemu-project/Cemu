@@ -3447,14 +3447,14 @@ void VulkanRenderer::releaseDestructibleObject(VKRDestructibleObject* destructib
 		return;
 	}
 	// otherwise put on queue
-	m_spinlockDestructionQueue.acquire();
+	m_spinlockDestructionQueue.lock();
 	m_destructionQueue.emplace_back(destructibleObject);
-	m_spinlockDestructionQueue.release();
+	m_spinlockDestructionQueue.unlock();
 }
 
 void VulkanRenderer::ProcessDestructionQueue2()
 {
-	m_spinlockDestructionQueue.acquire();
+	m_spinlockDestructionQueue.lock();
 	for (auto it = m_destructionQueue.begin(); it != m_destructionQueue.end();)
 	{
 		if ((*it)->canDestroy())
@@ -3465,7 +3465,7 @@ void VulkanRenderer::ProcessDestructionQueue2()
 		}
 		++it;
 	}
-	m_spinlockDestructionQueue.release();
+	m_spinlockDestructionQueue.unlock();
 }
 
 VkDescriptorSetInfo::~VkDescriptorSetInfo()
@@ -4010,9 +4010,9 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 	ImGui::Text("ImageView      %u", performanceMonitor.vk.numImageViews.get());
 	ImGui::Text("RenderPass     %u", performanceMonitor.vk.numRenderPass.get());
 	ImGui::Text("Framebuffer    %u", performanceMonitor.vk.numFramebuffer.get());
-	m_spinlockDestructionQueue.acquire();
+	m_spinlockDestructionQueue.lock();
 	ImGui::Text("DestructionQ   %u", (unsigned int)m_destructionQueue.size());
-	m_spinlockDestructionQueue.release();
+	m_spinlockDestructionQueue.unlock();
 
 
 	ImGui::Text("BeginRP/f      %u", performanceMonitor.vk.numBeginRenderpassPerFrame.get());
