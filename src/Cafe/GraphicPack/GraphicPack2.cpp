@@ -11,6 +11,7 @@
 #include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"
 #include "Cafe/CafeSystem.h"
+#include <cinttypes>
 
 std::vector<GraphicPackPtr> GraphicPack2::s_graphic_packs;
 std::vector<GraphicPackPtr> GraphicPack2::s_active_graphic_packs;
@@ -660,7 +661,7 @@ void GraphicPack2::LoadShaders()
 			uint64 shader_base_hash = 0;
 			uint64 shader_aux_hash = 0;
 			wchar_t shader_type[256]{};
-			if (filename.size() < 256 && swscanf(filename.c_str(), L"%I64x_%I64x_%ls", &shader_base_hash, &shader_aux_hash, shader_type) == 3)
+			if (filename.size() < 256 && swscanf(filename.c_str(), L"%" SCNx64 "_%" SCNx64 "_%ls", &shader_base_hash, &shader_aux_hash, shader_type) == 3)
 			{
 				if (shader_type[0] == 'p' && shader_type[1] == 's')
 					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::PIXEL));
