@@ -64,8 +64,8 @@ struct LatteGPUState_t
 		{
 			bool isEnabled;
 			MPTR physPtr;
-			volatile uint32 flipRequestCount;
-			volatile uint32 flipExecuteCount;
+			std::atomic<uint32> flipRequestCount;
+			std::atomic<uint32> flipExecuteCount;
 		}screen[2];
 	}osScreen;
 };

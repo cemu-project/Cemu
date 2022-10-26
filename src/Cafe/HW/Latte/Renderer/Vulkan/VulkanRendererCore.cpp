@@ -55,7 +55,7 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 	// An alternative would be to use VK_EXT_vertex_input_dynamic_state but it comes with minor overhead
 	// Regardless, the extension is not well supported as of writing this (July 2021, only 10% of GPUs support it on Windows. Nvidia only)
 
-	cemu_assert_debug(fetchShader->key == fetchShader->key); // fetch shaders must be layout compatible, but may have different offsets
+	cemu_assert_debug(vertexShader->compatibleFetchShader->key == fetchShader->key); // fetch shaders must be layout compatible, but may have different offsets
 
 	uint64 stateHash;
 	stateHash = draw_calculateMinimalGraphicsPipelineHash(fetchShader, lcr);
