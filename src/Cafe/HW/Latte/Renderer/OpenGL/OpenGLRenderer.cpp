@@ -548,6 +548,9 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	renderstate_resetDepthControl();
 	attributeStream_reset();
 
+	// bind back buffer
+	rendertarget_bindFramebufferObject(nullptr);
+
 	if (clearBackground)
 	{
 		int windowWidth, windowHeight;
@@ -558,9 +561,6 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		g_renderer->renderTarget_setViewport(0, 0, windowWidth, windowHeight, 0.0f, 1.0f);
 		g_renderer->ClearColorbuffer(padView);
 	}
-
-	// bind back buffer
-	rendertarget_bindFramebufferObject(nullptr);
 
 	// calculate effective size
 	sint32 effectiveWidth;
