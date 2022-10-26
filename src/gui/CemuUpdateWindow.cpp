@@ -509,7 +509,7 @@ void CemuUpdateWindow::WorkerThread()
 						forceLog_printf("applying update error: %s", sys.what());
 					}
 
-					if ((counter++ / 10) * 10 == counter)
+					if ((counter++ % 10) == 0)
 					{
 						auto* event = new wxCommandEvent(wxEVT_PROGRESS);
 						event->SetInt(counter);
