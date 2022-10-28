@@ -21,7 +21,7 @@ if (ENABLE_VCPKG)
 	endif()
 endif()
 
-project(Cemu VERSION 2.0)
+project(Cemu VERSION 2.0.0)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
