@@ -1579,6 +1579,7 @@ void MainWindow::SetFullScreen(bool state)
 	g_window_info.is_fullscreen = state;
 	m_fullscreenMenuItem->Check(state);
 
+	this->EnableFullScreenView(true);
 	this->ShowFullScreen(state);
 
 	if (state)
