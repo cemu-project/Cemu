@@ -75,6 +75,13 @@ if (MACOS_BUNDLE)
 	set(RESOURCE_FILES "${CMAKE_SOURCE_DIR}/src/resource/cemu.icns")
 	target_sources(CemuBin PRIVATE "${RESOURCE_FILES}")
 
+	set(MACOSX_BUNDLE_ICON_FILE "cemu.icns")
+	set(MACOSX_BUNDLE_GUI_IDENTIFIER "info.cemu.Cemu")
+	set(MACOSX_BUNDLE_BUNDLE_NAME "Cemu")
+	set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
+	set(MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2022 Cemu Project")
+
 	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
 
 	set_target_properties(CemuBin PROPERTIES
