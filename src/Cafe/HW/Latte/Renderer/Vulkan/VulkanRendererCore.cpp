@@ -1196,31 +1196,15 @@ void VulkanRenderer::draw_setRenderPass()
 	// update self-dependency flag
 	if (m_state.descriptorSetsChanged || m_state.activeRenderpassFBO != fboVk)
 	{
-		bool hadDep = m_state.hasRenderSelfDependency;
 		m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 	}
 
 	auto vkObjRenderPass = fboVk->GetRenderPassObj();
 	auto vkObjFramebuffer = fboVk->GetFramebufferObj();
 
-	if (m_state.hasRenderSelfDependency)
-	{
-		bool triggerBarrier = GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier;
-		if (triggerBarrier)
-		{
-			draw_endRenderPass();
-			VkMemoryBarrier memoryBarrier{};
-			memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-			memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-			performanceMonitor.vk.numDrawBarriersPerFrame.increment();
-		}
-	}
+	bool overridePassReuse = m_state.hasRenderSelfDependency && (GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
 
-	if (m_state.activeRenderpassFBO == fboVk)
+	if (!overridePassReuse && m_state.activeRenderpassFBO == fboVk)
 	{
 		if (m_state.descriptorSetsChanged)
 			sync_inputTexturesChanged();
@@ -1230,9 +1214,6 @@ void VulkanRenderer::draw_setRenderPass()
 	if (m_state.descriptorSetsChanged)
 		sync_inputTexturesChanged();
 	
-	// assume that FBO changed, update self-dependency state
-	m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
-
 	sync_RenderPassLoadTextures(fboVk);
 
 	if (m_featureControl.deviceExtensions.dynamic_rendering)
