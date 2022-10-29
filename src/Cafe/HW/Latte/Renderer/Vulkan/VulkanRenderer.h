@@ -195,8 +195,6 @@ public:
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();
 
-	void EnableVSync(int state) override;
-
 #if BOOST_OS_WINDOWS
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
 #endif
@@ -466,6 +464,7 @@ private:
 		VkExtent2D swapchainExtend{};
 		uint32 swapchainImageIndex = (uint32)-1;
 		uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
+		VSync m_activeVSyncState = VSync::Immediate;
 
 		struct AcquireInfo
 		{
@@ -557,8 +556,8 @@ private:
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
 	static std::vector<const char*> CheckInstanceExtensionSupport(FeatureControl& info);
 
+	void UpdateVSyncState(bool main_window);
 	void SwapBuffer(bool main_window);
-	VSync m_vsync_state = VSync::Immediate;
 
 	struct SwapChainSupportDetails 
 	{

@@ -1382,22 +1382,22 @@ VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkS
 
 VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes)
 {
-	m_vsync_state = (VSync)GetConfig().vsync.GetValue();
-	if (m_vsync_state == VSync::MAILBOX)
+	const auto vsyncState = (VSync)GetConfig().vsync.GetValue();
+	if (vsyncState == VSync::MAILBOX)
 	{
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
 			return VK_PRESENT_MODE_MAILBOX_KHR;
 
 		forceLog_printf("Vulkan: Can't find mailbox present mode");
 	}
-	else if (m_vsync_state == VSync::Immediate)
+	else if (vsyncState == VSync::Immediate)
 	{
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
 			return VK_PRESENT_MODE_IMMEDIATE_KHR;
 
 		forceLog_printf("Vulkan: Can't find immediate present mode");
 	}
-	else if (m_vsync_state == VSync::SYNC_AND_LIMIT)
+	else if (vsyncState == VSync::SYNC_AND_LIMIT)
 	{
 		LatteTiming_EnableHostDrivenVSync();
 		// use immediate mode if available, other wise fall back to 
@@ -1989,13 +1989,6 @@ void VulkanRenderer::QueryAvailableFormats()
 			//forceLog_printf("%s", missingStr.c_str());
 		}
 	}
-}
-
-void VulkanRenderer::EnableVSync(int state)
-{
-	// todo: cannot recreate swapchain from a UI thread
-	wxMessageBox(_("Changing vulkan vsync mode requires restart."));
-	return;
 }
 
 bool VulkanRenderer::ImguiBegin(bool mainWindow)
@@ -2956,6 +2949,16 @@ void VulkanRenderer::RecreateSwapchain(bool main_window)
 		ImguiInit();
 }
 
+void VulkanRenderer::UpdateVSyncState(bool main_window)
+{
+	auto& swapInfo = main_window ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
+	const auto configValue =  (VSync)GetConfig().vsync.GetValue();
+	if(swapInfo.m_activeVSyncState != configValue){
+		RecreateSwapchain(main_window);
+		swapInfo.m_activeVSyncState = configValue;
+	}
+}
+
 void VulkanRenderer::SwapBuffer(bool main_window)
 {
 	auto& swapInfo = main_window ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
@@ -2992,6 +2995,8 @@ void VulkanRenderer::SwapBuffer(bool main_window)
 			return;
 		}
 	}
+
+	UpdateVSyncState(main_window);
 
 	auto& swapinfo = main_window ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
 	AcquireNextSwapchainImage(main_window);
