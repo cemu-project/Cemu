@@ -1208,6 +1208,7 @@ void VulkanRenderer::draw_setRenderPass()
 		bool triggerBarrier = GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier;
 		if (triggerBarrier)
 		{
+			draw_endRenderPass();
 			VkMemoryBarrier memoryBarrier{};
 			memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 			memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
