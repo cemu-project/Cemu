@@ -359,7 +359,7 @@ void OpenGLRenderer::UpdateVSyncState()
 	{
 #if BOOST_OS_WINDOWS
 		if(wglSwapIntervalEXT)
-			wglSwapIntervalEXT(state); // 1 = enabled, 0 = disabled
+			wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
 #else
 		cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
 #endif
