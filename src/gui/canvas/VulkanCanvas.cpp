@@ -45,7 +45,10 @@ VulkanCanvas::~VulkanCanvas()
 	if(!m_is_main_window)
 	{
 		auto vulkan_renderer = VulkanRenderer::GetInstance();
-		vulkan_renderer->ClosePadWindow();
+		if(vulkan_renderer){
+			vulkan_renderer->ClosePadWindow(m_readyForCloseSemaphore);
+			m_readyForCloseSemaphore->wait();
+		}
 	}
 }
 

@@ -658,18 +658,18 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	}
 	else
 	{
-		m_padCanvasDestroying = false;
-		m_usingPadFrameSurface.acquire();
+		m_padCloseReadySemaphore = nullptr;
+		m_forceStopPadUse = false;
+
 		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
 		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
 	}
 }
 
-void VulkanRenderer::ClosePadWindow()
+void VulkanRenderer::ClosePadWindow(const std::shared_ptr<Semaphore>& readySemaphore)
 {
-	m_padCanvasDestroying = true;
-	m_usingPadFrameSurface.acquire();
-	m_usingPadFrameSurface.release();
+	m_forceStopPadUse = true;
+	m_padCloseReadySemaphore = readySemaphore;
 }
 
 bool VulkanRenderer::IsPadWindowActive()
@@ -1510,21 +1510,14 @@ VkSwapchainCreateInfoKHR VulkanRenderer::CreateSwapchainCreateInfo(VkSurfaceKHR 
 	return createInfo;
 }
 
-bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow)
+bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 {
 	if (mainWindow)
 		return m_mainSwapchainInfo && m_mainSwapchainInfo->swapChain && m_mainSwapchainInfo->m_imageAvailableFence;
 
-
-	bool valid = m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence;
-
-	if(valid && m_padCanvasDestroying)
-	{
-		m_padSwapchainInfo.reset();
-		m_usingPadFrameSurface.release();
-		return false;
-	}
-	return valid;
+	if(m_padCloseReadySemaphore)
+		m_padCloseReadySemaphore->notify();
+	return m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence && !m_forceStopPadUse;
 }
 
 VkSwapchainKHR VulkanRenderer::CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow)
