@@ -1214,6 +1214,9 @@ void VulkanRenderer::draw_setRenderPass()
 	if (m_state.descriptorSetsChanged)
 		sync_inputTexturesChanged();
 	
+	// assume that FBO changed, update self-dependency state
+	m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
+
 	sync_RenderPassLoadTextures(fboVk);
 
 	if (m_featureControl.deviceExtensions.dynamic_rendering)
