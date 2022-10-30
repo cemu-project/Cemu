@@ -659,14 +659,13 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	else
 	{
 		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
-		m_forceStopPadUse = false;
 		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
 	}
 }
 
 void VulkanRenderer::StopUsingPadAndWait()
 {
-	m_forceStopPadUse = true;
+	m_destroyPadSwapchainNextAcquire = true;
 	m_padCloseReadySemaphore.wait();
 }
 
@@ -2891,9 +2890,10 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool main_window)
 	if(!IsSwapchainInfoValid(main_window))
 		return false;
 
-	if(!main_window && m_forceStopPadUse)
+	if(!main_window && m_destroyPadSwapchainNextAcquire)
 	{
 		UpdateSwapchain(main_window, true);
+		m_destroyPadSwapchainNextAcquire = false;
 		m_padCloseReadySemaphore.notify();
 		return false;
 	}
