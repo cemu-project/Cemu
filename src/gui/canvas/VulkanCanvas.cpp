@@ -44,10 +44,8 @@ VulkanCanvas::~VulkanCanvas()
 
 	if(!m_is_main_window)
 	{
-		auto vulkan_renderer = VulkanRenderer::GetInstance();
-		if(vulkan_renderer){
+		if(auto vulkan_renderer = VulkanRenderer::GetInstance())
 			vulkan_renderer->StopUsingPadAndWait();
-		}
 	}
 }
 
