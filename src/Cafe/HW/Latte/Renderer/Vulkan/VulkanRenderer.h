@@ -187,6 +187,7 @@ public:
 	void DetermineVendor();
 	void Initialize(const Vector2i& size, bool isMainWindow);
 
+	void StopUsingPadAndWait();
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
@@ -485,6 +486,8 @@ private:
 		VkRenderPass m_imguiRenderPass = nullptr;
 	};
 	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
+	Semaphore m_padCloseReadySemaphore;
+	bool m_forceStopPadUse = false;
 	bool IsSwapchainInfoValid(bool mainWindow) const;
 	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);
 
@@ -642,8 +645,8 @@ private:
 	void CreatePipelineCache();
 	VkPipelineShaderStageCreateInfo CreatePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule& module, const char* entryName) const;
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
-	void AcquireNextSwapchainImage(bool main_window);
-	void RecreateSwapchain(bool mainwindow);
+	bool AcquireNextSwapchainImage(bool main_window);
+	void UpdateSwapchain(bool main_window, bool skipCreate = false);
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;
