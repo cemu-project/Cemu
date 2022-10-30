@@ -659,8 +659,8 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	else
 	{
 		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
-		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
 		m_forceStopPadUse = false;
+		CreateSwapChain(*m_padSwapchainInfo, size, isMainWindow);
 	}
 }
 
