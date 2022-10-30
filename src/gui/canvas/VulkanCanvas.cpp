@@ -15,6 +15,9 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	else
 		gui_initHandleContextFromWxWidgetsWindow(gui_getWindowInfo().canvas_pad, this);
 
+	if(!is_main_window)
+		m_readyForCloseSemaphore = std::make_shared<Semaphore>();
+
 	cemu_assert(g_vulkan_available);
 
 	try

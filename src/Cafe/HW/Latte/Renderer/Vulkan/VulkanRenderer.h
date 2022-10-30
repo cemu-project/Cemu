@@ -486,7 +486,7 @@ private:
 		VkRenderPass m_imguiRenderPass = nullptr;
 	};
 	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	std::shared_ptr<Semaphore> m_padCloseReadySemaphore;
+	std::weak_ptr<Semaphore> m_padCloseReadySemaphore;
 	bool m_forceStopPadUse = false;
 	bool IsSwapchainInfoValid(bool mainWindow) const;
 	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);

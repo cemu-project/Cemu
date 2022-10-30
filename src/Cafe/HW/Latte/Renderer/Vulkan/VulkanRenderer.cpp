@@ -658,7 +658,6 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool isMainWindow)
 	}
 	else
 	{
-		m_padCloseReadySemaphore = nullptr;
 		m_forceStopPadUse = false;
 
 		m_padSwapchainInfo = std::make_unique<SwapChainInfo>(m_logicalDevice, surface);
@@ -1515,8 +1514,8 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 	if (mainWindow)
 		return m_mainSwapchainInfo && m_mainSwapchainInfo->swapChain && m_mainSwapchainInfo->m_imageAvailableFence;
 
-	if(m_padCloseReadySemaphore)
-		m_padCloseReadySemaphore->notify();
+	if(auto semaphore = m_padCloseReadySemaphore.lock())
+		semaphore->notify();
 	return m_padSwapchainInfo && m_padSwapchainInfo->swapChain && m_padSwapchainInfo->m_imageAvailableFence && !m_forceStopPadUse;
 }
 
