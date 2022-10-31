@@ -64,13 +64,7 @@ jobs:
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
           
       - name: Create release from macos-bin
-        run: |
-          ls ./
-          ls ./bin/
-          cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-macos-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
-          zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-macos-12-x64.zip ${{ env.CEMU_FOLDER_NAME }}
-          rm -r ./${{ env.CEMU_FOLDER_NAME }}
+        run: cp cemu-bin-macos-x64/Cemu.dmg upload/cemu-${{ env.CEMU_VERSION }}-macos-12-x64.dmg
 
       - name: Create release
         run: |

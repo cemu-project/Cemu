@@ -45,7 +45,8 @@ struct WindowInfo
 	{
 		const std::lock_guard<std::mutex> lock(keycode_mutex);
 		m_keydown[keycode] = state;
-	};
+	}
+
 	bool get_keystate(uint32 keycode)
 	{
 		const std::lock_guard<std::mutex> lock(keycode_mutex);
@@ -54,25 +55,20 @@ struct WindowInfo
 			return false;
 		return result->second;
 	}
-	void get_keystates(std::unordered_map<uint32, bool>& buttons_out)
-	{
-		const std::lock_guard<std::mutex> lock(keycode_mutex);
-		for (auto&& button : m_keydown)
-		{
-			buttons_out[button.first] = button.second;
-		}
-	}
+
 	void set_keystatesdown()
 	{
 		const std::lock_guard<std::mutex> lock(keycode_mutex);
 		std::for_each(m_keydown.begin(), m_keydown.end(), [](std::pair<const uint32, bool>& el){ el.second = false; });
 	}
+
 	template <typename fn>
 	void iter_keystates(fn f)
 	{
 		const std::lock_guard<std::mutex> lock(keycode_mutex);
 		std::for_each(m_keydown.cbegin(), m_keydown.cend(), f);
 	}
+
 	WindowHandleInfo window_main;
 	WindowHandleInfo window_pad;
 

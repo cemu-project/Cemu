@@ -1074,19 +1074,19 @@ void LatteBufferCache_notifyDCFlush(MPTR address, uint32 size)
 
 	uint32 firstPage = address / CACHE_PAGE_SIZE;
 	uint32 lastPage = (address + size - 1) / CACHE_PAGE_SIZE;
-	g_spinlockDCFlushQueue.acquire();
+	g_spinlockDCFlushQueue.lock();
 	for (uint32 i = firstPage; i <= lastPage; i++)
 		s_DCFlushQueue->Set(i);
-	g_spinlockDCFlushQueue.release();
+	g_spinlockDCFlushQueue.unlock();
 }
 
 void LatteBufferCache_processDCFlushQueue()
 {
 	if (s_DCFlushQueue->Empty()) // quick check to avoid locking if there is no work to do
 		return;
-	g_spinlockDCFlushQueue.acquire();
+	g_spinlockDCFlushQueue.lock();
 	std::swap(s_DCFlushQueue, s_DCFlushQueueAlternate);
-	g_spinlockDCFlushQueue.release();
+	g_spinlockDCFlushQueue.unlock();
 	s_DCFlushQueueAlternate->ForAllAndClear([](uint32 index) {LatteBufferCache_invalidatePage(index * CACHE_PAGE_SIZE); });
 }
 

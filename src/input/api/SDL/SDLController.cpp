@@ -146,9 +146,7 @@ ControllerState SDLController::raw_state()
 	for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i)
 	{
 		if (m_buttons[i] && SDL_GameControllerGetButton(m_controller, (SDL_GameControllerButton)i))
-		{
-			result.buttons[i]=true;
-		}
+			result.buttons.SetButtonState(i, true);
 	}
 
 	if (m_axis[SDL_CONTROLLER_AXIS_LEFTX])

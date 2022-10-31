@@ -1,5 +1,6 @@
-#include "input/api/Keyboard/KeyboardController.h"
+#include <boost/container/small_vector.hpp>
 
+#include "input/api/Keyboard/KeyboardController.h"
 #include "gui/guiWrapper.h"
 
 KeyboardController::KeyboardController()
@@ -51,7 +52,9 @@ ControllerState KeyboardController::raw_state()
 	ControllerState result{};
 	if (g_window_info.app_active)
 	{
-		g_window_info.get_keystates(result.buttons);
+		boost::container::small_vector<uint32, 16> pressedKeys;
+		g_window_info.iter_keystates([&pressedKeys](const std::pair<const uint32, bool>& keyState) { if (keyState.second) pressedKeys.emplace_back(keyState.first); });
+		result.buttons.SetPressedButtons(pressedKeys);
 	}
 	return result;
 }

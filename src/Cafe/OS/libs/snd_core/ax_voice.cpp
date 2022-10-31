@@ -393,7 +393,7 @@ namespace snd_core
 	AXVPB* AXAcquireVoiceEx(uint32 priority, MPTR callbackEx, MPTR userParam)
 	{
 		cemu_assert(priority != AX_PRIORITY_FREE && priority < AX_PRIORITY_MAX);
-		__AXVoiceListSpinlock.acquire();
+		__AXVoiceListSpinlock.lock();
 		AXVPB* vpb = AXVoiceList_GetFreeVoice();
 		if (vpb != nullptr)
 		{
@@ -410,7 +410,7 @@ namespace snd_core
 			if (droppedVoice == nullptr)
 			{
 				// no voice available
-				__AXVoiceListSpinlock.release();
+				__AXVoiceListSpinlock.unlock();
 				return nullptr;
 			}
 			vpb->userParam = userParam;
@@ -418,18 +418,18 @@ namespace snd_core
 			vpb->callbackEx = callbackEx;
 			AXVPB_SetVoiceDefault(vpb);
 		}
-		__AXVoiceListSpinlock.release();
+		__AXVoiceListSpinlock.unlock();
 		return vpb;
 	}
 
 	void AXFreeVoice(AXVPB* vpb)
 	{
 		cemu_assert(vpb != nullptr);
-		__AXVoiceListSpinlock.acquire();
+		__AXVoiceListSpinlock.lock();
 		if (vpb->priority == (uint32be)AX_PRIORITY_FREE)
 		{
 			forceLog_printf("AXFreeVoice() called on free voice\n");
-			__AXVoiceListSpinlock.release();
+			__AXVoiceListSpinlock.unlock();
 			return;
 		}
 		AXVoiceProtection_Release(vpb);
@@ -442,7 +442,7 @@ namespace snd_core
 		vpb->callback = MPTR_NULL;
 		vpb->callbackEx = MPTR_NULL;
 		AXVoiceList_AddFreeVoice(vpb);
-		__AXVoiceListSpinlock.release();
+		__AXVoiceListSpinlock.unlock();
 	}
 
 	void AXVPBInit()

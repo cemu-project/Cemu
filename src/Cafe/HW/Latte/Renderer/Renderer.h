@@ -58,7 +58,6 @@ public:
 	virtual bool GetVRAMInfo(int& usageInMB, int& totalInMB) const;
 
 	virtual void EnableDebugMode() {}
-	virtual void EnableVSync(int state) = 0;
 
 	virtual void ClearColorbuffer(bool padView) = 0;
 	virtual void DrawEmptyFrame(bool mainWindow) = 0;

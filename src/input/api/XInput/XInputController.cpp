@@ -121,7 +121,7 @@ ControllerState XInputController::raw_state()
 
 	// Buttons
 	for(int i=0;i<std::numeric_limits<WORD>::digits;i++)
-		result.buttons[i] = state.Gamepad.wButtons & (1<<i);
+		result.buttons.SetButtonState(i, (state.Gamepad.wButtons & (1 << i)) != 0);
 
 	if (state.Gamepad.sThumbLX > 0)
 		result.axis.x = (float)state.Gamepad.sThumbLX / std::numeric_limits<sint16>::max();

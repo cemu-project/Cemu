@@ -77,6 +77,9 @@ bool CemuApp::OnInit()
 	auto standardPaths = wxStandardPaths::Get();
 #ifdef PORTABLE
 	fs::path exePath(standardPaths.GetExecutablePath().ToStdString());
+#if MACOS_BUNDLE
+    exePath = exePath.parent_path().parent_path().parent_path();
+#endif
 	user_data_path = config_path = cache_path = data_path = exePath.parent_path();
 #else
 	SetAppName("Cemu");
@@ -376,6 +379,24 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 }
 
 
+bool CemuApp::TrySelectMLCPath(std::wstring path)
+{
+	if (path.empty())
+		path = ActiveSettings::GetDefaultMLCPath().wstring();
+
+	if (!TestWriteAccess(fs::path{ path }))
+		return false;
+
+	GetConfig().SetMLCPath(path);
+	CemuApp::CreateDefaultFiles();
+
+	// update TitleList and SaveList scanner with new MLC path
+	CafeTitleList::SetMLCPath(path);
+	CafeTitleList::Refresh();
+	CafeSaveList::SetMLCPath(path);
+	CafeSaveList::Refresh();
+	return true;
+}
 
 bool CemuApp::SelectMLCPath(wxWindow* parent)
 {
@@ -394,21 +415,15 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 
 		const auto path = path_dialog.GetPath().ToStdWstring();
 
-		if (!TestWriteAccess(fs::path{ path }))
+		if (!TrySelectMLCPath(path))
 		{
 			const auto result = wxMessageBox(_("Cemu can't write to the selected mlc path!\nDo you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
 			if (result == wxYES)
 				continue;
-			
+
 			break;
 		}
 
-		config.SetMLCPath(path);
-		// update TitleList and SaveList scanner with new MLC path
-		CafeTitleList::SetMLCPath(path);
-		CafeTitleList::Refresh();
-		CafeSaveList::SetMLCPath(path);
-		CafeSaveList::Refresh();
 		return true;
 	}
 
