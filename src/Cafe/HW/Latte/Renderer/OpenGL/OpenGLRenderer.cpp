@@ -352,14 +352,19 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 	glFlush();
 }
 
-void OpenGLRenderer::EnableVSync(int state)
+void OpenGLRenderer::UpdateVSyncState()
 {
+	int configValue = GetConfig().vsync.GetValue();
+	if(m_activeVSyncState != configValue)
+	{
 #if BOOST_OS_WINDOWS
-	if(wglSwapIntervalEXT)
-		wglSwapIntervalEXT(state); // 1 = enabled, 0 = disabled
+		if(wglSwapIntervalEXT)
+			wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
 #else
-	cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
+		cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
 #endif
+		m_activeVSyncState = configValue;
+	}
 }
 
 bool IsRunningInWine();
@@ -438,6 +443,7 @@ void OpenGLRenderer::EnableDebugMode()
 void OpenGLRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
 	GLCanvas_SwapBuffers(swapTV, swapDRC);
+	UpdateVSyncState();
 
 	if (swapTV)
 		cleanupAfterFrame();

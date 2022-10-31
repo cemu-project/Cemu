@@ -1334,8 +1334,9 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("Double buffering"));
 		m_vsync->AppendString(_("Triple buffering"));
-	
+#if BOOST_OS_WINDOWS
 		m_vsync->AppendString(_("Match emulated display (Experimental)"));
+#endif
 
 		m_vsync->Select(selection);
 		
