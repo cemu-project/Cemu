@@ -360,7 +360,7 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
     wxWindowUpdateLocker lock(this);
 
 	wxColour bgColourPrimary = GetBackgroundColour();
-	wxColour bgColourSecondary = wxHelper::CalculateHighlightColour(bgColourPrimary);
+	wxColour bgColourSecondary = wxHelper::CalculateAccentColour(bgColourPrimary);
 
     for (int i = startIndex; i < GetItemCount(); ++i)
     {

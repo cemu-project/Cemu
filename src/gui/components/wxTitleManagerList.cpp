@@ -173,7 +173,7 @@ wxString wxTitleManagerList::OnGetItemText(long item, long column) const
 wxItemAttr* wxTitleManagerList::OnGetItemAttr(long item) const
 {
 	static wxColour bgColourPrimary = GetBackgroundColour();
-	static wxColour bgColourSecondary = wxHelper::CalculateHighlightColour(bgColourPrimary);
+	static wxColour bgColourSecondary = wxHelper::CalculateAccentColour(bgColourPrimary);
 	static wxListItemAttr s_primary_attr(GetTextColour(), bgColourPrimary, GetFont());
 	static wxListItemAttr s_secondary_attr(GetTextColour(), bgColourSecondary, GetFont());
 	return item % 2 == 0 ? &s_primary_attr : &s_secondary_attr;

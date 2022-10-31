@@ -22,7 +22,7 @@ namespace wxHelper
         return wxString::FromUTF8(str.data(), str.size());
     }
 
-	inline wxColour CalculateHighlightColour(const wxColour& bgColour)
+	inline wxColour CalculateAccentColour(const wxColour& bgColour)
 	{
 		wxColour bgColourSecondary;
 		const uint32 bgLightness = (bgColour.GetRed() + bgColour.GetGreen() + bgColour.GetBlue()) / 3;
