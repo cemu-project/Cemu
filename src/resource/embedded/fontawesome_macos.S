@@ -1,8 +1,8 @@
 .section __DATA, __const
-.global g_fontawesome_data, g_fontawesome_size
+.global _g_fontawesome_data, _g_fontawesome_size
 
-g_fontawesome_data:
+_g_fontawesome_data:
 .incbin "fontawesome-webfont.ttf"
-g_fontawesome_size:
-.int g_fontawesome_size - g_fontawesome_data
+_g_fontawesome_size:
+.int _g_fontawesome_size - _g_fontawesome_data
 
