@@ -10,8 +10,12 @@ embedded/resources.cpp
 embedded/resources.h
 )
 
-if(NOT WINDOWS)
-target_sources(CemuResource PRIVATE embedded/fontawesome.S)
+if(UNIX)
+    if(NOT APPLE)
+        target_sources(CemuResource PRIVATE embedded/fontawesome.S)
+    else()
+        target_sources(CemuResource PRIVATE embedded/fontawesome_macos.S)
+    endif()
 endif()
 
 target_sources(CemuResource PRIVATE CafeDefaultFont.cpp)
