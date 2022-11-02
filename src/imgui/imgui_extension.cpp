@@ -43,6 +43,10 @@ void ImRotateEnd(float rad, ImVec2 center)
 uint8* extractCafeDefaultFont(sint32* size);
 sint32 g_font_size = 0;
 uint8* g_font_data = nullptr;
+#if !BOOST_OS_WINDOWS
+extern int const g_fontawesome_size;
+extern char const g_fontawesome_data[];
+#endif
 std::unordered_map<int, ImFont*> g_imgui_fonts;
 std::stack<int> g_font_requests;
 
@@ -66,6 +70,14 @@ void ImGui_PrecacheFonts()
 		//cfg.SizePixels = size;
 		ImFont* font = io.Fonts->AddFontFromMemoryTTF(g_font_data, g_font_size, (float)size, &cfg);
 
+		ImFontConfig cfgmerge{};
+		cfgmerge.FontDataOwnedByAtlas = false;
+		cfgmerge.MergeMode = true;
+		cfgmerge.GlyphMinAdvanceX = 20.0f;
+		//cfgmerge.GlyphOffset = { 2,2 };
+
+		static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+
 #if BOOST_OS_WINDOWS
 		const auto hinstance = GetModuleHandle(nullptr);
 		const HRSRC res = FindResource(hinstance, MAKEINTRESOURCE(IDR_FONTAWESOME), RT_RCDATA);
@@ -77,16 +89,11 @@ void ImGui_PrecacheFonts()
 				void* data = LockResource(mem);
 				const size_t len = SizeofResource(hinstance, res);
 
-				ImFontConfig cfgmerge{};
-				cfgmerge.FontDataOwnedByAtlas = false;
-				cfgmerge.MergeMode = true;
-				cfgmerge.GlyphMinAdvanceX = 20.0f;
-				//cfgmerge.GlyphOffset = { 2,2 };
-
-				static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 				io.Fonts->AddFontFromMemoryTTF(data, (int)len, (float)size, &cfgmerge, icon_ranges);
 			}
 		}
+#else
+		io.Fonts->AddFontFromMemoryTTF((void*)g_fontawesome_data, (int)g_fontawesome_size, (float)size, &cfgmerge, icon_ranges);
 #endif
 
 		g_imgui_fonts[(int)size] = font;
