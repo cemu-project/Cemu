@@ -1,4 +1,4 @@
-﻿#include "gui/guiWrapper.h"
+#include "gui/guiWrapper.h"
 #include "gui/wxgui.h"
 #include "util/crypto/aes128.h"
 #include "gui/MainWindow.h"
@@ -29,6 +29,7 @@
 #include "Cafe/OS/libs/vpad/vpad.h"
 
 #include "audio/IAudioAPI.h"
+#include "audio/IAudioInputAPI.h"
 #if BOOST_OS_WINDOWS
 #pragma comment(lib,"Dbghelp.lib")
 #endif
@@ -223,6 +224,7 @@ void mainEmulatorCommonInit()
 	rplSymbolStorage_init();
 	// static initialization
 	IAudioAPI::InitializeStatic();
+	IAudioInputAPI::InitializeStatic();
 	// load graphic packs (must happen before config is loaded)
 	GraphicPack2::LoadAll();
 	// initialize file system

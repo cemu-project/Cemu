@@ -58,9 +58,9 @@ private:
 	// Audio
 	wxChoice* m_audio_api;
 	wxSlider *m_audio_latency;
-	wxSlider *m_tv_volume, *m_pad_volume;
-	wxChoice *m_tv_channels, *m_pad_channels;
-	wxChoice *m_tv_device, *m_pad_device;
+	wxSlider *m_tv_volume, *m_pad_volume, *m_input_volume;
+	wxChoice *m_tv_channels, *m_pad_channels, *m_input_channels;
+	wxChoice *m_tv_device, *m_pad_device, *m_input_device;
 
 	// Account
 	wxButton* m_create_account, * m_delete_account;
