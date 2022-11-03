@@ -39,7 +39,7 @@ elseif(UNIX)
 	# and configurations thereof might enable enable due to the assembly in the project
 	if(NOT APPLE)
 		add_compile_options(-fpie)
-		add_link_options(-pie -Wl,-z,noexecstack)
+		add_link_options(-pie -z noexecstack)
 	endif()
 
     add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
