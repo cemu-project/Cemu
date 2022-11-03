@@ -158,22 +158,9 @@ void CubebInputAPI::SetVolume(sint32 volume)
 
 bool CubebInputAPI::InitializeStatic()
 {
-#if BOOST_OS_WINDOWS
-	s_com_initialized = (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)));
-#endif
-
 	if (cubeb_init(&s_context, "Cemu Input Cubeb", nullptr))
 	{
 		cemuLog_force("can't create cubeb audio api");
-
-#if BOOST_OS_WINDOWS
-		if (s_com_initialized)
-		{
-			CoUninitialize();
-			s_com_initialized = false;
-		}
-#endif
-
 		return false;
 	}
 
@@ -184,10 +171,6 @@ void CubebInputAPI::Destroy()
 {
 	if (s_context)
 		cubeb_destroy(s_context);
-#if BOOST_OS_WINDOWS
-	if (s_com_initialized)
-		CoUninitialize();
-#endif
 }
 
 std::vector<IAudioInputAPI::DeviceDescriptionPtr> CubebInputAPI::GetDevices()
