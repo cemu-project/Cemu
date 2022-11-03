@@ -436,7 +436,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 	}
 
 	{
-		auto box = new wxStaticBox(audio_panel, wxID_ANY, _("Microphone"));
+		auto box = new wxStaticBox(audio_panel, wxID_ANY, _("Microphone (Experimental)"));
 		auto box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
 		auto audio_input_row = new wxFlexGridSizer(0, 3, 0, 0);
