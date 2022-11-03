@@ -36,7 +36,7 @@ elseif(UNIX)
 	endif()
 	# most linux environments should enable pie by default, but make sure just in case.
 	# the same cannot be said for no executable stack which some linkers
-	# and configurations thereof might enable enable due to the assembly in the project
+	# and configurations thereof might enable due to the assembly in the project
 	if(NOT APPLE)
 		add_compile_options(-fpie)
 		add_link_options(-pie -z noexecstack)
