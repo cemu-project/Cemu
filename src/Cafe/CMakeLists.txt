@@ -74,7 +74,7 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/PPCRecompilerImlOptimizer.cpp
   HW/Espresso/Recompiler/PPCRecompilerImlRanges.cpp
   HW/Espresso/Recompiler/PPCRecompilerImlRanges.h
-  HW/Espresso/Recompiler/PPCRecompilerImlRegisterAllocator2.cpp
+  
   HW/Espresso/Recompiler/PPCRecompilerImlRegisterAllocator.cpp
   HW/Espresso/Recompiler/PPCRecompilerIntermediate.cpp
   HW/Espresso/Recompiler/PPCRecompilerX64AVX.cpp
