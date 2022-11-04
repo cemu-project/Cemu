@@ -77,7 +77,7 @@ struct SwapchainInfoVk
 	VkSurfaceKHR surface{};
 	VkSurfaceFormatKHR m_surfaceFormat{};
 	VkSwapchainKHR swapchain{};
-	VkExtent2D swapchainExtend{};
+	VkExtent2D swapchainExtent{};
 	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR

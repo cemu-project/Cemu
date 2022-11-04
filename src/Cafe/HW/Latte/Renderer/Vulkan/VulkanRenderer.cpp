@@ -1668,7 +1668,7 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 
 
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
-	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.swapchainExtend);
+	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.swapchainExtent);
 	ImGui_UpdateWindowInformation(mainWindow);
 	ImGui::NewFrame();
 	return true;
@@ -2844,7 +2844,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	renderPassInfo.renderPass = chainInfo.m_swapchainRenderPass;
 	renderPassInfo.framebuffer = chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex];
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = chainInfo.swapchainExtend;
+	renderPassInfo.renderArea.extent = chainInfo.swapchainExtent;
 	renderPassInfo.clearValueCount = 0;
 
 	VkViewport viewport{};
@@ -2857,7 +2857,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
-	scissor.extent = chainInfo.swapchainExtend;
+	scissor.extent = chainInfo.swapchainExtent;
 	vkCmdSetScissor(m_state.currentCommandBuffer, 0, 1, &scissor);
 
 	auto descriptSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);
