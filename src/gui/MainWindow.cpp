@@ -1879,7 +1879,7 @@ public:
 			noticeLink->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent &event)
 											 {
 					fs::path tempPath = fs::temp_directory_path();
-					tempPath.append("NOTICE_IH264.txt");
+					tempPath.append("NOTICE_GameMode.txt");
 					FileStream* fs = FileStream::createFile2(tempPath);
 					if (!fs)
 						return;
