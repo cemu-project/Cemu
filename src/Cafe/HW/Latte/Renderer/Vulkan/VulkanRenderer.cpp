@@ -2589,6 +2589,8 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 		gui_getPadWindowSize(&size.x, &size.y);
 	}
 
+	chainInfo.Cleanup();
+	chainInfo.setSize(size);
 	chainInfo.Create(m_physicalDevice, m_logicalDevice);
 	chainInfo.swapchainImageIndex = -1;
 
