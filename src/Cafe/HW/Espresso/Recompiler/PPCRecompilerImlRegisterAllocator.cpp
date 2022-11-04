@@ -123,7 +123,7 @@ typedef struct
 void PPCRecRA_insertGPRLoadInstruction(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, sint32 registerIndex, sint32 registerName)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, 1);
-	PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList + (insertIndex + 0);
+	PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + 0);
 	memset(imlInstructionItr, 0x00, sizeof(PPCRecImlInstruction_t));
 	imlInstructionItr->type = PPCREC_IML_TYPE_R_NAME;
 	imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
@@ -136,10 +136,10 @@ void PPCRecRA_insertGPRLoadInstruction(PPCRecImlSegment_t* imlSegment, sint32 in
 void PPCRecRA_insertGPRLoadInstructions(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, raLoadStoreInfo_t* loadList, sint32 loadCount)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, loadCount);
-	memset(imlSegment->imlList + (insertIndex + 0), 0x00, sizeof(PPCRecImlInstruction_t)*loadCount);
+	memset(imlSegment->imlList.data() + (insertIndex + 0), 0x00, sizeof(PPCRecImlInstruction_t)*loadCount);
 	for (sint32 i = 0; i < loadCount; i++)
 	{
-		PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList + (insertIndex + i);
+		PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + i);
 		imlInstructionItr->type = PPCREC_IML_TYPE_R_NAME;
 		imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
 		imlInstructionItr->op_r_name.registerIndex = (uint8)loadList[i].registerIndex;
@@ -152,7 +152,7 @@ void PPCRecRA_insertGPRLoadInstructions(PPCRecImlSegment_t* imlSegment, sint32 i
 void PPCRecRA_insertGPRStoreInstruction(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, sint32 registerIndex, sint32 registerName)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, 1);
-	PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList + (insertIndex + 0);
+	PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + 0);
 	memset(imlInstructionItr, 0x00, sizeof(PPCRecImlInstruction_t));
 	imlInstructionItr->type = PPCREC_IML_TYPE_NAME_R;
 	imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
@@ -165,10 +165,10 @@ void PPCRecRA_insertGPRStoreInstruction(PPCRecImlSegment_t* imlSegment, sint32 i
 void PPCRecRA_insertGPRStoreInstructions(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, raLoadStoreInfo_t* storeList, sint32 storeCount)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, storeCount);
-	memset(imlSegment->imlList + (insertIndex + 0), 0x00, sizeof(PPCRecImlInstruction_t)*storeCount);
+	memset(imlSegment->imlList.data() + (insertIndex + 0), 0x00, sizeof(PPCRecImlInstruction_t)*storeCount);
 	for (sint32 i = 0; i < storeCount; i++)
 	{
-		PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList + (insertIndex + i);
+		PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + i);
 		memset(imlInstructionItr, 0x00, sizeof(PPCRecImlInstruction_t));
 		imlInstructionItr->type = PPCREC_IML_TYPE_NAME_R;
 		imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
@@ -767,7 +767,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	raLiveRangeInfo_t liveInfo;
 	liveInfo.liveRangesCount = 0;
 	sint32 index = 0;
-	sint32 suffixInstructionCount = (imlSegment->imlListCount > 0 && PPCRecompiler_isSuffixInstruction(imlSegment->imlList + imlSegment->imlListCount - 1)) ? 1 : 0;
+	sint32 suffixInstructionCount = (imlSegment->imlList.size() > 0 && PPCRecompiler_isSuffixInstruction(imlSegment->imlList.data() + imlSegment->imlList.size() - 1)) ? 1 : 0;
 	// load register ranges that are supplied from previous segments
 	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	//for (auto& subrange : imlSegment->raInfo.list_subranges)
@@ -793,7 +793,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
 	}
 	// process instructions
-	while(index < imlSegment->imlListCount+1)
+	while(index < imlSegment->imlList.size() + 1)
 	{
 		// expire ranges
 		for (sint32 f = 0; f < liveInfo.liveRangesCount; f++)
@@ -808,7 +808,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				// store GPR
 				if (liverange->hasStore)
 				{
-					PPCRecRA_insertGPRStoreInstruction(imlSegment, std::min(index, imlSegment->imlListCount - suffixInstructionCount), liverange->range->physicalRegister, liverange->range->name);
+					PPCRecRA_insertGPRStoreInstruction(imlSegment, std::min<sint32>(index, imlSegment->imlList.size() - suffixInstructionCount), liverange->range->physicalRegister, liverange->range->name);
 					index++;
 				}
 				// remove entry
@@ -828,7 +828,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				// load GPR
 				if (subrangeItr->_noLoad == false)
 				{
-					PPCRecRA_insertGPRLoadInstruction(imlSegment, std::min(index, imlSegment->imlListCount - suffixInstructionCount), subrangeItr->range->physicalRegister, subrangeItr->range->name);
+					PPCRecRA_insertGPRLoadInstruction(imlSegment, std::min<sint32>(index, imlSegment->imlList.size() - suffixInstructionCount), subrangeItr->range->physicalRegister, subrangeItr->range->name);
 					index++;
 					subrangeItr->start.index--;
 				}
@@ -839,10 +839,10 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
 		}
 		// replace registers
-		if (index < imlSegment->imlListCount)
+		if (index < imlSegment->imlList.size())
 		{
 			PPCImlOptimizerUsedRegisters_t gprTracking;
-			PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList + index, &gprTracking);
+			PPCRecompiler_checkRegisterUsage(nullptr, imlSegment->imlList.data() + index, &gprTracking);
 
 			sint32 inputGpr[4];
 			inputGpr[0] = gprTracking.gpr[0];
@@ -863,7 +863,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				replaceGpr[f] = virtualReg2PhysReg[virtualRegister];
 				cemu_assert_debug(replaceGpr[f] >= 0);
 			}
-			PPCRecompiler_replaceGPRRegisterUsageMultiple(ppcImlGenContext, imlSegment->imlList + index, inputGpr, replaceGpr);
+			PPCRecompiler_replaceGPRRegisterUsageMultiple(ppcImlGenContext, imlSegment->imlList.data() + index, inputGpr, replaceGpr);
 		}
 		// next iml instruction
 		index++;
@@ -898,7 +898,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 	if (storeLoadListLength > 0)
 	{
-		PPCRecRA_insertGPRStoreInstructions(imlSegment, imlSegment->imlListCount - suffixInstructionCount, loadStoreList, storeLoadListLength);
+		PPCRecRA_insertGPRStoreInstructions(imlSegment, imlSegment->imlList.size() - suffixInstructionCount, loadStoreList, storeLoadListLength);
 	}
 	// load subranges for next segments
 	subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
@@ -925,7 +925,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 	if (storeLoadListLength > 0)
 	{
-		PPCRecRA_insertGPRLoadInstructions(imlSegment, imlSegment->imlListCount - suffixInstructionCount, loadStoreList, storeLoadListLength);
+		PPCRecRA_insertGPRLoadInstructions(imlSegment, imlSegment->imlList.size() - suffixInstructionCount, loadStoreList, storeLoadListLength);
 	}
 }
 
@@ -998,7 +998,6 @@ void PPCRecompilerImm_allocateRegisters(ppcImlGenContext_t* ppcImlGenContext)
 
 	ppcImlGenContext->raInfo.list_ranges = std::vector<raLivenessRange_t*>();
 	
-	// calculate liveness
 	PPCRecRA_calculateLivenessRangesV2(ppcImlGenContext);
 	PPCRecRA_processFlowAndCalculateLivenessRangesV2(ppcImlGenContext);
 
@@ -1024,23 +1023,23 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 		imlSegment->raDistances.reg[i].usageEnd = INT_MIN;
 	}
 	// scan instructions for usage range
-	sint32 index = 0;
+	size_t index = 0;
 	PPCImlOptimizerUsedRegisters_t gprTracking;
-	while (index < imlSegment->imlListCount)
+	while (index < imlSegment->imlList.size())
 	{
 		// end loop at suffix instruction
-		if (PPCRecompiler_isSuffixInstruction(imlSegment->imlList + index))
+		if (PPCRecompiler_isSuffixInstruction(imlSegment->imlList.data() + index))
 			break;
 		// get accessed GPRs
-		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList + index, &gprTracking);
+		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList.data() + index, &gprTracking);
 		for (sint32 t = 0; t < 4; t++)
 		{
 			sint32 virtualRegister = gprTracking.gpr[t];
 			if (virtualRegister < 0)
 				continue;
 			cemu_assert_debug(virtualRegister < PPC_REC_MAX_VIRTUAL_GPR);
-			imlSegment->raDistances.reg[virtualRegister].usageStart = std::min(imlSegment->raDistances.reg[virtualRegister].usageStart, index); // index before/at instruction
-			imlSegment->raDistances.reg[virtualRegister].usageEnd = std::max(imlSegment->raDistances.reg[virtualRegister].usageEnd, index + 1); // index after instruction
+			imlSegment->raDistances.reg[virtualRegister].usageStart = std::min<sint32>(imlSegment->raDistances.reg[virtualRegister].usageStart, index); // index before/at instruction
+			imlSegment->raDistances.reg[virtualRegister].usageEnd = std::max<sint32>(imlSegment->raDistances.reg[virtualRegister].usageEnd, index + 1); // index after instruction
 		}
 		// next instruction
 		index++;
@@ -1117,15 +1116,15 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 #endif
 	}
 	// parse instructions and convert to locations
-	sint32 index = 0;
+	size_t index = 0;
 	PPCImlOptimizerUsedRegisters_t gprTracking;
-	while (index < imlSegment->imlListCount)
+	while (index < imlSegment->imlList.size())
 	{
 		// end loop at suffix instruction
-		if (PPCRecompiler_isSuffixInstruction(imlSegment->imlList + index))
+		if (PPCRecompiler_isSuffixInstruction(imlSegment->imlList.data() + index))
 			break;
 		// get accessed GPRs
-		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList + index, &gprTracking);
+		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList.data() + index, &gprTracking);
 		// handle accessed GPR
 		for (sint32 t = 0; t < 4; t++)
 		{
@@ -1136,9 +1135,9 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 			// add location
 			PPCRecRA_updateOrAddSubrangeLocation(vGPR2Subrange[virtualRegister], index, isWrite == false, isWrite);
 #ifdef CEMU_DEBUG_ASSERT
-			if (index < vGPR2Subrange[virtualRegister]->start.index)
+			if ((sint32)index < vGPR2Subrange[virtualRegister]->start.index)
 				assert_dbg();
-			if (index + 1 > vGPR2Subrange[virtualRegister]->end.index)
+			if ((sint32)index + 1 > vGPR2Subrange[virtualRegister]->end.index)
 				assert_dbg();
 #endif
 		}
@@ -1205,7 +1204,7 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCR
 	if (currentSegment->raDistances.reg[vGPR].usageStart == INT_MAX)
 	{
 		// measure distance to end of segment
-		distanceLeft -= currentSegment->imlListCount;
+		distanceLeft -= (sint32)currentSegment->imlList.size();
 		if (distanceLeft > 0)
 		{
 			if (currentSegment->nextSegmentBranchNotTaken)
@@ -1220,7 +1219,7 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCR
 		// measure distance to range
 		if (currentSegment->raDistances.reg[vGPR].usageStart == RA_INTER_RANGE_END)
 		{
-			if (distanceLeft < currentSegment->imlListCount)
+			if (distanceLeft < (sint32)currentSegment->imlList.size())
 				return; // range too far away
 		}
 		else if (currentSegment->raDistances.reg[vGPR].usageStart != RA_INTER_RANGE_START && currentSegment->raDistances.reg[vGPR].usageStart > distanceLeft)
@@ -1243,7 +1242,7 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 	if (currentSegment->raDistances.reg[vGPR].usageEnd == RA_INTER_RANGE_END)
 		instructionsUntilEndOfSeg = 0;
 	else
-		instructionsUntilEndOfSeg = currentSegment->imlListCount - currentSegment->raDistances.reg[vGPR].usageEnd;
+		instructionsUntilEndOfSeg = (sint32)currentSegment->imlList.size() - currentSegment->raDistances.reg[vGPR].usageEnd;
 
 #ifdef CEMU_DEBUG_ASSERT
 	if (instructionsUntilEndOfSeg < 0)

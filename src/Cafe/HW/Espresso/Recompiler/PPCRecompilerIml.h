@@ -419,4 +419,4 @@ typedef struct
 	};
 }PPCImlOptimizerUsedRegisters_t;
 
-void PPCRecompiler_checkRegisterUsage(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, PPCImlOptimizerUsedRegisters_t* registersUsed);
+void PPCRecompiler_checkRegisterUsage(ppcImlGenContext_t* ppcImlGenContext, const PPCRecImlInstruction_t* imlInstruction, PPCImlOptimizerUsedRegisters_t* registersUsed);

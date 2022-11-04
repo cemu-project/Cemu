@@ -2302,9 +2302,9 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 	for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
 	{
 		segIt->x64Offset = x64GenContext.codeBufferIndex;
-		for(sint32 i=0; i<segIt->imlListCount; i++)
+		for(size_t i=0; i<segIt->imlList.size(); i++)
 		{
-			PPCRecImlInstruction_t* imlInstruction = segIt->imlList+i;
+			PPCRecImlInstruction_t* imlInstruction = segIt->imlList.data() + i;
 
 			if( imlInstruction->type == PPCREC_IML_TYPE_R_NAME )
 			{

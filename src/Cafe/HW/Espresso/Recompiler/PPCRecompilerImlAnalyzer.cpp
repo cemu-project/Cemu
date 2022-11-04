@@ -13,9 +13,9 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 	if (imlSegment->nextSegmentBranchTaken != imlSegment)
 		return false;
 	// loops using BDNZ are assumed to always be finite
-	for (sint32 t = 0; t < imlSegment->imlListCount; t++)
+	for(const PPCRecImlInstruction_t& instIt : imlSegment->imlList)
 	{
-		if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 && imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB && imlSegment->imlList[t].crRegister == 8)
+		if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_SUB && instIt.crRegister == 8)
 		{
 			return true;
 		}
@@ -24,11 +24,11 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 	// risky approach, look for ADD/SUB operations and assume that potential overflow means finite (does not include r_r_s32 ADD/SUB)
 	// this catches most loops with load-update and store-update instructions, but also those with decrementing counters
 	FixedSizeList<sint32, 64, true> list_modifiedRegisters;
-	for (sint32 t = 0; t < imlSegment->imlListCount; t++)
+	for (const PPCRecImlInstruction_t& instIt : imlSegment->imlList)
 	{
-		if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 && (imlSegment->imlList[t].operation == PPCREC_IML_OP_ADD || imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB) )
+		if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB) )
 		{
-			list_modifiedRegisters.addUnique(imlSegment->imlList[t].op_r_immS32.registerIndex);
+			list_modifiedRegisters.addUnique(instIt.op_r_immS32.registerIndex);
 		}
 	}
 	if (list_modifiedRegisters.count > 0)
@@ -36,11 +36,11 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 		// remove all registers from the list that are modified by non-ADD/SUB instructions
 		// todo: We should also cover the case where ADD+SUB on the same register cancel the effect out
 		PPCImlOptimizerUsedRegisters_t registersUsed;
-		for (sint32 t = 0; t < imlSegment->imlListCount; t++)
+		for (const PPCRecImlInstruction_t& instIt : imlSegment->imlList)
 		{
-			if (imlSegment->imlList[t].type == PPCREC_IML_TYPE_R_S32 && (imlSegment->imlList[t].operation == PPCREC_IML_OP_ADD || imlSegment->imlList[t].operation == PPCREC_IML_OP_SUB))
+			if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB))
 				continue;
-			PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList + t, &registersUsed);
+			PPCRecompiler_checkRegisterUsage(nullptr, &instIt, &registersUsed);
 			if(registersUsed.writtenNamedReg1 < 0)
 				continue;
 			list_modifiedRegisters.remove(registersUsed.writtenNamedReg1);
