@@ -269,7 +269,7 @@ int mainEmulatorHLE()
 	// enable gamemode (Linux-only library for standby prevention and some OS optimization)
 	#if BOOST_OS_LINUX
 		if (gamemode_request_start() < 0)
-			cemuLog_force("Failed to enable gamemode, it may not be installed")
+			cemuLog_force("Failed to enable gamemode, it may not be installed");
 			// TODO: disable gamemode when only the game, not Cemu, is closed (a feature not yet implemented)
 			// currently unnecessary because this will happen automatically when Cemu closes
 			// gamemode_request_end();
