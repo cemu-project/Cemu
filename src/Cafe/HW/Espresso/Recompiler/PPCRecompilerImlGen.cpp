@@ -280,21 +280,6 @@ void PPCRecompilerImlGen_generateNewInstruction_memory_r_indexed(ppcImlGenContex
 	imlInstruction->op_storeLoad.flags2.signExtend = signExtend;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_memory_memory(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint8 srcMemReg, sint32 srcImmS32, uint8 dstMemReg, sint32 dstImmS32, uint8 copyWidth)
-{
-	// copy from memory to memory
-	if(imlInstruction == NULL)
-		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_MEM2MEM;
-	imlInstruction->operation = 0;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_mem2mem.src.registerMem = srcMemReg;
-	imlInstruction->op_mem2mem.src.immS32 = srcImmS32;
-	imlInstruction->op_mem2mem.dst.registerMem = dstMemReg;
-	imlInstruction->op_mem2mem.dst.immS32 = dstImmS32;
-	imlInstruction->op_mem2mem.copyWidth = copyWidth;
-}
-
 uint32 PPCRecompilerImlGen_getAndLockFreeTemporaryGPR(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
 	if( mappedName == PPCREC_NAME_NONE )
@@ -3233,10 +3218,6 @@ void PPCRecompiler_dumpIMLSegment(PPCRecImlSegment_t* imlSegment, sint32 segment
 				strOutput.addFmt("[t{}+t{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.registerMem2);
 			else
 				strOutput.addFmt("[t{}+{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.immS32);
-		}
-		else if (inst.type == PPCREC_IML_TYPE_MEM2MEM)
-		{
-			strOutput.addFmt("{} [t{}+{}] = [t{}+{}]", inst.op_mem2mem.copyWidth, inst.op_mem2mem.dst.registerMem, inst.op_mem2mem.dst.immS32, inst.op_mem2mem.src.registerMem, inst.op_mem2mem.src.immS32);
 		}
 		else if( inst.type == PPCREC_IML_TYPE_CJUMP )
 		{
