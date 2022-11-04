@@ -651,7 +651,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	if (mainWindow)
 	{
 		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_mainSwapchainInfo->setSize(size);
+		m_mainSwapchainInfo->m_desiredExtent = size;
 		m_mainSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 
 		// aquire first command buffer
@@ -660,7 +660,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	else
 	{
 		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_padSwapchainInfo->setSize(size);
+		m_padSwapchainInfo->m_desiredExtent = size;
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
 		m_padSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 	}
@@ -1663,7 +1663,7 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 
 
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
-	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.swapchainExtent);
+	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.getExtent());
 	ImGui_UpdateWindowInformation(mainWindow);
 	ImGui::NewFrame();
 	return true;
@@ -2585,7 +2585,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 	}
 
 	chainInfo.Cleanup();
-	chainInfo.setSize(size);
+	chainInfo.m_desiredExtent = size;
 	chainInfo.Create(m_physicalDevice, m_logicalDevice);
 	chainInfo.swapchainImageIndex = -1;
 
@@ -2608,7 +2608,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	auto& chainInfo = GetChainInfo(mainWindow);
 
 	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.sizeOutOfDate || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
 	{
 		try
 		{
@@ -2841,7 +2841,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	renderPassInfo.renderPass = chainInfo.m_swapchainRenderPass;
 	renderPassInfo.framebuffer = chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex];
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = chainInfo.swapchainExtent;
+	renderPassInfo.renderArea.extent = chainInfo.getExtent();
 	renderPassInfo.clearValueCount = 0;
 
 	VkViewport viewport{};
@@ -2854,7 +2854,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
-	scissor.extent = chainInfo.swapchainExtent;
+	scissor.extent = chainInfo.getExtent();
 	vkCmdSetScissor(m_state.currentCommandBuffer, 0, 1, &scissor);
 
 	auto descriptSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);
