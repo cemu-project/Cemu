@@ -60,5 +60,5 @@ void VulkanCanvas::OnResize(wxSizeEvent& event)
 		return;
 
 	auto vulkan_renderer = VulkanRenderer::GetInstance();
-	vulkan_renderer->ResizeSwapchain({ size.x, size.y }, m_is_main_window);
+	vulkan_renderer->SetSwapchainTargetSize({size.x, size.y}, m_is_main_window);
 }
