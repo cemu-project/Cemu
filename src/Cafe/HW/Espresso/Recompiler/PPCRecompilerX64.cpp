@@ -2299,13 +2299,12 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 
 	// generate iml instruction code
 	bool codeGenerationFailed = false;
-	for(sint32 s=0; s<ppcImlGenContext->segmentListCount; s++)
+	for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList[s];
-		ppcImlGenContext->segmentList[s]->x64Offset = x64GenContext.codeBufferIndex;
-		for(sint32 i=0; i<imlSegment->imlListCount; i++)
+		segIt->x64Offset = x64GenContext.codeBufferIndex;
+		for(sint32 i=0; i<segIt->imlListCount; i++)
 		{
-			PPCRecImlInstruction_t* imlInstruction = imlSegment->imlList+i;
+			PPCRecImlInstruction_t* imlInstruction = segIt->imlList+i;
 
 			if( imlInstruction->type == PPCREC_IML_TYPE_R_NAME )
 			{
@@ -2352,7 +2351,7 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			}
 			else if( imlInstruction->type == PPCREC_IML_TYPE_CJUMP )
 			{
-				if( PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlSegment, imlInstruction) == false )
+				if( PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction, ppcImlGenContext, &x64GenContext, segIt, imlInstruction) == false )
 				{
 					codeGenerationFailed = true;
 				}
@@ -2503,11 +2502,11 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			uint32 x64Offset = 0xFFFFFFFF;
 			if (x64GenContext.relocateOffsetTable[i].type == X64_RELOC_LINK_TO_PPC)
 			{
-				for (sint32 s = 0; s < ppcImlGenContext->segmentListCount; s++)
+				for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
 				{
-					if (ppcImlGenContext->segmentList[s]->isJumpDestination && ppcImlGenContext->segmentList[s]->jumpDestinationPPCAddress == ppcOffset)
+					if (segIt->isJumpDestination && segIt->jumpDestinationPPCAddress == ppcOffset)
 					{
-						x64Offset = ppcImlGenContext->segmentList[s]->x64Offset;
+						x64Offset = segIt->x64Offset;
 						break;
 					}
 				}

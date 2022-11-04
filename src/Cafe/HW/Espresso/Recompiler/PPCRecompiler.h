@@ -321,9 +321,10 @@ struct ppcImlGenContext_t
 	sint32 imlListSize;
 	sint32 imlListCount;
 	// list of segments
-	PPCRecImlSegment_t** segmentList;
-	sint32 segmentListSize;
-	sint32 segmentListCount;
+	//PPCRecImlSegment_t** segmentList;
+	//sint32 segmentListSize;
+	//sint32 segmentListCount;
+	std::vector<PPCRecImlSegment_t*> segmentList2;
 	// code generation control
 	bool hasFPUInstruction; // if true, PPCEnter macro will create FP_UNAVAIL checks -> Not needed in user mode
 	// register allocator info

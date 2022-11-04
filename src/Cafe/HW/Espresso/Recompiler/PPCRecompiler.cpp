@@ -173,9 +173,8 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 
 	// collect list of PPC-->x64 entry points
 	entryPointsOut.clear();
-	for (sint32 s = 0; s < ppcImlGenContext.segmentListCount; s++)
+	for(PPCRecImlSegment_t* imlSegment : ppcImlGenContext.segmentList2)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext.segmentList[s];
 		if (imlSegment->isEnterable == false)
 			continue;
 

@@ -3,11 +3,11 @@
 
 PPCRecImlSegment_t* PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext_t* ppcImlGenContext, uint32 ppcOffset)
 {
-	for(sint32 s=0; s<ppcImlGenContext->segmentListCount; s++)
+	for(PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
 	{
-		if( ppcImlGenContext->segmentList[s]->isJumpDestination && ppcImlGenContext->segmentList[s]->jumpDestinationPPCAddress == ppcOffset )
+		if(segIt->isJumpDestination && segIt->jumpDestinationPPCAddress == ppcOffset )
 		{
-			return ppcImlGenContext->segmentList[s];
+			return segIt;
 		}
 	}
 	debug_printf("PPCRecompiler_getSegmentByPPCJumpAddress(): Unable to find segment (ppcOffset 0x%08x)\n", ppcOffset);
@@ -94,17 +94,18 @@ void PPCRecompilerIML_relinkInputSegment(PPCRecImlSegment_t* imlSegmentOrig, PPC
 
 void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 {
-	for(sint32 s=0; s<ppcImlGenContext->segmentListCount; s++)
+	size_t segCount = ppcImlGenContext->segmentList2.size();
+	for(size_t s=0; s<segCount; s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList[s];
+		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
 
-		bool isLastSegment = (s+1)>=ppcImlGenContext->segmentListCount;
-		PPCRecImlSegment_t* nextSegment = isLastSegment?NULL:ppcImlGenContext->segmentList[s+1];
+		bool isLastSegment = (s+1)>=ppcImlGenContext->segmentList2.size();
+		PPCRecImlSegment_t* nextSegment = isLastSegment?nullptr:ppcImlGenContext->segmentList2[s+1];
 		// handle empty segment
 		if( imlSegment->imlListCount == 0 )
 		{
 			if (isLastSegment == false)
-				PPCRecompilerIml_setLinkBranchNotTaken(imlSegment, ppcImlGenContext->segmentList[s+1]); // continue execution to next segment
+				PPCRecompilerIml_setLinkBranchNotTaken(imlSegment, ppcImlGenContext->segmentList2[s+1]); // continue execution to next segment
 			else
 				imlSegment->nextSegmentIsUncertain = true;
 			continue;
@@ -143,15 +144,15 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 
 void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenContext)
 {
-	sint32 initialSegmentCount = ppcImlGenContext->segmentListCount;
-	for (sint32 i = 0; i < ppcImlGenContext->segmentListCount; i++)
+	size_t initialSegmentCount = ppcImlGenContext->segmentList2.size();
+	for (size_t i = 0; i < initialSegmentCount; i++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList[i];
+		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[i];
 		if (imlSegment->list_prevSegments.empty() == false && imlSegment->isEnterable)
 		{
 			// spawn new segment at end
-			PPCRecompilerIml_insertSegments(ppcImlGenContext, ppcImlGenContext->segmentListCount, 1);
-			PPCRecImlSegment_t* entrySegment = ppcImlGenContext->segmentList[ppcImlGenContext->segmentListCount-1];
+			PPCRecompilerIml_insertSegments(ppcImlGenContext, ppcImlGenContext->segmentList2.size(), 1);
+			PPCRecImlSegment_t* entrySegment = ppcImlGenContext->segmentList2[ppcImlGenContext->segmentList2.size()-1];
 			entrySegment->isEnterable = true;
 			entrySegment->enterPPCAddress = imlSegment->enterPPCAddress;
 			// create jump instruction
