@@ -36,6 +36,7 @@ struct SwapchainInfoVk
 
 	static void UnrecoverableError(const char* errMsg);
 
+	// todo: move this function somewhere more sensible. Not directly swapchain related
 	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
 	static SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device);
 
