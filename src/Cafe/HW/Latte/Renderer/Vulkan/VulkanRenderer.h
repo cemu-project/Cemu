@@ -559,7 +559,7 @@ private:
 	VkPipelineShaderStageCreateInfo CreatePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule& module, const char* entryName) const;
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
 	bool AcquireNextSwapchainImage(bool mainWindow);
-	void UpdateSwapchain(bool mainWindow, bool skipCreate = false);
+	void RecreateSwapchain(bool mainWindow, bool skipCreate = false);
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;

@@ -2535,7 +2535,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	if(!mainWindow && m_destroyPadSwapchainNextAcquire)
 	{
-		UpdateSwapchain(mainWindow, true);
+		RecreateSwapchain(mainWindow, true);
 		m_destroyPadSwapchainNextAcquire = false;
 		m_padCloseReadySemaphore.notify();
 		return false;
@@ -2557,7 +2557,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 		{
 			try
 			{
-				UpdateSwapchain(mainWindow);
+				RecreateSwapchain(mainWindow);
 				if (vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, 0) == VK_SUCCESS)
 					vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
 				result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
@@ -2578,7 +2578,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	return true;
 }
 
-void VulkanRenderer::UpdateSwapchain(bool mainWindow, bool skipCreate)
+void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 {
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
@@ -2615,7 +2615,7 @@ void VulkanRenderer::UpdateVSyncState(bool mainWindow)
 	auto& chainInfo = GetChainInfo(mainWindow);
 	const auto configValue =  (VSync)GetConfig().vsync.GetValue();
 	if(chainInfo.m_vsyncState != configValue){
-		UpdateSwapchain(mainWindow);
+		RecreateSwapchain(mainWindow);
 		chainInfo.m_vsyncState = configValue;
 	}
 }
@@ -2632,7 +2632,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	{
 		try
 		{
-			UpdateSwapchain(mainWindow);
+			RecreateSwapchain(mainWindow);
 			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
 		}
 		catch (std::exception&) { cemu_assert_debug(false); }
@@ -2683,7 +2683,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 			{
 				try
 				{
-					UpdateSwapchain(mainWindow);
+					RecreateSwapchain(mainWindow);
 					return;
 				}
 				catch (std::exception&)
