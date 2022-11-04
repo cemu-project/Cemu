@@ -281,6 +281,10 @@ MainWindow::MainWindow()
 	SetClientSize(1280, 720);
 	SetIcon(wxICON(M_WND_ICON128));
 
+#if BOOST_OS_MACOS
+	this->EnableFullScreenView(true);
+#endif
+
 #if BOOST_OS_WINDOWS
 	HICON hWindowIcon = (HICON)LoadImageA(NULL, "M_WND_ICON16", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 	SendMessage(this->GetHWND(), WM_SETICON, ICON_SMALL, (LPARAM)hWindowIcon);

@@ -9,7 +9,7 @@
 #endif
 
 
-void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
+static void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 {
 	if (!stream)
 		return;
@@ -75,7 +75,7 @@ CubebAPI::CubebAPI(cubeb_devid devid, uint32 samplerate, uint32 channels, uint32
 		output_params.layout = CUBEB_LAYOUT_3F4_LFE;
 		break;
 	case 6:
-		output_params.layout = CUBEB_LAYOUT_QUAD_LFE | CHANNEL_FRONT_CENTER;
+		output_params.layout = CUBEB_LAYOUT_3F2_LFE_BACK;
 		break;
 	case 4:
 		output_params.layout = CUBEB_LAYOUT_QUAD;

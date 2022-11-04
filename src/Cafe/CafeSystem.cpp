@@ -5,6 +5,7 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "audio/IAudioAPI.h"
+#include "audio/IAudioInputAPI.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "config/ActiveSettings.h"
@@ -402,6 +403,7 @@ void cemu_initForGame()
 	GraphicPack2::ActivateForCurrentTitle();
 	// print audio log
 	IAudioAPI::PrintLogging();
+	IAudioInputAPI::PrintLogging();
 	// everything initialized
 	forceLog_printf("------- Run title -------");
 	// wait till GPU thread is initialized

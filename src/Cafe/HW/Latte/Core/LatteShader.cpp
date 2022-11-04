@@ -13,6 +13,7 @@
 #include "util/Zir/EmitterGLSL/ZpIREmitGLSL.h"
 #include "util/Zir/Core/ZpIRDebug.h"
 #include "util/containers/flat_hash_map.hpp"
+#include <cinttypes>
 
 struct _ShaderHashCache
 {
@@ -294,7 +295,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 {
 	if (shader->hasError )
 	{
-		forceLog_printf("Unable to compile shader %I64x", shader->baseHash);
+		forceLog_printf("Unable to compile shader %" PRIx64, shader->baseHash);
 		return;
 	}
 

@@ -78,7 +78,8 @@ bool DSUControllerProvider::connect()
 		using namespace boost::asio;
 
 		ip::udp::resolver resolver(m_io_service);
-		const ip::udp::resolver::query query(ip::udp::v4(), get_settings().ip, fmt::format("{}", get_settings().port));
+		const ip::udp::resolver::query query(ip::udp::v4(), get_settings().ip, fmt::format("{}", get_settings().port),
+		                                     ip::udp::resolver::query::canonical_name);
 		m_receiver_endpoint = *resolver.resolve(query);
 
 		if (m_socket.is_open())
@@ -263,7 +264,7 @@ void DSUControllerProvider::reader_thread()
 		if (ec)
 		{
 #ifdef DEBUG_DSU_CLIENT
-				printf(" DSUControllerProvider::ReaderThread: exception %s\n", ex.what());
+				printf(" DSUControllerProvider::ReaderThread: exception %s\n", ec.what());
 #endif
 
 			// there's probably no server listening on the given address:port
@@ -406,10 +407,10 @@ void DSUControllerProvider::writer_thread()
 		{
 			m_socket.send_to(boost::asio::buffer(msg.get(), msg->GetSize()), m_receiver_endpoint);
 		}
-		catch (const std::exception&)
+		catch (const std::exception& ec)
 		{
 #ifdef DEBUG_DSU_CLIENT
-			printf(" DSUControllerProvider::WriterThread: exception %s\n", ex.what());
+			printf(" DSUControllerProvider::WriterThread: exception %s\n", ec.what());
 #endif
 			std::this_thread::sleep_for(std::chrono::milliseconds(250));
 		}

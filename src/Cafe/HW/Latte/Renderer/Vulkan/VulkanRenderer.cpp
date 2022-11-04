@@ -1478,8 +1478,6 @@ void VulkanRenderer::ImguiInit()
 
 void VulkanRenderer::Initialize()
 {
-	m_vsync_state = (VSync)GetConfig().vsync.GetValue();
-	m_mainSwapchainInfo->m_vsyncState = m_padSwapchainInfo->m_vsyncState  = m_vsync_state;
 	CreatePipelineCache();
 	ImguiInit();
 	CreateNullObjects();
@@ -1650,24 +1648,6 @@ void VulkanRenderer::QueryAvailableFormats()
 			//	missingStr.append(" SAMPLED_IMAGE");
 			//forceLog_printf("%s", missingStr.c_str());
 		}
-	}
-}
-
-void VulkanRenderer::EnableVSync(int state)
-{
-	if (m_vsync_state == (VSync)state)
-		return;
-
-	if (m_mainSwapchainInfo && m_mainSwapchainInfo->m_vsyncState != (VSync)state)
-	{
-		m_mainSwapchainInfo->m_vsyncState = (VSync)state;
-		RecreateSwapchain(true);
-	}
-
-	if (m_padSwapchainInfo && m_padSwapchainInfo->m_vsyncState != (VSync)state)
-	{
-		m_padSwapchainInfo->m_vsyncState = (VSync)state;
-		RecreateSwapchain(false);
 	}
 }
 
@@ -2616,6 +2596,16 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 		ImguiInit();
 }
 
+void VulkanRenderer::UpdateVSyncState(bool mainWindow)
+{
+	auto& chainInfo = GetChainInfo(mainWindow);
+	const auto configValue =  (VSync)GetConfig().vsync.GetValue();
+	if(chainInfo.m_vsyncState != configValue){
+		RecreateSwapchain(mainWindow);
+		chainInfo.m_vsyncState = configValue;
+	}
+}
+
 void VulkanRenderer::SwapBuffer(bool mainWindow)
 {
 	auto& chainInfo = GetChainInfo(mainWindow);
@@ -2631,6 +2621,8 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		catch (std::exception&) { cemu_assert_debug(false); }
 		return;
 	}
+
+	UpdateVSyncState(mainWindow);
 
 	AcquireNextSwapchainImage(mainWindow);
 
@@ -3072,14 +3064,14 @@ void VulkanRenderer::releaseDestructibleObject(VKRDestructibleObject* destructib
 		return;
 	}
 	// otherwise put on queue
-	m_spinlockDestructionQueue.acquire();
+	m_spinlockDestructionQueue.lock();
 	m_destructionQueue.emplace_back(destructibleObject);
-	m_spinlockDestructionQueue.release();
+	m_spinlockDestructionQueue.unlock();
 }
 
 void VulkanRenderer::ProcessDestructionQueue2()
 {
-	m_spinlockDestructionQueue.acquire();
+	m_spinlockDestructionQueue.lock();
 	for (auto it = m_destructionQueue.begin(); it != m_destructionQueue.end();)
 	{
 		if ((*it)->canDestroy())
@@ -3090,7 +3082,7 @@ void VulkanRenderer::ProcessDestructionQueue2()
 		}
 		++it;
 	}
-	m_spinlockDestructionQueue.release();
+	m_spinlockDestructionQueue.unlock();
 }
 
 VkDescriptorSetInfo::~VkDescriptorSetInfo()
@@ -3635,9 +3627,9 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 	ImGui::Text("ImageView      %u", performanceMonitor.vk.numImageViews.get());
 	ImGui::Text("RenderPass     %u", performanceMonitor.vk.numRenderPass.get());
 	ImGui::Text("Framebuffer    %u", performanceMonitor.vk.numFramebuffer.get());
-	m_spinlockDestructionQueue.acquire();
+	m_spinlockDestructionQueue.lock();
 	ImGui::Text("DestructionQ   %u", (unsigned int)m_destructionQueue.size());
-	m_spinlockDestructionQueue.release();
+	m_spinlockDestructionQueue.unlock();
 
 
 	ImGui::Text("BeginRP/f      %u", performanceMonitor.vk.numBeginRenderpassPerFrame.get());

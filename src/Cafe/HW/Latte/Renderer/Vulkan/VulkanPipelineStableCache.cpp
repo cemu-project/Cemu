@@ -206,18 +206,18 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 
 	// deserialize file
 	LatteContextRegister* lcr = new LatteContextRegister();
-	s_spinlockSharedInternal.acquire();
+	s_spinlockSharedInternal.lock();
 	CachedPipeline* cachedPipeline = new CachedPipeline();
-	s_spinlockSharedInternal.release();
+	s_spinlockSharedInternal.unlock();
 
 	MemStreamReader streamReader(fileData.data(), fileData.size());
 	if (!DeserializePipeline(streamReader, *cachedPipeline))
 	{
 		// failed to deserialize
-		s_spinlockSharedInternal.acquire();
+		s_spinlockSharedInternal.lock();
 		delete lcr;
 		delete cachedPipeline;
-		s_spinlockSharedInternal.release();
+		s_spinlockSharedInternal.unlock();
 		return;
 	}
 	// restored register view from compacted state
@@ -264,18 +264,18 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	}
 	auto renderPass = __CreateTemporaryRenderPass(pixelShader, *lcr);
 	// create pipeline info
-	m_pipelineIsCachedLock.acquire();
+	m_pipelineIsCachedLock.lock();
 	PipelineInfo* pipelineInfo = new PipelineInfo(0, 0, vertexShader->compatibleFetchShader, vertexShader, pixelShader, geometryShader);
-	m_pipelineIsCachedLock.release();
+	m_pipelineIsCachedLock.unlock();
 	// compile
 	{
 		PipelineCompiler pp;
 		if (!pp.InitFromCurrentGPUState(pipelineInfo, *lcr, renderPass))
 		{
-			s_spinlockSharedInternal.acquire();
+			s_spinlockSharedInternal.lock();
 			delete lcr;
 			delete cachedPipeline;
-			s_spinlockSharedInternal.release();
+			s_spinlockSharedInternal.unlock();
 			return;
 		}
 		pp.Compile(true, true, false);
@@ -284,16 +284,16 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// on success, calculate pipeline hash and flag as present in cache
 	uint64 pipelineBaseHash = vertexShader->baseHash;
 	uint64 pipelineStateHash = VulkanRenderer::draw_calculateGraphicsPipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, renderPass, *lcr);
-	m_pipelineIsCachedLock.acquire();
+	m_pipelineIsCachedLock.lock();
 	m_pipelineIsCached.emplace(pipelineBaseHash, pipelineStateHash);
-	m_pipelineIsCachedLock.release();
+	m_pipelineIsCachedLock.unlock();
 	// clean up
-	s_spinlockSharedInternal.acquire();
+	s_spinlockSharedInternal.lock();
 	delete pipelineInfo;
 	delete lcr;
 	delete cachedPipeline;
 	VulkanRenderer::GetInstance()->releaseDestructibleObject(renderPass);
-	s_spinlockSharedInternal.release();
+	s_spinlockSharedInternal.unlock();
 }
 
 bool VulkanPipelineStableCache::HasPipelineCached(uint64 baseHash, uint64 pipelineStateHash)

@@ -15,10 +15,7 @@ const ControllerState& ControllerBase::update_state()
 	ControllerState result = raw_state();
 
 	// ignore default buttons
-	for (auto&& el : m_default_state.buttons)
-	{
-		result.buttons[el.first] = result.buttons[el.first] && !el.second;
-	}
+	result.buttons.UnsetButtons(m_default_state.buttons);
 	// apply deadzone and range and ignore default axis values
 	apply_axis_setting(result.axis, m_default_state.axis, m_settings.axis);
 	apply_axis_setting(result.rotation, m_default_state.rotation, m_settings.rotation);
@@ -26,22 +23,22 @@ const ControllerState& ControllerBase::update_state()
 
 #define APPLY_AXIS_BUTTON(_axis_, _flag_) \
 	if (result._axis_.x < -ControllerState::kAxisThreshold) \
-		result.buttons[(_flag_) + (kAxisXN - kAxisXP)]=true; \
+		result.buttons.SetButtonState((_flag_) + (kAxisXN - kAxisXP), true); \
 	else if (result._axis_.x > ControllerState::kAxisThreshold) \
-		result.buttons[(_flag_)]=true; \
+		result.buttons.SetButtonState((_flag_), true); \
 	if (result._axis_.y < -ControllerState::kAxisThreshold) \
-		result.buttons[(_flag_) + 1 + (kAxisXN - kAxisXP)]=true; \
+		result.buttons.SetButtonState((_flag_) + 1 + (kAxisXN - kAxisXP), true); \
 	else if (result._axis_.y > ControllerState::kAxisThreshold) \
-		result.buttons[(_flag_) + 1]=true;
+		result.buttons.SetButtonState((_flag_) + 1, true);
 
 	if (result.axis.x < -ControllerState::kAxisThreshold) 
-		result.buttons[(kAxisXP) + (kAxisXN - kAxisXP)]=true;
+		result.buttons.SetButtonState((kAxisXP) + (kAxisXN - kAxisXP), true);
 	else if (result.axis.x > ControllerState::kAxisThreshold) 
-		result.buttons[(kAxisXP)]=true;
+		result.buttons.SetButtonState((kAxisXP), true);
 	if (result.axis.y < -ControllerState::kAxisThreshold) 
-		result.buttons[(kAxisXP) + 1 + (kAxisXN - kAxisXP)]=true;
+		result.buttons.SetButtonState((kAxisXP) + 1 + (kAxisXN - kAxisXP), true);
 	else if (result.axis.y > ControllerState::kAxisThreshold) 
-		result.buttons[(kAxisXP) + 1]=true;
+		result.buttons.SetButtonState((kAxisXP) + 1, true);
 	APPLY_AXIS_BUTTON(rotation, kRotationXP);
 	APPLY_AXIS_BUTTON(trigger, kTriggerXP);
 
@@ -129,8 +126,7 @@ bool ControllerBase::operator==(const ControllerBase& c) const
 
 float ControllerBase::get_axis_value(uint64 button) const
 {
-	auto buttonState=m_last_state.buttons.find(button);
-	if (buttonState!=m_last_state.buttons.end() && buttonState->second)
+	if (m_last_state.buttons.GetButtonState(button))
 	{
 		if (button <= kButtonNoneAxisMAX || !has_axis())
 			return 1.0f;

@@ -195,8 +195,6 @@ public:
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();
 
-	void EnableVSync(int state) override;
-
 #if BOOST_OS_WINDOWS
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
 #endif
@@ -484,8 +482,8 @@ private:
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
 	static std::vector<const char*> CheckInstanceExtensionSupport(FeatureControl& info);
 
+	void UpdateVSyncState(bool mainWindow);
 	void SwapBuffer(bool mainWindow);
-	VSync m_vsync_state = VSync::Immediate;
 
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
 
