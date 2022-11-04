@@ -269,9 +269,7 @@ typedef struct _PPCRecImlSegment_t
 	uint32 x64Offset{}; // x64 code offset of segment start
 	uint32 cycleCount{}; // number of PPC cycles required to execute this segment (roughly)
 	// list of intermediate instructions in this segment
-	PPCRecImlInstruction_t* imlList{};
-	sint32 imlListSize{};
-	sint32 imlListCount{};
+	std::vector<PPCRecImlInstruction_t> imlList;
 	// segment link
 	_PPCRecImlSegment_t* nextSegmentBranchNotTaken{}; // this is also the default for segments where there is no branch
 	_PPCRecImlSegment_t* nextSegmentBranchTaken{};

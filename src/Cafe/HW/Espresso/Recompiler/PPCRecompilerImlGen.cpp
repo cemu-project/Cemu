@@ -2990,7 +2990,7 @@ uint32 PPCRecompiler_getPreviousInstruction(ppcImlGenContext_t* ppcImlGenContext
 
 char _tempOpcodename[32];
 
-const char* PPCRecompiler_getOpcodeDebugName(PPCRecImlInstruction_t* iml)
+const char* PPCRecompiler_getOpcodeDebugName(const PPCRecImlInstruction_t* iml)
 {
 	uint32 op = iml->operation;
 	if (op == PPCREC_IML_OP_ASSIGN)
@@ -3115,294 +3115,295 @@ void PPCRecompiler_dumpIMLSegment(PPCRecImlSegment_t* imlSegment, sint32 segment
 
 	sint32 lineOffsetParameters = 18;
 
-	for(sint32 i=0; i<imlSegment->imlListCount; i++)
+	for(sint32 i=0; i<imlSegment->imlList.size(); i++)
 	{
+		const PPCRecImlInstruction_t& inst = imlSegment->imlList[i];
 		// don't log NOP instructions unless they have an associated PPC address
-		if(imlSegment->imlList[i].type == PPCREC_IML_TYPE_NO_OP && imlSegment->imlList[i].associatedPPCAddress == MPTR_NULL)
+		if(inst.type == PPCREC_IML_TYPE_NO_OP && inst.associatedPPCAddress == MPTR_NULL)
 			continue;
 		strOutput.reset();
-		strOutput.addFmt("{:08x} ", imlSegment->imlList[i].associatedPPCAddress);
-		if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_R_NAME || imlSegment->imlList[i].type == PPCREC_IML_TYPE_NAME_R)
+		strOutput.addFmt("{:08x} ", inst.associatedPPCAddress);
+		if( inst.type == PPCREC_IML_TYPE_R_NAME || inst.type == PPCREC_IML_TYPE_NAME_R)
 		{
-			if(imlSegment->imlList[i].type == PPCREC_IML_TYPE_R_NAME)
+			if(inst.type == PPCREC_IML_TYPE_R_NAME)
 				strOutput.add("LD_NAME");
 			else
 				strOutput.add("ST_NAME");
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
 
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_name.registerIndex);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_name.registerIndex);
 
-			strOutput.addFmt("name_{} (", imlSegment->imlList[i].op_r_name.registerIndex, imlSegment->imlList[i].op_r_name.name);
-			if( imlSegment->imlList[i].op_r_name.name >= PPCREC_NAME_R0 && imlSegment->imlList[i].op_r_name.name < (PPCREC_NAME_R0+999) )
+			strOutput.addFmt("name_{} (", inst.op_r_name.registerIndex, inst.op_r_name.name);
+			if( inst.op_r_name.name >= PPCREC_NAME_R0 && inst.op_r_name.name < (PPCREC_NAME_R0+999) )
 			{
-				strOutput.addFmt("r{}", imlSegment->imlList[i].op_r_name.name-PPCREC_NAME_R0);
+				strOutput.addFmt("r{}", inst.op_r_name.name-PPCREC_NAME_R0);
 			}
-			else if( imlSegment->imlList[i].op_r_name.name >= PPCREC_NAME_SPR0 && imlSegment->imlList[i].op_r_name.name < (PPCREC_NAME_SPR0+999) )
+			else if( inst.op_r_name.name >= PPCREC_NAME_SPR0 && inst.op_r_name.name < (PPCREC_NAME_SPR0+999) )
 			{
-				strOutput.addFmt("spr{}", imlSegment->imlList[i].op_r_name.name-PPCREC_NAME_SPR0);
+				strOutput.addFmt("spr{}", inst.op_r_name.name-PPCREC_NAME_SPR0);
 			}
 			else
 				strOutput.add("ukn");
 			strOutput.add(")");
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_R_R )
+		else if( inst.type == PPCREC_IML_TYPE_R_R )
 		{
-			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(imlSegment->imlList+i));
+			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(&inst));
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_r.registerResult);
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_r.registerA, true);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_r.registerResult);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_r.registerA, true);
 
-			if( imlSegment->imlList[i].crRegister != PPC_REC_INVALID_REGISTER )
+			if( inst.crRegister != PPC_REC_INVALID_REGISTER )
 			{
-				strOutput.addFmt(" -> CR{}", imlSegment->imlList[i].crRegister);
+				strOutput.addFmt(" -> CR{}", inst.crRegister);
 			}
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_R_R_R )
+		else if( inst.type == PPCREC_IML_TYPE_R_R_R )
 		{
-			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(imlSegment->imlList + i));
+			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(&inst));
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_r_r.registerResult);
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_r_r.registerA);
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_r_r.registerB, true);
-			if( imlSegment->imlList[i].crRegister != PPC_REC_INVALID_REGISTER )
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_r_r.registerResult);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_r_r.registerA);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_r_r.registerB, true);
+			if( inst.crRegister != PPC_REC_INVALID_REGISTER )
 			{
-				strOutput.addFmt(" -> CR{}", imlSegment->imlList[i].crRegister);
+				strOutput.addFmt(" -> CR{}", inst.crRegister);
 			}
 		}
-		else if (imlSegment->imlList[i].type == PPCREC_IML_TYPE_R_R_S32)
+		else if (inst.type == PPCREC_IML_TYPE_R_R_S32)
 		{
-			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(imlSegment->imlList + i));
-			while ((sint32)strOutput.getLen() < lineOffsetParameters)
-				strOutput.add(" ");
-
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_r_s32.registerResult);
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_r_s32.registerA);
-			PPCRecDebug_addS32Param(strOutput, imlSegment->imlList[i].op_r_r_s32.immS32, true);
-
-			if (imlSegment->imlList[i].crRegister != PPC_REC_INVALID_REGISTER)
-			{
-				strOutput.addFmt(" -> CR{}", imlSegment->imlList[i].crRegister);
-			}
-		}
-		else if (imlSegment->imlList[i].type == PPCREC_IML_TYPE_R_S32)
-		{
-			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(imlSegment->imlList + i));
+			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(&inst));
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
 
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_r_immS32.registerIndex);
-			PPCRecDebug_addS32Param(strOutput, imlSegment->imlList[i].op_r_immS32.immS32, true);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_r_s32.registerResult);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_r_s32.registerA);
+			PPCRecDebug_addS32Param(strOutput, inst.op_r_r_s32.immS32, true);
 
-			if (imlSegment->imlList[i].crRegister != PPC_REC_INVALID_REGISTER)
+			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
 			{
-				strOutput.addFmt(" -> CR{}", imlSegment->imlList[i].crRegister);
+				strOutput.addFmt(" -> CR{}", inst.crRegister);
 			}
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_JUMPMARK )
+		else if (inst.type == PPCREC_IML_TYPE_R_S32)
 		{
-			strOutput.addFmt("jm_{:08x}:", imlSegment->imlList[i].op_jumpmark.address);
+			strOutput.addFmt("{}", PPCRecompiler_getOpcodeDebugName(&inst));
+			while ((sint32)strOutput.getLen() < lineOffsetParameters)
+				strOutput.add(" ");
+
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_r_immS32.registerIndex);
+			PPCRecDebug_addS32Param(strOutput, inst.op_r_immS32.immS32, true);
+
+			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
+			{
+				strOutput.addFmt(" -> CR{}", inst.crRegister);
+			}
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_PPC_ENTER )
+		else if( inst.type == PPCREC_IML_TYPE_JUMPMARK )
 		{
-			strOutput.addFmt("ppcEnter_{:08x}:", imlSegment->imlList[i].op_ppcEnter.ppcAddress);
+			strOutput.addFmt("jm_{:08x}:", inst.op_jumpmark.address);
 		}
-		else if(imlSegment->imlList[i].type == PPCREC_IML_TYPE_LOAD || imlSegment->imlList[i].type == PPCREC_IML_TYPE_STORE ||
-			imlSegment->imlList[i].type == PPCREC_IML_TYPE_LOAD_INDEXED || imlSegment->imlList[i].type == PPCREC_IML_TYPE_STORE_INDEXED )
+		else if( inst.type == PPCREC_IML_TYPE_PPC_ENTER )
 		{
-			if(imlSegment->imlList[i].type == PPCREC_IML_TYPE_LOAD || imlSegment->imlList[i].type == PPCREC_IML_TYPE_LOAD_INDEXED)
+			strOutput.addFmt("ppcEnter_{:08x}:", inst.op_ppcEnter.ppcAddress);
+		}
+		else if(inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_STORE ||
+			inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED )
+		{
+			if(inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_LOAD_INDEXED)
 				strOutput.add("LD_");
 			else
 				strOutput.add("ST_");
 
-			if (imlSegment->imlList[i].op_storeLoad.flags2.signExtend)
+			if (inst.op_storeLoad.flags2.signExtend)
 				strOutput.add("S");
 			else
 				strOutput.add("U");
-			strOutput.addFmt("{}", imlSegment->imlList[i].op_storeLoad.copyWidth);
+			strOutput.addFmt("{}", inst.op_storeLoad.copyWidth);
 			
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
 
-			PPCRecDebug_addRegisterParam(strOutput, imlSegment->imlList[i].op_storeLoad.registerData);
+			PPCRecDebug_addRegisterParam(strOutput, inst.op_storeLoad.registerData);
 			
-			if(imlSegment->imlList[i].type == PPCREC_IML_TYPE_LOAD_INDEXED || imlSegment->imlList[i].type == PPCREC_IML_TYPE_STORE_INDEXED)
-				strOutput.addFmt("[t{}+t{}]", imlSegment->imlList[i].op_storeLoad.registerMem, imlSegment->imlList[i].op_storeLoad.registerMem2);
+			if(inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
+				strOutput.addFmt("[t{}+t{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.registerMem2);
 			else
-				strOutput.addFmt("[t{}+{}]", imlSegment->imlList[i].op_storeLoad.registerMem, imlSegment->imlList[i].op_storeLoad.immS32);
+				strOutput.addFmt("[t{}+{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.immS32);
 		}
-		else if (imlSegment->imlList[i].type == PPCREC_IML_TYPE_MEM2MEM)
+		else if (inst.type == PPCREC_IML_TYPE_MEM2MEM)
 		{
-			strOutput.addFmt("{} [t{}+{}] = [t{}+{}]", imlSegment->imlList[i].op_mem2mem.copyWidth, imlSegment->imlList[i].op_mem2mem.dst.registerMem, imlSegment->imlList[i].op_mem2mem.dst.immS32, imlSegment->imlList[i].op_mem2mem.src.registerMem, imlSegment->imlList[i].op_mem2mem.src.immS32);
+			strOutput.addFmt("{} [t{}+{}] = [t{}+{}]", inst.op_mem2mem.copyWidth, inst.op_mem2mem.dst.registerMem, inst.op_mem2mem.dst.immS32, inst.op_mem2mem.src.registerMem, inst.op_mem2mem.src.immS32);
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_CJUMP )
+		else if( inst.type == PPCREC_IML_TYPE_CJUMP )
 		{
-			if (imlSegment->imlList[i].op_conditionalJump.condition == PPCREC_JUMP_CONDITION_E)
+			if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_E)
 				strOutput.add("JE");
-			else if (imlSegment->imlList[i].op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NE)
+			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NE)
 				strOutput.add("JNE");
-			else if (imlSegment->imlList[i].op_conditionalJump.condition == PPCREC_JUMP_CONDITION_G)
+			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_G)
 				strOutput.add("JG");
-			else if (imlSegment->imlList[i].op_conditionalJump.condition == PPCREC_JUMP_CONDITION_GE)
+			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_GE)
 				strOutput.add("JGE");
-			else if (imlSegment->imlList[i].op_conditionalJump.condition == PPCREC_JUMP_CONDITION_L)
+			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_L)
 				strOutput.add("JL");
-			else if (imlSegment->imlList[i].op_conditionalJump.condition == PPCREC_JUMP_CONDITION_LE)
+			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_LE)
 				strOutput.add("JLE");
-			else if (imlSegment->imlList[i].op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NONE)
+			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NONE)
 				strOutput.add("JALW"); // jump always
 			else
 				cemu_assert_unimplemented();
-			strOutput.addFmt(" jm_{:08x} (cr{})", imlSegment->imlList[i].op_conditionalJump.jumpmarkAddress, imlSegment->imlList[i].crRegister);
+			strOutput.addFmt(" jm_{:08x} (cr{})", inst.op_conditionalJump.jumpmarkAddress, inst.crRegister);
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_NO_OP )
+		else if( inst.type == PPCREC_IML_TYPE_NO_OP )
 		{
 		strOutput.add("NOP");
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_MACRO )
+		else if( inst.type == PPCREC_IML_TYPE_MACRO )
 		{
-			if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_BLR )
+			if( inst.operation == PPCREC_IML_MACRO_BLR )
 			{
-				strOutput.addFmt("MACRO BLR 0x{:08x} cycles (depr): {}", imlSegment->imlList[i].op_macro.param, (sint32)imlSegment->imlList[i].op_macro.paramU16);
+				strOutput.addFmt("MACRO BLR 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_BLRL )
+			else if( inst.operation == PPCREC_IML_MACRO_BLRL )
 			{
-				strOutput.addFmt("MACRO BLRL 0x{:08x} cycles (depr): {}", imlSegment->imlList[i].op_macro.param, (sint32)imlSegment->imlList[i].op_macro.paramU16);
+				strOutput.addFmt("MACRO BLRL 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_BCTR )
+			else if( inst.operation == PPCREC_IML_MACRO_BCTR )
 			{
-				strOutput.addFmt("MACRO BCTR 0x{:08x} cycles (depr): {}", imlSegment->imlList[i].op_macro.param, (sint32)imlSegment->imlList[i].op_macro.paramU16);
+				strOutput.addFmt("MACRO BCTR 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_BCTRL )
+			else if( inst.operation == PPCREC_IML_MACRO_BCTRL )
 			{
-				strOutput.addFmt("MACRO BCTRL 0x{:08x} cycles (depr): {}", imlSegment->imlList[i].op_macro.param, (sint32)imlSegment->imlList[i].op_macro.paramU16);
+				strOutput.addFmt("MACRO BCTRL 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_BL )
+			else if( inst.operation == PPCREC_IML_MACRO_BL )
 			{
-				strOutput.addFmt("MACRO BL 0x{:08x} -> 0x{:08x} cycles (depr): {}", imlSegment->imlList[i].op_macro.param, imlSegment->imlList[i].op_macro.param2, (sint32)imlSegment->imlList[i].op_macro.paramU16);
+				strOutput.addFmt("MACRO BL 0x{:08x} -> 0x{:08x} cycles (depr): {}", inst.op_macro.param, inst.op_macro.param2, (sint32)inst.op_macro.paramU16);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_B_FAR )
+			else if( inst.operation == PPCREC_IML_MACRO_B_FAR )
 			{
-				strOutput.addFmt("MACRO B_FAR 0x{:08x} -> 0x{:08x} cycles (depr): {}", imlSegment->imlList[i].op_macro.param, imlSegment->imlList[i].op_macro.param2, (sint32)imlSegment->imlList[i].op_macro.paramU16);
+				strOutput.addFmt("MACRO B_FAR 0x{:08x} -> 0x{:08x} cycles (depr): {}", inst.op_macro.param, inst.op_macro.param2, (sint32)inst.op_macro.paramU16);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_LEAVE )
+			else if( inst.operation == PPCREC_IML_MACRO_LEAVE )
 			{
-				strOutput.addFmt("MACRO LEAVE ppc: 0x{:08x}", imlSegment->imlList[i].op_macro.param);
+				strOutput.addFmt("MACRO LEAVE ppc: 0x{:08x}", inst.op_macro.param);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_HLE )
+			else if( inst.operation == PPCREC_IML_MACRO_HLE )
 			{
-				strOutput.addFmt("MACRO HLE ppcAddr: 0x{:08x} funcId: 0x{:08x}", imlSegment->imlList[i].op_macro.param, imlSegment->imlList[i].op_macro.param2);
+				strOutput.addFmt("MACRO HLE ppcAddr: 0x{:08x} funcId: 0x{:08x}", inst.op_macro.param, inst.op_macro.param2);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_MFTB )
+			else if( inst.operation == PPCREC_IML_MACRO_MFTB )
 			{
-				strOutput.addFmt("MACRO MFTB ppcAddr: 0x{:08x} sprId: 0x{:08x}", imlSegment->imlList[i].op_macro.param, imlSegment->imlList[i].op_macro.param2);
+				strOutput.addFmt("MACRO MFTB ppcAddr: 0x{:08x} sprId: 0x{:08x}", inst.op_macro.param, inst.op_macro.param2);
 			}
-			else if( imlSegment->imlList[i].operation == PPCREC_IML_MACRO_COUNT_CYCLES )
+			else if( inst.operation == PPCREC_IML_MACRO_COUNT_CYCLES )
 			{
-				strOutput.addFmt("MACRO COUNT_CYCLES cycles: {}", imlSegment->imlList[i].op_macro.param);
+				strOutput.addFmt("MACRO COUNT_CYCLES cycles: {}", inst.op_macro.param);
 			}
 			else
 			{
-				strOutput.addFmt("MACRO ukn operation {}", imlSegment->imlList[i].operation);
+				strOutput.addFmt("MACRO ukn operation {}", inst.operation);
 			}
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_FPR_R_NAME )
+		else if( inst.type == PPCREC_IML_TYPE_FPR_R_NAME )
 		{
-			strOutput.addFmt("fpr_t{} = name_{} (", imlSegment->imlList[i].op_r_name.registerIndex, imlSegment->imlList[i].op_r_name.name);
-			if( imlSegment->imlList[i].op_r_name.name >= PPCREC_NAME_FPR0 && imlSegment->imlList[i].op_r_name.name < (PPCREC_NAME_FPR0+999) )
+			strOutput.addFmt("fpr_t{} = name_{} (", inst.op_r_name.registerIndex, inst.op_r_name.name);
+			if( inst.op_r_name.name >= PPCREC_NAME_FPR0 && inst.op_r_name.name < (PPCREC_NAME_FPR0+999) )
 			{
-				strOutput.addFmt("fpr{}", imlSegment->imlList[i].op_r_name.name-PPCREC_NAME_FPR0);
+				strOutput.addFmt("fpr{}", inst.op_r_name.name-PPCREC_NAME_FPR0);
 			}
-			else if( imlSegment->imlList[i].op_r_name.name >= PPCREC_NAME_TEMPORARY_FPR0 && imlSegment->imlList[i].op_r_name.name < (PPCREC_NAME_TEMPORARY_FPR0+999) )
+			else if( inst.op_r_name.name >= PPCREC_NAME_TEMPORARY_FPR0 && inst.op_r_name.name < (PPCREC_NAME_TEMPORARY_FPR0+999) )
 			{
-				strOutput.addFmt("tempFpr{}", imlSegment->imlList[i].op_r_name.name-PPCREC_NAME_TEMPORARY_FPR0);
+				strOutput.addFmt("tempFpr{}", inst.op_r_name.name-PPCREC_NAME_TEMPORARY_FPR0);
 			}
 			else
 				strOutput.add("ukn");
 			strOutput.add(")");
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_FPR_NAME_R )
+		else if( inst.type == PPCREC_IML_TYPE_FPR_NAME_R )
 		{
-			strOutput.addFmt("name_{} (", imlSegment->imlList[i].op_r_name.name);
-			if( imlSegment->imlList[i].op_r_name.name >= PPCREC_NAME_FPR0 && imlSegment->imlList[i].op_r_name.name < (PPCREC_NAME_FPR0+999) )
+			strOutput.addFmt("name_{} (", inst.op_r_name.name);
+			if( inst.op_r_name.name >= PPCREC_NAME_FPR0 && inst.op_r_name.name < (PPCREC_NAME_FPR0+999) )
 			{
-				strOutput.addFmt("fpr{}", imlSegment->imlList[i].op_r_name.name-PPCREC_NAME_FPR0);
+				strOutput.addFmt("fpr{}", inst.op_r_name.name-PPCREC_NAME_FPR0);
 			}
-			else if( imlSegment->imlList[i].op_r_name.name >= PPCREC_NAME_TEMPORARY_FPR0 && imlSegment->imlList[i].op_r_name.name < (PPCREC_NAME_TEMPORARY_FPR0+999) )
+			else if( inst.op_r_name.name >= PPCREC_NAME_TEMPORARY_FPR0 && inst.op_r_name.name < (PPCREC_NAME_TEMPORARY_FPR0+999) )
 			{
-				strOutput.addFmt("tempFpr{}", imlSegment->imlList[i].op_r_name.name-PPCREC_NAME_TEMPORARY_FPR0);
+				strOutput.addFmt("tempFpr{}", inst.op_r_name.name-PPCREC_NAME_TEMPORARY_FPR0);
 			}
 			else
 				strOutput.add("ukn");
-			strOutput.addFmt(") = fpr_t{}", imlSegment->imlList[i].op_r_name.registerIndex);
+			strOutput.addFmt(") = fpr_t{}", inst.op_r_name.registerIndex);
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_FPR_LOAD )
+		else if( inst.type == PPCREC_IML_TYPE_FPR_LOAD )
 		{
-			strOutput.addFmt("fpr_t{} = ", imlSegment->imlList[i].op_storeLoad.registerData);
-			if( imlSegment->imlList[i].op_storeLoad.flags2.signExtend )
+			strOutput.addFmt("fpr_t{} = ", inst.op_storeLoad.registerData);
+			if( inst.op_storeLoad.flags2.signExtend )
 				strOutput.add("S");
 			else
 				strOutput.add("U");
-			strOutput.addFmt("{} [t{}+{}] mode {}", imlSegment->imlList[i].op_storeLoad.copyWidth / 8, imlSegment->imlList[i].op_storeLoad.registerMem, imlSegment->imlList[i].op_storeLoad.immS32, imlSegment->imlList[i].op_storeLoad.mode);
-			if (imlSegment->imlList[i].op_storeLoad.flags2.notExpanded)
+			strOutput.addFmt("{} [t{}+{}] mode {}", inst.op_storeLoad.copyWidth / 8, inst.op_storeLoad.registerMem, inst.op_storeLoad.immS32, inst.op_storeLoad.mode);
+			if (inst.op_storeLoad.flags2.notExpanded)
 			{
 				strOutput.addFmt(" <No expand>");
 			}
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_FPR_STORE )
+		else if( inst.type == PPCREC_IML_TYPE_FPR_STORE )
 		{
-			if( imlSegment->imlList[i].op_storeLoad.flags2.signExtend )
+			if( inst.op_storeLoad.flags2.signExtend )
 				strOutput.add("S");
 			else
 				strOutput.add("U");
-			strOutput.addFmt("{} [t{}+{}]", imlSegment->imlList[i].op_storeLoad.copyWidth/8, imlSegment->imlList[i].op_storeLoad.registerMem, imlSegment->imlList[i].op_storeLoad.immS32);
-			strOutput.addFmt("= fpr_t{} mode {}\n", imlSegment->imlList[i].op_storeLoad.registerData, imlSegment->imlList[i].op_storeLoad.mode);
+			strOutput.addFmt("{} [t{}+{}]", inst.op_storeLoad.copyWidth/8, inst.op_storeLoad.registerMem, inst.op_storeLoad.immS32);
+			strOutput.addFmt("= fpr_t{} mode {}\n", inst.op_storeLoad.registerData, inst.op_storeLoad.mode);
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_FPR_R_R )
+		else if( inst.type == PPCREC_IML_TYPE_FPR_R_R )
 		{
-			strOutput.addFmt("{:-6} ", PPCRecompiler_getOpcodeDebugName(&imlSegment->imlList[i]));
-			strOutput.addFmt("fpr{:02d}, fpr{:02d}", imlSegment->imlList[i].op_fpr_r_r.registerResult, imlSegment->imlList[i].op_fpr_r_r.registerOperand);
+			strOutput.addFmt("{:-6} ", PPCRecompiler_getOpcodeDebugName(&inst));
+			strOutput.addFmt("fpr{:02d}, fpr{:02d}", inst.op_fpr_r_r.registerResult, inst.op_fpr_r_r.registerOperand);
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_FPR_R_R_R_R )
+		else if( inst.type == PPCREC_IML_TYPE_FPR_R_R_R_R )
 		{
-			strOutput.addFmt("{:-6} ", PPCRecompiler_getOpcodeDebugName(&imlSegment->imlList[i]));
-			strOutput.addFmt("fpr{:02d}, fpr{:02d}, fpr{:02d}, fpr{:02d}", imlSegment->imlList[i].op_fpr_r_r_r_r.registerResult, imlSegment->imlList[i].op_fpr_r_r_r_r.registerOperandA, imlSegment->imlList[i].op_fpr_r_r_r_r.registerOperandB, imlSegment->imlList[i].op_fpr_r_r_r_r.registerOperandC);
+			strOutput.addFmt("{:-6} ", PPCRecompiler_getOpcodeDebugName(&inst));
+			strOutput.addFmt("fpr{:02d}, fpr{:02d}, fpr{:02d}, fpr{:02d}", inst.op_fpr_r_r_r_r.registerResult, inst.op_fpr_r_r_r_r.registerOperandA, inst.op_fpr_r_r_r_r.registerOperandB, inst.op_fpr_r_r_r_r.registerOperandC);
 		}
-		else if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_FPR_R_R_R )
+		else if( inst.type == PPCREC_IML_TYPE_FPR_R_R_R )
 		{
-			strOutput.addFmt("{:-6} ", PPCRecompiler_getOpcodeDebugName(&imlSegment->imlList[i]));
-			strOutput.addFmt("fpr{:02d}, fpr{:02d}, fpr{:02d}", imlSegment->imlList[i].op_fpr_r_r_r.registerResult, imlSegment->imlList[i].op_fpr_r_r_r.registerOperandA, imlSegment->imlList[i].op_fpr_r_r_r.registerOperandB);
+			strOutput.addFmt("{:-6} ", PPCRecompiler_getOpcodeDebugName(&inst));
+			strOutput.addFmt("fpr{:02d}, fpr{:02d}, fpr{:02d}", inst.op_fpr_r_r_r.registerResult, inst.op_fpr_r_r_r.registerOperandA, inst.op_fpr_r_r_r.registerOperandB);
 		}
-		else if (imlSegment->imlList[i].type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+		else if (inst.type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 		{
-			strOutput.addFmt("CYCLE_CHECK jm_{:08x}\n", imlSegment->imlList[i].op_conditionalJump.jumpmarkAddress);
+			strOutput.addFmt("CYCLE_CHECK jm_{:08x}\n", inst.op_conditionalJump.jumpmarkAddress);
 		}
-		else if (imlSegment->imlList[i].type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
+		else if (inst.type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
 		{
-			strOutput.addFmt("t{} ", imlSegment->imlList[i].op_conditional_r_s32.registerIndex);
+			strOutput.addFmt("t{} ", inst.op_conditional_r_s32.registerIndex);
 			bool displayAsHex = false;
-			if (imlSegment->imlList[i].operation == PPCREC_IML_OP_ASSIGN)
+			if (inst.operation == PPCREC_IML_OP_ASSIGN)
 			{
 				displayAsHex = true;
 				strOutput.add("=");
 			}
 			else
-				strOutput.addFmt("(unknown operation CONDITIONAL_R_S32 {})", imlSegment->imlList[i].operation);
+				strOutput.addFmt("(unknown operation CONDITIONAL_R_S32 {})", inst.operation);
 			if (displayAsHex)
-				strOutput.addFmt(" 0x{:x}", imlSegment->imlList[i].op_conditional_r_s32.immS32);
+				strOutput.addFmt(" 0x{:x}", inst.op_conditional_r_s32.immS32);
 			else
-				strOutput.addFmt(" {}", imlSegment->imlList[i].op_conditional_r_s32.immS32);
+				strOutput.addFmt(" {}", inst.op_conditional_r_s32.immS32);
 			strOutput.add(" (conditional)");
-			if (imlSegment->imlList[i].crRegister != PPC_REC_INVALID_REGISTER)
+			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
 			{
-				strOutput.addFmt(" -> and update CR{}", imlSegment->imlList[i].crRegister);
+				strOutput.addFmt(" -> and update CR{}", inst.crRegister);
 			}
 		}
 		else
 		{
-		strOutput.addFmt("Unknown iml type {}", imlSegment->imlList[i].type);
+		strOutput.addFmt("Unknown iml type {}", inst.type);
 		}
 		debug_printf("%s", strOutput.c_str());
 		if (printLivenessRangeInfo)
@@ -3484,25 +3485,19 @@ void PPCRecompilerIml_removeSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoi
 */
 void PPCRecompiler_pushBackIMLInstructions(PPCRecImlSegment_t* imlSegment, sint32 index, sint32 shiftBackCount)
 {
-	cemu_assert(index >= 0 && index <= imlSegment->imlListCount);
+	cemu_assert_debug(index >= 0 && index <= imlSegment->imlList.size());
 
-	if (imlSegment->imlListCount + shiftBackCount > imlSegment->imlListSize)
-	{
-		sint32 newSize = imlSegment->imlListCount + shiftBackCount + std::max(2, imlSegment->imlListSize/2);
-		imlSegment->imlList = (PPCRecImlInstruction_t*)realloc(imlSegment->imlList, sizeof(PPCRecImlInstruction_t)*newSize);
-		imlSegment->imlListSize = newSize;
-	}
-	for (sint32 i = (sint32)imlSegment->imlListCount - 1; i >= index; i--)
-	{
-		memcpy(imlSegment->imlList + (i + shiftBackCount), imlSegment->imlList + i, sizeof(PPCRecImlInstruction_t));
-	}
+	imlSegment->imlList.insert(imlSegment->imlList.begin() + index, shiftBackCount, {});
+
+	memset(imlSegment->imlList.data() + index, 0, sizeof(PPCRecImlInstruction_t) * shiftBackCount);
+
 	// fill empty space with NOP instructions
 	for (sint32 i = 0; i < shiftBackCount; i++)
 	{
 		imlSegment->imlList[index + i].type = PPCREC_IML_TYPE_NONE;
 	}
-	imlSegment->imlListCount += shiftBackCount;
 
+	// update position of segment points
 	if (imlSegment->segmentPointList)
 	{
 		ppcRecompilerSegmentPoint_t* segmentPoint = imlSegment->segmentPointList;
@@ -3519,32 +3514,18 @@ void PPCRecompiler_pushBackIMLInstructions(PPCRecImlSegment_t* imlSegment, sint3
 	}
 }
 
-/*
-* Insert and return new instruction at index
-* Warning: Can invalidate any previous instruction structs from the same segment
-*/
 PPCRecImlInstruction_t* PPCRecompiler_insertInstruction(PPCRecImlSegment_t* imlSegment, sint32 index)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, index, 1);
-	return imlSegment->imlList + index;
+	return imlSegment->imlList.data() + index;
 }
 
-/*
-* Append and return new instruction at the end of the segment
-* Warning: Can invalidate any previous instruction structs from the same segment
-*/
 PPCRecImlInstruction_t* PPCRecompiler_appendInstruction(PPCRecImlSegment_t* imlSegment)
 {
-	sint32 index = imlSegment->imlListCount;
-	if (index >= imlSegment->imlListSize)
-	{
-		sint32 newSize = index+1;
-		imlSegment->imlList = (PPCRecImlInstruction_t*)realloc(imlSegment->imlList, sizeof(PPCRecImlInstruction_t)*newSize);
-		imlSegment->imlListSize = newSize;
-	}
-	imlSegment->imlListCount++;
-	memset(imlSegment->imlList + index, 0, sizeof(PPCRecImlInstruction_t));
-	return imlSegment->imlList + index;
+	size_t index = imlSegment->imlList.size();
+	imlSegment->imlList.emplace_back();
+	memset(imlSegment->imlList.data() + index, 0, sizeof(PPCRecImlInstruction_t));
+	return imlSegment->imlList.data() + index;
 }
 
 PPCRecImlSegment_t* PPCRecompilerIml_appendSegment(ppcImlGenContext_t* ppcImlGenContext)
@@ -3571,7 +3552,7 @@ void PPCRecompiler_freeContext(ppcImlGenContext_t* ppcImlGenContext)
 
 	for (PPCRecImlSegment_t* imlSegment : ppcImlGenContext->segmentList2)
 	{
-		free(imlSegment->imlList);
+		//free(imlSegment->imlList);
 		delete imlSegment;
 	}
 	ppcImlGenContext->segmentList2.clear();
@@ -4637,31 +4618,37 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		uint32 imlCount = segIt->count;
 		if( imlCount > 0 )
 		{
-			segIt->imlListSize = imlCount + 4;
-			segIt->imlList = (PPCRecImlInstruction_t*)malloc(sizeof(PPCRecImlInstruction_t)* segIt->imlListSize);
-			segIt->imlListCount = imlCount;
-			memcpy(segIt->imlList, ppcImlGenContext.imlList+imlStartIndex, sizeof(PPCRecImlInstruction_t)*imlCount);
+			//segIt->imlListSize = imlCount + 4;
+			//segIt->imlList = (PPCRecImlInstruction_t*)malloc(sizeof(PPCRecImlInstruction_t) * segIt->imlListSize);
+			//segIt->imlListCount = imlCount;
+			//memcpy(segIt->imlList, ppcImlGenContext.imlList+imlStartIndex, sizeof(PPCRecImlInstruction_t)*imlCount);
+			cemu_assert_debug(segIt->imlList.empty());
+			//segIt->imlList.resize(imlCount);
+			//segIt->imlList.insert(segIt->imlList.begin() + imlStartIndex, );
+			segIt->imlList.insert(segIt->imlList.begin(), ppcImlGenContext.imlList + imlStartIndex, ppcImlGenContext.imlList + imlStartIndex + imlCount);
+
 		}
 		else
 		{
 			// empty segments are allowed so we can handle multiple PPC entry addresses pointing to the same code
-			segIt->imlList = nullptr;
-			segIt->imlListSize = 0;
-			segIt->imlListCount = 0;
+			cemu_assert_debug(segIt->imlList.empty());
+			//segIt->imlList = nullptr;
+			//segIt->imlListSize = 0;
+			//segIt->imlListCount = 0;
 		}
 		segIt->startOffset = 9999999;
 		segIt->count = 9999999;
 	}
 	// clear segment-independent iml list
 	free(ppcImlGenContext.imlList);
-	ppcImlGenContext.imlList = NULL;
+	ppcImlGenContext.imlList = nullptr;
 	ppcImlGenContext.imlListCount = 999999; // set to high number to force crash in case old code still uses ppcImlGenContext.imlList
 	// calculate PPC address of each segment based on iml instructions inside that segment (we need this info to calculate how many cpu cycles each segment takes)
 	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2)
 	{
 		uint32 segmentPPCAddrMin = 0xFFFFFFFF;
 		uint32 segmentPPCAddrMax = 0x00000000;
-		for(sint32 i=0; i< segIt->imlListCount; i++)
+		for(sint32 i=0; i< segIt->imlList.size(); i++)
 		{
 			if(segIt->imlList[i].associatedPPCAddress == 0 )
 				continue;
@@ -4686,7 +4673,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	// jumpmarks mark the segment as a jump destination (within the same function)
 	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2)
 	{
-		while (segIt->imlListCount > 0)
+		while (segIt->imlList.size() > 0)
 		{
 			if (segIt->imlList[0].type == PPCREC_IML_TYPE_PPC_ENTER)
 			{
@@ -4735,7 +4722,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		PPCRecImlSegment_t* finalSegment = segIt->nextSegmentBranchTaken;
 		if (segIt->nextSegmentBranchTaken != segIt->nextSegmentBranchNotTaken->nextSegmentBranchNotTaken)
 			continue;
-		if (segIt->nextSegmentBranchNotTaken->imlListCount > 4)
+		if (segIt->nextSegmentBranchNotTaken->imlList.size() > 4)
 			continue;
 		if (conditionalSegment->list_prevSegments.size() != 1)
 			continue; // the reduced segment must not be the target of any other branch
@@ -4743,9 +4730,9 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 			continue;
 		// check if the segment contains only iml instructions that can be turned into conditional moves (Value assignment, register assignment)
 		bool canReduceSegment = true;
-		for (sint32 f = 0; f < conditionalSegment->imlListCount; f++)
+		for (sint32 f = 0; f < conditionalSegment->imlList.size(); f++)
 		{
-			PPCRecImlInstruction_t* imlInstruction = conditionalSegment->imlList+f;
+			PPCRecImlInstruction_t* imlInstruction = conditionalSegment->imlList.data() + f;
 			if( imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
 				continue;
 			// todo: Register to register copy
@@ -4764,9 +4751,9 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		PPCRecompilerImlGen_generateNewInstruction_noOp(&ppcImlGenContext, lastInstruction);
 
 		// append conditional moves based on branch condition
-		for (sint32 f = 0; f < conditionalSegment->imlListCount; f++)
+		for (sint32 f = 0; f < conditionalSegment->imlList.size(); f++)
 		{
-			PPCRecImlInstruction_t* imlInstruction = conditionalSegment->imlList + f;
+			PPCRecImlInstruction_t* imlInstruction = conditionalSegment->imlList.data() + f;
 			if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
 				PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(&ppcImlGenContext, PPCRecompiler_appendInstruction(segIt), PPCREC_IML_OP_ASSIGN, imlInstruction->op_r_immS32.registerIndex, imlInstruction->op_r_immS32.immS32, branchCond_crRegisterIndex, branchCond_crBitIndex, !branchCond_bitMustBeSet);
 			else
@@ -4779,7 +4766,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		PPCRecompilerIML_removeLink(conditionalSegment, finalSegment);
 		PPCRecompilerIml_setLinkBranchNotTaken(segIt, finalSegment);
 		// remove all instructions from conditional segment
-		conditionalSegment->imlListCount = 0;
+		conditionalSegment->imlList.clear();
 
 		// if possible, merge imlSegment with finalSegment
 		if (finalSegment->isEnterable == false && finalSegment->list_prevSegments.size() == 1)
@@ -4799,11 +4786,12 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 				PPCRecompilerIml_setLinkBranchTaken(segIt, tempSegment);
 			}
 			// copy IML instructions
-			for (sint32 f = 0; f < finalSegment->imlListCount; f++)
+			cemu_assert_debug(segIt != finalSegment);
+			for (sint32 f = 0; f < finalSegment->imlList.size(); f++)
 			{
-				memcpy(PPCRecompiler_appendInstruction(segIt), finalSegment->imlList + f, sizeof(PPCRecImlInstruction_t));
+				memcpy(PPCRecompiler_appendInstruction(segIt), finalSegment->imlList.data() + f, sizeof(PPCRecImlInstruction_t));
 			}
-			finalSegment->imlListCount = 0;
+			finalSegment->imlList.clear();
 
 			//PPCRecompiler_dumpIML(ppcRecFunc, &ppcImlGenContext);
 		}
@@ -4820,7 +4808,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		// note: This algorithm correctly counts inlined functions but it doesn't count NO-OP instructions like ISYNC since they generate no IML instructions
 		uint32 lastPPCInstAddr = 0;
 		uint32 ppcCount2 = 0;
-		for (sint32 i = 0; i < segIt->imlListCount; i++)
+		for (sint32 i = 0; i < segIt->imlList.size(); i++)
 		{
 			if (segIt->imlList[i].associatedPPCAddress == 0)
 				continue;
@@ -4849,11 +4837,11 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	{
 		// todo: This currently uses segment->ppcAddrMin which isn't really reliable. (We already had a problem where function inlining would generate falsified segment ranges by omitting the branch instruction). Find a better solution (use jumpmark/enterable offsets?)
 		PPCRecImlSegment_t* imlSegment = ppcImlGenContext.segmentList2[s];
-		if( imlSegment->imlListCount == 0 )
+		if( imlSegment->imlList.empty() )
 			continue;
-		if (imlSegment->imlList[imlSegment->imlListCount - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlListCount - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
+		if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
 			continue;
-		if (imlSegment->imlList[imlSegment->imlListCount - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlListCount - 1].op_conditionalJump.jumpAccordingToSegment)
+		if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpAccordingToSegment)
 			continue;
 		// exclude non-infinite tight loops
 		if (PPCRecompilerImlAnalyzer_isTightFiniteLoop(imlSegment))
@@ -4929,7 +4917,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		imlSegmentP0->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
 		// jump instruction for PEntry
 		PPCRecompiler_pushBackIMLInstructions(imlSegmentPEntry, 0, 1);
-		PPCRecompilerImlGen_generateNewInstruction_jumpSegment(&ppcImlGenContext, imlSegmentPEntry->imlList + 0);
+		PPCRecompilerImlGen_generateNewInstruction_jumpSegment(&ppcImlGenContext, imlSegmentPEntry->imlList.data() + 0);
 
 		// skip the newly created segments
 		s += 2;
@@ -4953,13 +4941,13 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	// insert name store instructions at the end of each segment but before branch instructions
 	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2) 
 	{
-		if(segIt->imlListCount == 0 )
+		if(segIt->imlList.size() == 0 )
 			continue; // ignore empty segments
 		// analyze segment for register usage
 		PPCImlOptimizerUsedRegisters_t registersUsed;
-		for(sint32 i=0; i<segIt->imlListCount; i++)
+		for(sint32 i=0; i<segIt->imlList.size(); i++)
 		{
-			PPCRecompiler_checkRegisterUsage(&ppcImlGenContext, segIt->imlList+i, &registersUsed);
+			PPCRecompiler_checkRegisterUsage(&ppcImlGenContext, segIt->imlList.data() + i, &registersUsed);
 			//PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, registersUsed.readGPR1);
 			sint32 accessedTempReg[5];
 			// intermediate FPRs

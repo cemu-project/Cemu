@@ -102,7 +102,7 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 		bool isLastSegment = (s+1)>=ppcImlGenContext->segmentList2.size();
 		PPCRecImlSegment_t* nextSegment = isLastSegment?nullptr:ppcImlGenContext->segmentList2[s+1];
 		// handle empty segment
-		if( imlSegment->imlListCount == 0 )
+		if( imlSegment->imlList.empty())
 		{
 			if (isLastSegment == false)
 				PPCRecompilerIml_setLinkBranchNotTaken(imlSegment, ppcImlGenContext->segmentList2[s+1]); // continue execution to next segment
@@ -111,7 +111,7 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 			continue;
 		}
 		// check last instruction of segment
-		PPCRecImlInstruction_t* imlInstruction = imlSegment->imlList+(imlSegment->imlListCount-1);
+		PPCRecImlInstruction_t* imlInstruction = imlSegment->imlList.data() + (imlSegment->imlList.size() - 1);
 		if( imlInstruction->type == PPCREC_IML_TYPE_CJUMP || imlInstruction->type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK )
 		{
 			// find destination segment by ppc jump address
@@ -135,9 +135,7 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 		else
 		{
 			// all other instruction types do not branch
-			//imlSegment->nextSegment[0] = nextSegment;
 			PPCRecompilerIml_setLinkBranchNotTaken(imlSegment, nextSegment);
-			//imlSegment->nextSegmentIsUncertain = true;
 		}
 	}
 }
@@ -157,7 +155,7 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 			entrySegment->enterPPCAddress = imlSegment->enterPPCAddress;
 			// create jump instruction
 			PPCRecompiler_pushBackIMLInstructions(entrySegment, 0, 1);
-			PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext, entrySegment->imlList + 0);
+			PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext, entrySegment->imlList.data() + 0);
 			PPCRecompilerIml_setLinkBranchTaken(entrySegment, imlSegment);
 			// remove enterable flag from original segment
 			imlSegment->isEnterable = false;
@@ -168,7 +166,7 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 
 PPCRecImlInstruction_t* PPCRecompilerIML_getLastInstruction(PPCRecImlSegment_t* imlSegment)
 {
-	if (imlSegment->imlListCount == 0)
+	if (imlSegment->imlList.empty())
 		return nullptr;
-	return imlSegment->imlList + (imlSegment->imlListCount - 1);
+	return imlSegment->imlList.data() + (imlSegment->imlList.size() - 1);
 }
