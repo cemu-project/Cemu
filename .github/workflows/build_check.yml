@@ -11,7 +11,7 @@ on:
     paths-ignore:
       - "*.md"
     branches:
-      - main
+      #- main
 
 jobs:
   build:
