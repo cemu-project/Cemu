@@ -958,20 +958,6 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 		SaveScreenshot(rgb_data, width, height, !padView);
 }
 
-void VulkanRenderer::ResizeSwapchain(const Vector2i& size, bool isMainWindow)
-{
-	if (isMainWindow)
-	{
-		m_swapchainState.newExtentMainWindow = size;
-		m_swapchainState.resizeRequestedMainWindow = true;
-	}
-	else
-	{
-		m_swapchainState.newExtentPadWindow = size;
-		m_swapchainState.resizeRequestedPadWindow = true;
-	}
-}
-
 static const float kQueuePriority = 1.0f;
 
 std::vector<VkDeviceQueueCreateInfo> VulkanRenderer::CreateQueueCreateInfos(const std::set<sint32>& uniqueQueueFamilies) const
@@ -2766,7 +2752,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	uint64 hash = 0;
 	hash += (uint64)vertexRendererShader;
 	hash += (uint64)fragmentRendererShader;
-	hash += (uint64)(padView ? m_drvBufferUsesSRGB : m_tvBufferUsesSRGB);
+	hash += (uint64)(padView ? m_drcBufferUsesSRGB : m_tvBufferUsesSRGB);
 	hash += ((uint64)padView) << 1;
 
 	static std::unordered_map<uint64, VkPipeline> s_pipeline_cache;
@@ -2963,37 +2949,17 @@ void VulkanRenderer::SwapBuffer(bool main_window)
 {
 	auto& swapInfo = main_window ? *m_mainSwapchainInfo : *m_padSwapchainInfo;
 
-	if (main_window)
+	const bool latteUsesSRGB = main_window ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+	bool& chainUsesSRGB = main_window ? m_tvBufferUsesSRGB : m_drcBufferUsesSRGB;
+	if (chainUsesSRGB != latteUsesSRGB)
 	{
-		const bool resize = m_swapchainState.resizeRequestedMainWindow;
-		m_swapchainState.resizeRequestedMainWindow = false;
-
-		if (resize || m_tvBufferUsesSRGB != LatteGPUState.tvBufferUsesSRGB)
+		try
 		{
-			try
-			{
-				RecreateSwapchain(main_window);
-				m_tvBufferUsesSRGB = LatteGPUState.tvBufferUsesSRGB;
-			}
-			catch (std::exception&) { cemu_assert_debug(false); }
-			return;
+			RecreateSwapchain(main_window);
+			chainUsesSRGB = latteUsesSRGB;
 		}
-	}
-	else
-	{
-		const bool resize = m_swapchainState.resizeRequestedPadWindow;
-		m_swapchainState.resizeRequestedPadWindow = false;
-
-		if (resize || m_drvBufferUsesSRGB != LatteGPUState.drcBufferUsesSRGB)
-		{
-			try
-			{
-				RecreateSwapchain(main_window);
-				m_drvBufferUsesSRGB = LatteGPUState.drcBufferUsesSRGB;
-			}
-			catch (std::exception&) { cemu_assert_debug(false); }
-			return;
-		}
+		catch (std::exception&) { cemu_assert_debug(false); }
+		return;
 	}
 
 	UpdateVSyncState(main_window);

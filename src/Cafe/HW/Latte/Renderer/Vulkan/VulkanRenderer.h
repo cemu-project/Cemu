@@ -190,7 +190,6 @@ public:
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
-	void ResizeSwapchain(const Vector2i& size, bool isMainWindow);
 
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();
@@ -489,10 +488,6 @@ private:
 
 	struct
 	{
-		bool resizeRequestedMainWindow{};
-		Vector2i newExtentMainWindow;
-		bool resizeRequestedPadWindow{};
-		Vector2i newExtentPadWindow;
 		bool tvHasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
 		bool drcHasDefinedSwapchainImage{};
 	}m_swapchainState;
@@ -501,7 +496,7 @@ private:
 	VkSurfaceFormatKHR m_swapchainFormat;
 
 	bool m_tvBufferUsesSRGB = false;
-	bool m_drvBufferUsesSRGB = false;
+	bool m_drcBufferUsesSRGB = false;
 
 	struct QueueFamilyIndices 
 	{
