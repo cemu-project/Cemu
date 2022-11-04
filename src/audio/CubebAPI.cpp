@@ -9,7 +9,7 @@
 #endif
 
 
-void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
+static void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 {
 	if (!stream)
 		return;
