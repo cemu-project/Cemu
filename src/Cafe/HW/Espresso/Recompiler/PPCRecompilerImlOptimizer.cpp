@@ -142,11 +142,6 @@ void PPCRecompiler_checkRegisterUsage(ppcImlGenContext_t* ppcImlGenContext, cons
 		if (imlInstruction->op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
 			registersUsed->readNamedReg1 = imlInstruction->op_storeLoad.registerMem;
 	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_MEM2MEM)
-	{
-		registersUsed->readNamedReg1 = imlInstruction->op_mem2mem.src.registerMem;
-		registersUsed->readNamedReg2 = imlInstruction->op_mem2mem.dst.registerMem;
-	}
 	else if( imlInstruction->type == PPCREC_IML_TYPE_LOAD_INDEXED )
 	{
 		registersUsed->writtenNamedReg1 = imlInstruction->op_storeLoad.registerData;
@@ -655,10 +650,6 @@ void PPCRecompiler_replaceFPRRegisterUsageMultiple(ppcImlGenContext_t* ppcImlGen
 	{
 		// not affected
 	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_MEM2MEM)
-	{
-		// not affected
-	}
 	else if (imlInstruction->type == PPCREC_IML_TYPE_LOAD_INDEXED)
 	{
 		// not affected
@@ -774,10 +765,6 @@ void PPCRecompiler_replaceFPRRegisterUsage(ppcImlGenContext_t* ppcImlGenContext,
 		// not affected
 	}
 	else if( imlInstruction->type == PPCREC_IML_TYPE_LOAD )
-	{
-		// not affected
-	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_MEM2MEM)
 	{
 		// not affected
 	}

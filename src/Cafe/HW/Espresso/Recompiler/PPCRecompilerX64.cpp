@@ -675,27 +675,6 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	return false;
 }
 
-/*
- * Copy byte/word/dword from memory to memory
- */
-void PPCRecompilerX64Gen_imlInstruction_mem2mem(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
-{
-	sint32 realSrcMemReg = tempToRealRegister(imlInstruction->op_mem2mem.src.registerMem);
-	sint32 realSrcMemImm = imlInstruction->op_mem2mem.src.immS32;
-	sint32 realDstMemReg = tempToRealRegister(imlInstruction->op_mem2mem.dst.registerMem);
-	sint32 realDstMemImm = imlInstruction->op_mem2mem.dst.immS32;
-	// PPCRecompilerX64Gen_crConditionFlags_forget() is not needed here, since MOVs don't affect eflags
-	if (imlInstruction->op_mem2mem.copyWidth == 32)
-	{
-		x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_R13, realSrcMemReg, realSrcMemImm);
-		x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realDstMemReg, realDstMemImm, REG_RESV_TEMP);
-	}
-	else
-	{
-		assert_dbg();
-	}
-}
-
 bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
 {
 	if (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
@@ -2394,10 +2373,6 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 				{
 					codeGenerationFailed = true;
 				}
-			}
-			else if (imlInstruction->type == PPCREC_IML_TYPE_MEM2MEM)
-			{
-				PPCRecompilerX64Gen_imlInstruction_mem2mem(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
 			}
 			else if( imlInstruction->type == PPCREC_IML_TYPE_CR )
 			{
