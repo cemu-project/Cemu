@@ -1,9 +1,9 @@
+#include "./IML/IML.h"
+
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
 #include "PPCRecompilerX64.h"
 #include "PPCRecompilerImlRanges.h"
-
-void PPCRecompiler_replaceGPRRegisterUsageMultiple(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
 
 uint32 recRACurrentIterationIndex = 0;
 
@@ -831,8 +831,8 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 		// replace registers
 		if (index < imlSegment->imlList.size())
 		{
-			PPCImlOptimizerUsedRegisters_t gprTracking;
-			PPCRecompiler_checkRegisterUsage(nullptr, imlSegment->imlList.data() + index, &gprTracking);
+			IMLUsedRegisters gprTracking;
+			imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
 
 			sint32 inputGpr[4];
 			inputGpr[0] = gprTracking.gpr[0];
@@ -853,7 +853,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				replaceGpr[f] = virtualReg2PhysReg[virtualRegister];
 				cemu_assert_debug(replaceGpr[f] >= 0);
 			}
-			PPCRecompiler_replaceGPRRegisterUsageMultiple(ppcImlGenContext, imlSegment->imlList.data() + index, inputGpr, replaceGpr);
+			imlSegment->imlList[index].ReplaceGPRRegisterUsageMultiple(inputGpr, replaceGpr);
 		}
 		// next iml instruction
 		index++;
@@ -1014,14 +1014,14 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 	}
 	// scan instructions for usage range
 	size_t index = 0;
-	PPCImlOptimizerUsedRegisters_t gprTracking;
+	IMLUsedRegisters gprTracking;
 	while (index < imlSegment->imlList.size())
 	{
 		// end loop at suffix instruction
 		if (imlSegment->imlList[index].IsSuffixInstruction())
 			break;
 		// get accessed GPRs
-		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList.data() + index, &gprTracking);
+		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
 		for (sint32 t = 0; t < 4; t++)
 		{
 			sint32 virtualRegister = gprTracking.gpr[t];
@@ -1107,14 +1107,14 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 	// parse instructions and convert to locations
 	size_t index = 0;
-	PPCImlOptimizerUsedRegisters_t gprTracking;
+	IMLUsedRegisters gprTracking;
 	while (index < imlSegment->imlList.size())
 	{
 		// end loop at suffix instruction
 		if (imlSegment->imlList[index].IsSuffixInstruction())
 			break;
 		// get accessed GPRs
-		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList.data() + index, &gprTracking);
+		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
 		// handle accessed GPR
 		for (sint32 t = 0; t < 4; t++)
 		{

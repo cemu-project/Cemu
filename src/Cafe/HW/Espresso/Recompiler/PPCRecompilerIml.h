@@ -122,17 +122,6 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 
 IMLInstruction* PPCRecompilerIML_getLastInstruction(IMLSegment* imlSegment);
 
-// IML analyzer
-typedef struct
-{
-	uint32 readCRBits;
-	uint32 writtenCRBits;
-}PPCRecCRTracking_t;
-
-bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(IMLSegment* imlSegment);
-bool PPCRecompilerImlAnalyzer_canTypeWriteCR(IMLInstruction* imlInstruction);
-void PPCRecompilerImlAnalyzer_getCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_t* crTracking);
-
 // IML optimizer
 bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenContext);
 
@@ -149,34 +138,3 @@ void PPCRecompilerImm_allocateRegisters(ppcImlGenContext_t* ppcImlGenContext);
 
 // late optimizations
 void PPCRecompiler_reorderConditionModifyInstructions(ppcImlGenContext_t* ppcImlGenContext);
-
-typedef struct
-{
-	union
-	{
-		struct
-		{
-			sint16 readNamedReg1;
-			sint16 readNamedReg2;
-			sint16 readNamedReg3;
-			sint16 writtenNamedReg1;
-		};
-		sint16 gpr[4]; // 3 read + 1 write
-	};
-	// FPR
-	union
-	{
-		struct
-		{
-			// note: If destination operand is not fully written, it will be added as a read FPR as well
-			sint16 readFPR1;
-			sint16 readFPR2;
-			sint16 readFPR3;
-			sint16 readFPR4; // usually this is set to the result FPR if only partially overwritten
-			sint16 writtenFPR1;
-		};
-		sint16 fpr[4];
-	};
-}PPCImlOptimizerUsedRegisters_t;
-
-void PPCRecompiler_checkRegisterUsage(ppcImlGenContext_t* ppcImlGenContext, const IMLInstruction* imlInstruction, PPCImlOptimizerUsedRegisters_t* registersUsed);

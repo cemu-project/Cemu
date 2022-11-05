@@ -1,12 +1,13 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
+#include "IML.h"
+//#include "PPCRecompilerIml.h"
 #include "util/helpers/fixedSizeList.h"
+
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 
 /*
  * Initializes a single segment and returns true if it is a finite loop
  */
-bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(IMLSegment* imlSegment)
+bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 {
 	bool isTightFiniteLoop = false;
 	// base criteria, must jump to beginning of same segment
@@ -35,12 +36,12 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(IMLSegment* imlSegment)
 	{
 		// remove all registers from the list that are modified by non-ADD/SUB instructions
 		// todo: We should also cover the case where ADD+SUB on the same register cancel the effect out
-		PPCImlOptimizerUsedRegisters_t registersUsed;
+		IMLUsedRegisters registersUsed;
 		for (const IMLInstruction& instIt : imlSegment->imlList)
 		{
 			if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB))
 				continue;
-			PPCRecompiler_checkRegisterUsage(nullptr, &instIt, &registersUsed);
+			instIt.CheckRegisterUsage(&registersUsed);
 			if(registersUsed.writtenNamedReg1 < 0)
 				continue;
 			list_modifiedRegisters.remove(registersUsed.writtenNamedReg1);
@@ -56,7 +57,7 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(IMLSegment* imlSegment)
 /*
 * Returns true if the imlInstruction can overwrite CR (depending on value of ->crRegister)
 */
-bool PPCRecompilerImlAnalyzer_canTypeWriteCR(IMLInstruction* imlInstruction)
+bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction)
 {
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_R)
 		return true;
@@ -77,7 +78,7 @@ bool PPCRecompilerImlAnalyzer_canTypeWriteCR(IMLInstruction* imlInstruction)
 	return false;
 }
 
-void PPCRecompilerImlAnalyzer_getCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_t* crTracking)
+void IMLAnalyzer_GetCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_t* crTracking)
 {
 	crTracking->readCRBits = 0;
 	crTracking->writtenCRBits = 0;
@@ -125,7 +126,7 @@ void PPCRecompilerImlAnalyzer_getCRTracking(IMLInstruction* imlInstruction, PPCR
 		else
 			assert_dbg();
 	}
-	else if (PPCRecompilerImlAnalyzer_canTypeWriteCR(imlInstruction) && imlInstruction->crRegister >= 0 && imlInstruction->crRegister <= 7)
+	else if (IMLAnalyzer_CanTypeWriteCR(imlInstruction) && imlInstruction->crRegister >= 0 && imlInstruction->crRegister <= 7)
 	{
 		crTracking->writtenCRBits |= (0xF << (imlInstruction->crRegister * 4));
 	}

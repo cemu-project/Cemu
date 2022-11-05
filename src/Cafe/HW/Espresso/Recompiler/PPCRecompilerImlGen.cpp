@@ -2,8 +2,8 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterHelper.h"
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
 #include "PPCRecompilerImlRanges.h"
+#include "IML/IML.h"
 
 bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext);
 uint32 PPCRecompiler_iterateCurrentInstruction(ppcImlGenContext_t* ppcImlGenContext);
@@ -4277,7 +4277,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpAccordingToSegment)
 			continue;
 		// exclude non-infinite tight loops
-		if (PPCRecompilerImlAnalyzer_isTightFiniteLoop(imlSegment))
+		if (IMLAnalyzer_IsTightFiniteLoop(imlSegment))
 			continue;
 		// potential loop segment found, split this segment into four:
 		// P0: This segment checks if the remaining cycles counter is still above zero. If yes, it jumps to segment P2 (it's also the jump destination for other segments)
@@ -4376,11 +4376,10 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		if(segIt->imlList.size() == 0 )
 			continue; // ignore empty segments
 		// analyze segment for register usage
-		PPCImlOptimizerUsedRegisters_t registersUsed;
+		IMLUsedRegisters registersUsed;
 		for(sint32 i=0; i<segIt->imlList.size(); i++)
 		{
-			PPCRecompiler_checkRegisterUsage(&ppcImlGenContext, segIt->imlList.data() + i, &registersUsed);
-			//PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, registersUsed.readGPR1);
+			segIt->imlList[i].CheckRegisterUsage(&registersUsed);
 			sint32 accessedTempReg[5];
 			// intermediate FPRs
 			accessedTempReg[0] = registersUsed.readFPR1;

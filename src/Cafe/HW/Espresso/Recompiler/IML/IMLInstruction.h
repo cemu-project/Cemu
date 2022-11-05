@@ -236,6 +236,35 @@ enum
 	PPCREC_FPR_ST_MODE_PSQ_S16_PS0_PS1,
 };
 
+struct IMLUsedRegisters
+{
+	union
+	{
+		struct
+		{
+			sint16 readNamedReg1;
+			sint16 readNamedReg2;
+			sint16 readNamedReg3;
+			sint16 writtenNamedReg1;
+		};
+		sint16 gpr[4]; // 3 read + 1 write
+	};
+	// FPR
+	union
+	{
+		struct
+		{
+			// note: If destination operand is not fully written (PS0 and PS1) it will be added to the read registers
+			sint16 readFPR1;
+			sint16 readFPR2;
+			sint16 readFPR3;
+			sint16 readFPR4;
+			sint16 writtenFPR1;
+		};
+		sint16 fpr[4];
+	};
+};
+
 struct IMLInstruction
 {
 	uint8 type;
@@ -409,4 +438,9 @@ struct IMLInstruction
 		associatedPPCAddress = 0;
 	}
 
+	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;
+
+	void ReplaceGPRRegisterUsageMultiple(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
+	void ReplaceFPRRegisterUsageMultiple(sint32 fprRegisterSearched[4], sint32 fprRegisterReplaced[4]);
+	void ReplaceFPRRegisterUsage(sint32 fprRegisterSearched, sint32 fprRegisterReplaced);
 };
