@@ -122,19 +122,6 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 
 IMLInstruction* PPCRecompilerIML_getLastInstruction(IMLSegment* imlSegment);
 
-// IML optimizer
-bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenContext);
-
-bool PPCRecompiler_manageFPRRegisters(ppcImlGenContext_t* ppcImlGenContext);
-
-void PPCRecompiler_removeRedundantCRUpdates(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_optimizeDirectFloatCopies(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_optimizeDirectIntegerCopies(ppcImlGenContext_t* ppcImlGenContext);
-
-void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext);
-
 // IML register allocator
 void PPCRecompilerImm_allocateRegisters(ppcImlGenContext_t* ppcImlGenContext);
 
-// late optimizations
-void PPCRecompiler_reorderConditionModifyInstructions(ppcImlGenContext_t* ppcImlGenContext);

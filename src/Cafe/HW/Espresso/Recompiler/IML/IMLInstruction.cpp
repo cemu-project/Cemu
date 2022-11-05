@@ -434,7 +434,7 @@ sint32 replaceRegisterMultiple(sint32 reg, sint32 match[4], sint32 replaced[4])
 	return reg;
 }
 
-void IMLInstruction::ReplaceGPRRegisterUsageMultiple(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4])
+void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4])
 {
 	if (type == PPCREC_IML_TYPE_R_NAME)
 	{
@@ -609,7 +609,7 @@ void IMLInstruction::ReplaceGPRRegisterUsageMultiple(sint32 gprRegisterSearched[
 	}
 }
 
-void IMLInstruction::ReplaceFPRRegisterUsageMultiple(sint32 fprRegisterSearched[4], sint32 fprRegisterReplaced[4])
+void IMLInstruction::ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegisterReplaced[4])
 {
 	if (type == PPCREC_IML_TYPE_R_NAME)
 	{
@@ -727,7 +727,7 @@ void IMLInstruction::ReplaceFPRRegisterUsageMultiple(sint32 fprRegisterSearched[
 	}
 }
 
-void IMLInstruction::ReplaceFPRRegisterUsage(sint32 fprRegisterSearched, sint32 fprRegisterReplaced)
+void IMLInstruction::ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterReplaced)
 {
 	if (type == PPCREC_IML_TYPE_R_NAME)
 	{

@@ -853,7 +853,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				replaceGpr[f] = virtualReg2PhysReg[virtualRegister];
 				cemu_assert_debug(replaceGpr[f] >= 0);
 			}
-			imlSegment->imlList[index].ReplaceGPRRegisterUsageMultiple(inputGpr, replaceGpr);
+			imlSegment->imlList[index].ReplaceGPR(inputGpr, replaceGpr);
 		}
 		// next iml instruction
 		index++;

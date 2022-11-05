@@ -3881,7 +3881,6 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 
 bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext, PPCRecFunction_t* ppcRecFunc, std::set<uint32>& entryAddresses)
 {
-	//ppcImlGenContext_t ppcImlGenContext = { 0 };
 	ppcImlGenContext.functionRef = ppcRecFunc;
 	// add entire range
 	ppcRecRange_t recRange;

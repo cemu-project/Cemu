@@ -440,7 +440,7 @@ struct IMLInstruction
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;
 
-	void ReplaceGPRRegisterUsageMultiple(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
-	void ReplaceFPRRegisterUsageMultiple(sint32 fprRegisterSearched[4], sint32 fprRegisterReplaced[4]);
-	void ReplaceFPRRegisterUsage(sint32 fprRegisterSearched, sint32 fprRegisterReplaced);
+	void ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
+	void ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegisterReplaced[4]);
+	void ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterReplaced);
 };
