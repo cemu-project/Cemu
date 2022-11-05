@@ -1,9 +1,9 @@
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
 
-PPCRecImlSegment_t* PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext_t* ppcImlGenContext, uint32 ppcOffset)
+IMLSegment* PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext_t* ppcImlGenContext, uint32 ppcOffset)
 {
-	for(PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
+	for(IMLSegment* segIt : ppcImlGenContext->segmentList2)
 	{
 		if(segIt->isJumpDestination && segIt->jumpDestinationPPCAddress == ppcOffset )
 		{
@@ -14,7 +14,7 @@ PPCRecImlSegment_t* PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext_t*
 	return NULL;
 }
 
-void PPCRecompilerIml_setLinkBranchNotTaken(PPCRecImlSegment_t* imlSegmentSrc, PPCRecImlSegment_t* imlSegmentDst)
+void PPCRecompilerIml_setLinkBranchNotTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst)
 {
 	// make sure segments aren't already linked
 	if (imlSegmentSrc->nextSegmentBranchNotTaken == imlSegmentDst)
@@ -27,7 +27,7 @@ void PPCRecompilerIml_setLinkBranchNotTaken(PPCRecImlSegment_t* imlSegmentSrc, P
 	imlSegmentDst->list_prevSegments.push_back(imlSegmentSrc);
 }
 
-void PPCRecompilerIml_setLinkBranchTaken(PPCRecImlSegment_t* imlSegmentSrc, PPCRecImlSegment_t* imlSegmentDst)
+void PPCRecompilerIml_setLinkBranchTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst)
 {
 	// make sure segments aren't already linked
 	if (imlSegmentSrc->nextSegmentBranchTaken == imlSegmentDst)
@@ -40,7 +40,7 @@ void PPCRecompilerIml_setLinkBranchTaken(PPCRecImlSegment_t* imlSegmentSrc, PPCR
 	imlSegmentDst->list_prevSegments.push_back(imlSegmentSrc);
 }
 
-void PPCRecompilerIML_removeLink(PPCRecImlSegment_t* imlSegmentSrc, PPCRecImlSegment_t* imlSegmentDst)
+void PPCRecompilerIML_removeLink(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst)
 {
 	if (imlSegmentSrc->nextSegmentBranchNotTaken == imlSegmentDst)
 	{
@@ -70,11 +70,11 @@ void PPCRecompilerIML_removeLink(PPCRecImlSegment_t* imlSegmentSrc, PPCRecImlSeg
 /*
  * Replaces all links to segment orig with linkts to segment new
  */
-void PPCRecompilerIML_relinkInputSegment(PPCRecImlSegment_t* imlSegmentOrig, PPCRecImlSegment_t* imlSegmentNew)
+void PPCRecompilerIML_relinkInputSegment(IMLSegment* imlSegmentOrig, IMLSegment* imlSegmentNew)
 {
 	while (imlSegmentOrig->list_prevSegments.size() != 0)
 	{
-		PPCRecImlSegment_t* prevSegment = imlSegmentOrig->list_prevSegments[0];
+		IMLSegment* prevSegment = imlSegmentOrig->list_prevSegments[0];
 		if (prevSegment->nextSegmentBranchNotTaken == imlSegmentOrig)
 		{
 			PPCRecompilerIML_removeLink(prevSegment, imlSegmentOrig);
@@ -97,10 +97,10 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 	size_t segCount = ppcImlGenContext->segmentList2.size();
 	for(size_t s=0; s<segCount; s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[s];
 
 		bool isLastSegment = (s+1)>=ppcImlGenContext->segmentList2.size();
-		PPCRecImlSegment_t* nextSegment = isLastSegment?nullptr:ppcImlGenContext->segmentList2[s+1];
+		IMLSegment* nextSegment = isLastSegment?nullptr:ppcImlGenContext->segmentList2[s+1];
 		// handle empty segment
 		if( imlSegment->imlList.empty())
 		{
@@ -111,11 +111,11 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 			continue;
 		}
 		// check last instruction of segment
-		PPCRecImlInstruction_t* imlInstruction = imlSegment->imlList.data() + (imlSegment->imlList.size() - 1);
+		IMLInstruction* imlInstruction = imlSegment->imlList.data() + (imlSegment->imlList.size() - 1);
 		if( imlInstruction->type == PPCREC_IML_TYPE_CJUMP || imlInstruction->type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK )
 		{
 			// find destination segment by ppc jump address
-			PPCRecImlSegment_t* jumpDestSegment = PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext, imlInstruction->op_conditionalJump.jumpmarkAddress);
+			IMLSegment* jumpDestSegment = PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext, imlInstruction->op_conditionalJump.jumpmarkAddress);
 			if( jumpDestSegment )
 			{
 				if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
@@ -145,12 +145,12 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 	size_t initialSegmentCount = ppcImlGenContext->segmentList2.size();
 	for (size_t i = 0; i < initialSegmentCount; i++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[i];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[i];
 		if (imlSegment->list_prevSegments.empty() == false && imlSegment->isEnterable)
 		{
 			// spawn new segment at end
 			PPCRecompilerIml_insertSegments(ppcImlGenContext, ppcImlGenContext->segmentList2.size(), 1);
-			PPCRecImlSegment_t* entrySegment = ppcImlGenContext->segmentList2[ppcImlGenContext->segmentList2.size()-1];
+			IMLSegment* entrySegment = ppcImlGenContext->segmentList2[ppcImlGenContext->segmentList2.size()-1];
 			entrySegment->isEnterable = true;
 			entrySegment->enterPPCAddress = imlSegment->enterPPCAddress;
 			// create jump instruction
@@ -164,7 +164,7 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 	}
 }
 
-PPCRecImlInstruction_t* PPCRecompilerIML_getLastInstruction(PPCRecImlSegment_t* imlSegment)
+IMLInstruction* PPCRecompilerIML_getLastInstruction(IMLSegment* imlSegment)
 {
 	if (imlSegment->imlList.empty())
 		return nullptr;

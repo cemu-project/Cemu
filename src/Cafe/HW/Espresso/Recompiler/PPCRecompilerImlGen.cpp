@@ -10,57 +10,57 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext);
 uint32 PPCRecompiler_iterateCurrentInstruction(ppcImlGenContext_t* ppcImlGenContext);
 uint32 PPCRecompiler_getInstructionByOffset(ppcImlGenContext_t* ppcImlGenContext, uint32 offset);
 
-PPCRecImlInstruction_t* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext_t* ppcImlGenContext)
+IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext_t* ppcImlGenContext)
 {
 	if( ppcImlGenContext->imlListCount+1 > ppcImlGenContext->imlListSize )
 	{
 		sint32 newSize = ppcImlGenContext->imlListCount*2 + 2;
-		ppcImlGenContext->imlList = (PPCRecImlInstruction_t*)realloc(ppcImlGenContext->imlList, sizeof(PPCRecImlInstruction_t)*newSize);
+		ppcImlGenContext->imlList = (IMLInstruction*)realloc(ppcImlGenContext->imlList, sizeof(IMLInstruction)*newSize);
 		ppcImlGenContext->imlListSize = newSize;
 	}
-	PPCRecImlInstruction_t* imlInstruction = ppcImlGenContext->imlList+ppcImlGenContext->imlListCount;
-	memset(imlInstruction, 0x00, sizeof(PPCRecImlInstruction_t));
+	IMLInstruction* imlInstruction = ppcImlGenContext->imlList+ppcImlGenContext->imlListCount;
+	memset(imlInstruction, 0x00, sizeof(IMLInstruction));
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER; // dont update any cr register by default
 	imlInstruction->associatedPPCAddress = ppcImlGenContext->ppcAddressOfCurrentInstruction;
 	ppcImlGenContext->imlListCount++;
 	return imlInstruction;
 }
+//
+//void PPCRecompilerImlGen_generateNewInstruction_jumpmark(ppcImlGenContext_t* ppcImlGenContext, uint32 address)
+//{
+//	// no-op that indicates possible destination of a jump
+//	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+//	imlInstruction->type = PPCREC_IML_TYPE_JUMPMARK;
+//	imlInstruction->op_jumpmark.address = address;
+//}
+//
+//void PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext_t* ppcImlGenContext, uint32 macroId, uint32 param, uint32 param2, uint16 paramU16)
+//{
+//	// no-op that indicates possible destination of a jump
+//	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+//	imlInstruction->type = PPCREC_IML_TYPE_MACRO;
+//	imlInstruction->operation = macroId;
+//	imlInstruction->op_macro.param = param;
+//	imlInstruction->op_macro.param2 = param2;
+//	imlInstruction->op_macro.paramU16 = paramU16;
+//}
 
-void PPCRecompilerImlGen_generateNewInstruction_jumpmark(ppcImlGenContext_t* ppcImlGenContext, uint32 address)
-{
-	// no-op that indicates possible destination of a jump
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_JUMPMARK;
-	imlInstruction->op_jumpmark.address = address;
-}
+///*
+// * Generates a marker for Interpreter -> Recompiler entrypoints
+// * PPC_ENTER iml instructions have no associated PPC address but the instruction itself has one
+// */
+//void PPCRecompilerImlGen_generateNewInstruction_ppcEnter(ppcImlGenContext_t* ppcImlGenContext, uint32 ppcAddress)
+//{
+//	// no-op that indicates possible destination of a jump
+//	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+//	imlInstruction->type = PPCREC_IML_TYPE_PPC_ENTER;
+//	imlInstruction->operation = 0;
+//	imlInstruction->op_ppcEnter.ppcAddress = ppcAddress;
+//	imlInstruction->op_ppcEnter.x64Offset = 0;
+//	imlInstruction->associatedPPCAddress = 0;
+//}
 
-void PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext_t* ppcImlGenContext, uint32 macroId, uint32 param, uint32 param2, uint16 paramU16)
-{
-	// no-op that indicates possible destination of a jump
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_MACRO;
-	imlInstruction->operation = macroId;
-	imlInstruction->op_macro.param = param;
-	imlInstruction->op_macro.param2 = param2;
-	imlInstruction->op_macro.paramU16 = paramU16;
-}
-
-/*
- * Generates a marker for Interpreter -> Recompiler entrypoints
- * PPC_ENTER iml instructions have no associated PPC address but the instruction itself has one
- */
-void PPCRecompilerImlGen_generateNewInstruction_ppcEnter(ppcImlGenContext_t* ppcImlGenContext, uint32 ppcAddress)
-{
-	// no-op that indicates possible destination of a jump
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_PPC_ENTER;
-	imlInstruction->operation = 0;
-	imlInstruction->op_ppcEnter.ppcAddress = ppcAddress;
-	imlInstruction->op_ppcEnter.x64Offset = 0;
-	imlInstruction->associatedPPCAddress = 0;
-}
-
-void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister, uint8 crMode)
+void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister, uint8 crMode)
 {
 	// operation with two register operands (e.g. "t0 = t1")
 	if(imlInstruction == NULL)
@@ -76,7 +76,7 @@ void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGe
 void PPCRecompilerImlGen_generateNewInstruction_r_r_r(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB, uint8 crRegister=PPC_REC_INVALID_REGISTER, uint8 crMode=0)
 {
 	// operation with three register operands (e.g. "t0 = t1 + t4")
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_R_R_R;
 	imlInstruction->operation = operation;
 	imlInstruction->crRegister = crRegister;
@@ -89,7 +89,7 @@ void PPCRecompilerImlGen_generateNewInstruction_r_r_r(ppcImlGenContext_t* ppcIml
 void PPCRecompilerImlGen_generateNewInstruction_r_r_s32(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerResult, uint8 registerA, sint32 immS32, uint8 crRegister=PPC_REC_INVALID_REGISTER, uint8 crMode=0)
 {
 	// operation with two register operands and one signed immediate (e.g. "t0 = t1 + 1234")
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_R_R_S32;
 	imlInstruction->operation = operation;
 	imlInstruction->crRegister = crRegister;
@@ -99,16 +99,14 @@ void PPCRecompilerImlGen_generateNewInstruction_r_r_s32(ppcImlGenContext_t* ppcI
 	imlInstruction->op_r_r_s32.immS32 = immS32;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_name_r(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerIndex, uint32 name, uint32 copyWidth, bool signExtend, bool bigEndian)
+void PPCRecompilerImlGen_generateNewInstruction_name_r(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerIndex, uint32 name)
 {
 	// Store name (e.g. "'r3' = t0" which translates to MOV [ESP+offset_r3], reg32)
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_NAME_R;
 	imlInstruction->operation = operation;
 	imlInstruction->op_r_name.registerIndex = registerIndex;
 	imlInstruction->op_r_name.name = name;
-	imlInstruction->op_r_name.copyWidth = copyWidth;
-	imlInstruction->op_r_name.flags = (signExtend?PPCREC_IML_OP_FLAG_SIGNEXTEND:0)|(bigEndian?PPCREC_IML_OP_FLAG_SWITCHENDIAN:0);
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 copyWidth, bool signExtend, bool bigEndian, uint8 crRegister, uint32 crMode)
@@ -116,7 +114,7 @@ void PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext_t* ppcIml
 	// two variations:
 	// operation without store (e.g. "'r3' < 123" which has no effect other than updating a condition flags register)
 	// operation with store (e.g. "'r3' = 123")
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_R_S32;
 	imlInstruction->operation = operation;
 	imlInstruction->crRegister = crRegister;
@@ -125,12 +123,12 @@ void PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext_t* ppcIml
 	imlInstruction->op_r_immS32.immS32 = immS32;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
+void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
 {
 	if(imlInstruction == NULL)
 		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	else
-		memset(imlInstruction, 0, sizeof(PPCRecImlInstruction_t));
+		memset(imlInstruction, 0, sizeof(IMLInstruction));
 	imlInstruction->type = PPCREC_IML_TYPE_CONDITIONAL_R_S32;
 	imlInstruction->operation = operation;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
@@ -144,13 +142,13 @@ void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenConte
 }
 
 
-void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 jumpmarkAddress)
+void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 jumpmarkAddress)
 {
 	// jump
 	if (imlInstruction == NULL)
 		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	else
-		memset(imlInstruction, 0, sizeof(PPCRecImlInstruction_t));
+		memset(imlInstruction, 0, sizeof(IMLInstruction));
 	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
@@ -162,7 +160,7 @@ void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlG
 }
 
 // jump based on segment branches
-void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction)
 {
 	// jump
 	if (imlInstruction == NULL)
@@ -178,7 +176,7 @@ void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* 
 	imlInstruction->op_conditionalJump.bitMustBeSet = false;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction)
 {
 	if (imlInstruction == NULL)
 		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
@@ -193,7 +191,7 @@ void PPCRecompilerImlGen_generateNewInstruction_cr(ppcImlGenContext_t* ppcImlGen
 	// multiple variations:
 	// operation involving only one cr bit (like clear crD bit)
 	// operation involving three cr bits (like crD = crA or crB)
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_CR;
 	imlInstruction->operation = operation;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
@@ -206,7 +204,7 @@ void PPCRecompilerImlGen_generateNewInstruction_cr(ppcImlGenContext_t* ppcImlGen
 void PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext_t* ppcImlGenContext, uint32 jumpmarkAddress, uint32 jumpCondition, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
 {
 	// conditional jump
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
@@ -219,7 +217,7 @@ void PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext
 void PPCRecompilerImlGen_generateNewInstruction_r_memory(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool signExtend, bool switchEndian)
 {
 	// load from memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_LOAD;
 	imlInstruction->operation = 0;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
@@ -235,7 +233,7 @@ void PPCRecompilerImlGen_generateNewInstruction_r_memory(ppcImlGenContext_t* ppc
 void PPCRecompilerImlGen_generateNewInstruction_r_memory_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory1, uint8 registerMemory2, uint32 copyWidth, bool signExtend, bool switchEndian)
 {
 	// load from memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_LOAD_INDEXED;
 	imlInstruction->operation = 0;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
@@ -251,7 +249,7 @@ void PPCRecompilerImlGen_generateNewInstruction_r_memory_indexed(ppcImlGenContex
 void PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext_t* ppcImlGenContext, uint8 registerSource, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool switchEndian)
 {
 	// load from memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_STORE;
 	imlInstruction->operation = 0;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
@@ -267,7 +265,7 @@ void PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext_t* ppc
 void PPCRecompilerImlGen_generateNewInstruction_memory_r_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory1, uint8 registerMemory2, uint32 copyWidth, bool signExtend, bool switchEndian)
 {
 	// load from memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_STORE_INDEXED;
 	imlInstruction->operation = 0;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
@@ -400,10 +398,7 @@ uint32 PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGe
 
 void PPCRecompilerImlGen_TW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-//#ifdef CEMU_DEBUG_ASSERT
-//	PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
-//#endif
-	PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_LEAVE, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
+	PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext)->make_macro(PPCREC_IML_MACRO_LEAVE, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
 }
 
 bool PPCRecompilerImlGen_MTSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -465,7 +460,7 @@ bool PPCRecompilerImlGen_MFTB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	{
 		// TBL / TBU
 		uint32 param2 = spr | (rD << 16);
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_MFTB, ppcImlGenContext->ppcAddressOfCurrentInstruction, param2, 0);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_MFTB, ppcImlGenContext->ppcAddressOfCurrentInstruction, param2, 0);
 		return true;
 	}
 	return false;
@@ -636,8 +631,8 @@ bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 			return true;
 		}
 		// generate funtion call instructions
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BL, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-		PPCRecompilerImlGen_generateNewInstruction_ppcEnter(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BL, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
 		return true;
 	}
 	// is jump destination within recompiled function?
@@ -649,7 +644,7 @@ bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 	else
 	{
 		// todo: Inline this jump destination if possible (in many cases it's a bunch of GPR/FPR store instructions + BLR)
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
 	}
 	return true;
 }
@@ -702,10 +697,10 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 					jumpCondition = PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW;
 			}
 			// generate instruction
-			//PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
+			//ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
 			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4, jumpCondition, crRegister, crBit, !conditionMustBeTrue);
-			PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BL, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-			PPCRecompilerImlGen_generateNewInstruction_ppcEnter(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
+			ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BL, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
+			ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
 			return true;
 		}
 		return false;
@@ -766,8 +761,8 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 			{
 				// far jump
 				PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction + 4, jumpCondition, crRegister, crBit, !conditionMustBeTrue);
-				PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-				PPCRecompilerImlGen_generateNewInstruction_ppcEnter(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction + 4);
+				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
+				ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction + 4);
 			}
 		}
 	}
@@ -803,13 +798,13 @@ bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 			// store LR
 			if( saveLR )
 			{
-				PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BLRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-				PPCRecompilerImlGen_generateNewInstruction_ppcEnter(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
+				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+				ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
 			}
 			else
 			{
 				// branch always, no condition and no decrementer
-				PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
 			}
 		}
 		else
@@ -845,7 +840,7 @@ bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 			}
 			// jump if BCLR condition NOT met (jump to jumpmark of next instruction, essentially skipping current instruction)
 			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4, jumpCondition, crRegister, crBit, invertedConditionMustBeTrue);
-			PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+			ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
 		}
 	}
 	return true;
@@ -884,13 +879,13 @@ bool PPCRecompilerImlGen_BCCTR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 			{
 				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_LR);
 				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction+4)&0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
-				PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BCTRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-				PPCRecompilerImlGen_generateNewInstruction_ppcEnter(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
+				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+				ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
 			}
 			else
 			{
 				// branch always, no condition and no decrementer
-				PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
 			}
 		}
 		else
@@ -926,7 +921,7 @@ bool PPCRecompilerImlGen_BCCTR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 			}
 			// jump if BCLR condition NOT met (jump to jumpmark of next instruction, essentially skipping current instruction)
 			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4, jumpCondition, crRegister, crBit, invertedConditionMustBeTrue);
-			PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+			ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
 		}
 	}
 	return true;
@@ -1575,7 +1570,7 @@ void PPCRecompilerImlGen_LWZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1596,7 +1591,7 @@ void PPCRecompilerImlGen_LWZU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1619,7 +1614,7 @@ void PPCRecompilerImlGen_LHA(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1640,7 +1635,7 @@ void PPCRecompilerImlGen_LHAU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1664,7 +1659,7 @@ void PPCRecompilerImlGen_LHZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	{
 		// special form where gpr is ignored and only imm is used
 		// note: Darksiders 2 has this instruction form but it is never executed.
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1685,7 +1680,7 @@ void PPCRecompilerImlGen_LHZU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1708,7 +1703,7 @@ void PPCRecompilerImlGen_LBZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1729,7 +1724,7 @@ void PPCRecompilerImlGen_LBZU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -1815,7 +1810,7 @@ bool PPCRecompilerImlGen_LHAX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return true;
 	}
 	// load memory rA and rB into register
@@ -1837,7 +1832,7 @@ bool PPCRecompilerImlGen_LHAUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return true;
 	}
 	// load memory rA and rB into register
@@ -1861,7 +1856,7 @@ bool PPCRecompilerImlGen_LHZX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return true;
 	}
 	// load memory rA and rB into register
@@ -1883,7 +1878,7 @@ bool PPCRecompilerImlGen_LHZUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return true;
 	}
 	// load memory rA and rB into register
@@ -1947,7 +1942,7 @@ bool PPCRecompilerImlGen_LBZUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	if (rA == 0)
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return true;
 	}
 	// load memory rA and rB into register
@@ -2015,7 +2010,7 @@ void PPCRecompilerImlGen_STW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	{
 		// special form where gpr is ignored and only imm is used
 		// note: Darksiders 2 has this instruction form but it is never executed.
-		//PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		//ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -2034,7 +2029,7 @@ void PPCRecompilerImlGen_STWU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// store&update instructions where rD==rA store the register contents without added imm, therefore we need to handle it differently
@@ -2060,7 +2055,7 @@ void PPCRecompilerImlGen_STH(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -2079,7 +2074,7 @@ void PPCRecompilerImlGen_STHU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// get memory gpr register
@@ -2104,7 +2099,7 @@ void PPCRecompilerImlGen_STB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// load memory gpr into register
@@ -2123,7 +2118,7 @@ void PPCRecompilerImlGen_STBU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( rA == 0 )
 	{
 		// special form where gpr is ignored and only imm is used
-		PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->ppcAddressOfCurrentInstruction, ppcImlGenContext->cyclesSinceLastBranch);
 		return;
 	}
 	// get memory gpr register
@@ -2944,7 +2939,7 @@ bool PPCRecompilerImlGen_CREQV(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 bool PPCRecompilerImlGen_HLE(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
 	uint32 hleFuncId = opcode&0xFFFF;
-	PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_HLE, ppcImlGenContext->ppcAddressOfCurrentInstruction, hleFuncId, 0);
+	ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_HLE, ppcImlGenContext->ppcAddressOfCurrentInstruction, hleFuncId, 0);
 	return true;
 }
 
@@ -2975,7 +2970,7 @@ uint32 PPCRecompiler_getPreviousInstruction(ppcImlGenContext_t* ppcImlGenContext
 
 char _tempOpcodename[32];
 
-const char* PPCRecompiler_getOpcodeDebugName(const PPCRecImlInstruction_t* iml)
+const char* PPCRecompiler_getOpcodeDebugName(const IMLInstruction* iml)
 {
 	uint32 op = iml->operation;
 	if (op == PPCREC_IML_OP_ASSIGN)
@@ -3031,7 +3026,7 @@ void PPCRecDebug_addS32Param(StringBuf& strOutput, sint32 val, bool isLast = fal
 	strOutput.addFmt("0x{:08x}, ", val);
 }
 
-void PPCRecompilerDebug_printLivenessRangeInfo(StringBuf& currentLineText, PPCRecImlSegment_t* imlSegment, sint32 offset)
+void PPCRecompilerDebug_printLivenessRangeInfo(StringBuf& currentLineText, IMLSegment* imlSegment, sint32 offset)
 {
 	// pad to 70 characters
 	sint32 index = currentLineText.getLen();
@@ -3072,7 +3067,7 @@ void PPCRecompilerDebug_printLivenessRangeInfo(StringBuf& currentLineText, PPCRe
 	}
 }
 
-void PPCRecompiler_dumpIMLSegment(PPCRecImlSegment_t* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo)
+void PPCRecompiler_dumpIMLSegment(IMLSegment* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo)
 {
 	StringBuf strOutput(1024);
 
@@ -3102,7 +3097,7 @@ void PPCRecompiler_dumpIMLSegment(PPCRecImlSegment_t* imlSegment, sint32 segment
 
 	for(sint32 i=0; i<imlSegment->imlList.size(); i++)
 	{
-		const PPCRecImlInstruction_t& inst = imlSegment->imlList[i];
+		const IMLInstruction& inst = imlSegment->imlList[i];
 		// don't log NOP instructions unless they have an associated PPC address
 		if(inst.type == PPCREC_IML_TYPE_NO_OP && inst.associatedPPCAddress == MPTR_NULL)
 			continue;
@@ -3439,7 +3434,7 @@ void PPCRecompiler_dumpIML(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t*
 	}
 }
 
-void PPCRecompilerIml_setSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint, PPCRecImlSegment_t* imlSegment, sint32 index)
+void PPCRecompilerIml_setSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint, IMLSegment* imlSegment, sint32 index)
 {
 	segmentPoint->imlSegment = imlSegment;
 	segmentPoint->index = index;
@@ -3464,13 +3459,13 @@ void PPCRecompilerIml_removeSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoi
 * Insert multiple no-op instructions
 * Warning: Can invalidate any previous instruction structs from the same segment
 */
-void PPCRecompiler_pushBackIMLInstructions(PPCRecImlSegment_t* imlSegment, sint32 index, sint32 shiftBackCount)
+void PPCRecompiler_pushBackIMLInstructions(IMLSegment* imlSegment, sint32 index, sint32 shiftBackCount)
 {
 	cemu_assert_debug(index >= 0 && index <= imlSegment->imlList.size());
 
 	imlSegment->imlList.insert(imlSegment->imlList.begin() + index, shiftBackCount, {});
 
-	memset(imlSegment->imlList.data() + index, 0, sizeof(PPCRecImlInstruction_t) * shiftBackCount);
+	memset(imlSegment->imlList.data() + index, 0, sizeof(IMLInstruction) * shiftBackCount);
 
 	// fill empty space with NOP instructions
 	for (sint32 i = 0; i < shiftBackCount; i++)
@@ -3495,23 +3490,23 @@ void PPCRecompiler_pushBackIMLInstructions(PPCRecImlSegment_t* imlSegment, sint3
 	}
 }
 
-PPCRecImlInstruction_t* PPCRecompiler_insertInstruction(PPCRecImlSegment_t* imlSegment, sint32 index)
+IMLInstruction* PPCRecompiler_insertInstruction(IMLSegment* imlSegment, sint32 index)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, index, 1);
 	return imlSegment->imlList.data() + index;
 }
 
-PPCRecImlInstruction_t* PPCRecompiler_appendInstruction(PPCRecImlSegment_t* imlSegment)
+IMLInstruction* PPCRecompiler_appendInstruction(IMLSegment* imlSegment)
 {
 	size_t index = imlSegment->imlList.size();
 	imlSegment->imlList.emplace_back();
-	memset(imlSegment->imlList.data() + index, 0, sizeof(PPCRecImlInstruction_t));
+	memset(imlSegment->imlList.data() + index, 0, sizeof(IMLInstruction));
 	return imlSegment->imlList.data() + index;
 }
 
-PPCRecImlSegment_t* PPCRecompilerIml_appendSegment(ppcImlGenContext_t* ppcImlGenContext)
+IMLSegment* PPCRecompilerIml_appendSegment(ppcImlGenContext_t* ppcImlGenContext)
 {
-	PPCRecImlSegment_t* segment = new PPCRecImlSegment_t();
+	IMLSegment* segment = new IMLSegment();
 	ppcImlGenContext->segmentList2.emplace_back(segment);
 	return segment;
 }
@@ -3520,7 +3515,7 @@ void PPCRecompilerIml_insertSegments(ppcImlGenContext_t* ppcImlGenContext, sint3
 {
 	ppcImlGenContext->segmentList2.insert(ppcImlGenContext->segmentList2.begin() + index, count, nullptr);
 	for (sint32 i = 0; i < count; i++)
-		ppcImlGenContext->segmentList2[index + i] = new PPCRecImlSegment_t();
+		ppcImlGenContext->segmentList2[index + i] = new IMLSegment();
 }
 
 void PPCRecompiler_freeContext(ppcImlGenContext_t* ppcImlGenContext)
@@ -3531,7 +3526,7 @@ void PPCRecompiler_freeContext(ppcImlGenContext_t* ppcImlGenContext)
 		ppcImlGenContext->imlList = nullptr;
 	}
 
-	for (PPCRecImlSegment_t* imlSegment : ppcImlGenContext->segmentList2)
+	for (IMLSegment* imlSegment : ppcImlGenContext->segmentList2)
 	{
 		//free(imlSegment->imlList);
 		delete imlSegment;
@@ -3551,7 +3546,7 @@ void PPCRecompiler_freeContext(ppcImlGenContext_t* ppcImlGenContext)
 	//}
 }
 
-bool PPCRecompiler_isSuffixInstruction(PPCRecImlInstruction_t* iml)
+bool PPCRecompiler_isSuffixInstruction(IMLInstruction* iml)
 {
 	if (iml->type == PPCREC_IML_TYPE_MACRO && (iml->operation == PPCREC_IML_MACRO_BLR || iml->operation == PPCREC_IML_MACRO_BCTR) ||
 		iml->type == PPCREC_IML_TYPE_MACRO && iml->operation == PPCREC_IML_MACRO_BL ||
@@ -4438,12 +4433,11 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		uint32 addressOfCurrentInstruction = (uint32)((uint8*)ppcImlGenContext.currentInstruction - memory_base);
 		ppcImlGenContext.ppcAddressOfCurrentInstruction = addressOfCurrentInstruction;
 		ppcImlGenContext.cyclesSinceLastBranch++;
-		PPCRecompilerImlGen_generateNewInstruction_jumpmark(&ppcImlGenContext, addressOfCurrentInstruction);
-		
+		ppcImlGenContext.emitInst().make_jumpmark(addressOfCurrentInstruction);
 		if (entryAddresses.find(addressOfCurrentInstruction) != entryAddresses.end())
 		{
 			// add PPCEnter for addresses that are in entryAddresses
-			PPCRecompilerImlGen_generateNewInstruction_ppcEnter(&ppcImlGenContext, addressOfCurrentInstruction);
+			ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
 		}
 		else if(ppcImlGenContext.currentInstruction != firstCurrentInstruction)
 		{
@@ -4465,7 +4459,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 						canInlineFunction = true;
 				}
 				if( canInlineFunction == false && (opcodePrevious & PPC_OPC_LK) == false)
-					PPCRecompilerImlGen_generateNewInstruction_ppcEnter(&ppcImlGenContext, addressOfCurrentInstruction);
+					ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
 			}
 			if( ((opcodePrevious>>26) == 19) && PPC_getBits(opcodePrevious, 30, 10) == 528 )
 			{
@@ -4474,7 +4468,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 				if( (BO & 16) && (opcodePrevious&PPC_OPC_LK) == 0 )
 				{
 					// after unconditional BCTR instruction
-					PPCRecompilerImlGen_generateNewInstruction_ppcEnter(&ppcImlGenContext, addressOfCurrentInstruction);
+					ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
 				}
 			}
 		}
@@ -4498,7 +4492,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	}
 	// optimize unused jumpmarks away
 	// first, flag all jumpmarks as unused
-	std::map<uint32, PPCRecImlInstruction_t*> map_jumpMarks;
+	std::map<uint32, IMLInstruction*> map_jumpMarks;
 	for(sint32 i=0; i<ppcImlGenContext.imlListCount; i++)
 	{
 		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_JUMPMARK )
@@ -4533,7 +4527,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		// move back instruction
 		if( currentImlIndex < i )
 		{
-			memcpy(ppcImlGenContext.imlList+currentImlIndex, ppcImlGenContext.imlList+i, sizeof(PPCRecImlInstruction_t));
+			memcpy(ppcImlGenContext.imlList+currentImlIndex, ppcImlGenContext.imlList+i, sizeof(IMLInstruction));
 		}
 		currentImlIndex++;
 	}
@@ -4562,7 +4556,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_MFTB)) )
 		{
 			// segment ends after current instruction
-			PPCRecImlSegment_t* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
+			IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
 			ppcRecSegment->startOffset = segmentStart;
 			ppcRecSegment->count = segmentImlIndex-segmentStart+1;
 			ppcRecSegment->ppcAddress = 0xFFFFFFFF;
@@ -4574,7 +4568,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 			// segment ends before current instruction
 			if( segmentImlIndex > segmentStart )
 			{
-				PPCRecImlSegment_t* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
+				IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
 				ppcRecSegment->startOffset = segmentStart;
 				ppcRecSegment->count = segmentImlIndex-segmentStart;
 				ppcRecSegment->ppcAddress = 0xFFFFFFFF;
@@ -4586,26 +4580,20 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	if( segmentImlIndex != segmentStart )
 	{
 		// final segment
-		PPCRecImlSegment_t* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
+		IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
 		ppcRecSegment->startOffset = segmentStart;
 		ppcRecSegment->count = segmentImlIndex-segmentStart;
 		ppcRecSegment->ppcAddress = 0xFFFFFFFF;
 		segmentStart = segmentImlIndex;
 	}
 	// move iml instructions into the segments
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2) 
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2) 
 	{
 		uint32 imlStartIndex = segIt->startOffset;
 		uint32 imlCount = segIt->count;
 		if( imlCount > 0 )
 		{
-			//segIt->imlListSize = imlCount + 4;
-			//segIt->imlList = (PPCRecImlInstruction_t*)malloc(sizeof(PPCRecImlInstruction_t) * segIt->imlListSize);
-			//segIt->imlListCount = imlCount;
-			//memcpy(segIt->imlList, ppcImlGenContext.imlList+imlStartIndex, sizeof(PPCRecImlInstruction_t)*imlCount);
 			cemu_assert_debug(segIt->imlList.empty());
-			//segIt->imlList.resize(imlCount);
-			//segIt->imlList.insert(segIt->imlList.begin() + imlStartIndex, );
 			segIt->imlList.insert(segIt->imlList.begin(), ppcImlGenContext.imlList + imlStartIndex, ppcImlGenContext.imlList + imlStartIndex + imlCount);
 
 		}
@@ -4613,9 +4601,6 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		{
 			// empty segments are allowed so we can handle multiple PPC entry addresses pointing to the same code
 			cemu_assert_debug(segIt->imlList.empty());
-			//segIt->imlList = nullptr;
-			//segIt->imlListSize = 0;
-			//segIt->imlListCount = 0;
 		}
 		segIt->startOffset = 9999999;
 		segIt->count = 9999999;
@@ -4625,7 +4610,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	ppcImlGenContext.imlList = nullptr;
 	ppcImlGenContext.imlListCount = 999999; // set to high number to force crash in case old code still uses ppcImlGenContext.imlList
 	// calculate PPC address of each segment based on iml instructions inside that segment (we need this info to calculate how many cpu cycles each segment takes)
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2)
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
 	{
 		uint32 segmentPPCAddrMin = 0xFFFFFFFF;
 		uint32 segmentPPCAddrMax = 0x00000000;
@@ -4652,7 +4637,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	// certain instructions can change the segment state
 	// ppcEnter instruction marks a segment as enterable (BL, BCTR, etc. instructions can enter at this location from outside)
 	// jumpmarks mark the segment as a jump destination (within the same function)
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2)
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
 	{
 		while (segIt->imlList.size() > 0)
 		{
@@ -4692,15 +4677,15 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	PPCRecompilerIML_linkSegments(&ppcImlGenContext);
 
 	// optimization pass - replace segments with conditional MOVs if possible
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2)
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
 	{
 		if (segIt->nextSegmentBranchNotTaken == nullptr || segIt->nextSegmentBranchTaken == nullptr)
 			continue; // not a branching segment
-		PPCRecImlInstruction_t* lastInstruction = PPCRecompilerIML_getLastInstruction(segIt);
+		IMLInstruction* lastInstruction = PPCRecompilerIML_getLastInstruction(segIt);
 		if (lastInstruction->type != PPCREC_IML_TYPE_CJUMP || lastInstruction->op_conditionalJump.crRegisterIndex != 0)
 			continue;
-		PPCRecImlSegment_t* conditionalSegment = segIt->nextSegmentBranchNotTaken;
-		PPCRecImlSegment_t* finalSegment = segIt->nextSegmentBranchTaken;
+		IMLSegment* conditionalSegment = segIt->nextSegmentBranchNotTaken;
+		IMLSegment* finalSegment = segIt->nextSegmentBranchTaken;
 		if (segIt->nextSegmentBranchTaken != segIt->nextSegmentBranchNotTaken->nextSegmentBranchNotTaken)
 			continue;
 		if (segIt->nextSegmentBranchNotTaken->imlList.size() > 4)
@@ -4713,7 +4698,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		bool canReduceSegment = true;
 		for (sint32 f = 0; f < conditionalSegment->imlList.size(); f++)
 		{
-			PPCRecImlInstruction_t* imlInstruction = conditionalSegment->imlList.data() + f;
+			IMLInstruction* imlInstruction = conditionalSegment->imlList.data() + f;
 			if( imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
 				continue;
 			// todo: Register to register copy
@@ -4734,7 +4719,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		// append conditional moves based on branch condition
 		for (sint32 f = 0; f < conditionalSegment->imlList.size(); f++)
 		{
-			PPCRecImlInstruction_t* imlInstruction = conditionalSegment->imlList.data() + f;
+			IMLInstruction* imlInstruction = conditionalSegment->imlList.data() + f;
 			if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
 				PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(&ppcImlGenContext, PPCRecompiler_appendInstruction(segIt), PPCREC_IML_OP_ASSIGN, imlInstruction->op_r_immS32.registerIndex, imlInstruction->op_r_immS32.immS32, branchCond_crRegisterIndex, branchCond_crBitIndex, !branchCond_bitMustBeSet);
 			else
@@ -4756,13 +4741,13 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 			PPCRecompilerIML_removeLink(segIt, finalSegment);
 			if (finalSegment->nextSegmentBranchNotTaken)
 			{
-				PPCRecImlSegment_t* tempSegment = finalSegment->nextSegmentBranchNotTaken;
+				IMLSegment* tempSegment = finalSegment->nextSegmentBranchNotTaken;
 				PPCRecompilerIML_removeLink(finalSegment, tempSegment);
 				PPCRecompilerIml_setLinkBranchNotTaken(segIt, tempSegment);
 			}
 			if (finalSegment->nextSegmentBranchTaken)
 			{
-				PPCRecImlSegment_t* tempSegment = finalSegment->nextSegmentBranchTaken;
+				IMLSegment* tempSegment = finalSegment->nextSegmentBranchTaken;
 				PPCRecompilerIML_removeLink(finalSegment, tempSegment);
 				PPCRecompilerIml_setLinkBranchTaken(segIt, tempSegment);
 			}
@@ -4770,7 +4755,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 			cemu_assert_debug(segIt != finalSegment);
 			for (sint32 f = 0; f < finalSegment->imlList.size(); f++)
 			{
-				memcpy(PPCRecompiler_appendInstruction(segIt), finalSegment->imlList.data() + f, sizeof(PPCRecImlInstruction_t));
+				memcpy(PPCRecompiler_appendInstruction(segIt), finalSegment->imlList.data() + f, sizeof(IMLInstruction));
 			}
 			finalSegment->imlList.clear();
 
@@ -4781,7 +4766,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	}
 
 	// insert cycle counter instruction in every segment that has a cycle count greater zero
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2)
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
 	{
 		if( segIt->ppcAddrMin == 0 )
 			continue;
@@ -4817,7 +4802,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	for(size_t s=0; s<ppcImlGenContext.segmentList2.size(); s++)
 	{
 		// todo: This currently uses segment->ppcAddrMin which isn't really reliable. (We already had a problem where function inlining would generate falsified segment ranges by omitting the branch instruction). Find a better solution (use jumpmark/enterable offsets?)
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext.segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext.segmentList2[s];
 		if( imlSegment->imlList.empty() )
 			continue;
 		if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
@@ -4839,12 +4824,12 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 
 		PPCRecompilerIml_insertSegments(&ppcImlGenContext, s, 2);
 		imlSegment = NULL;
-		PPCRecImlSegment_t* imlSegmentP0 = ppcImlGenContext.segmentList2[s+0];
-		PPCRecImlSegment_t* imlSegmentP1 = ppcImlGenContext.segmentList2[s+1];
-		PPCRecImlSegment_t* imlSegmentP2 = ppcImlGenContext.segmentList2[s+2];
+		IMLSegment* imlSegmentP0 = ppcImlGenContext.segmentList2[s+0];
+		IMLSegment* imlSegmentP1 = ppcImlGenContext.segmentList2[s+1];
+		IMLSegment* imlSegmentP2 = ppcImlGenContext.segmentList2[s+2];
 		// create entry point segment
 		PPCRecompilerIml_insertSegments(&ppcImlGenContext, ppcImlGenContext.segmentList2.size(), 1);
-		PPCRecImlSegment_t* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size()-1];
+		IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size()-1];
 		// relink segments	
 		PPCRecompilerIML_relinkInputSegment(imlSegmentP2, imlSegmentP0);
 		PPCRecompilerIml_setLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
@@ -4920,7 +4905,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	}
 
 	// insert name store instructions at the end of each segment but before branch instructions
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext.segmentList2) 
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2) 
 	{
 		if(segIt->imlList.size() == 0 )
 			continue; // ignore empty segments

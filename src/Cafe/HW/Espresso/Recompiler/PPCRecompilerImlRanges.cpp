@@ -70,7 +70,7 @@ raLivenessRange_t* PPCRecRA_createRangeBase(ppcImlGenContext_t* ppcImlGenContext
 	return livenessRange;
 }
 
-raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_t* range, PPCRecImlSegment_t* imlSegment, sint32 startIndex, sint32 endIndex)
+raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_t* range, IMLSegment* imlSegment, sint32 startIndex, sint32 endIndex)
 {
 	raLivenessSubrange_t* livenessSubrange = memPool_livenessSubrange.acquireObj();
 	livenessSubrange->list_locations.resize(0);
@@ -95,7 +95,7 @@ raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenConte
 
 void _unlinkSubrange(raLivenessSubrange_t* subrange)
 {
-	PPCRecImlSegment_t* imlSegment = subrange->imlSegment;
+	IMLSegment* imlSegment = subrange->imlSegment;
 	PPCRecRARange_removeLink_perVirtualGPR(&imlSegment->raInfo.linkedList_perVirtualGPR[subrange->range->virtualRegister], subrange);
 	PPCRecRARange_removeLink_allSubrangesGPR(&imlSegment->raInfo.linkedList_allSubranges, subrange);
 }
@@ -306,7 +306,7 @@ void PPCRecRA_updateOrAddSubrangeLocation(raLivenessSubrange_t* subrange, sint32
 	subrange->list_locations.emplace_back(index, isRead, isWrite);
 }
 
-sint32 PPCRecRARange_getReadWriteCost(PPCRecImlSegment_t* imlSegment)
+sint32 PPCRecRARange_getReadWriteCost(IMLSegment* imlSegment)
 {
 	sint32 v = imlSegment->loopDepth + 1;
 	v *= 5;

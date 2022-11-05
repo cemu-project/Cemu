@@ -236,7 +236,7 @@ enum
 	PPCREC_FPR_ST_MODE_PSQ_S16_PS0_PS1,
 };
 
-struct PPCRecImlInstruction_t
+struct IMLInstruction
 {
 	uint8 type;
 	uint8 operation;
@@ -274,9 +274,7 @@ struct PPCRecImlInstruction_t
 		{
 			// R/F = NAME or NAME = R/F
 			uint8 registerIndex;
-			uint8 copyWidth;
 			uint32 name;
-			uint8 flags;
 		}op_r_name;
 		struct
 		{
@@ -298,7 +296,7 @@ struct PPCRecImlInstruction_t
 		struct
 		{
 			uint32 jumpmarkAddress;
-			bool jumpAccordingToSegment; //PPCRecImlSegment_t* destinationSegment; // if set, this replaces jumpmarkAddress
+			bool jumpAccordingToSegment; //IMLSegment* destinationSegment; // if set, this replaces jumpmarkAddress
 			uint8 condition; // only used when crRegisterIndex is 8 or above (update: Apparently only used to mark jumps without a condition? -> Cleanup)
 			uint8 crRegisterIndex;
 			uint8 crBitIndex;
@@ -311,7 +309,6 @@ struct PPCRecImlInstruction_t
 			uint8 registerMem2;
 			uint8 registerGQR;
 			uint8 copyWidth;
-			//uint8 flags;
 			struct
 			{
 				bool swapEndian : 1;
@@ -321,20 +318,6 @@ struct PPCRecImlInstruction_t
 			uint8 mode; // transfer mode (copy width, ps0/ps1 behavior)
 			sint32 immS32;
 		}op_storeLoad;
-		struct
-		{
-			struct
-			{
-				uint8 registerMem;
-				sint32 immS32;
-			}src;
-			struct
-			{
-				uint8 registerMem;
-				sint32 immS32;
-			}dst;
-			uint8 copyWidth;
-		}op_mem2mem;
 		struct
 		{
 			uint8 registerResult;
@@ -359,7 +342,6 @@ struct PPCRecImlInstruction_t
 		struct
 		{
 			uint8 registerResult;
-			//uint8 flags;
 		}op_fpr_r;
 		struct
 		{
@@ -384,4 +366,30 @@ struct PPCRecImlInstruction_t
 			bool  bitMustBeSet;
 		}op_conditional_r_s32;
 	};
+
+	// instruction setters
+	void make_jumpmark(uint32 address)
+	{
+		type = PPCREC_IML_TYPE_JUMPMARK;
+		op_jumpmark.address = address;
+	}
+
+	void make_macro(uint32 macroId, uint32 param, uint32 param2, uint16 paramU16)
+	{
+		type = PPCREC_IML_TYPE_MACRO;
+		operation = macroId;
+		op_macro.param = param;
+		op_macro.param2 = param2;
+		op_macro.paramU16 = paramU16;
+	}
+
+	void make_ppcEnter(uint32 ppcAddress)
+	{
+		type = PPCREC_IML_TYPE_PPC_ENTER;
+		operation = 0;
+		op_ppcEnter.ppcAddress = ppcAddress;
+		op_ppcEnter.x64Offset = 0;
+		associatedPPCAddress = 0;
+	}
+
 };

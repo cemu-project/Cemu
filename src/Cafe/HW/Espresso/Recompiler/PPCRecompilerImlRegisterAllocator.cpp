@@ -3,9 +3,9 @@
 #include "PPCRecompilerX64.h"
 #include "PPCRecompilerImlRanges.h"
 
-void PPCRecompiler_replaceGPRRegisterUsageMultiple(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
+void PPCRecompiler_replaceGPRRegisterUsageMultiple(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
 
-bool PPCRecompiler_isSuffixInstruction(PPCRecImlInstruction_t* iml);
+bool PPCRecompiler_isSuffixInstruction(IMLInstruction* iml);
 
 uint32 recRACurrentIterationIndex = 0;
 
@@ -15,7 +15,7 @@ uint32 PPCRecRA_getNextIterationIndex()
 	return recRACurrentIterationIndex;
 }
 
-bool _detectLoop(PPCRecImlSegment_t* currentSegment, sint32 depth, uint32 iterationIndex, PPCRecImlSegment_t* imlSegmentLoopBase)
+bool _detectLoop(IMLSegment* currentSegment, sint32 depth, uint32 iterationIndex, IMLSegment* imlSegmentLoopBase)
 {
 	if (currentSegment == imlSegmentLoopBase)
 		return true;
@@ -47,7 +47,7 @@ bool _detectLoop(PPCRecImlSegment_t* currentSegment, sint32 depth, uint32 iterat
 	return currentSegment->raInfo.isPartOfProcessedLoop;
 }
 
-void PPCRecRA_detectLoop(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegmentLoopBase)
+void PPCRecRA_detectLoop(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegmentLoopBase)
 {
 	uint32 iterationIndex = PPCRecRA_getNextIterationIndex();
 	imlSegmentLoopBase->raInfo.lastIterationIndex = iterationIndex;
@@ -57,7 +57,7 @@ void PPCRecRA_detectLoop(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_
 	}
 }
 
-void PPCRecRA_identifyLoop(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_identifyLoop(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
 	if (imlSegment->nextSegmentIsUncertain)
 		return;
@@ -120,62 +120,54 @@ typedef struct
 	uint16 registerName;
 }raLoadStoreInfo_t;
 
-void PPCRecRA_insertGPRLoadInstruction(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, sint32 registerIndex, sint32 registerName)
+void PPCRecRA_insertGPRLoadInstruction(IMLSegment* imlSegment, sint32 insertIndex, sint32 registerIndex, sint32 registerName)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, 1);
-	PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + 0);
-	memset(imlInstructionItr, 0x00, sizeof(PPCRecImlInstruction_t));
+	IMLInstruction* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + 0);
+	memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
 	imlInstructionItr->type = PPCREC_IML_TYPE_R_NAME;
 	imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
 	imlInstructionItr->op_r_name.registerIndex = registerIndex;
 	imlInstructionItr->op_r_name.name = registerName;
-	imlInstructionItr->op_r_name.copyWidth = 32;
-	imlInstructionItr->op_r_name.flags = 0;
 }
 
-void PPCRecRA_insertGPRLoadInstructions(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, raLoadStoreInfo_t* loadList, sint32 loadCount)
+void PPCRecRA_insertGPRLoadInstructions(IMLSegment* imlSegment, sint32 insertIndex, raLoadStoreInfo_t* loadList, sint32 loadCount)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, loadCount);
-	memset(imlSegment->imlList.data() + (insertIndex + 0), 0x00, sizeof(PPCRecImlInstruction_t)*loadCount);
+	memset(imlSegment->imlList.data() + (insertIndex + 0), 0x00, sizeof(IMLInstruction)*loadCount);
 	for (sint32 i = 0; i < loadCount; i++)
 	{
-		PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + i);
+		IMLInstruction* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + i);
 		imlInstructionItr->type = PPCREC_IML_TYPE_R_NAME;
 		imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
 		imlInstructionItr->op_r_name.registerIndex = (uint8)loadList[i].registerIndex;
 		imlInstructionItr->op_r_name.name = (uint32)loadList[i].registerName;
-		imlInstructionItr->op_r_name.copyWidth = 32;
-		imlInstructionItr->op_r_name.flags = 0;
 	}
 }
 
-void PPCRecRA_insertGPRStoreInstruction(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, sint32 registerIndex, sint32 registerName)
+void PPCRecRA_insertGPRStoreInstruction(IMLSegment* imlSegment, sint32 insertIndex, sint32 registerIndex, sint32 registerName)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, 1);
-	PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + 0);
-	memset(imlInstructionItr, 0x00, sizeof(PPCRecImlInstruction_t));
+	IMLInstruction* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + 0);
+	memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
 	imlInstructionItr->type = PPCREC_IML_TYPE_NAME_R;
 	imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
 	imlInstructionItr->op_r_name.registerIndex = registerIndex;
 	imlInstructionItr->op_r_name.name = registerName;
-	imlInstructionItr->op_r_name.copyWidth = 32;
-	imlInstructionItr->op_r_name.flags = 0;
 }
 
-void PPCRecRA_insertGPRStoreInstructions(PPCRecImlSegment_t* imlSegment, sint32 insertIndex, raLoadStoreInfo_t* storeList, sint32 storeCount)
+void PPCRecRA_insertGPRStoreInstructions(IMLSegment* imlSegment, sint32 insertIndex, raLoadStoreInfo_t* storeList, sint32 storeCount)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, storeCount);
-	memset(imlSegment->imlList.data() + (insertIndex + 0), 0x00, sizeof(PPCRecImlInstruction_t)*storeCount);
+	memset(imlSegment->imlList.data() + (insertIndex + 0), 0x00, sizeof(IMLInstruction)*storeCount);
 	for (sint32 i = 0; i < storeCount; i++)
 	{
-		PPCRecImlInstruction_t* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + i);
-		memset(imlInstructionItr, 0x00, sizeof(PPCRecImlInstruction_t));
+		IMLInstruction* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + i);
+		memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
 		imlInstructionItr->type = PPCREC_IML_TYPE_NAME_R;
 		imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
 		imlInstructionItr->op_r_name.registerIndex = (uint8)storeList[i].registerIndex;
 		imlInstructionItr->op_r_name.name = (uint32)storeList[i].registerName;
-		imlInstructionItr->op_r_name.copyWidth = 32;
-		imlInstructionItr->op_r_name.flags = 0;
 	}
 }
 
@@ -192,7 +184,7 @@ sint32 PPCRecRA_countInstructionsUntilNextUse(raLivenessSubrange_t* subrange, si
 }
 
 // count how many instructions there are until physRegister is used by any subrange (returns 0 if register is in use at startIndex, and INT_MAX if not used for the remainder of the segment)
-sint32 PPCRecRA_countInstructionsUntilNextLocalPhysRegisterUse(PPCRecImlSegment_t* imlSegment, sint32 startIndex, sint32 physRegister)
+sint32 PPCRecRA_countInstructionsUntilNextLocalPhysRegisterUse(IMLSegment* imlSegment, sint32 startIndex, sint32 physRegister)
 {
 	sint32 minDistance = INT_MAX;
 	// next
@@ -227,7 +219,7 @@ uint32 PPCRecRA_getAllowedRegisterMaskForFullRange(raLivenessRange_t* range)
 	uint32 physRegisterMask = (1 << PPC_X64_GPR_USABLE_REGISTERS) - 1;
 	for (auto& subrange : range->list_subranges)
 	{
-		PPCRecImlSegment_t* imlSegment = subrange->imlSegment;
+		IMLSegment* imlSegment = subrange->imlSegment;
 		raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 		while(subrangeItr)
 		{
@@ -254,7 +246,7 @@ uint32 PPCRecRA_getAllowedRegisterMaskForFullRange(raLivenessRange_t* range)
 
 bool _livenessRangeStartCompare(raLivenessSubrange_t* lhs, raLivenessSubrange_t* rhs) { return lhs->start.index < rhs->start.index; }
 
-void _sortSegmentAllSubrangesLinkedList(PPCRecImlSegment_t* imlSegment)
+void _sortSegmentAllSubrangesLinkedList(IMLSegment* imlSegment)
 {
 	raLivenessSubrange_t* subrangeList[4096+1];
 	sint32 count = 0;
@@ -318,7 +310,7 @@ void _sortSegmentAllSubrangesLinkedList(PPCRecImlSegment_t* imlSegment)
 #endif
 }
 
-bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
 
 	// sort subranges ascending by start index
@@ -628,7 +620,7 @@ void PPCRecRA_assignRegisters(ppcImlGenContext_t* ppcImlGenContext)
 {
 	// start with frequently executed segments first
 	sint32 maxLoopDepth = 0;
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
+	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
 	{
 		maxLoopDepth = std::max(maxLoopDepth, segIt->loopDepth);
 	}
@@ -637,7 +629,7 @@ void PPCRecRA_assignRegisters(ppcImlGenContext_t* ppcImlGenContext)
 		bool done = false;
 		for (sint32 d = maxLoopDepth; d >= 0; d--)
 		{
-			for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
+			for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
 			{
 				if (segIt->loopDepth != d)
 					continue;
@@ -672,7 +664,7 @@ void _findSubrangeWriteEndings(raLivenessSubrange_t* subrange, uint32 iterationI
 	subrange->lastIterationIndex = iterationIndex;
 	if (subrange->hasStoreDelayed)
 		return; // no need to traverse this subrange
-	PPCRecImlSegment_t* imlSegment = subrange->imlSegment;
+	IMLSegment* imlSegment = subrange->imlSegment;
 	if (subrange->end.index != RA_INTER_RANGE_END)
 	{
 		// ending segment
@@ -758,7 +750,7 @@ void _analyzeRangeDataFlow(raLivenessSubrange_t* subrange)
 	}
 }
 
-void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
 	sint16 virtualReg2PhysReg[PPC_REC_MAX_VIRTUAL_GPR];
 	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
@@ -933,7 +925,7 @@ void PPCRecRA_generateMoveInstructions(ppcImlGenContext_t* ppcImlGenContext)
 {
 	for (size_t s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[s];
 		PPCRecRA_generateSegmentInstructions(ppcImlGenContext, imlSegment);
 	}
 }
@@ -949,7 +941,7 @@ void PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext_t* ppcImlGen
 	size_t segmentIndex = 0;
 	while (segmentIndex < ppcImlGenContext->segmentList2.size())
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[segmentIndex];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[segmentIndex];
 		if (imlSegment->nextSegmentIsUncertain)
 		{
 			segmentIndex++;
@@ -971,9 +963,9 @@ void PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext_t* ppcImlGen
 			continue;
 		}
 		PPCRecompilerIml_insertSegments(ppcImlGenContext, segmentIndex + 1, 1);
-		PPCRecImlSegment_t* imlSegmentP0 = ppcImlGenContext->segmentList2[segmentIndex + 0];
-		PPCRecImlSegment_t* imlSegmentP1 = ppcImlGenContext->segmentList2[segmentIndex + 1];
-		PPCRecImlSegment_t* nextSegment = imlSegment->nextSegmentBranchNotTaken;
+		IMLSegment* imlSegmentP0 = ppcImlGenContext->segmentList2[segmentIndex + 0];
+		IMLSegment* imlSegmentP1 = ppcImlGenContext->segmentList2[segmentIndex + 1];
+		IMLSegment* nextSegment = imlSegment->nextSegmentBranchNotTaken;
 		PPCRecompilerIML_removeLink(imlSegmentP0, nextSegment);
 		PPCRecompilerIml_setLinkBranchNotTaken(imlSegmentP1, nextSegment);
 		PPCRecompilerIml_setLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
@@ -982,12 +974,12 @@ void PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext_t* ppcImlGen
 	// detect loops
 	for (size_t s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[s];
 		imlSegment->momentaryIndex = s;
 	}
 	for (size_t s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[s];
 		PPCRecRA_identifyLoop(ppcImlGenContext, imlSegment);
 	}
 }
@@ -1010,12 +1002,12 @@ void PPCRecompilerImm_allocateRegisters(ppcImlGenContext_t* ppcImlGenContext)
 }
 
 
-bool _isRangeDefined(PPCRecImlSegment_t* imlSegment, sint32 vGPR)
+bool _isRangeDefined(IMLSegment* imlSegment, sint32 vGPR)
 {
 	return (imlSegment->raDistances.reg[vGPR].usageStart != INT_MAX);
 }
 
-void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
 	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
 	{
@@ -1049,13 +1041,13 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 void PPCRecRA_calculateLivenessRangesV2(ppcImlGenContext_t* ppcImlGenContext)
 {
 	// for each register calculate min/max index of usage range within each segment
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
+	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
 	{
 		PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext, segIt);
 	}
 }
 
-raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment, sint32 vGPR, raLivenessRange_t* range)
+raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 vGPR, raLivenessRange_t* range)
 {
 	if (imlSegment->raDistances.isProcessed[vGPR])
 	{
@@ -1094,7 +1086,7 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlG
 	return subrange;
 }
 
-void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
 	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
 	{
@@ -1146,7 +1138,7 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 }
 
-void PPCRecRA_extendRangeToEndOfSegment(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment, sint32 vGPR)
+void PPCRecRA_extendRangeToEndOfSegment(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 vGPR)
 {
 	if (_isRangeDefined(imlSegment, vGPR) == false)
 	{
@@ -1157,7 +1149,7 @@ void PPCRecRA_extendRangeToEndOfSegment(ppcImlGenContext_t* ppcImlGenContext, PP
 	imlSegment->raDistances.reg[vGPR].usageEnd = RA_INTER_RANGE_END;
 }
 
-void PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment, sint32 vGPR)
+void PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 vGPR)
 {
 	if (_isRangeDefined(imlSegment, vGPR) == false)
 	{
@@ -1175,7 +1167,7 @@ void PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext_t* ppcImlGenConte
 	}
 }
 
-void _PPCRecRA_connectRanges(ppcImlGenContext_t* ppcImlGenContext, sint32 vGPR, PPCRecImlSegment_t** route, sint32 routeDepth)
+void _PPCRecRA_connectRanges(ppcImlGenContext_t* ppcImlGenContext, sint32 vGPR, IMLSegment** route, sint32 routeDepth)
 {
 #ifdef CEMU_DEBUG_ASSERT
 	if (routeDepth < 2)
@@ -1193,7 +1185,7 @@ void _PPCRecRA_connectRanges(ppcImlGenContext_t* ppcImlGenContext, sint32 vGPR, 
 	PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext, route[routeDepth - 1], vGPR);
 }
 
-void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* currentSegment, sint32 vGPR, sint32 distanceLeft, PPCRecImlSegment_t** route, sint32 routeDepth)
+void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* currentSegment, sint32 vGPR, sint32 distanceLeft, IMLSegment** route, sint32 routeDepth)
 {
 	if (routeDepth >= 64)
 	{
@@ -1229,7 +1221,7 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCR
 	}
 }
 
-void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* currentSegment, sint32 vGPR)
+void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* currentSegment, sint32 vGPR)
 {
 #ifdef CEMU_DEBUG_ASSERT
 	if (currentSegment->raDistances.reg[vGPR].usageEnd < 0)
@@ -1253,7 +1245,7 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 		return; // can't reach end
 
 	// also dont forget: Extending is easier if we allow 'non symmetric' branches. E.g. register range one enters one branch
-	PPCRecImlSegment_t* route[64];
+	IMLSegment* route[64];
 	route[0] = currentSegment;
 	if (currentSegment->nextSegmentBranchNotTaken)
 	{
@@ -1265,7 +1257,7 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 	}
 }
 
-void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
 	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty entries
 	{
@@ -1282,16 +1274,16 @@ void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext,
 #endif
 }
 
-void PPCRecRA_followFlowAndExtendRanges(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* imlSegment)
+void PPCRecRA_followFlowAndExtendRanges(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-	std::vector<PPCRecImlSegment_t*> list_segments;
+	std::vector<IMLSegment*> list_segments;
 	list_segments.reserve(1000);
 	sint32 index = 0;
 	imlSegment->raRangeExtendProcessed = true;
 	list_segments.push_back(imlSegment);
 	while (index < list_segments.size())
 	{
-		PPCRecImlSegment_t* currentSegment = list_segments[index];
+		IMLSegment* currentSegment = list_segments[index];
 		PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext, currentSegment);
 		// follow flow
 		if (currentSegment->nextSegmentBranchNotTaken && currentSegment->nextSegmentBranchNotTaken->raRangeExtendProcessed == false)
@@ -1312,7 +1304,7 @@ void PPCRecRA_mergeCloseRangesV2(ppcImlGenContext_t* ppcImlGenContext)
 {
 	for (size_t s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[s];
 		if (imlSegment->list_prevSegments.empty())
 		{
 			if (imlSegment->raRangeExtendProcessed)
@@ -1326,7 +1318,7 @@ void PPCRecRA_extendRangesOutOfLoopsV2(ppcImlGenContext_t* ppcImlGenContext)
 {
 	for (size_t s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[s];
 		auto localLoopDepth = imlSegment->loopDepth;
 		if (localLoopDepth <= 0)
 			continue; // not inside a loop
@@ -1365,7 +1357,7 @@ void PPCRecRA_processFlowAndCalculateLivenessRangesV2(ppcImlGenContext_t* ppcIml
 	// calculate liveness ranges
 	for (size_t s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
 	{
-		PPCRecImlSegment_t* imlSegment = ppcImlGenContext->segmentList2[s];
+		IMLSegment* imlSegment = ppcImlGenContext->segmentList2[s];
 		PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext, imlSegment);
 	}
 }
