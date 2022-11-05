@@ -418,7 +418,15 @@ void InputSettings2::update_state()
 
 	// enabled correct panel for active controller
 	if (active_api && emulated_controller && emulated_controller->type() == active_api.value())
+	{
+		// same controller type panel already shown, refresh content of panels
+		for (auto* panel : page_data.m_panels)
+		{
+			if (panel)
+				panel->load_controller(page_data.m_controller);
+		}
 		return;
+	}
 
 	// hide all panels
 	for (auto* panel : page_data.m_panels)
