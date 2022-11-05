@@ -367,6 +367,23 @@ struct IMLInstruction
 		}op_conditional_r_s32;
 	};
 
+	bool IsSuffixInstruction() const
+	{
+		if (type == PPCREC_IML_TYPE_MACRO && (operation == PPCREC_IML_MACRO_BLR || operation == PPCREC_IML_MACRO_BCTR) ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BL ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_B_FAR ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BLRL ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BCTRL ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_LEAVE ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_HLE ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_MFTB ||
+			type == PPCREC_IML_TYPE_PPC_ENTER ||
+			type == PPCREC_IML_TYPE_CJUMP ||
+			type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+			return true;
+		return false;
+	}
+
 	// instruction setters
 	void make_jumpmark(uint32 address)
 	{

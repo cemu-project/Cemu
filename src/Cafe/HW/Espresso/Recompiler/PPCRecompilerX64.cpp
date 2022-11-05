@@ -2266,8 +2266,6 @@ uint8* PPCRecompilerX86_allocateExecutableMemory(sint32 size)
 	return codeMem;
 }
 
-void PPCRecompiler_dumpIML(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
-
 bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext)
 {
 	x64GenContext_t x64GenContext = {0};

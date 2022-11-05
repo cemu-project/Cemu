@@ -942,26 +942,6 @@ bool PPCRecompiler_findAvailableRegisterDepr(ppcImlGenContext_t* ppcImlGenContex
 
 }
 
-bool PPCRecompiler_hasSuffixInstruction(IMLSegment* imlSegment)
-{
-	if (imlSegment->imlList.empty())
-		return false;
-	const IMLInstruction& imlInstruction = imlSegment->imlList.back();
-	if( imlInstruction.type == PPCREC_IML_TYPE_MACRO && (imlInstruction.operation == PPCREC_IML_MACRO_BLR || imlInstruction.operation == PPCREC_IML_MACRO_BCTR) ||
-		imlInstruction.type == PPCREC_IML_TYPE_MACRO && imlInstruction.operation == PPCREC_IML_MACRO_BL ||
-		imlInstruction.type == PPCREC_IML_TYPE_MACRO && imlInstruction.operation == PPCREC_IML_MACRO_B_FAR ||
-		imlInstruction.type == PPCREC_IML_TYPE_MACRO && imlInstruction.operation == PPCREC_IML_MACRO_BLRL ||
-		imlInstruction.type == PPCREC_IML_TYPE_MACRO && imlInstruction.operation == PPCREC_IML_MACRO_BCTRL ||
-		imlInstruction.type == PPCREC_IML_TYPE_MACRO && imlInstruction.operation == PPCREC_IML_MACRO_LEAVE ||
-		imlInstruction.type == PPCREC_IML_TYPE_MACRO && imlInstruction.operation == PPCREC_IML_MACRO_HLE ||
-		imlInstruction.type == PPCREC_IML_TYPE_MACRO && imlInstruction.operation == PPCREC_IML_MACRO_MFTB ||
-		imlInstruction.type == PPCREC_IML_TYPE_PPC_ENTER ||
-		imlInstruction.type == PPCREC_IML_TYPE_CJUMP ||
-		imlInstruction.type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK )
-		return true;
-	return false;
-}
-
 void PPCRecompiler_storeReplacedRegister(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, replacedRegisterTracker_t* replacedRegisterTracker, sint32 registerTrackerIndex, sint32* imlIndex)
 {
 	// store register
@@ -1203,7 +1183,7 @@ bool PPCRecompiler_manageFPRRegistersForSegment(ppcImlGenContext_t* ppcImlGenCon
 	while (idx < imlSegment->imlList.size())
 	{
 		IMLInstruction& idxInst = imlSegment->imlList[idx];
-		if ( PPCRecompiler_isSuffixInstruction(&idxInst) )
+		if (idxInst.IsSuffixInstruction())
 			break;
 		PPCRecompiler_checkRegisterUsage(ppcImlGenContext, &idxInst, &registersUsed);
 		sint32 fprMatch[4];
@@ -1704,11 +1684,8 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 	for (sint32 i = imlIndexLoad + 1; i < scanRangeEnd; i++)
 	{
 		IMLInstruction* imlInstruction = imlSegment->imlList.data() + i;
-		if (PPCRecompiler_isSuffixInstruction(imlInstruction))
-		{
+		if (imlInstruction->IsSuffixInstruction())
 			break;
-		}
-
 		// check if FPR is stored
 		if ((imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0) ||
 			(imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0))
@@ -1795,10 +1772,8 @@ void PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext_t* pp
 	for (; i < scanRangeEnd; i++)
 	{
 		IMLInstruction* imlInstruction = imlSegment->imlList.data() + i;
-		if (PPCRecompiler_isSuffixInstruction(imlInstruction))
-		{
+		if (imlInstruction->IsSuffixInstruction())
 			break;
-		}
 		// check if GPR is stored
 		if ((imlInstruction->type == PPCREC_IML_TYPE_STORE && imlInstruction->op_storeLoad.copyWidth == 32 ) )
 		{

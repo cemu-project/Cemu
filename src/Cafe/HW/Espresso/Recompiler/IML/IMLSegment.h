@@ -1,4 +1,7 @@
 #pragma once
+#include "IMLInstruction.h"
+
+#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h" // remove once dependency is gone
 
 struct IMLSegment
 {
@@ -37,4 +40,6 @@ struct IMLSegment
 	bool raRangeExtendProcessed{};
 	// segment points
 	ppcRecompilerSegmentPoint_t* segmentPointList{};
+
+	bool HasSuffixInstruction() const;
 };

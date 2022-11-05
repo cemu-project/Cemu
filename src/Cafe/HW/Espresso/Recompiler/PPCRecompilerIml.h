@@ -113,7 +113,6 @@ bool PPCRecompilerImlGen_PS_CMPU1(ppcImlGenContext_t* ppcImlGenContext, uint32 o
 
 // IML general
 
-bool PPCRecompiler_isSuffixInstruction(IMLInstruction* iml);
 void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompilerIml_setLinkBranchNotTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
 void PPCRecompilerIml_setLinkBranchTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
@@ -150,11 +149,6 @@ void PPCRecompilerImm_allocateRegisters(ppcImlGenContext_t* ppcImlGenContext);
 
 // late optimizations
 void PPCRecompiler_reorderConditionModifyInstructions(ppcImlGenContext_t* ppcImlGenContext);
-
-// debug
-
-void PPCRecompiler_dumpIMLSegment(IMLSegment* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo = false);
-
 
 typedef struct
 {
