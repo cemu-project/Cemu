@@ -4,7 +4,7 @@
 #include "asm/x64util.h"
 #include "Common/cpu_features.h"
 
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
@@ -21,7 +21,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunct
 	}
 }
 
-void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
@@ -264,7 +264,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load_generic(ppcImlGenContext_t* ppcImlGen
 }
 
 // load from memory
-bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction, bool indexed)
+bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	sint32 realRegisterXMM = tempToRealFPRRegister(imlInstruction->op_storeLoad.registerData);
@@ -591,7 +591,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_store_generic(ppcImlGenContext_t* ppcImlGe
 }
 
 // store to memory
-bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction, bool indexed)
+bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	sint32 realRegisterXMM = tempToRealFPRRegister(imlInstruction->op_storeLoad.registerData);
@@ -727,7 +727,7 @@ void _swapPS0PS1(x64GenContext_t* x64GenContext, sint32 xmmReg)
 }
 
 // FPR op FPR
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP )
@@ -1006,7 +1006,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 /*
  * FPR = op (fprA, fprB)
  */
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 
@@ -1099,7 +1099,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 /*
  * FPR = op (fprA, fprB, fprC)
  */
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUM0 )
@@ -1193,7 +1193,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 /*
  * Single FPR operation
  */
-void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATE_BOTTOM )

@@ -6,14 +6,14 @@
 /*
  * Initializes a single segment and returns true if it is a finite loop
  */
-bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
+bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(IMLSegment* imlSegment)
 {
 	bool isTightFiniteLoop = false;
 	// base criteria, must jump to beginning of same segment
 	if (imlSegment->nextSegmentBranchTaken != imlSegment)
 		return false;
 	// loops using BDNZ are assumed to always be finite
-	for(const PPCRecImlInstruction_t& instIt : imlSegment->imlList)
+	for(const IMLInstruction& instIt : imlSegment->imlList)
 	{
 		if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_SUB && instIt.crRegister == 8)
 		{
@@ -24,7 +24,7 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 	// risky approach, look for ADD/SUB operations and assume that potential overflow means finite (does not include r_r_s32 ADD/SUB)
 	// this catches most loops with load-update and store-update instructions, but also those with decrementing counters
 	FixedSizeList<sint32, 64, true> list_modifiedRegisters;
-	for (const PPCRecImlInstruction_t& instIt : imlSegment->imlList)
+	for (const IMLInstruction& instIt : imlSegment->imlList)
 	{
 		if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB) )
 		{
@@ -36,7 +36,7 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 		// remove all registers from the list that are modified by non-ADD/SUB instructions
 		// todo: We should also cover the case where ADD+SUB on the same register cancel the effect out
 		PPCImlOptimizerUsedRegisters_t registersUsed;
-		for (const PPCRecImlInstruction_t& instIt : imlSegment->imlList)
+		for (const IMLInstruction& instIt : imlSegment->imlList)
 		{
 			if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB))
 				continue;
@@ -56,7 +56,7 @@ bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment)
 /*
 * Returns true if the imlInstruction can overwrite CR (depending on value of ->crRegister)
 */
-bool PPCRecompilerImlAnalyzer_canTypeWriteCR(PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerImlAnalyzer_canTypeWriteCR(IMLInstruction* imlInstruction)
 {
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_R)
 		return true;
@@ -77,7 +77,7 @@ bool PPCRecompilerImlAnalyzer_canTypeWriteCR(PPCRecImlInstruction_t* imlInstruct
 	return false;
 }
 
-void PPCRecompilerImlAnalyzer_getCRTracking(PPCRecImlInstruction_t* imlInstruction, PPCRecCRTracking_t* crTracking)
+void PPCRecompilerImlAnalyzer_getCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_t* crTracking)
 {
 	crTracking->readCRBits = 0;
 	crTracking->writtenCRBits = 0;

@@ -79,7 +79,7 @@ void PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext_t* x64GenContext, si
 	}
 }
 
-void PPCRecompilerX64Gen_updateCRLogical(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_updateCRLogical(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	sint32 crRegister = imlInstruction->crRegister;
 	if( (imlInstruction->crIgnoreMask&(1<<(crRegister*4+PPCREC_CR_BIT_LT))) == 0 )
@@ -124,7 +124,7 @@ void ATTR_MS_ABI PPCRecompiler_getTBU(PPCInterpreter_t* hCPU, uint32 gprIndex)
 	hCPU->gpr[gprIndex] = (uint32)((coreTime>>32)&0xFFFFFFFF);
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	if( imlInstruction->operation == PPCREC_IML_MACRO_BLR || imlInstruction->operation == PPCREC_IML_MACRO_BLRL )
@@ -344,7 +344,7 @@ bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, 
 /*
 * Load from memory
 */
-bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction, bool indexed)
+bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed)
 {
 	sint32 realRegisterData = tempToRealRegister(imlInstruction->op_storeLoad.registerData);
 	sint32 realRegisterMem = tempToRealRegister(imlInstruction->op_storeLoad.registerMem);
@@ -502,7 +502,7 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 /*
 * Write to memory
 */
-bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction, bool indexed)
+bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed)
 {
 	sint32 realRegisterData = tempToRealRegister(imlInstruction->op_storeLoad.registerData);
 	sint32 realRegisterMem = tempToRealRegister(imlInstruction->op_storeLoad.registerMem);
@@ -675,7 +675,7 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	return false;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	if (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
 	{
@@ -989,7 +989,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	if( imlInstruction->operation == PPCREC_IML_OP_ASSIGN )
 	{
@@ -1140,7 +1140,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_conditional_r_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_conditional_r_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	if (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
 	{
@@ -1221,7 +1221,7 @@ bool PPCRecompilerX64Gen_imlInstruction_conditional_r_s32(PPCRecFunction_t* PPCR
 	return false;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	if( imlInstruction->operation == PPCREC_IML_OP_ADD || imlInstruction->operation == PPCREC_IML_OP_ADD_UPDATE_CARRY || imlInstruction->operation == PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY )
 	{
@@ -1791,7 +1791,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	if( imlInstruction->operation == PPCREC_IML_OP_ADD )
 	{
@@ -1981,7 +1981,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlSegment_t* imlSegment, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLSegment* imlSegment, IMLInstruction* imlInstruction)
 {
 	if( imlInstruction->op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NONE )
 	{
@@ -2102,7 +2102,7 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_conditionalJumpCycleCheck(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_conditionalJumpCycleCheck(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	// some tests (all performed on a i7-4790K)
@@ -2119,7 +2119,7 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJumpCycleCheck(PPCRecFunction
 /*
 * PPC condition register operation
 */
-bool PPCRecompilerX64Gen_imlInstruction_cr(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_cr(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext); // while these instruction do not directly affect eflags, they change the CR bit
 	if (imlInstruction->operation == PPCREC_IML_OP_CR_CLEAR)
@@ -2161,7 +2161,7 @@ bool PPCRecompilerX64Gen_imlInstruction_cr(PPCRecFunction_t* PPCRecFunction, ppc
 }
 
 
-void PPCRecompilerX64Gen_imlInstruction_ppcEnter(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_ppcEnter(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	imlInstruction->op_ppcEnter.x64Offset = x64GenContext->codeBufferIndex;
 	// generate code
@@ -2182,7 +2182,7 @@ void PPCRecompilerX64Gen_imlInstruction_ppcEnter(PPCRecFunction_t* PPCRecFunctio
 	}
 }
 
-void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0+32 )
@@ -2211,7 +2211,7 @@ void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction,
 		assert_dbg();
 }
 
-void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0+32 )
@@ -2278,12 +2278,12 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 
 	// generate iml instruction code
 	bool codeGenerationFailed = false;
-	for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
+	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
 	{
 		segIt->x64Offset = x64GenContext.codeBufferIndex;
 		for(size_t i=0; i<segIt->imlList.size(); i++)
 		{
-			PPCRecImlInstruction_t* imlInstruction = segIt->imlList.data() + i;
+			IMLInstruction* imlInstruction = segIt->imlList.data() + i;
 
 			if( imlInstruction->type == PPCREC_IML_TYPE_R_NAME )
 			{
@@ -2477,7 +2477,7 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			uint32 x64Offset = 0xFFFFFFFF;
 			if (x64GenContext.relocateOffsetTable[i].type == X64_RELOC_LINK_TO_PPC)
 			{
-				for (PPCRecImlSegment_t* segIt : ppcImlGenContext->segmentList2)
+				for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
 				{
 					if (segIt->isJumpDestination && segIt->jumpDestinationPPCAddress == ppcOffset)
 					{
@@ -2494,7 +2494,7 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			}
 			else
 			{
-				PPCRecImlSegment_t* destSegment = (PPCRecImlSegment_t*)x64GenContext.relocateOffsetTable[i].extraInfo;
+				IMLSegment* destSegment = (IMLSegment*)x64GenContext.relocateOffsetTable[i].extraInfo;
 				x64Offset = destSegment->x64Offset;
 			}
 			uint32 relocBase = x64GenContext.relocateOffsetTable[i].offset;

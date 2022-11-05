@@ -31,7 +31,7 @@ typedef struct
 typedef struct _ppcRecompilerSegmentPoint_t
 {
 	sint32 index;
-	struct PPCRecImlSegment_t* imlSegment;
+	struct IMLSegment* imlSegment;
 	_ppcRecompilerSegmentPoint_t* next;
 	_ppcRecompilerSegmentPoint_t* prev;
 }ppcRecompilerSegmentPoint_t;
@@ -57,7 +57,7 @@ struct raLivenessSubrangeLink_t
 struct raLivenessSubrange_t
 {
 	struct raLivenessRange_t* range;
-	PPCRecImlSegment_t* imlSegment;
+	IMLSegment* imlSegment;
 	ppcRecompilerSegmentPoint_t start;
 	ppcRecompilerSegmentPoint_t end;
 	// dirty state tracking
@@ -107,6 +107,8 @@ struct PPCRecVGPRDistances_t
 
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLSegment.h"
 
+struct IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(struct ppcImlGenContext_t* ppcImlGenContext);
+
 struct ppcImlGenContext_t
 {
 	PPCRecFunction_t* functionRef;
@@ -122,14 +124,11 @@ struct ppcImlGenContext_t
 	// temporary floating point registers (single and double precision)
 	uint32 mappedFPRRegister[256];
 	// list of intermediate instructions
-	PPCRecImlInstruction_t* imlList;
+	IMLInstruction* imlList;
 	sint32 imlListSize;
 	sint32 imlListCount;
 	// list of segments
-	//PPCRecImlSegment_t** segmentList;
-	//sint32 segmentListSize;
-	//sint32 segmentListCount;
-	std::vector<PPCRecImlSegment_t*> segmentList2;
+	std::vector<IMLSegment*> segmentList2;
 	// code generation control
 	bool hasFPUInstruction; // if true, PPCEnter macro will create FP_UNAVAIL checks -> Not needed in user mode
 	// register allocator info
@@ -142,6 +141,12 @@ struct ppcImlGenContext_t
 	{
 		bool modifiesGQR[8];
 	}tracking;
+
+	// append raw instruction
+	IMLInstruction& emitInst()
+	{
+		return *PPCRecompilerImlGen_generateNewEmptyInstruction(this);
+	}
 };
 
 typedef void ATTR_MS_ABI (*PPCREC_JUMP_ENTRY)();

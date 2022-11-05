@@ -1,6 +1,6 @@
 #pragma once
 
-struct PPCRecImlSegment_t
+struct IMLSegment
 {
 	sint32 momentaryIndex{}; // index in segment list, generally not kept up to date except if needed (necessary for loop detection)
 	sint32 startOffset{}; // offset to first instruction in iml instruction list
@@ -9,13 +9,13 @@ struct PPCRecImlSegment_t
 	uint32 x64Offset{}; // x64 code offset of segment start
 	uint32 cycleCount{}; // number of PPC cycles required to execute this segment (roughly)
 	// list of intermediate instructions in this segment
-	std::vector<PPCRecImlInstruction_t> imlList;
+	std::vector<IMLInstruction> imlList;
 	// segment link
-	PPCRecImlSegment_t* nextSegmentBranchNotTaken{}; // this is also the default for segments where there is no branch
-	PPCRecImlSegment_t* nextSegmentBranchTaken{};
+	IMLSegment* nextSegmentBranchNotTaken{}; // this is also the default for segments where there is no branch
+	IMLSegment* nextSegmentBranchTaken{};
 	bool nextSegmentIsUncertain{};
 	sint32 loopDepth{};
-	std::vector<PPCRecImlSegment_t*> list_prevSegments{};
+	std::vector<IMLSegment*> list_prevSegments{};
 	// PPC range of segment
 	uint32 ppcAddrMin{};
 	uint32 ppcAddrMax{};

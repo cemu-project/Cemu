@@ -6,7 +6,7 @@
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory, sint32 immS32, uint32 mode, bool switchEndian, uint8 registerGQR = PPC_REC_INVALID_REGISTER)
 {
 	// load from memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_LOAD;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
@@ -21,7 +21,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext_t*
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory1, uint8 registerMemory2, uint32 mode, bool switchEndian, uint8 registerGQR = PPC_REC_INVALID_REGISTER)
 {
 	// load from memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_LOAD_INDEXED;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
@@ -37,7 +37,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory_indexed(ppcImlGenCo
 void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext_t* ppcImlGenContext, uint8 registerSource, uint8 registerMemory, sint32 immS32, uint32 mode, bool switchEndian, uint8 registerGQR = PPC_REC_INVALID_REGISTER)
 {
 	// store to memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_STORE;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
@@ -52,7 +52,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext_t*
 void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerSource, uint8 registerMemory1, uint8 registerMemory2, sint32 immS32, uint32 mode, bool switchEndian, uint8 registerGQR = 0)
 {
 	// store to memory
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_STORE_INDEXED;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
@@ -68,7 +68,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenCo
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, uint8 registerResult, uint8 registerOperand, sint32 crRegister=PPC_REC_INVALID_REGISTER)
 {
 	// fpr OP fpr
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R;
 	imlInstruction->operation = operation;
 	imlInstruction->op_fpr_r_r.registerResult = registerResult;
@@ -80,7 +80,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext_t* ppcI
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, uint8 registerResult, uint8 registerOperand1, uint8 registerOperand2, sint32 crRegister=PPC_REC_INVALID_REGISTER)
 {
 	// fpr = OP (fpr,fpr)
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R_R;
 	imlInstruction->operation = operation;
 	imlInstruction->op_fpr_r_r_r.registerResult = registerResult;
@@ -93,7 +93,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext_t* pp
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, uint8 registerResult, uint8 registerOperandA, uint8 registerOperandB, uint8 registerOperandC, sint32 crRegister=PPC_REC_INVALID_REGISTER)
 {
 	// fpr = OP (fpr,fpr,fpr)
-	PPCRecImlInstruction_t* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R_R_R;
 	imlInstruction->operation = operation;
 	imlInstruction->op_fpr_r_r_r_r.registerResult = registerResult;
@@ -104,7 +104,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext_t* 
 	imlInstruction->op_fpr_r_r_r_r.flags = 0;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, sint32 operation, uint8 registerResult, sint32 crRegister)
+void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 operation, uint8 registerResult, sint32 crRegister)
 {
 	// OP (fpr)
 	if(imlInstruction == NULL)

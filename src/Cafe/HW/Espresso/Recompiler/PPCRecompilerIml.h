@@ -4,13 +4,13 @@
 bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext, PPCRecFunction_t* PPCRecFunction, std::set<uint32>& entryAddresses);
 void PPCRecompiler_freeContext(ppcImlGenContext_t* ppcImlGenContext); // todo - move to destructor
 
-PPCRecImlInstruction_t* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_pushBackIMLInstructions(PPCRecImlSegment_t* imlSegment, sint32 index, sint32 shiftBackCount);
-PPCRecImlInstruction_t* PPCRecompiler_insertInstruction(PPCRecImlSegment_t* imlSegment, sint32 index);
+IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext_t* ppcImlGenContext);
+void PPCRecompiler_pushBackIMLInstructions(IMLSegment* imlSegment, sint32 index, sint32 shiftBackCount);
+IMLInstruction* PPCRecompiler_insertInstruction(IMLSegment* imlSegment, sint32 index);
 
 void PPCRecompilerIml_insertSegments(ppcImlGenContext_t* ppcImlGenContext, sint32 index, sint32 count);
 
-void PPCRecompilerIml_setSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint, PPCRecImlSegment_t* imlSegment, sint32 index);
+void PPCRecompilerIml_setSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint, IMLSegment* imlSegment, sint32 index);
 void PPCRecompilerIml_removeSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint);
 
 // GPR register management
@@ -22,20 +22,20 @@ uint32 PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext,
 uint32 PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName);
 
 // IML instruction generation
-void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 jumpmarkAddress);
-void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction);
+void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 jumpmarkAddress);
+void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction);
 
 void PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 copyWidth, bool signExtend, bool bigEndian, uint8 crRegister, uint32 crMode);
-void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet);
-void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0);
+void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet);
+void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0);
 
 
 
 // IML instruction generation (new style, can generate new instructions but also overwrite existing ones)
 
-void PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction);
+void PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction);
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, sint32 operation, uint8 registerResult, sint32 crRegister = PPC_REC_INVALID_REGISTER);
+void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 operation, uint8 registerResult, sint32 crRegister = PPC_REC_INVALID_REGISTER);
 
 // IML generation - FPU
 bool PPCRecompilerImlGen_LFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
@@ -113,15 +113,15 @@ bool PPCRecompilerImlGen_PS_CMPU1(ppcImlGenContext_t* ppcImlGenContext, uint32 o
 
 // IML general
 
-bool PPCRecompiler_isSuffixInstruction(PPCRecImlInstruction_t* iml);
+bool PPCRecompiler_isSuffixInstruction(IMLInstruction* iml);
 void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompilerIml_setLinkBranchNotTaken(PPCRecImlSegment_t* imlSegmentSrc, PPCRecImlSegment_t* imlSegmentDst);
-void PPCRecompilerIml_setLinkBranchTaken(PPCRecImlSegment_t* imlSegmentSrc, PPCRecImlSegment_t* imlSegmentDst);
-void PPCRecompilerIML_relinkInputSegment(PPCRecImlSegment_t* imlSegmentOrig, PPCRecImlSegment_t* imlSegmentNew);
-void PPCRecompilerIML_removeLink(PPCRecImlSegment_t* imlSegmentSrc, PPCRecImlSegment_t* imlSegmentDst);
+void PPCRecompilerIml_setLinkBranchNotTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
+void PPCRecompilerIml_setLinkBranchTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
+void PPCRecompilerIML_relinkInputSegment(IMLSegment* imlSegmentOrig, IMLSegment* imlSegmentNew);
+void PPCRecompilerIML_removeLink(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
 void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenContext);
 
-PPCRecImlInstruction_t* PPCRecompilerIML_getLastInstruction(PPCRecImlSegment_t* imlSegment);
+IMLInstruction* PPCRecompilerIML_getLastInstruction(IMLSegment* imlSegment);
 
 // IML analyzer
 typedef struct
@@ -130,9 +130,9 @@ typedef struct
 	uint32 writtenCRBits;
 }PPCRecCRTracking_t;
 
-bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(PPCRecImlSegment_t* imlSegment);
-bool PPCRecompilerImlAnalyzer_canTypeWriteCR(PPCRecImlInstruction_t* imlInstruction);
-void PPCRecompilerImlAnalyzer_getCRTracking(PPCRecImlInstruction_t* imlInstruction, PPCRecCRTracking_t* crTracking);
+bool PPCRecompilerImlAnalyzer_isTightFiniteLoop(IMLSegment* imlSegment);
+bool PPCRecompilerImlAnalyzer_canTypeWriteCR(IMLInstruction* imlInstruction);
+void PPCRecompilerImlAnalyzer_getCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_t* crTracking);
 
 // IML optimizer
 bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenContext);
@@ -153,7 +153,7 @@ void PPCRecompiler_reorderConditionModifyInstructions(ppcImlGenContext_t* ppcIml
 
 // debug
 
-void PPCRecompiler_dumpIMLSegment(PPCRecImlSegment_t* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo = false);
+void PPCRecompiler_dumpIMLSegment(IMLSegment* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo = false);
 
 
 typedef struct
@@ -185,4 +185,4 @@ typedef struct
 	};
 }PPCImlOptimizerUsedRegisters_t;
 
-void PPCRecompiler_checkRegisterUsage(ppcImlGenContext_t* ppcImlGenContext, const PPCRecImlInstruction_t* imlInstruction, PPCImlOptimizerUsedRegisters_t* registersUsed);
+void PPCRecompiler_checkRegisterUsage(ppcImlGenContext_t* ppcImlGenContext, const IMLInstruction* imlInstruction, PPCImlOptimizerUsedRegisters_t* registersUsed);
