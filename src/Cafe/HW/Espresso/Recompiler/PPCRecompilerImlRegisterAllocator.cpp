@@ -5,8 +5,6 @@
 
 void PPCRecompiler_replaceGPRRegisterUsageMultiple(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
 
-bool PPCRecompiler_isSuffixInstruction(IMLInstruction* iml);
-
 uint32 recRACurrentIterationIndex = 0;
 
 uint32 PPCRecRA_getNextIterationIndex()
@@ -759,7 +757,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	raLiveRangeInfo_t liveInfo;
 	liveInfo.liveRangesCount = 0;
 	sint32 index = 0;
-	sint32 suffixInstructionCount = (imlSegment->imlList.size() > 0 && PPCRecompiler_isSuffixInstruction(imlSegment->imlList.data() + imlSegment->imlList.size() - 1)) ? 1 : 0;
+	sint32 suffixInstructionCount = imlSegment->HasSuffixInstruction() ? 1 : 0;
 	// load register ranges that are supplied from previous segments
 	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	//for (auto& subrange : imlSegment->raInfo.list_subranges)
@@ -1020,7 +1018,7 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 	while (index < imlSegment->imlList.size())
 	{
 		// end loop at suffix instruction
-		if (PPCRecompiler_isSuffixInstruction(imlSegment->imlList.data() + index))
+		if (imlSegment->imlList[index].IsSuffixInstruction())
 			break;
 		// get accessed GPRs
 		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList.data() + index, &gprTracking);
@@ -1113,7 +1111,7 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 	while (index < imlSegment->imlList.size())
 	{
 		// end loop at suffix instruction
-		if (PPCRecompiler_isSuffixInstruction(imlSegment->imlList.data() + index))
+		if (imlSegment->imlList[index].IsSuffixInstruction())
 			break;
 		// get accessed GPRs
 		PPCRecompiler_checkRegisterUsage(NULL, imlSegment->imlList.data() + index, &gprTracking);

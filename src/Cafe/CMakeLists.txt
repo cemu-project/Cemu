@@ -67,10 +67,12 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/PPCFunctionBoundaryTracker.h
   HW/Espresso/Recompiler/PPCRecompiler.cpp
   HW/Espresso/Recompiler/PPCRecompiler.h
+  HW/Espresso/Recompiler/IML/IML.h
   HW/Espresso/Recompiler/IML/IMLSegment.cpp
   HW/Espresso/Recompiler/IML/IMLSegment.h
   HW/Espresso/Recompiler/IML/IMLInstruction.cpp
   HW/Espresso/Recompiler/IML/IMLInstruction.h
+  HW/Espresso/Recompiler/IML/IMLDebug.cpp
   HW/Espresso/Recompiler/PPCRecompilerImlAnalyzer.cpp
   HW/Espresso/Recompiler/PPCRecompilerImlGen.cpp
   HW/Espresso/Recompiler/PPCRecompilerImlGenFPU.cpp

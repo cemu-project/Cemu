@@ -1,4 +1,4 @@
-#include <vector>
+#pragma once
 
 #define PPC_REC_CODE_AREA_START		(0x00000000) // lower bound of executable memory area. Recompiler expects this address to be 0
 #define PPC_REC_CODE_AREA_END		(0x10000000) // upper bound of executable memory area
@@ -8,23 +8,21 @@
 
 #define PPC_REC_MAX_VIRTUAL_GPR		(40) // enough to store 32 GPRs + a few SPRs + temp registers (usually only 1-2)
 
-typedef struct  
+struct ppcRecRange_t
 {
 	uint32 ppcAddress;
 	uint32 ppcSize;
-	//void* x86Start;
-	//size_t x86Size;
 	void* storedRange;
-}ppcRecRange_t;
+};
 
-typedef struct  
+struct PPCRecFunction_t
 {
 	uint32 ppcAddress;
 	uint32 ppcSize; // ppc code size of function
 	void*  x86Code; // pointer to x86 code
 	size_t x86Size;
 	std::vector<ppcRecRange_t> list_ranges;
-}PPCRecFunction_t;
+};
 
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLInstruction.h"
 
