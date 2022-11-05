@@ -1,11 +1,12 @@
-#include "../Interpreter/PPCInterpreterInternal.h"
+#include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/IML/IML.h"
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLInstruction.h"
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
 
-typedef struct  
+#include "../PPCRecompiler.h"
+#include "../PPCRecompilerIml.h"
+#include "../PPCRecompilerX64.h"
+
+struct replacedRegisterTracker_t
 {
 	struct  
 	{
@@ -17,40 +18,7 @@ typedef struct
 		bool nameMustBeMaintained; // must be stored before replacement and loaded after replacement ends
 	}replacedRegisterEntry[PPC_X64_GPR_USABLE_REGISTERS];
 	sint32 count;
-}replacedRegisterTracker_t;
-
-bool PPCRecompiler_checkIfGPRRegisterIsAccessed(IMLUsedRegisters* registersUsed, sint32 gprRegister)
-{
-	if( registersUsed->readNamedReg1 == gprRegister )
-		return true;
-	if( registersUsed->readNamedReg2 == gprRegister )
-		return true;
-	if( registersUsed->readNamedReg3 == gprRegister )
-		return true;
-	if( registersUsed->writtenNamedReg1 == gprRegister )
-		return true;
-	return false;
-}
-
-/*
- * Returns index of register to replace
- * If no register needs to be replaced, -1 is returned
- */
-sint32 PPCRecompiler_getNextRegisterToReplace(IMLUsedRegisters* registersUsed)
-{
-	// get index of register to replace
-	sint32 gprToReplace = -1;
-	if( registersUsed->readNamedReg1 >= PPC_X64_GPR_USABLE_REGISTERS )
-		gprToReplace = registersUsed->readNamedReg1;
-	else if( registersUsed->readNamedReg2 >= PPC_X64_GPR_USABLE_REGISTERS )
-		gprToReplace = registersUsed->readNamedReg2;
-	else if( registersUsed->readNamedReg3 >= PPC_X64_GPR_USABLE_REGISTERS )
-		gprToReplace = registersUsed->readNamedReg3;
-	else if( registersUsed->writtenNamedReg1 >= PPC_X64_GPR_USABLE_REGISTERS )
-		gprToReplace = registersUsed->writtenNamedReg1;
-	// return 
-	return gprToReplace;
-}
+};
 
 bool PPCRecompiler_findAvailableRegisterDepr(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 imlIndexStart, replacedRegisterTracker_t* replacedRegisterTracker, sint32* registerIndex, sint32* registerName, bool* isUsed)
 {
@@ -216,7 +184,7 @@ bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenConte
 						replacedRegisterIsUsed = segIt->ppcFPRUsed[unusedRegisterName-PPCREC_NAME_FPR0];
 					}
 					// replace registers that are out of range
-					segIt->imlList[imlIndex].ReplaceFPRRegisterUsage(fprToReplace, unusedRegisterIndex);
+					segIt->imlList[imlIndex].ReplaceFPR(fprToReplace, unusedRegisterIndex);
 					// add load/store name after instruction
 					PPCRecompiler_pushBackIMLInstructions(segIt, imlIndex+1, 2);
 					// add load/store before current instruction
@@ -449,7 +417,7 @@ bool PPCRecompiler_manageFPRRegistersForSegment(ppcImlGenContext_t* ppcImlGenCon
 		}
 		if (numReplacedOperands > 0)
 		{
-			imlSegment->imlList[idx].ReplaceFPRRegisterUsageMultiple(fprMatch, fprReplace);
+			imlSegment->imlList[idx].ReplaceFPRs(fprMatch, fprReplace);
 		}
 		// next
 		idx++;
