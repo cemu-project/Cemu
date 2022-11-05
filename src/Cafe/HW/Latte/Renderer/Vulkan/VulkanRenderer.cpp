@@ -2542,6 +2542,20 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	}
 
 	auto& chainInfo = GetChainInfo(mainWindow);
+
+	UpdateVSyncState(mainWindow);
+
+	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+	if (chainInfo.sizeOutOfDate || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+	{
+		try
+		{
+			RecreateSwapchain(mainWindow);
+			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
+		}
+		catch (std::exception&) { cemu_assert_debug(false); }
+	}
+
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
 
@@ -2626,20 +2640,6 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		return;
 
 	auto& chainInfo = GetChainInfo(mainWindow);
-
-	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.sizeOutOfDate || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
-	{
-		try
-		{
-			RecreateSwapchain(mainWindow);
-			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
-		}
-		catch (std::exception&) { cemu_assert_debug(false); }
-		return;
-	}
-
-	UpdateVSyncState(mainWindow);
 
 	if (!chainInfo.hasDefinedSwapchainImage)
 	{
