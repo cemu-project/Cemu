@@ -1,0 +1,4 @@
+# this file contains keys needed for decryption of disc file system data (WUD/WUX)
+# 1 key per line, any text after a '#' character is considered a comment
+# the emulator will automatically pick the right key
+541b9889519b27d363cd21604b97c67a # example key (can be deleted)

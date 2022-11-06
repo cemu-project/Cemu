@@ -11,85 +11,7 @@ IMLSegment* PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext_t* ppcImlG
 		}
 	}
 	debug_printf("PPCRecompiler_getSegmentByPPCJumpAddress(): Unable to find segment (ppcOffset 0x%08x)\n", ppcOffset);
-	return NULL;
-}
-
-void PPCRecompilerIml_setLinkBranchNotTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst)
-{
-	// make sure segments aren't already linked
-	if (imlSegmentSrc->nextSegmentBranchNotTaken == imlSegmentDst)
-		return;
-	// add as next segment for source
-	if (imlSegmentSrc->nextSegmentBranchNotTaken != NULL)
-		assert_dbg();
-	imlSegmentSrc->nextSegmentBranchNotTaken = imlSegmentDst;
-	// add as previous segment for destination
-	imlSegmentDst->list_prevSegments.push_back(imlSegmentSrc);
-}
-
-void PPCRecompilerIml_setLinkBranchTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst)
-{
-	// make sure segments aren't already linked
-	if (imlSegmentSrc->nextSegmentBranchTaken == imlSegmentDst)
-		return;
-	// add as next segment for source
-	if (imlSegmentSrc->nextSegmentBranchTaken != NULL)
-		assert_dbg();
-	imlSegmentSrc->nextSegmentBranchTaken = imlSegmentDst;
-	// add as previous segment for destination
-	imlSegmentDst->list_prevSegments.push_back(imlSegmentSrc);
-}
-
-void PPCRecompilerIML_removeLink(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst)
-{
-	if (imlSegmentSrc->nextSegmentBranchNotTaken == imlSegmentDst)
-	{
-		imlSegmentSrc->nextSegmentBranchNotTaken = NULL;
-	}
-	else if (imlSegmentSrc->nextSegmentBranchTaken == imlSegmentDst)
-	{
-		imlSegmentSrc->nextSegmentBranchTaken = NULL;
-	}
-	else
-		assert_dbg();
-
-	bool matchFound = false;
-	for (sint32 i = 0; i < imlSegmentDst->list_prevSegments.size(); i++)
-	{
-		if (imlSegmentDst->list_prevSegments[i] == imlSegmentSrc)
-		{
-			imlSegmentDst->list_prevSegments.erase(imlSegmentDst->list_prevSegments.begin()+i);
-			matchFound = true;
-			break;
-		}
-	}
-	if (matchFound == false)
-		assert_dbg();
-}
-
-/*
- * Replaces all links to segment orig with linkts to segment new
- */
-void PPCRecompilerIML_relinkInputSegment(IMLSegment* imlSegmentOrig, IMLSegment* imlSegmentNew)
-{
-	while (imlSegmentOrig->list_prevSegments.size() != 0)
-	{
-		IMLSegment* prevSegment = imlSegmentOrig->list_prevSegments[0];
-		if (prevSegment->nextSegmentBranchNotTaken == imlSegmentOrig)
-		{
-			PPCRecompilerIML_removeLink(prevSegment, imlSegmentOrig);
-			PPCRecompilerIml_setLinkBranchNotTaken(prevSegment, imlSegmentNew);
-		}
-		else if (prevSegment->nextSegmentBranchTaken == imlSegmentOrig)
-		{
-			PPCRecompilerIML_removeLink(prevSegment, imlSegmentOrig);
-			PPCRecompilerIml_setLinkBranchTaken(prevSegment, imlSegmentNew);
-		}
-		else
-		{
-			assert_dbg();
-		}
-	}
+	return nullptr;
 }
 
 void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
@@ -105,7 +27,7 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 		if( imlSegment->imlList.empty())
 		{
 			if (isLastSegment == false)
-				PPCRecompilerIml_setLinkBranchNotTaken(imlSegment, ppcImlGenContext->segmentList2[s+1]); // continue execution to next segment
+				IMLSegment_SetLinkBranchNotTaken(imlSegment, ppcImlGenContext->segmentList2[s+1]); // continue execution to next segment
 			else
 				imlSegment->nextSegmentIsUncertain = true;
 			continue;
@@ -119,8 +41,8 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 			if( jumpDestSegment )
 			{
 				if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
-					PPCRecompilerIml_setLinkBranchNotTaken(imlSegment, nextSegment);
-				PPCRecompilerIml_setLinkBranchTaken(imlSegment, jumpDestSegment);
+					IMLSegment_SetLinkBranchNotTaken(imlSegment, nextSegment);
+				IMLSegment_SetLinkBranchTaken(imlSegment, jumpDestSegment);
 			}
 			else
 			{
@@ -135,7 +57,7 @@ void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext)
 		else
 		{
 			// all other instruction types do not branch
-			PPCRecompilerIml_setLinkBranchNotTaken(imlSegment, nextSegment);
+			IMLSegment_SetLinkBranchNotTaken(imlSegment, nextSegment);
 		}
 	}
 }
@@ -156,17 +78,10 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 			// create jump instruction
 			PPCRecompiler_pushBackIMLInstructions(entrySegment, 0, 1);
 			PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext, entrySegment->imlList.data() + 0);
-			PPCRecompilerIml_setLinkBranchTaken(entrySegment, imlSegment);
+			IMLSegment_SetLinkBranchTaken(entrySegment, imlSegment);
 			// remove enterable flag from original segment
 			imlSegment->isEnterable = false;
 			imlSegment->enterPPCAddress = 0;
 		}
 	}
-}
-
-IMLInstruction* PPCRecompilerIML_getLastInstruction(IMLSegment* imlSegment)
-{
-	if (imlSegment->imlList.empty())
-		return nullptr;
-	return imlSegment->imlList.data() + (imlSegment->imlList.size() - 1);
 }
