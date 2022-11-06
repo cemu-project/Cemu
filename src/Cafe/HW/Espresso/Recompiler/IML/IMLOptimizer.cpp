@@ -1118,8 +1118,8 @@ bool PPCRecompilerAnalyzer_checkForGPROverwrite(IMLUsedRegisters* registerRead, 
 
 void _reorderConditionModifyInstructions(IMLSegment* imlSegment)
 {
-	IMLInstruction* lastInstruction = PPCRecompilerIML_getLastInstruction(imlSegment);
-	// last instruction a conditional branch?
+	IMLInstruction* lastInstruction = imlSegment->GetLastInstruction();
+	// last instruction is a conditional branch?
 	if (lastInstruction == nullptr || lastInstruction->type != PPCREC_IML_TYPE_CJUMP)
 		return;
 	if (lastInstruction->op_conditionalJump.crRegisterIndex >= 8)

@@ -2,8 +2,8 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterHelper.h"
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
-#include "PPCRecompilerImlRanges.h"
 #include "IML/IML.h"
+#include "IML/IMLRegisterAllocatorRanges.h"
 
 bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext);
 uint32 PPCRecompiler_iterateCurrentInstruction(ppcImlGenContext_t* ppcImlGenContext);
@@ -4149,7 +4149,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	{
 		if (segIt->nextSegmentBranchNotTaken == nullptr || segIt->nextSegmentBranchTaken == nullptr)
 			continue; // not a branching segment
-		IMLInstruction* lastInstruction = PPCRecompilerIML_getLastInstruction(segIt);
+		IMLInstruction* lastInstruction = segIt->GetLastInstruction();
 		if (lastInstruction->type != PPCREC_IML_TYPE_CJUMP || lastInstruction->op_conditionalJump.crRegisterIndex != 0)
 			continue;
 		IMLSegment* conditionalSegment = segIt->nextSegmentBranchNotTaken;
@@ -4195,10 +4195,10 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		}
 		// update segment links
 		// source segment: imlSegment, conditional/removed segment: conditionalSegment, final segment: finalSegment
-		PPCRecompilerIML_removeLink(segIt, conditionalSegment);
-		PPCRecompilerIML_removeLink(segIt, finalSegment);
-		PPCRecompilerIML_removeLink(conditionalSegment, finalSegment);
-		PPCRecompilerIml_setLinkBranchNotTaken(segIt, finalSegment);
+		IMLSegment_RemoveLink(segIt, conditionalSegment);
+		IMLSegment_RemoveLink(segIt, finalSegment);
+		IMLSegment_RemoveLink(conditionalSegment, finalSegment);
+		IMLSegment_SetLinkBranchNotTaken(segIt, finalSegment);
 		// remove all instructions from conditional segment
 		conditionalSegment->imlList.clear();
 
@@ -4206,18 +4206,18 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		if (finalSegment->isEnterable == false && finalSegment->list_prevSegments.size() == 1)
 		{
 			// todo: Clean this up and move into separate function PPCRecompilerIML_mergeSegments()
-			PPCRecompilerIML_removeLink(segIt, finalSegment);
+			IMLSegment_RemoveLink(segIt, finalSegment);
 			if (finalSegment->nextSegmentBranchNotTaken)
 			{
 				IMLSegment* tempSegment = finalSegment->nextSegmentBranchNotTaken;
-				PPCRecompilerIML_removeLink(finalSegment, tempSegment);
-				PPCRecompilerIml_setLinkBranchNotTaken(segIt, tempSegment);
+				IMLSegment_RemoveLink(finalSegment, tempSegment);
+				IMLSegment_SetLinkBranchNotTaken(segIt, tempSegment);
 			}
 			if (finalSegment->nextSegmentBranchTaken)
 			{
 				IMLSegment* tempSegment = finalSegment->nextSegmentBranchTaken;
-				PPCRecompilerIML_removeLink(finalSegment, tempSegment);
-				PPCRecompilerIml_setLinkBranchTaken(segIt, tempSegment);
+				IMLSegment_RemoveLink(finalSegment, tempSegment);
+				IMLSegment_SetLinkBranchTaken(segIt, tempSegment);
 			}
 			// copy IML instructions
 			cemu_assert_debug(segIt != finalSegment);
@@ -4296,10 +4296,10 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		PPCRecompilerIml_insertSegments(&ppcImlGenContext, ppcImlGenContext.segmentList2.size(), 1);
 		IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size()-1];
 		// relink segments	
-		PPCRecompilerIML_relinkInputSegment(imlSegmentP2, imlSegmentP0);
-		PPCRecompilerIml_setLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
-		PPCRecompilerIml_setLinkBranchTaken(imlSegmentP0, imlSegmentP2);
-		PPCRecompilerIml_setLinkBranchTaken(imlSegmentPEntry, imlSegmentP0);
+		IMLSegment_RelinkInputSegment(imlSegmentP2, imlSegmentP0);
+		IMLSegment_SetLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
+		IMLSegment_SetLinkBranchTaken(imlSegmentP0, imlSegmentP2);
+		IMLSegment_SetLinkBranchTaken(imlSegmentPEntry, imlSegmentP0);
 		// update segments
 		uint32 enterPPCAddress = imlSegmentP2->ppcAddrMin;
 		if (imlSegmentP2->isEnterable)
@@ -4413,7 +4413,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		}
 	}
 
-	PPCRecompilerImm_allocateRegisters(&ppcImlGenContext);
+	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext);
 
 	// remove redundant name load and store instructions
 	PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);

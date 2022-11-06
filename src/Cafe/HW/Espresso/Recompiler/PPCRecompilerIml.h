@@ -114,14 +114,5 @@ bool PPCRecompilerImlGen_PS_CMPU1(ppcImlGenContext_t* ppcImlGenContext, uint32 o
 // IML general
 
 void PPCRecompilerIML_linkSegments(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompilerIml_setLinkBranchNotTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
-void PPCRecompilerIml_setLinkBranchTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
-void PPCRecompilerIML_relinkInputSegment(IMLSegment* imlSegmentOrig, IMLSegment* imlSegmentNew);
-void PPCRecompilerIML_removeLink(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
 void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenContext);
-
-IMLInstruction* PPCRecompilerIML_getLastInstruction(IMLSegment* imlSegment);
-
-// IML register allocator
-void PPCRecompilerImm_allocateRegisters(ppcImlGenContext_t* ppcImlGenContext);
 

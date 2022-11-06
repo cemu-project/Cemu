@@ -1,9 +1,9 @@
-#include "./IML/IML.h"
+#include "IML.h"
 
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
-#include "PPCRecompilerImlRanges.h"
+#include "../PPCRecompiler.h"
+#include "../PPCRecompilerIml.h"
+#include "../PPCRecompilerX64.h"
+#include "IMLRegisterAllocatorRanges.h"
 
 uint32 recRACurrentIterationIndex = 0;
 
@@ -964,9 +964,9 @@ void PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext_t* ppcImlGen
 		IMLSegment* imlSegmentP0 = ppcImlGenContext->segmentList2[segmentIndex + 0];
 		IMLSegment* imlSegmentP1 = ppcImlGenContext->segmentList2[segmentIndex + 1];
 		IMLSegment* nextSegment = imlSegment->nextSegmentBranchNotTaken;
-		PPCRecompilerIML_removeLink(imlSegmentP0, nextSegment);
-		PPCRecompilerIml_setLinkBranchNotTaken(imlSegmentP1, nextSegment);
-		PPCRecompilerIml_setLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
+		IMLSegment_RemoveLink(imlSegmentP0, nextSegment);
+		IMLSegment_SetLinkBranchNotTaken(imlSegmentP1, nextSegment);
+		IMLSegment_SetLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
 		segmentIndex++;
 	}
 	// detect loops
@@ -982,7 +982,7 @@ void PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext_t* ppcImlGen
 	}
 }
 
-void PPCRecompilerImm_allocateRegisters(ppcImlGenContext_t* ppcImlGenContext)
+void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext)
 {
 	PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext);
 

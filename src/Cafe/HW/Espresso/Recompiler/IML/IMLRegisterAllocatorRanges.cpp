@@ -1,7 +1,7 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
-#include "PPCRecompilerImlRanges.h"
+#include "../PPCRecompiler.h"
+#include "../PPCRecompilerIml.h"
+#include "../PPCRecompilerX64.h"
+#include "IMLRegisterAllocatorRanges.h"
 #include "util/helpers/MemoryPool.h"
 
 void PPCRecRARange_addLink_perVirtualGPR(raLivenessSubrange_t** root, raLivenessSubrange_t* subrange)

@@ -1,9 +1,9 @@
 #include "IML.h"
 #include "IMLInstruction.h"
 #include "IMLSegment.h"
+#include "IMLRegisterAllocatorRanges.h"
 #include "util/helpers/StringBuf.h"
 
-#include "Cafe/HW/Espresso/Recompiler/PPCRecompilerImlRanges.h"
 
 const char* IMLDebug_GetOpcodeName(const IMLInstruction* iml)
 {

@@ -42,4 +42,12 @@ struct IMLSegment
 	ppcRecompilerSegmentPoint_t* segmentPointList{};
 
 	bool HasSuffixInstruction() const;
+	IMLInstruction* GetLastInstruction();
+
 };
+
+
+void IMLSegment_SetLinkBranchNotTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
+void IMLSegment_SetLinkBranchTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
+void IMLSegment_RelinkInputSegment(IMLSegment* imlSegmentOrig, IMLSegment* imlSegmentNew);
+void IMLSegment_RemoveLink(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst);
