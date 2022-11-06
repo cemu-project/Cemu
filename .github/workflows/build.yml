@@ -41,7 +41,7 @@ jobs:
       if: ${{ inputs.experimentalversion != '' }}
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
-        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEMULATOR_HASH=$(git rev-parse --short "$GITHUB_SHA") -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
 
     - name: "Install system dependencies"
       run: |
@@ -212,7 +212,7 @@ jobs:
       if: ${{ inputs.experimentalversion != '' }}
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
-        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEMULATOR_HASH=$(git rev-parse --short "$GITHUB_SHA") -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
         
     - name: "Install system dependencies"
       run: |
