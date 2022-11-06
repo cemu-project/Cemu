@@ -6,7 +6,10 @@ option(MACOS_BUNDLE "The executable when built on macOS will be created as an ap
 set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
 if (EXPERIMENTAL_VERSION)
-  add_definitions(-DEMULATOR_VERSION_MINOR=${EXPERIMENTAL_VERSION})
+	add_definitions(-DEMULATOR_VERSION_MINOR=${EXPERIMENTAL_VERSION})
+endif()
+if (EMULATOR_HASH)
+	add_definitions(-DEMULATOR_HASH=${EMULATOR_HASH})
 endif()
 
 if (ENABLE_VCPKG)
