@@ -58,13 +58,9 @@ bool SDLController::connect()
 	if (m_diid == -1)
 		return false;
 
-	m_controller = SDL_GameControllerFromInstanceID(m_diid);
+	m_controller = SDL_GameControllerOpen(index);
 	if (!m_controller)
-	{
-		m_controller = SDL_GameControllerOpen(index);
-		if (!m_controller)
-			return false;
-	}
+		return false;
 
 	if (const char* name = SDL_GameControllerName(m_controller))
 		m_display_name = name;
