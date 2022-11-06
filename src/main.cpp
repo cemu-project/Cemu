@@ -37,10 +37,6 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-#if BOOST_OS_LINUX
-#include "util/gamemode/gamemode_client.h"
-#endif
-
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
 #define _putenv(__s) putenv((char*)(__s))
 #endif
@@ -266,14 +262,6 @@ int mainEmulatorHLE()
 	PPCCore_init();
 	// log Cemu startup info
 	infoLog_cemuStartup();
-	// enable gamemode (Linux-only library for standby prevention and some OS optimization)
-	#if BOOST_OS_LINUX
-		if (GetConfig().gamemode && gamemode_request_start() < 0)
-			cemuLog_force("Failed to enable gamemode, it may not be installed");
-			// TODO: disable gamemode when only the game, not Cemu, is closed (a feature not yet implemented)
-			// currently unnecessary because this will happen automatically when Cemu closes
-			// gamemode_request_end();
-	#endif
 	// init RPL loader
 	RPLLoader_InitState();
 	// init IOSU components

@@ -55,6 +55,10 @@
 #include "resource/embedded/resources.h"
 #endif
 
+#if BOOST_OS_LINUX
+#include "util/gamemode/gamemode_client.h"
+#endif
+
 #include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -559,6 +563,15 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 	CreateCanvas();
 	CafeSystem::LaunchForegroundTitle();
 	RecreateMenu();
+
+	// enable gamemode (Linux-only library for standby prevention and some OS optimization)
+	#if BOOST_OS_LINUX
+		if (GetConfig().gamemode && gamemode_request_start() < 0)
+			cemuLog_force("Failed to enable gamemode, it may not be installed");
+			// TODO: disable gamemode when only the game, not Cemu, is closed (a feature not yet implemented)
+			// currently unnecessary because this will happen automatically when Cemu closes
+			// gamemode_request_end();
+	#endif
 
 	return true;
 }
