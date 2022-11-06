@@ -42,6 +42,9 @@ private:
 	wxCheckBox* m_discord_presence, *m_fullscreen_menubar;
 	wxCheckBox* m_auto_update, *m_save_screenshot;
 	wxCheckBox* m_permanent_storage;
+	#if BOOST_OS_LINUX
+	wxCheckBox* m_gamemode;
+	#endif
 	wxListBox* m_game_paths;
 	wxTextCtrl* m_mlc_path;
 

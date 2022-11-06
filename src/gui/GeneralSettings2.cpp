@@ -49,6 +49,10 @@
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
 
+#if BOOST_OS_LINUX
+#include "util/gamemode/gamemode_client.h"
+#endif
+
 const wxString kDirectSound(wxT("DirectSound"));
 const wxString kXAudio27(wxT("XAudio2.7"));
 const wxString kXAudio2(wxT("XAudio2"));
@@ -169,6 +173,12 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_permanent_storage = new wxCheckBox(box, wxID_ANY, _("Use permanent storage"));
 			m_permanent_storage->SetToolTip(_("Cemu will remember your custom mlc path in %LOCALAPPDATA%/Cemu for new installations."));
 			second_row->Add(m_permanent_storage, 0, botflag, 5);
+			#if BOOST_OS_LINUX
+				second_row->AddSpacer(10);
+				m_gamemode = new wxCheckBox(box, wxID_ANY, _("Feral GameMode"));
+				m_gamemode->SetToolTip(_("Inhibits the screen saver and enables performance optimizations while running a game. May increase power consumption."));
+				second_row->Add(m_gamemode, 0, botflag, 5);
+			#endif
 
 			box_sizer->Add(second_row, 0, wxEXPAND, 5);
 		}
@@ -864,6 +874,19 @@ void GeneralSettings2::StoreConfig()
 		config.permanent_storage = use_ps;
 	}
 
+	#if BOOST_OS_LINUX
+		config.gamemode = m_gamemode->IsChecked();
+		// Toggle while a game is running
+		if (CafeSystem::IsTitleRunning()) {
+			if (config.gamemode) {
+				if (gamemode_request_start() < 0)
+					cemuLog_force("Failed to enable gamemode, it may not be installed");
+			} else {
+				gamemode_request_end();
+			}
+		}
+	#endif
+
 	if (!LaunchSettings::GetMLCPath().has_value())
 		config.SetMLCPath(m_mlc_path->GetValue().ToStdWstring(), false);
 	
@@ -1470,7 +1493,10 @@ void GeneralSettings2::ApplyConfig()
 	m_save_screenshot->SetValue(config.save_screenshot);
 
 	m_permanent_storage->SetValue(config.permanent_storage);
-	
+	#if BOOST_OS_LINUX
+		m_gamemode->SetValue(config.gamemode);
+	#endif
+
 	for (auto& path : config.game_paths)
 	{
 		m_game_paths->Append(path);

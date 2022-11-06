@@ -66,6 +66,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	did_show_graphic_pack_download = parser.get("gp_download", did_show_graphic_pack_download);
 	fullscreen = parser.get("fullscreen", fullscreen);
 	proxy_server = parser.get("proxy_server", "");
+	gamemode = parser.get("gamemode", true);
 
 	// cpu_mode = parser.get("cpu_mode", cpu_mode.GetInitValue());
 	//console_region = parser.get("console_region", console_region.GetInitValue());
@@ -367,7 +368,8 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("gp_download", did_show_graphic_pack_download);
 	config.set<bool>("fullscreen", fullscreen);
 	config.set("proxy_server", proxy_server.GetValue().c_str());
-	
+	config.set<bool>("gamemode", gamemode);
+
 	// config.set("cpu_mode", cpu_mode.GetValue());
 	//config.set("console_region", console_region.GetValue());
 	config.set("console_language", console_language.GetValue());
