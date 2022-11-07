@@ -41,8 +41,7 @@ jobs:
       if: ${{ inputs.experimentalversion != '' }}
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
-        echo "[INFO] Experimental hash ${{ github.sha }}"
-        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEMULATOR_HASH=$(git rev-parse --short ${{ github.sha }}) -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
 
     - name: "Install system dependencies"
       run: |
@@ -137,8 +136,7 @@ jobs:
       if: ${{ inputs.experimentalversion != '' }}
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
-        echo "[INFO] Experimental hash ${{ github.sha }}"
-        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEMULATOR_HASH=$(git rev-parse --short ${{github.sha}}) -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
     
     - name: Configure MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -214,8 +212,7 @@ jobs:
       if: ${{ inputs.experimentalversion != '' }}
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
-        echo "[INFO] Experimental hash ${{ github.sha }}"
-        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEMULATOR_HASH=$(git rev-parse --short ${{ github.sha }}) -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
         
     - name: "Install system dependencies"
       run: |
