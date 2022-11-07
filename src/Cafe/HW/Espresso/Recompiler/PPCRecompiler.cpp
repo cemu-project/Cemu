@@ -14,6 +14,8 @@
 #include "util/helpers/helpers.h"
 #include "util/MemMapper/MemMapper.h"
 
+#include "Cafe/HW/Espresso/Recompiler/IML/IML.h"
+
 struct PPCInvalidationRange
 {
 	MPTR startAddress;
@@ -127,6 +129,7 @@ void PPCRecompiler_attemptEnter(PPCInterpreter_t* hCPU, uint32 enterAddress)
 		PPCRecompiler_enter(hCPU, funcPtr);
 	}
 }
+bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext);
 
 PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PPCRange_t range, std::set<uint32>& entryAddresses, std::vector<std::pair<MPTR, uint32>>& entryPointsOut)
 {
@@ -153,21 +156,27 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	PPCRecFunction_t* ppcRecFunc = new PPCRecFunction_t();
 	ppcRecFunc->ppcAddress = range.startAddress;
 	ppcRecFunc->ppcSize = range.length;
+	
 	// generate intermediate code
 	ppcImlGenContext_t ppcImlGenContext = { 0 };
 	bool compiledSuccessfully = PPCRecompiler_generateIntermediateCode(ppcImlGenContext, ppcRecFunc, entryAddresses);
 	if (compiledSuccessfully == false)
 	{
-		// todo: Free everything
-		PPCRecompiler_freeContext(&ppcImlGenContext);
 		delete ppcRecFunc;
-		return NULL;
+		return nullptr;
 	}
+
+	// apply passes
+	if (!PPCRecompiler_ApplyIMLPasses(ppcImlGenContext))
+	{
+		delete ppcRecFunc;
+		return nullptr;
+	}
+
 	// emit x64 code
 	bool x64GenerationSuccess = PPCRecompiler_generateX64Code(ppcRecFunc, &ppcImlGenContext);
 	if (x64GenerationSuccess == false)
 	{
-		PPCRecompiler_freeContext(&ppcImlGenContext);
 		return nullptr;
 	}
 
@@ -183,9 +192,80 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 
 		entryPointsOut.emplace_back(ppcEnterOffset, x64Offset);
 	}
-
-	PPCRecompiler_freeContext(&ppcImlGenContext);
 	return ppcRecFunc;
+}
+
+void PPCRecompiler_FixLoops(ppcImlGenContext_t& ppcImlGenContext);
+
+bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
+{
+	PPCRecompiler_FixLoops(ppcImlGenContext);
+
+	// isolate entry points from function flow (enterable segments must not be the target of any other segment)
+	// this simplifies logic during register allocation
+	PPCRecompilerIML_isolateEnterableSegments(&ppcImlGenContext);
+
+	// if GQRs can be predicted, optimize PSQ load/stores
+	PPCRecompiler_optimizePSQLoadAndStore(&ppcImlGenContext);
+
+	// count number of used registers
+	uint32 numLoadedFPRRegisters = 0;
+	for (uint32 i = 0; i < 255; i++)
+	{
+		if (ppcImlGenContext.mappedFPRRegister[i])
+			numLoadedFPRRegisters++;
+	}
+
+	// insert name store instructions at the end of each segment but before branch instructions
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
+	{
+		if (segIt->imlList.size() == 0)
+			continue; // ignore empty segments
+		// analyze segment for register usage
+		IMLUsedRegisters registersUsed;
+		for (sint32 i = 0; i < segIt->imlList.size(); i++)
+		{
+			segIt->imlList[i].CheckRegisterUsage(&registersUsed);
+			sint32 accessedTempReg[5];
+			// intermediate FPRs
+			accessedTempReg[0] = registersUsed.readFPR1;
+			accessedTempReg[1] = registersUsed.readFPR2;
+			accessedTempReg[2] = registersUsed.readFPR3;
+			accessedTempReg[3] = registersUsed.readFPR4;
+			accessedTempReg[4] = registersUsed.writtenFPR1;
+			for (sint32 f = 0; f < 5; f++)
+			{
+				if (accessedTempReg[f] == -1)
+					continue;
+				uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f]];
+				if (regName >= PPCREC_NAME_FPR0 && regName < PPCREC_NAME_FPR0 + 32)
+				{
+					segIt->ppcFPRUsed[regName - PPCREC_NAME_FPR0] = true;
+				}
+			}
+		}
+	}
+
+	// merge certain float load+store patterns (must happen before FPR register remapping)
+	PPCRecompiler_optimizeDirectFloatCopies(&ppcImlGenContext);
+	// delay byte swapping for certain load+store patterns
+	PPCRecompiler_optimizeDirectIntegerCopies(&ppcImlGenContext);
+
+	if (numLoadedFPRRegisters > 0)
+	{
+		if (PPCRecompiler_manageFPRRegisters(&ppcImlGenContext) == false)
+		{
+			return false;
+		}
+	}
+
+	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext);
+
+	// remove redundant name load and store instructions
+	PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
+	PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
+
+	return true;
 }
 
 bool PPCRecompiler_makeRecompiledFunctionActive(uint32 initialEntryPoint, PPCFunctionBoundaryTracker::PPCRange_t& range, PPCRecFunction_t* ppcRecFunc, std::vector<std::pair<MPTR, uint32>>& entryPoints)
@@ -510,42 +590,6 @@ void PPCRecompiler_init()
     PPCRecompiler_allocateRange(0, 0x1000); // the first entry is used for fallback to interpreter
     PPCRecompiler_allocateRange(mmuRange_TRAMPOLINE_AREA.getBase(), mmuRange_TRAMPOLINE_AREA.getSize());
     PPCRecompiler_allocateRange(mmuRange_CODECAVE.getBase(), mmuRange_CODECAVE.getSize());
-
-	// init x64 recompiler instance data
-	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom[0] = 1ULL << 63ULL;
-	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom[1] = 0ULL;
-	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskPair[0] = 1ULL << 63ULL;
-	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskPair[1] = 1ULL << 63ULL;
-	ppcRecompilerInstanceData->_x64XMM_xorNOTMask[0] = 0xFFFFFFFFFFFFFFFFULL;
-	ppcRecompilerInstanceData->_x64XMM_xorNOTMask[1] = 0xFFFFFFFFFFFFFFFFULL;
-	ppcRecompilerInstanceData->_x64XMM_andAbsMaskBottom[0] = ~(1ULL << 63ULL);
-	ppcRecompilerInstanceData->_x64XMM_andAbsMaskBottom[1] = ~0ULL;
-	ppcRecompilerInstanceData->_x64XMM_andAbsMaskPair[0] = ~(1ULL << 63ULL);
-	ppcRecompilerInstanceData->_x64XMM_andAbsMaskPair[1] = ~(1ULL << 63ULL);
-	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[0] = ~(1 << 31);
-	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[1] = 0xFFFFFFFF;
-	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[2] = 0xFFFFFFFF;
-	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[3] = 0xFFFFFFFF;
-	ppcRecompilerInstanceData->_x64XMM_singleWordMask[0] = 0xFFFFFFFFULL;
-	ppcRecompilerInstanceData->_x64XMM_singleWordMask[1] = 0ULL;
-	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[0] = 1.0;
-	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[1] = 1.0;
-	ppcRecompilerInstanceData->_x64XMM_constDouble0_0[0] = 0.0;
-	ppcRecompilerInstanceData->_x64XMM_constDouble0_0[1] = 0.0;
-	ppcRecompilerInstanceData->_x64XMM_constFloat0_0[0] = 0.0f;
-	ppcRecompilerInstanceData->_x64XMM_constFloat0_0[1] = 0.0f;
-	ppcRecompilerInstanceData->_x64XMM_constFloat1_1[0] = 1.0f;
-	ppcRecompilerInstanceData->_x64XMM_constFloat1_1[1] = 1.0f;
-	*(uint32*)&ppcRecompilerInstanceData->_x64XMM_constFloatMin[0] = 0x00800000;
-	*(uint32*)&ppcRecompilerInstanceData->_x64XMM_constFloatMin[1] = 0x00800000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[0] = 0x7F800000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[1] = 0x7F800000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[2] = 0x7F800000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[3] = 0x7F800000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[0] = ~0x80000000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[1] = ~0x80000000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[2] = ~0x80000000;
-	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[3] = ~0x80000000;
 
 	// setup GQR scale tables
 

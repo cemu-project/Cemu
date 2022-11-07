@@ -25,84 +25,6 @@ struct PPCRecFunction_t
 };
 
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLInstruction.h"
-
-typedef struct _ppcRecompilerSegmentPoint_t
-{
-	sint32 index;
-	struct IMLSegment* imlSegment;
-	_ppcRecompilerSegmentPoint_t* next;
-	_ppcRecompilerSegmentPoint_t* prev;
-}ppcRecompilerSegmentPoint_t;
-
-struct raLivenessLocation_t
-{
-	sint32 index;
-	bool isRead;
-	bool isWrite;
-
-	raLivenessLocation_t() = default;
-
-	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
-		: index(index), isRead(isRead), isWrite(isWrite) {};
-};
-
-struct raLivenessSubrangeLink_t
-{
-	struct raLivenessSubrange_t* prev;
-	struct raLivenessSubrange_t* next;
-};
-
-struct raLivenessSubrange_t
-{
-	struct raLivenessRange_t* range;
-	IMLSegment* imlSegment;
-	ppcRecompilerSegmentPoint_t start;
-	ppcRecompilerSegmentPoint_t end;
-	// dirty state tracking
-	bool _noLoad;
-	bool hasStore;
-	bool hasStoreDelayed;
-	// next
-	raLivenessSubrange_t* subrangeBranchTaken;
-	raLivenessSubrange_t* subrangeBranchNotTaken;
-	// processing
-	uint32 lastIterationIndex;
-	// instruction locations
-	std::vector<raLivenessLocation_t> list_locations;
-	// linked list (subranges with same GPR virtual register)
-	raLivenessSubrangeLink_t link_sameVirtualRegisterGPR;
-	// linked list (all subranges for this segment)
-	raLivenessSubrangeLink_t link_segmentSubrangesGPR;
-};
-
-struct raLivenessRange_t
-{
-	sint32 virtualRegister;
-	sint32 physicalRegister;
-	sint32 name;
-	std::vector<raLivenessSubrange_t*> list_subranges;
-};
-
-struct PPCSegmentRegisterAllocatorInfo_t
-{
-	// analyzer stage
-	bool isPartOfProcessedLoop{}; // used during loop detection
-	sint32 lastIterationIndex{};
-	// linked lists
-	raLivenessSubrange_t* linkedList_allSubranges{};
-	raLivenessSubrange_t* linkedList_perVirtualGPR[PPC_REC_MAX_VIRTUAL_GPR]{};
-};
-
-struct PPCRecVGPRDistances_t
-{
-	struct _RegArrayEntry
-	{
-		sint32 usageStart{};
-		sint32 usageEnd{};
-	}reg[PPC_REC_MAX_VIRTUAL_GPR];
-	bool isProcessed[PPC_REC_MAX_VIRTUAL_GPR]{};
-};
-
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLSegment.h"
 
 struct IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(struct ppcImlGenContext_t* ppcImlGenContext);
@@ -139,6 +61,21 @@ struct ppcImlGenContext_t
 	{
 		bool modifiesGQR[8];
 	}tracking;
+
+	~ppcImlGenContext_t()
+	{
+		if (imlList)
+		{
+			free(imlList);
+			imlList = nullptr;
+		}
+
+		for (IMLSegment* imlSegment : segmentList2)
+		{
+			delete imlSegment;
+		}
+		segmentList2.clear();
+	}
 
 	// append raw instruction
 	IMLInstruction& emitInst()
@@ -193,8 +130,6 @@ extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_visited)();
 extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 
 #define PPC_REC_INVALID_FUNCTION	((PPCRecFunction_t*)-1)
-
-// todo - move some of the stuff above into PPCRecompilerInternal.h
 
 // recompiler interface
 

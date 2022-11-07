@@ -4,6 +4,7 @@
 #include "IMLRegisterAllocatorRanges.h"
 #include "util/helpers/StringBuf.h"
 
+#include "../PPCRecompiler.h"
 
 const char* IMLDebug_GetOpcodeName(const IMLInstruction* iml)
 {

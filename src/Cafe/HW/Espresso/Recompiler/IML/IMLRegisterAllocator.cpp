@@ -750,8 +750,8 @@ void _analyzeRangeDataFlow(raLivenessSubrange_t* subrange)
 
 void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-	sint16 virtualReg2PhysReg[PPC_REC_MAX_VIRTUAL_GPR];
-	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
+	sint16 virtualReg2PhysReg[IML_RA_VIRT_REG_COUNT_MAX];
+	for (sint32 i = 0; i < IML_RA_VIRT_REG_COUNT_MAX; i++)
 		virtualReg2PhysReg[i] = -1;
 
 	raLiveRangeInfo_t liveInfo;
@@ -848,7 +848,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 					replaceGpr[f] = -1;
 					continue;
 				}
-				if (virtualRegister >= PPC_REC_MAX_VIRTUAL_GPR)
+				if (virtualRegister >= IML_RA_VIRT_REG_COUNT_MAX)
 					assert_dbg();
 				replaceGpr[f] = virtualReg2PhysReg[virtualRegister];
 				cemu_assert_debug(replaceGpr[f] >= 0);
@@ -860,7 +860,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 	// expire infinite subranges (subranges that cross the segment border)
 	sint32 storeLoadListLength = 0;
-	raLoadStoreInfo_t loadStoreList[PPC_REC_MAX_VIRTUAL_GPR];
+	raLoadStoreInfo_t loadStoreList[IML_RA_VIRT_REG_COUNT_MAX];
 	for (sint32 f = 0; f < liveInfo.liveRangesCount; f++)
 	{
 		raLivenessSubrange_t* liverange = liveInfo.liveRangeList[f];
@@ -1007,7 +1007,7 @@ bool _isRangeDefined(IMLSegment* imlSegment, sint32 vGPR)
 
 void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
+	for (sint32 i = 0; i < IML_RA_VIRT_REG_COUNT_MAX; i++)
 	{
 		imlSegment->raDistances.reg[i].usageStart = INT_MAX;
 		imlSegment->raDistances.reg[i].usageEnd = INT_MIN;
@@ -1027,7 +1027,7 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 			sint32 virtualRegister = gprTracking.gpr[t];
 			if (virtualRegister < 0)
 				continue;
-			cemu_assert_debug(virtualRegister < PPC_REC_MAX_VIRTUAL_GPR);
+			cemu_assert_debug(virtualRegister < IML_RA_VIRT_REG_COUNT_MAX);
 			imlSegment->raDistances.reg[virtualRegister].usageStart = std::min<sint32>(imlSegment->raDistances.reg[virtualRegister].usageStart, index); // index before/at instruction
 			imlSegment->raDistances.reg[virtualRegister].usageEnd = std::max<sint32>(imlSegment->raDistances.reg[virtualRegister].usageEnd, index + 1); // index after instruction
 		}
@@ -1086,7 +1086,7 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlG
 
 void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
+	for (sint32 i = 0; i < IML_RA_VIRT_REG_COUNT_MAX; i++)
 	{
 		if (_isRangeDefined(imlSegment, i) == false)
 			continue;
@@ -1096,8 +1096,8 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 		PPCRecRA_convertToMappedRanges(ppcImlGenContext, imlSegment, i, range);
 	}
 	// create lookup table of ranges
-	raLivenessSubrange_t* vGPR2Subrange[PPC_REC_MAX_VIRTUAL_GPR];
-	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
+	raLivenessSubrange_t* vGPR2Subrange[IML_RA_VIRT_REG_COUNT_MAX];
+	for (sint32 i = 0; i < IML_RA_VIRT_REG_COUNT_MAX; i++)
 	{
 		vGPR2Subrange[i] = imlSegment->raInfo.linkedList_perVirtualGPR[i];
 #ifdef CEMU_DEBUG_ASSERT
@@ -1257,7 +1257,7 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 
 void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty entries
+	for (sint32 i = 0; i < IML_RA_VIRT_REG_COUNT_MAX; i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty entries
 	{
 		if (imlSegment->raDistances.reg[i].usageStart == INT_MAX)
 			continue; // not used
@@ -1334,7 +1334,7 @@ void PPCRecRA_extendRangesOutOfLoopsV2(ppcImlGenContext_t* ppcImlGenContext)
 			continue;
 
 		// extend looping ranges into all exits (this allows the data flow analyzer to move stores out of the loop)
-		for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty entries
+		for (sint32 i = 0; i < IML_RA_VIRT_REG_COUNT_MAX; i++) // todo: Use dynamic maximum or list of used vGPRs so we can avoid parsing empty entries
 		{
 			if (imlSegment->raDistances.reg[i].usageEnd != RA_INTER_RANGE_END)
 				continue; // range not set or does not reach end of segment

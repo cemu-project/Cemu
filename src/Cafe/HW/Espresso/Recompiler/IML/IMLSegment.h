@@ -1,7 +1,84 @@
 #pragma once
 #include "IMLInstruction.h"
 
-#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h" // remove once dependency is gone
+#define IML_RA_VIRT_REG_COUNT_MAX	40 // should match PPC_REC_MAX_VIRTUAL_GPR -> todo: Make this dynamic
+
+struct IMLSegmentPoint
+{
+	sint32 index;
+	struct IMLSegment* imlSegment;
+	IMLSegmentPoint* next;
+	IMLSegmentPoint* prev;
+};
+
+struct raLivenessLocation_t
+{
+	sint32 index;
+	bool isRead;
+	bool isWrite;
+
+	raLivenessLocation_t() = default;
+
+	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
+		: index(index), isRead(isRead), isWrite(isWrite) {};
+};
+
+struct raLivenessSubrangeLink_t
+{
+	struct raLivenessSubrange_t* prev;
+	struct raLivenessSubrange_t* next;
+};
+
+struct raLivenessSubrange_t
+{
+	struct raLivenessRange_t* range;
+	IMLSegment* imlSegment;
+	IMLSegmentPoint start;
+	IMLSegmentPoint end;
+	// dirty state tracking
+	bool _noLoad;
+	bool hasStore;
+	bool hasStoreDelayed;
+	// next
+	raLivenessSubrange_t* subrangeBranchTaken;
+	raLivenessSubrange_t* subrangeBranchNotTaken;
+	// processing
+	uint32 lastIterationIndex;
+	// instruction locations
+	std::vector<raLivenessLocation_t> list_locations;
+	// linked list (subranges with same GPR virtual register)
+	raLivenessSubrangeLink_t link_sameVirtualRegisterGPR;
+	// linked list (all subranges for this segment)
+	raLivenessSubrangeLink_t link_segmentSubrangesGPR;
+};
+
+struct raLivenessRange_t
+{
+	sint32 virtualRegister;
+	sint32 physicalRegister;
+	sint32 name;
+	std::vector<raLivenessSubrange_t*> list_subranges;
+};
+
+struct PPCSegmentRegisterAllocatorInfo_t
+{
+	// analyzer stage
+	bool isPartOfProcessedLoop{}; // used during loop detection
+	sint32 lastIterationIndex{};
+	// linked lists
+	raLivenessSubrange_t* linkedList_allSubranges{};
+	raLivenessSubrange_t* linkedList_perVirtualGPR[IML_RA_VIRT_REG_COUNT_MAX]{};
+};
+
+struct PPCRecVGPRDistances_t
+{
+	struct _RegArrayEntry
+	{
+		sint32 usageStart{};
+		sint32 usageEnd{};
+	}reg[IML_RA_VIRT_REG_COUNT_MAX];
+	bool isProcessed[IML_RA_VIRT_REG_COUNT_MAX]{};
+};
 
 struct IMLSegment
 {
@@ -39,11 +116,9 @@ struct IMLSegment
 	PPCRecVGPRDistances_t raDistances{};
 	bool raRangeExtendProcessed{};
 	// segment points
-	ppcRecompilerSegmentPoint_t* segmentPointList{};
-
+	IMLSegmentPoint* segmentPointList{};
 	bool HasSuffixInstruction() const;
 	IMLInstruction* GetLastInstruction();
-
 };
 
 

@@ -2933,7 +2933,7 @@ uint32 PPCRecompiler_getPreviousInstruction(ppcImlGenContext_t* ppcImlGenContext
 	return v;
 }
 
-void PPCRecompilerIml_setSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint, IMLSegment* imlSegment, sint32 index)
+void PPCRecompilerIml_setSegmentPoint(IMLSegmentPoint* segmentPoint, IMLSegment* imlSegment, sint32 index)
 {
 	segmentPoint->imlSegment = imlSegment;
 	segmentPoint->index = index;
@@ -2944,7 +2944,7 @@ void PPCRecompilerIml_setSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint,
 	imlSegment->segmentPointList = segmentPoint;
 }
 
-void PPCRecompilerIml_removeSegmentPoint(ppcRecompilerSegmentPoint_t* segmentPoint)
+void PPCRecompilerIml_removeSegmentPoint(IMLSegmentPoint* segmentPoint)
 {
 	if (segmentPoint->prev)
 		segmentPoint->prev->next = segmentPoint->next;
@@ -2975,7 +2975,7 @@ void PPCRecompiler_pushBackIMLInstructions(IMLSegment* imlSegment, sint32 index,
 	// update position of segment points
 	if (imlSegment->segmentPointList)
 	{
-		ppcRecompilerSegmentPoint_t* segmentPoint = imlSegment->segmentPointList;
+		IMLSegmentPoint* segmentPoint = imlSegment->segmentPointList;
 		while (segmentPoint)
 		{
 			if (segmentPoint->index != RA_INTER_RANGE_START && segmentPoint->index != RA_INTER_RANGE_END)
@@ -3015,21 +3015,6 @@ void PPCRecompilerIml_insertSegments(ppcImlGenContext_t* ppcImlGenContext, sint3
 	ppcImlGenContext->segmentList2.insert(ppcImlGenContext->segmentList2.begin() + index, count, nullptr);
 	for (sint32 i = 0; i < count; i++)
 		ppcImlGenContext->segmentList2[index + i] = new IMLSegment();
-}
-
-void PPCRecompiler_freeContext(ppcImlGenContext_t* ppcImlGenContext)
-{
-	if (ppcImlGenContext->imlList)
-	{
-		free(ppcImlGenContext->imlList);
-		ppcImlGenContext->imlList = nullptr;
-	}
-
-	for (IMLSegment* imlSegment : ppcImlGenContext->segmentList2)
-	{
-		delete imlSegment;
-	}
-	ppcImlGenContext->segmentList2.clear();
 }
 
 bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
@@ -3953,9 +3938,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	ppcImlGenContext.ppcAddressOfCurrentInstruction = 0; // reset current instruction offset (any future generated IML instruction will be assigned to ppc address 0)
 	if( unsupportedInstructionCount > 0 || unsupportedInstructionFound )
 	{
-		// could not compile function
 		debug_printf("Failed recompile due to unknown instruction at 0x%08x\n", unsupportedInstructionLastOffset);
-		PPCRecompiler_freeContext(&ppcImlGenContext);
 		return false;
 	}
 	// optimize unused jumpmarks away
@@ -4260,16 +4243,20 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 			segIt->imlList[0].op_macro.param = cycleCount;
 		}
 	}
+	return true;
+}
 
+void PPCRecompiler_FixLoops(ppcImlGenContext_t& ppcImlGenContext)
+{
 	// find segments that have a (conditional) jump instruction that points in reverse direction of code flow
 	// for these segments there is a risk that the recompiler could get trapped in an infinite busy loop. 
 	// todo: We should do a loop-detection prepass where we flag segments that are actually in a loop. We can then use this information below to avoid generating the scheduler-exit code for segments that aren't actually in a loop despite them referencing an earlier segment (which could be an exit segment for example)	
 	uint32 currentLoopEscapeJumpMarker = 0xFF000000; // start in an area where no valid code can be located
-	for(size_t s=0; s<ppcImlGenContext.segmentList2.size(); s++)
+	for (size_t s = 0; s < ppcImlGenContext.segmentList2.size(); s++)
 	{
 		// todo: This currently uses segment->ppcAddrMin which isn't really reliable. (We already had a problem where function inlining would generate falsified segment ranges by omitting the branch instruction). Find a better solution (use jumpmark/enterable offsets?)
 		IMLSegment* imlSegment = ppcImlGenContext.segmentList2[s];
-		if( imlSegment->imlList.empty() )
+		if (imlSegment->imlList.empty())
 			continue;
 		if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
 			continue;
@@ -4289,12 +4276,12 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 
 		PPCRecompilerIml_insertSegments(&ppcImlGenContext, s, 2);
 		imlSegment = NULL;
-		IMLSegment* imlSegmentP0 = ppcImlGenContext.segmentList2[s+0];
-		IMLSegment* imlSegmentP1 = ppcImlGenContext.segmentList2[s+1];
-		IMLSegment* imlSegmentP2 = ppcImlGenContext.segmentList2[s+2];
+		IMLSegment* imlSegmentP0 = ppcImlGenContext.segmentList2[s + 0];
+		IMLSegment* imlSegmentP1 = ppcImlGenContext.segmentList2[s + 1];
+		IMLSegment* imlSegmentP2 = ppcImlGenContext.segmentList2[s + 2];
 		// create entry point segment
 		PPCRecompilerIml_insertSegments(&ppcImlGenContext, ppcImlGenContext.segmentList2.size(), 1);
-		IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size()-1];
+		IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size() - 1];
 		// relink segments	
 		IMLSegment_RelinkInputSegment(imlSegmentP2, imlSegmentP0);
 		IMLSegment_SetLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
@@ -4322,7 +4309,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		imlSegmentP2->ppcAddrMin = 0;
 		imlSegmentP2->ppcAddrMax = 0;
 		// setup enterable segment
-		if( enterPPCAddress != 0 && enterPPCAddress != 0xFFFFFFFF )
+		if (enterPPCAddress != 0 && enterPPCAddress != 0xFFFFFFFF)
 		{
 			imlSegmentPEntry->isEnterable = true;
 			imlSegmentPEntry->ppcAddress = enterPPCAddress;
@@ -4353,70 +4340,4 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		// skip the newly created segments
 		s += 2;
 	}
-
-	// isolate entry points from function flow (enterable segments must not be the target of any other segment)
-	// this simplifies logic during register allocation
-	PPCRecompilerIML_isolateEnterableSegments(&ppcImlGenContext);
-
-	// if GQRs can be predicted, optimize PSQ load/stores
-	PPCRecompiler_optimizePSQLoadAndStore(&ppcImlGenContext);
-
-	// count number of used registers
-	uint32 numLoadedFPRRegisters = 0;
-	for(uint32 i=0; i<255; i++)
-	{
-		if( ppcImlGenContext.mappedFPRRegister[i] )
-			numLoadedFPRRegisters++;
-	}
-
-	// insert name store instructions at the end of each segment but before branch instructions
-	for (IMLSegment* segIt : ppcImlGenContext.segmentList2) 
-	{
-		if(segIt->imlList.size() == 0 )
-			continue; // ignore empty segments
-		// analyze segment for register usage
-		IMLUsedRegisters registersUsed;
-		for(sint32 i=0; i<segIt->imlList.size(); i++)
-		{
-			segIt->imlList[i].CheckRegisterUsage(&registersUsed);
-			sint32 accessedTempReg[5];
-			// intermediate FPRs
-			accessedTempReg[0] = registersUsed.readFPR1;
-			accessedTempReg[1] = registersUsed.readFPR2;
-			accessedTempReg[2] = registersUsed.readFPR3;
-			accessedTempReg[3] = registersUsed.readFPR4;
-			accessedTempReg[4] = registersUsed.writtenFPR1;
-			for(sint32 f=0; f<5; f++)
-			{
-				if( accessedTempReg[f] == -1 )
-					continue;
-				uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f]];
-				if( regName >= PPCREC_NAME_FPR0 && regName < PPCREC_NAME_FPR0+32 )
-				{
-					segIt->ppcFPRUsed[regName - PPCREC_NAME_FPR0] = true;
-				}
-			}
-		}
-	}
-
-	// merge certain float load+store patterns (must happen before FPR register remapping)
-	PPCRecompiler_optimizeDirectFloatCopies(&ppcImlGenContext);
-	// delay byte swapping for certain load+store patterns
-	PPCRecompiler_optimizeDirectIntegerCopies(&ppcImlGenContext);
-
-	if (numLoadedFPRRegisters > 0)
-	{
-		if (PPCRecompiler_manageFPRRegisters(&ppcImlGenContext) == false)
-		{
-			PPCRecompiler_freeContext(&ppcImlGenContext);
-			return false;
-		}
-	}
-
-	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext);
-
-	// remove redundant name load and store instructions
-	PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
-	PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
-	return true;
 }
