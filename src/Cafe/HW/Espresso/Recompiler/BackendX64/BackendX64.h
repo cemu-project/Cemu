@@ -1,4 +1,6 @@
 
+#include "../PPCRecompiler.h" // todo - get rid of dependency
+
 struct x64RelocEntry_t
 {
 	uint32 offset;
@@ -138,7 +140,7 @@ bool IMLBackendX64_HasExtensionMOVBE();
 bool IMLBackendX64_HasExtensionBMI2();
 bool IMLBackendX64_HasExtensionAVX();
 
-bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
+bool PPCRecompiler_generateX64Code(struct PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
 
 void PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext);
 

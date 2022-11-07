@@ -83,14 +83,14 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/PPCRecompilerImlGenFPU.cpp
   HW/Espresso/Recompiler/PPCRecompilerIml.h
   HW/Espresso/Recompiler/PPCRecompilerIntermediate.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64AVX.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64BMI.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64FPU.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64Gen.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64GenFPU.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64.h
-  HW/Espresso/Recompiler/x64Emit.hpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64AVX.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64BMI.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64FPU.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64Gen.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64GenFPU.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64.h
+  HW/Espresso/Recompiler/BackendX64/X64Emit.hpp
   HW/Latte/Common/RegisterSerializer.cpp
   HW/Latte/Common/RegisterSerializer.h
   HW/Latte/Common/ShaderSerializer.cpp

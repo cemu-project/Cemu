@@ -1,6 +1,4 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
+#include "BackendX64.h"
 
 // x86/x64 extension opcodes that could be useful:
 // ANDN
