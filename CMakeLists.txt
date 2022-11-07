@@ -7,14 +7,14 @@ set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experime
 
 if (EXPERIMENTAL_VERSION)
 	add_definitions(-DEMULATOR_VERSION_MINOR=${EXPERIMENTAL_VERSION})
+	execute_process(
+			COMMAND git log --format=%h -1
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+			OUTPUT_VARIABLE GIT_HASH
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	add_definitions(-DEMULATOR_HASH=${GIT_HASH})
 endif()
-execute_process(
-		COMMAND git log --format=%h -1
-		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-		OUTPUT_VARIABLE GIT_HASH
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-add_definitions(-DEMULATOR_HASH=${GIT_HASH})
 
 if (ENABLE_VCPKG)
 	set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
