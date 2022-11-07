@@ -2,8 +2,9 @@
 
 #include "../PPCRecompiler.h"
 #include "../PPCRecompilerIml.h"
-#include "../PPCRecompilerX64.h"
 #include "IMLRegisterAllocatorRanges.h"
+
+#include "../BackendX64/BackendX64.h"
 
 uint32 recRACurrentIterationIndex = 0;
 

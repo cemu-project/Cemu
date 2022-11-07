@@ -1,8 +1,8 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
-#include "asm/x64util.h"
-#include "Common/cpu_features.h"
+#include "../PPCRecompiler.h"
+#include "../IML/IML.h"
+#include "BackendX64.h"
+
+#include "asm/x64util.h" // for recompiler_fres / frsqrte
 
 void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
@@ -710,7 +710,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 			// unpack top to bottom and top
 			x64Gen_unpckhpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 		}
-		//else if ( g_CPUFeatures.x86.avx )
+		//else if ( hasAVXSupport )
 		//{
 		//	// unpack top to bottom and top with non-destructive destination
 		//	// update: On Ivy Bridge this causes weird stalls?

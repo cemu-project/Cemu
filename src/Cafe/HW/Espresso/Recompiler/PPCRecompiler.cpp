@@ -2,7 +2,6 @@
 #include "PPCFunctionBoundaryTracker.h"
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "util/containers/RangeStore.h"
 #include "Cafe/OS/libs/coreinit/coreinit_CodeGen.h"
@@ -14,7 +13,8 @@
 #include "util/helpers/helpers.h"
 #include "util/MemMapper/MemMapper.h"
 
-#include "Cafe/HW/Espresso/Recompiler/IML/IML.h"
+#include "IML/IML.h"
+#include "BackendX64/BackendX64.h"
 
 struct PPCInvalidationRange
 {
