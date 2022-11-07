@@ -16,16 +16,16 @@ void IMLAnalyzer_GetCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_
 
 // optimizer passes
 // todo - rename
-bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenContext);
-bool PPCRecompiler_manageFPRRegisters(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_removeRedundantCRUpdates(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_optimizeDirectFloatCopies(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_optimizeDirectIntegerCopies(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_reorderConditionModifyInstructions(ppcImlGenContext_t* ppcImlGenContext);
+bool PPCRecompiler_reduceNumberOfFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
+bool PPCRecompiler_manageFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
+void PPCRecompiler_removeRedundantCRUpdates(struct ppcImlGenContext_t* ppcImlGenContext);
+void PPCRecompiler_optimizeDirectFloatCopies(struct ppcImlGenContext_t* ppcImlGenContext);
+void PPCRecompiler_optimizeDirectIntegerCopies(struct ppcImlGenContext_t* ppcImlGenContext);
+void PPCRecompiler_optimizePSQLoadAndStore(struct ppcImlGenContext_t* ppcImlGenContext);
+void PPCRecompiler_reorderConditionModifyInstructions(struct ppcImlGenContext_t* ppcImlGenContext);
 
 // register allocator
-void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext);
+void IMLRegisterAllocator_AllocateRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
 
 // debug
 void IMLDebug_DumpSegment(struct IMLSegment* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo = false);

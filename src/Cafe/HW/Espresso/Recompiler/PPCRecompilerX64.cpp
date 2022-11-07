@@ -8,6 +8,11 @@
 #include "util/MemMapper/MemMapper.h"
 #include "Common/cpu_features.h"
 
+bool s_hasLZCNTSupport = false;
+bool s_hasMOVBESupport = false;
+bool s_hasBMI2Support = false;
+bool s_hasAVXSupport = false;
+
 sint32 x64Gen_registerMap[12] = // virtual GPR to x64 register mapping
 {
 	REG_RAX, REG_RDX, REG_RBX, REG_RBP, REG_RSI, REG_RDI, REG_R8, REG_R9, REG_R10, REG_R11, REG_R12, REG_RCX
@@ -351,152 +356,143 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 	sint32 realRegisterMem2 = PPC_REC_INVALID_REGISTER;
 	if( indexed )
 		realRegisterMem2 = tempToRealRegister(imlInstruction->op_storeLoad.registerMem2);
-	if( false )//imlInstruction->op_storeLoad.flags & PPCREC_IML_OP_FLAG_FASTMEMACCESS )
+	if( indexed && realRegisterMem == realRegisterMem2 )
 	{
-		// load u8/u16/u32 via direct memory access + optional sign extend
-		assert_dbg(); // todo
+		return false;
 	}
-	else
+	if( indexed && realRegisterData == realRegisterMem2 )
 	{
-		if( indexed && realRegisterMem == realRegisterMem2 )
-		{
-			return false;
-		}
-		if( indexed && realRegisterData == realRegisterMem2 )
-		{
-			// for indexed memory access realRegisterData must not be the same register as the second memory register,
-			// this can easily be fixed by swapping the logic of realRegisterMem and realRegisterMem2
-			sint32 temp = realRegisterMem;
-			realRegisterMem = realRegisterMem2;
-			realRegisterMem2 = temp;
-		}
+		// for indexed memory access realRegisterData must not be the same register as the second memory register,
+		// this can easily be fixed by swapping the logic of realRegisterMem and realRegisterMem2
+		sint32 temp = realRegisterMem;
+		realRegisterMem = realRegisterMem2;
+		realRegisterMem2 = temp;
+	}
 
-		bool signExtend = imlInstruction->op_storeLoad.flags2.signExtend;
-		bool switchEndian = imlInstruction->op_storeLoad.flags2.swapEndian;
-		if( imlInstruction->op_storeLoad.copyWidth == 32 )
+	bool signExtend = imlInstruction->op_storeLoad.flags2.signExtend;
+	bool switchEndian = imlInstruction->op_storeLoad.flags2.swapEndian;
+	if( imlInstruction->op_storeLoad.copyWidth == 32 )
+	{
+		//if( indexed )
+		//	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		if (indexed)
 		{
-			//if( indexed )
-			//	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+			x64Gen_lea_reg64Low32_reg64Low32PlusReg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem, realRegisterMem2);
+		}
+		if( IMLBackendX64_HasExtensionMOVBE() && switchEndian )
+		{
 			if (indexed)
 			{
-				x64Gen_lea_reg64Low32_reg64Low32PlusReg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem, realRegisterMem2);
-			}
-			if( g_CPUFeatures.x86.movbe && switchEndian )
-			{
-				if (indexed)
-				{
-					x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
-					//if (indexed && realRegisterMem != realRegisterData)
-					//	x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-				}
-				else
-				{
-					x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-				}
+				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
+				//if (indexed && realRegisterMem != realRegisterData)
+				//	x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 			}
 			else
-			{
-				if (indexed)
-				{
-					x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
-					//if (realRegisterMem != realRegisterData)
-					//	x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-					if (switchEndian)
-						x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
-				}
-				else
-				{
-					x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-					if (switchEndian)
-						x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
-				}
-			}
-		}
-		else if( imlInstruction->op_storeLoad.copyWidth == 16 )
-		{
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext); // todo: We can avoid this if MOVBE is available
-			if (indexed)
-			{
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			}			
-			if( g_CPUFeatures.x86.movbe && switchEndian )
-			{
-				x64Gen_movBEZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-				if( indexed && realRegisterMem != realRegisterData )
-					x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			}
-			else
-			{
-				x64Gen_movZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-				if( indexed && realRegisterMem != realRegisterData )
-					x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-				if( switchEndian )
-					x64Gen_rol_reg64Low16_imm8(x64GenContext, realRegisterData, 8);
-			}
-			if( signExtend )
-				x64Gen_movSignExtend_reg64Low32_reg64Low16(x64GenContext, realRegisterData, realRegisterData);
-			else
-				x64Gen_movZeroExtend_reg64Low32_reg64Low16(x64GenContext, realRegisterData, realRegisterData);
-		}
-		else if( imlInstruction->op_storeLoad.copyWidth == 8 )
-		{
-			if( indexed )
-				PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			// todo: Optimize by using only MOVZX/MOVSX
-			if( indexed )
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			// todo: Use sign extend move from memory instead of separate sign-extend?
-			if( signExtend )
-				x64Gen_movSignExtend_reg64Low32_mem8Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-			else
-				x64Emit_movZX_reg32_mem8(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-			if( indexed && realRegisterMem != realRegisterData )
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-		}
-		else if( imlInstruction->op_storeLoad.copyWidth == PPC_REC_LOAD_LWARX_MARKER )
-		{
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			if( imlInstruction->op_storeLoad.immS32 != 0 )
-				assert_dbg(); // not supported
-			if( indexed )
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			x64Emit_mov_mem32_reg32(x64GenContext, REG_RSP, (uint32)offsetof(PPCInterpreter_t, reservedMemAddr), realRegisterMem); // remember EA for reservation
-			x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-			if( indexed && realRegisterMem != realRegisterData )
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			if( switchEndian )
-				x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
-			x64Emit_mov_mem32_reg32(x64GenContext, REG_RSP, (uint32)offsetof(PPCInterpreter_t, reservedMemValue), realRegisterData); // remember value for reservation
-			// LWARX instruction costs extra cycles (this speeds up busy loops)
-			x64Gen_sub_mem32reg64_imm32(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, remainingCycles), 20);
-		}
-		else if( imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_LSWI_3 )
-		{
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			if( switchEndian == false )
-				assert_dbg();
-			if( indexed )
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2); // can be replaced with LEA temp, [memReg1+memReg2] (this way we can avoid the SUB instruction after the move)
-			if( g_CPUFeatures.x86.movbe )
 			{
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-				if( indexed && realRegisterMem != realRegisterData )
-					x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+			}
+		}
+		else
+		{
+			if (indexed)
+			{
+				x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
+				//if (realRegisterMem != realRegisterData)
+				//	x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+				if (switchEndian)
+					x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
 			}
 			else
 			{
 				x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-				if( indexed && realRegisterMem != realRegisterData )
-					x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-				x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
+				if (switchEndian)
+					x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
 			}
-			x64Gen_and_reg64Low32_imm32(x64GenContext, realRegisterData, 0xFFFFFF00);
+		}
+	}
+	else if( imlInstruction->op_storeLoad.copyWidth == 16 )
+	{
+		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext); // todo: We can avoid this if MOVBE is available
+		if (indexed)
+		{
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		}			
+		if(IMLBackendX64_HasExtensionMOVBE() && switchEndian )
+		{
+			x64Gen_movBEZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
+			if( indexed && realRegisterMem != realRegisterData )
+				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
 		else
-			return false;
-		return true;
+		{
+			x64Gen_movZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
+			if( indexed && realRegisterMem != realRegisterData )
+				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+			if( switchEndian )
+				x64Gen_rol_reg64Low16_imm8(x64GenContext, realRegisterData, 8);
+		}
+		if( signExtend )
+			x64Gen_movSignExtend_reg64Low32_reg64Low16(x64GenContext, realRegisterData, realRegisterData);
+		else
+			x64Gen_movZeroExtend_reg64Low32_reg64Low16(x64GenContext, realRegisterData, realRegisterData);
 	}
-	return false;
+	else if( imlInstruction->op_storeLoad.copyWidth == 8 )
+	{
+		if( indexed )
+			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		// todo: Optimize by using only MOVZX/MOVSX
+		if( indexed )
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		// todo: Use sign extend move from memory instead of separate sign-extend?
+		if( signExtend )
+			x64Gen_movSignExtend_reg64Low32_mem8Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
+		else
+			x64Emit_movZX_reg32_mem8(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
+		if( indexed && realRegisterMem != realRegisterData )
+			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+	}
+	else if( imlInstruction->op_storeLoad.copyWidth == PPC_REC_LOAD_LWARX_MARKER )
+	{
+		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		if( imlInstruction->op_storeLoad.immS32 != 0 )
+			assert_dbg(); // not supported
+		if( indexed )
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		x64Emit_mov_mem32_reg32(x64GenContext, REG_RSP, (uint32)offsetof(PPCInterpreter_t, reservedMemAddr), realRegisterMem); // remember EA for reservation
+		x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
+		if( indexed && realRegisterMem != realRegisterData )
+			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		if( switchEndian )
+			x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
+		x64Emit_mov_mem32_reg32(x64GenContext, REG_RSP, (uint32)offsetof(PPCInterpreter_t, reservedMemValue), realRegisterData); // remember value for reservation
+		// LWARX instruction costs extra cycles (this speeds up busy loops)
+		x64Gen_sub_mem32reg64_imm32(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, remainingCycles), 20);
+	}
+	else if( imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_LSWI_3 )
+	{
+		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		if( switchEndian == false )
+			assert_dbg();
+		if( indexed )
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2); // can be replaced with LEA temp, [memReg1+memReg2] (this way we can avoid the SUB instruction after the move)
+		if(IMLBackendX64_HasExtensionMOVBE())
+		{
+			x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
+			if( indexed && realRegisterMem != realRegisterData )
+				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		}
+		else
+		{
+			x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
+			if( indexed && realRegisterMem != realRegisterData )
+				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+			x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
+		}
+		x64Gen_and_reg64Low32_imm32(x64GenContext, realRegisterData, 0xFFFFFF00);
+	}
+	else
+		return false;
+	return true;
 }
 
 /*
@@ -510,169 +506,160 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	if (indexed)
 		realRegisterMem2 = tempToRealRegister(imlInstruction->op_storeLoad.registerMem2);
 
-	if (false)//imlInstruction->op_storeLoad.flags & PPCREC_IML_OP_FLAG_FASTMEMACCESS )
+	if (indexed && realRegisterMem == realRegisterMem2)
 	{
-		// load u8/u16/u32 via direct memory access + optional sign extend
-		assert_dbg(); // todo
+		return false;
 	}
-	else
+	if (indexed && realRegisterData == realRegisterMem2)
 	{
-		if (indexed && realRegisterMem == realRegisterMem2)
-		{
-			return false;
-		}
-		if (indexed && realRegisterData == realRegisterMem2)
-		{
-			// for indexed memory access realRegisterData must not be the same register as the second memory register,
-			// this can easily be fixed by swapping the logic of realRegisterMem and realRegisterMem2
-			sint32 temp = realRegisterMem;
-			realRegisterMem = realRegisterMem2;
-			realRegisterMem2 = temp;
-		}
+		// for indexed memory access realRegisterData must not be the same register as the second memory register,
+		// this can easily be fixed by swapping the logic of realRegisterMem and realRegisterMem2
+		sint32 temp = realRegisterMem;
+		realRegisterMem = realRegisterMem2;
+		realRegisterMem2 = temp;
+	}
 
-		bool signExtend = imlInstruction->op_storeLoad.flags2.signExtend;
-		bool swapEndian = imlInstruction->op_storeLoad.flags2.swapEndian;
-		if (imlInstruction->op_storeLoad.copyWidth == 32)
-		{
-			if (indexed)
-				PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			uint32 valueRegister;
-			if ((swapEndian == false || g_CPUFeatures.x86.movbe) && realRegisterMem != realRegisterData)
-			{
-				valueRegister = realRegisterData;
-			}
-			else
-			{
-				x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-				valueRegister = REG_RESV_TEMP;
-			}
-			if (g_CPUFeatures.x86.movbe == false && swapEndian)
-				x64Gen_bswap_reg64Lower32bit(x64GenContext, valueRegister);
-			if (indexed)
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			if (g_CPUFeatures.x86.movbe && swapEndian)
-				x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, valueRegister);
-			else
-				x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, valueRegister);
-			if (indexed)
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-		}
-		else if (imlInstruction->op_storeLoad.copyWidth == 16)
-		{
-			if (indexed || swapEndian)
-				PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-			if (swapEndian)
-				x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8);
-			if (indexed)
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			x64Gen_movTruncate_mem16Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
-			if (indexed)
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			// todo: Optimize this, e.g. by using MOVBE
-		}
-		else if (imlInstruction->op_storeLoad.copyWidth == 8)
-		{
-			if (indexed)
-				PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			if (indexed && realRegisterMem == realRegisterData)
-			{
-				x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-				realRegisterData = REG_RESV_TEMP;
-			}
-			if (indexed)
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32, realRegisterData);
-			if (indexed)
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-		}
-		else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER)
-		{
+	bool signExtend = imlInstruction->op_storeLoad.flags2.signExtend;
+	bool swapEndian = imlInstruction->op_storeLoad.flags2.swapEndian;
+	if (imlInstruction->op_storeLoad.copyWidth == 32)
+	{
+		if (indexed)
 			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			if (imlInstruction->op_storeLoad.immS32 != 0)
-				assert_dbg(); // todo
-								// reset cr0 LT, GT and EQ
-			sint32 crRegister = 0;
-			x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_LT), 0);
-			x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_GT), 0);
-			x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_EQ), 0);
-			// calculate effective address
-			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-			if (swapEndian)
-				x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-			if (indexed)
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			// realRegisterMem now holds EA
-			x64Gen_cmp_reg64Low32_mem32reg64(x64GenContext, realRegisterMem, REG_RESV_HCPU, offsetof(PPCInterpreter_t, reservedMemAddr));
-			sint32 jumpInstructionOffsetJumpToEnd = x64GenContext->codeBufferIndex;
-			x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NOT_EQUAL, 0);
-			// EA matches reservation
-			// backup EAX (since it's an explicit operand of CMPXCHG and will be overwritten)
-			x64Emit_mov_mem32_reg32(x64GenContext, REG_RSP, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[0]), REG_EAX);
-			// backup REG_RESV_MEMBASE
-			x64Emit_mov_mem64_reg64(x64GenContext, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[2]), REG_RESV_MEMBASE);
-			// add mem register to REG_RESV_MEMBASE
-			x64Gen_add_reg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem);
-			// load reserved value in EAX
-			x64Emit_mov_reg64_mem32(x64GenContext, REG_EAX, REG_RESV_HCPU, offsetof(PPCInterpreter_t, reservedMemValue));
-			// bswap EAX
-			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_EAX);
-
-			//x64Gen_lock_cmpxchg_mem32Reg64PlusReg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem, 0, REG_RESV_TEMP);
-			x64Gen_lock_cmpxchg_mem32Reg64_reg64(x64GenContext, REG_RESV_MEMBASE, 0, REG_RESV_TEMP);
-
-			x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_EQUAL, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_EQ));
-
-			// reset reservation
-			x64Gen_mov_mem32Reg64_imm32(x64GenContext, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, reservedMemAddr), 0);
-			x64Gen_mov_mem32Reg64_imm32(x64GenContext, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, reservedMemValue), 0);
-
-			// restore EAX
-			x64Emit_mov_reg64_mem32(x64GenContext, REG_EAX, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[0]));
-			// restore REG_RESV_MEMBASE
-			x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_MEMBASE, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[2]));
-
-			// copy XER SO to CR0 SO
-			x64Gen_bt_mem8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, spr.XER), 31);
-			x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_CARRY, REG_RESV_HCPU, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_SO));
-			// end
-			PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffsetJumpToEnd, x64GenContext->codeBufferIndex);
-		}
-		else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STSWI_2)
+		uint32 valueRegister;
+		if ((swapEndian == false || IMLBackendX64_HasExtensionMOVBE()) && realRegisterMem != realRegisterData)
 		{
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-			x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 16); // store upper 2 bytes ..
-			x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8); // .. as big-endian
-			if (indexed)
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-
-			x64Gen_movTruncate_mem16Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
-			if (indexed)
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-		}
-		else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STSWI_3)
-		{
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-			if (indexed)
-				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-
-			x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
-			x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 2, REG_RESV_TEMP);
-			x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
-			x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 1, REG_RESV_TEMP);
-			x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
-			x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 0, REG_RESV_TEMP);
-
-			if (indexed)
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+			valueRegister = realRegisterData;
 		}
 		else
-			return false;
-		return true;
+		{
+			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
+			valueRegister = REG_RESV_TEMP;
+		}
+		if (!IMLBackendX64_HasExtensionMOVBE() && swapEndian)
+			x64Gen_bswap_reg64Lower32bit(x64GenContext, valueRegister);
+		if (indexed)
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		if (IMLBackendX64_HasExtensionMOVBE() && swapEndian)
+			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, valueRegister);
+		else
+			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, valueRegister);
+		if (indexed)
+			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 	}
-	return false;
+	else if (imlInstruction->op_storeLoad.copyWidth == 16)
+	{
+		if (indexed || swapEndian)
+			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
+		if (swapEndian)
+			x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8);
+		if (indexed)
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		x64Gen_movTruncate_mem16Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
+		if (indexed)
+			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		// todo: Optimize this, e.g. by using MOVBE
+	}
+	else if (imlInstruction->op_storeLoad.copyWidth == 8)
+	{
+		if (indexed)
+			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		if (indexed && realRegisterMem == realRegisterData)
+		{
+			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
+			realRegisterData = REG_RESV_TEMP;
+		}
+		if (indexed)
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32, realRegisterData);
+		if (indexed)
+			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+	}
+	else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER)
+	{
+		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		if (imlInstruction->op_storeLoad.immS32 != 0)
+			assert_dbg(); // todo
+							// reset cr0 LT, GT and EQ
+		sint32 crRegister = 0;
+		x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_LT), 0);
+		x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_GT), 0);
+		x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_EQ), 0);
+		// calculate effective address
+		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
+		if (swapEndian)
+			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
+		if (indexed)
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+		// realRegisterMem now holds EA
+		x64Gen_cmp_reg64Low32_mem32reg64(x64GenContext, realRegisterMem, REG_RESV_HCPU, offsetof(PPCInterpreter_t, reservedMemAddr));
+		sint32 jumpInstructionOffsetJumpToEnd = x64GenContext->codeBufferIndex;
+		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NOT_EQUAL, 0);
+		// EA matches reservation
+		// backup EAX (since it's an explicit operand of CMPXCHG and will be overwritten)
+		x64Emit_mov_mem32_reg32(x64GenContext, REG_RSP, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[0]), REG_EAX);
+		// backup REG_RESV_MEMBASE
+		x64Emit_mov_mem64_reg64(x64GenContext, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[2]), REG_RESV_MEMBASE);
+		// add mem register to REG_RESV_MEMBASE
+		x64Gen_add_reg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem);
+		// load reserved value in EAX
+		x64Emit_mov_reg64_mem32(x64GenContext, REG_EAX, REG_RESV_HCPU, offsetof(PPCInterpreter_t, reservedMemValue));
+		// bswap EAX
+		x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_EAX);
+
+		//x64Gen_lock_cmpxchg_mem32Reg64PlusReg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem, 0, REG_RESV_TEMP);
+		x64Gen_lock_cmpxchg_mem32Reg64_reg64(x64GenContext, REG_RESV_MEMBASE, 0, REG_RESV_TEMP);
+
+		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_EQUAL, REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_EQ));
+
+		// reset reservation
+		x64Gen_mov_mem32Reg64_imm32(x64GenContext, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, reservedMemAddr), 0);
+		x64Gen_mov_mem32Reg64_imm32(x64GenContext, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, reservedMemValue), 0);
+
+		// restore EAX
+		x64Emit_mov_reg64_mem32(x64GenContext, REG_EAX, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[0]));
+		// restore REG_RESV_MEMBASE
+		x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_MEMBASE, REG_RESV_HCPU, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[2]));
+
+		// copy XER SO to CR0 SO
+		x64Gen_bt_mem8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, spr.XER), 31);
+		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_CARRY, REG_RESV_HCPU, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_SO));
+		// end
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffsetJumpToEnd, x64GenContext->codeBufferIndex);
+	}
+	else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STSWI_2)
+	{
+		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
+		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 16); // store upper 2 bytes ..
+		x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8); // .. as big-endian
+		if (indexed)
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+
+		x64Gen_movTruncate_mem16Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
+		if (indexed)
+			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+	}
+	else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STSWI_3)
+	{
+		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
+		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
+		if (indexed)
+			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+
+		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
+		x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 2, REG_RESV_TEMP);
+		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
+		x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 1, REG_RESV_TEMP);
+		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
+		x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 0, REG_RESV_TEMP);
+
+		if (indexed)
+			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
+	}
+	else
+		return false;
+	return true;
 }
 
 bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
@@ -781,7 +768,8 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 		// count leading zeros
 		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		if( g_CPUFeatures.x86.lzcnt )
+		// LZCNT instruction (part of SSE4, CPUID.80000001H:ECX.ABM[Bit 5])
+		if(IMLBackendX64_HasExtensionLZCNT())
 		{
 			x64Gen_lzcnt_reg64Low32_reg64Low32(x64GenContext, tempToRealRegister(imlInstruction->op_r_r.registerResult), tempToRealRegister(imlInstruction->op_r_r.registerA));
 		}
@@ -1499,12 +1487,12 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		sint32 rRegOperand1 = tempToRealRegister(imlInstruction->op_r_r_r.registerA);
 		sint32 rRegOperand2 = tempToRealRegister(imlInstruction->op_r_r_r.registerB);
 
-		if (g_CPUFeatures.x86.bmi2 && imlInstruction->operation == PPCREC_IML_OP_SRW)
+		if (IMLBackendX64_HasExtensionBMI2() && imlInstruction->operation == PPCREC_IML_OP_SRW)
 		{
 			// use BMI2 SHRX if available
 			x64Gen_shrx_reg64_reg64_reg64(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
 		}
-		else if (g_CPUFeatures.x86.bmi2 && imlInstruction->operation == PPCREC_IML_OP_SLW)
+		else if (IMLBackendX64_HasExtensionBMI2() && imlInstruction->operation == PPCREC_IML_OP_SLW)
 		{
 			// use BMI2 SHLX if available
 			x64Gen_shlx_reg64_reg64_reg64(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
@@ -2656,4 +2644,79 @@ void PPCRecompilerX64Gen_generateRecompilerInterfaceFunctions()
 	PPCRecompiler_leaveRecompilerCode_unvisited = (void ATTR_MS_ABI (*)())PPCRecompilerX64Gen_generateLeaveRecompilerCode();
 	PPCRecompiler_leaveRecompilerCode_visited = (void ATTR_MS_ABI (*)())PPCRecompilerX64Gen_generateLeaveRecompilerCode();
 	cemu_assert_debug(PPCRecompiler_leaveRecompilerCode_unvisited != PPCRecompiler_leaveRecompilerCode_visited);
+}
+
+bool IMLBackendX64_HasExtensionLZCNT()
+{
+	return s_hasLZCNTSupport;
+}
+
+bool IMLBackendX64_HasExtensionMOVBE()
+{
+	return s_hasMOVBESupport;
+}
+
+bool IMLBackendX64_HasExtensionBMI2()
+{
+	return s_hasBMI2Support;
+}
+
+bool IMLBackendX64_HasExtensionAVX()
+{
+	return s_hasAVXSupport;
+}
+
+void IMLBackendX64_Init()
+{
+	// init x64 recompiler instance data
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom[0] = 1ULL << 63ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom[1] = 0ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskPair[0] = 1ULL << 63ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskPair[1] = 1ULL << 63ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNOTMask[0] = 0xFFFFFFFFFFFFFFFFULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNOTMask[1] = 0xFFFFFFFFFFFFFFFFULL;
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskBottom[0] = ~(1ULL << 63ULL);
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskBottom[1] = ~0ULL;
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskPair[0] = ~(1ULL << 63ULL);
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskPair[1] = ~(1ULL << 63ULL);
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[0] = ~(1 << 31);
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[1] = 0xFFFFFFFF;
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[2] = 0xFFFFFFFF;
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[3] = 0xFFFFFFFF;
+	ppcRecompilerInstanceData->_x64XMM_singleWordMask[0] = 0xFFFFFFFFULL;
+	ppcRecompilerInstanceData->_x64XMM_singleWordMask[1] = 0ULL;
+	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[0] = 1.0;
+	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[1] = 1.0;
+	ppcRecompilerInstanceData->_x64XMM_constDouble0_0[0] = 0.0;
+	ppcRecompilerInstanceData->_x64XMM_constDouble0_0[1] = 0.0;
+	ppcRecompilerInstanceData->_x64XMM_constFloat0_0[0] = 0.0f;
+	ppcRecompilerInstanceData->_x64XMM_constFloat0_0[1] = 0.0f;
+	ppcRecompilerInstanceData->_x64XMM_constFloat1_1[0] = 1.0f;
+	ppcRecompilerInstanceData->_x64XMM_constFloat1_1[1] = 1.0f;
+	*(uint32*)&ppcRecompilerInstanceData->_x64XMM_constFloatMin[0] = 0x00800000;
+	*(uint32*)&ppcRecompilerInstanceData->_x64XMM_constFloatMin[1] = 0x00800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[0] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[1] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[2] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[3] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[0] = ~0x80000000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[1] = ~0x80000000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[2] = ~0x80000000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[3] = ~0x80000000;
+
+	// mxcsr
+	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOn = 0x1F80 | 0x8000;
+	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOff = 0x1F80;
+
+	// query processor extensions
+	int cpuInfo[4];
+	cpuid(cpuInfo, 0x80000001);
+	s_hasLZCNTSupport = ((cpuInfo[2] >> 5) & 1) != 0;
+	cpuid(cpuInfo, 0x1);
+	s_hasMOVBESupport = ((cpuInfo[2] >> 22) & 1) != 0;
+	s_hasAVXSupport = ((cpuInfo[2] >> 28) & 1) != 0;
+	cpuidex(cpuInfo, 0x7, 0);
+	s_hasBMI2Support = ((cpuInfo[1] >> 8) & 1) != 0;
+
+	forceLog_printf("Recompiler initialized. CPU extensions: %s%s%s", s_hasLZCNTSupport ? "LZCNT " : "", s_hasMOVBESupport ? "MOVBE " : "", s_hasAVXSupport ? "AVX " : "");
 }

@@ -131,6 +131,12 @@ enum
 #define PPC_X64_GPR_USABLE_REGISTERS		(16-4)
 #define PPC_X64_FPR_USABLE_REGISTERS		(16-1) // Use XMM0 - XMM14, XMM15 is the temp register
 
+void IMLBackendX64_Init();
+
+bool IMLBackendX64_HasExtensionLZCNT();
+bool IMLBackendX64_HasExtensionMOVBE();
+bool IMLBackendX64_HasExtensionBMI2();
+bool IMLBackendX64_HasExtensionAVX();
 
 bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
 
