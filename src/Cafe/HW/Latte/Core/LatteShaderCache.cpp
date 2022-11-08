@@ -350,10 +350,10 @@ void LatteShaderCache_load()
 
 					ImGui::GetWindowDrawList()->AddImage(g_shaderCacheLoaderState.textureTVId, ImVec2(paddingLeftAndRight, paddingTopAndBottom), ImVec2(io.DisplaySize.x-paddingLeftAndRight, io.DisplaySize.y-paddingTopAndBottom), { 0,1 }, { 1,0 });
 				}
-				ImGui::End();
-				ImGui::PopStyleVar(2);
-				g_renderer->ImguiEnd();
 			}
+			ImGui::End();
+			ImGui::PopStyleVar(2);
+			g_renderer->ImguiEnd();
 		}
 
 		g_renderer->BeginFrame(false);
@@ -365,7 +365,7 @@ void LatteShaderCache_load()
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
 
 			if (ImGui::Begin("Background texture2", nullptr, kPopupFlags))
-				{
+			{
 				if (g_shaderCacheLoaderState.textureDRCId)
 				{
 					float imageDisplayWidth = io.DisplaySize.x;
@@ -383,11 +383,11 @@ void LatteShaderCache_load()
 
 					ImGui::GetWindowDrawList()->AddImage(g_shaderCacheLoaderState.textureDRCId, ImVec2(paddingLeftAndRight, paddingTopAndBottom), ImVec2(io.DisplaySize.x-paddingLeftAndRight, io.DisplaySize.y-paddingTopAndBottom), { 0,1 }, { 1,0 });
 				}
-				ImGui::End();
-				ImGui::PopStyleVar(2);
-				g_renderer->ImguiEnd();
-				}
-				}
+			}
+			ImGui::End();
+			ImGui::PopStyleVar(2);
+			g_renderer->ImguiEnd();
+		}
 				
 		g_renderer->SwapBuffers(true, true);
 	}
@@ -452,8 +452,8 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 					}
 
 					ImGui::GetWindowDrawList()->AddImage(g_shaderCacheLoaderState.textureTVId, ImVec2(paddingLeftAndRight, paddingTopAndBottom), ImVec2(io.DisplaySize.x-paddingLeftAndRight, io.DisplaySize.y-paddingTopAndBottom), { 0,1 }, { 1,0 });
-					ImGui::End();
 				}
+				ImGui::End();
 				ImGui::PopStyleVar(2);
 			}
 
@@ -502,8 +502,8 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 					text = fmt::format("{}/{} ({}%)", g_shaderCacheLoaderState.loadedShaderFiles, g_shaderCacheLoaderState.shaderFileCount, (int)(percentLoaded * 100));
 				ImGui::SetCursorPosX(width - ImGui::CalcTextSize(text.c_str()).x / 2);
 				ImGui::Text("%s", text.c_str());
-				ImGui::End();
 			}
+			ImGui::End();
 			ImGui::PopFont();
 			ImGui::PopStyleColor(2);
 
@@ -529,13 +529,11 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 					ImGui::Text("Geometry shaders");
 					ImGui::SameLine(offset);
 					ImGui::Text("%d", shaderCacheScreenStats.geometryShaderCount);
-
-					ImGui::End();
 				}
+				ImGui::End();
 				ImGui::PopStyleColor();
 				ImGui::PopFont();
 			}
-
 			g_renderer->ImguiEnd();
 			lastFrameUpdate = tick_cached();
 		}
@@ -565,11 +563,11 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 					}
 					ImGui::GetWindowDrawList()->AddImage(g_shaderCacheLoaderState.textureDRCId, ImVec2(paddingLeftAndRight, paddingTopAndBottom), ImVec2(io.DisplaySize.x-paddingLeftAndRight, io.DisplaySize.y-paddingTopAndBottom), { 0,1 }, { 1,0 });
 				}
-					ImGui::End();
-					ImGui::PopStyleVar(2);
-					g_renderer->ImguiEnd();
-				}
-				}
+			}
+			ImGui::End();
+			ImGui::PopStyleVar(2);
+			g_renderer->ImguiEnd();
+		}
 
 		// finish frame
 		g_renderer->SwapBuffers(true, true);
