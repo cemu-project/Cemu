@@ -123,8 +123,8 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 				g_renderer->AppendOverlayDebugInfo();
 
 			position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-			ImGui::End();
 		}
+		ImGui::End();
 	}
 
 	ImGui::PopStyleColor();
@@ -170,8 +170,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					ImGui::TextUnformatted(s_mii_name.c_str());
 
 					position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-					ImGui::End();
 				}
+				ImGui::End();
 				
 				// controller
 				std::vector<std::pair<int, std::string>> profiles;
@@ -209,8 +209,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 						}
 
 						position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-						ImGui::End();
 					}
+					ImGui::End();
 				}
 				else
 					s_init_overlay = true;
@@ -254,10 +254,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				}
 
 				position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-				ImGui::End();
 			}
-
-
+			ImGui::End();
 		}
 	}
 
@@ -306,8 +304,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				}
 
 				position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-				ImGui::End();
 			}
+			ImGui::End();
 		}
 	}
 
@@ -363,8 +361,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					}
 
 					position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-					ImGui::End();
 				}
+				ImGui::End();
 			}
 		}
 		
@@ -435,8 +433,8 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 					}
 #endif
 					position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-					ImGui::End();
 				}
+				ImGui::End();
 			}
 		}
 	}
@@ -475,10 +473,9 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			}
 
 			position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
-			ImGui::End();
 		}
+		ImGui::End();
 	}
-
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 }
