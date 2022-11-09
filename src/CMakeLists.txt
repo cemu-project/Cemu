@@ -34,6 +34,13 @@ elseif(UNIX)
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_compile_options(-Wno-ambiguous-reversed-operator)
 	endif()
+	# most linux environments should enable pie by default, but make sure just in case.
+	# the same cannot be said for no executable stack which some linkers
+	# and configurations thereof might enable due to the assembly in the project
+	if(NOT APPLE)
+		add_compile_options(-fpie)
+		add_link_options(-pie -z noexecstack)
+	endif()
 
     add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
 endif()
