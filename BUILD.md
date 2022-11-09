@@ -59,19 +59,29 @@ You can use it by replacing the step 3 with the following:
  - If step 4 gives you a different error, you could report it to this repo or try using GCC. Just make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
 - If step 4 gives you undefined libdecor_xx, you are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
 
-## MacOS
+## macOS
 
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and 
 below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. Currently, 
 LLVM 15 isn't supported due to compatibility issues with Boost dependency. The OpenGL graphics
-API isn't support on MacOS, Vulkan must be used. Additionally Vulkan must be used through the 
-Molten-VK compatibility layer.  
+API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
+Molten-VK compatibility layer
+
+### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
+
+You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 2.
+
+1. `softwareupdate --install-rosetta` # Install Rosetta 2 if you don't have it. This only has to be done once
+2. `arch -x86_64 zsh` # run an x64 shell
 
 ### Installing brew
-`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+
+1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+2. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
 
 ### Installing dependencies
-`brew install git cmake llvm@14 ninja nasm molten-vk`
+
+`brew install boost git cmake llvm@14 ninja nasm molten-vk`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
