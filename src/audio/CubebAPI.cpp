@@ -9,7 +9,7 @@
 #endif
 
 
-void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
+static void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 {
 	if (!stream)
 		return;
@@ -75,7 +75,7 @@ CubebAPI::CubebAPI(cubeb_devid devid, uint32 samplerate, uint32 channels, uint32
 		output_params.layout = CUBEB_LAYOUT_3F4_LFE;
 		break;
 	case 6:
-		output_params.layout = CUBEB_LAYOUT_QUAD_LFE | CHANNEL_FRONT_CENTER;
+		output_params.layout = CUBEB_LAYOUT_3F2_LFE_BACK;
 		break;
 	case 4:
 		output_params.layout = CUBEB_LAYOUT_QUAD;
@@ -167,25 +167,11 @@ void CubebAPI::SetVolume(sint32 volume)
 
 bool CubebAPI::InitializeStatic()
 {
-#if BOOST_OS_WINDOWS
-	s_com_initialized = (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)));
-#endif
-
 	if (cubeb_init(&s_context, "Cemu Cubeb", nullptr))
 	{
 		cemuLog_force("can't create cubeb audio api");
-
-#if BOOST_OS_WINDOWS
-		if (s_com_initialized)
-		{
-			CoUninitialize();
-			s_com_initialized = false;
-		}
-#endif
-
 		return false;
 	}
-
 	return true;
 }
 
@@ -193,10 +179,6 @@ void CubebAPI::Destroy()
 {
 	if (s_context)
 		cubeb_destroy(s_context);
-#if BOOST_OS_WINDOWS
-	if (s_com_initialized)
-		CoUninitialize();
-#endif
 }
 
 std::vector<IAudioAPI::DeviceDescriptionPtr> CubebAPI::GetDevices()

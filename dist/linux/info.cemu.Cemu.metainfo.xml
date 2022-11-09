@@ -60,14 +60,11 @@
   <url type="bugtracker">https://github.com/cemu-project/Cemu/issues</url>
   <url type="faq">https://cemu.info/faq.html</url>
   <url type="help">https://wiki.cemu.info</url>
-  <url type="vcs-browser">https://github.com/cemu-project/Cemu</url>
+  <!-- <url type="vcs-browser">https://github.com/cemu-project/Cemu</url> -->
   <categories>
     <category>Game</category>
     <category>Emulator</category>
   </categories>
-  <requires>
-    <memory>4096</memory>
-  </requires>
   <recommends>
     <memory>8192</memory>
   </recommends>

@@ -47,20 +47,20 @@ void PPCRecompiler_visitAddressNoBlock(uint32 enterAddress)
 	if (ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] != PPCRecompiler_leaveRecompilerCode_unvisited)
 		return;
 	// try to acquire lock
-	if (!PPCRecompilerState.recompilerSpinlock.tryAcquire())
+	if (!PPCRecompilerState.recompilerSpinlock.try_lock())
 		return;
 	auto funcPtr = ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4];
 	if (funcPtr != PPCRecompiler_leaveRecompilerCode_unvisited)
 	{
 		// was visited since previous check
-		PPCRecompilerState.recompilerSpinlock.release();
+		PPCRecompilerState.recompilerSpinlock.unlock();
 		return;
 	}
 	// add to recompilation queue and flag as visited
 	PPCRecompilerState.targetQueue.emplace(enterAddress);
 	ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] = PPCRecompiler_leaveRecompilerCode_visited;
 
-	PPCRecompilerState.recompilerSpinlock.release();
+	PPCRecompilerState.recompilerSpinlock.unlock();
 }
 
 void PPCRecompiler_recompileIfUnvisited(uint32 enterAddress)
@@ -193,13 +193,13 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 bool PPCRecompiler_makeRecompiledFunctionActive(uint32 initialEntryPoint, PPCFunctionBoundaryTracker::PPCRange_t& range, PPCRecFunction_t* ppcRecFunc, std::vector<std::pair<MPTR, uint32>>& entryPoints)
 {
 	// update jump table
-	PPCRecompilerState.recompilerSpinlock.acquire();
+	PPCRecompilerState.recompilerSpinlock.lock();
 
 	// check if the initial entrypoint is still flagged for recompilation
 	// its possible that the range has been invalidated during the time it took to translate the function
 	if (ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[initialEntryPoint / 4] != PPCRecompiler_leaveRecompilerCode_visited)
 	{
-		PPCRecompilerState.recompilerSpinlock.release();
+		PPCRecompilerState.recompilerSpinlock.unlock();
 		return false;
 	}
 
@@ -221,7 +221,7 @@ bool PPCRecompiler_makeRecompiledFunctionActive(uint32 initialEntryPoint, PPCFun
 	PPCRecompilerState.invalidationRanges.clear();
 	if (isInvalidated)
 	{
-		PPCRecompilerState.recompilerSpinlock.release();
+		PPCRecompilerState.recompilerSpinlock.unlock();
 		return false;
 	}
 
@@ -249,7 +249,7 @@ bool PPCRecompiler_makeRecompiledFunctionActive(uint32 initialEntryPoint, PPCFun
 	{
 		r.storedRange = rangeStore_ppcRanges.storeRange(ppcRecFunc, r.ppcAddress, r.ppcAddress + r.ppcSize);
 	}
-	PPCRecompilerState.recompilerSpinlock.release();
+	PPCRecompilerState.recompilerSpinlock.unlock();
 
 
 	return true;
@@ -272,13 +272,13 @@ void PPCRecompiler_recompileAtAddress(uint32 address)
 	// todo - use info from previously compiled ranges to determine full size of this function (and merge all the entryAddresses)
 
 	// collect all currently known entry points for this range
-	PPCRecompilerState.recompilerSpinlock.acquire();
+	PPCRecompilerState.recompilerSpinlock.lock();
 
 	std::set<uint32> entryAddresses;
 
 	entryAddresses.emplace(address);
 
-	PPCRecompilerState.recompilerSpinlock.release();
+	PPCRecompilerState.recompilerSpinlock.unlock();
 
 	std::vector<std::pair<MPTR, uint32>> functionEntryPoints;
 	auto func = PPCRecompiler_recompileFunction(range, entryAddresses, functionEntryPoints);
@@ -302,10 +302,10 @@ void PPCRecompiler_thread()
 		// 3) if yes -> calculate size, gather all entry points, recompile and update jump table
 		while (true)
 		{
-			PPCRecompilerState.recompilerSpinlock.acquire();
+			PPCRecompilerState.recompilerSpinlock.lock();
 			if (PPCRecompilerState.targetQueue.empty())
 			{
-				PPCRecompilerState.recompilerSpinlock.release();
+				PPCRecompilerState.recompilerSpinlock.unlock();
 				break;
 			}
 			auto enterAddress = PPCRecompilerState.targetQueue.front();
@@ -315,10 +315,10 @@ void PPCRecompiler_thread()
 			if (funcPtr != PPCRecompiler_leaveRecompilerCode_visited)
 			{
 				// only recompile functions if marked as visited
-				PPCRecompilerState.recompilerSpinlock.release();
+				PPCRecompilerState.recompilerSpinlock.unlock();
 				continue;
 			}
-			PPCRecompilerState.recompilerSpinlock.release();
+			PPCRecompilerState.recompilerSpinlock.unlock();
 
 			PPCRecompiler_recompileAtAddress(enterAddress);
 		}
@@ -376,7 +376,7 @@ struct ppcRecompilerFuncRange_t
 
 bool PPCRecompiler_findFuncRanges(uint32 addr, ppcRecompilerFuncRange_t* rangesOut, size_t* countInOut)
 {
-	PPCRecompilerState.recompilerSpinlock.acquire();
+	PPCRecompilerState.recompilerSpinlock.lock();
 	size_t countIn = *countInOut;
 	size_t countOut = 0;
 
@@ -392,7 +392,7 @@ bool PPCRecompiler_findFuncRanges(uint32 addr, ppcRecompilerFuncRange_t* rangesO
 		countOut++;
 	}
 	);
-	PPCRecompilerState.recompilerSpinlock.release();
+	PPCRecompilerState.recompilerSpinlock.unlock();
 	*countInOut = countOut;
 	if (countOut > countIn)
 		return false;
@@ -420,7 +420,7 @@ void PPCRecompiler_invalidateTableRange(uint32 offset, uint32 size)
 void PPCRecompiler_deleteFunction(PPCRecFunction_t* func)
 {
 	// assumes PPCRecompilerState.recompilerSpinlock is already held
-	cemu_assert_debug(PPCRecompilerState.recompilerSpinlock.isHolding());
+	cemu_assert_debug(PPCRecompilerState.recompilerSpinlock.is_locked());
 	for (auto& r : func->list_ranges)
 	{
 		PPCRecompiler_invalidateTableRange(r.ppcAddress, r.ppcSize);
@@ -439,7 +439,7 @@ void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr)
 		return;
 	cemu_assert_debug(endAddr >= startAddr);
 
-	PPCRecompilerState.recompilerSpinlock.acquire();
+	PPCRecompilerState.recompilerSpinlock.lock();
 
 	uint32 rStart;
 	uint32 rEnd;
@@ -458,7 +458,7 @@ void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr)
 		PPCRecompiler_deleteFunction(rFunc);
 	}
 
-	PPCRecompilerState.recompilerSpinlock.release();
+	PPCRecompilerState.recompilerSpinlock.unlock();
 }
 
 void PPCRecompiler_init()

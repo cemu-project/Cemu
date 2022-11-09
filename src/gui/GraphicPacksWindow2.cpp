@@ -3,6 +3,7 @@
 #include "gui/DownloadGraphicPacksWindow.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
+#include "config/ActiveSettings.h"
 
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 
@@ -326,7 +327,7 @@ void GraphicPacksWindow2::SaveStateToConfig()
 
 	for (const auto& gp : GraphicPack2::GetGraphicPacks())
 	{
-		auto filename = MakeRelativePath(gp->GetFilename()).lexically_normal();
+		auto filename = MakeRelativePath(ActiveSettings::GetUserDataPath(), gp->GetFilename()).lexically_normal();
 		if (gp->IsEnabled())
 		{
 			data.graphic_pack_entries.try_emplace(filename);

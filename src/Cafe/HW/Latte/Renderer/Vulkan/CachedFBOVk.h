@@ -37,16 +37,16 @@ public:
 
 	void TrackDependency(class PipelineInfo* pipelineInfo)
 	{
-		s_spinlockDependency.acquire();
+		s_spinlockDependency.lock();
 		m_usedByPipelines.emplace_back(pipelineInfo);
-		s_spinlockDependency.release();
+		s_spinlockDependency.unlock();
 	}
 
 	void RemoveDependency(class PipelineInfo* pipelineInfo)
 	{
-		s_spinlockDependency.acquire();
+		s_spinlockDependency.lock();
 		vectorRemoveByValue(m_usedByPipelines, pipelineInfo);
-		s_spinlockDependency.release();
+		s_spinlockDependency.unlock();
 	}
 
 	[[nodiscard]] const VkExtent2D& GetExtend() const { return m_extend;}

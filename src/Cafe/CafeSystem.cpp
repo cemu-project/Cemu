@@ -5,6 +5,7 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "audio/IAudioAPI.h"
+#include "audio/IAudioInputAPI.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "config/ActiveSettings.h"
@@ -289,7 +290,7 @@ uint32 loadSharedData()
 	for (sint32 i = 0; i < sizeof(shareddataDef) / sizeof(shareddataDef[0]); i++)
 	{
 		bool existsInMLC = fs::exists(ActiveSettings::GetMlcPath(shareddataDef[i].mlcPath));
-		bool existsInResources = fs::exists(ActiveSettings::GetPath(shareddataDef[i].resourcePath));
+		bool existsInResources = fs::exists(ActiveSettings::GetDataPath(shareddataDef[i].resourcePath));
 
 		if (!existsInMLC && !existsInResources)
 		{
@@ -314,7 +315,7 @@ uint32 loadSharedData()
 			// alternatively fall back to our shared fonts
 			if (!fontFile)
 			{
-				path = ActiveSettings::GetPath(shareddataDef[i].resourcePath);
+				path = ActiveSettings::GetDataPath(shareddataDef[i].resourcePath);
 				fontFile = FileStream::openFile2(path);
 			}
 			if (!fontFile)
@@ -340,7 +341,7 @@ uint32 loadSharedData()
 		return memory_getVirtualOffsetFromPointer(dataWritePtr);
 	}
 	// alternative method: load RAM dump
-	const auto path = ActiveSettings::GetPath("shareddata.bin");
+	const auto path = ActiveSettings::GetUserDataPath("shareddata.bin");
 	FileStream* ramDumpFile = FileStream::openFile2(path);
 	if (ramDumpFile)
 	{
@@ -402,6 +403,7 @@ void cemu_initForGame()
 	GraphicPack2::ActivateForCurrentTitle();
 	// print audio log
 	IAudioAPI::PrintLogging();
+	IAudioInputAPI::PrintLogging();
 	// everything initialized
 	forceLog_printf("------- Run title -------");
 	// wait till GPU thread is initialized
@@ -704,9 +706,14 @@ namespace CafeSystem
 	std::string GetForegroundTitleName()
 	{
 		if (sLaunchModeIsStandalone)
-			return "Missing meta data";
-		// todo - use language based on Cemu console language
-		return sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
+			return "Unknown Game";
+		std::string applicationName;
+		applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(GetConfig().console_language);
+		if (applicationName.empty()) //Try to get the English Title
+			applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
+		if (applicationName.empty()) //Unknown Game
+			applicationName = "Unknown Game";
+		return applicationName;
 	}
 
 	std::string GetForegroundTitleArgStr()

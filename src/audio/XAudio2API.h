@@ -59,7 +59,6 @@ private:
 	};
 
 	static HMODULE s_xaudio_dll;
-	static bool s_com_initialized;
 	static std::vector<DeviceDescriptionPtr> s_devices;
 
 	std::unique_ptr<IXAudio2, XAudioDeleter> m_xaudio;

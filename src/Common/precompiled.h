@@ -69,7 +69,6 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -244,6 +243,12 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
     #endif
 #else
     #error No definition for DLLEXPORT
+#endif
+
+#if BOOST_OS_WINDOWS
+	#define NOEXPORT
+#elif defined(__GNUC__)
+	#define NOEXPORT __attribute__ ((visibility ("hidden")))
 #endif
 
 #ifdef __GNUC__

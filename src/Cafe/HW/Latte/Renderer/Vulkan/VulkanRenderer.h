@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
@@ -6,6 +7,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CachedFBOVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VKRMemoryManager.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h"
 #include "util/math/vector2.h"
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
@@ -124,6 +126,9 @@ class VulkanRenderer : public Renderer
 	friend class LatteTextureReadbackInfoVk;
 	friend class PipelineCompiler;
 
+	using VSync = SwapchainInfoVk::VSync;
+	using QueueFamilyIndices = SwapchainInfoVk::QueueFamilyIndices;
+
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
 	static const inline int INDEX_STREAM_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
 
@@ -132,15 +137,7 @@ class VulkanRenderer : public Renderer
 	static const inline int OCCLUSION_QUERY_POOL_SIZE = 1024;
 
 public:
-	enum class VSync
-	{
-		// values here must match GeneralSettings2::m_vsync
-		Immediate = 0,
-		FIFO = 1,
-		MAILBOX = 2,
-		SYNC_AND_LIMIT = 3, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
-	};
-	
+
 	// memory management
 	VKRMemoryManager* memoryManager{};
 	VKRMemoryManager* GetMemoryManager() const { return memoryManager; };
@@ -185,17 +182,19 @@ public:
 
 	void GetDeviceFeatures();
 	void DetermineVendor();
-	void Initialize(const Vector2i& size, bool isMainWindow);
+	void Initialize(const Vector2i& size, bool mainWindow);
 
+	const std::unique_ptr<SwapchainInfoVk>& GetChainInfoPtr(bool mainWindow) const;
+	SwapchainInfoVk& GetChainInfo(bool mainWindow) const;
+
+	void StopUsingPadAndWait();
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
-	void ResizeSwapchain(const Vector2i& size, bool isMainWindow);
+	void SetSwapchainTargetSize(const Vector2i& size, bool mainWindow);
 
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();
-
-	void EnableVSync(int state) override;
 
 #if BOOST_OS_WINDOWS
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
@@ -212,7 +211,7 @@ public:
 	void ImguiInit();
 	VkInstance GetVkInstance() const { return m_instance; }
 	VkDevice GetLogicalDevice() const { return m_logicalDevice; }
-	VkPhysicalDevice GetPhysicalDevice() const { return m_physical_device; }
+	VkPhysicalDevice GetPhysicalDevice() const { return m_physicalDevice; }
 
 	VkDescriptorPool GetDescriptorPool() const { return m_descriptorPool; }
 
@@ -433,85 +432,14 @@ private:
 		bool drawSequenceSkip; // if true, skip draw_execute()
 	}m_state;
 
-	// swapchain - todo move this to m_swapchainState
-	struct SwapChainInfo
-	{
-		SwapChainInfo(VkDevice device, VkSurfaceKHR surface) : m_device(device), surface(surface) {}
-		SwapChainInfo(const SwapChainInfo&) = delete;
-		SwapChainInfo(SwapChainInfo&&) noexcept = default;
-		~SwapChainInfo()
-		{
-			if (m_swapChainRenderPass)
-			{
-				vkDestroyRenderPass(m_device, m_swapChainRenderPass, nullptr);
-				m_swapChainRenderPass = VK_NULL_HANDLE;
-			}
-			if (swapChain)
-			{
-				vkDestroySwapchainKHR(m_device, swapChain, nullptr);
-				swapChain = VK_NULL_HANDLE;
-			}
-			for (auto& imageView : m_swapchainImageViews)
-				vkDestroyImageView(m_device, imageView, nullptr);
-			m_swapchainImageViews.clear();
-			for (auto& framebuffer : m_swapchainFramebuffers)
-				vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-			m_swapchainFramebuffers.clear();
-		}
-
-		VkDevice m_device;
-
-		VkSurfaceKHR surface{};
-		VkSwapchainKHR swapChain{};
-		VkExtent2D swapchainExtend{};
-		uint32 swapchainImageIndex = (uint32)-1;
-		uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
-
-		struct AcquireInfo
-		{
-			// move fence here?
-			VkSemaphore acquireSemaphore;
-		};
-		std::vector<AcquireInfo> m_acquireInfo; // indexed by acquireIndex
-
-		// swapchain image ringbuffer (indexed by swapchainImageIndex)
-		std::vector<VkImage> m_swapchainImages;
-		std::vector<VkImageView> m_swapchainImageViews;
-		std::vector<VkFramebuffer> m_swapchainFramebuffers;
-		std::vector<VkSemaphore> m_swapchainPresentSemaphores;
-
-		VkFence m_imageAvailableFence = nullptr;
-		VkRenderPass m_swapChainRenderPass = nullptr;
-		VkRenderPass m_imguiRenderPass = nullptr;
-	};
-	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
+	std::unique_ptr<SwapchainInfoVk> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
+	Semaphore m_padCloseReadySemaphore;
+	bool m_destroyPadSwapchainNextAcquire = false;
 	bool IsSwapchainInfoValid(bool mainWindow) const;
-	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);
 
-	struct
-	{
-		bool resizeRequestedMainWindow{};
-		Vector2i newExtentMainWindow;
-		bool resizeRequestedPadWindow{};
-		Vector2i newExtentPadWindow;
-		bool tvHasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
-		bool drcHasDefinedSwapchainImage{};
-	}m_swapchainState;
+	VkRenderPass m_imguiRenderPass = nullptr;
 
 	VkDescriptorPool m_descriptorPool;
-	VkSurfaceFormatKHR m_swapchainFormat;
-
-	bool m_tvBufferUsesSRGB = false;
-	bool m_drvBufferUsesSRGB = false;
-
-	struct QueueFamilyIndices 
-	{
-		int32_t graphicsFamily = -1;
-		int32_t presentFamily = -1;
-
-		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
-	};
-	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, const VkPhysicalDevice& device);
 
 	struct FeatureControl
 	{
@@ -557,15 +485,8 @@ private:
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
 	static std::vector<const char*> CheckInstanceExtensionSupport(FeatureControl& info);
 
-	void SwapBuffer(bool main_window);
-	VSync m_vsync_state = VSync::Immediate;
-
-	struct SwapChainSupportDetails 
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
+	void UpdateVSyncState(bool mainWindow);
+	void SwapBuffer(bool mainWindow);
 
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
 
@@ -573,14 +494,9 @@ private:
 
 	// swapchain
 
-	static SwapChainSupportDetails QuerySwapChainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device);
 	std::vector<VkDeviceQueueCreateInfo> CreateQueueCreateInfos(const std::set<int>& uniqueQueueFamilies) const;
 	VkDeviceCreateInfo CreateDeviceCreateInfo(const std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos, const VkPhysicalDeviceFeatures& deviceFeatures, const void* deviceExtensionStructs, std::vector<const char*>& used_extensions) const;
 	static bool IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device);
-	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats, bool mainWindow) const;
-	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes);
-	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const;
-	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapChainSupportDetails& swapChainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
 
 	void CreateCommandPool();
 	void CreateCommandBuffers();
@@ -642,8 +558,8 @@ private:
 	void CreatePipelineCache();
 	VkPipelineShaderStageCreateInfo CreatePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule& module, const char* entryName) const;
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
-	void AcquireNextSwapchainImage(bool main_window);
-	void RecreateSwapchain(bool mainwindow);
+	bool AcquireNextSwapchainImage(bool mainWindow);
+	void RecreateSwapchain(bool mainWindow, bool skipCreate = false);
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;
@@ -666,7 +582,7 @@ private:
 	
 	std::vector<const char*> m_layerNames;
 	VkInstance m_instance = VK_NULL_HANDLE;
-	VkPhysicalDevice m_physical_device = VK_NULL_HANDLE;
+	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 	VkDevice  m_logicalDevice = VK_NULL_HANDLE;
 	VkDebugUtilsMessengerEXT m_debugCallback = nullptr;
 	volatile bool m_destructionRequested = false;

@@ -78,7 +78,7 @@ bool LatteHandleOSScreen_TV()
 	LatteRenderTarget_copyToBackbuffer(osScreenTVTex[bufferIndexTV]->baseTexture->baseView, false);
 	
 	if (LatteGPUState.osScreen.screen[0].flipExecuteCount != LatteGPUState.osScreen.screen[0].flipRequestCount)
-		LatteGPUState.osScreen.screen[0].flipExecuteCount = LatteGPUState.osScreen.screen[0].flipRequestCount;
+		LatteGPUState.osScreen.screen[0].flipExecuteCount.store(LatteGPUState.osScreen.screen[0].flipRequestCount);
 	return true;
 }
 
@@ -101,7 +101,7 @@ bool LatteHandleOSScreen_DRC()
 	LatteRenderTarget_copyToBackbuffer(osScreenDRCTex[bufferIndexDRC]->baseTexture->baseView, true);
 
 	if (LatteGPUState.osScreen.screen[1].flipExecuteCount != LatteGPUState.osScreen.screen[1].flipRequestCount)
-		LatteGPUState.osScreen.screen[1].flipExecuteCount = LatteGPUState.osScreen.screen[1].flipRequestCount;
+		LatteGPUState.osScreen.screen[1].flipExecuteCount.store(LatteGPUState.osScreen.screen[1].flipRequestCount);
 	return true;
 }
 

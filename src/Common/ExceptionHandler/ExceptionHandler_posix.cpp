@@ -1,8 +1,61 @@
 #include <signal.h>
 #include <execinfo.h>
 #include <string.h>
-
+#include <string>
 #include "config/CemuConfig.h"
+#include "util/helpers/StringHelpers.h"
+
+#if BOOST_OS_LINUX
+#include "ELFSymbolTable.h"
+#endif
+
+#if BOOST_OS_LINUX
+void demangleAndPrintBacktrace(char** backtrace, size_t size)
+{
+	ELFSymbolTable symTable;
+	for (char** i = backtrace; i < backtrace + size; i++)
+	{
+		std::string_view traceLine{*i};
+
+		// basic check to see if the backtrace line matches expected format
+		size_t parenthesesOpen = traceLine.find_last_of('(');
+		size_t parenthesesClose = traceLine.find_last_of(')');
+		size_t offsetPlus = traceLine.find_last_of('+');
+		if (!parenthesesOpen || !parenthesesClose || !offsetPlus ||
+			 offsetPlus < parenthesesOpen || offsetPlus > parenthesesClose)
+		{
+			// fall back to default string
+			std::cerr << traceLine << std::endl;
+			continue;
+		}
+
+		// attempt to resolve symbol from regular symbol table if missing from dynamic symbol table
+		uint64 newOffset = -1;
+		std::string_view symbolName = traceLine.substr(parenthesesOpen+1, offsetPlus-parenthesesOpen-1);
+		if (symbolName.empty())
+		{
+			uint64 symbolOffset = StringHelpers::ToInt64(traceLine.substr(offsetPlus+1,offsetPlus+1-parenthesesClose-1));
+			symbolName = symTable.OffsetToSymbol(symbolOffset, newOffset);
+		}
+
+		std::cerr << traceLine.substr(0, parenthesesOpen+1);
+
+		std::cerr << boost::core::demangle(symbolName.empty() ? "" : symbolName.data());
+
+		// print relative or existing symbol offset.
+		std::cerr << '+';
+		if (newOffset != -1)
+		{
+			std::cerr << std::hex << newOffset;
+			std::cerr << traceLine.substr(parenthesesClose) << std::endl;
+		}
+		else
+		{
+			std::cerr << traceLine.substr(offsetPlus+1) << std::endl;
+		}
+	}
+}
+#endif
 
 // handle signals that would dump core, print stacktrace and then dump depending on config
 void handlerDumpingSignal(int sig)
@@ -18,15 +71,30 @@ void handlerDumpingSignal(int sig)
 		printf("Unknown core dumping signal!\n");
 	}
 
-	void *array[32];
+	void *array[128];
 	size_t size;
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 32);
+	size = backtrace(array, 128);
 
 	// print out all the frames to stderr
 	fprintf(stderr, "Error: signal %d:\n", sig);
+
+#if BOOST_OS_LINUX
+	char** symbol_trace = backtrace_symbols(array, size);
+
+	if (symbol_trace)
+	{
+		demangleAndPrintBacktrace(symbol_trace, size);
+		free(symbol_trace);
+	}
+	else
+	{
+		std::cerr << "Failed to read backtrace" << std::endl;
+	}
+#else
 	backtrace_symbols_fd(array, size, STDERR_FILENO);
+#endif
 
 	if (GetConfig().crash_dump == CrashDump::Enabled)
 	{

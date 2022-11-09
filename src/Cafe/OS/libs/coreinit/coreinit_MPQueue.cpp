@@ -6,8 +6,8 @@
 
 // titles that utilize MP task queue: Yoshi's Woolly World, Fast Racing Neo, Tokyo Mirage Sessions, Mii Maker
 
-#define AcquireMPQLock() s_workaroundSpinlock.acquire()
-#define ReleaseMPQLock() s_workaroundSpinlock.release()
+#define AcquireMPQLock() s_workaroundSpinlock.lock()
+#define ReleaseMPQLock() s_workaroundSpinlock.unlock()
 
 namespace coreinit
 {
@@ -35,7 +35,7 @@ namespace coreinit
 
 	void MPInitTask(MPTask* task, void* func, void* data, uint32 size)
 	{
-		s_workaroundSpinlock.acquire();
+		s_workaroundSpinlock.lock();
 		task->thisptr = task;
 		
 		task->coreIndex = PPC_CORE_COUNT;
@@ -48,7 +48,7 @@ namespace coreinit
 		
 		task->userdata = nullptr;
 		task->runtime = 0;
-		s_workaroundSpinlock.release();
+		s_workaroundSpinlock.unlock();
 	}
 
 	bool MPTermTask(MPTask* task)

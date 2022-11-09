@@ -234,38 +234,38 @@ namespace iosu
 
 		void _IPCInitDispatchablePool()
 		{
-			sIPCDispatchableCommandPoolLock.acquire();
+			sIPCDispatchableCommandPoolLock.lock();
 			while (!sIPCFreeDispatchableCommands.empty())
 				sIPCFreeDispatchableCommands.pop();
 			for (size_t i = 0; i < sIPCDispatchableCommandPool.GetCount(); i++)
 				sIPCFreeDispatchableCommands.push(sIPCDispatchableCommandPool.GetPtr()+i);
-			sIPCDispatchableCommandPoolLock.release();
+			sIPCDispatchableCommandPoolLock.unlock();
 		}
 
 		IOSDispatchableCommand* _IPCAllocateDispatchableCommand()
 		{
-			sIPCDispatchableCommandPoolLock.acquire();
+			sIPCDispatchableCommandPoolLock.lock();
 			if (sIPCFreeDispatchableCommands.empty())
 			{
 				cemuLog_log(LogType::Force, "IOS: Exhausted pool of dispatchable commands");
-				sIPCDispatchableCommandPoolLock.release();
+				sIPCDispatchableCommandPoolLock.unlock();
 				return nullptr;
 			}
 			IOSDispatchableCommand* cmd = sIPCFreeDispatchableCommands.front();
 			sIPCFreeDispatchableCommands.pop();
 			cemu_assert_debug(!cmd->isAllocated);
 			cmd->isAllocated = true;
-			sIPCDispatchableCommandPoolLock.release();
+			sIPCDispatchableCommandPoolLock.unlock();
 			return cmd;
 		}
 
 		void _IPCReleaseDispatchableCommand(IOSDispatchableCommand* cmd)
 		{
-			sIPCDispatchableCommandPoolLock.acquire();
+			sIPCDispatchableCommandPoolLock.lock();
 			cemu_assert_debug(cmd->isAllocated);
 			cmd->isAllocated = false;
 			sIPCFreeDispatchableCommands.push(cmd);
-			sIPCDispatchableCommandPoolLock.release();
+			sIPCDispatchableCommandPoolLock.unlock();
 		}
 
 		static constexpr size_t MAX_NUM_ACTIVE_DEV_HANDLES = 96; // per process

@@ -465,12 +465,12 @@ namespace coreinit
 
 	void _OSFastMutex_AcquireContention(OSFastMutex* fastMutex)
 	{
-		g_fastMutexSpinlock.acquire();
+		g_fastMutexSpinlock.lock();
 	}
 
 	void _OSFastMutex_ReleaseContention(OSFastMutex* fastMutex)
 	{
-		g_fastMutexSpinlock.release();
+		g_fastMutexSpinlock.unlock();
 	}
 
 	void OSFastMutex_LockInternal(OSFastMutex* fastMutex)

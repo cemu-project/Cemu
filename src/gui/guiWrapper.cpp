@@ -5,6 +5,7 @@
 #include "gui/debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/CafeSystem.h"
@@ -97,8 +98,14 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
     windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
 
     if (ActiveSettings::IsOnlineEnabled())
-        windowText.append(" [Online]");
-
+	{
+		if (ActiveSettings::GetNetworkService() == NetworkService::Nintendo)
+			windowText.append(" [Online]");
+		else if (ActiveSettings::GetNetworkService() == NetworkService::Pretendo)
+			 windowText.append(" [Online-Pretendo]");
+		else if (ActiveSettings::GetNetworkService() == NetworkService::Custom)
+			 windowText.append(" [Online-" + GetNetworkConfig().networkname.GetValue() + "]");
+	}
     windowText.append(" ");
 	windowText.append(CafeSystem::GetForegroundTitleName());
 	// append region

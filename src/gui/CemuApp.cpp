@@ -14,6 +14,7 @@
 
 #include <wx/image.h>
 #include <wx/filename.h>
+#include <wx/stdpaths.h>
 
 #include "Cafe/TitleList/TitleList.h"
 #include "Cafe/TitleList/SaveList.h"
@@ -24,6 +25,8 @@ wxIMPLEMENT_APP_NO_MAIN(CemuApp);
 extern WindowInfo g_window_info;
 extern std::shared_mutex g_mutex;
 
+int mainEmulatorHLE();
+void HandlePostUpdate();
 // Translation strings to extract for gettext:
 void unused_translation_dummy()
 {
@@ -70,28 +73,69 @@ void unused_translation_dummy()
 
 bool CemuApp::OnInit()
 {
+	fs::path user_data_path, config_path, cache_path, data_path;
+	auto standardPaths = wxStandardPaths::Get();
+#ifdef PORTABLE
+	fs::path exePath(standardPaths.GetExecutablePath().ToStdString());
+#if MACOS_BUNDLE
+    exePath = exePath.parent_path().parent_path().parent_path();
+#endif
+	user_data_path = config_path = cache_path = data_path = exePath.parent_path();
+#else
+	SetAppName("Cemu");
+	wxString appName=GetAppName();
+	#if BOOST_OS_LINUX
+	standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
+	auto getEnvDir = [&](const wxString& varName, const wxString& defaultValue)
+	{
+		wxString dir;
+		if (!wxGetEnv(varName, &dir) || dir.empty())
+			return defaultValue;
+		return dir;
+	};
+	wxString homeDir=wxFileName::GetHomeDir();
+	user_data_path = (getEnvDir(wxS("XDG_DATA_HOME"), homeDir + wxS("/.local/share")) + "/" + appName).ToStdString();
+	config_path = (getEnvDir(wxS("XDG_CONFIG_HOME"), homeDir + wxS("/.config")) + "/" + appName).ToStdString();
+	#else
+	user_data_path = config_path = standardPaths.GetUserDataDir().ToStdString();
+	#endif
+	data_path = standardPaths.GetDataDir().ToStdString();
+	cache_path = standardPaths.GetUserDir(wxStandardPaths::Dir::Dir_Cache).ToStdString();
+	cache_path /= appName.ToStdString();
+#endif
+	auto failed_write_access = ActiveSettings::LoadOnce(user_data_path, config_path, cache_path, data_path);
+	for (auto&& path : failed_write_access)
+		wxMessageBox(fmt::format("Cemu can't write to {} !", path.generic_string()), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
+
+	NetworkConfig::LoadOnce();
+
+	HandlePostUpdate();
+	mainEmulatorHLE();
+
 	wxInitAllImageHandlers();
 
 	g_config.Load();
 	m_languages = GetAvailableLanguages();
 
 	const sint32 language = GetConfig().language;
-	if (language != wxLANGUAGE_ENGLISH)
+	const auto it = std::find_if(m_languages.begin(), m_languages.end(), [language](const wxLanguageInfo* info) { return info->Language == language; });
+	if (it != m_languages.end() && wxLocale::IsAvailable(language))
 	{
-		const auto it = std::find_if(m_languages.begin(), m_languages.end(), [language](const wxLanguageInfo* info) { return info->Language == language; });
-		if (it != m_languages.end() && wxLocale::IsAvailable(language))
+		if (m_locale.Init(language))
 		{
-			if (m_locale.Init(language))
-			{
-				m_locale.AddCatalogLookupPathPrefix("./resources");
-				m_locale.AddCatalog("cemu");
-			}
+			m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
+			m_locale.AddCatalog("cemu");
 		}
 	}
 
 	if (!m_locale.IsOk())
 	{
-		m_locale.Init(wxLANGUAGE_DEFAULT);
+		if (!wxLocale::IsAvailable(wxLANGUAGE_DEFAULT) || !m_locale.Init(wxLANGUAGE_DEFAULT))
+		{
+            m_locale.Init(wxLANGUAGE_ENGLISH);
+            m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
+            m_locale.AddCatalog("cemu");
+		}
 	}
 
 	// fill colour db
@@ -114,9 +158,6 @@ bool CemuApp::OnInit()
 	InitializeGlobalVulkan();
 
 	Bind(wxEVT_ACTIVATE_APP, &CemuApp::ActivateApp, this);
-
-	if (!TestWriteAccess(ActiveSettings::GetPath()))
-		wxMessageBox(_("Cemu can't write to its directory.\nPlease move it to a different location or run Cemu as administrator!"), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	auto& config = GetConfig();
 	const bool first_start = !config.did_show_graphic_pack_download;
@@ -187,7 +228,7 @@ int CemuApp::FilterEvent(wxEvent& event)
 
 std::vector<const wxLanguageInfo*> CemuApp::GetAvailableLanguages()
 {
-	const auto path = ActiveSettings::GetPath("resources");
+	const auto path = ActiveSettings::GetDataPath("resources");
 	if (!exists(path))
 		return {};
 	
@@ -312,11 +353,11 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	// cemu directories
 	try
 	{
-		const auto controllerProfileFolder = GetCemuPath(L"controllerProfiles").ToStdWstring();
+		const auto controllerProfileFolder = GetConfigPath(L"controllerProfiles").ToStdWstring();
 		if (!fs::exists(controllerProfileFolder))
 			fs::create_directories(controllerProfileFolder);
 
-		const auto memorySearcherFolder = GetCemuPath(L"memorySearcher").ToStdWstring();
+		const auto memorySearcherFolder = GetUserDataPath(L"memorySearcher").ToStdWstring();
 		if (!fs::exists(memorySearcherFolder))
 			fs::create_directories(memorySearcherFolder);
 	}
@@ -338,6 +379,24 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 }
 
 
+bool CemuApp::TrySelectMLCPath(std::wstring path)
+{
+	if (path.empty())
+		path = ActiveSettings::GetDefaultMLCPath().wstring();
+
+	if (!TestWriteAccess(fs::path{ path }))
+		return false;
+
+	GetConfig().SetMLCPath(path);
+	CemuApp::CreateDefaultFiles();
+
+	// update TitleList and SaveList scanner with new MLC path
+	CafeTitleList::SetMLCPath(path);
+	CafeTitleList::Refresh();
+	CafeSaveList::SetMLCPath(path);
+	CafeSaveList::Refresh();
+	return true;
+}
 
 bool CemuApp::SelectMLCPath(wxWindow* parent)
 {
@@ -356,36 +415,21 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 
 		const auto path = path_dialog.GetPath().ToStdWstring();
 
-		if (!TestWriteAccess(fs::path{ path }))
+		if (!TrySelectMLCPath(path))
 		{
 			const auto result = wxMessageBox(_("Cemu can't write to the selected mlc path!\nDo you want to select another path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
 			if (result == wxYES)
 				continue;
-			
+
 			break;
 		}
 
-		config.SetMLCPath(path);
-		// update TitleList and SaveList scanner with new MLC path
-		CafeTitleList::SetMLCPath(path);
-		CafeTitleList::Refresh();
-		CafeSaveList::SetMLCPath(path);
-		CafeSaveList::Refresh();
 		return true;
 	}
 
 	return false;
 }
 
-wxString CemuApp::GetCemuPath()
-{
-	return ActiveSettings::GetPath().generic_wstring();
-}
-
-wxString CemuApp::GetCemuPath(const wxString& cat)
-{
-	return ActiveSettings::GetPath(cat.ToStdString()).generic_wstring();
-}
 
 wxString CemuApp::GetMLCPath()
 {
@@ -396,6 +440,26 @@ wxString CemuApp::GetMLCPath(const wxString& cat)
 {
 	return ActiveSettings::GetMlcPath(cat.ToStdString()).generic_wstring();
 }
+
+wxString CemuApp::GetConfigPath()
+{
+	return ActiveSettings::GetConfigPath().generic_wstring();
+};
+
+wxString CemuApp::GetConfigPath(const wxString& cat)
+{
+	return ActiveSettings::GetConfigPath(cat.ToStdString()).generic_wstring();
+};
+
+wxString CemuApp::GetUserDataPath()
+{
+	return ActiveSettings::GetUserDataPath().generic_wstring();
+};
+
+wxString CemuApp::GetUserDataPath(const wxString& cat)
+{
+	return ActiveSettings::GetUserDataPath(cat.ToStdString()).generic_wstring();
+};
 
 void CemuApp::ActivateApp(wxActivateEvent& event)
 {

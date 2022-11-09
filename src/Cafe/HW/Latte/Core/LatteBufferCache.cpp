@@ -1005,8 +1005,67 @@ void LatteBufferCache_getStats(uint32& heapSize, uint32& allocationSize, uint32&
 }
 
 FSpinlock g_spinlockDCFlushQueue;
-std::unordered_set<uint32>* g_DCFlushQueue = new std::unordered_set<uint32>(); // queued pages
-std::unordered_set<uint32>* g_DCFlushQueueAlternate = new std::unordered_set<uint32>();
+
+class SparseBitset
+{
+	static inline constexpr size_t TABLE_MASK = 0xFF;
+
+public:
+	bool Empty() const
+	{
+		return m_numNonEmptyVectors == 0;
+	}
+
+	void Set(uint32 index)
+	{
+		auto& v = m_bits[index & TABLE_MASK];
+		if (std::find(v.cbegin(), v.cend(), index) != v.end())
+			return;
+		if (v.empty())
+		{
+			m_nonEmptyVectors[m_numNonEmptyVectors] = &v;
+			m_numNonEmptyVectors++;
+		}
+		v.emplace_back(index);
+	}
+
+	template<typename TFunc>
+	void ForAllAndClear(TFunc callbackFunc)
+	{
+		auto vCurrent = m_nonEmptyVectors + 0;
+		auto vEnd = m_nonEmptyVectors + m_numNonEmptyVectors;
+		while (vCurrent < vEnd)
+		{
+			std::vector<uint32>* vec = *vCurrent;
+			vCurrent++;
+			for (const auto& it : *vec)
+				callbackFunc(it);
+			vec->clear();
+		}
+		m_numNonEmptyVectors = 0;
+	}
+
+	void Clear()
+	{
+		auto vCurrent = m_nonEmptyVectors + 0;
+		auto vEnd = m_nonEmptyVectors + m_numNonEmptyVectors;
+		while (vCurrent < vEnd)
+		{
+			std::vector<uint32>* vec = *vCurrent;
+			vCurrent++;
+			vec->clear();
+		}
+		m_numNonEmptyVectors = 0;
+	}
+
+private:
+	std::vector<uint32> m_bits[TABLE_MASK + 1];
+	std::vector<uint32>* m_nonEmptyVectors[TABLE_MASK + 1];
+	size_t m_numNonEmptyVectors{ 0 };
+};
+
+SparseBitset* s_DCFlushQueue = new SparseBitset();
+SparseBitset* s_DCFlushQueueAlternate = new SparseBitset();
 
 void LatteBufferCache_notifyDCFlush(MPTR address, uint32 size)
 {
@@ -1015,22 +1074,20 @@ void LatteBufferCache_notifyDCFlush(MPTR address, uint32 size)
 
 	uint32 firstPage = address / CACHE_PAGE_SIZE;
 	uint32 lastPage = (address + size - 1) / CACHE_PAGE_SIZE;
-	g_spinlockDCFlushQueue.acquire();
+	g_spinlockDCFlushQueue.lock();
 	for (uint32 i = firstPage; i <= lastPage; i++)
-		g_DCFlushQueue->emplace(i);
-	g_spinlockDCFlushQueue.release();
+		s_DCFlushQueue->Set(i);
+	g_spinlockDCFlushQueue.unlock();
 }
 
 void LatteBufferCache_processDCFlushQueue()
 {
-	if (g_DCFlushQueue->empty()) // accessing this outside of the lock is technically undefined/unsafe behavior but on all known implementations this is fine and we can avoid the spinlock
+	if (s_DCFlushQueue->Empty()) // quick check to avoid locking if there is no work to do
 		return;
-	g_spinlockDCFlushQueue.acquire();
-	std::swap(g_DCFlushQueue, g_DCFlushQueueAlternate);
-	g_spinlockDCFlushQueue.release();
-	for (auto& itr : *g_DCFlushQueueAlternate)
-		LatteBufferCache_invalidatePage(itr * CACHE_PAGE_SIZE);
-	g_DCFlushQueueAlternate->clear();
+	g_spinlockDCFlushQueue.lock();
+	std::swap(s_DCFlushQueue, s_DCFlushQueueAlternate);
+	g_spinlockDCFlushQueue.unlock();
+	s_DCFlushQueueAlternate->ForAllAndClear([](uint32 index) {LatteBufferCache_invalidatePage(index * CACHE_PAGE_SIZE); });
 }
 
 void LatteBufferCache_notifyDrawDone()

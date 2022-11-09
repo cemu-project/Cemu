@@ -462,15 +462,16 @@ struct CemuConfig
 	// audio
 	sint32 audio_api = 0;
 	sint32 audio_delay = 2;
-	AudioChannels tv_channels = kStereo, pad_channels = kStereo;
-	sint32 tv_volume = 50, pad_volume = 0;
-	std::wstring tv_device{ L"default" }, pad_device;
+	AudioChannels tv_channels = kStereo, pad_channels = kStereo, input_channels = kMono;
+	sint32 tv_volume = 50, pad_volume = 0, input_volume = 50;
+	std::wstring tv_device{ L"default" }, pad_device, input_device;
 
 	// account
 	struct
 	{
 		ConfigValueBounds<uint32> m_persistent_id{ Account::kMinPersistendId, Account::kMinPersistendId, 0xFFFFFFFF };
 		ConfigValue<bool> online_enabled{false};
+		ConfigValue<int> active_service{0};
 	}account{};
 
 	// input

@@ -441,7 +441,7 @@ bool fsc_nextDir(FSCVirtualFile* fscFile, FSCDirEntry* dirEntry)
 /*
  * Create directory
  */
-bool fsc_createDir(char* path, sint32* fscStatus)
+bool fsc_createDir(const char* path, sint32* fscStatus)
 {
 	fscDeviceC* fscDevice = NULL;
 	*fscStatus = FSC_STATUS_UNDEFINED;
@@ -461,7 +461,7 @@ bool fsc_createDir(char* path, sint32* fscStatus)
 /*
  * Rename file or directory
  */
-bool fsc_rename(char* srcPath, char* dstPath, sint32* fscStatus)
+bool fsc_rename(const char* srcPath, const char* dstPath, sint32* fscStatus)
 {
 	std::string srcDevicePath;
 	std::string dstDevicePath;
@@ -481,7 +481,7 @@ bool fsc_rename(char* srcPath, char* dstPath, sint32* fscStatus)
 /*
  * Delete file or subdirectory
  */
-bool fsc_remove(char* path, sint32* fscStatus)
+bool fsc_remove(const char* path, sint32* fscStatus)
 {
 	std::string devicePath;
 	fscDeviceC* fscDevice = NULL;

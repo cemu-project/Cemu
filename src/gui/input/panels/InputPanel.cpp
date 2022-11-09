@@ -41,77 +41,69 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 	}
 
 	static bool s_was_idle = true;
-	if (!std::any_of(state.buttons.begin(), state.buttons.end(), [](auto el){ return el.second; })) {
+	if (state.buttons.IsIdle()) 
+	{
 		s_was_idle = true;
 		return;
 	}
 
-	if (!s_was_idle) {
+	if (!s_was_idle) 
+	{
 		return;
 	}
-	auto get_button_state = [&](uint32 key_id)
-	{
-		auto result = state.buttons.find(key_id);
-		if (result == state.buttons.end())
-			return false;
-		return result->second;
-	};
 	s_was_idle = false;
-	for(auto && button : state.buttons)
+	for(const auto& id : state.buttons.GetButtonList())
 	{
-		if (button.second)
+		if (controller->has_axis())
 		{
-			auto id=button.first;
-			if (controller->has_axis()) {
-				// test if one axis direction is pressed more than the other
-				if ((id == kAxisXP || id == kAxisXN) && (get_button_state(kAxisYP) || get_button_state(kAxisYN)))
-				{
-					if (std::abs(state.axis.y) > std::abs(state.axis.x))
-						continue;
-				}
-				else if ((id == kAxisYP || id == kAxisYN) && (get_button_state(kAxisXP) || get_button_state(kAxisXN)))
-				{
-					if (std::abs(state.axis.x) > std::abs(state.axis.y))
-						continue;
-				}
-				else if ((id == kRotationXP || id == kRotationXN) && (get_button_state(kRotationYP) || get_button_state(kRotationYN)))
-				{
-					if (std::abs(state.rotation.y) > std::abs(state.rotation.x))
-						continue;
-				}
-				else if ((id == kRotationYP || id == kRotationYN) && (get_button_state(kRotationXP) || get_button_state(kRotationXN)))
-				{
-					if (std::abs(state.rotation.x) > std::abs(state.rotation.y))
-						continue;
-				}
-				else if ((id == kTriggerXP || id == kTriggerXN) && (get_button_state(kTriggerYP) || get_button_state(kTriggerYN)))
-				{
-					if (std::abs(state.trigger.y) > std::abs(state.trigger.x))
-						continue;
-				}
-				else if ((id == kTriggerYP || id == kTriggerYN) && (get_button_state(kTriggerXP) || get_button_state(kTriggerXN)))
-				{
-					if (std::abs(state.trigger.x) > std::abs(state.trigger.y))
-						continue;
-				}
-
-				// ignore too low button values on configuration
-				if (id >= kButtonAxisStart)
-				{
-					if (controller->get_axis_value(id) < 0.33f) {
-						forceLogDebug_printf("skipping since value too low %f", controller->get_axis_value(id));
-						s_was_idle = true;
-						return;
-					}
-				}
+			// test if one axis direction is pressed more than the other
+			if ((id == kAxisXP || id == kAxisXN) && (state.buttons.GetButtonState(kAxisYP) || state.buttons.GetButtonState(kAxisYN)))
+			{
+				if (std::abs(state.axis.y) > std::abs(state.axis.x))
+					continue;
+			}
+			else if ((id == kAxisYP || id == kAxisYN) && (state.buttons.GetButtonState(kAxisXP) || state.buttons.GetButtonState(kAxisXN)))
+			{
+				if (std::abs(state.axis.x) > std::abs(state.axis.y))
+					continue;
+			}
+			else if ((id == kRotationXP || id == kRotationXN) && (state.buttons.GetButtonState(kRotationYP) || state.buttons.GetButtonState(kRotationYN)))
+			{
+				if (std::abs(state.rotation.y) > std::abs(state.rotation.x))
+					continue;
+			}
+			else if ((id == kRotationYP || id == kRotationYN) && (state.buttons.GetButtonState(kRotationXP) || state.buttons.GetButtonState(kRotationXN)))
+			{
+				if (std::abs(state.rotation.x) > std::abs(state.rotation.y))
+					continue;
+			}
+			else if ((id == kTriggerXP || id == kTriggerXN) && (state.buttons.GetButtonState(kTriggerYP) || state.buttons.GetButtonState(kTriggerYN)))
+			{
+				if (std::abs(state.trigger.y) > std::abs(state.trigger.x))
+					continue;
+			}
+			else if ((id == kTriggerYP || id == kTriggerYN) && (state.buttons.GetButtonState(kTriggerXP) || state.buttons.GetButtonState(kTriggerXN)))
+			{
+				if (std::abs(state.trigger.x) > std::abs(state.trigger.y))
+					continue;
 			}
 
-			emulated_controller->set_mapping(mapping, controller, id);
-			element->SetValue(controller->get_button_name(id));
-			element->SetBackgroundColour(kKeyColourNormalMode);
-			m_color_backup[element->GetId()] = kKeyColourNormalMode;
-			break;
+			// ignore too low button values on configuration
+			if (id >= kButtonAxisStart)
+			{
+				if (controller->get_axis_value(id) < 0.33f) {
+					forceLogDebug_printf("skipping since value too low %f", controller->get_axis_value(id));
+					s_was_idle = true;
+					return;
+				}
+			}
 		}
+
+		emulated_controller->set_mapping(mapping, controller, id);
+		element->SetValue(controller->get_button_name(id));
+		element->SetBackgroundColour(kKeyColourNormalMode);
+		m_color_backup[element->GetId()] = kKeyColourNormalMode;
+		break;
 	}
 
 	if (const auto sibling = get_next_sibling(element))

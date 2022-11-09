@@ -295,8 +295,10 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	audio_delay = audio.get("delay", 2);
 	tv_channels = audio.get("TVChannels", kStereo);
 	pad_channels = audio.get("PadChannels", kStereo);
+	input_channels = audio.get("InputChannels", kMono);
 	tv_volume = audio.get("TVVolume", 20);
 	pad_volume = audio.get("PadVolume", 0);
+	input_volume = audio.get("InputVolume", 20);
 
 	const auto tv = audio.get("TVDevice", "");
 	try
@@ -318,11 +320,21 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		forceLog_printf("config load error: can't load pad device: %s", pad);
 	}
 
+	const auto input_device_name = audio.get("InputDevice", "");
+	try
+	{
+		input_device = boost::nowide::widen(input_device_name);
+	}
+	catch (const std::exception&)
+	{
+		forceLog_printf("config load error: can't load input device: %s", input_device_name);
+	}
+
 	// account
 	auto acc = parser.get("Account");
 	account.m_persistent_id = acc.get("PersistentId", account.m_persistent_id);
 	account.online_enabled = acc.get("OnlineEnabled", account.online_enabled);
-
+	account.active_service = acc.get("ActiveService",account.active_service);
 	// debug
 	auto debug = parser.get("Debug");
 #if BOOST_OS_WINDOWS
@@ -488,16 +500,19 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	audio.set("delay", audio_delay);
 	audio.set("TVChannels", tv_channels);
 	audio.set("PadChannels", pad_channels);
+	audio.set("InputChannels", input_channels);
 	audio.set("TVVolume", tv_volume);
 	audio.set("PadVolume", pad_volume);
+	audio.set("InputVolume", input_volume);
 	audio.set("TVDevice", boost::nowide::narrow(tv_device).c_str());
 	audio.set("PadDevice", boost::nowide::narrow(pad_device).c_str());
+	audio.set("InputDevice", boost::nowide::narrow(input_device).c_str());
 
 	// account
 	auto acc = config.set("Account");
 	acc.set("PersistentId", account.m_persistent_id.GetValue());
 	acc.set("OnlineEnabled", account.online_enabled.GetValue());
-
+	acc.set("ActiveService",account.active_service.GetValue());
 	// debug
 	auto debug = config.set("Debug");
 #if BOOST_OS_WINDOWS

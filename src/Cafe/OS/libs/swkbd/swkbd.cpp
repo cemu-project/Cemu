@@ -373,8 +373,8 @@ void swkbd_render(bool mainWindow)
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
 	ImGui::SetNextWindowBgAlpha(0.8f);
-	if (ImGui::Begin("Background overlay", nullptr, kPopupFlags | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing))
-		ImGui::End();
+	ImGui::Begin("Background overlay", nullptr, kPopupFlags | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	ImGui::End();
 	ImGui::PopStyleVar(2);
 
 	ImVec2 position = { io.DisplaySize.x / 2.0f, io.DisplaySize.y / 3.0f };
@@ -412,10 +412,8 @@ void swkbd_render(bool mainWindow)
 		ImGui::PopTextWrapPos();
 
 		position.y += ImGui::GetWindowSize().y + 100.0f;
-
-		ImGui::End();
 	}
-
+	ImGui::End();
 	ImGui::PopFont();
 
 	ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
@@ -490,10 +488,8 @@ void swkbd_render(bool mainWindow)
 			}
 		}
 		ImGui::NewLine();
-		
-
-		ImGui::End();
 	}
+	ImGui::End();
 
 	if (io.NavInputs[ImGuiNavInput_Cancel] > 0)
 	{

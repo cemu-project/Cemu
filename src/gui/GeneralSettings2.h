@@ -58,13 +58,14 @@ private:
 	// Audio
 	wxChoice* m_audio_api;
 	wxSlider *m_audio_latency;
-	wxSlider *m_tv_volume, *m_pad_volume;
-	wxChoice *m_tv_channels, *m_pad_channels;
-	wxChoice *m_tv_device, *m_pad_device;
+	wxSlider *m_tv_volume, *m_pad_volume, *m_input_volume;
+	wxChoice *m_tv_channels, *m_pad_channels, *m_input_channels;
+	wxChoice *m_tv_device, *m_pad_device, *m_input_device;
 
 	// Account
 	wxButton* m_create_account, * m_delete_account;
 	wxChoice* m_active_account;
+	wxRadioBox* m_active_service;
 	wxCheckBox* m_online_enabled;
 	wxCollapsiblePane* m_account_information;
 	wxPropertyGrid* m_account_grid;
@@ -93,6 +94,7 @@ private:
 	void OnMLCPathChar(wxKeyEvent& event);
 	void OnShowOnlineValidator(wxCommandEvent& event);
 	void OnOnlineEnable(wxCommandEvent& event);
+	void OnAccountServiceChanged(wxCommandEvent& event);
 
 	// updates cemu audio devices
 	void UpdateAudioDevice();

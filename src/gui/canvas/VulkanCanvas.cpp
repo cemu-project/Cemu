@@ -41,6 +41,12 @@ VulkanCanvas::~VulkanCanvas()
 {
 	Unbind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Unbind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
+
+	if(!m_is_main_window)
+	{
+		if(auto vulkan_renderer = VulkanRenderer::GetInstance())
+			vulkan_renderer->StopUsingPadAndWait();
+	}
 }
 
 void VulkanCanvas::OnPaint(wxPaintEvent& event)
@@ -60,5 +66,5 @@ void VulkanCanvas::OnResize(wxSizeEvent& event)
 		return;
 
 	auto vulkan_renderer = VulkanRenderer::GetInstance();
-	vulkan_renderer->ResizeSwapchain({ size.x, size.y }, m_is_main_window);
+	vulkan_renderer->SetSwapchainTargetSize({size.x, size.y}, m_is_main_window);
 }
