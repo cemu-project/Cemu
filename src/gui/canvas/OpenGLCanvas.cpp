@@ -42,11 +42,14 @@ public:
 		{
 			sGLTVView = this;
 			sGLContext = new wxGLContext(this);
-
 			g_renderer = std::make_unique<OpenGLRenderer>();
 		}
 		else
 			sGLPadView = this;
+
+		std::cout << "UI THREAD:" << std::endl;
+		std::cout << "glXGetCurrentDisplayEXT = " << glXGetCurrentDisplayEXT() << std::endl;
+		std::cout << "glXGetCurrentDrawable = " << glXGetCurrentDrawable() << std::endl;
 
 		wxWindow::EnableTouchEvents(wxTOUCH_PAN_GESTURES);
 	}
@@ -64,7 +67,28 @@ public:
 			delete sGLContext;
 	}
 
+	void UpdateVSyncState()
+	{
+		int configValue = GetConfig().vsync.GetValue();
+		if(m_activeVSyncState != configValue)
+		{
+#if BOOST_OS_WINDOWS
+			if(wglSwapIntervalEXT)
+				wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
+#elif BOOST_OS_LINUX
+			std::cout << "setting vsync to " << configValue << std::endl;
+			std::cout << "glXGetCurrentDisplayEXT = " << glXGetCurrentDisplayEXT() << std::endl;
+			std::cout << "glXGetCurrentDrawable = " << glXGetCurrentDrawable() << std::endl;
+			glXSwapIntervalEXT(glXGetCurrentDisplayEXT(), glXGetCurrentDrawable(), configValue);
+#else
+			cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
+#endif
+			m_activeVSyncState = configValue;
+		}
+	}
+
 private:
+	int m_activeVSyncState{};
 	//wxGLContext* m_context = nullptr;
 };
 
@@ -93,11 +117,13 @@ void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
 	{
 		GLCanvas_MakeCurrent(false);
 		sGLTVView->SwapBuffers();
+		sGLTVView->UpdateVSyncState();
 	}
 	if (swapDRC && sGLPadView)
 	{
 		GLCanvas_MakeCurrent(true);
 		sGLPadView->SwapBuffers();
+		sGLPadView->UpdateVSyncState();
 	}
 
 	GLCanvas_MakeCurrent(false);

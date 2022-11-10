@@ -283,8 +283,19 @@ GLFUNC(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl)
 
 // wgl
 
-#if BOOST_OS_WINDOWS > 0
+#if BOOST_OS_WINDOWS
 GLFUNC(PFNWGLSWAPINTERVALEXTPROC, wglSwapIntervalEXT)
 #endif
 
 // x
+
+// glx.h only includes an extern statement and no function pointer type.
+// extern GLXDrawable glXGetCurrentDrawable( void );
+// so we'll define it ourselves for runtime linking.
+typedef GLXDrawable (*PFNGLXGETCURRENTDRAWABLEPROC) (void);
+
+#if BOOST_OS_LINUX
+GLFUNC(PFNGLXGETCURRENTDISPLAYEXTPROC, glXGetCurrentDisplayEXT)
+GLFUNC(PFNGLXGETCURRENTDRAWABLEPROC, glXGetCurrentDrawable)
+GLFUNC(PFNGLXSWAPINTERVALEXTPROC, glXSwapIntervalEXT)
+#endif
