@@ -66,12 +66,15 @@ if(UNIX)
         target_link_libraries(discord-rpc PRIVATE "-framework AppKit, -mmacosx-version-min=10.10")
     endif (APPLE)
 
+    if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    target_compile_options(discord-rpc PRIVATE -g)
+    endif()
+
     target_compile_options(discord-rpc PRIVATE
-        -g
-        -Wall
-        -Wextra
-        -Wpedantic
-    )
+            -Wall
+            -Wextra
+            -Wpedantic
+            )
 
     if (${WARNINGS_AS_ERRORS})
       target_compile_options(discord-rpc PRIVATE -Werror)
