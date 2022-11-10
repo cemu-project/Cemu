@@ -273,7 +273,7 @@ void iosuCrypto_generateDeviceCertificate()
 	BIGNUM* bn_x = BN_CTX_get(context);
 	BIGNUM* bn_y = BN_CTX_get(context);	
 
-	EC_POINT_get_affine_coordinates_GF2m(group, pubkey, bn_x, bn_y, NULL);
+	EC_POINT_get_affine_coordinates(group, pubkey, bn_x, bn_y, NULL);
 
 	uint8 publicKeyOutput[0x3C];
 	memset(publicKeyOutput, 0, sizeof(publicKeyOutput));
