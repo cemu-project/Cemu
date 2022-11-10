@@ -13,6 +13,7 @@
 *.out
 *.app
 .vs
+.vscode
 .idea/
 
 build/

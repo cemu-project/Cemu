@@ -676,6 +676,12 @@ SwapchainInfoVk& VulkanRenderer::GetChainInfo(bool mainWindow) const
 	return *GetChainInfoPtr(mainWindow);
 }
 
+void VulkanRenderer::StopUsingPadAndWait()
+{
+	m_destroyPadSwapchainNextAcquire = true;
+	m_padCloseReadySemaphore.wait();
+}
+
 bool VulkanRenderer::IsPadWindowActive()
 {
 	return IsSwapchainInfoValid(false);
@@ -1653,14 +1659,11 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	if (!IsSwapchainInfoValid(mainWindow))
+	if (!AcquireNextSwapchainImage(mainWindow))
 		return false;
 
 	draw_endRenderPass();
 	m_state.currentPipeline = VK_NULL_HANDLE;
-
-	AcquireNextSwapchainImage(mainWindow);
-
 
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
 	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.getExtent());
@@ -1713,10 +1716,8 @@ void VulkanRenderer::DeleteFontTextures()
 
 bool VulkanRenderer::BeginFrame(bool mainWindow)
 {
-	if (!IsSwapchainInfoValid(mainWindow))
+	if (!AcquireNextSwapchainImage(mainWindow))
 		return false;
-
-	AcquireNextSwapchainImage(mainWindow);
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
@@ -1738,9 +1739,6 @@ void VulkanRenderer::DrawEmptyFrame(bool mainWindow)
 
 void VulkanRenderer::PreparePresentationFrame(bool mainWindow)
 {
-	if (!IsSwapchainInfoValid(mainWindow))
-		return;
-
 	AcquireNextSwapchainImage(mainWindow);
 }
 
@@ -2525,11 +2523,36 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	return pipeline;
 }
 
-void VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
+bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 {
+	if(!IsSwapchainInfoValid(mainWindow))
+		return false;
+
+	if(!mainWindow && m_destroyPadSwapchainNextAcquire)
+	{
+		RecreateSwapchain(mainWindow, true);
+		m_destroyPadSwapchainNextAcquire = false;
+		m_padCloseReadySemaphore.notify();
+		return false;
+	}
+
 	auto& chainInfo = GetChainInfo(mainWindow);
+
+	UpdateVSyncState(mainWindow);
+
+	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+	{
+		try
+		{
+			RecreateSwapchain(mainWindow);
+			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
+		}
+		catch (std::exception&) { cemu_assert_debug(false); }
+	}
+
 	if (chainInfo.swapchainImageIndex != -1)
-		return; // image already reserved
+		return true; // image already reserved
 
 	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
@@ -2548,7 +2571,7 @@ void VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 					vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
 				result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
 				if (result == VK_SUCCESS)
-					return;
+					return true;
 			}
 			catch (std::exception&) {}
 
@@ -2560,11 +2583,11 @@ void VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	}
 
 	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_acquireSemaphores.size();
-
 	SubmitCommandBuffer(nullptr, &acquireSemaphore);
+	return true;
 }
 
-void VulkanRenderer::RecreateSwapchain(bool mainWindow)
+void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 {
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
@@ -2586,7 +2609,10 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow)
 
 	chainInfo.Cleanup();
 	chainInfo.m_desiredExtent = size;
-	chainInfo.Create(m_physicalDevice, m_logicalDevice);
+	if(!skipCreate)
+	{
+		chainInfo.Create(m_physicalDevice, m_logicalDevice);
+	}
 	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)
@@ -2605,23 +2631,10 @@ void VulkanRenderer::UpdateVSyncState(bool mainWindow)
 
 void VulkanRenderer::SwapBuffer(bool mainWindow)
 {
-	auto& chainInfo = GetChainInfo(mainWindow);
-
-	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
-	{
-		try
-		{
-			RecreateSwapchain(mainWindow);
-			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
-		}
-		catch (std::exception&) { cemu_assert_debug(false); }
+	if(!AcquireNextSwapchainImage(mainWindow))
 		return;
-	}
 
-	UpdateVSyncState(mainWindow);
-
-	AcquireNextSwapchainImage(mainWindow);
+	auto& chainInfo = GetChainInfo(mainWindow);
 
 	if (!chainInfo.hasDefinedSwapchainImage)
 	{
@@ -2813,7 +2826,7 @@ void VulkanRenderer::CreateBackbufferIndexBuffer()
 
 void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, bool padView, bool clearBackground)
 {
-	if (!IsSwapchainInfoValid(!padView))
+	if(!AcquireNextSwapchainImage(!padView))
 		return;
 
 	auto& chainInfo = GetChainInfo(!padView);
@@ -2822,8 +2835,6 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	if (clearBackground)
 		ClearColorbuffer(padView);
-
-	AcquireNextSwapchainImage(!padView);
 
 	// barrier for input texture
 	VkMemoryBarrier memoryBarrier{};
