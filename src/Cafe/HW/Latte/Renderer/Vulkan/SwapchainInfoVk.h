@@ -63,7 +63,9 @@ struct SwapchainInfoVk
 
 	bool mainWindow{};
 
+	bool m_shouldRecreate;
 	bool m_usesSRGB = false;
+	VSync m_vsyncState = VSync::Immediate;
 	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
 
 	VkPhysicalDevice m_physicalDevice{};
@@ -75,7 +77,6 @@ struct SwapchainInfoVk
 	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
-	VSync m_vsyncState = VSync::Immediate;
 
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)

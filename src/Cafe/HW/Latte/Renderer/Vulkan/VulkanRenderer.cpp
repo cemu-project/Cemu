@@ -2538,18 +2538,8 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	UpdateVSyncState(mainWindow);
-
-	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
-	{
-		try
-		{
-			RecreateSwapchain(mainWindow);
-			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
-		}
-		catch (std::exception&) { cemu_assert_debug(false); }
-	}
+	if (!UpdateSwapchainProperties(mainWindow))
+		return false;
 
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
@@ -2562,24 +2552,14 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
 	if (result != VK_SUCCESS)
 	{
-		while (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // todo: handle error state correctly. Looping doesnt always make sense?
-		{
-			try
-			{
-				RecreateSwapchain(mainWindow);
-				if (vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, 0) == VK_SUCCESS)
-					vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
-				result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
-				if (result == VK_SUCCESS)
-					return true;
-			}
-			catch (std::exception&) {}
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+			chainInfo.m_shouldRecreate = true;
 
-			std::this_thread::yield();
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		}
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			return false;
 
-		throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
+			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
 
 	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_acquireSemaphores.size();
@@ -2619,14 +2599,36 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 		ImguiInit();
 }
 
-void VulkanRenderer::UpdateVSyncState(bool mainWindow)
+bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 {
 	auto& chainInfo = GetChainInfo(mainWindow);
+	bool stateChanged = chainInfo.m_shouldRecreate;
+
 	const auto configValue =  (VSync)GetConfig().vsync.GetValue();
-	if(chainInfo.m_vsyncState != configValue){
-		RecreateSwapchain(mainWindow);
-		chainInfo.m_vsyncState = configValue;
+	if(chainInfo.m_vsyncState != configValue)
+		stateChanged = true;
+
+	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+		stateChanged = true;
+
+	if(stateChanged)
+	{
+		try
+		{
+			RecreateSwapchain(mainWindow);
+		}
+		catch (std::exception&)
+		{
+			cemu_assert_debug(false);
+			return false;
+		}
 	}
+
+	chainInfo.m_shouldRecreate = false;
+	chainInfo.m_vsyncState = configValue;
+	chainInfo.m_usesSRGB = latteBufferUsesSRGB;
+	return true;
 }
 
 void VulkanRenderer::SwapBuffer(bool mainWindow)
