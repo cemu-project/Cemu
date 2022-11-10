@@ -90,7 +90,15 @@ bool GLCanvas_MakeCurrent(bool padView)
 void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
 {
 	if (swapTV && sGLTVView)
+	{
+		GLCanvas_MakeCurrent(false);
 		sGLTVView->SwapBuffers();
+	}
 	if (swapDRC && sGLPadView)
+	{
+		GLCanvas_MakeCurrent(true);
 		sGLPadView->SwapBuffers();
+	}
+
+	GLCanvas_MakeCurrent(false);
 }
