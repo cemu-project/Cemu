@@ -16,8 +16,6 @@ add_library(CemuUtil
   DXGIWrapper/DXGIWrapper.h
   EventService.h
   Fiber/Fiber.h
-  Fiber/FiberUnix.cpp
-  Fiber/FiberWin.cpp
   helpers/ClassWrapper.h
   helpers/ConcurrentQueue.h
   helpers/enum_array.hpp
@@ -50,8 +48,6 @@ add_library(CemuUtil
   math/vector2.h
   math/vector3.h
   MemMapper/MemMapper.h
-  MemMapper/MemMapperUnix.cpp
-  MemMapper/MemMapperWin.cpp
   SystemInfo/SystemInfo.cpp
   SystemInfo/SystemInfo.h
   ThreadPool/ThreadPool.cpp
@@ -74,9 +70,18 @@ add_library(CemuUtil
 )
 
 if(WINDOWS)
+	target_sources(CemuUtil PRIVATE Fiber/FiberWin.cpp)
+	target_sources(CemuUtil PRIVATE MemMapper/MemMapperWin.cpp)
 	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoWin.cpp)
-elseif(UNIX AND NOT APPLE)
-	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoLinux.cpp)
+elseif(UNIX)
+	target_sources(CemuUtil PRIVATE Fiber/FiberUnix.cpp)
+	target_sources(CemuUtil PRIVATE MemMapper/MemMapperUnix.cpp)
+	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoUnix.cpp)
+	if(NOT APPLE)
+		target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoLinux.cpp)
+	else()
+		target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoStub.cpp)
+	endif()
 else()
 	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoStub.cpp)
 endif()
