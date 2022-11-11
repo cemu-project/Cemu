@@ -14,9 +14,9 @@ void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 }
 #endif
 
-void QueryCoreTimes(uint32 count, ProcessorTime out[])
+void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 {
-	for (auto i = 0; i < count; ++i)
+	for (auto i = 0; i < out.size(); ++i)
 	{
 		out[i] = { };
 	}

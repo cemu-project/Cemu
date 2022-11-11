@@ -15,14 +15,14 @@ uint64 QueryRamUsage()
 	return 0;
 }
 
-void QueryCoreTimes(uint32 count, ProcessorTime out[])
+void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 {
 	std::ifstream file("/proc/stat");
 	if (file)
 	{
 		file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-		for (auto i = 0; i < count; ++i)
+		for (auto i = 0; i < out.size(); ++i)
 		{
 			uint64 user, nice, kernel, idle;
 			file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');

@@ -46,12 +46,12 @@ void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 	}
 }
 
-void QueryCoreTimes(uint32 count, ProcessorTime out[])
+void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 {
 	std::vector<SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION> sppi(count);
 	if (NT_SUCCESS(NtQuerySystemInformation(SystemProcessorPerformanceInformation, sppi.data(), sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * count, nullptr)))
 	{
-		for (auto i = 0; i < count; ++i)
+		for (auto i = 0; i < out.size(); ++i)
 		{
 			out[i].idle = sppi[i].IdleTime.QuadPart;			
 			out[i].kernel = sppi[i].KernelTime.QuadPart;
