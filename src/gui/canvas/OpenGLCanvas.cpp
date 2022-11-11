@@ -73,9 +73,12 @@ public:
 			if(wglSwapIntervalEXT)
 				wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
 #elif BOOST_OS_LINUX
-			if(eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
+			if (eglSwapInterval)
 			{
-				cemuLog_force("Failed to set vsync using EGL");
+				if (eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
+				{
+					cemuLog_force("Failed to set vsync using EGL");
+				}
 			}
 #else
 			cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
