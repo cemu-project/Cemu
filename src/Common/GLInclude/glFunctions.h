@@ -289,17 +289,7 @@ GLFUNC(PFNWGLSWAPINTERVALEXTPROC, wglSwapIntervalEXT)
 
 // x
 
-// glx.h only includes an extern statement and no function pointer type.
-// extern GLXDrawable glXGetCurrentDrawable( void );
-// so we'll define it ourselves for runtime linking.
-typedef GLXDrawable (*PFNGLXGETCURRENTDRAWABLEPROC) (void);
-
 #if BOOST_OS_LINUX
-GLFUNC(PFNGLXGETCURRENTDISPLAYEXTPROC, glXGetCurrentDisplayEXT)
-GLFUNC(PFNGLXGETCURRENTDRAWABLEPROC, glXGetCurrentDrawable)
-GLFUNC(PFNGLXSWAPINTERVALEXTPROC, glXSwapIntervalEXT)
-GLFUNC(PFNGLXSWAPINTERVALSGIPROC, glXSwapIntervalSGI)
-GLFUNC(PFNGLXSWAPINTERVALMESAPROC, glXSwapIntervalMESA)
 EGLFUNC(PFNEGLSWAPINTERVALPROC, eglSwapInterval)
 EGLFUNC(PFNEGLGETCURRENTDISPLAYPROC, eglGetCurrentDisplay)
 #endif

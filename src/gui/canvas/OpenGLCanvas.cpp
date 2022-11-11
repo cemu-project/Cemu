@@ -42,6 +42,7 @@ public:
 		{
 			sGLTVView = this;
 			sGLContext = new wxGLContext(this);
+
 			g_renderer = std::make_unique<OpenGLRenderer>();
 		}
 		else
@@ -75,15 +76,6 @@ public:
 			if(eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
 			{
 				cemuLog_force("Failed to set vsync using EGL");
-			}
-
-			if(auto res = glXSwapIntervalSGI(configValue); res)
-			{
-				std::cout << "SGI failed due to " << res << std::endl;
-			}
-			if(auto res = glXSwapIntervalMESA(configValue); res)
-			{
-				std::cout << "MESA failed due to " << res << std::endl;
 			}
 #else
 			cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
