@@ -153,6 +153,9 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_discord_presence = new wxCheckBox(box, wxID_ANY, _("Discord Presence"));
 			m_discord_presence->SetToolTip(_("Enables the Discord Rich Presence feature\nYou will also need to enable it in the Discord settings itself!"));
 			second_row->Add(m_discord_presence, 0, botflag, 5);
+#ifndef ENABLE_DISCORD_RPC
+			m_discord_presence->Disable();
+#endif
 			second_row->AddSpacer(10);
 			m_fullscreen_menubar = new wxCheckBox(box, wxID_ANY, _("Fullscreen menu bar"));
 			m_fullscreen_menubar->SetToolTip(_("Displays the menu bar when Cemu is running in fullscreen mode and the mouse cursor is moved to the top"));
