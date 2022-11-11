@@ -191,7 +191,6 @@ public:
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
-	void SetSwapchainTargetSize(const Vector2i& size, bool mainWindow);
 
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();
@@ -485,7 +484,7 @@ private:
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
 	static std::vector<const char*> CheckInstanceExtensionSupport(FeatureControl& info);
 
-	void UpdateVSyncState(bool mainWindow);
+	bool UpdateSwapchainProperties(bool mainWindow);
 	void SwapBuffer(bool mainWindow);
 
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
