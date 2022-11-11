@@ -69,7 +69,7 @@ add_library(CemuUtil
   Zir/Passes/ZpIRRegisterAllocator.cpp
 )
 
-if(WINDOWS)
+if(WIN32)
 	target_sources(CemuUtil PRIVATE Fiber/FiberWin.cpp)
 	target_sources(CemuUtil PRIVATE MemMapper/MemMapperWin.cpp)
 	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoWin.cpp)
