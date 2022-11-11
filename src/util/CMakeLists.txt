@@ -54,9 +54,6 @@ add_library(CemuUtil
   MemMapper/MemMapperWin.cpp
   SystemInfo/SystemInfo.cpp
   SystemInfo/SystemInfo.h
-  SystemInfo/SystemInfoLinux.cpp
-  SystemInfo/SystemInfoWin.cpp
-  SystemInfo/SystemInfoStub.cpp
   ThreadPool/ThreadPool.cpp
   ThreadPool/ThreadPool.h
   tinyxml2/tinyxml2.cpp
@@ -75,6 +72,14 @@ add_library(CemuUtil
   Zir/Passes/RegisterAllocatorForGLSL.cpp
   Zir/Passes/ZpIRRegisterAllocator.cpp
 )
+
+if(WINDOWS)
+	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoWin.cpp)
+elseif(UNIX AND NOT APPLE)
+	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoLinux.cpp)
+else()
+	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoStub.cpp)
+endif()
 
 set_property(TARGET CemuUtil PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 

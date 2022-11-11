@@ -1,5 +1,3 @@
-#if BOOST_OS_WINDOWS
-
 #include "util/SystemInfo/SystemInfo.h"
 
 #include <Psapi.h>
@@ -68,5 +66,3 @@ void QueryCoreTimes(uint32 count, ProcessorTime out[])
 		}
 	}
 }
-
-#endif

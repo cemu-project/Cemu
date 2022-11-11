@@ -1,5 +1,3 @@
-#if BOOST_OS_LINUX
-
 #include "util/SystemInfo/SystemInfo.h"
 
 #include <sys/times.h>
@@ -54,5 +52,3 @@ void QueryCoreTimes(uint32 count, ProcessorTime out[])
 		for (auto i = 0; i < count; ++i) out[i] = { };
 	}
 }
-
-#endif

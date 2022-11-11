@@ -1,5 +1,3 @@
-#if !BOOST_OS_WINDOWS && !BOOST_OS_LINUX
-
 #include "util/SystemInfo/SystemInfo.h"
 
 uint64 QueryRamUsage()
@@ -21,5 +19,3 @@ void QueryCoreTimes(uint32 count, ProcessorTime out[])
 		out[i] = { };
 	}
 }
-
-#endif
