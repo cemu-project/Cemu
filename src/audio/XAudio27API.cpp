@@ -5,7 +5,6 @@
 static_assert(IAudioAPI::kBlockCount < XAUDIO2_MAX_QUEUED_BUFFERS, "too many xaudio2 buffers");
 
 HMODULE XAudio27API::s_xaudio_dll = nullptr;
-bool XAudio27API::s_com_initialized = false;
 std::unique_ptr<IXAudio2, XAudio27API::XAudioDeleter> XAudio27API::s_xaudio;
 
 XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, uint32 samples_per_block, uint32 bits_per_sample)
@@ -115,8 +114,6 @@ bool XAudio27API::InitializeStatic()
 	if (s_xaudio)
 		return true;
 
-	s_com_initialized = (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)));
-
 #ifdef _DEBUG
 	s_xaudio_dll = LoadLibraryExW(L"XAudioD2_7.DLL", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 	if(!s_xaudio_dll)
@@ -142,9 +139,6 @@ bool XAudio27API::InitializeStatic()
 		if (s_xaudio_dll)
 			FreeLibrary(s_xaudio_dll);
 
-		if (s_com_initialized)
-			CoUninitialize();
-
 		return false;
 	}
 }
@@ -155,9 +149,6 @@ void XAudio27API::Destroy()
 
 	if (s_xaudio_dll)
 		FreeLibrary(s_xaudio_dll);
-
-	if (s_com_initialized)
-		CoUninitialize();
 }
 
 std::vector<XAudio27API::DeviceDescriptionPtr> XAudio27API::GetDevices()

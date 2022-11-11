@@ -7,6 +7,8 @@
 
 #include "Cemu/ncrypto/ncrypto.h"
 #include <charconv>
+#include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 
 namespace NAPI
 {
@@ -14,7 +16,24 @@ namespace NAPI
 	{
 		NAPI_VersionListVersion_Result result;
 		CurlRequestHelper req;
-		req.initate(fmt::format("https://tagaya.wup.shop.nintendo.net/tagaya/versionlist/{}/{}/latest_version", NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+
+		std::string requestUrl;
+		switch (ActiveSettings::GetNetworkService())
+		{
+		case NetworkService::Pretendo:
+			requestUrl = PretendoURLs::TAGAYAURL;
+			break;
+		case NetworkService::Custom:
+			requestUrl = GetNetworkConfig().urls.TAGAYA.GetValue();
+			break;
+		case NetworkService::Nintendo:
+		default:
+			requestUrl = NintendoURLs::TAGAYAURL;
+			break;
+		}
+		requestUrl.append(fmt::format(fmt::runtime("/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country));
+		req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request version of update list"));

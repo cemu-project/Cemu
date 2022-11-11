@@ -10,6 +10,8 @@
 #include "openssl/sha.h"
 #include "util/crypto/aes128.h"
 #include "util/helpers/StringHelpers.h"
+#include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 
 namespace NAPI
 {
@@ -55,7 +57,23 @@ namespace NAPI
 	std::vector<uint8> IDBE_RequestRawEncrypted(uint64 titleId)
 	{
 		CurlRequestHelper req;
-		req.initate(fmt::format("https://idbe-wup.cdn.nintendo.net/icondata/{0:02X}/{1:016X}.idbe", (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+		std::string requestUrl;
+		switch (ActiveSettings::GetNetworkService())
+		{
+		case NetworkService::Pretendo:
+			requestUrl = PretendoURLs::IDBEURL;
+			break;
+		case NetworkService::Custom:
+			requestUrl = GetNetworkConfig().urls.IDBE.GetValue();
+			break;
+		case NetworkService::Nintendo:
+		default:
+			requestUrl = NintendoURLs::IDBEURL;
+			break;
+		}
+		requestUrl.append(fmt::format(fmt::runtime("/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId));
+		req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request IDBE icon for title {0:016X}", titleId));
@@ -83,44 +101,30 @@ namespace NAPI
 			return std::nullopt;
 		}
 
-		CurlRequestHelper req;
-		req.initate(fmt::format("https://idbe-wup.cdn.nintendo.net/icondata/{0:02X}/{1:016X}.idbe", (uint32)((titleId >> 8) & 0xFF), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
-		if (!req.submitRequest(false))
-		{
-			cemuLog_log(LogType::Force, fmt::format("Failed to request IDBE icon for title {0:016X}", titleId));
+		std::vector<uint8> idbeData = IDBE_RequestRawEncrypted(titleId);
+		if (idbeData.size() < 0x22)
 			return std::nullopt;
-		}
-		/*
-			format:
-			+0x00	uint8		version (0)
-			+0x01	uint8		keyIndex
-			+0x02	uint8[32]	hashSHA256
-			+0x22	uint8[]		EncryptedIconData
-		*/
-		auto& receivedData = req.getReceivedData();
-		if (receivedData.size() < 0x22)
-			return std::nullopt;
-		if (receivedData[0] != 0)
+		if (idbeData[0] != 0)
 		{
 			cemuLog_log(LogType::Force, "IDBE_Request: File has invalid version");
 			return std::nullopt;
 		}
-		uint8 keyIndex = receivedData[1];
+		uint8 keyIndex = idbeData[1];
 		if (keyIndex >= 4)
 		{
 			cemuLog_log(LogType::Force, "IDBE_Request: Key index out of range");
 			return std::nullopt;
 		}
-		if (receivedData.size() < (0x22 + sizeof(IDBEIconDataV0)))
+		if (idbeData.size() < (0x22 + sizeof(IDBEIconDataV0)))
 		{
 			cemuLog_log(LogType::Force, "IDBE_Request: File size does not match");
 			return std::nullopt;
 		}
 		// extract hash and encrypted icon data
 		uint8 hash[32];
-		std::memcpy(hash, receivedData.data() + 0x2, 32);
+		std::memcpy(hash, idbeData.data() + 0x2, 32);
 		IDBEIconDataV0 iconDataV0;
-		std::memcpy(&iconDataV0, receivedData.data() + 0x22, sizeof(IDBEIconDataV0));
+		std::memcpy(&iconDataV0, idbeData.data() + 0x22, sizeof(IDBEIconDataV0));
 		// decrypt icon data and hash
 		_decryptIDBEAndHash(&iconDataV0, hash, keyIndex);
 		// verify hash of decrypted data

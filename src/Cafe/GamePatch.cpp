@@ -199,7 +199,7 @@ MPTR hle_locate(uint8* data, uint8* mask, sint32 dataLength)
 		}
 		else
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (mask[0] != 0xFF)
 				assert_dbg();
 #endif
@@ -299,7 +299,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(xcx_gpuHangDetection_degradeFramebuffer, NULL, sizeof(xcx_gpuHangDetection_degradeFramebuffer));
 	if( hleAddr )
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		forceLog_printf("HLE: XCX GPU hang detection");
 #endif
 		// remove the ADDI r25, r25, 1 instruction
@@ -309,7 +309,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(xcx_framebufferReductionSignature, xcx_framebufferReductionMask, sizeof(xcx_framebufferReductionSignature));
 	if( hleAddr )
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		forceLog_printf("HLE: Prevent XCX rendertarget reduction");
 #endif
 		uint32 bl = memory_readU32(hleAddr+0x14);
@@ -325,7 +325,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(botw_busyLoopSignature, botw_busyLoopMask, sizeof(botw_busyLoopSignature));
 	if (hleAddr)
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		forceLog_printf("HLE: Patch BotW busy loop 1 at 0x%08x", hleAddr);
 #endif
 		sint32 functionIndex = hleIndex_h000000001;
@@ -336,7 +336,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(botw_busyLoopSignature2, botw_busyLoopMask2, sizeof(botw_busyLoopSignature2));
 	if (hleAddr)
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		forceLog_printf("HLE: Patch BotW busy loop 2 at 0x%08x", hleAddr);
 #endif
 		sint32 functionIndex = hleIndex_h000000002;

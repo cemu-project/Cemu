@@ -352,14 +352,19 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 	glFlush();
 }
 
-void OpenGLRenderer::EnableVSync(int state)
+void OpenGLRenderer::UpdateVSyncState()
 {
+	int configValue = GetConfig().vsync.GetValue();
+	if(m_activeVSyncState != configValue)
+	{
 #if BOOST_OS_WINDOWS
-	if(wglSwapIntervalEXT)
-		wglSwapIntervalEXT(state); // 1 = enabled, 0 = disabled
+		if(wglSwapIntervalEXT)
+			wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
 #else
-	cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
+		cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
 #endif
+		m_activeVSyncState = configValue;
+	}
 }
 
 bool IsRunningInWine();
@@ -438,6 +443,7 @@ void OpenGLRenderer::EnableDebugMode()
 void OpenGLRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
 	GLCanvas_SwapBuffers(swapTV, swapDRC);
+	UpdateVSyncState();
 
 	if (swapTV)
 		cleanupAfterFrame();
@@ -548,6 +554,9 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	renderstate_resetDepthControl();
 	attributeStream_reset();
 
+	// bind back buffer
+	rendertarget_bindFramebufferObject(nullptr);
+
 	if (clearBackground)
 	{
 		int windowWidth, windowHeight;
@@ -558,9 +567,6 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		g_renderer->renderTarget_setViewport(0, 0, windowWidth, windowHeight, 0.0f, 1.0f);
 		g_renderer->ClearColorbuffer(padView);
 	}
-
-	// bind back buffer
-	rendertarget_bindFramebufferObject(nullptr);
 
 	// calculate effective size
 	sint32 effectiveWidth;
@@ -878,7 +884,7 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	}
 	
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
-		texDecoder = TextureDecoder_R4_G4_UNORM_toRGBA4444::getInstance();
+		texDecoder = TextureDecoder_R4_G4_UNORM_To_RGBA4::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM)
 		texDecoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT)
@@ -964,9 +970,9 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM)
 		texDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::A2_B10_G10_R10_UNORM)
-		texDecoder = TextureDecoder_A2_B10_G10_R10_UNORM_toRGBA16::getInstance();
+		texDecoder = TextureDecoder_A2_B10_G10_R10_UNORM_To_RGBA16::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM)
-		texDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16::getInstance();
+		texDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB)
 		texDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)

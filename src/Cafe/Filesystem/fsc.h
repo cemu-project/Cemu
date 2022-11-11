@@ -167,9 +167,9 @@ void fsc_unmountAll();
 
 FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* fscStatus, sint32 maxPriority=FSC_PRIORITY_MAX);
 FSCVirtualFile* fsc_openDirIterator(const char* path, sint32* fscStatus);
-bool fsc_createDir(char* path, sint32* fscStatus);
-bool fsc_rename(char* srcPath, char* dstPath, sint32* fscStatus);
-bool fsc_remove(char* path, sint32* fscStatus);
+bool fsc_createDir(const char* path, sint32* fscStatus);
+bool fsc_rename(const char* srcPath, const char* dstPath, sint32* fscStatus);
+bool fsc_remove(const char* path, sint32* fscStatus);
 bool fsc_nextDir(FSCVirtualFile* fscFile, FSCDirEntry* dirEntry);
 void fsc_close(FSCVirtualFile* fscFile);
 uint32 fsc_getFileSize(FSCVirtualFile* fscFile);

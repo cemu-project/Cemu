@@ -1,6 +1,8 @@
 add_library(CemuAudio
 	IAudioAPI.cpp
 	IAudioAPI.h
+	IAudioInputAPI.cpp
+	IAudioInputAPI.h
 )
 
 set_property(TARGET CemuAudio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -26,6 +28,8 @@ if(ENABLE_CUBEB)
 	target_sources(CemuAudio PRIVATE
 		CubebAPI.cpp
 		CubebAPI.h
+		CubebInputAPI.cpp
+		CubebInputAPI.h
 	)
 	#add_compile_definitions(HAS_CUBEB)
 endif()

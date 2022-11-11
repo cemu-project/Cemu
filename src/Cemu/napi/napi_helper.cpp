@@ -7,7 +7,9 @@
 #include "Cemu/ncrypto/ncrypto.h"
 #include "napi_helper.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
-
+#include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
+#include "config/LaunchSettings.h"
 #include "pugixml.hpp"
 #include <charconv>
 
@@ -97,7 +99,10 @@ void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
 	curl_easy_setopt(m_curl, CURLOPT_TIMEOUT, 60);
 
 	// SSL
-	if (sslContext == SERVER_SSL_CONTEXT::ACT || sslContext == SERVER_SSL_CONTEXT::TAGAYA)
+	if (GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() == NetworkService::Custom || ActiveSettings::GetNetworkService() == NetworkService::Pretendo){ //Remove once Pretendo has SSL
+	curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	}
+	else if (sslContext == SERVER_SSL_CONTEXT::ACT || sslContext == SERVER_SSL_CONTEXT::TAGAYA)
 	{
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_NUS);
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
@@ -219,9 +224,10 @@ CurlSOAPHelper::CurlSOAPHelper()
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, this);
 
 	// SSL
+	if (!GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() != NetworkService::Pretendo  && ActiveSettings::GetNetworkService() != NetworkService::Custom) { //Remove once Pretendo has SSL
 	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
 	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
-	
+	}
 	if(GetConfig().proxy_server.GetValue() != "")
 	{
 		curl_easy_setopt(m_curl, CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());

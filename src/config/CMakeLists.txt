@@ -6,6 +6,8 @@ add_library(CemuConfig
     ConfigValue.h
     LaunchSettings.cpp
     LaunchSettings.h
+    NetworkSettings.cpp
+    NetworkSettings.h
     PermanentConfig.cpp
     PermanentConfig.h
     PermanentStorage.cpp

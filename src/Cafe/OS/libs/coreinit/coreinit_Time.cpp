@@ -43,6 +43,11 @@ namespace coreinit
 		osLib_returnFromFunction64(hCPU, coreinit_getTimerTick());
 	}
 
+	void export_OSGetSystemTick(PPCInterpreter_t* hCPU)
+	{
+		osLib_returnFromFunction(hCPU, (uint32)coreinit_getTimerTick());
+	}
+
 	uint32 getLeapDaysUntilYear(uint32 year)
 	{
 		if (year == 0)
@@ -368,6 +373,7 @@ namespace coreinit
 		osLib_addFunction("coreinit", "OSGetTime", export_OSGetTime);
 		osLib_addFunction("coreinit", "OSGetSystemTime", export_OSGetSystemTimeDummy);
 		osLib_addFunction("coreinit", "OSGetTick", export_OSGetTick);
+		osLib_addFunction("coreinit", "OSGetSystemTick", export_OSGetSystemTick);
 
 		cafeExportRegister("coreinit", OSTicksToCalendarTime, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSCalendarTimeToTicks, LogType::Placeholder);

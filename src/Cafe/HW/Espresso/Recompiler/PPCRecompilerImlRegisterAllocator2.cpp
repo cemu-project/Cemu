@@ -105,7 +105,7 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 	for (sint32 i = 0; i < PPC_REC_MAX_VIRTUAL_GPR; i++)
 	{
 		vGPR2Subrange[i] = imlSegment->raInfo.linkedList_perVirtualGPR[i];
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (vGPR2Subrange[i] && vGPR2Subrange[i]->link_sameVirtualRegisterGPR.next != nullptr)
 			assert_dbg();
 #endif
@@ -129,7 +129,7 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 			bool isWrite = (t == 3);
 			// add location
 			PPCRecRA_updateOrAddSubrangeLocation(vGPR2Subrange[virtualRegister], index, isWrite == false, isWrite);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (index < vGPR2Subrange[virtualRegister]->start.index)
 				assert_dbg();
 			if (index+1 > vGPR2Subrange[virtualRegister]->end.index)
@@ -172,7 +172,7 @@ void PPCRecRA_extendRangeToBeginningOfSegment(ppcImlGenContext_t* ppcImlGenConte
 
 void _PPCRecRA_connectRanges(ppcImlGenContext_t* ppcImlGenContext, sint32 vGPR, PPCRecImlSegment_t** route, sint32 routeDepth)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (routeDepth < 2)
 		assert_dbg();
 #endif
@@ -226,7 +226,7 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCR
 
 void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlSegment_t* currentSegment, sint32 vGPR)
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (currentSegment->raDistances.reg[vGPR].usageEnd < 0)
 		assert_dbg();
 #endif
@@ -239,7 +239,7 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 	else
 		instructionsUntilEndOfSeg = currentSegment->imlListCount - currentSegment->raDistances.reg[vGPR].usageEnd;
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (instructionsUntilEndOfSeg < 0)
 		assert_dbg();
 #endif
@@ -269,7 +269,7 @@ void PPCRecRA_mergeCloseRangesForSegmentV2(ppcImlGenContext_t* ppcImlGenContext,
 		// check and extend if possible
 		PPCRecRA_checkAndTryExtendRange(ppcImlGenContext, imlSegment, i);
 	}
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (imlSegment->list_prevSegments.empty() == false && imlSegment->isEnterable)
 		assert_dbg();
 	if ((imlSegment->nextSegmentBranchNotTaken != nullptr || imlSegment->nextSegmentBranchTaken != nullptr) && imlSegment->nextSegmentIsUncertain)

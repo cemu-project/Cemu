@@ -384,7 +384,7 @@ static void PPCInterpreter_MULHW_(PPCInterpreter_t* hCPU, uint32 opcode)
 	hCPU->gpr[rD] = ((uint64)c) >> 32;
 	if (opcode & PPC_OPC_RC) {
 		// update cr0 flags
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);

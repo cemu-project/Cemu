@@ -95,7 +95,7 @@ namespace ZirEmitter
 	void GLSL::GenerateBasicBlockCode(ZpIR::ZpIRBasicBlock& basicBlock)
 	{
 		// init context		
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		for (auto& itr : m_blockContext.regInlinedExpression)
 		{
 			cemu_assert_debug(itr == nullptr); // leaked buffer

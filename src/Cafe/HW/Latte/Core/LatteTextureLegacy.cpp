@@ -275,7 +275,7 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 		// check for changes
 		if (LatteTC_HasTextureChanged(textureView->baseTexture) || swizzleChanged)
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			debug_printf("Reload texture 0x%08x res %dx%d memRange %08x-%08x SwizzleChange: %s\n", textureView->baseTexture->physAddress, textureView->baseTexture->width, textureView->baseTexture->height, textureView->baseTexture->texDataPtrLow, textureView->baseTexture->texDataPtrHigh, swizzleChanged ? "yes" : "no");
 #endif
 			// update swizzle / changed mip address

@@ -98,7 +98,7 @@ void cemuLog_createLogFile(bool triggeredByCrash)
 	if (LogContext.file_stream.is_open())
 		return;
 
-	const auto path = ActiveSettings::GetPath("log.txt");
+	const auto path = ActiveSettings::GetUserDataPath("log.txt");
 	LogContext.file_stream.open(path, std::ios::out);
 	if (LogContext.file_stream.fail())
 	{
@@ -121,12 +121,8 @@ void cemuLog_writeLineToLog(std::string_view text, bool date, bool new_line)
 		const auto temp_time = std::chrono::system_clock::to_time_t(now);
 		const auto& time = *std::localtime(&temp_time);
 
-#ifdef PUBLIC_RELEASE
-		auto time_str = fmt::format("[{:02d}:{:02d}:{:02d}] ", time.tm_hour, time.tm_min, time.tm_sec);
-#else
 		auto time_str = fmt::format("[{:02d}:{:02d}:{:02d}.{:03d}] ", time.tm_hour, time.tm_min, time.tm_sec,
 			std::chrono::duration_cast<std::chrono::milliseconds>(now - std::chrono::time_point_cast<std::chrono::seconds>(now)).count());
-#endif
 
 		LogContext.text_cache.emplace_back(std::move(time_str));
 	}

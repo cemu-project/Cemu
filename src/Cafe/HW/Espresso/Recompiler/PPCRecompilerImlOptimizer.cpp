@@ -2151,7 +2151,7 @@ void _reorderConditionModifyInstructions(PPCRecImlSegment_t* imlSegment)
 	}
 
 	// move CR setter instruction
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if ((unsafeInstructionIndex + 1) <= crSetterInstructionIndex)
 		assert_dbg();
 #endif

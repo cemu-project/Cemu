@@ -8,27 +8,27 @@ struct CoreinitAsyncCallback
 
 	static void queue(MPTR functionMPTR, uint32 numParameters, uint32 r3, uint32 r4, uint32 r5, uint32 r6, uint32 r7, uint32 r8, uint32 r9, uint32 r10)
 	{
-		s_asyncCallbackSpinlock.acquire();
+		s_asyncCallbackSpinlock.lock();
 		s_asyncCallbackQueue.emplace_back(allocateAndInitFromPool(functionMPTR, numParameters, r3, r4, r5, r6, r7, r8, r9, r10));
-		s_asyncCallbackSpinlock.release();
+		s_asyncCallbackSpinlock.unlock();
 	}
 
 	static void callNextFromQueue()
 	{
-		s_asyncCallbackSpinlock.acquire();
+		s_asyncCallbackSpinlock.lock();
 		if (s_asyncCallbackQueue.empty())
 		{
 			cemuLog_log(LogType::Force, "AsyncCallbackQueue is empty. Unexpected behavior");
-			s_asyncCallbackSpinlock.release();
+			s_asyncCallbackSpinlock.unlock();
 			return;
 		}
 		CoreinitAsyncCallback* cb = s_asyncCallbackQueue[0];
 		s_asyncCallbackQueue.erase(s_asyncCallbackQueue.begin());
-		s_asyncCallbackSpinlock.release();
+		s_asyncCallbackSpinlock.unlock();
 		cb->doCall();
-		s_asyncCallbackSpinlock.acquire();
+		s_asyncCallbackSpinlock.lock();
 		releaseToPool(cb);
-		s_asyncCallbackSpinlock.release();
+		s_asyncCallbackSpinlock.unlock();
 	}
 
 private:
@@ -39,7 +39,7 @@ private:
 	
 	static CoreinitAsyncCallback* allocateAndInitFromPool(MPTR functionMPTR, uint32 numParameters, uint32 r3, uint32 r4, uint32 r5, uint32 r6, uint32 r7, uint32 r8, uint32 r9, uint32 r10)
 	{
-		cemu_assert_debug(s_asyncCallbackSpinlock.isHolding());
+		cemu_assert_debug(s_asyncCallbackSpinlock.is_locked());
 		if (s_asyncCallbackPool.empty())
 		{
 			CoreinitAsyncCallback* cb = new CoreinitAsyncCallback(functionMPTR, numParameters, r3, r4, r5, r6, r7, r8, r9, r10);
@@ -54,7 +54,7 @@ private:
 
 	static void releaseToPool(CoreinitAsyncCallback* cb)
 	{
-		cemu_assert_debug(s_asyncCallbackSpinlock.isHolding());
+		cemu_assert_debug(s_asyncCallbackSpinlock.is_locked());
 		s_asyncCallbackPool.emplace_back(cb);
 	}
 

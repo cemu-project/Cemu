@@ -172,6 +172,7 @@ enum class CafeConsoleLanguage
 };
 ENABLE_ENUM_ITERATORS(CafeConsoleLanguage, CafeConsoleLanguage::JA, CafeConsoleLanguage::TW);
 
+#if BOOST_OS_WINDOWS
 enum class CrashDump
 {
 	Disabled,
@@ -179,6 +180,14 @@ enum class CrashDump
 	Full
 };
 ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Full);
+#elif BOOST_OS_UNIX
+enum class CrashDump
+{
+	Disabled,
+	Enabled
+};
+ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Enabled);
+#endif
 
 template <>
 struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
@@ -290,6 +299,7 @@ struct fmt::formatter<CafeConsoleLanguage> : formatter<string_view> {
 	}
 };
 
+#if BOOST_OS_WINDOWS
 template <>
 struct fmt::formatter<CrashDump> : formatter<string_view> {
 	template <typename FormatContext>
@@ -306,7 +316,34 @@ struct fmt::formatter<CrashDump> : formatter<string_view> {
 		return formatter<string_view>::format(name, ctx);
 	}
 };
+#elif BOOST_OS_UNIX
+template <>
+struct fmt::formatter<CrashDump> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const CrashDump v, FormatContext &ctx) {
+		string_view name;
+		switch (v)
+		{
+		case CrashDump::Disabled: name = "Disabled"; break;
+		case CrashDump::Enabled: name = "Enabled"; break;
+		default: name = "unknown"; break;
 
+		}
+		return formatter<string_view>::format(name, ctx);
+	}
+};
+#endif
+
+namespace DefaultColumnSize {
+	enum : uint32 {
+		name = 500u,
+		version = 60u,
+		dlc = 50u,
+		game_time = 140u,
+		game_started = 160u,
+		region = 80u,
+	};
+};
 
 struct CemuConfig
 {
@@ -375,7 +412,12 @@ struct CemuConfig
 	std::string game_list_column_order;
 	struct
 	{
-		int name = -3, version = -3, dlc = -3, game_time = -3, game_started = -3, region = -3;
+		uint32 name = DefaultColumnSize::name;
+		uint32 version = DefaultColumnSize::version;
+		uint32 dlc = DefaultColumnSize::dlc;
+		uint32 game_time = DefaultColumnSize::game_time;
+		uint32 game_started = DefaultColumnSize::game_started;
+		uint32 region = DefaultColumnSize::region;
 	} column_width{};
 
 	// graphics
@@ -420,15 +462,16 @@ struct CemuConfig
 	// audio
 	sint32 audio_api = 0;
 	sint32 audio_delay = 2;
-	AudioChannels tv_channels = kStereo, pad_channels = kStereo;
-	sint32 tv_volume = 50, pad_volume = 0;
-	std::wstring tv_device{ L"default" }, pad_device;
+	AudioChannels tv_channels = kStereo, pad_channels = kStereo, input_channels = kMono;
+	sint32 tv_volume = 50, pad_volume = 0, input_volume = 50;
+	std::wstring tv_device{ L"default" }, pad_device, input_device;
 
 	// account
 	struct
 	{
 		ConfigValueBounds<uint32> m_persistent_id{ Account::kMinPersistendId, Account::kMinPersistendId, 0xFFFFFFFF };
 		ConfigValue<bool> online_enabled{false};
+		ConfigValue<int> active_service{0};
 	}account{};
 
 	// input

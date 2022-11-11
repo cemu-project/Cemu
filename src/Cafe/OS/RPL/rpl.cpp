@@ -1015,7 +1015,7 @@ bool RPLLoader_FixImportSymbols(RPLModule* rplLoaderContext, sint32 symtabSectio
 				}
 				if (foundExport == false)
 				{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 					if (nameOffset > 0)
 					{
 						forceLogDebug_printf("export not found - force lookup in function exports");
@@ -2116,7 +2116,7 @@ void RPLLoader_LoadDependency(rplDependency_t* dependency)
 	// attempt to load rpl from Cemu's /cafeLibs/ directory
 	if (ActiveSettings::LoadSharedLibrariesEnabled())
 	{
-		const auto filePath = ActiveSettings::GetPath("cafeLibs/{}", dependency->filepath);
+		const auto filePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", dependency->filepath);
 		auto fileData = FileStream::LoadIntoMemory(filePath);
 		if (fileData)
 		{

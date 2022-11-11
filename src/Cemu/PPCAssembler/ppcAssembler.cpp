@@ -3497,7 +3497,7 @@ void ppcAsmTestDisassembler()
 
 void ppcAsmTest()
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	ppcAsmTestDisassembler();
 #endif
 }

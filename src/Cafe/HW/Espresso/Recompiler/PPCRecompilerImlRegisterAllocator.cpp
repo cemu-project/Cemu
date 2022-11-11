@@ -91,7 +91,7 @@ raRegisterState_t* PPCRecRA_getRegisterState(raRegisterState_t* regState, sint32
 	{
 		if (regState[i].virtualRegister == virtualRegister)
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (regState[i].physicalRegister < 0)
 				assert_dbg();
 #endif
@@ -300,7 +300,7 @@ void _sortSegmentAllSubrangesLinkedList(PPCRecImlSegment_t* imlSegment)
 		subrangeList[i]->link_segmentSubrangesGPR.next = subrangeList[i + 1];
 	}
 	// validate list
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	sint32 count2 = 0;
 	subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	sint32 currentStartIndex = RA_INTER_RANGE_START;
@@ -342,7 +342,7 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 			raLivenessSubrange_t* liverange = liveInfo.liveRangeList[f];
 			if (liverange->end.index <= currentIndex && liverange->end.index != RA_INTER_RANGE_END)
 			{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 				if (liverange->subrangeBranchTaken || liverange->subrangeBranchNotTaken)
 					assert_dbg(); // infinite subranges should not expire
 #endif
@@ -356,7 +356,7 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, PPCRe
 		if (subrangeItr->range->physicalRegister >= 0)
 		{
 			// verify if register is actually available
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			for (sint32 f = 0; f < liveInfo.liveRangesCount; f++)
 			{
 				raLivenessSubrange_t* liverangeItr = liveInfo.liveRangeList[f];
@@ -778,7 +778,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 		{
 			liveInfo.liveRangeList[liveInfo.liveRangesCount] = subrangeItr;
 			liveInfo.liveRangesCount++;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			// load GPR
 			if (subrangeItr->_noLoad == false)
 			{

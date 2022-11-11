@@ -129,7 +129,7 @@ FSpinlock sTimerSpinlock;
 // thread safe
 uint64 PPCTimer_getFromRDTSC()
 {
-	sTimerSpinlock.acquire();
+	sTimerSpinlock.lock();
 	_mm_mfence();
 	uint64 rdtscCurrentMeasure = __rdtsc();
 	uint64 rdtscDif = rdtscCurrentMeasure - _rdtscLastMeasure;
@@ -165,6 +165,6 @@ uint64 PPCTimer_getFromRDTSC()
 
 	_tickSummary += elapsedTick;
 
-	sTimerSpinlock.release();
+	sTimerSpinlock.unlock();
 	return _tickSummary;
 }

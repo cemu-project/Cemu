@@ -69,7 +69,6 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -246,6 +245,12 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
     #error No definition for DLLEXPORT
 #endif
 
+#if BOOST_OS_WINDOWS
+	#define NOEXPORT
+#elif defined(__GNUC__)
+	#define NOEXPORT __attribute__ ((visibility ("hidden")))
+#endif
+
 #ifdef __GNUC__
 #include <cpuid.h>
 #endif
@@ -361,7 +366,7 @@ inline void cemu_assert(bool _condition)
     }
 }
 
-#ifdef PUBLIC_RELEASE
+#ifndef CEMU_DEBUG_ASSERT
 //#define cemu_assert_debug(__cond) -> Forcing __cond not to be evaluated currently has unexpected side-effects
 
 inline void cemu_assert_debug(bool _condition)

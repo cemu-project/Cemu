@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "curl/curl.h"
 #include "openssl/bn.h"
 #include "openssl/x509.h"
@@ -485,7 +486,7 @@ namespace iosu
 		CURL* curl = it->curl.get();
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 2);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 		char errbuf[CURL_ERROR_SIZE]{};
 		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -497,19 +498,27 @@ namespace iosu
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, task_header_callback);
 		curl_easy_setopt(curl, CURLOPT_HEADERDATA, &(*it));
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0x3C);
-		curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, task_sslctx_function);
-		curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, &it->task_settings);
-		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_0);
+		if (GetNetworkConfig().disablesslver.GetValue() && ActiveSettings::GetNetworkService() == NetworkService::Custom || ActiveSettings::GetNetworkService() == NetworkService::Pretendo) // remove Pretendo Function once SSL is in the Service
+		{ 
+			curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
+		}
+		else 
+		{
+			curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, task_sslctx_function);
+			curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, &it->task_settings);
+			curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_0);
+		}
 
-		char url[512];
+		std::string requestUrl;
 		if(it->task_settings.taskType == kRawDlTaskSetting)
 		{
 			char serviceToken[TaskSetting::kServiceTokenLen];
 			strncpy(serviceToken, (char*)&it->task_settings.settings[TaskSetting::kServiceToken], TaskSetting::kServiceTokenLen);
 			list_headerParam = append_header_param(list_headerParam, "X-Nintendo-ServiceToken: {}", serviceToken);
 
+			char url[TaskSetting::kURLLen + 1]{};
 			strncpy(url, (char*)&it->task_settings.settings[TaskSetting::kURL], TaskSetting::kURLLen);
-			forceLogDebug_printf("\tserviceToken: %s", serviceToken);
+			requestUrl.assign(url);
 		}
 		else
 		{
@@ -562,12 +571,24 @@ namespace iosu
 			char boss_code[0x20];
 			strncpy(boss_code, (char*)&it->task_settings.settings[TaskSetting::kBossCode], TaskSetting::kBossCodeLen);
 
-			sprintf(url, "https://npts.app.nintendo.net/p01/tasksheet/%s/%s/%s?c=%s&l=%s", "1", boss_code, it->task_id, countryCode, languageCode);
+			switch (ActiveSettings::GetNetworkService())
+			{
+			case NetworkService::Pretendo:
+				requestUrl = PretendoURLs::BOSSURL;
+				break;
+			case NetworkService::Custom:
+				requestUrl = GetNetworkConfig().urls.BOSS.GetValue();
+				break;
+			case NetworkService::Nintendo:
+			default:
+				requestUrl = NintendoURLs::BOSSURL;
+				break;
+			}
+			requestUrl.append(fmt::format(fmt::runtime("/{}/{}/{}?c={}&l={}"), "1", boss_code, it->task_id, countryCode, languageCode));
 		}
 
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list_headerParam);
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		forceLogDebug_printf("task_run url %s", url);
+		curl_easy_setopt(curl, CURLOPT_URL, requestUrl.c_str());
 
 		int curl_result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &it->http_status_code);
@@ -579,7 +600,7 @@ namespace iosu
 
 		if (curl_result != CURLE_OK)
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			forceLogDebug_printf("curl error buff: %s", errbuf);
 #endif
 			it->turn_state = kError;

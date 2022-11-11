@@ -34,6 +34,13 @@ elseif(UNIX)
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_compile_options(-Wno-ambiguous-reversed-operator)
 	endif()
+	# most linux environments should enable pie by default, but make sure just in case.
+	# the same cannot be said for no executable stack which some linkers
+	# and configurations thereof might enable due to the assembly in the project
+	if(NOT APPLE)
+		add_compile_options(-fpie)
+		add_link_options(-pie -z noexecstack)
+	endif()
 
     add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
 endif()
@@ -54,17 +61,10 @@ add_subdirectory(imgui)
 add_subdirectory(resource)
 add_subdirectory(asm)
 
-if(PUBLIC_RELEASE)
-	add_executable(CemuBin WIN32
-		main.cpp
-		mainLLE.cpp
-	)
-else()
-	add_executable(CemuBin
-		main.cpp
-		mainLLE.cpp
-	)
-endif()
+add_executable(CemuBin
+	main.cpp
+	mainLLE.cpp
+)
 
 if(WIN32)
 	target_sources(CemuBin PRIVATE
@@ -73,12 +73,47 @@ if(WIN32)
 endif()
 
 set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
+set(OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>")
+
+if (MACOS_BUNDLE)
+	set_property(TARGET CemuBin PROPERTY MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resource/MacOSXBundleInfo.plist.in")
+
+	set(RESOURCE_FILES "${CMAKE_SOURCE_DIR}/src/resource/cemu.icns")
+	target_sources(CemuBin PRIVATE "${RESOURCE_FILES}")
+
+	set(MACOSX_BUNDLE_ICON_FILE "cemu.icns")
+	set(MACOSX_BUNDLE_GUI_IDENTIFIER "info.cemu.Cemu")
+	set(MACOSX_BUNDLE_BUNDLE_NAME "Cemu")
+	set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
+	set(MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2022 Cemu Project")
+
+	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
+
+	set_target_properties(CemuBin PROPERTIES
+		MACOSX_BUNDLE true
+		RESOURCE "${RESOURCE_FILES}"
+	)
+
+	set(FOLDERS gameProfiles resources)
+	foreach(folder ${FOLDERS})
+		add_custom_command (TARGET CemuBin POST_BUILD
+			COMMAND ${CMAKE_COMMAND} ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/bin/${folder}" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/SharedSupport/${folder}")
+	endforeach(folder)
+
+	add_custom_command (TARGET CemuBin POST_BUILD
+		COMMAND ${CMAKE_COMMAND} ARGS -E copy "/usr/local/lib/libMoltenVK.dylib" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/Frameworks/libMoltenVK.dylib")
+
+	add_custom_command (TARGET CemuBin POST_BUILD
+		COMMAND bash -c "install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}")
+endif()
 
 set_target_properties(CemuBin PROPERTIES
 	# multi-configuration generators will add a config subdirectory to RUNTIME_OUTPUT_DIRECTORY if no generator expression is used
 	# to get the same behavior everywhere we append an empty generator expression
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin/$<1:>"
-	OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>"
+	OUTPUT_NAME "${OUTPUT_NAME}"
 )
 
 target_link_libraries(CemuBin PRIVATE

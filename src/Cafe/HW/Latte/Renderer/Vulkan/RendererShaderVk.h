@@ -37,16 +37,16 @@ public:
 
 	void TrackDependency(class PipelineInfo* p)
 	{
-		s_dependencyLock.acquire();
+		s_dependencyLock.lock();
 		list_pipelineInfo.emplace_back(p);
-		s_dependencyLock.release();
+		s_dependencyLock.unlock();
 	}
 
 	void RemoveDependency(class PipelineInfo* p)
 	{
-		s_dependencyLock.acquire();
+		s_dependencyLock.lock();
 		vectorRemoveByValue(list_pipelineInfo, p);
-		s_dependencyLock.release();
+		s_dependencyLock.unlock();
 	}
 
 	void PreponeCompilation(bool isRenderThread) override;
