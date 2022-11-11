@@ -651,7 +651,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	if (mainWindow)
 	{
 		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		SetSwapchainTargetSize(size, mainWindow);
+		m_mainSwapchainInfo->m_desiredExtent = size;
 		m_mainSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 
 		// aquire first command buffer
@@ -660,7 +660,7 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	else
 	{
 		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		SetSwapchainTargetSize(size, mainWindow);
+		m_padSwapchainInfo->m_desiredExtent = size;
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
 		m_padSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 	}
@@ -975,11 +975,6 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 
 	if (formatValid)
 		SaveScreenshot(rgb_data, width, height, !padView);
-}
-
-void VulkanRenderer::SetSwapchainTargetSize(const Vector2i& size, bool mainWindow)
-{
-	GetChainInfo(mainWindow).setSize(size);
 }
 
 static const float kQueuePriority = 1.0f;
@@ -1671,7 +1666,7 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 	m_state.currentPipeline = VK_NULL_HANDLE;
 
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
-	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.swapchainExtent);
+	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.getExtent());
 	ImGui_UpdateWindowInformation(mainWindow);
 	ImGui::NewFrame();
 	return true;
@@ -2543,18 +2538,8 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	UpdateVSyncState(mainWindow);
-
-	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.sizeOutOfDate || chainInfo.m_usesSRGB != latteBufferUsesSRGB)
-	{
-		try
-		{
-			RecreateSwapchain(mainWindow);
-			chainInfo.m_usesSRGB = latteBufferUsesSRGB;
-		}
-		catch (std::exception&) { cemu_assert_debug(false); }
-	}
+	if (!UpdateSwapchainProperties(mainWindow))
+		return false;
 
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
@@ -2567,24 +2552,14 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
 	if (result != VK_SUCCESS)
 	{
-		while (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // todo: handle error state correctly. Looping doesnt always make sense?
-		{
-			try
-			{
-				RecreateSwapchain(mainWindow);
-				if (vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, 0) == VK_SUCCESS)
-					vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
-				result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
-				if (result == VK_SUCCESS)
-					return true;
-			}
-			catch (std::exception&) {}
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+			chainInfo.m_shouldRecreate = true;
 
-			std::this_thread::yield();
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		}
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			return false;
 
-		throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
+			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
 
 	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_acquireSemaphores.size();
@@ -2613,7 +2588,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	}
 
 	chainInfo.Cleanup();
-	chainInfo.setSize(size);
+	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
@@ -2624,14 +2599,36 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 		ImguiInit();
 }
 
-void VulkanRenderer::UpdateVSyncState(bool mainWindow)
+bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 {
 	auto& chainInfo = GetChainInfo(mainWindow);
+	bool stateChanged = chainInfo.m_shouldRecreate;
+
 	const auto configValue =  (VSync)GetConfig().vsync.GetValue();
-	if(chainInfo.m_vsyncState != configValue){
-		RecreateSwapchain(mainWindow);
-		chainInfo.m_vsyncState = configValue;
+	if(chainInfo.m_vsyncState != configValue)
+		stateChanged = true;
+
+	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+		stateChanged = true;
+
+	if(stateChanged)
+	{
+		try
+		{
+			RecreateSwapchain(mainWindow);
+		}
+		catch (std::exception&)
+		{
+			cemu_assert_debug(false);
+			return false;
+		}
 	}
+
+	chainInfo.m_shouldRecreate = false;
+	chainInfo.m_vsyncState = configValue;
+	chainInfo.m_usesSRGB = latteBufferUsesSRGB;
+	return true;
 }
 
 void VulkanRenderer::SwapBuffer(bool mainWindow)
@@ -2857,7 +2854,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	renderPassInfo.renderPass = chainInfo.m_swapchainRenderPass;
 	renderPassInfo.framebuffer = chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex];
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = chainInfo.swapchainExtent;
+	renderPassInfo.renderArea.extent = chainInfo.getExtent();
 	renderPassInfo.clearValueCount = 0;
 
 	VkViewport viewport{};
@@ -2870,7 +2867,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
-	scissor.extent = chainInfo.swapchainExtent;
+	scissor.extent = chainInfo.getExtent();
 	vkCmdSetScissor(m_state.currentCommandBuffer, 0, 1, &scissor);
 
 	auto descriptSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);

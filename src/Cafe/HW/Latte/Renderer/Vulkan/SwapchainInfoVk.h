@@ -42,20 +42,14 @@ struct SwapchainInfoVk
 
 	VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes);
 	VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) const;
-	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const;
+	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
 	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
 
 
-	void setSize(const Vector2i& newSize)
+	VkExtent2D getExtent() const
 	{
-		desiredExtent = newSize;
-		sizeOutOfDate = true;
-	}
-
-	const Vector2i& getSize() const
-	{
-		return desiredExtent;
+		return m_actualExtent;
 	}
 
 	SwapchainInfoVk(VkSurfaceKHR surface, bool mainWindow)
@@ -69,8 +63,9 @@ struct SwapchainInfoVk
 
 	bool mainWindow{};
 
-	bool sizeOutOfDate{};
+	bool m_shouldRecreate = false;
 	bool m_usesSRGB = false;
+	VSync m_vsyncState = VSync::Immediate;
 	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
 
 	VkPhysicalDevice m_physicalDevice{};
@@ -78,11 +73,10 @@ struct SwapchainInfoVk
 	VkSurfaceKHR surface{};
 	VkSurfaceFormatKHR m_surfaceFormat{};
 	VkSwapchainKHR swapchain{};
-	VkExtent2D swapchainExtent{};
+	Vector2i m_desiredExtent{};
 	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
-	VSync m_vsyncState = VSync::Immediate;
 
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
@@ -94,8 +88,6 @@ struct SwapchainInfoVk
 
 	VkRenderPass m_swapchainRenderPass = nullptr;
 
-
-
 private:
-	Vector2i desiredExtent;
+	VkExtent2D m_actualExtent{};
 };

@@ -56,15 +56,9 @@ void VulkanCanvas::OnPaint(wxPaintEvent& event)
 void VulkanCanvas::OnResize(wxSizeEvent& event)
 {
 	const wxSize size = GetSize();
-	if (size.GetWidth() == 0 || size.GetHeight() == 0) 
+	if (size.GetWidth() == 0 || size.GetHeight() == 0)
 		return;
 
 	const wxRect refreshRect(size);
 	RefreshRect(refreshRect, false);
-
-	if (g_renderer == nullptr)
-		return;
-
-	auto vulkan_renderer = VulkanRenderer::GetInstance();
-	vulkan_renderer->SetSwapchainTargetSize({size.x, size.y}, m_is_main_window);
 }
