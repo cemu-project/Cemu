@@ -40,7 +40,7 @@ elseif(UNIX)
 	if(NOT APPLE)
 		add_compile_options(-fpie)
 		add_link_options(-pie -z noexecstack)
-		add_link_options($<$<CONFIG:Release>:-Xlinker --strip-debug>)
+		add_link_options("$<$<CONFIG:Release>:-Xlinker --strip-debug>")
 	endif()
 
     add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
