@@ -232,6 +232,10 @@ void LoadOpenGLImports()
 	}
 
 	void* libEGL = dlopen("libEGL.so.1", RTLD_NOW | RTLD_GLOBAL);
+	if(!libEGL)
+	{
+		libGL = dlopen("libEGL.so", RTLD_NOW | RTLD_GLOBAL);
+	}
 
 #define GLFUNC(__type, __name)	__name = (__type)_GetOpenGLFunction(libGL, _glXGetProcAddress, STRINGIFY(__name));
 #define EGLFUNC(__type, __name)	__name = (__type)dlsym(libEGL, STRINGIFY(__name));
