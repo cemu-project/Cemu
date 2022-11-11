@@ -24,6 +24,9 @@ typedef XID GLXFBConfigID;
 typedef struct __GLXcontextRec *GLXContext;
 typedef struct __GLXFBConfigRec *GLXFBConfig;
 
+#define EGL_EGL_PROTOTYPES 0
+#include "egl.h"
+#undef EGL_EGL_PROTOTYPES
 #include "glxext.h"
 
 #undef Bool
@@ -34,8 +37,10 @@ typedef struct __GLXFBConfigRec *GLXFBConfig;
 #endif
 
 #define GLFUNC(__type, __name)	extern __type __name;
+#define EGLFUNC(__type, __name) extern __type __name;
 #include "glFunctions.h"
 #undef GLFUNC
+#undef EGLFUNC
 
 // this prevents Windows GL.h from being included:
 #define __gl_h_

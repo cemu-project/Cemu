@@ -25,8 +25,10 @@
 #define STRINGIFY(X) STRINGIFY2(X)
 
 #define GLFUNC(__type, __name)	__type __name;
+#define EGLFUNC(__type, __name)	__type __name;
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
+#undef EGLFUNC
 
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -229,9 +231,13 @@ void LoadOpenGLImports()
 		_glXGetProcAddress = (PFNGLXGETPROCADDRESSPROC)dlsym(libGL, "glXGetProcAddressARB");
 	}
 
+	void* libEGL = dlopen("libEGL.so.1", RTLD_NOW | RTLD_GLOBAL);
+
 #define GLFUNC(__type, __name)	__name = (__type)_GetOpenGLFunction(libGL, _glXGetProcAddress, STRINGIFY(__name));
+#define EGLFUNC(__type, __name)	__name = (__type)dlsym(libEGL, STRINGIFY(__name));
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
+#undef EGLFUNC
 }
 #elif BOOST_OS_MACOS
 void LoadOpenGLImports()

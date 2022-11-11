@@ -47,10 +47,6 @@ public:
 		else
 			sGLPadView = this;
 
-		std::cout << "UI THREAD:" << std::endl;
-		std::cout << "glXGetCurrentDisplayEXT = " << glXGetCurrentDisplayEXT() << std::endl;
-		std::cout << "glXGetCurrentDrawable = " << glXGetCurrentDrawable() << std::endl;
-
 		wxWindow::EnableTouchEvents(wxTOUCH_PAN_GESTURES);
 	}
 
@@ -76,10 +72,19 @@ public:
 			if(wglSwapIntervalEXT)
 				wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
 #elif BOOST_OS_LINUX
-			std::cout << "setting vsync to " << configValue << std::endl;
-			std::cout << "glXGetCurrentDisplayEXT = " << glXGetCurrentDisplayEXT() << std::endl;
-			std::cout << "glXGetCurrentDrawable = " << glXGetCurrentDrawable() << std::endl;
-			glXSwapIntervalEXT(glXGetCurrentDisplayEXT(), glXGetCurrentDrawable(), configValue);
+			if(eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
+			{
+				cemuLog_force("Failed to set vsync using EGL");
+			}
+
+			if(auto res = glXSwapIntervalSGI(configValue); res)
+			{
+				std::cout << "SGI failed due to " << res << std::endl;
+			}
+			if(auto res = glXSwapIntervalMESA(configValue); res)
+			{
+				std::cout << "MESA failed due to " << res << std::endl;
+			}
 #else
 			cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
 #endif
