@@ -2,21 +2,6 @@
 
 #include <sys/times.h>
 
-uint64 QueryRamUsage()
-{
-	std::ifstream file("/proc/self/smaps_rollup");
-	if (file)
-	{
-		file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-		uint64 kilobytes;
-		file >> kilobytes;
-
-		return kilobytes * 1024;
-	}
-	return 0;
-}
-
 void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 {
 	struct tms time_info;
