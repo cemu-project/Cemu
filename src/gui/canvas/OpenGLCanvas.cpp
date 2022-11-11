@@ -88,7 +88,7 @@ public:
 	}
 
 private:
-	int m_activeVSyncState{};
+	int m_activeVSyncState = -1;
 	//wxGLContext* m_context = nullptr;
 };
 
