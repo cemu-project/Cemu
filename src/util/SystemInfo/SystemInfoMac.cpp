@@ -37,7 +37,7 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 	if(err != KERN_SUCCESS)
 		return;
 
-	for (auto i = 0; i < processorMsgCount; ++i)
+	for (auto i = 0; i < processorCount; ++i)
 	{
 		uint64 system = cpuLoad[i].cpu_ticks[CPU_STATE_SYSTEM];
 		uint64 user = cpuLoad[i].cpu_ticks[CPU_STATE_USER] + cpuLoad[i].cpu_ticks[CPU_STATE_NICE];
