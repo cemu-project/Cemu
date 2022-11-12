@@ -31,8 +31,9 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 
 	processor_cpu_load_info_t cpuLoad;
 	mach_msg_type_number_t processorMsgCount;
+    natural_t processorCount;
 
-	kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, out.size(), (processor_info_array_t *)&cpuLoad, &processorMsgCount);
+	kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &processorCount, (processor_info_array_t *)&cpuLoad, &processorMsgCount);
 	if(err != KERN_SUCCESS)
 		return;
 
