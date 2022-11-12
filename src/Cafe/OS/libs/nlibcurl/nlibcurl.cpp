@@ -489,11 +489,11 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 		if(FD_ISSET(s, &h_readFd))
 			hostFdSet(s, readFd.GetPtr());
 
-		// if(FD_ISSET(s, &h_writeFd))
-		// 	hostFdSet(s, writeFd.GetPtr());
+		if(FD_ISSET(s, &h_writeFd))
+			hostFdSet(s, writeFd.GetPtr());
 
-		// if(FD_ISSET(s, &h_exceptionFd))
-		// 	hostFdSet(s, exceptionFd.GetPtr());
+		if(FD_ISSET(s, &h_exceptionFd))
+			hostFdSet(s, exceptionFd.GetPtr());
 	}
 #else
 	// fd read set
