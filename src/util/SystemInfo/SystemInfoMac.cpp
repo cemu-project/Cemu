@@ -36,8 +36,6 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 
 	for (auto i = 0; i < processorMsgCount; ++i)
 	{
-		// Calc load types and totals, with guards against 32-bit overflow
-		// (values are natural_t)
 		uint64_t system = cpuLoad[i].cpu_ticks[CPU_STATE_SYSTEM];
 		uint64_t user = cpuLoad[i].cpu_ticks[CPU_STATE_USER] + cpuLoad[i].cpu_ticks[CPU_STATE_NICE];
 		uint64_t idle = cpuLoad[i].cpu_ticks[CPU_STATE_IDLE];
