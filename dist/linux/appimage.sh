@@ -23,7 +23,7 @@ mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
 mkdir -p AppDir/usr/lib
 
 cp -r bin AppDir/usr/
-cp /usr/lib/x86_64-linux-gnu/{libsepol.so.1,libffi.so.7,libpcre.so.3,libGLU.so.1} AppDir/usr/lib
+cp /usr/lib/x86_64-linux-gnu/{libsepol.so.1,libffi.so.7,libpcre.so.3,libGLU.so.1,libthai.so.0} AppDir/usr/lib
 
 chmod +x AppDir/usr/bin/Cemu
 #chmod +x AppDir/AppRun
@@ -44,6 +44,7 @@ fi
 
 echo "Cemu Version Cemu-${GITVERSION}"
 rm AppDir/usr/lib/libwayland-client.so.0
+echo "export LC_ALL=C" >> AppDir/apprun-hooks/linuxdeploy-plugin-gtk.sh
 VERSION=${GITVERSION} ./mkappimage.AppImage --appimage-extract-and-run "$GITHUB_WORKSPACE"/AppDir
 
 mkdir -p "$GITHUB_WORKSPACE"/artifacts/ 
