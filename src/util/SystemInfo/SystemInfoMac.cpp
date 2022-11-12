@@ -20,24 +20,32 @@ uint64 QueryRamUsage()
 	return 0;
 }
 
-// based on https://stackoverflow.com/questions/20471920/how-to-get-total-cpu-idle-time-in-objective-c-c-on-os-x
+// apple official documentation is non-existsent.
+// based on https://github.com/giampaolo/psutil/blob/master/psutil/_psutil_osx.c#L623
 void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 {
 	// initialize default
 	for (auto i = 0; i < out.size(); ++i)
 	{
-		out[i] = { };
+		out[i] = {};
 	}
 
-	processor_cpu_load_info_t cpuLoad;
-	mach_msg_type_number_t processorMsgCount;
-    natural_t processorCount;
+	natural_t cpu_count;
+	processor_info_array_t info_array;
+	mach_msg_type_number_t info_count;
+	kern_return_t error;
+	int ret;
 
-	kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &processorCount, (processor_info_array_t *)&cpuLoad, &processorMsgCount);
-	if(err != KERN_SUCCESS)
+	mach_port_t host_port = mach_host_self();
+	error = host_processor_info(host_port, PROCESSOR_CPU_LOAD_INFO, &cpu_count, &info_array, &info_count);
+	mach_port_deallocate(mach_task_self(), host_port);
+
+	if (error != KERN_SUCCESS)
 		return;
 
-	for (auto i = 0; i < processorCount; ++i)
+	processor_cpu_load_info_data_t* cpu_load_info = (processor_cpu_load_info_data_t*) info_array;
+
+	for (auto i = 0; i < cpu_count; ++i)
 	{
 		uint64 system = cpuLoad[i].cpu_ticks[CPU_STATE_SYSTEM];
 		uint64 user = cpuLoad[i].cpu_ticks[CPU_STATE_USER] + cpuLoad[i].cpu_ticks[CPU_STATE_NICE];
@@ -47,4 +55,9 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 		out[i].kernel = system;
 		out[i].user = user;
 	}
+
+	ret = vm_deallocate(mach_task_self(), (vm_address_t) info_array,
+						info_count * sizeof(int));
+	if (ret != KERN_SUCCESS)
+		cemuLog_force("vm_deallocate() failed");
 }
