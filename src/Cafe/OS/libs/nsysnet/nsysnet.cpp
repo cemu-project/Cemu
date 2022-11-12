@@ -1103,8 +1103,9 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 			// when fd sets are empty but timeout is set, then just wait and do nothing?
 			// Lost Reavers seems to expect this case to return 0 (it hardcodes empty fd sets and timeout comes from curl_multi_timeout)
 
-			timeval tv{.tv_sec = timeOut->tv_sec,
-					  .tv_usec = timeOut->tv_usec};
+			timeval tv;
+			tv.tv_sec = timeOut->tv_sec;
+			tv.tv_usec = timeOut->tv_usec;
 			select(0, nullptr, nullptr, nullptr, &tv);
 			socketLog_printf("select returned 0 because of empty fdsets with timeout");
 			osLib_returnFromFunction(hCPU, 0);
