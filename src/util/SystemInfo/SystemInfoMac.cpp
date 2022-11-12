@@ -1,3 +1,5 @@
+#include "util/SystemInfo/SystemInfo.h"
+
 #include <unistd.h>
 #include <sys/resource.h>
 #include <sys/sysctl.h>
