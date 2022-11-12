@@ -484,7 +484,7 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 	};
 
 #if BOOST_OS_UNIX
-	for (int s = 0; s < FD_SETSIZE; s++) 
+	for (int s = 0; s < h_maxFd + 1; s++) 
 	{
 		if(FD_ISSET(s, &h_readFd))
 			hostFdSet(s, readFd.GetPtr());
