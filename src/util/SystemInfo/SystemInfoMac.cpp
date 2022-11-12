@@ -27,23 +27,23 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 		out[i] = { };
 	}
 
-    processor_cpu_load_info_t cpuLoad;
-    mach_msg_type_number_t processorMsgCount;
+	processor_cpu_load_info_t cpuLoad;
+	mach_msg_type_number_t processorMsgCount;
 
-    kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, out.size(), (processor_info_array_t *)&cpuLoad, &processorMsgCount);
+	kern_return_t err = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, out.size(), (processor_info_array_t *)&cpuLoad, &processorMsgCount);
 	if(err != KERN_SUCCESS)
 		return;
 
 	for (auto i = 0; i < processorMsgCount; ++i)
 	{
-        // Calc load types and totals, with guards against 32-bit overflow
-        // (values are natural_t)
-        uint64_t system = cpuLoad[i].cpu_ticks[CPU_STATE_SYSTEM];
+		// Calc load types and totals, with guards against 32-bit overflow
+		// (values are natural_t)
+		uint64_t system = cpuLoad[i].cpu_ticks[CPU_STATE_SYSTEM];
 		uint64_t user = cpuLoad[i].cpu_ticks[CPU_STATE_USER] + cpuLoad[i].cpu_ticks[CPU_STATE_NICE];
 		uint64_t idle = cpuLoad[i].cpu_ticks[CPU_STATE_IDLE];
 
 		out[i].idle = idle;
 		out[i].kernel = system;
 		out[i].user = user;
-    }
+	}
 }
