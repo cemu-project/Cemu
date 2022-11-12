@@ -434,7 +434,7 @@ void nsysnetExport_socketclose(PPCInterpreter_t* hCPU)
 	}
 	osLib_returnFromFunction(hCPU, 0);
 }
-sint32 _socket_nonblock(SOCKET s, int mode)
+sint32 _socket_nonblock(SOCKET s, u_long mode)
 {
 #if BOOST_OS_WINDOWS
 	return ioctlsocket(s, FIONBIO, &mode);
