@@ -2,15 +2,20 @@
 
 uint64 QueryRamUsage()
 {
-	std::ifstream file("/proc/self/smaps_rollup");
+	static long page_size = sysconf(_SC_PAGESIZE);
+	if (page_size == -1)
+	{
+		return 0;
+	}
+
+	std::ifstream file("/proc/self/statm");
 	if (file)
 	{
-		file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 		file.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-		uint64 kilobytes;
-		file >> kilobytes;
+		uint64 pages;
+		file >> pages;
 
-		return kilobytes * 1024;
+		return pages * page_size;
 	}
 	return 0;
 }
