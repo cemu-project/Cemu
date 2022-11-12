@@ -34,7 +34,6 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 	processor_info_array_t info_array;
 	mach_msg_type_number_t info_count;
 	kern_return_t error;
-	int ret;
 
 	mach_port_t host_port = mach_host_self();
 	error = host_processor_info(host_port, PROCESSOR_CPU_LOAD_INFO, &cpu_count, &info_array, &info_count);
@@ -43,7 +42,7 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 	if (error != KERN_SUCCESS)
 		return;
 
-	processor_cpu_load_info_data_t* cpu_load_info = (processor_cpu_load_info_data_t*) info_array;
+	processor_cpu_load_info_data_t* cpuLoad = (processor_cpu_load_info_data_t*) info_array;
 
 	for (auto i = 0; i < cpu_count; ++i)
 	{
@@ -56,7 +55,7 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 		out[i].user = user;
 	}
 
-	ret = vm_deallocate(mach_task_self(), (vm_address_t) info_array,
+	int ret = vm_deallocate(mach_task_self(), (vm_address_t) info_array,
 						info_count * sizeof(int));
 	if (ret != KERN_SUCCESS)
 		cemuLog_force("vm_deallocate() failed");
