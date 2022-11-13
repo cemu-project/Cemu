@@ -5,6 +5,8 @@
 #include "input/emulated/EmulatedController.h"
 #include "input/api/Controller.h"
 
+#include "gui/wxHelper.h"
+
 class ControllerBase;
 class wxTextCtrl;
 class wxComboBox;
@@ -12,9 +14,15 @@ class wxComboBox;
 class InputPanel : public wxPanel
 {
 public:
+#if BOOST_OS_WINDOWS
 	const wxColour kKeyColourNormalMode = 0xfafafa;
 	const wxColour kKeyColourEditMode = 0x99ccff;
 	const wxColour kKeyColourActiveMode = 0xE0E0E0;
+#else
+	const wxColour kKeyColourNormalMode = GetBackgroundColour();
+	const wxColour kKeyColourEditMode = GetBackgroundColour();
+	const wxColour kKeyColourActiveMode = wxHelper::CalculateAccentColour(kKeyColourNormalMode);
+#endif
 
 	InputPanel(wxWindow* parent);
 
