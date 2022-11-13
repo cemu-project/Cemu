@@ -168,7 +168,6 @@ private:
 	GLuint m_defaultFramebufferId;
 	GLuint m_pipeline = 0;
 
-	int m_activeVSyncState{};
 	bool m_isPadViewContext{};
 
 	// rendertarget viewport
