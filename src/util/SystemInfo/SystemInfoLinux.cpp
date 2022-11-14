@@ -1,5 +1,7 @@
 #include "util/SystemInfo/SystemInfo.h"
 
+#include <unistd.h>
+
 uint64 QueryRamUsage()
 {
 	static long page_size = sysconf(_SC_PAGESIZE);
