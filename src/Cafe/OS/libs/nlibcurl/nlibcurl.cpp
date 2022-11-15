@@ -455,11 +455,6 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(exceptionFd, wu_fd_set, 3);
 	ppcDefineParamU32BEPtr(maxFd, 4);
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-	cemuLog_log(LogType::Force, "curl_multi_fdset(...) - todo");
-
-	osLib_returnFromFunction(hCPU, 0);
-#else
 	fd_set h_readFd;
 	fd_set h_writeFd;
 	fd_set h_exceptionFd;
@@ -475,17 +470,36 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 	nsysnet::wuResetFD(exceptionFd.GetPtr());
 
 	sint32 c_maxFD = -1;
-	// fd read set
-	for (uint32 i = 0; i < h_readFd.fd_count; i++)
+
+	auto hostFdSet = [&](SOCKET s, wu_fd_set* fds)
 	{
-		sint32 wuSocket = nsysnet_getVirtualSocketHandleFromHostHandle(h_readFd.fd_array[i]);
+		sint32 wuSocket = nsysnet_getVirtualSocketHandleFromHostHandle(s);
 		if (wuSocket < 0)
-			wuSocket = nsysnet_createVirtualSocketFromExistingSocket(h_readFd.fd_array[i]);
+			wuSocket = nsysnet_createVirtualSocketFromExistingSocket(s);
 		if (wuSocket >= 0)
 		{
 			c_maxFD = std::max(wuSocket, c_maxFD);
-			nsysnet::wuSetFD(readFd.GetPtr(), wuSocket);
+			nsysnet::wuSetFD(fds, wuSocket);
 		}
+	};
+
+#if BOOST_OS_UNIX
+	for (int s = 0; s < h_maxFd + 1; s++) 
+	{
+		if(FD_ISSET(s, &h_readFd))
+			hostFdSet(s, readFd.GetPtr());
+
+		if(FD_ISSET(s, &h_writeFd))
+			hostFdSet(s, writeFd.GetPtr());
+
+		if(FD_ISSET(s, &h_exceptionFd))
+			hostFdSet(s, exceptionFd.GetPtr());
+	}
+#else
+	// fd read set
+	for (uint32 i = 0; i < h_readFd.fd_count; i++)
+	{
+		hostFdSet(h_readFd.fd_array[i], readFd.GetPtr());
 	}
 	// fd write set
 	for (uint32 i = 0; i < h_writeFd.fd_count; i++)
@@ -497,11 +511,10 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 	{
 		cemu_assert_debug(false);
 	}
+#endif
 
 	*maxFd = c_maxFD;
 	osLib_returnFromFunction(hCPU, result);
-#endif
-
 }
 
 void export_curl_multi_setopt(PPCInterpreter_t* hCPU)
