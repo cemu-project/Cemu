@@ -1493,7 +1493,8 @@ void GeneralSettings2::ApplyConfig()
 	m_save_screenshot->SetValue(config.save_screenshot);
 
 	m_permanent_storage->SetValue(config.permanent_storage);
-	
+	m_disable_screensaver->SetValue(config.disable_screensaver);
+
 	for (auto& path : config.game_paths)
 	{
 		m_game_paths->Append(path);
