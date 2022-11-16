@@ -111,11 +111,6 @@ void LattePerformanceMonitor_frameEnd()
 		}
 		// next update in 1 second
 		performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate = GetTickCount();
-
-		// prevent hibernation and screen saver/monitor off
-		#if BOOST_OS_WINDOWS
-		SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED);
-		#endif
 	}
 	LatteOverlay_updateStatsPerFrame();
 }

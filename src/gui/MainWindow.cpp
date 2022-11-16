@@ -19,6 +19,7 @@
 #include "util/helpers/helpers.h"
 #include "config/CemuConfig.h"
 #include "Cemu/DiscordPresence/DiscordPresence.h"
+#include "util/ScreenSaver/ScreenSaver.h"
 #include "gui/GeneralSettings2.h"
 #include "gui/GraphicPacksWindow2.h"
 #include "gui/GameProfileWindow.h"
@@ -552,6 +553,14 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 	if (m_discord)
 		m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name);
 	#endif
+
+	if (GetConfig().disable_screensaver)
+	{
+		ScreenSaver::SetInhibit(true);
+		// TODO: disable when only the game, not Cemu, is closed (a feature not yet implemented)
+		// currently unnecessary because this will happen automatically when Cemu closes
+		// ScreenSaver::SetInhibit(false);
+	}
 
 	if (ActiveSettings::FullscreenEnabled())
 		SetFullScreen(true);

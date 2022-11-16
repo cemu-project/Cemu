@@ -49,6 +49,8 @@
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
 
+#include "util/ScreenSaver/ScreenSaver.h"
+
 const wxString kDirectSound(wxT("DirectSound"));
 const wxString kXAudio27(wxT("XAudio2.7"));
 const wxString kXAudio2(wxT("XAudio2"));
@@ -172,6 +174,10 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_permanent_storage = new wxCheckBox(box, wxID_ANY, _("Use permanent storage"));
 			m_permanent_storage->SetToolTip(_("Cemu will remember your custom mlc path in %LOCALAPPDATA%/Cemu for new installations."));
 			second_row->Add(m_permanent_storage, 0, botflag, 5);
+			second_row->AddSpacer(10);
+			m_disable_screensaver = new wxCheckBox(box, wxID_ANY, _("Disable screen saver"));
+			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
+			second_row->Add(m_disable_screensaver, 0, botflag, 5);
 
 			box_sizer->Add(second_row, 0, wxEXPAND, 5);
 		}
@@ -865,6 +871,20 @@ void GeneralSettings2::StoreConfig()
 		}
 		catch (...) {}
 		config.permanent_storage = use_ps;
+	}
+
+	config.disable_screensaver = m_disable_screensaver->IsChecked();
+	// Toggle while a game is running
+	if (CafeSystem::IsTitleRunning())
+	{
+		if (config.disable_screensaver)
+		{
+			ScreenSaver::SetInhibit(true);
+		}
+		else
+		{
+			ScreenSaver::SetInhibit(false);
+		}
 	}
 
 	if (!LaunchSettings::GetMLCPath().has_value())
