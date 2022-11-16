@@ -172,10 +172,11 @@ wxString wxTitleManagerList::OnGetItemText(long item, long column) const
 
 wxItemAttr* wxTitleManagerList::OnGetItemAttr(long item) const
 {
-	const auto entry = GetTitleEntry(item);
-	const wxColour kSecondColor{ 0xFDF9F2 };
-	static wxListItemAttr s_coloured_attr(GetTextColour(), kSecondColor, GetFont());
-	return item % 2 == 0 ? nullptr : &s_coloured_attr;
+	static wxColour bgColourPrimary = GetBackgroundColour();
+	static wxColour bgColourSecondary = wxHelper::CalculateAccentColour(bgColourPrimary);
+	static wxListItemAttr s_primary_attr(GetTextColour(), bgColourPrimary, GetFont());
+	static wxListItemAttr s_secondary_attr(GetTextColour(), bgColourSecondary, GetFont());
+	return item % 2 == 0 ? &s_primary_attr : &s_secondary_attr;
 }
 
 boost::optional<wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetTitleEntry(long item)

@@ -11,22 +11,20 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	m_logicalDevice = logicalDevice;
 	const auto details = QuerySwapchainSupport(surface, physicalDevice);
 	m_surfaceFormat = ChooseSurfaceFormat(details.formats);
-	swapchainExtent = ChooseSwapExtent(details.capabilities, getSize());
+	m_actualExtent = ChooseSwapExtent(details.capabilities);
 
 	// calculate number of swapchain presentation images
 	uint32_t image_count = details.capabilities.minImageCount + 1;
 	if (details.capabilities.maxImageCount > 0 && image_count > details.capabilities.maxImageCount)
 		image_count = details.capabilities.maxImageCount;
 
-	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(surface, details, m_surfaceFormat, image_count, swapchainExtent);
+	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(surface, details, m_surfaceFormat, image_count, m_actualExtent);
 	create_info.oldSwapchain = nullptr;
 	create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	VkResult result = vkCreateSwapchainKHR(logicalDevice, &create_info, nullptr, &swapchain);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to create a swapchain");
-
-	sizeOutOfDate = false;
 
 	result = vkGetSwapchainImagesKHR(logicalDevice, swapchain, &image_count, nullptr);
 	if (result != VK_SUCCESS)
@@ -101,8 +99,8 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 		framebufferInfo.renderPass = m_swapchainRenderPass;
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swapchainExtent.width;
-		framebufferInfo.height = swapchainExtent.height;
+		framebufferInfo.width = m_actualExtent.width;
+		framebufferInfo.height = m_actualExtent.height;
 		framebufferInfo.layers = 1;
 		result = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &m_swapchainFramebuffers[i]);
 		if (result != VK_SUCCESS)
@@ -293,12 +291,12 @@ VkSurfaceFormatKHR SwapchainInfoVk::ChooseSurfaceFormat(const std::vector<VkSurf
 	return formats[0];
 }
 
-VkExtent2D SwapchainInfoVk::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const
+VkExtent2D SwapchainInfoVk::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const
 {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32>::max())
 		return capabilities.currentExtent;
 
-	VkExtent2D actualExtent = { (uint32)size.x, (uint32)size.y };
+	VkExtent2D actualExtent = { (uint32)m_desiredExtent.x, (uint32)m_desiredExtent.y };
 	actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
 	actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
 	return actualExtent;

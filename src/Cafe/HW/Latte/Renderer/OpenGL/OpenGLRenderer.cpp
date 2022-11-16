@@ -25,8 +25,10 @@
 #define STRINGIFY(X) STRINGIFY2(X)
 
 #define GLFUNC(__type, __name)	__type __name;
+#define EGLFUNC(__type, __name)	__type __name;
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
+#undef EGLFUNC
 
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -229,9 +231,17 @@ void LoadOpenGLImports()
 		_glXGetProcAddress = (PFNGLXGETPROCADDRESSPROC)dlsym(libGL, "glXGetProcAddressARB");
 	}
 
+	void* libEGL = dlopen("libEGL.so.1", RTLD_NOW | RTLD_GLOBAL);
+	if(!libEGL)
+	{
+		libGL = dlopen("libEGL.so", RTLD_NOW | RTLD_GLOBAL);
+	}
+
 #define GLFUNC(__type, __name)	__name = (__type)_GetOpenGLFunction(libGL, _glXGetProcAddress, STRINGIFY(__name));
+#define EGLFUNC(__type, __name)	__name = (__type)dlsym(libEGL, STRINGIFY(__name));
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
+#undef EGLFUNC
 }
 #elif BOOST_OS_MACOS
 void LoadOpenGLImports()
@@ -352,20 +362,6 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 	glFlush();
 }
 
-void OpenGLRenderer::UpdateVSyncState()
-{
-	int configValue = GetConfig().vsync.GetValue();
-	if(m_activeVSyncState != configValue)
-	{
-#if BOOST_OS_WINDOWS
-		if(wglSwapIntervalEXT)
-			wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
-#else
-		cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
-#endif
-		m_activeVSyncState = configValue;
-	}
-}
 
 bool IsRunningInWine();
 
@@ -443,7 +439,6 @@ void OpenGLRenderer::EnableDebugMode()
 void OpenGLRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
 	GLCanvas_SwapBuffers(swapTV, swapDRC);
-	UpdateVSyncState();
 
 	if (swapTV)
 		cleanupAfterFrame();

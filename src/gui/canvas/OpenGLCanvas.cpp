@@ -64,7 +64,31 @@ public:
 			delete sGLContext;
 	}
 
+	void UpdateVSyncState()
+	{
+		int configValue = GetConfig().vsync.GetValue();
+		if(m_activeVSyncState != configValue)
+		{
+#if BOOST_OS_WINDOWS
+			if(wglSwapIntervalEXT)
+				wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
+#elif BOOST_OS_LINUX
+			if (eglSwapInterval)
+			{
+				if (eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
+				{
+					cemuLog_force("Failed to set vsync using EGL");
+				}
+			}
+#else
+			cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
+#endif
+			m_activeVSyncState = configValue;
+		}
+	}
+
 private:
+	int m_activeVSyncState = -1;
 	//wxGLContext* m_context = nullptr;
 };
 
@@ -90,7 +114,17 @@ bool GLCanvas_MakeCurrent(bool padView)
 void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
 {
 	if (swapTV && sGLTVView)
+	{
+		GLCanvas_MakeCurrent(false);
 		sGLTVView->SwapBuffers();
+		sGLTVView->UpdateVSyncState();
+	}
 	if (swapDRC && sGLPadView)
+	{
+		GLCanvas_MakeCurrent(true);
 		sGLPadView->SwapBuffers();
+		sGLPadView->UpdateVSyncState();
+	}
+
+	GLCanvas_MakeCurrent(false);
 }

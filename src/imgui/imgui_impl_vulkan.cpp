@@ -912,7 +912,7 @@ void ImGui_ImplVulkan_Shutdown()
     ImGui_ImplVulkan_DestroyDeviceObjects();
 }
 
-void ImGui_ImplVulkan_NewFrame(VkCommandBuffer command_buffer, VkFramebuffer framebuffer, VkExtent2D& extend)
+void ImGui_ImplVulkan_NewFrame(VkCommandBuffer command_buffer, VkFramebuffer framebuffer, VkExtent2D extent)
 {
 	auto& io = ImGui::GetIO();
 
@@ -921,7 +921,7 @@ void ImGui_ImplVulkan_NewFrame(VkCommandBuffer command_buffer, VkFramebuffer fra
 	renderPassInfo.renderPass = g_RenderPass;
 	renderPassInfo.framebuffer = framebuffer;
 	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = extend;
+	renderPassInfo.renderArea.extent = extent;
 	renderPassInfo.clearValueCount = 0;
 	vkCmdBeginRenderPass(command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }

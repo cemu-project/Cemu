@@ -358,16 +358,9 @@ long wxGameList::GetStyleFlags(Style style) const
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
     wxWindowUpdateLocker lock(this);
-	// get the background color so we can determine the theme in use
-	wxColour bgColour = GetBackgroundColour();
-	uint32 bgLightness = (bgColour.GetRed() + bgColour.GetGreen() + bgColour.GetBlue()) / 3;
-	bool isDarkTheme = bgLightness < 128;
-	wxColour bgColourPrimary = bgColour; // color for odd rows
-	wxColour bgColourSecondary = bgColour.ChangeLightness(isDarkTheme ? 110 : 90); // color for even rows
 
-	// for very light themes we'll use a blue tint to match the older Windows Cemu look
-	if (bgLightness > 250)
-		bgColourSecondary = wxColour(bgColour.Red() - 13, bgColour.Green() - 6, bgColour.Blue() - 2);
+	wxColour bgColourPrimary = GetBackgroundColour();
+	wxColour bgColourSecondary = wxHelper::CalculateAccentColour(bgColourPrimary);
 
     for (int i = startIndex; i < GetItemCount(); ++i)
     {

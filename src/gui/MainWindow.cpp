@@ -1696,8 +1696,6 @@ public:
 	{
 		SetIcon(wxICON(M_WND_ICON128));
 
-		this->SetBackgroundColour(wxColour(0xFFFFFFFF));
-
 		wxScrolledWindow* scrolledWindow = new wxScrolledWindow(this);
 
 		wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
