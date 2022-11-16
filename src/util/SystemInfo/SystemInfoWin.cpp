@@ -27,7 +27,7 @@ void QueryProcTime(uint64 &out_now, uint64 &out_user, uint64 &out_kernel)
 	now.HighPart = ftime.dwHighDateTime;
 
 	if (GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fkernel, &fuser))
-	{	
+	{
 		kernel.LowPart = fkernel.dwLowDateTime;
 		kernel.HighPart = fkernel.dwHighDateTime;
 
@@ -53,7 +53,7 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 	{
 		for (auto i = 0; i < out.size(); ++i)
 		{
-			out[i].idle = sppi[i].IdleTime.QuadPart;			
+			out[i].idle = sppi[i].IdleTime.QuadPart;
 			out[i].kernel = sppi[i].KernelTime.QuadPart;
 			out[i].user = sppi[i].UserTime.QuadPart;
 		}
