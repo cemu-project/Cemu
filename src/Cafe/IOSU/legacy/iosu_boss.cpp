@@ -284,7 +284,7 @@ namespace iosu
 		else if (starts_with(ptr, "Content-Type: "))
 		{
 			const char* type = &ptr[14];
-			if (starts_with(type, "application/xml"))
+			if (starts_with(type, "application/xml") || starts_with(type, "text/xml"))
 				task->content_type = ContentType::kXmlContent;
 			else if (starts_with(type, "x-application/octet-stream"))
 				task->content_type = ContentType::kBinaryFile;
