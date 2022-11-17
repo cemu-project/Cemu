@@ -83,6 +83,7 @@ struct SwapchainInfoVk
 	std::vector<VkImageView> m_swapchainImageViews;
 	std::vector<VkFramebuffer> m_swapchainFramebuffers;
 	std::vector<VkSemaphore> m_swapchainPresentSemaphores;
+	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 
 	VkRenderPass m_swapchainRenderPass = nullptr;
 
