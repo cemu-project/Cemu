@@ -2544,12 +2544,8 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
 
-	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
-
-	auto& acquireSemaphore = chainInfo.m_acquireSemaphores[chainInfo.m_acquireIndex];
-
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
 	if (result != VK_SUCCESS)
 	{
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -2561,9 +2557,8 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
 			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
+	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 
-	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_acquireSemaphores.size();
-	SubmitCommandBuffer(nullptr, &acquireSemaphore);
 	return true;
 }
 
@@ -2572,9 +2567,6 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
-	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE,
-		std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(10)).count()
-	);
 
 	Vector2i size;
 	if (mainWindow)
@@ -2645,21 +2637,10 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
-	// make sure any writes to the image have finished (is this necessary? End of command buffer implicitly flushes everything?)
-	VkMemoryBarrier memoryBarrier{};
-	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-	memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	memoryBarrier.dstAccessMask = 0;
-	VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-	vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
-
 	VkSemaphore presentSemaphore = chainInfo.m_swapchainPresentSemaphores[chainInfo.swapchainImageIndex];
 	SubmitCommandBuffer(&presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
-
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2673,37 +2654,10 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result != VK_SUCCESS)
 	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // todo: dont loop but handle error state?
-		{
-			int counter = 0;
-			while (true)
-			{
-				try
-				{
-					RecreateSwapchain(mainWindow);
-					return;
-				}
-				catch (std::exception&)
-				{
-					// loop until successful
-					counter++;
-					if (counter > 25)
-					{
-						cemuLog_log(LogType::Force, "Failed to recreate swapchain during SwapBuffer");
-						cemuLog_waitForFlush();
-						exit(0);
-					}
-				}
-
-				std::this_thread::yield();
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			}
-		}
-
-		cemuLog_log(LogType::Force, fmt::format("vkQueuePresentKHR failed with error {}", result));
-		cemuLog_waitForFlush();
-
-		throw std::runtime_error(fmt::format("Failed to present draw command buffer: {}", result));
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+			chainInfo.m_shouldRecreate = true;
+		else
+			throw std::runtime_error(fmt::format("Failed to present image: {}", result));
 	}
 
 	chainInfo.hasDefinedSwapchainImage = false;

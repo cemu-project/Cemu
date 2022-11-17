@@ -14,7 +14,7 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	m_actualExtent = ChooseSwapExtent(details.capabilities);
 
 	// calculate number of swapchain presentation images
-	uint32_t image_count = details.capabilities.minImageCount + 1;
+	uint32_t image_count = details.capabilities.minImageCount;
 	if (details.capabilities.maxImageCount > 0 && image_count > details.capabilities.maxImageCount)
 		image_count = details.capabilities.maxImageCount;
 
@@ -115,16 +115,6 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 			UnrecoverableError("Failed to create semaphore for swapchain present");
 	}
 
-	m_acquireSemaphores.resize(m_swapchainImages.size());
-	for (auto& semaphore : m_acquireSemaphores)
-	{
-		VkSemaphoreCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
-			UnrecoverableError("Failed to create semaphore for swapchain acquire");
-	}
-	m_acquireIndex = 0;
-
 	VkFenceCreateInfo fenceInfo = {};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -140,10 +130,6 @@ void SwapchainInfoVk::Cleanup()
 	for (auto& sem: m_swapchainPresentSemaphores)
 		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
 	m_swapchainPresentSemaphores.clear();
-
-	for (auto& itr: m_acquireSemaphores)
-		vkDestroySemaphore(m_logicalDevice, itr, nullptr);
-	m_acquireSemaphores.clear();
 
 	if (m_swapchainRenderPass)
 	{
