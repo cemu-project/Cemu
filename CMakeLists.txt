@@ -114,6 +114,7 @@ endif()
 
 if (UNIX AND NOT APPLE)
 	find_package(X11 REQUIRED)
+	find_package(GTK3 REQUIRED)
 endif()
 
 if (ENABLE_VULKAN)

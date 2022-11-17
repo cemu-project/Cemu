@@ -147,6 +147,10 @@ target_link_libraries(CemuGui PRIVATE
 	ZArchive::zarchive
 )
 
+if(UNIX AND NOT APPLE)
+	target_link_libraries(CemuGui PRIVATE GTK3::gtk)
+endif()
+
 if(ENABLE_CUBEB)
 	target_link_libraries(CemuGui PRIVATE cubeb::cubeb)
 endif()

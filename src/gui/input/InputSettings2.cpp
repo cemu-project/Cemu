@@ -16,6 +16,10 @@
 #include <wx/statline.h>
 #include <wx/bmpbuttn.h>
 
+#if BOOST_OS_LINUX
+#include <gtk/gtk.h>
+#endif
+
 #include "config/ActiveSettings.h"
 #include "gui/input/InputAPIAddWindow.h"
 #include "input/ControllerFactory.h"
@@ -147,10 +151,9 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 		auto* profiles = new wxComboBox(page, wxID_ANY, kDefaultProfileName);
 		sizer->Add(profiles, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL | wxEXPAND, 5);
 
-		for(const auto& profile : InputManager::get_profiles())
-		{
-			profiles->Append(wxString::FromUTF8(profile));
-		}
+#if BOOST_OS_LINUX
+		gtk_combo_box_set_button_sensitivity((GtkComboBox*)profiles->GetHandle(), GTK_SENSITIVITY_ON);
+#endif
 
 		if (emulated_controller && emulated_controller->has_profile_name())
 		{
