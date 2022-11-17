@@ -123,9 +123,12 @@ target_link_libraries(CemuBin PRIVATE
 )
 
 if(UNIX AND NOT APPLE)
-	# due to nasm output some linkers will make stack executable.
-	# cemu does not require this so we explicity disable it.
+	# due to nasm output some linkers will make stack executable
+	# cemu does not require this so we explicity disable it
 	target_link_options(CemuBin PRIVATE -z noexecstack)
+	# some residual debug info from boost/discord-rpc is normally included
+	# most likely not helpful in debugging problems with cemu code
+	target_link_options(CemuBin PRIVATE "$<$<CONFIG:Release>:-Xlinker;--strip-debug>")
 endif()
 
 if (ENABLE_WXWIDGETS)
