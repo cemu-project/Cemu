@@ -421,7 +421,7 @@ static void PPCInterpreter_MULLWO(PPCInterpreter_t* hCPU, uint32 opcode)
 	PPC_OPC_TEMPL3_XO();
 	sint64 result = (sint64)hCPU->gpr[rA] * (sint64)hCPU->gpr[rB];
 	hCPU->gpr[rD] = (uint32)result;
-	if (result < -0x80000000ll && result > 0x7FFFFFFFLL)
+	if (result < -0x80000000ll || result > 0x7FFFFFFFLL)
 	{
 		hCPU->spr.XER |= XER_SO;
 		hCPU->spr.XER |= XER_OV;
