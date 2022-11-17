@@ -152,6 +152,10 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 		sizer->Add(profiles, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL | wxEXPAND, 5);
 
 #if BOOST_OS_LINUX
+		// work around platform difference
+		// empty combobox cannot activate dropdown on linux
+		// todo: fix updating the items in the list in a way that works on all platforms
+		// current behaviour is buggy
 		gtk_combo_box_set_button_sensitivity((GtkComboBox*)profiles->GetHandle(), GTK_SENSITIVITY_ON);
 #endif
 
