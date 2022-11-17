@@ -3,7 +3,7 @@
 
 include(FindPackageHandleStandardArgs)
 
-find_package(PkgConfig REQUIRED)
+find_package(PkgConfig)
 if (PKG_CONFIG_FOUND)
     pkg_search_module(GTK3 IMPORTED_TARGET gtk+-3.0)
     if (GTK3_FOUND)
