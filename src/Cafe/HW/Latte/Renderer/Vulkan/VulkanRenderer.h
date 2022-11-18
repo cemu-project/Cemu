@@ -464,6 +464,7 @@ private:
 			bool synchronization2 = false; // VK_KHR_synchronization2
 			bool dynamic_rendering = false; // VK_KHR_dynamic_rendering
 			bool shader_float_controls = false; // VK_KHR_shader_float_controls
+			bool present_wait = false; // VK_KHR_present_wait
 		}deviceExtensions;
 
 		struct
@@ -471,7 +472,7 @@ private:
 			bool shaderRoundingModeRTEFloat32{ false };
 		}shaderFloatControls; // from VK_KHR_shader_float_controls
 
-		struct  
+		struct
 		{
 			bool debug_utils = false; // VK_EXT_DEBUG_UTILS
 		}instanceExtensions;
