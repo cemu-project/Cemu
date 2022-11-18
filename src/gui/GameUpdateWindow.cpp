@@ -133,7 +133,7 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 	// checking size is buggy on Wine (on Steam Deck this would return values too small to install bigger updates) - we therefore skip this step
 	if(!IsRunningInWine())
 	{
-		const fs::space_info targetSpace = fs::space(target_location);
+		const fs::space_info targetSpace = fs::space(ActiveSettings::GetMlcPath());
 		if (targetSpace.free <= m_required_size)
 		{
 			auto string = wxStringFormat(_("Not enough space available.\nRequired: {0} MB\nAvailable: {1} MB"), L"%lld %lld", (m_required_size / 1024 / 1024), (targetSpace.free / 1024 / 1024));
