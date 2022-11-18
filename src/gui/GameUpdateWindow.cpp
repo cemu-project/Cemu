@@ -130,6 +130,10 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 		}
 	}
 
+	// The folder may not exist yet, create it
+	if (!fs::exists(target_location))
+		fs::create_directory(target_location);
+
 	// checking size is buggy on Wine (on Steam Deck this would return values too small to install bigger updates) - we therefore skip this step
 	if(!IsRunningInWine())
 	{
