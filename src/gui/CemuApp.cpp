@@ -218,10 +218,6 @@ int CemuApp::FilterEvent(wxEvent& event)
 		const auto& key_event = (wxKeyEvent&)event;
 		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
 	}
-	else if(event.GetEventType() == wxEVT_KILL_FOCUS)
-	{
-		g_window_info.set_keystatesdown();
-	}
 
 	return wxApp::FilterEvent(event);
 }

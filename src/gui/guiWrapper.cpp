@@ -199,7 +199,7 @@ bool gui_isKeyDown(uint32 key)
 
 bool gui_isKeyDown(PlatformKeyCodes key)
 {
-	return g_window_info.get_keystate((std::underlying_type_t<PlatformKeyCodes>)key);
+	return gui_isKeyDown((std::underlying_type_t<PlatformKeyCodes>)key);
 }
 
 void gui_notifyGameLoaded()

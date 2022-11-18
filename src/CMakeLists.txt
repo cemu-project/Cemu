@@ -130,8 +130,4 @@ endif()
 
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuBin PRIVATE wx::base wx::core)
-
-	if(UNIX AND NOT APPLE)
-		target_link_libraries(CemuBin PUBLIC GTK3::gtk)
-	endif()
 endif()
