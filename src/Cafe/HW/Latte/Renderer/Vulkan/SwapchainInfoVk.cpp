@@ -357,7 +357,6 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 	const auto vsyncState = (VSync)GetConfig().vsync.GetValue();
 	if (vsyncState == VSync::MAILBOX)
 	{
-		m_maxQueued = 1;
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
 			return VK_PRESENT_MODE_MAILBOX_KHR;
 

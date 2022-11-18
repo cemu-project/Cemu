@@ -2769,7 +2769,6 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
 
-	uint64 thisPresentId;
 	VkPresentIdKHR presentId = {};
 
 	VkPresentInfoKHR presentInfo = {};
@@ -2784,23 +2783,9 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	// if present_wait is available, use it to enforce double buffering.
 	if (m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued != 0)
 	{
-		thisPresentId = chainInfo.m_presentId;
-
-		if (chainInfo.m_numQueued != 0)
-		{
-			uint64 waitFrameId = thisPresentId - chainInfo.m_numQueued;
-			if (chainInfo.m_numQueued >= chainInfo.m_maxQueued)
-			{
-				std::cout << "WAITING" << std::endl;
-				std::cout << "currentid: " << thisPresentId << " waitingID: " << waitFrameId << std::endl;
-				vkWaitForPresentKHR(m_logicalDevice, chainInfo.swapchain, waitFrameId, 40'000'000);
-				chainInfo.m_numQueued--;
-			}
-		}
-
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
 		presentId.swapchainCount = 1;
-		presentId.pPresentIds = &thisPresentId;
+		presentId.pPresentIds = &chainInfo.m_presentId;
 
 		presentInfo.pNext = &presentId;
 	}
@@ -2815,8 +2800,20 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 
 	if(result == VK_SUCCESS)
 	{
-		chainInfo.m_presentId++;
+		std::cout << "justQueued: " << chainInfo.m_presentId << std::endl;
 		chainInfo.m_numQueued++;
+		chainInfo.m_presentId++;
+		if (chainInfo.m_maxQueued != 0 && chainInfo.m_numQueued != 0)
+		{
+			if (chainInfo.m_numQueued > chainInfo.m_maxQueued)
+			{
+				uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_numQueued;
+				std::cout << "WAITING" << std::endl;
+				std::cout << "waitingID: " << waitFrameId << std::endl;
+				vkWaitForPresentKHR(m_logicalDevice, chainInfo.swapchain, waitFrameId, 40'000'000);
+				chainInfo.m_numQueued--;
+			}
+		}
 	}
 
 
