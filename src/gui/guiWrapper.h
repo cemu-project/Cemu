@@ -74,7 +74,7 @@ struct WindowInfo
 		return result->second;
 	}
 
-	void set_keystatesdown()
+	void set_keystatesup()
 	{
 		const std::lock_guard<std::mutex> lock(keycode_mutex);
 		std::for_each(m_keydown.begin(), m_keydown.end(), [](std::pair<const uint32, bool>& el){ el.second = false; });
