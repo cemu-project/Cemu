@@ -130,23 +130,44 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 	}
 }
 
-void gui_getWindowSize(int* w, int* h)
+void gui_getWindowSize(int& w, int& h)
 {
-	*w = g_window_info.width;
-	*h = g_window_info.height;
+	w = g_window_info.width;
+	h = g_window_info.height;
 }
 
-void gui_getPadWindowSize(int* w, int* h)
+
+void gui_getPadWindowSize(int& w, int& h)
 {
 	if (g_window_info.pad_open)
 	{
-		*w = g_window_info.pad_width;
-		*h = g_window_info.pad_height;
+		w = g_window_info.pad_width;
+		h = g_window_info.pad_height;
 	}
 	else
 	{
-		*w = 0;
-		*h = 0;
+		w = 0;
+		h = 0;
+	}
+}
+
+void gui_getWindowPhysSize(int& w, int& h)
+{
+	w = g_window_info.phys_width;
+	h = g_window_info.phys_height;
+}
+
+void gui_getPadWindowPhysSize(int& w, int& h)
+{
+	if (g_window_info.pad_open)
+	{
+		w = g_window_info.phys_pad_width;
+		h = g_window_info.phys_pad_height;
+	}
+	else
+	{
+		w = 0;
+		h = 0;
 	}
 }
 

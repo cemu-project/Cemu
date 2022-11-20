@@ -4,8 +4,8 @@
 
 #include <wx/msgdlg.h>
 
-VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)
-	: IRenderCanvas(is_main_window), wxWindow(parent, wxID_ANY, wxDefaultPosition, size, wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
+VulkanCanvas::VulkanCanvas(wxWindow* parent, bool is_main_window)
+	: IRenderCanvas(is_main_window), wxWindow(parent, wxID_ANY, wxDefaultPosition, parent->GetClientSize(), wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
 {
 	Bind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Bind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
@@ -23,7 +23,7 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 			g_renderer = std::make_unique<VulkanRenderer>();
 
 		auto vulkan_renderer = VulkanRenderer::GetInstance();
-		vulkan_renderer->Initialize({size.x, size.y}, is_main_window);
+		vulkan_renderer->InitializeSurface(is_main_window);
 	}
 	catch(const std::exception& ex)
 	{

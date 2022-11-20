@@ -1459,7 +1459,7 @@ void MainWindow::AsyncSetTitle(std::string_view windowTitle)
 void MainWindow::CreateCanvas()
 {
 	if (ActiveSettings::GetGraphicsAPI() == kVulkan)
-		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
+		m_render_canvas = new VulkanCanvas(m_game_panel, true);
 	else
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
 
@@ -1509,6 +1509,8 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 	const wxSize client_size = GetClientSize();
 	g_window_info.width = client_size.GetWidth();
 	g_window_info.height = client_size.GetHeight();
+	g_window_info.phys_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_height = ToPhys(client_size.GetHeight());
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), event.GetSize());

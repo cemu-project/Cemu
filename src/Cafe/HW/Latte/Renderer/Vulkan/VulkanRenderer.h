@@ -182,7 +182,7 @@ public:
 
 	void GetDeviceFeatures();
 	void DetermineVendor();
-	void Initialize(const Vector2i& size, bool mainWindow);
+	void InitializeSurface(bool mainWindow);
 
 	const std::unique_ptr<SwapchainInfoVk>& GetChainInfoPtr(bool mainWindow) const;
 	SwapchainInfoVk& GetChainInfo(bool mainWindow) const;

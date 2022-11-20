@@ -30,9 +30,11 @@ struct WindowInfo
 	std::atomic_bool app_active; // our app is active/has focus
 
 	std::atomic_int32_t width, height; 	// client size of main window
+	std::atomic_int32_t phys_width, phys_height; 	// client size of main window in physical pixels
 
 	std::atomic_bool pad_open; // if separate pad view is open
 	std::atomic_int32_t pad_width, pad_height; 	// client size of pad window
+	std::atomic_int32_t phys_pad_width, phys_pad_height; 	// client size of pad window in physical pixels
 
 	std::atomic_bool pad_maximized = false;
 	std::atomic_int32_t restored_pad_x = -1, restored_pad_y = -1;
@@ -86,8 +88,10 @@ void gui_create();
 WindowInfo& gui_getWindowInfo();
 
 void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps);
-void gui_getWindowSize(int* w, int* h);
-void gui_getPadWindowSize(int* w, int* h);
+void gui_getWindowSize(int& w, int& h);
+void gui_getPadWindowSize(int& w, int& h);
+void gui_getWindowPhysSize(int& w, int& h);
+void gui_getPadWindowPhysSize(int& w, int& h);
 bool gui_isPadWindowOpen();
 bool gui_isKeyDown(int key);
 

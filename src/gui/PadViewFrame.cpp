@@ -55,6 +55,8 @@ bool PadViewFrame::Initialize()
 	const wxSize client_size = GetClientSize();
 	g_window_info.pad_width = client_size.GetWidth();
 	g_window_info.pad_height = client_size.GetHeight();
+	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
 
 	return true;
 }
@@ -64,7 +66,7 @@ void PadViewFrame::InitializeRenderCanvas()
 	auto sizer = new wxBoxSizer(wxVERTICAL);
 	{
 		if (ActiveSettings::GetGraphicsAPI() == kVulkan)
-			m_render_canvas = new VulkanCanvas(this, wxSize(854, 480), false);
+			m_render_canvas = new VulkanCanvas(this, false);
 		else
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
 		sizer->Add(m_render_canvas, 1, wxEXPAND, 0, nullptr);
@@ -98,6 +100,8 @@ void PadViewFrame::OnSizeEvent(wxSizeEvent& event)
 	const wxSize client_size = GetClientSize();
 	g_window_info.pad_width = client_size.GetWidth();
 	g_window_info.pad_height = client_size.GetHeight();
+	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
 
 	event.Skip();
 }
