@@ -1015,10 +1015,8 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		return;
 	}
 
-	bool tabPressed = gui_isKeyDown(PlatformKeyCodes::TAB);
-	bool ctrlPressed = gui_isKeyDown(PlatformKeyCodes::LCONTROL);
-	if(!gui_getWindowInfo().app_active)
-		tabPressed = ctrlPressed = false;
+	const bool tabPressed = gui_isKeyDown(PlatformKeyCodes::TAB);
+	const bool ctrlPressed = gui_isKeyDown(PlatformKeyCodes::LCONTROL);
 
 	bool showDRC = swkbd_hasKeyboardInputHook() == false && tabPressed;
 	bool& alwaysDisplayDRC = LatteGPUState.alwaysDisplayDRC;
