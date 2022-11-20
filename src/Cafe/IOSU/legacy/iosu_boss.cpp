@@ -284,7 +284,7 @@ namespace iosu
 		else if (starts_with(ptr, "Content-Type: "))
 		{
 			const char* type = &ptr[14];
-			if (starts_with(type, "application/xml"))
+			if (starts_with(type, "application/xml") || starts_with(type, "text/xml"))
 				task->content_type = ContentType::kXmlContent;
 			else if (starts_with(type, "x-application/octet-stream"))
 				task->content_type = ContentType::kBinaryFile;
@@ -685,7 +685,8 @@ namespace iosu
 					}
 
 					auto currentEntry = boss_storage_fad_find_entry(fad_content, file.data_id);
-					if(currentEntry)
+					//TODO deep dive into IOSU to figure out how caching actually works on th Wii U
+					if(currentEntry && fs::exists(path / fmt::format(L"{:08x}", file.data_id)))
 					{
 						uint64 timestamp = (uint64)currentEntry->timestampRelated + kTimeStampConvertSeconds;
 						curl_easy_setopt(curl, CURLOPT_TIMEVALUE, timestamp);
