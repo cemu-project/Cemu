@@ -1,5 +1,4 @@
 #include "Fiber.h"
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include <ucontext.h>
 
 thread_local Fiber* sCurrentFiber{};
@@ -52,5 +51,3 @@ void* Fiber::GetFiberPrivateData()
 {
 	return sCurrentFiber->m_privateData;
 }
-
-#endif

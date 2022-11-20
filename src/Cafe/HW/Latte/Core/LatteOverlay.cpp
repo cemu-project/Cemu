@@ -12,30 +12,16 @@
 #include "imgui/imgui_extension.h"
 
 #include "input/InputManager.h"
+#include "util/SystemInfo/SystemInfo.h"
 
 #include <cinttypes>
-
-#if BOOST_OS_WINDOWS
-#include <Psapi.h>
-#include <winternl.h>
-#pragma comment(lib, "ntdll.lib")
-#endif
 
 struct OverlayStats
 {
 	OverlayStats() {};
 
 	int processor_count = 1;
-
-	// cemu cpu stats
-	uint64_t last_cpu{}, kernel{}, user{};
-
-	// global cpu stats
-	struct ProcessorTime
-	{
-		uint64_t idle{}, kernel{}, user{};
-	};
-
+	ProcessorTime processor_time_cemu;
 	std::vector<ProcessorTime> processor_times;
 
 	double fps{};
@@ -562,19 +548,38 @@ void LatteOverlay_render(bool pad_view)
 	}
 }
 
-
 void LatteOverlay_init()
 {
-#if BOOST_OS_WINDOWS
-	SYSTEM_INFO sys_info;
-	GetSystemInfo(&sys_info);
-	g_state.processor_count = sys_info.dwNumberOfProcessors;
+	g_state.processor_count = GetProcessorCount();
 
 	g_state.processor_times.resize(g_state.processor_count);
 	g_state.cpu_per_core.resize(g_state.processor_count);
-#else
-	g_state.processor_count = 1;
-#endif
+}
+
+static void UpdateStats_CemuCpu()
+{
+	ProcessorTime now;
+	QueryProcTime(now);
+	
+	double cpu = ProcessorTime::Compare(g_state.processor_time_cemu, now);
+	cpu /= g_state.processor_count;
+	
+	g_state.cpu_usage = cpu * 100;
+	g_state.processor_time_cemu = now;
+}
+
+static void UpdateStats_CpuPerCore()
+{
+	std::vector<ProcessorTime> now(g_state.processor_count);
+	QueryCoreTimes(g_state.processor_count, now);
+
+	for (int32_t i = 0; i < g_state.processor_count; ++i)
+	{
+		double cpu = ProcessorTime::Compare(g_state.processor_times[i], now[i]);
+
+		g_state.cpu_per_core[i] = cpu * 100;
+		g_state.processor_times[i] = now[i];
+	}
 }
 
 void LatteOverlay_updateStats(double fps, sint32 drawcalls)
@@ -584,61 +589,11 @@ void LatteOverlay_updateStats(double fps, sint32 drawcalls)
 
 	g_state.fps = fps;
 	g_state.draw_calls_per_frame = drawcalls;
-
-#if BOOST_OS_WINDOWS
-	// update cemu cpu
-	FILETIME ftime, fkernel, fuser;
-	LARGE_INTEGER now, kernel, user;
-	GetSystemTimeAsFileTime(&ftime);
-	now.LowPart = ftime.dwLowDateTime;
-	now.HighPart = ftime.dwHighDateTime;
-
-	GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fkernel, &fuser);
-	kernel.LowPart = fkernel.dwLowDateTime;
-	kernel.HighPart = fkernel.dwHighDateTime;
-
-	user.LowPart = fuser.dwLowDateTime;
-	user.HighPart = fuser.dwHighDateTime;
-
-	double percent = (kernel.QuadPart - g_state.kernel) + (user.QuadPart - g_state.user);
-	percent /= (now.QuadPart - g_state.last_cpu);
-	percent /= g_state.processor_count;
-	g_state.cpu_usage = percent * 100;
-	g_state.last_cpu = now.QuadPart;
-	g_state.user = user.QuadPart;
-	g_state.kernel = kernel.QuadPart;
-
-	// update cpu per core
-	std::vector<SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION> sppi(g_state.processor_count);
-	if (NT_SUCCESS(NtQuerySystemInformation(SystemProcessorPerformanceInformation, sppi.data(), sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * g_state.processor_count, nullptr)))
-	{
-		for (sint32 i = 0; i < g_state.processor_count; ++i)
-		{
-			const uint64 kernel_diff = sppi[i].KernelTime.QuadPart - g_state.processor_times[i].kernel;
-			const uint64 user_diff = sppi[i].UserTime.QuadPart - g_state.processor_times[i].user;
-			const uint64 idle_diff = sppi[i].IdleTime.QuadPart - g_state.processor_times[i].idle;
-
-			const auto total = kernel_diff + user_diff; // kernel time already includes idletime
-			const double cpu = total == 0 ? 0 : (1.0 - ((double)idle_diff / total)) * 100.0;
-
-			g_state.cpu_per_core[i] = cpu;
-			//total_cpu += cpu;
-
-			g_state.processor_times[i].idle = sppi[i].IdleTime.QuadPart;
-			g_state.processor_times[i].kernel = sppi[i].KernelTime.QuadPart;
-			g_state.processor_times[i].user = sppi[i].UserTime.QuadPart;
-		}
-
-		//total_cpu /= g_state.processor_count;
-		//g_state.cpu_usage = total_cpu;
-	}
+	UpdateStats_CemuCpu();
+	UpdateStats_CpuPerCore();
 
 	// update ram
-	PROCESS_MEMORY_COUNTERS pmc{};
-	pmc.cb = sizeof(pmc);
-	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-	g_state.ram_usage = (pmc.WorkingSetSize / 1000) / 1000;
-#endif
+	g_state.ram_usage = (QueryRamUsage() / 1000) / 1000;
 
 	// update vram
 	g_renderer->GetVRAMInfo(g_state.vramUsage, g_state.vramTotal);
