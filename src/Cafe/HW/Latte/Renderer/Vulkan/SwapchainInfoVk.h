@@ -49,7 +49,7 @@ struct SwapchainInfoVk
 
 	VkExtent2D getExtent() const
 	{
-		return m_actualExtent;
+		return m_currentExtent;
 	}
 
 	SwapchainInfoVk(VkSurfaceKHR surface, bool mainWindow)
@@ -73,7 +73,6 @@ struct SwapchainInfoVk
 	VkSurfaceKHR surface{};
 	VkSurfaceFormatKHR m_surfaceFormat{};
 	VkSwapchainKHR swapchain{};
-	Vector2i m_desiredExtent{};
 	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
@@ -89,5 +88,5 @@ struct SwapchainInfoVk
 	VkRenderPass m_swapchainRenderPass = nullptr;
 
 private:
-	VkExtent2D m_actualExtent{};
+	VkExtent2D m_currentExtent{};
 };

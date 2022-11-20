@@ -651,7 +651,6 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	if (mainWindow)
 	{
 		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_mainSwapchainInfo->m_desiredExtent = size;
 		m_mainSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 
 		// aquire first command buffer
@@ -660,7 +659,6 @@ void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
 	else
 	{
 		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_padSwapchainInfo->m_desiredExtent = size;
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
 		m_padSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 	}
@@ -2588,7 +2586,6 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	}
 
 	chainInfo.Cleanup();
-	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
