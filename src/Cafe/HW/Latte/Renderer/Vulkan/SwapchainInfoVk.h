@@ -34,6 +34,8 @@ struct SwapchainInfoVk
 
 	bool IsValid() const;
 
+	void WaitAvailableFence() const;
+
 	static void UnrecoverableError(const char* errMsg);
 
 	// todo: move this function somewhere more sensible. Not directly swapchain related

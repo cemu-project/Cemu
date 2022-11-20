@@ -1665,6 +1665,7 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 	draw_endRenderPass();
 	m_state.currentPipeline = VK_NULL_HANDLE;
 
+	chainInfo.WaitAvailableFence();
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
 	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.getExtent());
 	ImGui_UpdateWindowInformation(mainWindow);
@@ -1721,6 +1722,7 @@ bool VulkanRenderer::BeginFrame(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
+	chainInfo.WaitAvailableFence();
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
 	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
@@ -2557,7 +2559,6 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
 			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
-	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 
 	return true;
 }
@@ -2632,6 +2633,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 
 	if (!chainInfo.hasDefinedSwapchainImage)
 	{
+		chainInfo.WaitAvailableFence();
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -2699,6 +2701,7 @@ void VulkanRenderer::ClearColorbuffer(bool padView)
 	if (chainInfo.swapchainImageIndex == -1)
 		return;
 
+	chainInfo.WaitAvailableFence();
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
 	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 }
@@ -2789,6 +2792,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
+	chainInfo.WaitAvailableFence();
 	if (clearBackground)
 		ClearColorbuffer(padView);
 
