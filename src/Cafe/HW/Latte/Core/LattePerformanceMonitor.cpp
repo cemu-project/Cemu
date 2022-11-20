@@ -98,7 +98,10 @@ void LattePerformanceMonitor_frameEnd()
 		performanceMonitor.cycle[nextCycleIndex].recompilerLeaveCount = 0;
 		performanceMonitor.cycle[nextCycleIndex].threadLeaveCount = 0;
 		performanceMonitor.cycleIndex = nextCycleIndex;
-		
+
+		// next update in 1 second
+		performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate = GetTickCount();
+
 		if (isFirstUpdate)
 		{
 			LatteOverlay_updateStats(0.0, 0);
@@ -109,8 +112,6 @@ void LattePerformanceMonitor_frameEnd()
 			LatteOverlay_updateStats(fps, drawCallCounter / elapsedFrames);
 			gui_updateWindowTitles(false, false, fps);
 		}
-		// next update in 1 second
-		performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate = GetTickCount();
 
 		// prevent hibernation and screen saver/monitor off
 		#if BOOST_OS_WINDOWS
