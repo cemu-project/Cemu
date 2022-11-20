@@ -55,6 +55,7 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 		{
 			out[i].idle = sppi[i].IdleTime.QuadPart;
 			out[i].kernel = sppi[i].KernelTime.QuadPart;
+			out[i].kernel -= out[i].idle;
 			out[i].user = sppi[i].UserTime.QuadPart;
 		}
 	}
