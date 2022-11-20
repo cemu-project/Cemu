@@ -148,7 +148,7 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 		sizer->Add(profiles, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL | wxEXPAND, 5);
 
 #if BOOST_OS_LINUX
-		// We rely on the wxEVT_COMBOBOX_DROPDOWN event to trigger filling the controller list,
+		// We rely on the wxEVT_COMBOBOX_DROPDOWN event to trigger filling the profile list,
 		// but on wxGTK the dropdown button cannot be clicked if the list is empty
 		// so as a quick and dirty workaround we fill the list here
 		wxCommandEvent tmpCmdEvt;
