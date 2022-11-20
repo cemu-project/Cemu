@@ -15,6 +15,13 @@
 
 -(CALayer*) makeBackingLayer { return [self.class.layerClass layer]; }
 
+- (void)viewDidChangeBackingProperties {
+	NSScreen* screen = [[self window] screen];
+	if (screen) {
+		self.layer.contentsScale = [[self window] backingScaleFactor];
+	}
+}
+
 @end
 
 VkSurfaceKHR CreateCocoaSurface(VkInstance instance, void* handle)

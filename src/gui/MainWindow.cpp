@@ -1506,7 +1506,12 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 	if (!IsMaximized() && !gui_isFullScreen())
 		m_restored_size = GetSize();
 
-	const wxSize client_size = GetClientSize();
+	#if BOOST_OS_MACOS
+		const wxSize client_size = ToPhys(GetClientSize());
+	#else
+		const wxSize client_size = GetClientSize();
+	#endif
+
 	g_window_info.width = client_size.GetWidth();
 	g_window_info.height = client_size.GetHeight();
 
