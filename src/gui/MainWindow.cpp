@@ -1388,7 +1388,7 @@ void MainWindow::OnChar(wxKeyEvent& event)
 	if (swkbd_hasKeyboardInputHook())
 		swkbd_keyInput(event.GetUnicodeKey());
 	
-	event.Skip();
+	// event.Skip();
 }
 
 void MainWindow::OnToolsInput(wxCommandEvent& event)
