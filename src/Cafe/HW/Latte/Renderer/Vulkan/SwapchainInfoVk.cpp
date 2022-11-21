@@ -118,6 +118,8 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	result = vkCreateFence(logicalDevice, &fenceInfo, nullptr, &m_imageAvailableFence);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Failed to create fence for swapchain");
+
+	hasDefinedSwapchainImage = false;
 }
 
 void SwapchainInfoVk::Cleanup()
