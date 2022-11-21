@@ -34,6 +34,8 @@ struct SwapchainInfoVk
 
 	bool IsValid() const;
 
+	void WaitAvailableFence() const;
+
 	static void UnrecoverableError(const char* errMsg);
 
 	// todo: move this function somewhere more sensible. Not directly swapchain related
@@ -76,7 +78,6 @@ struct SwapchainInfoVk
 	Vector2i m_desiredExtent{};
 	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
-	uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
 
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
@@ -84,7 +85,7 @@ struct SwapchainInfoVk
 	std::vector<VkImageView> m_swapchainImageViews;
 	std::vector<VkFramebuffer> m_swapchainFramebuffers;
 	std::vector<VkSemaphore> m_swapchainPresentSemaphores;
-	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by acquireIndex
+	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 
 	VkRenderPass m_swapchainRenderPass = nullptr;
 

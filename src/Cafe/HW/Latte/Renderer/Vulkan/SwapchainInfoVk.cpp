@@ -13,10 +13,7 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	m_surfaceFormat = ChooseSurfaceFormat(details.formats);
 	m_actualExtent = ChooseSwapExtent(details.capabilities);
 
-	// calculate number of swapchain presentation images
-	uint32_t image_count = details.capabilities.minImageCount + 1;
-	if (details.capabilities.maxImageCount > 0 && image_count > details.capabilities.maxImageCount)
-		image_count = details.capabilities.maxImageCount;
+	uint32_t image_count = details.capabilities.minImageCount;
 
 	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(surface, details, m_surfaceFormat, image_count, m_actualExtent);
 	create_info.oldSwapchain = nullptr;
@@ -115,22 +112,14 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 			UnrecoverableError("Failed to create semaphore for swapchain present");
 	}
 
-	m_acquireSemaphores.resize(m_swapchainImages.size());
-	for (auto& semaphore : m_acquireSemaphores)
-	{
-		VkSemaphoreCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (vkCreateSemaphore(logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
-			UnrecoverableError("Failed to create semaphore for swapchain acquire");
-	}
-	m_acquireIndex = 0;
-
 	VkFenceCreateInfo fenceInfo = {};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 	result = vkCreateFence(logicalDevice, &fenceInfo, nullptr, &m_imageAvailableFence);
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Failed to create fence for swapchain");
+
+	hasDefinedSwapchainImage = false;
 }
 
 void SwapchainInfoVk::Cleanup()
@@ -140,10 +129,6 @@ void SwapchainInfoVk::Cleanup()
 	for (auto& sem: m_swapchainPresentSemaphores)
 		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
 	m_swapchainPresentSemaphores.clear();
-
-	for (auto& itr: m_acquireSemaphores)
-		vkDestroySemaphore(m_logicalDevice, itr, nullptr);
-	m_acquireSemaphores.clear();
 
 	if (m_swapchainRenderPass)
 	{
@@ -175,6 +160,11 @@ void SwapchainInfoVk::Cleanup()
 bool SwapchainInfoVk::IsValid() const
 {
 	return swapchain && m_imageAvailableFence;
+}
+
+void SwapchainInfoVk::WaitAvailableFence() const
+{
+	vkWaitForFences(m_logicalDevice, 1, &m_imageAvailableFence, VK_TRUE, UINT64_MAX);
 }
 
 void SwapchainInfoVk::UnrecoverableError(const char* errMsg)
@@ -345,12 +335,12 @@ VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	const QueueFamilyIndices indices = FindQueueFamilies(surface, m_physicalDevice);
-	uint32_t queueFamilyIndices[] = { (uint32)indices.graphicsFamily, (uint32)indices.presentFamily };
+	m_swapchainQueueFamilyIndices = { (uint32)indices.graphicsFamily, (uint32)indices.presentFamily };
 	if (indices.graphicsFamily != indices.presentFamily)
 	{
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		createInfo.queueFamilyIndexCount = 2;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+		createInfo.queueFamilyIndexCount = m_swapchainQueueFamilyIndices.size();
+		createInfo.pQueueFamilyIndices = m_swapchainQueueFamilyIndices.data();
 	}
 	else
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
