@@ -71,6 +71,7 @@ enum
 	// file
 	MAINFRAME_MENU_ID_FILE_LOAD = 20100,
 	MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE,
+	MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER,
 	MAINFRAME_MENU_ID_FILE_EXIT,
 	MAINFRAME_MENU_ID_FILE_END_EMULATION,
 	MAINFRAME_MENU_ID_FILE_RECENT_0,
@@ -160,6 +161,7 @@ EVT_MOVE(MainWindow::OnMove)
 // file menu
 EVT_MENU(MAINFRAME_MENU_ID_FILE_LOAD, MainWindow::OnFileMenu)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, MainWindow::OnInstallUpdate)
+EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, MainWindow::OnOpenCemuFolder)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_EXIT, MainWindow::OnFileExit)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_END_EMULATION, MainWindow::OnFileMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_FILE_RECENT_0 + 0, MAINFRAME_MENU_ID_FILE_RECENT_LAST, MainWindow::OnFileMenu)
@@ -614,6 +616,11 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 		m_game_launched = false;
 		RecreateMenu();
 	}
+}
+
+void MainWindow::OnOpenCemuFolder(wxCommandEvent& event)
+{
+	wxLaunchDefaultApplication(ActiveSettings::GetUserDataPath().wstring());
 }
 
 void MainWindow::OnInstallUpdate(wxCommandEvent& event)
@@ -1976,7 +1983,8 @@ void MainWindow::RecreateMenu()
 				break;
 		}
 		m_fileMenuSeparator1 = m_fileMenu->AppendSeparator();
-
+		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, _("&Open Cemu folder"));
+		m_fileMenu->AppendSeparator();
 	}
 	else
 	{
