@@ -134,7 +134,8 @@ void PadViewFrame::OnGesturePan(wxPanGestureEvent& event)
 	auto& instance = InputManager::instance();
 
 	std::scoped_lock lock(instance.m_pad_touch.m_mutex);
-	instance.m_pad_touch.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_touch.position = { physPos.x, physPos.y };
 	instance.m_pad_touch.left_down = event.IsGestureStart() || !event.IsGestureEnd();
 	if (event.IsGestureStart() || !event.IsGestureEnd())
 		instance.m_pad_touch.left_down_toggle = true;
@@ -153,7 +154,8 @@ void PadViewFrame::OnMouseMove(wxMouseEvent& event)
 	auto& instance = InputManager::instance();
 
 	std::scoped_lock lock(instance.m_pad_touch.m_mutex);
-	instance.m_pad_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_mouse.position = { physPos.x, physPos.y };
 
 	event.Skip();
 }
@@ -164,7 +166,8 @@ void PadViewFrame::OnMouseLeft(wxMouseEvent& event)
 
 	std::scoped_lock lock(instance.m_pad_mouse.m_mutex);
 	instance.m_pad_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	instance.m_pad_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_mouse.position = { physPos.x, physPos.y };
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
 		instance.m_pad_mouse.left_down_toggle = true;
 	
@@ -176,7 +179,8 @@ void PadViewFrame::OnMouseRight(wxMouseEvent& event)
 
 	std::scoped_lock lock(instance.m_pad_mouse.m_mutex);
 	instance.m_pad_mouse.right_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	instance.m_pad_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_mouse.position = { physPos.x, physPos.y };
 	if (event.ButtonDown(wxMOUSE_BTN_RIGHT))
 		instance.m_pad_mouse.right_down_toggle = true;
 }
