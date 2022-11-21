@@ -2540,11 +2540,11 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	if (!UpdateSwapchainProperties(mainWindow))
-		return false;
-
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
+
+	if (!UpdateSwapchainProperties(mainWindow))
+		return false;
 
 	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
 	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
