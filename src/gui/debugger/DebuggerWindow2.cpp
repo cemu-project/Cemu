@@ -19,9 +19,7 @@
 #include "gui/debugger/ModuleWindow.h"
 #include "util/helpers/helpers.h"
 
-#if BOOST_OS_LINUX
 #include "resource/embedded/resources.h"
-#endif
 
 enum
 {
@@ -219,26 +217,27 @@ void DebuggerModuleStorage::Save(XMLConfigParser& parser)
 void DebuggerWindow2::CreateToolBar() 
 {
 	m_toolbar = wxFrame::CreateToolBar(wxTB_HORIZONTAL, wxID_ANY);
-	m_toolbar->SetToolBitmapSize(wxSize(1, 1));
+	m_toolbar->SetToolBitmapSize(wxSize(16, 16));
 
-	m_toolbar->AddTool(TOOL_ID_GOTO, wxEmptyString, wxBITMAP_PNG(DEBUGGER_GOTO), wxNullBitmap, wxITEM_NORMAL, _("GoTo (CTRL + G)"), "test", NULL);
+	m_toolbar->AddTool(TOOL_ID_GOTO, wxEmptyString, wxBITMAP_PNG_FROM_DATA(DEBUGGER_GOTO), wxNullBitmap, wxITEM_NORMAL, _("GoTo (CTRL + G)"), "test", NULL);
 	m_toolbar->AddSeparator();
 
-	m_toolbar->AddTool(TOOL_ID_BP, wxEmptyString, wxBITMAP_PNG(DEBUGGER_BP_RED), wxNullBitmap, wxITEM_NORMAL, _("Toggle Breakpoint (F9)"), wxEmptyString, NULL);
+	m_toolbar->AddTool(TOOL_ID_BP, wxEmptyString, wxBITMAP_PNG_FROM_DATA(DEBUGGER_BP_RED), wxNullBitmap, wxITEM_NORMAL, _("Toggle Breakpoint (F9)"), wxEmptyString, NULL);
 	m_toolbar->AddSeparator();
 
-	m_pause = wxBITMAP_PNG(DEBUGGER_PAUSE);
-	m_run = wxBITMAP_PNG(DEBUGGER_PLAY);
+	m_pause = wxBITMAP_PNG_FROM_DATA(DEBUGGER_PAUSE);
+	m_run = wxBITMAP_PNG_FROM_DATA(DEBUGGER_PLAY);
 	m_toolbar->AddTool(TOOL_ID_PAUSE, wxEmptyString, m_pause, wxNullBitmap, wxITEM_NORMAL, _("Break (F5)"), wxEmptyString, NULL);
 	
-	m_toolbar->AddTool(TOOL_ID_STEP_INTO, wxEmptyString, wxBITMAP_PNG(DEBUGGER_STEP_INTO), wxNullBitmap, wxITEM_NORMAL, _("Step Into (F11)"), wxEmptyString, NULL);
-	m_toolbar->AddTool(TOOL_ID_STEP_OVER, wxEmptyString, wxBITMAP_PNG(DEBUGGER_STEP_OVER), wxNullBitmap, wxITEM_NORMAL, _("Step Over (F10)"), wxEmptyString, NULL);
+	m_toolbar->AddTool(TOOL_ID_STEP_INTO, wxEmptyString, wxBITMAP_PNG_FROM_DATA(DEBUGGER_STEP_INTO), wxNullBitmap, wxITEM_NORMAL, _("Step Into (F11)"), wxEmptyString, NULL);
+	m_toolbar->AddTool(TOOL_ID_STEP_OVER, wxEmptyString, wxBITMAP_PNG_FROM_DATA(DEBUGGER_STEP_OVER), wxNullBitmap, wxITEM_NORMAL, _("Step Over (F10)"), wxEmptyString, NULL);
 	m_toolbar->AddSeparator();
 
 	m_toolbar->Realize();
 
 	m_toolbar->EnableTool(TOOL_ID_STEP_INTO, false);
 	m_toolbar->EnableTool(TOOL_ID_STEP_OVER, false);
+
 }
 
 void DebuggerWindow2::SaveModuleStorage(const RPLModule* module, bool delete_breakpoints)
@@ -272,7 +271,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 {
 	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
 
-	const auto file = ActiveSettings::GetPath("debugger/config.xml");
+	const auto file = ActiveSettings::GetConfigPath("debugger/config.xml");
 	m_config.SetFilename(file.generic_wstring());
 	m_config.Load();
 
@@ -472,7 +471,7 @@ bool DebuggerWindow2::Show(bool show)
 std::wstring DebuggerWindow2::GetModuleStoragePath(std::string module_name, uint32_t crc_hash) const
 {
 	if (module_name.empty() || crc_hash == 0) return std::wstring();
-	return ActiveSettings::GetPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
+	return ActiveSettings::GetConfigPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
 }
 
 void DebuggerWindow2::OnBreakpointHit(wxCommandEvent& event)

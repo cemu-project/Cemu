@@ -1,12 +1,13 @@
 #include "Cemu/FileCache/FileCache.h"
 #include "Cafe/HW/Latte/Core/LatteShaderCache.h"
 #include <regex>
+#include <cinttypes>
 
 void MergeShaderCacheFile(std::string fileName)
 {
 	// parse titleId from fileName
 	uint64 titleId = 0;
-	if (sscanf(fileName.c_str(), "%I64x", &titleId) != 1)
+	if (sscanf(fileName.c_str(), "%" SCNx64, &titleId) != 1)
 		return;
 
 	const std::string mainPath = "shaderCache/transferable/" + fileName;
@@ -26,7 +27,7 @@ void MergeShaderCacheFile(std::string fileName)
 		return;
 	}
 	// begin merging
-	printf("Merging shaders %I64x...", titleId);
+	printf("Merging shaders %" PRIx64 "...", titleId);
 	uint32 numMergedEntries = 0; // number of files added to the main cache file
 	for (sint32 i = 0; i < sourceCache->GetFileCount(); i++)
 	{
@@ -52,7 +53,7 @@ void MergePipelineCacheFile(std::string fileName)
 {
 	// parse titleId from fileName
 	uint64 titleId = 0;
-	if (sscanf(fileName.c_str(), "%I64x", &titleId) != 1)
+	if (sscanf(fileName.c_str(), "%" SCNx64, &titleId) != 1)
 		return;
 
 	const std::string mainPath = "shaderCache/transferable/" + fileName;
@@ -73,7 +74,7 @@ void MergePipelineCacheFile(std::string fileName)
 		return;
 	}
 	// begin merging
-	printf("Merging pipelines %I64x...", titleId);
+	printf("Merging pipelines %" PRIx64 "...", titleId);
 	uint32 numMergedEntries = 0; // number of files added to the main cache file
 	for (sint32 i = 0; i < sourceCache->GetFileCount(); i++)
 	{

@@ -409,7 +409,7 @@ void memory_writeDumpFile(uint32 startAddr, uint32 size, const fs::path& path)
 void memory_createDump()
 {
 	const uint32 pageSize = MemMapper::GetPageSize();
-	fs::path path = ActiveSettings::GetPath("dump/ramDump{:}", (uint32)time(nullptr));
+	fs::path path = ActiveSettings::GetUserDataPath("dump/ramDump{:}", (uint32)time(nullptr));
 	fs::create_directories(path);
 
 	for (auto& itr : g_mmuRanges)

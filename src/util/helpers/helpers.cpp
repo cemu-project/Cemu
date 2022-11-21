@@ -139,8 +139,6 @@ typedef struct tagTHREADNAME_INFO
 void SetThreadName(const char* name)
 {
 #if BOOST_OS_WINDOWS
-	
-#ifndef _PUBLIC_RELEASE
 	THREADNAME_INFO info;
 	info.dwType = 0x1000;
 	info.szName = name;
@@ -154,9 +152,6 @@ void SetThreadName(const char* name)
 	__except (EXCEPTION_EXECUTE_HANDLER) {
 	}
 #pragma warning(pop)
-	
-#endif
-	
 #elif BOOST_OS_MACOS
 	pthread_setname_np(name);
 #else
@@ -285,15 +280,16 @@ uint32_t GetPhysicalCoreCount()
 
 bool TestWriteAccess(const fs::path& p)
 {
+	std::error_code ec;
 	// must be path and must exist
-	if (!fs::exists(p) || !fs::is_directory(p))
+	if (!fs::exists(p, ec) || !fs::is_directory(p, ec))
 		return false;
 
 	// retry 3 times
 	for (int i = 0; i < 3; ++i)
 	{
 		const auto filename = p / fmt::format("_{}.tmp", GenerateRandomString(8));
-		if (fs::exists(filename))
+		if (fs::exists(filename, ec))
 			continue;
 
 		std::ofstream file(filename);
@@ -302,7 +298,6 @@ bool TestWriteAccess(const fs::path& p)
 		
 		file.close();
 
-		std::error_code ec;
 		fs::remove(filename, ec);
 		return true;
 	}
@@ -311,11 +306,10 @@ bool TestWriteAccess(const fs::path& p)
 }
 
 // make path relative to Cemu directory
-fs::path MakeRelativePath(const fs::path& path)
+fs::path MakeRelativePath(const fs::path& base, const fs::path& path)
 {
 	try
 	{
-		const fs::path base = ActiveSettings::GetPath();
 		return fs::relative(path, base);
 	}
 	catch (const std::exception&)

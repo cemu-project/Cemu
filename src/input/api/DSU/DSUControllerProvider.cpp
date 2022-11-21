@@ -1,6 +1,14 @@
 #include "input/api/DSU/DSUControllerProvider.h"
 #include "input/api/DSU/DSUController.h"
 
+#if BOOST_OS_WINDOWS
+#include <boost/asio/detail/socket_option.hpp>
+#include <winsock2.h>
+#elif BOOST_OS_LINUX || BOOST_OS_MACOS
+#include <sys/time.h>
+#include <sys/socket.h>
+#endif
+
 DSUControllerProvider::DSUControllerProvider()
 	: base_type(), m_uid(rand()), m_socket(m_io_service)
 {
@@ -70,16 +78,22 @@ bool DSUControllerProvider::connect()
 		using namespace boost::asio;
 
 		ip::udp::resolver resolver(m_io_service);
-		const ip::udp::resolver::query query(ip::udp::v4(), get_settings().ip, fmt::format("{}", get_settings().port));
+		const ip::udp::resolver::query query(ip::udp::v4(), get_settings().ip, fmt::format("{}", get_settings().port),
+		                                     ip::udp::resolver::query::canonical_name);
 		m_receiver_endpoint = *resolver.resolve(query);
 
 		if (m_socket.is_open())
 			m_socket.close();
 
 		m_socket.open(ip::udp::v4());
-		// set timeout for our threads to give a chance to exit
-		m_socket.set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
 
+        // set timeout for our threads to give a chance to exit
+#if BOOST_OS_WINDOWS
+        m_socket.set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_RCVTIMEO>{200});
+#elif BOOST_OS_LINUX || BOOST_OS_MACOS
+        timeval timeout{.tv_usec = 200 * 1000};
+        setsockopt(m_socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeval));
+#endif
 		// reset data
 		m_state = {};
 		m_prev_state = {};
@@ -250,7 +264,7 @@ void DSUControllerProvider::reader_thread()
 		if (ec)
 		{
 #ifdef DEBUG_DSU_CLIENT
-				printf(" DSUControllerProvider::ReaderThread: exception %s\n", ex.what());
+				printf(" DSUControllerProvider::ReaderThread: exception %s\n", ec.what());
 #endif
 
 			// there's probably no server listening on the given address:port
@@ -393,10 +407,10 @@ void DSUControllerProvider::writer_thread()
 		{
 			m_socket.send_to(boost::asio::buffer(msg.get(), msg->GetSize()), m_receiver_endpoint);
 		}
-		catch (const std::exception&)
+		catch (const std::exception& ec)
 		{
 #ifdef DEBUG_DSU_CLIENT
-			printf(" DSUControllerProvider::WriterThread: exception %s\n", ex.what());
+			printf(" DSUControllerProvider::WriterThread: exception %s\n", ec.what());
 #endif
 			std::this_thread::sleep_for(std::chrono::milliseconds(250));
 		}

@@ -1,5 +1,26 @@
 #include "Common/unix/FileStream_unix.h"
 
+fs::path findPathCI(const fs::path& path)
+{
+	if (fs::exists(path)) return path;
+
+	fs::path fName = path.filename();
+	fs::path parentPath = path.parent_path();
+	if (!fs::exists(parentPath))
+	{
+		auto CIParent = findPathCI(parentPath);
+		if (fs::exists(CIParent))
+			return findPathCI(CIParent / fName);
+	}
+
+	std::error_code listErr;
+	for (auto&& dirEntry : fs::directory_iterator(parentPath, listErr))
+		if (boost::iequals(dirEntry.path().filename().string(), fName.string()))
+			return dirEntry;
+
+	return parentPath / fName;
+}
+
 FileStream* FileStream::openFile(std::string_view path)
 {
 	return openFile2(path, false);
@@ -188,15 +209,21 @@ FileStream::~FileStream()
 
 FileStream::FileStream(const fs::path& path, bool isOpen, bool isWriteable)
 {
+	fs::path CIPath = findPathCI(path);
 	if (isOpen)
 	{
-		m_fileStream.open(path, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
+		m_fileStream.open(CIPath, isWriteable ? (std::ios_base::in | std::ios_base::out | std::ios_base::binary) : (std::ios_base::in | std::ios_base::binary));
 		m_isValid = m_fileStream.is_open();
 	}
 	else
 	{
-		m_fileStream.open(path, std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+		m_fileStream.open(CIPath, std::ios_base::in | std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 		m_isValid = m_fileStream.is_open();
+	}
+	if(m_isValid && fs::is_directory(path))
+	{
+		m_isValid = false;
+		m_fileStream.close();
 	}
 }
 

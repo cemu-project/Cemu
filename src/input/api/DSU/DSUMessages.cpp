@@ -1,6 +1,5 @@
 #include "input/api/DSU/DSUMessages.h"
-
-#include <boost/crc.hpp>
+#include "util/crypto/crc32.h"
 
 constexpr uint32_t kMagicClient = 'CUSD';
 constexpr uint32_t kMagicServer = 'SUSD';
@@ -17,15 +16,14 @@ void MessageHeader::Finalize(size_t size)
 
 uint32_t MessageHeader::CRC32(size_t size) const
 {
-	const auto tmp = m_crc32;
+	uint32_t tmp, tmp2;
+
+	tmp = m_crc32;
 	m_crc32 = 0;
-
-	boost::crc_32_type crc;
-	crc.process_bytes(this, size);
-	const auto result = crc.checksum();
-
+	tmp2 = crc32_calc(this, size);
 	m_crc32 = tmp;
-	return result;
+
+	return tmp2;
 }
 
 bool MessageHeader::IsClientMessage() const { return m_magic == kMagicClient; }

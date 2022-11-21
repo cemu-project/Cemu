@@ -938,7 +938,7 @@ void export_MEMSetGroupIDForExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamU16(groupId, 1);
 	coreinitMemLog_printf("MEMSetGroupIDForExpHeap(0x%08x, %d)", heap.GetMPTR(), groupId);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	assert_dbg(); // someone test this and the entire groupId feature
 #endif
 	uint16 oldGroupId = MEMSetGroupIDForExpHeap(heap.GetPtr(), groupId);

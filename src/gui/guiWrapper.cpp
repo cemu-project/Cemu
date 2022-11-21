@@ -5,6 +5,7 @@
 #include "gui/debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/CafeSystem.h"
@@ -97,8 +98,14 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
     windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
 
     if (ActiveSettings::IsOnlineEnabled())
-        windowText.append(" [Online]");
-
+	{
+		if (ActiveSettings::GetNetworkService() == NetworkService::Nintendo)
+			windowText.append(" [Online]");
+		else if (ActiveSettings::GetNetworkService() == NetworkService::Pretendo)
+			 windowText.append(" [Online-Pretendo]");
+		else if (ActiveSettings::GetNetworkService() == NetworkService::Custom)
+			 windowText.append(" [Online-" + GetNetworkConfig().networkname.GetValue() + "]");
+	}
     windowText.append(" ");
 	windowText.append(CafeSystem::GetForegroundTitleName());
 	// append region
@@ -153,6 +160,15 @@ bool gui_isPadWindowOpen()
 #include <dlfcn.h>
 
 typedef void GdkDisplay;
+namespace
+{
+const char* (*gdk_keyval_name)(unsigned int keyval);
+}
+std::string gui_gtkRawKeyCodeToString(uint32 keyCode)
+{
+	return gdk_keyval_name(keyCode);
+}
+
 #endif
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw)
@@ -176,9 +192,11 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
     Window (*dyn_gdk_x11_window_get_xid)(GdkWindow *window);
     dyn_gdk_x11_window_get_xid = (Window(*)(GdkWindow *window))dlsym(RTLD_NEXT, "gdk_x11_window_get_xid");
 
+	gdk_keyval_name = (const char* (*)(unsigned int))dlsym(RTLD_NEXT, "gdk_keyval_name");
+
     if(!dyn_gtk_widget_realize || !dyn_gtk_widget_get_window ||
     !dyn_gdk_window_get_display || !dyn_gdk_x11_display_get_xdisplay ||
-    !dyn_gdk_x11_window_get_xid)
+    !dyn_gdk_x11_window_get_xid || !gdk_keyval_name)
     {
         cemuLog_log(LogType::Force, "Unable to load GDK symbols");
         return;
@@ -206,10 +224,7 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 
 bool gui_isKeyDown(int key)
 {
-	if (key >= 256)
-		return false;
-
-	return g_window_info.keydown[key];
+	return g_window_info.get_keystate(key);
 }
 
 void gui_notifyGameLoaded()

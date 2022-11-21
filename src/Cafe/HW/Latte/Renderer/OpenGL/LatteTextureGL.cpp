@@ -35,7 +35,7 @@ LatteTextureGL::LatteTextureGL(uint32 textureUnit, Latte::E_DIM dim, MPTR physAd
 	LatteTextureGL::InitTextureState();
 	// set debug name
 	bool useGLDebugNames = false;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	useGLDebugNames = true;
 #endif
 	if (LaunchSettings::NSightModeEnabled())

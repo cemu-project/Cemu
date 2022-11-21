@@ -108,14 +108,8 @@ uint64 PPCTimer_tscToMicroseconds(uint64 us)
 	uint128_t r{};
 	r.low = _umul128(us, 1000000ULL, &r.high);
 
-
 	uint64 remainder;
-
-#if defined(_MSC_VER) && _MSC_VER >= 1923 && !defined(__clang__)
 	const uint64 microseconds = _udiv128(r.high, r.low, _rdtscFrequency, &remainder);
-#else
-	const uint64 microseconds = udiv128(r.low, r.high, _rdtscFrequency, &remainder);
-#endif
 
 	return microseconds;
 }
@@ -135,7 +129,7 @@ FSpinlock sTimerSpinlock;
 // thread safe
 uint64 PPCTimer_getFromRDTSC()
 {
-	sTimerSpinlock.acquire();
+	sTimerSpinlock.lock();
 	_mm_mfence();
 	uint64 rdtscCurrentMeasure = __rdtsc();
 	uint64 rdtscDif = rdtscCurrentMeasure - _rdtscLastMeasure;
@@ -159,12 +153,7 @@ uint64 PPCTimer_getFromRDTSC()
 	#endif
 
 	uint64 remainder;
-#if defined(_MSC_VER) && _MSC_VER >= 1923 && !defined(__clang__)
 	uint64 elapsedTick = _udiv128(_rdtscAcc.high, _rdtscAcc.low, _rdtscFrequency, &remainder);
-#else
-	uint64 elapsedTick = udiv128(_rdtscAcc.low, _rdtscAcc.high, _rdtscFrequency, &remainder);
-#endif
-
 
 	_rdtscAcc.low = remainder;
 	_rdtscAcc.high = 0;
@@ -176,6 +165,6 @@ uint64 PPCTimer_getFromRDTSC()
 
 	_tickSummary += elapsedTick;
 
-	sTimerSpinlock.release();
+	sTimerSpinlock.unlock();
 	return _tickSummary;
 }

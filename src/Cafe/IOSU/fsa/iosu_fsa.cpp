@@ -328,26 +328,26 @@ namespace iosu
 
 		FSStatus FSAProcessCmd_remove(FSAClient* client, FSAIpcCommand* cmd)
 		{
-			char* path = (char*)cmd->cmdRemove.path;
+			std::string path = __FSATranslatePath(client, (char*)cmd->cmdRemove.path);
 			sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
-			fsc_remove(path, &fscStatus);
+			fsc_remove(path.c_str(), &fscStatus);
 			return FSA_convertFSCtoFSStatus(fscStatus);
 		}
 
 		FSStatus FSAProcessCmd_makeDir(FSAClient* client, FSAIpcCommand* cmd)
 		{
-			char* path = (char*)cmd->cmdMakeDir.path;
+			std::string path = __FSATranslatePath(client, (char*)cmd->cmdMakeDir.path);
 			sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
-			fsc_createDir(path, &fscStatus);
+			fsc_createDir(path.c_str(), &fscStatus);
 			return FSA_convertFSCtoFSStatus(fscStatus);
 		}
 
 		FSStatus FSAProcessCmd_rename(FSAClient* client, FSAIpcCommand* cmd)
 		{
-			char* srcPath = (char*)cmd->cmdRename.srcPath;
-			char* dstPath = (char*)cmd->cmdRename.dstPath;
+			std::string srcPath = __FSATranslatePath(client, (char*)cmd->cmdRename.srcPath);
+			std::string dstPath = __FSATranslatePath(client, (char*)cmd->cmdRename.dstPath);
 			sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
-			fsc_rename(srcPath, dstPath, &fscStatus);
+			fsc_rename(srcPath.c_str(), dstPath.c_str(), &fscStatus);
 			return FSA_convertFSCtoFSStatus(fscStatus);
 		}
 
@@ -606,7 +606,7 @@ namespace iosu
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return (FSStatus)FS_RESULT::ERR_PLACEHOLDER;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			cemuLog_force("FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", _swapEndianU32(cmd->cmdAppendFile.size), _swapEndianU32(cmd->cmdAppendFile.count));
 #endif
 			return _swapEndianU32(cmd->cmdAppendFile.size) * _swapEndianU32(cmd->cmdAppendFile.count);

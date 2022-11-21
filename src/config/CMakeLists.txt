@@ -1,8 +1,19 @@
-project(CemuConfig)
-
-file(GLOB CPP_FILES *.cpp)
-file(GLOB H_FILES *.h)
-add_library(CemuConfig ${CPP_FILES} ${H_FILES})
+add_library(CemuConfig
+    ActiveSettings.cpp
+    ActiveSettings.h
+    CemuConfig.cpp
+    CemuConfig.h
+    ConfigValue.h
+    LaunchSettings.cpp
+    LaunchSettings.h
+    NetworkSettings.cpp
+    NetworkSettings.h
+    PermanentConfig.cpp
+    PermanentConfig.h
+    PermanentStorage.cpp
+    PermanentStorage.h
+    XMLConfig.h
+)
 
 set_property(TARGET CemuConfig PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 

@@ -58,13 +58,9 @@ bool SDLController::connect()
 	if (m_diid == -1)
 		return false;
 
-	m_controller = SDL_GameControllerFromInstanceID(m_diid);
+	m_controller = SDL_GameControllerOpen(index);
 	if (!m_controller)
-	{
-		m_controller = SDL_GameControllerOpen(index);
-		if (!m_controller)
-			return false;
-	}
+		return false;
 
 	if (const char* name = SDL_GameControllerName(m_controller))
 		m_display_name = name;
@@ -146,9 +142,7 @@ ControllerState SDLController::raw_state()
 	for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i)
 	{
 		if (m_buttons[i] && SDL_GameControllerGetButton(m_controller, (SDL_GameControllerButton)i))
-		{
-			result.buttons.set(i);
-		}
+			result.buttons.SetButtonState(i, true);
 	}
 
 	if (m_axis[SDL_CONTROLLER_AXIS_LEFTX])

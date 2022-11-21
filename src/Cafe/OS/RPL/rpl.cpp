@@ -217,7 +217,6 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	// setup RPL info struct
 	RPLModule* rplLoaderContext = new RPLModule();
 	rplLoaderContext->RPLRawData = std::span<uint8>(rplData, rplSize);
-	rplLoaderContext->rplData_depr = rplData;
 	rplLoaderContext->heapTrampolineArea.setBaseAllocator(&rplLoaderHeap_lowerAreaCodeMem2);
 	// load section table
 	if ((uint32)rplHeader->sectionTableEntrySize != sizeof(rplSectionEntryNew_t))
@@ -244,6 +243,7 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	if (fileinfoSection->sectionSize < sizeof(RPLFileInfoData))
 	{
 		cemuLog_force("RPLLoader: FILEINFO section size is below expected size");
+		delete rplLoaderContext;
 		return false;
 	}
 
@@ -282,12 +282,6 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	// convert modulename to lower-case
 	for(auto& c : rplLoaderContext->moduleName2)
 		c = _ansiToLower(c);
-	// cemuhook compatibility
-	rplLoaderContext->moduleNamePtr__depr = rplLoaderContext->moduleName2.data();
-	rplLoaderContext->moduleNameLength__depr = rplLoaderContext->moduleName2.size();
-	rplLoaderContext->moduleNameSize = 0;
-	rplLoaderContext->sectionAddressTable__depr = rplLoaderContext->sectionAddressTable2.data();
-	rplLoaderContext->sectionAddressTableSize__depr = rplLoaderContext->sectionAddressTable2.size() * sizeof(rplSectionAddressEntry_t);
 
 	// load CRC section
 	uint32 crcTableExpectedSize = sectionCount * sizeof(uint32be);
@@ -1021,7 +1015,7 @@ bool RPLLoader_FixImportSymbols(RPLModule* rplLoaderContext, sint32 symtabSectio
 				}
 				if (foundExport == false)
 				{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 					if (nameOffset > 0)
 					{
 						forceLogDebug_printf("export not found - force lookup in function exports");
@@ -1970,7 +1964,7 @@ void RPLLoader_AddDependency(const char* name)
 	if (rplLoader_currentTlsModuleIndex == 0x7FFF)
 		cemuLog_force("RPLLoader: Exhausted TLS module indices pool");
 	// convert name to path/filename if it isn't already one
-	if (strstr(name, "."))
+	if (strchr(name, '.'))
 	{
 		strcpy_s(newDependency->filepath, name);
 	}
@@ -2122,7 +2116,7 @@ void RPLLoader_LoadDependency(rplDependency_t* dependency)
 	// attempt to load rpl from Cemu's /cafeLibs/ directory
 	if (ActiveSettings::LoadSharedLibrariesEnabled())
 	{
-		const auto filePath = ActiveSettings::GetPath("cafeLibs/{}", dependency->filepath);
+		const auto filePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", dependency->filepath);
 		auto fileData = FileStream::LoadIntoMemory(filePath);
 		if (fileData)
 		{

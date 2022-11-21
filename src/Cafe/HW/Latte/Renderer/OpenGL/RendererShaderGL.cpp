@@ -279,7 +279,7 @@ void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)
 	{
 		const uint32 cacheMagic = GeneratePrecompiledCacheId();
 		const std::string cacheFilename = fmt::format("{:016x}_gl.bin", cacheTitleId);
-		const std::wstring cachePath = ActiveSettings::GetPath("shaderCache/precompiled/{}", cacheFilename).generic_wstring();
+		const std::wstring cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename).generic_wstring();
 		g_programBinaryCache = FileCache::Open(cachePath, true, cacheMagic);
 		if (g_programBinaryCache == nullptr)
 			cemuLog_log(LogType::Force, "Unable to open OpenGL precompiled cache {}", cacheFilename);

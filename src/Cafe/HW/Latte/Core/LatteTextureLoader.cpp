@@ -736,7 +736,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 	LatteTextureLoaderCtx textureLoader = { 0 };
 	LatteTextureLoader_begin(&textureLoader, sliceIndex, mipIndex, textureData->physAddress, textureData->physMipAddress, textureData->format, textureData->dim, textureData->width, textureData->height, textureData->depth, textureData->mipLevels, textureData->pitch, textureData->tileMode, textureData->swizzle);
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (textureData->depth != 1)
 		forceLog_printf("_writeReadbackTextureToMemory(): Texture has multiple slices (not supported)");
 #endif

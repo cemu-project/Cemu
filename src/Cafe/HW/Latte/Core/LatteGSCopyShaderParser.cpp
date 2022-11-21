@@ -208,7 +208,7 @@ LatteParsedGSCopyShader* LatteGSCopyShaderParser_parse(uint8* programData, uint3
 				uint32 bufferIndex;
 				if (cf_inst23_7 == GPU7_CF_INST_MEM_STREAM0_WRITE)
 					bufferIndex = 0;
-				else if (cf_inst23_7 == GPU7_CF_INST_MEM_STREAM0_WRITE)
+				else if (cf_inst23_7 == GPU7_CF_INST_MEM_STREAM1_WRITE)
 					bufferIndex = 1;
 				else
 					cemu_assert_debug(false);

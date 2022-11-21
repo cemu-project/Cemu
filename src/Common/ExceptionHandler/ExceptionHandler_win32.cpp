@@ -61,7 +61,7 @@ bool CreateMiniDump(CrashDump dump, EXCEPTION_POINTERS* pep)
 	if (dump == CrashDump::Disabled)
 		return true;
 
-	fs::path p = ActiveSettings::GetPath("crashdump");
+	fs::path p = ActiveSettings::GetUserDataPath("crashdump");
 
 	std::error_code ec;
 	fs::create_directories(p, ec);
@@ -356,11 +356,11 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 		const auto temp_time = std::chrono::system_clock::to_time_t(now);
 		const auto& time = *std::gmtime(&temp_time);
 
-		fs::path p = ActiveSettings::GetPath("crashdump");
+		fs::path p = ActiveSettings::GetUserDataPath("crashdump");
 		p /= fmt::format("log_{:04d}{:02d}{:02d}_{:02d}{:02d}{:02d}.txt", 1900 + time.tm_year, time.tm_mon + 1, time.tm_mday, time.tm_year, time.tm_hour, time.tm_min, time.tm_sec);
 
 		std::error_code ec;
-		fs::copy_file(ActiveSettings::GetPath("log.txt"), p, ec);
+		fs::copy_file(ActiveSettings::GetUserDataPath("log.txt"), p, ec);
 	}
 
 	exit(0);

@@ -8,7 +8,8 @@
 #include "Cemu/ncrypto/ncrypto.h"
 #include "util/crypto/md5.h"
 #include "config/LaunchSettings.h"
-
+#include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "pugixml.hpp"
 #include <charconv>
 
@@ -26,14 +27,42 @@ namespace NAPI
 	{
 		if (!s_serviceURL_NusURL.empty())
 			return s_serviceURL_NusURL;
-		return "https://nus.wup.shop.nintendo.net/nus/services/NetUpdateSOAP";
+			switch (ActiveSettings::GetNetworkService())
+			{
+			case NetworkService::Nintendo:
+				return NintendoURLs::NUSURL;
+				break;
+			case NetworkService::Pretendo:
+				return PretendoURLs::NUSURL;
+				break;
+			case NetworkService::Custom:
+				return GetNetworkConfig().urls.NUS;
+				break;
+			default:
+				return NintendoURLs::NUSURL;
+				break;
+			}
 	}
 
 	std::string _getIASUrl()
 	{
 		if (!s_serviceURL_IasURL.empty())
 			return s_serviceURL_IasURL;
-		return "https://ias.wup.shop.nintendo.net/ias/services/IdentityAuthenticationSOAP";
+		switch (ActiveSettings::GetNetworkService())
+			{
+			case NetworkService::Nintendo:
+				return NintendoURLs::IASURL;
+				break;
+			case NetworkService::Pretendo:
+				return PretendoURLs::IASURL;
+				break;
+			case NetworkService::Custom:
+				return GetNetworkConfig().urls.IAS;
+				break;
+			default:
+				return NintendoURLs::IASURL;
+				break;
+			}
 	}
 
 	std::string _getECSUrl()
@@ -48,14 +77,42 @@ namespace NAPI
 	{
 		if (!s_serviceURL_UncachedContentPrefixURL.empty())
 			return s_serviceURL_UncachedContentPrefixURL;
-		return "https://ccs.wup.shop.nintendo.net/ccs/download";
+		switch (ActiveSettings::GetNetworkService())
+			{
+			case NetworkService::Nintendo:
+				return NintendoURLs::CCSUURL;
+				break;
+			case NetworkService::Pretendo:
+				return PretendoURLs::CCSUURL;
+				break;
+			case NetworkService::Custom:
+				return GetNetworkConfig().urls.CCSU;
+				break;
+			default:
+				return NintendoURLs::CCSUURL;
+				break;
+			}
 	}
 
 	std::string _getCCSUrl() // used for game data downloads
 	{
 		if (!s_serviceURL_ContentPrefixURL.empty())
 			return s_serviceURL_ContentPrefixURL;
-		return "http://ccs.cdn.wup.shop.nintendo.net/ccs/download";
+		switch (ActiveSettings::GetNetworkService())
+			{
+			case NetworkService::Nintendo:
+				return NintendoURLs::CCSURL;
+				break;
+			case NetworkService::Pretendo:
+				return PretendoURLs::CCSURL;
+				break;
+			case NetworkService::Custom:
+				return GetNetworkConfig().urls.CCS;
+				break;
+			default:
+				return NintendoURLs::CCSURL;
+				break;
+			}
 	}
 
 	/* NUS */
@@ -360,7 +417,7 @@ namespace NAPI
 			// ticketVersion starts at 0 and increments every time the ticket is updated (e.g. for AOC content, when purchasing additional DLC packages)
 			const char* tivValue = tivNode.child_value();
 			const char* tivValueEnd = tivValue + strlen(tivValue);
-			const char* tivValueSeparator = std::strstr(tivValue, ".");
+			const char* tivValueSeparator = std::strchr(tivValue, '.');
 			if (tivValueSeparator == nullptr)
 				tivValueSeparator = tivValueEnd;
 

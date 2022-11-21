@@ -5,6 +5,7 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "audio/IAudioAPI.h"
+#include "audio/IAudioInputAPI.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "config/ActiveSettings.h"
@@ -209,7 +210,7 @@ void InfoLog_TitleLoaded()
 	fs::path effectiveSavePath = getTitleSavePath();
 	std::error_code ec;
 	const bool saveDirExists = fs::exists(effectiveSavePath, ec);
-	cemuLog_force("Save path:   {}{}", _utf8Wrapper(effectiveSavePath), saveDirExists ? "" : " (not present)");
+	cemuLog_force("Save path:   {}{}", _pathToUtf8(effectiveSavePath), saveDirExists ? "" : " (not present)");
 
 	// log shader cache name
 	cemuLog_log(LogType::Force, "Shader cache file: shaderCache/transferable/{:016x}.bin", titleId);
@@ -289,7 +290,7 @@ uint32 loadSharedData()
 	for (sint32 i = 0; i < sizeof(shareddataDef) / sizeof(shareddataDef[0]); i++)
 	{
 		bool existsInMLC = fs::exists(ActiveSettings::GetMlcPath(shareddataDef[i].mlcPath));
-		bool existsInResources = fs::exists(ActiveSettings::GetPath(shareddataDef[i].resourcePath));
+		bool existsInResources = fs::exists(ActiveSettings::GetDataPath(shareddataDef[i].resourcePath));
 
 		if (!existsInMLC && !existsInResources)
 		{
@@ -314,7 +315,7 @@ uint32 loadSharedData()
 			// alternatively fall back to our shared fonts
 			if (!fontFile)
 			{
-				path = ActiveSettings::GetPath(shareddataDef[i].resourcePath);
+				path = ActiveSettings::GetDataPath(shareddataDef[i].resourcePath);
 				fontFile = FileStream::openFile2(path);
 			}
 			if (!fontFile)
@@ -340,7 +341,7 @@ uint32 loadSharedData()
 		return memory_getVirtualOffsetFromPointer(dataWritePtr);
 	}
 	// alternative method: load RAM dump
-	const auto path = ActiveSettings::GetPath("shareddata.bin");
+	const auto path = ActiveSettings::GetUserDataPath("shareddata.bin");
 	FileStream* ramDumpFile = FileStream::openFile2(path);
 	if (ramDumpFile)
 	{
@@ -402,6 +403,7 @@ void cemu_initForGame()
 	GraphicPack2::ActivateForCurrentTitle();
 	// print audio log
 	IAudioAPI::PrintLogging();
+	IAudioInputAPI::PrintLogging();
 	// everything initialized
 	forceLog_printf("------- Run title -------");
 	// wait till GPU thread is initialized
@@ -577,7 +579,7 @@ namespace CafeSystem
 					const auto file = fsc_open(rpxPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status);
 					if (file)
 					{
-						_pathToExecutable = rpxPath;
+						_pathToExecutable = std::move(rpxPath);
 						fsc_close(file);
 					}
 				}
@@ -617,7 +619,7 @@ namespace CafeSystem
 		sLaunchModeIsStandalone = true;
 		cemuLog_log(LogType::Force, "Launching executable in standalone mode due to incorrect layout or missing meta files");
 		fs::path executablePath = path;
-		std::string dirName = _utf8Wrapper(executablePath.parent_path().filename());
+		std::string dirName = _pathToUtf8(executablePath.parent_path().filename());
 		if (boost::iequals(dirName, "code"))
 		{
 			// check for content folder
@@ -626,18 +628,18 @@ namespace CafeSystem
 			if (fs::is_directory(contentPath, ec))
 			{
 				// mounting content folder
-				bool r = FSCDeviceHostFS_Mount(std::string("/vol/content").c_str(), boost::nowide::widen(_utf8Wrapper(contentPath)).c_str(), FSC_PRIORITY_BASE);
+				bool r = FSCDeviceHostFS_Mount(std::string("/vol/content").c_str(), _pathToUtf8(contentPath), FSC_PRIORITY_BASE);
 				if (!r)
 				{
-					cemuLog_log(LogType::Force, "Failed to mount {}", _utf8Wrapper(contentPath).c_str());
+					cemuLog_log(LogType::Force, "Failed to mount {}", _pathToUtf8(contentPath));
 					return STATUS_CODE::UNABLE_TO_MOUNT;
 				}
 			}
 		}
 		// mount code folder to a virtual temporary path
-		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), boost::nowide::widen(_utf8Wrapper(executablePath.parent_path())).c_str(), FSC_PRIORITY_BASE);
+		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), _pathToUtf8(executablePath.parent_path()), FSC_PRIORITY_BASE);
 		std::string internalExecutablePath = "/internal/code/";
-		internalExecutablePath.append(_utf8Wrapper(executablePath.filename()));
+		internalExecutablePath.append(_pathToUtf8(executablePath.filename()));
 		_pathToExecutable = internalExecutablePath;
 		// since a lot of systems (including save folder location) rely on a TitleId, we derive a placeholder id from the executable hash
 		auto execData = fsc_extractFile(_pathToExecutable.c_str());
@@ -704,9 +706,14 @@ namespace CafeSystem
 	std::string GetForegroundTitleName()
 	{
 		if (sLaunchModeIsStandalone)
-			return "Missing meta data";
-		// todo - use language based on Cemu console language
-		return sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
+			return "Unknown Game";
+		std::string applicationName;
+		applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(GetConfig().console_language);
+		if (applicationName.empty()) //Try to get the English Title
+			applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
+		if (applicationName.empty()) //Unknown Game
+			applicationName = "Unknown Game";
+		return applicationName;
 	}
 
 	std::string GetForegroundTitleArgStr()

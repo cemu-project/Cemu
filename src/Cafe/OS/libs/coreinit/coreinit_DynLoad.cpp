@@ -94,26 +94,22 @@ namespace coreinit
 			RPLLoader_Link();
 			RPLLoader_CallEntrypoints();
 			rplHandle = RPLLoader_GetHandleByModuleName(libName);
-			if (rplHandle == RPL_INVALID_HANDLE)
-				rplHandle = 0;
 		}
-
-		*moduleHandleOut = rplHandle;
-		// return module not found error code
 		if (rplHandle == RPL_INVALID_HANDLE)
-			return 0xFFFCFFE9;
+			*moduleHandleOut = 0;
+		else
+			*moduleHandleOut = rplHandle;
+		if (rplHandle == RPL_INVALID_HANDLE)
+			return 0xFFFCFFE9; // module not found
 		return 0;
 	}
 
-	uint32 OSDynLoad_Release(uint32 moduleHandle)
+	void OSDynLoad_Release(uint32 moduleHandle)
 	{
 		if (moduleHandle == RPL_INVALID_HANDLE)
-			return 0;
+			return;
 		RPLLoader_RemoveDependency(moduleHandle);
 		RPLLoader_UpdateDependencies();
-
-		// this function isn't supposed to return anything, but early versions of Cemu did and Cemuhook (up to 0.5.7.6) now relies on it. We still keep the return value around for compatibility
-		return 0;
 	}
 
 	uint32 OSDynLoad_FindExport(uint32 moduleHandle, uint32 isData, const char* exportName, betype<MPTR>* addrOut)

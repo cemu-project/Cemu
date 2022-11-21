@@ -1,68 +1,70 @@
 #pragma once
 
+#include <utility>
 #include "config/CemuConfig.h"
+#include "config/NetworkSettings.h"
 
 // global active settings for fast access (reflects settings from command line and game profile)
 class ActiveSettings
 {
-public:
-	static void LoadOnce();
-	
-	[[nodiscard]] static fs::path GetFullPath() { return s_full_path; }
-	[[nodiscard]] static fs::path GetPath() { return s_path; }
-	[[nodiscard]] static fs::path GetFilename() { return s_filename; }
-	
-	[[nodiscard]] static fs::path GetMlcPath();
-
-	[[nodiscard]] static fs::path GetPath(std::string_view p) 
-	{
-		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
-		return s_path / fs::path(s);
-	}
-
-	[[nodiscard]] static fs::path GetMlcPath(std::string_view p) 
-	{ 
-		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
-		return GetMlcPath() / fs::path(s);
-	}
-	
+private:
 	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetPath(std::string_view format, TArgs&&... args)
+	static fs::path GetPath(const fs::path& path, std::string_view format, TArgs&&... args)
 	{
 		cemu_assert_debug(format.empty() || (format[0] != '/' && format[0] != '\\'));
 		std::string tmpPathStr = fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-		std::basic_string_view<char8_t> s((const char8_t*)tmpPathStr.data(), tmpPathStr.size());
-		return s_path / fs::path(s);
+		return path / _utf8ToPath(tmpPathStr);
 	}
-	
+
 	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetPath(std::wstring_view format, TArgs&&... args)
+	static fs::path GetPath(const fs::path& path, std::wstring_view format, TArgs&&... args)
 	{
 		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
-		return s_path / fmt::format(format, std::forward<TArgs>(args)...);
+		return path / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
 	}
-	
-	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetMlcPath(std::string_view format, TArgs&&... args)
+	static fs::path GetPath(const fs::path& path, std::string_view p) 
 	{
-		cemu_assert_debug(format.empty() || (format[0] != '/' && format[0] != '\\'));
-		auto tmp = fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
-		return GetMlcPath() / fs::path(_asUtf8(tmp));
+		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
+		return path / fs::path(s);
 	}
-	
-	template <typename ...TArgs>
-	[[nodiscard]] static fs::path GetMlcPath(std::wstring_view format, TArgs&&... args)
+	static fs::path GetPath(const fs::path& path)
 	{
-		cemu_assert_debug(format.empty() || (format[0] != L'/' && format[0] != L'\\'));
-		return GetMlcPath() / fmt::format(fmt::runtime(format), std::forward<TArgs>(args)...);
+		return path;
 	}
-	
+
+public:
+	// Set directories and return all directories that failed write access test
+	static std::set<fs::path> 
+	LoadOnce(const fs::path& user_data_path,
+			 const fs::path& config_path,
+			 const fs::path& cache_path,
+			 const fs::path& data_path);
+
+	[[nodiscard]] static fs::path GetFullPath() { return s_full_path; }
+	[[nodiscard]] static fs::path GetFilename() { return s_filename; }
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetUserDataPath(TArgs&&... args){ return GetPath(s_user_data_path, std::forward<TArgs>(args)...); };
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetConfigPath(TArgs&&... args){ return GetPath(s_config_path, std::forward<TArgs>(args)...); };
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetCachePath(TArgs&&... args){ return GetPath(s_cache_path, std::forward<TArgs>(args)...); };
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetDataPath(TArgs&&... args){ return GetPath(s_data_path, std::forward<TArgs>(args)...); };
+
+	[[nodiscard]] static fs::path GetMlcPath();
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetMlcPath(TArgs&&... args){ return GetPath(GetMlcPath(), std::forward<TArgs>(args)...); };
+
 	// get mlc path to default cemu root dir/mlc01
 	[[nodiscard]] static fs::path GetDefaultMLCPath();
 
 private:
 	inline static fs::path s_full_path; // full filename
-	inline static fs::path s_path; // path
+	inline static fs::path s_user_data_path;
+	inline static fs::path s_config_path;
+	inline static fs::path s_cache_path;
+	inline static fs::path s_data_path;
 	inline static fs::path s_filename; // cemu.exe
 	inline static fs::path s_mlc_path;
 
@@ -92,7 +94,7 @@ public:
 	[[nodiscard]] static uint32 GetPersistentId();
 	[[nodiscard]] static bool IsOnlineEnabled();
 	[[nodiscard]] static bool HasRequiredOnlineFiles();
-
+	[[nodiscard]] static NetworkService GetNetworkService();
 	// dump options
 	[[nodiscard]] static bool DumpShadersEnabled();
 	[[nodiscard]] static bool DumpTexturesEnabled();

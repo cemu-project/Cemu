@@ -60,6 +60,12 @@
 
 #include "ih264d_structs.h"
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
+
 
 /**
 *******************************************************************************
@@ -79,6 +85,7 @@
 *
 *******************************************************************************
 */
+ATTRIBUTE_SSSE3
 void ih264d_init_function_ptr_ssse3(dec_struct_t *ps_codec)
 {
 

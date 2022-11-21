@@ -245,7 +245,6 @@ ControllerState DirectInputController::raw_state()
 	ControllerState result{};
 	if (!is_connected())
 		return result;
-
 	HRESULT hr = m_device->Poll();
 	if (FAILED(hr))
 	{
@@ -277,9 +276,7 @@ ControllerState DirectInputController::raw_state()
 	for (size_t i = 0; i < std::size(state.rgbButtons); ++i)
 	{
 		if (HAS_BIT(state.rgbButtons[i], 7))
-		{
-			result.buttons.set(i);
-		}
+			result.buttons.SetButtonState(i, true);
 	}
 	
 	// axis
@@ -316,19 +313,19 @@ ControllerState DirectInputController::raw_state()
 	{
 		switch (pov)
 		{
-		case 0: result.buttons.set(kButtonUp);
+		case 0: result.buttons.SetButtonState(kButtonUp, true);
 			break;
-		case 4500: result.buttons.set(kButtonUp); // up + right
-		case 9000: result.buttons.set(kButtonRight);
+		case 4500: result.buttons.SetButtonState(kButtonUp, true); // up + right
+		case 9000: result.buttons.SetButtonState(kButtonRight, true);
 			break;
-		case 13500: result.buttons.set(kButtonRight); // right + down
-		case 18000: result.buttons.set(kButtonDown);
+		case 13500: result.buttons.SetButtonState(kButtonRight, true); // right + down
+		case 18000: result.buttons.SetButtonState(kButtonDown, true);
 			break;
-		case 22500: result.buttons.set(kButtonDown); // down + left
-		case 27000: result.buttons.set(kButtonLeft);
+		case 22500: result.buttons.SetButtonState(kButtonDown, true); // down + left
+		case 27000: result.buttons.SetButtonState(kButtonLeft, true);
 			break;
-		case 31500: result.buttons.set(kButtonLeft);; // left + up
-		result.buttons.set(kButtonUp); // left + up
+		case 31500: result.buttons.SetButtonState(kButtonLeft, true); // left + up
+					result.buttons.SetButtonState(kButtonUp, true); // left + up
 			break;
 		}
 	}

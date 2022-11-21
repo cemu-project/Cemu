@@ -30,7 +30,7 @@ public:
 	void Flush(bool waitIdle = false) override;
 	void NotifyLatteCommandProcessorIdle() override;
 
-	void EnableVSync(int state) override;
+	void UpdateVSyncState();
 
 	void EnableDebugMode() override;
 	void SwapBuffers(bool swapTV = true, bool swapDRC = true) override;

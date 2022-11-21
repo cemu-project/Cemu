@@ -39,9 +39,8 @@
 
 #include "Cafe/TitleList/TitleList.h"
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include "resource/embedded/resources.h"
-#endif
+
 #include "Cafe/TitleList/SaveList.h"
 
 wxDEFINE_EVENT(wxEVT_TITLE_FOUND, wxCommandEvent);
@@ -63,14 +62,14 @@ wxPanel* TitleManager::CreateTitleManagerPage()
 		m_filter->Bind(wxEVT_TEXT, &TitleManager::OnFilterChanged, this);
 		row->Add(m_filter, 1, wxALL | wxEXPAND, 5);
 
-		const wxImage refresh = wxBITMAP_PNG(PNG_REFRESH).ConvertToImage();
+		const wxImage refresh = wxBITMAP_PNG_FROM_DATA(PNG_REFRESH).ConvertToImage();
 		m_refresh_button = new wxBitmapButton(panel, wxID_ANY, refresh.Scale(16, 16));
 		m_refresh_button->Disable();
 		m_refresh_button->Bind(wxEVT_BUTTON, &TitleManager::OnRefreshButton, this);
 		m_refresh_button->SetToolTip(_("Refresh"));
 		row->Add(m_refresh_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		auto* help_button = new wxStaticBitmap(panel, wxID_ANY, wxBITMAP_PNG(PNG_HELP));
+		auto* help_button = new wxStaticBitmap(panel, wxID_ANY, wxBITMAP_PNG_FROM_DATA(PNG_HELP));
 		help_button->SetToolTip(wxStringFormat2(_("The following prefixes are supported:\n{0}\n{1}\n{2}\n{3}\n{4}"),
 			"titleid:", "name:", "type:", "version:", "region:"));
 		row->Add(help_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
@@ -220,7 +219,7 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 }
 
 TitleManager::TitleManager(wxWindow* parent, TitleManagerPage default_page)
-	: wxFrame(parent, wxID_ANY, _("Title manager"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
+	: wxFrame(parent, wxID_ANY, _("Title Manager"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
 	SetIcon(wxICON(X_BOX));
 	
@@ -480,7 +479,7 @@ void TitleManager::OnSaveOpenDirectory(wxCommandEvent& event)
 	if (!fs::exists(target) || !fs::is_directory(target))
 		return;
 
-	wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(target))));
+	wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(target))));
 }
 
 void TitleManager::OnSaveDelete(wxCommandEvent& event)

@@ -3,11 +3,13 @@
   "version-string": "1.0",
   "builtin-baseline": "1b0252ca70ca2244a711535462c7f981eb439e83",
   "dependencies": [
-    "imgui",
     "pugixml",
     "zlib",
-    "libpng",
-	"zstd",
+    "zstd",
+    {
+      "name": "libpng",
+      "platform": "!linux"
+    },
     {
       "name": "libzip",
       "default-features": false
@@ -24,7 +26,6 @@
     "boost-dll",
     "boost-optional",
     "boost-signals2",
-    "boost-crc",
     "boost-asio",
     "boost-ptr-container",
     "boost-property-tree",

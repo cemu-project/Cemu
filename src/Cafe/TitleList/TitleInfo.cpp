@@ -177,12 +177,12 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 	std::error_code ec;
 	if (path.has_extension() && fs::is_regular_file(path, ec))
 	{
-		std::string filenameStr = _utf8Wrapper(path.filename());
+		std::string filenameStr = _pathToUtf8(path.filename());
 		if (boost::iends_with(filenameStr, ".rpx"))
 		{
 			// is in code folder?
 			fs::path parentPath = path.parent_path();
-			if (boost::iequals(_utf8Wrapper(parentPath.filename()), "code"))
+			if (boost::iequals(_pathToUtf8(parentPath.filename()), "code"))
 			{
 				parentPath = parentPath.parent_path();
 				// next to content and meta?
@@ -287,12 +287,11 @@ void TitleInfo::CalcUID()
 		m_uid = 0;
 		return;
 	}
-	std::error_code ec;
 	// get absolute normalized path
 	fs::path normalizedPath;
 	if (m_fullPath.is_relative())
 	{
-		normalizedPath = ActiveSettings::GetPath();
+		normalizedPath = ActiveSettings::GetUserDataPath();
 		normalizedPath /= m_fullPath;
 	}
 	else
@@ -370,7 +369,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 	{
 		fs::path hostFSPath = m_fullPath;
 		hostFSPath.append(subfolder);
-		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), boost::nowide::widen(_utf8Wrapper(hostFSPath)).c_str(), mountPriority);
+		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), _pathToUtf8(hostFSPath), mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{
@@ -387,7 +386,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 		}
 		if (!m_wudVolume)
 			return false;
-		bool r = FSCDeviceWUD_Mount(std::string(virtualPath).c_str(), subfolder, m_wudVolume, mountPriority);
+		bool r = FSCDeviceWUD_Mount(virtualPath, subfolder, m_wudVolume, mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{
@@ -404,7 +403,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 			if (!m_zarchive)
 				return false;
 		}
-		bool r = FSCDeviceWUA_Mount(std::string(virtualPath).c_str(), std::string(m_subPath).append("/").append(subfolder), m_zarchive, mountPriority);
+		bool r = FSCDeviceWUA_Mount(virtualPath, std::string(m_subPath).append("/").append(subfolder), m_zarchive, mountPriority);
 		if (!r)
 		{
 			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
@@ -495,7 +494,7 @@ bool TitleInfo::ParseXmlInfo()
 	if (!m_parsedMetaXml || !m_parsedAppXml || !m_parsedCosXml)
 	{
 		if (hasAnyXml)
-			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _utf8Wrapper(m_fullPath));
+			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _pathToUtf8(m_fullPath));
 		delete m_parsedMetaXml;
 		delete m_parsedAppXml;
 		delete m_parsedCosXml;
@@ -590,7 +589,15 @@ std::string TitleInfo::GetTitleName() const
 {
 	cemu_assert_debug(m_isValid);
 	if (m_parsedMetaXml)
-		return m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+	{
+		std::string titleNameCfgLanguage;
+		titleNameCfgLanguage = m_parsedMetaXml->GetShortName(GetConfig().console_language);
+		if (titleNameCfgLanguage.empty()) //Get English Title
+			titleNameCfgLanguage = m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+		if (titleNameCfgLanguage.empty()) //Unknown Title
+			titleNameCfgLanguage = "Unknown Title";
+		return titleNameCfgLanguage;
+	}
 	if (m_cachedInfo)
 		return m_cachedInfo->titleName;
 	cemu_assert_suspicious();
@@ -621,7 +628,7 @@ std::string TitleInfo::GetPrintPath() const
 	if (!m_isValid)
 		return "invalid";
 	std::string tmp;
-	tmp.append(_utf8Wrapper(m_fullPath));
+	tmp.append(_pathToUtf8(m_fullPath));
 	switch (m_titleFormat)
 	{
 	case TitleDataFormat::HOST_FS:

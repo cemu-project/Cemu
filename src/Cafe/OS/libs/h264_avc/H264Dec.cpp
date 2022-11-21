@@ -194,7 +194,22 @@ namespace H264
 #ifdef _WIN32
 			return _aligned_malloc(size, alignment);
 #else
-			return aligned_alloc(alignment, size);
+			// alignment is atleast sizeof(void*)
+			alignment = std::max<WORD32>(alignment, sizeof(void*));
+
+			//smallest multiple of 2 at least as large as alignment
+			alignment--;
+			alignment |= alignment << 1;
+			alignment |= alignment >> 1;
+			alignment |= alignment >> 2;
+			alignment |= alignment >> 4;
+			alignment |= alignment >> 8;
+			alignment |= alignment >> 16;
+			alignment ^= (alignment >> 1);
+
+			void* temp;
+			posix_memalign(&temp, (size_t)alignment, (size_t)size);
+			return temp;
 #endif
 		}
 
@@ -835,8 +850,11 @@ namespace H264
 		auto asyncTask = std::async(std::launch::async, _async_H264DECEnd, executeDoneEvent.GetPointer(), session, ctx, &results);
 		coreinit::OSWaitEvent(executeDoneEvent);
 		_ReleaseDecoderSession(session);
-		for (auto& itr : results)
-			H264DoFrameOutputCallback(ctx, itr);
+		if (!results.empty())
+		{
+			for (auto& itr : results)
+				H264DoFrameOutputCallback(ctx, itr);
+		}
 		return H264DEC_STATUS::SUCCESS;
 	}
 

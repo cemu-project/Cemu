@@ -346,7 +346,6 @@ namespace erreula
 				std::string button2 = "No";
 				if (appearArg.button2Text)
 					button2 = boost::nowide::narrow(GetText(appearArg.button2Text.GetPtr()));
-					
 
 				float width1 = std::max(100.0f, ImGui::CalcTextSize(button1.c_str()).x + 10.0f);
 				float width2 = std::max(100.0f, ImGui::CalcTextSize(button2.c_str()).x + 10.0f);
@@ -359,10 +358,8 @@ namespace erreula
 				break;
 			}
 			}
-
-			ImGui::End();
 		}
-
+		ImGui::End();
 		ImGui::PopFont();
 
 		if(g_errEula.buttonPressed || g_errEula.rightButtonPressed)

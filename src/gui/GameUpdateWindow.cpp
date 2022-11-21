@@ -133,7 +133,7 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 	// checking size is buggy on Wine (on Steam Deck this would return values too small to install bigger updates) - we therefore skip this step
 	if(!IsRunningInWine())
 	{
-		const fs::space_info targetSpace = fs::space(target_location.root_path());
+		const fs::space_info targetSpace = fs::space(ActiveSettings::GetMlcPath());
 		if (targetSpace.free <= m_required_size)
 		{
 			auto string = wxStringFormat(_("Not enough space available.\nRequired: {0} MB\nAvailable: {1} MB"), L"%lld %lld", (m_required_size / 1024 / 1024), (targetSpace.free / 1024 / 1024));
@@ -213,7 +213,6 @@ void GameUpdateWindow::ThreadWork()
 			create_directories(targetDir);
 		}
 
-		const auto target_path = fs::path(m_target_path);
 		for (auto& path : m_source_paths)
 		{
 			if (m_thread_state == ThreadCanceled)
@@ -251,7 +250,7 @@ void GameUpdateWindow::ThreadWork()
 		error_msg << GetSystemErrorMessage(ex);
 
 		if(currentDirEntry != fs::directory_entry{})
-			error_msg << fmt::format("\n{}\n{}",_("Current file:").ToStdString(), _utf8Wrapper(currentDirEntry.path()));
+			error_msg << fmt::format("\n{}\n{}",_("Current file:").ToStdString(), _pathToUtf8(currentDirEntry.path()));
 
 		m_thread_exception = error_msg.str();
 		m_thread_state = ThreadCanceled;

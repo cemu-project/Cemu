@@ -120,16 +120,15 @@ private:
 
 class fscDeviceWUDC : public fscDeviceC
 {
-	FSCVirtualFile* fscDeviceOpenByPath(std::wstring_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
+	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		FSTVolume* mountedVolume = (FSTVolume*)ctx;
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to FST is never allowed
 
-		std::string pathU8 = boost::nowide::narrow(path.data(), path.size());
 		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
 		{
 			FSTFileHandle fstFileHandle;
-			if (mountedVolume->OpenFile(pathU8, fstFileHandle, true))
+			if (mountedVolume->OpenFile(path, fstFileHandle, true))
 			{
 				*fscStatus = FSC_STATUS_OK;
 				return new FSCDeviceWudFileCtx(mountedVolume, fstFileHandle);
@@ -138,7 +137,7 @@ class fscDeviceWUDC : public fscDeviceC
 		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
 		{
 			FSTDirectoryIterator dirIterator;
-			if (mountedVolume->OpenDirectoryIterator(pathU8, dirIterator))
+			if (mountedVolume->OpenDirectoryIterator(path, dirIterator))
 			{
 				*fscStatus = FSC_STATUS_OK;
 				return new FSCDeviceWudFileCtx(mountedVolume, dirIterator);
@@ -157,10 +156,7 @@ public:
 	}
 };
 
-bool FSCDeviceWUD_Mount(const char* mountPath, std::string_view destinationBaseDir, FSTVolume* mountedVolume, sint32 priority)
+bool FSCDeviceWUD_Mount(std::string_view mountPath, std::string_view destinationBaseDir, FSTVolume* mountedVolume, sint32 priority)
 {
-	std::wstring hostTargetPath(boost::nowide::widen(destinationBaseDir.data(), destinationBaseDir.size()));
-	if (!hostTargetPath.empty() && (hostTargetPath.back() != '/' && hostTargetPath.back() != '\\'))
-		hostTargetPath.push_back('/');
-	return fsc_mount(mountPath, hostTargetPath.c_str(), &fscDeviceWUDC::instance(), mountedVolume, priority) == FSC_STATUS_OK;
+	return fsc_mount(mountPath, destinationBaseDir, &fscDeviceWUDC::instance(), mountedVolume, priority) == FSC_STATUS_OK;
 }

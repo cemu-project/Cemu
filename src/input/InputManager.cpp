@@ -76,9 +76,9 @@ bool InputManager::load(size_t player_index, std::string_view filename)
 {
 	fs::path file_path;
 	if (filename.empty())
-		file_path = ActiveSettings::GetPath(fmt::format("controllerProfiles/controller{}", player_index));
+		file_path = ActiveSettings::GetConfigPath("controllerProfiles/controller{}", player_index);
 	else
-		file_path = ActiveSettings::GetPath(fmt::format("controllerProfiles/{}", filename));
+		file_path = ActiveSettings::GetConfigPath("controllerProfiles/{}", filename);
 
 	auto old_file = file_path;
 	old_file.replace_extension(".txt"); // test .txt extension
@@ -92,12 +92,12 @@ bool InputManager::load(size_t player_index, std::string_view filename)
 
 	try
 	{
-		std::ifstream file(file_path);
-		if (!file.is_open())
+		auto xmlData = FileStream::LoadIntoMemory(file_path);
+		if (!xmlData || xmlData->empty())
 			return false;
-
+	
 		pugi::xml_document doc;
-		if (!doc.load(file))
+		if (!doc.load_buffer(xmlData->data(), xmlData->size()))
 			return false;
 
 		const pugi::xml_node root = doc.document_element();
@@ -216,12 +216,15 @@ bool InputManager::migrate_config(const fs::path& file_path)
 {
 	try
 	{
-		std::ifstream file(file_path);
-		if (!file.is_open())
+		auto xmlData = FileStream::LoadIntoMemory(file_path);
+		if (!xmlData || xmlData->empty())
 			return false;
 
+		std::string iniDataStr((const char*)xmlData->data(), xmlData->size());
+
+		std::stringstream iniData(iniDataStr);
 		boost::property_tree::ptree m_data;
-		read_ini(file, m_data);
+		read_ini(iniData, m_data);
 
 		const auto emulate_string = m_data.get<std::string>("General.emulate");
 		const auto api_string = m_data.get<std::string>("General.api");
@@ -448,14 +451,14 @@ bool InputManager::save(size_t player_index, std::string_view filename)
 	if (!emulated_controller)
 		return false;
 
-	fs::path file_path = ActiveSettings::GetPath("controllerProfiles");
+	fs::path file_path = ActiveSettings::GetConfigPath("controllerProfiles");
 	fs::create_directories(file_path);
 
 	const auto is_default_file = filename.empty();
 	if (is_default_file)
 		file_path /= fmt::format("controller{}", player_index);
 	else
-		file_path /= filename;
+		file_path /= _utf8ToPath(filename);
 
 	file_path.replace_extension(".xml"); // force .xml extension
 
@@ -540,15 +543,15 @@ bool InputManager::save(size_t player_index, std::string_view filename)
 			}
 		}
 	}
-
-
-	std::ofstream file(file_path, std::ios::out | std::ios::trunc);
-	if (file.is_open())
-	{
-		doc.save(file);
-		return true;
-	}
-	return false;
+	FileStream* fs = FileStream::createFile2(file_path);
+	if (!fs)
+		return false;
+	std::stringstream xmlData;
+	doc.save(xmlData);
+	std::string xmlStr = xmlData.str();
+	fs->writeData(xmlStr.data(), xmlStr.size());
+	delete fs;
+	return true;
 }
 
 bool InputManager::is_gameprofile_set(size_t player_index) const
@@ -664,8 +667,8 @@ EmulatedControllerPtr InputManager::delete_controller(size_t player_index, bool 
 			if(delete_profile)
 			{
 				std::error_code ec{};
-				fs::remove(ActiveSettings::GetPath(fmt::format("controllerProfiles/controller{}.xml", player_index)), ec);
-				fs::remove(ActiveSettings::GetPath(fmt::format("controllerProfiles/controller{}.txt", player_index)), ec);
+				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.xml", player_index), ec);
+				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.txt", player_index), ec);
 			}
 
 			return result;
@@ -680,8 +683,8 @@ EmulatedControllerPtr InputManager::delete_controller(size_t player_index, bool 
 			controller = {};
 
 			std::error_code ec{};
-			fs::remove(ActiveSettings::GetPath(fmt::format("controllerProfiles/controller{}.xml", player_index)), ec);
-			fs::remove(ActiveSettings::GetPath(fmt::format("controllerProfiles/controller{}.txt", player_index)), ec);
+			fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.xml", player_index), ec);
+			fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.txt", player_index), ec);
 
 			return result;
 		}
@@ -782,7 +785,7 @@ void InputManager::apply_game_profile()
 
 std::vector<std::string> InputManager::get_profiles()
 {
-	const auto path = ActiveSettings::GetPath("controllerProfiles");
+	const auto path = ActiveSettings::GetConfigPath("controllerProfiles");
 	if (!exists(path))
 		return {};
 
@@ -792,7 +795,7 @@ std::vector<std::string> InputManager::get_profiles()
 		const auto& p = entry.path();
 		if (p.has_extension() && (p.extension() == ".xml" || p.extension() == ".txt"))
 		{
-			auto stem = p.filename().stem().string();
+			auto stem = _pathToUtf8(p.filename().stem());
 			if (is_valid_profilename(stem))
 			{
 				tmp.emplace(stem);
@@ -808,7 +811,7 @@ std::vector<std::string> InputManager::get_profiles()
 
 bool InputManager::is_valid_profilename(const std::string& name)
 {
-	if (!boost::filesystem::windows_name(name))
+	if (!IsValidFilename(name))
 		return false;
 
 	// dont allow default profile names

@@ -1,5 +1,3 @@
-project(CemuInput)
-
 add_library(CemuInput
 	InputManager.cpp
 	InputManager.h
@@ -11,6 +9,24 @@ add_library(CemuInput
 	api/ControllerState.cpp
 	api/InputAPI.h
 	api/ControllerProvider.h
+	api/DSU/DSUController.h
+	api/DSU/DSUControllerProvider.cpp
+	api/DSU/DSUController.cpp
+	api/DSU/DSUControllerProvider.h
+	api/DSU/DSUMessages.h
+	api/DSU/DSUMessages.cpp
+	api/SDL/SDLController.cpp
+	api/SDL/SDLControllerProvider.cpp
+	api/SDL/SDLController.h
+	api/SDL/SDLControllerProvider.h
+	api/Keyboard/KeyboardControllerProvider.h
+	api/Keyboard/KeyboardControllerProvider.cpp
+	api/Keyboard/KeyboardController.cpp
+	api/Keyboard/KeyboardController.h
+	api/GameCube/GameCubeController.cpp
+	api/GameCube/GameCubeControllerProvider.h
+	api/GameCube/GameCubeControllerProvider.cpp
+	api/GameCube/GameCubeController.h
 	emulated/ProController.cpp
 	emulated/EmulatedController.h
 	emulated/EmulatedController.cpp
@@ -26,40 +42,6 @@ add_library(CemuInput
 )
 
 set_property(TARGET CemuInput PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-# SDL
-target_sources(CemuInput PRIVATE
-	api/SDL/SDLController.cpp
-	api/SDL/SDLControllerProvider.cpp
-	api/SDL/SDLController.h
-	api/SDL/SDLControllerProvider.h
-)
-
-# DSU
-target_sources(CemuInput PRIVATE
-	api/DSU/DSUController.h
-	api/DSU/DSUControllerProvider.cpp
-	api/DSU/DSUController.cpp
-	api/DSU/DSUControllerProvider.h
-	api/DSU/DSUMessages.h
-	api/DSU/DSUMessages.cpp
-)
-
-# Keyboard controller
-target_sources(CemuInput PRIVATE
-	api/Keyboard/KeyboardControllerProvider.h
-	api/Keyboard/KeyboardControllerProvider.cpp
-	api/Keyboard/KeyboardController.cpp
-	api/Keyboard/KeyboardController.h
-)
-
-# Native gamecube
-target_sources(CemuInput PRIVATE
-	api/GameCube/GameCubeController.cpp
-	api/GameCube/GameCubeControllerProvider.h
-	api/GameCube/GameCubeControllerProvider.cpp
-	api/GameCube/GameCubeController.h
-)
 
 if(WIN32)
 	# Native wiimote (Win32 only for now)

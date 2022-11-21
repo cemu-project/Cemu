@@ -384,7 +384,7 @@ static void PPCInterpreter_MULHW_(PPCInterpreter_t* hCPU, uint32 opcode)
 	hCPU->gpr[rD] = ((uint64)c) >> 32;
 	if (opcode & PPC_OPC_RC) {
 		// update cr0 flags
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
@@ -421,7 +421,7 @@ static void PPCInterpreter_MULLWO(PPCInterpreter_t* hCPU, uint32 opcode)
 	PPC_OPC_TEMPL3_XO();
 	sint64 result = (sint64)hCPU->gpr[rA] * (sint64)hCPU->gpr[rB];
 	hCPU->gpr[rD] = (uint32)result;
-	if (result < -0x80000000ll && result > 0x7FFFFFFFLL)
+	if (result < -0x80000000ll || result > 0x7FFFFFFFLL)
 	{
 		hCPU->spr.XER |= XER_SO;
 		hCPU->spr.XER |= XER_OV;

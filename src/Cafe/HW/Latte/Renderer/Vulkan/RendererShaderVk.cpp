@@ -1,24 +1,10 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 
-#if __has_include(<glslang/build_info.h>)
-#include <glslang/build_info.h>
-#else
-#define GLSLANG_VERSION_LESS_OR_EQUAL_TO (false)
-#endif
-
 #include <glslang/Public/ShaderLang.h>
-#if GLSLANG_VERSION_LESS_OR_EQUAL_TO(11, 0, 0)
 #include <glslang/SPIRV/GlslangToSpv.h>
-#else
-#include <SPIRV/Logger.h>
-#include <SPIRV/GlslangToSpv.h>
-#endif
-
 
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-
-#include <thread>
 
 #include "config/ActiveSettings.h"
 #include "config/CemuConfig.h"
@@ -456,7 +442,7 @@ void RendererShaderVk::ShaderCacheLoading_begin(uint64 cacheTitleId)
 	}
 	uint32 spirvCacheMagic = GeneratePrecompiledCacheId();
 	const std::string cacheFilename = fmt::format("{:016x}_spirv.bin", cacheTitleId);
-	const std::wstring cachePath = ActiveSettings::GetPath("shaderCache/precompiled/{}", cacheFilename).generic_wstring();
+	const std::wstring cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename).generic_wstring();
 	s_spirvCache = FileCache::Open(cachePath, true, spirvCacheMagic);
 	if (s_spirvCache == nullptr)
 		cemuLog_log(LogType::Force, "Unable to open SPIR-V cache {}", cacheFilename);

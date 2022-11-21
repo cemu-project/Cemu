@@ -550,7 +550,7 @@ namespace NCrypto
 		EC_POINT_mul(group, pubkey, bn_privKey, NULL, NULL, NULL);
 		BIGNUM* bn_x = BN_new();
 		BIGNUM* bn_y = BN_new();
-		EC_POINT_get_affine_coordinates_GF2m(group, pubkey, bn_x, bn_y, NULL);
+		EC_POINT_get_affine_coordinates(group, pubkey, bn_x, bn_y, NULL);
 
 		// store public key
 		ECCPubKey genPubKey;

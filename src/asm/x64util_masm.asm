@@ -1,12 +1,5 @@
 .code
 
-udiv128 PROC
-	mov rax, rcx
-	div r8
-	mov [r9], rdx
-	ret
-udiv128 ENDP
-
 recompiler_fres	PROC
  ; store all modified registers
 push rdx

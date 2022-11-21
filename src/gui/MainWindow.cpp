@@ -47,6 +47,8 @@
 
 #if BOOST_OS_WINDOWS
 #define exit(__c) ExitProcess(__c)
+#else
+#define exit(__c) _Exit(__c)
 #endif
 
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
@@ -64,8 +66,6 @@ wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 
 enum
 {
-	// note - Cemuhook mirrors these ids, be careful about changing them
-
 	// ui elements
 	MAINFRAME_GAMELIST_ID = 20000, //wxID_HIGHEST + 1,
 	// file
@@ -77,7 +77,6 @@ enum
 	MAINFRAME_MENU_ID_FILE_RECENT_LAST = MAINFRAME_MENU_ID_FILE_RECENT_0 + 15,
 	// options
 	MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN = 20200,
-	MAINFRAME_MENU_ID_OPTIONS_VSYNC,
 	MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW,
 	MAINFRAME_MENU_ID_OPTIONS_GRAPHIC,
 	MAINFRAME_MENU_ID_OPTIONS_GRAPHIC_PACKS2,
@@ -85,10 +84,6 @@ enum
 	MAINFRAME_MENU_ID_OPTIONS_GENERAL2,
 	MAINFRAME_MENU_ID_OPTIONS_AUDIO,
 	MAINFRAME_MENU_ID_OPTIONS_INPUT,
-	// options -> experimental
-	MAINFRAME_MENU_ID_EXPERIMENTAL_BOTW_WORKAROUND = 20300,
-	MAINFRAME_MENU_ID_EXPERIMENTAL_SYNC_TO_GX2DRAWDONE,
-	MAINFRAME_MENU_ID_EXPERIMENTAL_DISABLE_PRECOMPILED,
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_12 = 20350 + 11,
@@ -125,8 +120,7 @@ enum
 	MAINFRAME_MENU_ID_NFC_RECENT_0,
 	MAINFRAME_MENU_ID_NFC_RECENT_LAST = MAINFRAME_MENU_ID_NFC_RECENT_0 + 15,
 	// debug
-	MAINFRAME_MENU_ID_DEBUG_RESERVED = 21100,
-	MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN,
+	MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN = 21100,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER,
@@ -137,9 +131,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS,
 
 	// debug->logging
-	MAINFRAME_MENU_ID_DEBUG_LOGGING_DISABLE_ALL = 21500,
-	MAINFRAME_MENU_ID_DEBUG_LOGGING0,
-	MAINFRAME_MENU_ID_DEBUG_LOGGING20 = MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 20,
+	MAINFRAME_MENU_ID_DEBUG_LOGGING0 = 21500,
 	MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO,
 	// debug->dump
 	MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES = 21600,
@@ -288,6 +280,10 @@ MainWindow::MainWindow()
 	RecreateMenu();
 	SetClientSize(1280, 720);
 	SetIcon(wxICON(M_WND_ICON128));
+
+#if BOOST_OS_MACOS
+	this->EnableFullScreenView(true);
+#endif
 
 #if BOOST_OS_WINDOWS
 	HICON hWindowIcon = (HICON)LoadImageA(NULL, "M_WND_ICON16", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
@@ -551,8 +547,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		m_game_list = nullptr;
 	}
 
-	const auto game_name = GetGameName(fileName);
-	m_launched_game_name = boost::nowide::narrow(game_name);
+	m_launched_game_name = CafeSystem::GetForegroundTitleName();
 	#ifdef ENABLE_DISCORD_RPC
 	if (m_discord)
 		m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name);
@@ -771,7 +766,6 @@ void MainWindow::OpenSettings()
 	frame.ShowModal();
 	const bool paths_modified = frame.ShouldReloadGamelist();
 	const bool mlc_modified = frame.MLCModified();
-	frame.Destroy();
 
 	if (paths_modified)
 		m_game_list->ReloadGameEntries(false);
@@ -941,6 +935,8 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 	default:
 		cemu_assert_debug(false);
 	}
+	m_game_list->DeleteCachedStrings();
+	m_game_list->ReloadGameEntries(false);
 	g_config.Save();
 }
 
@@ -997,8 +993,8 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		{
 			try
 			{
-				const auto path = CemuApp::GetCemuPath(L"dump\\curl").ToStdWstring();
-				fs::create_directories(path);
+				const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+				fs::create_directories(path / "dump" / "curl");
 			}
 			catch (const std::exception& ex)
 			{
@@ -1054,8 +1050,8 @@ void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const auto path = CemuApp::GetCemuPath(L"dump\\textures");
-			fs::create_directories(path.ToStdWstring());
+			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+			fs::create_directories(path / "dump" / "textures");
 		}
 		catch (const std::exception& ex)
 		{
@@ -1075,8 +1071,8 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const auto path = CemuApp::GetCemuPath(L"dump\\shaders");
-			fs::create_directories(path.ToStdWstring());
+			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+			fs::create_directories(path / "dump" / "shaders");
 		}
 		catch (const std::exception & ex)
 		{
@@ -1383,11 +1379,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		SetFullScreen(false);
 	else if (code == WXK_RETURN && event.AltDown())
 		SetFullScreen(!IsFullScreen());
-#ifdef PUBLIC_RELEASE
 	else if (code == WXK_F12)
-#else
-	else if (code == WXK_F11)
-#endif
 		g_window_info.has_screenshot_request = true; // async screenshot request
 }
 
@@ -1507,79 +1499,6 @@ void MainWindow::DestroyCanvas()
 		m_render_canvas->Destroy();
 		m_render_canvas = nullptr;
 	}
-}
-
-
-std::wstring MainWindow::GetGameName(std::wstring_view file_name)
-{
-	fs::path path{ std::wstring{file_name} };
-	const auto extension = path.extension();
-	if (extension == ".wud" || extension == ".wux")
-	{
-		std::unique_ptr<FSTVolume> volume(FSTVolume::OpenFromDiscImage(path));
-		if (!volume)
-			return path.filename().generic_wstring();
-
-		bool foundFile = false;
-		std::vector<uint8> metaContent = volume->ExtractFile("meta/meta.xml", &foundFile);
-		if (!foundFile)
-			return path.filename().generic_wstring();
-
-		namespace xml = tinyxml2;
-		xml::XMLDocument doc;
-		doc.Parse((const char*)metaContent.data(), metaContent.size());
-
-		// parse meta.xml
-		xml::XMLElement* root = doc.FirstChildElement("menu");
-		if (root)
-		{
-			xml::XMLElement* element = root->FirstChildElement("longname_en");
-			if (element)
-			{
-
-				auto game_name = boost::nowide::widen(element->GetText());
-				const auto it = game_name.find(L'\n');
-				if (it != std::wstring::npos)
-					game_name.replace(it, 1, L" - ");
-
-				return game_name;
-			}
-		}
-		return path.filename().generic_wstring();
-	}
-	else if (extension == ".rpx")
-	{
-		if (path.has_parent_path() && path.parent_path().has_parent_path())
-		{
-			auto meta_xml = path.parent_path().parent_path() / "meta/meta.xml";
-			auto metaXmlData = FileStream::LoadIntoMemory(meta_xml);
-			if (metaXmlData)
-			{
-				namespace xml = tinyxml2;
-				xml::XMLDocument doc;
-				if (doc.Parse((const char*)metaXmlData->data(), metaXmlData->size()) == xml::XML_SUCCESS)
-				{
-					xml::XMLElement* root = doc.FirstChildElement("menu");
-					if (root)
-					{
-						xml::XMLElement* element = root->FirstChildElement("longname_en");
-						if (element)
-						{
-
-							auto game_name = boost::nowide::widen(element->GetText());
-							const auto it = game_name.find(L'\n');
-							if (it != std::wstring::npos)
-								game_name.replace(it, 1, L" - ");
-
-							return game_name;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return path.filename().generic_wstring();
 }
 
 void MainWindow::OnSizeEvent(wxSizeEvent& event)
@@ -1734,7 +1653,6 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 			{
 				CemuUpdateWindow update_window(this);
 				update_window.ShowModal();
-				update_window.Destroy();
 			}
 		}
 
@@ -1777,8 +1695,6 @@ public:
 	void Create(wxWindow* parent = NULL)
 	{
 		SetIcon(wxICON(M_WND_ICON128));
-
-		this->SetBackgroundColour(wxColour(0xFFFFFFFF));
 
 		wxScrolledWindow* scrolledWindow = new wxScrolledWindow(this);
 
@@ -1945,7 +1861,7 @@ public:
 						"/*****************************************************************************/\r\n"
 					);
 					delete fs;
-					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _utf8Wrapper(tempPath))));
+					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(tempPath))));
 				});
 			lineSizer->Add(noticeLink, 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
@@ -2011,7 +1927,6 @@ void MainWindow::OnHelpUpdate(wxCommandEvent& event)
 {
 	CemuUpdateWindow test(this);
 	test.ShowModal();
-	test.Destroy();
 }
 
 void MainWindow::OnHelpGettingStarted(wxCommandEvent& event)
@@ -2066,7 +1981,7 @@ void MainWindow::RecreateMenu()
 	else
 	{
 		// add 'Stop emulation' menu entry to file menu
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("End emulation"));
 #endif
 	}
@@ -2187,7 +2102,7 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendSeparator();
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_OPENGL, _("&OpenGL debug output"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_OPENGL));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_VULKAN_VALIDATION, _("&Vulkan validation layer (slow)"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION));
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, _("&Log PPC context for API"), wxEmptyString)->Check(cemuLog_advancedPPCLoggingEnabled());
 #endif
 	m_loggingSubmenu = debugLoggingMenu;
@@ -2213,12 +2128,12 @@ void MainWindow::RecreateMenu()
 
 	debugMenu->AppendSeparator();
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	auto audioAuxOnly = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, _("&Audio AUX only"), wxEmptyString);
 	audioAuxOnly->Check(ActiveSettings::AudioOutputOnlyAux());
 #endif
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW, _("&Open logging window"));
 #endif
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS, _("&View PPC threads"));

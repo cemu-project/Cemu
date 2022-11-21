@@ -1,0 +1,21 @@
+name: Build check
+on: 
+  pull_request:
+    paths-ignore:
+      - "*.md"
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    paths-ignore:
+      - "*.md"
+    branches:
+      - main
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      deploymode: release
+      experimentalversion: 999999

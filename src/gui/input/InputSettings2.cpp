@@ -29,9 +29,7 @@
 #include "gui/input/settings/WiimoteControllerSettings.h"
 #include "util/EventService.h"
 
-#if BOOST_OS_LINUX
 #include "resource/embedded/resources.h"
-#endif
 
 bool g_inputConfigWindowHasFocus = false;
 
@@ -70,9 +68,9 @@ InputSettings2::InputSettings2(wxWindow* parent)
 
 	g_inputConfigWindowHasFocus = true;
 
-	m_connected = wxBITMAP_PNG(INPUT_CONNECTED);
-	m_disconnected = wxBITMAP_PNG(INPUT_DISCONNECTED);
-	m_low_battery = wxBITMAP_PNG(INPUT_LOW_BATTERY);
+	m_connected = wxBITMAP_PNG_FROM_DATA(INPUT_CONNECTED);
+	m_disconnected = wxBITMAP_PNG_FROM_DATA(INPUT_DISCONNECTED);
+	m_low_battery = wxBITMAP_PNG_FROM_DATA(INPUT_LOW_BATTERY);
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -113,7 +111,7 @@ InputSettings2::InputSettings2(wxWindow* parent)
 	Bind(wxEVT_TIMER, &InputSettings2::on_timer, this);
 
 	m_timer = new wxTimer(this);
-	m_timer->Start(100);
+	m_timer->Start(25);
 
 	m_controller_changed = EventService::instance().connect<Events::ControllerChanged>(&InputSettings2::on_controller_changed, this);
 }
@@ -420,7 +418,15 @@ void InputSettings2::update_state()
 
 	// enabled correct panel for active controller
 	if (active_api && emulated_controller && emulated_controller->type() == active_api.value())
+	{
+		// same controller type panel already shown, refresh content of panels
+		for (auto* panel : page_data.m_panels)
+		{
+			if (panel)
+				panel->load_controller(page_data.m_controller);
+		}
 		return;
+	}
 
 	// hide all panels
 	for (auto* panel : page_data.m_panels)
@@ -568,8 +574,6 @@ void InputSettings2::on_profile_text_changed(wxCommandEvent& event)
 
 	auto& page_data = get_current_page_data();
 
-	const auto selection = page_data.m_emulated_controller->GetStringSelection();
-
 	// load_bttn, save_bttn, delete_bttn, profile_status
 	const auto text = event.GetString();
 	const auto text_str = from_wxString(text);
@@ -669,10 +673,10 @@ void InputSettings2::on_profile_delete(wxCommandEvent& event)
 	}
 	try
 	{
-		const fs::path old_path = ActiveSettings::GetPath(fmt::format("controllerProfiles/{}.txt", selection));
+		const fs::path old_path = ActiveSettings::GetConfigPath("controllerProfiles/{}.txt", selection);
 		fs::remove(old_path);
 
-		const fs::path path = ActiveSettings::GetPath(fmt::format("controllerProfiles/{}.xml", selection));
+		const fs::path path = ActiveSettings::GetConfigPath("controllerProfiles/{}.xml", selection);
 		fs::remove(path);
 
 		profile_names->ChangeValue(kDefaultProfileName);

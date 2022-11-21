@@ -10,7 +10,7 @@ template <typename T>
 class PPCConcurrentQueue
 {
 public:
-	PPCConcurrentQueue() {}
+	PPCConcurrentQueue() = default;
 	PPCConcurrentQueue(const PPCConcurrentQueue&) = delete;
 	PPCConcurrentQueue& operator=(const PPCConcurrentQueue&) = delete;
 

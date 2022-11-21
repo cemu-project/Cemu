@@ -50,10 +50,11 @@ public:
 	bool IsVisible(long item) const; // only available in wxwidgets 3.1.3
 
 	void ReloadGameEntries(bool cached = false);
+	void DeleteCachedStrings();
 
 	long FindListItemByTitleId(uint64 title_id) const;
 	void OnClose(wxCloseEvent& event);
-	
+
 private:
 	std::atomic_bool m_exit = false;
 	Style m_style;
@@ -74,7 +75,8 @@ private:
 		ColumnGameTime,
 		ColumnGameStarted,
 		ColumnRegion,
-		ColumnFavorite
+		//ColumnFavorite,
+		ColumnCounts
 	};
 
 	int s_last_column = ColumnName;
@@ -142,6 +144,10 @@ private:
 	void OnTimer(wxTimerEvent& event);
 	void OnMouseMove(wxMouseEvent& event);
 	void OnLeaveWindow(wxMouseEvent& event);
+
+	void OnGameListSize(wxSizeEvent& event);
+	void AdjustLastColumnWidth();
+	int GetColumnDefaultWidth(int column);
 
 	static inline std::once_flag s_launch_file_once;
 };

@@ -493,19 +493,20 @@ bool LatteMRT::UpdateCurrentFBO()
 
 		sint32 colorAttachmentWidth;
 		sint32 colorAttachmentHeight;
+
 		LatteTexture_getSize(colorAttachmentView->baseTexture, &colorAttachmentWidth, &colorAttachmentHeight, nullptr, colorAttachmentView->firstMip);
 
 		// set effective size
 		sint32 effectiveWidth, effectiveHeight;
 		LatteTexture_getEffectiveSize(colorAttachmentView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, colorAttachmentView->firstMip);
-		if( rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0 )
+		if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
 		{
 			rtEffectiveSize->width = effectiveWidth;
 			rtEffectiveSize->height = effectiveHeight;
 		}
-		else if( rtEffectiveSize->width != effectiveWidth && rtEffectiveSize->height != effectiveHeight )
+		else if (rtEffectiveSize->width != effectiveWidth && rtEffectiveSize->height != effectiveHeight)
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			forceLog_printf("Color buffer size mismatch (%dx%d). Effective size: %dx%d Real size: %dx%d Mismatching texture: %08x %dx%d fmt %04x", rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, colorAttachmentView->baseTexture->physAddress, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, (uint32)colorAttachmentView->baseTexture->format);
 #endif
 		}

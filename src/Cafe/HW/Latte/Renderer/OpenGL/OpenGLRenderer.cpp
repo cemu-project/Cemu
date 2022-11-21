@@ -25,8 +25,10 @@
 #define STRINGIFY(X) STRINGIFY2(X)
 
 #define GLFUNC(__type, __name)	__type __name;
+#define EGLFUNC(__type, __name)	__type __name;
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
+#undef EGLFUNC
 
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -229,9 +231,17 @@ void LoadOpenGLImports()
 		_glXGetProcAddress = (PFNGLXGETPROCADDRESSPROC)dlsym(libGL, "glXGetProcAddressARB");
 	}
 
+	void* libEGL = dlopen("libEGL.so.1", RTLD_NOW | RTLD_GLOBAL);
+	if(!libEGL)
+	{
+		libGL = dlopen("libEGL.so", RTLD_NOW | RTLD_GLOBAL);
+	}
+
 #define GLFUNC(__type, __name)	__name = (__type)_GetOpenGLFunction(libGL, _glXGetProcAddress, STRINGIFY(__name));
+#define EGLFUNC(__type, __name)	__name = (__type)dlsym(libEGL, STRINGIFY(__name));
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
+#undef EGLFUNC
 }
 #elif BOOST_OS_MACOS
 void LoadOpenGLImports()
@@ -352,15 +362,6 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 	glFlush();
 }
 
-void OpenGLRenderer::EnableVSync(int state)
-{
-#if BOOST_OS_WINDOWS
-	if(wglSwapIntervalEXT)
-		wglSwapIntervalEXT(state); // 1 = enabled, 0 = disabled
-#else
-	cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
-#endif
-}
 
 bool IsRunningInWine();
 
@@ -548,6 +549,9 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	renderstate_resetDepthControl();
 	attributeStream_reset();
 
+	// bind back buffer
+	rendertarget_bindFramebufferObject(nullptr);
+
 	if (clearBackground)
 	{
 		int windowWidth, windowHeight;
@@ -558,9 +562,6 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		g_renderer->renderTarget_setViewport(0, 0, windowWidth, windowHeight, 0.0f, 1.0f);
 		g_renderer->ClearColorbuffer(padView);
 	}
-
-	// bind back buffer
-	rendertarget_bindFramebufferObject(nullptr);
 
 	// calculate effective size
 	sint32 effectiveWidth;
@@ -878,7 +879,7 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	}
 	
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
-		texDecoder = TextureDecoder_R4_G4_UNORM_toRGBA4444::getInstance();
+		texDecoder = TextureDecoder_R4_G4_UNORM_To_RGBA4::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM)
 		texDecoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT)
@@ -964,9 +965,9 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM)
 		texDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::A2_B10_G10_R10_UNORM)
-		texDecoder = TextureDecoder_A2_B10_G10_R10_UNORM_toRGBA16::getInstance();
+		texDecoder = TextureDecoder_A2_B10_G10_R10_UNORM_To_RGBA16::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM)
-		texDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_toRGBA16::getInstance();
+		texDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB)
 		texDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)

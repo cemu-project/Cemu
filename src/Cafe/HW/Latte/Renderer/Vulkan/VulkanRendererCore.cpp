@@ -55,7 +55,7 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 	// An alternative would be to use VK_EXT_vertex_input_dynamic_state but it comes with minor overhead
 	// Regardless, the extension is not well supported as of writing this (July 2021, only 10% of GPUs support it on Windows. Nvidia only)
 
-	cemu_assert_debug(fetchShader->key == fetchShader->key); // fetch shaders must be layout compatible, but may have different offsets
+	cemu_assert_debug(vertexShader->compatibleFetchShader->key == fetchShader->key); // fetch shaders must be layout compatible, but may have different offsets
 
 	uint64 stateHash;
 	stateHash = draw_calculateMinimalGraphicsPipelineHash(fetchShader, lcr);
@@ -334,7 +334,7 @@ PipelineInfo* VulkanRenderer::draw_getOrCreateGraphicsPipeline(uint32 indexCount
 	if (cache_object != nullptr)
 	{
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		cemu_assert_debug(cache_object->vertexShader == LatteSHRC_GetActiveVertexShader());
 		cemu_assert_debug(cache_object->geometryShader == LatteSHRC_GetActiveGeometryShader());
 		cemu_assert_debug(cache_object->pixelShader == LatteSHRC_GetActivePixelShader());
@@ -1196,30 +1196,15 @@ void VulkanRenderer::draw_setRenderPass()
 	// update self-dependency flag
 	if (m_state.descriptorSetsChanged || m_state.activeRenderpassFBO != fboVk)
 	{
-		bool hadDep = m_state.hasRenderSelfDependency;
 		m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 	}
 
 	auto vkObjRenderPass = fboVk->GetRenderPassObj();
 	auto vkObjFramebuffer = fboVk->GetFramebufferObj();
 
-	if (m_state.hasRenderSelfDependency)
-	{
-		bool triggerBarrier = GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier;
-		if (triggerBarrier)
-		{
-			VkMemoryBarrier memoryBarrier{};
-			memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-			memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-			performanceMonitor.vk.numDrawBarriersPerFrame.increment();
-		}
-	}
+	bool overridePassReuse = m_state.hasRenderSelfDependency && (GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
 
-	if (m_state.activeRenderpassFBO == fboVk)
+	if (!overridePassReuse && m_state.activeRenderpassFBO == fboVk)
 	{
 		if (m_state.descriptorSetsChanged)
 			sync_inputTexturesChanged();
@@ -1456,7 +1441,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		else
 		{
 			pipeline_info = m_state.activePipelineInfo;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			auto pipeline_info2 = draw_getOrCreateGraphicsPipeline(count);
 			if (pipeline_info != pipeline_info2)
 			{

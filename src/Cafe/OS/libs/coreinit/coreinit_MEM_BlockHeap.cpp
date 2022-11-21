@@ -462,7 +462,7 @@ namespace coreinit
 		if (block != NULL)
 		{
 			MPTR blockMPTR = memory_getVirtualOffsetFromPointer(block);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (block->isFree != 0)
 				assert_dbg();
 			_blockHeapDebugVerifyLinkOrder(blockHeapHead);

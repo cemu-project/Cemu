@@ -270,12 +270,12 @@ void MemorySearcherTool::OnFilter(wxCommandEvent& event)
 
 void MemorySearcherTool::Load()
 {
-	const auto memorySearcherPath = ActiveSettings::GetPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
+	const auto memorySearcherPath = ActiveSettings::GetUserDataPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
 	auto memSearcherIniContents = FileStream::LoadIntoMemory(memorySearcherPath);
 	if (!memSearcherIniContents)
 		return;
 
-	IniParser iniParser(*memSearcherIniContents, _utf8Wrapper(memorySearcherPath));
+	IniParser iniParser(*memSearcherIniContents, _pathToUtf8(memorySearcherPath));
 	while (iniParser.NextSection())
 	{
 		auto option_description = iniParser.FindOption("description");
@@ -300,14 +300,14 @@ void MemorySearcherTool::Load()
 		bool found = false;
 		for (const auto& entry : kDataTypeNames)
 		{
-			if (boost::iequals(entry, *option_type))
+			if (boost::iequals(entry.ToStdString(), *option_type))
 			{
 				found = true;
 				break;
 			}
 		}
 
-		if (!found && !boost::iequals(kDatatypeString, *option_type))
+		if (!found && !boost::iequals(kDatatypeString.ToStdString(), *option_type))
 			continue;
 
 		wxVector<wxVariant> data;
@@ -322,7 +322,7 @@ void MemorySearcherTool::Load()
 
 void MemorySearcherTool::Save()
 {
-	const auto memorySearcherPath = ActiveSettings::GetPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
+	const auto memorySearcherPath = ActiveSettings::GetUserDataPath("memorySearcher/{:016x}.ini", CafeSystem::GetForegroundTitleId());
 	FileStream* fs = FileStream::createFile2(memorySearcherPath);
 	if (fs)
 	{

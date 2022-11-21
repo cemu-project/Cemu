@@ -50,6 +50,12 @@
 
 #include <immintrin.h>
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
+
 /**
  *******************************************************************************
  *
@@ -78,6 +84,7 @@
 
 
 
+ATTRIBUTE_SSSE3
 void ih264_memcpy_mul_8_ssse3(UWORD8 *pu1_dst, UWORD8 *pu1_src, UWORD32 num_bytes)
 {
     int col;
@@ -117,6 +124,7 @@ void ih264_memcpy_mul_8_ssse3(UWORD8 *pu1_dst, UWORD8 *pu1_src, UWORD32 num_byte
  */
 
 
+ATTRIBUTE_SSSE3
 void ih264_memset_mul_8_ssse3(UWORD8 *pu1_dst, UWORD8 value, UWORD32 num_bytes)
 {
     int col;

@@ -107,9 +107,9 @@ namespace coreinit
 			return;
 
 		std::error_code ec;
-		const auto path = ActiveSettings::GetPath("sdcard/");
+		const auto path = ActiveSettings::GetUserDataPath("sdcard/");
 		fs::create_directories(path, ec);
-		FSCDeviceHostFS_Mount("/vol/external01", path.generic_wstring().c_str() , FSC_PRIORITY_BASE);
+		FSCDeviceHostFS_Mount("/vol/external01", _pathToUtf8(path), FSC_PRIORITY_BASE);
 
 		_sdCard01Mounted = true;
 	}
@@ -140,9 +140,9 @@ namespace coreinit
 				return FS_RESULT::ERR_PLACEHOLDER;
 
 			std::error_code ec;
-			const auto path = ActiveSettings::GetPath("sdcard/");
+			const auto path = ActiveSettings::GetUserDataPath("sdcard/");
 			fs::create_directories(path, ec);
-			if (!FSCDeviceHostFS_Mount(mountPathOut, path.generic_wstring().c_str(), FSC_PRIORITY_BASE))
+			if (!FSCDeviceHostFS_Mount(mountPathOut, _pathToUtf8(path), FSC_PRIORITY_BASE))
 				return FS_RESULT::ERR_PLACEHOLDER;
 			_sdCard01Mounted = true;
 		}
@@ -150,7 +150,7 @@ namespace coreinit
 			if (_mlc01Mounted)
 				return FS_RESULT::ERR_PLACEHOLDER;
 
-			if (!FSCDeviceHostFS_Mount(mountPathOut, ActiveSettings::GetMlcPath().generic_wstring().c_str(), FSC_PRIORITY_BASE))
+			if (!FSCDeviceHostFS_Mount(mountPathOut, _pathToUtf8(ActiveSettings::GetMlcPath()), FSC_PRIORITY_BASE))
 				return FS_RESULT::ERR_PLACEHOLDER;
 			_mlc01Mounted = true;
 		}
@@ -349,7 +349,7 @@ namespace coreinit
 			}
 			if (entryFound == false)
 			{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 				assert_dbg();
 #endif
 			}

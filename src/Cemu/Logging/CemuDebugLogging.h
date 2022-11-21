@@ -2,7 +2,7 @@
 
 // printf-style macros that are only active in non-release builds
 
-#ifdef PUBLIC_RELEASE
+#ifndef CEMU_DEBUG_ASSERTS
 #define debug_printf(...)
 static void debugBreakpoint() { }
 #else
