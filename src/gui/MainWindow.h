@@ -78,6 +78,7 @@ public:
 	PadViewFrame* GetPadView() const { return m_padView; }
 
 	void OnSizeEvent(wxSizeEvent& event);
+	void OnDPIChangedEvent(wxDPIChangedEvent& event);
 	void OnMove(wxMoveEvent& event);
 
 	void OnDebuggerClose(wxCloseEvent& event);

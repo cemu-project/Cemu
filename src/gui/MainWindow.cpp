@@ -156,6 +156,7 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
 EVT_TIMER(MAINFRAME_ID_TIMER1, MainWindow::OnTimer)
 EVT_CLOSE(MainWindow::OnClose)
 EVT_SIZE(MainWindow::OnSizeEvent)
+EVT_DPI_CHANGED(MainWindow::OnDPIChangedEvent)
 EVT_MOVE(MainWindow::OnMove)
 // file menu
 EVT_MENU(MAINFRAME_MENU_ID_FILE_LOAD, MainWindow::OnFileMenu)
@@ -1522,6 +1523,16 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 	event.Skip();
 
 	VsyncDriver_notifyWindowPosChanged();
+}
+
+void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
+{
+	event.Skip();
+	const wxSize client_size = GetClientSize();
+	g_window_info.width = client_size.GetWidth();
+	g_window_info.height = client_size.GetHeight();
+	g_window_info.phys_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_height = ToPhys(client_size.GetHeight());
 }
 
 void MainWindow::OnMove(wxMoveEvent& event)

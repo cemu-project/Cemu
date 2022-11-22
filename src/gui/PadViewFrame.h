@@ -26,6 +26,7 @@ private:
 	void OnMouseLeft(wxMouseEvent& event);
 	void OnMouseRight(wxMouseEvent& event);
 	void OnSizeEvent(wxSizeEvent& event);
+	void OnDPIChangedEvent(wxDPIChangedEvent& event);
 	void OnMoveEvent(wxMoveEvent& event);
 	void OnGesturePan(wxPanGestureEvent& event);
 	void OnSetWindowTitle(wxCommandEvent& event);

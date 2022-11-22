@@ -37,6 +37,7 @@ PadViewFrame::PadViewFrame(wxFrame* parent)
 		Maximize();
 
 	Bind(wxEVT_SIZE, &PadViewFrame::OnSizeEvent, this);
+	Bind(wxEVT_DPI_CHANGED, &PadViewFrame::OnDPIChangedEvent, this);
 	Bind(wxEVT_MOVE, &PadViewFrame::OnMoveEvent, this);
 	Bind(wxEVT_MOTION, &PadViewFrame::OnMouseMove, this);
 
@@ -104,6 +105,16 @@ void PadViewFrame::OnSizeEvent(wxSizeEvent& event)
 	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
 
 	event.Skip();
+}
+
+void PadViewFrame::OnDPIChangedEvent(wxDPIChangedEvent& event)
+{
+	event.Skip();
+	const wxSize client_size = GetClientSize();
+	g_window_info.pad_width = client_size.GetWidth();
+	g_window_info.pad_height = client_size.GetHeight();
+	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
 }
 
 void PadViewFrame::OnMoveEvent(wxMoveEvent& event)
