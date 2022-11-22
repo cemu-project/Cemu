@@ -1667,7 +1667,6 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 	draw_endRenderPass();
 	m_state.currentPipeline = VK_NULL_HANDLE;
 
-	chainInfo.WaitAvailableFence();
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
 	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.getExtent());
 	ImGui_UpdateWindowInformation(mainWindow);
@@ -1724,7 +1723,6 @@ bool VulkanRenderer::BeginFrame(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	chainInfo.WaitAvailableFence();
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
 	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
@@ -2548,8 +2546,10 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
-	VkSemaphore acquireSemaphore = chainInfo.m_acquireSemaphores[chainInfo.m_acquireIndex];
+	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, UINT64_MAX);
 	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
+
+	VkSemaphore acquireSemaphore = chainInfo.m_acquireSemaphores[chainInfo.m_acquireIndex];
 	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
 	if (result != VK_SUCCESS)
 	{
@@ -2637,7 +2637,6 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 
 	if (!chainInfo.hasDefinedSwapchainImage)
 	{
-		chainInfo.WaitAvailableFence();
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -2705,7 +2704,6 @@ void VulkanRenderer::ClearColorbuffer(bool padView)
 	if (chainInfo.swapchainImageIndex == -1)
 		return;
 
-	chainInfo.WaitAvailableFence();
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
 	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 }
@@ -2796,7 +2794,6 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
-	chainInfo.WaitAvailableFence();
 	if (clearBackground)
 		ClearColorbuffer(padView);
 

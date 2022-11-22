@@ -182,11 +182,6 @@ bool SwapchainInfoVk::IsValid() const
 	return swapchain && !m_acquireSemaphores.empty();
 }
 
-void SwapchainInfoVk::WaitAvailableFence() const
-{
-	vkWaitForFences(m_logicalDevice, 1, &m_imageAvailableFence, VK_TRUE, UINT64_MAX);
-}
-
 void SwapchainInfoVk::UnrecoverableError(const char* errMsg)
 {
 	forceLog_printf("Unrecoverable error in Vulkan swapchain");
