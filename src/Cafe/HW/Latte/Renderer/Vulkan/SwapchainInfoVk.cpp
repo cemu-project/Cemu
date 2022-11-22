@@ -15,10 +15,10 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 
 	// Use at least two swapchain images. Fewer than that causes problems on some drivers.
 	uint32_t image_count = std::max(2u, details.capabilities.minImageCount);
-    if(details.capabilities.maxImageCount > 0)
-        image_count = std::min(image_count, details.capabilities.maxImageCount);
-    if(image_count < 2)
-        cemuLog_force("Vulkan: Swapchain image count less than 2.");
+	if(details.capabilities.maxImageCount > 0)
+		image_count = std::min(image_count, details.capabilities.maxImageCount);
+	if(image_count < 2)
+		cemuLog_force("Vulkan: Swapchain image count less than 2.");
 
 	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(surface, details, m_surfaceFormat, image_count, m_actualExtent);
 	create_info.oldSwapchain = nullptr;
