@@ -2569,9 +2569,13 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 {
+	using namespace std::chrono_literals;
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
+	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE,
+		std::chrono::duration_cast<std::chrono::nanoseconds>(10ms).count()
+	);
 
 	Vector2i size;
 	if (mainWindow)
