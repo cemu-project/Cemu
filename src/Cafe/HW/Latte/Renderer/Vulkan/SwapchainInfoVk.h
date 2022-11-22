@@ -78,13 +78,15 @@ struct SwapchainInfoVk
 	Vector2i m_desiredExtent{};
 	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
+	uint32 m_acquireIndex = 0;
 
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
 	std::vector<VkImage> m_swapchainImages;
 	std::vector<VkImageView> m_swapchainImageViews;
 	std::vector<VkFramebuffer> m_swapchainFramebuffers;
-	std::vector<VkSemaphore> m_swapchainPresentSemaphores;
+	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by m_acquireIndex
+	std::vector<VkSemaphore> m_presentSemaphores; // indexed by swapchainImageIndex
 	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 
 	VkRenderPass m_swapchainRenderPass = nullptr;

@@ -108,13 +108,23 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create framebuffer for swapchain");
 	}
-	m_swapchainPresentSemaphores.resize(m_swapchainImages.size());
-	// create present semaphore
+
+	m_presentSemaphores.resize(m_swapchainImages.size());
+	// create present semaphores
 	VkSemaphoreCreateInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	for (auto& semaphore : m_swapchainPresentSemaphores){
+	for (auto& semaphore : m_presentSemaphores){
 		if (vkCreateSemaphore(logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
 			UnrecoverableError("Failed to create semaphore for swapchain present");
+	}
+
+	m_acquireSemaphores.resize(m_swapchainImages.size());
+	// create acquire semaphores
+	info = {};
+	info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	for (auto& semaphore : m_acquireSemaphores){
+		if (vkCreateSemaphore(logicalDevice, &info, nullptr, &semaphore) != VK_SUCCESS)
+			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 
 	VkFenceCreateInfo fenceInfo = {};
@@ -124,6 +134,7 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Failed to create fence for swapchain");
 
+	m_acquireIndex = 0;
 	hasDefinedSwapchainImage = false;
 }
 
@@ -131,9 +142,13 @@ void SwapchainInfoVk::Cleanup()
 {
 	m_swapchainImages.clear();
 
-	for (auto& sem: m_swapchainPresentSemaphores)
+	for (auto& sem: m_acquireSemaphores)
 		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
-	m_swapchainPresentSemaphores.clear();
+	m_acquireSemaphores.clear();
+
+	for (auto& sem: m_presentSemaphores)
+		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
+	m_presentSemaphores.clear();
 
 	if (m_swapchainRenderPass)
 	{
@@ -164,7 +179,7 @@ void SwapchainInfoVk::Cleanup()
 
 bool SwapchainInfoVk::IsValid() const
 {
-	return swapchain && m_imageAvailableFence;
+	return swapchain && !m_acquireSemaphores.empty();
 }
 
 void SwapchainInfoVk::WaitAvailableFence() const

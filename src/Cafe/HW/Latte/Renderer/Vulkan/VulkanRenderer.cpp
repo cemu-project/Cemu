@@ -2548,8 +2548,9 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
+	VkSemaphore acquireSemaphore = chainInfo.m_acquireSemaphores[chainInfo.m_acquireIndex];
 	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
 	if (result != VK_SUCCESS)
 	{
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -2561,7 +2562,8 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
 			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
-
+	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_swapchainImages.size();
+	SubmitCommandBuffer(nullptr, &acquireSemaphore);
 	return true;
 }
 
@@ -2641,7 +2643,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
-	VkSemaphore presentSemaphore = chainInfo.m_swapchainPresentSemaphores[chainInfo.swapchainImageIndex];
+	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
 	SubmitCommandBuffer(&presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
