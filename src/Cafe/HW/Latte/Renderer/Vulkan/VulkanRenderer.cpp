@@ -1471,10 +1471,8 @@ void VulkanRenderer::ImguiInit()
 	info.Queue = m_presentQueue;
 	info.PipelineCache = m_pipeline_cache;
 	info.DescriptorPool = m_descriptorPool;
-	// these parameters are deceptively named
-	// they have nothing to do with swapchain images but must be at least 2
-	info.MinImageCount = 2;
-	info.ImageCount = 2;
+	info.MinImageCount = m_mainSwapchainInfo->m_swapchainImages.size();
+	info.ImageCount = info.MinImageCount;
 
 	ImGui_ImplVulkan_Init(&info, m_imguiRenderPass);
 }
