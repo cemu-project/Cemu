@@ -47,6 +47,25 @@ void _stripPathFilename(fs::path& path)
 		path = path.parent_path();
 }
 
+std::list<fs::path> _getCachesPaths(const TitleId& titleId)
+{
+	std::list<fs::path> cachePaths{
+		ActiveSettings::GetCachePath(L"shaderCache/driver/vk/{:016x}.bin", titleId),
+		ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_spirv.bin", titleId),
+		ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_gl.bin", titleId),
+		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_shaders.bin", titleId),
+		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_vkpipeline.bin", titleId)};
+
+	cachePaths.remove_if(
+		[](const fs::path& cachePath)
+		{
+			std::error_code ec;
+			return !fs::exists(cachePath, ec);
+		});
+
+	return cachePaths;
+}
+
 wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
 {
@@ -504,9 +523,7 @@ enum ContextMenuEntries
 	kContextMenuEditGraphicPacks,
 	kContextMenuEditGameProfile,
 
-	kContextMenuRemoveOpenGLCache,
-	kContextMenuRemoveVulkanCache,
-	kContextMenuRemoveTransferableCache,
+	kContextMenuRemoveCache,
 
 	kContextMenuStyleList,
 	kContextMenuStyleIcon,
@@ -545,9 +562,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.Append(kContextMenuDLCFolder, _("&DLC directory"))->Enable(gameInfo.HasAOC());
 
 			menu.AppendSeparator();
-			menu.Append(kContextMenuRemoveVulkanCache, _("Remove &Vulkan shader cache"));
-			menu.Append(kContextMenuRemoveOpenGLCache, _("Remove &OpenGL shader cache"));
-			menu.Append(kContextMenuRemoveTransferableCache, _("Remove &transferable shader cache"));
+			menu.Append(kContextMenuRemoveCache, _("&Remove shader caches"))->Enable(!_getCachesPaths(gameInfo.GetBaseTitleId()).empty());
 
 			menu.AppendSeparator();
 			menu.Append(kContextMenuEditGraphicPacks, _("&Edit graphic packs"));
@@ -656,32 +671,11 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(path))));
 				break;
 			}
-			case kContextMenuRemoveOpenGLCache:
+			case kContextMenuRemoveCache:
 			{
-				RemoveCache("OpenGL", {ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_gl.bin", gameInfo.GetBaseTitleId())});
+				RemoveCache(_getCachesPaths(gameInfo.GetBaseTitleId()), gameInfo.GetTitleName());
 				break;
 			}
-			case kContextMenuRemoveVulkanCache:
-			{
-				auto titleId = gameInfo.GetBaseTitleId();
-				RemoveCache("Vulkan",
-				{
-					ActiveSettings::GetCachePath(L"shaderCache/driver/vk/{:016x}.bin", titleId),
-					ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_spirv.bin", titleId),
-				});
-				break;
-			}
-			case kContextMenuRemoveTransferableCache:
-			{
-				auto titleId = gameInfo.GetBaseTitleId();
-				RemoveCache("transferable",
-				{
-					ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_shaders.bin", titleId),
-					ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_vkpipeline.bin", titleId)
-				});
-				break;
-			}
-
 			case kContextMenuEditGraphicPacks:
 			{
 				wxTitleIdEvent open_event(wxEVT_OPEN_GRAPHIC_PACK, title_id);
@@ -1090,27 +1084,14 @@ void wxGameList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)
 	}
 }
 
-void wxGameList::RemoveCache(const std::string& type, std::list<fs::path> cachePaths)
+void wxGameList::RemoveCache(const std::list<fs::path>& cachePaths, const std::string& titleName)
 {
-	wxMessageDialog dialog(this, fmt::format(fmt::runtime(_("Remove {} shader cache?").ToStdString()), type), _("Remove cache"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
+	wxMessageDialog dialog(this, fmt::format(fmt::runtime(_("Remove the shader caches for {}?").ToStdString()), titleName), _("Remove shader caches"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
 	dialog.SetYesNoLabels(_("Yes"), _("No"));
 
 	const auto dialogResult = dialog.ShowModal();
 	if (dialogResult != wxID_YES)
 		return;
-
-	cachePaths.remove_if(
-		[](const fs::path& cachePath)
-		{
-			std::error_code ec;
-			return !fs::exists(cachePath, ec);
-		});
-
-	if (cachePaths.empty())
-	{
-		wxMessageDialog(this, _("No shader cache for this title was found!"), _("No cache found"), wxCENTRE | wxOK | wxICON_EXCLAMATION).ShowModal();
-		return;
-	}
 	std::list<std::string> errs;
 	for (const fs::path& cachePath : cachePaths)
 	{
@@ -1118,9 +1099,9 @@ void wxGameList::RemoveCache(const std::string& type, std::list<fs::path> cacheP
 			errs.emplace_back(fmt::format("{} : {}", cachePath.string(), ec.message()));
 	}
 	if (errs.empty())
-		wxMessageDialog(this, _("The shader cache was removed!"), _("Cache removed"), wxCENTRE | wxOK | wxICON_INFORMATION).ShowModal();
+		wxMessageDialog(this, _("The shader caches were removed!"), _("Shader caches removed"), wxCENTRE | wxOK | wxICON_INFORMATION).ShowModal();
 	else
-		wxMessageDialog(this, fmt::format(fmt::runtime(_("Failed to remove the shader cache:\n{}").ToStdString()), fmt::join(errs, "\n")), _("Error"), wxCENTRE | wxOK | wxICON_ERROR).ShowModal();
+		wxMessageDialog(this, fmt::format(fmt::runtime(_("Failed to remove the shader caches:\n{}").ToStdString()), fmt::join(errs, "\n")), _("Error"), wxCENTRE | wxOK | wxICON_ERROR).ShowModal();
 }
 
 void wxGameList::AsyncWorkerThread()
