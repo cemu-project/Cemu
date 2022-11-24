@@ -2654,7 +2654,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+		throw std::runtime_error(fmt::format("Failed to present image: {}", result));
 	}
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
