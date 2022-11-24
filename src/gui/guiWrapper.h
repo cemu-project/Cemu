@@ -4,6 +4,7 @@
 
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
+#include <gdk/gdkkeysyms.h>
 #endif
 
 struct WindowHandleInfo
@@ -22,6 +23,23 @@ struct WindowHandleInfo
 	// todo
 #else
 	void* handle;
+#endif
+};
+
+enum struct PlatformKeyCodes : uint32
+{
+#if BOOST_OS_WINDOWS
+	LCONTROL = VK_LCONTROL,
+	RCONTROL = VK_RCONTROL,
+	TAB = VK_TAB,
+#elif BOOST_OS_LINUX
+	LCONTROL = GDK_KEY_Control_L,
+	RCONTROL = GDK_KEY_Control_R,
+	TAB = GDK_KEY_Tab,
+#else
+	LCONTROL = 0,
+	RCONTROL = 0,
+	TAB = 0,
 #endif
 };
 
@@ -56,7 +74,7 @@ struct WindowInfo
 		return result->second;
 	}
 
-	void set_keystatesdown()
+	void set_keystatesup()
 	{
 		const std::lock_guard<std::mutex> lock(keycode_mutex);
 		std::for_each(m_keydown.begin(), m_keydown.end(), [](std::pair<const uint32, bool>& el){ el.second = false; });
@@ -89,7 +107,8 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps);
 void gui_getWindowSize(int* w, int* h);
 void gui_getPadWindowSize(int* w, int* h);
 bool gui_isPadWindowOpen();
-bool gui_isKeyDown(int key);
+bool gui_isKeyDown(uint32 key);
+bool gui_isKeyDown(PlatformKeyCodes key);
 
 void gui_notifyGameLoaded();
 void gui_notifyGameExited();

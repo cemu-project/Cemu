@@ -1,3 +1,10 @@
+#if BOOST_OS_LINUX
+#include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <gdk/gdkwindow.h>
+#include <gdk/gdkx.h>
+#endif
+
 #include "gui/wxgui.h"
 #include "gui/guiWrapper.h"
 #include "gui/CemuApp.h"
@@ -156,19 +163,10 @@ bool gui_isPadWindowOpen()
 }
 
 #if BOOST_OS_LINUX
-#include <wx/nativewin.h>
-#include <dlfcn.h>
-
-typedef void GdkDisplay;
-namespace
-{
-const char* (*gdk_keyval_name)(unsigned int keyval);
-}
 std::string gui_gtkRawKeyCodeToString(uint32 keyCode)
 {
 	return gdk_keyval_name(keyCode);
 }
-
 #endif
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw)
@@ -176,43 +174,15 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 #if BOOST_OS_WINDOWS
 	handleInfoOut.hwnd = wxw->GetHWND();
 #elif BOOST_OS_LINUX
-    /* dynamically retrieve GTK imports so we dont have to include and link the whole lib */
-    void (*dyn_gtk_widget_realize)(GtkWidget *widget);
-    dyn_gtk_widget_realize = (void(*)(GtkWidget* widget))dlsym(RTLD_NEXT, "gtk_widget_realize");
-
-    GdkWindow* (*dyn_gtk_widget_get_window)(GtkWidget *widget);
-    dyn_gtk_widget_get_window = (GdkWindow*(*)(GtkWidget* widget))dlsym(RTLD_NEXT, "gtk_widget_get_window");
-
-    GdkDisplay* (*dyn_gdk_window_get_display)(GdkWindow *widget);
-    dyn_gdk_window_get_display = (GdkDisplay*(*)(GdkWindow* window))dlsym(RTLD_NEXT, "gdk_window_get_display");
-
-    Display* (*dyn_gdk_x11_display_get_xdisplay)(GdkDisplay *display);
-    dyn_gdk_x11_display_get_xdisplay = (Display*(*)(GdkDisplay* display))dlsym(RTLD_NEXT, "gdk_x11_display_get_xdisplay");
-
-    Window (*dyn_gdk_x11_window_get_xid)(GdkWindow *window);
-    dyn_gdk_x11_window_get_xid = (Window(*)(GdkWindow *window))dlsym(RTLD_NEXT, "gdk_x11_window_get_xid");
-
-	gdk_keyval_name = (const char* (*)(unsigned int))dlsym(RTLD_NEXT, "gdk_keyval_name");
-
-    if(!dyn_gtk_widget_realize || !dyn_gtk_widget_get_window ||
-    !dyn_gdk_window_get_display || !dyn_gdk_x11_display_get_xdisplay ||
-    !dyn_gdk_x11_window_get_xid || !gdk_keyval_name)
-    {
-        cemuLog_log(LogType::Force, "Unable to load GDK symbols");
-        return;
-    }
-
-    /* end of imports */
-
     // get window
     GtkWidget* gtkWidget = (GtkWidget*)wxw->GetHandle(); // returns GtkWidget
-    dyn_gtk_widget_realize(gtkWidget);
-    GdkWindow* gdkWindow = dyn_gtk_widget_get_window(gtkWidget);
-    handleInfoOut.xlib_window = dyn_gdk_x11_window_get_xid(gdkWindow);
+    gtk_widget_realize(gtkWidget);
+    GdkWindow* gdkWindow = gtk_widget_get_window(gtkWidget);
+    handleInfoOut.xlib_window = gdk_x11_window_get_xid(gdkWindow);
 
     // get display
-    GdkDisplay* gdkDisplay = dyn_gdk_window_get_display(gdkWindow);
-    handleInfoOut.xlib_display = dyn_gdk_x11_display_get_xdisplay(gdkDisplay);
+    GdkDisplay* gdkDisplay = gdk_window_get_display(gdkWindow);
+    handleInfoOut.xlib_display = gdk_x11_display_get_xdisplay(gdkDisplay);
     if(!handleInfoOut.xlib_display)
     {
         cemuLog_log(LogType::Force, "Unable to get xlib display");
@@ -222,9 +192,14 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 #endif
 }
 
-bool gui_isKeyDown(int key)
+bool gui_isKeyDown(uint32 key)
 {
 	return g_window_info.get_keystate(key);
+}
+
+bool gui_isKeyDown(PlatformKeyCodes key)
+{
+	return gui_isKeyDown((std::underlying_type_t<PlatformKeyCodes>)key);
 }
 
 void gui_notifyGameLoaded()

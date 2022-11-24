@@ -11,8 +11,6 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/CafeSystem.h"
 
-extern bool alwaysDisplayDRC;
-
 std::set<fs::path>
 ActiveSettings::LoadOnce(const fs::path& user_data_path,
 						 const fs::path& config_path,
@@ -57,7 +55,6 @@ bool ActiveSettings::LoadSharedLibrariesEnabled()
 
 bool ActiveSettings::DisplayDRCEnabled()
 {
-	alwaysDisplayDRC = g_current_game_profile->StartWithGamepadView();
 	return g_current_game_profile->StartWithGamepadView();
 }
 
