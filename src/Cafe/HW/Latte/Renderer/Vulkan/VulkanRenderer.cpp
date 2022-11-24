@@ -1846,7 +1846,7 @@ void VulkanRenderer::WaitForNextFinishedCommandBuffer()
 	ProcessFinishedCommandBuffers();
 }
 
-void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemaphore* waitSemaphore)
+void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphore waitSemaphore)
 {
 	draw_endRenderPass();
 
@@ -1861,11 +1861,11 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemapho
 
 	// signal current command buffer semaphore
 	VkSemaphore signalSemArray[2];
-	if (signalSemaphore)
+	if (signalSemaphore != VK_NULL_HANDLE)
 	{
 		submitInfo.signalSemaphoreCount = 2;
 		signalSemArray[0] = m_commandBufferSemaphores[m_commandBufferIndex]; // signal current
-		signalSemArray[1] = *signalSemaphore; // signal current
+		signalSemArray[1] = signalSemaphore; // signal current
 		submitInfo.pSignalSemaphores = signalSemArray;
 	}
 	else
@@ -1881,8 +1881,8 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemapho
 	submitInfo.waitSemaphoreCount = 0;
 	if (m_numSubmittedCmdBuffers > 0)
 		waitSemArray[submitInfo.waitSemaphoreCount++] = prevSem; // wait on semaphore from previous submit
-	if (waitSemaphore)
-		waitSemArray[submitInfo.waitSemaphoreCount++] = *waitSemaphore;
+	if (waitSemaphore != VK_NULL_HANDLE)
+		waitSemArray[submitInfo.waitSemaphoreCount++] = waitSemaphore;
 	submitInfo.pWaitDstStageMask = semWaitStageMask;
 	submitInfo.pWaitSemaphores = waitSemArray;
 
@@ -2544,36 +2544,21 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
-	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, UINT64_MAX);
-	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
+	bool result = chainInfo.AcquireImage(UINT64_MAX);
+	if (!result)
+		return false;
 
-	VkSemaphore acquireSemaphore = chainInfo.m_acquireSemaphores[chainInfo.m_acquireIndex];
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
-	if (result != VK_SUCCESS)
-	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			chainInfo.m_shouldRecreate = true;
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-			return false;
-
-		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
-			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
-	}
-	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_swapchainImages.size();
-	SubmitCommandBuffer(nullptr, &acquireSemaphore);
+	SubmitCommandBuffer(VK_NULL_HANDLE, chainInfo.ConsumeAcquireSemaphore());
 	return true;
 }
 
 void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 {
-	using namespace std::chrono_literals;
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
-	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE,
-		std::chrono::duration_cast<std::chrono::nanoseconds>(10ms).count()
-	);
+	// make sure fence has no signal operation submitted
+	chainInfo.WaitAvailableFence();
 
 	Vector2i size;
 	if (mainWindow)
@@ -2645,7 +2630,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	}
 
 	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
-	SubmitCommandBuffer(&presentSemaphore); // submit all command and signal semaphore
+	SubmitCommandBuffer(presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
 

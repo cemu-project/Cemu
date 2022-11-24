@@ -182,6 +182,54 @@ bool SwapchainInfoVk::IsValid() const
 	return swapchain && !m_acquireSemaphores.empty();
 }
 
+void SwapchainInfoVk::WaitAvailableFence()
+{
+	if(m_awaitableFence != VK_NULL_HANDLE)
+		vkWaitForFences(m_logicalDevice, 1, &m_awaitableFence, VK_TRUE, UINT64_MAX);
+	m_awaitableFence = VK_NULL_HANDLE;
+}
+
+void SwapchainInfoVk::ResetAvailableFence() const
+{
+	vkResetFences(m_logicalDevice, 1, &m_imageAvailableFence);
+}
+
+VkSemaphore SwapchainInfoVk::ConsumeAcquireSemaphore()
+{
+	VkSemaphore ret = m_currentSemaphore;
+	m_currentSemaphore = VK_NULL_HANDLE;
+	return ret;
+}
+
+bool SwapchainInfoVk::AcquireImage(uint64 timeout)
+{
+	WaitAvailableFence();
+	ResetAvailableFence();
+
+	VkSemaphore acquireSemaphore = m_acquireSemaphores[m_acquireIndex];
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapchain, timeout, acquireSemaphore, m_imageAvailableFence, &swapchainImageIndex);
+	if (result == VK_TIMEOUT)
+	{
+		return false;
+	}
+	else if (result != VK_SUCCESS)
+	{
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+			m_shouldRecreate = true;
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			return false;
+
+		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
+			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+	}
+	m_currentSemaphore = acquireSemaphore;
+	m_awaitableFence = m_imageAvailableFence;
+	m_acquireIndex = (m_acquireIndex + 1) % m_swapchainImages.size();
+
+	return true;
+}
+
 void SwapchainInfoVk::UnrecoverableError(const char* errMsg)
 {
 	forceLog_printf("Unrecoverable error in Vulkan swapchain");
