@@ -2548,16 +2548,14 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
 	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
-	if (result != VK_SUCCESS)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		chainInfo.m_shouldRecreate = true;
+	if (result < 0)
 	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			chainInfo.m_shouldRecreate = true;
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-			return false;
-
-		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
+		chainInfo.swapchainImageIndex = -1;
+		if (result != VK_ERROR_OUT_OF_DATE_KHR)
 			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+		return false;
 	}
 
 	return true;
@@ -2654,13 +2652,12 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (result != VK_SUCCESS)
+	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			chainInfo.m_shouldRecreate = true;
-		else
-			throw std::runtime_error(fmt::format("Failed to present image: {}", result));
+		throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
+	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		chainInfo.m_shouldRecreate = true;
 
 	chainInfo.hasDefinedSwapchainImage = false;
 
