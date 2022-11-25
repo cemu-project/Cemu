@@ -1004,7 +1004,6 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	g_renderer->ImguiEnd();
 }
 
-bool alwaysDisplayDRC = false;
 bool ctrlTabHotkeyPressed = false;
 
 void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferSliceIndex, uint32 colorBufferFormat, uint32 colorBufferPitch, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferSwizzle, uint32 renderTarget)
@@ -1016,9 +1015,11 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		return;
 	}
 
-	const bool tabPressed = gui_isKeyDown(WXK_TAB);
-	const bool ctrlPressed = gui_isKeyDown(0xA2); // VK_LCONTROL
+	const bool tabPressed = gui_isKeyDown(PlatformKeyCodes::TAB);
+	const bool ctrlPressed = gui_isKeyDown(PlatformKeyCodes::LCONTROL);
+
 	bool showDRC = swkbd_hasKeyboardInputHook() == false && tabPressed;
+	bool& alwaysDisplayDRC = LatteGPUState.alwaysDisplayDRC;
 
 	if (ctrlPressed && tabPressed)
 	{

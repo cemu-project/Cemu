@@ -394,6 +394,7 @@ void cemu_initForGame()
 		// replace any known function signatures with our HLE implementations and patch bugs in the games
 		GamePatch_scan();
 	}
+	LatteGPUState.alwaysDisplayDRC = ActiveSettings::DisplayDRCEnabled();
 	InfoLog_PrintActiveSettings();
 	Latte_Start();
 	// check for debugger entrypoint bp

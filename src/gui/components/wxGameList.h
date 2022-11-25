@@ -111,6 +111,8 @@ private:
 
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
 
+	void RemoveCache(const std::list<fs::path>& cachePath, const std::string& titleName);
+
 	void AsyncWorkerThread();
 	void RequestLoadIconAsync(TitleId titleId);
 	bool QueryIconForTitle(TitleId titleId, int& icon, int& iconSmall);

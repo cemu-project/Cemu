@@ -233,7 +233,7 @@ public:
 	void InitFirstCommandBuffer();
 	void ProcessFinishedCommandBuffers();
 	void WaitForNextFinishedCommandBuffer();
-	void SubmitCommandBuffer(VkSemaphore* signalSemaphore = nullptr, VkSemaphore* waitSemaphore = nullptr);
+	void SubmitCommandBuffer(VkSemaphore signalSemaphore = VK_NULL_HANDLE, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 	void RequestSubmitSoon();
 	void RequestSubmitOnIdle();
 
