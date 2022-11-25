@@ -1418,7 +1418,12 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 	{
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
+#if BOOST_OS_MACOS
+		m_async_compile->Disable();
+		m_async_compile->SetValue(false);
+#else
 		m_async_compile->Enable();
+#endif
 
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("Double buffering"));
