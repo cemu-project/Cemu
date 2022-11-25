@@ -2582,13 +2582,13 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 		gui_getPadWindowPhysSize(size.x, size.y);
 	}
 
+	chainInfo.swapchainImageIndex = -1;
 	chainInfo.Cleanup();
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
 	}
-	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)
 		ImguiInit();
