@@ -67,7 +67,7 @@ void PadViewFrame::InitializeRenderCanvas()
 	auto sizer = new wxBoxSizer(wxVERTICAL);
 	{
 		if (ActiveSettings::GetGraphicsAPI() == kVulkan)
-			m_render_canvas = new VulkanCanvas(this, false);
+			m_render_canvas = new VulkanCanvas(this, wxSize(854, 480), false);
 		else
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
 		sizer->Add(m_render_canvas, 1, wxEXPAND, 0, nullptr);

@@ -643,17 +643,14 @@ VulkanRenderer* VulkanRenderer::GetInstance()
 	return (VulkanRenderer*)g_renderer.get();
 }
 
-void VulkanRenderer::InitializeSurface(bool mainWindow)
+void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
 {
 	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
-
-	Vector2i size;
 
 	const auto surface = CreateFramebufferSurface(m_instance, windowHandleInfo);
 	if (mainWindow)
 	{
 		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		gui_getWindowPhysSize(size.x, size.y);
 		m_mainSwapchainInfo->m_desiredExtent = size;
 		m_mainSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
 
@@ -663,7 +660,6 @@ void VulkanRenderer::InitializeSurface(bool mainWindow)
 	else
 	{
 		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		gui_getPadWindowPhysSize(size.x, size.y);
 		m_padSwapchainInfo->m_desiredExtent = size;
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
 		m_padSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);

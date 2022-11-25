@@ -12,7 +12,7 @@
 class VulkanCanvas : public IRenderCanvas, public wxWindow
 {
 public:
-	VulkanCanvas(wxWindow* parent, bool is_main_window);
+	VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_window);
 	~VulkanCanvas();
 
 private:

@@ -1471,7 +1471,7 @@ void MainWindow::AsyncSetTitle(std::string_view windowTitle)
 void MainWindow::CreateCanvas()
 {
 	if (ActiveSettings::GetGraphicsAPI() == kVulkan)
-		m_render_canvas = new VulkanCanvas(m_game_panel, true);
+		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
 	else
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
 
