@@ -34,7 +34,14 @@ struct SwapchainInfoVk
 
 	bool IsValid() const;
 
-	void WaitAvailableFence() const;
+	void WaitAvailableFence();
+	void ResetAvailableFence() const;
+
+	bool AcquireImage(uint64 timeout);
+	// retrieve semaphore of last acquire for submitting a wait operation
+	// only one wait operation must be submitted per acquire (which submits a single signal operation)
+	// therefore subsequent calls will return a NULL handle
+	VkSemaphore ConsumeAcquireSemaphore();
 
 	static void UnrecoverableError(const char* errMsg);
 
@@ -76,7 +83,6 @@ struct SwapchainInfoVk
 	VkSurfaceFormatKHR m_surfaceFormat{};
 	VkSwapchainKHR swapchain{};
 	Vector2i m_desiredExtent{};
-	VkFence m_imageAvailableFence{};
 	uint32 swapchainImageIndex = (uint32)-1;
 
 
@@ -84,11 +90,17 @@ struct SwapchainInfoVk
 	std::vector<VkImage> m_swapchainImages;
 	std::vector<VkImageView> m_swapchainImageViews;
 	std::vector<VkFramebuffer> m_swapchainFramebuffers;
-	std::vector<VkSemaphore> m_swapchainPresentSemaphores;
-	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
+	std::vector<VkSemaphore> m_presentSemaphores; // indexed by swapchainImageIndex
 
 	VkRenderPass m_swapchainRenderPass = nullptr;
 
 private:
+	uint32 m_acquireIndex = 0;
+	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by m_acquireIndex
+	VkFence m_imageAvailableFence{};
+	VkSemaphore m_currentSemaphore = VK_NULL_HANDLE;
+	VkFence m_awaitableFence = VK_NULL_HANDLE;
+
+	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 	VkExtent2D m_actualExtent{};
 };
