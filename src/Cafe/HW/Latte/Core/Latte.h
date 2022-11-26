@@ -50,6 +50,7 @@ struct LatteGPUState_t
 	uint32 gx2InitCalled; // incremented every time GX2Init() is called
 	// OpenGL control
 	uint32 glVendor; // GLVENDOR_*
+	bool alwaysDisplayDRC = false;
 	// temporary (replace with proper solution later)
 	bool tvBufferUsesSRGB;
 	bool drcBufferUsesSRGB;

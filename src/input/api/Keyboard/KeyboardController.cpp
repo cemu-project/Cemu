@@ -50,11 +50,8 @@ extern WindowInfo g_window_info;
 ControllerState KeyboardController::raw_state()
 {
 	ControllerState result{};
-	if (g_window_info.app_active)
-	{
-		boost::container::small_vector<uint32, 16> pressedKeys;
-		g_window_info.iter_keystates([&pressedKeys](const std::pair<const uint32, bool>& keyState) { if (keyState.second) pressedKeys.emplace_back(keyState.first); });
-		result.buttons.SetPressedButtons(pressedKeys);
-	}
+	boost::container::small_vector<uint32, 16> pressedKeys;
+	g_window_info.iter_keystates([&pressedKeys](const std::pair<const uint32, bool>& keyState) { if (keyState.second) pressedKeys.emplace_back(keyState.first); });
+	result.buttons.SetPressedButtons(pressedKeys);
 	return result;
 }
