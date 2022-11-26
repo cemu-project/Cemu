@@ -5,6 +5,8 @@
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
 #include <gdk/gdkkeysyms.h>
+#include <wayland-client-core.h>
+#include <wayland-client-protocol.h>
 #endif
 
 struct WindowHandleInfo
@@ -12,6 +14,11 @@ struct WindowHandleInfo
 #if BOOST_OS_WINDOWS
 	std::atomic<HWND> hwnd;
 #elif BOOST_OS_LINUX
+	enum class Backend
+	{
+		X11,
+		WAYLAND,
+	} backend;
     // XLIB
     Display* xlib_display{};
     Window xlib_window{};
@@ -20,7 +27,8 @@ struct WindowHandleInfo
 	//xcb_connection_t* xcb_con{};
 	//xcb_window_t xcb_window{};
 	// Wayland
-	// todo
+	wl_display* display;
+	wl_surface* surface;
 #else
 	void* handle;
 #endif
