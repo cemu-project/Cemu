@@ -3458,15 +3458,15 @@ void VulkanRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, 
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
 }
 
-void VulkanRenderer::buffer_bindVertexStrideFixBuffer(VkBuffer fixedBuffer, uint32 bufferIndex, uint32 size)
+void VulkanRenderer::buffer_bindVertexStrideFixBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size)
 {
 	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
 	VkBuffer attrBuffer = fixedBuffer;
-	VkDeviceSize attrOffset = 0;
+	VkDeviceSize attrOffset = offset;
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
 }
 
-VkBuffer VulkanRenderer::buffer_fixVertexBufferStride(MPTR buffer, uint32 size, uint32 oldStride)
+std::pair<VkBuffer, uint32> VulkanRenderer::buffer_fixVertexBufferStride(MPTR buffer, uint32 size, uint32 oldStride)
 {
 	cemu_assert_debug(oldStride % 4 != 0);
 
@@ -3490,8 +3490,7 @@ VkBuffer VulkanRenderer::buffer_fixVertexBufferStride(MPTR buffer, uint32 size, 
 				new_buffer[elem * newStride + component] = 0;
 		}
 	}
-	std::cout << fmt::format("oldSize {} | newSize {} | oldStride {} | newStride {}", size, newSize, oldStride, newStride) << std::endl;
-	return new_buffer_alloc.vkBuffer;
+	return {new_buffer_alloc.vkBuffer, new_buffer_alloc.bufferOffset};
 }
 
 void VulkanRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)

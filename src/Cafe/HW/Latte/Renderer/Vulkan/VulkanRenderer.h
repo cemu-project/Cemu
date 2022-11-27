@@ -330,7 +330,6 @@ private:
 	VKRObjectRenderPass* copySurface_createRenderpass(struct VkCopySurfaceState_t& state);
 
 	std::unordered_map<uint64, struct CopySurfacePipelineInfo*> m_copySurfacePipelineCache;
-	std::unordered_map<MPTR, VkBuffer> m_strideFixCache;
 
 	VkBuffer m_surfaceCopyBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_surfaceCopyBufferMemory = VK_NULL_HANDLE;
@@ -343,8 +342,8 @@ public:
 	void bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size) override;
 
 	void buffer_bindVertexBuffer(uint32 bufferIndex, uint32 buffer, uint32 size) override;
-	void buffer_bindVertexStrideFixBuffer(VkBuffer fixedBuffer, uint32 bufferIndex, uint32 size);
-	VkBuffer buffer_fixVertexBufferStride(MPTR buffer, uint32 size, uint32 oldStride);
+	void buffer_bindVertexStrideFixBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size);
+	std::pair<VkBuffer, uint32> buffer_fixVertexBufferStride(MPTR buffer, uint32 size, uint32 oldStride);
 	void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) override;
 
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
