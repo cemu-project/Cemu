@@ -205,8 +205,8 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 		{
 			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(g_renderer.get()))
 			{
-				auto fixedBuffer = vkRenderer->buffer_fixVertexBufferStride(bufferAddress, fixedBufferSize, bufferStride);
-				vkRenderer->buffer_bindVertexStrideFixBuffer(fixedBuffer.first, fixedBuffer.second, bufferIndex, fixedBufferSize);
+				auto fixedBuffer = vkRenderer->buffer_genStrideWorkaroundVertexBuffer(bufferAddress, fixedBufferSize, bufferStride);
+				vkRenderer->buffer_bindVertexStrideWorkaroundBuffer(fixedBuffer.first, fixedBuffer.second, bufferIndex, fixedBufferSize);
 				continue;
 			}
 		}

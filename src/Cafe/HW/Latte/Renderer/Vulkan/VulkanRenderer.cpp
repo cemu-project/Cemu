@@ -3458,7 +3458,7 @@ void VulkanRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, 
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
 }
 
-void VulkanRenderer::buffer_bindVertexStrideFixBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size)
+void VulkanRenderer::buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size)
 {
 	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
 	VkBuffer attrBuffer = fixedBuffer;
@@ -3466,7 +3466,7 @@ void VulkanRenderer::buffer_bindVertexStrideFixBuffer(VkBuffer fixedBuffer, uint
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
 }
 
-std::pair<VkBuffer, uint32> VulkanRenderer::buffer_fixVertexBufferStride(MPTR buffer, uint32 size, uint32 oldStride)
+std::pair<VkBuffer, uint32> VulkanRenderer::buffer_genStrideWorkaroundVertexBuffer(MPTR buffer, uint32 size, uint32 oldStride)
 {
 	cemu_assert_debug(oldStride % 4 != 0);
 
