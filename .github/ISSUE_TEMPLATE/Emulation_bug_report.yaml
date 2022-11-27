@@ -1,8 +1,8 @@
 # Docs - https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
 name: Bug Report
 description: Report a issue with the emulation (ie. graphical issue, crashes, unintended behavior with doesn't occur on hardware).
-title: "[BUG]: "
-labels: [Bug]
+title: "Enter a title here"
+labels: bug
 body:
   - type: markdown
     id: md_readme
@@ -10,8 +10,9 @@ body:
       value: |
         ## Important: Read First
         
-        This is an issue tracker for tracking bugs and feature requests, and as such, please refrain from using it to submit support requests.
-        If you need any support links are provided in the readme.md
+        This issue tracker is for bug reports and feature requests.
+        
+        For tech support or questions about Cemu, [follow the links here](https://github.com/cemu-project/Cemu#links).
         
          ### Please Avoid Issues Pertaining to the Following:
          -TO DO
@@ -19,7 +20,7 @@ body:
     id: current_behavior
     attributes:
       label: Current Behavior
-      description: "What the bug is, in a breif decription"
+      description: "What the bug is, in a brief decription"
     validations:
       required: true
   - type: textarea
@@ -43,21 +44,18 @@ body:
       label: System Info
       description: "Place all system Info in the box below"
       placeholder: |
-       | Info                | Sys Info        | 
-       |---------------------|-----------------|
-       | OS                  | Windows 10 |
-       | CPU                 | AMD Ryzen 5 5900X Six-Core Processor |
-       | GPU                 | NVIDIA GeForce RTX 3090 Ti      |
-       | Drivers Verison     | 4.0.0 NVIDIA 512.95      |
-       | Cemu Verison        | 2.0      | 
+        Info        
+        OS : Windows 10
+        CPU : AMD Ryzen 5 7900X Six-Core Processor
+        GPU : NVIDIA GeForce RTX 4090
+        Drivers Version : 4.0.0 NVIDIA 512.95
+        Cemu Version : 2.0
       value: |
-       | Info                | Sys Info        | 
-       |---------------------|-----------------|
-       | OS                  | |
-       | CPU                 | |
-       | GPU                 | |
-       | Drivers Verison     | |
-       | Cemu Verison        | | 
+        OS : 
+        CPU : 
+        GPU : 
+        Drivers Version : 
+        Cemu Version :
   - type: textarea
     id: emulation_settings
     attributes:
@@ -71,6 +69,6 @@ body:
     attributes:
       label: "Logs"
       description: |
-        "Log files are located in the cemu folder".
+        "Attach `log.txt` from your Cemu folder (*File > Open Cemu folder*)".
     validations:
       required: false
