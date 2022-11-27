@@ -3458,6 +3458,42 @@ void VulkanRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, 
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
 }
 
+void VulkanRenderer::buffer_bindVertexStrideFixBuffer(VkBuffer fixedBuffer, uint32 bufferIndex, uint32 size)
+{
+	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
+	VkBuffer attrBuffer = fixedBuffer;
+	VkDeviceSize attrOffset = 0;
+	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+}
+
+VkBuffer VulkanRenderer::buffer_fixVertexBufferStride(MPTR buffer, uint32 size, uint32 oldStride)
+{
+	cemu_assert_debug(oldStride % 4 != 0);
+
+	std::span<uint8> old_buffer{memory_getPointerFromPhysicalOffset(buffer), size};
+
+	//new stride is the nearest multiple of 4
+	uint32 newStride = oldStride + (4-(oldStride % 4));
+	uint32 newSize = size / oldStride * newStride;
+
+	auto new_buffer_alloc = memoryManager->getStrideFixAllocator().AllocateBufferMemory(newSize, 128);
+
+	std::span<uint8> new_buffer{new_buffer_alloc.memPtr, new_buffer_alloc.size};
+
+	for(size_t elem = 0; elem < size / oldStride; elem++)
+	{
+		for(size_t component = 0; component < newStride; component++)
+		{
+			if(component < oldStride)
+				new_buffer[elem * newStride + component] = old_buffer[elem * oldStride + component];
+			else
+				new_buffer[elem * newStride + component] = 0;
+		}
+	}
+	std::cout << fmt::format("oldSize {} | newSize {} | oldStride {} | newStride {}", size, newSize, oldStride, newStride) << std::endl;
+	return new_buffer_alloc.vkBuffer;
+}
+
 void VulkanRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
 {
 	cemu_assert_debug(!m_useHostMemoryForCache);
