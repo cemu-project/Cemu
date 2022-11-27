@@ -20,7 +20,7 @@ body:
     id: current_behavior
     attributes:
       label: Current Behavior
-      description: "What the bug is, in a brief decription"
+      description: "What the bug is, in a brief description"
     validations:
       required: true
   - type: textarea
@@ -35,7 +35,7 @@ body:
     id: steps_to_reproduce
     attributes:
       label: Steps to Reproduce
-      description: "How to reprodue the issue"
+      description: "How to reproduce the issue"
     validations:
       required: true
   - type: textarea
