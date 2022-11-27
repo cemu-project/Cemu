@@ -75,7 +75,7 @@ public:
 	{
 		STAGING, // staging upload buffer
 		INDEX, // buffer for index data
-		STRIDE, // buffer for stride-modified vertex data
+		STRIDE, // buffer for stride-adjusted vertex data
 	};
 
 	VKRSynchronizedRingAllocator(class VulkanRenderer* vkRenderer, class VKRMemoryManager* vkMemoryManager, BUFFER_TYPE bufferType, uint32 minimumBufferAllocSize) : m_vkr(vkRenderer), m_vkrMemMgr(vkMemoryManager), m_bufferType(bufferType), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
@@ -168,7 +168,7 @@ public:
 
 	VKRSynchronizedRingAllocator& getStagingAllocator() { return m_stagingBuffer; }; // allocator for texture/attribute/uniform uploads
 	VKRSynchronizedRingAllocator& getIndexAllocator() { return m_indexBuffer; }; // allocator for index data
-	VKRSynchronizedRingAllocator& getStrideFixAllocator() { return m_vertexStrideMetalBuffer; }; // allocator for stride adjusted vertex data
+	VKRSynchronizedRingAllocator& getMetalStrideWorkaroundAllocator() { return m_vertexStrideMetalBuffer; }; // allocator for stride-adjusted vertex data
 
 	void cleanupBuffers(uint64 latestFinishedCommandBufferId)
 	{

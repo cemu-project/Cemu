@@ -200,6 +200,7 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 			fixedBufferSize += 128;
 
 
+#if BOOST_OS_MACOS
 		if(bufferStride % 4 != 0)
 		{
 			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(g_renderer.get()))
@@ -209,6 +210,7 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 				continue;
 			}
 		}
+#endif
 
 		uint32 bindOffset = LatteBufferCache_retrieveDataInCache(bufferAddress, fixedBufferSize);
 		g_renderer->buffer_bindVertexBuffer(bufferIndex, bindOffset, fixedBufferSize);

@@ -3476,7 +3476,7 @@ std::pair<VkBuffer, uint32> VulkanRenderer::buffer_fixVertexBufferStride(MPTR bu
 	uint32 newStride = oldStride + (4-(oldStride % 4));
 	uint32 newSize = size / oldStride * newStride;
 
-	auto new_buffer_alloc = memoryManager->getStrideFixAllocator().AllocateBufferMemory(newSize, 128);
+	auto new_buffer_alloc = memoryManager->getMetalStrideWorkaroundAllocator().AllocateBufferMemory(newSize, 128);
 
 	std::span<uint8> new_buffer{new_buffer_alloc.memPtr, new_buffer_alloc.size};
 

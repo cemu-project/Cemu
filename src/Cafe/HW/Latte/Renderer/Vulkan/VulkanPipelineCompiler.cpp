@@ -457,12 +457,11 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 		uint32 bufferStride = (latteRegister.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
 		VkVertexInputBindingDescription entry{};
-//#if BOOST_OS_MACOS
+#if BOOST_OS_MACOS
 		if (bufferStride % 4 != 0) {
-//			forceLog_printf("MoltenVK error: vertex stride was %d, expected multiple of 4", bufferStride);
 			bufferStride = bufferStride + (4-(bufferStride % 4));
 		}
-//#endif
+#endif
 		entry.stride = bufferStride;
 		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
 			entry.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
