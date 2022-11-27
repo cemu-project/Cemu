@@ -3482,13 +3482,7 @@ std::pair<VkBuffer, uint32> VulkanRenderer::buffer_genStrideWorkaroundVertexBuff
 
 	for(size_t elem = 0; elem < size / oldStride; elem++)
 	{
-		for(size_t component = 0; component < newStride; component++)
-		{
-			if(component < oldStride)
-				new_buffer[elem * newStride + component] = old_buffer[elem * oldStride + component];
-			else
-				new_buffer[elem * newStride + component] = 0;
-		}
+		memcpy(&new_buffer[elem * newStride], &old_buffer[elem * oldStride], oldStride);
 	}
 	return {new_buffer_alloc.vkBuffer, new_buffer_alloc.bufferOffset};
 }

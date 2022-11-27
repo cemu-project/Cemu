@@ -203,7 +203,7 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 #if BOOST_OS_MACOS
 		if(bufferStride % 4 != 0)
 		{
-			if (VulkanRenderer* vkRenderer = dynamic_cast<VulkanRenderer*>(g_renderer.get()))
+			if (VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance())
 			{
 				auto fixedBuffer = vkRenderer->buffer_genStrideWorkaroundVertexBuffer(bufferAddress, fixedBufferSize, bufferStride);
 				vkRenderer->buffer_bindVertexStrideWorkaroundBuffer(fixedBuffer.first, fixedBuffer.second, bufferIndex, fixedBufferSize);
