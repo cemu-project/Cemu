@@ -1179,7 +1179,7 @@ std::vector<uint64> GraphicPack2::ParseTitleIds(IniParser& rules, const char* op
 void GraphicPack2::ApplyShaderPresets(std::string& shader_source) const
 {
 	const auto active_presets = GetActivePresets();
-	const std::regex regex(R"($[a-zA-Z_0-9]+)");
+	const std::regex regex(R"(\$[a-zA-Z_0-9]+)");
 
 	std::smatch match;
 	size_t offset = 0;
