@@ -10,6 +10,9 @@
 
 #include "config/ActiveSettings.h"
 
+#include <wx/wx.h>
+#include <wx/clipbrd.h>
+
 std::unique_ptr<Renderer> g_renderer;
 
 bool Renderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
@@ -79,57 +82,24 @@ uint8 Renderer::RGBComponentToSRGB(uint8 cli)
 
 void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const
 {
-#if BOOST_OS_WINDOWS
 	const bool save_screenshot = GetConfig().save_screenshot;
 	std::thread([](std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
 	{
 		if (mainWindow)
 		{
-			// copy to clipboard
-			std::vector<uint8> buffer(sizeof(BITMAPINFO) + data.size());
-			auto* bmpInfo = (BITMAPINFO*)buffer.data();
-			bmpInfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-			bmpInfo->bmiHeader.biWidth = width;
-			bmpInfo->bmiHeader.biHeight = height;
-			bmpInfo->bmiHeader.biPlanes = 1;
-			bmpInfo->bmiHeader.biBitCount = 24;
-			bmpInfo->bmiHeader.biCompression = BI_RGB;
+			wxImage image(width, height, data.data(), true);
 
-			uint8* clipboard_image = buffer.data() + sizeof(BITMAPINFOHEADER);
-			// RGB -> BGR
-			for (sint32 iy = 0; iy < height; ++iy)
+			if (wxTheClipboard->Open())
 			{
-				for (sint32 ix = 0; ix < width; ++ix)
-				{
-					uint8* pIn = data.data() + (ix + iy * width) * 3;
-					uint8* pOut = clipboard_image + (ix + (height - iy - 1) * width) * 3;
-
-					pOut[0] = pIn[2];
-					pOut[1] = pIn[1];
-					pOut[2] = pIn[0];
-				}
-			}
-
-			if (OpenClipboard(nullptr))
-			{
-				EmptyClipboard();
-
-				const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, buffer.size());
-				if (hGlobal)
-				{
-					memcpy(GlobalLock(hGlobal), buffer.data(), buffer.size());
-					GlobalUnlock(hGlobal);
-
-					SetClipboardData(CF_DIB, hGlobal);
-					GlobalFree(hGlobal);
-				}
-
-				CloseClipboard();
+				// this is not a memory leak, see https://docs.wxwidgets.org/trunk/classwx_image.html
+				wxTheClipboard->SetData(new wxImageDataObject(image));
+				wxTheClipboard->Close();
 			}
 
 			LatteOverlay_pushNotification("Screenshot saved", 2500);
 		}
 
+#if 0
 		// save to png file
 		if (save_screenshot)
 		{
@@ -194,9 +164,6 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 				}
 			}
 		}
+		#endif
 	}, rgb_data, save_screenshot, width, height, mainWindow).detach();
-
-#else
-cemuLog_log(LogType::Force, "Screenshot feature not implemented");
-#endif
 }
