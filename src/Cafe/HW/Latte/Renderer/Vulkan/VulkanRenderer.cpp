@@ -643,7 +643,7 @@ VulkanRenderer* VulkanRenderer::GetInstance()
 	return (VulkanRenderer*)g_renderer.get();
 }
 
-void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
+void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
 {
 	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
 
@@ -2564,20 +2564,20 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	if (mainWindow)
 	{
 		ImGui_ImplVulkan_Shutdown();
-		gui_getWindowSize(&size.x, &size.y);
+		gui_getWindowPhysSize(size.x, size.y);
 	}
 	else
 	{
-		gui_getPadWindowSize(&size.x, &size.y);
+		gui_getPadWindowPhysSize(size.x, size.y);
 	}
 
+	chainInfo.swapchainImageIndex = -1;
 	chainInfo.Cleanup();
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
 	}
-	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)
 		ImguiInit();
@@ -2644,13 +2644,12 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (result != VK_SUCCESS)
+	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			chainInfo.m_shouldRecreate = true;
-		else
-			throw std::runtime_error(fmt::format("Failed to present image: {}", result));
+		throw std::runtime_error(fmt::format("Failed to present image: {}", result));
 	}
+	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		chainInfo.m_shouldRecreate = true;
 
 	chainInfo.hasDefinedSwapchainImage = false;
 

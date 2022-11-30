@@ -513,9 +513,9 @@ void LatteOverlay_render(bool pad_view)
 
 	sint32 w = 0, h = 0;
 	if (pad_view && gui_isPadWindowOpen())
-		gui_getPadWindowSize(&w, &h);
+		gui_getPadWindowPhysSize(w, h);
 	else
-		gui_getWindowSize(&w, &h);
+		gui_getWindowPhysSize(w, h);
 
 	if (w == 0 || h == 0)
 		return;
