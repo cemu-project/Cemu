@@ -386,7 +386,7 @@ namespace coreinit
 
 void MainWindow::OnClose(wxCloseEvent& event)
 {
-	wxTheClipboard->Flush(); // flush the clipboard so screenshots are preserved once cemu exits
+	wxTheClipboard->Flush();
 
 	if(m_game_list)
 		m_game_list->OnClose(event);
