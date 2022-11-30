@@ -75,6 +75,7 @@ public:
 	{
 		STAGING, // staging upload buffer
 		INDEX, // buffer for index data
+		STRIDE, // buffer for stride-adjusted vertex data
 	};
 
 	VKRSynchronizedRingAllocator(class VulkanRenderer* vkRenderer, class VKRMemoryManager* vkMemoryManager, BUFFER_TYPE bufferType, uint32 minimumBufferAllocSize) : m_vkr(vkRenderer), m_vkrMemMgr(vkMemoryManager), m_bufferType(bufferType), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
@@ -138,7 +139,10 @@ class VKRMemoryManager
 {
 	friend class VKRSynchronizedRingAllocator;
 public:
-	VKRMemoryManager(class VulkanRenderer* renderer) : m_stagingBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::STAGING, 32u * 1024 * 1024), m_indexBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::INDEX, 4u * 1024 * 1024)
+	VKRMemoryManager(class VulkanRenderer* renderer) :
+			m_stagingBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::STAGING, 32u * 1024 * 1024),
+			m_indexBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::INDEX, 4u * 1024 * 1024),
+			m_vertexStrideMetalBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::STRIDE, 4u * 1024 * 1024)
 	{
 		m_vkr = renderer;
 	}
@@ -164,12 +168,14 @@ public:
 
 	VKRSynchronizedRingAllocator& getStagingAllocator() { return m_stagingBuffer; }; // allocator for texture/attribute/uniform uploads
 	VKRSynchronizedRingAllocator& getIndexAllocator() { return m_indexBuffer; }; // allocator for index data
+	VKRSynchronizedRingAllocator& getMetalStrideWorkaroundAllocator() { return m_vertexStrideMetalBuffer; }; // allocator for stride-adjusted vertex data
 
 	void cleanupBuffers(uint64 latestFinishedCommandBufferId)
 	{
 		LatteIndices_invalidateAll();
 		m_stagingBuffer.CleanupBuffer(latestFinishedCommandBufferId);
 		m_indexBuffer.CleanupBuffer(latestFinishedCommandBufferId);
+		m_vertexStrideMetalBuffer.CleanupBuffer(latestFinishedCommandBufferId);
 	}
 
 	// memory helpers
@@ -197,4 +203,5 @@ public:
 		class VulkanRenderer* m_vkr;
 		VKRSynchronizedRingAllocator m_stagingBuffer;
 		VKRSynchronizedRingAllocator m_indexBuffer;
+		VKRSynchronizedRingAllocator m_vertexStrideMetalBuffer;
 };

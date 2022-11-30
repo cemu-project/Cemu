@@ -9,6 +9,7 @@
 #include "Cafe/GameProfile/GameProfile.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 
 template<int vectorLen>
 void rectGenerate4thVertex(uint32be* output, uint32be* input0, uint32be* input1, uint32be* input2)
@@ -197,6 +198,19 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 		}
 		if (fixedBufferSize == 0 || bufferStride == 0)
 			fixedBufferSize += 128;
+
+
+#if BOOST_OS_MACOS
+		if(bufferStride % 4 != 0)
+		{
+			if (VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance())
+			{
+				auto fixedBuffer = vkRenderer->buffer_genStrideWorkaroundVertexBuffer(bufferAddress, fixedBufferSize, bufferStride);
+				vkRenderer->buffer_bindVertexStrideWorkaroundBuffer(fixedBuffer.first, fixedBuffer.second, bufferIndex, fixedBufferSize);
+				continue;
+			}
+		}
+#endif
 
 		uint32 bindOffset = LatteBufferCache_retrieveDataInCache(bufferAddress, fixedBufferSize);
 		g_renderer->buffer_bindVertexBuffer(bufferIndex, bindOffset, fixedBufferSize);

@@ -7,6 +7,10 @@
 #include <gdk/gdkkeysyms.h>
 #endif
 
+#if BOOST_OS_MACOS
+#include <Carbon/Carbon.h>
+#endif
+
 struct WindowHandleInfo
 {
 #if BOOST_OS_WINDOWS
@@ -36,6 +40,10 @@ enum struct PlatformKeyCodes : uint32
 	LCONTROL = GDK_KEY_Control_L,
 	RCONTROL = GDK_KEY_Control_R,
 	TAB = GDK_KEY_Tab,
+#elif BOOST_OS_MACOS
+	LCONTROL = kVK_Control,
+	RCONTROL = kVK_RightControl,
+	TAB = kVK_Tab,
 #else
 	LCONTROL = 0,
 	RCONTROL = 0,
