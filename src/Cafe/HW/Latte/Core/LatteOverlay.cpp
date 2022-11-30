@@ -66,13 +66,11 @@ struct OverlayList
 const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
 
 const float kBackgroundAlpha = 0.65f;
-void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 direction, bool mainWindow)
+void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 direction, float fontSize)
 {
 	auto& config = GetConfig();
 
-	double fontDPIScale = mainWindow ? gui_getWindowDPIScale() : gui_getPadDPIScale();
-
-	const auto font = ImGui_GetFont(14.0f * (float)config.overlay.text_scale / 100.0f * fontDPIScale);
+	const auto font = ImGui_GetFont(fontSize);
 	ImGui::PushFont(font);
 
 	const ImVec4 color = ImGui::ColorConvertU32ToFloat4(config.overlay.text_color);
@@ -119,11 +117,11 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 	ImGui::PopFont();
 }
 
-void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 direction)
+void LatteOverlay_RenderNotifications(ImVec2 &position, ImVec2 &pivot, sint32 direction, float fontSize)
 {
 	auto& config = GetConfig();
 
-	const auto font = ImGui_GetFont(14.0f * (float)config.notification.text_scale / 100.0f);
+	const auto font = ImGui_GetFont(fontSize);
 	ImGui::PushFont(font);
 
 	const ImVec4 color = ImGui::ColorConvertU32ToFloat4(config.notification.text_color);
@@ -523,12 +521,18 @@ void LatteOverlay_render(bool pad_view)
 		return;
 
 	const Vector2f window_size{ (float)w,(float)h };
-	
+
+	float fontDPIScale = !pad_view ? gui_getWindowDPIScale() : gui_getPadDPIScale();
+
+	float overlayFontSize = 14.0f * (float)config.overlay.text_scale / 100.0f * fontDPIScale;
+
 	// test if fonts are already precached
-	if (!ImGui_GetFont(14.0f * (float)config.overlay.text_scale / 100.0f))
+	if (!ImGui_GetFont(overlayFontSize))
 		return;
+
+	float notificationsFontSize = 14.0f * (float)config.notification.text_scale / 100.0f * fontDPIScale;
 	
-	if (!ImGui_GetFont(14.0f * (float)config.notification.text_scale / 100.0f))
+	if (!ImGui_GetFont(notificationsFontSize))
 		return;
 
 	ImVec2 position{}, pivot{};
@@ -537,7 +541,7 @@ void LatteOverlay_render(bool pad_view)
 	if (config.overlay.position != ScreenPosition::kDisabled)
 	{
 		LatteOverlay_translateScreenPosition(config.overlay.position, window_size, position, pivot, direction);
-		LatteOverlay_renderOverlay(position, pivot, direction, !pad_view);
+		LatteOverlay_renderOverlay(position, pivot, direction, overlayFontSize);
 	}
 	
 
@@ -546,7 +550,7 @@ void LatteOverlay_render(bool pad_view)
 		if(config.overlay.position != config.notification.position)
 			LatteOverlay_translateScreenPosition(config.notification.position, window_size, position, pivot, direction);
 
-		LatteOverlay_RenderNotifications(position, pivot, direction);
+		LatteOverlay_RenderNotifications(position, pivot, direction, notificationsFontSize);
 	}
 }
 
