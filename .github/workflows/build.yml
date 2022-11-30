@@ -137,13 +137,6 @@ jobs:
       run: |
         echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
         echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-    
-    - name: Configure MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: amd64
-        toolset: 14.33.31629
-        spectre: false
 
     - name: "Bootstrap vcpkg"
       run: |
