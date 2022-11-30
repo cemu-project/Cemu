@@ -96,9 +96,12 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			{
 				wxTheClipboard->SetData(new wxImageDataObject(image));
 				wxTheClipboard->Close();
+				LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
 			}
-
-			LatteOverlay_pushNotification("Screenshot saved", 2500);
+			else
+			{
+				LatteOverlay_pushNotification("Failed to open clipboard. Screenshot not saved to clipboard.", 2500);
+			}
 		}
 
 		// save to png file
