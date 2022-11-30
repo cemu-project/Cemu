@@ -10,8 +10,6 @@
 
 #include "config/ActiveSettings.h"
 
-#include <cwchar>
-
 #include <wx/image.h>
 #include <wx/dataobj.h>
 #include <wx/clipbrd.h>

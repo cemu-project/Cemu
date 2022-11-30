@@ -30,6 +30,7 @@
 #include <cmath>
 #include <ctime>
 #include <cassert>
+#include <cwchar>
 #include <immintrin.h>
 
 // c++ includes
