@@ -103,6 +103,7 @@ void PadViewFrame::OnSizeEvent(wxSizeEvent& event)
 	g_window_info.pad_height = client_size.GetHeight();
 	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
 	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
+	g_window_info.pad_dpi_scale = GetDPIScaleFactor();
 
 	event.Skip();
 }
@@ -115,6 +116,7 @@ void PadViewFrame::OnDPIChangedEvent(wxDPIChangedEvent& event)
 	g_window_info.pad_height = client_size.GetHeight();
 	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
 	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
+	g_window_info.pad_dpi_scale = GetDPIScaleFactor();
 }
 
 void PadViewFrame::OnMoveEvent(wxMoveEvent& event)

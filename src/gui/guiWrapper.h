@@ -57,10 +57,12 @@ struct WindowInfo
 
 	std::atomic_int32_t width, height; 	// client size of main window
 	std::atomic_int32_t phys_width, phys_height; 	// client size of main window in physical pixels
+	std::atomic<double> dpi_scale;
 
 	std::atomic_bool pad_open; // if separate pad view is open
 	std::atomic_int32_t pad_width, pad_height; 	// client size of pad window
 	std::atomic_int32_t phys_pad_width, phys_pad_height; 	// client size of pad window in physical pixels
+	std::atomic<double> pad_dpi_scale;
 
 	std::atomic_bool pad_maximized = false;
 	std::atomic_int32_t restored_pad_x = -1, restored_pad_y = -1;
@@ -118,6 +120,8 @@ void gui_getWindowSize(int& w, int& h);
 void gui_getPadWindowSize(int& w, int& h);
 void gui_getWindowPhysSize(int& w, int& h);
 void gui_getPadWindowPhysSize(int& w, int& h);
+double gui_getWindowDPIScale();
+double gui_getPadDPIScale();
 bool gui_isPadWindowOpen();
 bool gui_isKeyDown(uint32 key);
 bool gui_isKeyDown(PlatformKeyCodes key);
