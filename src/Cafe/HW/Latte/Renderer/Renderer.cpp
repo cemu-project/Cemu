@@ -88,19 +88,19 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 	const bool save_screenshot = GetConfig().save_screenshot;
 	std::thread([](std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
 	{
+		wxImage image(width, height, data.data(), true);
+
 		if (mainWindow)
 		{
-			wxImage image(width, height, data.data(), true);
-
 			if (wxTheClipboard->Open())
 			{
 				wxTheClipboard->SetData(new wxImageDataObject(image));
 				wxTheClipboard->Close();
-				LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
+				LatteOverlay_pushNotification("Screenshot saved to clipboard (TV)", 2500);
 			}
 			else
 			{
-				LatteOverlay_pushNotification("Failed to open clipboard. Screenshot not saved to clipboard.", 2500);
+				LatteOverlay_pushNotification("Failed to open clipboard; screenshot not saved to clipboard", 2500);
 			}
 		}
 
@@ -120,52 +120,14 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			}
 
 			screendir /= fmt::format(L"screenshot_{}.png", ++counter);
-			FileStream* fs = FileStream::createFile2(screendir);
-			if (fs)
+			
+			if (image.SaveFile(screendir.wstring()))
 			{
-				bool success = true;
-				auto png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-				if (png_ptr)
-				{
-					auto info_ptr = png_create_info_struct(png_ptr);
-					if (info_ptr)
-					{
-						if (!setjmp(png_jmpbuf(png_ptr)))
-						{
-							auto pngWriter = [](png_structp png_ptr, png_bytep data, png_size_t length) -> void
-							{
-								FileStream* fs = (FileStream*)png_get_io_ptr(png_ptr);
-								fs->writeData(data, length);
-							};
-
-							//png_init_io(png_ptr, file);
-							png_set_write_fn(png_ptr, (void*)fs, pngWriter, nullptr);
-
-							png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-							             PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-							png_write_info(png_ptr, info_ptr);
-							for (int i = 0; i < height; ++i)
-							{
-								uint8* pData = data.data() + (i * width) * 3;
-								png_write_row(png_ptr, pData);
-							}
-
-							png_write_end(png_ptr, nullptr);
-						}
-						else
-							success = false;
-
-						png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
-					}
-
-					png_destroy_write_struct(&png_ptr, nullptr);
-				}
-				delete fs;
-				if (!success)
-				{
-					std::error_code ec;
-					fs::remove(screendir, ec);
-				}
+				LatteOverlay_pushNotification(fmt::format("Screenshot saved to {} ({})", screendir.string(), mainWindow ? "TV" : "GamePad"), 2500);
+			}
+			else
+			{
+				LatteOverlay_pushNotification(fmt::format("Screenshot failed to save to file ({})", mainWindow ? "TV" : "GamePad"), 2500);
 			}
 		}
 	}, rgb_data, save_screenshot, width, height, mainWindow).detach();
