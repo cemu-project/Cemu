@@ -10,7 +10,10 @@
 
 #include "config/ActiveSettings.h"
 
-#include <wx/wx.h>
+#include <cwchar>
+
+#include <wx/image.h>
+#include <wx/dataobj.h>
 #include <wx/clipbrd.h>
 
 std::unique_ptr<Renderer> g_renderer;
@@ -91,7 +94,6 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 
 			if (wxTheClipboard->Open())
 			{
-				// this is not a memory leak, see https://docs.wxwidgets.org/trunk/classwx_image.html
 				wxTheClipboard->SetData(new wxImageDataObject(image));
 				wxTheClipboard->Close();
 			}
@@ -99,7 +101,6 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			LatteOverlay_pushNotification("Screenshot saved", 2500);
 		}
 
-#if 0
 		// save to png file
 		if (save_screenshot)
 		{
@@ -111,7 +112,7 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			for (const auto& it : fs::directory_iterator(screendir))
 			{
 				int tmp;
-				if (swscanf_s(it.path().filename().c_str(), L"screenshot_%d", &tmp) == 1)
+				if (swscanf(it.path().filename().wstring().c_str(), L"screenshot_%d", &tmp) == 1)
 					counter = std::max(counter, tmp);
 			}
 
@@ -164,6 +165,5 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 				}
 			}
 		}
-		#endif
 	}, rgb_data, save_screenshot, width, height, mainWindow).detach();
 }
