@@ -117,7 +117,7 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 	ImGui::PopFont();
 }
 
-void LatteOverlay_RenderNotifications(ImVec2 &position, ImVec2 &pivot, sint32 direction, float fontSize, bool pad)
+void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 direction, float fontSize, bool pad)
 {
 	auto& config = GetConfig();
 
