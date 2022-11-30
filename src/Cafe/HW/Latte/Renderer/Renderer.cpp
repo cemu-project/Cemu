@@ -100,7 +100,7 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			}
 			else
 			{
-				LatteOverlay_pushNotification("Failed to open clipboard; screenshot not saved to clipboard", 2500);
+				LatteOverlay_pushNotification("Failed to open clipboard; screenshot not saved to clipboard (TV)", 2500);
 			}
 		}
 
