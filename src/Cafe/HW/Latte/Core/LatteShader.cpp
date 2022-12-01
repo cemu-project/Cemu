@@ -441,8 +441,7 @@ void LatteShader_DumpShader(uint64 baseHash, uint64 auxHash, LatteDecompilerShad
 		suffix = "gs";
 	else if (shader->shaderType == LatteConst::ShaderType::Pixel)
 		suffix = "ps";
-	fs::path dumpPath = "dump/shaders";
-	dumpPath /= fmt::format("{:016x}_{:016x}_{}.txt", baseHash, auxHash, suffix);
+	fs::path dumpPath = ActiveSettings::GetUserDataPath("dump/shaders/{:}", fmt::format("{:016x}_{:016x}_{}.txt", baseHash, auxHash, suffix));
 	FileStream* fs = FileStream::createFile2(dumpPath);
 	if (fs)
 	{
@@ -469,8 +468,7 @@ void LatteShader_DumpRawShader(uint64 baseHash, uint64 auxHash, uint32 type, uin
 		suffix = "copy";
 	else if (type == SHADER_DUMP_TYPE_COMPUTE)
 		suffix = "compute";
-	fs::path dumpPath = "dump/shaders";
-	dumpPath /= fmt::format("{:016x}_{:016x}_{}.bin", baseHash, auxHash, suffix);
+	fs::path dumpPath = ActiveSettings::GetUserDataPath("dump/shaders/{:}", fmt::format("{:016x}_{:016x}_{}.bin", baseHash, auxHash, suffix));
 	FileStream* fs = FileStream::createFile2(dumpPath);
 	if (fs)
 	{
