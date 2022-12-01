@@ -1523,6 +1523,7 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 	g_window_info.height = client_size.GetHeight();
 	g_window_info.phys_width = ToPhys(client_size.GetWidth());
 	g_window_info.phys_height = ToPhys(client_size.GetHeight());
+	g_window_info.dpi_scale = GetDPIScaleFactor();
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), event.GetSize());
@@ -1540,6 +1541,7 @@ void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
 	g_window_info.height = client_size.GetHeight();
 	g_window_info.phys_width = ToPhys(client_size.GetWidth());
 	g_window_info.phys_height = ToPhys(client_size.GetHeight());
+	g_window_info.dpi_scale = GetDPIScaleFactor();
 }
 
 void MainWindow::OnMove(wxMoveEvent& event)

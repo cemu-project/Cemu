@@ -143,7 +143,6 @@ void gui_getWindowSize(int& w, int& h)
 	h = g_window_info.height;
 }
 
-
 void gui_getPadWindowSize(int& w, int& h)
 {
 	if (g_window_info.pad_open)
@@ -176,6 +175,16 @@ void gui_getPadWindowPhysSize(int& w, int& h)
 		w = 0;
 		h = 0;
 	}
+}
+
+double gui_getWindowDPIScale()
+{
+	return g_window_info.dpi_scale;
+}
+
+double gui_getPadDPIScale()
+{
+	return g_window_info.pad_open ? g_window_info.pad_dpi_scale.load() : 1.0;
 }
 
 bool gui_isPadWindowOpen()
