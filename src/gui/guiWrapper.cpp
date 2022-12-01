@@ -27,6 +27,8 @@ MainWindow* g_mainFrame = nullptr;
 #if BOOST_OS_WINDOWS
 void _wxLaunch()
 {
+	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
+		cemuLog_log(LogType::Force, "CoInitializeEx() in _wxLaunch failed");
 	SetThreadName("MainThread_UI");
 	wxEntry();
 }
