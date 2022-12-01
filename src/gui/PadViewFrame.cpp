@@ -37,6 +37,7 @@ PadViewFrame::PadViewFrame(wxFrame* parent)
 		Maximize();
 
 	Bind(wxEVT_SIZE, &PadViewFrame::OnSizeEvent, this);
+	Bind(wxEVT_DPI_CHANGED, &PadViewFrame::OnDPIChangedEvent, this);
 	Bind(wxEVT_MOVE, &PadViewFrame::OnMoveEvent, this);
 	Bind(wxEVT_MOTION, &PadViewFrame::OnMouseMove, this);
 
@@ -55,6 +56,8 @@ bool PadViewFrame::Initialize()
 	const wxSize client_size = GetClientSize();
 	g_window_info.pad_width = client_size.GetWidth();
 	g_window_info.pad_height = client_size.GetHeight();
+	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
 
 	return true;
 }
@@ -98,8 +101,22 @@ void PadViewFrame::OnSizeEvent(wxSizeEvent& event)
 	const wxSize client_size = GetClientSize();
 	g_window_info.pad_width = client_size.GetWidth();
 	g_window_info.pad_height = client_size.GetHeight();
+	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
+	g_window_info.pad_dpi_scale = GetDPIScaleFactor();
 
 	event.Skip();
+}
+
+void PadViewFrame::OnDPIChangedEvent(wxDPIChangedEvent& event)
+{
+	event.Skip();
+	const wxSize client_size = GetClientSize();
+	g_window_info.pad_width = client_size.GetWidth();
+	g_window_info.pad_height = client_size.GetHeight();
+	g_window_info.phys_pad_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_pad_height = ToPhys(client_size.GetHeight());
+	g_window_info.pad_dpi_scale = GetDPIScaleFactor();
 }
 
 void PadViewFrame::OnMoveEvent(wxMoveEvent& event)
@@ -130,7 +147,8 @@ void PadViewFrame::OnGesturePan(wxPanGestureEvent& event)
 	auto& instance = InputManager::instance();
 
 	std::scoped_lock lock(instance.m_pad_touch.m_mutex);
-	instance.m_pad_touch.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_touch.position = { physPos.x, physPos.y };
 	instance.m_pad_touch.left_down = event.IsGestureStart() || !event.IsGestureEnd();
 	if (event.IsGestureStart() || !event.IsGestureEnd())
 		instance.m_pad_touch.left_down_toggle = true;
@@ -149,7 +167,8 @@ void PadViewFrame::OnMouseMove(wxMouseEvent& event)
 	auto& instance = InputManager::instance();
 
 	std::scoped_lock lock(instance.m_pad_touch.m_mutex);
-	instance.m_pad_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_mouse.position = { physPos.x, physPos.y };
 
 	event.Skip();
 }
@@ -160,7 +179,8 @@ void PadViewFrame::OnMouseLeft(wxMouseEvent& event)
 
 	std::scoped_lock lock(instance.m_pad_mouse.m_mutex);
 	instance.m_pad_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	instance.m_pad_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_mouse.position = { physPos.x, physPos.y };
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
 		instance.m_pad_mouse.left_down_toggle = true;
 	
@@ -172,7 +192,8 @@ void PadViewFrame::OnMouseRight(wxMouseEvent& event)
 
 	std::scoped_lock lock(instance.m_pad_mouse.m_mutex);
 	instance.m_pad_mouse.right_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	instance.m_pad_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_pad_mouse.position = { physPos.x, physPos.y };
 	if (event.ButtonDown(wxMOUSE_BTN_RIGHT))
 		instance.m_pad_mouse.right_down_toggle = true;
 }

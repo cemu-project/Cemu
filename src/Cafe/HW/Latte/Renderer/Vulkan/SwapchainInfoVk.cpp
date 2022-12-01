@@ -208,20 +208,14 @@ bool SwapchainInfoVk::AcquireImage(uint64 timeout)
 
 	VkSemaphore acquireSemaphore = m_acquireSemaphores[m_acquireIndex];
 	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapchain, timeout, acquireSemaphore, m_imageAvailableFence, &swapchainImageIndex);
-	if (result == VK_TIMEOUT)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		m_shouldRecreate = true;
+	if (result < 0)
 	{
-		return false;
-	}
-	else if (result != VK_SUCCESS)
-	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			m_shouldRecreate = true;
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-			return false;
-
-		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
+		swapchainImageIndex = -1;
+		if (result != VK_ERROR_OUT_OF_DATE_KHR)
 			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+		return false;
 	}
 	m_currentSemaphore = acquireSemaphore;
 	m_awaitableFence = m_imageAvailableFence;

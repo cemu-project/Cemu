@@ -66,11 +66,11 @@ struct OverlayList
 const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
 
 const float kBackgroundAlpha = 0.65f;
-void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 direction)
+void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 direction, float fontSize, bool pad)
 {
 	auto& config = GetConfig();
-	
-	const auto font = ImGui_GetFont(14.0f * (float)config.overlay.text_scale / 100.0f);
+
+	const auto font = ImGui_GetFont(fontSize);
 	ImGui::PushFont(font);
 
 	const ImVec4 color = ImGui::ColorConvertU32ToFloat4(config.overlay.text_color);
@@ -80,7 +80,7 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 	{
 		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 		ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-		if (ImGui::Begin("Stats overlay", nullptr, kPopupFlags))
+		if (ImGui_BeginPadDistinct("Stats overlay", nullptr, kPopupFlags, pad))
 		{
 			if (config.overlay.fps)
 				ImGui::Text("FPS: %.2lf", g_state.fps);
@@ -117,11 +117,11 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 	ImGui::PopFont();
 }
 
-void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 direction)
+void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 direction, float fontSize, bool pad)
 {
 	auto& config = GetConfig();
 
-	const auto font = ImGui_GetFont(14.0f * (float)config.notification.text_scale / 100.0f);
+	const auto font = ImGui_GetFont(fontSize);
 	ImGui::PushFont(font);
 
 	const ImVec4 color = ImGui::ColorConvertU32ToFloat4(config.notification.text_color);
@@ -141,7 +141,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				// active account
 				ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 				ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-				if (ImGui::Begin("Active account", nullptr, kPopupFlags))
+				if (ImGui_BeginPadDistinct("Active account", nullptr, kPopupFlags, pad))
 				{
 					ImGui::TextUnformatted((const char*)ICON_FA_USER);
 					ImGui::SameLine();
@@ -179,7 +179,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				{
 					ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 					ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-					if (ImGui::Begin("Controller profile names", nullptr, kPopupFlags))
+					if (ImGui_BeginPadDistinct("Controller profile names", nullptr, kPopupFlags, pad))
 					{
 						auto it = profiles.cbegin();
 						ImGui::TextUnformatted((const char*)ICON_FA_GAMEPAD);
@@ -227,7 +227,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 		{
 			ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 			ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-			if (ImGui::Begin("Friends overlay", nullptr, kPopupFlags))
+			if (ImGui_BeginPadDistinct("Friends overlay", nullptr, kPopupFlags, pad))
 			{
 				const auto tick = tick_cached();
 				for (auto it = s_friend_list.cbegin(); it != s_friend_list.cend();)
@@ -274,7 +274,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 
 			ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 			ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-			if (ImGui::Begin("Low battery overlay", nullptr, kPopupFlags))
+			if (ImGui_BeginPadDistinct("Low battery overlay", nullptr, kPopupFlags, pad))
 			{
 				auto it = batteries.cbegin();
 				ImGui::TextUnformatted((const char*)(s_blink_state ? ICON_FA_BATTERY_EMPTY : ICON_FA_BATTERY_QUARTER));
@@ -322,7 +322,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			{
 				ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 				ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-				if (ImGui::Begin("Compiling shaders overlay", nullptr, kPopupFlags))
+				if (ImGui_BeginPadDistinct("Compiling shaders overlay", nullptr, kPopupFlags, pad))
 				{
 					ImRotateStart();
 					ImGui::TextUnformatted((const char*)ICON_FA_SPINNER);
@@ -377,7 +377,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			{
 				ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 				ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-				if (ImGui::Begin("Compiling pipeline overlay", nullptr, kPopupFlags))
+				if (ImGui_BeginPadDistinct("Compiling pipeline overlay", nullptr, kPopupFlags, pad))
 				{
 					ImRotateStart();
 					ImGui::TextUnformatted((const char*)ICON_FA_SPINNER);
@@ -446,7 +446,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 	{
 		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 		ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-		if (ImGui::Begin("Misc notifications", nullptr, kPopupFlags))
+		if (ImGui_BeginPadDistinct("Misc notifications", nullptr, kPopupFlags, pad))
 		{
 			const auto tick = tick_cached();
 			for (auto it = s_misc_notifications.cbegin(); it != s_misc_notifications.cend();)
@@ -513,20 +513,26 @@ void LatteOverlay_render(bool pad_view)
 
 	sint32 w = 0, h = 0;
 	if (pad_view && gui_isPadWindowOpen())
-		gui_getPadWindowSize(&w, &h);
+		gui_getPadWindowPhysSize(w, h);
 	else
-		gui_getWindowSize(&w, &h);
+		gui_getWindowPhysSize(w, h);
 
 	if (w == 0 || h == 0)
 		return;
 
 	const Vector2f window_size{ (float)w,(float)h };
-	
+
+	float fontDPIScale = !pad_view ? gui_getWindowDPIScale() : gui_getPadDPIScale();
+
+	float overlayFontSize = 14.0f * (float)config.overlay.text_scale / 100.0f * fontDPIScale;
+
 	// test if fonts are already precached
-	if (!ImGui_GetFont(14.0f * (float)config.overlay.text_scale / 100.0f))
+	if (!ImGui_GetFont(overlayFontSize))
 		return;
+
+	float notificationsFontSize = 14.0f * (float)config.notification.text_scale / 100.0f * fontDPIScale;
 	
-	if (!ImGui_GetFont(14.0f * (float)config.notification.text_scale / 100.0f))
+	if (!ImGui_GetFont(notificationsFontSize))
 		return;
 
 	ImVec2 position{}, pivot{};
@@ -535,7 +541,7 @@ void LatteOverlay_render(bool pad_view)
 	if (config.overlay.position != ScreenPosition::kDisabled)
 	{
 		LatteOverlay_translateScreenPosition(config.overlay.position, window_size, position, pivot, direction);
-		LatteOverlay_renderOverlay(position, pivot, direction);
+		LatteOverlay_renderOverlay(position, pivot, direction, overlayFontSize, pad_view);
 	}
 	
 
@@ -544,7 +550,7 @@ void LatteOverlay_render(bool pad_view)
 		if(config.overlay.position != config.notification.position)
 			LatteOverlay_translateScreenPosition(config.notification.position, window_size, position, pivot, direction);
 
-		LatteOverlay_RenderNotifications(position, pivot, direction);
+		LatteOverlay_RenderNotifications(position, pivot, direction, notificationsFontSize, pad_view);
 	}
 }
 

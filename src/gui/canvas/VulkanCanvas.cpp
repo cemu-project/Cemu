@@ -23,7 +23,7 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 			g_renderer = std::make_unique<VulkanRenderer>();
 
 		auto vulkan_renderer = VulkanRenderer::GetInstance();
-		vulkan_renderer->Initialize({size.x, size.y}, is_main_window);
+		vulkan_renderer->InitializeSurface({size.x, size.y}, is_main_window);
 	}
 	catch(const std::exception& ex)
 	{

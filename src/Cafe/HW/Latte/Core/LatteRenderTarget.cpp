@@ -848,9 +848,9 @@ void LatteRenderTarget_getScreenImageArea(sint32* x, sint32* y, sint32* width, s
 {
 	int w, h;
 	if(padView && gui_isPadWindowOpen())
-		gui_getPadWindowSize(&w, &h);
+		gui_getPadWindowPhysSize(w, h);
 	else
-		gui_getWindowSize(&w, &h);
+		gui_getWindowPhysSize(w, h);
 
 	sint32 scaledOutputX;
 	sint32 scaledOutputY;

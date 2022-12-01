@@ -36,9 +36,9 @@ bool Renderer::ImguiBegin(bool mainWindow)
 {
 	sint32 w = 0, h = 0;
 	if(mainWindow)
-		gui_getWindowSize(&w, &h);
+		gui_getWindowPhysSize(w, h);
 	else if(gui_isPadWindowOpen())
-		gui_getPadWindowSize(&w, &h);
+		gui_getPadWindowPhysSize(w, h);
 	else
 		return false;
 		
