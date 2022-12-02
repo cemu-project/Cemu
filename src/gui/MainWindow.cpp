@@ -3,6 +3,7 @@
 #include "gui/guiWrapper.h"
 
 #include <wx/mstream.h>
+#include <wx/clipbrd.h>
 
 #include "gui/GameUpdateWindow.h"
 #include "gui/PadViewFrame.h"
@@ -386,6 +387,8 @@ namespace coreinit
 
 void MainWindow::OnClose(wxCloseEvent& event)
 {
+	wxTheClipboard->Flush();
+
 	if(m_game_list)
 		m_game_list->OnClose(event);
 
