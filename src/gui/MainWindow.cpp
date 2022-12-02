@@ -199,7 +199,7 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, MainWindow::OnPPCInfoToggle)
 // debug -> dump menu
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, MainWindow::OnDebugDumpUsedTextures)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, MainWindow::OnDebugDumpUsedShaders)
-EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, MainWindow::OnDebugSetting)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, MainWindow::OnDebugDumpLibcurlRequests)
 // debug -> Other options
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, MainWindow::OnDebugSetting)
@@ -992,26 +992,6 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 	{
 		ActiveSettings::EnableFrameProfiler(event.IsChecked());
 	}
-	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS)
-	{
-		// toggle debug -> dump -> curl requests
-		const bool state = event.IsChecked();
-		ActiveSettings::EnableDumpLibcurlRequests(state);
-		if (state)
-		{
-			try
-			{
-				const fs::path path(CemuApp::GetUserDataPath().ToStdString());
-				fs::create_directories(path / "dump" / "curl");
-			}
-			catch (const std::exception& ex)
-			{
-				SystemException sys(ex);
-				forceLog_printf("error when creating dump curl folder: %s", sys.what());
-				ActiveSettings::EnableDumpLibcurlRequests(false);
-			}
-		}
-	}
 	else if (event.GetId() == MAINFRAME_MENU_ID_TIMER_SPEED_8X)
 		ActiveSettings::SetTimerShiftFactor(0);
 	else if (event.GetId() == MAINFRAME_MENU_ID_TIMER_SPEED_4X)
@@ -1053,42 +1033,18 @@ void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
 {
 	const bool value = event.IsChecked();
 	ActiveSettings::EnableDumpTextures(value);
-	if (value)
-	{
-		try
-		{
-			// create directory
-			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
-			fs::create_directories(path / "dump" / "textures");
-		}
-		catch (const std::exception& ex)
-		{
-			SystemException sys(ex);
-			forceLog_printf("can't create texture dump folder: %s", ex.what());
-			ActiveSettings::EnableDumpTextures(false);
-		}
-	}
 }
 
 void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 {
 	const bool value = event.IsChecked();
 	ActiveSettings::EnableDumpShaders(value);
-	if (value)
-	{
-		try
-		{
-			// create directory
-			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
-			fs::create_directories(path / "dump" / "shaders");
-		}
-		catch (const std::exception & ex)
-		{
-			SystemException sys(ex);
-			forceLog_printf("can't create shaders dump folder: %s", ex.what());
-			ActiveSettings::EnableDumpShaders(false);
-		}
-	}
+}
+
+void MainWindow::OnDebugDumpLibcurlRequests(wxCommandEvent& event)
+{
+	const bool value = event.IsChecked();
+	ActiveSettings::EnableDumpLibcurlRequests(value);
 }
 
 void MainWindow::OnLoggingWindow(wxCommandEvent& event)
@@ -2137,7 +2093,7 @@ void MainWindow::RecreateMenu()
 	wxMenu* debugDumpMenu = new wxMenu;
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, _("&Textures"), wxEmptyString)->Check(ActiveSettings::DumpTexturesEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"), wxEmptyString)->Check(ActiveSettings::DumpShadersEnabled());
-	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString);
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString)->Check(ActiveSettings::DumpLibcurlRequestsEnabled());
 	// debug submenu
 	wxMenu* debugMenu = new wxMenu;
 	m_debugMenu = debugMenu;
