@@ -172,7 +172,7 @@ void ActiveSettings::EnableDumpShaders(bool state)
 		fs::create_directories(ActiveSettings::GetUserDataPath("dump/shaders"), ec);
 		if (ec)
 		{
-			cafeLog_log(LOG_TYPE_FORCE, "can't create shaders dump folder: %s", ec.message().c_str());
+			cemuLog_log(LogType::Force, "can't create shaders dump folder: {}", ec.message());
 			s_dump_shaders = false;
 		}
 	}
@@ -188,7 +188,7 @@ void ActiveSettings::EnableDumpTextures(bool state)
 		fs::create_directories(ActiveSettings::GetUserDataPath("dump/textures"), ec);
 		if (ec)
 		{
-			cafeLog_log(LOG_TYPE_FORCE, "can't create texture dump folder: %s", ec.message().c_str());			
+			cemuLog_log(LogType::Force, "can't create texture dump folder: {}", ec.message());			
 			s_dump_textures = false;
 		}
 	}
@@ -204,7 +204,7 @@ void ActiveSettings::EnableDumpLibcurlRequests(bool state)
 		fs::create_directories(ActiveSettings::GetUserDataPath("dump/curl"), ec);
 		if (ec)
 		{
-			cafeLog_log(LOG_TYPE_FORCE, "can't create curl dump folder: %s", ec.message().c_str());
+			cemuLog_log(LogType::Force, "can't create curl dump folder: {}", ec.message());
 			s_dump_libcurl_requests = false;
 		}
 	}
