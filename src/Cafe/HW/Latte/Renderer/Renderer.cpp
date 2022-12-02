@@ -81,6 +81,35 @@ uint8 Renderer::RGBComponentToSRGB(uint8 cli)
 	return (uint8)(cs * 255.0f);
 }
 
+fs::path _GenerateScreenshotFilename(bool isDRC)
+{
+	fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
+	// build screenshot name with format Screenshot_YYYY-MM-DD_HH-MM-SS[_GamePad].png
+	// if the file already exists add a suffix counter (_2.png, _3.png etc)
+	std::time_t time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::tm* tm = std::localtime(&time_t);
+
+	std::string screenshotFileName = fmt::format("Screenshot_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+	if (isDRC)
+		screenshotFileName.append("_GamePad");
+
+	fs::path screenshotPath;
+	for(sint32 i=0; i<999; i++)
+	{
+		screenshotPath = screendir;
+		if (i == 0)
+			screenshotPath.append(fmt::format("{}.png", screenshotFileName));
+		else
+			screenshotPath.append(fmt::format("{}_{}.png", screenshotFileName, i + 1));
+		std::error_code ec;
+		if (!fs::exists(screenshotPath))
+			return screenshotPath;
+	}
+	return screenshotPath; // if all exist checks fail, return the last path we tried
+}
+
+std::mutex s_clipboardMutex;
+
 void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const
 {
 	const bool save_screenshot = GetConfig().save_screenshot;
@@ -96,6 +125,7 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 
 		if (mainWindow)
 		{
+			s_clipboardMutex.lock();
 			if (wxTheClipboard->Open())
 			{
 				wxTheClipboard->SetData(new wxImageDataObject(image));
@@ -107,25 +137,15 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			{
 				LatteOverlay_pushNotification("Failed to open clipboard", 2500);
 			}
+			s_clipboardMutex.unlock();
 		}
 
 		// save to png file
 		if (save_screenshot)
 		{
-			fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
-			if (!fs::exists(screendir))
+			fs::path screendir = _GenerateScreenshotFilename(!mainWindow);
+			if (!fs::exists(screendir.parent_path()))
 				fs::create_directory(screendir);
-
-			auto counter = 0;
-			for (const auto& it : fs::directory_iterator(screendir))
-			{
-				int tmp;
-				if (swscanf(it.path().filename().wstring().c_str(), L"screenshot_%d", &tmp) == 1)
-					counter = std::max(counter, tmp);
-			}
-
-			screendir /= fmt::format(L"screenshot_{}.png", ++counter);
-			
 			if (image.SaveFile(screendir.wstring()))
 			{
 				if(mainWindow)
