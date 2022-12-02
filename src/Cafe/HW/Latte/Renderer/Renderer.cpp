@@ -85,7 +85,13 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 {
 	const bool save_screenshot = GetConfig().save_screenshot;
 	std::thread([](std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
-	{
+		{
+#if BOOST_OS_WINDOWS
+		// on Windows wxWidgets uses OLE API for the clipboard
+		// to make this work we need to call OleInitialize() on the same thread
+		OleInitialize(nullptr);
+#endif
+
 		wxImage image(width, height, data.data(), true);
 
 		if (mainWindow)
@@ -94,11 +100,12 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			{
 				wxTheClipboard->SetData(new wxImageDataObject(image));
 				wxTheClipboard->Close();
-				LatteOverlay_pushNotification("Screenshot saved to clipboard (TV)", 2500);
+				if(!save_screenshot && mainWindow)
+					LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
 			}
 			else
 			{
-				LatteOverlay_pushNotification("Failed to open clipboard; screenshot not saved to clipboard (TV)", 2500);
+				LatteOverlay_pushNotification("Failed to open clipboard", 2500);
 			}
 		}
 
@@ -121,11 +128,12 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 			
 			if (image.SaveFile(screendir.wstring()))
 			{
-				LatteOverlay_pushNotification(fmt::format("Screenshot saved to {} ({})", screendir.string(), mainWindow ? "TV" : "GamePad"), 2500);
+				if(mainWindow)
+					LatteOverlay_pushNotification("Screenshot saved", 2500);
 			}
 			else
 			{
-				LatteOverlay_pushNotification(fmt::format("Screenshot failed to save to file ({})", mainWindow ? "TV" : "GamePad"), 2500);
+				LatteOverlay_pushNotification("Failed to save screenshot to file", 2500);
 			}
 		}
 	}, rgb_data, save_screenshot, width, height, mainWindow).detach();
