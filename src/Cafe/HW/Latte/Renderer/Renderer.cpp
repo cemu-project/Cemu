@@ -145,7 +145,7 @@ void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int
 		{
 			fs::path screendir = _GenerateScreenshotFilename(!mainWindow);
 			if (!fs::exists(screendir.parent_path()))
-				fs::create_directory(screendir);
+				fs::create_directories(screendir.parent_path());
 			if (image.SaveFile(screendir.wstring()))
 			{
 				if(mainWindow)
