@@ -13,6 +13,7 @@
 #include <wx/image.h>
 #include <wx/dataobj.h>
 #include <wx/clipbrd.h>
+#include <wx/wfstream.h>
 
 std::unique_ptr<Renderer> g_renderer;
 
@@ -138,7 +139,10 @@ static bool SaveScreenshotToFile(const wxImage &image, bool mainWindow)
 	fs::create_directories(path->parent_path(), ec);
 	if (ec) return false;
 
-	return image.SaveFile(path->wstring());
+	wxFileOutputStream wxOut(path->wstring());
+	if (!wxOut.IsOk()) return false;
+	
+	return image.SaveFile(wxOut, wxBITMAP_TYPE_PNG);
 }
 
 static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
@@ -176,7 +180,6 @@ static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int 
 			LatteOverlay_pushNotification("Failed to save screenshot to file", 2500);
 		}
 	}
-
 }
 
 void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const
