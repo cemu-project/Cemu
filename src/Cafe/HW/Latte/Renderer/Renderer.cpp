@@ -102,7 +102,7 @@ fs::path _GenerateScreenshotFilename(bool isDRC)
 		else
 			screenshotPath.append(fmt::format("{}_{}.png", screenshotFileName, i + 1));
 		std::error_code ec;
-		if (!fs::exists(screenshotPath))
+		if (!fs::exists(screenshotPath, ec) && !ec)
 			return screenshotPath;
 	}
 	return screenshotPath; // if all exist checks fail, return the last path we tried
