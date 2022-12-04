@@ -2565,9 +2565,9 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	int w, h;
 	if(mainWindow)
-		gui_getWindowSize(&w, &h);
+		gui_getWindowSize(w, h);
 	else
-		gui_getPadWindowSize(&w, &h);
+		gui_getPadWindowSize(w, h);
 	auto extent = chainInfo.getExtent();
 	if(w!=extent.width || h!=extent.height)
 		chainInfo.m_shouldRecreate = true;
