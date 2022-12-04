@@ -2565,6 +2565,15 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
+	int w, h;
+	if(mainWindow)
+		gui_getWindowSize(&w, &h);
+	else
+		gui_getPadWindowSize(&w, &h);
+	auto extent = chainInfo.getExtent();
+	if(w!=extent.width || h!=extent.height)
+		chainInfo.m_shouldRecreate = true;
+
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
 
