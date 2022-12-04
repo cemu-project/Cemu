@@ -1,4 +1,5 @@
 #pragma once
+#include <wayland-client-protocol.h>
 #if BOOST_OS_LINUX
 
 #include <gdk/gdk.h>
@@ -40,11 +41,14 @@ class wxWlSubsurface
 		wl_registry_add_listener(registry, &m_registry_listener, this);
 		wl_display_roundtrip(m_display);
 		m_surface = wl_compositor_create_surface(compositor);
+		wl_region* region = wl_compositor_create_region(compositor);
+		wl_surface_set_input_region(m_surface, region);
 		m_subsurface = wl_subcompositor_get_subsurface(m_subcompositor, m_surface, surface);
 		wl_subsurface_set_desync(m_subsurface);
 		window->GetScreenPosition(&m_xPos, &m_yPos);
 		wl_subsurface_set_position(m_subsurface, m_xPos, m_yPos);
 		wl_surface_commit(m_surface);
+		wl_region_destroy(region);
 	}
 
 	wl_surface* getSurface() const { return m_surface; }
