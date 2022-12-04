@@ -5,8 +5,7 @@
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
 #include <gdk/gdkkeysyms.h>
-#include <wayland-client-core.h>
-#include <wayland-client-protocol.h>
+#include <wayland-client.h>
 #endif
 
 #if BOOST_OS_MACOS
