@@ -459,8 +459,7 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 		VkVertexInputBindingDescription entry{};
 #if BOOST_OS_MACOS
 		if (bufferStride % 4 != 0) {
-			forceLog_printf("MoltenVK error: vertex stride was %d, expected multiple of 4", bufferStride);
-			bufferStride = 0;
+			bufferStride = bufferStride + (4-(bufferStride % 4));
 		}
 #endif
 		entry.stride = bufferStride;

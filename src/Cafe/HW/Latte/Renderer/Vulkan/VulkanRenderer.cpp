@@ -644,7 +644,7 @@ VulkanRenderer* VulkanRenderer::GetInstance()
 	return (VulkanRenderer*)g_renderer.get();
 }
 
-void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
+void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
 {
 	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
 
@@ -1690,7 +1690,6 @@ bool VulkanRenderer::ImguiBegin(bool mainWindow)
 	draw_endRenderPass();
 	m_state.currentPipeline = VK_NULL_HANDLE;
 
-	chainInfo.WaitAvailableFence();
 	ImGui_ImplVulkan_CreateFontsTexture(m_state.currentCommandBuffer);
 	ImGui_ImplVulkan_NewFrame(m_state.currentCommandBuffer, chainInfo.m_swapchainFramebuffers[chainInfo.swapchainImageIndex], chainInfo.getExtent());
 	ImGui_UpdateWindowInformation(mainWindow);
@@ -1747,7 +1746,6 @@ bool VulkanRenderer::BeginFrame(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	chainInfo.WaitAvailableFence();
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
 	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
@@ -1873,7 +1871,7 @@ void VulkanRenderer::WaitForNextFinishedCommandBuffer()
 	ProcessFinishedCommandBuffers();
 }
 
-void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemaphore* waitSemaphore)
+void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphore waitSemaphore)
 {
 	draw_endRenderPass();
 
@@ -1888,11 +1886,11 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemapho
 
 	// signal current command buffer semaphore
 	VkSemaphore signalSemArray[2];
-	if (signalSemaphore)
+	if (signalSemaphore != VK_NULL_HANDLE)
 	{
 		submitInfo.signalSemaphoreCount = 2;
 		signalSemArray[0] = m_commandBufferSemaphores[m_commandBufferIndex]; // signal current
-		signalSemArray[1] = *signalSemaphore; // signal current
+		signalSemArray[1] = signalSemaphore; // signal current
 		submitInfo.pSignalSemaphores = signalSemArray;
 	}
 	else
@@ -1908,8 +1906,8 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemapho
 	submitInfo.waitSemaphoreCount = 0;
 	if (m_numSubmittedCmdBuffers > 0)
 		waitSemArray[submitInfo.waitSemaphoreCount++] = prevSem; // wait on semaphore from previous submit
-	if (waitSemaphore)
-		waitSemArray[submitInfo.waitSemaphoreCount++] = *waitSemaphore;
+	if (waitSemaphore != VK_NULL_HANDLE)
+		waitSemArray[submitInfo.waitSemaphoreCount++] = waitSemaphore;
 	submitInfo.pWaitDstStageMask = semWaitStageMask;
 	submitInfo.pWaitSemaphores = waitSemArray;
 
@@ -2580,20 +2578,11 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
-	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
-	if (result != VK_SUCCESS)
-	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			chainInfo.m_shouldRecreate = true;
+	bool result = chainInfo.AcquireImage(UINT64_MAX);
+	if (!result)
+		return false;
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-			return false;
-
-		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
-			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
-	}
-
+	SubmitCommandBuffer(VK_NULL_HANDLE, chainInfo.ConsumeAcquireSemaphore());
 	return true;
 }
 
@@ -2602,25 +2591,27 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
+	// make sure fence has no signal operation submitted
+	chainInfo.WaitAvailableFence();
 
 	Vector2i size;
 	if (mainWindow)
 	{
 		ImGui_ImplVulkan_Shutdown();
-		gui_getWindowSize(&size.x, &size.y);
+		gui_getWindowPhysSize(size.x, size.y);
 	}
 	else
 	{
-		gui_getPadWindowSize(&size.x, &size.y);
+		gui_getPadWindowPhysSize(size.x, size.y);
 	}
 
+	chainInfo.swapchainImageIndex = -1;
 	chainInfo.Cleanup();
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
 	}
-	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)
 		ImguiInit();
@@ -2667,14 +2658,13 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 
 	if (!chainInfo.hasDefinedSwapchainImage)
 	{
-		chainInfo.WaitAvailableFence();
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
-	VkSemaphore presentSemaphore = chainInfo.m_swapchainPresentSemaphores[chainInfo.swapchainImageIndex];
-	SubmitCommandBuffer(&presentSemaphore); // submit all command and signal semaphore
+	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
+	SubmitCommandBuffer(presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
 
@@ -2688,13 +2678,12 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (result != VK_SUCCESS)
+	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			chainInfo.m_shouldRecreate = true;
-		else
-			throw std::runtime_error(fmt::format("Failed to present image: {}", result));
+		throw std::runtime_error(fmt::format("Failed to present image: {}", result));
 	}
+	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		chainInfo.m_shouldRecreate = true;
 
 	chainInfo.hasDefinedSwapchainImage = false;
 
@@ -2735,7 +2724,6 @@ void VulkanRenderer::ClearColorbuffer(bool padView)
 	if (chainInfo.swapchainImageIndex == -1)
 		return;
 
-	chainInfo.WaitAvailableFence();
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
 	ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 }
@@ -2826,7 +2814,6 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
-	chainInfo.WaitAvailableFence();
 	if (clearBackground)
 		ClearColorbuffer(padView);
 
@@ -3502,6 +3489,36 @@ void VulkanRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, 
 	VkBuffer attrBuffer = m_bufferCache;
 	VkDeviceSize attrOffset = offset;
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+}
+
+void VulkanRenderer::buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size)
+{
+	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
+	m_state.currentVertexBinding[bufferIndex].offset = 0xFFFFFFFF;
+	VkBuffer attrBuffer = fixedBuffer;
+	VkDeviceSize attrOffset = offset;
+	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+}
+
+std::pair<VkBuffer, uint32> VulkanRenderer::buffer_genStrideWorkaroundVertexBuffer(MPTR buffer, uint32 size, uint32 oldStride)
+{
+	cemu_assert_debug(oldStride % 4 != 0);
+
+	std::span<uint8> old_buffer{memory_getPointerFromPhysicalOffset(buffer), size};
+
+	//new stride is the nearest multiple of 4
+	uint32 newStride = oldStride + (4-(oldStride % 4));
+	uint32 newSize = size / oldStride * newStride;
+
+	auto new_buffer_alloc = memoryManager->getMetalStrideWorkaroundAllocator().AllocateBufferMemory(newSize, 128);
+
+	std::span<uint8> new_buffer{new_buffer_alloc.memPtr, new_buffer_alloc.size};
+
+	for(size_t elem = 0; elem < size / oldStride; elem++)
+	{
+		memcpy(&new_buffer[elem * newStride], &old_buffer[elem * oldStride], oldStride);
+	}
+	return {new_buffer_alloc.vkBuffer, new_buffer_alloc.bufferOffset};
 }
 
 void VulkanRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)

@@ -3,6 +3,7 @@
 #include "gui/guiWrapper.h"
 
 #include <wx/mstream.h>
+#include <wx/clipbrd.h>
 
 #include "gui/GameUpdateWindow.h"
 #include "gui/PadViewFrame.h"
@@ -157,6 +158,7 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
 EVT_TIMER(MAINFRAME_ID_TIMER1, MainWindow::OnTimer)
 EVT_CLOSE(MainWindow::OnClose)
 EVT_SIZE(MainWindow::OnSizeEvent)
+EVT_DPI_CHANGED(MainWindow::OnDPIChangedEvent)
 EVT_MOVE(MainWindow::OnMove)
 // file menu
 EVT_MENU(MAINFRAME_MENU_ID_FILE_LOAD, MainWindow::OnFileMenu)
@@ -385,6 +387,8 @@ namespace coreinit
 
 void MainWindow::OnClose(wxCloseEvent& event)
 {
+	wxTheClipboard->Flush();
+
 	if(m_game_list)
 		m_game_list->OnClose(event);
 
@@ -1310,7 +1314,8 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 
 	auto& instance = InputManager::instance();
 	std::unique_lock lock(instance.m_main_mouse.m_mutex);
-	instance.m_main_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	lock.unlock();
 
 	if (!IsFullScreen())
@@ -1328,7 +1333,8 @@ void MainWindow::OnMouseLeft(wxMouseEvent& event)
 	
 	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
 	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	instance.m_main_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
 		instance.m_main_mouse.left_down_toggle = true;
 	
@@ -1341,7 +1347,8 @@ void MainWindow::OnMouseRight(wxMouseEvent& event)
 
 	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
 	instance.m_main_mouse.right_down = event.ButtonDown(wxMOUSE_BTN_RIGHT);
-	instance.m_main_mouse.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	if(event.ButtonDown(wxMOUSE_BTN_RIGHT))
 		instance.m_main_mouse.right_down_toggle = true;
 	
@@ -1441,7 +1448,8 @@ void MainWindow::OnGesturePan(wxPanGestureEvent& event)
 {
 	auto& instance = InputManager::instance();
 	std::scoped_lock lock(instance.m_main_touch.m_mutex);
-	instance.m_main_touch.position = { event.GetPosition().x, event.GetPosition().y };
+	auto physPos = ToPhys(event.GetPosition());
+	instance.m_main_touch.position = { physPos.x, physPos.y };
 	instance.m_main_touch.left_down = event.IsGestureStart() || !event.IsGestureEnd();
 	if (event.IsGestureStart() || !event.IsGestureEnd())
 		instance.m_main_touch.left_down_toggle = true;
@@ -1516,6 +1524,9 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 	const wxSize client_size = GetClientSize();
 	g_window_info.width = client_size.GetWidth();
 	g_window_info.height = client_size.GetHeight();
+	g_window_info.phys_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_height = ToPhys(client_size.GetHeight());
+	g_window_info.dpi_scale = GetDPIScaleFactor();
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), event.GetSize());
@@ -1523,6 +1534,17 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 	event.Skip();
 
 	VsyncDriver_notifyWindowPosChanged();
+}
+
+void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
+{
+	event.Skip();
+	const wxSize client_size = GetClientSize();
+	g_window_info.width = client_size.GetWidth();
+	g_window_info.height = client_size.GetHeight();
+	g_window_info.phys_width = ToPhys(client_size.GetWidth());
+	g_window_info.phys_height = ToPhys(client_size.GetHeight());
+	g_window_info.dpi_scale = GetDPIScaleFactor();
 }
 
 void MainWindow::OnMove(wxMoveEvent& event)

@@ -418,7 +418,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 			continue;
 
 		int w, h;
-		gui_getWindowSize(&w, &h);
+		gui_getWindowPhysSize(w, h);
 		const Vector2f window_size{ (float)w,(float)h };
 
 		ImGui_GetFont(window_size.y / 32.0f); // = 24 by default
