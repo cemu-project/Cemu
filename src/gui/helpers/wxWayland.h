@@ -45,7 +45,6 @@ class wxWlSubsurface
 		window->GetScreenPosition(&m_xPos, &m_yPos);
 		wl_subsurface_set_position(m_subsurface, m_xPos, m_yPos);
 		wl_surface_commit(m_surface);
-		wl_display_roundtrip(m_display);
 	}
 
 	wl_surface* getSurface() const { return m_surface; }
@@ -58,7 +57,6 @@ class wxWlSubsurface
 			m_yPos = yPos;
 			wl_subsurface_set_position(m_subsurface, m_xPos, m_yPos);
 			wl_surface_commit(m_surface);
-			wl_display_roundtrip(m_display);
 		}
 	}
 
