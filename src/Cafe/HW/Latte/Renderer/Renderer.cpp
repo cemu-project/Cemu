@@ -82,7 +82,7 @@ uint8 Renderer::RGBComponentToSRGB(uint8 cli)
 	return (uint8)(cs * 255.0f);
 }
 
-std::optional<fs::path> _GenerateScreenshotFilename(bool isDRC)
+static std::optional<fs::path> GenerateScreenshotFilename(bool isDRC)
 {
 	fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
 	// build screenshot name with format Screenshot_YYYY-MM-DD_HH-MM-SS[_GamePad].png
@@ -132,13 +132,14 @@ static bool SaveScreenshotToClipboard(const wxImage &image)
 
 static bool SaveScreenshotToFile(const wxImage &image, bool mainWindow)
 {
-	auto path = _GenerateScreenshotFilename(!mainWindow);
+	auto path = GenerateScreenshotFilename(!mainWindow);
 	if (!path) return false;
 
 	std::error_code ec;
 	fs::create_directories(path->parent_path(), ec);
 	if (ec) return false;
 
+	// suspend wxWidgets logging for the lifetime this object, prevents pop-up error boxes if wxImage::SaveFile fails
 	wxLogNull _logNo;
 	return image.SaveFile(path->wstring());
 }
