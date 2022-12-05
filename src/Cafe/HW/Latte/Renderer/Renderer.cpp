@@ -13,6 +13,7 @@
 #include <wx/image.h>
 #include <wx/dataobj.h>
 #include <wx/clipbrd.h>
+#include <wx/log.h>
 
 std::unique_ptr<Renderer> g_renderer;
 
@@ -81,7 +82,7 @@ uint8 Renderer::RGBComponentToSRGB(uint8 cli)
 	return (uint8)(cs * 255.0f);
 }
 
-fs::path _GenerateScreenshotFilename(bool isDRC)
+static std::optional<fs::path> GenerateScreenshotFilename(bool isDRC)
 {
 	fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
 	// build screenshot name with format Screenshot_YYYY-MM-DD_HH-MM-SS[_GamePad].png
@@ -101,60 +102,87 @@ fs::path _GenerateScreenshotFilename(bool isDRC)
 			screenshotPath.append(fmt::format("{}.png", screenshotFileName));
 		else
 			screenshotPath.append(fmt::format("{}_{}.png", screenshotFileName, i + 1));
+		
 		std::error_code ec;
-		if (!fs::exists(screenshotPath))
+		bool exists = fs::exists(screenshotPath, ec);
+		
+		if (!ec && !exists)
 			return screenshotPath;
 	}
-	return screenshotPath; // if all exist checks fail, return the last path we tried
+	return std::nullopt;
 }
 
 std::mutex s_clipboardMutex;
 
+static bool SaveScreenshotToClipboard(const wxImage &image)
+{
+	bool success = false;
+
+	s_clipboardMutex.lock();
+	if (wxTheClipboard->Open())
+	{
+		wxTheClipboard->SetData(new wxImageDataObject(image));
+		wxTheClipboard->Close();
+		success = true;
+	}
+	s_clipboardMutex.unlock();
+
+	return success;
+}
+
+static bool SaveScreenshotToFile(const wxImage &image, bool mainWindow)
+{
+	auto path = GenerateScreenshotFilename(!mainWindow);
+	if (!path) return false;
+
+	std::error_code ec;
+	fs::create_directories(path->parent_path(), ec);
+	if (ec) return false;
+
+	// suspend wxWidgets logging for the lifetime this object, to prevent a message box if wxImage::SaveFile fails
+	wxLogNull _logNo;
+	return image.SaveFile(path->wstring());
+}
+
+static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
+{
+#if BOOST_OS_WINDOWS
+	// on Windows wxWidgets uses OLE API for the clipboard
+	// to make this work we need to call OleInitialize() on the same thread
+	OleInitialize(nullptr);
+#endif
+	
+	wxImage image(width, height, data.data(), true);
+
+	if (mainWindow)
+	{
+		if(SaveScreenshotToClipboard(image))
+		{
+			if (!save_screenshot)
+				LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
+		}
+		else
+		{
+			LatteOverlay_pushNotification("Failed to open clipboard", 2500);
+		}
+	}
+
+	if (save_screenshot)
+	{
+		if (SaveScreenshotToFile(image, mainWindow))
+		{
+			if (mainWindow)
+				LatteOverlay_pushNotification("Screenshot saved", 2500);
+		}
+		else
+		{
+			LatteOverlay_pushNotification("Failed to save screenshot to file", 2500);
+		}
+	}
+}
+
 void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const
 {
 	const bool save_screenshot = GetConfig().save_screenshot;
-	std::thread([](std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
-		{
-#if BOOST_OS_WINDOWS
-		// on Windows wxWidgets uses OLE API for the clipboard
-		// to make this work we need to call OleInitialize() on the same thread
-		OleInitialize(nullptr);
-#endif
-
-		wxImage image(width, height, data.data(), true);
-
-		if (mainWindow)
-		{
-			s_clipboardMutex.lock();
-			if (wxTheClipboard->Open())
-			{
-				wxTheClipboard->SetData(new wxImageDataObject(image));
-				wxTheClipboard->Close();
-				if(!save_screenshot && mainWindow)
-					LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
-			}
-			else
-			{
-				LatteOverlay_pushNotification("Failed to open clipboard", 2500);
-			}
-			s_clipboardMutex.unlock();
-		}
-
-		// save to png file
-		if (save_screenshot)
-		{
-			fs::path screendir = _GenerateScreenshotFilename(!mainWindow);
-			if (!fs::exists(screendir.parent_path()))
-				fs::create_directories(screendir.parent_path());
-			if (image.SaveFile(screendir.wstring()))
-			{
-				if(mainWindow)
-					LatteOverlay_pushNotification("Screenshot saved", 2500);
-			}
-			else
-			{
-				LatteOverlay_pushNotification("Failed to save screenshot to file", 2500);
-			}
-		}
-	}, rgb_data, save_screenshot, width, height, mainWindow).detach();
+	std::thread(ScreenshotThread, rgb_data, save_screenshot, width, height, mainWindow).detach();
 }
