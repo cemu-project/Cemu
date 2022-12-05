@@ -2569,15 +2569,6 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	int w, h;
-	if(mainWindow)
-		gui_getWindowSize(w, h);
-	else
-		gui_getPadWindowSize(w, h);
-	auto extent = chainInfo.getExtent();
-	if(w!=extent.width || h!=extent.height)
-		chainInfo.m_shouldRecreate = true;
-
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
 
@@ -2634,6 +2625,15 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
 	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+		stateChanged = true;
+
+	int width, height;
+	if (mainWindow)
+		gui_getWindowSize(width, height);
+	else
+		gui_getPadWindowSize(width, height);
+	auto extent = chainInfo.getExtent();
+	if (width != extent.width || height != extent.height)
 		stateChanged = true;
 
 	if(stateChanged)
