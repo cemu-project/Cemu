@@ -23,7 +23,6 @@ class wxWlSubsurface
 	wl_subcompositor* m_subcompositor;
 	wl_surface* m_surface;
 	wl_subsurface* m_subsurface;
-	wl_display* m_display;
 	int32_t m_xPos = 0;
 	int32_t m_yPos = 0;
 
@@ -34,12 +33,12 @@ class wxWlSubsurface
 		gtk_widget_realize(widget);
 		GdkWindow* gdkWindow = gtk_widget_get_window(widget);
 		GdkDisplay* gdkDisplay = gdk_window_get_display(gdkWindow);
-		m_display = gdk_wayland_display_get_wl_display(gdkDisplay);
+		wl_display* display = gdk_wayland_display_get_wl_display(gdkDisplay);
 		wl_surface* surface = gdk_wayland_window_get_wl_surface(gdkWindow);
 		wl_compositor* compositor = gdk_wayland_display_get_wl_compositor(gdkDisplay);
-		wl_registry* registry = wl_display_get_registry(m_display);
+		wl_registry* registry = wl_display_get_registry(display);
 		wl_registry_add_listener(registry, &m_registry_listener, this);
-		wl_display_roundtrip(m_display);
+		wl_display_roundtrip(display);
 		m_surface = wl_compositor_create_surface(compositor);
 		wl_region* region = wl_compositor_create_region(compositor);
 		wl_surface_set_input_region(m_surface, region);
