@@ -2126,7 +2126,7 @@ bool _ppcAssembler_isConstantBranchTargetExpr(std::string& expressionString, sin
 		{
 			return false;
 		}
-		relativeAddr = (uint32)branchDistance;
+		relativeAddr = (sint32)branchDistance;
 		return true;
 	}
 	return false;
