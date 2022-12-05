@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.21.1)
 
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AARCH64")
+set(ENV{VCPKG_FORCE_SYSTEM_BINARIES} "1")
+endif()
+set(ENV{VCPKG_FORCE_SYSTEM_BINARIES} "1")
+
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(PORTABLE "All data created and maintained by Cemu will be in the directory where the executable file is located" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
@@ -46,8 +51,8 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # enable link time optimization for release builds
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
 
 if (MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)

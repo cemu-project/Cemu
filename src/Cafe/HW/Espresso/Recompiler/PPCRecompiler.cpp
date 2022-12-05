@@ -461,6 +461,30 @@ void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr)
 	PPCRecompilerState.recompilerSpinlock.unlock();
 }
 
+#if defined(__x86_64__)
+void PPCRecompiler_initPlatform()
+{
+	// mxcsr
+	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOn = 0x1F80 | 0x8000;
+	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOff = 0x1F80;
+
+	// query processor extensions
+	int cpuInfo[4];
+	cpuid(cpuInfo, 0x80000001);
+	hasLZCNTSupport = ((cpuInfo[2] >> 5) & 1) != 0;
+	cpuid(cpuInfo, 0x1);
+	hasMOVBESupport = ((cpuInfo[2] >> 22) & 1) != 0;
+	hasAVXSupport = ((cpuInfo[2] >> 28) & 1) != 0;
+	cpuidex(cpuInfo, 0x7, 0);
+	hasBMI2Support = ((cpuInfo[1] >> 8) & 1) != 0;
+}
+#else
+void PPCRecompiler_initPlatform()
+{
+    
+}
+#endif
+
 void PPCRecompiler_init()
 {
 	if (ActiveSettings::GetCPUMode() == CPUMode::SinglecoreInterpreter)
@@ -569,20 +593,8 @@ void PPCRecompiler_init()
 		ppcRecompilerInstanceData->_psq_st_scale_ps0_ps1[(i + 32) * 2 + 1] = br;
 	}
 
-	// mxcsr
-	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOn = 0x1F80 | 0x8000;
-	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOff = 0x1F80;
-
-	// query processor extensions
-	int cpuInfo[4];
-	cpuid(cpuInfo, 0x80000001);
-	hasLZCNTSupport = ((cpuInfo[2] >> 5) & 1) != 0;
-	cpuid(cpuInfo, 0x1);
-	hasMOVBESupport = ((cpuInfo[2] >> 22) & 1) != 0;
-	hasAVXSupport = ((cpuInfo[2] >> 28) & 1) != 0;
-	cpuidex(cpuInfo, 0x7, 0);
-	hasBMI2Support = ((cpuInfo[1] >> 8) & 1) != 0;
-
+    PPCRecompiler_initPlatform();
+    
 	forceLog_printf("Recompiler initialized. CPU extensions: %s%s%s", hasLZCNTSupport ? "LZCNT " : "", hasMOVBESupport ? "MOVBE " : "", hasAVXSupport ? "AVX " : "");
 
 	ppcRecompilerEnabled = true;

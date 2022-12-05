@@ -83,7 +83,13 @@ void hleExport_xcx_enterCriticalSection(PPCInterpreter_t* hCPU)
 				osLib_returnFromFunction(hCPU, 0);
 				return;
 			}
-			_mm_pause();
+            #if   defined(__x86_64__)
+            _mm_pause();
+            #elif defined(__aarch64__)
+            asm volatile("yield");
+            #else
+            #error Arch not supported
+            #endif
 		}
 		PPCCore_switchToScheduler();
 	}

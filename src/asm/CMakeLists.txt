@@ -1,5 +1,7 @@
 project(CemuAsm C)
 
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+
 if (WIN32)
 
 	enable_language(C ASM_MASM)
@@ -37,3 +39,8 @@ else()
 endif()
 
 set_property(TARGET CemuAsm PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+else()
+# Arch is not x86
+add_library(CemuAsm stub.cpp)
+endif()

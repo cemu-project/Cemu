@@ -186,6 +186,23 @@ void reconfigureVkDrivers()
     _putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
 }
 
+#if defined(__x86_64__)
+void CheckCPUExtensions()
+{
+    int cpuInfo[4];
+	cpuid(cpuInfo, 0x1);
+	_cpuExtension_SSSE3 = ((cpuInfo[2] >> 9) & 1) != 0;
+	_cpuExtension_SSE4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
+	cpuidex(cpuInfo, 0x7, 0);
+	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
+}
+#else
+void CheckCPUExtensions()
+{
+    
+}
+#endif
+
 void mainEmulatorCommonInit()
 {
 	reconfigureGLDrivers();
@@ -195,13 +212,7 @@ void mainEmulatorCommonInit()
 	// init PPC timer (call this as early as possible because it measures frequency of RDTSC using an asynchronous thread over 3 seconds)
 	PPCTimer_init();
 	// check available CPU extensions
-	int cpuInfo[4];
-	cpuid(cpuInfo, 0x1);
-	_cpuExtension_SSSE3 = ((cpuInfo[2] >> 9) & 1) != 0;
-	_cpuExtension_SSE4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
-
-	cpuidex(cpuInfo, 0x7, 0);
-	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
+    CheckCPUExtensions();
 
 #if BOOST_OS_WINDOWS
 	executablePath.resize(4096);

@@ -601,6 +601,7 @@ void AES128_CBC_decrypt_updateIV(uint8* output, uint8* input, uint32 length, con
 	memcpy(iv, newIv, KEYLEN);
 }
 
+#if defined(__x86_64__)
 inline __m128i AESNI128_ASSIST(
 	__m128i temp1,
 	__m128i temp2)
@@ -792,6 +793,7 @@ void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
 	feedback = _mm_aesenclast_si128(feedback, ((__m128i*)expandedKey)[10]);
 	_mm_storeu_si128(&((__m128i*)output)[0], feedback);
 }
+#endif
 
 void(*AES128_ECB_encrypt)(uint8* input, const uint8* key, uint8* output);
 void (*AES128_CBC_decrypt)(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv) = nullptr;
@@ -836,6 +838,7 @@ void AES128_init()
 		lookupTable_multiply[i] = (vE << 0) | (v9 << 8) | (vD << 16) | (vB << 24);
 	}
 	// check if AES-NI is available
+	#if defined(__x86_64__)
 	int v[4];
 	cpuid(v, 1);
 	useAESNI = (v[2] & 0x2000000) != 0;
@@ -851,6 +854,11 @@ void AES128_init()
 		AES128_CBC_decrypt = __soft__AES128_CBC_decrypt;
 		AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
 	}
+    #else
+	// basic software implementation
+	AES128_CBC_decrypt = __soft__AES128_CBC_decrypt;
+	AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
+    #endif
 }
 
 bool AES128_useAESNI()

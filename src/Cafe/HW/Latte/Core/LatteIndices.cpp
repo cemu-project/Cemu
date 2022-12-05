@@ -3,6 +3,7 @@
 
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 
+#if defined(__x86_64__)
 #if __GNUC__
 #include <immintrin.h>
 #endif
@@ -13,6 +14,7 @@
 #else
 #define ATTRIBUTE_AVX2
 #define ATTRIBUTE_SSE41
+#endif
 #endif
 
 struct  
@@ -292,6 +294,7 @@ void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 coun
 	indexMax = std::max(count, 1u) - 1;
 }
 
+#if defined(__x86_64__)
 ATTRIBUTE_AVX2
 void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
@@ -487,6 +490,7 @@ void LatteIndices_fastConvertU32_AVX2(const void* indexDataInput, void* indexDat
 	indexMax = std::max(indexMax, _maxIndex);
 	indexMin = std::min(indexMin, _minIndex);
 }
+#endif
 
 template<typename T>
 void _LatteIndices_alternativeCalculateIndexMinMax(const void* indexData, uint32 count, uint32 primitiveRestartIndex, uint32& indexMin, uint32& indexMax)
@@ -669,19 +673,27 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 	{
 		if (indexType == LatteIndexType::U16_BE)
 		{
+            #if defined(__x86_64__)
 			if (_cpuExtension_AVX2)
 				LatteIndices_fastConvertU16_AVX2(indexData, indexOutputPtr, count, indexMin, indexMax);
 			else if (_cpuExtension_SSE4_1 && _cpuExtension_SSSE3)
 				LatteIndices_fastConvertU16_SSE41(indexData, indexOutputPtr, count, indexMin, indexMax);
 			else
 				LatteIndices_convertBE<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+            #else
+			LatteIndices_convertBE<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);            
+            #endif
 		}
 		else if (indexType == LatteIndexType::U32_BE)
 		{
+            #if defined(__x86_64__)
 			if (_cpuExtension_AVX2)
 				LatteIndices_fastConvertU32_AVX2(indexData, indexOutputPtr, count, indexMin, indexMax);
 			else
 				LatteIndices_convertBE<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+            #else
+			LatteIndices_convertBE<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);            
+            #endif
 		}
 		else if (indexType == LatteIndexType::U16_LE)
 		{

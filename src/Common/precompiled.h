@@ -30,7 +30,10 @@
 #include <cmath>
 #include <ctime>
 #include <cassert>
+
+#if defined(__x86_64__)
 #include <immintrin.h>
+#endif
 
 // c++ includes
 #include <string>
@@ -251,6 +254,8 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 	#define NOEXPORT __attribute__ ((visibility ("hidden")))
 #endif
 
+// x86 CPU id
+#if defined(__x86_64__)
 #ifdef __GNUC__
 #include <cpuid.h>
 #endif
@@ -274,7 +279,37 @@ inline void cpuidex(int cpuInfo[4], int functionId, int subFunctionId) {
     #error No definition for cpuidex
 #endif
 }
+#endif
 
+// On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers
+#if defined(__aarch64__)
+
+inline void _mm_pause()
+{
+    asm volatile("yield");   
+}
+
+inline uint64 __rdtsc()
+{
+    uint64 t;
+    asm volatile("mrs %0, cntvct_el0" : "=r" (t));
+    return t;
+}
+
+inline void _mm_mfence()
+{
+    
+}
+
+inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
+{
+    *result = a + b + (unsigned long long)carry;
+    if (*result < a)
+        return 1;
+    return 0;
+}
+
+#endif
 
 // MEMPTR
 #include "Common/MemPtr.h"

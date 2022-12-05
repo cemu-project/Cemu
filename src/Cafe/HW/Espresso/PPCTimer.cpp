@@ -1,9 +1,12 @@
 #include "Cafe/HW/Espresso/Const.h"
-#include <immintrin.h>
 #include "asm/x64util.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
+
+#if defined(__x86_64__)
+#include <immintrin.h>
+#endif
 
 uint64 _rdtscLastMeasure = 0;
 uint64 _rdtscFrequency = 0;
@@ -29,18 +32,22 @@ uint64 muldiv64(uint64 a, uint64 b, uint64 d)
 	return diva * b + moda * divb + moda * modb / d;
 }
 
+#if defined(__x86_64__)
 bool PPCTimer_hasInvariantRDTSCSupport()
 {
 	uint32 cpuv[4];
 	cpuid((int*)cpuv, 0x80000007);
 	return ((cpuv[3] >> 8) & 1);
 }
+#endif
 
 uint64 PPCTimer_estimateRDTSCFrequency()
 {
+    #if defined(__x86_64__)
 	if (PPCTimer_hasInvariantRDTSCSupport() == false)
 		forceLog_printf("Invariant TSC not supported");
-
+    #endif
+        
 	_mm_mfence();
 	uint64 tscStart = __rdtsc();
 	unsigned int startTime = GetTickCount();
