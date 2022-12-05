@@ -139,7 +139,7 @@ static bool SaveScreenshotToFile(const wxImage &image, bool mainWindow)
 	fs::create_directories(path->parent_path(), ec);
 	if (ec) return false;
 
-	// suspend wxWidgets logging for the lifetime this object, prevents pop-up error boxes if wxImage::SaveFile fails
+	// suspend wxWidgets logging for the lifetime this object, to prevent a message box if wxImage::SaveFile fails
 	wxLogNull _logNo;
 	return image.SaveFile(path->wstring());
 }
