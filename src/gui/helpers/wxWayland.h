@@ -66,7 +66,9 @@ class wxWlSubsurface
 
 	~wxWlSubsurface()
 	{
+		wl_subsurface_destroy(m_subsurface);
 		wl_surface_destroy(m_surface);
+		wl_subcompositor_destroy(m_subcompositor);
 	}
 };
 
