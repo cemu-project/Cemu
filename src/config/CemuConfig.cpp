@@ -64,6 +64,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	save_screenshot = parser.get("save_screenshot", save_screenshot);
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
 	did_show_graphic_pack_download = parser.get("gp_download", did_show_graphic_pack_download);
+	did_show_macos_disclaimer = parser.get("macos_disclaimer", did_show_macos_disclaimer);
 	fullscreen = parser.get("fullscreen", fullscreen);
 	proxy_server = parser.get("proxy_server", "");
 
@@ -365,6 +366,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("save_screenshot", save_screenshot);
 	config.set<bool>("vk_warning", did_show_vulkan_warning);
 	config.set<bool>("gp_download", did_show_graphic_pack_download);
+	config.set<bool>("macos_disclaimer", did_show_macos_disclaimer);
 	config.set<bool>("fullscreen", fullscreen);
 	config.set("proxy_server", proxy_server.GetValue().c_str());
 	

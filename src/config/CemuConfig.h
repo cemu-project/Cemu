@@ -407,6 +407,7 @@ struct CemuConfig
 
 	ConfigValue<bool> did_show_vulkan_warning{false};
 	ConfigValue<bool> did_show_graphic_pack_download{false};
+	ConfigValue<bool> did_show_macos_disclaimer{false};
 
 	int game_list_style = 0;
 	std::string game_list_column_order;
