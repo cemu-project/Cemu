@@ -1,10 +1,11 @@
 #pragma once
-#include <wayland-client-protocol.h>
+
 #if BOOST_OS_LINUX
 
 #include <gdk/gdk.h>
 #include <gdk/gdkwayland.h>
 #include <gtk/gtk.h>
+#include <wayland-client.h>
 #include <wx/wx.h>
 
 class wxWlSubsurface
