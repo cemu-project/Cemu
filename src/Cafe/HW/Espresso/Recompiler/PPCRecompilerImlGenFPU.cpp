@@ -3,14 +3,6 @@
 #include "PPCRecompilerIml.h"
 #include "Cafe/GameProfile/GameProfile.h"
 
-bool hasSSE1Support = true;
-bool hasSSE2Support = true;
-bool hasSSE3Support = true;
-bool hasLZCNTSupport = false;
-bool hasMOVBESupport = false;
-bool hasBMI2Support = false;
-bool hasAVXSupport = false;
-
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory, sint32 immS32, uint32 mode, bool switchEndian, uint8 registerGQR = PPC_REC_INVALID_REGISTER)
 {
 	// load from memory
@@ -145,8 +137,6 @@ void PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext_t
 
 bool PPCRecompilerImlGen_LFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -167,8 +157,6 @@ bool PPCRecompilerImlGen_LFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 
 bool PPCRecompilerImlGen_LFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -191,8 +179,6 @@ bool PPCRecompilerImlGen_LFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_LFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frD, rB;
 	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
 	if( rA == 0 )
@@ -218,8 +204,6 @@ bool PPCRecompilerImlGen_LFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_LFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frD, rB;
 	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
 	if( rA == 0 )
@@ -247,8 +231,6 @@ bool PPCRecompilerImlGen_LFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_LFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -266,8 +248,6 @@ bool PPCRecompilerImlGen_LFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 
 bool PPCRecompilerImlGen_LFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -288,8 +268,6 @@ bool PPCRecompilerImlGen_LFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_LFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frD, rB;
 	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
 	if( rA == 0 )
@@ -308,8 +286,6 @@ bool PPCRecompilerImlGen_LFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_LFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frD, rB;
 	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
 	if( rA == 0 )
@@ -330,8 +306,6 @@ bool PPCRecompilerImlGen_LFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_STFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -346,8 +320,6 @@ bool PPCRecompilerImlGen_STFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_STFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -364,8 +336,6 @@ bool PPCRecompilerImlGen_STFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_STFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frS, rB;
 	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
 	if( rA == 0 )
@@ -392,8 +362,6 @@ bool PPCRecompilerImlGen_STFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_STFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frS, rB;
 	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
 	if( rA == 0 )
@@ -415,8 +383,6 @@ bool PPCRecompilerImlGen_STFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 
 bool PPCRecompilerImlGen_STFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -435,8 +401,6 @@ bool PPCRecompilerImlGen_STFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_STFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE1Support == false )
-		return false;
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
@@ -458,8 +422,6 @@ bool PPCRecompilerImlGen_STFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_STFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frS, rB;
 	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
 	if( rA == 0 )
@@ -485,8 +447,6 @@ bool PPCRecompilerImlGen_STFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_STFIWX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if( hasSSE2Support == false )
-		return false;
 	sint32 rA, frS, rB;
 	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
 	// get memory gpr registers
@@ -959,10 +919,6 @@ bool PPCRecompilerImlGen_FCMPO(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	sint32 crfD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
 	crfD >>= 2;
-	if( hasSSE2Support == false )
-	{
-		return false;
-	}
 	uint32 fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
 	uint32 fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
 	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPO_BOTTOM, fprRegisterA, fprRegisterB, crfD);
@@ -974,10 +930,6 @@ bool PPCRecompilerImlGen_FCMPU(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	sint32 crfD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
 	crfD >>= 2;
-	if( hasSSE2Support == false )
-	{
-		return false;
-	}
 	uint32 fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
 	uint32 fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
 	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPU_BOTTOM, fprRegisterA, fprRegisterB, crfD);
@@ -1120,8 +1072,6 @@ bool PPCRecompilerImlGen_FCTIWZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 
 bool PPCRecompilerImlGen_PSQ_L(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if (hasSSE2Support == false)
-		return false;
 	int rA, frD;
 	uint32 immUnused;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, immUnused);
@@ -1146,8 +1096,6 @@ bool PPCRecompilerImlGen_PSQ_L(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_PSQ_LU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	if (hasSSE2Support == false)
-		return false;
 	int rA, frD;
 	uint32 immUnused;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, immUnused);

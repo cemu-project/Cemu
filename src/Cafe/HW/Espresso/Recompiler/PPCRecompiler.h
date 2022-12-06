@@ -384,12 +384,6 @@ extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 
 #define PPC_REC_INVALID_FUNCTION	((PPCRecFunction_t*)-1)
 
-// CPUID
-extern bool hasLZCNTSupport;
-extern bool hasMOVBESupport;
-extern bool hasBMI2Support;
-extern bool hasAVXSupport;
-
 // todo - move some of the stuff above into PPCRecompilerInternal.h
 
 // recompiler interface

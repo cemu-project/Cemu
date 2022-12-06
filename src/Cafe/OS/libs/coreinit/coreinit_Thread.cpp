@@ -1075,7 +1075,7 @@ namespace coreinit
 	{
 		OSHostThread* hostThread = (OSHostThread*)_thread;
 
-        #if defined(__x86_64__)
+        #if defined(ARCH_X86_64)
 		_mm_setcsr(_mm_getcsr() | 0x8000); // flush denormals to zero
         #endif
 
@@ -1118,7 +1118,7 @@ namespace coreinit
 	{
 		SetThreadName(fmt::format("OSSchedulerThread[core={}]", (uintptr_t)_assignedCoreIndex).c_str());
 		t_assignedCoreIndex = (sint32)(uintptr_t)_assignedCoreIndex;
-        #if defined(__x86_64__)
+        #if defined(ARCH_X86_64)
 		_mm_setcsr(_mm_getcsr() | 0x8000); // flush denormals to zero
         #endif
 		t_schedulerFiber = Fiber::PrepareCurrentThread();

@@ -24,6 +24,12 @@
 // }
 // #endif
 
+// arch defines
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)
+#define ARCH_X86_64
+#endif
+
 // c includes
 #include <cstdint>
 #include <cstdlib>
@@ -31,7 +37,7 @@
 #include <ctime>
 #include <cassert>
 
-#if defined(__x86_64__)
+#if defined(ARCH_X86_64)
 #include <immintrin.h>
 #endif
 
@@ -108,11 +114,6 @@ using uint8le = uint8_t;
 // logging
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
-
-// CPU extensions
-extern bool _cpuExtension_SSSE3;
-extern bool _cpuExtension_SSE4_1;
-extern bool _cpuExtension_AVX2;
 
 // manual endian-swapping
 
@@ -252,33 +253,6 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 	#define NOEXPORT
 #elif defined(__GNUC__)
 	#define NOEXPORT __attribute__ ((visibility ("hidden")))
-#endif
-
-// x86 CPU id
-#if defined(__x86_64__)
-#ifdef __GNUC__
-#include <cpuid.h>
-#endif
-
-inline void cpuid(int cpuInfo[4], int functionId) {
-#if defined(_MSC_VER)
-    __cpuid(cpuInfo, functionId);
-#elif defined(__GNUC__)
-    __cpuid(functionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuid
-#endif
-}
-
-inline void cpuidex(int cpuInfo[4], int functionId, int subFunctionId) {
-#if defined(_MSC_VER)
-    __cpuidex(cpuInfo, functionId, subFunctionId);
-#elif defined(__GNUC__)
-    __cpuid_count(functionId, subFunctionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuidex
-#endif
-}
 #endif
 
 // On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers

@@ -19,6 +19,7 @@
 #include "Cafe/TitleList/SaveList.h"
 
 #include "Common/ExceptionHandler/ExceptionHandler.h"
+#include "Common/cpu_features.h"
 
 #include <wx/setup.h>
 #include "util/helpers/helpers.h"
@@ -39,6 +40,7 @@
 
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
 #define _putenv(__s) putenv((char*)(__s))
+#include <sys/sysinfo.h>
 #endif
 
 #if BOOST_OS_WINDOWS
@@ -49,41 +51,26 @@ extern "C"
 }
 #endif
 
-bool _cpuExtension_SSSE3 = false;
-bool _cpuExtension_SSE4_1 = false;
-bool _cpuExtension_AVX2 = false;
-
 std::atomic_bool g_isGPUInitFinished = false;
 
 std::wstring executablePath;
 
 void logCPUAndMemoryInfo()
 {
-	#if BOOST_OS_WINDOWS
-	int CPUInfo[4] = { -1 };
-	unsigned   nExIds, i = 0;
-	char CPUBrandString[0x40];
-	// Get the information associated with each extended ID.
-	cpuid(CPUInfo, 0x80000000);
-	nExIds = CPUInfo[0];
-	for (i = 0x80000000; i <= nExIds; ++i)
-	{
-		cpuid(CPUInfo, i);
-		// Interpret CPU brand string
-		if (i == 0x80000002)
-			memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
-		else if (i == 0x80000003)
-			memcpy(CPUBrandString + 16, CPUInfo, sizeof(CPUInfo));
-		else if (i == 0x80000004)
-			memcpy(CPUBrandString + 32, CPUInfo, sizeof(CPUInfo));
-	}
-	forceLog_printf("CPU: %s", CPUBrandString);
+	std::string cpuName = g_CPUFeatures.GetCPUName();
+	if (!cpuName.empty())
+		cemuLog_log(LogType::Force, "CPU: {}", cpuName);
 
+	#if BOOST_OS_WINDOWS
 	MEMORYSTATUSEX statex;
 	statex.dwLength = sizeof(statex);
 	GlobalMemoryStatusEx(&statex);
 	uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
 	forceLog_printf("RAM: %uMB", memoryInMB);
+	#elif BOOST_OS_LINUX || BOOST_OS_MACOS
+	struct sysinfo info {};
+	sysinfo(&info);
+	cemuLog_log(LogType::Force, "RAM: {}MB", ((static_cast<uint64_t>(info.totalram) * info.mem_unit) / 1024LL / 1024LL));
 	#endif
 }
 
@@ -120,32 +107,7 @@ void infoLog_cemuStartup()
 	checkForWine();
 	// CPU and RAM info
 	logCPUAndMemoryInfo();
-	// extensions that Cemu uses
-	char cpuExtensionStr[256];
-	strcpy(cpuExtensionStr, "");
-	if (_cpuExtension_SSSE3)
-	{
-		strcat(cpuExtensionStr, "SSSE3");
-	}
-	if (_cpuExtension_SSE4_1)
-	{
-		if (cpuExtensionStr[0] != '\0')
-			strcat(cpuExtensionStr, ", ");
-		strcat(cpuExtensionStr, "SSE4.1");
-	}
-	if (_cpuExtension_AVX2)
-	{
-		if (cpuExtensionStr[0] != '\0')
-			strcat(cpuExtensionStr, ", ");
-		strcat(cpuExtensionStr, "AVX2");
-	}
-	if (AES128_useAESNI())
-	{
-		if (cpuExtensionStr[0] != '\0')
-			strcat(cpuExtensionStr, ", ");
-		strcat(cpuExtensionStr, "AES-NI");
-	}
-	cemuLog_force("Used CPU extensions: {}", cpuExtensionStr);
+	cemuLog_log(LogType::Force, "Used CPU extensions: {}", g_CPUFeatures.GetCommaSeparatedExtensionList());
 }
 
 // some implementations of _putenv dont copy the string and instead only store a pointer
@@ -186,23 +148,6 @@ void reconfigureVkDrivers()
     _putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
 }
 
-#if defined(__x86_64__)
-void CheckCPUExtensions()
-{
-    int cpuInfo[4];
-	cpuid(cpuInfo, 0x1);
-	_cpuExtension_SSSE3 = ((cpuInfo[2] >> 9) & 1) != 0;
-	_cpuExtension_SSE4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
-	cpuidex(cpuInfo, 0x7, 0);
-	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
-}
-#else
-void CheckCPUExtensions()
-{
-    
-}
-#endif
-
 void mainEmulatorCommonInit()
 {
 	reconfigureGLDrivers();
@@ -211,8 +156,6 @@ void mainEmulatorCommonInit()
 	AES128_init();
 	// init PPC timer (call this as early as possible because it measures frequency of RDTSC using an asynchronous thread over 3 seconds)
 	PPCTimer_init();
-	// check available CPU extensions
-    CheckCPUExtensions();
 
 #if BOOST_OS_WINDOWS
 	executablePath.resize(4096);

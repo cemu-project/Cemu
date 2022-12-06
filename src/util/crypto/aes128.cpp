@@ -10,6 +10,7 @@
 /* Includes:                                                                 */
 /*****************************************************************************/
 #include "aes128.h"
+#include "Common/cpu_features.h"
 
 /*****************************************************************************/
 /* Defines:                                                                  */
@@ -22,8 +23,6 @@
 #define KEYLEN 16
 // The number of rounds in AES Cipher.
 #define Nr 10
-
-bool useAESNI = false;
 
 typedef uint8 state_t[4][4];
 
@@ -601,7 +600,7 @@ void AES128_CBC_decrypt_updateIV(uint8* output, uint8* input, uint32 length, con
 	memcpy(iv, newIv, KEYLEN);
 }
 
-#if defined(__x86_64__)
+#if defined(ARCH_X86_64)
 inline __m128i AESNI128_ASSIST(
 	__m128i temp1,
 	__m128i temp2)
@@ -838,11 +837,8 @@ void AES128_init()
 		lookupTable_multiply[i] = (vE << 0) | (v9 << 8) | (vD << 16) | (vB << 24);
 	}
 	// check if AES-NI is available
-	#if defined(__x86_64__)
-	int v[4];
-	cpuid(v, 1);
-	useAESNI = (v[2] & 0x2000000) != 0;
-	if (useAESNI)
+	#if defined(ARCH_X86_64)
+	if (g_CPUFeatures.x86.aesni)
 	{
 		// AES-NI implementation
 		AES128_CBC_decrypt = __aesni__AES128_CBC_decrypt;
@@ -855,13 +851,7 @@ void AES128_init()
 		AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
 	}
     #else
-	// basic software implementation
 	AES128_CBC_decrypt = __soft__AES128_CBC_decrypt;
 	AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
     #endif
-}
-
-bool AES128_useAESNI()
-{
-	return useAESNI;
 }
