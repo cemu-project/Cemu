@@ -38,9 +38,12 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#if BOOST_OS_LINUX
 #define _putenv(__s) putenv((char*)(__s))
 #include <sys/sysinfo.h>
+#elif BOOST_OS_MACOS
+#include <sys/types.h>
+#include <sys/sysctl.h>
 #endif
 
 #if BOOST_OS_WINDOWS
@@ -67,10 +70,16 @@ void logCPUAndMemoryInfo()
 	GlobalMemoryStatusEx(&statex);
 	uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
 	forceLog_printf("RAM: %uMB", memoryInMB);
-	#elif BOOST_OS_LINUX || BOOST_OS_MACOS
+	#elif BOOST_OS_LINUX
 	struct sysinfo info {};
 	sysinfo(&info);
 	cemuLog_log(LogType::Force, "RAM: {}MB", ((static_cast<uint64_t>(info.totalram) * info.mem_unit) / 1024LL / 1024LL));
+	#elif BOOST_OS_MACOS
+	int64_t totalRam;
+	size_t size = sizeof(totalRam);
+	int result = sysctlbyname("hw.memsize", &totalRam, &size, NULL, 0);
+	if (result == 0)
+		cemuLog_log(LogType::Force, "RAM: {}MB", (totalRam / 1024LL / 1024LL));
 	#endif
 }
 
