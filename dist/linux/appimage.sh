@@ -16,17 +16,18 @@ if [[ ! -e /usr/lib/x86_64-linux-gnu ]]; then
 fi
 
 mkdir -p AppDir/usr/bin
-cp dist/linux/{info.cemu.Cemu.desktop,info.cemu.Cemu.png} AppDir/
-
-mkdir -p AppDir/usr/share/applications 
+mkdir -p AppDir/usr/share/applications
 mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
 mkdir -p AppDir/usr/lib
 
+cp dist/linux/{info.cemu.Cemu.desktop,info.cemu.Cemu.png} AppDir/
+
 cp -r bin AppDir/usr/share/Cemu
-cp /usr/lib/x86_64-linux-gnu/{libsepol.so.1,libffi.so.7,libpcre.so.3,libGLU.so.1,libthai.so.0} AppDir/usr/lib
 
 mv AppDir/usr/share/Cemu/Cemu AppDir/usr/bin/
 chmod +x AppDir/usr/bin/Cemu
+
+cp /usr/lib/x86_64-linux-gnu/{libsepol.so.1,libffi.so.7,libpcre.so.3,libGLU.so.1,libthai.so.0} AppDir/usr/lib
 
 export UPD_INFO="gh-releases-zsync|cemu-project|Cemu|ci|Cemu.AppImage.zsync"
 ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
