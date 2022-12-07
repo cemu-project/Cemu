@@ -17,7 +17,7 @@ fi
 
 mkdir -p AppDir/usr/bin
 mkdir -p AppDir/usr/share/applications
-mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
+mkdir -p AppDir/usr/share/icons/hicolor/128x128/apps
 mkdir -p AppDir/usr/lib
 
 cp dist/linux/{info.cemu.Cemu.desktop,info.cemu.Cemu.png} AppDir/
