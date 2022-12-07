@@ -87,6 +87,7 @@ void PadViewFrame::InitializeRenderCanvas()
 	m_render_canvas->Bind(wxEVT_GESTURE_PAN, &PadViewFrame::OnGesturePan, this);
 
 	m_render_canvas->SetFocus();
+	SendSizeEvent();
 }
 
 void PadViewFrame::OnSizeEvent(wxSizeEvent& event)

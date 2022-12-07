@@ -11,7 +11,17 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	Bind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
 
 	if(is_main_window)
-		gui_initHandleContextFromWxWidgetsWindow(gui_getWindowInfo().canvas_main, this);
+	{
+		WindowHandleInfo& canvasMain = gui_getWindowInfo().canvas_main;
+		gui_initHandleContextFromWxWidgetsWindow(canvasMain, this);
+		#if BOOST_OS_LINUX
+		if(canvasMain.backend == WindowHandleInfo::Backend::WAYLAND)
+		{	
+			m_subsurface = std::make_unique<wxWlSubsurface>(this);
+			canvasMain.surface = m_subsurface->getSurface();
+		}
+		#endif
+	}
 	else
 		gui_initHandleContextFromWxWidgetsWindow(gui_getWindowInfo().canvas_pad, this);
 
@@ -55,6 +65,14 @@ void VulkanCanvas::OnPaint(wxPaintEvent& event)
 
 void VulkanCanvas::OnResize(wxSizeEvent& event)
 {
+#if BOOST_OS_LINUX
+	if(m_subsurface)
+	{
+		int32_t x,y;
+		GetScreenPosition(&x,&y);
+		m_subsurface->setPosition(x, y);
+	}
+#endif
 	const wxSize size = GetSize();
 	if (size.GetWidth() == 0 || size.GetHeight() == 0)
 		return;

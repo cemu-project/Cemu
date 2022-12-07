@@ -3,6 +3,7 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkwindow.h>
 #include <gdk/gdkx.h>
+#include <gdk/gdkwayland.h>
 #endif
 
 #include "gui/wxgui.h"
@@ -204,19 +205,31 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 #if BOOST_OS_WINDOWS
 	handleInfoOut.hwnd = wxw->GetHWND();
 #elif BOOST_OS_LINUX
-    // get window
     GtkWidget* gtkWidget = (GtkWidget*)wxw->GetHandle(); // returns GtkWidget
     gtk_widget_realize(gtkWidget);
     GdkWindow* gdkWindow = gtk_widget_get_window(gtkWidget);
-    handleInfoOut.xlib_window = gdk_x11_window_get_xid(gdkWindow);
+	GdkDisplay* gdkDisplay = gdk_window_get_display(gdkWindow);
+	if(GDK_IS_X11_WINDOW(gdkWindow))
+	{
+		handleInfoOut.backend = WindowHandleInfo::Backend::X11;
+		handleInfoOut.xlib_window = gdk_x11_window_get_xid(gdkWindow);
+		handleInfoOut.xlib_display = gdk_x11_display_get_xdisplay(gdkDisplay);
+		if(!handleInfoOut.xlib_display)
+		{
+			cemuLog_log(LogType::Force, "Unable to get xlib display");
+		}
+	}
+	else if(GDK_IS_WAYLAND_WINDOW(gdkWindow))
+	{
+		handleInfoOut.backend = WindowHandleInfo::Backend::WAYLAND;
+		handleInfoOut.surface = gdk_wayland_window_get_wl_surface(gdkWindow);
+		handleInfoOut.display = gdk_wayland_display_get_wl_display(gdkDisplay);
+	}
+	else
+	{
+		cemuLog_log(LogType::Force, "Unsuported GTK backend");
 
-    // get display
-    GdkDisplay* gdkDisplay = gdk_window_get_display(gdkWindow);
-    handleInfoOut.xlib_display = gdk_x11_display_get_xdisplay(gdkDisplay);
-    if(!handleInfoOut.xlib_display)
-    {
-        cemuLog_log(LogType::Force, "Unable to get xlib display");
-    }
+	}
 #else
 	handleInfoOut.handle = wxw->GetHandle();
 #endif
