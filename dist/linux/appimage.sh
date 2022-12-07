@@ -16,13 +16,14 @@ if [[ ! -e /usr/lib/x86_64-linux-gnu ]]; then
 fi
 
 mkdir -p AppDir/usr/bin
+mkdir -p AppDir/usr/share/Cemu
 mkdir -p AppDir/usr/share/applications
 mkdir -p AppDir/usr/share/icons/hicolor/128x128/apps
 mkdir -p AppDir/usr/lib
 
 cp dist/linux/info.cemu.Cemu.{desktop,png} AppDir/
 
-cp -r bin AppDir/usr/share/Cemu
+cp -r bin/* AppDir/usr/share/Cemu
 
 mv AppDir/usr/share/Cemu/Cemu AppDir/usr/bin/
 chmod +x AppDir/usr/bin/Cemu
