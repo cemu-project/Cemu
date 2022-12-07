@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Common/cpu_features.h"
 
 std::unordered_set<LatteTexture*> g_allTextures;
 
@@ -146,7 +147,7 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 		if( isCompressedFormat == false )
 		{
 #if BOOST_OS_WINDOWS
-			if (_cpuExtension_AVX2)
+			if (g_CPUFeatures.x86.avx2)
 			{
 				__m256i h256 = { 0 };
 				__m256i* readPtr = (__m256i*)texDataU32;

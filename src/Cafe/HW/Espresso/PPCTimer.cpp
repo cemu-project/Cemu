@@ -1,9 +1,14 @@
 #include "Cafe/HW/Espresso/Const.h"
-#include <immintrin.h>
 #include "asm/x64util.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
+#include "Common/cpu_features.h"
+
+#if defined(ARCH_X86_64)
+#include <immintrin.h>
+#pragma intrinsic(__rdtsc)
+#endif
 
 uint64 _rdtscLastMeasure = 0;
 uint64 _rdtscFrequency = 0;
@@ -18,8 +23,6 @@ static_assert(sizeof(uint128_t) == 16);
 
 uint128_t _rdtscAcc{};
 
-#pragma intrinsic(__rdtsc)
-
 uint64 muldiv64(uint64 a, uint64 b, uint64 d)
 {
 	uint64 diva = a / d;
@@ -29,17 +32,12 @@ uint64 muldiv64(uint64 a, uint64 b, uint64 d)
 	return diva * b + moda * divb + moda * modb / d;
 }
 
-bool PPCTimer_hasInvariantRDTSCSupport()
-{
-	uint32 cpuv[4];
-	cpuid((int*)cpuv, 0x80000007);
-	return ((cpuv[3] >> 8) & 1);
-}
-
 uint64 PPCTimer_estimateRDTSCFrequency()
 {
-	if (PPCTimer_hasInvariantRDTSCSupport() == false)
-		forceLog_printf("Invariant TSC not supported");
+    #if defined(ARCH_X86_64)
+	if (!g_CPUFeatures.x86.invariant_tsc)
+		cemuLog_log(LogType::Force, "Invariant TSC not supported");
+    #endif
 
 	_mm_mfence();
 	uint64 tscStart = __rdtsc();

@@ -24,13 +24,22 @@
 // }
 // #endif
 
+// arch defines
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)
+#define ARCH_X86_64
+#endif
+
 // c includes
 #include <cstdint>
 #include <cstdlib>
 #include <cmath>
 #include <ctime>
 #include <cassert>
+
+#if defined(ARCH_X86_64)
 #include <immintrin.h>
+#endif
 
 // c++ includes
 #include <string>
@@ -105,11 +114,6 @@ using uint8le = uint8_t;
 // logging
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
-
-// CPU extensions
-extern bool _cpuExtension_SSSE3;
-extern bool _cpuExtension_SSE4_1;
-extern bool _cpuExtension_AVX2;
 
 // manual endian-swapping
 
@@ -251,30 +255,35 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 	#define NOEXPORT __attribute__ ((visibility ("hidden")))
 #endif
 
-#ifdef __GNUC__
-#include <cpuid.h>
-#endif
+// On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers
+#if defined(__aarch64__)
 
-inline void cpuid(int cpuInfo[4], int functionId) {
-#if defined(_MSC_VER)
-    __cpuid(cpuInfo, functionId);
-#elif defined(__GNUC__)
-    __cpuid(functionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuid
-#endif
+inline void _mm_pause()
+{
+    asm volatile("yield");   
 }
 
-inline void cpuidex(int cpuInfo[4], int functionId, int subFunctionId) {
-#if defined(_MSC_VER)
-    __cpuidex(cpuInfo, functionId, subFunctionId);
-#elif defined(__GNUC__)
-    __cpuid_count(functionId, subFunctionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuidex
-#endif
+inline uint64 __rdtsc()
+{
+    uint64 t;
+    asm volatile("mrs %0, cntvct_el0" : "=r" (t));
+    return t;
 }
 
+inline void _mm_mfence()
+{
+    
+}
+
+inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
+{
+    *result = a + b + (unsigned long long)carry;
+    if (*result < a)
+        return 1;
+    return 0;
+}
+
+#endif
 
 // MEMPTR
 #include "Common/MemPtr.h"
