@@ -3,7 +3,7 @@ Name=Cemu
 Type=Application
 Terminal=false
 Icon=info.cemu.Cemu
-Exec=Cemu
+Exec=env GDK_BACKEND=x11 Cemu
 GenericName=Wii U Emulator
 GenericName[fi]=Wii U -emulaattori
 GenericName[el]=Πρόγραμμα προσομοίωσης Wii U
