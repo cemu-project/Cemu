@@ -42,6 +42,7 @@
 #define _putenv(__s) putenv((char*)(__s))
 #include <sys/sysinfo.h>
 #elif BOOST_OS_MACOS
+#define _putenv(__s) putenv((char*)(__s))
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
