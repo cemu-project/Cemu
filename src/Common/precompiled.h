@@ -69,6 +69,7 @@
 #include <filesystem>
 #include <memory>
 #include <chrono>
+#include <time.h>
 #include <regex>
 #include <type_traits>
 #include <optional>
@@ -362,8 +363,10 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 	const long long _Part = (_Ctr % _Freq) * std::nano::den / _Freq;
 	return (std::chrono::steady_clock::time_point(std::chrono::nanoseconds(_Whole + _Part)));
 #else
-    // todo: Add faster implementation for linux
-    return std::chrono::steady_clock::now();
+	struct timespec tp;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
+	return std::chrono::steady_clock::time_point(
+		std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec));
 #endif
 }
 
