@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ -z "${GITHUB_WORKSPACE}" ]]; then
-    export GITHUB_WORKSPACE="."
+	export GITHUB_WORKSPACE="."
 fi
 
 curl -sSfLO "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
@@ -12,7 +12,7 @@ curl -sSfLO "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gt
 chmod a+x linuxdeploy-plugin-gtk.sh
 
 if [[ ! -e /usr/lib/x86_64-linux-gnu ]]; then
-    sed -i 's#lib\/x86_64-linux-gnu#lib64#g' linuxdeploy-plugin-gtk.sh
+	sed -i 's#lib\/x86_64-linux-gnu#lib64#g' linuxdeploy-plugin-gtk.sh
 fi
 
 mkdir -p AppDir/usr/bin
@@ -43,7 +43,7 @@ export UPD_INFO="gh-releases-zsync|cemu-project|Cemu|ci|Cemu.AppImage.zsync"
 GITVERSION="$(git rev-parse --short HEAD)"
 echo "${GITVERSION}"
 if [[ -z "${GITVERSION}" ]]; then
-    GITVERSION=experimental
+	GITVERSION=experimental
 fi
 
 echo "Cemu Version Cemu-${GITVERSION}"
