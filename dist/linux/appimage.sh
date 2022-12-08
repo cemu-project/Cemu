@@ -19,7 +19,7 @@ mkdir -p AppDir/usr/bin
 mkdir -p AppDir/usr/share/Cemu
 mkdir -p AppDir/usr/share/applications
 mkdir -p AppDir/usr/share/icons/hicolor/128x128/apps
-mkdir -p AppDir/usr/share/metainfo/
+mkdir -p AppDir/usr/share/metainfo
 mkdir -p AppDir/usr/lib
 
 cp dist/linux/info.cemu.Cemu.{desktop,png} AppDir/
@@ -40,13 +40,11 @@ export UPD_INFO="gh-releases-zsync|cemu-project|Cemu|ci|Cemu.AppImage.zsync"
   -e "${GITHUB_WORKSPACE}"/AppDir/usr/bin/Cemu \
   --plugin gtk
 
-GITVERSION="$(git rev-parse --short HEAD)"
-echo "${GITVERSION}"
-if [[ -z "${GITVERSION}" ]]; then
+if ! GITVERSION="$(git rev-parse --short HEAD 2>/dev/null)"; then
 	GITVERSION=experimental
 fi
-
 echo "Cemu Version Cemu-${GITVERSION}"
+
 rm AppDir/usr/lib/libwayland-client.so.0
 echo "export LC_ALL=C" >> AppDir/apprun-hooks/linuxdeploy-plugin-gtk.sh
 VERSION="${GITVERSION}" ./mkappimage.AppImage --appimage-extract-and-run "${GITHUB_WORKSPACE}"/AppDir
