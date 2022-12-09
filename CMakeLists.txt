@@ -114,6 +114,8 @@ endif()
 
 if (UNIX AND NOT APPLE)
 	find_package(X11 REQUIRED)
+	find_package(Wayland REQUIRED)
+	include_directories(${WAYLAND_INCLUDE_DIR})
 	find_package(GTK3 REQUIRED)
 endif()
 
