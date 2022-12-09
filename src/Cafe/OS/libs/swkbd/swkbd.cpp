@@ -568,7 +568,7 @@ void swkbd_inputStringChanged()
 
 void swkbd_keyInput(uint32 keyCode)
 {
-	if (keyCode == 8) // backspace
+	if (keyCode == 8 || keyCode == 127) // backspace || backwards delete
 	{
 		if (swkbdInternalState->formStringLength > 0)
 			swkbdInternalState->formStringLength--;
