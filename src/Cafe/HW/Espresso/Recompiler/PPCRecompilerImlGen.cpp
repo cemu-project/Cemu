@@ -797,194 +797,85 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 	return true;
 }
 
-bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+// BCCTR or BCLR
+bool PPCRecompilerImlGen_BCSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, uint32 sprReg)
 {
 	PPCIMLGen_AssertIfNotLastSegmentInstruction(*ppcImlGenContext);
 
-	uint32 BO, BI, BD;
-	PPC_OPC_TEMPL_XL(opcode, BO, BI, BD);
-
+	Espresso::BOField BO;
+	uint32 BI;
+	bool LK;
+	Espresso::decodeOp_BCSPR(opcode, BO, BI, LK);
 	uint32 crRegister = BI/4;
 	uint32 crBit = BI%4;
 
-	uint32 jumpCondition = 0;
-
-	bool conditionMustBeTrue = (BO&8)!=0;
-	bool useDecrementer = (BO&4)==0; // bit not set -> decrement
-	bool decrementerMustBeZero = (BO&2)!=0; // bit set -> branch if CTR = 0, bit not set -> branch if CTR != 0
-	bool ignoreCondition = (BO&16)!=0;
-	bool saveLR = (opcode&PPC_OPC_LK)!=0;
-	// since we skip this instruction if the condition is true, we need to invert the logic
-	//bool invertedConditionMustBeTrue = !conditionMustBeTrue;
-	if( useDecrementer )
+	uint32 branchDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + sprReg);
+	if (LK)
 	{
-		cemu_assert_debug(false);
-		return false; // unsupported
-	}
-	else
-	{
-		if( ignoreCondition )
+		if (sprReg == SPR_LR)
 		{
-			// branch always, no condition and no decrementer check
-			cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasContinuedFlow);
-			cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasBranchTarget);
-			if( saveLR )
-			{
-				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-			}
-			else
-			{
-				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-			}
+			// if the branch target is LR, then preserve it in a temporary
+			cemu_assert_suspicious(); // this case needs testing
+			uint32 tmpRegister = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY);
+			PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, nullptr, PPCREC_IML_OP_ASSIGN, tmpRegister, branchDestReg);
+			branchDestReg = tmpRegister;
+		}
+		uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_LR);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, ppcImlGenContext->ppcAddressOfCurrentInstruction + 4, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	}
+
+	if (!BO.decrementerIgnore())
+	{
+		cemu_assert_unimplemented();
+		return false;
+	}
+	else if (!BO.conditionIgnore())
+	{
+		// no decrementer but CR check
+		cemu_assert_debug(ppcImlGenContext->currentBasicBlock->hasContinuedFlow);
+		cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasBranchTarget);
+		// generate jump condition
+		uint32 jumpCondition = 0;
+		if (!BO.conditionInverted())
+		{
+			// CR bit must be set
+			if (crBit == 0)
+				jumpCondition = PPCREC_JUMP_CONDITION_L;
+			else if (crBit == 1)
+				jumpCondition = PPCREC_JUMP_CONDITION_G;
+			else if (crBit == 2)
+				jumpCondition = PPCREC_JUMP_CONDITION_E;
+			else if (crBit == 3)
+				jumpCondition = PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW;
 		}
 		else
 		{
-			cemu_assert_debug(ppcImlGenContext->currentBasicBlock->hasContinuedFlow);
-			cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasBranchTarget);
-
-			//debug_printf("[Rec-Disable] BCLR with condition or LR\n");
-			//return false;
-
-			// store LR
-			if( saveLR )
-			{
-				cemu_assert_unimplemented(); // todo - this is difficult to handle because it needs to jump to the unmodified LR (we should cache it in a register which we pass to the macro?)
-				return false;
-
-				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_LR);
-				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction+4)&0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
-			}
-			// generate jump condition
-			if(conditionMustBeTrue)
-			{
-				if( crBit == 0 )
-					jumpCondition = PPCREC_JUMP_CONDITION_L;
-				else if( crBit == 1 )
-					jumpCondition = PPCREC_JUMP_CONDITION_G;
-				else if( crBit == 2 )
-					jumpCondition = PPCREC_JUMP_CONDITION_E;
-				else if( crBit == 3 )
-					jumpCondition = PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW;
-			}
-			else
-			{
-				if( crBit == 0 )
-					jumpCondition = PPCREC_JUMP_CONDITION_GE;
-				else if( crBit == 1 )
-					jumpCondition = PPCREC_JUMP_CONDITION_LE;
-				else if( crBit == 2 )
-					jumpCondition = PPCREC_JUMP_CONDITION_NE;
-				else if( crBit == 3 )
-					jumpCondition = PPCREC_JUMP_CONDITION_NSUMMARYOVERFLOW;
-			}
-
-			//if(conditionMustBeTrue)
-			//	ppcImlGenContext->emitInst().make_debugbreak(ppcImlGenContext->ppcAddressOfCurrentInstruction);
-
-			// write the BCTR instruction to a new segment that is set as a branch target for the current segment
-			PPCBasicBlockInfo* currentBasicBlock = ppcImlGenContext->currentBasicBlock;
-			IMLSegment* bctrSeg = PPCIMLGen_CreateNewSegmentAsBranchTarget(*ppcImlGenContext, *currentBasicBlock);
-
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, jumpCondition, crRegister, crBit, conditionMustBeTrue);
-
-			bctrSeg->AppendInstruction()->make_macro(PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+			if (crBit == 0)
+				jumpCondition = PPCREC_JUMP_CONDITION_GE;
+			else if (crBit == 1)
+				jumpCondition = PPCREC_JUMP_CONDITION_LE;
+			else if (crBit == 2)
+				jumpCondition = PPCREC_JUMP_CONDITION_NE;
+			else if (crBit == 3)
+				jumpCondition = PPCREC_JUMP_CONDITION_NSUMMARYOVERFLOW;
 		}
-	}
-	return true;
-}
 
-bool PPCRecompilerImlGen_BCCTR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	PPCIMLGen_AssertIfNotLastSegmentInstruction(*ppcImlGenContext);
+		// write the dynamic branch instruction to a new segment that is set as a branch target for the current segment
+		PPCBasicBlockInfo* currentBasicBlock = ppcImlGenContext->currentBasicBlock;
+		IMLSegment* bctrSeg = PPCIMLGen_CreateNewSegmentAsBranchTarget(*ppcImlGenContext, *currentBasicBlock);
 
-	uint32 BO, BI, BD;
-	PPC_OPC_TEMPL_XL(opcode, BO, BI, BD);
+		PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, jumpCondition, crRegister, crBit, !BO.conditionInverted());
 
-	uint32 crRegister = BI/4;
-	uint32 crBit = BI%4;
 
-	uint32 jumpCondition = 0;
-
-	bool conditionMustBeTrue = (BO&8)!=0;
-	bool useDecrementer = (BO&4)==0; // bit not set -> decrement
-	bool decrementerMustBeZero = (BO&2)!=0; // bit set -> branch if CTR = 0, bit not set -> branch if CTR != 0
-	bool ignoreCondition = (BO&16)!=0;
-	bool saveLR = (opcode&PPC_OPC_LK)!=0;
-
-	// since we skip this instruction if the condition is true, we need to invert the logic
-	bool invertedConditionMustBeTrue = !conditionMustBeTrue;
-	if( useDecrementer )
-	{
-		assert_dbg();
-		// if added, dont forget inverted logic
-		debug_printf("Rec: BCLR unsupported decrementer\n");
-		return false; // unsupported
+		bctrSeg->AppendInstruction()->make_macro(PPCREC_IML_MACRO_B_TO_REG, branchDestReg, 0, 0);
 	}
 	else
 	{
-		if( ignoreCondition )
-		{
-			// branch always, no condition and no decrementer
-			if( saveLR )
-			{
-				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_LR);
-				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction+4)&0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
-			}
-			if (saveLR)
-				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-			else
-				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-		}
-		else
-		{
-			// get jump condition
-			if (invertedConditionMustBeTrue)
-			{
-				if (crBit == 0)
-					jumpCondition = PPCREC_JUMP_CONDITION_L;
-				else if (crBit == 1)
-					jumpCondition = PPCREC_JUMP_CONDITION_G;
-				else if (crBit == 2)
-					jumpCondition = PPCREC_JUMP_CONDITION_E;
-				else if (crBit == 3)
-					jumpCondition = PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW;
-			}
-			else
-			{
-				if (crBit == 0)
-					jumpCondition = PPCREC_JUMP_CONDITION_GE;
-				else if (crBit == 1)
-					jumpCondition = PPCREC_JUMP_CONDITION_LE;
-				else if (crBit == 2)
-					jumpCondition = PPCREC_JUMP_CONDITION_NE;
-				else if (crBit == 3)
-					jumpCondition = PPCREC_JUMP_CONDITION_NSUMMARYOVERFLOW;
-			}
+		// branch always, no condition and no decrementer check
+		cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasContinuedFlow);
+		cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasBranchTarget);
+		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_B_TO_REG, branchDestReg, 0, 0);
 
-			// debug checks
-			//if (saveLR)
-			//	cemu_assert_debug(ppcImlGenContext->currentBasicBlock->);
-
-			// we always store LR
-			if (saveLR)
-			{
-				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_LR);
-				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction + 4) & 0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
-			}
-
-			// write the BCTR instruction to a new segment that is set as a branch target for the current segment
-			__debugbreak();
-			PPCBasicBlockInfo* currentBasicBlock = ppcImlGenContext->currentBasicBlock;
-			IMLSegment* bctrSeg = PPCIMLGen_CreateNewSegmentAsBranchTarget(*ppcImlGenContext, *currentBasicBlock);
-
-			//PPCBasicBlockInfo* bctrSeg = currentBasicBlock->Get
-			__debugbreak();
-
-			
-			// jump if BCLR condition NOT met (jump to jumpmark of next instruction, essentially skipping current instruction)
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4, jumpCondition, crRegister, crBit, invertedConditionMustBeTrue);
-			ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-		}
 	}
 	return true;
 }
@@ -3333,8 +3224,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 	case 19: // opcode category 19
 		switch (PPC_getBits(opcode, 30, 10))
 		{
-		case 16:
-			if (PPCRecompilerImlGen_BCLR(ppcImlGenContext, opcode) == false)
+		case 16: // BCLR
+			if (PPCRecompilerImlGen_BCSPR(ppcImlGenContext, opcode, SPR_LR) == false)
 				unsupportedInstructionFound = true;
 			break;
 		case 129:
@@ -3365,8 +3256,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (PPCRecompilerImlGen_CROR(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 528:
-			if (PPCRecompilerImlGen_BCCTR(ppcImlGenContext, opcode) == false)
+		case 528: // BCCTR
+			if (PPCRecompilerImlGen_BCSPR(ppcImlGenContext, opcode, SPR_CTR) == false)
 				unsupportedInstructionFound = true;
 			break;
 		default:
@@ -4008,14 +3899,6 @@ bool PPCRecompiler_CheckIfInstructionEndsSegment(PPCFunctionBoundaryTracker& bou
 	case Espresso::PrimaryOpcode::GROUP_19:
 		switch (Espresso::GetGroup19Opcode(opcode))
 		{
-		//case Espresso::Opcode19::BCLR:
-		////case Espresso::Opcode19::BCCTR:
-		//{
-		//	continueDefaultPath = false; // todo - set this to true if this instruction has a condition (including decrementer check)
-		//	makeNextInstEnterable = Espresso::DecodeLK(opcode);
-		//	return true;
-		//}
-
 		case Espresso::Opcode19::BCLR:
 		case Espresso::Opcode19::BCCTR:
 		{
@@ -4034,19 +3917,6 @@ bool PPCRecompiler_CheckIfInstructionEndsSegment(PPCFunctionBoundaryTracker& bou
 	case Espresso::PrimaryOpcode::GROUP_31:
 		switch (Espresso::GetGroup31Opcode(opcode))
 		{
-		//case Espresso::Opcode31::TW:
-		//	continueDefaultPath = true;
-		//	return true;
-		//case Espresso::Opcode31::MFTB:
-		//	continueDefaultPath = true;
-		//	return true;
-		//case Espresso::Opcode19::BCLR:
-		//case Espresso::Opcode19::BCCTR:
-		//{
-		//	continueDefaultPath = false;
-		//	makeNextInstEnterable = Espresso::DecodeLK(opcode);
-		//	return true;
-		//}
 		default:
 			break;
 		}
@@ -4336,7 +4206,6 @@ void PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext_t& ppcImlGenContext
 	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
 	{
 		bool isLastSegment = segIt == ppcImlGenContext.segmentList2.back();
-		//IMLSegment* nextSegment = isLastSegment ? nullptr : ppcImlGenContext->segmentList2[s + 1];
 		// handle empty segment
 		if (segIt->imlList.empty())
 		{
@@ -4352,29 +4221,13 @@ void PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext_t& ppcImlGenContext
 			{
 				cemu_assert_debug(segIt->GetBranchNotTaken());
 			}
-
-			//// find destination segment by ppc jump address
-			//IMLSegment* jumpDestSegment = PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext, imlInstruction->op_conditionalJump.jumpmarkAddress);
-			//if (jumpDestSegment)
-			//{
-			//	if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
-			//		IMLSegment_SetLinkBranchNotTaken(imlSegment, nextSegment);
-			//	IMLSegment_SetLinkBranchTaken(imlSegment, jumpDestSegment);
-			//}
-			//else
-			//{
-			//	imlSegment->nextSegmentIsUncertain = true;
-			//}
 		}
 		else if (imlInstruction->type == PPCREC_IML_TYPE_MACRO)
 		{
 			auto macroType = imlInstruction->operation;
 			switch (macroType)
 			{
-				case PPCREC_IML_MACRO_BLR:	
-				case PPCREC_IML_MACRO_BLRL:
-				case PPCREC_IML_MACRO_BCTR:
-				case PPCREC_IML_MACRO_BCTRL:
+				case PPCREC_IML_MACRO_B_TO_REG:
 				case PPCREC_IML_MACRO_BL:
 				case PPCREC_IML_MACRO_B_FAR:
 				case PPCREC_IML_MACRO_HLE:
@@ -4500,7 +4353,7 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 			{
 				if (seg->imlList[f].IsSuffixInstruction())
 				{
-					debug_printf("---------------- SegmentDump (Suffix instruction at wrong pos in segment 0x%x):\n", segIndex);
+					debug_printf("---------------- SegmentDump (Suffix instruction at wrong pos in segment 0x%x):\n", (int)segIndex);
 					IMLDebug_Dump(&ppcImlGenContext);
 					__debugbreak();
 				}
@@ -4510,7 +4363,7 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 		{
 			if (!seg->HasSuffixInstruction())
 			{
-				debug_printf("---------------- SegmentDump (NoSuffixInstruction in segment 0x%x):\n", segIndex);
+				debug_printf("---------------- SegmentDump (NoSuffixInstruction in segment 0x%x):\n", (int)segIndex);
 				IMLDebug_Dump(&ppcImlGenContext);
 				__debugbreak();
 			}
@@ -4540,7 +4393,7 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 				{
 					if (!seg->GetBranchTaken() || !seg->GetBranchNotTaken())
 					{
-						debug_printf("---------------- SegmentDump (Missing branch for CJUMP in segment 0x%x):\n", segIndex);
+						debug_printf("---------------- SegmentDump (Missing branch for CJUMP in segment 0x%x):\n", (int)segIndex);
 						IMLDebug_Dump(&ppcImlGenContext);
 						cemu_assert_error();
 					}
@@ -4551,10 +4404,6 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 				}
 			}
 		}
-		//if (seg->list_prevSegments.empty())
-		//{
-		//	cemu_assert_debug(seg->isEnterable);
-		//}
 		segIndex++;
 	}
 #endif

@@ -97,10 +97,8 @@ enum
 
 enum
 {
-	PPCREC_IML_MACRO_BLR,			// macro for BLR instruction code
-	PPCREC_IML_MACRO_BLRL,			// macro for BLRL instruction code
-	PPCREC_IML_MACRO_BCTR,			// macro for BCTR instruction code
-	PPCREC_IML_MACRO_BCTRL,			// macro for BCTRL instruction code
+	PPCREC_IML_MACRO_B_TO_REG,		// branch to PPC address in register (used for BCCTR, BCLR)
+
 	PPCREC_IML_MACRO_BL,			// call to different function (can be within same function)
 	PPCREC_IML_MACRO_B_FAR,			// branch to different function
 	PPCREC_IML_MACRO_COUNT_CYCLES,	// decrease current remaining thread cycles by a certain amount
@@ -130,7 +128,7 @@ enum
 {
 	PPCREC_CR_MODE_COMPARE_SIGNED,
 	PPCREC_CR_MODE_COMPARE_UNSIGNED, // alias logic compare
-	// others: 	PPCREC_CR_MODE_ARITHMETIC,
+
 	PPCREC_CR_MODE_ARITHMETIC, // arithmetic use (for use with add/sub instructions without generating extra code)
 	PPCREC_CR_MODE_LOGICAL,
 };
@@ -398,11 +396,9 @@ struct IMLInstruction
 
 	bool IsSuffixInstruction() const
 	{
-		if (type == PPCREC_IML_TYPE_MACRO && (operation == PPCREC_IML_MACRO_BLR || operation == PPCREC_IML_MACRO_BCTR) ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BL ||
+		if (type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BL ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_B_FAR ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BLRL ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BCTRL ||
+			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_B_TO_REG ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_LEAVE ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_HLE ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_MFTB ||

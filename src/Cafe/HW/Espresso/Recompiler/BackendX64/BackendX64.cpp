@@ -119,30 +119,12 @@ void ATTR_MS_ABI PPCRecompiler_getTBU(PPCInterpreter_t* hCPU, uint32 gprIndex)
 bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-	if( imlInstruction->operation == PPCREC_IML_MACRO_BLR || imlInstruction->operation == PPCREC_IML_MACRO_BLRL )
+	if (imlInstruction->operation == PPCREC_IML_MACRO_B_TO_REG)
 	{
-		uint32 currentInstructionAddress = imlInstruction->op_macro.param;
-		// MOV EDX, [SPR_LR]
-		x64Emit_mov_reg64_mem32(x64GenContext, REG_RDX, REG_RSP, offsetof(PPCInterpreter_t, spr.LR));
-		// if BLRL, then update SPR LR
-		if (imlInstruction->operation == PPCREC_IML_MACRO_BLRL)
-			x64Gen_mov_mem32Reg64_imm32(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, spr.LR), currentInstructionAddress + 4);
-		// JMP [offset+RDX*(8/4)+R15]
-		x64Gen_writeU8(x64GenContext, 0x41);
-		x64Gen_writeU8(x64GenContext, 0xFF);
-		x64Gen_writeU8(x64GenContext, 0xA4);
-		x64Gen_writeU8(x64GenContext, 0x57);
-		x64Gen_writeU32(x64GenContext, (uint32)offsetof(PPCRecompilerInstanceData_t, ppcRecompilerDirectJumpTable));
-		return true;
-	}
-	else if( imlInstruction->operation == PPCREC_IML_MACRO_BCTR || imlInstruction->operation == PPCREC_IML_MACRO_BCTRL )
-	{
-		uint32 currentInstructionAddress = imlInstruction->op_macro.param;
-		// MOV EDX, [SPR_CTR]
-		x64Emit_mov_reg64_mem32(x64GenContext, REG_RDX, REG_RSP, offsetof(PPCInterpreter_t, spr.CTR));
-		// if BCTRL, then update SPR LR
-		if (imlInstruction->operation == PPCREC_IML_MACRO_BCTRL)
-			x64Gen_mov_mem32Reg64_imm32(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, spr.LR), currentInstructionAddress + 4);
+		uint32 branchDstReg = tempToRealRegister(imlInstruction->op_macro.param);
+		if(REG_RDX != branchDstReg)
+			x64Gen_mov_reg64_reg64(x64GenContext, REG_RDX, branchDstReg);
+		// potential optimization: Use branchDstReg directly if possible instead of moving to RDX/EDX
 		// JMP [offset+RDX*(8/4)+R15]
 		x64Gen_writeU8(x64GenContext, 0x41);
 		x64Gen_writeU8(x64GenContext, 0xFF);

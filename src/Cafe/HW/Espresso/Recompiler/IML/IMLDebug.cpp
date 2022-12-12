@@ -294,21 +294,9 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 		}
 		else if (inst.type == PPCREC_IML_TYPE_MACRO)
 		{
-			if (inst.operation == PPCREC_IML_MACRO_BLR)
+			if (inst.operation == PPCREC_IML_MACRO_B_TO_REG)
 			{
-				strOutput.addFmt("MACRO BLR 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
-			}
-			else if (inst.operation == PPCREC_IML_MACRO_BLRL)
-			{
-				strOutput.addFmt("MACRO BLRL 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
-			}
-			else if (inst.operation == PPCREC_IML_MACRO_BCTR)
-			{
-				strOutput.addFmt("MACRO BCTR 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
-			}
-			else if (inst.operation == PPCREC_IML_MACRO_BCTRL)
-			{
-				strOutput.addFmt("MACRO BCTRL 0x{:08x} cycles (depr): {}", inst.op_macro.param, (sint32)inst.op_macro.paramU16);
+				strOutput.addFmt("MACRO B_TO_REG t{}", inst.op_macro.param);
 			}
 			else if (inst.operation == PPCREC_IML_MACRO_BL)
 			{
