@@ -173,10 +173,6 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	{
 		// only affects cr register	
 	}
-	else if (type == PPCREC_IML_TYPE_JUMPMARK)
-	{
-		// no effect on registers
-	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{
 		// fpr operation
@@ -527,10 +523,6 @@ void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegiste
 	{
 		// only affects cr register	
 	}
-	else if (type == PPCREC_IML_TYPE_JUMPMARK)
-	{
-		// no effect on registers
-	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{
 
@@ -667,10 +659,6 @@ void IMLInstruction::ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegist
 	{
 		// only affects cr register	
 	}
-	else if (type == PPCREC_IML_TYPE_JUMPMARK)
-	{
-		// no effect on registers
-	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{
 		op_r_name.registerIndex = replaceRegisterMultiple(op_r_name.registerIndex, fprRegisterSearched, fprRegisterReplaced);
@@ -780,10 +768,6 @@ void IMLInstruction::ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterRe
 	else if (type == PPCREC_IML_TYPE_CR)
 	{
 		// only affects cr register	
-	}
-	else if (type == PPCREC_IML_TYPE_JUMPMARK)
-	{
-		// no effect on registers
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{

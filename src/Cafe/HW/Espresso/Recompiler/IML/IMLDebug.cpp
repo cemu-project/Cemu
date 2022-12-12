@@ -236,10 +236,6 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 				strOutput.addFmt(" -> CR{}", inst.crRegister);
 			}
 		}
-		else if (inst.type == PPCREC_IML_TYPE_JUMPMARK)
-		{
-			strOutput.addFmt("jm_{:08x}:", inst.op_jumpmark.address);
-		}
 		else if (inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_STORE ||
 			inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
 		{

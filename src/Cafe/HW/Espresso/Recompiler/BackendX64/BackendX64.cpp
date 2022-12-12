@@ -2332,10 +2332,6 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 					codeGenerationFailed = true;
 				}
 			}
-			else if( imlInstruction->type == PPCREC_IML_TYPE_JUMPMARK )
-			{
-				// no op
-			}
 			else if( imlInstruction->type == PPCREC_IML_TYPE_NO_OP )
 			{
 				// no op

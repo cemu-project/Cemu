@@ -121,8 +121,7 @@ bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenConte
 			{
 				if( imlInstructionItr.op_r_name.registerIndex >= PPC_X64_FPR_USABLE_REGISTERS )
 				{
-					// convert to NO-OP instruction
-					imlInstructionItr.type = PPCREC_IML_TYPE_NO_OP;
+					imlInstructionItr.make_no_op();
 				}
 			}
 			imlIndex++;
@@ -191,7 +190,7 @@ bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenConte
 					// name_unusedRegister = unusedRegister
 					IMLInstruction* imlInstructionItr = segIt->imlList.data() + (imlIndex + 0);
 					memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
-					if( replacedRegisterIsUsed )
+					if (replacedRegisterIsUsed)
 					{
 						imlInstructionItr->type = PPCREC_IML_TYPE_FPR_NAME_R;
 						imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
@@ -199,7 +198,7 @@ bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenConte
 						imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
 					}
 					else
-						imlInstructionItr->type = PPCREC_IML_TYPE_NO_OP;
+						imlInstructionItr->make_no_op();
 					imlInstructionItr = segIt->imlList.data() + (imlIndex + 1);
 					memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
 					imlInstructionItr->type = PPCREC_IML_TYPE_FPR_R_NAME;
@@ -216,7 +215,7 @@ bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenConte
 					// unusedRegister = name_unusedRegister
 					imlInstructionItr = segIt->imlList.data() + (imlIndex + 4);
 					memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
-					if( replacedRegisterIsUsed )
+					if (replacedRegisterIsUsed)
 					{
 						imlInstructionItr->type = PPCREC_IML_TYPE_FPR_R_NAME;
 						imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
@@ -224,7 +223,7 @@ bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenConte
 						imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
 					}
 					else
-						imlInstructionItr->type = PPCREC_IML_TYPE_NO_OP;
+						imlInstructionItr->make_no_op();
 				}
 				else
 					break;
@@ -1156,7 +1155,6 @@ void _reorderConditionModifyInstructions(IMLSegment* imlSegment)
 			(imlInstruction->type == PPCREC_IML_TYPE_R_R && (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)) )
 			continue;
 		// not safe
-		//hasUnsafeInstructions = true;
 		if (unsafeInstructionIndex == -1)
 			unsafeInstructionIndex = i;
 	}
