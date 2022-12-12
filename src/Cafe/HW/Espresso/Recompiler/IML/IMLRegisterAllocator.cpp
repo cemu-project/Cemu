@@ -1033,8 +1033,8 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 	while (index < imlSegment->imlList.size())
 	{
 		// end loop at suffix instruction
-		if (imlSegment->imlList[index].IsSuffixInstruction())
-			break;
+		//if (imlSegment->imlList[index].IsSuffixInstruction())
+		//	break;
 		// get accessed GPRs
 		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
 		for (sint32 t = 0; t < 4; t++)
@@ -1125,9 +1125,10 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 	IMLUsedRegisters gprTracking;
 	while (index < imlSegment->imlList.size())
 	{
-		// end loop at suffix instruction
-		if (imlSegment->imlList[index].IsSuffixInstruction())
-			break;
+		// we parse suffix instructions too for any potential input registers (writes not allowed), but note that any spills/stores need to happen before the suffix instruction
+		//// end loop at suffix instruction
+		//if (imlSegment->imlList[index].IsSuffixInstruction())
+		//	break;
 		// get accessed GPRs
 		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
 		// handle accessed GPR

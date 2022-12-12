@@ -130,9 +130,13 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	}
 	else if (type == PPCREC_IML_TYPE_MACRO)
 	{
-		if (operation == PPCREC_IML_MACRO_BL || operation == PPCREC_IML_MACRO_B_FAR || operation == PPCREC_IML_MACRO_BLR || operation == PPCREC_IML_MACRO_BLRL || operation == PPCREC_IML_MACRO_BCTR || operation == PPCREC_IML_MACRO_BCTRL || operation == PPCREC_IML_MACRO_LEAVE || operation == PPCREC_IML_MACRO_DEBUGBREAK || operation == PPCREC_IML_MACRO_COUNT_CYCLES || operation == PPCREC_IML_MACRO_HLE || operation == PPCREC_IML_MACRO_MFTB)
+		if (operation == PPCREC_IML_MACRO_BL || operation == PPCREC_IML_MACRO_B_FAR || operation == PPCREC_IML_MACRO_LEAVE || operation == PPCREC_IML_MACRO_DEBUGBREAK || operation == PPCREC_IML_MACRO_COUNT_CYCLES || operation == PPCREC_IML_MACRO_HLE || operation == PPCREC_IML_MACRO_MFTB)
 		{
 			// no effect on registers
+		}
+		else if (operation == PPCREC_IML_MACRO_B_TO_REG)
+		{
+			registersUsed->readNamedReg1 = op_macro.param;
 		}
 		else
 			cemu_assert_unimplemented();
@@ -480,9 +484,13 @@ void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegiste
 	}
 	else if (type == PPCREC_IML_TYPE_MACRO)
 	{
-		if (operation == PPCREC_IML_MACRO_BL || operation == PPCREC_IML_MACRO_B_FAR || operation == PPCREC_IML_MACRO_BLR || operation == PPCREC_IML_MACRO_BLRL || operation == PPCREC_IML_MACRO_BCTR || operation == PPCREC_IML_MACRO_BCTRL || operation == PPCREC_IML_MACRO_LEAVE || operation == PPCREC_IML_MACRO_DEBUGBREAK || operation == PPCREC_IML_MACRO_HLE || operation == PPCREC_IML_MACRO_MFTB || operation == PPCREC_IML_MACRO_COUNT_CYCLES)
+		if (operation == PPCREC_IML_MACRO_BL || operation == PPCREC_IML_MACRO_B_FAR || operation == PPCREC_IML_MACRO_LEAVE || operation == PPCREC_IML_MACRO_DEBUGBREAK || operation == PPCREC_IML_MACRO_HLE || operation == PPCREC_IML_MACRO_MFTB || operation == PPCREC_IML_MACRO_COUNT_CYCLES)
 		{
 			// no effect on registers
+		}
+		else if (operation == PPCREC_IML_MACRO_B_TO_REG)
+		{
+			op_macro.param = replaceRegisterMultiple(op_macro.param, gprRegisterSearched, gprRegisterReplaced);
 		}
 		else
 		{
