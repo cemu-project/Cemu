@@ -104,31 +104,48 @@ void IMLDebug_PrintLivenessRangeInfo(StringBuf& currentLineText, IMLSegment* iml
 	}
 }
 
-void IMLDebug_DumpSegment(IMLSegment* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo)
+std::string IMLDebug_GetSegmentName(ppcImlGenContext_t* ctx, IMLSegment* seg)
+{
+	if (!ctx)
+	{
+		return "<NoNameWithoutCtx>";
+	}
+	// find segment index
+	for (size_t i = 0; i < ctx->segmentList2.size(); i++)
+	{
+		if (ctx->segmentList2[i] == seg)
+		{
+			return fmt::format("Seg{:04x}", i);
+		}
+	}
+	return "<SegmentNotInCtx>";
+}
+
+void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool printLivenessRangeInfo)
 {
 	StringBuf strOutput(1024);
 
-	strOutput.addFmt("SEGMENT 0x{:04x} 0x{:08x} PPC 0x{:08x} - 0x{:08x} Loop-depth {}", segmentIndex, imlSegment->ppcAddress, imlSegment->ppcAddrMin, imlSegment->ppcAddrMax, imlSegment->loopDepth);
+	strOutput.addFmt("SEGMENT {} | PPC=0x{:08x} Loop-depth {}", IMLDebug_GetSegmentName(ctx, imlSegment), imlSegment->ppcAddress, imlSegment->loopDepth);
 	if (imlSegment->isEnterable)
 	{
 		strOutput.addFmt(" ENTERABLE (0x{:08x})", imlSegment->enterPPCAddress);
 	}
-	else if (imlSegment->isJumpDestination)
-	{
-		strOutput.addFmt(" JUMP-DEST (0x{:08x})", imlSegment->jumpDestinationPPCAddress);
-	}
+	//else if (imlSegment->isJumpDestination)
+	//{
+	//	strOutput.addFmt(" JUMP-DEST (0x{:08x})", imlSegment->jumpDestinationPPCAddress);
+	//}
 
 	debug_printf("%s\n", strOutput.c_str());
 
-	strOutput.reset();
-	strOutput.addFmt("SEGMENT NAME 0x{:016x}", (uintptr_t)imlSegment);
-	debug_printf("%s", strOutput.c_str());
+	//strOutput.reset();
+	//strOutput.addFmt("SEGMENT NAME 0x{:016x}", (uintptr_t)imlSegment);
+	//debug_printf("%s", strOutput.c_str());
 
 	if (printLivenessRangeInfo)
 	{
 		IMLDebug_PrintLivenessRangeInfo(strOutput, imlSegment, RA_INTER_RANGE_START);
 	}
-	debug_printf("\n");
+	//debug_printf("\n");
 
 	sint32 lineOffsetParameters = 18;
 
@@ -376,22 +393,22 @@ void IMLDebug_DumpSegment(IMLSegment* imlSegment, sint32 segmentIndex, bool prin
 		}
 		else if (inst.type == PPCREC_IML_TYPE_FPR_R_R)
 		{
-			strOutput.addFmt("{:-6} ", IMLDebug_GetOpcodeName(&inst));
-			strOutput.addFmt("fpr{:02d}, fpr{:02d}", inst.op_fpr_r_r.registerResult, inst.op_fpr_r_r.registerOperand);
+			strOutput.addFmt("{:>6} ", IMLDebug_GetOpcodeName(&inst));
+			strOutput.addFmt("fpr{:02}, fpr{:02}", inst.op_fpr_r_r.registerResult, inst.op_fpr_r_r.registerOperand);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R_R)
 		{
-			strOutput.addFmt("{:-6} ", IMLDebug_GetOpcodeName(&inst));
-			strOutput.addFmt("fpr{:02d}, fpr{:02d}, fpr{:02d}, fpr{:02d}", inst.op_fpr_r_r_r_r.registerResult, inst.op_fpr_r_r_r_r.registerOperandA, inst.op_fpr_r_r_r_r.registerOperandB, inst.op_fpr_r_r_r_r.registerOperandC);
+			strOutput.addFmt("{:>6} ", IMLDebug_GetOpcodeName(&inst));
+			strOutput.addFmt("fpr{:02}, fpr{:02}, fpr{:02}, fpr{:02}", inst.op_fpr_r_r_r_r.registerResult, inst.op_fpr_r_r_r_r.registerOperandA, inst.op_fpr_r_r_r_r.registerOperandB, inst.op_fpr_r_r_r_r.registerOperandC);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R)
 		{
-			strOutput.addFmt("{:-6} ", IMLDebug_GetOpcodeName(&inst));
-			strOutput.addFmt("fpr{:02d}, fpr{:02d}, fpr{:02d}", inst.op_fpr_r_r_r.registerResult, inst.op_fpr_r_r_r.registerOperandA, inst.op_fpr_r_r_r.registerOperandB);
+			strOutput.addFmt("{:>6} ", IMLDebug_GetOpcodeName(&inst));
+			strOutput.addFmt("fpr{:02}, fpr{:02}, fpr{:02}", inst.op_fpr_r_r_r.registerResult, inst.op_fpr_r_r_r.registerOperandA, inst.op_fpr_r_r_r.registerOperandB);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 		{
-			strOutput.addFmt("CYCLE_CHECK jm_{:08x}\n", inst.op_conditionalJump.jumpmarkAddress);
+			strOutput.addFmt("CYCLE_CHECK\n");
 		}
 		else if (inst.type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
 		{
@@ -451,14 +468,15 @@ void IMLDebug_DumpSegment(IMLSegment* imlSegment, sint32 segmentIndex, bool prin
 	{
 		if (i)
 			debug_printf(", ");
-		debug_printf("%p", (void*)imlSegment->list_prevSegments[i]);
+		debug_printf("%s", IMLDebug_GetSegmentName(ctx, imlSegment->list_prevSegments[i]).c_str());
 	}
 	debug_printf("\n");
-	debug_printf("Links to: ");
 	if (imlSegment->nextSegmentBranchNotTaken)
-		debug_printf("%p (no branch), ", (void*)imlSegment->nextSegmentBranchNotTaken);
+		debug_printf("BranchNotTaken: %s\n", IMLDebug_GetSegmentName(ctx, imlSegment->nextSegmentBranchNotTaken).c_str());
 	if (imlSegment->nextSegmentBranchTaken)
-		debug_printf("%p (branch)", (void*)imlSegment->nextSegmentBranchTaken);
+		debug_printf("BranchTaken: %s\n", IMLDebug_GetSegmentName(ctx, imlSegment->nextSegmentBranchTaken).c_str());
+	if (imlSegment->nextSegmentIsUncertain)
+		debug_printf("Dynamic target\n");
 	debug_printf("\n");
 }
 
@@ -466,7 +484,7 @@ void IMLDebug_Dump(ppcImlGenContext_t* ppcImlGenContext)
 {
 	for (size_t i = 0; i < ppcImlGenContext->segmentList2.size(); i++)
 	{
-		IMLDebug_DumpSegment(ppcImlGenContext->segmentList2[i], i);
+		IMLDebug_DumpSegment(ppcImlGenContext, ppcImlGenContext->segmentList2[i], false);
 		debug_printf("\n");
 	}
 }

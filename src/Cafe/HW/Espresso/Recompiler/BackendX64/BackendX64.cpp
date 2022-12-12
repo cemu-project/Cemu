@@ -24,15 +24,7 @@ sint32 x64Gen_registerMap[12] = // virtual GPR to x64 register mapping
 */
 void PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext_t* x64GenContext, uint8 type, void* extraInfo = nullptr)
 {
-	if( x64GenContext->relocateOffsetTableCount >= x64GenContext->relocateOffsetTableSize )
-	{
-		x64GenContext->relocateOffsetTableSize = std::max(4, x64GenContext->relocateOffsetTableSize*2);
-		x64GenContext->relocateOffsetTable = (x64RelocEntry_t*)realloc(x64GenContext->relocateOffsetTable, sizeof(x64RelocEntry_t)*x64GenContext->relocateOffsetTableSize);
-	}
-	x64GenContext->relocateOffsetTable[x64GenContext->relocateOffsetTableCount].offset = x64GenContext->codeBufferIndex;
-	x64GenContext->relocateOffsetTable[x64GenContext->relocateOffsetTableCount].type = type;
-	x64GenContext->relocateOffsetTable[x64GenContext->relocateOffsetTableCount].extraInfo = extraInfo;
-	x64GenContext->relocateOffsetTableCount++;
+	x64GenContext->relocateOffsetTable2.emplace_back(x64GenContext->codeBufferIndex, type, extraInfo);
 }
 
 /*
@@ -306,6 +298,9 @@ bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if( imlInstruction->operation == PPCREC_IML_MACRO_MFTB )
 	{
+		// according to MS ABI the caller needs to save:
+		// RAX, RCX, RDX, R8, R9, R10, R11
+
 		uint32 ppcAddress = imlInstruction->op_macro.param;
 		uint32 sprId = imlInstruction->op_macro.param2&0xFFFF;
 		uint32 gprIndex = (imlInstruction->op_macro.param2>>16)&0x1F;
@@ -321,7 +316,7 @@ bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, 
 		// reserve space on stack for call parameters
 		x64Gen_sub_reg64_imm32(x64GenContext, REG_RSP, 8*11 + 8);
 		x64Gen_mov_reg64_imm64(x64GenContext, REG_RBP, 0);
-		// call HLE function
+		// call function
 		if( sprId == SPR_TBL )
 			x64Gen_mov_reg64_imm64(x64GenContext, REG_RAX, (uint64)PPCRecompiler_getTBL);
 		else if( sprId == SPR_TBU )
@@ -1971,6 +1966,12 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 
 bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLSegment* imlSegment, IMLInstruction* imlInstruction)
 {
+	if (!imlInstruction->op_conditionalJump.jumpAccordingToSegment)
+	{
+		debug_printf("PPCRecompilerX64Gen_imlInstruction_conditionalJump(): Failed on deprecated jump method\n");
+		return false;
+	}
+
 	if( imlInstruction->op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NONE )
 	{
 		// jump always
@@ -1985,19 +1986,25 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 		else
 		{
 			// deprecated (jump to jumpmark)
+			__debugbreak(); // deprecated
 			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
 			x64Gen_jmp_imm32(x64GenContext, 0);
 		}
 	}
 	else
 	{
-		if (imlInstruction->op_conditionalJump.jumpAccordingToSegment)
-			assert_dbg();
+		if (!imlInstruction->op_conditionalJump.jumpAccordingToSegment)
+		{
+			debug_printf("Unsupported deprecated cjump to ppc address\n");
+			return false;
+		}
+		cemu_assert_debug(imlSegment->nextSegmentBranchTaken);
+
 		// generate jump update marker
 		if( imlInstruction->op_conditionalJump.crRegisterIndex == PPCREC_CR_TEMPORARY || imlInstruction->op_conditionalJump.crRegisterIndex >= 8 )
 		{
 			// temporary cr is used, which means we use the currently active eflags
-			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 			sint32 condition = imlInstruction->op_conditionalJump.condition;
 			if( condition == PPCREC_JUMP_CONDITION_E )
 				x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
@@ -2015,19 +2022,19 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 				{
 					if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_LT)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_CARRY : X86_CONDITION_NOT_CARRY, 0);
 						return true;
 					}
 					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_EQ)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, 0);
 						return true;
 					}
 					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_GT)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_UNSIGNED_ABOVE : X86_CONDITION_UNSIGNED_BELOW_EQUAL, 0);
 						return true;
 					}
@@ -2036,19 +2043,19 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 				{
 					if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_LT)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGNED_LESS : X86_CONDITION_SIGNED_GREATER_EQUAL, 0);
 						return true;
 					}
 					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_EQ)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, 0);
 						return true;
 					}
 					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_GT)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGNED_GREATER : X86_CONDITION_SIGNED_LESS_EQUAL, 0);
 						return true;
 					}
@@ -2057,26 +2064,28 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 				{
 					if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_LT)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGN : X86_CONDITION_NOT_SIGN, 0);
 						return true;
 					}
 					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_EQ)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, 0);
 						return true;
 					}
 					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_GT)
 					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
 						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGNED_GREATER : X86_CONDITION_SIGNED_LESS_EQUAL, 0);
 						return true;
 					}
 				}
+				cemu_assert_debug(false); // should not reach?
 			}
 			x64Gen_bt_mem8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr) + crBitIndex * sizeof(uint8), 0);
-			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+			cemu_assert_debug(imlSegment->GetBranchTaken());
+			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, (void*)imlSegment->GetBranchTaken());
 			if( imlInstruction->op_conditionalJump.bitMustBeSet )
 			{
 				x64Gen_jmpc_far(x64GenContext, X86_CONDITION_CARRY, 0);
@@ -2094,13 +2103,14 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJumpCycleCheck(PPCRecFunction
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	// some tests (all performed on a i7-4790K)
-	// 1) DEC [mem] + JNS has significantly worse performance than BT + JNC (probably due to additional memory write)
+	// 1) DEC [mem] + JNS has significantly worse performance than BT + JNC (probably due to additional memory write and direct dependency)
 	// 2) CMP [mem], 0 + JG has about equal (or slightly worse) performance than BT + JNC
 
 	// BT
 	x64Gen_bt_mem8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, remainingCycles), 31); // check if negative
-	PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
-	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_NOT_CARRY, 0);
+	cemu_assert_debug(x64GenContext->currentSegment->GetBranchTaken());
+	PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, x64GenContext->currentSegment->GetBranchTaken());
+	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_CARRY, 0);
 	return true;
 }
 
@@ -2152,22 +2162,6 @@ bool PPCRecompilerX64Gen_imlInstruction_cr(PPCRecFunction_t* PPCRecFunction, ppc
 void PPCRecompilerX64Gen_imlInstruction_ppcEnter(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	imlInstruction->op_ppcEnter.x64Offset = x64GenContext->codeBufferIndex;
-	// generate code
-	if( ppcImlGenContext->hasFPUInstruction )
-	{
-		// old FPU unavailable code
-		//PPCRecompilerX86_crConditionFlags_saveBeforeOverwrite(PPCRecFunction, ppcImlGenContext, x64GenContext);
-		//// skip if FP bit in MSR is set
-		//// #define MSR_FP		(1<<13)
-		//x64Gen_bt_mem8(x64GenContext, REG_ESP, offsetof(PPCInterpreter_t, msr), 13);
-		//uint32 jmpCodeOffset = x64GenContext->codeBufferIndex;
-		//x64Gen_jmpc(x64GenContext, X86_CONDITION_CARRY, 0);
-		//x64Gen_mov_reg32_imm32(x64GenContext, REG_EAX, imlInstruction->op_ppcEnter.ppcAddress&0x7FFFFFFF);
-		//PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X86_RELOC_MAKE_RELATIVE);
-		//x64Gen_jmp_imm32(x64GenContext, (uint32)PPCRecompiler_recompilerCallEscapeAndCallFPUUnavailable);
-		//// patch jump
-		//*(uint32*)(x64GenContext->codeBuffer+jmpCodeOffset+2) = x64GenContext->codeBufferIndex-jmpCodeOffset-6;
-	}
 }
 
 void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
@@ -2193,7 +2187,6 @@ void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction,
 		}
 		else
 			assert_dbg();
-		//x64Emit_mov_reg64_mem32(x64GenContext, tempToRealRegister(imlInstruction->op_r_name.registerIndex), REG_RSP, offsetof(PPCInterpreter_t, spr)+sizeof(uint32)*(name-PPCREC_NAME_SPR0));
 	}
 	else
 		assert_dbg();
@@ -2256,7 +2249,7 @@ uint8* PPCRecompilerX86_allocateExecutableMemory(sint32 size)
 
 bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext)
 {
-	x64GenContext_t x64GenContext = {0};
+	x64GenContext_t x64GenContext{};
 	x64GenContext.codeBufferSize = 1024;
 	x64GenContext.codeBuffer = (uint8*)malloc(x64GenContext.codeBufferSize);
 	x64GenContext.codeBufferIndex = 0;
@@ -2266,6 +2259,7 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 	bool codeGenerationFailed = false;
 	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
 	{
+		x64GenContext.currentSegment = segIt;
 		segIt->x64Offset = x64GenContext.codeBufferIndex;
 		for(size_t i=0; i<segIt->imlList.size(); i++)
 		{
@@ -2442,48 +2436,43 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 	if( codeGenerationFailed )
 	{
 		free(x64GenContext.codeBuffer);
-		if (x64GenContext.relocateOffsetTable)
-			free(x64GenContext.relocateOffsetTable);
 		return false;
 	}
 	// allocate executable memory
 	uint8* executableMemory = PPCRecompilerX86_allocateExecutableMemory(x64GenContext.codeBufferIndex);
 	size_t baseAddress = (size_t)executableMemory;
 	// fix relocs
-	for(sint32 i=0; i<x64GenContext.relocateOffsetTableCount; i++)
+	for(auto& relocIt : x64GenContext.relocateOffsetTable2)
 	{
-		if( x64GenContext.relocateOffsetTable[i].type == X86_RELOC_MAKE_RELATIVE )
-		{
-			assert_dbg(); // deprecated
-		}
-		else if(x64GenContext.relocateOffsetTable[i].type == X64_RELOC_LINK_TO_PPC || x64GenContext.relocateOffsetTable[i].type == X64_RELOC_LINK_TO_SEGMENT)
+		if(relocIt.type == X64_RELOC_LINK_TO_PPC || relocIt.type == X64_RELOC_LINK_TO_SEGMENT)
 		{
 			// if link to PPC, search for segment that starts with this offset
-			uint32 ppcOffset = (uint32)(size_t)x64GenContext.relocateOffsetTable[i].extraInfo;
+			uint32 ppcOffset = (uint32)(size_t)relocIt.extraInfo;
 			uint32 x64Offset = 0xFFFFFFFF;
-			if (x64GenContext.relocateOffsetTable[i].type == X64_RELOC_LINK_TO_PPC)
+			if (relocIt.type == X64_RELOC_LINK_TO_PPC)
 			{
-				for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
-				{
-					if (segIt->isJumpDestination && segIt->jumpDestinationPPCAddress == ppcOffset)
-					{
-						x64Offset = segIt->x64Offset;
-						break;
-					}
-				}
-				if (x64Offset == 0xFFFFFFFF)
-				{
-					debug_printf("Recompiler could not resolve jump (function at 0x%08x)\n", PPCRecFunction->ppcAddress);
-					// todo: Cleanup
-					return false;
-				}
+				cemu_assert_suspicious();
+				//for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
+				//{
+				//	if (segIt->isJumpDestination && segIt->jumpDestinationPPCAddress == ppcOffset)
+				//	{
+				//		x64Offset = segIt->x64Offset;
+				//		break;
+				//	}
+				//}
+				//if (x64Offset == 0xFFFFFFFF)
+				//{
+				//	debug_printf("Recompiler could not resolve jump (function at 0x%08x)\n", PPCRecFunction->ppcAddress);
+				//	// todo: Cleanup
+				//	return false;
+				//}
 			}
 			else
 			{
-				IMLSegment* destSegment = (IMLSegment*)x64GenContext.relocateOffsetTable[i].extraInfo;
+				IMLSegment* destSegment = (IMLSegment*)relocIt.extraInfo;
 				x64Offset = destSegment->x64Offset;
 			}
-			uint32 relocBase = x64GenContext.relocateOffsetTable[i].offset;
+			uint32 relocBase = relocIt.offset;
 			uint8* relocInstruction = x64GenContext.codeBuffer+relocBase;
 			if( relocInstruction[0] == 0x0F && (relocInstruction[1] >= 0x80 && relocInstruction[1] <= 0x8F) )
 			{
@@ -2525,8 +2514,6 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 	memcpy(executableMemory, x64GenContext.codeBuffer, x64GenContext.codeBufferIndex);
 	free(x64GenContext.codeBuffer);
 	x64GenContext.codeBuffer = nullptr;
-	if (x64GenContext.relocateOffsetTable)
-		free(x64GenContext.relocateOffsetTable);
 	// set code
 	PPCRecFunction->x86Code = executableMemory;
 	PPCRecFunction->x86Size = x64GenContext.codeBufferIndex;
@@ -2535,7 +2522,7 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 
 void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 {
-	x64GenContext_t x64GenContext = {0};
+	x64GenContext_t x64GenContext{};
 	x64GenContext.codeBufferSize = 1024;
 	x64GenContext.codeBuffer = (uint8*)malloc(x64GenContext.codeBufferSize);
 	x64GenContext.codeBufferIndex = 0;
@@ -2615,7 +2602,7 @@ void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 
 void* PPCRecompilerX64Gen_generateLeaveRecompilerCode()
 {
-	x64GenContext_t x64GenContext = {0};
+	x64GenContext_t x64GenContext{};
 	x64GenContext.codeBufferSize = 128;
 	x64GenContext.codeBuffer = (uint8*)malloc(x64GenContext.codeBufferSize);
 	x64GenContext.codeBufferIndex = 0;

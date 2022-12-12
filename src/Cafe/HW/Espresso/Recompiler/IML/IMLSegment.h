@@ -103,8 +103,8 @@ struct IMLSegment
 	bool isEnterable{}; // this segment can be entered from outside the recompiler (no preloaded registers necessary)
 	uint32 enterPPCAddress{}; // used if isEnterable is true
 	// jump destination segments
-	bool isJumpDestination{}; // segment is a destination for one or more (conditional) jumps
-	uint32 jumpDestinationPPCAddress{};
+	//bool isJumpDestination{}; // segment is a destination for one or more (conditional) jumps
+	//uint32 jumpDestinationPPCAddress{};
 	// PPC FPR use mask
 	bool ppcFPRUsed[32]{}; // same as ppcGPRUsed, but for FPR
 	// CR use mask
@@ -115,10 +115,30 @@ struct IMLSegment
 	PPCSegmentRegisterAllocatorInfo_t raInfo{};
 	PPCRecVGPRDistances_t raDistances{};
 	bool raRangeExtendProcessed{};
-	// segment points
-	IMLSegmentPoint* segmentPointList{};
+
+	// segment state API
+	void SetEnterable(uint32 enterAddress);
+	void SetLinkBranchNotTaken(IMLSegment* imlSegmentDst);
+	void SetLinkBranchTaken(IMLSegment* imlSegmentDst);
+
+	IMLSegment* GetBranchTaken()
+	{
+		return nextSegmentBranchTaken;
+	}
+
+	IMLSegment* GetBranchNotTaken()
+	{
+		return nextSegmentBranchNotTaken;
+	}
+
+	// instruction API
+	IMLInstruction* AppendInstruction();
+
 	bool HasSuffixInstruction() const;
 	IMLInstruction* GetLastInstruction();
+
+	// segment points
+	IMLSegmentPoint* segmentPointList{};
 };
 
 

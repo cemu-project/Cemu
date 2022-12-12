@@ -131,7 +131,7 @@ void PPCRecompiler_attemptEnter(PPCInterpreter_t* hCPU, uint32 enterAddress)
 }
 bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext);
 
-PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PPCRange_t range, std::set<uint32>& entryAddresses, std::vector<std::pair<MPTR, uint32>>& entryPointsOut)
+PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PPCRange_t range, std::set<uint32>& entryAddresses, std::vector<std::pair<MPTR, uint32>>& entryPointsOut, PPCFunctionBoundaryTracker& boundaryTracker)
 {
 	if (range.startAddress >= PPC_REC_CODE_AREA_END)
 	{
@@ -156,10 +156,10 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	PPCRecFunction_t* ppcRecFunc = new PPCRecFunction_t();
 	ppcRecFunc->ppcAddress = range.startAddress;
 	ppcRecFunc->ppcSize = range.length;
-	
+
 	// generate intermediate code
 	ppcImlGenContext_t ppcImlGenContext = { 0 };
-	bool compiledSuccessfully = PPCRecompiler_generateIntermediateCode(ppcImlGenContext, ppcRecFunc, entryAddresses);
+	bool compiledSuccessfully = PPCRecompiler_generateIntermediateCode(ppcImlGenContext, ppcRecFunc, entryAddresses, boundaryTracker);
 	if (compiledSuccessfully == false)
 	{
 		delete ppcRecFunc;
@@ -173,6 +173,16 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
+	//if (ppcRecFunc->ppcAddress == 0x12345678)
+	//{
+	//	debug_printf("----------------------------------------\n");
+	//	IMLDebug_Dump(&ppcImlGenContext);
+	//	__debugbreak();
+	//}
+
+	// Large functions for testing (botw):
+	// 3B4049C
+
 	// emit x64 code
 	bool x64GenerationSuccess = PPCRecompiler_generateX64Code(ppcRecFunc, &ppcImlGenContext);
 	if (x64GenerationSuccess == false)
@@ -181,6 +191,9 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	}
 
 	// collect list of PPC-->x64 entry points
+	cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size());
+	cemu_assert_debug(ppcImlGenContext.imlListCount == 0);
+
 	entryPointsOut.clear();
 	for(IMLSegment* imlSegment : ppcImlGenContext.segmentList2)
 	{
@@ -359,7 +372,7 @@ void PPCRecompiler_recompileAtAddress(uint32 address)
 	PPCRecompilerState.recompilerSpinlock.unlock();
 
 	std::vector<std::pair<MPTR, uint32>> functionEntryPoints;
-	auto func = PPCRecompiler_recompileFunction(range, entryAddresses, functionEntryPoints);
+	auto func = PPCRecompiler_recompileFunction(range, entryAddresses, functionEntryPoints, funcBoundaries);
 
 	if (!func)
 	{

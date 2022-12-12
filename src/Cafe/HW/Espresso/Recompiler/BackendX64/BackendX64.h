@@ -3,6 +3,8 @@
 
 struct x64RelocEntry_t
 {
+	x64RelocEntry_t(uint32 offset, uint8 type, void* extraInfo) : offset(offset), type(type), extraInfo(extraInfo) {};
+
 	uint32 offset;
 	uint8  type;
 	void*  extraInfo;
@@ -10,16 +12,16 @@ struct x64RelocEntry_t
 
 struct x64GenContext_t
 {
-	uint8* codeBuffer;
-	sint32 codeBufferIndex;
-	sint32 codeBufferSize;
+	IMLSegment* currentSegment{};
+
+	uint8* codeBuffer{};
+	sint32 codeBufferIndex{};
+	sint32 codeBufferSize{};
 	// cr state
-	sint32 activeCRRegister; // current x86 condition flags reflect this cr* register
-	sint32 activeCRState; // describes the way in which x86 flags map to the cr register (signed / unsigned)
+	sint32 activeCRRegister{}; // current x86 condition flags reflect this cr* register
+	sint32 activeCRState{}; // describes the way in which x86 flags map to the cr register (signed / unsigned)
 	// relocate offsets
-	x64RelocEntry_t* relocateOffsetTable;
-	sint32 relocateOffsetTableSize;
-	sint32 relocateOffsetTableCount;
+	std::vector<x64RelocEntry_t> relocateOffsetTable2;
 };
 
 // Some of these are defined by winnt.h and gnu headers
@@ -126,7 +128,6 @@ enum
 #define PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC		(1)		// for unsigned arithmetic operations (ADD, CMPI)
 #define PPCREC_CR_STATE_TYPE_LOGICAL				(2)		// for unsigned operations (CMPLI)
 
-#define X86_RELOC_MAKE_RELATIVE				(0)		// make code imm relative to instruction
 #define X64_RELOC_LINK_TO_PPC				(1)		// translate from ppc address to x86 offset 
 #define X64_RELOC_LINK_TO_SEGMENT			(2)		// link to beginning of segment
 
