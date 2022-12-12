@@ -1,6 +1,7 @@
 #include "../PPCRecompiler.h"
 #include "../IML/IML.h"
 #include "BackendX64.h"
+#include "Common/cpu_features.h"
 
 #include "asm/x64util.h" // for recompiler_fres / frsqrte
 
@@ -87,7 +88,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 		{
 			x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, memRegEx);
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, memReg);
-			if (IMLBackendX64_HasExtensionMOVBE())
+			if (g_CPUFeatures.x86.movbe)
 			{
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, REG_RESV_TEMP, memImmS32);
 			}
@@ -99,7 +100,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 		}
 		else
 		{
-			if (IMLBackendX64_HasExtensionMOVBE())
+			if (g_CPUFeatures.x86.movbe)
 			{
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, memReg, memImmS32);
 			}
@@ -109,7 +110,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 				x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
 			}
 		}
-		if (IMLBackendX64_HasExtensionAVX())
+		if (g_CPUFeatures.x86.avx)
 		{
 			x64Gen_movd_xmmReg_reg64Low32(x64GenContext, REG_RESV_FPR_TEMP, REG_RESV_TEMP);
 		}
@@ -281,19 +282,19 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 		{
 			x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem2);
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem);
-			if(IMLBackendX64_HasExtensionMOVBE())
+			if(g_CPUFeatures.x86.movbe)
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
 			else
 				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
 		}
 		else
 		{
-			if(IMLBackendX64_HasExtensionMOVBE())
+			if(g_CPUFeatures.x86.movbe)
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 			else
 				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 		}
-		if(IMLBackendX64_HasExtensionMOVBE() == false )
+		if(g_CPUFeatures.x86.movbe == false )
 			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
 		x64Gen_movd_xmmReg_reg64Low32(x64GenContext, realRegisterXMM, REG_RESV_TEMP);
 
@@ -309,7 +310,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 	}
 	else if( mode == PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0 )
 	{
-		if( IMLBackendX64_HasExtensionAVX() )
+		if( g_CPUFeatures.x86.avx )
 		{
 			if( indexed )
 			{
@@ -413,14 +414,14 @@ void PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext_t* ppcImlGenContext
 	{
 		x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, registerXMM);
 		x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);
-		if (IMLBackendX64_HasExtensionMOVBE() == false)
+		if (g_CPUFeatures.x86.movbe == false)
 			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
 		if (indexed)
 		{
 			cemu_assert_debug(memReg != memRegEx);
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, memReg, memRegEx);
 		}
-		if (IMLBackendX64_HasExtensionMOVBE())
+		if (g_CPUFeatures.x86.movbe)
 			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, memReg, memImmS32, REG_RESV_TEMP);
 		else
 			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, memReg, memImmS32, REG_RESV_TEMP);
@@ -596,7 +597,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 			x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, realRegisterXMM);
 			x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);
 		}
-		if(IMLBackendX64_HasExtensionMOVBE() == false )
+		if(g_CPUFeatures.x86.movbe == false )
 			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
 		if( indexed )
 		{
@@ -604,7 +605,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 				assert_dbg();
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
-		if(IMLBackendX64_HasExtensionMOVBE())
+		if(g_CPUFeatures.x86.movbe)
 			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
 		else
 			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
@@ -1017,7 +1018,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 		{
 			x64Gen_subpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r.registerOperandB);
 		}
-		else if (IMLBackendX64_HasExtensionAVX())
+		else if (g_CPUFeatures.x86.avx)
 		{
 			x64Gen_avx_VSUBPD_xmm_xmm_xmm(x64GenContext, imlInstruction->op_fpr_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r.registerOperandA, imlInstruction->op_fpr_r_r_r.registerOperandB);
 		}
