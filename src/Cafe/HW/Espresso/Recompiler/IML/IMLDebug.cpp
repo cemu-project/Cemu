@@ -152,11 +152,11 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 	for (sint32 i = 0; i < imlSegment->imlList.size(); i++)
 	{
 		const IMLInstruction& inst = imlSegment->imlList[i];
-		// don't log NOP instructions unless they have an associated PPC address
-		if (inst.type == PPCREC_IML_TYPE_NO_OP && inst.associatedPPCAddress == MPTR_NULL)
+		// don't log NOP instructions
+		if (inst.type == PPCREC_IML_TYPE_NO_OP)
 			continue;
 		strOutput.reset();
-		strOutput.addFmt("{:08x} ", inst.associatedPPCAddress);
+		strOutput.addFmt("{:02x} ", i);
 		if (inst.type == PPCREC_IML_TYPE_R_NAME || inst.type == PPCREC_IML_TYPE_NAME_R)
 		{
 			if (inst.type == PPCREC_IML_TYPE_R_NAME)

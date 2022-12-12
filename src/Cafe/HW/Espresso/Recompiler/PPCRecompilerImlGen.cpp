@@ -4029,7 +4029,6 @@ IMLSegment* PPCIMLGen_CreateSplitSegmentAtEnd(ppcImlGenContext_t& ppcImlGenConte
 {
 	IMLSegment* writeSegment = basicBlockInfo.GetSegmentForInstructionAppend();
 
-	//IMLSegment* continuedSegment = ppcImlGenContext.NewSegment();
 	IMLSegment* continuedSegment = ppcImlGenContext.InsertSegment(ppcImlGenContext.GetSegmentIndex(writeSegment) + 1);
 
 	continuedSegment->SetLinkBranchTaken(writeSegment->GetBranchTaken());
@@ -4066,15 +4065,9 @@ void PPCIMLGen_AssertIfNotLastSegmentInstruction(ppcImlGenContext_t& ppcImlGenCo
 void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo)
 {
 	IMLSegment* imlSegment = basicBlockInfo.GetFirstSegmentInChain();
-	//if (imlSegment->imlList.empty())
-	//	return;
-	//if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
-	//	return;
-	//if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpAccordingToSegment)
-	//	return;
 	if (!basicBlockInfo.hasBranchTarget)
 		return;
-	if (basicBlockInfo.branchTarget >= basicBlockInfo.startAddress)
+	if (basicBlockInfo.branchTarget > basicBlockInfo.startAddress)
 		return;
 
 	// exclude non-infinite tight loops
@@ -4089,23 +4082,10 @@ void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, P
 	// The first segment also retains the jump destination and enterable properties from the original segment.
 	//debug_printf("--- Insert cycle counter check ---\n");
 
-
 	// make the segment enterable so execution can return after checking
 	basicBlockInfo.GetFirstSegmentInChain()->SetEnterable(basicBlockInfo.startAddress);
 
 	IMLSegment* splitSeg = PPCIMLGen_CreateSplitSegmentAtEnd(ppcImlGenContext, basicBlockInfo);
-
-	// what we know about the crash:
-	// It doesnt happen with cycle checks disabled
-	// The debugbreak emitted here is only encountered twice before it crashes
-	// it doesnt seem to go into the alternative branch (cycles negative) -> tested (debugbreak in exit segment doesnt trigger)
-	// Its the enterable segment that causes issues? -> I removed the enterable statement and it still happened
-	// Maybe some general issue with getting x64 offsets for enterable segments..
-
-	// possible explanations:
-	// issue with the cycle check / exit logic
-	// returning from exit is causing the issue
-	// Segments can get marked as jump destination which we no longer do -> Deleted old code and added asserts
 
 	IMLInstruction* inst = splitSeg->AppendInstruction();
 	inst->type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
@@ -4113,92 +4093,11 @@ void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, P
 	inst->crRegister = PPC_REC_INVALID_REGISTER;
 	inst->op_conditionalJump.jumpmarkAddress = 0xFFFFFFFF;
 	inst->associatedPPCAddress = 0xFFFFFFFF;
-	// PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK
-	
-	//splitSeg->AppendInstruction()->make_macro(PPCREC_IML_TYPE_MACRO, )
 
 	IMLSegment* exitSegment = ppcImlGenContext.NewSegment();
 	splitSeg->SetLinkBranchTaken(exitSegment);
 
-
-	//exitSegment->AppendInstruction()->make_debugbreak();
-
-	inst = exitSegment->AppendInstruction();// ->make_macro(PPCREC_IML_MACRO_LEAVE, basicBlockInfo.startAddress);
-	inst->type = PPCREC_IML_TYPE_MACRO;
-	inst->operation = PPCREC_IML_MACRO_LEAVE;
-	inst->crRegister = PPC_REC_INVALID_REGISTER;
-	inst->op_macro.param = basicBlockInfo.startAddress;
-	inst->associatedPPCAddress = basicBlockInfo.startAddress;
-
-
-	//debug_printf("----------------------------------------\n");
-	//IMLDebug_Dump(&ppcImlGenContext);
-	//__debugbreak();
-
-	//ppcImlGenContext.NewSegment();
-
-	//PPCRecompilerIml_insertSegments(&ppcImlGenContext, s, 2);
-	//imlSegment = NULL;
-	//IMLSegment* imlSegmentP0 = ppcImlGenContext.segmentList2[s + 0];
-	//IMLSegment* imlSegmentP1 = ppcImlGenContext.segmentList2[s + 1];
-	//IMLSegment* imlSegmentP2 = ppcImlGenContext.segmentList2[s + 2];
-	//// create entry point segment
-	//PPCRecompilerIml_insertSegments(&ppcImlGenContext, ppcImlGenContext.segmentList2.size(), 1);
-	//IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size() - 1];
-	//// relink segments	
-	//IMLSegment_RelinkInputSegment(imlSegmentP2, imlSegmentP0);
-	//IMLSegment_SetLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
-	//IMLSegment_SetLinkBranchTaken(imlSegmentP0, imlSegmentP2);
-	//IMLSegment_SetLinkBranchTaken(imlSegmentPEntry, imlSegmentP0);
-	//// update segments
-	//uint32 enterPPCAddress = imlSegmentP2->ppcAddrMin;
-	//if (imlSegmentP2->isEnterable)
-	//	enterPPCAddress = imlSegmentP2->enterPPCAddress;
-	//imlSegmentP0->ppcAddress = 0xFFFFFFFF;
-	//imlSegmentP1->ppcAddress = 0xFFFFFFFF;
-	//imlSegmentP2->ppcAddress = 0xFFFFFFFF;
-	//cemu_assert_debug(imlSegmentP2->ppcAddrMin != 0);
-	//// move segment properties from segment P2 to segment P0
-	//imlSegmentP0->isJumpDestination = imlSegmentP2->isJumpDestination;
-	//imlSegmentP0->jumpDestinationPPCAddress = imlSegmentP2->jumpDestinationPPCAddress;
-	//imlSegmentP0->isEnterable = false;
-	////imlSegmentP0->enterPPCAddress = imlSegmentP2->enterPPCAddress;
-	//imlSegmentP0->ppcAddrMin = imlSegmentP2->ppcAddrMin;
-	//imlSegmentP0->ppcAddrMax = imlSegmentP2->ppcAddrMax;
-	//imlSegmentP2->isJumpDestination = false;
-	//imlSegmentP2->jumpDestinationPPCAddress = 0;
-	//imlSegmentP2->isEnterable = false;
-	//imlSegmentP2->enterPPCAddress = 0;
-	//imlSegmentP2->ppcAddrMin = 0;
-	//imlSegmentP2->ppcAddrMax = 0;
-	//// setup enterable segment
-	//if (enterPPCAddress != 0 && enterPPCAddress != 0xFFFFFFFF)
-	//{
-	//	imlSegmentPEntry->isEnterable = true;
-	//	imlSegmentPEntry->ppcAddress = enterPPCAddress;
-	//	imlSegmentPEntry->enterPPCAddress = enterPPCAddress;
-	//}
-	//// assign new jumpmark to segment P2
-	//imlSegmentP2->isJumpDestination = true;
-	//imlSegmentP2->jumpDestinationPPCAddress = currentLoopEscapeJumpMarker;
-	//currentLoopEscapeJumpMarker++;
-	//// create ppc_leave instruction in segment P1
-	//PPCRecompiler_pushBackIMLInstructions(imlSegmentP1, 0, 1);
-	//imlSegmentP1->imlList[0].type = PPCREC_IML_TYPE_MACRO;
-	//imlSegmentP1->imlList[0].operation = PPCREC_IML_MACRO_LEAVE;
-	//imlSegmentP1->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
-	//imlSegmentP1->imlList[0].op_macro.param = imlSegmentP0->ppcAddrMin;
-	//imlSegmentP1->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
-	//// create cycle-based conditional instruction in segment P0
-	//PPCRecompiler_pushBackIMLInstructions(imlSegmentP0, 0, 1);
-	//imlSegmentP0->imlList[0].type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
-	//imlSegmentP0->imlList[0].operation = 0;
-	//imlSegmentP0->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
-	//imlSegmentP0->imlList[0].op_conditionalJump.jumpmarkAddress = imlSegmentP2->jumpDestinationPPCAddress;
-	//imlSegmentP0->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
-	//// jump instruction for PEntry
-	//PPCRecompiler_pushBackIMLInstructions(imlSegmentPEntry, 0, 1);
-	//PPCRecompilerImlGen_generateNewInstruction_jumpSegment(&ppcImlGenContext, imlSegmentPEntry->imlList.data() + 0);
+	exitSegment->AppendInstruction()->make_macro(PPCREC_IML_MACRO_LEAVE, basicBlockInfo.startAddress, 0, 0);
 }
 
 void PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext_t& ppcImlGenContext)
