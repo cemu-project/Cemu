@@ -1,28 +1,74 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterHelper.h"
+#include "Cafe/HW/Espresso/EspressoISA.h"
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
 #include "IML/IML.h"
 #include "IML/IMLRegisterAllocatorRanges.h"
+#include "PPCFunctionBoundaryTracker.h"
+
+struct PPCBasicBlockInfo
+{
+	PPCBasicBlockInfo(uint32 startAddress, const std::set<uint32>& entryAddresses) : startAddress(startAddress), lastAddress(startAddress)
+	{
+		isEnterable = entryAddresses.find(startAddress) != entryAddresses.end();
+	}
+
+	uint32 startAddress;
+	uint32 lastAddress; // inclusive
+	bool isEnterable{ false };
+	//uint32 enterableAddress{}; -> covered by startAddress
+	bool hasContinuedFlow{ true }; // non-branch path goes to next segment (lastAddress+4), assumed by default
+	bool hasBranchTarget{ false };
+	uint32 branchTarget{};
+
+	// associated IML segments
+	IMLSegment* firstSegment{}; // first segment in chain, used as branch target for other segments
+	IMLSegment* appendSegment{}; // last segment in chain, new instructions should be appended to this segment
+
+	void SetInitialSegment(IMLSegment* seg)
+	{
+		cemu_assert_debug(!firstSegment);
+		cemu_assert_debug(!appendSegment);
+		firstSegment = seg;
+		appendSegment = seg;
+	}
+
+	IMLSegment* GetFirstSegmentInChain()
+	{
+		return firstSegment;
+	}
+
+	IMLSegment* GetSegmentForInstructionAppend()
+	{
+		return appendSegment;
+	}
+};
 
 bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext);
 uint32 PPCRecompiler_iterateCurrentInstruction(ppcImlGenContext_t* ppcImlGenContext);
-uint32 PPCRecompiler_getInstructionByOffset(ppcImlGenContext_t* ppcImlGenContext, uint32 offset);
 
 IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext_t* ppcImlGenContext)
 {
-	if( ppcImlGenContext->imlListCount+1 > ppcImlGenContext->imlListSize )
-	{
-		sint32 newSize = ppcImlGenContext->imlListCount*2 + 2;
-		ppcImlGenContext->imlList = (IMLInstruction*)realloc(ppcImlGenContext->imlList, sizeof(IMLInstruction)*newSize);
-		ppcImlGenContext->imlListSize = newSize;
-	}
-	IMLInstruction* imlInstruction = ppcImlGenContext->imlList+ppcImlGenContext->imlListCount;
-	memset(imlInstruction, 0x00, sizeof(IMLInstruction));
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER; // dont update any cr register by default
-	imlInstruction->associatedPPCAddress = ppcImlGenContext->ppcAddressOfCurrentInstruction;
-	ppcImlGenContext->imlListCount++;
-	return imlInstruction;
+	//if( ppcImlGenContext->imlListCount+1 > ppcImlGenContext->imlListSize )
+	//{
+	//	sint32 newSize = ppcImlGenContext->imlListCount*2 + 2;
+	//	ppcImlGenContext->imlList = (IMLInstruction*)realloc(ppcImlGenContext->imlList, sizeof(IMLInstruction)*newSize);
+	//	ppcImlGenContext->imlListSize = newSize;
+	//}
+	//IMLInstruction* imlInstruction = ppcImlGenContext->imlList+ppcImlGenContext->imlListCount;
+	//memset(imlInstruction, 0x00, sizeof(IMLInstruction));
+	//imlInstruction->crRegister = PPC_REC_INVALID_REGISTER; // dont update any cr register by default
+	//imlInstruction->associatedPPCAddress = ppcImlGenContext->ppcAddressOfCurrentInstruction;
+	//ppcImlGenContext->imlListCount++;
+	//return imlInstruction;
+
+	IMLInstruction& inst = ppcImlGenContext->currentOutputSegment->imlList.emplace_back();
+	memset(&inst, 0x00, sizeof(IMLInstruction));
+	inst.crRegister = PPC_REC_INVALID_REGISTER; // dont update any cr register by default
+//imlInstruction->associatedPPCAddress = ppcImlGenContext->ppcAddressOfCurrentInstruction;
+
+	return &inst;
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister, uint8 crMode)
@@ -109,6 +155,8 @@ void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenConte
 
 void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 jumpmarkAddress)
 {
+	__debugbreak();
+
 	// jump
 	if (imlInstruction == NULL)
 		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
@@ -168,11 +216,27 @@ void PPCRecompilerImlGen_generateNewInstruction_cr(ppcImlGenContext_t* ppcImlGen
 
 void PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext_t* ppcImlGenContext, uint32 jumpmarkAddress, uint32 jumpCondition, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
 {
+	__debugbreak();
+
 	// conditional jump
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
+	imlInstruction->op_conditionalJump.jumpAccordingToSegment = false;
 	imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
+	imlInstruction->op_conditionalJump.condition = jumpCondition;
+	imlInstruction->op_conditionalJump.crRegisterIndex = crRegisterIndex;
+	imlInstruction->op_conditionalJump.crBitIndex = crBitIndex;
+	imlInstruction->op_conditionalJump.bitMustBeSet = bitMustBeSet;
+}
+
+void PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext_t* ppcImlGenContext, uint32 jumpCondition, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
+{
+	// conditional jump
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
+	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
+	imlInstruction->op_conditionalJump.jumpAccordingToSegment = true;
 	imlInstruction->op_conditionalJump.condition = jumpCondition;
 	imlInstruction->op_conditionalJump.crRegisterIndex = crRegisterIndex;
 	imlInstruction->op_conditionalJump.crBitIndex = crBitIndex;
@@ -363,7 +427,13 @@ uint32 PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGe
 
 void PPCRecompilerImlGen_TW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	// split before and after to make sure the macro is in an isolated segment that we can make enterable
+	PPCIMLGen_CreateSplitSegmentAtEnd(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock);
+	ppcImlGenContext->currentOutputSegment->SetEnterable(ppcImlGenContext->ppcAddressOfCurrentInstruction);
 	PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext)->make_macro(PPCREC_IML_MACRO_LEAVE, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
+	IMLSegment* middleSeg = PPCIMLGen_CreateSplitSegmentAtEnd(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock);
+	middleSeg->SetLinkBranchTaken(nullptr);
+	middleSeg->SetLinkBranchNotTaken(nullptr);
 }
 
 bool PPCRecompilerImlGen_MTSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -417,6 +487,9 @@ bool PPCRecompilerImlGen_MFSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_MFTB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	printf("PPCRecompilerImlGen_MFTB(): Not supported\n");
+	return false;
+
 	uint32 rD, spr1, spr2, spr;
 	PPC_OPC_TEMPL_XO(opcode, rD, spr1, spr2);
 	spr = spr1 | (spr2<<5);
@@ -426,6 +499,8 @@ bool PPCRecompilerImlGen_MFTB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		// TBL / TBU
 		uint32 param2 = spr | (rD << 16);
 		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_MFTB, ppcImlGenContext->ppcAddressOfCurrentInstruction, param2, 0);
+		IMLSegment* middleSeg = PPCIMLGen_CreateSplitSegmentAtEnd(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock);
+
 		return true;
 	}
 	return false;
@@ -560,7 +635,7 @@ void PPCRecompiler_generateInlinedCode(ppcImlGenContext_t* ppcImlGenContext, uin
 		ppcImlGenContext->cyclesSinceLastBranch++;
 		if (PPCRecompiler_decodePPCInstruction(ppcImlGenContext))
 		{
-			assert_dbg();
+			cemu_assert_suspicious();
 		}
 	}
 	// add range
@@ -582,33 +657,17 @@ bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 	if( opcode&PPC_OPC_LK )
 	{
 		// function call
-		// check if function can be inlined
-		sint32 inlineFuncInstructionCount = 0;
-		if (PPCRecompiler_canInlineFunction(jumpAddressDest, &inlineFuncInstructionCount))
-		{
-			// generate NOP iml instead of BL macro (this assures that segment PPC range remains intact)
-			PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext, NULL);
-			//cemuLog_log(LogType::Force, "Inline func 0x{:08x} at {:08x}", jumpAddressDest, ppcImlGenContext->ppcAddressOfCurrentInstruction);
-			uint32* prevInstructionPtr = ppcImlGenContext->currentInstruction;
-			ppcImlGenContext->currentInstruction = (uint32*)memory_getPointerFromVirtualOffset(jumpAddressDest);
-			PPCRecompiler_generateInlinedCode(ppcImlGenContext, jumpAddressDest, inlineFuncInstructionCount);
-			ppcImlGenContext->currentInstruction = prevInstructionPtr;
-			return true;
-		}
-		// generate funtion call instructions
 		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BL, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-		ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
 		return true;
 	}
 	// is jump destination within recompiled function?
-	if( jumpAddressDest >= ppcImlGenContext->functionRef->ppcAddress && jumpAddressDest < (ppcImlGenContext->functionRef->ppcAddress + ppcImlGenContext->functionRef->ppcSize) )
+	if( ppcImlGenContext->boundaryTracker->ContainsAddress(jumpAddressDest) )
 	{
-		// generate instruction
-		PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext, NULL, jumpAddressDest);
+		// jump to target within same function
+		PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext, nullptr);
 	}
 	else
 	{
-		// todo: Inline this jump destination if possible (in many cases it's a bunch of GPR/FPR store instructions + BLR)
 		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
 	}
 	return true;
@@ -616,6 +675,8 @@ bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 
 bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	PPCIMLGen_AssertIfNotLastSegmentInstruction(*ppcImlGenContext);
+
 	uint32 BO, BI, BD;
 	PPC_OPC_TEMPL_B(opcode, BO, BI, BD);
 
@@ -661,11 +722,10 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 				else if( crBit == 3 )
 					jumpCondition = PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW;
 			}
-			// generate instruction
-			//ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4, jumpCondition, crRegister, crBit, !conditionMustBeTrue);
-			ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BL, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-			ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
+			PPCBasicBlockInfo* currentBasicBlock = ppcImlGenContext->currentBasicBlock;
+			IMLSegment* blSeg = PPCIMLGen_CreateNewSegmentAsBranchTarget(*ppcImlGenContext, *currentBasicBlock);
+			PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, jumpCondition, crRegister, crBit, conditionMustBeTrue);
+			blSeg->AppendInstruction()->make_macro(PPCREC_IML_MACRO_BL, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
 			return true;
 		}
 		return false;
@@ -678,9 +738,9 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 		uint32 ctrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_CTR, false);
 		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_SUB, ctrRegister, 1, 0, false, false, PPCREC_CR_REG_TEMP, PPCREC_CR_MODE_ARITHMETIC);
 		if( decrementerMustBeZero )
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, jumpAddressDest, PPCREC_JUMP_CONDITION_E, PPCREC_CR_REG_TEMP, 0, false);
+			PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, PPCREC_JUMP_CONDITION_E, PPCREC_CR_REG_TEMP, 0, false);
 		else
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, jumpAddressDest, PPCREC_JUMP_CONDITION_NE, PPCREC_CR_REG_TEMP, 0, false);
+			PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, PPCREC_JUMP_CONDITION_NE, PPCREC_CR_REG_TEMP, 0, false);
 		return true;
 	}
 	else
@@ -688,8 +748,8 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 		if( ignoreCondition )
 		{
 			// branch always, no condition and no decrementer
-			debugBreakpoint();
-			crRegister = PPC_REC_INVALID_REGISTER; // not necessary but lets optimizer know we dont care for cr register on this instruction
+			// not supported
+			return false;
 		}
 		else
 		{
@@ -717,17 +777,20 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 					jumpCondition = PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW;
 			}
 
-			if (jumpAddressDest >= ppcImlGenContext->functionRef->ppcAddress && jumpAddressDest < (ppcImlGenContext->functionRef->ppcAddress + ppcImlGenContext->functionRef->ppcSize))
+			if (ppcImlGenContext->boundaryTracker->ContainsAddress(jumpAddressDest))
 			{
 				// near jump
-				PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, jumpAddressDest, jumpCondition, crRegister, crBit, conditionMustBeTrue);
+				PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, jumpCondition, crRegister, crBit, conditionMustBeTrue);
 			}
 			else
 			{
 				// far jump
+				debug_printf("PPCRecompilerImlGen_BC(): Far jump not supported yet");
+				return false;
+
 				PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction + 4, jumpCondition, crRegister, crBit, !conditionMustBeTrue);
 				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-				ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction + 4);
+				//ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction + 4);
 			}
 		}
 	}
@@ -736,6 +799,8 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 
 bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	PPCIMLGen_AssertIfNotLastSegmentInstruction(*ppcImlGenContext);
+
 	uint32 BO, BI, BD;
 	PPC_OPC_TEMPL_XL(opcode, BO, BI, BD);
 
@@ -750,7 +815,7 @@ bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	bool ignoreCondition = (BO&16)!=0;
 	bool saveLR = (opcode&PPC_OPC_LK)!=0;
 	// since we skip this instruction if the condition is true, we need to invert the logic
-	bool invertedConditionMustBeTrue = !conditionMustBeTrue;
+	//bool invertedConditionMustBeTrue = !conditionMustBeTrue;
 	if( useDecrementer )
 	{
 		cemu_assert_debug(false);
@@ -760,28 +825,37 @@ bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	{
 		if( ignoreCondition )
 		{
-			// store LR
+			// branch always, no condition and no decrementer check
+			cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasContinuedFlow);
+			cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasBranchTarget);
 			if( saveLR )
 			{
 				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-				ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
 			}
 			else
 			{
-				// branch always, no condition and no decrementer
 				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
 			}
 		}
 		else
 		{
+			cemu_assert_debug(ppcImlGenContext->currentBasicBlock->hasContinuedFlow);
+			cemu_assert_debug(!ppcImlGenContext->currentBasicBlock->hasBranchTarget);
+
+			//debug_printf("[Rec-Disable] BCLR with condition or LR\n");
+			//return false;
+
 			// store LR
 			if( saveLR )
 			{
+				cemu_assert_unimplemented(); // todo - this is difficult to handle because it needs to jump to the unmodified LR (we should cache it in a register which we pass to the macro?)
+				return false;
+
 				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_LR);
 				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction+4)&0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
 			}
 			// generate jump condition
-			if( invertedConditionMustBeTrue )
+			if(conditionMustBeTrue)
 			{
 				if( crBit == 0 )
 					jumpCondition = PPCREC_JUMP_CONDITION_L;
@@ -803,9 +877,17 @@ bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 				else if( crBit == 3 )
 					jumpCondition = PPCREC_JUMP_CONDITION_NSUMMARYOVERFLOW;
 			}
-			// jump if BCLR condition NOT met (jump to jumpmark of next instruction, essentially skipping current instruction)
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4, jumpCondition, crRegister, crBit, invertedConditionMustBeTrue);
-			ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
+
+			//if(conditionMustBeTrue)
+			//	ppcImlGenContext->emitInst().make_debugbreak(ppcImlGenContext->ppcAddressOfCurrentInstruction);
+
+			// write the BCTR instruction to a new segment that is set as a branch target for the current segment
+			PPCBasicBlockInfo* currentBasicBlock = ppcImlGenContext->currentBasicBlock;
+			IMLSegment* bctrSeg = PPCIMLGen_CreateNewSegmentAsBranchTarget(*ppcImlGenContext, *currentBasicBlock);
+
+			PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, jumpCondition, crRegister, crBit, conditionMustBeTrue);
+
+			bctrSeg->AppendInstruction()->make_macro(PPCREC_IML_MACRO_BLR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
 		}
 	}
 	return true;
@@ -813,6 +895,8 @@ bool PPCRecompilerImlGen_BCLR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_BCCTR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	PPCIMLGen_AssertIfNotLastSegmentInstruction(*ppcImlGenContext);
+
 	uint32 BO, BI, BD;
 	PPC_OPC_TEMPL_XL(opcode, BO, BI, BD);
 
@@ -826,6 +910,7 @@ bool PPCRecompilerImlGen_BCCTR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	bool decrementerMustBeZero = (BO&2)!=0; // bit set -> branch if CTR = 0, bit not set -> branch if CTR != 0
 	bool ignoreCondition = (BO&16)!=0;
 	bool saveLR = (opcode&PPC_OPC_LK)!=0;
+
 	// since we skip this instruction if the condition is true, we need to invert the logic
 	bool invertedConditionMustBeTrue = !conditionMustBeTrue;
 	if( useDecrementer )
@@ -839,51 +924,63 @@ bool PPCRecompilerImlGen_BCCTR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	{
 		if( ignoreCondition )
 		{
-			// store LR
+			// branch always, no condition and no decrementer
 			if( saveLR )
 			{
 				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_LR);
 				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction+4)&0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+			}
+			if (saveLR)
 				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTRL, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-				ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction+4);
-			}
 			else
-			{
-				// branch always, no condition and no decrementer
 				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
-			}
 		}
 		else
 		{
-			// store LR
-			if( saveLR )
+			// get jump condition
+			if (invertedConditionMustBeTrue)
 			{
-				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_LR);
-				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction+4)&0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
-			}
-			// generate jump condition
-			if( invertedConditionMustBeTrue )
-			{
-				if( crBit == 0 )
+				if (crBit == 0)
 					jumpCondition = PPCREC_JUMP_CONDITION_L;
-				else if( crBit == 1 )
+				else if (crBit == 1)
 					jumpCondition = PPCREC_JUMP_CONDITION_G;
-				else if( crBit == 2 )
+				else if (crBit == 2)
 					jumpCondition = PPCREC_JUMP_CONDITION_E;
-				else if( crBit == 3 )
+				else if (crBit == 3)
 					jumpCondition = PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW;
 			}
 			else
 			{
-				if( crBit == 0 )
+				if (crBit == 0)
 					jumpCondition = PPCREC_JUMP_CONDITION_GE;
-				else if( crBit == 1 )
+				else if (crBit == 1)
 					jumpCondition = PPCREC_JUMP_CONDITION_LE;
-				else if( crBit == 2 )
+				else if (crBit == 2)
 					jumpCondition = PPCREC_JUMP_CONDITION_NE;
-				else if( crBit == 3 )
+				else if (crBit == 3)
 					jumpCondition = PPCREC_JUMP_CONDITION_NSUMMARYOVERFLOW;
 			}
+
+			// debug checks
+			//if (saveLR)
+			//	cemu_assert_debug(ppcImlGenContext->currentBasicBlock->);
+
+			// we always store LR
+			if (saveLR)
+			{
+				uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_LR);
+				PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, (ppcImlGenContext->ppcAddressOfCurrentInstruction + 4) & 0x7FFFFFFF, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+			}
+
+			// write the BCTR instruction to a new segment that is set as a branch target for the current segment
+			__debugbreak();
+			PPCBasicBlockInfo* currentBasicBlock = ppcImlGenContext->currentBasicBlock;
+			IMLSegment* bctrSeg = PPCIMLGen_CreateNewSegmentAsBranchTarget(*ppcImlGenContext, *currentBasicBlock);
+
+			//PPCBasicBlockInfo* bctrSeg = currentBasicBlock->Get
+			__debugbreak();
+
+			
 			// jump if BCLR condition NOT met (jump to jumpmark of next instruction, essentially skipping current instruction)
 			PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction+4, jumpCondition, crRegister, crBit, invertedConditionMustBeTrue);
 			ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_BCTR, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, ppcImlGenContext->cyclesSinceLastBranch);
@@ -2915,12 +3012,6 @@ uint32 PPCRecompiler_iterateCurrentInstruction(ppcImlGenContext_t* ppcImlGenCont
 	return v;
 }
 
-uint32 PPCRecompiler_getInstructionByOffset(ppcImlGenContext_t* ppcImlGenContext, uint32 offset)
-{
-	uint32 v = CPU_swapEndianU32(*(ppcImlGenContext->currentInstruction + offset/4));
-	return v;
-}
-
 uint32 PPCRecompiler_getCurrentInstruction(ppcImlGenContext_t* ppcImlGenContext)
 {
 	uint32 v = CPU_swapEndianU32(*(ppcImlGenContext->currentInstruction));
@@ -3864,268 +3955,884 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 	return unsupportedInstructionFound;
 }
 
-bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext, PPCRecFunction_t* ppcRecFunc, std::set<uint32>& entryAddresses)
+// returns false if code flow is not interrupted
+// continueDefaultPath: Controls if 
+bool PPCRecompiler_CheckIfInstructionEndsSegment(PPCFunctionBoundaryTracker& boundaryTracker, uint32 instructionAddress, uint32 opcode, bool& makeNextInstEnterable, bool& continueDefaultPath, bool& hasBranchTarget, uint32& branchTarget)
 {
-	ppcImlGenContext.functionRef = ppcRecFunc;
+	hasBranchTarget = false;
+	branchTarget = 0xFFFFFFFF;
+	makeNextInstEnterable = false;
+	continueDefaultPath = false;
+	switch (Espresso::GetPrimaryOpcode(opcode))
+	{
+	case Espresso::PrimaryOpcode::VIRTUAL_HLE:
+	{
+		makeNextInstEnterable = true;
+		hasBranchTarget = false;
+		continueDefaultPath = false;
+		return true;
+	}
+	case Espresso::PrimaryOpcode::BC:
+	{
+		uint32 BD, BI;
+		Espresso::BOField BO;
+		bool AA, LK;
+		Espresso::decodeOp_BC(opcode, BD, BO, BI, AA, LK);
+		if (!LK)
+		{
+			hasBranchTarget = true;
+			branchTarget = (AA ? BD : BD) + instructionAddress;
+			if (!boundaryTracker.ContainsAddress(branchTarget))
+				hasBranchTarget = false; // far jump
+		}
+		makeNextInstEnterable = LK;
+		continueDefaultPath = true;
+		return true;
+	}
+	case Espresso::PrimaryOpcode::B:
+	{
+		uint32 LI;
+		bool AA, LK;
+		Espresso::decodeOp_B(opcode, LI, AA, LK);
+		if (!LK)
+		{
+			hasBranchTarget = true;
+			branchTarget = AA ? LI : LI + instructionAddress;
+			if (!boundaryTracker.ContainsAddress(branchTarget))
+				hasBranchTarget = false; // far jump
+		}
+		makeNextInstEnterable = LK;
+		continueDefaultPath = false;
+		return true;
+	}
+	case Espresso::PrimaryOpcode::GROUP_19:
+		switch (Espresso::GetGroup19Opcode(opcode))
+		{
+		//case Espresso::Opcode19::BCLR:
+		////case Espresso::Opcode19::BCCTR:
+		//{
+		//	continueDefaultPath = false; // todo - set this to true if this instruction has a condition (including decrementer check)
+		//	makeNextInstEnterable = Espresso::DecodeLK(opcode);
+		//	return true;
+		//}
+
+		case Espresso::Opcode19::BCLR:
+		case Espresso::Opcode19::BCCTR:
+		{
+			Espresso::BOField BO;
+			uint32 BI;
+			bool LK;
+			Espresso::decodeOp_BCSPR(opcode, BO, BI, LK);
+			continueDefaultPath = !BO.conditionIgnore() || !BO.decrementerIgnore(); // if branch is always taken then there is no continued path
+			makeNextInstEnterable = Espresso::DecodeLK(opcode);
+			return true;
+		}
+		default:
+			break;
+		}
+		break;
+	case Espresso::PrimaryOpcode::GROUP_31:
+		switch (Espresso::GetGroup31Opcode(opcode))
+		{
+		//case Espresso::Opcode31::TW:
+		//	continueDefaultPath = true;
+		//	return true;
+		//case Espresso::Opcode31::MFTB:
+		//	continueDefaultPath = true;
+		//	return true;
+		//case Espresso::Opcode19::BCLR:
+		//case Espresso::Opcode19::BCCTR:
+		//{
+		//	continueDefaultPath = false;
+		//	makeNextInstEnterable = Espresso::DecodeLK(opcode);
+		//	return true;
+		//}
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
+void PPCRecompiler_DetermineBasicBlockRange(std::vector<PPCBasicBlockInfo>& basicBlockList, PPCFunctionBoundaryTracker& boundaryTracker, uint32 ppcStart, uint32 ppcEnd, const std::set<uint32>& combinedBranchTargets, const std::set<uint32>& entryAddresses)
+{
+	cemu_assert_debug(ppcStart <= ppcEnd);
+
+	uint32 currentAddr = ppcStart;
+
+	PPCBasicBlockInfo* curBlockInfo = &basicBlockList.emplace_back(currentAddr, entryAddresses);
+
+	uint32 basicBlockStart = currentAddr;	
+	while (currentAddr <= ppcEnd)
+	{
+		curBlockInfo->lastAddress = currentAddr;
+		uint32 opcode = memory_readU32(currentAddr);
+		bool nextInstIsEnterable = false;
+		bool hasBranchTarget = false;
+		bool hasContinuedFlow = false;
+		uint32 branchTarget = 0;
+		if (PPCRecompiler_CheckIfInstructionEndsSegment(boundaryTracker, currentAddr, opcode, nextInstIsEnterable, hasContinuedFlow, hasBranchTarget, branchTarget))
+		{
+			curBlockInfo->hasBranchTarget = hasBranchTarget;
+			curBlockInfo->branchTarget = branchTarget;
+			curBlockInfo->hasContinuedFlow = hasContinuedFlow;
+			// start new basic block, except if this is the last instruction
+			if (currentAddr >= ppcEnd)
+				break;
+			curBlockInfo = &basicBlockList.emplace_back(currentAddr + 4, entryAddresses);
+			curBlockInfo->isEnterable = curBlockInfo->isEnterable || nextInstIsEnterable;
+			currentAddr += 4;
+			continue;
+		}
+		currentAddr += 4;
+		if (currentAddr <= ppcEnd)
+		{
+			if (combinedBranchTargets.find(currentAddr) != combinedBranchTargets.end())
+			{
+				// instruction is branch target, start new basic block
+				curBlockInfo = &basicBlockList.emplace_back(currentAddr, entryAddresses);
+			}
+		}
+
+	}
+}
+
+std::vector<PPCBasicBlockInfo> PPCRecompiler_DetermineBasicBlockRange(PPCFunctionBoundaryTracker& boundaryTracker, const std::set<uint32>& entryAddresses)
+{
+	cemu_assert(!entryAddresses.empty());
+	std::vector<PPCBasicBlockInfo> basicBlockList;
+
+	const std::set<uint32> branchTargets = boundaryTracker.GetBranchTargets();
+	auto funcRanges = boundaryTracker.GetRanges();
+
+	std::set<uint32> combinedBranchTargets = branchTargets;
+	combinedBranchTargets.insert(entryAddresses.begin(), entryAddresses.end());
+
+	for (auto& funcRangeIt : funcRanges)
+		PPCRecompiler_DetermineBasicBlockRange(basicBlockList, boundaryTracker, funcRangeIt.startAddress, funcRangeIt.startAddress + funcRangeIt.length - 4, combinedBranchTargets, entryAddresses);
+
+	// mark all segments that start at entryAddresses as enterable (debug code for verification, can be removed)
+	size_t numMarkedEnterable = 0;
+	for (auto& basicBlockIt : basicBlockList)
+	{
+		if (entryAddresses.find(basicBlockIt.startAddress) != entryAddresses.end())
+		{
+			cemu_assert_debug(basicBlockIt.isEnterable);
+			numMarkedEnterable++;
+		}
+	}
+	cemu_assert_debug(numMarkedEnterable == entryAddresses.size());
+
+	// todo - inline BL, currently this is done in the instruction handler of BL but this will mean that instruction cycle increasing is ignored
+
+	return basicBlockList;
+}
+
+bool PPCIMLGen_FillBasicBlock(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo)
+{
+	ppcImlGenContext.currentOutputSegment = basicBlockInfo.GetSegmentForInstructionAppend();
+	ppcImlGenContext.currentInstruction = (uint32*)(memory_base + basicBlockInfo.startAddress);
+
+	uint32* firstCurrentInstruction = ppcImlGenContext.currentInstruction;
+	uint32* endCurrentInstruction = (uint32*)(memory_base + basicBlockInfo.lastAddress);
+
+	while (ppcImlGenContext.currentInstruction <= endCurrentInstruction)
+	{
+		uint32 addressOfCurrentInstruction = (uint32)((uint8*)ppcImlGenContext.currentInstruction - memory_base);
+		ppcImlGenContext.ppcAddressOfCurrentInstruction = addressOfCurrentInstruction;
+		if (PPCRecompiler_decodePPCInstruction(&ppcImlGenContext))
+		{
+			debug_printf("Recompiler encountered unsupported instruction at 0x%08x\n", addressOfCurrentInstruction);
+			ppcImlGenContext.currentOutputSegment = nullptr;
+			return false;
+		}
+	}
+	ppcImlGenContext.currentOutputSegment = nullptr;
+	return true;
+}
+
+// returns split segment from which the continued segment is available via seg->GetBranchNotTaken()
+IMLSegment* PPCIMLGen_CreateSplitSegmentAtEnd(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo)
+{
+	IMLSegment* writeSegment = basicBlockInfo.GetSegmentForInstructionAppend();
+
+	//IMLSegment* continuedSegment = ppcImlGenContext.NewSegment();
+	IMLSegment* continuedSegment = ppcImlGenContext.InsertSegment(ppcImlGenContext.GetSegmentIndex(writeSegment) + 1);
+
+	continuedSegment->SetLinkBranchTaken(writeSegment->GetBranchTaken());
+	continuedSegment->SetLinkBranchNotTaken(writeSegment->GetBranchNotTaken());
+
+	writeSegment->SetLinkBranchNotTaken(continuedSegment);
+	writeSegment->SetLinkBranchTaken(nullptr);
+
+	if (ppcImlGenContext.currentOutputSegment == writeSegment)
+		ppcImlGenContext.currentOutputSegment = continuedSegment;
+
+	cemu_assert_debug(basicBlockInfo.appendSegment == writeSegment);
+	basicBlockInfo.appendSegment = continuedSegment;
+
+	return writeSegment;
+}
+
+// generates a new segment and sets it as branch target for the current write segment. Returns the created segment
+IMLSegment* PPCIMLGen_CreateNewSegmentAsBranchTarget(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo)
+{
+	IMLSegment* writeSegment = basicBlockInfo.GetSegmentForInstructionAppend();
+	IMLSegment* branchTargetSegment = ppcImlGenContext.NewSegment();
+	cemu_assert_debug(!writeSegment->GetBranchTaken()); // must not have a target already
+	writeSegment->SetLinkBranchTaken(branchTargetSegment);
+	return branchTargetSegment;
+}
+
+// verify that current instruction is the last instruction of the active basic block
+void PPCIMLGen_AssertIfNotLastSegmentInstruction(ppcImlGenContext_t& ppcImlGenContext)
+{
+	cemu_assert_debug(ppcImlGenContext.currentBasicBlock->lastAddress == ppcImlGenContext.ppcAddressOfCurrentInstruction);
+}
+
+void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo)
+{
+	IMLSegment* imlSegment = basicBlockInfo.GetFirstSegmentInChain();
+	//if (imlSegment->imlList.empty())
+	//	return;
+	//if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
+	//	return;
+	//if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpAccordingToSegment)
+	//	return;
+	if (!basicBlockInfo.hasBranchTarget)
+		return;
+	if (basicBlockInfo.branchTarget >= basicBlockInfo.startAddress)
+		return;
+
+	// exclude non-infinite tight loops
+	if (IMLAnalyzer_IsTightFiniteLoop(imlSegment))
+		return;
+	// potential loop segment found, split this segment into four:
+	// P0: This segment checks if the remaining cycles counter is still above zero. If yes, it jumps to segment P2 (it's also the jump destination for other segments)
+	// P1: This segment contains the ppc_leave instruction
+	// P2: This segment contains the iml instructions of the original segment
+	// PEntry: This segment is used to enter the function, it jumps to P0
+	// All segments are considered to be part of the same PPC instruction range
+	// The first segment also retains the jump destination and enterable properties from the original segment.
+	//debug_printf("--- Insert cycle counter check ---\n");
+
+
+	// make the segment enterable so execution can return after checking
+	basicBlockInfo.GetFirstSegmentInChain()->SetEnterable(basicBlockInfo.startAddress);
+
+	IMLSegment* splitSeg = PPCIMLGen_CreateSplitSegmentAtEnd(ppcImlGenContext, basicBlockInfo);
+
+	// what we know about the crash:
+	// It doesnt happen with cycle checks disabled
+	// The debugbreak emitted here is only encountered twice before it crashes
+	// it doesnt seem to go into the alternative branch (cycles negative) -> tested (debugbreak in exit segment doesnt trigger)
+	// Its the enterable segment that causes issues? -> I removed the enterable statement and it still happened
+	// Maybe some general issue with getting x64 offsets for enterable segments..
+
+	// possible explanations:
+	// issue with the cycle check / exit logic
+	// returning from exit is causing the issue
+	// Segments can get marked as jump destination which we no longer do -> Deleted old code and added asserts
+
+	IMLInstruction* inst = splitSeg->AppendInstruction();
+	inst->type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
+	inst->operation = 0;
+	inst->crRegister = PPC_REC_INVALID_REGISTER;
+	inst->op_conditionalJump.jumpmarkAddress = 0xFFFFFFFF;
+	inst->associatedPPCAddress = 0xFFFFFFFF;
+	// PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK
+	
+	//splitSeg->AppendInstruction()->make_macro(PPCREC_IML_TYPE_MACRO, )
+
+	IMLSegment* exitSegment = ppcImlGenContext.NewSegment();
+	splitSeg->SetLinkBranchTaken(exitSegment);
+
+
+	//exitSegment->AppendInstruction()->make_debugbreak();
+
+	inst = exitSegment->AppendInstruction();// ->make_macro(PPCREC_IML_MACRO_LEAVE, basicBlockInfo.startAddress);
+	inst->type = PPCREC_IML_TYPE_MACRO;
+	inst->operation = PPCREC_IML_MACRO_LEAVE;
+	inst->crRegister = PPC_REC_INVALID_REGISTER;
+	inst->op_macro.param = basicBlockInfo.startAddress;
+	inst->associatedPPCAddress = basicBlockInfo.startAddress;
+
+
+	//debug_printf("----------------------------------------\n");
+	//IMLDebug_Dump(&ppcImlGenContext);
+	//__debugbreak();
+
+	//ppcImlGenContext.NewSegment();
+
+	//PPCRecompilerIml_insertSegments(&ppcImlGenContext, s, 2);
+	//imlSegment = NULL;
+	//IMLSegment* imlSegmentP0 = ppcImlGenContext.segmentList2[s + 0];
+	//IMLSegment* imlSegmentP1 = ppcImlGenContext.segmentList2[s + 1];
+	//IMLSegment* imlSegmentP2 = ppcImlGenContext.segmentList2[s + 2];
+	//// create entry point segment
+	//PPCRecompilerIml_insertSegments(&ppcImlGenContext, ppcImlGenContext.segmentList2.size(), 1);
+	//IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size() - 1];
+	//// relink segments	
+	//IMLSegment_RelinkInputSegment(imlSegmentP2, imlSegmentP0);
+	//IMLSegment_SetLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
+	//IMLSegment_SetLinkBranchTaken(imlSegmentP0, imlSegmentP2);
+	//IMLSegment_SetLinkBranchTaken(imlSegmentPEntry, imlSegmentP0);
+	//// update segments
+	//uint32 enterPPCAddress = imlSegmentP2->ppcAddrMin;
+	//if (imlSegmentP2->isEnterable)
+	//	enterPPCAddress = imlSegmentP2->enterPPCAddress;
+	//imlSegmentP0->ppcAddress = 0xFFFFFFFF;
+	//imlSegmentP1->ppcAddress = 0xFFFFFFFF;
+	//imlSegmentP2->ppcAddress = 0xFFFFFFFF;
+	//cemu_assert_debug(imlSegmentP2->ppcAddrMin != 0);
+	//// move segment properties from segment P2 to segment P0
+	//imlSegmentP0->isJumpDestination = imlSegmentP2->isJumpDestination;
+	//imlSegmentP0->jumpDestinationPPCAddress = imlSegmentP2->jumpDestinationPPCAddress;
+	//imlSegmentP0->isEnterable = false;
+	////imlSegmentP0->enterPPCAddress = imlSegmentP2->enterPPCAddress;
+	//imlSegmentP0->ppcAddrMin = imlSegmentP2->ppcAddrMin;
+	//imlSegmentP0->ppcAddrMax = imlSegmentP2->ppcAddrMax;
+	//imlSegmentP2->isJumpDestination = false;
+	//imlSegmentP2->jumpDestinationPPCAddress = 0;
+	//imlSegmentP2->isEnterable = false;
+	//imlSegmentP2->enterPPCAddress = 0;
+	//imlSegmentP2->ppcAddrMin = 0;
+	//imlSegmentP2->ppcAddrMax = 0;
+	//// setup enterable segment
+	//if (enterPPCAddress != 0 && enterPPCAddress != 0xFFFFFFFF)
+	//{
+	//	imlSegmentPEntry->isEnterable = true;
+	//	imlSegmentPEntry->ppcAddress = enterPPCAddress;
+	//	imlSegmentPEntry->enterPPCAddress = enterPPCAddress;
+	//}
+	//// assign new jumpmark to segment P2
+	//imlSegmentP2->isJumpDestination = true;
+	//imlSegmentP2->jumpDestinationPPCAddress = currentLoopEscapeJumpMarker;
+	//currentLoopEscapeJumpMarker++;
+	//// create ppc_leave instruction in segment P1
+	//PPCRecompiler_pushBackIMLInstructions(imlSegmentP1, 0, 1);
+	//imlSegmentP1->imlList[0].type = PPCREC_IML_TYPE_MACRO;
+	//imlSegmentP1->imlList[0].operation = PPCREC_IML_MACRO_LEAVE;
+	//imlSegmentP1->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+	//imlSegmentP1->imlList[0].op_macro.param = imlSegmentP0->ppcAddrMin;
+	//imlSegmentP1->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
+	//// create cycle-based conditional instruction in segment P0
+	//PPCRecompiler_pushBackIMLInstructions(imlSegmentP0, 0, 1);
+	//imlSegmentP0->imlList[0].type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
+	//imlSegmentP0->imlList[0].operation = 0;
+	//imlSegmentP0->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+	//imlSegmentP0->imlList[0].op_conditionalJump.jumpmarkAddress = imlSegmentP2->jumpDestinationPPCAddress;
+	//imlSegmentP0->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
+	//// jump instruction for PEntry
+	//PPCRecompiler_pushBackIMLInstructions(imlSegmentPEntry, 0, 1);
+	//PPCRecompilerImlGen_generateNewInstruction_jumpSegment(&ppcImlGenContext, imlSegmentPEntry->imlList.data() + 0);
+}
+
+void PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext_t& ppcImlGenContext)
+{
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
+	{
+		bool isLastSegment = segIt == ppcImlGenContext.segmentList2.back();
+		//IMLSegment* nextSegment = isLastSegment ? nullptr : ppcImlGenContext->segmentList2[s + 1];
+		// handle empty segment
+		if (segIt->imlList.empty())
+		{
+			cemu_assert_debug(segIt->GetBranchNotTaken());
+			continue;
+		}
+		// check last instruction of segment
+		IMLInstruction* imlInstruction = segIt->GetLastInstruction();
+		if (imlInstruction->type == PPCREC_IML_TYPE_CJUMP || imlInstruction->type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+		{
+			cemu_assert_debug(segIt->GetBranchTaken());
+			if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
+			{
+				cemu_assert_debug(segIt->GetBranchNotTaken());
+			}
+
+			//// find destination segment by ppc jump address
+			//IMLSegment* jumpDestSegment = PPCRecompiler_getSegmentByPPCJumpAddress(ppcImlGenContext, imlInstruction->op_conditionalJump.jumpmarkAddress);
+			//if (jumpDestSegment)
+			//{
+			//	if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
+			//		IMLSegment_SetLinkBranchNotTaken(imlSegment, nextSegment);
+			//	IMLSegment_SetLinkBranchTaken(imlSegment, jumpDestSegment);
+			//}
+			//else
+			//{
+			//	imlSegment->nextSegmentIsUncertain = true;
+			//}
+		}
+		else if (imlInstruction->type == PPCREC_IML_TYPE_MACRO)
+		{
+			auto macroType = imlInstruction->operation;
+			switch (macroType)
+			{
+				case PPCREC_IML_MACRO_BLR:	
+				case PPCREC_IML_MACRO_BLRL:
+				case PPCREC_IML_MACRO_BCTR:
+				case PPCREC_IML_MACRO_BCTRL:
+				case PPCREC_IML_MACRO_BL:
+				case PPCREC_IML_MACRO_B_FAR:
+				case PPCREC_IML_MACRO_HLE:
+				case PPCREC_IML_MACRO_LEAVE:
+					segIt->nextSegmentIsUncertain = true;
+					break;
+				case PPCREC_IML_MACRO_DEBUGBREAK:
+				case PPCREC_IML_MACRO_COUNT_CYCLES:
+				case PPCREC_IML_MACRO_MFTB:
+					break;
+				default:
+				cemu_assert_unimplemented();
+			}
+		}
+	}
+}
+
+bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunctionBoundaryTracker& boundaryTracker, std::set<uint32>& entryAddresses)
+{
+	std::vector<PPCBasicBlockInfo> basicBlockList = PPCRecompiler_DetermineBasicBlockRange(boundaryTracker, entryAddresses);
+
+	// create segments
+	std::unordered_map<uint32, PPCBasicBlockInfo*> addrToBB;
+	ppcImlGenContext.segmentList2.resize(basicBlockList.size());
+	for (size_t i = 0; i < basicBlockList.size(); i++)
+	{
+		PPCBasicBlockInfo& basicBlockInfo = basicBlockList[i];
+		IMLSegment* seg = new IMLSegment();
+		seg->ppcAddress = basicBlockInfo.startAddress;
+		if(basicBlockInfo.isEnterable)
+			seg->SetEnterable(basicBlockInfo.startAddress);
+		ppcImlGenContext.segmentList2[i] = seg;
+		cemu_assert_debug(addrToBB.find(basicBlockInfo.startAddress) == addrToBB.end());
+		basicBlockInfo.SetInitialSegment(seg);
+		addrToBB.emplace(basicBlockInfo.startAddress, &basicBlockInfo);
+	}
+	// link segments
+	for (size_t i = 0; i < basicBlockList.size(); i++)
+	{
+		PPCBasicBlockInfo& bbInfo = basicBlockList[i];
+		cemu_assert_debug(bbInfo.GetFirstSegmentInChain() == bbInfo.GetSegmentForInstructionAppend());
+		IMLSegment* seg = ppcImlGenContext.segmentList2[i];
+		if (bbInfo.hasBranchTarget)
+		{
+			PPCBasicBlockInfo* targetBB = addrToBB[bbInfo.branchTarget];
+			cemu_assert_debug(targetBB);
+			IMLSegment_SetLinkBranchTaken(seg, targetBB->GetFirstSegmentInChain());
+		}
+		if (bbInfo.hasContinuedFlow)
+		{
+			PPCBasicBlockInfo* targetBB = addrToBB[bbInfo.lastAddress + 4];
+			if (!targetBB)
+			{
+				cemuLog_log(LogType::Recompiler, "Recompiler was unable to link segment [0x{:08x}-0x{:08x}] to 0x{:08x}", bbInfo.startAddress, bbInfo.lastAddress, bbInfo.lastAddress + 4);
+				return false;
+			}
+			cemu_assert_debug(targetBB);
+			IMLSegment_SetLinkBranchNotTaken(seg, targetBB->GetFirstSegmentInChain());
+		}
+	}
+	// we assume that all unreachable segments are potentially enterable
+	// todo - mark them as such
+
+
+	// generate cycle counters
+	// in theory we could generate these as part of FillBasicBlock() but in the future we might use more complex logic to emit fewer operations
+	for (size_t i = 0; i < basicBlockList.size(); i++)
+	{
+		PPCBasicBlockInfo& basicBlockInfo = basicBlockList[i];
+		IMLSegment* seg = basicBlockInfo.GetSegmentForInstructionAppend();
+
+		uint32 ppcInstructionCount = (basicBlockInfo.lastAddress - basicBlockInfo.startAddress + 4) / 4;
+		cemu_assert_debug(ppcInstructionCount > 0);
+
+		PPCRecompiler_pushBackIMLInstructions(seg, 0, 1);
+		seg->imlList[0].type = PPCREC_IML_TYPE_MACRO;
+		seg->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+		seg->imlList[0].operation = PPCREC_IML_MACRO_COUNT_CYCLES;
+		seg->imlList[0].op_macro.param = ppcInstructionCount;
+	}
+
+	// generate cycle check instructions
+	// note: Introduces new segments
+	for (size_t i = 0; i < basicBlockList.size(); i++)
+	{
+		PPCBasicBlockInfo& basicBlockInfo = basicBlockList[i];
+		PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext, basicBlockInfo);
+	}
+
+	// fill in all the basic blocks
+	// note: This step introduces new segments as is necessary for some instructions
+	for (size_t i = 0; i < basicBlockList.size(); i++)
+	{
+		PPCBasicBlockInfo& basicBlockInfo = basicBlockList[i];
+		ppcImlGenContext.currentBasicBlock = &basicBlockInfo;
+		if (!PPCIMLGen_FillBasicBlock(ppcImlGenContext, basicBlockInfo))
+			return false;
+		ppcImlGenContext.currentBasicBlock = nullptr;
+	}
+
+	// mark segments with unknown jump destination (e.g. BLR and most macros)
+	PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext);
+
+	// debug - check segment graph
+#ifdef CEMU_DEBUG_ASSERT
+	//for (size_t i = 0; i < basicBlockList.size(); i++)
+	//{
+	//	IMLSegment* seg = ppcImlGenContext.segmentList2[i];
+	//	if (seg->list_prevSegments.empty())
+	//	{
+	//		cemu_assert_debug(seg->isEnterable);
+	//	}
+	//}
+	// debug - check if suffix instructions are at the end of segments and if they are present for branching segments
+	for (size_t segIndex = 0; segIndex < ppcImlGenContext.segmentList2.size(); segIndex++)
+	{
+		IMLSegment* seg = ppcImlGenContext.segmentList2[segIndex];
+		IMLSegment* nextSeg = (segIndex+1) < ppcImlGenContext.segmentList2.size() ? ppcImlGenContext.segmentList2[segIndex + 1] : nullptr;
+
+		if (seg->imlList.size() > 0)
+		{
+			for (size_t f = 0; f < seg->imlList.size() - 1; f++)
+			{
+				if (seg->imlList[f].IsSuffixInstruction())
+				{
+					debug_printf("---------------- SegmentDump (Suffix instruction at wrong pos in segment 0x%x):\n", segIndex);
+					IMLDebug_Dump(&ppcImlGenContext);
+					__debugbreak();
+				}
+			}
+		}
+		if (seg->nextSegmentBranchTaken)
+		{
+			if (!seg->HasSuffixInstruction())
+			{
+				debug_printf("---------------- SegmentDump (NoSuffixInstruction in segment 0x%x):\n", segIndex);
+				IMLDebug_Dump(&ppcImlGenContext);
+				__debugbreak();
+			}
+		}
+		if (seg->nextSegmentBranchNotTaken)
+		{
+			// if branch not taken, flow must continue to next segment in sequence
+			cemu_assert_debug(seg->nextSegmentBranchNotTaken == nextSeg);
+		}
+		// more detailed checks based on actual suffix instruction
+		if (seg->imlList.size() > 0)
+		{
+			IMLInstruction* inst = seg->GetLastInstruction();
+			if (inst->type == PPCREC_IML_TYPE_MACRO && inst->op_macro.param == PPCREC_IML_MACRO_B_FAR)
+			{
+				cemu_assert_debug(!seg->GetBranchTaken());
+				cemu_assert_debug(!seg->GetBranchNotTaken());
+			}
+			if (inst->type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+			{
+				cemu_assert_debug(seg->GetBranchTaken());
+				cemu_assert_debug(seg->GetBranchNotTaken());
+			}
+			if (inst->type == PPCREC_IML_TYPE_CJUMP)
+			{
+				if (inst->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
+				{
+					if (!seg->GetBranchTaken() || !seg->GetBranchNotTaken())
+					{
+						debug_printf("---------------- SegmentDump (Missing branch for CJUMP in segment 0x%x):\n", segIndex);
+						IMLDebug_Dump(&ppcImlGenContext);
+						cemu_assert_error();
+					}
+				}
+				else
+				{
+					// proper error checking for branch-always (or branch-never if invert bit is set)
+				}
+			}
+		}
+		//if (seg->list_prevSegments.empty())
+		//{
+		//	cemu_assert_debug(seg->isEnterable);
+		//}
+		segIndex++;
+	}
+#endif
+
+
+	// todos:
+	// - basic block determination should look for the B(L) B(L) pattern. Or maybe just mark every bb without any input segments as an entry segment
+
+	return true;
+}
+
+bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext, PPCRecFunction_t* ppcRecFunc, std::set<uint32>& entryAddresses, PPCFunctionBoundaryTracker& boundaryTracker)
+{
+	ppcImlGenContext.functionRef = ppcRecFunc; // todo - remove this and replace internally with boundary tracker
+	ppcImlGenContext.boundaryTracker = &boundaryTracker;
+
+	if (!PPCRecompiler_GenerateIML(ppcImlGenContext, boundaryTracker, entryAddresses))
+		return false;
+
 	// add entire range
 	ppcRecRange_t recRange;
 	recRange.ppcAddress = ppcRecFunc->ppcAddress;
 	recRange.ppcSize = ppcRecFunc->ppcSize;
 	ppcRecFunc->list_ranges.push_back(recRange);
 	// process ppc instructions
-	ppcImlGenContext.currentInstruction = (uint32*)memory_getPointerFromVirtualOffset(ppcRecFunc->ppcAddress);
-	bool unsupportedInstructionFound = false;
-	sint32 numPPCInstructions = ppcRecFunc->ppcSize/4;
-	sint32 unsupportedInstructionCount = 0;
-	uint32 unsupportedInstructionLastOffset = 0;
-	uint32* firstCurrentInstruction = ppcImlGenContext.currentInstruction;
-	uint32* endCurrentInstruction = ppcImlGenContext.currentInstruction + numPPCInstructions;
-	
-	while(ppcImlGenContext.currentInstruction < endCurrentInstruction)
-	{
-		uint32 addressOfCurrentInstruction = (uint32)((uint8*)ppcImlGenContext.currentInstruction - memory_base);
-		ppcImlGenContext.ppcAddressOfCurrentInstruction = addressOfCurrentInstruction;
-		ppcImlGenContext.cyclesSinceLastBranch++;
-		ppcImlGenContext.emitInst().make_jumpmark(addressOfCurrentInstruction);
-		if (entryAddresses.find(addressOfCurrentInstruction) != entryAddresses.end())
-		{
-			// add PPCEnter for addresses that are in entryAddresses
-			ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
-		}
-		else if(ppcImlGenContext.currentInstruction != firstCurrentInstruction)
-		{
-			// add PPCEnter mark if code is seemingly unreachable (for example if between two unconditional jump instructions without jump goal)
-			uint32 opcodeCurrent = PPCRecompiler_getCurrentInstruction(&ppcImlGenContext);
-			uint32 opcodePrevious = PPCRecompiler_getPreviousInstruction(&ppcImlGenContext);
-			if( ((opcodePrevious>>26) == 18) && ((opcodeCurrent>>26) == 18) )
-			{
-				// between two B(L) instructions
-				// todo: for BL only if they are not inlineable
-
-				bool canInlineFunction = false;
-				if ((opcodePrevious & PPC_OPC_LK) && (opcodePrevious & PPC_OPC_AA) == 0)
-				{
-					uint32 li;
-					PPC_OPC_TEMPL_I(opcodePrevious, li);
-					sint32 inlineSize = 0;
-					if (PPCRecompiler_canInlineFunction(li + addressOfCurrentInstruction - 4, &inlineSize))
-						canInlineFunction = true;
-				}
-				if( canInlineFunction == false && (opcodePrevious & PPC_OPC_LK) == false)
-					ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
-			}
-			if( ((opcodePrevious>>26) == 19) && PPC_getBits(opcodePrevious, 30, 10) == 528 )
-			{
-				uint32 BO, BI, BD;
-				PPC_OPC_TEMPL_XL(opcodePrevious, BO, BI, BD);
-				if( (BO & 16) && (opcodePrevious&PPC_OPC_LK) == 0 )
-				{
-					// after unconditional BCTR instruction
-					ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
-				}
-			}
-		}
-
-		unsupportedInstructionFound = PPCRecompiler_decodePPCInstruction(&ppcImlGenContext);
-		if( unsupportedInstructionFound )
-		{
-			unsupportedInstructionCount++;
-			unsupportedInstructionLastOffset = ppcImlGenContext.ppcAddressOfCurrentInstruction;
-			unsupportedInstructionFound = false;
-			//break;
-		}
-	}
-	ppcImlGenContext.ppcAddressOfCurrentInstruction = 0; // reset current instruction offset (any future generated IML instruction will be assigned to ppc address 0)
-	if( unsupportedInstructionCount > 0 || unsupportedInstructionFound )
-	{
-		debug_printf("Failed recompile due to unknown instruction at 0x%08x\n", unsupportedInstructionLastOffset);
-		return false;
-	}
-	// optimize unused jumpmarks away
-	// first, flag all jumpmarks as unused
-	std::map<uint32, IMLInstruction*> map_jumpMarks;
-	for(sint32 i=0; i<ppcImlGenContext.imlListCount; i++)
-	{
-		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_JUMPMARK )
-		{
-			ppcImlGenContext.imlList[i].op_jumpmark.flags |= PPCREC_IML_OP_FLAG_UNUSED;
-#ifdef CEMU_DEBUG_ASSERT
-			if (map_jumpMarks.find(ppcImlGenContext.imlList[i].op_jumpmark.address) != map_jumpMarks.end())
-				assert_dbg();
-#endif
-			map_jumpMarks.emplace(ppcImlGenContext.imlList[i].op_jumpmark.address, ppcImlGenContext.imlList+i);
-		}
-	}
-	// second, unflag jumpmarks that have at least one reference
-	for(sint32 i=0; i<ppcImlGenContext.imlListCount; i++)
-	{
-		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_CJUMP )
-		{
-			uint32 jumpDest = ppcImlGenContext.imlList[i].op_conditionalJump.jumpmarkAddress;
-			auto jumpMarkIml = map_jumpMarks.find(jumpDest);
-			if (jumpMarkIml != map_jumpMarks.end())
-				jumpMarkIml->second->op_jumpmark.flags &= ~PPCREC_IML_OP_FLAG_UNUSED;
-		}
-	}
-	// lastly, remove jumpmarks that still have the unused flag set
-	sint32 currentImlIndex = 0;
-	for(sint32 i=0; i<ppcImlGenContext.imlListCount; i++)
-	{
-		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_JUMPMARK && (ppcImlGenContext.imlList[i].op_jumpmark.flags&PPCREC_IML_OP_FLAG_UNUSED) )
-		{
-			continue; // skip this instruction
-		}
-		// move back instruction
-		if( currentImlIndex < i )
-		{
-			memcpy(ppcImlGenContext.imlList+currentImlIndex, ppcImlGenContext.imlList+i, sizeof(IMLInstruction));
-		}
-		currentImlIndex++;
-	}
-	// fix intermediate instruction count
-	ppcImlGenContext.imlListCount = currentImlIndex;
-	// divide iml instructions into segments
-	// each segment is defined by one or more instructions with no branches or jump destinations in between
-	// a branch instruction may only be the very last instruction of a segment
-	cemu_assert_debug(ppcImlGenContext.segmentList2.empty());
-
-	sint32 segmentStart = 0;
-	sint32 segmentImlIndex = 0;
-	while( segmentImlIndex < ppcImlGenContext.imlListCount )
-	{
-		bool genNewSegment = false;
-		// segment definition: 
-		//    If we encounter a branch instruction -> end of segment after current instruction
-		//    If we encounter a jumpmark		   -> end of segment before current instruction
-		//    If we encounter ppc_enter			   -> end of segment before current instruction
-		if( ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_CJUMP ||
-			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BLR || ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BLRL || ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BCTR || ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BCTRL)) ||
-			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BL)) ||
-			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_B_FAR)) ||
-			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_LEAVE)) ||
-			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_HLE)) ||
-			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_MFTB)) )
-		{
-			// segment ends after current instruction
-			IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
-			ppcRecSegment->startOffset = segmentStart;
-			ppcRecSegment->count = segmentImlIndex-segmentStart+1;
-			ppcRecSegment->ppcAddress = 0xFFFFFFFF;
-			segmentStart = segmentImlIndex+1;
-		}
-		else if( ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_JUMPMARK ||
-			ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_PPC_ENTER )
-		{
-			// segment ends before current instruction
-			if( segmentImlIndex > segmentStart )
-			{
-				IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
-				ppcRecSegment->startOffset = segmentStart;
-				ppcRecSegment->count = segmentImlIndex-segmentStart;
-				ppcRecSegment->ppcAddress = 0xFFFFFFFF;
-				segmentStart = segmentImlIndex;
-			}
-		}
-		segmentImlIndex++;
-	}
-	if( segmentImlIndex != segmentStart )
-	{
-		// final segment
-		IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
-		ppcRecSegment->startOffset = segmentStart;
-		ppcRecSegment->count = segmentImlIndex-segmentStart;
-		ppcRecSegment->ppcAddress = 0xFFFFFFFF;
-		segmentStart = segmentImlIndex;
-	}
-	// move iml instructions into the segments
-	for (IMLSegment* segIt : ppcImlGenContext.segmentList2) 
-	{
-		uint32 imlStartIndex = segIt->startOffset;
-		uint32 imlCount = segIt->count;
-		if( imlCount > 0 )
-		{
-			cemu_assert_debug(segIt->imlList.empty());
-			segIt->imlList.insert(segIt->imlList.begin(), ppcImlGenContext.imlList + imlStartIndex, ppcImlGenContext.imlList + imlStartIndex + imlCount);
-
-		}
-		else
-		{
-			// empty segments are allowed so we can handle multiple PPC entry addresses pointing to the same code
-			cemu_assert_debug(segIt->imlList.empty());
-		}
-		segIt->startOffset = 9999999;
-		segIt->count = 9999999;
-	}
-	// clear segment-independent iml list
-	free(ppcImlGenContext.imlList);
-	ppcImlGenContext.imlList = nullptr;
-	ppcImlGenContext.imlListCount = 999999; // set to high number to force crash in case old code still uses ppcImlGenContext.imlList
-	// calculate PPC address of each segment based on iml instructions inside that segment (we need this info to calculate how many cpu cycles each segment takes)
-	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
-	{
-		uint32 segmentPPCAddrMin = 0xFFFFFFFF;
-		uint32 segmentPPCAddrMax = 0x00000000;
-		for(sint32 i=0; i< segIt->imlList.size(); i++)
-		{
-			if(segIt->imlList[i].associatedPPCAddress == 0 )
-				continue;
-			//if( ppcImlGenContext.segmentList[s]->imlList[i].type == PPCREC_IML_TYPE_JUMPMARK || ppcImlGenContext.segmentList[s]->imlList[i].type == PPCREC_IML_TYPE_NO_OP )
-			//	continue; // jumpmarks and no-op instructions must not affect segment ppc address range
-			segmentPPCAddrMin = std::min(segIt->imlList[i].associatedPPCAddress, segmentPPCAddrMin);
-			segmentPPCAddrMax = std::max(segIt->imlList[i].associatedPPCAddress, segmentPPCAddrMax);
-		}
-		if( segmentPPCAddrMin != 0xFFFFFFFF )
-		{
-			segIt->ppcAddrMin = segmentPPCAddrMin;
-			segIt->ppcAddrMax = segmentPPCAddrMax;
-		}
-		else
-		{
-			segIt->ppcAddrMin = 0;
-			segIt->ppcAddrMax = 0;
-		}
-	}
-	// certain instructions can change the segment state
-	// ppcEnter instruction marks a segment as enterable (BL, BCTR, etc. instructions can enter at this location from outside)
-	// jumpmarks mark the segment as a jump destination (within the same function)
-	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
-	{
-		while (segIt->imlList.size() > 0)
-		{
-			if (segIt->imlList[0].type == PPCREC_IML_TYPE_PPC_ENTER)
-			{
-				// mark segment as enterable
-				if (segIt->isEnterable)
-					assert_dbg(); // should not happen?
-				segIt->isEnterable = true;
-				segIt->enterPPCAddress = segIt->imlList[0].op_ppcEnter.ppcAddress;
-				// remove ppc_enter instruction
-				segIt->imlList[0].type = PPCREC_IML_TYPE_NO_OP;
-				segIt->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
-				segIt->imlList[0].associatedPPCAddress = 0;
-			}
-			else if(segIt->imlList[0].type == PPCREC_IML_TYPE_JUMPMARK )
-			{
-				// mark segment as jump destination
-				if(segIt->isJumpDestination )
-					assert_dbg(); // should not happen?
-				segIt->isJumpDestination = true;
-				segIt->jumpDestinationPPCAddress = segIt->imlList[0].op_jumpmark.address;
-				// remove jumpmark instruction
-				segIt->imlList[0].type = PPCREC_IML_TYPE_NO_OP;
-				segIt->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
-				segIt->imlList[0].associatedPPCAddress = 0;
-			}
-			else
-				break;
-		}
-	}
-	// the first segment is always enterable as the recompiled functions entrypoint
-	ppcImlGenContext.segmentList2[0]->isEnterable = true;
-	ppcImlGenContext.segmentList2[0]->enterPPCAddress = ppcImlGenContext.functionRef->ppcAddress;
-
-	// link segments for further inter-segment optimization
-	PPCRecompilerIML_linkSegments(&ppcImlGenContext);
+//	ppcImlGenContext.currentInstruction = (uint32*)memory_getPointerFromVirtualOffset(ppcRecFunc->ppcAddress);
+//	bool unsupportedInstructionFound = false;
+//	sint32 numPPCInstructions = ppcRecFunc->ppcSize/4;
+//	sint32 unsupportedInstructionCount = 0;
+//	uint32 unsupportedInstructionLastOffset = 0;
+//	uint32* firstCurrentInstruction = ppcImlGenContext.currentInstruction;
+//	uint32* endCurrentInstruction = ppcImlGenContext.currentInstruction + numPPCInstructions;
+//	
+//	while(ppcImlGenContext.currentInstruction < endCurrentInstruction)
+//	{
+//		uint32 addressOfCurrentInstruction = (uint32)((uint8*)ppcImlGenContext.currentInstruction - memory_base);
+//		ppcImlGenContext.ppcAddressOfCurrentInstruction = addressOfCurrentInstruction;
+//		ppcImlGenContext.cyclesSinceLastBranch++;
+//		ppcImlGenContext.emitInst().make_jumpmark(addressOfCurrentInstruction);
+//		if (entryAddresses.find(addressOfCurrentInstruction) != entryAddresses.end())
+//		{
+//			// add PPCEnter for addresses that are in entryAddresses
+//			ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
+//		}
+//		else if(ppcImlGenContext.currentInstruction != firstCurrentInstruction)
+//		{
+//			// add PPCEnter mark if code is seemingly unreachable (for example if between two unconditional jump instructions without jump goal)
+//			uint32 opcodeCurrent = PPCRecompiler_getCurrentInstruction(&ppcImlGenContext);
+//			uint32 opcodePrevious = PPCRecompiler_getPreviousInstruction(&ppcImlGenContext);
+//			if( ((opcodePrevious>>26) == 18) && ((opcodeCurrent>>26) == 18) )
+//			{
+//				// between two B(L) instructions
+//				// todo: for BL only if they are not inlineable
+//
+//				bool canInlineFunction = false;
+//				if ((opcodePrevious & PPC_OPC_LK) && (opcodePrevious & PPC_OPC_AA) == 0)
+//				{
+//					uint32 li;
+//					PPC_OPC_TEMPL_I(opcodePrevious, li);
+//					sint32 inlineSize = 0;
+//					if (PPCRecompiler_canInlineFunction(li + addressOfCurrentInstruction - 4, &inlineSize))
+//						canInlineFunction = true;
+//				}
+//				if( canInlineFunction == false && (opcodePrevious & PPC_OPC_LK) == false)
+//					ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
+//			}
+//			if( ((opcodePrevious>>26) == 19) && PPC_getBits(opcodePrevious, 30, 10) == 528 )
+//			{
+//				uint32 BO, BI, BD;
+//				PPC_OPC_TEMPL_XL(opcodePrevious, BO, BI, BD);
+//				if( (BO & 16) && (opcodePrevious&PPC_OPC_LK) == 0 )
+//				{
+//					// after unconditional BCTR instruction
+//					ppcImlGenContext.emitInst().make_ppcEnter(addressOfCurrentInstruction);
+//				}
+//			}
+//		}
+//
+//		unsupportedInstructionFound = PPCRecompiler_decodePPCInstruction(&ppcImlGenContext);
+//		if( unsupportedInstructionFound )
+//		{
+//			unsupportedInstructionCount++;
+//			unsupportedInstructionLastOffset = ppcImlGenContext.ppcAddressOfCurrentInstruction;
+//			unsupportedInstructionFound = false;
+//			//break;
+//		}
+//	}
+//	ppcImlGenContext.ppcAddressOfCurrentInstruction = 0; // reset current instruction offset (any future generated IML instruction will be assigned to ppc address 0)
+//	if( unsupportedInstructionCount > 0 || unsupportedInstructionFound )
+//	{
+//		debug_printf("Failed recompile due to unknown instruction at 0x%08x\n", unsupportedInstructionLastOffset);
+//		return false;
+//	}
+//	// optimize unused jumpmarks away
+//	// first, flag all jumpmarks as unused
+//	std::map<uint32, IMLInstruction*> map_jumpMarks;
+//	for(sint32 i=0; i<ppcImlGenContext.imlListCount; i++)
+//	{
+//		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_JUMPMARK )
+//		{
+//			ppcImlGenContext.imlList[i].op_jumpmark.flags |= PPCREC_IML_OP_FLAG_UNUSED;
+//#ifdef CEMU_DEBUG_ASSERT
+//			if (map_jumpMarks.find(ppcImlGenContext.imlList[i].op_jumpmark.address) != map_jumpMarks.end())
+//				assert_dbg();
+//#endif
+//			map_jumpMarks.emplace(ppcImlGenContext.imlList[i].op_jumpmark.address, ppcImlGenContext.imlList+i);
+//		}
+//	}
+//	// second, unflag jumpmarks that have at least one reference
+//	for(sint32 i=0; i<ppcImlGenContext.imlListCount; i++)
+//	{
+//		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_CJUMP )
+//		{
+//			uint32 jumpDest = ppcImlGenContext.imlList[i].op_conditionalJump.jumpmarkAddress;
+//			auto jumpMarkIml = map_jumpMarks.find(jumpDest);
+//			if (jumpMarkIml != map_jumpMarks.end())
+//				jumpMarkIml->second->op_jumpmark.flags &= ~PPCREC_IML_OP_FLAG_UNUSED;
+//		}
+//	}
+//	// lastly, remove jumpmarks that still have the unused flag set
+//	sint32 currentImlIndex = 0;
+//	for(sint32 i=0; i<ppcImlGenContext.imlListCount; i++)
+//	{
+//		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_JUMPMARK && (ppcImlGenContext.imlList[i].op_jumpmark.flags&PPCREC_IML_OP_FLAG_UNUSED) )
+//		{
+//			continue; // skip this instruction
+//		}
+//		// move back instruction
+//		if( currentImlIndex < i )
+//		{
+//			memcpy(ppcImlGenContext.imlList+currentImlIndex, ppcImlGenContext.imlList+i, sizeof(IMLInstruction));
+//		}
+//		currentImlIndex++;
+//	}
+//	// fix intermediate instruction count
+//	ppcImlGenContext.imlListCount = currentImlIndex;
+//	// divide iml instructions into segments
+//	// each segment is defined by one or more instructions with no branches or jump destinations in between
+//	// a branch instruction may only be the very last instruction of a segment
+//	cemu_assert_debug(ppcImlGenContext.segmentList2.empty());
+//
+//	sint32 segmentStart = 0;
+//	sint32 segmentImlIndex = 0;
+//	while( segmentImlIndex < ppcImlGenContext.imlListCount )
+//	{
+//		bool genNewSegment = false;
+//		// segment definition: 
+//		//    If we encounter a branch instruction -> end of segment after current instruction
+//		//    If we encounter a jumpmark		   -> end of segment before current instruction
+//		//    If we encounter ppc_enter			   -> end of segment before current instruction
+//		if( ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_CJUMP ||
+//			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BLR || ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BLRL || ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BCTR || ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BCTRL)) ||
+//			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_BL)) ||
+//			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_B_FAR)) ||
+//			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_LEAVE)) ||
+//			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_HLE)) ||
+//			(ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_MACRO && (ppcImlGenContext.imlList[segmentImlIndex].operation == PPCREC_IML_MACRO_MFTB)) )
+//		{
+//			// segment ends after current instruction
+//			IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
+//			ppcRecSegment->startOffset = segmentStart;
+//			ppcRecSegment->count = segmentImlIndex-segmentStart+1;
+//			ppcRecSegment->ppcAddress = 0xFFFFFFFF;
+//			segmentStart = segmentImlIndex+1;
+//		}
+//		else if( ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_JUMPMARK ||
+//			ppcImlGenContext.imlList[segmentImlIndex].type == PPCREC_IML_TYPE_PPC_ENTER )
+//		{
+//			// segment ends before current instruction
+//			if( segmentImlIndex > segmentStart )
+//			{
+//				IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
+//				ppcRecSegment->startOffset = segmentStart;
+//				ppcRecSegment->count = segmentImlIndex-segmentStart;
+//				ppcRecSegment->ppcAddress = 0xFFFFFFFF;
+//				segmentStart = segmentImlIndex;
+//			}
+//		}
+//		segmentImlIndex++;
+//	}
+//	if( segmentImlIndex != segmentStart )
+//	{
+//		// final segment
+//		IMLSegment* ppcRecSegment = PPCRecompilerIml_appendSegment(&ppcImlGenContext);
+//		ppcRecSegment->startOffset = segmentStart;
+//		ppcRecSegment->count = segmentImlIndex-segmentStart;
+//		ppcRecSegment->ppcAddress = 0xFFFFFFFF;
+//		segmentStart = segmentImlIndex;
+//	}
+//	// move iml instructions into the segments
+//	for (IMLSegment* segIt : ppcImlGenContext.segmentList2) 
+//	{
+//		uint32 imlStartIndex = segIt->startOffset;
+//		uint32 imlCount = segIt->count;
+//		if( imlCount > 0 )
+//		{
+//			cemu_assert_debug(segIt->imlList.empty());
+//			segIt->imlList.insert(segIt->imlList.begin(), ppcImlGenContext.imlList + imlStartIndex, ppcImlGenContext.imlList + imlStartIndex + imlCount);
+//
+//		}
+//		else
+//		{
+//			// empty segments are allowed so we can handle multiple PPC entry addresses pointing to the same code
+//			cemu_assert_debug(segIt->imlList.empty());
+//		}
+//		segIt->startOffset = 9999999;
+//		segIt->count = 9999999;
+//	}
+//	// clear segment-independent iml list
+//	free(ppcImlGenContext.imlList);
+//	ppcImlGenContext.imlList = nullptr;
+//	ppcImlGenContext.imlListCount = 999999; // set to high number to force crash in case old code still uses ppcImlGenContext.imlList
+//	// calculate PPC address of each segment based on iml instructions inside that segment (we need this info to calculate how many cpu cycles each segment takes)
+//	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
+//	{
+//		uint32 segmentPPCAddrMin = 0xFFFFFFFF;
+//		uint32 segmentPPCAddrMax = 0x00000000;
+//		for(sint32 i=0; i< segIt->imlList.size(); i++)
+//		{
+//			if(segIt->imlList[i].associatedPPCAddress == 0 )
+//				continue;
+//			//if( ppcImlGenContext.segmentList[s]->imlList[i].type == PPCREC_IML_TYPE_JUMPMARK || ppcImlGenContext.segmentList[s]->imlList[i].type == PPCREC_IML_TYPE_NO_OP )
+//			//	continue; // jumpmarks and no-op instructions must not affect segment ppc address range
+//			segmentPPCAddrMin = std::min(segIt->imlList[i].associatedPPCAddress, segmentPPCAddrMin);
+//			segmentPPCAddrMax = std::max(segIt->imlList[i].associatedPPCAddress, segmentPPCAddrMax);
+//		}
+//		if( segmentPPCAddrMin != 0xFFFFFFFF )
+//		{
+//			segIt->ppcAddrMin = segmentPPCAddrMin;
+//			segIt->ppcAddrMax = segmentPPCAddrMax;
+//		}
+//		else
+//		{
+//			segIt->ppcAddrMin = 0;
+//			segIt->ppcAddrMax = 0;
+//		}
+//	}
+//	// certain instructions can change the segment state
+//	// ppcEnter instruction marks a segment as enterable (BL, BCTR, etc. instructions can enter at this location from outside)
+//	// jumpmarks mark the segment as a jump destination (within the same function)
+//	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
+//	{
+//		while (segIt->imlList.size() > 0)
+//		{
+//			if (segIt->imlList[0].type == PPCREC_IML_TYPE_PPC_ENTER)
+//			{
+//				// mark segment as enterable
+//				if (segIt->isEnterable)
+//					assert_dbg(); // should not happen?
+//				segIt->isEnterable = true;
+//				segIt->enterPPCAddress = segIt->imlList[0].op_ppcEnter.ppcAddress;
+//				// remove ppc_enter instruction
+//				segIt->imlList[0].type = PPCREC_IML_TYPE_NO_OP;
+//				segIt->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+//				segIt->imlList[0].associatedPPCAddress = 0;
+//			}
+//			else if(segIt->imlList[0].type == PPCREC_IML_TYPE_JUMPMARK )
+//			{
+//				// mark segment as jump destination
+//				if(segIt->isJumpDestination )
+//					assert_dbg(); // should not happen?
+//				segIt->isJumpDestination = true;
+//				segIt->jumpDestinationPPCAddress = segIt->imlList[0].op_jumpmark.address;
+//				// remove jumpmark instruction
+//				segIt->imlList[0].type = PPCREC_IML_TYPE_NO_OP;
+//				segIt->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+//				segIt->imlList[0].associatedPPCAddress = 0;
+//			}
+//			else
+//				break;
+//		}
+//	}
+//	// the first segment is always enterable as the recompiled functions entrypoint
+//	ppcImlGenContext.segmentList2[0]->isEnterable = true;
+//	ppcImlGenContext.segmentList2[0]->enterPPCAddress = ppcImlGenContext.functionRef->ppcAddress;
+//
+//	// link segments for further inter-segment optimization
+//	PPCRecompilerIML_linkSegments(&ppcImlGenContext);
 
 	// optimization pass - replace segments with conditional MOVs if possible
 	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
@@ -4215,129 +4922,132 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	}
 
 	// insert cycle counter instruction in every segment that has a cycle count greater zero
-	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
-	{
-		if( segIt->ppcAddrMin == 0 )
-			continue;
-		// count number of PPC instructions in segment
-		// note: This algorithm correctly counts inlined functions but it doesn't count NO-OP instructions like ISYNC since they generate no IML instructions
-		uint32 lastPPCInstAddr = 0;
-		uint32 ppcCount2 = 0;
-		for (sint32 i = 0; i < segIt->imlList.size(); i++)
-		{
-			if (segIt->imlList[i].associatedPPCAddress == 0)
-				continue;
-			if (segIt->imlList[i].associatedPPCAddress == lastPPCInstAddr)
-				continue;
-			lastPPCInstAddr = segIt->imlList[i].associatedPPCAddress;
-			ppcCount2++;
-		}
-		//uint32 ppcCount = imlSegment->ppcAddrMax-imlSegment->ppcAddrMin+4; -> No longer works with inlined functions
-		uint32 cycleCount = ppcCount2;// ppcCount / 4;
-		if( cycleCount > 0 )
-		{
-			PPCRecompiler_pushBackIMLInstructions(segIt, 0, 1);
-			segIt->imlList[0].type = PPCREC_IML_TYPE_MACRO;
-			segIt->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
-			segIt->imlList[0].operation = PPCREC_IML_MACRO_COUNT_CYCLES;
-			segIt->imlList[0].op_macro.param = cycleCount;
-		}
-	}
+	//for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
+	//{
+	//	if( segIt->ppcAddrMin == 0 )
+	//		continue;
+	//	// count number of PPC instructions in segment
+	//	// note: This algorithm correctly counts inlined functions but it doesn't count NO-OP instructions like ISYNC since they generate no IML instructions
+	//	uint32 lastPPCInstAddr = 0;
+	//	uint32 ppcCount2 = 0;
+	//	for (sint32 i = 0; i < segIt->imlList.size(); i++)
+	//	{
+	//		if (segIt->imlList[i].associatedPPCAddress == 0)
+	//			continue;
+	//		if (segIt->imlList[i].associatedPPCAddress == lastPPCInstAddr)
+	//			continue;
+	//		lastPPCInstAddr = segIt->imlList[i].associatedPPCAddress;
+	//		ppcCount2++;
+	//	}
+	//	//uint32 ppcCount = imlSegment->ppcAddrMax-imlSegment->ppcAddrMin+4; -> No longer works with inlined functions
+	//	uint32 cycleCount = ppcCount2;// ppcCount / 4;
+	//	if( cycleCount > 0 )
+	//	{
+	//		PPCRecompiler_pushBackIMLInstructions(segIt, 0, 1);
+	//		segIt->imlList[0].type = PPCREC_IML_TYPE_MACRO;
+	//		segIt->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+	//		segIt->imlList[0].operation = PPCREC_IML_MACRO_COUNT_CYCLES;
+	//		segIt->imlList[0].op_macro.param = cycleCount;
+	//	}
+	//}
 	return true;
 }
 
 void PPCRecompiler_FixLoops(ppcImlGenContext_t& ppcImlGenContext)
 {
-	// find segments that have a (conditional) jump instruction that points in reverse direction of code flow
-	// for these segments there is a risk that the recompiler could get trapped in an infinite busy loop. 
-	// todo: We should do a loop-detection prepass where we flag segments that are actually in a loop. We can then use this information below to avoid generating the scheduler-exit code for segments that aren't actually in a loop despite them referencing an earlier segment (which could be an exit segment for example)	
-	uint32 currentLoopEscapeJumpMarker = 0xFF000000; // start in an area where no valid code can be located
-	for (size_t s = 0; s < ppcImlGenContext.segmentList2.size(); s++)
-	{
-		// todo: This currently uses segment->ppcAddrMin which isn't really reliable. (We already had a problem where function inlining would generate falsified segment ranges by omitting the branch instruction). Find a better solution (use jumpmark/enterable offsets?)
-		IMLSegment* imlSegment = ppcImlGenContext.segmentList2[s];
-		if (imlSegment->imlList.empty())
-			continue;
-		if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
-			continue;
-		if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpAccordingToSegment)
-			continue;
-		// exclude non-infinite tight loops
-		if (IMLAnalyzer_IsTightFiniteLoop(imlSegment))
-			continue;
-		// potential loop segment found, split this segment into four:
-		// P0: This segment checks if the remaining cycles counter is still above zero. If yes, it jumps to segment P2 (it's also the jump destination for other segments)
-		// P1: This segment consists only of a single ppc_leave instruction and is usually skipped. Register unload instructions are later inserted here.
-		// P2: This segment contains the iml instructions of the original segment
-		// PEntry: This segment is used to enter the function, it jumps to P0
-		// All segments are considered to be part of the same PPC instruction range
-		// The first segment also retains the jump destination and enterable properties from the original segment.
-		//debug_printf("--- Insert cycle counter check ---\n");
+	return; // deprecated
 
-		PPCRecompilerIml_insertSegments(&ppcImlGenContext, s, 2);
-		imlSegment = NULL;
-		IMLSegment* imlSegmentP0 = ppcImlGenContext.segmentList2[s + 0];
-		IMLSegment* imlSegmentP1 = ppcImlGenContext.segmentList2[s + 1];
-		IMLSegment* imlSegmentP2 = ppcImlGenContext.segmentList2[s + 2];
-		// create entry point segment
-		PPCRecompilerIml_insertSegments(&ppcImlGenContext, ppcImlGenContext.segmentList2.size(), 1);
-		IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size() - 1];
-		// relink segments	
-		IMLSegment_RelinkInputSegment(imlSegmentP2, imlSegmentP0);
-		IMLSegment_SetLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
-		IMLSegment_SetLinkBranchTaken(imlSegmentP0, imlSegmentP2);
-		IMLSegment_SetLinkBranchTaken(imlSegmentPEntry, imlSegmentP0);
-		// update segments
-		uint32 enterPPCAddress = imlSegmentP2->ppcAddrMin;
-		if (imlSegmentP2->isEnterable)
-			enterPPCAddress = imlSegmentP2->enterPPCAddress;
-		imlSegmentP0->ppcAddress = 0xFFFFFFFF;
-		imlSegmentP1->ppcAddress = 0xFFFFFFFF;
-		imlSegmentP2->ppcAddress = 0xFFFFFFFF;
-		cemu_assert_debug(imlSegmentP2->ppcAddrMin != 0);
-		// move segment properties from segment P2 to segment P0
-		imlSegmentP0->isJumpDestination = imlSegmentP2->isJumpDestination;
-		imlSegmentP0->jumpDestinationPPCAddress = imlSegmentP2->jumpDestinationPPCAddress;
-		imlSegmentP0->isEnterable = false;
-		//imlSegmentP0->enterPPCAddress = imlSegmentP2->enterPPCAddress;
-		imlSegmentP0->ppcAddrMin = imlSegmentP2->ppcAddrMin;
-		imlSegmentP0->ppcAddrMax = imlSegmentP2->ppcAddrMax;
-		imlSegmentP2->isJumpDestination = false;
-		imlSegmentP2->jumpDestinationPPCAddress = 0;
-		imlSegmentP2->isEnterable = false;
-		imlSegmentP2->enterPPCAddress = 0;
-		imlSegmentP2->ppcAddrMin = 0;
-		imlSegmentP2->ppcAddrMax = 0;
-		// setup enterable segment
-		if (enterPPCAddress != 0 && enterPPCAddress != 0xFFFFFFFF)
-		{
-			imlSegmentPEntry->isEnterable = true;
-			imlSegmentPEntry->ppcAddress = enterPPCAddress;
-			imlSegmentPEntry->enterPPCAddress = enterPPCAddress;
-		}
-		// assign new jumpmark to segment P2
-		imlSegmentP2->isJumpDestination = true;
-		imlSegmentP2->jumpDestinationPPCAddress = currentLoopEscapeJumpMarker;
-		currentLoopEscapeJumpMarker++;
-		// create ppc_leave instruction in segment P1
-		PPCRecompiler_pushBackIMLInstructions(imlSegmentP1, 0, 1);
-		imlSegmentP1->imlList[0].type = PPCREC_IML_TYPE_MACRO;
-		imlSegmentP1->imlList[0].operation = PPCREC_IML_MACRO_LEAVE;
-		imlSegmentP1->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
-		imlSegmentP1->imlList[0].op_macro.param = imlSegmentP0->ppcAddrMin;
-		imlSegmentP1->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
-		// create cycle-based conditional instruction in segment P0
-		PPCRecompiler_pushBackIMLInstructions(imlSegmentP0, 0, 1);
-		imlSegmentP0->imlList[0].type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
-		imlSegmentP0->imlList[0].operation = 0;
-		imlSegmentP0->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
-		imlSegmentP0->imlList[0].op_conditionalJump.jumpmarkAddress = imlSegmentP2->jumpDestinationPPCAddress;
-		imlSegmentP0->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
-		// jump instruction for PEntry
-		PPCRecompiler_pushBackIMLInstructions(imlSegmentPEntry, 0, 1);
-		PPCRecompilerImlGen_generateNewInstruction_jumpSegment(&ppcImlGenContext, imlSegmentPEntry->imlList.data() + 0);
+	//// find segments that have a (conditional) jump instruction that points in reverse direction of code flow
+	//// for these segments there is a risk that the recompiler could get trapped in an infinite busy loop. 
+	//// todo: We should do a loop-detection prepass where we flag segments that are actually in a loop. We can then use this information below to avoid generating the scheduler-exit code for segments that aren't actually in a loop despite them referencing an earlier segment (which could be an exit segment for example)	
+	//uint32 currentLoopEscapeJumpMarker = 0xFF000000; // start in an area where no valid code can be located
+	//for (size_t s = 0; s < ppcImlGenContext.segmentList2.size(); s++)
+	//{
+	//	// todo: This currently uses segment->ppcAddrMin which isn't really reliable. (We already had a problem where function inlining would generate falsified segment ranges by omitting the branch instruction). Find a better solution (use jumpmark/enterable offsets?)
+	//	IMLSegment* imlSegment = ppcImlGenContext.segmentList2[s];
+	//	if (imlSegment->imlList.empty())
+	//		continue;
+	//	if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpmarkAddress > imlSegment->ppcAddrMin)
+	//		continue;
+	//	if (imlSegment->imlList[imlSegment->imlList.size() - 1].type != PPCREC_IML_TYPE_CJUMP || imlSegment->imlList[imlSegment->imlList.size() - 1].op_conditionalJump.jumpAccordingToSegment)
+	//		continue;
 
-		// skip the newly created segments
-		s += 2;
-	}
+	//	// exclude non-infinite tight loops
+	//	if (IMLAnalyzer_IsTightFiniteLoop(imlSegment))
+	//		continue;
+	//	// potential loop segment found, split this segment into four:
+	//	// P0: This segment checks if the remaining cycles counter is still above zero. If yes, it jumps to segment P2 (it's also the jump destination for other segments)
+	//	// P1: This segment consists only of a single ppc_leave instruction and is usually skipped. Register unload instructions are later inserted here.
+	//	// P2: This segment contains the iml instructions of the original segment
+	//	// PEntry: This segment is used to enter the function, it jumps to P0
+	//	// All segments are considered to be part of the same PPC instruction range
+	//	// The first segment also retains the jump destination and enterable properties from the original segment.
+	//	//debug_printf("--- Insert cycle counter check ---\n");
+
+	//	PPCRecompilerIml_insertSegments(&ppcImlGenContext, s, 2);
+	//	imlSegment = NULL;
+	//	IMLSegment* imlSegmentP0 = ppcImlGenContext.segmentList2[s + 0];
+	//	IMLSegment* imlSegmentP1 = ppcImlGenContext.segmentList2[s + 1];
+	//	IMLSegment* imlSegmentP2 = ppcImlGenContext.segmentList2[s + 2];
+	//	// create entry point segment
+	//	PPCRecompilerIml_insertSegments(&ppcImlGenContext, ppcImlGenContext.segmentList2.size(), 1);
+	//	IMLSegment* imlSegmentPEntry = ppcImlGenContext.segmentList2[ppcImlGenContext.segmentList2.size() - 1];
+	//	// relink segments	
+	//	IMLSegment_RelinkInputSegment(imlSegmentP2, imlSegmentP0);
+	//	IMLSegment_SetLinkBranchNotTaken(imlSegmentP0, imlSegmentP1);
+	//	IMLSegment_SetLinkBranchTaken(imlSegmentP0, imlSegmentP2);
+	//	IMLSegment_SetLinkBranchTaken(imlSegmentPEntry, imlSegmentP0);
+	//	// update segments
+	//	uint32 enterPPCAddress = imlSegmentP2->ppcAddrMin;
+	//	if (imlSegmentP2->isEnterable)
+	//		enterPPCAddress = imlSegmentP2->enterPPCAddress;
+	//	imlSegmentP0->ppcAddress = 0xFFFFFFFF;
+	//	imlSegmentP1->ppcAddress = 0xFFFFFFFF;
+	//	imlSegmentP2->ppcAddress = 0xFFFFFFFF;
+	//	cemu_assert_debug(imlSegmentP2->ppcAddrMin != 0);
+	//	// move segment properties from segment P2 to segment P0
+	//	imlSegmentP0->isJumpDestination = imlSegmentP2->isJumpDestination;
+	//	imlSegmentP0->jumpDestinationPPCAddress = imlSegmentP2->jumpDestinationPPCAddress;
+	//	imlSegmentP0->isEnterable = false;
+	//	//imlSegmentP0->enterPPCAddress = imlSegmentP2->enterPPCAddress;
+	//	imlSegmentP0->ppcAddrMin = imlSegmentP2->ppcAddrMin;
+	//	imlSegmentP0->ppcAddrMax = imlSegmentP2->ppcAddrMax;
+	//	imlSegmentP2->isJumpDestination = false;
+	//	imlSegmentP2->jumpDestinationPPCAddress = 0;
+	//	imlSegmentP2->isEnterable = false;
+	//	imlSegmentP2->enterPPCAddress = 0;
+	//	imlSegmentP2->ppcAddrMin = 0;
+	//	imlSegmentP2->ppcAddrMax = 0;
+	//	// setup enterable segment
+	//	if (enterPPCAddress != 0 && enterPPCAddress != 0xFFFFFFFF)
+	//	{
+	//		imlSegmentPEntry->isEnterable = true;
+	//		imlSegmentPEntry->ppcAddress = enterPPCAddress;
+	//		imlSegmentPEntry->enterPPCAddress = enterPPCAddress;
+	//	}
+	//	// assign new jumpmark to segment P2
+	//	imlSegmentP2->isJumpDestination = true;
+	//	imlSegmentP2->jumpDestinationPPCAddress = currentLoopEscapeJumpMarker;
+	//	currentLoopEscapeJumpMarker++;
+	//	// create ppc_leave instruction in segment P1
+	//	PPCRecompiler_pushBackIMLInstructions(imlSegmentP1, 0, 1);
+	//	imlSegmentP1->imlList[0].type = PPCREC_IML_TYPE_MACRO;
+	//	imlSegmentP1->imlList[0].operation = PPCREC_IML_MACRO_LEAVE;
+	//	imlSegmentP1->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+	//	imlSegmentP1->imlList[0].op_macro.param = imlSegmentP0->ppcAddrMin;
+	//	imlSegmentP1->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
+	//	// create cycle-based conditional instruction in segment P0
+	//	PPCRecompiler_pushBackIMLInstructions(imlSegmentP0, 0, 1);
+	//	imlSegmentP0->imlList[0].type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
+	//	imlSegmentP0->imlList[0].operation = 0;
+	//	imlSegmentP0->imlList[0].crRegister = PPC_REC_INVALID_REGISTER;
+	//	imlSegmentP0->imlList[0].op_conditionalJump.jumpmarkAddress = imlSegmentP2->jumpDestinationPPCAddress;
+	//	imlSegmentP0->imlList[0].associatedPPCAddress = imlSegmentP0->ppcAddrMin;
+	//	// jump instruction for PEntry
+	//	PPCRecompiler_pushBackIMLInstructions(imlSegmentPEntry, 0, 1);
+	//	PPCRecompilerImlGen_generateNewInstruction_jumpSegment(&ppcImlGenContext, imlSegmentPEntry->imlList.data() + 0);
+
+	//	// skip the newly created segments
+	//	s += 2;
+	//}
 }

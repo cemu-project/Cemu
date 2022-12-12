@@ -152,7 +152,7 @@ enum
 	PPCREC_IML_TYPE_R_S32,				// r* (op) imm
 	PPCREC_IML_TYPE_MACRO,
 	PPCREC_IML_TYPE_CJUMP,				// conditional jump
-	PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK,	// jumps only if remaining thread cycles >= 0
+	PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK,	// jumps only if remaining thread cycles < 0
 	PPCREC_IML_TYPE_PPC_ENTER,			// used to mark locations that should be written to recompilerCallTable
 	PPCREC_IML_TYPE_CR,					// condition register specific operations (one or more operands)
 	// conditional
@@ -420,6 +420,11 @@ struct IMLInstruction
 		op_jumpmark.address = address;
 	}
 
+	void make_debugbreak(uint32 currentPPCAddress = 0)
+	{
+		make_macro(PPCREC_IML_MACRO_DEBUGBREAK, 0, currentPPCAddress, 0);
+	}
+
 	void make_macro(uint32 macroId, uint32 param, uint32 param2, uint16 paramU16)
 	{
 		type = PPCREC_IML_TYPE_MACRO;
@@ -431,6 +436,7 @@ struct IMLInstruction
 
 	void make_ppcEnter(uint32 ppcAddress)
 	{
+		cemu_assert_suspicious(); // removed
 		type = PPCREC_IML_TYPE_PPC_ENTER;
 		operation = 0;
 		op_ppcEnter.ppcAddress = ppcAddress;

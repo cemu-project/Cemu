@@ -5,11 +5,6 @@
 // mulx, rorx, sarx, shlx, shrx
 // PDEP, PEXT
 
-void x64Gen_checkBuffer(x64GenContext_t* x64GenContext)
-{
-	// todo
-}
-
 void x64Gen_writeU8(x64GenContext_t* x64GenContext, uint8 v)
 {
 	if( x64GenContext->codeBufferIndex+1 > x64GenContext->codeBufferSize )

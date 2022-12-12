@@ -31,9 +31,12 @@ struct IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(struct pp
 
 struct ppcImlGenContext_t
 {
+	class PPCFunctionBoundaryTracker* boundaryTracker;
 	PPCRecFunction_t* functionRef;
 	uint32* currentInstruction;
 	uint32  ppcAddressOfCurrentInstruction;
+	IMLSegment* currentOutputSegment;
+	struct PPCBasicBlockInfo* currentBasicBlock{};
 	// fpr mode
 	bool LSQE{ true };
 	bool PSE{ true };
@@ -81,6 +84,31 @@ struct ppcImlGenContext_t
 	IMLInstruction& emitInst()
 	{
 		return *PPCRecompilerImlGen_generateNewEmptyInstruction(this);
+	}
+
+	IMLSegment* NewSegment()
+	{
+		IMLSegment* seg = new IMLSegment();
+		segmentList2.emplace_back(seg);
+		return seg;
+	}
+
+	size_t GetSegmentIndex(IMLSegment* seg)
+	{
+		for (size_t i = 0; i < segmentList2.size(); i++)
+		{
+			if (segmentList2[i] == seg)
+				return i;
+		}
+		cemu_assert_error();
+		return 0;
+	}
+
+	IMLSegment* InsertSegment(size_t index)
+	{
+		IMLSegment* newSeg = new IMLSegment();
+		segmentList2.insert(segmentList2.begin() + index, 1, newSeg);
+		return newSeg;
 	}
 };
 

@@ -74,44 +74,44 @@ void PPCRecRA_identifyLoop(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* iml
 	}
 }
 
-typedef struct
-{
-	sint32 name;
-	sint32 virtualRegister;
-	sint32 physicalRegister;
-	bool isDirty;
-}raRegisterState_t;
+//typedef struct
+//{
+//	sint32 name;
+//	sint32 virtualRegister;
+//	sint32 physicalRegister;
+//	bool isDirty;
+//}raRegisterState_t;
 
-const sint32 _raInfo_physicalGPRCount = PPC_X64_GPR_USABLE_REGISTERS;
-
-raRegisterState_t* PPCRecRA_getRegisterState(raRegisterState_t* regState, sint32 virtualRegister)
-{
-	for (sint32 i = 0; i < _raInfo_physicalGPRCount; i++)
-	{
-		if (regState[i].virtualRegister == virtualRegister)
-		{
-#ifdef CEMU_DEBUG_ASSERT
-			if (regState[i].physicalRegister < 0)
-				assert_dbg();
-#endif
-			return regState + i;
-		}
-	}
-	return nullptr;
-}
-
-raRegisterState_t* PPCRecRA_getFreePhysicalRegister(raRegisterState_t* regState)
-{
-	for (sint32 i = 0; i < _raInfo_physicalGPRCount; i++)
-	{
-		if (regState[i].physicalRegister < 0)
-		{
-			regState[i].physicalRegister = i;
-			return regState + i;
-		}
-	}
-	return nullptr;
-}
+//const sint32 _raInfo_physicalGPRCount = PPC_X64_GPR_USABLE_REGISTERS;
+//
+//raRegisterState_t* PPCRecRA_getRegisterState(raRegisterState_t* regState, sint32 virtualRegister)
+//{
+//	for (sint32 i = 0; i < _raInfo_physicalGPRCount; i++)
+//	{
+//		if (regState[i].virtualRegister == virtualRegister)
+//		{
+//#ifdef CEMU_DEBUG_ASSERT
+//			if (regState[i].physicalRegister < 0)
+//				assert_dbg();
+//#endif
+//			return regState + i;
+//		}
+//	}
+//	return nullptr;
+//}
+//
+//raRegisterState_t* PPCRecRA_getFreePhysicalRegister(raRegisterState_t* regState)
+//{
+//	for (sint32 i = 0; i < _raInfo_physicalGPRCount; i++)
+//	{
+//		if (regState[i].physicalRegister < 0)
+//		{
+//			regState[i].physicalRegister = i;
+//			return regState + i;
+//		}
+//	}
+//	return nullptr;
+//}
 
 typedef struct
 {
@@ -309,18 +309,32 @@ void _sortSegmentAllSubrangesLinkedList(IMLSegment* imlSegment)
 #endif
 }
 
+void PPCRecRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
+{
+	// this works as a pre-pass to actual register allocation. Assigning registers in advance based on fixed requirements (e.g. calling conventions and operations with fixed-reg input/output like x86 DIV/MUL)
+	// algorithm goes as follows:
+	// 1) Iterate all instructions from beginning to end and keep a list of covering ranges
+	// 2) If we encounter an instruction with a fixed-register we:
+	//   2.0) Check if there are any other ranges already using the same fixed-register and if yes, we split them and unassign the register for any follow-up instructions just prior to the current instruction
+	//   2.1) For inputs: Split the range that needs to be assigned a phys reg on the current instruction. Basically creating a 1-instruction long subrange that we can assign the physical register. RA will then schedule register allocation around that and avoid moves
+	//	 2.2) For outputs: Split the range that needs to be assigned a phys reg on the current instruction
+	//		  Q: What if a specific fixed-register is used both for input and output and thus is destructive? A: Create temporary range
+	//		  Q: What if we have 3 different inputs that are all the same virtual register? A: Create temporary range
+	//		  Q: Assuming the above is implemented, do we even support overlapping two ranges of separate virtual regs on the same phys register? In theory the RA shouldn't care
+	// assume imlSegment->raInfo.linkedList_allSubranges is ordered ascending by start index already
+
+	// todo
+}
+
 bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-
 	// sort subranges ascending by start index
-
-	//std::sort(imlSegment->raInfo.list_subranges.begin(), imlSegment->raInfo.list_subranges.end(), _sortSubrangesByStartIndexDepr);
 	_sortSegmentAllSubrangesLinkedList(imlSegment);
 	
+	PPCRecRA_HandleFixedRegisters(ppcImlGenContext, imlSegment);
+
 	raLiveRangeInfo_t liveInfo;
 	liveInfo.liveRangesCount = 0;
-	//sint32 subrangeIndex = 0;
-	//for (auto& subrange : imlSegment->raInfo.list_subranges)
 	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while(subrangeItr)
 	{
@@ -365,7 +379,7 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
 			continue;
 		}
-		// find free register
+		// find free register for this segment
 		uint32 physRegisterMask = (1<<PPC_X64_GPR_USABLE_REGISTERS)-1;
 		for (sint32 f = 0; f < liveInfo.liveRangesCount; f++)
 		{
@@ -379,6 +393,7 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 		uint32 unusedRegisterMask = physRegisterMask; // mask of registers that are currently not used (does not include range checks)
 		if (physRegisterMask != 0)
 		{
+			// check globally
 			allowedPhysRegisterMask = PPCRecRA_getAllowedRegisterMaskForFullRange(subrangeItr->range);
 			physRegisterMask &= allowedPhysRegisterMask;
 		}
@@ -761,7 +776,6 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	sint32 suffixInstructionCount = imlSegment->HasSuffixInstruction() ? 1 : 0;
 	// load register ranges that are supplied from previous segments
 	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
-	//for (auto& subrange : imlSegment->raInfo.list_subranges)
 	while(subrangeItr)
 	{
 		if (subrangeItr->start.index == RA_INTER_RANGE_START)
@@ -933,7 +947,7 @@ void PPCRecRA_calculateLivenessRangesV2(ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecRA_processFlowAndCalculateLivenessRangesV2(ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecRA_analyzeRangeDataFlowV2(ppcImlGenContext_t* ppcImlGenContext);
 
-void PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext_t* ppcImlGenContext)
+void PPCRecompilerImm_reshapeForRegisterAllocation(ppcImlGenContext_t* ppcImlGenContext)
 {
 	// insert empty segments after every non-taken branch if the linked segment has more than one input
 	// this gives the register allocator more room to create efficient spill code
@@ -985,7 +999,7 @@ void PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext_t* ppcImlGen
 
 void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext)
 {
-	PPCRecompilerImm_prepareForRegisterAllocation(ppcImlGenContext);
+	PPCRecompilerImm_reshapeForRegisterAllocation(ppcImlGenContext);
 
 	ppcImlGenContext->raInfo.list_ranges = std::vector<raLivenessRange_t*>();
 	
@@ -1243,7 +1257,6 @@ void PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 	if (remainingScanDist <= 0)
 		return; // can't reach end
 
-	// also dont forget: Extending is easier if we allow 'non symmetric' branches. E.g. register range one enters one branch
 	IMLSegment* route[64];
 	route[0] = currentSegment;
 	if (currentSegment->nextSegmentBranchNotTaken)

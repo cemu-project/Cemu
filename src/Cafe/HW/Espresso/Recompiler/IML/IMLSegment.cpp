@@ -1,6 +1,13 @@
 #include "IMLInstruction.h"
 #include "IMLSegment.h"
 
+void IMLSegment::SetEnterable(uint32 enterAddress)
+{
+	cemu_assert_debug(!isEnterable || enterPPCAddress == enterAddress);
+	isEnterable = true;
+	enterPPCAddress = enterAddress;
+}
+
 bool IMLSegment::HasSuffixInstruction() const
 {
 	if (imlList.empty())
@@ -16,8 +23,30 @@ IMLInstruction* IMLSegment::GetLastInstruction()
 	return &imlList.back();
 }
 
+void IMLSegment::SetLinkBranchNotTaken(IMLSegment* imlSegmentDst)
+{
+	if (nextSegmentBranchNotTaken)
+		nextSegmentBranchNotTaken->list_prevSegments.erase(std::find(nextSegmentBranchNotTaken->list_prevSegments.begin(), nextSegmentBranchNotTaken->list_prevSegments.end(), this));
+	nextSegmentBranchNotTaken = imlSegmentDst;
+	if(imlSegmentDst)
+		imlSegmentDst->list_prevSegments.push_back(this);
+}
 
+void IMLSegment::SetLinkBranchTaken(IMLSegment* imlSegmentDst)
+{
+	if (nextSegmentBranchTaken)
+		nextSegmentBranchTaken->list_prevSegments.erase(std::find(nextSegmentBranchTaken->list_prevSegments.begin(), nextSegmentBranchTaken->list_prevSegments.end(), this));
+	nextSegmentBranchTaken = imlSegmentDst;
+	if (imlSegmentDst)
+		imlSegmentDst->list_prevSegments.push_back(this);
+}
 
+IMLInstruction* IMLSegment::AppendInstruction()
+{
+	IMLInstruction& inst = imlList.emplace_back();
+	memset(&inst, 0, sizeof(IMLInstruction));
+	return &inst;
+}
 
 void IMLSegment_SetLinkBranchNotTaken(IMLSegment* imlSegmentSrc, IMLSegment* imlSegmentDst)
 {
