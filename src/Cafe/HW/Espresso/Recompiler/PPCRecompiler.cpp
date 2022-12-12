@@ -567,6 +567,41 @@ void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr)
 #if defined(ARCH_X86_64)
 void PPCRecompiler_initPlatform()
 {
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom[0] = 1ULL << 63ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom[1] = 0ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskPair[0] = 1ULL << 63ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskPair[1] = 1ULL << 63ULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNOTMask[0] = 0xFFFFFFFFFFFFFFFFULL;
+	ppcRecompilerInstanceData->_x64XMM_xorNOTMask[1] = 0xFFFFFFFFFFFFFFFFULL;
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskBottom[0] = ~(1ULL << 63ULL);
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskBottom[1] = ~0ULL;
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskPair[0] = ~(1ULL << 63ULL);
+	ppcRecompilerInstanceData->_x64XMM_andAbsMaskPair[1] = ~(1ULL << 63ULL);
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[0] = ~(1 << 31);
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[1] = 0xFFFFFFFF;
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[2] = 0xFFFFFFFF;
+	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[3] = 0xFFFFFFFF;
+	ppcRecompilerInstanceData->_x64XMM_singleWordMask[0] = 0xFFFFFFFFULL;
+	ppcRecompilerInstanceData->_x64XMM_singleWordMask[1] = 0ULL;
+	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[0] = 1.0;
+	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[1] = 1.0;
+	ppcRecompilerInstanceData->_x64XMM_constDouble0_0[0] = 0.0;
+	ppcRecompilerInstanceData->_x64XMM_constDouble0_0[1] = 0.0;
+	ppcRecompilerInstanceData->_x64XMM_constFloat0_0[0] = 0.0f;
+	ppcRecompilerInstanceData->_x64XMM_constFloat0_0[1] = 0.0f;
+	ppcRecompilerInstanceData->_x64XMM_constFloat1_1[0] = 1.0f;
+	ppcRecompilerInstanceData->_x64XMM_constFloat1_1[1] = 1.0f;
+	*(uint32*)&ppcRecompilerInstanceData->_x64XMM_constFloatMin[0] = 0x00800000;
+	*(uint32*)&ppcRecompilerInstanceData->_x64XMM_constFloatMin[1] = 0x00800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[0] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[1] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[2] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMask1[3] = 0x7F800000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[0] = ~0x80000000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[1] = ~0x80000000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[2] = ~0x80000000;
+	ppcRecompilerInstanceData->_x64XMM_flushDenormalMaskResetSignBits[3] = ~0x80000000;
+
 	// mxcsr
 	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOn = 0x1F80 | 0x8000;
 	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOff = 0x1F80;
