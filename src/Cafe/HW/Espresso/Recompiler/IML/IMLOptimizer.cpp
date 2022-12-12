@@ -123,7 +123,6 @@ bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenConte
 				{
 					// convert to NO-OP instruction
 					imlInstructionItr.type = PPCREC_IML_TYPE_NO_OP;
-					imlInstructionItr.associatedPPCAddress = 0;
 				}
 			}
 			imlIndex++;

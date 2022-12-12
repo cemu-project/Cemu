@@ -151,7 +151,6 @@ enum
 	PPCREC_IML_TYPE_MACRO,
 	PPCREC_IML_TYPE_CJUMP,				// conditional jump
 	PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK,	// jumps only if remaining thread cycles < 0
-	PPCREC_IML_TYPE_PPC_ENTER,			// used to mark locations that should be written to recompilerCallTable
 	PPCREC_IML_TYPE_CR,					// condition register specific operations (one or more operands)
 	// conditional
 	PPCREC_IML_TYPE_CONDITIONAL_R_S32,
@@ -270,7 +269,6 @@ struct IMLInstruction
 	uint8 crRegister; // set to 0xFF if not set, not all IML instruction types support cr.
 	uint8 crMode; // only used when crRegister is valid, used to differentiate between various forms of condition flag set/clear behavior
 	uint32 crIgnoreMask; // bit set for every respective CR bit that doesn't need to be updated
-	uint32 associatedPPCAddress; // ppc address that is associated with this instruction
 	union
 	{
 		struct
@@ -322,7 +320,6 @@ struct IMLInstruction
 		}op_macro;
 		struct
 		{
-			uint32 jumpmarkAddress;
 			bool jumpAccordingToSegment; //IMLSegment* destinationSegment; // if set, this replaces jumpmarkAddress
 			uint8 condition; // only used when crRegisterIndex is 8 or above (update: Apparently only used to mark jumps without a condition? -> Cleanup)
 			uint8 crRegisterIndex;
@@ -402,7 +399,6 @@ struct IMLInstruction
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_LEAVE ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_HLE ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_MFTB ||
-			type == PPCREC_IML_TYPE_PPC_ENTER ||
 			type == PPCREC_IML_TYPE_CJUMP ||
 			type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 			return true;
@@ -430,14 +426,11 @@ struct IMLInstruction
 		op_macro.paramU16 = paramU16;
 	}
 
-	void make_ppcEnter(uint32 ppcAddress)
+	void make_cjump_cycle_check()
 	{
-		cemu_assert_suspicious(); // removed
-		type = PPCREC_IML_TYPE_PPC_ENTER;
+		type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
 		operation = 0;
-		op_ppcEnter.ppcAddress = ppcAddress;
-		op_ppcEnter.x64Offset = 0;
-		associatedPPCAddress = 0;
+		crRegister = PPC_REC_INVALID_REGISTER;
 	}
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;

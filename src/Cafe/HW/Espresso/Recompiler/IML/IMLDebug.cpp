@@ -240,10 +240,6 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 		{
 			strOutput.addFmt("jm_{:08x}:", inst.op_jumpmark.address);
 		}
-		else if (inst.type == PPCREC_IML_TYPE_PPC_ENTER)
-		{
-			strOutput.addFmt("ppcEnter_{:08x}:", inst.op_ppcEnter.ppcAddress);
-		}
 		else if (inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_STORE ||
 			inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
 		{
@@ -286,7 +282,7 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 				strOutput.add("JALW"); // jump always
 			else
 				cemu_assert_unimplemented();
-			strOutput.addFmt(" jm_{:08x} (cr{})", inst.op_conditionalJump.jumpmarkAddress, inst.crRegister);
+			strOutput.addFmt(" (cr{})", inst.crRegister);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_NO_OP)
 		{

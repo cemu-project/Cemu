@@ -1964,8 +1964,8 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 		{
 			// deprecated (jump to jumpmark)
 			__debugbreak(); // deprecated
-			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
-			x64Gen_jmp_imm32(x64GenContext, 0);
+			//PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
+			//x64Gen_jmp_imm32(x64GenContext, 0);
 		}
 	}
 	else
@@ -2133,12 +2133,6 @@ bool PPCRecompilerX64Gen_imlInstruction_cr(PPCRecFunction_t* PPCRecFunction, ppc
 		assert_dbg();
 	}
 	return false;
-}
-
-
-void PPCRecompilerX64Gen_imlInstruction_ppcEnter(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
-{
-	imlInstruction->op_ppcEnter.x64Offset = x64GenContext->codeBufferIndex;
 }
 
 void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
@@ -2345,10 +2339,6 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			else if( imlInstruction->type == PPCREC_IML_TYPE_NO_OP )
 			{
 				// no op
-			}
-			else if( imlInstruction->type == PPCREC_IML_TYPE_PPC_ENTER )
-			{
-				PPCRecompilerX64Gen_imlInstruction_ppcEnter(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
 			}
 			else if( imlInstruction->type == PPCREC_IML_TYPE_FPR_R_NAME )
 			{
