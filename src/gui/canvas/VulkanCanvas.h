@@ -6,13 +6,13 @@
 
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include <set>
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX && HAS_WAYLAND
 #include "gui/helpers/wxWayland.h"
 #endif
 
 class VulkanCanvas : public IRenderCanvas, public wxWindow
 {
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX && HAS_WAYLAND
 	std::unique_ptr<wxWlSubsurface> m_subsurface;
 #endif
 public:

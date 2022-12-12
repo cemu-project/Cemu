@@ -110,8 +110,10 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	auto backend = gui_getWindowInfo().window_main.backend;
 	if(backend == WindowHandleInfo::Backend::X11)
 		requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	#ifdef HAS_WAYLAND
 	else if (backend == WindowHandleInfo::Backend::WAYLAND)
 		requiredExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+	#endif
 	#elif BOOST_OS_MACOS
 	requiredExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
@@ -1156,8 +1158,10 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	auto backend = gui_getWindowInfo().window_main.backend;
 	if(backend == WindowHandleInfo::Backend::X11)
 		requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	#if HAS_WAYLAND
 	else if (backend == WindowHandleInfo::Backend::WAYLAND)
 		requiredInstanceExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+	#endif
 	#elif BOOST_OS_MACOS
 	requiredInstanceExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
@@ -1275,7 +1279,7 @@ VkSurfaceKHR VulkanRenderer::CreateXcbSurface(VkInstance instance, xcb_connectio
 
     return result;
 }
-
+#ifdef HAS_WAYLAND
 VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_display* display, wl_surface* surface)
 {
     VkWaylandSurfaceCreateInfoKHR sci{};
@@ -1294,7 +1298,8 @@ VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_displa
 
     return result;
 }
-#endif
+#endif // HAS_WAYLAND
+#endif // BOOST_OS_LINUX
 
 VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo)
 {
@@ -1303,8 +1308,10 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 #elif BOOST_OS_LINUX
 	if(windowInfo.backend == WindowHandleInfo::Backend::X11)
 		return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
+	#ifdef HAS_WAYLAND
 	if(windowInfo.backend == WindowHandleInfo::Backend::WAYLAND)
 		return CreateWaylandSurface(instance, windowInfo.display, windowInfo.surface);
+	#endif
 	return {};
 #elif BOOST_OS_MACOS
 	return CreateCocoaSurface(instance, windowInfo.handle);
