@@ -1,11 +1,5 @@
 #pragma once
 
-#define PPCREC_IML_OP_FLAG_SIGNEXTEND			(1<<0)
-#define PPCREC_IML_OP_FLAG_SWITCHENDIAN			(1<<1)
-#define PPCREC_IML_OP_FLAG_NOT_EXPANDED			(1<<2) // set single-precision load instructions to indicate that the value should not be rounded to double-precision 
-#define PPCREC_IML_OP_FLAG_UNUSED				(1<<7) // used to mark instructions that are not used
-
-
 enum
 {
 	PPCREC_IML_OP_ASSIGN,			// '=' operator
@@ -137,7 +131,6 @@ enum
 {
 	PPCREC_IML_TYPE_NONE,
 	PPCREC_IML_TYPE_NO_OP,				// no-op instruction
-	PPCREC_IML_TYPE_JUMPMARK,			// possible jump destination (generated before each ppc instruction)
 	PPCREC_IML_TYPE_R_R,				// r* (op) *r
 	PPCREC_IML_TYPE_R_R_R,				// r* = r* (op) r*
 	PPCREC_IML_TYPE_R_R_S32,			// r* = r* (op) s32*
@@ -175,7 +168,6 @@ enum
 	PPCREC_NAME_SPR0 = 2000,
 	PPCREC_NAME_FPR0 = 3000,
 	PPCREC_NAME_TEMPORARY_FPR0 = 4000, // 0 to 7
-	//PPCREC_NAME_CR0 = 3000, // value mapped condition register (usually it isn't needed and can be optimized away)
 };
 
 // special cases for LOAD/STORE
@@ -406,10 +398,12 @@ struct IMLInstruction
 	}
 
 	// instruction setters
-	void make_jumpmark(uint32 address)
+	void make_no_op()
 	{
-		type = PPCREC_IML_TYPE_JUMPMARK;
-		op_jumpmark.address = address;
+		type = PPCREC_IML_TYPE_NO_OP;
+		operation = 0;
+		crRegister = PPC_REC_INVALID_REGISTER;
+		crMode = 0;
 	}
 
 	void make_debugbreak(uint32 currentPPCAddress = 0)
