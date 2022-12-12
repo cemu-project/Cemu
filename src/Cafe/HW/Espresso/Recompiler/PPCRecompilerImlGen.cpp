@@ -157,19 +157,19 @@ void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlG
 {
 	__debugbreak();
 
-	// jump
-	if (imlInstruction == NULL)
-		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	else
-		memset(imlInstruction, 0, sizeof(IMLInstruction));
-	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
-	imlInstruction->op_conditionalJump.jumpAccordingToSegment = false;
-	imlInstruction->op_conditionalJump.condition = PPCREC_JUMP_CONDITION_NONE;
-	imlInstruction->op_conditionalJump.crRegisterIndex = 0;
-	imlInstruction->op_conditionalJump.crBitIndex = 0;
-	imlInstruction->op_conditionalJump.bitMustBeSet = false;
+	//// jump
+	//if (imlInstruction == NULL)
+	//	imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	//else
+	//	memset(imlInstruction, 0, sizeof(IMLInstruction));
+	//imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
+	//imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
+	//imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
+	//imlInstruction->op_conditionalJump.jumpAccordingToSegment = false;
+	//imlInstruction->op_conditionalJump.condition = PPCREC_JUMP_CONDITION_NONE;
+	//imlInstruction->op_conditionalJump.crRegisterIndex = 0;
+	//imlInstruction->op_conditionalJump.crBitIndex = 0;
+	//imlInstruction->op_conditionalJump.bitMustBeSet = false;
 }
 
 // jump based on segment branches
@@ -178,10 +178,8 @@ void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* 
 	// jump
 	if (imlInstruction == NULL)
 		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->associatedPPCAddress = 0;
 	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_conditionalJump.jumpmarkAddress = 0;
 	imlInstruction->op_conditionalJump.jumpAccordingToSegment = true;
 	imlInstruction->op_conditionalJump.condition = PPCREC_JUMP_CONDITION_NONE;
 	imlInstruction->op_conditionalJump.crRegisterIndex = 0;
@@ -218,16 +216,16 @@ void PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext
 {
 	__debugbreak();
 
-	// conditional jump
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_conditionalJump.jumpAccordingToSegment = false;
-	imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
-	imlInstruction->op_conditionalJump.condition = jumpCondition;
-	imlInstruction->op_conditionalJump.crRegisterIndex = crRegisterIndex;
-	imlInstruction->op_conditionalJump.crBitIndex = crBitIndex;
-	imlInstruction->op_conditionalJump.bitMustBeSet = bitMustBeSet;
+	//// conditional jump
+	//IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	//imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
+	//imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
+	//imlInstruction->op_conditionalJump.jumpAccordingToSegment = false;
+	//imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
+	//imlInstruction->op_conditionalJump.condition = jumpCondition;
+	//imlInstruction->op_conditionalJump.crRegisterIndex = crRegisterIndex;
+	//imlInstruction->op_conditionalJump.crBitIndex = crBitIndex;
+	//imlInstruction->op_conditionalJump.bitMustBeSet = bitMustBeSet;
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext_t* ppcImlGenContext, uint32 jumpCondition, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
@@ -4073,26 +4071,12 @@ void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, P
 	// exclude non-infinite tight loops
 	if (IMLAnalyzer_IsTightFiniteLoop(imlSegment))
 		return;
-	// potential loop segment found, split this segment into four:
-	// P0: This segment checks if the remaining cycles counter is still above zero. If yes, it jumps to segment P2 (it's also the jump destination for other segments)
-	// P1: This segment contains the ppc_leave instruction
-	// P2: This segment contains the iml instructions of the original segment
-	// PEntry: This segment is used to enter the function, it jumps to P0
-	// All segments are considered to be part of the same PPC instruction range
-	// The first segment also retains the jump destination and enterable properties from the original segment.
-	//debug_printf("--- Insert cycle counter check ---\n");
 
-	// make the segment enterable so execution can return after checking
+	// make the segment enterable so execution can return after passing a check
 	basicBlockInfo.GetFirstSegmentInChain()->SetEnterable(basicBlockInfo.startAddress);
 
 	IMLSegment* splitSeg = PPCIMLGen_CreateSplitSegmentAtEnd(ppcImlGenContext, basicBlockInfo);
-
-	IMLInstruction* inst = splitSeg->AppendInstruction();
-	inst->type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
-	inst->operation = 0;
-	inst->crRegister = PPC_REC_INVALID_REGISTER;
-	inst->op_conditionalJump.jumpmarkAddress = 0xFFFFFFFF;
-	inst->associatedPPCAddress = 0xFFFFFFFF;
+	splitSeg->AppendInstruction()->make_cjump_cycle_check();
 
 	IMLSegment* exitSegment = ppcImlGenContext.NewSegment();
 	splitSeg->SetLinkBranchTaken(exitSegment);
