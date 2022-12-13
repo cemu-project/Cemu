@@ -502,6 +502,11 @@ target_link_libraries(CemuCafe PRIVATE
 	zstd::zstd
 )
 
+if (ENABLE_WAYLAND)
+	# PUBLIC because wayland-client.h is included in VulkanAPI.h
+  target_link_libraries(CemuCafe PUBLIC Wayland::client)
+endif()
+
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuCafe PRIVATE wx::base wx::core)
 endif()

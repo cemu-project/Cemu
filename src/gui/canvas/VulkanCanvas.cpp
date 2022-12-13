@@ -2,6 +2,10 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "gui/guiWrapper.h"
 
+#if BOOST_OS_LINUX && HAS_WAYLAND
+#include "gui/helpers/wxWayland.h"
+#endif
+
 #include <wx/msgdlg.h>
 
 VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)

@@ -5,10 +5,7 @@
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
 #include <gdk/gdkkeysyms.h>
-#if HAS_WAYLAND
-#include <wayland-client.h>
-#endif // HAS_WAYLAND
-#endif // BOOST_OS_LINUX
+#endif
 
 #if BOOST_OS_MACOS
 #include <Carbon/Carbon.h>
@@ -32,8 +29,8 @@ struct WindowHandleInfo
 	//xcb_connection_t* xcb_con{};
 	//xcb_window_t xcb_window{};
 	#ifdef HAS_WAYLAND
-	wl_display* display;
-	wl_surface* surface;
+	struct wl_display* display;
+	struct wl_surface* surface;
 	#endif // HAS_WAYLAND
 #else
 	void* handle;
