@@ -1,8 +1,6 @@
 find_package(PkgConfig)
 
-if(PKG_CONFIG_FOUND)
-    pkg_search_module(WAYLAND_CLIENT IMPORTED_TARGET wayland-client)
-endif()
+pkg_search_module(WAYLAND_CLIENT IMPORTED_TARGET wayland-client)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Wayland
