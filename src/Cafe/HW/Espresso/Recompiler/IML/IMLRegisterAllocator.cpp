@@ -1203,7 +1203,7 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, IMLS
 {
 	if (routeDepth >= 64)
 	{
-		forceLogDebug_printf("Recompiler RA route maximum depth exceeded for function 0x%08x\n", ppcImlGenContext->functionRef->ppcAddress);
+		forceLogDebug_printf("Recompiler RA route maximum depth exceeded\n");
 		return;
 	}
 	route[routeDepth] = currentSegment;

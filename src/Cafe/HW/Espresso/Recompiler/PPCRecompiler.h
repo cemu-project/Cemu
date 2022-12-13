@@ -32,7 +32,6 @@ struct IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(struct pp
 struct ppcImlGenContext_t
 {
 	class PPCFunctionBoundaryTracker* boundaryTracker;
-	PPCRecFunction_t* functionRef;
 	uint32* currentInstruction;
 	uint32  ppcAddressOfCurrentInstruction;
 	IMLSegment* currentOutputSegment;
