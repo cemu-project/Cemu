@@ -24,9 +24,6 @@ void PPCRecompiler_optimizeDirectIntegerCopies(struct ppcImlGenContext_t* ppcIml
 void PPCRecompiler_optimizePSQLoadAndStore(struct ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompiler_reorderConditionModifyInstructions(struct ppcImlGenContext_t* ppcImlGenContext);
 
-// register allocator
-void IMLRegisterAllocator_AllocateRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
-
 // debug
 void IMLDebug_DumpSegment(struct ppcImlGenContext_t* ctx, struct IMLSegment* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo = false);
 void IMLDebug_Dump(struct ppcImlGenContext_t* ppcImlGenContext);

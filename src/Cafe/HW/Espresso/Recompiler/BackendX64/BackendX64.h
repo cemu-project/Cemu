@@ -3,10 +3,9 @@
 
 struct x64RelocEntry_t
 {
-	x64RelocEntry_t(uint32 offset, uint8 type, void* extraInfo) : offset(offset), type(type), extraInfo(extraInfo) {};
+	x64RelocEntry_t(uint32 offset, void* extraInfo) : offset(offset), extraInfo(extraInfo) {};
 
 	uint32 offset;
-	uint8  type;
 	void*  extraInfo;
 };
 
@@ -97,10 +96,6 @@ struct x64GenContext_t
 #define REG_RESV_FPR_TEMP	(15)
 
 
-extern sint32 x64Gen_registerMap[12];
-
-#define tempToRealRegister(__x) (x64Gen_registerMap[__x])
-#define tempToRealFPRRegister(__x) (__x)
 #define reg32ToReg16(__x)	(__x)
 
 enum
@@ -127,9 +122,6 @@ enum
 #define PPCREC_CR_STATE_TYPE_UNSIGNED_ARITHMETIC	(0)		// for signed arithmetic operations (ADD, CMPI)
 #define PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC		(1)		// for unsigned arithmetic operations (ADD, CMPI)
 #define PPCREC_CR_STATE_TYPE_LOGICAL				(2)		// for unsigned operations (CMPLI)
-
-#define X64_RELOC_LINK_TO_PPC				(1)		// translate from ppc address to x86 offset 
-#define X64_RELOC_LINK_TO_SEGMENT			(2)		// link to beginning of segment
 
 #define PPC_X64_GPR_USABLE_REGISTERS		(16-4)
 #define PPC_X64_FPR_USABLE_REGISTERS		(16-1) // Use XMM0 - XMM14, XMM15 is the temp register

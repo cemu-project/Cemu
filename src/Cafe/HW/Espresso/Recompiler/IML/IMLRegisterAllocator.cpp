@@ -2,9 +2,15 @@
 
 #include "../PPCRecompiler.h"
 #include "../PPCRecompilerIml.h"
+#include "IMLRegisterAllocator.h"
 #include "IMLRegisterAllocatorRanges.h"
 
 #include "../BackendX64/BackendX64.h"
+
+struct IMLRegisterAllocatorContext
+{
+	IMLRegisterAllocatorParameters* raParam;
+};
 
 uint32 recRACurrentIterationIndex = 0;
 
@@ -212,10 +218,10 @@ typedef struct
 	sint32 liveRangesCount;
 }raLiveRangeInfo_t;
 
-// return a bitmask that contains only registers that are not used by any colliding range
-uint32 PPCRecRA_getAllowedRegisterMaskForFullRange(raLivenessRange_t* range)
+// mark occupied registers by any overlapping range as unavailable in physRegSet
+void PPCRecRA_MaskOverlappingPhysRegForGlobalRange(raLivenessRange_t* range, IMLPhysRegisterSet& physRegSet)
 {
-	uint32 physRegisterMask = (1 << PPC_X64_GPR_USABLE_REGISTERS) - 1;
+	//uint32 physRegisterMask = (1 << PPC_X64_GPR_USABLE_REGISTERS) - 1;
 	for (auto& subrange : range->list_subranges)
 	{
 		IMLSegment* imlSegment = subrange->imlSegment;
@@ -233,14 +239,13 @@ uint32 PPCRecRA_getAllowedRegisterMaskForFullRange(raLivenessRange_t* range)
 				(subrange->start.index == RA_INTER_RANGE_START && subrange->start.index == subrangeItr->start.index) ||
 				(subrange->end.index == RA_INTER_RANGE_END && subrange->end.index == subrangeItr->end.index) )
 			{
-				if(subrangeItr->range->physicalRegister >= 0)
-					physRegisterMask &= ~(1<<(subrangeItr->range->physicalRegister));
+				if (subrangeItr->range->physicalRegister >= 0)
+					physRegSet.SetReserved(subrangeItr->range->physicalRegister);
 			}
 			// next
 			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
 		}
 	}
-	return physRegisterMask;
 }
 
 bool _livenessRangeStartCompare(raLivenessSubrange_t* lhs, raLivenessSubrange_t* rhs) { return lhs->start.index < rhs->start.index; }
@@ -326,7 +331,7 @@ void PPCRecRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegm
 	// todo
 }
 
-bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
+bool PPCRecRA_assignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
 	// sort subranges ascending by start index
 	_sortSegmentAllSubrangesLinkedList(imlSegment);
@@ -380,24 +385,22 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 			continue;
 		}
 		// find free register for this segment
-		uint32 physRegisterMask = (1<<PPC_X64_GPR_USABLE_REGISTERS)-1;
+		IMLPhysRegisterSet physRegSet = ctx.raParam->physicalRegisterPool;
+
 		for (sint32 f = 0; f < liveInfo.liveRangesCount; f++)
 		{
 			raLivenessSubrange_t* liverange = liveInfo.liveRangeList[f];
-			if (liverange->range->physicalRegister < 0)
-				assert_dbg();
-			physRegisterMask &= ~(1<<liverange->range->physicalRegister);
+			cemu_assert_debug(liverange->range->physicalRegister >= 0);
+			physRegSet.SetReserved(liverange->range->physicalRegister);
 		}
 		// check intersections with other ranges and determine allowed registers
-		uint32 allowedPhysRegisterMask = 0;
-		uint32 unusedRegisterMask = physRegisterMask; // mask of registers that are currently not used (does not include range checks)
-		if (physRegisterMask != 0)
+		IMLPhysRegisterSet localAvailableRegsMask = physRegSet; // mask of registers that are currently not used (does not include range checks in other segments)
+		if(physRegSet.HasAnyAvailable())
 		{
-			// check globally
-			allowedPhysRegisterMask = PPCRecRA_getAllowedRegisterMaskForFullRange(subrangeItr->range);
-			physRegisterMask &= allowedPhysRegisterMask;
+			// check globally in all segments
+			PPCRecRA_MaskOverlappingPhysRegForGlobalRange(subrangeItr->range, physRegSet);
 		}
-		if (physRegisterMask == 0)
+		if (!physRegSet.HasAnyAvailable())
 		{
 			struct
 			{
@@ -480,14 +483,16 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 				spillStrategies.availableRegisterHole.physRegister = -1;
 				if (currentIndex >= 0)
 				{
-					if (unusedRegisterMask != 0)
+					if (localAvailableRegsMask.HasAnyAvailable())
 					{
-						for (sint32 t = 0; t < PPC_X64_GPR_USABLE_REGISTERS; t++)
+						sint32 physRegItr = -1;
+						while (true)
 						{
-							if ((unusedRegisterMask&(1 << t)) == 0)
-								continue;
+							physRegItr = localAvailableRegsMask.GetNextAvailableReg(physRegItr + 1);
+							if (physRegItr < 0)
+								break;
 							// get size of potential hole for this register
-							sint32 distance = PPCRecRA_countInstructionsUntilNextLocalPhysRegisterUse(imlSegment, currentIndex, t);
+							sint32 distance = PPCRecRA_countInstructionsUntilNextLocalPhysRegisterUse(imlSegment, currentIndex, physRegItr);
 							if (distance < 2)
 								continue; // not worth consideration
 							// calculate additional cost due to split
@@ -500,7 +505,7 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 							{
 								spillStrategies.availableRegisterHole.cost = cost;
 								spillStrategies.availableRegisterHole.distance = distance;
-								spillStrategies.availableRegisterHole.physRegister = t;
+								spillStrategies.availableRegisterHole.physRegister = physRegItr;
 							}
 						}
 					}
@@ -611,16 +616,7 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 			return false;
 		}
 		// assign register to range
-		sint32 registerIndex = -1;
-		for (sint32 f = 0; f < PPC_X64_GPR_USABLE_REGISTERS; f++)
-		{
-			if ((physRegisterMask&(1 << f)) != 0)
-			{
-				registerIndex = f;
-				break;
-			}
-		}
-		subrangeItr->range->physicalRegister = registerIndex;
+		subrangeItr->range->physicalRegister = physRegSet.GetFirstAvailableReg();
 		// add to live ranges
 		liveInfo.liveRangeList[liveInfo.liveRangesCount] = subrangeItr;
 		liveInfo.liveRangesCount++;
@@ -630,7 +626,7 @@ bool PPCRecRA_assignSegmentRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSe
 	return true;
 }
 
-void PPCRecRA_assignRegisters(ppcImlGenContext_t* ppcImlGenContext)
+void PPCRecRA_assignRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenContext_t* ppcImlGenContext)
 {
 	// start with frequently executed segments first
 	sint32 maxLoopDepth = 0;
@@ -647,7 +643,7 @@ void PPCRecRA_assignRegisters(ppcImlGenContext_t* ppcImlGenContext)
 			{
 				if (segIt->loopDepth != d)
 					continue;
-				done = PPCRecRA_assignSegmentRegisters(ppcImlGenContext, segIt);
+				done = PPCRecRA_assignSegmentRegisters(ctx, ppcImlGenContext, segIt);
 				if (done == false)
 					break;
 			}
@@ -997,8 +993,11 @@ void PPCRecompilerImm_reshapeForRegisterAllocation(ppcImlGenContext_t* ppcImlGen
 	}
 }
 
-void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext)
+void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLRegisterAllocatorParameters& raParam)
 {
+	IMLRegisterAllocatorContext ctx;
+	ctx.raParam = &raParam;
+
 	PPCRecompilerImm_reshapeForRegisterAllocation(ppcImlGenContext);
 
 	ppcImlGenContext->raInfo.list_ranges = std::vector<raLivenessRange_t*>();
@@ -1006,7 +1005,7 @@ void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext
 	PPCRecRA_calculateLivenessRangesV2(ppcImlGenContext);
 	PPCRecRA_processFlowAndCalculateLivenessRangesV2(ppcImlGenContext);
 
-	PPCRecRA_assignRegisters(ppcImlGenContext);
+	PPCRecRA_assignRegisters(ctx, ppcImlGenContext);
 
 	PPCRecRA_analyzeRangeDataFlowV2(ppcImlGenContext);
 	PPCRecRA_generateMoveInstructions(ppcImlGenContext);
