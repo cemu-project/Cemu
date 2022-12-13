@@ -6,7 +6,6 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Wayland
     REQUIRED_VARS
         WAYLAND_CLIENT_LIBRARIES
-        WAYLAND_CLIENT_INCLUDE_DIRS
     VERSION_VAR WAYLAND_CLIENT_VERSION
 )
 
