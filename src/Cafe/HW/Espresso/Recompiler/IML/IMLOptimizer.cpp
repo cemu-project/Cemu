@@ -1211,7 +1211,7 @@ void _reorderConditionModifyInstructions(IMLSegment* imlSegment)
 #endif
 	IMLInstruction* newCRSetterInstruction = PPCRecompiler_insertInstruction(imlSegment, unsafeInstructionIndex+1);
 	memcpy(newCRSetterInstruction, imlSegment->imlList.data() + crSetterInstructionIndex, sizeof(IMLInstruction));
-	PPCRecompilerImlGen_generateNewInstruction_noOp(nullptr, imlSegment->imlList.data() + crSetterInstructionIndex);
+	imlSegment->imlList[crSetterInstructionIndex].make_no_op();
 }
 
 /*

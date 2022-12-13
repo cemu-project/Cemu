@@ -415,7 +415,6 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 		// todo: Optimize by using only MOVZX/MOVSX
 		if( indexed )
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-		// todo: Use sign extend move from memory instead of separate sign-extend?
 		if( signExtend )
 			x64Gen_movSignExtend_reg64Low32_mem8Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 		else
@@ -439,28 +438,6 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 		x64Emit_mov_mem32_reg32(x64GenContext, REG_RSP, (uint32)offsetof(PPCInterpreter_t, reservedMemValue), realRegisterData); // remember value for reservation
 		// LWARX instruction costs extra cycles (this speeds up busy loops)
 		x64Gen_sub_mem32reg64_imm32(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, remainingCycles), 20);
-	}
-	else if( imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_LSWI_3 )
-	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-		if( switchEndian == false )
-			assert_dbg();
-		if( indexed )
-			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2); // can be replaced with LEA temp, [memReg1+memReg2] (this way we can avoid the SUB instruction after the move)
-		if(g_CPUFeatures.x86.movbe)
-		{
-			x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-			if( indexed && realRegisterMem != realRegisterData )
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-		}
-		else
-		{
-			x64Emit_mov_reg32_mem32(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
-			if( indexed && realRegisterMem != realRegisterData )
-				x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			x64Gen_bswap_reg64Lower32bit(x64GenContext, realRegisterData);
-		}
-		x64Gen_and_reg64Low32_imm32(x64GenContext, realRegisterData, 0xFFFFFF00);
 	}
 	else
 		return false;
@@ -598,36 +575,6 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_CARRY, REG_RESV_HCPU, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_SO));
 		// end
 		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffsetJumpToEnd, x64GenContext->codeBufferIndex);
-	}
-	else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STSWI_2)
-	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 16); // store upper 2 bytes ..
-		x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8); // .. as big-endian
-		if (indexed)
-			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-
-		x64Gen_movTruncate_mem16Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
-		if (indexed)
-			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-	}
-	else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STSWI_3)
-	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
-		if (indexed)
-			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-
-		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
-		x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 2, REG_RESV_TEMP);
-		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
-		x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 1, REG_RESV_TEMP);
-		x64Gen_shr_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, 8);
-		x64Gen_movTruncate_mem8Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32 + 0, REG_RESV_TEMP);
-
-		if (indexed)
-			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 	}
 	else
 		return false;
@@ -1943,40 +1890,16 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 
 bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLSegment* imlSegment, IMLInstruction* imlInstruction)
 {
-	if (!imlInstruction->op_conditionalJump.jumpAccordingToSegment)
-	{
-		debug_printf("PPCRecompilerX64Gen_imlInstruction_conditionalJump(): Failed on deprecated jump method\n");
-		return false;
-	}
-
 	if( imlInstruction->op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NONE )
 	{
 		// jump always
-		if (imlInstruction->op_conditionalJump.jumpAccordingToSegment)
-		{
-			// jump to segment
-			if (imlSegment->nextSegmentBranchTaken == nullptr)
-				assert_dbg();
-			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
-			x64Gen_jmp_imm32(x64GenContext, 0);
-		}
-		else
-		{
-			// deprecated (jump to jumpmark)
-			__debugbreak(); // deprecated
-			//PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_PPC, (void*)(size_t)imlInstruction->op_conditionalJump.jumpmarkAddress);
-			//x64Gen_jmp_imm32(x64GenContext, 0);
-		}
+		cemu_assert_debug(imlSegment->nextSegmentBranchTaken);
+		PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, X64_RELOC_LINK_TO_SEGMENT, imlSegment->nextSegmentBranchTaken);
+		x64Gen_jmp_imm32(x64GenContext, 0);
 	}
 	else
 	{
-		if (!imlInstruction->op_conditionalJump.jumpAccordingToSegment)
-		{
-			debug_printf("Unsupported deprecated cjump to ppc address\n");
-			return false;
-		}
 		cemu_assert_debug(imlSegment->nextSegmentBranchTaken);
-
 		// generate jump update marker
 		if( imlInstruction->op_conditionalJump.crRegisterIndex == PPCREC_CR_TEMPORARY || imlInstruction->op_conditionalJump.crRegisterIndex >= 8 )
 		{
@@ -2159,6 +2082,10 @@ void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction,
 		else
 			assert_dbg();
 	}
+	else if (name >= PPCREC_NAME_TEMPORARY && name < PPCREC_NAME_TEMPORARY + 4)
+	{
+		x64Emit_mov_reg64_mem32(x64GenContext, tempToRealRegister(imlInstruction->op_r_name.registerIndex), REG_RSP, offsetof(PPCInterpreter_t, temporaryGPR) + sizeof(uint32) * (name - PPCREC_NAME_TEMPORARY));
+	}
 	else
 		assert_dbg();
 }
@@ -2186,6 +2113,10 @@ void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction,
 		}
 		else
 			assert_dbg();	
+	}
+	else if (name >= PPCREC_NAME_TEMPORARY && name < PPCREC_NAME_TEMPORARY + 4)
+	{
+		x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, temporaryGPR) + sizeof(uint32) * (name - PPCREC_NAME_TEMPORARY), tempToRealRegister(imlInstruction->op_r_name.registerIndex));
 	}
 	else
 		assert_dbg();

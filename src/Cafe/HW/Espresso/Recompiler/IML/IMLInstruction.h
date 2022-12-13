@@ -163,24 +163,18 @@ enum
 enum
 {
 	PPCREC_NAME_NONE,
-	PPCREC_NAME_TEMPORARY,
-	PPCREC_NAME_R0 = 1000,
-	PPCREC_NAME_SPR0 = 2000,
-	PPCREC_NAME_FPR0 = 3000,
-	PPCREC_NAME_TEMPORARY_FPR0 = 4000, // 0 to 7
+	PPCREC_NAME_TEMPORARY = 1000,
+	PPCREC_NAME_R0 = 2000,
+	PPCREC_NAME_SPR0 = 3000,
+	PPCREC_NAME_FPR0 = 4000,
+	PPCREC_NAME_TEMPORARY_FPR0 = 5000, // 0 to 7
 };
 
 // special cases for LOAD/STORE
 #define PPC_REC_LOAD_LWARX_MARKER	(100)	// lwarx instruction (similar to LWZX but sets reserved address/value)
 #define PPC_REC_STORE_STWCX_MARKER	(100)	// stwcx instruction (similar to STWX but writes only if reservation from LWARX is valid)
-#define PPC_REC_STORE_STSWI_1		(200)   // stswi nb = 1
-#define PPC_REC_STORE_STSWI_2		(201)   // stswi nb = 2
-#define PPC_REC_STORE_STSWI_3		(202)   // stswi nb = 3
-#define PPC_REC_STORE_LSWI_1		(200)   // lswi nb = 1
-#define PPC_REC_STORE_LSWI_2		(201)   // lswi nb = 2
-#define PPC_REC_STORE_LSWI_3		(202)   // lswi nb = 3
 
-#define PPC_REC_INVALID_REGISTER		0xFF
+#define PPC_REC_INVALID_REGISTER	0xFF
 
 #define PPCREC_CR_BIT_LT	0
 #define PPCREC_CR_BIT_GT	1
@@ -312,7 +306,6 @@ struct IMLInstruction
 		}op_macro;
 		struct
 		{
-			bool jumpAccordingToSegment; //IMLSegment* destinationSegment; // if set, this replaces jumpmarkAddress
 			uint8 condition; // only used when crRegisterIndex is 8 or above (update: Apparently only used to mark jumps without a condition? -> Cleanup)
 			uint8 crRegisterIndex;
 			uint8 crBitIndex;
@@ -413,18 +406,82 @@ struct IMLInstruction
 
 	void make_macro(uint32 macroId, uint32 param, uint32 param2, uint16 paramU16)
 	{
-		type = PPCREC_IML_TYPE_MACRO;
-		operation = macroId;
-		op_macro.param = param;
-		op_macro.param2 = param2;
-		op_macro.paramU16 = paramU16;
+		this->type = PPCREC_IML_TYPE_MACRO;
+		this->operation = macroId;
+		this->op_macro.param = param;
+		this->op_macro.param2 = param2;
+		this->op_macro.paramU16 = paramU16;
 	}
 
 	void make_cjump_cycle_check()
 	{
-		type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
-		operation = 0;
-		crRegister = PPC_REC_INVALID_REGISTER;
+		this->type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
+		this->operation = 0;
+		this->crRegister = PPC_REC_INVALID_REGISTER;
+	}
+
+
+	void make_r_r(uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0)
+	{
+		// operation with two register operands (e.g. "t0 = t1")
+		this->type = PPCREC_IML_TYPE_R_R;
+		this->operation = operation;
+		this->crRegister = crRegister;
+		this->crMode = crMode;
+		this->op_r_r.registerResult = registerResult;
+		this->op_r_r.registerA = registerA;
+	}
+
+	void make_r_r_r(uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0)
+	{
+		// operation with three register operands (e.g. "t0 = t1 + t4")
+		this->type = PPCREC_IML_TYPE_R_R_R;
+		this->operation = operation;
+		this->crRegister = crRegister;
+		this->crMode = crMode;
+		this->op_r_r_r.registerResult = registerResult;
+		this->op_r_r_r.registerA = registerA;
+		this->op_r_r_r.registerB = registerB;
+	}
+
+	void make_r_r_s32(uint32 operation, uint8 registerResult, uint8 registerA, sint32 immS32, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0)
+	{
+		// operation with two register operands and one signed immediate (e.g. "t0 = t1 + 1234")
+		this->type = PPCREC_IML_TYPE_R_R_S32;
+		this->operation = operation;
+		this->crRegister = crRegister;
+		this->crMode = crMode;
+		this->op_r_r_s32.registerResult = registerResult;
+		this->op_r_r_s32.registerA = registerA;
+		this->op_r_r_s32.immS32 = immS32;
+	}
+
+	// load from memory
+	void make_r_memory(uint8 registerDestination, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool signExtend, bool switchEndian)
+	{
+		this->type = PPCREC_IML_TYPE_LOAD;
+		this->operation = 0;
+		this->crRegister = PPC_REC_INVALID_REGISTER;
+		this->op_storeLoad.registerData = registerDestination;
+		this->op_storeLoad.registerMem = registerMemory;
+		this->op_storeLoad.immS32 = immS32;
+		this->op_storeLoad.copyWidth = copyWidth;
+		this->op_storeLoad.flags2.swapEndian = switchEndian;
+		this->op_storeLoad.flags2.signExtend = signExtend;
+	}
+
+	// store to memory
+	void make_memory_r(uint8 registerSource, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool switchEndian)
+	{
+		this->type = PPCREC_IML_TYPE_STORE;
+		this->operation = 0;
+		this->crRegister = PPC_REC_INVALID_REGISTER;
+		this->op_storeLoad.registerData = registerSource;
+		this->op_storeLoad.registerMem = registerMemory;
+		this->op_storeLoad.immS32 = immS32;
+		this->op_storeLoad.copyWidth = copyWidth;
+		this->op_storeLoad.flags2.swapEndian = switchEndian;
+		this->op_storeLoad.flags2.signExtend = false;
 	}
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;

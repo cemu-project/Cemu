@@ -50,24 +50,9 @@ uint32 PPCRecompiler_iterateCurrentInstruction(ppcImlGenContext_t* ppcImlGenCont
 
 IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext_t* ppcImlGenContext)
 {
-	//if( ppcImlGenContext->imlListCount+1 > ppcImlGenContext->imlListSize )
-	//{
-	//	sint32 newSize = ppcImlGenContext->imlListCount*2 + 2;
-	//	ppcImlGenContext->imlList = (IMLInstruction*)realloc(ppcImlGenContext->imlList, sizeof(IMLInstruction)*newSize);
-	//	ppcImlGenContext->imlListSize = newSize;
-	//}
-	//IMLInstruction* imlInstruction = ppcImlGenContext->imlList+ppcImlGenContext->imlListCount;
-	//memset(imlInstruction, 0x00, sizeof(IMLInstruction));
-	//imlInstruction->crRegister = PPC_REC_INVALID_REGISTER; // dont update any cr register by default
-	//imlInstruction->associatedPPCAddress = ppcImlGenContext->ppcAddressOfCurrentInstruction;
-	//ppcImlGenContext->imlListCount++;
-	//return imlInstruction;
-
 	IMLInstruction& inst = ppcImlGenContext->currentOutputSegment->imlList.emplace_back();
 	memset(&inst, 0x00, sizeof(IMLInstruction));
 	inst.crRegister = PPC_REC_INVALID_REGISTER; // dont update any cr register by default
-//imlInstruction->associatedPPCAddress = ppcImlGenContext->ppcAddressOfCurrentInstruction;
-
 	return &inst;
 }
 
@@ -86,28 +71,12 @@ void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGe
 
 void PPCRecompilerImlGen_generateNewInstruction_r_r_r(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB, uint8 crRegister=PPC_REC_INVALID_REGISTER, uint8 crMode=0)
 {
-	// operation with three register operands (e.g. "t0 = t1 + t4")
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_R_R_R;
-	imlInstruction->operation = operation;
-	imlInstruction->crRegister = crRegister;
-	imlInstruction->crMode = crMode;
-	imlInstruction->op_r_r_r.registerResult = registerResult;
-	imlInstruction->op_r_r_r.registerA = registerA;
-	imlInstruction->op_r_r_r.registerB = registerB;
+	ppcImlGenContext->emitInst().make_r_r_r(operation, registerResult, registerA, registerB, crRegister, crMode);
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_r_r_s32(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerResult, uint8 registerA, sint32 immS32, uint8 crRegister=PPC_REC_INVALID_REGISTER, uint8 crMode=0)
 {
-	// operation with two register operands and one signed immediate (e.g. "t0 = t1 + 1234")
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_R_R_S32;
-	imlInstruction->operation = operation;
-	imlInstruction->crRegister = crRegister;
-	imlInstruction->crMode = crMode;
-	imlInstruction->op_r_r_s32.registerResult = registerResult;
-	imlInstruction->op_r_r_s32.registerA = registerA;
-	imlInstruction->op_r_r_s32.immS32 = immS32;
+	ppcImlGenContext->emitInst().make_r_r_s32(operation, registerResult, registerA, immS32, crRegister, crMode);
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_name_r(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerIndex, uint32 name)
@@ -153,25 +122,6 @@ void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenConte
 }
 
 
-void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 jumpmarkAddress)
-{
-	__debugbreak();
-
-	//// jump
-	//if (imlInstruction == NULL)
-	//	imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	//else
-	//	memset(imlInstruction, 0, sizeof(IMLInstruction));
-	//imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
-	//imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	//imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
-	//imlInstruction->op_conditionalJump.jumpAccordingToSegment = false;
-	//imlInstruction->op_conditionalJump.condition = PPCREC_JUMP_CONDITION_NONE;
-	//imlInstruction->op_conditionalJump.crRegisterIndex = 0;
-	//imlInstruction->op_conditionalJump.crBitIndex = 0;
-	//imlInstruction->op_conditionalJump.bitMustBeSet = false;
-}
-
 // jump based on segment branches
 void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction)
 {
@@ -180,18 +130,22 @@ void PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext_t* 
 		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
 	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_conditionalJump.jumpAccordingToSegment = true;
 	imlInstruction->op_conditionalJump.condition = PPCREC_JUMP_CONDITION_NONE;
 	imlInstruction->op_conditionalJump.crRegisterIndex = 0;
 	imlInstruction->op_conditionalJump.crBitIndex = 0;
 	imlInstruction->op_conditionalJump.bitMustBeSet = false;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction)
+void PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext_t* ppcImlGenContext, uint32 jumpCondition, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
 {
-	if (imlInstruction == NULL)
-		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->make_no_op();
+	// conditional jump
+	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
+	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
+	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
+	imlInstruction->op_conditionalJump.condition = jumpCondition;
+	imlInstruction->op_conditionalJump.crRegisterIndex = crRegisterIndex;
+	imlInstruction->op_conditionalJump.crBitIndex = crBitIndex;
+	imlInstruction->op_conditionalJump.bitMustBeSet = bitMustBeSet;
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_cr(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 crD, uint8 crA, uint8 crB)
@@ -209,48 +163,9 @@ void PPCRecompilerImlGen_generateNewInstruction_cr(ppcImlGenContext_t* ppcImlGen
 	imlInstruction->op_cr.crB = crB;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext_t* ppcImlGenContext, uint32 jumpmarkAddress, uint32 jumpCondition, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
-{
-	__debugbreak();
-
-	//// conditional jump
-	//IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	//imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
-	//imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	//imlInstruction->op_conditionalJump.jumpAccordingToSegment = false;
-	//imlInstruction->op_conditionalJump.jumpmarkAddress = jumpmarkAddress;
-	//imlInstruction->op_conditionalJump.condition = jumpCondition;
-	//imlInstruction->op_conditionalJump.crRegisterIndex = crRegisterIndex;
-	//imlInstruction->op_conditionalJump.crBitIndex = crBitIndex;
-	//imlInstruction->op_conditionalJump.bitMustBeSet = bitMustBeSet;
-}
-
-void PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext_t* ppcImlGenContext, uint32 jumpCondition, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
-{
-	// conditional jump
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_CJUMP;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_conditionalJump.jumpAccordingToSegment = true;
-	imlInstruction->op_conditionalJump.condition = jumpCondition;
-	imlInstruction->op_conditionalJump.crRegisterIndex = crRegisterIndex;
-	imlInstruction->op_conditionalJump.crBitIndex = crBitIndex;
-	imlInstruction->op_conditionalJump.bitMustBeSet = bitMustBeSet;
-}
-
 void PPCRecompilerImlGen_generateNewInstruction_r_memory(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool signExtend, bool switchEndian)
 {
-	// load from memory
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_LOAD;
-	imlInstruction->operation = 0;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_storeLoad.registerData = registerDestination;
-	imlInstruction->op_storeLoad.registerMem = registerMemory;
-	imlInstruction->op_storeLoad.immS32 = immS32;
-	imlInstruction->op_storeLoad.copyWidth = copyWidth;
-	imlInstruction->op_storeLoad.flags2.swapEndian = switchEndian;
-	imlInstruction->op_storeLoad.flags2.signExtend = signExtend;
+	ppcImlGenContext->emitInst().make_r_memory(registerDestination, registerMemory, immS32, copyWidth, signExtend, switchEndian);
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_r_memory_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory1, uint8 registerMemory2, uint32 copyWidth, bool signExtend, bool switchEndian)
@@ -270,17 +185,7 @@ void PPCRecompilerImlGen_generateNewInstruction_r_memory_indexed(ppcImlGenContex
 
 void PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext_t* ppcImlGenContext, uint8 registerSource, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool switchEndian)
 {
-	// load from memory
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_STORE;
-	imlInstruction->operation = 0;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
-	imlInstruction->op_storeLoad.registerData = registerSource;
-	imlInstruction->op_storeLoad.registerMem = registerMemory;
-	imlInstruction->op_storeLoad.immS32 = immS32;
-	imlInstruction->op_storeLoad.copyWidth = copyWidth;
-	imlInstruction->op_storeLoad.flags2.swapEndian = switchEndian;
-	imlInstruction->op_storeLoad.flags2.signExtend = false;
+	ppcImlGenContext->emitInst().make_memory_r(registerSource, registerMemory, immS32, copyWidth, switchEndian);
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_memory_r_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory1, uint8 registerMemory2, uint32 copyWidth, bool signExtend, bool switchEndian)
@@ -630,10 +535,11 @@ void PPCRecompiler_generateInlinedCode(ppcImlGenContext_t* ppcImlGenContext, uin
 		}
 	}
 	// add range
-	ppcRecRange_t recRange;
-	recRange.ppcAddress = startAddress;
-	recRange.ppcSize = instructionCount*4 + 4; // + 4 because we have to include the BLR
-	ppcImlGenContext->functionRef->list_ranges.push_back(recRange);
+	cemu_assert_unimplemented();
+	//ppcRecRange_t recRange;
+	//recRange.ppcAddress = startAddress;
+	//recRange.ppcSize = instructionCount*4 + 4; // + 4 because we have to include the BLR
+	//ppcImlGenContext->functionRef->list_ranges.push_back(recRange);
 }
 
 bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -653,14 +559,9 @@ bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 	}
 	// is jump destination within recompiled function?
 	if( ppcImlGenContext->boundaryTracker->ContainsAddress(jumpAddressDest) )
-	{
-		// jump to target within same function
 		PPCRecompilerImlGen_generateNewInstruction_jumpSegment(ppcImlGenContext, nullptr);
-	}
 	else
-	{
 		ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-	}
 	return true;
 }
 
@@ -778,10 +679,6 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 				// far jump
 				debug_printf("PPCRecompilerImlGen_BC(): Far jump not supported yet");
 				return false;
-
-				PPCRecompilerImlGen_generateNewInstruction_conditionalJump(ppcImlGenContext, ppcImlGenContext->ppcAddressOfCurrentInstruction + 4, jumpCondition, crRegister, crBit, !conditionMustBeTrue);
-				ppcImlGenContext->emitInst().make_macro(PPCREC_IML_MACRO_B_FAR, ppcImlGenContext->ppcAddressOfCurrentInstruction, jumpAddressDest, ppcImlGenContext->cyclesSinceLastBranch);
-				//ppcImlGenContext->emitInst().make_ppcEnter(ppcImlGenContext->ppcAddressOfCurrentInstruction + 4);
 			}
 		}
 	}
@@ -2190,70 +2087,40 @@ bool PPCRecompilerImlGen_LSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	PPC_OPC_TEMPL_X(opcode, rD, rA, nb);
 	if( nb == 0 )
 		nb = 32;
-	if( nb == 4 )
+
+	if (rA == 0)
 	{
-		// if nb == 4 this instruction immitates LWZ
-		if( rA == 0 )
-		{
-#ifdef CEMU_DEBUG_ASSERT
-			assert_dbg(); // special form where gpr is ignored and only imm is used
-#endif
-			return false;
-		}
-		// load memory gpr into register
-		uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-		// check if destination register is already loaded
-		uint32 destinationRegister = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, PPCREC_NAME_R0+rD);
-		if( destinationRegister == PPC_REC_INVALID_REGISTER )
-			destinationRegister = PPCRecompilerImlGen_getAndLockFreeTemporaryGPR(ppcImlGenContext, PPCREC_NAME_R0+rD); // else just create new register
-		// load half
-		PPCRecompilerImlGen_generateNewInstruction_r_memory(ppcImlGenContext, destinationRegister, gprRegister, 0, 32, false, true);
-		return true;
+		cemu_assert_unimplemented(); // special form where gpr is ignored and EA is 0
+		return false;
 	}
-	else if( nb == 2 )
+
+	// potential optimization: On x86 unaligned access is allowed and we could handle the case nb==4 with a single memory read, and nb==2 with a memory read and shift
+
+	uint32 memReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
+	uint32 tmpReg = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+	uint32 memOffset = 0;
+	while (nb > 0)
 	{
-		// if nb == 2 this instruction immitates a LHZ but the result is shifted left by 16 bits
-		if( rA == 0 )
-		{
-#ifdef CEMU_DEBUG_ASSERT
-			assert_dbg(); // special form where gpr is ignored and only imm is used
-#endif
+		if (rD == rA)
 			return false;
-		}
-		// load memory gpr into register
-		uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-		// check if destination register is already loaded
-		uint32 destinationRegister = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, PPCREC_NAME_R0+rD);
-		if( destinationRegister == PPC_REC_INVALID_REGISTER )
-			destinationRegister = PPCRecompilerImlGen_getAndLockFreeTemporaryGPR(ppcImlGenContext, PPCREC_NAME_R0+rD); // else just create new register
-		// load half
-		PPCRecompilerImlGen_generateNewInstruction_r_memory(ppcImlGenContext, destinationRegister, gprRegister, 0, 16, false, true);
-		// shift
-		PPCRecompilerImlGen_generateNewInstruction_r_r_s32(ppcImlGenContext, PPCREC_IML_OP_LEFT_SHIFT, destinationRegister, destinationRegister, 16);		
-		return true;
-	}
-	else if( nb == 3 )
-	{
-		// if nb == 3 this instruction loads a 3-byte big-endian and the result is shifted left by 8 bits
-		if( rA == 0 )
+		cemu_assert(rD < 32);
+		uint32 destinationRegister = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0 + rD);
+		// load bytes one-by-one
+		for (sint32 b = 0; b < 4; b++)
 		{
-#ifdef CEMU_DEBUG_ASSERT
-			assert_dbg(); // special form where gpr is ignored and only imm is used
-#endif
-			return false;
+			ppcImlGenContext->emitInst().make_r_memory(tmpReg, memReg, memOffset + b, 8, false, false);
+			sint32 shiftAmount = (3 - b) * 8;
+			if(shiftAmount)
+				ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, tmpReg, tmpReg, shiftAmount);
+			ppcImlGenContext->emitInst().make_r_r(b == 0 ? PPCREC_IML_OP_ASSIGN : PPCREC_IML_OP_OR, destinationRegister, tmpReg);
+			nb--;
+			if (nb == 0)
+				break;
 		}
-		// load memory gpr into register
-		uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-		// check if destination register is already loaded
-		uint32 destinationRegister = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, PPCREC_NAME_R0+rD);
-		if( destinationRegister == PPC_REC_INVALID_REGISTER )
-			destinationRegister = PPCRecompilerImlGen_getAndLockFreeTemporaryGPR(ppcImlGenContext, PPCREC_NAME_R0+rD); // else just create new register
-		// load half
-		PPCRecompilerImlGen_generateNewInstruction_r_memory(ppcImlGenContext, destinationRegister, gprRegister, 0, PPC_REC_STORE_LSWI_3, false, true);
-		return true;
+		memOffset += 4;
+		rD++;
 	}
-	debug_printf("PPCRecompilerImlGen_LSWI(): Unsupported nb value %d\n", nb);
-	return false;
+	return true;
 }
 
 bool PPCRecompilerImlGen_STSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -2262,38 +2129,32 @@ bool PPCRecompilerImlGen_STSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	PPC_OPC_TEMPL_X(opcode, rS, rA, nb);
 	if( nb == 0 )
 		nb = 32;
-	if( nb == 4 )
+
+	uint32 memReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
+	uint32 tmpReg = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+	uint32 memOffset = 0;
+	while (nb > 0)
 	{
-		// load memory gpr into register
-		uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-		// load source register
-		uint32 sourceRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false); // can be the same as gprRegister
-		// store word
-		PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext, sourceRegister, gprRegister, 0, 32, true);
-		return true;
+		if (rS == rA)
+			return false;
+		cemu_assert(rS < 32);
+		uint32 dataRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rS);
+		// store bytes one-by-one
+		for (sint32 b = 0; b < 4; b++)
+		{
+			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, tmpReg, dataRegister);
+			sint32 shiftAmount = (3 - b) * 8;
+			if (shiftAmount)
+				ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT, tmpReg, tmpReg, shiftAmount);
+			ppcImlGenContext->emitInst().make_memory_r(tmpReg, memReg, memOffset + b, 8, false);
+			nb--;
+			if (nb == 0)
+				break;
+		}
+		memOffset += 4;
+		rS++;
 	}
-	else if( nb == 2 )
-	{
-		// load memory gpr into register
-		uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-		// load source register
-		uint32 sourceRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false); // can be the same as gprRegister
-		// store half-word (shifted << 16)
-		PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext, sourceRegister, gprRegister, 0, PPC_REC_STORE_STSWI_2, false);
-		return true;
-	}
-	else if( nb == 3 )
-	{
-		// load memory gpr into register
-		uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-		// load source register
-		uint32 sourceRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false); // can be the same as gprRegister
-		// store 3-byte-word (shifted << 8)
-		PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext, sourceRegister, gprRegister, 0, PPC_REC_STORE_STSWI_3, false);
-		return true;
-	}
-	debug_printf("PPCRecompilerImlGen_STSWI(): Unsupported nb value %d\n", nb);
-	return false;
+	return true;
 }
 
 bool PPCRecompilerImlGen_DCBZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -4293,9 +4154,7 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 
 bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext, PPCRecFunction_t* ppcRecFunc, std::set<uint32>& entryAddresses, PPCFunctionBoundaryTracker& boundaryTracker)
 {
-	ppcImlGenContext.functionRef = ppcRecFunc; // todo - remove this and replace internally with boundary tracker
 	ppcImlGenContext.boundaryTracker = &boundaryTracker;
-
 	if (!PPCRecompiler_GenerateIML(ppcImlGenContext, boundaryTracker, entryAddresses))
 		return false;
 
@@ -4343,8 +4202,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		uint8 branchCond_crRegisterIndex = lastInstruction->op_conditionalJump.crRegisterIndex;
 		uint8 branchCond_crBitIndex = lastInstruction->op_conditionalJump.crBitIndex;
 		bool  branchCond_bitMustBeSet = lastInstruction->op_conditionalJump.bitMustBeSet;
-		
-		PPCRecompilerImlGen_generateNewInstruction_noOp(&ppcImlGenContext, lastInstruction);
+		lastInstruction->make_no_op();
 
 		// append conditional moves based on branch condition
 		for (sint32 f = 0; f < conditionalSegment->imlList.size(); f++)
