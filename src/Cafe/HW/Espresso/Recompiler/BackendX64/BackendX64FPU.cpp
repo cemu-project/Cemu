@@ -10,11 +10,11 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunct
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
 	{
-		x64Gen_movupd_xmmReg_memReg128(x64GenContext, tempToRealFPRRegister(imlInstruction->op_r_name.registerIndex), REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
+		x64Gen_movupd_xmmReg_memReg128(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
 	}
 	else if( name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0+8) )
 	{
-		x64Gen_movupd_xmmReg_memReg128(x64GenContext, tempToRealFPRRegister(imlInstruction->op_r_name.registerIndex), REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
+		x64Gen_movupd_xmmReg_memReg128(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
 	}
 	else
 	{
@@ -27,11 +27,11 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunct
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
 	{
-		x64Gen_movupd_memReg128_xmmReg(x64GenContext, tempToRealFPRRegister(imlInstruction->op_r_name.registerIndex), REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
+		x64Gen_movupd_memReg128_xmmReg(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
 	}
 	else if( name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0+8) )
 	{
-		x64Gen_movupd_memReg128_xmmReg(x64GenContext, tempToRealFPRRegister(imlInstruction->op_r_name.registerIndex), REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
+		x64Gen_movupd_memReg128_xmmReg(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
 	}
 	else
 	{
@@ -268,11 +268,11 @@ void PPCRecompilerX64Gen_imlInstr_psq_load_generic(ppcImlGenContext_t* ppcImlGen
 bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-	sint32 realRegisterXMM = tempToRealFPRRegister(imlInstruction->op_storeLoad.registerData);
-	sint32 realRegisterMem = tempToRealRegister(imlInstruction->op_storeLoad.registerMem);
+	sint32 realRegisterXMM = imlInstruction->op_storeLoad.registerData;
+	sint32 realRegisterMem = imlInstruction->op_storeLoad.registerMem;
 	sint32 realRegisterMem2 = PPC_REC_INVALID_REGISTER;
 	if( indexed )
-		realRegisterMem2 = tempToRealRegister(imlInstruction->op_storeLoad.registerMem2);
+		realRegisterMem2 = imlInstruction->op_storeLoad.registerMem2;
 	uint8 mode = imlInstruction->op_storeLoad.mode;
 
 	if( mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1 )
@@ -384,7 +384,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 	else if (mode == PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1 ||
 		   	 mode == PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0)
 	{
-		PPCRecompilerX64Gen_imlInstr_psq_load_generic(ppcImlGenContext, x64GenContext, mode, realRegisterXMM, realRegisterMem, realRegisterMem2, imlInstruction->op_storeLoad.immS32, indexed, tempToRealRegister(imlInstruction->op_storeLoad.registerGQR));
+		PPCRecompilerX64Gen_imlInstr_psq_load_generic(ppcImlGenContext, x64GenContext, mode, realRegisterXMM, realRegisterMem, realRegisterMem2, imlInstruction->op_storeLoad.immS32, indexed, imlInstruction->op_storeLoad.registerGQR);
 	}
 	else
 	{
@@ -579,11 +579,11 @@ void PPCRecompilerX64Gen_imlInstr_psq_store_generic(ppcImlGenContext_t* ppcImlGe
 bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed)
 {
 	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-	sint32 realRegisterXMM = tempToRealFPRRegister(imlInstruction->op_storeLoad.registerData);
-	sint32 realRegisterMem = tempToRealRegister(imlInstruction->op_storeLoad.registerMem);
+	sint32 realRegisterXMM = imlInstruction->op_storeLoad.registerData;
+	sint32 realRegisterMem = imlInstruction->op_storeLoad.registerMem;
 	sint32 realRegisterMem2 = PPC_REC_INVALID_REGISTER;
 	if( indexed )
-		realRegisterMem2 = tempToRealRegister(imlInstruction->op_storeLoad.registerMem2);
+		realRegisterMem2 = imlInstruction->op_storeLoad.registerMem2;
 	uint8 mode = imlInstruction->op_storeLoad.mode;
 	if( mode == PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0 )
 	{
@@ -670,7 +670,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 	else if (mode == PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1 ||
 			 mode == PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0)
 	{
-		PPCRecompilerX64Gen_imlInstr_psq_store_generic(ppcImlGenContext, x64GenContext, mode, realRegisterXMM, realRegisterMem, realRegisterMem2, imlInstruction->op_storeLoad.immS32, indexed, tempToRealRegister(imlInstruction->op_storeLoad.registerGQR));
+		PPCRecompilerX64Gen_imlInstr_psq_store_generic(ppcImlGenContext, x64GenContext, mode, realRegisterXMM, realRegisterMem, realRegisterMem2, imlInstruction->op_storeLoad.immS32, indexed, imlInstruction->op_storeLoad.registerGQR);
 	}
 	else
 	{

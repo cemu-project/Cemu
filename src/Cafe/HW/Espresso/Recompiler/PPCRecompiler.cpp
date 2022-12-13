@@ -14,6 +14,7 @@
 #include "util/MemMapper/MemMapper.h"
 
 #include "IML/IML.h"
+#include "IML/IMLRegisterAllocator.h"
 #include "BackendX64/BackendX64.h"
 
 struct PPCInvalidationRange
@@ -272,7 +273,21 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 		}
 	}
 
-	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext);
+	IMLRegisterAllocatorParameters raParam;
+	raParam.physicalRegisterPool.SetAvailable(REG_RAX);
+	raParam.physicalRegisterPool.SetAvailable(REG_RDX);
+	raParam.physicalRegisterPool.SetAvailable(REG_RBX);
+	raParam.physicalRegisterPool.SetAvailable(REG_RBP);
+	raParam.physicalRegisterPool.SetAvailable(REG_RSI);
+	raParam.physicalRegisterPool.SetAvailable(REG_RDI);
+	raParam.physicalRegisterPool.SetAvailable(REG_R8);
+	raParam.physicalRegisterPool.SetAvailable(REG_R9);
+	raParam.physicalRegisterPool.SetAvailable(REG_R10);
+	raParam.physicalRegisterPool.SetAvailable(REG_R11);
+	raParam.physicalRegisterPool.SetAvailable(REG_R12);
+	raParam.physicalRegisterPool.SetAvailable(REG_RCX);
+
+	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext, raParam);
 
 	// remove redundant name load and store instructions
 	PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
