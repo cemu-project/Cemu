@@ -1,12 +1,17 @@
 find_package(PkgConfig)
 
 if(PKG_CONFIG_FOUND)
-    pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
+    pkg_search_module(WAYLAND_CLIENT IMPORTED_TARGET wayland-client)
+endif()
 
-    find_path(WAYLAND_CLIENT_INCLUDE_DIR NAMES wayland-client.h HINTS ${WAYLAND_CLIENT_INCLUDE_DIRS})
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Wayland
+    REQUIRED_VARS
+        WAYLAND_CLIENT_LIBRARIES
+        WAYLAND_CLIENT_INCLUDE_DIRS
+    VERSION_VAR WAYLAND_CLIENT_VERSION
+)
+
+if (Wayland_FOUND)
     add_library(Wayland::client ALIAS PkgConfig::WAYLAND_CLIENT)
-
-    set(Wayland_INCLUDE_DIR ${WAYLAND_CLIENT_INCLUDE_DIR})
-    set(Wayland_LIBRARIES ${WAYLAND_CLIENT_LIBRARIES})
-    find_package_handle_standard_args(Wayland DEFAULT_MSG Wayland_LIBRARIES Wayland_INCLUDE_DIR)
 endif()
