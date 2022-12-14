@@ -10,11 +10,11 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunct
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
 	{
-		x64Gen_movupd_xmmReg_memReg128(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
+		x64Gen_movupd_xmmReg_memReg128(x64GenContext, imlInstruction->op_r_name.registerIndex, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
 	}
 	else if( name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0+8) )
 	{
-		x64Gen_movupd_xmmReg_memReg128(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
+		x64Gen_movupd_xmmReg_memReg128(x64GenContext, imlInstruction->op_r_name.registerIndex, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
 	}
 	else
 	{
@@ -27,11 +27,11 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunct
 	uint32 name = imlInstruction->op_r_name.name;
 	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
 	{
-		x64Gen_movupd_memReg128_xmmReg(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
+		x64Gen_movupd_memReg128_xmmReg(x64GenContext, imlInstruction->op_r_name.registerIndex, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
 	}
 	else if( name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0+8) )
 	{
-		x64Gen_movupd_memReg128_xmmReg(x64GenContext, imlInstruction->op_r_name.registerIndex, REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
+		x64Gen_movupd_memReg128_xmmReg(x64GenContext, imlInstruction->op_r_name.registerIndex, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
 	}
 	else
 	{
@@ -75,7 +75,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 			assert_dbg();
 		}
 		// optimized code for ps float load
-		x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_TEMP, REG_R13, memReg, memImmS32);
+		x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_TEMP, X86_REG_R13, memReg, memImmS32);
 		x64Gen_bswap_reg64(x64GenContext, REG_RESV_TEMP);
 		x64Gen_rol_reg64_imm8(x64GenContext, REG_RESV_TEMP, 32); // swap upper and lower DWORD
 		x64Gen_movq_xmmReg_reg64(x64GenContext, registerXMM, REG_RESV_TEMP);
@@ -116,8 +116,8 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 		}
 		else
 		{
-			x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR), REG_RESV_TEMP);
-			x64Gen_movddup_xmmReg_memReg64(x64GenContext, REG_RESV_FPR_TEMP, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
+			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR), REG_RESV_TEMP);
+			x64Gen_movddup_xmmReg_memReg64(x64GenContext, REG_RESV_FPR_TEMP, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
 		}
 		x64Gen_cvtss2sd_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, REG_RESV_FPR_TEMP);
 		// load constant 1.0 into lower half and upper half of temp register
@@ -179,7 +179,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 				if (readSize == 16)
 				{
 					// half word
-					x64Gen_movZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_R13, memReg, memOffset);
+					x64Gen_movZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, X86_REG_R13, memReg, memOffset);
 					x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8); // endian swap
 					if (isSigned)
 						x64Gen_movSignExtend_reg64Low32_reg64Low16(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP);
@@ -189,7 +189,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 				else if (readSize == 8)
 				{
 					// byte
-					x64Emit_mov_reg64b_mem8(x64GenContext, REG_RESV_TEMP, REG_R13, memReg, memOffset);
+					x64Emit_mov_reg64b_mem8(x64GenContext, REG_RESV_TEMP, X86_REG_R13, memReg, memOffset);
 					if (isSigned)
 						x64Gen_movSignExtend_reg64Low32_reg64Low8(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP);
 					else
@@ -318,14 +318,14 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 				x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem);
 				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem2);
 				// load value
-				x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_TEMP, REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32+0);
+				x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_TEMP, X86_REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32+0);
 				x64Gen_bswap_reg64(x64GenContext, REG_RESV_TEMP);
 				x64Gen_movq_xmmReg_reg64(x64GenContext, REG_RESV_FPR_TEMP, REG_RESV_TEMP);
 				x64Gen_movsd_xmmReg_xmmReg(x64GenContext, realRegisterXMM, REG_RESV_FPR_TEMP);
 			}
 			else
 			{
-				x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_TEMP, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+0);
+				x64Emit_mov_reg64_mem64(x64GenContext, REG_RESV_TEMP, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+0);
 				x64Gen_bswap_reg64(x64GenContext, REG_RESV_TEMP);
 				x64Gen_movq_xmmReg_reg64(x64GenContext, REG_RESV_FPR_TEMP, REG_RESV_TEMP);
 				x64Gen_movsd_xmmReg_xmmReg(x64GenContext, realRegisterXMM, REG_RESV_FPR_TEMP);
@@ -339,31 +339,31 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 				x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem);
 				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem2);
 				// load double low part to temporaryFPR
-				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32+0);
+				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, X86_REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32+0);
 				x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-				x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+4, REG_RESV_TEMP);
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+4, REG_RESV_TEMP);
 				// calculate offset again
 				x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem);
 				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem2);
 				// load double high part to temporaryFPR
-				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32+4);
+				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, X86_REG_R13, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32+4);
 				x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-				x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+0, REG_RESV_TEMP);
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+0, REG_RESV_TEMP);
 				// load double from temporaryFPR
-				x64Gen_movlpd_xmmReg_memReg64(x64GenContext, realRegisterXMM, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
+				x64Gen_movlpd_xmmReg_memReg64(x64GenContext, realRegisterXMM, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
 			}
 			else
 			{
 				// load double low part to temporaryFPR
-				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+0);
+				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+0);
 				x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-				x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+4, REG_RESV_TEMP);
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+4, REG_RESV_TEMP);
 				// load double high part to temporaryFPR
-				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+4);
+				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+4);
 				x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-				x64Emit_mov_mem32_reg64(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+0, REG_RESV_TEMP);
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+0, REG_RESV_TEMP);
 				// load double from temporaryFPR
-				x64Gen_movlpd_xmmReg_memReg64(x64GenContext, realRegisterXMM, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
+				x64Gen_movlpd_xmmReg_memReg64(x64GenContext, realRegisterXMM, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
 			}
 		}
 	}
@@ -422,9 +422,9 @@ void PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext_t* ppcImlGenContext
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, memReg, memRegEx);
 		}
 		if (g_CPUFeatures.x86.movbe)
-			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, memReg, memImmS32, REG_RESV_TEMP);
+			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, memReg, memImmS32, REG_RESV_TEMP);
 		else
-			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, memReg, memImmS32, REG_RESV_TEMP);
+			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, memReg, memImmS32, REG_RESV_TEMP);
 		if (indexed)
 		{
 			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, memReg, memRegEx);
@@ -439,7 +439,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext_t* ppcImlGenContext
 		x64Gen_movq_reg64_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);
 		x64Gen_rol_reg64_imm8(x64GenContext, REG_RESV_TEMP, 32); // swap upper and lower DWORD
 		x64Gen_bswap_reg64(x64GenContext, REG_RESV_TEMP);
-		x64Gen_mov_mem64Reg64PlusReg64_reg64(x64GenContext, REG_RESV_TEMP, REG_R13, memReg, memImmS32);
+		x64Gen_mov_mem64Reg64PlusReg64_reg64(x64GenContext, REG_RESV_TEMP, X86_REG_R13, memReg, memImmS32);
 		return;
 	}
 	// store as integer
@@ -606,9 +606,9 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
 		if(g_CPUFeatures.x86.movbe)
-			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
+			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
 		else
-			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
+			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
 		if( indexed )
 		{
 			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
@@ -622,15 +622,15 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 				assert_dbg();
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
-		x64Gen_movsd_memReg64_xmmReg(x64GenContext, realRegisterXMM, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
+		x64Gen_movsd_memReg64_xmmReg(x64GenContext, realRegisterXMM, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
 		// store double low part		
-		x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+0);
+		x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+0);
 		x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-		x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+4, REG_RESV_TEMP);
+		x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+4, REG_RESV_TEMP);
 		// store double high part		
-		x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+4);
+		x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR)+4);
 		x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-		x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+0, REG_RESV_TEMP);
+		x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32+0, REG_RESV_TEMP);
 		if( indexed )
 		{
 			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
@@ -645,12 +645,12 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 			if( realRegisterMem == realRegisterMem2 )
 				assert_dbg();
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
+			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
 			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
 		else
 		{
-			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
+			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, X86_REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
 		}
 	}
 	else if(mode == PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0_PS1 ||
@@ -872,18 +872,18 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 		// update cr
 		sint32 crRegister = imlInstruction->crRegister;
 		// if the parity bit is set (NaN) we need to manually set CR LT, GT and EQ to 0 (comisd/ucomisd sets the respective flags to 1 in case of NaN)
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_PARITY, REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_SO)); // unordered
+		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_PARITY, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_SO)); // unordered
 		sint32 jumpInstructionOffset1 = x64GenContext->codeBufferIndex;
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_PARITY, 0);
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT)); // same as X64_CONDITION_CARRY
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_ABOVE, REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT));
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_EQUAL, REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ));
+		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT)); // same as X64_CONDITION_CARRY
+		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_ABOVE, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT));
+		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_EQUAL, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ));
 		sint32 jumpInstructionOffset2 = x64GenContext->codeBufferIndex;
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
 		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->codeBufferIndex);
-		x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT), 0);
-		x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT), 0);
-		x64Gen_mov_mem8Reg64_imm8(x64GenContext, REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ), 0);
+		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT), 0);
+		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT), 0);
+		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ), 0);
 		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->codeBufferIndex);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP )

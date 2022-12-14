@@ -274,18 +274,18 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 	}
 
 	IMLRegisterAllocatorParameters raParam;
-	raParam.physicalRegisterPool.SetAvailable(REG_RAX);
-	raParam.physicalRegisterPool.SetAvailable(REG_RDX);
-	raParam.physicalRegisterPool.SetAvailable(REG_RBX);
-	raParam.physicalRegisterPool.SetAvailable(REG_RBP);
-	raParam.physicalRegisterPool.SetAvailable(REG_RSI);
-	raParam.physicalRegisterPool.SetAvailable(REG_RDI);
-	raParam.physicalRegisterPool.SetAvailable(REG_R8);
-	raParam.physicalRegisterPool.SetAvailable(REG_R9);
-	raParam.physicalRegisterPool.SetAvailable(REG_R10);
-	raParam.physicalRegisterPool.SetAvailable(REG_R11);
-	raParam.physicalRegisterPool.SetAvailable(REG_R12);
-	raParam.physicalRegisterPool.SetAvailable(REG_RCX);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_RAX);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_RDX);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_RBX);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_RBP);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_RSI);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_RDI);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_R8);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_R9);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_R10);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_R11);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_R12);
+	raParam.physicalRegisterPool.SetAvailable(X86_REG_RCX);
 
 	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext, raParam);
 

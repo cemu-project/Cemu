@@ -23,74 +23,48 @@ struct x64GenContext_t
 	std::vector<x64RelocEntry_t> relocateOffsetTable2;
 };
 
-// Some of these are defined by winnt.h and gnu headers
-#undef REG_EAX
-#undef REG_ECX
-#undef REG_EDX
-#undef REG_EBX
-#undef REG_ESP
-#undef REG_EBP
-#undef REG_ESI
-#undef REG_EDI
-#undef REG_NONE
-#undef REG_RAX
-#undef REG_RCX
-#undef REG_RDX
-#undef REG_RBX
-#undef REG_RSP
-#undef REG_RBP
-#undef REG_RSI
-#undef REG_RDI
-#undef REG_R8
-#undef REG_R9
-#undef REG_R10
-#undef REG_R11
-#undef REG_R12
-#undef REG_R13
-#undef REG_R14
-#undef REG_R15
+// todo - these definitions are part of the x86_64 emitter. Not the backend itself. We should move them eventually
+#define X86_REG_EAX		0
+#define X86_REG_ECX		1
+#define X86_REG_EDX		2
+#define X86_REG_EBX		3
+#define X86_REG_ESP		4	// reserved for low half of hCPU pointer
+#define X86_REG_EBP		5
+#define X86_REG_ESI		6
+#define X86_REG_EDI		7
+#define X86_REG_NONE	-1
 
-#define REG_EAX		0
-#define REG_ECX		1
-#define REG_EDX		2
-#define REG_EBX		3
-#define REG_ESP		4	// reserved for low half of hCPU pointer
-#define REG_EBP		5
-#define REG_ESI		6
-#define REG_EDI		7
-#define REG_NONE	-1
+#define X86_REG_RAX		0
+#define X86_REG_RCX		1
+#define X86_REG_RDX		2
+#define X86_REG_RBX		3
+#define X86_REG_RSP		4	// reserved for hCPU pointer
+#define X86_REG_RBP		5
+#define X86_REG_RSI		6
+#define X86_REG_RDI		7
+#define X86_REG_R8		8
+#define X86_REG_R9		9
+#define X86_REG_R10		10
+#define X86_REG_R11		11
+#define X86_REG_R12		12
+#define X86_REG_R13		13 // reserved to hold pointer to memory base? (Not decided yet)
+#define X86_REG_R14		14 // reserved as temporary register
+#define X86_REG_R15		15 // reserved for pointer to ppcRecompilerInstanceData
 
-#define REG_RAX		0
-#define REG_RCX		1
-#define REG_RDX		2
-#define REG_RBX		3
-#define REG_RSP		4	// reserved for hCPU pointer
-#define REG_RBP		5
-#define REG_RSI		6
-#define REG_RDI		7
-#define REG_R8		8
-#define REG_R9		9
-#define REG_R10		10
-#define REG_R11		11
-#define REG_R12		12
-#define REG_R13		13 // reserved to hold pointer to memory base? (Not decided yet)
-#define REG_R14		14 // reserved as temporary register
-#define REG_R15		15 // reserved for pointer to ppcRecompilerInstanceData
-
-#define REG_AL		0
-#define REG_CL		1
-#define REG_DL		2
-#define REG_BL		3
-#define REG_AH		4
-#define REG_CH		5
-#define REG_DH		6
-#define REG_BH		7
+#define X86_REG_AL		0
+#define X86_REG_CL		1
+#define X86_REG_DL		2
+#define X86_REG_BL		3
+#define X86_REG_AH		4
+#define X86_REG_CH		5
+#define X86_REG_DH		6
+#define X86_REG_BH		7
 
 // reserved registers
-#define REG_RESV_TEMP		(REG_R14)
-#define REG_RESV_HCPU		(REG_RSP)
-#define REG_RESV_MEMBASE	(REG_R13)
-#define REG_RESV_RECDATA	(REG_R15)
+#define REG_RESV_TEMP		(X86_REG_R14)
+#define REG_RESV_HCPU		(X86_REG_RSP)
+#define REG_RESV_MEMBASE	(X86_REG_R13)
+#define REG_RESV_RECDATA	(X86_REG_R15)
 
 // reserved floating-point registers
 #define REG_RESV_FPR_TEMP	(15)
