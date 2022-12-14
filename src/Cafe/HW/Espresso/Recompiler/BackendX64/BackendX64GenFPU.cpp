@@ -42,7 +42,7 @@ void x64Gen_movupd_xmmReg_memReg128(x64GenContext_t* x64GenContext, sint32 xmmRe
 	// SSE2
 	// move two doubles from memory into xmm register
 	// MOVUPD <xmm>, [<reg>+<imm>]
-	if( memRegister == REG_ESP )
+	if( memRegister == X86_REG_ESP )
 	{
 		// todo: Short form of instruction if memImmU32 is 0 or in -128 to 127 range
 		// 66 0F 10 84 E4 23 01 00 00
@@ -54,7 +54,7 @@ void x64Gen_movupd_xmmReg_memReg128(x64GenContext_t* x64GenContext, sint32 xmmRe
 		x64Gen_writeU8(x64GenContext, 0xE4);
 		x64Gen_writeU32(x64GenContext, memImmU32);
 	}
-	else if( memRegister == REG_NONE )
+	else if( memRegister == X86_REG_NONE )
 	{
 		assert_dbg();
 		//x64Gen_writeU8(x64GenContext, 0x66);
@@ -74,7 +74,7 @@ void x64Gen_movupd_memReg128_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRe
 	// SSE2
 	// move two doubles from memory into xmm register
 	// MOVUPD [<reg>+<imm>], <xmm>
-	if( memRegister == REG_ESP )
+	if( memRegister == X86_REG_ESP )
 	{
 		// todo: Short form of instruction if memImmU32 is 0 or in -128 to 127 range
 		x64Gen_writeU8(x64GenContext, 0x66);
@@ -85,7 +85,7 @@ void x64Gen_movupd_memReg128_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRe
 		x64Gen_writeU8(x64GenContext, 0xE4);
 		x64Gen_writeU32(x64GenContext, memImmU32);
 	}
-	else if( memRegister == REG_NONE )
+	else if( memRegister == X86_REG_NONE )
 	{
 		assert_dbg();
 		//x64Gen_writeU8(x64GenContext, 0x66);
@@ -104,7 +104,7 @@ void x64Gen_movddup_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmRe
 {
 	// SSE3
 	// move one double from memory into lower and upper half of a xmm register
-	if( memRegister == REG_RSP )
+	if( memRegister == X86_REG_RSP )
 	{
 		// MOVDDUP <xmm>, [<reg>+<imm>]
 		// todo: Short form of instruction if memImmU32 is 0 or in -128 to 127 range
@@ -117,7 +117,7 @@ void x64Gen_movddup_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmRe
 		x64Gen_writeU8(x64GenContext, 0xE4);
 		x64Gen_writeU32(x64GenContext, memImmU32);
 	}
-	else if( memRegister == REG_R15 )
+	else if( memRegister == X86_REG_R15 )
 	{
 		// MOVDDUP <xmm>, [<reg>+<imm>]
 		// todo: Short form of instruction if memImmU32 is 0 or in -128 to 127 range
@@ -129,7 +129,7 @@ void x64Gen_movddup_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmRe
 		x64Gen_writeU8(x64GenContext, 0x87+(xmmRegister&7)*8);
 		x64Gen_writeU32(x64GenContext, memImmU32);
 	}
-	else if( memRegister == REG_NONE )
+	else if( memRegister == X86_REG_NONE )
 	{
 		// MOVDDUP <xmm>, [<imm>]
 		// 36 F2 0F 12 05 - 00 00 00 00
@@ -183,7 +183,7 @@ void x64Gen_movsd_memReg64_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegi
 {
 	// SSE2
 	// move lower 64bits (double) of xmm register to memory location
-	if( memRegister == REG_NONE )
+	if( memRegister == X86_REG_NONE )
 	{
 		// MOVSD [<imm>], <xmm>
 		// F2 0F 11 05 - 45 23 01 00
@@ -195,7 +195,7 @@ void x64Gen_movsd_memReg64_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegi
 		//x64Gen_writeU8(x64GenContext, 0x05+xmmRegister*8);
 		//x64Gen_writeU32(x64GenContext, memImmU32);
 	}
-	else if( memRegister == REG_RSP )
+	else if( memRegister == X86_REG_RSP )
 	{
 		// MOVSD [RSP+<imm>], <xmm>
 		// F2 0F 11 84 24 - 33 22 11 00
@@ -217,7 +217,7 @@ void x64Gen_movlpd_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmReg
 {
 	// SSE3
 	// move one double from memory into lower half of a xmm register, leave upper half unchanged(?)
-	if( memRegister == REG_NONE )
+	if( memRegister == X86_REG_NONE )
 	{
 		// MOVLPD <xmm>, [<imm>]
 		//x64Gen_writeU8(x64GenContext, 0x66);
@@ -227,7 +227,7 @@ void x64Gen_movlpd_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmReg
 		//x64Gen_writeU32(x64GenContext, memImmU32);
 		assert_dbg();
 	}
-	else if( memRegister == REG_RSP )
+	else if( memRegister == X86_REG_RSP )
 	{
 		// MOVLPD <xmm>, [<reg64>+<imm>]
 		// 66 0F 12 84 24 - 33 22 11 00
@@ -346,11 +346,11 @@ void x64Gen_mulpd_xmmReg_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegist
 void x64Gen_mulpd_xmmReg_memReg128(x64GenContext_t* x64GenContext, sint32 xmmRegister, sint32 memRegister, uint32 memImmU32)
 {
 	// SSE2
-	if (memRegister == REG_NONE)
+	if (memRegister == X86_REG_NONE)
 	{
 		assert_dbg();
 	}
-	else if (memRegister == REG_R14)
+	else if (memRegister == X86_REG_R14)
 	{
 		x64Gen_writeU8(x64GenContext, 0x66);
 		x64Gen_writeU8(x64GenContext, (xmmRegister < 8) ? 0x41 : 0x45);
@@ -402,7 +402,7 @@ void x64Gen_comisd_xmmReg_mem64Reg64(x64GenContext_t* x64GenContext, sint32 xmmR
 {
 	// SSE2
 	// compare bottom double with double from memory location
-	if( memoryReg == REG_R15 )
+	if( memoryReg == X86_REG_R15 )
 	{
 		x64Gen_writeU8(x64GenContext, 0x66);
 		x64Gen_genSSEVEXPrefix1(x64GenContext, xmmRegisterDest, true);
@@ -430,7 +430,7 @@ void x64Gen_comiss_xmmReg_mem64Reg64(x64GenContext_t* x64GenContext, sint32 xmmR
 {
 	// SSE2
 	// compare bottom float with float from memory location
-	if (memoryReg == REG_R15)
+	if (memoryReg == X86_REG_R15)
 	{
 		x64Gen_genSSEVEXPrefix1(x64GenContext, xmmRegisterDest, true);
 		x64Gen_writeU8(x64GenContext, 0x0F);
@@ -446,7 +446,7 @@ void x64Gen_orps_xmmReg_mem128Reg64(x64GenContext_t* x64GenContext, sint32 xmmRe
 {
 	// SSE2
 	// and xmm register with 128 bit value from memory
-	if( memReg == REG_R15 )
+	if( memReg == X86_REG_R15 )
 	{
 		x64Gen_genSSEVEXPrefix2(x64GenContext, memReg, xmmRegisterDest, false);
 		x64Gen_writeU8(x64GenContext, 0x0F);
@@ -462,7 +462,7 @@ void x64Gen_xorps_xmmReg_mem128Reg64(x64GenContext_t* x64GenContext, sint32 xmmR
 {
 	// SSE2
 	// xor xmm register with 128 bit value from memory
-	if( memReg == REG_R15 )
+	if( memReg == X86_REG_R15 )
 	{
 		x64Gen_genSSEVEXPrefix1(x64GenContext, xmmRegisterDest, true); // todo: should be x64Gen_genSSEVEXPrefix2() with memReg?
 		x64Gen_writeU8(x64GenContext, 0x0F);
@@ -477,11 +477,11 @@ void x64Gen_xorps_xmmReg_mem128Reg64(x64GenContext_t* x64GenContext, sint32 xmmR
 void x64Gen_andpd_xmmReg_memReg128(x64GenContext_t* x64GenContext, sint32 xmmRegister, sint32 memRegister, uint32 memImmU32)
 {
 	// SSE2
-	if (memRegister == REG_NONE)
+	if (memRegister == X86_REG_NONE)
 	{
 		assert_dbg();
 	}
-	else if (memRegister == REG_R14)
+	else if (memRegister == X86_REG_R14)
 	{
 		x64Gen_writeU8(x64GenContext, 0x66);
 		x64Gen_writeU8(x64GenContext, (xmmRegister < 8) ? 0x41 : 0x45);
@@ -500,7 +500,7 @@ void x64Gen_andps_xmmReg_mem128Reg64(x64GenContext_t* x64GenContext, sint32 xmmR
 {
 	// SSE2
 	// and xmm register with 128 bit value from memory
-	if( memReg == REG_R15 )
+	if( memReg == X86_REG_R15 )
 	{
 		x64Gen_genSSEVEXPrefix1(x64GenContext, xmmRegisterDest, true); // todo: should be x64Gen_genSSEVEXPrefix2() with memReg?
 		x64Gen_writeU8(x64GenContext, 0x0F);
@@ -526,7 +526,7 @@ void x64Gen_pcmpeqd_xmmReg_mem128Reg64(x64GenContext_t* x64GenContext, sint32 xm
 {
 	// SSE2
 	// doubleword integer compare
-	if( memReg == REG_R15 )
+	if( memReg == X86_REG_R15 )
 	{
 		x64Gen_writeU8(x64GenContext, 0x66);
 		x64Gen_genSSEVEXPrefix1(x64GenContext, xmmRegisterDest, true);
@@ -608,7 +608,7 @@ void x64Gen_cvtpi2pd_xmmReg_mem64Reg64(x64GenContext_t* x64GenContext, sint32 xm
 {
 	// SSE2
 	// converts two signed 32bit integers to two doubles
-	if( memReg == REG_RSP )
+	if( memReg == X86_REG_RSP )
 	{
 		x64Gen_writeU8(x64GenContext, 0x66);
 		x64Gen_genSSEVEXPrefix1(x64GenContext, xmmRegisterDest, false);
@@ -682,7 +682,7 @@ void x64Gen_rcpss_xmmReg_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegist
 void x64Gen_mulss_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmRegister, sint32 memRegister, uint32 memImmU32)
 {
 	// SSE2
-	if( memRegister == REG_NONE )
+	if( memRegister == X86_REG_NONE )
 	{
 		assert_dbg();
 	}
