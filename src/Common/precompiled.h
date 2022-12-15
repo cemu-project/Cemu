@@ -351,10 +351,9 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 #endif
 }
 
-
 [[nodiscard]] static std::chrono::steady_clock::time_point tick_cached() noexcept
 {
-#ifdef _WIN32
+#if BOOST_OS_WINDOWS
     // get current time
 	static const long long _Freq = _Query_perf_frequency();	// doesn't change after system boot
 	const long long _Ctr = _Query_perf_counter();
@@ -362,11 +361,14 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 	const long long _Whole = (_Ctr / _Freq) * std::nano::den;
 	const long long _Part = (_Ctr % _Freq) * std::nano::den / _Freq;
 	return (std::chrono::steady_clock::time_point(std::chrono::nanoseconds(_Whole + _Part)));
-#else
+#elif BOOST_OS_LINUX
 	struct timespec tp;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
 	return std::chrono::steady_clock::time_point(
 		std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec));
+#elif BOOST_OS_MACOS
+	return std::chrono::steady_clock::time_point(
+		std::chrono::nanoseconds(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)));
 #endif
 }
 
