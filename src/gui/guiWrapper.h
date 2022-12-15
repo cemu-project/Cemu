@@ -5,7 +5,6 @@
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
 #include <gdk/gdkkeysyms.h>
-#include <wayland-client.h>
 #endif
 
 #if BOOST_OS_MACOS
@@ -29,9 +28,10 @@ struct WindowHandleInfo
 	// XCB (not used by GTK so we cant retrieve these without making our own window)
 	//xcb_connection_t* xcb_con{};
 	//xcb_window_t xcb_window{};
-	// Wayland
-	wl_display* display;
-	wl_surface* surface;
+	#ifdef HAS_WAYLAND
+	struct wl_display* display;
+	struct wl_surface* surface;
+	#endif // HAS_WAYLAND
 #else
 	void* handle;
 #endif

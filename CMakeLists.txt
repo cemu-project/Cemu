@@ -70,6 +70,10 @@ if (APPLE)
     enable_language(OBJC OBJCXX)
 endif()
 
+if (UNIX AND NOT APPLE)
+	option(ENABLE_WAYLAND "Build with Wayland support" ON)
+endif()
+
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
@@ -114,6 +118,10 @@ endif()
 
 if (UNIX AND NOT APPLE)
 	find_package(X11 REQUIRED)
+	if (ENABLE_WAYLAND)
+		find_package(Wayland REQUIRED)
+		add_compile_definitions(HAS_WAYLAND)
+	endif()
 	find_package(GTK3 REQUIRED)
 endif()
 

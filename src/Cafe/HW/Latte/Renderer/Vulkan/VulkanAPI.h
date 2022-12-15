@@ -129,7 +129,9 @@ VKFUNC_DEVICE(vkCmdBindPipeline);
 #if BOOST_OS_LINUX
 VKFUNC_INSTANCE(vkCreateXlibSurfaceKHR);
 VKFUNC_INSTANCE(vkCreateXcbSurfaceKHR);
+#ifdef HAS_WAYLAND
 VKFUNC_INSTANCE(vkCreateWaylandSurfaceKHR);
+#endif
 #endif
 
 #if BOOST_OS_WINDOWS

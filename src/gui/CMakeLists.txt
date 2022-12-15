@@ -150,6 +150,9 @@ target_link_libraries(CemuGui PRIVATE
 if(ENABLE_WXWIDGETS AND UNIX AND NOT APPLE)
 	# PUBLIC because gdk/gdkkeysyms.h is included in guiWrapper.h
 	target_link_libraries(CemuGui PUBLIC GTK3::gtk)
+  if (ENABLE_WAYLAND)
+    target_link_libraries(CemuGui PRIVATE Wayland::client)
+  endif()
 endif()
 
 if(ENABLE_CUBEB)

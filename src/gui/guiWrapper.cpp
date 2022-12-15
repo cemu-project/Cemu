@@ -3,7 +3,9 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkwindow.h>
 #include <gdk/gdkx.h>
+#ifdef HAS_WAYLAND
 #include <gdk/gdkwayland.h>
+#endif
 #endif
 
 #include "gui/wxgui.h"
@@ -219,16 +221,18 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 			cemuLog_log(LogType::Force, "Unable to get xlib display");
 		}
 	}
-	else if(GDK_IS_WAYLAND_WINDOW(gdkWindow))
+	else 
+#ifdef HAS_WAYLAND
+	if(GDK_IS_WAYLAND_WINDOW(gdkWindow))
 	{
 		handleInfoOut.backend = WindowHandleInfo::Backend::WAYLAND;
 		handleInfoOut.surface = gdk_wayland_window_get_wl_surface(gdkWindow);
 		handleInfoOut.display = gdk_wayland_display_get_wl_display(gdkDisplay);
 	}
 	else
+#endif
 	{
 		cemuLog_log(LogType::Force, "Unsuported GTK backend");
-
 	}
 #else
 	handleInfoOut.handle = wxw->GetHandle();
