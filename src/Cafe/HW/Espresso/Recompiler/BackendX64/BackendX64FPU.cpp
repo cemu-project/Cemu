@@ -217,16 +217,16 @@ void PPCRecompilerX64Gen_imlInstr_psq_load_generic(ppcImlGenContext_t* ppcImlGen
 	x64Gen_and_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 7);
 	// jump cases
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 4); // type 4 -> u8
-	sint32 jumpOffset_caseU8 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseU8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 5); // type 5 -> u16
-	sint32 jumpOffset_caseU16 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseU16 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 6); // type 4 -> s8
-	sint32 jumpOffset_caseS8 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseS8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 7); // type 5 -> s16
-	sint32 jumpOffset_caseS16 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseS16 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	// default case -> float
 
@@ -237,31 +237,31 @@ void PPCRecompilerX64Gen_imlInstr_psq_load_generic(ppcImlGenContext_t* ppcImlGen
 	uint32 jumpOffset_endOfS8;
 
 	PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext, x64GenContext, loadPS1 ? PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0_PS1 : PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfFloat = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfFloat = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU16, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU16, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext, x64GenContext, loadPS1 ? PPCREC_FPR_LD_MODE_PSQ_U16_PS0_PS1 : PPCREC_FPR_LD_MODE_PSQ_U16_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfU8 = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfU8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS16, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS16, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext, x64GenContext, loadPS1 ? PPCREC_FPR_LD_MODE_PSQ_S16_PS0_PS1 : PPCREC_FPR_LD_MODE_PSQ_S16_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfU16 = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfU16 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU8, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU8, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext, x64GenContext, loadPS1 ? PPCREC_FPR_LD_MODE_PSQ_U8_PS0_PS1 : PPCREC_FPR_LD_MODE_PSQ_U8_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfS8 = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfS8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS8, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS8, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext, x64GenContext, loadPS1 ? PPCREC_FPR_LD_MODE_PSQ_S8_PS0_PS1 : PPCREC_FPR_LD_MODE_PSQ_S8_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfFloat, x64GenContext->codeBufferIndex);
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU8, x64GenContext->codeBufferIndex);
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU16, x64GenContext->codeBufferIndex);
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfS8, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfFloat, x64GenContext->emitter->GetWriteIndex());
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU8, x64GenContext->emitter->GetWriteIndex());
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU16, x64GenContext->emitter->GetWriteIndex());
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfS8, x64GenContext->emitter->GetWriteIndex());
 }
 
 // load from memory
@@ -495,16 +495,16 @@ void PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext_t* ppcImlGenContext
 		}
 		// max(i, -clampMin)
 		x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, clampMin);
-		sint32 jumpInstructionOffset1 = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset1 = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_SIGNED_GREATER_EQUAL, 0);
 		x64Gen_mov_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, clampMin);
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->emitter->GetWriteIndex());
 		// min(i, clampMax)
 		x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, clampMax);
-		sint32 jumpInstructionOffset2 = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset2 = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_SIGNED_LESS_EQUAL, 0);
 		x64Gen_mov_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, clampMax);
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->emitter->GetWriteIndex());
 		// endian swap
 		if( bitWriteSize == 16)
 			x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8);
@@ -528,16 +528,16 @@ void PPCRecompilerX64Gen_imlInstr_psq_store_generic(ppcImlGenContext_t* ppcImlGe
 	x64Gen_and_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 7);
 	// jump cases
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 4); // type 4 -> u8
-	sint32 jumpOffset_caseU8 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseU8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 5); // type 5 -> u16
-	sint32 jumpOffset_caseU16 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseU16 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 6); // type 4 -> s8
-	sint32 jumpOffset_caseS8 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseS8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 7); // type 5 -> s16
-	sint32 jumpOffset_caseS16 = x64GenContext->codeBufferIndex;
+	sint32 jumpOffset_caseS16 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_EQUAL, 0);
 	// default case -> float
 
@@ -548,31 +548,31 @@ void PPCRecompilerX64Gen_imlInstr_psq_store_generic(ppcImlGenContext_t* ppcImlGe
 	uint32 jumpOffset_endOfS8;
 
 	PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext, x64GenContext, storePS1 ? PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0_PS1 : PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfFloat = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfFloat = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU16, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU16, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext, x64GenContext, storePS1 ? PPCREC_FPR_ST_MODE_PSQ_U16_PS0_PS1 : PPCREC_FPR_ST_MODE_PSQ_U16_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfU8 = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfU8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS16, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS16, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext, x64GenContext, storePS1 ? PPCREC_FPR_ST_MODE_PSQ_S16_PS0_PS1 : PPCREC_FPR_ST_MODE_PSQ_S16_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfU16 = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfU16 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU8, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseU8, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext, x64GenContext, storePS1 ? PPCREC_FPR_ST_MODE_PSQ_U8_PS0_PS1 : PPCREC_FPR_ST_MODE_PSQ_U8_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
-	jumpOffset_endOfS8 = x64GenContext->codeBufferIndex;
+	jumpOffset_endOfS8 = x64GenContext->emitter->GetWriteIndex();
 	x64Gen_jmp_imm32(x64GenContext, 0);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS8, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_caseS8, x64GenContext->emitter->GetWriteIndex());
 	PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext, x64GenContext, storePS1 ? PPCREC_FPR_ST_MODE_PSQ_S8_PS0_PS1 : PPCREC_FPR_ST_MODE_PSQ_S8_PS0, registerXMM, memReg, memRegEx, memImmS32, indexed, registerGQR);
 
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfFloat, x64GenContext->codeBufferIndex);
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU8, x64GenContext->codeBufferIndex);
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU16, x64GenContext->codeBufferIndex);
-	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfS8, x64GenContext->codeBufferIndex);
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfFloat, x64GenContext->emitter->GetWriteIndex());
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU8, x64GenContext->emitter->GetWriteIndex());
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfU16, x64GenContext->emitter->GetWriteIndex());
+	PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOffset_endOfS8, x64GenContext->emitter->GetWriteIndex());
 }
 
 // store to memory
@@ -873,18 +873,18 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 		sint32 crRegister = imlInstruction->crRegister;
 		// if the parity bit is set (NaN) we need to manually set CR LT, GT and EQ to 0 (comisd/ucomisd sets the respective flags to 1 in case of NaN)
 		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_PARITY, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_SO)); // unordered
-		sint32 jumpInstructionOffset1 = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset1 = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_PARITY, 0);
 		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT)); // same as X64_CONDITION_CARRY
 		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_ABOVE, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT));
 		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_EQUAL, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ));
-		sint32 jumpInstructionOffset2 = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset2 = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->emitter->GetWriteIndex());
 		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT), 0);
 		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT), 0);
 		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ), 0);
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->emitter->GetWriteIndex());
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP )
 	{
@@ -1102,50 +1102,50 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		x64Gen_comisd_xmmReg_mem64Reg64(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerOperandA, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble0_0));
-		sint32 jumpInstructionOffset1 = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset1 = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, 0);
 		// select C
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandC);
-		sint32 jumpInstructionOffset2 = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset2 = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
 		// select B
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->emitter->GetWriteIndex());
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandB);
 		// end
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->emitter->GetWriteIndex());
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SELECT_PAIR )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// select bottom
 		x64Gen_comisd_xmmReg_mem64Reg64(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerOperandA, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble0_0));
-		sint32 jumpInstructionOffset1_bottom = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset1_bottom = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, 0);
 		// select C bottom
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandC);
-		sint32 jumpInstructionOffset2_bottom = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset2_bottom = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
 		// select B bottom
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1_bottom, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1_bottom, x64GenContext->emitter->GetWriteIndex());
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandB);
 		// end
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2_bottom, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2_bottom, x64GenContext->emitter->GetWriteIndex());
 		// select top
 		x64Gen_movhlps_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, imlInstruction->op_fpr_r_r_r_r.registerOperandA); // copy top to bottom (todo: May cause stall?)
 		x64Gen_comisd_xmmReg_mem64Reg64(x64GenContext, REG_RESV_FPR_TEMP, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble0_0));
-		sint32 jumpInstructionOffset1_top = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset1_top = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, 0);
 		// select C top
 		//x64Gen_movsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandC);
 		x64Gen_shufpd_xmmReg_xmmReg_imm8(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandC, 2);
-		sint32 jumpInstructionOffset2_top = x64GenContext->codeBufferIndex;
+		sint32 jumpInstructionOffset2_top = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
 		// select B top
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1_top, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1_top, x64GenContext->emitter->GetWriteIndex());
 		//x64Gen_movsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandB);
 		x64Gen_shufpd_xmmReg_xmmReg_imm8(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r_r.registerOperandB, 2);
 		// end
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2_top, x64GenContext->codeBufferIndex);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2_top, x64GenContext->emitter->GetWriteIndex());
 	}
 	else
 		assert_dbg();

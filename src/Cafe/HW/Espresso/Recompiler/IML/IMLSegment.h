@@ -135,6 +135,7 @@ struct IMLSegment
 	IMLInstruction* AppendInstruction();
 
 	bool HasSuffixInstruction() const;
+	sint32 GetSuffixInstructionIndex() const;
 	IMLInstruction* GetLastInstruction();
 
 	// segment points

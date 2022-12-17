@@ -16,6 +16,12 @@ bool IMLSegment::HasSuffixInstruction() const
 	return imlInstruction.IsSuffixInstruction();
 }
 
+sint32 IMLSegment::GetSuffixInstructionIndex() const
+{
+	cemu_assert_debug(HasSuffixInstruction());
+	return (sint32)(imlList.size() - 1);
+}
+
 IMLInstruction* IMLSegment::GetLastInstruction()
 {
 	if (imlList.empty())

@@ -58,15 +58,15 @@ IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext
 
 void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister, uint8 crMode)
 {
-	// operation with two register operands (e.g. "t0 = t1")
-	if(imlInstruction == NULL)
-		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_R_R;
-	imlInstruction->operation = operation;
-	imlInstruction->crRegister = crRegister;
-	imlInstruction->crMode = crMode;
-	imlInstruction->op_r_r.registerResult = registerResult;
-	imlInstruction->op_r_r.registerA = registerA;
+	if (imlInstruction)
+		__debugbreak(); // not supported
+
+	ppcImlGenContext->emitInst().make_r_r(operation, registerResult, registerA, crRegister, crMode);
+}
+
+void PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerIndex, sint32 immS32, uint8 crRegister, uint32 crMode)
+{
+	ppcImlGenContext->emitInst().make_r_s32(operation, registerIndex, immS32, crRegister, crMode);
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_r_r_r(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB, uint8 crRegister=PPC_REC_INVALID_REGISTER, uint8 crMode=0)
@@ -87,20 +87,6 @@ void PPCRecompilerImlGen_generateNewInstruction_name_r(ppcImlGenContext_t* ppcIm
 	imlInstruction->operation = operation;
 	imlInstruction->op_r_name.registerIndex = registerIndex;
 	imlInstruction->op_r_name.name = name;
-}
-
-void PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext_t* ppcImlGenContext, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 copyWidth, bool signExtend, bool bigEndian, uint8 crRegister, uint32 crMode)
-{
-	// two variations:
-	// operation without store (e.g. "'r3' < 123" which has no effect other than updating a condition flags register)
-	// operation with store (e.g. "'r3' = 123")
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_R_S32;
-	imlInstruction->operation = operation;
-	imlInstruction->crRegister = crRegister;
-	imlInstruction->crMode = crMode;
-	imlInstruction->op_r_immS32.registerIndex = registerIndex;
-	imlInstruction->op_r_immS32.immS32 = immS32;
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
@@ -292,6 +278,13 @@ uint32 PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext_t* ppcImlGenCo
 	return registerIndex;
 }
 
+// get throw-away register. Only valid for the scope of a single translated instruction
+// be careful to not collide with manually loaded temporary register
+uint32 PPCRecompilerImlGen_grabTemporaryS8Register(ppcImlGenContext_t* ppcImlGenContext, uint32 temporaryIndex)
+{
+	return PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + temporaryIndex);
+}
+
 /*
  * Loads a PPC fpr into any of the available IML FPU registers
  * If loadNew is false, it will check first if the fpr is already loaded into any IML register
@@ -407,7 +400,7 @@ bool PPCRecompilerImlGen_MFCR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 rD, rA, rB;
 	PPC_OPC_TEMPL_X(opcode, rD, rA, rB);
 	uint32 gprReg = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0 + rD);
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_MFCR, gprReg, 0, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_MFCR, gprReg, 0, PPC_REC_INVALID_REGISTER, 0);
 	return true;
 }
 
@@ -417,7 +410,7 @@ bool PPCRecompilerImlGen_MTCRF(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	uint32 crMask;
 	PPC_OPC_TEMPL_XFX(opcode, rS, crMask);
 	uint32 gprReg = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0 + rS);
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_MTCRF, gprReg, crMask, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_MTCRF, gprReg, crMask, PPC_REC_INVALID_REGISTER, 0);
 	return true;
 }
 
@@ -453,7 +446,7 @@ void PPCRecompilerImlGen_CMPI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 b = imm;
 	// load gpr into register
 	uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_COMPARE_SIGNED, gprRegister, b, 0, false, false, cr, PPCREC_CR_MODE_COMPARE_SIGNED);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_COMPARE_SIGNED, gprRegister, b, cr, PPCREC_CR_MODE_COMPARE_SIGNED);
 }
 
 void PPCRecompilerImlGen_CMPLI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -466,7 +459,7 @@ void PPCRecompilerImlGen_CMPLI(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	uint32 b = imm;
 	// load gpr into register
 	uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_COMPARE_UNSIGNED, gprRegister, (sint32)b, 0, false, false, cr, PPCREC_CR_MODE_COMPARE_UNSIGNED);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_COMPARE_UNSIGNED, gprRegister, (sint32)b, cr, PPCREC_CR_MODE_COMPARE_UNSIGNED);
 }
 
 bool PPCRecompiler_canInlineFunction(MPTR functionPtr, sint32* functionInstructionCount)
@@ -628,11 +621,10 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 		if( ignoreCondition == false )
 			return false; // not supported for the moment
 		uint32 ctrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0+SPR_CTR, false);
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_SUB, ctrRegister, 1, 0, false, false, PPCREC_CR_REG_TEMP, PPCREC_CR_MODE_ARITHMETIC);
-		if( decrementerMustBeZero )
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, PPCREC_JUMP_CONDITION_E, PPCREC_CR_REG_TEMP, 0, false);
-		else
-			PPCRecompilerImlGen_generateNewInstruction_conditionalJumpSegment(ppcImlGenContext, PPCREC_JUMP_CONDITION_NE, PPCREC_CR_REG_TEMP, 0, false);
+		uint32 tmpBoolReg = PPCRecompilerImlGen_grabTemporaryS8Register(ppcImlGenContext, 1);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_SUB, ctrRegister, ctrRegister, 1);
+		ppcImlGenContext->emitInst().make_compare_s32(ctrRegister, 0, tmpBoolReg, decrementerMustBeZero ? IMLCondition::EQ : IMLCondition::NEQ);
+		ppcImlGenContext->emitInst().make_conditional_jump_new(tmpBoolReg, true);
 		return true;
 	}
 	else
@@ -709,7 +701,7 @@ bool PPCRecompilerImlGen_BCSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 			branchDestReg = tmpRegister;
 		}
 		uint32 registerLR = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_LR);
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, ppcImlGenContext->ppcAddressOfCurrentInstruction + 4, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerLR, ppcImlGenContext->ppcAddressOfCurrentInstruction + 4, PPC_REC_INVALID_REGISTER, 0);
 	}
 
 	if (!BO.decrementerIgnore())
@@ -901,7 +893,7 @@ bool PPCRecompilerImlGen_ADDI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		// rA not used, instruction is value assignment
 		// rD = imm
 		uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerRD, imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerRD, imm, PPC_REC_INVALID_REGISTER, 0);
 	}
 	// never updates any cr
 	return true;
@@ -924,7 +916,7 @@ bool PPCRecompilerImlGen_ADDIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		// rA not used, instruction turns into simple value assignment
 		// rD = imm
 		uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerRD, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, registerRD, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	}
 	// never updates any cr
 	return true;
@@ -1170,15 +1162,15 @@ bool PPCRecompilerImlGen_RLWINM(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	if( registerRA != registerRS )
 		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, NULL, PPCREC_IML_OP_ASSIGN, registerRA, registerRS);
 	if( SH != 0 )
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_LEFT_ROTATE, registerRA, SH, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_LEFT_ROTATE, registerRA, SH, PPC_REC_INVALID_REGISTER, 0);
 	if(opcode&PPC_OPC_RC)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, 0, false, false, 0, PPCREC_CR_MODE_LOGICAL);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, 0, PPCREC_CR_MODE_LOGICAL);
 	}
 	else
 	{
 		if( mask != 0xFFFFFFFF )
-			PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+			PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, PPC_REC_INVALID_REGISTER, 0);
 	}
 	return true;
 }
@@ -1213,12 +1205,12 @@ bool PPCRecompilerImlGen_RLWNM(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	PPCRecompilerImlGen_generateNewInstruction_r_r_r(ppcImlGenContext, PPCREC_IML_OP_LEFT_ROTATE, registerRA, registerRS, registerRB);
 	if (opcode & PPC_OPC_RC)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, 32, false, false, 0, PPCREC_CR_MODE_LOGICAL);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, 0, PPCREC_CR_MODE_LOGICAL);
 	}
 	else
 	{
 		if( mask != 0xFFFFFFFF )
-			PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, 32, false, false, PPC_REC_INVALID_REGISTER, 0);
+			PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, registerRA, (sint32)mask, PPC_REC_INVALID_REGISTER, 0);
 	}
 	return true;
 }
@@ -1438,7 +1430,7 @@ void PPCRecompilerImlGen_LWZU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// load memory gpr into register
 	uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	// add imm to memory register
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	// check if destination register is already loaded
 	uint32 destinationRegister = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, PPCREC_NAME_R0+rD);
 	if( destinationRegister == PPC_REC_INVALID_REGISTER )
@@ -1482,7 +1474,7 @@ void PPCRecompilerImlGen_LHAU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// load memory gpr into register
 	uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	// add imm to memory register
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	// check if destination register is already loaded
 	uint32 destinationRegister = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, PPCREC_NAME_R0+rD);
 	if( destinationRegister == PPC_REC_INVALID_REGISTER )
@@ -1527,7 +1519,7 @@ void PPCRecompilerImlGen_LHZU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// load memory gpr into register
 	uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	// add imm to memory register
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	// check if destination register is already loaded
 	uint32 destinationRegister = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, PPCREC_NAME_R0+rD);
 	if( destinationRegister == PPC_REC_INVALID_REGISTER )
@@ -1571,7 +1563,7 @@ void PPCRecompilerImlGen_LBZU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// load memory gpr into register
 	uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	// add imm to memory register
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	// check if destination register is already loaded
 	uint32 destinationRegister = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, PPCREC_NAME_R0+rD);
 	if( destinationRegister == PPC_REC_INVALID_REGISTER )
@@ -1880,12 +1872,12 @@ void PPCRecompilerImlGen_STWU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 sourceRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rD, false); // can be the same as gprRegister
 	// add imm to memory register early if possible
 	if( rD != rA )
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	// store word
 	PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext, sourceRegister, gprRegister, (rD==rA)?imm:0, 32, true);
 	// add imm to memory register late if we couldn't do it early
 	if( rD == rA )
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 }
 
 void PPCRecompilerImlGen_STH(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -1924,12 +1916,12 @@ void PPCRecompilerImlGen_STHU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 sourceRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rD, false); // can be the same as gprRegister
 	// add imm to memory register early if possible
 	if( rD != rA )
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	// store word
 	PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext, sourceRegister, gprRegister, (rD==rA)?imm:0, 16, true);
 	// add imm to memory register late if we couldn't do it early
 	if( rD == rA )
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 }
 
 void PPCRecompilerImlGen_STB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -1968,12 +1960,12 @@ void PPCRecompilerImlGen_STBU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 sourceRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rD, false); // can be the same as gprRegister
 	// add imm to memory register early if possible
 	if( rD != rA )
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 	// store byte
 	PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext, sourceRegister, gprRegister, (rD==rA)?imm:0, 8, true);
 	// add imm to memory register late if we couldn't do it early
 	if( rD == rA )
-		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+		PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_ADD, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 }
 
 // generic indexed store (STWX, STHX, STBX, STWUX. If bitReversed == true -> STHBRX)
@@ -2481,7 +2473,7 @@ void PPCRecompilerImlGen_ANDI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( gprDestReg != gprSourceReg )
 		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, NULL, PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
 	// rA &= imm32
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, gprDestReg, (sint32)imm, 0, false, false, 0, PPCREC_CR_MODE_LOGICAL);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, gprDestReg, (sint32)imm, 0, PPCREC_CR_MODE_LOGICAL);
 }
 
 void PPCRecompilerImlGen_ANDIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -2496,7 +2488,7 @@ void PPCRecompilerImlGen_ANDIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	if( gprDestReg != gprSourceReg )
 		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, NULL, PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
 	// rA &= imm32
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, gprDestReg, (sint32)imm, 0, false, false, 0, PPCREC_CR_MODE_LOGICAL);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_AND, gprDestReg, (sint32)imm, 0, PPCREC_CR_MODE_LOGICAL);
 }
 
 bool PPCRecompilerImlGen_XOR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -2623,7 +2615,7 @@ void PPCRecompilerImlGen_ORI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	if( gprDestReg != gprSourceReg )
 		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, NULL, PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
 	// rA |= imm32
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_OR, gprDestReg, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_OR, gprDestReg, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 }
 
 void PPCRecompilerImlGen_ORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -2639,7 +2631,7 @@ void PPCRecompilerImlGen_ORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( gprDestReg != gprSourceReg )
 		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, NULL, PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
 	// rA |= imm32
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_OR, gprDestReg, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_OR, gprDestReg, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 }
 
 void PPCRecompilerImlGen_XORI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -2655,7 +2647,7 @@ void PPCRecompilerImlGen_XORI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	if( gprDestReg != gprSourceReg )
 		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, NULL, PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
 	// rA |= imm32
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_XOR, gprDestReg, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_XOR, gprDestReg, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 }
 
 void PPCRecompilerImlGen_XORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -2671,7 +2663,7 @@ void PPCRecompilerImlGen_XORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	if( gprDestReg != gprSourceReg )
 		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, NULL, PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
 	// rA |= imm32
-	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_XOR, gprDestReg, (sint32)imm, 0, false, false, PPC_REC_INVALID_REGISTER, 0);
+	PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext, PPCREC_IML_OP_XOR, gprDestReg, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
 }
 
 bool PPCRecompilerImlGen_CROR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)

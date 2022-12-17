@@ -55,7 +55,7 @@ bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 }
 
 /*
-* Returns true if the imlInstruction can overwrite CR (depending on value of ->crRegister)
+* Returns true if the instruction can overwrite CR (depending on value of ->crRegister)
 */
 bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction)
 {
@@ -63,6 +63,10 @@ bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction)
 		return true;
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_R)
 		return true;
+	if (imlInstruction->type == PPCREC_IML_TYPE_COMPARE || imlInstruction->type == PPCREC_IML_TYPE_COMPARE_S32)
+		return true; // ??
+	if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
+		return true; // ??
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_S32)
 		return true;
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_S32)

@@ -167,6 +167,20 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
+
+	uint32 ppcRecLowerAddr = LaunchSettings::GetPPCRecLowerAddr();
+	uint32 ppcRecUpperAddr = LaunchSettings::GetPPCRecUpperAddr();
+
+	if (ppcRecLowerAddr != 0 && ppcRecUpperAddr != 0)
+	{
+
+		if (ppcRecFunc->ppcAddress < ppcRecLowerAddr || ppcRecFunc->ppcAddress > ppcRecUpperAddr)
+		{
+			delete ppcRecFunc;
+			return nullptr;
+		}
+	}
+
 	// apply passes
 	if (!PPCRecompiler_ApplyIMLPasses(ppcImlGenContext))
 	{

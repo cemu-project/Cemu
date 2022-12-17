@@ -835,9 +835,7 @@ void PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext_t* pp
 	}
 	if (foundMatch)
 	{
-		// insert expand instruction
-		IMLInstruction* newExpand = PPCRecompiler_insertInstruction(imlSegment, i);
-		PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext, newExpand, PPCREC_IML_OP_ENDIAN_SWAP, gprIndex, gprIndex);
+		PPCRecompiler_insertInstruction(imlSegment, i)->make_r_r(PPCREC_IML_OP_ENDIAN_SWAP, gprIndex, gprIndex);
 	}
 }
 
