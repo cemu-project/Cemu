@@ -91,6 +91,7 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/BackendX64/BackendX64GenFPU.cpp
   HW/Espresso/Recompiler/BackendX64/BackendX64.h
   HW/Espresso/Recompiler/BackendX64/X64Emit.hpp
+  HW/Espresso/Recompiler/BackendX64/x86Emitter.h
   HW/Latte/Common/RegisterSerializer.cpp
   HW/Latte/Common/RegisterSerializer.h
   HW/Latte/Common/ShaderSerializer.cpp
