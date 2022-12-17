@@ -218,10 +218,20 @@ typedef struct
 	sint32 liveRangesCount;
 }raLiveRangeInfo_t;
 
+bool IsRangeOverlapping(raLivenessSubrange_t* rangeA, raLivenessSubrange_t* rangeB)
+{
+	if (rangeA->start.index < rangeB->end.index && rangeA->end.index > rangeB->start.index)
+		return true;
+	if ((rangeA->start.index == RA_INTER_RANGE_START && rangeA->start.index == rangeB->start.index))
+		return true;
+	if (rangeA->end.index == RA_INTER_RANGE_END && rangeA->end.index == rangeB->end.index)
+		return true;
+	return false;
+}
+
 // mark occupied registers by any overlapping range as unavailable in physRegSet
 void PPCRecRA_MaskOverlappingPhysRegForGlobalRange(raLivenessRange_t* range, IMLPhysRegisterSet& physRegSet)
 {
-	//uint32 physRegisterMask = (1 << PPC_X64_GPR_USABLE_REGISTERS) - 1;
 	for (auto& subrange : range->list_subranges)
 	{
 		IMLSegment* imlSegment = subrange->imlSegment;
@@ -235,9 +245,10 @@ void PPCRecRA_MaskOverlappingPhysRegForGlobalRange(raLivenessRange_t* range, IML
 				continue;
 			}
 
-			if (subrange->start.index < subrangeItr->end.index && subrange->end.index > subrangeItr->start.index ||
-				(subrange->start.index == RA_INTER_RANGE_START && subrange->start.index == subrangeItr->start.index) ||
-				(subrange->end.index == RA_INTER_RANGE_END && subrange->end.index == subrangeItr->end.index) )
+			//if (subrange->start.index < subrangeItr->end.index && subrange->end.index > subrangeItr->start.index ||
+			//	(subrange->start.index == RA_INTER_RANGE_START && subrange->start.index == subrangeItr->start.index) ||
+			//	(subrange->end.index == RA_INTER_RANGE_END && subrange->end.index == subrangeItr->end.index) )
+			if(IsRangeOverlapping(subrange, subrangeItr))
 			{
 				if (subrangeItr->range->physicalRegister >= 0)
 					physRegSet.SetReserved(subrangeItr->range->physicalRegister);
@@ -272,19 +283,6 @@ void _sortSegmentAllSubrangesLinkedList(IMLSegment* imlSegment)
 	}
 	// sort
 	std::sort(subrangeList, subrangeList + count, _livenessRangeStartCompare);
-	//for (sint32 i1 = 0; i1 < count; i1++)
-	//{
-	//	for (sint32 i2 = i1+1; i2 < count; i2++)
-	//	{
-	//		if (subrangeList[i1]->start.index > subrangeList[i2]->start.index)
-	//		{
-	//			// swap
-	//			raLivenessSubrange_t* temp = subrangeList[i1];
-	//			subrangeList[i1] = subrangeList[i2];
-	//			subrangeList[i2] = temp;
-	//		}
-	//	}
-	//}
 	// reassemble linked list
 	subrangeList[count] = nullptr;
 	imlSegment->raInfo.linkedList_allSubranges = subrangeList[0];
@@ -478,6 +476,7 @@ bool PPCRecRA_assignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGen
 					}
 				}
 				// evaluate strategy: Split current range to fit in available holes
+				// todo - are checks required to avoid splitting on the suffix instruction?
 				spillStrategies.availableRegisterHole.cost = INT_MAX;
 				spillStrategies.availableRegisterHole.distance = -1;
 				spillStrategies.availableRegisterHole.physRegister = -1;
@@ -770,6 +769,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	liveInfo.liveRangesCount = 0;
 	sint32 index = 0;
 	sint32 suffixInstructionCount = imlSegment->HasSuffixInstruction() ? 1 : 0;
+	//sint32 suffixInstructionIndex = imlSegment->imlList.size() - suffixInstructionCount; // if no suffix instruction exists this matches instruction count
 	// load register ranges that are supplied from previous segments
 	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while(subrangeItr)
@@ -806,7 +806,8 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				if (virtualReg2PhysReg[liverange->range->virtualRegister] == -1)
 					assert_dbg();
 				virtualReg2PhysReg[liverange->range->virtualRegister] = -1;
-				// store GPR
+				// store GPR if required
+				// special care has to be taken to execute any stores before the suffix instruction since trailing instructions may not get executed
 				if (liverange->hasStore)
 				{
 					PPCRecRA_insertGPRStoreInstruction(imlSegment, std::min<sint32>(index, imlSegment->imlList.size() - suffixInstructionCount), liverange->range->physicalRegister, liverange->range->name);
@@ -827,6 +828,13 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				liveInfo.liveRangeList[liveInfo.liveRangesCount] = subrangeItr;
 				liveInfo.liveRangesCount++;
 				// load GPR
+				// similar to stores, any loads for the next segment need to happen before the suffix instruction
+				// however, starting 17-12-2022 ranges that exit the segment at the end but do not cover the suffix instruction are illegal (e.g. RA_INTER_RANGE_END to RA_INTER_RANGE_END subrange)
+				// the limitation that name loads (for the follow-up segments) need to happen before the suffix instruction require that the range also reflects this, otherwise the RA would erroneously assume registers to be available during the suffix instruction
+				if (imlSegment->HasSuffixInstruction())
+				{
+					cemu_assert_debug(subrangeItr->start.index <= imlSegment->GetSuffixInstructionIndex());
+				}
 				if (subrangeItr->_noLoad == false)
 				{
 					PPCRecRA_insertGPRLoadInstruction(imlSegment, std::min<sint32>(index, imlSegment->imlList.size() - suffixInstructionCount), subrangeItr->range->physicalRegister, subrangeItr->range->name);
@@ -839,7 +847,8 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 			}
 			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
 		}
-		// replace registers
+		// rewrite registers
+		// todo - this can be simplified by using a map or lookup table rather than a check + 4 slot translation table
 		if (index < imlSegment->imlList.size())
 		{
 			IMLUsedRegisters gprTracking;
@@ -1004,7 +1013,6 @@ void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext
 	
 	PPCRecRA_calculateLivenessRangesV2(ppcImlGenContext);
 	PPCRecRA_processFlowAndCalculateLivenessRangesV2(ppcImlGenContext);
-
 	PPCRecRA_assignRegisters(ctx, ppcImlGenContext);
 
 	PPCRecRA_analyzeRangeDataFlowV2(ppcImlGenContext);
@@ -1095,6 +1103,15 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(ppcImlGenContext_t* ppcImlG
 				PPCRecRA_convertToMappedRanges(ppcImlGenContext, it, vGPR, range);
 		}
 	}
+	// for subranges which exit the segment at the end there is a hard requirement that they cover the suffix instruction
+	// this is due to range load instructions being inserted before the suffix instruction
+	if (subrange->end.index == RA_INTER_RANGE_END)
+	{
+		if (imlSegment->HasSuffixInstruction())
+		{
+			cemu_assert_debug(subrange->start.index <= imlSegment->GetSuffixInstructionIndex());
+		}
+	}
 	return subrange;
 }
 
@@ -1155,7 +1172,10 @@ void PPCRecRA_extendRangeToEndOfSegment(ppcImlGenContext_t* ppcImlGenContext, IM
 {
 	if (_isRangeDefined(imlSegment, vGPR) == false)
 	{
-		imlSegment->raDistances.reg[vGPR].usageStart = RA_INTER_RANGE_END;
+		if(imlSegment->HasSuffixInstruction())
+			imlSegment->raDistances.reg[vGPR].usageStart = imlSegment->GetSuffixInstructionIndex();
+		else
+			imlSegment->raDistances.reg[vGPR].usageStart = RA_INTER_RANGE_END;
 		imlSegment->raDistances.reg[vGPR].usageEnd = RA_INTER_RANGE_END;
 		return;
 	}

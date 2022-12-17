@@ -121,6 +121,20 @@ std::string IMLDebug_GetSegmentName(ppcImlGenContext_t* ctx, IMLSegment* seg)
 	return "<SegmentNotInCtx>";
 }
 
+std::string IMLDebug_GetConditionName(IMLCondition cond)
+{
+	switch (cond)
+	{
+	case IMLCondition::EQ:
+		return "EQ";
+	case IMLCondition::NEQ:
+		return "NEQ";
+	default:
+		cemu_assert_unimplemented();
+	}
+	return "ukn";
+}
+
 void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool printLivenessRangeInfo)
 {
 	StringBuf strOutput(1024);
@@ -143,9 +157,12 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 
 	if (printLivenessRangeInfo)
 	{
+		strOutput.reset();
 		IMLDebug_PrintLivenessRangeInfo(strOutput, imlSegment, RA_INTER_RANGE_START);
+		debug_printf("%s\n", strOutput.c_str());
 	}
 	//debug_printf("\n");
+	strOutput.reset();
 
 	sint32 lineOffsetParameters = 18;
 
@@ -206,6 +223,37 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			{
 				strOutput.addFmt(" -> CR{}", inst.crRegister);
 			}
+		}
+		else if (inst.type == PPCREC_IML_TYPE_COMPARE)
+		{
+			strOutput.add("CMP ");
+			while ((sint32)strOutput.getLen() < lineOffsetParameters)
+				strOutput.add(" ");
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_compare.registerOperandA);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_compare.registerOperandB);
+			strOutput.addFmt(", {}", IMLDebug_GetConditionName(inst.op_compare.cond));
+			strOutput.add(" -> ");
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_compare.registerResult, true);
+		}
+		else if (inst.type == PPCREC_IML_TYPE_COMPARE_S32)
+		{
+			strOutput.add("CMP ");
+			while ((sint32)strOutput.getLen() < lineOffsetParameters)
+				strOutput.add(" ");
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_compare_s32.registerOperandA);
+			strOutput.addFmt("{}", inst.op_compare_s32.immS32);
+			strOutput.addFmt(", {}", IMLDebug_GetConditionName(inst.op_compare_s32.cond));
+			strOutput.add(" -> ");
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_compare_s32.registerResult, true);
+		}
+		else if (inst.type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
+		{
+			strOutput.add("CJUMP2 ");
+			while ((sint32)strOutput.getLen() < lineOffsetParameters)
+				strOutput.add(" ");
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_conditionalJump2.registerBool, true);
+			if(!inst.op_conditionalJump2.mustBeTrue)
+				strOutput.add("(inverted)");
 		}
 		else if (inst.type == PPCREC_IML_TYPE_R_R_S32)
 		{
@@ -369,7 +417,7 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			else
 				strOutput.add("U");
 			strOutput.addFmt("{} [t{}+{}]", inst.op_storeLoad.copyWidth / 8, inst.op_storeLoad.registerMem, inst.op_storeLoad.immS32);
-			strOutput.addFmt("= fpr_t{} mode {}\n", inst.op_storeLoad.registerData, inst.op_storeLoad.mode);
+			strOutput.addFmt(" = fpr_t{} mode {}", inst.op_storeLoad.registerData, inst.op_storeLoad.mode);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_FPR_R_R)
 		{
@@ -388,7 +436,7 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 		}
 		else if (inst.type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 		{
-			strOutput.addFmt("CYCLE_CHECK\n");
+			strOutput.addFmt("CYCLE_CHECK");
 		}
 		else if (inst.type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
 		{
@@ -460,11 +508,11 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 	debug_printf("\n");
 }
 
-void IMLDebug_Dump(ppcImlGenContext_t* ppcImlGenContext)
+void IMLDebug_Dump(ppcImlGenContext_t* ppcImlGenContext, bool printLivenessRangeInfo)
 {
 	for (size_t i = 0; i < ppcImlGenContext->segmentList2.size(); i++)
 	{
-		IMLDebug_DumpSegment(ppcImlGenContext, ppcImlGenContext->segmentList2[i], false);
+		IMLDebug_DumpSegment(ppcImlGenContext, ppcImlGenContext->segmentList2[i], printLivenessRangeInfo);
 		debug_printf("\n");
 	}
 }

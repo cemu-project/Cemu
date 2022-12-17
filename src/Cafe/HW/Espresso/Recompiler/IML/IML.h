@@ -26,4 +26,4 @@ void PPCRecompiler_reorderConditionModifyInstructions(struct ppcImlGenContext_t*
 
 // debug
 void IMLDebug_DumpSegment(struct ppcImlGenContext_t* ctx, struct IMLSegment* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo = false);
-void IMLDebug_Dump(struct ppcImlGenContext_t* ppcImlGenContext);
+void IMLDebug_Dump(struct ppcImlGenContext_t* ppcImlGenContext, bool printLivenessRangeInfo = false);

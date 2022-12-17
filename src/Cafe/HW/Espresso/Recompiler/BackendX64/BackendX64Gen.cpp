@@ -7,46 +7,22 @@
 
 void x64Gen_writeU8(x64GenContext_t* x64GenContext, uint8 v)
 {
-	if( x64GenContext->codeBufferIndex+1 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint8*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex++;
+	x64GenContext->emitter->_emitU8(v);
 }
 
 void x64Gen_writeU16(x64GenContext_t* x64GenContext, uint32 v)
 {
-	if( x64GenContext->codeBufferIndex+2 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint16*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex += 2;
+	x64GenContext->emitter->_emitU16(v);
 }
 
 void x64Gen_writeU32(x64GenContext_t* x64GenContext, uint32 v)
 {
-	if( x64GenContext->codeBufferIndex+4 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint32*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex += 4;
+	x64GenContext->emitter->_emitU32(v);
 }
 
 void x64Gen_writeU64(x64GenContext_t* x64GenContext, uint64 v)
 {
-	if( x64GenContext->codeBufferIndex+8 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint64*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex += 8;
+	x64GenContext->emitter->_emitU64(v);
 }
 
 #include "x64Emit.hpp"

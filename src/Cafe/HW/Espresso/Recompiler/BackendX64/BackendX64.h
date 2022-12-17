@@ -1,6 +1,8 @@
 
 #include "../PPCRecompiler.h" // todo - get rid of dependency
 
+#include "x86Emitter.h"
+
 struct x64RelocEntry_t
 {
 	x64RelocEntry_t(uint32 offset, void* extraInfo) : offset(offset), extraInfo(extraInfo) {};
@@ -12,10 +14,18 @@ struct x64RelocEntry_t
 struct x64GenContext_t
 {
 	IMLSegment* currentSegment{};
+	x86Assembler64* emitter;
 
-	uint8* codeBuffer{};
-	sint32 codeBufferIndex{};
-	sint32 codeBufferSize{};
+	x64GenContext_t()
+	{
+		emitter = new x86Assembler64();
+	}
+
+	~x64GenContext_t()
+	{
+		delete emitter;
+	}
+
 	// cr state
 	sint32 activeCRRegister{}; // current x86 condition flags reflect this cr* register
 	sint32 activeCRState{}; // describes the way in which x86 flags map to the cr register (signed / unsigned)
@@ -24,41 +34,41 @@ struct x64GenContext_t
 };
 
 // todo - these definitions are part of the x86_64 emitter. Not the backend itself. We should move them eventually
-#define X86_REG_EAX		0
-#define X86_REG_ECX		1
-#define X86_REG_EDX		2
-#define X86_REG_EBX		3
-#define X86_REG_ESP		4	// reserved for low half of hCPU pointer
-#define X86_REG_EBP		5
-#define X86_REG_ESI		6
-#define X86_REG_EDI		7
-#define X86_REG_NONE	-1
-
-#define X86_REG_RAX		0
-#define X86_REG_RCX		1
-#define X86_REG_RDX		2
-#define X86_REG_RBX		3
-#define X86_REG_RSP		4	// reserved for hCPU pointer
-#define X86_REG_RBP		5
-#define X86_REG_RSI		6
-#define X86_REG_RDI		7
-#define X86_REG_R8		8
-#define X86_REG_R9		9
-#define X86_REG_R10		10
-#define X86_REG_R11		11
-#define X86_REG_R12		12
-#define X86_REG_R13		13 // reserved to hold pointer to memory base? (Not decided yet)
-#define X86_REG_R14		14 // reserved as temporary register
-#define X86_REG_R15		15 // reserved for pointer to ppcRecompilerInstanceData
-
-#define X86_REG_AL		0
-#define X86_REG_CL		1
-#define X86_REG_DL		2
-#define X86_REG_BL		3
-#define X86_REG_AH		4
-#define X86_REG_CH		5
-#define X86_REG_DH		6
-#define X86_REG_BH		7
+//#define X86_REG_EAX		0
+//#define X86_REG_ECX		1
+//#define X86_REG_EDX		2
+//#define X86_REG_EBX		3
+//#define X86_REG_ESP		4	// reserved for low half of hCPU pointer
+//#define X86_REG_EBP		5
+//#define X86_REG_ESI		6
+//#define X86_REG_EDI		7
+//#define X86_REG_NONE	-1
+//
+//#define X86_REG_RAX		0
+//#define X86_REG_RCX		1
+//#define X86_REG_RDX		2
+//#define X86_REG_RBX		3
+//#define X86_REG_RSP		4	// reserved for hCPU pointer
+//#define X86_REG_RBP		5
+//#define X86_REG_RSI		6
+//#define X86_REG_RDI		7
+//#define X86_REG_R8		8
+//#define X86_REG_R9		9
+//#define X86_REG_R10		10
+//#define X86_REG_R11		11
+//#define X86_REG_R12		12
+//#define X86_REG_R13		13 // reserved to hold pointer to memory base? (Not decided yet)
+//#define X86_REG_R14		14 // reserved as temporary register
+//#define X86_REG_R15		15 // reserved for pointer to ppcRecompilerInstanceData
+//
+//#define X86_REG_AL		0
+//#define X86_REG_CL		1
+//#define X86_REG_DL		2
+//#define X86_REG_BL		3
+//#define X86_REG_AH		4 -> Adressable via non-REX only
+//#define X86_REG_CH		5
+//#define X86_REG_DH		6
+//#define X86_REG_BH		7
 
 // reserved registers
 #define REG_RESV_TEMP		(X86_REG_R14)
@@ -72,6 +82,7 @@ struct x64GenContext_t
 
 #define reg32ToReg16(__x)	(__x)
 
+// deprecated condition flags
 enum
 {
 	X86_CONDITION_EQUAL, // or zero
