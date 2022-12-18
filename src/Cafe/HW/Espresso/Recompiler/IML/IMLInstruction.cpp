@@ -35,8 +35,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			operation == PPCREC_IML_OP_OR ||
 			operation == PPCREC_IML_OP_AND ||
 			operation == PPCREC_IML_OP_XOR ||
-			operation == PPCREC_IML_OP_ADD ||
-			operation == PPCREC_IML_OP_ADD_CARRY ||
+			operation == PPCREC_IML_OP_ADD_CARRY || // r_r carry stuff is deprecated
 			operation == PPCREC_IML_OP_ADD_CARRY_ME ||
 			operation == PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY)
 		{
@@ -68,7 +67,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			// operand register is read only
 			registersUsed->readNamedReg1 = op_r_immS32.registerIndex;
 		}
-		else if (operation == PPCREC_IML_OP_ADD ||
+		else if (operation == PPCREC_IML_OP_ADD || // deprecated
 			operation == PPCREC_IML_OP_SUB ||
 			operation == PPCREC_IML_OP_AND ||
 			operation == PPCREC_IML_OP_OR ||
