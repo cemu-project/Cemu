@@ -16,9 +16,6 @@ enum
 	PPCREC_IML_OP_ADD_CARRY_ME,		// complex operation, result = operand + carry bit + (-1), updates carry bit
 	PPCREC_IML_OP_ADD_UPDATE_CARRY,	// '+' operator but also updates carry flag
 	PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY, // '+' operator and also adds carry, updates carry flag
-	// assign operators with cast
-	PPCREC_IML_OP_ASSIGN_S16_TO_S32, // copy 16bit and sign extend
-	PPCREC_IML_OP_ASSIGN_S8_TO_S32,  // copy 8bit and sign extend
 	// binary operation
 	PPCREC_IML_OP_OR,				// '|' operator
 	PPCREC_IML_OP_ORC,				// '|' operator, second operand is complemented first
@@ -27,8 +24,6 @@ enum
 	PPCREC_IML_OP_LEFT_ROTATE,		// left rotate operator
 	PPCREC_IML_OP_LEFT_SHIFT,		// shift left operator
 	PPCREC_IML_OP_RIGHT_SHIFT,		// right shift operator (unsigned)
-	PPCREC_IML_OP_NOT,				// complement each bit
-	PPCREC_IML_OP_NEG,				// negate
 	// ppc
 	PPCREC_IML_OP_RLWIMI,			// RLWIMI instruction (rotate, merge based on mask)
 	PPCREC_IML_OP_SRAW,				// SRAWI/SRAW instruction (algebraic shift right, sets ca flag)
@@ -94,6 +89,13 @@ enum
 	// R_R_R + R_R_S32
 	PPCREC_IML_OP_ADD,
 	PPCREC_IML_OP_SUB,
+
+	// R_R only
+	PPCREC_IML_OP_NOT,
+	PPCREC_IML_OP_NEG,
+	PPCREC_IML_OP_ASSIGN_S16_TO_S32,
+	PPCREC_IML_OP_ASSIGN_S8_TO_S32,
+
 
 };
 #define PPCREC_IML_OP_FPR_COPY_PAIR (PPCREC_IML_OP_ASSIGN)
