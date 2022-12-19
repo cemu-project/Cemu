@@ -4,7 +4,6 @@ enum
 {
 	PPCREC_IML_OP_ASSIGN,			// '=' operator
 	PPCREC_IML_OP_ENDIAN_SWAP,		// '=' operator with 32bit endian swap
-	PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY, // complex operation, result = operand + ~operand2 + carry bit, updates carry bit
 	PPCREC_IML_OP_COMPARE_SIGNED,	// arithmetic/signed comparison operator (updates cr)
 	PPCREC_IML_OP_COMPARE_UNSIGNED, // logical/unsigned comparison operator (updates cr)
 	PPCREC_IML_OP_MULTIPLY_SIGNED,  // '*' operator (signed multiply)
@@ -12,10 +11,7 @@ enum
 	PPCREC_IML_OP_MULTIPLY_HIGH_SIGNED, // signed 64bit multiply, store only high 32bit-word of result
 	PPCREC_IML_OP_DIVIDE_SIGNED,	// '/' operator (signed divide)
 	PPCREC_IML_OP_DIVIDE_UNSIGNED,	// '/' operator (unsigned divide)
-	PPCREC_IML_OP_ADD_CARRY,		// complex operation, result = operand + carry bit, updates carry bit
-	PPCREC_IML_OP_ADD_CARRY_ME,		// complex operation, result = operand + carry bit + (-1), updates carry bit
-	PPCREC_IML_OP_ADD_UPDATE_CARRY,	// '+' operator but also updates carry flag
-	PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY, // '+' operator and also adds carry, updates carry flag
+
 	// binary operation
 	PPCREC_IML_OP_OR,				// '|' operator
 	PPCREC_IML_OP_ORC,				// '|' operator, second operand is complemented first
@@ -96,6 +92,12 @@ enum
 	PPCREC_IML_OP_ASSIGN_S16_TO_S32,
 	PPCREC_IML_OP_ASSIGN_S8_TO_S32,
 
+	// deprecated
+	PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY,	// complex operation, result = operand + ~operand2 + carry bit, updates carry bit
+	PPCREC_IML_OP_ADD_CARRY,				// complex operation, result = operand + carry bit, updates carry bit
+	PPCREC_IML_OP_ADD_CARRY_ME,				// complex operation, result = operand + carry bit + (-1), updates carry bit
+	PPCREC_IML_OP_ADD_UPDATE_CARRY,			// '+' operator but also updates carry flag
+	PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY,	// '+' operator and also adds carry, updates carry flag
 
 };
 #define PPCREC_IML_OP_FPR_COPY_PAIR (PPCREC_IML_OP_ASSIGN)
@@ -147,7 +149,6 @@ enum
 	PPCREC_CR_MODE_COMPARE_SIGNED,
 	PPCREC_CR_MODE_COMPARE_UNSIGNED, // alias logic compare
 
-	PPCREC_CR_MODE_ARITHMETIC, // arithmetic use (for use with add/sub instructions without generating extra code)
 	PPCREC_CR_MODE_LOGICAL,
 };
 

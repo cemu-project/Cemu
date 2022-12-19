@@ -258,7 +258,7 @@ bool PPCRecompilerImlGen_LFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// get memory gpr register index
 	uint32 gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	// add imm to memory register
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
 	// get fpr register index
 	uint32 fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
 	// emit load iml
