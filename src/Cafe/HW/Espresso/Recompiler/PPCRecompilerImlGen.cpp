@@ -776,14 +776,9 @@ bool PPCRecompilerImlGen_ADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-	if( opcode&PPC_OPC_RC )
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, registerRD, registerRA, registerRB, 0, PPCREC_CR_MODE_LOGICAL);
-	}
-	else
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, registerRD, registerRA, registerRB);
-	}
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, registerRD, registerRA, registerRB);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -795,10 +790,9 @@ bool PPCRecompilerImlGen_ADDC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD_UPDATE_CARRY, registerRD, registerRA, registerRB, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD_UPDATE_CARRY, registerRD, registerRA, registerRB);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD_UPDATE_CARRY, registerRD, registerRA, registerRB);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -810,10 +804,9 @@ bool PPCRecompilerImlGen_ADDE(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY, registerRD, registerRB, registerRA, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY, registerRD, registerRB, registerRA);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY, registerRD, registerRB, registerRA);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -833,14 +826,9 @@ bool PPCRecompilerImlGen_ADDZE(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	{
 		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, registerRD, registerRA);
 	}
-	if( opcode&PPC_OPC_RC )
-	{
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ADD_CARRY, registerRD, registerRD, 0, PPCREC_CR_MODE_LOGICAL);
-	}
-	else
-	{
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ADD_CARRY, registerRD, registerRD);
-	}
+	ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ADD_CARRY, registerRD, registerRD);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -860,14 +848,9 @@ bool PPCRecompilerImlGen_ADDME(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	{
 		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, registerRD, registerRA);
 	}
-	if( opcode&PPC_OPC_RC )
-	{
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ADD_CARRY_ME, registerRD, registerRD, 0, PPCREC_CR_MODE_LOGICAL);
-	}
-	else
-	{
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ADD_CARRY_ME, registerRD, registerRD);
-	}
+	ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ADD_CARRY_ME, registerRD, registerRD);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -889,7 +872,7 @@ bool PPCRecompilerImlGen_ADDI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		// rA not used, instruction is value assignment
 		// rD = imm
 		uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, registerRD, imm, PPC_REC_INVALID_REGISTER, 0);
+		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, registerRD, imm);
 	}
 	// never updates any cr
 	return true;
@@ -925,7 +908,6 @@ bool PPCRecompilerImlGen_ADDIC(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	PPC_OPC_TEMPL_D_SImm(opcode, rD, rA, imm);
 	// rD = rA + imm;
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-	// check if rD is already loaded, else use new temporary register
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
 	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD_UPDATE_CARRY, registerRD, registerRA, imm);
 	// never updates any cr
@@ -940,9 +922,9 @@ bool PPCRecompilerImlGen_ADDIC_(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	PPC_OPC_TEMPL_D_SImm(opcode, rD, rA, imm);
 	// rD = rA + imm;
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
-	// check if rD is already loaded, else use new temporary register
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD_UPDATE_CARRY, registerRD, registerRA, imm, 0, PPCREC_CR_MODE_LOGICAL);
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD_UPDATE_CARRY, registerRD, registerRA, imm);
+	PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -955,10 +937,9 @@ bool PPCRecompilerImlGen_SUBF(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SUB, registerRD, registerRB, registerRA, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SUB, registerRD, registerRB, registerRA);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SUB, registerRD, registerRB, registerRA);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -970,10 +951,9 @@ bool PPCRecompilerImlGen_SUBFE(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY, registerRD, registerRB, registerRA, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY, registerRD, registerRB, registerRA);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY, registerRD, registerRB, registerRA);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -985,10 +965,9 @@ bool PPCRecompilerImlGen_SUBFZE(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 		debugBreakpoint();
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerRD = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rD);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY, registerRD, registerRA, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY, registerRD, registerRA);
+	ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY, registerRD, registerRA);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRD);
 	return true;
 }
 
@@ -1045,10 +1024,9 @@ bool PPCRecompilerImlGen_MULLW(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	{
 		return false;
 	}
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_SIGNED, registerResult, registerOperand1, registerOperand2, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_SIGNED, registerResult, registerOperand1, registerOperand2);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_SIGNED, registerResult, registerOperand1, registerOperand2);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerResult);
 	return true;
 }
 
@@ -1060,10 +1038,9 @@ bool PPCRecompilerImlGen_MULHW(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	uint32 registerResult = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rD, false);
 	uint32 registerOperand1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerOperand2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_HIGH_SIGNED, registerResult, registerOperand1, registerOperand2, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_HIGH_SIGNED, registerResult, registerOperand1, registerOperand2);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_HIGH_SIGNED, registerResult, registerOperand1, registerOperand2);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerResult);
 	return true;
 }
 
@@ -1075,10 +1052,9 @@ bool PPCRecompilerImlGen_MULHWU(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	uint32 registerResult = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rD, false);
 	uint32 registerOperand1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerOperand2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_HIGH_UNSIGNED, registerResult, registerOperand1, registerOperand2, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_HIGH_UNSIGNED, registerResult, registerOperand1, registerOperand2);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_MULTIPLY_HIGH_UNSIGNED, registerResult, registerOperand1, registerOperand2);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerResult);
 	return true;
 }
 
@@ -1090,14 +1066,9 @@ bool PPCRecompilerImlGen_DIVW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 registerResult = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rD, false);
 	uint32 registerOperand1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerOperand2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_DIVIDE_SIGNED, registerResult, registerOperand1, registerOperand2);
 	if (opcode & PPC_OPC_RC)
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_DIVIDE_SIGNED, registerResult, registerOperand1, registerOperand2, 0, PPCREC_CR_MODE_ARITHMETIC);
-	}
-	else
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_DIVIDE_SIGNED, registerResult, registerOperand1, registerOperand2);
-	}
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerResult);
 	return true;
 }
 
@@ -1109,14 +1080,9 @@ bool PPCRecompilerImlGen_DIVWU(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	uint32 registerResult = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rD, false);
 	uint32 registerOperand1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA, false);
 	uint32 registerOperand2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_DIVIDE_UNSIGNED, registerResult, registerOperand1, registerOperand2);
 	if (opcode & PPC_OPC_RC)
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_DIVIDE_UNSIGNED, registerResult, registerOperand1, registerOperand2, 0, PPCREC_CR_MODE_ARITHMETIC);
-	}
-	else
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_DIVIDE_UNSIGNED, registerResult, registerOperand1, registerOperand2);
-	}
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerResult);
 	return true;
 }
 
@@ -1125,42 +1091,29 @@ bool PPCRecompilerImlGen_RLWINM(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	int rS, rA, SH, MB, ME;
 	PPC_OPC_TEMPL_M(opcode, rS, rA, SH, MB, ME);
 	uint32 mask = ppc_mask(MB, ME);
-	//uint32 v = ppc_word_rotl(hCPU->gpr[rS], SH);
-	//hCPU->gpr[rA] = v & mask;
 
 	uint32 registerRS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false);
 	uint32 registerRA = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// handle special forms of RLWINM
-	if( SH == 0 && SH == (ME-SH) && MB == 0 )
-	{
-		// CLRRWI
-		// todo
-	}
-	else if( ME == (31-SH) && MB == 0 )
+	if( ME == (31-SH) && MB == 0 )
 	{
 		// SLWI
-		if(opcode&PPC_OPC_RC)
-			ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, registerRA, registerRS, SH, 0, PPCREC_CR_MODE_LOGICAL);
-		else
-			ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, registerRA, registerRS, SH);
-		return true;
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, registerRA, registerRS, SH);
 	}
 	else if( SH == (32-MB) && ME == 31 )
 	{
 		// SRWI
-		if(opcode&PPC_OPC_RC)
-			ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT, registerRA, registerRS, MB, 0, PPCREC_CR_MODE_LOGICAL);
-		else
-			ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT, registerRA, registerRS, MB);
-		return true;
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT, registerRA, registerRS, MB);
 	}
-	// general handler
-	if( registerRA != registerRS )
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, registerRA, registerRS);
-	if( SH != 0 )
-		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_LEFT_ROTATE, registerRA, SH);
-	if( mask != 0xFFFFFFFF )
-		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, registerRA, (sint32)mask);
+	else
+	{
+		// general handler
+		if (registerRA != registerRS)
+			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, registerRA, registerRS);
+		if (SH != 0)
+			ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_LEFT_ROTATE, registerRA, SH);
+		if (mask != 0xFFFFFFFF)
+			ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, registerRA, (sint32)mask);
+	}
 	if (opcode & PPC_OPC_RC)
 		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRA);
 	return true;
@@ -1185,14 +1138,10 @@ bool PPCRecompilerImlGen_RLWNM(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 {
 	sint32 rS, rA, rB, MB, ME;
 	PPC_OPC_TEMPL_M(opcode, rS, rA, rB, MB, ME);
-	//	uint32 v = ppc_word_rotl(hCPU->gpr[rS], hCPU->gpr[rB]);
 	uint32 mask = ppc_mask(MB, ME);
-	//	uint32 v = ppc_word_rotl(hCPU->gpr[rS], hCPU->gpr[rB]);
-	//	hCPU->gpr[rA] = v & mask;
 	uint32 registerRS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRA = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-
 	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_LEFT_ROTATE, registerRA, registerRS, registerRB);
 	if( mask != 0xFFFFFFFF )
 		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, registerRA, (sint32)mask);
@@ -1208,10 +1157,9 @@ bool PPCRecompilerImlGen_SRAW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	uint32 registerRS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRA = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	if( (opcode&PPC_OPC_RC) != 0 )
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SRAW, registerRA, registerRS, registerRB, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SRAW, registerRA, registerRS, registerRB);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SRAW, registerRA, registerRS, registerRB);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRA);
 	return true;
 }
 
@@ -1223,10 +1171,9 @@ bool PPCRecompilerImlGen_SRAWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	cemu_assert_debug(SH < 32);
 	uint32 registerRS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false);
 	uint32 registerRA = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	if( opcode&PPC_OPC_RC )
-		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_SRAW, registerRA, registerRS, (sint32)SH, 0, PPCREC_CR_MODE_LOGICAL);
-	else
-		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_SRAW, registerRA, registerRS, (sint32)SH);
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_SRAW, registerRA, registerRS, (sint32)SH);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRA);
 	return true;
 }
 
@@ -1238,14 +1185,9 @@ bool PPCRecompilerImlGen_SLW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	uint32 registerRS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRA = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	if (opcode & PPC_OPC_RC)
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SLW, registerRA, registerRS, registerRB, 0, PPCREC_CR_MODE_LOGICAL);
-	}
-	else
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SLW, registerRA, registerRS, registerRB, PPC_REC_INVALID_REGISTER, 0);
-	}
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SLW, registerRA, registerRS, registerRB);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRA);
 	return true;
 }
 
@@ -1257,14 +1199,9 @@ bool PPCRecompilerImlGen_SRW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	uint32 registerRS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS, false);
 	uint32 registerRB = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB, false);
 	uint32 registerRA = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	if (opcode & PPC_OPC_RC)
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SRW, registerRA, registerRS, registerRB, 0, PPCREC_CR_MODE_LOGICAL);
-	}
-	else
-	{
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SRW, registerRA, registerRS, registerRB, PPC_REC_INVALID_REGISTER, 0);
-	}
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_SRW, registerRA, registerRS, registerRB, PPC_REC_INVALID_REGISTER, 0);
+	if ((opcode & PPC_OPC_RC))
+		PPCImlGen_UpdateCR0Logical(ppcImlGenContext, registerRA);
 	return true;
 }
 
@@ -1890,10 +1827,10 @@ void PPCRecompilerImlGen_STBU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	PPCRecompilerImlGen_generateNewInstruction_memory_r(ppcImlGenContext, sourceRegister, gprRegister, (rD==rA)?imm:0, 8, true);
 	// add imm to memory register late if we couldn't do it early
 	if( rD == rA )
-		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm, PPC_REC_INVALID_REGISTER, 0);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
 }
 
-// generic indexed store (STWX, STHX, STBX, STWUX. If bitReversed == true -> STHBRX)
+// generic indexed store (STWX, STHX, STBX, STWUX. If byteReversed == true -> STHBRX)
 bool PPCRecompilerImlGen_STORE_INDEXED(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, uint32 storeBitWidth, bool byteReversed = false)
 {
 	sint32 rA, rS, rB;
