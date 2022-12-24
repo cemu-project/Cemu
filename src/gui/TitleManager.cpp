@@ -444,17 +444,11 @@ void TitleManager::OnTitleSelected(wxListEvent& event)
 		}
 
 		const auto& accounts = Account::GetAccounts();
-		for (const auto& id : entry->persistent_ids)
+		for (const auto& account : accounts)
 		{
-			const auto it = std::find_if(accounts.cbegin(), accounts.cend(), [id](const auto& acc) { return acc.GetPersistentId() == id; });
-			if(it != accounts.cend())
-			{
-				m_save_account_list->Append(fmt::format("{:x} ({})", id, 
-					boost::nowide::narrow(it->GetMiiName().data(), it->GetMiiName().size())), 
-					(void*)(uintptr_t)id);
-			}
-			else
-				m_save_account_list->Append(fmt::format("{:x}", id), (void*)(uintptr_t)id);
+			m_save_account_list->Append(fmt::format("{:x} ({})", account.GetPersistentId(),
+				boost::nowide::narrow(account.GetMiiName().data(), account.GetMiiName().size())),
+				(void*)(uintptr_t)account.GetPersistentId());
 		}
 	}
 	else
