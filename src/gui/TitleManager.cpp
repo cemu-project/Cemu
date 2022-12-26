@@ -417,10 +417,12 @@ static void PopulateSavePersistentIds(wxTitleManagerList::TitleEntry& entry)
 	{
 		if(!it.is_directory(ec))
 			continue;
+		if(fs::is_empty(it.path()))
+			continue;
 		std::string dirName = it.path().filename().string();
-		uint32 persistentId = ConvertString<uint32>(dirName, 16);
-		if (persistentId != 0)
-			entry.persistent_ids.emplace_back(persistentId);
+		if(!std::regex_match(dirName, std::regex("[0-9a-fA-F]{8}")))
+			continue;
+		entry.persistent_ids.emplace_back(ConvertString<uint32>(dirName, 16));
 	}
 }
 
