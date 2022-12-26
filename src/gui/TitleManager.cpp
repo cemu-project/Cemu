@@ -417,10 +417,12 @@ static void PopulateSavePersistentIds(wxTitleManagerList::TitleEntry& entry)
 	{
 		if(!it.is_directory(ec))
 			continue;
+		if(fs::is_empty(it.path()))
+			continue;
 		std::string dirName = it.path().filename().string();
-		uint32 persistentId = ConvertString<uint32>(dirName, 16);
-		if (persistentId != 0)
-			entry.persistent_ids.emplace_back(persistentId);
+		if(!std::regex_match(dirName, std::regex("[0-9a-fA-F]{8}")))
+			continue;
+		entry.persistent_ids.emplace_back(ConvertString<uint32>(dirName, 16));
 	}
 }
 
@@ -444,11 +446,17 @@ void TitleManager::OnTitleSelected(wxListEvent& event)
 		}
 
 		const auto& accounts = Account::GetAccounts();
-		for (const auto& account : accounts)
+		for (const auto& id : entry->persistent_ids)
 		{
-			m_save_account_list->Append(fmt::format("{:x} ({})", account.GetPersistentId(),
-				boost::nowide::narrow(account.GetMiiName().data(), account.GetMiiName().size())),
-				(void*)(uintptr_t)account.GetPersistentId());
+			const auto it = std::find_if(accounts.cbegin(), accounts.cend(), [id](const auto& acc) { return acc.GetPersistentId() == id; });
+			if(it != accounts.cend())
+			{
+				m_save_account_list->Append(fmt::format("{:x} ({})", id, 
+					boost::nowide::narrow(it->GetMiiName().data(), it->GetMiiName().size())), 
+					(void*)(uintptr_t)id);
+			}
+			else
+				m_save_account_list->Append(fmt::format("{:x}", id), (void*)(uintptr_t)id);
 		}
 	}
 	else
