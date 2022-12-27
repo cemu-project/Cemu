@@ -67,7 +67,8 @@ struct PPCInterpreter_t
 	uint32 reservedMemValue;
 	// temporary storage for recompiler
 	FPR_t temporaryFPR[8];
-	uint32 temporaryGPR[4];
+	uint32 temporaryGPR[4]; // deprecated, refactor away backend dependency on this
+	uint32 temporaryGPR_reg[4];
 	// values below this are not used by Cafe OS usermode
 	struct  
 	{

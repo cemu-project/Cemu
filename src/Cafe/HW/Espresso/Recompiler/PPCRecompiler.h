@@ -109,6 +109,14 @@ struct ppcImlGenContext_t
 		segmentList2.insert(segmentList2.begin() + index, 1, newSeg);
 		return newSeg;
 	}
+
+	std::span<IMLSegment*> InsertSegments(size_t index, size_t count)
+	{
+		segmentList2.insert(segmentList2.begin() + index, count, {});
+		for (size_t i = index; i < (index + count); i++)
+			segmentList2[i] = new IMLSegment();
+		return { segmentList2.data() + index, count};
+	}
 };
 
 typedef void ATTR_MS_ABI (*PPCREC_JUMP_ENTRY)();

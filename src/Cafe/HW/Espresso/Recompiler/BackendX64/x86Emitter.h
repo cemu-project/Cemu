@@ -99,7 +99,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -125,7 +131,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -166,7 +178,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -192,7 +210,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -216,7 +240,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -242,7 +272,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -252,6 +288,1066 @@ public:
 			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
 		}
 		_emitU8(0x03);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void OR_bb(GPR8_REX dst, GPR8_REX src)
+	{
+		if ((src >= 4) || (dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x08);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void OR_bb_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR8_REX src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x08);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void OR_bb_r(GPR8_REX dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x0a);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void OR_dd(GPR32 dst, GPR32 src)
+	{
+		if (((src & 8) != 0) || ((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x09);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void OR_qq(GPR64 dst, GPR64 src)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		_emitU8(0x09);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void OR_dd_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR32 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src & 8) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x09);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void OR_qq_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR64 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x09);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void OR_dd_r(GPR32 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst & 8) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x0b);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void OR_qq_r(GPR64 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x0b);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void ADC_bb(GPR8_REX dst, GPR8_REX src)
+	{
+		if ((src >= 4) || (dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x10);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void ADC_bb_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR8_REX src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x10);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void ADC_bb_r(GPR8_REX dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x12);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void ADC_dd(GPR32 dst, GPR32 src)
+	{
+		if (((src & 8) != 0) || ((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x11);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void ADC_qq(GPR64 dst, GPR64 src)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		_emitU8(0x11);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void ADC_dd_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR32 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src & 8) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x11);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void ADC_qq_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR64 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x11);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void ADC_dd_r(GPR32 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst & 8) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x13);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void ADC_qq_r(GPR64 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x13);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SBB_bb(GPR8_REX dst, GPR8_REX src)
+	{
+		if ((src >= 4) || (dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x18);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void SBB_bb_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR8_REX src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x18);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SBB_bb_r(GPR8_REX dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x1a);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SBB_dd(GPR32 dst, GPR32 src)
+	{
+		if (((src & 8) != 0) || ((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x19);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void SBB_qq(GPR64 dst, GPR64 src)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		_emitU8(0x19);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void SBB_dd_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR32 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src & 8) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x19);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SBB_qq_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR64 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x19);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SBB_dd_r(GPR32 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst & 8) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x1b);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SBB_qq_r(GPR64 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x1b);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void AND_bb(GPR8_REX dst, GPR8_REX src)
+	{
+		if ((src >= 4) || (dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x20);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void AND_bb_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR8_REX src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x20);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void AND_bb_r(GPR8_REX dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x22);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void AND_dd(GPR32 dst, GPR32 src)
+	{
+		if (((src & 8) != 0) || ((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x21);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void AND_qq(GPR64 dst, GPR64 src)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		_emitU8(0x21);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void AND_dd_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR32 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src & 8) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x21);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void AND_qq_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR64 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x21);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void AND_dd_r(GPR32 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst & 8) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x23);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void AND_qq_r(GPR64 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x23);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SUB_bb(GPR8_REX dst, GPR8_REX src)
+	{
+		if ((src >= 4) || (dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x28);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void SUB_bb_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR8_REX src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x28);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SUB_bb_r(GPR8_REX dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x2a);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SUB_dd(GPR32 dst, GPR32 src)
+	{
+		if (((src & 8) != 0) || ((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x29);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void SUB_qq(GPR64 dst, GPR64 src)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		_emitU8(0x29);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void SUB_dd_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR32 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src & 8) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x29);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SUB_qq_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR64 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x29);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SUB_dd_r(GPR32 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst & 8) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x2b);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SUB_qq_r(GPR64 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x2b);
 		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
 		if (sib_use)
 		{
@@ -275,7 +1371,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -301,7 +1403,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -342,7 +1450,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -368,7 +1482,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -392,7 +1512,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -418,7 +1544,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -451,7 +1583,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -477,7 +1615,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -518,7 +1662,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -544,7 +1694,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -568,7 +1724,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -594,7 +1756,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -611,6 +1779,573 @@ public:
 		}
 		if (mod == 1) _emitU8((u8)offset);
 		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void ADD_di32(GPR32 dst, s32 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((0 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void ADD_qi32(GPR64 dst, s32 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((0 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void ADD_di32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((0 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void ADD_qi32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((0 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void OR_di32(GPR32 dst, s32 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((1 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void OR_qi32(GPR64 dst, s32 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((1 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void OR_di32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((1 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void OR_qi32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((1 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void ADC_di32(GPR32 dst, s32 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((2 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void ADC_qi32(GPR64 dst, s32 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((2 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void ADC_di32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((2 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void ADC_qi32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((2 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void SBB_di32(GPR32 dst, s32 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((3 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void SBB_qi32(GPR64 dst, s32 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((3 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void SBB_di32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((3 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void SBB_qi32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((3 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void AND_di32(GPR32 dst, s32 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void AND_qi32(GPR64 dst, s32 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void AND_di32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void AND_qi32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void SUB_di32(GPR32 dst, s32 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((5 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void SUB_qi32(GPR64 dst, s32 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((5 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void SUB_di32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((5 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void SUB_qi32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((5 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void XOR_di32(GPR32 dst, s32 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((6 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void XOR_qi32(GPR64 dst, s32 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x81);
+		_emitU8((3 << 6) | ((6 & 7) << 3) | (dst & 7));
+		_emitU32((u32)imm);
+	}
+	void XOR_di32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((6 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
+	}
+	void XOR_qi32_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s32 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x81);
+		_emitU8((mod << 6) | ((6 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU32((u32)imm);
 	}
 	void CMP_di32(GPR32 dst, s32 imm)
 	{
@@ -635,7 +2370,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -662,7 +2403,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -680,6 +2427,573 @@ public:
 		if (mod == 1) _emitU8((u8)offset);
 		else if (mod == 2) _emitU32((u32)offset);
 		_emitU32((u32)imm);
+	}
+	void ADD_di8(GPR32 dst, s8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((0 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void ADD_qi8(GPR64 dst, s8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((0 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void ADD_di8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((0 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void ADD_qi8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((0 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void OR_di8(GPR32 dst, s8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((1 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void OR_qi8(GPR64 dst, s8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((1 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void OR_di8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((1 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void OR_qi8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((1 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void ADC_di8(GPR32 dst, s8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((2 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void ADC_qi8(GPR64 dst, s8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((2 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void ADC_di8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((2 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void ADC_qi8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((2 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void SBB_di8(GPR32 dst, s8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((3 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void SBB_qi8(GPR64 dst, s8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((3 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void SBB_di8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((3 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void SBB_qi8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((3 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void AND_di8(GPR32 dst, s8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void AND_qi8(GPR64 dst, s8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void AND_di8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void AND_qi8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void SUB_di8(GPR32 dst, s8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((5 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void SUB_qi8(GPR64 dst, s8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((5 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void SUB_di8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((5 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void SUB_qi8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((5 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void XOR_di8(GPR32 dst, s8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((6 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void XOR_qi8(GPR64 dst, s8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x83);
+		_emitU8((3 << 6) | ((6 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void XOR_di8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((6 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void XOR_qi8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, s8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x83);
+		_emitU8((mod << 6) | ((6 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
 	}
 	void CMP_di8(GPR32 dst, s8 imm)
 	{
@@ -704,7 +3018,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -731,7 +3051,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -765,7 +3091,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -806,7 +3138,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -832,7 +3170,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -865,7 +3209,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -891,7 +3241,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -932,7 +3288,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -958,7 +3320,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -982,7 +3350,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -1008,7 +3382,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -1056,7 +3436,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -1099,7 +3485,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -1126,7 +3518,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -1168,7 +3566,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -1195,7 +3599,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
@@ -1213,6 +3623,365 @@ public:
 		if (mod == 1) _emitU8((u8)offset);
 		else if (mod == 2) _emitU32((u32)offset);
 		_emitU8((u8)imm);
+	}
+	void SHL_b_CL(GPR8_REX dst)
+	{
+		if ((dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0xd2);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+	}
+	void SHL_b_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0xd2);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SHR_b_CL(GPR8_REX dst)
+	{
+		if ((dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0xd2);
+		_emitU8((3 << 6) | ((5 & 7) << 3) | (dst & 7));
+	}
+	void SHR_b_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0xd2);
+		_emitU8((mod << 6) | ((5 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SAR_b_CL(GPR8_REX dst)
+	{
+		if ((dst >= 4))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0xd2);
+		_emitU8((3 << 6) | ((7 & 7) << 3) | (dst & 7));
+	}
+	void SAR_b_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0xd2);
+		_emitU8((mod << 6) | ((7 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SHL_d_CL(GPR32 dst)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0xd3);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+	}
+	void SHL_q_CL(GPR64 dst)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0xd3);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+	}
+	void SHL_d_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0xd3);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SHL_q_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0xd3);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SHR_d_CL(GPR32 dst)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0xd3);
+		_emitU8((3 << 6) | ((5 & 7) << 3) | (dst & 7));
+	}
+	void SHR_q_CL(GPR64 dst)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0xd3);
+		_emitU8((3 << 6) | ((5 & 7) << 3) | (dst & 7));
+	}
+	void SHR_d_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0xd3);
+		_emitU8((mod << 6) | ((5 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SHR_q_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0xd3);
+		_emitU8((mod << 6) | ((5 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SAR_d_CL(GPR32 dst)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0xd3);
+		_emitU8((3 << 6) | ((7 & 7) << 3) | (dst & 7));
+	}
+	void SAR_q_CL(GPR64 dst)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0xd3);
+		_emitU8((3 << 6) | ((7 & 7) << 3) | (dst & 7));
+	}
+	void SAR_d_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0xd3);
+		_emitU8((mod << 6) | ((7 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void SAR_q_CL_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0xd3);
+		_emitU8((mod << 6) | ((7 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void JMP_j32(s32 imm)
+	{
+		_emitU8(0xe9);
+		_emitU32((u32)imm);
 	}
 	void Jcc_j32(X86Cond cond, s32 imm)
 	{
@@ -1236,7 +4005,13 @@ public:
 		if (offset == 0 && (memReg & 7) != 5) mod = 0;
 		else if (offset == (s32)(s8)offset) mod = 1;
 		else mod = 2;
-		bool sib_use = (scaler != 0 && index != X86_REG_NONE) || ((memReg & 7) == 4);
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
 		if (sib_use)
 		{
 			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
@@ -1256,5 +4031,90 @@ public:
 		}
 		if (mod == 1) _emitU8((u8)offset);
 		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void BT_du8(GPR32 dst, u8 imm)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x0f);
+		_emitU8(0xba);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void BT_qu8(GPR64 dst, u8 imm)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x0f);
+		_emitU8(0xba);
+		_emitU8((3 << 6) | ((4 & 7) << 3) | (dst & 7));
+		_emitU8((u8)imm);
+	}
+	void BT_du8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, u8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((memReg & 8))
+				_emitU8(0x40 | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x0f);
+		_emitU8(0xba);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
+	}
+	void BT_qu8_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, u8 imm)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x0f);
+		_emitU8(0xba);
+		_emitU8((mod << 6) | ((4 & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+		_emitU8((u8)imm);
 	}
 };

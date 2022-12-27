@@ -5,10 +5,12 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 
 /*
- * Initializes a single segment and returns true if it is a finite loop
+ * Analyzes a single segment and returns true if it is a finite loop
  */
 bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 {
+	return false; // !!! DISABLED !!!
+
 	bool isTightFiniteLoop = false;
 	// base criteria, must jump to beginning of same segment
 	if (imlSegment->nextSegmentBranchTaken != imlSegment)
@@ -42,9 +44,7 @@ bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 			if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB))
 				continue;
 			instIt.CheckRegisterUsage(&registersUsed);
-			if(registersUsed.writtenNamedReg1 < 0)
-				continue;
-			list_modifiedRegisters.remove(registersUsed.writtenNamedReg1);
+			registersUsed.ForEachWrittenGPR([&](IMLReg r) { list_modifiedRegisters.remove(r); });
 		}
 		if (list_modifiedRegisters.count > 0)
 		{
@@ -63,10 +63,6 @@ bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction)
 		return true;
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_R)
 		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_COMPARE || imlInstruction->type == PPCREC_IML_TYPE_COMPARE_S32)
-		return true; // ??
-	if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
-		return true; // ??
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_S32)
 		return true;
 	if (imlInstruction->type == PPCREC_IML_TYPE_R_S32)
@@ -79,6 +75,18 @@ bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction)
 		return true;
 	if (imlInstruction->type == PPCREC_IML_TYPE_FPR_R)
 		return true;
+
+	// new instructions
+	if (imlInstruction->type == PPCREC_IML_TYPE_COMPARE || imlInstruction->type == PPCREC_IML_TYPE_COMPARE_S32)
+		return true;
+	if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
+		return true;
+	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_R_CARRY)
+		return true;
+	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_S32_CARRY)
+		return true;
+
+
 	return false;
 }
 

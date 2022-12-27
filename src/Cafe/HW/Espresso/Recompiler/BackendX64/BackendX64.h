@@ -33,43 +33,6 @@ struct x64GenContext_t
 	std::vector<x64RelocEntry_t> relocateOffsetTable2;
 };
 
-// todo - these definitions are part of the x86_64 emitter. Not the backend itself. We should move them eventually
-//#define X86_REG_EAX		0
-//#define X86_REG_ECX		1
-//#define X86_REG_EDX		2
-//#define X86_REG_EBX		3
-//#define X86_REG_ESP		4	// reserved for low half of hCPU pointer
-//#define X86_REG_EBP		5
-//#define X86_REG_ESI		6
-//#define X86_REG_EDI		7
-//#define X86_REG_NONE	-1
-//
-//#define X86_REG_RAX		0
-//#define X86_REG_RCX		1
-//#define X86_REG_RDX		2
-//#define X86_REG_RBX		3
-//#define X86_REG_RSP		4	// reserved for hCPU pointer
-//#define X86_REG_RBP		5
-//#define X86_REG_RSI		6
-//#define X86_REG_RDI		7
-//#define X86_REG_R8		8
-//#define X86_REG_R9		9
-//#define X86_REG_R10		10
-//#define X86_REG_R11		11
-//#define X86_REG_R12		12
-//#define X86_REG_R13		13 // reserved to hold pointer to memory base? (Not decided yet)
-//#define X86_REG_R14		14 // reserved as temporary register
-//#define X86_REG_R15		15 // reserved for pointer to ppcRecompilerInstanceData
-//
-//#define X86_REG_AL		0
-//#define X86_REG_CL		1
-//#define X86_REG_DL		2
-//#define X86_REG_BL		3
-//#define X86_REG_AH		4 -> Adressable via non-REX only
-//#define X86_REG_CH		5
-//#define X86_REG_DH		6
-//#define X86_REG_BH		7
-
 // reserved registers
 #define REG_RESV_TEMP		(X86_REG_R14)
 #define REG_RESV_HCPU		(X86_REG_RSP)
@@ -79,8 +42,7 @@ struct x64GenContext_t
 // reserved floating-point registers
 #define REG_RESV_FPR_TEMP	(15)
 
-
-#define reg32ToReg16(__x)	(__x)
+#define reg32ToReg16(__x)	(__x) // deprecated
 
 // deprecated condition flags
 enum
@@ -308,4 +270,8 @@ void x64Gen_movBEZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext_t* x64G
 void x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32, sint32 srcRegister);
 
 void x64Gen_shrx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_shrx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_sarx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_sarx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
 void x64Gen_shlx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_shlx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);

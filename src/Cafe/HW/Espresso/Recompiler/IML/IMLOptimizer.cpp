@@ -179,15 +179,7 @@ ppcRecRegisterMapping_t* PPCRecompiler_findUnloadableRegister(ppcRecManageRegist
 		if( (unloadLockedMask&(1<<i)) != 0 )
 			continue;
 		uint32 virtualReg = rCtx->currentMapping[i].virtualReg;
-		bool isReserved = false;
-		for (sint32 f = 0; f < 4; f++)
-		{
-			if (virtualReg == (sint32)instructionUsedRegisters->fpr[f])
-			{
-				isReserved = true;
-				break;
-			}
-		}
+		bool isReserved = instructionUsedRegisters->HasFPRReg(virtualReg);
 		if (isReserved)
 			continue;
 		if (rCtx->currentMapping[i].lastUseIndex < unloadIndexLastUse)
@@ -373,7 +365,7 @@ bool PPCRecompiler_trackRedundantNameLoadInstruction(ppcImlGenContext_t* ppcImlG
 		imlInstruction->CheckRegisterUsage(&registersUsed);
 		if( registersUsed.readNamedReg1 == registerIndex || registersUsed.readNamedReg2 == registerIndex || registersUsed.readNamedReg3 == registerIndex )
 			return false;
-		if( registersUsed.writtenNamedReg1 == registerIndex )
+		if (registersUsed.IsRegWritten(registerIndex))
 			return true;
 	}
 	// todo: Scan next segment(s)
@@ -411,7 +403,7 @@ bool PPCRecompiler_trackRedundantNameStoreInstruction(ppcImlGenContext_t* ppcIml
 		IMLInstruction* imlInstruction = imlSegment->imlList.data() + i;
 		IMLUsedRegisters registersUsed;
 		imlInstruction->CheckRegisterUsage(&registersUsed);
-		if( registersUsed.writtenNamedReg1 == registerIndex )
+		if( registersUsed.IsRegWritten(registerIndex) )
 		{
 			if( imlSegment->imlList[i].type == PPCREC_IML_TYPE_R_NAME )
 				return true;
@@ -620,84 +612,84 @@ void PPCRecompiler_removeRedundantCRUpdates(ppcImlGenContext_t* ppcImlGenContext
 	}
 }
 
-bool PPCRecompiler_checkIfGPRIsModifiedInRange(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 startIndex, sint32 endIndex, sint32 vreg)
-{
-	IMLUsedRegisters registersUsed;
-	for (sint32 i = startIndex; i <= endIndex; i++)
-	{
-		IMLInstruction* imlInstruction = imlSegment->imlList.data() + i;
-		imlInstruction->CheckRegisterUsage(&registersUsed);
-		if (registersUsed.writtenNamedReg1 == vreg)
-			return true;
-	}
-	return false;
-}
+//bool PPCRecompiler_checkIfGPRIsModifiedInRange(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 startIndex, sint32 endIndex, sint32 vreg)
+//{
+//	IMLUsedRegisters registersUsed;
+//	for (sint32 i = startIndex; i <= endIndex; i++)
+//	{
+//		IMLInstruction* imlInstruction = imlSegment->imlList.data() + i;
+//		imlInstruction->CheckRegisterUsage(&registersUsed);
+//		if (registersUsed.IsRegWritten(vreg))
+//			return true;
+//	}
+//	return false;
+//}
 
-sint32 PPCRecompiler_scanBackwardsForReusableRegister(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* startSegment, sint32 startIndex, sint32 name)
-{
-	// current segment
-	sint32 currentIndex = startIndex;
-	IMLSegment* currentSegment = startSegment;
-	sint32 segmentIterateCount = 0;
-	sint32 foundRegister = -1;
-	while (true)
-	{
-		// stop scanning if segment is enterable
-		if (currentSegment->isEnterable)
-			return -1;
-		while (currentIndex >= 0)
-		{
-			if (currentSegment->imlList[currentIndex].type == PPCREC_IML_TYPE_NAME_R && currentSegment->imlList[currentIndex].op_r_name.name == name)
-			{
-				foundRegister = currentSegment->imlList[currentIndex].op_r_name.registerIndex;
-				break;
-			}
-			// previous instruction
-			currentIndex--;
-		}
-		if (foundRegister >= 0)
-			break;
-		// continue at previous segment (if there is only one)
-		if (segmentIterateCount >= 1)
-			return -1;
-		if (currentSegment->list_prevSegments.size() != 1)
-			return -1;
-		currentSegment = currentSegment->list_prevSegments[0];
-		currentIndex = currentSegment->imlList.size() - 1;
-		segmentIterateCount++;
-	}
-	// scan again to make sure the register is not modified inbetween
-	currentIndex = startIndex;
-	currentSegment = startSegment;
-	segmentIterateCount = 0;
-	IMLUsedRegisters registersUsed;
-	while (true)
-	{
-		while (currentIndex >= 0)
-		{
-			// check if register is modified
-			currentSegment->imlList[currentIndex].CheckRegisterUsage(&registersUsed);
-			if (registersUsed.writtenNamedReg1 == foundRegister)
-				return -1;
-			// check if end of scan reached
-			if (currentSegment->imlList[currentIndex].type == PPCREC_IML_TYPE_NAME_R && currentSegment->imlList[currentIndex].op_r_name.name == name)
-			{
-				return foundRegister;
-			}
-			// previous instruction
-			currentIndex--;
-		}
-		// continue at previous segment (if there is only one)
-		if (segmentIterateCount >= 1)
-			return -1;
-		if (currentSegment->list_prevSegments.size() != 1)
-			return -1;
-		currentSegment = currentSegment->list_prevSegments[0];
-		currentIndex = currentSegment->imlList.size() - 1;
-		segmentIterateCount++;
-	}
-	return -1;
-}
+//sint32 PPCRecompiler_scanBackwardsForReusableRegister(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* startSegment, sint32 startIndex, sint32 name)
+//{
+//	// current segment
+//	sint32 currentIndex = startIndex;
+//	IMLSegment* currentSegment = startSegment;
+//	sint32 segmentIterateCount = 0;
+//	sint32 foundRegister = -1;
+//	while (true)
+//	{
+//		// stop scanning if segment is enterable
+//		if (currentSegment->isEnterable)
+//			return -1;
+//		while (currentIndex >= 0)
+//		{
+//			if (currentSegment->imlList[currentIndex].type == PPCREC_IML_TYPE_NAME_R && currentSegment->imlList[currentIndex].op_r_name.name == name)
+//			{
+//				foundRegister = currentSegment->imlList[currentIndex].op_r_name.registerIndex;
+//				break;
+//			}
+//			// previous instruction
+//			currentIndex--;
+//		}
+//		if (foundRegister >= 0)
+//			break;
+//		// continue at previous segment (if there is only one)
+//		if (segmentIterateCount >= 1)
+//			return -1;
+//		if (currentSegment->list_prevSegments.size() != 1)
+//			return -1;
+//		currentSegment = currentSegment->list_prevSegments[0];
+//		currentIndex = currentSegment->imlList.size() - 1;
+//		segmentIterateCount++;
+//	}
+//	// scan again to make sure the register is not modified inbetween
+//	currentIndex = startIndex;
+//	currentSegment = startSegment;
+//	segmentIterateCount = 0;
+//	IMLUsedRegisters registersUsed;
+//	while (true)
+//	{
+//		while (currentIndex >= 0)
+//		{
+//			// check if register is modified
+//			currentSegment->imlList[currentIndex].CheckRegisterUsage(&registersUsed);
+//			if (registersUsed.IsRegWritten(foundRegister))
+//				return -1;
+//			// check if end of scan reached
+//			if (currentSegment->imlList[currentIndex].type == PPCREC_IML_TYPE_NAME_R && currentSegment->imlList[currentIndex].op_r_name.name == name)
+//			{
+//				return foundRegister;
+//			}
+//			// previous instruction
+//			currentIndex--;
+//		}
+//		// continue at previous segment (if there is only one)
+//		if (segmentIterateCount >= 1)
+//			return -1;
+//		if (currentSegment->list_prevSegments.size() != 1)
+//			return -1;
+//		currentSegment = currentSegment->list_prevSegments[0];
+//		currentIndex = currentSegment->imlList.size() - 1;
+//		segmentIterateCount++;
+//	}
+//	return -1;
+//}
 
 void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 imlIndexLoad, sint32 fprIndex)
 {
@@ -830,7 +822,7 @@ void PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext_t* pp
 		{
 			break;
 		}
-		if (registersUsed.writtenNamedReg1 == gprIndex)
+		if (registersUsed.IsRegWritten(gprIndex))
 			return; // GPR overwritten, we don't need to byte swap anymore
 	}
 	if (foundMatch)
@@ -933,6 +925,8 @@ void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext)
 						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S8_PS0;
 					else if (formatType == 7)
 						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S16_PS0;
+					if (instIt.op_storeLoad.mode != PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0)
+						instIt.op_storeLoad.registerGQR = PPC_REC_INVALID_REGISTER;
 				}
 				else if (instIt.op_storeLoad.mode == PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1)
 				{
@@ -946,6 +940,8 @@ void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext)
 						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S8_PS0_PS1;
 					else if (formatType == 7)
 						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S16_PS0_PS1;
+					if (instIt.op_storeLoad.mode != PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1)
+						instIt.op_storeLoad.registerGQR = PPC_REC_INVALID_REGISTER;
 				}
 			}
 			else if (instIt.type == PPCREC_IML_TYPE_FPR_STORE || instIt.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
@@ -978,6 +974,8 @@ void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext)
 						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S8_PS0;
 					else if (formatType == 7)
 						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S16_PS0;
+					if (instIt.op_storeLoad.mode != PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0)
+						instIt.op_storeLoad.registerGQR = PPC_REC_INVALID_REGISTER;
 				}
 				else if (instIt.op_storeLoad.mode == PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1)
 				{
@@ -991,127 +989,129 @@ void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext)
 						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S8_PS0_PS1;
 					else if (formatType == 7)
 						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S16_PS0_PS1;
+					if (instIt.op_storeLoad.mode != PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1)
+						instIt.op_storeLoad.registerGQR = PPC_REC_INVALID_REGISTER;
 				}
 			}
 		}
 	}
 }
 
-/*
- * Returns true if registerWrite overwrites any of the registers read by registerRead
- */
-bool PPCRecompilerAnalyzer_checkForGPROverwrite(IMLUsedRegisters* registerRead, IMLUsedRegisters* registerWrite)
-{
-	if (registerWrite->writtenNamedReg1 < 0)
-		return false;
-
-	if (registerWrite->writtenNamedReg1 == registerRead->readNamedReg1)
-		return true;
-	if (registerWrite->writtenNamedReg1 == registerRead->readNamedReg2)
-		return true;
-	if (registerWrite->writtenNamedReg1 == registerRead->readNamedReg3)
-		return true;
-	return false;
-}
+///*
+// * Returns true if registerWrite overwrites any of the registers read by registerRead
+// */
+//bool PPCRecompilerAnalyzer_checkForGPROverwrite(IMLUsedRegisters* registerRead, IMLUsedRegisters* registerWrite)
+//{
+//	if (registerWrite->writtenNamedReg1 < 0)
+//		return false;
+//
+//	if (registerWrite->writtenNamedReg1 == registerRead->readNamedReg1)
+//		return true;
+//	if (registerWrite->writtenNamedReg1 == registerRead->readNamedReg2)
+//		return true;
+//	if (registerWrite->writtenNamedReg1 == registerRead->readNamedReg3)
+//		return true;
+//	return false;
+//}
 
 void _reorderConditionModifyInstructions(IMLSegment* imlSegment)
 {
-	IMLInstruction* lastInstruction = imlSegment->GetLastInstruction();
-	// last instruction is a conditional branch?
-	if (lastInstruction == nullptr || lastInstruction->type != PPCREC_IML_TYPE_CJUMP)
-		return;
-	if (lastInstruction->op_conditionalJump.crRegisterIndex >= 8)
-		return;
-	// get CR bitmask of bit required for conditional jump
-	PPCRecCRTracking_t crTracking;
-	IMLAnalyzer_GetCRTracking(lastInstruction, &crTracking);
-	uint32 requiredCRBits = crTracking.readCRBits;
-
-	// scan backwards until we find the instruction that sets the CR
-	sint32 crSetterInstructionIndex = -1;
-	sint32 unsafeInstructionIndex = -1;
-	for (sint32 i = imlSegment->imlList.size() - 2; i >= 0; i--)
-	{
-		IMLInstruction* imlInstruction = imlSegment->imlList.data() + i;
-		IMLAnalyzer_GetCRTracking(imlInstruction, &crTracking);
-		if (crTracking.readCRBits != 0)
-			return; // dont handle complex cases for now
-		if (crTracking.writtenCRBits != 0)
-		{
-			if ((crTracking.writtenCRBits&requiredCRBits) != 0)
-			{
-				crSetterInstructionIndex = i;
-				break;
-			}
-			else
-			{
-				return; // other CR bits overwritten (dont handle complex cases)
-			}
-		}
-		// is safe? (no risk of overwriting x64 eflags)
-		if ((imlInstruction->type == PPCREC_IML_TYPE_NAME_R || imlInstruction->type == PPCREC_IML_TYPE_R_NAME || imlInstruction->type == PPCREC_IML_TYPE_NO_OP) ||
-			(imlInstruction->type == PPCREC_IML_TYPE_FPR_NAME_R || imlInstruction->type == PPCREC_IML_TYPE_FPR_R_NAME) ||
-			(imlInstruction->type == PPCREC_IML_TYPE_R_S32 && (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)) ||
-			(imlInstruction->type == PPCREC_IML_TYPE_R_R && (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)) )
-			continue;
-		// not safe
-		if (unsafeInstructionIndex == -1)
-			unsafeInstructionIndex = i;
-	}
-	if (crSetterInstructionIndex < 0)
-		return;
-	if (unsafeInstructionIndex < 0)
-		return; // no danger of overwriting eflags, don't reorder
-	// check if we can move the CR setter instruction to after unsafeInstructionIndex
-	PPCRecCRTracking_t crTrackingSetter = crTracking;
-	IMLUsedRegisters regTrackingCRSetter;
-	imlSegment->imlList[crSetterInstructionIndex].CheckRegisterUsage(&regTrackingCRSetter);
-	if (regTrackingCRSetter.writtenFPR1 >= 0 || regTrackingCRSetter.readFPR1 >= 0 || regTrackingCRSetter.readFPR2 >= 0 || regTrackingCRSetter.readFPR3 >= 0 || regTrackingCRSetter.readFPR4 >= 0)
-		return; // we don't handle FPR dependency yet so just ignore FPR instructions
-	IMLUsedRegisters registerTracking;
-	if (regTrackingCRSetter.writtenNamedReg1 >= 0)
-	{
-		// CR setter does write GPR
-		for (sint32 i = crSetterInstructionIndex + 1; i <= unsafeInstructionIndex; i++)
-		{
-			imlSegment->imlList[i].CheckRegisterUsage(&registerTracking);
-			// reads register written by CR setter?
-			if (PPCRecompilerAnalyzer_checkForGPROverwrite(&registerTracking, &regTrackingCRSetter))
-			{
-				return; // cant move CR setter because of dependency
-			}
-			// writes register read by CR setter?
-			if (PPCRecompilerAnalyzer_checkForGPROverwrite(&regTrackingCRSetter, &registerTracking))
-			{
-				return; // cant move CR setter because of dependency
-			}
-			// overwrites register written by CR setter?
-			if (regTrackingCRSetter.writtenNamedReg1 == registerTracking.writtenNamedReg1)
-				return;
-		}
-	}
-	else
-	{
-		// CR setter does not write GPR
-		for (sint32 i = crSetterInstructionIndex + 1; i <= unsafeInstructionIndex; i++)
-		{
-			imlSegment->imlList[i].CheckRegisterUsage(&registerTracking);
-			// writes register read by CR setter?
-			if (PPCRecompilerAnalyzer_checkForGPROverwrite(&regTrackingCRSetter, &registerTracking))
-			{
-				return; // cant move CR setter because of dependency
-			}
-		}
-	}
-
-	// move CR setter instruction
-#ifdef CEMU_DEBUG_ASSERT
-	if ((unsafeInstructionIndex + 1) <= crSetterInstructionIndex)
-		assert_dbg();
-#endif
-	IMLInstruction* newCRSetterInstruction = PPCRecompiler_insertInstruction(imlSegment, unsafeInstructionIndex+1);
-	memcpy(newCRSetterInstruction, imlSegment->imlList.data() + crSetterInstructionIndex, sizeof(IMLInstruction));
-	imlSegment->imlList[crSetterInstructionIndex].make_no_op();
+//	IMLInstruction* lastInstruction = imlSegment->GetLastInstruction();
+//	// last instruction is a conditional branch?
+//	if (lastInstruction == nullptr || lastInstruction->type != PPCREC_IML_TYPE_CJUMP)
+//		return;
+//	if (lastInstruction->op_conditionalJump.crRegisterIndex >= 8)
+//		return;
+//	// get CR bitmask of bit required for conditional jump
+//	PPCRecCRTracking_t crTracking;
+//	IMLAnalyzer_GetCRTracking(lastInstruction, &crTracking);
+//	uint32 requiredCRBits = crTracking.readCRBits;
+//
+//	// scan backwards until we find the instruction that sets the CR
+//	sint32 crSetterInstructionIndex = -1;
+//	sint32 unsafeInstructionIndex = -1;
+//	for (sint32 i = imlSegment->imlList.size() - 2; i >= 0; i--)
+//	{
+//		IMLInstruction* imlInstruction = imlSegment->imlList.data() + i;
+//		IMLAnalyzer_GetCRTracking(imlInstruction, &crTracking);
+//		if (crTracking.readCRBits != 0)
+//			return; // dont handle complex cases for now
+//		if (crTracking.writtenCRBits != 0)
+//		{
+//			if ((crTracking.writtenCRBits&requiredCRBits) != 0)
+//			{
+//				crSetterInstructionIndex = i;
+//				break;
+//			}
+//			else
+//			{
+//				return; // other CR bits overwritten (dont handle complex cases)
+//			}
+//		}
+//		// is safe? (no risk of overwriting x64 eflags)
+//		if ((imlInstruction->type == PPCREC_IML_TYPE_NAME_R || imlInstruction->type == PPCREC_IML_TYPE_R_NAME || imlInstruction->type == PPCREC_IML_TYPE_NO_OP) ||
+//			(imlInstruction->type == PPCREC_IML_TYPE_FPR_NAME_R || imlInstruction->type == PPCREC_IML_TYPE_FPR_R_NAME) ||
+//			(imlInstruction->type == PPCREC_IML_TYPE_R_S32 && (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)) ||
+//			(imlInstruction->type == PPCREC_IML_TYPE_R_R && (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)) )
+//			continue;
+//		// not safe
+//		if (unsafeInstructionIndex == -1)
+//			unsafeInstructionIndex = i;
+//	}
+//	if (crSetterInstructionIndex < 0)
+//		return;
+//	if (unsafeInstructionIndex < 0)
+//		return; // no danger of overwriting eflags, don't reorder
+//	// check if we can move the CR setter instruction to after unsafeInstructionIndex
+//	PPCRecCRTracking_t crTrackingSetter = crTracking;
+//	IMLUsedRegisters regTrackingCRSetter;
+//	imlSegment->imlList[crSetterInstructionIndex].CheckRegisterUsage(&regTrackingCRSetter);
+//	if (regTrackingCRSetter.writtenFPR1 >= 0 || regTrackingCRSetter.readFPR1 >= 0 || regTrackingCRSetter.readFPR2 >= 0 || regTrackingCRSetter.readFPR3 >= 0 || regTrackingCRSetter.readFPR4 >= 0)
+//		return; // we don't handle FPR dependency yet so just ignore FPR instructions
+//	IMLUsedRegisters registerTracking;
+//	if (regTrackingCRSetter.writtenNamedReg1 >= 0)
+//	{
+//		// CR setter does write GPR
+//		for (sint32 i = crSetterInstructionIndex + 1; i <= unsafeInstructionIndex; i++)
+//		{
+//			imlSegment->imlList[i].CheckRegisterUsage(&registerTracking);
+//			// reads register written by CR setter?
+//			if (PPCRecompilerAnalyzer_checkForGPROverwrite(&registerTracking, &regTrackingCRSetter))
+//			{
+//				return; // cant move CR setter because of dependency
+//			}
+//			// writes register read by CR setter?
+//			if (PPCRecompilerAnalyzer_checkForGPROverwrite(&regTrackingCRSetter, &registerTracking))
+//			{
+//				return; // cant move CR setter because of dependency
+//			}
+//			// overwrites register written by CR setter?
+//			if (regTrackingCRSetter.writtenNamedReg1 == registerTracking.writtenNamedReg1)
+//				return;
+//		}
+//	}
+//	else
+//	{
+//		// CR setter does not write GPR
+//		for (sint32 i = crSetterInstructionIndex + 1; i <= unsafeInstructionIndex; i++)
+//		{
+//			imlSegment->imlList[i].CheckRegisterUsage(&registerTracking);
+//			// writes register read by CR setter?
+//			if (PPCRecompilerAnalyzer_checkForGPROverwrite(&regTrackingCRSetter, &registerTracking))
+//			{
+//				return; // cant move CR setter because of dependency
+//			}
+//		}
+//	}
+//
+//	// move CR setter instruction
+//#ifdef CEMU_DEBUG_ASSERT
+//	if ((unsafeInstructionIndex + 1) <= crSetterInstructionIndex)
+//		assert_dbg();
+//#endif
+//	IMLInstruction* newCRSetterInstruction = PPCRecompiler_insertInstruction(imlSegment, unsafeInstructionIndex+1);
+//	memcpy(newCRSetterInstruction, imlSegment->imlList.data() + crSetterInstructionIndex, sizeof(IMLInstruction));
+//	imlSegment->imlList[crSetterInstructionIndex].make_no_op();
 }
 
 /*
