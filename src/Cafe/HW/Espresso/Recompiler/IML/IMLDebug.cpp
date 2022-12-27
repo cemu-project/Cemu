@@ -14,10 +14,10 @@ const char* IMLDebug_GetOpcodeName(const IMLInstruction* iml)
 		return "MOV";
 	else if (op == PPCREC_IML_OP_ADD)
 		return "ADD";
+	else if (op == PPCREC_IML_OP_ADD_WITH_CARRY)
+		return "ADC";
 	else if (op == PPCREC_IML_OP_SUB)
 		return "SUB";
-	else if (op == PPCREC_IML_OP_ADD_CARRY_UPDATE_CARRY)
-		return "ADDCSC";
 	else if (op == PPCREC_IML_OP_OR)
 		return "OR";
 	else if (op == PPCREC_IML_OP_AND)
@@ -26,8 +26,12 @@ const char* IMLDebug_GetOpcodeName(const IMLInstruction* iml)
 		return "XOR";
 	else if (op == PPCREC_IML_OP_LEFT_SHIFT)
 		return "LSH";
-	else if (op == PPCREC_IML_OP_RIGHT_SHIFT)
+	else if (op == PPCREC_IML_OP_RIGHT_SHIFT_U)
 		return "RSH";
+	else if (op == PPCREC_IML_OP_RIGHT_SHIFT_S)
+		return "ARSH";
+	else if (op == PPCREC_IML_OP_LEFT_ROTATE)
+		return "LROT";
 	else if (op == PPCREC_IML_OP_MULTIPLY_SIGNED)
 		return "MULS";
 	else if (op == PPCREC_IML_OP_DIVIDE_SIGNED)
@@ -129,6 +133,14 @@ std::string IMLDebug_GetConditionName(IMLCondition cond)
 		return "EQ";
 	case IMLCondition::NEQ:
 		return "NEQ";
+	case IMLCondition::UNSIGNED_GT:
+		return "UGT";
+	case IMLCondition::UNSIGNED_LT:
+		return "ULT";
+	case IMLCondition::SIGNED_GT:
+		return "SGT";
+	case IMLCondition::SIGNED_LT:
+		return "SLT";
 	default:
 		cemu_assert_unimplemented();
 	}
@@ -224,6 +236,16 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 				strOutput.addFmt(" -> CR{}", inst.crRegister);
 			}
 		}
+		else if (inst.type == PPCREC_IML_TYPE_R_R_R_CARRY)
+		{
+			strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
+			while ((sint32)strOutput.getLen() < lineOffsetParameters)
+				strOutput.add(" ");
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r_carry.regR);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r_carry.regA);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r_carry.regB);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r_carry.regCarry, true);
+		}
 		else if (inst.type == PPCREC_IML_TYPE_COMPARE)
 		{
 			strOutput.add("CMP ");
@@ -269,6 +291,17 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			{
 				strOutput.addFmt(" -> CR{}", inst.crRegister);
 			}
+		}
+		else if (inst.type == PPCREC_IML_TYPE_R_R_S32_CARRY)
+		{
+			strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
+			while ((sint32)strOutput.getLen() < lineOffsetParameters)
+				strOutput.add(" ");
+
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_s32_carry.regR);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_s32_carry.regA);
+			IMLDebug_AppendS32Param(strOutput, inst.op_r_r_s32_carry.immS32);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_s32_carry.regCarry, true);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_R_S32)
 		{

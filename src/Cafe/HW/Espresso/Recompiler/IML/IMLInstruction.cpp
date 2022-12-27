@@ -10,6 +10,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	registersUsed->readNamedReg2 = -1;
 	registersUsed->readNamedReg3 = -1;
 	registersUsed->writtenNamedReg1 = -1;
+	registersUsed->writtenNamedReg2 = -1;
 	registersUsed->readFPR1 = -1;
 	registersUsed->readFPR2 = -1;
 	registersUsed->readFPR3 = -1;
@@ -34,10 +35,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		else if (
 			operation == PPCREC_IML_OP_OR ||
 			operation == PPCREC_IML_OP_AND ||
-			operation == PPCREC_IML_OP_XOR ||
-			operation == PPCREC_IML_OP_ADD_CARRY || // r_r carry stuff is deprecated
-			operation == PPCREC_IML_OP_ADD_CARRY_ME ||
-			operation == PPCREC_IML_OP_SUB_CARRY_UPDATE_CARRY)
+			operation == PPCREC_IML_OP_XOR)
 		{
 			// result is read and written, operand is read
 			registersUsed->writtenNamedReg1 = op_r_r.registerResult;
@@ -112,12 +110,49 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			registersUsed->readNamedReg1 = op_r_r_s32.registerA;
 		}
 	}
+	else if (type == PPCREC_IML_TYPE_R_R_S32_CARRY)
+	{
+		registersUsed->writtenNamedReg1 = op_r_r_s32_carry.regR;
+		registersUsed->readNamedReg1 = op_r_r_s32_carry.regA;
+		// some operations read carry
+		switch (operation)
+		{
+		case PPCREC_IML_OP_ADD_WITH_CARRY:
+			registersUsed->readNamedReg2 = op_r_r_s32_carry.regCarry;
+			break;
+		case PPCREC_IML_OP_ADD:
+			break;
+		default:
+			cemu_assert_unimplemented();
+		}
+		// carry is always written
+		registersUsed->writtenNamedReg2 = op_r_r_s32_carry.regCarry;
+	}
 	else if (type == PPCREC_IML_TYPE_R_R_R)
 	{
 		// in all cases result is written and other operands are read only
 		registersUsed->writtenNamedReg1 = op_r_r_r.registerResult;
 		registersUsed->readNamedReg1 = op_r_r_r.registerA;
 		registersUsed->readNamedReg2 = op_r_r_r.registerB;
+	}
+	else if (type == PPCREC_IML_TYPE_R_R_R_CARRY)
+	{
+		registersUsed->writtenNamedReg1 = op_r_r_r_carry.regR;
+		registersUsed->readNamedReg1 = op_r_r_r_carry.regA;
+		registersUsed->readNamedReg2 = op_r_r_r_carry.regB;
+		// some operations read carry
+		switch (operation)
+		{
+		case PPCREC_IML_OP_ADD_WITH_CARRY:
+			registersUsed->readNamedReg3 = op_r_r_r_carry.regCarry;
+			break;
+		case PPCREC_IML_OP_ADD:
+			break;
+		default:
+			cemu_assert_unimplemented();
+		}
+		// carry is always written
+		registersUsed->writtenNamedReg2 = op_r_r_r_carry.regCarry;
 	}
 	else if (type == PPCREC_IML_TYPE_CJUMP || type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 	{
@@ -154,6 +189,10 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
 	{
 		registersUsed->readNamedReg1 = op_conditionalJump2.registerBool;
+	}
+	else if (type == PPCREC_IML_TYPE_JUMP)
+	{
+		// no registers affected
 	}
 	else if (type == PPCREC_IML_TYPE_LOAD)
 	{
@@ -215,6 +254,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		case PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0:
 			// PS1 remains the same
 			registersUsed->readFPR4 = op_storeLoad.registerData;
+			cemu_assert_debug(op_storeLoad.registerGQR == PPC_REC_INVALID_REGISTER);
 			break;
 		case PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1:
 		case PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0_PS1:
@@ -227,6 +267,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		case PPCREC_FPR_LD_MODE_PSQ_U8_PS0_PS1:
 		case PPCREC_FPR_LD_MODE_PSQ_U8_PS0:
 		case PPCREC_FPR_LD_MODE_PSQ_S8_PS0:
+			cemu_assert_debug(op_storeLoad.registerGQR == PPC_REC_INVALID_REGISTER);
 			break;
 		default:
 			cemu_assert_unimplemented();
@@ -251,6 +292,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			break;
 		case PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0:
 			// PS1 remains the same
+			cemu_assert_debug(op_storeLoad.registerGQR == PPC_REC_INVALID_REGISTER);
 			registersUsed->readFPR4 = op_storeLoad.registerData;
 			break;
 		case PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1:
@@ -263,6 +305,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		case PPCREC_FPR_LD_MODE_PSQ_S8_PS0_PS1:
 		case PPCREC_FPR_LD_MODE_PSQ_U8_PS0_PS1:
 		case PPCREC_FPR_LD_MODE_PSQ_U8_PS0:
+			cemu_assert_debug(op_storeLoad.registerGQR == PPC_REC_INVALID_REGISTER);
 			break;
 		default:
 			cemu_assert_unimplemented();
@@ -283,6 +326,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			registersUsed->readNamedReg2 = op_storeLoad.registerGQR;
 			break;
 		default:
+			cemu_assert_debug(op_storeLoad.registerGQR == PPC_REC_INVALID_REGISTER);
 			break;
 		}
 	}
@@ -304,6 +348,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			registersUsed->readNamedReg3 = op_storeLoad.registerGQR;
 			break;
 		default:
+			cemu_assert_debug(op_storeLoad.registerGQR == PPC_REC_INVALID_REGISTER);
 			break;
 		}
 	}
@@ -430,8 +475,16 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 
 #define replaceRegister(__x,__r,__n) (((__x)==(__r))?(__n):(__x))
 
+sint32 replaceRegisterMultiple(sint32 reg, const std::unordered_map<IMLReg, IMLReg>& translationTable)
+{
+	const auto& it = translationTable.find(reg);
+	cemu_assert_debug(it != translationTable.cend());
+	return it->second;
+}
+
 sint32 replaceRegisterMultiple(sint32 reg, sint32 match[4], sint32 replaced[4])
 {
+	// deprecated but still used for FPRs
 	for (sint32 i = 0; i < 4; i++)
 	{
 		if (match[i] < 0)
@@ -444,56 +497,70 @@ sint32 replaceRegisterMultiple(sint32 reg, sint32 match[4], sint32 replaced[4])
 	return reg;
 }
 
-void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4])
+//void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4])
+void IMLInstruction::RewriteGPR(const std::unordered_map<IMLReg, IMLReg>& translationTable)
 {
 	if (type == PPCREC_IML_TYPE_R_NAME)
 	{
-		op_r_name.registerIndex = replaceRegisterMultiple(op_r_name.registerIndex, gprRegisterSearched, gprRegisterReplaced);
+		op_r_name.registerIndex = replaceRegisterMultiple(op_r_name.registerIndex, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_NAME_R)
 	{
-		op_r_name.registerIndex = replaceRegisterMultiple(op_r_name.registerIndex, gprRegisterSearched, gprRegisterReplaced);
+		op_r_name.registerIndex = replaceRegisterMultiple(op_r_name.registerIndex, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_R_R)
 	{
-		op_r_r.registerResult = replaceRegisterMultiple(op_r_r.registerResult, gprRegisterSearched, gprRegisterReplaced);
-		op_r_r.registerA = replaceRegisterMultiple(op_r_r.registerA, gprRegisterSearched, gprRegisterReplaced);
+		op_r_r.registerResult = replaceRegisterMultiple(op_r_r.registerResult, translationTable);
+		op_r_r.registerA = replaceRegisterMultiple(op_r_r.registerA, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_R_S32)
 	{
-		op_r_immS32.registerIndex = replaceRegisterMultiple(op_r_immS32.registerIndex, gprRegisterSearched, gprRegisterReplaced);
+		op_r_immS32.registerIndex = replaceRegisterMultiple(op_r_immS32.registerIndex, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
 	{
-		op_conditional_r_s32.registerIndex = replaceRegisterMultiple(op_conditional_r_s32.registerIndex, gprRegisterSearched, gprRegisterReplaced);
+		op_conditional_r_s32.registerIndex = replaceRegisterMultiple(op_conditional_r_s32.registerIndex, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_R_R_S32)
 	{
-		op_r_r_s32.registerResult = replaceRegisterMultiple(op_r_r_s32.registerResult, gprRegisterSearched, gprRegisterReplaced);
-		op_r_r_s32.registerA = replaceRegisterMultiple(op_r_r_s32.registerA, gprRegisterSearched, gprRegisterReplaced);
+		op_r_r_s32.registerResult = replaceRegisterMultiple(op_r_r_s32.registerResult, translationTable);
+		op_r_r_s32.registerA = replaceRegisterMultiple(op_r_r_s32.registerA, translationTable);
+	}
+	else if (type == PPCREC_IML_TYPE_R_R_S32_CARRY)
+	{
+		op_r_r_s32_carry.regR = replaceRegisterMultiple(op_r_r_s32_carry.regR, translationTable);
+		op_r_r_s32_carry.regA = replaceRegisterMultiple(op_r_r_s32_carry.regA, translationTable);
+		op_r_r_s32_carry.regCarry = replaceRegisterMultiple(op_r_r_s32_carry.regCarry, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_R_R_R)
 	{
-		op_r_r_r.registerResult = replaceRegisterMultiple(op_r_r_r.registerResult, gprRegisterSearched, gprRegisterReplaced);
-		op_r_r_r.registerA = replaceRegisterMultiple(op_r_r_r.registerA, gprRegisterSearched, gprRegisterReplaced);
-		op_r_r_r.registerB = replaceRegisterMultiple(op_r_r_r.registerB, gprRegisterSearched, gprRegisterReplaced);
+		op_r_r_r.registerResult = replaceRegisterMultiple(op_r_r_r.registerResult, translationTable);
+		op_r_r_r.registerA = replaceRegisterMultiple(op_r_r_r.registerA, translationTable);
+		op_r_r_r.registerB = replaceRegisterMultiple(op_r_r_r.registerB, translationTable);
+	}
+	else if (type == PPCREC_IML_TYPE_R_R_R_CARRY)
+	{
+		op_r_r_r_carry.regR = replaceRegisterMultiple(op_r_r_r_carry.regR, translationTable);
+		op_r_r_r_carry.regA = replaceRegisterMultiple(op_r_r_r_carry.regA, translationTable);
+		op_r_r_r_carry.regB = replaceRegisterMultiple(op_r_r_r_carry.regB, translationTable);
+		op_r_r_r_carry.regCarry = replaceRegisterMultiple(op_r_r_r_carry.regCarry, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_COMPARE)
 	{
-		op_compare.registerResult = replaceRegisterMultiple(op_compare.registerResult, gprRegisterSearched, gprRegisterReplaced);
-		op_compare.registerOperandA = replaceRegisterMultiple(op_compare.registerOperandA, gprRegisterSearched, gprRegisterReplaced);
-		op_compare.registerOperandB = replaceRegisterMultiple(op_compare.registerOperandB, gprRegisterSearched, gprRegisterReplaced);
+		op_compare.registerResult = replaceRegisterMultiple(op_compare.registerResult, translationTable);
+		op_compare.registerOperandA = replaceRegisterMultiple(op_compare.registerOperandA, translationTable);
+		op_compare.registerOperandB = replaceRegisterMultiple(op_compare.registerOperandB, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_COMPARE_S32)
 	{
-		op_compare_s32.registerResult = replaceRegisterMultiple(op_compare_s32.registerResult, gprRegisterSearched, gprRegisterReplaced);
-		op_compare_s32.registerOperandA = replaceRegisterMultiple(op_compare_s32.registerOperandA, gprRegisterSearched, gprRegisterReplaced);
+		op_compare_s32.registerResult = replaceRegisterMultiple(op_compare_s32.registerResult, translationTable);
+		op_compare_s32.registerOperandA = replaceRegisterMultiple(op_compare_s32.registerOperandA, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
 	{
-		op_conditionalJump2.registerBool = replaceRegisterMultiple(op_conditionalJump2.registerBool, gprRegisterSearched, gprRegisterReplaced);
+		op_conditionalJump2.registerBool = replaceRegisterMultiple(op_conditionalJump2.registerBool, translationTable);
 	}
-	else if (type == PPCREC_IML_TYPE_CJUMP || type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+	else if (type == PPCREC_IML_TYPE_CJUMP || type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK || type == PPCREC_IML_TYPE_JUMP)
 	{
 		// no effect on registers
 	}
@@ -509,7 +576,7 @@ void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegiste
 		}
 		else if (operation == PPCREC_IML_MACRO_B_TO_REG)
 		{
-			op_macro.param = replaceRegisterMultiple(op_macro.param, gprRegisterSearched, gprRegisterReplaced);
+			op_macro.param = replaceRegisterMultiple(op_macro.param, translationTable);
 		}
 		else
 		{
@@ -518,33 +585,33 @@ void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegiste
 	}
 	else if (type == PPCREC_IML_TYPE_LOAD)
 	{
-		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, gprRegisterSearched, gprRegisterReplaced);
+		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, translationTable);
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 		}
 	}
 	else if (type == PPCREC_IML_TYPE_LOAD_INDEXED)
 	{
-		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, gprRegisterSearched, gprRegisterReplaced);
+		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, translationTable);
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 		if (op_storeLoad.registerMem2 != PPC_REC_INVALID_REGISTER)
-			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_STORE)
 	{
-		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, gprRegisterSearched, gprRegisterReplaced);
+		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, translationTable);
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_STORE_INDEXED)
 	{
-		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, gprRegisterSearched, gprRegisterReplaced);
+		op_storeLoad.registerData = replaceRegisterMultiple(op_storeLoad.registerData, translationTable);
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 		if (op_storeLoad.registerMem2 != PPC_REC_INVALID_REGISTER)
-			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_CR)
 	{
@@ -562,52 +629,52 @@ void IMLInstruction::ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegiste
 	{
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 		}
 		if (op_storeLoad.registerGQR != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, translationTable);
 		}
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED)
 	{
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 		}
 		if (op_storeLoad.registerMem2 != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, translationTable);
 		}
 		if (op_storeLoad.registerGQR != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, translationTable);
 		}
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_STORE)
 	{
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 		}
 		if (op_storeLoad.registerGQR != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, translationTable);
 		}
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
 	{
 		if (op_storeLoad.registerMem != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem = replaceRegisterMultiple(op_storeLoad.registerMem, translationTable);
 		}
 		if (op_storeLoad.registerMem2 != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, translationTable);
 		}
 		if (op_storeLoad.registerGQR != PPC_REC_INVALID_REGISTER)
 		{
-			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, gprRegisterSearched, gprRegisterReplaced);
+			op_storeLoad.registerGQR = replaceRegisterMultiple(op_storeLoad.registerGQR, translationTable);
 		}
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_R)
@@ -654,7 +721,7 @@ void IMLInstruction::ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegist
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_COMPARE || type == PPCREC_IML_TYPE_COMPARE_S32 || type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
+	else if (type == PPCREC_IML_TYPE_COMPARE || type == PPCREC_IML_TYPE_COMPARE_S32 || type == PPCREC_IML_TYPE_CONDITIONAL_JUMP || type == PPCREC_IML_TYPE_JUMP)
 	{
 		// not affected
 	}
@@ -760,15 +827,15 @@ void IMLInstruction::ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterRe
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_R_R_S32)
+	else if (type == PPCREC_IML_TYPE_R_R_S32 || type == PPCREC_IML_TYPE_R_R_S32_CARRY)
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_R_R_R)
+	else if (type == PPCREC_IML_TYPE_R_R_R || type == PPCREC_IML_TYPE_R_R_R_CARRY)
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_COMPARE || type == PPCREC_IML_TYPE_COMPARE_S32 || type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
+	else if (type == PPCREC_IML_TYPE_COMPARE || type == PPCREC_IML_TYPE_COMPARE_S32 || type == PPCREC_IML_TYPE_CONDITIONAL_JUMP || type == PPCREC_IML_TYPE_JUMP)
 	{
 		// not affected
 	}

@@ -49,7 +49,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext_t*
 	imlInstruction->op_storeLoad.flags2.swapEndian = switchEndian;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerSource, uint8 registerMemory1, uint8 registerMemory2, sint32 immS32, uint32 mode, bool switchEndian, uint8 registerGQR = 0)
+void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext_t* ppcImlGenContext, uint8 registerSource, uint8 registerMemory1, uint8 registerMemory2, sint32 immS32, uint32 mode, bool switchEndian, uint8 registerGQR = PPC_REC_INVALID_REGISTER)
 {
 	// store to memory
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);

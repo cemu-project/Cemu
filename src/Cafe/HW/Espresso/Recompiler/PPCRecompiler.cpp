@@ -167,13 +167,11 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
-
 	uint32 ppcRecLowerAddr = LaunchSettings::GetPPCRecLowerAddr();
 	uint32 ppcRecUpperAddr = LaunchSettings::GetPPCRecUpperAddr();
 
 	if (ppcRecLowerAddr != 0 && ppcRecUpperAddr != 0)
 	{
-
 		if (ppcRecFunc->ppcAddress < ppcRecLowerAddr || ppcRecFunc->ppcAddress > ppcRecUpperAddr)
 		{
 			delete ppcRecFunc;
@@ -188,11 +186,16 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
-	//if (ppcRecFunc->ppcAddress == 0x12345678)
+	//if (ppcRecFunc->ppcAddress == 0x11223344)
 	//{
-	//	debug_printf("----------------------------------------\n");
-	//	IMLDebug_Dump(&ppcImlGenContext);
-	//	__debugbreak();
+	//	//debug_printf("----------------------------------------\n");
+	//	//IMLDebug_Dump(&ppcImlGenContext);
+	//	//__debugbreak();
+	//}
+	//else
+	//{
+	//	delete ppcRecFunc;
+	//	return nullptr;
 	//}
 
 	// Large functions for testing (botw):

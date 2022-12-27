@@ -764,12 +764,11 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 	sint16 virtualReg2PhysReg[IML_RA_VIRT_REG_COUNT_MAX];
 	for (sint32 i = 0; i < IML_RA_VIRT_REG_COUNT_MAX; i++)
 		virtualReg2PhysReg[i] = -1;
-
+	std::unordered_map<IMLReg, IMLReg> virt2PhysRegMap; // key = virtual register, value = physical register
 	raLiveRangeInfo_t liveInfo;
 	liveInfo.liveRangesCount = 0;
 	sint32 index = 0;
 	sint32 suffixInstructionCount = imlSegment->HasSuffixInstruction() ? 1 : 0;
-	//sint32 suffixInstructionIndex = imlSegment->imlList.size() - suffixInstructionCount; // if no suffix instruction exists this matches instruction count
 	// load register ranges that are supplied from previous segments
 	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while(subrangeItr)
@@ -789,6 +788,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				assert_dbg();
 #endif
 			virtualReg2PhysReg[subrangeItr->range->virtualRegister] = subrangeItr->range->physicalRegister;
+			virt2PhysRegMap.insert_or_assign(subrangeItr->range->virtualRegister, subrangeItr->range->physicalRegister);
 		}
 		// next
 		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
@@ -806,6 +806,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				if (virtualReg2PhysReg[liverange->range->virtualRegister] == -1)
 					assert_dbg();
 				virtualReg2PhysReg[liverange->range->virtualRegister] = -1;
+				virt2PhysRegMap.erase(liverange->range->virtualRegister);
 				// store GPR if required
 				// special care has to be taken to execute any stores before the suffix instruction since trailing instructions may not get executed
 				if (liverange->hasStore)
@@ -844,37 +845,13 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 				// update translation table
 				cemu_assert_debug(virtualReg2PhysReg[subrangeItr->range->virtualRegister] == -1);
 				virtualReg2PhysReg[subrangeItr->range->virtualRegister] = subrangeItr->range->physicalRegister;
+				virt2PhysRegMap.insert_or_assign(subrangeItr->range->virtualRegister, subrangeItr->range->physicalRegister);
 			}
 			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
 		}
 		// rewrite registers
-		// todo - this can be simplified by using a map or lookup table rather than a check + 4 slot translation table
 		if (index < imlSegment->imlList.size())
-		{
-			IMLUsedRegisters gprTracking;
-			imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
-
-			sint32 inputGpr[4];
-			inputGpr[0] = gprTracking.gpr[0];
-			inputGpr[1] = gprTracking.gpr[1];
-			inputGpr[2] = gprTracking.gpr[2];
-			inputGpr[3] = gprTracking.gpr[3];
-			sint32 replaceGpr[4];
-			for (sint32 f = 0; f < 4; f++)
-			{
-				sint32 virtualRegister = gprTracking.gpr[f];
-				if (virtualRegister < 0)
-				{
-					replaceGpr[f] = -1;
-					continue;
-				}
-				if (virtualRegister >= IML_RA_VIRT_REG_COUNT_MAX)
-					assert_dbg();
-				replaceGpr[f] = virtualReg2PhysReg[virtualRegister];
-				cemu_assert_debug(replaceGpr[f] >= 0);
-			}
-			imlSegment->imlList[index].ReplaceGPR(inputGpr, replaceGpr);
-		}
+			imlSegment->imlList[index].RewriteGPR(virt2PhysRegMap);
 		// next iml instruction
 		index++;
 	}
@@ -889,6 +866,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 			// update translation table
 			cemu_assert_debug(virtualReg2PhysReg[liverange->range->virtualRegister] != -1);
 			virtualReg2PhysReg[liverange->range->virtualRegister] = -1;
+			virt2PhysRegMap.erase(liverange->range->virtualRegister);
 			// store GPR
 			if (liverange->hasStore)
 			{
@@ -929,6 +907,7 @@ void PPCRecRA_generateSegmentInstructions(ppcImlGenContext_t* ppcImlGenContext, 
 			// update translation table
 			cemu_assert_debug(virtualReg2PhysReg[subrangeItr->range->virtualRegister] == -1);
 			virtualReg2PhysReg[subrangeItr->range->virtualRegister] = subrangeItr->range->physicalRegister;
+			virt2PhysRegMap.insert_or_assign(subrangeItr->range->virtualRegister, subrangeItr->range->physicalRegister);
 		}
 		// next
 		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
@@ -1039,21 +1018,12 @@ void PPCRecRA_calculateSegmentMinMaxRanges(ppcImlGenContext_t* ppcImlGenContext,
 	IMLUsedRegisters gprTracking;
 	while (index < imlSegment->imlList.size())
 	{
-		// end loop at suffix instruction
-		//if (imlSegment->imlList[index].IsSuffixInstruction())
-		//	break;
-		// get accessed GPRs
 		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
-		for (sint32 t = 0; t < 4; t++)
-		{
-			sint32 virtualRegister = gprTracking.gpr[t];
-			if (virtualRegister < 0)
-				continue;
-			cemu_assert_debug(virtualRegister < IML_RA_VIRT_REG_COUNT_MAX);
-			imlSegment->raDistances.reg[virtualRegister].usageStart = std::min<sint32>(imlSegment->raDistances.reg[virtualRegister].usageStart, index); // index before/at instruction
-			imlSegment->raDistances.reg[virtualRegister].usageEnd = std::max<sint32>(imlSegment->raDistances.reg[virtualRegister].usageEnd, index + 1); // index after instruction
-		}
-		// next instruction
+		gprTracking.ForEachAccessedGPR([&](IMLReg gprId, bool isWritten) {
+			cemu_assert_debug(gprId < IML_RA_VIRT_REG_COUNT_MAX);
+			imlSegment->raDistances.reg[gprId].usageStart = std::min<sint32>(imlSegment->raDistances.reg[gprId].usageStart, index); // index before/at instruction
+			imlSegment->raDistances.reg[gprId].usageEnd = std::max<sint32>(imlSegment->raDistances.reg[gprId].usageEnd, index + 1); // index after instruction
+			});
 		index++;
 	}
 }
@@ -1141,29 +1111,17 @@ void PPCRecRA_createSegmentLivenessRanges(ppcImlGenContext_t* ppcImlGenContext, 
 	IMLUsedRegisters gprTracking;
 	while (index < imlSegment->imlList.size())
 	{
-		// we parse suffix instructions too for any potential input registers (writes not allowed), but note that any spills/stores need to happen before the suffix instruction
-		//// end loop at suffix instruction
-		//if (imlSegment->imlList[index].IsSuffixInstruction())
-		//	break;
-		// get accessed GPRs
 		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
-		// handle accessed GPR
-		for (sint32 t = 0; t < 4; t++)
-		{
-			sint32 virtualRegister = gprTracking.gpr[t];
-			if (virtualRegister < 0)
-				continue;
-			bool isWrite = (t == 3);
+		gprTracking.ForEachAccessedGPR([&](IMLReg gprId, bool isWritten) {
 			// add location
-			PPCRecRA_updateOrAddSubrangeLocation(vGPR2Subrange[virtualRegister], index, isWrite == false, isWrite);
+			PPCRecRA_updateOrAddSubrangeLocation(vGPR2Subrange[gprId], index, !isWritten, isWritten);
 #ifdef CEMU_DEBUG_ASSERT
-			if ((sint32)index < vGPR2Subrange[virtualRegister]->start.index)
-				assert_dbg();
-			if ((sint32)index + 1 > vGPR2Subrange[virtualRegister]->end.index)
-				assert_dbg();
+		if ((sint32)index < vGPR2Subrange[gprId]->start.index)
+			assert_dbg();
+		if ((sint32)index + 1 > vGPR2Subrange[gprId]->end.index)
+			assert_dbg();
 #endif
-		}
-		// next instruction
+			});
 		index++;
 	}
 }
