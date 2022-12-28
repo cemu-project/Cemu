@@ -226,12 +226,8 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	return ppcRecFunc;
 }
 
-void PPCRecompiler_FixLoops(ppcImlGenContext_t& ppcImlGenContext);
-
 bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 {
-	PPCRecompiler_FixLoops(ppcImlGenContext);
-
 	// isolate entry points from function flow (enterable segments must not be the target of any other segment)
 	// this simplifies logic during register allocation
 	PPCRecompilerIML_isolateEnterableSegments(&ppcImlGenContext);

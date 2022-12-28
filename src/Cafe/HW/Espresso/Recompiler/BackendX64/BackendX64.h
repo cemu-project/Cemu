@@ -26,9 +26,6 @@ struct x64GenContext_t
 		delete emitter;
 	}
 
-	// cr state
-	sint32 activeCRRegister{}; // current x86 condition flags reflect this cr* register
-	sint32 activeCRState{}; // describes the way in which x86 flags map to the cr register (signed / unsigned)
 	// relocate offsets
 	std::vector<x64RelocEntry_t> relocateOffsetTable2;
 };
@@ -74,8 +71,6 @@ enum
 #define PPC_X64_FPR_USABLE_REGISTERS		(16-1) // Use XMM0 - XMM14, XMM15 is the temp register
 
 bool PPCRecompiler_generateX64Code(struct PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
-
-void PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext);
 
 void PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext_t* x64GenContext, sint32 jumpInstructionOffset, sint32 destinationOffset);
 
