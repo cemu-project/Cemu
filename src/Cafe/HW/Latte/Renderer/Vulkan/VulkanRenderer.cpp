@@ -2636,9 +2636,9 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	int width, height;
 	if (mainWindow)
-		gui_getWindowSize(width, height);
+		gui_getWindowPhysSize(width, height);
 	else
-		gui_getPadWindowSize(width, height);
+		gui_getPadWindowPhysSize(width, height);
 	auto extent = chainInfo.getExtent();
 	if (width != extent.width || height != extent.height)
 		stateChanged = true;
