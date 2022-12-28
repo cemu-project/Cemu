@@ -46,7 +46,7 @@ jobs:
     - name: "Install system dependencies"
       run: |
         sudo apt update -qq
-        sudo apt install -y clang-12 cmake freeglut3-dev libgcrypt20-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build
+        sudo apt install -y clang-12 cmake freeglut3-dev libgcrypt20-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libudev-dev nasm ninja-build
 
     - name: "Bootstrap vcpkg"
       run: |
