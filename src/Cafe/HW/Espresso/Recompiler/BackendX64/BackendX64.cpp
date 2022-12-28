@@ -57,24 +57,6 @@ void PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext_t* x64GenContex
 	x64GenContext->relocateOffsetTable2.emplace_back(x64GenContext->emitter->GetWriteIndex(), extraInfo);
 }
 
-/*
-* Overwrites the currently cached (in x64 cf) cr* register
-* Should be called before each x64 instruction which overwrites the current status flags (with mappedCRRegister set to PPCREC_CR_TEMPORARY unless explicitly set by PPC instruction)
-*/
-void PPCRecompilerX64Gen_crConditionFlags_set(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, sint32 mappedCRRegister, sint32 crState)
-{
-	x64GenContext->activeCRRegister = mappedCRRegister;
-	x64GenContext->activeCRState = crState;
-}
-
-/*
-* Reset cached cr* register without storing it first
-*/
-void PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext)
-{
-	x64GenContext->activeCRRegister = PPC_REC_INVALID_REGISTER;
-}
-
 void PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext_t* x64GenContext, sint32 jumpInstructionOffset, sint32 destinationOffset)
 {
 	uint8* instructionData = x64GenContext->emitter->GetBufferPtr() + jumpInstructionOffset;
@@ -116,7 +98,6 @@ void PPCRecompilerX64Gen_updateCRLogical(PPCRecFunction_t* PPCRecFunction, ppcIm
 	if( (imlInstruction->crIgnoreMask&(1<<(crRegister*4+PPCREC_CR_BIT_EQ))) == 0 )
 		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_EQUAL, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ));
 	// todo: Set CR SO if XER SO bit is set
-	PPCRecompilerX64Gen_crConditionFlags_set(PPCRecFunction, ppcImlGenContext, x64GenContext, crRegister, PPCREC_CR_STATE_TYPE_LOGICAL);
 }
 
 void* ATTR_MS_ABI PPCRecompiler_virtualHLE(PPCInterpreter_t* hCPU, uint32 hleFuncId)
@@ -153,7 +134,6 @@ void ATTR_MS_ABI PPCRecompiler_getTBU(PPCInterpreter_t* hCPU, uint32 gprIndex)
 
 bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	if (imlInstruction->operation == PPCREC_IML_MACRO_B_TO_REG)
 	{
 		uint32 branchDstReg = imlInstruction->op_macro.param;
@@ -419,7 +399,6 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 	}
 	else if( imlInstruction->op_storeLoad.copyWidth == 16 )
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext); // todo: We can avoid this if MOVBE is available
 		if (indexed)
 		{
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
@@ -445,8 +424,6 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 	}
 	else if( imlInstruction->op_storeLoad.copyWidth == 8 )
 	{
-		if( indexed )
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		// todo: Optimize by using only MOVZX/MOVSX
 		if( indexed )
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
@@ -459,7 +436,6 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 	}
 	else if( imlInstruction->op_storeLoad.copyWidth == PPC_REC_LOAD_LWARX_MARKER )
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if( imlInstruction->op_storeLoad.immS32 != 0 )
 			assert_dbg(); // not supported
 		if( indexed )
@@ -507,8 +483,6 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	bool swapEndian = imlInstruction->op_storeLoad.flags2.swapEndian;
 	if (imlInstruction->op_storeLoad.copyWidth == 32)
 	{
-		if (indexed)
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		uint32 valueRegister;
 		if ((swapEndian == false || g_CPUFeatures.x86.movbe) && realRegisterMem != realRegisterData)
 		{
@@ -532,8 +506,6 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if (imlInstruction->op_storeLoad.copyWidth == 16)
 	{
-		if (indexed || swapEndian)
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
 		if (swapEndian)
 			x64Gen_rol_reg64Low16_imm8(x64GenContext, REG_RESV_TEMP, 8);
@@ -546,8 +518,6 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if (imlInstruction->op_storeLoad.copyWidth == 8)
 	{
-		if (indexed)
-			PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if (indexed && realRegisterMem == realRegisterData)
 		{
 			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
@@ -561,10 +531,9 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if (imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER)
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if (imlInstruction->op_storeLoad.immS32 != 0)
 			assert_dbg(); // todo
-							// reset cr0 LT, GT and EQ
+		// reset cr0 LT, GT and EQ
 		sint32 crRegister = 0;
 		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_LT), 0);
 		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8)*(crRegister * 4 + PPCREC_CR_BIT_GT), 0);
@@ -650,19 +619,16 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	else if( imlInstruction->operation == PPCREC_IML_OP_ASSIGN_S8_TO_S32 )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		x64Gen_movSignExtend_reg64Low32_reg64Low8(x64GenContext, imlInstruction->op_r_r.registerResult, imlInstruction->op_r_r.registerA);
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_ASSIGN_S16_TO_S32)
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		x64Gen_movSignExtend_reg64Low32_reg64Low16(x64GenContext, imlInstruction->op_r_r.registerResult, reg32ToReg16(imlInstruction->op_r_r.registerA));
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_OR || imlInstruction->operation == PPCREC_IML_OP_AND || imlInstruction->operation == PPCREC_IML_OP_XOR )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if( imlInstruction->operation == PPCREC_IML_OP_OR )
 		{
 			// registerResult |= registerA
@@ -683,7 +649,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// copy register content if different registers
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if( imlInstruction->op_r_r.registerResult != imlInstruction->op_r_r.registerA )
 			x64Gen_mov_reg64_reg64(x64GenContext, imlInstruction->op_r_r.registerResult, imlInstruction->op_r_r.registerA);
 		x64Gen_not_reg64Low32(x64GenContext, imlInstruction->op_r_r.registerResult);
@@ -692,7 +657,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// copy register content if different registers
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if (imlInstruction->op_r_r.registerResult != imlInstruction->op_r_r.registerA)
 			x64Gen_mov_reg64_reg64(x64GenContext, imlInstruction->op_r_r.registerResult, imlInstruction->op_r_r.registerA);
 		x64Gen_neg_reg64Low32(x64GenContext, imlInstruction->op_r_r.registerResult);
@@ -701,7 +665,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// count leading zeros
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// LZCNT instruction (part of SSE4, CPUID.80000001H:ECX.ABM[Bit 5])
 		if(g_CPUFeatures.x86.lzcnt)
@@ -726,7 +689,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	else if( imlInstruction->operation == PPCREC_IML_OP_COMPARE_SIGNED || imlInstruction->operation == PPCREC_IML_OP_COMPARE_UNSIGNED )
 	{
 		// registerA CMP registerB (arithmetic compare)
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if( imlInstruction->crRegister == PPC_REC_INVALID_REGISTER )
 		{
 			return false; // a NO-OP instruction
@@ -735,11 +697,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 		{
 			return false;
 		}
-		// update state of cr register
-		if( imlInstruction->operation == PPCREC_IML_OP_COMPARE_SIGNED )
-			PPCRecompilerX64Gen_crConditionFlags_set(PPCRecFunction, ppcImlGenContext, x64GenContext, imlInstruction->crRegister, PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC);
-		else
-			PPCRecompilerX64Gen_crConditionFlags_set(PPCRecFunction, ppcImlGenContext, x64GenContext, imlInstruction->crRegister, PPCREC_CR_STATE_TYPE_UNSIGNED_ARITHMETIC);
 		// create compare instruction
 		x64Gen_cmp_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_r_r.registerResult, imlInstruction->op_r_r.registerA);
 		// set cr bits
@@ -770,7 +727,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	else if( imlInstruction->operation == PPCREC_IML_OP_DCBZ )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if( imlInstruction->op_r_r.registerResult != imlInstruction->op_r_r.registerA )
 		{
 			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, imlInstruction->op_r_r.registerA);
@@ -810,14 +766,11 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	{
 		// registerResult &= immS32
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		x64Gen_and_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.registerIndex, (uint32)imlInstruction->op_r_immS32.immS32);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_OR )
 	{
 		// registerResult |= immS32
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		x64Gen_or_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.registerIndex, (uint32)imlInstruction->op_r_immS32.immS32);
 	}
@@ -825,15 +778,12 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	{
 		// registerResult ^= immS32
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		x64Gen_xor_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.registerIndex, (uint32)imlInstruction->op_r_immS32.immS32);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_LEFT_ROTATE )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// registerResult <<<= immS32
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		if( (imlInstruction->op_r_immS32.immS32&0x80) )
 			assert_dbg(); // should not happen
@@ -842,7 +792,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	else if( imlInstruction->operation == PPCREC_IML_OP_COMPARE_SIGNED || imlInstruction->operation == PPCREC_IML_OP_COMPARE_UNSIGNED )
 	{
 		// registerResult CMP immS32 (arithmetic compare)
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if( imlInstruction->crRegister == PPC_REC_INVALID_REGISTER )
 		{
 			debug_printf("PPCRecompilerX64Gen_imlInstruction_r_s32(): No-Op CMP found\n");
@@ -853,11 +802,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 			debug_printf("PPCRecompilerX64Gen_imlInstruction_r_s32(): Unsupported CMP with crRegister = 8\n");
 			return false;
 		}
-		// update state of cr register
-		if( imlInstruction->operation == PPCREC_IML_OP_COMPARE_SIGNED )
-			PPCRecompilerX64Gen_crConditionFlags_set(PPCRecFunction, ppcImlGenContext, x64GenContext, imlInstruction->crRegister, PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC);
-		else
-			PPCRecompilerX64Gen_crConditionFlags_set(PPCRecFunction, ppcImlGenContext, x64GenContext, imlInstruction->crRegister, PPCREC_CR_STATE_TYPE_UNSIGNED_ARITHMETIC);
 		// create compare instruction
 		x64Gen_cmp_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.registerIndex, imlInstruction->op_r_immS32.immS32);
 		// set cr bits
@@ -886,7 +830,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_MFCR )
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		uint32 destRegister = imlInstruction->op_r_immS32.registerIndex;
 		x64Gen_xor_reg64Low32_reg64Low32(x64GenContext, destRegister, destRegister);
 		for(sint32 f=0; f<32; f++)
@@ -897,7 +840,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_MTCRF)
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		uint32 srcRegister = imlInstruction->op_r_immS32.registerIndex;
 		uint32 crBitMask = ppc_MTCRFMaskToCRBitMask((uint32)imlInstruction->op_r_immS32.immS32);
 		for (sint32 f = 0; f < 32; f++)
@@ -928,66 +870,7 @@ bool PPCRecompilerX64Gen_imlInstruction_conditional_r_s32(PPCRecFunction_t* PPCR
 		}
 
 		x64Gen_mov_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, (uint32)imlInstruction->op_conditional_r_s32.immS32);
-
 		uint8 crBitIndex = imlInstruction->op_conditional_r_s32.crRegisterIndex * 4 + imlInstruction->op_conditional_r_s32.crBitIndex;
-		if (imlInstruction->op_conditional_r_s32.crRegisterIndex == x64GenContext->activeCRRegister)
-		{
-			if (x64GenContext->activeCRState == PPCREC_CR_STATE_TYPE_UNSIGNED_ARITHMETIC)
-			{
-				if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_LT)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_CARRY : X86_CONDITION_NOT_CARRY, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-				else if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_EQ)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-				else if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_GT)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_UNSIGNED_ABOVE : X86_CONDITION_UNSIGNED_BELOW_EQUAL, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-			}
-			else if (x64GenContext->activeCRState == PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC)
-			{
-				if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_LT)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_SIGNED_LESS : X86_CONDITION_SIGNED_GREATER_EQUAL, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-				else if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_EQ)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-				else if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_GT)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_SIGNED_GREATER : X86_CONDITION_SIGNED_LESS_EQUAL, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-			}
-			else if (x64GenContext->activeCRState == PPCREC_CR_STATE_TYPE_LOGICAL)
-			{
-				if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_LT)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_SIGN : X86_CONDITION_NOT_SIGN, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-				else if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_EQ)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-				else if (imlInstruction->op_conditional_r_s32.crBitIndex == CR_BIT_GT)
-				{
-					x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_conditional_r_s32.bitMustBeSet ? X86_CONDITION_SIGNED_GREATER : X86_CONDITION_SIGNED_LESS_EQUAL, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-					return true;
-				}
-			}
-		}
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		x64Gen_bt_mem8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + crBitIndex * sizeof(uint8), 0);
 		if (imlInstruction->op_conditional_r_s32.bitMustBeSet)
 			x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, X86_CONDITION_CARRY, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
@@ -1002,10 +885,9 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 {
 	cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 
-	if( imlInstruction->operation == PPCREC_IML_OP_ADD)
+	if (imlInstruction->operation == PPCREC_IML_OP_ADD)
 	{
 		// registerResult = registerOperand1 + registerOperand2
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1027,7 +909,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	else if( imlInstruction->operation == PPCREC_IML_OP_SUB )
 	{
 		// registerResult = registerOperand1 - registerOperand2
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1060,7 +941,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	else if (imlInstruction->operation == PPCREC_IML_OP_OR || imlInstruction->operation == PPCREC_IML_OP_AND || imlInstruction->operation == PPCREC_IML_OP_XOR)
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegA = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegB = imlInstruction->op_r_r_r.registerB;
@@ -1080,7 +960,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	else if( imlInstruction->operation == PPCREC_IML_OP_MULTIPLY_SIGNED )
 	{
 		// registerResult = registerOperand1 * registerOperand2
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1103,7 +982,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	else if( imlInstruction->operation == PPCREC_IML_OP_SLW || imlInstruction->operation == PPCREC_IML_OP_SRW )
 	{
 		// registerResult = registerOperand1(rA) >> registerOperand2(rB) (up to 63 bits)
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1146,7 +1024,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_LEFT_ROTATE )
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1184,8 +1061,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U ||
 		imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-
 		// x86's shift and rotate instruction have the shift amount hardwired to the CL register
 		// since our register allocator doesn't support instruction based fixed phys registers yet
 		// we'll instead have to temporarily shuffle registers around
@@ -1266,7 +1141,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	else if( imlInstruction->operation == PPCREC_IML_OP_DIVIDE_SIGNED || imlInstruction->operation == PPCREC_IML_OP_DIVIDE_UNSIGNED )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1302,7 +1176,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	else if( imlInstruction->operation == PPCREC_IML_OP_MULTIPLY_HIGH_SIGNED || imlInstruction->operation == PPCREC_IML_OP_MULTIPLY_HIGH_UNSIGNED )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1340,7 +1213,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	else if( imlInstruction->operation == PPCREC_IML_OP_ORC )
 	{
 		// registerResult = registerOperand1 | ~registerOperand2
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
 		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
 		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
@@ -1361,8 +1233,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 
 bool PPCRecompilerX64Gen_imlInstruction_r_r_r_carry(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-
 	auto regR = _reg32(imlInstruction->op_r_r_r_carry.regR);
 	auto regA = _reg32(imlInstruction->op_r_r_r_carry.regA);
 	auto regB = _reg32(imlInstruction->op_r_r_r_carry.regB);
@@ -1399,7 +1269,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r_carry(PPCRecFunction_t* PPCRecFunc
 
 bool PPCRecompilerX64Gen_imlInstruction_compare(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	auto regR = _reg8(imlInstruction->op_compare.registerResult);
 	auto regA = _reg32(imlInstruction->op_compare.registerOperandA);
 	auto regB = _reg32(imlInstruction->op_compare.registerOperandB);
@@ -1412,7 +1281,6 @@ bool PPCRecompilerX64Gen_imlInstruction_compare(PPCRecFunction_t* PPCRecFunction
 
 bool PPCRecompilerX64Gen_imlInstruction_compare_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	auto regR = _reg8(imlInstruction->op_compare_s32.registerResult);
 	auto regA = _reg32(imlInstruction->op_compare_s32.registerOperandA);
 	sint32 imm = imlInstruction->op_compare_s32.immS32;
@@ -1425,7 +1293,6 @@ bool PPCRecompilerX64Gen_imlInstruction_compare_s32(PPCRecFunction_t* PPCRecFunc
 
 bool PPCRecompilerX64Gen_imlInstruction_cjump2(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, IMLSegment* imlSegment)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	auto regBool = _reg8(imlInstruction->op_conditionalJump2.registerBool);
 	bool mustBeTrue = imlInstruction->op_conditionalJump2.mustBeTrue;
 	x64GenContext->emitter->TEST_bb(regBool, regBool);
@@ -1436,7 +1303,6 @@ bool PPCRecompilerX64Gen_imlInstruction_cjump2(PPCRecFunction_t* PPCRecFunction,
 
 bool PPCRecompilerX64Gen_imlInstruction_jump2(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, IMLSegment* imlSegment)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
 	x64GenContext->emitter->JMP_j32(0);
 	return true;
@@ -1453,7 +1319,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 	if( imlInstruction->operation == PPCREC_IML_OP_ADD )
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_s32.registerResult;
 		sint32 rRegOperand = imlInstruction->op_r_r_s32.registerA;
 		uint32 immU32 = (uint32)imlInstruction->op_r_r_s32.immS32;
@@ -1464,7 +1329,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 	else if (imlInstruction->operation == PPCREC_IML_OP_SUB)
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if (regResult != regOperand)
 			x64Gen_mov_reg64_reg64(x64GenContext, regResult, regOperand);
 		x64Gen_sub_reg64Low32_imm32(x64GenContext, regResult, immS32);
@@ -1474,7 +1338,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 		imlInstruction->operation == PPCREC_IML_OP_XOR)
 	{
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if (regResult != regOperand)
 			x64Gen_mov_reg64_reg64(x64GenContext, regResult, regOperand);
 		if (imlInstruction->operation == PPCREC_IML_OP_AND)
@@ -1487,7 +1350,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 	else if( imlInstruction->operation == PPCREC_IML_OP_RLWIMI )
 	{
 		// registerResult = ((registerResult<<<SH)&mask) | (registerOperand&~mask)
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		uint32 vImm = (uint32)imlInstruction->op_r_r_s32.immS32;
 		uint32 mb = (vImm>>0)&0xFF;
 		uint32 me = (vImm>>8)&0xFF;
@@ -1510,7 +1372,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 	else if( imlInstruction->operation == PPCREC_IML_OP_MULTIPLY_SIGNED )
 	{
 		// registerResult = registerOperand * immS32
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		sint32 rRegResult = imlInstruction->op_r_r_s32.registerResult;
 		sint32 rRegOperand = imlInstruction->op_r_r_s32.registerA;
 		sint32 immS32 = (uint32)imlInstruction->op_r_r_s32.immS32;
@@ -1523,7 +1384,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 		imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U ||
 		imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S)
 	{
-		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		if( imlInstruction->op_r_r_s32.registerA != imlInstruction->op_r_r_s32.registerResult )
 			x64Gen_mov_reg64_reg64(x64GenContext, imlInstruction->op_r_r_s32.registerResult, imlInstruction->op_r_r_s32.registerA);
 
@@ -1544,8 +1404,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 
 bool PPCRecompilerX64Gen_imlInstruction_r_r_s32_carry(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
-
 	auto regR = _reg32(imlInstruction->op_r_r_s32_carry.regR);
 	auto regA = _reg32(imlInstruction->op_r_r_s32_carry.regA);
 	sint32 immS32 = imlInstruction->op_r_r_s32_carry.immS32;
@@ -1604,73 +1462,6 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 		else
 		{
 			uint8 crBitIndex = imlInstruction->op_conditionalJump.crRegisterIndex*4 + imlInstruction->op_conditionalJump.crBitIndex;
-			if (imlInstruction->op_conditionalJump.crRegisterIndex == x64GenContext->activeCRRegister )
-			{
-				if (x64GenContext->activeCRState == PPCREC_CR_STATE_TYPE_UNSIGNED_ARITHMETIC)
-				{
-					if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_LT)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_CARRY : X86_CONDITION_NOT_CARRY, 0);
-						return true;
-					}
-					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_EQ)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, 0);
-						return true;
-					}
-					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_GT)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_UNSIGNED_ABOVE : X86_CONDITION_UNSIGNED_BELOW_EQUAL, 0);
-						return true;
-					}
-				}
-				else if (x64GenContext->activeCRState == PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC)
-				{
-					if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_LT)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGNED_LESS : X86_CONDITION_SIGNED_GREATER_EQUAL, 0);
-						return true;
-					}
-					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_EQ)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, 0);
-						return true;
-					}
-					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_GT)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGNED_GREATER : X86_CONDITION_SIGNED_LESS_EQUAL, 0);
-						return true;
-					}
-				}
-				else if (x64GenContext->activeCRState == PPCREC_CR_STATE_TYPE_LOGICAL)
-				{
-					if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_LT)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGN : X86_CONDITION_NOT_SIGN, 0);
-						return true;
-					}
-					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_EQ)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_EQUAL : X86_CONDITION_NOT_EQUAL, 0);
-						return true;
-					}
-					else if (imlInstruction->op_conditionalJump.crBitIndex == CR_BIT_GT)
-					{
-						PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
-						x64Gen_jmpc_far(x64GenContext, imlInstruction->op_conditionalJump.bitMustBeSet ? X86_CONDITION_SIGNED_GREATER : X86_CONDITION_SIGNED_LESS_EQUAL, 0);
-						return true;
-					}
-				}
-				cemu_assert_debug(false); // should not reach?
-			}
 			x64Gen_bt_mem8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + crBitIndex * sizeof(uint8), 0);
 			cemu_assert_debug(imlSegment->GetBranchTaken());
 			PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, (void*)imlSegment->GetBranchTaken());
@@ -1689,7 +1480,6 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJump(PPCRecFunction_t* PPCRec
 
 bool PPCRecompilerX64Gen_imlInstruction_conditionalJumpCycleCheck(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 	// some tests (all performed on a i7-4790K)
 	// 1) DEC [mem] + JNS has significantly worse performance than BT + JNC (probably due to additional memory write and direct dependency)
 	// 2) CMP [mem], 0 + JG has about equal (or slightly worse) performance than BT + JNC
@@ -1707,7 +1497,6 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJumpCycleCheck(PPCRecFunction
 */
 bool PPCRecompilerX64Gen_imlInstruction_cr(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
-	PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext); // while these instruction do not directly affect eflags, they change the CR bit
 	if (imlInstruction->operation == PPCREC_IML_OP_CR_CLEAR)
 	{
 		// clear cr bit
@@ -1848,7 +1637,6 @@ uint8* PPCRecompilerX86_allocateExecutableMemory(sint32 size)
 bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext)
 {
 	x64GenContext_t x64GenContext{};
-	x64GenContext.activeCRRegister = PPC_REC_INVALID_REGISTER;
 
 	// generate iml instruction code
 	bool codeGenerationFailed = false;
@@ -2104,7 +1892,6 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 {
 	x64GenContext_t x64GenContext{};
-	x64GenContext.activeCRRegister = PPC_REC_INVALID_REGISTER;
 
 	// start of recompiler entry function
 	x64Gen_push_reg64(&x64GenContext, X86_REG_RAX);
@@ -2180,7 +1967,6 @@ void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 void* PPCRecompilerX64Gen_generateLeaveRecompilerCode()
 {
 	x64GenContext_t x64GenContext{};
-	x64GenContext.activeCRRegister = PPC_REC_INVALID_REGISTER;
 
 	// update instruction pointer
 	// LR is in EDX
