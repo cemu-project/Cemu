@@ -32,7 +32,12 @@ The native Linux build is currently a work-in-progress. See [Current State Of Li
 
 Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/changelog.html).
 
-Nightly Builds can be found via https://nightly.link/cemu-project/Cemu/workflows/build_check/main
+### Nightly Builds
+
+* [cemu-appimage-x64.zip](https://nightly.link/cemu-project/Cemu/workflows/build_check/main/cemu-appimage-x64.zip)
+* [cemu-bin-linux-x64.zip](https://nightly.link/cemu-project/Cemu/workflows/build_check/main/cemu-bin-linux-x64.zip)
+* [cemu-bin-macos-x64.zip](https://nightly.link/cemu-project/Cemu/workflows/build_check/main/cemu-bin-macos-x64.zip)
+* [cemu-bin-windows-x64.zip](https://nightly.link/cemu-project/Cemu/workflows/build_check/main/cemu-bin-windows-x64.zip)
 
 ## Build Instructions
 
