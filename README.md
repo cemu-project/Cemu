@@ -32,6 +32,8 @@ The native Linux build is currently a work-in-progress. See [Current State Of Li
 
 Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/changelog.html).
 
+Nightly Builds can be found via https://nightly.link/cemu-project/Cemu/workflows/build_check/main
+
 ## Build Instructions
 
 To compile Cemu yourself on Windows or Linux, view the [BUILD.md file](/BUILD.md).
