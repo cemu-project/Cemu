@@ -47,9 +47,91 @@ public:
 #endif
 
 #if BOOST_OS_LINUX
-    char id[11];
-    char *argv[4] = {(char *)"xdg-screensaver", (char *)(inhibit ? "suspend" : "resume"), id, nullptr};
-    posix_spawnp(nullptr, "xdg-screensaver", nullptr, nullptr, argv, environ);
+    // Adapted from https://github.com/FeralInteractive/gamemode/blob/b11d2912e280acb87d9ad114d6c7cd8846c4ef02/daemon/gamemode-dbus.c#L711, available under the BSD 3-Clause license
+    static unsigned int screensaver_inhibit_cookie = 0;
+
+    const char *service = "org.freedesktop.ScreenSaver";
+    const char *object_path = "/org/freedesktop/ScreenSaver";
+    const char *interface = "org.freedesktop.ScreenSaver";
+    const char *function = inhibit ? "Inhibit" : "UnInhibit";
+
+    sd_bus_message *msg = NULL;
+    sd_bus *bus_local = NULL;
+    sd_bus_error err;
+    memset(&err, 0, sizeof(sd_bus_error));
+
+    int result = -1;
+
+    // Open the user bus
+    int ret = sd_bus_open_user(&bus_local);
+    if (ret < 0)
+    {
+      LOG_ERROR("Could not connect to user bus: %s\n", strerror(-ret));
+      return -1;
+    }
+
+    if (inhibit)
+    {
+      ret = sd_bus_call_method(bus_local,
+                               service,
+                               object_path,
+                               interface,
+                               function,
+                               &err,
+                               &msg,
+                               "ss",
+                               "Cemu",
+                               "Setting to disable screen saver is enabled");
+    }
+    else
+    {
+      ret = sd_bus_call_method(bus_local,
+                               service,
+                               object_path,
+                               interface,
+                               function,
+                               &err,
+                               &msg,
+                               "u",
+                               screensaver_inhibit_cookie);
+    }
+
+    if (ret < 0)
+    {
+      LOG_ERROR(
+          "Could not call %s on %s: %s\n"
+          "\t%s\n"
+          "\t%s\n",
+          function,
+          service,
+          strerror(-ret),
+          err.name,
+          err.message);
+    }
+    else if (inhibit)
+    {
+      // Read the reply
+      ret = sd_bus_message_read(msg, "u", &screensaver_inhibit_cookie);
+      if (ret < 0)
+      {
+        LOG_ERROR("Failure to parse response from %s on %s: %s\n",
+                  function,
+                  service,
+                  strerror(-ret));
+      }
+      else
+      {
+        result = 0;
+      }
+    }
+    else
+    {
+      result = 0;
+    }
+
+    sd_bus_unref(bus_local);
+
+    return result;
 #endif
   };
 };
