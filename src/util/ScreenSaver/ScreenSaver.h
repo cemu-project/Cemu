@@ -1,3 +1,5 @@
+#include "Cemu/Logging/CemuLogging.h"
+
 #if BOOST_OS_MACOS
 #include <IOKit/pwr_mgt/IOPMLib.h>
 #endif
@@ -66,8 +68,8 @@ public:
     int ret = sd_bus_open_user(&bus_local);
     if (ret < 0)
     {
-      LOG_ERROR("Could not connect to user bus: %s\n", strerror(-ret));
-      return -1;
+      cemuLog_force("Could not disable screen saver (user bus error)");
+      return;
     }
 
     if (inhibit)
@@ -98,15 +100,7 @@ public:
 
     if (ret < 0)
     {
-      LOG_ERROR(
-          "Could not call %s on %s: %s\n"
-          "\t%s\n"
-          "\t%s\n",
-          function,
-          service,
-          strerror(-ret),
-          err.name,
-          err.message);
+      cemuLog_force("Could not disable screen saver (org.freedesktop.ScreenSaver not available)");
     }
     else if (inhibit)
     {
@@ -114,10 +108,7 @@ public:
       ret = sd_bus_message_read(msg, "u", &screensaver_inhibit_cookie);
       if (ret < 0)
       {
-        LOG_ERROR("Failure to parse response from %s on %s: %s\n",
-                  function,
-                  service,
-                  strerror(-ret));
+        cemuLog_force("Could not disable screen saver (org.freedesktop.ScreenSaver not available)");
       }
       else
       {
@@ -130,8 +121,6 @@ public:
     }
 
     sd_bus_unref(bus_local);
-
-    return result;
 #endif
   };
 };
