@@ -78,6 +78,7 @@ public:
 	PadViewFrame* GetPadView() const { return m_padView; }
 
 	void OnSizeEvent(wxSizeEvent& event);
+	void OnDPIChangedEvent(wxDPIChangedEvent& event);
 	void OnMove(wxMoveEvent& event);
 
 	void OnDebuggerClose(wxCloseEvent& event);
@@ -86,6 +87,7 @@ public:
 	void OnMouseWheel(wxMouseEvent& event);
 	void OnClose(wxCloseEvent& event);
 	void OnFileMenu(wxCommandEvent& event);
+	void OnOpenCemuFolder(wxCommandEvent& event);
 	void OnLaunchFromFile(wxLaunchGameEvent& event);
 	void OnInstallUpdate(wxCommandEvent& event);
 	void OnFileExit(wxCommandEvent& event);

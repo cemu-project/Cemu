@@ -174,6 +174,23 @@ bool CemuApp::OnInit()
 
 	SetTopWindow(m_mainFrame);
 	m_mainFrame->Show();
+
+	// show warning on macOS about state of builds
+#if BOOST_OS_MACOS
+	if (!GetConfig().did_show_macos_disclaimer)
+	{
+		const auto message = _(
+			"Thank you for testing the in-development build of Cemu for macOS.\n \n"
+			"The macOS port is currently purely experimental and should not be considered stable or ready for issue-free gameplay. "
+			"There are also known issues with degraded performance due to the use of MoltenVk and Rosetta for ARM Macs. We appreciate your patience while we improve Cemu for macOS.");
+		wxMessageDialog dialog(nullptr, message, "Preview version", wxCENTRE | wxOK | wxICON_WARNING);
+		dialog.SetOKLabel(_("I understand"));
+		dialog.ShowModal();
+		GetConfig().did_show_macos_disclaimer = true;
+		g_config.Save();
+	}
+#endif
+
 	return true;
 }
 
@@ -218,9 +235,11 @@ int CemuApp::FilterEvent(wxEvent& event)
 		const auto& key_event = (wxKeyEvent&)event;
 		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
 	}
-	else if(event.GetEventType() == wxEVT_KILL_FOCUS)
+	else if(event.GetEventType() == wxEVT_ACTIVATE_APP)
 	{
-		g_window_info.set_keystatesdown();
+		const auto& activate_event = (wxActivateEvent&)event;
+		if(!activate_event.GetActive())
+			g_window_info.set_keystatesup();
 	}
 
 	return wxApp::FilterEvent(event);

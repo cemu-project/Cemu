@@ -2,6 +2,7 @@
 #include "PPCRecompilerIml.h"
 #include "PPCRecompilerX64.h"
 #include "asm/x64util.h"
+#include "Common/cpu_features.h"
 
 void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
 {
@@ -86,7 +87,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 		{
 			x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, memRegEx);
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, memReg);
-			if (hasMOVBESupport)
+			if (g_CPUFeatures.x86.movbe)
 			{
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, REG_RESV_TEMP, memImmS32);
 			}
@@ -98,7 +99,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 		}
 		else
 		{
-			if (hasMOVBESupport)
+			if (g_CPUFeatures.x86.movbe)
 			{
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, memReg, memImmS32);
 			}
@@ -108,7 +109,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_load(ppcImlGenContext_t* ppcImlGenContext,
 				x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
 			}
 		}
-		if (hasAVXSupport)
+		if (g_CPUFeatures.x86.avx)
 		{
 			x64Gen_movd_xmmReg_reg64Low32(x64GenContext, REG_RESV_FPR_TEMP, REG_RESV_TEMP);
 		}
@@ -280,21 +281,21 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 		{
 			x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem2);
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem);
-			if( hasMOVBESupport )
+			if( g_CPUFeatures.x86.movbe )
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
 			else
 				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, REG_RESV_TEMP, imlInstruction->op_storeLoad.immS32);
 		}
 		else
 		{
-			if( hasMOVBESupport )
+			if( g_CPUFeatures.x86.movbe )
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 			else
 				x64Emit_mov_reg32_mem32(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 		}
-		if( hasMOVBESupport == false )
+		if( g_CPUFeatures.x86.movbe == false )
 			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-		if( hasAVXSupport )
+		if( g_CPUFeatures.x86.avx )
 		{
 			x64Gen_movd_xmmReg_reg64Low32(x64GenContext, realRegisterXMM, REG_RESV_TEMP);
 		}
@@ -316,7 +317,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 	}
 	else if( mode == PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0 )
 	{
-		if( hasAVXSupport )
+		if( g_CPUFeatures.x86.avx )
 		{
 			if( indexed )
 			{
@@ -419,7 +420,7 @@ void PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext_t* ppcImlGenContext
 	if (mode == PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0)
 	{
 		x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, registerXMM);
-		if (hasAVXSupport)
+		if (g_CPUFeatures.x86.avx)
 		{
 			x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);
 		}
@@ -428,14 +429,14 @@ void PPCRecompilerX64Gen_imlInstr_psq_store(ppcImlGenContext_t* ppcImlGenContext
 			x64Gen_movsd_memReg64_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
 			x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
 		}
-		if (hasMOVBESupport == false)
+		if (g_CPUFeatures.x86.movbe == false)
 			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
 		if (indexed)
 		{
 			cemu_assert_debug(memReg != memRegEx);
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, memReg, memRegEx);
 		}
-		if (hasMOVBESupport)
+		if (g_CPUFeatures.x86.movbe)
 			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, memReg, memImmS32, REG_RESV_TEMP);
 		else
 			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, memReg, memImmS32, REG_RESV_TEMP);
@@ -604,7 +605,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 		if (imlInstruction->op_storeLoad.flags2.notExpanded)
 		{
 			// value is already in single format
-			if (hasAVXSupport)
+			if (g_CPUFeatures.x86.avx)
 			{
 				x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, realRegisterXMM);
 			}
@@ -617,7 +618,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 		else
 		{
 			x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, realRegisterXMM);
-			if (hasAVXSupport)
+			if (g_CPUFeatures.x86.avx)
 			{
 				x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);
 			}
@@ -627,7 +628,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 				x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, REG_RSP, offsetof(PPCInterpreter_t, temporaryFPR));
 			}
 		}
-		if( hasMOVBESupport == false )
+		if( g_CPUFeatures.x86.movbe == false )
 			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
 		if( indexed )
 		{
@@ -635,7 +636,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 				assert_dbg();
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
-		if( hasMOVBESupport )
+		if( g_CPUFeatures.x86.movbe )
 			x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
 		else
 			x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, REG_RESV_TEMP);
@@ -668,7 +669,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 	}
 	else if( mode == PPCREC_FPR_ST_MODE_UI32_FROM_PS0 )
 	{
-		if( hasAVXSupport )
+		if( g_CPUFeatures.x86.avx )
 		{
 			x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, realRegisterXMM);
 		}
@@ -749,7 +750,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 			// unpack top to bottom and top
 			x64Gen_unpckhpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 		}
-		//else if ( hasAVXSupport )
+		//else if ( g_CPUFeatures.x86.avx )
 		//{
 		//	// unpack top to bottom and top with non-destructive destination
 		//	// update: On Ivy Bridge this causes weird stalls?
@@ -1056,7 +1057,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 		{
 			x64Gen_subpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r.registerOperandB);
 		}
-		else if (hasAVXSupport)
+		else if (g_CPUFeatures.x86.avx)
 		{
 			x64Gen_avx_VSUBPD_xmm_xmm_xmm(x64GenContext, imlInstruction->op_fpr_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r.registerOperandA, imlInstruction->op_fpr_r_r_r.registerOperandB);
 		}

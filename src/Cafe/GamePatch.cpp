@@ -83,7 +83,7 @@ void hleExport_xcx_enterCriticalSection(PPCInterpreter_t* hCPU)
 				osLib_returnFromFunction(hCPU, 0);
 				return;
 			}
-			_mm_pause();
+            _mm_pause();
 		}
 		PPCCore_switchToScheduler();
 	}

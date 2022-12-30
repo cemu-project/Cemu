@@ -5,8 +5,8 @@
 #include "PPCRecompilerIml.h"
 #include "PPCRecompilerX64.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
-
 #include "util/MemMapper/MemMapper.h"
+#include "Common/cpu_features.h"
 
 sint32 x64Gen_registerMap[12] = // virtual GPR to x64 register mapping
 {
@@ -381,7 +381,7 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 			{
 				x64Gen_lea_reg64Low32_reg64Low32PlusReg64Low32(x64GenContext, REG_RESV_TEMP, realRegisterMem, realRegisterMem2);
 			}
-			if( hasMOVBESupport && switchEndian )
+			if( g_CPUFeatures.x86.movbe && switchEndian )
 			{
 				if (indexed)
 				{
@@ -419,7 +419,7 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 			{
 				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 			}			
-			if( hasMOVBESupport && switchEndian )
+			if( g_CPUFeatures.x86.movbe && switchEndian )
 			{
 				x64Gen_movBEZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 				if( indexed && realRegisterMem != realRegisterData )
@@ -477,7 +477,7 @@ bool PPCRecompilerX64Gen_imlInstruction_load(PPCRecFunction_t* PPCRecFunction, p
 				assert_dbg();
 			if( indexed )
 				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2); // can be replaced with LEA temp, [memReg1+memReg2] (this way we can avoid the SUB instruction after the move)
-			if( hasMOVBESupport )
+			if( g_CPUFeatures.x86.movbe )
 			{
 				x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext, realRegisterData, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 				if( indexed && realRegisterMem != realRegisterData )
@@ -537,7 +537,7 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 			if (indexed)
 				PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 			uint32 valueRegister;
-			if ((swapEndian == false || hasMOVBESupport) && realRegisterMem != realRegisterData)
+			if ((swapEndian == false || g_CPUFeatures.x86.movbe) && realRegisterMem != realRegisterData)
 			{
 				valueRegister = realRegisterData;
 			}
@@ -546,11 +546,11 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 				x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, realRegisterData);
 				valueRegister = REG_RESV_TEMP;
 			}
-			if (hasMOVBESupport == false && swapEndian)
+			if (g_CPUFeatures.x86.movbe == false && swapEndian)
 				x64Gen_bswap_reg64Lower32bit(x64GenContext, valueRegister);
 			if (indexed)
 				x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
-			if (hasMOVBESupport && swapEndian)
+			if (g_CPUFeatures.x86.movbe && swapEndian)
 				x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, valueRegister);
 			else
 				x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_R13, realRegisterMem, imlInstruction->op_storeLoad.immS32, valueRegister);
@@ -802,8 +802,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 		// count leading zeros
 		PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction, ppcImlGenContext, x64GenContext);
 		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		// LZCNT instruction (part of SSE4, CPUID.80000001H:ECX.ABM[Bit 5])
-		if( hasLZCNTSupport )
+		if( g_CPUFeatures.x86.lzcnt )
 		{
 			x64Gen_lzcnt_reg64Low32_reg64Low32(x64GenContext, tempToRealRegister(imlInstruction->op_r_r.registerResult), tempToRealRegister(imlInstruction->op_r_r.registerA));
 		}
@@ -1521,12 +1520,12 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		sint32 rRegOperand1 = tempToRealRegister(imlInstruction->op_r_r_r.registerA);
 		sint32 rRegOperand2 = tempToRealRegister(imlInstruction->op_r_r_r.registerB);
 
-		if (hasBMI2Support && imlInstruction->operation == PPCREC_IML_OP_SRW)
+		if (g_CPUFeatures.x86.bmi2 && imlInstruction->operation == PPCREC_IML_OP_SRW)
 		{
 			// use BMI2 SHRX if available
 			x64Gen_shrx_reg64_reg64_reg64(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
 		}
-		else if (hasBMI2Support && imlInstruction->operation == PPCREC_IML_OP_SLW)
+		else if (g_CPUFeatures.x86.bmi2 && imlInstruction->operation == PPCREC_IML_OP_SLW)
 		{
 			// use BMI2 SHLX if available
 			x64Gen_shlx_reg64_reg64_reg64(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);

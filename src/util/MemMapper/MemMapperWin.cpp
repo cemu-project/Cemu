@@ -1,7 +1,5 @@
 #include "util/MemMapper/MemMapper.h"
 
-#if BOOST_OS_WINDOWS
-
 #include <Windows.h>
 
 namespace MemMapper
@@ -63,5 +61,3 @@ namespace MemMapper
 	}
 
 };
-
-#endif

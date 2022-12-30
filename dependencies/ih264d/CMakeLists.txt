@@ -2,10 +2,6 @@
 
 project ("ih264d")
 
-set(LIBAVCDEC_X86_INCLUDES "common/x86" "decoder/x86")
-
-include_directories("common/" "decoder/" ${LIBAVCDEC_X86_INCLUDES})
-
 add_library (ih264d 
 "common/ih264_buf_mgr.c"
 "common/ih264_buf_mgr.h"
@@ -53,21 +49,6 @@ add_library (ih264d
 "common/ih264_weighted_pred.h"
 "common/ithread.c"
 "common/ithread.h"
-"common/x86/ih264_chroma_intra_pred_filters_ssse3.c"
-"common/x86/ih264_deblk_chroma_ssse3.c"
-"common/x86/ih264_deblk_luma_ssse3.c"
-"common/x86/ih264_ihadamard_scaling_sse42.c"
-"common/x86/ih264_ihadamard_scaling_ssse3.c"
-"common/x86/ih264_inter_pred_filters_ssse3.c"
-"common/x86/ih264_iquant_itrans_recon_dc_ssse3.c"
-"common/x86/ih264_iquant_itrans_recon_sse42.c"
-"common/x86/ih264_iquant_itrans_recon_ssse3.c"
-"common/x86/ih264_luma_intra_pred_filters_ssse3.c"
-"common/x86/ih264_mem_fns_ssse3.c"
-"common/x86/ih264_padding_ssse3.c"
-"common/x86/ih264_platform_macros.h"
-"common/x86/ih264_resi_trans_quant_sse42.c"
-"common/x86/ih264_weighted_pred_sse42.c"
 "decoder/ih264d.h"
 "decoder/ih264d_api.c"
 "decoder/ih264d_bitstrm.c"
@@ -134,10 +115,71 @@ add_library (ih264d
 "decoder/ih264d_vui.h"
 "decoder/iv.h"
 "decoder/ivd.h"
+)
+
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+set(LIBAVCDEC_X86_INCLUDES "common/x86" "decoder/x86")
+include_directories("common/" "decoder/" ${LIBAVCDEC_X86_INCLUDES})
+target_sources(ih264d PRIVATE
+"common/x86/ih264_chroma_intra_pred_filters_ssse3.c"
+"common/x86/ih264_deblk_chroma_ssse3.c"
+"common/x86/ih264_deblk_luma_ssse3.c"
+"common/x86/ih264_ihadamard_scaling_sse42.c"
+"common/x86/ih264_ihadamard_scaling_ssse3.c"
+"common/x86/ih264_inter_pred_filters_ssse3.c"
+"common/x86/ih264_iquant_itrans_recon_dc_ssse3.c"
+"common/x86/ih264_iquant_itrans_recon_sse42.c"
+"common/x86/ih264_iquant_itrans_recon_ssse3.c"
+"common/x86/ih264_luma_intra_pred_filters_ssse3.c"
+"common/x86/ih264_mem_fns_ssse3.c"
+"common/x86/ih264_padding_ssse3.c"
+"common/x86/ih264_platform_macros.h"
+"common/x86/ih264_resi_trans_quant_sse42.c"
+"common/x86/ih264_weighted_pred_sse42.c"
 "decoder/x86/ih264d_function_selector.c"
 "decoder/x86/ih264d_function_selector_sse42.c"
 "decoder/x86/ih264d_function_selector_ssse3.c"
 )
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+enable_language( C CXX ASM )
+set(LIBAVCDEC_ARM_INCLUDES "common/armv8" "decoder/arm")
+include_directories("common/" "decoder/" ${LIBAVCDEC_ARM_INCLUDES})
+target_sources(ih264d PRIVATE
+"common/armv8/ih264_deblk_chroma_av8.s"
+"common/armv8/ih264_deblk_luma_av8.s"
+"common/armv8/ih264_default_weighted_pred_av8.s"
+"common/armv8/ih264_ihadamard_scaling_av8.s"
+"common/armv8/ih264_inter_pred_chroma_av8.s"
+"common/armv8/ih264_inter_pred_filters_luma_horz_av8.s"
+"common/armv8/ih264_inter_pred_filters_luma_vert_av8.s"
+"common/armv8/ih264_inter_pred_luma_copy_av8.s"
+"common/armv8/ih264_inter_pred_luma_horz_hpel_vert_hpel_av8.s"
+"common/armv8/ih264_inter_pred_luma_horz_hpel_vert_qpel_av8.s"
+"common/armv8/ih264_inter_pred_luma_horz_qpel_av8.s"
+"common/armv8/ih264_inter_pred_luma_horz_qpel_vert_hpel_av8.s"
+"common/armv8/ih264_inter_pred_luma_horz_qpel_vert_qpel_av8.s"
+"common/armv8/ih264_inter_pred_luma_vert_qpel_av8.s"
+"common/armv8/ih264_intra_pred_chroma_av8.s"
+"common/armv8/ih264_intra_pred_luma_16x16_av8.s"
+"common/armv8/ih264_intra_pred_luma_4x4_av8.s"
+"common/armv8/ih264_intra_pred_luma_8x8_av8.s"
+"common/armv8/ih264_iquant_itrans_recon_av8.s"
+"common/armv8/ih264_iquant_itrans_recon_dc_av8.s"
+"common/armv8/ih264_mem_fns_neon_av8.s"
+"common/armv8/ih264_neon_macros.s"
+"common/armv8/ih264_padding_neon_av8.s"
+"common/armv8/ih264_platform_macros.h"
+"common/armv8/ih264_resi_trans_quant_av8.s"
+"common/armv8/ih264_weighted_bi_pred_av8.s"
+"common/armv8/ih264_weighted_pred_av8.s"
+"decoder/arm/ih264d_function_selector_a9q.c"
+"decoder/arm/ih264d_function_selector_av8.c"
+"decoder/arm/ih264d_function_selector.c"
+)
+target_compile_options(ih264d PRIVATE -DARMV8)
+else()
+message(FATAL_ERROR "ih264d unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
 
 if(MSVC)
 set_property(TARGET ih264d PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

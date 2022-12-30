@@ -1,5 +1,7 @@
 add_library(CemuCommon 
   betype.h
+  cpu_features.cpp
+  cpu_features.h
   enumFlags.h
   ExceptionHandler/ExceptionHandler.h
   FileStream.h

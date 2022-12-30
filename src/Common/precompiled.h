@@ -24,13 +24,22 @@
 // }
 // #endif
 
+// arch defines
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)
+#define ARCH_X86_64
+#endif
+
 // c includes
 #include <cstdint>
 #include <cstdlib>
 #include <cmath>
 #include <ctime>
 #include <cassert>
+
+#if defined(ARCH_X86_64)
 #include <immintrin.h>
+#endif
 
 // c++ includes
 #include <string>
@@ -60,6 +69,7 @@
 #include <filesystem>
 #include <memory>
 #include <chrono>
+#include <time.h>
 #include <regex>
 #include <type_traits>
 #include <optional>
@@ -105,11 +115,6 @@ using uint8le = uint8_t;
 // logging
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
-
-// CPU extensions
-extern bool _cpuExtension_SSSE3;
-extern bool _cpuExtension_SSE4_1;
-extern bool _cpuExtension_AVX2;
 
 // manual endian-swapping
 
@@ -251,30 +256,35 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 	#define NOEXPORT __attribute__ ((visibility ("hidden")))
 #endif
 
-#ifdef __GNUC__
-#include <cpuid.h>
-#endif
+// On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers
+#if defined(__aarch64__)
 
-inline void cpuid(int cpuInfo[4], int functionId) {
-#if defined(_MSC_VER)
-    __cpuid(cpuInfo, functionId);
-#elif defined(__GNUC__)
-    __cpuid(functionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuid
-#endif
+inline void _mm_pause()
+{
+    asm volatile("yield");   
 }
 
-inline void cpuidex(int cpuInfo[4], int functionId, int subFunctionId) {
-#if defined(_MSC_VER)
-    __cpuidex(cpuInfo, functionId, subFunctionId);
-#elif defined(__GNUC__)
-    __cpuid_count(functionId, subFunctionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuidex
-#endif
+inline uint64 __rdtsc()
+{
+    uint64 t;
+    asm volatile("mrs %0, cntvct_el0" : "=r" (t));
+    return t;
 }
 
+inline void _mm_mfence()
+{
+    
+}
+
+inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
+{
+    *result = a + b + (unsigned long long)carry;
+    if (*result < a)
+        return 1;
+    return 0;
+}
+
+#endif
 
 // MEMPTR
 #include "Common/MemPtr.h"
@@ -341,10 +351,9 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 #endif
 }
 
-
 [[nodiscard]] static std::chrono::steady_clock::time_point tick_cached() noexcept
 {
-#ifdef _WIN32
+#if BOOST_OS_WINDOWS
     // get current time
 	static const long long _Freq = _Query_perf_frequency();	// doesn't change after system boot
 	const long long _Ctr = _Query_perf_counter();
@@ -352,9 +361,14 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 	const long long _Whole = (_Ctr / _Freq) * std::nano::den;
 	const long long _Part = (_Ctr % _Freq) * std::nano::den / _Freq;
 	return (std::chrono::steady_clock::time_point(std::chrono::nanoseconds(_Whole + _Part)));
-#else
-    // todo: Add faster implementation for linux
-    return std::chrono::steady_clock::now();
+#elif BOOST_OS_LINUX
+	struct timespec tp;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
+	return std::chrono::steady_clock::time_point(
+		std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec));
+#elif BOOST_OS_MACOS
+	return std::chrono::steady_clock::time_point(
+		std::chrono::nanoseconds(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)));
 #endif
 }
 

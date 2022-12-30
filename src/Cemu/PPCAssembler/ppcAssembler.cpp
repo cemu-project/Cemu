@@ -653,7 +653,7 @@ public:
 			{
 				immD = ep.Evaluate(svExpressionPart);
 				sint32 imm = (sint32)immD;
-				if (imm < -32768 && imm > 32767)
+				if (imm < -32768 || imm > 32767)
 				{
 					std::string msg = fmt::format("\"{}\" evaluates to offset out of range (Valid range is -32768 to 32767)", svExpressionPart);
 					ppcAssembler_setError(assemblerCtx->ctx, msg);
@@ -2126,7 +2126,7 @@ bool _ppcAssembler_isConstantBranchTargetExpr(std::string& expressionString, sin
 		{
 			return false;
 		}
-		relativeAddr = (uint32)branchDistance;
+		relativeAddr = (sint32)branchDistance;
 		return true;
 	}
 	return false;

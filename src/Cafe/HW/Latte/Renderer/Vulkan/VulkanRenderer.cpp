@@ -107,7 +107,13 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	#if BOOST_OS_WINDOWS
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
-	requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	auto backend = gui_getWindowInfo().window_main.backend;
+	if(backend == WindowHandleInfo::Backend::X11)
+		requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	#ifdef HAS_WAYLAND
+	else if (backend == WindowHandleInfo::Backend::WAYLAND)
+		requiredExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+	#endif
 	#elif BOOST_OS_MACOS
 	requiredExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
@@ -643,7 +649,7 @@ VulkanRenderer* VulkanRenderer::GetInstance()
 	return (VulkanRenderer*)g_renderer.get();
 }
 
-void VulkanRenderer::Initialize(const Vector2i& size, bool mainWindow)
+void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
 {
 	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
 
@@ -1149,7 +1155,13 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	#if BOOST_OS_WINDOWS
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
-	requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	auto backend = gui_getWindowInfo().window_main.backend;
+	if(backend == WindowHandleInfo::Backend::X11)
+		requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+	#if HAS_WAYLAND
+	else if (backend == WindowHandleInfo::Backend::WAYLAND)
+		requiredInstanceExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+	#endif
 	#elif BOOST_OS_MACOS
 	requiredInstanceExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
@@ -1267,14 +1279,40 @@ VkSurfaceKHR VulkanRenderer::CreateXcbSurface(VkInstance instance, xcb_connectio
 
     return result;
 }
-#endif
+#ifdef HAS_WAYLAND
+VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_display* display, wl_surface* surface)
+{
+    VkWaylandSurfaceCreateInfoKHR sci{};
+    sci.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    sci.flags = 0;
+	sci.display = display;
+	sci.surface = surface;
+
+    VkSurfaceKHR result;
+    VkResult err;
+    if ((err = vkCreateWaylandSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
+    {
+        forceLog_printf("Cannot create a Wayland Vulkan surface: %d", (sint32)err);
+        throw std::runtime_error(fmt::format("Cannot create a Wayland Vulkan surface: {}", err));
+    }
+
+    return result;
+}
+#endif // HAS_WAYLAND
+#endif // BOOST_OS_LINUX
 
 VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo)
 {
 #if BOOST_OS_WINDOWS
 	return CreateWinSurface(instance, windowInfo.hwnd);
 #elif BOOST_OS_LINUX
-	return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
+	if(windowInfo.backend == WindowHandleInfo::Backend::X11)
+		return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
+	#ifdef HAS_WAYLAND
+	if(windowInfo.backend == WindowHandleInfo::Backend::WAYLAND)
+		return CreateWaylandSurface(instance, windowInfo.display, windowInfo.surface);
+	#endif
+	return {};
 #elif BOOST_OS_MACOS
 	return CreateCocoaSurface(instance, windowInfo.handle);
 #endif
@@ -1846,7 +1884,7 @@ void VulkanRenderer::WaitForNextFinishedCommandBuffer()
 	ProcessFinishedCommandBuffers();
 }
 
-void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemaphore* waitSemaphore)
+void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphore waitSemaphore)
 {
 	draw_endRenderPass();
 
@@ -1861,11 +1899,11 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemapho
 
 	// signal current command buffer semaphore
 	VkSemaphore signalSemArray[2];
-	if (signalSemaphore)
+	if (signalSemaphore != VK_NULL_HANDLE)
 	{
 		submitInfo.signalSemaphoreCount = 2;
 		signalSemArray[0] = m_commandBufferSemaphores[m_commandBufferIndex]; // signal current
-		signalSemArray[1] = *signalSemaphore; // signal current
+		signalSemArray[1] = signalSemaphore; // signal current
 		submitInfo.pSignalSemaphores = signalSemArray;
 	}
 	else
@@ -1881,8 +1919,8 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore* signalSemaphore, VkSemapho
 	submitInfo.waitSemaphoreCount = 0;
 	if (m_numSubmittedCmdBuffers > 0)
 		waitSemArray[submitInfo.waitSemaphoreCount++] = prevSem; // wait on semaphore from previous submit
-	if (waitSemaphore)
-		waitSemArray[submitInfo.waitSemaphoreCount++] = *waitSemaphore;
+	if (waitSemaphore != VK_NULL_HANDLE)
+		waitSemArray[submitInfo.waitSemaphoreCount++] = waitSemaphore;
 	submitInfo.pWaitDstStageMask = semWaitStageMask;
 	submitInfo.pWaitSemaphores = waitSemArray;
 
@@ -2538,32 +2576,17 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 
-	if (!UpdateSwapchainProperties(mainWindow))
-		return false;
-
 	if (chainInfo.swapchainImageIndex != -1)
 		return true; // image already reserved
 
-	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-	vkResetFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence);
+	if (!UpdateSwapchainProperties(mainWindow))
+		return false;
 
-	auto& acquireSemaphore = chainInfo.m_acquireSemaphores[chainInfo.m_acquireIndex];
+	bool result = chainInfo.AcquireImage(UINT64_MAX);
+	if (!result)
+		return false;
 
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, chainInfo.swapchain, std::numeric_limits<uint64_t>::max(), acquireSemaphore, chainInfo.m_imageAvailableFence, &chainInfo.swapchainImageIndex);
-	if (result != VK_SUCCESS)
-	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			chainInfo.m_shouldRecreate = true;
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-			return false;
-
-		if (result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR)
-			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
-	}
-
-	chainInfo.m_acquireIndex = (chainInfo.m_acquireIndex + 1) % chainInfo.m_acquireSemaphores.size();
-	SubmitCommandBuffer(nullptr, &acquireSemaphore);
+	SubmitCommandBuffer(VK_NULL_HANDLE, chainInfo.ConsumeAcquireSemaphore());
 	return true;
 }
 
@@ -2572,28 +2595,27 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
-	vkWaitForFences(m_logicalDevice, 1, &chainInfo.m_imageAvailableFence, VK_TRUE,
-		std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(10)).count()
-	);
+	// make sure fence has no signal operation submitted
+	chainInfo.WaitAvailableFence();
 
 	Vector2i size;
 	if (mainWindow)
 	{
 		ImGui_ImplVulkan_Shutdown();
-		gui_getWindowSize(&size.x, &size.y);
+		gui_getWindowPhysSize(size.x, size.y);
 	}
 	else
 	{
-		gui_getPadWindowSize(&size.x, &size.y);
+		gui_getPadWindowPhysSize(size.x, size.y);
 	}
 
+	chainInfo.swapchainImageIndex = -1;
 	chainInfo.Cleanup();
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
 	}
-	chainInfo.swapchainImageIndex = -1;
 
 	if (mainWindow)
 		ImguiInit();
@@ -2610,6 +2632,15 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
 	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
+		stateChanged = true;
+
+	int width, height;
+	if (mainWindow)
+		gui_getWindowPhysSize(width, height);
+	else
+		gui_getPadWindowPhysSize(width, height);
+	auto extent = chainInfo.getExtent();
+	if (width != extent.width || height != extent.height)
 		stateChanged = true;
 
 	if(stateChanged)
@@ -2645,21 +2676,10 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
-	// make sure any writes to the image have finished (is this necessary? End of command buffer implicitly flushes everything?)
-	VkMemoryBarrier memoryBarrier{};
-	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-	memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	memoryBarrier.dstAccessMask = 0;
-	VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-	vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
-
-	VkSemaphore presentSemaphore = chainInfo.m_swapchainPresentSemaphores[chainInfo.swapchainImageIndex];
-	SubmitCommandBuffer(&presentSemaphore); // submit all command and signal semaphore
+	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
+	SubmitCommandBuffer(presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
-
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2671,40 +2691,12 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (result != VK_SUCCESS)
+	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // todo: dont loop but handle error state?
-		{
-			int counter = 0;
-			while (true)
-			{
-				try
-				{
-					RecreateSwapchain(mainWindow);
-					return;
-				}
-				catch (std::exception&)
-				{
-					// loop until successful
-					counter++;
-					if (counter > 25)
-					{
-						cemuLog_log(LogType::Force, "Failed to recreate swapchain during SwapBuffer");
-						cemuLog_waitForFlush();
-						exit(0);
-					}
-				}
-
-				std::this_thread::yield();
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			}
-		}
-
-		cemuLog_log(LogType::Force, fmt::format("vkQueuePresentKHR failed with error {}", result));
-		cemuLog_waitForFlush();
-
-		throw std::runtime_error(fmt::format("Failed to present draw command buffer: {}", result));
+		throw std::runtime_error(fmt::format("Failed to present image: {}", result));
 	}
+	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		chainInfo.m_shouldRecreate = true;
 
 	chainInfo.hasDefinedSwapchainImage = false;
 
@@ -3510,6 +3502,36 @@ void VulkanRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, 
 	VkBuffer attrBuffer = m_bufferCache;
 	VkDeviceSize attrOffset = offset;
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+}
+
+void VulkanRenderer::buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size)
+{
+	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
+	m_state.currentVertexBinding[bufferIndex].offset = 0xFFFFFFFF;
+	VkBuffer attrBuffer = fixedBuffer;
+	VkDeviceSize attrOffset = offset;
+	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+}
+
+std::pair<VkBuffer, uint32> VulkanRenderer::buffer_genStrideWorkaroundVertexBuffer(MPTR buffer, uint32 size, uint32 oldStride)
+{
+	cemu_assert_debug(oldStride % 4 != 0);
+
+	std::span<uint8> old_buffer{memory_getPointerFromPhysicalOffset(buffer), size};
+
+	//new stride is the nearest multiple of 4
+	uint32 newStride = oldStride + (4-(oldStride % 4));
+	uint32 newSize = size / oldStride * newStride;
+
+	auto new_buffer_alloc = memoryManager->getMetalStrideWorkaroundAllocator().AllocateBufferMemory(newSize, 128);
+
+	std::span<uint8> new_buffer{new_buffer_alloc.memPtr, new_buffer_alloc.size};
+
+	for(size_t elem = 0; elem < size / oldStride; elem++)
+	{
+		memcpy(&new_buffer[elem * newStride], &old_buffer[elem * oldStride], oldStride);
+	}
+	return {new_buffer_alloc.vkBuffer, new_buffer_alloc.bufferOffset};
 }
 
 void VulkanRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
