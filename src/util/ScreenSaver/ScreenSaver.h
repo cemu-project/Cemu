@@ -5,7 +5,6 @@
 #endif
 
 #if BOOST_OS_LINUX
-#include <spawn.h>
 #ifdef USE_ELOGIND
 #include <elogind/sd-bus.h>
 #include <elogind/sd-daemon.h>
@@ -52,15 +51,14 @@ public:
     // Adapted from https://github.com/FeralInteractive/gamemode/blob/b11d2912e280acb87d9ad114d6c7cd8846c4ef02/daemon/gamemode-dbus.c#L711, available under the BSD 3-Clause license
     static unsigned int screensaver_inhibit_cookie = 0;
 
-    const char *service = "org.freedesktop.ScreenSaver";
-    const char *object_path = "/org/freedesktop/ScreenSaver";
-    const char *interface = "org.freedesktop.ScreenSaver";
-    const char *function = inhibit ? "Inhibit" : "UnInhibit";
+    const char* service = "org.freedesktop.ScreenSaver";
+    const char* object_path = "/org/freedesktop/ScreenSaver";
+    const char* interface = "org.freedesktop.ScreenSaver";
+    const char* function = inhibit ? "Inhibit" : "UnInhibit";
 
-    sd_bus_message *msg = NULL;
-    sd_bus *bus_local = NULL;
+    sd_bus_message* msg = NULL;
+    sd_bus* bus_local = NULL;
     sd_bus_error err;
-    memset(&err, 0, sizeof(sd_bus_error));
 
     int result = -1;
 
