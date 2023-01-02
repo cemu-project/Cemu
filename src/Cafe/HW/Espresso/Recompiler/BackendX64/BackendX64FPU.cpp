@@ -5,6 +5,31 @@
 
 #include "asm/x64util.h" // for recompiler_fres / frsqrte
 
+uint32 _regF64(IMLReg r)
+{
+	return (uint32)r;
+}
+
+static x86Assembler64::GPR32 _reg32(sint8 physRegId)
+{
+	return (x86Assembler64::GPR32)physRegId;
+}
+
+static x86Assembler64::GPR8_REX _reg8(sint8 physRegId)
+{
+	return (x86Assembler64::GPR8_REX)physRegId;
+}
+
+static x86Assembler64::GPR32 _reg32_from_reg8(x86Assembler64::GPR8_REX regId)
+{
+	return (x86Assembler64::GPR32)regId;
+}
+
+static x86Assembler64::GPR8_REX _reg8_from_reg32(x86Assembler64::GPR32 regId)
+{
+	return (x86Assembler64::GPR8_REX)regId;
+}
+
 void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	uint32 name = imlInstruction->op_r_name.name;
@@ -690,18 +715,10 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 {
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_movddup_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		// VPUNPCKHQDQ
 		if (imlInstruction->op_fpr_r_r.registerResult == imlInstruction->op_fpr_r_r.registerOperand)
 		{
@@ -725,170 +742,73 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_TOP )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		x64Gen_unpcklpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		if( imlInstruction->op_fpr_r_r.registerResult != imlInstruction->op_fpr_r_r.registerOperand )
 			x64Gen_movaps_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 		_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerResult);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_TOP_TO_TOP )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		x64Gen_shufpd_xmmReg_xmmReg_imm8(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand, 2);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// use unpckhpd here?
 		x64Gen_shufpd_xmmReg_xmmReg_imm8(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand, 3);
 		_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerResult);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_mulsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_MULTIPLY_PAIR )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_mulpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_DIVIDE_BOTTOM )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_divsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_DIVIDE_PAIR)
 	{
-		if (imlInstruction->crRegister != PPC_REC_INVALID_REGISTER)
-		{
-			assert_dbg();
-		}
 		x64Gen_divpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ADD_BOTTOM )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_addsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ADD_PAIR )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_addpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUB_PAIR )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_subpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUB_BOTTOM )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_subsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_ASSIGN )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_movaps_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_FCTIWZ )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		x64Gen_cvttsd2si_xmmReg_xmmReg(x64GenContext, REG_RESV_TEMP, imlInstruction->op_fpr_r_r.registerOperand);
 		x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP);
 		// move to FPR register
 		x64Gen_movq_xmmReg_reg64(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, REG_RESV_TEMP);
 	}
-	else if(imlInstruction->operation == PPCREC_IML_OP_FPR_FCMPU_BOTTOM ||
-			imlInstruction->operation == PPCREC_IML_OP_FPR_FCMPU_TOP ||
-			imlInstruction->operation == PPCREC_IML_OP_FPR_FCMPO_BOTTOM )
-	{
-		if( imlInstruction->crRegister == PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
-		if (imlInstruction->operation == PPCREC_IML_OP_FPR_FCMPU_BOTTOM)
-			x64Gen_ucomisd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
-		else if (imlInstruction->operation == PPCREC_IML_OP_FPR_FCMPU_TOP)
-		{
-			// temporarily switch top/bottom of both operands and compare
-			if (imlInstruction->op_fpr_r_r.registerResult == imlInstruction->op_fpr_r_r.registerOperand)
-			{
-				_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerResult);
-				x64Gen_ucomisd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
-				_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerResult);
-			}
-			else
-			{
-				_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerResult);
-				_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerOperand);
-				x64Gen_ucomisd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
-				_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerResult);
-				_swapPS0PS1(x64GenContext, imlInstruction->op_fpr_r_r.registerOperand);
-			}
-		}
-		else
-			x64Gen_comisd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r.registerResult, imlInstruction->op_fpr_r_r.registerOperand);
-		// todo: handle FPSCR updates
-		// update cr
-		sint32 crRegister = imlInstruction->crRegister;
-		// if the parity bit is set (NaN) we need to manually set CR LT, GT and EQ to 0 (comisd/ucomisd sets the respective flags to 1 in case of NaN)
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_PARITY, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_SO)); // unordered
-		sint32 jumpInstructionOffset1 = x64GenContext->emitter->GetWriteIndex();
-		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_PARITY, 0);
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT)); // same as X64_CONDITION_CARRY
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_UNSIGNED_ABOVE, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT));
-		x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_EQUAL, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ));
-		sint32 jumpInstructionOffset2 = x64GenContext->emitter->GetWriteIndex();
-		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset1, x64GenContext->emitter->GetWriteIndex());
-		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_LT), 0);
-		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_GT), 0);
-		x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+sizeof(uint8)*(crRegister*4+PPCREC_CR_BIT_EQ), 0);
-		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->emitter->GetWriteIndex());
-	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP )
 	{
-		if( imlInstruction->crRegister != PPC_REC_INVALID_REGISTER )
-		{
-			assert_dbg();
-		}
 		// move register to XMM15
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, imlInstruction->op_fpr_r_r.registerOperand);
 		
@@ -901,7 +821,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_RECIPROCAL_SQRT)
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// move register to XMM15
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, imlInstruction->op_fpr_r_r.registerOperand);
 
@@ -914,7 +833,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATE_PAIR )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// copy register
 		if( imlInstruction->op_fpr_r_r.registerResult != imlInstruction->op_fpr_r_r.registerOperand )
 		{
@@ -925,7 +843,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ABS_PAIR )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// copy register
 		if( imlInstruction->op_fpr_r_r.registerResult != imlInstruction->op_fpr_r_r.registerOperand )
 		{
@@ -936,7 +853,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_FRES_PAIR || imlInstruction->operation == PPCREC_IML_OP_FPR_FRSQRTE_PAIR)
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// calculate bottom half of result
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, imlInstruction->op_fpr_r_r.registerOperand);
 		if(imlInstruction->operation == PPCREC_IML_OP_FPR_FRES_PAIR)
@@ -968,10 +884,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 {
 	if (imlInstruction->operation == PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM)
 	{
-		if (imlInstruction->crRegister != PPC_REC_INVALID_REGISTER)
-		{
-			assert_dbg();
-		}
 		if (imlInstruction->op_fpr_r_r_r.registerResult == imlInstruction->op_fpr_r_r_r.registerOperandA)
 		{
 			x64Gen_mulsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r.registerOperandB);
@@ -988,8 +900,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_ADD_BOTTOM)
 	{
-		// registerResult(fp0) = registerOperandA(fp0) + registerOperandB(fp0)
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// todo: Use AVX 3-operand VADDSD if available
 		if (imlInstruction->op_fpr_r_r_r.registerResult == imlInstruction->op_fpr_r_r_r.registerOperandA)
 		{
@@ -1008,7 +918,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_SUB_PAIR)
 	{
 		// registerResult = registerOperandA - registerOperandB
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		if( imlInstruction->op_fpr_r_r_r.registerResult == imlInstruction->op_fpr_r_r_r.registerOperandA )
 		{
 			x64Gen_subpd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r.registerOperandB);
@@ -1031,7 +940,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUB_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		if( imlInstruction->op_fpr_r_r_r.registerResult == imlInstruction->op_fpr_r_r_r.registerOperandA )
 		{
 			x64Gen_subsd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r_r_r.registerResult, imlInstruction->op_fpr_r_r_r.registerOperandB);
@@ -1059,8 +967,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 {
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUM0 )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-
 		// todo: Investigate if there are other optimizations possible if the operand registers overlap
 		// generic case
 		// 1) move frA bottom to frTemp bottom and top
@@ -1074,7 +980,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUM1 )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// todo: Investigate if there are other optimizations possible if the operand registers overlap
 		// 1) move frA bottom to frTemp bottom and top
 		x64Gen_movddup_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, imlInstruction->op_fpr_r_r_r_r.registerOperandA);
@@ -1094,7 +999,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SELECT_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		x64Gen_comisd_xmmReg_mem64Reg64(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerOperandA, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble0_0));
 		sint32 jumpInstructionOffset1 = x64GenContext->emitter->GetWriteIndex();
 		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, 0);
@@ -1110,7 +1014,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SELECT_PAIR )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// select bottom
 		x64Gen_comisd_xmmReg_mem64Reg64(x64GenContext, imlInstruction->op_fpr_r_r_r_r.registerOperandA, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble0_0));
 		sint32 jumpInstructionOffset1_bottom = x64GenContext->emitter->GetWriteIndex();
@@ -1145,32 +1048,22 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 		assert_dbg();
 }
 
-/*
- * Single FPR operation
- */
 void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATE_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		// toggle sign bit
 		x64Gen_xorps_xmmReg_mem128Reg64(x64GenContext, imlInstruction->op_fpr_r.registerResult, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom));
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ABS_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		// mask out sign bit
 		x64Gen_andps_xmmReg_mem128Reg64(x64GenContext, imlInstruction->op_fpr_r.registerResult, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_andAbsMaskBottom));
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATIVE_ABS_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
-		// set sign bit
 		x64Gen_orps_xmmReg_mem128Reg64(x64GenContext, imlInstruction->op_fpr_r.registerResult, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom));
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// convert to 32bit single
 		x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r.registerResult, imlInstruction->op_fpr_r.registerResult);
 		// convert back to 64bit double
@@ -1178,7 +1071,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_PAIR )
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// convert to 32bit singles
 		x64Gen_cvtpd2ps_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r.registerResult, imlInstruction->op_fpr_r.registerResult);
 		// convert back to 64bit doubles
@@ -1186,7 +1078,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64)
 	{
-		cemu_assert_debug(imlInstruction->crRegister == PPC_REC_INVALID_REGISTER);
 		// convert bottom to 64bit double
 		x64Gen_cvtss2sd_xmmReg_xmmReg(x64GenContext, imlInstruction->op_fpr_r.registerResult, imlInstruction->op_fpr_r.registerResult);
 		// copy to top half
@@ -1196,4 +1087,45 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, 
 	{
 		cemu_assert_unimplemented();
 	}
+}
+
+void PPCRecompilerX64Gen_imlInstruction_fpr_compare(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
+{
+	auto regR = _reg8(imlInstruction->op_fpr_compare.regR);
+	auto regA = _regF64(imlInstruction->op_fpr_compare.regA);
+	auto regB = _regF64(imlInstruction->op_fpr_compare.regB);
+
+	x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regR), _reg32_from_reg8(regR));
+	x64Gen_ucomisd_xmmReg_xmmReg(x64GenContext, regA, regB);
+
+	if (imlInstruction->op_fpr_compare.cond == IMLCondition::UNORDERED_GT)
+	{
+		// GT case can be covered with a single SETnbe which checks CF==0 && ZF==0 (unordered sets both)
+		x64GenContext->emitter->SETcc_b(X86Cond::X86_CONDITION_NBE, regR);
+		return;
+	}
+	else if (imlInstruction->op_fpr_compare.cond == IMLCondition::UNORDERED_U)
+	{
+		// unordered case can be checked via PF
+		x64GenContext->emitter->SETcc_b(X86Cond::X86_CONDITION_PE, regR);
+		return;
+	}
+
+	// remember unordered state
+	auto regTmp = _reg32_from_reg8(_reg32(REG_RESV_TEMP));
+	x64GenContext->emitter->SETcc_b(X86Cond::X86_CONDITION_PO, regTmp); // by reversing the parity we can avoid having to XOR the value for masking the LT/EQ conditions
+
+	X86Cond x86Cond;
+	switch (imlInstruction->op_fpr_compare.cond)
+	{
+	case IMLCondition::UNORDERED_LT:
+		x64GenContext->emitter->SETcc_b(X86Cond::X86_CONDITION_B, regR);
+		break;
+	case IMLCondition::UNORDERED_EQ:
+		x64GenContext->emitter->SETcc_b(X86Cond::X86_CONDITION_Z, regR);
+		break;
+	default:
+		cemu_assert_unimplemented();
+	}
+	x64GenContext->emitter->AND_bb(_reg8_from_reg32(regR), _reg8_from_reg32(regTmp)); // if unordered (PF=1) then force LT/GT/EQ to zero 
 }

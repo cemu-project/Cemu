@@ -29,13 +29,6 @@ enum
 	PPCREC_IML_OP_DCBZ,				// clear 32 bytes aligned to 0x20
 	PPCREC_IML_OP_MFCR,				// copy cr to gpr
 	PPCREC_IML_OP_MTCRF,			// copy gpr to cr (with mask)
-	// condition register
-	PPCREC_IML_OP_CR_CLEAR,			// clear cr bit
-	PPCREC_IML_OP_CR_SET,			// set cr bit
-	PPCREC_IML_OP_CR_OR,			// OR cr bits
-	PPCREC_IML_OP_CR_ORC,			// OR cr bits, complement second input operand bit first
-	PPCREC_IML_OP_CR_AND,			// AND cr bits
-	PPCREC_IML_OP_CR_ANDC,			// AND cr bits, complement second input operand bit first
 	// FPU
 	PPCREC_IML_OP_FPR_ADD_BOTTOM,
 	PPCREC_IML_OP_FPR_ADD_PAIR,
@@ -54,9 +47,9 @@ enum
 	PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED,
 	PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64, // expand bottom f32 to f64 in bottom and top half
 	PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP, // calculate reciprocal with Espresso accuracy of source bottom half and write result to destination bottom and top half
-	PPCREC_IML_OP_FPR_FCMPO_BOTTOM,
-	PPCREC_IML_OP_FPR_FCMPU_BOTTOM,
-	PPCREC_IML_OP_FPR_FCMPU_TOP,
+	PPCREC_IML_OP_FPR_FCMPO_BOTTOM, // deprecated
+	PPCREC_IML_OP_FPR_FCMPU_BOTTOM, // deprecated
+	PPCREC_IML_OP_FPR_FCMPU_TOP, // deprecated
 	PPCREC_IML_OP_FPR_NEGATE_BOTTOM,
 	PPCREC_IML_OP_FPR_NEGATE_PAIR,
 	PPCREC_IML_OP_FPR_ABS_BOTTOM, // abs(fp0)
@@ -111,21 +104,6 @@ enum
 	PPCREC_IML_MACRO_DEBUGBREAK,	// throws a debugbreak
 };
 
-enum // deprecated condition codes
-{
-	PPCREC_JUMP_CONDITION_NONE,
-	PPCREC_JUMP_CONDITION_E, // equal / zero
-	PPCREC_JUMP_CONDITION_NE, // not equal / not zero
-	PPCREC_JUMP_CONDITION_LE, // less or equal
-	PPCREC_JUMP_CONDITION_L, // less
-	PPCREC_JUMP_CONDITION_GE, // greater or equal
-	PPCREC_JUMP_CONDITION_G, // greater
-	// special case:
-	PPCREC_JUMP_CONDITION_SUMMARYOVERFLOW, // needs special handling
-	PPCREC_JUMP_CONDITION_NSUMMARYOVERFLOW, // not summaryoverflow
-
-};
-
 enum class IMLCondition : uint8
 {
 	EQ,
@@ -137,14 +115,17 @@ enum class IMLCondition : uint8
 
 	SIGNED_OVERFLOW,
 	SIGNED_NOVERFLOW,
-};
 
-enum
-{
-	PPCREC_CR_MODE_COMPARE_SIGNED,
-	PPCREC_CR_MODE_COMPARE_UNSIGNED, // alias logic compare
+	// floating point conditions
+	UNORDERED_GT, // a > b, false if either is NaN
+	UNORDERED_LT, // a < b, false if either is NaN
+	UNORDERED_EQ, // a == b, false if either is NaN
+	UNORDERED_U, // unordered (true if either operand is NaN)
 
-	PPCREC_CR_MODE_LOGICAL,
+	ORDERED_GT,
+	ORDERED_LT,
+	ORDERED_EQ,
+	ORDERED_U
 };
 
 enum
@@ -164,18 +145,20 @@ enum
 	PPCREC_IML_TYPE_NAME_R,				// name* = r*
 	PPCREC_IML_TYPE_R_S32,				// r* (op) imm
 	PPCREC_IML_TYPE_MACRO,
-	PPCREC_IML_TYPE_CJUMP,				// conditional jump
 	PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK,	// jumps only if remaining thread cycles < 0
-	PPCREC_IML_TYPE_CR,					// condition register specific operations (one or more operands)
 
-	// new style of handling conditions and branches:
+	// conditions and branches
 	PPCREC_IML_TYPE_COMPARE,			// r* = r* CMP[cond] r*
 	PPCREC_IML_TYPE_COMPARE_S32,		// r* = r* CMP[cond] imm
-	PPCREC_IML_TYPE_JUMP,				// replaces CJUMP. Jump always, no condition
-	PPCREC_IML_TYPE_CONDITIONAL_JUMP,	// replaces CJUMP. Jump condition is based on boolean register
+	PPCREC_IML_TYPE_JUMP,				// jump always
+	PPCREC_IML_TYPE_CONDITIONAL_JUMP,	// jump conditionally based on boolean value in register
 
-	// conditional
+	// atomic
+	PPCREC_IML_TYPE_ATOMIC_CMP_STORE,
+
+	// conditional (legacy)
 	PPCREC_IML_TYPE_CONDITIONAL_R_S32,
+
 	// FPR
 	PPCREC_IML_TYPE_FPR_R_NAME,			// name = f*
 	PPCREC_IML_TYPE_FPR_NAME_R,			// f* = name
@@ -187,6 +170,8 @@ enum
 	PPCREC_IML_TYPE_FPR_R_R_R,
 	PPCREC_IML_TYPE_FPR_R_R_R_R,
 	PPCREC_IML_TYPE_FPR_R,
+
+	PPCREC_IML_TYPE_FPR_COMPARE,		// r* = r* CMP[cond] r*
 };
 
 enum
@@ -197,15 +182,18 @@ enum
 	PPCREC_NAME_SPR0 = 3000,
 	PPCREC_NAME_FPR0 = 4000,
 	PPCREC_NAME_TEMPORARY_FPR0 = 5000, // 0 to 7
-	PPCREC_NAME_XER_CA = 6000, // carry bit
+	PPCREC_NAME_XER_CA = 6000, // carry bit from XER
+	PPCREC_NAME_XER_OV = 6001, // overflow bit from XER
+	PPCREC_NAME_XER_SO = 6002, // summary overflow bit from XER
+	PPCREC_NAME_CR = 7000, // CR register bits (31 to 0)
+	PPCREC_NAME_CR_LAST = PPCREC_NAME_CR+31,
+	PPCREC_NAME_CPU_MEMRES_EA = 8000,
+	PPCREC_NAME_CPU_MEMRES_VAL = 8001
 };
 
-// special cases for LOAD/STORE
-#define PPC_REC_LOAD_LWARX_MARKER	(100)	// lwarx instruction (similar to LWZX but sets reserved address/value)
-#define PPC_REC_STORE_STWCX_MARKER	(100)	// stwcx instruction (similar to STWX but writes only if reservation from LWARX is valid)
+#define PPC_REC_INVALID_REGISTER	0xFF	// deprecated. Use IMLREG_INVALID instead
 
-#define PPC_REC_INVALID_REGISTER	0xFF
-
+// deprecated, use Espresso namespace
 #define PPCREC_CR_BIT_LT	0
 #define PPCREC_CR_BIT_GT	1
 #define PPCREC_CR_BIT_EQ	2
@@ -337,13 +325,12 @@ struct IMLUsedRegisters
 
 using IMLReg = uint8;
 
+inline constexpr IMLReg IMLREG_INVALID = (IMLReg)-1;
+
 struct IMLInstruction
 {
 	uint8 type;
 	uint8 operation;
-	uint8 crRegister; // set to 0xFF if not set, not all IML instruction types support cr.
-	uint8 crMode; // only used when crRegister is valid, used to differentiate between various forms of condition flag set/clear behavior
-	uint32 crIgnoreMask; // bit set for every respective CR bit that doesn't need to be updated
 	union
 	{
 		struct
@@ -352,13 +339,11 @@ struct IMLInstruction
 		}padding;
 		struct
 		{
-			// R (op) A [update cr* in mode *]
 			uint8 registerResult;
 			uint8 registerA;
 		}op_r_r;
 		struct
 		{
-			// R = A (op) B [update cr* in mode *]
 			uint8 registerResult;
 			uint8 registerA;
 			uint8 registerB;
@@ -385,13 +370,11 @@ struct IMLInstruction
 		}op_r_r_s32_carry;
 		struct
 		{
-			// R/F = NAME or NAME = R/F
 			uint8 registerIndex;
 			uint32 name;
-		}op_r_name;
+		}op_r_name; // alias op_name_r
 		struct
 		{
-			// R (op) s32 [update cr* in mode *]
 			uint8 registerIndex;
 			sint32 immS32;
 		}op_r_immS32;
@@ -401,13 +384,6 @@ struct IMLInstruction
 			uint32 param2;
 			uint16 paramU16;
 		}op_macro;
-		struct
-		{
-			uint8 condition; // only used when crRegisterIndex is 8 or above (update: Apparently only used to mark jumps without a condition? -> Cleanup)
-			uint8 crRegisterIndex;
-			uint8 crBitIndex;
-			bool  bitMustBeSet;
-		}op_conditionalJump; // legacy jump
 		struct
 		{
 			uint8 registerData;
@@ -451,6 +427,13 @@ struct IMLInstruction
 		}op_fpr_r;
 		struct
 		{
+			IMLReg regR; // stores the boolean result of the comparison
+			IMLReg regA;
+			IMLReg regB;
+			IMLCondition cond;
+		}op_fpr_compare;
+		struct
+		{
 			uint8 crD; // crBitIndex (result)
 			uint8 crA; // crBitIndex
 			uint8 crB; // crBitIndex
@@ -474,6 +457,13 @@ struct IMLInstruction
 			uint8 registerBool;
 			bool mustBeTrue;
 		}op_conditionalJump2;
+		struct  
+		{
+			IMLReg regEA;
+			IMLReg regCompareValue;
+			IMLReg regWriteValue;
+			IMLReg regBoolOut; // boolean 0/1
+		}op_atomic_compare_store;
 		// conditional operations (emitted if supported by target platform)
 		struct
 		{
@@ -495,7 +485,6 @@ struct IMLInstruction
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_LEAVE ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_HLE ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_MFTB ||
-			type == PPCREC_IML_TYPE_CJUMP ||
 			type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK ||
 			type == PPCREC_IML_TYPE_JUMP ||
 			type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
@@ -508,8 +497,6 @@ struct IMLInstruction
 	{
 		type = PPCREC_IML_TYPE_NO_OP;
 		operation = 0;
-		crRegister = PPC_REC_INVALID_REGISTER;
-		crMode = 0;
 	}
 
 	void make_debugbreak(uint32 currentPPCAddress = 0)
@@ -530,7 +517,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
 		this->operation = 0;
-		this->crRegister = PPC_REC_INVALID_REGISTER;
 	}
 
 
@@ -539,8 +525,6 @@ struct IMLInstruction
 		// operation with two register operands (e.g. "t0 = t1")
 		this->type = PPCREC_IML_TYPE_R_R;
 		this->operation = operation;
-		this->crRegister = crRegister;
-		this->crMode = crMode;
 		this->op_r_r.registerResult = registerResult;
 		this->op_r_r.registerA = registerA;
 	}
@@ -550,8 +534,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_R_S32;
 		this->operation = operation;
-		this->crRegister = crRegister;
-		this->crMode = crMode;
 		this->op_r_immS32.registerIndex = registerIndex;
 		this->op_r_immS32.immS32 = immS32;
 	}
@@ -561,8 +543,6 @@ struct IMLInstruction
 		// operation with three register operands (e.g. "t0 = t1 + t4")
 		this->type = PPCREC_IML_TYPE_R_R_R;
 		this->operation = operation;
-		this->crRegister = crRegister;
-		this->crMode = crMode;
 		this->op_r_r_r.registerResult = registerResult;
 		this->op_r_r_r.registerA = registerA;
 		this->op_r_r_r.registerB = registerB;
@@ -572,8 +552,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_R_R_R_CARRY;
 		this->operation = operation;
-		this->crRegister = 0xFF;
-		this->crMode = 0xFF;
 		this->op_r_r_r_carry.regR = registerResult;
 		this->op_r_r_r_carry.regA = registerA;
 		this->op_r_r_r_carry.regB = registerB;
@@ -585,8 +563,6 @@ struct IMLInstruction
 		// operation with two register operands and one signed immediate (e.g. "t0 = t1 + 1234")
 		this->type = PPCREC_IML_TYPE_R_R_S32;
 		this->operation = operation;
-		this->crRegister = crRegister;
-		this->crMode = crMode;
 		this->op_r_r_s32.registerResult = registerResult;
 		this->op_r_r_s32.registerA = registerA;
 		this->op_r_r_s32.immS32 = immS32;
@@ -596,8 +572,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_R_R_S32_CARRY;
 		this->operation = operation;
-		this->crRegister = 0xFF;
-		this->crMode = 0xFF;
 		this->op_r_r_s32_carry.regR = registerResult;
 		this->op_r_r_s32_carry.regA = registerA;
 		this->op_r_r_s32_carry.immS32 = immS32;
@@ -608,8 +582,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_COMPARE;
 		this->operation = -999;
-		this->crRegister = PPC_REC_INVALID_REGISTER;
-		this->crMode = 0;
 		this->op_compare.registerResult = registerResult;
 		this->op_compare.registerOperandA = registerA;
 		this->op_compare.registerOperandB = registerB;
@@ -620,8 +592,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_COMPARE_S32;
 		this->operation = -999;
-		this->crRegister = PPC_REC_INVALID_REGISTER;
-		this->crMode = 0;
 		this->op_compare_s32.registerResult = registerResult;
 		this->op_compare_s32.registerOperandA = registerA;
 		this->op_compare_s32.immS32 = immS32;
@@ -632,8 +602,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_CONDITIONAL_JUMP;
 		this->operation = -999;
-		this->crRegister = PPC_REC_INVALID_REGISTER;
-		this->crMode = 0;
 		this->op_conditionalJump2.registerBool = registerBool;
 		this->op_conditionalJump2.mustBeTrue = mustBeTrue;
 	}
@@ -642,8 +610,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_JUMP;
 		this->operation = -999;
-		this->crRegister = PPC_REC_INVALID_REGISTER;
-		this->crMode = 0;
 	}
 
 	// load from memory
@@ -651,7 +617,6 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_LOAD;
 		this->operation = 0;
-		this->crRegister = PPC_REC_INVALID_REGISTER;
 		this->op_storeLoad.registerData = registerDestination;
 		this->op_storeLoad.registerMem = registerMemory;
 		this->op_storeLoad.immS32 = immS32;
@@ -665,13 +630,32 @@ struct IMLInstruction
 	{
 		this->type = PPCREC_IML_TYPE_STORE;
 		this->operation = 0;
-		this->crRegister = PPC_REC_INVALID_REGISTER;
 		this->op_storeLoad.registerData = registerSource;
 		this->op_storeLoad.registerMem = registerMemory;
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.copyWidth = copyWidth;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
 		this->op_storeLoad.flags2.signExtend = false;
+	}
+
+	void make_atomic_cmp_store(IMLReg regEA, IMLReg regCompareValue, IMLReg regWriteValue, IMLReg regSuccessOutput)
+	{
+		this->type = PPCREC_IML_TYPE_ATOMIC_CMP_STORE;
+		this->operation = 0;
+		this->op_atomic_compare_store.regEA = regEA;
+		this->op_atomic_compare_store.regCompareValue = regCompareValue;
+		this->op_atomic_compare_store.regWriteValue = regWriteValue;
+		this->op_atomic_compare_store.regBoolOut = regSuccessOutput;
+	}
+
+	void make_fpr_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
+	{
+		this->type = PPCREC_IML_TYPE_FPR_COMPARE;
+		this->operation = -999;
+		this->op_fpr_compare.regR = regR;
+		this->op_fpr_compare.regA = regA;
+		this->op_fpr_compare.regB = regB;
+		this->op_fpr_compare.cond = cond;
 	}
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;

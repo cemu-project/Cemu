@@ -85,7 +85,8 @@ static void PPCInterpreter_STWCX(PPCInterpreter_t* hCPU, uint32 Opcode)
 			ppc_setCRBit(hCPU, CR_BIT_GT, 0);
 			ppc_setCRBit(hCPU, CR_BIT_EQ, 1);
 		}
-		ppc_setCRBit(hCPU, CR_BIT_SO, (hCPU->spr.XER&XER_SO) != 0 ? 1 : 0);
+		cemu_assert_debug(hCPU->xer_so <= 1);
+		ppc_setCRBit(hCPU, CR_BIT_SO, hCPU->xer_so);
 		// remove reservation
 		hCPU->reservedMemAddr = 0;
 		hCPU->reservedMemValue = 0;

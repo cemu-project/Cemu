@@ -511,6 +511,8 @@ uint32 _PPCRecompiler_getCROverwriteMask(ppcImlGenContext_t* ppcImlGenContext, I
  */
 uint32 PPCRecompiler_getCROverwriteMask(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
+	__debugbreak(); // deprecated
+
 	if (imlSegment->nextSegmentIsUncertain)
 	{
 		return 0;
@@ -535,81 +537,83 @@ uint32 PPCRecompiler_getCROverwriteMask(ppcImlGenContext_t* ppcImlGenContext, IM
 
 void PPCRecompiler_removeRedundantCRUpdates(ppcImlGenContext_t* ppcImlGenContext)
 {
-	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
-	{
-		for(IMLInstruction& instIt : segIt->imlList)
-		{
-			if (instIt.type == PPCREC_IML_TYPE_CJUMP)
-			{
-				if (instIt.op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
-				{
-					uint32 crBitFlag = 1 << (instIt.op_conditionalJump.crRegisterIndex * 4 + instIt.op_conditionalJump.crBitIndex);
-					segIt->crBitsInput |= (crBitFlag&~segIt->crBitsWritten); // flag bits that have not already been written
-					segIt->crBitsRead |= (crBitFlag);
-				}
-			}
-			else if (instIt.type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
-			{
-				uint32 crBitFlag = 1 << (instIt.op_conditional_r_s32.crRegisterIndex * 4 + instIt.op_conditional_r_s32.crBitIndex);
-				segIt->crBitsInput |= (crBitFlag&~segIt->crBitsWritten); // flag bits that have not already been written
-				segIt->crBitsRead |= (crBitFlag);
-			}
-			else if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_MFCR)
-			{
-				segIt->crBitsRead |= 0xFFFFFFFF;
-			}
-			else if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_MTCRF)
-			{
-				segIt->crBitsWritten |= ppc_MTCRFMaskToCRBitMask((uint32)instIt.op_r_immS32.immS32);
-			}
-			else if( instIt.type == PPCREC_IML_TYPE_CR )
-			{
-				if (instIt.operation == PPCREC_IML_OP_CR_CLEAR ||
-					instIt.operation == PPCREC_IML_OP_CR_SET)
-				{
-					uint32 crBitFlag = 1 << (instIt.op_cr.crD);
-					segIt->crBitsWritten |= (crBitFlag & ~segIt->crBitsWritten);
-				}
-				else if (instIt.operation == PPCREC_IML_OP_CR_OR ||
-					instIt.operation == PPCREC_IML_OP_CR_ORC ||
-					instIt.operation == PPCREC_IML_OP_CR_AND ||
-					instIt.operation == PPCREC_IML_OP_CR_ANDC)
-				{
-					uint32 crBitFlag = 1 << (instIt.op_cr.crD);
-					segIt->crBitsWritten |= (crBitFlag & ~segIt->crBitsWritten);
-					crBitFlag = 1 << (instIt.op_cr.crA);
-					segIt->crBitsRead |= (crBitFlag & ~segIt->crBitsRead);
-					crBitFlag = 1 << (instIt.op_cr.crB);
-					segIt->crBitsRead |= (crBitFlag & ~segIt->crBitsRead);
-				}
-				else
-					cemu_assert_unimplemented();
-			}
-			else if (IMLAnalyzer_CanTypeWriteCR(&instIt) && instIt.crRegister >= 0 && instIt.crRegister <= 7)
-			{
-				segIt->crBitsWritten |= (0xF<<(instIt.crRegister*4));
-			}
-			else if( (instIt.type == PPCREC_IML_TYPE_STORE || instIt.type == PPCREC_IML_TYPE_STORE_INDEXED) && instIt.op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER )
-			{
-				// overwrites CR0
-				segIt->crBitsWritten |= (0xF<<0);
-			}
-		}
-	}
-	// flag instructions that write to CR where we can ignore individual CR bits
-	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
-	{
-		for (IMLInstruction& instIt : segIt->imlList)
-		{
-			if (IMLAnalyzer_CanTypeWriteCR(&instIt) && instIt.crRegister >= 0 && instIt.crRegister <= 7)
-			{
-				uint32 crBitFlags = 0xF<<((uint32)instIt.crRegister*4);
-				uint32 crOverwriteMask = PPCRecompiler_getCROverwriteMask(ppcImlGenContext, segIt);
-				uint32 crIgnoreMask = crOverwriteMask & ~segIt->crBitsRead;
-				instIt.crIgnoreMask = crIgnoreMask;
-			}
-		}
-	}
+	__debugbreak(); // deprecated
+
+	//for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
+	//{
+	//	for(IMLInstruction& instIt : segIt->imlList)
+	//	{
+	//		if (instIt.type == PPCREC_IML_TYPE_CJUMP)
+	//		{
+	//			if (instIt.op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
+	//			{
+	//				uint32 crBitFlag = 1 << (instIt.op_conditionalJump.crRegisterIndex * 4 + instIt.op_conditionalJump.crBitIndex);
+	//				segIt->crBitsInput |= (crBitFlag&~segIt->crBitsWritten); // flag bits that have not already been written
+	//				segIt->crBitsRead |= (crBitFlag);
+	//			}
+	//		}
+	//		else if (instIt.type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
+	//		{
+	//			uint32 crBitFlag = 1 << (instIt.op_conditional_r_s32.crRegisterIndex * 4 + instIt.op_conditional_r_s32.crBitIndex);
+	//			segIt->crBitsInput |= (crBitFlag&~segIt->crBitsWritten); // flag bits that have not already been written
+	//			segIt->crBitsRead |= (crBitFlag);
+	//		}
+	//		else if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_MFCR)
+	//		{
+	//			segIt->crBitsRead |= 0xFFFFFFFF;
+	//		}
+	//		else if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_MTCRF)
+	//		{
+	//			segIt->crBitsWritten |= ppc_MTCRFMaskToCRBitMask((uint32)instIt.op_r_immS32.immS32);
+	//		}
+	//		else if( instIt.type == PPCREC_IML_TYPE_CR )
+	//		{
+	//			if (instIt.operation == PPCREC_IML_OP_CR_CLEAR ||
+	//				instIt.operation == PPCREC_IML_OP_CR_SET)
+	//			{
+	//				uint32 crBitFlag = 1 << (instIt.op_cr.crD);
+	//				segIt->crBitsWritten |= (crBitFlag & ~segIt->crBitsWritten);
+	//			}
+	//			else if (instIt.operation == PPCREC_IML_OP_CR_OR ||
+	//				instIt.operation == PPCREC_IML_OP_CR_ORC ||
+	//				instIt.operation == PPCREC_IML_OP_CR_AND ||
+	//				instIt.operation == PPCREC_IML_OP_CR_ANDC)
+	//			{
+	//				uint32 crBitFlag = 1 << (instIt.op_cr.crD);
+	//				segIt->crBitsWritten |= (crBitFlag & ~segIt->crBitsWritten);
+	//				crBitFlag = 1 << (instIt.op_cr.crA);
+	//				segIt->crBitsRead |= (crBitFlag & ~segIt->crBitsRead);
+	//				crBitFlag = 1 << (instIt.op_cr.crB);
+	//				segIt->crBitsRead |= (crBitFlag & ~segIt->crBitsRead);
+	//			}
+	//			else
+	//				cemu_assert_unimplemented();
+	//		}
+	//		else if (IMLAnalyzer_CanTypeWriteCR(&instIt) && instIt.crRegister >= 0 && instIt.crRegister <= 7)
+	//		{
+	//			segIt->crBitsWritten |= (0xF<<(instIt.crRegister*4));
+	//		}
+	//		else if( (instIt.type == PPCREC_IML_TYPE_STORE || instIt.type == PPCREC_IML_TYPE_STORE_INDEXED) && instIt.op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER )
+	//		{
+	//			// overwrites CR0
+	//			segIt->crBitsWritten |= (0xF<<0);
+	//		}
+	//	}
+	//}
+	//// flag instructions that write to CR where we can ignore individual CR bits
+	//for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
+	//{
+	//	for (IMLInstruction& instIt : segIt->imlList)
+	//	{
+	//		if (IMLAnalyzer_CanTypeWriteCR(&instIt) && instIt.crRegister >= 0 && instIt.crRegister <= 7)
+	//		{
+	//			uint32 crBitFlags = 0xF<<((uint32)instIt.crRegister*4);
+	//			uint32 crOverwriteMask = PPCRecompiler_getCROverwriteMask(ppcImlGenContext, segIt);
+	//			uint32 crIgnoreMask = crOverwriteMask & ~segIt->crBitsRead;
+	//			instIt.crIgnoreMask = crIgnoreMask;
+	//		}
+	//	}
+	//}
 }
 
 //bool PPCRecompiler_checkIfGPRIsModifiedInRange(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 startIndex, sint32 endIndex, sint32 vreg)

@@ -18,7 +18,7 @@ bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 	// loops using BDNZ are assumed to always be finite
 	for(const IMLInstruction& instIt : imlSegment->imlList)
 	{
-		if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_SUB && instIt.crRegister == 8)
+		if (instIt.type == PPCREC_IML_TYPE_R_S32 && instIt.operation == PPCREC_IML_OP_SUB)
 		{
 			return true;
 		}
@@ -92,59 +92,60 @@ bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction)
 
 void IMLAnalyzer_GetCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_t* crTracking)
 {
-	crTracking->readCRBits = 0;
-	crTracking->writtenCRBits = 0;
-	if (imlInstruction->type == PPCREC_IML_TYPE_CJUMP)
-	{
-		if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
-		{
-			uint32 crBitFlag = 1 << (imlInstruction->op_conditionalJump.crRegisterIndex * 4 + imlInstruction->op_conditionalJump.crBitIndex);
-			crTracking->readCRBits = (crBitFlag);
-		}
-	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
-	{
-		uint32 crBitFlag = 1 << (imlInstruction->op_conditional_r_s32.crRegisterIndex * 4 + imlInstruction->op_conditional_r_s32.crBitIndex);
-		crTracking->readCRBits = crBitFlag;
-	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_MFCR)
-	{
-		crTracking->readCRBits = 0xFFFFFFFF;
-	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_MTCRF)
-	{
-		crTracking->writtenCRBits |= ppc_MTCRFMaskToCRBitMask((uint32)imlInstruction->op_r_immS32.immS32);
-	}
-	else if (imlInstruction->type == PPCREC_IML_TYPE_CR)
-	{
-		if (imlInstruction->operation == PPCREC_IML_OP_CR_CLEAR ||
-			imlInstruction->operation == PPCREC_IML_OP_CR_SET)
-		{
-			uint32 crBitFlag = 1 << (imlInstruction->op_cr.crD);
-			crTracking->writtenCRBits = crBitFlag;
-		}
-		else if (imlInstruction->operation == PPCREC_IML_OP_CR_OR ||
-			imlInstruction->operation == PPCREC_IML_OP_CR_ORC ||
-			imlInstruction->operation == PPCREC_IML_OP_CR_AND || 
-			imlInstruction->operation == PPCREC_IML_OP_CR_ANDC)
-		{
-			uint32 crBitFlag = 1 << (imlInstruction->op_cr.crD);
-			crTracking->writtenCRBits = crBitFlag;
-			crBitFlag = 1 << (imlInstruction->op_cr.crA);
-			crTracking->readCRBits = crBitFlag;
-			crBitFlag = 1 << (imlInstruction->op_cr.crB);
-			crTracking->readCRBits |= crBitFlag;
-		}
-		else
-			assert_dbg();
-	}
-	else if (IMLAnalyzer_CanTypeWriteCR(imlInstruction) && imlInstruction->crRegister >= 0 && imlInstruction->crRegister <= 7)
-	{
-		crTracking->writtenCRBits |= (0xF << (imlInstruction->crRegister * 4));
-	}
-	else if ((imlInstruction->type == PPCREC_IML_TYPE_STORE || imlInstruction->type == PPCREC_IML_TYPE_STORE_INDEXED) && imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER)
-	{
-		// overwrites CR0
-		crTracking->writtenCRBits |= (0xF << 0);
-	}
+	__debugbreak();
+	//crTracking->readCRBits = 0;
+	//crTracking->writtenCRBits = 0;
+	//if (imlInstruction->type == PPCREC_IML_TYPE_CJUMP)
+	//{
+	//	if (imlInstruction->op_conditionalJump.condition != PPCREC_JUMP_CONDITION_NONE)
+	//	{
+	//		uint32 crBitFlag = 1 << (imlInstruction->op_conditionalJump.crRegisterIndex * 4 + imlInstruction->op_conditionalJump.crBitIndex);
+	//		crTracking->readCRBits = (crBitFlag);
+	//	}
+	//}
+	//else if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
+	//{
+	//	uint32 crBitFlag = 1 << (imlInstruction->op_conditional_r_s32.crRegisterIndex * 4 + imlInstruction->op_conditional_r_s32.crBitIndex);
+	//	crTracking->readCRBits = crBitFlag;
+	//}
+	//else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_MFCR)
+	//{
+	//	crTracking->readCRBits = 0xFFFFFFFF;
+	//}
+	//else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_MTCRF)
+	//{
+	//	crTracking->writtenCRBits |= ppc_MTCRFMaskToCRBitMask((uint32)imlInstruction->op_r_immS32.immS32);
+	//}
+	//else if (imlInstruction->type == PPCREC_IML_TYPE_CR)
+	//{
+	//	if (imlInstruction->operation == PPCREC_IML_OP_CR_CLEAR ||
+	//		imlInstruction->operation == PPCREC_IML_OP_CR_SET)
+	//	{
+	//		uint32 crBitFlag = 1 << (imlInstruction->op_cr.crD);
+	//		crTracking->writtenCRBits = crBitFlag;
+	//	}
+	//	else if (imlInstruction->operation == PPCREC_IML_OP_CR_OR ||
+	//		imlInstruction->operation == PPCREC_IML_OP_CR_ORC ||
+	//		imlInstruction->operation == PPCREC_IML_OP_CR_AND || 
+	//		imlInstruction->operation == PPCREC_IML_OP_CR_ANDC)
+	//	{
+	//		uint32 crBitFlag = 1 << (imlInstruction->op_cr.crD);
+	//		crTracking->writtenCRBits = crBitFlag;
+	//		crBitFlag = 1 << (imlInstruction->op_cr.crA);
+	//		crTracking->readCRBits = crBitFlag;
+	//		crBitFlag = 1 << (imlInstruction->op_cr.crB);
+	//		crTracking->readCRBits |= crBitFlag;
+	//	}
+	//	else
+	//		assert_dbg();
+	//}
+	//else if (IMLAnalyzer_CanTypeWriteCR(imlInstruction) && imlInstruction->crRegister >= 0 && imlInstruction->crRegister <= 7)
+	//{
+	//	crTracking->writtenCRBits |= (0xF << (imlInstruction->crRegister * 4));
+	//}
+	//else if ((imlInstruction->type == PPCREC_IML_TYPE_STORE || imlInstruction->type == PPCREC_IML_TYPE_STORE_INDEXED) && imlInstruction->op_storeLoad.copyWidth == PPC_REC_STORE_STWCX_MARKER)
+	//{
+	//	// overwrites CR0
+	//	crTracking->writtenCRBits |= (0xF << 0);
+	//}
 }

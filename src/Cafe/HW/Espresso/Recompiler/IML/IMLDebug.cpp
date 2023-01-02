@@ -206,6 +206,18 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			{
 				strOutput.addFmt("spr{}", inst.op_r_name.name - PPCREC_NAME_SPR0);
 			}
+			else if (inst.op_r_name.name >= PPCREC_NAME_CR && inst.op_r_name.name <= PPCREC_NAME_CR_LAST)
+				strOutput.addFmt("cr{}", inst.op_r_name.name - PPCREC_NAME_CR);
+			else if (inst.op_r_name.name == PPCREC_NAME_XER_CA)
+				strOutput.add("xer.ca");
+			else if (inst.op_r_name.name == PPCREC_NAME_XER_SO)
+				strOutput.add("xer.so");
+			else if (inst.op_r_name.name == PPCREC_NAME_XER_OV)
+				strOutput.add("xer.ov");
+			else if (inst.op_r_name.name == PPCREC_NAME_CPU_MEMRES_EA)
+				strOutput.add("cpuReservation.ea");
+			else if (inst.op_r_name.name == PPCREC_NAME_CPU_MEMRES_VAL)
+				strOutput.add("cpuReservation.value");
 			else
 				strOutput.add("ukn");
 			strOutput.add(")");
@@ -217,11 +229,6 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 				strOutput.add(" ");
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r.registerResult);
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r.registerA, true);
-
-			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
-			{
-				strOutput.addFmt(" -> CR{}", inst.crRegister);
-			}
 		}
 		else if (inst.type == PPCREC_IML_TYPE_R_R_R)
 		{
@@ -231,10 +238,6 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r.registerResult);
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r.registerA);
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r.registerB, true);
-			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
-			{
-				strOutput.addFmt(" -> CR{}", inst.crRegister);
-			}
 		}
 		else if (inst.type == PPCREC_IML_TYPE_R_R_R_CARRY)
 		{
@@ -274,8 +277,12 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_conditionalJump2.registerBool, true);
-			if(!inst.op_conditionalJump2.mustBeTrue)
+			if (!inst.op_conditionalJump2.mustBeTrue)
 				strOutput.add("(inverted)");
+		}
+		else if (inst.type == PPCREC_IML_TYPE_JUMP)
+		{
+			strOutput.add("JUMP");
 		}
 		else if (inst.type == PPCREC_IML_TYPE_R_R_S32)
 		{
@@ -286,11 +293,6 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_s32.registerResult);
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_s32.registerA);
 			IMLDebug_AppendS32Param(strOutput, inst.op_r_r_s32.immS32, true);
-
-			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
-			{
-				strOutput.addFmt(" -> CR{}", inst.crRegister);
-			}
 		}
 		else if (inst.type == PPCREC_IML_TYPE_R_R_S32_CARRY)
 		{
@@ -311,55 +313,42 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_immS32.registerIndex);
 			IMLDebug_AppendS32Param(strOutput, inst.op_r_immS32.immS32, true);
-
-			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
-			{
-				strOutput.addFmt(" -> CR{}", inst.crRegister);
-			}
 		}
 		else if (inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_STORE ||
 			inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
-		{
-			if (inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_LOAD_INDEXED)
-				strOutput.add("LD_");
-			else
-				strOutput.add("ST_");
+			{
+				if (inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_LOAD_INDEXED)
+					strOutput.add("LD_");
+				else
+					strOutput.add("ST_");
 
-			if (inst.op_storeLoad.flags2.signExtend)
-				strOutput.add("S");
-			else
-				strOutput.add("U");
-			strOutput.addFmt("{}", inst.op_storeLoad.copyWidth);
+				if (inst.op_storeLoad.flags2.signExtend)
+					strOutput.add("S");
+				else
+					strOutput.add("U");
+				strOutput.addFmt("{}", inst.op_storeLoad.copyWidth);
+
+				while ((sint32)strOutput.getLen() < lineOffsetParameters)
+					strOutput.add(" ");
+
+				IMLDebug_AppendRegisterParam(strOutput, inst.op_storeLoad.registerData);
+
+				if (inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
+					strOutput.addFmt("[t{}+t{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.registerMem2);
+				else
+					strOutput.addFmt("[t{}+{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.immS32);
+		}
+		else if (inst.type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
+		{
+			strOutput.add("ATOMIC_ST_U32");
 
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
 
-			IMLDebug_AppendRegisterParam(strOutput, inst.op_storeLoad.registerData);
-
-			if (inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
-				strOutput.addFmt("[t{}+t{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.registerMem2);
-			else
-				strOutput.addFmt("[t{}+{}]", inst.op_storeLoad.registerMem, inst.op_storeLoad.immS32);
-		}
-		else if (inst.type == PPCREC_IML_TYPE_CJUMP)
-		{
-			if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_E)
-				strOutput.add("JE");
-			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NE)
-				strOutput.add("JNE");
-			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_G)
-				strOutput.add("JG");
-			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_GE)
-				strOutput.add("JGE");
-			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_L)
-				strOutput.add("JL");
-			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_LE)
-				strOutput.add("JLE");
-			else if (inst.op_conditionalJump.condition == PPCREC_JUMP_CONDITION_NONE)
-				strOutput.add("JALW"); // jump always
-			else
-				cemu_assert_unimplemented();
-			strOutput.addFmt(" (cr{})", inst.crRegister);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_atomic_compare_store.regEA);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_atomic_compare_store.regCompareValue);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_atomic_compare_store.regWriteValue);
+			IMLDebug_AppendRegisterParam(strOutput, inst.op_atomic_compare_store.regBoolOut, true);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_NO_OP)
 		{
@@ -487,10 +476,6 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			else
 				strOutput.addFmt(" {}", inst.op_conditional_r_s32.immS32);
 			strOutput.add(" (conditional)");
-			if (inst.crRegister != PPC_REC_INVALID_REGISTER)
-			{
-				strOutput.addFmt(" -> and update CR{}", inst.crRegister);
-			}
 		}
 		else
 		{

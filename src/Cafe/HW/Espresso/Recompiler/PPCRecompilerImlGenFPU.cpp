@@ -1,14 +1,16 @@
+#include "Cafe/HW/Espresso/EspressoISA.h"
 #include "../Interpreter/PPCInterpreterInternal.h"
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
 #include "Cafe/GameProfile/GameProfile.h"
+
+IMLReg _GetCRReg(ppcImlGenContext_t* ppcImlGenContext, uint8 crReg, uint8 crBit);
 
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext_t* ppcImlGenContext, uint8 registerDestination, uint8 registerMemory, sint32 immS32, uint32 mode, bool switchEndian, uint8 registerGQR = PPC_REC_INVALID_REGISTER)
 {
 	// load from memory
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_LOAD;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
 	imlInstruction->op_storeLoad.registerData = registerDestination;
 	imlInstruction->op_storeLoad.registerMem = registerMemory;
@@ -23,7 +25,6 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory_indexed(ppcImlGenCo
 	// load from memory
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_LOAD_INDEXED;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
 	imlInstruction->op_storeLoad.registerData = registerDestination;
 	imlInstruction->op_storeLoad.registerMem = registerMemory1;
@@ -39,7 +40,6 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext_t*
 	// store to memory
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_STORE;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
 	imlInstruction->op_storeLoad.registerData = registerSource;
 	imlInstruction->op_storeLoad.registerMem = registerMemory;
@@ -54,7 +54,6 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenCo
 	// store to memory
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_STORE_INDEXED;
-	imlInstruction->crRegister = PPC_REC_INVALID_REGISTER;
 	imlInstruction->operation = 0;
 	imlInstruction->op_storeLoad.registerData = registerSource;
 	imlInstruction->op_storeLoad.registerMem = registerMemory1;
@@ -73,7 +72,6 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext_t* ppcI
 	imlInstruction->operation = operation;
 	imlInstruction->op_fpr_r_r.registerResult = registerResult;
 	imlInstruction->op_fpr_r_r.registerOperand = registerOperand;
-	imlInstruction->crRegister = crRegister;
 	imlInstruction->op_fpr_r_r.flags = 0;
 }
 
@@ -86,7 +84,6 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext_t* pp
 	imlInstruction->op_fpr_r_r_r.registerResult = registerResult;
 	imlInstruction->op_fpr_r_r_r.registerOperandA = registerOperand1;
 	imlInstruction->op_fpr_r_r_r.registerOperandB = registerOperand2;
-	imlInstruction->crRegister = crRegister;
 	imlInstruction->op_fpr_r_r_r.flags = 0;
 }
 
@@ -100,7 +97,6 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext_t* 
 	imlInstruction->op_fpr_r_r_r_r.registerOperandA = registerOperandA;
 	imlInstruction->op_fpr_r_r_r_r.registerOperandB = registerOperandB;
 	imlInstruction->op_fpr_r_r_r_r.registerOperandC = registerOperandC;
-	imlInstruction->crRegister = crRegister;
 	imlInstruction->op_fpr_r_r_r_r.flags = 0;
 }
 
@@ -112,7 +108,6 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcIml
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R;
 	imlInstruction->operation = operation;
 	imlInstruction->op_fpr_r.registerResult = registerResult;
-	imlInstruction->crRegister = crRegister;
 }
 
 /*
@@ -916,12 +911,33 @@ bool PPCRecompilerImlGen_FNMSUBS(ppcImlGenContext_t* ppcImlGenContext, uint32 op
 
 bool PPCRecompilerImlGen_FCMPO(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	sint32 crfD, frA, frB;
-	PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
-	crfD >>= 2;
-	uint32 fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	uint32 fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPO_BOTTOM, fprRegisterA, fprRegisterB, crfD);
+	printf("FCMPO: Not implemented\n");
+	return false;
+
+	//sint32 crfD, frA, frB;
+	//PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
+	//crfD >>= 2;
+	//IMLReg regFprA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
+	//IMLReg regFprB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
+
+	//IMLReg crBitRegLT = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_LT);
+	//IMLReg crBitRegGT = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_GT);
+	//IMLReg crBitRegEQ = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_EQ);
+	//IMLReg crBitRegSO = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_SO);
+
+	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegLT, IMLCondition::UNORDERED_LT);
+	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegGT, IMLCondition::UNORDERED_GT);
+	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegEQ, IMLCondition::UNORDERED_EQ);
+	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegSO, IMLCondition::UNORDERED_U);
+
+	// todo - set fpscr
+
+	//sint32 crfD, frA, frB;
+	//PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
+	//crfD >>= 2;
+	//uint32 fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
+	//uint32 fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
+	//PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPO_BOTTOM, fprRegisterA, fprRegisterB, crfD);
 	return true;
 }
 
@@ -930,9 +946,21 @@ bool PPCRecompilerImlGen_FCMPU(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	sint32 crfD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
 	crfD >>= 2;
-	uint32 fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	uint32 fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPU_BOTTOM, fprRegisterA, fprRegisterB, crfD);
+	IMLReg regFprA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
+	IMLReg regFprB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
+
+	IMLReg crBitRegLT = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_LT);
+	IMLReg crBitRegGT = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_GT);
+	IMLReg crBitRegEQ = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_EQ);
+	IMLReg crBitRegSO = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_SO);
+
+	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegLT, IMLCondition::UNORDERED_LT);
+	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegGT, IMLCondition::UNORDERED_GT);
+	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegEQ, IMLCondition::UNORDERED_EQ);
+	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegSO, IMLCondition::UNORDERED_U);
+
+	// todo: set fpscr
+
 	return true;
 }
 
@@ -1837,6 +1865,9 @@ bool PPCRecompilerImlGen_PS_MERGE11(ppcImlGenContext_t* ppcImlGenContext, uint32
 
 bool PPCRecompilerImlGen_PS_CMPO0(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	printf("PS_CMPO0: Not implemented\n");
+	return false;
+
 	sint32 crfD, frA, frB;
 	uint32 c=0;
 	frB = (opcode>>11)&0x1F;
@@ -1851,6 +1882,9 @@ bool PPCRecompilerImlGen_PS_CMPO0(ppcImlGenContext_t* ppcImlGenContext, uint32 o
 
 bool PPCRecompilerImlGen_PS_CMPU0(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	printf("PS_CMPU0: Not implemented\n");
+	return false;
+
 	sint32 crfD, frA, frB;
 	frB = (opcode >> 11) & 0x1F;
 	frA = (opcode >> 16) & 0x1F;
@@ -1863,6 +1897,9 @@ bool PPCRecompilerImlGen_PS_CMPU0(ppcImlGenContext_t* ppcImlGenContext, uint32 o
 
 bool PPCRecompilerImlGen_PS_CMPU1(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
+	printf("PS_CMPU1: Not implemented\n");
+	return false;
+
 	sint32 crfD, frA, frB;
 	frB = (opcode >> 11) & 0x1F;
 	frA = (opcode >> 16) & 0x1F;

@@ -84,6 +84,7 @@ public:
 	using GPR64 = X86Reg;
 	using GPR32 = X86Reg;
 	using GPR8_REX = X86Reg;
+	void LockPrefix() { _emitU8(0xF0); };
 	void ADD_bb(GPR8_REX dst, GPR8_REX src)
 	{
 		if ((src >= 4) || (dst >= 4))
@@ -3194,6 +3195,124 @@ public:
 		if (mod == 1) _emitU8((u8)offset);
 		else if (mod == 2) _emitU32((u32)offset);
 	}
+	void XCHG_bb(GPR8_REX dst, GPR8_REX src)
+	{
+		if ((dst >= 4) || (src >= 4))
+		{
+			_emitU8(0x40 | ((src & 8) >> 3) | ((dst & 8) >> 1));
+		}
+		_emitU8(0x86);
+		_emitU8((3 << 6) | ((dst & 7) << 3) | (src & 7));
+	}
+	void XCHG_bb_r(GPR8_REX dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst >= 4) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst >= 4) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x86);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void XCHG_dd(GPR32 dst, GPR32 src)
+	{
+		if (((dst & 8) != 0) || ((src & 8) != 0))
+		{
+			_emitU8(0x40 | ((src & 8) >> 3) | ((dst & 8) >> 1));
+		}
+		_emitU8(0x87);
+		_emitU8((3 << 6) | ((dst & 7) << 3) | (src & 7));
+	}
+	void XCHG_qq(GPR64 dst, GPR64 src)
+	{
+		_emitU8(0x48 | ((src & 8) >> 3) | ((dst & 8) >> 1));
+		_emitU8(0x87);
+		_emitU8((3 << 6) | ((dst & 7) << 3) | (src & 7));
+	}
+	void XCHG_dd_r(GPR32 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((dst & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((dst & 8) || (memReg & 8))
+				_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x87);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void XCHG_qq_r(GPR64 dst, GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((dst & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x87);
+		_emitU8((mod << 6) | ((dst & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
 	void MOV_bb(GPR8_REX dst, GPR8_REX src)
 	{
 		if ((src >= 4) || (dst >= 4))
@@ -4031,6 +4150,102 @@ public:
 		}
 		if (mod == 1) _emitU8((u8)offset);
 		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void CMPXCHG_dd(GPR32 dst, GPR32 src)
+	{
+		if (((src & 8) != 0) || ((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		}
+		_emitU8(0x0f);
+		_emitU8(0xb1);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void CMPXCHG_qq(GPR64 dst, GPR64 src)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3) | ((src & 8) >> 1));
+		_emitU8(0x0f);
+		_emitU8(0xb1);
+		_emitU8((3 << 6) | ((src & 7) << 3) | (dst & 7));
+	}
+	void CMPXCHG_dd_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR32 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			if ((src & 8) || (memReg & 8) || ((index != X86_REG_NONE) && (index & 8)))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2));
+		}
+		else
+		{
+			if ((src & 8) || (memReg & 8))
+				_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1));
+		}
+		_emitU8(0x0f);
+		_emitU8(0xb1);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void CMPXCHG_qq_l(GPR64 memReg, sint32 offset, GPR64 index, uint8 scaler, GPR64 src)
+	{
+		uint8 mod;
+		if (offset == 0 && (memReg & 7) != 5) mod = 0;
+		else if (offset == (s32)(s8)offset) mod = 1;
+		else mod = 2;
+		bool sib_use = (scaler != 0 && index != X86_REG_NONE);
+		if ((memReg & 7) == 4)
+		{
+			cemu_assert_debug(index == X86_REG_NONE);
+			index = memReg;
+			sib_use = true;
+		}
+		if (sib_use)
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 3) | ((index & 8) >> 2) | 0x08);
+		}
+		else
+		{
+			_emitU8(0x40 | ((src & 8) >> 1) | ((memReg & 8) >> 1) | 0x08);
+		}
+		_emitU8(0x0f);
+		_emitU8(0xb1);
+		_emitU8((mod << 6) | ((src & 7) << 3) | (sib_use ? 4 : (memReg & 7)));
+		if (sib_use)
+		{
+			_emitU8((0 << 6) | ((memReg & 7)) | ((index & 7) << 3));
+		}
+		if (mod == 1) _emitU8((u8)offset);
+		else if (mod == 2) _emitU32((u32)offset);
+	}
+	void BSWAP_d(GPR32 dst)
+	{
+		if (((dst & 8) != 0))
+		{
+			_emitU8(0x40 | ((dst & 8) >> 3));
+		}
+		_emitU8(0x0f);
+		_emitU8(0xc8 | ((dst) & 7));
+	}
+	void BSWAP_q(GPR64 dst)
+	{
+		_emitU8(0x48 | ((dst & 8) >> 3));
+		_emitU8(0x0f);
+		_emitU8(0xc8 | ((dst) & 7));
 	}
 	void BT_du8(GPR32 dst, u8 imm)
 	{

@@ -62,11 +62,6 @@ enum
 	X86_CONDITION_NONE, // no condition, jump always
 };
 
-#define PPCREC_CR_TEMPORARY							(8)		// never stored
-#define PPCREC_CR_STATE_TYPE_UNSIGNED_ARITHMETIC	(0)		// for signed arithmetic operations (ADD, CMPI)
-#define PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC		(1)		// for unsigned arithmetic operations (ADD, CMPI)
-#define PPCREC_CR_STATE_TYPE_LOGICAL				(2)		// for unsigned operations (CMPLI)
-
 #define PPC_X64_GPR_USABLE_REGISTERS		(16-4)
 #define PPC_X64_FPR_USABLE_REGISTERS		(16-1) // Use XMM0 - XMM14, XMM15 is the temp register
 
@@ -85,6 +80,8 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
 void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
 void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
+
+void PPCRecompilerX64Gen_imlInstruction_fpr_compare(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
 
 // ASM gen
 void x64Gen_writeU8(x64GenContext_t* x64GenContext, uint8 v);
