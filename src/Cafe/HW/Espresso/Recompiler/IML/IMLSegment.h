@@ -1,7 +1,7 @@
 #pragma once
 #include "IMLInstruction.h"
 
-#define IML_RA_VIRT_REG_COUNT_MAX	40 // should match PPC_REC_MAX_VIRTUAL_GPR -> todo: Make this dynamic
+#define IML_RA_VIRT_REG_COUNT_MAX	(40 + 32) // should match PPC_REC_MAX_VIRTUAL_GPR -> todo: Make this dynamic
 
 struct IMLSegmentPoint
 {

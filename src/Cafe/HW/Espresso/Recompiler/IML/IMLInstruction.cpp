@@ -154,7 +154,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		// carry is always written
 		registersUsed->writtenNamedReg2 = op_r_r_r_carry.regCarry;
 	}
-	else if (type == PPCREC_IML_TYPE_CJUMP || type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+	else if (type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 	{
 		// no effect on registers
 	}
@@ -222,9 +222,12 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		if (op_storeLoad.registerMem2 != PPC_REC_INVALID_REGISTER)
 			registersUsed->readNamedReg3 = op_storeLoad.registerMem2;
 	}
-	else if (type == PPCREC_IML_TYPE_CR)
+	else if (type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 	{
-		// only affects cr register	
+		registersUsed->readNamedReg1 = op_atomic_compare_store.regEA;
+		registersUsed->readNamedReg2 = op_atomic_compare_store.regCompareValue;
+		registersUsed->readNamedReg3 = op_atomic_compare_store.regWriteValue;
+		registersUsed->writtenNamedReg1 = op_atomic_compare_store.regBoolOut;
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{
@@ -467,6 +470,12 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		else
 			cemu_assert_unimplemented();
 	}
+	else if (type == PPCREC_IML_TYPE_FPR_COMPARE)
+	{
+		registersUsed->writtenNamedReg1 = op_fpr_compare.regR;
+		registersUsed->readFPR1 = op_fpr_compare.regA;
+		registersUsed->readFPR2 = op_fpr_compare.regB;
+	}
 	else
 	{
 		cemu_assert_unimplemented();
@@ -560,7 +569,7 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLReg, IMLReg>& transl
 	{
 		op_conditionalJump2.registerBool = replaceRegisterMultiple(op_conditionalJump2.registerBool, translationTable);
 	}
-	else if (type == PPCREC_IML_TYPE_CJUMP || type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK || type == PPCREC_IML_TYPE_JUMP)
+	else if (type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK || type == PPCREC_IML_TYPE_JUMP)
 	{
 		// no effect on registers
 	}
@@ -613,9 +622,12 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLReg, IMLReg>& transl
 		if (op_storeLoad.registerMem2 != PPC_REC_INVALID_REGISTER)
 			op_storeLoad.registerMem2 = replaceRegisterMultiple(op_storeLoad.registerMem2, translationTable);
 	}
-	else if (type == PPCREC_IML_TYPE_CR)
+	else if (type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 	{
-		// only affects cr register	
+		op_atomic_compare_store.regEA = replaceRegisterMultiple(op_atomic_compare_store.regEA, translationTable);
+		op_atomic_compare_store.regCompareValue = replaceRegisterMultiple(op_atomic_compare_store.regCompareValue, translationTable);
+		op_atomic_compare_store.regWriteValue = replaceRegisterMultiple(op_atomic_compare_store.regWriteValue, translationTable);
+		op_atomic_compare_store.regBoolOut = replaceRegisterMultiple(op_atomic_compare_store.regBoolOut, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{
@@ -689,6 +701,10 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLReg, IMLReg>& transl
 	else if (type == PPCREC_IML_TYPE_FPR_R)
 	{
 	}
+	else if (type == PPCREC_IML_TYPE_FPR_COMPARE)
+	{
+		op_fpr_compare.regR = replaceRegisterMultiple(op_fpr_compare.regR, translationTable);
+	}
 	else
 	{
 		cemu_assert_unimplemented();
@@ -725,7 +741,7 @@ void IMLInstruction::ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegist
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_CJUMP || type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+	else if (type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 	{
 		// not affected
 	}
@@ -753,9 +769,9 @@ void IMLInstruction::ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegist
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_CR)
+	else if (type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 	{
-		// only affects cr register	
+		;
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{
@@ -803,6 +819,11 @@ void IMLInstruction::ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegist
 	{
 		op_fpr_r.registerResult = replaceRegisterMultiple(op_fpr_r.registerResult, fprRegisterSearched, fprRegisterReplaced);
 	}
+	else if (type == PPCREC_IML_TYPE_FPR_COMPARE)
+	{
+		op_fpr_compare.regA = replaceRegisterMultiple(op_fpr_compare.regA, fprRegisterSearched, fprRegisterReplaced);
+		op_fpr_compare.regB = replaceRegisterMultiple(op_fpr_compare.regB, fprRegisterSearched, fprRegisterReplaced);
+	}
 	else
 	{
 		cemu_assert_unimplemented();
@@ -839,7 +860,7 @@ void IMLInstruction::ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterRe
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_CJUMP || type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+	else if (type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
 	{
 		// not affected
 	}
@@ -867,9 +888,9 @@ void IMLInstruction::ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterRe
 	{
 		// not affected
 	}
-	else if (type == PPCREC_IML_TYPE_CR)
+	else if (type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 	{
-		// only affects cr register	
+		;
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{

@@ -186,6 +186,14 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
+	//if (ppcRecFunc->ppcAddress == 0x30DF5F8)
+	//{
+	//	debug_printf("----------------------------------------\n");
+	//	IMLDebug_Dump(&ppcImlGenContext);
+	//	__debugbreak();
+	//}
+
+
 	//if (ppcRecFunc->ppcAddress == 0x11223344)
 	//{
 	//	//debug_printf("----------------------------------------\n");
@@ -302,9 +310,8 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 
 	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext, raParam);
 
-	// remove redundant name load and store instructions
-	PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
-	PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
+	//PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
+	//PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
 
 	return true;
 }

@@ -6,7 +6,7 @@
 
 #define PPC_REC_ALIGN_TO_4MB(__v)	(((__v)+4*1024*1024-1)&~(4*1024*1024-1))
 
-#define PPC_REC_MAX_VIRTUAL_GPR		(40) // enough to store 32 GPRs + a few SPRs + temp registers (usually only 1-2)
+#define PPC_REC_MAX_VIRTUAL_GPR		(40 + 32) // enough to store 32 GPRs + a few SPRs + temp registers (usually only 1-2)
 
 struct ppcRecRange_t
 {
