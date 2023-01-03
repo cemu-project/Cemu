@@ -1049,19 +1049,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		if( rRegResult != X86_REG_RDX )
 			x64Emit_mov_reg64_mem32(x64GenContext, X86_REG_EDX, X86_REG_RSP, (uint32)offsetof(PPCInterpreter_t, temporaryGPR[1]));
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_ORC )
-	{
-		// registerResult = registerOperand1 | ~registerOperand2
-		sint32 rRegResult = imlInstruction->op_r_r_r.registerResult;
-		sint32 rRegOperand1 = imlInstruction->op_r_r_r.registerA;
-		sint32 rRegOperand2 = imlInstruction->op_r_r_r.registerB;
-
-		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, rRegOperand2);
-		x64Gen_not_reg64Low32(x64GenContext, REG_RESV_TEMP);
-		if( rRegResult != rRegOperand1 )
-			x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, rRegResult, rRegOperand1);
-		x64Gen_or_reg64Low32_reg64Low32(x64GenContext, rRegResult, REG_RESV_TEMP);
-	}
 	else
 	{
 		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
