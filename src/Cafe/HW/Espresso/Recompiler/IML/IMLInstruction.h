@@ -518,7 +518,6 @@ struct IMLInstruction
 		this->op_r_r.registerA = registerA;
 	}
 
-
 	void make_r_s32(uint32 operation, uint8 registerIndex, sint32 immS32)
 	{
 		this->type = PPCREC_IML_TYPE_R_S32;
