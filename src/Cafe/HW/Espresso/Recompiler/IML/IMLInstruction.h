@@ -4,8 +4,6 @@ enum
 {
 	PPCREC_IML_OP_ASSIGN,			// '=' operator
 	PPCREC_IML_OP_ENDIAN_SWAP,		// '=' operator with 32bit endian swap
-	PPCREC_IML_OP_COMPARE_SIGNED,	// arithmetic/signed comparison operator (updates cr)
-	PPCREC_IML_OP_COMPARE_UNSIGNED, // logical/unsigned comparison operator (updates cr)
 	PPCREC_IML_OP_MULTIPLY_SIGNED,  // '*' operator (signed multiply)
 	PPCREC_IML_OP_MULTIPLY_HIGH_UNSIGNED, // unsigned 64bit multiply, store only high 32bit-word of result
 	PPCREC_IML_OP_MULTIPLY_HIGH_SIGNED, // signed 64bit multiply, store only high 32bit-word of result
@@ -14,7 +12,6 @@ enum
 
 	// binary operation
 	PPCREC_IML_OP_OR,				// '|' operator
-	PPCREC_IML_OP_ORC,				// '|' operator, second operand is complemented first
 	PPCREC_IML_OP_AND,				// '&' operator
 	PPCREC_IML_OP_XOR,				// '^' operator
 	PPCREC_IML_OP_LEFT_ROTATE,		// left rotate operator
@@ -192,12 +189,6 @@ enum
 };
 
 #define PPC_REC_INVALID_REGISTER	0xFF	// deprecated. Use IMLREG_INVALID instead
-
-// deprecated, use Espresso namespace
-#define PPCREC_CR_BIT_LT	0
-#define PPCREC_CR_BIT_GT	1
-#define PPCREC_CR_BIT_EQ	2
-#define PPCREC_CR_BIT_SO	3
 
 enum
 {
@@ -519,10 +510,8 @@ struct IMLInstruction
 		this->operation = 0;
 	}
 
-
-	void make_r_r(uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0)
+	void make_r_r(uint32 operation, uint8 registerResult, uint8 registerA)
 	{
-		// operation with two register operands (e.g. "t0 = t1")
 		this->type = PPCREC_IML_TYPE_R_R;
 		this->operation = operation;
 		this->op_r_r.registerResult = registerResult;
@@ -530,7 +519,7 @@ struct IMLInstruction
 	}
 
 
-	void make_r_s32(uint32 operation, uint8 registerIndex, sint32 immS32, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint32 crMode = 0)
+	void make_r_s32(uint32 operation, uint8 registerIndex, sint32 immS32)
 	{
 		this->type = PPCREC_IML_TYPE_R_S32;
 		this->operation = operation;
@@ -538,9 +527,8 @@ struct IMLInstruction
 		this->op_r_immS32.immS32 = immS32;
 	}
 
-	void make_r_r_r(uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0)
+	void make_r_r_r(uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB)
 	{
-		// operation with three register operands (e.g. "t0 = t1 + t4")
 		this->type = PPCREC_IML_TYPE_R_R_R;
 		this->operation = operation;
 		this->op_r_r_r.registerResult = registerResult;
@@ -558,9 +546,8 @@ struct IMLInstruction
 		this->op_r_r_r_carry.regCarry = registerCarry;
 	}
 
-	void make_r_r_s32(uint32 operation, uint8 registerResult, uint8 registerA, sint32 immS32, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0)
+	void make_r_r_s32(uint32 operation, uint8 registerResult, uint8 registerA, sint32 immS32)
 	{
-		// operation with two register operands and one signed immediate (e.g. "t0 = t1 + 1234")
 		this->type = PPCREC_IML_TYPE_R_R_S32;
 		this->operation = operation;
 		this->op_r_r_s32.registerResult = registerResult;
@@ -598,7 +585,7 @@ struct IMLInstruction
 		this->op_compare_s32.cond = cond;
 	}
 
-	void make_conditional_jump_new(uint8 registerBool, bool mustBeTrue)
+	void make_conditional_jump(uint8 registerBool, bool mustBeTrue)
 	{
 		this->type = PPCREC_IML_TYPE_CONDITIONAL_JUMP;
 		this->operation = -999;
@@ -606,7 +593,7 @@ struct IMLInstruction
 		this->op_conditionalJump2.mustBeTrue = mustBeTrue;
 	}
 
-	void make_jump_new()
+	void make_jump()
 	{
 		this->type = PPCREC_IML_TYPE_JUMP;
 		this->operation = -999;
@@ -660,7 +647,6 @@ struct IMLInstruction
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;
 
-	//void ReplaceGPR(sint32 gprRegisterSearched[4], sint32 gprRegisterReplaced[4]);
 	void RewriteGPR(const std::unordered_map<IMLReg, IMLReg>& translationTable);
 	void ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegisterReplaced[4]);
 	void ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterReplaced);

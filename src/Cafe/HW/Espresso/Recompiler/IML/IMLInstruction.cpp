@@ -26,7 +26,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	}
 	else if (type == PPCREC_IML_TYPE_R_R)
 	{
-		if (operation == PPCREC_IML_OP_COMPARE_SIGNED || operation == PPCREC_IML_OP_COMPARE_UNSIGNED || operation == PPCREC_IML_OP_DCBZ)
+		if (operation == PPCREC_IML_OP_DCBZ)
 		{
 			// both operands are read only
 			registersUsed->readNamedReg1 = op_r_r.registerResult;
@@ -60,7 +60,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	}
 	else if (type == PPCREC_IML_TYPE_R_S32)
 	{
-		if (operation == PPCREC_IML_OP_COMPARE_SIGNED || operation == PPCREC_IML_OP_COMPARE_UNSIGNED || operation == PPCREC_IML_OP_MTCRF)
+		if (operation == PPCREC_IML_OP_MTCRF)
 		{
 			// operand register is read only
 			registersUsed->readNamedReg1 = op_r_immS32.registerIndex;

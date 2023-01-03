@@ -81,7 +81,7 @@ void PPCRecompilerIML_isolateEnterableSegments(ppcImlGenContext_t* ppcImlGenCont
 			entrySegment->enterPPCAddress = imlSegment->enterPPCAddress;
 			// create jump instruction
 			PPCRecompiler_pushBackIMLInstructions(entrySegment, 0, 1);
-			entrySegment->imlList.data()[0].make_jump_new();
+			entrySegment->imlList.data()[0].make_jump();
 			IMLSegment_SetLinkBranchTaken(entrySegment, imlSegment);
 			// remove enterable flag from original segment
 			imlSegment->isEnterable = false;
