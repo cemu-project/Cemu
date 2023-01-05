@@ -132,7 +132,7 @@ void PPCRecRA_insertGPRLoadInstruction(IMLSegment* imlSegment, sint32 insertInde
 	memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
 	imlInstructionItr->type = PPCREC_IML_TYPE_R_NAME;
 	imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-	imlInstructionItr->op_r_name.registerIndex = registerIndex;
+	imlInstructionItr->op_r_name.regR = registerIndex;
 	imlInstructionItr->op_r_name.name = registerName;
 }
 
@@ -145,7 +145,7 @@ void PPCRecRA_insertGPRLoadInstructions(IMLSegment* imlSegment, sint32 insertInd
 		IMLInstruction* imlInstructionItr = imlSegment->imlList.data() + (insertIndex + i);
 		imlInstructionItr->type = PPCREC_IML_TYPE_R_NAME;
 		imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-		imlInstructionItr->op_r_name.registerIndex = (uint8)loadList[i].registerIndex;
+		imlInstructionItr->op_r_name.regR = (uint8)loadList[i].registerIndex;
 		imlInstructionItr->op_r_name.name = (uint32)loadList[i].registerName;
 	}
 }
@@ -157,7 +157,7 @@ void PPCRecRA_insertGPRStoreInstruction(IMLSegment* imlSegment, sint32 insertInd
 	memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
 	imlInstructionItr->type = PPCREC_IML_TYPE_NAME_R;
 	imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-	imlInstructionItr->op_r_name.registerIndex = registerIndex;
+	imlInstructionItr->op_r_name.regR = registerIndex;
 	imlInstructionItr->op_r_name.name = registerName;
 }
 
@@ -171,7 +171,7 @@ void PPCRecRA_insertGPRStoreInstructions(IMLSegment* imlSegment, sint32 insertIn
 		memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
 		imlInstructionItr->type = PPCREC_IML_TYPE_NAME_R;
 		imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-		imlInstructionItr->op_r_name.registerIndex = (uint8)storeList[i].registerIndex;
+		imlInstructionItr->op_r_name.regR = (uint8)storeList[i].registerIndex;
 		imlInstructionItr->op_r_name.name = (uint32)storeList[i].registerName;
 	}
 }

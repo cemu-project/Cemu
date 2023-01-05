@@ -18,7 +18,6 @@ void IMLAnalyzer_GetCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_
 // todo - rename
 bool PPCRecompiler_reduceNumberOfFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
 bool PPCRecompiler_manageFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
-void PPCRecompiler_removeRedundantCRUpdates(struct ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompiler_optimizeDirectFloatCopies(struct ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompiler_optimizeDirectIntegerCopies(struct ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompiler_optimizePSQLoadAndStore(struct ppcImlGenContext_t* ppcImlGenContext);

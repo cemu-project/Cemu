@@ -62,7 +62,7 @@ void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenConte
 	imlInstruction->type = PPCREC_IML_TYPE_CONDITIONAL_R_S32;
 	imlInstruction->operation = operation;
 	// r_s32 operation
-	imlInstruction->op_conditional_r_s32.registerIndex = registerIndex;
+	imlInstruction->op_conditional_r_s32.regR = registerIndex;
 	imlInstruction->op_conditional_r_s32.immS32 = immS32;
 	// condition
 	imlInstruction->op_conditional_r_s32.crRegisterIndex = crRegisterIndex;
