@@ -70,9 +70,8 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext_t* ppcI
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R;
 	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r_r.registerResult = registerResult;
-	imlInstruction->op_fpr_r_r.registerOperand = registerOperand;
-	imlInstruction->op_fpr_r_r.flags = 0;
+	imlInstruction->op_fpr_r_r.regR = registerResult;
+	imlInstruction->op_fpr_r_r.regA = registerOperand;
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, uint8 registerResult, uint8 registerOperand1, uint8 registerOperand2, sint32 crRegister=PPC_REC_INVALID_REGISTER)
@@ -81,10 +80,9 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext_t* pp
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R_R;
 	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r_r_r.registerResult = registerResult;
-	imlInstruction->op_fpr_r_r_r.registerOperandA = registerOperand1;
-	imlInstruction->op_fpr_r_r_r.registerOperandB = registerOperand2;
-	imlInstruction->op_fpr_r_r_r.flags = 0;
+	imlInstruction->op_fpr_r_r_r.regR = registerResult;
+	imlInstruction->op_fpr_r_r_r.regA = registerOperand1;
+	imlInstruction->op_fpr_r_r_r.regB = registerOperand2;
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, uint8 registerResult, uint8 registerOperandA, uint8 registerOperandB, uint8 registerOperandC, sint32 crRegister=PPC_REC_INVALID_REGISTER)
@@ -93,11 +91,10 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext_t* 
 	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R_R_R;
 	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r_r_r_r.registerResult = registerResult;
-	imlInstruction->op_fpr_r_r_r_r.registerOperandA = registerOperandA;
-	imlInstruction->op_fpr_r_r_r_r.registerOperandB = registerOperandB;
-	imlInstruction->op_fpr_r_r_r_r.registerOperandC = registerOperandC;
-	imlInstruction->op_fpr_r_r_r_r.flags = 0;
+	imlInstruction->op_fpr_r_r_r_r.regR = registerResult;
+	imlInstruction->op_fpr_r_r_r_r.regA = registerOperandA;
+	imlInstruction->op_fpr_r_r_r_r.regB = registerOperandB;
+	imlInstruction->op_fpr_r_r_r_r.regC = registerOperandC;
 }
 
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 operation, uint8 registerResult, sint32 crRegister)
@@ -107,7 +104,7 @@ void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcIml
 		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
 	imlInstruction->type = PPCREC_IML_TYPE_FPR_R;
 	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r.registerResult = registerResult;
+	imlInstruction->op_fpr_r.regR = registerResult;
 }
 
 /*

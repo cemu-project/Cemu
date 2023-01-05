@@ -31,7 +31,7 @@ bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 	{
 		if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB) )
 		{
-			list_modifiedRegisters.addUnique(instIt.op_r_immS32.registerIndex);
+			list_modifiedRegisters.addUnique(instIt.op_r_immS32.regR);
 		}
 	}
 	if (list_modifiedRegisters.count > 0)

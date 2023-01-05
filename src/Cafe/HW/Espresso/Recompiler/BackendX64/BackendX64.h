@@ -129,9 +129,6 @@ void x64Gen_or_reg64Low8_mem8Reg64(x64GenContext_t* x64GenContext, sint32 dstReg
 void x64Gen_and_reg64Low8_mem8Reg64(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegister64, sint32 memImmS32);
 void x64Gen_mov_mem8Reg64_reg64Low8(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegister64, sint32 memImmS32);
 
-void x64Gen_lock_cmpxchg_mem32Reg64PlusReg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32, sint32 srcRegister);
-void x64Gen_lock_cmpxchg_mem32Reg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegister64, sint32 memImmS32, sint32 srcRegister);
-
 void x64Gen_add_reg64_reg64(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_add_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_add_reg64_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
@@ -140,9 +137,6 @@ void x64Gen_sub_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 des
 void x64Gen_sub_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
 void x64Gen_sub_reg64_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
 void x64Gen_sub_mem32reg64_imm32(x64GenContext_t* x64GenContext, sint32 memRegister, sint32 memImmS32, uint64 immU32);
-void x64Gen_sbb_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
-void x64Gen_adc_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
-void x64Gen_adc_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
 void x64Gen_dec_mem32(x64GenContext_t* x64GenContext, sint32 memoryRegister, uint32 memoryImmU32);
 void x64Gen_imul_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 operandRegister);
 void x64Gen_idiv_reg64Low32(x64GenContext_t* x64GenContext, sint32 operandRegister);
@@ -174,9 +168,7 @@ void x64Gen_not_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister);
 void x64Gen_neg_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister);
 void x64Gen_cdq(x64GenContext_t* x64GenContext);
 
-void x64Gen_bswap_reg64(x64GenContext_t* x64GenContext, sint32 destRegister);
 void x64Gen_bswap_reg64Lower32bit(x64GenContext_t* x64GenContext, sint32 destRegister);
-void x64Gen_bswap_reg64Lower16bit(x64GenContext_t* x64GenContext, sint32 destRegister);
 
 void x64Gen_lzcnt_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_bsr_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
