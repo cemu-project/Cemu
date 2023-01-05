@@ -982,7 +982,7 @@ bool PPCRecompilerImlGen_RLWINM(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 		if (SH != 0)
 			ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_LEFT_ROTATE, registerRA, SH);
 		if (mask != 0xFFFFFFFF)
-			ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, registerRA, (sint32)mask);
+			ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, registerRA, registerRA, (sint32)mask);
 	}
 	if (opcode & PPC_OPC_RC)
 		PPCImlGen_UpdateCR0(ppcImlGenContext, registerRA);
@@ -1014,7 +1014,7 @@ bool PPCRecompilerImlGen_RLWNM(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	uint32 registerRA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
 	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_LEFT_ROTATE, registerRA, registerRS, registerRB);
 	if( mask != 0xFFFFFFFF )
-		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, registerRA, (sint32)mask);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, registerRA, registerRA, (sint32)mask);
 	if (opcode & PPC_OPC_RC)
 		PPCImlGen_UpdateCR0(ppcImlGenContext, registerRA);
 	return true;
@@ -1336,22 +1336,25 @@ bool PPCRecompilerImlGen_LSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// potential optimization: On x86 unaligned access is allowed and we could handle the case nb==4 with a single memory read, and nb==2 with a memory read and shift
 
 	IMLReg memReg = _GetRegGPR(ppcImlGenContext, rA);
-	IMLReg tmpReg = _GetRegTemporary(ppcImlGenContext, 0);
+	IMLReg regTmp = _GetRegTemporary(ppcImlGenContext, 0);
 	uint32 memOffset = 0;
 	while (nb > 0)
 	{
 		if (rD == rA)
 			return false;
 		cemu_assert(rD < 32);
-		IMLReg destinationRegister = _GetRegGPR(ppcImlGenContext, rD);
+		IMLReg regDst = _GetRegGPR(ppcImlGenContext, rD);
 		// load bytes one-by-one
 		for (sint32 b = 0; b < 4; b++)
 		{
-			ppcImlGenContext->emitInst().make_r_memory(tmpReg, memReg, memOffset + b, 8, false, false);
+			ppcImlGenContext->emitInst().make_r_memory(regTmp, memReg, memOffset + b, 8, false, false);
 			sint32 shiftAmount = (3 - b) * 8;
 			if(shiftAmount)
-				ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, tmpReg, tmpReg, shiftAmount);
-			ppcImlGenContext->emitInst().make_r_r(b == 0 ? PPCREC_IML_OP_ASSIGN : PPCREC_IML_OP_OR, destinationRegister, tmpReg);
+				ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, regTmp, regTmp, shiftAmount);
+			if(b == 0)
+				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, regDst, regTmp);
+			else
+				ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_OR, regDst, regDst, regTmp);
 			nb--;
 			if (nb == 0)
 				break;
@@ -1369,23 +1372,23 @@ bool PPCRecompilerImlGen_STSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	if( nb == 0 )
 		nb = 32;
 
-	IMLReg memReg = _GetRegGPR(ppcImlGenContext, rA);
-	IMLReg tmpReg = _GetRegTemporary(ppcImlGenContext, 0);
+	IMLReg regMem = _GetRegGPR(ppcImlGenContext, rA);
+	IMLReg regTmp = _GetRegTemporary(ppcImlGenContext, 0);
 	uint32 memOffset = 0;
 	while (nb > 0)
 	{
 		if (rS == rA)
 			return false;
 		cemu_assert(rS < 32);
-		IMLReg dataRegister = _GetRegGPR(ppcImlGenContext, rS);
+		IMLReg regSrc = _GetRegGPR(ppcImlGenContext, rS);
 		// store bytes one-by-one
 		for (sint32 b = 0; b < 4; b++)
 		{
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, tmpReg, dataRegister);
+			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, regTmp, regSrc);
 			sint32 shiftAmount = (3 - b) * 8;
 			if (shiftAmount)
-				ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_U, tmpReg, tmpReg, shiftAmount);
-			ppcImlGenContext->emitInst().make_memory_r(tmpReg, memReg, memOffset + b, 8, false);
+				ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_U, regTmp, regTmp, shiftAmount);
+			ppcImlGenContext->emitInst().make_memory_r(regTmp, regMem, memOffset + b, 8, false);
 			nb--;
 			if (nb == 0)
 				break;
@@ -1491,106 +1494,21 @@ bool PPCRecompilerImlGen_DCBZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	return true;
 }
 
-bool PPCRecompilerImlGen_OR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompilerImlGen_OR_NOR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool complementResult)
 {
 	int rS, rA, rB;
 	PPC_OPC_TEMPL_X(opcode, rS, rA, rB);
-	// check for MR mnemonic
-	if( rS == rB )
-	{
-		// simple register copy
-		if( rA != rS ) // check if no-op
-		{
-			sint32 gprSourceReg = _GetRegGPR(ppcImlGenContext, rS);
-			sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
-		}
-		if ((opcode & PPC_OPC_RC))
-		{
-			sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
-			PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-		}
-	}
+	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
+	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
+	IMLReg regB = _GetRegGPR(ppcImlGenContext, rB);
+	if(regS == regB) // check for MR mnemonic
+		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, regA, regS);
 	else
-	{
-		// rA = rS | rA
-		sint32 gprSource1Reg = _GetRegGPR(ppcImlGenContext, rS);
-		sint32 gprSource2Reg = _GetRegGPR(ppcImlGenContext, rB);
-		sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-		if( gprSource1Reg == gprDestReg || gprSource2Reg == gprDestReg )
-		{
-			// make sure we don't overwrite rS or rA
-			if( gprSource1Reg == gprDestReg )
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_OR, gprDestReg, gprSource2Reg);
-			else
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_OR, gprDestReg, gprSource1Reg);
-		}
-		else
-		{
-			// rA = rS
-			if( gprDestReg != gprSource1Reg )
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSource1Reg);
-			// rA |= rB
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_OR, gprDestReg, gprSource2Reg);
-		}
-		if ((opcode & PPC_OPC_RC))
-			PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-	}
-	return true;
-}
-
-bool PPCRecompilerImlGen_NOR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	int rS, rA, rB;
-	PPC_OPC_TEMPL_X(opcode, rS, rA, rB);
-	//hCPU->gpr[rA] = ~(hCPU->gpr[rS] | hCPU->gpr[rB]);
-	// check for NOT mnemonic
-	if (rS == rB)
-	{
-		// simple register copy with NOT
-		sint32 gprSourceReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rS);
-		sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
-		if (gprDestReg != gprSourceReg)
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, gprDestReg, gprDestReg);
-		if ((opcode & PPC_OPC_RC))
-			PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-	}
-	else
-	{
-		// rA = rS | rA
-		sint32 gprSource1Reg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rS);
-		sint32 gprSource2Reg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rB);
-		sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
-		if (gprSource1Reg == gprDestReg || gprSource2Reg == gprDestReg)
-		{
-			// make sure we don't overwrite rS or rA
-			if (gprSource1Reg == gprDestReg)
-			{
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_OR, gprDestReg, gprSource2Reg);
-			}
-			else
-			{
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_OR, gprDestReg, gprSource1Reg);
-			}
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, gprDestReg, gprDestReg);
-			if ((opcode & PPC_OPC_RC))
-				PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-		}
-		else
-		{
-			// rA = rS
-			if (gprDestReg != gprSource1Reg)
-			{
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSource1Reg);
-			}
-			// rA |= rB
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_OR, gprDestReg, gprSource2Reg);
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, gprDestReg, gprDestReg);
-			if ((opcode & PPC_OPC_RC))
-				PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-		}
-	}
+		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_OR, regA, regS, regB);
+	if(complementResult)
+		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, regA, regA);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
 	return true;
 }
 
@@ -1610,60 +1528,21 @@ bool PPCRecompilerImlGen_ORC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	return true;
 }
 
-bool PPCRecompilerImlGen_AND(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompilerImlGen_AND_NAND(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool complementResult)
 {
-	sint32 rS, rA, rB;
+	int rS, rA, rB;
 	PPC_OPC_TEMPL_X(opcode, rS, rA, rB);
-	// check for MR mnemonic
-	if( rS == rB )
-	{
-		// simple register copy
-		if( rA != rS ) // check if no-op
-		{
-			sint32 gprSourceReg = _GetRegGPR(ppcImlGenContext, rS);
-			sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
-			if ((opcode & PPC_OPC_RC))
-				PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-		}
-		else
-		{
-			cemu_assert_unimplemented(); // no-op -> verify this case
-		}
-	}
+	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
+	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
+	IMLReg regB = _GetRegGPR(ppcImlGenContext, rB);
+	if (regS == regB)
+		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, regA, regS);
 	else
-	{
-		// rA = rS & rA
-		sint32 gprSource1Reg = _GetRegGPR(ppcImlGenContext, rS);
-		sint32 gprSource2Reg = _GetRegGPR(ppcImlGenContext, rB);
-		sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-		if( gprSource1Reg == gprDestReg || gprSource2Reg == gprDestReg )
-		{
-			// make sure we don't overwrite rS or rA
-			if( gprSource1Reg == gprDestReg )
-			{
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_AND, gprDestReg, gprSource2Reg);
-			}
-			else
-			{
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_AND, gprDestReg, gprSource1Reg);
-			}
-			if ((opcode & PPC_OPC_RC))
-				PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-		}
-		else
-		{
-			// rA = rS
-			if( gprDestReg != gprSource1Reg )
-			{
-				ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSource1Reg);
-			}
-			// rA &= rB
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_AND, gprDestReg, gprSource2Reg);
-			if ((opcode & PPC_OPC_RC))
-				PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-		}
-	}
+		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_AND, regA, regS, regB);
+	if (complementResult)
+		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, regA, regA);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
 	return true;
 }
 
@@ -1671,85 +1550,19 @@ bool PPCRecompilerImlGen_ANDC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 {
 	sint32 rS, rA, rB;
 	PPC_OPC_TEMPL_X(opcode, rS, rA, rB);
-	//hCPU->gpr[rA] = hCPU->gpr[rS] & ~hCPU->gpr[rB];
-	//if (Opcode & PPC_OPC_RC) {
-	if( rS == rB )
-	{
-		// result is always 0 -> replace with XOR rA,rA
-		sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_XOR, gprDestReg, gprDestReg);
-		if ((opcode & PPC_OPC_RC))
-			PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-	}
-	else if( rA == rB )
-	{
-		// rB already in rA, therefore we complement rA first and then AND it with rS
-		sint32 gprRS = _GetRegGPR(ppcImlGenContext, rS);
-		sint32 gprDestReg = _GetRegGPR(ppcImlGenContext, rA);
-		// rA = ~rA
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, gprDestReg, gprDestReg);
-		// rA &= rS
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_AND, gprDestReg, gprRS);
-		if ((opcode & PPC_OPC_RC))
-			PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-	}
-	else
-	{
-		// a & (~b) is the same as ~((~a) | b)
-		sint32 gprDestReg = _GetRegGPR(ppcImlGenContext, rA);
-		sint32 gprRB = _GetRegGPR(ppcImlGenContext, rB);
-		sint32 gprRS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS);
-		// move rS to rA (if required)
-		if( gprDestReg != gprRS )
-		{
-			ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprRS);
-		}
-		// rS already in rA, therefore we complement rS first and then OR it with rB
-		// rA = ~rA
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, gprDestReg, gprDestReg);
-		// rA |= rB
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_OR, gprDestReg, gprRB);
-		// rA = ~rA
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, gprDestReg, gprDestReg);
-		if ((opcode & PPC_OPC_RC))
-			PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-	}
+	// rA = rS & ~rB;
+	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
+	IMLReg regB = _GetRegGPR(ppcImlGenContext, rB);
+	IMLReg regTmp = _GetRegTemporary(ppcImlGenContext, 0);
+	sint32 regA = _GetRegGPR(ppcImlGenContext, rA);
+	ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, regTmp, regB);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_AND, regA, regS, regTmp);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
 	return true;
 }
 
-void PPCRecompilerImlGen_ANDI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rS, rA;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_UImm(opcode, rS, rA, imm);
-	sint32 gprSourceReg = _GetRegGPR(ppcImlGenContext, rS);
-	sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// rA = rS
-	if( gprDestReg != gprSourceReg )
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
-	// rA &= imm32
-	ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, gprDestReg, (sint32)imm);
-	// ANDI. always sets cr0
-	PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-}
-
-void PPCRecompilerImlGen_ANDIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rS, rA;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_Shift16(opcode, rS, rA, imm);
-	IMLReg gprSourceReg = _GetRegGPR(ppcImlGenContext, rS);
-	sint32 gprDestReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// rA = rS
-	if( gprDestReg != gprSourceReg )
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, gprDestReg, gprSourceReg);
-	// rA &= imm32
-	ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, gprDestReg, (sint32)imm);
-	// ANDIS. always sets cr0
-	PPCImlGen_UpdateCR0(ppcImlGenContext, gprDestReg);
-}
-
-bool PPCRecompilerImlGen_XOR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompilerImlGen_XOR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool complementResult)
 {
 	sint32 rS, rA, rB;
 	PPC_OPC_TEMPL_X(opcode, rS, rA, rB);
@@ -1764,69 +1577,61 @@ bool PPCRecompilerImlGen_XOR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 		IMLReg regB = _GetRegGPR(ppcImlGenContext, rB);
 		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_XOR, regA, regS, regB);
 	}
+	if (complementResult)
+		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, regA, regA);
 	if (opcode & PPC_OPC_RC)
 		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
 	return true;
 }
 
-
-bool PPCRecompilerImlGen_EQV(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+void PPCRecompilerImlGen_ANDI_ANDIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool isShifted)
 {
-	sint32 rS, rA, rB;
-	PPC_OPC_TEMPL_X(opcode, rS, rA, rB);
-	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
-	if( rS == rB )
+	sint32 rS, rA;
+	uint32 imm;
+	if (isShifted)
 	{
-		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, regA, -1);
+		PPC_OPC_TEMPL_D_Shift16(opcode, rS, rA, imm);
 	}
 	else
 	{
-		// rA = ~(rS ^ rB)
-		IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
-		IMLReg regB = _GetRegGPR(ppcImlGenContext, rB);
-		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_XOR, regA, regS, regB);
-		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, regA, regA);
+		PPC_OPC_TEMPL_D_UImm(opcode, rS, rA, imm);
 	}
-	if (opcode & PPC_OPC_RC)
-		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
-	return true;
+	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
+	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, regA, regS, (sint32)imm);
+	// ANDI/ANDIS always updates cr0
+	PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
 }
 
-void PPCRecompilerImlGen_ORI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+void PPCRecompilerImlGen_ORI_ORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool isShifted)
 {
 	sint32 rS, rA;
 	uint32 imm;
-	PPC_OPC_TEMPL_D_UImm(opcode, rS, rA, imm);
+	if (isShifted)
+	{
+		PPC_OPC_TEMPL_D_Shift16(opcode, rS, rA, imm);
+	}
+	else
+	{
+		PPC_OPC_TEMPL_D_UImm(opcode, rS, rA, imm);
+	}
 	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
 	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
 	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_OR, regA, regS, (sint32)imm);
 }
 
-void PPCRecompilerImlGen_ORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+void PPCRecompilerImlGen_XORI_XORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool isShifted)
 {
 	sint32 rS, rA;
 	uint32 imm;
-	PPC_OPC_TEMPL_D_Shift16(opcode, rS, rA, imm);
-	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
-	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_OR, regA, regS, (sint32)imm);
-}
-
-void PPCRecompilerImlGen_XORI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rS, rA;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_UImm(opcode, rS, rA, imm);
-	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
-	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_XOR, regA, regS, (sint32)imm);
-}
-
-void PPCRecompilerImlGen_XORIS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rS, rA;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_Shift16(opcode, rS, rA, imm);
+	if (isShifted)
+	{
+		PPC_OPC_TEMPL_D_Shift16(opcode, rS, rA, imm);
+	}
+	else
+	{
+		PPC_OPC_TEMPL_D_UImm(opcode, rS, rA, imm);
+	}
 	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
 	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
 	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_XOR, regA, regS, (sint32)imm);
@@ -2308,23 +2113,23 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		if (PPCRecompilerImlGen_RLWNM(ppcImlGenContext, opcode) == false)
 			unsupportedInstructionFound = true;
 		break;
-	case 24:
-		PPCRecompilerImlGen_ORI(ppcImlGenContext, opcode);
+	case 24: // ORI
+		PPCRecompilerImlGen_ORI_ORIS(ppcImlGenContext, opcode, false);
 		break;
-	case 25:
-		PPCRecompilerImlGen_ORIS(ppcImlGenContext, opcode);
+	case 25: // ORIS
+		PPCRecompilerImlGen_ORI_ORIS(ppcImlGenContext, opcode, true);
 		break;
-	case 26:
-		PPCRecompilerImlGen_XORI(ppcImlGenContext, opcode);
+	case 26: // XORI
+		PPCRecompilerImlGen_XORI_XORIS(ppcImlGenContext, opcode, false);
 		break;
-	case 27:
-		PPCRecompilerImlGen_XORIS(ppcImlGenContext, opcode);
+	case 27: // XORIS
+		PPCRecompilerImlGen_XORI_XORIS(ppcImlGenContext, opcode, true);
 		break;
-	case 28:
-		PPCRecompilerImlGen_ANDI(ppcImlGenContext, opcode);
+	case 28: // ANDI
+		PPCRecompilerImlGen_ANDI_ANDIS(ppcImlGenContext, opcode, false);
 		break;
-	case 29:
-		PPCRecompilerImlGen_ANDIS(ppcImlGenContext, opcode);
+	case 29: // ANDIS
+		PPCRecompilerImlGen_ANDI_ANDIS(ppcImlGenContext, opcode, true);
 		break;
 	case 31: // opcode category
 		switch (PPC_getBits(opcode, 30, 10))
@@ -2367,8 +2172,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (PPCRecompilerImlGen_CNTLZW(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 28:
-			if (PPCRecompilerImlGen_AND(ppcImlGenContext, opcode) == false)
+		case 28: // AND
+			if (!PPCRecompilerImlGen_AND_NAND(ppcImlGenContext, opcode, false))
 				unsupportedInstructionFound = true;
 			break;
 		case 32:
@@ -2385,8 +2190,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (!PPCRecompilerImlGen_LOAD_INDEXED(ppcImlGenContext, opcode, 32, false, true, true))
 				unsupportedInstructionFound = true;
 			break;
-		case 60:
-			if (PPCRecompilerImlGen_ANDC(ppcImlGenContext, opcode) == false)
+		case 60: // ANDC
+			if (!PPCRecompilerImlGen_ANDC(ppcImlGenContext, opcode))
 				unsupportedInstructionFound = true;
 			break;
 		case 75:
@@ -2408,8 +2213,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (!PPCRecompilerImlGen_LOAD_INDEXED(ppcImlGenContext, opcode, 8, false, true, true))
 				unsupportedInstructionFound = true;
 			break;
-		case 124:
-			if (PPCRecompilerImlGen_NOR(ppcImlGenContext, opcode) == false)
+		case 124: // NOR
+			if (!PPCRecompilerImlGen_OR_NOR(ppcImlGenContext, opcode, true))
 				unsupportedInstructionFound = true;
 			break;
 		case 136:
@@ -2421,7 +2226,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 				unsupportedInstructionFound = true;
 			break;
 		case 144:
-			PPCRecompilerImlGen_MTCRF(ppcImlGenContext, opcode);
+			if( !PPCRecompilerImlGen_MTCRF(ppcImlGenContext, opcode))
+				unsupportedInstructionFound = true;
 			break;
 		case 150:
 			if (!PPCRecompilerImlGen_STWCX(ppcImlGenContext, opcode))
@@ -2467,15 +2273,16 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (!PPCRecompilerImlGen_LOAD_INDEXED(ppcImlGenContext, opcode, 16, false, true, false))
 				unsupportedInstructionFound = true;
 			break;
-		case 284:
-			PPCRecompilerImlGen_EQV(ppcImlGenContext, opcode);
+		case 284: // EQV (alias to NXOR)
+			if (!PPCRecompilerImlGen_XOR(ppcImlGenContext, opcode, true))
+				unsupportedInstructionFound = true;
 			break;
 		case 311: // LHZUX
 			if (!PPCRecompilerImlGen_LOAD_INDEXED(ppcImlGenContext, opcode, 16, false, true, true))
 				unsupportedInstructionFound = true;
 			break;
-		case 316:
-			if (PPCRecompilerImlGen_XOR(ppcImlGenContext, opcode) == false)
+		case 316: // XOR
+			if (!PPCRecompilerImlGen_XOR(ppcImlGenContext, opcode, false))
 				unsupportedInstructionFound = true;
 			break;
 		case 339:
@@ -2506,8 +2313,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (!PPCRecompilerImlGen_STORE_INDEXED(ppcImlGenContext, opcode, 16, true, true))
 				unsupportedInstructionFound = true;
 			break;
-		case 444:
-			if (PPCRecompilerImlGen_OR(ppcImlGenContext, opcode) == false)
+		case 444: // OR
+			if (!PPCRecompilerImlGen_OR_NOR(ppcImlGenContext, opcode, false))
 				unsupportedInstructionFound = true;
 			break;
 		case 459:
@@ -2515,6 +2322,10 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			break;
 		case 467:
 			if (PPCRecompilerImlGen_MTSPR(ppcImlGenContext, opcode) == false)
+				unsupportedInstructionFound = true;
+			break;
+		case 476: // NAND
+			if (!PPCRecompilerImlGen_AND_NAND(ppcImlGenContext, opcode, true))
 				unsupportedInstructionFound = true;
 			break;
 		case 491:

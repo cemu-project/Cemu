@@ -33,16 +33,6 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			registersUsed->readGPR2 = op_r_r.regA;
 		}
 		else if (
-			operation == PPCREC_IML_OP_OR ||
-			operation == PPCREC_IML_OP_AND ||
-			operation == PPCREC_IML_OP_XOR)
-		{
-			// result is read and written, operand is read
-			registersUsed->writtenGPR1 = op_r_r.regR;
-			registersUsed->readGPR1 = op_r_r.regR;
-			registersUsed->readGPR2 = op_r_r.regA;
-		}
-		else if (
 			operation == PPCREC_IML_OP_ASSIGN ||
 			operation == PPCREC_IML_OP_ENDIAN_SWAP ||
 			operation == PPCREC_IML_OP_CNTLZW ||
@@ -60,17 +50,18 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	}
 	else if (type == PPCREC_IML_TYPE_R_S32)
 	{
+		cemu_assert_debug(operation != PPCREC_IML_OP_ADD &&
+			operation != PPCREC_IML_OP_SUB &&
+			operation != PPCREC_IML_OP_AND &&
+			operation != PPCREC_IML_OP_OR &&
+			operation != PPCREC_IML_OP_XOR); // deprecated, use r_r_s32 for these
+
 		if (operation == PPCREC_IML_OP_MTCRF)
 		{
 			// operand register is read only
 			registersUsed->readGPR1 = op_r_immS32.regR;
 		}
-		else if (operation == PPCREC_IML_OP_ADD || // deprecated
-			operation == PPCREC_IML_OP_SUB ||
-			operation == PPCREC_IML_OP_AND ||
-			operation == PPCREC_IML_OP_OR ||
-			operation == PPCREC_IML_OP_XOR ||
-			operation == PPCREC_IML_OP_LEFT_ROTATE)
+		else if (operation == PPCREC_IML_OP_LEFT_ROTATE)
 		{
 			// operand register is read and write
 			registersUsed->readGPR1 = op_r_immS32.regR;
@@ -87,7 +78,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	{
 		if (operation == PPCREC_IML_OP_ASSIGN)
 		{
-			// result is written, but also considered read (in case the condition fails)
+			// result is written, but also considered read (in case the condition is false the input is preserved)
 			registersUsed->readGPR1 = op_conditional_r_s32.regR;
 			registersUsed->writtenGPR1 = op_conditional_r_s32.regR;
 		}

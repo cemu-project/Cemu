@@ -562,24 +562,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	{
 		x64Gen_movSignExtend_reg64Low32_reg64Low16(x64GenContext, imlInstruction->op_r_r.regR, reg32ToReg16(imlInstruction->op_r_r.regA));
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_OR || imlInstruction->operation == PPCREC_IML_OP_AND || imlInstruction->operation == PPCREC_IML_OP_XOR )
-	{
-		if( imlInstruction->operation == PPCREC_IML_OP_OR )
-		{
-			// registerResult |= registerA
-			x64Gen_or_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_r_r.regR, imlInstruction->op_r_r.regA);
-		}
-		else if( imlInstruction->operation == PPCREC_IML_OP_AND )
-		{
-			// registerResult &= registerA
-			x64Gen_and_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_r_r.regR, imlInstruction->op_r_r.regA);
-		}
-		else
-		{
-			// registerResult ^= registerA
-			x64Gen_xor_reg64Low32_reg64Low32(x64GenContext, imlInstruction->op_r_r.regR, imlInstruction->op_r_r.regA);
-		}
-	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_NOT )
 	{
 		// copy register content if different registers
@@ -651,18 +633,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	if( imlInstruction->operation == PPCREC_IML_OP_ASSIGN )
 	{
 		x64Gen_mov_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.regR, (uint32)imlInstruction->op_r_immS32.immS32);
-	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_AND )
-	{
-		x64Gen_and_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.regR, (uint32)imlInstruction->op_r_immS32.immS32);
-	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_OR )
-	{
-		x64Gen_or_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.regR, (uint32)imlInstruction->op_r_immS32.immS32);
-	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_XOR )
-	{
-		x64Gen_xor_reg64Low32_imm32(x64GenContext, imlInstruction->op_r_immS32.regR, (uint32)imlInstruction->op_r_immS32.immS32);
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_LEFT_ROTATE )
 	{
