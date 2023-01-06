@@ -369,6 +369,7 @@ struct CemuConfig
 	ConfigValue<bool> fullscreen_menubar{ false };
 	ConfigValue<bool> fullscreen{ false };
 	ConfigValue<std::string> proxy_server{};
+	ConfigValue<bool> disable_screensaver{true};
 
 	std::vector<std::wstring> game_paths;
 	std::mutex game_cache_entries_mutex;

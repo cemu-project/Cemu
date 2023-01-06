@@ -20,6 +20,7 @@
 #include "util/helpers/helpers.h"
 #include "config/CemuConfig.h"
 #include "Cemu/DiscordPresence/DiscordPresence.h"
+#include "util/ScreenSaver/ScreenSaver.h"
 #include "gui/GeneralSettings2.h"
 #include "gui/GraphicPacksWindow2.h"
 #include "gui/GameProfileWindow.h"
@@ -558,6 +559,14 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 	if (m_discord)
 		m_discord->UpdatePresence(DiscordPresence::Playing, m_launched_game_name);
 	#endif
+
+	if (GetConfig().disable_screensaver)
+	{
+		ScreenSaver::SetInhibit(true);
+		// TODO: disable when only the game, not Cemu, is closed (a feature not yet implemented)
+		// currently unnecessary because this will happen automatically when Cemu closes
+		// ScreenSaver::SetInhibit(false);
+	}
 
 	if (ActiveSettings::FullscreenEnabled())
 		SetFullScreen(true);
@@ -1892,6 +1901,57 @@ public:
 					delete fs;
 					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(tempPath))));
 				});
+			lineSizer->Add(noticeLink, 0);
+			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			sizer->Add(lineSizer);
+		}
+		// GameMode
+		{
+			wxSizer *lineSizer = new wxBoxSizer(wxHORIZONTAL);
+			lineSizer->Add(new wxStaticText(parent, -1, "Screen saver inhibition from Feral GameMode ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "Source", "https://github.com/FeralInteractive/gamemode/blob/b11d2912e280acb87d9ad114d6c7cd8846c4ef02/daemon/gamemode-dbus.c#L711"), 0);
+			lineSizer->Add(new wxStaticText(parent, -1, "  "), 0);
+			wxHyperlinkCtrl *noticeLink = new wxHyperlinkCtrl(parent, -1, "NOTICE", "");
+			noticeLink->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent &event)
+											 {
+					fs::path tempPath = fs::temp_directory_path();
+					tempPath.append("NOTICE_GameMode.txt");
+					FileStream* fs = FileStream::createFile2(tempPath);
+					if (!fs)
+						return;
+					fs->writeString(
+							"/*\n"
+							"\n"
+							"Copyright (c) 2017-2019, Feral Interactive\n"
+							"All rights reserved.\n"
+							"\n"
+							"Redistribution and use in source and binary forms, with or without\n"
+							"modification, are permitted provided that the following conditions are met:\n"
+							"\n"
+							" * Redistributions of source code must retain the above copyright notice,\n"
+							"   this list of conditions and the following disclaimer.\n"
+							" * Redistributions in binary form must reproduce the above copyright\n"
+							"   notice, this list of conditions and the following disclaimer in the\n"
+							"   documentation and/or other materials provided with the distribution.\n"
+							" * Neither the name of Feral Interactive nor the names of its contributors\n"
+							"   may be used to endorse or promote products derived from this software\n"
+							"   without specific prior written permission.\n"
+							"\n"
+							"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\n"
+							"AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\n"
+							"IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE\n"
+							"ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE\n"
+							"LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR\n"
+							"CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF\n"
+							"SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS\n"
+							"INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN\n"
+							"CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)\n"
+							"ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE\n"
+							"POSSIBILITY OF SUCH DAMAGE.\n"
+							"\n"
+							" */");
+					delete fs;
+					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(tempPath)))); });
 			lineSizer->Add(noticeLink, 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
 			sizer->Add(lineSizer);
