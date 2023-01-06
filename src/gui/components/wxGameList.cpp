@@ -72,7 +72,6 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	const auto& config = GetConfig();
 
 	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
-	InsertColumn(ColumnIcon, "", wxLIST_FORMAT_LEFT, kListIconWidth);
 	InsertColumn(ColumnName, _("Game"), wxLIST_FORMAT_LEFT, config.column_width.name);
 	InsertColumn(ColumnVersion, _("Version"), wxLIST_FORMAT_RIGHT, config.column_width.version);
 	InsertColumn(ColumnDLC, _("DLC"), wxLIST_FORMAT_RIGHT, config.column_width.dlc);
@@ -230,8 +229,6 @@ int wxGameList::GetColumnDefaultWidth(int column)
 {
 	switch (column)
 	{
-	case ColumnIcon:
-		return kListIconWidth;
 	case ColumnName:
 		return DefaultColumnSize::name;
 	case ColumnVersion:
@@ -777,8 +774,6 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			{
 				switch (column)
 				{
-				case ColumnIcon:
-					break;
 				case ColumnName:
 					config.column_width.name = DefaultColumnSize::name;
 					break;
@@ -829,7 +824,6 @@ void wxGameList::ApplyGameListColumnWidths()
 {
 	const auto& config = GetConfig();
 	wxWindowUpdateLocker lock(this);
-	SetColumnWidth(ColumnIcon, kListIconWidth);
 	SetColumnWidth(ColumnName, config.column_width.name);
 	SetColumnWidth(ColumnVersion, config.column_width.version);
 	SetColumnWidth(ColumnDLC, config.column_width.dlc);
@@ -861,7 +855,7 @@ void wxGameList::OnColumnBeginResize(wxListEvent& event)
 		}
 #endif
 	}
-	if (width == 0 || column == ColumnIcon || column == last_col_index) // dont resize hidden name, icon, and last column
+	if (width == 0 || column == last_col_index) // dont resize hidden name and last column
 		event.Veto();
 	else
 		event.Skip();
@@ -955,7 +949,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 
 	if (m_style == Style::kList)
 	{
-		SetItemColumnImage(index, ColumnIcon, icon_small);
+		SetItemColumnImage(index, ColumnName, icon_small);
 
 		SetItem(index, ColumnName, wxHelper::FromUtf8(GetNameByTitleId(baseTitleId)));
 
