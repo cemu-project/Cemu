@@ -47,7 +47,11 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 
 #### Using GCC
 While we use and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).  
-You can use it by replacing the step 3 with the following:
+You can use GCC by doing the following:
+- make sure you have g++ installed in your system
+  - installation for Ubuntu and derivatives: `sudo apt install g++`
+  - installation for Fedora and derivatives: `sudo dnf install gcc-c++`
+- replace the step 3 with the following:
 `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
 
 #### Troubleshooting steps
