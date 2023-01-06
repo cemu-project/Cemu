@@ -180,7 +180,6 @@ jobs:
         name: cemu-bin-windows-x64
         path: ./bin/Cemu.exe
 
-
   build-macos:
     runs-on: macos-12
     steps:
@@ -209,7 +208,7 @@ jobs:
         
     - name: "Install system dependencies"
       run: |
-        brew install llvm@14 ninja nasm molten-vk
+        brew install llvm ninja nasm molten-vk
     - name: "Bootstrap vcpkg"
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
@@ -232,7 +231,13 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DPORTABLE=OFF -DMACOS_BUNDLE=ON -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja
+        cmake .. ${{ env.BUILD_FLAGS }} \
+        -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} \
+        -DPORTABLE=OFF \
+        -DMACOS_BUNDLE=ON \
+        -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang \
+        -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ \
+        -G Ninja
         
     - name: "Build Cemu"
       run: |

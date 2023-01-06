@@ -67,8 +67,7 @@ You can use GCC by doing the following:
 ## macOS
 
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and 
-below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. Currently, 
-LLVM 15 isn't supported due to compatibility issues with Boost dependency. The OpenGL graphics
+below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. The OpenGL graphics
 API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
 Molten-VK compatibility layer
 
@@ -86,13 +85,12 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 
 ### Installing dependencies
 
-`brew install boost git cmake llvm@14 ninja nasm molten-vk`
+`brew install boost git cmake llvm ninja nasm molten-vk`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
-3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release
-   -DCMAKE_C_COMPILER=/usr/local/opt/llvm@14/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@14/bin/clang++ -G Ninja`
+3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja`
 4. `cmake --build build`
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
