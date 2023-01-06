@@ -15,18 +15,16 @@ void curlDebug_markActiveRequest(CURL_t* curl)
 		_curlDebugSessionId = (uint32)std::chrono::seconds(std::time(NULL)).count();
 		if (_curlDebugSessionId == 0)
 			_curlDebugSessionId = 1;
-		wchar_t filePath[256];
-		swprintf(filePath, sizeof(filePath), L"dump//curl//session%u", _curlDebugSessionId);
-		fs::create_directories(fs::path(filePath));
+		fs::path filePath = ActiveSettings::GetUserDataPath("dump/curl/session{:d}", _curlDebugSessionId);
+		fs::create_directories(filePath);
 	}
 
 	static uint32 _nextRequestIndex = 1;
 	curl->debug.activeRequestIndex = _nextRequestIndex;
 	_nextRequestIndex++;
 
-	wchar_t filePath[256];
-	swprintf(filePath, sizeof(filePath) / sizeof(wchar_t), L"dump//curl//session%u//request%04d_param.txt", _curlDebugSessionId, (sint32)curl->debug.activeRequestIndex);
-	curl->debug.file_requestParam = FileStream::createFile(filePath);
+	fs::path filePath = ActiveSettings::GetUserDataPath("dump/curl/session{:d}/request{:04d}_param.txt", _curlDebugSessionId, static_cast<sint32>(curl->debug.activeRequestIndex));
+	curl->debug.file_requestParam = FileStream::createFile2(filePath);
 	auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	if (curl->debug.file_requestParam)
 	{

@@ -105,6 +105,7 @@ public:
 	void OnPPCInfoToggle(wxCommandEvent& event);
 	void OnDebugDumpUsedTextures(wxCommandEvent& event);
 	void OnDebugDumpUsedShaders(wxCommandEvent& event);
+	void OnDebugDumpLibcurlRequests(wxCommandEvent& event);
 	void OnLoggingWindow(wxCommandEvent& event);
 	void OnDebugViewPPCThreads(wxCommandEvent& event);
 	void OnDebugViewPPCDebugger(wxCommandEvent& event);
