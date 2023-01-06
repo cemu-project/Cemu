@@ -30,6 +30,8 @@ Cemu is currently only available in a portable format so no installation is requ
 
 The native Linux build is currently a work-in-progress. See [Current State Of Linux builds](https://github.com/cemu-project/Cemu/issues/107) for more information about the things to be aware of. 
 
+The native macOS build is currently purely experimental and should not be considered stable or ready for issue-free gameplay. There are also known issues with degraded performance due to the use of MoltenVK and Rosetta for ARM Macs. We appreciate your patience while we improve Cemu for macOS.
+
 Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/changelog.html).
 
 ## Build Instructions
