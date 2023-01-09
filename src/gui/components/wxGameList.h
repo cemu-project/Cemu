@@ -68,6 +68,7 @@ private:
 	enum ItemColumns
 	{
 		ColumnHiddenName = 0,
+		ColumnIcon,
 		ColumnName,
 		ColumnVersion,
 		ColumnDLC,
