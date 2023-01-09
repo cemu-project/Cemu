@@ -72,7 +72,10 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	const auto& config = GetConfig();
 
 	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
-	InsertColumn(ColumnIcon, "", wxLIST_FORMAT_LEFT, kListIconWidth);
+	if(config.show_icon_column)
+		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, kListIconWidth);
+	else
+		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, 0);
 	InsertColumn(ColumnName, _("Game"), wxLIST_FORMAT_LEFT, config.column_width.name);
 	InsertColumn(ColumnVersion, _("Version"), wxLIST_FORMAT_RIGHT, config.column_width.version);
 	InsertColumn(ColumnDLC, _("DLC"), wxLIST_FORMAT_RIGHT, config.column_width.dlc);
@@ -723,6 +726,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 		ResetWidth = wxID_HIGHEST + 1,
 		ResetOrder,
 
+		ShowIcon,
 		ShowName,
 		ShowVersion,
 		ShowDlc,
@@ -738,6 +742,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 	menu.Append(ResetOrder, _("Reset &order"))	;
 
 	menu.AppendSeparator();
+	menu.AppendCheckItem(ShowIcon, _("Show &icon"))->Check(GetColumnWidth(ColumnIcon) > 0);
 	menu.AppendCheckItem(ShowName, _("Show &name"))->Check(GetColumnWidth(ColumnName) > 0);
 	menu.AppendCheckItem(ShowVersion, _("Show &version"))->Check(GetColumnWidth(ColumnVersion) > 0);
 	menu.AppendCheckItem(ShowDlc, _("Show &dlc"))->Check(GetColumnWidth(ColumnDLC) > 0);
@@ -755,6 +760,9 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 
 			switch (event.GetId())
 			{
+			case ShowIcon:
+				config.show_icon_column = menu->IsChecked(ShowIcon);
+				break;
 			case ShowName:
 				config.column_width.name = menu->IsChecked(ShowName) ? DefaultColumnSize::name : 0;
 				break;
@@ -829,7 +837,10 @@ void wxGameList::ApplyGameListColumnWidths()
 {
 	const auto& config = GetConfig();
 	wxWindowUpdateLocker lock(this);
-	SetColumnWidth(ColumnIcon, kListIconWidth);
+	if(config.show_icon_column)
+		SetColumnWidth(ColumnIcon, kListIconWidth);
+	else
+		SetColumnWidth(ColumnIcon, 0);
 	SetColumnWidth(ColumnName, config.column_width.name);
 	SetColumnWidth(ColumnVersion, config.column_width.version);
 	SetColumnWidth(ColumnDLC, config.column_width.dlc);
