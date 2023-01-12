@@ -2005,8 +2005,6 @@ void MainWindow::RecreateMenu()
 				break;
 		}
 		m_fileMenuSeparator1 = m_fileMenu->AppendSeparator();
-		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, _("&Open Cemu folder"));
-		m_fileMenu->AppendSeparator();
 	}
 	else
 	{
@@ -2015,6 +2013,9 @@ void MainWindow::RecreateMenu()
 		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("End emulation"));
 #endif
 	}
+
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, _("&Open Cemu folder"));
+	m_fileMenu->AppendSeparator();
 
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));
 	m_menuBar->Append(m_fileMenu, _("&File"));
