@@ -68,8 +68,8 @@ You can use GCC by doing the following:
 
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and 
 below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. The OpenGL graphics
-API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
-Molten-VK compatibility layer
+API isn't supported on macOS, so Vulkan must be used. Additionally, Vulkan must be used through the 
+Molten-VK compatibility layer.
 
 ### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
 
