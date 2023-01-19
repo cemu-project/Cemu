@@ -102,4 +102,4 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
     - This should update your local copy of Cemu and all of its dependencies.
 2. Then, you can rebuild Cemu using the steps listed above, according to whether you use Linux or Windows.
 
-If CMake complains about Cemu already being compiled or another similar error, try deleting the `CMakeCache.txt` file inside the `build` folder and retry building.
+If CMake complains about Cemu already being compiled or another similar error, try deleting the `CMakeCache.txt` file inside the `build` folder and try rebuilding.
