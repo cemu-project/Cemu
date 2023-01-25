@@ -102,6 +102,7 @@ struct ControllerButtonState
 	ControllerButtonState& operator=(ControllerButtonState&& other)
 	{
 		cemu_assert_debug(!other.m_spinlock.is_locked());
+		std::scoped_lock _l(this->m_spinlock, other.m_spinlock);
 		this->m_pressedButtons = std::move(other.m_pressedButtons);
 		return *this;
 	}
