@@ -138,8 +138,6 @@ MMURange* memory_getMMURangeByAddress(MPTR address);
 
 bool memory_isAddressRangeAccessible(MPTR virtualAddress, uint32 size);
 
-#define MEMORY_PAGE_SIZE					(0x20000)
-
 #define MEMORY_CODELOW0_ADDR				(0x00010000)
 #define MEMORY_CODELOW0_SIZE				(0x000F0000) // ~1MB
 
@@ -158,27 +156,11 @@ bool memory_isAddressRangeAccessible(MPTR virtualAddress, uint32 size);
 #define MEMORY_FGBUCKET_AREA_ADDR			(0xE0000000) // actual offset is 0xE0000000 according to PPC kernel
 #define MEMORY_FGBUCKET_AREA_SIZE			(0x04000000) // 64MB split up into multiple subareas, size is verified with value from PPC kernel
 
-// move these to rpl loader
-#define MEMORY_SDA_SIZE						(0x10000)
-#define MEMORY_SDA2_SIZE					(0x10000)
-
-//#define MEMORY_SYSTEM_AREA_ADDR				(0x90000000)
-//#define MEMORY_SYSTEM_AREA_SIZE				(0x02000000) // 32MB of memory area that can't be allocated by the game directly - this is emulator specific.
-
-//#define MEMORY_SYSTEM_AREA_ADDR				(0x7C000000)
-//#define MEMORY_SYSTEM_AREA_SIZE				(0x02000000) // 32MB of memory area that can't be allocated by the game directly - this is emulator specific.
-// moved the sys area below 0x80000000. Turns out that some games treat stack/os-object pointers as signed and run into issues if the highest bit is set (e.g. Monster Hunter Frontier G)
-
 #define MEMORY_TILINGAPERTURE_AREA_ADDR		(0xE8000000)
 #define MEMORY_TILINGAPERTURE_AREA_SIZE		(0x02000000) // 32MB
 
 #define MEMORY_OVERLAY_AREA_OFFSET			(0xA0000000)
-#define MEMORY_OVERLAY_AREA_SIZE			(448*1024*1024) // 448MB (todo: verify if correct)
-
-#define MEMORY_MAPABLE_PHYS_AREA_OFFSET		(0x80000000) // todo: verify offset
-#define MEMORY_MAPABLE_PHYS_AREA_SIZE		(32*1024*1024) // todo: verify size
-#define MEMORY_MAPABLE_VIRT_AREA_OFFSET		(0x70000000) // todo: verify offset
-#define MEMORY_MAPABLE_VIRT_AREA_SIZE		(32*1024*1024) // todo: verify size
+#define MEMORY_OVERLAY_AREA_SIZE			(448*1024*1024) // 448MB (recycled background app memory)
 
 #define MEMORY_MEM1_AREA_ADDR				(0xF4000000)
 #define MEMORY_MEM1_AREA_SIZE				(0x02000000) // 32MB
@@ -191,7 +173,6 @@ bool memory_isAddressRangeAccessible(MPTR virtualAddress, uint32 size);
 
 static uint16 CPU_swapEndianU16(uint16 v)
 {
-	//return _byteswap_ushort(v);
 	return (v>>8)|(v<<8);
 }
 
