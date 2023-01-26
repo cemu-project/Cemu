@@ -871,6 +871,9 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 {
 	event.Skip();
 
+	if(m_style != Style::kList)
+		return;
+
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
 
