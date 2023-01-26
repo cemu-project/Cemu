@@ -14,7 +14,6 @@ static void PPCInterpreter_setXerOV(PPCInterpreter_t* hCPU, bool hasOverflow)
 
 static bool checkAdditionOverflow(uint32 x, uint32 y, uint32 r)
 {
-	// todo - update remaining *O instructions to use this function
 
 	/*
 		x	y	r	result	(has overflow)
@@ -44,17 +43,9 @@ static void PPCInterpreter_ADDO(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	// untested (Don't Starve Giant Edition uses this instruction + BSO)
 	PPC_OPC_TEMPL3_XO();
-	uint64 result = (uint64)hCPU->gpr[rA] + (uint64)hCPU->gpr[rB];
+	uint32 result = hCPU->gpr[rA] + hCPU->gpr[rB];
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(hCPU->gpr[rA], hCPU->gpr[rB], result));
 	hCPU->gpr[rD] = (uint32)result;
-	if (result >= 0x100000000ULL)
-	{
-		hCPU->spr.XER |= XER_SO;
-		hCPU->spr.XER |= XER_OV;
-	}
-	else
-	{
-		hCPU->spr.XER &= ~XER_OV;
-	}
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -85,13 +76,7 @@ static void PPCInterpreter_ADDCO(PPCInterpreter_t* hCPU, uint32 opcode)
 	else
 		hCPU->xer_ca = 0;
 	// set SO/OV
-	if (hCPU->gpr[rD] < a)
-	{
-		hCPU->spr.XER |= XER_OV;
-		hCPU->spr.XER |= XER_SO;
-	}
-	else
-		hCPU->spr.XER &= ~XER_OV;
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(a, b, hCPU->gpr[rD]));
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -266,15 +251,7 @@ static void PPCInterpreter_SUBFCO(PPCInterpreter_t* hCPU, uint32 opcode)
 	else
 		hCPU->xer_ca = 0;
 	// update xer SO/OV
-	if (checkAdditionOverflow(~a, b, hCPU->gpr[rD]))
-	{
-		hCPU->spr.XER |= XER_SO;
-		hCPU->spr.XER |= XER_OV;
-	}
-	else
-	{
-		hCPU->spr.XER &= ~XER_OV;
-	}
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(~a, b, hCPU->gpr[rD]));
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -325,15 +302,7 @@ static void PPCInterpreter_SUBFEO(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->xer_ca = 1;
 	else
 		hCPU->xer_ca = 0;
-	if (checkAdditionOverflow(~a, b, result))
-	{
-		hCPU->spr.XER |= XER_SO;
-		hCPU->spr.XER |= XER_OV;
-	}
-	else
-	{
-		hCPU->spr.XER &= ~XER_OV;
-	}
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(~a, b, result));
 	// update cr0
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
@@ -419,17 +388,9 @@ static void PPCInterpreter_MULLWO(PPCInterpreter_t* hCPU, uint32 opcode)
 	// Don't Starve Giant Edition uses this instruction + BSO
 	// also used by FullBlast when a save file exists + it uses mfxer to access overflow result
 	PPC_OPC_TEMPL3_XO();
-	sint64 result = (sint64)hCPU->gpr[rA] * (sint64)hCPU->gpr[rB];
+	sint64 result = (sint64)(sint32)hCPU->gpr[rA] * (sint64)(sint32)hCPU->gpr[rB];
 	hCPU->gpr[rD] = (uint32)result;
-	if (result < -0x80000000ll || result > 0x7FFFFFFFLL)
-	{
-		hCPU->spr.XER |= XER_SO;
-		hCPU->spr.XER |= XER_OV;
-	}
-	else
-	{
-		hCPU->spr.XER &= ~XER_OV;
-	}
+	PPCInterpreter_setXerOV(hCPU, result < -0x80000000ll || result > 0x7FFFFFFFLL);
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -467,15 +428,12 @@ static void PPCInterpreter_DIVWO(PPCInterpreter_t* hCPU, uint32 opcode)
 	sint32 b = hCPU->gpr[rB];
 	if (b == 0)
 	{
-		if (opcode & PPC_OPC_OE)
-			hCPU->spr.XER |= XER_OV;
+		PPCInterpreter_setXerOV(hCPU, true);
 		PPCInterpreter_nextInstruction(hCPU);
 		return;
 	}
 	hCPU->gpr[rD] = a / b;
-	if (opcode & PPC_OPC_OE)
-		hCPU->spr.XER &= ~XER_OV;
-	// todo: Handle SO
+	PPCInterpreter_setXerOV(hCPU, false);
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -500,15 +458,12 @@ static void PPCInterpreter_DIVWUO(PPCInterpreter_t* hCPU, uint32 opcode)
 	PPC_OPC_TEMPL3_XO();
 	if (hCPU->gpr[rB] == 0)
 	{
-		if (opcode & PPC_OPC_OE)
-			hCPU->spr.XER |= XER_OV;
+		PPCInterpreter_setXerOV(hCPU, true);
 		PPCInterpreter_nextInstruction(hCPU);
 		return;
 	}
 	hCPU->gpr[rD] = hCPU->gpr[rA] / hCPU->gpr[rB];
-	if (opcode & PPC_OPC_OE)
-		hCPU->spr.XER &= ~XER_OV;
-	// todo: Handle SO 
+	PPCInterpreter_setXerOV(hCPU, false);
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -577,15 +532,7 @@ static void PPCInterpreter_NEGO(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
 	PPC_ASSERT(rB == 0);
-	if (hCPU->gpr[rA] == 0x80000000)
-	{
-		hCPU->spr.XER |= XER_SO;
-		hCPU->spr.XER |= XER_OV;
-	}
-	else
-	{
-		hCPU->spr.XER &= ~XER_OV;
-	}
+	PPCInterpreter_setXerOV(hCPU, hCPU->gpr[rA] == 0x80000000);
 	hCPU->gpr[rD] = (uint32)-((sint32)hCPU->gpr[rA]);
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
