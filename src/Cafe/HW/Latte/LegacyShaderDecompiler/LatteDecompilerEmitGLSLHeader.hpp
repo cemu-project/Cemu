@@ -304,8 +304,7 @@ namespace LatteDecompiler
 		}
 		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
 		{
-			//fCStr_shaderSource->append("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy+uf_fragCoordScale.zw,gl_FragCoord.zw)" STR_LINEBREAK);
-			src->add("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy,gl_FragCoord.zw)" _CRLF);
+			src->add("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy,gl_FragCoord.z, 1.0/gl_FragCoord.w)" _CRLF);
 		}
 		src->add("#else" _CRLF);
 		// OpenGL defines
