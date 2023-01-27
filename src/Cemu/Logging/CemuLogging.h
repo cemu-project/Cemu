@@ -2,6 +2,7 @@
 
 enum class LogType : sint32
 {
+	// note: IDs must not exceed 63
 	Placeholder = -2,
 	None = -1,
 	Force = 0, // this logging type is always on
@@ -28,12 +29,14 @@ enum class LogType : sint32
 	PPC_IPC = 20,
 	NN_AOC = 21,
 	NN_PDM = 22,
+	
+	TextureReadback = 30,
 
 	ProcUi = 40,
 
-	TextureReadback = 60,
+	APIErrors = 0, // alias for Force. Logs bad parameters or other API errors in OS libs
 
-	APIErrors = 0, // alias for 0. Logs bad parameters or other API errors in OS libs
+	
 };
 
 template <>
