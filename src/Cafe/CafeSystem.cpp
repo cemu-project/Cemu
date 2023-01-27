@@ -30,6 +30,7 @@
 #include "GamePatch.h"
 
 #include <time.h>
+#include "HW/Espresso/Debugger/GDBStub.h"
 
 #include "Cafe/IOSU/legacy/iosu_ioctl.h"
 #include "Cafe/IOSU/legacy/iosu_act.h"
@@ -398,6 +399,8 @@ void cemu_initForGame()
 	InfoLog_PrintActiveSettings();
 	Latte_Start();
 	// check for debugger entrypoint bp
+    if (g_gdbstub)
+        g_gdbstub->HandleEntryStop(_entryPoint);
 	debugger_handleEntryBreakpoint(_entryPoint);
 	// load graphic packs
 	forceLog_printf("------- Activate graphic packs -------");
@@ -413,6 +416,11 @@ void cemu_initForGame()
 	OSThread_t* initialThread = coreinit::OSGetDefaultThread(1);
 	coreinit::OSSetThreadPriority(initialThread, 16);
 	coreinit::OSRunThread(initialThread, PPCInterpreter_makeCallableExportDepr(coreinit_start), 0, nullptr);
+    // init gdb debugger
+    if (g_gdbstub) {
+        g_gdbstub->Initialize();
+        //while (!g_gdbstub->ContinueStartup()) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 	// init AX and start AX I/O thread
 	snd_core::AXOut_init();
 	// init ppc recompiler

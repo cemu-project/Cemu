@@ -3,11 +3,6 @@
 #include <set>
 #include "Cafe/HW/Espresso/PPCState.h"
 
-//#define DEBUGGER_BP_TYPE_NORMAL			(1<<0) // normal breakpoint
-//#define DEBUGGER_BP_TYPE_ONE_SHOT		(1<<1) // normal breakpoint
-//#define DEBUGGER_BP_TYPE_MEMORY_READ	(1<<2) // memory breakpoint
-//#define DEBUGGER_BP_TYPE_MEMORY_WRITE	(1<<3) // memory breakpoint
-
 #define DEBUGGER_BP_T_NORMAL		0 // normal breakpoint
 #define DEBUGGER_BP_T_ONE_SHOT		1 // normal breakpoint, deletes itself after trigger (used for stepping)
 #define DEBUGGER_BP_T_MEMORY_READ	2 // memory breakpoint
@@ -15,6 +10,9 @@
 
 #define DEBUGGER_BP_T_GDBSTUB		1 // breakpoint created by GDBStub
 #define DEBUGGER_BP_T_DEBUGGER		2 // breakpoint created by Cemu's debugger
+
+#define DEBUGGER_BP_T_GDBSTUB_TW    0x7C010008
+#define DEBUGGER_BP_T_DEBUGGER_TW   0x7C020008
 
 
 struct DebuggerBreakpoint

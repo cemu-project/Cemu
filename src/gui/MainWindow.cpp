@@ -344,6 +344,10 @@ MainWindow::MainWindow()
 	{
 		MainWindow::RequestLaunchGame(LaunchSettings::GetLoadFile().value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
 	}
+	if (LaunchSettings::GDBStubEnabled())
+	{
+		g_gdbstub = std::make_unique<GDBServer>(1337);
+	}
 }
 
 MainWindow::~MainWindow()

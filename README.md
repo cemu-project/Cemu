@@ -10,13 +10,13 @@ It's written in C/C++ and is being actively developed with new features and fixe
 Cemu is currently only available for 64-bit Windows, Linux & macOS devices.
 
 ### Links:
- - [Original 2.0 announcement post](https://www.reddit.com/r/cemu/comments/wwa22c/cemu_20_announcement_linux_builds_opensource_and/)
+ - [Open Source Announcement](https://www.reddit.com/r/cemu/comments/wwa22c/cemu_20_announcement_linux_builds_opensource_and/)
  - [Official Website](https://cemu.info)
  - [Compatibility List/Wiki](https://wiki.cemu.info/wiki/Main_Page)
  - [Official Subreddit](https://reddit.com/r/Cemu)
  - [Official Discord](https://discord.gg/5psYsup)
  - [Official Matrix Server](https://matrix.to/#/#cemu:cemu.info)
- - [Unofficial Setup Guide](https://cemu.cfw.guide)
+ - [Setup Guide](https://cemu.cfw.guide)
 
 #### Other relevant repositories:
  - [Cemu-Language](https://github.com/cemu-project/Cemu-Language)

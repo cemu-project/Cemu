@@ -65,9 +65,12 @@ static void PPCInterpreter_MFTB(PPCInterpreter_t* hCPU, uint32 opcode)
 static void PPCInterpreter_TW(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	sint32 to, rA, rB;
-	PPC_OPC_TEMPL_X(opcode, to, rB, rA);
+	PPC_OPC_TEMPL_X(opcode, to, rA, rB);
 
 	cemu_assert_debug(to == 0);
 
-	debugger_enterTW(hCPU);
+    if (rA == DEBUGGER_BP_T_DEBUGGER)
+	    debugger_enterTW(hCPU);
+    else if (rA == DEBUGGER_BP_T_GDBSTUB)
+        g_gdbstub->HandleTrapInstruction(hCPU);
 }

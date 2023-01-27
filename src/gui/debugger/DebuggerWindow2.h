@@ -4,6 +4,7 @@
 #include "config/XMLConfig.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "Cafe/OS/RPL/rpl.h"
+#include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 
 #include <wx/bitmap.h>
 #include <wx/frame.h>
@@ -26,10 +27,12 @@ wxDECLARE_EVENT(wxEVT_NOTIFY_MODULE_UNLOADED, wxCommandEvent);
 struct DebuggerConfig
 {
 	DebuggerConfig()
-	: pin_to_main(true), break_on_start(true), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true) {}
-
+	: gdbstub_enabled(false), gdbstub_port(1337), pin_to_main(true), break_on_start(true), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true), show_symbols(true) {}
+	
+	bool gdbstub_enabled;
+	uint16_t gdbstub_port;
+	
 	bool pin_to_main;
-
 	bool break_on_start;
 
 	bool show_register;
@@ -95,7 +98,7 @@ private:
 
 	wxPoint m_main_position;
 	wxSize m_main_size;
-
+	
 	RegisterWindow* m_register_window;
 	DumpWindow* m_dump_window;
 	BreakpointWindow* m_breakpoint_window;

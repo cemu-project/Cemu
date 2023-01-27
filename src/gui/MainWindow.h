@@ -14,6 +14,7 @@
 #include "gui/components/wxGameList.h"
 
 #include <future>
+#include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 
 class DebuggerWindow2;
 struct GameEntry;

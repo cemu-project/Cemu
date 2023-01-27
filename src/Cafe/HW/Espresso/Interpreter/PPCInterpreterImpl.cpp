@@ -1,6 +1,7 @@
 #include "PPCInterpreterInternal.h"
 #include "PPCInterpreterHelper.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 
 class PPCItpCafeOSUsermode
 {

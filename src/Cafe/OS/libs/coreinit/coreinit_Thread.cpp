@@ -671,6 +671,11 @@ namespace coreinit
 		__OSUnlockScheduler();
 	}
 
+    void __OSSuspendThreadNolock(OSThread_t* thread)
+    {
+        __OSSuspendThreadInternal(thread);
+    }
+
 	void OSSleepThread(OSThreadQueue* threadQueue)
 	{
 		__OSLockScheduler();
@@ -798,7 +803,18 @@ namespace coreinit
 		return suspendCounter > 0;
 	}
 
-	void OSCancelThread(OSThread_t* thread)
+    bool OSIsThreadRunning(OSThread_t* thread)
+    {
+        bool isRunning = false;
+        __OSLockScheduler();
+        if (thread->state == OSThread_t::THREAD_STATE::STATE_RUNNING)
+            isRunning = true;
+        __OSUnlockScheduler();
+        return isRunning;
+    }
+
+
+void OSCancelThread(OSThread_t* thread)
 	{
 		__OSLockScheduler();
 		cemu_assert_debug(thread->requestFlags == 0 || thread->requestFlags == OSThread_t::REQUEST_FLAG_CANCEL); // todo - how to handle cases where other flags are already set?
@@ -1315,6 +1331,7 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSResumeThread, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSContinueThread, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSSuspendThread, LogType::CoreinitThread);
+        cafeExportRegister("coreinit", __OSSuspendThreadNolock, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSSleepThread, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSWakeupThread, LogType::CoreinitThread);
 

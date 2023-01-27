@@ -103,7 +103,7 @@ void debugger_updateExecutionBreakpoint(uint32 address, bool forceRestore)
 			if (bpItr->enabled && forceRestore == false)
 			{
 				// write TW instruction to memory
-				debugger_updateMemoryU32(address, (31 << 26) | (4 << 1));
+				debugger_updateMemoryU32(address, DEBUGGER_BP_T_DEBUGGER_TW);
 				return;
 			}
 			else
