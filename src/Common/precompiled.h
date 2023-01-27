@@ -516,3 +516,15 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 #include "Cafe/HW/MMU/MMU.h"
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
+
+// useful C++23 stuff that isn't yet widely supported
+
+// std::to_underlying
+namespace stdx
+{
+    template <typename EnumT, typename = std::enable_if_t < std::is_enum<EnumT>{} >>
+        constexpr std::underlying_type_t<EnumT> to_underlying(EnumT e) noexcept {
+        return static_cast<std::underlying_type_t<EnumT>>(e);
+    };
+}
+

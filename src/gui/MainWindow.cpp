@@ -2113,26 +2113,27 @@ void MainWindow::RecreateMenu()
 	// debug->logging submenu
 	wxMenu* debugLoggingMenu = new wxMenu;
 
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_UNSUPPORTED_API, _("&Unsupported API calls"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_UNSUPPORTED_API));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_COREINIT_LOGGING, _("&Coreinit Logging (OSReport/OSConsole)"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_COREINIT_LOGGING));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_FILE, _("&Coreinit File-Access"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_FILE));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_THREADSYNC, _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_THREADSYNC));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_COREINIT_MEM, _("&Coreinit Memory API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_COREINIT_MEM));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_COREINIT_MP, _("&Coreinit MP API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_COREINIT_MP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_COREINIT_THREAD, _("&Coreinit Thread API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_COREINIT_THREAD));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_NFP, _("&NN NFP"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_NFP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_GX2, _("&GX2 API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_GX2));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_SNDAPI, _("&Audio API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_SNDAPI));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_INPUT, _("&Input API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_INPUT));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_SOCKET, _("&Socket API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_SOCKET));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_SAVE, _("&Save API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_SAVE));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_H264, _("&H264 API"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_H264));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::UnsupportedAPI), _("&Unsupported API calls"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::UnsupportedAPI));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitLogging), _("&Coreinit Logging (OSReport/OSConsole)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitLogging));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("&Coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::ThreadSync), _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::ThreadSync));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("&Coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("&Coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("&Coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::nn_nfp), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::nn_nfp));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("&GX2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("&Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("&Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("&Socket API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Socket));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("&Save API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Save));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("&H264 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::H264));
 	debugLoggingMenu->AppendSeparator();
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_PATCHES, _("&Graphic pack patches"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_PATCHES));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_TEXTURE_CACHE, _("&Texture cache warnings"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_TEXTURE_CACHE));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Patches), _("&Graphic pack patches"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Patches));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureCache), _("&Texture cache warnings"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureCache));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureReadback), _("&Texture readback"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureReadback));
 	debugLoggingMenu->AppendSeparator();
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_OPENGL, _("&OpenGL debug output"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_OPENGL));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_VULKAN_VALIDATION, _("&Vulkan validation layer (slow)"), wxEmptyString)->Check(cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), _("&OpenGL debug output"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::OpenGLLogging));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), _("&Vulkan validation layer (slow)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::VulkanValidation));
 #ifdef CEMU_DEBUG_ASSERT
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, _("&Log PPC context for API"), wxEmptyString)->Check(cemuLog_advancedPPCLoggingEnabled());
 #endif
