@@ -488,6 +488,8 @@ namespace coreinit
 	void InitializeThread();
 	void InitializeConcurrency();
 
+	bool __CemuIsMulticoreMode();
+
 	OSThread_t* OSGetDefaultThread(sint32 coreIndex);
 	void* OSGetDefaultThreadStack(sint32 coreIndex, uint32& size);
 
