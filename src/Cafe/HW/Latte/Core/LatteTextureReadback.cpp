@@ -21,6 +21,7 @@ std::queue<LatteTextureReadbackInfo*> sTextureActiveReadbackQueue; // readbacks 
 
 void LatteTextureReadback_StartTransfer(LatteTextureView* textureView)
 {
+	cemuLog_log(LogType::TextureReadback, "[TextureReadback-Start] PhysAddr {:08x} Res {}x{} Fmt {} Slice {} Mip {}", textureView->baseTexture->physAddress, textureView->baseTexture->width, textureView->baseTexture->height, textureView->baseTexture->format, textureView->firstSlice, textureView->firstMip);
 	// create info entry and store in ordered linked list
 	LatteTextureReadbackInfo* readbackInfo = g_renderer->texture_createReadback(textureView);
 	sTextureActiveReadbackQueue.push(readbackInfo);
@@ -30,8 +31,8 @@ void LatteTextureReadback_StartTransfer(LatteTextureView* textureView)
 }
 
 /*
- * Checks for queued transfers and starts them if at least one drawcall has passed since the last write
- * Called after a draw operation has finished
+ * Checks for queued transfers and starts them if at least five drawcalls have passed since the last write
+ * Called after a draw sequence is completed
  * Returns true if at least one transfer was started
  */
 bool LatteTextureReadback_Update(bool forceStart)
@@ -41,12 +42,14 @@ bool LatteTextureReadback_Update(bool forceStart)
 	{
 		LatteTextureReadbackQueueEntry& entry = sTextureScheduledReadbacks[i];
 		uint32 numPassedDrawcalls = LatteGPUState.drawCallCounter - entry.lastUpdateDrawcallIndex;
-		// initiate transfer
-		LatteTextureReadback_StartTransfer(entry.textureView);
-		// remove element
-		vectorRemoveByIndex(sTextureScheduledReadbacks, i);
-		i--;
-		hasStartedTransfer = true;
+		if (forceStart || numPassedDrawcalls >= 5)
+		{
+			LatteTextureReadback_StartTransfer(entry.textureView);
+			// remove element
+			vectorRemoveByIndex(sTextureScheduledReadbacks, i);
+			i--;
+			hasStartedTransfer = true;
+		}
 	}
 	return hasStartedTransfer;
 }

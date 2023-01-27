@@ -134,7 +134,7 @@ enum
 
 	// debug->logging
 	MAINFRAME_MENU_ID_DEBUG_LOGGING0 = 21500,
-	MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO,
+	MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO = 21599,
 	// debug->dump
 	MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES = 21600,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS,
@@ -195,7 +195,7 @@ EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_0125X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, MainWindow::OnNFCMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_NFC_RECENT_0 + 0, MAINFRAME_MENU_ID_NFC_RECENT_LAST, MainWindow::OnNFCMenu)
 // debug -> logging menu
-EVT_MENU_RANGE(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 0, MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 19, MainWindow::OnDebugLoggingToggleFlagGeneric)
+EVT_MENU_RANGE(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 0, MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 98, MainWindow::OnDebugLoggingToggleFlagGeneric)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, MainWindow::OnPPCInfoToggle)
 // debug -> dump menu
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, MainWindow::OnDebugDumpUsedTextures)
@@ -1040,7 +1040,7 @@ void MainWindow::OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event)
 	sint32 loggingIdBase = MAINFRAME_MENU_ID_DEBUG_LOGGING0;
 
 	sint32 id = event.GetId();
-	if (id >= loggingIdBase && id < (MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 20))
+	if (id >= loggingIdBase && id < (MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 64))
 	{
 		cafeLog_setLoggingFlagEnable(id - loggingIdBase, event.IsChecked());
 	}

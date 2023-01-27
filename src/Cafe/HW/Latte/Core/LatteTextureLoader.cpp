@@ -746,7 +746,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		return;
 	}
 
-	cemuLog_log(LogType::TextureReadback, "[WriteReadbackTex] PhysAddr {:08x} Res {}x{} Fmt {} Slice {} Mip {}", textureData->physAddress, textureData->width, textureData->height, textureData->format, sliceIndex, mipIndex);
+	cemuLog_log(LogType::TextureReadback, "[TextureReadback-Write] PhysAddr {:08x} Res {}x{} Fmt {} Slice {} Mip {}", textureData->physAddress, textureData->width, textureData->height, textureData->format, sliceIndex, mipIndex);
 
 	if (textureData->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
 	{
