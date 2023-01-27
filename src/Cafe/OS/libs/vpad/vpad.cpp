@@ -1159,9 +1159,9 @@ namespace vpad
 
 void load()
 {
-	cafeExportRegister("vpad", VPADSetBtnRepeat, LogType::Input);
-	cafeExportRegister("vpad", VPADSetSamplingCallback, LogType::Input);
-	cafeExportRegister("vpad", VPADRead, LogType::Input);
+	cafeExportRegister("vpad", VPADSetBtnRepeat, LogType::InputAPI);
+	cafeExportRegister("vpad", VPADSetSamplingCallback, LogType::InputAPI);
+	cafeExportRegister("vpad", VPADRead, LogType::InputAPI);
 	
 	osLib_addFunction("vpad", "VPADGetAccParam", vpadExport_VPADGetAccParam);
 	osLib_addFunction("vpad", "VPADSetAccParam", vpadExport_VPADSetAccParam);

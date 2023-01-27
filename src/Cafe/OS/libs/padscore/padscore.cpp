@@ -748,8 +748,8 @@ namespace padscore
 
 	void load()
 	{
-		cafeExportRegister("padscore", WPADIsMplsAttached, LogType::Input);
-		cafeExportRegister("padscore", WPADGetAccGravityUnit, LogType::Input);
+		cafeExportRegister("padscore", WPADIsMplsAttached, LogType::InputAPI);
+		cafeExportRegister("padscore", WPADGetAccGravityUnit, LogType::InputAPI);
 
 		// wpad
 		//osLib_addFunction("padscore", "WPADInit", padscore::export_WPADInit);

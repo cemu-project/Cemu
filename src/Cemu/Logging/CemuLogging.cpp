@@ -33,16 +33,16 @@ struct _LogContext
 
 const std::map<LogType, std::string> g_logging_window_mapping
 {
-	{LogType::File, "Coreinit File-Access"},
+	{LogType::CoreinitFile, "Coreinit File-Access"},
 	{LogType::GX2, "GX2"},
 	{LogType::ThreadSync, "Coreinit Thread-Synchronization"},
 	{LogType::SoundAPI, "Audio"},
-	{LogType::Input, "Input"},
+	{LogType::InputAPI, "Input"},
 	{LogType::Socket, "Socket"},
 	{LogType::Save, "Save"},
 	{LogType::CoreinitMem, "Coreinit Memory"},
 	{LogType::H264, "H264"},
-	{LogType::OpenGL, "OpenGL"},
+	{LogType::OpenGLLogging, "OpenGL"},
 	{LogType::TextureCache, "Texture Cache"},
 	{LogType::nn_nfp, "NFP"},
 };
