@@ -93,7 +93,7 @@ bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 	return cemuLog_log(type, format_str, std::forward<TArgs>(args)...);
 }
 
-// same as cemuLog_log, but only outputs in debug/release mode
+// same as cemuLog_log, but only outputs in debug mode
 template<typename TFmt, typename ... TArgs>
 bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 {
@@ -161,7 +161,6 @@ void cemuLog_force(TFmt format, TArgs&&... args)
 
 // these are deprecated. Superseded by cemuLog_log(type, ...)
 #define forceLog_printf(...)		cafeLog_log(LOG_TYPE_FORCE, __VA_ARGS__);
-#define forceLog_printfW(...)		cafeLog_logW(LOG_TYPE_FORCE, __VA_ARGS__);
 #define gx2Log_printf(...)			if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_GX2) ) cafeLog_log(LOG_TYPE_GX2, __VA_ARGS__);
 #define coreinitMemLog_printf(...)	if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_COREINIT_MEM) ) cafeLog_log(LOG_TYPE_COREINIT_MEM, __VA_ARGS__);
 #define sndApiLog_printf(...)		if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_SNDAPI) ) cafeLog_log(LOG_TYPE_SNDAPI, __VA_ARGS__);
@@ -172,11 +171,9 @@ void cemuLog_force(TFmt format, TArgs&&... args)
 
 #ifdef CEMU_DEBUG_ASSERT
 #define forceLogDebug_printf(...)		cafeLog_log(LOG_TYPE_FORCE, __VA_ARGS__);
-#define forceLogDebug_printfW(...)		cafeLog_logW(LOG_TYPE_FORCE, __VA_ARGS__);
 
  // use this for temporary debug logging. Will trigger compilation error in release builds
 #define forceLogRemoveMe_printf(...)	cafeLog_log(LOG_TYPE_FORCE, __VA_ARGS__);
 #else
 #define forceLogDebug_printf(...)	;
-#define forceLogDebug_printfW(...)	;
 #endif

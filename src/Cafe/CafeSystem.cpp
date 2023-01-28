@@ -337,7 +337,7 @@ uint32 loadSharedData()
 			// advance write offset and pad to 16 byte alignment
 			dataWritePtr += ((fileSize + 15) & ~15);
 		}
-		forceLog_printfW(L"COS: System fonts found. Generated shareddata (%dKB)", (uint32)(dataWritePtr - (uint8*)shareddataTable) / 1024);
+		cemuLog_log(LogType::Force, "COS: System fonts found. Generated shareddata ({}KB)", (uint32)(dataWritePtr - (uint8*)shareddataTable) / 1024);
 		return memory_getVirtualOffsetFromPointer(dataWritePtr);
 	}
 	// alternative method: load RAM dump

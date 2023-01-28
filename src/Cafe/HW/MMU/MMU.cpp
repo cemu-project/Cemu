@@ -320,12 +320,6 @@ void memory_writeU32(uint32 address, uint32 v)
 	*(uint32*)(memory_getPointerFromVirtualOffset(address)) = CPU_swapEndianU32(v);
 }
 
-void memory_writeU64Slow(uint32 address, uint64 v)
-{
-	memory_writeU32(address+0, (v>>32)&0xFFFFFFFF);
-	memory_writeU32(address+4, (v)&0xFFFFFFFF);
-}
-
 void memory_writeU64(uint32 address, uint64 v)
 {
 	*(uint64*)(memory_getPointerFromVirtualOffset(address)) = CPU_swapEndianU64(v);

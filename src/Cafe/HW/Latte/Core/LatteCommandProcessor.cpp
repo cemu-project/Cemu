@@ -559,19 +559,19 @@ LatteCMDPtr LatteCP_itLoadReg(LatteCMDPtr cmd, uint32 nWords, uint32 regBase)
 	MPTR physAddressRegArea = LatteReadCMD();
 	uint32 waitForIdle = LatteReadCMD();
 	uint32 loadEntries = (nWords - 2) / 2;
-	uint32 regIndex = 0;
+	uint32 regShadowMemAddr = physAddressRegArea;
 	for (uint32 i = 0; i < loadEntries; i++)
 	{
 		uint32 regOffset = LatteReadCMD();
 		uint32 regCount = LatteReadCMD();
 		cemu_assert_debug(regCount != 0);
+		uint32 regAddr = regBase + regOffset;
 		for (uint32 f = 0; f < regCount; f++)
 		{
-			uint32 regAddr = regBase + regOffset + f;
-			uint32 regShadowMemAddr = physAddressRegArea + regIndex * 4;
 			LatteGPUState.contextRegisterShadowAddr[regAddr] = regShadowMemAddr;
-			LatteGPUState.contextRegister[regAddr] = memory_readU32Direct(regShadowMemAddr);
-			regIndex++;
+			LatteGPUState.contextRegister[regAddr] = memory_read<uint32>(regShadowMemAddr);
+			regAddr++;
+			regShadowMemAddr += 4;
 		}
 	}
 	return cmd;
@@ -716,7 +716,7 @@ LatteCMDPtr LatteCP_itHLESampleTimer(LatteCMDPtr cmd, uint32 nWords)
 {
 	cemu_assert_debug(nWords == 1);
 	MPTR timerMPTR = (MPTR)LatteReadCMD();
-	memory_writeU64Slow(timerMPTR, coreinit::coreinit_getTimerTick());
+	memory_writeU64(timerMPTR, coreinit::coreinit_getTimerTick());
 	return cmd;
 }
 

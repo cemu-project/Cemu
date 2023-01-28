@@ -219,7 +219,7 @@ void LatteShaderCache_load()
 	if(!fc_shaderCacheGeneric)
 	{
 		// no shader cache available yet
-		forceLog_printfW(L"Unable to open or create shader cache file \"%s\"", pathGeneric.c_str());		
+		cemuLog_log(LogType::Force, "Unable to open or create shader cache file \"{}\"", _pathToUtf8(pathGeneric));
 		LatteShaderCache_finish();
 		return;
 	}
