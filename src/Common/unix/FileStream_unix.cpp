@@ -2,7 +2,7 @@
 
 fs::path findPathCI(const fs::path& path)
 {
-	if (fs::exists(path)) return path;
+	if (fs::exists(path) || path.empty()) return path;
 
 	fs::path fName = path.filename();
 	fs::path parentPath = path.parent_path();

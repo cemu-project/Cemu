@@ -165,16 +165,49 @@ bool ActiveSettings::DumpLibcurlRequestsEnabled()
 void ActiveSettings::EnableDumpShaders(bool state)
 {
 	s_dump_shaders = state;
+
+	if (s_dump_shaders)
+	{
+		std::error_code ec;
+		fs::create_directories(ActiveSettings::GetUserDataPath("dump/shaders"), ec);
+		if (ec)
+		{
+			cemuLog_log(LogType::Force, "can't create shaders dump folder: {}", ec.message());
+			s_dump_shaders = false;
+		}
+	}
 }
 
 void ActiveSettings::EnableDumpTextures(bool state)
 {
 	s_dump_textures = state;
+
+	if (s_dump_textures)
+	{
+		std::error_code ec;
+		fs::create_directories(ActiveSettings::GetUserDataPath("dump/textures"), ec);
+		if (ec)
+		{
+			cemuLog_log(LogType::Force, "can't create texture dump folder: {}", ec.message());			
+			s_dump_textures = false;
+		}
+	}
 }
 
 void ActiveSettings::EnableDumpLibcurlRequests(bool state)
 {
 	s_dump_libcurl_requests = state;
+
+	if (s_dump_libcurl_requests)
+	{
+		std::error_code ec;
+		fs::create_directories(ActiveSettings::GetUserDataPath("dump/curl"), ec);
+		if (ec)
+		{
+			cemuLog_log(LogType::Force, "can't create curl dump folder: {}", ec.message());
+			s_dump_libcurl_requests = false;
+		}
+	}
 }
 
 bool ActiveSettings::FrameProfilerEnabled()
