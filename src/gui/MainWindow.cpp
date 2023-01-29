@@ -624,7 +624,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 
 void MainWindow::OnOpenCemuFolder(wxCommandEvent& event)
 {
-	wxLaunchDefaultApplication(ActiveSettings::GetUserDataPath().wstring());
+	wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetUserDataPath()));
 }
 
 void MainWindow::OnInstallUpdate(wxCommandEvent& event)

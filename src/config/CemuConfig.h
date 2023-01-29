@@ -356,7 +356,7 @@ struct CemuConfig
 	//
 
 	// sets mlc path, updates permanent config value, saves config
-	void SetMLCPath(std::wstring_view path, bool save = true);
+	void SetMLCPath(fs::path path, bool save = true);
 
 	ConfigValue<uint64> log_flag{ 0 };
 	ConfigValue<bool> advanced_ppc_logging{ false };
@@ -365,7 +365,7 @@ struct CemuConfig
 	
 	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
 	ConfigValue<bool> use_discord_presence{ true };
-	ConfigValue<std::wstring> mlc_path {};
+	ConfigValue<std::string> mlc_path {};
 	ConfigValue<bool> fullscreen_menubar{ false };
 	ConfigValue<bool> fullscreen{ false };
 	ConfigValue<std::string> proxy_server{};

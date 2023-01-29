@@ -17,10 +17,16 @@ namespace wxHelper
         return fs::path(sv);
     }
 
-    inline wxString FromUtf8(std::string_view str)
-    {
-        return wxString::FromUTF8(str.data(), str.size());
-    }
+	inline wxString FromUtf8(std::string_view str)
+	{
+		return wxString::FromUTF8(str.data(), str.size());
+	}
+
+	inline wxString FromPath(const fs::path& path)
+	{
+		std::string str = _pathToUtf8(path);
+		return wxString::FromUTF8(str.data(), str.size());
+	}
 
 	inline wxColour CalculateAccentColour(const wxColour& bgColour)
 	{
