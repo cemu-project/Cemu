@@ -102,14 +102,14 @@ bool GraphicPack2::LoadCemuPatches()
 					// load Cemu style patch file
 					if (!ParseCemuPatchesTxtInternal(patchesStream))
 					{
-						forceLog_printfW(L"Error while processing \"%s\". No patches for this graphic pack will be applied.", path.c_str());
+						cemuLog_log(LogType::Force, "Error while processing \"{}\". No patches for this graphic pack will be applied.", _pathToUtf8(path));
 						cemu_assert_debug(list_patchGroups.empty());
 						return true; // return true since a .asm patch was found even if we could not parse it
 					}
 				}
 				else
 				{
-					forceLog_printfW(L"Unable to load patch file \"%s\"", path.c_str());
+					cemuLog_log(LogType::Force, "Unable to load patch file \"{}\"", _pathToUtf8(path));
 				}
 				foundPatches = true;
 			}

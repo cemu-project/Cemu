@@ -734,7 +734,7 @@ uint32 RPLLoader_MakePPCCallable(void(*ppcCallableExport)(PPCInterpreter_t* hCPU
 	sint32 functionIndex = PPCInterpreter_registerHLECall(ppcCallableExport);
 	MPTR codeAddr = memory_getVirtualOffsetFromPointer(RPLLoader_AllocateTrampolineCodeSpace(4));
 	uint32 opcode = (1 << 26) | functionIndex;
-	memory_writeU32Direct(codeAddr, opcode);
+	memory_write<uint32>(codeAddr, opcode);
 	g_map_callableExports[ppcCallableExport] = codeAddr;
 	return codeAddr;
 }
@@ -772,7 +772,7 @@ uint32 rpl_mapHLEImport(RPLModule* rplLoaderContext, const char* rplName, const 
 	{
 		MPTR codeAddr = memory_getVirtualOffsetFromPointer(RPLLoader_AllocateTrampolineCodeSpace(4));
 		uint32 opcode = (1 << 26) | functionIndex;
-		memory_writeU32Direct(codeAddr, opcode);
+		memory_write<uint32>(codeAddr, opcode);
 		// register mapped import
 		mappedFunctionImport_t newImport;
 		newImport.hash1 = mappedImportHash1;
@@ -792,8 +792,8 @@ uint32 rpl_mapHLEImport(RPLModule* rplLoaderContext, const char* rplName, const 
 	uint32 codeStart = memory_getVirtualOffsetFromPointer(RPLLoader_AllocateTrampolineCodeSpace(256));
 	uint32 currentAddress = codeStart;
 	uint32 opcode = (1 << 26) | (0xFFD0); // opcode for HLE: Unsupported import
-	memory_writeU32Direct(codeStart + 0, opcode);
-	memory_writeU32Direct(codeStart + 4, 0x4E800020);
+	memory_write<uint32>(codeStart + 0, opcode);
+	memory_write<uint32>(codeStart + 4, 0x4E800020);
 	currentAddress += 8;
 	// write name of lib/function
 	sint32 libNameLength = std::min(128, (sint32)strlen(libName));

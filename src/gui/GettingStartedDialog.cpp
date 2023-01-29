@@ -234,7 +234,7 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
     const fs::path mlcPath = wxHelper::MakeFSPath(m_mlc_folder->GetPath());
 	if(config.mlc_path.GetValue() != mlcPath && (mlcPath.empty() || fs::exists(mlcPath)))
 	{
-		config.SetMLCPath(mlcPath.generic_wstring(), false);
+		config.SetMLCPath(mlcPath, false);
 		m_mlc_changed = true;
 	}
 	

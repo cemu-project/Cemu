@@ -868,7 +868,7 @@ void GeneralSettings2::StoreConfig()
 	}
 
 	if (!LaunchSettings::GetMLCPath().has_value())
-		config.SetMLCPath(m_mlc_path->GetValue().ToStdWstring(), false);
+		config.SetMLCPath(wxHelper::MakeFSPath(m_mlc_path->GetValue()), false);
 	
 	// -1 is default wx widget value -> set to dummy 0 so mainwindow and padwindow will update it
 	config.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
@@ -1464,9 +1464,9 @@ void GeneralSettings2::ApplyConfig()
 	auto& config = GetConfig();
 
 	if (LaunchSettings::GetMLCPath().has_value())
-		m_mlc_path->SetValue(wxString{ LaunchSettings::GetMLCPath().value().generic_wstring() });
+		m_mlc_path->SetValue(wxHelper::FromPath(LaunchSettings::GetMLCPath().value()));
 	else
-		m_mlc_path->SetValue(config.mlc_path.GetValue());
+		m_mlc_path->SetValue(wxHelper::FromUtf8(config.mlc_path.GetValue()));
 
 	m_save_window_position_size->SetValue(config.window_position != Vector2i{-1,-1});
 	m_save_padwindow_position_size->SetValue(config.pad_position != Vector2i{-1,-1});
@@ -1910,7 +1910,7 @@ void GeneralSettings2::OnMLCPathSelect(wxCommandEvent& event)
 	if (!CemuApp::SelectMLCPath(this))
 		return;
 	
-	m_mlc_path->SetValue(ActiveSettings::GetMlcPath().generic_string());
+	m_mlc_path->SetValue(wxHelper::FromPath(ActiveSettings::GetMlcPath()));
 	m_reload_gamelist = true;
 	m_mlc_modified = true;
 }
@@ -1922,16 +1922,16 @@ void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
 
 	if(event.GetKeyCode() == WXK_DELETE || event.GetKeyCode() == WXK_BACK)
 	{
-		std::wstring newPath = L"";
+		fs::path newPath = "";
 		if(!CemuApp::TrySelectMLCPath(newPath))
 		{
 			const auto res = wxMessageBox(_("The default MLC path is inaccessible.\nDo you want to select a different path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
 			if (res == wxYES && CemuApp::SelectMLCPath(this))
-				newPath = ActiveSettings::GetMlcPath().wstring();
+				newPath = ActiveSettings::GetMlcPath();
 			else
 				return;
 		}
-		m_mlc_path->SetValue(newPath);
+		m_mlc_path->SetValue(wxHelper::FromPath(newPath));
 		m_reload_gamelist = true;
 		m_mlc_modified = true;
 	}

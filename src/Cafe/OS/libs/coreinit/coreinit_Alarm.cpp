@@ -176,12 +176,11 @@ namespace coreinit
 		alarm->setMagic();
 	}
 
-	void coreinitExport_OSCreateAlarmEx(PPCInterpreter_t* hCPU)
+	void OSCreateAlarmEx(OSAlarm_t* alarm, const char* alarmName)
 	{
-		OSAlarm_t* OSAlarm = (OSAlarm_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-		OSCreateAlarm(OSAlarm);
-		OSAlarm->name = _swapEndianU32(hCPU->gpr[4]);
-		osLib_returnFromFunction(hCPU, 0);
+		memset(alarm, 0, sizeof(OSAlarm_t));
+		alarm->setMagic();
+		alarm->name = alarmName;
 	}
 
 	std::unordered_map<OSAlarm_t*, OSHostAlarm*> g_activeAlarms;
@@ -274,14 +273,12 @@ namespace coreinit
 
 	void OSSetAlarmUserData(OSAlarm_t* alarm, uint32 userData)
 	{
-		alarm->userData = _swapEndianU32(userData);
+		alarm->userData = userData;
 	}
 
-	void coreinitExport_OSGetAlarmUserData(PPCInterpreter_t* hCPU)
+	uint32 OSGetAlarmUserData(OSAlarm_t* alarm)
 	{
-		OSAlarm_t* OSAlarmBE = (OSAlarm_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-		MPTR userData = _swapEndianU32(OSAlarmBE->userData);
-		osLib_returnFromFunction(hCPU, userData);
+		return alarm->userData;
 	}
 
 	void OSAlarm_resetAll()
@@ -337,15 +334,13 @@ namespace coreinit
 
 	void InitializeAlarm()
 	{
-		cafeExportRegister("coreinit", OSCreateAlarm, LogType::Placeholder);
-		cafeExportRegister("coreinit", OSCancelAlarm, LogType::Placeholder);
-		cafeExportRegister("coreinit", OSSetAlarm, LogType::Placeholder);
-		cafeExportRegister("coreinit", OSSetPeriodicAlarm, LogType::Placeholder);
-
-		cafeExportRegister("coreinit", OSSetAlarmUserData, LogType::Placeholder);
-
-		osLib_addFunction("coreinit", "OSCreateAlarmEx", coreinitExport_OSCreateAlarmEx);
-		osLib_addFunction("coreinit", "OSGetAlarmUserData", coreinitExport_OSGetAlarmUserData);
+		cafeExportRegister("coreinit", OSCreateAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSCreateAlarmEx, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSCancelAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSSetAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSSetPeriodicAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSSetAlarmUserData, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSGetAlarmUserData, LogType::CoreinitAlarm);
 
 		// init event
 		OSInitEvent(g_alarmEvent.GetPtr(), OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, OSEvent::EVENT_MODE::MODE_AUTO);

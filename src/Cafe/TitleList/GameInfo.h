@@ -1,7 +1,6 @@
 #pragma once
 
 #include "config/CemuConfig.h"
-#include "MetaInfo.h"
 #include "TitleInfo.h"
 #include "config/ActiveSettings.h"
 

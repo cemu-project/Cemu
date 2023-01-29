@@ -293,11 +293,6 @@ uint8* memory_getPointerFromVirtualOffsetAllowNull(uint32 virtualOffset)
 	return memory_getPointerFromVirtualOffset(virtualOffset);
 }
 
-void memory_writeU32Direct(uint32 address, uint32 v)
-{
-	*(uint32*)(memory_getPointerFromVirtualOffset(address)) = CPU_swapEndianU32(v);
-}
-
 // write access
 void memory_writeDouble(uint32 address, double vf)
 {
@@ -318,12 +313,6 @@ void memory_writeFloat(uint32 address, float vf)
 void memory_writeU32(uint32 address, uint32 v)
 {
 	*(uint32*)(memory_getPointerFromVirtualOffset(address)) = CPU_swapEndianU32(v);
-}
-
-void memory_writeU64Slow(uint32 address, uint64 v)
-{
-	memory_writeU32(address+0, (v>>32)&0xFFFFFFFF);
-	memory_writeU32(address+4, (v)&0xFFFFFFFF);
 }
 
 void memory_writeU64(uint32 address, uint64 v)
@@ -367,12 +356,6 @@ uint64 memory_readU64(uint32 address)
 }
 
 uint32 memory_readU32(uint32 address)
-{
-	uint32 v = *(uint32*)(memory_getPointerFromVirtualOffset(address));
-	return CPU_swapEndianU32(v);
-}
-
-uint32 memory_readU32Direct(uint32 address)
 {
 	uint32 v = *(uint32*)(memory_getPointerFromVirtualOffset(address));
 	return CPU_swapEndianU32(v);

@@ -37,8 +37,8 @@ void gx2Export_GX2GetSwapStatus(PPCInterpreter_t* hCPU)
 {
 	memory_writeU32(hCPU->gpr[3], _swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE));
 	memory_writeU32(hCPU->gpr[4], _swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE));
-	memory_writeU64Slow(hCPU->gpr[5], lastSwapTime);
-	memory_writeU64Slow(hCPU->gpr[6], lastSwapTime);
+	memory_writeU64(hCPU->gpr[5], lastSwapTime);
+	memory_writeU64(hCPU->gpr[6], lastSwapTime);
 
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -54,14 +54,14 @@ void gx2Export_GX2GetGPUTimeout(PPCInterpreter_t* hCPU)
 void gx2Export_GX2SampleTopGPUCycle(PPCInterpreter_t* hCPU)
 {
 	gx2Log_printf("GX2SampleTopGPUCycle(0x%08x)\n", hCPU->gpr[3]);
-	memory_writeU64Slow(hCPU->gpr[3], coreinit::coreinit_getTimerTick());
+	memory_writeU64(hCPU->gpr[3], coreinit::coreinit_getTimerTick());
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2SampleBottomGPUCycle(PPCInterpreter_t* hCPU)
 {
 	gx2Log_printf("GX2SampleBottomGPUCycle(0x%08x)\n", hCPU->gpr[3]);
-	memory_writeU64Slow(hCPU->gpr[3], GX2_INVALID_COUNTER_VALUE_U64);
+	memory_writeU64(hCPU->gpr[3], GX2_INVALID_COUNTER_VALUE_U64);
 
 	osLib_returnFromFunction(hCPU, 0);
 	return;
