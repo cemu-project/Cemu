@@ -366,10 +366,11 @@ void coreinit_load()
 	coreinit::InitializeMessageQueue();
 	coreinit::InitializeIPC();
 	coreinit::InitializeIPCBuf();
+	coreinit::InitializeMemoryMapping();
 	coreinit::InitializeCodeGen();
 	coreinit::InitializeCoroutine();
 	coreinit::InitializeOSScreen();
-
+	
 	// legacy mem stuff
 	coreinit::expheap_load();
 

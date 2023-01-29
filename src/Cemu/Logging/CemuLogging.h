@@ -2,20 +2,21 @@
 
 enum class LogType : sint32
 {
+	// note: IDs must not exceed 63
 	Placeholder = -2,
 	None = -1,
 	Force = 0, // this logging type is always on
-	File = 1, // coreinit file?
+	CoreinitFile = 1,
 	GX2 = 2,
 	UnsupportedAPI = 3,
 	ThreadSync = 4,
 	SoundAPI = 5, // any audio related API
-	Input = 6, // any input related API
+	InputAPI = 6, // any input related API
 	Socket = 7,
 	Save = 8,
 	CoreinitMem = 9, // coreinit memory functions
 	H264 = 10,
-	OpenGL = 11, // OpenGL debug logging
+	OpenGLLogging = 11, // OpenGL debug logging
 	TextureCache = 12, // texture cache warnings and info
 	VulkanValidation = 13, // Vulkan validation layer
 	nn_nfp = 14, // nn_nfp (Amiibo) API
@@ -23,14 +24,19 @@ enum class LogType : sint32
 	CoreinitMP = 16,
 	CoreinitThread = 17,
 	CoreinitLogging = 18, // OSReport, OSConsoleWrite etc.
+	CoreinitMemoryMapping = 19, // OSGetAvailPhysAddrRange, OSAllocVirtAddr, OSMapMemory etc.
 
 	PPC_IPC = 20,
 	NN_AOC = 21,
 	NN_PDM = 22,
+	
+	TextureReadback = 30,
 
 	ProcUi = 40,
 
-	APIErrors = 0, // alias for 0. Logs bad parameters or other API errors in OS libs
+	APIErrors = 0, // alias for Force. Logs bad parameters or other API errors in OS libs
+
+	
 };
 
 template <>

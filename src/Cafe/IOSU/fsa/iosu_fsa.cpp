@@ -283,7 +283,7 @@ namespace iosu
 				return -0x400;
 			}
 			*fileHandle = fsFileHandle;
-			cemuLog_log(LogType::File, "Open file {} (access: {} result: ok handle: 0x{})", path, accessModifierStr, (uint32)*fileHandle);
+			cemuLog_log(LogType::CoreinitFile, "Open file {} (access: {} result: ok handle: 0x{})", path, accessModifierStr, (uint32)*fileHandle);
 			return (FSStatus)FS_RESULT::SUCCESS;
 		}
 
@@ -307,7 +307,7 @@ namespace iosu
 				return -0x400;
 			}
 			*dirHandle = fsDirHandle;
-			cemuLog_log(LogType::File, "Open directory {} (result: ok handle: 0x{})", path, (uint32)*dirHandle);
+			cemuLog_log(LogType::CoreinitFile, "Open directory {} (result: ok handle: 0x{})", path, (uint32)*dirHandle);
 			return (FSStatus)FS_RESULT::SUCCESS;
 		}
 

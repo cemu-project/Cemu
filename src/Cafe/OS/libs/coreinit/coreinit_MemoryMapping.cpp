@@ -4,24 +4,34 @@
 #define OS_MAP_READ_ONLY		(1)
 #define OS_MAP_READ_WRITE		(2)
 
+#define VIRT_RANGE_ADDR			(0xA0000000) // todo: Process specific. For the main ram pid this overlaps with the overlay arena?
+#define VIRT_RANGE_SIZE			(0x40000000)
+
+#define PHYS_RANGE_ADDR			(0x10000000) // todo: Process specific
+#define PHYS_RANGE_SIZE			(0x40000000)
+
 namespace coreinit
 {
+	std::mutex s_memMappingMtx;
 
-	struct OSVirtMemory
+	struct OSVirtMemoryEntry
 	{
+		OSVirtMemoryEntry(MPTR virtualAddress, uint32 size, uint32 alignment) : virtualAddress(virtualAddress), size(size), alignment(alignment) {};
+
 		MPTR virtualAddress;
 		uint32 size;
 		uint32 alignment;
-		OSVirtMemory* next;
 	};
 
-	OSVirtMemory* virtualMemoryList = nullptr;
+	std::vector<OSVirtMemoryEntry> s_allocatedVirtMemory;
 
-	MPTR _VirtualMemoryAlloc(uint32 size, uint32 alignment)
+	MPTR _OSAllocVirtAddr(uint32 size, uint32 alignment)
 	{
-		uint32 currentAddress = MEMORY_MAPABLE_VIRT_AREA_OFFSET;
-		uint32 endAddress = MEMORY_MAPABLE_VIRT_AREA_OFFSET + MEMORY_MAPABLE_VIRT_AREA_SIZE;
+		std::lock_guard _l(s_memMappingMtx);
+		uint32 currentAddress = VIRT_RANGE_ADDR;
+		uint32 endAddress = VIRT_RANGE_ADDR + VIRT_RANGE_SIZE;
 		uint32 pageSize = (uint32)MemMapper::GetPageSize();
+		pageSize = std::max<uint32>(pageSize, Espresso::MEM_PAGE_SIZE);
 		while (true)
 		{
 			// calculated aligned start and end address for current region
@@ -30,95 +40,85 @@ namespace coreinit
 			uint32 currentEndAddress = currentAddress + size;
 			currentEndAddress = (currentEndAddress + pageSize - 1) & ~(pageSize - 1);
 			// check if out of available space
-			if (currentEndAddress >= endAddress)
+			if (currentEndAddress > endAddress)
 			{
-				debug_printf("coreinitVirtualMemory_alloc(): Unable to allocate memory\n");
-				debugBreakpoint();
+				cemuLog_log(LogType::APIErrors, "_OSAllocVirtAddr(): Unable to allocate memory\n");
 				return MPTR_NULL;
 			}
 			// check for overlapping regions
-			OSVirtMemory* virtMemItr = virtualMemoryList;
 			bool emptySpaceFound = true;
-			while (virtMemItr)
+			for(auto& virtMemIt : s_allocatedVirtMemory)
 			{
 				// check for range collision
-				if (currentAddress < (virtMemItr->virtualAddress + virtMemItr->size) && currentEndAddress > virtMemItr->virtualAddress)
+				if (currentAddress < (virtMemIt.virtualAddress + virtMemIt.size) && currentEndAddress > virtMemIt.virtualAddress)
 				{
 					// regions overlap
-					// adjust current address and try again
-					currentAddress = virtMemItr->virtualAddress + virtMemItr->size;
+					// adjust current address and keep looking
+					currentAddress = virtMemIt.virtualAddress + virtMemIt.size;
 					emptySpaceFound = false;
 					break;
 				}
-				// next
-				virtMemItr = virtMemItr->next;
 			}
 			if (emptySpaceFound)
 			{
 				// add entry
-				OSVirtMemory* virtMemory = (OSVirtMemory*)malloc(sizeof(OSVirtMemory));
-				memset(virtMemory, 0x00, sizeof(OSVirtMemory));
-				virtMemory->virtualAddress = currentAddress;
-				virtMemory->size = currentEndAddress - currentAddress;
-				virtMemory->alignment = alignment;
-				virtMemory->next = virtualMemoryList;
-				virtualMemoryList = virtMemory;
+				s_allocatedVirtMemory.emplace_back(currentAddress, currentEndAddress - currentAddress, alignment);
 				return currentAddress;
 			}
 		}
 		return MPTR_NULL;
 	}
 
-	void coreinitExport_OSGetAvailPhysAddrRange(PPCInterpreter_t* hCPU)
+	bool _OSFreeVirtAddr(MPTR virtAddr)
 	{
-		// parameters:
-		// r3	MPTR*		areaStart
-		// r4	uint32		areaSize
-		memory_writeU32(hCPU->gpr[3], MEMORY_MAPABLE_PHYS_AREA_OFFSET);
-		memory_writeU32(hCPU->gpr[4], MEMORY_MAPABLE_PHYS_AREA_SIZE);
-
-		osLib_returnFromFunction(hCPU, 0);
+		std::lock_guard _l(s_memMappingMtx);
+		auto it = s_allocatedVirtMemory.begin();
+		while (it != s_allocatedVirtMemory.end())
+		{
+			if (it->virtualAddress == virtAddr)
+			{
+				s_allocatedVirtMemory.erase(it);
+				return true;
+			}
+			++it;
+		}
+		return false;
 	}
 
-	void coreinitExport_OSAllocVirtAddr(PPCInterpreter_t* hCPU)
+	void OSGetAvailPhysAddrRange(uint32be* physRangeStart, uint32be* physRangeSize)
 	{
-		// parameters:
-		// r3	MPTR		address
-		// r4	uint32		size
-		// r5	uint32		align
+		*physRangeStart = PHYS_RANGE_ADDR;
+		*physRangeSize = PHYS_RANGE_SIZE;
+	}
 
-		uint32 address = hCPU->gpr[3];
-		uint32 size = hCPU->gpr[4];
-		uint32 align = hCPU->gpr[5];
-		if (address != MPTR_NULL)
-		{
-			debug_printf("coreinitExport_OSAllocVirtAddr(): Unsupported address != NULL\n");
-			debugBreakpoint();
-		}
+	void* OSAllocVirtAddr(MEMPTR<void> address, uint32 size, uint32 align)
+	{
 		if (align == 0)
 			align = 1;
 		if (align != 0 && align != 1)
 			assert_dbg();
+		cemu_assert_debug(address == nullptr); // todo - support for allocation with fixed address
 
-		address = _VirtualMemoryAlloc(size, align);
-		debug_printf("coreinitExport_OSAllocVirtAddr(): Allocated virtual memory at 0x%08x\n", address);
-		osLib_returnFromFunction(hCPU, address);
+		address = _OSAllocVirtAddr(size, align);
+		debug_printf("OSAllocVirtAddr(): Allocated virtual memory at 0x%08x\n", address.GetMPTR());
+		return MEMPTR<void>(address);
 	}
 
-	void coreinitExport_OSMapMemory(PPCInterpreter_t* hCPU)
+	uint32 OSFreeVirtAddr(MEMPTR<void> address)
 	{
-		// parameters:
-		// r3	MPTR		virtualAddress
-		// r4	MPTR		physicalAddress
-		// r5	uint32		size
-		// r6	uint32		mode
-		MPTR virtualAddress = hCPU->gpr[3];
-		MPTR physicalAddress = hCPU->gpr[4];
-		uint32 size = hCPU->gpr[5];
-		uint32 mode = hCPU->gpr[6];
+		bool r = _OSFreeVirtAddr(address.GetMPTR());
+		if(!r)
+			cemuLog_log(LogType::APIErrors, "OSFreeVirtAddr: Could not find allocation with address 0x{:08x}\n", address.GetMPTR());
+		return r ? 1 : 0;
+	}
 
-		if (virtualAddress < MEMORY_MAPABLE_VIRT_AREA_OFFSET || virtualAddress >= (MEMORY_MAPABLE_VIRT_AREA_OFFSET + MEMORY_MAPABLE_VIRT_AREA_SIZE))
-			cemu_assert_suspicious();
+	uint32 OSMapMemory(MPTR virtualAddress, MPTR physicalAddress, uint32 size, uint32 mode)
+	{
+		if (virtualAddress < VIRT_RANGE_ADDR || virtualAddress >= (VIRT_RANGE_ADDR + VIRT_RANGE_SIZE))
+		{
+			cemuLog_log(LogType::APIErrors, "OSMapMemory: Virtual address out of bounds\n");
+			return 0;
+		}
 
 		uint8* virtualPtr = memory_getPointerFromVirtualOffset(virtualAddress);
 
@@ -133,21 +133,14 @@ namespace coreinit
 		if (!allocationResult)
 		{
 			cemuLog_log(LogType::Force, "OSMapMemory failed");
-			osLib_returnFromFunction(hCPU, 0);
-			return;
+			return 0;
 		}
-		osLib_returnFromFunction(hCPU, 1);
+		return 1;
 	}
 
-	void coreinitExport_OSUnmapMemory(PPCInterpreter_t* hCPU)
+	uint32 OSUnmapMemory(MPTR virtualAddress, uint32 size)
 	{
-		// parameters:
-		// r3	MPTR		virtualAddress
-		// r4	uint32		size
-		MPTR virtualAddress = hCPU->gpr[3];
-		uint32 size = hCPU->gpr[4];
-
-		if (virtualAddress < MEMORY_MAPABLE_VIRT_AREA_OFFSET || virtualAddress >= (MEMORY_MAPABLE_VIRT_AREA_OFFSET + MEMORY_MAPABLE_VIRT_AREA_SIZE))
+		if (virtualAddress < VIRT_RANGE_ADDR || virtualAddress >= (VIRT_RANGE_ADDR + VIRT_RANGE_SIZE))
 			cemu_assert_suspicious();
 
 		cemu_assert((size % MemMapper::GetPageSize()) == 0);
@@ -155,14 +148,16 @@ namespace coreinit
 		uint8* virtualPtr = memory_getPointerFromVirtualOffset(virtualAddress);
 
 		MemMapper::FreeMemory(virtualPtr, size, true);
-		osLib_returnFromFunction(hCPU, 1);
+		return 1;
 	}
 
 	void InitializeMemoryMapping()
 	{
-		osLib_addFunction("coreinit", "OSGetAvailPhysAddrRange", coreinitExport_OSGetAvailPhysAddrRange);
-		osLib_addFunction("coreinit", "OSAllocVirtAddr", coreinitExport_OSAllocVirtAddr);
-		osLib_addFunction("coreinit", "OSMapMemory", coreinitExport_OSMapMemory);
-		osLib_addFunction("coreinit", "OSUnmapMemory", coreinitExport_OSUnmapMemory);
+		s_allocatedVirtMemory.clear();
+		cafeExportRegister("coreinit", OSGetAvailPhysAddrRange, LogType::CoreinitMemoryMapping);
+		cafeExportRegister("coreinit", OSAllocVirtAddr, LogType::CoreinitMemoryMapping);
+		cafeExportRegister("coreinit", OSFreeVirtAddr, LogType::CoreinitMemoryMapping);
+		cafeExportRegister("coreinit", OSMapMemory, LogType::CoreinitMemoryMapping);
+		cafeExportRegister("coreinit", OSUnmapMemory, LogType::CoreinitMemoryMapping);
 	}
 }

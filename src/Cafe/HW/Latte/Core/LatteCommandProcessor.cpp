@@ -224,7 +224,6 @@ void LatteCP_itIndirectBufferDepr(uint32 nWords)
 	uint32 physicalAddressHigh = readU32(); // unused
 	uint32 sizeInDWords = readU32();
 	uint32 displayListSize = sizeInDWords * 4;
-	cemu_assert_debug(displayListSize >= 4);
 	DrawPassContext drawPassCtx;
 	LatteCP_processCommandBuffer(memory_getPointerFromPhysicalOffset(physicalAddress), displayListSize, drawPassCtx);
 	if (drawPassCtx.isWithinDrawPass())

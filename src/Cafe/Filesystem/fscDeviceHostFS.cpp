@@ -262,7 +262,6 @@ public:
 			cemu_assert_unimplemented(); // return correct error (e.g. if directory is non-empty)
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 		}
-		*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 		return true;
 	}
 

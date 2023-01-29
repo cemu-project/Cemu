@@ -7,7 +7,7 @@
 This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
 It's written in C/C++ and is being actively developed with new features and fixes to increase compatibility, convenience and usability.
 
-Cemu is currently only available for 64-bit Windows and Linux devices.
+Cemu is currently only available for 64-bit Windows, Linux & macOS devices.
 
 ### Links:
  - [Original 2.0 announcement post](https://www.reddit.com/r/cemu/comments/wwa22c/cemu_20_announcement_linux_builds_opensource_and/)
@@ -30,11 +30,13 @@ Cemu is currently only available in a portable format so no installation is requ
 
 The native Linux build is currently a work-in-progress. See [Current State Of Linux builds](https://github.com/cemu-project/Cemu/issues/107) for more information about the things to be aware of. 
 
+The native macOS build is currently purely experimental and should not be considered stable or ready for issue-free gameplay. There are also known issues with degraded performance due to the use of MoltenVK and Rosetta for ARM Macs. We appreciate your patience while we improve Cemu for macOS.
+
 Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/changelog.html).
 
 ## Build Instructions
 
-To compile Cemu yourself on Windows or Linux, view the [BUILD.md file](/BUILD.md).
+To compile Cemu yourself on Windows, Linux or macOS, view the [BUILD.md file](/BUILD.md).
 
 ## Issues
 

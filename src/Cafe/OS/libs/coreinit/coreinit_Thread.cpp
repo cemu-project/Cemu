@@ -66,6 +66,11 @@ namespace coreinit
 
 	std::unordered_map<OSThread_t*, OSHostThread*> s_threadToFiber;
 
+	bool __CemuIsMulticoreMode()
+	{
+		return g_isMulticoreMode;
+	}
+
 	// create host thread (fiber) that will be used to run the PPC instance
 	// note that host threads are fibers and not actual threads
 	void __OSCreateHostThread(OSThread_t* thread)
