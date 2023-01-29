@@ -454,8 +454,6 @@ add_library(CemuCafe
   TitleList/BaseInfo.cpp
   TitleList/BaseInfo.h
   TitleList/GameInfo.h
-  TitleList/MetaInfo.cpp
-  TitleList/MetaInfo.h
   TitleList/ParsedMetaXml.h
   TitleList/SaveInfo.cpp
   TitleList/SaveInfo.h
