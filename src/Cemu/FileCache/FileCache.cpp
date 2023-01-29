@@ -92,7 +92,7 @@ FileCache* FileCache::Create(const fs::path& path, uint32 extraVersion)
 	FileStream* fs = FileStream::createFile2(path);
 	if (!fs)
 	{
-		forceLog_printf("Failed to create cache file \"%ls\"", path);
+		cemuLog_log(LogType::Force, "Failed to create cache file \"{}\"", _pathToUtf8(path));
 		return nullptr;
 	}
 	// init file cache
@@ -165,7 +165,7 @@ FileCache* FileCache::_OpenExisting(const fs::path& path, bool compareExtraVersi
 	fs->readU64(headerFileTableOffset);
 	if (!fs->readU32(headerFileTableSize))
 	{
-		forceLog_printf("\"%ls\" is corrupted", path);
+		cemuLog_log(LogType::Force, "\"{}\" is corrupted", _pathToUtf8(path));
 		delete fs;
 		return nullptr;
 	}
@@ -176,7 +176,7 @@ FileCache* FileCache::_OpenExisting(const fs::path& path, bool compareExtraVersi
 	invalidFileTableSize = (headerFileTableSize % sizeof(FileTableEntry)) != 0;
 	if (invalidFileTableSize)
 	{
-		forceLog_printf("\"%ls\" is corrupted", path);
+		cemuLog_log(LogType::Force, "\"{}\" is corrupted", _pathToUtf8(path));
 		delete fs;
 		return nullptr;
 	}
@@ -212,7 +212,7 @@ FileCache* FileCache::_OpenExisting(const fs::path& path, bool compareExtraVersi
 	}
 	if (incompleteFileTable)
 	{
-		forceLog_printf("\"%ls\" is corrupted (incomplete file table)", path);
+		cemuLog_log(LogType::Force, "\"{}\" is corrupted (incomplete file table)", _pathToUtf8(path));
 		delete fileCache;
 		return nullptr;
 	}
