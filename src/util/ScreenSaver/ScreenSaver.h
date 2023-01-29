@@ -45,16 +45,28 @@ public:
     // Initialize video subsystem if necessary
     if (SDL_WasInit(SDL_INIT_VIDEO) != 0)
     {
-      SDL_InitSubSystem(SDL_INIT_VIDEO);
+      int initErr = SDL_InitSubSystem(SDL_INIT_VIDEO);
+      if (initErr)
+      {
+        cemuLog_force("Could not disable screen saver (SDL video subsystem initialization error)");
+      }
     }
     // Toggle SDL's screen saver inhibition
     if (inhibit)
     {
       SDL_DisableScreenSaver();
+      if (SDL_IsScreenSaverEnabled() == SDL_TRUE)
+      {
+        cemuLog_force("Could not disable screen saver (`SDL_DisableScreenSaver()` failed)");
+      }
     }
     else
     {
       SDL_EnableScreenSaver();
+      if (SDL_IsScreenSaverEnabled() == SDL_FALSE)
+      {
+        cemuLog_force("Could not re-enable screen saver (`SDL_EnableScreenSaver()` failed)");
+      }
     }
 #endif
   };
