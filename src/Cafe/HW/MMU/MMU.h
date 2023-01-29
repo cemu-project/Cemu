@@ -15,7 +15,7 @@ uint8* memory_getPointerFromPhysicalOffset(uint32 physicalOffset);
 uint32 memory_virtualToPhysical(uint32 virtualOffset);
 uint32 memory_physicalToVirtual(uint32 physicalOffset);
 
-extern uint8* memory_base; // points to 0x00000000
+extern uint8* memory_base; // points to base of PowerPC address space
 
 enum class MMU_MEM_AREA_ID
 {
@@ -185,11 +185,7 @@ bool memory_isAddressRangeAccessible(MPTR virtualAddress, uint32 size);
 #define CPU_swapEndianU16(_v) OSSwapInt16((uint16)(_v))
 #endif
 
-// direct memory access (no hardware interface access)
-void memory_writeU32Direct(uint32 address, uint32 v);
-uint32 memory_readU32Direct(uint32 address);
-
-// memory access (includes hardware interface, slower)
+// C-style memory access, deprecated. Use memory_read<> and memory_write<> templates instead
 void memory_writeDouble(uint32 address, double vf);
 void memory_writeFloat(uint32 address, float vf);
 void memory_writeU32(uint32 address, uint32 v);
@@ -207,22 +203,23 @@ uint8 memory_readU8(uint32 address);
 void memory_createDump();
 
 template<size_t count>
-void memory_readBytes(uint32 address, std::array<uint8, count>& buffer)
+void memory_readBytes(VAddr address, std::array<uint8, count>& buffer)
 {
 	memcpy(buffer.data(), memory_getPointerFromVirtualOffset(address), count);
 }
 
-template <typename T> inline T memory_read(uint32 address)
+template <typename T> inline T memory_read(VAddr address)
 {
 	return *(betype<T>*)(memory_base + address);
 }
 
+template <typename T> inline void memory_write(VAddr address, T value)
+{
+	*(betype<T>*)(memory_base + address) = value;
+}
+
 // LLE implementation
 void memory_initPhysicalLayout();
-
-// updated code
-using VAddr = uint32; // virtual address
-using PAddr = uint32; // physical address
 
 namespace MMU
 {

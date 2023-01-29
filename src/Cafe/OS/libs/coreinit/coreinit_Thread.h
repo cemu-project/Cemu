@@ -428,8 +428,8 @@ struct OSThread_t
 
 	/* +0x38C */ coreinit::OSThreadLink				activeThreadChain;					// queue of active threads (g_activeThreadQueue)
 
-	/* +0x394 */ MPTR_UINT8							stackBase;							// upper limit of stack
-	/* +0x398 */ MPTR_UINT32						stackEnd;							// lower limit of stack
+	/* +0x394 */ MPTR								stackBase;							// upper limit of stack
+	/* +0x398 */ MPTR								stackEnd;							// lower limit of stack
 
 	/* +0x39C */ MPTR								entrypoint;
 	/* +0x3A0 */ crt_t								crt;
@@ -443,8 +443,7 @@ struct OSThread_t
 	/* +0x5C8 */ uint32								userStackPointer;
 
 	/* +0x5CC */ MEMPTR<void>						cleanupCallback2;
-	/* +0x5D0 */ //MPTR								deallocator;
-	MEMPTR<void> deallocatorFunc;
+	/* +0x5D0 */ MEMPTR<void>						deallocatorFunc;
 
 	/* +0x5D4 */ uint32								stateFlags;						// 0x5D4 | various flags? Controls if canceling/suspension is allowed (at cancel points) or not? If 1 -> Cancel/Suspension not allowed, if 0 -> Cancel/Suspension allowed
 	/* +0x5D8 */ betype<REQUEST_FLAG_BIT>			requestFlags;

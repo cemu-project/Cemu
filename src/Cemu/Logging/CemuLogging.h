@@ -25,6 +25,7 @@ enum class LogType : sint32
 	CoreinitThread = 17,
 	CoreinitLogging = 18, // OSReport, OSConsoleWrite etc.
 	CoreinitMemoryMapping = 19, // OSGetAvailPhysAddrRange, OSAllocVirtAddr, OSMapMemory etc.
+	CoreinitAlarm = 23,
 
 	PPC_IPC = 20,
 	NN_AOC = 21,

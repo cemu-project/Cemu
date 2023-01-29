@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Common/zstring_view.h"
 #include <mutex>
 
 class FileCache
@@ -36,9 +35,9 @@ public:
 
 	~FileCache();
 
-	static FileCache* Create(wzstring_view path, uint32 extraVersion = 0);
-	static FileCache* Open(wzstring_view path, bool allowCreate, uint32 extraVersion = 0);
-	static FileCache* Open(wzstring_view path); // open without extraVersion check
+	static FileCache* Create(const fs::path& path, uint32 extraVersion = 0);
+	static FileCache* Open(const fs::path& path, bool allowCreate, uint32 extraVersion = 0);
+	static FileCache* Open(const fs::path& path); // open without extraVersion check
 
 	void UseCompression(bool enable) { enableCompression = enable; };
 
@@ -75,7 +74,7 @@ private:
 
 	FileCache() {};
 
-	static FileCache* _OpenExisting(wzstring_view path, bool compareExtraVersion, uint32 extraVersion = 0);
+	static FileCache* _OpenExisting(const fs::path& path, bool compareExtraVersion, uint32 extraVersion = 0);
 
 	void fileCache_updateFiletable(sint32 extraEntriesToAllocate);
 	void _addFileInternal(uint64 name1, uint64 name2, const uint8* fileData, sint32 fileSize, bool noCompression);

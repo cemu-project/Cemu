@@ -87,9 +87,9 @@ private:
 #define FILECACHE_FILETABLE_NAME2			0xFEFEFEFEFEFEFEFEULL
 #define FILECACHE_FILETABLE_FREE_NAME		0ULL
 
-FileCache* FileCache::Create(wzstring_view path, uint32 extraVersion)
+FileCache* FileCache::Create(const fs::path& path, uint32 extraVersion)
 {
-	FileStream* fs = FileStream::createFile(std::wstring(path).c_str());
+	FileStream* fs = FileStream::createFile2(path);
 	if (!fs)
 	{
 		forceLog_printf("Failed to create cache file \"%ls\"", path);
@@ -124,9 +124,9 @@ FileCache* FileCache::Create(wzstring_view path, uint32 extraVersion)
 	return fileCache;
 }
 
-FileCache* FileCache::_OpenExisting(wzstring_view path, bool compareExtraVersion, uint32 extraVersion)
+FileCache* FileCache::_OpenExisting(const fs::path& path, bool compareExtraVersion, uint32 extraVersion)
 {
-	FileStream* fs = FileStream::openFile2(path.data(), true);
+	FileStream* fs = FileStream::openFile2(path, true);
 	if (!fs)
 		return nullptr;
 	// read header
@@ -219,7 +219,7 @@ FileCache* FileCache::_OpenExisting(wzstring_view path, bool compareExtraVersion
 	return fileCache;
 }
 
-FileCache* FileCache::Open(wzstring_view path, bool allowCreate, uint32 extraVersion)
+FileCache* FileCache::Open(const fs::path& path, bool allowCreate, uint32 extraVersion)
 {
 	FileCache* fileCache = _OpenExisting(path, true, extraVersion);
 	if (fileCache)
@@ -229,7 +229,7 @@ FileCache* FileCache::Open(wzstring_view path, bool allowCreate, uint32 extraVer
 	return Create(path, extraVersion);
 }
 
-FileCache* FileCache::Open(wzstring_view path)
+FileCache* FileCache::Open(const fs::path& path)
 {
 	return _OpenExisting(path, false, 0);
 }
@@ -614,7 +614,7 @@ sint32 FileCache::GetFileCount()
 
 void fileCache_test()
 {
-	FileCache* fc = FileCache::Create(L"testCache.bin", 0);
+	FileCache* fc = FileCache::Create("testCache.bin", 0);
 	uint32 time1 = GetTickCount();
 
 	char* testString1 = (char*)malloc(1024 * 1024 * 8);
@@ -637,7 +637,7 @@ void fileCache_test()
 	debug_printf("Writing took %dms\n", time2-time1);
 	delete fc;
 	// verify if all entries are still valid
-	FileCache* fcRead = FileCache::Open(L"testCache.bin", 0);
+	FileCache* fcRead = FileCache::Open("testCache.bin", 0);
 	uint32 time3 = GetTickCount();
 	for(sint32 i=0; i<2200; i++)
 	{
