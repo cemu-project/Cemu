@@ -695,7 +695,7 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 texture
 	if (textureLoader.dump)
 	{
 		wchar_t path[1024];
-		swprintf(path, 1024, L"dump\\textures\\%08x_fmt%04x_slice%d_mip%02d_%dx%d_tm%02d.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
+		swprintf(path, 1024, L"dump/textures/%08x_fmt%04x_slice%d_mip%02d_%dx%d_tm%02d.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
 		tga_write_rgba(path, textureLoader.width, textureLoader.height, textureLoader.dumpRGBA);
 		free(textureLoader.dumpRGBA);
 	}

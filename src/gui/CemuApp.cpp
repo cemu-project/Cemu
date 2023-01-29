@@ -277,7 +277,7 @@ std::vector<const wxLanguageInfo*> CemuApp::GetAvailableLanguages()
 
 void CemuApp::CreateDefaultFiles(bool first_start)
 {
-	fs::path mlc = wxHelper::MakeFSPath(GetMLCPath());
+	fs::path mlc = ActiveSettings::GetMlcPath();
 
 	// check for mlc01 folder missing if custom path has been set
 	if (!fs::exists(mlc) && !first_start)
@@ -293,8 +293,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 		{
 			if (!SelectMLCPath())
 				return;
-
-			mlc = wxHelper::MakeFSPath(GetMLCPath());
+			mlc = ActiveSettings::GetMlcPath();
 		}
 		else
 		{
@@ -373,11 +372,11 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	// cemu directories
 	try
 	{
-		const auto controllerProfileFolder = wxHelper::MakeFSPath(GetConfigPath("controllerProfiles"));
+		const auto controllerProfileFolder = ActiveSettings::GetConfigPath("controllerProfiles");
 		if (!fs::exists(controllerProfileFolder))
 			fs::create_directories(controllerProfileFolder);
 
-		const auto memorySearcherFolder = wxHelper::MakeFSPath(GetUserDataPath("memorySearcher"));
+		const auto memorySearcherFolder = ActiveSettings::GetUserDataPath("memorySearcher");
 		if (!fs::exists(memorySearcherFolder))
 			fs::create_directories(memorySearcherFolder);
 	}
@@ -449,37 +448,6 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 
 	return false;
 }
-
-
-wxString CemuApp::GetMLCPath()
-{
-	return wxHelper::FromPath(ActiveSettings::GetMlcPath());
-}
-
-wxString CemuApp::GetMLCPath(const wxString& cat)
-{
-	return wxHelper::FromPath(ActiveSettings::GetMlcPath(cat.ToStdString()));
-}
-
-wxString CemuApp::GetConfigPath()
-{
-	return wxHelper::FromPath(ActiveSettings::GetConfigPath());
-};
-
-wxString CemuApp::GetConfigPath(const wxString& cat)
-{
-	return wxHelper::FromPath(ActiveSettings::GetConfigPath(cat.ToStdString()));
-};
-
-wxString CemuApp::GetUserDataPath()
-{
-	return wxHelper::FromPath(ActiveSettings::GetUserDataPath());
-};
-
-wxString CemuApp::GetUserDataPath(const wxString& cat)
-{
-	return ActiveSettings::GetUserDataPath(cat.ToStdString()).generic_wstring();
-};
 
 void CemuApp::ActivateApp(wxActivateEvent& event)
 {

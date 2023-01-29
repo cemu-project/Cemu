@@ -20,14 +20,6 @@ public:
 	static bool TrySelectMLCPath(fs::path path);
 	static bool SelectMLCPath(wxWindow* parent = nullptr);
 
-	static wxString GetConfigPath();
-	static wxString GetConfigPath(const wxString& cat);
-
-	static wxString GetUserDataPath();
-	static wxString GetUserDataPath(const wxString& cat);
-
-	static wxString GetMLCPath();
-	static wxString GetMLCPath(const wxString& cat);
 private:
 	void ActivateApp(wxActivateEvent& event);
 
