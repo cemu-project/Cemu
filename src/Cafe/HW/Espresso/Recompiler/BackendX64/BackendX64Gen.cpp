@@ -25,7 +25,7 @@ void x64Gen_writeU64(x64GenContext_t* x64GenContext, uint64 v)
 	x64GenContext->emitter->_emitU64(v);
 }
 
-#include "x64Emit.hpp"
+#include "X64Emit.hpp"
 
 void _x64Gen_writeMODRMDeprecated(x64GenContext_t* x64GenContext, sint32 dataRegister, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32)
 {
