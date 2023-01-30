@@ -3079,7 +3079,7 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 				{
 					debug_printf("---------------- SegmentDump (Suffix instruction at wrong pos in segment 0x%x):\n", (int)segIndex);
 					IMLDebug_Dump(&ppcImlGenContext);
-					__debugbreak();
+					DEBUG_BREAK;
 				}
 			}
 		}
@@ -3089,7 +3089,7 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 			{
 				debug_printf("---------------- SegmentDump (NoSuffixInstruction in segment 0x%x):\n", (int)segIndex);
 				IMLDebug_Dump(&ppcImlGenContext);
-				__debugbreak();
+				DEBUG_BREAK;
 			}
 		}
 		if (seg->nextSegmentBranchNotTaken)

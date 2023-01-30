@@ -381,7 +381,7 @@ raLivenessSubrange_t* _GetSubrangeByInstructionIndexAndVirtualReg(IMLSegment* im
 
 void IMLRA_IsolateRangeOnInstruction(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, raLivenessSubrange_t* subrange, sint32 instructionIndex)
 {
-	__debugbreak();
+	DEBUG_BREAK;
 }
 
 void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
