@@ -57,7 +57,7 @@ public:
       SDL_DisableScreenSaver();
       if (SDL_IsScreenSaverEnabled() == SDL_TRUE)
       {
-        cemuLog_force("Could not disable screen saver (`SDL_DisableScreenSaver()` failed)");
+        cemuLog_force("Could not verify if screen saver was disabled (`SDL_IsScreenSaverEnabled()` returned SDL_TRUE)");
       }
     }
     else
@@ -65,7 +65,7 @@ public:
       SDL_EnableScreenSaver();
       if (SDL_IsScreenSaverEnabled() == SDL_FALSE)
       {
-        cemuLog_force("Could not re-enable screen saver (`SDL_EnableScreenSaver()` failed)");
+        cemuLog_force("Could not verify if screen saver was re-enabled (`SDL_IsScreenSaverEnabled()` returned SDL_FALSE)");
       }
     }
 #endif
