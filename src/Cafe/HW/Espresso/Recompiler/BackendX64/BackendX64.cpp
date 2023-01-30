@@ -642,7 +642,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_MFCR )
 	{
-		__debugbreak();
+		DEBUG_BREAK;
 		//uint32 destRegister = imlInstruction->op_r_immS32.registerIndex;
 		//x64Gen_xor_reg64Low32_reg64Low32(x64GenContext, destRegister, destRegister);
 		//for(sint32 f=0; f<32; f++)
@@ -653,7 +653,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_MTCRF)
 	{
-		__debugbreak();
+		DEBUG_BREAK;
 		//uint32 srcRegister = imlInstruction->op_r_immS32.registerIndex;
 		//uint32 crBitMask = ppc_MTCRFMaskToCRBitMask((uint32)imlInstruction->op_r_immS32.immS32);
 		//for (sint32 f = 0; f < 32; f++)
@@ -896,7 +896,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		//if (rRegResult == rRegOperand2)
 		//{
 		//	if (rRegResult != rRegOperand1)
-		//		__debugbreak(); // cannot handle yet (we use rRegResult as a temporary reg, but its not possible if it is shared with op2)
+		//		DEBUG_BREAK; // cannot handle yet (we use rRegResult as a temporary reg, but its not possible if it is shared with op2)
 		//}
 
 		//if(rRegOperand1 != rRegResult)

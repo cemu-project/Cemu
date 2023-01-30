@@ -12,7 +12,6 @@ struct PPCRecCRTracking_t
 
 bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment);
 bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction);
-void IMLAnalyzer_GetCRTracking(IMLInstruction* imlInstruction, PPCRecCRTracking_t* crTracking);
 
 // optimizer passes
 // todo - rename
