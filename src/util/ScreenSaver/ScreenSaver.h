@@ -43,7 +43,7 @@ public:
 
 #if BOOST_OS_LINUX
     // Initialize video subsystem if necessary
-    if (SDL_WasInit(SDL_INIT_VIDEO) != 0)
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0)
     {
       int initErr = SDL_InitSubSystem(SDL_INIT_VIDEO);
       if (initErr)
