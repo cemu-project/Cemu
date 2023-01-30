@@ -225,9 +225,9 @@ void PPCRecRA_debugValidateSubrange(raLivenessSubrange_t* subrange) {}
 #endif
 
 // split subrange at the given index
-// After the split there will be two ranges/subranges:
-// head -> subrange is shortned to end at splitIndex
-// tail -> a new subrange that reaches from splitIndex to the end of the original subrange
+// After the split there will be two ranges and subranges:
+// head -> subrange is shortened to end at splitIndex (exclusive)
+// tail -> a new subrange that ranges from splitIndex (inclusive) to the end of the original subrange
 // if head has a physical register assigned it will not carry over to tail
 // The return value is the tail subrange
 // If trimToHole is true, the end of the head subrange and the start of the tail subrange will be moved to fit the locations
@@ -236,7 +236,9 @@ raLivenessSubrange_t* PPCRecRA_splitLocalSubrange(ppcImlGenContext_t* ppcImlGenC
 {
 	// validation
 #ifdef CEMU_DEBUG_ASSERT
-	if (subrange->end.index == RA_INTER_RANGE_END || subrange->end.index == RA_INTER_RANGE_START)
+	//if (subrange->end.index == RA_INTER_RANGE_END || subrange->end.index == RA_INTER_RANGE_START)
+	//	assert_dbg();
+	if (subrange->start.index == RA_INTER_RANGE_END || subrange->end.index == RA_INTER_RANGE_START)
 		assert_dbg();
 	if (subrange->start.index >= splitIndex)
 		assert_dbg();
@@ -281,6 +283,11 @@ raLivenessSubrange_t* PPCRecRA_splitLocalSubrange(ppcImlGenContext_t* ppcImlGenC
 		{
 			tailSubrange->start.index = tailSubrange->list_locations.front().index;
 		}
+	}
+	else
+	{
+		// set head range to end at split index
+		subrange->end.index = splitIndex;
 	}
 	return tailSubrange;
 }

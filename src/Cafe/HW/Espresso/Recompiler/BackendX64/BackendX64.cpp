@@ -737,16 +737,12 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		else if ( rRegResult == rRegOperand2 )
 		{
 			// result = operand1 - result
-			// NEG result
 			x64Gen_neg_reg64Low32(x64GenContext, rRegResult);
-			// ADD result, operand1
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, rRegResult, rRegOperand1);
 		}
 		else
 		{
-			// copy operand1 to destination register before doing addition
 			x64Gen_mov_reg64_reg64(x64GenContext, rRegResult, rRegOperand1);
-			// sub operand2
 			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, rRegResult, rRegOperand2);
 		}
 	}
