@@ -261,7 +261,7 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 		for (sint32 i = 0; i < segIt->imlList.size(); i++)
 		{
 			segIt->imlList[i].CheckRegisterUsage(&registersUsed);
-			sint32 accessedTempReg[5];
+			IMLReg accessedTempReg[5];
 			// intermediate FPRs
 			accessedTempReg[0] = registersUsed.readFPR1;
 			accessedTempReg[1] = registersUsed.readFPR2;
@@ -270,7 +270,7 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 			accessedTempReg[4] = registersUsed.writtenFPR1;
 			for (sint32 f = 0; f < 5; f++)
 			{
-				if (accessedTempReg[f] == -1)
+				if (accessedTempReg[f] == IMLREG_INVALID)
 					continue;
 				uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f]];
 				if (regName >= PPCREC_NAME_FPR0 && regName < PPCREC_NAME_FPR0 + 32)
