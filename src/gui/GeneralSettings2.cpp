@@ -877,14 +877,7 @@ void GeneralSettings2::StoreConfig()
 	// Toggle while a game is running
 	if (CafeSystem::IsTitleRunning())
 	{
-		if (config.disable_screensaver)
-		{
-			ScreenSaver::SetInhibit(true);
-		}
-		else
-		{
-			ScreenSaver::SetInhibit(false);
-		}
+		ScreenSaver::SetInhibit(config.disable_screensaver);
 	}
 
 	if (!LaunchSettings::GetMLCPath().has_value())
