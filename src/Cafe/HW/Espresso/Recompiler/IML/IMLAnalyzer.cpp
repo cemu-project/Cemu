@@ -26,7 +26,7 @@ bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 	// for non-BDNZ loops, check for common patterns
 	// risky approach, look for ADD/SUB operations and assume that potential overflow means finite (does not include r_r_s32 ADD/SUB)
 	// this catches most loops with load-update and store-update instructions, but also those with decrementing counters
-	FixedSizeList<sint32, 64, true> list_modifiedRegisters;
+	FixedSizeList<IMLReg, 64, true> list_modifiedRegisters;
 	for (const IMLInstruction& instIt : imlSegment->imlList)
 	{
 		if (instIt.type == PPCREC_IML_TYPE_R_S32 && (instIt.operation == PPCREC_IML_OP_ADD || instIt.operation == PPCREC_IML_OP_SUB) )

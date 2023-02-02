@@ -1,7 +1,103 @@
 #pragma once
 
-using IMLReg = uint8;
-inline constexpr IMLReg IMLREG_INVALID = (IMLReg)-1;
+using IMLRegID = uint16; // 16 bit ID
+
+// format of IMLReg:
+// 0-15		(16 bit)	IMLRegID
+// 19-23	(5 bit)		Offset				In elements, for SIMD registers
+// 24-27	(4 bit)		IMLRegFormat		RegFormat
+// 28-31	(4 bit)		IMLRegFormat		BaseFormat
+
+enum class IMLRegFormat : uint8
+{
+	INVALID_FORMAT,
+	I64,
+	I32,
+	I16,
+	I8,
+	// I1 ?
+	F64,
+	F32
+};
+
+class IMLReg
+{
+public:
+	IMLReg()
+	{
+		m_raw = 0; // 0 is invalid
+	}
+
+	IMLReg(IMLRegFormat baseRegFormat, IMLRegFormat regFormat, uint8 viewOffset, IMLRegID regId)
+	{
+		m_raw = 0;
+		m_raw |= ((uint8)baseRegFormat << 28);
+		m_raw |= ((uint8)regFormat << 24);
+		m_raw |= (uint32)regId;
+	}
+
+	IMLReg(IMLReg&& baseReg, IMLRegFormat viewFormat, uint8 viewOffset, IMLRegID regId)
+	{
+		DEBUG_BREAK;
+		//m_raw = 0;
+		//m_raw |= ((uint8)baseRegFormat << 28);
+		//m_raw |= ((uint8)viewFormat << 24);
+		//m_raw |= (uint32)regId;
+	}
+
+	IMLReg(const IMLReg& other) : m_raw(other.m_raw) {}
+
+	IMLRegFormat GetBaseFormat() const
+	{
+		return (IMLRegFormat)((m_raw >> 28) & 0xF);
+	}
+
+	IMLRegFormat GetRegFormat() const
+	{
+		return (IMLRegFormat)((m_raw >> 24) & 0xF);
+	}
+
+	IMLRegID GetRegID() const
+	{
+		cemu_assert_debug(GetBaseFormat() != IMLRegFormat::INVALID_FORMAT);
+		cemu_assert_debug(GetRegFormat() != IMLRegFormat::INVALID_FORMAT);
+		return (IMLRegID)(m_raw & 0xFFFF);
+	}
+
+	void SetRegID(IMLRegID regId)
+	{
+		cemu_assert_debug(regId <= 0xFFFF);
+		m_raw &= ~0xFFFF;
+		m_raw |= (uint32)regId;
+	}
+
+	bool IsInvalid() const
+	{
+		return GetBaseFormat() == IMLRegFormat::INVALID_FORMAT;
+	}
+
+	bool IsValid() const
+	{
+		return GetBaseFormat() != IMLRegFormat::INVALID_FORMAT;
+	}
+
+	bool IsValidAndSameRegID(IMLRegID regId) const
+	{
+		return IsValid() && GetRegID() == regId;
+	}
+
+	// risky
+	bool operator==(const IMLReg& other) const
+	{
+		//__debugbreak();
+		return m_raw == other.m_raw;
+	}
+
+private:
+	uint32 m_raw;
+};
+
+static const IMLReg IMLREG_INVALID(IMLRegFormat::INVALID_FORMAT, IMLRegFormat::INVALID_FORMAT, 0, 0);
 
 using IMLName = uint32;
 
@@ -230,6 +326,8 @@ enum
 
 struct IMLUsedRegisters
 {
+	IMLUsedRegisters() {};
+
 	// GPR
 	union
 	{
@@ -256,59 +354,63 @@ struct IMLUsedRegisters
 		};
 	};
 
-	bool IsGPRWritten(IMLReg imlReg) const
+	bool IsBaseGPRWritten(IMLReg imlReg) const
 	{
-		cemu_assert_debug(imlReg != IMLREG_INVALID);
-		return writtenGPR1 == imlReg || writtenGPR2 == imlReg;
+		cemu_assert_debug(imlReg.IsValid());
+		auto regId = imlReg.GetRegID();
+		if (writtenGPR1.IsValid() && writtenGPR1.GetRegID() == regId)
+			return true;
+		if (writtenGPR2.IsValid() && writtenGPR2.GetRegID() == regId)
+			return true;
+		return false;
 	}
 
 	template<typename Fn>
 	void ForEachWrittenGPR(Fn F) const
 	{
-		if (writtenGPR1 != IMLREG_INVALID)
+		if (writtenGPR1.IsValid())
 			F(writtenGPR1);
-		if (writtenGPR2 != IMLREG_INVALID)
+		if (writtenGPR2.IsValid())
 			F(writtenGPR2);
 	}
 
 	template<typename Fn>
 	void ForEachReadGPR(Fn F) const
 	{
-		if (readGPR1 != IMLREG_INVALID)
+		if (readGPR1.IsValid())
 			F(readGPR1);
-		if (readGPR2 != IMLREG_INVALID)
+		if (readGPR2.IsValid())
 			F(readGPR2);
-		if (readGPR3 != IMLREG_INVALID)
+		if (readGPR3.IsValid())
 			F(readGPR3);
 	}
 
 	template<typename Fn>
 	void ForEachAccessedGPR(Fn F) const
 	{
-		if (readGPR1 != IMLREG_INVALID)
+		if (readGPR1.IsValid())
 			F(readGPR1, false);
-		if (readGPR2 != IMLREG_INVALID)
+		if (readGPR2.IsValid())
 			F(readGPR2, false);
-		if (readGPR3 != IMLREG_INVALID)
+		if (readGPR3.IsValid())
 			F(readGPR3, false);
-		if (writtenGPR1 != IMLREG_INVALID)
+		if (writtenGPR1.IsValid())
 			F(writtenGPR1, true);
-		if (writtenGPR2 != IMLREG_INVALID)
+		if (writtenGPR2.IsValid())
 			F(writtenGPR2, true);
 	}
 
-	bool HasFPRReg(sint16 imlReg) const
+	bool HasSameBaseFPRRegId(IMLRegID regId) const
 	{
-		cemu_assert_debug(imlReg != IMLREG_INVALID);
-		if (readFPR1 == imlReg)
+		if (readFPR1.IsValid() && readFPR1.GetRegID() == regId)
 			return true;
-		if (readFPR2 == imlReg)
+		if (readFPR2.IsValid() && readFPR2.GetRegID() == regId)
 			return true;
-		if (readFPR3 == imlReg)
+		if (readFPR3.IsValid() && readFPR3.GetRegID() == regId)
 			return true;
-		if (readFPR4 == imlReg)
+		if (readFPR4.IsValid() && readFPR4.GetRegID() == regId)
 			return true;
-		if (writtenFPR1 == imlReg)
+		if (writtenFPR1.IsValid() && writtenFPR1.GetRegID() == regId)
 			return true;
 		return false;
 	}
@@ -316,6 +418,12 @@ struct IMLUsedRegisters
 
 struct IMLInstruction
 {
+	IMLInstruction() {}
+	IMLInstruction(const IMLInstruction& other) 
+	{
+		memcpy(this, &other, sizeof(IMLInstruction));
+	}
+
 	uint8 type;
 	uint8 operation;
 	union
@@ -370,6 +478,7 @@ struct IMLInstruction
 			uint32 param;
 			uint32 param2;
 			uint16 paramU16;
+			IMLReg paramReg;
 		}op_macro;
 		struct
 		{
@@ -446,7 +555,7 @@ struct IMLInstruction
 		struct
 		{
 			// r_s32
-			uint8 regR;
+			IMLReg regR;
 			sint32 immS32;
 			// condition
 			uint8 crRegisterIndex;
@@ -479,16 +588,17 @@ struct IMLInstruction
 
 	void make_debugbreak(uint32 currentPPCAddress = 0)
 	{
-		make_macro(PPCREC_IML_MACRO_DEBUGBREAK, 0, currentPPCAddress, 0);
+		make_macro(PPCREC_IML_MACRO_DEBUGBREAK, 0, currentPPCAddress, 0, IMLREG_INVALID);
 	}
 
-	void make_macro(uint32 macroId, uint32 param, uint32 param2, uint16 paramU16)
+	void make_macro(uint32 macroId, uint32 param, uint32 param2, uint16 paramU16, IMLReg regParam)
 	{
 		this->type = PPCREC_IML_TYPE_MACRO;
 		this->operation = macroId;
 		this->op_macro.param = param;
 		this->op_macro.param2 = param2;
 		this->op_macro.paramU16 = paramU16;
+		this->op_macro.paramReg = regParam;
 	}
 
 	void make_cjump_cycle_check()
@@ -497,85 +607,85 @@ struct IMLInstruction
 		this->operation = 0;
 	}
 
-	void make_r_r(uint32 operation, uint8 registerResult, uint8 registerA)
+	void make_r_r(uint32 operation, IMLReg regR, IMLReg regA)
 	{
 		this->type = PPCREC_IML_TYPE_R_R;
 		this->operation = operation;
-		this->op_r_r.regR = registerResult;
-		this->op_r_r.regA = registerA;
+		this->op_r_r.regR = regR;
+		this->op_r_r.regA = regA;
 	}
 
-	void make_r_s32(uint32 operation, uint8 registerIndex, sint32 immS32)
+	void make_r_s32(uint32 operation, IMLReg regR, sint32 immS32)
 	{
 		this->type = PPCREC_IML_TYPE_R_S32;
 		this->operation = operation;
-		this->op_r_immS32.regR = registerIndex;
+		this->op_r_immS32.regR = regR;
 		this->op_r_immS32.immS32 = immS32;
 	}
 
-	void make_r_r_r(uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB)
+	void make_r_r_r(uint32 operation, IMLReg regR, IMLReg regA, IMLReg regB)
 	{
 		this->type = PPCREC_IML_TYPE_R_R_R;
 		this->operation = operation;
-		this->op_r_r_r.regR = registerResult;
-		this->op_r_r_r.regA = registerA;
-		this->op_r_r_r.regB = registerB;
+		this->op_r_r_r.regR = regR;
+		this->op_r_r_r.regA = regA;
+		this->op_r_r_r.regB = regB;
 	}
 
-	void make_r_r_r_carry(uint32 operation, uint8 registerResult, uint8 registerA, uint8 registerB, uint8 registerCarry)
+	void make_r_r_r_carry(uint32 operation, IMLReg regR, IMLReg regA, IMLReg regB, IMLReg regCarry)
 	{
 		this->type = PPCREC_IML_TYPE_R_R_R_CARRY;
 		this->operation = operation;
-		this->op_r_r_r_carry.regR = registerResult;
-		this->op_r_r_r_carry.regA = registerA;
-		this->op_r_r_r_carry.regB = registerB;
-		this->op_r_r_r_carry.regCarry = registerCarry;
+		this->op_r_r_r_carry.regR = regR;
+		this->op_r_r_r_carry.regA = regA;
+		this->op_r_r_r_carry.regB = regB;
+		this->op_r_r_r_carry.regCarry = regCarry;
 	}
 
-	void make_r_r_s32(uint32 operation, uint8 registerResult, uint8 registerA, sint32 immS32)
+	void make_r_r_s32(uint32 operation, IMLReg regR, IMLReg regA, sint32 immS32)
 	{
 		this->type = PPCREC_IML_TYPE_R_R_S32;
 		this->operation = operation;
-		this->op_r_r_s32.regR = registerResult;
-		this->op_r_r_s32.regA = registerA;
+		this->op_r_r_s32.regR = regR;
+		this->op_r_r_s32.regA = regA;
 		this->op_r_r_s32.immS32 = immS32;
 	}
 
-	void make_r_r_s32_carry(uint32 operation, uint8 registerResult, uint8 registerA, sint32 immS32, uint8 registerCarry)
+	void make_r_r_s32_carry(uint32 operation, IMLReg regR, IMLReg regA, sint32 immS32, IMLReg regCarry)
 	{
 		this->type = PPCREC_IML_TYPE_R_R_S32_CARRY;
 		this->operation = operation;
-		this->op_r_r_s32_carry.regR = registerResult;
-		this->op_r_r_s32_carry.regA = registerA;
+		this->op_r_r_s32_carry.regR = regR;
+		this->op_r_r_s32_carry.regA = regA;
 		this->op_r_r_s32_carry.immS32 = immS32;
-		this->op_r_r_s32_carry.regCarry = registerCarry;
+		this->op_r_r_s32_carry.regCarry = regCarry;
 	}
 
-	void make_compare(uint8 registerA, uint8 registerB, uint8 registerResult, IMLCondition cond)
+	void make_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
 	{
 		this->type = PPCREC_IML_TYPE_COMPARE;
 		this->operation = -999;
-		this->op_compare.regR = registerResult;
-		this->op_compare.regA = registerA;
-		this->op_compare.regB = registerB;
+		this->op_compare.regR = regR;
+		this->op_compare.regA = regA;
+		this->op_compare.regB = regB;
 		this->op_compare.cond = cond;
 	}
 
-	void make_compare_s32(uint8 registerA, sint32 immS32, uint8 registerResult, IMLCondition cond)
+	void make_compare_s32(IMLReg regA, sint32 immS32, IMLReg regR, IMLCondition cond)
 	{
 		this->type = PPCREC_IML_TYPE_COMPARE_S32;
 		this->operation = -999;
-		this->op_compare_s32.regR = registerResult;
-		this->op_compare_s32.regA = registerA;
+		this->op_compare_s32.regR = regR;
+		this->op_compare_s32.regA = regA;
 		this->op_compare_s32.immS32 = immS32;
 		this->op_compare_s32.cond = cond;
 	}
 
-	void make_conditional_jump(uint8 registerBool, bool mustBeTrue)
+	void make_conditional_jump(IMLReg regBool, bool mustBeTrue)
 	{
 		this->type = PPCREC_IML_TYPE_CONDITIONAL_JUMP;
 		this->operation = -999;
-		this->op_conditional_jump.registerBool = registerBool;
+		this->op_conditional_jump.registerBool = regBool;
 		this->op_conditional_jump.mustBeTrue = mustBeTrue;
 	}
 
@@ -586,12 +696,12 @@ struct IMLInstruction
 	}
 
 	// load from memory
-	void make_r_memory(uint8 registerDestination, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool signExtend, bool switchEndian)
+	void make_r_memory(IMLReg regD, IMLReg regMem, sint32 immS32, uint32 copyWidth, bool signExtend, bool switchEndian)
 	{
 		this->type = PPCREC_IML_TYPE_LOAD;
 		this->operation = 0;
-		this->op_storeLoad.registerData = registerDestination;
-		this->op_storeLoad.registerMem = registerMemory;
+		this->op_storeLoad.registerData = regD;
+		this->op_storeLoad.registerMem = regMem;
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.copyWidth = copyWidth;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
@@ -599,12 +709,12 @@ struct IMLInstruction
 	}
 
 	// store to memory
-	void make_memory_r(uint8 registerSource, uint8 registerMemory, sint32 immS32, uint32 copyWidth, bool switchEndian)
+	void make_memory_r(IMLReg regS, IMLReg regMem, sint32 immS32, uint32 copyWidth, bool switchEndian)
 	{
 		this->type = PPCREC_IML_TYPE_STORE;
 		this->operation = 0;
-		this->op_storeLoad.registerData = registerSource;
-		this->op_storeLoad.registerMem = registerMemory;
+		this->op_storeLoad.registerData = regS;
+		this->op_storeLoad.registerMem = regMem;
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.copyWidth = copyWidth;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
@@ -633,7 +743,8 @@ struct IMLInstruction
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;
 
-	void RewriteGPR(const std::unordered_map<IMLReg, IMLReg>& translationTable);
-	void ReplaceFPRs(sint32 fprRegisterSearched[4], sint32 fprRegisterReplaced[4]);
-	void ReplaceFPR(sint32 fprRegisterSearched, sint32 fprRegisterReplaced);
+	void RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& translationTable);
+	void ReplaceFPRs(IMLReg fprRegisterSearched[4], IMLReg fprRegisterReplaced[4]);
+	void ReplaceFPR(IMLRegID fprRegisterSearched, IMLRegID fprRegisterReplaced);
+
 };

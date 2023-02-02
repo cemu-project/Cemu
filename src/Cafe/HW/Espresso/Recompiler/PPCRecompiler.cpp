@@ -270,9 +270,9 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 			accessedTempReg[4] = registersUsed.writtenFPR1;
 			for (sint32 f = 0; f < 5; f++)
 			{
-				if (accessedTempReg[f] == IMLREG_INVALID)
+				if (accessedTempReg[f].IsInvalid())
 					continue;
-				uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f]];
+				uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f].GetRegID()];
 				if (regName >= PPCREC_NAME_FPR0 && regName < PPCREC_NAME_FPR0 + 32)
 				{
 					segIt->ppcFPRUsed[regName - PPCREC_NAME_FPR0] = true;
