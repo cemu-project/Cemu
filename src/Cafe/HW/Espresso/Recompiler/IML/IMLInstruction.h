@@ -17,7 +17,8 @@ enum class IMLRegFormat : uint8
 	I8,
 	// I1 ?
 	F64,
-	F32
+	F32,
+	TYPE_COUNT,
 };
 
 class IMLReg
@@ -86,10 +87,9 @@ public:
 		return IsValid() && GetRegID() == regId;
 	}
 
-	// risky
+	// compare all fields
 	bool operator==(const IMLReg& other) const
 	{
-		//__debugbreak();
 		return m_raw == other.m_raw;
 	}
 
