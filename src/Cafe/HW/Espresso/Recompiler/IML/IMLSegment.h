@@ -54,9 +54,9 @@ struct raLivenessSubrange_t
 
 struct raLivenessRange_t
 {
-	sint32 virtualRegister;
+	IMLRegID virtualRegister;
 	sint32 physicalRegister;
-	sint32 name;
+	IMLName name;
 	std::vector<raLivenessSubrange_t*> list_subranges;
 };
 
@@ -68,16 +68,6 @@ struct PPCSegmentRegisterAllocatorInfo_t
 	// linked lists
 	raLivenessSubrange_t* linkedList_allSubranges{};
 	raLivenessSubrange_t* linkedList_perVirtualGPR[IML_RA_VIRT_REG_COUNT_MAX]{};
-};
-
-struct PPCRecVGPRDistances_t
-{
-	struct _RegArrayEntry
-	{
-		sint32 usageStart{};
-		sint32 usageEnd{};
-	}reg[IML_RA_VIRT_REG_COUNT_MAX];
-	bool isProcessed[IML_RA_VIRT_REG_COUNT_MAX]{};
 };
 
 struct IMLSegment
@@ -113,7 +103,7 @@ struct IMLSegment
 	uint32 crBitsWritten{}; // bits that are written in this segment
 	// register allocator info
 	PPCSegmentRegisterAllocatorInfo_t raInfo{};
-	PPCRecVGPRDistances_t raDistances{};
+	//PPCRecVGPRDistances_t raDistances{};
 	bool raRangeExtendProcessed{};
 
 	// segment state API

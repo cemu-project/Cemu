@@ -218,7 +218,6 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 
 	// collect list of PPC-->x64 entry points
 	cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size());
-	cemu_assert_debug(ppcImlGenContext.imlListCount == 0);
 
 	entryPointsOut.clear();
 	for(IMLSegment* imlSegment : ppcImlGenContext.segmentList2)
@@ -295,18 +294,20 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 	}
 
 	IMLRegisterAllocatorParameters raParam;
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_RAX);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_RDX);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_RBX);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_RBP);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_RSI);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_RDI);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_R8);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_R9);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_R10);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_R11);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_R12);
-	raParam.physicalRegisterPool.SetAvailable(X86_REG_RCX);
+
+	auto& gprPhysPool = raParam.GetPhysRegPool(IMLRegFormat::I64);
+	gprPhysPool.SetAvailable(X86_REG_RAX);
+	gprPhysPool.SetAvailable(X86_REG_RDX);
+	gprPhysPool.SetAvailable(X86_REG_RBX);
+	gprPhysPool.SetAvailable(X86_REG_RBP);
+	gprPhysPool.SetAvailable(X86_REG_RSI);
+	gprPhysPool.SetAvailable(X86_REG_RDI);
+	gprPhysPool.SetAvailable(X86_REG_R8);
+	gprPhysPool.SetAvailable(X86_REG_R9);
+	gprPhysPool.SetAvailable(X86_REG_R10);
+	gprPhysPool.SetAvailable(X86_REG_R11);
+	gprPhysPool.SetAvailable(X86_REG_R12);
+	gprPhysPool.SetAvailable(X86_REG_RCX);
 
 	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext, raParam);
 

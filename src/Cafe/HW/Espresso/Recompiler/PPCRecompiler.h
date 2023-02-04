@@ -45,10 +45,6 @@ struct ppcImlGenContext_t
 	uint32 mappedRegister[PPC_REC_MAX_VIRTUAL_GPR];
 	// temporary floating point registers (single and double precision)
 	uint32 mappedFPRRegister[256];
-	// list of intermediate instructions
-	IMLInstruction* imlList;
-	sint32 imlListSize;
-	sint32 imlListCount;
 	// list of segments
 	std::vector<IMLSegment*> segmentList2;
 	// code generation control
@@ -66,16 +62,8 @@ struct ppcImlGenContext_t
 
 	~ppcImlGenContext_t()
 	{
-		if (imlList)
-		{
-			free(imlList);
-			imlList = nullptr;
-		}
-
 		for (IMLSegment* imlSegment : segmentList2)
-		{
 			delete imlSegment;
-		}
 		segmentList2.clear();
 	}
 
@@ -116,6 +104,12 @@ struct ppcImlGenContext_t
 		for (size_t i = index; i < (index + count); i++)
 			segmentList2[i] = new IMLSegment();
 		return { segmentList2.data() + index, count};
+	}
+
+	void UpdateSegmentIndices()
+	{
+		for (size_t i = 0; i < segmentList2.size(); i++)
+			segmentList2[i]->momentaryIndex = (sint32)i;
 	}
 };
 
