@@ -586,6 +586,24 @@ struct IMLInstruction
 		operation = 0;
 	}
 
+	void make_r_name(IMLReg regR, IMLName name)
+	{
+		cemu_assert_debug(regR.GetBaseFormat() == regR.GetRegFormat()); // for name load/store instructions the register must match the base format
+		type = PPCREC_IML_TYPE_R_NAME;
+		operation = PPCREC_IML_OP_ASSIGN;
+		op_r_name.regR = regR;
+		op_r_name.name = name;
+	}
+
+	void make_name_r(IMLName name, IMLReg regR)
+	{
+		cemu_assert_debug(regR.GetBaseFormat() == regR.GetRegFormat()); // for name load/store instructions the register must match the base format
+		type = PPCREC_IML_TYPE_NAME_R;
+		operation = PPCREC_IML_OP_ASSIGN;
+		op_r_name.regR = regR;
+		op_r_name.name = name;
+	}
+
 	void make_debugbreak(uint32 currentPPCAddress = 0)
 	{
 		make_macro(PPCREC_IML_MACRO_DEBUGBREAK, 0, currentPPCAddress, 0, IMLREG_INVALID);

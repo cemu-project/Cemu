@@ -1,8 +1,6 @@
 #pragma once
 #include "IMLInstruction.h"
 
-#define IML_RA_VIRT_REG_COUNT_MAX	(40 + 32) // should match PPC_REC_MAX_VIRTUAL_GPR -> todo: Make this dynamic
-
 struct IMLSegmentPoint
 {
 	sint32 index;
@@ -62,12 +60,12 @@ struct raLivenessRange_t
 
 struct PPCSegmentRegisterAllocatorInfo_t
 {
-	// analyzer stage
-	bool isPartOfProcessedLoop{}; // used during loop detection
+	// used during loop detection
+	bool isPartOfProcessedLoop{}; 
 	sint32 lastIterationIndex{};
 	// linked lists
 	raLivenessSubrange_t* linkedList_allSubranges{};
-	raLivenessSubrange_t* linkedList_perVirtualGPR[IML_RA_VIRT_REG_COUNT_MAX]{};
+	std::unordered_map<IMLRegID, raLivenessSubrange_t*> linkedList_perVirtualGPR2;
 };
 
 struct IMLSegment
@@ -92,9 +90,6 @@ struct IMLSegment
 	// enterable segments
 	bool isEnterable{}; // this segment can be entered from outside the recompiler (no preloaded registers necessary)
 	uint32 enterPPCAddress{}; // used if isEnterable is true
-	// jump destination segments
-	//bool isJumpDestination{}; // segment is a destination for one or more (conditional) jumps
-	//uint32 jumpDestinationPPCAddress{};
 	// PPC FPR use mask
 	bool ppcFPRUsed[32]{}; // same as ppcGPRUsed, but for FPR
 	// CR use mask
@@ -103,8 +98,6 @@ struct IMLSegment
 	uint32 crBitsWritten{}; // bits that are written in this segment
 	// register allocator info
 	PPCSegmentRegisterAllocatorInfo_t raInfo{};
-	//PPCRecVGPRDistances_t raDistances{};
-	bool raRangeExtendProcessed{};
 
 	// segment state API
 	void SetEnterable(uint32 enterAddress);
