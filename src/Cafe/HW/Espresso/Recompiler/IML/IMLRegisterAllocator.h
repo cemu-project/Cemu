@@ -93,7 +93,8 @@ struct IMLRegisterAllocatorParameters
 		return perTypePhysPool[stdx::to_underlying(regFormat)];
 	}
 
-	IMLPhysRegisterSet perTypePhysPool[stdx::to_underlying(IMLRegFormat::TYPE_COUNT)];// physicalRegisterPool;
+	IMLPhysRegisterSet perTypePhysPool[stdx::to_underlying(IMLRegFormat::TYPE_COUNT)];
+	std::unordered_map<IMLRegID, IMLName> regIdToName;
 };
 
 void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLRegisterAllocatorParameters& raParam);

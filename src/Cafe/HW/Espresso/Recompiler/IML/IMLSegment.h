@@ -91,7 +91,7 @@ struct IMLSegment
 	bool isEnterable{}; // this segment can be entered from outside the recompiler (no preloaded registers necessary)
 	uint32 enterPPCAddress{}; // used if isEnterable is true
 	// PPC FPR use mask
-	bool ppcFPRUsed[32]{}; // same as ppcGPRUsed, but for FPR
+	//bool ppcFPRUsed[32]{}; // same as ppcGPRUsed, but for FPR
 	// CR use mask
 	uint32 crBitsInput{}; // bits that are expected to be set from the previous segment (read in this segment but not overwritten)
 	uint32 crBitsRead{}; // all bits that are read in this segment

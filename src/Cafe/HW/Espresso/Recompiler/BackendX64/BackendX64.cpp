@@ -11,13 +11,26 @@
 static x86Assembler64::GPR32 _reg32(IMLReg physReg)
 {
 	cemu_assert_debug(physReg.GetRegFormat() == IMLRegFormat::I32);
-	return (x86Assembler64::GPR32)physReg.GetRegID();
+	IMLRegID regId = physReg.GetRegID();
+	cemu_assert_debug(regId < 16);
+	return (x86Assembler64::GPR32)regId;
 }
 
 static uint32 _reg64(IMLReg physReg)
 {
 	cemu_assert_debug(physReg.GetRegFormat() == IMLRegFormat::I64);
-	return physReg.GetRegID();
+	IMLRegID regId = physReg.GetRegID();
+	cemu_assert_debug(regId < 16);
+	return regId;
+}
+
+uint32 _regF64(IMLReg physReg)
+{
+	cemu_assert_debug(physReg.GetRegFormat() == IMLRegFormat::F64);
+	IMLRegID regId = physReg.GetRegID();
+	cemu_assert_debug(regId >= IMLArchX86::PHYSREG_FPR_BASE && regId < IMLArchX86::PHYSREG_FPR_BASE+16);
+	regId -= IMLArchX86::PHYSREG_FPR_BASE;
+	return regId;
 }
 
 static x86Assembler64::GPR8_REX _reg8(IMLReg physReg)
@@ -1233,110 +1246,191 @@ bool PPCRecompilerX64Gen_imlInstruction_conditionalJumpCycleCheck(PPCRecFunction
 void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	uint32 name = imlInstruction->op_r_name.name;
-	auto regR = _reg64(imlInstruction->op_r_name.regR);
-
-	if( name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0+32 )
+	if (imlInstruction->op_r_name.regR.GetBaseFormat() == IMLRegFormat::I64)
 	{
-		x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, gpr)+sizeof(uint32)*(name-PPCREC_NAME_R0));
-	}
-	else if( name >= PPCREC_NAME_SPR0 && name < PPCREC_NAME_SPR0+999 )
-	{
-		sint32 sprIndex = (name - PPCREC_NAME_SPR0);
-		if (sprIndex == SPR_LR)
-			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.LR));
-		else if (sprIndex == SPR_CTR)
-			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.CTR));
-		else if (sprIndex == SPR_XER)
-			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.XER));
-		else if (sprIndex >= SPR_UGQR0 && sprIndex <= SPR_UGQR7)
+		auto regR = _reg64(imlInstruction->op_r_name.regR);
+		if (name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0 + 32)
 		{
-			sint32 memOffset = offsetof(PPCInterpreter_t, spr.UGQR) + sizeof(PPCInterpreter_t::spr.UGQR[0]) * (sprIndex - SPR_UGQR0);
-			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, memOffset);
+			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, gpr) + sizeof(uint32) * (name - PPCREC_NAME_R0));
+		}
+		else if (name >= PPCREC_NAME_SPR0 && name < PPCREC_NAME_SPR0 + 999)
+		{
+			sint32 sprIndex = (name - PPCREC_NAME_SPR0);
+			if (sprIndex == SPR_LR)
+				x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.LR));
+			else if (sprIndex == SPR_CTR)
+				x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.CTR));
+			else if (sprIndex == SPR_XER)
+				x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.XER));
+			else if (sprIndex >= SPR_UGQR0 && sprIndex <= SPR_UGQR7)
+			{
+				sint32 memOffset = offsetof(PPCInterpreter_t, spr.UGQR) + sizeof(PPCInterpreter_t::spr.UGQR[0]) * (sprIndex - SPR_UGQR0);
+				x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, memOffset);
+			}
+			else
+				assert_dbg();
+		}
+		else if (name >= PPCREC_NAME_TEMPORARY && name < PPCREC_NAME_TEMPORARY + 4)
+		{
+			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryGPR_reg) + sizeof(uint32) * (name - PPCREC_NAME_TEMPORARY));
+		}
+		else if (name == PPCREC_NAME_XER_CA)
+		{
+			x64Emit_movZX_reg64_mem8(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, xer_ca));
+		}
+		else if (name == PPCREC_NAME_XER_SO)
+		{
+			x64Emit_movZX_reg64_mem8(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, xer_so));
+		}
+		else if (name >= PPCREC_NAME_CR && name <= PPCREC_NAME_CR_LAST)
+		{
+			x64Emit_movZX_reg64_mem8(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + (name - PPCREC_NAME_CR));
+		}
+		else if (name == PPCREC_NAME_CPU_MEMRES_EA)
+		{
+			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemAddr));
+		}
+		else if (name == PPCREC_NAME_CPU_MEMRES_VAL)
+		{
+			x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemValue));
 		}
 		else
 			assert_dbg();
 	}
-	else if (name >= PPCREC_NAME_TEMPORARY && name < PPCREC_NAME_TEMPORARY + 4)
+	else if (imlInstruction->op_r_name.regR.GetBaseFormat() == IMLRegFormat::F64)
 	{
-		x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryGPR_reg) + sizeof(uint32) * (name - PPCREC_NAME_TEMPORARY));
-	}
-	else if (name == PPCREC_NAME_XER_CA)
-	{
-		x64Emit_movZX_reg64_mem8(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, xer_ca));
-	}
-	else if (name == PPCREC_NAME_XER_SO)
-	{
-		x64Emit_movZX_reg64_mem8(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, xer_so));
-	}
-	else if (name >= PPCREC_NAME_CR && name <= PPCREC_NAME_CR_LAST)
-	{
-		x64Emit_movZX_reg64_mem8(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + (name - PPCREC_NAME_CR));
-	}
-	else if (name == PPCREC_NAME_CPU_MEMRES_EA)
-	{
-		x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemAddr));
-	}
-	else if (name == PPCREC_NAME_CPU_MEMRES_VAL)
-	{
-		x64Emit_mov_reg64_mem32(x64GenContext, regR, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemValue));
+		auto regR = _regF64(imlInstruction->op_r_name.regR);
+		if (name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0 + 32))
+		{
+			x64Gen_movupd_xmmReg_memReg128(x64GenContext, regR, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
+		}
+		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
+		{
+			x64Gen_movupd_xmmReg_memReg128(x64GenContext, regR, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR) + sizeof(FPR_t) * (name - PPCREC_NAME_TEMPORARY_FPR0));
+		}
+		else
+		{
+			cemu_assert_debug(false);
+		}
 	}
 	else
-		assert_dbg();
+		DEBUG_BREAK;
+
 }
 
 void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	uint32 name = imlInstruction->op_r_name.name;
-	auto regR = _reg64(imlInstruction->op_r_name.regR);
-
-	if( name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0+32 )
+	
+	if (imlInstruction->op_r_name.regR.GetBaseFormat() == IMLRegFormat::I64)
 	{
-		x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, gpr)+sizeof(uint32)*(name-PPCREC_NAME_R0), regR);
-	}
-	else if( name >= PPCREC_NAME_SPR0 && name < PPCREC_NAME_SPR0+999 )
-	{
-		uint32 sprIndex = (name - PPCREC_NAME_SPR0);
-		if (sprIndex == SPR_LR)
-			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.LR), regR);
-		else if (sprIndex == SPR_CTR)
-			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.CTR), regR);
-		else if (sprIndex == SPR_XER)
-			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.XER), regR);
-		else if (sprIndex >= SPR_UGQR0 && sprIndex <= SPR_UGQR7)
+		auto regR = _reg64(imlInstruction->op_r_name.regR);
+		if (name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0 + 32)
 		{
-			sint32 memOffset = offsetof(PPCInterpreter_t, spr.UGQR) + sizeof(PPCInterpreter_t::spr.UGQR[0]) * (sprIndex - SPR_UGQR0);
-			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, memOffset, regR);
+			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, gpr) + sizeof(uint32) * (name - PPCREC_NAME_R0), regR);
+		}
+		else if (name >= PPCREC_NAME_SPR0 && name < PPCREC_NAME_SPR0 + 999)
+		{
+			uint32 sprIndex = (name - PPCREC_NAME_SPR0);
+			if (sprIndex == SPR_LR)
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.LR), regR);
+			else if (sprIndex == SPR_CTR)
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.CTR), regR);
+			else if (sprIndex == SPR_XER)
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, spr.XER), regR);
+			else if (sprIndex >= SPR_UGQR0 && sprIndex <= SPR_UGQR7)
+			{
+				sint32 memOffset = offsetof(PPCInterpreter_t, spr.UGQR) + sizeof(PPCInterpreter_t::spr.UGQR[0]) * (sprIndex - SPR_UGQR0);
+				x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, memOffset, regR);
+			}
+			else
+				assert_dbg();
+		}
+		else if (name >= PPCREC_NAME_TEMPORARY && name < PPCREC_NAME_TEMPORARY + 4)
+		{
+			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryGPR_reg) + sizeof(uint32) * (name - PPCREC_NAME_TEMPORARY), regR);
+		}
+		else if (name == PPCREC_NAME_XER_CA)
+		{
+			x64GenContext->emitter->MOV_bb_l(X86_REG_RSP, offsetof(PPCInterpreter_t, xer_ca), X86_REG_NONE, 0, _reg8_from_reg64(regR));
+		}
+		else if (name == PPCREC_NAME_XER_SO)
+		{
+			x64GenContext->emitter->MOV_bb_l(X86_REG_RSP, offsetof(PPCInterpreter_t, xer_so), X86_REG_NONE, 0, _reg8_from_reg64(regR));
+		}
+		else if (name >= PPCREC_NAME_CR && name <= PPCREC_NAME_CR_LAST)
+		{
+			x64GenContext->emitter->MOV_bb_l(X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + (name - PPCREC_NAME_CR), X86_REG_NONE, 0, _reg8_from_reg64(regR));
+		}
+		else if (name == PPCREC_NAME_CPU_MEMRES_EA)
+		{
+			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemAddr), regR);
+		}
+		else if (name == PPCREC_NAME_CPU_MEMRES_VAL)
+		{
+			x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemValue), regR);
 		}
 		else
-			assert_dbg();	
+			assert_dbg();
 	}
-	else if (name >= PPCREC_NAME_TEMPORARY && name < PPCREC_NAME_TEMPORARY + 4)
+	else if (imlInstruction->op_r_name.regR.GetBaseFormat() == IMLRegFormat::F64)
 	{
-		x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, temporaryGPR_reg) + sizeof(uint32) * (name - PPCREC_NAME_TEMPORARY), regR);
-	}
-	else if (name == PPCREC_NAME_XER_CA)
-	{
-		x64GenContext->emitter->MOV_bb_l(X86_REG_RSP, offsetof(PPCInterpreter_t, xer_ca), X86_REG_NONE, 0, _reg8_from_reg64(regR));
-	}
-	else if (name == PPCREC_NAME_XER_SO)
-	{
-		x64GenContext->emitter->MOV_bb_l(X86_REG_RSP, offsetof(PPCInterpreter_t, xer_so), X86_REG_NONE, 0, _reg8_from_reg64(regR));
-	}
-	else if (name >= PPCREC_NAME_CR && name <= PPCREC_NAME_CR_LAST)
-	{
-		x64GenContext->emitter->MOV_bb_l(X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + (name - PPCREC_NAME_CR), X86_REG_NONE, 0, _reg8_from_reg64(regR));
-	}
-	else if (name == PPCREC_NAME_CPU_MEMRES_EA)
-	{
-		x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemAddr), regR);
-	}
-	else if (name == PPCREC_NAME_CPU_MEMRES_VAL)
-	{
-		x64Emit_mov_mem32_reg64(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, reservedMemValue), regR);
+		auto regR = _regF64(imlInstruction->op_r_name.regR);
+		uint32 name = imlInstruction->op_r_name.name;
+		if (name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0 + 32))
+		{
+			x64Gen_movupd_memReg128_xmmReg(x64GenContext, regR, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
+		}
+		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
+		{
+			x64Gen_movupd_memReg128_xmmReg(x64GenContext, regR, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR) + sizeof(FPR_t) * (name - PPCREC_NAME_TEMPORARY_FPR0));
+		}
+		else
+		{
+			cemu_assert_debug(false);
+		}
 	}
 	else
-		assert_dbg();
+		DEBUG_BREAK;
+
+
 }
+
+//void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
+//{
+//	uint32 name = imlInstruction->op_r_name.name;
+//	uint32 fprReg = _regF64(imlInstruction->op_r_name.regR);
+//	if (name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0 + 32))
+//	{
+//		x64Gen_movupd_xmmReg_memReg128(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
+//	}
+//	else if (name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
+//	{
+//		x64Gen_movupd_xmmReg_memReg128(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR) + sizeof(FPR_t) * (name - PPCREC_NAME_TEMPORARY_FPR0));
+//	}
+//	else
+//	{
+//		cemu_assert_debug(false);
+//	}
+//}
+//
+//void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
+//{
+//	uint32 name = imlInstruction->op_r_name.name;
+//	uint32 fprReg = _regF64(imlInstruction->op_r_name.regR);
+//	if (name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0 + 32))
+//	{
+//		x64Gen_movupd_memReg128_xmmReg(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
+//	}
+//	else if (name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
+//	{
+//		x64Gen_movupd_memReg128_xmmReg(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR) + sizeof(FPR_t) * (name - PPCREC_NAME_TEMPORARY_FPR0));
+//	}
+//	else
+//	{
+//		cemu_assert_debug(false);
+//	}
+//}
 
 uint8* codeMemoryBlock = nullptr;
 sint32 codeMemoryBlockIndex = 0;

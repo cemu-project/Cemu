@@ -388,6 +388,7 @@ struct IMLUsedRegisters
 	template<typename Fn>
 	void ForEachAccessedGPR(Fn F) const
 	{
+		// GPRs
 		if (readGPR1.IsValid())
 			F(readGPR1, false);
 		if (readGPR2.IsValid())
@@ -398,22 +399,33 @@ struct IMLUsedRegisters
 			F(writtenGPR1, true);
 		if (writtenGPR2.IsValid())
 			F(writtenGPR2, true);
+		// FPRs
+		if (readFPR1.IsValid())
+			F(readFPR1, false);
+		if (readFPR2.IsValid())
+			F(readFPR2, false);
+		if (readFPR3.IsValid())
+			F(readFPR3, false);
+		if (readFPR4.IsValid())
+			F(readFPR4, false);
+		if (writtenFPR1.IsValid())
+			F(writtenFPR1, true);
 	}
 
-	bool HasSameBaseFPRRegId(IMLRegID regId) const
-	{
-		if (readFPR1.IsValid() && readFPR1.GetRegID() == regId)
-			return true;
-		if (readFPR2.IsValid() && readFPR2.GetRegID() == regId)
-			return true;
-		if (readFPR3.IsValid() && readFPR3.GetRegID() == regId)
-			return true;
-		if (readFPR4.IsValid() && readFPR4.GetRegID() == regId)
-			return true;
-		if (writtenFPR1.IsValid() && writtenFPR1.GetRegID() == regId)
-			return true;
-		return false;
-	}
+	//bool HasSameBaseFPRRegId(IMLRegID regId) const
+	//{
+	//	if (readFPR1.IsValid() && readFPR1.GetRegID() == regId)
+	//		return true;
+	//	if (readFPR2.IsValid() && readFPR2.GetRegID() == regId)
+	//		return true;
+	//	if (readFPR3.IsValid() && readFPR3.GetRegID() == regId)
+	//		return true;
+	//	if (readFPR4.IsValid() && readFPR4.GetRegID() == regId)
+	//		return true;
+	//	if (writtenFPR1.IsValid() && writtenFPR1.GetRegID() == regId)
+	//		return true;
+	//	return false;
+	//}
 };
 
 struct IMLInstruction
@@ -765,4 +777,11 @@ struct IMLInstruction
 	void ReplaceFPRs(IMLReg fprRegisterSearched[4], IMLReg fprRegisterReplaced[4]);
 	void ReplaceFPR(IMLRegID fprRegisterSearched, IMLRegID fprRegisterReplaced);
 
+};
+
+// architecture specific constants
+namespace IMLArchX86
+{
+	static constexpr int PHYSREG_GPR_BASE = 0;
+	static constexpr int PHYSREG_FPR_BASE = 16;
 };

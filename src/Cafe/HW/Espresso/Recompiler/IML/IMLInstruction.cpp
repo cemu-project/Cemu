@@ -638,78 +638,64 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& tr
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
 	{
-
+		op_r_name.regR = replaceRegisterIdMultiple(op_r_name.regR, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_NAME_R)
 	{
-
+		op_r_name.regR = replaceRegisterIdMultiple(op_r_name.regR, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
-		if (op_storeLoad.registerMem.IsValid())
-		{
-			op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
-		}
-		if (op_storeLoad.registerGQR.IsValid())
-		{
-			op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
-		}
+		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, translationTable);
+		op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
+		op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED)
 	{
-		if (op_storeLoad.registerMem.IsValid())
-		{
-			op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
-		}
-		if (op_storeLoad.registerMem2.IsValid())
-		{
-			op_storeLoad.registerMem2 = replaceRegisterIdMultiple(op_storeLoad.registerMem2, translationTable);
-		}
-		if (op_storeLoad.registerGQR.IsValid())
-		{
-			op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
-		}
+		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, translationTable);
+		op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
+		op_storeLoad.registerMem2 = replaceRegisterIdMultiple(op_storeLoad.registerMem2, translationTable);
+		op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_STORE)
 	{
-		if (op_storeLoad.registerMem.IsValid())
-		{
-			op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
-		}
-		if (op_storeLoad.registerGQR.IsValid())
-		{
-			op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
-		}
+		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, translationTable);
+		op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
+		op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
 	{
-		if (op_storeLoad.registerMem.IsValid())
-		{
-			op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
-		}
-		if (op_storeLoad.registerMem2.IsValid())
-		{
-			op_storeLoad.registerMem2 = replaceRegisterIdMultiple(op_storeLoad.registerMem2, translationTable);
-		}
-		if (op_storeLoad.registerGQR.IsValid())
-		{
-			op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
-		}
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_R_R)
-	{
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_R_R_R)
-	{
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_R_R_R_R)
-	{
+		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, translationTable);
+		op_storeLoad.registerMem = replaceRegisterIdMultiple(op_storeLoad.registerMem, translationTable);
+		op_storeLoad.registerMem2 = replaceRegisterIdMultiple(op_storeLoad.registerMem2, translationTable);
+		op_storeLoad.registerGQR = replaceRegisterIdMultiple(op_storeLoad.registerGQR, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_R)
 	{
+		op_fpr_r.regR = replaceRegisterIdMultiple(op_fpr_r.regR, translationTable);
+	}
+	else if (type == PPCREC_IML_TYPE_FPR_R_R)
+	{
+		op_fpr_r_r.regR = replaceRegisterIdMultiple(op_fpr_r_r.regR, translationTable);
+		op_fpr_r_r.regA = replaceRegisterIdMultiple(op_fpr_r_r.regA, translationTable);
+	}
+	else if (type == PPCREC_IML_TYPE_FPR_R_R_R)
+	{
+		op_fpr_r_r_r.regR = replaceRegisterIdMultiple(op_fpr_r_r_r.regR, translationTable);
+		op_fpr_r_r_r.regA = replaceRegisterIdMultiple(op_fpr_r_r_r.regA, translationTable);
+		op_fpr_r_r_r.regB = replaceRegisterIdMultiple(op_fpr_r_r_r.regB, translationTable);
+	}
+	else if (type == PPCREC_IML_TYPE_FPR_R_R_R_R)
+	{
+		op_fpr_r_r_r_r.regR = replaceRegisterIdMultiple(op_fpr_r_r_r_r.regR, translationTable);
+		op_fpr_r_r_r_r.regA = replaceRegisterIdMultiple(op_fpr_r_r_r_r.regA, translationTable);
+		op_fpr_r_r_r_r.regB = replaceRegisterIdMultiple(op_fpr_r_r_r_r.regB, translationTable);
+		op_fpr_r_r_r_r.regC = replaceRegisterIdMultiple(op_fpr_r_r_r_r.regC, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_COMPARE)
 	{
+		op_fpr_compare.regA = replaceRegisterIdMultiple(op_fpr_compare.regA, translationTable);
+		op_fpr_compare.regB = replaceRegisterIdMultiple(op_fpr_compare.regB, translationTable);
 		op_fpr_compare.regR = replaceRegisterIdMultiple(op_fpr_compare.regR, translationTable);
 	}
 	else

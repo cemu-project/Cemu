@@ -206,8 +206,19 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	//	return nullptr;
 	//}
 
-	// Large functions for testing (botw):
-	// 3B4049C
+	//if (ppcRecFunc->ppcAddress == 0x03C26844)
+	//{
+	//	__debugbreak();
+	//	IMLDebug_Dump(&ppcImlGenContext);
+	//	__debugbreak();
+	//}
+	// 31A8778
+
+	// Functions for testing (botw):
+	// 3B4049C (large with switch case)
+	// 30BF118 (has a bndz copy loop + some float instructions at the end)
+	
+
 
 	// emit x64 code
 	bool x64GenerationSuccess = PPCRecompiler_generateX64Code(ppcRecFunc, &ppcImlGenContext);
@@ -217,8 +228,6 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	}
 
 	// collect list of PPC-->x64 entry points
-	cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size());
-
 	entryPointsOut.clear();
 	for(IMLSegment* imlSegment : ppcImlGenContext.segmentList2)
 	{
@@ -230,6 +239,9 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 
 		entryPointsOut.emplace_back(ppcEnterOffset, x64Offset);
 	}
+
+	cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {} Entrypoints: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size(), entryPointsOut.size());
+
 	return ppcRecFunc;
 }
 
@@ -242,72 +254,85 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 	// if GQRs can be predicted, optimize PSQ load/stores
 	PPCRecompiler_optimizePSQLoadAndStore(&ppcImlGenContext);
 
-	// count number of used registers
-	uint32 numLoadedFPRRegisters = 0;
-	for (uint32 i = 0; i < 255; i++)
-	{
-		if (ppcImlGenContext.mappedFPRRegister[i])
-			numLoadedFPRRegisters++;
-	}
-
 	// insert name store instructions at the end of each segment but before branch instructions
-	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
-	{
-		if (segIt->imlList.size() == 0)
-			continue; // ignore empty segments
-		// analyze segment for register usage
-		IMLUsedRegisters registersUsed;
-		for (sint32 i = 0; i < segIt->imlList.size(); i++)
-		{
-			segIt->imlList[i].CheckRegisterUsage(&registersUsed);
-			IMLReg accessedTempReg[5];
-			// intermediate FPRs
-			accessedTempReg[0] = registersUsed.readFPR1;
-			accessedTempReg[1] = registersUsed.readFPR2;
-			accessedTempReg[2] = registersUsed.readFPR3;
-			accessedTempReg[3] = registersUsed.readFPR4;
-			accessedTempReg[4] = registersUsed.writtenFPR1;
-			for (sint32 f = 0; f < 5; f++)
-			{
-				if (accessedTempReg[f].IsInvalid())
-					continue;
-				uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f].GetRegID()];
-				if (regName >= PPCREC_NAME_FPR0 && regName < PPCREC_NAME_FPR0 + 32)
-				{
-					segIt->ppcFPRUsed[regName - PPCREC_NAME_FPR0] = true;
-				}
-			}
-		}
-	}
+	//for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
+	//{
+	//	if (segIt->imlList.size() == 0)
+	//		continue; // ignore empty segments
+	//	// analyze segment for register usage
+	//	IMLUsedRegisters registersUsed;
+	//	for (sint32 i = 0; i < segIt->imlList.size(); i++)
+	//	{
+	//		segIt->imlList[i].CheckRegisterUsage(&registersUsed);
+	//		IMLReg accessedTempReg[5];
+	//		// intermediate FPRs
+	//		accessedTempReg[0] = registersUsed.readFPR1;
+	//		accessedTempReg[1] = registersUsed.readFPR2;
+	//		accessedTempReg[2] = registersUsed.readFPR3;
+	//		accessedTempReg[3] = registersUsed.readFPR4;
+	//		accessedTempReg[4] = registersUsed.writtenFPR1;
+	//		for (sint32 f = 0; f < 5; f++)
+	//		{
+	//			if (accessedTempReg[f].IsInvalid())
+	//				continue;
+	//			uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f].GetRegID()];
+	//			if (regName >= PPCREC_NAME_FPR0 && regName < PPCREC_NAME_FPR0 + 32)
+	//			{
+	//				segIt->ppcFPRUsed[regName - PPCREC_NAME_FPR0] = true;
+	//			}
+	//		}
+	//	}
+	//}
 
 	// merge certain float load+store patterns (must happen before FPR register remapping)
 	PPCRecompiler_optimizeDirectFloatCopies(&ppcImlGenContext);
 	// delay byte swapping for certain load+store patterns
 	PPCRecompiler_optimizeDirectIntegerCopies(&ppcImlGenContext);
 
-	if (numLoadedFPRRegisters > 0)
-	{
-		if (PPCRecompiler_manageFPRRegisters(&ppcImlGenContext) == false)
-		{
-			return false;
-		}
-	}
+	//if (numLoadedFPRRegisters > 0)
+	//{
+	//	if (PPCRecompiler_manageFPRRegisters(&ppcImlGenContext) == false)
+	//	{
+	//		return false;
+	//	}
+	//}
 
 	IMLRegisterAllocatorParameters raParam;
 
+	for (auto& it : ppcImlGenContext.mappedRegs)
+		raParam.regIdToName.try_emplace(it.second.GetRegID(), it.first);
+	
 	auto& gprPhysPool = raParam.GetPhysRegPool(IMLRegFormat::I64);
-	gprPhysPool.SetAvailable(X86_REG_RAX);
-	gprPhysPool.SetAvailable(X86_REG_RDX);
-	gprPhysPool.SetAvailable(X86_REG_RBX);
-	gprPhysPool.SetAvailable(X86_REG_RBP);
-	gprPhysPool.SetAvailable(X86_REG_RSI);
-	gprPhysPool.SetAvailable(X86_REG_RDI);
-	gprPhysPool.SetAvailable(X86_REG_R8);
-	gprPhysPool.SetAvailable(X86_REG_R9);
-	gprPhysPool.SetAvailable(X86_REG_R10);
-	gprPhysPool.SetAvailable(X86_REG_R11);
-	gprPhysPool.SetAvailable(X86_REG_R12);
-	gprPhysPool.SetAvailable(X86_REG_RCX);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RAX);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RDX);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RBX);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RBP);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RSI);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RDI);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_R8);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_R9);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_R10);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_R11);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_R12);
+	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RCX);
+
+	// add XMM registers, except XMM15 which is the temporary register
+	auto& fprPhysPool = raParam.GetPhysRegPool(IMLRegFormat::F64);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 0);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 1);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 2);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 3);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 4);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 5);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 6);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 7);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 8);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 9);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 10);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 11);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 12);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 13);
+	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 14);
 
 	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext, raParam);
 

@@ -15,8 +15,8 @@ bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction);
 
 // optimizer passes
 // todo - rename
-bool PPCRecompiler_reduceNumberOfFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
-bool PPCRecompiler_manageFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
+//bool PPCRecompiler_reduceNumberOfFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
+//bool PPCRecompiler_manageFPRRegisters(struct ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompiler_optimizeDirectFloatCopies(struct ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompiler_optimizeDirectIntegerCopies(struct ppcImlGenContext_t* ppcImlGenContext);
 void PPCRecompiler_optimizePSQLoadAndStore(struct ppcImlGenContext_t* ppcImlGenContext);

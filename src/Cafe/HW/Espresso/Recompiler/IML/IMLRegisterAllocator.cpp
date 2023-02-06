@@ -1100,7 +1100,7 @@ void IMLRA_ConvertAbstractToLivenessRanges(IMLRegisterAllocatorContext& ctx, IML
 		if(it.second.isProcessed)
 			continue;
 		IMLRegID regId = it.first;
-		raLivenessRange_t* range = PPCRecRA_createRangeBase(ctx.deprGenContext, regId, ctx.deprGenContext->mappedRegister[regId]);
+		raLivenessRange_t* range = PPCRecRA_createRangeBase(ctx.deprGenContext, regId, ctx.raParam->regIdToName.find(regId)->second);
 		PPCRecRA_convertToMappedRanges(ctx, imlSegment, regId, range);
 	}
 	// fill created ranges with read/write location indices
