@@ -5,11 +5,7 @@
 
 #include "asm/x64util.h" // for recompiler_fres / frsqrte
 
-uint32 _regF64(IMLReg r)
-{
-	cemu_assert_debug(r.GetRegFormat() == IMLRegFormat::F64);
-	return (uint32)r.GetRegID();
-}
+uint32 _regF64(IMLReg physReg);
 
 uint32 _regI32(IMLReg r)
 {

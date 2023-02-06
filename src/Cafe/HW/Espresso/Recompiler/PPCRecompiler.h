@@ -42,9 +42,12 @@ struct ppcImlGenContext_t
 	// cycle counter
 	uint32 cyclesSinceLastBranch; // used to track ppc cycles
 	// temporary general purpose registers
-	uint32 mappedRegister[PPC_REC_MAX_VIRTUAL_GPR];
+	//uint32 mappedRegister[PPC_REC_MAX_VIRTUAL_GPR];
 	// temporary floating point registers (single and double precision)
-	uint32 mappedFPRRegister[256];
+	//uint32 mappedFPRRegister[256];
+
+	std::unordered_map<IMLName, IMLReg> mappedRegs;
+
 	// list of segments
 	std::vector<IMLSegment*> segmentList2;
 	// code generation control

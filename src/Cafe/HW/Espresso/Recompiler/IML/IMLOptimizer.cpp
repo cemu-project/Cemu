@@ -6,369 +6,369 @@
 #include "../PPCRecompilerIml.h"
 #include "../BackendX64/BackendX64.h"
 
-bool _RegExceedsFPRSpace(IMLReg r)
-{
-	if (r.IsInvalid())
-		return false;
-	if (r.GetRegID() >= PPC_X64_FPR_USABLE_REGISTERS)
-		return true;
-	return false;
-}
+//bool _RegExceedsFPRSpace(IMLReg r)
+//{
+//	if (r.IsInvalid())
+//		return false;
+//	if (r.GetRegID() >= PPC_X64_FPR_USABLE_REGISTERS)
+//		return true;
+//	return false;
+//}
 
 IMLReg _FPRRegFromID(IMLRegID regId)
 {
 	return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, regId);
 }
 
-bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenContext)
-{
-	// only xmm0 to xmm14 may be used, xmm15 is reserved
-	// this method will reduce the number of fpr registers used
-	// inefficient algorithm for optimizing away excess registers
-	// we simply load, use and store excess registers into other unused registers when we need to
-	// first we remove all name load and store instructions that involve out-of-bounds registers
-	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
-	{
-		size_t imlIndex = 0;
-		while( imlIndex < segIt->imlList.size() )
-		{
-			IMLInstruction& imlInstructionItr = segIt->imlList[imlIndex];
-			if( imlInstructionItr.type == PPCREC_IML_TYPE_FPR_R_NAME || imlInstructionItr.type == PPCREC_IML_TYPE_FPR_NAME_R )
-			{
-				if(_RegExceedsFPRSpace(imlInstructionItr.op_r_name.regR))
-				{
-					imlInstructionItr.make_no_op();
-				}
-			}
-			imlIndex++;
-		}	
-	}
-	// replace registers
-	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
-	{
-		size_t imlIndex = 0;
-		while( imlIndex < segIt->imlList.size() )
-		{
-			IMLUsedRegisters registersUsed;
-			while( true )
-			{
-				segIt->imlList[imlIndex].CheckRegisterUsage(&registersUsed);
-				if(_RegExceedsFPRSpace(registersUsed.readFPR1) || _RegExceedsFPRSpace(registersUsed.readFPR2) || _RegExceedsFPRSpace(registersUsed.readFPR3) || _RegExceedsFPRSpace(registersUsed.readFPR4) || _RegExceedsFPRSpace(registersUsed.writtenFPR1) )
-				{
-					// get index of register to replace
-					sint32 fprToReplace = -1;
-					if(_RegExceedsFPRSpace(registersUsed.readFPR1) )
-						fprToReplace = registersUsed.readFPR1.GetRegID();
-					else if(_RegExceedsFPRSpace(registersUsed.readFPR2) )
-						fprToReplace = registersUsed.readFPR2.GetRegID();
-					else if (_RegExceedsFPRSpace(registersUsed.readFPR3))
-						fprToReplace = registersUsed.readFPR3.GetRegID();
-					else if (_RegExceedsFPRSpace(registersUsed.readFPR4))
-						fprToReplace = registersUsed.readFPR4.GetRegID();
-					else if(_RegExceedsFPRSpace(registersUsed.writtenFPR1) )
-						fprToReplace = registersUsed.writtenFPR1.GetRegID();
-					if (fprToReplace >= 0)
-					{
-						// generate mask of useable registers
-						uint8 useableRegisterMask = 0x7F; // lowest bit is fpr register 0
-						if (registersUsed.readFPR1.IsValid())
-							useableRegisterMask &= ~(1 << (registersUsed.readFPR1.GetRegID()));
-						if (registersUsed.readFPR2.IsValid())
-							useableRegisterMask &= ~(1 << (registersUsed.readFPR2.GetRegID()));
-						if (registersUsed.readFPR3.IsValid())
-							useableRegisterMask &= ~(1 << (registersUsed.readFPR3.GetRegID()));
-						if (registersUsed.readFPR4.IsValid())
-							useableRegisterMask &= ~(1 << (registersUsed.readFPR4.GetRegID()));
-						if (registersUsed.writtenFPR1.IsValid())
-							useableRegisterMask &= ~(1 << (registersUsed.writtenFPR1.GetRegID()));
-						// get highest unused register index (0-6 range)
-						sint32 unusedRegisterIndex = -1;
-						for (sint32 f = 0; f < PPC_X64_FPR_USABLE_REGISTERS; f++)
-						{
-							if (useableRegisterMask & (1 << f))
-							{
-								unusedRegisterIndex = f;
-							}
-						}
-						if (unusedRegisterIndex == -1)
-							assert_dbg();
-						// determine if the placeholder register is actually used (if not we must not load/store it)
-						uint32 unusedRegisterName = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
-						bool replacedRegisterIsUsed = true;
-						if (unusedRegisterName >= PPCREC_NAME_FPR0 && unusedRegisterName < (PPCREC_NAME_FPR0 + 32))
-						{
-							replacedRegisterIsUsed = segIt->ppcFPRUsed[unusedRegisterName - PPCREC_NAME_FPR0];
-						}
-						// replace registers that are out of range
-						segIt->imlList[imlIndex].ReplaceFPR(fprToReplace, unusedRegisterIndex);
-						// add load/store name after instruction
-						PPCRecompiler_pushBackIMLInstructions(segIt, imlIndex + 1, 2);
-						// add load/store before current instruction
-						PPCRecompiler_pushBackIMLInstructions(segIt, imlIndex, 2);
-						// name_unusedRegister = unusedRegister
-						IMLInstruction* imlInstructionItr = segIt->imlList.data() + (imlIndex + 0);
-						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
-						if (replacedRegisterIsUsed)
-						{
-							imlInstructionItr->type = PPCREC_IML_TYPE_FPR_NAME_R;
-							imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-							imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
-							imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
-						}
-						else
-							imlInstructionItr->make_no_op();
-						imlInstructionItr = segIt->imlList.data() + (imlIndex + 1);
-						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
-						imlInstructionItr->type = PPCREC_IML_TYPE_FPR_R_NAME;
-						imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-						imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
-						imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[fprToReplace];
-						// name_gprToReplace = unusedRegister
-						imlInstructionItr = segIt->imlList.data() + (imlIndex + 3);
-						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
-						imlInstructionItr->type = PPCREC_IML_TYPE_FPR_NAME_R;
-						imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-						imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
-						imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[fprToReplace];
-						// unusedRegister = name_unusedRegister
-						imlInstructionItr = segIt->imlList.data() + (imlIndex + 4);
-						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
-						if (replacedRegisterIsUsed)
-						{
-							imlInstructionItr->type = PPCREC_IML_TYPE_FPR_R_NAME;
-							imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
-							imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
-							imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
-						}
-						else
-							imlInstructionItr->make_no_op();
-					}
-				}
-				else
-					break;
-			}
-			imlIndex++;
-		}
-	}
-	return true;
-}
-
-typedef struct  
-{
-	bool isActive;
-	uint32 virtualReg;
-	sint32 lastUseIndex;
-}ppcRecRegisterMapping_t;
-
-typedef struct  
-{
-	ppcRecRegisterMapping_t currentMapping[PPC_X64_FPR_USABLE_REGISTERS];
-	sint32 ppcRegToMapping[64];
-	sint32 currentUseIndex;
-}ppcRecManageRegisters_t;
-
-ppcRecRegisterMapping_t* PPCRecompiler_findAvailableRegisterDepr(ppcRecManageRegisters_t* rCtx, IMLUsedRegisters* instructionUsedRegisters)
-{
-	// find free register
-	for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
-	{
-		if (rCtx->currentMapping[i].isActive == false)
-		{
-			rCtx->currentMapping[i].isActive = true;
-			rCtx->currentMapping[i].virtualReg = -1;
-			rCtx->currentMapping[i].lastUseIndex = rCtx->currentUseIndex;
-			return rCtx->currentMapping + i;
-		}
-	}
-	// all registers are used
-	return nullptr;
-}
-
-ppcRecRegisterMapping_t* PPCRecompiler_findUnloadableRegister(ppcRecManageRegisters_t* rCtx, IMLUsedRegisters* instructionUsedRegisters, uint32 unloadLockedMask)
-{
-	// find unloadable register (with lowest lastUseIndex)
-	sint32 unloadIndex = -1;
-	sint32 unloadIndexLastUse = 0x7FFFFFFF;
-	for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
-	{
-		if (rCtx->currentMapping[i].isActive == false)
-			continue;
-		if( (unloadLockedMask&(1<<i)) != 0 )
-			continue;
-		IMLRegID virtualReg = rCtx->currentMapping[i].virtualReg;
-		bool isReserved = instructionUsedRegisters->HasSameBaseFPRRegId(virtualReg);
-		if (isReserved)
-			continue;
-		if (rCtx->currentMapping[i].lastUseIndex < unloadIndexLastUse)
-		{
-			unloadIndexLastUse = rCtx->currentMapping[i].lastUseIndex;
-			unloadIndex = i;
-		}
-	}
-	cemu_assert(unloadIndex != -1);
-	return rCtx->currentMapping + unloadIndex;
-}
-
-bool PPCRecompiler_manageFPRRegistersForSegment(ppcImlGenContext_t* ppcImlGenContext, sint32 segmentIndex)
-{
-	ppcRecManageRegisters_t rCtx = { 0 };
-	for (sint32 i = 0; i < 64; i++)
-		rCtx.ppcRegToMapping[i] = -1;
-	IMLSegment* imlSegment = ppcImlGenContext->segmentList2[segmentIndex];
-	size_t idx = 0;
-	sint32 currentUseIndex = 0;
-	IMLUsedRegisters registersUsed;
-	while (idx < imlSegment->imlList.size())
-	{
-		IMLInstruction& idxInst = imlSegment->imlList[idx];
-		if (idxInst.IsSuffixInstruction())
-			break;
-		idxInst.CheckRegisterUsage(&registersUsed);
-		IMLReg fprMatch[4];
-		IMLReg fprReplace[4];
-		fprMatch[0] = IMLREG_INVALID;
-		fprMatch[1] = IMLREG_INVALID;
-		fprMatch[2] = IMLREG_INVALID;
-		fprMatch[3] = IMLREG_INVALID;
-		fprReplace[0] = IMLREG_INVALID;
-		fprReplace[1] = IMLREG_INVALID;
-		fprReplace[2] = IMLREG_INVALID;
-		fprReplace[3] = IMLREG_INVALID;
-		// generate a mask of registers that we may not free
-		sint32 numReplacedOperands = 0;
-		uint32 unloadLockedMask = 0;
-		for (sint32 f = 0; f < 5; f++)
-		{
-			IMLReg virtualFpr;
-			if (f == 0)
-				virtualFpr = registersUsed.readFPR1;
-			else if (f == 1)
-				virtualFpr = registersUsed.readFPR2;
-			else if (f == 2)
-				virtualFpr = registersUsed.readFPR3;
-			else if (f == 3)
-				virtualFpr = registersUsed.readFPR4;
-			else if (f == 4)
-				virtualFpr = registersUsed.writtenFPR1;
-			if(virtualFpr.IsInvalid())
-				continue;
-			cemu_assert_debug(virtualFpr.GetBaseFormat() == IMLRegFormat::F64);
-			cemu_assert_debug(virtualFpr.GetRegFormat() == IMLRegFormat::F64);
-			cemu_assert_debug(virtualFpr.GetRegID() < 64);
-			// check if this virtual FPR is already loaded in any real register
-			ppcRecRegisterMapping_t* regMapping;
-			if (rCtx.ppcRegToMapping[virtualFpr.GetRegID()] == -1)
-			{
-				// not loaded
-				// find available register
-				while (true)
-				{
-					regMapping = PPCRecompiler_findAvailableRegisterDepr(&rCtx, &registersUsed);
-					if (regMapping == NULL)
-					{
-						// unload least recently used register and try again
-						ppcRecRegisterMapping_t* unloadRegMapping = PPCRecompiler_findUnloadableRegister(&rCtx, &registersUsed, unloadLockedMask);
-						// mark as locked
-						unloadLockedMask |= (1<<(unloadRegMapping- rCtx.currentMapping));
-						// create unload instruction
-						PPCRecompiler_pushBackIMLInstructions(imlSegment, idx, 1);
-						IMLInstruction* imlInstructionTemp = imlSegment->imlList.data() + idx;
-						memset(imlInstructionTemp, 0x00, sizeof(IMLInstruction));
-						imlInstructionTemp->type = PPCREC_IML_TYPE_FPR_NAME_R;
-						imlInstructionTemp->operation = PPCREC_IML_OP_ASSIGN;
-						imlInstructionTemp->op_r_name.regR = _FPRRegFromID((uint8)(unloadRegMapping - rCtx.currentMapping));
-						imlInstructionTemp->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unloadRegMapping->virtualReg];
-						idx++;
-						// update mapping
-						unloadRegMapping->isActive = false;
-						rCtx.ppcRegToMapping[unloadRegMapping->virtualReg] = -1;
-					}
-					else
-						break;
-				}
-				// create load instruction
-				PPCRecompiler_pushBackIMLInstructions(imlSegment, idx, 1);
-				IMLInstruction* imlInstructionTemp = imlSegment->imlList.data() + idx;
-				memset(imlInstructionTemp, 0x00, sizeof(IMLInstruction));
-				imlInstructionTemp->type = PPCREC_IML_TYPE_FPR_R_NAME;
-				imlInstructionTemp->operation = PPCREC_IML_OP_ASSIGN;
-				imlInstructionTemp->op_r_name.regR = _FPRRegFromID((uint8)(regMapping-rCtx.currentMapping));
-				imlInstructionTemp->op_r_name.name = ppcImlGenContext->mappedFPRRegister[virtualFpr.GetRegID()];
-				idx++;
-				// update mapping
-				regMapping->virtualReg = virtualFpr.GetRegID();
-				rCtx.ppcRegToMapping[virtualFpr.GetRegID()] = (sint32)(regMapping - rCtx.currentMapping);
-				regMapping->lastUseIndex = rCtx.currentUseIndex;
-				rCtx.currentUseIndex++;
-			}
-			else
-			{
-				regMapping = rCtx.currentMapping + rCtx.ppcRegToMapping[virtualFpr.GetRegID()];
-				regMapping->lastUseIndex = rCtx.currentUseIndex;
-				rCtx.currentUseIndex++;
-			}
-			// replace FPR
-			bool entryFound = false;
-			for (sint32 t = 0; t < numReplacedOperands; t++)
-			{
-				if (fprMatch[t].IsValid() && fprMatch[t].GetRegID() == virtualFpr.GetRegID())
-				{
-					cemu_assert_debug(fprReplace[t] == _FPRRegFromID(regMapping - rCtx.currentMapping));
-					entryFound = true;
-					break;
-				}
-			}
-			if (entryFound == false)
-			{
-				cemu_assert_debug(numReplacedOperands != 4);
-				fprMatch[numReplacedOperands] = virtualFpr;
-				fprReplace[numReplacedOperands] = _FPRRegFromID(regMapping - rCtx.currentMapping);
-				numReplacedOperands++;
-			}
-		}
-		if (numReplacedOperands > 0)
-		{
-			imlSegment->imlList[idx].ReplaceFPRs(fprMatch, fprReplace);
-		}
-		// next
-		idx++;
-	}
-	// count loaded registers
-	sint32 numLoadedRegisters = 0;
-	for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
-	{
-		if (rCtx.currentMapping[i].isActive)
-			numLoadedRegisters++;
-	}
-	// store all loaded registers
-	if (numLoadedRegisters > 0)
-	{
-		PPCRecompiler_pushBackIMLInstructions(imlSegment, idx, numLoadedRegisters);
-		for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
-		{
-			if (rCtx.currentMapping[i].isActive == false)
-				continue;
-			IMLInstruction* imlInstructionTemp = imlSegment->imlList.data() + idx;
-			memset(imlInstructionTemp, 0x00, sizeof(IMLInstruction));
-			imlInstructionTemp->type = PPCREC_IML_TYPE_FPR_NAME_R;
-			imlInstructionTemp->operation = PPCREC_IML_OP_ASSIGN;
-			imlInstructionTemp->op_r_name.regR = _FPRRegFromID(i);
-			imlInstructionTemp->op_r_name.name = ppcImlGenContext->mappedFPRRegister[rCtx.currentMapping[i].virtualReg];
-			idx++;
-		}
-	}
-	return true;
-}
-
-bool PPCRecompiler_manageFPRRegisters(ppcImlGenContext_t* ppcImlGenContext)
-{
-	for (sint32 s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
-	{
-		if (PPCRecompiler_manageFPRRegistersForSegment(ppcImlGenContext, s) == false)
-			return false;
-	}
-	return true;
-}
+//bool PPCRecompiler_reduceNumberOfFPRRegisters(ppcImlGenContext_t* ppcImlGenContext)
+//{
+//	// only xmm0 to xmm14 may be used, xmm15 is reserved
+//	// this method will reduce the number of fpr registers used
+//	// inefficient algorithm for optimizing away excess registers
+//	// we simply load, use and store excess registers into other unused registers when we need to
+//	// first we remove all name load and store instructions that involve out-of-bounds registers
+//	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
+//	{
+//		size_t imlIndex = 0;
+//		while( imlIndex < segIt->imlList.size() )
+//		{
+//			IMLInstruction& imlInstructionItr = segIt->imlList[imlIndex];
+//			if( imlInstructionItr.type == PPCREC_IML_TYPE_FPR_R_NAME || imlInstructionItr.type == PPCREC_IML_TYPE_FPR_NAME_R )
+//			{
+//				if(_RegExceedsFPRSpace(imlInstructionItr.op_r_name.regR))
+//				{
+//					imlInstructionItr.make_no_op();
+//				}
+//			}
+//			imlIndex++;
+//		}	
+//	}
+//	// replace registers
+//	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
+//	{
+//		size_t imlIndex = 0;
+//		while( imlIndex < segIt->imlList.size() )
+//		{
+//			IMLUsedRegisters registersUsed;
+//			while( true )
+//			{
+//				segIt->imlList[imlIndex].CheckRegisterUsage(&registersUsed);
+//				if(_RegExceedsFPRSpace(registersUsed.readFPR1) || _RegExceedsFPRSpace(registersUsed.readFPR2) || _RegExceedsFPRSpace(registersUsed.readFPR3) || _RegExceedsFPRSpace(registersUsed.readFPR4) || _RegExceedsFPRSpace(registersUsed.writtenFPR1) )
+//				{
+//					// get index of register to replace
+//					sint32 fprToReplace = -1;
+//					if(_RegExceedsFPRSpace(registersUsed.readFPR1) )
+//						fprToReplace = registersUsed.readFPR1.GetRegID();
+//					else if(_RegExceedsFPRSpace(registersUsed.readFPR2) )
+//						fprToReplace = registersUsed.readFPR2.GetRegID();
+//					else if (_RegExceedsFPRSpace(registersUsed.readFPR3))
+//						fprToReplace = registersUsed.readFPR3.GetRegID();
+//					else if (_RegExceedsFPRSpace(registersUsed.readFPR4))
+//						fprToReplace = registersUsed.readFPR4.GetRegID();
+//					else if(_RegExceedsFPRSpace(registersUsed.writtenFPR1) )
+//						fprToReplace = registersUsed.writtenFPR1.GetRegID();
+//					if (fprToReplace >= 0)
+//					{
+//						// generate mask of useable registers
+//						uint8 useableRegisterMask = 0x7F; // lowest bit is fpr register 0
+//						if (registersUsed.readFPR1.IsValid())
+//							useableRegisterMask &= ~(1 << (registersUsed.readFPR1.GetRegID()));
+//						if (registersUsed.readFPR2.IsValid())
+//							useableRegisterMask &= ~(1 << (registersUsed.readFPR2.GetRegID()));
+//						if (registersUsed.readFPR3.IsValid())
+//							useableRegisterMask &= ~(1 << (registersUsed.readFPR3.GetRegID()));
+//						if (registersUsed.readFPR4.IsValid())
+//							useableRegisterMask &= ~(1 << (registersUsed.readFPR4.GetRegID()));
+//						if (registersUsed.writtenFPR1.IsValid())
+//							useableRegisterMask &= ~(1 << (registersUsed.writtenFPR1.GetRegID()));
+//						// get highest unused register index (0-6 range)
+//						sint32 unusedRegisterIndex = -1;
+//						for (sint32 f = 0; f < PPC_X64_FPR_USABLE_REGISTERS; f++)
+//						{
+//							if (useableRegisterMask & (1 << f))
+//							{
+//								unusedRegisterIndex = f;
+//							}
+//						}
+//						if (unusedRegisterIndex == -1)
+//							assert_dbg();
+//						// determine if the placeholder register is actually used (if not we must not load/store it)
+//						uint32 unusedRegisterName = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
+//						bool replacedRegisterIsUsed = true;
+//						if (unusedRegisterName >= PPCREC_NAME_FPR0 && unusedRegisterName < (PPCREC_NAME_FPR0 + 32))
+//						{
+//							replacedRegisterIsUsed = segIt->ppcFPRUsed[unusedRegisterName - PPCREC_NAME_FPR0];
+//						}
+//						// replace registers that are out of range
+//						segIt->imlList[imlIndex].ReplaceFPR(fprToReplace, unusedRegisterIndex);
+//						// add load/store name after instruction
+//						PPCRecompiler_pushBackIMLInstructions(segIt, imlIndex + 1, 2);
+//						// add load/store before current instruction
+//						PPCRecompiler_pushBackIMLInstructions(segIt, imlIndex, 2);
+//						// name_unusedRegister = unusedRegister
+//						IMLInstruction* imlInstructionItr = segIt->imlList.data() + (imlIndex + 0);
+//						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
+//						if (replacedRegisterIsUsed)
+//						{
+//							imlInstructionItr->type = PPCREC_IML_TYPE_FPR_NAME_R;
+//							imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
+//							imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
+//							imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
+//						}
+//						else
+//							imlInstructionItr->make_no_op();
+//						imlInstructionItr = segIt->imlList.data() + (imlIndex + 1);
+//						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
+//						imlInstructionItr->type = PPCREC_IML_TYPE_FPR_R_NAME;
+//						imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
+//						imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
+//						imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[fprToReplace];
+//						// name_gprToReplace = unusedRegister
+//						imlInstructionItr = segIt->imlList.data() + (imlIndex + 3);
+//						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
+//						imlInstructionItr->type = PPCREC_IML_TYPE_FPR_NAME_R;
+//						imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
+//						imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
+//						imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[fprToReplace];
+//						// unusedRegister = name_unusedRegister
+//						imlInstructionItr = segIt->imlList.data() + (imlIndex + 4);
+//						memset(imlInstructionItr, 0x00, sizeof(IMLInstruction));
+//						if (replacedRegisterIsUsed)
+//						{
+//							imlInstructionItr->type = PPCREC_IML_TYPE_FPR_R_NAME;
+//							imlInstructionItr->operation = PPCREC_IML_OP_ASSIGN;
+//							imlInstructionItr->op_r_name.regR = _FPRRegFromID(unusedRegisterIndex);
+//							imlInstructionItr->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unusedRegisterIndex];
+//						}
+//						else
+//							imlInstructionItr->make_no_op();
+//					}
+//				}
+//				else
+//					break;
+//			}
+//			imlIndex++;
+//		}
+//	}
+//	return true;
+//}
+//
+//typedef struct  
+//{
+//	bool isActive;
+//	uint32 virtualReg;
+//	sint32 lastUseIndex;
+//}ppcRecRegisterMapping_t;
+//
+//typedef struct  
+//{
+//	ppcRecRegisterMapping_t currentMapping[PPC_X64_FPR_USABLE_REGISTERS];
+//	sint32 ppcRegToMapping[64];
+//	sint32 currentUseIndex;
+//}ppcRecManageRegisters_t;
+//
+//ppcRecRegisterMapping_t* PPCRecompiler_findAvailableRegisterDepr(ppcRecManageRegisters_t* rCtx, IMLUsedRegisters* instructionUsedRegisters)
+//{
+//	// find free register
+//	for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
+//	{
+//		if (rCtx->currentMapping[i].isActive == false)
+//		{
+//			rCtx->currentMapping[i].isActive = true;
+//			rCtx->currentMapping[i].virtualReg = -1;
+//			rCtx->currentMapping[i].lastUseIndex = rCtx->currentUseIndex;
+//			return rCtx->currentMapping + i;
+//		}
+//	}
+//	// all registers are used
+//	return nullptr;
+//}
+//
+//ppcRecRegisterMapping_t* PPCRecompiler_findUnloadableRegister(ppcRecManageRegisters_t* rCtx, IMLUsedRegisters* instructionUsedRegisters, uint32 unloadLockedMask)
+//{
+//	// find unloadable register (with lowest lastUseIndex)
+//	sint32 unloadIndex = -1;
+//	sint32 unloadIndexLastUse = 0x7FFFFFFF;
+//	for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
+//	{
+//		if (rCtx->currentMapping[i].isActive == false)
+//			continue;
+//		if( (unloadLockedMask&(1<<i)) != 0 )
+//			continue;
+//		IMLRegID virtualReg = rCtx->currentMapping[i].virtualReg;
+//		bool isReserved = instructionUsedRegisters->HasSameBaseFPRRegId(virtualReg);
+//		if (isReserved)
+//			continue;
+//		if (rCtx->currentMapping[i].lastUseIndex < unloadIndexLastUse)
+//		{
+//			unloadIndexLastUse = rCtx->currentMapping[i].lastUseIndex;
+//			unloadIndex = i;
+//		}
+//	}
+//	cemu_assert(unloadIndex != -1);
+//	return rCtx->currentMapping + unloadIndex;
+//}
+//
+//bool PPCRecompiler_manageFPRRegistersForSegment(ppcImlGenContext_t* ppcImlGenContext, sint32 segmentIndex)
+//{
+//	ppcRecManageRegisters_t rCtx = { 0 };
+//	for (sint32 i = 0; i < 64; i++)
+//		rCtx.ppcRegToMapping[i] = -1;
+//	IMLSegment* imlSegment = ppcImlGenContext->segmentList2[segmentIndex];
+//	size_t idx = 0;
+//	sint32 currentUseIndex = 0;
+//	IMLUsedRegisters registersUsed;
+//	while (idx < imlSegment->imlList.size())
+//	{
+//		IMLInstruction& idxInst = imlSegment->imlList[idx];
+//		if (idxInst.IsSuffixInstruction())
+//			break;
+//		idxInst.CheckRegisterUsage(&registersUsed);
+//		IMLReg fprMatch[4];
+//		IMLReg fprReplace[4];
+//		fprMatch[0] = IMLREG_INVALID;
+//		fprMatch[1] = IMLREG_INVALID;
+//		fprMatch[2] = IMLREG_INVALID;
+//		fprMatch[3] = IMLREG_INVALID;
+//		fprReplace[0] = IMLREG_INVALID;
+//		fprReplace[1] = IMLREG_INVALID;
+//		fprReplace[2] = IMLREG_INVALID;
+//		fprReplace[3] = IMLREG_INVALID;
+//		// generate a mask of registers that we may not free
+//		sint32 numReplacedOperands = 0;
+//		uint32 unloadLockedMask = 0;
+//		for (sint32 f = 0; f < 5; f++)
+//		{
+//			IMLReg virtualFpr;
+//			if (f == 0)
+//				virtualFpr = registersUsed.readFPR1;
+//			else if (f == 1)
+//				virtualFpr = registersUsed.readFPR2;
+//			else if (f == 2)
+//				virtualFpr = registersUsed.readFPR3;
+//			else if (f == 3)
+//				virtualFpr = registersUsed.readFPR4;
+//			else if (f == 4)
+//				virtualFpr = registersUsed.writtenFPR1;
+//			if(virtualFpr.IsInvalid())
+//				continue;
+//			cemu_assert_debug(virtualFpr.GetBaseFormat() == IMLRegFormat::F64);
+//			cemu_assert_debug(virtualFpr.GetRegFormat() == IMLRegFormat::F64);
+//			cemu_assert_debug(virtualFpr.GetRegID() < 64);
+//			// check if this virtual FPR is already loaded in any real register
+//			ppcRecRegisterMapping_t* regMapping;
+//			if (rCtx.ppcRegToMapping[virtualFpr.GetRegID()] == -1)
+//			{
+//				// not loaded
+//				// find available register
+//				while (true)
+//				{
+//					regMapping = PPCRecompiler_findAvailableRegisterDepr(&rCtx, &registersUsed);
+//					if (regMapping == NULL)
+//					{
+//						// unload least recently used register and try again
+//						ppcRecRegisterMapping_t* unloadRegMapping = PPCRecompiler_findUnloadableRegister(&rCtx, &registersUsed, unloadLockedMask);
+//						// mark as locked
+//						unloadLockedMask |= (1<<(unloadRegMapping- rCtx.currentMapping));
+//						// create unload instruction
+//						PPCRecompiler_pushBackIMLInstructions(imlSegment, idx, 1);
+//						IMLInstruction* imlInstructionTemp = imlSegment->imlList.data() + idx;
+//						memset(imlInstructionTemp, 0x00, sizeof(IMLInstruction));
+//						imlInstructionTemp->type = PPCREC_IML_TYPE_FPR_NAME_R;
+//						imlInstructionTemp->operation = PPCREC_IML_OP_ASSIGN;
+//						imlInstructionTemp->op_r_name.regR = _FPRRegFromID((uint8)(unloadRegMapping - rCtx.currentMapping));
+//						imlInstructionTemp->op_r_name.name = ppcImlGenContext->mappedFPRRegister[unloadRegMapping->virtualReg];
+//						idx++;
+//						// update mapping
+//						unloadRegMapping->isActive = false;
+//						rCtx.ppcRegToMapping[unloadRegMapping->virtualReg] = -1;
+//					}
+//					else
+//						break;
+//				}
+//				// create load instruction
+//				PPCRecompiler_pushBackIMLInstructions(imlSegment, idx, 1);
+//				IMLInstruction* imlInstructionTemp = imlSegment->imlList.data() + idx;
+//				memset(imlInstructionTemp, 0x00, sizeof(IMLInstruction));
+//				imlInstructionTemp->type = PPCREC_IML_TYPE_FPR_R_NAME;
+//				imlInstructionTemp->operation = PPCREC_IML_OP_ASSIGN;
+//				imlInstructionTemp->op_r_name.regR = _FPRRegFromID((uint8)(regMapping-rCtx.currentMapping));
+//				imlInstructionTemp->op_r_name.name = ppcImlGenContext->mappedFPRRegister[virtualFpr.GetRegID()];
+//				idx++;
+//				// update mapping
+//				regMapping->virtualReg = virtualFpr.GetRegID();
+//				rCtx.ppcRegToMapping[virtualFpr.GetRegID()] = (sint32)(regMapping - rCtx.currentMapping);
+//				regMapping->lastUseIndex = rCtx.currentUseIndex;
+//				rCtx.currentUseIndex++;
+//			}
+//			else
+//			{
+//				regMapping = rCtx.currentMapping + rCtx.ppcRegToMapping[virtualFpr.GetRegID()];
+//				regMapping->lastUseIndex = rCtx.currentUseIndex;
+//				rCtx.currentUseIndex++;
+//			}
+//			// replace FPR
+//			bool entryFound = false;
+//			for (sint32 t = 0; t < numReplacedOperands; t++)
+//			{
+//				if (fprMatch[t].IsValid() && fprMatch[t].GetRegID() == virtualFpr.GetRegID())
+//				{
+//					cemu_assert_debug(fprReplace[t] == _FPRRegFromID(regMapping - rCtx.currentMapping));
+//					entryFound = true;
+//					break;
+//				}
+//			}
+//			if (entryFound == false)
+//			{
+//				cemu_assert_debug(numReplacedOperands != 4);
+//				fprMatch[numReplacedOperands] = virtualFpr;
+//				fprReplace[numReplacedOperands] = _FPRRegFromID(regMapping - rCtx.currentMapping);
+//				numReplacedOperands++;
+//			}
+//		}
+//		if (numReplacedOperands > 0)
+//		{
+//			imlSegment->imlList[idx].ReplaceFPRs(fprMatch, fprReplace);
+//		}
+//		// next
+//		idx++;
+//	}
+//	// count loaded registers
+//	sint32 numLoadedRegisters = 0;
+//	for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
+//	{
+//		if (rCtx.currentMapping[i].isActive)
+//			numLoadedRegisters++;
+//	}
+//	// store all loaded registers
+//	if (numLoadedRegisters > 0)
+//	{
+//		PPCRecompiler_pushBackIMLInstructions(imlSegment, idx, numLoadedRegisters);
+//		for (sint32 i = 0; i < PPC_X64_FPR_USABLE_REGISTERS; i++)
+//		{
+//			if (rCtx.currentMapping[i].isActive == false)
+//				continue;
+//			IMLInstruction* imlInstructionTemp = imlSegment->imlList.data() + idx;
+//			memset(imlInstructionTemp, 0x00, sizeof(IMLInstruction));
+//			imlInstructionTemp->type = PPCREC_IML_TYPE_FPR_NAME_R;
+//			imlInstructionTemp->operation = PPCREC_IML_OP_ASSIGN;
+//			imlInstructionTemp->op_r_name.regR = _FPRRegFromID(i);
+//			imlInstructionTemp->op_r_name.name = ppcImlGenContext->mappedFPRRegister[rCtx.currentMapping[i].virtualReg];
+//			idx++;
+//		}
+//	}
+//	return true;
+//}
+//
+//bool PPCRecompiler_manageFPRRegisters(ppcImlGenContext_t* ppcImlGenContext)
+//{
+//	for (sint32 s = 0; s < ppcImlGenContext->segmentList2.size(); s++)
+//	{
+//		if (PPCRecompiler_manageFPRRegistersForSegment(ppcImlGenContext, s) == false)
+//			return false;
+//	}
+//	return true;
+//}
 
 
 /*
@@ -663,11 +663,13 @@ void PPCRecompiler_optimizeDirectIntegerCopies(ppcImlGenContext_t* ppcImlGenCont
 	}
 }
 
+IMLName PPCRecompilerImlGen_GetRegName(ppcImlGenContext_t* ppcImlGenContext, IMLReg reg);
+
 sint32 _getGQRIndexFromRegister(ppcImlGenContext_t* ppcImlGenContext, IMLReg gqrReg)
 {
 	if (gqrReg.IsInvalid())
 		return -1;
-	sint32 namedReg = ppcImlGenContext->mappedRegister[gqrReg.GetRegID()];
+	sint32 namedReg = PPCRecompilerImlGen_GetRegName(ppcImlGenContext, gqrReg);
 	if (namedReg >= (PPCREC_NAME_SPR0 + SPR_UGQR0) && namedReg <= (PPCREC_NAME_SPR0 + SPR_UGQR7))
 	{
 		return namedReg - (PPCREC_NAME_SPR0 + SPR_UGQR0);

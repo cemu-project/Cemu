@@ -41,22 +41,36 @@ const char* IMLDebug_GetOpcodeName(const IMLInstruction* iml)
 	return _tempOpcodename;
 }
 
+std::string IMLDebug_GetRegName(IMLReg r)
+{
+	std::string regName;
+	uint32 regId = r.GetRegID();
+	switch (r.GetRegFormat())
+	{
+	case IMLRegFormat::F32:
+		regName.append("f");
+		break;
+	case IMLRegFormat::F64:
+		regName.append("fd");
+		break;
+	case IMLRegFormat::I32:
+		regName.append("i");
+		break;
+	case IMLRegFormat::I64:
+		regName.append("r");
+		break;
+	default:
+		__debugbreak();
+	}
+	regName.append(fmt::format("{}", regId));
+	return regName;
+}
+
 void IMLDebug_AppendRegisterParam(StringBuf& strOutput, IMLReg virtualRegister, bool isLast = false)
 {
-	uint32 regId = virtualRegister.GetRegID();
-	DEBUG_BREAK; // todo (print type)
-	if (isLast)
-	{
-		if (regId < 10)
-			strOutput.addFmt("t{} ", regId);
-		else
-			strOutput.addFmt("t{}", regId);
-		return;
-	}
-	if (regId < 10)
-		strOutput.addFmt("t{} , ", regId);
-	else
-		strOutput.addFmt("t{}, ", regId);
+	strOutput.add(IMLDebug_GetRegName(virtualRegister));
+	if (!isLast)
+		strOutput.add(", ");
 }
 
 void IMLDebug_AppendS32Param(StringBuf& strOutput, sint32 val, bool isLast = false)
@@ -149,12 +163,6 @@ std::string IMLDebug_GetConditionName(IMLCondition cond)
 	return "ukn";
 }
 
-std::string IMLDebug_GetRegName(IMLReg r)
-{
-	cemu_assert_unimplemented();
-	return "";
-}
-
 void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool printLivenessRangeInfo)
 {
 	StringBuf strOutput(1024);
@@ -197,18 +205,23 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 		if (inst.type == PPCREC_IML_TYPE_R_NAME || inst.type == PPCREC_IML_TYPE_NAME_R)
 		{
 			if (inst.type == PPCREC_IML_TYPE_R_NAME)
-				strOutput.add("LD_NAME");
+				strOutput.add("R_NAME");
 			else
-				strOutput.add("ST_NAME");
+				strOutput.add("NAME_R");
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
 
-			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_name.regR);
+			if(inst.type == PPCREC_IML_TYPE_R_NAME)
+				IMLDebug_AppendRegisterParam(strOutput, inst.op_r_name.regR);
 
-			strOutput.addFmt("name_{} (", inst.op_r_name.regR.GetRegID());
+			strOutput.add("name_");
 			if (inst.op_r_name.name >= PPCREC_NAME_R0 && inst.op_r_name.name < (PPCREC_NAME_R0 + 999))
 			{
 				strOutput.addFmt("r{}", inst.op_r_name.name - PPCREC_NAME_R0);
+			}
+			else if (inst.op_r_name.name >= PPCREC_NAME_FPR0 && inst.op_r_name.name < (PPCREC_NAME_FPR0 + 999))
+			{
+				strOutput.addFmt("f{}", inst.op_r_name.name - PPCREC_NAME_FPR0);
 			}
 			else if (inst.op_r_name.name >= PPCREC_NAME_SPR0 && inst.op_r_name.name < (PPCREC_NAME_SPR0 + 999))
 			{
@@ -227,8 +240,15 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			else if (inst.op_r_name.name == PPCREC_NAME_CPU_MEMRES_VAL)
 				strOutput.add("cpuReservation.value");
 			else
-				strOutput.add("ukn");
-			strOutput.add(")");
+			{
+				strOutput.addFmt("name_ukn{}", inst.op_r_name.name);
+			}
+			if (inst.type != PPCREC_IML_TYPE_R_NAME)
+			{
+				strOutput.add(", ");
+				IMLDebug_AppendRegisterParam(strOutput, inst.op_r_name.regR, true);
+			}
+
 		}
 		else if (inst.type == PPCREC_IML_TYPE_R_R)
 		{
@@ -281,7 +301,7 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 		}
 		else if (inst.type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
 		{
-			strOutput.add("CJUMP2 ");
+			strOutput.add("CJUMP ");
 			while ((sint32)strOutput.getLen() < lineOffsetParameters)
 				strOutput.add(" ");
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_conditional_jump.registerBool, true);
@@ -342,9 +362,9 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 				IMLDebug_AppendRegisterParam(strOutput, inst.op_storeLoad.registerData);
 
 				if (inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
-					strOutput.addFmt("[t{}+t{}]", inst.op_storeLoad.registerMem.GetRegID(), inst.op_storeLoad.registerMem2.GetRegID());
+					strOutput.addFmt("[{}+{}]", IMLDebug_GetRegName(inst.op_storeLoad.registerMem), IMLDebug_GetRegName(inst.op_storeLoad.registerMem2));
 				else
-					strOutput.addFmt("[t{}+{}]", inst.op_storeLoad.registerMem.GetRegID(), inst.op_storeLoad.immS32);
+					strOutput.addFmt("[{}+{}]", IMLDebug_GetRegName(inst.op_storeLoad.registerMem), inst.op_storeLoad.immS32);
 		}
 		else if (inst.type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 		{
@@ -366,7 +386,7 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 		{
 			if (inst.operation == PPCREC_IML_MACRO_B_TO_REG)
 			{
-				strOutput.addFmt("MACRO B_TO_REG t{}", inst.op_macro.param);
+				strOutput.addFmt("MACRO B_TO_REG {}", IMLDebug_GetRegName(inst.op_macro.paramReg));
 			}
 			else if (inst.operation == PPCREC_IML_MACRO_BL)
 			{

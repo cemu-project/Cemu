@@ -134,74 +134,73 @@ void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, P
 	basicBlockInfo.appendSegment = segMerge;
 }
 
-uint32 PPCRecompilerImlGen_getAndLockFreeTemporaryGPR(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
+IMLReg PPCRecompilerImlGen_LookupReg(ppcImlGenContext_t* ppcImlGenContext, IMLName mappedName, IMLRegFormat regFormat)
 {
-	if( mappedName == PPCREC_NAME_NONE )
+	auto it = ppcImlGenContext->mappedRegs.find(mappedName);
+	if (it != ppcImlGenContext->mappedRegs.end())
+		return it->second;
+	// create new reg entry
+	IMLRegFormat baseFormat;
+	if (regFormat == IMLRegFormat::F64)
+		baseFormat = IMLRegFormat::F64;
+	else if (regFormat == IMLRegFormat::I32)
+		baseFormat = IMLRegFormat::I64;
+	else
 	{
-		debug_printf("PPCRecompilerImlGen_getAndLockFreeTemporaryGPR(): Invalid mappedName parameter\n");
-		return PPC_REC_INVALID_REGISTER;
+		cemu_assert_suspicious();
 	}
-	for(uint32 i=0; i<(PPC_REC_MAX_VIRTUAL_GPR-1); i++)
-	{
-		if( ppcImlGenContext->mappedRegister[i] == PPCREC_NAME_NONE )
-		{
-			ppcImlGenContext->mappedRegister[i] = mappedName;
-			return i;
-		}
-	}
-	return 0;
+	IMLRegID newRegId = ppcImlGenContext->mappedRegs.size();
+	IMLReg newReg(baseFormat, regFormat, 0, newRegId);
+	ppcImlGenContext->mappedRegs.try_emplace(mappedName, newReg);
+	return newReg;
 }
 
-uint32 PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
+IMLName PPCRecompilerImlGen_GetRegName(ppcImlGenContext_t* ppcImlGenContext, IMLReg reg)
 {
-	for(uint32 i=0; i< PPC_REC_MAX_VIRTUAL_GPR; i++)
+	for (auto& it : ppcImlGenContext->mappedRegs)
 	{
-		if( ppcImlGenContext->mappedRegister[i] == mappedName )
-		{
-			return i;
-		}
+		if (it.second.GetRegID() == reg.GetRegID())
+			return it.first;
 	}
-	return PPC_REC_INVALID_REGISTER;
+	cemu_assert(false);
+	return 0;
 }
 
 uint32 PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
-	if( mappedName == PPCREC_NAME_NONE )
-	{
-		debug_printf("PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(): Invalid mappedName parameter\n");
-		return PPC_REC_INVALID_REGISTER;
-	}
-	for(uint32 i=0; i<255; i++)
-	{
-		if( ppcImlGenContext->mappedFPRRegister[i] == PPCREC_NAME_NONE )
-		{
-			ppcImlGenContext->mappedFPRRegister[i] = mappedName;
-			return i;
-		}
-	}
+	__debugbreak();
+	//if( mappedName == PPCREC_NAME_NONE )
+	//{
+	//	debug_printf("PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(): Invalid mappedName parameter\n");
+	//	return PPC_REC_INVALID_REGISTER;
+	//}
+	//for(uint32 i=0; i<255; i++)
+	//{
+	//	if( ppcImlGenContext->mappedFPRRegister[i] == PPCREC_NAME_NONE )
+	//	{
+	//		ppcImlGenContext->mappedFPRRegister[i] = mappedName;
+	//		return i;
+	//	}
+	//}
 	return 0;
 }
 
 uint32 PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
-	for(uint32 i=0; i<255; i++)
-	{
-		if( ppcImlGenContext->mappedFPRRegister[i] == mappedName )
-		{
-			return i;
-		}
-	}
+	__debugbreak();
+	//for(uint32 i=0; i<255; i++)
+	//{
+	//	if( ppcImlGenContext->mappedFPRRegister[i] == mappedName )
+	//	{
+	//		return i;
+	//	}
+	//}
 	return PPC_REC_INVALID_REGISTER;
 }
 
 IMLReg PPCRecompilerImlGen_loadRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
-	uint32 loadedRegisterIndex = PPCRecompilerImlGen_findRegisterByMappedName(ppcImlGenContext, mappedName);
-	if (loadedRegisterIndex != PPC_REC_INVALID_REGISTER)
-		return IMLReg(IMLRegFormat::I64, IMLRegFormat::I32, 0, loadedRegisterIndex);
-
-	uint32 registerIndex = PPCRecompilerImlGen_getAndLockFreeTemporaryGPR(ppcImlGenContext, mappedName);
-	return IMLReg(IMLRegFormat::I64, IMLRegFormat::I32, 0, registerIndex);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::I32);
 }
 
 IMLReg _GetRegGPR(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
@@ -243,14 +242,15 @@ IMLReg _GetRegTemporaryS8(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
  */
 IMLReg PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName, bool loadNew)
 {
-	if( loadNew == false )
-	{
-		uint32 loadedRegisterIndex = PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext, mappedName);
-		if( loadedRegisterIndex != PPC_REC_INVALID_REGISTER )
-			return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, loadedRegisterIndex);
-	}
-	uint32 registerIndex = PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext, mappedName);
-	return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, registerIndex);
+	//if( loadNew == false )
+	//{
+	//	uint32 loadedRegisterIndex = PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext, mappedName);
+	//	if( loadedRegisterIndex != PPC_REC_INVALID_REGISTER )
+	//		return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, loadedRegisterIndex);
+	//}
+	//uint32 registerIndex = PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext, mappedName);
+	//return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, registerIndex);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
 }
 
 /*
@@ -259,11 +259,12 @@ IMLReg PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext,
  */
 IMLReg PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
-	uint32 loadedRegisterIndex = PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext, mappedName);
-	if( loadedRegisterIndex != PPC_REC_INVALID_REGISTER )
-		return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, loadedRegisterIndex);
-	uint32 registerIndex = PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext, mappedName);
-	return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, registerIndex);
+	//uint32 loadedRegisterIndex = PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext, mappedName);
+	//if( loadedRegisterIndex != PPC_REC_INVALID_REGISTER )
+	//	return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, loadedRegisterIndex);
+	//uint32 registerIndex = PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext, mappedName);
+	//return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, registerIndex);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
 }
 
 bool PPCRecompiler_canInlineFunction(MPTR functionPtr, sint32* functionInstructionCount)

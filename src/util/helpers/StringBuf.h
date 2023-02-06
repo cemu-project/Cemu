@@ -44,12 +44,12 @@ public:
 
 	void add(std::string_view appendedStr)
 	{
-		size_t remainingLen = this->limit - this->length;
+		if (this->length + appendedStr.size() + 1 >= this->limit)
+			_reserve(std::max<uint32>(this->length + appendedStr.size() + 64, this->limit + this->limit / 2));
 		size_t copyLen = appendedStr.size();
-		if (remainingLen > copyLen)
-			copyLen = remainingLen;
 		char* outputStart = (char*)(this->str + this->length);
 		std::copy(appendedStr.data(), appendedStr.data() + copyLen, outputStart);
+		this->length += copyLen;
 		outputStart[copyLen] = '\0';
 	}
 
@@ -79,6 +79,13 @@ public:
 	}
 
 private:
+	void _reserve(uint32 newLimit)
+	{
+		cemu_assert_debug(newLimit > length);
+		this->str = (uint8*)realloc(this->str, newLimit + 4);
+		this->limit = newLimit;
+	}
+
 	uint8*	str;
 	uint32	length; /* in bytes */
 	uint32	limit; /* in bytes */
