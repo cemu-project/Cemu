@@ -419,7 +419,6 @@ void cemu_initForGame()
     // init gdb debugger
     if (g_gdbstub) {
         g_gdbstub->Initialize();
-        //while (!g_gdbstub->ContinueStartup()) std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 	// init AX and start AX I/O thread
 	snd_core::AXOut_init();

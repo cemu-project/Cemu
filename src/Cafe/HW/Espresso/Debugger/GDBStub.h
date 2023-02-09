@@ -1,13 +1,14 @@
 #pragma once
 
-#include <numeric>
-#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Common/precompiled.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+
+#include <numeric>
 
 class GDBServer
 {
 public:
-	GDBServer(uint16 port);
+	explicit GDBServer(uint16 port);
 	~GDBServer();
 
 	bool Initialize();
@@ -44,12 +45,17 @@ private:
 	};
 
     enum RegisterID {
+        R0_START = 0,
+        R31_END = 0+31,
         PC = 64,
         MSR = 65,
         CR = 66,
         LR = 67,
         CTR = 68,
         XER = 69,
+        F0_START = 71,
+        F31_END = 71+31,
+        FPSCR = 103
     };
 
 	static constexpr std::string_view RESPONSE_EMPTY = "";
@@ -161,10 +167,11 @@ private:
     // Commands
     sint64 m_activeThreadSelector = 0;
     sint64 m_activeThreadContinueSelector = 0;
-    void CMDSetActiveThread(std::unique_ptr<CommandContext>& context); // H
-    void CMDGetThreadStatus(std::unique_ptr<CommandContext>& context); // ?
     void CMDContinue(std::unique_ptr<CommandContext>& context) const;
     void CMDNotFound(std::unique_ptr<CommandContext>& context);
+    void CMDIsThreadActive(std::unique_ptr<CommandContext>& context);
+    void CMDSetActiveThread(std::unique_ptr<CommandContext>& context); // H
+    void CMDGetThreadStatus(std::unique_ptr<CommandContext>& context); // ?
 
     void CMDReadRegister(std::unique_ptr<CommandContext>& context) const;
     void CMDWriteRegister(std::unique_ptr<CommandContext>& context) const;

@@ -69,11 +69,12 @@
 #include <filesystem>
 #include <memory>
 #include <chrono>
-#include <time.h>
+#include <ctime>
 #include <regex>
 #include <type_traits>
 #include <optional>
 #include <span>
+#include <ranges>
 
 #include <boost/predef.h>
 #include <boost/nowide/convert.hpp>

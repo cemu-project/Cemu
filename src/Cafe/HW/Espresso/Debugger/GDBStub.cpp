@@ -8,13 +8,41 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Scheduler.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
-
-#include <ranges>
-#include <HW/Espresso/EspressoISA.h>
+#include "Cafe/HW/Espresso/EspressoISA.h"
 
 #define GET_THREAD_ID(threadPtr) memory_getVirtualOffsetFromPointer(threadPtr)
 #define GET_THREAD_BY_ID(threadId) (OSThread_t*)memory_getPointerFromPhysicalOffset(threadId)
 
+
+static std::vector<MPTR> findNextInstruction(MPTR currAddress, uint32 lr, uint32 ctr) {
+    using namespace Espresso;
+
+    uint32 nextInstr = memory_readU32(currAddress);
+    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::B) {
+        uint32 LI;
+        bool AA, LK;
+        decodeOp_B(nextInstr, LI, AA, LK);
+        if (!AA)
+            LI += currAddress;
+        return {LI};
+    }
+    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::BC) {
+        uint32 BD, BI;
+        BOField BO{};
+        bool AA, LK;
+        decodeOp_BC(nextInstr, BD, BO, BI, AA, LK);
+        if (!LK)
+            BD += currAddress;
+        return {currAddress+4, BD};
+    }
+    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::GROUP_19 && GetGroup19Opcode(nextInstr) == Opcode19::BCLR) {
+        return {currAddress+4, lr};
+    }
+    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::GROUP_19 && GetGroup19Opcode(nextInstr) == Opcode19::BCCTR) {
+        return {currAddress+4, ctr};
+    }
+    return {currAddress+4};
+}
 
 template<typename F>
 static void selectThread(sint64 selectorId, F&& action_for_thread) {
@@ -150,43 +178,6 @@ static void breakThreads(sint64 trappedThread) {
 }
 
 
-
-/* <feature name="org.gnu.gdb.power.fpu">
-        <reg name="f0" bitsize="64" type="ieee_double" regnum="71"/>
-        <reg name="f1" bitsize="64" type="ieee_double"/>
-        <reg name="f2" bitsize="64" type="ieee_double"/>
-        <reg name="f3" bitsize="64" type="ieee_double"/>
-        <reg name="f4" bitsize="64" type="ieee_double"/>
-        <reg name="f5" bitsize="64" type="ieee_double"/>
-        <reg name="f6" bitsize="64" type="ieee_double"/>
-        <reg name="f7" bitsize="64" type="ieee_double"/>
-        <reg name="f8" bitsize="64" type="ieee_double"/>
-        <reg name="f9" bitsize="64" type="ieee_double"/>
-        <reg name="f10" bitsize="64" type="ieee_double"/>
-        <reg name="f11" bitsize="64" type="ieee_double"/>
-        <reg name="f12" bitsize="64" type="ieee_double"/>
-        <reg name="f13" bitsize="64" type="ieee_double"/>
-        <reg name="f14" bitsize="64" type="ieee_double"/>
-        <reg name="f15" bitsize="64" type="ieee_double"/>
-        <reg name="f16" bitsize="64" type="ieee_double"/>
-        <reg name="f17" bitsize="64" type="ieee_double"/>
-        <reg name="f18" bitsize="64" type="ieee_double"/>
-        <reg name="f19" bitsize="64" type="ieee_double"/>
-        <reg name="f20" bitsize="64" type="ieee_double"/>
-        <reg name="f21" bitsize="64" type="ieee_double"/>
-        <reg name="f22" bitsize="64" type="ieee_double"/>
-        <reg name="f23" bitsize="64" type="ieee_double"/>
-        <reg name="f24" bitsize="64" type="ieee_double"/>
-        <reg name="f25" bitsize="64" type="ieee_double"/>
-        <reg name="f26" bitsize="64" type="ieee_double"/>
-        <reg name="f27" bitsize="64" type="ieee_double"/>
-        <reg name="f28" bitsize="64" type="ieee_double"/>
-        <reg name="f29" bitsize="64" type="ieee_double"/>
-        <reg name="f30" bitsize="64" type="ieee_double"/>
-        <reg name="f31" bitsize="64" type="ieee_double"/>
-        <reg name="fpscr" bitsize="32" group="float"/>
-    </feature>
- * */
 static constexpr std::string_view GDBTargetXML = R"(<?xml version="1.0"?>
 <!DOCTYPE target SYSTEM "gdb-target.dtd">
 <target version="1.0">
@@ -230,6 +221,41 @@ static constexpr std::string_view GDBTargetXML = R"(<?xml version="1.0"?>
         <reg name="lr" bitsize="32" type="code_ptr"/>
         <reg name="ctr" bitsize="32" type="uint32"/>
         <reg name="xer" bitsize="32" type="uint32"/>
+    </feature>
+    <feature name="org.gnu.gdb.power.fpu">
+        <reg name="f0" bitsize="64" type="ieee_double" regnum="71"/>
+        <reg name="f1" bitsize="64" type="ieee_double"/>
+        <reg name="f2" bitsize="64" type="ieee_double"/>
+        <reg name="f3" bitsize="64" type="ieee_double"/>
+        <reg name="f4" bitsize="64" type="ieee_double"/>
+        <reg name="f5" bitsize="64" type="ieee_double"/>
+        <reg name="f6" bitsize="64" type="ieee_double"/>
+        <reg name="f7" bitsize="64" type="ieee_double"/>
+        <reg name="f8" bitsize="64" type="ieee_double"/>
+        <reg name="f9" bitsize="64" type="ieee_double"/>
+        <reg name="f10" bitsize="64" type="ieee_double"/>
+        <reg name="f11" bitsize="64" type="ieee_double"/>
+        <reg name="f12" bitsize="64" type="ieee_double"/>
+        <reg name="f13" bitsize="64" type="ieee_double"/>
+        <reg name="f14" bitsize="64" type="ieee_double"/>
+        <reg name="f15" bitsize="64" type="ieee_double"/>
+        <reg name="f16" bitsize="64" type="ieee_double"/>
+        <reg name="f17" bitsize="64" type="ieee_double"/>
+        <reg name="f18" bitsize="64" type="ieee_double"/>
+        <reg name="f19" bitsize="64" type="ieee_double"/>
+        <reg name="f20" bitsize="64" type="ieee_double"/>
+        <reg name="f21" bitsize="64" type="ieee_double"/>
+        <reg name="f22" bitsize="64" type="ieee_double"/>
+        <reg name="f23" bitsize="64" type="ieee_double"/>
+        <reg name="f24" bitsize="64" type="ieee_double"/>
+        <reg name="f25" bitsize="64" type="ieee_double"/>
+        <reg name="f26" bitsize="64" type="ieee_double"/>
+        <reg name="f27" bitsize="64" type="ieee_double"/>
+        <reg name="f28" bitsize="64" type="ieee_double"/>
+        <reg name="f29" bitsize="64" type="ieee_double"/>
+        <reg name="f30" bitsize="64" type="ieee_double"/>
+        <reg name="f31" bitsize="64" type="ieee_double"/>
+        <reg name="fpscr" bitsize="32" group="float"/>
     </feature>
 </target>)";
 
@@ -446,37 +472,6 @@ static void deleteBreakpoint(MPTR address, bool softRemove = false) {
         patchedInstructions.erase(address);
 }
 
-static std::vector<MPTR> findNextInstruction(MPTR currAddress, uint32 lr, uint32 ctr) {
-    using namespace Espresso;
-
-    uint32 nextInstr = memory_readU32(currAddress);
-    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::B) {
-        uint32 LI;
-        bool AA, LK;
-        decodeOp_B(nextInstr, LI, AA, LK);
-        if (!AA)
-            LI += currAddress;
-        return {LI};
-    }
-    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::BC) {
-        uint32 BD, BI;
-        BOField BO{};
-        bool AA, LK;
-        decodeOp_BC(nextInstr, BD, BO, BI, AA, LK);
-        if (!LK)
-            BD += currAddress;
-        return {currAddress+4, BD};
-    }
-    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::GROUP_19 && GetGroup19Opcode(nextInstr) == Opcode19::BCLR) {
-        return {currAddress+4, lr};
-    }
-    if (GetPrimaryOpcode(nextInstr) == PrimaryOpcode::GROUP_19 && GetGroup19Opcode(nextInstr) == Opcode19::BCCTR) {
-        return {currAddress+4, ctr};
-    }
-    return {currAddress+4};
-}
-
-
 void GDBServer::HandleCommand(const std::string& command_str) {
 	auto context = std::make_unique<CommandContext>(this, command_str);
 
@@ -493,7 +488,7 @@ void GDBServer::HandleCommand(const std::string& command_str) {
 		return HandleVCont(context);
 	// Regular commands
 	case CmdType::IS_THREAD_RUNNING:
-        break;//return CMD
+        return CMDIsThreadActive(context);
 	case CmdType::SET_ACTIVE_THREAD:
 		return CMDSetActiveThread(context);
 	case CmdType::ACTIVE_THREAD_STATUS:
@@ -661,7 +656,7 @@ void GDBServer::HandleVCont(std::unique_ptr<CommandContext>& context) {
 
     bool resumedNoThreads = true;
     for (const auto operationView : std::ranges::split_view(m_resumed_context->GetArgs()[1], ';')) {
-        std::string_view operation{operationView.begin(), operationView.end()};
+        const std::string_view operation{operationView.begin(), operationView.end()};
 
         // todo: this might have issues with the signal versions (C/S)
         // todo: test whether this works with multiple vCont;c:123123;c:123123
@@ -699,6 +694,19 @@ void GDBServer::CMDNotFound(std::unique_ptr<CommandContext>& context) {
 	return context->QueueResponse(RESPONSE_EMPTY);
 }
 
+void GDBServer::CMDIsThreadActive(std::unique_ptr<CommandContext>& context) {
+    sint64 threadSelector = std::stoll(context->GetArgs()[2], nullptr, 16);
+    bool foundThread = false;
+    selectThread(threadSelector, [&foundThread](OSThread_t* thread) {
+        foundThread = true;
+    });
+
+    if (foundThread)
+        return context->QueueResponse(RESPONSE_OK);
+    else
+        return context->QueueResponse(RESPONSE_ERROR);
+}
+
 void GDBServer::CMDSetActiveThread(std::unique_ptr<CommandContext>& context) {
     sint64 threadSelector = std::stoll(context->GetArgs()[2], nullptr, 16);
     if (threadSelector >= 0) {
@@ -711,7 +719,7 @@ void GDBServer::CMDSetActiveThread(std::unique_ptr<CommandContext>& context) {
     }
     if (context->GetArgs()[1] == "c") m_activeThreadContinueSelector = threadSelector;
     else m_activeThreadSelector = threadSelector;
-    context->QueueResponse(RESPONSE_OK);
+    return context->QueueResponse(RESPONSE_OK);
 }
 
 void GDBServer::CMDGetThreadStatus(std::unique_ptr<CommandContext>& context) {
@@ -724,8 +732,14 @@ void GDBServer::CMDReadRegister(std::unique_ptr<CommandContext>& context) const 
     sint32 reg = std::stoi(context->GetArgs()[1], nullptr, 16);
     selectThread(m_activeThreadSelector, [reg, &context](OSThread_t* thread) {
         auto& cpu = thread->context;
-        if (reg < 32) {
+        if (reg >= RegisterID::R0_START && reg <= RegisterID::R31_END) {
             return context->QueueResponse(fmt::format("{:08X}", CPU_swapEndianU32(cpu.gpr[reg])));
+        }
+        else if (reg >= RegisterID::F0_START && reg <= RegisterID::F31_END) {
+            return context->QueueResponse(fmt::format("{:016X}", cpu.fp_ps0[reg-RegisterID::F0_START].value()));
+        }
+        else if (reg == RegisterID::FPSCR) {
+            return context->QueueResponse(fmt::format("{:08X}", cpu.fpscr.fpscr.value()));
         }
         else {
             switch (reg) {
@@ -743,11 +757,20 @@ void GDBServer::CMDReadRegister(std::unique_ptr<CommandContext>& context) const 
 
 void GDBServer::CMDWriteRegister(std::unique_ptr<CommandContext>& context) const {
     sint32 reg = std::stoi(context->GetArgs()[1], nullptr, 16);
-    uint32 value = std::stoi(context->GetArgs()[2], nullptr, 16);
+    uint64 value = std::stoll(context->GetArgs()[2], nullptr, 16);
     selectThread(m_activeThreadSelector, [reg, value, &context](OSThread_t* thread) {
         auto& cpu = thread->context;
-        if (reg < 32) {
+        if (reg >= RegisterID::R0_START && reg <= RegisterID::R31_END) {
             cpu.gpr[reg] = CPU_swapEndianU32(value);
+            return context->QueueResponse(RESPONSE_OK);
+        }
+        else if (reg >= RegisterID::F0_START && reg <= RegisterID::F31_END) {
+            // todo: figure out how to properly write to paired single registers
+            cpu.fp_ps0[reg-RegisterID::F0_START] = uint64be{value};
+            return context->QueueResponse(RESPONSE_OK);
+        }
+        else if (reg == RegisterID::FPSCR) {
+            cpu.fpscr.fpscr = uint32be{(uint32)value};
             return context->QueueResponse(RESPONSE_OK);
         }
         else {
@@ -785,8 +808,8 @@ void GDBServer::CMDReadRegisters(std::unique_ptr<CommandContext>& context) const
 }
 
 void GDBServer::CMDWriteRegisters(std::unique_ptr<CommandContext>& context) const {
-    auto& registers = context->GetArgs()[1];
-    selectThread(m_activeThreadSelector, [&registers, &context](OSThread_t *thread) {
+    selectThread(m_activeThreadSelector, [&context](OSThread_t *thread) {
+        auto& registers = context->GetArgs()[1];
         for (uint32 i=0; i<32; i++) {
             thread->context.gpr[i] = CPU_swapEndianU32(std::stoi(registers.substr(i*2, 2), nullptr, 16));
         }
@@ -855,7 +878,7 @@ void GDBServer::CMDInsertBreakpoint(std::unique_ptr<CommandContext>& context) {
         return context->QueueResponse(RESPONSE_EMPTY);
 
     insertBreakpoint(addr, type == 0, true, true, false);
-    context->QueueResponse(RESPONSE_OK);
+    return context->QueueResponse(RESPONSE_OK);
 }
 
 void GDBServer::CMDDeleteBreakpoint(std::unique_ptr<CommandContext>& context) {
@@ -866,7 +889,7 @@ void GDBServer::CMDDeleteBreakpoint(std::unique_ptr<CommandContext>& context) {
         return context->QueueResponse(RESPONSE_EMPTY);
 
     deleteBreakpoint(addr);
-    context->QueueResponse(RESPONSE_OK);
+    return context->QueueResponse(RESPONSE_OK);
 }
 
 // Internal functions for control
