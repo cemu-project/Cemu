@@ -178,88 +178,6 @@ static void breakThreads(sint64 trappedThread) {
 }
 
 
-static constexpr std::string_view GDBTargetXML = R"(<?xml version="1.0"?>
-<!DOCTYPE target SYSTEM "gdb-target.dtd">
-<target version="1.0">
-    <architecture>powerpc:common</architecture>
-    <feature name="org.gnu.gdb.power.core">
-        <reg name="r0" bitsize="32" type="uint32"/>
-        <reg name="r1" bitsize="32" type="uint32"/>
-        <reg name="r2" bitsize="32" type="uint32"/>
-        <reg name="r3" bitsize="32" type="uint32"/>
-        <reg name="r4" bitsize="32" type="uint32"/>
-        <reg name="r5" bitsize="32" type="uint32"/>
-        <reg name="r6" bitsize="32" type="uint32"/>
-        <reg name="r7" bitsize="32" type="uint32"/>
-        <reg name="r8" bitsize="32" type="uint32"/>
-        <reg name="r9" bitsize="32" type="uint32"/>
-        <reg name="r10" bitsize="32" type="uint32"/>
-        <reg name="r11" bitsize="32" type="uint32"/>
-        <reg name="r12" bitsize="32" type="uint32"/>
-        <reg name="r13" bitsize="32" type="uint32"/>
-        <reg name="r14" bitsize="32" type="uint32"/>
-        <reg name="r15" bitsize="32" type="uint32"/>
-        <reg name="r16" bitsize="32" type="uint32"/>
-        <reg name="r17" bitsize="32" type="uint32"/>
-        <reg name="r18" bitsize="32" type="uint32"/>
-        <reg name="r19" bitsize="32" type="uint32"/>
-        <reg name="r20" bitsize="32" type="uint32"/>
-        <reg name="r21" bitsize="32" type="uint32"/>
-        <reg name="r22" bitsize="32" type="uint32"/>
-        <reg name="r23" bitsize="32" type="uint32"/>
-        <reg name="r24" bitsize="32" type="uint32"/>
-        <reg name="r25" bitsize="32" type="uint32"/>
-        <reg name="r26" bitsize="32" type="uint32"/>
-        <reg name="r27" bitsize="32" type="uint32"/>
-        <reg name="r28" bitsize="32" type="uint32"/>
-        <reg name="r29" bitsize="32" type="uint32"/>
-        <reg name="r30" bitsize="32" type="uint32"/>
-        <reg name="r31" bitsize="32" type="uint32"/>
-        <reg name="pc" bitsize="32" type="code_ptr" regnum="64"/>
-        <reg name="msr" bitsize="32" type="uint32"/>
-        <reg name="cr" bitsize="32" type="uint32"/>
-        <reg name="lr" bitsize="32" type="code_ptr"/>
-        <reg name="ctr" bitsize="32" type="uint32"/>
-        <reg name="xer" bitsize="32" type="uint32"/>
-    </feature>
-    <feature name="org.gnu.gdb.power.fpu">
-        <reg name="f0" bitsize="64" type="ieee_double" regnum="71"/>
-        <reg name="f1" bitsize="64" type="ieee_double"/>
-        <reg name="f2" bitsize="64" type="ieee_double"/>
-        <reg name="f3" bitsize="64" type="ieee_double"/>
-        <reg name="f4" bitsize="64" type="ieee_double"/>
-        <reg name="f5" bitsize="64" type="ieee_double"/>
-        <reg name="f6" bitsize="64" type="ieee_double"/>
-        <reg name="f7" bitsize="64" type="ieee_double"/>
-        <reg name="f8" bitsize="64" type="ieee_double"/>
-        <reg name="f9" bitsize="64" type="ieee_double"/>
-        <reg name="f10" bitsize="64" type="ieee_double"/>
-        <reg name="f11" bitsize="64" type="ieee_double"/>
-        <reg name="f12" bitsize="64" type="ieee_double"/>
-        <reg name="f13" bitsize="64" type="ieee_double"/>
-        <reg name="f14" bitsize="64" type="ieee_double"/>
-        <reg name="f15" bitsize="64" type="ieee_double"/>
-        <reg name="f16" bitsize="64" type="ieee_double"/>
-        <reg name="f17" bitsize="64" type="ieee_double"/>
-        <reg name="f18" bitsize="64" type="ieee_double"/>
-        <reg name="f19" bitsize="64" type="ieee_double"/>
-        <reg name="f20" bitsize="64" type="ieee_double"/>
-        <reg name="f21" bitsize="64" type="ieee_double"/>
-        <reg name="f22" bitsize="64" type="ieee_double"/>
-        <reg name="f23" bitsize="64" type="ieee_double"/>
-        <reg name="f24" bitsize="64" type="ieee_double"/>
-        <reg name="f25" bitsize="64" type="ieee_double"/>
-        <reg name="f26" bitsize="64" type="ieee_double"/>
-        <reg name="f27" bitsize="64" type="ieee_double"/>
-        <reg name="f28" bitsize="64" type="ieee_double"/>
-        <reg name="f29" bitsize="64" type="ieee_double"/>
-        <reg name="f30" bitsize="64" type="ieee_double"/>
-        <reg name="f31" bitsize="64" type="ieee_double"/>
-        <reg name="fpscr" bitsize="32" group="float"/>
-    </feature>
-</target>)";
-
-
 std::unique_ptr<GDBServer> g_gdbstub;
 
 GDBServer::GDBServer(uint16 port) : m_port(port) {
@@ -399,22 +317,9 @@ void GDBServer::ThreadFunc(const std::stop_token& stop_token) {
 		closesocket(m_client_socket);
 }
 
-struct GDBBreakpoint {
-    MPTR address;
-    uint32 origOpCode;
-    bool visible;
-    bool pauseThreads;
-    // type
-    bool restoreAfterInterrupt;
-    bool deleteAfterInterrupt;
-    bool removedAfterInterrupt;
-};
-
-std::map<MPTR, GDBBreakpoint> patchedInstructions;
-
-static void insertBreakpoint(MPTR address, bool visible, bool pauseThreads, bool restoreAfterInterrupt, bool deleteAfterInterrupt) {
+void GDBServer::insertBreakpoint(MPTR address, bool visible, bool pauseThreads, bool restoreAfterInterrupt, bool deleteAfterInterrupt) {
     //cemuLog_logDebug(LogType::Force, "[GDBStub] Inserting breakpoint for {:08x}, restoreAfterInterrupt = {}, deleteAfterInterrupt = {}, pauseThreads = {}", address, restoreAfterInterrupt, deleteAfterInterrupt, pauseThreads);
-    if (auto bpIt = patchedInstructions.find(address); bpIt != patchedInstructions.end()) {
+    if (auto bpIt = m_patchedInstructions.find(address); bpIt != m_patchedInstructions.end()) {
         if (!bpIt->second.pauseThreads && pauseThreads) {
             //cemuLog_logDebug(LogType::Force, "[GDBStub] Upgraded restore point to breakpoint");
             bpIt->second.pauseThreads = true;
@@ -431,7 +336,7 @@ static void insertBreakpoint(MPTR address, bool visible, bool pauseThreads, bool
     memory_writeU32(address, DEBUGGER_BP_T_GDBSTUB_TW);
     PPCRecompiler_invalidateRange(address, address + 4);
 
-    patchedInstructions.emplace(address, GDBBreakpoint{
+    m_patchedInstructions.emplace(address, GDBServer::Breakpoint{
         .address = address,
         .origOpCode = origOpCode,
         .visible = visible,
@@ -442,9 +347,9 @@ static void insertBreakpoint(MPTR address, bool visible, bool pauseThreads, bool
     });
 }
 
-static void restoreBreakpoint(MPTR address) {
+void GDBServer::restoreBreakpoint(MPTR address) {
     //cemuLog_logDebug(LogType::Force, "[GDBStub] Restoring breakpoint for {:08x}", address);
-    if (!patchedInstructions.contains(address)) {
+    if (!m_patchedInstructions.contains(address)) {
         // Restoring a breakpoint on an address that has no breakpoints?
         cemu_assert_suspicious();
         return;
@@ -452,24 +357,24 @@ static void restoreBreakpoint(MPTR address) {
 
     memory_writeU32(address, DEBUGGER_BP_T_GDBSTUB_TW);
     PPCRecompiler_invalidateRange(address, address + 4);
-    patchedInstructions[address].removedAfterInterrupt = false;
+    m_patchedInstructions[address].removedAfterInterrupt = false;
 }
 
-static void deleteBreakpoint(MPTR address, bool softRemove = false) {
+void GDBServer::deleteBreakpoint(MPTR address, bool softRemove = false) {
     //cemuLog_logDebug(LogType::Force, "[GDBStub] {} breakpoint for {:08x}", softRemove ? "Remove" : "Delete", address);
-    if (!patchedInstructions.contains(address)) {
+    if (!m_patchedInstructions.contains(address)) {
         // Removing a breakpoint on an address that has no breakpoints?
         cemu_assert_suspicious();
         return;
     }
 
-    memory_writeU32(address, patchedInstructions[address].origOpCode);
+    memory_writeU32(address, m_patchedInstructions[address].origOpCode);
     PPCRecompiler_invalidateRange(address, address + 4);
 
     if (softRemove)
-        patchedInstructions[address].removedAfterInterrupt = true;
+        m_patchedInstructions[address].removedAfterInterrupt = true;
     else
-        patchedInstructions.erase(address);
+        m_patchedInstructions.erase(address);
 }
 
 void GDBServer::HandleCommand(const std::string& command_str) {
@@ -481,39 +386,39 @@ void GDBServer::HandleCommand(const std::string& command_str) {
 
 	switch (context->GetType()) {
 	// Extended commands
-	case CmdType::QUERY_GET:
-	case CmdType::QUERY_SET:
+	case CMDType::QUERY_GET:
+	case CMDType::QUERY_SET:
 		return HandleQuery(context);
-	case CmdType::VCONT:
+	case CMDType::VCONT:
 		return HandleVCont(context);
 	// Regular commands
-	case CmdType::IS_THREAD_RUNNING:
+	case CMDType::IS_THREAD_RUNNING:
         return CMDIsThreadActive(context);
-	case CmdType::SET_ACTIVE_THREAD:
+	case CMDType::SET_ACTIVE_THREAD:
 		return CMDSetActiveThread(context);
-	case CmdType::ACTIVE_THREAD_STATUS:
+	case CMDType::ACTIVE_THREAD_STATUS:
 		return CMDGetThreadStatus(context);
-    case CmdType::CONTINUE:
+    case CMDType::CONTINUE:
         return CMDContinue(context);
-	case CmdType::ACTIVE_THREAD_STEP:
+	case CMDType::ACTIVE_THREAD_STEP:
 		break;
-	case CmdType::REGISTER_READ:
+	case CMDType::REGISTER_READ:
 		return CMDReadRegister(context);
-	case CmdType::REGISTER_SET:
+	case CMDType::REGISTER_SET:
         return CMDWriteRegister(context);
-	case CmdType::REGISTERS_READ:
+	case CMDType::REGISTERS_READ:
 		return CMDReadRegisters(context);
-	case CmdType::REGISTERS_WRITE:
+	case CMDType::REGISTERS_WRITE:
 		return CMDWriteRegisters(context);
-	case CmdType::MEMORY_READ:
+	case CMDType::MEMORY_READ:
 		return CMDReadMemory(context);
-	case CmdType::MEMORY_WRITE:
+	case CMDType::MEMORY_WRITE:
         return CMDWriteMemory(context);
-	case CmdType::BREAKPOINT_SET:
+	case CMDType::BREAKPOINT_SET:
 		return CMDInsertBreakpoint(context);
-	case CmdType::BREAKPOINT_REMOVE:
+	case CMDType::BREAKPOINT_REMOVE:
 		return CMDDeleteBreakpoint(context);
-	case CmdType::INVALID:
+	case CMDType::INVALID:
 	default:
 		return CMDNotFound(context);
 	}
@@ -590,7 +495,7 @@ void GDBServer::HandleQuery(std::unique_ptr<CommandContext>& context) const {
                 entry += fmt::format(R"(<thread id="{:x}" core="{}")", GET_THREAD_ID(thread), thread->context.affinity.value());
                 if (!thread->threadName.IsNull())
                     entry += fmt::format(R"( name="{}")", CommandContext::EscapeXMLString(thread->threadName.GetPtr()));
-                // todo: could add a human readable description of the thread here
+                // todo: could add a human-readable description of the thread here
                 entry += fmt::format("></thread>");
                 threads_list.emplace(GET_THREAD_ID(thread), entry);
             });
@@ -668,11 +573,11 @@ void GDBServer::HandleVCont(std::unique_ptr<CommandContext>& context) {
             resumedNoThreads = false;
         }
         else if (operationType == "s" || operationType.starts_with("S")) {
-            selectThread(threadSelector, [](OSThread_t *thread) {
+            selectThread(threadSelector, [this](OSThread_t *thread) {
                 auto nextInstructions = findNextInstruction(thread->context.srr0, thread->context.lr, thread->context.ctr);
                 for (MPTR nextInstr : nextInstructions) {
-                    if (auto bpIt = patchedInstructions.find(nextInstr); bpIt == patchedInstructions.end() || !bpIt->second.pauseThreads) {
-                        insertBreakpoint(nextInstr, false, true, false, true);
+                    if (auto bpIt = m_patchedInstructions.find(nextInstr); bpIt == m_patchedInstructions.end() || !bpIt->second.pauseThreads) {
+                        this->insertBreakpoint(nextInstr, false, true, false, true);
                     }
                 }
             });
@@ -685,7 +590,8 @@ void GDBServer::HandleVCont(std::unique_ptr<CommandContext>& context) {
     }
 }
 
-void GDBServer::CMDContinue(std::unique_ptr<CommandContext>& context) const {
+void GDBServer::CMDContinue(std::unique_ptr<CommandContext>& context) {
+    m_resumed_context = std::move(context);
     selectAndResumeThread(m_activeThreadContinueSelector);
 }
 
@@ -744,7 +650,7 @@ void GDBServer::CMDReadRegister(std::unique_ptr<CommandContext>& context) const 
         else {
             switch (reg) {
                 case RegisterID::PC: return context->QueueResponse(fmt::format("{:08X}", cpu.srr0));
-                case RegisterID::MSR: return context->QueueResponse("xxxxxxxx"); // return context->QueueResponse(fmt::format("{:08X}", CPU_swapEndianU32(cpu.state)));
+                case RegisterID::MSR: return context->QueueResponse("xxxxxxxx");
                 case RegisterID::CR: return context->QueueResponse(fmt::format("{:08X}", cpu.cr));
                 case RegisterID::LR: return context->QueueResponse(fmt::format("{:08X}", CPU_swapEndianU32(cpu.lr)));
                 case RegisterID::CTR: return context->QueueResponse(fmt::format("{:08X}", cpu.ctr));
@@ -779,7 +685,7 @@ void GDBServer::CMDWriteRegister(std::unique_ptr<CommandContext>& context) const
                     cpu.srr0 = value;
                     return context->QueueResponse(RESPONSE_OK);
                 case RegisterID::MSR:
-                    return context->QueueResponse(RESPONSE_ERROR); // return context->QueueResponse(fmt::format("{:08X}", CPU_swapEndianU32(cpu.state)));
+                    return context->QueueResponse(RESPONSE_ERROR);
                 case RegisterID::CR:
                     cpu.cr = value;
                     return context->QueueResponse(RESPONSE_OK);
@@ -830,8 +736,8 @@ void GDBServer::CMDReadMemory(std::unique_ptr<CommandContext>& context) {
         memoryRepr += fmt::format("{:02X}", values[i]);
     }
 
-    auto patchesRange = patchedInstructions.lower_bound(addr);
-    while (patchesRange != patchedInstructions.end() && patchesRange->first < (addr+length)) {
+    auto patchesRange = m_patchedInstructions.lower_bound(addr);
+    while (patchesRange != m_patchedInstructions.end() && patchesRange->first < (addr + length)) {
         if (!patchesRange->second.visible) {
             auto replStr = fmt::format("{:02X}", patchesRange->second.origOpCode);
             memoryRepr[(patchesRange->first-addr)*2] = replStr[0];
@@ -858,7 +764,7 @@ void GDBServer::CMDWriteMemory(std::unique_ptr<CommandContext>& context) {
         if (result.ec == std::errc::invalid_argument || result.ec == std::errc::result_out_of_range)
             return context->QueueResponse(RESPONSE_ERROR);
 
-        if (auto it = patchedInstructions.find(addr+i); it != patchedInstructions.end()) {
+        if (auto it = m_patchedInstructions.find(addr + i); it != m_patchedInstructions.end()) {
             uint32 byteIndex = 3-((addr+i)%4); // inverted because of big endian, so address 0 is the highest byte
             it->second.origOpCode &= ~(0xFF<<(byteIndex*8)); // mask out the byte
             it->second.origOpCode |= ((uint32)hexValue<<(byteIndex*8)); // set new byte with OR
@@ -895,15 +801,15 @@ void GDBServer::CMDDeleteBreakpoint(std::unique_ptr<CommandContext>& context) {
 // Internal functions for control
 void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU) {
     // First, restore any removed breakpoints
-    for (auto& bp : patchedInstructions) {
+    for (auto& bp : m_patchedInstructions) {
         if (bp.second.removedAfterInterrupt) {
             restoreBreakpoint(bp.first);
         }
     }
 
     // Find patched instruction that triggered trap
-    auto patchedBP = patchedInstructions.find(hCPU->instructionPointer);
-    if (patchedBP == patchedInstructions.end()) {
+    auto patchedBP = m_patchedInstructions.find(hCPU->instructionPointer);
+    if (patchedBP == m_patchedInstructions.end()) {
         cemu_assert_suspicious();
         return;
     }
@@ -914,7 +820,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU) {
         // Insert new restore breakpoint at next possible instructions which restores breakpoints but won't pause the CPU
         std::vector<MPTR> nextInstructions = findNextInstruction(hCPU->instructionPointer, hCPU->spr.LR, hCPU->spr.CTR);
         for (MPTR nextInstr : nextInstructions) {
-            if (!patchedInstructions.contains(nextInstr)) {
+            if (!m_patchedInstructions.contains(nextInstr)) {
                 insertBreakpoint(nextInstr, false, false, false, true);
             }
         }
@@ -927,7 +833,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU) {
     }
 
     // Thirdly, delete any instructions that were generated by a skip instruction
-    for (auto it = patchedInstructions.cbegin(), next_it = it; it != patchedInstructions.cend(); it = next_it) {
+    for (auto it = m_patchedInstructions.cbegin(), next_it = it; it != m_patchedInstructions.cend(); it = next_it) {
         ++next_it;
         if (it->second.deleteAfterInterrupt) {
             deleteBreakpoint(it->first);

@@ -814,7 +814,7 @@ namespace coreinit
     }
 
 
-void OSCancelThread(OSThread_t* thread)
+    void OSCancelThread(OSThread_t* thread)
 	{
 		__OSLockScheduler();
 		cemu_assert_debug(thread->requestFlags == 0 || thread->requestFlags == OSThread_t::REQUEST_FLAG_CANCEL); // todo - how to handle cases where other flags are already set?

@@ -68,7 +68,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		("account,a", po::value<std::string>(), "Persistent id of account")
 
 		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler")
-		("enable-gdbstub", po::value<bool>()->implicit_value(true), "Enable GDBStub to debug Cemu using an external debugger")
+		("enable-gdbstub", po::value<bool>()->implicit_value(true), "Enable GDB stub to debug executables inside Cemu using an external debugger")
 
 		("act-url", po::value<std::string>(), "URL prefix for account server")
 		("ecs-url", po::value<std::string>(), "URL for ECS service");

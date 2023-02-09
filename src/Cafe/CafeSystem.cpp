@@ -400,7 +400,10 @@ void cemu_initForGame()
 	Latte_Start();
 	// check for debugger entrypoint bp
     if (g_gdbstub)
+    {
         g_gdbstub->HandleEntryStop(_entryPoint);
+        g_gdbstub->Initialize();
+    }
 	debugger_handleEntryBreakpoint(_entryPoint);
 	// load graphic packs
 	forceLog_printf("------- Activate graphic packs -------");
@@ -416,10 +419,6 @@ void cemu_initForGame()
 	OSThread_t* initialThread = coreinit::OSGetDefaultThread(1);
 	coreinit::OSSetThreadPriority(initialThread, 16);
 	coreinit::OSRunThread(initialThread, PPCInterpreter_makeCallableExportDepr(coreinit_start), 0, nullptr);
-    // init gdb debugger
-    if (g_gdbstub) {
-        g_gdbstub->Initialize();
-    }
 	// init AX and start AX I/O thread
 	snd_core::AXOut_init();
 	// init ppc recompiler

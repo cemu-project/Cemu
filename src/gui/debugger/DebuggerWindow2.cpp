@@ -558,9 +558,7 @@ void DebuggerWindow2::OnOptionsInput(wxCommandEvent& event)
 
 			if (debuggerState.breakOnEntry)
 			{
-				while (!g_gdbstub->IsConnected()) {
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
-				}
+				while (!g_gdbstub->IsConnected()) std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 		else
