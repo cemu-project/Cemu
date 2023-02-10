@@ -1331,7 +1331,7 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSResumeThread, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSContinueThread, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSSuspendThread, LogType::CoreinitThread);
-        cafeExportRegister("coreinit", __OSSuspendThreadNolock, LogType::CoreinitThread);
+		cafeExportRegister("coreinit", __OSSuspendThreadNolock, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSSleepThread, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSWakeupThread, LogType::CoreinitThread);
 

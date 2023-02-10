@@ -27,10 +27,7 @@ wxDECLARE_EVENT(wxEVT_NOTIFY_MODULE_UNLOADED, wxCommandEvent);
 struct DebuggerConfig
 {
 	DebuggerConfig()
-	: gdbstub_enabled(false), gdbstub_port(1337), pin_to_main(true), break_on_start(true), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true), show_symbols(true) {}
-	
-	bool gdbstub_enabled;
-	uint16_t gdbstub_port;
+	: pin_to_main(true), break_on_start(true), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true), show_symbols(true) {}
 	
 	bool pin_to_main;
 	bool break_on_start;

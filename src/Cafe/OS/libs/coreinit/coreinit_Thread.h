@@ -514,7 +514,7 @@ namespace coreinit
 	sint32 OSResumeThread(OSThread_t* thread);
 	void OSContinueThread(OSThread_t* thread);
 	void __OSSuspendThreadInternal(OSThread_t* thread);
-    void __OSSuspendThreadNolock(OSThread_t* thread);
+	void __OSSuspendThreadNolock(OSThread_t* thread);
 	void OSSuspendThread(OSThread_t* thread);
 	void OSSleepThread(OSThreadQueue* threadQueue);
 	void OSWakeupThread(OSThreadQueue* threadQueue);
@@ -526,7 +526,7 @@ namespace coreinit
 
 	bool OSIsThreadTerminated(OSThread_t* thread);
 	bool OSIsThreadSuspended(OSThread_t* thread);
-    bool OSIsThreadRunning(OSThread_t* thread);
+	bool OSIsThreadRunning(OSThread_t* thread);
 
 	// OSThreadQueue
 	void OSInitThreadQueue(OSThreadQueue* threadQueue);
