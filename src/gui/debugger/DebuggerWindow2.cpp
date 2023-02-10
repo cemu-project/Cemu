@@ -26,7 +26,6 @@ enum
 	// file
 	MENU_ID_FILE_EXIT = wxID_HIGHEST + 8000,
 	// settings
-	MENU_ID_OPTIONS_ENABLE_GDBSTUB,
 	MENU_ID_OPTIONS_PIN_TO_MAINWINDOW,
 	MENU_ID_OPTIONS_BREAK_ON_START,
 	// window
@@ -67,8 +66,6 @@ wxBEGIN_EVENT_TABLE(DebuggerWindow2, wxFrame)
 	EVT_COMMAND(wxID_ANY, wxEVT_NOTIFY_MODULE_UNLOADED, DebuggerWindow2::OnNotifyModuleUnloaded)
 	// file menu
 	EVT_MENU(MENU_ID_FILE_EXIT, DebuggerWindow2::OnExit)
-	// setting
-	EVT_MENU(MENU_ID_OPTIONS_ENABLE_GDBSTUB, DebuggerWindow2::OnOptionsInput)
 	// window
 	EVT_MENU_RANGE(MENU_ID_WINDOW_REGISTERS, MENU_ID_WINDOW_MODULE, DebuggerWindow2::OnWindowMenu)
 wxEND_EVENT_TABLE()
@@ -77,13 +74,8 @@ DebuggerWindow2* g_debugger_window;
 
 void DebuggerConfig::Load(XMLConfigParser& parser)
 {
-	auto gdbstub_parser = parser.get("GDBStub");
-	gdbstub_enabled = parser.get("Enabled", false);
-	gdbstub_port = parser.get("Port", 1337);
-	
 	pin_to_main = parser.get("PinToMainWindow", true);
 	break_on_start = parser.get("break_on_start", true);
-	
 
 	auto window_parser = parser.get("Windows");
 	show_register = window_parser.get("Registers", true);
@@ -96,10 +88,6 @@ void DebuggerConfig::Load(XMLConfigParser& parser)
 
 void DebuggerConfig::Save(XMLConfigParser& parser)
 {
-	auto gdbstub_parser = parser.set("GDBStub");
-	gdbstub_parser.set("gdbstub_enabled", gdbstub_enabled);
-	gdbstub_parser.set("gdbstub_port", gdbstub_port);
-	
 	parser.set("PinToMainWindow", pin_to_main);
 	parser.set("break_on_start", break_on_start);
 	
@@ -334,11 +322,6 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	m_module_window = new ModuleWindow(*this, m_main_position, m_main_size);
 	m_symbol_window = new SymbolWindow(*this, m_main_position, m_main_size);
 
-	if (m_config.data().gdbstub_enabled)
-	{
-		g_gdbstub = std::make_unique<GDBServer>(m_config.data().gdbstub_port);
-	}
-
 	const bool value = m_config.data().pin_to_main;
 	m_config.data().pin_to_main = true;
 	OnParentMove(m_main_position, m_main_size);
@@ -485,7 +468,7 @@ bool DebuggerWindow2::Show(bool show)
 
 std::wstring DebuggerWindow2::GetModuleStoragePath(std::string module_name, uint32_t crc_hash) const
 {
-	if (module_name.empty() || crc_hash == 0) return std::wstring();
+	if (module_name.empty() || crc_hash == 0) return {};
 	return ActiveSettings::GetConfigPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
 }
 
@@ -546,28 +529,6 @@ void DebuggerWindow2::OnOptionsInput(wxCommandEvent& event)
 {
 	switch (event.GetId())
 	{
-	case MENU_ID_OPTIONS_ENABLE_GDBSTUB:
-	{
-		const bool enabled = !m_config.data().gdbstub_enabled;
-		m_config.data().gdbstub_enabled = enabled;
-		
-		if (enabled && !g_gdbstub)
-		{
-            g_gdbstub = std::make_unique<GDBServer>(m_config.data().gdbstub_port);
-            g_gdbstub->Initialize();
-
-			if (debuggerState.breakOnEntry)
-			{
-				while (!g_gdbstub->IsConnected()) std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			}
-		}
-		else
-		{
-            g_gdbstub.reset();
-		}
-		
-		break;
-	}
 	case MENU_ID_OPTIONS_PIN_TO_MAINWINDOW:
 	{
 		const bool value = !m_config.data().pin_to_main;
@@ -673,7 +634,6 @@ void DebuggerWindow2::CreateMenuBar()
 
 	// options
 	wxMenu* options_menu = new wxMenu;
-	options_menu->Append(MENU_ID_OPTIONS_ENABLE_GDBSTUB, _("&Enable GDB Server"), wxEmptyString, wxITEM_CHECK)->Check(m_config.data().gdbstub_enabled);
 	options_menu->Append(MENU_ID_OPTIONS_PIN_TO_MAINWINDOW, _("&Pin to main window"), wxEmptyString, wxITEM_CHECK)->Check(m_config.data().pin_to_main);
 	options_menu->Append(MENU_ID_OPTIONS_BREAK_ON_START, _("Break on &entry point"), wxEmptyString, wxITEM_CHECK)->Check(m_config.data().break_on_start);
 	menu_bar->Append(options_menu, _("&Options"));

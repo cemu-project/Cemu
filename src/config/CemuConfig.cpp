@@ -336,6 +336,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 #elif BOOST_OS_UNIX
 	crash_dump = debug.get("CrashDumpUnix", crash_dump);
 #endif
+	gdb_port = debug.get("GDBPort", 1337);
 
 	// input
 	auto input = parser.get("Input");
@@ -515,6 +516,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 #elif BOOST_OS_UNIX
 	debug.set("CrashDumpUnix", crash_dump.GetValue());
 #endif
+	debug.set("GDBPort", gdb_port);
 
 	// input
 	auto input = config.set("Input");

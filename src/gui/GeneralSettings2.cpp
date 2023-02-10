@@ -770,27 +770,42 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 	auto* panel = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 	auto* debug_panel_sizer = new wxBoxSizer(wxVERTICAL);
 
-	auto* debug_row = new wxFlexGridSizer(0, 2, 0, 0);
-	debug_row->SetFlexibleDirection(wxBOTH);
-	debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+	{
+		auto* debug_row = new wxFlexGridSizer(0, 2, 0, 0);
+		debug_row->SetFlexibleDirection(wxBOTH);
+		debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-	debug_row->Add(new wxStaticText(panel, wxID_ANY, _("Crash dump"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("Crash dump"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 #if BOOST_OS_WINDOWS
-	wxString dump_choices[] = { _("Disabled"), _("Lite"), _("Full") };
+		wxString dump_choices[] = {_("Disabled"), _("Lite"), _("Full")};
 #elif BOOST_OS_UNIX
-	wxString dump_choices[] = { _("Disabled"), _("Enabled") };
+		wxString dump_choices[] = {_("Disabled"), _("Enabled")};
 #endif
-	m_crash_dump = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(dump_choices), dump_choices);
-	m_crash_dump->SetSelection(0);
+		m_crash_dump = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(dump_choices), dump_choices);
+		m_crash_dump->SetSelection(0);
 #if BOOST_OS_WINDOWS
-	m_crash_dump->SetToolTip(_("Creates a dump when Cemu crashes\nOnly enable when requested by a developer!\nThe Full option will create a very large dump file (includes a full RAM dump of the Cemu process)"));
+		m_crash_dump->SetToolTip(_("Creates a dump when Cemu crashes\nOnly enable when requested by a developer!\nThe Full option will create a very large dump file (includes a full RAM dump of the Cemu process)"));
 #elif BOOST_OS_UNIX
-	m_crash_dump->SetToolTip(_("Creates a core dump when Cemu crashes\nOnly enable when requested by a developer!"));
+		m_crash_dump->SetToolTip(_("Creates a core dump when Cemu crashes\nOnly enable when requested by a developer!"));
 #endif
-	debug_row->Add(m_crash_dump, 0, wxALL | wxEXPAND, 5);
+		debug_row->Add(m_crash_dump, 0, wxALL | wxEXPAND, 5);
+		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
+	}
 
-	debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
+	{
+		auto* debug_row = new wxFlexGridSizer(0, 2, 0, 0);
+		debug_row->SetFlexibleDirection(wxBOTH);
+		debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("GDB Stub port"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+		m_gdb_port = new wxSpinCtrl(panel, wxID_ANY, wxT("1337"), wxDefaultPosition, wxDefaultSize, 0, 1000, 65535);
+		m_gdb_port->SetToolTip(_("Changes the port that the GDB stub will use, which you can use by either starting Cemu with the --enable-gdbstub option or by enabling it the Debug tab."));
+
+		debug_row->Add(m_gdb_port, 0, wxALL | wxEXPAND, 5);
+		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
+	}
 
 	panel->SetSizerAndFit(debug_panel_sizer);
 
@@ -1002,6 +1017,7 @@ void GeneralSettings2::StoreConfig()
 
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
+	config.gdb_port = m_gdb_port->GetValue();
 
 	g_config.Save();
 }
@@ -1619,6 +1635,7 @@ void GeneralSettings2::ApplyConfig()
 
 	// debug
 	m_crash_dump->SetSelection((int)config.crash_dump.GetValue());
+	m_gdb_port->SetValue(config.gdb_port.GetValue());
 }
 
 void GeneralSettings2::OnOnlineEnable(wxCommandEvent& event)
