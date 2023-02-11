@@ -40,6 +40,7 @@ add_library(CemuCafe
   HW/Espresso/Debugger/DebugSymbolStorage.h
   HW/Espresso/Debugger/GDBStub.h
   HW/Espresso/Debugger/GDBStub.cpp
+  HW/Espresso/Debugger/GDBBreakpoints.h
   HW/Espresso/EspressoISA.h
   HW/Espresso/Interpreter/PPCInterpreterALU.hpp
   HW/Espresso/Interpreter/PPCInterpreterFPU.cpp
@@ -466,7 +467,7 @@ add_library(CemuCafe
   TitleList/TitleInfo.h
   TitleList/TitleList.cpp
   TitleList/TitleList.h
-        )
+)
 
 if(APPLE)
 	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")

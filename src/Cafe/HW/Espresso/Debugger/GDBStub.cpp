@@ -1,6 +1,7 @@
 #include "GDBStub.h"
 #include "Debugger.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
+#include "GDBBreakpoints.h"
 #include "util/helpers/helpers.h"
 #include "util/ThreadPool/ThreadPool.h"
 #include "Cafe/OS/RPL/rpl.h"
@@ -363,73 +364,6 @@ void GDBServer::ThreadFunc(const std::stop_token& stop_token)
 		closesocket(m_client_socket);
 }
 
-void GDBServer::insertBreakpoint(MPTR address, bool visible, bool pauseThreads, bool restoreAfterInterrupt, bool deleteAfterInterrupt)
-{
-	// cemuLog_logDebug(LogType::Force, "[GDBStub] Inserting breakpoint for {:08x}, restoreAfterInterrupt = {}, deleteAfterInterrupt = {}, pauseThreads = {}", address, restoreAfterInterrupt, deleteAfterInterrupt, pauseThreads);
-	if (auto bpIt = m_patchedInstructions.find(address); bpIt != m_patchedInstructions.end())
-	{
-		if (!bpIt->second.pauseThreads && pauseThreads)
-		{
-			// cemuLog_logDebug(LogType::Force, "[GDBStub] Upgraded restore point to breakpoint");
-			bpIt->second.pauseThreads = true;
-			bpIt->second.restoreAfterInterrupt = restoreAfterInterrupt;
-		}
-		else
-		{
-			// breakpoint already exists and wasn't previously restore point
-			cemu_assert_suspicious();
-			return;
-		}
-	}
-
-	uint32 origOpCode = memory_readU32(address);
-	memory_writeU32(address, DEBUGGER_BP_T_GDBSTUB_TW);
-	PPCRecompiler_invalidateRange(address, address + 4);
-
-	m_patchedInstructions.emplace(address, GDBServer::Breakpoint{
-											   .address = address,
-											   .origOpCode = origOpCode,
-											   .visible = visible,
-											   .pauseThreads = pauseThreads,
-											   .restoreAfterInterrupt = restoreAfterInterrupt,
-											   .deleteAfterInterrupt = deleteAfterInterrupt,
-											   .removedAfterInterrupt = false});
-}
-
-void GDBServer::restoreBreakpoint(MPTR address)
-{
-	// cemuLog_logDebug(LogType::Force, "[GDBStub] Restoring breakpoint for {:08x}", address);
-	if (!m_patchedInstructions.contains(address))
-	{
-		// Restoring a breakpoint on an address that has no breakpoints?
-		cemu_assert_suspicious();
-		return;
-	}
-
-	memory_writeU32(address, DEBUGGER_BP_T_GDBSTUB_TW);
-	PPCRecompiler_invalidateRange(address, address + 4);
-	m_patchedInstructions[address].removedAfterInterrupt = false;
-}
-
-void GDBServer::deleteBreakpoint(MPTR address, bool softRemove = false)
-{
-	// cemuLog_logDebug(LogType::Force, "[GDBStub] {} breakpoint for {:08x}", softRemove ? "Remove" : "Delete", address);
-	if (!m_patchedInstructions.contains(address))
-	{
-		// Removing a breakpoint on an address that has no breakpoints?
-		cemu_assert_suspicious();
-		return;
-	}
-
-	memory_writeU32(address, m_patchedInstructions[address].origOpCode);
-	PPCRecompiler_invalidateRange(address, address + 4);
-
-	if (softRemove)
-		m_patchedInstructions[address].removedAfterInterrupt = true;
-	else
-		m_patchedInstructions.erase(address);
-}
-
 void GDBServer::HandleCommand(const std::string& command_str)
 {
 	auto context = std::make_unique<CommandContext>(this, command_str);
@@ -636,13 +570,10 @@ void GDBServer::HandleVCont(std::unique_ptr<CommandContext>& context)
 
 	const std::string& vcont_cmd = context->GetArgs()[0];
 	if (vcont_cmd == "vCont?")
-	{
 		return context->QueueResponse("vCont;c;C;s;S");
-	}
+
 	else if (vcont_cmd != "vCont;")
-	{
 		return context->QueueResponse(RESPONSE_EMPTY);
-	}
 
 	m_resumed_context = std::move(context);
 
@@ -667,10 +598,11 @@ void GDBServer::HandleVCont(std::unique_ptr<CommandContext>& context)
 				auto nextInstructions = findNextInstruction(thread->context.srr0, thread->context.lr, thread->context.ctr);
 				for (MPTR nextInstr : nextInstructions)
 				{
-					if (auto bpIt = m_patchedInstructions.find(nextInstr); bpIt == m_patchedInstructions.end() || !bpIt->second.pauseThreads)
-					{
-						this->insertBreakpoint(nextInstr, false, true, false, true);
-					}
+					auto bpIt = m_patchedInstructions.find(nextInstr);
+					if (bpIt == m_patchedInstructions.end())
+						this->m_patchedInstructions.try_emplace(nextInstr, nextInstr, BreakpointType::BP_STEP_POINT, false);
+					else
+						bpIt->second.PauseOnNextInterrupt();
 				}
 			});
 		}
@@ -857,12 +789,9 @@ void GDBServer::CMDReadMemory(std::unique_ptr<CommandContext>& context)
 	auto patchesRange = m_patchedInstructions.lower_bound(addr);
 	while (patchesRange != m_patchedInstructions.end() && patchesRange->first < (addr + length))
 	{
-		if (!patchesRange->second.visible)
-		{
-			auto replStr = fmt::format("{:02X}", patchesRange->second.origOpCode);
-			memoryRepr[(patchesRange->first - addr) * 2] = replStr[0];
-			memoryRepr[(patchesRange->first - addr) * 2 + 1] = replStr[1];
-		}
+		auto replStr = fmt::format("{:02X}", patchesRange->second.GetVisibleOpCode());
+		memoryRepr[(patchesRange->first - addr) * 2] = replStr[0];
+		memoryRepr[(patchesRange->first - addr) * 2 + 1] = replStr[1];
 		patchesRange++;
 	}
 	return context->QueueResponse(memoryRepr);
@@ -888,9 +817,11 @@ void GDBServer::CMDWriteMemory(std::unique_ptr<CommandContext>& context)
 
 		if (auto it = m_patchedInstructions.find(addr + i); it != m_patchedInstructions.end())
 		{
-			uint32 byteIndex = 3 - ((addr + i) % 4);						// inverted because of big endian, so address 0 is the highest byte
-			it->second.origOpCode &= ~(0xFF << (byteIndex * 8));			// mask out the byte
-			it->second.origOpCode |= ((uint32)hexValue << (byteIndex * 8)); // set new byte with OR
+			uint32 newOpCode = it->second.GetVisibleOpCode();
+			uint32 byteIndex = 3 - ((addr + i) % 4);			// inverted because of big endian, so address 0 is the highest byte
+			newOpCode &= ~(0xFF << (byteIndex * 8));			// mask out the byte
+			newOpCode |= ((uint32)hexValue << (byteIndex * 8)); // set new byte with OR
+			it->second.WriteNewOpCode(newOpCode);
 		}
 		else
 		{
@@ -908,7 +839,11 @@ void GDBServer::CMDInsertBreakpoint(std::unique_ptr<CommandContext>& context)
 	if (!(type == 0 || type == 1))
 		return context->QueueResponse(RESPONSE_EMPTY);
 
-	insertBreakpoint(addr, type == 0, true, true, false);
+	auto bp = this->m_patchedInstructions.find(addr);
+	if (bp != this->m_patchedInstructions.end())
+		this->m_patchedInstructions.erase(bp);
+	this->m_patchedInstructions.try_emplace(addr, addr, BreakpointType::BP_PERSISTENT, type == 0);
+
 	return context->QueueResponse(RESPONSE_OK);
 }
 
@@ -920,8 +855,11 @@ void GDBServer::CMDDeleteBreakpoint(std::unique_ptr<CommandContext>& context)
 	if (!(type == 0 || type == 1))
 		return context->QueueResponse(RESPONSE_EMPTY);
 
-	deleteBreakpoint(addr);
-	return context->QueueResponse(RESPONSE_OK);
+	auto bp = this->m_patchedInstructions.find(addr);
+	if (bp == this->m_patchedInstructions.end() || !bp->second.ShouldBreakThreads())
+		return context->QueueResponse(RESPONSE_OK);
+	else
+		this->m_patchedInstructions.erase(bp);
 }
 
 // Internal functions for control
@@ -930,49 +868,39 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 	// First, restore any removed breakpoints
 	for (auto& bp : m_patchedInstructions)
 	{
-		if (bp.second.removedAfterInterrupt)
-		{
-			restoreBreakpoint(bp.first);
-		}
+		if (bp.second.IsRemoved())
+			bp.second.Restore();
 	}
 
-	// Find patched instruction that triggered trap
 	auto patchedBP = m_patchedInstructions.find(hCPU->instructionPointer);
 	if (patchedBP == m_patchedInstructions.end())
-	{
-		cemu_assert_suspicious();
-		return;
-	}
+		return cemu_assert_suspicious();
 
 	// Secondly, delete one-shot breakpoints but also temporarily delete patched instruction to run original instruction
-	bool pauseThreads = patchedBP->second.pauseThreads;
-	if (patchedBP->second.restoreAfterInterrupt)
+	bool pauseThreads = patchedBP->second.ShouldBreakThreads() || patchedBP->second.ShouldBreakThreadsOnNextInterrupt();
+	if (patchedBP->second.IsPersistent())
 	{
-		// Insert new restore breakpoint at next possible instructions which restores breakpoints but won't pause the CPU
+		// Insert new restore breakpoints at next possible instructions which restores breakpoints but won't pause the CPU
 		std::vector<MPTR> nextInstructions = findNextInstruction(hCPU->instructionPointer, hCPU->spr.LR, hCPU->spr.CTR);
 		for (MPTR nextInstr : nextInstructions)
 		{
 			if (!m_patchedInstructions.contains(nextInstr))
-			{
-				insertBreakpoint(nextInstr, false, false, false, true);
-			}
+				this->m_patchedInstructions.try_emplace(nextInstr, nextInstr, BreakpointType::BP_STEP_POINT, false);
 		}
-
-		// Disable current BP breakpoint to run original instruction
-		deleteBreakpoint(patchedBP->first, true);
+		patchedBP->second.RemoveTemporarily();
 	}
 	else
 	{
-		deleteBreakpoint(patchedBP->first);
+		m_patchedInstructions.erase(patchedBP);
 	}
 
 	// Thirdly, delete any instructions that were generated by a skip instruction
 	for (auto it = m_patchedInstructions.cbegin(), next_it = it; it != m_patchedInstructions.cend(); it = next_it)
 	{
 		++next_it;
-		if (it->second.deleteAfterInterrupt)
+		if (it->second.IsSkipBreakpoint())
 		{
-			deleteBreakpoint(it->first);
+			m_patchedInstructions.erase(it);
 		}
 	}
 
@@ -993,6 +921,6 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 
 void GDBServer::HandleEntryStop(uint32 entryAddress)
 {
-	insertBreakpoint(entryAddress, false, true, true, false);
+	this->m_patchedInstructions.try_emplace(entryAddress, entryAddress, BreakpointType::BP_SINGLE, false);
 	m_entry_point = entryAddress;
 }

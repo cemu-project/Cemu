@@ -160,21 +160,8 @@ class GDBServer {
 		std::string m_response;
 	};
 
-	struct Breakpoint
-	{
-		MPTR address;
-		uint32 origOpCode;
-		bool visible;
-		bool pauseThreads;
-		// type
-		bool restoreAfterInterrupt;
-		bool deleteAfterInterrupt;
-		bool removedAfterInterrupt;
-	};
-	std::map<MPTR, Breakpoint> m_patchedInstructions;
-	void insertBreakpoint(MPTR address, bool visible, bool pauseThreads, bool restoreAfterInterrupt, bool deleteAfterInterrupt);
-	void restoreBreakpoint(MPTR address);
-	void deleteBreakpoint(MPTR address, bool softRemove);
+	class ExecutionBreakpoint;
+	std::map<MPTR, ExecutionBreakpoint> m_patchedInstructions;
 
   private:
 	static constexpr int s_maxGDBClients = 1;
