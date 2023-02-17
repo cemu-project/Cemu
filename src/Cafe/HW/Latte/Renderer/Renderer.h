@@ -7,6 +7,7 @@
 #include "Cafe/HW/Latte/Core/LatteTextureReadbackInfo.h"
 #include "Cafe/HW/Latte/Core/LatteQueryObject.h"
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
+#include <imgui.h>
 
 #if BOOST_OS_WINDOWS
 #include "util/DXGIWrapper/DXGIWrapper.h"
@@ -51,8 +52,8 @@ public:
 
 	virtual RendererAPI GetType() = 0;
 
-	virtual void Initialize() {}
-	virtual void Shutdown() {}
+	virtual void Initialize();
+	virtual void Shutdown();
 	virtual bool IsPadWindowActive() = 0;
 
 	virtual bool GetVRAMInfo(int& usageInMB, int& totalInMB) const;
@@ -169,6 +170,11 @@ protected:
 	};
 	ScreenshotState m_screenshot_state = ScreenshotState::None;
 	void SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const;
+
+
+	ImFontAtlas* imguiFontAtlas{};
+	ImGuiContext* imguiTVContext{};
+	ImGuiContext* imguiPadContext{};
 
 #if BOOST_OS_WINDOWS
 	std::unique_ptr<DXGIWrapper> m_dxgi_wrapper{};
