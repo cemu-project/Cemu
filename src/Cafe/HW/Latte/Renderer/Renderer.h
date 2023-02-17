@@ -7,11 +7,14 @@
 #include "Cafe/HW/Latte/Core/LatteTextureReadbackInfo.h"
 #include "Cafe/HW/Latte/Core/LatteQueryObject.h"
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
-#include <imgui.h>
 
 #if BOOST_OS_WINDOWS
 #include "util/DXGIWrapper/DXGIWrapper.h"
 #endif
+
+// imgui forward declarations
+struct ImFontAtlas;
+struct ImGuiContext;
 
 enum class GfxVendor
 {
