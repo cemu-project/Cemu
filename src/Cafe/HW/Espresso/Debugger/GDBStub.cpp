@@ -326,8 +326,16 @@ void GDBServer::ThreadFunc(const std::stop_token& stop_token)
 				selectAndBreakThread(-1, [](OSThread_t* thread) {
 				});
 				auto thread_status = fmt::format("T05thread:{:08X};", GET_THREAD_ID(coreinit::OSGetDefaultThread(1)));
-				auto response_full = fmt::format("+${}#{:02x}", thread_status, CommandContext::CalculateChecksum(thread_status));
-				send(m_client_socket, response_full.c_str(), (int)response_full.size(), 0);
+				if (this->m_resumed_context)
+				{
+					this->m_resumed_context->QueueResponse(thread_status);
+					this->m_resumed_context.reset();
+				}
+				else
+				{
+					auto response_full = fmt::format("+${}#{:02x}", thread_status, CommandContext::CalculateChecksum(thread_status));
+					send(m_client_socket, response_full.c_str(), (int)response_full.size(), 0);
+				}
 				break;
 			}
 			case '$':
@@ -874,6 +882,8 @@ void GDBServer::CMDDeleteBreakpoint(std::unique_ptr<CommandContext>& context)
 
 		this->m_watch_point.reset();
 	}
+
+	return context->QueueResponse(RESPONSE_OK);
 }
 
 // Internal functions for control
