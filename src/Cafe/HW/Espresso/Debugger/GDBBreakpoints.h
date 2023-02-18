@@ -19,8 +19,6 @@ enum class BreakpointType
 	BP_STEP_POINT
 };
 
-#include <stacktrace>
-
 class GDBServer::ExecutionBreakpoint {
 public:
 	ExecutionBreakpoint(MPTR address, BreakpointType type, bool visible, std::string reason)
