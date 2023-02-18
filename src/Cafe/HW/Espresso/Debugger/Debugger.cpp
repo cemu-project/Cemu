@@ -171,14 +171,25 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 		{
 			ctx.Dr0 = (DWORD64)memory_getPointerFromVirtualOffset(bp->address);
 			ctx.Dr1 = (DWORD64)memory_getPointerFromVirtualOffset(bp->address);
-			ctx.Dr7 = 1 | (1 << 16) | (3 << 18); // enable dr0, track write, 4 byte length
-			ctx.Dr7 |= (4 | (3 << 20) | (3 << 22)); // enable dr1, track read+write, 4 byte length
+			// breakpoint 0
+			SetBits(ctx.Dr7, 0, 1, 1);  // breakpoint #0 enabled: true
+			SetBits(ctx.Dr7, 16, 2, 1); // breakpoint #0 condition: 1 (write)
+			SetBits(ctx.Dr7, 18, 2, 3); // breakpoint #0 length: 3 (4 bytes)
+			// breakpoint 1
+			SetBits(ctx.Dr7, 2, 1, 1);  // breakpoint #1 enabled: true
+			SetBits(ctx.Dr7, 20, 2, 3); // breakpoint #1 condition: 3 (read & write)
+			SetBits(ctx.Dr7, 22, 2, 3); // breakpoint #1 length: 3 (4 bytes)
 		}
 		else
 		{
-			ctx.Dr0 = (DWORD64)0;
-			ctx.Dr1 = (DWORD64)0;
-			ctx.Dr7 = 0; // disable dr0
+			// breakpoint 0
+			SetBits(ctx.Dr7, 0, 1, 0);  // breakpoint #0 enabled: false
+			SetBits(ctx.Dr7, 16, 2, 0); // breakpoint #0 condition: 1 (write)
+			SetBits(ctx.Dr7, 18, 2, 0); // breakpoint #0 length: 3 (4 bytes)
+			// breakpoint 1
+			SetBits(ctx.Dr7, 2, 1, 0);  // breakpoint #1 enabled: false
+			SetBits(ctx.Dr7, 20, 2, 0); // breakpoint #1 condition: 3 (read & write)
+			SetBits(ctx.Dr7, 22, 2, 0); // breakpoint #1 length: 3 (4 bytes)
 		}
 		SetThreadContext(hThread, &ctx);
 		ResumeThread(hThread);
@@ -188,10 +199,10 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 	#endif
 }
 
-void debugger_handleSingleStepException(uint32 drMask)
+void debugger_handleSingleStepException(uint64 dr6)
 {
-	bool triggeredDR0 = (drMask & (1 << 0)) != 0; // write
-	bool triggeredDR1 = (drMask & (1 << 1)) != 0; // read
+	bool triggeredDR0 = GetBits(dr6, 0, 1); // write
+	bool triggeredDR1 = GetBits(dr6, 1, 1); // read and write
 	bool catchBP = false;
 	if (triggeredDR0 && triggeredDR1)
 	{

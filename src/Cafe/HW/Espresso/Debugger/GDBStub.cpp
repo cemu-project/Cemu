@@ -167,7 +167,7 @@ static void selectAndResumeThread(sint64 selectorId)
 	__OSUnlockScheduler();
 }
 
-static void waitForBrokenThreads(std::unique_ptr<GDBServer::CommandContext> context)
+static void waitForBrokenThreads(std::unique_ptr<GDBServer::CommandContext> context, std::string_view reason)
 {
 	// This should pause all threads except trapped thread
 	// It should however wait for the trapped thread
@@ -186,7 +186,7 @@ static void waitForBrokenThreads(std::unique_ptr<GDBServer::CommandContext> cont
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
 
-	context->QueueResponse("S05");
+	context->QueueResponse(reason);
 }
 
 static void breakThreads(sint64 trappedThread)
@@ -500,7 +500,7 @@ void GDBServer::HandleQuery(std::unique_ptr<CommandContext>& context) const
 			std::map<sint64, std::string> threads_list;
 			selectThread(-1, [&threads_list](OSThread_t* thread) {
 				std::string entry;
-				entry += fmt::format(R"(<thread id="{:x}" core="{}")", GET_THREAD_ID(thread), thread->context.affinity.value());
+				entry += fmt::format(R"(<thread id="{:x}" core="{}")", GET_THREAD_ID(thread), thread->context.upir.value());
 				if (!thread->threadName.IsNull())
 					entry += fmt::format(R"( name="{}")", CommandContext::EscapeXMLString(thread->threadName.GetPtr()));
 				// todo: could add a human-readable description of the thread here
@@ -600,7 +600,7 @@ void GDBServer::HandleVCont(std::unique_ptr<CommandContext>& context)
 				{
 					auto bpIt = m_patchedInstructions.find(nextInstr);
 					if (bpIt == m_patchedInstructions.end())
-						this->m_patchedInstructions.try_emplace(nextInstr, nextInstr, BreakpointType::BP_STEP_POINT, false);
+						this->m_patchedInstructions.try_emplace(nextInstr, nextInstr, BreakpointType::BP_STEP_POINT, false, "swbreak:;");
 					else
 						bpIt->second.PauseOnNextInterrupt();
 				}
@@ -628,7 +628,7 @@ void GDBServer::CMDNotFound(std::unique_ptr<CommandContext>& context)
 
 void GDBServer::CMDIsThreadActive(std::unique_ptr<CommandContext>& context)
 {
-	sint64 threadSelector = std::stoll(context->GetArgs()[2], nullptr, 16);
+	sint64 threadSelector = std::stoll(context->GetArgs()[1], nullptr, 16);
 	bool foundThread = false;
 	selectThread(threadSelector, [&foundThread](OSThread_t* thread) {
 		foundThread = true;
@@ -836,13 +836,20 @@ void GDBServer::CMDInsertBreakpoint(std::unique_ptr<CommandContext>& context)
 	auto type = std::stoul(context->GetArgs()[1], nullptr, 16);
 	MPTR addr = static_cast<MPTR>(std::stoul(context->GetArgs()[2], nullptr, 16));
 
-	if (!(type == 0 || type == 1))
-		return context->QueueResponse(RESPONSE_EMPTY);
+	if (type == 0 || type == 1)
+	{
+		auto bp = this->m_patchedInstructions.find(addr);
+		if (bp != this->m_patchedInstructions.end())
+			this->m_patchedInstructions.erase(bp);
+		this->m_patchedInstructions.try_emplace(addr, addr, BreakpointType::BP_PERSISTENT, type == 0, type == 0 ? "swbreak:;" : "hwbreak:;");
+	}
+	else if (type == 2 || type == 3 || type == 4)
+	{
+		if (this->m_watch_point)
+			return context->QueueResponse(RESPONSE_ERROR);
 
-	auto bp = this->m_patchedInstructions.find(addr);
-	if (bp != this->m_patchedInstructions.end())
-		this->m_patchedInstructions.erase(bp);
-	this->m_patchedInstructions.try_emplace(addr, addr, BreakpointType::BP_PERSISTENT, type == 0);
+		this->m_watch_point = std::make_unique<AccessBreakpoint>(addr, (AccessPointType)type);
+	}
 
 	return context->QueueResponse(RESPONSE_OK);
 }
@@ -852,14 +859,21 @@ void GDBServer::CMDDeleteBreakpoint(std::unique_ptr<CommandContext>& context)
 	auto type = std::stoul(context->GetArgs()[1], nullptr, 16);
 	MPTR addr = static_cast<MPTR>(std::stoul(context->GetArgs()[2], nullptr, 16));
 
-	if (!(type == 0 || type == 1))
-		return context->QueueResponse(RESPONSE_EMPTY);
+	if (type == 0 || type == 1)
+	{
+		auto bp = this->m_patchedInstructions.find(addr);
+		if (bp == this->m_patchedInstructions.end() || !bp->second.ShouldBreakThreads())
+			return context->QueueResponse(RESPONSE_ERROR);
+		else
+			this->m_patchedInstructions.erase(bp);
+	}
+	else if (type == 2 || type == 3 || type == 4)
+	{
+		if (!this->m_watch_point || this->m_watch_point->GetAddress() != addr)
+			return context->QueueResponse(RESPONSE_ERROR);
 
-	auto bp = this->m_patchedInstructions.find(addr);
-	if (bp == this->m_patchedInstructions.end() || !bp->second.ShouldBreakThreads())
-		return context->QueueResponse(RESPONSE_OK);
-	else
-		this->m_patchedInstructions.erase(bp);
+		this->m_watch_point.reset();
+	}
 }
 
 // Internal functions for control
@@ -877,6 +891,8 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 		return cemu_assert_suspicious();
 
 	// Secondly, delete one-shot breakpoints but also temporarily delete patched instruction to run original instruction
+	OSThread_t* currThread = coreinitThread_getCurrentThreadDepr(hCPU);
+	std::string pauseReason = fmt::format("T05thread:{:08X};core:{:02X};{}", GET_THREAD_ID(currThread), PPCInterpreter_getCoreIndex(hCPU), patchedBP->second.GetReason());
 	bool pauseThreads = patchedBP->second.ShouldBreakThreads() || patchedBP->second.ShouldBreakThreadsOnNextInterrupt();
 	if (patchedBP->second.IsPersistent())
 	{
@@ -885,7 +901,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 		for (MPTR nextInstr : nextInstructions)
 		{
 			if (!m_patchedInstructions.contains(nextInstr))
-				this->m_patchedInstructions.try_emplace(nextInstr, nextInstr, BreakpointType::BP_STEP_POINT, false);
+				this->m_patchedInstructions.try_emplace(nextInstr, nextInstr, BreakpointType::BP_STEP_POINT, false, "");
 		}
 		patchedBP->second.RemoveTemporarily();
 	}
@@ -911,7 +927,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 		if (m_resumed_context)
 		{
 			// Spin up thread to signal when another GDB stub trap is found
-			ThreadPool::FireAndForget(&waitForBrokenThreads, std::move(m_resumed_context));
+			ThreadPool::FireAndForget(&waitForBrokenThreads, std::move(m_resumed_context), pauseReason);
 		}
 
 		breakThreads(GET_THREAD_ID(coreinitThread_getCurrentThreadDepr(hCPU)));
@@ -919,8 +935,36 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 	}
 }
 
+void GDBServer::HandleAccessException(uint64 dr6)
+{
+	bool triggeredWrite = GetBits(dr6, 2, 1);
+	bool triggeredReadWrite = GetBits(dr6, 3, 1);
+
+	std::string response;
+	if (m_watch_point->GetType() == AccessPointType::BP_WRITE && triggeredWrite)
+		response = fmt::format("watch:{:08X};", m_watch_point->GetAddress());
+	else if (m_watch_point->GetType() == AccessPointType::BP_READ && triggeredReadWrite && !triggeredWrite)
+		response = fmt::format("rwatch:{:08X};", m_watch_point->GetAddress());
+	else if (m_watch_point->GetType() == AccessPointType::BP_BOTH && triggeredReadWrite)
+		response = fmt::format("awatch:{:08X};", m_watch_point->GetAddress());
+
+	if (!response.empty())
+	{
+		cemuLog_logDebug(LogType::Force, "Received matching breakpoint exception: {}", response);
+		auto nextInstructions = findNextInstruction(ppcInterpreterCurrentInstance->instructionPointer, ppcInterpreterCurrentInstance->spr.LR, ppcInterpreterCurrentInstance->spr.CTR);
+		for (MPTR nextInstr : nextInstructions)
+		{
+			auto bpIt = m_patchedInstructions.find(nextInstr);
+			if (bpIt == m_patchedInstructions.end())
+				this->m_patchedInstructions.try_emplace(nextInstr, nextInstr, BreakpointType::BP_STEP_POINT, false, response);
+			else
+				bpIt->second.PauseOnNextInterrupt();
+		}
+	}
+}
+
 void GDBServer::HandleEntryStop(uint32 entryAddress)
 {
-	this->m_patchedInstructions.try_emplace(entryAddress, entryAddress, BreakpointType::BP_SINGLE, false);
+	this->m_patchedInstructions.try_emplace(entryAddress, entryAddress, BreakpointType::BP_SINGLE, false, "");
 	m_entry_point = entryAddress;
 }

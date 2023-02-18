@@ -6,7 +6,7 @@
 #include <numeric>
 
 class GDBServer {
-  public:
+public:
 	explicit GDBServer(uint16 port);
 	~GDBServer();
 
@@ -18,6 +18,7 @@ class GDBServer {
 
 	void HandleEntryStop(uint32 entryAddress);
 	void HandleTrapInstruction(PPCInterpreter_t* hCPU);
+	void HandleAccessException(uint64 dr6);
 
 	enum class CMDType : char
 	{
@@ -43,7 +44,7 @@ class GDBServer {
 	};
 
 	class CommandContext {
-	  public:
+	public:
 		CommandContext(const GDBServer* server, const std::string& command)
 			: m_server(server), m_command(command)
 		{
@@ -129,7 +130,7 @@ class GDBServer {
 			m_response += data;
 		}
 
-	  private:
+	private:
 		const std::regex m_regex{
 			R"((?:)"
 			R"((\?))"
@@ -142,6 +143,7 @@ class GDBServer {
 			R"(|(qXfer):((?:features)|(?:threads)|(?:libraries)):read:([\w\.]*):([0-9a-zA-Z]+),([0-9a-zA-Z]+))"
 			R"(|(qfThreadInfo))"
 			R"(|(qsThreadInfo))"
+			R"(|(T)((?:-1)|(?:[0-9A-Fa-f]+)))"
 			R"(|(D))"											  // Detach
 			R"(|(H)(c|g)((?:-1)|(?:[0-9A-Fa-f]+)))"				  // Set active thread for other operations (not c)
 			R"(|(c)([0-9A-Fa-f]+)?)"							  // (Legacy, supported by vCont) Continue all for active thread
@@ -163,7 +165,10 @@ class GDBServer {
 	class ExecutionBreakpoint;
 	std::map<MPTR, ExecutionBreakpoint> m_patchedInstructions;
 
-  private:
+	class AccessBreakpoint;
+	std::unique_ptr<AccessBreakpoint> m_watch_point;
+
+private:
 	static constexpr int s_maxGDBClients = 1;
 	static constexpr std::string_view s_supportedFeatures = "PacketSize=4096;qXfer:features:read+;qXfer:threads:read+;qXfer:libraries:read+;swbreak+;hwbreak+;vContSupported+";
 	static constexpr size_t s_maxPacketSize = 1024 * 4;
@@ -172,7 +177,7 @@ class GDBServer {
 	enum RegisterID
 	{
 		R0_START = 0,
-		R31_END = 0 + 31,
+		R31_END = R0_START + 31,
 		PC = 64,
 		MSR = 65,
 		CR = 66,
@@ -180,7 +185,7 @@ class GDBServer {
 		CTR = 68,
 		XER = 69,
 		F0_START = 71,
-		F31_END = 71 + 31,
+		F31_END = F0_START + 31,
 		FPSCR = 103
 	};
 
