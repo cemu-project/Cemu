@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common/precompiled.h"
+#include "Common/socket.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 
 #include <numeric>
