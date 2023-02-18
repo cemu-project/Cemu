@@ -80,7 +80,7 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 	{
 		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 		ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-		if (ImGui_BeginPadDistinct("Stats overlay", nullptr, kPopupFlags, pad))
+		if (ImGui::Begin("Stats overlay", nullptr, kPopupFlags))
 		{
 			if (config.overlay.fps)
 				ImGui::Text("FPS: %.2lf", g_state.fps);
@@ -141,7 +141,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				// active account
 				ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 				ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-				if (ImGui_BeginPadDistinct("Active account", nullptr, kPopupFlags, pad))
+				if (ImGui::Begin("Active account", nullptr, kPopupFlags))
 				{
 					ImGui::TextUnformatted((const char*)ICON_FA_USER);
 					ImGui::SameLine();
@@ -179,7 +179,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 				{
 					ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 					ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-					if (ImGui_BeginPadDistinct("Controller profile names", nullptr, kPopupFlags, pad))
+					if (ImGui::Begin("Controller profile names", nullptr, kPopupFlags))
 					{
 						auto it = profiles.cbegin();
 						ImGui::TextUnformatted((const char*)ICON_FA_GAMEPAD);
@@ -227,7 +227,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 		{
 			ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 			ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-			if (ImGui_BeginPadDistinct("Friends overlay", nullptr, kPopupFlags, pad))
+			if (ImGui::Begin("Friends overlay", nullptr, kPopupFlags))
 			{
 				const auto tick = tick_cached();
 				for (auto it = s_friend_list.cbegin(); it != s_friend_list.cend();)
@@ -274,7 +274,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 
 			ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 			ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-			if (ImGui_BeginPadDistinct("Low battery overlay", nullptr, kPopupFlags, pad))
+			if (ImGui::Begin("Low battery overlay", nullptr, kPopupFlags))
 			{
 				auto it = batteries.cbegin();
 				ImGui::TextUnformatted((const char*)(s_blink_state ? ICON_FA_BATTERY_EMPTY : ICON_FA_BATTERY_QUARTER));
@@ -322,7 +322,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			{
 				ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 				ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-				if (ImGui_BeginPadDistinct("Compiling shaders overlay", nullptr, kPopupFlags, pad))
+				if (ImGui::Begin("Compiling shaders overlay", nullptr, kPopupFlags))
 				{
 					ImRotateStart();
 					ImGui::TextUnformatted((const char*)ICON_FA_SPINNER);
@@ -377,7 +377,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 			{
 				ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 				ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-				if (ImGui_BeginPadDistinct("Compiling pipeline overlay", nullptr, kPopupFlags, pad))
+				if (ImGui::Begin("Compiling pipeline overlay", nullptr, kPopupFlags))
 				{
 					ImRotateStart();
 					ImGui::TextUnformatted((const char*)ICON_FA_SPINNER);
@@ -446,7 +446,7 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 	{
 		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 		ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-		if (ImGui_BeginPadDistinct("Misc notifications", nullptr, kPopupFlags, pad))
+		if (ImGui::Begin("Misc notifications", nullptr, kPopupFlags))
 		{
 			const auto tick = tick_cached();
 			for (auto it = s_misc_notifications.cbegin(); it != s_misc_notifications.cend();)

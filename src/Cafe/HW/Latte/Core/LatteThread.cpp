@@ -119,17 +119,9 @@ int Latte_ThreadEntry()
 	sint32 w,h;
 	gui_getWindowPhysSize(w,h);
 
-	// imgui
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.WantSaveIniSettings = false;
-	io.IniFilename = nullptr;
-	io.Fonts->AddFontDefault();
-
 	// renderer
 	g_renderer->Initialize();
 	RendererOutputShader::InitializeStatic();
-	io.DisplaySize = ImVec2((float)w, (float)h);
 
 	LatteTiming_Init();
 	LatteTexture_init();

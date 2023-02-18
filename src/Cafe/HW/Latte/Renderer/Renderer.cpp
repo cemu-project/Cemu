@@ -37,6 +37,34 @@ bool Renderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 	return false;
 }
 
+
+void Renderer::Initialize()
+{
+	// imgui
+	imguiFontAtlas = new ImFontAtlas();
+	imguiFontAtlas->AddFontDefault();
+
+	auto setupContext = [](ImGuiContext* context){
+		ImGui::SetCurrentContext(context);
+		ImGuiIO& io = ImGui::GetIO();
+		io.WantSaveIniSettings = false;
+		io.IniFilename = nullptr;
+	};
+
+	imguiTVContext = ImGui::CreateContext(imguiFontAtlas);
+	imguiPadContext = ImGui::CreateContext(imguiFontAtlas);
+	setupContext(imguiTVContext);
+	setupContext(imguiPadContext);
+}
+
+void Renderer::Shutdown()
+{
+	// imgui
+	ImGui::DestroyContext(imguiTVContext);
+	ImGui::DestroyContext(imguiPadContext);
+	delete imguiFontAtlas;
+}
+
 bool Renderer::ImguiBegin(bool mainWindow)
 {
 	sint32 w = 0, h = 0;
@@ -49,6 +77,9 @@ bool Renderer::ImguiBegin(bool mainWindow)
 		
 	if (w == 0 || h == 0)
 		return false;
+
+	// select the right context
+	ImGui::SetCurrentContext(mainWindow ? imguiTVContext : imguiPadContext);
 
 	const Vector2f window_size{ (float)w,(float)h };
 	auto& io = ImGui::GetIO();

@@ -252,6 +252,7 @@ void LoadOpenGLImports()
 
 void OpenGLRenderer::Initialize()
 {
+	Renderer::Initialize();
 	auto lock = cafeLog_acquire();
 	forceLog_printf("------- Init OpenGL graphics backend -------");
 
