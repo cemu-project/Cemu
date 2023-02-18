@@ -44,15 +44,17 @@ void Renderer::Initialize()
 	imguiFontAtlas = new ImFontAtlas();
 	imguiFontAtlas->AddFontDefault();
 
-	auto setupContext = [](ImGuiIO& io){
+	auto setupContext = [](ImGuiContext* context){
+		ImGui::SetCurrentContext(context);
+		ImGuiIO& io = ImGui::GetIO();
 		io.WantSaveIniSettings = false;
 		io.IniFilename = nullptr;
 	};
 
 	imguiTVContext = ImGui::CreateContext(imguiFontAtlas);
-	setupContext(ImGui::GetIO());
 	imguiPadContext = ImGui::CreateContext(imguiFontAtlas);
-	setupContext(ImGui::GetIO());
+	setupContext(imguiTVContext);
+	setupContext(imguiPadContext);
 }
 
 void Renderer::Shutdown()

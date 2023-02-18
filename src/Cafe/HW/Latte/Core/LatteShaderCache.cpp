@@ -268,7 +268,7 @@ void LatteShaderCache_load()
 	g_shaderCacheLoaderState.loadedShaderFiles = 0;
 
 	// get game background loading image
-	auto loadBackroundTexture = [](bool isTV, ImTextureID& out)
+	auto loadBackgroundTexture = [](bool isTV, ImTextureID& out)
 	{
 		TGAFILE file{};
 		out = nullptr;
@@ -295,8 +295,8 @@ void LatteShaderCache_load()
 		}
 	};
 
-	loadBackroundTexture(true, g_shaderCacheLoaderState.textureTVId);
-	loadBackroundTexture(false, g_shaderCacheLoaderState.textureDRCId);
+	loadBackgroundTexture(true, g_shaderCacheLoaderState.textureTVId);
+	loadBackgroundTexture(false, g_shaderCacheLoaderState.textureDRCId);
 
 	sint32 numLoadedShaders = 0;
 	uint32 loadIndex = 0;
@@ -346,13 +346,13 @@ void LatteShaderCache_load()
 
 
 	g_renderer->BeginFrame(true);
-	if(g_renderer->ImguiBegin(true))
+	if (g_renderer->ImguiBegin(true))
 	{
 		LatteShaderCache_drawBackgroundImage(g_shaderCacheLoaderState.textureTVId, 1280, 720);
 		g_renderer->ImguiEnd();
 	}
 	g_renderer->BeginFrame(false);
-	if(g_renderer->ImguiBegin(false))
+	if (g_renderer->ImguiBegin(false))
 	{
 		LatteShaderCache_drawBackgroundImage(g_shaderCacheLoaderState.textureDRCId, 854, 480);
 		g_renderer->ImguiEnd();
@@ -483,7 +483,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 		}
 
 		g_renderer->BeginFrame(false);
-		if(g_renderer->ImguiBegin(false))
+		if (g_renderer->ImguiBegin(false))
 		{
 			LatteShaderCache_drawBackgroundImage(g_shaderCacheLoaderState.textureDRCId, 854, 480);
 			g_renderer->ImguiEnd();
