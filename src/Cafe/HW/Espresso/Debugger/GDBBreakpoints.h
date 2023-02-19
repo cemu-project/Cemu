@@ -189,7 +189,7 @@ public:
 			SetThreadContext(hThread, &ctx);
 			ResumeThread(hThread);
 		}
-#elif defined(ARCH_X86_64) && BOOST_OS_UNIX
+#elif defined(ARCH_X86_64) && BOOST_OS_LINUX
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			pid_t pid = (pid_t)(uintptr_t)hThreadNH;
@@ -243,7 +243,7 @@ public:
 			SetThreadContext(hThread, &ctx);
 			ResumeThread(hThread);
 		}
-#elif defined(ARCH_X86_64) && BOOST_OS_UNIX
+#elif defined(ARCH_X86_64) && BOOST_OS_LINUX
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			pid_t pid = (pid_t)(uintptr_t)hThreadNH;
