@@ -4,6 +4,23 @@
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <sys/user.h>
+
+// helpers for accessing debug register
+typedef unsigned long DRType;
+
+DRType _GetDR(pid_t tid, int drIndex)
+{
+	unsigned long v;
+	v = ptrace (PTRACE_PEEKUSER, tid, offsetof (struct user, u_debugreg[drIndex]), 0);
+	return (DRType)v;
+}
+
+void _SetDR(pid_t tid, int drIndex, DRType newValue)
+{
+	unsigned long v = newValue;
+	ptrace (PTRACE_POKEUSER, tid, offsetof (struct user, u_debugreg[drIndex]), v);
+}
+
 #endif
 
 namespace coreinit
@@ -179,23 +196,22 @@ public:
 			ptrace(PTRACE_ATTACH, pid, nullptr, nullptr);
 			waitpid(pid, nullptr, 0);
 
-			struct user_regs_struct regs;
-			memset(&regs, 0, sizeof(regs));
-			ptrace(PTRACE_GETREGS, pid, nullptr, &regs);
-
+			DRType dr7 = _GetDR(pid, 7);
 			// use BP 2/3 for gdb stub since cemu's internal debugger uses BP 0/1 already
-			regs.r_dr2 = (uint64)memory_getPointerFromVirtualOffset(address);
-			regs.r_dr3 = (uint64)memory_getPointerFromVirtualOffset(address);
+			DRType dr2 = (uint64)memory_getPointerFromVirtualOffset(address);
+			DRType dr3 = (uint64)memory_getPointerFromVirtualOffset(address);
 			// breakpoint 2
-			SetBits(regs.r_dr7, 4, 1, 1);  // breakpoint #3 enabled: true
-			SetBits(regs.r_dr7, 24, 2, 1); // breakpoint #3 condition: 1 (write)
-			SetBits(regs.r_dr7, 26, 2, 3); // breakpoint #3 length: 3 (4 bytes)
+			SetBits(dr7, 4, 1, 1);  // breakpoint #3 enabled: true
+			SetBits(dr7, 24, 2, 1); // breakpoint #3 condition: 1 (write)
+			SetBits(dr7, 26, 2, 3); // breakpoint #3 length: 3 (4 bytes)
 			// breakpoint 3
-			SetBits(regs.r_dr7, 6, 1, 1);  // breakpoint #4 enabled: true
-			SetBits(regs.r_dr7, 28, 2, 3); // breakpoint #4 condition: 3 (read & write)
-			SetBits(regs.r_dr7, 30, 2, 3); // breakpoint #4 length: 3 (4 bytes)
+			SetBits(dr7, 6, 1, 1);  // breakpoint #4 enabled: true
+			SetBits(dr7, 28, 2, 3); // breakpoint #4 condition: 3 (read & write)
+			SetBits(dr7, 30, 2, 3); // breakpoint #4 length: 3 (4 bytes)
 
-			ptrace(PTRACE_SETREGS, pid, nullptr, &regs);
+			_SetDR(pid, 2, dr2);
+			_SetDR(pid, 3, dr3);
+			_SetDR(pid, 7, dr7);			
 			ptrace(PTRACE_DETACH, pid, nullptr, nullptr);
 		}
 #endif
@@ -232,27 +248,22 @@ public:
 			ptrace(PTRACE_ATTACH, pid, nullptr, nullptr);
 			waitpid(pid, nullptr, 0);
 
-			struct user_regs_struct regs;
-			memset(&regs, 0, sizeof(regs));
-			ptrace(PTRACE_GETREGS, pid, nullptr, &regs);
-
-			regs.r_dr0 = (uint64)0;
-			regs.r_dr1 = (uint64)0;
-			regs.r_dr7 = (uint64)0;
-
+			DRType dr7 = _GetDR(pid, 7);
 			// reset BP 2/3 to zero
-			regs.r_dr2 = (DWORD64)0;
-			regs.r_dr3 = (DWORD64)0;
+			DRType dr2 = 0;
+			DRType dr3 = 0;
 			// breakpoint 2
-			SetBits(regs.r_dr7, 4, 1, 0);
-			SetBits(regs.r_dr7, 24, 2, 0);
-			SetBits(regs.r_dr7, 26, 2, 0);
+			SetBits(dr7, 4, 1, 0);
+			SetBits(dr7, 24, 2, 0);
+			SetBits(dr7, 26, 2, 0);
 			// breakpoint 3
-			SetBits(regs.r_dr7, 6, 1, 0);
-			SetBits(regs.r_dr7, 28, 2, 0);
-			SetBits(regs.r_dr7, 30, 2, 0);
+			SetBits(dr7, 6, 1, 0);
+			SetBits(dr7, 28, 2, 0);
+			SetBits(dr7, 30, 2, 0);
 
-			ptrace(PTRACE_SETREGS, pid, nullptr, &regs);
+			_SetDR(pid, 2, dr2);
+			_SetDR(pid, 3, dr3);
+			_SetDR(pid, 7, dr7);
 			ptrace(PTRACE_DETACH, pid, nullptr, nullptr);
 		}
 #endif

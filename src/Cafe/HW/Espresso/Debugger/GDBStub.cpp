@@ -10,6 +10,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/EspressoISA.h"
+#include "Common/socket.h"
 
 #define GET_THREAD_ID(threadPtr) memory_getVirtualOffsetFromPointer(threadPtr)
 #define GET_THREAD_BY_ID(threadId) (OSThread_t*)memory_getPointerFromPhysicalOffset(threadId)
@@ -295,7 +296,7 @@ void GDBServer::ThreadFunc(const std::stop_token& stop_token)
 		if (!m_client_connected)
 		{
 			cemuLog_logDebug(LogType::Force, "[GDBStub] Waiting for client to connect on port {}...", m_port);
-			int client_addr_size = sizeof(m_client_addr);
+			socklen_t client_addr_size = sizeof(m_client_addr);
 			m_client_socket = accept(m_server_socket, (struct sockaddr*)&m_client_addr, &client_addr_size);
 			m_client_connected = m_client_socket != SOCKET_ERROR;
 		}
@@ -586,10 +587,8 @@ void GDBServer::HandleVCont(std::unique_ptr<CommandContext>& context)
 	m_resumed_context = std::move(context);
 
 	bool resumedNoThreads = true;
-	for (const auto operationView : std::ranges::split_view(m_resumed_context->GetArgs()[1], ';'))
+	for (const auto operation : TokenizeView(m_resumed_context->GetArgs()[1], ';'))
 	{
-		const std::string_view operation{operationView.begin(), operationView.end()};
-
 		// todo: this might have issues with the signal versions (C/S)
 		// todo: test whether this works with multiple vCont;c:123123;c:123123
 		std::string_view operationType = operation.substr(0, operation.find(':'));
