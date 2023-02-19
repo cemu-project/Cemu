@@ -183,7 +183,8 @@ void LatteShaderCache_drawBackgroundImage(ImTextureID texture, int width, int he
 	// clear framebuffers and clean up
 	const auto kPopupFlags =
 			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize;
+			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize |
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
 	auto& io = ImGui::GetIO();
 	ImGui::SetNextWindowPos({0, 0}, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Always);
