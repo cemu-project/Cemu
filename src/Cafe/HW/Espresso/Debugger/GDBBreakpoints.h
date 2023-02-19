@@ -192,7 +192,7 @@ public:
 #elif defined(ARCH_X86_64) && BOOST_OS_UNIX
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
-			pid_t pid = (pid_t)hThreadNH;
+			pid_t pid = (pid_t)(uintptr_t)hThreadNH;
 			ptrace(PTRACE_ATTACH, pid, nullptr, nullptr);
 			waitpid(pid, nullptr, 0);
 
@@ -246,7 +246,7 @@ public:
 #elif defined(ARCH_X86_64) && BOOST_OS_UNIX
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
-			pid_t pid = (pid_t)hThreadNH;
+			pid_t pid = (pid_t)(uintptr_t)hThreadNH;
 			ptrace(PTRACE_ATTACH, pid, nullptr, nullptr);
 			waitpid(pid, nullptr, 0);
 
