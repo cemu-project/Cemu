@@ -244,7 +244,7 @@ GDBServer::~GDBServer()
 	WSACleanup();
 #endif
 
-	m_thread.request_stop();
+	m_stopRequested = false;
 	m_thread.join();
 }
 
@@ -282,16 +282,16 @@ bool GDBServer::Initialize()
 		return false;
 	}
 
-	m_thread = std::jthread(std::bind(&GDBServer::ThreadFunc, this, std::placeholders::_1));
+	m_thread = std::thread(std::bind(&GDBServer::ThreadFunc, this));
 
 	return true;
 }
 
-void GDBServer::ThreadFunc(const std::stop_token& stop_token)
+void GDBServer::ThreadFunc()
 {
 	SetThreadName("GDBServer::ThreadFunc");
 
-	while (!stop_token.stop_requested())
+	while (!m_stopRequested)
 	{
 		if (!m_client_connected)
 		{

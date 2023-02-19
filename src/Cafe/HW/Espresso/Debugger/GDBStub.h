@@ -196,7 +196,8 @@ private:
 	static constexpr std::string_view RESPONSE_OK = "OK";
 	static constexpr std::string_view RESPONSE_ERROR = "E01";
 
-	void ThreadFunc(const std::stop_token& stop_token);
+	void ThreadFunc();
+	std::atomic_bool m_stopRequested;
 	void HandleCommand(const std::string& command_str);
 	void HandleQuery(std::unique_ptr<CommandContext>& context) const;
 	void HandleVCont(std::unique_ptr<CommandContext>& context);
@@ -219,7 +220,7 @@ private:
 	void CMDInsertBreakpoint(std::unique_ptr<CommandContext>& context);
 	void CMDDeleteBreakpoint(std::unique_ptr<CommandContext>& context);
 
-	std::jthread m_thread;
+	std::thread m_thread;
 	std::atomic_bool m_resume_startup = false;
 	MPTR m_entry_point{};
 	std::unique_ptr<CommandContext> m_resumed_context;
