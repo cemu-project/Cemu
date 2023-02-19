@@ -183,7 +183,8 @@ void LatteShaderCache_drawBackgroundImage(ImTextureID texture, int width, int he
 	// clear framebuffers and clean up
 	const auto kPopupFlags =
 			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize;
+			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize |
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
 	auto& io = ImGui::GetIO();
 	ImGui::SetNextWindowPos({0, 0}, ImGuiCond_Always);
 	ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Always);
@@ -368,7 +369,6 @@ void LatteShaderCache_load()
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
 {
-	auto& io = ImGui::GetIO();
 	const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize;
 	const auto textColor = 0xFF888888;
 	
@@ -395,6 +395,8 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 		g_renderer->BeginFrame(true);
 		if (g_renderer->ImguiBegin(true))
 		{
+			auto& io = ImGui::GetIO();
+
 			// render background texture
 			LatteShaderCache_drawBackgroundImage(g_shaderCacheLoaderState.textureTVId, 1280, 720);
 
