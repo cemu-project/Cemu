@@ -165,7 +165,7 @@ public:
 	AccessBreakpoint(MPTR address, AccessPointType type)
 		: m_address(address), m_type(type)
 	{
-#if BOOST_OS_WINDOWS
+#if defined(ARCH_X86_64) && BOOST_OS_WINDOWS
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			HANDLE hThread = (HANDLE)hThreadNH;
@@ -189,7 +189,7 @@ public:
 			SetThreadContext(hThread, &ctx);
 			ResumeThread(hThread);
 		}
-#else
+#elif defined(ARCH_X86_64) && BOOST_OS_UNIX
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			pid_t pid = (pid_t)hThreadNH;
@@ -214,11 +214,13 @@ public:
 			_SetDR(pid, 7, dr7);			
 			ptrace(PTRACE_DETACH, pid, nullptr, nullptr);
 		}
+#else
+		cemuLog_log(LogType::Force, "Debugger read/write breakpoints are not supported on non-x86 CPUs yet.");
 #endif
 	};
 	~AccessBreakpoint()
 	{
-#if BOOST_OS_WINDOWS
+#if defined(ARCH_X86_64) && BOOST_OS_WINDOWS
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			HANDLE hThread = (HANDLE)hThreadNH;
@@ -241,7 +243,7 @@ public:
 			SetThreadContext(hThread, &ctx);
 			ResumeThread(hThread);
 		}
-#else
+#elif defined(ARCH_X86_64) && BOOST_OS_UNIX
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			pid_t pid = (pid_t)hThreadNH;
