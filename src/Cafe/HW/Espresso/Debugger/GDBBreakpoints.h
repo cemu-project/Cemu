@@ -1,6 +1,6 @@
 #include <utility>
 
-#if BOOST_OS_LINUX
+#if defined(ARCH_X86_64) && BOOST_OS_LINUX && FALSE
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <sys/user.h>
@@ -189,7 +189,8 @@ public:
 			SetThreadContext(hThread, &ctx);
 			ResumeThread(hThread);
 		}
-#elif defined(ARCH_X86_64) && BOOST_OS_LINUX
+		// todo: port the following code to all unix platforms, they seem to differ quite a bit
+#elif defined(ARCH_X86_64) && BOOST_OS_LINUX && FALSE
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			pid_t pid = (pid_t)(uintptr_t)hThreadNH;
@@ -243,7 +244,7 @@ public:
 			SetThreadContext(hThread, &ctx);
 			ResumeThread(hThread);
 		}
-#elif defined(ARCH_X86_64) && BOOST_OS_LINUX
+#elif defined(ARCH_X86_64) && BOOST_OS_LINUX && FALSE
 		for (auto& hThreadNH : coreinit::OSGetSchedulerThreads())
 		{
 			pid_t pid = (pid_t)(uintptr_t)hThreadNH;
