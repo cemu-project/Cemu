@@ -74,6 +74,7 @@ private:
 
 	// Debug
 	wxChoice* m_crash_dump;
+	wxSpinCtrl* m_gdb_port;
 
 	void OnAccountCreate(wxCommandEvent& event);
 	void OnAccountDelete(wxCommandEvent& event);

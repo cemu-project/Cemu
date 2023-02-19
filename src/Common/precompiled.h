@@ -69,11 +69,12 @@
 #include <filesystem>
 #include <memory>
 #include <chrono>
-#include <time.h>
+#include <ctime>
 #include <regex>
 #include <type_traits>
 #include <optional>
 #include <span>
+#include <ranges>
 
 #include <boost/predef.h>
 #include <boost/nowide/convert.hpp>
@@ -208,6 +209,21 @@ typedef union _LARGE_INTEGER {
     inline T& operator^= (T& a, T b) { return reinterpret_cast<T&>( reinterpret_cast<std::underlying_type<T>::type&>(a) ^= static_cast<std::underlying_type<T>::type>(b) ); }
 #endif
 
+template<typename T>
+inline T GetBits(T value, uint32 index, uint32 numBits)
+{
+	T mask = (1<<numBits)-1;
+	return (value>>index) & mask;
+}
+
+template<typename T>
+inline void SetBits(T& value, uint32 index, uint32 numBits, uint32 bitValue)
+{
+	T mask = (1<<numBits)-1;
+	value &= ~(mask << index);
+	value |= (bitValue << index);
+}
+
 #if !defined(_MSC_VER) || defined(__clang__) // clang-cl does not have built-in _udiv128
 inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, uint64 *remainder)
 {
@@ -255,7 +271,7 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 
 inline void _mm_pause()
 {
-    asm volatile("yield");   
+    asm volatile("yield");
 }
 
 inline uint64 __rdtsc()

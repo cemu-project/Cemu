@@ -9,6 +9,7 @@
 #include "Config/CemuConfig.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/HW/Espresso/PPCState.h"
+#include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 
 extern uint32 currentBaseApplicationHash;
 extern uint32 currentUpdatedApplicationHash;
@@ -378,7 +379,8 @@ int crashlogThread(void* exceptionInfoRawPtr)
 	return 0;
 }
 
-void debugger_handleSingleStepException(uint32 drMask);
+void debugger_handleSingleStepException(uint64 dr6);
+
 
 LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 {
@@ -387,7 +389,11 @@ LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 		LONG r = handleException_SINGLE_STEP(pExceptionInfo);
 		if (r != EXCEPTION_CONTINUE_SEARCH)
 			return r;
-		debugger_handleSingleStepException(pExceptionInfo->ContextRecord->Dr6 & 0xF);
+
+		if (GetBits(pExceptionInfo->ContextRecord->Dr6, 0, 1) || GetBits(pExceptionInfo->ContextRecord->Dr6, 1, 1))
+			debugger_handleSingleStepException(pExceptionInfo->ContextRecord->Dr6);
+		else if (GetBits(pExceptionInfo->ContextRecord->Dr6, 2, 1) || GetBits(pExceptionInfo->ContextRecord->Dr6, 3, 1))
+			g_gdbstub->HandleAccessException(pExceptionInfo->ContextRecord->Dr6);
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 	return EXCEPTION_CONTINUE_SEARCH;

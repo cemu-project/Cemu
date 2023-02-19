@@ -484,6 +484,7 @@ struct CemuConfig
 
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
+	ConfigValue<uint16> gdb_port{ 1337 };
 
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);

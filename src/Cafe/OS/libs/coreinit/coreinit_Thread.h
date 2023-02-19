@@ -461,10 +461,10 @@ struct OSThread_t
 	/* +0x628 */ uint64								wakeTimeRelatedUkn2;
 
 	// set via OSSetExceptionCallback
-	/* +0x630 */ MPTR								ukn630Callback[Espresso::CORE_COUNT];
-	/* +0x63C */ MPTR								ukn63CCallback[Espresso::CORE_COUNT];
-	/* +0x648 */ MPTR								ukn648Callback[Espresso::CORE_COUNT];
-	/* +0x654 */ MPTR								ukn654Callback[Espresso::CORE_COUNT];
+	/* +0x630 */ MPTR								dsiCallback[Espresso::CORE_COUNT];
+	/* +0x63C */ MPTR								isiCallback[Espresso::CORE_COUNT];
+	/* +0x648 */ MPTR								programCallback[Espresso::CORE_COUNT];
+	/* +0x654 */ MPTR								perfMonCallback[Espresso::CORE_COUNT];
 
 	/* +0x660 */ uint32								ukn660;
 
@@ -514,6 +514,7 @@ namespace coreinit
 	sint32 OSResumeThread(OSThread_t* thread);
 	void OSContinueThread(OSThread_t* thread);
 	void __OSSuspendThreadInternal(OSThread_t* thread);
+	void __OSSuspendThreadNolock(OSThread_t* thread);
 	void OSSuspendThread(OSThread_t* thread);
 	void OSSleepThread(OSThreadQueue* threadQueue);
 	void OSWakeupThread(OSThreadQueue* threadQueue);
@@ -525,6 +526,7 @@ namespace coreinit
 
 	bool OSIsThreadTerminated(OSThread_t* thread);
 	bool OSIsThreadSuspended(OSThread_t* thread);
+	bool OSIsThreadRunning(OSThread_t* thread);
 
 	// OSThreadQueue
 	void OSInitThreadQueue(OSThreadQueue* threadQueue);

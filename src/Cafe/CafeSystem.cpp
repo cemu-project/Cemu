@@ -30,6 +30,7 @@
 #include "GamePatch.h"
 
 #include <time.h>
+#include "HW/Espresso/Debugger/GDBStub.h"
 
 #include "Cafe/IOSU/legacy/iosu_ioctl.h"
 #include "Cafe/IOSU/legacy/iosu_act.h"
@@ -398,6 +399,11 @@ void cemu_initForGame()
 	InfoLog_PrintActiveSettings();
 	Latte_Start();
 	// check for debugger entrypoint bp
+    if (g_gdbstub)
+    {
+        g_gdbstub->HandleEntryStop(_entryPoint);
+        g_gdbstub->Initialize();
+    }
 	debugger_handleEntryBreakpoint(_entryPoint);
 	// load graphic packs
 	forceLog_printf("------- Activate graphic packs -------");
