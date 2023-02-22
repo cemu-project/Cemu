@@ -68,7 +68,6 @@ namespace coreinit
 	// disables interrupts and scheduling
 	uint32 OSDisableInterrupts()
 	{
-		// todo - rename SchedulerLock.cpp/h to Scheduler.cpp and move this there?
 		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 		if (hCPU == nullptr)
 			return 0;
@@ -77,9 +76,7 @@ namespace coreinit
 		{
 			// we have no efficient method to turn off scheduling completely, so instead we just increase the remaining cycles
 			if (hCPU->remainingCycles >= 0x40000000)
-			{
-				forceLogDebug_printf("OSDisableInterrupts(): Warning - Interrupts already disabled? remCycles %08x LR %08x", hCPU->remainingCycles, hCPU->spr.LR);
-			}
+				cemuLog_log(LogType::Force, "OSDisableInterrupts(): Warning - Interrupts already disabled but the mask was still set? remCycles {:08x} LR {:08x}", hCPU->remainingCycles, hCPU->spr.LR);
 			hCPU->remainingCycles += 0x40000000;
 		}
 		hCPU->coreInterruptMask = 0;
