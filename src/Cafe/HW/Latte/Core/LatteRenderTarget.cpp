@@ -588,7 +588,6 @@ bool LatteMRT::UpdateCurrentFBO()
 				if (depthBufferView == nullptr)
 				{
 					// create depth buffer view
-					forceLogDebug_printf("Creating depth buffer tex %08x %dx%d slice %d", depthBufferPhysMem, depthBufferHeight, depthBufferWidth, depthBufferViewFirstSlice);
 					if(depthBufferViewFirstSlice == 0)
 						depthBufferView = LatteTexture_CreateMapping(depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, 1, depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, 0, 1, depthBufferFormat, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
 					else
