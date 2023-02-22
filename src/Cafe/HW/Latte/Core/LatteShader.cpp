@@ -813,6 +813,8 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 
 void LatteSHRC_UpdateVertexShader(uint8* vertexShaderPtr, uint32 vertexShaderSize, bool usesGeometryShader)
 {
+	// todo - should include VTX_SEMANTIC table in state
+
 	LatteSHRC_UpdateVSBaseHash(vertexShaderPtr, vertexShaderSize, usesGeometryShader);
 	uint64 vsAuxHash = 0;
 	auto itBaseShader = sVertexShaders.find(_shaderBaseHash_vs);

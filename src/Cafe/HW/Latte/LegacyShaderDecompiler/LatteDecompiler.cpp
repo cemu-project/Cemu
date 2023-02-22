@@ -345,6 +345,7 @@ bool LatteDecompiler_IsALUTransInstruction(bool isOP3, uint32 opcode)
 		opcode == ALU_OP2_INST_SETGE_UINT ||
 		opcode == ALU_OP2_INST_SETGT_UINT ||
 		opcode == ALU_OP2_INST_MAX_DX10 ||
+		opcode == ALU_OP2_INST_MIN_DX10 ||
 		opcode == ALU_OP2_INST_PRED_SETE ||
 		opcode == ALU_OP2_INST_PRED_SETNE ||
 		opcode == ALU_OP2_INST_PRED_SETGE ||
