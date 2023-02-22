@@ -962,6 +962,22 @@ namespace coreinit
 		thread->wakeUpCount = thread->wakeUpCount + 1;
 	}
 
+	uint32 s_lehmer_lcg[PPC_CORE_COUNT] = { 0 };
+
+	void __OSThreadStartTimeslice(OSThread_t* thread, PPCInterpreter_t* hCPU)
+	{
+		uint32 coreIndex = PPCInterpreter_getCoreIndex(hCPU);
+		// run one timeslice
+		hCPU->remainingCycles = ppcThreadQuantum;
+		hCPU->skippedCycles = 0;
+		// we add a slight randomized variance to the thread quantum to avoid getting stuck in repeated code sequences where one or multiple threads always unload inside a lock
+		// this was seen in Mario Party 10 during early boot where several OSLockMutex operations would align in such a way that one thread would never successfully acquire the lock
+		if (s_lehmer_lcg[coreIndex] == 0)
+			s_lehmer_lcg[coreIndex] = 12345;
+		hCPU->remainingCycles += (s_lehmer_lcg[coreIndex] & 0x7F);
+		s_lehmer_lcg[coreIndex] = (uint32)((uint64)s_lehmer_lcg[coreIndex] * 279470273ull % 0xfffffffbull);
+	}
+
 	OSThread_t* __OSGetNextRunableThread(uint32 coreIndex)
 	{
 		cemu_assert_debug(__OSHasSchedulerLock());
@@ -1088,8 +1104,9 @@ namespace coreinit
 		cemu_assert_debug(__OSHasSchedulerLock());	
 		cemu_assert_debug(g_isMulticoreMode == false || hostThread->selectedCore == t_assignedCoreIndex);
 
-		// load self thread
+		// received next time slice, load self again
 		__OSLoadThread(hostThread->m_thread, &hostThread->ppcInstance, hostThread->selectedCore);
+		__OSThreadStartTimeslice(hostThread->m_thread, &hostThread->ppcInstance);
 	}
 
 	void __OSFiberThreadEntry(void* _thread)
@@ -1100,21 +1117,12 @@ namespace coreinit
 		_mm_setcsr(_mm_getcsr() | 0x8000); // flush denormals to zero
         #endif
 
-		uint32 lehmer_lcg = 12345;
-
 		PPCInterpreter_t* hCPU = &hostThread->ppcInstance;
 		__OSLoadThread(hostThread->m_thread, hCPU, hostThread->selectedCore);
+		__OSThreadStartTimeslice(hostThread->m_thread, &hostThread->ppcInstance);
 		__OSUnlockScheduler(); // lock is always held when switching to a fiber, so we need to unlock it here
 		while (true)
 		{
-			// run one timeslice
-			hCPU->remainingCycles = ppcThreadQuantum;
-			hCPU->skippedCycles = 0;
-			// we add a slight randomized variance to the thread quantum to avoid getting stuck in repeated code sequences where the duration matches the thread quantum perfectly
-			// this was seen in Mario Party 10 on launch where several OSLockMutex operations would align in such a way that one thread would never successfully acquire the lock
-			hCPU->remainingCycles += (lehmer_lcg & 0x7F);
-			lehmer_lcg = (uint32)((uint64)lehmer_lcg * 279470273ull % 0xfffffffbull);
-
 			if (hCPU->remainingCycles > 0)
 			{
 				// try to enter recompiler immediately
