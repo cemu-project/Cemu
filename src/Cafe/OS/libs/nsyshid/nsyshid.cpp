@@ -118,7 +118,7 @@ namespace nsyshid
 					deviceItr->hFile = openDevice(deviceItr->devicePath);
 					if (deviceItr->hFile == INVALID_HANDLE_VALUE)
 					{
-						forceLog_printfW(L"HID: Failed to open device \"%s\"", deviceItr->devicePath);
+						cemuLog_log(LogType::Force, "HID: Failed to open device \"{}\"", boost::nowide::narrow(std::wstring(deviceItr->devicePath)));
 						return nullptr;
 					}
 					HidD_SetNumInputBuffers(deviceItr->hFile, 2); // dont cache too many reports

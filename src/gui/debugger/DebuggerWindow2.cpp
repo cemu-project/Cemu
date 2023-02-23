@@ -66,8 +66,6 @@ wxBEGIN_EVENT_TABLE(DebuggerWindow2, wxFrame)
 	EVT_COMMAND(wxID_ANY, wxEVT_NOTIFY_MODULE_UNLOADED, DebuggerWindow2::OnNotifyModuleUnloaded)
 	// file menu
 	EVT_MENU(MENU_ID_FILE_EXIT, DebuggerWindow2::OnExit)
-	// setting
-	EVT_MENU(MENU_ID_OPTIONS_PIN_TO_MAINWINDOW, DebuggerWindow2::OnOptionsInput)
 	// window
 	EVT_MENU_RANGE(MENU_ID_WINDOW_REGISTERS, MENU_ID_WINDOW_MODULE, DebuggerWindow2::OnWindowMenu)
 wxEND_EVENT_TABLE()
@@ -470,7 +468,7 @@ bool DebuggerWindow2::Show(bool show)
 
 std::wstring DebuggerWindow2::GetModuleStoragePath(std::string module_name, uint32_t crc_hash) const
 {
-	if (module_name.empty() || crc_hash == 0) return std::wstring();
+	if (module_name.empty() || crc_hash == 0) return {};
 	return ActiveSettings::GetConfigPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
 }
 
@@ -529,24 +527,24 @@ void DebuggerWindow2::OnBreakpointChange(wxCommandEvent& event)
 
 void DebuggerWindow2::OnOptionsInput(wxCommandEvent& event)
 {
-	switch(event.GetId())
+	switch (event.GetId())
 	{
 	case MENU_ID_OPTIONS_PIN_TO_MAINWINDOW:
-		{
-			const bool value = !m_config.data().pin_to_main;
-			m_config.data().pin_to_main = value;
-			if(value)
-				OnParentMove(m_main_position, m_main_size);
-			
-			break;
-		}
+	{
+		const bool value = !m_config.data().pin_to_main;
+		m_config.data().pin_to_main = value;
+		if (value)
+			OnParentMove(m_main_position, m_main_size);
+
+		break;
+	}
 	case MENU_ID_OPTIONS_BREAK_ON_START:
-		{
+	{
 		const bool value = !m_config.data().break_on_start;
 		m_config.data().break_on_start = value;
 		debuggerState.breakOnEntry = value;
 		break;
-		}
+	}
 	default:
 		return;
 	}

@@ -1,8 +1,6 @@
 #include "Account.h"
 #include "util/helpers/helpers.h"
-#include "gui/CemuApp.h"
 #include "util/helpers/SystemException.h"
-
 #include "config/ActiveSettings.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Common/FileStream.h"
@@ -175,7 +173,7 @@ std::error_code Account::Load()
 
 std::error_code Account::Save()
 {
-	fs::path path = CemuApp::GetMLCPath(fmt::format(L"usr/save/system/act/{:08x}", m_persistent_id)).ToStdWstring();
+	fs::path path = ActiveSettings::GetMlcPath(fmt::format(L"usr/save/system/act/{:08x}", m_persistent_id));
 	if (!fs::exists(path))
 	{
 		std::error_code ec;
@@ -184,7 +182,7 @@ std::error_code Account::Save()
 			return ec;
 	}
 		
-	path /= L"account.dat";
+	path /= "account.dat";
 
 	try
 	{
@@ -302,7 +300,7 @@ void Account::SetMiiName(std::wstring_view name)
 const std::vector<Account>& Account::RefreshAccounts()
 {
 	std::vector<Account> result;
-	const fs::path path = CemuApp::GetMLCPath(L"usr/save/system/act").ToStdWstring();
+	const fs::path path = ActiveSettings::GetMlcPath("usr/save/system/act");
 	if (fs::exists(path))
 	{
 		for (const auto& it : fs::directory_iterator(path))
@@ -417,7 +415,7 @@ fs::path Account::GetFileName(uint32 persistent_id)
 	if (persistent_id < kMinPersistendId)
 		throw std::invalid_argument(fmt::format("persistent id {:#x} is invalid", persistent_id));
 	
-	return CemuApp::GetMLCPath(fmt::format(L"usr/save/system/act/{:08x}/account.dat", persistent_id)).ToStdWstring();
+	return ActiveSettings::GetMlcPath(fmt::format("usr/save/system/act/{:08x}/account.dat", persistent_id));
 }
 
 OnlineValidator Account::ValidateOnlineFiles() const

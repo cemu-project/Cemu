@@ -14,6 +14,7 @@
 #include "gui/components/wxGameList.h"
 
 #include <future>
+#include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 
 class DebuggerWindow2;
 struct GameEntry;
@@ -106,6 +107,7 @@ public:
 	void OnDebugDumpUsedTextures(wxCommandEvent& event);
 	void OnDebugDumpUsedShaders(wxCommandEvent& event);
 	void OnLoggingWindow(wxCommandEvent& event);
+	void OnGDBStubToggle(wxCommandEvent& event);
 	void OnDebugViewPPCThreads(wxCommandEvent& event);
 	void OnDebugViewPPCDebugger(wxCommandEvent& event);
 	void OnDebugViewAudioDebugger(wxCommandEvent& event);
@@ -171,6 +173,7 @@ private:
 
 	std::string m_launched_game_name;
 
+	wxMenuItem* m_gdbstub_toggle{};
 	DebuggerWindow2* m_debugger_window = nullptr;
 	LoggingWindow* m_logging_window = nullptr;
 

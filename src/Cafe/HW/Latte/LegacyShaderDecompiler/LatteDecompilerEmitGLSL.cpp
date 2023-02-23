@@ -1038,7 +1038,8 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 	}
 	else if( aluInstruction->opcode == ALU_OP2_INST_MAX ||
 		aluInstruction->opcode == ALU_OP2_INST_MIN ||
-		aluInstruction->opcode == ALU_OP2_INST_MAX_DX10 )
+		aluInstruction->opcode == ALU_OP2_INST_MAX_DX10 ||
+		aluInstruction->opcode == ALU_OP2_INST_MIN_DX10 )
 	{
 		outputType = _getALUInstructionOutputDataType(shaderContext, aluInstruction);
 		_emitInstructionOutputVariableName(shaderContext, aluInstruction);
@@ -1048,10 +1049,10 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 			src->add("max");
 		else if( aluInstruction->opcode == ALU_OP2_INST_MIN )
 			src->add("min");
-		else if( aluInstruction->opcode == ALU_OP2_INST_MAX_DX10 )
-		{
+		else if (aluInstruction->opcode == ALU_OP2_INST_MAX_DX10)
 			src->add("max");
-		}
+		else if (aluInstruction->opcode == ALU_OP2_INST_MIN_DX10)
+			src->add("min");
 		src->add("(");
 		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 		src->add(", ");

@@ -73,6 +73,15 @@ void nsysnetExport_socket_lib_init(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0); // 0 -> Success
 }
 
+void nsysnetExport_socket_lib_finish(PPCInterpreter_t* hCPU)
+{
+	sockLibReady = false;
+#if BOOST_OS_WINDOWS
+	WSACleanup();
+#endif // BOOST_OS_WINDOWS
+	osLib_returnFromFunction(hCPU, 0); // 0 -> Success
+}
+
 uint32* __gh_errno_ptr()
 {
 	OSThread_t* osThread = coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance());
@@ -2120,6 +2129,7 @@ void nsysnet_load()
 {
 	
 	osLib_addFunction("nsysnet", "socket_lib_init", nsysnetExport_socket_lib_init);
+	osLib_addFunction("nsysnet", "socket_lib_finish", nsysnetExport_socket_lib_finish);
 	
 	// socket API
 	osLib_addFunction("nsysnet", "socket", nsysnetExport_socket);

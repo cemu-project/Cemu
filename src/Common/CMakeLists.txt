@@ -20,7 +20,6 @@ add_library(CemuCommon
   SysAllocator.cpp
   SysAllocator.h
   version.h
-  zstring_view.h
 )
 
 set_property(TARGET CemuCommon PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

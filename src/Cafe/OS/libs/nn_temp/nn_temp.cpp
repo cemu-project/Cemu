@@ -9,7 +9,7 @@ namespace nn::temp
 		forceLogDebug_printf("TEMPCreateAndInitTempDir(...) - placeholder");
 
 		// create random temp id
-		memory_writeU64Slow(hCPU->gpr[5], tempIdGenerator);
+		memory_writeU64(hCPU->gpr[5], tempIdGenerator);
 		tempIdGenerator = (tempIdGenerator << 3) | (tempIdGenerator >> 61);
 		tempIdGenerator += 0x56e28bd5f4ULL;
 

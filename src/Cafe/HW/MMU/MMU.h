@@ -15,7 +15,7 @@ uint8* memory_getPointerFromPhysicalOffset(uint32 physicalOffset);
 uint32 memory_virtualToPhysical(uint32 virtualOffset);
 uint32 memory_physicalToVirtual(uint32 physicalOffset);
 
-extern uint8* memory_base; // points to 0x00000000
+extern uint8* memory_base; // points to base of PowerPC address space
 
 enum class MMU_MEM_AREA_ID
 {
@@ -171,33 +171,26 @@ bool memory_isAddressRangeAccessible(MPTR virtualAddress, uint32 size);
 #define MEMORY_SHAREDDATA_AREA_ADDR			(0xF8000000)
 #define MEMORY_SHAREDDATA_AREA_SIZE			(0x02000000) // 32MB
 
-static uint16 CPU_swapEndianU16(uint16 v)
-{
-	return (v>>8)|(v<<8);
-}
-
 #if BOOST_OS_WINDOWS
 #define CPU_swapEndianU64(_v) _byteswap_uint64((uint64)(_v))
 #define CPU_swapEndianU32(_v) _byteswap_ulong((uint32)(_v))
+#define CPU_swapEndianU16(_v) _byteswap_ushort((uint16)(_v))
 #elif BOOST_OS_LINUX
 #define CPU_swapEndianU64(_v) bswap_64((uint64)(_v))
 #define CPU_swapEndianU32(_v) bswap_32((uint32)(_v))
+#define CPU_swapEndianU16(_v) bswap_16((uint16)(_v))
 #elif BOOST_OS_MACOS
 #define CPU_swapEndianU64(_v) OSSwapInt64((uint64)(_v))
 #define CPU_swapEndianU32(_v) OSSwapInt32((uint32)(_v))
+#define CPU_swapEndianU16(_v) OSSwapInt16((uint16)(_v))
 #endif
 
-// direct memory access (no hardware interface access)
-void memory_writeU32Direct(uint32 address, uint32 v);
-uint32 memory_readU32Direct(uint32 address);
-
-// memory access (includes hardware interface, slower)
+// C-style memory access, deprecated. Use memory_read<> and memory_write<> templates instead
 void memory_writeDouble(uint32 address, double vf);
 void memory_writeFloat(uint32 address, float vf);
 void memory_writeU32(uint32 address, uint32 v);
 void memory_writeU16(uint32 address, uint16 v);
 void memory_writeU8(uint32 address, uint8 v);
-void memory_writeU64Slow(uint32 address, uint64 v);
 void memory_writeU64(uint32 address, uint64 v);
 
 double memory_readDouble(uint32 address);
@@ -210,42 +203,23 @@ uint8 memory_readU8(uint32 address);
 void memory_createDump();
 
 template<size_t count>
-void memory_readBytes(uint32 address, std::array<uint8, count>& buffer)
+void memory_readBytes(VAddr address, std::array<uint8, count>& buffer)
 {
 	memcpy(buffer.data(), memory_getPointerFromVirtualOffset(address), count);
 }
 
-template <typename T> T memory_read(uint32 address)
+template <typename T> inline T memory_read(VAddr address)
 {
-	if constexpr(std::is_floating_point<T>::value)
-	{
-		if constexpr(sizeof(T) == sizeof(float))
-			return memory_readFloat(address);
-		else
-			return memory_readDouble(address);
-	}
-	else if(std::is_integral<T>::value)
-	{
-		if constexpr (sizeof(T) == sizeof(uint8))
-			return (T)memory_readU8(address);
-		else if constexpr (sizeof(T) == sizeof(uint16))
-			return (T)memory_readU16(address);
-		else if constexpr (sizeof(T) == sizeof(uint32))
-			return (T)memory_readU32(address);
-		else if constexpr (sizeof(T) == sizeof(uint64))
-			return (T)memory_readU64(address);
-	}
+	return *(betype<T>*)(memory_base + address);
+}
 
-	debugBreakpoint(); 
-	return {};
+template <typename T> inline void memory_write(VAddr address, T value)
+{
+	*(betype<T>*)(memory_base + address) = value;
 }
 
 // LLE implementation
 void memory_initPhysicalLayout();
-
-// updated code
-using EAddr = uint32; // effective address
-using PAddr = uint32; // physical address
 
 namespace MMU
 {

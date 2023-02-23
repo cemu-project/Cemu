@@ -135,7 +135,7 @@ namespace coreinit
 		while (OSThread_t* thread = takeFirstFromQueue(offsetof(OSThread_t, waitQueueLink)))
 		{
 			cemu_assert_debug(thread->state == OSThread_t::THREAD_STATE::STATE_WAITING);
-			cemu_assert_debug(thread->suspendCounter == 0);
+			//cemu_assert_debug(thread->suspendCounter == 0);
 			thread->state = OSThread_t::THREAD_STATE::STATE_READY;
 			thread->currentWaitQueue = nullptr;
 			coreinit::__OSAddReadyThreadToRunQueue(thread);

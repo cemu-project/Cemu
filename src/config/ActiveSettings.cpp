@@ -241,7 +241,7 @@ fs::path ActiveSettings::GetMlcPath()
 		return launch_mlc.value();
 
 	if(const auto config_mlc = GetConfig().mlc_path.GetValue(); !config_mlc.empty())
-		return config_mlc;
+		return _utf8ToPath(config_mlc);
 
 	return GetDefaultMLCPath();
 }

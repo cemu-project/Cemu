@@ -209,7 +209,6 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 			VkResult r = vkAllocateMemory(m_device, &allocInfo, nullptr, &imageMemory);
 			if (r != VK_SUCCESS)
 				continue;
-			forceLog_printf("Vulkan-Info: Allocated additional memory for textures from device-local memory");
 			m_list_chunkInfo[chunkIndex].mem = imageMemory;
 			return allocationSize;
 		}
@@ -225,7 +224,6 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 			VkResult r = vkAllocateMemory(m_device, &allocInfo, nullptr, &imageMemory);
 			if (r != VK_SUCCESS)
 				continue;
-			forceLog_printf("Vulkan-Info: Allocated additional memory for textures from host-local memory");
 			m_list_chunkInfo[chunkIndex].mem = imageMemory;
 			return allocationSize;
 		}

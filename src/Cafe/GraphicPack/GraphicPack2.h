@@ -105,6 +105,7 @@ public:
 	sint32 GetVersion() const { return m_version; }
 	const std::wstring& GetFilename() const { return m_filename; }
 	const fs::path GetFilename2() const { return fs::path(m_filename); }
+	bool RequiresRestart(bool changeEnableState, bool changePreset);
 	bool Reload();
 
 	bool HasName() const { return !m_name.empty();  }
@@ -172,6 +173,7 @@ public:
 
 	static void ActivateForCurrentTitle();
 	static void Reset();
+
 private:
 	bool Activate();
 	bool Deactivate();

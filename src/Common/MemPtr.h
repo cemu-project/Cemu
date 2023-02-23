@@ -2,6 +2,13 @@
 #include <type_traits>
 #include "betype.h"
 
+using MPTR = uint32; // generic address in PowerPC memory space
+
+#define MPTR_NULL	(0)
+
+using VAddr = uint32; // virtual address
+using PAddr = uint32; // physical address
+
 extern uint8* memory_base;
 extern uint8* PPCInterpreterGetStackPointer();
 extern uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);

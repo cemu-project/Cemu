@@ -38,6 +38,9 @@ add_library(CemuCafe
   HW/Espresso/Debugger/Debugger.h
   HW/Espresso/Debugger/DebugSymbolStorage.cpp
   HW/Espresso/Debugger/DebugSymbolStorage.h
+  HW/Espresso/Debugger/GDBStub.h
+  HW/Espresso/Debugger/GDBStub.cpp
+  HW/Espresso/Debugger/GDBBreakpoints.h
   HW/Espresso/EspressoISA.h
   HW/Espresso/Interpreter/PPCInterpreterALU.hpp
   HW/Espresso/Interpreter/PPCInterpreterFPU.cpp
@@ -454,8 +457,6 @@ add_library(CemuCafe
   TitleList/BaseInfo.cpp
   TitleList/BaseInfo.h
   TitleList/GameInfo.h
-  TitleList/MetaInfo.cpp
-  TitleList/MetaInfo.h
   TitleList/ParsedMetaXml.h
   TitleList/SaveInfo.cpp
   TitleList/SaveInfo.h

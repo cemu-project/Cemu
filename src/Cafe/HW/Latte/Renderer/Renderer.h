@@ -12,6 +12,10 @@
 #include "util/DXGIWrapper/DXGIWrapper.h"
 #endif
 
+// imgui forward declarations
+struct ImFontAtlas;
+struct ImGuiContext;
+
 enum class GfxVendor
 {
 	Generic,
@@ -51,8 +55,8 @@ public:
 
 	virtual RendererAPI GetType() = 0;
 
-	virtual void Initialize() {}
-	virtual void Shutdown() {}
+	virtual void Initialize();
+	virtual void Shutdown();
 	virtual bool IsPadWindowActive() = 0;
 
 	virtual bool GetVRAMInfo(int& usageInMB, int& totalInMB) const;
@@ -169,6 +173,11 @@ protected:
 	};
 	ScreenshotState m_screenshot_state = ScreenshotState::None;
 	void SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const;
+
+
+	ImFontAtlas* imguiFontAtlas{};
+	ImGuiContext* imguiTVContext{};
+	ImGuiContext* imguiPadContext{};
 
 #if BOOST_OS_WINDOWS
 	std::unique_ptr<DXGIWrapper> m_dxgi_wrapper{};

@@ -139,7 +139,7 @@ void hle_scan(uint8* data, sint32 dataLength, char* hleFunctionName)
 			uint32 offset = (uint32)(scanCurrent - scanStart) + 0x01000000;
 			debug_printf("HLE signature for '%s' found at 0x%08x\n", hleFunctionName, offset);
 			uint32 opcode = (1<<26)|(functionIndex+0x1000); // opcode for HLE: 0x1000 + FunctionIndex
-			memory_writeU32Direct(offset, opcode);
+			memory_write<uint32>(offset, opcode);
 			break;
 		}
 		scanCurrent += 4;
@@ -330,7 +330,7 @@ void GamePatch_scan()
 #endif
 		sint32 functionIndex = hleIndex_h000000001;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
-		memory_writeU32Direct(hleAddr - 4, opcode);
+		memory_write<uint32>(hleAddr - 4, opcode);
 	}
 	hleIndex_h000000002 = osLib_getFunctionIndex("hle", "h000000002");
 	hleAddr = hle_locate(botw_busyLoopSignature2, botw_busyLoopMask2, sizeof(botw_busyLoopSignature2));
@@ -341,7 +341,7 @@ void GamePatch_scan()
 #endif
 		sint32 functionIndex = hleIndex_h000000002;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
-		memory_writeU32Direct(hleAddr - 4, opcode);
+		memory_write<uint32>(hleAddr - 4, opcode);
 	}
 
 	// FFL library float array endian conversion
@@ -353,7 +353,7 @@ void GamePatch_scan()
 		forceLogDebug_printf("HLE: Hook FFL float array endian swap function at 0x%08x", hleAddr);
 		sint32 functionIndex = hleIndex_h000000003;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
-		memory_writeU32Direct(hleAddr, opcode);
+		memory_write<uint32>(hleAddr, opcode);
 	}
 
 	// XCX freeze workaround

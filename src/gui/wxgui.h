@@ -12,6 +12,7 @@
 #include <wx/slider.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/spinctrl.h>
 #include <wx/listbase.h>
 #include <wx/display.h>
 #include <wx/aboutdlg.h>

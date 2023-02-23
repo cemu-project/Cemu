@@ -1517,6 +1517,7 @@ void VulkanRenderer::ImguiInit()
 
 void VulkanRenderer::Initialize()
 {
+	Renderer::Initialize();
 	CreatePipelineCache();
 	ImguiInit();
 	CreateNullObjects();
@@ -1524,6 +1525,7 @@ void VulkanRenderer::Initialize()
 
 void VulkanRenderer::Shutdown()
 {
+	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 }

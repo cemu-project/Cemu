@@ -125,6 +125,7 @@ enum
 	// debug
 	MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN = 21100,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW,
+	MAINFRAME_MENU_ID_DEBUG_TOGGLE_GDB_STUB,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER,
@@ -184,7 +185,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, MainWindow::OnToolsInput)
-//// cpu menu
+// cpu menu
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_8X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_4X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_2X, MainWindow::OnDebugSetting)
@@ -210,6 +211,7 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_FST, MainWindow::OnDebugSetting)
 // debug -> View ...
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW, MainWindow::OnLoggingWindow)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_TOGGLE_GDB_STUB, MainWindow::OnGDBStubToggle)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS, MainWindow::OnDebugViewPPCThreads)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, MainWindow::OnDebugViewPPCDebugger)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, MainWindow::OnDebugViewAudioDebugger)
@@ -344,6 +346,10 @@ MainWindow::MainWindow()
 	if (LaunchSettings::GetLoadFile().has_value())
 	{
 		MainWindow::RequestLaunchGame(LaunchSettings::GetLoadFile().value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
+	}
+	if (LaunchSettings::GDBStubEnabled())
+	{
+		g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
 	}
 }
 
@@ -633,7 +639,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 
 void MainWindow::OnOpenCemuFolder(wxCommandEvent& event)
 {
-	wxLaunchDefaultApplication(ActiveSettings::GetUserDataPath().wstring());
+	wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetUserDataPath()));
 }
 
 void MainWindow::OnInstallUpdate(wxCommandEvent& event)
@@ -1013,7 +1019,7 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		{
 			try
 			{
-				const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+				const fs::path path(ActiveSettings::GetUserDataPath());
 				fs::create_directories(path / "dump" / "curl");
 			}
 			catch (const std::exception& ex)
@@ -1070,7 +1076,7 @@ void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+			const fs::path path(ActiveSettings::GetUserDataPath());
 			fs::create_directories(path / "dump" / "textures");
 		}
 		catch (const std::exception& ex)
@@ -1091,7 +1097,7 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 		try
 		{
 			// create directory
-			const fs::path path(CemuApp::GetUserDataPath().ToStdString());
+			const fs::path path(ActiveSettings::GetUserDataPath());
 			fs::create_directories(path / "dump" / "shaders");
 		}
 		catch (const std::exception & ex)
@@ -1115,6 +1121,18 @@ void MainWindow::OnLoggingWindow(wxCommandEvent& event)
 		event.Skip();
 	});
 	m_logging_window->Show(true);
+}
+
+void MainWindow::OnGDBStubToggle(wxCommandEvent& event)
+{
+	if (g_gdbstub)
+	{
+		g_gdbstub.release();
+		return;
+	}
+
+	const auto& config = GetConfig();
+	g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
 }
 
 void MainWindow::OnDebugViewPPCThreads(wxCommandEvent& event)
@@ -2177,6 +2195,10 @@ void MainWindow::RecreateMenu()
 #ifdef CEMU_DEBUG_ASSERT
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW, _("&Open logging window"));
 #endif
+	m_gdbstub_toggle = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_TOGGLE_GDB_STUB, _("&Launch with GDB stub"), wxEmptyString);
+	m_gdbstub_toggle->Check(g_gdbstub != nullptr);
+	m_gdbstub_toggle->Enable(!m_game_launched);
+
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS, _("&View PPC threads"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, _("&View PPC debugger"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, _("&View audio debugger"));

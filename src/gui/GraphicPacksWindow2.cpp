@@ -495,15 +495,14 @@ void GraphicPacksWindow2::OnTreeChoiceChanged(wxTreeEvent& event)
 	auto& graphic_pack = data->GetGraphicPack();
 	graphic_pack->SetEnabled(state);
 
-	bool has_texture_rules = false;
-	if (CafeSystem::IsTitleRunning() && graphic_pack->ContainsTitleId(CafeSystem::GetForegroundTitleId()))
+	bool requiresRestart = graphic_pack->RequiresRestart(true, false);
+	bool isRunning = CafeSystem::IsTitleRunning() && graphic_pack->ContainsTitleId(CafeSystem::GetForegroundTitleId());
+	if (isRunning)
 	{
  		if (state)
 		{
 			GraphicPack2::ActivateGraphicPack(graphic_pack);
-			has_texture_rules = !graphic_pack->GetTextureRules().empty();
-
-			if (!has_texture_rules)
+			if (!requiresRestart)
 			{
 				ReloadPack(graphic_pack);
 				m_graphic_pack_tree->SetItemTextColour(item, 0x009900);
@@ -511,19 +510,16 @@ void GraphicPacksWindow2::OnTreeChoiceChanged(wxTreeEvent& event)
 		}
 		else
 		{
-			has_texture_rules = !graphic_pack->GetTextureRules().empty();
-
-			if (!has_texture_rules)
+			if (!requiresRestart)
 			{
 				DeleteShadersFromRuntimeCache(graphic_pack);
 				m_graphic_pack_tree->SetItemTextColour(item, *wxBLACK);
 			}
-
 			GraphicPack2::DeactivateGraphicPack(graphic_pack);
 		}
 	}
 
-	if (!m_info_bar->IsShown() && has_texture_rules)
+	if (!m_info_bar->IsShown() && (isRunning && requiresRestart))
 		m_info_bar->ShowMessage(_("Restart of Cemu required for changes to take effect"));
 
 	// also change selection to activated gp
@@ -583,7 +579,7 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 		m_right_panel->Layout();
 	}
 
-	if (m_shown_graphic_pack->GetTextureRules().empty())
+	if (!m_shown_graphic_pack->RequiresRestart(false, true))
 		ReloadPack(m_shown_graphic_pack);
 	else if (!m_info_bar->IsShown())
 		m_info_bar->ShowMessage(_("Restart of Cemu required for changes to take effect"));		

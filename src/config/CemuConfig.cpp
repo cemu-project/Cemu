@@ -10,19 +10,19 @@
 
 XMLCemuConfig_t g_config(L"settings.xml");
 
-void CemuConfig::SetMLCPath(std::wstring_view path, bool save)
+void CemuConfig::SetMLCPath(fs::path path, bool save)
 {
-	mlc_path.SetValue(path);
+	mlc_path.SetValue(_pathToUtf8(path));
 	if(save)
 		g_config.Save();
 
 	// if custom mlc path has been selected, store it in permanent config
-	if (!boost::starts_with(path, ActiveSettings::GetDefaultMLCPath().generic_wstring()))
+	if (path != ActiveSettings::GetDefaultMLCPath())
 	{
 		try
 		{
 			auto pconfig = PermanentConfig::Load();
-			pconfig.custom_mlc_path = boost::nowide::narrow(path.data(), path.size());
+			pconfig.custom_mlc_path = _pathToUtf8(path);
 			pconfig.Store();
 		}
 		catch (const PSDisabledException&) {}
@@ -46,14 +46,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	advanced_ppc_logging = parser.get("advanced_ppc_logging", advanced_ppc_logging.GetInitValue());
 
 	const char* mlc = parser.get("mlc_path", "");
-	try
-	{
-		mlc_path = boost::nowide::widen(mlc);
-	}
-	catch (const std::exception&)
-	{
-		forceLog_printf("config load error: can't load mlc path: %s", mlc);
-	}
+	mlc_path = mlc;
 
 	permanent_storage = parser.get("permanent_storage", permanent_storage);
 	
@@ -344,6 +337,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 #elif BOOST_OS_UNIX
 	crash_dump = debug.get("CrashDumpUnix", crash_dump);
 #endif
+	gdb_port = debug.get("GDBPort", 1337);
 
 	// input
 	auto input = parser.get("Input");
@@ -358,7 +352,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	// general settings
 	config.set("logflag", log_flag.GetValue());
 	config.set("advanced_ppc_logging", advanced_ppc_logging.GetValue());
-	config.set("mlc_path", boost::nowide::narrow(mlc_path.GetValue()).c_str());
+	config.set("mlc_path", mlc_path.GetValue().c_str());
 	config.set<bool>("permanent_storage", permanent_storage);
 	config.set<sint32>("language", language);
 	config.set<bool>("use_discord_presence", use_discord_presence);
@@ -524,6 +518,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 #elif BOOST_OS_UNIX
 	debug.set("CrashDumpUnix", crash_dump.GetValue());
 #endif
+	debug.set("GDBPort", gdb_port);
 
 	// input
 	auto input = config.set("Input");

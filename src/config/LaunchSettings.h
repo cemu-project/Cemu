@@ -21,6 +21,7 @@ public:
 	static std::optional<bool> RenderUpsideDownEnabled() { return s_render_upside_down; }
 	static std::optional<bool> FullscreenEnabled() { return s_fullscreen; }
 
+	static bool GDBStubEnabled() { return s_enable_gdbstub; }
 	static bool NSightModeEnabled() { return s_nsight_mode; }
 	static bool ForceIntelLegacyEnabled() { return s_force_intel_legacy; }
 
@@ -39,6 +40,7 @@ private:
 	inline static std::optional<bool> s_render_upside_down{};
 	inline static std::optional<bool> s_fullscreen{};
 	
+	inline static bool s_enable_gdbstub = false;
 	inline static bool s_nsight_mode = false;
 	inline static bool s_force_intel_legacy = false;
 

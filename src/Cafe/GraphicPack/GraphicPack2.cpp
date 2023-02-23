@@ -500,6 +500,14 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 	}
 }
 
+// returns true if enabling, disabling (changeEnableState) or changing presets (changePreset) for the graphic pack requires restarting if the game is already running
+bool GraphicPack2::RequiresRestart(bool changeEnableState, bool changePreset)
+{
+	if (!GetTextureRules().empty())
+		return true;
+	return false;
+}
+
 bool GraphicPack2::Reload()
 {
 	Deactivate();
