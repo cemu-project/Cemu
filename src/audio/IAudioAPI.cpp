@@ -6,7 +6,9 @@
 #include "DirectSoundAPI.h"
 #endif
 #include "config/CemuConfig.h"
+#if HAS_CUBEB
 #include "CubebAPI.h"
+#endif
 
 std::shared_mutex g_audioMutex;
 AudioAPIPtr g_tvAudio;
@@ -80,7 +82,9 @@ void IAudioAPI::InitializeStatic()
 	if(!s_availableApis[XAudio2]) // don't try to initialize the older lib if the newer version is available
 		s_availableApis[XAudio27] = XAudio27API::InitializeStatic();
 #endif
+#if HAS_CUBEB
 	s_availableApis[Cubeb] = CubebAPI::InitializeStatic();
+#endif
 }
 
 bool IAudioAPI::IsAudioAPIAvailable(AudioAPI api)
@@ -118,11 +122,13 @@ AudioAPIPtr IAudioAPI::CreateDevice(AudioAPI api, const DeviceDescriptionPtr& de
 		return std::make_unique<XAudio2API>(tmp->GetDeviceId(), samplerate, channels, samples_per_block, bits_per_sample);
 	}
 #endif
+#if HAS_CUBEB
     case Cubeb:
     {
         const auto tmp = std::dynamic_pointer_cast<CubebAPI::CubebDeviceDescription>(device);
         return std::make_unique<CubebAPI>(tmp->GetDeviceId(), samplerate, channels, samples_per_block, bits_per_sample);
     }
+#endif
 	default:
 		throw std::runtime_error(fmt::format("invalid audio api: {}", api));
 	}
@@ -149,10 +155,12 @@ std::vector<IAudioAPI::DeviceDescriptionPtr> IAudioAPI::GetDevices(AudioAPI api)
 		return XAudio2API::GetDevices();
 	}
 #endif
+#if HAS_CUBEB
 	case Cubeb:
 	{
 		return CubebAPI::GetDevices();
 	}
+#endif
 	default:
 		throw std::runtime_error(fmt::format("invalid audio api: {}", api));
 	}
