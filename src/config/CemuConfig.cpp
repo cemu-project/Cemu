@@ -60,6 +60,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	did_show_macos_disclaimer = parser.get("macos_disclaimer", did_show_macos_disclaimer);
 	fullscreen = parser.get("fullscreen", fullscreen);
 	proxy_server = parser.get("proxy_server", "");
+	disable_screensaver = parser.get("disable_screensaver", true);
 
 	// cpu_mode = parser.get("cpu_mode", cpu_mode.GetInitValue());
 	//console_region = parser.get("console_region", console_region.GetInitValue());
@@ -363,7 +364,8 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("macos_disclaimer", did_show_macos_disclaimer);
 	config.set<bool>("fullscreen", fullscreen);
 	config.set("proxy_server", proxy_server.GetValue().c_str());
-	
+	config.set<bool>("disable_screensaver", disable_screensaver);
+
 	// config.set("cpu_mode", cpu_mode.GetValue());
 	//config.set("console_region", console_region.GetValue());
 	config.set("console_language", console_language.GetValue());
