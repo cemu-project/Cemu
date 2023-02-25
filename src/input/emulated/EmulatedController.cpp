@@ -207,16 +207,6 @@ glm::vec2 EmulatedController::get_prev_position() const
 	return {};
 }
 
-std::shared_ptr<ControllerBase> EmulatedController::find_controller(std::string_view uuid, InputAPI::Type type) const
-{
-	std::scoped_lock lock(m_mutex);
-	const auto it = std::find_if(m_controllers.cbegin(), m_controllers.cend(), [uuid, type](const auto& c) { return c->api() == type && c->uuid() == uuid; });
-	if (it != m_controllers.cend())
-		return *it;
-
-	return {};
-}
-
 void EmulatedController::add_controller(std::shared_ptr<ControllerBase> controller)
 {
 	controller->connect();
