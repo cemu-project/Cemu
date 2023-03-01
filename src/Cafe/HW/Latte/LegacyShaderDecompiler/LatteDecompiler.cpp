@@ -1071,34 +1071,24 @@ void LatteDecompiler_InitContext(LatteDecompilerShaderContext& dCtx, const Latte
 	dCtx.output = output;
 	dCtx.shaderType = shaderType;
 	dCtx.options = &options;
-	output->shaderType = shaderType;
 	dCtx.shaderBaseHash = shaderBaseHash;
 	dCtx.contextRegisters = contextRegisters;
 	dCtx.contextRegistersNew = (LatteContextRegister*)contextRegisters;
-
-	// set context parameters (redundant stuff since options can be accessed directly)
-	dCtx.usesGeometryShader = options.usesGeometryShader;
-	dCtx.useTFViaSSBO = options.useTFViaSSBO;
+	output->shaderType = shaderType;
 }
 
-void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader** fetchShaderList, sint32 fetchShaderCount, uint32* hleSpecialState, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
+void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader* fetchShader, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
+	cemu_assert_debug(fetchShader);
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
 	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Vertex, shaderBaseHash, contextRegisters);
-	cemu_assert_debug(fetchShaderCount == 1);
-	for (sint32 i = 0; i < fetchShaderCount; i++)
-	{
-		shaderContext.fetchShaderList[i] = fetchShaderList[i];
-	}
-	shaderContext.fetchShaderCount = fetchShaderCount;
+	shaderContext.fetchShader = fetchShader;
 	// prepare shader (deprecated)
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shader->shaderType = LatteConst::ShaderType::Vertex;
-	shader->compatibleFetchShader = shaderContext.fetchShaderList[0];
-	shaderContext.shaderType = LatteConst::ShaderType::Vertex;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Vertex);
+	shader->compatibleFetchShader = shaderContext.fetchShader;
 	output->shaderType = LatteConst::ShaderType::Vertex;
 	shaderContext.shader = shader;
 	output->shader = shader;
@@ -1112,20 +1102,16 @@ void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contex
 	performanceMonitor.gpuTime_shaderCreate.endMeasuring();
 }
 
-void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32* hleSpecialState, uint32 vsRingParameterCount, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
+void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32 vsRingParameterCount, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
-	shaderContext.fetchShaderCount = 0;
 	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Geometry, shaderBaseHash, contextRegisters);
 	// prepare shader
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shaderContext.output = output;
-	shader->shaderType = LatteConst::ShaderType::Geometry;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Geometry);
 	shader->ringParameterCountFromPrevStage = vsRingParameterCount;
-	shaderContext.shaderType = LatteConst::ShaderType::Geometry;
 	output->shaderType = LatteConst::ShaderType::Geometry;
 	shaderContext.shader = shader;
 	output->shader = shader;
@@ -1147,7 +1133,7 @@ void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* cont
 	performanceMonitor.gpuTime_shaderCreate.endMeasuring();
 }
 
-void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint32* hleSpecialState, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
+void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
@@ -1156,10 +1142,7 @@ void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* context
 	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Pixel, shaderBaseHash, contextRegisters);
 	shaderContext.contextRegisters = contextRegisters;
 	// prepare shader
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shaderContext.output = output;
-	shader->shaderType = LatteConst::ShaderType::Pixel;
-	shaderContext.shaderType = LatteConst::ShaderType::Pixel;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Pixel);
 	output->shaderType = LatteConst::ShaderType::Pixel;
 	shaderContext.shader = shader;
 	output->shader = shader;

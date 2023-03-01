@@ -150,11 +150,10 @@ struct LatteDecompilerShaderContext
 	uint32* contextRegisters; // deprecated
 	struct LatteContextRegister* contextRegistersNew;
 	uint64 shaderBaseHash;
-	StringBuf* shaderSource; // move to output struct
+	StringBuf* shaderSource;
 	std::vector<LatteDecompilerCFInstruction> cfInstructions;
 	// fetch shader (required for vertex shader)
-	LatteFetchShader* fetchShaderList[32];
-	sint32 fetchShaderCount;
+	LatteFetchShader* fetchShader{};
 	// geometry copy shader (only present when geometry shader is active)
 	LatteParsedGSCopyShader* parsedGSCopyShader;
 	// state
@@ -217,8 +216,6 @@ struct LatteDecompilerShaderContext
 	sint32 currentBindingPointVK{};
 
 	// misc
-	bool usesGeometryShader; // for VS
-	bool useTFViaSSBO;
 	std::vector<LatteDecompilerSubroutineInfo> list_subroutines;
 };
 

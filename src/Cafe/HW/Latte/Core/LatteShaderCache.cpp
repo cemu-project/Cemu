@@ -651,15 +651,12 @@ bool LatteShaderCache_readSeparableVertexShader(MemStreamReader& streamReader, u
 	LatteShader_GetDecompilerOptions(options, LatteConst::ShaderType::Vertex, usesGeometryShader);
 	// decompile vertex shader
 	LatteDecompilerOutput_t decompilerOutput{};
-	LatteFetchShader* fetchShaderList[1];
-	fetchShaderList[0] = fetchShader;
-	LatteDecompiler_DecompileVertexShader(shaderBaseHash, lcr->GetRawView(), vertexShaderData.data(), vertexShaderData.size(), fetchShaderList, 1, lcr->GetSpecialStateValues(), options, &decompilerOutput);
+	LatteDecompiler_DecompileVertexShader(shaderBaseHash, lcr->GetRawView(), vertexShaderData.data(), vertexShaderData.size(), fetchShader, options, &decompilerOutput);
 	LatteDecompilerShader* vertexShader = LatteShader_CreateShaderFromDecompilerOutput(decompilerOutput, shaderBaseHash, false, shaderAuxHash, lcr->GetRawView());
 	// compile
 	LatteShader_DumpShader(shaderBaseHash, shaderAuxHash, vertexShader);
 	LatteShader_DumpRawShader(shaderBaseHash, shaderAuxHash, SHADER_DUMP_TYPE_VERTEX, vertexShaderData.data(), vertexShaderData.size());
 	LatteShaderCache_loadOrCompileSeparableShader(vertexShader, shaderBaseHash, shaderAuxHash);
-	catchOpenGLError();
 	LatteSHRC_RegisterShader(vertexShader, shaderBaseHash, shaderAuxHash);
 	return true;
 }
@@ -696,7 +693,7 @@ bool LatteShaderCache_readSeparableGeometryShader(MemStreamReader& streamReader,
 	LatteShader_GetDecompilerOptions(options, LatteConst::ShaderType::Geometry, true);
 	// decompile geometry shader
 	LatteDecompilerOutput_t decompilerOutput{};
-	LatteDecompiler_DecompileGeometryShader(shaderBaseHash, lcr->GetRawView(), geometryShaderData.data(), geometryShaderData.size(), geometryCopyShaderData.data(), geometryCopyShaderData.size(), lcr->GetSpecialStateValues(), vsRingParameterCount, options, &decompilerOutput);
+	LatteDecompiler_DecompileGeometryShader(shaderBaseHash, lcr->GetRawView(), geometryShaderData.data(), geometryShaderData.size(), geometryCopyShaderData.data(), geometryCopyShaderData.size(), vsRingParameterCount, options, &decompilerOutput);
 	LatteDecompilerShader* geometryShader = LatteShader_CreateShaderFromDecompilerOutput(decompilerOutput, shaderBaseHash, false, shaderAuxHash, lcr->GetRawView());
 	// compile
 	LatteShader_DumpShader(shaderBaseHash, shaderAuxHash, geometryShader);
@@ -734,13 +731,12 @@ bool LatteShaderCache_readSeparablePixelShader(MemStreamReader& streamReader, ui
 	LatteShader_GetDecompilerOptions(options, LatteConst::ShaderType::Pixel, usesGeometryShader);
 	// decompile pixel shader
 	LatteDecompilerOutput_t decompilerOutput{};
-	LatteDecompiler_DecompilePixelShader(shaderBaseHash, lcr->GetRawView(), pixelShaderData.data(), pixelShaderData.size(), lcr->GetSpecialStateValues(), options, &decompilerOutput);
+	LatteDecompiler_DecompilePixelShader(shaderBaseHash, lcr->GetRawView(), pixelShaderData.data(), pixelShaderData.size(), options, &decompilerOutput);
 	LatteDecompilerShader* pixelShader = LatteShader_CreateShaderFromDecompilerOutput(decompilerOutput, shaderBaseHash, false, shaderAuxHash, lcr->GetRawView());
 	// compile
 	LatteShader_DumpShader(shaderBaseHash, shaderAuxHash, pixelShader);
 	LatteShader_DumpRawShader(shaderBaseHash, shaderAuxHash, SHADER_DUMP_TYPE_PIXEL, pixelShaderData.data(), pixelShaderData.size());
 	LatteShaderCache_loadOrCompileSeparableShader(pixelShader, shaderBaseHash, shaderAuxHash);
-	catchOpenGLError();
 	LatteSHRC_RegisterShader(pixelShader, shaderBaseHash, shaderAuxHash);
 	return true;
 }

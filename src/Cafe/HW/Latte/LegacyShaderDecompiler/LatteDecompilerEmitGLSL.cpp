@@ -3363,7 +3363,7 @@ void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, LatteDeco
 				if ((cfInstruction->memWriteCompMask&(1 << i)) == 0)
 					continue;
 
-				if (shaderContext->useTFViaSSBO)
+				if (shaderContext->options->useTFViaSSBO)
 				{
 					uint32 u32Offset = streamWrite->exportArrayBase + i;
 					src->addFmt("sb_buffer[sbBase{} + {}]", streamWrite->bufferIndex, u32Offset);
@@ -3483,7 +3483,7 @@ void _emitStreamWriteCode(LatteDecompilerShaderContext* shaderContext, LatteDeco
 			if ((cfInstruction->memWriteCompMask&(1 << i)) == 0)
 				continue;
 
-			if (shaderContext->useTFViaSSBO)
+			if (shaderContext->options->useTFViaSSBO)
 			{
 				uint32 u32Offset = cfInstruction->exportArrayBase + i;
 				src->addFmt("sb_buffer[sbBase{} + {}]", streamoutBufferIndex, u32Offset);
@@ -3831,7 +3831,7 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){float r = a*b;r = intBitsToFloat(floatBitsToInt(r)&(((floatBitsToInt(a) != 0) && (floatBitsToInt(b) != 0))?0xFFFFFFFF:0));return r;}" STR_LINEBREAK); works
 
 		if( LatteGPUState.glVendor == GLVENDOR_NVIDIA && !ActiveSettings::DumpShadersEnabled())
-			fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){return mix(0.0, a*b, (a != 0.0) && (b != 0.0));}" _CRLF); // compiles faster on Nvidia and also results in lower RAM usage
+			fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){return mix(0.0, a*b, (a != 0.0) && (b != 0.0));}" _CRLF); // compiles faster on Nvidia and also results in lower RAM usage (OpenGL)
 		else
 			fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ if( a == 0.0 || b == 0.0 ) return 0.0; return a*b; }" _CRLF);
 	}
@@ -3839,51 +3839,6 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 	{
 		fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ return min(a*b,min(abs(a)*3.40282347E+38F,abs(b)*3.40282347E+38F)); }" _CRLF);
 	}
-}
-
-void _addPixelShaderExtraDebugInfo(LatteDecompilerShaderContext* shaderContext, StringBuf* fCStr_shaderSource)
-{
-#ifdef CEMU_DEBUG_ASSERT
-	fCStr_shaderSource->add("// Color buffers:" _CRLF);
-	for(uint32 i=0; i<8; i++)
-	{
-		uint32 regColorBuffer = shaderContext->contextRegisters[mmCB_COLOR0_BASE+i];
-		uint32 regColorSize = shaderContext->contextRegisters[mmCB_COLOR0_SIZE+i];
-		uint32 regColorInfo = shaderContext->contextRegisters[mmCB_COLOR0_INFO+i];
-		uint32 regColorView = shaderContext->contextRegisters[mmCB_COLOR0_VIEW+i];
-		MPTR colorBufferPhysMem = regColorBuffer;
-		if( regColorBuffer == MPTR_NULL )
-			continue;
-
-		uint32 colorBufferFormat  = (regColorInfo>>2)&0x3F; // format
-		uint32 colorBufferTileMode = 0;
-		colorBufferTileMode = (regColorInfo >> 8) & 0xF;
-		switch ( (regColorInfo >> 12) & 7 )
-		{
-		case 4:
-			colorBufferFormat |= 0x100;
-			break;
-		case 1:
-			colorBufferFormat |= 0x200;
-			break;
-		case 5:
-			colorBufferFormat |= 0x300;
-			break;
-		case 6:
-			colorBufferFormat |= 0x400;
-			break;
-		case 7:
-			colorBufferFormat |= 0x800;
-			break;
-		default:
-			break;
-		}
-
-		uint32 colorBufferWidth = (regColorSize>>0)&0xFFFF;
-		uint32 colorBufferHeight = (regColorSize>>16)&0xFFFF;
-		fCStr_shaderSource->addFmt("// Color{}: {}x{} at 0x{:08x} fmt {:04x} tm {}" _CRLF, i, colorBufferWidth, colorBufferHeight, colorBufferPhysMem, colorBufferFormat, colorBufferTileMode);
-	}
-#endif
 }
 
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitGLSLHeader.hpp"
@@ -3954,18 +3909,14 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 	src->add("#extension GL_ARB_texture_gather : enable" _CRLF);
 	src->add("#extension GL_ARB_separate_shader_objects : enable" _CRLF);
 
-	if (shaderContext->analyzer.hasStreamoutWrite || shaderContext->usesGeometryShader )
+	if (shaderContext->analyzer.hasStreamoutWrite || shaderContext->options->usesGeometryShader )
 		src->add("#extension GL_ARB_enhanced_layouts : enable" _CRLF);
 	
 	// debug info
-	src->addFmt("// shader %08x%08x" _CRLF, (uint32)(shaderContext->shaderBaseHash >> 32), (uint32)(shaderContext->shaderBaseHash & 0xFFFFFFFF));
+	src->addFmt("// shader {:016x}" _CRLF, shaderContext->shaderBaseHash);
 #ifdef CEMU_DEBUG_ASSERT
 	src->addFmt("// usesIntegerValues: {}" _CRLF, shaderContext->analyzer.usesIntegerValues?"true":"false");
 	src->addFmt(_CRLF);
-
-	if( shader->shaderType == LatteConst::ShaderType::Pixel )
-		_addPixelShaderExtraDebugInfo(shaderContext, src);
-	
 #endif
 	// header part (definitions for inputs and outputs)
 	LatteDecompiler::emitHeader(shaderContext);
@@ -3982,7 +3933,6 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 		{
 			if (shaderContext->analyzer.usesRelativeGPRRead || (shaderContext->analyzer.gprUseMask[i / 8] & (1 << (i & 7))) != 0)
 			{
-				//fCStr_appendFormatted(fCStr_shaderSource, "ivec4 R{}i, R{}i, R{}i, R{}i;" STR_LINEBREAK, i*4+0, i*4+1, i*4+2, i*4+3);
 				if (shaderContext->typeTracker.genIntReg)
 					src->addFmt("ivec4 R{}i = ivec4(0);" _CRLF, i);
 				else if (shaderContext->typeTracker.genFloatReg)
@@ -4035,7 +3985,6 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 	src->add("bool predResult = true;" _CRLF);
 	if(shaderContext->analyzer.modifiesPixelActiveState )
 	{
-		// cemu_assert_debug(shaderContext->analyzer.activeStackMaxDepth == 0);
 		src->addFmt("bool activeMaskStack[{}];" _CRLF, shaderContext->analyzer.activeStackMaxDepth+1);
 		src->addFmt("bool activeMaskStackC[{}];" _CRLF, shaderContext->analyzer.activeStackMaxDepth+2);
 		for (sint32 i = 0; i < shaderContext->analyzer.activeStackMaxDepth; i++)
@@ -4058,8 +4007,11 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 		}
 	}
 	// helper variables for cube maps (todo: Only emit when used)
-	src->addFmt("vec3 cubeMapSTM;" _CRLF);
-	src->addFmt("int cubeMapFaceId;" _CRLF);
+	if (shaderContext->analyzer.hasRedcCUBE)
+	{
+		src->add("vec3 cubeMapSTM;" _CRLF);
+		src->add("int cubeMapFaceId;" _CRLF);
+	}
 	for(sint32 i=0; i<LATTE_NUM_MAX_TEX_UNITS; i++)
 	{
 		if(!shaderContext->output->textureUnitMask[i])
@@ -4106,25 +4058,18 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 				cemu_assert_unimplemented();
 		}
 
-		if (shaderContext->fetchShaderCount == 1)
+		LatteFetchShader* parsedFetchShader = shaderContext->fetchShader;
+		for(auto& bufferGroup : parsedFetchShader->bufferGroups)
 		{
-			LatteFetchShader* parsedFetchShader = shaderContext->fetchShaderList[0];
-			for(auto& bufferGroup : parsedFetchShader->bufferGroups)
-			{
-				for(sint32 i=0; i<bufferGroup.attribCount; i++)
-					LatteDecompiler_emitAttributeImport(shaderContext, bufferGroup.attrib[i]);
-			}
-			for (auto& bufferGroup : parsedFetchShader->bufferGroupsInvalid)
-			{
-				// these attributes point to non-existent buffers
-				// todo - figure out how the hardware actually handles this, currently we assume the input values are zero
-				for (sint32 i = 0; i < bufferGroup.attribCount; i++)
-					LatteDecompiler_emitAttributeImport(shaderContext, bufferGroup.attrib[i]);
-			}
+			for(sint32 i=0; i<bufferGroup.attribCount; i++)
+				LatteDecompiler_emitAttributeImport(shaderContext, bufferGroup.attrib[i]);
 		}
-		else
+		for (auto& bufferGroup : parsedFetchShader->bufferGroupsInvalid)
 		{
-			cemu_assert_unimplemented();
+			// these attributes point to non-existent buffers
+			// todo - figure out how the hardware actually handles this, currently we assume the input values are zero
+			for (sint32 i = 0; i < bufferGroup.attribCount; i++)
+				LatteDecompiler_emitAttributeImport(shaderContext, bufferGroup.attrib[i]);
 		}
 	}
 	else if (shader->shaderType == LatteConst::ShaderType::Pixel)
@@ -4172,7 +4117,7 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 				continue;
 			}
 
-			if (shaderContext->usesGeometryShader)
+			if (shaderContext->options->usesGeometryShader)
 			{
 				// import from geometry shader
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
@@ -4216,7 +4161,7 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 	// vertex shader should write renderstate point size at the end if required but not modified by shader
 	if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
 	{
-		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->usesGeometryShader == false)
+		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader == false)
 			src->add("gl_PointSize = uf_pointSize;" _CRLF);
 	}
 	// end of shader main

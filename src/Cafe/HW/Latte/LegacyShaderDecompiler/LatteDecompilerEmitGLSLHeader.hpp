@@ -95,7 +95,7 @@ namespace LatteDecompiler
 		}
 		if (decompilerContext->analyzer.outputPointSize && decompilerContext->analyzer.writesPointSize == false)
 		{
-			if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->usesGeometryShader) ||
+			if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 				decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
 			{
 				uniformCurrentOffset = (uniformCurrentOffset + 3)&~3;
@@ -135,7 +135,7 @@ namespace LatteDecompiler
 		}
 		// define uf_verticesPerInstance + uf_streamoutBufferBaseX
 		if (decompilerContext->analyzer.useSSBOForStreamout &&
-			(shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->usesGeometryShader == false) ||
+			(shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader == false) ||
 			(shader->shaderType == LatteConst::ShaderType::Geometry) )
 		{
 			shaderSrc->add("uniform int uf_verticesPerInstance;" _CRLF);
@@ -298,7 +298,7 @@ namespace LatteDecompiler
 
 			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
 			{
-				if (decompilerContext->usesGeometryShader)
+				if (decompilerContext->options->usesGeometryShader)
 					src->add("#define V2G_LAYOUT layout(location = 0)" _CRLF);
 			}
 		}
@@ -322,7 +322,7 @@ namespace LatteDecompiler
 				src->add("#define XFB_BLOCK_LAYOUT(__bufferIndex, __stride, __location) layout(xfb_buffer = __bufferIndex, xfb_stride = __stride)" _CRLF);
 
 			src->add("#define SET_POSITION(_v) gl_Position = _v\r\n");
-			if (decompilerContext->usesGeometryShader)
+			if (decompilerContext->options->usesGeometryShader)
 				src->add("#define V2G_LAYOUT" _CRLF);
 		}
 		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
@@ -430,7 +430,7 @@ namespace LatteDecompiler
 	{
 		auto src = decompilerContext->shaderSource;
 		// per-vertex output (VS or GS)
-		if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->usesGeometryShader == false) ||
+		if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 			(decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
 		{
 			src->add("out gl_PerVertex" _CRLF);
@@ -441,7 +441,7 @@ namespace LatteDecompiler
 			src->add("};" _CRLF);
 		}
 		// varyings (variables passed from vertex to pixel shader, only if geometry stage is disabled
-		if (decompilerContext->usesGeometryShader == false)
+		if (decompilerContext->options->usesGeometryShader == false)
 		{
 			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
 			{
@@ -537,7 +537,7 @@ namespace LatteDecompiler
 		// streamout buffer (transform feedback)
 		if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry) && decompilerContext->analyzer.hasStreamoutEnable)
 		{
-			if (decompilerContext->useTFViaSSBO)
+			if (decompilerContext->options->useTFViaSSBO)
 			{
 				if (decompilerContext->analyzer.useSSBOForStreamout && decompilerContext->analyzer.hasStreamoutWrite)
 				{

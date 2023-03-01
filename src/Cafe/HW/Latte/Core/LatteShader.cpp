@@ -549,7 +549,7 @@ uint64 LatteSHRC_CalcVSAuxHash(LatteDecompilerShader* vertexShader, uint32* cont
 		// hash stride for streamout buffers
 		for (uint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 		{
-			if(!vertexShader->streamoutBufferWriteMask2[i])
+			if(!vertexShader->streamoutBufferWriteMask[i])
 				continue;
 			uint32 bufferStride = contextRegisters[mmVGT_STRMOUT_VTX_STRIDE_0 + i * 4];
 			auxHash = std::rotl<uint64>(auxHash, 7);
@@ -617,7 +617,7 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	// copy texture info
 	shader->textureUnitMask2 = decompilerOutput.textureUnitMask;
 	// copy streamout info
-	shader->streamoutBufferWriteMask2 = decompilerOutput.streamoutBufferWriteMask;
+	shader->streamoutBufferWriteMask = decompilerOutput.streamoutBufferWriteMask;
 	shader->hasStreamoutBufferWrite = decompilerOutput.streamoutBufferWriteMask.any();
 	// copy uniform offsets
 	// for OpenGL these are retrieved in _prepareSeparableUniforms()
@@ -746,9 +746,7 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	LatteShader_GetDecompilerOptions(options, LatteConst::ShaderType::Vertex, usesGeometryShader);
 
 	LatteDecompilerOutput_t decompilerOutput{};
-	LatteFetchShader* fetchShaderList[1];
-	fetchShaderList[0] = fetchShader;
-	LatteDecompiler_DecompileVertexShader(_shaderBaseHash_vs, LatteGPUState.contextRegister, vertexShaderPtr, vertexShaderSize, fetchShaderList, 1, LatteGPUState.contextNew.GetSpecialStateValues(), options, &decompilerOutput);
+	LatteDecompiler_DecompileVertexShader(_shaderBaseHash_vs, LatteGPUState.contextRegister, vertexShaderPtr, vertexShaderSize, fetchShader, options, &decompilerOutput);
 	LatteDecompilerShader* vertexShader = LatteShader_CreateShaderFromDecompilerOutput(decompilerOutput, baseHash, true, 0, LatteGPUState.contextRegister);
 	vsAuxHash = vertexShader->auxHash;
 	if (vertexShader->hasError == false)
@@ -779,9 +777,7 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	LatteShader_GetDecompilerOptions(options, LatteConst::ShaderType::Geometry, true);
 
 	LatteDecompilerOutput_t decompilerOutput{};
-	LatteFetchShader* fetchShaderList[1];
-	fetchShaderList[0] = _activeFetchShader;
-	LatteDecompiler_DecompileGeometryShader(_shaderBaseHash_gs, LatteGPUState.contextRegister, geometryShaderPtr, geometryShaderSize, geometryCopyShader, geometryCopyShaderSize, LatteGPUState.contextNew.GetSpecialStateValues(), _activeVertexShader->ringParameterCount, options, &decompilerOutput);
+	LatteDecompiler_DecompileGeometryShader(_shaderBaseHash_gs, LatteGPUState.contextRegister, geometryShaderPtr, geometryShaderSize, geometryCopyShader, geometryCopyShaderSize, _activeVertexShader->ringParameterCount, options, &decompilerOutput);
 	LatteDecompilerShader* geometryShader = LatteShader_CreateShaderFromDecompilerOutput(decompilerOutput, baseHash, true, 0, LatteGPUState.contextRegister);
 	if (geometryShader->hasError == false)
 	{
@@ -810,7 +806,7 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 	LatteShader_GetDecompilerOptions(options, LatteConst::ShaderType::Pixel, usesGeometryShader);
 
 	LatteDecompilerOutput_t decompilerOutput{};
-	LatteDecompiler_DecompilePixelShader(baseHash, LatteGPUState.contextRegister, pixelShaderPtr, pixelShaderSize, LatteGPUState.contextNew.GetSpecialStateValues(), options, &decompilerOutput);
+	LatteDecompiler_DecompilePixelShader(baseHash, LatteGPUState.contextRegister, pixelShaderPtr, pixelShaderSize, options, &decompilerOutput);
 	LatteDecompilerShader* pixelShader = LatteShader_CreateShaderFromDecompilerOutput(decompilerOutput, baseHash, true, 0, LatteGPUState.contextRegister);
 	psAuxHash = pixelShader->auxHash;
 	LatteShader_DumpShader(_shaderBaseHash_ps, psAuxHash, pixelShader);

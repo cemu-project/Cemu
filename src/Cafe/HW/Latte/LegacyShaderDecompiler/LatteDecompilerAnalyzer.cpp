@@ -630,7 +630,7 @@ namespace LatteDecompiler
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry && decompilerContext->analyzer.outputPointSize && decompilerContext->analyzer.writesPointSize == false)
 			decompilerContext->hasUniformVarBlock = true; // uf_pointSize
 		if (decompilerContext->analyzer.useSSBOForStreamout &&
-			(decompilerContext->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->usesGeometryShader == false) ||
+			(decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 			(decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
 		{
 			decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance and uf_streamoutBufferBase*
@@ -735,7 +735,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	// analyze render state
 	shaderContext->analyzer.isPointsPrimitive = shaderContext->contextRegistersNew->VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE() == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::POINTS;
 	shaderContext->analyzer.hasStreamoutEnable = shaderContext->contextRegisters[mmVGT_STRMOUT_EN] != 0; // set if the shader is used for transform feedback operations
-	if (shaderContext->shaderType == LatteConst::ShaderType::Vertex && shaderContext->usesGeometryShader == false)
+	if (shaderContext->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
 		shaderContext->analyzer.outputPointSize = shaderContext->analyzer.isPointsPrimitive;
 	else if (shaderContext->shaderType == LatteConst::ShaderType::Geometry)
 	{
@@ -746,10 +746,9 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	// analyze input attributes for vertex/geometry shader
 	if (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry)
 	{
-		for (sint32 f = 0; f < shaderContext->fetchShaderCount; f++)
+		if(shaderContext->fetchShader)
 		{
-			LatteFetchShader* parsedFetchShader = (LatteFetchShader*)shaderContext->fetchShaderList[f];
-			
+			LatteFetchShader* parsedFetchShader = shaderContext->fetchShader;
 			for(auto& bufferGroup : parsedFetchShader->bufferGroups)
 			{
 				for (sint32 i = 0; i < bufferGroup.attribCount; i++)
@@ -938,9 +937,9 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	// analyze input attributes again (if shader has relative GPR read)
 	if(shaderContext->analyzer.usesRelativeGPRRead && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry) )
 	{
-		for (sint32 f = 0; f < shaderContext->fetchShaderCount; f++)
+		if(shaderContext->fetchShader)
 		{
-			LatteFetchShader* parsedFetchShader = (LatteFetchShader*)shaderContext->fetchShaderList[f];
+			LatteFetchShader* parsedFetchShader = shaderContext->fetchShader;
 			for(auto& bufferGroup : parsedFetchShader->bufferGroups)
 			{
 				for (sint32 i = 0; i < bufferGroup.attribCount; i++)
@@ -1077,7 +1076,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	if(list_subroutineAddrs.empty() == false)
 		forceLogDebug_printf("Todo - analyze shader subroutine CF stack");
 	// TF mode
-	if (shaderContext->useTFViaSSBO && shaderContext->output->streamoutBufferWriteMask.any())
+	if (shaderContext->options->useTFViaSSBO && shaderContext->output->streamoutBufferWriteMask.any())
 	{
 		shaderContext->analyzer.useSSBOForStreamout = true;
 	}
