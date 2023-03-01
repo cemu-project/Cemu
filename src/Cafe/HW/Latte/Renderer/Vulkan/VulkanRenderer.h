@@ -463,7 +463,13 @@ private:
 			bool external_memory_host = false; // VK_EXT_external_memory_host
 			bool synchronization2 = false; // VK_KHR_synchronization2
 			bool dynamic_rendering = false; // VK_KHR_dynamic_rendering
+			bool shader_float_controls = false; // VK_KHR_shader_float_controls
 		}deviceExtensions;
+
+		struct
+		{
+			bool shaderRoundingModeRTEFloat32{ false };
+		}shaderFloatControls; // from VK_KHR_shader_float_controls
 
 		struct  
 		{
@@ -482,8 +488,8 @@ private:
 			uint32 nonCoherentAtomSize = 256;
 		}limits;
 
-		bool debugMarkersSupported = false; // frame debugger is attached
-		bool disableMultithreadedCompilation = false; // for old nvidia drivers
+		bool debugMarkersSupported{ false }; // frame debugger is attached
+		bool disableMultithreadedCompilation{ false }; // for old nvidia drivers
 
 	}m_featureControl{};
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
@@ -936,12 +942,10 @@ private:
 
 
 public:
-	bool GetDisableMultithreadedCompilation() { return m_featureControl.disableMultithreadedCompilation; }
-	bool useTFViaSSBO() { return m_featureControl.mode.useTFEmulationViaSSBO; }
-	bool IsDebugUtilsEnabled() const
-	{
-		return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils;
-	}
+	bool GetDisableMultithreadedCompilation() const { return m_featureControl.disableMultithreadedCompilation; }
+	bool UseTFViaSSBO() const { return m_featureControl.mode.useTFEmulationViaSSBO; }
+	bool HasSPRIVRoundingModeRTE32() const { return m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32; }
+	bool IsDebugUtilsEnabled() const { return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils; }
 
 private:
 

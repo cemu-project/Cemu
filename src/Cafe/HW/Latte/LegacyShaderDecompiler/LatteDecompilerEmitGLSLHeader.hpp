@@ -306,6 +306,11 @@ namespace LatteDecompiler
 		{
 			src->add("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy,gl_FragCoord.z, 1.0/gl_FragCoord.w)" _CRLF);
 		}
+		if (decompilerContext->options->spirvInstrinsics.hasRoundingModeRTEFloat32)
+		{
+			src->add("#extension GL_EXT_spirv_intrinsics: enable" _CRLF);
+			src->add("spirv_execution_mode(4462, 32);" _CRLF); // RoundingModeRTE 32
+		}
 		src->add("#else" _CRLF);
 		// OpenGL defines
 		src->add("#define ATTR_LAYOUT(__vkSet, __location) layout(location = __location)" _CRLF);

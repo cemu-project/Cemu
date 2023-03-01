@@ -1579,7 +1579,7 @@ void VulkanRenderer::draw_updateVertexBuffersDirectAccess()
 
 		if (bufferAddress == MPTR_NULL)
 		{
-			cemu_assert_unimplemented();
+			bufferAddress = 0x10000000;
 		}
 		if (m_state.currentVertexBinding[bufferIndex].offset == bufferAddress)
 			continue;

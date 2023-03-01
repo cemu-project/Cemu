@@ -37,13 +37,13 @@ extern std::atomic_int g_compiling_pipelines;
 
 const  std::vector<const char*> kOptionalDeviceExtensions =
 {
-	//VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME,
 	VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
 	VK_NV_FILL_RECTANGLE_EXTENSION_NAME,
 	VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME,
 	VK_EXT_FILTER_CUBIC_EXTENSION_NAME, // not supported by any device yet
 	VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME,
 	VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
 };
 
 const std::vector<const char*> kRequiredDeviceExtensions =
@@ -236,25 +236,51 @@ void VulkanRenderer::DetermineVendor()
 
 void VulkanRenderer::GetDeviceFeatures()
 {
+	/* Get Vulkan features via GetPhysicalDeviceFeatures2 */
+	void* prevStruct = nullptr;
 	VkPhysicalDeviceCustomBorderColorFeaturesEXT bcf{};
 	bcf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT;
+	bcf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT;
+	prevStruct = &bcf;
 
 	VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT pcc{};
 	pcc.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_CREATION_CACHE_CONTROL_FEATURES_EXT;
-	pcc.pNext = &bcf;
+	pcc.pNext = prevStruct;
+	prevStruct = &pcc;
 
 	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 	physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-	physicalDeviceFeatures2.pNext = &pcc;
+	physicalDeviceFeatures2.pNext = prevStruct;
 
 	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &physicalDeviceFeatures2);
 
+	/* Get Vulkan device properties and limits */
+	VkPhysicalDeviceFloatControlsPropertiesKHR pfcp{};
+	prevStruct = nullptr;
+	if (m_featureControl.deviceExtensions.shader_float_controls)
+	{
+		pfcp.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR;
+		pfcp.pNext = prevStruct;
+		prevStruct = &pfcp;
+	}
+
+	VkPhysicalDeviceProperties2 prop2{};
+	prop2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	prop2.pNext = prevStruct;
+
+	vkGetPhysicalDeviceProperties2(m_physicalDevice, &prop2);
+
+	/* Determine which subfeatures we can use */
+
 	m_featureControl.deviceExtensions.pipeline_creation_cache_control = pcc.pipelineCreationCacheControl;
 	m_featureControl.deviceExtensions.custom_border_color_without_format = m_featureControl.deviceExtensions.custom_border_color && bcf.customBorderColorWithoutFormat;
+	m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32 = m_featureControl.deviceExtensions.shader_float_controls && pfcp.shaderRoundingModeRTEFloat32;
+	if(!m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32)
+		cemuLog_log(LogType::Force, "Shader round mode control not available on this device or driver. Some rendering issues might occur.");
 
 	if (!m_featureControl.deviceExtensions.pipeline_creation_cache_control)
 	{
-		forceLogDebug_printf("VK_EXT_pipeline_creation_cache_control not supported. Cannot use asynchronous shader and pipeline compilation");
+		cemuLog_log(LogType::Force, "VK_EXT_pipeline_creation_cache_control not supported. Cannot use asynchronous shader and pipeline compilation");
 		// if async shader compilation is enabled show warning message
 		if (GetConfig().async_compile)
 			wxMessageBox(_("The currently installed graphics driver does not support the Vulkan extension necessary for asynchronous shader compilation. Asynchronous compilation cannot be used.\n \nRequired extension: VK_EXT_pipeline_creation_cache_control\n\nInstalling the latest graphics driver may solve this error."), _("Information"), wxOK | wxCENTRE);
@@ -270,13 +296,11 @@ void VulkanRenderer::GetDeviceFeatures()
 			forceLog_printf("VK_EXT_custom_border_color not supported. Cannot emulate arbitrary border color");
 		}
 	}
-	// retrieve limits
-	VkPhysicalDeviceProperties2 p2{};
-	p2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-	vkGetPhysicalDeviceProperties2(m_physicalDevice, &p2);
-	m_featureControl.limits.minUniformBufferOffsetAlignment = std::max(p2.properties.limits.minUniformBufferOffsetAlignment, (VkDeviceSize)4);
-	m_featureControl.limits.nonCoherentAtomSize = std::max(p2.properties.limits.nonCoherentAtomSize, (VkDeviceSize)4);
-	cemuLog_log(LogType::Force, fmt::format("VulkanLimits: UBAlignment {0} nonCoherentAtomSize {1}", p2.properties.limits.minUniformBufferOffsetAlignment, p2.properties.limits.nonCoherentAtomSize));
+
+	// get limits
+	m_featureControl.limits.minUniformBufferOffsetAlignment = std::max(prop2.properties.limits.minUniformBufferOffsetAlignment, (VkDeviceSize)4);
+	m_featureControl.limits.nonCoherentAtomSize = std::max(prop2.properties.limits.nonCoherentAtomSize, (VkDeviceSize)4);
+	cemuLog_log(LogType::Force, fmt::format("VulkanLimits: UBAlignment {0} nonCoherentAtomSize {1}", prop2.properties.limits.minUniformBufferOffsetAlignment, prop2.properties.limits.nonCoherentAtomSize));
 }
 
 VulkanRenderer::VulkanRenderer()
@@ -1025,6 +1049,8 @@ VkDeviceCreateInfo VulkanRenderer::CreateDeviceCreateInfo(const std::vector<VkDe
 		used_extensions.emplace_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.dynamic_rendering)
 		used_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+	if (m_featureControl.deviceExtensions.shader_float_controls)
+		used_extensions.emplace_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1100,6 +1126,7 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	info.deviceExtensions.driver_properties = isExtensionAvailable(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
 	info.deviceExtensions.external_memory_host = isExtensionAvailable(VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME);
 	info.deviceExtensions.synchronization2 = isExtensionAvailable(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+	info.deviceExtensions.shader_float_controls = isExtensionAvailable(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 	info.deviceExtensions.dynamic_rendering = false; // isExtensionAvailable(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	// dynamic rendering doesn't provide any benefits for us right now. Driver implementations are very unoptimized as of Feb 2022
 
@@ -1209,7 +1236,7 @@ bool VulkanRenderer::IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevi
 	vkGetPhysicalDeviceProperties(device, &properties);
 	uint32 vkVersionMajor = VK_API_VERSION_MAJOR(properties.apiVersion);
 	uint32 vkVersionMinor = VK_API_VERSION_MINOR(properties.apiVersion);
-	if (vkVersionMajor < 1 || vkVersionMinor < 1)
+	if (vkVersionMajor < 1 || (vkVersionMajor == 1 && vkVersionMinor < 1))
 		return false; // minimum required version is Vulkan 1.1
 
 	FeatureControl info;
@@ -1724,7 +1751,6 @@ ImTextureID VulkanRenderer::GenerateTexture(const std::vector<uint8>& data, cons
 {
 	try
 	{
-		//	g_imgui_textures.emplace_back(texture);
 		std::vector <uint8> tmp(size.x * size.y * 4);
 		for (size_t i = 0; i < data.size() / 3; ++i)
 		{

@@ -218,7 +218,7 @@ struct LatteDecompilerShader
 		std::vector<LatteFastAccessRemappedUniformEntry_buffer_t> entries;
 	};
 	std::vector<LatteFastAccessRemappedUniformEntry_register_t>	list_remappedUniformEntries_register;
-	std::vector<_RemappedUniformBufferGroup>	list_remappedUniformEntries_bufferGroups;
+	std::vector<_RemappedUniformBufferGroup> list_remappedUniformEntries_bufferGroups;
 };
 
 struct LatteDecompilerOutputUniformOffsets
@@ -250,6 +250,17 @@ struct LatteDecompilerOutputUniformOffsets
 	}
 };
 
+struct LatteDecompilerOptions 
+{
+	bool usesGeometryShader{ false };
+	// Vulkan-specific
+	bool useTFViaSSBO{ false };
+	struct  
+	{
+		bool hasRoundingModeRTEFloat32{ false };
+	}spirvInstrinsics;
+};
+
 struct LatteDecompilerOutput_t
 {
 	LatteDecompilerShader* shader;
@@ -272,9 +283,9 @@ struct LatteDecompilerOutput_t
 
 struct LatteDecompilerSubroutineInfo;
 
-void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader** fetchShaderList, sint32 fetchShaderCount, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output, bool useTFViaSSBO = false);
-void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32* hleSpecialState, uint32 vsRingParameterCount, LatteDecompilerOutput_t* output, bool useTFViaSSBO = false);
-void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output);
+void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader** fetchShaderList, sint32 fetchShaderCount, uint32* hleSpecialState, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output);
+void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32* hleSpecialState, uint32 vsRingParameterCount, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output);
+void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint32* hleSpecialState, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output);
 
 // specialized shader parsers
 

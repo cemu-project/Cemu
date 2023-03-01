@@ -1,16 +1,18 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#include "config/ActiveSettings.h"
+#include "config/CemuConfig.h"
+#include "util/helpers/ConcurrentQueue.h"
+#include "Cemu/FileCache/FileCache.h"
 
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+// required for modifying SPIR-V
+#include <glslang/SPIRV/SpvBuilder.h>
 
-#include "config/ActiveSettings.h"
-#include "config/CemuConfig.h"
-#include "util/helpers/ConcurrentQueue.h"
 
-#include "Cemu/FileCache/FileCache.h"
 
 bool s_isLoadingShadersVk{ false };
 class FileCache* s_spirvCache{nullptr};

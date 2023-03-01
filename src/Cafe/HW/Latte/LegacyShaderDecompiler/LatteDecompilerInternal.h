@@ -70,8 +70,6 @@ struct LatteDecompilerTEXInstruction
 		uint8 nfa{};
 		uint8 isSigned{};
 	}memRead;
-	// custom shadow function
-	sint32 shadowFunctionIndex{};
 };
 
 struct LatteDecompilerCFInstruction
@@ -116,7 +114,7 @@ struct LatteDecompilerCFInstruction
 
 	~LatteDecompilerCFInstruction()
 	{
-		cemu_assert_debug(!(instructionsALU.size() != 0 && instructionsTEX.size() != 0)); // make sure we dont accidentally added the wrong instruction type
+		cemu_assert_debug(!(instructionsALU.size() != 0 && instructionsTEX.size() != 0)); // make sure we haven't accidentally added the wrong instruction type
 	}
 
 #if BOOST_OS_WINDOWS
@@ -148,6 +146,7 @@ struct LatteDecompilerShaderContext
 	LatteDecompilerOutput_t* output;
 	LatteDecompilerShader* shader;
 	LatteConst::ShaderType shaderType;
+	const class LatteDecompilerOptions* options;
 	uint32* contextRegisters; // deprecated
 	struct LatteContextRegister* contextRegistersNew;
 	uint64 shaderBaseHash;
@@ -217,10 +216,9 @@ struct LatteDecompilerShaderContext
 	bool hasUniformVarBlock;
 	sint32 currentBindingPointVK{};
 
-	// unsorted
+	// misc
 	bool usesGeometryShader; // for VS
 	bool useTFViaSSBO;
-	sint32 currentShadowFunctionIndex;
 	std::vector<LatteDecompilerSubroutineInfo> list_subroutines;
 };
 
