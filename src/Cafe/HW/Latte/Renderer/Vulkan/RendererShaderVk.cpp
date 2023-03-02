@@ -9,11 +9,6 @@
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
-// required for modifying SPIR-V
-#include <glslang/SPIRV/SpvBuilder.h>
-
-
-
 bool s_isLoadingShadersVk{ false };
 class FileCache* s_spirvCache{nullptr};
 
