@@ -334,8 +334,8 @@ MainWindow::MainWindow()
 
 	LoadSettings();
 
-#ifdef ENABLE_DISCORD_RPC
 	auto& config = GetConfig();
+#ifdef ENABLE_DISCORD_RPC
 	if (config.use_discord_presence)
 		m_discord = std::make_unique<DiscordPresence>();
 #endif
