@@ -17,7 +17,7 @@ uint32 RendererShader::GeneratePrecompiledCacheId()
 	v += (EMULATOR_VERSION_MINOR * 100u);
 
 	// settings that can influence shaders
-	v += (uint32)g_current_game_profile->GetAccurateShaderMul() * 133; // this option modifies shaders
+	v += (uint32)g_current_game_profile->GetAccurateShaderMul() * 133;
 
 	return v;
 }

@@ -309,7 +309,10 @@ namespace LatteDecompiler
 		if (decompilerContext->options->spirvInstrinsics.hasRoundingModeRTEFloat32)
 		{
 			src->add("#extension GL_EXT_spirv_intrinsics: enable" _CRLF);
-			src->add("spirv_execution_mode(4462, 32);" _CRLF); // RoundingModeRTE 32
+			// set RoundingModeRTE
+			src->add("spirv_execution_mode(4462, 16);" _CRLF);
+			src->add("spirv_execution_mode(4462, 32);" _CRLF);
+			src->add("spirv_execution_mode(4462, 64);" _CRLF);
 		}
 		src->add("#else" _CRLF);
 		// OpenGL defines
