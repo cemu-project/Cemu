@@ -1,5 +1,10 @@
 # Build instructions
 
+## Table of Contents
+* [Windows](#windows)
+* [Linux](#linux)
+* [Mac](#macos)
+
 ## Windows
 
 Prerequisites:
