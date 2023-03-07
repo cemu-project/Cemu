@@ -74,19 +74,29 @@ Molten-VK compatibility layer
 
 ### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
 
-You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 2.
+You can skip this section if you have an Intel Mac. Every time you compile, you need to perform step 2.
 
-1. `softwareupdate --install-rosetta` # Install Rosetta 2 if you don't have it. This only has to be done once
-2. `arch -x86_64 zsh` # run an x64 shell
+1. Install Rosetta 2 if you don't have it. This only has to be done once.
+   ```
+   softwareupdate --install-rosetta
+   ```
+2. Run an x86_64 shell.
+   ```
+   arch -x86_64 zsh
+   ```
+3. If you already have brew installed, unload it from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
+   ```
+   export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
+   ```
 
 ### Installing brew
 
-1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-2. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
+`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 
 ### Installing dependencies
 
-`brew install boost git cmake llvm ninja nasm molten-vk`
+1. `eval "$(/usr/local/bin/brew shellenv)"`
+2. `brew install boost git cmake llvm nasm ninja pkg-config molten-vk`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
