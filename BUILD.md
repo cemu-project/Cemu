@@ -72,41 +72,73 @@ below, built in LLVM, and Xcode LLVM don't support the C++20 feature set require
 API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
 Molten-VK compatibility layer
 
-### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
+### Build Cemu using cmake and clang
 
-You can skip this section if you have an Intel Mac. Every time you compile, you need to perform step 2.
+:warning: You need to know if you have an Intel Mac with a x86_64 CPU or an Apple Silicon mac with an arm64 CPU. Certain steps are annotated as only necessary if you have an Apple Silicon Mac, and can be skipped if you have an Intel Mac.
 
-1. Install Rosetta 2 if you don't have it. This only has to be done once.
+1. Install Rosetta 2.
    ```
    softwareupdate --install-rosetta
    ```
-2. Run an x86_64 shell.
+   * **Note:** This only has to be done if you have an Apple Silicon Mac.
+   * **Note:** This only has to be done once.
+1. Run an x86_64 shell.
    ```
    arch -x86_64 zsh
    ```
-3. If you already have brew installed, unload it from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
+   * **Note:** This only has to be done if you have an Apple Silicon Mac.
+1. If you already have an arm64-specific brew installed (you most likely do), unload it from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
    ```
    export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
    ```
-
-### Installing brew
-
-`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-
-### Installing dependencies
-
-1. `eval "$(/usr/local/bin/brew shellenv)"`
-2. `brew install boost git cmake llvm nasm ninja pkg-config molten-vk`
-
-### Build Cemu using cmake and clang
-1. `git clone --recursive https://github.com/cemu-project/Cemu`
-2. `cd Cemu`
-3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja`
-4. `cmake --build build`
-5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
-
-#### Troubleshooting steps
-- If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja` to the command and running it again.
+   * **Note:** This only has to be done if you have an Apple Silicon Mac.
+1. Install an x86_64-specific version of brew.
+   ```
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+   * **Note:** This only has to be done once.
+1. Initialize your x86_64-specific version of brew.
+   ```
+   eval "$(/usr/local/bin/brew shellenv)"
+   ```
+1. Install dependencies.
+   ```
+   brew install boost git cmake llvm nasm ninja pkg-config molten-vk
+   ```
+   * **Note:** This only has to be done once.
+1. Update dependencies.
+   ```
+   brew update && brew upgrade
+   ```
+   * **Note:** This step is optional and only needs to be done if there are updates to dependencies.
+1. Clone the Cemu repository with the `--recursive` flag to also clone the dependencies that it submodules.
+   ```
+   git clone --recursive https://github.com/cemu-project/Cemu`
+   ```
+   * **Note:** This only has to be done once.
+1. Change into the cloned repository directory.
+   ```
+   cd Cemu
+   ```
+1. Update the Cemu repository and its submodules.
+   ```
+   git pull --recurse-submodules
+   ```
+   * **Note:** This step is optional and only needs to be done if there are updates to the Cemu repository or its submodules.
+1. run cmake to generate the build files.
+   ```
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja
+   ```
+   * **Note:** This only has to be done once unless there are updates to the build files.
+   * If you see an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja` to the command and running it again.
+1. Run cmake to build Cemu using clang.
+   ```
+   cmake --build build
+   ```
+1. You should now have a Cemu executable file in the /bin folder, which you can run using:
+   ```
+   ./bin/Cemu_release
+   ```
 
 ## Updating Cemu and source code
 1. To update your Cemu local repository, use the command `git pull --recurse-submodules` (run this command on the Cemu root).
