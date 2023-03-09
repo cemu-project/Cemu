@@ -78,7 +78,7 @@ below, built in LLVM, and Xcode LLVM don't support the C++20 feature set require
 API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
 Molten-VK compatibility layer
 
-:warning: Take note of which kind of Mac you have -- Intel or Apple Silicon -- as the steps below differ for them.
+The rest of this section will walk you through the process of setting up and building Cemu on a Mac, whether it's an Intel or Apple Silicon machine.
 
 ### First time setup for Apple Silicon Macs
 
