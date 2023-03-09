@@ -77,66 +77,87 @@ below, built in LLVM, and Xcode LLVM don't support the C++20 feature set require
 API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
 Molten-VK compatibility layer
 
-### Build Cemu using cmake and clang
+:warning: Take note of which kind of Mac you have -- Intel or Apple Silicon -- as the steps below differ for them.
 
-Not all steps apply all the time.
-* Certain steps are only necessary if you have an Apple Silicon Mac. Steps that are necessary for an Apple Silicon Mac are marked with a :unicorn: emoji, and steps that are necessary for an Intel Mac are marked with a :ringed_planet: emoji.
-  * :warning: Note that there are steps that aren't marked for Intel Macs, and **Intel Mac users should skip these steps**.
-* Certain steps are only need to be done once. Steps that only need to be done once are marked with a :mortar_board:, and steps that need to be done every time are marked with a :repeat: emoji.
-* Certain steps are sometimes optional. These steps are marked with the :soap: emoji. See the accompanying note to understand when they apply.
+### First time setup for Apple Silicon Macs
 
-1. :mortar_board: :unicorn: Install Rosetta 2.
+1. Install Rosetta 2.
    ```
    softwareupdate --install-rosetta
    ```
-1. :repeat: :unicorn: Run an x86_64 shell.
+1. Run an x86_64 shell.
    ```
    arch -x86_64 zsh
    ```
-1. :repeat: :soap: :unicorn: Unload your arm64-specific brew from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
+1. Unload your arm64-specific brew from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
    ```
    export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
    ```
    * **Note:** This step is only necessary if you have an arm64-specific brew installed. To check, do `echo $PATH | tr ':' '\n'`, and check if there's any mention of `/opt/homebrew`.
-1. :mortar_board: :unicorn: :ringed_planet: Install brew.
+1. Now continue onto the `First time setup for Intel Macs` section. Note that you should definitely do the `Install brew` step **even if** you have an arm64-specific brew already installed. This will install a second one, specific to x86_64.
+
+### First time setup for Intel Macs
+
+1. Install brew.
    ```
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
-   * **Note:** :unicorn: Definitely do this **even if** you have an arm64-specific brew installed. This will install a second one, specific to x86_64.
-1. :repeat: :unicorn: :ringed_planet: Initialize your x86_64-specific version of brew.
+1. Initialize brew.
    ```
    eval "$(/usr/local/bin/brew shellenv)"
    ```
-1. :mortar_board: :unicorn: :ringed_planet: Install dependencies.
+1. Install dependencies.
    ```
    brew install boost git cmake llvm nasm ninja pkg-config molten-vk
    ```
-1. :repeat: :soap: :unicorn: :ringed_planet: Update dependencies.
+1. Clone the Cemu repository with the `--recursive` flag to also clone the dependencies that it submodules.
+   ```
+   git clone --recursive https://github.com/cemu-project/Cemu
+   ```
+1. Change into the cloned repository directory.
+   ```
+   cd Cemu
+   ```
+
+### Every time setup for either kind of Mac
+
+1. If you have an Apple Silicon Mac, run an x86_64 shell.
+   ```
+   arch -x86_64 zsh
+   ```
+1. If you have an Apple Silicon Mac, unload your arm64-specific brew from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
+   ```
+   export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
+   ```
+   * **Note:** This step is only necessary if you have an arm64-specific brew installed. To check, do `echo $PATH | tr ':' '\n'`, and check if there's any mention of `/opt/homebrew`.
+1. Initialize brew.
+   ```
+   eval "$(/usr/local/bin/brew shellenv)"
+   ```
+1. Update dependencies.
    ```
    brew update && brew upgrade
    ```
-   * **Note:** This step is optional and only needs to be done if there are updates to dependencies.
-1. :mortar_board: :unicorn: :ringed_planet: Clone the Cemu repository with the `--recursive` flag to also clone the dependencies that it submodules. Also, change into the cloned repository directory.
-   ```
-   git clone --recursive https://github.com/cemu-project/Cemu
-   cd Cemu
-   ```
-1. :repeat: :soap: :unicorn: :ringed_planet: Update the Cemu repository and its submodules.
+   * **Note:** This step is optional and only needs to be done if there are updates to the dependencies installed via brew.
+1. Update the Cemu repository and its submodules.
    ```
    git pull --recurse-submodules
    ```
    * **Note:** This step is optional and only needs to be done if there are updates to the Cemu repository or its submodules.
-1. :repeat: :soap: :unicorn: :ringed_planet: Run cmake to generate the build files.
+
+### Build Cemu using cmake and clang for either kind of Mac
+
+1. Run cmake to generate the build files.
    ```
    cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja
    ```
    * **Note:** This only has to be done once unless there are updates to the build files.
    * If you see an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja` to the command and running it again.
-1. :repeat: :unicorn: :ringed_planet: Run cmake to build Cemu using clang.
+1. Run cmake to build Cemu using clang.
    ```
    cmake --build build
    ```
-1. :repeat: :unicorn: :ringed_planet: You should now have a Cemu executable file in the /bin folder, which you can run using:
+1. You should now have a Cemu executable file in the /bin folder, which you can run using:
    ```
    ./bin/Cemu_release
    ```
