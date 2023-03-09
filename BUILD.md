@@ -143,13 +143,12 @@ The rest of this section will walk you through the process of setting up and bui
    arch -x86_64 zsh
    ```
 
-1. If you have an Apple Silicon Mac, unload your arm64-specific brew from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
+1. If you have an Apple Silicon Mac, and you have an arm64-specific brew installed, unload your arm64-specific brew from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
 
    ```bash
    export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
    ```
 
-   * **Note:** This step is only necessary if you have an arm64-specific brew installed. To check, do `echo $PATH | tr ':' '\n'`, and check if there's any mention of `/opt/homebrew`.
 1. Initialize brew.
 
    ```bash
