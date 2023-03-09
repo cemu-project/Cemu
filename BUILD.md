@@ -80,7 +80,7 @@ Molten-VK compatibility layer
 
 The rest of this section will walk you through the process of setting up and building Cemu on a Mac, whether it's an Intel or Apple Silicon machine.
 
-### First time setup for Apple Silicon Macs
+### First time setup before compiling Cemu for Apple Silicon Macs
 
 1. Install Rosetta 2.
 
@@ -103,7 +103,7 @@ The rest of this section will walk you through the process of setting up and bui
    * **Note:** This step is only necessary if you have an arm64-specific brew installed. To check, do `echo $PATH | tr ':' '\n'`, and check if there's any mention of `/opt/homebrew`.
 1. Now continue onto the `First time setup for Intel Macs` section. Note that you should definitely do the `Install brew` step **even if** you have an arm64-specific brew already installed. This will install a second one, specific to x86_64.
 
-### First time setup for Intel Macs
+### First time setup before compiling Cemu for either kind of Mac
 
 1. Install brew.
 
@@ -135,7 +135,15 @@ The rest of this section will walk you through the process of setting up and bui
    cd Cemu
    ```
 
-### Every time setup for either kind of Mac
+1. Run cmake to generate the build files.
+
+   ```bash
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja
+   ```
+
+### Every time setup before compiling Cemu for either kind of Mac
+
+Some of the following steps should be done every time you wish to compile Cemu, others should be done on an as-needed basis. The latter are marked with a :soap: emoji.
 
 1. If you have an Apple Silicon Mac, run an x86_64 shell.
 
@@ -155,14 +163,14 @@ The rest of this section will walk you through the process of setting up and bui
    eval "$(/usr/local/bin/brew shellenv)"
    ```
 
-1. Update dependencies.
+1. :soap: Update dependencies.
 
    ```bash
    brew update && brew upgrade
    ```
 
    * **Note:** This step is optional and only needs to be done if there are updates to the dependencies installed via brew.
-1. Update the Cemu repository and its submodules.
+1. :soap: Update the Cemu repository and its submodules.
 
    ```bash
    git pull --recurse-submodules
@@ -170,16 +178,14 @@ The rest of this section will walk you through the process of setting up and bui
 
    * **Note:** This step is optional and only needs to be done if there are updates to the Cemu repository or its submodules.
 
-### Build Cemu using cmake and clang for either kind of Mac
-
-1. Run cmake to generate the build files.
+1. :soap: If during the previous step you see that you pulled in changes to `CMakeLists.txt`, rerun cmake to regenerate the build files.
 
    ```bash
    cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja
    ```
 
-   * **Note:** This only has to be done once unless there are updates to the build files.
-   * If you see an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja` to the command and running it again.
+### Compile Cemu using cmake and clang for either kind of Mac
+
 1. Run cmake to build Cemu using clang.
 
    ```bash
