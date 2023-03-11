@@ -101,16 +101,16 @@ void LatteStreamout_PrepareDrawcall(uint32 count, uint32 instanceCount)
 	if (geometryShader)
 	{
 #ifdef CEMU_DEBUG_ASSERT
-		cemu_assert_debug(vertexShader->streamoutBufferWriteMask2.any() == false);
+		cemu_assert_debug(vertexShader->streamoutBufferWriteMask.any() == false);
 #endif
 		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
-			if (geometryShader->streamoutBufferWriteMask2[i])
+			if (geometryShader->streamoutBufferWriteMask[i])
 				streamoutWriteMask |= (1 << i);
 	}
 	else
 	{
 		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
-			if (vertexShader->streamoutBufferWriteMask2[i])
+			if (vertexShader->streamoutBufferWriteMask[i])
 				streamoutWriteMask |= (1 << i);
 	}
 	activeStreamoutOperation.streamoutWriteMask = streamoutWriteMask;

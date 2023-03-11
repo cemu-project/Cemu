@@ -148,50 +148,52 @@ struct LatteDecompilerShaderResourceMapping
 
 struct LatteDecompilerShader
 {
-	LatteDecompilerShader* next;
+	LatteDecompilerShader(LatteConst::ShaderType shaderType) : shaderType(shaderType) {}
+
+	LatteDecompilerShader* next{nullptr};
 	LatteConst::ShaderType shaderType;
-	uint64 baseHash;
-	uint64 auxHash;
+	uint64 baseHash{0};
+	uint64 auxHash{0};
 	// vertex shader
 	struct LatteFetchShader* compatibleFetchShader{};
 	// error tracking
-	bool hasError; // if set, the shader cannot be used
+	bool hasError{false}; // if set, the shader cannot be used
 	// optimized access / iteration
 	// list of uniform buffers used
 	uint8 uniformBufferList[LATTE_NUM_MAX_UNIFORM_BUFFERS];
-	uint8 uniformBufferListCount;
+	uint8 uniformBufferListCount{ 0 };
 	// list of used texture units (faster access than iterating textureUnitMask)
 	uint8 textureUnitList[LATTE_NUM_MAX_TEX_UNITS];
-	uint8 textureUnitListCount;
+	uint8 textureUnitListCount{ 0 };
 	// input
-	Latte::E_DIM textureUnitDim[LATTE_NUM_MAX_TEX_UNITS]; // dimension of texture unit, from the currently set texture
+	Latte::E_DIM textureUnitDim[LATTE_NUM_MAX_TEX_UNITS]{}; // dimension of texture unit, from the currently set texture
 	bool textureIsIntegerFormat[LATTE_NUM_MAX_TEX_UNITS]{};
 	// analyzer stage (uniforms)
-	uint8 uniformMode; // determines how uniforms are managed within the shader (see GPU7_DECOMPILER_UNIFORM_MODE_* constants)
-	uint64 uniformDataHash64[2]; // used to avoid redundant calls to glUniform*
+	uint8 uniformMode{0}; // determines how uniforms are managed within the shader (see LATTE_DECOMPILER_UNIFORM_MODE_* constants)
+	uint64 uniformDataHash64[2]{0}; // used to avoid redundant calls to glUniform*
 	std::vector<LatteDecompilerRemappedUniformEntry_t> list_remappedUniformEntries;
 	// analyzer stage (textures)
 	std::bitset<LATTE_NUM_MAX_TEX_UNITS> textureUnitMask2;
-	uint16 textureUnitSamplerAssignment[LATTE_NUM_MAX_TEX_UNITS]; // GPU7_SAMPLER_NONE means undefined
-	bool textureUsesDepthCompare[LATTE_NUM_MAX_TEX_UNITS];
+	uint16 textureUnitSamplerAssignment[LATTE_NUM_MAX_TEX_UNITS]{ 0 }; // LATTE_DECOMPILER_SAMPLER_NONE means undefined
+	bool textureUsesDepthCompare[LATTE_NUM_MAX_TEX_UNITS]{};
 
 	// analyzer stage (pixel outputs)
-	uint32 pixelColorOutputMask; // from LSB to MSB, 1 bit per written output. 1 if written (indices of color attachments, may differ from export index inside the pixel shader)
+	uint32 pixelColorOutputMask{ 0 }; // from LSB to MSB, 1 bit per written output. 1 if written (indices of color attachments)
 	// analyzer stage (geometry shader parameters/inputs)
-	uint32 ringParameterCount;
-	uint32 ringParameterCountFromPrevStage; // used in geometry shader to hold VS ringParameterCount
+	uint32 ringParameterCount{ 0 };
+	uint32 ringParameterCountFromPrevStage{ 0 }; // used in geometry shader to hold VS ringParameterCount
 	// analyzer stage (misc)
-	std::bitset<LATTE_NUM_STREAMOUT_BUFFER> streamoutBufferWriteMask2;
-	bool hasStreamoutBufferWrite;
+	std::bitset<LATTE_NUM_STREAMOUT_BUFFER> streamoutBufferWriteMask;
+	bool hasStreamoutBufferWrite{ false };
 	// output code
-	class StringBuf* strBuf_shaderSource{nullptr};
+	class StringBuf* strBuf_shaderSource{ nullptr };
 	// separable shaders
-	RendererShader* shader;
-	bool isCustomShader;
+	RendererShader* shader{ nullptr };
+	bool isCustomShader{ false };
 
-	uint32 outputParameterMask;
+	uint32 outputParameterMask{ 0 };
 	// resource mapping (binding points)
-	LatteDecompilerShaderResourceMapping resourceMapping;
+	LatteDecompilerShaderResourceMapping resourceMapping{};
 	// uniforms
 	struct  
 	{
@@ -208,7 +210,7 @@ struct LatteDecompilerShader
 		sint32 loc_verticesPerInstance;
 		sint32 loc_streamoutBufferBase[LATTE_NUM_STREAMOUT_BUFFER];
 		sint32 uniformRangeSize; // entire size of uniform variable block
-	}uniform;
+	}uniform{ 0 };
 	// fast access
 	struct _RemappedUniformBufferGroup 
 	{
@@ -218,7 +220,7 @@ struct LatteDecompilerShader
 		std::vector<LatteFastAccessRemappedUniformEntry_buffer_t> entries;
 	};
 	std::vector<LatteFastAccessRemappedUniformEntry_register_t>	list_remappedUniformEntries_register;
-	std::vector<_RemappedUniformBufferGroup>	list_remappedUniformEntries_bufferGroups;
+	std::vector<_RemappedUniformBufferGroup> list_remappedUniformEntries_bufferGroups;
 };
 
 struct LatteDecompilerOutputUniformOffsets
@@ -250,6 +252,17 @@ struct LatteDecompilerOutputUniformOffsets
 	}
 };
 
+struct LatteDecompilerOptions 
+{
+	bool usesGeometryShader{ false };
+	// Vulkan-specific
+	bool useTFViaSSBO{ false };
+	struct  
+	{
+		bool hasRoundingModeRTEFloat32{ false };
+	}spirvInstrinsics;
+};
+
 struct LatteDecompilerOutput_t
 {
 	LatteDecompilerShader* shader;
@@ -272,9 +285,9 @@ struct LatteDecompilerOutput_t
 
 struct LatteDecompilerSubroutineInfo;
 
-void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader** fetchShaderList, sint32 fetchShaderCount, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output, bool useTFViaSSBO = false);
-void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32* hleSpecialState, uint32 vsRingParameterCount, LatteDecompilerOutput_t* output, bool useTFViaSSBO = false);
-void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output);
+void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader* fetchShader, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output);
+void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32 vsRingParameterCount, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output);
+void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output);
 
 // specialized shader parsers
 

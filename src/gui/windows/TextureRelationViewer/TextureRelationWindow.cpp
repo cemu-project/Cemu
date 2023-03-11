@@ -228,7 +228,7 @@ void TextureRelationViewerWindow::_setTextureRelationListItemTexture(wxListCtrl*
 	uiList->SetItem(rowIndex, columnIndex, tempStr);
 	columnIndex++;
 	// tilemode
-	sprintf(tempStr, "%d", texInfo->tileMode);
+	sprintf(tempStr, "%d", (int)texInfo->tileMode);
 	uiList->SetItem(rowIndex, columnIndex, tempStr);
 	columnIndex++;
 	// sliceRange

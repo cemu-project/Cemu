@@ -1066,44 +1066,32 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 	_LatteDecompiler_GenerateDataForFastAccess(shaderContext->shader);
 }
 
-void LatteDecompiler_InitContext(LatteDecompilerShaderContext& dCtx, LatteDecompilerOutput_t* output, LatteConst::ShaderType shaderType, uint64 shaderBaseHash, uint32* contextRegisters)
+void LatteDecompiler_InitContext(LatteDecompilerShaderContext& dCtx, const LatteDecompilerOptions& options, LatteDecompilerOutput_t* output, LatteConst::ShaderType shaderType, uint64 shaderBaseHash, uint32* contextRegisters)
 {
 	dCtx.output = output;
 	dCtx.shaderType = shaderType;
-	output->shaderType = shaderType;
+	dCtx.options = &options;
 	dCtx.shaderBaseHash = shaderBaseHash;
 	dCtx.contextRegisters = contextRegisters;
 	dCtx.contextRegistersNew = (LatteContextRegister*)contextRegisters;
+	output->shaderType = shaderType;
 }
 
-void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, LatteFetchShader** fetchShaderList, sint32 fetchShaderCount, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output, bool useTFViaSSBO)
+void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader* fetchShader, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
+	cemu_assert_debug(fetchShader);
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
-	LatteDecompiler_InitContext(shaderContext, output, LatteConst::ShaderType::Vertex, shaderBaseHash, contextRegisters);
-	cemu_assert_debug(fetchShaderCount == 1);
-	for (sint32 i = 0; i < fetchShaderCount; i++)
-	{
-		shaderContext.fetchShaderList[i] = fetchShaderList[i];
-	}
-	shaderContext.fetchShaderCount = fetchShaderCount;
-	// ugly hack to get tf mode from Vulkan renderer
-	shaderContext.useTFViaSSBO = useTFViaSSBO;
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
-		shaderContext.useTFViaSSBO = VulkanRenderer::GetInstance()->useTFViaSSBO();
-	}
+	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Vertex, shaderBaseHash, contextRegisters);
+	shaderContext.fetchShader = fetchShader;
 	// prepare shader (deprecated)
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shader->shaderType = LatteConst::ShaderType::Vertex;
-	shader->compatibleFetchShader = shaderContext.fetchShaderList[0];
-	shaderContext.shaderType = LatteConst::ShaderType::Vertex;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Vertex);
+	shader->compatibleFetchShader = shaderContext.fetchShader;
 	output->shaderType = LatteConst::ShaderType::Vertex;
 	shaderContext.shader = shader;
 	output->shader = shader;
-	shaderContext.usesGeometryShader = usesGeometryShader;
 	for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 	{
 		shader->textureUnitSamplerAssignment[i] = LATTE_DECOMPILER_SAMPLER_NONE;
@@ -1114,24 +1102,19 @@ void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contex
 	performanceMonitor.gpuTime_shaderCreate.endMeasuring();
 }
 
-void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32* hleSpecialState, uint32 vsRingParameterCount, LatteDecompilerOutput_t* output, bool useTFViaSSBO)
+void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32 vsRingParameterCount, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
-	shaderContext.fetchShaderCount = 0;
-	LatteDecompiler_InitContext(shaderContext, output, LatteConst::ShaderType::Geometry, shaderBaseHash, contextRegisters);
+	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Geometry, shaderBaseHash, contextRegisters);
 	// prepare shader
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shaderContext.output = output;
-	shader->shaderType = LatteConst::ShaderType::Geometry;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Geometry);
 	shader->ringParameterCountFromPrevStage = vsRingParameterCount;
-	shaderContext.shaderType = LatteConst::ShaderType::Geometry;
 	output->shaderType = LatteConst::ShaderType::Geometry;
 	shaderContext.shader = shader;
 	output->shader = shader;
-	shaderContext.usesGeometryShader = true;
 	if (gsCopyProgramData == NULL)
 	{
 		shader->hasError = true;
@@ -1145,34 +1128,24 @@ void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* cont
 		shader->textureUnitSamplerAssignment[i] = LATTE_DECOMPILER_SAMPLER_NONE;
 		shader->textureUsesDepthCompare[i] = false;
 	}
-	// ugly hack to get tf mode from Vulkan renderer
-	shaderContext.useTFViaSSBO = useTFViaSSBO;
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
-		shaderContext.useTFViaSSBO = VulkanRenderer::GetInstance()->useTFViaSSBO();
-	}
 	// parse & compile
 	_LatteDecompiler_Process(&shaderContext, programData, programSize);
 	performanceMonitor.gpuTime_shaderCreate.endMeasuring();
 }
 
-void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output)
+void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
-	LatteDecompiler_InitContext(shaderContext, output, LatteConst::ShaderType::Pixel, shaderBaseHash, contextRegisters);
+	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Pixel, shaderBaseHash, contextRegisters);
 	shaderContext.contextRegisters = contextRegisters;
 	// prepare shader
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shaderContext.output = output;
-	shader->shaderType = LatteConst::ShaderType::Pixel;
-	shaderContext.shaderType = LatteConst::ShaderType::Pixel;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Pixel);
 	output->shaderType = LatteConst::ShaderType::Pixel;
 	shaderContext.shader = shader;
 	output->shader = shader;
-	shaderContext.usesGeometryShader = usesGeometryShader;
 	for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 	{
 		shader->textureUnitSamplerAssignment[i] = LATTE_DECOMPILER_SAMPLER_NONE;
