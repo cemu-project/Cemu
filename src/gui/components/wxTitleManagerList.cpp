@@ -156,6 +156,12 @@ void wxTitleManagerList::AddColumns()
 	col5.SetText(_("Format"));
 	col5.SetWidth(63);
 	InsertColumn(ColumnFormat, col5);
+
+	wxListItem col6;
+	col6.SetId(ColumnLocation);
+	col6.SetText(_("Location"));
+	col6.SetWidth(63);
+	InsertColumn(ColumnLocation, col6);
 }
 
 wxString wxTitleManagerList::OnGetItemText(long item, long column) const
@@ -934,6 +940,14 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 		}
 		return "";
 		//return wxStringFormat2("{}", entry.format);
+	}
+	case ColumnLocation:
+	{
+		if (_pathToUtf8(entry.path).find("usr/") != std::string::npos ||
+			_pathToUtf8(entry.path).find("sys/") != std::string::npos)
+			return _("MLC01");
+		else
+			return _("Game Paths");
 	}
 	default:
 		UNREACHABLE;
