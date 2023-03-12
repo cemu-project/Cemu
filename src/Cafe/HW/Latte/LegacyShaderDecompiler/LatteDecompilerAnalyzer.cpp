@@ -77,75 +77,6 @@ void _remapUniformAccess(LatteDecompilerShaderContext* shaderContext, bool isReg
 }
 
 /*
- * Checks for register collisions and marks the instructions accordingly
- * startIndex is the first instruction of the group
- * endIndex is inclusive the last instruction of the same group
- */
-void _analyzeALUInstructionGroupForRegisterCollision(LatteDecompilerShaderContext* shaderContext, LatteDecompilerCFInstruction* cfInstruction, sint32 startIndex, sint32 endIndex)
-{
-	uint8 registerChannelWriteMask[(LATTE_NUM_GPR *4+7)/8] = {0};
-
-	struct  
-	{
-		uint8 gprIndex;
-		uint8 channel;
-	}registerBackupEntries[5];
-	sint32 registerBackupCount = 0;
-
-	for(sint32 i=startIndex; i<=endIndex; i++)
-	{
-		LatteDecompilerALUInstruction& aluInstruction = cfInstruction->instructionsALU[i];
-		// ignore NOP instruction
-		if( aluInstruction.isOP3 == false && aluInstruction.opcode == ALU_OP2_INST_NOP )
-			continue;
-		if( aluInstruction.destElem > 3 )
-			debugBreakpoint();
-		registerChannelWriteMask[(aluInstruction.destGpr * 4 + aluInstruction.destElem) / 8] |= (1 << ((aluInstruction.destGpr * 4 + aluInstruction.destElem) % 8));
-		// check if any previously written register is read
-		for(sint32 f=0; f<3; f++)
-		{
-			if( GPU7_ALU_SRC_IS_GPR(aluInstruction.sourceOperand[f].sel) == false )
-				continue;
-			sint32 gprIndex = GPU7_ALU_SRC_GET_GPR_INDEX(aluInstruction.sourceOperand[f].sel);
-			if( aluInstruction.sourceOperand[f].chan > 3 )
-				debugBreakpoint();
-			if( (registerChannelWriteMask[(gprIndex*4+aluInstruction.sourceOperand[f].chan)/8]&(1<<((gprIndex*4+aluInstruction.sourceOperand[f].chan)%8))) != 0 )
-			{
-				// register is overwritten by same or previous instruction, mark register backup for this instruction
-				// check if this register already has a backup
-				bool hasBackup = false;
-				for(sint32 t=0; t<registerBackupCount; t++)
-				{
-					if( (sint32)registerBackupEntries[t].gprIndex == gprIndex && registerBackupEntries[t].channel == aluInstruction.sourceOperand[f].chan )
-					{
-						aluInstruction.sourceOperand[f].requiredRegisterBackup = true;
-						aluInstruction.sourceOperand[f].registerBackupIndex = t;
-						hasBackup = true;
-						break;
-					}
-				}
-				if( hasBackup == false )
-				{
-					// add new entry
-					if( registerBackupCount < sizeof(registerBackupEntries)/sizeof(registerBackupEntries[0]) )
-					{
-						// add entry
-						registerBackupEntries[registerBackupCount].gprIndex = gprIndex;
-						registerBackupEntries[registerBackupCount].channel = aluInstruction.sourceOperand[f].chan;
-						registerBackupCount++;
-						// mark operand for backup
-						aluInstruction.sourceOperand[f].requiredRegisterBackup = true;
-						aluInstruction.sourceOperand[f].registerBackupIndex = registerBackupCount-1;
-					}
-					else
-						debugBreakpoint();
-				}
-			}
-		}
-	}
-}
-
-/*
  * Returns true if the instruction takes integer operands or returns a integer value
  */
 bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
@@ -283,10 +214,10 @@ void LatteDecompiler_analyzeALUClause(LatteDecompilerShaderContext* shaderContex
 	for(auto& aluInstruction : cfInstruction->instructionsALU)
 	{
 		// ignore NOP instruction
-		if( aluInstruction.isOP3 == false && aluInstruction.opcode == ALU_OP2_INST_NOP )
+		if( !aluInstruction.isOP3 && aluInstruction.opcode == ALU_OP2_INST_NOP )
 			continue;
 		// check for CUBE instruction
-		if( aluInstruction.isOP3 == false && aluInstruction.opcode == ALU_OP2_INST_CUBE )
+		if( !aluInstruction.isOP3 && aluInstruction.opcode == ALU_OP2_INST_CUBE )
 		{
 			shaderContext->analyzer.hasRedcCUBE = true;
 		}
@@ -305,7 +236,7 @@ void LatteDecompiler_analyzeALUClause(LatteDecompilerShaderContext* shaderContex
 
 				// relative register file accesses are tricky because the range of possible indices is unknown
 				// worst case we have to load the full file (256 * 16 byte entries)
-				// but here we track all access indices so the analyzer can make guesstimates about the actual size when there are relative accesses
+				// by tracking the accessed base indices the shader analyzer can determine bounds for the potentially accessed ranges
 
 				shaderContext->analyzer.uniformRegisterAccess = true;
 				if (aluInstruction.sourceOperand[f].rel)
@@ -355,29 +286,8 @@ void LatteDecompiler_analyzeALUClause(LatteDecompilerShaderContext* shaderContex
 			}
 		}
 		if( aluInstruction.destRel != 0 )
-		{
 			shaderContext->analyzer.usesRelativeGPRWrite = true;
-		}
 		shaderContext->analyzer.gprUseMask[aluInstruction.destGpr/8] |= (1<<(aluInstruction.destGpr%8));
-	}
-	// check for register collisions inside instruction groups (registers that are overwritten while being read)
-	sint32 currentGroupIndex = 0;
-	sint32 currentGroupStartIndex = 0;
-	for(uint32 i=0; i<cfInstruction->instructionsALU.size(); i++)
-	{
-		LatteDecompilerALUInstruction& aluInstruction = cfInstruction->instructionsALU[i];
-		if( aluInstruction.instructionGroupIndex != currentGroupIndex )
-		{
-			cemu_assert_debug(i != 0); // first group cant end at first instruction
-			_analyzeALUInstructionGroupForRegisterCollision(shaderContext, cfInstruction, currentGroupStartIndex, i-1);
-			// start next group
-			currentGroupIndex = aluInstruction.instructionGroupIndex;
-			currentGroupStartIndex = i;
-		}
-	}
-	if( currentGroupStartIndex < (sint32)cfInstruction->instructionsALU.size() )
-	{
-		_analyzeALUInstructionGroupForRegisterCollision(shaderContext, cfInstruction, currentGroupStartIndex, (uint32)cfInstruction->instructionsALU.size()-1);
 	}
 }
 
