@@ -25,9 +25,6 @@ struct LatteDecompilerALUInstruction
 		uint8 abs{};
 		uint8 neg{};
 		uint8 chan{};
-		// register backup information (used for instruction groups where the same register is read and written)
-		bool requiredRegisterBackup{};
-		uint8 registerBackupIndex{}; // index of the used register backup variable (at the beginning of the group the register value is copied to the temporary register with this index)
 	}sourceOperand[3];
 	union
 	{
@@ -214,7 +211,7 @@ struct LatteDecompilerShaderContext
 	// emitter
 	bool hasUniformVarBlock;
 	sint32 currentBindingPointVK{};
-
+	struct ALUClauseTemporariesState* aluPVPSState{nullptr};
 	// misc
 	std::vector<LatteDecompilerSubroutineInfo> list_subroutines;
 };
