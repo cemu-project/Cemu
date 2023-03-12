@@ -11,6 +11,7 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
+#include "Cafe/GameProfile/GameProfile.h"
 #include "util/containers/flat_hash_map.hpp"
 #include <cinttypes>
 
@@ -686,6 +687,7 @@ void LatteShader_GetDecompilerOptions(LatteDecompilerOptions& options, LatteCons
 		options.useTFViaSSBO = VulkanRenderer::GetInstance()->UseTFViaSSBO();
 		options.spirvInstrinsics.hasRoundingModeRTEFloat32 = VulkanRenderer::GetInstance()->HasSPRIVRoundingModeRTE32();
 	}
+	options.strictMul = g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False;
 }
 
 LatteDecompilerShader* LatteShader_CompileSeparableVertexShader2(uint64 baseHash, uint64& vsAuxHash, uint8* vertexShaderPtr, uint32 vertexShaderSize, bool usesGeometryShader, LatteFetchShader* fetchShader)
