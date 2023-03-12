@@ -46,10 +46,11 @@ public:
 	{
 		size_t remainingLen = this->limit - this->length;
 		size_t copyLen = appendedStr.size();
-		if (remainingLen > copyLen)
+		if (remainingLen < copyLen)
 			copyLen = remainingLen;
 		char* outputStart = (char*)(this->str + this->length);
 		std::copy(appendedStr.data(), appendedStr.data() + copyLen, outputStart);
+		length += copyLen;
 		outputStart[copyLen] = '\0';
 	}
 
