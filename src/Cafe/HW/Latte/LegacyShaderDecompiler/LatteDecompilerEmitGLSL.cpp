@@ -9,9 +9,6 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInternal.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
-
-#include "Cafe/GameProfile/GameProfile.h"
-
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/StringBuf.h"
@@ -1122,7 +1119,7 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 			{
 				useDefaultMul = true;
 			}
-			if (g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False && useDefaultMul == false)
+			if (shaderContext->options->strictMul && useDefaultMul == false)
 			{
 				src->add("mul_nonIEEE(");
 				_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
@@ -1652,7 +1649,7 @@ void _emitALUOP3InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 		if (aluInstruction->opcode == ALU_OP3_INST_MULADD_IEEE)
 			useDefaultMul = true;
 
-		if (g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False && useDefaultMul == false)
+		if (shaderContext->options->strictMul && useDefaultMul == false)
 		{
 			src->add("mul_nonIEEE(");
 			_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
@@ -3843,8 +3840,6 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 		"v.z = -1.0;\r\n"
 		"}\r\n"
 
-
-
 		"return v;\r\n"
 		"}\r\n");
 	}
@@ -3860,7 +3855,7 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 		"return floatBitsToInt(clamp(intBitsToFloat(v), 0.0, 1.0));\r\n"
 	"}\r\n");
 	// mul non-ieee way (0*NaN/INF => 0.0)
-	if (g_current_game_profile->GetAccurateShaderMul() == AccurateShaderMulOption::True)
+	if (shaderContext->options->strictMul)
 	{
 		// things we tried:
 		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ return mix(a*b,0.0,a==0.0||b==0.0); }" STR_LINEBREAK);
@@ -3868,17 +3863,14 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ if( a == 0.0 || b == 0.0 ) return 0.0; return a*b; }" STR_LINEBREAK);
 		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){float r = a*b;r = intBitsToFloat(floatBitsToInt(r)&(((floatBitsToInt(a) != 0) && (floatBitsToInt(b) != 0))?0xFFFFFFFF:0));return r;}" STR_LINEBREAK); works
 
+		// for "min" it used to be: float mul_nonIEEE(float a, float b){ return min(a*b,min(abs(a)*3.40282347E+38F,abs(b)*3.40282347E+38F)); }
+
 		if( LatteGPUState.glVendor == GLVENDOR_NVIDIA && !ActiveSettings::DumpShadersEnabled())
 			fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){return mix(0.0, a*b, (a != 0.0) && (b != 0.0));}" _CRLF); // compiles faster on Nvidia and also results in lower RAM usage (OpenGL)
 		else
 			fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ if( a == 0.0 || b == 0.0 ) return 0.0; return a*b; }" _CRLF);
 
 		// DXKV-like: fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ return (b==0.0 ? 0.0 : a) * (a==0.0 ? 0.0 : b); }" _CRLF);
-
-	}
-	else
-	{
-		fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ return min(a*b,min(abs(a)*3.40282347E+38F,abs(b)*3.40282347E+38F)); }" _CRLF);
 	}
 }
 

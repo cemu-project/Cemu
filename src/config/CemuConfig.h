@@ -115,11 +115,10 @@ ENABLE_ENUM_ITERATORS(PrecompiledShaderOption, PrecompiledShaderOption::Auto, Pr
 
 enum class AccurateShaderMulOption
 {
-	False = 0, // ignore non-ieee MUL special cases
-	True = 1, // fully emulate non-ieee MUL special cases
-	Min = 2, // similar to true, but avoids conditionals (instead relies on min() and abs())
+	False = 0, // always use standard multiplication
+	True = 1 // fully emulate non-ieee MUL special cases (0*anything = 0)
 };
-ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False, AccurateShaderMulOption::Min);
+ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False, AccurateShaderMulOption::True);
 
 enum class CPUMode
 {
@@ -213,7 +212,6 @@ struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 		{
 		case AccurateShaderMulOption::True: name = "true"; break;
 		case AccurateShaderMulOption::False: name = "false"; break;
-		case AccurateShaderMulOption::Min: name = "min"; break;
 		default: name = "unknown"; break;
 		}
 		return formatter<string_view>::format(name, ctx);

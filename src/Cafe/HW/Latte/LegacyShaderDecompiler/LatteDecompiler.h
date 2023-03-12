@@ -255,6 +255,8 @@ struct LatteDecompilerOutputUniformOffsets
 struct LatteDecompilerOptions 
 {
 	bool usesGeometryShader{ false };
+	// floating point math
+	bool strictMul{}; // if true, 0*anything=0 rule is emulated
 	// Vulkan-specific
 	bool useTFViaSSBO{ false };
 	struct  
