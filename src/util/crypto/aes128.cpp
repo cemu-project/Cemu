@@ -601,7 +601,7 @@ void AES128_CBC_decrypt_updateIV(uint8* output, uint8* input, uint32 length, con
 }
 
 #if defined(ARCH_X86_64)
-inline __m128i AESNI128_ASSIST(
+ATTRIBUTE_AESNI inline __m128i AESNI128_ASSIST(
 	__m128i temp1,
 	__m128i temp2)
 {
@@ -621,7 +621,7 @@ inline __m128i AESNI128_ASSIST(
 	return temp1;
 }
 
-void AESNI128_KeyExpansionEncrypt(const unsigned char *userkey, unsigned char *key)
+ATTRIBUTE_AESNI void AESNI128_KeyExpansionEncrypt(const unsigned char *userkey, unsigned char *key)
 {
 	__m128i temp1, temp2;
 	__m128i *Key_Schedule = (__m128i*)key;
@@ -659,7 +659,7 @@ void AESNI128_KeyExpansionEncrypt(const unsigned char *userkey, unsigned char *k
 	Key_Schedule[10] = temp1;
 }
 
-void AESNI128_KeyExpansionDecrypt(const unsigned char *userkey, unsigned char *key)
+ATTRIBUTE_AESNI void AESNI128_KeyExpansionDecrypt(const unsigned char *userkey, unsigned char *key)
 {
 	__m128i temp1, temp2;
 	__m128i *Key_Schedule = (__m128i*)key;
@@ -702,7 +702,7 @@ void AESNI128_KeyExpansionDecrypt(const unsigned char *userkey, unsigned char *k
 	}
 }
 
-void AESNI128_CBC_encrypt(const unsigned char *in,
+ATTRIBUTE_AESNI void AESNI128_CBC_encrypt(const unsigned char *in,
 	unsigned char *out,
 	unsigned char ivec[16],
 	unsigned long length,
@@ -730,7 +730,7 @@ void AESNI128_CBC_encrypt(const unsigned char *in,
 	}
 }
 
-void AESNI128_CBC_decryptWithExpandedKey(const unsigned char *in,
+ATTRIBUTE_AESNI void AESNI128_CBC_decryptWithExpandedKey(const unsigned char *in,
 	unsigned char *out,
 	const unsigned char ivec[16],
 	unsigned long length,
@@ -757,7 +757,7 @@ void AESNI128_CBC_decryptWithExpandedKey(const unsigned char *in,
 	}
 }
 
-void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv)
+ATTRIBUTE_AESNI void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv)
 {
 	alignas(16) uint8 expandedKey[11 * 16];
 	AESNI128_KeyExpansionDecrypt(key, expandedKey);
@@ -772,7 +772,7 @@ void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, con
 	}
 }
 
-void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
+ATTRIBUTE_AESNI void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
 {
 	alignas(16) uint8 expandedKey[11 * 16];
 	AESNI128_KeyExpansionEncrypt(key, expandedKey);
