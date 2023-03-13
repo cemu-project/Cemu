@@ -53,39 +53,3 @@ bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment)
 	}
 	return false;
 }
-
-/*
-* Returns true if the instruction can overwrite CR (depending on value of ->crRegister)
-*/
-bool IMLAnalyzer_CanTypeWriteCR(IMLInstruction* imlInstruction)
-{
-	if (imlInstruction->type == PPCREC_IML_TYPE_R_R)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_R)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_S32)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_R_S32)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_FPR_R_R)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_FPR_R_R_R)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_FPR_R_R_R_R)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_FPR_R)
-		return true;
-
-	// new instructions
-	if (imlInstruction->type == PPCREC_IML_TYPE_COMPARE || imlInstruction->type == PPCREC_IML_TYPE_COMPARE_S32)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_R_CARRY)
-		return true;
-	if (imlInstruction->type == PPCREC_IML_TYPE_R_R_S32_CARRY)
-		return true;
-
-
-	return false;
-}

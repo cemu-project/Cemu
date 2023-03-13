@@ -125,8 +125,6 @@ enum
 	PPCREC_IML_OP_SRW,				// SRW (shift based on register by up to 63 bits)
 	PPCREC_IML_OP_CNTLZW,
 	PPCREC_IML_OP_DCBZ,				// clear 32 bytes aligned to 0x20
-	PPCREC_IML_OP_MFCR,				// copy cr to gpr
-	PPCREC_IML_OP_MTCRF,			// copy gpr to cr (with mask)
 	// FPU
 	PPCREC_IML_OP_FPR_ADD_BOTTOM,
 	PPCREC_IML_OP_FPR_ADD_PAIR,
@@ -253,8 +251,6 @@ enum
 	PPCREC_IML_TYPE_CONDITIONAL_R_S32,
 
 	// FPR
-	PPCREC_IML_TYPE_FPR_R_NAME,			// name = f*
-	PPCREC_IML_TYPE_FPR_NAME_R,			// f* = name
 	PPCREC_IML_TYPE_FPR_LOAD,			// r* = (bitdepth) [r*+s32*] (single or paired single mode)
 	PPCREC_IML_TYPE_FPR_LOAD_INDEXED,	// r* = (bitdepth) [r*+r*] (single or paired single mode)
 	PPCREC_IML_TYPE_FPR_STORE,			// (bitdepth) [r*+s32*] = r* (single or paired single mode)
@@ -412,20 +408,6 @@ struct IMLUsedRegisters
 			F(writtenFPR1, true);
 	}
 
-	//bool HasSameBaseFPRRegId(IMLRegID regId) const
-	//{
-	//	if (readFPR1.IsValid() && readFPR1.GetRegID() == regId)
-	//		return true;
-	//	if (readFPR2.IsValid() && readFPR2.GetRegID() == regId)
-	//		return true;
-	//	if (readFPR3.IsValid() && readFPR3.GetRegID() == regId)
-	//		return true;
-	//	if (readFPR4.IsValid() && readFPR4.GetRegID() == regId)
-	//		return true;
-	//	if (writtenFPR1.IsValid() && writtenFPR1.GetRegID() == regId)
-	//		return true;
-	//	return false;
-	//}
 };
 
 struct IMLInstruction
