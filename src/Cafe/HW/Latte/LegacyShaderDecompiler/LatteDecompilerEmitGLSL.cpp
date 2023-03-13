@@ -281,6 +281,8 @@ struct ALUClauseTemporariesState
 
 	struct GPRTemporary
 	{
+		GPRTemporary(uint8 gprIndex, uint8 channel, uint8 backupVarIndex) : gprIndex(gprIndex), channel(channel), backupVarIndex(backupVarIndex) {}
+
 		uint8 gprIndex;
 		uint8 channel;
 		uint8 backupVarIndex;
