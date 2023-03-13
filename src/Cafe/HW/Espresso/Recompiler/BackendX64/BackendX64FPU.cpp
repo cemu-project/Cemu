@@ -34,42 +34,6 @@ static x86Assembler64::GPR8_REX _reg8_from_reg32(x86Assembler64::GPR32 regId)
 	return (x86Assembler64::GPR8_REX)regId;
 }
 
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
-{
-	uint32 name = imlInstruction->op_r_name.name;
-	uint32 fprReg = _regF64(imlInstruction->op_r_name.regR);
-	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
-	{
-		x64Gen_movupd_xmmReg_memReg128(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
-	}
-	else if( name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0+8) )
-	{
-		x64Gen_movupd_xmmReg_memReg128(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
-	}
-	else
-	{
-		cemu_assert_debug(false);
-	}
-}
-
-void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
-{
-	uint32 name = imlInstruction->op_r_name.name;
-	uint32 fprReg = _regF64(imlInstruction->op_r_name.regR);
-	if( name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0+32) )
-	{
-		x64Gen_movupd_memReg128_xmmReg(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, fpr)+sizeof(FPR_t)*(name-PPCREC_NAME_FPR0));
-	}
-	else if( name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0+8) )
-	{
-		x64Gen_movupd_memReg128_xmmReg(x64GenContext, fprReg, X86_REG_ESP, offsetof(PPCInterpreter_t, temporaryFPR)+sizeof(FPR_t)*(name-PPCREC_NAME_TEMPORARY_FPR0));
-	}
-	else
-	{
-		cemu_assert_debug(false);
-	}
-}
-
 void PPCRecompilerX64Gen_imlInstr_gqr_generateScaleCode(ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, sint32 registerXMM, bool isLoad, bool scalePS1, IMLReg registerGQR)
 {
 	// load GQR

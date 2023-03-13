@@ -56,12 +56,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			operation != PPCREC_IML_OP_OR &&
 			operation != PPCREC_IML_OP_XOR); // deprecated, use r_r_s32 for these
 
-		if (operation == PPCREC_IML_OP_MTCRF)
-		{
-			// operand register is read only
-			registersUsed->readGPR1 = op_r_immS32.regR;
-		}
-		else if (operation == PPCREC_IML_OP_LEFT_ROTATE)
+		if (operation == PPCREC_IML_OP_LEFT_ROTATE)
 		{
 			// operand register is read and write
 			registersUsed->readGPR1 = op_r_immS32.regR;
@@ -220,16 +215,6 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		registersUsed->readGPR2 = op_atomic_compare_store.regCompareValue;
 		registersUsed->readGPR3 = op_atomic_compare_store.regWriteValue;
 		registersUsed->writtenGPR1 = op_atomic_compare_store.regBoolOut;
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
-	{
-		// fpr operation
-		registersUsed->writtenFPR1 = op_r_name.regR;
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_NAME_R)
-	{
-		// fpr operation
-		registersUsed->readFPR1 = op_r_name.regR;
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
@@ -636,14 +621,6 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& tr
 		op_atomic_compare_store.regWriteValue = replaceRegisterIdMultiple(op_atomic_compare_store.regWriteValue, translationTable);
 		op_atomic_compare_store.regBoolOut = replaceRegisterIdMultiple(op_atomic_compare_store.regBoolOut, translationTable);
 	}
-	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
-	{
-		op_r_name.regR = replaceRegisterIdMultiple(op_r_name.regR, translationTable);
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_NAME_R)
-	{
-		op_r_name.regR = replaceRegisterIdMultiple(op_r_name.regR, translationTable);
-	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
 		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, translationTable);
@@ -766,14 +743,6 @@ void IMLInstruction::ReplaceFPRs(IMLReg fprRegisterSearched[4], IMLReg fprRegist
 	{
 		;
 	}
-	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
-	{
-		op_r_name.regR = replaceRegisterIdMultiple(op_r_name.regR, fprRegisterSearched, fprRegisterReplaced);
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_NAME_R)
-	{
-		op_r_name.regR = replaceRegisterIdMultiple(op_r_name.regR, fprRegisterSearched, fprRegisterReplaced);
-	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
 		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, fprRegisterSearched, fprRegisterReplaced);
@@ -884,14 +853,6 @@ void IMLInstruction::ReplaceFPR(IMLRegID fprRegisterSearched, IMLRegID fprRegist
 	else if (type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 	{
 		;
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_R_NAME)
-	{
-		op_r_name.regR = replaceRegisterId(op_r_name.regR, fprRegisterSearched, fprRegisterReplaced);
-	}
-	else if (type == PPCREC_IML_TYPE_FPR_NAME_R)
-	{
-		op_r_name.regR = replaceRegisterId(op_r_name.regR, fprRegisterSearched, fprRegisterReplaced);
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{

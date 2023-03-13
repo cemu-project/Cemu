@@ -245,63 +245,13 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	return ppcRecFunc;
 }
 
-bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
+void PPCRecompiler_NativeRegisterAllocatorPass(ppcImlGenContext_t& ppcImlGenContext)
 {
-	// isolate entry points from function flow (enterable segments must not be the target of any other segment)
-	// this simplifies logic during register allocation
-	PPCRecompilerIML_isolateEnterableSegments(&ppcImlGenContext);
-
-	// if GQRs can be predicted, optimize PSQ load/stores
-	PPCRecompiler_optimizePSQLoadAndStore(&ppcImlGenContext);
-
-	// insert name store instructions at the end of each segment but before branch instructions
-	//for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
-	//{
-	//	if (segIt->imlList.size() == 0)
-	//		continue; // ignore empty segments
-	//	// analyze segment for register usage
-	//	IMLUsedRegisters registersUsed;
-	//	for (sint32 i = 0; i < segIt->imlList.size(); i++)
-	//	{
-	//		segIt->imlList[i].CheckRegisterUsage(&registersUsed);
-	//		IMLReg accessedTempReg[5];
-	//		// intermediate FPRs
-	//		accessedTempReg[0] = registersUsed.readFPR1;
-	//		accessedTempReg[1] = registersUsed.readFPR2;
-	//		accessedTempReg[2] = registersUsed.readFPR3;
-	//		accessedTempReg[3] = registersUsed.readFPR4;
-	//		accessedTempReg[4] = registersUsed.writtenFPR1;
-	//		for (sint32 f = 0; f < 5; f++)
-	//		{
-	//			if (accessedTempReg[f].IsInvalid())
-	//				continue;
-	//			uint32 regName = ppcImlGenContext.mappedFPRRegister[accessedTempReg[f].GetRegID()];
-	//			if (regName >= PPCREC_NAME_FPR0 && regName < PPCREC_NAME_FPR0 + 32)
-	//			{
-	//				segIt->ppcFPRUsed[regName - PPCREC_NAME_FPR0] = true;
-	//			}
-	//		}
-	//	}
-	//}
-
-	// merge certain float load+store patterns (must happen before FPR register remapping)
-	PPCRecompiler_optimizeDirectFloatCopies(&ppcImlGenContext);
-	// delay byte swapping for certain load+store patterns
-	PPCRecompiler_optimizeDirectIntegerCopies(&ppcImlGenContext);
-
-	//if (numLoadedFPRRegisters > 0)
-	//{
-	//	if (PPCRecompiler_manageFPRRegisters(&ppcImlGenContext) == false)
-	//	{
-	//		return false;
-	//	}
-	//}
-
 	IMLRegisterAllocatorParameters raParam;
 
 	for (auto& it : ppcImlGenContext.mappedRegs)
 		raParam.regIdToName.try_emplace(it.second.GetRegID(), it.first);
-	
+
 	auto& gprPhysPool = raParam.GetPhysRegPool(IMLRegFormat::I64);
 	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RAX);
 	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RDX);
@@ -335,6 +285,23 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 14);
 
 	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext, raParam);
+}
+
+bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
+{
+	// isolate entry points from function flow (enterable segments must not be the target of any other segment)
+	// this simplifies logic during register allocation
+	PPCRecompilerIML_isolateEnterableSegments(&ppcImlGenContext);
+
+	// if GQRs can be predicted, optimize PSQ load/stores
+	PPCRecompiler_optimizePSQLoadAndStore(&ppcImlGenContext);
+
+	// merge certain float load+store patterns (must happen before FPR register remapping)
+	IMLOptimizer_OptimizeDirectFloatCopies(&ppcImlGenContext);
+	// delay byte swapping for certain load+store patterns
+	IMLOptimizer_OptimizeDirectIntegerCopies(&ppcImlGenContext);
+
+	PPCRecompiler_NativeRegisterAllocatorPass(ppcImlGenContext);
 
 	//PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
 	//PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
@@ -355,7 +322,7 @@ bool PPCRecompiler_makeRecompiledFunctionActive(uint32 initialEntryPoint, PPCFun
 		return false;
 	}
 
-	// check if the current range got invalidated in the time it took to recompile it
+	// check if the current range got invalidated during the time it took to recompile it
 	bool isInvalidated = false;
 	for (auto& invRange : PPCRecompilerState.invalidationRanges)
 	{

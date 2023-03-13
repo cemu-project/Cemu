@@ -680,31 +680,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 		cemu_assert_debug((imlInstruction->op_r_immS32.immS32 & 0x80) == 0);
 		x64Gen_rol_reg64Low32_imm8(x64GenContext, regR, (uint8)imlInstruction->op_r_immS32.immS32);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_MFCR )
-	{
-		DEBUG_BREAK;
-		//uint32 destRegister = imlInstruction->op_r_immS32.registerIndex;
-		//x64Gen_xor_reg64Low32_reg64Low32(x64GenContext, destRegister, destRegister);
-		//for(sint32 f=0; f<32; f++)
-		//{
-		//	x64Gen_bt_mem8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr)+f, 0);
-		//	x64Gen_adc_reg64Low32_reg64Low32(x64GenContext, destRegister, destRegister);
-		//}
-	}
-	else if (imlInstruction->operation == PPCREC_IML_OP_MTCRF)
-	{
-		DEBUG_BREAK;
-		//uint32 srcRegister = imlInstruction->op_r_immS32.registerIndex;
-		//uint32 crBitMask = ppc_MTCRFMaskToCRBitMask((uint32)imlInstruction->op_r_immS32.immS32);
-		//for (sint32 f = 0; f < 32; f++)
-		//{
-		//	if(((crBitMask >> f) & 1) == 0)
-		//		continue;
-		//	x64Gen_mov_mem8Reg64_imm8(x64GenContext, X86_REG_ESP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8) * (f), 0);
-		//	x64Gen_test_reg64Low32_imm32(x64GenContext, srcRegister, 0x80000000>>f);
-		//	x64Gen_setcc_mem8(x64GenContext, X86_CONDITION_NOT_EQUAL, X86_REG_ESP, offsetof(PPCInterpreter_t, cr) + sizeof(uint8) * (f));
-		//}
-	}
 	else
 	{
 		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_s32(): Unsupported operation 0x%x\n", imlInstruction->operation);
@@ -1581,14 +1556,6 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			else if( imlInstruction->type == PPCREC_IML_TYPE_NO_OP )
 			{
 				// no op
-			}
-			else if( imlInstruction->type == PPCREC_IML_TYPE_FPR_R_NAME )
-			{
-				PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
-			}
-			else if( imlInstruction->type == PPCREC_IML_TYPE_FPR_NAME_R )
-			{
-				PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
 			}
 			else if( imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD )
 			{

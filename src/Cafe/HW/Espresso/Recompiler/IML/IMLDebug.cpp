@@ -60,7 +60,7 @@ std::string IMLDebug_GetRegName(IMLReg r)
 		regName.append("r");
 		break;
 	default:
-		__debugbreak();
+		DEBUG_BREAK;
 	}
 	regName.append(fmt::format("{}", regId));
 	return regName;
@@ -416,36 +416,6 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 			{
 				strOutput.addFmt("MACRO ukn operation {}", inst.operation);
 			}
-		}
-		else if (inst.type == PPCREC_IML_TYPE_FPR_R_NAME)
-		{
-			strOutput.addFmt("fpr_t{} = name_{} (", inst.op_r_name.regR.GetRegID(), inst.op_r_name.name);
-			if (inst.op_r_name.name >= PPCREC_NAME_FPR0 && inst.op_r_name.name < (PPCREC_NAME_FPR0 + 999))
-			{
-				strOutput.addFmt("fpr{}", inst.op_r_name.name - PPCREC_NAME_FPR0);
-			}
-			else if (inst.op_r_name.name >= PPCREC_NAME_TEMPORARY_FPR0 && inst.op_r_name.name < (PPCREC_NAME_TEMPORARY_FPR0 + 999))
-			{
-				strOutput.addFmt("tempFpr{}", inst.op_r_name.name - PPCREC_NAME_TEMPORARY_FPR0);
-			}
-			else
-				strOutput.add("ukn");
-			strOutput.add(")");
-		}
-		else if (inst.type == PPCREC_IML_TYPE_FPR_NAME_R)
-		{
-			strOutput.addFmt("name_{} (", inst.op_r_name.name);
-			if (inst.op_r_name.name >= PPCREC_NAME_FPR0 && inst.op_r_name.name < (PPCREC_NAME_FPR0 + 999))
-			{
-				strOutput.addFmt("fpr{}", inst.op_r_name.name - PPCREC_NAME_FPR0);
-			}
-			else if (inst.op_r_name.name >= PPCREC_NAME_TEMPORARY_FPR0 && inst.op_r_name.name < (PPCREC_NAME_TEMPORARY_FPR0 + 999))
-			{
-				strOutput.addFmt("tempFpr{}", inst.op_r_name.name - PPCREC_NAME_TEMPORARY_FPR0);
-			}
-			else
-				strOutput.add("ukn");
-			strOutput.addFmt(") = {}", IMLDebug_GetRegName(inst.op_r_name.regR));
 		}
 		else if (inst.type == PPCREC_IML_TYPE_FPR_LOAD)
 		{

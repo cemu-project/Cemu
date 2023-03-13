@@ -168,7 +168,7 @@ IMLName PPCRecompilerImlGen_GetRegName(ppcImlGenContext_t* ppcImlGenContext, IML
 
 uint32 PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
-	__debugbreak();
+	DEBUG_BREAK;
 	//if( mappedName == PPCREC_NAME_NONE )
 	//{
 	//	debug_printf("PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(): Invalid mappedName parameter\n");
@@ -187,7 +187,7 @@ uint32 PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext_t* ppcIml
 
 uint32 PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
-	__debugbreak();
+	DEBUG_BREAK;
 	//for(uint32 i=0; i<255; i++)
 	//{
 	//	if( ppcImlGenContext->mappedFPRRegister[i] == mappedName )
@@ -242,14 +242,6 @@ IMLReg _GetRegTemporaryS8(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
  */
 IMLReg PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName, bool loadNew)
 {
-	//if( loadNew == false )
-	//{
-	//	uint32 loadedRegisterIndex = PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext, mappedName);
-	//	if( loadedRegisterIndex != PPC_REC_INVALID_REGISTER )
-	//		return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, loadedRegisterIndex);
-	//}
-	//uint32 registerIndex = PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext, mappedName);
-	//return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, registerIndex);
 	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
 }
 
@@ -259,11 +251,6 @@ IMLReg PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext,
  */
 IMLReg PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
 {
-	//uint32 loadedRegisterIndex = PPCRecompilerImlGen_findFPRRegisterByMappedName(ppcImlGenContext, mappedName);
-	//if( loadedRegisterIndex != PPC_REC_INVALID_REGISTER )
-	//	return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, loadedRegisterIndex);
-	//uint32 registerIndex = PPCRecompilerImlGen_getAndLockFreeTemporaryFPR(ppcImlGenContext, mappedName);
-	//return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, registerIndex);
 	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
 }
 
@@ -434,27 +421,38 @@ bool PPCRecompilerImlGen_MFTB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 bool PPCRecompilerImlGen_MFCR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	printf("MFCR: Not implemented\n");
-	return false;
-
-	//sint32 rD, rA, rB;
-	//PPC_OPC_TEMPL_X(opcode, rD, rA, rB);
-	//uint32 gprReg = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0 + rD);
-	//ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_MFCR, gprReg, 0);
-	//return true;
+	sint32 rD, rA, rB;
+	PPC_OPC_TEMPL_X(opcode, rD, rA, rB);
+	IMLReg regD = _GetRegGPR(ppcImlGenContext, rD);
+	ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, regD, 0);
+	for (sint32 i = 0; i < 32; i++)
+	{
+		IMLReg regCrBit = _GetRegCR(ppcImlGenContext, i);
+		cemu_assert_debug(regCrBit.GetRegFormat() == IMLRegFormat::I32); // addition is only allowed between same-format regs
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, regD, regD, 1);
+		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, regD, regD, regCrBit);
+	}
+	return true;
 }
 
 bool PPCRecompilerImlGen_MTCRF(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	printf("MTCRF: Not implemented\n");
-	return false;
-
-	//uint32 rS;
-	//uint32 crMask;
-	//PPC_OPC_TEMPL_XFX(opcode, rS, crMask);
-	//uint32 gprReg = PPCRecompilerImlGen_loadOverwriteRegister(ppcImlGenContext, PPCREC_NAME_R0 + rS);
-	//ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_MTCRF, gprReg, crMask);
-	//return true;
+	uint32 rS;
+	uint32 crMask;
+	PPC_OPC_TEMPL_XFX(opcode, rS, crMask);
+	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
+	IMLReg regTmp = _GetRegTemporary(ppcImlGenContext, 0);
+	uint32 crBitMask = ppc_MTCRFMaskToCRBitMask(crMask);
+	for (sint32 f = 0; f < 32; f++)
+	{
+		if(((crBitMask >> f) & 1) == 0)
+			continue;
+		IMLReg regCrBit = _GetRegCR(ppcImlGenContext, f);
+		cemu_assert_debug(regCrBit.GetRegFormat() == IMLRegFormat::I32);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_U, regTmp, regS, (31-f));
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, regCrBit, regTmp, 1);
+	}
+	return true;
 }
 
 void PPCRecompilerImlGen_CMP(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool isUnsigned)
