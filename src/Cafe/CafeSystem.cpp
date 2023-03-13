@@ -232,21 +232,21 @@ void InfoLog_TitleLoaded()
 void InfoLog_PrintActiveSettings()
 {
 	const auto& config = GetConfig();
-	forceLog_printf("------- Active settings -------");
+	cemuLog_log(LogType::Force, "------- Active settings -------");
 
 	// settings to log:
-	forceLog_printf("CPU-Mode: %s%s", fmt::format("{}", ActiveSettings::GetCPUMode()).c_str(), g_current_game_profile->GetCPUMode().has_value() ? " (gameprofile)" : "");
-	forceLog_printf("Load shared libraries: %s%s", ActiveSettings::LoadSharedLibrariesEnabled() ? "true" : "false", g_current_game_profile->ShouldLoadSharedLibraries().has_value() ? " (gameprofile)" : "");
-	forceLog_printf("Use precompiled shaders: %s%s", fmt::format("{}", ActiveSettings::GetPrecompiledShadersOption()).c_str(), g_current_game_profile->GetPrecompiledShadersState().has_value() ? " (gameprofile)" : "");
-	forceLog_printf("Full sync at GX2DrawDone: %s", ActiveSettings::WaitForGX2DrawDoneEnabled() ? "true" : "false");
+	cemuLog_log(LogType::Force, "CPU-Mode: {}{}", fmt::format("{}", ActiveSettings::GetCPUMode()).c_str(), g_current_game_profile->GetCPUMode().has_value() ? " (gameprofile)" : "");
+	cemuLog_log(LogType::Force, "Load shared libraries: {}{}", ActiveSettings::LoadSharedLibrariesEnabled() ? "true" : "false", g_current_game_profile->ShouldLoadSharedLibraries().has_value() ? " (gameprofile)" : "");
+	cemuLog_log(LogType::Force, "Use precompiled shaders: {}{}", fmt::format("{}", ActiveSettings::GetPrecompiledShadersOption()), g_current_game_profile->GetPrecompiledShadersState().has_value() ? " (gameprofile)" : "");
+	cemuLog_log(LogType::Force, "Full sync at GX2DrawDone: {}", ActiveSettings::WaitForGX2DrawDoneEnabled() ? "true" : "false");
+	cemuLog_log(LogType::Force, "Strict shader mul: {}", g_current_game_profile->GetAccurateShaderMul() == AccurateShaderMulOption::True ? "true" : "false");
 	if (ActiveSettings::GetGraphicsAPI() == GraphicAPI::kVulkan)
 	{
-		forceLog_printf("Async compile: %s", GetConfig().async_compile.GetValue() ? "true" : "false");
+		cemuLog_log(LogType::Force, "Async compile: {}", GetConfig().async_compile.GetValue() ? "true" : "false");
 		if(!GetConfig().vk_accurate_barriers.GetValue())
-			forceLog_printf("Accurate barriers are disabled!");
+			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
-
-	forceLog_printf("Console language: %s", fmt::format("{}", config.console_language).c_str());
+	cemuLog_log(LogType::Force, "Console language: {}", config.console_language);
 }
 
 void PPCCore_setupSPR(PPCInterpreter_t* hCPU, uint32 coreIndex)

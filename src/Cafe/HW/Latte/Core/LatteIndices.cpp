@@ -3,18 +3,8 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Common/cpu_features.h"
 
-#if defined(ARCH_X86_64)
-#if __GNUC__
+#if defined(ARCH_X86_64) && defined(__GNUC__)
 #include <immintrin.h>
-#endif
-
-#ifdef __GNUC__
-#define ATTRIBUTE_AVX2 __attribute__((target("avx2")))
-#define ATTRIBUTE_SSE41 __attribute__((target("sse4.1")))
-#else
-#define ATTRIBUTE_AVX2
-#define ATTRIBUTE_SSE41
-#endif
 #endif
 
 struct  

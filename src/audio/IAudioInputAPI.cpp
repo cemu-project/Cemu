@@ -16,7 +16,7 @@ IAudioInputAPI::IAudioInputAPI(uint32 samplerate, uint32 channels, uint32 sample
 
 void IAudioInputAPI::PrintLogging()
 {
-	forceLog_printf("------- Init Audio Input backend -------");
+	forceLog_printf("------- Init Audio input backend -------");
 	forceLog_printf("Cubeb: %s", s_availableApis[Cubeb] ? "available" : "not supported");
 }
 

@@ -11,11 +11,6 @@ endif()
 
 if(MSVC)
 	add_compile_definitions(WIN32_LEAN_AND_MEAN CURL_STATICLIB)
-	#add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
-	# _CRT_SECURE_NO_WARNINGS
-	# _WINSOCK_DEPRECATED_NO_WARNINGS
-	# _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-	# _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 elseif(UNIX)
 	if(APPLE)
 		add_compile_definitions(
@@ -32,7 +27,6 @@ elseif(UNIX)
 			add_compile_definitions(VK_USE_PLATFORM_WAYLAND_KHR)
 		endif()
 	endif()
-	add_compile_options(-maes)
 	# warnings
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_compile_options(-Wno-ambiguous-reversed-operator)
