@@ -2002,7 +2002,7 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 	occlusionQuery_notifyBeginCommandBuffer();
 
 	m_recordedDrawcalls = 0;
-	m_submitThreshold = 500; // this used to be 750 before 1.25.5, but more frequent submission is actually better for latency
+	m_submitThreshold = 300;
 	m_submitOnIdle = false;
 }
 
