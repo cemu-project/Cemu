@@ -21,6 +21,7 @@ public:
 
 	HRTick transferStartTime;
 	HRTick waitStartTime;
+	bool forceFinish{ false }; // set to true if not finished in time for dependent operation
 	// texture info
 	LatteTextureDefinition hostTextureCopy{};
 
