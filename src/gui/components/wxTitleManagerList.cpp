@@ -943,9 +943,11 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	}
 	case ColumnLocation:
 	{
-		if (_pathToUtf8(entry.path).find("usr/") != std::string::npos ||
-			_pathToUtf8(entry.path).find("sys/") != std::string::npos)
-			return _("MLC01");
+		const auto relative_mlc_path = 
+			entry.path.lexically_relative(ActiveSettings::GetMlcPath()).string();
+
+		if (relative_mlc_path.starts_with("usr") || relative_mlc_path.starts_with("sys"))
+			return _("MLC");
 		else
 			return _("Game Paths");
 	}
