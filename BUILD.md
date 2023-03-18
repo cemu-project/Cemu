@@ -78,19 +78,19 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 
 1. Install Rosetta 2 if you don't have it. This only has to be done once.
 
-   ```bash
+   ```
    softwareupdate --install-rosetta
    ```
 
 2. Run an x86_64 shell.
 
-   ```bash
+   ```
    arch -x86_64 zsh
    ```
 
 3. If you already have brew installed, unload it from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
 
-   ```bash
+   ```
    export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
    ```
 
