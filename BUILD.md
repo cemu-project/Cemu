@@ -84,19 +84,19 @@ The rest of this section will walk you through the process of setting up and bui
 
 1. Install Rosetta 2.
 
-   ```
+   ```plaintext
    softwareupdate --install-rosetta
    ```
 
 1. Run an x86_64 shell.
 
-   ```
+   ```plaintext
    arch -x86_64 zsh
    ```
 
 1. Unload your arm64-specific brew from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
 
-   ```
+   ```plaintext
    export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
    ```
 
@@ -107,37 +107,37 @@ The rest of this section will walk you through the process of setting up and bui
 
 1. Install brew.
 
-   ```
+   ```plaintext
    curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | /bin/bash
    ```
 
 1. Initialize brew.
 
-   ```
+   ```plaintext
    eval "$(/usr/local/bin/brew shellenv)"
    ```
 
 1. Install dependencies.
 
-   ```
+   ```plaintext
    brew install boost git cmake llvm nasm ninja pkg-config molten-vk
    ```
 
 1. Clone the Cemu repository with the `--recursive` flag to also clone the dependencies that it submodules.
 
-   ```
+   ```plaintext
    git clone --recursive https://github.com/cemu-project/Cemu
    ```
 
 1. Change into the cloned repository directory.
 
-   ```
+   ```plaintext
    cd Cemu
    ```
 
 1. Run cmake to generate the build files.
 
-   ```
+   ```plaintext
    cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja
    ```
 
@@ -147,32 +147,32 @@ Some of the following steps should be done every time you wish to compile Cemu, 
 
 1. If you have an Apple Silicon Mac, run an x86_64 shell.
 
-   ```
+   ```plaintext
    arch -x86_64 zsh
    ```
 
 1. If you have an Apple Silicon Mac, and you have an arm64-specific brew installed, unload your arm64-specific brew from your `PATH` so that it doesn't confuse your x86_64-specific installation of brew.
 
-   ```
+   ```plaintext
    export PATH=`printf '%s:' $(echo $PATH | tr ':' '\n' | grep -iv "^\/opt\/homebrew\/")`
    ```
 
 1. Initialize brew.
 
-   ```
+   ```plaintext
    eval "$(/usr/local/bin/brew shellenv)"
    ```
 
 1. :soap: Update dependencies.
 
-   ```
+   ```plaintext
    brew update && brew upgrade
    ```
 
    * **Note:** This step is optional and only needs to be done if there are updates to the dependencies installed via brew.
 1. :soap: Update the Cemu repository and its submodules.
 
-   ```
+   ```plaintext
    git pull --recurse-submodules
    ```
 
@@ -180,7 +180,7 @@ Some of the following steps should be done every time you wish to compile Cemu, 
 
 1. :soap: If during the previous step you see that you pulled in changes to `CMakeLists.txt`, rerun cmake to regenerate the build files.
 
-   ```
+   ```plaintext
    cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja
    ```
 
@@ -188,13 +188,13 @@ Some of the following steps should be done every time you wish to compile Cemu, 
 
 1. Run cmake to build Cemu using clang.
 
-   ```
+   ```plaintext
    cmake --build build
    ```
 
 1. You should now have a Cemu executable file in the /bin folder, which you can run using:
 
-   ```
+   ```plaintext
    ./bin/Cemu_release
    ```
 
