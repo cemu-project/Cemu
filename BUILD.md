@@ -108,7 +108,7 @@ The rest of this section will walk you through the process of setting up and bui
 1. Install brew.
 
    ```
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | /bin/bash
    ```
 
 1. Initialize brew.
