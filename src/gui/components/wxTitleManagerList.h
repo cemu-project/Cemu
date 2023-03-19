@@ -24,6 +24,7 @@ public:
 		ColumnVersion,
 		ColumnRegion,
 		ColumnFormat,
+		ColumnLocation,
 
 		ColumnMAX,
 	};
