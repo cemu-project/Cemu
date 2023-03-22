@@ -295,6 +295,15 @@ LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createN
 	uint32 colorBufferHeight = pitchHeight / colorBufferPitch;
 	uint32 colorBufferWidth = colorBufferPitch;
 
+	// colorbuffer width/height has to be padded to 8/32 but the actual resolution might be smaller
+	// use the scissor box as a clue to figure out the original resolution if possible
+	uint32 scissorBoxWidth = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_BR.get_BR_X();
+	uint32 scissorBoxHeight = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_BR.get_BR_Y();
+	if (((scissorBoxWidth + 7) & ~7) == colorBufferWidth)
+		colorBufferWidth = scissorBoxWidth;
+	if (((colorBufferHeight + 31) & ~31) == colorBufferHeight)
+		colorBufferHeight = scissorBoxHeight;
+
 	bool colorBufferWasFound = false;
 	sint32 viewFirstMip = 0; // todo
 
