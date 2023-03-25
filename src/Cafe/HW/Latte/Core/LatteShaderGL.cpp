@@ -20,7 +20,7 @@ bool gxShader_checkIfSuccessfullyLinked(GLuint glProgram)
 	glGetProgramInfoLog(glProgram, std::min(tempLength, infoLogLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
 	infoLog[tempLength] = '\0';
 	forceLog_printf("Link error in raw shader");
-	cafeLog_logLine(LOG_TYPE_FORCE, infoLog);
+	cemuLog_log(LogType::Force, infoLog);
 	return false;
 }
 
