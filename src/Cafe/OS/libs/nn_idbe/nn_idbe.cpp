@@ -89,12 +89,12 @@ namespace nn
 			nnIdbeHeader_t* idbeHeader = (nnIdbeHeader_t*)iconInput;
 			if (idbeHeader->formatVersion != 0)
 			{
-				forceLog_printf("idbe header version unknown (%d)", (sint32)idbeHeader->formatVersion);
+				cemuLog_log(LogType::Force, "idbe header version unknown ({})", (sint32)idbeHeader->formatVersion);
 				return false;
 			}
 			if (idbeHeader->keyIndex >= 4)
 			{
-				forceLog_printf("idbe header key count invalid (%d)", (sint32)idbeHeader->keyIndex);
+				cemuLog_log(LogType::Force, "idbe header key count invalid ({})", (sint32)idbeHeader->keyIndex);
 				return false;
 			}
 			// decrypt data

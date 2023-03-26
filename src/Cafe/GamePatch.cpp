@@ -462,7 +462,7 @@ void GamePatch_scan()
 	}
 
 	uint32 hleInstallEnd = GetTickCount();
-	forceLog_printf("HLE scan time: %dms", hleInstallEnd-hleInstallStart);
+	cemuLog_log(LogType::Force, "HLE scan time: {}ms", hleInstallEnd-hleInstallStart);
 }
 
 RunAtCemuBoot _loadGamePatchAPI([]()

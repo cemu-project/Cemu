@@ -173,7 +173,7 @@ void GraphicPack2::ActivateForCurrentTitle()
 		{
 			if (gp->GetPresets().empty())
 			{
-				forceLog_printf("Activate graphic pack: %s", gp->GetPath().c_str());
+				cemuLog_log(LogType::Force, "Activate graphic pack: {}", gp->GetPath().c_str());
 			}
 			else
 			{
@@ -720,7 +720,7 @@ void GraphicPack2::LoadShaders()
 		}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("graphicPack: error while loading custom shader: %s", ex.what());
+			cemuLog_log(LogType::Force, "graphicPack: error while loading custom shader: {}", ex.what());
 		}
 	}
 }
@@ -743,7 +743,7 @@ bool GraphicPack2::IsPresetVisible(const PresetPtr& preset) const
 	}
 	catch (const std::exception& ex)
 	{
-		forceLog_printf("error when trying to check visiblity of preset: %s", ex.what());
+		cemuLog_log(LogType::Force, "error when trying to check visiblity of preset: {}", ex.what());
 		return false;
 	}
 }

@@ -152,7 +152,7 @@ LatteQueryObject* VulkanRenderer::occlusionQuery_create()
 		auto r = vkCreateQueryPool(m_logicalDevice, &queryPoolCreateInfo, nullptr, &m_occlusionQueries.queryPool);
 		if (r != VK_SUCCESS)
 		{
-			forceLog_printf("Vulkan-Error: Failed to create query pool with error %d", (sint32)r);
+			cemuLog_log(LogType::Force, "Vulkan-Error: Failed to create query pool with error {}", (sint32)r);
 			return nullptr;
 		}
 	}

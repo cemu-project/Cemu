@@ -120,7 +120,7 @@ RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxH
 		GLsizei log_size;
 		glGetShaderInfoLog(m_shader_object, std::min<uint32>(log_length, sizeof(log) - 1), &log_size, log);
 		cemuLog_log(LogType::Force, "Error/Warning in shader:");
-		forceLog_printf("%s", log);
+		cemuLog_log(LogType::Force, "{}", log);
 	}
 
 	// set debug name
@@ -273,7 +273,7 @@ void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)
 		UNREACHABLE;
 	}
 
-	forceLog_printf("Using precompiled shaders: %s", usePrecompiled ? "true" : "false");
+	cemuLog_log(LogType::Force, "Using precompiled shaders: {}", usePrecompiled ? "true" : "false");
 
 	if (usePrecompiled)
 	{

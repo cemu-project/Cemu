@@ -335,7 +335,7 @@ void ChecksumTool::LoadOnlineData() const
 	}
 	catch(const std::exception& ex)
 	{
-		forceLog_printf("error on updating json checksum data: %s", ex.what());
+		cemuLog_log(LogType::Force, "error on updating json checksum data: {}", ex.what());
 	}
 	
 	wxQueueEvent(m_verify_online, new wxCommandEvent(wxEVT_ENABLE));

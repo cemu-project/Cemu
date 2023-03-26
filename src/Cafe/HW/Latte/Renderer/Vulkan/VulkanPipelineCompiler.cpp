@@ -1041,7 +1041,7 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	}
 	else
 	{
-		forceLog_printf("Failed to create graphics pipeline. Error %d", (sint32)result);
+		cemuLog_log(LogType::Force, "Failed to create graphics pipeline. Error {}", (sint32)result);
 		cemu_assert_debug(false);
 		return true; // true indicates that caller should no longer attempt to compile this pipeline again
 	}

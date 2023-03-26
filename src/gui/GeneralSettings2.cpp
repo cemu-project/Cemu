@@ -1734,7 +1734,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				}
 				catch (std::runtime_error& ex)
 				{
-					forceLog_printf("can't initialize tv audio: %s", ex.what());
+					cemuLog_log(LogType::Force, "can't initialize tv audio: {}", ex.what());
 				}
 			}
 		}
@@ -1783,7 +1783,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				}
 				catch (std::runtime_error& ex)
 				{
-					forceLog_printf("can't initialize pad audio: %s", ex.what());
+					cemuLog_log(LogType::Force, "can't initialize pad audio: {}", ex.what());
 				}
 			}
 		}
@@ -1831,7 +1831,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				}
 				catch (std::runtime_error& ex)
 				{
-					forceLog_printf("can't initialize pad audio: %s", ex.what());
+					cemuLog_log(LogType::Force, "can't initialize pad audio: {}", ex.what());
 				}
 			}
 		}

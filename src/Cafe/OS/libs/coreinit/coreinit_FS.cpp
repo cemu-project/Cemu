@@ -186,7 +186,7 @@ namespace coreinit
 
 	void __FSErrorAndBlock(std::string_view msg)
 	{
-		forceLog_printf("Critical error in FS: %s", msg.data());
+		cemuLog_log(LogType::Force, "Critical error in FS: {}", msg.data());
 		while (true)
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
@@ -626,7 +626,7 @@ namespace coreinit
 	{
 		if (fsCmdBlockBody->asyncResult.msgUnion.fsMsg.commandType != _swapEndianU32(8))
 		{
-			forceLog_printf("Corrupted FS command detected in stage %s", stage);
+			cemuLog_log(LogType::Force, "Corrupted FS command detected in stage {}", stage);
 			cemuLog_log(LogType::Force, "Printing CMD block: ");
 			for (uint32 i = 0; i < (sizeof(FSCmdBlockBody_t) + 31) / 32; i++)
 			{

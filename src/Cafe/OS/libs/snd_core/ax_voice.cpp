@@ -692,7 +692,7 @@ namespace snd_core
 		}
 		else
 		{
-			forceLog_printf("AXSetVoiceSrcType(): Unsupported src type %d", srcType);
+			cemuLog_log(LogType::Force, "AXSetVoiceSrcType(): Unsupported src type {}", srcType);
 		}
 		AXSetSyncFlag(vpb, AX_SYNCFLAG_SRCFILTER);
 		AXVoiceProtection_Acquire(vpb);

@@ -143,7 +143,7 @@ void LoadMainExecutable()
 	uint8* rpxData = fsc_extractFile(_pathToExecutable.c_str(), &rpxSize);
 	if (rpxData == nullptr)
 	{
-		forceLog_printf("Failed to load \"%s\"", _pathToExecutable.c_str());
+		cemuLog_log(LogType::Force, "Failed to load \"{}\"", _pathToExecutable.c_str());
 		cemuLog_waitForFlush();
 		cemu_assert(false);
 	}
@@ -383,7 +383,7 @@ void cemu_initForGame()
 	RPLLoader_Link();
 	RPLLoader_NotifyControlPassedToApplication();
 	uint32 linkTime = GetTickCount() - linkTimeStart;
-	forceLog_printf("RPL link time: %dms", linkTime);
+	cemuLog_log(LogType::Force, "RPL link time: {}ms", linkTime);
 	// for HBL ELF: Setup OS-specifics struct
 	if (isLaunchTypeELF)
 	{

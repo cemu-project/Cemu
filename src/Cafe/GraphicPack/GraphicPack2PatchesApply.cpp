@@ -644,7 +644,7 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 		}
 		else
 		{
-			forceLog_printf("Applying patch group \'%s\'", patchGroup->name.c_str());
+			cemuLog_log(LogType::Force, "Applying patch group \'{}\'", patchGroup->name.c_str());
 			patchGroup->codeCaveMem = nullptr;
 		}
 	}

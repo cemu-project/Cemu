@@ -252,7 +252,7 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 		}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("can't write file: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't write file: {}", ex.what());
 			puts(fmt::format("can't write file: %s\n", ex.what()).c_str());
 		}
 	}

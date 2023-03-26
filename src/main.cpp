@@ -70,7 +70,7 @@ void logCPUAndMemoryInfo()
 	statex.dwLength = sizeof(statex);
 	GlobalMemoryStatusEx(&statex);
 	uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
-	forceLog_printf("RAM: %uMB", memoryInMB);
+	cemuLog_log(LogType::Force, "RAM: {}MB", memoryInMB);
 	#elif BOOST_OS_LINUX
 	struct sysinfo info {};
 	sysinfo(&info);
@@ -101,7 +101,7 @@ void checkForWine()
 	if (pwine_get_version)
 	{
 		g_running_in_wine = true;
-		forceLog_printf("Wine version: %s", pwine_get_version());
+		cemuLog_log(LogType::Force, "Wine version: {}", pwine_get_version());
 	}
 	#else
 	g_running_in_wine = false;

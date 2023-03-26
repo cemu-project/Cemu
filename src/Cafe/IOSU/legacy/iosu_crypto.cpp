@@ -393,12 +393,12 @@ bool iosuCrypto_addClientCertificate(void* sslctx, sint32 certificateId)
 		{
 			if (SSL_CTX_use_certificate(ctx, iosuCryptoCertificates.certList[i].cert) != 1)
 			{
-				forceLog_printf("Unable to setup certificate %d", certificateId);
+				cemuLog_log(LogType::Force, "Unable to setup certificate {}", certificateId);
 				return false;
 			}
 			if (SSL_CTX_use_RSAPrivateKey(ctx, iosuCryptoCertificates.certList[i].pkey) != 1)
 			{
-				forceLog_printf("Unable to setup certificate %d RSA private key", certificateId);
+				cemuLog_log(LogType::Force, "Unable to setup certificate {} RSA private key", certificateId);
 				return false;
 			}
 

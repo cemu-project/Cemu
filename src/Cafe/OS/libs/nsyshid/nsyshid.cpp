@@ -194,12 +194,12 @@ namespace nsyshid
 		}
 		if (maxPacketInputLength <= 0 || maxPacketInputLength >= 0xF000)
 		{
-			forceLog_printf("HID: Input packet length not available or out of range (length = %d)", maxPacketInputLength);
+			cemuLog_log(LogType::Force, "HID: Input packet length not available or out of range (length = {})", maxPacketInputLength);
 			maxPacketInputLength = 0x20;
 		}
 		if (maxPacketOutputLength <= 0 || maxPacketOutputLength >= 0xF000)
 		{
-			forceLog_printf("HID: Output packet length not available or out of range (length = %d)", maxPacketOutputLength);
+			cemuLog_log(LogType::Force, "HID: Output packet length not available or out of range (length = {})", maxPacketOutputLength);
 			maxPacketOutputLength = 0x20;
 		}
 		// setup HIDDevice struct
@@ -545,7 +545,7 @@ namespace nsyshid
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
-			forceLog_printf("nsyshid.HIDSetReport(): Unable to find device with hid handle %d", hidHandle);
+			cemuLog_log(LogType::Force, "nsyshid.HIDSetReport(): Unable to find device with hid handle {}", hidHandle);
 			osLib_returnFromFunction(hCPU, -1);
 			return;
 		}
@@ -677,7 +677,7 @@ namespace nsyshid
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
-			forceLog_printf("nsyshid.HIDRead(): Unable to find device with hid handle %d", hidHandle);
+			cemuLog_log(LogType::Force, "nsyshid.HIDRead(): Unable to find device with hid handle {}", hidHandle);
 			osLib_returnFromFunction(hCPU, -1);
 			return;
 		}
@@ -776,7 +776,7 @@ namespace nsyshid
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
-			forceLog_printf("nsyshid.HIDWrite(): Unable to find device with hid handle %d", hidHandle);
+			cemuLog_log(LogType::Force, "nsyshid.HIDWrite(): Unable to find device with hid handle {}", hidHandle);
 			osLib_returnFromFunction(hCPU, -1);
 			return;
 		}

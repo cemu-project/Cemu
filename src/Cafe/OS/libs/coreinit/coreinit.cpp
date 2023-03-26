@@ -271,7 +271,7 @@ namespace coreinit
 
 	void coreinit_exit(uint32 r)
 	{
-		forceLog_printf("coreinit.exit(%d)", r);
+		cemuLog_log(LogType::Force, "coreinit.exit({})", r);
 		cemu_assert_debug(false);
 		// never return
 		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));

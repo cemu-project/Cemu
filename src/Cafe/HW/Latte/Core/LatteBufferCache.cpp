@@ -871,7 +871,7 @@ public:
 			// retry allocation
 			if (!newRange->allocateCacheMemory())
 			{
-				forceLog_printf("Out-of-memory in GPU buffer (trying to allocate: %dKB) Cleaning up cache...", (rangeEnd - rangeBegin + 1023) / 1024);
+				cemuLog_log(LogType::Force, "Out-of-memory in GPU buffer (trying to allocate: {}KB) Cleaning up cache...", (rangeEnd - rangeBegin + 1023) / 1024);
 				CleanupCacheAggressive(rangeBegin, rangeEnd);
 				if (!newRange->allocateCacheMemory())
 				{

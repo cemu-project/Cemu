@@ -1551,7 +1551,7 @@ void nnBossNsDataExport_getSize(PPCInterpreter_t* hCPU)
 		bossStorageFadEntry_t fadEntry;
 		if (nnBossStorageFad_getEntryByName(&nsData->storage, nsData->name, &fadEntry) == false)
 		{
-			forceLog_printf("BOSS storage cant find file %s", nsData->name);
+			cemuLog_log(LogType::Force, "BOSS storage cant find file {}", nsData->name);
 			osLib_returnFromFunction(hCPU, 0);
 			return;
 		}
@@ -1566,7 +1566,7 @@ void nnBossNsDataExport_getSize(PPCInterpreter_t* hCPU)
 
 	if (fscStorageFile == nullptr)
 	{
-		forceLog_printf("BOSS storage cant open file alias %s", nsData->name);
+		cemuLog_log(LogType::Force, "BOSS storage cant open file alias {}", nsData->name);
 		osLib_returnFromFunction(hCPU, 0);
 		return;
 	}
@@ -1586,7 +1586,7 @@ uint32 nnBossNsData_read(nsData_t* nsData, uint64* sizeOutBE, void* buffer, sint
 		bossStorageFadEntry_t fadEntry;
 		if (nnBossStorageFad_getEntryByName(&nsData->storage, nsData->name, &fadEntry) == false)
 		{
-			forceLog_printf("BOSS storage cant find file %s for reading", nsData->name);
+			cemuLog_log(LogType::Force, "BOSS storage cant find file {} for reading", nsData->name);
 			return 0x80000000; // todo - proper error code
 		}
 		// open file
@@ -1600,7 +1600,7 @@ uint32 nnBossNsData_read(nsData_t* nsData, uint64* sizeOutBE, void* buffer, sint
 
 	if (!fscStorageFile)
 	{
-		forceLog_printf("BOSS storage cant open file alias %s for reading", nsData->name);
+		cemuLog_log(LogType::Force, "BOSS storage cant open file alias {} for reading", nsData->name);
 		return 0x80000000; // todo - proper error code
 	}
 	// get size
@@ -1635,7 +1635,7 @@ uint32 nnBossNsData_seek(nsData_t* nsData, uint64 seek, uint32 mode)
 		bossStorageFadEntry_t fadEntry;
 		if (nnBossStorageFad_getEntryByName(&nsData->storage, nsData->name, &fadEntry) == false)
 		{
-			forceLog_printf("BOSS storage cant find file %s for reading", nsData->name);
+			cemuLog_log(LogType::Force, "BOSS storage cant find file {} for reading", nsData->name);
 			return 0x80000000; // todo - proper error code
 		}
 		// open file
@@ -1649,7 +1649,7 @@ uint32 nnBossNsData_seek(nsData_t* nsData, uint64 seek, uint32 mode)
 
 	if (fscStorageFile == nullptr)
 	{
-		forceLog_printf("BOSS storage cant open file alias %s for reading",  nsData->name);
+		cemuLog_log(LogType::Force, "BOSS storage cant open file alias {} for reading",  nsData->name);
 		return 0x80000000; // todo - proper error code
 	}
 	// get size

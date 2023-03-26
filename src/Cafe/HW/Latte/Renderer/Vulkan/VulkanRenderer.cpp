@@ -208,11 +208,11 @@ void VulkanRenderer::DetermineVendor()
 	if(driverId == VK_DRIVER_ID_MESA_RADV || driverId == VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA)
 		m_vendor = GfxVendor::Mesa;
 
-	forceLog_printf("Using GPU: %s", properties.properties.deviceName);
+	cemuLog_log(LogType::Force, "Using GPU: {}", properties.properties.deviceName);
 
 	if (m_featureControl.deviceExtensions.driver_properties)
 	{
-		forceLog_printf("Driver version: %s", driverProperties.driverInfo);
+		cemuLog_log(LogType::Force, "Driver version: {}", driverProperties.driverInfo);
 
 		if(m_vendor == GfxVendor::Nvidia)
 		{
@@ -428,7 +428,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 	catch (const std::exception& ex)
 	{
-		forceLog_printf("can't create dxgi wrapper: %s", ex.what());
+		cemuLog_log(LogType::Force, "can't create dxgi wrapper: {}", ex.what());
 	}
 
 	// create logical device
@@ -485,7 +485,7 @@ VulkanRenderer::VulkanRenderer()
 	VkResult result = vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_logicalDevice);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("Vulkan: Unable to create a logical device. Error %d", (sint32)result);
+		cemuLog_log(LogType::Force, "Vulkan: Unable to create a logical device. Error {}", (sint32)result);
 		throw std::runtime_error(fmt::format("Unable to create a logical device: {}", result));
 	}
 
@@ -1214,7 +1214,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 
 		std::stringstream ss;
 		for (const auto& extension : requiredInstanceExtensions)
-			forceLog_printf("%s", extension);
+			cemuLog_log(LogType::Force, "{}", extension);
 		cemuLog_waitForFlush();
 		throw std::runtime_error(ss.str());
 	}
@@ -1260,7 +1260,7 @@ VkSurfaceKHR VulkanRenderer::CreateWinSurface(VkInstance instance, HWND hwindow)
 	VkResult err;
 	if ((err = vkCreateWin32SurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
 	{
-		forceLog_printf("Cannot create a Win32 Vulkan surface: %d", (sint32)err);
+		cemuLog_log(LogType::Force, "Cannot create a Win32 Vulkan surface: {}", (sint32)err);
 		throw std::runtime_error(fmt::format("Cannot create a Win32 Vulkan surface: {}", err));
 	}
 
@@ -1281,7 +1281,7 @@ VkSurfaceKHR VulkanRenderer::CreateXlibSurface(VkInstance instance, Display* dpy
     VkResult err;
     if ((err = vkCreateXlibSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
     {
-		forceLog_printf("Cannot create a X11 Vulkan surface: %d", (sint32)err);
+		cemuLog_log(LogType::Force, "Cannot create a X11 Vulkan surface: {}", (sint32)err);
         throw std::runtime_error(fmt::format("Cannot create a X11 Vulkan surface: {}", err));
     }
 
@@ -1300,7 +1300,7 @@ VkSurfaceKHR VulkanRenderer::CreateXcbSurface(VkInstance instance, xcb_connectio
     VkResult err;
     if ((err = vkCreateXcbSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
     {
-        forceLog_printf("Cannot create a XCB Vulkan surface: %d", (sint32)err);
+        cemuLog_log(LogType::Force, "Cannot create a XCB Vulkan surface: {}", (sint32)err);
         throw std::runtime_error(fmt::format("Cannot create a XCB Vulkan surface: {}", err));
     }
 
@@ -1319,7 +1319,7 @@ VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_displa
     VkResult err;
     if ((err = vkCreateWaylandSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
     {
-        forceLog_printf("Cannot create a Wayland Vulkan surface: %d", (sint32)err);
+        cemuLog_log(LogType::Force, "Cannot create a Wayland Vulkan surface: {}", (sint32)err);
         throw std::runtime_error(fmt::format("Cannot create a Wayland Vulkan surface: {}", err));
     }
 
@@ -1380,7 +1380,7 @@ void VulkanRenderer::CreateCommandBuffers()
 	const VkResult result = vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, m_commandBuffers.data());
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("Failed to allocate command buffers: %d", result);
+		cemuLog_log(LogType::Force, "Failed to allocate command buffers: {}", result);
 		throw std::runtime_error(fmt::format("Failed to allocate command buffers: {}", result));
 	}
 
@@ -1560,7 +1560,7 @@ void VulkanRenderer::Shutdown()
 void VulkanRenderer::UnrecoverableError(const char* errMsg) const
 {
 	cemuLog_log(LogType::Force, "Unrecoverable error in Vulkan renderer");
-	forceLog_printf("Msg: %s", errMsg);
+	cemuLog_log(LogType::Force, "Msg: {}", errMsg);
 	throw std::runtime_error(errMsg);
 }
 
@@ -1698,7 +1698,7 @@ void VulkanRenderer::QueryAvailableFormats()
 
 		if (fmtProp.optimalTilingFeatures == 0)
 		{
-			forceLog_printf("%s not supported", it.name);
+			cemuLog_log(LogType::Force, "{} not supported", it.name);
 		}
 		else if ((fmtProp.optimalTilingFeatures & requestedBits) != requestedBits)
 		{
@@ -1714,7 +1714,7 @@ void VulkanRenderer::QueryAvailableFormats()
 			//	missingStr.append(" TRANSFER_DST");
 			//if (!(fmtProp.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT))
 			//	missingStr.append(" SAMPLED_IMAGE");
-			//forceLog_printf("%s", missingStr.c_str());
+			//cemuLog_log(LogType::Force, "{}", missingStr.c_str());
 		}
 	}
 }
@@ -1763,7 +1763,7 @@ ImTextureID VulkanRenderer::GenerateTexture(const std::vector<uint8>& data, cons
 	}
 	catch (const std::exception& ex)
 	{
-		forceLog_printf("can't generate imgui texture: %s", ex.what());
+		cemuLog_log(LogType::Force, "can't generate imgui texture: {}", ex.what());
 		return nullptr;
 	}
 }
@@ -1886,7 +1886,7 @@ void VulkanRenderer::ProcessFinishedCommandBuffers()
 			// not signaled
 			break;
 		}
-		forceLog_printf("vkGetFenceStatus returned unexpected error %d", (sint32)fenceStatus);
+		cemuLog_log(LogType::Force, "vkGetFenceStatus returned unexpected error {}", (sint32)fenceStatus);
 		cemu_assert_debug(false);
 	}
 	if (finishedCmdBuffers)
@@ -1906,7 +1906,7 @@ void VulkanRenderer::WaitForNextFinishedCommandBuffer()
 	}
 	else if (result != VK_SUCCESS)
 	{
-		forceLog_printf("vkWaitForFences: Returned unhandled error %d", (sint32)result);
+		cemuLog_log(LogType::Force, "vkWaitForFences: Returned unhandled error {}", (sint32)result);
 	}
 	// process
 	ProcessFinishedCommandBuffers();
@@ -2092,7 +2092,7 @@ void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 			}
 			else
 			{
-				forceLog_printf("can't retrieve pipeline cache data: 0x%x", res);
+				cemuLog_log(LogType::Force, "can't retrieve pipeline cache data: 0x{}", res);
 			}
 		}
 		else
@@ -2579,7 +2579,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	result = vkCreateGraphicsPipelines(m_logicalDevice, m_pipeline_cache, 1, &pipelineInfo, nullptr, &pipeline);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("Failed to create graphics pipeline. Error %d", result);
+		cemuLog_log(LogType::Force, "Failed to create graphics pipeline. Error {}", result);
 		throw std::runtime_error(fmt::format("Failed to create graphics pipeline: {}", result));
 	}
 

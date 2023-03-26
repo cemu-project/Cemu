@@ -413,7 +413,7 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 	result = vkCreateGraphicsPipelines(m_logicalDevice, m_pipeline_cache, 1, &pipelineInfo, nullptr, &copyPipeline->vkObjPipeline->pipeline);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("Failed to create graphics pipeline for surface copy. Error %d Info:", (sint32)result);
+		cemuLog_log(LogType::Force, "Failed to create graphics pipeline for surface copy. Error {} Info:", (sint32)result);
 		cemu_assert_debug(false);
 		copyPipeline->vkObjPipeline->pipeline = VK_NULL_HANDLE;
 	}

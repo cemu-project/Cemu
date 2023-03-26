@@ -1025,7 +1025,7 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 			catch (const std::exception& ex)
 			{
 				SystemException sys(ex);
-				forceLog_printf("error when creating dump curl folder: %s", sys.what());
+				cemuLog_log(LogType::Force, "error when creating dump curl folder: {}", sys.what());
 				ActiveSettings::EnableDumpLibcurlRequests(false);
 			}
 		}
@@ -1082,7 +1082,7 @@ void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
 		catch (const std::exception& ex)
 		{
 			SystemException sys(ex);
-			forceLog_printf("can't create texture dump folder: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't create texture dump folder: {}", ex.what());
 			ActiveSettings::EnableDumpTextures(false);
 		}
 	}
@@ -1103,7 +1103,7 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 		catch (const std::exception & ex)
 		{
 			SystemException sys(ex);
-			forceLog_printf("can't create shaders dump folder: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't create shaders dump folder: {}", ex.what());
 			ActiveSettings::EnableDumpShaders(false);
 		}
 	}

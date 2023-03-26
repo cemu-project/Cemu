@@ -104,7 +104,7 @@ OpenGLRenderer::OpenGLRenderer()
 	}
 	catch (const std::exception& ex)
 	{
-		forceLog_printf("Unable to create dxgi wrapper: %s (VRAM overlay stat won't be available)", ex.what());
+		cemuLog_log(LogType::Force, "Unable to create dxgi wrapper: {} (VRAM overlay stat won't be available)", ex.what());
 	}
 #endif
 }
@@ -269,11 +269,11 @@ void OpenGLRenderer::Initialize()
 		glMaxShaderCompilerThreadsARB(0xFFFFFFFF);
 
 	cemuLog_log(LogType::Force, "OpenGL extensions:");
-	forceLog_printf("ARB_clip_control: %s", glClipControl ? "available" : "not supported");
-	forceLog_printf("ARB_get_program_binary: %s", (glGetProgramBinary != NULL && glProgramBinary != NULL) ? "available" : "not supported");
-	forceLog_printf("ARB_clear_texture: %s", (glClearTexImage != NULL) ? "available" : "not supported");
-	forceLog_printf("ARB_copy_image: %s", (glCopyImageSubData != NULL) ? "available" : "not supported");
-	forceLog_printf("NV_depth_buffer_float: %s", (glDepthRangedNV != NULL) ? "available" : "not supported");
+	cemuLog_log(LogType::Force, "ARB_clip_control: {}", glClipControl ? "available" : "not supported");
+	cemuLog_log(LogType::Force, "ARB_get_program_binary: {}", (glGetProgramBinary != NULL && glProgramBinary != NULL) ? "available" : "not supported");
+	cemuLog_log(LogType::Force, "ARB_clear_texture: {}", (glClearTexImage != NULL) ? "available" : "not supported");
+	cemuLog_log(LogType::Force, "ARB_copy_image: {}", (glCopyImageSubData != NULL) ? "available" : "not supported");
+	cemuLog_log(LogType::Force, "NV_depth_buffer_float: {}", (glDepthRangedNV != NULL) ? "available" : "not supported");
 
 	// generate default frame buffer
 	glGenFramebuffers(1, &m_defaultFramebufferId);
@@ -376,9 +376,9 @@ void OpenGLRenderer::GetVendorInformation()
 	char* glRendererString = (char*)glGetString(GL_RENDERER);
 	char* glVersionString = (char*)glGetString(GL_VERSION);
 
-	forceLog_printf("GL_VENDOR: %s", glVendorString ? glVendorString : "unknown");
-	forceLog_printf("GL_RENDERER: %s", glRendererString ? glRendererString : "unknown");
-	forceLog_printf("GL_VERSION: %s", glVersionString ? glVersionString : "unknown");
+	cemuLog_log(LogType::Force, "GL_VENDOR: {}", glVendorString ? glVendorString : "unknown");
+	cemuLog_log(LogType::Force, "GL_RENDERER: {}", glRendererString ? glRendererString : "unknown");
+	cemuLog_log(LogType::Force, "GL_VERSION: {}", glVersionString ? glVersionString : "unknown");
 
 	if(boost::icontains(glVersionString, "Mesa"))
 	{
@@ -424,7 +424,7 @@ void _glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "does not have a defined base level"))
 		return;
 
-	forceLog_printf("GLDEBUG: %s", message);
+	cemuLog_log(LogType::Force, "GLDEBUG: {}", message);
 
 	cemu_assert_debug(false);
 }

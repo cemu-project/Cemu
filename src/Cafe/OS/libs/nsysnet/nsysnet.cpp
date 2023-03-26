@@ -1182,7 +1182,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 			break;
 		}
 	}
-	//forceLog_printf("selectEndTime %d", timeGetTime());
+	//cemuLog_log(LogType::Force, "selectEndTime {}", timeGetTime());
 
 
 	//extern int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
