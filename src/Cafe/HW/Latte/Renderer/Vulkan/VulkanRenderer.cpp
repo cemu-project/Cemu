@@ -289,11 +289,11 @@ void VulkanRenderer::GetDeviceFeatures()
 	{
 		if (m_featureControl.deviceExtensions.custom_border_color)
 		{
-			forceLog_printf("VK_EXT_custom_border_color is present but only with limited support. Cannot emulate arbitrary border color");
+			cemuLog_log(LogType::Force, "VK_EXT_custom_border_color is present but only with limited support. Cannot emulate arbitrary border color");
 		}
 		else
 		{
-			forceLog_printf("VK_EXT_custom_border_color not supported. Cannot emulate arbitrary border color");
+			cemuLog_log(LogType::Force, "VK_EXT_custom_border_color not supported. Cannot emulate arbitrary border color");
 		}
 	}
 
@@ -307,11 +307,11 @@ VulkanRenderer::VulkanRenderer()
 {
 	glslang::InitializeProcess();
 
-	forceLog_printf("------- Init Vulkan graphics backend -------");
+	cemuLog_log(LogType::Force, "------- Init Vulkan graphics backend -------");
 
 	const bool useValidationLayer = cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION);
 	if (useValidationLayer)
-		forceLog_printf("Validation layer is enabled");
+		cemuLog_log(LogType::Force, "Validation layer is enabled");
 
 	VkResult err;
 
@@ -395,13 +395,13 @@ VulkanRenderer::VulkanRenderer()
 
 	if (m_physicalDevice == VK_NULL_HANDLE && fallbackDevice != VK_NULL_HANDLE)
 	{
-		forceLog_printf("The selected GPU could not be found or is not suitable. Falling back to first available device instead");
+		cemuLog_log(LogType::Force, "The selected GPU could not be found or is not suitable. Falling back to first available device instead");
 		m_physicalDevice = fallbackDevice;
 		config.graphic_device_uuid = {}; // resetting device selection
 	}
 	else if (m_physicalDevice == VK_NULL_HANDLE)
 	{
-		forceLog_printf("No physical GPU could be found with the required extensions and swap chain support.");
+		cemuLog_log(LogType::Force, "No physical GPU could be found with the required extensions and swap chain support.");
 		throw std::runtime_error("No physical GPU could be found with the required extensions and swap chain support.");
 	}
 
@@ -450,7 +450,7 @@ VulkanRenderer::VulkanRenderer()
 	if (m_vendor == GfxVendor::AMD)
 	{
 		deviceFeatures.robustBufferAccess = VK_TRUE;
-		forceLog_printf("Enable robust buffer access");
+		cemuLog_log(LogType::Force, "Enable robust buffer access");
 	}
 	if (m_featureControl.mode.useTFEmulationViaSSBO)
 	{
@@ -512,7 +512,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	if (m_featureControl.instanceExtensions.debug_utils)
-		forceLog_printf("Using available debug function: vkCreateDebugUtilsMessengerEXT()");
+		cemuLog_log(LogType::Force, "Using available debug function: vkCreateDebugUtilsMessengerEXT()");
 
 	// set initial viewport and scissor box size
 	m_state.currentViewport.width = 4;
@@ -576,7 +576,7 @@ VulkanRenderer::VulkanRenderer()
 
 	if (m_featureControl.mode.useBufferSurfaceCopies)
 	{
-		//forceLog_printf("Enable surface copies via buffer");
+		//cemuLog_log(LogType::Force, "Enable surface copies via buffer");
 	}
 	else
 	{
@@ -1210,7 +1210,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	}
 	if (!requiredInstanceExtensions.empty())
 	{
-		forceLog_printf("The following required Vulkan instance extensions are not supported:");
+		cemuLog_log(LogType::Force, "The following required Vulkan instance extensions are not supported:");
 
 		std::stringstream ss;
 		for (const auto& extension : requiredInstanceExtensions)
@@ -1559,7 +1559,7 @@ void VulkanRenderer::Shutdown()
 
 void VulkanRenderer::UnrecoverableError(const char* errMsg) const
 {
-	forceLog_printf("Unrecoverable error in Vulkan renderer");
+	cemuLog_log(LogType::Force, "Unrecoverable error in Vulkan renderer");
 	forceLog_printf("Msg: %s", errMsg);
 	throw std::runtime_error(errMsg);
 }
@@ -1630,7 +1630,7 @@ void VulkanRenderer::QueryMemoryInfo()
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
-	forceLog_printf("Vulkan device memory info:");
+	cemuLog_log(LogType::Force, "Vulkan device memory info:");
 	for (uint32 i = 0; i < memProperties.memoryHeapCount; i++)
 	{
 		forceLog_printf("Heap %d - Size %dMB Flags 0x%08x", i, (sint32)(memProperties.memoryHeaps[i].size / 1024ll / 1024ll), (uint32)memProperties.memoryHeaps[i].flags);
@@ -1902,7 +1902,7 @@ void VulkanRenderer::WaitForNextFinishedCommandBuffer()
 	VkResult result = vkWaitForFences(m_logicalDevice, 1, &m_cmd_buffer_fences[m_commandBufferSyncIndex], true, UINT64_MAX);
 	if (result == VK_TIMEOUT)
 	{
-		forceLog_printf("vkWaitForFences: Returned VK_TIMEOUT on infinite fence");
+		cemuLog_log(LogType::Force, "vkWaitForFences: Returned VK_TIMEOUT on infinite fence");
 	}
 	else if (result != VK_SUCCESS)
 	{
@@ -2087,7 +2087,7 @@ void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 				}
 				else
 				{
-					forceLog_printf("can't write pipeline cache to disk");
+					cemuLog_log(LogType::Force, "can't write pipeline cache to disk");
 				}
 			}
 			else
@@ -3880,7 +3880,7 @@ VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint3
 
 	if (vkCreateRenderPass(VulkanRenderer::GetInstance()->GetLogicalDevice(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
 	{
-		forceLog_printf("Vulkan-Error: Failed to create render pass");
+		cemuLog_log(LogType::Force, "Vulkan-Error: Failed to create render pass");
 		throw std::runtime_error("failed to create render pass!");
 	}
 

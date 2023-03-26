@@ -205,7 +205,7 @@ namespace nn
 
 		uint32 UploadPostDataByPostApp(void *postParam)
 		{
-			forceLog_printf("UploadPostDataByPostApp() called. Returning error");
+			cemuLog_log(LogType::Force, "UploadPostDataByPostApp() called. Returning error");
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_OLV, 0); // undefined error
 		}
 

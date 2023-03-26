@@ -315,7 +315,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 				if ((std::count(sb.name, sb.name + len, '/') + std::count(sb.name, sb.name + len, '\\')) == 1)
 				{
 					if (!cemuFolderName.empty())
-						forceLog_printf("update zip has multiple folders in root");
+						cemuLog_log(LogType::Force, "update zip has multiple folders in root");
 					cemuFolderName.assign(sb.name, len - 1);
 				}
 				continue;

@@ -165,7 +165,7 @@ namespace nsyshid
 		HIDDevice_t* hidDevice = getFreeDevice();
 		if (hidDevice == nullptr)
 		{
-			forceLog_printf("HID: Maximum number of supported devices exceeded");
+			cemuLog_log(LogType::Force, "HID: Maximum number of supported devices exceeded");
 			return;
 		}
 
@@ -487,7 +487,7 @@ namespace nsyshid
 			retryCount++;
 			if (retryCount >= 40)
 			{
-				forceLog_printf("HID async SetReport failed");
+				cemuLog_log(LogType::Force, "HID async SetReport failed");
 				sint32 errorCode = -1;
 				doHIDTransferCallback(callbackFuncMPTR, callbackParamMPTR, hidDeviceInfo->handle, errorCode, memory_getVirtualOffsetFromPointer(originalData), 0);
 				free(reportData);
@@ -641,7 +641,7 @@ namespace nsyshid
 		}
 		else
 		{
-			forceLog_printf("Failed HID read");
+			cemuLog_log(LogType::Force, "Failed HID read");
 			returnCode = -1;
 		}
 		free(tempBuffer);

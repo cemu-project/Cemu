@@ -738,11 +738,11 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 
 #ifdef CEMU_DEBUG_ASSERT
 	if (textureData->depth != 1)
-		forceLog_printf("_writeReadbackTextureToMemory(): Texture has multiple slices (not supported)");
+		cemuLog_log(LogType::Force, "_writeReadbackTextureToMemory(): Texture has multiple slices (not supported)");
 #endif
 	if (textureLoader.physAddress == MPTR_NULL)
 	{
-		forceLog_printf("_writeReadbackTextureToMemory(): Texture has invalid address");
+		cemuLog_log(LogType::Force, "_writeReadbackTextureToMemory(): Texture has invalid address");
 		return;
 	}
 

@@ -376,7 +376,7 @@ void LatteTexture_CopySlice(LatteTexture* srcTexture, sint32 srcSlice, sint32 sr
 		sint32 effectiveHeight_dst = dstTexture->overwriteInfo.hasResolutionOverwrite ? dstTexture->overwriteInfo.height : dstTexture->height;
 		if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_TEXTURE_CACHE))
 		{
-			forceLog_printf("_copySlice(): Unable to sync textures with mismatching scale ratio (due to texture rule)");
+			cemuLog_log(LogType::Force, "_copySlice(): Unable to sync textures with mismatching scale ratio (due to texture rule)");
 			float ratioWidth_src = (float)effectiveWidth_src / (float)srcTexture->width;
 			float ratioHeight_src = (float)effectiveHeight_src / (float)srcTexture->height;
 			float ratioWidth_dst = (float)effectiveWidth_dst / (float)dstTexture->width;

@@ -875,7 +875,7 @@ public:
 				CleanupCacheAggressive(rangeBegin, rangeEnd);
 				if (!newRange->allocateCacheMemory())
 				{
-					forceLog_printf("Failed to free enough memory in GPU buffer");
+					cemuLog_log(LogType::Force, "Failed to free enough memory in GPU buffer");
 					cemu_assert(false);
 				}
 			}
@@ -907,7 +907,7 @@ public:
 		// todo - add support for splitting BufferCacheNode memory allocations, then we dont need to do a separate allocation
 		if (!newRange->allocateCacheMemory())
 		{
-			forceLog_printf("Out-of-memory in GPU buffer during split operation");
+			cemuLog_log(LogType::Force, "Out-of-memory in GPU buffer during split operation");
 			cemu_assert(false);
 		}
 		newRange->syncFromNode(nodeObject);

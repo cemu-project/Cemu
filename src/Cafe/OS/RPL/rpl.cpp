@@ -336,7 +336,7 @@ rplSectionEntryNew_t* RPLLoader_GetSection(RPLModule* rplLoaderContext, sint32 s
 	sint32 sectionCount = rplLoaderContext->rplHeader.sectionTableEntryCount;
 	if (sectionIndex < 0 || sectionIndex >= sectionCount)
 	{
-		forceLog_printf("RPLLoader: Section index out of bounds");
+		cemuLog_log(LogType::Force, "RPLLoader: Section index out of bounds");
 		rplLoaderContext->hasError = true;
 		return nullptr;
 	}
@@ -1664,7 +1664,7 @@ RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name)
 	// cancel if error
 	if (rpl->hasError)
 	{
-		forceLog_printf("RPLLoader: Unable to load RPL due to errors");
+		cemuLog_log(LogType::Force, "RPLLoader: Unable to load RPL due to errors");
 		delete rpl;
 		return nullptr;
 	}

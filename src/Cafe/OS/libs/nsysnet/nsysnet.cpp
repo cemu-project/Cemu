@@ -695,7 +695,7 @@ void nsysnetExport_inet_pton(PPCInterpreter_t* hCPU)
 	
 	if (af != 2)
 	{
-		forceLog_printf("inet_pton() only supports AF_INET");
+		cemuLog_log(LogType::Force, "inet_pton() only supports AF_INET");
 		osLib_returnFromFunction(hCPU, 0);
 		return;
 	}
@@ -848,7 +848,7 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 
 	if (memory_readU32(lenMPTR) != 16)
 	{
-		forceLog_printf("invalid sockaddr len in accept()");
+		cemuLog_log(LogType::Force, "invalid sockaddr len in accept()");
 		cemu_assert_debug(false);
 		osLib_returnFromFunction(hCPU, 0);
 		return;
@@ -873,7 +873,7 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 	else
 	{
 		// blocking accept is not supported yet
-		forceLog_printf("blocking accept() not supported");
+		cemuLog_log(LogType::Force, "blocking accept() not supported");
 		cemu_assert_debug(false);
 	}
 
@@ -1353,7 +1353,7 @@ void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 	}
 	else
 	{
-		forceLog_printf("he->h_name not set or name too long");
+		cemuLog_log(LogType::Force, "he->h_name not set or name too long");
 		strcpy(_staticHostentName.GetPtr(), "");
 	}
 	// setup wuHostent address list

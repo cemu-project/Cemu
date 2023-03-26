@@ -133,7 +133,7 @@ void LoadMainExecutable()
 		// otherwise search for first file with .rpx extension in the code folder
 		if (!ScanForRPX())
 		{
-			forceLog_printf("Unable to find RPX executable");
+			cemuLog_log(LogType::Force, "Unable to find RPX executable");
 			cemuLog_waitForFlush();
 			cemu_assert(false);
 		}
@@ -406,13 +406,13 @@ void cemu_initForGame()
     }
 	debugger_handleEntryBreakpoint(_entryPoint);
 	// load graphic packs
-	forceLog_printf("------- Activate graphic packs -------");
+	cemuLog_log(LogType::Force, "------- Activate graphic packs -------");
 	GraphicPack2::ActivateForCurrentTitle();
 	// print audio log
 	IAudioAPI::PrintLogging();
 	IAudioInputAPI::PrintLogging();
 	// everything initialized
-	forceLog_printf("------- Run title -------");
+	cemuLog_log(LogType::Force, "------- Run title -------");
 	// wait till GPU thread is initialized
 	while (g_isGPUInitFinished == false) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	// init initial thread

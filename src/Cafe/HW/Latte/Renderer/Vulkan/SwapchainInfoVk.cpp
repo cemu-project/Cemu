@@ -226,7 +226,7 @@ bool SwapchainInfoVk::AcquireImage(uint64 timeout)
 
 void SwapchainInfoVk::UnrecoverableError(const char* errMsg)
 {
-	forceLog_printf("Unrecoverable error in Vulkan swapchain");
+	cemuLog_log(LogType::Force, "Unrecoverable error in Vulkan swapchain");
 	forceLog_printf("Msg: %s", errMsg);
 	throw std::runtime_error(errMsg);
 }
@@ -357,14 +357,14 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
 			return VK_PRESENT_MODE_MAILBOX_KHR;
 
-		forceLog_printf("Vulkan: Can't find mailbox present mode");
+		cemuLog_log(LogType::Force, "Vulkan: Can't find mailbox present mode");
 	}
 	else if (vsyncState == VSync::Immediate)
 	{
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
 			return VK_PRESENT_MODE_IMMEDIATE_KHR;
 
-		forceLog_printf("Vulkan: Can't find immediate present mode");
+		cemuLog_log(LogType::Force, "Vulkan: Can't find immediate present mode");
 	}
 	else if (vsyncState == VSync::SYNC_AND_LIMIT)
 	{
@@ -373,7 +373,7 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		//if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
 		//	return VK_PRESENT_MODE_IMMEDIATE_KHR;
 		//else
-		//	forceLog_printf("Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
+		//	cemuLog_log(LogType::Force, "Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 

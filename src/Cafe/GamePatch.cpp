@@ -300,7 +300,7 @@ void GamePatch_scan()
 	if( hleAddr )
 	{
 #ifdef CEMU_DEBUG_ASSERT
-		forceLog_printf("HLE: XCX GPU hang detection");
+		cemuLog_log(LogType::Force, "HLE: XCX GPU hang detection");
 #endif
 		// remove the ADDI r25, r25, 1 instruction
 		memory_writeU32(hleAddr, memory_readU32(hleAddr+4));
@@ -310,7 +310,7 @@ void GamePatch_scan()
 	if( hleAddr )
 	{
 #ifdef CEMU_DEBUG_ASSERT
-		forceLog_printf("HLE: Prevent XCX rendertarget reduction");
+		cemuLog_log(LogType::Force, "HLE: Prevent XCX rendertarget reduction");
 #endif
 		uint32 bl = memory_readU32(hleAddr+0x14);
 		uint32 func_isReductionBuffer = hleAddr + 0x14 + (bl&0x3FFFFFC);

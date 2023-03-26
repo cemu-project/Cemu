@@ -133,7 +133,7 @@ namespace GX2
 	{
 		if ((size_t)eventType >= GX2CallbackEventTypeCount)
 		{
-			forceLog_printf("GX2SetEventCallback(): Unknown eventType\n");
+			cemuLog_log(LogType::Force, "GX2SetEventCallback(): Unknown eventType\n");
 			return;
 		}
 		s_eventCallback[(size_t)eventType].callbackFuncPtr = callbackFuncPtr;
@@ -144,7 +144,7 @@ namespace GX2
 	{
 		if ((size_t)eventType >= GX2CallbackEventTypeCount)
 		{
-			forceLog_printf("GX2GetEventCallback(): Unknown eventType\n");
+			cemuLog_log(LogType::Force, "GX2GetEventCallback(): Unknown eventType\n");
 			return;
 		}
 		if (callbackFuncPtrOut)

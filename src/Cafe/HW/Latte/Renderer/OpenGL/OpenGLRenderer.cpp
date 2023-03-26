@@ -89,7 +89,7 @@ OpenGLRenderer::OpenGLRenderer()
 		void* buffer = glMapNamedBufferRange(glRendererState.uploadBuffer, 0, TEXBUFFER_SIZE, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 		if (buffer == nullptr)
 		{
-			forceLog_printf("Failed to allocate GL texture upload buffer. Using traditional API instead");
+			cemuLog_log(LogType::Force, "Failed to allocate GL texture upload buffer. Using traditional API instead");
 			cemu_assert_debug(false);
 		}
 		glRendererState.uploadBufferPtr = buffer;
@@ -254,7 +254,7 @@ void OpenGLRenderer::Initialize()
 {
 	Renderer::Initialize();
 	auto lock = cafeLog_acquire();
-	forceLog_printf("------- Init OpenGL graphics backend -------");
+	cemuLog_log(LogType::Force, "------- Init OpenGL graphics backend -------");
 
 	GLCanvas_MakeCurrent(false);
 	LoadOpenGLImports();
@@ -268,7 +268,7 @@ void OpenGLRenderer::Initialize()
 	if (glMaxShaderCompilerThreadsARB)
 		glMaxShaderCompilerThreadsARB(0xFFFFFFFF);
 
-	forceLog_printf("OpenGL extensions:");
+	cemuLog_log(LogType::Force, "OpenGL extensions:");
 	forceLog_printf("ARB_clip_control: %s", glClipControl ? "available" : "not supported");
 	forceLog_printf("ARB_get_program_binary: %s", (glGetProgramBinary != NULL && glProgramBinary != NULL) ? "available" : "not supported");
 	forceLog_printf("ARB_clear_texture: %s", (glClearTexImage != NULL) ? "available" : "not supported");

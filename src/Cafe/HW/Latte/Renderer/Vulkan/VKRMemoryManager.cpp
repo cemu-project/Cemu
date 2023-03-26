@@ -299,7 +299,7 @@ size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, V
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &temporaryBuffer) != VK_SUCCESS)
 	{
-		forceLog_printf("Vulkan: GetTotalMemoryForBufferType() failed to create temporary buffer");
+		cemuLog_log(LogType::Force, "Vulkan: GetTotalMemoryForBufferType() failed to create temporary buffer");
 		return 0;
 	}
 
@@ -513,7 +513,7 @@ void VKRMemoryManager::imageMemoryFree(VkImageMemAllocation* imageMemAllocation)
 	auto heapItr = map_textureHeap.find(imageMemAllocation->typeFilter);
 	if (heapItr == map_textureHeap.end())
 	{
-		forceLog_printf("Internal texture heap error");
+		cemuLog_log(LogType::Force, "Internal texture heap error");
 		return;
 	}
 	heapItr->second->freeMem(imageMemAllocation->mem);

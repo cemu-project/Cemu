@@ -100,7 +100,7 @@ namespace coreinit
 		{
 			// out of bounds
 #ifdef CEMU_DEBUG_ASSERT
-			forceLog_printf("LCDealloc(): Out of bounds");
+			cemuLog_log(LogType::Force, "LCDealloc(): Out of bounds");
 #endif
 			osLib_returnFromFunction(hCPU, 0);
 			return;
@@ -209,7 +209,7 @@ namespace coreinit
 				{
 					if (_lcDisableErrorCounter < 15)
 					{
-						forceLog_printf("LC disabled but there is still memory allocated");
+						cemuLog_log(LogType::Force, "LC disabled but there is still memory allocated");
 						_lcDisableErrorCounter++;
 					}
 				}

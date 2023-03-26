@@ -972,7 +972,7 @@ void NexFriends::update()
 			}
 			if (timeSinceLastLoginAttempt < delayTime)
 				return;
-			forceLog_printf("NEX: Attempt async friend service login");
+			cemuLog_log(LogType::Force, "NEX: Attempt async friend service login");
 			initiateLogin();
 		}
 	}
@@ -980,7 +980,7 @@ void NexFriends::update()
 	{
 		if (this->nexCon == nullptr || this->nexCon->getState() != nexService::STATE_CONNECTED)
 		{
-			forceLog_printf("NEX: Lost friend server session");
+			cemuLog_log(LogType::Force, "NEX: Lost friend server session");
 			if (this->nexCon)
 			{
 				this->nexCon->destroy();

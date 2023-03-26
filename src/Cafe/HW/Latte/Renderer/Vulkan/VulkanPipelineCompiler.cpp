@@ -398,7 +398,7 @@ bool PipelineCompiler::InitShaderStages(VulkanRenderer* vkRenderer, RendererShad
 		(vkGeometryShader && vkGeometryShader->GetShaderModule() == VK_NULL_HANDLE) ||
 		(vkPixelShader && vkPixelShader->GetShaderModule() == VK_NULL_HANDLE))
 	{
-		forceLog_printf("Vulkan-Info: Pipeline creation failed due to invalid shader(s)");
+		cemuLog_log(LogType::Force, "Vulkan-Info: Pipeline creation failed due to invalid shader(s)");
 		return false;
 	}
 

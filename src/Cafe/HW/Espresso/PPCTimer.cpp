@@ -60,7 +60,7 @@ uint64 PPCTimer_estimateRDTSCFrequency()
 	uint64 tsc_freq = muldiv64(tsc_diff, hrtFreq, hrtDiff);
 
 	// uint64 freqMultiplier = tsc_freq / hrtFreq;
-	//forceLog_printf("RDTSC measurement test:");
+	//cemuLog_log(LogType::Force, "RDTSC measurement test:");
 	//forceLog_printf("TSC-diff:   0x%016llx", tsc_diff);
 	//forceLog_printf("TSC-freq:   0x%016llx", tsc_freq);
 	//forceLog_printf("HPC-diff:   0x%016llx", qpc_diff);

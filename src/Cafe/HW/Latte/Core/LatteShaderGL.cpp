@@ -19,7 +19,7 @@ bool gxShader_checkIfSuccessfullyLinked(GLuint glProgram)
 	tempLength = sizeof(infoLog)-1;
 	glGetProgramInfoLog(glProgram, std::min(tempLength, infoLogLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
 	infoLog[tempLength] = '\0';
-	forceLog_printf("Link error in raw shader");
+	cemuLog_log(LogType::Force, "Link error in raw shader");
 	cafeLog_logLine(LOG_TYPE_FORCE, infoLog);
 	return false;
 }
@@ -83,7 +83,7 @@ GLuint gpu7ShaderGLDepr_compileShader(const std::string& source, uint32_t type)
 		char log[2048]{};
 		GLsizei log_size;
 		glGetShaderInfoLog(shader_object, std::min(log_length, (GLint)sizeof(log) - 1), &log_size, log);
-		forceLog_printf("Error/Warning in vertex shader:");
+		cemuLog_log(LogType::Force, "Error/Warning in vertex shader:");
 		forceLog_printf("%s", log);
 	}
 
@@ -112,7 +112,7 @@ GLuint gpu7ShaderGLDepr_compileVertexShader(const char* shaderSource, sint32 sha
 	{
 		char messageLog[2048]{};
 		glGetShaderInfoLog(shaderObject, std::min<uint32>(shaderLogLengthInfo, sizeof(messageLog) - 1), (GLsizei*)&shaderLogLen, (GLcharARB*)messageLog);
-		forceLog_printf("Error/Warning in vertex shader:");
+		cemuLog_log(LogType::Force, "Error/Warning in vertex shader:");
 		forceLog_printf("%s", messageLog);
 	}
 	return shaderObject;
@@ -132,7 +132,7 @@ GLuint gpu7ShaderGLDepr_compileFragmentShader(const char* shaderSource, sint32 s
 	{
 		memset(messageLog, 0, sizeof(messageLog));
 		glGetShaderInfoLog(shaderObject, std::min<uint32>(shaderLogLengthInfo, sizeof(messageLog) - 1), (GLsizei*)&shaderLogLen, (GLcharARB*)messageLog);
-		forceLog_printf("Error/Warning in fragment shader:");
+		cemuLog_log(LogType::Force, "Error/Warning in fragment shader:");
 		forceLog_printf("%s", messageLog);
 	}
 	return shaderObject;

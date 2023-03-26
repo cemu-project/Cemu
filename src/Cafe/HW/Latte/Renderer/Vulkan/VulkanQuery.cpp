@@ -112,7 +112,7 @@ uint32 LatteQueryObjectVk::acquireQueryIndex()
 {
 	if (m_rendererVk->m_occlusionQueries.list_availableQueryIndices.empty())
 	{
-		forceLog_printf("Vulkan-Error: Exhausted query pool");
+		cemuLog_log(LogType::Force, "Vulkan-Error: Exhausted query pool");
 		assert_dbg();
 	}
 	uint32 queryIndex = m_rendererVk->m_occlusionQueries.list_availableQueryIndices.back();

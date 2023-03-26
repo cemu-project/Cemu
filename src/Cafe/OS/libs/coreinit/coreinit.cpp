@@ -175,14 +175,14 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 		}
 	}
 	// some games require a valid result or they will crash, return a pointer to our placeholder font
-	forceLog_printf("OSGetSharedData() called by game but no shareddata fonts loaded. Use placeholder font");
+	cemuLog_log(LogType::Force, "OSGetSharedData() called by game but no shareddata fonts loaded. Use placeholder font");
 	if (placeholderFont == MPTR_NULL)
 	{
 		// load and then return placeholder font
 		uint8* placeholderFontPtr = extractCafeDefaultFont(&placeholderFontSize);
 		placeholderFont = coreinit_allocFromSysArea(placeholderFontSize, 256);
 		if (placeholderFont == MPTR_NULL)
-			forceLog_printf("Failed to alloc placeholder font sys memory");
+			cemuLog_log(LogType::Force, "Failed to alloc placeholder font sys memory");
 		memcpy(memory_getPointerFromVirtualOffset(placeholderFont), placeholderFontPtr, placeholderFontSize);
 		free(placeholderFontPtr);
 	}

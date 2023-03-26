@@ -513,7 +513,7 @@ namespace coreinit
 			fsCmdBlockBody->asyncResult.fsStatusNew = (uint32)result;
 			while (OSSendMessage(ioMsgQueue, &fsCmdBlockBody->asyncResult.msgUnion.osMsg, 0) == 0)
 			{
-				forceLog_printf("FS driver: Failed to add message to result queue. Retrying...");
+				cemuLog_log(LogType::Force, "FS driver: Failed to add message to result queue. Retrying...");
 				if (ppcInterpreterCurrentInstance)
 					PPCCore_switchToScheduler();
 				else
@@ -627,7 +627,7 @@ namespace coreinit
 		if (fsCmdBlockBody->asyncResult.msgUnion.fsMsg.commandType != _swapEndianU32(8))
 		{
 			forceLog_printf("Corrupted FS command detected in stage %s", stage);
-			forceLog_printf("Printing CMD block: ");
+			cemuLog_log(LogType::Force, "Printing CMD block: ");
 			for (uint32 i = 0; i < (sizeof(FSCmdBlockBody_t) + 31) / 32; i++)
 			{
 				uint8* p = ((uint8*)fsCmdBlockBody) + i * 32;

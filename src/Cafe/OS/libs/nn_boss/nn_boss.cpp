@@ -1497,7 +1497,7 @@ void nnBossNsDataExport_DeleteRealFileWithHistory(PPCInterpreter_t* hCPU)
 	if (nsData->storage.storageKind == nn::boss::kStorageKind_NBDL)
 	{
 		// todo
-		forceLog_printf("BOSS NBDL: Unsupported delete");
+		cemuLog_log(LogType::Force, "BOSS NBDL: Unsupported delete");
 	}
 	else
 	{
@@ -1505,7 +1505,7 @@ void nnBossNsDataExport_DeleteRealFileWithHistory(PPCInterpreter_t* hCPU)
 		std::string filePath = nnBossNsDataExport_GetPath(nsData).c_str();
 		fsc_remove((char*)filePath.c_str(), &fscStatus);
 		if (fscStatus != 0)
-			forceLog_printf("Unhandeled FSC status in BOSS DeleteRealFileWithHistory()");
+			cemuLog_log(LogType::Force, "Unhandeled FSC status in BOSS DeleteRealFileWithHistory()");
 	}
 	osLib_returnFromFunction(hCPU, 0);
 }
