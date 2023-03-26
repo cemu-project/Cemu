@@ -341,7 +341,7 @@ void PPCRecompiler_reserveLookupTableBlock(uint32 offset)
 	void* p3 = MemMapper::AllocateMemory(&(ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[offset/4]), (PPC_REC_ALLOC_BLOCK_SIZE/4)*sizeof(void*), MemMapper::PAGE_PERMISSION::P_RW, true);
 	if( !p1 || !p3 )
 	{
-		forceLog_printf("Failed to allocate memory for recompiler (0x%08x)", offset);
+		cemuLog_log(LogType::Force, "Failed to allocate memory for recompiler (0x{:08})", offset);
 		cemu_assert(false);
 		return;
 	}

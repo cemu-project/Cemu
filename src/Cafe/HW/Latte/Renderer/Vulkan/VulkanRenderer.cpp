@@ -2203,7 +2203,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->decoder = TextureDecoder_D32_S8_UINT_X24::getInstance();
 			break;
 		default:
-			forceLog_printf("Unsupported depth texture format %04x", (uint32)format);
+			cemuLog_log(LogType::Force, "Unsupported depth texture format {:04}", (uint32)format);
 			// default to placeholder format
 			formatInfoOut->vkImageFormat = VK_FORMAT_D16_UNORM;
 			formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -2456,7 +2456,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UINT; // todo - should we use ABGR format?
 			formatInfoOut->decoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
 		default:
-			forceLog_printf("Unsupported color texture format %04x\n", (uint32)format);
+			cemuLog_log(LogType::Force, "Unsupported color texture format {:04}\n", (uint32)format);
 			cemu_assert_debug(false);
 		}
 	}

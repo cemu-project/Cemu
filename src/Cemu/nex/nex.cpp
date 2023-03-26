@@ -512,14 +512,14 @@ void nexServiceAuthentication_handleResponse_requestTicket(nexService* nex, nexS
 	authenticationService_t* authService = (authenticationService_t*)response->custom;
 	if (response->isSuccessful == false)
 	{
-		forceLog_printf("NEX: RPC error while requesting auth ticket with error code 0x%08x", response->errorCode);
+		cemuLog_log(LogType::Force, "NEX: RPC error while requesting auth ticket with error code 0x{:08}", response->errorCode);
 		authService->hasError = true;
 		return;
 	}
 	uint32 returnValue = response->data.readU32();
 	if (returnValue & 0x80000000)
 	{
-		forceLog_printf("NEX: Failed to request auth ticket with error code 0x%08x", returnValue);
+		cemuLog_log(LogType::Force, "NEX: Failed to request auth ticket with error code 0x{:08}", returnValue);
 		authService->hasError = true;
 	}
 	authService->kerberosTicket2Size = response->data.readBuffer(authService->kerberosTicket2, sizeof(authService->kerberosTicket2));
@@ -538,7 +538,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (response->isSuccessful == false)
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: RPC error in login response 0x%08x", response->errorCode);
+		cemuLog_log(LogType::Force, "NEX: RPC error in login response 0x{:08}", response->errorCode);
 		return;
 	}
 
@@ -546,7 +546,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (returnValue & 0x80000000)
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: Error 0x%08x in login response (returnCode 0x%08x)", response->errorCode, returnValue);
+		cemuLog_log(LogType::Force, "NEX: Error 0x{:08} in login response (returnCode 0x{:08})", response->errorCode, returnValue);
 		return;
 	}
 
@@ -602,7 +602,7 @@ void nexServiceSecure_handleResponse_RegisterEx(nexService* nex, nexServiceRespo
 	}
 	if (returnCode & 0x80000000)
 	{
-		forceLog_printf("NEX: Secure register failed with error code 0x%08x", returnCode);
+		cemuLog_log(LogType::Force, "NEX: Secure register failed with error code 0x{:08}", returnCode);
 		info->isSuccessful = false;
 		info->isComplete = true;
 		return;

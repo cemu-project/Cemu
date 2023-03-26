@@ -453,7 +453,7 @@ void sysappExport__SYSLaunchMiiStudio(PPCInterpreter_t* hCPU)
 void sysappExport__SYSReturnToCallerWithStandardResult(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32BEPtr(resultPtr, 0);
-	forceLog_printf("_SYSReturnToCallerWithStandardResult(0x%08x) result: 0x%08x", hCPU->gpr[3], (uint32)*resultPtr);
+	cemuLog_log(LogType::Force, "_SYSReturnToCallerWithStandardResult(0x{:08}) result: 0x{:08}", hCPU->gpr[3], (uint32)*resultPtr);
 	while (true) std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
