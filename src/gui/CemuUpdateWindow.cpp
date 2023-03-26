@@ -309,7 +309,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 				catch (const std::exception& ex)
 				{
 					SystemException sys(ex);
-					forceLog_printf("can't create folder \"%s\" for update: %s", sb.name, sys.what());
+					cemuLog_log(LogType::Force, "can't create folder \"{}\" for update: {}", sb.name, sys.what());
 				}
 				// the root should have only one Cemu_... directory, we track it here
 				if ((std::count(sb.name, sb.name + len, '/') + std::count(sb.name, sb.name + len, '\\')) == 1)
@@ -334,7 +334,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			const auto read = zip_fread(zf, buffer.data(), sb.size);
 			if (read != (sint64)sb.size)
 			{
-				forceLog_printf("could only read 0x%x of 0x%x bytes from zip file \"%s\"", read, sb.size, sb.name);
+				cemuLog_log(LogType::Force, "could only read 0x{} of 0x{} bytes from zip file \"{}\"", read, sb.size, sb.name);
 				zip_close(za);
 				return false;
 			}

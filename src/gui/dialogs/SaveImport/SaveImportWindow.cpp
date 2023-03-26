@@ -251,7 +251,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 		{
 			fs::create_directories(path, ec);
 			if (ec)
-				forceLog_printf("can't create directory %s: %s", sb.name, ec.message().c_str());
+				cemuLog_log(LogType::Force, "can't create directory {}: {}", sb.name, ec.message().c_str());
 
 			continue;
 		}

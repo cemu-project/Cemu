@@ -901,7 +901,7 @@ void nsysnetExport_connect(PPCInterpreter_t* hCPU)
 	hostAddr.sa_family = _swapEndianU16(addr->sa_family);
 	memcpy(hostAddr.sa_data, addr->sa_data, 14);
 	sint32 hr = connect(vs->s, &hostAddr, sizeof(sockaddr));
-	forceLog_printf("Attempt connect to %d.%d.%d.%d:%d", (sint32)(uint8)hostAddr.sa_data[2], (sint32)(uint8)hostAddr.sa_data[3], (sint32)(uint8)hostAddr.sa_data[4], (sint32)(uint8)hostAddr.sa_data[5], _swapEndianU16(*(uint16*)hostAddr.sa_data+0));
+	cemuLog_log(LogType::Force, "Attempt connect to {}.{}.{}.{}:{}", (sint32)(uint8)hostAddr.sa_data[2], (sint32)(uint8)hostAddr.sa_data[3], (sint32)(uint8)hostAddr.sa_data[4], (sint32)(uint8)hostAddr.sa_data[5], _swapEndianU16(*(uint16*)hostAddr.sa_data+0));
 
 	r = _translateError(hr, GETLASTERR, _ERROR_MODE_CONNECT);
 

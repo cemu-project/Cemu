@@ -2038,7 +2038,7 @@ void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 		}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("can't create vulkan pipeline cache directory \"%s\": %s", dir.generic_string().c_str(), ex.what());
+			cemuLog_log(LogType::Force, "can't create vulkan pipeline cache directory \"{}\": {}", dir.generic_string().c_str(), ex.what());
 			return;
 		}
 	}

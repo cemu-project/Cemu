@@ -998,11 +998,11 @@ bool GraphicPack2::Activate()
 		if (LatteTiming_getCustomVsyncFrequency(globalCustomVsyncFreq))
 		{
 			if (customVsyncFreq != globalCustomVsyncFreq)
-				forceLog_printf("rules.txt error: Mismatching vsync frequency %d in graphic pack \'%s\'", customVsyncFreq, GetPath().c_str());
+				cemuLog_log(LogType::Force, "rules.txt error: Mismatching vsync frequency {} in graphic pack \'{}\'", customVsyncFreq, GetPath().c_str());
 		}
 		else
 		{
-			forceLog_printf("Set vsync frequency to %d (graphic pack %s)", customVsyncFreq, GetPath().c_str());
+			cemuLog_log(LogType::Force, "Set vsync frequency to {} (graphic pack {})", customVsyncFreq, GetPath().c_str());
 			LatteTiming_setCustomVsyncFrequency(customVsyncFreq);
 		}
 	}

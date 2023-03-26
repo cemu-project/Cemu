@@ -454,7 +454,7 @@ bool RPLLoader_LoadSingleSection(RPLModule* rplLoaderContext, sint32 sectionInde
 
 	// update size in section (todo - use separate field)
 	if (uncompressedSection->sectionData.size() < section->sectionSize)
-		forceLog_printf("RPLLoader: Section %d uncompresses to %d bytes but sectionSize is %d", sectionIndex, uncompressedSection->sectionData.size(), (uint32)section->sectionSize);
+		cemuLog_log(LogType::Force, "RPLLoader: Section {} uncompresses to {} bytes but sectionSize is {}", sectionIndex, uncompressedSection->sectionData.size(), (uint32)section->sectionSize);
 
 	section->sectionSize = uncompressedSection->sectionData.size();
 
@@ -956,7 +956,7 @@ bool RPLLoader_FixImportSymbols(RPLModule* rplLoaderContext, sint32 symtabSectio
 				char* symbolName = (char*)strtabData + nameOffset;
 				if (nameOffset >= strtabSize)
 				{
-					forceLog_printf("RPLLoader: Symbol %d in section %d has out-of-bounds name offset", i, symSectionIndex);
+					cemuLog_log(LogType::Force, "RPLLoader: Symbol {} in section {} has out-of-bounds name offset", i, symSectionIndex);
 					continue;
 				}
 
