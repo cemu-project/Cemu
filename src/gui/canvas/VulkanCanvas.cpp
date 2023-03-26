@@ -14,20 +14,15 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	Bind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Bind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
 
-	if(is_main_window)
+	WindowHandleInfo& canvas = is_main_window ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
+	gui_initHandleContextFromWxWidgetsWindow(canvas, this);
+	#if BOOST_OS_LINUX && HAS_WAYLAND
+	if (canvas.backend == WindowHandleInfo::Backend::WAYLAND)
 	{
-		WindowHandleInfo& canvasMain = gui_getWindowInfo().canvas_main;
-		gui_initHandleContextFromWxWidgetsWindow(canvasMain, this);
-		#if BOOST_OS_LINUX && HAS_WAYLAND
-		if(canvasMain.backend == WindowHandleInfo::Backend::WAYLAND)
-		{	
-			m_subsurface = std::make_unique<wxWlSubsurface>(this);
-			canvasMain.surface = m_subsurface->getSurface();
-		}
-		#endif
+		m_subsurface = std::make_unique<wxWlSubsurface>(this);
+		canvas.surface = m_subsurface->getSurface();
 	}
-	else
-		gui_initHandleContextFromWxWidgetsWindow(gui_getWindowInfo().canvas_pad, this);
+	#endif
 
 	cemu_assert(g_vulkan_available);
 
