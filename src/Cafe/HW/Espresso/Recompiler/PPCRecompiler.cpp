@@ -82,7 +82,7 @@ void PPCRecompiler_enter(PPCInterpreter_t* hCPU, PPCREC_JUMP_ENTRY funcPtr)
 	{
 		auto t = std::chrono::high_resolution_clock::now();
 		auto dur = std::chrono::duration_cast<std::chrono::microseconds>(t.time_since_epoch()).count();
-		forceLog_printf("Recompiler exit: 0x%08x LR: 0x%08x Timestamp %lld.%04lld", hCPU->instructionPointer, hCPU->spr.LR, dur / 1000LL, (dur % 1000LL));
+		cemuLog_log(LogType::Force, "Recompiler exit: 0x{:08} LR: 0x{:08} Timestamp {}.{:04}", hCPU->instructionPointer, hCPU->spr.LR, dur / 1000LL, (dur % 1000LL));
 	}
 	#endif
 #else

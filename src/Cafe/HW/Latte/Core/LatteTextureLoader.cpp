@@ -661,7 +661,7 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 texture
 	uint64 benchmarkResultMicroSeconds = (benchmark_end.QuadPart - benchmark_begin.QuadPart) * 1000000ULL / benchmark_freq.QuadPart;
 	textureDecodeBenchmark_perFormatSum[(int)tex->format & 0x3F] += benchmarkResultMicroSeconds;
 	textureDecodeBenchmark_totalSum += benchmarkResultMicroSeconds;
-	forceLog_printf("TexDecode %04dx%04dx%04d Fmt %04x Dim %d TileMode %02x Took %03d.%03dms Sum(format) %06dms Sum(total) %06dms", textureLoader.width, textureLoader.height, textureLoader.surfaceInfoDepth, (int)tex->format, (int)tex->dim, textureLoader.tileMode, (uint32)(benchmarkResultMicroSeconds / 1000ULL), (uint32)(benchmarkResultMicroSeconds % 1000ULL), (uint32)(textureDecodeBenchmark_perFormatSum[tex->gx2Format & 0x3F] / 1000ULL), (uint32)(textureDecodeBenchmark_totalSum / 1000ULL));
+	cemuLog_log(LogType::Force, "TexDecode {:4}x{:4}x{:4} Fmt {:04} Dim {} TileMode {:02} Took {:3}.{:3}ms Sum(format) {:6}ms Sum(total) {:6}ms", textureLoader.width, textureLoader.height, textureLoader.surfaceInfoDepth, (int)tex->format, (int)tex->dim, textureLoader.tileMode, (uint32)(benchmarkResultMicroSeconds / 1000ULL), (uint32)(benchmarkResultMicroSeconds % 1000ULL), (uint32)(textureDecodeBenchmark_perFormatSum[tex->gx2Format & 0x3F] / 1000ULL), (uint32)(textureDecodeBenchmark_totalSum / 1000ULL));
 #endif
 
 	// convert texture to RGBA when dumping is enabled
