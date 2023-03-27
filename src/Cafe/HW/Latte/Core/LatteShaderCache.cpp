@@ -319,7 +319,7 @@ void LatteShaderCache_load()
 		if (LatteShaderCache_readSeparableShader(fileData.data(), fileData.size()) == false)
 		{
 			// something is wrong with the stored shader, remove entry from shader cache files
-			forceLog_printf("Shader cache entry %d invalid, deleting...", loadIndex);
+			cemuLog_log(LogType::Force, "Shader cache entry {} invalid, deleting...", loadIndex);
 			fc_shaderCacheGeneric->DeleteFile({ name1, name2 });
 		}
 		numLoadedShaders++;
