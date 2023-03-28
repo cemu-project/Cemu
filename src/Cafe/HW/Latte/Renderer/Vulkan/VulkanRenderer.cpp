@@ -80,7 +80,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 
 #endif
 
-	cafeLog_logLine(LOG_TYPE_FORCE, (char*)pCallbackData->pMessage);
+	cemuLog_log(LogType::Force, (char*)pCallbackData->pMessage);
 
 	return VK_FALSE;
 }

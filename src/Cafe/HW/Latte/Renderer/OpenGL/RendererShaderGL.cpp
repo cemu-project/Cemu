@@ -193,7 +193,7 @@ bool RendererShaderGL::WaitForCompiled()
 			glGetShaderInfoLog(m_shader_object, std::min(infoLogLength, tempLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
 			infoLog[tempLength] = '\0';
 			forceLog_printf("Compile error in shader. Log:", infoLog);
-			cafeLog_logLine(LOG_TYPE_FORCE, infoLog);
+			cemuLog_log(LogType::Force, infoLog);
 		}
 		if (m_shader_object != 0)
 			glDeleteShader(m_shader_object);
@@ -213,7 +213,7 @@ bool RendererShaderGL::WaitForCompiled()
 			glGetProgramInfoLog(m_program, std::min(infoLogLength, tempLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
 			infoLog[tempLength] = '\0';
 			forceLog_printf("Link error in shader. Log:", infoLog);
-			cafeLog_logLine(LOG_TYPE_FORCE, infoLog);
+			cemuLog_log(LogType::Force, infoLog);
 		}
 		m_isCompiled = true;
 		return false;
