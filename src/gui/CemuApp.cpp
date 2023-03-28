@@ -12,6 +12,10 @@
 #include "gui/helpers/wxHelpers.h"
 #include "Cemu/ncrypto/ncrypto.h"
 
+#if BOOST_OS_LINUX && HAS_WAYLAND
+#include "gui/helpers/wxWayland.h"
+#endif
+
 #include <wx/image.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
@@ -175,6 +179,11 @@ bool CemuApp::OnInit()
 
 	SetTopWindow(m_mainFrame);
 	m_mainFrame->Show();
+
+#if BOOST_OS_LINUX && HAS_WAYLAND
+	if (wxWlIsWaylandWindow(m_mainFrame))
+		wxWlSetAppId(m_mainFrame, "info.cemu.Cemu");
+#endif
 
 	// show warning on macOS about state of builds
 #if BOOST_OS_MACOS

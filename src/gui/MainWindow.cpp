@@ -57,6 +57,10 @@
 #include "resource/embedded/resources.h"
 #endif
 
+#if BOOST_OS_LINUX && HAS_WAYLAND
+#include "gui/helpers/wxWayland.h"
+#endif
+
 #include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -753,6 +757,12 @@ void MainWindow::TogglePadView()
 		m_padView->Bind(wxEVT_CLOSE_WINDOW, &MainWindow::OnPadClose, this);
 
 		m_padView->Show(true);
+
+#if BOOST_OS_LINUX && HAS_WAYLAND
+		if (wxWlIsWaylandWindow(m_padView))
+			wxWlSetAppId(m_padView, "info.cemu.Cemu");
+#endif
+
 		m_padView->Initialize();
 		if (m_game_launched)
 			m_padView->InitializeRenderCanvas();
