@@ -301,7 +301,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 {
 	if (shader->hasError )
 	{
-		forceLog_printf("Unable to compile shader %" PRIx64, shader->baseHash);
+		forceLog_printf("Unable to compile shader {:016x}" PRIx64, shader->baseHash);
 		return;
 	}
 
