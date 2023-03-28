@@ -1,7 +1,7 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "1b0252ca70ca2244a711535462c7f981eb439e83",
+  "builtin-baseline": "b81bc3a83fdbdffe80325eeabb2ec735a1f3c29d",
   "dependencies": [
     "pugixml",
     "zlib",
@@ -33,7 +33,10 @@
     "boost-random",
     "fmt",
     "glm",
-    "glslang",
+	{
+      "name": "glslang",
+      "default-features": false
+    },
     "zstd",
     {
       "name": "wxwidgets",
