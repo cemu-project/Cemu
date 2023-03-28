@@ -363,7 +363,7 @@ namespace NAPI
 			else if (boost::iequals(serviceType, "NusURL"))
 				result.serviceURLs.NusURL = url;
 			else
-				forceLog_printf("GetAccountStatus: Unknown service URI type {}", serviceType);
+				cemuLog_log(LogType::Force, "GetAccountStatus: Unknown service URI type {}", serviceType);
 		}
 
 		// assign service URLs

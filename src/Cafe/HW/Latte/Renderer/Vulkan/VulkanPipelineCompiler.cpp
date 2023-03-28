@@ -921,7 +921,7 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	VkResult result = vkCreatePipelineLayout(vkRenderer->m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipeline_layout);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("%s", fmt::format("Failed to create pipeline layout: {}", result).c_str());
+		cemuLog_log(LogType::Force, "Failed to create pipeline layout: {}", result);
 		s_nvidiaWorkaround.unlock();
 		return false;
 	}

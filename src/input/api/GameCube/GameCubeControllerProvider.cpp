@@ -86,7 +86,7 @@ uint32 GameCubeControllerProvider::get_adapter_count() const
 	const auto count = m_libusb->p_libusb_get_device_list(nullptr, &devices);
 	if (count < 0)
 	{
-		forceLog_printf((char*)fmt::format("libusb error {} at libusb_get_device_list: {}", static_cast<int>(count), m_libusb->p_libusb_error_name(static_cast<int>(count))).c_str());
+		cemuLog_log(LogType::Force, "libusb error {} at libusb_get_device_list: {}", static_cast<int>(count), m_libusb->p_libusb_error_name(static_cast<int>(count)));
 		return adapter_count;
 	}
 
@@ -99,7 +99,7 @@ uint32 GameCubeControllerProvider::get_adapter_count() const
 		int ret = m_libusb->p_libusb_get_device_descriptor(devices[i], &desc);
 		if (ret != 0)
 		{
-			forceLog_printf((char*)fmt::format("libusb error {} at libusb_get_device_descriptor: {}", ret, m_libusb->p_libusb_error_name(ret)).c_str());
+			cemuLog_log(LogType::Force, "libusb error {} at libusb_get_device_descriptor: {}", ret, m_libusb->p_libusb_error_name(ret));
 			continue;
 		}
 
@@ -168,7 +168,7 @@ std::tuple<libusb_device_handle*, uint8, uint8> GameCubeControllerProvider::fetc
 	const auto count = m_libusb->p_libusb_get_device_list(nullptr, &devices);
 	if (count < 0)
 	{
-		forceLog_printf((char*)fmt::format("libusb error {} at libusb_get_device_list: {}", static_cast<int>(count), m_libusb->p_libusb_error_name(static_cast<int>(count))).c_str());
+		cemuLog_log(LogType::Force, "libusb error {} at libusb_get_device_list: {}", static_cast<int>(count), m_libusb->p_libusb_error_name(static_cast<int>(count)));
 		return result;
 	}
 
@@ -182,7 +182,7 @@ std::tuple<libusb_device_handle*, uint8, uint8> GameCubeControllerProvider::fetc
 		int ret = m_libusb->p_libusb_get_device_descriptor(devices[i], &desc);
 		if (ret != 0)
 		{
-			forceLog_printf((char*)fmt::format("libusb error {} at libusb_get_device_descriptor: {}", ret, m_libusb->p_libusb_error_name(ret)).c_str());
+			cemuLog_log(LogType::Force, "libusb error {} at libusb_get_device_descriptor: {}", ret, m_libusb->p_libusb_error_name(ret));
 			continue;
 		}
 
@@ -196,7 +196,7 @@ std::tuple<libusb_device_handle*, uint8, uint8> GameCubeControllerProvider::fetc
 		ret = m_libusb->p_libusb_open(devices[i], &device_handle);
 		if (ret != 0)
 		{
-			forceLog_printf((char*)fmt::format("libusb error {} at libusb_open: {}", ret, m_libusb->p_libusb_error_name(ret)).c_str());
+			cemuLog_log(LogType::Force, "libusb error {} at libusb_open: {}", ret, m_libusb->p_libusb_error_name(ret));
 			continue;
 		}
 
@@ -205,7 +205,7 @@ std::tuple<libusb_device_handle*, uint8, uint8> GameCubeControllerProvider::fetc
 			ret = m_libusb->p_libusb_detach_kernel_driver(device_handle, 0);
 			if (ret != 0)
 			{
-				forceLog_printf((char*)fmt::format("libusb error {} at libusb_detach_kernel_driver: {}", ret, m_libusb->p_libusb_error_name(ret)).c_str());
+				cemuLog_log(LogType::Force, "libusb error {} at libusb_detach_kernel_driver: {}", ret, m_libusb->p_libusb_error_name(ret));
 				m_libusb->p_libusb_close(device_handle);
 				continue;
 			}
@@ -214,7 +214,7 @@ std::tuple<libusb_device_handle*, uint8, uint8> GameCubeControllerProvider::fetc
 		ret = m_libusb->p_libusb_claim_interface(device_handle, 0);
 		if (ret != 0)
 		{
-			forceLog_printf((char*)fmt::format("libusb error {} at libusb_claim_interface: {}", ret, m_libusb->p_libusb_error_name(ret)).c_str());
+			cemuLog_log(LogType::Force, "libusb error {} at libusb_claim_interface: {}", ret, m_libusb->p_libusb_error_name(ret));
 			m_libusb->p_libusb_close(device_handle);
 			continue;
 		}
@@ -297,11 +297,11 @@ void GameCubeControllerProvider::reader_thread()
 			}
 			else if (result == LIBUSB_ERROR_NO_DEVICE || result == LIBUSB_ERROR_IO)
 			{
-				forceLog_printf((char*)fmt::format("libusb error {} at libusb_interrupt_transfer: {}", result, m_libusb->p_libusb_error_name(result)).c_str());
+				cemuLog_log(LogType::Force, "libusb error {} at libusb_interrupt_transfer: {}", result, m_libusb->p_libusb_error_name(result));
 				if (const auto handle = adapter.m_device_handle.exchange(nullptr))
 					m_libusb->p_libusb_close(handle);
 			}
-			else { forceLog_printf((char*)fmt::format("libusb error {} at libusb_interrupt_transfer: {}", result, m_libusb->p_libusb_error_name(result)).c_str()); }
+			else { cemuLog_log(LogType::Force, "libusb error {} at libusb_interrupt_transfer: {}", result, m_libusb->p_libusb_error_name(result)); }
 		}
 	}
 }
@@ -341,7 +341,7 @@ void GameCubeControllerProvider::writer_thread()
 
 			int written;
 			const int result = m_libusb->p_libusb_interrupt_transfer(adapter.m_device_handle, adapter.m_endpoint_writer, rumble.data(), static_cast<int>(rumble.size()), &written, 25);
-			if (result != 0) { forceLog_printf((char*)fmt::format("libusb error {} at libusb_interrupt_transfer: {}", result, m_libusb->p_libusb_error_name(result)).c_str()); }
+			if (result != 0) { cemuLog_log(LogType::Force, "libusb error {} at libusb_interrupt_transfer: {}", result, m_libusb->p_libusb_error_name(result)); }
 			cmd_sent = true;
 
 			lock.lock();

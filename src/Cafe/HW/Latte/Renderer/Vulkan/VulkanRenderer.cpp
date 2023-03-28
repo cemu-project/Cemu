@@ -223,7 +223,7 @@ void VulkanRenderer::DetermineVendor()
 
 	else
 	{
-		forceLog_printf("Driver version (as stored in device info): %08X", properties.properties.driverVersion);
+		cemuLog_log(LogType::Force, "Driver version (as stored in device info): {:08}", properties.properties.driverVersion);
 
 		if(m_vendor == GfxVendor::Nvidia)
 		{
@@ -580,7 +580,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 	else
 	{
-		//forceLog_printf("Disable surface copies via buffer (Requires 2GB. Has only %lluMB available)", availableSurfaceCopyBufferMem / 1024ull / 1024ull);
+		//cemuLog_log(LogType::Force, "Disable surface copies via buffer (Requires 2GB. Has only {}MB available)", availableSurfaceCopyBufferMem / 1024ull / 1024ull);
 	}
 }
 
