@@ -30,8 +30,10 @@
 
 #include <wx/msgdlg.h>
 
+#ifndef VK_API_VERSION_MAJOR
 #define VK_API_VERSION_MAJOR(version) (((uint32_t)(version) >> 22) & 0x7FU)
 #define VK_API_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3FFU)
+#endif
 
 extern std::atomic_int g_compiling_pipelines;
 
