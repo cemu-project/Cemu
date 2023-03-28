@@ -128,7 +128,7 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 		HRTick currentTick = HighResolutionTimer().now().getTick();
 		double elapsedSecondsTransfer = HighResolutionTimer::getTimeDiff(readbackInfo->transferStartTime, currentTick);
 		double elapsedSecondsWaiting = HighResolutionTimer::getTimeDiff(readbackInfo->waitStartTime, currentTick);
-		forceLog_printf("[Texture-Readback] %08x Res %4d/%4d TM %d FMT %04x ReadbackLatency: %6.3lfms WaitTime: %6.3lfms ForcedWait %s", readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode, (uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0, elapsedSecondsWaiting * 1000.0, forceFinish?"yes":"no");
+		cemuLog_log(LogType::Force, "[Texture-Readback] {:08} Res {:4}/{:4} TM {} FMT {:04} ReadbackLatency: {:6.3}ms WaitTime: {:6.3}ms ForcedWait {}", readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode, (uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0, elapsedSecondsWaiting * 1000.0, forceFinish?"yes":"no");
 #endif
 		uint8* pixelData = readbackInfo->GetData();
 		LatteTextureLoader_writeReadbackTextureToMemory(&readbackInfo->hostTextureCopy, 0, 0, pixelData);
