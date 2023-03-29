@@ -178,6 +178,10 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_disable_screensaver = new wxCheckBox(box, wxID_ANY, _("Disable screen saver"));
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
+#ifdef BOOST_OS_MACOS
+			m_disable_screensaver->SetValue(false);
+			m_disable_screensaver->Enable(false);
+#endif
 
 			box_sizer->Add(second_row, 0, wxEXPAND, 5);
 		}

@@ -6,6 +6,9 @@ class ScreenSaver
 public:
   static void SetInhibit(bool inhibit)
   {
+#ifdef BOOST_OS_MACOS
+	  return;
+#endif
     // Initialize video subsystem if necessary
     if (SDL_WasInit(SDL_INIT_VIDEO) == 0)
     {
