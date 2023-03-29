@@ -334,7 +334,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			const auto read = zip_fread(zf, buffer.data(), sb.size);
 			if (read != (sint64)sb.size)
 			{
-				forceLog_printf("could only read 0x%x of 0x%x bytes from zip file \"%s\"", read, sb.size, sb.name);
+				cemuLog_log(LogType::Force, "could only read 0x{:x} of 0x{:x} bytes from zip file \"{}\"", read, sb.size, sb.name);
 				zip_close(za);
 				return false;
 			}

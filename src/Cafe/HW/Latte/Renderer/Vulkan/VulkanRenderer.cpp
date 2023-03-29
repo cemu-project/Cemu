@@ -2094,7 +2094,7 @@ void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 			}
 			else
 			{
-				forceLog_printf("can't retrieve pipeline cache data: 0x%x", res);
+				cemuLog_log(LogType::Force, "can't retrieve pipeline cache data: 0x{:x}", res);
 			}
 		}
 		else
