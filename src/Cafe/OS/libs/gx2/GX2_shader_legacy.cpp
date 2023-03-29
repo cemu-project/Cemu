@@ -10,7 +10,7 @@
 
 void gx2Export_GX2SetFetchShader(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetFetchShader(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetFetchShader(0x{:08})", hCPU->gpr[3]);
 	GX2ReserveCmdSpace(11);
 	GX2FetchShader_t* fetchShaderPtr = (GX2FetchShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	cemu_assert_debug((_swapEndianU32(fetchShaderPtr->shaderPtr) & 0xFF) == 0);
@@ -36,7 +36,7 @@ void gx2Export_GX2SetFetchShader(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetVertexShaderGPRs(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetVertexShaderGPRs(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2GetVertexShaderGPRs(0x{:08})", hCPU->gpr[3]);
 	GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	uint8 numGPRs = _swapEndianU32(vertexShader->regs[0])&0xFF;
 	osLib_returnFromFunction(hCPU, numGPRs);
@@ -44,7 +44,7 @@ void gx2Export_GX2GetVertexShaderGPRs(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetVertexShaderStackEntries(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetVertexShaderStackEntries(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2GetVertexShaderStackEntries(0x{:08})", hCPU->gpr[3]);
 	GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	uint8 stackEntries = (_swapEndianU32(vertexShader->regs[0])>>8)&0xFF;
 	osLib_returnFromFunction(hCPU, stackEntries);
@@ -52,7 +52,7 @@ void gx2Export_GX2GetVertexShaderStackEntries(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetPixelShaderGPRs(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetPixelShaderGPRs(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2GetPixelShaderGPRs(0x{:08})", hCPU->gpr[3]);
 	GX2PixelShader_t* pixelShader = (GX2PixelShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	uint8 stackEntries = (_swapEndianU32(pixelShader->regs[0]))&0xFF;
 	osLib_returnFromFunction(hCPU, stackEntries);
@@ -60,7 +60,7 @@ void gx2Export_GX2GetPixelShaderGPRs(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetPixelShaderStackEntries(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetPixelShaderStackEntries(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2GetPixelShaderStackEntries(0x{:08})", hCPU->gpr[3]);
 	GX2PixelShader_t* pixelShader = (GX2PixelShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	uint8 numGPRs = (_swapEndianU32(pixelShader->regs[0]>>8))&0xFF;
 	osLib_returnFromFunction(hCPU, numGPRs);
@@ -68,7 +68,7 @@ void gx2Export_GX2GetPixelShaderStackEntries(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetVertexShader(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetVertexShader(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetVertexShader(0x{:08})", hCPU->gpr[3]);
 	GX2ReserveCmdSpace(100);
 
 	GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
@@ -208,7 +208,7 @@ void gx2Export_GX2SetVertexShader(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetPixelShader(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetPixelShader(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetPixelShader(0x{:08})", hCPU->gpr[3]);
 	GX2ReserveCmdSpace(100);
 
 	GX2PixelShader_t* pixelShader = (GX2PixelShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
@@ -276,7 +276,7 @@ void gx2Export_GX2SetPixelShader(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetGeometryShader(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetGeometryShader(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetGeometryShader(0x{:08})", hCPU->gpr[3]);
 	GX2ReserveCmdSpace(100);
 
 	GX2GeometryShader_t* geometryShader = (GX2GeometryShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
@@ -438,7 +438,7 @@ static_assert(offsetof(GX2ComputeShader_t, rBuffer) == 0x74);
 void gx2Export_GX2SetComputeShader(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamTypePtr(computeShader, GX2ComputeShader_t, 0);
-	gx2Log_printf("GX2SetComputeShader(0x%08x)", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetComputeShader(0x{:08})", hCPU->gpr[3]);
 
 	MPTR shaderPtr;
 	uint32 shaderSize;
@@ -489,7 +489,7 @@ void _GX2SubmitUniformReg(uint32 aluRegisterOffset, MPTR virtualAddress, uint32 
 
 void gx2Export_GX2SetVertexUniformReg(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetVertexUniformReg(0x%08x,0x%x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::GX2, "GX2SetVertexUniformReg(0x{:08},0x{},0x{:08})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	_GX2SubmitUniformReg(hCPU->gpr[3] + 0x400, hCPU->gpr[5], hCPU->gpr[4]);
 	cemu_assert_debug((hCPU->gpr[3] + hCPU->gpr[4]) <= 0x400);
 	osLib_returnFromFunction(hCPU, 0);
@@ -497,7 +497,7 @@ void gx2Export_GX2SetVertexUniformReg(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetPixelUniformReg(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetPixelUniformReg(0x%08x,0x%x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::GX2, "GX2SetPixelUniformReg(0x{:08},0x{},0x{:08})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	_GX2SubmitUniformReg(hCPU->gpr[3], hCPU->gpr[5], hCPU->gpr[4]);
 	cemu_assert_debug((hCPU->gpr[3] + hCPU->gpr[4]) <= 0x400);
 	osLib_returnFromFunction(hCPU, 0);
@@ -519,21 +519,21 @@ void _GX2SubmitUniformBlock(uint32 registerBase, uint32 index, MPTR virtualAddre
 
 void gx2Export_GX2SetVertexUniformBlock(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetVertexUniformBlock(0x%08x,0x%x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::GX2, "GX2SetVertexUniformBlock(0x{:08},0x{},0x{:08})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	_GX2SubmitUniformBlock(mmSQ_VTX_UNIFORM_BLOCK_START - mmSQ_TEX_RESOURCE_WORD0, hCPU->gpr[3], hCPU->gpr[5], hCPU->gpr[4]);
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2SetPixelUniformBlock(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetPixelUniformBlock(0x%08x,0x%x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::GX2, "GX2SetPixelUniformBlock(0x{:08},0x{},0x{:08})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	_GX2SubmitUniformBlock(mmSQ_PS_UNIFORM_BLOCK_START - mmSQ_TEX_RESOURCE_WORD0, hCPU->gpr[3], hCPU->gpr[5], hCPU->gpr[4]);
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2SetGeometryUniformBlock(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetGeometryUniformBlock(0x%08x,0x%x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::GX2, "GX2SetGeometryUniformBlock(0x{:08},0x{},0x{:08})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	_GX2SubmitUniformBlock(mmSQ_GS_UNIFORM_BLOCK_START - mmSQ_TEX_RESOURCE_WORD0, hCPU->gpr[3], hCPU->gpr[5], hCPU->gpr[4]);
 	osLib_returnFromFunction(hCPU, 0);
 }
