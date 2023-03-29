@@ -428,7 +428,7 @@ namespace snd_core
 		__AXVoiceListSpinlock.lock();
 		if (vpb->priority == (uint32be)AX_PRIORITY_FREE)
 		{
-			cemuLog_log(LogType::Force, "AXFreeVoice() called on free voice\n");
+			cemuLog_log(LogType::Force, "AXFreeVoice() called on free voice");
 			__AXVoiceListSpinlock.unlock();
 			return;
 		}

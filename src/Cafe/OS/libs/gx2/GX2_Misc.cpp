@@ -18,7 +18,7 @@ void gx2Export_GX2SetSwapInterval(PPCInterpreter_t* hCPU)
 	gx2Log_printf("GX2SetSwapInterval(%d)\n", hCPU->gpr[3]);
 	if( hCPU->gpr[3] >= 20 )
 	{
-		cemuLog_log(LogType::Force, "GX2SetSwapInterval() called with out of range value ({})\n", hCPU->gpr[3]);
+		cemuLog_log(LogType::Force, "GX2SetSwapInterval() called with out of range value ({})", hCPU->gpr[3]);
 	}
 	else
 		LatteGPUState.sharedArea->swapInterval = hCPU->gpr[3];

@@ -34,6 +34,7 @@ void IAudioAPI::PrintLogging()
 	{
 		cemuLog_log(LogType::Force, "XAudio 2.7: {}", s_availableApis[XAudio27] ? "available" : "not supported");
 	}
+
 	cemuLog_log(LogType::Force, "Cubeb: {}", s_availableApis[Cubeb] ? "available" : "not supported");
 }
 

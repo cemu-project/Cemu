@@ -231,7 +231,7 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 		allocationSize /= 2;
 		if (allocationSize < minimumAllocationSize)
 			break;
-		cemuLog_log(LogType::Force, "Failed to allocate texture memory chunk with size {}MB. Trying again with smaller allocation size\n", allocationSize / 1024 / 1024);
+		cemuLog_log(LogType::Force, "Failed to allocate texture memory chunk with size {}MB. Trying again with smaller allocation size", allocationSize / 1024 / 1024);
 	}
 	cemuLog_log(LogType::Force, "Unable to allocate image memory chunk ({} heaps)", deviceLocalMemoryTypeIndices.size());
 	throw std::runtime_error("failed to allocate image memory!");

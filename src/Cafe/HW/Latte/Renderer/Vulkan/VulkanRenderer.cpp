@@ -2458,7 +2458,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UINT; // todo - should we use ABGR format?
 			formatInfoOut->decoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
 		default:
-			cemuLog_log(LogType::Force, "Unsupported color texture format {:04}\n", (uint32)format);
+			cemuLog_log(LogType::Force, "Unsupported color texture format {:04}", (uint32)format);
 			cemu_assert_debug(false);
 		}
 	}

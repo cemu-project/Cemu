@@ -515,7 +515,7 @@ void PPCInterpreter_MTFSF(PPCInterpreter_t* hCPU, uint32 Opcode)
 	static bool logFPSCRWriteOnce = false;
 	if( logFPSCRWriteOnce == false )
 	{
-		cemuLog_log(LogType::Force, "Unsupported write to FPSCR\n");
+		cemuLog_log(LogType::Force, "Unsupported write to FPSCR");
 		logFPSCRWriteOnce = true;
 	}
 	PPCInterpreter_nextInstruction(hCPU);

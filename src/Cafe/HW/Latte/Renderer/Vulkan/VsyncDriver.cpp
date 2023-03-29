@@ -129,7 +129,7 @@ private:
 			NTSTATUS r = pfnD3DKMTWaitForVerticalBlankEvent(&arg);
 			if (r != 0)
 			{
-				//cemuLog_log(LogType::Force, "Wait for VerticalBlank failed\n");
+				//cemuLog_log(LogType::Force, "Wait for VerticalBlank failed");
 				Sleep(1000 / 60);
 				failCount++;
 				if (failCount >= 10)

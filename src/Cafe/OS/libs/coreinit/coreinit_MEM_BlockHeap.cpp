@@ -236,7 +236,7 @@ namespace coreinit
 		blockHeapHead->nextFreeBlock = _swapEndianU32(nextFreeBlockMPTR);
 		if (_swapEndianU32(blockHeapHead->freeBlocksLeft) == 0)
 		{
-			cemuLog_log(LogType::Force, "BlockHeap: No free blocks left\n");
+			cemuLog_log(LogType::Force, "BlockHeap: No free blocks left");
 			assert_dbg();
 		}
 		blockHeapHead->freeBlocksLeft = _swapEndianU32(_swapEndianU32(blockHeapHead->freeBlocksLeft) - 1);
