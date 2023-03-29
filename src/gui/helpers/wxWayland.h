@@ -1,6 +1,6 @@
 #pragma once
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX && HAS_WAYLAND
 
 #include <gdk/gdk.h>
 #include <gdk/gdkwayland.h>
@@ -27,7 +27,7 @@ class wxWlSubsurface
 	int32_t m_xPos = 0;
 	int32_t m_yPos = 0;
 
-   public:
+public:
 	wxWlSubsurface(wxWindow* window)
 	{
 		GtkWidget* widget = static_cast<GtkWidget*>(window->GetHandle());
@@ -72,4 +72,7 @@ class wxWlSubsurface
 	}
 };
 
-#endif	// BOOST_OS_LINUX
+bool wxWlIsWaylandWindow(wxWindow* window);
+void wxWlSetAppId(wxFrame* frame, const char* application_id);
+
+#endif	// BOOST_OS_LINUX && HAS_WAYLAND
