@@ -1418,7 +1418,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	const auto code = event.GetKeyCode();
 	if (code == WXK_ESCAPE)
 		SetFullScreen(false);
-	else if (code == WXK_RETURN && event.AltDown())
+	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
 		SetFullScreen(!IsFullScreen());
 	else if (code == WXK_F12)
 		g_window_info.has_screenshot_request = true; // async screenshot request
