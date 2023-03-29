@@ -577,7 +577,7 @@ namespace H264
 			WORD32 status = ih264d_api_function(m_codecCtx, &s_dec_ip, &s_dec_op);
 			if (status != 0)
 			{
-				forceLog_printf("H264: Unable to determine buffer sizes for stream");
+				cemuLog_log(LogType::Force, "H264: Unable to determine buffer sizes for stream");
 				return false;
 			}
 			numByteConsumed = s_dec_op.u4_num_bytes_consumed;

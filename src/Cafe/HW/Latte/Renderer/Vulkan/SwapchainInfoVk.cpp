@@ -226,8 +226,8 @@ bool SwapchainInfoVk::AcquireImage(uint64 timeout)
 
 void SwapchainInfoVk::UnrecoverableError(const char* errMsg)
 {
-	forceLog_printf("Unrecoverable error in Vulkan swapchain");
-	forceLog_printf("Msg: %s", errMsg);
+	cemuLog_log(LogType::Force, "Unrecoverable error in Vulkan swapchain");
+	cemuLog_log(LogType::Force, "Msg: {}", errMsg);
 	throw std::runtime_error(errMsg);
 }
 
@@ -269,7 +269,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 	if (result != VK_SUCCESS)
 	{
 		if (result != VK_ERROR_SURFACE_LOST_KHR)
-			forceLog_printf("vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed. Error %d", (sint32)result);
+			cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed. Error {}", (sint32)result);
 		throw std::runtime_error(fmt::format("Unable to retrieve physical device surface capabilities: {}", result));
 	}
 
@@ -277,7 +277,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 	result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error %d", (sint32)result);
+		cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error {}", (sint32)result);
 		throw std::runtime_error(fmt::format("Unable to retrieve the number of formats for a surface on a physical device: {}", result));
 	}
 
@@ -287,7 +287,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 		result = vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
 		if (result != VK_SUCCESS)
 		{
-			forceLog_printf("vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error %d", (sint32)result);
+			cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error {}", (sint32)result);
 			throw std::runtime_error(fmt::format("Unable to retrieve the formats for a surface on a physical device: {}", result));
 		}
 	}
@@ -296,7 +296,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 	result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error %d", (sint32)result);
+		cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error {}", (sint32)result);
 		throw std::runtime_error(fmt::format("Unable to retrieve the count of present modes for a surface on a physical device: {}", result));
 	}
 
@@ -306,7 +306,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 		result = vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
 		if (result != VK_SUCCESS)
 		{
-			forceLog_printf("vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error %d", (sint32)result);
+			cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error {}", (sint32)result);
 			throw std::runtime_error(fmt::format("Unable to retrieve the present modes for a surface on a physical device: {}", result));
 		}
 	}
@@ -357,14 +357,14 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
 			return VK_PRESENT_MODE_MAILBOX_KHR;
 
-		forceLog_printf("Vulkan: Can't find mailbox present mode");
+		cemuLog_log(LogType::Force, "Vulkan: Can't find mailbox present mode");
 	}
 	else if (vsyncState == VSync::Immediate)
 	{
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
 			return VK_PRESENT_MODE_IMMEDIATE_KHR;
 
-		forceLog_printf("Vulkan: Can't find immediate present mode");
+		cemuLog_log(LogType::Force, "Vulkan: Can't find immediate present mode");
 	}
 	else if (vsyncState == VSync::SYNC_AND_LIMIT)
 	{
@@ -373,7 +373,7 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		//if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
 		//	return VK_PRESENT_MODE_IMMEDIATE_KHR;
 		//else
-		//	forceLog_printf("Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
+		//	cemuLog_log(LogType::Force, "Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 

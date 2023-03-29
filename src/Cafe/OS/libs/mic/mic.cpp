@@ -167,7 +167,7 @@ void micExport_MICInit(PPCInterpreter_t* hCPU)
 			}
 			catch (std::runtime_error& ex)
 			{
-				forceLog_printf("can't initialize audio input: %s", ex.what());
+				cemuLog_log(LogType::Force, "can't initialize audio input: {}", ex.what());
 				exit(0);
 			}
 		}

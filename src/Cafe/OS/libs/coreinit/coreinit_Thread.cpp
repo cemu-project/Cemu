@@ -238,7 +238,7 @@ namespace coreinit
 		{
 			// workaround for games that restart threads to quickly
 			// seen in Fast Racing Neo at boot (0x020617BC OSCreateThread)
-			forceLog_printf("Game attempting to re-initialize existing thread");
+			cemuLog_log(LogType::Force, "Game attempting to re-initialize existing thread");
 			while ((thread->state == OSThread_t::THREAD_STATE::STATE_READY || thread->state == OSThread_t::THREAD_STATE::STATE_RUNNING) && thread->suspendCounter == 0)
 			{
 				// wait for thread to finish
@@ -248,7 +248,7 @@ namespace coreinit
 			}
 			if (__OSIsThreadActive(thread) && thread->state == OSThread_t::THREAD_STATE::STATE_MORIBUND)
 			{
-				forceLog_printf("Calling OSCreateThread() on thread which is still active (Thread exited without detached flag). Forcing OSDetachThread()...");
+				cemuLog_log(LogType::Force, "Calling OSCreateThread() on thread which is still active (Thread exited without detached flag). Forcing OSDetachThread()...");
 				__OSUnlockScheduler();
 				OSDetachThread(thread);
 				__OSLockScheduler();

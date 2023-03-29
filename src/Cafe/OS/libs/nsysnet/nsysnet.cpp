@@ -695,7 +695,7 @@ void nsysnetExport_inet_pton(PPCInterpreter_t* hCPU)
 	
 	if (af != 2)
 	{
-		forceLog_printf("inet_pton() only supports AF_INET");
+		cemuLog_log(LogType::Force, "inet_pton() only supports AF_INET");
 		osLib_returnFromFunction(hCPU, 0);
 		return;
 	}
@@ -848,7 +848,7 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 
 	if (memory_readU32(lenMPTR) != 16)
 	{
-		forceLog_printf("invalid sockaddr len in accept()");
+		cemuLog_log(LogType::Force, "invalid sockaddr len in accept()");
 		cemu_assert_debug(false);
 		osLib_returnFromFunction(hCPU, 0);
 		return;
@@ -873,7 +873,7 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 	else
 	{
 		// blocking accept is not supported yet
-		forceLog_printf("blocking accept() not supported");
+		cemuLog_log(LogType::Force, "blocking accept() not supported");
 		cemu_assert_debug(false);
 	}
 
@@ -901,7 +901,7 @@ void nsysnetExport_connect(PPCInterpreter_t* hCPU)
 	hostAddr.sa_family = _swapEndianU16(addr->sa_family);
 	memcpy(hostAddr.sa_data, addr->sa_data, 14);
 	sint32 hr = connect(vs->s, &hostAddr, sizeof(sockaddr));
-	forceLog_printf("Attempt connect to %d.%d.%d.%d:%d", (sint32)(uint8)hostAddr.sa_data[2], (sint32)(uint8)hostAddr.sa_data[3], (sint32)(uint8)hostAddr.sa_data[4], (sint32)(uint8)hostAddr.sa_data[5], _swapEndianU16(*(uint16*)hostAddr.sa_data+0));
+	cemuLog_log(LogType::Force, "Attempt connect to {}.{}.{}.{}:{}", (sint32)(uint8)hostAddr.sa_data[2], (sint32)(uint8)hostAddr.sa_data[3], (sint32)(uint8)hostAddr.sa_data[4], (sint32)(uint8)hostAddr.sa_data[5], _swapEndianU16(*(uint16*)hostAddr.sa_data+0));
 
 	r = _translateError(hr, GETLASTERR, _ERROR_MODE_CONNECT);
 
@@ -1182,7 +1182,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 			break;
 		}
 	}
-	//forceLog_printf("selectEndTime %d", timeGetTime());
+	//cemuLog_log(LogType::Force, "selectEndTime {}", timeGetTime());
 
 
 	//extern int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
@@ -1353,7 +1353,7 @@ void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 	}
 	else
 	{
-		forceLog_printf("he->h_name not set or name too long");
+		cemuLog_log(LogType::Force, "he->h_name not set or name too long");
 		strcpy(_staticHostentName.GetPtr(), "");
 	}
 	// setup wuHostent address list

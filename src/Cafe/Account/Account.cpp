@@ -166,7 +166,7 @@ std::error_code Account::Load()
 	}
 	catch(const std::exception& ex)
 	{
-		forceLog_printf("handled error in Account::Load: %s", ex.what());
+		cemuLog_log(LogType::Force, "handled error in Account::Load: {}", ex.what());
 		return AccountErrc::ParseError;
 	}
 }
@@ -347,7 +347,7 @@ void Account::UpdatePersisidDat()
 		f.close();
 	}
 	else
-		forceLog_printf("Unable to save persisid.dat");
+		cemuLog_log(LogType::Force, "Unable to save persisid.dat");
 }
 
 bool Account::HasFreeAccountSlots()

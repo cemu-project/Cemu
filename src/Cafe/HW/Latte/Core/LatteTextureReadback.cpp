@@ -76,7 +76,7 @@ void LatteTextureReadback_Initate(LatteTextureView* textureView)
 	// currently we don't support readback for resized textures
 	if (textureView->baseTexture->overwriteInfo.hasResolutionOverwrite)
 	{
-		forceLog_printf("_initate(): Readback is not supported for textures with modified resolution");
+		cemuLog_log(LogType::Force, "_initate(): Readback is not supported for textures with modified resolution");
 		return;
 	}
 	// check if texture isn't already queued for transfer

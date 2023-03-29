@@ -1460,7 +1460,7 @@ ImTextureID ImGui_ImplVulkan_GenerateTexture(VkCommandBuffer commandBuffer, cons
     }
     catch (const std::exception & ex)
     {
-        forceLog_printf("can't generate imgui texture: %s", ex.what());
+        cemuLog_log(LogType::Force, "can't generate imgui texture: {}", ex.what());
         return nullptr;
     }
 }

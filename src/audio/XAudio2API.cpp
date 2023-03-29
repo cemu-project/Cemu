@@ -49,8 +49,8 @@ XAudio2API::XAudio2API(std::wstring device_id, uint32 samplerate, uint32 channel
 	m_wfx.Format.nChannels = channels;
 	m_wfx.Format.nSamplesPerSec = samplerate;
 	m_wfx.Format.wBitsPerSample = bits_per_sample;
-	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels × wBitsPerSample) / 8
-	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec × nBlockAlign.
+	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels Ã— wBitsPerSample) / 8
+	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec Ã— nBlockAlign.
 	m_wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
 
 	m_wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
@@ -258,7 +258,7 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 	}
 	catch (const std::system_error& ex)
 	{
-		forceLog_printf("XAudio2API::RefreshDevices: error while refreshing device list (%s - code: 0x%08x)", ex.what(), ex.code().value());
+		cemuLog_log(LogType::Force, "XAudio2API::RefreshDevices: error while refreshing device list ({} - code: 0x{:08})", ex.what(), ex.code().value());
 	}
 
 	CoUninitialize();

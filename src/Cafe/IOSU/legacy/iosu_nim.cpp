@@ -108,7 +108,7 @@ namespace iosu
 			uint32be titleCountBE = titleCount;
 			if (mcpGetTitleList(titleList, titleCount * sizeof(MCPTitleInfo), &titleCountBE) != 0)
 			{
-				forceLog_printf("IOSU: nim failed to acquire title list");
+				cemuLog_log(LogType::Force, "IOSU: nim failed to acquire title list");
 				free(titleList);
 				return;
 			}
@@ -218,7 +218,7 @@ namespace iosu
 			if (!result)
 			{
 				memset(idbeIconOutput, 0, sizeof(NAPI::IDBEIconDataV0));
-				forceLog_printf("NIM: Unable to download IDBE icon");
+				cemuLog_log(LogType::Force, "NIM: Unable to download IDBE icon");
 				return 0;
 			}
 			// add new cache entry
@@ -249,7 +249,7 @@ namespace iosu
 		{
 			if (g_nim.backgroundThreadStarted == false)
 			{
-				forceLog_printf("IOSU: Starting nim background thread");
+				cemuLog_log(LogType::Force, "IOSU: Starting nim background thread");
 				std::thread t(nim_backgroundThread);
 				t.detach();
 				g_nim.backgroundThreadStarted = true;

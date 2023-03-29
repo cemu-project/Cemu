@@ -584,7 +584,7 @@ void PPCRecompiler_init()
 
     PPCRecompiler_initPlatform();
     
-	forceLog_printf("Recompiler initialized");
+	cemuLog_log(LogType::Force, "Recompiler initialized");
 
 	ppcRecompilerEnabled = true;
 

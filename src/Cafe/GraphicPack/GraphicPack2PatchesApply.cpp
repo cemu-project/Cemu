@@ -353,7 +353,7 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 				// absolute
 				if (result >= 0x3FFFFFC)
 				{
-					forceLog_printf("Target \'%s\' for branch at line %d out of range", reloc->m_expression.c_str(), m_lineNumber);
+					cemuLog_log(LogType::Force, "Target \'{}\' for branch at line {} out of range", reloc->m_expression.c_str(), m_lineNumber);
 					return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 				}
 				opcode &= ~0x3FFFFFC;
@@ -644,7 +644,7 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 		}
 		else
 		{
-			forceLog_printf("Applying patch group \'%s\'", patchGroup->name.c_str());
+			cemuLog_log(LogType::Force, "Applying patch group \'{}\'", patchGroup->name.c_str());
 			patchGroup->codeCaveMem = nullptr;
 		}
 	}

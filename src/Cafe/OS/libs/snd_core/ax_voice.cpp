@@ -233,13 +233,13 @@ namespace snd_core
 	{
 		if (voice == nullptr)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice");
 			return -1;
 		}
 		uint32 index = (uint32)voice->index;
 		if (index >= AX_MAX_VOICES)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice index");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice index");
 			return -1;
 		}
 		if (AXIst_IsFrameBeingProcessed())
@@ -273,13 +273,13 @@ namespace snd_core
 	{
 		if (voice == nullptr)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice");
 			return -1;
 		}
 		uint32 index = (uint32)voice->index;
 		if (index >= AX_MAX_VOICES)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice index");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice index");
 			return -1;
 		}
 		if (AXIst_IsFrameBeingProcessed())
@@ -428,7 +428,7 @@ namespace snd_core
 		__AXVoiceListSpinlock.lock();
 		if (vpb->priority == (uint32be)AX_PRIORITY_FREE)
 		{
-			forceLog_printf("AXFreeVoice() called on free voice\n");
+			cemuLog_log(LogType::Force, "AXFreeVoice() called on free voice");
 			__AXVoiceListSpinlock.unlock();
 			return;
 		}
@@ -692,7 +692,7 @@ namespace snd_core
 		}
 		else
 		{
-			forceLog_printf("AXSetVoiceSrcType(): Unsupported src type %d", srcType);
+			cemuLog_log(LogType::Force, "AXSetVoiceSrcType(): Unsupported src type {}", srcType);
 		}
 		AXSetSyncFlag(vpb, AX_SYNCFLAG_SRCFILTER);
 		AXVoiceProtection_Acquire(vpb);
@@ -843,7 +843,7 @@ namespace snd_core
 		MPTR sampleBase = _swapEndianU32(pbOffset->samples);
 		if (sampleBase == MPTR_NULL)
 		{
-			forceLog_printf("AXSetVoiceOffsets(): Invalid sample address");
+			cemuLog_log(LogType::Force, "AXSetVoiceOffsets(): Invalid sample address");
 			cemu_assert_debug(false);
 			return;
 		}
