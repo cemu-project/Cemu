@@ -512,21 +512,21 @@ void nexServiceAuthentication_handleResponse_requestTicket(nexService* nex, nexS
 	authenticationService_t* authService = (authenticationService_t*)response->custom;
 	if (response->isSuccessful == false)
 	{
-		forceLog_printf("NEX: RPC error while requesting auth ticket with error code 0x%08x", response->errorCode);
+		cemuLog_log(LogType::Force, "NEX: RPC error while requesting auth ticket with error code 0x{:08}", response->errorCode);
 		authService->hasError = true;
 		return;
 	}
 	uint32 returnValue = response->data.readU32();
 	if (returnValue & 0x80000000)
 	{
-		forceLog_printf("NEX: Failed to request auth ticket with error code 0x%08x", returnValue);
+		cemuLog_log(LogType::Force, "NEX: Failed to request auth ticket with error code 0x{:08}", returnValue);
 		authService->hasError = true;
 	}
 	authService->kerberosTicket2Size = response->data.readBuffer(authService->kerberosTicket2, sizeof(authService->kerberosTicket2));
 	if (response->data.hasReadOutOfBounds())
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: Out of bounds error while reading auth ticket");
+		cemuLog_log(LogType::Force, "NEX: Out of bounds error while reading auth ticket");
 		return;
 	}
 	authService->done = true;
@@ -538,7 +538,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (response->isSuccessful == false)
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: RPC error in login response 0x%08x", response->errorCode);
+		cemuLog_log(LogType::Force, "NEX: RPC error in login response 0x{:08}", response->errorCode);
 		return;
 	}
 
@@ -546,7 +546,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (returnValue & 0x80000000)
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: Error 0x%08x in login response (returnCode 0x%08x)", response->errorCode, returnValue);
+		cemuLog_log(LogType::Force, "NEX: Error 0x{:08} in login response (returnCode 0x{:08})", response->errorCode, returnValue);
 		return;
 	}
 
@@ -571,7 +571,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (response->data.hasReadOutOfBounds())
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: Read out of bounds");
+		cemuLog_log(LogType::Force, "NEX: Read out of bounds");
 		return;
 	}
 	// request ticket data
@@ -595,14 +595,14 @@ void nexServiceSecure_handleResponse_RegisterEx(nexService* nex, nexServiceRespo
 	uint32 returnCode = response->data.readU32();
 	if (response->isSuccessful == false || response->data.hasReadOutOfBounds())
 	{
-		forceLog_printf("NEX: RPC error in secure register");
+		cemuLog_log(LogType::Force, "NEX: RPC error in secure register");
 		info->isSuccessful = false;
 		info->isComplete = true;
 		return;
 	}
 	if (returnCode & 0x80000000)
 	{
-		forceLog_printf("NEX: Secure register failed with error code 0x%08x", returnCode);
+		cemuLog_log(LogType::Force, "NEX: Secure register failed with error code 0x{:08}", returnCode);
 		info->isSuccessful = false;
 		info->isComplete = true;
 		return;
@@ -627,7 +627,7 @@ nexService* nex_secureLogin(authServerInfo_t* authServerInfo, const char* access
 		if (prudpSecureSock->getConnectionState() == prudpClient::STATE_DISCONNECTED)
 		{
 			// timeout or disconnected
-			forceLog_printf("NEX: Secure login connection time-out");
+			cemuLog_log(LogType::Force, "NEX: Secure login connection time-out");
 			delete prudpSecureSock;
 			return nullptr;
 		}
@@ -656,13 +656,13 @@ nexService* nex_secureLogin(authServerInfo_t* authServerInfo, const char* access
 			break;
 		if (nex->getState() == nexService::STATE_DISCONNECTED)
 		{
-			forceLog_printf("NEX: Connection error while registering");
+			cemuLog_log(LogType::Force, "NEX: Connection error while registering");
 			break;
 		}
 	}
 	if (secureRegisterExData.isSuccessful == false)
 	{
-		forceLog_printf("NEX: Failed to register to secure server");
+		cemuLog_log(LogType::Force, "NEX: Failed to register to secure server");
 		nex->destroy();
 		return nullptr;
 	}
@@ -682,7 +682,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	{
 		// error
 		authConnection->destroy();
-		forceLog_printf("NEX: Failed to connect to the NEX server");
+		cemuLog_log(LogType::Force, "NEX: Failed to connect to the NEX server");
 		return nullptr;
 	}
 	// send auth login request
@@ -704,7 +704,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	{
 		// error
 		authConnection->destroy();
-		forceLog_printf("NEX: Error during authentication");
+		cemuLog_log(LogType::Force, "NEX: Error during authentication");
 		return nullptr;
 	}
 	// close connection to auth server
@@ -726,7 +726,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	if (nexAuthService.kerberosTicket2Size < 16)
 	{
 		nexAuthService.hasError = true;
-		forceLog_printf("NEX: Kerberos ticket too short");
+		cemuLog_log(LogType::Force, "NEX: Kerberos ticket too short");
 		return nullptr;
 	}
 	// check hmac of ticket
@@ -735,7 +735,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	if (memcmp(hmacTicket, nexAuthService.kerberosTicket2 + nexAuthService.kerberosTicket2Size - 16, 16) != 0)
 	{
 		nexAuthService.hasError = true;
-		forceLog_printf("NEX: Kerberos ticket hmac invalid");
+		cemuLog_log(LogType::Force, "NEX: Kerberos ticket hmac invalid");
 		return nullptr;
 	}
 	// auth info
@@ -752,7 +752,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 
 	if (packetKerberosTicket.hasReadOutOfBounds())
 	{
-		forceLog_printf("NEX: Parse error");
+		cemuLog_log(LogType::Force, "NEX: Parse error");
 		return nullptr;
 	}
 

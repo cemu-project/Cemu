@@ -319,7 +319,7 @@ void LatteShaderCache_load()
 		if (LatteShaderCache_readSeparableShader(fileData.data(), fileData.size()) == false)
 		{
 			// something is wrong with the stored shader, remove entry from shader cache files
-			forceLog_printf("Shader cache entry %d invalid, deleting...", loadIndex);
+			cemuLog_log(LogType::Force, "Shader cache entry {} invalid, deleting...", loadIndex);
 			fc_shaderCacheGeneric->DeleteFile({ name1, name2 });
 		}
 		numLoadedShaders++;
@@ -338,7 +338,7 @@ void LatteShaderCache_load()
 	GetProcessMemoryInfo(GetCurrentProcess(), &pmc2, sizeof(PROCESS_MEMORY_COUNTERS));
 	LONGLONG totalMem2 = pmc2.PagefileUsage;
 	LONGLONG memCommited = totalMem2 - totalMem1;
-	forceLog_printf("Shader cache loaded with %d shaders. Commited mem %dMB. Took %dms", numLoadedShaders, (sint32)(memCommited/1024/1024), timeLoad);
+	cemuLog_log(LogType::Force, "Shader cache loaded with {} shaders. Commited mem {}MB. Took {}ms", numLoadedShaders, (sint32)(memCommited/1024/1024), timeLoad);
 #endif
 	LatteShaderCache_finish();
 	// if Vulkan then also load pipeline cache

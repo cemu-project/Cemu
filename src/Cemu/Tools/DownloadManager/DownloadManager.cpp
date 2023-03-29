@@ -672,7 +672,7 @@ void DownloadManager::_handle_connect()
 	{
 		if (!_connect_refreshIASAccountIdAndDeviceToken())
 		{
-			forceLog_printf("Failed to request IAS token");
+			cemuLog_log(LogType::Force, "Failed to request IAS token");
 			cemu_assert_debug(false);
 			m_connectState.store(CONNECT_STATE::FAILED);
 			setStatusMessage(std::string(_("Login failed. Outdated or incomplete online files?")), DLMGR_STATUS_CODE::FAILED);

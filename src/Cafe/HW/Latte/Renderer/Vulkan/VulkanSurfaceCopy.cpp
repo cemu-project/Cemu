@@ -353,7 +353,7 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &vkObjPipeline->pipeline_layout);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("%s", fmt::format("Failed to create pipeline layout: {}", result).c_str());
+		cemuLog_log(LogType::Force, "Failed to create pipeline layout: {}", result);
 		vkObjPipeline->pipeline = VK_NULL_HANDLE;
 		return copyPipeline;
 	}
@@ -413,7 +413,7 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 	result = vkCreateGraphicsPipelines(m_logicalDevice, m_pipeline_cache, 1, &pipelineInfo, nullptr, &copyPipeline->vkObjPipeline->pipeline);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("Failed to create graphics pipeline for surface copy. Error %d Info:", (sint32)result);
+		cemuLog_log(LogType::Force, "Failed to create graphics pipeline for surface copy. Error {} Info:", (sint32)result);
 		cemu_assert_debug(false);
 		copyPipeline->vkObjPipeline->pipeline = VK_NULL_HANDLE;
 	}
@@ -806,7 +806,7 @@ void VulkanRenderer::surfaceCopy_viaBuffer(LatteTextureVk* srcTextureVk, sint32 
 		memoryManager->CreateBuffer(m_surfaceCopyBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_surfaceCopyBuffer, m_surfaceCopyBufferMemory);
 		if (m_surfaceCopyBuffer == VK_NULL_HANDLE)
 		{
-			forceLog_printf("Vulkan: Failed to allocate surface copy buffer with size %llu", allocSize);
+			cemuLog_log(LogType::Force, "Vulkan: Failed to allocate surface copy buffer with size {}", allocSize);
 			return;
 		}
 	}

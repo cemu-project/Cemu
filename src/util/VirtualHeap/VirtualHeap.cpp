@@ -26,7 +26,7 @@ VirtualBufferHeapEntry_t* virtualBufferHeap_createEntry(VirtualBufferHeap_t* buf
 	VirtualBufferHeapEntry_t* newEntry = bufferHeap->firstUnusedEntry;
 	if (newEntry == nullptr)
 	{
-		forceLog_printf("virtualBufferHeap_createEntry: Pool empty");
+		cemuLog_log(LogType::Force, "virtualBufferHeap_createEntry: Pool empty");
 		cemu_assert_suspicious();
 	}
 	bufferHeap->firstUnusedEntry = newEntry->next;

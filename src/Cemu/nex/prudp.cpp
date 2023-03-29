@@ -519,7 +519,7 @@ prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key) : prudpC
 		{
 			if (tries == 4)
 			{
-				forceLog_printf("PRUDP: Failed to bind UDP socket");
+				cemuLog_log(LogType::Force, "PRUDP: Failed to bind UDP socket");
 				currentConnectionState = STATE_DISCONNECTED;
 				srcPort = 0;
 				return;

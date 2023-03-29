@@ -210,7 +210,7 @@ VkSampler LatteTextureViewVk::GetDefaultTextureSampler(bool useLinearTexFilter)
 
 	if (vkCreateSampler(m_device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 	{
-		forceLog_printf("Failed to create default sampler");
+		cemuLog_log(LogType::Force, "Failed to create default sampler");
 		throw std::runtime_error("failed to create texture sampler!");
 	}
 

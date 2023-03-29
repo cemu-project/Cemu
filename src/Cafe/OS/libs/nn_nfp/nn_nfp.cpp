@@ -667,7 +667,7 @@ void nnNfpExport_CreateApplicationArea(PPCInterpreter_t* hCPU)
 	// this API forces a flush (unsure, but without this data written by Smash doesn't stick)
 	if (!nnNfp_writeCurrentAmiibo())
 	{
-		forceLog_printf("Failed to write Amiibo file data when trying to remove appArea");
+		cemuLog_log(LogType::Force, "Failed to write Amiibo file data when trying to remove appArea");
 		osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NFP, 0));
 		return;
 	}
@@ -697,7 +697,7 @@ void nnNfpExport_DeleteApplicationArea(PPCInterpreter_t* hCPU)
 	// this API forces a flush
 	if (!nnNfp_writeCurrentAmiibo())
 	{
-		forceLog_printf("Failed to write Amiibo file data when trying to remove appArea");
+		cemuLog_log(LogType::Force, "Failed to write Amiibo file data when trying to remove appArea");
 		osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NFP, 0));
 		return;
 	}
@@ -712,14 +712,14 @@ void nnNfpExport_Flush(PPCInterpreter_t* hCPU)
 	// write Amiibo data
 	if (nfp_data.isReadOnly) 
 	{
-		forceLog_printf("Cannot write to Amiibo when it is mounted in read-only mode");
+		cemuLog_log(LogType::Force, "Cannot write to Amiibo when it is mounted in read-only mode");
 		osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NFP, 0));
 		return;
 	}
 
 	if (!nnNfp_writeCurrentAmiibo())
 	{
-		forceLog_printf("Failed to write Amiibo data");
+		cemuLog_log(LogType::Force, "Failed to write Amiibo data");
 		osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NFP, 0));
 		return;
 	}
@@ -837,7 +837,7 @@ bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError)
 
 	if (serialCheckByte0 != bcc0 || serialCheckByte1 != bcc1)
 	{
-		forceLog_printf("nn_nfp: Mismatch in serial checksum of scanned NFC tag");
+		cemuLog_log(LogType::Force, "nn_nfp: Mismatch in serial checksum of scanned NFC tag");
 	}
 	nfp_data.amiiboProcessedData.uidLength = 7;
 	memcpy(nfp_data.amiiboProcessedData.uid, serialNumber, 7);

@@ -494,7 +494,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 				break;
 			if (indexDataCacheFirst == nullptr)
 			{
-				forceLog_printf("Unable to allocate entry in index cache");
+				cemuLog_log(LogType::Force, "Unable to allocate entry in index cache");
 				assert_dbg();
 			}
 		}

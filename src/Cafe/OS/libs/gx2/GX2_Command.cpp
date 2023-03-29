@@ -282,7 +282,7 @@ namespace GX2
 		}
 		else
 		{
-			forceLog_printf("GX2PatchDisplayList(): unsupported patchType %d", (uint32)patchType);
+			cemuLog_log(LogType::Force, "GX2PatchDisplayList(): unsupported patchType {}", (uint32)patchType);
 			cemu_assert_debug(false);
 		}
 	}

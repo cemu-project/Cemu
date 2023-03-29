@@ -81,7 +81,7 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 	}
 	else
 	{
-		forceLog_printf("Unsupported texture readback format %04x\n", (uint32)textureView->format);
+		cemuLog_log(LogType::Force, "Unsupported texture readback format {:04}", (uint32)textureView->format);
 		cemu_assert_debug(false);
 		return 0;
 	}

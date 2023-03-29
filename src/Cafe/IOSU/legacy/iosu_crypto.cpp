@@ -393,24 +393,24 @@ bool iosuCrypto_addClientCertificate(void* sslctx, sint32 certificateId)
 		{
 			if (SSL_CTX_use_certificate(ctx, iosuCryptoCertificates.certList[i].cert) != 1)
 			{
-				forceLog_printf("Unable to setup certificate %d", certificateId);
+				cemuLog_log(LogType::Force, "Unable to setup certificate {}", certificateId);
 				return false;
 			}
 			if (SSL_CTX_use_RSAPrivateKey(ctx, iosuCryptoCertificates.certList[i].pkey) != 1)
 			{
-				forceLog_printf("Unable to setup certificate %d RSA private key", certificateId);
+				cemuLog_log(LogType::Force, "Unable to setup certificate {} RSA private key", certificateId);
 				return false;
 			}
 
 			if (SSL_CTX_check_private_key(ctx) == false)
 			{
-				forceLog_printf("Certificate private key could not be validated (verify required files for online mode or disable online mode)");
+				cemuLog_log(LogType::Force, "Certificate private key could not be validated (verify required files for online mode or disable online mode)");
 			}
 
 			return true;
 		}
 	}
-	forceLog_printf("Certificate not found (verify required files for online mode or disable online mode)");
+	cemuLog_log(LogType::Force, "Certificate not found (verify required files for online mode or disable online mode)");
 	return false;
 }
 
@@ -438,7 +438,7 @@ bool iosuCrypto_addCustomCACertificate(void* sslctx, uint8* certData, sint32 cer
 	X509* cert = d2i_X509(NULL, (const unsigned char**)&tempPtr, certLength);
 	if (cert == nullptr)
 	{
-		forceLog_printf("Invalid custom server PKI certificate");
+		cemuLog_log(LogType::Force, "Invalid custom server PKI certificate");
 		return false;
 	}
 	X509_STORE_add_cert(store, cert);
@@ -571,7 +571,7 @@ void iosuCrypto_init()
 		// verify if OTP is ok
 		if (length != 1024) // todo - should also check some fixed values to verify integrity of otp dump
 		{
-			forceLog_printf("IOSU_CRYPTO: otp.bin has wrong size (must be 1024 bytes)");
+			cemuLog_log(LogType::Force, "IOSU_CRYPTO: otp.bin has wrong size (must be 1024 bytes)");
 			hasOtpMem = false;
 		}
 		else
@@ -582,7 +582,7 @@ void iosuCrypto_init()
 	}
 	else
 	{
-		forceLog_printf("IOSU_CRYPTO: No otp.bin found. Online mode cannot be used");
+		cemuLog_log(LogType::Force, "IOSU_CRYPTO: No otp.bin found. Online mode cannot be used");
 		hasOtpMem = false;
 	}
 

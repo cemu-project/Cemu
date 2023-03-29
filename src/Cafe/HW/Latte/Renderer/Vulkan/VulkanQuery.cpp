@@ -112,7 +112,7 @@ uint32 LatteQueryObjectVk::acquireQueryIndex()
 {
 	if (m_rendererVk->m_occlusionQueries.list_availableQueryIndices.empty())
 	{
-		forceLog_printf("Vulkan-Error: Exhausted query pool");
+		cemuLog_log(LogType::Force, "Vulkan-Error: Exhausted query pool");
 		assert_dbg();
 	}
 	uint32 queryIndex = m_rendererVk->m_occlusionQueries.list_availableQueryIndices.back();
@@ -152,7 +152,7 @@ LatteQueryObject* VulkanRenderer::occlusionQuery_create()
 		auto r = vkCreateQueryPool(m_logicalDevice, &queryPoolCreateInfo, nullptr, &m_occlusionQueries.queryPool);
 		if (r != VK_SUCCESS)
 		{
-			forceLog_printf("Vulkan-Error: Failed to create query pool with error %d", (sint32)r);
+			cemuLog_log(LogType::Force, "Vulkan-Error: Failed to create query pool with error {}", (sint32)r);
 			return nullptr;
 		}
 	}

@@ -130,7 +130,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 		if (http_code != 0 && http_code != 200)
 		{
-			forceLog_printf("Update check failed (http code: %d)", http_code);
+			cemuLog_log(LogType::Force, "Update check failed (http code: {})", http_code);
 			cemu_assert_debug(false);
 			return false;
 		}
@@ -154,7 +154,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 	}
 	else
 	{
-		forceLog_printf("Update check failed with CURL error %d", (int)cr);
+		cemuLog_log(LogType::Force, "Update check failed with CURL error {}", (int)cr);
 		cemu_assert_debug(false);
 	}
 
@@ -261,7 +261,7 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 		}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("can't remove update.zip on error: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't remove update.zip on error: {}", ex.what());
 		}
 	}
 	return result;
@@ -309,13 +309,13 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 				catch (const std::exception& ex)
 				{
 					SystemException sys(ex);
-					forceLog_printf("can't create folder \"%s\" for update: %s", sb.name, sys.what());
+					cemuLog_log(LogType::Force, "can't create folder \"{}\" for update: {}", sb.name, sys.what());
 				}
 				// the root should have only one Cemu_... directory, we track it here
 				if ((std::count(sb.name, sb.name + len, '/') + std::count(sb.name, sb.name + len, '\\')) == 1)
 				{
 					if (!cemuFolderName.empty())
-						forceLog_printf("update zip has multiple folders in root");
+						cemuLog_log(LogType::Force, "update zip has multiple folders in root");
 					cemuFolderName.assign(sb.name, len - 1);
 				}
 				continue;
@@ -325,7 +325,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			auto* zf = zip_fopen_index(za, i, 0);
 			if (!zf)
 			{
-				forceLog_printf("can't open zip file \"%s\"", sb.name);
+				cemuLog_log(LogType::Force, "can't open zip file \"{}\"", sb.name);
 				zip_close(za);
 				return false;
 			}
@@ -334,7 +334,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			const auto read = zip_fread(zf, buffer.data(), sb.size);
 			if (read != (sint64)sb.size)
 			{
-				forceLog_printf("could only read 0x%x of 0x%x bytes from zip file \"%s\"", read, sb.size, sb.name);
+				cemuLog_log(LogType::Force, "could only read 0x{} of 0x{} bytes from zip file \"{}\"", read, sb.size, sb.name);
 				zip_close(za);
 				return false;
 			}
@@ -342,7 +342,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			auto* file = fopen(fname.string().c_str(), "wb");
 			if (file == nullptr)
 			{
-				forceLog_printf("can't create update file \"%s\"", sb.name);
+				cemuLog_log(LogType::Force, "can't create update file \"{}\"", sb.name);
 				zip_close(za);
 				return false;
 			}
@@ -460,7 +460,7 @@ void CemuUpdateWindow::WorkerThread()
 						catch (const std::exception& ex)
 						{
 							SystemException sys(ex);
-							forceLog_printf("can't remove extracted tmp files: %s", sys.what());
+							cemuLog_log(LogType::Force, "can't remove extracted tmp files: {}", sys.what());
 						}
 					}
 
@@ -506,7 +506,7 @@ void CemuUpdateWindow::WorkerThread()
 					catch (const std::exception& ex)
 					{
 						SystemException sys(ex);
-						forceLog_printf("applying update error: %s", sys.what());
+						cemuLog_log(LogType::Force, "applying update error: {}", sys.what());
 					}
 
 					if ((counter++ % 10) == 0)
@@ -529,7 +529,7 @@ void CemuUpdateWindow::WorkerThread()
 		catch (const std::exception& ex)
 		{
 			SystemException sys(ex);
-			forceLog_printf("update error: %s", sys.what());
+			cemuLog_log(LogType::Force, "update error: {}", sys.what());
 
 			// clean leftovers
 			if (exists(tmppath))

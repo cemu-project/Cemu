@@ -33,7 +33,7 @@ public:
 		if ((alignment & (alignment - 1)) != 0)
 		{
 			// not a power of two
-			forceLog_printf("VkTextureChunkedHeap: Invalid alignment %d", alignment);
+			cemuLog_log(LogType::Force, "VkTextureChunkedHeap: Invalid alignment {}", alignment);
 		}
 		return this->alloc(size, alignment);
 	}

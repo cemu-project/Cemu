@@ -875,7 +875,7 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 			}
 			catch (const std::exception& ex)
 			{
-				forceLog_printf("wxTitleManagerList::OnContextMenuSelected: can't launch title: %s", ex.what());
+				cemuLog_log(LogType::Force, "wxTitleManagerList::OnContextMenuSelected: can't launch title: {}", ex.what());
 			}
 		}
 		break;

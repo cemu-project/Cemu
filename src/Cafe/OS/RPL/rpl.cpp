@@ -336,7 +336,7 @@ rplSectionEntryNew_t* RPLLoader_GetSection(RPLModule* rplLoaderContext, sint32 s
 	sint32 sectionCount = rplLoaderContext->rplHeader.sectionTableEntryCount;
 	if (sectionIndex < 0 || sectionIndex >= sectionCount)
 	{
-		forceLog_printf("RPLLoader: Section index out of bounds");
+		cemuLog_log(LogType::Force, "RPLLoader: Section index out of bounds");
 		rplLoaderContext->hasError = true;
 		return nullptr;
 	}
@@ -363,7 +363,7 @@ RPLUncompressedSection* RPLLoader_LoadUncompressedSection(RPLModule* rplLoaderCo
 	if (!RPLLoader_CheckBounds(rplLoaderContext, section->fileOffset, section->sectionSize))
 	{
 		// BSS
-		forceLog_printf("RPLLoader: Raw data for section %d exceeds bounds of RPL file", sectionIndex);
+		cemuLog_log(LogType::Force, "RPLLoader: Raw data for section {} exceeds bounds of RPL file", sectionIndex);
 		rplLoaderContext->hasError = true;
 		delete uSection;
 		return nullptr;
@@ -375,7 +375,7 @@ RPLUncompressedSection* RPLLoader_LoadUncompressedSection(RPLModule* rplLoaderCo
 		// decompress
 		if (!RPLLoader_CheckBounds(rplLoaderContext, section->fileOffset, sizeof(uint32be)) )
 		{
-			forceLog_printf("RPLLoader: Uncompressed data of section %d is too large", sectionIndex);
+			cemuLog_log(LogType::Force, "RPLLoader: Uncompressed data of section {} is too large", sectionIndex);
 			rplLoaderContext->hasError = true;
 			delete uSection;
 			return nullptr;
@@ -383,7 +383,7 @@ RPLUncompressedSection* RPLLoader_LoadUncompressedSection(RPLModule* rplLoaderCo
 		uint32 uncompressedSize = *(uint32be*)(rplLoaderContext->RPLRawData.data() + (uint32)section->fileOffset);
 		if (uncompressedSize >= 1*1024*1024*1024) // sections bigger than 1GB not allowed
 		{
-			forceLog_printf("RPLLoader: Uncompressed data of section %d is too large", sectionIndex);
+			cemuLog_log(LogType::Force, "RPLLoader: Uncompressed data of section {} is too large", sectionIndex);
 			rplLoaderContext->hasError = true;
 			delete uSection;
 			return nullptr;
@@ -405,7 +405,7 @@ RPLUncompressedSection* RPLLoader_LoadUncompressedSection(RPLModule* rplLoaderCo
 			inflateEnd(&strm);
 			if ((ret != Z_OK && ret != Z_STREAM_END) || strm.avail_in != 0 || strm.avail_out != 0)
 			{
-				forceLog_printf("RPLLoader: Error while inflating data for section %d", sectionIndex);
+				cemuLog_log(LogType::Force, "RPLLoader: Error while inflating data for section {}", sectionIndex);
 				rplLoaderContext->hasError = true;
 				delete uSection;
 				return nullptr;
@@ -454,7 +454,7 @@ bool RPLLoader_LoadSingleSection(RPLModule* rplLoaderContext, sint32 sectionInde
 
 	// update size in section (todo - use separate field)
 	if (uncompressedSection->sectionData.size() < section->sectionSize)
-		forceLog_printf("RPLLoader: Section %d uncompresses to %d bytes but sectionSize is %d", sectionIndex, uncompressedSection->sectionData.size(), (uint32)section->sectionSize);
+		cemuLog_log(LogType::Force, "RPLLoader: Section {} uncompresses to {} bytes but sectionSize is {}", sectionIndex, uncompressedSection->sectionData.size(), (uint32)section->sectionSize);
 
 	section->sectionSize = uncompressedSection->sectionData.size();
 
@@ -956,7 +956,7 @@ bool RPLLoader_FixImportSymbols(RPLModule* rplLoaderContext, sint32 symtabSectio
 				char* symbolName = (char*)strtabData + nameOffset;
 				if (nameOffset >= strtabSize)
 				{
-					forceLog_printf("RPLLoader: Symbol %d in section %d has out-of-bounds name offset", i, symSectionIndex);
+					cemuLog_log(LogType::Force, "RPLLoader: Symbol {} in section {} has out-of-bounds name offset", i, symSectionIndex);
 					continue;
 				}
 
@@ -1287,7 +1287,7 @@ bool RPLLoader_ApplyRelocs(RPLModule* rplLoaderContext, sint32 relaSectionIndex,
 	uint32 crc = rplLoaderContext->GetSectionCRC(relaSectionIndex);
 	if (calcCRC != crc)
 	{
-		forceLog_printf("RPLLoader %s - Relocation section %d has CRC mismatch - Calc: %08x Actual: %08x", rplLoaderContext->moduleName2.c_str(), relaSectionIndex, calcCRC, crc);
+		cemuLog_log(LogType::Force, "RPLLoader {} - Relocation section {} has CRC mismatch - Calc: {:08} Actual: {:08}", rplLoaderContext->moduleName2.c_str(), relaSectionIndex, calcCRC, crc);
 	}
 	// process relocations
 	sint32 relocCount = relocSize / sizeof(rplRelocNew_t);
@@ -1664,7 +1664,7 @@ RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name)
 	// cancel if error
 	if (rpl->hasError)
 	{
-		forceLog_printf("RPLLoader: Unable to load RPL due to errors");
+		cemuLog_log(LogType::Force, "RPLLoader: Unable to load RPL due to errors");
 		delete rpl;
 		return nullptr;
 	}
@@ -2120,7 +2120,7 @@ void RPLLoader_LoadDependency(rplDependency_t* dependency)
 		auto fileData = FileStream::LoadIntoMemory(filePath);
 		if (fileData)
 		{
-			forceLog_printf("Loading RPL: /cafeLibs/%s", dependency->filepath);
+			cemuLog_log(LogType::Force, "Loading RPL: /cafeLibs/{}", dependency->filepath);
 			dependency->rplLoaderContext = rpl_loadFromMem(fileData->data(), fileData->size(), dependency->filepath);
 			return;
 		}
