@@ -86,7 +86,7 @@ uint32 GameCubeControllerProvider::get_adapter_count() const
 	const auto count = m_libusb->p_libusb_get_device_list(nullptr, &devices);
 	if (count < 0)
 	{
-		cemuLog_log(LogType::Force, "libusb error{} at libusb_get_device_list : {}", static_cast<int>(count), m_libusb->p_libusb_error_name(static_cast<int>(count))));
+		cemuLog_log(LogType::Force, "libusb error {} at libusb_get_device_list: {}", static_cast<int>(count), m_libusb->p_libusb_error_name(static_cast<int>(count)));
 		return adapter_count;
 	}
 
