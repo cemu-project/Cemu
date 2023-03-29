@@ -251,7 +251,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 		{
 			fs::create_directories(path, ec);
 			if (ec)
-				cemuLog_log(LogType::Force, "can't create directory {}: {}", sb.name, ec.message().c_str());
+				cemuLog_log(LogType::Force, "can't create directory {}: {}", sb.name, ec.message());
 
 			continue;
 		}
@@ -307,7 +307,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 					timestamp.text().set(fmt::format("{:016x}", coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK).c_str()); // TODO time not initialized yet?
 					
 					if(!doc.save_file(saveinfo.c_str()))
-						cemuLog_log(LogType::Force, "couldn't insert save entry in saveinfo.xml: {}", saveinfo.generic_u8string().c_str());
+						cemuLog_log(LogType::Force, "couldn't insert save entry in saveinfo.xml: {}", saveinfo.generic_string());
 				}
 			}
 		}
