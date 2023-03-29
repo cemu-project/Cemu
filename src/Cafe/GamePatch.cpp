@@ -326,7 +326,7 @@ void GamePatch_scan()
 	if (hleAddr)
 	{
 #ifdef CEMU_DEBUG_ASSERT
-		forceLog_printf("HLE: Patch BotW busy loop 1 at 0x%08x", hleAddr);
+		cemuLog_log(LogType::Force, "HLE: Patch BotW busy loop 1 at 0x{:08x}", hleAddr);
 #endif
 		sint32 functionIndex = hleIndex_h000000001;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
@@ -337,7 +337,7 @@ void GamePatch_scan()
 	if (hleAddr)
 	{
 #ifdef CEMU_DEBUG_ASSERT
-		forceLog_printf("HLE: Patch BotW busy loop 2 at 0x%08x", hleAddr);
+		cemuLog_log(LogType::Force, "HLE: Patch BotW busy loop 2 at 0x{:08x}", hleAddr);
 #endif
 		sint32 functionIndex = hleIndex_h000000002;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
@@ -372,7 +372,7 @@ void GamePatch_scan()
 	if (hleAddr)
 	{
 		uint32 patchAddr = hleAddr + 0x10;
-		forceLog_printf("HLE: Patch MH3U race condition candidate at 0x%08x", patchAddr);
+		cemuLog_log(LogType::Force, "HLE: Patch MH3U race condition candidate at 0x{:08x}", patchAddr);
 		uint32 funcAddr = PPCInterpreter_makeCallableExportDepr(hleExport_mh3u_raceConditionWorkaround);
 		// set absolute jump
 		uint32 opc = 0x48000000;
@@ -411,7 +411,7 @@ void GamePatch_scan()
 	if (hleAddr)
 	{
 		// replace CMPL with CMP
-		forceLog_printf("Patching Bayonetta 2 audio bug at: 0x%08x", hleAddr+0x34);
+		cemuLog_log(LogType::Force, "Patching Bayonetta 2 audio bug at: 0x{:08x}", hleAddr+0x34);
 		uint32 opc = memory_readU32(hleAddr + 0x34);
 		opc &= ~(0x3FF << 1); // turn CMPL to CMP
 		memory_writeU32(hleAddr + 0x34, opc);
@@ -444,7 +444,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(sm3dw_dynFrameBufferResScale, nullptr, sizeof(sm3dw_dynFrameBufferResScale));
 	if (hleAddr)
 	{
-		forceLog_printf("Patching SM3DW dynamic resolution scaling at: 0x%08x", hleAddr);
+		cemuLog_log(LogType::Force, "Patching SM3DW dynamic resolution scaling at: 0x{:08x}", hleAddr);
 		memory_writeU32(hleAddr, 0x4E800020); // BLR
 	}
 
@@ -453,7 +453,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(tww_waitFunc, nullptr, sizeof(tww_waitFunc));
 	if (hleAddr)
 	{
-		forceLog_printf("Patching TWW race conditon at: 0x%08x", hleAddr);
+		cemuLog_log(LogType::Force, "Patching TWW race conditon at: 0x{:08x}", hleAddr);
 		// NOP calls to Lock/Unlock mutex
 		memory_writeU32(hleAddr + 0x34, 0x60000000);
 		memory_writeU32(hleAddr + 0x48, 0x60000000);

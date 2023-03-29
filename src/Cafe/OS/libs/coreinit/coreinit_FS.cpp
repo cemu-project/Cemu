@@ -659,7 +659,7 @@ namespace coreinit
 		else
 		{
 			// todo - error handling
-			forceLog_printf("FS handleAsyncResult(): unexpected error %08x", errHandling);
+			cemuLog_log(LogType::Force, "FS handleAsyncResult(): unexpected error {:08x}", errHandling);
 			cemu_assert_debug(false);
 			return 0;
 		}

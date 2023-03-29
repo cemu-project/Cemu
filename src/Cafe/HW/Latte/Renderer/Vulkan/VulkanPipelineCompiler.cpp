@@ -225,7 +225,7 @@ VkFormat PipelineCompiler::GetVertexFormat(uint8 format)
 	case FMT_2_10_10_10:
 		return VK_FORMAT_R32_UINT; // verified to match OpenGL
 	default:
-		forceLog_printf("Unsupported vertex format: %02x", format);
+		cemuLog_log(LogType::Force, "Unsupported vertex format: {:02x}", format);
 		assert_dbg();
 		return VK_FORMAT_UNDEFINED;
 	}
