@@ -41,7 +41,7 @@ void OpenGLRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uin
 	if (glCopyNamedBufferSubData)
 		glCopyNamedBufferSubData(glStreamoutCacheRingBuffer, glAttributeCacheAB, srcOffset, dstOffset, size);
 	else
-		forceLog_printf("glCopyNamedBufferSubData() not supported");
+		cemuLog_log(LogType::Force, "glCopyNamedBufferSubData() not supported");
 }
 
 void OpenGLRenderer::streamout_rendererFinishDrawcall()

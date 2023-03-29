@@ -452,7 +452,7 @@ void* MEMAllocFromExpHeapEx(MEMHeapHandle heap, uint32 size, sint32 alignment)
 	if (alignment == 0)
 	{
 		// this is a guaranteed crash on the actual console
-		forceLog_printf("MEMAllocFromExpHeapEx(): Alignment 0 not allowed");
+		cemuLog_log(LogType::Force, "MEMAllocFromExpHeapEx(): Alignment 0 not allowed");
 		alignment = 4;
 		return nullptr;
 	}

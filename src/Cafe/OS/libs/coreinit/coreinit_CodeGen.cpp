@@ -129,7 +129,7 @@ namespace coreinit
 	{
 		if (!_avoidCodeGenJIT)
 		{
-			forceLog_printf("Disable JIT on dynamic code area");
+			cemuLog_log(LogType::Force, "Disable JIT on dynamic code area");
 		}
 		_avoidCodeGenJIT = true; // this function getting called is usually a sign that 
 		// does this have a return value?

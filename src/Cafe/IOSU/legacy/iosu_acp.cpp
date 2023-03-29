@@ -339,7 +339,7 @@ namespace iosu
 		}
 		else
 		{
-			forceLog_printf("ACPGetTitleSaveMetaXml(): Meta file \"%s\" does not exist", xmlPath);
+			cemuLog_log(LogType::Force, "ACPGetTitleSaveMetaXml(): Meta file \"{}\" does not exist", xmlPath);
 			memset(acpMetaXml, 0, sizeof(acpMetaXml_t));
 		}
 		return 0;
@@ -373,7 +373,7 @@ namespace iosu
 			free(metaBootMovieData);
 		}
 		else
-			forceLog_printf("ACPGetTitleMetaData(): Unable to load \"%s\"", filePath);
+			cemuLog_log(LogType::Force, "ACPGetTitleMetaData(): Unable to load \"{}\"", filePath);
 		// bootLogoTex.tga
 		sprintf(filePath, "%smeta/bootLogoTex.tga", titlePath);
 		uint32 metaBootLogoSize = 0;
@@ -384,7 +384,7 @@ namespace iosu
 			free(metaBootLogoData);
 		}
 		else
-			forceLog_printf("ACPGetTitleMetaData(): Unable to load \"%s\"", filePath);
+			cemuLog_log(LogType::Force, "ACPGetTitleMetaData(): Unable to load \"{}\"", filePath);
 
 
 		return 0;
@@ -418,7 +418,7 @@ namespace iosu
 		}
 		else
 		{
-			forceLog_printf("ACPGetTitleMetaXml(): Meta file \"%s\" does not exist", filePath);
+			cemuLog_log(LogType::Force, "ACPGetTitleMetaXml(): Meta file \"{}\" does not exist", filePath);
 		}
 
 		return 0;
@@ -470,7 +470,7 @@ namespace iosu
 		FSCVirtualFile* fscDirIterator = fsc_openDirIterator(searchPath, &fscStatus);
 		if (fscDirIterator == nullptr)
 		{
-			forceLog_printf("ACPGetTitleSaveDirEx(): Failed to iterate directories in \"%s\"", searchPath);
+			cemuLog_log(LogType::Force, "ACPGetTitleSaveDirEx(): Failed to iterate directories in \"{}\"", searchPath);
 			*countOut = 0;
 		}
 		else

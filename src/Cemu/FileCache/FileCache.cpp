@@ -263,7 +263,7 @@ void FileCache::fileCache_updateFiletable(sint32 extraEntriesToAllocate)
 	// update file table info in struct
 	if (this->fileTableEntries[0].name1 != FILECACHE_FILETABLE_NAME1 || this->fileTableEntries[0].name2 != FILECACHE_FILETABLE_NAME2)
 	{
-		forceLog_printf("Corruption in cache file detected");
+		cemuLog_log(LogType::Force, "Corruption in cache file detected");
 		assert_dbg();
 	}
 	this->fileTableOffset = this->fileTableEntries[0].fileOffset;
@@ -390,7 +390,7 @@ void FileCache::_addFileInternal(uint64 name1, uint64 name2, const uint8* fileDa
 			{
 				if (name1 == FILECACHE_FILETABLE_NAME1 && name2 == FILECACHE_FILETABLE_NAME2)
 				{
-					forceLog_printf("Error in cache file");
+					cemuLog_log(LogType::Force, "Error in cache file");
 					cemu_assert_debug(false);
 				}
 				// no free entry, recreate file table with larger size
@@ -552,7 +552,7 @@ bool FileCache::GetFileByIndex(sint32 index, uint64* name1, uint64* name2, std::
 	FileTableEntry* entry = this->fileTableEntries + index;
 	if (this->fileTableEntries == nullptr)
 	{
-		forceLog_printf("GetFileByIndex() fileTable is NULL");
+		cemuLog_log(LogType::Force, "GetFileByIndex() fileTable is NULL");
 		return false;
 	}
 	if (entry->name1 == FILECACHE_FILETABLE_FREE_NAME && entry->name2 == FILECACHE_FILETABLE_FREE_NAME)

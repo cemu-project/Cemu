@@ -376,13 +376,13 @@ void LatteTexture_CopySlice(LatteTexture* srcTexture, sint32 srcSlice, sint32 sr
 		sint32 effectiveHeight_dst = dstTexture->overwriteInfo.hasResolutionOverwrite ? dstTexture->overwriteInfo.height : dstTexture->height;
 		if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_TEXTURE_CACHE))
 		{
-			forceLog_printf("_copySlice(): Unable to sync textures with mismatching scale ratio (due to texture rule)");
+			cemuLog_log(LogType::Force, "_copySlice(): Unable to sync textures with mismatching scale ratio (due to texture rule)");
 			float ratioWidth_src = (float)effectiveWidth_src / (float)srcTexture->width;
 			float ratioHeight_src = (float)effectiveHeight_src / (float)srcTexture->height;
 			float ratioWidth_dst = (float)effectiveWidth_dst / (float)dstTexture->width;
 			float ratioHeight_dst = (float)effectiveHeight_dst / (float)dstTexture->height;
-			forceLog_printf("Source:      %08x origResolution %4d/%4d effectiveResolution %4d/%4d fmt %04x mipIndex %d ratioW/H: %.4f/%.4f", srcTexture->physAddress, srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, srcMip, ratioWidth_src, ratioHeight_src);
-			forceLog_printf("Destination: %08x origResolution %4d/%4d effectiveResolution %4d/%4d fmt %04x mipIndex %d ratioW/H: %.4f/%.4f", dstTexture->physAddress, dstTexture->width, dstTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, dstMip, ratioWidth_dst, ratioHeight_dst);
+			cemuLog_log(LogType::Force, "Source:      {:08} origResolution {:4}/{:4} effectiveResolution {:4}/{:4} fmt {:04} mipIndex {} ratioW/H: {:.4}/{:.4}", srcTexture->physAddress, srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, srcMip, ratioWidth_src, ratioHeight_src);
+			cemuLog_log(LogType::Force, "Destination: {:08} origResolution {:4}/{:4} effectiveResolution {:4}/{:4} fmt {:04} mipIndex {} ratioW/H: {:.4}/{:.4}", dstTexture->physAddress, dstTexture->width, dstTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, dstMip, ratioWidth_dst, ratioHeight_dst);
 		}
 		//forceLogDebug_printf("If these textures are not meant to share data you can ignore this");
 		return;

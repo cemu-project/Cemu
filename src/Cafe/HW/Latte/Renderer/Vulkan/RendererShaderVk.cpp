@@ -239,7 +239,7 @@ void RendererShaderVk::CreateVkShaderModule(std::span<uint32> spirvBuffer)
 	VkResult result = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_shader_module);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("Vulkan: Shader error");
+		cemuLog_log(LogType::Force, "Vulkan: Shader error");
 		throw std::runtime_error(fmt::format("Failed to create shader module: {}", result));
 	}
 

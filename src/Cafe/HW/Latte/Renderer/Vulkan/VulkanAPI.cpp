@@ -19,7 +19,7 @@ bool InitializeGlobalVulkan()
 
 	if (hmodule == nullptr)
 	{
-		forceLog_printf("Vulkan loader not available. Outdated graphics driver or Vulkan runtime not installed?");
+		cemuLog_log(LogType::Force, "Vulkan loader not available. Outdated graphics driver or Vulkan runtime not installed?");
 		return false;
 	}
 
@@ -28,7 +28,7 @@ bool InitializeGlobalVulkan()
 
 	if(!vkEnumerateInstanceVersion)
 	{
-		forceLog_printf("vkEnumerateInstanceVersion not available. Outdated graphics driver or Vulkan runtime?");
+		cemuLog_log(LogType::Force, "vkEnumerateInstanceVersion not available. Outdated graphics driver or Vulkan runtime?");
 		FreeLibrary(hmodule);
 		return false;
 	}
@@ -84,7 +84,7 @@ bool InitializeGlobalVulkan()
 
 	if (!vulkan_so)
 	{
-		forceLog_printf("Vulkan loader not available.");
+		cemuLog_log(LogType::Force, "Vulkan loader not available.");
 		return false;
 	}
 
@@ -93,7 +93,7 @@ bool InitializeGlobalVulkan()
 
 	if(!vkEnumerateInstanceVersion)
 	{
-		forceLog_printf("vkEnumerateInstanceVersion not available. Outdated graphics driver or Vulkan runtime?");
+		cemuLog_log(LogType::Force, "vkEnumerateInstanceVersion not available. Outdated graphics driver or Vulkan runtime?");
 		return false;
 	}
 	

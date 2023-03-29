@@ -21,16 +21,16 @@ CURLcode _sslctx_function_NUS(CURL* curl, void* sslctx, void* param)
 {
 	if (iosuCrypto_addCACertificate(sslctx, 102) == false)
 	{
-		forceLog_printf("Invalid CA certificate (102)");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (102)");
 	}
 	if (iosuCrypto_addCACertificate(sslctx, 0x69) == false)
 	{
-		forceLog_printf("Invalid CA certificate (105)");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
 	}
 
 	if (iosuCrypto_addClientCertificate(sslctx, 3) == false)
 	{
-		forceLog_printf("Certificate error");
+		cemuLog_log(LogType::Force, "Certificate error");
 	}
 	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
@@ -42,7 +42,7 @@ CURLcode _sslctx_function_IDBE(CURL* curl, void* sslctx, void* param)
 {
 	if (iosuCrypto_addCACertificate(sslctx, 105) == false)
 	{
-		forceLog_printf("Invalid CA certificate (105)");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
 	}
 	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
@@ -54,12 +54,12 @@ CURLcode _sslctx_function_SOAP(CURL* curl, void* sslctx, void* param)
 {
 	if (iosuCrypto_addCACertificate(sslctx, 102) == false)
 	{
-		forceLog_printf("Invalid CA certificate (102)");
-		forceLog_printf("Certificate error");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (102)");
+		cemuLog_log(LogType::Force, "Certificate error");
 	}
 	if (iosuCrypto_addClientCertificate(sslctx, 1) == false)
 	{
-		forceLog_printf("Certificate error");
+		cemuLog_log(LogType::Force, "Certificate error");
 	}
 	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
@@ -374,7 +374,7 @@ namespace NAPI
 		// parse XML response
 		if (!doc.load_buffer(soapHelper.getReceivedData().data(), soapHelper.getReceivedData().size()))
 		{
-			forceLog_printf("Failed to parse GetRegistrationInfo() response");
+			cemuLog_log(LogType::Force, "Failed to parse GetRegistrationInfo() response");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return false;
 		}

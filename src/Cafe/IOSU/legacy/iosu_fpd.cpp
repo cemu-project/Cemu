@@ -170,7 +170,7 @@ namespace iosu
 				inet_pton(AF_INET, nexTokenResult.nexToken.host, &hostIp);
 				g_fpd.nexFriendSession = new NexFriends(hostIp, nexTokenResult.nexToken.port, "ridfebb9", myPid, nexTokenResult.nexToken.nexPassword, nexTokenResult.nexToken.token, accountId, (uint8*)&miiData, (wchar_t*)screenName, (uint8)countryCode, g_fpd.myPresence);
 				g_fpd.nexFriendSession->setNotificationHandler(notificationHandler);
-				forceLog_printf("IOSU_FPD: Created friend server session");
+				cemuLog_log(LogType::Force, "IOSU_FPD: Created friend server session");
 			}
 			else
 			{

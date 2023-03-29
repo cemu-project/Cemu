@@ -23,7 +23,7 @@ MPTR coreinit_allocFromSysArea(uint32 size, uint32 alignment)
 	sysAreaAllocatorOffset += (size+3)&~3;
 	if( sysAreaAllocatorOffset >= mmuRange_CEMU_AREA.getSize() )
 	{
-		forceLog_printf("Ran out of system memory");
+		cemuLog_log(LogType::Force, "Ran out of system memory");
 		cemu_assert(false); // out of bounds
 	}
 	s_allocator_mutex.unlock();

@@ -154,7 +154,7 @@ void coreinitExport_MCP_GetTitleInfo(PPCInterpreter_t* hCPU)
 
 	if (mcpRequest->titleListRequest.titleCount == 0)
 	{
-		forceLog_printf("MCP_GetTitleInfo() failed to get title info");
+		cemuLog_log(LogType::Force, "MCP_GetTitleInfo() failed to get title info");
 	}
 
 	osLib_returnFromFunction(hCPU, mcpRequest->returnCode);

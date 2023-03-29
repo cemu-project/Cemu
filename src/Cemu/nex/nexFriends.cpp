@@ -335,7 +335,7 @@ void NexFriends::handleResponse_getAllInformation(nexServiceResponse_t* response
 	uint8 isPreferenceInvalid = response->data.readU8(); // if not zero, preferences must be setup
 	if (isPreferenceInvalid)
 	{
-		forceLog_printf("NEX: First time login into friend account, setting up default preferences");
+		cemuLog_log(LogType::Force, "NEX: First time login into friend account, setting up default preferences");
 		session->updatePreferences(nexPrincipalPreference(1, 1, 0));
 	}
 
@@ -972,7 +972,7 @@ void NexFriends::update()
 			}
 			if (timeSinceLastLoginAttempt < delayTime)
 				return;
-			forceLog_printf("NEX: Attempt async friend service login");
+			cemuLog_log(LogType::Force, "NEX: Attempt async friend service login");
 			initiateLogin();
 		}
 	}
@@ -980,7 +980,7 @@ void NexFriends::update()
 	{
 		if (this->nexCon == nullptr || this->nexCon->getState() != nexService::STATE_CONNECTED)
 		{
-			forceLog_printf("NEX: Lost friend server session");
+			cemuLog_log(LogType::Force, "NEX: Lost friend server session");
 			if (this->nexCon)
 			{
 				this->nexCon->destroy();

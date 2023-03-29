@@ -74,7 +74,7 @@ namespace NAPI
 		pugi::xml_document doc;
 		if (!doc.load_buffer(receivedData.data(), receivedData.size()))
 		{
-			forceLog_printf("Failed to parse update list XML");
+			cemuLog_log(LogType::Force, "Failed to parse update list XML");
 			return result;
 		}
 		// example:
