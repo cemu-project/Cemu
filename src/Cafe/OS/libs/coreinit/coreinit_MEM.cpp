@@ -464,7 +464,7 @@ namespace coreinit
 	void* default_MEMAllocFromDefaultHeap(uint32 size)
 	{
 		void* mem = MEMAllocFromExpHeapEx(gDefaultHeap, size, 0x40);
-		coreinitMemLog_printf("MEMAllocFromDefaultHeap(0x%08x) Result: 0x%08x", size, memory_getVirtualOffsetFromPointer(mem));
+		cemuLog_log(LogType::CoreinitMem, "MEMAllocFromDefaultHeap(0x{:08}) Result: 0x{:08}", size, memory_getVirtualOffsetFromPointer(mem));
 		return mem;
 	}
 
@@ -478,7 +478,7 @@ namespace coreinit
 	void* default_MEMAllocFromDefaultHeapEx(uint32 size, sint32 alignment)
 	{
 		void* mem = MEMAllocFromExpHeapEx(gDefaultHeap, size, alignment);
-		coreinitMemLog_printf("MEMAllocFromDefaultHeap(0x%08x,%d) Result: 0x%08x", size, alignment, memory_getVirtualOffsetFromPointer(mem));
+		cemuLog_log(LogType::CoreinitMem, "MEMAllocFromDefaultHeap(0x{:08},{}) Result: 0x{:08}", size, alignment, memory_getVirtualOffsetFromPointer(mem));
 		return mem;
 	}
 
