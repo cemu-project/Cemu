@@ -1635,11 +1635,11 @@ void VulkanRenderer::QueryMemoryInfo()
 	cemuLog_log(LogType::Force, "Vulkan device memory info:");
 	for (uint32 i = 0; i < memProperties.memoryHeapCount; i++)
 	{
-		cemuLog_log(LogType::Force, "Heap {} - Size {}MB Flags 0x{:08}", i, (sint32)(memProperties.memoryHeaps[i].size / 1024ll / 1024ll), (uint32)memProperties.memoryHeaps[i].flags);
+		cemuLog_log(LogType::Force, "Heap {} - Size {}MB Flags 0x{:08x}", i, (sint32)(memProperties.memoryHeaps[i].size / 1024ll / 1024ll), (uint32)memProperties.memoryHeaps[i].flags);
 	}
 	for (uint32 i = 0; i < memProperties.memoryTypeCount; i++)
 	{
-		cemuLog_log(LogType::Force, "Memory {} - HeapIndex {} Flags 0x{:08}", i, (sint32)memProperties.memoryTypes[i].heapIndex, (uint32)memProperties.memoryTypes[i].propertyFlags);
+		cemuLog_log(LogType::Force, "Memory {} - HeapIndex {} Flags 0x{:08x}", i, (sint32)memProperties.memoryTypes[i].heapIndex, (uint32)memProperties.memoryTypes[i].propertyFlags);
 	}
 }
 
@@ -2205,7 +2205,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->decoder = TextureDecoder_D32_S8_UINT_X24::getInstance();
 			break;
 		default:
-			cemuLog_log(LogType::Force, "Unsupported depth texture format {:04}", (uint32)format);
+			cemuLog_log(LogType::Force, "Unsupported depth texture format {:04x}", (uint32)format);
 			// default to placeholder format
 			formatInfoOut->vkImageFormat = VK_FORMAT_D16_UNORM;
 			formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -2458,7 +2458,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UINT; // todo - should we use ABGR format?
 			formatInfoOut->decoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
 		default:
-			cemuLog_log(LogType::Force, "Unsupported color texture format {:04}", (uint32)format);
+			cemuLog_log(LogType::Force, "Unsupported color texture format {:04x}", (uint32)format);
 			cemu_assert_debug(false);
 		}
 	}

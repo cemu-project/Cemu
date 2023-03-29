@@ -262,7 +262,7 @@ namespace snd_core
 		if (numberOfDecodedAdpcmSamples >= 4096)
 		{
 			memset(output, 0, sizeof(float)*sampleCount);
-			cemuLog_log(LogType::Force, "Too many ADPCM samples to decode. ratio = {:08}", ratio);
+			cemuLog_log(LogType::Force, "Too many ADPCM samples to decode. ratio = {:08x}", ratio);
 			return;
 		}
 		AX_readADPCMSamples(internalShadowCopy, adpcmSampleBuffer, numberOfDecodedAdpcmSamples);

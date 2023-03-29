@@ -189,11 +189,11 @@ private:
 		auto it = list_chunks[addr.chunkIndex]->map_allocatedRange.find(addr.offset);
 		if (it == list_chunks[addr.chunkIndex]->map_allocatedRange.end())
 		{
-			cemuLog_log(LogType::Force, "Internal heap error. {:08} {:08}", addr.chunkIndex, addr.offset);
-			cemuLog_log(LogType::Force, "Debug info:");
+			cemuLog_log(LogType::Force, "Internal heap error. {:08x} {:08x}", addr.chunkIndex, addr.offset);
+			forceLog_printf("Debug info:");
 			for (auto& rangeItr : list_chunks[addr.chunkIndex]->map_allocatedRange)
 			{
-				cemuLog_log(LogType::Force, "{:08} {:08}", rangeItr.second->offset, rangeItr.second->size);
+				cemuLog_log(LogType::Force, "{:08x} {:08x}", rangeItr.second->offset, rangeItr.second->size);
 			}
 			return;
 		}

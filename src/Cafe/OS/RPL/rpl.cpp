@@ -1287,7 +1287,7 @@ bool RPLLoader_ApplyRelocs(RPLModule* rplLoaderContext, sint32 relaSectionIndex,
 	uint32 crc = rplLoaderContext->GetSectionCRC(relaSectionIndex);
 	if (calcCRC != crc)
 	{
-		cemuLog_log(LogType::Force, "RPLLoader {} - Relocation section {} has CRC mismatch - Calc: {:08} Actual: {:08}", rplLoaderContext->moduleName2.c_str(), relaSectionIndex, calcCRC, crc);
+		cemuLog_log(LogType::Force, "RPLLoader {} - Relocation section {} has CRC mismatch - Calc: {:08x} Actual: {:08x}", rplLoaderContext->moduleName2.c_str(), relaSectionIndex, calcCRC, crc);
 	}
 	// process relocations
 	sint32 relocCount = relocSize / sizeof(rplRelocNew_t);

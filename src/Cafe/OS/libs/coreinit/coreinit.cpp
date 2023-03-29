@@ -204,7 +204,7 @@ typedef struct
 void coreinitExport_OSDriver_Register(PPCInterpreter_t* hCPU)
 {
 #ifdef CEMU_DEBUG_ASSERT
-	cemuLog_log(LogType::Force, "OSDriver_Register(0x{:08},0x{:08},0x{:08},0x{:08},0x{:08},0x{:08})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
+	cemuLog_log(LogType::Force, "OSDriver_Register(0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
 #endif
 	OSDriverCallbacks_t* driverCallbacks = (OSDriverCallbacks_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]);
 
