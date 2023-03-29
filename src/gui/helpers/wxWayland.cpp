@@ -18,7 +18,7 @@ void wxWlSetAppId(wxFrame* frame, const char* applicationId)
 	GdkWindow* gdkWindow = gtk_widget_get_window(gtkWindow);
 	static auto gdk_wl_set_app_id = reinterpret_cast<void (*) (GdkWindow*, const char*)>(dlsym(nullptr, "gdk_wayland_window_set_application_id"));
 	if (gdk_wl_set_app_id)
-		gdk_wl_set_app_id(gdkWindow, application_id);
+		gdk_wl_set_app_id(gdkWindow, applicationId);
 }
 
 #endif	// BOOST_OS_LINUX && HAS_WAYLAND
