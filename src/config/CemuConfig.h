@@ -367,7 +367,15 @@ struct CemuConfig
 	ConfigValue<bool> fullscreen_menubar{ false };
 	ConfigValue<bool> fullscreen{ false };
 	ConfigValue<std::string> proxy_server{};
-	ConfigValue<bool> disable_screensaver{true};
+
+	// temporary workaround because feature crashes on macOS
+#if BOOST_OS_MACOS
+#define DISABLE_SCREENSAVER_DEFAULT false
+#else
+#define DISABLE_SCREENSAVER_DEFAULT true
+#endif
+	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
+#undef DISABLE_SCREENSAVER_DEFAULT
 
 	std::vector<std::wstring> game_paths;
 	std::mutex game_cache_entries_mutex;

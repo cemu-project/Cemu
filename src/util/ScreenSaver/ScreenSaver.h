@@ -6,6 +6,7 @@ class ScreenSaver
 public:
   static void SetInhibit(bool inhibit)
   {
+	  // temporary workaround because feature crashes on macOS
 #if BOOST_OS_MACOS
 	  return;
 #endif
