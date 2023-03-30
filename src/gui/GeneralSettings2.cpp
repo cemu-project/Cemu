@@ -178,8 +178,9 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_disable_screensaver = new wxCheckBox(box, wxID_ANY, _("Disable screen saver"));
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
-#ifdef BOOST_OS_MACOS
-			m_disable_screensaver->SetValue(false);
+
+			// temporary workaround because feature crashes on macOS
+#if BOOST_OS_MACOS
 			m_disable_screensaver->Enable(false);
 #endif
 
@@ -1507,6 +1508,10 @@ void GeneralSettings2::ApplyConfig()
 
 	m_permanent_storage->SetValue(config.permanent_storage);
 	m_disable_screensaver->SetValue(config.disable_screensaver);
+	// temporary workaround because feature crashes on macOS
+#if BOOST_OS_MACOS
+	m_disable_screensaver->SetValue(false);
+#endif
 
 	for (auto& path : config.game_paths)
 	{

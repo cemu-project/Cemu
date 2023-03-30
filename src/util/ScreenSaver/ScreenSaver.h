@@ -6,7 +6,8 @@ class ScreenSaver
 public:
   static void SetInhibit(bool inhibit)
   {
-#ifdef BOOST_OS_MACOS
+	  // temporary workaround because feature crashes on macOS
+#if BOOST_OS_MACOS
 	  return;
 #endif
     // Initialize video subsystem if necessary
