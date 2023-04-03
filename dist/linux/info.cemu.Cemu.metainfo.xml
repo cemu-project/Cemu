@@ -52,7 +52,7 @@
     </screenshot>
   </screenshots>
   <releases>
-    <release version="v2.0" date="2022-08-22" type="stable">
+    <release version="2.0" date="2022-08-22" type="stable">
       <url>https://github.com/cemu-project/Cemu/releases/tag/v2.0</url>
     </release>
   </releases>
