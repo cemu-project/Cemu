@@ -139,7 +139,7 @@ void PadViewFrame::OnKeyUp(wxKeyEvent& event)
 	const auto code = event.GetKeyCode();
 	if (code == WXK_ESCAPE)
 		ShowFullScreen(false);
-	else if (code == WXK_RETURN && event.AltDown())
+	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
 		ShowFullScreen(!IsFullScreen());
 }
 
