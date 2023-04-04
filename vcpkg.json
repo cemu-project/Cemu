@@ -33,6 +33,10 @@
     "boost-random",
     "fmt",
     {
+      "name": "glm",
+      "platform": "!linux"
+    },
+    {
       "name": "glslang",
       "default-features": false
     },
