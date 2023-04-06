@@ -92,13 +92,18 @@ void cemuLog_thread()
 	}
 }
 
+fs::path cemuLog_GetLogFilePath()
+{
+    return ActiveSettings::GetUserDataPath("log.txt");
+}
+
 void cemuLog_createLogFile(bool triggeredByCrash)
 {
 	std::unique_lock lock(LogContext.log_mutex);
 	if (LogContext.file_stream.is_open())
 		return;
 
-	const auto path = ActiveSettings::GetUserDataPath("log.txt");
+	const auto path = cemuLog_GetLogFilePath();
 	LogContext.file_stream.open(path, std::ios::out);
 	if (LogContext.file_stream.fail())
 	{

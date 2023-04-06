@@ -4,13 +4,14 @@
 #include <string>
 #include "config/CemuConfig.h"
 #include "util/helpers/StringHelpers.h"
+#include "ExceptionHandler.h"
 
 #if BOOST_OS_LINUX
 #include "ELFSymbolTable.h"
 #endif
 
 #if BOOST_OS_LINUX
-void demangleAndPrintBacktrace(char** backtrace, size_t size)
+void DemangleAndPrintBacktrace(char** backtrace, size_t size)
 {
 	ELFSymbolTable symTable;
 	for (char** i = backtrace; i < backtrace + size; i++)
@@ -25,7 +26,7 @@ void demangleAndPrintBacktrace(char** backtrace, size_t size)
 			 offsetPlus < parenthesesOpen || offsetPlus > parenthesesClose)
 		{
 			// fall back to default string
-			std::cerr << traceLine << std::endl;
+            CrashLog_WriteLine(traceLine);
 			continue;
 		}
 
@@ -38,29 +39,32 @@ void demangleAndPrintBacktrace(char** backtrace, size_t size)
 			symbolName = symTable.OffsetToSymbol(symbolOffset, newOffset);
 		}
 
-		std::cerr << traceLine.substr(0, parenthesesOpen+1);
+        CrashLog_WriteLine(traceLine.substr(0, parenthesesOpen+1), false);
 
-		std::cerr << boost::core::demangle(symbolName.empty() ? "" : symbolName.data());
+        CrashLog_WriteLine(boost::core::demangle(symbolName.empty() ? "" : symbolName.data()), false);
 
 		// print relative or existing symbol offset.
-		std::cerr << '+';
+        CrashLog_WriteLine("+", false);
 		if (newOffset != -1)
 		{
-			std::cerr << std::hex << newOffset;
-			std::cerr << traceLine.substr(parenthesesClose) << std::endl;
+            CrashLog_WriteLine(fmt::format("0x{:x}", newOffset), false);
+            CrashLog_WriteLine(traceLine.substr(parenthesesClose));
 		}
 		else
 		{
-			std::cerr << traceLine.substr(offsetPlus+1) << std::endl;
+            CrashLog_WriteLine(traceLine.substr(offsetPlus+1));
 		}
 	}
 }
 #endif
 
 // handle signals that would dump core, print stacktrace and then dump depending on config
-void handlerDumpingSignal(int sig)
+void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 {
-	char* sigName = strsignal(sig);
+    if(!CrashLog_Create())
+        return; // give up if crashlog was already created
+
+    char* sigName = strsignal(sig);
 	if (sigName)
 	{
 		printf("%s!\n", sigName);
@@ -71,30 +75,41 @@ void handlerDumpingSignal(int sig)
 		printf("Unknown core dumping signal!\n");
 	}
 
-	void *array[128];
+	void* backtraceArray[128];
 	size_t size;
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 128);
+	size = backtrace(backtraceArray, 128);
+    // replace the deepest entry with the actual crash address
+#if defined(ARCH_X86_64) && BOOST_OS_LINUX > 0
+    ucontext_t *uc = (ucontext_t *)context;
+    backtraceArray[0] = (void *)uc->uc_mcontext.gregs[REG_RIP];
+#endif
 
-	// print out all the frames to stderr
-	fprintf(stderr, "Error: signal %d:\n", sig);
+    CrashLog_WriteLine(fmt::format("Error: signal {}:", sig));
 
 #if BOOST_OS_LINUX
-	char** symbol_trace = backtrace_symbols(array, size);
+	char** symbol_trace = backtrace_symbols(backtraceArray, size);
 
 	if (symbol_trace)
 	{
-		demangleAndPrintBacktrace(symbol_trace, size);
+        DemangleAndPrintBacktrace(symbol_trace, size);
 		free(symbol_trace);
 	}
 	else
 	{
-		std::cerr << "Failed to read backtrace" << std::endl;
+        CrashLog_WriteLine("Failed to read backtrace");
 	}
 #else
-	backtrace_symbols_fd(array, size, STDERR_FILENO);
+	backtrace_symbols_fd(backtraceArray, size, STDERR_FILENO);
 #endif
+
+    std::cerr << fmt::format("\nStacktrace and additional info written to:") << std::endl;
+    std::cerr << cemuLog_GetLogFilePath().generic_string() << std::endl;
+
+    CrashLog_SetOutputChannels(false, true);
+    ExceptionHandler_LogGeneralInfo();
+    CrashLog_SetOutputChannels(true, true);
 
 	if (GetConfig().crash_dump == CrashDump::Enabled)
 	{
@@ -119,7 +134,7 @@ void handler_SIGINT(int sig)
 	_Exit(0);
 }
 
-void ExceptionHandler_init()
+void ExceptionHandler_Init()
 {
 	struct sigaction action;
 	action.sa_flags = 0;
@@ -128,7 +143,9 @@ void ExceptionHandler_init()
 	action.sa_handler = handler_SIGINT;
 	sigaction(SIGINT, &action, nullptr);
 
-	action.sa_handler = handlerDumpingSignal;
+    action.sa_flags = SA_SIGINFO;
+    action.sa_handler = nullptr;
+	action.sa_sigaction = handlerDumpingSignal;
 	sigaction(SIGABRT, &action, nullptr);
 	sigaction(SIGBUS, &action, nullptr);
 	sigaction(SIGFPE, &action, nullptr);
