@@ -3,6 +3,7 @@ add_library(CemuCommon
   cpu_features.cpp
   cpu_features.h
   enumFlags.h
+  ExceptionHandler/ExceptionHandler.cpp
   ExceptionHandler/ExceptionHandler.h
   FileStream.h
   GLInclude/glext.h

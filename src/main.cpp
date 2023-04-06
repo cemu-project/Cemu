@@ -179,7 +179,7 @@ void mainEmulatorCommonInit()
 	// set high priority
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
 #endif
-    ExceptionHandler_init();
+    ExceptionHandler_Init();
 	// read config
 	g_config.Load();
 	if (NetworkConfig::XMLExists())

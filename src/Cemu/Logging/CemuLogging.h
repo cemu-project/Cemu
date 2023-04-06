@@ -112,6 +112,7 @@ uint64 cemuLog_getFlag(LogType type);
 void cafeLog_setLoggingFlagEnable(sint32 loggingType, bool isEnable);
 bool cafeLog_isLoggingFlagEnabled(sint32 loggingType);
 
+fs::path cemuLog_GetLogFilePath();
 void cemuLog_createLogFile(bool triggeredByCrash);
 
 [[nodiscard]] std::unique_lock<std::recursive_mutex> cafeLog_acquire();

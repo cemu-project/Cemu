@@ -1,36 +1,22 @@
 #include "Common/precompiled.h"
 #include "Cafe/CafeSystem.h"
+#include "ExceptionHandler.h"
 
 #include <Windows.h>
 #include <Dbghelp.h>
 #include <shellapi.h>
 
-#include "Config/ActiveSettings.h"
-#include "Config/CemuConfig.h"
+#include "config/ActiveSettings.h"
+#include "config/CemuConfig.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
-
-extern uint32 currentBaseApplicationHash;
-extern uint32 currentUpdatedApplicationHash;
 
 LONG handleException_SINGLE_STEP(PEXCEPTION_POINTERS pExceptionInfo)
 {
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void crashlog_writeHeader(const char* header)
-{
-	cemuLog_writePlainToLog("-----------------------------------------\n");
-
-	cemuLog_writePlainToLog("   ");
-	cemuLog_writePlainToLog(header);
-	cemuLog_writePlainToLog("\n");
-
-	cemuLog_writePlainToLog("-----------------------------------------\n");
-}
-
-bool crashLogCreated = false;
 #include <boost/algorithm/string.hpp>
 BOOL CALLBACK MyMiniDumpCallback(PVOID pParam, const PMINIDUMP_CALLBACK_INPUT pInput, PMINIDUMP_CALLBACK_OUTPUT pOutput)
 {
@@ -108,8 +94,6 @@ bool CreateMiniDump(CrashDump dump, EXCEPTION_POINTERS* pep)
 	return result != FALSE;
 }
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 void DumpThreadStackTrace()
 {
 	HANDLE process = GetCurrentProcess();
@@ -123,7 +107,7 @@ void DumpThreadStackTrace()
 	symbol->MaxNameLen = 255;
 	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-	crashlog_writeHeader("Stack trace");
+    CrashLog_WriteHeader("Stack trace");
 	for (unsigned int i = 0; i < frames; i++)
 	{
 		DWORD64 stackTraceOffset = (DWORD64)stack[i];
@@ -171,11 +155,8 @@ void DumpThreadStackTrace()
 
 void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 {
-	if (crashLogCreated)
-		return; // only create one crashlog
-	crashLogCreated = true;
-
-	cemuLog_createLogFile(true);
+    if(!CrashLog_Create())
+        return; // give up if crashlog was already created
 
 	const auto crash_dump = GetConfig().crash_dump.GetValue();
 	const auto dump_written = CreateMiniDump(crash_dump, e);
@@ -236,117 +217,10 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 	cemuLog_writePlainToLog(dumpLine);
 	sprintf(dumpLine, "R12=%016I64x R13=%016I64x R14=%016I64x R15=%016I64x\n", context->R12, context->R13, context->R14, context->R15);
 	cemuLog_writePlainToLog(dumpLine);
-	// info about game
-	cemuLog_writePlainToLog("\n");
-	crashlog_writeHeader("Game info");
-	if (CafeSystem::IsTitleRunning())
-	{
-		cemuLog_writePlainToLog("Game: ");
-		cemuLog_writePlainToLog(CafeSystem::GetForegroundTitleName().c_str());
-		cemuLog_writePlainToLog("\n");
-		// title id
-		sprintf(dumpLine, "TitleId: %I64x\n", CafeSystem::GetForegroundTitleId());
-		cemuLog_writePlainToLog(dumpLine);
-		// rpx hash
-		sprintf(dumpLine, "RPXHash: %x\n", currentBaseApplicationHash);
-		cemuLog_writePlainToLog(dumpLine);
-	}
-	else
-	{
-		cemuLog_writePlainToLog("Not running\n");
-	}
-	// info about active PPC instance:
-	cemuLog_writePlainToLog("\n");
-	crashlog_writeHeader("Active PPC instance");
-	if (ppcInterpreterCurrentInstance)
-	{		
-		OSThread_t* currentThread = coreinit::OSGetCurrentThread();
-		uint32 threadPtr = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
-		sprintf(dumpLine, "IP 0x%08x LR 0x%08x Thread 0x%08x\n", ppcInterpreterCurrentInstance->instructionPointer, ppcInterpreterCurrentInstance->spr.LR, threadPtr);
-		cemuLog_writePlainToLog(dumpLine);
 
-		// GPR info
-		sprintf(dumpLine, "\n");
-		cemuLog_writePlainToLog(dumpLine);
-		auto gprs = ppcInterpreterCurrentInstance->gpr;
-		sprintf(dumpLine, "r0 =%08x r1 =%08x r2 =%08x r3 =%08x r4 =%08x r5 =%08x r6 =%08x r7 =%08x\n", gprs[0], gprs[1], gprs[2], gprs[3], gprs[4], gprs[5], gprs[6], gprs[7]);
-		cemuLog_writePlainToLog(dumpLine);
-		sprintf(dumpLine, "r8 =%08x r9 =%08x r10=%08x r11=%08x r12=%08x r13=%08x r14=%08x r15=%08x\n", gprs[8], gprs[9], gprs[10], gprs[11], gprs[12], gprs[13], gprs[14], gprs[15]);
-		cemuLog_writePlainToLog(dumpLine);
-		sprintf(dumpLine, "r16=%08x r17=%08x r18=%08x r19=%08x r20=%08x r21=%08x r22=%08x r23=%08x\n", gprs[16], gprs[17], gprs[18], gprs[19], gprs[20], gprs[21], gprs[22], gprs[23]);
-		cemuLog_writePlainToLog(dumpLine);
-		sprintf(dumpLine, "r24=%08x r25=%08x r26=%08x r27=%08x r28=%08x r29=%08x r30=%08x r31=%08x\n", gprs[24], gprs[25], gprs[26], gprs[27], gprs[28], gprs[29], gprs[30], gprs[31]);
-		cemuLog_writePlainToLog(dumpLine);
-
-		// write line to log
-		cemuLog_writePlainToLog(dumpLine);
-
-		// stack trace
-		MPTR currentStackVAddr = ppcInterpreterCurrentInstance->gpr[1];
-		cemuLog_writePlainToLog("\n");
-		crashlog_writeHeader("PPC stack trace");
-		DebugLogStackTrace(currentThread, currentStackVAddr);
-
-		// stack dump
-		cemuLog_writePlainToLog("\n");
-		crashlog_writeHeader("PPC stack dump");
-		for (uint32 i = 0; i < 16; i++)
-		{
-			MPTR lineAddr = currentStackVAddr + i * 8 * 4;
-			if (memory_isAddressRangeAccessible(lineAddr, 8 * 4))
-			{
-				sprintf(dumpLine, "[0x%08x] %08x %08x %08x %08x - %08x %08x %08x %08x\n", lineAddr, memory_readU32(lineAddr + 0), memory_readU32(lineAddr + 4), memory_readU32(lineAddr + 8), memory_readU32(lineAddr + 12), memory_readU32(lineAddr + 16), memory_readU32(lineAddr + 20), memory_readU32(lineAddr + 24), memory_readU32(lineAddr + 28));
-				cemuLog_writePlainToLog(dumpLine);
-			}
-			else
-			{
-				sprintf(dumpLine, "[0x%08x] ?\n", lineAddr);
-				cemuLog_writePlainToLog(dumpLine);
-			}
-		}
-	}
-	else
-	{
-		cemuLog_writePlainToLog("Not active\n");
-	}
-
-	// PPC thread log
-	cemuLog_writePlainToLog("\n");
-	crashlog_writeHeader("PPC threads");
-	if (activeThreadCount == 0)
-	{
-		cemuLog_writePlainToLog("None active\n");
-	}
-	for (sint32 i = 0; i < activeThreadCount; i++)
-	{
-		MPTR threadItrMPTR = activeThread[i];
-		OSThread_t* threadItrBE = (OSThread_t*)memory_getPointerFromVirtualOffset(threadItrMPTR);
-
-		// get thread state
-		OSThread_t::THREAD_STATE threadState = threadItrBE->state;
-		const char* threadStateStr = "UNDEFINED";
-		if (threadItrBE->suspendCounter != 0)
-			threadStateStr = "SUSPENDED";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_NONE)
-			threadStateStr = "NONE";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_READY)
-			threadStateStr = "READY";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_RUNNING)
-			threadStateStr = "RUNNING";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_WAITING)
-			threadStateStr = "WAITING";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_MORIBUND)
-			threadStateStr = "MORIBUND";
-		// generate log line
-		uint8 affinity = threadItrBE->attr;
-		sint32 effectivePriority = threadItrBE->effectivePriority;
-		const char* threadName = "NULL";
-		if (!threadItrBE->threadName.IsNull())
-			threadName = threadItrBE->threadName.GetPtr();
-		sprintf(dumpLine, "%08x Ent %08x IP %08x LR %08x %-9s Aff %d%d%d Pri %2d Name %s\n", threadItrMPTR, _swapEndianU32(threadItrBE->entrypoint), threadItrBE->context.srr0, _swapEndianU32(threadItrBE->context.lr), threadStateStr, (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, effectivePriority, threadName);
-		// write line to log
-		cemuLog_writePlainToLog(dumpLine);
-	}
+    CrashLog_SetOutputChannels(false, true);
+    ExceptionHandler_LogGeneralInfo();
+    CrashLog_SetOutputChannels(true, true);
 
 	cemuLog_waitForFlush();
 
@@ -405,7 +279,7 @@ LONG WINAPI cemu_unhandledExceptionFilter(EXCEPTION_POINTERS* pExceptionInfo)
 	return EXCEPTION_NONCONTINUABLE_EXCEPTION;
 }
 
-void ExceptionHandler_init()
+void ExceptionHandler_Init()
 {
 	SetUnhandledExceptionFilter(cemu_unhandledExceptionFilter);
 	AddVectoredExceptionHandler(1, VectoredExceptionHandler);
