@@ -353,7 +353,7 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 				// absolute
 				if (result >= 0x3FFFFFC)
 				{
-					cemuLog_log(LogType::Force, "Target \'{}\' for branch at line {} out of range", reloc->m_expression.c_str(), m_lineNumber);
+					cemuLog_log(LogType::Force, "Target \'{}\' for branch at line {} out of range", reloc->m_expression, m_lineNumber);
 					return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 				}
 				opcode &= ~0x3FFFFFC;
@@ -639,12 +639,12 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 		if (patchGroup->codeCaveSize > 0)
 		{
 			auto codeCaveMem = RPLLoader_AllocateCodeCaveMem(256, patchGroup->codeCaveSize);
-			cemuLog_log(LogType::Force, "Applying patch group \'{}\' (Codecave: {:08x}-{:08x})", patchGroup->name.c_str(), codeCaveMem.GetMPTR(), codeCaveMem.GetMPTR() + patchGroup->codeCaveSize);
+			cemuLog_log(LogType::Force, "Applying patch group \'{}\' (Codecave: {:08x}-{:08x})", patchGroup->name, codeCaveMem.GetMPTR(), codeCaveMem.GetMPTR() + patchGroup->codeCaveSize);
 			patchGroup->codeCaveMem = codeCaveMem;
 		}
 		else
 		{
-			cemuLog_log(LogType::Force, "Applying patch group \'{}\'", patchGroup->name.c_str());
+			cemuLog_log(LogType::Force, "Applying patch group \'{}\'", patchGroup->name);
 			patchGroup->codeCaveMem = nullptr;
 		}
 	}

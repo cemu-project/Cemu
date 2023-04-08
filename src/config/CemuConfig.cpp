@@ -114,7 +114,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			cemuLog_log(LogType::Force, "config load error: can't load recently launched game file: {}", path.c_str());
+			cemuLog_log(LogType::Force, "config load error: can't load recently launched game file: {}", path);
 		}
 	}
 	
@@ -132,7 +132,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			cemuLog_log(LogType::Force, "config load error: can't load recently launched nfc file: {}", path.c_str());
+			cemuLog_log(LogType::Force, "config load error: can't load recently launched nfc file: {}", path);
 		}
 	}
 
@@ -150,7 +150,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			cemuLog_log(LogType::Force, "config load error: can't load game path: {}", path.c_str());
+			cemuLog_log(LogType::Force, "config load error: can't load game path: {}", path);
 		}
 	}
 

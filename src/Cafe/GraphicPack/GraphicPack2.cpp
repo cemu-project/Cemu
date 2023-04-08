@@ -173,7 +173,7 @@ void GraphicPack2::ActivateForCurrentTitle()
 		{
 			if (gp->GetPresets().empty())
 			{
-				cemuLog_log(LogType::Force, "Activate graphic pack: {}", gp->GetPath().c_str());
+				cemuLog_log(LogType::Force, "Activate graphic pack: {}", gp->GetPath());
 			}
 			else
 			{
@@ -998,11 +998,11 @@ bool GraphicPack2::Activate()
 		if (LatteTiming_getCustomVsyncFrequency(globalCustomVsyncFreq))
 		{
 			if (customVsyncFreq != globalCustomVsyncFreq)
-				cemuLog_log(LogType::Force, "rules.txt error: Mismatching vsync frequency {} in graphic pack \'{}\'", customVsyncFreq, GetPath().c_str());
+				cemuLog_log(LogType::Force, "rules.txt error: Mismatching vsync frequency {} in graphic pack \'{}\'", customVsyncFreq, GetPath());
 		}
 		else
 		{
-			cemuLog_log(LogType::Force, "Set vsync frequency to {} (graphic pack {})", customVsyncFreq, GetPath().c_str());
+			cemuLog_log(LogType::Force, "Set vsync frequency to {} (graphic pack {})", customVsyncFreq, GetPath());
 			LatteTiming_setCustomVsyncFrequency(customVsyncFreq);
 		}
 	}

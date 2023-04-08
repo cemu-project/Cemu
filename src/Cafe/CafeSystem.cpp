@@ -143,7 +143,7 @@ void LoadMainExecutable()
 	uint8* rpxData = fsc_extractFile(_pathToExecutable.c_str(), &rpxSize);
 	if (rpxData == nullptr)
 	{
-		cemuLog_log(LogType::Force, "Failed to load \"{}\"", _pathToExecutable.c_str());
+		cemuLog_log(LogType::Force, "Failed to load \"{}\"", _pathToExecutable);
 		cemuLog_waitForFlush();
 		cemu_assert(false);
 	}

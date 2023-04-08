@@ -390,7 +390,7 @@ public:
 		fs::create_directories(fs::path(filename).parent_path(), err);
 		if (err)
 		{
-			cemuLog_log(LogType::Force, "can't create parent path for save file: {}", err.message().c_str());
+			cemuLog_log(LogType::Force, "can't create parent path for save file: {}", err.message());
 			return false;
 		}
 
