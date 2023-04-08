@@ -181,7 +181,7 @@ void SaveTransfer::OnTransfer(wxCommandEvent& event)
 	}
 
 	if (!meta_file_edited)
-		cemuLog_log(LogType::Force, "SaveTransfer::OnTransfer: couldn't update save entry in saveinfo.xml: {}", saveinfo.generic_string());
+		cemuLog_log(LogType::Force, "SaveTransfer::OnTransfer: couldn't update save entry in saveinfo.xml: {}", _pathToUtf8(saveinfo));
 
 	std::error_code ec;
 	fs::rename(source_path, target_path, ec);

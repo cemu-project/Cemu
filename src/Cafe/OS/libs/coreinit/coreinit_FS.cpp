@@ -186,7 +186,7 @@ namespace coreinit
 
 	void __FSErrorAndBlock(std::string_view msg)
 	{
-		cemuLog_log(LogType::Force, "Critical error in FS: {}", msg.data());
+		cemuLog_log(LogType::Force, "Critical error in FS: {}", msg);
 		while (true)
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}

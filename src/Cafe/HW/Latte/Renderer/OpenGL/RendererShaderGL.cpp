@@ -120,7 +120,7 @@ RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxH
 		GLsizei log_size;
 		glGetShaderInfoLog(m_shader_object, std::min<uint32>(log_length, sizeof(log) - 1), &log_size, log);
 		cemuLog_log(LogType::Force, "Error/Warning in shader:");
-		cemuLog_log(LogType::Force, "{}", log);
+		cemuLog_log(LogType::Force, log);
 	}
 
 	// set debug name

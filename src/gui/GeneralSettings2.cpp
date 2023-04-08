@@ -1275,7 +1275,7 @@ void GeneralSettings2::OnAccountDelete(wxCommandEvent& event)
 	catch(const std::exception& ex)
 	{
 		SystemException sys(ex);
-		cemuLog_log(LogType::Force, (char*)sys.what());
+		cemuLog_log(LogType::Force, sys.what());
 	}
 	
 }

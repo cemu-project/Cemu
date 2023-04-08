@@ -535,7 +535,7 @@ void TitleManager::OnSaveDelete(wxCommandEvent& event)
 	}
 
 	if (!meta_file_edited)
-		cemuLog_log(LogType::Force, "TitleManager::OnSaveDelete: couldn't delete save entry in saveinfo.xml: {}", saveinfo.generic_string());
+		cemuLog_log(LogType::Force, "TitleManager::OnSaveDelete: couldn't delete save entry in saveinfo.xml: {}", _pathToUtf8(saveinfo));
 
 	// remove from title entry
 	auto& persistent_ids = entry->persistent_ids;

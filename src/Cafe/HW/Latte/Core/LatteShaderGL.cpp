@@ -84,7 +84,7 @@ GLuint gpu7ShaderGLDepr_compileShader(const std::string& source, uint32_t type)
 		GLsizei log_size;
 		glGetShaderInfoLog(shader_object, std::min(log_length, (GLint)sizeof(log) - 1), &log_size, log);
 		cemuLog_log(LogType::Force, "Error/Warning in vertex shader:");
-		cemuLog_log(LogType::Force, "{}", log);
+		cemuLog_log(LogType::Force, log);
 	}
 
 	return shader_object;
@@ -113,7 +113,7 @@ GLuint gpu7ShaderGLDepr_compileVertexShader(const char* shaderSource, sint32 sha
 		char messageLog[2048]{};
 		glGetShaderInfoLog(shaderObject, std::min<uint32>(shaderLogLengthInfo, sizeof(messageLog) - 1), (GLsizei*)&shaderLogLen, (GLcharARB*)messageLog);
 		cemuLog_log(LogType::Force, "Error/Warning in vertex shader:");
-		cemuLog_log(LogType::Force, "{}", messageLog);
+		cemuLog_log(LogType::Force, messageLog);
 	}
 	return shaderObject;
 }
@@ -133,7 +133,7 @@ GLuint gpu7ShaderGLDepr_compileFragmentShader(const char* shaderSource, sint32 s
 		memset(messageLog, 0, sizeof(messageLog));
 		glGetShaderInfoLog(shaderObject, std::min<uint32>(shaderLogLengthInfo, sizeof(messageLog) - 1), (GLsizei*)&shaderLogLen, (GLcharARB*)messageLog);
 		cemuLog_log(LogType::Force, "Error/Warning in fragment shader:");
-		cemuLog_log(LogType::Force, "{}", messageLog);
+		cemuLog_log(LogType::Force, messageLog);
 	}
 	return shaderObject;
 }

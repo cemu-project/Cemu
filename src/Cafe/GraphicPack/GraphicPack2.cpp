@@ -974,7 +974,7 @@ bool GraphicPack2::Activate()
 	}
 	catch(const std::exception& ex)
 	{
-		cemuLog_log(LogType::Force, (char*)ex.what());
+		cemuLog_log(LogType::Force, ex.what());
 		return false;
 	}
 
