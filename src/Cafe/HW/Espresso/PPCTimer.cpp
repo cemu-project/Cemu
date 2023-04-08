@@ -61,11 +61,11 @@ uint64 PPCTimer_estimateRDTSCFrequency()
 
 	// uint64 freqMultiplier = tsc_freq / hrtFreq;
 	//cemuLog_log(LogType::Force, "RDTSC measurement test:");
-	//cemuLog_log(LogType::Force, "TSC-diff:   0x{:016}", tsc_diff);
-	//cemuLog_log(LogType::Force, "TSC-freq:   0x{:016}", tsc_freq);
-	//cemuLog_log(LogType::Force, "HPC-diff:   0x{:016}", qpc_diff);
-	//cemuLog_log(LogType::Force, "HPC-freq:   0x{:016}", (uint64)qpc_freq.QuadPart);
-	//cemuLog_log(LogType::Force, "Multiplier: 0x{:016}", freqMultiplier);
+	//cemuLog_log(LogType::Force, "TSC-diff:   0x{:016x}", tsc_diff);
+	//cemuLog_log(LogType::Force, "TSC-freq:   0x{:016x}", tsc_freq);
+	//cemuLog_log(LogType::Force, "HPC-diff:   0x{:016x}", qpc_diff);
+	//cemuLog_log(LogType::Force, "HPC-freq:   0x{:016x}", (uint64)qpc_freq.QuadPart);
+	//cemuLog_log(LogType::Force, "Multiplier: 0x{:016x}", freqMultiplier);
 
 	return tsc_freq;
 }

@@ -258,7 +258,7 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 	}
 	catch (const std::system_error& ex)
 	{
-		cemuLog_log(LogType::Force, "XAudio2API::RefreshDevices: error while refreshing device list ({} - code: 0x{:08})", ex.what(), ex.code().value());
+		cemuLog_log(LogType::Force, "XAudio2API::RefreshDevices: error while refreshing device list ({} - code: 0x{:08x})", ex.what(), ex.code().value());
 	}
 
 	CoUninitialize();
