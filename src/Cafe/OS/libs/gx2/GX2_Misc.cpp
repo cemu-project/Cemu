@@ -15,7 +15,7 @@
 
 void gx2Export_GX2SetSwapInterval(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetSwapInterval(%d)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetSwapInterval({})", hCPU->gpr[3]);
 	if( hCPU->gpr[3] >= 20 )
 	{
 		cemuLog_log(LogType::Force, "GX2SetSwapInterval() called with out of range value ({})", hCPU->gpr[3]);
@@ -27,7 +27,7 @@ void gx2Export_GX2SetSwapInterval(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetSwapInterval(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetSwapInterval()\n");
+	cemuLog_log(LogType::GX2, "GX2GetSwapInterval()");
 	osLib_returnFromFunction(hCPU, LatteGPUState.sharedArea->swapInterval);
 }
 
@@ -45,7 +45,7 @@ void gx2Export_GX2GetSwapStatus(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetGPUTimeout(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetGPUTimeout()\n");
+	cemuLog_log(LogType::GX2, "GX2GetGPUTimeout()");
 	osLib_returnFromFunction(hCPU, 0x3E8);
 }
 

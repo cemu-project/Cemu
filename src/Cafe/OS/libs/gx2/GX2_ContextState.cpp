@@ -283,7 +283,7 @@ void GX2SetDefaultState()
 
 void gx2Export_GX2SetDefaultState(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetDefaultState()");
+	cemuLog_log(LogType::GX2, "GX2SetDefaultState()");
 	GX2SetDefaultState();
 	osLib_returnFromFunction(hCPU, 0);
 }

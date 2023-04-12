@@ -48,7 +48,7 @@ uint64 lastSwapTime = 0;
 
 void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SwapScanBuffers()");
+	cemuLog_log(LogType::GX2, "GX2SwapScanBuffers()");
 
 	bool isPokken = false;
 
@@ -262,7 +262,7 @@ void gx2Export_GX2CalcDRCSize(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetDRCScale(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetDRCScale(%d,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetDRCScale({},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	osLib_returnFromFunction(hCPU, 0);
 }
 
@@ -311,7 +311,7 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2Flush(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2Flush()");
+	cemuLog_log(LogType::GX2, "GX2Flush()");
 	_GX2SubmitToTCL();
 	osLib_returnFromFunction(hCPU, 0);
 }
