@@ -345,7 +345,7 @@ void _GX2SubmitToTCL()
 	// update last submitted CB timestamp
 	uint64 commandBufferTimestamp = Latte_GetTime();
 	LatteGPUState.lastSubmittedCommandBufferTimestamp.store(commandBufferTimestamp);
-	gx2Log_printf("Submitting GX2 command buffer with timestamp %016" PRIx64, commandBufferTimestamp);
+	cemuLog_log(LogType::GX2, "Submitting GX2 command buffer with timestamp {:016x}", commandBufferTimestamp);
 	// submit HLE packet to write retirement timestamp
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SET_CB_RETIREMENT_TIMESTAMP, 2));
 	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp>>32ULL));
