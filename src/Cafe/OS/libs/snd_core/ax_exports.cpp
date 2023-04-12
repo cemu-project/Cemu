@@ -97,7 +97,7 @@ namespace snd_core
 		ppcDefineParamS32(device, 0);
 		ppcDefineParamU32BEPtr(funcAddrPtr, 1);
 		sint32 r = AXGetDeviceFinalMixCallback(device, funcAddrPtr);
-		sndApiLog_printf("AXGetDeviceFinalMixCallback(%d,0x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_log(LogType::SoundAPI, "AXGetDeviceFinalMixCallback({},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		osLib_returnFromFunction(hCPU, r);
 	}
 
@@ -105,14 +105,14 @@ namespace snd_core
 	{
 		ppcDefineParamS32(device, 0);
 		ppcDefineParamMPTR(funcAddr, 1);
-		sndApiLog_printf("AXRegisterDeviceFinalMixCallback(%d,0x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_log(LogType::SoundAPI, "AXRegisterDeviceFinalMixCallback({},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		sint32 r = AXRegisterDeviceFinalMixCallback(device, funcAddr);
 		osLib_returnFromFunction(hCPU, r);
 	}
 
 	void export_AXRegisterAppFrameCallback(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXRegisterAppFrameCallback(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXRegisterAppFrameCallback(0x{:08x})", hCPU->gpr[3]);
 		ppcDefineParamMPTR(funcAddr, 0);
 		sint32 r = AXRegisterAppFrameCallback(funcAddr);
 		osLib_returnFromFunction(hCPU, r);
@@ -120,7 +120,7 @@ namespace snd_core
 
 	void export_AXDeregisterAppFrameCallback(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXDeregisterAppFrameCallback(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXDeregisterAppFrameCallback(0x{:08x})", hCPU->gpr[3]);
 		ppcDefineParamMPTR(funcAddr, 0);
 		sint32 r = AXDeregisterAppFrameCallback(funcAddr);
 		osLib_returnFromFunction(hCPU, r);
@@ -128,7 +128,7 @@ namespace snd_core
 
 	void export_AXRegisterFrameCallback(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXRegisterFrameCallback(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXRegisterFrameCallback(0x{:08x})", hCPU->gpr[3]);
 		ppcDefineParamMPTR(funcAddr, 0);
 		sint32 r = AXRegisterFrameCallback(funcAddr);
 		osLib_returnFromFunction(hCPU, r);
@@ -136,7 +136,7 @@ namespace snd_core
 
 	void export_AXRegisterCallback(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXRegisterCallback(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXRegisterCallback(0x{:08x})", hCPU->gpr[3]);
 		ppcDefineParamMPTR(funcAddr, 0);
 		sint32 r = AXRegisterFrameCallback(funcAddr);
 		osLib_returnFromFunction(hCPU, r);
@@ -144,7 +144,7 @@ namespace snd_core
 
 	void export_AXRegisterAuxCallback(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXRegisterAuxCallback(0x%08x,0x%08x,0x%08x,0x%08x,0x%08x) LR %08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR);
+		cemuLog_log(LogType::SoundAPI, "AXRegisterAuxCallback(0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x}) LR {:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR);
 		ppcDefineParamU32(device, 0);
 		ppcDefineParamU32(deviceIndex, 1);
 		ppcDefineParamU32(auxBusIndex, 2);
@@ -156,7 +156,7 @@ namespace snd_core
 
 	void export_AXGetAuxCallback(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXGetAuxCallback(0x%08x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+		cemuLog_log(LogType::SoundAPI, "AXGetAuxCallback(0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 		ppcDefineParamU32(device, 0);
 		ppcDefineParamU32(deviceIndex, 1);
 		ppcDefineParamU32(auxBusIndex, 2);
@@ -168,7 +168,7 @@ namespace snd_core
 
 	void export_AXSetAuxReturnVolume(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXSetAuxReturnVolume(0x%08x,0x%08x,0x%08x,0x%04x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+		cemuLog_log(LogType::SoundAPI, "AXSetAuxReturnVolume(0x{:08x},0x{:08x},0x{:08x},0x{:04x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 		ppcDefineParamU32(device, 0);
 		ppcDefineParamU32(deviceIndex, 1);
 		ppcDefineParamU32(auxBusIndex, 2);
@@ -179,7 +179,7 @@ namespace snd_core
 
 	void export_AXGetDeviceMode(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXGetDeviceMode(%d)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXGetDeviceMode({})", hCPU->gpr[3]);
 		ppcDefineParamS32(device, 0);
 		ppcDefineParamU32BEPtr(mode, 1);
 		*mode = AXGetDeviceMode(device);
@@ -188,7 +188,7 @@ namespace snd_core
 
 	void export_AXSetDeviceUpsampleStage(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXSetDeviceUpsampleStage(%d,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_log(LogType::SoundAPI, "AXSetDeviceUpsampleStage({},{})", hCPU->gpr[3], hCPU->gpr[4]);
 		ppcDefineParamS32(device, 0);
 		ppcDefineParamS32(upsampleStage, 1);
 		sint32 r = AXSetDeviceUpsampleStage(device, upsampleStage);
@@ -197,7 +197,7 @@ namespace snd_core
 
 	void export_AXGetDeviceUpsampleStage(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXGetDeviceUpsampleStage(%d,0x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_log(LogType::SoundAPI, "AXGetDeviceUpsampleStage({},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		ppcDefineParamS32(device, 0);
 		ppcDefineParamU32BEPtr(upsampleStagePtr, 1);
 		sint32 r = AXGetDeviceUpsampleStage(device, upsampleStagePtr);
@@ -209,7 +209,7 @@ namespace snd_core
 		ppcDefineParamS32(priority, 0);
 		ppcDefineParamMPTR(callbackEx, 1);
 		ppcDefineParamMPTR(userParam, 2);
-		sndApiLog_printf("AXAcquireVoiceEx(%d,0x%08x,0x%08x)", priority, callbackEx, userParam);
+		cemuLog_log(LogType::SoundAPI, "AXAcquireVoiceEx({},0x{:08x},0x{:08x})", priority, callbackEx, userParam);
 		MEMPTR<AXVPB> r = AXAcquireVoiceEx(priority, callbackEx, userParam);
 		osLib_returnFromFunction(hCPU, r.GetMPTR());
 	}
@@ -219,7 +219,7 @@ namespace snd_core
 		ppcDefineParamS32(priority, 0);
 		ppcDefineParamMPTR(callback, 1);
 		ppcDefineParamMPTR(userParam, 2);
-		sndApiLog_printf("AXAcquireVoice(%d,0x%08x,0x%08x)", priority, callback, userParam);
+		cemuLog_log(LogType::SoundAPI, "AXAcquireVoice({},0x{:08x},0x{:08x})", priority, callback, userParam);
 		MEMPTR<AXVPB> r = AXAcquireVoiceEx(priority, MPTR_NULL, MPTR_NULL);
 		if (r.IsNull() == false)
 		{
@@ -232,7 +232,7 @@ namespace snd_core
 	void export_AXFreeVoice(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamStructPtr(vpb, AXVPB, 0);
-		sndApiLog_printf("AXFreeVoice(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXFreeVoice(0x{:08x})", hCPU->gpr[3]);
 		AXFreeVoice(vpb);
 		osLib_returnFromFunction(hCPU, 0);
 	}
@@ -240,20 +240,20 @@ namespace snd_core
 	void export_AXUserIsProtected(PPCInterpreter_t* hCPU)
 	{
 		sint32 r = AXUserIsProtected();
-		sndApiLog_printf("AXUserIsProtected() -> %s", r!=0?"true":"false");
+		cemuLog_log(LogType::SoundAPI, "AXUserIsProtected() -> {}", r!=0?"true":"false");
 		osLib_returnFromFunction(hCPU, r);
 	}
 
 	void export_AXUserBegin(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXUserBegin()");
+		cemuLog_log(LogType::SoundAPI, "AXUserBegin()");
 		sint32 r = AXUserBegin();
 		osLib_returnFromFunction(hCPU, r);
 	}
 
 	void export_AXUserEnd(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXUserEnd()");
+		cemuLog_log(LogType::SoundAPI, "AXUserEnd()");
 		sint32 r = AXUserEnd();
 		osLib_returnFromFunction(hCPU, r);
 	}
@@ -261,7 +261,7 @@ namespace snd_core
 	void export_AXVoiceBegin(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamStructPtr(vpb, AXVPB, 0);
-		sndApiLog_printf("AXVoiceBegin(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXVoiceBegin(0x{:08x})", hCPU->gpr[3]);
 		sint32 r = AXVoiceBegin(vpb);
 		osLib_returnFromFunction(hCPU, r);
 	}
@@ -269,7 +269,7 @@ namespace snd_core
 	void export_AXVoiceEnd(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamStructPtr(vpb, AXVPB, 0);
-		sndApiLog_printf("AXVoiceEnd(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXVoiceEnd(0x{:08x})", hCPU->gpr[3]);
 		sint32 r = AXVoiceEnd(vpb);
 		osLib_returnFromFunction(hCPU, r);
 	}
@@ -277,7 +277,7 @@ namespace snd_core
 	void export_AXVoiceIsProtected(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamStructPtr(vpb, AXVPB, 0);
-		sndApiLog_printf("AXVoiceIsProtected(0x%08x)", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXVoiceIsProtected(0x{:08x})", hCPU->gpr[3]);
 		sint32 r = AXVoiceProtection_IsProtectedByCurrentThread(vpb)?1:0;
 		osLib_returnFromFunction(hCPU, r);
 	}
@@ -303,7 +303,7 @@ namespace snd_core
 
 	void export_AXCheckVoiceOffsets(PPCInterpreter_t* hCPU)
 	{
-		sndApiLog_printf("AXCheckVoiceOffsets(0x%08x)\n", hCPU->gpr[3]);
+		cemuLog_log(LogType::SoundAPI, "AXCheckVoiceOffsets(0x{:08x})", hCPU->gpr[3]);
 		ppcDefineParamStructPtr(pbOffset, AXPBOFFSET_t, 0);
 
 		uint16 format = _swapEndianU16(pbOffset->format);
@@ -328,7 +328,7 @@ namespace snd_core
 		ppcDefineParamU32(chanIn, 1);
 		ppcDefineParamU32(chanOut, 2);
 		ppcDefineParamMEMPTR(matrix, float32be, 3);
-		sndApiLog_printf("AXSetDeviceRemixMatrix(%d,%d,%d,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+		cemuLog_log(LogType::SoundAPI, "AXSetDeviceRemixMatrix({},{},{},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 		const auto result = AXSetDeviceRemixMatrix(device, chanIn, chanOut, matrix);
 		osLib_returnFromFunction(hCPU, result);
 	}
@@ -339,7 +339,7 @@ namespace snd_core
 		ppcDefineParamU32(chanIn, 1);
 		ppcDefineParamU32(chanOut, 2);
 		ppcDefineParamMEMPTR(matrix, MEMPTR<float32be>, 3);
-		sndApiLog_printf("AXGetDeviceRemixMatrix(%d,%d,%d,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+		cemuLog_log(LogType::SoundAPI, "AXGetDeviceRemixMatrix({},{},{},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 		const auto result = AXGetDeviceRemixMatrix(device, chanIn, chanOut, matrix);
 		osLib_returnFromFunction(hCPU, result);
 	}

@@ -1004,7 +1004,7 @@ namespace snd_core
 		{
 			cemu_assert_debug(false);
 		}
-		sndApiLog_printf("Retrieved voice offsets for voice %08x - base %08x current %08x loopFlag %04x loop %08x end %08x", memory_getVirtualOffsetFromPointer(vpb), _swapEndianU32(pbOffset->samples), _swapEndianU32(pbOffset->currentOffset), _swapEndianU16(pbOffset->loopFlag), _swapEndianU32(pbOffset->loopOffset), _swapEndianU32(pbOffset->endOffset));
+		cemuLog_log(LogType::SoundAPI, "Retrieved voice offsets for voice {:08x} - base {:08x} current {:08x} loopFlag {:04x} loop {:08x} end {:08x}", memory_getVirtualOffsetFromPointer(vpb), _swapEndianU32(pbOffset->samples), _swapEndianU32(pbOffset->currentOffset), _swapEndianU16(pbOffset->loopFlag), _swapEndianU32(pbOffset->loopOffset), _swapEndianU32(pbOffset->endOffset));
 	}
 
 	void AXGetVoiceOffsetsEx(AXVPB* vpb, AXPBOFFSET_t* pbOffset, MPTR sampleBase)

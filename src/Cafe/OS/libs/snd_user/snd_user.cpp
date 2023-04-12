@@ -367,7 +367,7 @@ namespace snd
 
 		void MIXInit()
 		{
-			sndApiLog_printf("MIXInit()");
+			cemuLog_log(LogType::SoundAPI, "MIXInit()");
 
 			if (g_snd_user_data.initialized)
 				return;
@@ -388,7 +388,7 @@ namespace snd
 
 		void MIXSetSoundMode(uint32 sound_mode)
 		{
-			sndApiLog_printf("MIXSetSoundMode(0x%x)", sound_mode);
+			cemuLog_log(LogType::SoundAPI, "MIXSetSoundMode(0x{:x})", sound_mode);
 
 			if (sound_mode >= 2)
 				sound_mode = 1;
@@ -398,7 +398,7 @@ namespace snd
 
 		uint32 MIXGetSoundMode()
 		{
-			sndApiLog_printf("MIXGetSoundMode()");
+			cemuLog_log(LogType::SoundAPI, "MIXGetSoundMode()");
 			return g_snd_user_data.device_info.tv_sound_mode;
 		}
 
@@ -548,7 +548,7 @@ namespace snd
 
 		void MIXInitChannel(AXVPB* voice, uint16 mode, uint16 input, uint16 aux1, uint16 aux2, uint16 aux3, uint16 pan, uint16 span, uint16 fader)
 		{
-			sndApiLog_printf("MIXInitChannel(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)", MEMPTR(voice).GetMPTR(), mode, input, aux1, aux2, aux3, pan, span, fader);
+			cemuLog_log(LogType::SoundAPI, "MIXInitChannel(0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), mode, input, aux1, aux2, aux3, pan, span, fader);
 			cemu_assert_debug(voice);
 
 			AXVoiceBegin(voice);
@@ -579,7 +579,7 @@ namespace snd
 
 		void MIXAssignChannel(AXVPB* voice)
 		{
-			sndApiLog_printf("MIXAssignChannel(0x%x)", MEMPTR(voice).GetMPTR());
+			cemuLog_log(LogType::SoundAPI, "MIXAssignChannel(0x{:x})", MEMPTR(voice).GetMPTR());
 			cemu_assert_debug(voice);
 
 			AXVoiceBegin(voice);
@@ -619,7 +619,7 @@ namespace snd
 
 		void MIXSetInput(AXVPB* voice, uint16 input)
 		{
-			sndApiLog_printf("MIXSetInput(0x%x, 0x%x)", MEMPTR(voice).GetMPTR(), input);
+			cemuLog_log(LogType::SoundAPI, "MIXSetInput(0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), input);
 
 			const uint32 voice_index = voice->index;
 			const auto channel = &g_snd_user_data.mix_channel[voice_index];
@@ -631,7 +631,7 @@ namespace snd
 
 		void MIXUpdateSettings()
 		{
-			sndApiLog_printf("MIXUpdateSettings()");
+			cemuLog_log(LogType::SoundAPI, "MIXUpdateSettings()");
 
 			if (!g_snd_user_data.initialized)
 				return;
@@ -705,7 +705,7 @@ namespace snd
 
 		void MIXSetDeviceSoundMode(uint32 device, uint32 mode)
 		{
-			sndApiLog_printf("MIXSetDeviceSoundMode(0x%x, 0x%x)", device, mode);
+			cemuLog_log(LogType::SoundAPI, "MIXSetDeviceSoundMode(0x{:x}, 0x{:x})", device, mode);
 			cemu_assert_debug(device < AX_DEV_COUNT);
 			cemu_assert_debug(mode <= 4);
 
@@ -729,7 +729,7 @@ namespace snd
 			}
 			else
 			{
-				sndApiLog_printf("ERROR: MIXSetDeviceSoundMode(0x%x, 0x%x) -> wrong device", device, mode);
+				cemuLog_log(LogType::SoundAPI, "ERROR: MIXSetDeviceSoundMode(0x{:x}, 0x{:x}) -> wrong device", device, mode);
 			}
 
 			for (sint32 i = 0; i < g_snd_user_data.max_voices; ++i)
@@ -815,7 +815,7 @@ namespace snd
 
 		void MIXInitInputControl(AXVPB* voice, uint16 input, uint32 mode)
 		{
-			sndApiLog_printf("MIXInitInputControl(0x%x, 0x%x, 0x%x )", MEMPTR(voice).GetMPTR(), input, mode);
+			cemuLog_log(LogType::SoundAPI, "MIXInitInputControl(0x{:x}, 0x{:x}, 0x{:x} )", MEMPTR(voice).GetMPTR(), input, mode);
 			cemu_assert_debug(voice);
 
 			AXVoiceBegin(voice);
@@ -920,7 +920,7 @@ namespace snd
 
 		void SPInitSoundTable(SPSoundTable* soundTable, uint8* samples, uint32be* endOffsetPtr)
 		{
-			sndApiLog_printf("SPInitSoundTable(0x%x, 0x%x, 0x%x )", MEMPTR(soundTable).GetMPTR(), MEMPTR(samples).GetMPTR(), MEMPTR(endOffsetPtr).GetMPTR());
+			cemuLog_log(LogType::SoundAPI, "SPInitSoundTable(0x{:x}, 0x{:x}, 0x{:x} )", MEMPTR(soundTable).GetMPTR(), MEMPTR(samples).GetMPTR(), MEMPTR(endOffsetPtr).GetMPTR());
 			if (!soundTable)
 				return;
 
@@ -984,7 +984,7 @@ namespace snd
 
 		SPSoundEntry* SPGetSoundEntry(SPSoundTable* soundTable, uint32 index)
 		{
-			sndApiLog_printf("SPGetSoundEntry(0x%x, %d)", MEMPTR(soundTable).GetMPTR(), index);
+			cemuLog_log(LogType::SoundAPI, "SPGetSoundEntry(0x{:x}, {})", MEMPTR(soundTable).GetMPTR(), index);
 			if (!soundTable)
 				return nullptr;
 
