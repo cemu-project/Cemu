@@ -46,7 +46,7 @@ fi
 echo "Cemu Version Cemu-${GITVERSION}"
 
 rm AppDir/usr/lib/libwayland-client.so.0
-echo "export LC_ALL=C" >> AppDir/apprun-hooks/linuxdeploy-plugin-gtk.sh
+echo -e "export LC_ALL=C\nexport FONTCONFIG_PATH=/etc/fonts" >> AppDir/apprun-hooks/linuxdeploy-plugin-gtk.sh
 VERSION="${GITVERSION}" ./mkappimage.AppImage --appimage-extract-and-run "${GITHUB_WORKSPACE}"/AppDir
 
 mkdir -p "${GITHUB_WORKSPACE}"/artifacts/

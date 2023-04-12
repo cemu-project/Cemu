@@ -32,12 +32,14 @@
     "boost-static-string",
     "boost-random",
     "fmt",
-    "glm",
+    {
+      "name": "glm",
+      "platform": "!linux"
+    },
 	{
       "name": "glslang",
       "default-features": false
     },
-    "zstd",
     {
       "name": "wxwidgets",
       "default-features": false
