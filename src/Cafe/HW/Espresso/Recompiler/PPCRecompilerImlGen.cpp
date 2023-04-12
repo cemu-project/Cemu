@@ -643,7 +643,7 @@ bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 		{
 			// generate NOP iml instead of BL macro (this assures that segment PPC range remains intact)
 			PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext, NULL);
-			//forceLog_printf("Inline func 0x%08x at %08x", jumpAddressDest, ppcImlGenContext->ppcAddressOfCurrentInstruction);
+			//cemuLog_log(LogType::Force, "Inline func 0x{:08x} at {:08x}", jumpAddressDest, ppcImlGenContext->ppcAddressOfCurrentInstruction);
 			uint32* prevInstructionPtr = ppcImlGenContext->currentInstruction;
 			ppcImlGenContext->currentInstruction = (uint32*)memory_getPointerFromVirtualOffset(jumpAddressDest);
 			PPCRecompiler_generateInlinedCode(ppcImlGenContext, jumpAddressDest, inlineFuncInstructionCount);

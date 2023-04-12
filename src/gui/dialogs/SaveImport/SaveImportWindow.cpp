@@ -232,7 +232,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 		zip_stat_t sb{};
 		if (zip_stat_index(zip, i, 0, &sb) != 0)
 		{
-			forceLog_printf("zip stat index failed on %d entry", i);
+			cemuLog_log(LogType::Force, "zip stat index failed on {} entry", i);
 			continue;
 		}
 
@@ -251,7 +251,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 		{
 			fs::create_directories(path, ec);
 			if (ec)
-				forceLog_printf("can't create directory %s: %s", sb.name, ec.message().c_str());
+				cemuLog_log(LogType::Force, "can't create directory {}: {}", sb.name, ec.message());
 
 			continue;
 		}
@@ -307,7 +307,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 					timestamp.text().set(fmt::format("{:016x}", coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK).c_str()); // TODO time not initialized yet?
 					
 					if(!doc.save_file(saveinfo.c_str()))
-						forceLog_printf("couldn't insert save entry in saveinfo.xml: %s", saveinfo.generic_u8string().c_str());
+						cemuLog_log(LogType::Force, "couldn't insert save entry in saveinfo.xml: {}", _pathToUtf8(saveinfo));
 				}
 			}
 		}

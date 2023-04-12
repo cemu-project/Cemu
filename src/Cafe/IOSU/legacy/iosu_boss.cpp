@@ -322,7 +322,7 @@ namespace iosu
 					forceLogDebug_printf("sslctx_function: adding ca cert: %d", (int)task_settings->settings[location]);
 					if (!iosuCrypto_addCACertificate(sslctx, task_settings->settings[location]))
 					{
-						forceLog_printf("Failed to load CA certificate file");
+						cemuLog_log(LogType::Force, "Failed to load CA certificate file");
 						assert_dbg();
 					}
 				}
@@ -334,13 +334,13 @@ namespace iosu
 		{
 			if (!iosuCrypto_addCACertificate(sslctx, 105))
 			{
-				forceLog_printf("Failed to load certificate file");
+				cemuLog_log(LogType::Force, "Failed to load certificate file");
 				assert_dbg();
 			}
 
 			if (!iosuCrypto_addClientCertificate(sslctx, 3))
 			{
-				forceLog_printf("Failed to load client certificate file");
+				cemuLog_log(LogType::Force, "Failed to load client certificate file");
 				assert_dbg();
 			}
 		}

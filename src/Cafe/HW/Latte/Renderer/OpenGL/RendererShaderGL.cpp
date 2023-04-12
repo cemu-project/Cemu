@@ -119,8 +119,8 @@ RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxH
 		char log[2048]{};
 		GLsizei log_size;
 		glGetShaderInfoLog(m_shader_object, std::min<uint32>(log_length, sizeof(log) - 1), &log_size, log);
-		forceLog_printf("Error/Warning in shader:");
-		forceLog_printf("%s", log);
+		cemuLog_log(LogType::Force, "Error/Warning in shader:");
+		cemuLog_log(LogType::Force, log);
 	}
 
 	// set debug name
@@ -192,7 +192,7 @@ bool RendererShaderGL::WaitForCompiled()
 			tempLength = sizeof(infoLog) - 1;
 			glGetShaderInfoLog(m_shader_object, std::min(infoLogLength, tempLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
 			infoLog[tempLength] = '\0';
-			forceLog_printf("Compile error in shader. Log:", infoLog);
+			cemuLog_log(LogType::Force, "Compile error in shader. Log:");
 			cemuLog_log(LogType::Force, infoLog);
 		}
 		if (m_shader_object != 0)
@@ -212,7 +212,7 @@ bool RendererShaderGL::WaitForCompiled()
 			tempLength = sizeof(infoLog) - 1;
 			glGetProgramInfoLog(m_program, std::min(infoLogLength, tempLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
 			infoLog[tempLength] = '\0';
-			forceLog_printf("Link error in shader. Log:", infoLog);
+			cemuLog_log(LogType::Force, "Link error in shader. Log:");
 			cemuLog_log(LogType::Force, infoLog);
 		}
 		m_isCompiled = true;
@@ -273,7 +273,7 @@ void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)
 		UNREACHABLE;
 	}
 
-	forceLog_printf("Using precompiled shaders: %s", usePrecompiled ? "true" : "false");
+	cemuLog_log(LogType::Force, "Using precompiled shaders: {}", usePrecompiled ? "true" : "false");
 
 	if (usePrecompiled)
 	{

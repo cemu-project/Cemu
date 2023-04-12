@@ -86,7 +86,7 @@ namespace coreinit
 		}
 		if (mutexIndex == -1)
 		{
-			forceLog_printf("__ghs_flock_create(): No flock available");
+			cemuLog_log(LogType::Force, "__ghs_flock_create(): No flock available");
 			cemu_assert(false); // no available mutex
 		}
 		// mark mutex as reserved

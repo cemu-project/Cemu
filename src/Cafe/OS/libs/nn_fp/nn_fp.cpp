@@ -473,7 +473,7 @@ namespace nn
 			}
 			if (joinFlagMask == 0x65 || joinFlagMask == 0x66)
 			{
-				forceLog_printf("Unsupported friend invite");
+				cemuLog_log(LogType::Force, "Unsupported friend invite");
 			}
 
 			osLib_returnFromFunction(hCPU, 0);

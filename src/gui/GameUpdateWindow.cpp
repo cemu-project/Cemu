@@ -105,7 +105,7 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 		}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("GameUpdateWindow::ParseUpdate exist-error: %s at %s", ex.what(), target_location.generic_u8string().c_str());
+			cemuLog_log(LogType::Force, "GameUpdateWindow::ParseUpdate exist-error: {} at {}", ex.what(), _pathToUtf8(target_location));
 		}
 	}
 

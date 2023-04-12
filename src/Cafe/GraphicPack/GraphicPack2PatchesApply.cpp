@@ -353,7 +353,7 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolveReloc(PatchContext_t& ctx, PP
 				// absolute
 				if (result >= 0x3FFFFFC)
 				{
-					forceLog_printf("Target \'%s\' for branch at line %d out of range", reloc->m_expression.c_str(), m_lineNumber);
+					cemuLog_log(LogType::Force, "Target \'{}\' for branch at line {} out of range", reloc->m_expression, m_lineNumber);
 					return PATCH_RESOLVE_RESULT::VALUE_ERROR;
 				}
 				opcode &= ~0x3FFFFFC;
@@ -438,7 +438,7 @@ PATCH_RESOLVE_RESULT PatchEntryInstruction::resolve(PatchContext_t& ctx)
 	{
 		if (_relocateAddress(resolverState.currentGroup, &ctx, m_addr, m_relocatedAddr) == false)
 		{
-			forceLog_printf("Patches: Address 0x%08x (line %d) is not within code cave or any module section", this->getAddr(), this->m_lineNumber);
+			cemuLog_log(LogType::Force, "Patches: Address 0x{:08x} (line {}) is not within code cave or any module section", this->getAddr(), this->m_lineNumber);
 			cemu_assert_debug(false);
 			return PATCH_RESOLVE_RESULT::INVALID_ADDRESS;
 		}
@@ -639,12 +639,12 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 		if (patchGroup->codeCaveSize > 0)
 		{
 			auto codeCaveMem = RPLLoader_AllocateCodeCaveMem(256, patchGroup->codeCaveSize);
-			forceLog_printf("Applying patch group \'%s\' (Codecave: %08x-%08x)", patchGroup->name.c_str(), codeCaveMem.GetMPTR(), codeCaveMem.GetMPTR() + patchGroup->codeCaveSize);
+			cemuLog_log(LogType::Force, "Applying patch group \'{}\' (Codecave: {:08x}-{:08x})", patchGroup->name, codeCaveMem.GetMPTR(), codeCaveMem.GetMPTR() + patchGroup->codeCaveSize);
 			patchGroup->codeCaveMem = codeCaveMem;
 		}
 		else
 		{
-			forceLog_printf("Applying patch group \'%s\'", patchGroup->name.c_str());
+			cemuLog_log(LogType::Force, "Applying patch group \'{}\'", patchGroup->name);
 			patchGroup->codeCaveMem = nullptr;
 		}
 	}

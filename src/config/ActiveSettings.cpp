@@ -33,7 +33,7 @@ ActiveSettings::LoadOnce(const fs::path& user_data_path,
 		}
 		if (!TestWriteAccess(path))
 		{
-			cemuLog_log(LogType::Force, "Failed to write to {}", path.generic_string());
+			cemuLog_log(LogType::Force, "Failed to write to {}", _pathToUtf8(path));
 			failed_write_access.insert(path);
 		}
 	}

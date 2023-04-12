@@ -125,7 +125,7 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 			return;
 		}
 		// unsupported depth format
-		forceLog_printf("OpenGL: Unsupported texture depth format 0x%04x", (uint32)format);
+		cemuLog_log(LogType::Force, "OpenGL: Unsupported texture depth format 0x{:04x}", (uint32)format);
 		// use placeholder format
 		formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, false);
 		formatInfoOut->markAsAlternativeFormat();
@@ -499,7 +499,7 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	}
 	else
 	{
-		forceLog_printf("OpenGL: Unsupported texture format 0x%04x", (uint32)format);
+		cemuLog_log(LogType::Force, "OpenGL: Unsupported texture format 0x{:04x}", (uint32)format);
 		cemu_assert_unimplemented();
 	}
 	formatInfoOut->glInternalFormat = glInternalFormat;

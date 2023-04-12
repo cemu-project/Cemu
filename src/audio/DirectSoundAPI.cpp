@@ -116,7 +116,7 @@ void DirectSoundAPI::AudioThread()
 
 			if (FAILED(hr))
 			{
-				forceLog_printf("DirectSound: Dropped audio block due to locking failure");
+				cemuLog_log(LogType::Force, "DirectSound: Dropped audio block due to locking failure");
 				continue;
 			}
 

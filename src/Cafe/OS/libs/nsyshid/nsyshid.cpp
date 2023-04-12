@@ -165,7 +165,7 @@ namespace nsyshid
 		HIDDevice_t* hidDevice = getFreeDevice();
 		if (hidDevice == nullptr)
 		{
-			forceLog_printf("HID: Maximum number of supported devices exceeded");
+			cemuLog_log(LogType::Force, "HID: Maximum number of supported devices exceeded");
 			return;
 		}
 
@@ -194,12 +194,12 @@ namespace nsyshid
 		}
 		if (maxPacketInputLength <= 0 || maxPacketInputLength >= 0xF000)
 		{
-			forceLog_printf("HID: Input packet length not available or out of range (length = %d)", maxPacketInputLength);
+			cemuLog_log(LogType::Force, "HID: Input packet length not available or out of range (length = {})", maxPacketInputLength);
 			maxPacketInputLength = 0x20;
 		}
 		if (maxPacketOutputLength <= 0 || maxPacketOutputLength >= 0xF000)
 		{
-			forceLog_printf("HID: Output packet length not available or out of range (length = %d)", maxPacketOutputLength);
+			cemuLog_log(LogType::Force, "HID: Output packet length not available or out of range (length = {})", maxPacketOutputLength);
 			maxPacketOutputLength = 0x20;
 		}
 		// setup HIDDevice struct
@@ -487,7 +487,7 @@ namespace nsyshid
 			retryCount++;
 			if (retryCount >= 40)
 			{
-				forceLog_printf("HID async SetReport failed");
+				cemuLog_log(LogType::Force, "HID async SetReport failed");
 				sint32 errorCode = -1;
 				doHIDTransferCallback(callbackFuncMPTR, callbackParamMPTR, hidDeviceInfo->handle, errorCode, memory_getVirtualOffsetFromPointer(originalData), 0);
 				free(reportData);
@@ -545,7 +545,7 @@ namespace nsyshid
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
-			forceLog_printf("nsyshid.HIDSetReport(): Unable to find device with hid handle %d", hidHandle);
+			cemuLog_log(LogType::Force, "nsyshid.HIDSetReport(): Unable to find device with hid handle {}", hidHandle);
 			osLib_returnFromFunction(hCPU, -1);
 			return;
 		}
@@ -641,7 +641,7 @@ namespace nsyshid
 		}
 		else
 		{
-			forceLog_printf("Failed HID read");
+			cemuLog_log(LogType::Force, "Failed HID read");
 			returnCode = -1;
 		}
 		free(tempBuffer);
@@ -677,7 +677,7 @@ namespace nsyshid
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
-			forceLog_printf("nsyshid.HIDRead(): Unable to find device with hid handle %d", hidHandle);
+			cemuLog_log(LogType::Force, "nsyshid.HIDRead(): Unable to find device with hid handle {}", hidHandle);
 			osLib_returnFromFunction(hCPU, -1);
 			return;
 		}
@@ -776,7 +776,7 @@ namespace nsyshid
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
-			forceLog_printf("nsyshid.HIDWrite(): Unable to find device with hid handle %d", hidHandle);
+			cemuLog_log(LogType::Force, "nsyshid.HIDWrite(): Unable to find device with hid handle {}", hidHandle);
 			osLib_returnFromFunction(hCPU, -1);
 			return;
 		}

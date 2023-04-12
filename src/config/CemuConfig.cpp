@@ -28,7 +28,7 @@ void CemuConfig::SetMLCPath(fs::path path, bool save)
 		catch (const PSDisabledException&) {}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("can't store custom mlc path in permanent storage: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't store custom mlc path in permanent storage: {}", ex.what());
 		}
 	}
 
@@ -114,7 +114,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			forceLog_printf("config load error: can't load recently launched game file: %s", path.c_str());
+			cemuLog_log(LogType::Force, "config load error: can't load recently launched game file: {}", path);
 		}
 	}
 	
@@ -132,7 +132,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			forceLog_printf("config load error: can't load recently launched nfc file: %s", path.c_str());
+			cemuLog_log(LogType::Force, "config load error: can't load recently launched nfc file: {}", path);
 		}
 	}
 
@@ -150,7 +150,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			forceLog_printf("config load error: can't load game path: %s", path.c_str());
+			cemuLog_log(LogType::Force, "config load error: can't load game path: {}", path);
 		}
 	}
 
@@ -186,7 +186,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		}
 		catch (const std::exception&)
 		{
-			forceLog_printf("config load error: can't load game cache entry: %s", rpx);
+			cemuLog_log(LogType::Force, "config load error: can't load game cache entry: {}", rpx);
 		}
 	}
 	_lock.unlock();
@@ -302,7 +302,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	}
 	catch (const std::exception&)
 	{
-		forceLog_printf("config load error: can't load tv device: %s", tv);
+		cemuLog_log(LogType::Force, "config load error: can't load tv device: {}", tv);
 	}
 
 	const auto pad = audio.get("PadDevice", "");
@@ -312,7 +312,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	}
 	catch (const std::exception&)
 	{
-		forceLog_printf("config load error: can't load pad device: %s", pad);
+		cemuLog_log(LogType::Force, "config load error: can't load pad device: {}", pad);
 	}
 
 	const auto input_device_name = audio.get("InputDevice", "");
@@ -322,7 +322,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	}
 	catch (const std::exception&)
 	{
-		forceLog_printf("config load error: can't load input device: %s", input_device_name);
+		cemuLog_log(LogType::Force, "config load error: can't load input device: {}", input_device_name);
 	}
 
 	// account

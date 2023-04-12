@@ -71,7 +71,7 @@ uint32 ELF_LoadFromMemory(uint8* elfData, sint32 size, const char* name)
 
 		if (shOffset > (uint32)size)
 		{
-			forceLog_printf("ELF section %d out of bounds", i);
+			cemuLog_log(LogType::Force, "ELF section {} out of bounds", i);
 			continue;
 		}
 		uint32 copySize = std::min(shSize, size - shOffset);

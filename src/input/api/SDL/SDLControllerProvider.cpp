@@ -36,7 +36,7 @@ SDLControllerProvider::SDLControllerProvider()
 		
 
 	if (SDL_GameControllerEventState(SDL_ENABLE) < 0) {
-		forceLog_printf("Couldn't enable SDL gamecontroller event polling: %s", SDL_GetError());
+		cemuLog_log(LogType::Force, "Couldn't enable SDL gamecontroller event polling: {}", SDL_GetError());
 	}
 
 	m_running = true;

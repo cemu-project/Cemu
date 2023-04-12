@@ -253,7 +253,7 @@ namespace NAPI
 		result.deviceToken = responseNode.child_value("DeviceToken");
 
 		if (boost::iequals(responseNode.child_value("DeviceTokenExpired"), "true"))
-			forceLog_printf("Unexpected server response: Device token expired");
+			cemuLog_log(LogType::Force, "Unexpected server response: Device token expired");
 
 		/*
 			example response:
@@ -363,7 +363,7 @@ namespace NAPI
 			else if (boost::iequals(serviceType, "NusURL"))
 				result.serviceURLs.NusURL = url;
 			else
-				forceLog_printf("GetAccountStatus: Unknown service URI type {}", serviceType);
+				cemuLog_log(LogType::Force, "GetAccountStatus: Unknown service URI type {}", serviceType);
 		}
 
 		// assign service URLs

@@ -103,7 +103,7 @@ bool DSUControllerProvider::connect()
 	}
 	catch (const std::exception& ex)
 	{
-		forceLog_printf("dsu client connect error: %s", ex.what());
+		cemuLog_log(LogType::Force, "dsu client connect error: {}", ex.what());
 		return false;
 	}
 }

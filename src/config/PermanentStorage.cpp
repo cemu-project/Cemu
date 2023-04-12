@@ -25,7 +25,7 @@ PermanentStorage::~PermanentStorage()
 		if (ec)
 		{
 			SystemException ex(ec);
-			forceLog_printf("can't remove permanent storage: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't remove permanent storage: {}", ex.what());
 		}
 	}
 }

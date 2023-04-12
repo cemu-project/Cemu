@@ -677,7 +677,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			info.imageView = nullTexture1D.view;
 			info.sampler = nullTexture1D.sampler;
 			textureArray.emplace_back(info);
-			// forceLog_printf("Vulkan-Info: Shader 0x%016llx uses 1D texture but bound texture has mismatching type (dim: 0x%02x)", shader->baseHash, textureView->gx2Dim);
+			// cemuLog_log(LogType::Force, "Vulkan-Info: Shader 0x{:016x} uses 1D texture but bound texture has mismatching type (dim: 0x{:02x})", shader->baseHash, textureView->gx2Dim);
 			continue;
 		}
 		else if (textureDim == Latte::E_DIM::DIM_2D && (textureView->dim != Latte::E_DIM::DIM_2D && textureView->dim != Latte::E_DIM::DIM_2D_MSAA))
@@ -688,7 +688,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			info.imageView = nullTexture2D.view;
 			info.sampler = nullTexture2D.sampler;
 			textureArray.emplace_back(info);
-			// forceLog_printf("Vulkan-Info: Shader 0x%016llx uses 2D texture but bound texture has mismatching type (dim: 0x%02x)", shader->baseHash, textureView->gx2Dim);
+			// cemuLog_log(LogType::Force, "Vulkan-Info: Shader 0x{:016x} uses 2D texture but bound texture has mismatching type (dim: 0x{:02x})", shader->baseHash, textureView->gx2Dim);
 			continue;
 		}
 

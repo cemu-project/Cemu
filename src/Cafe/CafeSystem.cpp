@@ -133,7 +133,7 @@ void LoadMainExecutable()
 		// otherwise search for first file with .rpx extension in the code folder
 		if (!ScanForRPX())
 		{
-			forceLog_printf("Unable to find RPX executable");
+			cemuLog_log(LogType::Force, "Unable to find RPX executable");
 			cemuLog_waitForFlush();
 			cemu_assert(false);
 		}
@@ -143,7 +143,7 @@ void LoadMainExecutable()
 	uint8* rpxData = fsc_extractFile(_pathToExecutable.c_str(), &rpxSize);
 	if (rpxData == nullptr)
 	{
-		forceLog_printf("Failed to load \"%s\"", _pathToExecutable.c_str());
+		cemuLog_log(LogType::Force, "Failed to load \"{}\"", _pathToExecutable);
 		cemuLog_waitForFlush();
 		cemu_assert(false);
 	}
@@ -383,7 +383,7 @@ void cemu_initForGame()
 	RPLLoader_Link();
 	RPLLoader_NotifyControlPassedToApplication();
 	uint32 linkTime = GetTickCount() - linkTimeStart;
-	forceLog_printf("RPL link time: %dms", linkTime);
+	cemuLog_log(LogType::Force, "RPL link time: {}ms", linkTime);
 	// for HBL ELF: Setup OS-specifics struct
 	if (isLaunchTypeELF)
 	{
@@ -406,13 +406,13 @@ void cemu_initForGame()
     }
 	debugger_handleEntryBreakpoint(_entryPoint);
 	// load graphic packs
-	forceLog_printf("------- Activate graphic packs -------");
+	cemuLog_log(LogType::Force, "------- Activate graphic packs -------");
 	GraphicPack2::ActivateForCurrentTitle();
 	// print audio log
 	IAudioAPI::PrintLogging();
 	IAudioInputAPI::PrintLogging();
 	// everything initialized
-	forceLog_printf("------- Run title -------");
+	cemuLog_log(LogType::Force, "------- Run title -------");
 	// wait till GPU thread is initialized
 	while (g_isGPUInitFinished == false) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	// init initial thread
