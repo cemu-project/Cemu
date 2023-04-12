@@ -53,14 +53,14 @@ void gx2Export_GX2GetGPUTimeout(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SampleTopGPUCycle(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SampleTopGPUCycle(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SampleTopGPUCycle(0x{:08x})", hCPU->gpr[3]);
 	memory_writeU64(hCPU->gpr[3], coreinit::coreinit_getTimerTick());
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2SampleBottomGPUCycle(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SampleBottomGPUCycle(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SampleBottomGPUCycle(0x{:08x})", hCPU->gpr[3]);
 	memory_writeU64(hCPU->gpr[3], GX2_INVALID_COUNTER_VALUE_U64);
 
 	osLib_returnFromFunction(hCPU, 0);

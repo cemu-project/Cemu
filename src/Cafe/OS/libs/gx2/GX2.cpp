@@ -92,7 +92,7 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2CopyColorBufferToScanBuffer(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2CopyColorBufferToScanBuffer(0x%08x,%d)\n", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2CopyColorBufferToScanBuffer(0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	GX2ReserveCmdSpace(5);
 
 	// todo: proper implementation
@@ -270,7 +270,7 @@ void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamS32(channel, 0);
 	ppcDefineParamMEMPTR(callback, void, 1);
-	gx2Log_printf("GX2SetDRCConnectCallback(%d, 0x%08x)", channel, callback.GetMPTR());
+	cemuLog_log(LogType::GX2, "GX2SetDRCConnectCallback({}, 0x{:08x})", channel, callback.GetMPTR());
 	if(callback.GetPtr())
 		PPCCoreCallback(callback, channel, TRUE);
 	osLib_returnFromFunction(hCPU, 0);
@@ -278,7 +278,7 @@ void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetSemaphore(0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetSemaphore(0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	ppcDefineParamMPTR(semaphoreMPTR, 0);
 	ppcDefineParamS32(mode, 1);
 

@@ -34,7 +34,7 @@ void _GX2DefaultAlloc_Free(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetDefaultAllocator(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetDefaultAllocator(0x%08x, 0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetDefaultAllocator(0x{:08x}, 0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	gx2Mem_defaultAlloc = hCPU->gpr[3];
 	gx2Mem_defaultFree = hCPU->gpr[4];
 	osLib_returnFromFunction(hCPU, 0);
@@ -42,7 +42,7 @@ void gx2Export_GX2SetDefaultAllocator(PPCInterpreter_t* hCPU)
 
 void _GX2DefaultAllocR_Alloc(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2DefaultAllocate(0x%08x, 0x%08x, 0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::GX2, "GX2DefaultAllocate(0x{:08x}, 0x{:08x}, 0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	// parameters:
 	// r3	uint32	userParam
 	// r4	uint32  size
@@ -52,7 +52,7 @@ void _GX2DefaultAllocR_Alloc(PPCInterpreter_t* hCPU)
 
 void _GX2DefaultAllocR_Free(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2DefaultFree(0x%08x, 0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2DefaultFree(0x{:08x}, 0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	// parameters:
 	// r3	uint32	userParam
 	// r4	void*	mem
