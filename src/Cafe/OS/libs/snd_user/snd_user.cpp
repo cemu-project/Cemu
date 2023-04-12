@@ -594,7 +594,7 @@ namespace snd
 
 		void MIXDRCInitChannel(AXVPB* voice, uint16 mode, uint16 vol1, uint16 vol2, uint16 vol3)
 		{
-			sndApiLog_printf("MIXDRCInitChannel(0x%x, 0x%x, 0x%x, 0x%x)", MEMPTR(voice).GetMPTR(), mode, vol1, vol2, vol3);
+			cemuLog_log(LogType::SoundAPI, "MIXDRCInitChannel(0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), mode, vol1, vol2, vol3);
 			cemu_assert_debug(voice);
 
 			AXVoiceBegin(voice);
