@@ -378,7 +378,7 @@ void gx2Export_GX2AllocateTilingApertureEx(PPCInterpreter_t* hCPU)
 {
 	cemuLog_log(LogType::GX2, "GX2AllocateTilingApertureEx(0x{:08x}, {}, {}, {}, 0x{:08x}, 0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
 	GX2Surface* surface = (GX2Surface*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-	gx2Log_printf("Tiling Tex: %08X %dx%d Swizzle: %08x tm: %d fmt: %04x use: %02x", (uint32)surface->imagePtr, (uint32)surface->width, (uint32)surface->height, (uint32)surface->swizzle, (uint32)surface->tileMode.value(), (uint32)surface->format.value(), (uint32)surface->resFlag);
+	cemuLog_log(LogType::GX2, "Tiling Tex: {:08x} {}x{} Swizzle: {:08x} tm: {} fmt: {:04x} use: {:02x}", (uint32)surface->imagePtr, (uint32)surface->width, (uint32)surface->height, (uint32)surface->swizzle, (uint32)surface->tileMode.value(), (uint32)surface->format.value(), (uint32)surface->resFlag);
 
 	if( activeTilingAperatureCount >= GX2_MAX_ACTIVE_TILING_APERATURES )
 	{
