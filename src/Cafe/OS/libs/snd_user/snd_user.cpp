@@ -762,7 +762,7 @@ namespace snd
 
 		void MIXInitDeviceControl(AXVPB* voice, uint32 device_type, uint32 index, MixControl* control, uint32 mode)
 		{
-			sndApiLog_printf("MIXInitDeviceControl(0x%0x, 0x%x, 0x%x, 0x%x, 0x%x )", MEMPTR(voice).GetMPTR(), device_type, index, MEMPTR(control).GetMPTR(), mode);
+			cemuLog_log(LogType::SoundAPI, "MIXInitDeviceControl(0x{:0x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x} )", MEMPTR(voice).GetMPTR(), device_type, index, MEMPTR(control).GetMPTR(), mode);
 
 			cemu_assert_debug(device_type < AX_DEV_COUNT);
 			cemu_assert_debug(voice);
