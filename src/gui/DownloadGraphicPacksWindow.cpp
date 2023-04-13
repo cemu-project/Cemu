@@ -137,7 +137,7 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	{
 		// cemu api request failed, use hardcoded github url
 		cemuLog_log(LogType::Force, "Graphic pack update request failed or returned invalid URL. Using default repository URL instead");
-		githubAPIUrl = "https://api.github.com/repos/slashiee/cemu_graphic_packs/releases/latest";
+		githubAPIUrl = "https://api.github.com/repos/cemu-project/cemu_graphic_packs/releases/latest";
 	}
 	// github API request
 	if (curlDownloadFile(githubAPIUrl.c_str(), &tempDownloadState) == false)
