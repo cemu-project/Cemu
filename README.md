@@ -20,7 +20,7 @@ Cemu is currently only available for 64-bit Windows, Linux & macOS devices.
 
 #### Other relevant repositories:
  - [Cemu-Language](https://github.com/cemu-project/Cemu-Language)
- - [Cemu's Community Graphic Packs](https://github.com/ActualMandM/cemu_graphic_packs)
+ - [Cemu's Community Graphic Packs](https://github.com/cemu-project/cemu_graphic_packs)
 
 ## Download
 
