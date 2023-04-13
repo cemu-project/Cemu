@@ -159,7 +159,7 @@ sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_
 
 void nsysnetExport_socketlasterr(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("socketlasterr() -> %d", _getSockError());
+	cemuLog_log(LogType::Socket, "socketlasterr() -> {}", _getSockError());
 	osLib_returnFromFunction(hCPU, _getSockError());
 }
 
@@ -342,7 +342,7 @@ sint32 nsysnet_getVirtualSocketHandleFromHostHandle(SOCKET s)
 
 void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("socket(%d,%d,%d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::Socket, "socket({},{},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	ppcDefineParamS32(family, 0);
 	ppcDefineParamS32(type, 1);
 	ppcDefineParamS32(protocol, 2);
@@ -381,19 +381,19 @@ void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 	}
 
 	WUSOCKET s = nsysnet_createVirtualSocket(family, type, protocol);
-	socketLog_printf("Created socket handle %d", s);
+	cemuLog_log(LogType::Socket, "Created socket handle {}", s);
 	osLib_returnFromFunction(hCPU, s);
 }
 
 void nsysnetExport_mw_socket(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("mw_socket");
+	cemuLog_log(LogType::Socket, "mw_socket");
 	nsysnetExport_socket(hCPU);
 }
 
 void nsysnetExport_shutdown(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("shutdown(%d,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::Socket, "shutdown({},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamS32(how, 1);
 
@@ -431,7 +431,7 @@ void nsysnetExport_shutdown(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_socketclose(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("socketclose(%d)", hCPU->gpr[3]);
+	cemuLog_log(LogType::Socket, "socketclose({})", hCPU->gpr[3]);
 	ppcDefineParamS32(s, 0);
 
 	virtualSocket_t* vs = nsysnet_getVirtualSocketObject(s);
@@ -458,7 +458,7 @@ sint32 _socket_nonblock(SOCKET s, u_long mode)
 }
 void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("setsockopt(%d,0x%x,0x%05x,0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+	cemuLog_log(LogType::Socket, "setsockopt({},0x{:x},0x{:05x},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamS32(level, 1);
 	ppcDefineParamS32(optname, 2);
@@ -523,7 +523,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else if (optname == WU_SO_RCVBUF)
 			{
-				socketLog_printf("Set receive buffer size to 0x%08x", _swapEndianU32(*(uint32*)optval));
+				cemuLog_log(LogType::Socket, "Set receive buffer size to 0x{:08x}", _swapEndianU32(*(uint32*)optval));
 				if (optlen != 4)
 					assert_dbg();
 				sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
@@ -533,7 +533,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else if (optname == WU_SO_SNDBUF)
 			{
-				socketLog_printf("Set send buffer size to 0x%08x", _swapEndianU32(*(uint32*)optval));
+				cemuLog_log(LogType::Socket, "Set send buffer size to 0x{:08x}", _swapEndianU32(*(uint32*)optval));
 				if (optlen != 4)
 					assert_dbg();
 				sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
@@ -584,7 +584,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_getsockopt(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("getsockopt(%d,0x%x,0x%05x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+	cemuLog_log(LogType::Socket, "getsockopt({},0x{:x},0x{:05x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamS32(level, 1);
 	ppcDefineParamS32(optname, 2);
@@ -734,7 +734,7 @@ MEMPTR<char> _ntoa_tempString = nullptr;
 void nsysnetExport_inet_ntoa(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(addr, wu_in_addr, 0);
-	socketLog_printf("inet_ntoa(0x%08x)", hCPU->gpr[3]);
+	cemuLog_log(LogType::Socket, "inet_ntoa(0x{:08x})", hCPU->gpr[3]);
 
 	if (_ntoa_tempString == nullptr)
 		_ntoa_tempString = (char*)memory_getPointerFromVirtualOffset(OSAllocFromSystem(64, 4));
@@ -746,35 +746,35 @@ void nsysnetExport_inet_ntoa(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_htons(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("htons(0x%04x)", hCPU->gpr[3]);
+	cemuLog_log(LogType::Socket, "htons(0x{:04x})", hCPU->gpr[3]);
 	ppcDefineParamU32(v, 0);
 	osLib_returnFromFunction(hCPU, v); // return value as-is
 }
 
 void nsysnetExport_htonl(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("htonl(0x%08x)", hCPU->gpr[3]);
+	cemuLog_log(LogType::Socket, "htonl(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamU32(v, 0);
 	osLib_returnFromFunction(hCPU, v); // return value as-is
 }
 
 void nsysnetExport_ntohs(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("ntohs(0x%04x)", hCPU->gpr[3]);
+	cemuLog_log(LogType::Socket, "ntohs(0x{:04x})", hCPU->gpr[3]);
 	ppcDefineParamU32(v, 0);
 	osLib_returnFromFunction(hCPU, v); // return value as-is
 }
 
 void nsysnetExport_ntohl(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("ntohl(0x%08x)", hCPU->gpr[3]);
+	cemuLog_log(LogType::Socket, "ntohl(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamU32(v, 0);
 	osLib_returnFromFunction(hCPU, v); // return value as-is
 }
 
 void nsysnetExport_bind(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("bind(%d,0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::Socket, "bind({},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStructPtr(addr, struct wu_sockaddr, 1);
 	ppcDefineParamS32(len, 2);
@@ -800,7 +800,7 @@ void nsysnetExport_bind(PPCInterpreter_t* hCPU)
 		r = _translateError(hr, GETLASTERR);
 
 
-		socketLog_printf("bind address: %d.%d.%d.%d:%d result: %d", addr->sa_data[2], addr->sa_data[3], addr->sa_data[4], addr->sa_data[5], _swapEndianU16(*(uint16*)addr->sa_data), hr);
+		cemuLog_log(LogType::Socket, "bind address: {}.{}.{}.{}:{} result: {}", addr->sa_data[2], addr->sa_data[3], addr->sa_data[4], addr->sa_data[5], _swapEndianU16(*(uint16*)addr->sa_data), hr);
 
 	}
 
@@ -809,7 +809,7 @@ void nsysnetExport_bind(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_listen(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("listen(%d,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::Socket, "listen({},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamS32(queueSize, 1);
 
@@ -832,7 +832,7 @@ void nsysnetExport_listen(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("accept(%d,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::Socket, "accept({},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStructPtr(addr, struct wu_sockaddr, 1);
 	ppcDefineParamMPTR(lenMPTR, 2);
@@ -882,7 +882,7 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_connect(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("connect(%d,0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::Socket, "connect({},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStructPtr(addr, struct wu_sockaddr, 1);
 	ppcDefineParamS32(len, 2);
@@ -916,7 +916,7 @@ void _setSocketSendRecvNonBlockingMode(SOCKET s, bool isNonBlocking)
 
 void nsysnetExport_send(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("send(%d,0x%08x,%d,0x%x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	cemuLog_log(LogType::Socket, "send({},0x{:08x},{},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -939,7 +939,7 @@ void nsysnetExport_send(PPCInterpreter_t* hCPU)
 		assert_dbg();
 
 	sint32 hr = send(vs->s, msg, len, hostFlags);
-	socketLog_printf("Sent %d bytes", hr);
+	cemuLog_log(LogType::Socket, "Sent {} bytes", hr);
 	_translateError(hr <= 0 ? -1 : 0, GETLASTERR);
 	r = hr;
 
@@ -948,7 +948,7 @@ void nsysnetExport_send(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recv(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("recv(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "recv({},0x{:08x},{},0x{:x}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1002,7 +1002,7 @@ void nsysnetExport_recv(PPCInterpreter_t* hCPU)
 	_translateError(hr <= 0 ? -1 : 0, GETLASTERR);
 	if (requestIsNonBlocking != vs->isNonBlocking)
 		_setSocketSendRecvNonBlockingMode(vs->s, vs->isNonBlocking);
-	socketLog_printf("Received %d bytes", hr);
+	cemuLog_log(LogType::Socket, "Received {} bytes", hr);
 	r = hr;
 
 	osLib_returnFromFunction(hCPU, r);
@@ -1078,14 +1078,14 @@ void _translateFDSetRev(struct wu_fd_set* fdset, fd_set* hostSet, sint32 nfds)
 
 void nsysnetExport_select(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("select(%d,0x%08x,0x%08x,0x%08x,0x%08x) LR 0x%08x Thread 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "select({},0x{:08x},0x{:08x},0x{:08x},0x{:08x}) LR 0x{:08x} Thread 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(nfds, 0);
 	ppcDefineParamStructPtr(readfds, struct wu_fd_set, 1);
 	ppcDefineParamStructPtr(writefds, struct wu_fd_set, 2);
 	ppcDefineParamStructPtr(exceptfds, struct wu_fd_set, 3);
 	ppcDefineParamStructPtr(timeOut, struct wu_timeval, 4);
 
-	//socketLog_printf("rm %08x wm %08x em %08x", readfds ? _swapEndianU32(readfds->mask) : 0, writefds ? _swapEndianU32(writefds->mask) : 0, exceptfds ? _swapEndianU32(exceptfds->mask) : 0);
+	//cemuLog_log(LogType::Socket, "rm {:08x} wm {:08x} em {:08x}", readfds ? _swapEndianU32(readfds->mask) : 0, writefds ? _swapEndianU32(writefds->mask) : 0, exceptfds ? _swapEndianU32(exceptfds->mask) : 0);
 
 	sint32 r = 0;
 
@@ -1098,7 +1098,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 		if (timeOut == NULL || (timeOut->tv_sec == 0 && timeOut->tv_usec == 0))
 		{
 			// return immediately
-			socketLog_printf("select returned immediately because of empty fdsets without timeout");
+			cemuLog_log(LogType::Socket, "select returned immediately because of empty fdsets without timeout");
 			osLib_returnFromFunction(hCPU, 0);
 			return;
 		}
@@ -1107,7 +1107,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 			//// empty select with timeout is not allowed
 			//_setSockError(WU_SO_EINVAL);
 			//osLib_returnFromFunction(hCPU, -1);
-			//socketLog_printf("select returned SO_EINVAL because of empty fdsets with timeout");
+			//cemuLog_log(LogType::Socket, "select returned SO_EINVAL because of empty fdsets with timeout");
 
 			// when fd sets are empty but timeout is set, then just wait and do nothing?
 			// Lost Reavers seems to expect this case to return 0 (it hardcodes empty fd sets and timeout comes from curl_multi_timeout)
@@ -1116,7 +1116,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 			tv.tv_sec = timeOut->tv_sec;
 			tv.tv_usec = timeOut->tv_usec;
 			select(0, nullptr, nullptr, nullptr, &tv);
-			socketLog_printf("select returned 0 because of empty fdsets with timeout");
+			cemuLog_log(LogType::Socket, "select returned 0 because of empty fdsets with timeout");
 			osLib_returnFromFunction(hCPU, 0);
 			
 			return;
@@ -1173,8 +1173,8 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 		}
 		else
 		{
-			// socketLog_printf("select returned %d. Read %d Write %d Except %d", r, _readfds.fd_count, _writefds.fd_count, _exceptfds.fd_count);
-			socketLog_printf("select returned %d.", r);
+			// cemuLog_log(LogType::Socket, "select returned {}. Read {} Write {} Except {}", r, _readfds.fd_count, _writefds.fd_count, _exceptfds.fd_count);
+			cemuLog_log(LogType::Socket, "select returned {}.", r);
 
 			_translateFDSetRev(readfds, &_readfds, nfds);
 			_translateFDSetRev(writefds, &_writefds, nfds);
@@ -1188,13 +1188,13 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 	//extern int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	//	struct timeval *timeout);
 
-	socketLog_printf("select returned %d", r);
+	cemuLog_log(LogType::Socket, "select returned {}", r);
 	osLib_returnFromFunction(hCPU, r);
 }
 
 void nsysnetExport_getsockname(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("getsockname(%d,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::Socket, "getsockname({},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStructPtr(addr, struct wu_sockaddr, 1);
@@ -1279,7 +1279,7 @@ void nsysnetExport_gethostbyname(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStr(name, 0);
 
-	socketLog_printf("gethostbyname(\"%s\")", name);
+	cemuLog_log(LogType::Socket, "gethostbyname(\"{}\")", name);
 
 	hostent* he = gethostbyname(name);
 	if (he == NULL)
@@ -1411,7 +1411,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 	sint32 hr = getaddrinfo(nodeName, serviceName, &hint, &result);
 	if (hr != 0)
 	{
-		socketLog_printf("getaddrinfo failed with error %d", hr);
+		cemuLog_log(LogType::Socket, "getaddrinfo failed with error {}", hr);
 		switch (hr)
 		{
 		case WSAHOST_NOT_FOUND:
@@ -1420,7 +1420,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 		default:
 			// unhandled error
 			cemu_assert_debug(false);
-			socketLog_printf("getaddrinfo unhandled error code");
+			cemuLog_log(LogType::Socket, "getaddrinfo unhandled error code");
 			r = 1;
 			break;
 		}
@@ -1495,7 +1495,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("recvfrom(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "recvfrom({},0x{:08x},{},0x{:x}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1631,7 +1631,7 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recvfrom_ex(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("recvfrom_ex(%d,0x%08x,%d,0x%x,0x%08x,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8], hCPU->gpr[9], hCPU->gpr[10], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "recvfrom_ex({},0x{:08x},{},0x{:x},0x{:08x},0x{:08x},0x{:08x},{}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8], hCPU->gpr[9], hCPU->gpr[10], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1753,7 +1753,7 @@ void _convertSockaddrToHostFormat(wu_sockaddr* sockaddru, sockaddr* sockaddrHost
 
 void nsysnetExport_sendto(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("sendto(%d,0x%08x,%d,0x%x) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "sendto({},0x{:08x},{},0x{:x}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1823,7 +1823,7 @@ void nsysnetExport_sendto(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_sendto_multi(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("sendto_multi(%d,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "sendto_multi({},0x{:08x},0x{:08x},{}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(data, 1);
 	ppcDefineParamS32(dataLen, 2);
@@ -1870,7 +1870,7 @@ typedef struct
 
 void nsysnetExport_sendto_multi_ex(PPCInterpreter_t* hCPU)
 {
-	socketLog_printf("sendto_multi_ex(%d,0x%08x,0x%08x,%d) LR: 0x%08x Thread: 0x%08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "sendto_multi_ex({},0x{:08x},0x{:08x},{}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamU32(flags, 1);
 	ppcDefineParamStructPtr(multiBuf, sendtomultiBuffer_t, 2);
