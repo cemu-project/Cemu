@@ -7,10 +7,6 @@
     "zlib",
     "zstd",
     {
-      "name": "libpng",
-      "platform": "!linux"
-    },
-    {
       "name": "libzip",
       "default-features": false
     },
@@ -32,8 +28,9 @@
     "boost-static-string",
     "boost-random",
     "fmt",
+    "libpng",
     "glm",
-	{
+    {
       "name": "glslang",
       "default-features": false
     },
