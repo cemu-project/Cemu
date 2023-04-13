@@ -13,7 +13,7 @@
 
 void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2InitColorBufferRegs(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2InitColorBufferRegs(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamStructPtr(colorBuffer, GX2ColorBuffer, 0);
 
 	LatteAddrLib::AddrSurfaceInfo_OUT surfaceInfo;
@@ -114,7 +114,7 @@ void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2InitDepthBufferRegs(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2InitDepthBufferRegs(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2InitDepthBufferRegs(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamStructPtr(depthBuffer, GX2DepthBuffer, 0);
 
 	LatteAddrLib::AddrSurfaceInfo_OUT surfaceInfo;
@@ -134,13 +134,13 @@ void gx2Export_GX2InitDepthBufferRegs(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetColorBuffer(0x%08x, %d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetColorBuffer(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4]);
 	GX2ReserveCmdSpace(20);
 
 	GX2ColorBuffer* colorBufferBE = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
 #ifdef CEMU_DEBUG_ASSERT
-	gx2Log_printf("ColorBuffer tileMode %01x PhysAddr %08x fmt %04x res %dx%d Mip %d Slice %d", (uint32)colorBufferBE->surface.tileMode.value(), (uint32)colorBufferBE->surface.imagePtr, (uint32)colorBufferBE->surface.format.value(), (uint32)colorBufferBE->surface.width, (uint32)colorBufferBE->surface.height, _swapEndianU32(colorBufferBE->viewMip), _swapEndianU32(colorBufferBE->viewFirstSlice));
+	cemuLog_log(LogType::GX2, "ColorBuffer tileMode {:01x} PhysAddr {:08x} fmt {:04x} res {}x{} Mip {} Slice {}", (uint32)colorBufferBE->surface.tileMode.value(), (uint32)colorBufferBE->surface.imagePtr, (uint32)colorBufferBE->surface.format.value(), (uint32)colorBufferBE->surface.width, (uint32)colorBufferBE->surface.height, _swapEndianU32(colorBufferBE->viewMip), _swapEndianU32(colorBufferBE->viewFirstSlice));
 #endif
 
 	// regs[0] = mmCB_COLOR0_SIZE
@@ -205,12 +205,12 @@ void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetDepthBuffer(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetDepthBuffer(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetDepthBuffer(0x{:08x})", hCPU->gpr[3]);
 	GX2ReserveCmdSpace(20);
 
 	GX2DepthBuffer* depthBufferBE = (GX2DepthBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
-	gx2Log_printf("DepthBuffer tileMode %01x PhysAddr %08x fmt %04x res %dx%d", (uint32)depthBufferBE->surface.tileMode.value(), (uint32)depthBufferBE->surface.imagePtr, (uint32)depthBufferBE->surface.format.value(), (uint32)depthBufferBE->surface.width, (uint32)depthBufferBE->surface.height);
+	cemuLog_log(LogType::GX2, "DepthBuffer tileMode {:01x} PhysAddr {:08x} fmt {:04x} res {}x{}", (uint32)depthBufferBE->surface.tileMode.value(), (uint32)depthBufferBE->surface.imagePtr, (uint32)depthBufferBE->surface.format.value(), (uint32)depthBufferBE->surface.width, (uint32)depthBufferBE->surface.height);
 
 	uint32 viewMip = _swapEndianU32(depthBufferBE->viewMip);
 

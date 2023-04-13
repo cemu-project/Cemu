@@ -48,7 +48,7 @@ uint64 lastSwapTime = 0;
 
 void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SwapScanBuffers()");
+	cemuLog_log(LogType::GX2, "GX2SwapScanBuffers()");
 
 	bool isPokken = false;
 
@@ -92,7 +92,7 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2CopyColorBufferToScanBuffer(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2CopyColorBufferToScanBuffer(0x%08x,%d)\n", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2CopyColorBufferToScanBuffer(0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	GX2ReserveCmdSpace(5);
 
 	// todo: proper implementation
@@ -262,7 +262,7 @@ void gx2Export_GX2CalcDRCSize(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetDRCScale(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetDRCScale(%d,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetDRCScale({},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	osLib_returnFromFunction(hCPU, 0);
 }
 
@@ -270,7 +270,7 @@ void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamS32(channel, 0);
 	ppcDefineParamMEMPTR(callback, void, 1);
-	gx2Log_printf("GX2SetDRCConnectCallback(%d, 0x%08x)", channel, callback.GetMPTR());
+	cemuLog_log(LogType::GX2, "GX2SetDRCConnectCallback({}, 0x{:08x})", channel, callback.GetMPTR());
 	if(callback.GetPtr())
 		PPCCoreCallback(callback, channel, TRUE);
 	osLib_returnFromFunction(hCPU, 0);
@@ -278,7 +278,7 @@ void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetSemaphore(0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetSemaphore(0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	ppcDefineParamMPTR(semaphoreMPTR, 0);
 	ppcDefineParamS32(mode, 1);
 
@@ -311,7 +311,7 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2Flush(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2Flush()");
+	cemuLog_log(LogType::GX2, "GX2Flush()");
 	_GX2SubmitToTCL();
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -345,7 +345,7 @@ void _GX2SubmitToTCL()
 	// update last submitted CB timestamp
 	uint64 commandBufferTimestamp = Latte_GetTime();
 	LatteGPUState.lastSubmittedCommandBufferTimestamp.store(commandBufferTimestamp);
-	gx2Log_printf("Submitting GX2 command buffer with timestamp %016" PRIx64, commandBufferTimestamp);
+	cemuLog_log(LogType::GX2, "Submitting GX2 command buffer with timestamp {:016x}", commandBufferTimestamp);
 	// submit HLE packet to write retirement timestamp
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SET_CB_RETIREMENT_TIMESTAMP, 2));
 	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp>>32ULL));
