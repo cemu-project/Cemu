@@ -213,7 +213,7 @@ namespace vpad
 
 	void VPADGetAccParam(sint32 channel, float* radius, float* sensitivity)
 	{
-		inputLog_printf("VPADGetAccParam(%d, %p, %p)", channel, (void*)radius, (void*)sensitivity);
+		cemuLog_log(LogType::InputAPI, "VPADGetAccParam({}, {}, {})", channel, (void*)radius, (void*)sensitivity);
 		vpadbreak();
 		*radius = g_vpad.controller_data[channel].acc_param.radius;
 		*sensitivity = g_vpad.controller_data[channel].acc_param.sensitivity;
