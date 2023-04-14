@@ -166,7 +166,7 @@ void padscoreExport_WPADRead(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamPtr(wpadStatus, WPADStatus_t, 1);
-	inputLog_printf("WPADRead(%d, %llx)", channel, wpadStatus);
+	cemuLog_log(LogType::InputAPI, "WPADRead({}, {:x})", channel, wpadStatus);
 
 	if (channel < InputManager::kMaxWPADControllers)
 	{
@@ -287,7 +287,7 @@ void padscoreExport_KPADGetUnifiedWpadStatus(PPCInterpreter_t* hCPU)
 	ppcDefineParamPtr(status, KPADUnifiedWpadStatus_t, 1);
 	ppcDefineParamU32(count, 2);
 
-	inputLog_printf("KPADGetUnifiedWpadStatus(%d, 0x%llx, 0x%x)", channel, status, count);
+	cemuLog_log(LogType::InputAPI, "KPADGetUnifiedWpadStatus({}, 0x{:x}, 0x{:x})", channel, status, count);
 
 	if (channel < InputManager::kMaxWPADControllers)
 	{
