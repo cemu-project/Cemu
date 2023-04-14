@@ -661,7 +661,7 @@ void nsysnetExport_inet_aton(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStr(ip, 0);
 	ppcDefineParamStructPtr(addr, wu_in_addr, 1);
-	socketLog_printf("inet_aton(\"%s\",0x%08x)", ip, hCPU->gpr[4]);
+	cemuLog_log(LogType::Socket, "inet_aton(\"{}\",0x{:08x})", ip, hCPU->gpr[4]);
 
 	// _parse_ipad -> todo
 	sint32 d0, d1, d2, d3;
@@ -718,13 +718,13 @@ void nsysnetExport_inet_pton(PPCInterpreter_t* hCPU)
 #endif
 	if (invalidIp)
 	{
-		socketLog_printf("inet_pton(%d, \"%s\", 0x%08x) -> Invalid ip", af, ip, hCPU->gpr[5]);
+		cemuLog_log(LogType::Socket, "inet_pton({}, \"{}\", 0x{:08x}) -> Invalid ip", af, ip, hCPU->gpr[5]);
 		osLib_returnFromFunction(hCPU, 0); // 0 -> invalid address
 		return;
 	}
 
 	addr->wu_s_addr = _swapEndianU32((d0 << 24) | (d1 << 16) | (d2 << 8) | (d3 << 0));
-	socketLog_printf("inet_pton(%d, \"%s\", 0x%08x) -> Ok", af, ip, hCPU->gpr[5]);
+	cemuLog_log(LogType::Socket, "inet_pton({}, \"{}\", 0x{:08x}) -> Ok", af, ip, hCPU->gpr[5]);
 
 	osLib_returnFromFunction(hCPU, 1); // 1 -> success
 }
@@ -1327,12 +1327,12 @@ void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 
 	sint32 maxNumEntries = 31;
 
-	socketLog_printf("gethostbyaddr(\"%s\", %d, %d)", addr, len, type);
+	cemuLog_log(LogType::Socket, "gethostbyaddr(\"{}\", {}, {})", addr, len, type);
 
 	hostent* he = gethostbyaddr(addr, len, type);
 	if (he == nullptr)
 	{
-		socketLog_printf("gethostbyaddr(\"%s\", %d, %d) failed", addr, len, type);
+		cemuLog_log(LogType::Socket, "gethostbyaddr(\"{}\", {}, {}) failed", addr, len, type);
 		osLib_returnFromFunction(hCPU, MPTR_NULL);
 		return;
 	}
@@ -1385,7 +1385,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(hints, struct wu_addrinfo, 2);
 	ppcDefineParamMPTR(results, 3);
 
-	socketLog_printf("getaddrinfo(\"%s\",0x%08x,0x%08x,0x%08x)", nodeName, hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	cemuLog_log(LogType::Socket, "getaddrinfo(\"{}\",0x{:08x},0x{:08x},0x{:08x})", nodeName, hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	
 	sint32 r = 0;
 
