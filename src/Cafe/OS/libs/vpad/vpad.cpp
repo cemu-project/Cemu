@@ -1017,7 +1017,8 @@ void vpadExport_VPADSetGyroDirection(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamStructPtr(dir, VPADDir, 1);
-	inputLog_printf("VPADSetGyroDirection(%d, <<%f, %f, %f>, <%f, %f, %f>, <%f, %f, %f>>)", channel, (float)dir->x.x, (float)dir->x.y, (float)dir->x.z
+	cemuLog_log(LogType::InputAPI, "VPADSetGyroDirection({}, <<{:f}, {:f}, {:f}>, <{:f}, {:f}, {:f}>, <{:f}, {:f}, {:f}>>)", channel
+		, (float)dir->x.x, (float)dir->x.y, (float)dir->x.z
 		, (float)dir->y.x, (float)dir->y.y, (float)dir->y.z
 		, (float)dir->z.x, (float)dir->z.y, (float)dir->z.z);
 
