@@ -205,7 +205,7 @@ namespace vpad
 
 	void VPADSetAccParam(sint32 channel, float radius, float sensitivity)
 	{
-		inputLog_printf("VPADSetAccParam(%d, %f, %f)", channel, radius, sensitivity);
+		cemuLog_log(LogType::InputAPI, "VPADSetAccParam({}, {}, {})", channel, radius, sensitivity);
 		vpadbreak();
 		g_vpad.controller_data[channel].acc_param.radius = radius;
 		g_vpad.controller_data[channel].acc_param.sensitivity = sensitivity;
@@ -226,7 +226,7 @@ namespace vpad
 		ppcDefineParamStructPtr(status, VPADStatus_t, 1);
 		ppcDefineParamU32(length, 2);
 		ppcDefineParamPtr(error, uint32be, 3);
-		inputLog_printf("VPADRead(%d, _, %d)", channel, length);*/
+		cemuLog_log(LogType::InputAPI, "VPADRead({}, _, {})", channel, length);*/
 	
 		// default init which should be always set
 		memset(status, 0x00, sizeof(VPADStatus_t));
@@ -304,7 +304,7 @@ namespace vpad
 
 	void VPADSetBtnRepeat(sint32 channel, float delay, float pulse)
 	{
-		inputLog_printf("VPADSetBtnRepeat(%d, %f, %f)", channel, delay, pulse);
+		cemuLog_log(LogType::InputAPI, "VPADSetBtnRepeat({}, {}, {})", channel, delay, pulse);
 		if(pulse == 0)
 		{
 			g_vpad.controller_data[channel].btn_repeat.delay = 40000;
@@ -320,21 +320,21 @@ namespace vpad
 
 	void VPADSetAccPlayMode(sint32 channel, PlayMode play_mode)
 	{
-		inputLog_printf("VPADSetAccPlayMode(%d, %d)", channel, (int)play_mode);
+		cemuLog_log(LogType::InputAPI, "VPADSetAccPlayMode({}, {})", channel, (int)play_mode);
 		vpadbreak();
 		g_vpad.controller_data[channel].acc_play_mode = play_mode;
 	}
 
 	PlayMode VPADGetAccPlayMode(sint32 channel)
 	{
-		inputLog_printf("VPADGetAccPlayMode(%d)", channel);
+		cemuLog_log(LogType::InputAPI, "VPADGetAccPlayMode({})", channel);
 		vpadbreak();
 		return g_vpad.controller_data[channel].acc_play_mode;
 	}
 
 	void* VPADSetSamplingCallback(sint32 channel, void* callback)
 	{
-		inputLog_printf("VPADSetSamplingCallback(%d, 0x%x)", channel, MEMPTR(callback).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADSetSamplingCallback({}, 0x{:x})", channel, MEMPTR(callback).GetMPTR());
 		vpadbreak();
 
 		void* result = g_vpad.controller_data[channel].sampling_callback;
@@ -350,7 +350,7 @@ namespace vpad
 
 	void VPADGetTPCalibrationParam(sint32 channel, VPADTPCalibrationParam* param)
 	{
-		inputLog_printf("VPADGetTPCalibrationParam(%d, 0x%x)", channel, MEMPTR(param).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADGetTPCalibrationParam({}, 0x{:x})", channel, MEMPTR(param).GetMPTR());
 		vpadbreak();
 
 		*param = g_vpad.controller_data[channel].tp_calibration_param;
@@ -358,7 +358,7 @@ namespace vpad
 
 	void VPADSetTPCalibrationParam(sint32 channel, VPADTPCalibrationParam* param)
 	{
-		inputLog_printf("VPADSetTPCalibrationParam(%d, 0x%x)", channel, MEMPTR(param).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADSetTPCalibrationParam({}, 0x{:x})", channel, MEMPTR(param).GetMPTR());
 		vpadbreak();
 
 		g_vpad.controller_data[channel].tp_calibration_param = *param;
@@ -366,7 +366,7 @@ namespace vpad
 
 	void VPADGetTPCalibratedPoint(sint32 channel, VPADTPData* data, VPADTPData* raw)
 	{
-		inputLog_printf("VPADGetTPCalibratedPoint(%d, 0x%x, 0x%x)", channel, MEMPTR(data).GetMPTR(), MEMPTR(raw).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADGetTPCalibratedPoint({}, 0x{:x}, 0x{:x})", channel, MEMPTR(data).GetMPTR(), MEMPTR(raw).GetMPTR());
 		vpadbreak();
 
 		const auto& controller_data = g_vpad.controller_data[channel];
@@ -397,14 +397,14 @@ namespace vpad
 
 	void VPADGetTPCalibratedPointEx(sint32 channel, VPADTPResolution resolution, VPADTPData* data, VPADTPData* raw)
 	{
-		inputLog_printf("VPADGetTPCalibratedPointEx(%d, %d, 0x%x, 0x%x)", channel, (int)resolution, MEMPTR(data).GetMPTR(), MEMPTR(raw).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADGetTPCalibratedPointEx({}, {}, 0x{:x}, 0x{:x})", channel, (int)resolution, MEMPTR(data).GetMPTR(), MEMPTR(raw).GetMPTR());
 		vpadbreak();
 
 	}
 
 	void VPADSetCrossStickEmulationParamsL(sint32 channel, float rotation, float range, float radius)
 	{
-		inputLog_printf("VPADSetCrossStickEmulationParamsL(%d, %f, %f, %f)", channel, rotation, range, radius);
+		cemuLog_log(LogType::InputAPI, "VPADSetCrossStickEmulationParamsL({}, {}, {}, {})", channel, rotation, range, radius);
 		vpadbreak();
 
 		if (range < 0 || 90.0f < range) 
@@ -420,7 +420,7 @@ namespace vpad
 
 	void VPADSetCrossStickEmulationParamsR(sint32 channel, float rotation, float range, float radius)
 	{
-		inputLog_printf("VPADSetCrossStickEmulationParamsR(%d, %f, %f, %f)", channel, rotation, range, radius);
+		cemuLog_log(LogType::InputAPI, "VPADSetCrossStickEmulationParamsR({}, {}, {}, {})", channel, rotation, range, radius);
 		vpadbreak();
 
 		if (range < 0 || 90.0f < range) 
@@ -436,7 +436,7 @@ namespace vpad
 
 	void VPADGetCrossStickEmulationParamsL(sint32 channel, float* rotation, float* range, float* radius)
 	{
-		inputLog_printf("VPADGetCrossStickEmulationParamsL(%d, 0x%x, 0x%x, 0x%x)", channel, MEMPTR(rotation).GetMPTR(),  MEMPTR(range).GetMPTR(),  MEMPTR(radius).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADGetCrossStickEmulationParamsL({}, 0x{:x}, 0x{:x}, 0x{:x})", channel, MEMPTR(rotation).GetMPTR(),  MEMPTR(range).GetMPTR(),  MEMPTR(radius).GetMPTR());
 		vpadbreak();
 
 		*rotation = g_vpad.controller_data[channel].cross_stick_emulation_l.rotation;
@@ -446,7 +446,7 @@ namespace vpad
 
 	void VPADGetCrossStickEmulationParamsR(sint32 channel, float* rotation, float* range, float* radius)
 	{
-		inputLog_printf("VPADGetCrossStickEmulationParamsR(%d, 0x%x, 0x%x, 0x%x)", channel, MEMPTR(rotation).GetMPTR(),  MEMPTR(range).GetMPTR(),  MEMPTR(radius).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADGetCrossStickEmulationParamsR({}, 0x{:x}, 0x{:x}, 0x{:x})", channel, MEMPTR(rotation).GetMPTR(),  MEMPTR(range).GetMPTR(),  MEMPTR(radius).GetMPTR());
 		vpadbreak();
 
 		*rotation = g_vpad.controller_data[channel].cross_stick_emulation_r.rotation;
@@ -456,7 +456,7 @@ namespace vpad
 
 	ButtonProcMode VPADGetButtonProcMode(sint32 channel)
 	{
-		inputLog_printf("VPADGetButtonProcMode(%d)", channel);
+		cemuLog_log(LogType::InputAPI, "VPADGetButtonProcMode({})", channel);
 		vpadbreak();
 
 		return g_vpad.controller_data[channel].button_proc_mode;
@@ -464,7 +464,7 @@ namespace vpad
 
 	void VPADSetButtonProcMode(sint32 channel, ButtonProcMode mode)
 	{
-		inputLog_printf("VPADSetButtonProcMode(%d, %d)", channel, (int)mode);
+		cemuLog_log(LogType::InputAPI, "VPADSetButtonProcMode({}, {})", channel, (int)mode);
 		vpadbreak();
 
 		g_vpad.controller_data[channel].button_proc_mode = mode;
@@ -472,21 +472,21 @@ namespace vpad
 
 	void VPADEnableStickCrossClamp(sint32 channel)
 	{
-		inputLog_printf("VPADEnableStickCrossClamp(%d)", channel);
+		cemuLog_log(LogType::InputAPI, "VPADEnableStickCrossClamp({})", channel);
 		vpadbreak();
 		g_vpad.controller_data[channel].stick_cross_clamp.enabled = true;
 	}
 
 	void VPADDisableStickCrossClamp(sint32 channel)
 	{
-		inputLog_printf("VPADDisableStickCrossClamp(%d)", channel);
+		cemuLog_log(LogType::InputAPI, "VPADDisableStickCrossClamp({})", channel);
 		vpadbreak();
 		g_vpad.controller_data[channel].stick_cross_clamp.enabled = false;
 	}
 
 	void VPADSetLStickClampThreshold(sint32 channel, sint32 max, sint32 min)
 	{
-		inputLog_printf("VPADSetLStickClampThreshold(%d, %d, %d)", channel, max, min);
+		cemuLog_log(LogType::InputAPI, "VPADSetLStickClampThreshold({}, {}, {})", channel, max, min);
 		vpadbreak();
 		g_vpad.controller_data[channel].stick_cross_clamp.left.max = std::min(0x397, max);
 		g_vpad.controller_data[channel].stick_cross_clamp.left.min = std::max(0x102, min);
@@ -494,7 +494,7 @@ namespace vpad
 
 	void VPADSetRStickClampThreshold(sint32 channel, sint32 max, sint32 min)
 	{
-		inputLog_printf("VPADSetRStickClampThreshold(%d, %d, %d)", channel, max, min);
+		cemuLog_log(LogType::InputAPI, "VPADSetRStickClampThreshold({}, {}, {})", channel, max, min);
 		vpadbreak();
 		g_vpad.controller_data[channel].stick_cross_clamp.right.max = std::min(0x397, max);
 		g_vpad.controller_data[channel].stick_cross_clamp.right.min = std::max(0x102, min);
@@ -502,7 +502,7 @@ namespace vpad
 
 	void VPADGetLStickClampThreshold(sint32 channel, sint32* max, sint32* min)
 	{
-		inputLog_printf("VPADGetLStickClampThreshold(%d, 0x%x, 0x%x)", channel, MEMPTR(max).GetMPTR(), MEMPTR(min).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADGetLStickClampThreshold({}, 0x{:x}, 0x{:x})", channel, MEMPTR(max).GetMPTR(), MEMPTR(min).GetMPTR());
 		vpadbreak();
 		*max = g_vpad.controller_data[channel].stick_cross_clamp.left.max;
 		*min = g_vpad.controller_data[channel].stick_cross_clamp.left.min;
@@ -510,7 +510,7 @@ namespace vpad
 
 	void VPADGetRStickClampThreshold(sint32 channel, sint32* max, sint32* min)
 	{
-		inputLog_printf("VPADGetRStickClampThreshold(%d, 0x%x, 0x%x)", channel, MEMPTR(max).GetMPTR(), MEMPTR(min).GetMPTR());
+		cemuLog_log(LogType::InputAPI, "VPADGetRStickClampThreshold({}, 0x{:x}, 0x{:x})", channel, MEMPTR(max).GetMPTR(), MEMPTR(min).GetMPTR());
 		vpadbreak();
 		*max = g_vpad.controller_data[channel].stick_cross_clamp.right.max;
 		*min = g_vpad.controller_data[channel].stick_cross_clamp.right.min;
@@ -523,7 +523,7 @@ void vpadExport_VPADGetAccParam(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamPtr(playRadius, float32be, 1);
 	ppcDefineParamPtr(sensitivity, float32be, 2);
-	inputLog_printf("VPADGetAccParam(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetAccParam({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -541,7 +541,7 @@ void vpadExport_VPADGetAccParam(PPCInterpreter_t* hCPU)
 void vpadExport_VPADSetAccParam(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADSetAccParam(%d, %f, %f)", channel, hCPU->fpr[1].fpr, hCPU->fpr[2].fpr);
+	cemuLog_log(LogType::InputAPI, "VPADSetAccParam({}, {}, {})", channel, hCPU->fpr[1].fpr, hCPU->fpr[2].fpr);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -559,7 +559,7 @@ void vpadExport_VPADSetAccParam(PPCInterpreter_t* hCPU)
 void vpadExport_VPADGetAccPlayMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADGetAccPlayMode(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetAccPlayMode({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -576,7 +576,7 @@ void vpadExport_VPADSetAccPlayMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamU32(playMode, 1);
-	inputLog_printf("VPADSetAccPlayMode(%d, %d)", channel, playMode);
+	cemuLog_log(LogType::InputAPI, "VPADSetAccPlayMode({}, {})", channel, playMode);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -593,7 +593,7 @@ void vpadExport_VPADSetAccPlayMode(PPCInterpreter_t* hCPU)
 void vpadExport_VPADEnableStickCrossClamp(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADEnableStickCrossClamp(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADEnableStickCrossClamp({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -610,7 +610,7 @@ void vpadExport_VPADEnableStickCrossClamp(PPCInterpreter_t* hCPU)
 void vpadExport_VPADDisableStickCrossClamp(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADDisableStickCrossClamp(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADDisableStickCrossClamp({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -629,7 +629,7 @@ void vpadExport_VPADSetLStickClampThreshold(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamS32(maxValue, 1);
 	ppcDefineParamS32(minValue, 2);
-	inputLog_printf("VPADSetLStickClampThreshold(%d, %d, %d)", channel, maxValue, minValue);
+	cemuLog_log(LogType::InputAPI, "VPADSetLStickClampThreshold({}, {}, {})", channel, maxValue, minValue);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -649,7 +649,7 @@ void vpadExport_VPADSetRStickClampThreshold(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamS32(maxValue, 1);
 	ppcDefineParamS32(minValue, 2);
-	inputLog_printf("VPADSetRStickClampThreshold(%d, %d, %d)", channel, maxValue, minValue);
+	cemuLog_log(LogType::InputAPI, "VPADSetRStickClampThreshold({}, {}, {})", channel, maxValue, minValue);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -669,7 +669,7 @@ void vpadExport_VPADGetLStickClampThreshold(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamPtr(maxValue, uint32be, 1);
 	ppcDefineParamPtr(minValue, uint32be, 2);
-	inputLog_printf("VPADGetLStickClampThreshold(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetLStickClampThreshold({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -689,7 +689,7 @@ void vpadExport_VPADGetRStickClampThreshold(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamPtr(maxValue, uint32be, 1);
 	ppcDefineParamPtr(minValue, uint32be, 2);
-	inputLog_printf("VPADGetRStickClampThreshold(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetRStickClampThreshold({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -707,7 +707,7 @@ void vpadExport_VPADGetRStickClampThreshold(PPCInterpreter_t* hCPU)
 void vpadExport_VPADSetCrossStickEmulationParamsL(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADSetCrossStickEmulationParamsL(%d, %f, %f, %f)", channel, hCPU->fpr[1].fpr, hCPU->fpr[2].fpr, hCPU->fpr[3].fpr);
+	cemuLog_log(LogType::InputAPI, "VPADSetCrossStickEmulationParamsL({}, {}, {}, {})", channel, hCPU->fpr[1].fpr, hCPU->fpr[2].fpr, hCPU->fpr[3].fpr);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -726,7 +726,7 @@ void vpadExport_VPADSetCrossStickEmulationParamsL(PPCInterpreter_t* hCPU)
 void vpadExport_VPADSetCrossStickEmulationParamsR(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADSetCrossStickEmulationParamsR(%d, %f, %f, %f)", channel, hCPU->fpr[1].fpr, hCPU->fpr[2].fpr, hCPU->fpr[3].fpr);
+	cemuLog_log(LogType::InputAPI, "VPADSetCrossStickEmulationParamsR({}, {}, {}, {})", channel, hCPU->fpr[1].fpr, hCPU->fpr[2].fpr, hCPU->fpr[3].fpr);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -748,7 +748,7 @@ void vpadExport_VPADGetCrossStickEmulationParamsL(PPCInterpreter_t* hCPU)
 	ppcDefineParamPtr(rotation, float32be, 1);
 	ppcDefineParamPtr(inputRange, float32be, 2);
 	ppcDefineParamPtr(radius, float32be, 3);
-	inputLog_printf("VPADGetCrossStickEmulationParamsL(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetCrossStickEmulationParamsL({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -770,7 +770,7 @@ void vpadExport_VPADGetCrossStickEmulationParamsR(PPCInterpreter_t* hCPU)
 	ppcDefineParamPtr(rotation, float32be, 1);
 	ppcDefineParamPtr(inputRange, float32be, 2);
 	ppcDefineParamPtr(radius, float32be, 3);
-	inputLog_printf("VPADGetCrossStickEmulationParamsR(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetCrossStickEmulationParamsR({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -789,7 +789,7 @@ void vpadExport_VPADGetCrossStickEmulationParamsR(PPCInterpreter_t* hCPU)
 void vpadExport_VPADGetButtonProcMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADGetButtonProcMode(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetButtonProcMode({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -806,7 +806,7 @@ void vpadExport_VPADSetButtonProcMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamU8(mode, 1);
-	inputLog_printf("VPADSetButtonProcMode(%d, %d)", channel, mode);
+	cemuLog_log(LogType::InputAPI, "VPADSetButtonProcMode({}, {})", channel, mode);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -824,7 +824,7 @@ void vpadExport_VPADSetLcdMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamU32(mode, 1);
-	inputLog_printf("VPADSetLcdMode(%d, %d)", channel, mode);
+	cemuLog_log(LogType::InputAPI, "VPADSetLcdMode({}, {})", channel, mode);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -841,7 +841,7 @@ void vpadExport_VPADGetLcdMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamPtr(mode, uint32be, 1);
-	inputLog_printf("VPADGetLcdMode(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetLcdMode({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -860,11 +860,11 @@ void vpadExport_VPADControlMotor(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamUStr(pattern, 1);
 	ppcDefineParamU8(length, 2);
-	inputLog_printf("VPADControlMotor(%d, _, %d)", channel, length);
+	cemuLog_log(LogType::InputAPI, "VPADControlMotor({}, _, {})", channel, length);
 
 	if (length > 120)
 	{
-		inputLog_printf("VPADControlMotor() - length too high with %d of 120", length);
+		cemuLog_log(LogType::InputAPI, "VPADControlMotor() - length too high with {} of 120", length);
 		length = 120;
 	}
 
@@ -892,7 +892,7 @@ void vpadExport_VPADControlMotor(PPCInterpreter_t* hCPU)
 void vpadExport_VPADStopMotor(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
-	inputLog_printf("VPADStopMotor(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADStopMotor({})", channel);
 
 	if (const auto controller = InputManager::instance().get_vpad_controller(channel))
 	{
@@ -912,7 +912,7 @@ void vpadExport_VPADSetTPCalibrationParam(PPCInterpreter_t* hCPU)
 	{
 		VPADTPCalibrationParam* calibrationParam = params.GetPtr();
 
-		inputLog_printf("VPADSetTPCalibrationParam(%d, %d, %d, %f, %f)", channel, (uint16)calibrationParam->offsetX, (uint16)calibrationParam->offsetX, (float)calibrationParam->scaleX, (float)calibrationParam->scaleY);
+		cemuLog_log(LogType::InputAPI, "VPADSetTPCalibrationParam({}, {}, {}, {}, {})", channel, (uint16)calibrationParam->offsetX, (uint16)calibrationParam->offsetX, (float)calibrationParam->scaleX, (float)calibrationParam->scaleY);
 
 		vpadTPCalibrationParam[channel].offsetX = calibrationParam->offsetX;
 		vpadTPCalibrationParam[channel].offsetX = calibrationParam->offsetY;
@@ -931,7 +931,7 @@ void vpadExport_VPADGetTPCalibrationParam(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamStructPtr(calibrationParam, VPADTPCalibrationParam, 1);
-	inputLog_printf("VPADSetTPCalibrationParam(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADSetTPCalibrationParam({})", channel);
 
 	calibrationParam->offsetX = vpadTPCalibrationParam[channel].offsetX;
 	calibrationParam->offsetY = vpadTPCalibrationParam[channel].offsetY;
@@ -946,7 +946,7 @@ void vpadExport_VPADGetTPCalibratedPoint(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamStructPtr(outputDisplay, VPADTPData_t, 1);
 	ppcDefineParamStructPtr(inputRaw, VPADTPData_t, 2);
-	inputLog_printf("VPADGetTPCalibratedPoint(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetTPCalibratedPoint({})", channel);
 
 	memmove(outputDisplay, inputRaw, sizeof(VPADTPData_t));
 
@@ -973,7 +973,7 @@ void vpadExport_VPADGetTPCalibratedPointEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamS32(tpResolution, 1);
 	ppcDefineParamStructPtr(outputDisplay, VPADTPData_t, 2);
 	ppcDefineParamStructPtr(inputRaw, VPADTPData_t, 3);
-	inputLog_printf("VPADGetTPCalibratedPointEx(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetTPCalibratedPointEx({})", channel);
 
 	//debug_printf("TPInput: %d %d %04x %04x\n", _swapEndianU16(inputRaw->touch), _swapEndianU16(inputRaw->validity), _swapEndianU16(inputRaw->x), _swapEndianU16(inputRaw->y));
 	memmove(outputDisplay, inputRaw, sizeof(VPADTPData_t));
@@ -1037,7 +1037,7 @@ void vpadExport_VPADGetGyroZeroDriftMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamMEMPTR(gyroMode, uint32be, 1);
-	inputLog_printf("VPADGetGyroZeroDriftMode(%d)", channel);
+	cemuLog_log(LogType::InputAPI, "VPADGetGyroZeroDriftMode({})", channel);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -1056,7 +1056,7 @@ void vpadExport_VPADSetGyroZeroDriftMode(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
 	ppcDefineParamU32(gyroMode, 1);
-	inputLog_printf("VPADSetGyroZeroDriftMode(%d, %d)", channel, gyroMode);
+	cemuLog_log(LogType::InputAPI, "VPADSetGyroZeroDriftMode({}, {})", channel, gyroMode);
 
 	if (channel < VPAD_MAX_CONTROLLERS)
 	{
@@ -1140,7 +1140,7 @@ namespace vpad
 			
 			if(const auto controller = instance.get_vpad_controller(i))
 			{
-				inputLog_printf("Calling VPADSamplingCallback(%d)", i);
+				cemuLog_log(LogType::InputAPI, "Calling VPADSamplingCallback({})", i);
 				PPCCoreCallback(g_vpad.controller_data[i].sampling_callback, i);
 			}
 		}
