@@ -850,7 +850,7 @@ namespace save
 		ppcDefineParamMEMPTR(asyncParams, FSAsyncParams_t, 6);
 
 		const SAVEStatus result = SAVEOpenDirAsync(fsClient.GetPtr(), fsCmdBlock.GetPtr(), accountSlot, path.GetPtr(), hDir, errHandling, asyncParams.GetPtr());
-		saveLog_printf("SAVEOpenDirAsync(0x%08x, 0x%08x, %x, %s, 0x%08x (%x), %x) -> %x", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), accountSlot, path.GetPtr(), hDir.GetMPTR(),
+		cemuLog_log(LogType::Save, "SAVEOpenDirAsync(0x{:08x}, 0x{:08x}, {:x}, {}, 0x{:08x} ({:x}), {:x}) -> {:x}", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), accountSlot, path.GetPtr(), hDir.GetMPTR(),
 			(hDir.GetPtr() == nullptr ? 0 : (uint32)*hDir.GetPtr()), errHandling, result);
 		osLib_returnFromFunction(hCPU, result);
 	}
@@ -887,7 +887,7 @@ namespace save
 		ppcDefineParamU32(errHandling, 5);
 
 		const SAVEStatus result = SAVEOpenDir(fsClient.GetPtr(), fsCmdBlock.GetPtr(), accountSlot, path.GetPtr(), hDir, errHandling);
-		saveLog_printf("SAVEOpenDir(0x%08x, 0x%08x, %x, %s, 0x%08x (%x), %x) -> %x", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), accountSlot, path.GetPtr(), hDir.GetMPTR(),
+		cemuLog_log(LogType::Save, "SAVEOpenDir(0x{:08x}, 0x{:08x}, {:x}, {}, 0x{:08x} ({:x}), {:x}) -> {:x}", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), accountSlot, path.GetPtr(), hDir.GetMPTR(),
 			(hDir.GetPtr() == nullptr ? 0 : (uint32)*hDir.GetPtr()), errHandling, result);
 		osLib_returnFromFunction(hCPU, result);
 	}
@@ -923,7 +923,7 @@ namespace save
 		ppcDefineParamMEMPTR(asyncParams, FSAsyncParams_t, 7);
 
 		const SAVEStatus result = SAVEOpenDirOtherApplicationAsync(fsClient.GetPtr(), fsCmdBlock.GetPtr(), titleId, accountSlot, path.GetPtr(), hDir, errHandling, asyncParams.GetPtr());
-		saveLog_printf("SAVEOpenDirOtherApplicationAsync(0x%08x, 0x%08x, %llx, %x, %s, 0x%08x (%x), %x) -> %x", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), titleId, accountSlot, path.GetPtr(), hDir.GetMPTR(),
+		cemuLog_log(LogType::Save, "SAVEOpenDirOtherApplicationAsync(0x{:08x}, 0x{:08x}, {:x}, {:x}, {}, 0x{:08x} ({:x}), {:x}) -> {:x}", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), titleId, accountSlot, path.GetPtr(), hDir.GetMPTR(),
 			(hDir.GetPtr() == nullptr ? 0 : (uint32)*hDir.GetPtr()), errHandling, result);
 		osLib_returnFromFunction(hCPU, result);
 	}
@@ -961,7 +961,7 @@ namespace save
 		ppcDefineParamU32(errHandling, 6);
 
 		const SAVEStatus result = SAVEOpenDirOtherApplication(fsClient.GetPtr(), fsCmdBlock.GetPtr(), titleId, accountSlot, path.GetPtr(), hDir, errHandling);
-		saveLog_printf("SAVEOpenDirOtherApplication(0x%08x, 0x%08x, %llx, %x, %s, 0x%08x (%x), %x) -> %x", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), titleId, accountSlot, path.GetPtr(), hDir.GetMPTR(),
+		cemuLog_log(LogType::Save, "SAVEOpenDirOtherApplication(0x{:08x}, 0x{:08x}, {:x}, {:x}, {}, 0x{:08x} ({:x}), {:x}) -> {:x}", fsClient.GetMPTR(), fsCmdBlock.GetMPTR(), titleId, accountSlot, path.GetPtr(), hDir.GetMPTR(),
 			(hDir.GetPtr() == nullptr ? 0 : (uint32)*hDir.GetPtr()), errHandling, result);
 		osLib_returnFromFunction(hCPU, result);
 	}
