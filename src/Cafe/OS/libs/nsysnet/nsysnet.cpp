@@ -948,7 +948,7 @@ void nsysnetExport_send(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recv(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "recv({},0x{:08x},{},0x{:x}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "recv({},0x{:08x},{},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1078,7 +1078,7 @@ void _translateFDSetRev(struct wu_fd_set* fdset, fd_set* hostSet, sint32 nfds)
 
 void nsysnetExport_select(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "select({},0x{:08x},0x{:08x},0x{:08x},0x{:08x}) LR 0x{:08x} Thread 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "select({},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 	ppcDefineParamS32(nfds, 0);
 	ppcDefineParamStructPtr(readfds, struct wu_fd_set, 1);
 	ppcDefineParamStructPtr(writefds, struct wu_fd_set, 2);
@@ -1495,7 +1495,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "recvfrom({},0x{:08x},{},0x{:x}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "recvfrom({},0x{:08x},{},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1631,7 +1631,7 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recvfrom_ex(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "recvfrom_ex({},0x{:08x},{},0x{:x},0x{:08x},0x{:08x},0x{:08x},{}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8], hCPU->gpr[9], hCPU->gpr[10], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "recvfrom_ex({},0x{:08x},{},0x{:x},0x{:08x},0x{:08x},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8], hCPU->gpr[9], hCPU->gpr[10]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1753,7 +1753,7 @@ void _convertSockaddrToHostFormat(wu_sockaddr* sockaddru, sockaddr* sockaddrHost
 
 void nsysnetExport_sendto(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "sendto({},0x{:08x},{},0x{:x}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "sendto({},0x{:08x},{},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1823,7 +1823,7 @@ void nsysnetExport_sendto(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_sendto_multi(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "sendto_multi({},0x{:08x},0x{:08x},{}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "sendto_multi({},0x{:08x},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(data, 1);
 	ppcDefineParamS32(dataLen, 2);
@@ -1870,7 +1870,7 @@ typedef struct
 
 void nsysnetExport_sendto_multi_ex(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "sendto_multi_ex({},0x{:08x},0x{:08x},{}) LR: 0x{:08x} Thread: 0x{:08x}", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->spr.LR, coreinitThread_getCurrentThreadMPTRDepr(hCPU));
+	cemuLog_log(LogType::Socket, "sendto_multi_ex({},0x{:08x},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamU32(flags, 1);
 	ppcDefineParamStructPtr(multiBuf, sendtomultiBuffer_t, 2);
