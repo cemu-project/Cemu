@@ -220,7 +220,7 @@ void gx2Export_GX2SetDepthBuffer(PPCInterpreter_t* hCPU)
 
 	if( viewMip > 0 )
 	{
-		forceLogDebug_printf("GX2SetDepthBuffer: Unsupported non-zero mip (%d) Pointer: %08X Base: %08X", viewMip, regHTileDataBase, 0);
+		cemuLog_logDebug(LogType::Force, "GX2SetDepthBuffer: Unsupported non-zero mip ({}) Pointer: {:08x} Base: {:08x}", viewMip, regHTileDataBase, 0);
 	}
 
 	// setup depthbuffer info register
