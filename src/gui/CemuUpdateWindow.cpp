@@ -471,13 +471,13 @@ void CemuUpdateWindow::WorkerThread()
 					break;
 
 				// apply update
-				fs::path exePath = fs::path(wxStandardPaths::Get().GetExecutablePath().ToStdString());
+				fs::path exePath = ActiveSettings::GetExecutablePath();
 				std::wstring target_directory = exePath.parent_path().generic_wstring();
 				if (target_directory[target_directory.size() - 1] == '/')
 					target_directory = target_directory.substr(0, target_directory.size() - 1); // remove trailing /
 
 				// get exe name
-				const auto exec = ActiveSettings::GetFullPath();
+				const auto exec = ActiveSettings::GetExecutablePath();
 				const auto target_exe = fs::path(exec).replace_extension("exe.backup");
 				fs::rename(exec, target_exe);
 				m_restartFile = exec;

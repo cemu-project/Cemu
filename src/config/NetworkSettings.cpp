@@ -2,7 +2,6 @@
 #include "ActiveSettings.h"
 #include "LaunchSettings.h"
 #include "CemuConfig.h"
-#include <boost/dll/runtime_symbol_info.hpp>
 #include "Common/FileStream.h"
 
 XMLNetworkConfig_t n_config(L"network_services.xml");
