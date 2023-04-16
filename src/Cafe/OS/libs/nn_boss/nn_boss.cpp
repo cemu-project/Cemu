@@ -329,7 +329,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		Result SetServiceToken(NetTaskSetting_t* thisptr, const uint8* serviceToken)
 		{
 			cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_SetServiceToken(0x{:x}, 0x{:x})", MEMPTR(thisptr).GetMPTR(), MEMPTR(serviceToken).GetMPTR());
-			forceLogDebug_printf("\t->%s", serviceToken);
+			cemuLog_logDebug(LogType::Force, "\t->{}", fmt::ptr(serviceToken));
 			memcpy(&thisptr->settings[TaskSetting_t::kServiceToken], serviceToken, TaskSetting_t::kServiceTokenLen);
 			return 0x200080;
 		}
@@ -490,7 +490,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 				return 0xC0203780;
 			}
 
-			forceLogDebug_printf("\t-> url: %s", url);
+			cemuLog_logDebug(LogType::Force, "\t-> url: {}", url);
 
 			if (fileName && strnlen(fileName, TaskSetting_t::kFileNameLen) == TaskSetting_t::kFileNameLen)
 			{
@@ -511,13 +511,13 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 				strncpy((char*)thisptr + 0x7D0, "rawcontent.dat", TaskSetting_t::kFileNameLen);
 			thisptr->settings[0x7EF] = '\0';
 
-			forceLogDebug_printf("\t-> filename: %s", (char*)thisptr + 0x7D0);
+			cemuLog_logDebug(LogType::Force, "\t-> filename: {}", (char*)thisptr + 0x7D0);
 
 			if (directoryName)
 			{
 				strncpy((char*)thisptr + 0x7C8, directoryName, TaskSetting_t::kDirectoryNameLen);
 				thisptr->settings[0x7CF] = '\0';
-				forceLogDebug_printf("\t-> directoryName: %s", (char*)thisptr + 0x7C8);
+				cemuLog_logDebug(LogType::Force, "\t-> directoryName: {}", (char*)thisptr + 0x7C8);
 			}
 
 			thisptr->settings[0x7C0] = newArrival;
@@ -775,7 +775,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_ctor(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
-			forceLogDebug_printf("nn_boss_Task_ctor(0x%08x)", thisptr.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_ctor(0x{:08x})", thisptr.GetMPTR());
 			ctor(thisptr.GetPtr());
 			osLib_returnFromFunction(hCPU, thisptr.GetMPTR());
 		}
@@ -824,7 +824,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_StopScheduling(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
-			forceLogDebug_printf("nn_boss_Task_StopScheduling(0x%08x)", thisptr.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_StopScheduling(0x{:08x})", thisptr.GetMPTR());
 
 			bossPrepareRequest();
 			bossRequest->requestCode = IOSU_NN_BOSS_TASK_STOP_SCHEDULING;
@@ -900,7 +900,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_Unregister(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
-			forceLogDebug_printf("nn_boss_Task_Unregister(0x%08x)", thisptr.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Unregister(0x{:08x})", thisptr.GetMPTR());
 
 			bossPrepareRequest();
 			bossRequest->requestCode = IOSU_NN_BOSS_TASK_UNREGISTER;
@@ -1468,7 +1468,7 @@ void nnBossNsDataExport_initialize(PPCInterpreter_t* hCPU)
 
 	nsData->readIndex = 0;
 
-	forceLogDebug_printf("nnBossNsDataExport_initialize: %s", nsData->name);
+	cemuLog_logDebug(LogType::Force, "nnBossNsDataExport_initialize: {}", nsData->name);
 	
 	osLib_returnFromFunction(hCPU, 0x200080);
 }
