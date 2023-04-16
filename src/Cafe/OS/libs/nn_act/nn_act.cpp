@@ -616,7 +616,7 @@ void nnActExport_AcquireIndependentServiceToken(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(token, independentServiceToken_t, 0);
 	ppcDefineParamMEMPTR(serviceToken, const char, 1);
 	uint32 result =  AcquireIndependentServiceToken(token.GetPtr(), serviceToken.GetPtr(), 0);
-	forceLogDebug_printf("nn_act.AcquireIndependentServiceToken(0x%p, %s) -> %x | LR %08x", (void*)token.GetPtr(), serviceToken.GetPtr(), result, hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "nn_act.AcquireIndependentServiceToken(0x{}, {}) -> {:x}", (void*)token.GetPtr(), serviceToken.GetPtr(), result);
 	cemuLog_logDebug(LogType::Force, "Token: {}", serviceToken.GetPtr());
 	osLib_returnFromFunction(hCPU, result);
 }

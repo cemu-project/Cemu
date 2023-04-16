@@ -441,7 +441,7 @@ void export_curl_multi_perform(PPCInterpreter_t* hCPU)
 	int tempRunningHandles = 0;
 	CURLMcode result = curl_multi_perform(curlm->curlm, &tempRunningHandles);
 	*(runningHandles.GetPtr()) = tempRunningHandles;
-	forceLogDebug_printf("curl_multi_perform(0x%08x, 0x%08x) -> 0x%x (running handles: %d) LR: 0x%08x", curlm.GetMPTR(), runningHandles.GetMPTR(), result, tempRunningHandles, hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "curl_multi_perform(0x{:08x}, 0x{:08x}) -> 0x{:x} (running handles: {})", curlm.GetMPTR(), runningHandles.GetMPTR(), result, tempRunningHandles);
 	//const uint32 result = SendOrderToWorker(curlm.GetPtr(), QueueOrder_MultiPerform);
 
 	osLib_returnFromFunction(hCPU, result);
