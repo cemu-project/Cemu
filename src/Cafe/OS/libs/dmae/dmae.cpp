@@ -93,7 +93,7 @@ void dmaeExport_DMAESemaphore(PPCInterpreter_t* hCPU)
 	}
 	else
 	{
-		forceLogDebug_printf("DMAESemaphore unknown action type %d", actionType);
+		cemuLog_logDebug(LogType::Force, "DMAESemaphore unknown action type {}", actionType);
 		cemu_assert_debug(false);
 	}
 

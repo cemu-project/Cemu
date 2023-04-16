@@ -1105,7 +1105,7 @@ namespace H264
 				// end of sequence
 				break;
 			default:
-				forceLogDebug_printf("Unsupported NAL unit type %d", nal_unit_type);
+				cemuLog_logDebug(LogType::Force, "Unsupported NAL unit type {}", nal_unit_type);
 				cemu_assert_unimplemented();
 				// todo
 				break;

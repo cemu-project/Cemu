@@ -331,7 +331,7 @@ void PPCInterpreter_EIEIO(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 void PPCInterpreter_SC(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	forceLogDebug_printf("SC executed at 0x%08x", hCPU->instructionPointer);
+	cemuLog_logDebug(LogType::Force, "SC executed at 0x{:08x}", hCPU->instructionPointer);
 	// next instruction
 	PPCInterpreter_nextInstruction(hCPU);
 }

@@ -48,7 +48,7 @@ namespace coreinit
 
 	void coreinitExport_IMGetAPDPeriod(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("IMGetAPDPeriod(0x%08x)\n", hCPU->gpr[3]);
+		cemuLog_logDebug(LogType::Force, "IMGetAPDPeriod(0x{:08x})", hCPU->gpr[3]);
 		// parameters:
 		// r3	uint32*		returns the number of seconds until auto-shutdown occurs
 		memory_writeU32(hCPU->gpr[3], 600);

@@ -595,7 +595,7 @@ int iosuAct_thread()
 				}
 				else
 				{
-					forceLogDebug_printf("Gen UUID unknown mode %d", actCemuRequest->uuidName);
+					cemuLog_logDebug(LogType::Force, "Gen UUID unknown mode {}", actCemuRequest->uuidName);
 				}
 				actCemuRequest->setACTReturnCode(0);
 			}

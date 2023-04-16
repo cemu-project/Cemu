@@ -22,13 +22,13 @@ void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 	uint32 pitchHeight = (surfaceInfo.height * surfaceInfo.pitch) >> 6;
 #ifdef CEMU_DEBUG_ASSERT
 	if (colorBuffer->viewNumSlices != _swapEndianU32(1))
-		forceLogDebug_printf("GX2InitColorBufferRegs(): With unsupported slice count %d", _swapEndianU32(colorBuffer->viewNumSlices));
+		cemuLog_logDebug(LogType::Force, "GX2InitColorBufferRegs(): With unsupported slice count {}", _swapEndianU32(colorBuffer->viewNumSlices));
 	if (surfaceInfo.pitch < 7)
-		forceLogDebug_printf("GX2InitColorBufferRegs(): Pitch too small (pitch = %d)", surfaceInfo.pitch);
+		cemuLog_logDebug(LogType::Force, "GX2InitColorBufferRegs(): Pitch too small (pitch = {})", surfaceInfo.pitch);
 	if ((surfaceInfo.pitch & 7) != 0)
-		forceLogDebug_printf("GX2InitColorBufferRegs(): Pitch has invalid alignment (pitch = %d)", surfaceInfo.pitch);
+		cemuLog_logDebug(LogType::Force, "GX2InitColorBufferRegs(): Pitch has invalid alignment (pitch = {})", surfaceInfo.pitch);
 	if (pitchHeight == 0)
-		forceLogDebug_printf("GX2InitColorBufferRegs(): Invalid value (pitchHeight = %d)", pitchHeight);
+		cemuLog_logDebug(LogType::Force, "GX2InitColorBufferRegs(): Invalid value (pitchHeight = {})", pitchHeight);
 #endif
 
 	uint32 cSize = ((surfaceInfo.pitch >> 3) - 1) & 0x3FF;

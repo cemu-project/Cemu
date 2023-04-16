@@ -357,7 +357,7 @@ void LatteShader_FinishCompilation(LatteDecompilerShader* shader)
 {
 	if (shader->hasError)
 	{
-		forceLogDebug_printf("LatteShader_finishCompilation(): Skipped because of error in shader %llx", shader->baseHash);
+		cemuLog_logDebug(LogType::Force, "LatteShader_finishCompilation(): Skipped because of error in shader {:x}", shader->baseHash);
 		return;
 	}
 	shader->shader->WaitForCompiled();

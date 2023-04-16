@@ -101,7 +101,7 @@ void LatteSurfaceCopy_copySurfaceNew(MPTR srcPhysAddr, MPTR srcMipAddr, uint32 s
 	// download destination texture if it matches known accessed formats
 	if (destinationTexture->width == 8 && destinationTexture->height == 8 && destinationTexture->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1)
 	{
-		forceLogDebug_printf("Texture readback after copy for Bayonetta 2 (phys: 0x%08x)", destinationTexture->physAddress);
+		cemuLog_logDebug(LogType::Force, "Texture readback after copy for Bayonetta 2 (phys: 0x{:08x})", destinationTexture->physAddress);
 		LatteTextureReadback_Initate(destinationView);
 	}
 }

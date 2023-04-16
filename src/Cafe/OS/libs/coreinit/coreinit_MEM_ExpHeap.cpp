@@ -948,7 +948,7 @@ void export_MEMSetGroupIDForExpHeap(PPCInterpreter_t* hCPU)
 void export_MEMGetGroupIDForExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
-	forceLogDebug_printf("MEMGetGroupIDForExpHeap(0x%08x)", heap.GetMPTR());
+	cemuLog_logDebug(LogType::Force, "MEMGetGroupIDForExpHeap(0x{:08x})", heap.GetMPTR());
 	uint16 oldGroupId = MEMGetGroupIDForExpHeap(heap.GetPtr());
 	osLib_returnFromFunction(hCPU, oldGroupId);
 }

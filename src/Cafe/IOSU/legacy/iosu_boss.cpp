@@ -252,7 +252,7 @@ namespace iosu
 
 	size_t task_download_header_callback(char* ptr, size_t size, size_t nitems, void* userdata)
 	{
-		//forceLogDebug_printf("\tHeader: %s", ptr);
+		//cemuLog_logDebug(LogType::Force, "\tHeader: {}", ptr);
 
 		return size * nitems;
 	}
@@ -292,7 +292,7 @@ namespace iosu
 				task->content_type = ContentType::kText;
 			else
 			{
-				forceLogDebug_printf("task_header_callback: unknown content type > %s", type);
+				cemuLog_logDebug(LogType::Force, "task_header_callback: unknown content type > {}", type);
 			}
 		}
 		else if (starts_with(ptr, "Last-Modified: "))
@@ -301,7 +301,7 @@ namespace iosu
 		}
 
 		//cemuLog_logDebug(LogType::Force, "task_header_callback: len {} ({}) and type {}", task->content_length, task->result_buffer.capacity(), task->content_type);
-		//forceLogDebug_printf("\t%s", ptr);
+		//cemuLog_logDebug(LogType::Force, "\t{}", ptr);
 		return size * nitems;
 	}
 
@@ -310,7 +310,7 @@ namespace iosu
 		auto task_settings = (TaskSetting*)param;
 		if (task_settings->taskType == kRawDlTaskSetting)
 		{
-			forceLogDebug_printf("sslctx_function: adding client cert: %d", (int)task_settings->settings[TaskSetting::kClientCert]);
+			cemuLog_logDebug(LogType::Force, "sslctx_function: adding client cert: {}", (int)task_settings->settings[TaskSetting::kClientCert]);
 			if (!iosuCrypto_addClientCertificate(sslctx, task_settings->settings[TaskSetting::kClientCert]))
 				assert_dbg();
 
@@ -319,7 +319,7 @@ namespace iosu
 			{
 				if (task_settings->settings[location] != 0)
 				{
-					forceLogDebug_printf("sslctx_function: adding ca cert: %d", (int)task_settings->settings[location]);
+					cemuLog_logDebug(LogType::Force, "sslctx_function: adding ca cert: {}", (int)task_settings->settings[location]);
 					if (!iosuCrypto_addCACertificate(sslctx, task_settings->settings[location]))
 					{
 						cemuLog_log(LogType::Force, "Failed to load CA certificate file");
@@ -601,11 +601,11 @@ namespace iosu
 		if (curl_result != CURLE_OK)
 		{
 #ifdef CEMU_DEBUG_ASSERT
-			forceLogDebug_printf("curl error buff: %s", errbuf);
+			cemuLog_logDebug(LogType::Force, "curl error buff: {}", errbuf);
 #endif
 			it->turn_state = kError;
 			it->wait_state = TRUE;
-			forceLogDebug_printf("task_run curl fail: %d", curl_result);
+			cemuLog_logDebug(LogType::Force, "task_run curl fail: {}", curl_result);
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_BOSS, 0);
 		}
 		else
@@ -653,7 +653,7 @@ namespace iosu
 
 				char targetFileName[TaskSetting::kFileNameLen + 1]{};
 				strncpy(targetFileName, (char*)&it->task_settings.settings[TaskSetting::kNbdlFileName], TaskSetting::kFileNameLen);
-				forceLogDebug_printf("\tnbdl task target filename: \"%s\"", targetFileName);
+				cemuLog_logDebug(LogType::Force, "\tnbdl task target filename: \"{}\"", targetFileName);
 				const bool hasFileName = targetFileName[0] != '\0';
 
 				while (!it->queued_files.empty())
@@ -796,7 +796,7 @@ namespace iosu
 					}
 					catch (const std::exception& ex)
 					{
-						forceLogDebug_printf("file error: %s", ex.what());
+						cemuLog_logDebug(LogType::Force, "file error: {}", ex.what());
 					}
 
 					if (hasFileName)
@@ -805,7 +805,7 @@ namespace iosu
 			}
 			catch (const std::exception& ex)
 			{
-				forceLogDebug_printf("dir error: %s", ex.what());
+				cemuLog_logDebug(LogType::Force, "dir error: {}", ex.what());
 			}
 		}
 
@@ -865,7 +865,7 @@ namespace iosu
 		{
 			if (timeout != 0 && (uint32)std::chrono::duration_cast<std::chrono::seconds>(tick_cached() - start).count() >= timeout)
 			{
-				forceLogDebug_printf("task_wait: timeout reached -> %d seconds passed", timeout);
+				cemuLog_logDebug(LogType::Force, "task_wait: timeout reached -> {} seconds passed", timeout);
 				return false;
 			}
 

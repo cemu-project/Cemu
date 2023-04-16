@@ -932,7 +932,7 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 		}
 		else
 		{
-			forceLogDebug_printf("Unsupported tex instruction %d\n", inst0_4);
+			cemuLog_logDebug(LogType::Force, "Unsupported tex instruction {}", inst0_4);
 			shaderContext->hasError = true;
 			break;
 		}
