@@ -543,7 +543,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else
 			{
-				forceLogDebug_printf("setsockopt(): Unsupported optname 0x%08x", optname);
+				cemuLog_logDebug(LogType::Force, "setsockopt(): Unsupported optname 0x{:08x}", optname);
 			}
 		}
 		else if (level == WU_IPPROTO_TCP)
@@ -1566,7 +1566,7 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 				wsaError = GETLASTERR;
 				if (r < 0)
 					cemu_assert_debug(false);
-				forceLogDebug_printf("recvfrom returned %d bytes", r);
+				cemuLog_logDebug(LogType::Force, "recvfrom returned {} bytes", r);
 				*fromLen = fromLenHost;
 				fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
 				memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
@@ -2039,7 +2039,7 @@ namespace nsysnet
 	void export_NSSLDestroyContext(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(nsslHandle, 0);
-		forceLogDebug_printf("NSSLDestroyContext(0x%x)", nsslHandle);
+		cemuLog_logDebug(LogType::Force, "NSSLDestroyContext(0x{:x})", nsslHandle);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{

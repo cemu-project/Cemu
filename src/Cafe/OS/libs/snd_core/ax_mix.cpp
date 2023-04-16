@@ -695,7 +695,7 @@ namespace snd_core
 #ifdef CEMU_DEBUG_ASSERT
 		if (internalShadowCopy->biquad.on != 0x0200)
 		{
-			forceLogDebug_printf("AX_ApplyBiquad() with incorrect biquad.on value 0x%04x", _swapEndianU16(internalShadowCopy->biquad.on));
+			cemuLog_logDebug(LogType::Force, "AX_ApplyBiquad() with incorrect biquad.on value 0x{:04x}", _swapEndianU16(internalShadowCopy->biquad.on));
 		}
 #endif
 

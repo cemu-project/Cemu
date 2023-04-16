@@ -287,7 +287,7 @@ namespace snd_core
 		}
 		else
 		{
-			forceLogDebug_printf("sndcore2.AXSetAuxReturnVolume() - unsupported device %d", device);
+			cemuLog_logDebug(LogType::Force, "sndcore2.AXSetAuxReturnVolume() - unsupported device {}", device);
 		}
 		return 0;
 	}

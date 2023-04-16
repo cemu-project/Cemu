@@ -417,7 +417,7 @@ uint64 _SYSGetSystemApplicationTitleId(sint32 index)
 void sysappExport__SYSGetSystemApplicationTitleId(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(systemApplicationId, 0);
-	forceLogDebug_printf("_SYSGetSystemApplicationTitleId(0x%d)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "_SYSGetSystemApplicationTitleId(0x{})", hCPU->gpr[3]);
 
 	uint64 titleId = _SYSGetSystemApplicationTitleId(systemApplicationId);
 	osLib_returnFromFunction64(hCPU, titleId);
@@ -559,7 +559,7 @@ static_assert(sizeof(SysLauncherArgs28) == 0x28);
 
 void sysappExport__SYSGetLauncherArgs(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("_SYSGetLauncherArgs(0x%08x) - todo\n", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "_SYSGetLauncherArgs(0x{:08x}) - todo", hCPU->gpr[3]);
 
 	// todo: Handle OS library version. Older versions used a different struct (only 0x18 bytes?)
 	//ppcDefineParamStructPtr(launcherArgs, SysLauncherArgs, 0);
