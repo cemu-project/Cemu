@@ -546,7 +546,7 @@ void export_curl_multi_info_read(PPCInterpreter_t* hCPU)
 
 	CURLMsg* msg = ::curl_multi_info_read(curlm->curlm, msgsInQueue.GetPtr());
 
-	forceLogDebug_printf("curl_multi_info_read - todo");
+	cemuLog_logDebug(LogType::Force, "curl_multi_info_read - todo");
 	if (msg)
 	{
 		MEMPTR<CURLMsg_t> result{ PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), ppcsizeof<CURLMsg_t>()) };
@@ -898,7 +898,7 @@ int sockopt_callback(void* clientp, curl_socket_t curlfd, curlsocktype purpose)
 {
 	CURL_t* curl = (CURL_t*)clientp;
 
-	forceLogDebug_printf("sockopt_callback called!");
+	cemuLog_logDebug(LogType::Force, "sockopt_callback called!");
 
 	sint32 r = 0;
 
@@ -1220,7 +1220,7 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 		}
 		case CURLINFO_CONTENT_TYPE:
 		{
-			//forceLogDebug_printf("CURLINFO_CONTENT_TYPE not supported");
+			//cemuLog_logDebug(LogType::Force, "CURLINFO_CONTENT_TYPE not supported");
 			//*(uint32*)parameter.GetPtr() = MPTR_NULL;
 			char* contentType = nullptr;
 			result = curl_easy_getinfo(curlObj, CURLINFO_REDIRECT_URL, &contentType);
@@ -1315,7 +1315,7 @@ void export_curl_slist_free_all(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(list, curl_slist_t, 0);
 
-	forceLogDebug_printf("export_curl_slist_free_all: TODO");
+	cemuLog_logDebug(LogType::Force, "export_curl_slist_free_all: TODO");
 
 	osLib_returnFromFunction(hCPU, 0);
 }

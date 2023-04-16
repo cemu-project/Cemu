@@ -184,7 +184,7 @@ namespace coreinit
 				titleId == 0x0005000010135E00 // US
 				)
 			{
-				forceLogDebug_printf("Hack: Reduce available memory to simulate loaded RPLs");
+				cemuLog_logDebug(LogType::Force, "Hack: Reduce available memory to simulate loaded RPLs");
 				currentRPLAllocatorOffset += (48 * 1024 * 1024); // 48MB
 			}
 			memAddr = currentRPLAllocatorOffset;

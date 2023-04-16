@@ -19,7 +19,7 @@ namespace nn
 
 		void export_NeedsNetworkUpdate(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("NeedsNetworkUpdate() - placeholder");
+			cemuLog_logDebug(LogType::Force, "NeedsNetworkUpdate() - placeholder");
 			ppcDefineParamTypePtr(needsUpdate, uint8, 0);
 
 			*needsUpdate = 0;
@@ -40,7 +40,7 @@ namespace nn
 
 		void export_GetUpdatePackageProgress(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("GetUpdatePackageProgress() - placeholder");
+			cemuLog_logDebug(LogType::Force, "GetUpdatePackageProgress() - placeholder");
 			ppcDefineParamTypePtr(updatePackageProgress, updatePackageProgress_t, 0);
 			// status of system update download
 			// values are unknown
@@ -53,7 +53,7 @@ namespace nn
 
 		void export_NeedsNotifyToUsers(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("NeedsNotifyToUsers() - placeholder");
+			cemuLog_logDebug(LogType::Force, "NeedsNotifyToUsers() - placeholder");
 			ppcDefineParamTypePtr(updatePackageProgress, updatePackageProgress_t, 0);
 
 			osLib_returnFromFunction(hCPU, 0);
@@ -61,7 +61,7 @@ namespace nn
 
 		void export_GetNumTitlePackages(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("GetNumTitlePackages() - placeholder");
+			cemuLog_logDebug(LogType::Force, "GetNumTitlePackages() - placeholder");
 
 			nimPrepareRequest();
 
@@ -79,7 +79,7 @@ namespace nn
 
 		void export_ListTitlePackagesStatically(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("ListTitlePackagesStatically() - placeholder");
+			cemuLog_logDebug(LogType::Force, "ListTitlePackagesStatically() - placeholder");
 			ppcDefineParamTypePtr(titleIdList, uint64, 0);
 			ppcDefineParamS32(maxCount, 1);
 
@@ -96,7 +96,7 @@ namespace nn
 
 		void export_GetTitlePackageInfos(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("GetTitlePackageInfos() - placeholder");
+			cemuLog_logDebug(LogType::Force, "GetTitlePackageInfos() - placeholder");
 			ppcDefineParamTypePtr(titlePackageInfo, iosu::nim::titlePackageInfo_t, 0);
 			ppcDefineParamTypePtr(titleIdList, uint64, 1);
 			ppcDefineParamU32(count, 2);
@@ -115,7 +115,7 @@ namespace nn
 
 		void export_NeedsNotifyToUsersTitlePackage(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("NeedsNotifyToUsers() - placeholder");
+			cemuLog_logDebug(LogType::Force, "NeedsNotifyToUsers() - placeholder");
 			ppcDefineParamTypePtr(titlePackageInfo, iosu::nim::titlePackageInfo_t, 0);
 
 			osLib_returnFromFunction(hCPU, 0);
@@ -125,7 +125,7 @@ namespace nn
 
 		void export_GetIconDatabaseEntries(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("GetIconDatabaseEntries() - placeholder");
+			cemuLog_logDebug(LogType::Force, "GetIconDatabaseEntries() - placeholder");
 			ppcDefineParamTypePtr(iconDatabaseEntries, IDBE_DATA, 0);
 			ppcDefineParamTypePtr(titleIdList, uint64, 1);
 			ppcDefineParamS32(count, 2);
@@ -150,7 +150,7 @@ namespace nn
 
 		void export_QuerySchedulerStatus(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("QuerySchedulerStatus() - placeholder");
+			cemuLog_logDebug(LogType::Force, "QuerySchedulerStatus() - placeholder");
 
 			// scheduler status seems to a be a 32bit value?
 			// scope.rpx only checks the second byte and if it matches 0x01 then the scheduler is considered paused/stopped (displays that downloads are inactive)
@@ -172,7 +172,7 @@ namespace nn
 
 		void export_ConstructResultError(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("Construct__Q3_2nn3nim11ResultErrorFQ2_2nn6Resulti() - placeholder");
+			cemuLog_logDebug(LogType::Force, "Construct__Q3_2nn3nim11ResultErrorFQ2_2nn6Resulti() - placeholder");
 			ppcDefineParamTypePtr(resultError, nimResultError_t, 0);
 			ppcDefineParamU32BEPtr(nimErrorCodePtr, 1);
 			ppcDefineParamU32(uknParam, 2);
@@ -187,7 +187,7 @@ namespace nn
 		{
 			ppcDefineParamU32BEPtr(country, 0);
 
-			forceLogDebug_printf("GetECommerceInfrastructureCountry - todo");
+			cemuLog_logDebug(LogType::Force, "GetECommerceInfrastructureCountry - todo");
 
 			*country = 0;
 
@@ -219,7 +219,7 @@ namespace nn
 			ppcDefineParamU32(regionOrLanguage, 4);
 			ppcDefineParamU32(uknR8, 5); // title type?
 
-			forceLogDebug_printf("MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy - placeholder");
+			cemuLog_logDebug(LogType::Force, "MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy - placeholder");
 
 			titlePackageTastConfig->titleIdHigh = (uint32)(titleId >> 32);
 			titlePackageTastConfig->titleIdLow = (uint32)(titleId & 0xFFFFFFFF);
@@ -246,7 +246,7 @@ namespace nn
 			ppcDefineParamPtr(titlePackageTastConfig, TitlePackageTaskConfig_t, 1);
 
 			// get install size of currently installed title, otherwise return -1 as size
-			forceLogDebug_printf("CalculateTitleInstallSize - todo\n");
+			cemuLog_logDebug(LogType::Force, "CalculateTitleInstallSize - todo");
 
 			*installSize = 0xFFFFFFFFFFFFFFFF;
 

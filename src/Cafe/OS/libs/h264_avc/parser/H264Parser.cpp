@@ -395,7 +395,7 @@ void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps
 			}
 			if (sliceHeader->pic_list_modification1Count > 0)
 			{
-				forceLogDebug_printf("sliceHeader->pic_list_modification1Count non-zero is not supported");
+				cemuLog_logDebug(LogType::Force, "sliceHeader->pic_list_modification1Count non-zero is not supported");
 				cemu_assert_unimplemented();
 			}
 		}

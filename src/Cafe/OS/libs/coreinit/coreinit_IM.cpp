@@ -57,7 +57,7 @@ namespace coreinit
 
 	void coreinitExport_IM_GetParameter(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("IM_GetParameter()");
+		cemuLog_logDebug(LogType::Force, "IM_GetParameter()");
 
 		ppcDefineParamS32(imHandle, 0); // handle from IM_Open()
 		ppcDefineParamS32(uknR4, 1);
@@ -81,7 +81,7 @@ namespace coreinit
 
 	void coreinitExport_IM_GetRuntimeParameter(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("IM_GetRuntimeParameter()");
+		cemuLog_logDebug(LogType::Force, "IM_GetRuntimeParameter()");
 
 		ppcDefineParamS32(parameterId, 0);
 		ppcDefineParamStructPtr(output, void, 1);

@@ -5,7 +5,7 @@ namespace drmapp
 {
 	uint32 NupChkIsFinished(uint32 ukn)
 	{
-		forceLogDebug_printf("drmapp.NupChkIsFinished() - placeholder");
+		cemuLog_logDebug(LogType::Force, "drmapp.NupChkIsFinished() - placeholder");
 		return 1;
 	}
 

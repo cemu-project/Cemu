@@ -719,7 +719,7 @@ void prudpClient::handleIncomingPacket(prudpIncomingPacket* incomingPacket)
 			if (it->sequenceId == incomingPacket->sequenceId)
 			{
 				// already queued (should check other values too, like packet type?)
-				forceLogDebug_printf("Duplicate PRUDP packet received");
+				cemuLog_logDebug(LogType::Force, "Duplicate PRUDP packet received");
 				delete incomingPacket;
 				return;
 			}

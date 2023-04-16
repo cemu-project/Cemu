@@ -119,7 +119,7 @@ void CafeInit()
 		}
 		else
 		{
-			forceLogDebug_printf("Unable to find end of rpx file name in arg string");
+			cemuLog_logDebug(LogType::Force, "Unable to find end of rpx file name in arg string");
 		}
 	}
 	// setup UGQR

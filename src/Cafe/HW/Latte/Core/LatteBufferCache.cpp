@@ -313,7 +313,7 @@ public:
 			// todo - add support for 4 byte granularity for streamout writes and cache
 			// used by Affordable Space Adventures and YWW Level 1-8
 			// also used by CoD Ghosts (8 byte granularity)
-			//forceLogDebug_printf("Streamout write size is not aligned to 16 bytes");
+			//cemuLog_logDebug(LogType::Force, "Streamout write size is not aligned to 16 bytes");
 			rangeEnd &= ~0xF;
 		}
 		//cemu_assert_debug((rangeEnd & 0xF) == 0);

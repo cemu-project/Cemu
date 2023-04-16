@@ -208,7 +208,7 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 	if( srcHwFormat != dstHwFormat )
 	{
 		// mismatching format
-		forceLogDebug_printf("GX2CopySurface(): Format mismatch\n");
+		cemuLog_logDebug(LogType::Force, "GX2CopySurface(): Format mismatch");
 		return;
 	}
 

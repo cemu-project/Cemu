@@ -284,13 +284,13 @@ namespace coreinit
 
 	uint32 OSGetBootPMFlags()
 	{
-		forceLogDebug_printf("OSGetBootPMFlags() - placeholder");
+		cemuLog_logDebug(LogType::Force, "OSGetBootPMFlags() - placeholder");
 		return 0;
 	}
 
 	uint32 OSGetSystemMode()
 	{
-		forceLogDebug_printf("OSGetSystemMode() - placeholder");
+		cemuLog_logDebug(LogType::Force, "OSGetSystemMode() - placeholder");
 		// if this returns 2, barista softlocks shortly after boot
 		return 0;
 	}

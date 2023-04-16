@@ -440,7 +440,7 @@ namespace nsyshid
 		ppcDefineParamU32(duration, 3); // r6
 		ppcDefineParamMPTR(callbackFuncMPTR, 4); // r7
 		ppcDefineParamMPTR(callbackParamMPTR, 5); // r8
-		forceLogDebug_printf("nsyshid.HIDSetIdle(...)");
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetIdle(...)");
 
 		// todo
 		if (callbackFuncMPTR)
@@ -461,7 +461,7 @@ namespace nsyshid
 		ppcDefineParamU32(protocol, 2); // r5
 		ppcDefineParamMPTR(callbackFuncMPTR, 3); // r6
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
-		forceLogDebug_printf("nsyshid.HIDSetProtocol(...)");
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetProtocol(...)");
 		
 		if (callbackFuncMPTR)
 		{
@@ -501,7 +501,7 @@ namespace nsyshid
 	// handler for synchronous HIDSetReport transfers
 	sint32 _hidSetReportSync(HIDDeviceInfo_t* hidDeviceInfo, uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength, OSThread_t* osThread)
 	{
-		//forceLogDebug_printf("_hidSetReportSync begin");
+		//cemuLog_logDebug(LogType::Force, "_hidSetReportSync begin");
 		_debugPrintHex("_hidSetReportSync Begin", reportData, length);
 		sint32 retryCount = 0;
 		sint32 returnCode = 0;
@@ -616,7 +616,7 @@ namespace nsyshid
 			}
 
 
-			forceLogDebug_printf("HidRead WaitHalfComplete");
+			cemuLog_logDebug(LogType::Force, "HidRead WaitHalfComplete");
 			GetOverlappedResult(hidDeviceInfo->hFile, &ovlp, &bt, false);
 			if (bt == 0)
 				transferLength = 0;
@@ -725,7 +725,7 @@ namespace nsyshid
 			DWORD r = WaitForSingleObject(ovlp.hEvent, 2000);
 			if (r == WAIT_TIMEOUT)
 			{
-				forceLogDebug_printf("HidWrite internal timeout");
+				cemuLog_logDebug(LogType::Force, "HidWrite internal timeout");
 				// return -108 in case of timeout
 				free(tempBuffer);
 				CloseHandle(ovlp.hEvent);
@@ -733,9 +733,9 @@ namespace nsyshid
 			}
 
 
-			forceLogDebug_printf("HidWrite WaitHalfComplete");
+			cemuLog_logDebug(LogType::Force, "HidWrite WaitHalfComplete");
 			GetOverlappedResult(hidDeviceInfo->hFile, &ovlp, &bt, false);
-			forceLogDebug_printf("HidWrite WaitComplete");
+			cemuLog_logDebug(LogType::Force, "HidWrite WaitComplete");
 		}
 		sint32 returnCode = 0;
 		if (bt != 0)

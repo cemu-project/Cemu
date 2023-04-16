@@ -299,7 +299,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		{
 			if(name == nullptr || strnlen(name, 0x80) == 0x80)
 			{
-				forceLogDebug_printf("nn_boss_NetTaskSetting_AddCaCert: name size is invalid");
+				cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_AddCaCert: name size is invalid");
 				return 0xC0203780;
 			}
 
@@ -350,7 +350,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 				location += TaskSetting_t::kCACert;
 			}
 		
-			forceLogDebug_printf("nn_boss_NetTaskSetting_AddInternalCaCert: can't store certificate");
+			cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_AddInternalCaCert: can't store certificate");
 			return 0xA0220D00;
 		}
 
@@ -383,7 +383,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_ctor(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, NbdlTaskSetting_t, 0);
-			forceLogDebug_printf("nn_boss_NbdlTaskSetting_ctor");
+			cemuLog_logDebug(LogType::Force, "nn_boss_NbdlTaskSetting_ctor");
 			ctor(thisptr.GetPtr());
 			osLib_returnFromFunction(hCPU, thisptr.GetMPTR());
 		}
@@ -532,7 +532,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_ctor(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, PlayReportSetting_t, 0);
-			forceLogDebug_printf("nn_boss_PlayReportSetting_ctor TODO");
+			cemuLog_logDebug(LogType::Force, "nn_boss_PlayReportSetting_ctor TODO");
 			if (!thisptr)
 			{
 				assert_dbg();
@@ -561,7 +561,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 			if(!ptr || value == 0 || value > 0x19000)
 			{
-				forceLogDebug_printf("nn_boss_PlayReportSetting_Initialize: invalid parameter");
+				cemuLog_logDebug(LogType::Force, "nn_boss_PlayReportSetting_Initialize: invalid parameter");
 				osLib_returnFromFunction(hCPU, 0);
 			}
 
@@ -788,7 +788,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			if (isForegroundRun != 0)
 			{
 				//peterBreak();
-				forceLogDebug_printf("export_Run foreground run");
+				cemuLog_logDebug(LogType::Force, "export_Run foreground run");
 			}
 
 			bossPrepareRequest();
@@ -920,7 +920,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 			if (hCPU->gpr[4] == 0)
 			{
-				forceLogDebug_printf("nn_boss_Task_Register - crash workaround (fix me)");
+				cemuLog_logDebug(LogType::Force, "nn_boss_Task_Register - crash workaround (fix me)");
 				osLib_returnFromFunction(hCPU, 0);
 				return;
 			}
@@ -1112,13 +1112,13 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 	void export_Initialize(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("nn_boss_Initialize()");
+		cemuLog_logDebug(LogType::Force, "nn_boss_Initialize()");
 		osLib_returnFromFunction(hCPU, Initialize());
 	}
 
 	void export_GetBossState(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("nn_boss.GetBossState() - stub");
+		cemuLog_logDebug(LogType::Force, "nn_boss.GetBossState() - stub");
 		osLib_returnFromFunction(hCPU, 7);
 	}
 
@@ -1288,7 +1288,7 @@ void nnBossDataNameExport_opPCc(PPCInterpreter_t* hCPU)
 void nnBossStorageExport_ct(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(storage, nn::boss::Storage::bossStorage_t, 0);
-	forceLogDebug_printf("Constructor for boss storage called");
+	cemuLog_logDebug(LogType::Force, "Constructor for boss storage called");
 	// todo
 	memset(storage, 0, sizeof(nn::boss::Storage::bossStorage_t));
 	osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(storage));
@@ -1297,7 +1297,7 @@ void nnBossStorageExport_ct(PPCInterpreter_t* hCPU)
 void nnBossStorageExport_exist(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(storage, nn::boss::Storage::bossStorage_t, 0);
-	forceLogDebug_printf("nn_boss.Storage_Exist(...) TODO");
+	cemuLog_logDebug(LogType::Force, "nn_boss.Storage_Exist(...) TODO");
 
 	// todo
 	osLib_returnFromFunction(hCPU, 1);
@@ -1374,7 +1374,7 @@ void nnBossStorageExport_getDataList(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(dataList, bossDataName_t, 1);
 	ppcDefineParamS32(maxEntries, 2);
 	ppcDefineParamU32BEPtr(outputEntryCount, 3);
-	forceLogDebug_printf("boss storage getDataList()");
+	cemuLog_logDebug(LogType::Force, "boss storage getDataList()");
 
 	// initialize titleId of storage if not already done
 	nnBossStorage_prepareTitleId(storage);
@@ -1417,7 +1417,7 @@ typedef struct
 
 void nnBossNsDataExport_ct(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nnBossNsDataExport_ct");
+	cemuLog_logDebug(LogType::Force, "nnBossNsDataExport_ct");
 	ppcDefineParamStructPtr(nsData, nsData_t, 0);
 	if (!nsData)
 		assert_dbg();
@@ -1492,7 +1492,7 @@ std::string nnBossNsDataExport_GetPath(nsData_t* nsData)
 void nnBossNsDataExport_DeleteRealFileWithHistory(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(nsData, nsData_t, 0);
-	forceLogDebug_printf("nn_boss.NsData_DeleteRealFileWithHistory(...)");
+	cemuLog_logDebug(LogType::Force, "nn_boss.NsData_DeleteRealFileWithHistory(...)");
 
 	if (nsData->storage.storageKind == nn::boss::kStorageKind_NBDL)
 	{
@@ -1512,7 +1512,7 @@ void nnBossNsDataExport_DeleteRealFileWithHistory(PPCInterpreter_t* hCPU)
 
 void nnBossNsDataExport_Exist(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_boss.NsData_Exist(...)");
+	cemuLog_logDebug(LogType::Force, "nn_boss.NsData_Exist(...)");
 	ppcDefineParamStructPtr(nsData, nsData_t, 0);
 
 	bool fileExists = false;

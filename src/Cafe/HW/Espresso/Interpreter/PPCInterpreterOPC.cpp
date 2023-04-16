@@ -12,7 +12,7 @@
 
 void PPCInterpreter_MFMSR(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	forceLogDebug_printf("Rare instruction: MFMSR");
+	cemuLog_logDebug(LogType::Force, "Rare instruction: MFMSR");
 	if (hCPU->sprExtended.msr & MSR_PR)
 	{
 		PPC_ASSERT(true);
@@ -28,7 +28,7 @@ void PPCInterpreter_MFMSR(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 void PPCInterpreter_MTMSR(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	forceLogDebug_printf("Rare instruction: MTMSR");
+	cemuLog_logDebug(LogType::Force, "Rare instruction: MTMSR");
 	if (hCPU->sprExtended.msr & MSR_PR)
 	{
 		PPC_ASSERT(true);
@@ -43,7 +43,7 @@ void PPCInterpreter_MTMSR(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 void PPCInterpreter_MTFSB1X(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	forceLogDebug_printf("Rare instruction: MTFSB1X");
+	cemuLog_logDebug(LogType::Force, "Rare instruction: MTFSB1X");
 	int crbD, n1, n2;
 	PPC_OPC_TEMPL_X(Opcode, crbD, n1, n2);
 	if (crbD != 1 && crbD != 2) 
@@ -212,7 +212,7 @@ void PPCInterpreter_BCLRX(PPCInterpreter_t* hCPU, uint32 Opcode)
 		if (hCPU->spr.CTR == 0)
 		{
 			PPC_ASSERT(true);
-			forceLogDebug_printf("Decrementer underflow!\n");
+			cemuLog_logDebug(LogType::Force, "Decrementer underflow!");
 		}
 		hCPU->spr.CTR--;
 	}
@@ -352,7 +352,7 @@ void PPCInterpreter_ISYNC(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 void PPCInterpreter_RFI(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	forceLogDebug_printf("RFI");
+	cemuLog_logDebug(LogType::Force, "RFI");
 	hCPU->sprExtended.msr &= ~(0x87C0FF73 | 0x00040000);
 	hCPU->sprExtended.msr |= hCPU->sprExtended.srr1 & 0x87c0ff73;
 	hCPU->sprExtended.msr |= MSR_RI;

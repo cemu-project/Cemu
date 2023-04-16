@@ -236,7 +236,7 @@ WUSOCKET nsysnet_createVirtualSocket(sint32 family, sint32 type, sint32 protocol
 	sint32 s = _getFreeSocketHandle();
 	if (s == 0)
 	{
-		forceLogDebug_printf("Ran out of socket handles");
+		cemuLog_logDebug(LogType::Force, "Ran out of socket handles");
 		cemu_assert(false);
 	}
 	virtualSocket_t* vs = (virtualSocket_t*)malloc(sizeof(virtualSocket_t));
@@ -262,13 +262,13 @@ WUSOCKET nsysnet_createVirtualSocket(sint32 family, sint32 type, sint32 protocol
 
 WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket)
 {
-	forceLogDebug_printf("nsysnet_createVirtualSocketFromExistingSocket - incomplete");
+	cemuLog_logDebug(LogType::Force, "nsysnet_createVirtualSocketFromExistingSocket - incomplete");
 
 
 	sint32 s = _getFreeSocketHandle();
 	if (s == 0)
 	{
-		forceLogDebug_printf("Ran out of socket handles");
+		cemuLog_logDebug(LogType::Force, "Ran out of socket handles");
 		cemu_assert(false);
 	}
 	virtualSocket_t* vs = (virtualSocket_t*)malloc(sizeof(virtualSocket_t));
@@ -358,7 +358,7 @@ void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 	// check family param
 	if (family != WU_AF_INET)
 	{
-		forceLogDebug_printf("socket(): Unsupported family");
+		cemuLog_logDebug(LogType::Force, "socket(): Unsupported family");
 		// todo - error code
 		osLib_returnFromFunction(hCPU, -1);
 		return;
@@ -366,7 +366,7 @@ void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 	// check type param
 	if (type != WU_SOCK_STREAM && type != WU_SOCK_DGRAM)
 	{
-		forceLogDebug_printf("socket(): Unsupported family");
+		cemuLog_logDebug(LogType::Force, "socket(): Unsupported family");
 		// todo - error code
 		osLib_returnFromFunction(hCPU, -1);
 		return;
@@ -374,7 +374,7 @@ void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 
 	if (protocol != WU_IPPROTO_TCP && protocol != WU_IPPROTO_UDP && protocol != WU_IPPROTO_IP)
 	{
-		forceLogDebug_printf("socket(): Unsupported protocol");
+		cemuLog_logDebug(LogType::Force, "socket(): Unsupported protocol");
 		// todo - error code
 		osLib_returnFromFunction(hCPU, -1);
 		return;
@@ -570,7 +570,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else if( optname == 0x4 )
 			{
-				forceLogDebug_printf("setsockopt with unsupported opname 4 for IPPROTO_IP");
+				cemuLog_logDebug(LogType::Force, "setsockopt with unsupported opname 4 for IPPROTO_IP");
 			}
 			else
 				assert_dbg();
@@ -1138,7 +1138,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 		r = select(hostnfds + 1, readfds ? &_readfds : NULL, writefds ? &_writefds : NULL, exceptfds ? &_exceptfds : NULL, &tv);
 		if (r < 0)
 		{
-			forceLogDebug_printf("select() failed");
+			cemuLog_logDebug(LogType::Force, "select() failed");
 			// timeout
 			_translateError(r, GETLASTERR);
 			//_setSockError(WU_SO_SUCCESS);

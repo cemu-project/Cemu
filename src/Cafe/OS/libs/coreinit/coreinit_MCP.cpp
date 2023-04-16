@@ -103,7 +103,7 @@ void coreinitExport_MCP_TitleListByAppType(PPCInterpreter_t* hCPU)
 
 void coreinitExport_MCP_TitleList(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("MCP_TitleList(...) unimplemented");
+	cemuLog_logDebug(LogType::Force, "MCP_TitleList(...) unimplemented");
 	ppcDefineParamU32(mcpHandle, 0);
 	ppcDefineParamU32BEPtr(countOutput, 1);
 	ppcDefineParamStructPtr(titleList, MCPTitleInfo, 2);
@@ -125,7 +125,7 @@ void coreinitExport_MCP_TitleList(PPCInterpreter_t* hCPU)
 
 void coreinitExport_MCP_TitleCount(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("MCP_TitleCount(): Untested");
+	cemuLog_logDebug(LogType::Force, "MCP_TitleCount(): Untested");
 	ppcDefineParamU32(mcpHandle, 0);
 
 	mcpPrepareRequest();
@@ -142,7 +142,7 @@ void coreinitExport_MCP_GetTitleInfo(PPCInterpreter_t* hCPU)
 	ppcDefineParamU64(titleId, 2);
 	ppcDefineParamStructPtr(titleList, MCPTitleInfo, 4);
 
-	forceLogDebug_printf("MCP_GetTitleInfo() called");
+	cemuLog_logDebug(LogType::Force, "MCP_GetTitleInfo() called");
 
 	mcpPrepareRequest();
 	mcpRequest->requestCode = IOSU_MCP_GET_TITLE_INFO;
@@ -168,7 +168,7 @@ void coreinitExport_MCP_GetTitleInfoByTitleAndDevice(PPCInterpreter_t* hCPU)
 	ppcDefineParamStr(device, 4); // e.g. "odd"
 	ppcDefineParamStructPtr(titleList, MCPTitleInfo, 5);
 
-	forceLogDebug_printf("MCP_GetTitleInfoByTitleAndDevice() called (todo - device type support)");
+	cemuLog_logDebug(LogType::Force, "MCP_GetTitleInfoByTitleAndDevice() called (todo - device type support)");
 
 	mcpPrepareRequest();
 	mcpRequest->requestCode = IOSU_MCP_GET_TITLE_INFO;
@@ -180,7 +180,7 @@ void coreinitExport_MCP_GetTitleInfoByTitleAndDevice(PPCInterpreter_t* hCPU)
 
 	if (mcpRequest->titleListRequest.titleCount == 0)
 	{
-		forceLogDebug_printf("MCP_GetTitleInfoByTitleAndDevice() no title found");
+		cemuLog_logDebug(LogType::Force, "MCP_GetTitleInfoByTitleAndDevice() no title found");
 		osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_MCP, 0)); // E-Shop/nn_vctl.rpl expects error to be returned when no title is found
 		return;
 	}
@@ -209,7 +209,7 @@ namespace coreinit
 	void export_MCP_Get4SecondOffStatus(PPCInterpreter_t* hCPU)
 	{
 		// r3 = mcpHandle
-		forceLogDebug_printf("MCP_Get4SecondOffStatus(...) placeholder");
+		cemuLog_logDebug(LogType::Force, "MCP_Get4SecondOffStatus(...) placeholder");
 		// if this returns 1 then Barista will display the warning about cold-shutdown ('Holding the POWER button for at least four seconds...')
 		osLib_returnFromFunction(hCPU, 0);
 	}
@@ -230,7 +230,7 @@ namespace coreinit
 
 		*titleCount = 1;
 
-		forceLogDebug_printf("MCP_TitleListByDevice() - placeholder");
+		cemuLog_logDebug(LogType::Force, "MCP_TitleListByDevice() - placeholder");
 
 		osLib_returnFromFunction(hCPU, 0);
 	}
@@ -343,7 +343,7 @@ namespace coreinit
 		ppcDefineParamU32(mcpHandle, 0);
 		ppcDefineParamU32BEPtr(unknownParam, 1);
 
-		forceLogDebug_printf("MCP_UpdateCheckContext() - placeholder (might be wrong)");
+		cemuLog_logDebug(LogType::Force, "MCP_UpdateCheckContext() - placeholder (might be wrong)");
 
 		*unknownParam = 1;
 
@@ -356,7 +356,7 @@ namespace coreinit
 		ppcDefineParamU32(mcpHandle, 0);
 		ppcDefineParamMPTR(callbackMPTR, 1);
 
-		forceLogDebug_printf("MCP_TitleListUpdateGetNext() - placeholder/unimplemented");
+		cemuLog_logDebug(LogType::Force, "MCP_TitleListUpdateGetNext() - placeholder/unimplemented");
 
 		// this callback is to let the app know when the title list changed?
 
@@ -365,7 +365,7 @@ namespace coreinit
 
 	void export_MCP_GetOverlayAppInfo(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("MCP_GetOverlayAppInfo(...) placeholder");
+		cemuLog_logDebug(LogType::Force, "MCP_GetOverlayAppInfo(...) placeholder");
 		ppcDefineParamU32(mcpHandle, 0);
 		ppcDefineParamU32(appType, 1);
 		ppcDefineParamU32(uknR5, 2);

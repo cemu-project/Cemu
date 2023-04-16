@@ -131,7 +131,7 @@ void nnActExport_CreateConsoleAccount(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetNumOfAccounts(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetNumOfAccounts()\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetNumOfAccounts()");
 	osLib_returnFromFunction(hCPU, numAccounts); // account count
 }
 
@@ -213,7 +213,7 @@ uint32 IsNetworkAccount(uint8* isNetworkAccount, uint8 slot)
 
 void nnActExport_IsNetworkAccount(PPCInterpreter_t* hCPU)
 {
-	//forceLogDebug_printf("nn_act.IsNetworkAccount()\n");
+	//cemuLog_logDebug(LogType::Force, "nn_act.IsNetworkAccount()");
 	uint8 isNetAcc = 0;
 	IsNetworkAccount(&isNetAcc, 0xFE);
 	osLib_returnFromFunction(hCPU, isNetAcc);
@@ -230,7 +230,7 @@ void nnActExport_IsNetworkAccountEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetSimpleAddressId(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetSimpleAddressId()\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetSimpleAddressId()");
 
 	uint32be simpleAddressId;
 	nn::act::GetSimpleAddressIdEx(&simpleAddressId, iosu::act::ACT_SLOT_CURRENT);
@@ -253,7 +253,7 @@ void nnActExport_GetSimpleAddressIdEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetPrincipalId(PPCInterpreter_t* hCPU)
 {
 	// return error for non-nnid accounts?
-	forceLogDebug_printf("nn_act.GetPrincipalId()\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetPrincipalId()");
 	uint32be principalId;
 	GetPrincipalIdEx(&principalId, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, (uint32)principalId);
@@ -285,7 +285,7 @@ void nnActExport_GetTransferableIdEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetPersistentId(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetPersistentId()");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetPersistentId()");
 	uint32 persistentId = nn::act::GetPersistentIdEx(iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, persistentId);
 }
@@ -325,7 +325,7 @@ void nnActExport_IsParentalControlCheckEnabled(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetHostServerSettings(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetHostServerSettings() - stub");
+	cemuLog_logDebug(LogType::Force, "GetHostServerSettings() - stub");
 	ppcDefineParamStr(ukn, 1);
 	strcpy(ukn, "");
 	osLib_returnFromFunction(hCPU, 0x00000000);
@@ -333,7 +333,7 @@ void nnActExport_GetHostServerSettings(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMii(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetMii(...)\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetMii(...)");
 	ppcDefineParamUStr(miiData, 0);
 	uint32 r = nn::act::GetMiiEx(miiData, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, r);
@@ -341,7 +341,7 @@ void nnActExport_GetMii(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMiiEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetMiiEx(...)\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetMiiEx(...)");
 	ppcDefineParamUStr(miiData, 0);
 	ppcDefineParamU8(slot, 1);
 	uint32 r = nn::act::GetMiiEx(miiData, slot);
@@ -507,7 +507,7 @@ void nnActExport_GetParentalControlSlotNoEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetDefaultAccount(PPCInterpreter_t* hCPU)
 {
 	// todo
-	forceLogDebug_printf("GetDefaultAccount(): Return 1?");
+	cemuLog_logDebug(LogType::Force, "GetDefaultAccount(): Return 1?");
 	osLib_returnFromFunction(hCPU, 1);
 }
 
@@ -515,13 +515,13 @@ void nnActExport_GetSlotNo(PPCInterpreter_t* hCPU)
 {
 	// id of active account
 	// uint8 GetSlotNo(void);
-	forceLogDebug_printf("nn_act.GetSlotNo()");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetSlotNo()");
 	osLib_returnFromFunction(hCPU, 1); // 1 is the first slot (0 is invalid)
 }
 
 void nnActExport_GetSlotNoEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetSlotNoEx(...)");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetSlotNoEx(...)");
 	// get slot no by uuid
 	ppcDefineParamUStr(uuid, 0);
 
@@ -544,7 +544,7 @@ void nnActExport_GetSlotNoEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_Initialize(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.Initialize()");
+	cemuLog_logDebug(LogType::Force, "nn_act.Initialize()");
 
 	nn::act::Initialize();
 
@@ -666,7 +666,7 @@ void nnActExport_GetUtcOffsetEx(PPCInterpreter_t* hCPU)
 
 	*utcOffsetOut = 0;
 
-	forceLogDebug_printf("GetUtcOffsetEx stub");
+	cemuLog_logDebug(LogType::Force, "GetUtcOffsetEx stub");
 
 	osLib_returnFromFunction(hCPU, 0);
 }

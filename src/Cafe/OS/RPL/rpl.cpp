@@ -231,13 +231,13 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	rplSectionEntryNew_t* fileinfoSection = rplLoaderContext->sectionTablePtr + ((uint32)rplLoaderContext->rplHeader.sectionTableEntryCount - 1);
 	if (fileinfoSection->fileOffset == 0 || (uint32)fileinfoSection->fileOffset >= rplSize || (uint32)fileinfoSection->type != SHT_RPL_FILEINFO)
 	{
-		forceLogDebug_printf("RPLLoader: Last section not FILEINFO");
+		cemuLog_logDebug(LogType::Force, "RPLLoader: Last section not FILEINFO");
 	}
 	// verify that section n-2 is CRCs
 	rplSectionEntryNew_t* crcSection = rplLoaderContext->sectionTablePtr + ((uint32)rplLoaderContext->rplHeader.sectionTableEntryCount - 2);
 	if (crcSection->fileOffset == 0 || (uint32)crcSection->fileOffset >= rplSize || (uint32)crcSection->type != SHT_RPL_CRCS)
 	{
-		forceLogDebug_printf("RPLLoader: The section before FILEINFO must be CRCs");
+		cemuLog_logDebug(LogType::Force, "RPLLoader: The section before FILEINFO must be CRCs");
 	}
 	// load FILEINFO section
 	if (fileinfoSection->sectionSize < sizeof(RPLFileInfoData))
@@ -1018,7 +1018,7 @@ bool RPLLoader_FixImportSymbols(RPLModule* rplLoaderContext, sint32 symtabSectio
 #ifdef CEMU_DEBUG_ASSERT
 					if (nameOffset > 0)
 					{
-						forceLogDebug_printf("export not found - force lookup in function exports");
+						cemuLog_logDebug(LogType::Force, "export not found - force lookup in function exports");
 						// workaround - force look up export in function exports
 						char* exportNameData = (char*)((uint8*)ctxExportModule->exportFDataPtr - 8);
 						for (uint32 f = 0; f < ctxExportModule->exportFCount; f++)

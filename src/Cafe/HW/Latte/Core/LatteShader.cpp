@@ -283,7 +283,7 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 #ifdef CEMU_DEBUG_ASSERT
 			if (semanticMask[psSemanticId >> 3] & (1 << (psSemanticId & 7)))
 			{
-				forceLogDebug_printf("SemanticId already used");
+				cemuLog_logDebug(LogType::Force, "SemanticId already used");
 			}
 			semanticMask[psSemanticId >> 3] |= (1 << (psSemanticId & 7));
 #endif
@@ -339,7 +339,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 		(shader->baseHash == 0x15bc7edf9de2ed30 || shader->baseHash == 0x83a697d61a3b9202 ||
 		 shader->baseHash == 0x97bc44a5028381c6 || shader->baseHash == 0x24838b84d15a1da1))
 	{
-		forceLogDebug_printf("Filtered shader to avoid AMD crash");
+		cemuLog_logDebug(LogType::Force, "Filtered shader to avoid AMD crash");
 		shader->shader = nullptr;
 		shader->hasError = true;
 		return;

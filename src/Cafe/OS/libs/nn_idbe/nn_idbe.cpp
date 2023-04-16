@@ -108,7 +108,7 @@ namespace nn
 			SHA256((const unsigned char*)iconOutput, sizeof(nnIdbeIconDataV0_t), calculatedSHA256);
 			if (memcmp(calculatedSHA256, decryptedSHA256, SHA256_DIGEST_LENGTH) != 0)
 			{
-				forceLogDebug_printf("Idbe icon has incorrect sha256 hash");
+				cemuLog_logDebug(LogType::Force, "Idbe icon has incorrect sha256 hash");
 				return false;
 			}
 			return true;
@@ -141,14 +141,14 @@ namespace nn
 			ppcDefineParamTypePtr(input, nnIdbeEncryptedIcon_t, 1);
 			ppcDefineParamU32(platformMode, 2);
 
-			forceLogDebug_printf("nn_idbe.DecryptIconFile(...)");
+			cemuLog_logDebug(LogType::Force, "nn_idbe.DecryptIconFile(...)");
 
 			if (decryptIcon(input, output))
 			{
 				osLib_returnFromFunction(hCPU, 1);
 				return;
 			}
-			forceLogDebug_printf("Unable to decrypt idbe icon file, using default icon");
+			cemuLog_logDebug(LogType::Force, "Unable to decrypt idbe icon file, using default icon");
 
 			// return default icon
 			TGAHeader* tgaHeader = (TGAHeader*)(output->GetTGAData());

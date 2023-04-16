@@ -174,7 +174,7 @@ namespace iosu
 			}
 			else
 			{
-				forceLogDebug_printf("IOSU_FPD: Failed to acquire nex token for friend server");
+				cemuLog_logDebug(LogType::Force, "IOSU_FPD: Failed to acquire nex token for friend server");
 			}
 		}
 
@@ -542,7 +542,7 @@ namespace iosu
 				uint64 mid = _swapEndianU64(fpdCemuRequest->markFriendRequest.messageIdList.GetPtr()[i]);
 				if (mid == 0)
 				{
-					forceLogDebug_printf("MarkFriendRequestAsReceivedAsync - Invalid messageId");
+					cemuLog_logDebug(LogType::Force, "MarkFriendRequestAsReceivedAsync - Invalid messageId");
 					continue;
 				}
 				messageIds[count] = mid;

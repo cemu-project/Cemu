@@ -984,7 +984,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		cemu_assert_debug(false);
 	}
 	if(list_subroutineAddrs.empty() == false)
-		forceLogDebug_printf("Todo - analyze shader subroutine CF stack");
+		cemuLog_logDebug(LogType::Force, "Todo - analyze shader subroutine CF stack");
 	// TF mode
 	if (shaderContext->options->useTFViaSSBO && shaderContext->output->streamoutBufferWriteMask.any())
 	{

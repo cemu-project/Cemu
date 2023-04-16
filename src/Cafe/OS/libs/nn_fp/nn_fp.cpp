@@ -63,7 +63,7 @@ namespace nn
 
 		void export_IsInitializedAdmin(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.IsInitializedAdmin()");
+			cemuLog_logDebug(LogType::Force, "nn_fp.IsInitializedAdmin()");
 			osLib_returnFromFunction(hCPU, g_fp.isInitialized ? 1 : 0);
 		}
 
@@ -106,13 +106,13 @@ namespace nn
 		void export_HasLoggedIn(PPCInterpreter_t* hCPU)
 		{
 			// Sonic All Star Racing needs this
-			forceLogDebug_printf("nn_fp.HasLoggedIn()");
+			cemuLog_logDebug(LogType::Force, "nn_fp.HasLoggedIn()");
 			osLib_returnFromFunction(hCPU, 1);
 		}
 
 		void export_IsOnline(PPCInterpreter_t* hCPU)
 		{
-			//forceLogDebug_printf("nn_fp.IsOnline();\n");
+			//cemuLog_logDebug(LogType::Force, "nn_fp.IsOnline();");
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_IS_ONLINE;
 			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
@@ -128,7 +128,7 @@ namespace nn
 			ppcDefineParamU32(startIndex, 2);
 			ppcDefineParamU32(maxCount, 3);
 
-			forceLogDebug_printf("nn_fp.GetFriendList(...)");
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendList(...)");
 			//debug_printf("nn_fp.GetFriendList(0x%08x, 0x%08x, %d, %d)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_LIST;
@@ -152,7 +152,7 @@ namespace nn
 			ppcDefineParamU32(startIndex, 2);
 			ppcDefineParamU32(maxCount, 3);
 
-			forceLogDebug_printf("nn_fp.GetFriendRequestList(...)");
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendRequestList(...)");
 			//debug_printf("nn_fp.GetFriendList(0x%08x, 0x%08x, %d, %d)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIENDREQUEST_LIST;
@@ -175,7 +175,7 @@ namespace nn
 			ppcDefineParamU32(startIndex, 2);
 			ppcDefineParamU32(maxCount, 3);
 
-			forceLogDebug_printf("nn_fp.GetFriendListAll(...)");
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendListAll(...)");
 
 			//debug_printf("nn_fp.GetFriendListAll(0x%08x, 0x%08x, %d, %d)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 			fpdPrepareRequest();
@@ -198,7 +198,7 @@ namespace nn
 			ppcDefineParamMEMPTR(pidList, uint32be, 1);
 			ppcDefineParamU32(count, 2);
 
-			forceLogDebug_printf("nn_fp.GetFriendListEx(...)");
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendListEx(...)");
 
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_LIST_EX;
@@ -218,7 +218,7 @@ namespace nn
 			ppcDefineParamMEMPTR(pidList, uint32be, 1);
 			ppcDefineParamU32(count, 2);
 
-			forceLogDebug_printf("nn_fp.GetFriendRequestListEx(...)");
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendRequestListEx(...)");
 
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIENDREQUEST_LIST_EX;
@@ -254,7 +254,7 @@ namespace nn
 
 		void export_GetMyPrincipalId(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetMyPrincipalId()");
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyPrincipalId()");
 
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_MY_PRINCIPAL_ID;
@@ -508,7 +508,7 @@ namespace nn
 
 		void export_IsPreferenceValid(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.IsPreferenceValid()");
+			cemuLog_logDebug(LogType::Force, "nn_fp.IsPreferenceValid()");
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_IS_PREFERENCE_VALID;
 			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
@@ -567,7 +567,7 @@ namespace nn
 			ppcDefineParamMPTR(funcMPTR, 3);
 			ppcDefineParamMPTR(customParam, 4);
 
-			forceLogDebug_printf("GetRequestBlockSettingAsync(...) - todo");
+			cemuLog_logDebug(LogType::Force, "GetRequestBlockSettingAsync(...) - todo");
 
 			for (uint32 i = 0; i < pidCount; i++)
 				settingList[i] = 0;
@@ -608,7 +608,7 @@ namespace nn
 
 		void export_DeleteFriendFlagsAsync(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.DeleteFriendFlagsAsync(...) - todo");
+			cemuLog_logDebug(LogType::Force, "nn_fp.DeleteFriendFlagsAsync(...) - todo");
 			ppcDefineParamU32(uknR3, 0); // example value: pointer
 			ppcDefineParamU32(uknR4, 1); // example value: 1
 			ppcDefineParamU32(uknR5, 2); // example value: 1

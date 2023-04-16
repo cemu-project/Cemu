@@ -721,7 +721,7 @@ void LatteRenderTarget_applyTextureColorClear(LatteTexture* texture, uint32 slic
 {
 	if (texture->isDepth)
 	{
-		forceLogDebug_printf("Unsupported clear depth as color");
+		cemuLog_logDebug(LogType::Force, "Unsupported clear depth as color");
 	}
 	else
 	{

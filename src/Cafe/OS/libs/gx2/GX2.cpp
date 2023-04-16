@@ -336,7 +336,7 @@ void _GX2SubmitToTCL()
 	// do nothing if called from non-main GX2 core
 	if (GX2::sGX2MainCoreIndex != coreIndex)
 	{
-		forceLogDebug_printf("_GX2SubmitToTCL() called on non-main GX2 core");
+		cemuLog_logDebug(LogType::Force, "_GX2SubmitToTCL() called on non-main GX2 core");
 		return;
 	}
 	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )

@@ -260,7 +260,7 @@ void NexFriends::initiateLogin()
 	previousState.list_friendReqOutgoing.resize(0);
 	this->hasData = false;
 	// start login attempt
-	forceLogDebug_printf("Attempt to log into friend server...");
+	cemuLog_logDebug(LogType::Force, "Attempt to log into friend server...");
 	std::thread t(&NexFriends::doAsyncLogin, this);
 	t.detach();
 }

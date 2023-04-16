@@ -612,14 +612,14 @@ namespace iosu
 		{
 			if (it->http_status_code != 200)
 			{
-				forceLogDebug_printf("BOSS task_run: Received unexpected HTTP response code");
+				cemuLog_logDebug(LogType::Force, "BOSS task_run: Received unexpected HTTP response code");
 			}
 			if (it->http_status_code == 404)
 			{
 				// todo - is this correct behavior?
 				it->turn_state = kError;
 				it->wait_state = TRUE;
-				forceLogDebug_printf("task_run failed due to 404 error");
+				cemuLog_logDebug(LogType::Force, "task_run failed due to 404 error");
 				return BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_BOSS, 0);
 			}
 		}

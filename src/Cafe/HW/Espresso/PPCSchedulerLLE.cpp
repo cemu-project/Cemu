@@ -163,7 +163,7 @@ void smdpArea_processCommand(smdpArea_t* smdpArea, smdpCommand_t* cmd)
 	{
 		cmd->ukn08 = 1;
 		// cmd->ukn2C ?
-		forceLogDebug_printf("SMDP command received - todo");
+		cemuLog_logDebug(LogType::Force, "SMDP command received - todo");
 		smdpArea_pushResult(smdpArea, memory_getVirtualOffsetFromPointer(cmd));
 	}
 	else

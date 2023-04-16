@@ -5,7 +5,7 @@ namespace nn::ccr
 {
 	sint32 CCRSysCaffeineBootCheck()
 	{
-		forceLogDebug_printf("CCRSysCaffeineBootCheck()");
+		cemuLog_logDebug(LogType::Force, "CCRSysCaffeineBootCheck()");
 		return -1;
 	}
 

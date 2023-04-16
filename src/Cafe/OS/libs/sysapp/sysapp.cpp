@@ -460,7 +460,7 @@ void sysappExport__SYSReturnToCallerWithStandardResult(PPCInterpreter_t* hCPU)
 void sysappExport__SYSGetEShopArgs(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(args, eshopArguments_t, 0);
-	forceLogDebug_printf("_SYSGetEShopArgs() - placeholder");
+	cemuLog_logDebug(LogType::Force, "_SYSGetEShopArgs() - placeholder");
 	memset(args, 0, sizeof(eshopArguments_t));
 
 	osLib_returnFromFunction(hCPU, 0);
@@ -537,7 +537,7 @@ void sysappExport_SYSGetUPIDFromTitleID(PPCInterpreter_t* hCPU)
 
 void sysappExport_SYSGetVodArgs(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SYSGetVodArgs() - todo");
+	cemuLog_logDebug(LogType::Force, "SYSGetVodArgs() - todo");
 	osLib_returnFromFunction(hCPU, 1);
 }
 

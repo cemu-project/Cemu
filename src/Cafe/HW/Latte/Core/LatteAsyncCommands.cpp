@@ -120,7 +120,7 @@ void LatteAsyncCommands_checkAndExecute()
 			}
 			else
 			{
-				forceLogDebug_printf("Texture not found for readback");
+				cemuLog_logDebug(LogType::Force, "Texture not found for readback");
 			}
 		}
 		else if (asyncCommand.type == ASYNC_CMD_DELETE_SHADER)
