@@ -309,7 +309,7 @@ namespace nsyshid
 	void export_HIDDelClient(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
-		forceLogDebug_printf("nsyshid.HIDDelClient(0x%08x)", hCPU->gpr[3]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDDelClient(0x{:08x})", hCPU->gpr[3]);
 	
 		// todo
 		// do detach callbacks
@@ -519,7 +519,7 @@ namespace nsyshid
 				assert_dbg();
 		}
 		free(reportData);
-		forceLogDebug_printf("_hidSetReportSync end. returnCode: %d", returnCode);
+		cemuLog_logDebug(LogType::Force, "_hidSetReportSync end. returnCode: {}", returnCode);
 		coreinit_resumeThread(osThread, 1000);
 		return returnCode;
 	}
@@ -589,7 +589,7 @@ namespace nsyshid
 
 		_debugPrintHex("HID_READ_BEFORE", data, maxLength);
 
-		forceLogDebug_printf("HidRead Begin (Length 0x%08x)", maxLength);
+		cemuLog_logDebug(LogType::Force, "HidRead Begin (Length 0x{:08x})", maxLength);
 		BOOL readResult = ReadFile(hidDeviceInfo->hFile, tempBuffer, maxLength + 1, &bt, &ovlp);
 		if (readResult != FALSE)
 		{
@@ -603,12 +603,12 @@ namespace nsyshid
 		else
 		{
 			// wait for result
-			forceLogDebug_printf("HidRead WaitForResult (error 0x%08x)", GetLastError());
+			cemuLog_logDebug(LogType::Force, "HidRead WaitForResult (error 0x{:08x})", GetLastError());
 			// async hid read is never supposed to return unless there is an response? Lego Dimensions stops HIDRead calls as soon as one of them fails with a non-zero error (which includes time out)
 			DWORD r = WaitForSingleObject(ovlp.hEvent, 2000*100);
 			if (r == WAIT_TIMEOUT)
 			{
-				forceLogDebug_printf("HidRead internal timeout (error 0x%08x)", GetLastError());
+				cemuLog_logDebug(LogType::Force, "HidRead internal timeout (error 0x{:08x})", GetLastError());
 				// return -108 in case of timeout
 				free(tempBuffer);
 				CloseHandle(ovlp.hEvent);
@@ -622,7 +622,7 @@ namespace nsyshid
 				transferLength = 0;
 			else
 				transferLength = bt - 1;
-			forceLogDebug_printf("HidRead WaitComplete Length: 0x%08x", transferLength);
+			cemuLog_logDebug(LogType::Force, "HidRead WaitComplete Length: 0x{:08x}", transferLength);
 		}
 		sint32 returnCode = 0;
 		if (bt != 0)
@@ -635,7 +635,7 @@ namespace nsyshid
 			{
 				sprintf(debugOutput + i * 3, "%02x ", tempBuffer[1 + i]);
 			}
-			forceLogDebug_printf("HIDRead data: %s", debugOutput);
+			cemuLog_logDebug(LogType::Force, "HIDRead data: {}", debugOutput);
 
 			returnCode = transferLength;
 		}
@@ -710,7 +710,7 @@ namespace nsyshid
 		memcpy(tempBuffer + 1, data, maxLength);
 		tempBuffer[0] = 0; // report byte?
 
-		forceLogDebug_printf("HidWrite Begin (Length 0x%08x)", maxLength);
+		cemuLog_logDebug(LogType::Force, "HidWrite Begin (Length 0x{:08x})", maxLength);
 		BOOL WriteResult = WriteFile(hidDeviceInfo->hFile, tempBuffer, maxLength + 1, &bt, &ovlp);
 		if (WriteResult != FALSE)
 		{
@@ -720,7 +720,7 @@ namespace nsyshid
 		else
 		{
 			// wait for result
-			forceLogDebug_printf("HidWrite WaitForResult (error 0x%08x)", GetLastError());
+			cemuLog_logDebug(LogType::Force, "HidWrite WaitForResult (error 0x{:08x})", GetLastError());
 			// todo - check for error type
 			DWORD r = WaitForSingleObject(ovlp.hEvent, 2000);
 			if (r == WAIT_TIMEOUT)
