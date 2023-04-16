@@ -35,13 +35,14 @@ private:
 public:
 	// Set directories and return all directories that failed write access test
 	static std::set<fs::path> 
-	LoadOnce(const fs::path& user_data_path,
-			 const fs::path& config_path,
-			 const fs::path& cache_path,
-			 const fs::path& data_path);
+	LoadOnce(const fs::path& executablePath,
+			 const fs::path& userDataPath,
+			 const fs::path& configPath,
+			 const fs::path& cachePath,
+			 const fs::path& dataPath);
 
-	[[nodiscard]] static fs::path GetFullPath() { return s_full_path; }
-	[[nodiscard]] static fs::path GetFilename() { return s_filename; }
+	[[nodiscard]] static fs::path GetExecutablePath() { return s_executable_path; }
+	[[nodiscard]] static fs::path GetExecutableFilename() { return s_executable_filename; }
 	template <typename ...TArgs>
 	[[nodiscard]] static fs::path GetUserDataPath(TArgs&&... args){ return GetPath(s_user_data_path, std::forward<TArgs>(args)...); };
 	template <typename ...TArgs>
@@ -60,12 +61,12 @@ public:
 	[[nodiscard]] static fs::path GetDefaultMLCPath();
 
 private:
-	inline static fs::path s_full_path; // full filename
+	inline static fs::path s_executable_path;
 	inline static fs::path s_user_data_path;
 	inline static fs::path s_config_path;
 	inline static fs::path s_cache_path;
 	inline static fs::path s_data_path;
-	inline static fs::path s_filename; // cemu.exe
+	inline static fs::path s_executable_filename; // cemu.exe
 	inline static fs::path s_mlc_path;
 
 public:	

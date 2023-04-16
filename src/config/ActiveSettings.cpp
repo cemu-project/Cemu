@@ -1,30 +1,27 @@
-#include "config/ActiveSettings.h"
-
 #include "Cafe/GameProfile/GameProfile.h"
-#include "Cemu/Logging/CemuLogging.h"
-#include "LaunchSettings.h"
-#include "util/helpers/helpers.h"
-
-#include <boost/dll/runtime_symbol_info.hpp>
-
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/CafeSystem.h"
+#include "Cemu/Logging/CemuLogging.h"
+#include "config/ActiveSettings.h"
+#include "config/LaunchSettings.h"
+#include "util/helpers/helpers.h"
 
 std::set<fs::path>
-ActiveSettings::LoadOnce(const fs::path& user_data_path,
-						 const fs::path& config_path,
-						 const fs::path& cache_path,
-						 const fs::path& data_path)
+ActiveSettings::LoadOnce(
+	const fs::path& executablePath,
+	const fs::path& userDataPath,
+	const fs::path& configPath,
+	const fs::path& cachePath,
+	const fs::path& dataPath)
 {
-	s_full_path = boost::dll::program_location().generic_wstring();
-
-	s_user_data_path = user_data_path;
-	s_config_path = config_path;
-	s_cache_path = cache_path;
-	s_data_path = data_path;
+	s_executable_path = executablePath;
+	s_user_data_path = userDataPath;
+	s_config_path = configPath;
+	s_cache_path = cachePath;
+	s_data_path = dataPath;
 	std::set<fs::path> failed_write_access;
-	for (auto&& path : {user_data_path, config_path, cache_path})
+	for (auto&& path : {userDataPath, configPath, cachePath})
 	{
 		if (!fs::exists(path))
 		{
@@ -38,7 +35,7 @@ ActiveSettings::LoadOnce(const fs::path& user_data_path,
 		}
 	}
 
-	s_filename = s_full_path.filename();
+	s_executable_filename = s_executable_path.filename();
 
 	g_config.SetFilename(GetConfigPath("settings.xml").generic_wstring());
 	g_config.Load();

@@ -271,7 +271,7 @@ void HandlePostUpdate()
 {
 	// finalize update process
 	// delete update cemu.exe.backup if available
-	const auto filename = ActiveSettings::GetFullPath().replace_extension("exe.backup");
+	const auto filename = ActiveSettings::GetExecutablePath().replace_extension("exe.backup");
 	if (fs::exists(filename))
 	{
 #if BOOST_OS_WINDOWS
