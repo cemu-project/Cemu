@@ -168,7 +168,7 @@ void NexFriends::processServerNotification(uint32 notificationType, uint32 pid, 
 	}
 	else if (true)
 	{
-		forceLogDebug_printf("Unsupported friend server notification type 0x%02x", notificationType);
+		cemuLog_logDebug(LogType::Force, "Unsupported friend server notification type 0x{:02x}", notificationType);
 	}
 }
 

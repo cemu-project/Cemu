@@ -430,7 +430,7 @@ bool RPLLoader_LoadSingleSection(RPLModule* rplLoaderContext, sint32 sectionInde
 
 	uint32 mappingOffset = (uint32)section->virtualAddress - (uint32)regionMappingInfo->baseAddress;
 	if (mappingOffset >= 0x10000000)
-		forceLogDebug_printf("Suspicious section mapping offset: 0x%08x", mappingOffset);
+		cemuLog_logDebug(LogType::Force, "Suspicious section mapping offset: 0x{:08x}", mappingOffset);
 	uint32 sectionAddress = mappedAddress + mappingOffset;
 
 	rplLoaderContext->sectionAddressTable2[sectionIndex].ptr = memory_getPointerFromVirtualOffset(sectionAddress);
@@ -1304,7 +1304,7 @@ bool RPLLoader_ApplyRelocs(RPLModule* rplLoaderContext, sint32 relaSectionIndex,
 		}
 		if (relocSymbolIndex >= symbolCount)
 		{
-			forceLogDebug_printf("reloc with symbol index out of range 0x%04x", (uint32)relocSymbolIndex);
+			cemuLog_logDebug(LogType::Force, "reloc with symbol index out of range 0x{:04x}", (uint32)relocSymbolIndex);
 			reloc++;
 			continue;
 		}
@@ -1313,7 +1313,7 @@ bool RPLLoader_ApplyRelocs(RPLModule* rplLoaderContext, sint32 relaSectionIndex,
 
 		if ((uint32)sym->sectionIndex >= (uint32)rplLoaderContext->rplHeader.sectionTableEntryCount)
 		{
-			forceLogDebug_printf("reloc with sectionIndex out of range 0x%04x", (uint32)sym->sectionIndex);
+			cemuLog_logDebug(LogType::Force, "reloc with sectionIndex out of range 0x{:04x}", (uint32)sym->sectionIndex);
 			reloc++;
 			continue;
 		}
@@ -1528,7 +1528,7 @@ void RPLLoader_BeginCemuhookCRC(RPLModule* rpl)
 			auto ret = inflate(&strm, Z_FULL_FLUSH);
 			if (ret != Z_OK && ret != Z_STREAM_END || strm.avail_in != 0 || strm.avail_out != 0)
 			{
-				forceLogDebug_printf("RPLLoader-CRC: Unable to decompress section %d", i);
+				cemuLog_logDebug(LogType::Force, "RPLLoader-CRC: Unable to decompress section {}", i);
 				cemuLog_logDebug(LogType::Force, "zRet {} availIn {} availOut {}", ret, (sint32)strm.avail_in, (sint32)strm.avail_out);
 				cemu_assert_debug(false);
 				free(rawData);
@@ -2070,7 +2070,7 @@ bool RPLLoader_LoadFromVirtualPath(rplDependency_t* dependency, char* filePath)
 	uint8* rplData = fsc_extractFile(filePath, &rplSize);
 	if (rplData)
 	{
-		forceLogDebug_printf("Loading: %s", filePath);
+		cemuLog_logDebug(LogType::Force, "Loading: {}", filePath);
 		dependency->rplLoaderContext = rpl_loadFromMem(rplData, rplSize, filePath);
 		free(rplData);
 		return true;
