@@ -1987,7 +1987,7 @@ namespace nsysnet
 		ppcDefineParamS32(certLen, 2);
 		ppcDefineParamS32(certType, 3);
 
-		forceLogDebug_printf("NSSLAddServerPKIExternal(0x%x, 0x%08x, 0x%x, %d)", nsslHandle, certData.GetMPTR(), certLen, certType);
+		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKIExternal(0x{:x}, 0x{:08x}, 0x{:x}, {})", nsslHandle, certData.GetMPTR(), certLen, certType);
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
 			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
@@ -2005,7 +2005,7 @@ namespace nsysnet
 		ppcDefineParamU32(groupMask, 1);
 		ppcDefineParamMEMPTR(validCountOut, sint32, 2);
 		ppcDefineParamMEMPTR(invalidCountOut, sint32, 3);
-		forceLogDebug_printf("NSSLAddServerPKIGroups(0x%x, 0x%x, 0x%08x, 0x%08x)", nsslHandle, groupMask, validCountOut.GetMPTR(), invalidCountOut.GetMPTR());
+		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKIGroups(0x{:x}, 0x{:x}, 0x{:08x}, 0x{:08x})", nsslHandle, groupMask, validCountOut.GetMPTR(), invalidCountOut.GetMPTR());
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{

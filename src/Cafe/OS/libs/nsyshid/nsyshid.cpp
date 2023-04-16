@@ -533,7 +533,7 @@ namespace nsyshid
 		ppcDefineParamU32(dataLength, 4); // r7
 		ppcDefineParamMPTR(callbackFuncMPTR, 5); // r8
 		ppcDefineParamMPTR(callbackParamMPTR, 6); // r9
-		forceLogDebug_printf("nsyshid.HIDSetReport(%d,0x%02x,0x%02x,...)", hidHandle, reportRelatedUkn, reportId);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetReport({},0x{:02x},0x{:02x},...)", hidHandle, reportRelatedUkn, reportId);
 
 		_debugPrintHex("HIDSetReport", data, dataLength);
 
@@ -771,7 +771,7 @@ namespace nsyshid
 		ppcDefineParamU32(maxLength, 2); // r5
 		ppcDefineParamMPTR(callbackFuncMPTR, 3); // r6
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
-		forceLogDebug_printf("nsyshid.HIDWrite(0x%x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDWrite(0x{:x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
@@ -804,7 +804,7 @@ namespace nsyshid
 		ppcDefineParamU32(errorCode, 0);
 		ppcDefineParamTypePtr(ukn0, uint32be, 1);
 		ppcDefineParamTypePtr(ukn1, uint32be, 2);
-		forceLogDebug_printf("nsyshid.HIDDecodeError(0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDDecodeError(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 
 		// todo
 		*ukn0 = 0x3FF;

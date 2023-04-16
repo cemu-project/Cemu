@@ -73,7 +73,7 @@ namespace nn
 			ppcDefineParamMPTR(funcMPTR, 1);
 			ppcDefineParamMPTR(customParam, 2);
 
-			forceLogDebug_printf("nn_fp.SetNotificationHandler(0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.SetNotificationHandler(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_SET_NOTIFICATION_HANDLER;
@@ -328,7 +328,7 @@ namespace nn
 
 		void export_GetFriendAccountId(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetFriendAccountId(0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendAccountId(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 			ppcDefineParamMEMPTR(accountIds, char, 0);
 			ppcDefineParamMEMPTR(pidList, uint32be, 1);
 			ppcDefineParamU32(count, 2);
@@ -346,7 +346,7 @@ namespace nn
 		void export_GetFriendScreenName(PPCInterpreter_t* hCPU)
 		{
 			// GetFriendScreenName__Q2_2nn2fpFPA11_wPCUiUibPUc
-			forceLogDebug_printf("nn_fp.GetFriendScreenName(0x%08x,0x%08x,0x%08x,%d,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendScreenName(0x{:08x},0x{:08x},0x{:08x},{},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 			ppcDefineParamMEMPTR(nameList, uint16be, 0);
 			ppcDefineParamMEMPTR(pidList, uint32be, 1);
 			ppcDefineParamU32(count, 2);
@@ -367,7 +367,7 @@ namespace nn
 
 		void export_GetFriendMii(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetFriendMii(0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendMii(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 			ppcDefineParamMEMPTR(miiList, FFLData_t, 0);
 			ppcDefineParamMEMPTR(pidList, uint32be, 1);
 			ppcDefineParamU32(count, 2);
@@ -384,7 +384,7 @@ namespace nn
 
 		void export_GetFriendPresence(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetFriendPresence(0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendPresence(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 			ppcDefineParamMEMPTR(presenceList, uint8, 0);
 			ppcDefineParamMEMPTR(pidList, uint32be, 1);
 			ppcDefineParamU32(count, 2);
@@ -401,7 +401,7 @@ namespace nn
 
 		void export_GetFriendRelationship(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetFriendRelationship(0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendRelationship(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 			ppcDefineParamMEMPTR(relationshipList, uint8, 0);
 			ppcDefineParamMEMPTR(pidList, uint32be, 1);
 			ppcDefineParamU32(count, 2);
@@ -481,7 +481,7 @@ namespace nn
 
 		void export_CheckSettingStatusAsync(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.CheckSettingStatusAsync(0x%08x,0x%08x,0x%08x) - placeholder", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.CheckSettingStatusAsync(0x{:08x},0x{:08x},0x{:08x}) - placeholder", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 			ppcDefineParamTypePtr(uknR3, uint8, 0);
 			ppcDefineParamMPTR(funcMPTR, 1);
 			ppcDefineParamU32(customParam, 2);
@@ -518,7 +518,7 @@ namespace nn
 
 		void export_UpdatePreferenceAsync(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.UpdatePreferenceAsync(0x%08x,0x%08x,0x%08x) - placeholder", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.UpdatePreferenceAsync(0x{:08x},0x{:08x},0x{:08x}) - placeholder", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 			ppcDefineParamTypePtr(uknR3, uint8, 0);
 			ppcDefineParamMPTR(funcMPTR, 1);
 			ppcDefineParamU32(customParam, 2);
@@ -545,7 +545,7 @@ namespace nn
 
 		void export_UpdateGameMode(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.UpdateGameMode(0x%08x,0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.UpdateGameMode(0x{:08x},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 			ppcDefineParamMEMPTR(gameMode, iosu::fpd::gameMode_t, 0);
 			ppcDefineParamMEMPTR(gameModeMessage, uint16be, 1);
 			ppcDefineParamU32(uknR5, 2);

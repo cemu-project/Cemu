@@ -303,8 +303,8 @@ void LatteTexture_copyData(LatteTexture* srcTexture, LatteTexture* dstTexture, s
 
 		debug_printf("texture_copyData(): Effective size mismatch\n");
 		cemuLog_logDebug(LogType::Force, "texture_copyData(): Effective size mismatch (due to texture rule)");
-		forceLogDebug_printf("Destination: origResolution %04dx%04d effectiveResolution %04dx%04d fmt %04x mipIndex %d", srcTexture->width, srcTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, 0);
-		forceLogDebug_printf("Source:      origResolution %04dx%04d effectiveResolution %04dx%04d fmt %04x mipIndex %d", srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, 0);
+		cemuLog_logDebug(LogType::Force, "Destination: origResolution {:04}x{:04} effectiveResolution {:04}x{:04} fmt {:04x} mipIndex {}", srcTexture->width, srcTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, 0);
+		cemuLog_logDebug(LogType::Force, "Source:      origResolution {:04}x{:04} effectiveResolution {:04}x{:04} fmt {:04x} mipIndex {}", srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, 0);
 		return;
 	}
 	catchOpenGLError();

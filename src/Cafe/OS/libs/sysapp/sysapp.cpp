@@ -571,7 +571,7 @@ void sysappExport__SYSGetLauncherArgs(PPCInterpreter_t* hCPU)
 
 void sysappExport_SYSGetStandardResult(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SYSGetStandardResult(0x%08x,0x%08x,0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_logDebug(LogType::Force, "SYSGetStandardResult(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	memset(memory_getPointerFromVirtualOffset(hCPU->gpr[3]), 0, 4);
 
 	osLib_returnFromFunction(hCPU, 0);

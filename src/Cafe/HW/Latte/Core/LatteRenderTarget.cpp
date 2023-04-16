@@ -611,7 +611,7 @@ bool LatteMRT::UpdateCurrentFBO()
 				{
 					if (_depthBufferSizeWarningCount < 100)
 					{
-						forceLogDebug_printf("Depth buffer size too small. Effective size: %dx%d Real size: %dx%d Mismatching texture: %08x %dx%d fmt %04x", effectiveWidth, effectiveHeight, depthBufferView->baseTexture->width, depthBufferView->baseTexture->height, depthBufferView->baseTexture->physAddress, depthBufferView->baseTexture->width, depthBufferView->baseTexture->height, (uint32)depthBufferView->baseTexture->format);
+						cemuLog_logDebug(LogType::Force, "Depth buffer size too small. Effective size: {}x{} Real size: {}x{} Mismatching texture: {:08x} {}x{} fmt {:04x}", effectiveWidth, effectiveHeight, depthBufferView->baseTexture->width, depthBufferView->baseTexture->height, depthBufferView->baseTexture->physAddress, depthBufferView->baseTexture->width, depthBufferView->baseTexture->height, (uint32)depthBufferView->baseTexture->format);
 						_depthBufferSizeWarningCount++;
 					}
 				}

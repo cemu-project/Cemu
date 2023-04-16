@@ -93,7 +93,7 @@ swkbdInternalState_t* swkbdInternalState = NULL;
 
 void swkbdExport_SwkbdCreate(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("swkbd.SwkbdCreate(0x%08x,0x%08x,0x%08x,0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	cemuLog_logDebug(LogType::Force, "swkbd.SwkbdCreate(0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	if( swkbdInternalState == NULL )
 	{
 		MPTR swkbdInternalStateMPTR = coreinit_allocFromSysArea(sizeof(swkbdInternalState_t), 4);

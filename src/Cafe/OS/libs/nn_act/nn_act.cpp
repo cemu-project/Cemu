@@ -276,7 +276,7 @@ void nnActExport_GetTransferableIdEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(unique, 1);
 	ppcDefineParamU8(slot, 2);
 
-	forceLogDebug_printf("nn_act.GetTransferableIdEx(0x%08x, 0x%08x, %d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetTransferableIdEx(0x{:08x}, 0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5] & 0xFF);
 	
 	uint32 r = GetTransferableIdEx(transferableId, unique, slot);
 
@@ -469,7 +469,7 @@ void nnActExport_GetUuidEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetUuidEx2(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetUuidEx(0x%08x,0x%02x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetUuidEx(0x{:08x},0x{:02x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	ppcDefineParamUStr(uuid, 0);
 	ppcDefineParamU8(slot, 1);
 	ppcDefineParamS32(name, 2);

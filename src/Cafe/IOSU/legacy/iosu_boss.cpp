@@ -300,7 +300,7 @@ namespace iosu
 			// TODO timestamp (?)
 		}
 
-		//forceLogDebug_printf("task_header_callback: len %d (%d) and type %d", task->content_length, task->result_buffer.capacity(), task->content_type);
+		//cemuLog_logDebug(LogType::Force, "task_header_callback: len {} ({}) and type {}", task->content_length, task->result_buffer.capacity(), task->content_type);
 		//forceLogDebug_printf("\t%s", ptr);
 		return size * nitems;
 	}
@@ -457,7 +457,7 @@ namespace iosu
 			it->wait_state = TRUE;
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_BOSS, 0);
 		}
-		forceLogDebug_printf("task run state: %d | exec: %d (tasks: %d)", it->turn_state, it->exec_count, g_boss.tasks.size());
+		cemuLog_logDebug(LogType::Force, "task run state: {} | exec: {} (tasks: {})", it->turn_state, it->exec_count, g_boss.tasks.size());
 		it->turn_state = kRunning;
 		it->exec_count++;
 
@@ -704,7 +704,7 @@ namespace iosu
 					curl_result = curl_easy_perform(curl);
 					if (curl_result != CURLE_OK)
 					{
-						forceLogDebug_printf("task_run curl failed on file download (%d): %s > %s", curl_result, file.file_name.c_str(), file.url.c_str());
+						cemuLog_logDebug(LogType::Force, "task_run curl failed on file download ({}): {} > {}", curl_result, file.file_name, file.url);
 						if (hasFileName)
 						{
 							turnstate = kError;
@@ -727,7 +727,7 @@ namespace iosu
 
 					if(it->processed_file_size != file.size)
 					{
-						forceLogDebug_printf("task_run file download size mismatch: %s > %s > %d from %d bytes", file.file_name.c_str(), file.url.c_str(), it->processed_file_size, file.size);
+						cemuLog_logDebug(LogType::Force, "task_run file download size mismatch: {} > {} > {} from {} bytes", file.file_name, file.url, it->processed_file_size, file.size);
 						if (hasFileName)
 						{
 							turnstate = kError;

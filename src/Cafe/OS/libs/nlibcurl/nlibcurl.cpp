@@ -385,7 +385,7 @@ void export_curl_multi_add_handle(PPCInterpreter_t* hCPU)
 	if (result == CURLM_OK)
 		curlm->curl.push_back(curl.GetPtr());
 
-	forceLogDebug_printf("curl_multi_add_handle(0x%08x, 0x%08x) -> 0x%x", curlm.GetMPTR(), curl.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_multi_add_handle(0x{:08x}, 0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), curl.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -401,7 +401,7 @@ void export_curl_multi_remove_handle(PPCInterpreter_t* hCPU)
 		curlm->curl.erase(std::remove(curlm->curl.begin(), curlm->curl.end(), (void*)curl.GetPtr()), curlm->curl.end());
 	}
 
-	forceLogDebug_printf("curl_multi_remove_handle(0x%08x, 0x%08x) -> 0x%x", curlm.GetMPTR(), curl.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_multi_remove_handle(0x{:08x}, 0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), curl.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -415,7 +415,7 @@ void export_curl_multi_timeout(PPCInterpreter_t* hCPU)
 	CURLMcode result = ::curl_multi_timeout(curlm->curlm, &timeoutLE);
 	*timeoParam = (uint32)timeoutLE;
 
-	forceLogDebug_printf("curl_multi_timeout(0x%08x, 0x%08x [%d]) -> 0x%x", curlm.GetMPTR(), timeoParam.GetMPTR(), timeoutLE, result);
+	cemuLog_logDebug(LogType::Force, "curl_multi_timeout(0x{:08x}, 0x{:08x} [{}]) -> 0x{:x}", curlm.GetMPTR(), timeoParam.GetMPTR(), timeoutLE, result);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -531,10 +531,10 @@ void export_curl_multi_setopt(PPCInterpreter_t* hCPU)
 		result = ::curl_multi_setopt(curlm->curlm, (CURLMoption)option, parameter.GetMPTR());
 		break;
 	default:
-		forceLogDebug_printf("curl_multi_setopt(0x%08x, %d, 0x%08x) unsupported option", curlm.GetMPTR(), option, parameter.GetMPTR());
+		cemuLog_logDebug(LogType::Force, "curl_multi_setopt(0x{:08x}, {}, 0x{:08x}) unsupported option", curlm.GetMPTR(), option, parameter.GetMPTR());
 	}
 
-	forceLogDebug_printf("curl_multi_setopt(0x%08x, %d, 0x%08x) -> 0x%x", curlm.GetMPTR(), option, parameter.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_multi_setopt(0x{:08x}, {}, 0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), option, parameter.GetMPTR(), result);
 
 	osLib_returnFromFunction(hCPU, result);
 }
@@ -634,7 +634,7 @@ void export_curl_share_setopt(PPCInterpreter_t* hCPU)
 		default:
 			cemu_assert_unimplemented();
 	}
-	forceLogDebug_printf("curl_share_setopt(0x%08x, 0x%x, 0x%08x) -> 0x%x", share.GetMPTR(), option, parameter.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_share_setopt(0x{:08x}, 0x{:x}, 0x{:08x}) -> 0x{:x}", share.GetMPTR(), option, parameter.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -857,7 +857,7 @@ size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
 	cemu_assert_debug((size*nitems) < 500);
 	memcpy(debug, buffer, size*nitems);
 	debug[size*nitems] = 0;
-	forceLogDebug_printf("header_callback(0x%p, 0x%x, 0x%x, 0x%08x) [%s]", (void*)buffer, size, nitems, curl->writeheader.GetMPTR(), debug);
+	cemuLog_logDebug(LogType::Force, "header_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [{}]", (void*)buffer, size, nitems, curl->writeheader.GetMPTR(), debug);
 #endif
 	return msg.result;
 }
@@ -870,7 +870,7 @@ size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
 	//StackAllocator<char> tmp(size * nmemb);
 	//memcpy(tmp.GetPointer(), ptr, size * nmemb);
 
-	forceLogDebug_printf("write_callback(0x%p 0x%x, 0x%x, 0x%08x)", (void*)ptr, size, nmemb, curl->out.GetMPTR());
+	cemuLog_logDebug(LogType::Force, "write_callback(0x{} 0x{:x}, 0x{:x}, 0x{:08x})", (void*)ptr, size, nmemb, curl->out.GetMPTR());
 
 	if (g_callerQueue == nullptr || g_threadQueue == nullptr)
 	{
@@ -909,7 +909,7 @@ size_t read_callback(char* buffer, size_t size, size_t nitems, void* instream)
 {
 	CURL_t* curl = (CURL_t*)instream;
 
-	forceLogDebug_printf("read_callback(0x%p, 0x%x, 0x%x, 0x%08x) [func: 0x%x]", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), curl->fread_func_set.GetMPTR());
+	cemuLog_logDebug(LogType::Force, "read_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [func: 0x{:x}]", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), curl->fread_func_set.GetMPTR());
 
 	if (g_callerQueue == nullptr || g_threadQueue == nullptr)
 	{
@@ -925,14 +925,14 @@ size_t read_callback(char* buffer, size_t size, size_t nitems, void* instream)
 	msg.read_cb.size = (uint32)size;
 	msg.read_cb.nitems = (uint32)std::min<uint32>(nitems, 0x4000); // limit this to 16KB which is the limit in nlibcurl.rpl (Super Mario Maker crashes on level upload if the size is too big)
 
-	forceLogDebug_printf("read_callback(0x%p, 0x%x, 0x%x, 0x%08x) [func: 0x%x] PUSH", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), curl->fread_func_set.GetMPTR());
+	cemuLog_logDebug(LogType::Force, "read_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [func: 0x{:x}] PUSH", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), curl->fread_func_set.GetMPTR());
 	g_callerQueue->push(msg, curl->curlThread);
 
 	msg = g_threadQueue->pop();
 	if (msg.order != QueueOrder_CBDone)
 		cemu_assert_suspicious();
 
-	forceLogDebug_printf("read_callback(0x%p, 0x%x, 0x%x, 0x%08x) DONE Result: %d", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), msg.result);
+	cemuLog_logDebug(LogType::Force, "read_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) DONE Result: {}", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), msg.result);
 
 	return msg.result;
 }
@@ -1154,10 +1154,10 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 			break;
 		}
 		default:
-			forceLogDebug_printf("curl_easy_setopt(0x%08x, %d, 0x%08x) unsupported option", curl.GetMPTR(), option, parameter.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "curl_easy_setopt(0x{:08x}, {}, 0x{:08x}) unsupported option", curl.GetMPTR(), option, parameter.GetMPTR());
 	}
 
-	forceLogDebug_printf("curl_easy_setopt(0x%08x, %d, 0x%08x) -> 0x%x", curl.GetMPTR(), option, parameter.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_easy_setopt(0x{:08x}, {}, 0x{:08x}) -> 0x{:x}", curl.GetMPTR(), option, parameter.GetMPTR(), result);
 
 	osLib_returnFromFunction(hCPU, result);
 }
@@ -1241,7 +1241,7 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 			result = curl_easy_getinfo(curlObj, (CURLINFO)info, (double*)parameter.GetPtr());
 	}
 
-	forceLogDebug_printf("curl_easy_getinfo(0x%08x, 0x%x, 0x%08x) -> 0x%x", curl.GetMPTR(), info, parameter.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_easy_getinfo(0x{:08x}, 0x{:x}, 0x{:08x}) -> 0x{:x}", curl.GetMPTR(), info, parameter.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -1278,7 +1278,7 @@ void export_curl_slist_append(PPCInterpreter_t* hCPU)
 	MEMPTR<char> dupdata{ PPCCoreCallback(g_nlibcurl.strdup.GetMPTR(), data.GetMPTR()) };
 	if (!dupdata)
 	{
-		forceLogDebug_printf("curl_slist_append(0x%08x, 0x%08x [%s]) -> 0x00000000", list.GetMPTR(), data.GetMPTR(), data.GetPtr());
+		cemuLog_logDebug(LogType::Force, "curl_slist_append(0x{:08x}, 0x{:08x} [{}]) -> 0x00000000", list.GetMPTR(), data.GetMPTR(), data.GetPtr());
 		osLib_returnFromFunction(hCPU, 0);
 		return;
 	}
@@ -1304,7 +1304,7 @@ void export_curl_slist_append(PPCInterpreter_t* hCPU)
 	else
 		PPCCoreCallback(g_nlibcurl.free.GetMPTR(), dupdata.GetMPTR());
 
-	forceLogDebug_printf("curl_slist_append(0x%08x, 0x%08x [%s]) -> 0x%08x", list.GetMPTR(), data.GetMPTR(), data.GetPtr(), result.GetMPTR());
+	cemuLog_logDebug(LogType::Force, "curl_slist_append(0x{:08x}, 0x{:08x} [{}]) -> 0x{:08x}", list.GetMPTR(), data.GetMPTR(), data.GetPtr(), result.GetMPTR());
 	if(list)
 		osLib_returnFromFunction(hCPU, list.GetMPTR());
 	else
@@ -1349,7 +1349,7 @@ void export_curl_global_init_mem(PPCInterpreter_t* hCPU)
 		}
 	}
 
-	forceLogDebug_printf("curl_global_init_mem(0x%x, 0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x) -> 0x%08x", flags, m.GetMPTR(), f.GetMPTR(), r.GetMPTR(), s.GetMPTR(), c.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_global_init_mem(0x{:x}, 0x{:08x}, 0x{:08x}, 0x{:08x}, 0x{:08x}, 0x{:08x}) -> 0x{:08x}", flags, m.GetMPTR(), f.GetMPTR(), r.GetMPTR(), s.GetMPTR(), c.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
 }
 

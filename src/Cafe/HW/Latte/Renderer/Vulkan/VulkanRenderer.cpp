@@ -3168,7 +3168,7 @@ void VulkanRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceI
 			auto imageObj = vkTexture->GetImageObj();
 			imageObj->flagForCurrentCommandBuffer();
 
-			forceLogDebug_printf("Compressed texture (%d/%d fmt %04x) unsupported clear", vkTexture->width, vkTexture->height, (uint32)vkTexture->format);
+			cemuLog_logDebug(LogType::Force, "Compressed texture ({}/{} fmt {:04x}) unsupported clear", vkTexture->width, vkTexture->height, (uint32)vkTexture->format);
 
 			VkImageSubresourceLayers subresourceRange{};
 			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

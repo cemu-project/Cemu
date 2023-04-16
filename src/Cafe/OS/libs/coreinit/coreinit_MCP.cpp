@@ -78,7 +78,7 @@ void coreinitExport_MCP_GetSysProdSettings(PPCInterpreter_t* hCPU)
 
 void coreinitExport_MCP_TitleListByAppType(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("MCP_TitleListByAppType(0x%08x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+	cemuLog_logDebug(LogType::Force, "MCP_TitleListByAppType(0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 
 	ppcDefineParamU32(mcpHandle, 0);
 	ppcDefineParamU32(appType, 1);

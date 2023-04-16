@@ -185,7 +185,7 @@ void nexFriends_protocolNotification_processRequest(nexServiceRequest_t* request
 			request->nex->sendRequestResponse(request, 0, nullptr, 0);
 			return;
 		}
-		forceLogDebug_printf("NN_NOTIFICATION methodId %d type %02x pid %08x", request->methodId, notificationType, pid);
+		cemuLog_logDebug(LogType::Force, "NN_NOTIFICATION methodId {} type {:02x} pid {:08x}", request->methodId, notificationType, pid);
 		nexFriends->processServerNotification(notificationType, pid, &request->data);
 		request->nex->sendRequestResponse(request, 0, nullptr, 0);
 		return;

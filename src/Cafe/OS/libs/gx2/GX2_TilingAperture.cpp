@@ -370,7 +370,7 @@ void GX2TilingAperature_RetileTexture(ActiveTilingAperature* tilingAperture, boo
 	}
 
 	//double benchmarkTime = benchmarkTimer_stop(timerTilingStart);
-	//forceLogDebug_printf("TilingAperture res %04dx%04d fmt %04x tm %02x mip %d isWrite %d", (uint32)tilingAperture->surface.width, (uint32)tilingAperture->surface.height, (uint32)tilingAperture->surface.format, (uint32)tilingAperture->surface.tileMode, tilingAperture->mipLevel, doWrite?1:0);
+	//cemuLog_logDebug(LogType::Force, "TilingAperture res {:04}x{:04} fmt {:04x} tm {:02x} mip {} isWrite {}", (uint32)tilingAperture->surface.width, (uint32)tilingAperture->surface.height, (uint32)tilingAperture->surface.format, (uint32)tilingAperture->surface.tileMode, tilingAperture->mipLevel, doWrite?1:0);
 	//forceLogDebug_printf("Tiling took %.4lfms", benchmarkTime);
 }
 

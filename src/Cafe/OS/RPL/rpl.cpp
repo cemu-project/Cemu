@@ -1529,7 +1529,7 @@ void RPLLoader_BeginCemuhookCRC(RPLModule* rpl)
 			if (ret != Z_OK && ret != Z_STREAM_END || strm.avail_in != 0 || strm.avail_out != 0)
 			{
 				forceLogDebug_printf("RPLLoader-CRC: Unable to decompress section %d", i);
-				forceLogDebug_printf("zRet %d availIn %d availOut %d", ret, (sint32)strm.avail_in, (sint32)strm.avail_out);
+				cemuLog_logDebug(LogType::Force, "zRet {} availIn {} availOut {}", ret, (sint32)strm.avail_in, (sint32)strm.avail_out);
 				cemu_assert_debug(false);
 				free(rawData);
 				inflateEnd(&strm);
