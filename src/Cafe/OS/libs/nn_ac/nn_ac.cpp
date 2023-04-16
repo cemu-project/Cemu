@@ -34,7 +34,7 @@ static_assert(TRUE == 1, "TRUE not 1");
 
 void nn_acExport_IsApplicationConnected(PPCInterpreter_t* hCPU)
 {
-	//forceLogDebug_printf("nn_ac.IsApplicationConnected(0x%08x)", hCPU->gpr[3]);
+	//cemuLog_logDebug(LogType::Force, "nn_ac.IsApplicationConnected(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamMEMPTR(connected, uint8, 0);
 	if (connected)
 		*connected = TRUE;

@@ -137,7 +137,7 @@ void nnActExport_GetNumOfAccounts(PPCInterpreter_t* hCPU)
 
 void nnActExport_IsSlotOccupied(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.IsSlotOccupied(%d)\n", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.IsSlotOccupied({})", hCPU->gpr[3]);
 	ppcDefineParamU8(slot, 0);
 	
 	osLib_returnFromFunction(hCPU, nn::act::GetPersistentIdEx(slot) != 0 ? 1 : 0);
@@ -222,7 +222,7 @@ void nnActExport_IsNetworkAccount(PPCInterpreter_t* hCPU)
 void nnActExport_IsNetworkAccountEx(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU8(slot, 0);
-	forceLogDebug_printf("nn_act.IsNetworkAccountEx(%d)\n", slot);
+	cemuLog_logDebug(LogType::Force, "nn_act.IsNetworkAccountEx({})", slot);
 	uint8 isNetAcc = 0;
 	IsNetworkAccount(&isNetAcc, slot);
 	osLib_returnFromFunction(hCPU, isNetAcc);
@@ -293,7 +293,7 @@ void nnActExport_GetPersistentId(PPCInterpreter_t* hCPU)
 void nnActExport_GetPersistentIdEx(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU8(slot, 0);
-	forceLogDebug_printf("nn_act.GetPersistentIdEx(%d)", slot);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetPersistentIdEx({})", slot);
 
 	uint32 persistentId = nn::act::GetPersistentIdEx(slot);
 
@@ -302,7 +302,7 @@ void nnActExport_GetPersistentIdEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetCountry(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetCountry(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetCountry(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamStr(country, 0);
 	uint32 r = GetCountryEx(country, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, r);
@@ -311,7 +311,7 @@ void nnActExport_GetCountry(PPCInterpreter_t* hCPU)
 bool g_isParentalControlCheckEnabled = false;
 void nnActExport_EnableParentalControlCheck(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.EnableParentalControlCheck(%d)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.EnableParentalControlCheck({})", hCPU->gpr[3]);
 	ppcDefineParamU8(isEnabled, 0);
 	g_isParentalControlCheckEnabled = isEnabled != 0;
 	osLib_returnFromFunction(hCPU, 0);
@@ -319,7 +319,7 @@ void nnActExport_EnableParentalControlCheck(PPCInterpreter_t* hCPU)
 
 void nnActExport_IsParentalControlCheckEnabled(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.IsParentalControlCheckEnabled() -> %d", g_isParentalControlCheckEnabled);
+	cemuLog_logDebug(LogType::Force, "nn_act.IsParentalControlCheckEnabled() -> {}", g_isParentalControlCheckEnabled);
 	osLib_returnFromFunction(hCPU, g_isParentalControlCheckEnabled);
 }
 
@@ -357,7 +357,7 @@ void nnActExport_GetMiiImageEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetMiiName(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "GetMiiName(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamWStrBE(miiName, 0);
 
 	StackAllocator<FFLData_t> miiData;
@@ -452,7 +452,7 @@ void nnActExport_UpdateMii(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetUuid(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetUuid(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetUuid(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamUStr(uuid, 0);
 	nn::act::GetUuidEx(uuid, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, 0); // 0 -> result ok
@@ -479,7 +479,7 @@ void nnActExport_GetUuidEx2(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetAccountId(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetAccountId(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetAccountId(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamUStr(accId, 0);
 	GetAccountIdEx((char*)accId, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, 0);
@@ -617,7 +617,7 @@ void nnActExport_AcquireIndependentServiceToken(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(serviceToken, const char, 1);
 	uint32 result =  AcquireIndependentServiceToken(token.GetPtr(), serviceToken.GetPtr(), 0);
 	forceLogDebug_printf("nn_act.AcquireIndependentServiceToken(0x%p, %s) -> %x | LR %08x", (void*)token.GetPtr(), serviceToken.GetPtr(), result, hCPU->spr.LR);
-	forceLogDebug_printf("Token: %s", serviceToken.GetPtr());
+	cemuLog_logDebug(LogType::Force, "Token: {}", serviceToken.GetPtr());
 	osLib_returnFromFunction(hCPU, result);
 }
 

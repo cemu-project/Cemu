@@ -116,7 +116,7 @@ namespace nn
 			fpdPrepareRequest();
 			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_IS_ONLINE;
 			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-			forceLogDebug_printf("nn_fp.IsOnline() -> %d", fpdRequest->resultU32.u32);
+			cemuLog_logDebug(LogType::Force, "nn_fp.IsOnline() -> {}", fpdRequest->resultU32.u32);
 
 			osLib_returnFromFunction(hCPU, fpdRequest->resultU32.u32);
 		}
@@ -267,7 +267,7 @@ namespace nn
 
 		void export_GetMyAccountId(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetMyAccountId(0x%08x)", hCPU->gpr[3]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyAccountId(0x{:08x})", hCPU->gpr[3]);
 			ppcDefineParamTypePtr(accountId, uint8, 0);
 
 			fpdPrepareRequest();
@@ -280,7 +280,7 @@ namespace nn
 
 		void export_GetMyScreenName(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetMyScreenName(0x%08x)", hCPU->gpr[3]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyScreenName(0x{:08x})", hCPU->gpr[3]);
 			ppcDefineParamTypePtr(screenname, uint16be, 0);
 
 			screenname[0] = '\0';
@@ -301,7 +301,7 @@ namespace nn
 
 		void export_GetMyPreference(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetMyPreference(0x%08x) - placeholder", hCPU->gpr[3]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyPreference(0x{:08x}) - placeholder", hCPU->gpr[3]);
 			ppcDefineParamTypePtr(pref, fpPerference_t, 0);
 
 			pref->showOnline = 1;
@@ -315,7 +315,7 @@ namespace nn
 
 		void export_GetMyMii(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("nn_fp.GetMyMii(0x%08x)", hCPU->gpr[3]);
+			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyMii(0x{:08x})", hCPU->gpr[3]);
 			ppcDefineParamTypePtr(fflData, FFLData_t, 0);
 
 			fpdPrepareRequest();
