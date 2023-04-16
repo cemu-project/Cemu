@@ -412,7 +412,7 @@ static void PPCInterpreter_DIVW(PPCInterpreter_t* hCPU, uint32 opcode)
 	sint32 b = hCPU->gpr[rB];
 	if (b == 0)
 	{
-		forceLogDebug_printf("Error: Division by zero! [%08X]\n", (uint32)hCPU->instructionPointer);
+		forceLogDebug_printf("Error: Division by zero! [%08x]\n", (uint32)hCPU->instructionPointer);
 		b++;
 	}
 	hCPU->gpr[rD] = a / b;
