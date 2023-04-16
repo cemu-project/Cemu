@@ -89,7 +89,7 @@ namespace nn
 		{
 			ppcDefineParamMPTR(funcPtr, 0);
 			ppcDefineParamMPTR(custom, 1);
-			forceLogDebug_printf("nn_fp.LoginAsync(0x%08x,0x%08x)", funcPtr, custom);
+			cemuLog_logDebug(LogType::Force, "nn_fp.LoginAsync(0x{:08x},0x{:08x})", funcPtr, custom);
 			if (g_fp.isInitialized == false)
 			{
 				osLib_returnFromFunction(hCPU, 0xC0C00580);

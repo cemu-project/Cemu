@@ -469,7 +469,7 @@ void sysappExport__SYSGetEShopArgs(PPCInterpreter_t* hCPU)
 void sysappExport_SYSGetUPIDFromTitleID(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU64(titleId, 0);
-	forceLogDebug_printf("SYSGetUPIDFromTitleID(0x%08x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_logDebug(LogType::Force, "SYSGetUPIDFromTitleID(0x{:08x}{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	uint32 titleIdHigh = (titleId >> 32);
 	uint32 titleIdLow = (uint32)(titleId & 0xFFFFFFFF);
 	if ((titleIdHigh & 0xFFFF0000) != 0x50000)

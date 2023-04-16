@@ -71,7 +71,7 @@ sint32 MCP_GetSysProdSettings(MCPHANDLE mcpHandle, SysProdSettings* sysProdSetti
 
 void coreinitExport_MCP_GetSysProdSettings(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("MCP_GetSysProdSettings(0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_logDebug(LogType::Force, "MCP_GetSysProdSettings(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	sint32 result = MCP_GetSysProdSettings(hCPU->gpr[3], (SysProdSettings*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]));
 	osLib_returnFromFunction(hCPU, result);
 }
@@ -194,7 +194,7 @@ namespace coreinit
 
 	void export_MCP_GetSystemVersion(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("MCP_GetSystemVersion(%d,0x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_logDebug(LogType::Force, "MCP_GetSystemVersion({},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		ppcDefineParamU32(mcpHandle, 0);
 		ppcDefineParamStructPtr(systemVersion, mcpSystemVersion_t, 1);
 
@@ -554,7 +554,7 @@ void coreinitExport_UCReadSysConfig(PPCInterpreter_t* hCPU)
 		}
 		else
 		{
-			forceLogDebug_printf("Unsupported SCI value: %s Size %08x\n", ucParam->settingName, ucParam->ukn4_size);
+			cemuLog_logDebug(LogType::Force, "Unsupported SCI value: {} Size {:08x}", ucParam->settingName, ucParam->ukn4_size);
 		}
 	}
 	osLib_returnFromFunction(hCPU, 0); // 0 -> success

@@ -240,7 +240,7 @@ void nnActExport_GetSimpleAddressId(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetSimpleAddressIdEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetSimpleAddressIdEx(0x%08x, %d)\n", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetSimpleAddressIdEx(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
 
 	ppcDefineParamU32BEPtr(simpleAddressId, 0);
 	ppcDefineParamU8(slot, 1);
@@ -262,7 +262,7 @@ void nnActExport_GetPrincipalId(PPCInterpreter_t* hCPU)
 void nnActExport_GetPrincipalIdEx(PPCInterpreter_t* hCPU)
 {
 	// return error for non-nnid accounts?
-	forceLogDebug_printf("nn_act.GetPrincipalIdEx(0x%08x, %d)\n", hCPU->gpr[3], hCPU->gpr[4]&0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetPrincipalIdEx(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4]&0xFF);
 	ppcDefineParamU32BEPtr(principalId, 0);
 	ppcDefineParamU8(slot, 1);
 	GetPrincipalIdEx(principalId, slot);
@@ -379,7 +379,7 @@ void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMiiNameEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetMiiNameEx(0x%08x, %d)", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "GetMiiNameEx(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
 	ppcDefineParamWStrBE(miiName, 0);
 	ppcDefineParamU8(slot, 1);
 
@@ -460,7 +460,7 @@ void nnActExport_GetUuid(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetUuidEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetUuidEx(0x%08x,0x%02x)", hCPU->gpr[3], hCPU->gpr[3]&0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetUuidEx(0x{:08x},0x{:02x})", hCPU->gpr[3], hCPU->gpr[3]&0xFF);
 	ppcDefineParamUStr(uuid, 0);
 	ppcDefineParamU8(slot, 1);
 	nn::act::GetUuidEx(uuid, slot);
@@ -487,7 +487,7 @@ void nnActExport_GetAccountId(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetAccountIdEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetAccountIdEx(0x%08x, 0x%02x)", hCPU->gpr[3], hCPU->gpr[3] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetAccountIdEx(0x{:08x}, 0x{:02x})", hCPU->gpr[3], hCPU->gpr[3] & 0xFF);
 	ppcDefineParamUStr(accId, 0);
 	ppcDefineParamU8(slot, 1);
 	GetAccountIdEx((char*)accId, slot);
@@ -497,7 +497,7 @@ void nnActExport_GetAccountIdEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetParentalControlSlotNoEx(PPCInterpreter_t* hCPU)
 {
 	// GetParentalControlSlotNoEx(uint8* output, uint8 slot)
-	forceLogDebug_printf("nn_act.GetParentalControlSlotNoEx(0x%08x, 0x%02x)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetParentalControlSlotNoEx(0x{:08x}, 0x{:02x})", hCPU->gpr[3], hCPU->gpr[4]);
 	//memory_writeU8(hCPU->gpr[3], 0x01); // returned slot no (slot indices start at 1)
 	memory_writeU8(hCPU->gpr[3], 1); // 0 -> No parental control for slot?
 	//memory_writeU8(hCPU->gpr[3], 0); // 0 -> No parental control for slot?

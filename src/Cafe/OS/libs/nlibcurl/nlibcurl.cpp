@@ -228,7 +228,7 @@ uint32 SendOrderToWorker(CURL_t* curl, QueueOrder order, uint32 arg1 = 0)
 	OSThread_t* currentThread = coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance);
 	curl->curlThread = currentThread;
 
-	// forceLogDebug_printf("CURRENTTHREAD: 0x%p -> %d",currentThread, order)
+	// cemuLog_logDebug(LogType::Force, "CURRENTTHREAD: 0x{} -> {}",currentThread, order)
 
 	PPCConcurrentQueue<QueueMsg_t> callerQueue;
 	ConcurrentQueue<QueueMsg_t> threadQueue;
@@ -270,7 +270,7 @@ uint32 SendOrderToWorker(CURL_t* curl, QueueOrder order, uint32 arg1 = 0)
 
 			QueueMsg_t sendMsg = {};
 			sendMsg.order = QueueOrder_CBDone;
-			forceLogDebug_printf("QueueOrder_ReadCB size: %d nitems: %d", msg.read_cb.size, msg.read_cb.nitems);
+			cemuLog_logDebug(LogType::Force, "QueueOrder_ReadCB size: {} nitems: {}", msg.read_cb.size, msg.read_cb.nitems);
 			sendMsg.result = PPCCoreCallback(curl->fread_func_set.GetMPTR(), tmp.GetMPTR(), msg.read_cb.size, msg.read_cb.nitems, curl->in_set.GetMPTR());
 			forceLogDebug_printf("readcb size: %d", (sint32)sendMsg.result);
 			if (sendMsg.result > 0)
@@ -423,7 +423,7 @@ void export_curl_multi_cleanup(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
 	CURLMcode result = ::curl_multi_cleanup(curlm->curlm);
-	forceLogDebug_printf("curl_multi_cleanup(0x%08x) -> 0x%x", curlm.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_multi_cleanup(0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), result);
 	curlm->curl.clear();
 	PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curlm.GetMPTR());
 	osLib_returnFromFunction(hCPU, result);
@@ -434,7 +434,7 @@ void export_curl_multi_perform(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
 	ppcDefineParamMEMPTR(runningHandles, uint32be, 1);
 
-	//forceLogDebug_printf("curl_multi_perform(0x%08x, 0x%08x)", curlm.GetMPTR(), runningHandles.GetMPTR());
+	//cemuLog_logDebug(LogType::Force, "curl_multi_perform(0x{:08x}, 0x{:08x})", curlm.GetMPTR(), runningHandles.GetMPTR());
 
 	//g_callerQueue = curlm->callerQueue;
 	//g_threadQueue = curlm->threadQueue;
@@ -656,7 +656,7 @@ void export_curl_share_cleanup(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(curlsh, CURLSH_t, 0);
 	uint32 result = ::curl_share_cleanup(curlsh->curlsh);
-	forceLogDebug_printf("curl_share_cleanup(0x%08x) -> 0x%x", curlsh.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_share_cleanup(0x{:08x}) -> 0x{:x}", curlsh.GetMPTR(), result);
 	PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curlsh.GetMPTR());
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -732,11 +732,11 @@ void export_curl_easy_pause(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(curl, CURL_t, 0);
 	ppcDefineParamS32(bitmask, 1);
-	forceLogDebug_printf("curl_easy_pause(0x%08x, 0x%x)", curl.GetMPTR(), bitmask);
+	cemuLog_logDebug(LogType::Force, "curl_easy_pause(0x{:08x}, 0x{:x})", curl.GetMPTR(), bitmask);
 
 	//const CURLcode result = ::curl_easy_pause(curl->curl, bitmask);
 	const uint32 result = SendOrderToWorker(curl.GetPtr(), QueueOrder_Pause, bitmask);
-	forceLogDebug_printf("curl_easy_pause(0x%08x, 0x%x) DONE", curl.GetMPTR(), bitmask);
+	cemuLog_logDebug(LogType::Force, "curl_easy_pause(0x{:08x}, 0x{:x}) DONE", curl.GetMPTR(), bitmask);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -993,7 +993,7 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 		case CURLOPT_URL:
 		{
 			curlDebug_logEasySetOptStr(curl.GetPtr(), "CURLOPT_URL", (const char*)parameter.GetPtr());
-			forceLogDebug_printf("curl_easy_setopt(%d) [%s]", option, parameter.GetPtr());
+			cemuLog_logDebug(LogType::Force, "curl_easy_setopt({}) [{}]", option, parameter.GetPtr());
 			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameter.GetPtr());
 			break;
 		}
@@ -1001,7 +1001,7 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 		case CURLOPT_PROXY:
 		case CURLOPT_USERAGENT:
 		{
-			forceLogDebug_printf("curl_easy_setopt(%d) [%s]", option, parameter.GetPtr());
+			cemuLog_logDebug(LogType::Force, "curl_easy_setopt({}) [{}]", option, parameter.GetPtr());
 			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameter.GetPtr());
 			break;
 		}
@@ -1009,7 +1009,7 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 		case CURLOPT_POSTFIELDS:
 		{
 			curlDebug_logEasySetOptStr(curl.GetPtr(), "CURLOPT_POSTFIELDS", (const char*)parameter.GetPtr());
-			forceLogDebug_printf("curl_easy_setopt(%d) [%s]", option, parameter.GetPtr());
+			cemuLog_logDebug(LogType::Force, "curl_easy_setopt({}) [{}]", option, parameter.GetPtr());
 			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameter.GetPtr());
 			break;
 		}
@@ -1169,7 +1169,7 @@ void export_curl_easy_perform(PPCInterpreter_t* hCPU)
 	curlDebug_notifySubmitRequest(curl.GetPtr());
 	forceLogDebug_printf("curl_easy_perform(0x%08x)", curl.GetMPTR());
 	const uint32 result = SendOrderToWorker(curl.GetPtr(), QueueOrder_Perform);
-	forceLogDebug_printf("curl_easy_perform(0x%08x) -> 0x%x DONE", curl.GetMPTR(), result);
+	cemuLog_logDebug(LogType::Force, "curl_easy_perform(0x{:08x}) -> 0x{:x} DONE", curl.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
 }
 

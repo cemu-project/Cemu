@@ -1943,7 +1943,7 @@ namespace nsysnet
 
 		uint32 nsslHandle = (uint32)g_nsslInternalStates.size() - 1;
 
-		forceLogDebug_printf("NSSLCreateContext(0x%x) -> 0x%x", version, nsslHandle);
+		cemuLog_logDebug(LogType::Force, "NSSLCreateContext(0x{:x}) -> 0x{:x}", version, nsslHandle);
 
 		osLib_returnFromFunction(hCPU, nsslHandle);
 	}
@@ -1952,7 +1952,7 @@ namespace nsysnet
 	{
 		ppcDefineParamU32(nsslHandle, 0);
 		ppcDefineParamU32(clientPKI, 1);
-		forceLogDebug_printf("NSSLSetClientPKI(0x%x, 0x%x)", nsslHandle, clientPKI);
+		cemuLog_logDebug(LogType::Force, "NSSLSetClientPKI(0x{:x}, 0x{:x})", nsslHandle, clientPKI);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -1968,7 +1968,7 @@ namespace nsysnet
 	{
 		ppcDefineParamU32(nsslHandle, 0);
 		ppcDefineParamU32(serverPKI, 1);
-		forceLogDebug_printf("NSSLAddServerPKI(0x%x, 0x%x)", nsslHandle, serverPKI);
+		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKI(0x{:x}, 0x{:x})", nsslHandle, serverPKI);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{

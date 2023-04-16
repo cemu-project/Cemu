@@ -309,7 +309,7 @@ namespace iosu
 						}
 						else
 						{
-							forceLogDebug_printf("ACPGetSaveDataTitleIdList(): Missing meta.xml for save %08x-%08x", titleIdHigh, titleIdLow);
+							cemuLog_logDebug(LogType::Force, "ACPGetSaveDataTitleIdList(): Missing meta.xml for save {:08x}-{:08x}", titleIdHigh, titleIdLow);
 						}
 					}
 					fsc_close(fscDirIteratorTitleIdLow);

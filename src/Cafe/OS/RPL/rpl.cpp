@@ -1503,14 +1503,14 @@ void RPLLoader_BeginCemuhookCRC(RPLModule* rpl)
 			rawSize = decompressedSize;
 			if (rawSize >= 1024*1024*1024)
 			{
-				forceLogDebug_printf("RPLLoader-CRC: Cannot load section %d which is too large (%u bytes)", i, decompressedSize);
+				cemuLog_logDebug(LogType::Force, "RPLLoader-CRC: Cannot load section {} which is too large ({} bytes)", i, decompressedSize);
 				cemu_assert_debug(false);
 				continue;
 			}
 			rawData = (uint8*)malloc(decompressedSize);
 			if (rawData == nullptr)
 			{
-				forceLogDebug_printf("RPLLoader-CRC: Failed to allocate memory for uncompressed section %d (%u bytes)", i, decompressedSize);
+				cemuLog_logDebug(LogType::Force, "RPLLoader-CRC: Failed to allocate memory for uncompressed section {} ({} bytes)", i, decompressedSize);
 				cemu_assert_debug(false);
 				continue;
 			}
@@ -1630,7 +1630,7 @@ RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name)
 		return nullptr;
 	}
 
-	forceLogDebug_printf("Load %s Code-Offset: -0x%x", name, rpl->regionMappingBase_text.GetMPTR() - 0x02000000);
+	cemuLog_logDebug(LogType::Force, "Load {} Code-Offset: -0x{:x}", name, rpl->regionMappingBase_text.GetMPTR() - 0x02000000);
 
 	// sdata (r2/r13)
 	uint32 sdataBaseAddress = rpl->fileInfo.sdataBase1; // base + 0x8000

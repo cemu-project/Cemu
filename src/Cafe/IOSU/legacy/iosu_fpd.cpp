@@ -45,7 +45,7 @@ namespace iosu
 
 		void notificationHandler(NexFriends::NOTIFICATION_TYPE type, uint32 pid)
 		{
-			forceLogDebug_printf("Friends::Notification %02x pid %08x", type, pid);
+			cemuLog_logDebug(LogType::Force, "Friends::Notification {:02x} pid {:08x}", type, pid);
 			if(GetConfig().notification.friends)
 			{
 				std::unique_lock lock(g_friend_notification_mutex);

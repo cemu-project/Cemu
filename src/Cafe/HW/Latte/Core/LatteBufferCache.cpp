@@ -304,7 +304,7 @@ public:
 	{
 		if ((rangeBegin & 0xF))
 		{
-			forceLogDebug_printf("writeStreamout(): RangeBegin not aligned to 16. Begin %08x End %08x", rangeBegin, rangeEnd);
+			cemuLog_logDebug(LogType::Force, "writeStreamout(): RangeBegin not aligned to 16. Begin {:08x} End {:08x}", rangeBegin, rangeEnd);
 			rangeBegin = (rangeBegin + 0xF) & ~0xF;
 			rangeEnd = std::max(rangeBegin, rangeEnd);
 		}

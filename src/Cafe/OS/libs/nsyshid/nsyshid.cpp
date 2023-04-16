@@ -290,7 +290,7 @@ namespace nsyshid
 	{
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
 		ppcDefineParamMPTR(callbackFuncMPTR, 1);
-		forceLogDebug_printf("nsyshid.HIDAddClient(0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDAddClient(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		hidClient->callbackFunc = callbackFuncMPTR;
 		attachClientToList(hidClient);
 		initDeviceList();
@@ -424,7 +424,7 @@ namespace nsyshid
 		{
 			sprintf(debugOutput + i * 3, "%02x ", data[i]);
 		}
-		forceLogDebug_printf("[%s] Data: %s", prefix.c_str(), debugOutput);
+		cemuLog_logDebug(LogType::Force, "[{}] Data: {}", prefix, debugOutput);
 	}
 
 	void doHIDTransferCallback(MPTR callbackFuncMPTR, MPTR callbackParamMPTR, uint32 hidHandle, uint32 errorCode, MPTR buffer, sint32 length)
@@ -598,7 +598,7 @@ namespace nsyshid
 				transferLength = 0;
 			else
 				transferLength = bt - 1;
-			forceLogDebug_printf("HidRead Result received immediately (error 0x%08x) Length 0x%08x", GetLastError(), transferLength);
+			cemuLog_logDebug(LogType::Force, "HidRead Result received immediately (error 0x{:08x}) Length 0x{:08x}", GetLastError(), transferLength);
 		}
 		else
 		{

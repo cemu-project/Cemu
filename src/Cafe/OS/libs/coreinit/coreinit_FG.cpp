@@ -184,7 +184,7 @@ namespace coreinit
 
 	void coreinitExport_OSCopyFromClipboard(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("OSCopyFromClipboard(0x%x,0x%x)\n", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_logDebug(LogType::Force, "OSCopyFromClipboard(0x{:x},0x{:x})", hCPU->gpr[3], hCPU->gpr[4]);
 		ppcDefineParamMEMPTR(buffer, void, 0);
 		ppcDefineParamMEMPTR(size, uint32be, 1);
 		bool r = OSCopyFromClipboard(buffer.GetPtr(), size.GetPtr());

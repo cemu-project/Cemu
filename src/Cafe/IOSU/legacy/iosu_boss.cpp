@@ -239,7 +239,7 @@ namespace iosu
 		//	task->result_buffer.resize(task->result_buffer.size() + writeByteSize);
 		//writeByteSize = min(writeByteSize, task->result_buffer.capacity() - task->processed_length);
 
-		//forceLogDebug_printf("task_write_callback: %d (processed: %d)", writeByteSize, task->processed_length);
+		//cemuLog_logDebug(LogType::Force, "task_write_callback: {} (processed: {})", writeByteSize, task->processed_length);
 		if (writeByteSize > 0)
 		{
 			//memcpy(task->result_buffer.data() + task->processed_length, ptr, writeByteSize);
