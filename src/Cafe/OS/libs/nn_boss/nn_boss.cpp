@@ -220,7 +220,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		TitleId_t* ctor2(TitleId_t* thisptr, uint32 filler, uint64 titleId)
 		{
-			forceLogDebug_printf("nn_boss_TitleId_ctor2(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_TitleId_ctor2(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -234,7 +234,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		TitleId_t* cctor(TitleId_t* thisptr, TitleId_t* titleId)
 		{
-			forceLogDebug_printf("nn_boss_TitleId_cctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_TitleId_cctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -248,7 +248,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		bool operator_ne(TitleId_t* thisptr, TitleId_t* titleId)
 		{
-			forceLogDebug_printf("nn_boss_TitleId_operator_ne(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_TitleId_operator_ne(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			return thisptr->u64 != titleId->u64;
 		}
 	}
@@ -436,7 +436,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		RawUlTaskSetting_t* ctor(RawUlTaskSetting_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_RawUlTaskSetting_ctor(0x%x) TODO", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_RawUlTaskSetting_ctor(0x{:x}) TODO", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawUlTaskSetting_t
@@ -461,7 +461,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		RawDlTaskSetting_t* ctor(RawDlTaskSetting_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_RawDlTaskSetting_ctor(0x%x) TODO", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_RawDlTaskSetting_ctor(0x{:x}) TODO", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawDlTaskSetting_t
@@ -600,7 +600,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		Title_t* ctor(Title_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_Title_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Title_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -617,7 +617,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		DirectoryName_t* ctor(DirectoryName_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_DirectoryName_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_DirectoryName_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -631,7 +631,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		
 		const char* operator_const_char(DirectoryName_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_DirectoryName_operator_const_char(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_DirectoryName_operator_const_char(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			return thisptr->name;
 		}
 	}
@@ -1155,7 +1155,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		bossStorage_t* ctor(bossStorage_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_Storage_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Storage_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawDlTaskSetting_t
@@ -1215,7 +1215,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		AlmightyStorage_t* ctor(AlmightyStorage_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_AlmightyStorage_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_AlmightyStorage_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawDlTaskSetting_t
@@ -1233,7 +1233,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		uint32 Initialize(AlmightyStorage_t* thisptr, TitleId_t* titleId, const char* storageName, uint32 accountId, StorageKind storageKind)
 		{
-			forceLogDebug_printf("nn_boss_AlmightyStorage_Initialize(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_AlmightyStorage_Initialize(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 				return 0xc0203780;
 
