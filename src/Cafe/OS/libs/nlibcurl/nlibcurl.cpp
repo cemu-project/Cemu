@@ -568,7 +568,7 @@ void export_curl_multi_info_read(PPCInterpreter_t* hCPU)
 		else
 			result->curl = nullptr;
 
-		forceLogDebug_printf("curl_multi_info_read(0x%08x, 0x%08x [%d]) -> 0x%08x (0x%x, 0x%08x, 0x%x)", curlm.GetMPTR(), msgsInQueue.GetMPTR(), *msgsInQueue.GetPtr(),
+		cemuLog_logDebug(LogType::Force, "curl_multi_info_read(0x{:08x}, 0x{:08x} [{}]) -> 0x{:08x} (0x{:x}, 0x{:08x}, 0x{:x})", curlm.GetMPTR(), msgsInQueue.GetMPTR(), *msgsInQueue.GetPtr(),			
 			result.GetMPTR(), msg->msg, result->curl.GetMPTR(), msg->data.result);
 		osLib_returnFromFunction(hCPU, result.GetMPTR());
 	}
