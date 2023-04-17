@@ -453,7 +453,7 @@ void nnNfpExport_GetNfpCommonInfo(PPCInterpreter_t* hCPU)
 		assert_dbg();
 	memset(commonInfo, 0x00, sizeof(nfpCommonData_t));
 
-	forceLogDebug_printf("GetNfpCommonInfo(0x%08x)");
+	cemuLog_logDebug(LogType::Force, "GetNfpCommonInfo(0x{:08x})");
 
 	commonInfo->writeCount[0] = nfp_data.amiiboNFCData.writeCounter[0];
 	commonInfo->writeCount[1] = nfp_data.amiiboNFCData.writeCounter[1];

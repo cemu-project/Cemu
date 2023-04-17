@@ -715,7 +715,7 @@ namespace nsyshid
 		if (WriteResult != FALSE)
 		{
 			// sometimes we get the result immediately
-			forceLogDebug_printf("HidWrite Result received immediately (error 0x%08x) Length 0x%08x", GetLastError());
+			cemuLog_logDebug(LogType::Force, "HidWrite Result received immediately (error 0x{:08x}) Length 0x{:08x}", GetLastError());
 		}
 		else
 		{

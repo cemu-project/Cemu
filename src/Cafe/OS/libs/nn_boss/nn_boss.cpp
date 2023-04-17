@@ -419,7 +419,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		Result SetFileName(NbdlTaskSetting_t* thisptr, const char* fileName)
 		{
-			forceLogDebug_printf("nn_boss_NbdlTaskSetting_t_SetFileName(0x%08x, %s)", MEMPTR(thisptr).GetMPTR(), fileName ? fileName : "\"\"");
+			cemuLog_logDebug(LogType::Force, "nn_boss_NbdlTaskSetting_t_SetFileName(0x{:08x}, {})", MEMPTR(thisptr).GetMPTR(), fileName ? fileName : "\"\"");
 
 			if (!fileName || strnlen(fileName, TaskSetting_t::kFileNameLen) == TaskSetting_t::kFileNameLen)
 			{

@@ -488,7 +488,7 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 		}
 		else
 		{
-			forceLogDebug_printf("_emitAttributeDecodeGLSL(): Unsupported fmt {:02x} nfa {} signed {} endian {}\n", attrib->format, attrib->nfa, attrib->isSigned, attrib->endianSwap);
+			cemuLog_logDebug(LogType::Force, "_emitAttributeDecodeGLSL(): Unsupported fmt {:02x} nfa {} signed {} endian {}", attrib->format, attrib->nfa, attrib->isSigned, attrib->endianSwap);
 		}
 	}
 	else

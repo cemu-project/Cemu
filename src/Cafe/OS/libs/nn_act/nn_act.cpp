@@ -644,7 +644,7 @@ void nnActExport_AcquirePrincipalIdByAccountId(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(principalId, uint32be, 0);
 	ppcDefineParamMEMPTR(nnid, char, 1);
 	ppcDefineParamU32(ukn, 2); // some option, can be 0 or 1 ?
-	forceLogDebug_printf("nn_act.AcquirePrincipalIdByAccountId(0x%08x,\"%s\", %d) - last param unknown", principalId.GetMPTR(), nnid.GetPtr(), ukn);
+	cemuLog_logDebug(LogType::Force, "nn_act.AcquirePrincipalIdByAccountId(0x{:08x},\"{}\", {}) - last param unknown", principalId.GetMPTR(), nnid.GetPtr(), ukn);
 	actPrepareRequest2();
 	actRequest->requestCode = IOSU_ARC_ACQUIREPIDBYNNID;
 	strcpy(actRequest->clientId, nnid.GetPtr());
