@@ -633,7 +633,7 @@ namespace iosu
 
 			break;
 		case ContentType::kText:
-			forceLogDebug_printf("task_run returns text: %.*s", it->content_length, it->result_buffer.data());
+			cemuLog_logDebug(LogType::Force, "task_run returns text: {}", it->result_buffer.data());
 			break;
 		}
 
