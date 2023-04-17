@@ -1674,7 +1674,7 @@ void nnBossNsDataExport_read(PPCInterpreter_t* hCPU)
 	ppcDefineParamStr(buffer, 1);
 	ppcDefineParamS32(length, 2);
 
-	forceLogDebug_printf("nsData read (filename %s)", nsData->name);
+	cemuLog_logDebug(LogType::Force, "nsData read (filename {})", nsData->name);
 
 	uint32 r = nnBossNsData_read(nsData, nullptr, buffer, length);
 
@@ -1689,7 +1689,7 @@ void nnBossNsDataExport_readWithSizeOut(PPCInterpreter_t* hCPU)
 	ppcDefineParamS32(length, 3);
 
 	uint32 r = nnBossNsData_read(nsData, sizeOut, buffer, length);
-	forceLogDebug_printf("nsData readWithSizeOut (filename %s length 0x%x) Result: %d Sizeout: %llx", nsData->name, length, r, _swapEndianU64(*sizeOut));
+	cemuLog_logDebug(LogType::Force, "nsData readWithSizeOut (filename {} length 0x{:x}) Result: {} Sizeout: {:x}", nsData->name, length, r, _swapEndianU64(*sizeOut));
 
 	osLib_returnFromFunction(hCPU, r);
 }
@@ -1702,7 +1702,7 @@ void nnBossNsDataExport_seek(PPCInterpreter_t* hCPU)
 
 	uint32 r = nnBossNsData_seek(nsData, seekPos, mode);
 
-	forceLogDebug_printf("nsData seek (filename %s seek 0x%x) Result: %d", nsData->name, (uint32)seekPos, r);
+	cemuLog_logDebug(LogType::Force, "nsData seek (filename {} seek 0x{:x}) Result: {}", nsData->name, (uint32)seekPos, r);
 
 	osLib_returnFromFunction(hCPU, r);
 }

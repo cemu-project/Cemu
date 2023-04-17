@@ -40,13 +40,13 @@ namespace nn
 
 		void export_IsInitialized(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("Called nn_fp.IsInitialized");
+			cemuLog_logDebug(LogType::Force, "Called nn_fp.IsInitialized");
 			osLib_returnFromFunction(hCPU, g_fp.isInitialized ? 1 : 0);
 		}
 
 		void export_Initialize(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("Called nn_fp.Initialize");
+			cemuLog_logDebug(LogType::Force, "Called nn_fp.Initialize");
 
 			Initialize();
 
@@ -55,7 +55,7 @@ namespace nn
 
 		void export_InitializeAdmin(PPCInterpreter_t* hCPU)
 		{
-			forceLogDebug_printf("Called nn_fp.InitializeAdmin");
+			cemuLog_logDebug(LogType::Force, "Called nn_fp.InitializeAdmin");
 			Initialize();
 			g_fp.isAdminMode = true;
 			osLib_returnFromFunction(hCPU, 0);

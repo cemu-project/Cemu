@@ -294,7 +294,7 @@ namespace coreinit
 		ppcDefineParamStructPtr(deviceList, MCPDevice_t, 2);
 		ppcDefineParamU32(deviceListSize, 3);
 
-		forceLogDebug_printf("MCP_DeviceList()");
+		cemuLog_logDebug(LogType::Force, "MCP_DeviceList()");
 
 		sint32 maxDeviceCount = deviceListSize / sizeof(MCPDevice_t);
 
@@ -331,7 +331,7 @@ namespace coreinit
 		ppcDefineParamStructPtr(deviceList, MCPDevice_t, 2);
 		ppcDefineParamU32(deviceListSize, 3);
 
-		forceLogDebug_printf("MCP_FullDeviceList()");
+		cemuLog_logDebug(LogType::Force, "MCP_FullDeviceList()");
 
 		MCP_DeviceListEx(mcpHandle, deviceCount, deviceList, deviceListSize, true);
 

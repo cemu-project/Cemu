@@ -124,7 +124,7 @@ namespace act
 
 void nnActExport_CreateConsoleAccount(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("CreateConsoleAccount(...)");
+	cemuLog_logDebug(LogType::Force, "CreateConsoleAccount(...)");
 	//numAccounts++;
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -350,7 +350,7 @@ void nnActExport_GetMiiEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMiiImageEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetMiiImageEx unimplemented");
+	cemuLog_logDebug(LogType::Force, "GetMiiImageEx unimplemented");
 
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -553,7 +553,7 @@ void nnActExport_Initialize(PPCInterpreter_t* hCPU)
 
 void nnActExport_HasNfsAccount(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("Called nn_act.HasNfsAccount");
+	cemuLog_logDebug(LogType::Force, "Called nn_act.HasNfsAccount");
 	osLib_returnFromFunction(hCPU, 1); // Nfs = Nintendo Friend System? (Splatoon tries to call nn_fp.RegisterAccount if we set this to false)
 }
 
@@ -585,7 +585,7 @@ void nnActExport_AcquireNexServiceToken(PPCInterpreter_t* hCPU)
 
 	memcpy(token, actRequest->resultBinary.binBuffer, sizeof(nexServiceToken_t));
 
-	forceLogDebug_printf("Called nn_act.AcquireNexServiceToken");
+	cemuLog_logDebug(LogType::Force, "Called nn_act.AcquireNexServiceToken");
 	osLib_returnFromFunction(hCPU, getNNReturnCode(resultCode, actRequest));
 }
 
@@ -627,7 +627,7 @@ void nnActExport_AcquireIndependentServiceToken2(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(clientId, const char, 1);
 	ppcDefineParamU32(cacheDurationInSeconds, 2); 
 	uint32 result = AcquireIndependentServiceToken(token, clientId.GetPtr(), cacheDurationInSeconds);
-	forceLogDebug_printf("Called nn_act.AcquireIndependentServiceToken2");
+	cemuLog_logDebug(LogType::Force, "Called nn_act.AcquireIndependentServiceToken2");
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -635,7 +635,7 @@ void nnActExport_AcquireEcServiceToken(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(pEcServiceToken, independentServiceToken_t, 0);
 	uint32 result = AcquireIndependentServiceToken(pEcServiceToken.GetPtr(), "71a6f5d6430ea0183e3917787d717c46", 0);
-	forceLogDebug_printf("Called nn_act.AcquireEcServiceToken");
+	cemuLog_logDebug(LogType::Force, "Called nn_act.AcquireEcServiceToken");
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -662,7 +662,7 @@ void nnActExport_GetUtcOffsetEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32BEPtr(utcOffsetOut, 0);
 	ppcDefineParamU32(uknParam, 1);
 
-	forceLogDebug_printf("Called nn_act.GetUtcOffsetEx");
+	cemuLog_logDebug(LogType::Force, "Called nn_act.GetUtcOffsetEx");
 
 	*utcOffsetOut = 0;
 
