@@ -204,7 +204,7 @@ static_assert(offsetof(swkbdAppearArg_t, cursorIndex) == 0xC4, "appearArg.cursor
 void swkbdExport_SwkbdAppearInputForm(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(appearArg, swkbdAppearArg_t, 0);
-	forceLogDebug_printf("SwkbdAppearInputForm__3RplFRCQ3_2nn5swkbd9AppearArg LR: %08x\n", hCPU->spr.LR);
+	forceLogDebug_printf("SwkbdAppearInputForm__3RplFRCQ3_2nn5swkbd9AppearArg\n");
 	swkbdInternalState->formStringLength = 0;
 	swkbdInternalState->isActive = true;
 	swkbdInternalState->decideButtonWasPressed = false;
@@ -241,7 +241,7 @@ void swkbdExport_SwkbdAppearInputForm(PPCInterpreter_t* hCPU)
 void swkbdExport_SwkbdAppearKeyboard(PPCInterpreter_t* hCPU)
 {
 	// todo: Figure out what the difference between AppearInputForm and AppearKeyboard is?
-	forceLogDebug_printf("SwkbdAppearKeyboard__3RplFRCQ3_2nn5swkbd11KeyboardArg LR: %08x\n", hCPU->spr.LR);
+	forceLogDebug_printf("SwkbdAppearKeyboard__3RplFRCQ3_2nn5swkbd11KeyboardArg\n");
 	SwkbdKeyboardArg_t* keyboardArg = (SwkbdKeyboardArg_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
 	uint32 argPtr = hCPU->gpr[3];
@@ -310,7 +310,7 @@ static_assert(sizeof(SwkbdDrawStringInfo_t) != 0x19, "SwkbdDrawStringInfo_t has 
 
 void swkbdExport_SwkbdGetDrawStringInfo(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SwkbdGetDrawStringInfo(0x%08x) - stub LR: %08x", hCPU->gpr[3], hCPU->spr.LR);
+	forceLogDebug_printf("SwkbdGetDrawStringInfo(0x%08x)", hCPU->gpr[3]);
 	ppcDefineParamStructPtr(drawStringInfo, SwkbdDrawStringInfo_t, 0);
 
 	drawStringInfo->ukn00 = -1;
@@ -326,7 +326,7 @@ void swkbdExport_SwkbdGetDrawStringInfo(PPCInterpreter_t* hCPU)
 
 void swkbdExport_SwkbdInitLearnDic(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SwkbdInitLearnDic(0x%08x) - stub LR: %08x", hCPU->gpr[3], hCPU->spr.LR);
+	forceLogDebug_printf("SwkbdInitLearnDic(0x%08x)", hCPU->gpr[3]);
 	// todo
 
 	// this has to fail (at least once?) or MH3U will not boot

@@ -77,7 +77,7 @@ void nn_acExport_GetStatus(PPCInterpreter_t* hCPU)
 void nn_acExport_GetConnectResult(PPCInterpreter_t* hCPU)
 {
 	// GetConnectStatus__Q2_2nn2acFPQ3_2nn2ac6Status
-	forceLogDebug_printf("nn_ac.GetConnectResult(0x%08x) LR %08x", hCPU->spr.LR, hCPU->gpr[3]);
+	forceLogDebug_printf("nn_ac.GetConnectResult(0x%08x)", hCPU->gpr[3]);
 	ppcDefineParamMEMPTR(result, uint32, 0);
 	const uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 	if (result)

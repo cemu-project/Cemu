@@ -294,7 +294,7 @@ namespace coreinit
 		ppcDefineParamStructPtr(deviceList, MCPDevice_t, 2);
 		ppcDefineParamU32(deviceListSize, 3);
 
-		forceLogDebug_printf("MCP_DeviceList() - placeholder LR %08x", hCPU->spr.LR);
+		forceLogDebug_printf("MCP_DeviceList()");
 
 		sint32 maxDeviceCount = deviceListSize / sizeof(MCPDevice_t);
 
@@ -331,7 +331,7 @@ namespace coreinit
 		ppcDefineParamStructPtr(deviceList, MCPDevice_t, 2);
 		ppcDefineParamU32(deviceListSize, 3);
 
-		forceLogDebug_printf("MCP_FullDeviceList() - placeholder LR %08x", hCPU->spr.LR);
+		forceLogDebug_printf("MCP_FullDeviceList()");
 
 		MCP_DeviceListEx(mcpHandle, deviceCount, deviceList, deviceListSize, true);
 
