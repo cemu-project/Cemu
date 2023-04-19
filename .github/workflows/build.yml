@@ -17,6 +17,11 @@ env:
 jobs:
   build-ubuntu:
     runs-on: ubuntu-20.04
+    env:
+      CACHEDIR: "${{github.workspace}}/dependencies/linux_submodules"
+      CC: clang-12
+      CXX: clang++-12
+      VCPKG: OFF
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v3
@@ -24,11 +29,19 @@ jobs:
         submodules: "recursive"
         fetch-depth: 0
 
+    - name: cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.CACHEDIR }}
+        key: build-${{ hashFiles('dist/linux/dependencies.sh') }}
+        restore-keys: build-${{ hashFiles('dist/linux/dependencies.sh') }}
+        
     - name: "Fetch full history for vcpkg submodule"
       run: |
         cd dependencies/vcpkg
         git fetch --unshallow
         git pull --all
+      if: ${{ env.VCPKG == 'ON' }}
 
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
@@ -51,14 +64,14 @@ jobs:
         echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
 
     - name: "Install system dependencies"
-      run: |
-        sudo apt update -qq
-        sudo apt install -y clang-12 cmake freeglut3-dev libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libudev-dev nasm ninja-build
-
+      run: | 
+        dist/linux/dependencies.sh
+        
     - name: "Bootstrap vcpkg"
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
-
+      if: ${{ env.VCPKG == 'ON' }}
+      
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
       run: |
@@ -72,10 +85,19 @@ jobs:
         mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
         setapikey "${{ secrets.GITHUB_TOKEN }}" \
         -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-        
+      if: ${{ env.VCPKG == 'ON' }}
+              
     - name: "cmake"
       run: |
-        cmake -S . -B build ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DPORTABLE=OFF -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
+        cmake -S . -B build ${{ env.BUILD_FLAGS }} \
+        -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} \
+        -DPORTABLE=OFF \
+        -DENABLE_VCPKG=${{ env.VCPKG }} \
+        -DCMAKE_CXX_FLAGS="-ldl -Wno-unused-command-line-argument" \
+        -DCMAKE_C_COMPILER=/usr/bin/clang-12 \
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 \
+        -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
+        -G Ninja
         
     - name: "Build Cemu"
       run: |
@@ -92,30 +114,13 @@ jobs:
         name: cemu-bin-linux-x64
         path: ./bin/Cemu
 
-  build-appimage:
-    runs-on: ubuntu-20.04
-    needs: build-ubuntu
-    steps:
-    - name: Checkout Upstream Repo
-      uses: actions/checkout@v3
-
-    - uses: actions/download-artifact@v3
-      with:
-        name: cemu-bin-linux-x64
-        path: bin
-
-    - name: "Install system dependencies"
-      run: |
-        sudo apt update -qq
-        sudo apt install -y clang-12 cmake freeglut3-dev libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build appstream
-
     - name: "Build AppImage"
       run: |
         export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
         export DEPLOY_GTK_VERSION=3
         dist/linux/appimage.sh
 
-    - name: Upload artifact
+    - name: Upload AppImage artifact
       uses: actions/upload-artifact@v3
       with:
         name: cemu-appimage-x64
