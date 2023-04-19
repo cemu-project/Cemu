@@ -958,7 +958,7 @@ int progress_callback(void* clientp, double dltotal, double dlnow, double ultota
 	if (msg.order != QueueOrder_CBDone)
 		cemu_assert_suspicious();
 	
-	forceLogDebug_printf("progress_callback(%.02lf, %.02lf, %.02lf, %.02lf) -> %d", dltotal, dlnow, ultotal, ulnow, msg.result);
+	cemuLog_logDebug(LogType::Force, "progress_callback({:.02}, {:.02}, {:.02}, {:.02}) -> {}", dltotal, dlnow, ultotal, ulnow, msg.result);
 	return msg.result;
 }
 
