@@ -77,7 +77,7 @@ namespace snd_core
 
 	void AXQuit()
 	{
-		forceLogDebug_printf("AXQuit called from 0x%08x", ppcInterpreterCurrentInstance->spr.LR);
+		cemuLog_logDebug(LogType::Force, "AXQuit called from 0x{:08x}", ppcInterpreterCurrentInstance->spr.LR);
 		// clean up
 		AXResetCallbacks();
 		AXVoiceList_ResetFreeVoiceList();
