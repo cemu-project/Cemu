@@ -76,21 +76,28 @@ auto ForwardEnum(std::tuple<TArgs...> t)
 }
 
 template<typename T, typename ... TArgs>
-bool cemuLog_log(LogType type, std::basic_string<T> format, TArgs&&... args)
+bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 {
 	if (!cemuLog_isLoggingEnabled(type))
 		return false;
-
-	const auto format_view = fmt::basic_string_view<T>(format);
-	const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(ForwardEnum(args)...));
-	cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
+	if constexpr (sizeof...(TArgs) == 0)
+	{
+		cemuLog_log(type, std::basic_string_view<T>(formatStr.data(), formatStr.size()));
+		return true;
+	}
+	else
+	{
+		const auto format_view = fmt::basic_string_view<T>(formatStr);
+		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(ForwardEnum(args)...));
+		cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
+	}
 	return true;
 }
  
 template<typename T, typename ... TArgs>
 bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 {
-	auto format_str=std::basic_string<T>(format);
+	auto format_str = std::basic_string<T>(format);
 	return cemuLog_log(type, format_str, std::forward<TArgs>(args)...);
 }
 
