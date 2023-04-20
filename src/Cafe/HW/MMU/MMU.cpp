@@ -470,7 +470,7 @@ namespace MMU
 		auto itr = g_mmioHandlerW32->find(address);
 		if (itr == g_mmioHandlerW32->end())
 		{
-			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO write u32 0x{:08x} from unhandeled address 0x{:08x}", value, address);
+			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO write u32 0x{:08x} from unhandled address 0x{:08x}", value, address);
 			return;
 		}
 		return itr->second(address, value);
@@ -482,7 +482,7 @@ namespace MMU
 		auto itr = g_mmioHandlerW16->find(address);
 		if (itr == g_mmioHandlerW16->end())
 		{
-			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO write u16 0x{:04x} from unhandeled address 0x{:08x}", (uint32)value, address);
+			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO write u16 0x{:04x} from unhandled address 0x{:08x}", (uint32)value, address);
 			return;
 		}
 		return itr->second(address, value);
@@ -497,7 +497,7 @@ namespace MMU
 		auto itr = g_mmioHandlerR32->find(address);
 		if(itr == g_mmioHandlerR32->end())
 		{
-			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO read u32 from unhandeled address 0x{:08x}", address);
+			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO read u32 from unhandled address 0x{:08x}", address);
 			return 0;
 		}
 		return itr->second(address);
@@ -509,7 +509,7 @@ namespace MMU
 		auto itr = g_mmioHandlerR16->find(address);
 		if (itr == g_mmioHandlerR16->end())
 		{
-			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO read u16 from unhandeled address 0x{:08x}", address);
+			//cemuLog_logDebug(LogType::Force, "[MMU] MMIO read u16 from unhandled address 0x{:08x}", address);
 			return 0;
 		}
 		return itr->second(address);
