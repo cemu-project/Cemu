@@ -417,7 +417,7 @@ uint64 _SYSGetSystemApplicationTitleId(sint32 index)
 void sysappExport__SYSGetSystemApplicationTitleId(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(systemApplicationId, 0);
-	cemuLog_logDebug(LogType::Force, "_SYSGetSystemApplicationTitleId(0x{})", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "_SYSGetSystemApplicationTitleId(0x{:x})", hCPU->gpr[3]);
 
 	uint64 titleId = _SYSGetSystemApplicationTitleId(systemApplicationId);
 	osLib_returnFromFunction64(hCPU, titleId);
