@@ -17,7 +17,7 @@
 #endif
 
 //GameMode support
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX && ENABLE_FERAL_GAMEMODE
 #include "gamemode_client.h"
 #endif
 
@@ -191,7 +191,7 @@ bool CemuApp::OnInit()
 #endif
 
     //GameMode support
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX && ENABLE_FERAL_GAMEMODE
     if(GetConfig().feral_gamemode)
     {
         // attempt to start gamemode
