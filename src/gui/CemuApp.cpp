@@ -16,6 +16,11 @@
 #include "gui/helpers/wxWayland.h"
 #endif
 
+//GameMode support
+#if BOOST_OS_LINUX
+#include "gamemode_client.h"
+#endif
+
 #include <wx/image.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
@@ -185,6 +190,18 @@ bool CemuApp::OnInit()
 		wxWlSetAppId(m_mainFrame, "info.cemu.Cemu");
 #endif
 
+    //GameMode support
+#if BOOST_OS_LINUX
+    if(GetConfig().feral_gamemode)
+    {
+        // attempt to start gamemode
+        if(gamemode_request_start() < 0)
+        {
+            // GameMode failed to start
+            cemuLog_log(LogType::Force, "Could not start GameMode");
+        }
+    }
+#endif
 	// show warning on macOS about state of builds
 #if BOOST_OS_MACOS
 	if (!GetConfig().did_show_macos_disclaimer)

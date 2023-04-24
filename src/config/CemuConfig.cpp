@@ -53,6 +53,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	language = parser.get<sint32>("language", wxLANGUAGE_DEFAULT);
 	use_discord_presence = parser.get("use_discord_presence", true);
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
+    feral_gamemode = parser.get("feral_gamemode", false);
 	check_update = parser.get("check_update", check_update);
 	save_screenshot = parser.get("save_screenshot", save_screenshot);
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
@@ -357,6 +358,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<sint32>("language", language);
 	config.set<bool>("use_discord_presence", use_discord_presence);
 	config.set<bool>("fullscreen_menubar", fullscreen_menubar);
+    config.set<bool>("feral_gamemode", feral_gamemode);
 	config.set<bool>("check_update", check_update);
 	config.set<bool>("save_screenshot", save_screenshot);
 	config.set<bool>("vk_warning", did_show_vulkan_warning);
