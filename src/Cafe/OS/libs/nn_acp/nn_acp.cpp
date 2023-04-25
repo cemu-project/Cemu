@@ -350,7 +350,7 @@ namespace acp
 	void export_ACPCheckTitleNotReferAccountLaunch(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU64(titleId, 0);
-		forceLogDebug_printf("ACPCheckTitleNotReferAccountLaunch(): Placeholder");
+		cemuLog_logDebug(LogType::Force, "ACPCheckTitleNotReferAccountLaunch(): Placeholder");
 
 		osLib_returnFromFunction(hCPU, 0);
 	}
@@ -359,7 +359,7 @@ namespace acp
 	{
 		ppcDefineParamStructPtr(acpMetaData, acpMetaData_t, 0);
 		
-		forceLogDebug_printf("ACPGetLaunchMetaData(): Placeholder");
+		cemuLog_logDebug(LogType::Force, "ACPGetLaunchMetaData(): Placeholder");
 
 		acpPrepareRequest();
 		acpRequest->requestCode = IOSU_ACP_GET_TITLE_META_DATA;
@@ -375,7 +375,7 @@ namespace acp
 	{
 		ppcDefineParamStructPtr(acpMetaXml, acpMetaXml_t, 0);
 
-		forceLogDebug_printf("ACPGetLaunchMetaXml(): Placeholder");
+		cemuLog_logDebug(LogType::Force, "ACPGetLaunchMetaXml(): Placeholder");
 
 		acpPrepareRequest();
 		acpRequest->requestCode = IOSU_ACP_GET_TITLE_META_XML;

@@ -307,7 +307,7 @@ void GameUpdateWindow::OnClose(wxCloseEvent& event)
 			}
 			catch (const std::exception& ex)
 			{
-				forceLogDebug_printf("can't restore update backup: %s",ex.what());
+				cemuLog_logDebug(LogType::Force, "can't restore update backup: {}",ex.what());
 			}
 		}
 		else
@@ -320,7 +320,7 @@ void GameUpdateWindow::OnClose(wxCloseEvent& event)
 			}
 			catch (const std::exception& ex)
 			{
-				forceLogDebug_printf("can't delete update backup: %s",ex.what());
+				cemuLog_logDebug(LogType::Force, "can't delete update backup: {}",ex.what());
 			}
 		}
 		

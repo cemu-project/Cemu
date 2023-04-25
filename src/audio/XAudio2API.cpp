@@ -276,7 +276,7 @@ bool XAudio2API::FeedBlock(sint16* data)
 
 		if (m_blocks_queued >= kBlockCount)
 		{
-			forceLogDebug_printf("dropped xaudio2 block since too many buffers are queued");
+			cemuLog_logDebug(LogType::Force, "dropped xaudio2 block since too many buffers are queued");
 			return false;
 		}
 	}

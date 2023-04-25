@@ -1967,7 +1967,7 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 	if (nextCmdBufferIndex == m_commandBufferSyncIndex)
 	{
 		// force wait for the next command buffer
-		forceLogDebug_printf("Vulkan: Waiting for available command buffer...");
+		cemuLog_logDebug(LogType::Force, "Vulkan: Waiting for available command buffer...");
 		WaitForNextFinishedCommandBuffer();
 	}
 	m_commandBufferIndex = nextCmdBufferIndex;
@@ -2085,7 +2085,7 @@ void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 					file.close();
 
 					cache_size = size;
-					forceLogDebug_printf("pipeline cache saved");
+					cemuLog_logDebug(LogType::Force, "pipeline cache saved");
 				}
 				else
 				{
@@ -2123,7 +2123,7 @@ void VulkanRenderer::CreatePipelineCache()
 			file.read((char*)cacheData.data(), cacheData.size());
 			file.close();
 
-			forceLogDebug_printf("pipeline cache loaded");
+			cemuLog_logDebug(LogType::Force, "pipeline cache loaded");
 		}
 	}
 
@@ -3168,7 +3168,7 @@ void VulkanRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceI
 			auto imageObj = vkTexture->GetImageObj();
 			imageObj->flagForCurrentCommandBuffer();
 
-			forceLogDebug_printf("Compressed texture (%d/%d fmt %04x) unsupported clear", vkTexture->width, vkTexture->height, (uint32)vkTexture->format);
+			cemuLog_logDebug(LogType::Force, "Compressed texture ({}/{} fmt {:04x}) unsupported clear", vkTexture->width, vkTexture->height, (uint32)vkTexture->format);
 
 			VkImageSubresourceLayers subresourceRange{};
 			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -3418,7 +3418,7 @@ void VulkanRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 
 		if (mipWidth < 4 || mipHeight < 4)
 		{
-			forceLogDebug_printf("vkCmdCopyImage - blocked copy for unsupported uncompressed->compressed copy with dst smaller than 4x4");
+			cemuLog_logDebug(LogType::Force, "vkCmdCopyImage - blocked copy for unsupported uncompressed->compressed copy with dst smaller than 4x4");
 			return;
 		}
 

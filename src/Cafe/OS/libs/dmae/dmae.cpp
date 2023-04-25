@@ -88,12 +88,12 @@ void dmaeExport_DMAESemaphore(PPCInterpreter_t* hCPU)
 	}
 	else if (actionType == 0) // wait
 	{
-		forceLogDebug_printf("DMAESemaphore: Unsupported wait operation");
+		cemuLog_logDebug(LogType::Force, "DMAESemaphore: Unsupported wait operation");
 		semaphore->fetch_sub(1);
 	}
 	else
 	{
-		forceLogDebug_printf("DMAESemaphore unknown action type %d", actionType);
+		cemuLog_logDebug(LogType::Force, "DMAESemaphore unknown action type {}", actionType);
 		cemu_assert_debug(false);
 	}
 

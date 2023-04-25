@@ -249,7 +249,7 @@ namespace coreinit
 		if (existingAlarmItr != g_activeAlarms.end())
 		{
 			// delete existing alarm
-			forceLogDebug_printf("__OSInitiateAlarm() called on alarm which was already active");
+			cemuLog_logDebug(LogType::Force, "__OSInitiateAlarm() called on alarm which was already active");
 			OSHostAlarmDestroy(existingAlarmItr->second);
 			g_activeAlarms.erase(existingAlarmItr);
 		}

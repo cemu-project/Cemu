@@ -346,7 +346,7 @@ namespace coreinit
 		if (thread->state != OSThread_t::THREAD_STATE::STATE_NONE && thread->state != OSThread_t::THREAD_STATE::STATE_MORIBUND)
 		{
 			// unsure about this case
-			forceLogDebug_printf("OSRunThread called on thread which cannot be ran");
+			cemuLog_logDebug(LogType::Force, "OSRunThread called on thread which cannot be ran");
 			__OSUnlockScheduler();
 			return false;
 		}
@@ -536,7 +536,7 @@ namespace coreinit
 		else if (thread->state != OSThread_t::THREAD_STATE::STATE_MORIBUND)
 		{
 			// cannot join detached and active threads
-			forceLogDebug_printf("Cannot join detached active thread");
+			cemuLog_logDebug(LogType::Force, "Cannot join detached active thread");
 			__OSUnlockScheduler();
 			return false;
 		}

@@ -528,7 +528,7 @@ void PipelineCompiler::InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_T
 		inputAssembly.primitiveRestartEnable = false;
 		break;
 	default:
-		forceLogDebug_printf("Vulkan-Unsupported: Graphics pipeline with primitive mode %d created", primitiveMode);
+		cemuLog_logDebug(LogType::Force, "Vulkan-Unsupported: Graphics pipeline with primitive mode {} created", primitiveMode);
 		cemu_assert_debug(false);
 	}
 }

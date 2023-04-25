@@ -122,7 +122,7 @@ bool CubebAPI::FeedBlock(sint16* data)
 	std::unique_lock lock(m_mutex);
 	if (m_buffer.capacity() <= m_buffer.size() + m_bytesPerBlock)
 	{
-		forceLogDebug_printf("dropped direct sound block since too many buffers are queued");
+		cemuLog_logDebug(LogType::Force, "dropped direct sound block since too many buffers are queued");
 		return false;
 	}
 

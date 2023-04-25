@@ -92,7 +92,7 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 			if (id >= kButtonAxisStart)
 			{
 				if (controller->get_axis_value(id) < 0.33f) {
-					forceLogDebug_printf("skipping since value too low %f", controller->get_axis_value(id));
+					cemuLog_logDebug(LogType::Force, "skipping since value too low {}", controller->get_axis_value(id));
 					s_was_idle = true;
 					return;
 				}

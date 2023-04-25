@@ -500,7 +500,7 @@ void PPCRecompiler_init()
 	codeRegionEnd = (codeRegionEnd + PPC_REC_ALLOC_BLOCK_SIZE - 1) & ~(PPC_REC_ALLOC_BLOCK_SIZE - 1);
 
 	uint32 codeRegionSize = codeRegionEnd - PPC_REC_CODE_AREA_START;
-	forceLogDebug_printf("Allocating recompiler tables for range 0x%08x-0x%08x", PPC_REC_CODE_AREA_START, codeRegionEnd);
+	cemuLog_logDebug(LogType::Force, "Allocating recompiler tables for range 0x{:08x}-0x{:08x}", PPC_REC_CODE_AREA_START, codeRegionEnd);
 
 	for (uint32 i = 0; i < codeRegionSize; i += PPC_REC_ALLOC_BLOCK_SIZE)
 	{

@@ -543,7 +543,7 @@ void wxDownloadManagerList::UpdateTitleStatusDepr(TitleEntryData_t* obj, const w
 		}
 	}
 
-	forceLogDebug_printf("cant update title status of %llx", data.titleId);
+	cemuLog_logDebug(LogType::Force, "cant update title status of {:x}", data.titleId);
 }
 
 int wxDownloadManagerList::AddImage(const wxImage& image) const

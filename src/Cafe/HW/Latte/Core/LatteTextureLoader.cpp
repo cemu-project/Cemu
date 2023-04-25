@@ -818,7 +818,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		}
 		else
 		{
-			forceLogDebug_printf("Linear texture readback unsupported for format 0x%04x", (uint32)textureData->format);
+			cemuLog_logDebug(LogType::Force, "Linear texture readback unsupported for format 0x{:04x}", (uint32)textureData->format);
 			debugBreakpoint();
 		}
 		return;
@@ -856,7 +856,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 	}	
 	else
 	{
-		forceLogDebug_printf("Texture readback unsupported format %04x for tileMode 0x%02x", (uint32)textureData->format, textureData->tileMode);
+		cemuLog_logDebug(LogType::Force, "Texture readback unsupported format {:04x} for tileMode 0x{:02x}", (uint32)textureData->format, textureData->tileMode);
 	}
 
 }

@@ -8,7 +8,7 @@ namespace nsyskbd
 		static bool loggedError = false;
 		if (loggedError == false)
 		{
-			forceLogDebug_printf("KBDGetChannelStatus() placeholder");
+			cemuLog_logDebug(LogType::Force, "KBDGetChannelStatus() placeholder");
 			loggedError = true;
 		}
 		*status = 1; // disconnected

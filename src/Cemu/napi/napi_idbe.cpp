@@ -97,7 +97,7 @@ namespace NAPI
 			titleId == 0x000500301001520A)
 		{
 			// friend list has no icon, just fail immediately
-			forceLogDebug_printf("Requesting IDBE for Friend List. Return none instead");
+			cemuLog_logDebug(LogType::Force, "Requesting IDBE for Friend List. Return none instead");
 			return std::nullopt;
 		}
 

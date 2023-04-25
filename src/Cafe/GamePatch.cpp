@@ -350,7 +350,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(ffl_floatArrayEndianSwap, NULL, sizeof(ffl_floatArrayEndianSwap));
 	if (hleAddr)
 	{
-		forceLogDebug_printf("HLE: Hook FFL float array endian swap function at 0x%08x", hleAddr);
+		cemuLog_logDebug(LogType::Force, "HLE: Hook FFL float array endian swap function at 0x{:08x}", hleAddr);
 		sint32 functionIndex = hleIndex_h000000003;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
 		memory_write<uint32>(hleAddr, opcode);
@@ -360,7 +360,7 @@ void GamePatch_scan()
 	//hleAddr = hle_locate(xcx_enterCriticalSectionSignature, xcx_enterCriticalSectionMask, sizeof(xcx_enterCriticalSectionSignature));
 	//if (hleAddr)
 	//{
-	//	forceLogDebug_printf("HLE: Hook XCX enterCriticalSection function at 0x%08x", hleAddr);
+	//	cemuLog_logDebug(LogType::Force, "HLE: Hook XCX enterCriticalSection function at 0x{:08x}", hleAddr);
 	//	hleIndex_h000000004 = osLib_getFunctionIndex("hle", "h000000004");
 	//	sint32 functionIndex = hleIndex_h000000004;
 	//	uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
@@ -387,7 +387,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(smash4_softlockFixV0Signature, smash4_softlockFixV0Mask, sizeof(smash4_softlockFixV0Signature));
 	if (hleAddr)
 	{
-		forceLogDebug_printf("Smash softlock fix: 0x%08x", hleAddr);
+		cemuLog_logDebug(LogType::Force, "Smash softlock fix: 0x{:08x}", hleAddr);
 		memory_writeU32(hleAddr+0x20, memory_readU32(hleAddr+0x1C));
 	}
 
@@ -396,7 +396,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(pmcs_yellowPaintStarCrashV0Signature, nullptr, sizeof(pmcs_yellowPaintStarCrashV0Signature));
 	if (hleAddr)
 	{
-		forceLogDebug_printf("Color Splash crash fix: 0x%08x", hleAddr);
+		cemuLog_logDebug(LogType::Force, "Color Splash crash fix: 0x{:08x}", hleAddr);
 		uint32 funcAddr = PPCInterpreter_makeCallableExportDepr(hleExport_pmcs_yellowPaintStarCrashWorkaround);
 		// set absolute jump
 		uint32 opc = 0x48000000;

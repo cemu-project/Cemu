@@ -317,7 +317,7 @@ namespace iosu
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 			{
-				forceLogDebug_printf("__FSACloseFile(): Invalid handle (0x%08x)", fileHandle);
+				cemuLog_logDebug(LogType::Force, "__FSACloseFile(): Invalid handle (0x{:08x})", fileHandle);
 				return (FSStatus)FS_RESULT::ERR_PLACEHOLDER;
 			}
 			// unregister file
@@ -587,7 +587,7 @@ namespace iosu
 			FSCVirtualFile* fscFile = sDirHandleTable.GetByHandle((sint32)cmd->cmdReadDir.dirHandle);
 			if (!fscFile)
 			{
-				forceLogDebug_printf("CloseDir: Invalid handle (0x%08x)", (sint32)cmd->cmdReadDir.dirHandle);
+				cemuLog_logDebug(LogType::Force, "CloseDir: Invalid handle (0x{:08x})", (sint32)cmd->cmdReadDir.dirHandle);
 				return (FSStatus)FS_RESULT::ERR_PLACEHOLDER;
 			}
 			sDirHandleTable.ReleaseHandle(cmd->cmdReadDir.dirHandle);

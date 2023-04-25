@@ -5,7 +5,7 @@ namespace nn::cmpt
 {
 	uint32 CMPTAcctGetPcConf(uint32be* pcConf)
 	{
-		forceLogDebug_printf("CMPTAcctGetPcConf() - todo");
+		cemuLog_logDebug(LogType::Force, "CMPTAcctGetPcConf() - todo");
 		pcConf[0] = 0;
 		pcConf[1] = 0;
 		pcConf[2] = 0;

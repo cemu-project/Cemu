@@ -10,7 +10,7 @@ namespace nn
 			// parameters:
 			// r3	pointer to status integer (out)
 			// r4	daemon name (integer)
-			forceLogDebug_printf("nn_ndm.GetDaemonStatus(...) - hack\n");
+			cemuLog_logDebug(LogType::Force, "nn_ndm.GetDaemonStatus(...) - hack");
 			// status codes:
 			// 1 - running? Download Manager (scope.rpx) expects this to return 1 (or zero). Otherwise it will display downloads as disabled
 			memory_writeU32(hCPU->gpr[3], 1);

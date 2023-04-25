@@ -236,7 +236,7 @@ WUSOCKET nsysnet_createVirtualSocket(sint32 family, sint32 type, sint32 protocol
 	sint32 s = _getFreeSocketHandle();
 	if (s == 0)
 	{
-		forceLogDebug_printf("Ran out of socket handles");
+		cemuLog_logDebug(LogType::Force, "Ran out of socket handles");
 		cemu_assert(false);
 	}
 	virtualSocket_t* vs = (virtualSocket_t*)malloc(sizeof(virtualSocket_t));
@@ -262,13 +262,13 @@ WUSOCKET nsysnet_createVirtualSocket(sint32 family, sint32 type, sint32 protocol
 
 WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket)
 {
-	forceLogDebug_printf("nsysnet_createVirtualSocketFromExistingSocket - incomplete");
+	cemuLog_logDebug(LogType::Force, "nsysnet_createVirtualSocketFromExistingSocket - incomplete");
 
 
 	sint32 s = _getFreeSocketHandle();
 	if (s == 0)
 	{
-		forceLogDebug_printf("Ran out of socket handles");
+		cemuLog_logDebug(LogType::Force, "Ran out of socket handles");
 		cemu_assert(false);
 	}
 	virtualSocket_t* vs = (virtualSocket_t*)malloc(sizeof(virtualSocket_t));
@@ -358,7 +358,7 @@ void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 	// check family param
 	if (family != WU_AF_INET)
 	{
-		forceLogDebug_printf("socket(): Unsupported family");
+		cemuLog_logDebug(LogType::Force, "socket(): Unsupported family");
 		// todo - error code
 		osLib_returnFromFunction(hCPU, -1);
 		return;
@@ -366,7 +366,7 @@ void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 	// check type param
 	if (type != WU_SOCK_STREAM && type != WU_SOCK_DGRAM)
 	{
-		forceLogDebug_printf("socket(): Unsupported family");
+		cemuLog_logDebug(LogType::Force, "socket(): Unsupported family");
 		// todo - error code
 		osLib_returnFromFunction(hCPU, -1);
 		return;
@@ -374,7 +374,7 @@ void nsysnetExport_socket(PPCInterpreter_t* hCPU)
 
 	if (protocol != WU_IPPROTO_TCP && protocol != WU_IPPROTO_UDP && protocol != WU_IPPROTO_IP)
 	{
-		forceLogDebug_printf("socket(): Unsupported protocol");
+		cemuLog_logDebug(LogType::Force, "socket(): Unsupported protocol");
 		// todo - error code
 		osLib_returnFromFunction(hCPU, -1);
 		return;
@@ -543,7 +543,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else
 			{
-				forceLogDebug_printf("setsockopt(): Unsupported optname 0x%08x", optname);
+				cemuLog_logDebug(LogType::Force, "setsockopt(): Unsupported optname 0x{:08x}", optname);
 			}
 		}
 		else if (level == WU_IPPROTO_TCP)
@@ -570,7 +570,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else if( optname == 0x4 )
 			{
-				forceLogDebug_printf("setsockopt with unsupported opname 4 for IPPROTO_IP");
+				cemuLog_logDebug(LogType::Force, "setsockopt with unsupported opname 4 for IPPROTO_IP");
 			}
 			else
 				assert_dbg();
@@ -1138,7 +1138,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 		r = select(hostnfds + 1, readfds ? &_readfds : NULL, writefds ? &_writefds : NULL, exceptfds ? &_exceptfds : NULL, &tv);
 		if (r < 0)
 		{
-			forceLogDebug_printf("select() failed");
+			cemuLog_logDebug(LogType::Force, "select() failed");
 			// timeout
 			_translateError(r, GETLASTERR);
 			//_setSockError(WU_SO_SUCCESS);
@@ -1566,7 +1566,7 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 				wsaError = GETLASTERR;
 				if (r < 0)
 					cemu_assert_debug(false);
-				forceLogDebug_printf("recvfrom returned %d bytes", r);
+				cemuLog_logDebug(LogType::Force, "recvfrom returned {} bytes", r);
 				*fromLen = fromLenHost;
 				fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
 				memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
@@ -1943,7 +1943,7 @@ namespace nsysnet
 
 		uint32 nsslHandle = (uint32)g_nsslInternalStates.size() - 1;
 
-		forceLogDebug_printf("NSSLCreateContext(0x%x) -> 0x%x", version, nsslHandle);
+		cemuLog_logDebug(LogType::Force, "NSSLCreateContext(0x{:x}) -> 0x{:x}", version, nsslHandle);
 
 		osLib_returnFromFunction(hCPU, nsslHandle);
 	}
@@ -1952,7 +1952,7 @@ namespace nsysnet
 	{
 		ppcDefineParamU32(nsslHandle, 0);
 		ppcDefineParamU32(clientPKI, 1);
-		forceLogDebug_printf("NSSLSetClientPKI(0x%x, 0x%x)", nsslHandle, clientPKI);
+		cemuLog_logDebug(LogType::Force, "NSSLSetClientPKI(0x{:x}, 0x{:x})", nsslHandle, clientPKI);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -1968,7 +1968,7 @@ namespace nsysnet
 	{
 		ppcDefineParamU32(nsslHandle, 0);
 		ppcDefineParamU32(serverPKI, 1);
-		forceLogDebug_printf("NSSLAddServerPKI(0x%x, 0x%x)", nsslHandle, serverPKI);
+		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKI(0x{:x}, 0x{:x})", nsslHandle, serverPKI);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -1987,7 +1987,7 @@ namespace nsysnet
 		ppcDefineParamS32(certLen, 2);
 		ppcDefineParamS32(certType, 3);
 
-		forceLogDebug_printf("NSSLAddServerPKIExternal(0x%x, 0x%08x, 0x%x, %d)", nsslHandle, certData.GetMPTR(), certLen, certType);
+		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKIExternal(0x{:x}, 0x{:08x}, 0x{:x}, {})", nsslHandle, certData.GetMPTR(), certLen, certType);
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
 			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
@@ -2005,7 +2005,7 @@ namespace nsysnet
 		ppcDefineParamU32(groupMask, 1);
 		ppcDefineParamMEMPTR(validCountOut, sint32, 2);
 		ppcDefineParamMEMPTR(invalidCountOut, sint32, 3);
-		forceLogDebug_printf("NSSLAddServerPKIGroups(0x%x, 0x%x, 0x%08x, 0x%08x)", nsslHandle, groupMask, validCountOut.GetMPTR(), invalidCountOut.GetMPTR());
+		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKIGroups(0x{:x}, 0x{:x}, 0x{:08x}, 0x{:08x})", nsslHandle, groupMask, validCountOut.GetMPTR(), invalidCountOut.GetMPTR());
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -2039,7 +2039,7 @@ namespace nsysnet
 	void export_NSSLDestroyContext(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(nsslHandle, 0);
-		forceLogDebug_printf("NSSLDestroyContext(0x%x)", nsslHandle);
+		cemuLog_logDebug(LogType::Force, "NSSLDestroyContext(0x{:x})", nsslHandle);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{

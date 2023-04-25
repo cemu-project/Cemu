@@ -638,7 +638,7 @@ LatteCMDPtr LatteCP_itDrawIndexAuto(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 	{
 		uint32 vsProgramCode = ((LatteGPUState.contextRegister[mmSQ_PGM_START_ES] & 0xFFFFFF) << 8);
 		uint32 vsProgramSize = LatteGPUState.contextRegister[mmSQ_PGM_START_ES + 1] << 3;
-		forceLogDebug_printf("Compute %d %08x %08x (unsupported)\n", count, vsProgramCode, vsProgramSize);
+		cemuLog_logDebug(LogType::Force, "Compute {} {:08x} {:08x} (unsupported)", count, vsProgramCode, vsProgramSize);
 	}
 	else
 	{

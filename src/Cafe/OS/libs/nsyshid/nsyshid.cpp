@@ -290,7 +290,7 @@ namespace nsyshid
 	{
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
 		ppcDefineParamMPTR(callbackFuncMPTR, 1);
-		forceLogDebug_printf("nsyshid.HIDAddClient(0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDAddClient(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		hidClient->callbackFunc = callbackFuncMPTR;
 		attachClientToList(hidClient);
 		initDeviceList();
@@ -309,7 +309,7 @@ namespace nsyshid
 	void export_HIDDelClient(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
-		forceLogDebug_printf("nsyshid.HIDDelClient(0x%08x)", hCPU->gpr[3]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDDelClient(0x{:08x})", hCPU->gpr[3]);
 	
 		// todo
 		// do detach callbacks
@@ -424,7 +424,7 @@ namespace nsyshid
 		{
 			sprintf(debugOutput + i * 3, "%02x ", data[i]);
 		}
-		forceLogDebug_printf("[%s] Data: %s", prefix.c_str(), debugOutput);
+		cemuLog_logDebug(LogType::Force, "[{}] Data: {}", prefix, debugOutput);
 	}
 
 	void doHIDTransferCallback(MPTR callbackFuncMPTR, MPTR callbackParamMPTR, uint32 hidHandle, uint32 errorCode, MPTR buffer, sint32 length)
@@ -440,7 +440,7 @@ namespace nsyshid
 		ppcDefineParamU32(duration, 3); // r6
 		ppcDefineParamMPTR(callbackFuncMPTR, 4); // r7
 		ppcDefineParamMPTR(callbackParamMPTR, 5); // r8
-		forceLogDebug_printf("nsyshid.HIDSetIdle(...)");
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetIdle(...)");
 
 		// todo
 		if (callbackFuncMPTR)
@@ -461,7 +461,7 @@ namespace nsyshid
 		ppcDefineParamU32(protocol, 2); // r5
 		ppcDefineParamMPTR(callbackFuncMPTR, 3); // r6
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
-		forceLogDebug_printf("nsyshid.HIDSetProtocol(...)");
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetProtocol(...)");
 		
 		if (callbackFuncMPTR)
 		{
@@ -501,7 +501,7 @@ namespace nsyshid
 	// handler for synchronous HIDSetReport transfers
 	sint32 _hidSetReportSync(HIDDeviceInfo_t* hidDeviceInfo, uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength, OSThread_t* osThread)
 	{
-		//forceLogDebug_printf("_hidSetReportSync begin");
+		//cemuLog_logDebug(LogType::Force, "_hidSetReportSync begin");
 		_debugPrintHex("_hidSetReportSync Begin", reportData, length);
 		sint32 retryCount = 0;
 		sint32 returnCode = 0;
@@ -519,7 +519,7 @@ namespace nsyshid
 				assert_dbg();
 		}
 		free(reportData);
-		forceLogDebug_printf("_hidSetReportSync end. returnCode: %d", returnCode);
+		cemuLog_logDebug(LogType::Force, "_hidSetReportSync end. returnCode: {}", returnCode);
 		coreinit_resumeThread(osThread, 1000);
 		return returnCode;
 	}
@@ -533,7 +533,7 @@ namespace nsyshid
 		ppcDefineParamU32(dataLength, 4); // r7
 		ppcDefineParamMPTR(callbackFuncMPTR, 5); // r8
 		ppcDefineParamMPTR(callbackParamMPTR, 6); // r9
-		forceLogDebug_printf("nsyshid.HIDSetReport(%d,0x%02x,0x%02x,...)", hidHandle, reportRelatedUkn, reportId);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetReport({},0x{:02x},0x{:02x},...)", hidHandle, reportRelatedUkn, reportId);
 
 		_debugPrintHex("HIDSetReport", data, dataLength);
 
@@ -589,7 +589,7 @@ namespace nsyshid
 
 		_debugPrintHex("HID_READ_BEFORE", data, maxLength);
 
-		forceLogDebug_printf("HidRead Begin (Length 0x%08x)", maxLength);
+		cemuLog_logDebug(LogType::Force, "HidRead Begin (Length 0x{:08x})", maxLength);
 		BOOL readResult = ReadFile(hidDeviceInfo->hFile, tempBuffer, maxLength + 1, &bt, &ovlp);
 		if (readResult != FALSE)
 		{
@@ -598,17 +598,17 @@ namespace nsyshid
 				transferLength = 0;
 			else
 				transferLength = bt - 1;
-			forceLogDebug_printf("HidRead Result received immediately (error 0x%08x) Length 0x%08x", GetLastError(), transferLength);
+			cemuLog_logDebug(LogType::Force, "HidRead Result received immediately (error 0x{:08x}) Length 0x{:08x}", GetLastError(), transferLength);
 		}
 		else
 		{
 			// wait for result
-			forceLogDebug_printf("HidRead WaitForResult (error 0x%08x)", GetLastError());
+			cemuLog_logDebug(LogType::Force, "HidRead WaitForResult (error 0x{:08x})", GetLastError());
 			// async hid read is never supposed to return unless there is an response? Lego Dimensions stops HIDRead calls as soon as one of them fails with a non-zero error (which includes time out)
 			DWORD r = WaitForSingleObject(ovlp.hEvent, 2000*100);
 			if (r == WAIT_TIMEOUT)
 			{
-				forceLogDebug_printf("HidRead internal timeout (error 0x%08x)", GetLastError());
+				cemuLog_logDebug(LogType::Force, "HidRead internal timeout (error 0x{:08x})", GetLastError());
 				// return -108 in case of timeout
 				free(tempBuffer);
 				CloseHandle(ovlp.hEvent);
@@ -616,13 +616,13 @@ namespace nsyshid
 			}
 
 
-			forceLogDebug_printf("HidRead WaitHalfComplete");
+			cemuLog_logDebug(LogType::Force, "HidRead WaitHalfComplete");
 			GetOverlappedResult(hidDeviceInfo->hFile, &ovlp, &bt, false);
 			if (bt == 0)
 				transferLength = 0;
 			else
 				transferLength = bt - 1;
-			forceLogDebug_printf("HidRead WaitComplete Length: 0x%08x", transferLength);
+			cemuLog_logDebug(LogType::Force, "HidRead WaitComplete Length: 0x{:08x}", transferLength);
 		}
 		sint32 returnCode = 0;
 		if (bt != 0)
@@ -635,7 +635,7 @@ namespace nsyshid
 			{
 				sprintf(debugOutput + i * 3, "%02x ", tempBuffer[1 + i]);
 			}
-			forceLogDebug_printf("HIDRead data: %s", debugOutput);
+			cemuLog_logDebug(LogType::Force, "HIDRead data: {}", debugOutput);
 
 			returnCode = transferLength;
 		}
@@ -672,7 +672,7 @@ namespace nsyshid
 		ppcDefineParamU32(maxLength, 2); // r5
 		ppcDefineParamMPTR(callbackFuncMPTR, 3); // r6
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
-		forceLogDebug_printf("nsyshid.HIDRead(0x%x,0x%08x,0x%08x,0x%08x,0x%08x) LR %08x", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->spr.LR);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDRead(0x{:x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
@@ -710,22 +710,22 @@ namespace nsyshid
 		memcpy(tempBuffer + 1, data, maxLength);
 		tempBuffer[0] = 0; // report byte?
 
-		forceLogDebug_printf("HidWrite Begin (Length 0x%08x)", maxLength);
+		cemuLog_logDebug(LogType::Force, "HidWrite Begin (Length 0x{:08x})", maxLength);
 		BOOL WriteResult = WriteFile(hidDeviceInfo->hFile, tempBuffer, maxLength + 1, &bt, &ovlp);
 		if (WriteResult != FALSE)
 		{
 			// sometimes we get the result immediately
-			forceLogDebug_printf("HidWrite Result received immediately (error 0x%08x) Length 0x%08x", GetLastError());
+			cemuLog_logDebug(LogType::Force, "HidWrite Result received immediately (error 0x{:08x}) Length 0x{:08x}", GetLastError());
 		}
 		else
 		{
 			// wait for result
-			forceLogDebug_printf("HidWrite WaitForResult (error 0x%08x)", GetLastError());
+			cemuLog_logDebug(LogType::Force, "HidWrite WaitForResult (error 0x{:08x})", GetLastError());
 			// todo - check for error type
 			DWORD r = WaitForSingleObject(ovlp.hEvent, 2000);
 			if (r == WAIT_TIMEOUT)
 			{
-				forceLogDebug_printf("HidWrite internal timeout");
+				cemuLog_logDebug(LogType::Force, "HidWrite internal timeout");
 				// return -108 in case of timeout
 				free(tempBuffer);
 				CloseHandle(ovlp.hEvent);
@@ -733,9 +733,9 @@ namespace nsyshid
 			}
 
 
-			forceLogDebug_printf("HidWrite WaitHalfComplete");
+			cemuLog_logDebug(LogType::Force, "HidWrite WaitHalfComplete");
 			GetOverlappedResult(hidDeviceInfo->hFile, &ovlp, &bt, false);
-			forceLogDebug_printf("HidWrite WaitComplete");
+			cemuLog_logDebug(LogType::Force, "HidWrite WaitComplete");
 		}
 		sint32 returnCode = 0;
 		if (bt != 0)
@@ -771,7 +771,7 @@ namespace nsyshid
 		ppcDefineParamU32(maxLength, 2); // r5
 		ppcDefineParamMPTR(callbackFuncMPTR, 3); // r6
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
-		forceLogDebug_printf("nsyshid.HIDWrite(0x%x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDWrite(0x{:x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 
 		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
@@ -804,7 +804,7 @@ namespace nsyshid
 		ppcDefineParamU32(errorCode, 0);
 		ppcDefineParamTypePtr(ukn0, uint32be, 1);
 		ppcDefineParamTypePtr(ukn1, uint32be, 2);
-		forceLogDebug_printf("nsyshid.HIDDecodeError(0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDDecodeError(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 
 		// todo
 		*ukn0 = 0x3FF;

@@ -5,7 +5,7 @@ namespace nlibnss
 {
 	int NSSExportDeviceCertChain(uint8* uknPtr1, uint32be* uknLength1, uint8* uknPtr2, uint32be* uknLength2, uint32 uknR7, uint32 uknR8)
 	{
-		forceLogDebug_printf("NSSExportDeviceCertChain called but not implemented");
+		cemuLog_logDebug(LogType::Force, "NSSExportDeviceCertChain called but not implemented");
 		cemu_assert_debug(false);
 
 		// uknR3 = pointer (can be null, in which case only length is written)

@@ -407,6 +407,6 @@ VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR
 	createInfo.presentMode = ChoosePresentMode(swapchainSupport.presentModes);
 	createInfo.clipped = VK_TRUE;
 
-	forceLogDebug_printf("vulkan presentation mode: %d", createInfo.presentMode);
+	cemuLog_logDebug(LogType::Force, "vulkan presentation mode: {}", createInfo.presentMode);
 	return createInfo;
 }

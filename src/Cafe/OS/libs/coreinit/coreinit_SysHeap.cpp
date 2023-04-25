@@ -19,7 +19,7 @@ namespace coreinit
 		ppcDefineParamU32(size, 0);
 		ppcDefineParamS32(alignment, 1);
 		MEMPTR<void> mem = OSAllocFromSystem(size, alignment);
-		forceLogDebug_printf("OSAllocFromSystem(0x%x, %d) -> 0x%08x", size, alignment, mem.GetMPTR());
+		cemuLog_logDebug(LogType::Force, "OSAllocFromSystem(0x{:x}, {}) -> 0x{:08x}", size, alignment, mem.GetMPTR());
 		osLib_returnFromFunction(hCPU, mem.GetMPTR());
 	}
 

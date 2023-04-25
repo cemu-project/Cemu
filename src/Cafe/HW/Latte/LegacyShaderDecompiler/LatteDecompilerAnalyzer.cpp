@@ -310,7 +310,7 @@ void LatteDecompiler_analyzeTEXClause(LatteDecompilerShaderContext* shaderContex
 		{
 			if (texInstruction.textureFetch.textureIndex < 0 || texInstruction.textureFetch.textureIndex >= LATTE_NUM_MAX_TEX_UNITS)
 			{
-				forceLogDebug_printf("Shader %llx has out of bounds texture access (texture %d)", shaderContext->shader->baseHash, (sint32)texInstruction.textureFetch.textureIndex);
+				cemuLog_logDebug(LogType::Force, "Shader {:16x} has out of bounds texture access (texture {})", shaderContext->shader->baseHash, (sint32)texInstruction.textureFetch.textureIndex);
 				continue;
 			}
 			if( texInstruction.textureFetch.samplerIndex < 0 || texInstruction.textureFetch.samplerIndex >= 0x12 )
@@ -984,7 +984,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		cemu_assert_debug(false);
 	}
 	if(list_subroutineAddrs.empty() == false)
-		forceLogDebug_printf("Todo - analyze shader subroutine CF stack");
+		cemuLog_logDebug(LogType::Force, "Todo - analyze shader subroutine CF stack");
 	// TF mode
 	if (shaderContext->options->useTFViaSSBO && shaderContext->output->streamoutBufferWriteMask.any())
 	{

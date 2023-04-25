@@ -365,7 +365,7 @@ namespace snd_core
 				// get last voice in chain
 				while (voiceItr->next)
 					voiceItr = voiceItr->next.GetPtr();
-				forceLogDebug_printf("Dropped voice %d", (uint32)voiceItr->index);
+				cemuLog_logDebug(LogType::Force, "Dropped voice {}", (uint32)voiceItr->index);
 				// drop voice
 				if (voiceItr->playbackState != 0)
 				{

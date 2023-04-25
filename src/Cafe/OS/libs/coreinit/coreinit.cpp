@@ -257,7 +257,7 @@ namespace coreinit
 
 	void coreinitExport_ENVGetEnvironmentVariable(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("ENVGetEnvironmentVariable(\"%s\",0x08x,0x%x)\n", (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4], hCPU->gpr[5]);
+		cemuLog_logDebug(LogType::Force, "ENVGetEnvironmentVariable(\"{}\",0x08x,0x{:x})", (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4], hCPU->gpr[5]);
 		char* envKeyStr = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 		char* outputString = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
 		sint32 outputStringMaxLen = (sint32)hCPU->gpr[5];
@@ -284,13 +284,13 @@ namespace coreinit
 
 	uint32 OSGetBootPMFlags()
 	{
-		forceLogDebug_printf("OSGetBootPMFlags() - placeholder");
+		cemuLog_logDebug(LogType::Force, "OSGetBootPMFlags() - placeholder");
 		return 0;
 	}
 
 	uint32 OSGetSystemMode()
 	{
-		forceLogDebug_printf("OSGetSystemMode() - placeholder");
+		cemuLog_logDebug(LogType::Force, "OSGetSystemMode() - placeholder");
 		// if this returns 2, barista softlocks shortly after boot
 		return 0;
 	}
