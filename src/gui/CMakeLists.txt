@@ -161,6 +161,10 @@ if(ENABLE_CUBEB)
 	target_link_libraries(CemuGui PRIVATE cubeb::cubeb)
 endif()
 
+if(ENABLE_FERAL_GAMEMODE)
+	target_link_libraries(CemuGui PRIVATE gamemode)
+endif()
+
 if (ENABLE_WXWIDGETS)
 	# PUBLIC because wx/app.h is included in CemuApp.h
 	target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
