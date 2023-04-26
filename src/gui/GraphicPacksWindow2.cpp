@@ -390,7 +390,7 @@ void GraphicPacksWindow2::LoadPresetSelections(const GraphicPackPtr& gp)
 		}
 
 		wxString categoryWxStr = wxHelper::FromUtf8(category);
-		wxString label(category.empty() ? _("Active preset") : wxString(categoryWxStr));
+		wxString label(category.empty() ? _("Active preset") : categoryWxStr);
 		auto* box = new wxStaticBox(m_preset_sizer->GetContainingWindow(), wxID_ANY, label);
 		auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
