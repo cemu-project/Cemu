@@ -182,7 +182,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
             		// Enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
             		m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
-            		m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed. A restart of Cemu is required to apply this setting."));
+            		m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
             		second_row->Add(m_feral_gamemode, 0, botflag, 5);
 #endif
 
