@@ -165,9 +165,32 @@ namespace iosu
 				g_fpd.myPresence.isOnline = 1;
 				g_fpd.myPresence.gameKey.titleId = CafeSystem::GetForegroundTitleId();
 				g_fpd.myPresence.gameKey.ukn = CafeSystem::GetForegroundTitleVersion();
+
+				// Resolve potential domain to IP address
+				struct addrinfo hints = {0}, *addrs;
+				hints.ai_family = AF_UNSPEC;
+				hints.ai_socktype = SOCK_DGRAM;
+				hints.ai_protocol = IPPROTO_UDP;
+
+				const int status = getaddrinfo(nexTokenResult.nexToken.host, NULL, &hints, &addrs);
+				if (status != 0) {
+					cemuLog_log(LogType::Force, "IOSU_FPD: Failed to resolve hostname {}, {}", nexTokenResult.nexToken.host, gai_strerror(status));
+					return;
+				}
+
+				if (addrs->ai_family != AF_INET) {
+					cemuLog_log(LogType::Force, "IOSU_FPD: Resolved IP for hostname {} not IPv4", nexTokenResult.nexToken.host);
+					return;
+				}
+
+				char addrstr[15];
+				void *ptr = &((struct sockaddr_in*)addrs->ai_addr)->sin_addr;
+				inet_ntop(addrs->ai_family, ptr, addrstr, 15);
+				cemuLog_log(LogType::Force, "IOSU_FPD: Resolved IP for hostname {}, ", nexTokenResult.nexToken.host, addrstr);
+
 				// start session
 				uint32 hostIp;
-				inet_pton(AF_INET, nexTokenResult.nexToken.host, &hostIp);
+				inet_pton(AF_INET, addrstr, &hostIp);
 				g_fpd.nexFriendSession = new NexFriends(hostIp, nexTokenResult.nexToken.port, "ridfebb9", myPid, nexTokenResult.nexToken.nexPassword, nexTokenResult.nexToken.token, accountId, (uint8*)&miiData, (wchar_t*)screenName, (uint8)countryCode, g_fpd.myPresence);
 				g_fpd.nexFriendSession->setNotificationHandler(notificationHandler);
 				cemuLog_log(LogType::Force, "IOSU_FPD: Created friend server session");
