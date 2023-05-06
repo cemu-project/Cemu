@@ -168,9 +168,7 @@ namespace iosu
 
 				// Resolve potential domain to IP address
 				struct addrinfo hints = {0}, *addrs;
-				hints.ai_family = AF_UNSPEC;
-				hints.ai_socktype = SOCK_DGRAM;
-				hints.ai_protocol = IPPROTO_UDP;
+				hints.ai_family = AF_INET;
 
 				const int status = getaddrinfo(nexTokenResult.nexToken.host, NULL, &hints, &addrs);
 				if (status != 0) {
@@ -178,15 +176,9 @@ namespace iosu
 					return;
 				}
 
-				if (addrs->ai_family != AF_INET) {
-					cemuLog_log(LogType::Force, "IOSU_FPD: Resolved IP for hostname {} not IPv4", nexTokenResult.nexToken.host);
-					return;
-				}
-
-				char addrstr[15];
-				void *ptr = &((struct sockaddr_in*)addrs->ai_addr)->sin_addr;
-				inet_ntop(addrs->ai_family, ptr, addrstr, 15);
-				cemuLog_log(LogType::Force, "IOSU_FPD: Resolved IP for hostname {}, ", nexTokenResult.nexToken.host, addrstr);
+				char addrstr[NI_MAXHOST];
+				getnameinfo(addrs->ai_addr, addrs->ai_addrlen, addrstr, sizeof addrstr, NULL, 0, NI_NUMERICHOST);
+				cemuLog_log(LogType::Force, "IOSU_FPD: Resolved IP for hostname {}, {}", nexTokenResult.nexToken.host, addrstr);
 
 				// start session
 				uint32 hostIp;
