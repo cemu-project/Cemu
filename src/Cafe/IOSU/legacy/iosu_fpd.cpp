@@ -181,8 +181,8 @@ namespace iosu
 				cemuLog_log(LogType::Force, "IOSU_FPD: Resolved IP for hostname {}, {}", nexTokenResult.nexToken.host, addrstr);
 
 				// start session
-				uint32 hostIp;
-				inet_pton(AF_INET, addrstr, &hostIp);
+				const uint32_t hostIp = ((struct sockaddr_in*)addrs->ai_addr)->sin_addr.s_addr;
+				freeaddrinfo(addrs);
 				g_fpd.nexFriendSession = new NexFriends(hostIp, nexTokenResult.nexToken.port, "ridfebb9", myPid, nexTokenResult.nexToken.nexPassword, nexTokenResult.nexToken.token, accountId, (uint8*)&miiData, (wchar_t*)screenName, (uint8)countryCode, g_fpd.myPresence);
 				g_fpd.nexFriendSession->setNotificationHandler(notificationHandler);
 				cemuLog_log(LogType::Force, "IOSU_FPD: Created friend server session");
