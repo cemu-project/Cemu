@@ -172,7 +172,7 @@ namespace iosu
 
 				const int status = getaddrinfo(nexTokenResult.nexToken.host, NULL, &hints, &addrs);
 				if (status != 0) {
-#ifdef _WIN32
+#if BOOST_OS_WINDOWS
 					cemuLog_log(LogType::Force, "IOSU_FPD: Failed to resolve hostname {}, {}", nexTokenResult.nexToken.host, gai_strerrorA(status));
 #else
 					cemuLog_log(LogType::Force, "IOSU_FPD: Failed to resolve hostname {}, {}", nexTokenResult.nexToken.host, gai_strerror(status));
