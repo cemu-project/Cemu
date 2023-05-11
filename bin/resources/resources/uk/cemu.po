@@ -1,0 +1,1949 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-03-19 12:22+0000\n"
+"PO-Revision-Date: 2023-03-19 16:28+0200\n"
+"Last-Translator: \n"
+"Language-Team: Ukrainian (Ukraine)\n"
+"Language: uk-UA\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100 != 11) ? 0 : ((n%10 >= 2 "
+"&& n%10 <= 4 && (n%100 < 12 || n%100 > 14)) ? 1 : (n%10 == 0 || (n%10 >= 5 "
+"&& n%10 <=9) || (n%100 >= 11 && n%100 <= 14)) ? 2 : 3);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Loco-Source-Locale: uk_UA\n"
+"X-Generator: PO File Editor https://pofile.net/free-po-editor\n"
+"X-Poedit-Basepath: .\n"
+"X-Loco-Parser: loco_parse_po\n"
+
+msgid "&About"
+msgstr "&Про програму"
+
+msgid "&Active account"
+msgstr "&Активний аккаунт"
+
+msgid "&Add new entry"
+msgstr "&Додати новий запис"
+
+msgid "&Audio API"
+msgstr "&API звуку"
+
+msgid "&Auto"
+msgstr "&Авто"
+
+msgid "&Breakpoints"
+msgstr "&Точки зупинки"
+
+msgid "&CPU"
+msgstr "&CPU"
+
+msgid "&Check for updates"
+msgstr "&Перевірити оновлення"
+
+msgid "&China"
+msgstr "&Китай"
+
+msgid "&Chinese"
+msgstr "&Китайська"
+
+msgid "&Console language"
+msgstr "&Мова консолі"
+
+msgid "&Console region"
+msgstr "&Регіон консолі"
+
+msgid "&Copy"
+msgstr "&Копіювати"
+
+msgid "&Coreinit File-Access"
+msgstr "&Доступ до файлів Coreinit"
+
+msgid "&Coreinit Memory API"
+msgstr "&API пам'яті Coreinit"
+
+msgid "&Coreinit Thread-Synchronization API"
+msgstr "&API синхронізації потоків Coreinit"
+
+msgid "&DLC directory"
+msgstr "&Директорія DLC"
+
+msgid "&Debug"
+msgstr "&Налагодження"
+
+msgid "&Decrement"
+msgstr "&Поменшити"
+
+msgid "&Dual-core recompiler (fast, unstable!)"
+msgstr "&Двоядерний рекомпілятор (швидкий, нестабільний)"
+
+msgid "&Dump"
+msgstr "&Дамп"
+
+msgid "&Dump WUD filesystem"
+msgstr "&Дамп файлової системи WUD"
+
+msgid "&Dump current RAM"
+msgstr "&Дамп RAM"
+
+msgid "&Dutch"
+msgstr "&Голландська"
+
+msgid "&Edit game profile"
+msgstr "&Змінити ігровий профіль"
+
+msgid "&Edit graphic packs"
+msgstr "&Змінити графічні пакети"
+
+msgid "&Edit name"
+msgstr "&Змінити назву"
+
+msgid "&English"
+msgstr "&Англійська"
+
+msgid "&Europe"
+msgstr "&Європа"
+
+msgid "&Exit"
+msgstr "&Вихід"
+
+msgid "&Load..."
+msgstr "&Загрузити..."
+
+msgid "&Favorite"
+msgstr "&Вибране"
+
+msgid "&File"
+msgstr "&Файл"
+
+msgid "&French"
+msgstr "&Французька"
+
+msgid "&Fullscreen"
+msgstr "&Повноекранний режим"
+
+msgid "&GPU buffer cache accuracy"
+msgstr "&Точність кешу буфера GPU"
+
+msgid "&GX2 API"
+msgstr "&API GX2"
+
+msgid "&Game directory"
+msgstr "&Директорія гри"
+
+msgid "&General settings"
+msgstr "&Загальні налаштування"
+
+msgid "&German"
+msgstr "&Німецька"
+
+msgid "&Goto Disasm"
+msgstr "&Перейти до дизасемблювання"
+
+msgid "&Graphic packs"
+msgstr "&Графічні пакети"
+
+msgid "&H264 API"
+msgstr "&API H264"
+
+msgid "&Help"
+msgstr "&Допомога"
+
+msgid "&High (slow)"
+msgstr "&Висока (повільна)"
+
+msgid "&Increment"
+msgstr "&Підвищити"
+
+msgid "&Input API"
+msgstr "&API Введення"
+
+msgid "&Input settings"
+msgstr "&Налаштування управління"
+
+msgid "&Install game update or DLC"
+msgstr "&Встановити оновлення гри або DLC"
+
+msgid "&Install game title, update or DLC..."
+msgstr "&Встановити оновлення гри, або DLC..."
+
+msgid "&Italian"
+msgstr "&Італійська"
+
+msgid "&Japan"
+msgstr "&Японія"
+
+msgid "&Japanese"
+msgstr "&Японська"
+
+msgid "&Korea"
+msgstr "&Корея"
+
+msgid "&Korean"
+msgstr "&Корейська"
+
+msgid "&Load"
+msgstr "&Завантажити"
+
+msgid "&Log PPC context for API"
+msgstr "&Логувати контекст PPC для API"
+
+msgid "&Logging"
+msgstr "&Логування"
+
+msgid "&Low (fast)"
+msgstr "&Низька (швидка)"
+
+msgid "&Medium"
+msgstr "&Середня"
+
+msgid "&Memory Dump"
+msgstr "&Дамп пам'яті"
+
+msgid "&Memory searcher"
+msgstr "&Пошук пам'яті"
+
+msgid "&Mode"
+msgstr "&Режим"
+
+msgid "&NFC"
+msgstr "&NFC"
+
+msgid "&NFP API"
+msgstr "&API NFP"
+
+msgid "&Open logging window"
+msgstr "&Відкрити вікно логування"
+
+msgid "&Open Cemu folder"
+msgstr "&Відкрити вікно логування"
+
+msgid "&OpenGL debug output"
+msgstr "&Відкрити папку з Cemu"
+
+msgid "&Options"
+msgstr "&Опції"
+
+msgid "&Pin to main window"
+msgstr "&Закріпити на головному вікні"
+
+msgid "&Portuguese"
+msgstr "&Портуґальська"
+
+msgid "&Refresh game list"
+msgstr "&Оновити список ігор"
+
+msgid "&Registers"
+msgstr "&Регістри"
+
+msgid "&Remove entry"
+msgstr "&Видалити запис"
+
+msgid "&Render upside-down"
+msgstr "&Рендер вгору ногами"
+
+msgid "&Russian"
+msgstr "&російська"
+
+msgid "&Save API"
+msgstr "&API Збереження"
+
+msgid "&Save directory"
+msgstr "&Директорія збереження"
+
+msgid "&Scan NFC tag from file"
+msgstr "&Сканувати NFC-тег з файлу"
+
+msgid "&Separate GamePad view"
+msgstr "&Окреме вікно Геймпада"
+
+msgid "&Shaders"
+msgstr "&Шейдери"
+
+msgid "&Show frame profiler"
+msgstr "&Показати профайлер кадрів"
+
+msgid "&Single-core interpreter"
+msgstr "&Одноядерний інтерпретатор"
+
+msgid "&Single-core recompiler (fast)"
+msgstr "&Одноядерний рекомпілятор (швидкий)"
+
+msgid "&Socket API"
+msgstr "&API Сокетів"
+
+msgid "&Spanish"
+msgstr "&Іспанська"
+
+msgid "&Start"
+msgstr "&Старт"
+
+msgid "&Taiwan"
+msgstr "&Тайвань"
+
+msgid "&Taiwanese"
+msgstr "&Тайванський"
+
+msgid "&Texture cache warnings"
+msgstr "&Попередження кешу текстур"
+
+msgid "&Textures"
+msgstr "&Текстури"
+
+msgid "&Tools"
+msgstr "&Інструменти"
+
+msgid "&Triple-core recompiler (fast, unstable!)"
+msgstr "&Триядерний рекомпілятор (швидкий, нестабільний)"
+
+msgid "&USA"
+msgstr "&США"
+
+msgid "&Unsupported API calls"
+msgstr "&Непідтримувані виклики API"
+
+msgid "&Update directory"
+msgstr "&Каталог оновлення"
+
+msgid "&View PPC debugger"
+msgstr "&Показати відлагоджувач PPC"
+
+msgid "&View PPC threads"
+msgstr "&Показати потоки IPC"
+
+msgid "&View audio debugger"
+msgstr "&Показати відлагоджувач звуку"
+
+msgid "&View texture cache info"
+msgstr "&Показати інформацію про кеш текстур"
+
+msgid "&Vulkan validation layer (slow)"
+msgstr "&Шар валідації Vulkan (повільний)"
+
+msgid "&Window"
+msgstr "&Вікно"
+
+msgid "&Zero"
+msgstr "&Нуль"
+
+msgid "&nlibcurl HTTP/HTTPS requests"
+msgstr "&HTTP/HTTPS запити nlibcurl"
+
+msgid "API"
+msgstr "API"
+
+msgid "Account"
+msgstr "Обліковий запис"
+
+msgid "Account information"
+msgstr "Інформація про обліковий запис"
+
+msgid "Account name may not be empty!"
+msgstr "Ім'я облікового запису не може бути порожнім!"
+
+msgid "Account settings"
+msgstr "Налаштування облікового запису"
+
+msgid "Active account"
+msgstr "Активний обліковий запис"
+
+msgid "Active preset"
+msgstr "Активні пресети"
+
+msgid "Add"
+msgstr "Додати"
+
+msgid ""
+"Add the root directory of your game(s). It will scan all directories in it "
+"for games"
+msgstr ""
+"Додайте кореневий каталог вашої гри (ігор). Він просканує всі підкаталоги "
+"для пошуку ігор"
+
+msgid "Additional settings"
+msgstr "Додаткові налаштування"
+
+msgid "Address"
+msgstr "Адреса"
+
+msgid ""
+"Adds a game path to scan for games displayed in the game list\n"
+"If you have unpacked games, make sure to select the root folder of a game"
+msgstr ""
+"Додає шлях для пошуку ігор, що відображаються у списку. \n"
+"Якщо ви розпакували ігри, переконайтеся, що вибрано кореневу папку гри."
+
+msgid "Affinity"
+msgstr "Співпраця"
+
+msgid ""
+"All files from the currently running game will be dumped to "
+"/dump/<gamefolder>. This process can take a few minutes."
+msgstr ""
+"Всі файли поточної гри будуть збережені в /dump/<gamefolder>. Цей процес "
+"може зайняти кілька хвилин."
+
+msgid "Applying update..."
+msgstr "Застосування оновлення ..."
+
+msgid "Are you sure you want to delete the account {} with id {:x}?"
+msgstr "Ви впевнені, що хочете видалити обліковий запис {} з id {:x}?"
+
+msgid "Audio"
+msgstr "Звук"
+
+msgid "Auto refresh"
+msgstr "Автоматичне оновлення"
+
+msgid "Automatically check for updates"
+msgstr "Автоматична перевірка на наявність оновлень"
+
+msgid "Automatically checks for new cemu versions on startup"
+msgstr "Автоматична перевірка нових версій cemu під час запуску"
+
+msgid "Bicubic"
+msgstr "Бікубічний"
+
+msgid "Bilinear"
+msgstr "Білінійний"
+
+msgid "Birthday"
+msgstr "Дата народження"
+
+msgid "Boost priority (-1)"
+msgstr "Підвищити пріоритет (-1)"
+
+msgid "Boost priority (-5)"
+msgstr "Підвищити пріоритет (-5)"
+
+msgid "Bottom center"
+msgstr "По центру знизу"
+
+msgid "Bottom left"
+msgstr "Зліва знизу"
+
+msgid "Bottom right"
+msgstr "Справа знизу"
+
+msgid "Break (F5)"
+msgstr "Перервати (F5)"
+
+msgid "Button Threshold"
+msgstr "Поріг спрацювання кнопки"
+
+msgid "CPU"
+msgstr "CPU"
+
+msgid "CPU per core usage"
+msgstr "Використання CPU на ядро"
+
+msgid "CPU usage"
+msgstr "Використання CPU"
+
+msgid "CPU usage of Cemu in percent"
+msgstr "Використання CPU Cemu в відсотках"
+
+msgid "Calibrate"
+msgstr "Калібрувати"
+
+msgid "Can't delete the only account!"
+msgstr "Не можна видалити єдиний обліковий запис!"
+
+msgid "Can't find the \"longname_en\" in the given \"meta.xml\" file."
+msgstr "Не знайдено \"longname_en\" в даному файлі \"meta.xml\"."
+
+msgid "Can't find the \"product_code\" in the given \"meta.xml\" file."
+msgstr "Не знайдено \"product_code\" в даному файлі \"meta.xml\"."
+
+msgid "Can't find the \"title_id\" in the given \"meta.xml\" file."
+msgstr "Не знайдено \"title_id\" в даному файлі \"meta.xml\"."
+
+msgid "Can't find the \"title_version\" in the given \"meta.xml\" file."
+msgstr "Не знайдено \"title_version\" у даному файлі \"meta.xml\"."
+
+msgid "Can't open the file."
+msgstr "Не вдалося відкрити файл."
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "Cannot open file"
+msgstr "Не можливо відкрити файл"
+
+msgid "Cemu RAM usage in MB"
+msgstr "Використання оперативної пам'яті Cemu в МБ"
+
+msgid ""
+"Cemu detected DLC installed at multiple different locations.\n"
+"Do you want to remove the DLC installed at outdated locations?"
+msgstr ""
+"Cemu виявила DLC, встановлені в різних місцях.\n"
+"Хочете видалити DLC, встановлені в застарілих місцях?"
+
+msgid ""
+"Cemu detected a DLC installed at a wrong or outdated location:\n"
+"{}\n"
+"\n"
+"Do you want to move it to the correct location:\n"
+"{}"
+msgstr ""
+"Cemu виявила DLC, встановлені в неправильному або застарілому місці:\n"
+"{}\n"
+"\n"
+"Хочете перемістити його в потрібне місце:\n"
+"{}"
+
+msgid "Cemu must be restarted to apply the selected UI language."
+msgstr "Необхідно перезапустити Cemu, щоб застосувати вибрану мову інтерфейсу."
+
+msgid "Changelog"
+msgstr "Журнал змін"
+
+msgid ""
+"Changes the interface language of Cemu\n"
+"Available languages are stored in the translation directory\n"
+"A restart will be required after changing the language"
+msgstr ""
+"Змінює мову інтерфейсу Cemu\n"
+"Доступні мови зберігаються в каталозі перекладів\n"
+"Після зміни мови необхідно перезапустити програму"
+
+msgid "Channels"
+msgstr "Канали"
+
+msgid "Checking version..."
+msgstr "Перевірка версії..."
+
+msgid "Classic"
+msgstr "Класичний"
+
+msgid "Clear"
+msgstr "Очистити"
+
+msgid "Clear all currently set input settings"
+msgstr "Очистити всі поточні налаштування вводу"
+
+msgid "Comment"
+msgstr "Коментар"
+
+msgid "Confirmation"
+msgstr "Підтвердження"
+
+msgid "Control"
+msgstr "Керування"
+
+msgid "Controller"
+msgstr "Контролер"
+
+msgid "Controller API:"
+msgstr "API контролера:"
+
+msgid "Controller profiles"
+msgstr "Профілі контролера"
+
+msgid "Controller:"
+msgstr "Контролер:"
+
+msgid ""
+"Controls the amount of buffered audio data\n"
+"Higher values will create a delay in audio playback, but may avoid audio "
+"problems when emulation is too slow"
+msgstr ""
+"Керує кількістю буферизованих аудіоданих\n"
+"Вищі значення створять затримку в відтворенні звуку, але можуть допомогти "
+"уникнути проблем зі звуком, коли емуляція занадто повільна"
+
+msgid "Controls the notification position while playing"
+msgstr "Визначає позицію повідомлень під час гри"
+
+msgid "Controls the output aspect ratio when it doesn't match the ratio of the game"
+msgstr ""
+"Керує вихідним співвідношенням сторін, коли воно не відповідає "
+"співвідношенню сторін гри"
+
+msgid "Controls the overlay which displays technical information while playing"
+msgstr "Керує оверлеєм, який відображає технічну інформацію під час відтворення"
+
+msgid "Controls the vsync state"
+msgstr "Керує станом вертикальної синхронізації"
+
+msgid ""
+"Couldn't create a required cemu directory or file!\n"
+"\n"
+"Error: {0}"
+msgstr ""
+"Не вдалося створити необхідний каталог або файл Cemu!\n"
+"\n"
+"Помилка: {0}"
+
+msgid ""
+"Couldn't create a required mlc01 subfolder or file!\n"
+"\n"
+"Error: {0}\n"
+"Target path:\n"
+"{1}"
+msgstr ""
+"Не вдалося створити необхідний підкаталог або файл в mlc01!\n"
+"\n"
+"Помилка: {0}\n"
+"Цільовий шлях:\n"
+"{1}"
+
+msgid "Couldn't download the update!"
+msgstr "Не вдалося завантажити оновлення!"
+
+msgid "Couldn't load the selected profile!"
+msgstr "Не вдалося завантажити вибраний профіль!"
+
+msgid "Couldn't save settings for controller {0}"
+msgstr "Не вдалося зберегти налаштування контролера {0}"
+
+msgid "Couldn't save the profile!"
+msgstr "Не вдалося зберегти профіль!"
+
+msgid "Country"
+msgstr "Країна"
+
+msgid "Create"
+msgstr "Створити"
+
+msgid "Create memory breakpoint (read)"
+msgstr "Створити точку зупинки пам'яті (читання)"
+
+msgid "Create memory breakpoint (write)"
+msgstr "Створити точку зупинки пам'яті (запис)"
+
+msgid "Create new account"
+msgstr "Створити новий обліковий запис"
+
+msgid "Create new cache [recommended]"
+msgstr "Створити новий кеш [рекомендовано]"
+
+msgid "Current file:"
+msgstr "Поточний файл:"
+
+msgid "D-pad"
+msgstr "Крестопокажчик"
+
+msgid "DLC"
+msgstr "DLC"
+
+msgid "Deadzone"
+msgstr "Мертва зона"
+
+msgid "Decrease priority (+1)"
+msgstr "Зменшити пріоритет (+1)"
+
+msgid "Decrease priority (+5)"
+msgstr "Зменшити пріоритет (+5)"
+
+msgid "Default"
+msgstr "За замовчуванням"
+
+msgid "Delete"
+msgstr "Видалити"
+
+msgid "Description"
+msgstr "Опис"
+
+msgid "Device"
+msgstr "Пристрій"
+
+msgid "Disabled"
+msgstr "Вимкнено"
+
+msgid "Discord Presence"
+msgstr "Наявність у Discord"
+
+msgid "Displays the active controller profile when starting a game"
+msgstr "Показує профіль активного контролера під час запуску гри"
+
+msgid ""
+"Displays the menu bar when Cemu is running in fullscreen mode and the mouse "
+"cursor is moved to the top"
+msgstr ""
+"Показує рядок меню, коли Cemu працює в повноекранному режимі та курсор миші "
+"рухається вгору"
+
+msgid ""
+"Do you really want to cancel the update process?\n"
+"\n"
+"Canceling the process will delete the applied update."
+msgstr ""
+"Ви дійсно хочете скасувати процес оновлення?\n"
+"\n"
+"Скасування процесу призведе до видалення застосованого оновлення."
+
+msgid "Download latest community graphic packs"
+msgstr "Оновити графічниі пакети"
+
+msgid "Downloading graphic packs..."
+msgstr "Завантаження графічних пакетів..."
+
+msgid "Downloading update..."
+msgstr "Завантаження оновлення..."
+
+msgid "Downscale filter"
+msgstr "Фільтр зменшення масштабу"
+
+msgid ""
+"Downscaling filters are used when the game resolution is bigger than the "
+"window size"
+msgstr ""
+"Фільтри стиснення використовуються, коли роздільна здатність гри більше, "
+"ніж розмір вікна"
+
+msgid "Draw calls per frame"
+msgstr "Викликів Draw за кадр"
+
+msgid "Dualcore-Recompiler"
+msgstr "Двоядерний рекомпілятор"
+
+msgid "Dump WUD"
+msgstr "Дамп WUD"
+
+msgid "Dump complete"
+msgstr "Дамп успішний"
+
+msgid "E&xit"
+msgstr "В&ихід"
+
+msgid ""
+"EXPERT OPTION\n"
+"Controls the accuracy of floating point multiplication in shaders.\n"
+"\n"
+"Recommended: true"
+msgstr ""
+"ОПЦІЯ ДЛЯ ЕКСПЕРТІВ\n"
+"Керує точністю множення з числами з плаваючою комою в шейдерах.\n"
+"\n"
+"Рекомендовано: true"
+
+msgid ""
+"EXPERT OPTION\n"
+"Set the maximum thread slice runtime (in virtual cycles)"
+msgstr ""
+"ОПЦІЯ ДЛЯ ЕКСПЕРТІВ\n"
+"Встановити максимальний час виконання сегменту потоку (в віртуальних "
+"циклах)."
+
+msgid ""
+"EXPERT OPTION\n"
+"This option will load libraries from the cafeLibs directory"
+msgstr ""
+"ОПЦІЯ ДЛЯ ЕКСПЕРТІВ\n"
+"Ця опція завантажить бібліотеки з каталогу cafeLibs"
+
+msgid "Edit game profile"
+msgstr "Змінити ігровий профіль"
+
+msgid "Emulate Controller"
+msgstr "Емулювати контролер"
+
+msgid "Enable online mode"
+msgstr "Увімкнути онлайн-режим"
+
+msgid ""
+"Enables the Discord Rich Presence feature\n"
+"You will also need to enable it in the Discord settings itself!"
+msgstr ""
+"Увімкнути функцію Discord Rich Presence\n"
+"Також потрібно увімкнути її в налаштуваннях Discord самостійно!"
+
+msgid "English"
+msgstr "Англійська"
+
+msgid "Enter a memory address"
+msgstr "Введіть адресу пам'яті"
+
+msgid "Enter a new comment."
+msgstr "Введіть новий коментар."
+
+msgid "Enter a new instruction."
+msgstr "Введіть нову інструкцію."
+
+msgid "Enter a new value."
+msgstr "Введіть нове значення."
+
+msgid "Enter a target address."
+msgstr "Введіть адресу цілі."
+
+msgid "Entry"
+msgstr "Запис"
+
+msgid "Error"
+msgstr "Помилка"
+
+msgid "Error code"
+msgstr "Код помилки"
+
+msgid ""
+"Error when initializing Vulkan renderer:\n"
+"{}"
+msgstr ""
+"Помилка при ініціалізації рендера Vulkan:\n"
+"{}"
+
+msgid "Exit"
+msgstr "Вихід"
+
+msgid "Extended texture readback"
+msgstr "Розширене зчитування текстур"
+
+msgid "Extensions:"
+msgstr "Розширення:"
+
+msgid "Extracting failed!"
+msgstr "Вилучення не вдалося!"
+
+msgid "Extracting update..."
+msgstr "Вилучення оновлення ..."
+
+msgid "Extracting..."
+msgstr "Вилучення..."
+
+msgid "Failed to connect to server"
+msgstr "Не вдалося підключитися до серверу"
+
+msgid "Failed to launch file."
+msgstr "Не вдалося запустити файл."
+
+msgid "Female"
+msgstr "Жіночий"
+
+msgid "Filter"
+msgstr "Фільтр"
+
+msgid "Filter messages"
+msgstr "Фільтрувати повідомлення"
+
+msgid "Forces a given controller profile"
+msgstr "Примусово використовує заданий профіль контролера"
+
+msgid "Format"
+msgstr "Формат"
+
+msgid "Friend list"
+msgstr "Список друзів"
+
+msgid "Full sync at GX2DrawDone()"
+msgstr "Повна синхронізація GX2DrawDone()"
+
+msgid "Fullscreen menu bar"
+msgstr "Стрічка меню в повноекранному режимі"
+
+msgid "Fullscreen scaling"
+msgstr "Масштабування на повний екран"
+
+msgid "G&oto Dump"
+msgstr "Перейти до дампу"
+
+msgid "GPU buffer cache accuracy"
+msgstr "Точність кешу буфера ГПУ"
+
+msgid "Game"
+msgstr "Гра"
+
+msgid "Game Paths"
+msgstr "Шляхи до гри"
+
+msgid "Gamepad"
+msgstr "Геймпад"
+
+msgid ""
+"Games will be launched with gamepad view toggled as default. The view can "
+"be toggled with CTRL + TAB"
+msgstr ""
+"Ігри будуть запущені з увімкненим за замовчуванням вікном геймпада. Вигляд "
+"можна переключити за допомогою CTRL + TAB"
+
+msgid "General"
+msgstr "Загальні"
+
+msgid "General settings"
+msgstr "Загальні налаштування"
+
+msgid "GoTo (CTRL + G)"
+msgstr "Перейти до (CTRL + G)"
+
+msgid "GoTo address"
+msgstr "Перейти до адреси"
+
+msgid "Graphic"
+msgstr "Графіка"
+
+msgid "Graphic pack"
+msgstr "Графічний пакет"
+
+msgid "Graphic packs"
+msgstr "Графічні пакети"
+
+msgid "Graphic packs cannot be updated while a game is running."
+msgstr "Графічні пакети не можуть бути оновлені під час роботи програми."
+
+msgid "Graphics"
+msgstr "Графіка"
+
+msgid "Graphics API"
+msgstr "Графічний API"
+
+msgid "Graphics Device"
+msgstr "Графічний прискорювач"
+
+msgid "Hermite"
+msgstr "Інтерполяція Ерміта"
+
+msgid ""
+"If synchronization is requested by the game, the emulated CPU will wait for "
+"the GPU to finish all operations.\n"
+"This is more accurate behavior, but may cause lower performance"
+msgstr ""
+"Якщо грі потрібна синхронізація, емульований CPU буде чекати, поки GPU "
+"закінчить усі операції.\n"
+"Це точніша поведінка, але може призвести до зниження продуктивності"
+
+msgid ""
+"Improves emulation accuracy of CPU to GPU memory access at the cost of "
+"performance. Required for some games."
+msgstr ""
+"Покращує точність емуляції доступу CPU до пам'яті GPU ціною продуктивність. "
+"Потрібен для деяких ігор."
+
+msgid "Info"
+msgstr "Інфо"
+
+msgid "Information"
+msgstr "Інформація"
+
+msgid "Input Settings"
+msgstr "Налаштування вводу"
+
+msgid "Installed games"
+msgstr "Встановлені ігри"
+
+msgid "Installing DLC ..."
+msgstr "Встановлення DLC ..."
+
+msgid "Installing update ..."
+msgstr "Встановлення оновлення ..."
+
+msgid "Interface"
+msgstr "Інтерфейс"
+
+msgid "Invalid \"meta.xml\" file."
+msgstr "Недійсний файл \"meta.xml\"."
+
+msgid "Invalid folder structure"
+msgstr "Недійсна структура папок"
+
+msgid ""
+"It seems that a newer update is already installed, do you still want to "
+"install the older version?"
+msgstr ""
+"Схоже, що нове оновлення вже встановлене, Ви все ще хочете встановити "
+"старішу версію?"
+
+msgid ""
+"It seems that the selected update is already installed, do you want to "
+"reinstall it?"
+msgstr "Схоже, що вибране оновлення вже встановлене, Ви хочете його перевстановити?"
+
+msgid "Keep aspect ratio"
+msgstr "Зберігати пропорції"
+
+msgid "Language"
+msgstr "Мова"
+
+msgid "Last access"
+msgstr "Останній доступ"
+
+msgid "Last played"
+msgstr "Остання гра"
+
+msgid "Latency"
+msgstr "Затримка"
+
+msgid "Launch with gamepad view"
+msgstr "Запуск з вікном геймпада"
+
+msgid "Left Axis"
+msgstr "Ліва вісь"
+
+msgid "Load"
+msgstr "Завантажити"
+
+msgid "Load shared libraries"
+msgstr "Завантажити спільні бібліотеки"
+
+msgid "Logging window"
+msgstr "Вікно логування"
+
+msgid "Low battery"
+msgstr "Низький заряд батареї"
+
+msgid "Lower value results in higher performance, but may cause graphical issues"
+msgstr ""
+"Нижче значення приводить до більшої продуктивності, але може спричинити "
+"графічні проблеми"
+
+msgid "MLC Path"
+msgstr "Шлях до MLC"
+
+msgid "Male"
+msgstr "Чоловіча"
+
+msgid "Memory Searcher"
+msgstr "Пошук в пам'яті"
+
+msgid "Memory breakpoint"
+msgstr "Точка зупинки пам'яті"
+
+msgid "Mii name"
+msgstr "Ім'я Mii"
+
+msgid "Mode"
+msgstr "Режим"
+
+msgid "Module&list"
+msgstr "&Список модулів"
+
+msgid "Mono"
+msgstr "Моно"
+
+msgid "MotionPlus"
+msgstr "MotionPlus"
+
+msgid "Name"
+msgstr "Назва"
+
+msgid "Nearest Neighbor"
+msgstr "Метод найближчих сусідів"
+
+msgid "No"
+msgstr "Ні"
+
+msgid "No persistent id entered!"
+msgstr "Не введено persistent id!"
+
+msgid "No profile name entered!"
+msgstr "Не введено назву профілю!"
+
+msgid "No profile name selected!"
+msgstr "Не обрано назву профілю!"
+
+msgid "No update available!"
+msgstr "Немає доступних оновлень!"
+
+msgid "No updates available."
+msgstr "Немає доступних оновлень."
+
+msgid "Not a valid NFC NTAG215 file"
+msgstr "Недійсний файл NFC NTAG215"
+
+msgid ""
+"Not enough space available.\n"
+"Required: {0} MB\n"
+"Available: {1} MB"
+msgstr ""
+"Недостатньо місця.\n"
+"Потрібно: {0} МБ\n"
+"Доступно: {1} МБ"
+
+msgid "Notifications"
+msgstr "Сповіщення"
+
+msgid "Nunchuck"
+msgstr "Нунчак"
+
+msgid "On"
+msgstr "Увімк."
+
+msgid "Open file to launch"
+msgstr "Відкрити файл для запуску"
+
+msgid "Open file to load"
+msgstr "Відкрити файл для завантаження"
+
+msgid ""
+"Outdated shader cache\n"
+"\n"
+"The stored shader cache for this game was created with a Cemu version prior "
+"to 1.16.0.\n"
+"\n"
+"There are no significant downsides to reusing an existing cache but it may "
+"contain bloat that is no longer used by current versions of Cemu.\n"
+"\n"
+"It is highly recommended to start a new cache. Note that a new cache means "
+"that you will experience additional stutter during the first minutes of "
+"gameplay."
+msgstr ""
+"Застарілий кеш шейдерів\n"
+"\n"
+"Збережений кеш шейдерів для цієї гри був створений на Cemu версії до "
+"1.16.0.\n"
+"\n"
+"Немає жодних істотних недоліків у повторному використанні існуючого кеша, "
+"але він може містити зайві включення, які більше не використовуються "
+"поточними версіями Cemu.\n"
+"\n"
+"Рекомендується створити новий кеш. Зверніть увагу, що новий кеш означає, що "
+"ви будете відчувати додаткові пригальмовування в протягом перших хвилин гри."
+
+msgid "Overlay"
+msgstr "Оверлей"
+
+msgid "PPC threads"
+msgstr "Потоки PPC"
+
+msgid ""
+"Please be aware that online mode lets you connect to OFFICIAL servers and "
+"therefore there is a risk of getting banned.\n"
+"Only proceed if you are willing to risk losing online access with your Wii "
+"U and/or NNID."
+msgstr ""
+"ПОПЕРЕДЖЕННЯ!\n"
+"Майте на увазі, що в режимі он-лайн Ви можете підключитися до ОФІЦІЙНИХ "
+"серверів, отже, існує ризик отримання бана.Продовжуйте діяти лише в тому "
+"випадку, якщо ви готові ризикнути втратити онлайн доступ до Wii U і/або "
+"NNID."
+
+msgid "Position"
+msgstr "Позиція"
+
+msgid "Precompiled shaders"
+msgstr "Попередньо скомпільовані шейдери"
+
+msgid ""
+"Precompiled shaders can speed up the load time on the shader loading "
+"screen.\n"
+"Auto will enable it for AMD/Intel but disable it for NVIDIA GPUs as a "
+"workaround for a driver bug.\n"
+"\n"
+"Recommended: Auto"
+msgstr ""
+"Попередньо скомпіловані шейдери можуть прискорити час початкової "
+"завантаження шейдерів.\n"
+"Auto увімкне його для AMD/Intel, але відключить його для NVIDIA GPU через "
+"помилку драйвера.\n"
+"\n"
+"Рекомендується: Авто"
+
+msgid ""
+"Натиснувши на клавішу кнопки (F12) буде зберігатися на дисплеї directly to "
+"the screenshots folder"
+msgstr ""
+"Натискання клавіші \"Знімок екрана\" (F12) збереже знімок екрану "
+"безпосередньо в папці screenshots"
+
+msgid "Priority"
+msgstr "Пріоритет"
+
+msgid "Profile"
+msgstr "Профіль"
+
+msgid "RAM usage"
+msgstr "Використання ОЗУ"
+
+msgid "Range"
+msgstr "Діапазон"
+
+msgid "Refresh"
+msgstr "Оновити"
+
+msgid "Remember main window position"
+msgstr "Запам'ятати положення головного вікна"
+
+msgid "Remember pad window position"
+msgstr "Запам'ятати положення вікна екрану геймпада"
+
+msgid "Remove"
+msgstr "Видалити"
+
+msgid "Removes the currently selected game path from the game list"
+msgstr "Видаляє поточний вибраний шлях гри зі списку ігор"
+
+msgid "Reset &order"
+msgstr "Скинути &порядок"
+
+msgid "Reset &width"
+msgstr "Скинути &ширину"
+
+msgid "Reset the default state of the controller"
+msgstr "Скинути налаштування за замовчуванням контролера"
+
+msgid "Resolution"
+msgstr "Роздільна здатність"
+
+msgid "Restart"
+msgstr "Перезапуск"
+
+msgid "Restart of Cemu required for changes to take effect"
+msgstr "Перезапустіть Cemu щоб застосувати зміни"
+
+msgid "Restores the last known pad window position and size when opening it"
+msgstr "Відновлює останнє положення та розмір вікна екрана геймпада при відкриття"
+
+msgid "Restores the last known window position and size when starting Cemu"
+msgstr "Відновлює останнє положення та розмір вікна Cemu під час відкриття"
+
+msgid "Results"
+msgstr "Результати"
+
+msgid "Results ({0})"
+msgstr "Результати ({0})"
+
+msgid "Resume"
+msgstr "Продовжити"
+
+msgid "Right Axis"
+msgstr "Права вісь"
+
+msgid "Rumble"
+msgstr "Вібрація"
+
+msgid "Run (F5)"
+msgstr "Запустити (F5)"
+
+msgid "Save"
+msgstr "Зберегти"
+
+msgid "Save screenshot"
+msgstr "Зберегти знімок екрану"
+
+msgid "Scale"
+msgstr "Масштаб"
+
+msgid "Search"
+msgstr "Пошук"
+
+msgid "Searching for wiimotes..."
+msgstr "Пошук Wiimote..."
+
+msgid ""
+"Select a custom mlc path\n"
+"The mlc path is used to store Wii U related files like save games, game "
+"updates and dlc data"
+msgstr ""
+"Виберіть користувацький шлях до MLC. \n"
+"Шлях MLC використовується для зберігання пов'язаних з Wii U файлів, таких "
+"як збережені ігри, оновлення ігор та DLC."
+
+msgid "Select a custom path"
+msgstr "Виберіть користувацький шлях"
+
+msgid "Select a directory containing games."
+msgstr "Виберіть каталог, що містить ігри."
+
+msgid "Select a mlc directory"
+msgstr "Виберіть каталог mlc"
+
+msgid "Select one of the available audio back ends"
+msgstr "Виберіть один з доступних аудіо бекендів"
+
+msgid "Select one of the available graphic back ends"
+msgstr "Виберіть один з доступних графічних бекендів"
+
+msgid "Select the active audio output device for Wii U GamePad"
+msgstr "Виберіть пристрій виведення звуку для Wii U GamePad"
+
+msgid "Select the active audio output device for Wii U TV"
+msgstr "Виберіть пристрій виведення звуку для Wii U TV"
+
+msgid "Select the used graphic device"
+msgstr "Виберіть пристрій для обробки графіки"
+
+msgid "Set comment for breakpoint at address %08x"
+msgstr "Додати коментар для точки зупинки за адресою %08x"
+
+msgid "Set the CPU emulation mode"
+msgstr "Виберіть режим емуляції CPU"
+
+msgid "Sets the scale of the notification text"
+msgstr "Встановлює масштаб тексту повідомлень"
+
+msgid "Sets the scale of the overlay text"
+msgstr "Встановлює масштаб тексту оверлею"
+
+msgid "Sets the text color of notifications"
+msgstr "Встановлює колір тексту повідомлень"
+
+msgid "Sets the text color of the overlay"
+msgstr "Встановлює колір тексту оверлею"
+
+msgid "Shader cache migration"
+msgstr "Міграція кешу шейдерів"
+
+msgid "Shader compiler"
+msgstr "Компілятор шейдерів"
+
+msgid "Shader mul accuracy"
+msgstr "Точність множення шейдерів"
+
+msgid "Show &dlc"
+msgstr "Показувати &DLC"
+
+msgid "Show &game time"
+msgstr "Показувати &час гри"
+
+msgid "Show &last played"
+msgstr "Показувати &останню гру"
+
+msgid "Show &name"
+msgstr "Показувати &назву"
+
+msgid "Show &version"
+msgstr "Показувати &версію"
+
+msgid "Show only active"
+msgstr "Показувати лише активні"
+
+msgid "Show views"
+msgstr "Показати вигляди"
+
+msgid "Shows a notification after shaders have been compiled"
+msgstr "Показує повідомлення після компіляції шейдерів"
+
+msgid "Shows a notification when a low controller battery has been detected"
+msgstr "Показує повідомлення при виявленні низького заряду батареї контролера"
+
+msgid "Shows friend list related data if online"
+msgstr "Показувати дані, пов'язані зі списком друзів, якщо вони в онлайні"
+
+msgid "Singlecore-Interpreter"
+msgstr "Одноядерний інтерпретатор"
+
+msgid "Singlecore-Recompiler"
+msgstr "Одноядерний рекомпілятор"
+
+msgid "Size"
+msgstr "Розмір"
+
+msgid "Stack"
+msgstr "Стек"
+
+msgid "State"
+msgstr "Стан"
+
+msgid "Step Into (F11)"
+msgstr "Увійти в (F11)"
+
+msgid "Step Over (F10)"
+msgstr "Перейти через (F10)"
+
+msgid "Stereo"
+msgstr "Стерео"
+
+msgid "Stop emulation"
+msgstr "Зупинити емуляцію"
+
+msgid "Stored Entries"
+msgstr "Збережені записи"
+
+msgid "Stretch"
+msgstr "Розтягнути на весь екран"
+
+msgid "Style: &Icons"
+msgstr "Стиль: &Іконки"
+
+msgid "Style: &List"
+msgstr "Стиль: &Список"
+
+msgid "Style: &Small Icons"
+msgstr "Стиль: &Маленькі іконки"
+
+msgid "Success"
+msgstr "Успіх"
+
+msgid "Suspend"
+msgstr "Призупинити"
+
+msgid "TV"
+msgstr "ТВ"
+
+msgid "Test if the controller is connected"
+msgstr "Перевірити підключення контролера"
+
+msgid "Text Color"
+msgstr "Колір тексту"
+
+msgid "Texture cache"
+msgstr "Кеш текстур"
+
+msgid "The VRAM usage of Cemu in MB"
+msgstr "Використання VRAM в МБ Cemu"
+
+msgid "The given profile name is not valid!"
+msgstr "Дане ім'я профілю недійсне!"
+
+msgid "The mii name is the profile name"
+msgstr "Ім'я Mii є іменем профілю"
+
+msgid ""
+"The mlc directory contains your save games and installed game update/dlc "
+"data"
+msgstr ""
+"У каталозі mlc містяться збережені ігри та встановлені оновлення/дані про "
+"оновлення ігор"
+
+msgid "The number of draw calls per frame. Average over last 5 seconds"
+msgstr "Кількість викликів Draw на кадр. Середнє за останні 5 секунд"
+
+msgid "The number of frames per second. Average over last 5 seconds"
+msgstr "Кількість кадрів за секунду. Середнє за останні 5 секунд"
+
+msgid "The persistent id is the internal folder name used for your saves"
+msgstr ""
+"Persistent id - це ім'я внутрішньої папки, яка використовується для ваших "
+"збережень"
+
+msgid ""
+"The persistent id is the internal folder name used for your saves. Only "
+"change this if you are importing saves from a Wii U with a specific id"
+msgstr ""
+"Persistent id – це ім'я внутрішньої папки, яка використовується для ваших "
+"збережень. Змініть його, тільки якщо ви імпортуєте збережені дані з Wii U з "
+"певним id"
+
+msgid "The persistent id must be greater than {:x}!"
+msgstr "Persistent id має бути більшим, ніж {:x}!"
+
+msgid "The persistent id {:x} is already in use by account {}!"
+msgstr "Persistent id {:x} вже використовується обліковим записом {}!"
+
+msgid "The threshold of a button to recognizes a press from a trigger/axis value"
+msgstr ""
+"Поріг спрацьовування кнопки для розпізнавання натискання за значенням "
+"тригера/осі"
+
+msgid ""
+"There's a new update available.\n"
+"Do you want to update?"
+msgstr ""
+"Доступне нове оновлення.\n"
+"Бажаєте оновити?"
+
+msgid "This graphic pack has no description"
+msgstr "Цей графічний пакет не має опису"
+
+msgid "This option requires Win8.1+"
+msgstr "Ця опція потребує Win8.1+"
+
+msgid "Thread quantum"
+msgstr "Квант час/пот"
+
+msgid "Toggle Breakpoint (F9)"
+msgstr "Увімкнути/вимкнути точку зупинки (F9)"
+
+msgid "Top center"
+msgstr "По центру зверху"
+
+msgid "Top left"
+msgstr "Зліва зверху"
+
+msgid "Top right"
+msgstr "Справа зверху"
+
+msgid "Total cpu usage in percent for each core"
+msgstr "Загальне використання CPU у відсотках для кожного ядра"
+
+msgid "Triplecore-Recompiler"
+msgstr "Триточковий рекомпілятор"
+
+msgid "Type"
+msgstr "Тип"
+
+msgid "Unable to open file."
+msgstr "Неможливо відкрити файл."
+
+msgid "Unknown error occured"
+msgstr "Сталася невідома помилка"
+
+msgid "Unknown file type."
+msgstr "Невідомий тип файлу."
+
+msgid "Update"
+msgstr "Оновлення"
+
+msgid "Update available!"
+msgstr "Доступне оновлення!"
+
+msgid "Update error"
+msgstr "Помилка оновлення"
+
+msgid "Update installation has been canceled!"
+msgstr "Встановлення оновлення було скасовано!"
+
+msgid "Update installed!"
+msgstr "Оновлення встановлено!"
+
+msgid "Update notification"
+msgstr "Повідомлення про оновлення"
+
+msgid ""
+"Updated graphic packs are available. Do you want to download and install "
+"them?"
+msgstr ""
+"Оновлені графічні пакети доступні. Чи бажаєте ви завантажити та встановити "
+"їх?"
+
+msgid "Updating game list..."
+msgstr "Оновлення списку ігор..."
+
+msgid "Upscale filter"
+msgstr "Фільтр масштабування (растяження)"
+
+msgid ""
+"Upscaling filters are used when the game resolution is smaller than the "
+"window size"
+msgstr ""
+"Фільтри розтягування використовуються, коли роздільна здатність гри менша, "
+"ніж розмір вікна"
+
+msgid "Use existing cache"
+msgstr "Використовувати існуючий кеш"
+
+msgid "VRAM usage"
+msgstr "Використання VRAM"
+
+msgid "VSync"
+msgstr "Вертикальна синхронізація"
+
+msgid "Version"
+msgstr "Версія"
+
+msgid "Volume"
+msgstr "Гучність"
+
+msgid "Warning"
+msgstr "Попередження"
+
+msgid "Yes"
+msgstr "Так"
+
+msgid "You can configure game paths in the general settings."
+msgstr "Ви можете налаштувати шляхи до ігор у загальних налаштуваннях."
+
+msgid "You have to restart the game in order to apply the new settings."
+msgstr "Ви повинні перезапустити гру, щоб застосувати нові налаштування."
+
+msgid "You've played"
+msgstr "Ви грали"
+
+msgid "Your entered value is not valid for the selected datatype."
+msgstr "Введене значення недійсне для обраного типу даних."
+
+msgid ""
+"Your mlc01 folder seems to be missing.\n"
+"\n"
+"This is where Cemu stores save files, game updates and other Wii U files.\n"
+"\n"
+"The expected path is:\n"
+"{}\n"
+"\n"
+"Do you want to create the folder at the expected path?"
+msgstr ""
+"Здається, папка mlc01 відсутня.\n"
+"\n"
+"Це папка, де Cemu зберігає файли збережень, оновлення та інші файли Wii U.\n"
+"\n"
+"Ймовірний шлях:\n"
+"{}\n"
+"\n"
+"Чи бажаєте ви створити папку в цьому місці?"
+
+msgid "address"
+msgstr "адрес"
+
+msgid "auto"
+msgstr "авто"
+
+msgid "cycles"
+msgstr "цикли"
+
+msgid "description"
+msgstr "опис"
+
+msgid "disable"
+msgstr "вимкнути"
+
+msgid "enable"
+msgstr "увімкнути"
+
+msgid "freeze"
+msgstr "заморозити"
+
+msgid "high"
+msgstr "високий"
+
+msgid "low"
+msgstr "низький"
+
+msgid "medium"
+msgstr "середній"
+
+msgid "minimal"
+msgstr "мінімальний"
+
+msgid "never"
+msgstr "ніколи"
+
+msgid "otp.bin could not be found"
+msgstr "не вдалося знайти otp.bin"
+
+msgid "otp.bin is corrupted or has invalid size"
+msgstr "otp.bin пошкоджений або має неправильний розмір"
+
+msgid "seeprom.bin could not be found"
+msgstr "не вдалося знайти seeprom.bin"
+
+msgid "seeprom.bin is corrupted or has invalid size"
+msgstr "seeprom.bin пошкоджений або має неправильний розмір"
+
+msgid "show screen"
+msgstr "показати екран"
+
+msgid "type"
+msgstr "тип"
+
+msgid "value"
+msgstr "значення"
+
+msgid "&Getting started"
+msgstr "&Базові налаштування"
+
+msgid "Game path"
+msgstr "Шлях до ігор"
+
+msgid ""
+"Graphic packs improve games by offering the possibility to change "
+"resolution, tweak FPS or add other visual or gameplay modifications.\n"
+"Download the community graphic packs to get started.\n"
+msgstr ""
+"Графічні пакети покращують ігровий досвід, пропонуючи можливість змінювати "
+"роздільну здатність, FPS або застосовувати інші моди візуальні чи ігрові.\n"
+"Щоб почати, завантажте графічні пакети спільноти.\n"
+
+msgid "Download community graphic packs"
+msgstr "Завантажити графічні пакети спільноти"
+
+msgid "Do you want to view the downloaded graphic packs?"
+msgstr "Бажаєте переглянути завантажені графічні пакети?"
+
+msgid "Region"
+msgstr "Регіон"
+
+msgid "&Install game title, update or DLC"
+msgstr "&Встановити гру, оновлення або DLC"
+
+msgid ""
+"The game path is scanned by Cemu to locate your games. We recommend "
+"creating a dedicated directory in which\n"
+"you place all your Wii U games. (example: C:\\wiiu\\games\\)\n"
+"\n"
+"You can also set additional paths in the general settings of Cemu."
+msgstr ""
+"Cemu сканує ігрові шляхи, щоб знайти ваші ігри.\n"
+"Ми рекомендуємо створити спеціальну директорію, куди ви розмістите всі свої "
+"ігри з Wii U (приклад: C:\\wiiu\\juegos\\).\n"
+"Ви також можете встановити додаткові маршрути в загальних налаштуваннях "
+"Cemu."
+
+msgid "Browse"
+msgstr "Огляд"
+
+msgid "(optional)"
+msgstr "(необов'язково)"
+
+msgid "Game paths"
+msgstr "Шлях до ігор"
+
+msgid "Custom mlc01 path"
+msgstr "Власний шлях mlc01"
+
+msgid "mlc01 path"
+msgstr "mlc01 шлях"
+
+msgid ""
+"The mlc path is the root folder of the emulated Wii U internal flash "
+"storage. It contains all your saves, installed updates and DLCs.\n"
+"It is strongly recommend that you create a dedicated folder for it "
+"(example: C:\\wiiu\\mlc\\) \n"
+"If left empty, the mlc folder will be created inside the Cemu folder."
+msgstr ""
+"Шлях MLC – це коренева папка внутрішньої флеш-пам’яті Wii U емулятор. "
+"Містить усі ваші збереження, встановлені оновлення та DLC.\n"
+"Настійно рекомендуємо створити для нього окрему папку (приклад: "
+"C:\\wiiu\\mlc\\).\n"
+"Якщо залишити порожнім, папку MLC буде створено в папці Cemu."
+
+msgid ""
+"It looks like you're starting Cemu for the first time.\n"
+"This quick setup assistant will help you get the best experience"
+msgstr ""
+"Здається, це перший раз, коли запускається Cemu.\n"
+"Цей майстер швидкого налаштування допоможе вам!\n"
+"Відео гайд з налаштування шукайте на каналі «Іван Панч»"
+
+msgid "Next"
+msgstr "Далі"
+
+msgid "Don't show this again"
+msgstr "Не показувати знову"
+
+msgid "Open separate pad screen"
+msgstr "Відкрийте GamePad в окремому вікні"
+
+msgid "Additional options"
+msgstr "Додаткові опції"
+
+msgid "Configure input"
+msgstr "Налаштувати контролер"
+
+msgid "Input settings"
+msgstr "Конфігурація введення"
+
+msgid ""
+"You can configure one controller for each player.\n"
+"We advise you to always use GamePad as emulated input for the first player, "
+"since many games expect the GamePad to be present.\n"
+"It is also required for touch functionality.\n"
+"The default global hotkeys are:\n"
+"CTRL - show pad screen\n"
+"CTRL + TAB - toggle pad screen\n"
+"ALT + ENTER - toggle fullscreen\n"
+"ESC - leave fullscreen\n"
+"\n"
+"If you're having trouble configuring your controller, make sure to have it "
+"in idle state and press calibrate.\n"
+"Also don't set the axis deadzone too low."
+msgstr ""
+"Ви можете налаштувати контролер для кожного гравця.\n"
+"Рекомендовано завжди використовувати «Wii U GamePad» для першого гравця, "
+"оскільки багато ігор очікують наявності Wii U GamePad.\n"
+"Це також потрібно для роботи сенсорів.\n"
+"Стандартними глобальними гарячими клавішами є:\n"
+"CTRL - показати екран геймпада\n"
+"CTRL + TAB - перемкнути екран GamePad\n"
+"ALT + ENTRAR - перемкнути на весь екран\n"
+"ESC - вийти з повноекранного режиму\n"
+"\n"
+"Якщо у вас виникли проблеми з налаштуванням елемента керування натисніть "
+"кнопку «Калібрувати».\n"
+"Крім того, не встановлюйте мертву зону осі занадто низько."
+
+msgid "Start games with fullscreen"
+msgstr "Запускайте ігри в повноекранному режимі"
+
+msgid "Close"
+msgstr "Закрити"
+
+msgid "Previous"
+msgstr "Передній"
+
+msgid "Controller {}"
+msgstr "Контроллер {}"
+
+msgid "Settings"
+msgstr "Налаштування"
+
+msgid "Emulated controller"
+msgstr "Емул. контролер"
+
+msgid "<profile name>"
+msgstr "<назва профілю>"
+
+msgid "Cemu update"
+msgstr "Оновлення Cemu"
+
+msgid "Reload edited shaders"
+msgstr "Перезавантажити шейдери"
+
+msgid "GamePad View"
+msgstr "Вікно контроллера"
+
+msgid "Use permanent storage"
+msgstr "Використовуйте постійне сховище"
+
+msgid ""
+"Cemu will remember your custom mlc path in %LOCALAPPDATA%/Cemu for new "
+"installations."
+msgstr ""
+"Cemu запам'ятає ваш спеціальний шлях MLC у %LOCALAPPDATA%/Cemu для нових "
+"встановлень."
+
+msgid "Double buffering"
+msgstr "Подвійна буферизація"
+
+msgid "Triple buffering"
+msgstr "Потрійна буферизація"
+
+msgid "Match emulated display (Experimental)"
+msgstr "Відповідно дисплею (Експериметально)"
+
+msgid "Async shader compile"
+msgstr "Асинхронна компіляція шейдерів (Vulkan)"
+
+msgid "&Title Manager"
+msgstr "&Менеджер ігор"
+
+msgid "&Download Manager"
+msgstr "&Менеджер завантажень"
+
+msgid "&Timer speed"
+msgstr "&Швидкість таймеру"
+
+msgid "&About Cemu"
+msgstr "&Про Cemu"
+
+msgid "Online settings"
+msgstr "Налаштування онлайн режиму"
+
+msgid "At least one issue has been found"
+msgstr "Знайдено принаймні одну проблему"
+
+msgid "Online play tutorial"
+msgstr "Посібник з онлайн-ігор (Англійською)"
+
+msgid "Debug"
+msgstr "Відладка"
+
+msgid "Crash dump"
+msgstr "Дамп пам'яті"
+
+msgid "Lite"
+msgstr "Простий"
+
+msgid "Full"
+msgstr "Повний"
+
+msgid ""
+"Creates a dump when Cemu crashes\n"
+"Only enable when requested by a developer!\n"
+"The Full option will create a very large dump file (includes a full RAM "
+"dump of the Cemu process)"
+msgstr ""
+"Створює дамп під час аварійного завершення роботи Cemu\n"
+"Вмикати лише на вимогу розробника!\n"
+"Параметр \"Повний\" створить дуже великий файл дампа (включає повний дамп "
+"оперативної пам'яті процесу Cemu)"
+
+msgid "&Gender"
+msgstr "&Стать"
+
+msgid "Displays internal debug information (Vulkan only)"
+msgstr "Показати внутрішню інформацію відладки (лише Vulkan)"
+
+msgid "blow mic"
+msgstr "дути в мікрофон"
+
+msgid "&Enter a custom game title"
+msgstr "&Введіть власну назву гри"
+
+msgid "Auto (recommended)"
+msgstr "Автоматично (рек.)"
+
+msgid ""
+"A custom mlc path from a previous Cemu installation has been found and "
+"filled in."
+msgstr ""
+"Спеціальний шлях MLC із попередніх інсталяцій знайдено та використано в "
+"Cemu."
+
+msgid ""
+"Pressing the screenshot key (F12) will save a screenshot directly to the "
+"screenshots folder"
+msgstr ""
+"Натискання клавіші скріншоту (F12) збереже знімок екрана безпосередньо в "
+"папку скріншотів"
+
+msgid "Disable screen saver"
+msgstr "Вимкнути заставку"
+
+msgid ""
+"Prevents the system from activating the screen saver or going to sleep "
+"while running a game."
+msgstr ""
+"Не дає системі активувати заставку або перейти в сплячий режим під час "
+"запуску гри."
+
+msgid ""
+"Enables async shader and pipeline compilation. Reduces stutter at the cost "
+"of objects not rendering for a short time.\n"
+"Vulkan only"
+msgstr ""
+"Дозволяє асинхронну компіляцію шейдерів. Зменшує заїкання (фрізи) за "
+"рахунок того, що об'єкти не рендеритимуться протягом короткого часу. Тільки "
+"для Vulkan!"
+
+msgid "Select the active audio input device for Wii U GamePad"
+msgstr "Виберіть активний пристрій введення звуку для Wii U GamePad"
+
+msgid "Network Service"
+msgstr "Мережева служба"
+
+msgid "Custom"
+msgstr "Власний"
+
+msgid "Connect to which Network Service"
+msgstr "До якої мережевої служби підключитися"
+
+msgid ""
+"Changes the port that the GDB stub will use, which you can use by either "
+"starting Cemu with the --enable-gdbstub option or by enabling it the Debug "
+"tab."
+msgstr ""
+"Змінює порт, який використовуватиметься заглушкою GDB, яку ви можете "
+"використати, або запустивши Cemu з опцією --enable-gdbstub, або увімкнувши "
+"її на вкладці Налагодження."
+
+msgid "Install title"
+msgstr "Встановити"
+
+msgid "Title Manager"
+msgstr "Менеджер ігор"
+
+msgid "Download Manager"
+msgstr "Менеджер завантажень"
+
+msgid "Title ID"
+msgstr "ID гри"
+
+msgid "Found {} games, {} updates, {} DLCs and {} save entries"
+msgstr "Знайдено {} ігор, {} оновлень, {} DLC та {} збережень"
+
+msgid "Connect"
+msgstr "Підключити"
+
+msgid "Progress"
+msgstr "Прогрес"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Select an account and press Connect"
+msgstr "Виберіть обліковий запис і натисніть Підключити"
+
+msgid "Show available titles"
+msgstr "Показати доступні ігри"
+
+msgid "Show installed"
+msgstr "Показати встановлене"
+
+msgid "Show available updates"
+msgstr "Показати доступні оновлення"
+
+msgid "&x speed"
+msgstr "&x швидкість"
+
+msgid "Launch whith GDB stub"
+msgstr "Запуск зі заглушкою GDB"
+
+msgid "Accurate barriers (Vulkan)"
+msgstr "Точні бар'єри (Vulkan)"
+
+msgid "Coreinit Logging (OSReport/OSConsole)"
+msgstr "Ведення журналу Coreinit (OSReport/OSConsole)"
+
+msgid "Texture readback"
+msgstr "Зчитування текстури"

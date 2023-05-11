@@ -1,0 +1,3373 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Cemu\n"
+"POT-Creation-Date: 2021-07-16 19:03+0200\n"
+"PO-Revision-Date: 2022-08-30 21:37+0900\n"
+"Last-Translator: Patrick Lofstrom <patricklofstrom@gmail.com>\n"
+"Language-Team: \n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.1.1\n"
+
+#: BreakpointWindow.cpp:41 GeneralSettings2.cpp:1295
+msgid "On"
+msgstr "オン"
+
+#: BreakpointWindow.cpp:47 ModuleWindow.cpp:41 debugPPCThreadsWindow.cpp:45
+msgid "Address"
+msgstr "アドレス"
+
+#: BreakpointWindow.cpp:53 textureRelationWindow.cpp:60
+#: wxDownloadManagerList.cpp:114 wxTitleManagerList.cpp:105
+msgid "Type"
+msgstr "タイプ"
+
+#: BreakpointWindow.cpp:59
+msgid "Comment"
+msgstr "コメント"
+
+#: BreakpointWindow.cpp:201 DisasmCtrl.cpp:624
+msgid "Enter a new comment."
+msgstr "新しいコメントを入力してください。"
+
+#: BreakpointWindow.cpp:201
+#, c-format
+msgid "Set comment for breakpoint at address %08x"
+msgstr "アドレス %08x にブレーク ポイントのコメントを設定してください"
+
+#: BreakpointWindow.cpp:216
+msgid "Create memory breakpoint (read)"
+msgstr "メモリブレークポイントの作成（読み込み）"
+
+#: BreakpointWindow.cpp:217
+msgid "Create memory breakpoint (write)"
+msgstr "メモリブレークポイントの作成（書き込み）"
+
+#: BreakpointWindow.cpp:238
+msgid "Enter a memory address"
+msgstr "メモリアドレスの入力"
+
+#: BreakpointWindow.cpp:238
+msgid "Memory breakpoint"
+msgstr "メモリ ブレークポイント"
+
+#: CemuApp.cpp:30
+msgid "Browse"
+msgstr "参照"
+
+#: CemuApp.cpp:31
+msgid "Select a file"
+msgstr "ファイルを選択してください"
+
+#: CemuApp.cpp:32
+msgid "Select a directory"
+msgstr "ディレクトリを選択してください"
+
+#: CemuApp.cpp:34
+msgid "base"
+msgstr "ベース"
+
+#: CemuApp.cpp:35
+msgid "update"
+msgstr "アップデート"
+
+#: CemuApp.cpp:36
+msgid "dlc"
+msgstr "dlc"
+
+#: CemuApp.cpp:37
+msgid "save"
+msgstr "保存"
+
+#: CemuApp.cpp:39
+msgid "Japan"
+msgstr "日本"
+
+#: CemuApp.cpp:40
+msgid "USA"
+msgstr "米国"
+
+#: CemuApp.cpp:41
+msgid "Europe"
+msgstr "ヨーロッパ"
+
+#: CemuApp.cpp:42
+msgid "Australia"
+msgstr "オーストラリア"
+
+#: CemuApp.cpp:43
+msgid "China"
+msgstr "中国"
+
+#: CemuApp.cpp:44
+msgid "Korea"
+msgstr "韓国"
+
+#: CemuApp.cpp:45
+msgid "Taiwan"
+msgstr "台湾"
+
+#: CemuApp.cpp:46
+msgid "Auto"
+msgstr "自動"
+
+#: CemuApp.cpp:47
+msgid "many"
+msgstr "多"
+
+#: CemuApp.cpp:49
+msgid "Japanese"
+msgstr "日本語"
+
+#: CemuApp.cpp:50 GeneralSettings2.cpp:107
+msgid "English"
+msgstr "英語"
+
+#: CemuApp.cpp:51
+msgid "French"
+msgstr "フランス語"
+
+#: CemuApp.cpp:52
+msgid "German"
+msgstr "ドイツ語"
+
+#: CemuApp.cpp:53
+msgid "Italian"
+msgstr "イタリア語"
+
+#: CemuApp.cpp:54
+msgid "Spanish"
+msgstr "スペイン語"
+
+#: CemuApp.cpp:55
+msgid "Chinese"
+msgstr "中国語"
+
+#: CemuApp.cpp:56
+msgid "Korean"
+msgstr "韓国語"
+
+#: CemuApp.cpp:57
+msgid "Dutch"
+msgstr "オランダ語"
+
+#: CemuApp.cpp:58
+msgid "Portugese"
+msgstr "ポルトガル語"
+
+#: CemuApp.cpp:59
+msgid "Russian"
+msgstr "ロシア語"
+
+#: CemuApp.cpp:60
+msgid "Taiwanese"
+msgstr "台湾語"
+
+#: CemuApp.cpp:61
+msgid "unknown"
+msgstr "不明"
+
+#: CemuApp.cpp:65
+msgid "AccountId missing (The account is not connected to a NNID)"
+msgstr "AccountId がありません（ NNID に接続されていない）"
+
+#: CemuApp.cpp:66
+msgid ""
+"IsPasswordCacheEnabled is set to false (The remember password option on your "
+"Wii U must be enabled for this account before dumping it)"
+msgstr ""
+"IsPasswordCacheEnabled が false に設定されています（ダンプする前に、この Wii "
+"U アカウントのパスワード記憶オプションが有効になっている必要があります）"
+
+#: CemuApp.cpp:67
+msgid ""
+"AccountPasswordCache is empty (The remember password option on your Wii U "
+"must be enabled for this account before dumping it)"
+msgstr ""
+"AccountPasswordCache は空です（ダンプする前に、このアカウントの Wii U のパス"
+"ワード記憶オプションが有効になっている必要があります）"
+
+#: CemuApp.cpp:68
+msgid "PrincipalId missing"
+msgstr "PrincipalId がありません"
+
+#: CemuApp.cpp:115
+msgid ""
+"Cemu detected that it is being launched through Steam.\n"
+"There is currently an issue where Steam shader pre-caching in combination "
+"with Vulkan async shader compilation causes graphic bugs.\n"
+"We highly recommend that you turn off Steam shader pre-caching in the "
+"settings of Steam or simply launch Cemu manually."
+msgstr ""
+"Cemu は Steam 経由で起動されていることを検出しました。\n"
+"現在、 Vulkan 非同期シェーダーコンパイルと組み合わせた Steam シェーダープリ"
+"キャッシュがグラフィックバグを引き起こすという問題があります。\n"
+"Steam の設定で シェーダープリキャッシュ を無効にするか、Cemu を手動で起動する"
+"ことを強くお勧めします。"
+
+#: CemuApp.cpp:116 GameUpdateWindow.cpp:33 GameUpdateWindow.cpp:39
+#: GameUpdateWindow.cpp:45 GeneralSettings2.cpp:1496
+#: GraphicPacksWindow2.cpp:596 MainWindow.cpp:387 TitleManager.cpp:518
+#: wxTitleManagerList.cpp:247 wxTitleManagerList.cpp:265
+#: wxTitleManagerList.cpp:296 wxTitleManagerList.cpp:528
+msgid "Warning"
+msgstr "警告"
+
+#: CemuApp.cpp:362
+msgid ""
+"Your mlc01 folder seems to be missing.\n"
+"\n"
+"This is where Cemu stores save files, game updates and other Wii U files.\n"
+"\n"
+"The expected path is:\n"
+"{}\n"
+"\n"
+"Do you want to create the folder at the expected path?"
+msgstr ""
+"mlc01 フォルダが見当たりません。\n"
+"\n"
+"これは Cemu がセーブ ファイル、ゲーム アップデート、その他の Wii U ファイルを"
+"保存する場所です。\n"
+"\n"
+"期待されるパスは:\n"
+"{}\n"
+"\n"
+"期待されるパスにフォルダを作成しますか？"
+
+#: CemuApp.cpp:365
+msgid "Yes"
+msgstr "はい"
+
+#: CemuApp.cpp:365
+msgid "No"
+msgstr "いいえ"
+
+#: CemuApp.cpp:365
+msgid "Select a custom path"
+msgstr "カスタムパスを選択してください"
+
+#: CemuApp.cpp:443
+msgid ""
+"Couldn't create a required mlc01 subfolder or file!\n"
+"\n"
+"Error: {0}\n"
+"Target path:\n"
+"{1}"
+msgstr ""
+"必要な mlc01 のサブフォルダまたはファイルを作成できませんでした！\n"
+"\n"
+"エラー: {0}\n"
+"ターゲットパス\n"
+"{1}"
+
+#: CemuApp.cpp:468
+msgid ""
+"Couldn't create a required cemu directory or file!\n"
+"\n"
+"Error: {0}"
+msgstr ""
+"必要な Cemu ディレクトリまたはファイルを作成できませんでした！\n"
+"\n"
+"エラー: {0}"
+
+#: CemuApp.cpp:494
+msgid "Select a mlc directory"
+msgstr "mlc ディレクトリを選択してください"
+
+#: CemuApp.cpp:502
+msgid ""
+"Cemu can't write to the selected mlc path!\n"
+"Do you want to select another path?"
+msgstr ""
+"Cemu は選択された mlc パスに書き込むことができません！\n"
+"他のパスを選択しますか？"
+
+#: CemuApp.cpp:502 ChecksumTool.cpp:427 ChecksumTool.cpp:454
+#: ChecksumTool.cpp:475 ChecksumTool.cpp:480 ChecksumTool.cpp:485
+#: ChecksumTool.cpp:492 ChecksumTool.cpp:497 ChecksumTool.cpp:535
+#: ChecksumTool.cpp:561 ChecksumTool.cpp:565 ChecksumTool.cpp:575
+#: ChecksumTool.cpp:584 ChecksumTool.cpp:596 ChecksumTool.cpp:613
+#: ChecksumTool.cpp:622 ChecksumTool.cpp:641 ChecksumTool.cpp:650
+#: DSUSettings.cpp:54 DownloadGraphicPacksWindow.cpp:156
+#: DownloadGraphicPacksWindow.cpp:222 DumpCtrl.cpp:265 GameUpdateWindow.cpp:62
+#: GeneralSettings2.cpp:1100 InputSettings.cpp:126 InputSettings.cpp:626
+#: InputSettings.cpp:632 InputSettings.cpp:687 InputSettings.cpp:701
+#: InputSettings.cpp:707 InputSettings.cpp:712 InputSettings.cpp:725
+#: MainWindow.cpp:272 MainWindow.cpp:274 MainWindow.cpp:450 MainWindow.cpp:452
+#: MainWindow.cpp:454 MainWindow.cpp:1942 MainWindow.cpp:1946
+#: MainWindow.cpp:1950 MainWindow.cpp:1954 MainWindow.cpp:1959
+#: MainWindow.cpp:1967 MemorySearcherTool.cpp:196 SaveImportWindow.cpp:124
+#: SaveImportWindow.cpp:164 SaveImportWindow.cpp:176 SaveImportWindow.cpp:183
+#: SaveImportWindow.cpp:199 SaveImportWindow.cpp:220 SaveImportWindow.cpp:228
+#: SaveTransfer.cpp:100 SaveTransfer.cpp:116 SaveTransfer.cpp:123
+#: SaveTransfer.cpp:139 SaveTransfer.cpp:195 TitleManager.cpp:569
+#: TitleManager.cpp:660 TitleManager.cpp:678 TitleManager.cpp:687
+#: TitleManager.cpp:693 TitleManager.cpp:706 VulkanCanvas.cpp:30
+#: gpu7ShaderCache.cpp:209 helpers.cpp:88 helpers.cpp:105
+#: wxCreateAccountDialog.cpp:67 wxCreateAccountDialog.cpp:75
+#: wxCreateAccountDialog.cpp:84 wxCreateAccountDialog.cpp:90
+#: wxTitleManagerList.cpp:274 wxTitleManagerList.cpp:308
+#: wxTitleManagerList.cpp:337 wxTitleManagerList.cpp:568
+msgid "Error"
+msgstr "エラー"
+
+#: CemuUpdateWindow.cpp:44
+msgid "Update"
+msgstr "アップデート"
+
+#: CemuUpdateWindow.cpp:48 DownloadGraphicPacksWindow.cpp:325
+#: GameUpdateWindow.cpp:153 SaveImportWindow.cpp:65 SaveTransfer.cpp:66
+#: wxCreateAccountDialog.cpp:41
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: CemuUpdateWindow.cpp:55
+msgid "Changelog"
+msgstr "変更ログ"
+
+#: CemuUpdateWindow.cpp:532 CemuUpdateWindow.cpp:550
+msgid "Exit"
+msgstr "終了"
+
+#: CemuUpdateWindow.cpp:533
+msgid "No update available!"
+msgstr "アップデートがありません！"
+
+#: CemuUpdateWindow.cpp:549
+msgid "Update available!"
+msgstr "アップデートがあります！"
+
+#: CemuUpdateWindow.cpp:554
+msgid "Extracting update..."
+msgstr "アップデートを展開中..."
+
+#: CemuUpdateWindow.cpp:559
+msgid "Couldn't download the update!"
+msgstr "アップデートのダウンロードができませんでした！"
+
+#: CemuUpdateWindow.cpp:562
+msgid "Applying update..."
+msgstr "アップデートの適用中..."
+
+#: CemuUpdateWindow.cpp:569
+msgid "Extracting failed!"
+msgstr "解凍に失敗しました！"
+
+#: CemuUpdateWindow.cpp:575 ChecksumTool.cpp:592 MainWindow.cpp:421
+msgid "Success"
+msgstr "成功"
+
+#: CemuUpdateWindow.cpp:576
+msgid "Restart"
+msgstr "再起動"
+
+#: CemuUpdateWindow.cpp:598
+msgid "Downloading update..."
+msgstr "アップデートのダウンロード中..."
+
+#: ChecksumTool.cpp:87
+msgid "Title checksum of {:08x}-{:08x}"
+msgstr "タイトルチェックサムは {:08x}-{:08x}"
+
+#: ChecksumTool.cpp:102
+msgid "Verifying integrity of game files..."
+msgstr "ゲーム ファイルの整合性を検査中.."
+
+#: ChecksumTool.cpp:118 GraphicPacksWindow2.cpp:271
+msgid "Control"
+msgstr "コントロール"
+
+#: ChecksumTool.cpp:121
+msgid "Verify online"
+msgstr "オンラインで整合性を検査"
+
+#: ChecksumTool.cpp:122
+msgid "Verifies the checksum online"
+msgstr "オンラインでチェック サムを検証する"
+
+#: ChecksumTool.cpp:141
+msgid "Verify with file"
+msgstr "ファイルで整合性を検査"
+
+#: ChecksumTool.cpp:142
+msgid "Verifies the checksum with a local json file you can select"
+msgstr "選択可能なローカル JSON ファイルでチェック サムを検証します"
+
+#: ChecksumTool.cpp:147 TitleManager.cpp:131
+msgid "Export"
+msgstr "エクスポート"
+
+#: ChecksumTool.cpp:148
+msgid "Export the title checksum data to a local json file"
+msgstr ""
+"タイトル チェックサム データをローカルの json ファイルにエクスポートする"
+
+#: ChecksumTool.cpp:372
+msgid "Export checksum entry"
+msgstr "チェックサム エントリのエクスポート"
+
+#: ChecksumTool.cpp:423
+msgid "Export successful"
+msgstr "エクスポートに成功"
+
+#: ChecksumTool.cpp:427
+msgid "Can't write to file: {}"
+msgstr "ファイルに書き込めません: {}"
+
+#: ChecksumTool.cpp:454
+msgid "JSON file doesn't satisfy needed schema"
+msgstr "JSON ファイルが必要なスキーマを満たしていません"
+
+#: ChecksumTool.cpp:475
+msgid "Wrong title id: {}"
+msgstr "タイトル ID が違います: {}"
+
+#: ChecksumTool.cpp:480
+msgid "Wrong version: {}"
+msgstr "バージョンが違います: {}"
+
+#: ChecksumTool.cpp:485
+msgid "Wrong region: {}"
+msgstr "国や地域が違います: {}"
+
+#: ChecksumTool.cpp:492
+msgid "The verification data doesn't include a wud hash!"
+msgstr "検証データに wud ハッシュが含まれていません！"
+
+#: ChecksumTool.cpp:497
+msgid ""
+"Your game image is invalid!\n"
+"\n"
+"Your hash:\n"
+"{}\n"
+"\n"
+"Expected hash:\n"
+"{}"
+msgstr ""
+"ゲーム イメージは無効です！\n"
+"\n"
+"ハッシュを入力してください。\n"
+"{}\n"
+"\n"
+"必要なハッシュ:\n"
+"{}"
+
+#: ChecksumTool.cpp:507
+msgid "Select a file to export the errors"
+msgstr "エラーをエクスポートするファイルを選択してください"
+
+#: ChecksumTool.cpp:535
+msgid "Can't open file to write!"
+msgstr "書き込みのためのファイルを開くことができません！"
+
+#: ChecksumTool.cpp:557
+msgid "The following files are missing:"
+msgstr "以下のファイルが欠落しています:"
+
+#: ChecksumTool.cpp:565
+msgid ""
+"{} files are missing!\n"
+"Do you want to export a list of them to a file?"
+msgstr ""
+"{} 個のファイルが見つかりませんでした！\n"
+"そのリストをファイルにエクスポートしますか？"
+
+#: ChecksumTool.cpp:575
+msgid ""
+"{} files have an invalid hash!\n"
+"Do you want to export a list of them to a file?"
+msgstr ""
+"{} 個のファイルには無効なハッシュがあります!\n"
+"そのリストをファイルにエクスポートしますか？"
+
+#: ChecksumTool.cpp:584
+msgid ""
+"Multiple issues with your game files have been found!\n"
+"Do you want to export them to a file?"
+msgstr ""
+"ゲームファイルに複数の問題が見つかりました！\n"
+"ファイルにエクスポートしますか？"
+
+#: ChecksumTool.cpp:592
+msgid "Your game files are valid"
+msgstr "ゲームファイルは有効です"
+
+#: ChecksumTool.cpp:596
+msgid "JSON parse error: {}"
+msgstr "JSON パースエラー: {}"
+
+#: ChecksumTool.cpp:613 ChecksumTool.cpp:641
+msgid "Can't open file!"
+msgstr "ファイルを開けません！"
+
+#: ChecksumTool.cpp:622 ChecksumTool.cpp:650
+msgid "Can't parse json file!"
+msgstr "JSON ファイルを解析できません！"
+
+#: ChecksumTool.cpp:633
+msgid "Open checksum entry"
+msgstr "チェックサム エントリを開く"
+
+#: ChecksumTool.cpp:678
+msgid "Grabbing game files"
+msgstr "ゲーム ファイル取得中"
+
+#: ChecksumTool.cpp:719
+msgid "Hashing game file: {}/{}"
+msgstr "ゲームファイルをハッシュ化中: {}/{}"
+
+#: ChecksumTool.cpp:725
+msgid "Generated checksum of {} game files"
+msgstr "{} 件のゲームファイルのチェックサムを生成しました"
+
+#: ChecksumTool.cpp:731
+msgid "Reading game image: {}"
+msgstr "ゲーム イメージの読み込み: {}"
+
+#: ChecksumTool.cpp:760
+msgid "Reading game image: {}/{}kb"
+msgstr "ゲーム イメージの読み込み: {}/{}kb"
+
+#: ChecksumTool.cpp:764
+msgid "Generating checksum of game image: {}"
+msgstr "ゲーム イメージのチェックサムを作成中: {}"
+
+#: ChecksumTool.cpp:779
+msgid "Generated checksum of game image: {}"
+msgstr "ゲーム イメージのチェックサムを作成しました: {}"
+
+#: DSUSettings.cpp:18
+msgid "DSU client settings"
+msgstr "DSU クライアントの設定"
+
+#: DSUSettings.cpp:27
+msgid "IP"
+msgstr "IP"
+
+#: DSUSettings.cpp:32
+msgid "Port"
+msgstr "ポート"
+
+#: DSUSettings.cpp:54
+msgid "The entered port must be between 1 and 65535"
+msgstr "入力されたポートは1～65535の間でなければなりません"
+
+#: DebuggerWindow2.cpp:176
+msgid "GoTo (CTRL + G)"
+msgstr "GoTo (CTRL + G)"
+
+#: DebuggerWindow2.cpp:179
+msgid "Toggle Breakpoint (F9)"
+msgstr "ブレークポイントの設定/解除 (F9)"
+
+#: DebuggerWindow2.cpp:184 DebuggerWindow2.cpp:432
+msgid "Break (F5)"
+msgstr "中断  (F5)"
+
+#: DebuggerWindow2.cpp:186
+msgid "Step Into (F11)"
+msgstr "ステップ イン (F11)"
+
+#: DebuggerWindow2.cpp:187
+msgid "Step Over (F10)"
+msgstr "ステップ オーバー (F10)"
+
+#: DebuggerWindow2.cpp:421
+msgid "Run (F5)"
+msgstr "実行（F5）"
+
+#: DebuggerWindow2.cpp:563 MainWindow.cpp:1728
+msgid "&Exit"
+msgstr "終了(&E)"
+
+#: DebuggerWindow2.cpp:566 MainWindow.cpp:1729
+msgid "&File"
+msgstr "ファイル(&F)"
+
+#: DebuggerWindow2.cpp:570
+msgid "&Pin to main window"
+msgstr "メイン ウィンドウにピン留めする(&P)"
+
+#: DebuggerWindow2.cpp:571
+msgid "Break on &entry point"
+msgstr "エントリ ポイントで中断(&E)"
+
+#: DebuggerWindow2.cpp:572 MainWindow.cpp:1797
+msgid "&Options"
+msgstr "設定(&O)"
+
+#: DebuggerWindow2.cpp:576
+msgid "&Registers"
+msgstr "レジスター(&R)"
+
+#: DebuggerWindow2.cpp:577
+msgid "&Memory Dump"
+msgstr "メモリ ダンプ(&M)"
+
+#: DebuggerWindow2.cpp:578
+msgid "&Breakpoints"
+msgstr "ブレーク ポイント(&B)"
+
+#: DebuggerWindow2.cpp:579
+msgid "Module&list"
+msgstr "モジュール リスト(&L)"
+
+#: DebuggerWindow2.cpp:581
+msgid "&Window"
+msgstr "ウィンドウ(&W)"
+
+#: DisasmCtrl.cpp:602
+msgid "Enter a new instruction."
+msgstr "新しいインストラクションを入力してください。"
+
+#: DisasmCtrl.cpp:728 DumpCtrl.cpp:216
+msgid "Enter a target address."
+msgstr "ターゲットアドレスを入力してください。"
+
+#: DisasmCtrl.cpp:728 DumpCtrl.cpp:216
+msgid "GoTo address"
+msgstr "GoTo アドレス"
+
+#: DownloadGraphicPacksWindow.cpp:126
+msgid "Graphic packs cannot be updated while a game is running."
+msgstr "ゲーム実行中はグラフィック パックの更新はできません。"
+
+#: DownloadGraphicPacksWindow.cpp:126 DownloadGraphicPacksWindow.cpp:204
+#: DownloadGraphicPacksWindow.cpp:211 GettingStartedDialog.cpp:73
+#: GraphicPacksWindow2.cpp:190
+msgid "Graphic packs"
+msgstr "グラフィック パック"
+
+#: DownloadGraphicPacksWindow.cpp:156 DownloadGraphicPacksWindow.cpp:222
+msgid "Failed to connect to server"
+msgstr "サーバーへの接続に失敗しました"
+
+#: DownloadGraphicPacksWindow.cpp:204
+msgid "No updates available."
+msgstr "アップデートはありません。"
+
+#: DownloadGraphicPacksWindow.cpp:211
+msgid ""
+"Updated graphic packs are available. Do you want to download and install "
+"them?"
+msgstr ""
+"更新されたグラフィック パックを利用できます。ダウンロードしてインストールしま"
+"すか？"
+
+#: DownloadGraphicPacksWindow.cpp:315
+msgid "Checking version..."
+msgstr "バージョン確認中..."
+
+#: DownloadGraphicPacksWindow.cpp:393
+msgid "Downloading graphic packs..."
+msgstr "グラフィック パックのダウンロード中..."
+
+#: DownloadGraphicPacksWindow.cpp:397
+msgid "Extracting..."
+msgstr "展開中..."
+
+#: DownloadManager.cpp:361
+msgid "Downloading account ticket"
+msgstr "アカウント チケットのダウンロード中"
+
+#: DownloadManager.cpp:414
+msgid "Downloading system tickets..."
+msgstr "システム チケットのダウンロード中..."
+
+#: DownloadManager.cpp:476
+msgid "Retrieving update information..."
+msgstr "アップデート情報の取得..."
+
+#: DownloadManager.cpp:498
+msgid "Downloading ticket"
+msgstr "チケットのダウンロード中"
+
+#: DownloadManager.cpp:551
+msgid "Downloading meta data"
+msgstr "メタデータのダウンロード中"
+
+#: DownloadManager.cpp:556
+msgid "Connected. Right click entries in the list to start downloading"
+msgstr ""
+"接続しました。ダウンロードを開始するには、リスト内のエントリを右クリックして"
+"ください"
+
+#: DownloadManager.cpp:632
+msgid "Logging in.."
+msgstr "ログイン中..."
+
+#: DownloadManager.cpp:655
+msgid "Login failed. Outdated or incomplete online files?"
+msgstr "ログインに失敗しました。オンライン ファイルが古いか、不完全ですか？"
+
+#: DownloadManager.cpp:663
+msgid "Failed to query account status. Invalid account information?"
+msgstr ""
+"アカウント ステータスの照会に失敗しました。アカウント情報は有効ですか？"
+
+#: DownloadManager.cpp:667
+msgid "Updating ticket cache"
+msgstr "チケット キャッシュの更新"
+
+#: DownloadManager.cpp:672
+msgid "Failed to request tickets (invalid NNID?)"
+msgstr "チケットのリクエストに失敗しました（無効な NNID ？）"
+
+#: DownloadManager.cpp:697
+msgid "This account is not linked with an NNID"
+msgstr "このアカウントは NNID と連動していません"
+
+#: DownloadManager.cpp:708
+msgid "Failed. Account does not have password set"
+msgstr "失敗しました。アカウントにパスワードが設定されていません"
+
+#: DownloadManager.cpp:1025
+msgid "TMD download failed"
+msgstr "TMD のダウンロードに失敗しました"
+
+#: DownloadManager.cpp:1034
+msgid "Invalid TMD"
+msgstr "無効な TMD"
+
+#: DownloadManager.cpp:1148
+msgid "Cannot write file. Disk full?"
+msgstr "ファイルの書き込みができません。ディスクに空き容量がありますか？"
+
+#: DownloadManager.cpp:1170
+msgid "Cannot create file"
+msgstr "ファイルを作成できません"
+
+#: DownloadManager.cpp:1175
+msgid "Download failed"
+msgstr "ダウンロード失敗"
+
+#: DumpCtrl.cpp:201 RegisterCtrl.cpp:205 RegisterCtrl.cpp:224
+#: RegisterCtrl.cpp:238 RegisterWindow.cpp:343 RegisterWindow.cpp:359
+#: RegisterWindow.cpp:375
+msgid "Enter a new value."
+msgstr "新しい値を入力してください。"
+
+#: GameProfileWindow.cpp:19 GameProfileWindow.cpp:248
+msgid "Edit game profile"
+msgstr "ゲームプロフィールを編集する"
+
+#: GameProfileWindow.cpp:36 GameProfileWindow.cpp:91 GeneralSettings2.cpp:221
+#: GeneralSettings2.cpp:312 GeneralSettings2.cpp:736
+msgid "General"
+msgstr "一般"
+
+#: GameProfileWindow.cpp:39
+msgid "Load shared libraries"
+msgstr "共有ライブラリを読み込む"
+
+#: GameProfileWindow.cpp:40
+msgid ""
+"EXPERT OPTION\n"
+"This option will load libraries from the cafeLibs directory"
+msgstr ""
+"エキスパート オプション\n"
+"このオプションは、cafeLibs ディレクトリからライブラリをロードします"
+
+#: GameProfileWindow.cpp:43
+msgid "Launch with gamepad view"
+msgstr "GamePad ビューで起動"
+
+#: GameProfileWindow.cpp:44
+msgid ""
+"Games will be launched with gamepad view toggled as default. The view can be "
+"toggled with CTRL + TAB"
+msgstr ""
+"ゲームは、既定で GamePad ビューが有効状態で起動します。CTRL  +  TAB でビュー"
+"を切り替えることができます"
+
+#: GameProfileWindow.cpp:51
+msgid "CPU"
+msgstr "CPU"
+
+#: GameProfileWindow.cpp:58
+msgid "Mode"
+msgstr "モード"
+
+#: GameProfileWindow.cpp:60
+msgid "Single-core interpreter"
+msgstr "シングルコアのインタープリター"
+
+#: GameProfileWindow.cpp:60
+msgid "Single-core recompiler"
+msgstr "シングルコアのリコンパイラ"
+
+#: GameProfileWindow.cpp:60
+msgid "Multi-core recompiler"
+msgstr "マルチコア リコンパイラ"
+
+#: GameProfileWindow.cpp:60
+msgid "Auto (recommended)"
+msgstr "オート（おすすめ）"
+
+#: GameProfileWindow.cpp:63
+msgid "Set the CPU emulation mode"
+msgstr "CPU エミュレーション モードの設定"
+
+#: GameProfileWindow.cpp:66
+msgid "Thread quantum"
+msgstr "スレッド量子"
+
+#: GameProfileWindow.cpp:75
+msgid ""
+"EXPERT OPTION\n"
+"Set the maximum thread slice runtime (in virtual cycles)"
+msgstr ""
+"エキスパート オプション\n"
+"スレッド スライスの最大実行時間（仮想サイクル）の設定"
+
+#: GameProfileWindow.cpp:78
+msgid "cycles"
+msgstr "サイクル"
+
+#: GameProfileWindow.cpp:113 GeneralSettings2.cpp:228
+msgid "Graphics API"
+msgstr "グラフィックス API"
+
+#: GameProfileWindow.cpp:119
+msgid "Shader mul accuracy"
+msgstr "シェーダ mul 精度"
+
+#: GameProfileWindow.cpp:121
+msgid "false"
+msgstr "false"
+
+#: GameProfileWindow.cpp:121
+msgid "true"
+msgstr "true"
+
+#: GameProfileWindow.cpp:121
+msgid "minimal"
+msgstr "最小"
+
+#: GameProfileWindow.cpp:123
+msgid ""
+"EXPERT OPTION\n"
+"Controls the accuracy of floating point multiplication in shaders.\n"
+"\n"
+"Recommended: true"
+msgstr ""
+"エキスパート オプション\n"
+"シェーダーにおける浮動小数点数の乗算の精度を制御します。\n"
+"\n"
+"おすすめ: true"
+
+#: GameProfileWindow.cpp:138
+msgid "Graphic"
+msgstr "グラフィック"
+
+#: GameProfileWindow.cpp:169 GameProfileWindow.cpp:184
+msgid "Controller"
+msgstr "コントローラー"
+
+#: GameProfileWindow.cpp:175
+msgid "Forces a given controller profile"
+msgstr "指定されたコントローラー プロファイルを強制的に実行する"
+
+#: GameUpdateWindow.cpp:33
+msgid ""
+"It seems that there's a wrong title installed at the target location.\n"
+"Please use the title manager to fix it first!"
+msgstr ""
+"対象の場所に間違ったタイトルがインストールされているようです。\n"
+"まずはタイトル マネージャーで修正してください！"
+
+#: GameUpdateWindow.cpp:39
+msgid ""
+"It seems that the selected title is already installed, do you want to "
+"reinstall it?"
+msgstr ""
+"選択中のタイトルは既にインストールされているようですが、再インストールします"
+"か？"
+
+#: GameUpdateWindow.cpp:45
+msgid ""
+"It seems that a newer version is already installed, do you still want to "
+"install the older version?"
+msgstr ""
+"より新しいバージョンがすでにインストールされているようですが、古いバージョン"
+"のインストールを続行しますか？"
+
+#: GameUpdateWindow.cpp:61
+msgid ""
+"Error when trying to move former title installation:\n"
+"{}"
+msgstr ""
+"旧タイトルインストールを移動しようとするとエラーが発生しました:\n"
+"{}"
+
+#: GameUpdateWindow.cpp:94
+msgid "Invalid folder structure"
+msgstr "無効なフォルダ構造"
+
+#: GameUpdateWindow.cpp:116
+msgid ""
+"Not enough space available.\n"
+"Required: {0} MB\n"
+"Available: {1} MB"
+msgstr ""
+"ディスク容量が不足しています\n"
+"必要な容量: {0} MB\n"
+"現在の空き容量: {1} MB"
+
+#: GameUpdateWindow.cpp:142
+msgid "Installing DLC ..."
+msgstr "DLC をインストール中..."
+
+#: GameUpdateWindow.cpp:144
+msgid "Installing update ..."
+msgstr "更新データをインストール中..."
+
+#: GameUpdateWindow.cpp:146
+msgid "Installing title ..."
+msgstr "タイトルをインストール中..."
+
+#: GameUpdateWindow.cpp:227
+msgid "Current file:"
+msgstr "現在のファイル:"
+
+#: GameUpdateWindow.cpp:259
+msgid ""
+"Do you really want to cancel the installation process?\n"
+"\n"
+"Canceling the process will delete the applied files."
+msgstr ""
+"本当にアップデート作業をキャンセルしますか？\n"
+"\n"
+"処理をキャンセルすると、適用されたアップデートは削除されます。"
+
+#: GameUpdateWindow.cpp:259
+msgid "Info"
+msgstr "情報"
+
+#: GeneralSettings2.cpp:97
+msgid "Interface"
+msgstr "インターフェース"
+
+#: GeneralSettings2.cpp:105
+msgid "Language"
+msgstr "UI の言語"
+
+#: GeneralSettings2.cpp:107
+msgid "Default"
+msgstr "デフォルト"
+
+#: GeneralSettings2.cpp:110
+msgid ""
+"Changes the interface language of Cemu\n"
+"Available languages are stored in the translation directory\n"
+"A restart will be required after changing the language"
+msgstr ""
+"Cemu のインターフェース言語を変更します。\n"
+"利用可能な言語は翻訳ディレクトリに保存されます\n"
+"言語の変更後は再起動が必要です"
+
+#: GeneralSettings2.cpp:127
+msgid "Remember main window position"
+msgstr "メイン ウィンドウの位置を記憶する"
+
+#: GeneralSettings2.cpp:128
+msgid "Restores the last known window position and size when starting Cemu"
+msgstr "Cemu の起動時に、最後に確認したウィンドウの位置とサイズを復元します"
+
+#: GeneralSettings2.cpp:131
+msgid "Remember pad window position"
+msgstr "GamePad ウィンドウの位置を記憶する"
+
+#: GeneralSettings2.cpp:132
+msgid "Restores the last known pad window position and size when opening it"
+msgstr "GamePad ウィンドウを開く際に、最後に認識された位置とサイズを復元します"
+
+#: GeneralSettings2.cpp:136
+msgid "Discord Presence"
+msgstr "Discord にプレイ状況を表示"
+
+#: GeneralSettings2.cpp:137
+msgid ""
+"Enables the Discord Rich Presence feature\n"
+"You will also need to enable it in the Discord settings itself!"
+msgstr ""
+"Discord リッチ プレゼンス 機能を有効にします。\n"
+"Discord の設定自体でも有効にする必要があります！"
+
+#: GeneralSettings2.cpp:140
+msgid "Fullscreen menu bar"
+msgstr "全画面表示メニューバー"
+
+#: GeneralSettings2.cpp:141
+msgid ""
+"Displays the menu bar when Cemu is running in fullscreen mode and the mouse "
+"cursor is moved to the top"
+msgstr ""
+"Cemu が全画面表示で動作しているときに、マウスカーソルを上部に動かすとメニュー"
+"バーを表示する"
+
+#: GeneralSettings2.cpp:144 GettingStartedDialog.cpp:133
+msgid "Automatically check for updates"
+msgstr "自動でアップデートを確認する"
+
+#: GeneralSettings2.cpp:145
+msgid "Automatically checks for new cemu versions on startup"
+msgstr "起動時に新しいバージョンの Cemu を自動的にチェックします"
+
+#: GeneralSettings2.cpp:148
+msgid "Save screenshot"
+msgstr "スクリーン ショットを保存"
+
+#: GeneralSettings2.cpp:149
+msgid ""
+"Pressing the screenshot key (F12) will save a screenshot directly to the "
+"screenshots folder"
+msgstr ""
+"スクリーン ショットキー（F12）を押すと、スクリーン ショットが直接スクリーン "
+"ショットフォルダに保存されます"
+
+#: GeneralSettings2.cpp:152
+msgid "Use permanent storage"
+msgstr "永続記憶域を利用する"
+
+#: GeneralSettings2.cpp:153
+msgid ""
+"Cemu will remember your custom mlc path in %LOCALAPPDATA%/Cemu for new "
+"installations."
+msgstr ""
+"Cemu が新規インストール時に %LOCALAPPDATA%/Cemu にあるカスタム mlc パスを記憶"
+"します。"
+
+#: GeneralSettings2.cpp:163
+msgid "MLC Path"
+msgstr "MLC パス"
+
+#: GeneralSettings2.cpp:169
+msgid ""
+"The mlc directory contains your save games and installed game update/dlc data"
+msgstr ""
+"mlc ディレクトリには、セーブゲームとインストールされたゲームのアップデート・"
+"DLC データが格納されています"
+
+#: GeneralSettings2.cpp:175
+msgid ""
+"Select a custom mlc path\n"
+"The mlc path is used to store Wii U related files like save games, game "
+"updates and dlc data"
+msgstr ""
+"カスタム mlc パスの選択\n"
+"mlc パスは、セーブゲーム、ゲームアップデート、DLC データなど、 Wii U 関連の"
+"ファイルを保存するために使用されます"
+
+#: GeneralSettings2.cpp:183
+msgid "Game Paths"
+msgstr "ゲームパス"
+
+#: GeneralSettings2.cpp:188
+msgid ""
+"Add the root directory of your game(s). It will scan all directories in it "
+"for games"
+msgstr ""
+"ゲームのルートディレクトリを追加します。その中のすべてのディレクトリをスキャ"
+"ンして、ゲームを探します"
+
+#: GeneralSettings2.cpp:195
+msgid "Add"
+msgstr "追加"
+
+#: GeneralSettings2.cpp:197
+msgid ""
+"Adds a game path to scan for games displayed in the game list\n"
+"If you have unpacked games, make sure to select the root folder of a game"
+msgstr ""
+"ゲームリストに表示されるゲームのスキャンにゲームパスを追加する\n"
+"ゲームを解凍している場合は、必ずゲームのルートフォルダを選択してください"
+
+#: GeneralSettings2.cpp:200
+msgid "Remove"
+msgstr "削除"
+
+#: GeneralSettings2.cpp:202
+msgid "Removes the currently selected game path from the game list"
+msgstr "現在選択されているゲーム パスをゲーム リストから削除します"
+
+#: GeneralSettings2.cpp:241
+msgid "Select one of the available graphic back ends"
+msgstr "利用可能なグラフィック バックエンドを選択してください"
+
+#: GeneralSettings2.cpp:245
+msgid "Graphics Device"
+msgstr "グラフィックス デバイス"
+
+#: GeneralSettings2.cpp:248
+msgid "Select the used graphic device"
+msgstr "使用したいグラフィック デバイスを選択してください"
+
+#: GeneralSettings2.cpp:251
+msgid "Precompiled shaders"
+msgstr "プリコンパイルされたシェーダー"
+
+#: GeneralSettings2.cpp:252
+msgid "auto"
+msgstr "自動"
+
+#: GeneralSettings2.cpp:252
+msgid "enable"
+msgstr "有効にする"
+
+#: GeneralSettings2.cpp:252
+msgid "disable"
+msgstr "無効"
+
+#: GeneralSettings2.cpp:256
+msgid ""
+"Precompiled shaders can speed up the load time on the shader loading "
+"screen.\n"
+"Auto will enable it for AMD/Intel but disable it for NVIDIA GPUs as a "
+"workaround for a driver bug.\n"
+"\n"
+"Recommended: Auto"
+msgstr ""
+"プリコンパイルされたシェーダーは、シェーダー ロード画面での読み込み速度を速め"
+"ることができます。\n"
+"自動 は AMD・IntelのGPU では有効ですが、NVIDIA の GPU ではドライバーのバグの"
+"回避策として無効となります。\n"
+"\n"
+"おすすめ: 自動"
+
+#: GeneralSettings2.cpp:259
+msgid "VSync"
+msgstr "垂直同期"
+
+#: GeneralSettings2.cpp:261
+msgid "Controls the vsync state"
+msgstr "垂直同期の状態を制御する"
+
+#: GeneralSettings2.cpp:268
+msgid "Async shader compile"
+msgstr "非同期シェーダーコンパイル"
+
+#: GeneralSettings2.cpp:269
+msgid ""
+"Enables async shader and pipeline compilation. Reduces stutter at the cost "
+"of objects not rendering for a short time.\n"
+"Vulkan only"
+msgstr ""
+"非同期シェーダとパイプラインのコンパイルを可能にする。オブジェクトが短時間レ"
+"ンダリングされないという代償を払って、途切れを低減します。\n"
+"Vulkan のみ"
+
+#: GeneralSettings2.cpp:272
+msgid "Full sync at GX2DrawDone()"
+msgstr "GX2DrawDoneで完全同期()"
+
+#: GeneralSettings2.cpp:273
+msgid ""
+"If synchronization is requested by the game, the emulated CPU will wait for "
+"the GPU to finish all operations.\n"
+"This is more accurate behavior, but may cause lower performance"
+msgstr ""
+"ゲームによって同期が要求された場合、エミュレートされた CPU は GPU がすべての"
+"処理を終えるまで待ちます。\n"
+"これはより正確な動作ですが、性能が低下する可能性があります"
+
+#: GeneralSettings2.cpp:281
+msgid "Bilinear"
+msgstr "バイリニア"
+
+#: GeneralSettings2.cpp:281
+msgid "Bicubic"
+msgstr "バイキュービック"
+
+#: GeneralSettings2.cpp:281
+msgid "Hermite"
+msgstr "エルミート"
+
+#: GeneralSettings2.cpp:281
+msgid "Nearest Neighbor"
+msgstr "最近傍"
+
+#: GeneralSettings2.cpp:282
+msgid "Upscale filter"
+msgstr "アップスケールフィルター"
+
+#: GeneralSettings2.cpp:283
+msgid ""
+"Upscaling filters are used when the game resolution is smaller than the "
+"window size"
+msgstr ""
+"アップスケーリフィルターは、ゲームの解像度がウィンドウ サイズより小さい場合に"
+"使用されます"
+
+#: GeneralSettings2.cpp:286
+msgid "Downscale filter"
+msgstr "ダウン スケール フィルター"
+
+#: GeneralSettings2.cpp:287
+msgid ""
+"Downscaling filters are used when the game resolution is bigger than the "
+"window size"
+msgstr ""
+"ダウン スケール フィルタは、ゲームの解像度がウィンドウ サイズより大きい場合に"
+"使用されます"
+
+#: GeneralSettings2.cpp:292
+msgid "Keep aspect ratio"
+msgstr "縦横比を維持"
+
+#: GeneralSettings2.cpp:292
+msgid "Stretch"
+msgstr "引き伸ばす"
+
+#: GeneralSettings2.cpp:293
+msgid "Fullscreen scaling"
+msgstr "全画面表示の拡大縮小"
+
+#: GeneralSettings2.cpp:294
+msgid ""
+"Controls the output aspect ratio when it doesn't match the ratio of the game"
+msgstr "出力のアスペクト比がゲームの比率と一致しない場合に制御する"
+
+#: GeneralSettings2.cpp:319
+msgid "API"
+msgstr "API"
+
+#: GeneralSettings2.cpp:330
+msgid "Select one of the available audio back ends"
+msgstr "利用可能なオーディオ バックエンドを１つ選択してください"
+
+#: GeneralSettings2.cpp:337
+msgid "Latency"
+msgstr "待機時間"
+
+#: GeneralSettings2.cpp:339
+msgid ""
+"Controls the amount of buffered audio data\n"
+"Higher values will create a delay in audio playback, but may avoid audio "
+"problems when emulation is too slow"
+msgstr ""
+"バッファーされるオーディオデータ量を制御します\n"
+"値を大きくすると、オーディオ再生に遅延が生じますが、エミュレーションが遅すぎ"
+"る場合にオーディオの問題を回避できる場合があります"
+
+#: GeneralSettings2.cpp:350
+msgid "Mono"
+msgstr "モノラル"
+
+#: GeneralSettings2.cpp:350 GeneralSettings2.cpp:407
+msgid "Stereo"
+msgstr "ステレオ"
+
+#: GeneralSettings2.cpp:350
+msgid "Surround"
+msgstr "サラウンド"
+
+#: GeneralSettings2.cpp:352
+msgid "TV"
+msgstr "TV"
+
+#: GeneralSettings2.cpp:359 GeneralSettings2.cpp:398
+msgid "Device"
+msgstr "デバイス"
+
+#: GeneralSettings2.cpp:362
+msgid "Select the active audio output device for Wii U TV"
+msgstr "Wii U TV のアクティブ オーディオ出力デバイスを選択してください"
+
+#: GeneralSettings2.cpp:368 GeneralSettings2.cpp:409
+msgid "Channels"
+msgstr "チャンネル"
+
+#: GeneralSettings2.cpp:377 GeneralSettings2.cpp:418 InputPanelGamepad.cpp:165
+#: InputPanelWiimote.cpp:103
+msgid "Volume"
+msgstr "音量"
+
+#: GeneralSettings2.cpp:391
+msgid "Gamepad"
+msgstr "GamePad"
+
+#: GeneralSettings2.cpp:401
+msgid "Select the active audio output device for Wii U GamePad"
+msgstr "Wii U GamePad のアクティブ オーディオ出力デバイスを選択してください"
+
+#: GeneralSettings2.cpp:440 GeneralSettings2.cpp:715 GeneralSettings2.cpp:1033
+#: GeneralSettings2.cpp:1034
+msgid "Disabled"
+msgstr "無効"
+
+#: GeneralSettings2.cpp:440
+msgid "Top left"
+msgstr "左上"
+
+#: GeneralSettings2.cpp:440
+msgid "Top center"
+msgstr "中央上"
+
+#: GeneralSettings2.cpp:440
+msgid "Top right"
+msgstr "右上"
+
+#: GeneralSettings2.cpp:440
+msgid "Bottom left"
+msgstr "左下"
+
+#: GeneralSettings2.cpp:440
+msgid "Bottom center"
+msgstr "中央下"
+
+#: GeneralSettings2.cpp:440
+msgid "Bottom right"
+msgstr "右下"
+
+#: GeneralSettings2.cpp:443 GeneralSettings2.cpp:739
+msgid "Overlay"
+msgstr "オーバーレイ"
+
+#: GeneralSettings2.cpp:450 GeneralSettings2.cpp:531
+msgid "Position"
+msgstr "位置"
+
+#: GeneralSettings2.cpp:453
+msgid "Controls the overlay which displays technical information while playing"
+msgstr "ゲーム中に技術情報を表示するオーバーレイを制御します"
+
+#: GeneralSettings2.cpp:458 GeneralSettings2.cpp:540
+msgid "Text Color"
+msgstr "文字色"
+
+#: GeneralSettings2.cpp:460
+msgid "Sets the text color of the overlay"
+msgstr "オーバーレイの文字色を設定する"
+
+#: GeneralSettings2.cpp:465 GeneralSettings2.cpp:545
+msgid "Scale"
+msgstr "スケール"
+
+#: GeneralSettings2.cpp:467
+msgid "Sets the scale of the overlay text"
+msgstr "オーバーレイ テキストのスケールを設定する"
+
+#: GeneralSettings2.cpp:474
+msgid "FPS"
+msgstr "FPS"
+
+#: GeneralSettings2.cpp:475
+msgid "The number of frames per second. Average over last 5 seconds"
+msgstr "１秒あたりのフレーム数です。過去5秒間の平均値"
+
+#: GeneralSettings2.cpp:478
+msgid "Draw calls per frame"
+msgstr "１フレームあたりの描画コール数"
+
+#: GeneralSettings2.cpp:479
+msgid "The number of draw calls per frame. Average over last 5 seconds"
+msgstr "１フレームあたりの描画呼び出し数。過去5秒間の平均値"
+
+#: GeneralSettings2.cpp:482
+msgid "CPU usage"
+msgstr "CPU の使用率"
+
+#: GeneralSettings2.cpp:483
+msgid "CPU usage of Cemu in percent"
+msgstr "Cemu の CPU 使用率（％）"
+
+#: GeneralSettings2.cpp:486
+msgid "CPU per core usage"
+msgstr "コアあたりの CPU 使用率"
+
+#: GeneralSettings2.cpp:487
+msgid "Total cpu usage in percent for each core"
+msgstr "各コアの総 CPU 使用率（％）"
+
+#: GeneralSettings2.cpp:490
+msgid "RAM usage"
+msgstr "RAM 使用量"
+
+#: GeneralSettings2.cpp:491
+msgid "Cemu RAM usage in MB"
+msgstr "Cemu RAM 使用量（MB）"
+
+#: GeneralSettings2.cpp:494
+msgid "VRAM usage"
+msgstr "VRAM 使用量"
+
+#: GeneralSettings2.cpp:502 GeneralSettings2.cpp:509
+msgid "The VRAM usage of Cemu in MB"
+msgstr "Cemu の VRAM 使用量（MB）"
+
+#: GeneralSettings2.cpp:505
+msgid "This option requires Win8.1+"
+msgstr "このオプションを使用するには、Windows 8.1 以上が必要です"
+
+#: GeneralSettings2.cpp:514 GeneralSettings2.cpp:741
+msgid "Debug"
+msgstr "デバッグ"
+
+#: GeneralSettings2.cpp:515
+msgid "Displays internal debug information (Vulkan only)"
+msgstr "内部デバッグ情報を表示する（Vulkan のみ）"
+
+#: GeneralSettings2.cpp:524
+msgid "Notifications"
+msgstr "通知"
+
+#: GeneralSettings2.cpp:535
+msgid "Controls the notification position while playing"
+msgstr "ゲーム中の通知位置の制御"
+
+#: GeneralSettings2.cpp:542
+msgid "Sets the text color of notifications"
+msgstr "通知の文字色を設定する"
+
+#: GeneralSettings2.cpp:547
+msgid "Sets the scale of the notification text"
+msgstr "通知テキストのスケールを設定する"
+
+#: GeneralSettings2.cpp:554
+msgid "Controller profiles"
+msgstr "コントローラープロファイル"
+
+#: GeneralSettings2.cpp:555
+msgid "Displays the active controller profile when starting a game"
+msgstr "ゲーム起動時にアクティブのコントローラープロファイルを表示します"
+
+#: GeneralSettings2.cpp:558
+msgid "Low battery"
+msgstr "バッテリ低下"
+
+#: GeneralSettings2.cpp:559
+msgid "Shows a notification when a low controller battery has been detected"
+msgstr "コントローラーのバッテリー残量低下を検出した場合に通知を表示する"
+
+#: GeneralSettings2.cpp:562
+msgid "Shader compiler"
+msgstr "シェーダー コンパイラー"
+
+#: GeneralSettings2.cpp:563
+msgid "Shows a notification after shaders have been compiled"
+msgstr "シェーダーがコンパイルされた後に通知を表示する"
+
+#: GeneralSettings2.cpp:566
+msgid "Friend list"
+msgstr "お友達リスト"
+
+#: GeneralSettings2.cpp:567
+msgid "Shows friend list related data if online"
+msgstr "オンラインの場合、フレンド リスト関連のデータを表示する"
+
+#: GeneralSettings2.cpp:587
+msgid "Account settings"
+msgstr "アカウント設定"
+
+#: GeneralSettings2.cpp:597
+msgid "Active account"
+msgstr "有効なアカウント"
+
+#: GeneralSettings2.cpp:604
+msgid "Create"
+msgstr "作成"
+
+#: GeneralSettings2.cpp:608 InputSettings.cpp:202 TitleManager.cpp:120
+msgid "Delete"
+msgstr "削除"
+
+#: GeneralSettings2.cpp:625
+msgid "Online settings"
+msgstr "オンライン設定"
+
+#: GeneralSettings2.cpp:628
+msgid "Enable online mode"
+msgstr "オンライン モードを有効にする"
+
+#: GeneralSettings2.cpp:641
+msgid "No account selected"
+msgstr "アカウントが選択されていません"
+
+#: GeneralSettings2.cpp:646
+msgid "Online play tutorial"
+msgstr "オンライン プレイのチュートリアル"
+
+#: GeneralSettings2.cpp:654
+msgid "Account information"
+msgstr "アカウント情報"
+
+#: GeneralSettings2.cpp:666
+msgid "The persistent id is the internal folder name used for your saves"
+msgstr "永続的な ID は、保存に使用する内部フォルダー名です"
+
+#: GeneralSettings2.cpp:669
+msgid "Mii name"
+msgstr "Mii の名前"
+
+#: GeneralSettings2.cpp:669
+msgid "The mii name is the profile name"
+msgstr "Mii の 名前はプロファイル名です"
+
+#: GeneralSettings2.cpp:670
+msgid "Birthday"
+msgstr "誕生日"
+
+#: GeneralSettings2.cpp:673
+msgid "Female"
+msgstr "女性"
+
+#: GeneralSettings2.cpp:674
+msgid "Male"
+msgstr "男性"
+
+#: GeneralSettings2.cpp:677
+msgid "Email"
+msgstr "メールアドレス"
+
+#: GeneralSettings2.cpp:688
+msgid "Country"
+msgstr "国名"
+
+#: GeneralSettings2.cpp:713
+msgid "Crash dump"
+msgstr "クラッシュ ダンプ"
+
+#: GeneralSettings2.cpp:715
+msgid "Lite"
+msgstr "ライト"
+
+#: GeneralSettings2.cpp:715
+msgid "Full"
+msgstr "完全"
+
+#: GeneralSettings2.cpp:718
+msgid ""
+"Creates a dump when Cemu crashes\n"
+"Only enable when requested by a developer!\n"
+"The Full option will create a very large dump file (includes a full RAM dump "
+"of the Cemu process)"
+msgstr ""
+"Cemu がクラッシュしたときにダンプを作成する\n"
+"開発者から要求があった場合のみ有効にしてください\n"
+"完全オプションは、非常に大きなダンプファイルを作成します（Cemu プロセスの完全"
+"な RAM ダンプを含む）。"
+
+#: GeneralSettings2.cpp:729
+msgid "General settings"
+msgstr "一般設定"
+
+#: GeneralSettings2.cpp:737
+msgid "Graphics"
+msgstr "グラフィック"
+
+#: GeneralSettings2.cpp:738
+msgid "Audio"
+msgstr "オーディオ"
+
+#: GeneralSettings2.cpp:740 TitleManager.cpp:101
+msgid "Account"
+msgstr "アカウント"
+
+#: GeneralSettings2.cpp:1100
+msgid "Can't delete the only account!"
+msgstr "唯一のアカウントを削除できません！"
+
+#: GeneralSettings2.cpp:1110
+msgid "Are you sure you want to delete the account {} with id {:x}?"
+msgstr "本当に ID {:x} のアカウント {} を削除しますか？"
+
+#: GeneralSettings2.cpp:1114
+msgid "Confirmation"
+msgstr "確認"
+
+#: GeneralSettings2.cpp:1216
+msgid "At least one issue has been found"
+msgstr "少なくとも1つの問題が発見されました"
+
+#: GeneralSettings2.cpp:1253
+msgid "Your account is a valid online account"
+msgstr "このアカウントは、有効なオンライン アカウントです"
+
+#: GeneralSettings2.cpp:1294 GeneralSettings2.cpp:1313
+msgid "Off"
+msgstr "オフ"
+
+#: GeneralSettings2.cpp:1314
+msgid "Double buffering"
+msgstr "ダブル バッファー"
+
+#: GeneralSettings2.cpp:1315
+msgid "Triple buffering"
+msgstr "トリプル バッファー"
+
+#: GeneralSettings2.cpp:1317
+msgid "Match emulated display (Experimental)"
+msgstr "エミュレートされたディスプレイを合わせる（試験的）"
+
+#: GeneralSettings2.cpp:1495
+msgid ""
+"Please be aware that online mode lets you connect to OFFICIAL servers and "
+"therefore there is a risk of getting banned.\n"
+"Only proceed if you are willing to risk losing online access with your Wii U "
+"and/or NNID."
+msgstr ""
+"オンライン モードを有効にすると、任天堂の【公式】サーバーに接続するためアカウ"
+"ント停止される危険性があります。\n"
+"所持している WiiU・NNID を失うリスクを理解できた場合にのみ有効にしてくださ"
+"い。"
+
+#: GeneralSettings2.cpp:1657
+msgid "You have to restart the game in order to apply the new settings."
+msgstr "新しい設定を適用するには、ゲームを再起動する必要があります。"
+
+#: GeneralSettings2.cpp:1657 MainWindow.cpp:728 TitleManager.cpp:277
+#: VulkanRenderer.cpp:296
+msgid "Information"
+msgstr "情報"
+
+#: GeneralSettings2.cpp:1669
+msgid "Select a directory containing games."
+msgstr "ゲームの入っているディレクトリを選択してください。"
+
+#: GeneralSettings2.cpp:1783
+msgid "Online Status"
+msgstr "オンライン ステータス"
+
+#: GettingStartedDialog.cpp:23
+msgid ""
+"It looks like you're starting Cemu for the first time.\n"
+"This quick setup assistant will help you get the best experience"
+msgstr ""
+"Cemu を初めて起動するようです。\n"
+"このクイック セットアップ アシスタントは、最高のエクスペリエンスを得るために"
+"役立ちます"
+
+#: GettingStartedDialog.cpp:31
+msgid "mlc01 path"
+msgstr "mlc01 パス"
+
+#: GettingStartedDialog.cpp:32
+msgid ""
+"The mlc path is the root folder of the emulated Wii U internal flash "
+"storage. It contains all your saves, installed updates and DLCs.\n"
+"It is strongly recommend that you create a dedicated folder for it (example: "
+"C:\\wiiu\\mlc\\) \n"
+"If left empty, the mlc folder will be created inside the Cemu folder."
+msgstr ""
+"mlc パスは、エミュレートされた Wii U の内蔵フラッシュ ストレージのルートフォ"
+"ルダです。セーブ データ、インストール済みのアップデート、DLC がすべて格納され"
+"ています。\n"
+"専用のフォルダを作成することを強くお勧めします (例: C:\\wiiu\\mlc)。\n"
+"空のままだと、Cemu フォルダの中に mlc フォルダが作成されます。"
+
+#: GettingStartedDialog.cpp:34
+msgid ""
+"A custom mlc path from a previous Cemu installation has been found and "
+"filled in."
+msgstr ""
+"以前の Cemu インストールからのカスタム mlc パスが見つかり、記入されました。"
+
+#: GettingStartedDialog.cpp:40
+msgid "Custom mlc01 path"
+msgstr "カスタム mlc01 パス"
+
+#: GettingStartedDialog.cpp:43 GettingStartedDialog.cpp:64
+msgid "Select a folder"
+msgstr "フォルダーを選択してください"
+
+#: GettingStartedDialog.cpp:48
+msgid "(optional)"
+msgstr "(オプション)"
+
+#: GettingStartedDialog.cpp:56
+msgid "Game paths"
+msgstr "ゲームパス"
+
+#: GettingStartedDialog.cpp:58
+msgid ""
+"The game path is scanned by Cemu to locate your games. We recommend creating "
+"a dedicated directory in which\n"
+"you place all your Wii U games. (example: C:\\wiiu\\games\\)\n"
+"\n"
+"You can also set additional paths in the general settings of Cemu."
+msgstr ""
+"ゲーム パスは Cemu によってスキャンされ、ゲームの場所が特定されます。専用の"
+"ディレクトリを作成し、\n"
+"そこに Wii U ゲームを置くことをお勧めします。(例: C:\\wiiu\\games)\n"
+"\n"
+"また、Cemu の一般設定でパスを追加することも可能です。"
+
+#: GettingStartedDialog.cpp:62
+msgid "Game path"
+msgstr "ゲームパス"
+
+#: GettingStartedDialog.cpp:75
+msgid ""
+"Graphic packs improve games by offering the possibility to change "
+"resolution, tweak FPS or add other visual or gameplay modifications.\n"
+"Download the community graphic packs to get started.\n"
+msgstr ""
+"グラフィック パックは、解像度の変更、FPSの調整、その他の視覚的またはゲームプ"
+"レイの修正を提供することで、ゲームを向上させます。\n"
+"まずは、コミュニティーのグラフィック パックをダウンロードしましょう。\n"
+
+#: GettingStartedDialog.cpp:77
+msgid "Download community graphic packs"
+msgstr "コミュニティ グラフィック パックをダウンロードする"
+
+#: GettingStartedDialog.cpp:91
+msgid "Next"
+msgstr "次へ"
+
+#: GettingStartedDialog.cpp:109
+msgid "Input settings"
+msgstr "入力設定"
+
+#: GettingStartedDialog.cpp:111
+msgid ""
+"You can configure one controller for each player.\n"
+"We advise you to always use GamePad as emulated input for the first player, "
+"since many games expect the GamePad to be present.\n"
+"It is also required for touch functionality.\n"
+"The default global hotkeys are:\n"
+"CTRL - show pad screen\n"
+"CTRL + TAB - toggle pad screen\n"
+"ALT + ENTER - toggle fullscreen\n"
+"ESC - leave fullscreen\n"
+"\n"
+"If you're having trouble configuring your controller, make sure to have it "
+"in idle state and press calibrate.\n"
+"Also don't set the axis deadzone too low."
+msgstr ""
+"各プレイヤーにコントローラーを設定することができます。\n"
+"多くのゲームは GamePad を使用するため、プレイヤー１は常に GamePad をエミュ"
+"レートされた入力を使用することをお勧めします。\n"
+"また、タッチ機能を使用する場合にも必要です。\n"
+"既定のグローバル ホットキーは以下の通りです:\n"
+"CTRL - 画面を表示\n"
+"CTRL + TAB - 画面の切り替え\n"
+"ALT + ENTER - 全画面表示の切り替え\n"
+"ESC - 全画面表示を解除\n"
+"\n"
+"コントローラーの設定に問題がある場合は、必ずアイドル状態にしてから調整を押し"
+"てください。\n"
+"また、軸のデッドゾーンを低く設定し過ぎないようにしてください。"
+
+#: GettingStartedDialog.cpp:113
+msgid "Configure input"
+msgstr "入力を設定する"
+
+#: GettingStartedDialog.cpp:121
+msgid "Additional options"
+msgstr "追加オプション"
+
+#: GettingStartedDialog.cpp:127
+msgid "Start games with fullscreen"
+msgstr "全画面表示でゲームを開始する"
+
+#: GettingStartedDialog.cpp:130
+msgid "Open separate pad screen"
+msgstr "別の GamePad 画面を開く"
+
+#: GettingStartedDialog.cpp:147
+msgid "Don't show this again"
+msgstr "次回から表示しない"
+
+#: GettingStartedDialog.cpp:151
+msgid "Previous"
+msgstr "前へ"
+
+#: GettingStartedDialog.cpp:155
+msgid "Close"
+msgstr "閉じる"
+
+#: GettingStartedDialog.cpp:235
+msgid "Getting started"
+msgstr "はじめに"
+
+#: GraphicPacksWindow2.cpp:214 LoggingWindow.cpp:21 MemorySearcherTool.cpp:62
+#: TitleManager.cpp:57
+msgid "Filter"
+msgstr "フィルター"
+
+#: GraphicPacksWindow2.cpp:222
+msgid "Installed games"
+msgstr "インストール済みのゲーム"
+
+#: GraphicPacksWindow2.cpp:248
+msgid "Graphic pack"
+msgstr "グラフィック パック"
+
+#: GraphicPacksWindow2.cpp:258
+msgid "Description"
+msgstr "説明"
+
+#: GraphicPacksWindow2.cpp:274
+msgid "Reload edited shaders"
+msgstr "編集したシェーダーを再読み込み"
+
+#: GraphicPacksWindow2.cpp:294
+msgid "Download latest community graphic packs"
+msgstr "最新のコミュニティ グラフィック パックをダウンロードする"
+
+#: GraphicPacksWindow2.cpp:388
+msgid "Active preset"
+msgstr "アクティブプリセット"
+
+#: GraphicPacksWindow2.cpp:439
+msgid "This graphic pack has no description"
+msgstr "このグラフィックパックに説明はありません"
+
+#: GraphicPacksWindow2.cpp:521 GraphicPacksWindow2.cpp:551
+msgid "Restart of Cemu required for changes to take effect"
+msgstr "変更を有効にするには Cemu の再起動が必要です"
+
+#: GraphicPacksWindow2.cpp:595
+msgid "This update removed or renamed the following graphic packs:"
+msgstr ""
+"このアップデートにより、以下のグラフィック パックが削除または名称変更されまし"
+"た:"
+
+#: GraphicPacksWindow2.cpp:595
+msgid "You may need to set them up again."
+msgstr "再度設定する必要があるかもしれません。"
+
+#: InputPanelClassic.cpp:53 InputPanelGamepad.cpp:66 InputPanelPro.cpp:47
+msgid "Left Axis"
+msgstr "左軸"
+
+#: InputPanelClassic.cpp:74 InputPanelClassic.cpp:126 InputPanelGamepad.cpp:87
+#: InputPanelGamepad.cpp:139 InputPanelPro.cpp:68 InputPanelPro.cpp:120
+#: InputPanelWiimote.cpp:151
+msgid "Deadzone"
+msgstr "デッドゾーン"
+
+#: InputPanelClassic.cpp:84 InputPanelClassic.cpp:136 InputPanelGamepad.cpp:97
+#: InputPanelGamepad.cpp:149 InputPanelPro.cpp:78 InputPanelPro.cpp:130
+#: InputPanelWiimote.cpp:162
+msgid "Range"
+msgstr "範囲"
+
+#: InputPanelClassic.cpp:104 InputPanelGamepad.cpp:117 InputPanelPro.cpp:98
+msgid "Right Axis"
+msgstr "右軸"
+
+#: InputPanelClassic.cpp:156 InputPanelGamepad.cpp:185 InputPanelPro.cpp:150
+#: InputPanelWiimote.cpp:82
+msgid "D-pad"
+msgstr "十字キー"
+
+#: InputPanelGamepad.cpp:206
+msgid "blow mic"
+msgstr "ブローマイク"
+
+#: InputPanelGamepad.cpp:217
+msgid "show screen"
+msgstr "画面を表示する"
+
+#: InputPanelWiimote.cpp:37
+msgid "Extensions:"
+msgstr "拡張機能:"
+
+#: InputPanelWiimote.cpp:40
+msgid "MotionPlus"
+msgstr "モーションプラス"
+
+#: InputPanelWiimote.cpp:44 InputPanelWiimote.cpp:124
+msgid "Nunchuck"
+msgstr "ヌンチャク"
+
+#: InputPanelWiimote.cpp:48
+msgid "Classic"
+msgstr "クラシック"
+
+#: InputSettings.cpp:55
+msgid "Input Settings"
+msgstr "入力設定"
+
+#: InputSettings.cpp:75
+msgid "Controller {}"
+msgstr "コントローラー  {}"
+
+#: InputSettings.cpp:125
+msgid "Couldn't save settings for controller {0}: {1}"
+msgstr "コントローラー {0} の設定を保存できませんでした: {1}"
+
+#: InputSettings.cpp:184
+msgid "Profile"
+msgstr "プロファイル"
+
+#: InputSettings.cpp:192
+msgid "Load"
+msgstr "読み込む"
+
+#: InputSettings.cpp:197
+msgid "Save"
+msgstr "保存"
+
+#: InputSettings.cpp:211
+msgid "Emulate Controller"
+msgstr "コントローラーをエミュレート"
+
+#: InputSettings.cpp:230
+msgid "Controller API:"
+msgstr "コントローラー API:"
+
+#: InputSettings.cpp:267
+msgid "Settings"
+msgstr "設定"
+
+#: InputSettings.cpp:274
+msgid "Controller:"
+msgstr "コントローラー:"
+
+#: InputSettings.cpp:287
+msgid "Test if the controller is connected"
+msgstr "コントローラーが接続されているか確認する"
+
+#: InputSettings.cpp:292
+msgid "Calibrate"
+msgstr "調整"
+
+#: InputSettings.cpp:294
+msgid "Reset the default state of the controller"
+msgstr "コントローラーの初期状態をリセットする"
+
+#: InputSettings.cpp:298 MemorySearcherTool.cpp:202
+msgid "Clear"
+msgstr "クリア"
+
+#: InputSettings.cpp:300
+msgid "Clear all currently set input settings"
+msgstr "現在設定されているすべての入力設定をクリアする"
+
+#: InputSettings.cpp:389
+msgid "Additional settings"
+msgstr "その他の設定"
+
+#: InputSettings.cpp:397
+msgid "Rumble"
+msgstr "振動"
+
+#: InputSettings.cpp:411
+msgid "Button Threshold"
+msgstr "ボタンのしきい値"
+
+#: InputSettings.cpp:414
+msgid ""
+"The threshold of a button to recognizes a press from a trigger/axis value"
+msgstr "トリガー/軸の値からボタンが押されたことを認識するための閾値"
+
+#: InputSettings.cpp:626 InputSettings.cpp:725
+msgid "No profile name selected!"
+msgstr "プロファイルを選択してください！"
+
+#: InputSettings.cpp:632 InputSettings.cpp:707
+msgid "The given profile name is not valid!"
+msgstr "指定されたプロファイル名が有効ではありません！"
+
+#: InputSettings.cpp:687
+msgid "Couldn't load the selected profile!"
+msgstr "選択したプロファイルを読み込むことができませんでした！"
+
+#: InputSettings.cpp:701
+msgid "No profile name entered!"
+msgstr "プロファイル名を入力してください！"
+
+#: InputSettings.cpp:712
+msgid "Couldn't save the profile!"
+msgstr "プロファイルを保存できませんでした！"
+
+#: InputSettings.cpp:1120
+msgid "Searching for controllers..."
+msgstr "コントローラーを探しています..."
+
+#: LoggingWindow.cpp:15
+msgid "Logging window"
+msgstr "ログ ウィンドウ"
+
+#: LoggingWindow.cpp:29
+msgid "Filter messages"
+msgstr "メッセージのフィルター"
+
+#: MainWindow.cpp:272 MainWindow.cpp:582 MainWindow.cpp:605
+msgid "Cannot open file"
+msgstr "ファイルを開けません"
+
+#: MainWindow.cpp:274 MainWindow.cpp:584 MainWindow.cpp:607
+msgid "Not a valid NFC NTAG215 file"
+msgstr "有効な NFC NTAG215 ファイルではありません"
+
+#: MainWindow.cpp:387
+msgid ""
+"Cemu can't write to its directory.\n"
+"Please move it to a different location or run Cemu as administrator!"
+msgstr ""
+"Cemu はそのディレクトリに書き込むことができません。\n"
+"別の場所に移動するか、 Cemu を管理者として実行してください！"
+
+#: MainWindow.cpp:421
+msgid "Title installed!"
+msgstr "タイトルをインストールしました！"
+
+#: MainWindow.cpp:426
+msgid "Title installation has been canceled!"
+msgstr "タイトル インストールをキャンセルしました！"
+
+#: MainWindow.cpp:439 TitleManager.cpp:447
+msgid "Update error"
+msgstr "アップデート エラー"
+
+#: MainWindow.cpp:450
+msgid "Unable to open file."
+msgstr "ファイルを開くことができません。"
+
+#: MainWindow.cpp:452
+msgid "Unknown file type."
+msgstr "不明なファイル形式です。"
+
+#: MainWindow.cpp:454
+msgid "Failed to launch file."
+msgstr "ファイルの起動に失敗しました。"
+
+#: MainWindow.cpp:525
+msgid "All Wii U files (wud, wux, iso, wad, rpx, elf)"
+msgstr "すべての Wii U ファイル（wud、wux、iso、wad、rpx、elf）"
+
+#: MainWindow.cpp:526
+msgid "Wii U image (wud, wux, iso, wad)"
+msgstr "Wii U イメージ (wud、wux、iso、wad)"
+
+#: MainWindow.cpp:527
+msgid "Wii U executable (rpx, elf)"
+msgstr "Wii U の実行ファイル（rpx、elf）"
+
+#: MainWindow.cpp:528
+msgid "All files (*.*)"
+msgstr "すべてのファイル (*.*)"
+
+#: MainWindow.cpp:533
+msgid "Open file to launch"
+msgstr "起動するファイルを開く"
+
+#: MainWindow.cpp:560 TitleManager.cpp:370
+msgid "Select title to install"
+msgstr "インストールするタイトルを選択してください"
+
+#: MainWindow.cpp:573
+msgid "Open file to load"
+msgstr "読み込むファイルを開く"
+
+#: MainWindow.cpp:728
+msgid "Cemu must be restarted to apply the selected UI language."
+msgstr "選択した UI 言語を適用するには、 Cemu を再起動する必要があります。"
+
+#: MainWindow.cpp:1196
+msgid "Updating game list..."
+msgstr "ゲームリストを更新中..."
+
+#: MainWindow.cpp:1592
+msgid ""
+"There's a new update available.\n"
+"Do you want to update?"
+msgstr ""
+"新しいアップデートがあります。\n"
+"アップデートしますか？"
+
+#: MainWindow.cpp:1592
+msgid "Update notification"
+msgstr "アップデート通知"
+
+#: MainWindow.cpp:1693
+msgid "&Load"
+msgstr "読み込む(&L)"
+
+#: MainWindow.cpp:1694
+msgid "&Install game title, update or DLC"
+msgstr "ゲームタイトル、アップデート、DLC をインストールする(&I)"
+
+#: MainWindow.cpp:1724
+msgid "End emulation"
+msgstr "エミュレーションを終了する"
+
+#: MainWindow.cpp:1760
+msgid "&English"
+msgstr "英語(&E)"
+
+#: MainWindow.cpp:1761
+msgid "&Japanese"
+msgstr "日本語(&J)"
+
+#: MainWindow.cpp:1762
+msgid "&French"
+msgstr "フランス語(&F)"
+
+#: MainWindow.cpp:1763
+msgid "&German"
+msgstr "ドイツ語(&G)"
+
+#: MainWindow.cpp:1764
+msgid "&Italian"
+msgstr "イタリア語(&I)"
+
+#: MainWindow.cpp:1765
+msgid "&Spanish"
+msgstr "スペイン語(&S)"
+
+#: MainWindow.cpp:1766
+msgid "&Chinese"
+msgstr "中国語(&C)"
+
+#: MainWindow.cpp:1767
+msgid "&Korean"
+msgstr "韓国語(&K)"
+
+#: MainWindow.cpp:1768
+msgid "&Dutch"
+msgstr "オランダ語(&D)"
+
+#: MainWindow.cpp:1769
+msgid "&Portuguese"
+msgstr "ポルトガル語(&P)"
+
+#: MainWindow.cpp:1770
+msgid "&Russian"
+msgstr "ロシア語(&R)"
+
+#: MainWindow.cpp:1771
+msgid "&Taiwanese"
+msgstr "台湾語(&T)"
+
+#: MainWindow.cpp:1782
+msgid "&Fullscreen"
+msgstr "全画面表示(&F)"
+
+#: MainWindow.cpp:1785
+msgid "&Graphic packs"
+msgstr "グラフィック パック(&G)"
+
+#: MainWindow.cpp:1787
+msgid "&Separate GamePad view"
+msgstr "GamePad を別ウィンドウに表示する(&S)"
+
+#: MainWindow.cpp:1790
+msgid "&General settings"
+msgstr "一般設定(&G)"
+
+#: MainWindow.cpp:1791
+msgid "&Input settings"
+msgstr "入力設定(&I)"
+
+#: MainWindow.cpp:1794
+msgid "&Active account"
+msgstr "有効なアカウント(&A)"
+
+#: MainWindow.cpp:1796
+msgid "&Console language"
+msgstr "システム言語(&C)"
+
+#: MainWindow.cpp:1801
+msgid "&Memory searcher"
+msgstr "メモリ検索(&M)"
+
+#: MainWindow.cpp:1803
+msgid "&Title Manager"
+msgstr "タイトル マネージャー(&T)"
+
+#: MainWindow.cpp:1804
+msgid "&Download Manager"
+msgstr "ダウンロード マネージャー(&D)"
+
+#: MainWindow.cpp:1805
+msgid "&Tools"
+msgstr "ツール(&T)"
+
+#: MainWindow.cpp:1812
+msgid "&CPU"
+msgstr "CPU(&C)"
+
+#: MainWindow.cpp:1818
+msgid "&Scan NFC tag from file"
+msgstr "ファイルから NFC タグを読み取る(&S)"
+
+#: MainWindow.cpp:1819
+msgid "&NFC"
+msgstr "NFC(&N)"
+
+#: MainWindow.cpp:1824
+msgid "&Unsupported API calls"
+msgstr "未対応の API コール(&U)"
+
+#: MainWindow.cpp:1825
+msgid "&Coreinit Logging (OSReport/OSConsole)"
+msgstr "Coreinit ログ (OSReport/OSConsole)(&C)"
+
+#: MainWindow.cpp:1826
+msgid "&Coreinit File-Access"
+msgstr "Coreinit ファイル アクセス(&C)"
+
+#: MainWindow.cpp:1827
+msgid "&Coreinit Thread-Synchronization API"
+msgstr "Coreinit スレッド同期 API(&C)"
+
+#: MainWindow.cpp:1828
+msgid "&Coreinit Memory API"
+msgstr "Coreinit メモリー API(&C)"
+
+#: MainWindow.cpp:1829
+msgid "&Coreinit MP API"
+msgstr "Coreinit MP API(&C)"
+
+#: MainWindow.cpp:1830
+msgid "&Coreinit Thread API"
+msgstr "Coreinit スレッド API(&C)"
+
+#: MainWindow.cpp:1831
+msgid "&NN NFP"
+msgstr "NN NFP(&N)"
+
+#: MainWindow.cpp:1832
+msgid "&GX2 API"
+msgstr "GX2 API(&G)"
+
+#: MainWindow.cpp:1833
+msgid "&Audio API"
+msgstr "オーディオ API(&A)"
+
+#: MainWindow.cpp:1834
+msgid "&Input API"
+msgstr "入力 API(&I)"
+
+#: MainWindow.cpp:1835
+msgid "&Socket API"
+msgstr "ソケット API(&S)"
+
+#: MainWindow.cpp:1836
+msgid "&Save API"
+msgstr "保存 API(&S)"
+
+#: MainWindow.cpp:1837
+msgid "&H264 API"
+msgstr "H264 API(&H)"
+
+#: MainWindow.cpp:1839
+msgid "&Graphic pack patches"
+msgstr "グラフィック パック パッチ(&G)"
+
+#: MainWindow.cpp:1840
+msgid "&Texture cache warnings"
+msgstr "テクスチャ キャッシュの警告(&T)"
+
+#: MainWindow.cpp:1842
+msgid "&OpenGL debug output"
+msgstr "OpenGL デバッグ出力(&O)"
+
+#: MainWindow.cpp:1843
+msgid "&Vulkan validation layer (slow)"
+msgstr "Vulkan 検証レイヤー（遅い）(&V)"
+
+#: MainWindow.cpp:1845
+msgid "&Log PPC context for API"
+msgstr "API 用に PPCコンテキスト をログする(&L)"
+
+#: MainWindow.cpp:1850
+msgid "&Textures"
+msgstr "テクスチャ(&T)"
+
+#: MainWindow.cpp:1851
+msgid "&Shaders"
+msgstr "シェーダー(&S)"
+
+#: MainWindow.cpp:1852
+msgid "&nlibcurl HTTP/HTTPS requests"
+msgstr "nlibcurl HTTP/HTTPS リクエスト(&N)"
+
+#: MainWindow.cpp:1856
+msgid "&Logging"
+msgstr "ログ(&L)"
+
+#: MainWindow.cpp:1857
+msgid "&Dump"
+msgstr "ダンプ(&D)"
+
+#: MainWindow.cpp:1860
+msgid "&Render upside-down"
+msgstr "上下逆さまにレンダーする(&R)"
+
+#: MainWindow.cpp:1879
+msgid "&Open logging window"
+msgstr "ログ ウィンドウを開く(&O)"
+
+#: MainWindow.cpp:1881
+msgid "&View PPC threads"
+msgstr "PPC スレッドを表示する(&V)"
+
+#: MainWindow.cpp:1882
+msgid "&View PPC debugger"
+msgstr "PPC デバッガーを表示する(&V)"
+
+#: MainWindow.cpp:1883
+msgid "&View audio debugger"
+msgstr "オーディオ デバッガーを表示する(&V)"
+
+#: MainWindow.cpp:1884
+msgid "&View texture cache info"
+msgstr "テクスチャキャッシュ情報を表示する(&V)"
+
+#: MainWindow.cpp:1885
+msgid "&Show frame profiler"
+msgstr "フレーム プロファイラを表示する(&S)"
+
+#: MainWindow.cpp:1886
+msgid "&Dump current RAM"
+msgstr "現在の RAM をダンプする(&D)"
+
+#: MainWindow.cpp:1889
+msgid "&Debug"
+msgstr "デバッグ(&D)"
+
+#: MainWindow.cpp:1894
+msgid "&Check for updates"
+msgstr "アップデートを確認する(&C)"
+
+#: MainWindow.cpp:1895
+msgid "&Getting started"
+msgstr "はじめに(&G)"
+
+#: MainWindow.cpp:1896
+msgid "&About"
+msgstr "Cemu について(&A)"
+
+#: MainWindow.cpp:1897
+msgid "&Help"
+msgstr "ヘルプ(&H)"
+
+#: MainWindow.cpp:1942
+msgid "otp.bin could not be found"
+msgstr "otp.bin が見つかりませんでした"
+
+#: MainWindow.cpp:1946
+msgid "otp.bin is corrupted or has invalid size"
+msgstr "otp.bin が破損しているか、サイズが無効です"
+
+#: MainWindow.cpp:1950
+msgid "seeprom.bin could not be found"
+msgstr "seeprom.bin が見つかりませんでした"
+
+#: MainWindow.cpp:1954
+msgid "seeprom.bin is corrupted or has invalid size"
+msgstr "seeprom.bin が破損しているか、サイズが無効です"
+
+#: MainWindow.cpp:1967
+msgid "Unknown error occured"
+msgstr "不明なエラーが発生しました"
+
+#: MemorySearcherTool.cpp:48
+msgid "Memory Searcher"
+msgstr "メモリ検索"
+
+#: MemorySearcherTool.cpp:61 MemorySearcherTool.cpp:419
+msgid "Search"
+msgstr "検索"
+
+#: MemorySearcherTool.cpp:79 MemorySearcherTool.cpp:420
+msgid "Results"
+msgstr "結果"
+
+#: MemorySearcherTool.cpp:85 MemorySearcherTool.cpp:101
+msgid "address"
+msgstr "アドレス"
+
+#: MemorySearcherTool.cpp:90 MemorySearcherTool.cpp:103
+msgid "value"
+msgstr "値"
+
+#: MemorySearcherTool.cpp:95
+msgid "Stored Entries"
+msgstr "保管されたエントリ"
+
+#: MemorySearcherTool.cpp:100
+msgid "description"
+msgstr "説明"
+
+#: MemorySearcherTool.cpp:102
+msgid "type"
+msgstr "タイプ"
+
+#: MemorySearcherTool.cpp:104
+msgid "freeze"
+msgstr "凍結"
+
+#: MemorySearcherTool.cpp:196
+msgid "Your entered value is not valid for the selected datatype."
+msgstr "入力された値は、選択されたデータ型に対して有効ではありません。"
+
+#: MemorySearcherTool.cpp:383
+msgid "&Add new entry"
+msgstr "新しいエントリを追加する(&A)"
+
+#: MemorySearcherTool.cpp:384
+msgid "&Remove entry"
+msgstr "エントリの削除(&R)"
+
+#: MemorySearcherTool.cpp:477
+msgid "Results ({0})"
+msgstr "結果 ({0})"
+
+#: ModuleWindow.cpp:35 wxDownloadManagerList.cpp:102 wxTitleManagerList.cpp:99
+msgid "Name"
+msgstr "名前"
+
+#: ModuleWindow.cpp:48
+msgid "Size"
+msgstr "サイズ"
+
+#: RegisterWindow.cpp:418
+msgid "&Zero"
+msgstr "ゼロ(&Z)"
+
+#: RegisterWindow.cpp:419
+msgid "&Increment"
+msgstr "増分(&I)"
+
+#: RegisterWindow.cpp:420
+msgid "&Decrement"
+msgstr "減額(&D)"
+
+#: RegisterWindow.cpp:422
+msgid "&Copy"
+msgstr "コピー(&C)"
+
+#: RegisterWindow.cpp:424
+msgid "&Goto Disasm"
+msgstr "Goto Disasm(&G)"
+
+#: RegisterWindow.cpp:425
+msgid "G&oto Dump"
+msgstr "Goto ダンプ(&O)"
+
+#: SaveImportWindow.cpp:24
+msgid "Import save entry"
+msgstr "セーブ エントリのインポート"
+
+#: SaveImportWindow.cpp:33 SaveTransfer.cpp:31
+msgid "Source"
+msgstr "ソース"
+
+#: SaveImportWindow.cpp:35
+msgid "Select a zipped save file"
+msgstr "ZIP 形式の保存ファイルを選択してください"
+
+#: SaveImportWindow.cpp:36
+msgid "Import save entry {}"
+msgstr "セーブ エントリのインポート {}"
+
+#: SaveImportWindow.cpp:40 SaveTransfer.cpp:38
+msgid "Target"
+msgstr "ターゲット"
+
+#: SaveImportWindow.cpp:61 SaveTransfer.cpp:62 wxCreateAccountDialog.cpp:37
+msgid "OK"
+msgstr "OK"
+
+#: SaveImportWindow.cpp:123
+msgid ""
+"You are trying to import a savegame for a different title than your "
+"currently selected one: {:016x} vs {:016x}\n"
+"Are you sure that you want to continue?"
+msgstr ""
+"現在選択されているタイトルとは異なるタイトルのセーブ ゲームをインポートしよう"
+"としています。{016x} 対 {:016x} です。\n"
+"続行しますか?"
+
+#: SaveImportWindow.cpp:163 SaveTransfer.cpp:99
+msgid ""
+"The given account id is not valid!\n"
+"It must be a hex number bigger or equal than {:08x}"
+msgstr ""
+"指定されたアカウント ID は有効ではありません！\n"
+"{:08x} よりも大きいか等しい16進数でなければなりません。"
+
+#: SaveImportWindow.cpp:175 SaveTransfer.cpp:115
+msgid ""
+"There's already a file at the target directory:\n"
+"{}"
+msgstr ""
+"対象ディレクトリに既にファイルが存在します:\n"
+"{}"
+
+#: SaveImportWindow.cpp:182 SaveTransfer.cpp:122
+msgid ""
+"There's already a save game available for the target account, do you want to "
+"overwrite it?\n"
+"This will delete the existing save files for the account and replace them."
+msgstr ""
+"対象のアカウントにはすでにセーブ ゲームが用意されていますが、それを上書きしま"
+"すか？\n"
+"そのアカウントの既存のセーブ ファイルを削除し、置き換えます。"
+
+#: SaveImportWindow.cpp:198 SaveTransfer.cpp:138
+msgid ""
+"Error when trying to delete the former save game:\n"
+"{}"
+msgstr ""
+"旧セーブゲームを削除しようとするとエラーが発生しました:\n"
+"{}"
+
+#: SaveImportWindow.cpp:219
+msgid ""
+"Error when creating the extraction path:\n"
+"{}"
+msgstr ""
+"抽出パスの作成時にエラーが発生しました:\n"
+"{}"
+
+#: SaveImportWindow.cpp:227
+msgid ""
+"Error when opening the import zip file:\n"
+"{}"
+msgstr ""
+"インポート ZIP ファイルを開く際エラーが発生しました:\n"
+"{}"
+
+#: SaveTransfer.cpp:22
+msgid "Save transfer"
+msgstr "転送を保存"
+
+#: SaveTransfer.cpp:194
+msgid ""
+"Error when trying to move the save game:\n"
+"{}"
+msgstr ""
+"セーブゲームを移動しようとするとエラーが発生しました:\n"
+"{}"
+
+#: TitleManager.cpp:67 debugPPCThreadsWindow.cpp:112
+#: textureRelationWindow.cpp:119
+msgid "Refresh"
+msgstr "更新​​"
+
+#: TitleManager.cpp:71
+msgid ""
+"The following prefixes are supported:\n"
+"{0}\n"
+"{1}\n"
+"{2}\n"
+"{3}\n"
+"{4}"
+msgstr ""
+"以下の接頭番号をサポートしています。\n"
+"{0}\n"
+"{1}\n"
+"{2}\n"
+"{3}\n"
+"{4}"
+
+#: TitleManager.cpp:91
+msgid "Install title"
+msgstr "タイトルをインストール"
+
+#: TitleManager.cpp:108
+msgid "Open directory"
+msgstr "ディレクトリを開く"
+
+#: TitleManager.cpp:110
+msgid "Open the directory of the save entry"
+msgstr "保存エントリのディレクトリを開く"
+
+#: TitleManager.cpp:114
+msgid "Transfer"
+msgstr "転送"
+
+#: TitleManager.cpp:116
+msgid "Transfers the save entry to another persistent account id"
+msgstr "保存エントリを別の永続的なアカウント ID に転送します"
+
+#: TitleManager.cpp:122
+msgid "Irrevocable delete the save entry "
+msgstr "保存エントリを取り消し不能で削除する "
+
+#: TitleManager.cpp:126
+msgid "Import"
+msgstr "インポート"
+
+#: TitleManager.cpp:128
+msgid "Imports a zipped save entry"
+msgstr "ZIP 形式の保存エントリをインポートする"
+
+#: TitleManager.cpp:133
+msgid "Exports the selected save entry as zip file"
+msgstr "選択した保存項目を ZIP ファイルとしてエクスポートする"
+
+#: TitleManager.cpp:174
+msgid "Connect"
+msgstr "接続"
+
+#: TitleManager.cpp:181
+msgid "Select an account and press Connect"
+msgstr "アカウントを選択し、Connect を押してください"
+
+#: TitleManager.cpp:189
+msgid "Show available titles"
+msgstr "利用可能なタイトルを表示する"
+
+#: TitleManager.cpp:195
+msgid "Show available updates"
+msgstr "利用可能なアップデートを表示する"
+
+#: TitleManager.cpp:201
+msgid "Show installed"
+msgstr "インストール済みを表示"
+
+#: TitleManager.cpp:220
+msgid "Title manager"
+msgstr "タイトルマネージャー"
+
+#: TitleManager.cpp:227
+msgid "Title Manager"
+msgstr "タイトルマネージャー"
+
+#: TitleManager.cpp:228
+msgid "Download Manager"
+msgstr "ダウンロード マネージャー"
+
+#: TitleManager.cpp:277
+msgid "Currently active downloads will continue in the background."
+msgstr "現在進行中のダウンロードはバックグラウンドで継続されます。"
+
+#: TitleManager.cpp:333
+msgid "Found {} titles, {} updates, {} DLCs and {} save entries"
+msgstr "{} タイトル発見、{} アップデート発見、{} DLC、{} セーブエントリ"
+
+#: TitleManager.cpp:434
+msgid "Update installation has been canceled!"
+msgstr "アップデートのインストールが中止されました！"
+
+#: TitleManager.cpp:517
+msgid "Are you really sure that you want to delete the save entry for {}"
+msgstr "本当に{}の保存エントリを削除してよいのですか？"
+
+#: TitleManager.cpp:568
+msgid ""
+"Error when trying to delete the save directory:\n"
+"{}"
+msgstr ""
+"保存ディレクトリを削除しようとするとエラーが発生しました:\n"
+"{}"
+
+#: TitleManager.cpp:645
+msgid "Select a target file to export the save entry"
+msgstr "保存エントリをエクスポートするファイルを選択してください"
+
+#: TitleManager.cpp:659
+msgid ""
+"Error when creating the zip for the save entry:\n"
+"{}"
+msgstr ""
+"保存エントリの ZIP を作成する際にエラーが発生しました:\n"
+"{}"
+
+#: TitleManager.cpp:677
+msgid ""
+"Error when trying to add a directory to the zip:\n"
+"{}"
+msgstr ""
+"ZIP にディレクトリを追加しようとするとエラーが発生しました:\n"
+"{}"
+
+#: TitleManager.cpp:686 TitleManager.cpp:692
+msgid ""
+"Error when trying to add a file to the zip:\n"
+"{}"
+msgstr ""
+"ZIP にファイルを追加しようとするとエラーが発生しました:\n"
+"{}"
+
+#: TitleManager.cpp:705
+msgid ""
+"Error when trying to add a cemu_meta to the zip:\n"
+"{}"
+msgstr ""
+"ZIP に cemu_meta 追加中にエラーが発生しました:\n"
+"{}"
+
+#: TitleManager.cpp:1026
+msgid "Getting installed title information..."
+msgstr "インストールされたタイトル情報を取得中..."
+
+#: VulkanCanvas.cpp:28
+msgid ""
+"Error when initializing Vulkan renderer:\n"
+"{}"
+msgstr ""
+"Vulkan レンダラーの初期化時にエラーが発生しました:\n"
+"{}"
+
+#: VulkanRenderer.cpp:296
+msgid ""
+"The currently installed graphics driver does not support the Vulkan "
+"extension necessary for asynchronous shader compilation. Asynchronous "
+"compilation cannot be used.\n"
+" \n"
+"Required extension: VK_EXT_pipeline_creation_cache_control\n"
+"\n"
+"Installing the latest graphics driver may solve this error."
+msgstr ""
+"現在インストールされているグラフィック ドライバーは、非同期シェーダー コンパ"
+"イルに必要な Vulkan 拡張機能をサポートしていません。非同期コンパイルは使用で"
+"きません。\n"
+" \n"
+"必要な拡張子 VK_EXT_pipeline_creation_cache_control\n"
+"\n"
+"最新のグラフィック ドライバをインストールすることで、このエラーが解決する場合"
+"があります。"
+
+#: WGISettings.cpp:20
+msgid "WGI settings"
+msgstr "WGI 設定"
+
+#: WGISettings.cpp:28
+msgid "Trigger rumble"
+msgstr "振動をトリガー"
+
+#: bootGame.cpp:267
+msgid "Failed to run this title because at least one of the files is damaged."
+msgstr ""
+"少なくとも1つのファイルが破損しているため、このタイトルの実行に失敗しました。"
+
+#: bootGame.cpp:382
+msgid ""
+"This title is encrypted. To run this application open keys.txt and add the "
+"disc title key"
+msgstr ""
+"このタイトルは暗号化されています。このアプリケーションを実行するには、keys."
+"txt を開き、ディスクタイトルのキーを追加してください"
+
+#: debugPPCThreadsWindow.cpp:33
+msgid "PPC threads"
+msgstr "PPC スレッド"
+
+#: debugPPCThreadsWindow.cpp:50
+msgid "Entry"
+msgstr "エントリ"
+
+#: debugPPCThreadsWindow.cpp:55
+msgid "Stack"
+msgstr "スタック"
+
+#: debugPPCThreadsWindow.cpp:60
+msgid "PC"
+msgstr "PC"
+
+#: debugPPCThreadsWindow.cpp:65
+msgid "LR"
+msgstr "LR"
+
+#: debugPPCThreadsWindow.cpp:70
+msgid "State"
+msgstr "ステート"
+
+#: debugPPCThreadsWindow.cpp:75
+msgid "Affinity"
+msgstr "アフィニティ"
+
+#: debugPPCThreadsWindow.cpp:80
+msgid "Priority"
+msgstr "優先順位"
+
+#: debugPPCThreadsWindow.cpp:85
+msgid "SliceStart"
+msgstr "SliceStart"
+
+#: debugPPCThreadsWindow.cpp:90
+msgid "SumWakeTime"
+msgstr "SumWakeTime"
+
+#: debugPPCThreadsWindow.cpp:95
+msgid "ThreadName"
+msgstr "ThreadName"
+
+#: debugPPCThreadsWindow.cpp:100
+msgid "GPR"
+msgstr "GPR"
+
+#: debugPPCThreadsWindow.cpp:105
+msgid "Extra info"
+msgstr "追加情報"
+
+#: debugPPCThreadsWindow.cpp:115
+msgid "Auto refresh"
+msgstr "自動更新"
+
+#: debugPPCThreadsWindow.cpp:354
+msgid "Boost priority (-5)"
+msgstr "優先度を上げる (-5)"
+
+#: debugPPCThreadsWindow.cpp:355
+msgid "Boost priority (-1)"
+msgstr "優先度を上げる (-1)"
+
+#: debugPPCThreadsWindow.cpp:357
+msgid "Decrease priority (+5)"
+msgstr "優先度を下げる (+5)"
+
+#: debugPPCThreadsWindow.cpp:358
+msgid "Decrease priority (+1)"
+msgstr "優先度を下げる (+1)"
+
+#: debugPPCThreadsWindow.cpp:360
+msgid "Resume"
+msgstr "再開"
+
+#: debugPPCThreadsWindow.cpp:361
+msgid "Suspend"
+msgstr "中断"
+
+#: debugPPCThreadsWindow.cpp:363
+msgid "Write stack trace to log"
+msgstr "スタックトレースをログに書き込む"
+
+#: gpu7ShaderCache.cpp:198
+msgid ""
+"Outdated shader cache\n"
+"\n"
+"The stored shader cache for this game was created with a Cemu version prior "
+"to 1.16.0.\n"
+"\n"
+"There are no significant downsides to reusing an existing cache but it may "
+"contain bloat that is no longer used by current versions of Cemu.\n"
+"\n"
+"It is highly recommended to start a new cache. Note that a new cache means "
+"that you will experience additional stutter during the first minutes of "
+"gameplay."
+msgstr ""
+"古いシェーダー キャッシュ\n"
+"\n"
+"このゲームの保存されたシェーダー キャッシュは、1.16.0 より前の Cemu バージョ"
+"ンで作成されたものです。\n"
+"\n"
+"既存のキャッシュを再利用することに大きなデメリットはありませんが、現在のバー"
+"ジョンの Cemu ではもう使用されない肥大化したものが含まれている可能性がありま"
+"す。\n"
+"\n"
+"新しいキャッシュを開始することを強くお勧めします。新しいキャッシュは、ゲーム"
+"プレイの最初の数分間、さらなる途切れが発生しますので注意してください。"
+
+#: gpu7ShaderCache.cpp:198
+msgid "Shader cache migration"
+msgstr "シェーダーキャッシュの移行"
+
+#: gpu7ShaderCache.cpp:200
+msgid "Use existing cache"
+msgstr "既存のキャッシュを利用する"
+
+#: gpu7ShaderCache.cpp:200
+msgid "Create new cache [recommended]"
+msgstr "新しいキャッシュを作成する [おすすめ]"
+
+#: helpers.cpp:93 helpers.cpp:110
+msgid "Error code"
+msgstr "エラーコード"
+
+#: textureRelationWindow.cpp:43
+msgid "Texture cache"
+msgstr "テクスチャ キャッシュ"
+
+#: textureRelationWindow.cpp:65
+msgid "PhysAddr"
+msgstr "PhysAddr"
+
+#: textureRelationWindow.cpp:70
+msgid "Dim"
+msgstr "暗く​​"
+
+#: textureRelationWindow.cpp:75
+msgid "Resolution"
+msgstr "解像度"
+
+#: textureRelationWindow.cpp:80
+msgid "Format"
+msgstr "形式"
+
+#: textureRelationWindow.cpp:85
+msgid "Pitch"
+msgstr "ピッチ"
+
+#: textureRelationWindow.cpp:90
+msgid "Tilemode"
+msgstr "Tilemode"
+
+#: textureRelationWindow.cpp:95
+msgid "SliceRange"
+msgstr "SliceRange"
+
+#: textureRelationWindow.cpp:100
+msgid "MipRange"
+msgstr "MipRange"
+
+#: textureRelationWindow.cpp:105
+msgid "Last access"
+msgstr "最終アクセス"
+
+#: textureRelationWindow.cpp:110
+msgid "OverwriteRes"
+msgstr "OverwriteRes"
+
+#: textureRelationWindow.cpp:122
+msgid "Show only active"
+msgstr "アクティブのみ表示する"
+
+#: textureRelationWindow.cpp:125
+msgid "Show views"
+msgstr "ビューを表示する"
+
+#: wxCreateAccountDialog.cpp:13
+msgid "Create new account"
+msgstr "新規アカウント作成"
+
+#: wxCreateAccountDialog.cpp:23
+msgid ""
+"The persistent id is the internal folder name used for your saves. Only "
+"change this if you are importing saves from a Wii U with a specific id"
+msgstr ""
+"永続的な ID は、セーブに使用される内部フォルダー名です。特定の ID を持つ Wii "
+"U からセーブをインポートする場合のみ変更してください"
+
+#: wxCreateAccountDialog.cpp:67
+msgid "No persistent id entered!"
+msgstr "永続的な ID が入力されていません！"
+
+#: wxCreateAccountDialog.cpp:74
+msgid "The persistent id must be greater than {:x}!"
+msgstr "永続的な ID は {:x} より大きくなければなりません！"
+
+#: wxCreateAccountDialog.cpp:82
+msgid "The persistent id {:x} is already in use by account {}!"
+msgstr "永続的な ID  {:x} はアカウント {} によってすでに使用されています！"
+
+#: wxCreateAccountDialog.cpp:90
+msgid "Account name may not be empty!"
+msgstr "アカウント名は空であってはいけません！"
+
+#: wxDownloadManagerList.cpp:96 wxTitleManagerList.cpp:93
+msgid "Title id"
+msgstr "タイトル ID"
+
+#: wxDownloadManagerList.cpp:108 wxGameList.cpp:607 wxTitleManagerList.cpp:111
+msgid "Version"
+msgstr "バージョン"
+
+#: wxDownloadManagerList.cpp:120
+msgid "Progress"
+msgstr "進行状況"
+
+#: wxDownloadManagerList.cpp:126
+msgid "Status"
+msgstr "ステータス"
+
+#: wxDownloadManagerList.cpp:366
+msgid "&Resume"
+msgstr "再開(&R)"
+
+#: wxDownloadManagerList.cpp:368
+msgid "&Retry"
+msgstr "再試行(&R)"
+
+#: wxDownloadManagerList.cpp:370
+msgid "&Download"
+msgstr "ダウンロード(&D)"
+
+#: wxDownloadManagerList.cpp:498
+msgid "Paused"
+msgstr "一時停止"
+
+#: wxDownloadManagerList.cpp:502
+msgid "Not installed (Partially downloaded)"
+msgstr "インストールされていません（部分的にダウンロードされました）"
+
+#: wxDownloadManagerList.cpp:503
+msgid "Not installed"
+msgstr "インストールされていません"
+
+#: wxDownloadManagerList.cpp:506
+msgid "Initializing"
+msgstr "初期化中"
+
+#: wxDownloadManagerList.cpp:508
+msgid "Checking"
+msgstr "確認中"
+
+#: wxDownloadManagerList.cpp:510
+msgid "Queued"
+msgstr "キューに入っています"
+
+#: wxDownloadManagerList.cpp:512
+msgid "Downloading"
+msgstr "ダウンロード中"
+
+#: wxDownloadManagerList.cpp:514
+msgid "Verifying"
+msgstr "整合性を検査中"
+
+#: wxDownloadManagerList.cpp:516
+msgid "Installing"
+msgstr "インストール中"
+
+#: wxDownloadManagerList.cpp:518
+msgid "Installed"
+msgstr "インストール済み"
+
+#: wxDownloadManagerList.cpp:521
+msgid "Error:"
+msgstr "エラー:"
+
+#: wxGameList.cpp:59
+msgid ""
+"This game entry seems to be either an update or the base game was merged "
+"with update data\n"
+"Broken game dumps cause various problems during emulation and may even stop "
+"working at all in future Cemu versions\n"
+"Please make sure the base game is intact and install updates only with the "
+"File->Install Update/DLC option"
+msgstr ""
+"このゲーム エントリは、アップデートされたものか、ベースとなるゲームにアップ"
+"デート データが結合されたもののどちらかと思われます\n"
+"壊れたゲーム ダンプはエミュレーション時に様々な問題を引き起こし、将来の Cemu "
+"バージョンでは全く動作しなくなる可能性もあります。\n"
+"ベースとなるゲームがそのままであることを確認し、アップデートは「ファイル → "
+"アップデート/DLC をインストールする」のみでインストールしてください"
+
+#: wxGameList.cpp:429 wxGameList.cpp:1132 wxGameList.cpp:1184
+msgid "never"
+msgstr "未プレイ"
+
+#: wxGameList.cpp:601
+msgid "Game"
+msgstr "ゲーム"
+
+#: wxGameList.cpp:614
+msgid "DLC"
+msgstr "DLC"
+
+#: wxGameList.cpp:621
+msgid "You've played"
+msgstr "プレイ時間"
+
+#: wxGameList.cpp:627
+msgid "Last played"
+msgstr "最終プレイ日"
+
+#: wxGameList.cpp:633 wxTitleManagerList.cpp:117
+msgid "Region"
+msgstr "国や地域"
+
+#: wxGameList.cpp:716
+msgid "&Start"
+msgstr "開始(&S)"
+
+#: wxGameList.cpp:719
+msgid "&Favorite"
+msgstr "お気に入り(&F)"
+
+#: wxGameList.cpp:720
+msgid "&Edit name"
+msgstr "名前を編集する(&E)"
+
+#: wxGameList.cpp:723
+msgid "&Wiki page"
+msgstr "ウィキ ページ(&W)"
+
+#: wxGameList.cpp:724
+msgid "&Game directory"
+msgstr "ゲーム ディレクトリ(&G)"
+
+#: wxGameList.cpp:725
+msgid "&Save directory"
+msgstr "保存ディレクトリ(&S)"
+
+#: wxGameList.cpp:726
+msgid "&Update directory"
+msgstr "アップデートディレクトリ(&U)"
+
+#: wxGameList.cpp:727
+msgid "&DLC directory"
+msgstr "DLC の保存先を開く(&D)"
+
+#: wxGameList.cpp:730
+msgid "&Edit graphic packs"
+msgstr "グラフィック パックの編集(&E)"
+
+#: wxGameList.cpp:731
+msgid "&Edit game profile"
+msgstr "ゲームプロファイルの編集(&E)"
+
+#: wxGameList.cpp:737
+msgid "&Refresh game list"
+msgstr "ゲームリストを更新する(&R)"
+
+#: wxGameList.cpp:739
+msgid "Style: &List"
+msgstr "スタイル: リスト(&L)"
+
+#: wxGameList.cpp:740
+msgid "Style: &Icons"
+msgstr "スタイル: アイコン(&I)"
+
+#: wxGameList.cpp:741
+msgid "Style: &Small Icons"
+msgstr "スタイル: 小さいアイコン(&S)"
+
+#: wxGameList.cpp:889
+msgid "Reset &width"
+msgstr "幅をリセットする(&W)"
+
+#: wxGameList.cpp:890
+msgid "Reset &order"
+msgstr "順番をリセットする(&O)"
+
+#: wxGameList.cpp:893
+msgid "Show &name"
+msgstr "名前を表示する(&N)"
+
+#: wxGameList.cpp:894
+msgid "Show &version"
+msgstr "バージョンを表示する(&V)"
+
+#: wxGameList.cpp:895
+msgid "Show &dlc"
+msgstr "DLC を表示する(&D)"
+
+#: wxGameList.cpp:896
+msgid "Show &game time"
+msgstr "ゲーム時間を表示する(&G)"
+
+#: wxGameList.cpp:897
+msgid "Show &last played"
+msgstr "前回遊んだ日を表示する(&L)"
+
+#: wxGameList.cpp:898
+msgid "Show &region"
+msgstr "国や地域を表示する(&R)"
+
+#: wxGameList.cpp:1227
+msgid "You can configure game paths in the general settings."
+msgstr "ゲーム パスの設定は、一般設定で行えます。"
+
+#: wxTitleManagerList.cpp:245
+msgid ""
+"There's an wrong title installed at the target location, should we fix that?"
+msgstr ""
+"ターゲットの場所に誤ったタイトルがインストールされているのですが、修正します"
+"か？"
+
+#: wxTitleManagerList.cpp:263
+msgid ""
+"There's already a newer or equal version installed at the correct location, "
+"so the redundant version will be deleted:"
+msgstr ""
+"正しい場所に新しいバージョンまたは同等のバージョンが既にインストールされてい"
+"るため、冗長なバージョンは削除されます:"
+
+#: wxTitleManagerList.cpp:273 wxTitleManagerList.cpp:307
+#: wxTitleManagerList.cpp:567
+msgid ""
+"Error when trying to delete the entry:\n"
+"{}"
+msgstr ""
+"エントリを削除しようとするとエラーが発生しました:\n"
+"{}"
+
+#: wxTitleManagerList.cpp:294
+msgid ""
+"There's already an older version installed at the correct location, so the "
+"older version will be overwritten:"
+msgstr ""
+"正しい場所にすでに古いバージョンがインストールされているので、古いバージョン"
+"は上書きされます:"
+
+#: wxTitleManagerList.cpp:336
+msgid ""
+"Error when trying to move the entry to the correct location:\n"
+"{}"
+msgstr ""
+"エントリを正しい位置に移動させようとするとエラーが発生しました:\n"
+"{}"
+
+#: wxTitleManagerList.cpp:456
+msgid "This base game is installed at the wrong location."
+msgstr "このベース ゲームは間違った場所にインストールされています。"
+
+#: wxTitleManagerList.cpp:459
+msgid "This update is installed at the wrong location."
+msgstr "このアップデートは間違った場所にインストールされています。"
+
+#: wxTitleManagerList.cpp:462
+msgid "This DLC is installed at the wrong location."
+msgstr "この DLC は間違った場所にインストールされています。"
+
+#: wxTitleManagerList.cpp:468
+msgid "You can use the context menu to fix it."
+msgstr "コンテキスト メニューで修正することができます。"
+
+#: wxTitleManagerList.cpp:499
+msgid "&Launch title"
+msgstr "タイトル起動(&L)"
+
+#: wxTitleManagerList.cpp:501
+msgid "&Open directory"
+msgstr "ディレクトリを開く(&O)"
+
+#: wxTitleManagerList.cpp:503
+msgid "&Verify integrity of game files"
+msgstr "ゲーム ファイルの整合性を検査(&V)"
+
+#: wxTitleManagerList.cpp:507
+msgid "Fix entry"
+msgstr "エントリの修正"
+
+#: wxTitleManagerList.cpp:509
+msgid "&Delete"
+msgstr "削除(&D)"
+
+#: wxTitleManagerList.cpp:524
+msgid ""
+"Are you really sure that you want to delete the following folder:\n"
+"{}"
+msgstr ""
+"本当に以下のフォルダを削除してよいのでしょうか？\n"
+"{}"
+
+#: wxTitleManagerList.cpp:526
+msgid ""
+"Are you really sure that you want to delete the following file:\n"
+"{}"
+msgstr ""
+"本当に以下のファイルを削除してよいのでしょうか？\n"
+"{}"
+
+#~ msgid "<double click to add a new entry>"
+#~ msgstr "<ダブルクリックで新しい項目を追加>"
+
+#~ msgid "Language:"
+#~ msgstr "UI の言語:"
+
+#~ msgid "&Add game path"
+#~ msgstr "ゲームファイルのあるフォルダを追加(&A)"
+
+#~ msgid "Online disabled"
+#~ msgstr "オンライン無効"
+
+#~ msgid "Misc"
+#~ msgstr "その他"
+
+#~ msgid "Use separable shaders"
+#~ msgstr "分離可能なシェーダーを使用する"
+
+#~ msgid "This is an old graphic pack, therefore it has no description."
+#~ msgstr "これは古い形式のグラフィックパックなので、説明データはありません。"
+
+#~ msgid "Invalid \"meta.xml\" file."
+#~ msgstr "「meta.xml」が無効です。"
+
+#~ msgid "Can't find the \"title_id\" in the given \"meta.xml\" file."
+#~ msgstr "指定された「meta.xml」ファイルに「title_id」が見当たりません。"
+
+#~ msgid "Can't find the \"title_version\" in the given \"meta.xml\" file."
+#~ msgstr "指定された「meta.xml」ファイルに「title_version」が見当たりません。"
+
+#~ msgid "The given \"meta.xml\" file is no update or DLC."
+#~ msgstr ""
+#~ "指定された「meta.xml」ファイルは更新されていないか、または DLC です。"
+
+#~ msgid "Can't find the \"longname_en\" in the given \"meta.xml\" file."
+#~ msgstr "指定された「meta.xml」ファイルに「longname_en」が見当たりません。"
+
+#~ msgid ""
+#~ "It seems that a DLC is already installed, do you still want to install it?"
+#~ msgstr ""
+#~ "DLC がすでにインストールされているようですが、インストールを続行しますか？"
+
+#~ msgid ""
+#~ "WARNING - Please be aware that online mode lets you connect to OFFICIAL "
+#~ "servers and therefore there is a risk of getting banned. Only proceed if "
+#~ "you are willing to risk losing online access with your Wii U and/or NNID."
+#~ msgstr ""
+#~ "警告 - オンラインモードを有効にすると、任天堂の【公式】サーバーに接続する"
+#~ "ためBAN（アカウント停止）される危険性があります。\n"
+#~ "所持している Wii U・NNID を失うリスクを理解できた場合にのみ有効にしてくだ"
+#~ "さい。"
+
+#~ msgid "Loading, please wait!"
+#~ msgstr "読み込み中です、お待ちください！"
+
+#~ msgid "&High (slow)"
+#~ msgstr "&High (低速)"
+
+#~ msgid "&Medium"
+#~ msgstr "&Medium"
+
+#~ msgid "&Low (fast)"
+#~ msgstr "&Low (高速)"
+
+#~ msgid "&GPU buffer cache accuracy"
+#~ msgstr "&GPUバッファキャッシュの精度"
+
+#~ msgid "&Use RDTSC"
+#~ msgstr "&RDTSC を使用する"
+
+#~ msgid "&Console region"
+#~ msgstr "システム地域(&C)"
+
+#~ msgid "&Dual-core recompiler (fast, unstable!)"
+#~ msgstr "&デュアルコアリコンパイラ (高速、ただし不安定)"
+
+#~ msgid "&Triple-core recompiler (fast, unstable!)"
+#~ msgstr "トリプルコアリコンパイラ （高速、ただし不安定！）"
+
+#~ msgid "&Cycle based timer"
+#~ msgstr "&サイクルベースタイマー"
+
+#~ msgid "&Timer"
+#~ msgstr "&タイマー"
+
+#~ msgid "&Refresh games"
+#~ msgstr "ゲームを更新する(&R)"
+
+#~ msgid "UNDEFINED"
+#~ msgstr "未定義"
+
+#~ msgid "SUSPENDED"
+#~ msgstr "停止中"
+
+#~ msgid "NONE"
+#~ msgstr "なし"
+
+#~ msgid "READY"
+#~ msgstr "準備完了"
+
+#~ msgid "RUNNING"
+#~ msgstr "作動中"
+
+#~ msgid "WAITING"
+#~ msgstr "待機中"
+
+#~ msgid "MORIBUND"
+#~ msgstr "瀕死状態"
+
+#~ msgid ""
+#~ "The currently running game is corrupted or incomplete. (Missing /meta/"
+#~ "meta.xml) Graphic packs cannot be applied."
+#~ msgstr ""
+#~ "動作中のゲームが破損しているます（ /meta/meta.xml が存在しません）。グラ"
+#~ "フィックパックは適用されません。"
+
+#~ msgid "Restart of Cemu required"
+#~ msgstr "Cemu の再起動が必要です"
+
+#~ msgid "Surround 5.1"
+#~ msgstr "5.1ch サラウンド"
+
+#~ msgid "Volume:"
+#~ msgstr "音量:"
+
+#~ msgid "Channels:"
+#~ msgstr "チャンネル:"

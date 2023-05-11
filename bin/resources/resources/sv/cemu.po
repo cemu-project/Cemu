@@ -1,0 +1,1069 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Cemu\n"
+"POT-Creation-Date: 2018-09-01 13:32+0200\n"
+"PO-Revision-Date: 2018-09-18 20:57+0200\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.1.1\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Last-Translator: \n"
+"Language: sv_SE\n"
+
+#: GeneralSettings2.cpp:34
+msgid "General settings"
+msgstr "Allmänna inställningar"
+
+#: GeneralSettings2.cpp:48
+msgid "Interface"
+msgstr "Gränssnitt"
+
+#: GeneralSettings2.cpp:55
+msgid "Language"
+msgstr "Språk"
+
+#: GeneralSettings2.cpp:57
+msgid "Default"
+msgstr "Standardvärde"
+
+#: GeneralSettings2.cpp:57
+msgid "English"
+msgstr "Engelska"
+
+#: GeneralSettings2.cpp:67
+msgid "Discord Presence"
+msgstr "Discord närvaro"
+
+#: GeneralSettings2.cpp:77
+msgid "Game Paths"
+msgstr "Spel Sökvägar"
+
+#: GeneralSettings2.cpp:88
+msgid "Add"
+msgstr "Lägg till"
+
+#: GeneralSettings2.cpp:92
+msgid "Remove"
+msgstr "Radera"
+
+#: GeneralSettings2.cpp:101 GeneralSettings2.cpp:155
+msgid "General"
+msgstr "Allmän"
+
+#: GeneralSettings2.cpp:109
+msgid "Misc"
+msgstr "Övrigt"
+
+#: GeneralSettings2.cpp:116
+msgid "VSync"
+msgstr "VSync"
+
+#: GeneralSettings2.cpp:119
+msgid "Full sync at GX2DrawDone()"
+msgstr "Fullständig synkronisering på GX2DrawDone()"
+
+#: GeneralSettings2.cpp:122
+msgid "Use separable shaders"
+msgstr "Använd separerade skuggningar"
+
+#: GeneralSettings2.cpp:125
+msgid "Disable precompiled shaders"
+msgstr "Inaktivera förkompilerade skuggningar"
+
+#: GeneralSettings2.cpp:133
+msgid "Bilinear"
+msgstr "Bilinjär"
+
+#: GeneralSettings2.cpp:133
+msgid "Bicubic"
+msgstr "Bikubisk"
+
+#: GeneralSettings2.cpp:134
+msgid "Upscale filter"
+msgstr "Uppskalnings filter"
+
+#: GeneralSettings2.cpp:139
+msgid "Keep aspect ratio"
+msgstr "Behåll bildförhållande"
+
+#: GeneralSettings2.cpp:139
+msgid "Stretch"
+msgstr "Sträck ut"
+
+#: GeneralSettings2.cpp:140
+msgid "Fullscreen scaling"
+msgstr "Fullskärms skalning"
+
+#: GeneralSettings2.cpp:145
+msgid "Graphics"
+msgstr "Grafik"
+
+#: GeneralSettings2.cpp:162
+msgid "API"
+msgstr "API"
+
+#: GeneralSettings2.cpp:180
+msgid "Stereo"
+msgstr "Stereo"
+
+#: GeneralSettings2.cpp:182
+msgid "TV"
+msgstr "TV"
+
+#: GeneralSettings2.cpp:189 GeneralSettings2.cpp:225
+msgid "Device"
+msgstr "Enhet"
+
+#: GeneralSettings2.cpp:197 GeneralSettings2.cpp:230
+msgid "Channels"
+msgstr "Kanaler"
+
+#: GeneralSettings2.cpp:204 GeneralSettings2.cpp:236 InputPanelGamepad.cpp:168
+#: InputPanelWiimote.cpp:100
+msgid "Volume"
+msgstr "Volym"
+
+#: GeneralSettings2.cpp:218
+msgid "Gamepad"
+msgstr "Gamepad"
+
+#: GeneralSettings2.cpp:251
+msgid "Audio"
+msgstr "Ljud"
+
+#: GeneralSettings2.cpp:259 MainWindow.cpp:486 MainWindow.cpp:505
+#: MainWindow.cpp:511 MainWindow.cpp:1019
+msgid "Warning"
+msgstr "Varning"
+
+#: GeneralSettings2.cpp:262
+msgid ""
+"Please be aware that online mode lets you connect to OFFICIAL servers and "
+"therefore there is a risk of getting banned.\n"
+"Only proceed if you are willing to risk losing online access with your Wii U "
+"and/or NNID."
+msgstr ""
+"Snälla var medveten över att online-läget låter dig ansluta till OFFICIELLA "
+"servrar och därför finns det en risk att bli avstängd.\n"
+"Fortsätt bara om du vill riskera att förlora online-tillgång på din Wii U "
+"eller/och NNID."
+
+#: GeneralSettings2.cpp:270
+msgid "Account settings"
+msgstr "Konto inställningar"
+
+#: GeneralSettings2.cpp:277
+msgid "Active account"
+msgstr "Aktivt konto"
+
+#: GeneralSettings2.cpp:289
+msgid "Account information"
+msgstr "Konto information"
+
+#: GeneralSettings2.cpp:297
+msgid "Id"
+msgstr "Id"
+
+#: GeneralSettings2.cpp:300
+msgid "E-Mail"
+msgstr "E-Mail"
+
+#: GeneralSettings2.cpp:303
+msgid "Birthday"
+msgstr "Födelsedag"
+
+#: GeneralSettings2.cpp:306
+msgid "Country"
+msgstr "Land"
+
+#: GeneralSettings2.cpp:316
+msgid "Online"
+msgstr "Online"
+
+#: GeneralSettings2.cpp:419 GeneralSettings2.cpp:562
+msgid "Online disabled"
+msgstr "Online inaktiverad"
+
+#: GeneralSettings2.cpp:476 GeneralSettings2.cpp:477
+msgid "Disabled"
+msgstr "Inaktiverad"
+
+#: GeneralSettings2.cpp:776
+msgid "Select a directory containing games."
+msgstr "Välj en katalog som innehåller spel."
+
+#: GraphicPacksWindow2.cpp:41 graphicPacksWindow.cpp:36
+msgid "Graphic packs"
+msgstr "Grafik pack"
+
+#: GraphicPacksWindow2.cpp:71
+msgid "Graphic pack"
+msgstr "Grafik pack"
+
+#: GraphicPacksWindow2.cpp:81
+msgid "Active preset"
+msgstr "Aktiv preset"
+
+#: GraphicPacksWindow2.cpp:93
+msgid "Description"
+msgstr "Beskrivning"
+
+#: GraphicPacksWindow2.cpp:103
+msgid "Control"
+msgstr "Kontroll"
+
+#: GraphicPacksWindow2.cpp:224
+msgid "This is an old graphic pack, therefore it has no description."
+msgstr "Det här är ett gammalt grafik pack, därför har den ingen beskrivning."
+
+#: GraphicPacksWindow2.cpp:248
+msgid "This graphic pack has no description"
+msgstr "Det här grafik packet har ingen beskrivning"
+
+#: GraphicPacksWindow2.cpp:305 GraphicPacksWindow2.cpp:347
+#: GraphicPacksWindow2.cpp:359
+msgid "Restart of Cemu required for changes to take effect"
+msgstr "Omstart av Cemu behövs för att ändringarna ska börja gälla"
+
+#: InputPanelClassic.cpp:54 InputPanelGamepad.cpp:66 InputPanelPro.cpp:48
+msgid "Left Axis"
+msgstr "Vänster Axis"
+
+#: InputPanelClassic.cpp:76 InputPanelClassic.cpp:135 InputPanelGamepad.cpp:88
+#: InputPanelGamepad.cpp:147 InputPanelPro.cpp:70 InputPanelPro.cpp:129
+#: InputPanelWiimote.cpp:159
+msgid "Deadzone"
+msgstr "Dödzon / Deadzone"
+
+#: InputPanelClassic.cpp:86 InputPanelClassic.cpp:145 InputPanelGamepad.cpp:98
+#: InputPanelGamepad.cpp:157 InputPanelPro.cpp:80 InputPanelPro.cpp:139
+#: InputPanelWiimote.cpp:170
+msgid "Range"
+msgstr "Räckvidd"
+
+#: InputPanelClassic.cpp:97 InputPanelGamepad.cpp:109 InputPanelPro.cpp:91
+#: InputPanelWiimote.cpp:115
+msgid "Rumble"
+msgstr "Rumble"
+
+#: InputPanelClassic.cpp:112 InputPanelGamepad.cpp:124 InputPanelPro.cpp:106
+msgid "Right Axis"
+msgstr "Höger axis"
+
+#: InputPanelClassic.cpp:160 InputPanelGamepad.cpp:188 InputPanelPro.cpp:154
+#: InputPanelWiimote.cpp:78
+msgid "D-pad"
+msgstr "D-pad"
+
+#: InputPanelGamepad.cpp:210
+msgid "blow mic"
+msgstr "blåsa i mikrofon"
+
+#: InputPanelGamepad.cpp:222
+msgid "show screen"
+msgstr "visa skärm"
+
+#: InputPanelWiimote.cpp:37
+msgid "Extensions:"
+msgstr "Extensions:"
+
+#: InputPanelWiimote.cpp:40
+msgid "MotionPlus"
+msgstr "MotionPlus"
+
+#: InputPanelWiimote.cpp:44 InputPanelWiimote.cpp:131
+msgid "Nunchuck"
+msgstr "Nunchuck"
+
+#: InputSettings.cpp:44
+msgid "Input Settings"
+msgstr "Inmatningsinställningar"
+
+#: InputSettings.cpp:96
+msgid "Couldn't save settings for controller {0}"
+msgstr "Kunde inte spara inställningar för kontroll {0}"
+
+#: InputSettings.cpp:96 InputSettings.cpp:436 InputSettings.cpp:442
+#: InputSettings.cpp:509 InputSettings.cpp:523 InputSettings.cpp:529
+#: InputSettings.cpp:534 InputSettings.cpp:547 MainWindow.cpp:2292
+#: MainWindow.cpp:2296 MainWindow.cpp:2300 MainWindow.cpp:2304
+#: MainWindow.cpp:2309 MainWindow.cpp:2317 toolMemorySearcher.cpp:164
+msgid "Error"
+msgstr "Error"
+
+#: InputSettings.cpp:153
+msgid "Profile"
+msgstr "Profil"
+
+#: InputSettings.cpp:161
+msgid "Load"
+msgstr "Ladda"
+
+#: InputSettings.cpp:165
+msgid "Save"
+msgstr "Spara"
+
+#: InputSettings.cpp:169
+msgid "Delete"
+msgstr "Radera"
+
+#: InputSettings.cpp:176
+msgid "Emulate Controller"
+msgstr "Emulera Kontroll"
+
+#: InputSettings.cpp:190
+msgid "Controller API:"
+msgstr "Kontroll API:"
+
+#: InputSettings.cpp:222
+msgid "Controller:"
+msgstr "Kontroll:"
+
+#: InputSettings.cpp:233
+msgid "Test if the controller is connected"
+msgstr "Testa om kontrollen är ansluten"
+
+#: InputSettings.cpp:237
+msgid "Calibrate"
+msgstr "Kalibrera"
+
+#: InputSettings.cpp:239
+msgid "Reset the default state of the controller"
+msgstr "Återställ till standardstatus för kontrollen"
+
+#: InputSettings.cpp:243 toolMemorySearcher.cpp:170
+msgid "Clear"
+msgstr "Rensa"
+
+#: InputSettings.cpp:245
+msgid "Clear all currently set input settings"
+msgstr "Rensa alla aktiva inmatnings inställningar"
+
+#: InputSettings.cpp:436 InputSettings.cpp:547
+msgid "No profile name selected!"
+msgstr "Inget profilnamn är valt!"
+
+#: InputSettings.cpp:442 InputSettings.cpp:529
+msgid "The given profile name is not valid!"
+msgstr "Det givna profilnamnet är inte giltigt!"
+
+#: InputSettings.cpp:509
+msgid "Couldn't load the selected profile!"
+msgstr "Kunde inte ladda den valda profilen!"
+
+#: InputSettings.cpp:523
+msgid "No profile name entered!"
+msgstr "Inget profilnamn är valt!"
+
+#: InputSettings.cpp:534
+msgid "Couldn't save the profile!"
+msgstr "Kunde inte spara profilen!"
+
+#: InputSettings.cpp:856
+msgid "Searching for wiimotes..."
+msgstr "Söker efter wiimotes..."
+
+#: MainWindow.cpp:276
+msgid "Game"
+msgstr "Spel"
+
+#: MainWindow.cpp:282
+msgid "Version"
+msgstr "Version"
+
+#: MainWindow.cpp:289
+msgid "DLC"
+msgstr "DLC"
+
+#: MainWindow.cpp:296
+msgid "You've played"
+msgstr "Du har spelat"
+
+#: MainWindow.cpp:302
+msgid "Last played"
+msgstr "Senast spelat"
+
+#: MainWindow.cpp:389 MainWindow.cpp:395
+msgid "Can't open the file."
+msgstr "Kunde inte öppna filen."
+
+#: MainWindow.cpp:399
+msgid "Invalid \"meta.xml\" file."
+msgstr "Ogiltig ''meta.xml'' fil."
+
+#: MainWindow.cpp:403
+msgid "Can't find the \"title_id\" in the given \"meta.xml\" file."
+msgstr "Kunde inte hitta ''title_id'' som var given i ''meta.xml'' filen."
+
+#: MainWindow.cpp:421
+msgid "Can't find the \"title_version\" in the given \"meta.xml\" file."
+msgstr "Kunde inte hitta ''title_version'' som var given i ''meta.xml'' filen."
+
+#: MainWindow.cpp:425
+msgid "The given \"meta.xml\" file is no update or DLC."
+msgstr "Den givna ''meta.xml'' fil är inte en uppdatering eller DLC."
+
+#: MainWindow.cpp:430
+msgid "Can't find the \"longname_en\" in the given \"meta.xml\" file."
+msgstr "Kunde inte hitta \"longname_en\" som är given i ''meta.xml'' filen."
+
+#: MainWindow.cpp:457
+msgid "Invalid folder structure"
+msgstr "Ogiltig mapp-struktur"
+
+#: MainWindow.cpp:486
+msgid ""
+"It seems that a DLC is already installed, do you still want to install it?"
+msgstr ""
+"Det ser ut som att en DLC redan har blivit installerad, vill du fortfarande "
+"installera den?"
+
+#: MainWindow.cpp:505
+msgid ""
+"It seems that the selected update is already installed, do you want to "
+"reinstall it?"
+msgstr ""
+"Det ser ut som att den valda uppdateringen redan är installerad, vill du om-"
+"installera den?"
+
+#: MainWindow.cpp:511
+msgid ""
+"It seems that a newer update is already installed, do you still want to "
+"install the older version?"
+msgstr ""
+"Det ser ut som att en nyare uppdatering redan är installerad, vill du "
+"installera den gamla versionen?"
+
+#: MainWindow.cpp:526
+msgid ""
+"Not enough space available.\n"
+"Required: {0} MB\n"
+"Available: {1} MB"
+msgstr ""
+"Inte nog med plats tillgängligt.\n"
+"Nödvändig: {0} MB\n"
+"Tillgänglig: {1} MB"
+
+#: MainWindow.cpp:563
+msgid "Update installed!"
+msgstr "Uppdatering installerad!"
+
+#: MainWindow.cpp:563
+msgid "Success"
+msgstr "Succé"
+
+#: MainWindow.cpp:568
+msgid "Update installation has been canceled!"
+msgstr "Uppdaterings-installation har blivit avbruten!"
+
+#: MainWindow.cpp:588
+msgid "Unable to open file."
+msgstr "Inte möjligt att öppna filtypen."
+
+#: MainWindow.cpp:590
+msgid "Unknown file type."
+msgstr "Okänd filtyp."
+
+#: MainWindow.cpp:592
+msgid "Failed to launch file."
+msgstr "Kunde inte öppna filen."
+
+#: MainWindow.cpp:657 MainWindow.cpp:685
+msgid "Open file to launch"
+msgstr "Öppna fil vid start"
+
+#: MainWindow.cpp:698
+msgid "Open file to load"
+msgstr "Öppna fil att ladda in"
+
+#: MainWindow.cpp:707 MainWindow.cpp:730
+msgid "Cannot open file"
+msgstr "Kan inte öppna fil"
+
+#: MainWindow.cpp:709 MainWindow.cpp:732
+msgid "Not a valid NFC NTAG215 file"
+msgstr "Inte en giltig NFC NTAG215 fil"
+
+#: MainWindow.cpp:843
+msgid "Cemu must be restarted to apply the selected UI language."
+msgstr "Cemu måste bli omstartad för att tillämpa den valda UI språk."
+
+#: MainWindow.cpp:843
+msgid "Information"
+msgstr "Information"
+
+#: MainWindow.cpp:1018
+msgid ""
+"WARNING - Please be aware that online mode lets you connect to OFFICIAL "
+"servers and therefore there is a risk of getting banned. Only proceed if you "
+"are willing to risk losing online access with your Wii U and/or NNID."
+msgstr ""
+"VARNING - Snälla var medveten att online läget låter dig att ansluta till "
+"OFFICIELLA servrar och därför finns det en risk av att bli avstängd. "
+"Fortsätt bara om du frivilligt vill riskera att förlora tillgång till online "
+"på din Wii U och/eller NNID."
+
+#: MainWindow.cpp:1510
+msgid "You can configure game paths in the general settings."
+msgstr "Du kan konfigurera spel-vägarna i de allmänna inställningarna."
+
+#: MainWindow.cpp:1582
+msgid "Loading, please wait!"
+msgstr "Laddar, var snäll att vänta!"
+
+#: MainWindow.cpp:2075
+msgid "&Load"
+msgstr "&Ladda"
+
+#: MainWindow.cpp:2076
+msgid "&Install game update or DLC"
+msgstr "&Installera spel uppdatering eller DLC"
+
+#: MainWindow.cpp:2100
+msgid "&Exit"
+msgstr "&Gå Ur"
+
+#: MainWindow.cpp:2101
+msgid "&File"
+msgstr "&Fil"
+
+#: MainWindow.cpp:2104
+msgid "&Auto"
+msgstr "&Auto"
+
+#: MainWindow.cpp:2106
+msgid "&USA"
+msgstr "&USA"
+
+#: MainWindow.cpp:2107
+msgid "&Europe"
+msgstr "&Europa"
+
+#: MainWindow.cpp:2108
+msgid "&Japan"
+msgstr "&Japan"
+
+#: MainWindow.cpp:2110
+msgid "&China"
+msgstr "&Kina"
+
+#: MainWindow.cpp:2111
+msgid "&Korea"
+msgstr "&Korea"
+
+#: MainWindow.cpp:2112
+msgid "&Taiwan"
+msgstr "&Taiwan"
+
+#: MainWindow.cpp:2116
+msgid "&English"
+msgstr "&Engelska"
+
+#: MainWindow.cpp:2117
+msgid "&Japanese"
+msgstr "&Japanska"
+
+#: MainWindow.cpp:2118
+msgid "&French"
+msgstr "&Franska"
+
+#: MainWindow.cpp:2119
+msgid "&German"
+msgstr "&Tyska"
+
+#: MainWindow.cpp:2120
+msgid "&Italian"
+msgstr "&Italienska"
+
+#: MainWindow.cpp:2121
+msgid "&Spanish"
+msgstr "&Spanska"
+
+#: MainWindow.cpp:2122
+msgid "&Chinese"
+msgstr "&Kinesiska"
+
+#: MainWindow.cpp:2123
+msgid "&Korean"
+msgstr "&Koreanska"
+
+#: MainWindow.cpp:2124
+msgid "&Dutch"
+msgstr "&Holländska"
+
+#: MainWindow.cpp:2125
+msgid "&Portuguese"
+msgstr "&Portugisiska"
+
+#: MainWindow.cpp:2126
+msgid "&Russian"
+msgstr "&Ryska"
+
+#: MainWindow.cpp:2127
+msgid "&Taiwanese"
+msgstr "&Taiwanesiska"
+
+#: MainWindow.cpp:2133
+msgid "&High (slow)"
+msgstr "&Hög (långsam)"
+
+#: MainWindow.cpp:2134
+msgid "&Medium"
+msgstr "&Medium"
+
+#: MainWindow.cpp:2135
+msgid "&Low (fast)"
+msgstr "&Låg (snabb)"
+
+#: MainWindow.cpp:2147
+msgid "&Fullscreen"
+msgstr "&Fullskärm"
+
+#: MainWindow.cpp:2152
+msgid "&Graphic packs"
+msgstr "&Grafik pack"
+
+#: MainWindow.cpp:2157
+msgid "&GPU buffer cache accuracy"
+msgstr "&GPU buffer cache accuracy"
+
+#: MainWindow.cpp:2158
+msgid "&Separate GamePad view"
+msgstr "&Separat GamePad syn"
+
+#: MainWindow.cpp:2162
+msgid "&General settings"
+msgstr "&Allmänna inställningar"
+
+#: MainWindow.cpp:2164
+msgid "&Input settings"
+msgstr "&Inmatningsinställningar"
+
+#: MainWindow.cpp:2174
+msgid "&Use RDTSC"
+msgstr "&Använd RDTSC"
+
+#: MainWindow.cpp:2183
+msgid "&Experimental"
+msgstr "&Experimentell"
+
+#: MainWindow.cpp:2186
+msgid "&Console region"
+msgstr "&Konsollregion"
+
+#: MainWindow.cpp:2187
+msgid "&Console language"
+msgstr "&Konsollspråk"
+
+#: MainWindow.cpp:2188
+msgid "&Options"
+msgstr "&Inställningar"
+
+#: MainWindow.cpp:2192
+msgid "&Memory searcher"
+msgstr "&Minnes-sökare"
+
+#: MainWindow.cpp:2194
+msgid "&Tools"
+msgstr "&Verktyg"
+
+#: MainWindow.cpp:2199
+msgid "&Single-core interpreter"
+msgstr "&Single-core interpreter"
+
+#: MainWindow.cpp:2200
+msgid "&Single-core recompiler (fast)"
+msgstr "&Single-core recompiler (snabb)"
+
+#: MainWindow.cpp:2201
+msgid "&Dual-core recompiler (fast, unstable!)"
+msgstr "&Dual-core recompiler (snabb, ostabil!)"
+
+#: MainWindow.cpp:2202
+msgid "&Triple-core recompiler (fast, unstable!)"
+msgstr "&Triple-core recompiler (snabb, ostabil!)"
+
+#: MainWindow.cpp:2206
+msgid "&Cycle based timer"
+msgstr "&Cycle based timer"
+
+#: MainWindow.cpp:2207
+msgid "&Host based timer (recommended)"
+msgstr "&Host based timer (rekommenderad)"
+
+#: MainWindow.cpp:2210
+msgid "&Mode"
+msgstr "&Läge"
+
+#: MainWindow.cpp:2211
+msgid "&Timer"
+msgstr "&Timer"
+
+#: MainWindow.cpp:2212
+msgid "&CPU"
+msgstr "&CPU"
+
+#: MainWindow.cpp:2216
+msgid "&Scan NFC tag from file"
+msgstr "&Skanna NFC platta från fil"
+
+#: MainWindow.cpp:2217
+msgid "&NFC"
+msgstr "&NFC"
+
+#: MainWindow.cpp:2223
+msgid "&Unsupported API calls"
+msgstr "&Unsupported API calls"
+
+#: MainWindow.cpp:2224
+msgid "&Coreinit File-Access"
+msgstr "&Coreinit File-Access"
+
+#: MainWindow.cpp:2225
+msgid "&Coreinit Thread-Synchronization API"
+msgstr "&Coreinit Thread-Synchronization API"
+
+#: MainWindow.cpp:2226
+msgid "&Coreinit Memory API"
+msgstr "&Coreinit Memory API"
+
+#: MainWindow.cpp:2227
+msgid "&GX2 API"
+msgstr "&GX2 API"
+
+#: MainWindow.cpp:2228
+msgid "&Audio API"
+msgstr "&Audio API"
+
+#: MainWindow.cpp:2229
+msgid "&Input API"
+msgstr "&Input API"
+
+#: MainWindow.cpp:2230
+msgid "&Socket API"
+msgstr "&Socket API"
+
+#: MainWindow.cpp:2231
+msgid "&Save API"
+msgstr "&Save API"
+
+#: MainWindow.cpp:2232
+msgid "&H264 API"
+msgstr "&H264 API"
+
+#: MainWindow.cpp:2236
+msgid "&Textures"
+msgstr "&Texturer"
+
+#: MainWindow.cpp:2237
+msgid "&Shaders"
+msgstr "&Skuggningar"
+
+#: MainWindow.cpp:2241
+msgid "&Logging"
+msgstr "&Logging"
+
+#: MainWindow.cpp:2242
+msgid "&Dump"
+msgstr "&Dumpa"
+
+#: MainWindow.cpp:2246 MainWindow.cpp:2251
+msgid "&Render upside-down"
+msgstr "&Läs in uppochned"
+
+#: MainWindow.cpp:2254
+msgid "&View PPC threads"
+msgstr "&Visa PPC threads"
+
+#: MainWindow.cpp:2256
+msgid "&View PPC debugger"
+msgstr "&Visa PPC debugger"
+
+#: MainWindow.cpp:2258
+msgid "&View audio debugger"
+msgstr "&Visa audio debugger"
+
+#: MainWindow.cpp:2260
+msgid "&Dump current RAM"
+msgstr "&Dumpa nuvarande RAM"
+
+#: MainWindow.cpp:2263
+msgid "&Debug"
+msgstr "&Debug"
+
+#: MainWindow.cpp:2268
+msgid "&About"
+msgstr "&Om"
+
+#: MainWindow.cpp:2269
+msgid "&Help"
+msgstr "&Hjälp"
+
+#: MainWindow.cpp:2292
+msgid "otp.bin could not be found"
+msgstr "otp.bin kunde inte hittas"
+
+#: MainWindow.cpp:2296
+msgid "otp.bin is corrupted or has invalid size"
+msgstr "otp.bin är korrupterad eller har en ogiltig storlek"
+
+#: MainWindow.cpp:2300
+msgid "seeprom.bin could not be found"
+msgstr "seeprom.bin kunde inte hittas"
+
+#: MainWindow.cpp:2304
+msgid "seeprom.bin is corrupted or has invalid size"
+msgstr "seeprom.bin är korrupterad eller har en ogilig storlek"
+
+#: MainWindow.cpp:2317
+msgid "Unknown error occured"
+msgstr "Okänt fel har skett"
+
+#: MainWindow.cpp:2428
+msgid "&Start"
+msgstr "&Start"
+
+#: MainWindow.cpp:2430
+msgid "Sa&ve directory"
+msgstr "Spa&ra register"
+
+#: MainWindow.cpp:2431
+msgid "&Update directory"
+msgstr "&Uppdatera register"
+
+#: MainWindow.cpp:2432
+msgid "&DLC directory"
+msgstr "&DLC register"
+
+#: MainWindow.cpp:2434
+msgid "&Open game profile"
+msgstr "&Öppna spelprofil"
+
+#: MainWindow.cpp:2435
+msgid "&Create game profile"
+msgstr "&Skapa spelprofil"
+
+#: MainWindow.cpp:2437
+msgid "&Refresh game list"
+msgstr "&Uppdatera spel listan"
+
+#: MainWindow.cpp:2451
+msgid "&Refresh games"
+msgstr "&Uppdatera spel"
+
+#: MainWindow.cpp:2513
+msgid "Updating game list..."
+msgstr "Uppdaterar spellistan..."
+
+#: MainWindow.cpp:2757
+msgid "never"
+msgstr "aldrig"
+
+#: debugPPCThreadsWindow.cpp:30
+msgid "PPC threads"
+msgstr "PPC threads (trådar)"
+
+#: debugPPCThreadsWindow.cpp:42
+msgid "Address"
+msgstr "Adress"
+
+#: debugPPCThreadsWindow.cpp:47
+msgid "Entry"
+msgstr "Inträde"
+
+#: debugPPCThreadsWindow.cpp:52
+msgid "Stack"
+msgstr "Stack"
+
+#: debugPPCThreadsWindow.cpp:57
+msgid "PC"
+msgstr "PC"
+
+#: debugPPCThreadsWindow.cpp:62
+msgid "LR"
+msgstr "LR"
+
+#: debugPPCThreadsWindow.cpp:67
+msgid "State"
+msgstr "Läge"
+
+#: debugPPCThreadsWindow.cpp:72
+msgid "Affinity"
+msgstr "Samhörighet"
+
+#: debugPPCThreadsWindow.cpp:77
+msgid "Priority"
+msgstr "Prioritet"
+
+#: debugPPCThreadsWindow.cpp:82
+msgid "SliceStart"
+msgstr "SliceStart"
+
+#: debugPPCThreadsWindow.cpp:87
+msgid "SumWakeTime"
+msgstr "SumWakeTime"
+
+#: debugPPCThreadsWindow.cpp:92
+msgid "ThreadName"
+msgstr "ThreadName (trådnamn)"
+
+#: debugPPCThreadsWindow.cpp:97
+msgid "GPR"
+msgstr "GPR"
+
+#: debugPPCThreadsWindow.cpp:104
+msgid "Refresh"
+msgstr "Uppdatera"
+
+#: debugPPCThreadsWindow.cpp:107
+msgid "Auto refresh"
+msgstr "Automatiskt uppdatera"
+
+#: debugPPCThreadsWindow.cpp:319
+msgid "Boost priority (-5)"
+msgstr "Öka prioritet (-5)"
+
+#: debugPPCThreadsWindow.cpp:320
+msgid "Boost priority (-1)"
+msgstr "Öka prioritet (-1)"
+
+#: debugPPCThreadsWindow.cpp:322
+msgid "Decrease priority (+5)"
+msgstr "Minska prioritet (+5)"
+
+#: debugPPCThreadsWindow.cpp:323
+msgid "Decrease priority (+1)"
+msgstr "Minska prioritet (+1)"
+
+#: debugPPCThreadsWindow.cpp:325
+msgid "Resume"
+msgstr "Återuppta"
+
+#: debugPPCThreadsWindow.cpp:326
+msgid "Suspend"
+msgstr "Suspendera"
+
+#: graphicPacksWindow.cpp:48
+msgid "On/Off"
+msgstr "På/Av"
+
+#: graphicPacksWindow.cpp:53
+msgid "Name"
+msgstr "Namn"
+
+#: graphicPacksWindow.cpp:58
+msgid "Active"
+msgstr "Aktiv"
+
+#: graphicPacksWindow.cpp:72
+msgid ""
+"The currently running game is corrupted or incomplete. (Missing /meta/meta."
+"xml) Graphic packs cannot be applied."
+msgstr ""
+"Det spelet som körs just nu är korrupterat eller ofullständig. (Saknar /meta/"
+"meta.xml) Grafik pack kan inte bli applicerade."
+
+#: graphicPacksWindow.cpp:75 graphicPacksWindow.cpp:114
+#: graphicPacksWindow.cpp:131
+msgid "Restart of Cemu required"
+msgstr "Omstart av Cemu behövs"
+
+#: graphicPacksWindow.cpp:165
+msgid "Yes"
+msgstr "Ja"
+
+#: toolMemorySearcher.cpp:43
+msgid "Memory Searcher"
+msgstr "Minnes Sökaren"
+
+#: toolMemorySearcher.cpp:59 toolMemorySearcher.cpp:425
+msgid "Search"
+msgstr "Sök"
+
+#: toolMemorySearcher.cpp:60
+msgid "Filter"
+msgstr "Filter"
+
+#: toolMemorySearcher.cpp:79 toolMemorySearcher.cpp:426
+msgid "Results"
+msgstr "Resultat"
+
+#: toolMemorySearcher.cpp:85 toolMemorySearcher.cpp:101
+msgid "address"
+msgstr "address"
+
+#: toolMemorySearcher.cpp:90 toolMemorySearcher.cpp:103
+msgid "value"
+msgstr "värde"
+
+#: toolMemorySearcher.cpp:95
+msgid "Stored Entries"
+msgstr "Lagrade Inträden"
+
+#: toolMemorySearcher.cpp:100
+msgid "description"
+msgstr "beskrivning"
+
+#: toolMemorySearcher.cpp:102
+msgid "type"
+msgstr "typ"
+
+#: toolMemorySearcher.cpp:104
+msgid "freeze"
+msgstr "frys"
+
+#: toolMemorySearcher.cpp:164
+msgid "Your entered value is not valid for the selected datatype."
+msgstr "Det värdet du lade in är inte giltigt för denna valda data-typen."
+
+#: toolMemorySearcher.cpp:389
+msgid "&Add new entry"
+msgstr "&Lägg till ny det intryckta"
+
+#: toolMemorySearcher.cpp:390
+msgid "&Remove entry"
+msgstr "&Ta bort det intryckta"
+
+#: toolMemorySearcher.cpp:483
+msgid "Results ({0})"
+msgstr "Resultat ({0})"
+
+#: updateWindow.cpp:15
+msgid "Installing DLC ..."
+msgstr "Installerar DLC ..."
+
+#: updateWindow.cpp:17
+msgid "Installing update ..."
+msgstr "Installerar uppdatering ..."
+
+#: updateWindow.cpp:24
+msgid "Cancel"
+msgstr "Upphäva"
+
+#: updateWindow.cpp:101
+msgid "Error:"
+msgstr "Error:"
+
+#: updateWindow.cpp:106
+msgid "Error Code:"
+msgstr "Error Kod:"
+
+#: updateWindow.cpp:112
+msgid "Current file:"
+msgstr "Nuvarande fil:"
+
+#: updateWindow.cpp:154
+msgid ""
+"Do you really want to cancel the update process?\n"
+"\n"
+"Canceling the process will delete the applied update."
+msgstr ""
+"Vill du verkligen upphäva uppdaterings-processen?\n"
+"\n"
+"Att upphäva processen kommer att radera den applicerade uppdateringen."
+
+#: updateWindow.cpp:154
+msgid "Info"
+msgstr "Information"

@@ -1,0 +1,3915 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Cemu\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2022-09-26 16:01+0800\n"
+"Last-Translator: Genglxy <Genglxy@outlook.com>\n"
+"Language-Team: \n"
+"Language: zh\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.1\n"
+
+#: src/util/helpers/helpers.cpp:69 src/util/helpers/helpers.cpp:86
+#: src/gui/ChecksumTool.cpp:416 src/gui/ChecksumTool.cpp:443
+#: src/gui/ChecksumTool.cpp:464 src/gui/ChecksumTool.cpp:469
+#: src/gui/ChecksumTool.cpp:474 src/gui/ChecksumTool.cpp:481
+#: src/gui/ChecksumTool.cpp:486 src/gui/ChecksumTool.cpp:525
+#: src/gui/ChecksumTool.cpp:561 src/gui/ChecksumTool.cpp:566
+#: src/gui/ChecksumTool.cpp:575 src/gui/ChecksumTool.cpp:587
+#: src/gui/ChecksumTool.cpp:604 src/gui/ChecksumTool.cpp:613
+#: src/gui/ChecksumTool.cpp:632 src/gui/ChecksumTool.cpp:641
+#: src/gui/MainWindow.cpp:263 src/gui/MainWindow.cpp:265
+#: src/gui/MainWindow.cpp:444 src/gui/MainWindow.cpp:457
+#: src/gui/MainWindow.cpp:464 src/gui/MainWindow.cpp:481
+#: src/gui/MainWindow.cpp:489 src/gui/MainWindow.cpp:497
+#: src/gui/MainWindow.cpp:504 src/gui/MainWindow.cpp:2274
+#: src/gui/MainWindow.cpp:2278 src/gui/MainWindow.cpp:2282
+#: src/gui/MainWindow.cpp:2286 src/gui/MainWindow.cpp:2291
+#: src/gui/MainWindow.cpp:2299 src/gui/DownloadGraphicPacksWindow.cpp:145
+#: src/gui/DownloadGraphicPacksWindow.cpp:211 src/gui/TitleManager.cpp:547
+#: src/gui/TitleManager.cpp:638 src/gui/TitleManager.cpp:656
+#: src/gui/TitleManager.cpp:665 src/gui/TitleManager.cpp:671
+#: src/gui/TitleManager.cpp:684 src/gui/debugger/DumpCtrl.cpp:256
+#: src/gui/CemuApp.cpp:361 src/gui/canvas/VulkanCanvas.cpp:32
+#: src/gui/GameUpdateWindow.cpp:96 src/gui/GeneralSettings2.cpp:1100
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:67
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:75
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:84
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:90
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:122
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:162
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:174
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:181
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:197
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:217
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:225
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:96
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:112
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:119
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:135
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:191
+#: src/gui/input/InputAPIAddWindow.cpp:131 src/gui/MemorySearcherTool.cpp:198
+#: src/gui/components/wxTitleManagerList.cpp:529
+#: src/gui/components/wxTitleManagerList.cpp:584
+#: src/gui/components/wxTitleManagerList.cpp:826
+msgid "Error"
+msgstr "错误"
+
+#: src/util/helpers/helpers.cpp:74 src/util/helpers/helpers.cpp:91
+msgid "Error code"
+msgstr "错误代码"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:374
+msgid "Downloading account ticket"
+msgstr "下载账户票证 (Tickets) 中"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:427
+msgid "Downloading system tickets..."
+msgstr "下载系统票证 (Tickets) 中 ..."
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:489
+msgid "Retrieving update information..."
+msgstr "检索更新信息中 ..."
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:511
+msgid "Downloading ticket"
+msgstr "下载票证 (Tickets) 中"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:564
+msgid "Downloading meta data"
+msgstr "下载元数据中"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:569
+msgid "Connected. Right click entries in the list to start downloading"
+msgstr "已连接。右键单击列表中的条目即可开始下载"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:655
+msgid "Logging in.."
+msgstr "登录中 ..."
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:678
+msgid "Login failed. Outdated or incomplete online files?"
+msgstr "登陆失败了。请检查是否超时，或者在线文件是否完整？"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:686
+msgid "Failed to query account status. Invalid account information?"
+msgstr "查询账户状态失败。账户信息是否无效？"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:690
+msgid "Updating ticket cache"
+msgstr "更新票证 (Tickets) 缓存中"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:695
+msgid "Failed to request tickets (invalid NNID?)"
+msgstr "请求票证 (Tickets) 失败了 (NNID 无效?)"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:719
+msgid "This account is not linked with an NNID"
+msgstr "此账户没有链接到 NNID"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:729
+msgid "Failed. Account does not have password set"
+msgstr "失败了。帐户没有设置密码"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:1057
+msgid "TMD download failed"
+msgstr "档案元数据 (TMD) 的下载失败了"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:1066
+msgid "Invalid TMD"
+msgstr "无效的档案元数据 (TMD)"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:1175
+msgid "Cannot write file. Disk full?"
+msgstr "无法写入文件。您的磁盘满了吗？"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:1196
+msgid "Cannot create file"
+msgstr "无法创建文件"
+
+#: src/Cemu/Tools/DownloadManager/DownloadManager.cpp:1201
+msgid "Download failed"
+msgstr "下载失败了"
+
+#: src/gui/ChecksumTool.cpp:85
+msgid "Title checksum of {:08x}-{:08x}"
+msgstr "{:08x}-{:08x} 的 “档案校验和”"
+
+#: src/gui/ChecksumTool.cpp:105
+msgid "Verifying integrity of game files..."
+msgstr "正在验证游戏文件的完整性 ..."
+
+#: src/gui/ChecksumTool.cpp:121 src/gui/GraphicPacksWindow2.cpp:275
+msgid "Control"
+msgstr "控制"
+
+#: src/gui/ChecksumTool.cpp:124
+msgid "Verify online"
+msgstr "在线验证"
+
+#: src/gui/ChecksumTool.cpp:125
+msgid "Verifies the checksum online"
+msgstr "在线验证校验和"
+
+#: src/gui/ChecksumTool.cpp:144
+msgid "Verify with local file"
+msgstr "同本地文件进行验证"
+
+#: src/gui/ChecksumTool.cpp:145
+msgid "Verifies the checksum with a local JSON file you can select"
+msgstr "用您选择的本地 JSON 文件验证校验和"
+
+#: src/gui/ChecksumTool.cpp:150 src/gui/TitleManager.cpp:133
+msgid "Export"
+msgstr "导出"
+
+#: src/gui/ChecksumTool.cpp:151
+msgid "Export the title checksum data to a local JSON file"
+msgstr "导出 “档案校验和” 数据到一个本地的 JSON 文件"
+
+#: src/gui/ChecksumTool.cpp:361
+msgid "Export checksum entry"
+msgstr "导出 “校验和” 条目"
+
+#: src/gui/ChecksumTool.cpp:412
+msgid "Export successful"
+msgstr "导出成功"
+
+#: src/gui/ChecksumTool.cpp:416
+msgid "Can't write to file: {}"
+msgstr "写入文件失败：{}"
+
+#: src/gui/ChecksumTool.cpp:443
+msgid "JSON file doesn't satisfy needed schema"
+msgstr "JSON文件不满足所需的格式"
+
+#: src/gui/ChecksumTool.cpp:464
+msgid "The file you are comparing with is for a different title."
+msgstr "您所比较的文件是为其他档案所创建的。"
+
+#: src/gui/ChecksumTool.cpp:469
+msgid "Wrong version: {}"
+msgstr "错误的版本: {}"
+
+#: src/gui/ChecksumTool.cpp:474
+msgid "Wrong region: {}"
+msgstr "错误的地区: {}"
+
+#: src/gui/ChecksumTool.cpp:481
+msgid "The verification data doesn't include a WUD hash!"
+msgstr "此验证数据不包括 WUD 哈希值!"
+
+#: src/gui/ChecksumTool.cpp:486
+msgid ""
+"Your game image is invalid!\n"
+"\n"
+"Your hash:\n"
+"{}\n"
+"\n"
+"Expected hash:\n"
+"{}"
+msgstr ""
+"您的游戏映像无效！\n"
+"\n"
+"您的哈希值：\n"
+"{}\n"
+"\n"
+"预期的哈希值：\n"
+"{}"
+
+#: src/gui/ChecksumTool.cpp:496
+msgid "Select a file to export the errors"
+msgstr "选择要导出错误的文件"
+
+#: src/gui/ChecksumTool.cpp:525
+msgid "Can't open file to write!"
+msgstr "无法打开要写入的文件！"
+
+#: src/gui/ChecksumTool.cpp:548
+msgid "The following files are missing:"
+msgstr "以下文件已丢失："
+
+#: src/gui/ChecksumTool.cpp:556
+msgid "The following files are damaged:"
+msgstr "以下文件已损坏："
+
+#: src/gui/ChecksumTool.cpp:566
+msgid ""
+"{} files have an invalid hash!\n"
+"Do you want to export a list of them to a file?"
+msgstr ""
+"{} 个文件的哈希值无效！\n"
+"您想将无效文件的列表导出到一个文件中吗？"
+
+#: src/gui/ChecksumTool.cpp:575
+msgid ""
+"Multiple issues with your game files have been found!\n"
+"Do you want to export them to a file?"
+msgstr ""
+"发现您的游戏文件存在多个问题！\n"
+"您想将它们导出到文件中吗?"
+
+#: src/gui/ChecksumTool.cpp:583
+msgid "Your game files are valid"
+msgstr "您的游戏文件有效"
+
+#: src/gui/ChecksumTool.cpp:583 src/gui/MainWindow.cpp:407
+#: src/gui/CemuUpdateWindow.cpp:619
+msgid "Success"
+msgstr "成功"
+
+#: src/gui/ChecksumTool.cpp:587
+msgid "JSON parse error: {}"
+msgstr "JSON 解析错误：{}"
+
+#: src/gui/ChecksumTool.cpp:604 src/gui/ChecksumTool.cpp:632
+msgid "Can't open file!"
+msgstr "无法打开文件！"
+
+#: src/gui/ChecksumTool.cpp:613 src/gui/ChecksumTool.cpp:641
+msgid "Can't parse json file!"
+msgstr "无法解析 JSON 文件！"
+
+#: src/gui/ChecksumTool.cpp:624
+msgid "Open checksum entry"
+msgstr "打开 “校验和” 条目"
+
+#: src/gui/ChecksumTool.cpp:683
+msgid "Reading game image: {}"
+msgstr "正在读取游戏映像：{}"
+
+#: src/gui/ChecksumTool.cpp:712
+msgid "Reading game image: {0}/{1} kB"
+msgstr "正在读取游戏镜像：{0}/{1} kB"
+
+#: src/gui/ChecksumTool.cpp:716
+msgid "Generating checksum of game image: {}"
+msgstr "正在生成游戏映像的校验和：{}"
+
+#: src/gui/ChecksumTool.cpp:732
+msgid "Generated checksum of game image: {}"
+msgstr "生成了游戏映像的校验和：{}"
+
+#: src/gui/ChecksumTool.cpp:739
+msgid "Grabbing game files"
+msgstr "抓取游戏文件中"
+
+#: src/gui/ChecksumTool.cpp:768
+msgid "Hashing game file: {}/{}"
+msgstr "正在计算游戏文件哈希值：{}/{}"
+
+#: src/gui/ChecksumTool.cpp:778
+msgid "Generated checksum of {} game files"
+msgstr "生成了 {} 个游戏文件的校验和"
+
+#: src/gui/MainWindow.cpp:263 src/gui/MainWindow.cpp:670
+#: src/gui/MainWindow.cpp:693
+msgid "Cannot open file"
+msgstr "无法打开文件"
+
+#: src/gui/MainWindow.cpp:265 src/gui/MainWindow.cpp:672
+#: src/gui/MainWindow.cpp:695
+msgid "Not a valid NFC NTAG215 file"
+msgstr "不是有效的 NFC NTAG215 文件"
+
+#: src/gui/MainWindow.cpp:407
+msgid "Title installed!"
+msgstr "档案已安装！"
+
+#: src/gui/MainWindow.cpp:413
+msgid "Title installation has been canceled!"
+msgstr "已取消档案安装！"
+
+#: src/gui/MainWindow.cpp:426 src/gui/TitleManager.cpp:401
+msgid "Update error"
+msgstr "更新错误"
+
+#: src/gui/MainWindow.cpp:443
+msgid "Unable to launch game because the base files were not found."
+msgstr "由于缺失本体文件，无法启动游戏。"
+
+#: src/gui/MainWindow.cpp:455
+msgid ""
+"Unable to mount title.\n"
+"Make sure the configured game paths are still valid and refresh the game "
+"list.\n"
+"\n"
+"File which failed to load:\n"
+msgstr ""
+"无法加载档案。\n"
+"请确保您配置的游戏路径仍然有效，并刷新游戏列表。\n"
+"\n"
+"无法加载的文件为：\n"
+
+#: src/gui/MainWindow.cpp:462
+msgid "Failed to launch game."
+msgstr "无法启动游戏。"
+
+#: src/gui/MainWindow.cpp:479
+msgid "Failed to launch executable. Path: "
+msgstr "无法启动可执行文件。路径为： "
+
+#: src/gui/MainWindow.cpp:487
+msgid ""
+"Unable to launch title.\n"
+"Make sure the configured game paths are still valid and refresh the game "
+"list.\n"
+"\n"
+"Path which failed to load:\n"
+msgstr ""
+"无法启动档案。\n"
+"请确保您配置的游戏路径仍然有效，并刷新游戏列表。\n"
+"\n"
+"无法加载的路径为：\n"
+
+#: src/gui/MainWindow.cpp:495 src/gui/MainWindow.cpp:502
+msgid ""
+"Unable to launch game\n"
+"Path:\n"
+msgstr "无法加载游戏路径：\n"
+
+#: src/gui/MainWindow.cpp:581
+msgid "All Wii U files (*.wud, *.wux, *.wua, *.iso, *.rpx, *.elf)"
+msgstr "所有 Wii U 文件 (*.wud, *.wux, *.wua, *.iso, *.rpx, *.elf)"
+
+#: src/gui/MainWindow.cpp:582
+msgid "Wii U image (*.wud, *.wux, *.iso, *.wad)"
+msgstr "Wii U 镜像文件 (*.wud, *.wux, *.iso, *.wad)"
+
+#: src/gui/MainWindow.cpp:583
+msgid "Wii U archive (*.wua)"
+msgstr "Wii U 档案 (*.wua)"
+
+#: src/gui/MainWindow.cpp:584
+msgid "Wii U executable (*.rpx, *.elf)"
+msgstr "Wii U 可执行文件 (*.rpx, *.elf)"
+
+#: src/gui/MainWindow.cpp:585
+msgid "All files (*.*)"
+msgstr "所有文件 (*.*)"
+
+#: src/gui/MainWindow.cpp:588
+msgid "Open file to launch"
+msgstr "打开要启动的文件"
+
+#: src/gui/MainWindow.cpp:620
+msgid "Select folder of title to install"
+msgstr "选择欲安装 档案 的文件夹"
+
+#: src/gui/MainWindow.cpp:620
+msgid "Select the folder that stores your update, DLC or base game files"
+msgstr "选择存储 更新档、DLC 或 游戏本体 文件的文件夹"
+
+#: src/gui/MainWindow.cpp:636
+msgid ""
+"The (parent) folder of the title you selected is missing at least one of the "
+"required subfolders (\"code\", \"content\" and \"meta\")\n"
+"Make sure that the files are complete."
+msgstr ""
+"您所选择档案的（父）文件夹至少缺失一个必须被包含的子文件夹（包括 "
+"“code”，“content” 和 “meta”）\n"
+"请确保文件的完整性。"
+
+#: src/gui/MainWindow.cpp:644
+msgid "The folder you have selected cannot be found on your system."
+msgstr "无法在您的系统中找到您选择的文件夹。"
+
+#: src/gui/MainWindow.cpp:646
+msgid "Unable to find the /meta/meta.xml file inside the selected folder."
+msgstr "无法在选定的文件夹中找到 /meta/meta.xml 文件。"
+
+#: src/gui/MainWindow.cpp:661
+msgid "Open file to load"
+msgstr "打开要载入的文件"
+
+#: src/gui/MainWindow.cpp:797
+msgid "Cemu must be restarted to apply the selected UI language."
+msgstr "重启 Cemu 才能应用所选的 UI 语言。"
+
+#: src/gui/MainWindow.cpp:797 src/gui/TitleManager.cpp:282
+#: src/gui/GeneralSettings2.cpp:1662
+#: src/Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.cpp:254
+msgid "Information"
+msgstr "信息"
+
+#: src/gui/MainWindow.cpp:963
+msgid ""
+"Warning: Disabling the accurate barriers option will lead to flickering "
+"graphics but may improve performance. It is highly recommended to leave it "
+"turned on."
+msgstr ""
+"警告：禁用 精确同步屏障 选项将导致图形闪烁，但可能提高性能。强烈建议保持开启"
+"状态。"
+
+#: src/gui/MainWindow.cpp:963
+msgid "Accurate barriers are off"
+msgstr "精确同步屏障 已关闭"
+
+#: src/gui/MainWindow.cpp:1343
+msgid "Updating game list..."
+msgstr "更新游戏列表中 ..."
+
+#: src/gui/MainWindow.cpp:1720
+msgid ""
+"There's a new update available.\n"
+"Do you want to update?"
+msgstr ""
+"有可用更新。\n"
+"是否升级？"
+
+#: src/gui/MainWindow.cpp:1720
+msgid "Update notification"
+msgstr "更新提醒"
+
+#: src/gui/MainWindow.cpp:1760
+msgid "About Cemu"
+msgstr "关于 Cemu"
+
+#: src/gui/MainWindow.cpp:1794
+msgid ""
+"Cemu\n"
+"Version {0}\n"
+"Compiled on {1}\n"
+"Original authors: {2}"
+msgstr ""
+"Cemu\n"
+"版本 {0}\n"
+"编译于 {1}\n"
+"原始作者： {2}"
+
+#: src/gui/MainWindow.cpp:1803
+msgid ""
+"Cemu is a Wii U emulator.\n"
+"\n"
+"Wii and Wii U are trademarks of Nintendo.\n"
+"Cemu is not affiliated with Nintendo."
+msgstr ""
+"Cemu 是一个 Wii U 模拟器。\n"
+"\n"
+"Wii 和 Wii U 是 任天堂 的商标。\n"
+"Cemu 与 任天堂没有从属关系。"
+
+#: src/gui/MainWindow.cpp:1813
+msgid "Used libraries and utilities:"
+msgstr "使用的库和实用程序："
+
+#: src/gui/MainWindow.cpp:1954
+msgid "Thanks to our Patreon supporters:"
+msgstr "感谢我们的 Patreon 支持者："
+
+#: src/gui/MainWindow.cpp:1984
+msgid "Special thanks:"
+msgstr "特别感谢："
+
+#: src/gui/MainWindow.cpp:2027
+msgid "&Load..."
+msgstr "载入... (&L)"
+
+#: src/gui/MainWindow.cpp:2028
+msgid "&Install game title, update or DLC..."
+msgstr "安装档案、升级档或 DLC ... (&I)"
+
+#: src/gui/MainWindow.cpp:2058
+msgid "End emulation"
+msgstr "停止模拟"
+
+#: src/gui/MainWindow.cpp:2062 src/gui/debugger/DebuggerWindow2.cpp:632
+msgid "&Exit"
+msgstr "退出 (&E)"
+
+#: src/gui/MainWindow.cpp:2063 src/gui/debugger/DebuggerWindow2.cpp:635
+msgid "&File"
+msgstr "文件 (&F)"
+
+#: src/gui/MainWindow.cpp:2094
+msgid "&English"
+msgstr "英语 (&E)"
+
+#: src/gui/MainWindow.cpp:2095
+msgid "&Japanese"
+msgstr "日语 (&J)"
+
+#: src/gui/MainWindow.cpp:2096
+msgid "&French"
+msgstr "法语 (&F)"
+
+#: src/gui/MainWindow.cpp:2097
+msgid "&German"
+msgstr "德语 (&G)"
+
+#: src/gui/MainWindow.cpp:2098
+msgid "&Italian"
+msgstr "意大利语 (&I)"
+
+#: src/gui/MainWindow.cpp:2099
+msgid "&Spanish"
+msgstr "西班牙语 (&S)"
+
+#: src/gui/MainWindow.cpp:2100
+msgid "&Chinese"
+msgstr "简体中文 (&C)"
+
+#: src/gui/MainWindow.cpp:2101
+msgid "&Korean"
+msgstr "韩语 (&K)"
+
+#: src/gui/MainWindow.cpp:2102
+msgid "&Dutch"
+msgstr "荷兰语 (&D)"
+
+#: src/gui/MainWindow.cpp:2103
+msgid "&Portuguese"
+msgstr "葡萄牙语 (&P)"
+
+#: src/gui/MainWindow.cpp:2104
+msgid "&Russian"
+msgstr "俄语 (&R)"
+
+#: src/gui/MainWindow.cpp:2105
+msgid "&Taiwanese"
+msgstr "繁体中文 (&T)"
+
+#: src/gui/MainWindow.cpp:2109
+msgid "&Fullscreen"
+msgstr "全屏 (&F)"
+
+#: src/gui/MainWindow.cpp:2112
+msgid "&Graphic packs"
+msgstr "图形插件 (&G)"
+
+#: src/gui/MainWindow.cpp:2114
+msgid "&Separate GamePad view"
+msgstr "单独 GamePad 窗口 (&S)"
+
+#: src/gui/MainWindow.cpp:2117
+msgid "&General settings"
+msgstr "通用设置 (&G)"
+
+#: src/gui/MainWindow.cpp:2118
+msgid "&Input settings"
+msgstr "输入设置 (&I)"
+
+#: src/gui/MainWindow.cpp:2121
+msgid "&Active account"
+msgstr "当前帐户 (&A)"
+
+#: src/gui/MainWindow.cpp:2123
+msgid "&Console language"
+msgstr "主机语言 (&C)"
+
+#: src/gui/MainWindow.cpp:2124 src/gui/debugger/DebuggerWindow2.cpp:641
+msgid "&Options"
+msgstr "选项 (&O)"
+
+#: src/gui/MainWindow.cpp:2128
+msgid "&Memory searcher"
+msgstr "内存搜索器 (&M)"
+
+#: src/gui/MainWindow.cpp:2130
+msgid "&Title Manager"
+msgstr "档案管理器 (&T)"
+
+#: src/gui/MainWindow.cpp:2131
+msgid "&Download Manager"
+msgstr "下载管理器 (&D)"
+
+#: src/gui/MainWindow.cpp:2132
+msgid "&Tools"
+msgstr "工具 (&T)"
+
+#: src/gui/MainWindow.cpp:2136
+msgid "&1x speed"
+msgstr "&1倍 速度"
+
+#: src/gui/MainWindow.cpp:2137
+msgid "&2x speed"
+msgstr "&2倍 速度"
+
+#: src/gui/MainWindow.cpp:2138
+msgid "&4x speed"
+msgstr "&4倍 速度"
+
+#: src/gui/MainWindow.cpp:2139
+msgid "&8x speed"
+msgstr "&8倍 速度"
+
+#: src/gui/MainWindow.cpp:2140
+msgid "&0.5x speed"
+msgstr "&0.5倍 速度"
+
+#: src/gui/MainWindow.cpp:2141
+msgid "&0.25x speed"
+msgstr "&0.25倍 速度"
+
+#: src/gui/MainWindow.cpp:2142
+msgid "&0.125x speed"
+msgstr "&0.125倍 速度"
+
+#: src/gui/MainWindow.cpp:2146
+msgid "&Timer speed"
+msgstr "时钟速度 (&T)"
+
+#: src/gui/MainWindow.cpp:2147
+msgid "&CPU"
+msgstr "&CPU"
+
+#: src/gui/MainWindow.cpp:2152
+msgid "&Scan NFC tag from file"
+msgstr "载入 NFC 文件 (&S)"
+
+#: src/gui/MainWindow.cpp:2153
+msgid "&NFC"
+msgstr "&NFC"
+
+#: src/gui/MainWindow.cpp:2158
+msgid "&Unsupported API calls"
+msgstr "不支持的 API 调用 (&U)"
+
+#: src/gui/MainWindow.cpp:2159
+msgid "&Coreinit Logging (OSReport/OSConsole)"
+msgstr "&Coreinit 日志记录 (OSReport/OSConsole)"
+
+#: src/gui/MainWindow.cpp:2160
+msgid "&Coreinit File-Access"
+msgstr "&Coreinit 数据访问"
+
+#: src/gui/MainWindow.cpp:2161
+msgid "&Coreinit Thread-Synchronization API"
+msgstr "&Coreinit 线程同步 API"
+
+#: src/gui/MainWindow.cpp:2162
+msgid "&Coreinit Memory API"
+msgstr "&Coreinit 内存 API"
+
+#: src/gui/MainWindow.cpp:2163
+msgid "&Coreinit MP API"
+msgstr "&Coreinit MP API"
+
+#: src/gui/MainWindow.cpp:2164
+msgid "&Coreinit Thread API"
+msgstr "&Coreinit 线程 API"
+
+#: src/gui/MainWindow.cpp:2165
+msgid "&NN NFP"
+msgstr "&NN NFP"
+
+#: src/gui/MainWindow.cpp:2166
+msgid "&GX2 API"
+msgstr "&GX2 API"
+
+#: src/gui/MainWindow.cpp:2167
+msgid "&Audio API"
+msgstr "音频 API (&A)"
+
+#: src/gui/MainWindow.cpp:2168
+msgid "&Input API"
+msgstr "输入 API (&I)"
+
+#: src/gui/MainWindow.cpp:2169
+msgid "&Socket API"
+msgstr "套接 API (&S)"
+
+#: src/gui/MainWindow.cpp:2170
+msgid "&Save API"
+msgstr "储存 API (&S)"
+
+#: src/gui/MainWindow.cpp:2171
+msgid "&H264 API"
+msgstr "&H264 API"
+
+#: src/gui/MainWindow.cpp:2173
+msgid "&Graphic pack patches"
+msgstr "图形插件补丁 (&G)"
+
+#: src/gui/MainWindow.cpp:2174
+msgid "&Texture cache warnings"
+msgstr "纹理缓存警告 (&T)"
+
+#: src/gui/MainWindow.cpp:2176
+msgid "&OpenGL debug output"
+msgstr "OpenGL 调试输出 (&O)"
+
+#: src/gui/MainWindow.cpp:2177
+msgid "&Vulkan validation layer (slow)"
+msgstr "Vulkan 验证层 (慢速) (&V)"
+
+#: src/gui/MainWindow.cpp:2179
+msgid "&Log PPC context for API"
+msgstr "为 API 记录 PPC 上下文 (&L)"
+
+#: src/gui/MainWindow.cpp:2184
+msgid "&Textures"
+msgstr "纹理 (&T)"
+
+#: src/gui/MainWindow.cpp:2185
+msgid "&Shaders"
+msgstr "着色器 (&S)"
+
+#: src/gui/MainWindow.cpp:2186
+msgid "&nlibcurl HTTP/HTTPS requests"
+msgstr "&nlibcurl HTTP/HTTPS 请求"
+
+#: src/gui/MainWindow.cpp:2190
+msgid "&Logging"
+msgstr "记录日志 (&L)"
+
+#: src/gui/MainWindow.cpp:2191
+msgid "&Dump"
+msgstr "转储 (&D)"
+
+#: src/gui/MainWindow.cpp:2194
+msgid "&Render upside-down"
+msgstr "上下反转渲染 (&R)"
+
+#: src/gui/MainWindow.cpp:2199
+msgid "&Accurate barriers (Vulkan)"
+msgstr "精确同步屏障 (Vulkan) (&A)"
+
+#: src/gui/MainWindow.cpp:2205
+msgid "&Audio AUX only"
+msgstr "仅 AUX 音频 (&A)"
+
+#: src/gui/MainWindow.cpp:2210
+msgid "&Open logging window"
+msgstr "打开记录窗口 (&O)"
+
+#: src/gui/MainWindow.cpp:2212
+msgid "&View PPC threads"
+msgstr "查看 PPC 线程 (&V)"
+
+#: src/gui/MainWindow.cpp:2213
+msgid "&View PPC debugger"
+msgstr "查看 PPC 调试器 (&V)"
+
+#: src/gui/MainWindow.cpp:2214
+msgid "&View audio debugger"
+msgstr "查看音频调试器 (&V)"
+
+#: src/gui/MainWindow.cpp:2215
+msgid "&View texture cache info"
+msgstr "查看纹理缓存信息 (&V)"
+
+#: src/gui/MainWindow.cpp:2216
+msgid "&Show frame profiler"
+msgstr "显示帧分析器 (&S)"
+
+#: src/gui/MainWindow.cpp:2217
+msgid "&Dump current RAM"
+msgstr "转储当前 RAM (&D)"
+
+#: src/gui/MainWindow.cpp:2220
+msgid "&Debug"
+msgstr "调试 (&D)"
+
+#: src/gui/MainWindow.cpp:2225
+msgid "&Check for updates"
+msgstr "检查更新 (&C)"
+
+#: src/gui/MainWindow.cpp:2226
+msgid "&Getting started"
+msgstr "运行欢迎向导 (&G)"
+
+#: src/gui/MainWindow.cpp:2228
+msgid "&About Cemu"
+msgstr "关于 Cemu (&A)"
+
+#: src/gui/MainWindow.cpp:2230
+msgid "&Help"
+msgstr "帮助 (&H)"
+
+#: src/gui/MainWindow.cpp:2274
+msgid "otp.bin could not be found"
+msgstr "找不到 otp.bin"
+
+#: src/gui/MainWindow.cpp:2278
+msgid "otp.bin is corrupted or has invalid size"
+msgstr "otp.bin 已损坏或大小无效"
+
+#: src/gui/MainWindow.cpp:2282
+msgid "seeprom.bin could not be found"
+msgstr "找不到 seeprom.bin"
+
+#: src/gui/MainWindow.cpp:2286
+msgid "seeprom.bin is corrupted or has invalid size"
+msgstr "seeprom.bin 损坏或大小无效"
+
+#: src/gui/MainWindow.cpp:2299
+msgid "Unknown error occured"
+msgstr "发生未知错误"
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:115
+msgid "Graphic packs cannot be updated while a game is running."
+msgstr "在游戏运行时无法更新图形插件。"
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:115
+#: src/gui/DownloadGraphicPacksWindow.cpp:193
+#: src/gui/DownloadGraphicPacksWindow.cpp:200
+#: src/gui/GettingStartedDialog.cpp:87 src/gui/GettingStartedDialog.cpp:285
+#: src/gui/GraphicPacksWindow2.cpp:190
+msgid "Graphic packs"
+msgstr "图形插件"
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:145
+#: src/gui/DownloadGraphicPacksWindow.cpp:211
+msgid "Failed to connect to server"
+msgstr "未能连接到服务器"
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:193
+msgid "No updates available."
+msgstr "没有可用更新。"
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:200
+msgid ""
+"Updated graphic packs are available. Do you want to download and install "
+"them?"
+msgstr "有图形插件更新可用，是否下载并更新？"
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:302
+msgid "Checking version..."
+msgstr "检查版本中 ..."
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:312 src/gui/GameUpdateWindow.cpp:182
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:41
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:63
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:62
+#: src/gui/CemuUpdateWindow.cpp:47
+#: src/gui/input/settings/DefaultControllerSettings.cpp:198
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:216
+#: src/gui/input/InputAPIAddWindow.cpp:76
+msgid "Cancel"
+msgstr "取消"
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:380
+msgid "Downloading graphic packs..."
+msgstr "正在下载图形插件 ..."
+
+#: src/gui/DownloadGraphicPacksWindow.cpp:384
+msgid "Extracting..."
+msgstr "解压中 ..."
+
+#: src/gui/TitleManager.cpp:59 src/gui/LoggingWindow.cpp:22
+#: src/gui/GraphicPacksWindow2.cpp:216 src/gui/MemorySearcherTool.cpp:64
+msgid "Filter"
+msgstr "过滤"
+
+#: src/gui/TitleManager.cpp:69
+#: src/gui/windows/TextureRelationViewer/TextureRelationWindow.cpp:111
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:115
+msgid "Refresh"
+msgstr "刷新"
+
+#: src/gui/TitleManager.cpp:73
+msgid ""
+"The following prefixes are supported:\n"
+"{0}\n"
+"{1}\n"
+"{2}\n"
+"{3}\n"
+"{4}"
+msgstr ""
+"支持以下筛选前缀：\n"
+"{0}\n"
+"{1}\n"
+"{2}\n"
+"{3}\n"
+"{4}"
+
+#: src/gui/TitleManager.cpp:93
+msgid "Install title"
+msgstr "安装档案"
+
+#: src/gui/TitleManager.cpp:103 src/gui/GeneralSettings2.cpp:737
+msgid "Account"
+msgstr "帐户"
+
+#: src/gui/TitleManager.cpp:110
+msgid "Open directory"
+msgstr "打开所在目录"
+
+#: src/gui/TitleManager.cpp:112
+msgid "Open the directory of the save entry"
+msgstr "打开存档条目所在的目录"
+
+#: src/gui/TitleManager.cpp:116
+msgid "Transfer"
+msgstr "转移"
+
+#: src/gui/TitleManager.cpp:118
+msgid "Transfers the save entry to another persistent account id"
+msgstr "将存档条目转移到另一个 Persistent 帐户 ID 中"
+
+#: src/gui/TitleManager.cpp:122 src/gui/GeneralSettings2.cpp:603
+#: src/gui/input/InputSettings2.cpp:163
+msgid "Delete"
+msgstr "删除"
+
+#: src/gui/TitleManager.cpp:124
+msgid "Permanently delete the save entry"
+msgstr "永久删除存档条目"
+
+#: src/gui/TitleManager.cpp:128
+msgid "Import"
+msgstr "导入"
+
+#: src/gui/TitleManager.cpp:130
+msgid "Imports a zipped save entry"
+msgstr "导入压缩的存档条目"
+
+#: src/gui/TitleManager.cpp:135
+msgid "Exports the selected save entry as zip file"
+msgstr "将选定的存档条目导出为 zip 文件"
+
+#: src/gui/TitleManager.cpp:176
+msgid "Connect"
+msgstr "连接"
+
+#: src/gui/TitleManager.cpp:183
+msgid "Select an account and press Connect"
+msgstr "选择一个账户，然后按 \"连接\""
+
+#: src/gui/TitleManager.cpp:191
+msgid "Show available titles"
+msgstr "显示可用的档案"
+
+#: src/gui/TitleManager.cpp:197
+msgid "Show available updates"
+msgstr "显示可用的更新档"
+
+#: src/gui/TitleManager.cpp:203
+msgid "Show installed"
+msgstr "显示已安装的档案"
+
+#: src/gui/TitleManager.cpp:222
+msgid "Title manager"
+msgstr "档案管理器"
+
+#: src/gui/TitleManager.cpp:229
+msgid "Title Manager"
+msgstr "档案管理器"
+
+#: src/gui/TitleManager.cpp:230
+msgid "Download Manager"
+msgstr "下载管理器"
+
+#: src/gui/TitleManager.cpp:235 src/gui/TitleManager.cpp:363
+msgid "Searching for titles..."
+msgstr "搜索档案中..."
+
+#: src/gui/TitleManager.cpp:282
+msgid "Currently active downloads will continue in the background."
+msgstr "当前进行的下载任务将在后台继续运行。"
+
+#: src/gui/TitleManager.cpp:331
+msgid "Found {0} games, {1} updates, {2} DLCs and {3} save entries"
+msgstr "发现 {0} 个游戏, {1} 个更新档, {2} 个 DLC，以及 {3} 个存档条目"
+
+#: src/gui/TitleManager.cpp:369
+msgid "Select title to install"
+msgstr "选择要安装的档案"
+
+#: src/gui/TitleManager.cpp:388
+msgid "Update installation has been canceled!"
+msgstr "已取消更新档安装！"
+
+#: src/gui/TitleManager.cpp:495
+msgid "Are you really sure that you want to delete the save entry for {}"
+msgstr "真的确定要删除 {} 的存档条目吗？"
+
+#: src/gui/TitleManager.cpp:496 src/gui/CemuApp.cpp:119
+#: src/gui/GameUpdateWindow.cpp:66 src/gui/GameUpdateWindow.cpp:72
+#: src/gui/GameUpdateWindow.cpp:78 src/gui/GeneralSettings2.cpp:1497
+#: src/gui/GraphicPacksWindow2.cpp:601
+#: src/gui/components/wxTitleManagerList.cpp:786
+msgid "Warning"
+msgstr "警告"
+
+#: src/gui/TitleManager.cpp:546
+msgid ""
+"Error when trying to delete the save directory:\n"
+"{}"
+msgstr ""
+"删除存档目录时出错：\n"
+"{}"
+
+#: src/gui/TitleManager.cpp:623
+msgid "Select a target file to export the save entry"
+msgstr "选择要导出存档的目标文件"
+
+#: src/gui/TitleManager.cpp:637
+msgid ""
+"Error when creating the zip for the save entry:\n"
+"{}"
+msgstr ""
+"为存档条目建立 zip 压缩时出错：\n"
+"{}"
+
+#: src/gui/TitleManager.cpp:655
+msgid ""
+"Error when trying to add a directory to the zip:\n"
+"{}"
+msgstr ""
+"添加文件夹到 zip 压缩时出错：\n"
+"{}"
+
+#: src/gui/TitleManager.cpp:664 src/gui/TitleManager.cpp:670
+msgid ""
+"Error when trying to add a file to the zip:\n"
+"{}"
+msgstr ""
+"添加文件到 zip 压缩时出错：\n"
+"{}"
+
+#: src/gui/TitleManager.cpp:683
+msgid ""
+"Error when trying to add cemu_meta file to the zip:\n"
+"{}"
+msgstr ""
+"尝试向压缩包中添加 cemu_meta 文件时发生错误：\n"
+"{}"
+
+#: src/gui/TitleManager.cpp:757
+msgid "Getting installed title information..."
+msgstr "正在获取已安装档案的信息 ..."
+
+#: src/gui/debugger/RegisterWindow.cpp:31
+msgid "Registers"
+msgstr "寄存器"
+
+#: src/gui/debugger/RegisterWindow.cpp:78
+msgid "FP view mode"
+msgstr "第一人称视角模式"
+
+#: src/gui/debugger/RegisterWindow.cpp:342
+#: src/gui/debugger/RegisterWindow.cpp:358
+#: src/gui/debugger/RegisterWindow.cpp:374 src/gui/debugger/DumpCtrl.cpp:199
+#: src/gui/debugger/RegisterCtrl.cpp:204 src/gui/debugger/RegisterCtrl.cpp:223
+#: src/gui/debugger/RegisterCtrl.cpp:237
+msgid "Enter a new value."
+msgstr "输入新值。"
+
+#: src/gui/debugger/RegisterWindow.cpp:417
+msgid "&Zero"
+msgstr "零 (&Z)"
+
+#: src/gui/debugger/RegisterWindow.cpp:418
+msgid "&Increment"
+msgstr "增加 (&I)"
+
+#: src/gui/debugger/RegisterWindow.cpp:419
+msgid "&Decrement"
+msgstr "减少 (&D)"
+
+#: src/gui/debugger/RegisterWindow.cpp:421
+msgid "&Copy"
+msgstr "复制 (&C)"
+
+#: src/gui/debugger/RegisterWindow.cpp:423
+msgid "&Goto Disasm"
+msgstr "跳转到反编译器 | &Goto Disasm"
+
+#: src/gui/debugger/RegisterWindow.cpp:424
+msgid "G&oto Dump"
+msgstr "跳转到转储 | G&oto Dump"
+
+#: src/gui/debugger/ModuleWindow.cpp:23
+msgid "Modules"
+msgstr "模块"
+
+#: src/gui/debugger/ModuleWindow.cpp:35 src/gui/debugger/SymbolCtrl.cpp:18
+#: src/gui/components/wxDownloadManagerList.cpp:100
+#: src/gui/components/wxTitleManagerList.cpp:132
+msgid "Name"
+msgstr "名称"
+
+#: src/gui/debugger/ModuleWindow.cpp:41
+#: src/gui/debugger/BreakpointWindow.cpp:47 src/gui/debugger/SymbolCtrl.cpp:24
+#: src/gui/MemorySearcherTool.cpp:87 src/gui/MemorySearcherTool.cpp:103
+msgid "Address"
+msgstr "地址"
+
+#: src/gui/debugger/ModuleWindow.cpp:48
+msgid "Size"
+msgstr "大小"
+
+#: src/gui/debugger/DumpWindow.cpp:18
+msgid "Memory Dump"
+msgstr "内存转储"
+
+#: src/gui/debugger/BreakpointWindow.cpp:28
+msgid "Breakpoints"
+msgstr "断点"
+
+#: src/gui/debugger/BreakpointWindow.cpp:41 src/gui/GeneralSettings2.cpp:1295
+msgid "On"
+msgstr "开"
+
+#: src/gui/debugger/BreakpointWindow.cpp:53 src/gui/MemorySearcherTool.cpp:104
+#: src/gui/components/wxDownloadManagerList.cpp:112
+#: src/gui/components/wxTitleManagerList.cpp:138
+msgid "Type"
+msgstr "类型"
+
+#: src/gui/debugger/BreakpointWindow.cpp:59
+msgid "Comment"
+msgstr "注释"
+
+#: src/gui/debugger/BreakpointWindow.cpp:201
+#: src/gui/debugger/DisasmCtrl.cpp:638
+msgid "Enter a new comment."
+msgstr "输入新注释。"
+
+#: src/gui/debugger/BreakpointWindow.cpp:201
+#, c-format
+msgid "Set comment for breakpoint at address %08x"
+msgstr "在地址 %08x 处为断点设置注释"
+
+#: src/gui/debugger/BreakpointWindow.cpp:216
+msgid "Create memory breakpoint (read)"
+msgstr "创建内存断点 (读取)"
+
+#: src/gui/debugger/BreakpointWindow.cpp:217
+msgid "Create memory breakpoint (write)"
+msgstr "创建内存断点 (写入)"
+
+#: src/gui/debugger/BreakpointWindow.cpp:238
+msgid "Enter a memory address"
+msgstr "输入内存地址"
+
+#: src/gui/debugger/BreakpointWindow.cpp:238
+msgid "Memory breakpoint"
+msgstr "内存断点"
+
+#: src/gui/debugger/DisasmCtrl.cpp:616
+msgid "Enter a new instruction."
+msgstr "输入新指令。"
+
+#: src/gui/debugger/DisasmCtrl.cpp:762 src/gui/debugger/DumpCtrl.cpp:214
+msgid "Enter a target address."
+msgstr "输入目标地址。"
+
+#: src/gui/debugger/DisasmCtrl.cpp:762 src/gui/debugger/DumpCtrl.cpp:214
+msgid "GoTo address"
+msgstr "转到地址"
+
+#: src/gui/debugger/SymbolWindow.cpp:16
+msgid "Symbols"
+msgstr "符号"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:222
+msgid "GoTo (CTRL + G)"
+msgstr "转到 (CTRL + G)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:225
+msgid "Toggle Breakpoint (F9)"
+msgstr "切换断点 (F9)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:230
+#: src/gui/debugger/DebuggerWindow2.cpp:493
+msgid "Break (F5)"
+msgstr "中断 (F5)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:232
+msgid "Step Into (F11)"
+msgstr "单步执行 (F11)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:233
+msgid "Step Over (F10)"
+msgstr "单步执行 (跳过过程) (F10)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:269
+msgid "PPC Debugger"
+msgstr "PPC 调试器"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:300
+msgid "> no modules loaded"
+msgstr "> 无加载模块"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:307
+msgid "> unknown module"
+msgstr "> 未知模块"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:482
+msgid "Run (F5)"
+msgstr "运行 (F5)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:639
+msgid "&Pin to main window"
+msgstr "贴靠于主视窗 (&P)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:640
+msgid "Break on &entry point"
+msgstr "在入口点处中断 (&E)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:645
+msgid "&Registers"
+msgstr "寄存器 (&R)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:646
+msgid "&Memory Dump"
+msgstr "内存转储 (&M)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:647
+msgid "&Breakpoints"
+msgstr "断点 (&B)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:648
+msgid "Module&list"
+msgstr "模块列表 (&L)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:649
+msgid "&Symbols"
+msgstr "符号 (&S)"
+
+#: src/gui/debugger/DebuggerWindow2.cpp:651
+msgid "&Window"
+msgstr "窗口 (&W)"
+
+#: src/gui/debugger/SymbolCtrl.cpp:31
+msgid "Module"
+msgstr "模块"
+
+#: src/gui/CemuApp.cpp:30
+msgid "Browse"
+msgstr "浏览"
+
+#: src/gui/CemuApp.cpp:31
+msgid "Select a file"
+msgstr "选择一个文件"
+
+#: src/gui/CemuApp.cpp:32
+msgid "Select a directory"
+msgstr "选择一个目录"
+
+#: src/gui/CemuApp.cpp:34
+msgid "base"
+msgstr "本体"
+
+#: src/gui/CemuApp.cpp:35
+msgid "update"
+msgstr "更新档"
+
+#: src/gui/CemuApp.cpp:36
+msgid "dlc"
+msgstr "DLC / 附加内容"
+
+#: src/gui/CemuApp.cpp:37
+msgid "save"
+msgstr "存档"
+
+#: src/gui/CemuApp.cpp:39
+msgid "Japan"
+msgstr "日本"
+
+#: src/gui/CemuApp.cpp:40
+msgid "USA"
+msgstr "美国"
+
+#: src/gui/CemuApp.cpp:41
+msgid "Europe"
+msgstr "欧洲"
+
+#: src/gui/CemuApp.cpp:42
+msgid "Australia"
+msgstr "澳大利亚"
+
+#: src/gui/CemuApp.cpp:43
+msgid "China"
+msgstr "中国"
+
+#: src/gui/CemuApp.cpp:44
+msgid "Korea"
+msgstr "韩国"
+
+#: src/gui/CemuApp.cpp:45
+msgid "Taiwan"
+msgstr "中国台湾"
+
+#: src/gui/CemuApp.cpp:46
+msgid "Auto"
+msgstr "自动"
+
+#: src/gui/CemuApp.cpp:47
+msgid "many"
+msgstr "多区域"
+
+#: src/gui/CemuApp.cpp:49
+msgid "Japanese"
+msgstr "日语"
+
+#: src/gui/CemuApp.cpp:50 src/gui/GeneralSettings2.cpp:112
+msgid "English"
+msgstr "英语"
+
+#: src/gui/CemuApp.cpp:51
+msgid "French"
+msgstr "法语"
+
+#: src/gui/CemuApp.cpp:52
+msgid "German"
+msgstr "德语"
+
+#: src/gui/CemuApp.cpp:53
+msgid "Italian"
+msgstr "意大利语"
+
+#: src/gui/CemuApp.cpp:54
+msgid "Spanish"
+msgstr "西班牙语"
+
+#: src/gui/CemuApp.cpp:55
+msgid "Chinese"
+msgstr "简体中文"
+
+#: src/gui/CemuApp.cpp:56
+msgid "Korean"
+msgstr "韩语"
+
+#: src/gui/CemuApp.cpp:57
+msgid "Dutch"
+msgstr "荷兰语"
+
+#: src/gui/CemuApp.cpp:58
+msgid "Portugese"
+msgstr "葡萄牙语"
+
+#: src/gui/CemuApp.cpp:59
+msgid "Russian"
+msgstr "俄语"
+
+#: src/gui/CemuApp.cpp:60
+msgid "Taiwanese"
+msgstr "繁体中文"
+
+#: src/gui/CemuApp.cpp:61
+msgid "unknown"
+msgstr "未知"
+
+#: src/gui/CemuApp.cpp:65
+msgid "AccountId missing (The account is not connected to a NNID)"
+msgstr "AccountId 丢失 (帐户未连接到 NNID)"
+
+#: src/gui/CemuApp.cpp:66
+msgid ""
+"IsPasswordCacheEnabled is set to false (The remember password option on your "
+"Wii U must be enabled for this account before dumping it)"
+msgstr ""
+"IsPasswordCacheEnabled 当前设置为 false (在转储此帐户之前， 必须在 Wii U 上为"
+"此帐户启用记住密码选项)"
+
+#: src/gui/CemuApp.cpp:67
+msgid ""
+"AccountPasswordCache is empty (The remember password option on your Wii U "
+"must be enabled for this account before dumping it)"
+msgstr ""
+"AccountPasswordCache 为空 (在转储此帐户之前， 必须在 Wii U 上为此帐户启用记住"
+"密码选项)"
+
+#: src/gui/CemuApp.cpp:68
+msgid "PrincipalId missing"
+msgstr "缺少 PrincipalId"
+
+#: src/gui/CemuApp.cpp:119
+msgid ""
+"Cemu can't write to its directory.\n"
+"Please move it to a different location or run Cemu as administrator!"
+msgstr ""
+"Cemu 无法写入它的目录。\n"
+"请将其移动到其他位置，或以 管理员身份 运行 Cemu！"
+
+#: src/gui/CemuApp.cpp:224
+msgid ""
+"Your mlc01 folder seems to be missing.\n"
+"\n"
+"This is where Cemu stores save files, game updates and other Wii U files.\n"
+"\n"
+"The expected path is:\n"
+"{}\n"
+"\n"
+"Do you want to create the folder at the expected path?"
+msgstr ""
+"无法找到 mlc01 文件夹\n"
+"\n"
+"该文件夹被用以存储游戏存档、更新档和其他Wii U文件\n"
+"\n"
+"预期路径为：\n"
+"{}\n"
+"\n"
+"是否要在预期路径处创建文件夹？"
+
+#: src/gui/CemuApp.cpp:227
+msgid "Yes"
+msgstr "是"
+
+#: src/gui/CemuApp.cpp:227
+msgid "No"
+msgstr "否"
+
+#: src/gui/CemuApp.cpp:227
+msgid "Select a custom path"
+msgstr "选择自定义路径"
+
+#: src/gui/CemuApp.cpp:300
+msgid ""
+"Couldn't create a required mlc01 subfolder or file!\n"
+"\n"
+"Error: {0}\n"
+"Target path:\n"
+"{1}"
+msgstr ""
+"无法创建所需的 mlc01 子文件夹或文件！\n"
+"\n"
+"错误： {0}\n"
+"目标路径：\n"
+"{1}"
+
+#: src/gui/CemuApp.cpp:326
+msgid ""
+"Couldn't create a required cemu directory or file!\n"
+"\n"
+"Error: {0}"
+msgstr ""
+"无法创建所需的 Cemu 目录或文件！\n"
+"\n"
+"错误： {0}"
+
+#: src/gui/CemuApp.cpp:353
+msgid "Select a mlc directory"
+msgstr "选择 MLC 目录"
+
+#: src/gui/CemuApp.cpp:361
+msgid ""
+"Cemu can't write to the selected mlc path!\n"
+"Do you want to select another path?"
+msgstr ""
+"Cemu 无法写入选择的 MLC 路径！\n"
+"您想尝试选择其他路径吗？"
+
+#: src/gui/canvas/VulkanCanvas.cpp:30
+msgid ""
+"Error when initializing Vulkan renderer:\n"
+"{}"
+msgstr ""
+"初始化 Vulkan 渲染器时出错：\n"
+"{}"
+
+#: src/gui/GameProfileWindow.cpp:19 src/gui/GameProfileWindow.cpp:247
+msgid "Edit game profile"
+msgstr "编辑游戏设定档"
+
+#: src/gui/GameProfileWindow.cpp:36 src/gui/GameProfileWindow.cpp:91
+#: src/gui/GeneralSettings2.cpp:226 src/gui/GeneralSettings2.cpp:305
+#: src/gui/GeneralSettings2.cpp:733
+msgid "General"
+msgstr "通用"
+
+#: src/gui/GameProfileWindow.cpp:39
+msgid "Load shared libraries"
+msgstr "加载共享库"
+
+#: src/gui/GameProfileWindow.cpp:40
+msgid ""
+"EXPERT OPTION\n"
+"This option will load libraries from the cafeLibs directory"
+msgstr ""
+"专业选项\n"
+"该选项将从 cafeLibs 目录加载库"
+
+#: src/gui/GameProfileWindow.cpp:43
+msgid "Launch with gamepad view"
+msgstr "以 GamePad 视图启动"
+
+#: src/gui/GameProfileWindow.cpp:44
+msgid ""
+"Games will be launched with gamepad view toggled as default. The view can be "
+"toggled with CTRL + TAB"
+msgstr ""
+"将默认以 GamePad 视图启动游戏\n"
+"可使用 Ctrl+Tab 切换视图"
+
+#: src/gui/GameProfileWindow.cpp:51
+msgid "CPU"
+msgstr "CPU"
+
+#: src/gui/GameProfileWindow.cpp:58
+msgid "Mode"
+msgstr "模式"
+
+#: src/gui/GameProfileWindow.cpp:60
+msgid "Single-core interpreter"
+msgstr "单核解释器"
+
+#: src/gui/GameProfileWindow.cpp:60
+msgid "Single-core recompiler"
+msgstr "单核重编译器"
+
+#: src/gui/GameProfileWindow.cpp:60
+msgid "Multi-core recompiler"
+msgstr "多核重编译器"
+
+#: src/gui/GameProfileWindow.cpp:60
+msgid "Auto (recommended)"
+msgstr "自动 (推荐)"
+
+#: src/gui/GameProfileWindow.cpp:63
+msgid "Set the CPU emulation mode"
+msgstr "设置CPU模拟模式"
+
+#: src/gui/GameProfileWindow.cpp:66
+msgid "Thread quantum"
+msgstr "线程量子长度为"
+
+#: src/gui/GameProfileWindow.cpp:75
+msgid ""
+"EXPERT OPTION\n"
+"Set the maximum thread slice runtime (in virtual cycles)"
+msgstr ""
+"专业选项\n"
+"设置线程运行时间片的最大值 (以模拟CPU的时钟周期为单位)"
+
+#: src/gui/GameProfileWindow.cpp:78
+msgid "cycles"
+msgstr "个周期"
+
+#: src/gui/GameProfileWindow.cpp:113 src/gui/GeneralSettings2.cpp:233
+msgid "Graphics API"
+msgstr "图形 API"
+
+#: src/gui/GameProfileWindow.cpp:119
+msgid "Shader multiplication accuracy"
+msgstr "着色器乘法精度"
+
+#: src/gui/GameProfileWindow.cpp:121
+msgid "false"
+msgstr "关闭"
+
+#: src/gui/GameProfileWindow.cpp:121
+msgid "true"
+msgstr "开启"
+
+#: src/gui/GameProfileWindow.cpp:121
+msgid "minimal"
+msgstr "最小"
+
+#: src/gui/GameProfileWindow.cpp:123
+msgid ""
+"EXPERT OPTION\n"
+"Controls the accuracy of floating point multiplication in shaders.\n"
+"\n"
+"Recommended: true"
+msgstr ""
+"专业选项\n"
+"控制着色器中浮点乘法的精度\n"
+"\n"
+"建议选项：开启"
+
+#: src/gui/GameProfileWindow.cpp:138
+msgid "Graphic"
+msgstr "图形"
+
+#: src/gui/GameProfileWindow.cpp:169 src/gui/GameProfileWindow.cpp:183
+#: src/gui/input/InputSettings2.cpp:217 src/gui/input/InputAPIAddWindow.cpp:53
+msgid "Controller"
+msgstr "控制器"
+
+#: src/gui/GameProfileWindow.cpp:174
+msgid "Forces a given controller profile"
+msgstr "强制给定的控制器设定档"
+
+#: src/gui/PadViewFrame.cpp:24
+msgid "GamePad View"
+msgstr "GamePad 视图"
+
+#: src/gui/GameUpdateWindow.cpp:19 src/gui/components/wxGameList.cpp:399
+msgid "DLC"
+msgstr "DLC"
+
+#: src/gui/GameUpdateWindow.cpp:21
+msgid "Base game"
+msgstr "游戏本体"
+
+#: src/gui/GameUpdateWindow.cpp:23
+msgid "Demo"
+msgstr "演示"
+
+#: src/gui/GameUpdateWindow.cpp:26
+msgid "System title"
+msgstr "系统档案"
+
+#: src/gui/GameUpdateWindow.cpp:28
+msgid "System data title"
+msgstr "系统数据档案"
+
+#: src/gui/GameUpdateWindow.cpp:30 src/gui/CemuUpdateWindow.cpp:43
+msgid "Update"
+msgstr "更新"
+
+#: src/gui/GameUpdateWindow.cpp:65
+msgid ""
+"It seems that there is already a title installed at the target location but "
+"it has a different type.\n"
+"Currently installed: '{}' Installing: '{}'\n"
+"\n"
+"This can happen for titles which were installed with very old Cemu "
+"versions.\n"
+"Do you still want to continue with the installation? It will replace the "
+"currently installed title."
+msgstr ""
+"似乎在目标位置已有一个不同类型的档案。\n"
+"已安装的为：“{}”；正在安装的为：“{}”\n"
+"\n"
+"如果在非常旧的 Cemu 版本上安装过此档案，则可能会引发这种问题。\n"
+"您还想继续安装进程吗？这会替换当前已安装的档案。"
+
+#: src/gui/GameUpdateWindow.cpp:72
+msgid ""
+"It seems that the selected title is already installed, do you want to "
+"reinstall it?"
+msgstr "此档案已安装，仍要覆盖安装吗？"
+
+#: src/gui/GameUpdateWindow.cpp:78
+msgid ""
+"It seems that a newer version is already installed, do you still want to "
+"install the older version?"
+msgstr "已安装较新的版本，仍要安装此旧版本吗？"
+
+#: src/gui/GameUpdateWindow.cpp:95
+msgid ""
+"Error when trying to move former title installation:\n"
+"{}"
+msgstr ""
+"尝试移动此前的档案安装时出错：\n"
+"{}"
+
+#: src/gui/GameUpdateWindow.cpp:139
+msgid ""
+"Not enough space available.\n"
+"Required: {0} MB\n"
+"Available: {1} MB"
+msgstr ""
+"可用空间不足。\n"
+"所需空间：{0} MB\n"
+"可用空间：{1} MB"
+
+#: src/gui/GameUpdateWindow.cpp:169
+msgid "Installing DLC..."
+msgstr "安装 DLC 中 ..."
+
+#: src/gui/GameUpdateWindow.cpp:171
+msgid "Installing update..."
+msgstr "安装更新档中 ..."
+
+#: src/gui/GameUpdateWindow.cpp:173
+msgid "Installing system title..."
+msgstr "安装系统档案中 ..."
+
+#: src/gui/GameUpdateWindow.cpp:175
+msgid "Installing title..."
+msgstr "安装档案中 ..."
+
+#: src/gui/GameUpdateWindow.cpp:253
+msgid "Current file:"
+msgstr "当前文件："
+
+#: src/gui/GameUpdateWindow.cpp:285
+msgid ""
+"Do you really want to cancel the installation process?\n"
+"\n"
+"Canceling the process will delete the applied files."
+msgstr ""
+"您真的想取消安装过程吗？\n"
+"\n"
+"取消将导致已安装文件的删除。"
+
+#: src/gui/GameUpdateWindow.cpp:285
+msgid "Info"
+msgstr "信息"
+
+#: src/gui/windows/TextureRelationViewer/TextureRelationWindow.cpp:37
+msgid "Texture cache"
+msgstr "纹理缓存"
+
+#: src/gui/windows/TextureRelationViewer/TextureRelationWindow.cpp:114
+msgid "Show only active"
+msgstr "仅显示活动"
+
+#: src/gui/windows/TextureRelationViewer/TextureRelationWindow.cpp:117
+msgid "Show views"
+msgstr "显示视图"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:36
+msgid "PPC threads"
+msgstr "PPC 线程"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:118
+msgid "Auto refresh"
+msgstr "自动刷新"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:364
+msgid "Boost priority (-5)"
+msgstr "提升优先级 (-5)"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:365
+msgid "Boost priority (-1)"
+msgstr "提升优先级 (-1)"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:367
+msgid "Decrease priority (+5)"
+msgstr "降低优先级 (+5)"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:368
+msgid "Decrease priority (+1)"
+msgstr "降低优先级 (+1)"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:370
+msgid "Resume"
+msgstr "继续"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:371
+msgid "Suspend"
+msgstr "挂起"
+
+#: src/gui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp:373
+msgid "Write stack trace to log"
+msgstr "将堆栈跟踪写入日志"
+
+#: src/gui/GeneralSettings2.cpp:102
+msgid "Interface"
+msgstr "界面"
+
+#: src/gui/GeneralSettings2.cpp:110
+msgid "Language"
+msgstr "语言"
+
+#: src/gui/GeneralSettings2.cpp:112
+msgid "Default"
+msgstr "默认"
+
+#: src/gui/GeneralSettings2.cpp:115
+msgid ""
+"Changes the interface language of Cemu\n"
+"Available languages are stored in the translation directory\n"
+"A restart will be required after changing the language"
+msgstr ""
+"更改 Cemu 的界面语言\n"
+"可用语言存储在翻译目录中\n"
+"更改语言后需要重新启动"
+
+#: src/gui/GeneralSettings2.cpp:132
+msgid "Remember main window position"
+msgstr "记忆主窗口的位置"
+
+#: src/gui/GeneralSettings2.cpp:133
+msgid "Restores the last known window position and size when starting Cemu"
+msgstr "在启动 Cemu 时恢复上次的窗口位置"
+
+#: src/gui/GeneralSettings2.cpp:136
+msgid "Remember pad window position"
+msgstr "记忆 Pad 窗口的位置"
+
+#: src/gui/GeneralSettings2.cpp:137
+msgid "Restores the last known pad window position and size when opening it"
+msgstr "在启动 Cemu 时恢复上次的 Pad 窗口尺寸和位置"
+
+#: src/gui/GeneralSettings2.cpp:141
+msgid "Discord Presence"
+msgstr "在 Discord 中显示"
+
+#: src/gui/GeneralSettings2.cpp:142
+msgid ""
+"Enables the Discord Rich Presence feature\n"
+"You will also need to enable it in the Discord settings itself!"
+msgstr ""
+"启用 Discord Rich Presence 功能\n"
+"您还需要在 Discord 设置中启用它！"
+
+#: src/gui/GeneralSettings2.cpp:145
+msgid "Fullscreen menu bar"
+msgstr "全屏菜单栏"
+
+#: src/gui/GeneralSettings2.cpp:146
+msgid ""
+"Displays the menu bar when Cemu is running in fullscreen mode and the mouse "
+"cursor is moved to the top"
+msgstr "当 Cemu 在全屏模式下运行并将鼠标光标移到顶部时显示菜单栏"
+
+#: src/gui/GeneralSettings2.cpp:149 src/gui/GettingStartedDialog.cpp:147
+msgid "Automatically check for updates"
+msgstr "自动检查更新"
+
+#: src/gui/GeneralSettings2.cpp:150
+msgid "Automatically checks for new cemu versions on startup"
+msgstr "启动时自动检查新的 Cemu 版本"
+
+#: src/gui/GeneralSettings2.cpp:153
+msgid "Save screenshot"
+msgstr "保存截图"
+
+#: src/gui/GeneralSettings2.cpp:154
+msgid ""
+"Pressing the screenshot key (F12) will save a screenshot directly to the "
+"screenshots folder"
+msgstr "按下屏幕截图键 (F12)，将屏幕截图直接保存到 screenshots 文件夹中"
+
+#: src/gui/GeneralSettings2.cpp:157
+msgid "Use permanent storage"
+msgstr "使用固定的存储位置"
+
+#: src/gui/GeneralSettings2.cpp:158
+msgid ""
+"Cemu will remember your custom mlc path in %LOCALAPPDATA%/Cemu for new "
+"installations."
+msgstr ""
+"对于新的安装，Cemu 将记住您在 %LOCALAPPDATA%/Cemu 中的自定义 MLC 路径。"
+
+#: src/gui/GeneralSettings2.cpp:168
+msgid "MLC Path"
+msgstr "MLC 路径"
+
+#: src/gui/GeneralSettings2.cpp:174
+msgid ""
+"The mlc directory contains your save games and installed game update/dlc data"
+msgstr "MLC 目录包含您的存档、已安装 更新档 和 DLC 数据"
+
+#: src/gui/GeneralSettings2.cpp:180
+msgid ""
+"Select a custom mlc path\n"
+"The mlc path is used to store Wii U related files like save games, game "
+"updates and dlc data"
+msgstr ""
+"选择自定义的 MLC 路径\n"
+"MLC 路径用于存储与 Wii U 相关的文件，例如存储存档、更新档和 DLC 数据"
+
+#: src/gui/GeneralSettings2.cpp:188
+msgid "Game Paths"
+msgstr "游戏路径"
+
+#: src/gui/GeneralSettings2.cpp:193
+msgid ""
+"Add the root directory of your game(s). It will scan all directories in it "
+"for games"
+msgstr "添加您的游戏的根目录。 它将扫描其中的所有目录以查找游戏"
+
+#: src/gui/GeneralSettings2.cpp:200 src/gui/input/InputAPIAddWindow.cpp:71
+msgid "Add"
+msgstr "添加"
+
+#: src/gui/GeneralSettings2.cpp:202
+msgid ""
+"Adds a game path to scan for games displayed in the game list\n"
+"If you have unpacked games, make sure to select the root folder of a game"
+msgstr ""
+"添加游戏路径以扫描游戏\n"
+"如果您已解压游戏，请确保选择游戏的根文件夹"
+
+#: src/gui/GeneralSettings2.cpp:205
+msgid "Remove"
+msgstr "移除"
+
+#: src/gui/GeneralSettings2.cpp:207
+msgid "Removes the currently selected game path from the game list"
+msgstr "从游戏列表中删除当前选择的游戏路径"
+
+#: src/gui/GeneralSettings2.cpp:246
+msgid "Select one of the available graphic back ends"
+msgstr "选择可用的图形后端"
+
+#: src/gui/GeneralSettings2.cpp:250
+msgid "Graphics Device"
+msgstr "图形设备"
+
+#: src/gui/GeneralSettings2.cpp:253
+msgid "Select the used graphic device"
+msgstr "选择使用的图形设备"
+
+#: src/gui/GeneralSettings2.cpp:256
+msgid "VSync"
+msgstr "垂直同步"
+
+#: src/gui/GeneralSettings2.cpp:258
+msgid "Controls the vsync state"
+msgstr "控制垂直同步状态"
+
+#: src/gui/GeneralSettings2.cpp:265
+msgid "Async shader compile"
+msgstr "异步着色器编译"
+
+#: src/gui/GeneralSettings2.cpp:266
+msgid ""
+"Enables async shader and pipeline compilation. Reduces stutter at the cost "
+"of objects not rendering for a short time.\n"
+"Vulkan only"
+msgstr ""
+"启用异步着色器和流水线编译。以短时间内不渲染对象为代价换来减少卡顿。\n"
+"仅适用于 Vulkan"
+
+#: src/gui/GeneralSettings2.cpp:269
+msgid "Full sync at GX2DrawDone()"
+msgstr "完全同步于 GX2DrawDone()"
+
+#: src/gui/GeneralSettings2.cpp:270
+msgid ""
+"If synchronization is requested by the game, the emulated CPU will wait for "
+"the GPU to finish all operations.\n"
+"This is more accurate behavior, but may cause lower performance"
+msgstr ""
+"如果游戏请求同步，则模拟的 CPU 将等待 GPU 完成所有操作。\n"
+"这将使模拟更准确，但可能会造成性能降低"
+
+#: src/gui/GeneralSettings2.cpp:278
+msgid "Bilinear"
+msgstr "双线性"
+
+#: src/gui/GeneralSettings2.cpp:278
+msgid "Bicubic"
+msgstr "双三线"
+
+#: src/gui/GeneralSettings2.cpp:278
+msgid "Hermite"
+msgstr "埃尔米特"
+
+#: src/gui/GeneralSettings2.cpp:278
+msgid "Nearest Neighbor"
+msgstr "近邻取样"
+
+#: src/gui/GeneralSettings2.cpp:279
+msgid "Upscale filter"
+msgstr "放大过滤器"
+
+#: src/gui/GeneralSettings2.cpp:280
+msgid ""
+"Upscaling filters are used when the game resolution is smaller than the "
+"window size"
+msgstr "当游戏分辨率小于窗口大小时，将使用放大过滤器"
+
+#: src/gui/GeneralSettings2.cpp:283
+msgid "Downscale filter"
+msgstr "缩小过滤器"
+
+#: src/gui/GeneralSettings2.cpp:284
+msgid ""
+"Downscaling filters are used when the game resolution is bigger than the "
+"window size"
+msgstr "当游戏分辨率大于窗口大小时，将使用缩小过滤器"
+
+#: src/gui/GeneralSettings2.cpp:289
+msgid "Keep aspect ratio"
+msgstr "保持纵横比"
+
+#: src/gui/GeneralSettings2.cpp:289
+msgid "Stretch"
+msgstr "拉伸"
+
+#: src/gui/GeneralSettings2.cpp:290
+msgid "Fullscreen scaling"
+msgstr "全屏幕缩放选项"
+
+#: src/gui/GeneralSettings2.cpp:291
+msgid ""
+"Controls the output aspect ratio when it doesn't match the ratio of the game"
+msgstr "屏幕比例与游戏比例不匹配时控制输出的纵横比"
+
+#: src/gui/GeneralSettings2.cpp:312 src/gui/input/InputAPIAddWindow.cpp:36
+msgid "API"
+msgstr "API"
+
+#: src/gui/GeneralSettings2.cpp:325
+msgid "Select one of the available audio back ends"
+msgstr "选择可用的音频后端"
+
+#: src/gui/GeneralSettings2.cpp:332
+msgid "Latency"
+msgstr "延迟"
+
+#: src/gui/GeneralSettings2.cpp:334
+msgid ""
+"Controls the amount of buffered audio data\n"
+"Higher values will create a delay in audio playback, but may avoid audio "
+"problems when emulation is too slow"
+msgstr ""
+"控制缓冲的音频数据量\n"
+"较高的值会在音频播放时产生延迟，但是可以避免模拟速度太慢时的音频问题"
+
+#: src/gui/GeneralSettings2.cpp:345
+msgid "Mono"
+msgstr "单声道"
+
+#: src/gui/GeneralSettings2.cpp:345 src/gui/GeneralSettings2.cpp:402
+msgid "Stereo"
+msgstr "立体声"
+
+#: src/gui/GeneralSettings2.cpp:345
+msgid "Surround"
+msgstr "环绕声"
+
+#: src/gui/GeneralSettings2.cpp:347
+msgid "TV"
+msgstr "TV 端"
+
+#: src/gui/GeneralSettings2.cpp:354 src/gui/GeneralSettings2.cpp:393
+msgid "Device"
+msgstr "设备"
+
+#: src/gui/GeneralSettings2.cpp:357
+msgid "Select the active audio output device for Wii U TV"
+msgstr "为 Wii U TV 选择活动的音频输出设备"
+
+#: src/gui/GeneralSettings2.cpp:363 src/gui/GeneralSettings2.cpp:404
+msgid "Channels"
+msgstr "声道"
+
+#: src/gui/GeneralSettings2.cpp:372 src/gui/GeneralSettings2.cpp:413
+#: src/gui/input/panels/WiimoteInputPanel.cpp:89
+#: src/gui/input/panels/VPADInputPanel.cpp:103
+msgid "Volume"
+msgstr "音量"
+
+#: src/gui/GeneralSettings2.cpp:386
+msgid "Gamepad"
+msgstr "GamePad 端"
+
+#: src/gui/GeneralSettings2.cpp:396
+msgid "Select the active audio output device for Wii U GamePad"
+msgstr "为 Wii U GamePad 选择活动的音频输出设备"
+
+#: src/gui/GeneralSettings2.cpp:435 src/gui/GeneralSettings2.cpp:712
+#: src/gui/GeneralSettings2.cpp:1031 src/gui/GeneralSettings2.cpp:1032
+#: src/gui/input/InputSettings2.cpp:206 src/gui/input/InputSettings2.cpp:382
+#: src/gui/input/InputSettings2.cpp:770
+msgid "Disabled"
+msgstr "禁用"
+
+#: src/gui/GeneralSettings2.cpp:435
+msgid "Top left"
+msgstr "左上角"
+
+#: src/gui/GeneralSettings2.cpp:435
+msgid "Top center"
+msgstr "顶部居中"
+
+#: src/gui/GeneralSettings2.cpp:435
+msgid "Top right"
+msgstr "右上角"
+
+#: src/gui/GeneralSettings2.cpp:435
+msgid "Bottom left"
+msgstr "左下角"
+
+#: src/gui/GeneralSettings2.cpp:435
+msgid "Bottom center"
+msgstr "底部居中"
+
+#: src/gui/GeneralSettings2.cpp:435
+msgid "Bottom right"
+msgstr "右下角"
+
+#: src/gui/GeneralSettings2.cpp:438 src/gui/GeneralSettings2.cpp:736
+msgid "Overlay"
+msgstr "游戏内覆盖"
+
+#: src/gui/GeneralSettings2.cpp:445 src/gui/GeneralSettings2.cpp:526
+msgid "Position"
+msgstr "位置"
+
+#: src/gui/GeneralSettings2.cpp:448
+msgid "Controls the overlay which displays technical information while playing"
+msgstr "控制游戏中显示统计信息的叠加层的位置"
+
+#: src/gui/GeneralSettings2.cpp:453 src/gui/GeneralSettings2.cpp:535
+msgid "Text Color"
+msgstr "文本颜色"
+
+#: src/gui/GeneralSettings2.cpp:455
+msgid "Sets the text color of the overlay"
+msgstr "设置游戏内覆盖的文本颜色"
+
+#: src/gui/GeneralSettings2.cpp:460 src/gui/GeneralSettings2.cpp:540
+msgid "Scale"
+msgstr "比例"
+
+#: src/gui/GeneralSettings2.cpp:462
+msgid "Sets the scale of the overlay text"
+msgstr "设置游戏内覆盖的文字大小"
+
+#: src/gui/GeneralSettings2.cpp:469
+msgid "FPS"
+msgstr "帧速率"
+
+#: src/gui/GeneralSettings2.cpp:470
+msgid "The number of frames per second. Average over last 5 seconds"
+msgstr "每秒帧数。显示最近 5 秒的平均值"
+
+#: src/gui/GeneralSettings2.cpp:473
+msgid "Draw calls per frame"
+msgstr "每帧渲染调用"
+
+#: src/gui/GeneralSettings2.cpp:474
+msgid "The number of draw calls per frame. Average over last 5 seconds"
+msgstr "每帧的渲染调用次数。显示最近 5 秒的平均值"
+
+#: src/gui/GeneralSettings2.cpp:477
+msgid "CPU usage"
+msgstr "CPU 使用率"
+
+#: src/gui/GeneralSettings2.cpp:478
+msgid "CPU usage of Cemu in percent"
+msgstr "Cemu 的 CPU 使用率 (%)"
+
+#: src/gui/GeneralSettings2.cpp:481
+msgid "CPU per core usage"
+msgstr "CPU 各核心使用率"
+
+#: src/gui/GeneralSettings2.cpp:482
+msgid "Total cpu usage in percent for each core"
+msgstr "CPU 各核心分别的使用率 (%)"
+
+#: src/gui/GeneralSettings2.cpp:485
+msgid "RAM usage"
+msgstr "内存使用"
+
+#: src/gui/GeneralSettings2.cpp:486
+msgid "Cemu RAM usage in MB"
+msgstr "Cemu 的内存使用量 (MB)"
+
+#: src/gui/GeneralSettings2.cpp:489
+msgid "VRAM usage"
+msgstr "显存使用"
+
+#: src/gui/GeneralSettings2.cpp:497 src/gui/GeneralSettings2.cpp:504
+msgid "The VRAM usage of Cemu in MB"
+msgstr "Cemu 的显存使用量 (MB)"
+
+#: src/gui/GeneralSettings2.cpp:500
+msgid "This option requires Win8.1+"
+msgstr "该选项需要 Win8.1 及以上系统"
+
+#: src/gui/GeneralSettings2.cpp:509 src/gui/GeneralSettings2.cpp:738
+msgid "Debug"
+msgstr "调试"
+
+#: src/gui/GeneralSettings2.cpp:510
+msgid "Displays internal debug information (Vulkan only)"
+msgstr "显示内部调试信息 (仅 Vulkan)"
+
+#: src/gui/GeneralSettings2.cpp:519
+msgid "Notifications"
+msgstr "通知"
+
+#: src/gui/GeneralSettings2.cpp:530
+msgid "Controls the notification position while playing"
+msgstr "控制游戏中通知的显示位置"
+
+#: src/gui/GeneralSettings2.cpp:537
+msgid "Sets the text color of notifications"
+msgstr "设置通知的文字颜色"
+
+#: src/gui/GeneralSettings2.cpp:542
+msgid "Sets the scale of the notification text"
+msgstr "设置通知的文字大小"
+
+#: src/gui/GeneralSettings2.cpp:549
+msgid "Controller profiles"
+msgstr "控制器设定档"
+
+#: src/gui/GeneralSettings2.cpp:550
+msgid "Displays the active controller profile when starting a game"
+msgstr "启动游戏时显示激活的控制器设定档"
+
+#: src/gui/GeneralSettings2.cpp:553
+msgid "Low battery"
+msgstr "低电量"
+
+#: src/gui/GeneralSettings2.cpp:554
+msgid "Shows a notification when a low controller battery has been detected"
+msgstr "当检测到控制器电量不足时进行提醒"
+
+#: src/gui/GeneralSettings2.cpp:557
+msgid "Shader compiler"
+msgstr "着色器编译器"
+
+#: src/gui/GeneralSettings2.cpp:558
+msgid "Shows a notification after shaders have been compiled"
+msgstr "着色器编译完成后显示通知"
+
+#: src/gui/GeneralSettings2.cpp:561
+msgid "Friend list"
+msgstr "好友列表"
+
+#: src/gui/GeneralSettings2.cpp:562
+msgid "Shows friend list related data if online"
+msgstr "在线时显示好友列表相关数据"
+
+#: src/gui/GeneralSettings2.cpp:582
+msgid "Account settings"
+msgstr "帐户设置"
+
+#: src/gui/GeneralSettings2.cpp:592
+msgid "Active account"
+msgstr "当前帐户"
+
+#: src/gui/GeneralSettings2.cpp:599
+msgid "Create"
+msgstr "创建"
+
+#: src/gui/GeneralSettings2.cpp:620
+msgid "Online settings"
+msgstr "在线设定"
+
+#: src/gui/GeneralSettings2.cpp:623
+msgid "Enable online mode"
+msgstr "启用在线模式"
+
+#: src/gui/GeneralSettings2.cpp:636
+msgid "No account selected"
+msgstr "没有选择帐户"
+
+#: src/gui/GeneralSettings2.cpp:641
+msgid "Online play tutorial"
+msgstr "线上游戏教学"
+
+#: src/gui/GeneralSettings2.cpp:649
+msgid "Account information"
+msgstr "帐户信息"
+
+#: src/gui/GeneralSettings2.cpp:663
+msgid "The persistent id is the internal folder name used for your saves"
+msgstr "Persistent ID 是用于存档的内部文件夹名称"
+
+#: src/gui/GeneralSettings2.cpp:666
+msgid "Mii name"
+msgstr "Mii 名称"
+
+#: src/gui/GeneralSettings2.cpp:666
+msgid "The mii name is the profile name"
+msgstr "Mii 名称亦是设定档名称"
+
+#: src/gui/GeneralSettings2.cpp:667
+msgid "Birthday"
+msgstr "生日"
+
+#: src/gui/GeneralSettings2.cpp:670
+msgid "Female"
+msgstr "女"
+
+#: src/gui/GeneralSettings2.cpp:671
+msgid "Male"
+msgstr "男"
+
+#: src/gui/GeneralSettings2.cpp:674
+msgid "Email"
+msgstr "电子邮件"
+
+#: src/gui/GeneralSettings2.cpp:685
+msgid "Country"
+msgstr "国家与地区"
+
+#: src/gui/GeneralSettings2.cpp:710
+msgid "Crash dump"
+msgstr "崩溃时转储"
+
+#: src/gui/GeneralSettings2.cpp:712
+msgid "Lite"
+msgstr "基本"
+
+#: src/gui/GeneralSettings2.cpp:712
+msgid "Full"
+msgstr "完整 (包括内存)"
+
+#: src/gui/GeneralSettings2.cpp:715
+msgid ""
+"Creates a dump when Cemu crashes\n"
+"Only enable when requested by a developer!\n"
+"The Full option will create a very large dump file (includes a full RAM dump "
+"of the Cemu process)"
+msgstr ""
+"将在 Cemu 崩溃时创建转储\n"
+"仅在开发者要求时启用！\n"
+"“完整” 选项将创建一个巨大的转储文件 (包含 Cemu 程序的完整内存转储)"
+
+#: src/gui/GeneralSettings2.cpp:726
+msgid "General settings"
+msgstr "通用设置"
+
+#: src/gui/GeneralSettings2.cpp:734
+msgid "Graphics"
+msgstr "图形"
+
+#: src/gui/GeneralSettings2.cpp:735
+msgid "Audio"
+msgstr "音频"
+
+#: src/gui/GeneralSettings2.cpp:1100
+msgid "Can't delete the only account!"
+msgstr "无法删除唯一的帐户！"
+
+#: src/gui/GeneralSettings2.cpp:1110
+msgid "Are you sure you want to delete the account {} with id {:x}?"
+msgstr "您确定要删除 ID 为 {:x} 的帐户 {} 吗？"
+
+#: src/gui/GeneralSettings2.cpp:1114
+#: src/gui/components/wxTitleManagerList.cpp:315
+msgid "Confirmation"
+msgstr "确认信息"
+
+#: src/gui/GeneralSettings2.cpp:1216
+msgid "At least one issue has been found"
+msgstr "至少发现了一个问题"
+
+#: src/gui/GeneralSettings2.cpp:1253
+msgid "Your account is a valid online account"
+msgstr "您的帐户是有效的在线帐户"
+
+#: src/gui/GeneralSettings2.cpp:1294 src/gui/GeneralSettings2.cpp:1313
+msgid "Off"
+msgstr "关闭"
+
+#: src/gui/GeneralSettings2.cpp:1314
+msgid "Double buffering"
+msgstr "双重缓冲"
+
+#: src/gui/GeneralSettings2.cpp:1315
+msgid "Triple buffering"
+msgstr "三重缓冲"
+
+#: src/gui/GeneralSettings2.cpp:1317
+msgid "Match emulated display (Experimental)"
+msgstr "匹配模拟的屏幕 (实验性)"
+
+#: src/gui/GeneralSettings2.cpp:1496
+msgid ""
+"Please be aware that online mode lets you connect to OFFICIAL servers and "
+"therefore there is a risk of getting banned.\n"
+"Only proceed if you are willing to risk losing online access with your Wii U "
+"and/or NNID."
+msgstr ""
+"请注意：在线模式将使您连接到官方服务器，可能会导致封禁。\n"
+"如果您愿意承担失去 Wii U 与 NNID 的在线访问权限的风险，请继续操作。"
+
+#: src/gui/GeneralSettings2.cpp:1662
+msgid "You have to restart the game in order to apply the new settings."
+msgstr "重启游戏以应用新设置。"
+
+#: src/gui/GeneralSettings2.cpp:1674
+msgid "Select a directory containing games."
+msgstr "选择包含游戏的目录。"
+
+#: src/gui/GeneralSettings2.cpp:1799
+msgid "Online Status"
+msgstr "线上模式"
+
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:13
+msgid "Create new account"
+msgstr "创建新帐户"
+
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:23
+msgid ""
+"The persistent id is the internal folder name used for your saves. Only "
+"change this if you are importing saves from a Wii U with a specific id"
+msgstr ""
+"Persistent ID 是用于储存存档的内部文件夹名称。 如果需要从具有特定 ID 的 Wii "
+"U 入存档，请更改此设置"
+
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:37
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:59
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:58
+#: src/gui/input/settings/DefaultControllerSettings.cpp:192
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:210
+msgid "OK"
+msgstr "好"
+
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:67
+msgid "No persistent id entered!"
+msgstr "未输入 Persistent ID！"
+
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:74
+msgid "The persistent id must be greater than {:x}!"
+msgstr "Persistent ID 必须大于 {:x}！"
+
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:82
+msgid "The persistent id {:x} is already in use by account {}!"
+msgstr "Persistent ID {:x} 已经被帐户 {} 使用！"
+
+#: src/gui/dialogs/CreateAccount/wxCreateAccountDialog.cpp:90
+msgid "Account name may not be empty!"
+msgstr "帐户名不能为空！"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:22
+msgid "Import save entry"
+msgstr "导入存档条目"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:31
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:27
+msgid "Source"
+msgstr "导入源"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:33
+msgid "Select a zipped save file"
+msgstr "选择一个已经压缩的存档文件"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:34
+msgid "Save entry (*.zip)"
+msgstr "存档条目 (*.zip)"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:38
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:34
+msgid "Target"
+msgstr "目标帐户"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:121
+msgid ""
+"You are trying to import a savegame for a different title than your "
+"currently selected one: {:016x} vs {:016x}\n"
+"Are you sure that you want to continue?"
+msgstr ""
+"您正在尝试为与您已经选择的不同的档案导入游戏存档：{:016x} 与 {:016x}\n"
+"您确定要继续吗？"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:161
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:95
+msgid ""
+"The given account id is not valid!\n"
+"It must be a hex number bigger or equal than {:08x}"
+msgstr ""
+"指定的帐号 ID 无效！\n"
+"它必须为大于或等于 {:08x} 的十六进制数字"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:173
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:111
+msgid ""
+"There's already a file at the target directory:\n"
+"{}"
+msgstr ""
+"目标目录中已有文件：\n"
+"{}"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:180
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:118
+msgid ""
+"There's already a save game available for the target account, do you want to "
+"overwrite it?\n"
+"This will delete the existing save files for the account and replace them."
+msgstr ""
+"目标帐户已经有一个可用的游戏存档，您要覆盖它吗？\n"
+"这将删除该帐户现有的存档文件并替换它们。"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:196
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:134
+msgid ""
+"Error when trying to delete the former save game:\n"
+"{}"
+msgstr ""
+"尝试删除以前的游戏存档时出错：\n"
+"{}"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:216
+msgid ""
+"Error when creating the extraction path:\n"
+"{}"
+msgstr ""
+"建立提取路径时出错：\n"
+"{}"
+
+#: src/gui/dialogs/SaveImport/SaveImportWindow.cpp:224
+msgid ""
+"Error when opening the import zip file:\n"
+"{}"
+msgstr ""
+"打开导入的 zip 文件中出错：\n"
+"{}"
+
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:18
+msgid "Save transfer"
+msgstr "存档转移"
+
+#: src/gui/dialogs/SaveImport/SaveTransfer.cpp:190
+msgid ""
+"Error when trying to move the save game:\n"
+"{}"
+msgstr ""
+"移动存档过程中出错：\n"
+"{}"
+
+#: src/gui/CemuUpdateWindow.cpp:54
+msgid "Changelog"
+msgstr "更新日志"
+
+#: src/gui/CemuUpdateWindow.cpp:577 src/gui/CemuUpdateWindow.cpp:594
+msgid "Exit"
+msgstr "退出"
+
+#: src/gui/CemuUpdateWindow.cpp:578
+msgid "No update available!"
+msgstr "没有可用更新！"
+
+#: src/gui/CemuUpdateWindow.cpp:593
+msgid "Update available!"
+msgstr "有可用更新！"
+
+#: src/gui/CemuUpdateWindow.cpp:598
+msgid "Extracting update..."
+msgstr "解压更新文件中 ..."
+
+#: src/gui/CemuUpdateWindow.cpp:603
+msgid "Couldn't download the update!"
+msgstr "无法下载更新！"
+
+#: src/gui/CemuUpdateWindow.cpp:606
+msgid "Applying update..."
+msgstr "应用更新中 ..."
+
+#: src/gui/CemuUpdateWindow.cpp:613
+msgid "Extracting failed!"
+msgstr "解压失败！"
+
+#: src/gui/CemuUpdateWindow.cpp:620
+msgid "Restart"
+msgstr "重新启动"
+
+#: src/gui/CemuUpdateWindow.cpp:642
+msgid "Downloading update..."
+msgstr "下载更新中 ..."
+
+#: src/gui/LoggingWindow.cpp:16
+msgid "Logging window"
+msgstr "日志记录窗口"
+
+#: src/gui/LoggingWindow.cpp:30
+msgid "Filter messages"
+msgstr "筛选信息"
+
+#: src/gui/GettingStartedDialog.cpp:33
+msgid ""
+"It looks like you're starting Cemu for the first time.\n"
+"This quick setup assistant will help you get the best experience"
+msgstr ""
+"看来您是第一次启动 Cemu。\n"
+"本设置向导将帮助您获得最佳体验"
+
+#: src/gui/GettingStartedDialog.cpp:41
+msgid "mlc01 path"
+msgstr "mlc01 路径"
+
+#: src/gui/GettingStartedDialog.cpp:42
+msgid ""
+"The mlc path is the root folder of the emulated Wii U internal flash "
+"storage. It contains all your saves, installed updates and DLCs.\n"
+"It is strongly recommend that you create a dedicated folder for it (example: "
+"C:\\wiiu\\mlc\\) \n"
+"If left empty, the mlc folder will be created inside the Cemu folder."
+msgstr ""
+"MLC 路径是用来模拟 Wii U 内部闪存空间的根文件夹。 它包含您所有的存档，已安装"
+"的更新档和 DLC。\n"
+"强烈建议您为其创建一个专用文件夹 (例如：C:\\wiiu\\mlc\\)\n"
+"如果保留为空，则将在 Cemu 文件夹内创建 MLC 文件夹。"
+
+#: src/gui/GettingStartedDialog.cpp:44
+msgid ""
+"A custom mlc path from a previous Cemu installation has been found and "
+"filled in."
+msgstr "当前从旧的 Cemu 中找到了一个自定义的 MLC 路径，已为您自动加入。"
+
+#: src/gui/GettingStartedDialog.cpp:50
+msgid "Custom mlc01 path"
+msgstr "自定义 mlc01 路径"
+
+#: src/gui/GettingStartedDialog.cpp:53 src/gui/GettingStartedDialog.cpp:78
+msgid "Select a folder"
+msgstr "选择一个文件夹"
+
+#: src/gui/GettingStartedDialog.cpp:62
+msgid "(optional)"
+msgstr "(可选的)"
+
+#: src/gui/GettingStartedDialog.cpp:70
+msgid "Game paths"
+msgstr "游戏路径"
+
+#: src/gui/GettingStartedDialog.cpp:72
+msgid ""
+"The game path is scanned by Cemu to locate your games. We recommend creating "
+"a dedicated directory in which\n"
+"you place all your Wii U games. (example: C:\\wiiu\\games\\)\n"
+"\n"
+"You can also set additional paths in the general settings of Cemu."
+msgstr ""
+"Cemu 会扫描您设置的游戏路径以找到您的游戏。\n"
+"我们建议创建一个专用目录来放置您所有 Wii U 游戏。 (例如：C:\\wiiu\\games"
+"\\ )\n"
+"\n"
+"您也可以在 Cemu 的常规设置中设置其他路径。"
+
+#: src/gui/GettingStartedDialog.cpp:76
+msgid "Game path"
+msgstr "游戏路径"
+
+#: src/gui/GettingStartedDialog.cpp:89
+msgid ""
+"Graphic packs improve games by offering the possibility to change "
+"resolution, tweak FPS or add other visual or gameplay modifications.\n"
+"Download the community graphic packs to get started.\n"
+msgstr ""
+"图形插件可改善游戏，如提供更改分辨率，调整 FPS 或添加其他视觉及游戏修改的可能"
+"性。\n"
+"下载社区图形插件以开始使用。\n"
+
+#: src/gui/GettingStartedDialog.cpp:91
+msgid "Download community graphic packs"
+msgstr "下载社区图形插件"
+
+#: src/gui/GettingStartedDialog.cpp:105
+msgid "Next"
+msgstr "下一步"
+
+#: src/gui/GettingStartedDialog.cpp:123 src/gui/input/InputSettings2.cpp:65
+msgid "Input settings"
+msgstr "输入设置"
+
+#: src/gui/GettingStartedDialog.cpp:125
+msgid ""
+"You can configure one controller for each player.\n"
+"We advise you to always use GamePad as emulated input for the first player, "
+"since many games expect the GamePad to be present.\n"
+"It is also required for touch functionality.\n"
+"The default global hotkeys are:\n"
+"CTRL - show pad screen\n"
+"CTRL + TAB - toggle pad screen\n"
+"ALT + ENTER - toggle fullscreen\n"
+"ESC - leave fullscreen\n"
+"\n"
+"If you're having trouble configuring your controller, make sure to have it "
+"in idle state and press calibrate.\n"
+"Also don't set the axis deadzone too low."
+msgstr ""
+"您可以为每个玩家配置一个控制器。\n"
+"我们建议您始终将 GamePad 用作第一位玩家的模拟输入，因为许多游戏都需要 "
+"GamePad 存在。\n"
+"触摸功能同样需要 GamePad。\n"
+"默认的全局热键是：\n"
+"CTRL - 显示键盘屏幕\n"
+"CTRL + TAB - 切换 Pad 屏幕\n"
+"ALT + ENTER - 切换全屏\n"
+"ESC - 关闭全屏\n"
+"\n"
+"如果在配置控制器时遇到问题，请确保使其处于非操作状态，然后按校准。\n"
+"注意：不要将遥感的死区设置得太小。"
+
+#: src/gui/GettingStartedDialog.cpp:127
+msgid "Configure input"
+msgstr "配置输入"
+
+#: src/gui/GettingStartedDialog.cpp:135
+msgid "Additional options"
+msgstr "额外设定"
+
+#: src/gui/GettingStartedDialog.cpp:141
+msgid "Start games with fullscreen"
+msgstr "全屏开始游戏"
+
+#: src/gui/GettingStartedDialog.cpp:144
+msgid "Open separate pad screen"
+msgstr "打开单独的 Pad 屏幕"
+
+#: src/gui/GettingStartedDialog.cpp:161
+msgid "Don't show this again"
+msgstr "不要再展示这个窗口了"
+
+#: src/gui/GettingStartedDialog.cpp:165
+msgid "Previous"
+msgstr "上一步"
+
+#: src/gui/GettingStartedDialog.cpp:169
+msgid "Close"
+msgstr "关闭"
+
+#: src/gui/GettingStartedDialog.cpp:254
+msgid "Getting started"
+msgstr "欢迎向导"
+
+#: src/gui/GettingStartedDialog.cpp:285
+msgid "Do you want to view the downloaded graphic packs?"
+msgstr "您想查看已下载的图形插件吗？"
+
+#: src/gui/input/InputSettings2.cpp:82
+msgid "Controller {}"
+msgstr "控制器 {}"
+
+#: src/gui/input/InputSettings2.cpp:146
+msgid "Profile"
+msgstr "设定档"
+
+#: src/gui/input/InputSettings2.cpp:155
+msgid "Load"
+msgstr "载入"
+
+#: src/gui/input/InputSettings2.cpp:159
+msgid "Save"
+msgstr "保存"
+
+#: src/gui/input/InputSettings2.cpp:167
+msgid "controller set by gameprofile. changes won't be saved permanently!"
+msgstr "此控制器由游戏设定档配置。变动将不会永久保存！"
+
+#: src/gui/input/InputSettings2.cpp:199
+msgid "Emulated controller"
+msgstr "模拟控制器"
+
+#: src/gui/input/InputSettings2.cpp:248
+msgid "Settings"
+msgstr "设置"
+
+#: src/gui/input/InputSettings2.cpp:253
+#: src/gui/input/settings/DefaultControllerSettings.cpp:202
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:220
+msgid "Calibrate"
+msgstr "校准"
+
+#: src/gui/input/InputSettings2.cpp:258 src/gui/MemorySearcherTool.cpp:204
+msgid "Clear"
+msgstr "清除"
+
+#: src/gui/input/InputSettings2.cpp:266
+msgid "Test if the controller is connected"
+msgstr "测试控制器是否连接"
+
+#: src/gui/input/InputSettings2.cpp:593 src/gui/input/InputSettings2.cpp:629
+#: src/gui/input/InputSettings2.cpp:661
+msgid "invalid profile name"
+msgstr "无效的设定档名称"
+
+#: src/gui/input/InputSettings2.cpp:602
+msgid "profile loaded"
+msgstr "已加载设定档"
+
+#: src/gui/input/InputSettings2.cpp:607
+msgid "couldn't load profile"
+msgstr "无法加载设定档"
+
+#: src/gui/input/InputSettings2.cpp:637
+msgid "profile saved"
+msgstr "已保存设定档"
+
+#: src/gui/input/InputSettings2.cpp:642
+msgid "couldn't save profile"
+msgstr "无法保存设定档"
+
+#: src/gui/input/InputSettings2.cpp:675
+msgid "profile deleted"
+msgstr "已删除设定档"
+
+#: src/gui/input/InputSettings2.cpp:684
+msgid "can't delete profile"
+msgstr "无法删除设定档"
+
+#: src/gui/input/panels/ProControllerInputPanel.cpp:41
+#: src/gui/input/panels/VPADInputPanel.cpp:61
+#: src/gui/input/panels/ClassicControllerInputPanel.cpp:42
+msgid "Left Axis"
+msgstr "左摇杆"
+
+#: src/gui/input/panels/ProControllerInputPanel.cpp:64
+#: src/gui/input/panels/VPADInputPanel.cpp:84
+#: src/gui/input/panels/ClassicControllerInputPanel.cpp:65
+msgid "Right Axis"
+msgstr "右摇杆"
+
+#: src/gui/input/panels/ProControllerInputPanel.cpp:87
+#: src/gui/input/panels/WiimoteInputPanel.cpp:77
+#: src/gui/input/panels/VPADInputPanel.cpp:123
+#: src/gui/input/panels/ClassicControllerInputPanel.cpp:88
+msgid "D-pad"
+msgstr "十字键"
+
+#: src/gui/input/panels/WiimoteInputPanel.cpp:41
+msgid "Extensions:"
+msgstr "扩展："
+
+#: src/gui/input/panels/WiimoteInputPanel.cpp:44
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:310
+msgid "MotionPlus"
+msgstr "体感增强器 (MotionPlus)"
+
+#: src/gui/input/panels/WiimoteInputPanel.cpp:48
+#: src/gui/input/panels/WiimoteInputPanel.cpp:110
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:86
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:290
+msgid "Nunchuck"
+msgstr "双节棍 (Nunchuck)"
+
+#: src/gui/input/panels/WiimoteInputPanel.cpp:52
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:129
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:295
+msgid "Classic"
+msgstr "Classic"
+
+#: src/gui/input/panels/VPADInputPanel.cpp:135
+msgid "blow mic"
+msgstr "麦克风"
+
+#: src/gui/input/panels/VPADInputPanel.cpp:138
+msgid "show screen"
+msgstr "显示屏幕"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:19
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:20
+msgid "Controller settings"
+msgstr "控制器设置"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:31
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:44
+msgid "Options"
+msgstr "选项"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:35
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:57
+msgid "Use motion"
+msgstr "使用体感"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:44
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:50
+msgid "Rumble"
+msgstr "震动"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:60
+msgid "Axis"
+msgstr "轴向"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:68
+#: src/gui/input/settings/DefaultControllerSettings.cpp:111
+#: src/gui/input/settings/DefaultControllerSettings.cpp:154
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:94
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:139
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:152
+msgid "Deadzone"
+msgstr "死区"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:81
+#: src/gui/input/settings/DefaultControllerSettings.cpp:124
+#: src/gui/input/settings/DefaultControllerSettings.cpp:167
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:107
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:167
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:180
+msgid "Range"
+msgstr "范围"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:103
+msgid "Rotation"
+msgstr "转角"
+
+#: src/gui/input/settings/DefaultControllerSettings.cpp:146
+msgid "Trigger"
+msgstr "肩键"
+
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:33
+msgid "Connected extension"
+msgstr "已连接扩展"
+
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:36
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:318
+msgid "None"
+msgstr "无"
+
+#: src/gui/input/settings/WiimoteControllerSettings.cpp:68
+msgid "Packet delay"
+msgstr "数据包延迟"
+
+#: src/gui/input/InputAPIAddWindow.cpp:26
+msgid "Add input API"
+msgstr "添加输入 API"
+
+#: src/gui/input/InputAPIAddWindow.cpp:92
+msgid "IP"
+msgstr "IP"
+
+#: src/gui/input/InputAPIAddWindow.cpp:96
+msgid "Port"
+msgstr "端口"
+
+#: src/gui/input/InputAPIAddWindow.cpp:131
+msgid "The controller is already added!"
+msgstr "控制器已添加！"
+
+#: src/gui/input/InputAPIAddWindow.cpp:239
+msgid "Searching for controllers..."
+msgstr "搜寻控制器中 ..."
+
+#: src/gui/input/InputSettings2.h:21
+msgid "<profile name>"
+msgstr "<设定档名称>"
+
+#: src/gui/GraphicPacksWindow2.cpp:224
+msgid "Installed games"
+msgstr "已安装游戏"
+
+#: src/gui/GraphicPacksWindow2.cpp:252
+msgid "Graphic pack"
+msgstr "图形插件"
+
+#: src/gui/GraphicPacksWindow2.cpp:262 src/gui/MemorySearcherTool.cpp:102
+msgid "Description"
+msgstr "介绍"
+
+#: src/gui/GraphicPacksWindow2.cpp:278
+msgid "Reload edited shaders"
+msgstr "重新加载编辑过的着色器"
+
+#: src/gui/GraphicPacksWindow2.cpp:298
+msgid "Download latest community graphic packs"
+msgstr "下载最新社区图形插件"
+
+#: src/gui/GraphicPacksWindow2.cpp:389
+msgid "Active preset"
+msgstr "已激活预设"
+
+#: src/gui/GraphicPacksWindow2.cpp:444
+msgid "This graphic pack has no description"
+msgstr "该图形插件无介绍"
+
+#: src/gui/GraphicPacksWindow2.cpp:526 src/gui/GraphicPacksWindow2.cpp:556
+msgid "Restart of Cemu required for changes to take effect"
+msgstr "重启 Cemu 才能使改动生效"
+
+#: src/gui/GraphicPacksWindow2.cpp:600
+msgid "This update removed or renamed the following graphic packs:"
+msgstr "此更新删除或重命名了以下图形插件："
+
+#: src/gui/GraphicPacksWindow2.cpp:600
+msgid "You may need to set them up again."
+msgstr "您可能需要再次设置它们。"
+
+#: src/gui/MemorySearcherTool.cpp:50
+msgid "Memory Searcher"
+msgstr "内存搜索器"
+
+#: src/gui/MemorySearcherTool.cpp:63 src/gui/MemorySearcherTool.cpp:419
+msgid "Search"
+msgstr "搜索"
+
+#: src/gui/MemorySearcherTool.cpp:81 src/gui/MemorySearcherTool.cpp:420
+msgid "Results"
+msgstr "结果"
+
+#: src/gui/MemorySearcherTool.cpp:92 src/gui/MemorySearcherTool.cpp:105
+msgid "Value"
+msgstr "值"
+
+#: src/gui/MemorySearcherTool.cpp:97
+msgid "Stored Entries"
+msgstr "已储存条目"
+
+#: src/gui/MemorySearcherTool.cpp:106
+msgid "Freeze"
+msgstr "冻结"
+
+#: src/gui/MemorySearcherTool.cpp:198
+msgid "Your entered value is not valid for the selected datatype."
+msgstr "输入的值对所选数据类型无效。"
+
+#: src/gui/MemorySearcherTool.cpp:383
+msgid "&Add new entry"
+msgstr "添加新条目 (&A)"
+
+#: src/gui/MemorySearcherTool.cpp:384
+msgid "&Remove entry"
+msgstr "移除条目 (&R)"
+
+#: src/gui/MemorySearcherTool.cpp:477
+msgid "Results ({0})"
+msgstr "结果 ({0})"
+
+#: src/gui/components/wxDownloadManagerList.cpp:94
+#: src/gui/components/wxTitleManagerList.cpp:126
+msgid "Title ID"
+msgstr "档案 ID"
+
+#: src/gui/components/wxDownloadManagerList.cpp:106
+#: src/gui/components/wxGameList.cpp:392
+#: src/gui/components/wxTitleManagerList.cpp:144
+msgid "Version"
+msgstr "版本"
+
+#: src/gui/components/wxDownloadManagerList.cpp:118
+msgid "Progress"
+msgstr "进度"
+
+#: src/gui/components/wxDownloadManagerList.cpp:124
+msgid "Status"
+msgstr "状态"
+
+#: src/gui/components/wxDownloadManagerList.cpp:336
+msgid "&Resume"
+msgstr "恢复 (&R)"
+
+#: src/gui/components/wxDownloadManagerList.cpp:338
+msgid "&Retry"
+msgstr "重试 (&R)"
+
+#: src/gui/components/wxDownloadManagerList.cpp:340
+msgid "&Download"
+msgstr "下载 (&D)"
+
+#: src/gui/components/wxDownloadManagerList.cpp:468
+msgid "Paused"
+msgstr "已暂停"
+
+#: src/gui/components/wxDownloadManagerList.cpp:472
+msgid "Not installed (Partially downloaded)"
+msgstr "未安装 (部分已下载)"
+
+#: src/gui/components/wxDownloadManagerList.cpp:474
+msgid "Update available"
+msgstr "更新可用"
+
+#: src/gui/components/wxDownloadManagerList.cpp:475
+msgid "Not installed"
+msgstr "未安装"
+
+#: src/gui/components/wxDownloadManagerList.cpp:478
+msgid "Initializing"
+msgstr "初始化"
+
+#: src/gui/components/wxDownloadManagerList.cpp:480
+msgid "Checking"
+msgstr "正在检查"
+
+#: src/gui/components/wxDownloadManagerList.cpp:482
+msgid "Queued"
+msgstr "已加入队列"
+
+#: src/gui/components/wxDownloadManagerList.cpp:484
+msgid "Downloading"
+msgstr "下载中"
+
+#: src/gui/components/wxDownloadManagerList.cpp:486
+msgid "Verifying"
+msgstr "验证中"
+
+#: src/gui/components/wxDownloadManagerList.cpp:488
+msgid "Installing"
+msgstr "安装中"
+
+#: src/gui/components/wxDownloadManagerList.cpp:490
+msgid "Installed"
+msgstr "安装完成"
+
+#: src/gui/components/wxDownloadManagerList.cpp:493
+msgid "Error:"
+msgstr "错误："
+
+#: src/gui/components/wxGameList.cpp:70
+msgid ""
+"This game entry seems to be either an update or the base game was merged "
+"with update data\n"
+"Broken game dumps cause various problems during emulation and may even stop "
+"working at all in future Cemu versions\n"
+"Please make sure the base game is intact and install updates only with the "
+"File->Install Update/DLC option"
+msgstr ""
+"该游戏条目似乎是更新档，或是与更新档数据合并的游戏本体\n"
+"损坏的游戏转储在模拟运行期间会产生各种问题，甚至可能在未来的Cemu版本中根本无"
+"法工作\n"
+"请确保游戏本体完好无损，并仅通过 “文件” 菜单 -> “安装档案、升级档或 DLC” 选项"
+"来安装更新"
+
+#: src/gui/components/wxGameList.cpp:386
+msgid "Game"
+msgstr "游戏"
+
+#: src/gui/components/wxGameList.cpp:406
+msgid "You've played"
+msgstr "游戏时长"
+
+#: src/gui/components/wxGameList.cpp:412
+msgid "Last played"
+msgstr "上次游玩时间"
+
+#: src/gui/components/wxGameList.cpp:418
+#: src/gui/components/wxTitleManagerList.cpp:150
+msgid "Region"
+msgstr "地区"
+
+#: src/gui/components/wxGameList.cpp:501
+msgid "&Start"
+msgstr "启动 (&S)"
+
+#: src/gui/components/wxGameList.cpp:507
+msgid "&Favorite"
+msgstr "收藏并置顶 (&F)"
+
+#: src/gui/components/wxGameList.cpp:508
+msgid "&Edit name"
+msgstr "编辑名称 (&E)"
+
+#: src/gui/components/wxGameList.cpp:511
+msgid "&Wiki page"
+msgstr "&Wiki 页面"
+
+#: src/gui/components/wxGameList.cpp:512
+msgid "&Game directory"
+msgstr "游戏目录 (&G)"
+
+#: src/gui/components/wxGameList.cpp:513
+msgid "&Save directory"
+msgstr "存档目录 (&S)"
+
+#: src/gui/components/wxGameList.cpp:514
+msgid "&Update directory"
+msgstr "更新档目录 (&U)"
+
+#: src/gui/components/wxGameList.cpp:515
+msgid "&DLC directory"
+msgstr "&DLC 目录"
+
+#: src/gui/components/wxGameList.cpp:518
+msgid "&Edit graphic packs"
+msgstr "编辑图形插件 (&E)"
+
+#: src/gui/components/wxGameList.cpp:519
+msgid "&Edit game profile"
+msgstr "编辑游戏设定档 (&E)"
+
+#: src/gui/components/wxGameList.cpp:525
+msgid "&Refresh game list"
+msgstr "刷新游戏列表 (&R)"
+
+#: src/gui/components/wxGameList.cpp:527
+msgid "Style: &List"
+msgstr "显示方式：列表 (&L)"
+
+#: src/gui/components/wxGameList.cpp:528
+msgid "Style: &Icons"
+msgstr "显示方式：普通图标 (&I)"
+
+#: src/gui/components/wxGameList.cpp:529
+msgid "Style: &Small Icons"
+msgstr "显示方式：小图标 (&S)"
+
+#: src/gui/components/wxGameList.cpp:559
+msgid "Enter a custom game title"
+msgstr "输入一个自定义的游戏档案"
+
+#: src/gui/components/wxGameList.cpp:682
+msgid "Reset &width"
+msgstr "重置 宽度 (&W)"
+
+#: src/gui/components/wxGameList.cpp:683
+msgid "Reset &order"
+msgstr "重置 排序 (&O)"
+
+#: src/gui/components/wxGameList.cpp:686
+msgid "Show &name"
+msgstr "显示 名称 (&N)"
+
+#: src/gui/components/wxGameList.cpp:687
+msgid "Show &version"
+msgstr "显示 版本 (&V)"
+
+#: src/gui/components/wxGameList.cpp:688
+msgid "Show &dlc"
+msgstr "显示 &DLC"
+
+#: src/gui/components/wxGameList.cpp:689
+msgid "Show &game time"
+msgstr "显示 游戏时长 (&G)"
+
+#: src/gui/components/wxGameList.cpp:690
+msgid "Show &last played"
+msgstr "显示 上次游玩时间 (&L)"
+
+#: src/gui/components/wxGameList.cpp:691
+msgid "Show &region"
+msgstr "显示 地区 (&R)"
+
+#: src/gui/components/wxGameList.cpp:926 src/gui/components/wxGameList.cpp:931
+msgid "never"
+msgstr "从未"
+
+#: src/gui/components/wxTitleManagerList.cpp:156
+msgid "Format"
+msgstr "格式"
+
+#: src/gui/components/wxTitleManagerList.cpp:293
+msgid ""
+"The following content will be converted to a compressed Wii U archive file (."
+"wua):"
+msgstr "以下内容将被转换为一个压缩的 Wii U 档案文件 (.wua):"
+
+#: src/gui/components/wxTitleManagerList.cpp:297
+msgid "Base game: {}"
+msgstr "游戏本体：{}"
+
+#: src/gui/components/wxTitleManagerList.cpp:299
+msgid "Base game: Not installed"
+msgstr "游戏本体：未安装"
+
+#: src/gui/components/wxTitleManagerList.cpp:304
+msgid "Update: {}"
+msgstr "更新档：{}"
+
+#: src/gui/components/wxTitleManagerList.cpp:306
+msgid "Update: Not installed"
+msgstr "更新档：未安装"
+
+#: src/gui/components/wxTitleManagerList.cpp:311
+msgid "DLC: {}"
+msgstr "DLC：{}"
+
+#: src/gui/components/wxTitleManagerList.cpp:313
+msgid "DLC: Not installed"
+msgstr "DLC：未安装"
+
+#: src/gui/components/wxTitleManagerList.cpp:369
+msgid "Save Wii U game archive file"
+msgstr "保存 Wii U 游戏档案文件"
+
+#: src/gui/components/wxTitleManagerList.cpp:529
+msgid "Unable to create file"
+msgstr "无法创建文件"
+
+#: src/gui/components/wxTitleManagerList.cpp:534
+msgid "Counting files..."
+msgstr "统计文件中 ..."
+
+#: src/gui/components/wxTitleManagerList.cpp:546
+msgid "Stopping..."
+msgstr "停止中 ..."
+
+#: src/gui/components/wxTitleManagerList.cpp:557
+msgid "Converting files..."
+msgstr "转换文件中 ..."
+
+#: src/gui/components/wxTitleManagerList.cpp:561
+msgid "Collecting list of files..."
+msgstr "收集文件列表中 ..."
+
+#: src/gui/components/wxTitleManagerList.cpp:567
+msgid "Finalizing..."
+msgstr "最后处理中 ..."
+
+#: src/gui/components/wxTitleManagerList.cpp:584
+msgid "Conversion failed\n"
+msgstr "转换失败\n"
+
+#: src/gui/components/wxTitleManagerList.cpp:600
+msgid "Conversion finished\n"
+msgstr "转换完成\n"
+
+#: src/gui/components/wxTitleManagerList.cpp:600
+msgid "Complete"
+msgstr "完成"
+
+#: src/gui/components/wxTitleManagerList.cpp:753
+msgid "&Launch title"
+msgstr "载入档案 (&L)"
+
+#: src/gui/components/wxTitleManagerList.cpp:755
+msgid "&Open directory"
+msgstr "打开目录 (&O)"
+
+#: src/gui/components/wxTitleManagerList.cpp:757
+msgid "&Verify integrity of game files"
+msgstr "验证游戏文件的完整性 (&V)"
+
+#: src/gui/components/wxTitleManagerList.cpp:763
+msgid "Convert to compressed Wii U archive (.wua)"
+msgstr "转换为压缩的 Wii U 档案文件 (.wua)"
+
+#: src/gui/components/wxTitleManagerList.cpp:767
+msgid "&Delete"
+msgstr "删除 (&D)"
+
+#: src/gui/components/wxTitleManagerList.cpp:782
+msgid ""
+"Are you really sure that you want to delete the following folder:\n"
+"{}"
+msgstr ""
+"您真的确定要删除以下文件夹吗？\n"
+"{}"
+
+#: src/gui/components/wxTitleManagerList.cpp:784
+msgid ""
+"Are you really sure that you want to delete the following file:\n"
+"{}"
+msgstr ""
+"您确定要删除以下文件吗？\n"
+"{}"
+
+#: src/gui/components/wxTitleManagerList.cpp:825
+msgid ""
+"Error when trying to delete the entry:\n"
+"{}"
+msgstr ""
+"删除条目的过程中出错：\n"
+"{}"
+
+#: src/gui/components/wxTitleManagerList.cpp:924
+msgid "Save folder"
+msgstr "保存文件夹"
+
+#: src/gui/components/wxTitleManagerList.cpp:928
+msgid "Folder"
+msgstr "文件夹"
+
+#: src/gui/components/wxTitleManagerList.cpp:930
+msgid "WUD"
+msgstr "WUD"
+
+#: src/gui/components/wxTitleManagerList.cpp:932
+msgid "WUA"
+msgstr "WUA"
+
+#: src/Cafe/CafeSystem.cpp:164
+msgid "Failed to run this title because the executable is damaged"
+msgstr "由于可执行文件已损坏，无法运行档案"
+
+#: src/Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.cpp:254
+msgid ""
+"The currently installed graphics driver does not support the Vulkan "
+"extension necessary for asynchronous shader compilation. Asynchronous "
+"compilation cannot be used.\n"
+" \n"
+"Required extension: VK_EXT_pipeline_creation_cache_control\n"
+"\n"
+"Installing the latest graphics driver may solve this error."
+msgstr ""
+"当前安装的图形驱动程序不支持异步着色器编译所需的 Vulkan 扩展。 因此不能使用异"
+"步编译。\n"
+" \n"
+"必需的扩展名为：VK_EXT_pipeline_creation_cache_control\n"
+"\n"
+"安装最新的图形驱动程序可能会解决此错误。"
+
+#: src/Cafe/HW/Latte/Core/LatteShaderCache.cpp:766
+msgid "Outdated shader cache"
+msgstr "过时的着色器缓存"
+
+#: src/Cafe/HW/Latte/Core/LatteShaderCache.cpp:769
+msgid "Delete outdated cache file [recommended]"
+msgstr "删除过期的缓存文件 [推荐]"
+
+#: src/Cafe/HW/Latte/Core/LatteShaderCache.cpp:769
+msgid "Keep outdated cache file"
+msgstr "保留过期的缓存文件"
+
+#: src/audio/audioDebuggerWindow.cpp:25
+msgid "AX voice viewer"
+msgstr "AX 声音查看器"
+
+#: src/input/emulated/ProController.cpp:78
+#: src/input/emulated/ProController.cpp:84
+#: src/input/emulated/ProController.cpp:88
+#: src/input/emulated/VPADController.cpp:370
+#: src/input/emulated/VPADController.cpp:376
+#: src/input/emulated/VPADController.cpp:380
+#: src/input/emulated/WiimoteController.cpp:166
+#: src/input/emulated/WiimoteController.cpp:174
+#: src/input/emulated/ClassicController.cpp:75
+#: src/input/emulated/ClassicController.cpp:80
+#: src/input/emulated/ClassicController.cpp:85
+msgid "up"
+msgstr "上"
+
+#: src/input/emulated/ProController.cpp:79
+#: src/input/emulated/ProController.cpp:85
+#: src/input/emulated/ProController.cpp:89
+#: src/input/emulated/VPADController.cpp:371
+#: src/input/emulated/VPADController.cpp:377
+#: src/input/emulated/VPADController.cpp:381
+#: src/input/emulated/WiimoteController.cpp:167
+#: src/input/emulated/WiimoteController.cpp:175
+#: src/input/emulated/ClassicController.cpp:76
+#: src/input/emulated/ClassicController.cpp:81
+#: src/input/emulated/ClassicController.cpp:86
+msgid "down"
+msgstr "下"
+
+#: src/input/emulated/ProController.cpp:80
+#: src/input/emulated/ProController.cpp:86
+#: src/input/emulated/ProController.cpp:90
+#: src/input/emulated/VPADController.cpp:372
+#: src/input/emulated/VPADController.cpp:378
+#: src/input/emulated/VPADController.cpp:382
+#: src/input/emulated/WiimoteController.cpp:168
+#: src/input/emulated/WiimoteController.cpp:176
+#: src/input/emulated/ClassicController.cpp:77
+#: src/input/emulated/ClassicController.cpp:82
+#: src/input/emulated/ClassicController.cpp:87
+msgid "left"
+msgstr "左"
+
+#: src/input/emulated/ProController.cpp:81
+#: src/input/emulated/ProController.cpp:87
+#: src/input/emulated/ProController.cpp:91
+#: src/input/emulated/VPADController.cpp:373
+#: src/input/emulated/VPADController.cpp:379
+#: src/input/emulated/VPADController.cpp:383
+#: src/input/emulated/WiimoteController.cpp:169
+#: src/input/emulated/WiimoteController.cpp:177
+#: src/input/emulated/ClassicController.cpp:78
+#: src/input/emulated/ClassicController.cpp:83
+#: src/input/emulated/ClassicController.cpp:88
+msgid "right"
+msgstr "右"
+
+#: src/input/emulated/ProController.cpp:82
+#: src/input/emulated/ProController.cpp:83
+#: src/input/emulated/VPADController.cpp:374
+#: src/input/emulated/VPADController.cpp:375
+msgid "click"
+msgstr "点击"
+
+#: src/input/emulated/ProController.cpp:92
+#: src/input/emulated/VPADController.cpp:384
+#: src/input/emulated/WiimoteController.cpp:162
+#: src/input/emulated/ClassicController.cpp:73
+msgid "home"
+msgstr "主页"
+
+#~ msgid ""
+#~ "Cemu detected that it is being launched through Steam.\n"
+#~ "There is currently an issue where Steam shader pre-caching in combination "
+#~ "with Vulkan async shader compilation causes graphic bugs.\n"
+#~ "We highly recommend that you turn off Steam shader pre-caching in the "
+#~ "settings of Steam or simply launch Cemu manually."
+#~ msgstr ""
+#~ "Cemu 检测到它是通过 Steam 启动的。\n"
+#~ "目前存在一个问题，即 Steam 的着色器预缓存与 Vulkan 异步着色器编译相结合会"
+#~ "导致图形错误。\n"
+#~ "我们强烈建议您在 Steam 的设置中关闭 Steam 着色器预缓存，或者直接手动启动 "
+#~ "Cemu。"
+
+#~ msgid "Verify with file"
+#~ msgstr "通过文件进行验证"
+
+#~ msgid "Verifies the checksum with a local json file you can select"
+#~ msgstr "从本地选择的 JSON 文件验证校验和"
+
+#~ msgid "Export the title checksum data to a local json file"
+#~ msgstr "导出 “档案校验和” 数据到一个本地 JSON 文件"
+
+#~ msgid "Wrong title id: {}"
+#~ msgstr "错误的档案 ID：{}"
+
+#~ msgid "The verification data doesn't include a wud hash!"
+#~ msgstr "验证数据不包括 WUD 哈希值!"
+
+#~ msgid ""
+#~ "{} files are missing!\n"
+#~ "Do you want to export a list of them to a file?"
+#~ msgstr ""
+#~ "丢失了 {} 个文件！\n"
+#~ "您想导出丢失的列表到一个文件中吗？"
+
+#~ msgid "Reading game image: {}/{}kb"
+#~ msgstr "读取游戏映像：{}/{} kb"
+
+#~ msgid "DSU client settings"
+#~ msgstr "DSU 客户端设置"
+
+#~ msgid "The entered port must be between 1 and 65535"
+#~ msgstr "输入的端口号必须在 1 到 65535 之间"
+
+#~ msgid "Shader mul accuracy"
+#~ msgstr "着色器乘法精度"
+
+#~ msgid ""
+#~ "It seems that there's a wrong title installed at the target location.\n"
+#~ "Please use the title manager to fix it first!"
+#~ msgstr ""
+#~ "在目标位置似乎安装了错误的档案。\n"
+#~ "请先使用档案管理器对其进行修复！"
+
+#~ msgid "Invalid folder structure"
+#~ msgstr "无效的目录结构"
+
+#~ msgid "Installing DLC ..."
+#~ msgstr "安装 DLC ..."
+
+#~ msgid "Installing update ..."
+#~ msgstr "安装更新档 ..."
+
+#~ msgid "Installing title ..."
+#~ msgstr "安装档案中 ..."
+
+#~ msgid "Precompiled shaders"
+#~ msgstr "预编译着色器"
+
+#~ msgid "auto"
+#~ msgstr "自动"
+
+#~ msgid "enable"
+#~ msgstr "启用"
+
+#~ msgid "disable"
+#~ msgstr "禁用"
+
+#~ msgid ""
+#~ "Precompiled shaders can speed up the load time on the shader loading "
+#~ "screen.\n"
+#~ "Auto will enable it for AMD/Intel but disable it for NVIDIA GPUs as a "
+#~ "workaround for a driver bug.\n"
+#~ "\n"
+#~ "Recommended: Auto"
+#~ msgstr ""
+#~ "预编译着色器可减少着色器加载画面所需时间。\n"
+#~ "自动：将为 AMD 与 Intel GPU 启用而对 NVIDIA GPU 禁用以解决驱动错误。\n"
+#~ "\n"
+#~ "建议选项：自动"
+
+#~ msgid "Input Settings"
+#~ msgstr "输入设置"
+
+#~ msgid "Couldn't save settings for controller {0}: {1}"
+#~ msgstr "无法为控制器 {0} 保存设置：{1}"
+
+#~ msgid "Emulate Controller"
+#~ msgstr "模拟控制器"
+
+#~ msgid "Controller API:"
+#~ msgstr "控制器 API："
+
+#~ msgid "Controller:"
+#~ msgstr "控制器："
+
+#~ msgid "Reset the default state of the controller"
+#~ msgstr "恢复控制器的默认状态"
+
+#~ msgid "Clear all currently set input settings"
+#~ msgstr "清除所有输入设置"
+
+#~ msgid "Additional settings"
+#~ msgstr "其他设置"
+
+#~ msgid "Button Threshold"
+#~ msgstr "按键阈值"
+
+#~ msgid ""
+#~ "The threshold of a button to recognizes a press from a trigger/axis value"
+#~ msgstr "识别扳机与摇杆触发的按钮阈值"
+
+#~ msgid "No profile name selected!"
+#~ msgstr "未选择设定档名称！"
+
+#~ msgid "The given profile name is not valid!"
+#~ msgstr "指定的设定档名称无效！"
+
+#~ msgid "Couldn't load the selected profile!"
+#~ msgstr "无法加载所选的设定档！"
+
+#~ msgid "No profile name entered!"
+#~ msgstr "未输入设定档名称！"
+
+#~ msgid "Couldn't save the profile!"
+#~ msgstr "无法保存设定档！"
+
+#~ msgid "Unable to open file."
+#~ msgstr "无法打开文件。"
+
+#~ msgid "Unknown file type."
+#~ msgstr "未知文件类型。"
+
+#~ msgid "Failed to launch file."
+#~ msgstr "载入文件失败。"
+
+#~ msgid "All Wii U files (wud, wux, iso, wad, rpx, elf)"
+#~ msgstr "所有 Wii U 文件 (*.wud;*.wux;*.iso;*.wad;*.rpx;*.elf)"
+
+#~ msgid "Wii U image (wud, wux, iso, wad)"
+#~ msgstr "Wii U 映像文件 (*.wud;*.wux;*.iso;*.wad)"
+
+#~ msgid "Wii U executable (rpx, elf)"
+#~ msgstr "Wii U 可执行文件 (*.rpx;*.elf)"
+
+#~ msgid "&Load"
+#~ msgstr "&载入"
+
+#~ msgid "&Install game title, update or DLC"
+#~ msgstr "&安装档案、升级档或 DLC"
+
+#~ msgid "&About"
+#~ msgstr "&关于"
+
+#~ msgid "address"
+#~ msgstr "地址"
+
+#~ msgid "value"
+#~ msgstr "值"
+
+#~ msgid "description"
+#~ msgstr "描述"
+
+#~ msgid "type"
+#~ msgstr "类型"
+
+#~ msgid "freeze"
+#~ msgstr "冻结"
+
+#~ msgid "Import save entry {}"
+#~ msgstr "导入存档条目 {}"
+
+#~ msgid "Irrevocable delete the save entry "
+#~ msgstr "删除存档条目 (无法撤销)"
+
+#~ msgid "Found {} titles, {} updates, {} DLCs and {} save entries"
+#~ msgstr "找到 {} 个游戏，{} 个更新档， {} 个 DLC 和 {} 个存档条目"
+
+#~ msgid ""
+#~ "Error when trying to add a cemu_meta to the zip:\n"
+#~ "{}"
+#~ msgstr ""
+#~ "添加 cemu_meta 到 zip 压缩中出错：\n"
+#~ "{}"
+
+#~ msgid "WGI settings"
+#~ msgstr "WGI 输入设置"
+
+#~ msgid "Trigger rumble"
+#~ msgstr "扳机键震动"
+
+#~ msgid ""
+#~ "Failed to run this title because at least one of the files is damaged."
+#~ msgstr "由于至少有 1 个文件已损坏，档案无法运行。"
+
+#~ msgid ""
+#~ "This title is encrypted. To run this application open keys.txt and add "
+#~ "the disc title key"
+#~ msgstr ""
+#~ "这个档案是加密的。若要运行本程序，请打开 keys.txt 文件，并在其中添加对应这"
+#~ "个光盘档案的密钥。"
+
+#~ msgid "Entry"
+#~ msgstr "Entry"
+
+#~ msgid "Stack"
+#~ msgstr "Stack"
+
+#~ msgid "PC"
+#~ msgstr "PC"
+
+#~ msgid "LR"
+#~ msgstr "LR"
+
+#~ msgid "State"
+#~ msgstr "State"
+
+#~ msgid "Affinity"
+#~ msgstr "Affinity"
+
+#~ msgid "Priority"
+#~ msgstr "Priority"
+
+#~ msgid "SliceStart"
+#~ msgstr "SliceStart"
+
+#~ msgid "SumWakeTime"
+#~ msgstr "SumWakeTime"
+
+#~ msgid "ThreadName"
+#~ msgstr "ThreadName"
+
+#~ msgid "GPR"
+#~ msgstr "GPR"
+
+#~ msgid "Extra info"
+#~ msgstr "额外信息"
+
+#~ msgid ""
+#~ "Outdated shader cache\n"
+#~ "\n"
+#~ "The stored shader cache for this game was created with a Cemu version "
+#~ "prior to 1.16.0.\n"
+#~ "\n"
+#~ "There are no significant downsides to reusing an existing cache but it "
+#~ "may contain bloat that is no longer used by current versions of Cemu.\n"
+#~ "\n"
+#~ "It is highly recommended to start a new cache. Note that a new cache "
+#~ "means that you will experience additional stutter during the first "
+#~ "minutes of gameplay."
+#~ msgstr ""
+#~ "过时的着色器缓存\n"
+#~ "\n"
+#~ "此游戏已有的着色器缓存是使用 1.16.0 之前的 Cemu 创建的。\n"
+#~ "\n"
+#~ "使用已有缓存无明显不利影响，但它可能包含当前版本 Cemu 不再使用的冗余文"
+#~ "件。\n"
+#~ "\n"
+#~ "强烈建议创建新的缓存。 请注意：新的缓存意味着您在游戏中的前几分钟会遇到更"
+#~ "多的卡顿现象。"
+
+#~ msgid "Shader cache migration"
+#~ msgstr "着色器缓存迁移"
+
+#~ msgid "Use existing cache"
+#~ msgstr "使用已有缓存"
+
+#~ msgid "Create new cache [recommended]"
+#~ msgstr "创建新缓存[推荐]"
+
+#~ msgid "PhysAddr"
+#~ msgstr "PhysAddr"
+
+#~ msgid "Dim"
+#~ msgstr "Dim"
+
+#~ msgid "Resolution"
+#~ msgstr "分辨率"
+
+#~ msgid "Pitch"
+#~ msgstr "Pitch"
+
+#~ msgid "Tilemode"
+#~ msgstr "Tilemode"
+
+#~ msgid "SliceRange"
+#~ msgstr "SliceRange"
+
+#~ msgid "MipRange"
+#~ msgstr "MipRange"
+
+#~ msgid "Last access"
+#~ msgstr "Last access"
+
+#~ msgid "OverwriteRes"
+#~ msgstr "OverwriteRes"
+
+#~ msgid "Title id"
+#~ msgstr "档案 ID"
+
+#~ msgid "You can configure game paths in the general settings."
+#~ msgstr "可在通用设置中设定游戏路径。"
+
+#~ msgid ""
+#~ "There's an wrong title installed at the target location, should we fix "
+#~ "that?"
+#~ msgstr "在目标位置中已经安装了一个错误的档案，我们要修复它吗？"
+
+#~ msgid ""
+#~ "There's already a newer or equal version installed at the correct "
+#~ "location, so the redundant version will be deleted:"
+#~ msgstr "正确的目录中已经安装了一个更新的或相同的版本，故多余的版本将删除："
+
+#~ msgid ""
+#~ "There's already an older version installed at the correct location, so "
+#~ "the older version will be overwritten:"
+#~ msgstr "在正确的目录下已经安装了一个旧的版本，如果继续则旧的版本将被覆盖："
+
+#~ msgid ""
+#~ "Error when trying to move the entry to the correct location:\n"
+#~ "{}"
+#~ msgstr ""
+#~ "移动条目到正确位置时出错：\n"
+#~ "{}"
+
+#~ msgid "This base game is installed at the wrong location."
+#~ msgstr "这个游戏本体安装在了一个错误的位置上。"
+
+#~ msgid "This update is installed at the wrong location."
+#~ msgstr "这个更新档安装在了一个错误的位置上。"
+
+#~ msgid "This DLC is installed at the wrong location."
+#~ msgstr "这个 DLC 安装在了一个错误的位置上。"
+
+#~ msgid "You can use the context menu to fix it."
+#~ msgstr "您可以使用右键菜单来修复它。"
+
+#~ msgid "Fix entry"
+#~ msgstr "修复问题"
+
+#~ msgid "Verify"
+#~ msgstr "验证"
+
+#~ msgid "Verify local"
+#~ msgstr "本地验证"
+
+#~ msgid "Waiting for"
+#~ msgstr "正在等待"
+
+#~ msgid ""
+#~ "Creates a dump when Cemu crashes\n"
+#~ "Only enable on demand!\n"
+#~ "The Full option will create a big dump with the memory included"
+#~ msgstr ""
+#~ "Cemu 崩溃时将创建转储\n"
+#~ "仅在需要时启用！\n"
+#~ "“完整” 选项将创建一个包含内存的巨大转储"
+
+#~ msgid "Couldn't save settings for controller {0}"
+#~ msgstr "无法保存控制器 {0} 的设置"
+
+#~ msgid "Searching for wiimotes..."
+#~ msgstr "搜寻 Wii 手柄 ..."
+
+#~ msgid ""
+#~ "All files from the currently running game will be dumped to /dump/"
+#~ "<gamefolder>. This process can take a few minutes."
+#~ msgstr ""
+#~ "当前正在运行的游戏中的所有文件都将被转储到 /dump/<gamefolder>。此过程可能"
+#~ "需要几分钟。"
+
+#~ msgid "Dump WUD"
+#~ msgstr "转储 WUD"
+
+#~ msgid "Dump complete"
+#~ msgstr "转储完成"
+
+#~ msgid "&Dump WUD filesystem"
+#~ msgstr "&转储 WUD 文件系统"
+
+#~ msgid ""
+#~ "The currently installed graphics driver does not support the Vulkan "
+#~ "extension necessary for asynchronous shader compilation. Asynchronous "
+#~ "compilation cannot be used.\n"
+#~ " \n"
+#~ "Required extension: VK_EXT_pipeline_creation_cache_control\n"
+#~ "\n"
+#~ "Installing the latest or beta graphics driver may solve this error."
+#~ msgstr ""
+#~ "当前安装的图形驱动程序不支持异步着色器编译所需的 Vulkan 扩展。 因此不能使"
+#~ "用异步编译。\n"
+#~ " \n"
+#~ "必需的扩展名为：VK_EXT_pipeline_creation_cache_control\n"
+#~ "\n"
+#~ "安装最新或 Beta 图形驱动程序可能会解决此错误。"
+
+#~ msgid "Singlecore-Interpreter"
+#~ msgstr "单核解释器"
+
+#~ msgid "Singlecore-Recompiler"
+#~ msgstr "单核重编译器"
+
+#~ msgid "Dualcore-Recompiler"
+#~ msgstr "双核重编译器"
+
+#~ msgid "Triplecore-Recompiler"
+#~ msgstr "三核重编译器"
+
+#~ msgid "&Auto"
+#~ msgstr "&自动"
+
+#~ msgid "&USA"
+#~ msgstr "&美国"
+
+#~ msgid "&Europe"
+#~ msgstr "&欧洲"
+
+#~ msgid "&Japan"
+#~ msgstr "&日本"
+
+#~ msgid "&China"
+#~ msgstr "&中国"
+
+#~ msgid "&Korea"
+#~ msgstr "&韩国"
+
+#~ msgid "&Taiwan"
+#~ msgstr "&中国台湾"
+
+#~ msgid "&Console region"
+#~ msgstr "&主机地区"
+
+#~ msgid "&Async compile (Vulkan)"
+#~ msgstr "&异步编译 (Vulkan)"
+
+#~ msgid "&Experimental"
+#~ msgstr "&实验性功能"
