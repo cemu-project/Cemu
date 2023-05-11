@@ -875,7 +875,9 @@ void GeneralSettings2::StoreConfig()
 	config.fullscreen_menubar = m_fullscreen_menubar->IsChecked();
 	config.check_update = m_auto_update->IsChecked();
 	config.save_screenshot = m_save_screenshot->IsChecked();
-    	config.feral_gamemode = m_feral_gamemode->IsChecked();
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+    config.feral_gamemode = m_feral_gamemode->IsChecked();
+#endif
 	const bool use_ps = m_permanent_storage->IsChecked();
 	if(use_ps)
 	{
@@ -1515,8 +1517,9 @@ void GeneralSettings2::ApplyConfig()
 
 	m_permanent_storage->SetValue(config.permanent_storage);
 	m_disable_screensaver->SetValue(config.disable_screensaver);
-
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     	m_feral_gamemode->SetValue(config.feral_gamemode);
+#endif
 	// temporary workaround because feature crashes on macOS
 #if BOOST_OS_MACOS
 	m_disable_screensaver->SetValue(false);
