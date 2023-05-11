@@ -467,7 +467,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 		uint32 h = LatteDrawGL_calculateIndexDataHash(memory_getPointerFromPhysicalOffset(indexDataMPTR), cacheEntryItr->physSize);
 		if (cacheEntryItr->hash != h)
 		{
-			forceLogDebug_printf("IndexData hash changed");
+			cemuLog_logDebug(LogType::Force, "IndexData hash changed");
 			_decodeAndUploadIndexData(cacheEntryItr);
 			cacheEntryItr->hash = h;
 		}
@@ -527,7 +527,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 void LatteDraw_handleSpecialState8_clearAsDepth()
 {
 	if (LatteGPUState.contextNew.GetSpecialStateValues()[0] == 0)
-		forceLogDebug_printf("Special state 8 requires special state 0 but it is not set?");
+		cemuLog_logDebug(LogType::Force, "Special state 8 requires special state 0 but it is not set?");
 	// get depth buffer information
 	uint32 regDepthBuffer = LatteGPUState.contextRegister[mmDB_HTILE_DATA_BASE];
 	uint32 regDepthSize = LatteGPUState.contextRegister[mmDB_DEPTH_SIZE];

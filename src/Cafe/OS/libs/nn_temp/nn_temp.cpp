@@ -6,7 +6,7 @@ namespace nn::temp
 
 	void nnTempExport_TEMPCreateAndInitTempDir(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("TEMPCreateAndInitTempDir(...) - placeholder");
+		cemuLog_logDebug(LogType::Force, "TEMPCreateAndInitTempDir(...) - placeholder");
 
 		// create random temp id
 		memory_writeU64(hCPU->gpr[5], tempIdGenerator);

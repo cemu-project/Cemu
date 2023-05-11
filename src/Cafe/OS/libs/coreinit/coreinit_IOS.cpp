@@ -58,7 +58,7 @@ sint32 __depr__IOS_Ioctl(uint32 fd, uint32 request, void* inBuffer, uint32 inSiz
 		default:
 		{
 			// todo
-			forceLogDebug_printf("Unsupported Ioctl command");
+			cemuLog_logDebug(LogType::Force, "Unsupported Ioctl command");
 		}
 	}
 	return 0;

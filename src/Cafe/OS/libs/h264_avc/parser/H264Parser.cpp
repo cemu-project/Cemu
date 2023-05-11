@@ -395,7 +395,7 @@ void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps
 			}
 			if (sliceHeader->pic_list_modification1Count > 0)
 			{
-				forceLogDebug_printf("sliceHeader->pic_list_modification1Count non-zero is not supported");
+				cemuLog_logDebug(LogType::Force, "sliceHeader->pic_list_modification1Count non-zero is not supported");
 				cemu_assert_unimplemented();
 			}
 		}
@@ -855,7 +855,7 @@ void h264Parse(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, u
 			// seen in Cocoto Magic Circus 2 intro video
 			break;
 		default:
-			forceLogDebug_printf("Unsupported NAL unit type %d", nal_unit_type);
+			cemuLog_logDebug(LogType::Force, "Unsupported NAL unit type {}", nal_unit_type);
 			cemu_assert_debug(false);
 			// todo
 			break;
@@ -945,7 +945,7 @@ sint32 h264GetUnitLength(h264ParserState_t* h264ParserState, uint8* data, uint32
 			// end of sequence
 			break;
 		default:
-			forceLogDebug_printf("Unsupported NAL unit type %d", nal_unit_type);
+			cemuLog_logDebug(LogType::Force, "Unsupported NAL unit type {}", nal_unit_type);
 			assert_dbg(); // todo - NAL 10 is used in DKC TF
 			// todo
 			break;

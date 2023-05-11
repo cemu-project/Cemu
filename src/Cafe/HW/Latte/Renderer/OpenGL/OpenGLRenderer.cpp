@@ -1075,7 +1075,7 @@ void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, s
 			if (mipIndex < hostTexture->maxPossibleMipLevels)
 				glTexSubImage2D(GL_TEXTURE_2D, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
 			else
-				forceLogDebug_printf("2D texture mip level allocated out of range");
+				cemuLog_logDebug(LogType::Force, "2D texture mip level allocated out of range");
 		}
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_1D)
@@ -1201,12 +1201,12 @@ void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32
 	{
 		if (formatInfoGL.glIsCompressed)
 		{
-			forceLogDebug_printf("Unsupported clear for compressed texture");
+			cemuLog_logDebug(LogType::Force, "Unsupported clear for compressed texture");
 			return; // todo - create integer texture view to clear compressed textures
 		}
 		if (hostTextureGeneric->isDepth)
 		{
-			forceLogDebug_printf("Unsupported clear for depth texture");
+			cemuLog_logDebug(LogType::Force, "Unsupported clear for depth texture");
 			return; // todo - use depth clear
 		}
 
@@ -1365,7 +1365,7 @@ void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 		}
 		else
 		{
-			forceLogDebug_printf("_syncSlice() called with unhandled alternative format");
+			cemuLog_logDebug(LogType::Force, "_syncSlice() called with unhandled alternative format");
 			return;
 		}
 	}

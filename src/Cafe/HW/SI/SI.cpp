@@ -87,7 +87,7 @@ namespace HW_SI
 
 	HWREG::SICOMCSR SI_COMCSR_R32(PAddr addr)
 	{
-		//forceLogDebug_printf("Read SICOMCSR");
+		//cemuLog_logDebug(LogType::Force, "Read SICOMCSR");
 		return g_si.registerState.sicomcsr;
 	}
 

@@ -25,13 +25,13 @@ namespace HW_ACR
 	/* 0x0D00021C | Accesses VI register currently selected by VIADDR */
 	HWREG::ACR_VI_DATA ACR_VIDATA_R32(PAddr addr)
 	{
-		forceLogDebug_printf("ACR_VIDATA read with selected reg %08x", g_acr.viAddr.get_ADDR());
+		cemuLog_logDebug(LogType::Force, "ACR_VIDATA read with selected reg {:08x}", g_acr.viAddr.get_ADDR());
 		return HWREG::ACR_VI_DATA();
 	}
 
 	void ACR_VIDATA_W32(PAddr addr, HWREG::ACR_VI_DATA newValue)
 	{
-		forceLogDebug_printf("ACR_VIDATA write %08x with selected reg %08x", newValue.get_DATA(), g_acr.viAddr.get_ADDR());
+		cemuLog_logDebug(LogType::Force, "ACR_VIDATA write {:08x} with selected reg {:08x}", newValue.get_DATA(), g_acr.viAddr.get_ADDR());
 	}
 
 	/* 0x0D000224 | Controls the selected VI register? */

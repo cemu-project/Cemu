@@ -1012,7 +1012,7 @@ namespace snd_core
 			OSReceiveMessage(__AXIstThreadMsgQueue.GetPtr(), msg.GetPointer(), OS_MESSAGE_BLOCK);
 			if (msg.GetPointer()->message == 2)
 			{
-				forceLogDebug_printf("Shut down of AX thread requested");
+				cemuLog_logDebug(LogType::Force, "Shut down of AX thread requested");
 				coreinit::OSExitThread(0);
 				break;
 			}

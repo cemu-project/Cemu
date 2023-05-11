@@ -173,7 +173,7 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 	}
 	else
 	{
-		forceLogDebug_printf("RendererOutputShader() - todo for Vulkan");
+		cemuLog_logDebug(LogType::Force, "RendererOutputShader() - todo for Vulkan");
 		m_attributes[0].m_loc_texture_src_resolution = -1;
 		m_attributes[0].m_loc_input_resolution = -1;
 		m_attributes[0].m_loc_output_resolution = -1;

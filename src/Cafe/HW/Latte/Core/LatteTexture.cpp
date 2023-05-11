@@ -302,9 +302,9 @@ void LatteTexture_copyData(LatteTexture* srcTexture, LatteTexture* dstTexture, s
 		LatteTexture_getEffectiveSize(dstTexture, &effectiveWidth_src, &effectiveHeight_src, NULL, 0);
 
 		debug_printf("texture_copyData(): Effective size mismatch\n");
-		forceLogDebug_printf("texture_copyData(): Effective size mismatch (due to texture rule)");
-		forceLogDebug_printf("Destination: origResolution %04dx%04d effectiveResolution %04dx%04d fmt %04x mipIndex %d", srcTexture->width, srcTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, 0);
-		forceLogDebug_printf("Source:      origResolution %04dx%04d effectiveResolution %04dx%04d fmt %04x mipIndex %d", srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, 0);
+		cemuLog_logDebug(LogType::Force, "texture_copyData(): Effective size mismatch (due to texture rule)");
+		cemuLog_logDebug(LogType::Force, "Destination: origResolution {:04}x{:04} effectiveResolution {:04}x{:04} fmt {:04x} mipIndex {}", srcTexture->width, srcTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, 0);
+		cemuLog_logDebug(LogType::Force, "Source:      origResolution {:04}x{:04} effectiveResolution {:04}x{:04} fmt {:04x} mipIndex {}", srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, 0);
 		return;
 	}
 	catchOpenGLError();
@@ -384,7 +384,7 @@ void LatteTexture_CopySlice(LatteTexture* srcTexture, sint32 srcSlice, sint32 sr
 			cemuLog_log(LogType::Force, "Source:      {:08x} origResolution {:4}/{:4} effectiveResolution {:4}/{:4} fmt {:04x} mipIndex {} ratioW/H: {:.4}/{:.4}", srcTexture->physAddress, srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, srcMip, ratioWidth_src, ratioHeight_src);
 			cemuLog_log(LogType::Force, "Destination: {:08x} origResolution {:4}/{:4} effectiveResolution {:4}/{:4} fmt {:04x} mipIndex {} ratioW/H: {:.4}/{:.4}", dstTexture->physAddress, dstTexture->width, dstTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, dstMip, ratioWidth_dst, ratioHeight_dst);
 		}
-		//forceLogDebug_printf("If these textures are not meant to share data you can ignore this");
+		//cemuLog_logDebug(LogType::Force, "If these textures are not meant to share data you can ignore this");
 		return;
 	}
 	// todo - store 'lastUpdated' value per slice/mip and copy it's value when copying the slice data
@@ -877,7 +877,7 @@ VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseT
 		if (baseTexture->isDepth && baseTexture->format != format)
 		{
 			// depth view with different format
-			forceLogDebug_printf("_createMapping(): Incompatible depth view format");
+			cemuLog_logDebug(LogType::Force, "_createMapping(): Incompatible depth view format");
 			return VIEW_NOT_COMPATIBLE;
 		}
 
@@ -929,7 +929,7 @@ VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseT
 				if (baseTexture->isDepth && baseTexture->format != format)
 				{
 					// depth view with different format
-					forceLogDebug_printf("_createMapping(): Incompatible depth view format");
+					cemuLog_logDebug(LogType::Force, "_createMapping(): Incompatible depth view format");
 					return VIEW_NOT_COMPATIBLE;
 				}
 
@@ -1003,7 +1003,7 @@ LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, si
 {
 	if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
 	{
-		forceLogDebug_printf("LatteTexture_CreateMapping(): Invalid format");
+		cemuLog_logDebug(LogType::Force, "LatteTexture_CreateMapping(): Invalid format");
 		return nullptr;
 	}
 	// note: When creating an existing texture, we only allow mip and slice expansion at the end

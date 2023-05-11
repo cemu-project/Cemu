@@ -59,7 +59,7 @@ void LatteTextureViewGL::InitAliasView()
 	if (baseTexture->isDepth)
 	{
 		// depth is handled differently
-		forceLogDebug_printf("Creating depth view");
+		cemuLog_logDebug(LogType::Force, "Creating depth view");
 		cemu_assert(format == texture->format); // todo
 		glInternalFormat = texture->glInternalFormat;
 	}
@@ -73,7 +73,7 @@ void LatteTextureViewGL::InitAliasView()
 	catchOpenGLError();
 	if (firstMip >= texture->maxPossibleMipLevels)
 	{
-		forceLogDebug_printf("_createNewView: Out of bounds mip level requested");
+		cemuLog_logDebug(LogType::Force, "_createNewView: Out of bounds mip level requested");
 		glTextureView(glTexId, glTexTarget, texture->glId_texture, glInternalFormat, texture->maxPossibleMipLevels - 1, numMip, firstSlice, this->numSlice);
 	}
 	else

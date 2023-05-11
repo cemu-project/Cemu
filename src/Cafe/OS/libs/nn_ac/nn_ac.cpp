@@ -13,14 +13,14 @@
 
 void nn_acExport_ConnectAsync(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_ac.ConnectAsync();");
+	cemuLog_logDebug(LogType::Force, "nn_ac.ConnectAsync();");
 	uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 	osLib_returnFromFunction(hCPU, nnResultCode);
 }
 
 void nn_acExport_Connect(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_ac.Connect();");
+	cemuLog_logDebug(LogType::Force, "nn_ac.Connect();");
 
 	// Terraria expects this (or GetLastErrorCode) to return 0 on success
 	// investigate on the actual console
@@ -34,7 +34,7 @@ static_assert(TRUE == 1, "TRUE not 1");
 
 void nn_acExport_IsApplicationConnected(PPCInterpreter_t* hCPU)
 {
-	//forceLogDebug_printf("nn_ac.IsApplicationConnected(0x%08x)", hCPU->gpr[3]);
+	//cemuLog_logDebug(LogType::Force, "nn_ac.IsApplicationConnected(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamMEMPTR(connected, uint8, 0);
 	if (connected)
 		*connected = TRUE;
@@ -56,7 +56,7 @@ void nn_acExport_GetConnectStatus(PPCInterpreter_t* hCPU)
 
 void nn_acExport_GetLastErrorCode(PPCInterpreter_t* hCPU)
 {
-	//forceLogDebug_printf("nn_ac.GetLastErrorCode();");
+	//cemuLog_logDebug(LogType::Force, "nn_ac.GetLastErrorCode();");
 	ppcDefineParamMEMPTR(errorCode, uint32, 0);
 	if (errorCode)
 		*errorCode = 0;
@@ -66,7 +66,7 @@ void nn_acExport_GetLastErrorCode(PPCInterpreter_t* hCPU)
 
 void nn_acExport_GetStatus(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_ac.GetStatus();");
+	cemuLog_logDebug(LogType::Force, "nn_ac.GetStatus();");
 	ppcDefineParamMEMPTR(status, uint32, 0);
 	if (status)
 		*status = AC_STATUS_OK;
@@ -77,7 +77,7 @@ void nn_acExport_GetStatus(PPCInterpreter_t* hCPU)
 void nn_acExport_GetConnectResult(PPCInterpreter_t* hCPU)
 {
 	// GetConnectStatus__Q2_2nn2acFPQ3_2nn2ac6Status
-	forceLogDebug_printf("nn_ac.GetConnectResult(0x%08x) LR %08x", hCPU->spr.LR, hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_ac.GetConnectResult(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamMEMPTR(result, uint32, 0);
 	const uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 	if (result)
@@ -159,7 +159,7 @@ void _GetLocalIPAndSubnetMask(uint32& localIp, uint32& subnetMask)
 
 void nnAcExport_GetAssignedAddress(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetAssignedAddress() called");
+	cemuLog_logDebug(LogType::Force, "GetAssignedAddress() called");
 	ppcDefineParamU32BEPtr(ipAddrOut, 0);
 
 	uint32 localIp;
@@ -174,7 +174,7 @@ void nnAcExport_GetAssignedAddress(PPCInterpreter_t* hCPU)
 
 void nnAcExport_GetAssignedSubnet(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetAssignedSubnet() called");
+	cemuLog_logDebug(LogType::Force, "GetAssignedSubnet() called");
 
 	ppcDefineParamU32BEPtr(subnetMaskOut, 0);
 
@@ -206,7 +206,7 @@ void nnAcExport_IsSystemConnected(PPCInterpreter_t* hCPU)
 	ppcDefineParamTypePtr(isConnectedOut, uint8, 0);
 	ppcDefineParamTypePtr(apTypeOut, uint32be, 1);
 
-	forceLogDebug_printf("nn_ac.IsSystemConnected() - placeholder");
+	cemuLog_logDebug(LogType::Force, "nn_ac.IsSystemConnected() - placeholder");
 	*apTypeOut = 0; // ukn
 	*isConnectedOut = 1;
 
@@ -215,7 +215,7 @@ void nnAcExport_IsSystemConnected(PPCInterpreter_t* hCPU)
 
 void nnAcExport_IsConfigExisting(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_ac.IsConfigExisting() - placeholder");
+	cemuLog_logDebug(LogType::Force, "nn_ac.IsConfigExisting() - placeholder");
 
 	ppcDefineParamU32(configId, 0);
 	ppcDefineParamTypePtr(isConfigExisting, uint8, 1);

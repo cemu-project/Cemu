@@ -220,7 +220,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		TitleId_t* ctor2(TitleId_t* thisptr, uint32 filler, uint64 titleId)
 		{
-			forceLogDebug_printf("nn_boss_TitleId_ctor2(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_TitleId_ctor2(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -234,7 +234,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		TitleId_t* cctor(TitleId_t* thisptr, TitleId_t* titleId)
 		{
-			forceLogDebug_printf("nn_boss_TitleId_cctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_TitleId_cctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -248,7 +248,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		bool operator_ne(TitleId_t* thisptr, TitleId_t* titleId)
 		{
-			forceLogDebug_printf("nn_boss_TitleId_operator_ne(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_TitleId_operator_ne(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			return thisptr->u64 != titleId->u64;
 		}
 	}
@@ -299,7 +299,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		{
 			if(name == nullptr || strnlen(name, 0x80) == 0x80)
 			{
-				forceLogDebug_printf("nn_boss_NetTaskSetting_AddCaCert: name size is invalid");
+				cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_AddCaCert: name size is invalid");
 				return 0xC0203780;
 			}
 
@@ -328,15 +328,15 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		Result SetServiceToken(NetTaskSetting_t* thisptr, const uint8* serviceToken)
 		{
-			forceLogDebug_printf("nn_boss_NetTaskSetting_SetServiceToken(0x%x, 0x%x)", MEMPTR(thisptr).GetMPTR(), MEMPTR(serviceToken).GetMPTR());
-			forceLogDebug_printf("\t->%s", serviceToken);
+			cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_SetServiceToken(0x{:x}, 0x{:x})", MEMPTR(thisptr).GetMPTR(), MEMPTR(serviceToken).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "\t->{}", fmt::ptr(serviceToken));
 			memcpy(&thisptr->settings[TaskSetting_t::kServiceToken], serviceToken, TaskSetting_t::kServiceTokenLen);
 			return 0x200080;
 		}
 
 		Result AddInternalCaCert(NetTaskSetting_t* thisptr, char certId)
 		{
-			forceLogDebug_printf("nn_boss_NetTaskSetting_AddInternalCaCert(0x%x, 0x%x)", MEMPTR(thisptr).GetMPTR(), (int)certId);
+			cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_AddInternalCaCert(0x{:x}, 0x{:x})", MEMPTR(thisptr).GetMPTR(), (int)certId);
 
 			uint32 location = TaskSetting_t::kCACert;
 			for(int i = 0; i < 3; ++i)
@@ -350,13 +350,13 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 				location += TaskSetting_t::kCACert;
 			}
 		
-			forceLogDebug_printf("nn_boss_NetTaskSetting_AddInternalCaCert: can't store certificate");
+			cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_AddInternalCaCert: can't store certificate");
 			return 0xA0220D00;
 		}
 
 		void SetInternalClientCert(NetTaskSetting_t* thisptr, char certId)
 		{
-			forceLogDebug_printf("nn_boss_NetTaskSetting_SetInternalClientCert(0x%x, 0x%x)", MEMPTR(thisptr).GetMPTR(), (int)certId);
+			cemuLog_logDebug(LogType::Force, "nn_boss_NetTaskSetting_SetInternalClientCert(0x{:x}, 0x{:x})", MEMPTR(thisptr).GetMPTR(), (int)certId);
 			thisptr->settings[TaskSetting_t::kClientCert] = (uint8)certId;
 		}
 	}
@@ -383,7 +383,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_ctor(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, NbdlTaskSetting_t, 0);
-			forceLogDebug_printf("nn_boss_NbdlTaskSetting_ctor");
+			cemuLog_logDebug(LogType::Force, "nn_boss_NbdlTaskSetting_ctor");
 			ctor(thisptr.GetPtr());
 			osLib_returnFromFunction(hCPU, thisptr.GetMPTR());
 		}
@@ -394,7 +394,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			ppcDefineParamMEMPTR(bossCode, const char, 1);
 			ppcDefineParamU64(directorySizeLimit, 2);
 			ppcDefineParamMEMPTR(directoryName, const char, 4);
-			forceLogDebug_printf("nn_boss_NbdlTaskSetting_Initialize(0x%08x, %s, 0x%llx, 0x%08x)", thisptr.GetMPTR(), bossCode.GetPtr(), directorySizeLimit, directoryName.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_NbdlTaskSetting_Initialize(0x{:08x}, {}, 0x{:x}, 0x{:08x})", thisptr.GetMPTR(), bossCode.GetPtr(), directorySizeLimit, directoryName.GetMPTR());
 
 			if(!bossCode || strnlen(bossCode.GetPtr(), 0x20) == 0x20)
 			{
@@ -419,7 +419,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		Result SetFileName(NbdlTaskSetting_t* thisptr, const char* fileName)
 		{
-			forceLogDebug_printf("nn_boss_NbdlTaskSetting_t_SetFileName(0x%08x, %s)", MEMPTR(thisptr).GetMPTR(), fileName ? fileName : "\"\"");
+			cemuLog_logDebug(LogType::Force, "nn_boss_NbdlTaskSetting_t_SetFileName(0x{:08x}, {})", MEMPTR(thisptr).GetMPTR(), fileName ? fileName : "\"\"");
 
 			if (!fileName || strnlen(fileName, TaskSetting_t::kFileNameLen) == TaskSetting_t::kFileNameLen)
 			{
@@ -436,7 +436,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		RawUlTaskSetting_t* ctor(RawUlTaskSetting_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_RawUlTaskSetting_ctor(0x%x) TODO", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_RawUlTaskSetting_ctor(0x{:x}) TODO", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawUlTaskSetting_t
@@ -461,7 +461,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		RawDlTaskSetting_t* ctor(RawDlTaskSetting_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_RawDlTaskSetting_ctor(0x%x) TODO", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_RawDlTaskSetting_ctor(0x{:x}) TODO", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawDlTaskSetting_t
@@ -479,7 +479,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		Result Initialize(RawDlTaskSetting_t* thisptr, const char* url, bool newArrival, bool led, const char* fileName, const char* directoryName)
 		{
-			forceLogDebug_printf("nn_boss_RawDlTaskSetting_Initialize(0x%x, 0x%x, %d, %d, 0x%x, 0x%x)", MEMPTR(thisptr).GetMPTR(), MEMPTR(url).GetMPTR(), newArrival, led, MEMPTR(fileName).GetMPTR(), MEMPTR(directoryName).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_RawDlTaskSetting_Initialize(0x{:x}, 0x{:x}, {}, {}, 0x{:x}, 0x{:x})", MEMPTR(thisptr).GetMPTR(), MEMPTR(url).GetMPTR(), newArrival, led, MEMPTR(fileName).GetMPTR(), MEMPTR(directoryName).GetMPTR());
 			if (!url)
 			{
 				return 0xC0203780;
@@ -490,7 +490,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 				return 0xC0203780;
 			}
 
-			forceLogDebug_printf("\t-> url: %s", url);
+			cemuLog_logDebug(LogType::Force, "\t-> url: {}", url);
 
 			if (fileName && strnlen(fileName, TaskSetting_t::kFileNameLen) == TaskSetting_t::kFileNameLen)
 			{
@@ -511,13 +511,13 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 				strncpy((char*)thisptr + 0x7D0, "rawcontent.dat", TaskSetting_t::kFileNameLen);
 			thisptr->settings[0x7EF] = '\0';
 
-			forceLogDebug_printf("\t-> filename: %s", (char*)thisptr + 0x7D0);
+			cemuLog_logDebug(LogType::Force, "\t-> filename: {}", (char*)thisptr + 0x7D0);
 
 			if (directoryName)
 			{
 				strncpy((char*)thisptr + 0x7C8, directoryName, TaskSetting_t::kDirectoryNameLen);
 				thisptr->settings[0x7CF] = '\0';
-				forceLogDebug_printf("\t-> directoryName: %s", (char*)thisptr + 0x7C8);
+				cemuLog_logDebug(LogType::Force, "\t-> directoryName: {}", (char*)thisptr + 0x7C8);
 			}
 
 			thisptr->settings[0x7C0] = newArrival;
@@ -532,7 +532,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_ctor(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, PlayReportSetting_t, 0);
-			forceLogDebug_printf("nn_boss_PlayReportSetting_ctor TODO");
+			cemuLog_logDebug(LogType::Force, "nn_boss_PlayReportSetting_ctor TODO");
 			if (!thisptr)
 			{
 				assert_dbg();
@@ -557,11 +557,11 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			ppcDefineParamMEMPTR(ptr, void*, 1);
 			ppcDefineParamU32(value, 2);
 			ppcDefineParamMEMPTR(directoryName, const char, 4);
-			//forceLogDebug_printf("nn_boss_PlayReportSetting_Initialize(0x%08x, %s, 0x%llx, 0x%08x)", thisptr.GetMPTR(), ptr.GetPtr(), directorySizeLimit, directoryName.GetMPTR());
+			//cemuLog_logDebug(LogType::Force, "nn_boss_PlayReportSetting_Initialize(0x{:08x}, {}, 0x{:x}, 0x{:08x})", thisptr.GetMPTR(), ptr.GetPtr(), directorySizeLimit, directoryName.GetMPTR());
 
 			if(!ptr || value == 0 || value > 0x19000)
 			{
-				forceLogDebug_printf("nn_boss_PlayReportSetting_Initialize: invalid parameter");
+				cemuLog_logDebug(LogType::Force, "nn_boss_PlayReportSetting_Initialize: invalid parameter");
 				osLib_returnFromFunction(hCPU, 0);
 			}
 
@@ -588,7 +588,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			ppcDefineParamU32(value, 2);
 			
 			// TODO
-			forceLogDebug_printf("nn_boss_PlayReportSetting_Set(0x%08x, %s, 0x%x) TODO", thisptr.GetMPTR(), key.GetPtr(), value);
+			cemuLog_logDebug(LogType::Force, "nn_boss_PlayReportSetting_Set(0x{:08x}, {}, 0x{:x}) TODO", thisptr.GetMPTR(), key.GetPtr(), value);
 			
 			osLib_returnFromFunction(hCPU, 1);
 		}
@@ -600,7 +600,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		Title_t* ctor(Title_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_Title_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Title_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -617,7 +617,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		DirectoryName_t* ctor(DirectoryName_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_DirectoryName_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_DirectoryName_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new Task_t
@@ -631,7 +631,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		
 		const char* operator_const_char(DirectoryName_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_DirectoryName_operator_const_char(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_DirectoryName_operator_const_char(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			return thisptr->name;
 		}
 	}
@@ -667,7 +667,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamMEMPTR(taskId, const char, 1);
 			ppcDefineParamU32(accountId, 2);
-			forceLogDebug_printf("nn_boss_Task_Initialize3(0x%08x, %s, 0x%x)", thisptr.GetMPTR(), taskId.GetPtr(), accountId);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Initialize3(0x{:08x}, {}, 0x{:x})", thisptr.GetMPTR(), taskId.GetPtr(), accountId);
 			const Result result = Initialize(thisptr.GetPtr(), taskId.GetPtr(), accountId);
 			osLib_returnFromFunction(hCPU, result);
 		}
@@ -677,7 +677,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamU8(slotId, 1);
 			ppcDefineParamMEMPTR(taskId, const char, 2);
-			forceLogDebug_printf("nn_boss_Task_Initialize2(0x%08x, %d, %s)", thisptr.GetMPTR(), slotId, taskId.GetPtr());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Initialize2(0x{:08x}, {}, {})", thisptr.GetMPTR(), slotId, taskId.GetPtr());
 			const Result result = Initialize(thisptr.GetPtr(), slotId, taskId.GetPtr());
 			osLib_returnFromFunction(hCPU, result);
 		}
@@ -686,7 +686,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamMEMPTR(taskId, const char, 1);
-			forceLogDebug_printf("nn_boss_Task_Initialize1(0x%08x, %s)", thisptr.GetMPTR(), taskId.GetPtr());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Initialize1(0x{:08x}, {})", thisptr.GetMPTR(), taskId.GetPtr());
 			const Result result = Initialize(thisptr.GetPtr(), taskId.GetPtr());
 			osLib_returnFromFunction(hCPU, result);
 		}
@@ -775,7 +775,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_ctor(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
-			forceLogDebug_printf("nn_boss_Task_ctor(0x%08x)", thisptr.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_ctor(0x{:08x})", thisptr.GetMPTR());
 			ctor(thisptr.GetPtr());
 			osLib_returnFromFunction(hCPU, thisptr.GetMPTR());
 		}
@@ -784,11 +784,11 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamU8(isForegroundRun, 1);
-			forceLogDebug_printf("nn_boss_Task_Run(0x%08x, %d)", thisptr.GetMPTR(), isForegroundRun);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Run(0x{:08x}, {})", thisptr.GetMPTR(), isForegroundRun);
 			if (isForegroundRun != 0)
 			{
 				//peterBreak();
-				forceLogDebug_printf("export_Run foreground run");
+				cemuLog_logDebug(LogType::Force, "export_Run foreground run");
 			}
 
 			bossPrepareRequest();
@@ -807,7 +807,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamU8(executeImmediately, 1);
-			forceLogDebug_printf("nn_boss_Task_StartScheduling(0x%08x, %d)", thisptr.GetMPTR(), executeImmediately);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_StartScheduling(0x{:08x}, {})", thisptr.GetMPTR(), executeImmediately);
 
 			bossPrepareRequest();
 			bossRequest->requestCode = IOSU_NN_BOSS_TASK_START_SCHEDULING;
@@ -824,7 +824,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_StopScheduling(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
-			forceLogDebug_printf("nn_boss_Task_StopScheduling(0x%08x)", thisptr.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_StopScheduling(0x{:08x})", thisptr.GetMPTR());
 
 			bossPrepareRequest();
 			bossRequest->requestCode = IOSU_NN_BOSS_TASK_STOP_SCHEDULING;
@@ -849,7 +849,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 			__depr__IOS_Ioctlv(IOS_DEVICE_BOSS, IOSU_BOSS_REQUEST_CEMU, 1, 1, bossBufferVector);
 
-			forceLogDebug_printf("nn_boss_Task_IsRegistered(0x%08x) -> %d", thisptr.GetMPTR(), bossRequest->returnCode);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_IsRegistered(0x{:08x}) -> {}", thisptr.GetMPTR(), bossRequest->returnCode);
 
 			osLib_returnFromFunction(hCPU, bossRequest->returnCode);
 		}
@@ -860,7 +860,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamU32(timeout, 1);
 			ppcDefineParamU32(waitState, 2);
-			forceLogDebug_printf("nn_boss_Task_Wait(0x%08x, 0x%x, %d)", thisptr.GetMPTR(), timeout, waitState);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Wait(0x{:08x}, 0x{:x}, {})", thisptr.GetMPTR(), timeout, waitState);
 
 			bossPrepareRequest();
 			bossRequest->requestCode = IOSU_NN_BOSS_TASK_WAIT;
@@ -881,7 +881,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			// RegisterForImmediateRun__Q3_2nn4boss4TaskFRCQ3_2nn4boss11TaskSetting
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamMEMPTR(settings, TaskSetting_t, 1);
-			forceLogDebug_printf("nn_boss_Task_RegisterForImmediateRun(0x%08x, 0x%08x)", thisptr.GetMPTR(), settings.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_RegisterForImmediateRun(0x{:08x}, 0x{:08x})", thisptr.GetMPTR(), settings.GetMPTR());
 
 			bossPrepareRequest();
 			bossRequest->requestCode = IOSU_NN_BOSS_TASK_REGISTER;
@@ -900,7 +900,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		void export_Unregister(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
-			forceLogDebug_printf("nn_boss_Task_Unregister(0x%08x)", thisptr.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Unregister(0x{:08x})", thisptr.GetMPTR());
 
 			bossPrepareRequest();
 			bossRequest->requestCode = IOSU_NN_BOSS_TASK_UNREGISTER;
@@ -916,11 +916,11 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		{
 			ppcDefineParamMEMPTR(thisptr, Task_t, 0);
 			ppcDefineParamMEMPTR(settings, TaskSetting_t, 1);
-			forceLogDebug_printf("nn_boss_Task_Register(0x%08x, 0x%08x)", thisptr.GetMPTR(), settings.GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_Register(0x{:08x}, 0x{:08x})", thisptr.GetMPTR(), settings.GetMPTR());
 
 			if (hCPU->gpr[4] == 0)
 			{
-				forceLogDebug_printf("nn_boss_Task_Register - crash workaround (fix me)");
+				cemuLog_logDebug(LogType::Force, "nn_boss_Task_Register - crash workaround (fix me)");
 				osLib_returnFromFunction(hCPU, 0);
 				return;
 			}
@@ -957,7 +957,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			if (execCount)
 				*execCount = bossRequest->u32.exec_count;
 
-			forceLogDebug_printf("nn_boss_Task_GetTurnState(0x%08x, 0x%08x) -> %d", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u32.result);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_GetTurnState(0x{:08x}, 0x{:08x}) -> {}", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u32.result);
 
 			osLib_returnFromFunction(hCPU, bossRequest->u32.result);
 			//osLib_returnFromFunction(hCPU, 7); // 7 -> finished? 0x11 -> Error (Splatoon doesn't like it when we return 0x11 for Nbdl tasks) RETURN FINISHED
@@ -979,7 +979,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			if (execCount)
 				*execCount = bossRequest->u64.exec_count;
 
-			forceLogDebug_printf("nn_boss_Task_GetContentLength(0x%08x, 0x%08x) -> 0x%llx", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u64.result);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_GetContentLength(0x{:08x}, 0x{:08x}) -> 0x{:x}", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u64.result);
 
 			osLib_returnFromFunction64(hCPU, bossRequest->u64.result);
 		}
@@ -1000,7 +1000,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			if (execCount)
 				*execCount = bossRequest->u64.exec_count;
 
-			forceLogDebug_printf("nn_boss_Task_GetProcessedLength(0x%08x, 0x%08x) -> 0x%llx", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u64.result);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_GetProcessedLength(0x{:08x}, 0x{:08x}) -> 0x{:x}", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u64.result);
 
 			osLib_returnFromFunction64(hCPU, bossRequest->u64.result);
 		}
@@ -1021,7 +1021,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			if (execCount)
 				*execCount = bossRequest->u32.exec_count;
 
-			forceLogDebug_printf("nn_boss_Task_GetHttpStatusCode(0x%08x, 0x%08x) -> %d", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u32.result);
+			cemuLog_logDebug(LogType::Force, "nn_boss_Task_GetHttpStatusCode(0x{:08x}, 0x{:08x}) -> {}", thisptr.GetMPTR(), execCount.GetMPTR(), bossRequest->u32.result);
 
 			osLib_returnFromFunction(hCPU, bossRequest->u32.result);
 		}
@@ -1112,13 +1112,13 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 	void export_Initialize(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("nn_boss_Initialize()");
+		cemuLog_logDebug(LogType::Force, "nn_boss_Initialize()");
 		osLib_returnFromFunction(hCPU, Initialize());
 	}
 
 	void export_GetBossState(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("nn_boss.GetBossState() - stub");
+		cemuLog_logDebug(LogType::Force, "nn_boss.GetBossState() - stub");
 		osLib_returnFromFunction(hCPU, 7);
 	}
 
@@ -1155,7 +1155,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		bossStorage_t* ctor(bossStorage_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_Storage_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_Storage_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawDlTaskSetting_t
@@ -1183,7 +1183,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			if (!dirName)
 				return 0xC0203780;
 
-			forceLogDebug_printf("boss::Storage::Initialize(%s, 0x%08x, %d)", dirName, accountId, type);
+			cemuLog_logDebug(LogType::Force, "boss::Storage::Initialize({}, 0x{:08x}, {})", dirName, accountId, type);
 
 			thisptr->storageKind = type;
 			thisptr->titleId.u64 = 0;
@@ -1215,7 +1215,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	{
 		AlmightyStorage_t* ctor(AlmightyStorage_t* thisptr)
 		{
-			forceLogDebug_printf("nn_boss_AlmightyStorage_ctor(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_AlmightyStorage_ctor(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 			{
 				// thisptr = new RawDlTaskSetting_t
@@ -1233,7 +1233,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 
 		uint32 Initialize(AlmightyStorage_t* thisptr, TitleId_t* titleId, const char* storageName, uint32 accountId, StorageKind storageKind)
 		{
-			forceLogDebug_printf("nn_boss_AlmightyStorage_Initialize(0x%x)", MEMPTR(thisptr).GetMPTR());
+			cemuLog_logDebug(LogType::Force, "nn_boss_AlmightyStorage_Initialize(0x{:x})", MEMPTR(thisptr).GetMPTR());
 			if (!thisptr)
 				return 0xc0203780;
 
@@ -1288,7 +1288,7 @@ void nnBossDataNameExport_opPCc(PPCInterpreter_t* hCPU)
 void nnBossStorageExport_ct(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(storage, nn::boss::Storage::bossStorage_t, 0);
-	forceLogDebug_printf("Constructor for boss storage called");
+	cemuLog_logDebug(LogType::Force, "Constructor for boss storage called");
 	// todo
 	memset(storage, 0, sizeof(nn::boss::Storage::bossStorage_t));
 	osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(storage));
@@ -1297,7 +1297,7 @@ void nnBossStorageExport_ct(PPCInterpreter_t* hCPU)
 void nnBossStorageExport_exist(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(storage, nn::boss::Storage::bossStorage_t, 0);
-	forceLogDebug_printf("nn_boss.Storage_Exist(...) TODO");
+	cemuLog_logDebug(LogType::Force, "nn_boss.Storage_Exist(...) TODO");
 
 	// todo
 	osLib_returnFromFunction(hCPU, 1);
@@ -1374,7 +1374,7 @@ void nnBossStorageExport_getDataList(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(dataList, bossDataName_t, 1);
 	ppcDefineParamS32(maxEntries, 2);
 	ppcDefineParamU32BEPtr(outputEntryCount, 3);
-	forceLogDebug_printf("boss storage getDataList()");
+	cemuLog_logDebug(LogType::Force, "boss storage getDataList()");
 
 	// initialize titleId of storage if not already done
 	nnBossStorage_prepareTitleId(storage);
@@ -1417,7 +1417,7 @@ typedef struct
 
 void nnBossNsDataExport_ct(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nnBossNsDataExport_ct");
+	cemuLog_logDebug(LogType::Force, "nnBossNsDataExport_ct");
 	ppcDefineParamStructPtr(nsData, nsData_t, 0);
 	if (!nsData)
 		assert_dbg();
@@ -1468,7 +1468,7 @@ void nnBossNsDataExport_initialize(PPCInterpreter_t* hCPU)
 
 	nsData->readIndex = 0;
 
-	forceLogDebug_printf("nnBossNsDataExport_initialize: %s", nsData->name);
+	cemuLog_logDebug(LogType::Force, "nnBossNsDataExport_initialize: {}", nsData->name);
 	
 	osLib_returnFromFunction(hCPU, 0x200080);
 }
@@ -1492,7 +1492,7 @@ std::string nnBossNsDataExport_GetPath(nsData_t* nsData)
 void nnBossNsDataExport_DeleteRealFileWithHistory(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(nsData, nsData_t, 0);
-	forceLogDebug_printf("nn_boss.NsData_DeleteRealFileWithHistory(...)");
+	cemuLog_logDebug(LogType::Force, "nn_boss.NsData_DeleteRealFileWithHistory(...)");
 
 	if (nsData->storage.storageKind == nn::boss::kStorageKind_NBDL)
 	{
@@ -1512,7 +1512,7 @@ void nnBossNsDataExport_DeleteRealFileWithHistory(PPCInterpreter_t* hCPU)
 
 void nnBossNsDataExport_Exist(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_boss.NsData_Exist(...)");
+	cemuLog_logDebug(LogType::Force, "nn_boss.NsData_Exist(...)");
 	ppcDefineParamStructPtr(nsData, nsData_t, 0);
 
 	bool fileExists = false;
@@ -1523,7 +1523,7 @@ void nnBossNsDataExport_Exist(PPCInterpreter_t* hCPU)
 		if (fadTable)
 		{
 			fileExists = nnBossStorageFad_getIndexByName(fadTable, nsData->name) >= 0;
-			forceLogDebug_printf("\t(%s) -> %d", nsData->name, fileExists);
+			cemuLog_logDebug(LogType::Force, "\t({}) -> {}", nsData->name, fileExists);
 			free(fadTable);
 		}
 	}
@@ -1674,7 +1674,7 @@ void nnBossNsDataExport_read(PPCInterpreter_t* hCPU)
 	ppcDefineParamStr(buffer, 1);
 	ppcDefineParamS32(length, 2);
 
-	forceLogDebug_printf("nsData read LR %08x (filename %s)", hCPU->spr.LR, nsData->name);
+	cemuLog_logDebug(LogType::Force, "nsData read (filename {})", nsData->name);
 
 	uint32 r = nnBossNsData_read(nsData, nullptr, buffer, length);
 
@@ -1689,7 +1689,7 @@ void nnBossNsDataExport_readWithSizeOut(PPCInterpreter_t* hCPU)
 	ppcDefineParamS32(length, 3);
 
 	uint32 r = nnBossNsData_read(nsData, sizeOut, buffer, length);
-	forceLogDebug_printf("nsData readWithSizeOut LR %08x (filename %s length 0x%x) Result: %d Sizeout: %llx", hCPU->spr.LR, nsData->name, length, r, _swapEndianU64(*sizeOut));
+	cemuLog_logDebug(LogType::Force, "nsData readWithSizeOut (filename {} length 0x{:x}) Result: {} Sizeout: {:x}", nsData->name, length, r, _swapEndianU64(*sizeOut));
 
 	osLib_returnFromFunction(hCPU, r);
 }
@@ -1702,7 +1702,7 @@ void nnBossNsDataExport_seek(PPCInterpreter_t* hCPU)
 
 	uint32 r = nnBossNsData_seek(nsData, seekPos, mode);
 
-	forceLogDebug_printf("nsData seek LR %08x (filename %s seek 0x%x) Result: %d", hCPU->spr.LR, nsData->name, (uint32)seekPos, r);
+	cemuLog_logDebug(LogType::Force, "nsData seek (filename {} seek 0x{:x}) Result: {}", nsData->name, (uint32)seekPos, r);
 
 	osLib_returnFromFunction(hCPU, r);
 }

@@ -45,7 +45,7 @@ namespace iosu
 
 		void notificationHandler(NexFriends::NOTIFICATION_TYPE type, uint32 pid)
 		{
-			forceLogDebug_printf("Friends::Notification %02x pid %08x", type, pid);
+			cemuLog_logDebug(LogType::Force, "Friends::Notification {:02x} pid {:08x}", type, pid);
 			if(GetConfig().notification.friends)
 			{
 				std::unique_lock lock(g_friend_notification_mutex);
@@ -165,16 +165,35 @@ namespace iosu
 				g_fpd.myPresence.isOnline = 1;
 				g_fpd.myPresence.gameKey.titleId = CafeSystem::GetForegroundTitleId();
 				g_fpd.myPresence.gameKey.ukn = CafeSystem::GetForegroundTitleVersion();
+
+				// Resolve potential domain to IP address
+				struct addrinfo hints = {0}, *addrs;
+				hints.ai_family = AF_INET;
+
+				const int status = getaddrinfo(nexTokenResult.nexToken.host, NULL, &hints, &addrs);
+				if (status != 0) {
+#if BOOST_OS_WINDOWS
+					cemuLog_log(LogType::Force, "IOSU_FPD: Failed to resolve hostname {}, {}", nexTokenResult.nexToken.host, gai_strerrorA(status));
+#else
+					cemuLog_log(LogType::Force, "IOSU_FPD: Failed to resolve hostname {}, {}", nexTokenResult.nexToken.host, gai_strerror(status));
+#endif
+					return;
+				}
+
+				char addrstr[NI_MAXHOST];
+				getnameinfo(addrs->ai_addr, addrs->ai_addrlen, addrstr, sizeof addrstr, NULL, 0, NI_NUMERICHOST);
+				cemuLog_log(LogType::Force, "IOSU_FPD: Resolved IP for hostname {}, {}", nexTokenResult.nexToken.host, addrstr);
+
 				// start session
-				uint32 hostIp;
-				inet_pton(AF_INET, nexTokenResult.nexToken.host, &hostIp);
+				const uint32_t hostIp = ((struct sockaddr_in*)addrs->ai_addr)->sin_addr.s_addr;
+				freeaddrinfo(addrs);
 				g_fpd.nexFriendSession = new NexFriends(hostIp, nexTokenResult.nexToken.port, "ridfebb9", myPid, nexTokenResult.nexToken.nexPassword, nexTokenResult.nexToken.token, accountId, (uint8*)&miiData, (wchar_t*)screenName, (uint8)countryCode, g_fpd.myPresence);
 				g_fpd.nexFriendSession->setNotificationHandler(notificationHandler);
 				cemuLog_log(LogType::Force, "IOSU_FPD: Created friend server session");
 			}
 			else
 			{
-				forceLogDebug_printf("IOSU_FPD: Failed to acquire nex token for friend server");
+				cemuLog_logDebug(LogType::Force, "IOSU_FPD: Failed to acquire nex token for friend server");
 			}
 		}
 
@@ -542,7 +561,7 @@ namespace iosu
 				uint64 mid = _swapEndianU64(fpdCemuRequest->markFriendRequest.messageIdList.GetPtr()[i]);
 				if (mid == 0)
 				{
-					forceLogDebug_printf("MarkFriendRequestAsReceivedAsync - Invalid messageId");
+					cemuLog_logDebug(LogType::Force, "MarkFriendRequestAsReceivedAsync - Invalid messageId");
 					continue;
 				}
 				messageIds[count] = mid;

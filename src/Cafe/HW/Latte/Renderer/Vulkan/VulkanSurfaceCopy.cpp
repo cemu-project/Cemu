@@ -894,14 +894,14 @@ void VulkanRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 	// todo - if not, we have to use drawcall based copying
 	if (!LatteTexture_doesEffectiveRescaleRatioMatch(srcTextureVk, texSrcMip, dstTextureVk, texDstMip))
 	{
-		forceLogDebug_printf("surfaceCopy_copySurfaceViaDrawcall(): Mismatching dimensions");
+		cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceViaDrawcall(): Mismatching dimensions");
 		return;
 	}
 
 	// check if bpp size matches
 	if (srcTextureVk->GetBPP() != dstTextureVk->GetBPP())
 	{
-		forceLogDebug_printf("surfaceCopy_copySurfaceViaDrawcall(): Mismatching BPP");
+		cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceViaDrawcall(): Mismatching BPP");
 		return;
 	}
 

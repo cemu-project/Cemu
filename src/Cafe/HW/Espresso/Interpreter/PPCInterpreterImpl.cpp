@@ -237,7 +237,7 @@ public:
 			lookupHash = ~lookupHash;
 		}
 
-		forceLogDebug_printf("DSI exception at 0x%08x LR 0x%08x DataAddress %08x", hCPU->instructionPointer, hCPU->spr.LR, vAddr);
+		cemuLog_logDebug(LogType::Force, "DSI exception at 0x{:08x} DataAddress {:08x}", hCPU->instructionPointer, vAddr);
 
 		generateDSIException(hCPU, vAddr);
 
@@ -378,12 +378,12 @@ public:
 		if (pAddr >= 0x01FFF000 && pAddr < 0x02000000)
 		{
 			debug_printf("Access u32 boot param block 0x%08x IP %08x LR %08x\n", pAddr, hCPU->instructionPointer, hCPU->spr.LR);
-			forceLogDebug_printf("Access u32 boot param block 0x%08x (org %08x) IP %08x LR %08x\n", pAddr, address, hCPU->instructionPointer, hCPU->spr.LR);
+			cemuLog_logDebug(LogType::Force, "Access u32 boot param block 0x{:08x} (org {:08x}) IP {:08x}", pAddr, address, hCPU->instructionPointer);
 		}
 		if (pAddr >= 0xFFEB73B0 && pAddr < (0xFFEB73B0+0x40C))
 		{
 			debug_printf("Access cached u32 boot param block 0x%08x IP %08x LR %08x\n", pAddr, hCPU->instructionPointer, hCPU->spr.LR);
-			forceLogDebug_printf("Access cached u32 boot param block 0x%08x (org %08x) IP %08x LR %08x\n", pAddr, address, hCPU->instructionPointer, hCPU->spr.LR);
+			cemuLog_logDebug(LogType::Force, "Access cached u32 boot param block 0x{:08x} (org {:08x}) IP {:08x}", pAddr, address, hCPU->instructionPointer);
 		}
 
 		if (pAddr >= 0x0c000000 && pAddr < 0x0d100000)

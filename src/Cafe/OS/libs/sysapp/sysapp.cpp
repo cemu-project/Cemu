@@ -417,7 +417,7 @@ uint64 _SYSGetSystemApplicationTitleId(sint32 index)
 void sysappExport__SYSGetSystemApplicationTitleId(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(systemApplicationId, 0);
-	forceLogDebug_printf("_SYSGetSystemApplicationTitleId(0x%d)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "_SYSGetSystemApplicationTitleId(0x{:x})", hCPU->gpr[3]);
 
 	uint64 titleId = _SYSGetSystemApplicationTitleId(systemApplicationId);
 	osLib_returnFromFunction64(hCPU, titleId);
@@ -460,7 +460,7 @@ void sysappExport__SYSReturnToCallerWithStandardResult(PPCInterpreter_t* hCPU)
 void sysappExport__SYSGetEShopArgs(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(args, eshopArguments_t, 0);
-	forceLogDebug_printf("_SYSGetEShopArgs() - placeholder");
+	cemuLog_logDebug(LogType::Force, "_SYSGetEShopArgs() - placeholder");
 	memset(args, 0, sizeof(eshopArguments_t));
 
 	osLib_returnFromFunction(hCPU, 0);
@@ -469,7 +469,7 @@ void sysappExport__SYSGetEShopArgs(PPCInterpreter_t* hCPU)
 void sysappExport_SYSGetUPIDFromTitleID(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU64(titleId, 0);
-	forceLogDebug_printf("SYSGetUPIDFromTitleID(0x%08x%08x)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_logDebug(LogType::Force, "SYSGetUPIDFromTitleID(0x{:08x}{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	uint32 titleIdHigh = (titleId >> 32);
 	uint32 titleIdLow = (uint32)(titleId & 0xFFFFFFFF);
 	if ((titleIdHigh & 0xFFFF0000) != 0x50000)
@@ -537,7 +537,7 @@ void sysappExport_SYSGetUPIDFromTitleID(PPCInterpreter_t* hCPU)
 
 void sysappExport_SYSGetVodArgs(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SYSGetVodArgs() - todo");
+	cemuLog_logDebug(LogType::Force, "SYSGetVodArgs() - todo");
 	osLib_returnFromFunction(hCPU, 1);
 }
 
@@ -559,7 +559,7 @@ static_assert(sizeof(SysLauncherArgs28) == 0x28);
 
 void sysappExport__SYSGetLauncherArgs(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("_SYSGetLauncherArgs(0x%08x) - todo\n", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "_SYSGetLauncherArgs(0x{:08x}) - todo", hCPU->gpr[3]);
 
 	// todo: Handle OS library version. Older versions used a different struct (only 0x18 bytes?)
 	//ppcDefineParamStructPtr(launcherArgs, SysLauncherArgs, 0);
@@ -571,7 +571,7 @@ void sysappExport__SYSGetLauncherArgs(PPCInterpreter_t* hCPU)
 
 void sysappExport_SYSGetStandardResult(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SYSGetStandardResult(0x%08x,0x%08x,0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_logDebug(LogType::Force, "SYSGetStandardResult(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	memset(memory_getPointerFromVirtualOffset(hCPU->gpr[3]), 0, 4);
 
 	osLib_returnFromFunction(hCPU, 0);

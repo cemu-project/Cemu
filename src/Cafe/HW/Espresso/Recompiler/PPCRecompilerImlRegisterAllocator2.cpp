@@ -192,7 +192,7 @@ void _PPCRecRA_checkAndTryExtendRange(ppcImlGenContext_t* ppcImlGenContext, PPCR
 {
 	if (routeDepth >= 64)
 	{
-		forceLogDebug_printf("Recompiler RA route maximum depth exceeded for function 0x%08x\n", ppcImlGenContext->functionRef->ppcAddress);
+		cemuLog_logDebug(LogType::Force, "Recompiler RA route maximum depth exceeded for function 0x{:08x}", ppcImlGenContext->functionRef->ppcAddress);
 		return;
 	}
 	route[routeDepth] = currentSegment;

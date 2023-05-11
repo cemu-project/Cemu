@@ -408,7 +408,7 @@ bool VPADController::push_rumble(uint8* pattern, uint8 length)
 	std::scoped_lock lock(m_rumble_mutex);
 	if (m_rumble_queue.size() >= 5)
 	{
-		forceLogDebug_printf("too many cmds");
+		cemuLog_logDebug(LogType::Force, "too many cmds");
 		return false;
 	}
 

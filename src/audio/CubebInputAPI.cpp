@@ -38,7 +38,7 @@ long CubebInputAPI::data_cb(cubeb_stream* stream, void* user, const void* inputb
 	std::unique_lock lock(thisptr->m_mutex);
 	if (thisptr->m_buffer.capacity() <= thisptr->m_buffer.size() + size)
 	{
-		forceLogDebug_printf("dropped input sound block since too many buffers are queued");
+		cemuLog_logDebug(LogType::Force, "dropped input sound block since too many buffers are queued");
 		return nframes;
 	}
 

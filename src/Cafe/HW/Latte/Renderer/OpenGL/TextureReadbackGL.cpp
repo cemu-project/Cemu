@@ -76,7 +76,7 @@ LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* texture
 	}
 	else
 	{
-		forceLogDebug_printf("Unsupported texture readback format %04x\n", (uint32)textureView->format);
+		cemuLog_logDebug(LogType::Force, "Unsupported texture readback format {:04x}", (uint32)textureView->format);
 		return;
 	}
 }
