@@ -76,11 +76,13 @@ endif()
 
 if (UNIX AND NOT APPLE)
 	option(ENABLE_WAYLAND "Build with Wayland support" ON)
+	option(ENABLE_FERAL_GAMEMODE "Enables Feral Interactive GameMode Support" ON)
 endif()
 
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
+
 
 # input backends
 if (WIN32)
@@ -127,6 +129,7 @@ if (UNIX AND NOT APPLE)
 		add_compile_definitions(HAS_WAYLAND)
 	endif()
 	find_package(GTK3 REQUIRED)
+
 endif()
 
 if (ENABLE_VULKAN)
@@ -141,6 +144,14 @@ if (ENABLE_DISCORD_RPC)
 	add_compile_definitions(ENABLE_DISCORD_RPC)
 	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
 	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
+endif()
+
+if(UNIX AND NOT APPLE)
+	if(ENABLE_FERAL_GAMEMODE)
+		add_compile_definitions(ENABLE_FERAL_GAMEMODE)
+		add_subdirectory(dependencies/gamemode EXCLUDE_FROM_ALL)
+		target_include_directories(gamemode INTERFACE ./dependencies/gamemode/lib)
+	endif()
 endif()
 
 if (ENABLE_WXWIDGETS)

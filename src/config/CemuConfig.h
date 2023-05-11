@@ -366,6 +366,7 @@ struct CemuConfig
 	ConfigValue<std::string> mlc_path {};
 	ConfigValue<bool> fullscreen_menubar{ false };
 	ConfigValue<bool> fullscreen{ false };
+    	ConfigValue<bool> feral_gamemode{false};
 	ConfigValue<std::string> proxy_server{};
 
 	// temporary workaround because feature crashes on macOS

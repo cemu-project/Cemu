@@ -179,6 +179,13 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
 
+            		// Enable/disable feral interactive gamemode
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+            		m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
+            		m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
+            		second_row->Add(m_feral_gamemode, 0, botflag, 5);
+#endif
+
 			// temporary workaround because feature crashes on macOS
 #if BOOST_OS_MACOS
 			m_disable_screensaver->Enable(false);
@@ -868,7 +875,7 @@ void GeneralSettings2::StoreConfig()
 	config.fullscreen_menubar = m_fullscreen_menubar->IsChecked();
 	config.check_update = m_auto_update->IsChecked();
 	config.save_screenshot = m_save_screenshot->IsChecked();
-
+    	config.feral_gamemode = m_feral_gamemode->IsChecked();
 	const bool use_ps = m_permanent_storage->IsChecked();
 	if(use_ps)
 	{
@@ -1508,6 +1515,8 @@ void GeneralSettings2::ApplyConfig()
 
 	m_permanent_storage->SetValue(config.permanent_storage);
 	m_disable_screensaver->SetValue(config.disable_screensaver);
+
+    	m_feral_gamemode->SetValue(config.feral_gamemode);
 	// temporary workaround because feature crashes on macOS
 #if BOOST_OS_MACOS
 	m_disable_screensaver->SetValue(false);

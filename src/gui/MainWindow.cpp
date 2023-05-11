@@ -61,6 +61,11 @@
 #include "gui/helpers/wxWayland.h"
 #endif
 
+//GameMode support
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+#include "gamemode_client.h"
+#endif
+
 #include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -580,6 +585,23 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 
 	if (ActiveSettings::FullscreenEnabled())
 		SetFullScreen(true);
+
+    //GameMode support
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+    if(GetConfig().feral_gamemode)
+    {
+        // attempt to start gamemode
+        if(gamemode_request_start() < 0)
+        {
+            // GameMode failed to start
+            cemuLog_log(LogType::Force, "Could not start GameMode");
+        }
+        else
+        {
+            cemuLog_log(LogType::Force, "GameMode has been started.");
+        }
+    }
+#endif
 
 	CreateCanvas();
 	CafeSystem::LaunchForegroundTitle();
