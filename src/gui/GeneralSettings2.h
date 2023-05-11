@@ -43,7 +43,9 @@ private:
 	wxCheckBox* m_auto_update, *m_save_screenshot;
 	wxCheckBox* m_permanent_storage;
 	wxCheckBox* m_disable_screensaver;
-    	wxCheckBox* m_feral_gamemode;
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+   	wxCheckBox* m_feral_gamemode;
+#endif
 	wxListBox* m_game_paths;
 	wxTextCtrl* m_mlc_path;
 
