@@ -36,7 +36,7 @@ uint32 PPCCoreCallback(MPTR function, PPCCoreCallbackData_t& data, T currentArg,
 	else if constexpr(std::is_enum_v<T>)
 	{
 		using TEnum = typename std::underlying_type<T>::type;
-		return PPCCoreCallback<TEnum>(function, data, (TEnum)currentArg, std::forward(args)...);
+		return PPCCoreCallback<TEnum>(function, data, (TEnum)currentArg, std::forward<TArgs>(args)...);
 	}
 	else if constexpr (std::is_floating_point_v<T>)
 	{
