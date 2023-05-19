@@ -367,7 +367,7 @@ namespace iosu
 	bool parse_xml_content(Task& task)
 	{
 		tinyxml2::XMLDocument doc;
-		//cafeLog_writeLineToLog((char*)task.result_buffer.data());
+		//cemuLog_log(LogType::Force, (char*)task.result_buffer.data());
 		if (doc.Parse((const char*)task.result_buffer.data(), task.processed_length) != tinyxml2::XML_SUCCESS)
 			return false;
 
