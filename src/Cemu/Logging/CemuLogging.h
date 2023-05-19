@@ -116,40 +116,11 @@ bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 bool cemuLog_advancedPPCLoggingEnabled();
 
 uint64 cemuLog_getFlag(LogType type);
-void cafeLog_setLoggingFlagEnable(sint32 loggingType, bool isEnable);
-bool cafeLog_isLoggingFlagEnabled(sint32 loggingType);
+void cemuLog_setFlag(LogType type, bool enabled);
 
 fs::path cemuLog_GetLogFilePath();
 void cemuLog_createLogFile(bool triggeredByCrash);
-
-[[nodiscard]] std::unique_lock<std::recursive_mutex> cafeLog_acquire();
-
-// legacy methods
-void cafeLog_log(uint32 type, const char* format, ...);
-void cafeLog_logW(uint32 type, const wchar_t* format, ...);
-void cafeLog_logLine(uint32 type, const char* line);
-
-// legacy log types, deprecated. Use LogType instead
-#define LOG_TYPE_FORCE				(0) // this logging type is always on
-#define LOG_TYPE_FILE				(1)
-#define LOG_TYPE_GX2				(2)
-#define LOG_TYPE_UNSUPPORTED_API	(3)
-#define LOG_TYPE_THREADSYNC			(4)
-#define LOG_TYPE_SNDAPI				(5) // any audio related API
-#define LOG_TYPE_INPUT				(6) // any input related API
-#define LOG_TYPE_SOCKET				(7) // anything from nn_sysnet
-#define LOG_TYPE_SAVE				(8) // anything from nn_save
-#define LOG_TYPE_COREINIT_MEM		(9)	// coreinit memory functions
-#define LOG_TYPE_H264				(10)
-#define LOG_TYPE_OPENGL				(11) // OpenGL debug logging
-#define LOG_TYPE_TEXTURE_CACHE		(12) // texture cache warnings and info
-#define LOG_TYPE_VULKAN_VALIDATION	(13) // Vulkan validation layer
-#define LOG_TYPE_NFP				(14) // nn_nfp (Amiibo) API
-#define LOG_TYPE_PATCHES			(15) // logging for graphic pack patches
-#define LOG_TYPE_COREINIT_MP		(16)
-#define LOG_TYPE_COREINIT_THREAD	(17)
-#define LOG_TYPE_COREINIT_LOGGING	(18)
-#define LOG_TYPE_LAST				(64) // set to 64 so we can easily add more log types in the future without destroying settings file compatibility
+[[nodiscard]] std::unique_lock<std::recursive_mutex> cemuLog_acquire(); // used for logging multiple lines at once
 
 // force log. Redundant -> replace with _log(LogType::Force, ...) call
 inline bool cemuLog_force(std::string_view msg)
@@ -167,22 +138,3 @@ void cemuLog_force(TFmt format, TArgs&&... args)
 {
 	cemuLog_log(LogType::Force, format, std::forward<TArgs>(args)...);
 }
-
-// these are deprecated. Superseded by cemuLog_log(type, ...)
-#define forceLog_printf(...)		cafeLog_log(LOG_TYPE_FORCE, __VA_ARGS__);
-#define gx2Log_printf(...)			if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_GX2) ) cafeLog_log(LOG_TYPE_GX2, __VA_ARGS__);
-#define coreinitMemLog_printf(...)	if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_COREINIT_MEM) ) cafeLog_log(LOG_TYPE_COREINIT_MEM, __VA_ARGS__);
-#define sndApiLog_printf(...)		if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_SNDAPI) ) cafeLog_log(LOG_TYPE_SNDAPI, __VA_ARGS__);
-#define socketLog_printf(...)		if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_SOCKET) ) cafeLog_log(LOG_TYPE_SOCKET, __VA_ARGS__);
-#define inputLog_printf(...)		if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_INPUT) ) cafeLog_log(LOG_TYPE_INPUT, __VA_ARGS__);
-#define saveLog_printf(...)			if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_SAVE) ) cafeLog_log(LOG_TYPE_SAVE, __VA_ARGS__);
-#define nfpLog_printf(...)			if( cafeLog_isLoggingFlagEnabled(LOG_TYPE_NFP) ) cafeLog_log(LOG_TYPE_NFP, __VA_ARGS__);
-
-#ifdef CEMU_DEBUG_ASSERT
-#define forceLogDebug_printf(...)		cafeLog_log(LOG_TYPE_FORCE, __VA_ARGS__);
-
- // use this for temporary debug logging. Will trigger compilation error in release builds
-#define forceLogRemoveMe_printf(...)	cafeLog_log(LOG_TYPE_FORCE, __VA_ARGS__);
-#else
-#define forceLogDebug_printf(...)	;
-#endif

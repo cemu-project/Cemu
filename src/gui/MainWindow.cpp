@@ -1089,7 +1089,7 @@ void MainWindow::OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event)
 	sint32 id = event.GetId();
 	if (id >= loggingIdBase && id < (MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 64))
 	{
-		cafeLog_setLoggingFlagEnable(id - loggingIdBase, event.IsChecked());
+		cemuLog_setFlag(static_cast<LogType>(id - loggingIdBase), event.IsChecked());
 	}
 }
 
@@ -2263,8 +2263,8 @@ void MainWindow::RecreateMenu()
 		m_nfcMenu->Enable(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, true);
 		
 		// disable OpenGL logging (currently cant be toggled after OpenGL backend is initialized)
-		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_OPENGL, false);
-		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_VULKAN_VALIDATION, false);
+		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), false);
+		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), false);
 
 		UpdateNFCMenu();
 	}

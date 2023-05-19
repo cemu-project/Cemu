@@ -163,7 +163,7 @@ int Latte_ThreadEntry()
 	sLatteThreadFinishedInit = true;
 
 	// register debug handler
-	if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_OPENGL))
+	if (cemuLog_isLoggingEnabled(LogType::OpenGLLogging))
 		g_renderer->EnableDebugMode();
 
 	// wait till a game is started

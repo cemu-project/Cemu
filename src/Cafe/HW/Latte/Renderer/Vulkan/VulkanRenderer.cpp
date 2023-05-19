@@ -311,7 +311,7 @@ VulkanRenderer::VulkanRenderer()
 
 	cemuLog_log(LogType::Force, "------- Init Vulkan graphics backend -------");
 
-	const bool useValidationLayer = cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION);
+	const bool useValidationLayer = cemuLog_isLoggingEnabled(LogType::VulkanValidation);
 	if (useValidationLayer)
 		cemuLog_log(LogType::Force, "Validation layer is enabled");
 
@@ -1194,7 +1194,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	#elif BOOST_OS_MACOS
 	requiredInstanceExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
-	if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_VULKAN_VALIDATION))
+	if (cemuLog_isLoggingEnabled(LogType::VulkanValidation))
 		requiredInstanceExtensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
 	// make sure all required extensions are supported

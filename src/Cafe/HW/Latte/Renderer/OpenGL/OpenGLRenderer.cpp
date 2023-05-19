@@ -253,7 +253,7 @@ void LoadOpenGLImports()
 void OpenGLRenderer::Initialize()
 {
 	Renderer::Initialize();
-	auto lock = cafeLog_acquire();
+	auto lock = cemuLog_acquire();
 	cemuLog_log(LogType::Force, "------- Init OpenGL graphics backend -------");
 
 	GLCanvas_MakeCurrent(false);

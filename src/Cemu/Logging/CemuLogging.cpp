@@ -183,93 +183,20 @@ void cemuLog_waitForFlush()
 		std::this_thread::yield();
 		lock.lock();
 	}
-	
 }
 
 // used to atomically write multiple lines to the log
-std::unique_lock<decltype(LogContext.log_mutex)> cafeLog_acquire()
+std::unique_lock<decltype(LogContext.log_mutex)> cemuLog_acquire()
 {
 	return std::unique_lock(LogContext.log_mutex);
 }
 
-void cafeLog_log(uint32 type, const char* format, ...)
-{
-	const auto logType = (LogType)type;
-	if (!cemuLog_isLoggingEnabled(logType))
-		return;
-	
-	char logTempStr[2048];
-	va_list(args);
-	va_start(args, format);
-#if BOOST_OS_WINDOWS
-	vsprintf_s(logTempStr, format, args);
-#else
-	vsprintf(logTempStr, format, args);
-#endif
-	va_end(args);
-
-	cemuLog_writeLineToLog(logTempStr);
-	
-	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
-		[logType](const auto& entry) { return entry.first == logType; });
-	if (it == g_logging_window_mapping.cend())
-		LoggingWindow::Log(logTempStr);
-	else
-		LoggingWindow::Log(it->second, logTempStr);
-}
-
-void cafeLog_logW(uint32 type, const wchar_t* format, ...)
-{
-	const auto logType = (LogType)type;
-	if (!cemuLog_isLoggingEnabled(logType))
-		return;
-	
-	wchar_t logTempStr[2048];
-	va_list(args);
-	va_start(args, format);
-#if BOOST_OS_WINDOWS
-	vswprintf_s(logTempStr, format, args);
-#else
-	vswprintf(logTempStr, 2048, format, args);
-#endif
-	va_end(args);
-	
-	cemuLog_log(logType, logTempStr);
-
-	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
-		[logType](const auto& entry) { return entry.first == logType; });
-	if (it == g_logging_window_mapping.cend())
-		LoggingWindow::Log(logTempStr);
-	else
-		LoggingWindow::Log(it->second, logTempStr);
-}
-
-void cemuLog_log()
-{
-	typedef void(*VoidFunc)();
-	const VoidFunc func = (VoidFunc)cafeLog_log;
-	func();
-}
-
-void cafeLog_logLine(uint32 type, const char* line)
-{
-	if (!cemuLog_isLoggingEnabled((LogType)type))
-		return;
-	
-	cemuLog_writeLineToLog(line);
-}
-
-void cafeLog_setLoggingFlagEnable(sint32 loggingType, bool isEnable)
+void cemuLog_setFlag(LogType loggingType, bool isEnable)
 {
 	if (isEnable)
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() | cemuLog_getFlag((LogType)loggingType);
+		GetConfig().log_flag = GetConfig().log_flag.GetValue() | cemuLog_getFlag(loggingType);
 	else
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag((LogType)loggingType);
+		GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag(loggingType);
 	
 	g_config.Save();
-}
-
-bool cafeLog_isLoggingFlagEnabled(sint32 loggingType)
-{
-	return cemuLog_isLoggingEnabled((LogType)loggingType);
 }
