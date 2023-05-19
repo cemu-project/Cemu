@@ -531,7 +531,7 @@ VulkanRenderer::VulkanRenderer()
 	swapchain_createDescriptorSetLayout();
 
 	// extension info
-	// cemuLog_force("VK_KHR_dynamic_rendering: {}", m_featureControl.deviceExtensions.dynamic_rendering?"supported":"not supported");
+	// cemuLog_log(LogType::Force, "VK_KHR_dynamic_rendering: {}", m_featureControl.deviceExtensions.dynamic_rendering?"supported":"not supported");
 
 	void* bufferPtr;
 	// init ringbuffer for uniform vars
@@ -3596,7 +3596,7 @@ void VulkanRenderer::bufferCache_init(const sint32 bufferSize)
 		m_useHostMemoryForCache = memoryManager->CreateBufferFromHostMemory(memory_getPointerFromVirtualOffset(m_importedMemBaseAddress), hostAllocationSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 0, m_importedMem, m_importedMemMemory);
 		if (!m_useHostMemoryForCache)
 		{
-			cemuLog_force("Unable to import host memory to Vulkan buffer. Use default cache system instead");
+			cemuLog_log(LogType::Force, "Unable to import host memory to Vulkan buffer. Use default cache system instead");
 		}
 	}
 	if(!m_useHostMemoryForCache)

@@ -607,7 +607,7 @@ namespace iosu
 			if (!fscFile)
 				return (FSStatus)FS_RESULT::ERR_PLACEHOLDER;
 #ifdef CEMU_DEBUG_ASSERT
-			cemuLog_force("FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", _swapEndianU32(cmd->cmdAppendFile.size), _swapEndianU32(cmd->cmdAppendFile.count));
+			cemuLog_log(LogType::Force, "FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", _swapEndianU32(cmd->cmdAppendFile.size), _swapEndianU32(cmd->cmdAppendFile.count));
 #endif
 			return _swapEndianU32(cmd->cmdAppendFile.size) * _swapEndianU32(cmd->cmdAppendFile.count);
 		}

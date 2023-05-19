@@ -221,7 +221,7 @@ void VPADController::update_touch(VPADStatus_t& status)
 
 		m_last_touch_position = glm::ivec2{ status.tpData.x, status.tpData.y };
 
-		/*cemuLog_force("TDATA: {},{} -> {},{} -> {},{} -> {},{} -> {},{} -> {},{}",
+		/*cemuLog_log(LogType::Force, "TDATA: {},{} -> {},{} -> {},{} -> {},{} -> {},{} -> {},{}",
 			left_mouse->x, left_mouse->y,
 			(left_mouse.value() - image_pos).x, (left_mouse.value() - image_pos).y,
 			relative_mouse_pos.x, relative_mouse_pos.y,

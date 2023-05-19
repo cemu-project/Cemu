@@ -1042,7 +1042,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 		LatteTextureView* rt_depth = LatteMRT::GetDepthAttachment();
 		if (!rt_depth || !rt_color)
 		{
-			cemuLog_force("GPU7 special state 5 used but render target not setup correctly");
+			cemuLog_log(LogType::Force, "GPU7 special state 5 used but render target not setup correctly");
 			return;
 		}
 		surfaceCopy_copySurfaceWithFormatConversion(rt_depth->baseTexture, rt_depth->firstMip, rt_depth->firstSlice, rt_color->baseTexture, rt_color->firstMip, rt_color->firstSlice, rt_depth->baseTexture->width, rt_depth->baseTexture->height);

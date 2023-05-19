@@ -84,7 +84,7 @@ void createGraphicPackDownloadedVersionFile(const char* nameVersion)
 		file->writeString(nameVersion);
 	else
 	{
-		cemuLog_force("Failed to write graphic pack version.txt");
+		cemuLog_log(LogType::Force, "Failed to write graphic pack version.txt");
 	}
 }
 

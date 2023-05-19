@@ -16,7 +16,7 @@ public:
       int initErr = SDL_InitSubSystem(SDL_INIT_VIDEO);
       if (initErr)
       {
-        cemuLog_force("Could not disable screen saver (SDL video subsystem initialization error)");
+        cemuLog_log(LogType::Force, "Could not disable screen saver (SDL video subsystem initialization error)");
       }
     }
     // Toggle SDL's screen saver inhibition
@@ -25,7 +25,7 @@ public:
       SDL_DisableScreenSaver();
       if (SDL_IsScreenSaverEnabled() == SDL_TRUE)
       {
-        cemuLog_force("Could not verify if screen saver was disabled (`SDL_IsScreenSaverEnabled()` returned SDL_TRUE)");
+        cemuLog_log(LogType::Force, "Could not verify if screen saver was disabled (`SDL_IsScreenSaverEnabled()` returned SDL_TRUE)");
       }
     }
     else
@@ -33,7 +33,7 @@ public:
       SDL_EnableScreenSaver();
       if (SDL_IsScreenSaverEnabled() == SDL_FALSE)
       {
-        cemuLog_force("Could not verify if screen saver was re-enabled (`SDL_IsScreenSaverEnabled()` returned SDL_FALSE)");
+        cemuLog_log(LogType::Force, "Could not verify if screen saver was re-enabled (`SDL_IsScreenSaverEnabled()` returned SDL_FALSE)");
       }
     }
   };

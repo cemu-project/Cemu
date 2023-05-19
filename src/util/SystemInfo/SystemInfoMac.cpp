@@ -58,5 +58,5 @@ void QueryCoreTimes(uint32 count, std::vector<ProcessorTime>& out)
 	int ret = vm_deallocate(mach_task_self(), (vm_address_t) info_array,
 						info_count * sizeof(int));
 	if (ret != KERN_SUCCESS)
-		cemuLog_force("vm_deallocate() failed");
+		cemuLog_log(LogType::Force, "vm_deallocate() failed");
 }

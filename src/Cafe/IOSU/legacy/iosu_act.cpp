@@ -113,7 +113,7 @@ void iosuAct_loadAccounts()
 	//	}
 	//}
 
-	cemuLog_force(L"IOSU_ACT: using account {} in first slot", first_acc.GetMiiName());
+	cemuLog_log(LogType::Force, L"IOSU_ACT: using account {} in first slot", first_acc.GetMiiName());
 	
 	_actAccountDataInitialized = true;
 }

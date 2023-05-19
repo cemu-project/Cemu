@@ -46,7 +46,7 @@ namespace nn
 			if (idbeData.size() != sizeof(nnIdbeEncryptedIcon_t))
 			{
 				// icon does not exist or has the wrong size
-				cemuLog_force("IDBE: Failed to retrieve icon for title {:016x}", titleId);
+				cemuLog_log(LogType::Force, "IDBE: Failed to retrieve icon for title {:016x}", titleId);
 				memset(iconOut, 0, sizeof(nnIdbeEncryptedIcon_t));
 				coreinit_resumeThread(thread);
 				return;

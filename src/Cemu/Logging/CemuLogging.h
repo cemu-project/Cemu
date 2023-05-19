@@ -121,20 +121,3 @@ void cemuLog_setFlag(LogType type, bool enabled);
 fs::path cemuLog_GetLogFilePath();
 void cemuLog_createLogFile(bool triggeredByCrash);
 [[nodiscard]] std::unique_lock<std::recursive_mutex> cemuLog_acquire(); // used for logging multiple lines at once
-
-// force log. Redundant -> replace with _log(LogType::Force, ...) call
-inline bool cemuLog_force(std::string_view msg)
-{
-	return cemuLog_log(LogType::Force, msg);
-}
-
-inline bool cemuLog_force(std::wstring_view msg)
-{
-	return cemuLog_log(LogType::Force, msg);
-}
-
-template<typename TFmt, typename ... TArgs>
-void cemuLog_force(TFmt format, TArgs&&... args)
-{
-	cemuLog_log(LogType::Force, format, std::forward<TArgs>(args)...);
-}

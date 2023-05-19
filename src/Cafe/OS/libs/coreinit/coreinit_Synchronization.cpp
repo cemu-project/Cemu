@@ -254,7 +254,7 @@ namespace coreinit
 			else
 			{
 				if (failedAttempts >= 0x800)
-					cemuLog_force("Detected long-term contested OSLockMutex");
+					cemuLog_log(LogType::Force, "Detected long-term contested OSLockMutex");
 				currentThread->waitingForMutex = mutex;
 				mutex->threadQueue.queueAndWait(currentThread);
 				currentThread->waitingForMutex = nullptr;

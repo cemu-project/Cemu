@@ -58,7 +58,7 @@ namespace iosu
 				return false;
 			if (versionListVersionResult.fqdnURL.size() >= 256)
 			{
-				cemuLog_force("NIM: fqdn URL too long");
+				cemuLog_log(LogType::Force, "NIM: fqdn URL too long");
 				return false;
 			}
 			g_nim.latestVersion = (sint32)versionListVersionResult.version;

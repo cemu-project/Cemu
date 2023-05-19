@@ -21,7 +21,7 @@ InputManager::InputManager()
 		}
 		catch (const std::exception& ex)
 		{
-			cemuLog_force(ex.what());
+			cemuLog_log(LogType::Force, ex.what());
 		}
 	}
 	*/
@@ -67,7 +67,7 @@ void InputManager::load() noexcept
 		}
 		catch (const std::exception& ex)
 		{
-			cemuLog_force("can't load controller profile: {}", ex.what());
+			cemuLog_log(LogType::Force, "can't load controller profile: {}", ex.what());
 		}
 	}
 }
@@ -198,7 +198,7 @@ bool InputManager::load(size_t player_index, std::string_view filename)
 			}
 			catch (const std::exception& ex)
 			{
-				cemuLog_force("can't load controller: {}", ex.what());
+				cemuLog_log(LogType::Force, "can't load controller: {}", ex.what());
 			}
 		}
 
@@ -207,7 +207,7 @@ bool InputManager::load(size_t player_index, std::string_view filename)
 	}
 	catch (const std::exception& ex)
 	{
-		cemuLog_force("can't load config file: {}", ex.what());
+		cemuLog_log(LogType::Force, "can't load config file: {}", ex.what());
 		return false;
 	}
 }
@@ -420,7 +420,7 @@ bool InputManager::migrate_config(const fs::path& file_path)
 	}
 	catch (const std::exception& ex)
 	{
-		cemuLog_force("can't migrate config file {}: {}", file_path.string(), ex.what());
+		cemuLog_log(LogType::Force, "can't migrate config file {}: {}", file_path.string(), ex.what());
 	}
 
 	return false;
@@ -436,7 +436,7 @@ void InputManager::save() noexcept
 		}
 		catch (const std::exception& ex)
 		{
-			cemuLog_force("can't save controller profile: {}", ex.what());
+			cemuLog_log(LogType::Force, "can't save controller profile: {}", ex.what());
 		}
 	}
 }
@@ -620,7 +620,7 @@ EmulatedControllerPtr InputManager::set_controller(size_t player_index, Emulated
 	}
 	catch (const std::exception& ex)
 	{
-		cemuLog_force("Unable to set controller type {} on player index {}: {}", type, player_index, ex.what());
+		cemuLog_log(LogType::Force, "Unable to set controller type {} on player index {}: {}", type, player_index, ex.what());
 	}
 
 	return {};

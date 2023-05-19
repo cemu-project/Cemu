@@ -77,7 +77,7 @@ public:
 			{
 				if (eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
 				{
-					cemuLog_force("Failed to set vsync using EGL");
+					cemuLog_log(LogType::Force, "Failed to set vsync using EGL");
 				}
 			}
 #else

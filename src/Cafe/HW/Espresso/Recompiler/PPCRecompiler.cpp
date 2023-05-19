@@ -132,7 +132,7 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 {
 	if (range.startAddress >= PPC_REC_CODE_AREA_END)
 	{
-		cemuLog_force("Attempting to recompile function outside of allowed code area");
+		cemuLog_log(LogType::Force, "Attempting to recompile function outside of allowed code area");
 		return nullptr;
 	}
 

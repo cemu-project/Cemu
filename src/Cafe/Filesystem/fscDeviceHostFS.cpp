@@ -113,7 +113,7 @@ void FSCVirtualFile_Host::fscSetFileLength(uint64 endOffset)
 	m_fileSize = m_seek;
 	m_fs->SetPosition(m_seek);
 	if (!r)
-		cemuLog_force("fscSetFileLength: Failed to set size to 0x{:x}", endOffset);
+		cemuLog_log(LogType::Force, "fscSetFileLength: Failed to set size to 0x{:x}", endOffset);
 }
 
 bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
@@ -127,7 +127,7 @@ bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
 		m_dirIterator.reset(new fs::directory_iterator(*m_path));
 		if (!m_dirIterator)
 		{
-			cemuLog_force("Failed to iterate directory: {}", _pathToUtf8(*m_path));
+			cemuLog_log(LogType::Force, "Failed to iterate directory: {}", _pathToUtf8(*m_path));
 			return false;
 		}
 	}
@@ -175,14 +175,14 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 				cemu_assert_debug(writeAccessRequested);
 				fs = FileStream::createFile2(path);
 				if (!fs)
-					cemuLog_force("FSC: File create failed for {}", _pathToUtf8(path));
+					cemuLog_log(LogType::Force, "FSC: File create failed for {}", _pathToUtf8(path));
 			}
 		}
 		else if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::FILE_ALWAYS_CREATE))
 		{
 			fs = FileStream::createFile2(path);
 			if (!fs)
-				cemuLog_force("FSC: File create failed for {}", _pathToUtf8(path));
+				cemuLog_log(LogType::Force, "FSC: File create failed for {}", _pathToUtf8(path));
 		}
 		else
 		{
@@ -235,14 +235,14 @@ public:
 		if (fs::exists(dirPath))
 		{
 			if (!fs::is_directory(dirPath))
-				cemuLog_force("CreateDir: {} already exists but is not a directory", path);
+				cemuLog_log(LogType::Force, "CreateDir: {} already exists but is not a directory", path);
 			*fscStatus = FSC_STATUS_ALREADY_EXISTS;
 			return false;
 		}
 		std::error_code ec;
 		bool r = fs::create_directories(dirPath, ec);
 		if (!r)
-			cemuLog_force("CreateDir: Failed to create {}", path);
+			cemuLog_log(LogType::Force, "CreateDir: Failed to create {}", path);
 		*fscStatus = FSC_STATUS_OK;
 		return true;
 	}

@@ -43,7 +43,7 @@ bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameP
 		return true;
 	}
 	else
-		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
 	return false;
 }
 
@@ -64,7 +64,7 @@ bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName
 		return true;
 	}
 	else
-		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
 	return false;
 }
 
@@ -94,7 +94,7 @@ bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName,
 	sint32 val = StringHelpers::ToInt(*option_value, defaultValue);
 	if (val < minVal || val > maxVal)
 	{
-		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 		option->value = defaultValue;
 		return false;
 	}
@@ -116,7 +116,7 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 		T val = ConvertString<T>(*option_value);
 		if (val < minVal || val > maxVal)
 		{
-			cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+			cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 			return false;
 		}
 
@@ -125,7 +125,7 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 	}
 	catch(std::exception&)
 	{
-		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 		return false;
 	}	
 }
@@ -175,7 +175,7 @@ void gameProfile_load()
 	ppcThreadQuantum = g_current_game_profile->GetThreadQuantum();
 
 	if (ppcThreadQuantum != GameProfile::kThreadQuantumDefault)
-		cemuLog_force("Thread quantum set to {}", ppcThreadQuantum);
+		cemuLog_log(LogType::Force, "Thread quantum set to {}", ppcThreadQuantum);
 }
 
 bool GameProfile::Load(uint64_t title_id)
@@ -283,7 +283,7 @@ void GameProfile::Save(uint64_t title_id)
 	FileStream* fs = FileStream::createFile2(gameProfilePath);
 	if (!fs)
 	{
-		cemuLog_force("Failed to write game profile");
+		cemuLog_log(LogType::Force, "Failed to write game profile");
 		return;
 	}
 
