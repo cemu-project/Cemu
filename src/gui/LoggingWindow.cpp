@@ -21,7 +21,7 @@ LoggingWindow::LoggingWindow(wxFrame* parent)
 
 		filter_row->Add(new wxStaticText( this, wxID_ANY, _("Filter")), 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-		wxString choices[] = {"Coreinit File-Access", "Coreinit Thread-Synchronization", "Coreinit Memory", "GX2", "Audio", "Input", "Socket", "Save", "H264", "Texture Cache", "OpenGL"};
+		wxString choices[] = {"Unsupported APIs calls", "Coreinit Logging", "Coreinit File-Access", "Coreinit Thread-Synchronization", "Coreinit Memory", "Coreinit MP", "Coreinit Thread", "nn::nfp", "GX2", "Audio", "Input", "Socket", "Save", "H264", "Graphic pack patches", "Texture cache", "Texture readback", "OpenGL debug output", "Vulkan validation layer"};
 		m_filter = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 0 );
 		m_filter->Bind(wxEVT_COMBOBOX, &LoggingWindow::OnFilterChange, this);
 		m_filter->Bind(wxEVT_TEXT, &LoggingWindow::OnFilterChange, this);

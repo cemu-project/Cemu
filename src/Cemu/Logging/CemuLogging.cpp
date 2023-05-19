@@ -33,18 +33,25 @@ struct _LogContext
 
 const std::map<LogType, std::string> g_logging_window_mapping
 {
+	{LogType::UnsupportedAPI, "Unsupported API calls"},
+	{LogType::CoreinitLogging, "Coreinit Logging"},
 	{LogType::CoreinitFile, "Coreinit File-Access"},
-	{LogType::GX2, "GX2"},
 	{LogType::ThreadSync, "Coreinit Thread-Synchronization"},
+	{LogType::CoreinitMem, "Coreinit Memory"},
+	{LogType::CoreinitMP, "Coreinit MP"},
+	{LogType::CoreinitThread, "Coreinit Thread"},
+	{LogType::nn_nfp, "nn::nfp"},
+	{LogType::GX2, "GX2"},
 	{LogType::SoundAPI, "Audio"},
 	{LogType::InputAPI, "Input"},
 	{LogType::Socket, "Socket"},
 	{LogType::Save, "Save"},
-	{LogType::CoreinitMem, "Coreinit Memory"},
 	{LogType::H264, "H264"},
-	{LogType::OpenGLLogging, "OpenGL"},
-	{LogType::TextureCache, "Texture Cache"},
-	{LogType::nn_nfp, "NFP"},
+	{LogType::Patches, "Graphic pack patches"},
+	{LogType::TextureCache, "Texture cache"},
+	{LogType::TextureReadback, "Texture readback"},
+	{LogType::OpenGLLogging, "OpenGL debug output"},
+	{LogType::VulkanValidation, "Vulkan validation layer"},
 };
 
 uint64 cemuLog_getFlag(LogType type)
