@@ -32,12 +32,12 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 
 	if (!iniParser.NextSection())
 	{
-		cemuLog_force("{}: Does not contain any sections", _pathToUtf8(rulesPath));
+		cemuLog_log(LogType::Force, "{}: Does not contain any sections", _pathToUtf8(rulesPath));
 		return;
 	}
 	if (!boost::iequals(iniParser.GetCurrentSectionName(), "Definition"))
 	{
-		cemuLog_force("{}: [Definition] must be the first section", _pathToUtf8(rulesPath));
+		cemuLog_log(LogType::Force, "{}: [Definition] must be the first section", _pathToUtf8(rulesPath));
 		return;
 	}
 
@@ -48,7 +48,7 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 		auto [ptr, ec] = std::from_chars(option_version->data(), option_version->data() + option_version->size(), versionNum);
 		if (ec != std::errc{})
 		{
-			cemuLog_force("{}: Unable to parse version", _pathToUtf8(rulesPath));
+			cemuLog_log(LogType::Force, "{}: Unable to parse version", _pathToUtf8(rulesPath));
 			return;
 		}
 
@@ -58,7 +58,7 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 			return;
 		}
 	}
-	cemuLog_force("{}: Outdated graphic pack", _pathToUtf8(rulesPath));
+	cemuLog_log(LogType::Force, "{}: Outdated graphic pack", _pathToUtf8(rulesPath));
 }
 
 void GraphicPack2::LoadAll()
@@ -265,7 +265,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 	m_version = StringHelpers::ToInt(*option_version, -1);
 	if (m_version < 0)
 	{
-		cemuLog_force(L"{}: Invalid version", m_filename);
+		cemuLog_log(LogType::Force, L"{}: Invalid version", m_filename);
 		throw std::exception();
 	}
 
@@ -277,7 +277,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 		else if (boost::iequals(*option_rendererFilter, "opengl"))
 			m_renderer_api = RendererAPI::OpenGL;
 		else
-			cemuLog_force("Unknown value '{}' for rendererFilter option", *option_rendererFilter);
+			cemuLog_log(LogType::Force, "Unknown value '{}' for rendererFilter option", *option_rendererFilter);
 	}
 
 	auto option_defaultEnabled = rules.FindOption("default");
@@ -301,14 +301,14 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 		else if (boost::iequals(*option_vendorFilter, "apple"))
 			m_gfx_vendor = GfxVendor::Apple;
 		else
-			cemuLog_force("Unknown value '{}' for vendorFilter", *option_vendorFilter);
+			cemuLog_log(LogType::Force, "Unknown value '{}' for vendorFilter", *option_vendorFilter);
 	}
 
 	auto option_path = rules.FindOption("path");
 	if (!option_path)
 	{
 		auto gp_name_log = rules.FindOption("name");
-		cemuLog_force("[Definition] section from '{}' graphic pack must contain option: path", gp_name_log.has_value() ? *gp_name_log : "Unknown");
+		cemuLog_log(LogType::Force, "[Definition] section from '{}' graphic pack must contain option: path", gp_name_log.has_value() ? *gp_name_log : "Unknown");
 		throw std::exception();
 	}
 	m_path = *option_path;
@@ -348,7 +348,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 			const auto preset_name = rules.FindOption("name");
 			if (!preset_name)
 			{
-				cemuLog_force("Graphic pack \"{}\": Preset in line {} skipped because it has no name option defined", m_name, rules.GetCurrentSectionLineNumber());
+				cemuLog_log(LogType::Force, "Graphic pack \"{}\": Preset in line {} skipped because it has no name option defined", m_name, rules.GetCurrentSectionLineNumber());
 				continue;
 			}
 			
@@ -372,7 +372,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 			}
 			catch (const std::exception & ex)
 			{
-				cemuLog_force("Graphic pack \"{}\": Can't parse preset \"{}\": {}", m_name, *preset_name, ex.what());
+				cemuLog_log(LogType::Force, "Graphic pack \"{}\": Can't parse preset \"{}\": {}", m_name, *preset_name, ex.what());
 			}
 		}
 		else if (boost::iequals(currentSectionName, "RAM"))
@@ -386,7 +386,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 				{
 					if (m_version <= 5)
 					{
-						cemuLog_force("Graphic pack \"{}\": [RAM] options are only available for graphic pack version 6 or higher", m_name, optionNameBuf);
+						cemuLog_log(LogType::Force, "Graphic pack \"{}\": [RAM] options are only available for graphic pack version 6 or higher", m_name, optionNameBuf);
 						throw std::exception();
 					}
 
@@ -396,12 +396,12 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 					{
 						if (addrEnd <= addrStart)
 						{
-							cemuLog_force("Graphic pack \"{}\": start address (0x{:08x}) must be greater than end address (0x{:08x}) for {}", m_name, addrStart, addrEnd, optionNameBuf);
+							cemuLog_log(LogType::Force, "Graphic pack \"{}\": start address (0x{:08x}) must be greater than end address (0x{:08x}) for {}", m_name, addrStart, addrEnd, optionNameBuf);
 							throw std::exception();
 						}
 						else if ((addrStart & 0xFFF) != 0 || (addrEnd & 0xFFF) != 0)
 						{
-							cemuLog_force("Graphic pack \"{}\": addresses for %s are not aligned to 0x1000", m_name, optionNameBuf);
+							cemuLog_log(LogType::Force, "Graphic pack \"{}\": addresses for %s are not aligned to 0x1000", m_name, optionNameBuf);
 							throw std::exception();
 						}
 						else
@@ -411,7 +411,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 					}
 					else
 					{
-						cemuLog_force("Graphic pack \"{}\": has invalid syntax for option {}", m_name, optionNameBuf);
+						cemuLog_log(LogType::Force, "Graphic pack \"{}\": has invalid syntax for option {}", m_name, optionNameBuf);
 						throw std::exception();
 					}
 				}
@@ -434,7 +434,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 				const auto it = m_preset_vars.find(kv.first);
 				if (it == m_preset_vars.cend())
 				{
-					cemuLog_force("Graphic pack: \"{}\" contains preset variables which are not defined in the default section", m_name);
+					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains preset variables which are not defined in the default section", m_name);
 					throw std::exception();
 				}
 
@@ -472,7 +472,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 				auto& p2 = kv.second[i + 1];
 				if (p1->variables.size() != p2->variables.size())
 				{
-					cemuLog_force("Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
+					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
 					throw std::exception();
 				}
 
@@ -480,14 +480,14 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 				std::set<std::string> keys2(get_keys(p2->variables).begin(), get_keys(p2->variables).end());
 				if (keys1 != keys2)
 				{
-					cemuLog_force("Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
+					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
 					throw std::exception();
 				}
 
 				if(p1->is_default)
 				{
 					if(has_default)
-						cemuLog_force("Graphic pack: \"{}\" has more than one preset with the default key set for the same category \"{}\"", m_name, p1->name);
+						cemuLog_log(LogType::Force, "Graphic pack: \"{}\" has more than one preset with the default key set for the same category \"{}\"", m_name, p1->name);
 					p1->active = true;
 					has_default = true;
 				}

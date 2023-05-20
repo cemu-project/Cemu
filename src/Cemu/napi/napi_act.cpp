@@ -40,16 +40,16 @@ namespace NAPI
 				sint32 errorCode = StringHelpers::ToInt(errorCodeStr);
 				if (errorCode == 0)
 				{
-					cemuLog_force("Account response with unexpected error code 0");
+					cemuLog_log(LogType::Force, "Account response with unexpected error code 0");
 					result.apiError = NAPI_RESULT::XML_ERROR;
 				}
 				else
 				{
 					result.apiError = NAPI_RESULT::SERVICE_ERROR;
 					result.serviceError = (ACT_ERROR_CODE)errorCode;
-					cemuLog_force("Account response with error code {}", errorCode);
+					cemuLog_log(LogType::Force, "Account response with error code {}", errorCode);
 					if(!errorCodeMsg.empty())
-						cemuLog_force("Message from server: {}", errorCodeMsg);
+						cemuLog_log(LogType::Force, "Message from server: {}", errorCodeMsg);
 				}
 			}
 			else
@@ -212,7 +212,7 @@ namespace NAPI
 		result.apiError = NAPI_RESULT::SUCCESS;
 
 		if (result.token.empty())
-			cemuLog_force("OAuth20/token is empty");
+			cemuLog_log(LogType::Force, "OAuth20/token is empty");
 		sint64 expiration = StringHelpers::ToInt64(expires_in);
 		expiration = std::max(expiration - 30LL, 0LL); // subtract a few seconds to compensate for the web request delay
 
@@ -283,7 +283,7 @@ namespace NAPI
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, titleId, titleVersion);
 		if (!oauthToken.isValid())
 		{
-			cemuLog_force("ACT_GetNexToken(): Failed to retrieve OAuth token");
+			cemuLog_log(LogType::Force, "ACT_GetNexToken(): Failed to retrieve OAuth token");
 			if (oauthToken.apiError == NAPI_RESULT::SERVICE_ERROR)
 			{
 				result.apiError = NAPI_RESULT::SERVICE_ERROR;
@@ -348,7 +348,7 @@ namespace NAPI
 		pugi::xml_node tokenNode = doc.child("nex_token");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain NexToken node");
+			cemuLog_log(LogType::Force, "Response does not contain NexToken node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
@@ -360,11 +360,11 @@ namespace NAPI
 
 		std::memset(&result.nexToken, 0, sizeof(result.nexToken));
 		if (host.size() > 15)
-			cemuLog_force("NexToken response: host field too long");
+			cemuLog_log(LogType::Force, "NexToken response: host field too long");
 		if (nex_password.size() > 64)
-			cemuLog_force("NexToken response: nex_password field too long");
+			cemuLog_log(LogType::Force, "NexToken response: nex_password field too long");
 		if (token.size() > 512)
-			cemuLog_force("NexToken response: token field too long");
+			cemuLog_log(LogType::Force, "NexToken response: token field too long");
 		for (size_t i = 0; i < std::min(host.size(), (size_t)15); i++)
 			result.nexToken.host[i] = host[i];
 		for (size_t i = 0; i < std::min(nex_password.size(), (size_t)64); i++)
@@ -435,7 +435,7 @@ namespace NAPI
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, titleId, titleVersion);
 		if (!oauthToken.isValid())
 		{
-			cemuLog_force("ACT_GetIndependentToken(): Failed to retrieve OAuth token");
+			cemuLog_log(LogType::Force, "ACT_GetIndependentToken(): Failed to retrieve OAuth token");
 			if (oauthToken.apiError == NAPI_RESULT::SERVICE_ERROR)
 			{
 				result.apiError = NAPI_RESULT::SERVICE_ERROR;
@@ -484,7 +484,7 @@ namespace NAPI
 		pugi::xml_node tokenNode = doc.child("service_token");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain service_token node");
+			cemuLog_log(LogType::Force, "Response does not contain service_token node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
@@ -506,7 +506,7 @@ namespace NAPI
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, 0x0005001010001C00, 0);
 		if (!oauthToken.isValid())
 		{
-			cemuLog_force("ACT_ACTConvertNnidToPrincipalId(): Failed to retrieve OAuth token");
+			cemuLog_log(LogType::Force, "ACT_ACTConvertNnidToPrincipalId(): Failed to retrieve OAuth token");
 			if (oauthToken.apiError == NAPI_RESULT::SERVICE_ERROR)
 			{
 				result.apiError = NAPI_RESULT::SERVICE_ERROR;
@@ -558,14 +558,14 @@ namespace NAPI
 		pugi::xml_node tokenNode = doc.child("mapped_ids");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain mapped_ids node");
+			cemuLog_log(LogType::Force, "Response does not contain mapped_ids node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
 		tokenNode = tokenNode.child("mapped_id");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain mapped_id node");
+			cemuLog_log(LogType::Force, "Response does not contain mapped_id node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
@@ -598,7 +598,7 @@ namespace NAPI
 			static bool s_showedLoginError = false;
 			if (!s_showedLoginError)
 			{
-				cemuLog_force("Account login is impossible because the cached password hash is not set");
+				cemuLog_log(LogType::Force, "Account login is impossible because the cached password hash is not set");
 				s_showedLoginError = true;
 			}
 			return false; // password hash not set

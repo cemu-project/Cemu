@@ -470,7 +470,7 @@ LatteCMDPtr LatteCP_itMemWrite(LatteCMDPtr cmd, uint32 nWords)
 	MPTR valuePhysAddr = (word0 & ~3);
 	if (valuePhysAddr == 0)
 	{
-		cemuLog_force("GPU: Invalid itMemWrite to null pointer");
+		cemuLog_log(LogType::Force, "GPU: Invalid itMemWrite to null pointer");
 		return cmd;
 	}
 	uint32be* memPtr = (uint32be*)memory_getPointerFromPhysicalOffset(valuePhysAddr);

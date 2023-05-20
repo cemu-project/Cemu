@@ -1069,8 +1069,8 @@ namespace snd
 		{
 			if (gUnsupportedSoundEffectWarning)
 				return;
-			cemuLog_force("The currently running title is trying to utilize an unsupported audio effect");
-			cemuLog_force("To emulate these correctly, place snd_user.rpl and snduser2.rpl from the original Wii U firmware in /cafeLibs/ folder");
+			cemuLog_log(LogType::Force, "The currently running title is trying to utilize an unsupported audio effect");
+			cemuLog_log(LogType::Force, "To emulate these correctly, place snd_user.rpl and snduser2.rpl from the original Wii U firmware in /cafeLibs/ folder");
 			gUnsupportedSoundEffectWarning = true;
 		}
 
@@ -1104,17 +1104,17 @@ namespace snd
 
 		void AXFXReverbHiInit(AXFXReverbHiData* param)
 		{
-			cemuLog_force("AXFXReverbHiInit - stub");
+			cemuLog_log(LogType::Force, "AXFXReverbHiInit - stub");
 		}
 
 		void AXFXReverbHiSettings(AXFXReverbHiData* param)
 		{
-			cemuLog_force("AXFXReverbHiSettings - stub");
+			cemuLog_log(LogType::Force, "AXFXReverbHiSettings - stub");
 		}
 
 		void AXFXReverbHiShutdown(AXFXReverbHiData* param)
 		{
-			cemuLog_force("AXFXReverbHiShutdown - stub");
+			cemuLog_log(LogType::Force, "AXFXReverbHiShutdown - stub");
 		}
 
 		void AXFXReverbHiCallback(AUXCBSAMPLEDATA* auxSamples, AXFXReverbHiData* reverbHi)
@@ -1133,7 +1133,7 @@ namespace snd
 
 		void AXFXMultiChReverbInit(AXFXMultiChReverbData* param, int ukn2, int ukn3)
 		{
-			cemuLog_force("AXFXMultiChReverbInit (Stubbed)");
+			cemuLog_log(LogType::Force, "AXFXMultiChReverbInit (Stubbed)");
 		}
 
 		void AXFXMultiChReverbSettingsUpdate(AXFXMultiChReverbData* param)

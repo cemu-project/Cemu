@@ -259,5 +259,5 @@ std::span<std::pair<std::string_view, std::string_view>> IniParser::GetAllOption
 void IniParser::PrintWarning(int lineNumber, std::string_view msg, std::string_view lineView)
 {
 	// INI logging is silenced
-	// cemuLog_force("File: {} Line {}: {}", m_name, lineNumber, msg);
+	// cemuLog_log(LogType::Force, "File: {} Line {}: {}", m_name, lineNumber, msg);
 }

@@ -33,7 +33,7 @@ void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumb
 	cemuLog_writeLineToLog(msg, true, true);
 	m_anyErrorTriggered = true;
 
-	if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_PATCHES))
+	if (cemuLog_isLoggingEnabled(LogType::Patches))
 		errorMessages.emplace_back(msg);
 }
 
@@ -51,7 +51,7 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	{
 		cemu_assert_debug(false); // graphic pack should always be set
 	}
-	if (cafeLog_isLoggingFlagEnabled(LOG_TYPE_PATCHES))
+	if (cemuLog_isLoggingEnabled(LogType::Patches))
 	{
 		errorMsg.append("\n \nDetails:\n");
 		for (auto& itr : errorMessages)

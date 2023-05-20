@@ -189,7 +189,7 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 	int res = curl_easy_perform(m_curl);
 	if (res != CURLE_OK)
 	{
-		cemuLog_force("CURL web request failed with error {}. Retrying...", res);
+		cemuLog_log(LogType::Force, "CURL web request failed with error {}. Retrying...", res);
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		// retry
 		res = curl_easy_perform(m_curl);

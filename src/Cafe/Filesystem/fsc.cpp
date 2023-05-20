@@ -541,7 +541,7 @@ void fsc_setFileLength(FSCVirtualFile* fscFile, uint32 newEndOffset)
 	uint32 fileSize = fsc_getFileSize(fscFile);
 	if (!fsc_isWritable(fscFile))
 	{
-		cemuLog_force("TruncateFile called on read-only file");
+		cemuLog_log(LogType::Force, "TruncateFile called on read-only file");
 	}
 	else
 	{

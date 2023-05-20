@@ -326,12 +326,12 @@ bool iosuCrypto_loadCertificate(uint32 id, std::wstring_view mlcSubpath, std::ws
 		pkeyData = FileStream::LoadIntoMemory(pkeyPath);
 		if (!pkeyData || pkeyData->empty())
 		{
-			cemuLog_force("Unable to load private key file {}", pkeyPath.generic_string());
+			cemuLog_log(LogType::Force, "Unable to load private key file {}", pkeyPath.generic_string());
 			return false;
 		}
 		else if ((pkeyData->size() % 16) != 0)
 		{
-			cemuLog_force("Private key file has invalid length. Possibly corrupted? File: {}", pkeyPath.generic_string());
+			cemuLog_log(LogType::Force, "Private key file has invalid length. Possibly corrupted? File: {}", pkeyPath.generic_string());
 			return false;
 		}
 	}

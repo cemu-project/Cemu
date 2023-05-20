@@ -738,7 +738,7 @@ void GraphicPack2::UndoPatchGroups(std::vector<PatchGroup*>& groups, const RPLMo
 
 void GraphicPack2::NotifyModuleLoaded(const RPLModule* rpl)
 {
-	cemuLog_force("Loaded module \'{}\' with checksum 0x{:08x}", rpl->moduleName2, rpl->patchCRC);
+	cemuLog_log(LogType::Force, "Loaded module \'{}\' with checksum 0x{:08x}", rpl->moduleName2, rpl->patchCRC);
 
 	std::lock_guard<std::recursive_mutex> lock(mtx_patches);
 	list_modules.emplace_back(rpl);

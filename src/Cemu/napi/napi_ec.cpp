@@ -336,7 +336,7 @@ namespace NAPI
 				result.accountStatus = NAPI_ECSGetAccountStatus_Result::AccountStatus::UNREGISTERED;
 			else
 			{
-				cemuLog_force("ECS_GetAccountStatus: Account has unknown status code {}", accountStatusStr);
+				cemuLog_log(LogType::Force, "ECS_GetAccountStatus: Account has unknown status code {}", accountStatusStr);
 			}
 		}
 		// extract service URLs

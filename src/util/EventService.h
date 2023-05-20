@@ -56,7 +56,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			cemuLog_force("error when signaling {}: {}", event, ex.what());
+			cemuLog_log(LogType::Force, "error when signaling {}: {}", event, ex.what());
 		}
 	}
 

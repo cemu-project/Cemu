@@ -169,7 +169,7 @@ bool CubebAPI::InitializeStatic()
 {
 	if (cubeb_init(&s_context, "Cemu Cubeb", nullptr))
 	{
-		cemuLog_force("can't create cubeb audio api");
+		cemuLog_log(LogType::Force, "can't create cubeb audio api");
 		return false;
 	}
 	return true;

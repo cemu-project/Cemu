@@ -211,7 +211,7 @@ void InfoLog_TitleLoaded()
 	fs::path effectiveSavePath = getTitleSavePath();
 	std::error_code ec;
 	const bool saveDirExists = fs::exists(effectiveSavePath, ec);
-	cemuLog_force("Save path:   {}{}", _pathToUtf8(effectiveSavePath), saveDirExists ? "" : " (not present)");
+	cemuLog_log(LogType::Force, "Save path:   {}{}", _pathToUtf8(effectiveSavePath), saveDirExists ? "" : " (not present)");
 
 	// log shader cache name
 	cemuLog_log(LogType::Force, "Shader cache file: shaderCache/transferable/{:016x}.bin", titleId);

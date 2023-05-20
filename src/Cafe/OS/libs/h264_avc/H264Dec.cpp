@@ -355,7 +355,7 @@ namespace H264
 				uint32 numByteConsumed = 0;
 				if (!DetermineBufferSizes(data, length, numByteConsumed))
 				{
-					cemuLog_force("H264: Unable to determine picture size. Ignoring decode input");
+					cemuLog_log(LogType::Force, "H264: Unable to determine picture size. Ignoring decode input");
 					decodeResult.frameReady = false;
 					return;
 				}
@@ -397,7 +397,7 @@ namespace H264
 			}
 			else if (status != 0)
 			{
-				cemuLog_force("H264: Failed to decode frame (error 0x{:08x})", status);
+				cemuLog_log(LogType::Force, "H264: Failed to decode frame (error 0x{:08x})", status);
 				decodeResult.frameReady = false;
 				return;
 			}
@@ -901,7 +901,7 @@ namespace H264
 		}
 		else
 		{
-			cemuLog_force("h264Export_H264DECSetParam(): Unsupported parameterId 0x{:08x}\n", paramId);
+			cemuLog_log(LogType::Force, "h264Export_H264DECSetParam(): Unsupported parameterId 0x{:08x}\n", paramId);
 			cemu_assert_unimplemented();
 		}
 		return H264DEC_STATUS::SUCCESS;

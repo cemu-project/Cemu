@@ -1089,7 +1089,7 @@ void MainWindow::OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event)
 	sint32 id = event.GetId();
 	if (id >= loggingIdBase && id < (MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 64))
 	{
-		cafeLog_setLoggingFlagEnable(id - loggingIdBase, event.IsChecked());
+		cemuLog_setFlag(static_cast<LogType>(id - loggingIdBase), event.IsChecked());
 	}
 }
 
@@ -2193,9 +2193,7 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendSeparator();
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), _("&OpenGL debug output"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::OpenGLLogging));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), _("&Vulkan validation layer (slow)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::VulkanValidation));
-#ifdef CEMU_DEBUG_ASSERT
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, _("&Log PPC context for API"), wxEmptyString)->Check(cemuLog_advancedPPCLoggingEnabled());
-#endif
 	m_loggingSubmenu = debugLoggingMenu;
 	// debug->dump submenu
 	wxMenu* debugDumpMenu = new wxMenu;
@@ -2224,9 +2222,7 @@ void MainWindow::RecreateMenu()
 	audioAuxOnly->Check(ActiveSettings::AudioOutputOnlyAux());
 #endif
 
-#ifdef CEMU_DEBUG_ASSERT
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW, _("&Open logging window"));
-#endif
 	m_gdbstub_toggle = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_TOGGLE_GDB_STUB, _("&Launch with GDB stub"), wxEmptyString);
 	m_gdbstub_toggle->Check(g_gdbstub != nullptr);
 	m_gdbstub_toggle->Enable(!m_game_launched);
@@ -2263,8 +2259,8 @@ void MainWindow::RecreateMenu()
 		m_nfcMenu->Enable(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, true);
 		
 		// disable OpenGL logging (currently cant be toggled after OpenGL backend is initialized)
-		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_OPENGL, false);
-		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + LOG_TYPE_VULKAN_VALIDATION, false);
+		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), false);
+		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), false);
 
 		UpdateNFCMenu();
 	}

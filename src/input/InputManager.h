@@ -114,7 +114,7 @@ private:
 		}
 		catch (const std::exception& ex)
 		{
-			cemuLog_force(ex.what());
+			cemuLog_log(LogType::Force, ex.what());
 		}
 	}
 };

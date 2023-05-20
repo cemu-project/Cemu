@@ -407,7 +407,7 @@ namespace coreinit
 		// release held synchronization primitives
 		if (!threadBE->mutexQueue.isEmpty())
 		{
-			cemuLog_force("OSExitThread: Thread is holding mutexes");
+			cemuLog_log(LogType::Force, "OSExitThread: Thread is holding mutexes");
 			while (true)
 			{
 				OSMutex* mutex = threadBE->mutexQueue.getFirst();
@@ -415,7 +415,7 @@ namespace coreinit
 					break;
 				if (mutex->owner != threadBE)
 				{
-					cemuLog_force("OSExitThread: Thread is holding mutex which it doesn't own");
+					cemuLog_log(LogType::Force, "OSExitThread: Thread is holding mutex which it doesn't own");
 					threadBE->mutexQueue.removeMutex(mutex);
 					continue;
 				}
