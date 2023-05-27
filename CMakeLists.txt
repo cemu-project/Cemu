@@ -125,7 +125,16 @@ endif()
 if (UNIX AND NOT APPLE)
 	find_package(X11 REQUIRED)
 	if (ENABLE_WAYLAND)
-		find_package(Wayland REQUIRED)
+		find_package(Wayland REQUIRED Client)
+		find_package(WaylandScanner REQUIRED)
+		find_package(WaylandProtocols 1.15 REQUIRED)
+
+		ecm_add_wayland_client_protocol(WAYLAND_PROTOCOL_SRCS
+			PROTOCOL "${WaylandProtocols_DATADIR}/stable/viewporter/viewporter.xml"
+			BASENAME viewporter)
+		add_library(CemuWaylandProtocols STATIC ${WAYLAND_PROTOCOL_SRCS})
+		target_include_directories(CemuWaylandProtocols PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
+
 		add_compile_definitions(HAS_WAYLAND)
 	endif()
 	find_package(GTK3 REQUIRED)
