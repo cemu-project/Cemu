@@ -251,9 +251,9 @@ void LatteShaderCache_load()
 	LatteShaderCache_handleDeprecatedCacheFiles(pathGeneric, pathGenericPre1_25_0, pathGenericPre1_16_0);
 	// calculate extraVersion for transferable and precompiled shader cache
 	uint32 transferableExtraVersion = SHADER_CACHE_GENERIC_EXTRA_VERSION;
-	fc_shaderCacheGeneric = FileCache::Open(pathGeneric.generic_wstring(), false, transferableExtraVersion); // legacy extra version (1.25.0 - 1.25.1b)
+	fc_shaderCacheGeneric = FileCache::Open(pathGeneric, false, transferableExtraVersion); // legacy extra version (1.25.0 - 1.25.1b)
 	if(!fc_shaderCacheGeneric)
-		fc_shaderCacheGeneric = FileCache::Open(pathGeneric.generic_wstring(), true, LatteShaderCache_getShaderCacheExtraVersion(cacheTitleId));
+		fc_shaderCacheGeneric = FileCache::Open(pathGeneric, true, LatteShaderCache_getShaderCacheExtraVersion(cacheTitleId));
 	if(!fc_shaderCacheGeneric)
 	{
 		// no shader cache available yet
@@ -376,6 +376,8 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 
 	while (true)
 	{
+        if (Latte_GetStopSignal())
+            break; // thread stop requested, cancel shader loading
 		bool r = loadUpdateFunc();
 		if (!r)
 			break;
@@ -503,6 +505,8 @@ void LatteShaderCache_loadVulkanPipelineCache(uint64 cacheTitleId)
 	g_shaderCacheLoaderState.loadedPipelines = 0;
 	LatteShaderCache_ShowProgress(LatteShaderCache_updatePipelineLoadingProgress, true);
 	pipelineCache.EndLoading();
+    if(Latte_GetStopSignal())
+        LatteThread_Exit();
 }
 
 bool LatteShaderCache_updatePipelineLoadingProgress()

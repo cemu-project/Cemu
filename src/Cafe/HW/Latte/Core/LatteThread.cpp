@@ -196,7 +196,7 @@ int Latte_ThreadEntry()
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		LatteThread_HandleOSScreen();
-		if (!Latte_IsActive())
+		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 	}
 	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
@@ -232,9 +232,9 @@ void Latte_Stop()
 	sLatteThread.join();
 }
 
-bool Latte_IsActive()
+bool Latte_GetStopSignal()
 {
-	return sLatteThreadRunning;
+	return !sLatteThreadRunning;
 }
 
 void LatteThread_Exit()

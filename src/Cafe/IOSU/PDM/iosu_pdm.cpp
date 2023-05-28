@@ -369,7 +369,8 @@ namespace iosu
 		{
 			sPDMRequestExitThread.store(true);
 			sPDMSem.increment();
-			sPDMTimeTrackingThread.join();
+            if(sPDMTimeTrackingThread.joinable())
+    			sPDMTimeTrackingThread.join();
 		}
 
 	};
