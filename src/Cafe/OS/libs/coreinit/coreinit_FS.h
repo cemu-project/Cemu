@@ -148,7 +148,7 @@ namespace coreinit
 
 	static_assert(sizeof(FSAsyncResult) == 0x28);
 
-	struct FSCmdBlockBody_t
+	struct FSAShimBuffer
 	{
 		iosu::fsa::FSAIpcCommand ipcData;
 		uint8 ukn0820[0x10];
@@ -190,6 +190,11 @@ namespace coreinit
 		uint32 ukn092C;
 		uint32 ukn0930;
 		uint32 ukn0934;
+	};
+
+	struct FSCmdBlockBody_t
+	{
+		FSAShimBuffer fsaShimBuffer;
 		/* +0x0938 */ MEMPTR<FSClientBody_t> fsClientBody;
 		/* +0x093C */ uint32 statusCode;	  // not a status code but rather the state? Uses weird values for some reason
 		/* +0x0940 */ uint32be cancelState;	  // bitmask. Bit 0 -> If set command has been canceled
