@@ -486,9 +486,56 @@ namespace coreinit
 
 	FS_RESULT _FSAStatusToFSStatus(FSA_RESULT err)
 	{
-		// todo
-		// currently /dev/fsa uses FS status codes internally. We should refactor everything to use FSA error codes (which are compatible with IOS_ERROR) and then translate them here to FS status
-		return (FS_RESULT)err;
+		if ((int)err > 0)
+		{
+			return (FS_RESULT)err;
+		}
+		switch (err)
+		{
+		case FSA_RESULT::SUCCESS:
+		{
+			return FS_RESULT::SUCCESS;
+		}
+		case FSA_RESULT::END_DIR:
+		case FSA_RESULT::END_FILE:
+		{
+			return FS_RESULT::END_ITERATION;
+		}
+		case FSA_RESULT::ALREADY_EXISTS:
+		{
+			return FS_RESULT::ALREADY_EXISTS;
+		}
+		case FSA_RESULT::NOT_FOUND:
+		{
+			return FS_RESULT::NOT_FOUND;
+		}
+		case FSA_RESULT::PERMISSION_ERROR:
+		{
+			return FS_RESULT::PERMISSION_ERROR;
+		}
+		case FSA_RESULT::NOT_FILE:
+		{
+			return FS_RESULT::NOT_FILE;
+		}
+		case FSA_RESULT::NOT_DIR:
+		{
+			return FS_RESULT::NOT_DIR;
+		}
+		case FSA_RESULT::MAX_FILES:
+		case FSA_RESULT::MAX_DIRS:
+		{
+			return FS_RESULT::MAX_HANDLES;
+		}
+		case FSA_RESULT::INVALID_CLIENT_HANDLE:
+		case FSA_RESULT::INVALID_FILE_HANDLE:
+		case FSA_RESULT::INVALID_DIR_HANDLE:
+		case FSA_RESULT::FATAL_ERROR:
+		{
+			return FS_RESULT::FATAL_ERROR;
+		}
+		}
+		cemu_assert_unimplemented();
+		return FS_RESULT::FATAL_ERROR;
 	}
 
 	void __FSCmdSubmitResult(FSCmdBlockBody_t* fsCmdBlockBody, FS_RESULT result)

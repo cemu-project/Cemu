@@ -4,27 +4,34 @@ enum class FS_RESULT : sint32 // aka FSStatus
 {
 	SUCCESS = 0,
 	END_ITERATION = -2, // used by FSGetMountSource / FSGetMountSourceNext to indicate when last element was reached
-	FATAL_ERROR = -0x400,
-
+	MAX_HANDLES = -3,
 	ALREADY_EXISTS = -5,
 	NOT_FOUND = -6,
 	NOT_FILE = -7,
 	NOT_DIR = -8,
 	PERMISSION_ERROR = -10,
 
-	INVALID_CLIENT_HANDLE = -0x30000 - 37,
-
+	FATAL_ERROR = -0x400,
 	ERR_PLACEHOLDER = -9999, // used when exact error code has yet to be determined
 };
 
 enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 {
 	SUCCESS = 0,
-	INVALID_CLIENT_HANDLE = -0x30000 - 37,
-	INVALID_HANDLE_UKN38 = -0x30000 - 38,
+	END_DIR = -0x30000 - 0x04,
+	END_FILE = -0x30000 - 0x05,
+	MAX_FILES = -0x30000 - 0x13,
+	MAX_DIRS = -0x30000 - 0x14,
+	ALREADY_EXISTS = -0x30000 - 0x16,
+	NOT_FOUND = -0x30000 - 0x17,
+	PERMISSION_ERROR = -0x30000 - 0x1A,
+	INVALID_CLIENT_HANDLE = -0x30000 - 0x25,
+	INVALID_FILE_HANDLE = -0x30000 - 0x26,
+	INVALID_DIR_HANDLE = -0x30000 - 0x27,
+	NOT_FILE = -0x30000 - 0x28,
+	NOT_DIR = -0x30000 - 0x29,
 	FATAL_ERROR = -0x30000 - 0x400,
 };
-// todo - error handling in the IOSU part is pretty hacky right now and we use FS_RESULT in most places which we shouldn't be doing. Rework it
 
 using FSResHandle = sint32;
 using FSFileHandle2 = FSResHandle;
