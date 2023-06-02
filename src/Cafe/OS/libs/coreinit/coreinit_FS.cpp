@@ -1,3 +1,4 @@
+#include <OS/RPL/rpl.h>
 #include "config/ActiveSettings.h"
 #include "Cafe/OS/libs/coreinit/coreinit_SystemInfo.h"
 #include "Cafe/OS/common/OSCommon.h"
@@ -438,16 +439,21 @@ namespace coreinit
 
 	void __FSAIoctlResponseCallback(PPCInterpreter_t* hCPU);
 
-	void __FSAIPCSubmitCommandAsync(FSAShimBuffer* shimBuffer, const MEMPTR<void>& callback, void* context)
+	void __FSAIPCSubmitCommandAsync(iosu::fsa::FSAShimBuffer* shimBuffer, const MEMPTR<void>& callback, void* context)
 	{
 		if (shimBuffer->ipcReqType == 0)
 		{
-			IOS_ERROR r = IOS_IoctlAsync(shimBuffer->fsaDevHandle, shimBuffer->operationType, shimBuffer, 0x520, (uint8*)shimBuffer + 0x580, 0x293, callback, context);
+			IOS_ERROR r = IOS_IoctlAsync(shimBuffer->fsaDevHandle, shimBuffer->operationType, &shimBuffer->request, sizeof(shimBuffer->request), &shimBuffer->response, sizeof(shimBuffer->response), callback, context);
+			cemu_assert(!IOS_ResultIsError(r));
+		}
+		else if (shimBuffer->ipcReqType == 1)
+		{
+			IOS_ERROR r = IOS_IoctlvAsync(shimBuffer->fsaDevHandle, shimBuffer->operationType, shimBuffer->ioctlvVecIn, shimBuffer->ioctlvVecOut, shimBuffer->ioctlvVec, callback, context);
 			cemu_assert(!IOS_ResultIsError(r));
 		}
 		else
 		{
-			cemu_assert_unimplemented(); // IOS_IoctlvAsync
+			cemu_assert_error();
 		}
 	}
 
@@ -469,9 +475,69 @@ namespace coreinit
 		FSUnlockMutex();
 	}
 
+	void __FSQueueDefaultFinishFunc(FSCmdBlockBody_t* fsCmdBlockBody, FS_RESULT result)
+	{
+		if (fsCmdBlockBody->fsaShimBuffer.operationType == FSA_CMD_OPERATION_TYPE_OPENFILE)
+		{
+			*fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = fsCmdBlockBody->fsaShimBuffer.response.cmdOpenFile.fileHandleOutput;
+		}
+		else if (fsCmdBlockBody->fsaShimBuffer.operationType == FSA_CMD_OPERATION_TYPE_GETPOS)
+		{
+			*fsCmdBlockBody->returnValues.cmdGetPosFile.filePosPtr = fsCmdBlockBody->fsaShimBuffer.response.cmdGetPosFile.filePos;
+		}
+		else if (fsCmdBlockBody->fsaShimBuffer.operationType == FSA_CMD_OPERATION_TYPE_OPENDIR)
+		{
+			*fsCmdBlockBody->returnValues.cmdOpenDir.handlePtr = fsCmdBlockBody->fsaShimBuffer.response.cmdOpenDir.dirHandleOutput;
+		}
+		else if (fsCmdBlockBody->fsaShimBuffer.operationType == FSA_CMD_OPERATION_TYPE_READDIR)
+		{
+			*fsCmdBlockBody->returnValues.cmdReadDir.dirEntryPtr = fsCmdBlockBody->fsaShimBuffer.response.cmdReadDir.dirEntry;
+		}
+		else if (fsCmdBlockBody->fsaShimBuffer.operationType == FSA_CMD_OPERATION_TYPE_GETCWD)
+		{
+			auto transferSize = fsCmdBlockBody->returnValues.cmdGetCwd.transferSize;
+			if (transferSize < 0 && transferSize > sizeof(fsCmdBlockBody->fsaShimBuffer.response.cmdGetCWD.path))
+			{
+				cemu_assert_error();
+			}
+			memcpy(fsCmdBlockBody->returnValues.cmdGetCwd.pathPtr, fsCmdBlockBody->fsaShimBuffer.response.cmdGetCWD.path, transferSize);
+		}
+		else if (fsCmdBlockBody->fsaShimBuffer.operationType == FSA_CMD_OPERATION_TYPE_GETSTATFILE)
+		{
+			*((FSStat_t*)fsCmdBlockBody->returnValues.cmdStatFile.resultPtr.GetPtr()) = fsCmdBlockBody->fsaShimBuffer.response.cmdStatFile.statOut;
+		}
+		else if (fsCmdBlockBody->fsaShimBuffer.operationType == FSA_CMD_OPERATION_TYPE_QUERYINFO)
+		{
+			if (fsCmdBlockBody->fsaShimBuffer.request.cmdQueryInfo.queryType == FSA_QUERY_TYPE_FREESPACE)
+			{
+				*((uint64be*)fsCmdBlockBody->returnValues.cmdQueryInfo.queryResultPtr.GetPtr()) = fsCmdBlockBody->fsaShimBuffer.response.cmdQueryInfo.queryFreeSpace.freespace;
+			}
+			else if (fsCmdBlockBody->fsaShimBuffer.request.cmdQueryInfo.queryType == FSA_QUERY_TYPE_STAT)
+			{
+				*((FSStat_t*)fsCmdBlockBody->returnValues.cmdQueryInfo.queryResultPtr.GetPtr()) = fsCmdBlockBody->fsaShimBuffer.response.cmdQueryInfo.queryStat.stat;
+			}
+			else
+			{
+				cemu_assert_unimplemented();
+			}
+		}
+		else
+		{
+			cemu_assert_unimplemented();
+		}
+	}
+
+	void export___FSQueueDefaultFinishFunc(PPCInterpreter_t* hCPU)
+	{
+		ppcDefineParamPtr(cmd, FSCmdBlockBody_t, 0);
+		FS_RESULT result = (FS_RESULT)PPCInterpreter_getCallParamU32(hCPU, 1);
+		__FSQueueDefaultFinishFunc(cmd, static_cast<FS_RESULT>(result));
+		osLib_returnFromFunction(hCPU, 0);
+	}
+
 	void __FSQueueCmd(FSCmdQueue* cmdQueue, FSCmdBlockBody_t* fsCmdBlockBody, MPTR finishCmdFunc)
 	{
-		fsCmdBlockBody->cmdFinishFuncMPTR = _swapEndianU32(finishCmdFunc);
+		fsCmdBlockBody->cmdFinishFuncMPTR = finishCmdFunc;
 		FSLockMutex();
 		fsCmdBlockBody->statusCode = _swapEndianU32(FSA_CMD_STATUS_CODE_D900A22);
 		__FSQueueCmdByPriority(cmdQueue, fsCmdBlockBody, true);
@@ -603,6 +669,13 @@ namespace coreinit
 		cmdQueue.numCommandsInFlight -= 1;
 		cmdQueue.queueFlags = cmdQueue.queueFlags & ~FSCmdQueue::QUEUE_FLAG::IS_FULL;
 		FSUnlockMutex();
+
+		if (cmd->cmdFinishFuncMPTR)
+		{
+			if (cmd->cmdFinishFuncMPTR != FS_CB_PLACEHOLDER_FINISHCMD)
+				PPCCoreCallback(MEMPTR<void>(cmd->cmdFinishFuncMPTR), cmd, fsStatus);
+		}
+
 		__FSCmdSubmitResult(cmd, fsStatus);
 		__FSUpdateQueue(&cmd->fsClientBody->fsCmdQueue);
 		osLib_returnFromFunction(hCPU, 0);
@@ -720,9 +793,8 @@ namespace coreinit
 		}
 	}
 
-	FSA_RESULT __FSPrepareCmd_OpenFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, char* path, char* mode, uint32 createMode, uint32 openFlags, uint32 preallocSize)
+	FSA_RESULT __FSPrepareCmd_OpenFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, char* path, char* mode, uint32 createMode, uint32 openFlags, uint32 preallocSize)
 	{
-		fsaShimBuffer->fsCmdBlockBodyMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer));
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 		if (path == NULL)
@@ -731,7 +803,6 @@ namespace coreinit
 			return FSA_RESULT::INVALID_PARAM;
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->ipcData.cmdOpenFile.fileHandleOutput = _swapEndianU32(0xFFFFFFFF);
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_OPENFILE;
 		// path
 		size_t pathLen = strlen((char*)path);
@@ -741,9 +812,9 @@ namespace coreinit
 			pathLen = FSA_CMD_PATH_MAX_LENGTH - 1;
 		}
 		for (sint32 i = 0; i < pathLen; i++)
-			fsaShimBuffer->ipcData.cmdOpenFile.path[i] = path[i];
+			fsaShimBuffer->request.cmdOpenFile.path[i] = path[i];
 		for (size_t i = pathLen; i < FSA_CMD_PATH_MAX_LENGTH; i++)
-			fsaShimBuffer->ipcData.cmdOpenFile.path[i] = '\0';
+			fsaShimBuffer->request.cmdOpenFile.path[i] = '\0';
 		// mode
 		size_t modeLen = strlen((char*)mode);
 		if (modeLen >= 12)
@@ -752,28 +823,31 @@ namespace coreinit
 			modeLen = 12 - 1;
 		}
 		for (sint32 i = 0; i < modeLen; i++)
-			fsaShimBuffer->ipcData.cmdOpenFile.mode[i] = mode[i];
+			fsaShimBuffer->request.cmdOpenFile.mode[i] = mode[i];
 		for (size_t i = modeLen; i < 12; i++)
-			fsaShimBuffer->ipcData.cmdOpenFile.mode[i] = '\0';
+			fsaShimBuffer->request.cmdOpenFile.mode[i] = '\0';
 		// createMode
-		fsaShimBuffer->ipcData.cmdOpenFile.createMode = createMode;
+		fsaShimBuffer->request.cmdOpenFile.createMode = createMode;
 		// openFlags
-		fsaShimBuffer->ipcData.cmdOpenFile.openFlags = openFlags;
+		fsaShimBuffer->request.cmdOpenFile.openFlags = openFlags;
 		// preallocSize
-		fsaShimBuffer->ipcData.cmdOpenFile.preallocSize = preallocSize;
+		fsaShimBuffer->request.cmdOpenFile.preallocSize = preallocSize;
+
+		fsaShimBuffer->response.cmdOpenFile.fileHandleOutput = 0xFFFFFFFF;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
-	sint32 FSOpenFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandleDepr_t* fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSOpenFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandleDepr_t* outFileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
-		if (fileHandle == nullptr || path == nullptr || mode == nullptr)
+		if (outFileHandle == nullptr || path == nullptr || mode == nullptr)
 			return -0x400;
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fileHandle));
+		fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = &outFileHandle->fileHandle;
 		fsError = (FSStatus)__FSPrepareCmd_OpenFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path, mode, 0x660, 0, 0);
 		if (fsError != (FSStatus)FS_RESULT::SUCCESS)
 			return fsError;
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -785,7 +859,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
-	sint32 FSOpenFileExAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, uint32 createMode, uint32 openFlag, uint32 preallocSize, FSFileHandleDepr_t* fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSOpenFileExAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, uint32 createMode, uint32 openFlag, uint32 preallocSize, FSFileHandleDepr_t* outFileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		if (openFlag != 0)
 		{
@@ -794,13 +868,13 @@ namespace coreinit
 		}
 
 		_FSCmdIntro();
-		if (fileHandle == nullptr || path == nullptr || mode == nullptr)
+		if (outFileHandle == nullptr || path == nullptr || mode == nullptr)
 			return -0x400;
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fileHandle));
+		fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = &outFileHandle->fileHandle;
 		fsError = (FSStatus)__FSPrepareCmd_OpenFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path, mode, createMode, openFlag, preallocSize);
 		if (fsError != (FSStatus)FS_RESULT::SUCCESS)
 			return fsError;
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -812,7 +886,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
-	FSA_RESULT __FSPrepareCmd_CloseFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle)
+	FSA_RESULT __FSPrepareCmd_CloseFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle)
 	{
 		if (fsaShimBuffer == nullptr)
 		{
@@ -821,7 +895,7 @@ namespace coreinit
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_CLOSEFILE;
-		fsaShimBuffer->ipcData.cmdCloseFile.fileHandle = fileHandle;
+		fsaShimBuffer->request.cmdCloseFile.fileHandle = fileHandle;
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -841,9 +915,8 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
-	FSA_RESULT __FSPrepareCmd_ReadFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, void* dest, uint32 uknR6, uint32 transferSizeUknAligned, uint32 filePos, uint32 fileHandle, uint32 flag)
+	FSA_RESULT __FSPrepareCmd_ReadFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, void* dest, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag)
 	{
-		fsaShimBuffer->fsCmdBlockBodyMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer));
 		if (fsaShimBuffer == NULL || dest == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 		MPTR destMPTR = memory_getVirtualOffsetFromPointer(dest);
@@ -851,23 +924,28 @@ namespace coreinit
 			return FSA_RESULT::INVALID_ALIGNMENT;
 
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
-		fsaShimBuffer->ipcReqType = 0; // TODO: This should be 1 but in Cemu ReadFile is implemented as a IOCTL instead of IOCTLV
-		fsaShimBuffer->fsCmdBlockBodyMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer));
-		fsaShimBuffer->ipcData.cmdDefault.fileHandle = _swapEndianU32(fileHandle);
-		fsaShimBuffer->ukn0898 = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer) + 0x580);
-		fsaShimBuffer->ipcData.cmdDefault.ukn0008 = _swapEndianU32(uknR6);
-		fsaShimBuffer->ipcData.cmdDefault.ukn000C = _swapEndianU32(transferSizeUknAligned);
-		uint32 fullTransferSize = transferSizeUknAligned * uknR6;
-		fsaShimBuffer->ukn090B = 2; // byte
-		fsaShimBuffer->ukn089C = _swapEndianU32(0x293);
-		fsaShimBuffer->ukn0890 = _swapEndianU32(fullTransferSize);
-		fsaShimBuffer->ukn0884 = _swapEndianU32(0x520);
-		fsaShimBuffer->destBuffer88CMPTR = _swapEndianU32(destMPTR);
-		fsaShimBuffer->ukn090A = 1;
+		fsaShimBuffer->ipcReqType = 1;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_READ;
-		fsaShimBuffer->ipcData.cmdDefault.destBufferMPTR = _swapEndianU32(destMPTR);
-		fsaShimBuffer->ipcData.cmdDefault.transferFilePos = _swapEndianU32(filePos);
-		fsaShimBuffer->ipcData.cmdDefault.cmdFlag = _swapEndianU32(flag);
+
+		fsaShimBuffer->ioctlvVecIn = 1;
+		fsaShimBuffer->ioctlvVecOut = 2;
+
+		fsaShimBuffer->ioctlvVec[0].baseVirt = fsaShimBuffer;
+		fsaShimBuffer->ioctlvVec[0].size = sizeof(iosu::fsa::FSARequest);
+
+		fsaShimBuffer->ioctlvVec[1].baseVirt = destMPTR;
+		fsaShimBuffer->ioctlvVec[1].size = size * count;
+
+		fsaShimBuffer->ioctlvVec[2].baseVirt = &fsaShimBuffer->response;
+		fsaShimBuffer->ioctlvVec[2].size = sizeof(iosu::fsa::FSAResponse);
+
+		fsaShimBuffer->request.cmdReadFile.dest = dest;
+		fsaShimBuffer->request.cmdReadFile.size = size;
+		fsaShimBuffer->request.cmdReadFile.count = count;
+		fsaShimBuffer->request.cmdReadFile.filePos = filePos;
+		fsaShimBuffer->request.cmdReadFile.fileHandle = fileHandle;
+		fsaShimBuffer->request.cmdReadFile.flag = flag;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -886,12 +964,12 @@ namespace coreinit
 			return -0x400;
 		}
 		uint32 transferSize = (uint32)transferSizeS64;
-		fsCmdBlockBody->transferSize = _swapEndianU32(transferSize);
-		fsCmdBlockBody->transferElemSize = _swapEndianU32(size);
-		fsCmdBlockBody->uknVal094C = _swapEndianU32(0);
+		fsCmdBlockBody->returnValues.cmdReadFile.transferSize = _swapEndianU32(transferSize);
+		fsCmdBlockBody->returnValues.cmdReadFile.transferElemSize = _swapEndianU32(size);
+		fsCmdBlockBody->returnValues.cmdReadFile.uknVal094C = _swapEndianU32(0);
 		if (transferSize < 0x10)
 			transferSize = 0x10;
-		fsCmdBlockBody->uknVal0954 = _swapEndianU32(transferSize);
+		fsCmdBlockBody->returnValues.cmdReadFile.uknVal0954 = transferSize;
 		if (usePos)
 			flag |= FSA_CMD_FLAG_SET_POS;
 		else
@@ -932,33 +1010,37 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_WriteFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, void* dest, uint32 uknR6, uint32 transferSizeUknAligned, uint32 filePos, uint32 fileHandle, uint32 flag)
+	FSA_RESULT __FSPrepareCmd_WriteFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, void* dest, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag)
 	{
-		fsaShimBuffer->fsCmdBlockBodyMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer));
 		if (fsaShimBuffer == NULL || dest == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 		MPTR destMPTR = memory_getVirtualOffsetFromPointer(dest);
 		if ((destMPTR & 0x3F) != 0)
 			return FSA_RESULT::INVALID_ALIGNMENT;
+
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
-		fsaShimBuffer->ipcReqType = 0;							  // TODO: This should be 1 but in Cemu WriteFile is implemented as a IOCTL instead of IOCTLV
-		cemu_assert_debug((uknR6 * transferSizeUknAligned) != 0); // todo: do zero-sized writes need special treatment?
-		fsaShimBuffer->fsCmdBlockBodyMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer));
-		fsaShimBuffer->ipcData.cmdDefault.fileHandle = _swapEndianU32(fileHandle);
-		fsaShimBuffer->ukn0898 = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer) + 0x580); // verified
-		fsaShimBuffer->ipcData.cmdDefault.ukn0008 = _swapEndianU32(uknR6);
-		fsaShimBuffer->ipcData.cmdDefault.ukn000C = _swapEndianU32(transferSizeUknAligned);
-		uint32 fullTransferSize = transferSizeUknAligned * uknR6;
-		fsaShimBuffer->ukn090B = 1; // byte - verified (note: This member holds 2 for read operations)
-		fsaShimBuffer->ukn089C = _swapEndianU32(0x293);
-		fsaShimBuffer->ukn0890 = _swapEndianU32(fullTransferSize);
-		fsaShimBuffer->ukn0884 = _swapEndianU32(0x520); // verified
-		fsaShimBuffer->destBuffer88CMPTR = _swapEndianU32(destMPTR);
-		fsaShimBuffer->ukn090A = 1;
+		fsaShimBuffer->ipcReqType = 1;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_WRITE;
-		fsaShimBuffer->ipcData.cmdDefault.destBufferMPTR = _swapEndianU32(destMPTR);
-		fsaShimBuffer->ipcData.cmdDefault.transferFilePos = _swapEndianU32(filePos);
-		fsaShimBuffer->ipcData.cmdDefault.cmdFlag = _swapEndianU32(flag);
+
+		fsaShimBuffer->ioctlvVecIn = 2;
+		fsaShimBuffer->ioctlvVecOut = 1;
+
+		fsaShimBuffer->ioctlvVec[0].baseVirt = fsaShimBuffer;
+		fsaShimBuffer->ioctlvVec[0].size = sizeof(iosu::fsa::FSARequest);
+
+		fsaShimBuffer->ioctlvVec[1].baseVirt = destMPTR;
+		fsaShimBuffer->ioctlvVec[1].size = size * count;
+
+		fsaShimBuffer->ioctlvVec[2].baseVirt = &fsaShimBuffer->response;
+		fsaShimBuffer->ioctlvVec[2].size = sizeof(iosu::fsa::FSAResponse);
+
+		fsaShimBuffer->request.cmdWriteFile.dest = dest;
+		fsaShimBuffer->request.cmdWriteFile.size = size;
+		fsaShimBuffer->request.cmdWriteFile.count = count;
+		fsaShimBuffer->request.cmdWriteFile.filePos = filePos;
+		fsaShimBuffer->request.cmdWriteFile.fileHandle = fileHandle;
+		fsaShimBuffer->request.cmdWriteFile.flag = flag;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -975,10 +1057,11 @@ namespace coreinit
 			return -0x400;
 		}
 		uint32 transferSize = (uint32)transferSizeS64;
-		fsCmdBlockBody->transferSize = _swapEndianU32(transferSize);
-		fsCmdBlockBody->transferElemSize = _swapEndianU32(size);
-		fsCmdBlockBody->uknVal094C = _swapEndianU32(0);
-		fsCmdBlockBody->uknVal0954 = _swapEndianU32(transferSize);
+		// TODO: remove? currently not even used.
+		fsCmdBlockBody->returnValues.cmdWriteFile.transferSize = transferSize;
+		fsCmdBlockBody->returnValues.cmdWriteFile.transferElemSize = size;
+		fsCmdBlockBody->returnValues.cmdWriteFile.uknVal094C = 0;
+		fsCmdBlockBody->returnValues.cmdWriteFile.uknVal0954 = transferSize;
 		if (useFilePos)
 			flag |= FSA_CMD_FLAG_SET_POS;
 		else
@@ -1017,15 +1100,15 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_SetPosFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle, uint32 filePos)
+	FSA_RESULT __FSPrepareCmd_SetPosFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle, uint32 filePos)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->ipcData.cmdDefault.destBufferMPTR = _swapEndianU32(fileHandle);
-		fsaShimBuffer->ipcData.cmdDefault.ukn0008 = _swapEndianU32(filePos);
+		fsaShimBuffer->request.cmdSetPosFile.fileHandle = fileHandle;
+		fsaShimBuffer->request.cmdSetPosFile.filePos = filePos;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_SETPOS;
 		return FSA_RESULT::SUCCESS;
 	}
@@ -1049,13 +1132,13 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_GetPosFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle)
+	FSA_RESULT __FSPrepareCmd_GetPosFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->ipcData.cmdDefault.destBufferMPTR = _swapEndianU32(fileHandle);
+		fsaShimBuffer->request.cmdGetPosFile.fileHandle = fileHandle;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_GETPOS;
 		return FSA_RESULT::SUCCESS;
 	}
@@ -1064,11 +1147,11 @@ namespace coreinit
 	{
 		// games using this: Darksiders Warmastered Edition
 		_FSCmdIntro();
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(returnedFilePos));
+		fsCmdBlockBody->returnValues.cmdGetPosFile.filePosPtr = returnedFilePos;
 		fsError = (FSStatus)__FSPrepareCmd_GetPosFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle);
 		if (fsError != (FSStatus)FS_RESULT::SUCCESS)
 			return fsError;
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -1080,9 +1163,8 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_OpenDir(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, char* path)
+	FSA_RESULT __FSPrepareCmd_OpenDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, char* path)
 	{
-		fsaShimBuffer->fsCmdBlockBodyMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer));
 		if (fsaShimBuffer == nullptr)
 			return FSA_RESULT::INVALID_BUFFER;
 		if (path == nullptr)
@@ -1090,9 +1172,8 @@ namespace coreinit
 
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->fsCmdBlockBodyMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsaShimBuffer));
-		fsaShimBuffer->ipcData.cmdOpenDir.dirHandleOutput = -1;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_OPENDIR;
+
 		// path
 		sint32 pathLen = (sint32)strlen((char*)path);
 		if (pathLen >= FSA_CMD_PATH_MAX_LENGTH)
@@ -1101,9 +1182,12 @@ namespace coreinit
 			pathLen = FSA_CMD_PATH_MAX_LENGTH - 1;
 		}
 		for (sint32 i = 0; i < pathLen; i++)
-			fsaShimBuffer->ipcData.cmdOpenDir.path[i] = path[i];
+			fsaShimBuffer->request.cmdOpenDir.path[i] = path[i];
 		for (sint32 i = pathLen; i < FSA_CMD_PATH_MAX_LENGTH; i++)
-			fsaShimBuffer->ipcData.cmdOpenDir.path[i] = '\0';
+			fsaShimBuffer->request.cmdOpenDir.path[i] = '\0';
+
+		fsaShimBuffer->response.cmdOpenDir.dirHandleOutput = -1;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1111,11 +1195,11 @@ namespace coreinit
 	{
 		_FSCmdIntro();
 		cemu_assert(dirHandleOut && path);
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(dirHandleOut.GetMPTR());
+		fsCmdBlockBody->returnValues.cmdOpenDir.handlePtr = dirHandleOut.GetMPTR();
 		fsError = (FSStatus)__FSPrepareCmd_OpenDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path);
 		if (fsError != (FSStatus)FS_RESULT::SUCCESS)
 			return fsError;
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -1127,14 +1211,14 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_ReadDir(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSDirHandle2 dirHandle)
+	FSA_RESULT __FSPrepareCmd_ReadDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSDirHandle2 dirHandle)
 	{
 		if (fsaShimBuffer == nullptr)
 			return FSA_RESULT::INVALID_BUFFER;
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_READDIR;
-		fsaShimBuffer->ipcData.cmdReadDir.dirHandle = dirHandle;
+		fsaShimBuffer->request.cmdReadDir.dirHandle = dirHandle;
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1142,8 +1226,8 @@ namespace coreinit
 	{
 		_FSCmdIntro();
 		__FSPrepareCmd_ReadDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirHandle);
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(dirEntryOut));
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		fsCmdBlockBody->returnValues.cmdReadDir.dirEntryPtr = dirEntryOut;
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -1155,14 +1239,14 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_CloseDir(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSDirHandle2 dirHandle)
+	FSA_RESULT __FSPrepareCmd_CloseDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSDirHandle2 dirHandle)
 	{
 		if (fsaShimBuffer == nullptr)
 			return FSA_RESULT::INVALID_BUFFER;
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_CLOSEDIR;
-		fsaShimBuffer->ipcData.cmdCloseDir.dirHandle = dirHandle;
+		fsaShimBuffer->request.cmdCloseDir.dirHandle = dirHandle;
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1182,18 +1266,19 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_AppendFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle, uint32 size, uint32 count, uint32 uknParam)
+	FSA_RESULT __FSPrepareCmd_AppendFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle, uint32 size, uint32 count, uint32 uknParam)
 	{
 		if (fsaShimBuffer == nullptr)
 			return FSA_RESULT::INVALID_BUFFER;
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->ipcData.cmdAppendFile.fileHandle = _swapEndianU32(fileHandle);
-		fsaShimBuffer->ipcData.cmdAppendFile.count = _swapEndianU32(size);
-		fsaShimBuffer->ipcData.cmdAppendFile.size = _swapEndianU32(count);
-		fsaShimBuffer->ipcData.cmdAppendFile.uknParam = _swapEndianU32(uknParam);
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_APPENDFILE;
-		fsaShimBuffer->ipcReqType = 0;
+
+		fsaShimBuffer->request.cmdAppendFile.fileHandle = fileHandle;
+		fsaShimBuffer->request.cmdAppendFile.count = size;
+		fsaShimBuffer->request.cmdAppendFile.size = count;
+		fsaShimBuffer->request.cmdAppendFile.uknParam = uknParam;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1213,15 +1298,16 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_TruncateFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSFileHandle2 fileHandle)
+	FSA_RESULT __FSPrepareCmd_TruncateFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSFileHandle2 fileHandle)
 	{
 		if (fsaShimBuffer == nullptr)
 			return FSA_RESULT::INVALID_BUFFER;
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->ipcData.cmdTruncateFile.fileHandle = fileHandle;
-		fsaShimBuffer->ipcData.cmdTruncateFile.ukn0008 = 0;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_TRUNCATEFILE;
+
+		fsaShimBuffer->request.cmdTruncateFile.fileHandle = fileHandle;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1241,14 +1327,17 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_Rename(FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, char* srcPath, char* dstPath)
+	FSA_RESULT __FSPrepareCmd_Rename(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, char* srcPath, char* dstPath)
 	{
 		if (fsaShimBuffer == nullptr)
 			return FSA_RESULT::INVALID_BUFFER;
 		if (srcPath == NULL || dstPath == NULL)
 			return FSA_RESULT::INVALID_PATH;
+
 		fsaShimBuffer->fsaDevHandle = fsaHandle;
 		fsaShimBuffer->ipcReqType = 0;
+		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_RENAME;
+
 		// source path
 		size_t stringLen = strlen((char*)srcPath);
 		if (stringLen >= FSA_CMD_PATH_MAX_LENGTH)
@@ -1258,9 +1347,9 @@ namespace coreinit
 		}
 		for (sint32 i = 0; i < stringLen; i++)
 		{
-			fsaShimBuffer->ipcData.cmdRename.srcPath[i] = srcPath[i];
+			fsaShimBuffer->request.cmdRename.srcPath[i] = srcPath[i];
 		}
-		fsaShimBuffer->ipcData.cmdRename.srcPath[stringLen] = '\0';
+		fsaShimBuffer->request.cmdRename.srcPath[stringLen] = '\0';
 		// destination path
 		stringLen = strlen((char*)dstPath);
 		if (stringLen >= FSA_CMD_PATH_MAX_LENGTH)
@@ -1270,10 +1359,10 @@ namespace coreinit
 		}
 		for (sint32 i = 0; i < stringLen; i++)
 		{
-			fsaShimBuffer->ipcData.cmdRename.dstPath[i] = dstPath[i];
+			fsaShimBuffer->request.cmdRename.dstPath[i] = dstPath[i];
 		}
-		fsaShimBuffer->ipcData.cmdRename.dstPath[stringLen] = '\0';
-		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_RENAME;
+		fsaShimBuffer->request.cmdRename.dstPath[stringLen] = '\0';
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1301,7 +1390,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_Remove(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint8* path)
+	FSA_RESULT __FSPrepareCmd_Remove(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint8* path)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
@@ -1310,6 +1399,8 @@ namespace coreinit
 
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
+		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_REMOVE;
+
 		size_t pathLen = strlen((char*)path);
 		if (pathLen >= FSA_CMD_PATH_MAX_LENGTH)
 		{
@@ -1318,10 +1409,9 @@ namespace coreinit
 		}
 		for (sint32 i = 0; i < pathLen; i++)
 		{
-			fsaShimBuffer->ipcData.cmdRemove.path[i] = path[i];
+			fsaShimBuffer->request.cmdRemove.path[i] = path[i];
 		}
-		fsaShimBuffer->ipcData.cmdRemove.path[pathLen] = '\0';
-		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_REMOVE;
+		fsaShimBuffer->request.cmdRemove.path[pathLen] = '\0';
 
 		return FSA_RESULT::SUCCESS;
 	}
@@ -1353,7 +1443,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_MakeDir(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, const uint8* path, uint32 uknVal660)
+	FSA_RESULT __FSPrepareCmd_MakeDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, const uint8* path, uint32 uknVal660)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
@@ -1362,6 +1452,8 @@ namespace coreinit
 
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
+		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_MAKEDIR;
+
 		size_t pathLen = strlen((char*)path);
 		if (pathLen >= FSA_CMD_PATH_MAX_LENGTH)
 		{
@@ -1370,11 +1462,11 @@ namespace coreinit
 		}
 		for (sint32 i = 0; i < pathLen; i++)
 		{
-			fsaShimBuffer->ipcData.cmdMakeDir.path[i] = path[i];
+			fsaShimBuffer->request.cmdMakeDir.path[i] = path[i];
 		}
-		fsaShimBuffer->ipcData.cmdMakeDir.path[pathLen] = '\0';
-		fsaShimBuffer->ipcData.cmdMakeDir.uknParam = _swapEndianU32(uknVal660);
-		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_MAKEDIR;
+		fsaShimBuffer->request.cmdMakeDir.path[pathLen] = '\0';
+		fsaShimBuffer->request.cmdMakeDir.uknParam = uknVal660;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1405,7 +1497,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_ChangeDir(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint8* path)
+	FSA_RESULT __FSPrepareCmd_ChangeDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint8* path)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
@@ -1414,6 +1506,7 @@ namespace coreinit
 
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
+		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_CHANGEDIR;
 
 		size_t pathLen = strlen((char*)path);
 		if (pathLen >= FSA_CMD_PATH_MAX_LENGTH)
@@ -1422,9 +1515,10 @@ namespace coreinit
 			pathLen = FSA_CMD_PATH_MAX_LENGTH - 1;
 		}
 		for (sint32 i = 0; i < pathLen; i++)
-			fsaShimBuffer->ipcData.cmdChangeDir.path[i] = path[i];
-		fsaShimBuffer->ipcData.cmdChangeDir.path[pathLen] = '\0';
-		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_CHANGEDIR;
+			fsaShimBuffer->request.cmdChangeDir.path[i] = path[i];
+
+		fsaShimBuffer->request.cmdChangeDir.path[pathLen] = '\0';
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1451,13 +1545,15 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_GetCwd(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle)
+	FSA_RESULT __FSPrepareCmd_GetCwd(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
+
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_GETCWD;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1465,12 +1561,12 @@ namespace coreinit
 	{
 		// used by titles: Super Mario Maker
 		_FSCmdIntro();
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(dirPathOut));
-		fsCmdBlockBody->transferSize = _swapEndianU32(dirPathMaxLen);
+		fsCmdBlockBody->returnValues.cmdGetCwd.pathPtr = dirPathOut;
+		fsCmdBlockBody->returnValues.cmdGetCwd.transferSize = dirPathMaxLen;
 		fsError = (FSStatus)__FSPrepareCmd_GetCwd(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle);
 		if (fsError != (FSStatus)FS_RESULT::SUCCESS)
 			return fsError;
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -1483,14 +1579,17 @@ namespace coreinit
 		return r;
 	}
 
-	FSA_RESULT __FSPrepareCmd_FlushQuota(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, char* path)
+	FSA_RESULT __FSPrepareCmd_FlushQuota(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, char* path)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 		if (path == NULL)
 			return FSA_RESULT::INVALID_PATH;
+
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
+		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_FLUSHQUOTA;
+
 		size_t pathLen = strlen((char*)path);
 		if (pathLen >= FSA_CMD_PATH_MAX_LENGTH)
 		{
@@ -1498,16 +1597,15 @@ namespace coreinit
 			pathLen = FSA_CMD_PATH_MAX_LENGTH - 1;
 		}
 		for (sint32 i = 0; i < pathLen; i++)
-			fsaShimBuffer->ipcData.cmdFlushQuota.path[i] = path[i];
-		fsaShimBuffer->ipcData.cmdFlushQuota.path[pathLen] = '\0';
-		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_FLUSHQUOTA;
+			fsaShimBuffer->request.cmdFlushQuota.path[i] = path[i];
+		fsaShimBuffer->request.cmdFlushQuota.path[pathLen] = '\0';
+
 		return FSA_RESULT::SUCCESS;
 	}
 
 	sint32 FSFlushQuotaAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
-		fsCmdBlockBody->returnValueMPTR = 0;
 		__FSPrepareCmd_FlushQuota(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path);
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
 		return (FSStatus)FS_RESULT::SUCCESS;
@@ -1521,7 +1619,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_QueryInfo(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint8* queryString, uint32 queryType)
+	FSA_RESULT __FSPrepareCmd_QueryInfo(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint8* queryString, uint32 queryType)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
@@ -1532,7 +1630,8 @@ namespace coreinit
 
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		// note: The output result is stored to fsCmdBlockBody+0x944
+		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_QUERYINFO;
+
 		size_t stringLen = strlen((char*)queryString);
 		if (stringLen >= FSA_CMD_PATH_MAX_LENGTH)
 		{
@@ -1541,11 +1640,12 @@ namespace coreinit
 		}
 		for (sint32 i = 0; i < stringLen; i++)
 		{
-			fsaShimBuffer->ipcData.cmdQueryInfo.query[i] = queryString[i];
+			fsaShimBuffer->request.cmdQueryInfo.query[i] = queryString[i];
 		}
-		fsaShimBuffer->ipcData.cmdQueryInfo.query[stringLen] = '\0';
-		fsaShimBuffer->ipcData.cmdQueryInfo.queryType = _swapEndianU32(queryType);
-		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_QUERYINFO;
+
+		fsaShimBuffer->request.cmdQueryInfo.query[stringLen] = '\0';
+		fsaShimBuffer->request.cmdQueryInfo.queryType = queryType;
+
 		return FSA_RESULT::SUCCESS;
 	}
 
@@ -1553,11 +1653,11 @@ namespace coreinit
 	{
 		_FSCmdIntro();
 		cemu_assert(queryString && queryResult); // query string and result must not be null
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(queryResult));
+		fsCmdBlockBody->returnValues.cmdQueryInfo.queryResultPtr = queryResult;
 		fsError = (FSStatus)__FSPrepareCmd_QueryInfo(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, queryString, queryType);
 		if (fsError != (FSStatus)FS_RESULT::SUCCESS)
 			return fsError;
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -1576,14 +1676,14 @@ namespace coreinit
 		return ret;
 	}
 
-	FSA_RESULT __FSPrepareCmd_GetStatFile(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, FSFileHandle2 fileHandle, FSStat_t* statOut)
+	FSA_RESULT __FSPrepareCmd_GetStatFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, FSFileHandle2 fileHandle, FSStat_t* statOut)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->ipcData.cmdGetStatFile.fileHandle = fileHandle;
+		fsaShimBuffer->request.cmdGetStatFile.fileHandle = fileHandle;
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_GETSTATFILE;
 		return FSA_RESULT::SUCCESS;
 	}
@@ -1593,8 +1693,8 @@ namespace coreinit
 		_FSCmdIntro();
 		cemu_assert(statOut); // statOut must not be null
 		__FSPrepareCmd_GetStatFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle, statOut);
-		fsCmdBlockBody->returnValueMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(statOut));
-		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, FS_CB_PLACEHOLDER_FINISHCMD);
+		fsCmdBlockBody->returnValues.cmdStatFile.resultPtr = statOut;
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
@@ -1621,15 +1721,17 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_IsEof(FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint32 fileHandle)
+	FSA_RESULT __FSPrepareCmd_IsEof(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, uint32 fileHandle)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
 
 		fsaShimBuffer->fsaDevHandle = devHandle;
 		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->ipcData.cmdDefault.destBufferMPTR = _swapEndianU32(fileHandle);
 		fsaShimBuffer->operationType = FSA_CMD_OPERATION_TYPE_ISEOF;
+
+		fsaShimBuffer->request.cmdIsEof.fileHandle = fileHandle;
+
 		return FSA_RESULT::SUCCESS;
 	}
 

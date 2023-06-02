@@ -148,63 +148,66 @@ namespace coreinit
 
 	static_assert(sizeof(FSAsyncResult) == 0x28);
 
-	struct FSAShimBuffer
+	struct FSCmdBlockReturnValues_t
 	{
-		iosu::fsa::FSAIpcCommand ipcData;
-		uint8 ukn0820[0x10];
-		uint8 ukn0830[0x10];
-		uint8 ukn0840[0x10];
-		uint8 ukn0850[0x10];
-		uint8 ukn0860[0x10];
-		uint8 ukn0870[0x10];
-		MPTR fsCmdBlockBodyMPTR;
-		uint32 ukn0884;
-		uint32 ukn0888;
-		uint32 destBuffer88CMPTR;
-		uint32 ukn0890;
-		uint32 ukn0894;
-		uint32 ukn0898;
-		uint32 ukn089C;
-		uint32 ukn08A0;
-		uint32 ukn08A4;
-		uint32 ukn08A8;
-		uint32 ukn08AC;
-		uint8 ukn08B0[0x10];
-		uint8 ukn08C0[0x10];
-		uint8 ukn08D0[0x10];
-		uint8 ukn08E0[0x10];
-		uint8 ukn08F0[0x10];
-		/* +0x0900 */ uint32be operationType;
-		betype<IOSDevHandle> fsaDevHandle;
-		/* +0x0908 */ uint16be ipcReqType; // 0 -> IoctlAsync, 1 -> IoctlvAsync
-		uint8 ukn090A;
-		uint8 ukn090B;
-		uint32 ukn090C;
-		uint32 ukn0910;
-		uint32 ukn0914;
-		uint32 ukn0918;
-		uint32 ukn091C;
-		uint32 ukn0920;
-		uint32 ukn0924;
-		uint32 ukn0928;
-		uint32 ukn092C;
-		uint32 ukn0930;
-		uint32 ukn0934;
+		union
+		{
+			uint8 ukn0[0x14];
+			struct
+			{
+				MEMPTR<uint32be> handlePtr;
+			} cmdOpenFile;
+			struct
+			{
+				MEMPTR<uint32be> filePosPtr;
+			} cmdGetPosFile;
+			struct
+			{
+				uint32be transferSize;
+				uint32be uknVal094C;
+				uint32be transferElemSize;
+				uint32be uknVal0954;
+			} cmdReadFile;
+			struct
+			{
+				uint32be transferSize;
+				uint32be uknVal094C;
+				uint32be transferElemSize;
+				uint32be uknVal0954;
+			} cmdWriteFile;
+			struct
+			{
+				MEMPTR<uint32be> handlePtr;
+			} cmdOpenDir;
+			struct
+			{
+				MEMPTR<FSDirEntry_t> dirEntryPtr;
+			} cmdReadDir;
+			struct
+			{
+				MEMPTR<char> pathPtr;
+				uint32be transferSize;
+			} cmdGetCwd;
+			struct
+			{
+				MEMPTR<void> queryResultPtr;
+			} cmdQueryInfo;
+			struct
+			{
+				MEMPTR<void> resultPtr;
+			} cmdStatFile;
+		};
 	};
+
+	static_assert(sizeof(FSCmdBlockReturnValues_t) == 0x14);
 
 	struct FSCmdBlockBody_t
 	{
-		FSAShimBuffer fsaShimBuffer;
+		iosu::fsa::FSAShimBuffer fsaShimBuffer;
 		/* +0x0938 */ MEMPTR<FSClientBody_t> fsClientBody;
-		/* +0x093C */ uint32 statusCode;	  // not a status code but rather the state? Uses weird values for some reason
-		/* +0x0940 */ uint32be cancelState;	  // bitmask. Bit 0 -> If set command has been canceled
-											  // return values
-		/* +0x0944 */ uint32 returnValueMPTR; // returnedFilePos (used to store pointer to variable that holds return value?), also used by QUERYINFO to store pointer for result. Also used for GetCwd() to hold the pointer for the returned dir path. Also used by OPENFILE to hold returned fileHandle
-		/* +0x0948 */ uint32 transferSize;	  // number of bytes to transfer
-		// transfer control?
-		uint32 uknVal094C;
-		uint32 transferElemSize; // number of bytes of a single transferred element (count of elements can be calculated via count = transferSize/transferElemSize)
-		uint32 uknVal0954;		 // this is set to max(0x10, transferSize) for reads and to min(0x40000, transferSize) for writes?
+		/* +0x093C */ uint32 statusCode;	// not a status code but rather the state? Uses weird values for some reason
+		/* +0x0940 */ uint32be cancelState; // bitmask. Bit 0 -> If set command has been canceled
+		FSCmdBlockReturnValues_t returnValues;
 		// link for cmd queue
 		MPTR nextMPTR;	   // points towards FSCmdQueue->first
 		MPTR previousMPTR; // points towards FSCmdQueue->last

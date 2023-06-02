@@ -325,26 +325,26 @@ namespace iosu
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_remove(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_remove(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			std::string path = __FSATranslatePath(client, (char*)cmd->cmdRemove.path);
+			std::string path = __FSATranslatePath(client, (char*)shimBuffer->request.cmdRemove.path);
 			sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			fsc_remove(path.c_str(), &fscStatus);
 			return FSA_convertFSCtoFSAStatus(fscStatus);
 		}
 
-		FSA_RESULT FSAProcessCmd_makeDir(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_makeDir(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			std::string path = __FSATranslatePath(client, (char*)cmd->cmdMakeDir.path);
+			std::string path = __FSATranslatePath(client, (char*)shimBuffer->request.cmdMakeDir.path);
 			sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			fsc_createDir(path.c_str(), &fscStatus);
 			return FSA_convertFSCtoFSAStatus(fscStatus);
 		}
 
-		FSA_RESULT FSAProcessCmd_rename(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_rename(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			std::string srcPath = __FSATranslatePath(client, (char*)cmd->cmdRename.srcPath);
-			std::string dstPath = __FSATranslatePath(client, (char*)cmd->cmdRename.dstPath);
+			std::string srcPath = __FSATranslatePath(client, (char*)shimBuffer->request.cmdRename.srcPath);
+			std::string dstPath = __FSATranslatePath(client, (char*)shimBuffer->request.cmdRename.dstPath);
 			sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			fsc_rename(srcPath.c_str(), dstPath.c_str(), &fscStatus);
 			return FSA_convertFSCtoFSAStatus(fscStatus);
@@ -386,18 +386,15 @@ namespace iosu
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_queryInfo(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_queryInfo(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
-
-			char* path = (char*)cmd->cmdQueryInfo.query;
-			uint32 queryType = _swapEndianU32(cmd->cmdQueryInfo.queryType);
-			void* queryResult = memory_getPointerFromVirtualOffset(_swapEndianU32(fullCmd->returnValueMPTR));
+			char* path = (char*)shimBuffer->request.cmdQueryInfo.query;
+			uint32 queryType = shimBuffer->request.cmdQueryInfo.queryType;
 			// handle query
 			sint32 fscStatus = FSC_STATUS_OK;
 			if (queryType == FSA_QUERY_TYPE_STAT)
 			{
-				FSStat_t* fsStat = (FSStat_t*)queryResult;
+				FSStat_t* fsStat = &shimBuffer->response.cmdQueryInfo.queryStat.stat;
 				FSA_RESULT fsaStatus = __FSA_GetFileStat(client, path, fsStat);
 				return fsaStatus;
 			}
@@ -407,7 +404,7 @@ namespace iosu
 				FSCVirtualFile* fscFile = __FSAOpenNode(client, path, FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::OPEN_DIR, fscStatus);
 				if (!fscFile)
 					return FSA_convertFSCtoFSAStatus(fscStatus);
-				betype<uint64>* fsStatSize = (betype<uint64>*)queryResult;
+				betype<uint64>* fsStatSize = &shimBuffer->response.cmdQueryInfo.queryFreeSpace.freespace;
 				*fsStatSize = 30ull * 1024 * 1024 * 1024; // placeholder value. How is this determined?
 				delete fscFile;
 				return FSA_RESULT::SUCCESS;
@@ -417,12 +414,10 @@ namespace iosu
 			return FSA_convertFSCtoFSAStatus(fscStatus);
 		}
 
-		FSA_RESULT FSAProcessCmd_getStatFile(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_getStatFile(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
-
-			FSFileHandle2 fileHandle = cmd->cmdGetStatFile.fileHandle;
-			FSStat_t* statOut = (FSStat_t*)memory_getPointerFromVirtualOffset(_swapEndianU32(fullCmd->returnValueMPTR));
+			FSFileHandle2 fileHandle = shimBuffer->request.cmdGetStatFile.fileHandle;
+			FSStat_t* statOut = &shimBuffer->response.cmdStatFile.statOut;
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::NOT_FOUND;
@@ -431,32 +426,17 @@ namespace iosu
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_read(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_read(FSAClient* client, FSAShimBuffer* shimBuffer, MEMPTR<void> destPtr, uint32be transferSize)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
+			uint32 transferElementSize = shimBuffer->request.cmdReadFile.size;
+			uint32 filePos = shimBuffer->request.cmdReadFile.filePos;
+			uint32 fileHandle = shimBuffer->request.cmdReadFile.fileHandle;
+			uint32 flags = shimBuffer->request.cmdReadFile.flag;
 
-			uint32 filePos = _swapEndianU32(cmd->cmdDefault.transferFilePos);
-			uint32 fileHandle = _swapEndianU32(cmd->cmdDefault.fileHandle);
-			MPTR destOffset = _swapEndianU32(cmd->cmdDefault.destBufferMPTR);
-			void* destPtr = memory_getPointerFromVirtualOffset(destOffset);
-			uint32 transferSize = _swapEndianU32(fullCmd->transferSize);
-			uint32 transferElementSize = _swapEndianU32(fullCmd->transferElemSize);
-			uint32 flags = _swapEndianU32(cmd->cmdDefault.cmdFlag);
-			uint32 errHandling = _swapEndianU32(fullCmd->errHandling);
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
-			uint32 elementSize = transferElementSize;
-			uint32 elementCount = 0;
-			if (transferElementSize != 0)
-			{
-				elementCount = transferSize / transferElementSize;
-				cemu_assert_debug((transferSize % transferElementSize) == 0);
-			}
-			else
-			{
-				cemu_assert_debug(transferSize == 0);
-			}
+
 			uint32 bytesToRead = transferSize;
 			// update file position if flag is set
 			if ((flags & FSA_CMD_FLAG_SET_POS) != 0)
@@ -466,28 +446,21 @@ namespace iosu
 			if (transferElementSize == 0)
 				return FSA_RESULT::SUCCESS;
 
-			LatteBufferCache_notifyDCFlush(memory_getVirtualOffsetFromPointer(destPtr), bytesToRead);
+			LatteBufferCache_notifyDCFlush(destPtr.GetMPTR(), bytesToRead);
 
 			return (FSA_RESULT)(bytesSuccessfullyRead / transferElementSize); // return number of elements read
 		}
 
-		FSA_RESULT FSAProcessCmd_write(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_write(FSAClient* client, FSAShimBuffer* shimBuffer, MEMPTR<void> destPtr, uint32be transferSize)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
+			uint32 transferElementSize = shimBuffer->request.cmdWriteFile.size;
+			uint32 filePos = shimBuffer->request.cmdWriteFile.filePos;
+			uint32 fileHandle = shimBuffer->request.cmdWriteFile.fileHandle;
+			uint32 flags = shimBuffer->request.cmdWriteFile.flag;
 
-			uint32 filePos = _swapEndianU32(cmd->cmdDefault.transferFilePos);
-			uint32 fileHandle = _swapEndianU32(cmd->cmdDefault.fileHandle);
-			MPTR destOffset = _swapEndianU32(cmd->cmdDefault.destBufferMPTR);
-			void* destPtr = memory_getPointerFromVirtualOffset(destOffset);
-			uint32 transferSize = _swapEndianU32(fullCmd->transferSize);
-			uint32 transferElementSize = _swapEndianU32(fullCmd->transferElemSize);
-			uint32 flags = _swapEndianU32(cmd->cmdDefault.cmdFlag);
-			uint32 errHandling = _swapEndianU32(fullCmd->errHandling);
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
-			uint32 elementSize = transferElementSize;
-			uint32 elementCount = transferSize / transferElementSize;
 			cemu_assert_debug((transferSize % transferElementSize) == 0);
 			uint32 bytesToWrite = transferSize;
 			// check for write permission (should this happen before or after setting file position?)
@@ -504,10 +477,10 @@ namespace iosu
 			return (FSA_RESULT)(bytesSuccessfullyWritten / transferElementSize); // return number of elements read
 		}
 
-		FSA_RESULT FSAProcessCmd_setPos(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_setPos(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			uint32 fileHandle = _swapEndianU32(cmd->cmdDefault.destBufferMPTR);
-			uint32 filePos = _swapEndianU32(cmd->cmdDefault.ukn0008);
+			uint32 fileHandle = shimBuffer->request.cmdSetPosFile.fileHandle;
+			uint32 filePos = shimBuffer->request.cmdSetPosFile.filePos;
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
@@ -515,53 +488,44 @@ namespace iosu
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_getPos(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_getPos(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
-
-			uint32 fileHandle = _swapEndianU32(cmd->cmdDefault.destBufferMPTR);
-			MPTR returnedFilePos = _swapEndianU32(fullCmd->returnValueMPTR);
+			uint32 fileHandle = shimBuffer->request.cmdGetPosFile.fileHandle;
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 			uint32 filePos = fsc_getFileSeek(fscFile);
-			memory_writeU32(returnedFilePos, filePos);
+			shimBuffer->response.cmdGetPosFile.filePos = filePos;
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_openFile(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_openFile(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
 			sint32 fileHandle = 0;
-			FSA_RESULT fsaResult = __FSAOpenFile(client, (char*)cmd->cmdOpenFile.path, (char*)cmd->cmdOpenFile.mode, &fileHandle);
-			memory_writeU32(_swapEndianU32(fullCmd->returnValueMPTR), fileHandle);
-			cmd->cmdOpenFile.fileHandleOutput = fileHandle;
+			FSA_RESULT fsaResult = __FSAOpenFile(client, (char*)shimBuffer->request.cmdOpenFile.path, (char*)shimBuffer->request.cmdOpenFile.mode, &fileHandle);
+			shimBuffer->response.cmdOpenFile.fileHandleOutput = fileHandle;
 			return fsaResult;
 		}
 
-		FSA_RESULT FSAProcessCmd_closeFile(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_closeFile(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			return __FSACloseFile(cmd->cmdCloseFile.fileHandle);
+			return __FSACloseFile(shimBuffer->request.cmdCloseFile.fileHandle);
 		}
 
-		FSA_RESULT FSAProcessCmd_openDir(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_openDir(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
 			sint32 dirHandle = 0;
-			FSA_RESULT fsaResult = __FSAOpenDirectory(client, (const char*)cmd->cmdOpenFile.path, &dirHandle);
-			memory_writeU32(_swapEndianU32(fullCmd->returnValueMPTR), dirHandle);
-			cmd->cmdOpenDir.dirHandleOutput = dirHandle;
+			FSA_RESULT fsaResult = __FSAOpenDirectory(client, (const char*)shimBuffer->request.cmdOpenFile.path, &dirHandle);
+			shimBuffer->response.cmdOpenDir.dirHandleOutput = dirHandle;
 			return fsaResult;
 		}
 
-		FSA_RESULT FSAProcessCmd_readDir(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_readDir(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
-
-			FSCVirtualFile* fscFile = sDirHandleTable.GetByHandle((sint32)cmd->cmdReadDir.dirHandle);
+			FSCVirtualFile* fscFile = sDirHandleTable.GetByHandle((sint32)shimBuffer->request.cmdReadDir.dirHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_DIR_HANDLE;
-			FSDirEntry_t* dirEntryOut = (FSDirEntry_t*)memory_getPointerFromVirtualOffset(_swapEndianU32(fullCmd->returnValueMPTR));
+			FSDirEntry_t* dirEntryOut = &shimBuffer->response.cmdReadDir.dirEntry;
 			FSCDirEntry fscDirEntry;
 			if (fsc_nextDir(fscFile, &fscDirEntry) == false)
 				return FSA_RESULT::END_DIR;
@@ -581,39 +545,39 @@ namespace iosu
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_closeDir(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_closeDir(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			FSCVirtualFile* fscFile = sDirHandleTable.GetByHandle((sint32)cmd->cmdReadDir.dirHandle);
+			FSCVirtualFile* fscFile = sDirHandleTable.GetByHandle((sint32)shimBuffer->request.cmdReadDir.dirHandle);
 			if (!fscFile)
 			{
-				cemuLog_logDebug(LogType::Force, "CloseDir: Invalid handle (0x{:08x})", (sint32)cmd->cmdReadDir.dirHandle);
+				cemuLog_logDebug(LogType::Force, "CloseDir: Invalid handle (0x{:08x})", (sint32)shimBuffer->request.cmdReadDir.dirHandle);
 				return FSA_RESULT::INVALID_DIR_HANDLE;
 			}
-			sDirHandleTable.ReleaseHandle(cmd->cmdReadDir.dirHandle);
+			sDirHandleTable.ReleaseHandle(shimBuffer->request.cmdReadDir.dirHandle);
 			fsc_close(fscFile);
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_flushQuota(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_flushQuota(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_appendFile(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_appendFile(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			uint32 fileHandle = _swapEndianU32(cmd->cmdDefault.destBufferMPTR);
+			uint32 fileHandle = shimBuffer->request.cmdAppendFile.fileHandle;
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 #ifdef CEMU_DEBUG_ASSERT
-			cemuLog_log(LogType::Force, "FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", _swapEndianU32(cmd->cmdAppendFile.size), _swapEndianU32(cmd->cmdAppendFile.count));
+			cemuLog_log(LogType::Force, "FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", shimBuffer->request.cmdAppendFile.size, shimBuffer->request.cmdAppendFile.count);
 #endif
-			return (FSA_RESULT)(_swapEndianU32(cmd->cmdAppendFile.size) * _swapEndianU32(cmd->cmdAppendFile.count));
+			return (FSA_RESULT)(shimBuffer->request.cmdAppendFile.size * shimBuffer->request.cmdAppendFile.count);
 		}
 
-		FSA_RESULT FSAProcessCmd_truncateFile(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_truncateFile(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			FSFileHandle2 fileHandle = cmd->cmdTruncateFile.fileHandle;
+			FSFileHandle2 fileHandle = shimBuffer->request.cmdTruncateFile.fileHandle;
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
@@ -621,9 +585,9 @@ namespace iosu
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_isEof(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_isEof(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			uint32 fileHandle = _swapEndianU32(cmd->cmdDefault.destBufferMPTR);
+			uint32 fileHandle = shimBuffer->request.cmdIsEof.fileHandle;
 			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
@@ -634,12 +598,10 @@ namespace iosu
 			return FSA_RESULT::SUCCESS;
 		}
 
-		FSA_RESULT FSAProcessCmd_getCwd(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_getCwd(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			coreinit::FSCmdBlockBody_t* fullCmd = (coreinit::FSCmdBlockBody_t*)cmd;
-
-			char* pathOutput = (char*)memory_getPointerFromVirtualOffset(_swapEndianU32(fullCmd->returnValueMPTR));
-			sint32 pathOutputMaxLen = _swapEndianU32(fullCmd->transferSize);
+			char* pathOutput = shimBuffer->response.cmdGetCWD.path;
+			sint32 pathOutputMaxLen = sizeof(shimBuffer->response.cmdGetCWD.path);
 			cemu_assert(pathOutputMaxLen > 0);
 			sint32 fscStatus = FSC_STATUS_OK;
 			strncpy(pathOutput, client->workingDirectory.data(), std::min(client->workingDirectory.size() + 1, (size_t)pathOutputMaxLen));
@@ -647,98 +609,110 @@ namespace iosu
 			return FSA_convertFSCtoFSAStatus(fscStatus);
 		}
 
-		FSA_RESULT FSAProcessCmd_changeDir(FSAClient* client, FSAIpcCommand* cmd)
+		FSA_RESULT FSAProcessCmd_changeDir(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			const char* path = (const char*)cmd->cmdChangeDir.path;
-			cmd->cmdChangeDir.path[sizeof(cmd->cmdChangeDir.path) - 1] = '\0';
+			const char* path = (const char*)shimBuffer->request.cmdChangeDir.path;
+			shimBuffer->request.cmdChangeDir.path[sizeof(shimBuffer->request.cmdChangeDir.path) - 1] = '\0';
 			sint32 fscStatus = FSC_STATUS_OK;
 			client->workingDirectory.assign(__FSATranslatePath(client, path, true));
 			return FSA_convertFSCtoFSAStatus(fscStatus);
 		}
 
-		void FSAHandleCommandIoctl(FSAClient* client, IPCCommandBody* cmd, uint32 operationId, void* ptrIn, void* ptrOut)
+		void FSAHandleCommandIoctlv(FSAClient* client, IPCCommandBody* cmd, uint32 operationId, uint32 numIn, uint32 numOut, IPCIoctlVector* vec)
 		{
-			FSAIpcCommand* fsaCommand = (FSAIpcCommand*)ptrIn;
 			FSA_RESULT fsaResult = FSA_RESULT::FATAL_ERROR;
-			if (operationId == FSA_CMD_OPERATION_TYPE_REMOVE)
+
+			if (operationId == FSA_CMD_OPERATION_TYPE_READ)
 			{
-				fsaResult = FSAProcessCmd_remove(client, fsaCommand);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_MAKEDIR)
-			{
-				fsaResult = FSAProcessCmd_makeDir(client, fsaCommand);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_RENAME)
-			{
-				fsaResult = FSAProcessCmd_rename(client, fsaCommand);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_READ)
-			{
-				fsaResult = FSAProcessCmd_read(client, fsaCommand);
+				fsaResult = FSAProcessCmd_read(client, (FSAShimBuffer*)vec[0].basePhys.GetPtr(), vec[1].basePhys, vec[1].size);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_WRITE)
 			{
-				fsaResult = FSAProcessCmd_write(client, fsaCommand);
+				fsaResult = FSAProcessCmd_write(client, (FSAShimBuffer*)vec[0].basePhys.GetPtr(), vec[1].basePhys, vec[1].size);
+			}
+			else
+			{
+				cemu_assert_unimplemented();
+			}
+
+			IOS_ResourceReply(cmd, (IOS_ERROR)fsaResult);
+		}
+
+		void FSAHandleCommandIoctl(FSAClient* client, IPCCommandBody* cmd, uint32 operationId, void* ptrIn, void* ptrOut)
+		{
+			FSAShimBuffer* shimBuffer = (FSAShimBuffer*)ptrIn;
+			FSA_RESULT fsaResult = FSA_RESULT::FATAL_ERROR;
+			if (operationId == FSA_CMD_OPERATION_TYPE_REMOVE)
+			{
+				fsaResult = FSAProcessCmd_remove(client, shimBuffer);
+			}
+			else if (operationId == FSA_CMD_OPERATION_TYPE_MAKEDIR)
+			{
+				fsaResult = FSAProcessCmd_makeDir(client, shimBuffer);
+			}
+			else if (operationId == FSA_CMD_OPERATION_TYPE_RENAME)
+			{
+				fsaResult = FSAProcessCmd_rename(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_SETPOS)
 			{
-				fsaResult = FSAProcessCmd_setPos(client, fsaCommand);
+				fsaResult = FSAProcessCmd_setPos(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_GETPOS)
 			{
-				fsaResult = FSAProcessCmd_getPos(client, fsaCommand);
+				fsaResult = FSAProcessCmd_getPos(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_OPENFILE)
 			{
-				fsaResult = FSAProcessCmd_openFile(client, fsaCommand);
+				fsaResult = FSAProcessCmd_openFile(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_CLOSEFILE)
 			{
-				fsaResult = FSAProcessCmd_closeFile(client, fsaCommand);
+				fsaResult = FSAProcessCmd_closeFile(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_APPENDFILE)
 			{
-				fsaResult = FSAProcessCmd_appendFile(client, fsaCommand);
+				fsaResult = FSAProcessCmd_appendFile(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_TRUNCATEFILE)
 			{
-				fsaResult = FSAProcessCmd_truncateFile(client, fsaCommand);
+				fsaResult = FSAProcessCmd_truncateFile(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_ISEOF)
 			{
-				fsaResult = FSAProcessCmd_isEof(client, fsaCommand);
+				fsaResult = FSAProcessCmd_isEof(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_QUERYINFO)
 			{
-				fsaResult = FSAProcessCmd_queryInfo(client, fsaCommand);
+				fsaResult = FSAProcessCmd_queryInfo(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_GETSTATFILE)
 			{
-				fsaResult = FSAProcessCmd_getStatFile(client, fsaCommand);
+				fsaResult = FSAProcessCmd_getStatFile(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_GETCWD)
 			{
-				fsaResult = FSAProcessCmd_getCwd(client, fsaCommand);
+				fsaResult = FSAProcessCmd_getCwd(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_CHANGEDIR)
 			{
-				fsaResult = FSAProcessCmd_changeDir(client, fsaCommand);
+				fsaResult = FSAProcessCmd_changeDir(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_OPENDIR)
 			{
-				fsaResult = FSAProcessCmd_openDir(client, fsaCommand);
+				fsaResult = FSAProcessCmd_openDir(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_READDIR)
 			{
-				fsaResult = FSAProcessCmd_readDir(client, fsaCommand);
+				fsaResult = FSAProcessCmd_readDir(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_CLOSEDIR)
 			{
-				fsaResult = FSAProcessCmd_closeDir(client, fsaCommand);
+				fsaResult = FSAProcessCmd_closeDir(client, shimBuffer);
 			}
 			else if (operationId == FSA_CMD_OPERATION_TYPE_FLUSHQUOTA)
 			{
-				fsaResult = FSAProcessCmd_flushQuota(client, fsaCommand);
+				fsaResult = FSAProcessCmd_flushQuota(client, shimBuffer);
 			}
 			else
 			{
@@ -786,13 +760,13 @@ namespace iosu
 				}
 				else if (cmd->cmdId == IPCCommandId::IOS_IOCTLV)
 				{
-					cemu_assert_unimplemented();
-					// uint32 requestId = cmd->args[0];
-					// uint32 numIn = cmd->args[1];
-					// uint32 numOut = cmd->args[2];
-					// IPCIoctlVector* vec = MEMPTR<IPCIoctlVector>{ cmd->args[3] }.GetPtr();
-					IOS_ResourceReply(cmd, IOS_ERROR_INVALID);
-					continue;
+					cemu_assert(clientHandle < sFSAClientArray.size());
+					cemu_assert(sFSAClientArray[clientHandle].isAllocated);
+					uint32 requestId = cmd->args[0];
+					uint32 numIn = cmd->args[1];
+					uint32 numOut = cmd->args[2];
+					IPCIoctlVector* vec = MEMPTR<IPCIoctlVector>{cmd->args[3]}.GetPtr();
+					FSAHandleCommandIoctlv(sFSAClientArray.data() + clientHandle, cmd, requestId, numIn, numOut, vec);
 				}
 				else
 				{
