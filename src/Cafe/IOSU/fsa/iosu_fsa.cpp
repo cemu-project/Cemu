@@ -618,105 +618,163 @@ namespace iosu
 			return FSA_convertFSCtoFSAStatus(fscStatus);
 		}
 
-		void FSAHandleCommandIoctlv(FSAClient* client, IPCCommandBody* cmd, uint32 operationId, uint32 numIn, uint32 numOut, IPCIoctlVector* vec)
+		void FSAHandleCommandIoctlv(FSAClient* client, IPCCommandBody* cmd, FSA_CMD_OPERATION_TYPE operationId, uint32 numIn, uint32 numOut, IPCIoctlVector* vec)
 		{
 			FSA_RESULT fsaResult = FSA_RESULT::FATAL_ERROR;
 
-			if (operationId == FSA_CMD_OPERATION_TYPE_READ)
+			switch (operationId)
+			{
+			case FSA_CMD_OPERATION_TYPE::READ:
 			{
 				fsaResult = FSAProcessCmd_read(client, (FSAShimBuffer*)vec[0].basePhys.GetPtr(), vec[1].basePhys, vec[1].size);
+				break;
 			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_WRITE)
+			case FSA_CMD_OPERATION_TYPE::WRITE:
 			{
 				fsaResult = FSAProcessCmd_write(client, (FSAShimBuffer*)vec[0].basePhys.GetPtr(), vec[1].basePhys, vec[1].size);
+				break;
 			}
-			else
+			case FSA_CMD_OPERATION_TYPE::CHANGEDIR:
+			case FSA_CMD_OPERATION_TYPE::GETCWD:
+			case FSA_CMD_OPERATION_TYPE::MAKEDIR:
+			case FSA_CMD_OPERATION_TYPE::RENAME:
+			case FSA_CMD_OPERATION_TYPE::OPENDIR:
+			case FSA_CMD_OPERATION_TYPE::READDIR:
+			case FSA_CMD_OPERATION_TYPE::CLOSEDIR:
+			case FSA_CMD_OPERATION_TYPE::OPENFILE:
+			case FSA_CMD_OPERATION_TYPE::REMOVE:
+			case FSA_CMD_OPERATION_TYPE::GETPOS:
+			case FSA_CMD_OPERATION_TYPE::SETPOS:
+			case FSA_CMD_OPERATION_TYPE::ISEOF:
+			case FSA_CMD_OPERATION_TYPE::GETSTATFILE:
+			case FSA_CMD_OPERATION_TYPE::CLOSEFILE:
+			case FSA_CMD_OPERATION_TYPE::QUERYINFO:
+			case FSA_CMD_OPERATION_TYPE::APPENDFILE:
+			case FSA_CMD_OPERATION_TYPE::TRUNCATEFILE:
+			case FSA_CMD_OPERATION_TYPE::FLUSHQUOTA:
+			{
+				// These are IOCTL and no IOCTLV
+				cemu_assert_error();
+				break;
+			}
+			default:
 			{
 				cemu_assert_unimplemented();
+				break;
+			}
 			}
 
 			IOS_ResourceReply(cmd, (IOS_ERROR)fsaResult);
 		}
 
-		void FSAHandleCommandIoctl(FSAClient* client, IPCCommandBody* cmd, uint32 operationId, void* ptrIn, void* ptrOut)
+		void FSAHandleCommandIoctl(FSAClient* client, IPCCommandBody* cmd, FSA_CMD_OPERATION_TYPE operationId, void* ptrIn, void* ptrOut)
 		{
 			FSAShimBuffer* shimBuffer = (FSAShimBuffer*)ptrIn;
 			FSA_RESULT fsaResult = FSA_RESULT::FATAL_ERROR;
-			if (operationId == FSA_CMD_OPERATION_TYPE_REMOVE)
+
+			switch (operationId)
+			{
+			case FSA_CMD_OPERATION_TYPE::REMOVE:
 			{
 				fsaResult = FSAProcessCmd_remove(client, shimBuffer);
+				break;
 			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_MAKEDIR)
-			{
-				fsaResult = FSAProcessCmd_makeDir(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_RENAME)
-			{
-				fsaResult = FSAProcessCmd_rename(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_SETPOS)
-			{
-				fsaResult = FSAProcessCmd_setPos(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_GETPOS)
-			{
-				fsaResult = FSAProcessCmd_getPos(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_OPENFILE)
-			{
-				fsaResult = FSAProcessCmd_openFile(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_CLOSEFILE)
-			{
-				fsaResult = FSAProcessCmd_closeFile(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_APPENDFILE)
-			{
-				fsaResult = FSAProcessCmd_appendFile(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_TRUNCATEFILE)
-			{
-				fsaResult = FSAProcessCmd_truncateFile(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_ISEOF)
-			{
-				fsaResult = FSAProcessCmd_isEof(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_QUERYINFO)
-			{
-				fsaResult = FSAProcessCmd_queryInfo(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_GETSTATFILE)
-			{
-				fsaResult = FSAProcessCmd_getStatFile(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_GETCWD)
-			{
-				fsaResult = FSAProcessCmd_getCwd(client, shimBuffer);
-			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_CHANGEDIR)
+			case FSA_CMD_OPERATION_TYPE::CHANGEDIR:
 			{
 				fsaResult = FSAProcessCmd_changeDir(client, shimBuffer);
+				break;
 			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_OPENDIR)
+			case FSA_CMD_OPERATION_TYPE::GETCWD:
+			{
+				fsaResult = FSAProcessCmd_getCwd(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::MAKEDIR:
+			{
+				fsaResult = FSAProcessCmd_makeDir(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::RENAME:
+			{
+				fsaResult = FSAProcessCmd_rename(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::OPENDIR:
 			{
 				fsaResult = FSAProcessCmd_openDir(client, shimBuffer);
+				break;
 			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_READDIR)
+			case FSA_CMD_OPERATION_TYPE::READDIR:
 			{
 				fsaResult = FSAProcessCmd_readDir(client, shimBuffer);
+				break;
 			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_CLOSEDIR)
+			case FSA_CMD_OPERATION_TYPE::CLOSEDIR:
 			{
 				fsaResult = FSAProcessCmd_closeDir(client, shimBuffer);
+				break;
 			}
-			else if (operationId == FSA_CMD_OPERATION_TYPE_FLUSHQUOTA)
+			case FSA_CMD_OPERATION_TYPE::OPENFILE:
+			{
+				fsaResult = FSAProcessCmd_openFile(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::GETPOS:
+			{
+				fsaResult = FSAProcessCmd_getPos(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::SETPOS:
+			{
+				fsaResult = FSAProcessCmd_setPos(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::ISEOF:
+			{
+				fsaResult = FSAProcessCmd_isEof(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::GETSTATFILE:
+			{
+				fsaResult = FSAProcessCmd_getStatFile(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::CLOSEFILE:
+			{
+				fsaResult = FSAProcessCmd_closeFile(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::QUERYINFO:
+			{
+				fsaResult = FSAProcessCmd_queryInfo(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::APPENDFILE:
+			{
+				fsaResult = FSAProcessCmd_appendFile(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::TRUNCATEFILE:
+			{
+				fsaResult = FSAProcessCmd_truncateFile(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::FLUSHQUOTA:
 			{
 				fsaResult = FSAProcessCmd_flushQuota(client, shimBuffer);
+				break;
 			}
-			else
+			case FSA_CMD_OPERATION_TYPE::READ:
+			case FSA_CMD_OPERATION_TYPE::WRITE:
+			{
+				// These commands are IOCTLVs not IOCTL
+				cemu_assert_error();
+			}
+			default:
 			{
 				cemu_assert_unimplemented();
+				break;
+			}
 			}
 			IOS_ResourceReply(cmd, (IOS_ERROR)fsaResult);
 		}
@@ -756,13 +814,13 @@ namespace iosu
 				{
 					cemu_assert(clientHandle < sFSAClientArray.size());
 					cemu_assert(sFSAClientArray[clientHandle].isAllocated);
-					FSAHandleCommandIoctl(sFSAClientArray.data() + clientHandle, cmd, cmd->args[0], MEMPTR<void>(cmd->args[1]), MEMPTR<void>(cmd->args[3]));
+					FSAHandleCommandIoctl(sFSAClientArray.data() + clientHandle, cmd, (FSA_CMD_OPERATION_TYPE)cmd->args[0].value(), MEMPTR<void>(cmd->args[1]), MEMPTR<void>(cmd->args[3]));
 				}
 				else if (cmd->cmdId == IPCCommandId::IOS_IOCTLV)
 				{
 					cemu_assert(clientHandle < sFSAClientArray.size());
 					cemu_assert(sFSAClientArray[clientHandle].isAllocated);
-					uint32 requestId = cmd->args[0];
+					FSA_CMD_OPERATION_TYPE requestId = (FSA_CMD_OPERATION_TYPE)cmd->args[0].value();
 					uint32 numIn = cmd->args[1];
 					uint32 numOut = cmd->args[2];
 					IPCIoctlVector* vec = MEMPTR<IPCIoctlVector>{cmd->args[3]}.GetPtr();

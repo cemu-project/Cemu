@@ -37,6 +37,30 @@ enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 	FATAL_ERROR = -0x30000 - 0x400,
 };
 
+enum class FSA_CMD_OPERATION_TYPE : uint32
+{
+	CHANGEDIR = 0x5,
+	GETCWD = 0x6,
+	MAKEDIR = 0x7,
+	REMOVE = 0x8,
+	RENAME = 0x9,
+	OPENDIR = 0xA,
+	READDIR = 0xB,
+	CLOSEDIR = 0xD,
+	OPENFILE = 0xE,
+	READ = 0xF,
+	WRITE = 0x10,
+	GETPOS = 0x11,
+	SETPOS = 0x12,
+	ISEOF = 0x13,
+	GETSTATFILE = 0x14,
+	CLOSEFILE = 0x15,
+	QUERYINFO = 0x18,
+	APPENDFILE = 0x19,
+	TRUNCATEFILE = 0x1A,
+	FLUSHQUOTA = 0x1E,
+};
+
 using FSResHandle = sint32;
 using FSFileHandle2 = FSResHandle;
 using FSDirHandle2 = FSResHandle;
