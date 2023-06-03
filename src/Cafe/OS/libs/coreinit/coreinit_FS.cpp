@@ -997,19 +997,18 @@ namespace coreinit
 			cemu_assert(false);
 			return -0x400;
 		}
-		uint32 transferSize = (uint32)transferSizeS64;
-		fsCmdBlockBody->returnValues.cmdReadFile.transferSize = _swapEndianU32(transferSize);
-		fsCmdBlockBody->returnValues.cmdReadFile.transferElemSize = _swapEndianU32(size);
-		fsCmdBlockBody->returnValues.cmdReadFile.uknVal094C = _swapEndianU32(0);
-		if (transferSize < 0x10)
-			transferSize = 0x10;
-		fsCmdBlockBody->returnValues.cmdReadFile.uknVal0954 = transferSize;
+
+		// coreinit.rpl splits up each read into smaller chunks (probably to support canceling big writes). This is handled by a specific
+		// callback for the __FSQueueCmd functions. Whenever a chunk is read, it's getting re-queued until the reading has been completed.
+		// For this it writes values into the fsCmdBlockBody->returnValues struct. At the moment we go the lazy route of just reading everything
+		// at once, so we can skip the initialization of these values.
+
 		if (usePos)
 			flag |= FSA_CMD_FLAG_SET_POS;
 		else
 			flag &= ~FSA_CMD_FLAG_SET_POS;
 
-		FSA_RESULT prepareResult = __FSPrepareCmd_ReadFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dest, 1, transferSize, filePos, fileHandle, flag);
+		FSA_RESULT prepareResult = __FSPrepareCmd_ReadFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dest, size, count, filePos, fileHandle, flag);
 		if (prepareResult != FSA_RESULT::SUCCESS)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
@@ -1092,18 +1091,18 @@ namespace coreinit
 			cemu_assert(false);
 			return -0x400;
 		}
-		uint32 transferSize = (uint32)transferSizeS64;
-		// TODO: remove? currently not even used.
-		fsCmdBlockBody->returnValues.cmdWriteFile.transferSize = transferSize;
-		fsCmdBlockBody->returnValues.cmdWriteFile.transferElemSize = size;
-		fsCmdBlockBody->returnValues.cmdWriteFile.uknVal094C = 0;
-		fsCmdBlockBody->returnValues.cmdWriteFile.uknVal0954 = transferSize;
+
+		// coreinit.rpl splits up each write into smaller chunks (probably to support canceling big writes). This is handled by a specific
+		// callback for the __FSQueueCmd functions. Whenever a chunk is written, it's getting re-queued until the writing has been completed.
+		// For this it writes values into the fsCmdBlockBody->returnValues struct. At the moment we go the lazy route of just writing everything
+		// at once, so we can skip the initialization of these values.
+
 		if (useFilePos)
 			flag |= FSA_CMD_FLAG_SET_POS;
 		else
 			flag &= ~FSA_CMD_FLAG_SET_POS;
 
-		FSA_RESULT prepareResult = __FSPrepareCmd_WriteFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dest, 1, transferSize, filePos, fileHandle, flag);
+		FSA_RESULT prepareResult = __FSPrepareCmd_WriteFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dest, size, count, filePos, fileHandle, flag);
 		if (prepareResult != FSA_RESULT::SUCCESS)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
