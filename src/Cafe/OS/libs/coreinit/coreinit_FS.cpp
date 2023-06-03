@@ -10,11 +10,11 @@
 #include "coreinit_IPC.h"
 #include "Cafe/Filesystem/fsc.h"
 
-#define FS_CB_PLACEHOLDER_FINISHCMD	(MPTR)(0xF122330E)
+#define FS_CB_PLACEHOLDER_FINISHCMD (MPTR)(0xF122330E)
 
 // return false if src+'\0' does not fit into dst
 template<std::size_t Size>
-bool strcpy_whole(char(&dst)[Size], const char* src)
+bool strcpy_whole(char (&dst)[Size], const char* src)
 {
 	size_t inputLength = strlen(src);
 	if ((inputLength + 1) > Size)
@@ -64,24 +64,24 @@ namespace coreinit
 		// 1 = usb?
 	};
 
-	struct FS_MOUNT_SOURCE 
+	struct FS_MOUNT_SOURCE
 	{
 		uint32be sourceType; // ukn values
-		char path[128]; // todo - determine correct length
+		char path[128];		 // todo - determine correct length
 	};
 
 	FS_RESULT FSGetMountSourceNext(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, MOUNT_TYPE mountSourceType, FS_MOUNT_SOURCE* mountSourceInfo, FS_ERROR_MASK errMask)
 	{
 		// hacky
 		static FS_MOUNT_SOURCE* s_last_source = nullptr;
-		if(s_last_source != mountSourceInfo)
+		if (s_last_source != mountSourceInfo)
 		{
 			s_last_source = mountSourceInfo;
 			fsCmdBlock->data.mount_it = 0;
 		}
 
 		fsCmdBlock->data.mount_it++;
-		
+
 		// SD
 		if (mountSourceType == MOUNT_TYPE::SD && fsCmdBlock->data.mount_it == 1)
 		{
@@ -135,7 +135,8 @@ namespace coreinit
 
 	FS_RESULT FSBindMount(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* mountPathSrc, char* mountPathOut, FS_ERROR_MASK errMask)
 	{
-		if (strcmp(mountPathSrc, "/dev/sdcard01") == 0) {
+		if (strcmp(mountPathSrc, "/dev/sdcard01") == 0)
+		{
 			if (_sdCard01Mounted)
 				return FS_RESULT::ERR_PLACEHOLDER;
 
@@ -146,7 +147,8 @@ namespace coreinit
 				return FS_RESULT::ERR_PLACEHOLDER;
 			_sdCard01Mounted = true;
 		}
-		else if (strcmp(mountPathSrc, "/dev/mlc01") == 0) {
+		else if (strcmp(mountPathSrc, "/dev/mlc01") == 0)
+		{
 			if (_mlc01Mounted)
 				return FS_RESULT::ERR_PLACEHOLDER;
 
@@ -154,7 +156,8 @@ namespace coreinit
 				return FS_RESULT::ERR_PLACEHOLDER;
 			_mlc01Mounted = true;
 		}
-		else {
+		else
+		{
 			return FS_RESULT::ERR_PLACEHOLDER;
 		}
 
@@ -182,7 +185,6 @@ namespace coreinit
 		fsCmdBlockBody->selfCmdBlock = fsCmdBlock;
 		return fsCmdBlockBody;
 	}
-
 
 	void __FSErrorAndBlock(std::string_view msg)
 	{
@@ -494,7 +496,7 @@ namespace coreinit
 		_debugVerifyCommand("FSCmdSubmitResult", fsCmdBlockBody);
 
 		FSClientBody_t* fsClientBody = fsCmdBlockBody->fsClientBody.GetPtr();
-		sFSClientLock.lock(); // OSFastMutex_Lock(&fsClientBody->fsCmdQueue.mutex)
+		sFSClientLock.lock();					  // OSFastMutex_Lock(&fsClientBody->fsCmdQueue.mutex)
 		fsCmdBlockBody->cancelState &= ~(1 << 0); // clear cancel bit
 		if (fsClientBody->currentCmdBlockBody.GetPtr() == fsCmdBlockBody)
 			fsClientBody->currentCmdBlockBody = nullptr;
@@ -613,14 +615,16 @@ namespace coreinit
 		fsCmdBlockBody->uknStatusGuessed09E9 = 0;
 		fsCmdBlockBody->cancelState &= ~(1 << 0); // clear cancel bit
 		fsCmdBlockBody->fsaDevHandle = fsClientBody->iosuFSAHandle;
-		__FSPrepareCmdAsyncResult(fsClientBody, fsCmdBlockBody , &fsCmdBlockBody->asyncResult, fsAsyncParams);
+		__FSPrepareCmdAsyncResult(fsClientBody, fsCmdBlockBody, &fsCmdBlockBody->asyncResult, fsAsyncParams);
 		return 0;
 	}
 
-#define _FSCmdIntro()		FSClientBody_t* fsClientBody = __FSGetClientBody(fsClient); \
-							FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock); \
-							sint32 fsError = __FSPrepareCmd(fsClientBody, fsCmdBlockBody, errorMask, fsAsyncParams); \
-							if (fsError != 0) return fsError;
+#define _FSCmdIntro()                                                                        \
+	FSClientBody_t* fsClientBody = __FSGetClientBody(fsClient);                              \
+	FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);                      \
+	sint32 fsError = __FSPrepareCmd(fsClientBody, fsCmdBlockBody, errorMask, fsAsyncParams); \
+	if (fsError != 0)                                                                        \
+		return fsError;
 
 	void _debugVerifyCommand(const char* stage, FSCmdBlockBody_t* fsCmdBlockBody)
 	{
@@ -631,11 +635,10 @@ namespace coreinit
 			for (uint32 i = 0; i < (sizeof(FSCmdBlockBody_t) + 31) / 32; i++)
 			{
 				uint8* p = ((uint8*)fsCmdBlockBody) + i * 32;
-				cemuLog_log(LogType::Force, "{:04x}: {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} | {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x}", 
-					i * 32, 
-					p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], 
-					p[16], p[17], p[18], p[19], p[20], p[21], p[22], p[23], p[24], p[25], p[26], p[27], p[28], p[29], p[30], p[31]);
-
+				cemuLog_log(LogType::Force, "{:04x}: {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} | {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x}",
+							i * 32,
+							p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15],
+							p[16], p[17], p[18], p[19], p[20], p[21], p[22], p[23], p[24], p[25], p[26], p[27], p[28], p[29], p[30], p[31]);
 			}
 		}
 	}
@@ -827,7 +830,7 @@ namespace coreinit
 		if (transferSize < 0x10)
 			transferSize = 0x10;
 		fsCmdBlockBody->uknVal0954 = _swapEndianU32(transferSize);
-		if(usePos)
+		if (usePos)
 			flag |= FSA_CMD_FLAG_SET_POS;
 		else
 			flag &= ~FSA_CMD_FLAG_SET_POS;
@@ -1622,7 +1625,7 @@ namespace coreinit
 		cafeExportRegister("coreinit", FSChangeDirAsync, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSChangeDir, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSGetCwdAsync, LogType::CoreinitFile);
-		cafeExportRegister("coreinit", FSGetCwd, LogType::CoreinitFile);		
+		cafeExportRegister("coreinit", FSGetCwd, LogType::CoreinitFile);
 
 		cafeExportRegister("coreinit", FSIsEofAsync, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSIsEof, LogType::CoreinitFile);
@@ -1634,7 +1637,7 @@ namespace coreinit
 		cafeExportRegister("coreinit", FSReadDir, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSCloseDirAsync, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSCloseDir, LogType::CoreinitFile);
-		
+
 		// stat
 		cafeExportRegister("coreinit", FSGetFreeSpaceSizeAsync, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSGetFreeSpaceSize, LogType::CoreinitFile);
@@ -1660,4 +1663,4 @@ namespace coreinit
 
 		g_fsRegisteredClientBodies = nullptr;
 	}
-}
+} // namespace coreinit

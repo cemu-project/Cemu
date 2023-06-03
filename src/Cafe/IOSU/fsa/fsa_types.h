@@ -29,23 +29,23 @@ enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 using FSResHandle = sint32;
 using FSFileHandle2 = FSResHandle;
 using FSDirHandle2 = FSResHandle;
-#define FS_INVALID_HANDLE_VALUE         -1
+#define FS_INVALID_HANDLE_VALUE -1
 
-#define FSA_FILENAME_SIZE_MAX			128
-#define FSA_PATH_SIZE_MAX				(512 + FSA_FILENAME_SIZE_MAX)
-#define FSA_CMD_PATH_MAX_LENGTH			FSA_PATH_SIZE_MAX
-#define FSA_MAX_CLIENTS					32
+#define FSA_FILENAME_SIZE_MAX 128
+#define FSA_PATH_SIZE_MAX (512 + FSA_FILENAME_SIZE_MAX)
+#define FSA_CMD_PATH_MAX_LENGTH FSA_PATH_SIZE_MAX
+#define FSA_MAX_CLIENTS 32
 
-typedef sint32                 FSStatus; // DEPR - replaced by FS_RESULT
-typedef uint32				   FS_ERROR_MASK; // replace with enum bitmask
-typedef uint32                 FSFileSize;
-typedef uint64                 FSLargeSize;
-typedef uint64                 FSTime;
+typedef sint32 FSStatus;	  // DEPR - replaced by FS_RESULT
+typedef uint32 FS_ERROR_MASK; // replace with enum bitmask
+typedef uint32 FSFileSize;
+typedef uint64 FSLargeSize;
+typedef uint64 FSTime;
 
 enum class FSFlag : uint32
 {
-	NONE		= 0,
-	IS_DIR		= 0x80000000,
+	NONE = 0,
+	IS_DIR = 0x80000000,
 };
 DEFINE_ENUM_FLAG_OPERATORS(FSFlag);
 
@@ -53,25 +53,25 @@ DEFINE_ENUM_FLAG_OPERATORS(FSFlag);
 
 struct FSStat_t
 {
-	/* +0x000 */ betype<FSFlag>			flag;
-	/* +0x004 */ uint32be				permissions;
-	/* +0x008 */ uint32be				ownerId;
-	/* +0x00C */ uint32be				groupId;
-	/* +0x010 */ betype<FSFileSize>		size;
-	/* +0x014 */ betype<FSFileSize>		allocatedSize;
-	/* +0x018 */ betype<FSLargeSize>	quotaSize;
-	/* +0x020 */ uint32be				entryId;
-	/* +0x024 */ betype<FSTime>			createdTime;
-	/* +0x02C */ betype<FSTime>			modifiedTime;
-	/* +0x034 */ uint8					attributes[0x30];
+	/* +0x000 */ betype<FSFlag> flag;
+	/* +0x004 */ uint32be permissions;
+	/* +0x008 */ uint32be ownerId;
+	/* +0x00C */ uint32be groupId;
+	/* +0x010 */ betype<FSFileSize> size;
+	/* +0x014 */ betype<FSFileSize> allocatedSize;
+	/* +0x018 */ betype<FSLargeSize> quotaSize;
+	/* +0x020 */ uint32be entryId;
+	/* +0x024 */ betype<FSTime> createdTime;
+	/* +0x02C */ betype<FSTime> modifiedTime;
+	/* +0x034 */ uint8 attributes[0x30];
 };
 
 static_assert(sizeof(FSStat_t) == 0x64);
 
 struct FSDirEntry_t
 {
-	/* +0x00 */ FSStat_t    stat;
-	/* +0x64 */ char        name[FSA_FILENAME_SIZE_MAX];
+	/* +0x00 */ FSStat_t stat;
+	/* +0x64 */ char name[FSA_FILENAME_SIZE_MAX];
 };
 
 static_assert(sizeof(FSDirEntry_t) == 0xE4);
@@ -79,5 +79,5 @@ static_assert(sizeof(FSDirEntry_t) == 0xE4);
 #pragma pack()
 
 // query types for QueryInfo
-#define FSA_QUERY_TYPE_FREESPACE		0
-#define FSA_QUERY_TYPE_STAT				5
+#define FSA_QUERY_TYPE_FREESPACE 0
+#define FSA_QUERY_TYPE_STAT 5

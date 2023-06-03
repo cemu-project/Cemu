@@ -4,7 +4,7 @@
 #include "Cafe/Filesystem/fsc.h"
 #include "util/helpers/helpers.h"
 
-#include "Cafe/OS/libs/coreinit/coreinit_FS.h" // get rid of this dependency, requires reworking some of the IPC stuff. See locations where we use coreinit::FSCmdBlockBody_t
+#include "Cafe/OS/libs/coreinit/coreinit_FS.h"	 // get rid of this dependency, requires reworking some of the IPC stuff. See locations where we use coreinit::FSCmdBlockBody_t
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h" // also remove this dependency
 
 #include "Cafe/HW/MMU/MMU.h"
@@ -19,10 +19,10 @@ namespace iosu
 		SysAllocator<iosu::kernel::IOSMessage, 352> _m_sFSAIoMsgQueueMsgBuffer;
 		std::thread sFSAIoThread;
 
-		struct FSAClient // IOSU's counterpart to the coreinit FSClient struct 
+		struct FSAClient // IOSU's counterpart to the coreinit FSClient struct
 		{
 			std::string workingDirectory;
-			bool isAllocated{ false };
+			bool isAllocated{false};
 
 			void AllocateAndInitialize()
 			{
@@ -42,7 +42,7 @@ namespace iosu
 		{
 			for (size_t i = 0; i < sFSAClientArray.size(); i++)
 			{
-				if(sFSAClientArray[i].isAllocated)
+				if (sFSAClientArray[i].isAllocated)
 					continue;
 				sFSAClientArray[i].AllocateAndInitialize();
 				indexOut = (sint32)i;
@@ -152,21 +152,21 @@ namespace iosu
 			return fsc_open(translatedPath.c_str(), accessFlags, &fscStatus);
 		}
 
-		class _FSAHandleTable 
-		{
+		class _FSAHandleTable {
 			struct _FSAHandleResource
 			{
-				bool isAllocated{ false };
+				bool isAllocated{false};
 				FSCVirtualFile* fscFile;
 				uint16 handleCheckValue;
 			};
+
 		public:
 			FSA_RESULT AllocateHandle(FSResHandle& handleOut, FSCVirtualFile* fscFile)
 			{
 				for (size_t i = 0; i < m_handleTable.size(); i++)
 				{
 					auto& it = m_handleTable.at(i);
-					if(it.isAllocated)
+					if (it.isAllocated)
 						continue;
 					uint16 checkValue = (uint16)m_currentCounter;
 					m_currentCounter++;
@@ -188,9 +188,9 @@ namespace iosu
 				if (index >= m_handleTable.size())
 					return FSA_RESULT::INVALID_HANDLE_UKN38;
 				auto& it = m_handleTable.at(index);
-				if(!it.isAllocated)
+				if (!it.isAllocated)
 					return FSA_RESULT::INVALID_HANDLE_UKN38;
-				if(it.handleCheckValue != checkValue)
+				if (it.handleCheckValue != checkValue)
 					return FSA_RESULT::INVALID_HANDLE_UKN38;
 				it.fscFile = nullptr;
 				it.isAllocated = false;
@@ -210,7 +210,7 @@ namespace iosu
 					return nullptr;
 				return it.fscFile;
 			}
-		
+
 		private:
 			uint32 m_currentCounter = 1;
 			std::array<_FSAHandleResource, 0x3C0> m_handleTable;
@@ -219,13 +219,12 @@ namespace iosu
 		_FSAHandleTable sFileHandleTable;
 		_FSAHandleTable sDirHandleTable;
 
-
 		FSStatus __FSAOpenFile(FSAClient* client, const char* path, const char* accessModifierStr, sint32* fileHandle)
 		{
 			*fileHandle = FS_INVALID_HANDLE_VALUE;
 			FSC_ACCESS_FLAG accessModifier = FSC_ACCESS_FLAG::NONE;
 			bool truncateFile = false; // todo: Support for this
-			bool isAppend = false; // todo: proper support for this (all write operations should move cursor to the end of the file?)
+			bool isAppend = false;	   // todo: proper support for this (all write operations should move cursor to the end of the file?)
 			if (strcmp(accessModifierStr, "r") == 0 || strcmp(accessModifierStr, "rb") == 0)
 				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION;
 			else if (strcmp(accessModifierStr, "r+") == 0)
@@ -788,10 +787,10 @@ namespace iosu
 				else if (cmd->cmdId == IPCCommandId::IOS_IOCTLV)
 				{
 					cemu_assert_unimplemented();
-					//uint32 requestId = cmd->args[0];
-					//uint32 numIn = cmd->args[1];
-					//uint32 numOut = cmd->args[2];
-					//IPCIoctlVector* vec = MEMPTR<IPCIoctlVector>{ cmd->args[3] }.GetPtr();
+					// uint32 requestId = cmd->args[0];
+					// uint32 numIn = cmd->args[1];
+					// uint32 numOut = cmd->args[2];
+					// IPCIoctlVector* vec = MEMPTR<IPCIoctlVector>{ cmd->args[3] }.GetPtr();
 					IOS_ResourceReply(cmd, IOS_ERROR_INVALID);
 					continue;
 				}
@@ -820,5 +819,5 @@ namespace iosu
 			IOS_SendMessage(sFSAIoMsgQueue, 0, 0);
 			sFSAIoThread.join();
 		}
-	}
-}
+	} // namespace fsa
+} // namespace iosu
