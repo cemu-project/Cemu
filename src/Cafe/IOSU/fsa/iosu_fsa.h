@@ -111,6 +111,20 @@ namespace iosu
 				{
 					uint32be fileHandle;
 				} cmdIsEof;
+				struct
+				{
+					uint32be dirHandle;
+				} cmdRewindDir;
+				struct
+				{
+					uint32be fileHandle;
+				} cmdFlushFile;
+				struct
+				{
+					uint8 path[FSA_CMD_PATH_MAX_LENGTH];
+					uint32be mode1;
+					uint32be mode2;
+				} cmdChangeMode;
 			};
 		};
 		static_assert(sizeof(FSARequest) == 0x520);
@@ -159,6 +173,10 @@ namespace iosu
 						{
 							FSStat_t stat;
 						} queryStat;
+						struct
+						{
+							FSADeviceInfo_t info;
+						} queryDeviceInfo;
 					};
 				} cmdQueryInfo;
 			};

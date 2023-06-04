@@ -302,6 +302,15 @@ public:
 		return true;
 	}
 
+	bool fscRewindDir() override
+	{
+		if (!dirIterator)
+			return true;
+
+		dirIterator->index  = 0;
+		return true;
+	}
+
 	void addUniqueDirEntry(const FSCDirEntry& dirEntry)
 	{
 		// skip if already in list

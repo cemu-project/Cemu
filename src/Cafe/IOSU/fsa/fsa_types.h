@@ -49,6 +49,7 @@ enum class FSA_CMD_OPERATION_TYPE : uint32
 	RENAME = 0x9,
 	OPENDIR = 0xA,
 	READDIR = 0xB,
+	REWINDDIR = 0xC,
 	CLOSEDIR = 0xD,
 	OPENFILE = 0xE,
 	READ = 0xF,
@@ -58,6 +59,7 @@ enum class FSA_CMD_OPERATION_TYPE : uint32
 	ISEOF = 0x13,
 	GETSTATFILE = 0x14,
 	CLOSEFILE = 0x15,
+	FLUSHFILE = 0x17,
 	QUERYINFO = 0x18,
 	APPENDFILE = 0x19,
 	TRUNCATEFILE = 0x1A,
@@ -114,8 +116,18 @@ struct FSDirEntry_t
 
 static_assert(sizeof(FSDirEntry_t) == 0xE4);
 
+struct FSADeviceInfo_t
+{
+	uint8 ukn0[0x8];
+	uint64be deviceSizeInSectors;
+	uint32be deviceSectorSize;
+	uint8 ukn014[0x14];
+};
+static_assert(sizeof(FSADeviceInfo_t) == 0x28);
+
 #pragma pack()
 
 // query types for QueryInfo
 #define FSA_QUERY_TYPE_FREESPACE 0
+#define FSA_QUERY_TYPE_DEVICE_INFO 4
 #define FSA_QUERY_TYPE_STAT 5

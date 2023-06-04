@@ -410,6 +410,15 @@ namespace iosu
 				delete fscFile;
 				return FSA_RESULT::OK;
 			}
+			else if (queryType == FSA_QUERY_TYPE_DEVICE_INFO)
+			{
+				FSADeviceInfo_t* deviceInfo = &shimBuffer->response.cmdQueryInfo.queryDeviceInfo.info;
+				// always report hardcoded values for now.
+				deviceInfo->deviceSectorSize = 512;
+				deviceInfo->deviceSizeInSectors = (32ull * 1024 * 1024 * 1024) / deviceInfo->deviceSectorSize;
+				cemu_assert_suspicious();
+				return FSA_RESULT::OK;
+			}
 			else
 				cemu_assert_unimplemented();
 			return FSA_convertFSCtoFSAStatus(fscStatus);
@@ -560,6 +569,25 @@ namespace iosu
 		}
 
 		FSA_RESULT FSAProcessCmd_flushQuota(FSAClient* client, FSAShimBuffer* shimBuffer)
+		{
+			return FSA_RESULT::OK;
+		}
+
+		FSA_RESULT FSAProcessCmd_rewindDir(FSAClient* client, FSAShimBuffer* shimBuffer)
+		{
+			FSCVirtualFile* fscFile = sDirHandleTable.GetByHandle((sint32)shimBuffer->request.cmdRewindDir.dirHandle);
+			if (!fscFile)
+			{
+				cemuLog_logDebug(LogType::Force, "RewindDir: Invalid handle (0x{:08x})", (sint32)shimBuffer->request.cmdRewindDir.dirHandle);
+				return FSA_RESULT::INVALID_DIR_HANDLE;
+			}
+			if (!fscFile->fscRewindDir())
+				return FSA_RESULT::FATAL_ERROR;
+
+			return FSA_RESULT::OK;
+		}
+
+		FSA_RESULT FSAProcessCmd_flushFile(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
 			return FSA_RESULT::OK;
 		}
@@ -765,16 +793,21 @@ namespace iosu
 				fsaResult = FSAProcessCmd_flushQuota(client, shimBuffer);
 				break;
 			}
+			case FSA_CMD_OPERATION_TYPE::REWINDDIR:
+			{
+				fsaResult = FSAProcessCmd_rewindDir(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::FLUSHFILE:
+			{
+				fsaResult = FSAProcessCmd_flushFile(client, shimBuffer);
+				break;
+			}
 			case FSA_CMD_OPERATION_TYPE::READ:
 			case FSA_CMD_OPERATION_TYPE::WRITE:
 			{
 				// These commands are IOCTLVs not IOCTL
 				cemu_assert_error();
-			}
-			default:
-			{
-				cemu_assert_unimplemented();
-				break;
 			}
 			}
 			IOS_ResourceReply(cmd, (IOS_ERROR)fsaResult);

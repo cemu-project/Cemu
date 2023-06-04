@@ -152,6 +152,12 @@ struct FSCVirtualFile
 		return false;
 	}
 
+	virtual bool fscRewindDir()
+	{
+		cemu_assert_unimplemented();
+		return false;
+	}
+
 	FSCDirIteratorState* dirIterator{};
 
 	bool m_isAppend{ false };
