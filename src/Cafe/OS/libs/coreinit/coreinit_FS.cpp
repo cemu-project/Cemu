@@ -2455,27 +2455,27 @@ namespace coreinit
 		return FSAGetInfoByQuery(client, path, FSA_QUERY_TYPE_FREESPACE, outSize);
 	}
 
-	auto s_fsaStr_OK = SysAllocatorString("FSA_STATUS_OK");
-	auto s_fsaStr_NOT_INIT = SysAllocatorString("FSA_STATUS_NOT_INIT");
-	auto s_fsaStr_END_OF_DIRECTORY = SysAllocatorString("FSA_STATUS_END_OF_DIRECTORY");
-	auto s_fsaStr_END_OF_FILE = SysAllocatorString("FSA_STATUS_END_OF_FILE");
-	auto s_fsaStr_MAX_CLIENTS = SysAllocatorString("FSA_STATUS_MAX_CLIENTS");
-	auto s_fsaStr_MAX_FILES = SysAllocatorString("FSA_STATUS_MAX_FILES");
-	auto s_fsaStr_MAX_DIRS = SysAllocatorString("FSA_STATUS_MAX_DIRS");
-	auto s_fsaStr_ALREADY_EXISTS = SysAllocatorString("FSA_STATUS_ALREADY_EXISTS");
-	auto s_fsaStr_NOT_FOUND = SysAllocatorString("FSA_STATUS_NOT_FOUND");
-	auto s_fsaStr_PERMISSION_ERROR = SysAllocatorString("FSA_STATUS_PERMISSION_ERROR");
-	auto s_fsaStr_INVALID_PARAM = SysAllocatorString("FSA_STATUS_INVALID_PARAM");
-	auto s_fsaStr_INVALID_PATH = SysAllocatorString("FSA_STATUS_INVALID_PATH");
-	auto s_fsaStr_INVALID_BUFFER = SysAllocatorString("FSA_STATUS_INVALID_BUFFER");
-	auto s_fsaStr_INVALID_ALIGNMENT = SysAllocatorString("FSA_STATUS_INVALID_ALIGNMENT");
-	auto s_fsaStr_INVALID_CLIENT_HANDLE = SysAllocatorString("FSA_STATUS_INVALID_CLIENT_HANDLE");
-	auto s_fsaStr_INVALID_FILE_HANDLE = SysAllocatorString("FSA_STATUS_INVALID_FILE_HANDLE");
-	auto s_fsaStr_INVALID_DIR_HANDLE = SysAllocatorString("FSA_STATUS_INVALID_DIR_HANDLE");
-	auto s_fsaStr_NOT_FILE = SysAllocatorString("FSA_STATUS_NOT_FILE");
-	auto s_fsaStr_NOT_DIR = SysAllocatorString("FSA_STATUS_NOT_DIR");
-	auto s_fsaStr_OUT_OF_RESOURCES = SysAllocatorString("FSA_STATUS_OUT_OF_RESOURCES");
-	auto s_fsaStr_UNKNOWN = SysAllocatorString("FSA_STATUS_???");
+	SysAllocator s_fsaStr_OK("FSA_STATUS_OK");
+	SysAllocator s_fsaStr_NOT_INIT("FSA_STATUS_NOT_INIT");
+	SysAllocator s_fsaStr_END_OF_DIRECTORY("FSA_STATUS_END_OF_DIRECTORY");
+	SysAllocator s_fsaStr_END_OF_FILE("FSA_STATUS_END_OF_FILE");
+	SysAllocator s_fsaStr_MAX_CLIENTS("FSA_STATUS_MAX_CLIENTS");
+	SysAllocator s_fsaStr_MAX_FILES("FSA_STATUS_MAX_FILES");
+	SysAllocator s_fsaStr_MAX_DIRS("FSA_STATUS_MAX_DIRS");
+	SysAllocator s_fsaStr_ALREADY_EXISTS("FSA_STATUS_ALREADY_EXISTS");
+	SysAllocator s_fsaStr_NOT_FOUND("FSA_STATUS_NOT_FOUND");
+	SysAllocator s_fsaStr_PERMISSION_ERROR("FSA_STATUS_PERMISSION_ERROR");
+	SysAllocator s_fsaStr_INVALID_PARAM("FSA_STATUS_INVALID_PARAM");
+	SysAllocator s_fsaStr_INVALID_PATH("FSA_STATUS_INVALID_PATH");
+	SysAllocator s_fsaStr_INVALID_BUFFER("FSA_STATUS_INVALID_BUFFER");
+	SysAllocator s_fsaStr_INVALID_ALIGNMENT("FSA_STATUS_INVALID_ALIGNMENT");
+	SysAllocator s_fsaStr_INVALID_CLIENT_HANDLE("FSA_STATUS_INVALID_CLIENT_HANDLE");
+	SysAllocator s_fsaStr_INVALID_FILE_HANDLE("FSA_STATUS_INVALID_FILE_HANDLE");
+	SysAllocator s_fsaStr_INVALID_DIR_HANDLE("FSA_STATUS_INVALID_DIR_HANDLE");
+	SysAllocator s_fsaStr_NOT_FILE("FSA_STATUS_NOT_FILE");
+	SysAllocator s_fsaStr_NOT_DIR("FSA_STATUS_NOT_DIR");
+	SysAllocator s_fsaStr_OUT_OF_RESOURCES("FSA_STATUS_OUT_OF_RESOURCES");
+	SysAllocator s_fsaStr_UNKNOWN("FSA_STATUS_???");
 
 	const char* FSAGetStatusStr(FSA_RESULT status)
 	{
