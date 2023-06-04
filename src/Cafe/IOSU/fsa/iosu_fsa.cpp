@@ -229,10 +229,9 @@ namespace iosu
 				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION;
 			else if (strcmp(accessModifierStr, "r+") == 0)
 			{
-				// r+ will create a new file if it doesn't exist
 				// the cursor will be set to the beginning of the file
 				// allows read and write access
-				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE; // create if non exists, read, write
+				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION; // read, write
 			}
 			else if (strcmp(accessModifierStr, "w") == 0)
 			{
