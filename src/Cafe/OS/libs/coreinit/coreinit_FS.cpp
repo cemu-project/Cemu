@@ -586,12 +586,12 @@ namespace coreinit
 		}
 		switch (err)
 		{
-		case FSA_RESULT::SUCCESS:
+		case FSA_RESULT::OK:
 		{
 			return FS_RESULT::SUCCESS;
 		}
-		case FSA_RESULT::END_DIR:
-		case FSA_RESULT::END_FILE:
+		case FSA_RESULT::END_OF_DIRECTORY:
+		case FSA_RESULT::END_OF_FILE:
 		{
 			return FS_RESULT::END_ITERATION;
 		}
@@ -627,6 +627,9 @@ namespace coreinit
 		case FSA_RESULT::INVALID_PATH:
 		case FSA_RESULT::INVALID_BUFFER:
 		case FSA_RESULT::INVALID_ALIGNMENT:
+		case FSA_RESULT::NOT_INIT:
+		case FSA_RESULT::MAX_CLIENTS:
+		case FSA_RESULT::OUT_OF_RESOURCES:
 		case FSA_RESULT::FATAL_ERROR:
 		{
 			return FS_RESULT::FATAL_ERROR;
@@ -863,7 +866,7 @@ namespace coreinit
 
 		fsaShimBuffer->response.cmdOpenFile.fileHandleOutput = 0xFFFFFFFF;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSOpenFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandleDepr_t* outFileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -901,7 +904,7 @@ namespace coreinit
 		fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = &outFileHandle->fileHandle;
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_OpenFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path, mode, createMode, openFlag, preallocSize);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -926,7 +929,8 @@ namespace coreinit
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::CLOSEFILE;
 		fsaShimBuffer->request.cmdCloseFile.fileHandle = fileHandle;
-		return FSA_RESULT::SUCCESS;
+
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSCloseFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -934,7 +938,7 @@ namespace coreinit
 		_FSCmdIntro();
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_CloseFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -980,7 +984,7 @@ namespace coreinit
 		fsaShimBuffer->request.cmdReadFile.fileHandle = fileHandle;
 		fsaShimBuffer->request.cmdReadFile.flag = flag;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	SysAllocator<uint8, 128, 64> _tempFSSpace;
@@ -1009,7 +1013,7 @@ namespace coreinit
 			flag &= ~FSA_CMD_FLAG_SET_POS;
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_ReadFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dest, size, count, filePos, fileHandle, flag);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1076,7 +1080,7 @@ namespace coreinit
 		fsaShimBuffer->request.cmdWriteFile.fileHandle = fileHandle;
 		fsaShimBuffer->request.cmdWriteFile.flag = flag;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 __FSWriteFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dest, uint32 size, uint32 count, bool useFilePos, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1103,7 +1107,7 @@ namespace coreinit
 			flag &= ~FSA_CMD_FLAG_SET_POS;
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_WriteFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dest, size, count, filePos, fileHandle, flag);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1146,14 +1150,14 @@ namespace coreinit
 		fsaShimBuffer->request.cmdSetPosFile.fileHandle = fileHandle;
 		fsaShimBuffer->request.cmdSetPosFile.filePos = filePos;
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::SETPOS;
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSSetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 filePos, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_SetPosFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle, filePos);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
@@ -1176,7 +1180,7 @@ namespace coreinit
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->request.cmdGetPosFile.fileHandle = fileHandle;
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::GETPOS;
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSGetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32be* returnedFilePos, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1185,7 +1189,7 @@ namespace coreinit
 		_FSCmdIntro();
 		fsCmdBlockBody->returnValues.cmdGetPosFile.filePosPtr = returnedFilePos;
 		FSA_RESULT prepareResult = __FSPrepareCmd_GetPosFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
@@ -1224,7 +1228,7 @@ namespace coreinit
 
 		fsaShimBuffer->response.cmdOpenDir.dirHandleOutput = -1;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSOpenDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, FSDirHandlePtr dirHandleOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1233,7 +1237,7 @@ namespace coreinit
 		cemu_assert(dirHandleOut && path);
 		fsCmdBlockBody->returnValues.cmdOpenDir.handlePtr = dirHandleOut.GetMPTR();
 		FSA_RESULT prepareResult = __FSPrepareCmd_OpenDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
@@ -1255,14 +1259,14 @@ namespace coreinit
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::READDIR;
 		fsaShimBuffer->request.cmdReadDir.dirHandle = dirHandle;
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSReadDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_ReadDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirHandle);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 		fsCmdBlockBody->returnValues.cmdReadDir.dirEntryPtr = dirEntryOut;
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1285,14 +1289,14 @@ namespace coreinit
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::CLOSEDIR;
 		fsaShimBuffer->request.cmdCloseDir.dirHandle = dirHandle;
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSCloseDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_CloseDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirHandle);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1320,14 +1324,14 @@ namespace coreinit
 		fsaShimBuffer->request.cmdAppendFile.size = count;
 		fsaShimBuffer->request.cmdAppendFile.uknParam = uknParam;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSAppendFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 size, uint32 count, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_AppendFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle, size, count, 0);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1352,14 +1356,14 @@ namespace coreinit
 
 		fsaShimBuffer->request.cmdTruncateFile.fileHandle = fileHandle;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSTruncateFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_TruncateFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1410,7 +1414,7 @@ namespace coreinit
 		}
 		fsaShimBuffer->request.cmdRename.dstPath[stringLen] = '\0';
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSRenameAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* srcPath, char* dstPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1423,7 +1427,7 @@ namespace coreinit
 			return -0x400;
 		}
 		FSA_RESULT prepareResult = __FSPrepareCmd_Rename(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, srcPath, dstPath);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1461,7 +1465,7 @@ namespace coreinit
 		}
 		fsaShimBuffer->request.cmdRemove.path[pathLen] = '\0';
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSRemoveAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* filePath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1474,7 +1478,7 @@ namespace coreinit
 			return -0x400;
 		}
 		FSA_RESULT prepareResult = __FSPrepareCmd_Remove(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, filePath);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1513,7 +1517,7 @@ namespace coreinit
 		fsaShimBuffer->request.cmdMakeDir.path[pathLen] = '\0';
 		fsaShimBuffer->request.cmdMakeDir.uknParam = uknVal660;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSMakeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const uint8* dirPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1526,7 +1530,7 @@ namespace coreinit
 			return -0x400;
 		}
 		FSA_RESULT prepareResult = __FSPrepareCmd_MakeDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirPath, 0x660);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1563,7 +1567,7 @@ namespace coreinit
 
 		fsaShimBuffer->request.cmdChangeDir.path[pathLen] = '\0';
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSChangeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1575,7 +1579,7 @@ namespace coreinit
 			return -0x400;
 		}
 		FSA_RESULT prepareResult = __FSPrepareCmd_ChangeDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, (uint8*)path);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1599,7 +1603,7 @@ namespace coreinit
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::GETCWD;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSGetCwdAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* dirPathOut, sint32 dirPathMaxLen, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1610,7 +1614,7 @@ namespace coreinit
 		fsCmdBlockBody->returnValues.cmdGetCwd.transferSize = dirPathMaxLen;
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_GetCwd(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1647,7 +1651,7 @@ namespace coreinit
 			fsaShimBuffer->request.cmdFlushQuota.path[i] = path[i];
 		fsaShimBuffer->request.cmdFlushQuota.path[pathLen] = '\0';
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSFlushQuotaAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1655,7 +1659,7 @@ namespace coreinit
 		_FSCmdIntro();
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_FlushQuota(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1697,7 +1701,7 @@ namespace coreinit
 		fsaShimBuffer->request.cmdQueryInfo.query[stringLen] = '\0';
 		fsaShimBuffer->request.cmdQueryInfo.queryType = queryType;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 __FSQueryInfoAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* queryString, uint32 queryType, void* queryResult, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1707,7 +1711,7 @@ namespace coreinit
 		fsCmdBlockBody->returnValues.cmdQueryInfo.queryResultPtr = queryResult;
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_QueryInfo(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, queryString, queryType);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1738,7 +1742,7 @@ namespace coreinit
 		fsaShimBuffer->ipcReqType = 0;
 		fsaShimBuffer->request.cmdGetStatFile.fileHandle = fileHandle;
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::GETSTATFILE;
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSGetStatFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, FSStat_t* statOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1748,7 +1752,7 @@ namespace coreinit
 		fsCmdBlockBody->returnValues.cmdStatFile.resultPtr = statOut;
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_GetStatFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle, statOut);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
@@ -1789,7 +1793,7 @@ namespace coreinit
 
 		fsaShimBuffer->request.cmdIsEof.fileHandle = fileHandle;
 
-		return FSA_RESULT::SUCCESS;
+		return FSA_RESULT::OK;
 	}
 
 	sint32 FSIsEofAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
@@ -1798,7 +1802,7 @@ namespace coreinit
 		_FSCmdIntro();
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_IsEof(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle);
-		if (prepareResult != FSA_RESULT::SUCCESS)
+		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));

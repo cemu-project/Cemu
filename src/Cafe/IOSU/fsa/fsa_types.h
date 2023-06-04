@@ -17,9 +17,11 @@ enum class FS_RESULT : sint32 // aka FSStatus
 
 enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 {
-	SUCCESS = 0,
-	END_DIR = -0x30000 - 0x04,
-	END_FILE = -0x30000 - 0x05,
+	OK = 0,
+	NOT_INIT = -0x30000 - 0x01,
+	END_OF_DIRECTORY = -0x30000 - 0x04,
+	END_OF_FILE = -0x30000 - 0x05,
+	MAX_CLIENTS = -0x30000 - 0x12,
 	MAX_FILES = -0x30000 - 0x13,
 	MAX_DIRS = -0x30000 - 0x14,
 	ALREADY_EXISTS = -0x30000 - 0x16,
@@ -34,6 +36,7 @@ enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 	INVALID_DIR_HANDLE = -0x30000 - 0x27,
 	NOT_FILE = -0x30000 - 0x28,
 	NOT_DIR = -0x30000 - 0x29,
+	OUT_OF_RESOURCES = -0x30000 - 0x2C,
 	FATAL_ERROR = -0x30000 - 0x400,
 };
 

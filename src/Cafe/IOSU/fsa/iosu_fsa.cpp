@@ -54,7 +54,7 @@ namespace iosu
 		FSA_RESULT FSA_convertFSCtoFSAStatus(sint32 fscError)
 		{
 			if (fscError == FSC_STATUS_OK)
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
 			else if (fscError == FSC_STATUS_FILE_NOT_FOUND)
 				return FSA_RESULT::NOT_FOUND;
 			else if (fscError == FSC_STATUS_ALREADY_EXISTS)
@@ -175,7 +175,7 @@ namespace iosu
 					it.isAllocated = true;
 					uint32 handleVal = ((uint32)i << 16) | (uint32)checkValue;
 					handleOut = (FSResHandle)handleVal;
-					return FSA_RESULT::SUCCESS;
+					return FSA_RESULT::OK;
 				}
 				cemuLog_log(LogType::Force, "FSA: Ran out of file handles");
 				return FSA_RESULT::FATAL_ERROR;
@@ -194,7 +194,7 @@ namespace iosu
 					return FSA_RESULT::INVALID_FILE_HANDLE;
 				it.fscFile = nullptr;
 				it.isAllocated = false;
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
 			}
 
 			FSCVirtualFile* GetByHandle(FSResHandle handle)
@@ -276,7 +276,7 @@ namespace iosu
 				fsc_setFileSeek(fscFile, fsc_getFileSize(fscFile));
 			FSResHandle fsFileHandle;
 			FSA_RESULT r = sFileHandleTable.AllocateHandle(fsFileHandle, fscFile);
-			if (r != FSA_RESULT::SUCCESS)
+			if (r != FSA_RESULT::OK)
 			{
 				cemuLog_log(LogType::Force, "Exceeded maximum number of FSA file handles");
 				delete fscFile;
@@ -284,7 +284,7 @@ namespace iosu
 			}
 			*fileHandle = fsFileHandle;
 			cemuLog_log(LogType::CoreinitFile, "Open file {} (access: {} result: ok handle: 0x{})", path, accessModifierStr, (uint32)*fileHandle);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT __FSAOpenDirectory(FSAClient* client, std::string_view path, sint32* dirHandle)
@@ -301,14 +301,14 @@ namespace iosu
 			}
 			FSResHandle fsDirHandle;
 			FSA_RESULT r = sDirHandleTable.AllocateHandle(fsDirHandle, fscFile);
-			if (r != FSA_RESULT::SUCCESS)
+			if (r != FSA_RESULT::OK)
 			{
 				delete fscFile;
 				return FSA_RESULT::MAX_DIRS;
 			}
 			*dirHandle = fsDirHandle;
 			cemuLog_log(LogType::CoreinitFile, "Open directory {} (result: ok handle: 0x{})", path, (uint32)*dirHandle);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT __FSACloseFile(uint32 fileHandle)
@@ -323,7 +323,7 @@ namespace iosu
 			// unregister file
 			sFileHandleTable.ReleaseHandle(fileHandle); // todo - use the error code of this
 			fsc_close(fscFile);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_remove(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -384,7 +384,7 @@ namespace iosu
 				return FSA_convertFSCtoFSAStatus(fscStatus);
 			__FSA_GetStatFromFSCFile(fscFile, fsStatOut);
 			delete fscFile;
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_queryInfo(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -408,7 +408,7 @@ namespace iosu
 				betype<uint64>* fsStatSize = &shimBuffer->response.cmdQueryInfo.queryFreeSpace.freespace;
 				*fsStatSize = 30ull * 1024 * 1024 * 1024; // placeholder value. How is this determined?
 				delete fscFile;
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
 			}
 			else
 				cemu_assert_unimplemented();
@@ -424,7 +424,7 @@ namespace iosu
 				return FSA_RESULT::NOT_FOUND;
 			cemu_assert_debug(fsc_isFile(fscFile));
 			__FSA_GetStatFromFSCFile(fscFile, statOut);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_read(FSAClient* client, FSAShimBuffer* shimBuffer, MEMPTR<void> destPtr, uint32be transferSize)
@@ -445,7 +445,7 @@ namespace iosu
 			// todo: File permissions
 			uint32 bytesSuccessfullyRead = fsc_readFile(fscFile, destPtr, bytesToRead);
 			if (transferElementSize == 0)
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
 
 			LatteBufferCache_notifyDCFlush(destPtr.GetMPTR(), bytesToRead);
 
@@ -486,7 +486,7 @@ namespace iosu
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 			fsc_setFileSeek(fscFile, filePos);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_getPos(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -497,7 +497,7 @@ namespace iosu
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 			uint32 filePos = fsc_getFileSeek(fscFile);
 			shimBuffer->response.cmdGetPosFile.filePos = filePos;
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_openFile(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -529,7 +529,7 @@ namespace iosu
 			FSDirEntry_t* dirEntryOut = &shimBuffer->response.cmdReadDir.dirEntry;
 			FSCDirEntry fscDirEntry;
 			if (fsc_nextDir(fscFile, &fscDirEntry) == false)
-				return FSA_RESULT::END_DIR;
+				return FSA_RESULT::END_OF_DIRECTORY;
 			strcpy(dirEntryOut->name, fscDirEntry.path);
 			FSFlag statFlag = FSFlag::NONE;
 			dirEntryOut->stat.size = 0;
@@ -543,7 +543,7 @@ namespace iosu
 			}
 			dirEntryOut->stat.flag = statFlag;
 			dirEntryOut->stat.permissions = 0x777;
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_closeDir(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -556,12 +556,12 @@ namespace iosu
 			}
 			sDirHandleTable.ReleaseHandle(shimBuffer->request.cmdReadDir.dirHandle);
 			fsc_close(fscFile);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_flushQuota(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_appendFile(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -583,7 +583,7 @@ namespace iosu
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 			fsc_setFileLength(fscFile, fsc_getFileSeek(fscFile));
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_isEof(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -595,8 +595,8 @@ namespace iosu
 			uint32 filePos = fsc_getFileSeek(fscFile);
 			uint32 fileSize = fsc_getFileSize(fscFile);
 			if (filePos >= fileSize)
-				return FSA_RESULT::END_FILE;
-			return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::END_OF_FILE;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_getCwd(FSAClient* client, FSAShimBuffer* shimBuffer)
