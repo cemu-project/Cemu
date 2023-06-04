@@ -197,3 +197,9 @@ private:
 	MEMPTR<T> m_sysMem;
 	T m_tempData;
 };
+
+template <size_t N>
+SysAllocator<char, N> SysAllocatorString(const char(&str)[N])
+{
+	return std::initializer_list<char> (str, str + N - 1 );
+}

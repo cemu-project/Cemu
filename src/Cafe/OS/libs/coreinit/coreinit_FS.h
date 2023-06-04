@@ -12,6 +12,8 @@ typedef struct
 
 typedef MEMPTR<betype<FSDirHandle2>> FSDirHandlePtr;
 
+typedef uint32 FSAClientHandle;
+
 typedef struct
 {
 	MEMPTR<void> userCallback;
