@@ -367,7 +367,7 @@ void TitleManager::OnRefreshButton(wxCommandEvent& event)
 void TitleManager::OnInstallTitle(wxCommandEvent& event)
 {
 	wxFileDialog openFileDialog(this, _("Select title to install"), "", "", "meta.xml|meta.xml", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (openFileDialog.ShowModal() == wxID_CANCEL)
+	if (openFileDialog.ShowModal() == wxID_CANCEL || openFileDialog.GetPath().IsEmpty())
 		return;
 
 	fs::path filePath(openFileDialog.GetPath().wc_str());
@@ -623,13 +623,10 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 	const auto persistent_id = (uint32)(uintptr_t)m_save_account_list->GetClientData(selection_index);
 
 	wxFileDialog path_dialog(this, _("Select a target file to export the save entry"), entry->path.string(), wxEmptyString, "Exported save entry (*.zip)|*.zip", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	if (path_dialog.ShowModal() != wxID_OK)
+	if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().IsEmpty())
 		return;
 
 	const auto path = path_dialog.GetPath();
-	if (path.empty())
-		return;
-
 	int ze;
 	auto* zip = zip_open(path.ToUTF8().data(), ZIP_CREATE | ZIP_TRUNCATE, &ze);
 	if (!zip)
