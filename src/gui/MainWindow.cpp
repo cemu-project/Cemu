@@ -330,62 +330,45 @@ MainWindow::MainWindow()
 
         }
     }
-	if (!quick_launch)
-	{
-		{
-			m_main_panel = new wxPanel(this);
-			auto* sizer = new wxBoxSizer(wxVERTICAL);
-			// game list
-			m_game_list = new wxGameList(m_main_panel, MAINFRAME_GAMELIST_ID);
-			m_game_list->Bind(wxEVT_OPEN_SETTINGS, [this](auto&) {OpenSettings(); });
-			m_game_list->SetDropTarget(new wxGameDropTarget(this));
-			sizer->Add(m_game_list, 1, wxEXPAND);
+    SetSizer(main_sizer);
+    if (!quick_launch)
+    {
+        CreateGameListAndStatusBar();
+    }
+    else
+    {
+      // launching game via -g or -t option. Don't set up or load game list
+      m_game_list = nullptr;
+      m_info_bar = nullptr;
+    }
+    SetSizer(main_sizer);
 
-			// info, warning bar
-			m_info_bar = new wxInfoBar(m_main_panel);
-			m_info_bar->SetShowHideEffects(wxSHOW_EFFECT_BLEND, wxSHOW_EFFECT_BLEND);
-			m_info_bar->SetEffectDuration(500);
-			sizer->Add(m_info_bar, 0, wxALL | wxEXPAND, 5);
+    m_last_mouse_move_time = std::chrono::steady_clock::now();
 
-			m_main_panel->SetSizer(sizer);
-			main_sizer->Add(m_main_panel, 1, wxEXPAND, 0, nullptr);
-		}
-	}
-	else
-	{
-		// launching game via -g or -t option. Don't set up or load game list
-		m_game_list = nullptr;
-		m_info_bar = nullptr;
-	}
-	SetSizer(main_sizer);
+    m_timer = new wxTimer(this, MAINFRAME_ID_TIMER1);
+    m_timer->Start(500);
 
-	m_last_mouse_move_time = std::chrono::steady_clock::now();
+    LoadSettings();
 
-	m_timer = new wxTimer(this, MAINFRAME_ID_TIMER1);
-	m_timer->Start(500);
+    auto& config = GetConfig();
+    #ifdef ENABLE_DISCORD_RPC
+    if (config.use_discord_presence)
+            m_discord = std::make_unique<DiscordPresence>();
+    #endif
 
-	LoadSettings();
+    Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
+    Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
 
-	auto& config = GetConfig();
-#ifdef ENABLE_DISCORD_RPC
-	if (config.use_discord_presence)
-		m_discord = std::make_unique<DiscordPresence>();
-#endif
-
-	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
-	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
-
-	if (LaunchSettings::GDBStubEnabled())
-	{
-		g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
-	}
+    if (LaunchSettings::GDBStubEnabled())
+    {
+            g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
+    }
 }
 
 MainWindow::~MainWindow()
 {
 	if (m_padView)
 	{
-		//delete m_padView;
 		m_padView->Destroy();
 		m_padView = nullptr;
 	}
@@ -396,13 +379,47 @@ MainWindow::~MainWindow()
 	g_mainFrame = nullptr;
 }
 
+void MainWindow::CreateGameListAndStatusBar()
+{
+    if(m_main_panel)
+        return; // already displayed
+    m_main_panel = new wxPanel(this);
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+    // game list
+    m_game_list = new wxGameList(m_main_panel, MAINFRAME_GAMELIST_ID);
+    m_game_list->Bind(wxEVT_OPEN_SETTINGS, [this](auto&) {OpenSettings(); });
+    m_game_list->SetDropTarget(new wxGameDropTarget(this));
+    sizer->Add(m_game_list, 1, wxEXPAND);
+
+    // info, warning bar
+    m_info_bar = new wxInfoBar(m_main_panel);
+    m_info_bar->SetShowHideEffects(wxSHOW_EFFECT_BLEND, wxSHOW_EFFECT_BLEND);
+    m_info_bar->SetEffectDuration(500);
+    sizer->Add(m_info_bar, 0, wxALL | wxEXPAND, 5);
+
+    m_main_panel->SetSizer(sizer);
+
+    auto* main_sizer = this->GetSizer();
+    main_sizer->Add(m_main_panel, 1, wxEXPAND, 0, nullptr);
+}
+
+void MainWindow::DestroyGameListAndStatusBar()
+{
+    if(!m_main_panel)
+        return;
+    m_main_panel->Destroy();
+    m_main_panel = nullptr;
+    m_game_list = nullptr;
+    m_info_bar = nullptr;
+}
+
 wxString MainWindow::GetInitialWindowTitle()
 {
 	return BUILD_VERSION_WITH_NAME_STRING;
 }
 
 void MainWindow::ShowGettingStartedDialog()
-{	
+{
 	GettingStartedDialog dia(this);
 	dia.ShowModal();
 	if (dia.HasGamePathChanged() || dia.HasMLCChanged())
@@ -435,7 +452,7 @@ void MainWindow::OnClose(wxCloseEvent& event)
 
 	event.Skip();
 
-	CafeSystem::ShutdownTitle();
+    CafeSystem::Shutdown();
 	DestroyCanvas();
 }
 
@@ -558,35 +575,12 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 
 	wxWindowUpdateLocker lock(this);
 
-	auto* main_sizer = GetSizer();
-	// remove old gamelist panel
-	if (m_main_panel)
-	{
-		m_main_panel->Hide();
-		main_sizer->Detach(m_main_panel);
-	}
-
-	// create render canvas rendering
-	m_game_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS);
-	auto* sizer = new wxBoxSizer(wxVERTICAL);
-
-	// shouldn't be needed, but who knows
-	m_game_panel->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
-	m_game_panel->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
-
-	m_game_panel->SetSizer(sizer);
-	main_sizer->Add(m_game_panel, 1, wxEXPAND, 0, nullptr);
+    DestroyGameListAndStatusBar();
 
 	m_game_launched = true;
 	m_loadMenuItem->Enable(false);
 	m_installUpdateMenuItem->Enable(false);
 	m_memorySearcherMenuItem->Enable(true);
-
-	if (m_game_list)
-	{
-		delete m_game_list;
-		m_game_list = nullptr;
-	}
 
 	m_launched_game_name = CafeSystem::GetForegroundTitleName();
 	#ifdef ENABLE_DISCORD_RPC
@@ -675,10 +669,12 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	}
 	else if (menuId == MAINFRAME_MENU_ID_FILE_END_EMULATION)
 	{
-		CafeSystem::ShutdownTitle();
+        CafeSystem::ShutdownTitle();
 		DestroyCanvas();
 		m_game_launched = false;
 		RecreateMenu();
+        CreateGameListAndStatusBar();
+        DoLayout();
 	}
 }
 
@@ -1547,7 +1543,19 @@ void MainWindow::AsyncSetTitle(std::string_view windowTitle)
 
 void MainWindow::CreateCanvas()
 {
-	if (ActiveSettings::GetGraphicsAPI() == kVulkan)
+    // create panel for canvas
+    m_game_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS);
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+
+    // shouldn't be needed, but who knows
+    m_game_panel->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
+    m_game_panel->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
+
+    m_game_panel->SetSizer(sizer);
+    this->GetSizer()->Add(m_game_panel, 1, wxEXPAND, 0, nullptr);
+
+    // create canvas
+    if (ActiveSettings::GetGraphicsAPI() == kVulkan)
 		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
 	else
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
@@ -1588,6 +1596,11 @@ void MainWindow::DestroyCanvas()
 		m_render_canvas->Destroy();
 		m_render_canvas = nullptr;
 	}
+    if(m_game_panel)
+    {
+        m_game_panel->Destroy();
+        m_game_panel = nullptr;
+    }
 }
 
 void MainWindow::OnSizeEvent(wxSizeEvent& event)
@@ -2084,7 +2097,7 @@ void MainWindow::RecreateMenu()
 	{
 		// add 'Stop emulation' menu entry to file menu
 #ifdef CEMU_DEBUG_ASSERT
-		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("End emulation"));
+		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("Stop emulation"));
 #endif
 	}
 
@@ -2106,20 +2119,6 @@ void MainWindow::RecreateMenu()
 		
 		++index;
 	}
-	//optionsAccountMenu->AppendSeparator(); TODO
-	//optionsAccountMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 + index, _("Online enabled"))->Check(config.account.online_enabled);
-	
-	// options->region submenu
-	//wxMenu* optionsRegionMenu = new wxMenu;
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_AUTO, _("&Auto"), wxEmptyString)->Check(config.console_region == ConsoleRegion::Auto);
-	////optionsRegionMenu->AppendSeparator();
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_USA, _("&USA"), wxEmptyString)->Check(config.console_region == ConsoleRegion::USA);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_EUR, _("&Europe"), wxEmptyString)->Check(config.console_region == ConsoleRegion::EUR);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_JPN, _("&Japan"), wxEmptyString)->Check(config.console_region == ConsoleRegion::JPN);
-	//// optionsRegionMenu->Append(MAINFRAME_MENU_ID_OPTIONS_REGION_AUS, wxT("&Australia"), wxEmptyString, wxITEM_RADIO)->Check(config_get()->region==3); -> Was merged into Europe?
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_CHN, _("&China"), wxEmptyString)->Check(config.console_region == ConsoleRegion::CHN);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_KOR, _("&Korea"), wxEmptyString)->Check(config.console_region == ConsoleRegion::KOR);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_TWN, _("&Taiwan"), wxEmptyString)->Check(config.console_region == ConsoleRegion::TWN);
 
 	// options->console language submenu
 	wxMenu* optionsConsoleLanguageMenu = new wxMenu;
@@ -2142,7 +2141,6 @@ void MainWindow::RecreateMenu()
 	m_fullscreenMenuItem->Check(ActiveSettings::FullscreenEnabled());		
 	
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GRAPHIC_PACKS2, _("&Graphic packs"));
-	//optionsMenu->AppendSubMenu(optionsVCAMenu, _("&GPU buffer cache accuracy"));
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
 	m_padViewMenuItem->Check(GetConfig().pad_open);
 	optionsMenu->AppendSeparator();
@@ -2151,7 +2149,6 @@ void MainWindow::RecreateMenu()
 
 	optionsMenu->AppendSeparator();
 	optionsMenu->AppendSubMenu(m_optionsAccountMenu, _("&Active account"));
-	//optionsMenu->AppendSubMenu(optionsRegionMenu, _("&Console region"));
 	optionsMenu->AppendSubMenu(optionsConsoleLanguageMenu, _("&Console language"));
 	m_menuBar->Append(optionsMenu, _("&Options"));
 
@@ -2272,7 +2269,7 @@ void MainWindow::RecreateMenu()
 		m_memorySearcherMenuItem->Enable(true);
 		m_nfcMenu->Enable(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, true);
 		
-		// disable OpenGL logging (currently cant be toggled after OpenGL backend is initialized)
+		// these options cant be toggled after the renderer backend is initialized:
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), false);
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), false);
 

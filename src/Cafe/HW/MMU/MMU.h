@@ -2,6 +2,7 @@
 
 void memory_init();
 void memory_mapForCurrentTitle();
+void memory_unmapForCurrentTitle();
 void memory_logModifiedMemoryRanges();
 
 void memory_enableOverlayArena();

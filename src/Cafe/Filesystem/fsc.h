@@ -205,7 +205,6 @@ bool FSCDeviceWUD_Mount(std::string_view mountPath, std::string_view destination
 bool FSCDeviceWUA_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
 
 // hostFS device
-void fscDeviceHostFS_mapBaseDirectories_deprecated();
 bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority);
 
 // redirect device

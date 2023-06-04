@@ -45,7 +45,7 @@ namespace coreinit
 	void OSSetAlarmUserData(OSAlarm_t* alarm, uint32 userData);
 	void OSSetPeriodicAlarm(OSAlarm_t* OSAlarm, uint64 startTick, uint64 periodTick, MPTR OSAlarmHandler);
 
-	void OSAlarm_resetAll();
+	void OSAlarm_Shutdown();
 
 	void alarm_update();
 

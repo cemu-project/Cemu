@@ -57,7 +57,10 @@ class MainWindow : public wxFrame
 public:
 	MainWindow();
 	~MainWindow();
-	
+
+    void CreateGameListAndStatusBar();
+    void DestroyGameListAndStatusBar();
+
 	void UpdateSettingsAfterGameLaunch();
 	void RestoreSettingsAfterGameExited();
 
@@ -195,42 +198,40 @@ private:
 	wxWindow* m_render_canvas{};
 
 	// gamelist
-	wxGameList* m_game_list;
-	wxInfoBar* m_info_bar;
+	wxGameList* m_game_list{};
+	wxInfoBar* m_info_bar{};
 
 	// menu
-	wxMenuBar* m_menuBar = nullptr;
+	wxMenuBar* m_menuBar{};
 
 	// file
-	wxMenu* m_fileMenu;
-	wxMenuItem* m_fileMenuSeparator0;
-	wxMenuItem* m_fileMenuSeparator1;
-	wxMenuItem* m_loadMenuItem;
-	wxMenuItem* m_installUpdateMenuItem;
-	wxMenuItem* m_exitMenuItem;
+	wxMenu* m_fileMenu{};
+	wxMenuItem* m_fileMenuSeparator0{};
+	wxMenuItem* m_fileMenuSeparator1{};
+	wxMenuItem* m_loadMenuItem{};
+	wxMenuItem* m_installUpdateMenuItem{};
+	wxMenuItem* m_exitMenuItem{};
 
 	// options
-	//wxMenu* m_gpuBufferCacheAccuracySubmenu;
-	wxMenu* m_optionsAccountMenu;
+	wxMenu* m_optionsAccountMenu{};
 
-	wxMenuItem* m_fullscreenMenuItem;
-	wxMenuItem* m_padViewMenuItem;
+	wxMenuItem* m_fullscreenMenuItem{};
+	wxMenuItem* m_padViewMenuItem{};
 
 	// tools
-	wxMenuItem* m_memorySearcherMenuItem;
+	wxMenuItem* m_memorySearcherMenuItem{};
 
 	// cpu
-	//wxMenu* m_cpuModeSubmenu;
-	wxMenu* m_cpuTimerSubmenu;
+	wxMenu* m_cpuTimerSubmenu{};
 
 	// nfc
-	wxMenu* m_nfcMenu;
-	wxMenuItem* m_nfcMenuSeparator0;
+	wxMenu* m_nfcMenu{};
+	wxMenuItem* m_nfcMenuSeparator0{};
 
 	// debug
-	wxMenu* m_debugMenu;
-	wxMenu* m_loggingSubmenu;
-	wxMenuItem* m_asyncCompile;
+	wxMenu* m_debugMenu{};
+	wxMenu* m_loggingSubmenu{};
+	wxMenuItem* m_asyncCompile{};
 
 wxDECLARE_EVENT_TABLE();
 };

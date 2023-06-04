@@ -1483,7 +1483,7 @@ std::string nnBossNsDataExport_GetPath(nsData_t* nsData)
 	if (title_id == 0)
 		title_id = CafeSystem::GetForegroundTitleId();
 
-	fs::path path = fmt::format(L"cemuBossStorage/{:08x}/{:08x}/user/{:08x}", (uint32)(title_id >> 32), (uint32)(title_id & 0xFFFFFFFF), accountId);
+	fs::path path = fmt::format("cemuBossStorage/{:08x}/{:08x}/user/{:08x}", (uint32)(title_id >> 32), (uint32)(title_id & 0xFFFFFFFF), accountId);
 	path /= nsData->storage.storageName;
 	path /= nsData->name;
 	return path.string();

@@ -122,6 +122,15 @@ public:
 		return false;
 	}
 
+    void clear()
+    {
+        for(auto& bucket : rangeBuckets)
+        {
+            while(!bucket.list_ranges.empty())
+                deleteRange(bucket.list_ranges[0]);
+        }
+    }
+
 private:
 	typedef struct
 	{

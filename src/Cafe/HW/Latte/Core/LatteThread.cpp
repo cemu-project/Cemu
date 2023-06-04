@@ -183,9 +183,8 @@ int Latte_ThreadEntry()
 
 	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
 	GraphicPack2::WaitUntilReady();
-	// load/init shader cache file
-	LatteShaderCache_load();
-
+	// load disk shader cache
+    LatteShaderCache_Load();
 	// init registers
 	Latte_LoadInitialRegisters();
 	// let CPU thread know the GPU is done initializing
@@ -241,11 +240,15 @@ void LatteThread_Exit()
 {
 	if (g_renderer)
 		g_renderer->Shutdown();
+    // clean up vertex/uniform cache
+    LatteBufferCache_UnloadAll();
 	// clean up texture cache
 	LatteTC_UnloadAllTextures();
 	// clean up runtime shader cache
-	// todo
-	// destroy renderer but make sure that g_renderer remains valid until the destructor has finished
+    LatteSHRC_UnloadAll();
+    // close disk cache
+    LatteShaderCache_Close();
+    // destroy renderer but make sure that g_renderer remains valid until the destructor has finished
 	if (g_renderer)
 	{
 		Renderer* renderer = g_renderer.get();

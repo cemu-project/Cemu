@@ -106,6 +106,7 @@ namespace iosu
 		{
 			uint32 returnValue = 0; // Ioctl return value
 			ioQueueEntry_t* ioQueueEntry = iosuIoctl_getNextWithWait(IOS_DEVICE_MCP);
+            cemu_assert_suspicious(); // this shouldn't be used anymore?
 			if (ioQueueEntry->request == IOSU_MCP_REQUEST_CEMU)
 			{
 				iosuMcpCemuRequest_t* mcpCemuRequest = (iosuMcpCemuRequest_t*)ioQueueEntry->bufferVectors[0].buffer.GetPtr();
@@ -143,11 +144,11 @@ namespace iosu
 		return 0;
 	}
 
+    // deprecated
 	void iosuMcp_init()
 	{
 		if (iosuMcp.isInitialized)
 			return;
-		// start the act thread
 		std::thread t(iosuMcp_thread);
 		t.detach();
 		iosuMcp.isInitialized = true;

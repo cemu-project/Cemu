@@ -427,7 +427,7 @@ void TitleInfo::Unmount(std::string_view virtualPath)
 			continue;
 		fsc_unmount(itr.second.c_str(), itr.first);
 		std::erase(m_mountpoints, itr);
-		// if the last mount point got unmounted, delete any open devices
+		// if the last mount point got unmounted, close any open devices
 		if (m_mountpoints.empty())
 		{
 			if (m_wudVolume)
@@ -436,13 +436,12 @@ void TitleInfo::Unmount(std::string_view virtualPath)
 				delete m_wudVolume;
 				m_wudVolume = nullptr;
 			}
-		}
-		// wua files use reference counting
-		if (m_zarchive)
-		{
-			_ZArchivePool_ReleaseInstance(m_fullPath, m_zarchive);
-			if (m_mountpoints.empty())
-				m_zarchive = nullptr;
+            if (m_zarchive)
+            {
+                _ZArchivePool_ReleaseInstance(m_fullPath, m_zarchive);
+                if (m_mountpoints.empty())
+                    m_zarchive = nullptr;
+            }
 		}
 		return;
 	}

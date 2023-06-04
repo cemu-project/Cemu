@@ -308,4 +308,15 @@ namespace GX2
 		coreinit::OSInitEvent(s_updateRetirementEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 		coreinit::OSInitSemaphore(s_eventCbQueueSemaphore, 0);
 	}
+
+    void GX2EventResetToDefaultState()
+    {
+        s_callbackThreadLaunched = false;
+        s_lastRetirementTimestamp = 0;
+        for(auto& it : s_eventCallback)
+        {
+            it.callbackFuncPtr = nullptr;
+            it.userData = nullptr;
+        }
+    }
 }

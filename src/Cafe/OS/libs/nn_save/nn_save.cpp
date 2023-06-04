@@ -203,6 +203,11 @@ namespace save
 		return ConvertACPToSaveStatus(status);
 	}
 
+    SAVEStatus SAVEUnmountSaveDir()
+    {
+        return ConvertACPToSaveStatus(acp::ACPUnmountSaveDir());
+    }
+
 	void _CheckAndMoveLegacySaves()
 	{
 		const uint64 titleId = CafeSystem::GetForegroundTitleId();
@@ -1518,6 +1523,8 @@ namespace save
 
 	void load()
 	{
+
+
 		osLib_addFunction("nn_save", "SAVEInit", export_SAVEInit);
 		osLib_addFunction("nn_save", "SAVEInitSaveDir", export_SAVEInitSaveDir);
 		osLib_addFunction("nn_save", "SAVEGetSharedDataTitlePath", export_SAVEGetSharedDataTitlePath);
@@ -1570,5 +1577,15 @@ namespace save
 		osLib_addFunction("nn_save", "SAVEOpenDirOtherNormalApplicationAsync", export_SAVEOpenDirOtherNormalApplicationAsync);
 		osLib_addFunction("nn_save", "SAVEOpenDirOtherNormalApplicationVariationAsync", export_SAVEOpenDirOtherNormalApplicationVariationAsync);
 	}
+
+    void ResetToDefaultState()
+    {
+        if(g_nn_save->initialized)
+        {
+            SAVEUnmountSaveDir();
+            g_nn_save->initialized = false;
+        }
+    }
+
 }
 }

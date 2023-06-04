@@ -209,6 +209,8 @@ namespace snd_core
 	};
 
 	void AXVPB_Init();
+    void AXResetToDefaultState();
+
 	sint32 AXIsValidDevice(sint32 device, sint32 deviceIndex);
 
 	AXVPB* AXAcquireVoiceEx(uint32 priority, MPTR callbackEx, MPTR userParam);

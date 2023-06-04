@@ -43,8 +43,11 @@ namespace acp
 		return ACPStatus::SUCCESS;
 	}
 
+    bool sSaveDirMounted{false};
+
 	ACPStatus ACPMountSaveDir()
 	{
+        cemu_assert_debug(!sSaveDirMounted);
 		uint64 titleId = CafeSystem::GetForegroundTitleId();
 		uint32 high = GetTitleIdHigh(titleId) & (~0xC);
 		uint32 low = GetTitleIdLow(titleId);
@@ -55,6 +58,13 @@ namespace acp
 		nnResult mountResult = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACP, 0);
 		return _ACPConvertResultToACPStatus(&mountResult, "ACPMountSaveDir", 0x60);
 	}
+
+    ACPStatus ACPUnmountSaveDir()
+    {
+        cemu_assert_debug(!sSaveDirMounted);
+        fsc_unmount("/vol/save/", FSC_PRIORITY_BASE);
+        return ACPStatus::SUCCESS;
+    }
 
 	uint64 _acpGetTimestamp()
 	{

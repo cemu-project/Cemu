@@ -15,6 +15,8 @@ namespace CafeSystem
 	};
 
 	void Initialize();
+    void Shutdown();
+
 	STATUS_CODE PrepareForegroundTitle(TitleId titleId);
 	STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path);
 	void LaunchForegroundTitle();
