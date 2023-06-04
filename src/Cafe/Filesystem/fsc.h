@@ -24,7 +24,10 @@ enum class FSC_ACCESS_FLAG : uint8
 	// which types can be opened
 	// invalid operation if neither is set
 	OPEN_DIR = (1 << 4), 
-	OPEN_FILE = (1 << 5)
+	OPEN_FILE = (1 << 5),
+
+	// Writing seeks to the end of the file if set
+	IS_APPEND = (1 << 6)
 };
 DEFINE_ENUM_FLAG_OPERATORS(FSC_ACCESS_FLAG);
 
@@ -150,6 +153,8 @@ struct FSCVirtualFile
 	}
 
 	FSCDirIteratorState* dirIterator{};
+
+	bool m_isAppend{ false };
 };
 
 #define FSC_PRIORITY_BASE				(0)

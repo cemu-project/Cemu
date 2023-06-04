@@ -252,10 +252,12 @@ namespace iosu
 			}
 			else if (strcmp(accessModifierStr, "a+") == 0)
 			{
-				cemu_assert_debug(false); // a+ is kind of special. Writing always happens at the end but the read cursor can dynamically move
-				// but Cafe OS might not support this. Needs investigation.
-				// this also used to be FILE_ALWAYS_CREATE in 1.26.2 and before
-				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE;
+				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE | FSC_ACCESS_FLAG::IS_APPEND;
+				isAppend = true;
+			}
+			else if (strcmp(accessModifierStr, "a") == 0)
+			{
+				accessModifier = FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE | FSC_ACCESS_FLAG::IS_APPEND;
 				isAppend = true;
 			}
 			else

@@ -378,6 +378,7 @@ FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* 
 				{
 					// return first found file
 					cemu_assert_debug(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE));
+					fscVirtualFile->m_isAppend = HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::IS_APPEND);
 					fscLeave();
 					return fscVirtualFile;
 				}				
@@ -598,6 +599,9 @@ uint32 fsc_writeFile(FSCVirtualFile* fscFile, void* buffer, uint32 size)
 		fscLeave();
 		return 0;
 	}
+	if (fscFile->m_isAppend)
+		fsc_setFileSeek(fscFile, fsc_getFileSize(fscFile));
+
 	uint32 fscStatus = fscFile->fscWriteData(buffer, size);
 	fscLeave();
 	return fscStatus;
