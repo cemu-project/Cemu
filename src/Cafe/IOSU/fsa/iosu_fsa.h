@@ -115,6 +115,7 @@ namespace iosu
 		};
 		static_assert(sizeof(FSARequest) == 0x520);
 
+#pragma pack(1)
 		struct FSAResponse
 		{
 			uint32be ukn0;
@@ -162,7 +163,8 @@ namespace iosu
 				} cmdQueryInfo;
 			};
 		};
-		// static_assert(sizeof(FSAResponse) == 0x293);
+		static_assert(sizeof(FSAResponse) == 0x293);
+#pragma pack()
 
 		struct FSAShimBuffer
 		{
@@ -189,7 +191,7 @@ namespace iosu
 			uint32 ukn0930;
 			uint32 ukn0934;
 		};
-		// static_assert(sizeof(FSAShimBuffer) == 0x938); // exact size of this is not known
+		static_assert(sizeof(FSAShimBuffer) == 0x938); // exact size of this is not known
 
 		void Initialize();
 		void Shutdown();
