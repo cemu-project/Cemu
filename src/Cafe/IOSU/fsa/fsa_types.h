@@ -86,6 +86,7 @@ enum class FSFlag : uint32
 {
 	NONE = 0,
 	IS_DIR = 0x80000000,
+	IS_FILE = 0x01000000,
 };
 DEFINE_ENUM_FLAG_OPERATORS(FSFlag);
 

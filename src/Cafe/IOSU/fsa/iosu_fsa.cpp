@@ -548,6 +548,7 @@ namespace iosu
 			}
 			else if (fscDirEntry.isFile)
 			{
+				statFlag |= FSFlag::IS_FILE;
 				dirEntryOut->stat.size = fscDirEntry.fileSize;
 			}
 			dirEntryOut->stat.flag = statFlag;
