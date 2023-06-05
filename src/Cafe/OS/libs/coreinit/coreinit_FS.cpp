@@ -974,6 +974,40 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
+	FSA_RESULT __FSPrepareCmd_FlushFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle)
+	{
+		if (fsaShimBuffer == nullptr)
+			return FSA_RESULT::INVALID_BUFFER;
+
+		fsaShimBuffer->fsaDevHandle = fsaHandle;
+		fsaShimBuffer->ipcReqType = 0;
+		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::FLUSHFILE;
+
+		fsaShimBuffer->request.cmdFlushFile.fileHandle = fileHandle;
+
+		return FSA_RESULT::OK;
+	}
+
+	sint32 FSFlushFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	{
+		_FSCmdIntro();
+
+		FSA_RESULT prepareResult = __FSPrepareCmd_FlushFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle);
+		if (prepareResult != FSA_RESULT::OK)
+			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
+
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
+		return (FSStatus)FS_RESULT::SUCCESS;
+	}
+
+	sint32 FSFlushFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errHandling)
+	{
+		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		sint32 fsAsyncRet = FSFlushFileAsync(fsClient, fsCmdBlock, fileHandle, errHandling, asyncParams);
+		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
+	}
+
 	FSA_RESULT __FSPrepareCmd_ReadFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, void* dest, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag)
 	{
 		if (fsaShimBuffer == NULL || dest == NULL)
@@ -1329,6 +1363,39 @@ namespace coreinit
 		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
 		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
 		sint32 fsAsyncRet = FSCloseDirAsync(fsClient, fsCmdBlock, dirHandle, errorMask, asyncParams);
+		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
+	}
+
+	FSA_RESULT __FSPrepareCmd_RewindDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSDirHandle2 dirHandle)
+	{
+		if (fsaShimBuffer == nullptr)
+			return FSA_RESULT::INVALID_BUFFER;
+
+		fsaShimBuffer->fsaDevHandle = fsaHandle;
+		fsaShimBuffer->ipcReqType = 0;
+		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::REWINDDIR;
+
+		fsaShimBuffer->request.cmdRewindDir.dirHandle = dirHandle;
+
+		return FSA_RESULT::OK;
+	}
+
+	sint32 FSRewindDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	{
+		_FSCmdIntro();
+		FSA_RESULT prepareResult = __FSPrepareCmd_RewindDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirHandle);
+		if (prepareResult != FSA_RESULT::OK)
+			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
+
+		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
+		return (FSStatus)FS_RESULT::SUCCESS;
+	}
+
+	sint32 FSRewindDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask)
+	{
+		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		sint32 fsAsyncRet = FSRewindDirAsync(fsClient, fsCmdBlock, dirHandle, errorMask, asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -2007,20 +2074,6 @@ namespace coreinit
 		return result;
 	}
 
-	FSA_RESULT __FSPrepareCmd_FlushFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle)
-	{
-		if (fsaShimBuffer == nullptr)
-			return FSA_RESULT::INVALID_BUFFER;
-
-		fsaShimBuffer->fsaDevHandle = fsaHandle;
-		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::FLUSHFILE;
-
-		fsaShimBuffer->request.cmdFlushFile.fileHandle = fileHandle;
-
-		return FSA_RESULT::OK;
-	}
-
 	FSA_RESULT FSAFlushFile(FSAClientHandle client, uint32_t fileHandle)
 	{
 		if (!FSAShimCheckClientHandle(client))
@@ -2165,20 +2218,6 @@ namespace coreinit
 
 		FSAShimFreeBuffer(shimBuffer->GetPtr());
 		return result;
-	}
-
-	FSA_RESULT __FSPrepareCmd_RewindDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, FSDirHandle2 dirHandle)
-	{
-		if (fsaShimBuffer == nullptr)
-			return FSA_RESULT::INVALID_BUFFER;
-
-		fsaShimBuffer->fsaDevHandle = fsaHandle;
-		fsaShimBuffer->ipcReqType = 0;
-		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::REWINDDIR;
-
-		fsaShimBuffer->request.cmdRewindDir.dirHandle = dirHandle;
-
-		return FSA_RESULT::OK;
 	}
 
 	FSA_RESULT FSARewindDir(FSAClientHandle client, FSDirHandle2 dirHandle)
