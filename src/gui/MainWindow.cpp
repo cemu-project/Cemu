@@ -637,7 +637,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 		
 		wxFileDialog openFileDialog(this, _("Open file to launch"), wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
-		if (openFileDialog.ShowModal() == wxID_CANCEL)
+		if (openFileDialog.ShowModal() == wxID_CANCEL || openFileDialog.GetPath().IsEmpty())
 			return;
 
 		const wxString wxStrFilePath = openFileDialog.GetPath();	
@@ -674,7 +674,7 @@ void MainWindow::OnInstallUpdate(wxCommandEvent& event)
 	{
 		wxDirDialog openDirDialog(nullptr, _("Select folder of title to install"), "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST, wxDefaultPosition, wxDefaultSize, _("Select the folder that stores your update, DLC or base game files"));
 		int modalChoice = openDirDialog.ShowModal();
-		if (modalChoice == wxID_CANCEL)
+		if (modalChoice == wxID_CANCEL || openDirDialog.GetPath().IsEmpty())
 			break;
 		if (modalChoice == wxID_OK)
 		{
@@ -715,7 +715,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 		wxFileDialog
 			openFileDialog(this, _("Open file to load"), "", "",
 				"All NFC files (bin, dat, nfc)|*.bin;*.dat;*.nfc|All files (*.*)|*", wxFD_OPEN | wxFD_FILE_MUST_EXIST); // TRANSLATE
-		if (openFileDialog.ShowModal() == wxID_CANCEL)
+		if (openFileDialog.ShowModal() == wxID_CANCEL || openFileDialog.GetPath().IsEmpty())
 			return;
 		wxString wxStrFilePath = openFileDialog.GetPath();
 		uint32 nfcError;
