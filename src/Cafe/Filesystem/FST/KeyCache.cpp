@@ -1,4 +1,3 @@
-#include <wx/msgdlg.h>
 #include <mutex>
 
 #include "config/ActiveSettings.h"
@@ -74,7 +73,7 @@ void KeyCache_Prepare()
 		}
 		else
 		{
-			wxMessageBox("Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to it's own directory, the disk is full or if anti-virus software is blocking Cemu.", "Error", wxOK | wxCENTRE | wxICON_ERROR);
+			cemuLog_log(LogType::Force, "Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to it's own directory, the disk is full or if anti-virus software is blocking Cemu.");
 		}
 		mtxKeyCache.unlock();
 		return;
@@ -107,10 +106,7 @@ void KeyCache_Prepare()
 			continue;
 		if( strishex(line) == false )
 		{
-			// show error message
-			char errorMsg[512];
-			sprintf(errorMsg, "Error in keys.txt in line %d\n", lineNumber);
-			wxMessageBox(errorMsg, "Error", wxOK | wxCENTRE | wxICON_ERROR);
+			cemuLog_log(LogType::Force, "rror in keys.txt in line {}", lineNumber);
 			continue;
 		}
 		if(line.size() == 32 )

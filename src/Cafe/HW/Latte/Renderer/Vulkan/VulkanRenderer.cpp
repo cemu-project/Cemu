@@ -28,8 +28,6 @@
 
 #include <glslang/Include/Types.h>
 
-#include <wx/msgdlg.h>
-
 #ifndef VK_API_VERSION_MAJOR
 #define VK_API_VERSION_MAJOR(version) (((uint32_t)(version) >> 22) & 0x7FU)
 #define VK_API_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3FFU)
@@ -281,12 +279,8 @@ void VulkanRenderer::GetDeviceFeatures()
 		cemuLog_log(LogType::Force, "Shader round mode control not available on this device or driver. Some rendering issues might occur.");
 
 	if (!m_featureControl.deviceExtensions.pipeline_creation_cache_control)
-	{
 		cemuLog_log(LogType::Force, "VK_EXT_pipeline_creation_cache_control not supported. Cannot use asynchronous shader and pipeline compilation");
-		// if async shader compilation is enabled show warning message
-		if (GetConfig().async_compile)
-			wxMessageBox(_("The currently installed graphics driver does not support the Vulkan extension necessary for asynchronous shader compilation. Asynchronous compilation cannot be used.\n \nRequired extension: VK_EXT_pipeline_creation_cache_control\n\nInstalling the latest graphics driver may solve this error."), _("Information"), wxOK | wxCENTRE);
-	}
+
 	if (!m_featureControl.deviceExtensions.custom_border_color_without_format)
 	{
 		if (m_featureControl.deviceExtensions.custom_border_color)

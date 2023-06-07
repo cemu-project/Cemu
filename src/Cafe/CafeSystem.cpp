@@ -1,5 +1,4 @@
 #include "Cafe/OS/common/OSCommon.h"
-#include "gui/wxgui.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
@@ -163,7 +162,7 @@ void LoadMainExecutable()
 		applicationRPX = rpl_loadFromMem(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
-			wxMessageBox(_("Failed to run this title because the executable is damaged"));
+			cemuLog_log(LogType::Force, "Failed to run this title because the executable is damaged");
 			cemuLog_createLogFile(false);
 			cemuLog_waitForFlush();
 			exit(0);

@@ -1,5 +1,4 @@
 #include "Cafe/OS/common/OSCommon.h"
-#include "gui/wxgui.h"
 #include "nn_save.h"
 
 #include "Cafe/OS/libs/nn_acp/nn_acp.h"
@@ -203,79 +202,6 @@ namespace save
 		return ConvertACPToSaveStatus(status);
 	}
 
-	void _CheckAndMoveLegacySaves()
-	{
-		const uint64 titleId = CafeSystem::GetForegroundTitleId();
-
-		fs::path targetPath, sourcePath;
-		try
-		{
-			bool copiedUser = false, copiedCommon = false;
-
-			const auto sourceSavePath = ActiveSettings::GetMlcPath("emulatorSave/{:08x}", CafeSystem::GetRPXHashBase());
-			sourcePath = sourceSavePath;
-
-			if (fs::exists(sourceSavePath) && is_directory(sourceSavePath))
-			{
-				targetPath = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId), 0x80000001);
-				fs::create_directories(targetPath);
-				copy(sourceSavePath, targetPath, fs::copy_options::overwrite_existing | fs::copy_options::recursive);
-				copiedUser = true;
-			}
-
-			const auto sourceCommonPath = ActiveSettings::GetMlcPath("emulatorSave/{:08x}_255", CafeSystem::GetRPXHashBase());
-			sourcePath = sourceCommonPath;
-
-			if (fs::exists(sourceCommonPath) && is_directory(sourceCommonPath))
-			{
-				targetPath = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/common", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-				fs::create_directories(targetPath);
-				copy(sourceCommonPath, targetPath, fs::copy_options::overwrite_existing | fs::copy_options::recursive);
-				copiedCommon = true;
-			}
-
-			if (copiedUser)
-				fs::remove_all(sourceSavePath);
-
-			if (copiedCommon)
-				fs::remove_all(sourceCommonPath);
-		}
-		catch (const std::exception& ex)
-		{
-#if BOOST_OS_WINDOWS
-			std::wstringstream errorMsg;
-			errorMsg << L"Couldn't move your save files!" << std::endl << std::endl;
-			errorMsg << L"Error: " << ex.what() << std::endl << std::endl;
-			errorMsg << L"From:" << std::endl << sourcePath << std::endl << std::endl << "To:" << std::endl << targetPath;
-
-			const DWORD lastError = GetLastError();
-			if (lastError != ERROR_SUCCESS)
-			{
-				LPTSTR lpMsgBuf = nullptr;
-				FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, lastError, 0, (LPTSTR)&lpMsgBuf, 0, nullptr);
-				if (lpMsgBuf)
-				{
-					errorMsg << std::endl << std::endl << L"Details: " << lpMsgBuf;
-					LocalFree(lpMsgBuf);
-				}
-				else
-				{
-					errorMsg << std::endl << std::endl << L"Error Code: 0x" << std::hex << lastError;
-				}
-			}
-
-			errorMsg << std::endl << std::endl << "Continuing will create a new save at the target location." << std::endl << "Do you want to continue?";
-
-			int result = wxMessageBox(errorMsg.str(), "Save Migration - Error", wxCENTRE | wxYES_NO | wxICON_ERROR);
-			if (result != wxYES)
-			{
-				exit(0);
-				return;
-			}
-#endif
-		}
-	}
-
 	SAVEStatus SAVEInit()
 	{
 		const uint64 titleId = CafeSystem::GetForegroundTitleId();
@@ -294,8 +220,6 @@ namespace save
 			
 			SAVEMountSaveDir();
 			g_nn_save->initialized = true;
-
-			_CheckAndMoveLegacySaves();
 
 			uint32 high = GetTitleIdHigh(titleId) & (~0xC);
 			uint32 low = GetTitleIdLow(titleId);
