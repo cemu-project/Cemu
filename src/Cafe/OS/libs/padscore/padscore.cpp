@@ -1,6 +1,6 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
-#include "gui/wxgui.h"
+#include "gui/guiWrapper.h"
 #include "Cafe/OS/libs/padscore/padscore.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"

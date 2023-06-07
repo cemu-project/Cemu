@@ -1,7 +1,5 @@
 #pragma once
 
-#include <wx/cmdargs.h>
-
 #include "input/emulated/EmulatedController.h"
 #include "Cafe/OS/libs/padscore/padscore.h"
 #include "Cafe/OS/libs/vpad/vpad.h"

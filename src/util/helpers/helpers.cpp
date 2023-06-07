@@ -5,8 +5,6 @@
 #include <cctype>
 #include <random>
 
-#include <wx/translation.h>
-
 #include "config/ActiveSettings.h"
 
 #include <boost/random/uniform_int.hpp>

@@ -5,8 +5,6 @@
 #include "util/math/vector2.h"
 #include "Cafe/Account/Account.h"
 
-#include <wx/language.h>
-
 struct GameEntry
 {
 	GameEntry() = default;
@@ -361,7 +359,7 @@ struct CemuConfig
 
 	ConfigValue<bool> permanent_storage{ true };
 	
-	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
+	ConfigValue<sint32> language{ 0 };
 	ConfigValue<bool> use_discord_presence{ true };
 	ConfigValue<std::string> mlc_path {};
 	ConfigValue<bool> fullscreen_menubar{ false };

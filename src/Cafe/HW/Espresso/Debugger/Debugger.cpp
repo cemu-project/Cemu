@@ -4,8 +4,6 @@
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 
-#include "gui/debugger/DebuggerWindow2.h"
-
 #include "Cafe/OS/libs/coreinit/coreinit.h"
 
 #if BOOST_OS_WINDOWS

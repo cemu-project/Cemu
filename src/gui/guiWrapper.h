@@ -2,15 +2,6 @@
 
 #include <atomic>
 
-#if BOOST_OS_LINUX
-#include "xcb/xproto.h"
-#include <gdk/gdkkeysyms.h>
-#endif
-
-#if BOOST_OS_MACOS
-#include <Carbon/Carbon.h>
-#endif
-
 struct WindowHandleInfo
 {
 #if BOOST_OS_WINDOWS
@@ -39,23 +30,9 @@ struct WindowHandleInfo
 
 enum struct PlatformKeyCodes : uint32
 {
-#if BOOST_OS_WINDOWS
-	LCONTROL = VK_LCONTROL,
-	RCONTROL = VK_RCONTROL,
-	TAB = VK_TAB,
-#elif BOOST_OS_LINUX
-	LCONTROL = GDK_KEY_Control_L,
-	RCONTROL = GDK_KEY_Control_R,
-	TAB = GDK_KEY_Tab,
-#elif BOOST_OS_MACOS
-	LCONTROL = kVK_Control,
-	RCONTROL = kVK_RightControl,
-	TAB = kVK_Tab,
-#else
-	LCONTROL = 0,
-	RCONTROL = 0,
-	TAB = 0,
-#endif
+	LCONTROL,
+	RCONTROL,
+	TAB
 };
 
 struct WindowInfo
@@ -118,6 +95,11 @@ struct WindowInfo
 	std::unordered_map<uint32, bool> m_keydown;
 };
 
+extern bool g_inputConfigWindowHasFocus;
+
+void gui_loggingWindowLog(std::string_view filter, std::string_view message);
+void gui_loggingWindowLog(std::string_view message);
+
 void gui_create();
 
 WindowInfo& gui_getWindowInfo();
@@ -139,6 +121,8 @@ void gui_notifyGameExited();
 bool gui_isFullScreen();
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw);
+
+void gui_requestGameListRefresh();
 
 std::string gui_RawKeyCodeToString(uint32 keyCode);
 

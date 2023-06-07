@@ -1,6 +1,6 @@
 #include "CemuLogging.h"
 #include "config/CemuConfig.h"
-#include "gui/LoggingWindow.h"
+#include "gui/guiWrapper.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
 
@@ -158,9 +158,9 @@ bool cemuLog_log(LogType type, std::string_view text)
 	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
 		[type](const auto& entry) { return entry.first == type; });
 	if (it == g_logging_window_mapping.cend())
-		LoggingWindow::Log(text);
+		gui_loggingWindowLog(text);
 	else
-		LoggingWindow::Log(it->second, text);
+		gui_loggingWindowLog(it->second, text);
 
 	return true;
 }

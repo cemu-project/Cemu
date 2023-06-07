@@ -97,7 +97,3 @@ target_link_libraries(CemuUtil PRIVATE
 	Boost::nowide
 	OpenSSL::Crypto
 )
-
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuUtil PRIVATE wx::base wx::core)
-endif()

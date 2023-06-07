@@ -19,7 +19,7 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 
-#include "gui/canvas/OpenGLCanvas.h"
+#include "GLCanvas.h"
 
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)

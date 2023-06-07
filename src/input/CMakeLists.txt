@@ -87,7 +87,3 @@ target_link_libraries(CemuInput PRIVATE
 	pugixml::pugixml
 	SDL2::SDL2
 )
-
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuInput PRIVATE wx::base wx::core)
-endif()

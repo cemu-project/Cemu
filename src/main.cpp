@@ -1,7 +1,5 @@
 #include "gui/guiWrapper.h"
-#include "gui/wxgui.h"
 #include "util/crypto/aes128.h"
-#include "gui/MainWindow.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
@@ -9,7 +7,6 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
 #include "config/NetworkSettings.h"
-#include "gui/CemuApp.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "config/LaunchSettings.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
@@ -21,7 +18,6 @@
 #include "Common/ExceptionHandler/ExceptionHandler.h"
 #include "Common/cpu_features.h"
 
-#include <wx/setup.h>
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
