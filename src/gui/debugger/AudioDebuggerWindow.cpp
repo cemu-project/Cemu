@@ -1,5 +1,5 @@
 #include "gui/wxgui.h"
-#include "audioDebuggerWindow.h"
+#include "gui/debugger/AudioDebuggerWindow.h"
 
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/libs/snd_core/ax_internal.h"

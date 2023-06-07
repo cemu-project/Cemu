@@ -22,6 +22,8 @@ add_library(CemuGui
   components/wxLogCtrl.h
   components/wxTitleManagerList.cpp
   components/wxTitleManagerList.h
+  debugger/AudioDebuggerWindow.cpp
+  debugger/AudioDebuggerWindow.h
   debugger/BreakpointWindow.cpp
   debugger/BreakpointWindow.h
   debugger/DebuggerWindow2.cpp
