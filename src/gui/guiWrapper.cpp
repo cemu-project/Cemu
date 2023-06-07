@@ -21,6 +21,7 @@
 #include "Cafe/CafeSystem.h"
 
 #include "wxHelper.h"
+#include <wx/clipbrd.h>
 
 WindowInfo g_window_info {};
 
@@ -229,6 +230,37 @@ std::string gui_RawKeyCodeToString(uint32 keyCode)
 #else
 	return fmt::format("key_{}", keyCode);
 #endif
+}
+
+bool gui_saveScreenshotToFile(const fs::path& imagePath, std::vector<uint8>& data, int width, int height)
+{
+
+	std::error_code ec;
+	fs::create_directories(imagePath.parent_path(), ec);
+	if (ec) return false;
+
+	// suspend wxWidgets logging for the lifetime this object, to prevent a message box if wxImage::SaveFile fails
+	wxLogNull _logNo;
+	wxImage image(width, height, data.data(), true);
+	return image.SaveFile(imagePath.wstring());
+}
+
+bool gui_saveScreenshotToClipboard(std::vector<uint8>& data, int width, int height)
+{
+	static std::mutex s_clipboardMutex;
+	bool success = false;
+
+	s_clipboardMutex.lock();
+	if (wxTheClipboard->Open())
+	{
+		wxImage image(width, height, data.data(), true);
+		wxTheClipboard->SetData(new wxImageDataObject(image));
+		wxTheClipboard->Close();
+		success = true;
+	}
+	s_clipboardMutex.unlock();
+
+	return success;
 }
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw)

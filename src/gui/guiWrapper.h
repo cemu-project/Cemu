@@ -142,6 +142,8 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 
 std::string gui_RawKeyCodeToString(uint32 keyCode);
 
+bool gui_saveScreenshotToFile(const fs::path& imagePath, std::vector<uint8>& data, int width, int height);
+bool gui_saveScreenshotToClipboard(std::vector<uint8>& data, int width, int height);
 /*
 * Returns true if a screenshot request is queued
 * Once this function has returned true, it will reset back to

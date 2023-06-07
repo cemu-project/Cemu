@@ -10,10 +10,6 @@
 
 #include "config/ActiveSettings.h"
 
-#include <wx/image.h>
-#include <wx/dataobj.h>
-#include <wx/clipbrd.h>
-#include <wx/log.h>
 
 std::unique_ptr<Renderer> g_renderer;
 
@@ -143,38 +139,6 @@ static std::optional<fs::path> GenerateScreenshotFilename(bool isDRC)
 	return std::nullopt;
 }
 
-std::mutex s_clipboardMutex;
-
-static bool SaveScreenshotToClipboard(const wxImage &image)
-{
-	bool success = false;
-
-	s_clipboardMutex.lock();
-	if (wxTheClipboard->Open())
-	{
-		wxTheClipboard->SetData(new wxImageDataObject(image));
-		wxTheClipboard->Close();
-		success = true;
-	}
-	s_clipboardMutex.unlock();
-
-	return success;
-}
-
-static bool SaveScreenshotToFile(const wxImage &image, bool mainWindow)
-{
-	auto path = GenerateScreenshotFilename(!mainWindow);
-	if (!path) return false;
-
-	std::error_code ec;
-	fs::create_directories(path->parent_path(), ec);
-	if (ec) return false;
-
-	// suspend wxWidgets logging for the lifetime this object, to prevent a message box if wxImage::SaveFile fails
-	wxLogNull _logNo;
-	return image.SaveFile(path->wstring());
-}
-
 static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
 {
 #if BOOST_OS_WINDOWS
@@ -182,12 +146,10 @@ static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int 
 	// to make this work we need to call OleInitialize() on the same thread
 	OleInitialize(nullptr);
 #endif
-	
-	wxImage image(width, height, data.data(), true);
 
 	if (mainWindow)
 	{
-		if(SaveScreenshotToClipboard(image))
+		if(gui_saveScreenshotToClipboard(data, width, height))
 		{
 			if (!save_screenshot)
 				LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
@@ -200,7 +162,8 @@ static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int 
 
 	if (save_screenshot)
 	{
-		if (SaveScreenshotToFile(image, mainWindow))
+		auto imagePath = GenerateScreenshotFilename(mainWindow);
+		if (imagePath.has_value() && gui_saveScreenshotToFile(imagePath.value(), data, width, height))
 		{
 			if (mainWindow)
 				LatteOverlay_pushNotification("Screenshot saved", 2500);
