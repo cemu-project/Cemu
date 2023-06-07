@@ -195,12 +195,41 @@ bool gui_isPadWindowOpen()
 	return g_window_info.pad_open;
 }
 
-#if BOOST_OS_LINUX
-std::string gui_gtkRawKeyCodeToString(uint32 keyCode)
+std::string gui_RawKeyCodeToString(uint32 keyCode)
 {
+#if BOOST_OS_WINDOWS
+	LONG scan_code = MapVirtualKeyA((UINT)keyCode, MAPVK_VK_TO_VSC_EX);
+	if(HIBYTE(scan_code))
+		scan_code |= 0x100;
+
+	// because MapVirtualKey strips the extended bit for some keys
+	switch (keyCode)
+	{
+	case VK_LEFT: case VK_UP: case VK_RIGHT: case VK_DOWN: // arrow keys
+	case VK_PRIOR: case VK_NEXT: // page up and page down
+	case VK_END: case VK_HOME:
+	case VK_INSERT: case VK_DELETE:
+	case VK_DIVIDE: // numpad slash
+	case VK_NUMLOCK:
+	{
+		scan_code |= 0x100; // set extended bit
+		break;
+	}
+	}
+
+	scan_code <<= 16;
+
+	char key_name[128];
+	if (GetKeyNameTextA(scan_code, key_name, std::size(key_name)) != 0)
+		return key_name;
+	else
+		return fmt::format("key_{}", keyCode);
+#elif BOOST_OS_LINUX
 	return gdk_keyval_name(keyCode);
-}
+#else
+	return fmt::format("key_{}", keyCode);
 #endif
+}
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw)
 {

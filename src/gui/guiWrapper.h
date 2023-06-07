@@ -140,9 +140,8 @@ bool gui_isFullScreen();
 
 void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, class wxWindow* wxw);
 
-#if BOOST_OS_LINUX
-std::string gui_gtkRawKeyCodeToString(uint32 keyCode);
-#endif
+std::string gui_RawKeyCodeToString(uint32 keyCode);
+
 /*
 * Returns true if a screenshot request is queued
 * Once this function has returned true, it will reset back to
