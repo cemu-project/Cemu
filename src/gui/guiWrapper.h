@@ -6,7 +6,7 @@ struct WindowHandleInfo
 {
 #if BOOST_OS_WINDOWS
 	std::atomic<HWND> hwnd;
-#elif BOOST_OS_LINUX
+#elif BOOST_OS_LINUX && !__ANDROID__
 	enum class Backend
 	{
 		X11,

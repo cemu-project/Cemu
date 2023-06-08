@@ -15,10 +15,6 @@ add_library(CemuInput
 	api/DSU/DSUControllerProvider.h
 	api/DSU/DSUMessages.h
 	api/DSU/DSUMessages.cpp
-	api/SDL/SDLController.cpp
-	api/SDL/SDLControllerProvider.cpp
-	api/SDL/SDLController.h
-	api/SDL/SDLControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.cpp
 	api/Keyboard/KeyboardController.cpp
@@ -73,6 +69,15 @@ if(WIN32)
 	)
 endif()
 
+if(ENABLE_SDL)
+	target_sources(CemuInput PRIVATE
+		api/SDL/SDLController.cpp
+		api/SDL/SDLControllerProvider.cpp
+		api/SDL/SDLController.h
+		api/SDL/SDLControllerProvider.h
+	)
+endif()
+
 target_include_directories(CemuInput PUBLIC "../")
 
 target_link_libraries(CemuInput PRIVATE
@@ -85,5 +90,8 @@ target_link_libraries(CemuInput PRIVATE
 	Boost::program_options
 	glm::glm
 	pugixml::pugixml
-	SDL2::SDL2
 )
+
+if(ENABLE_SDL)
+	target_link_libraries(CemuInput PRIVATE	SDL2::SDL2)
+endif()

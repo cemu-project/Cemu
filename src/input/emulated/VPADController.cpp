@@ -1,6 +1,8 @@
 #include "input/emulated/VPADController.h"
 #include "input/api/Controller.h"
+#if HAS_SDL
 #include "input/api/SDL/SDLController.h"
+#endif // HAS_SDL
 #include "gui/guiWrapper.h"
 #include "input/InputManager.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
@@ -510,6 +512,7 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 	std::vector<std::pair<uint64, uint64>> mapping;
 	switch (controller->api())
 	{
+#if HAS_SDL
 	case InputAPI::SDLController: {
 		const auto sdl_controller = std::static_pointer_cast<SDLController>(controller);
 		if (sdl_controller->get_guid() == SDLController::kLeftJoyCon)
@@ -633,6 +636,7 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 		}
 		break;
 	}
+#endif // HAS_SDL
 	case InputAPI::XInput:
 	{
 		mapping =

@@ -18,6 +18,8 @@ elseif(UNIX)
 			VK_USE_PLATFORM_MACOS_MVK
 			VK_USE_PLATFORM_METAL_EXT
 		)
+	elseif(ANDROID)
+		add_compile_definitions(VK_USE_PLATFORM_ANDROID_KHR)
 	else()
 		add_compile_definitions(
 			VK_USE_PLATFORM_XLIB_KHR # legacy. Do we need to support XLIB surfaces?
@@ -115,9 +117,15 @@ target_link_libraries(CemuBin PRIVATE
 	CemuGui
 	CemuInput
 	CemuUtil
-	OpenGL::GL
-	SDL2::SDL2
 )
+
+if(ENABLE_OPENGL)
+	target_link_libraries(CemuBin PRIVATE OpenGL::GL)
+endif()
+
+if(ENABLE_SDL)
+	target_link_libraries(CemuBin PRIVATE SDL2::SDL2)
+endif()
 
 if(UNIX AND NOT APPLE)
 	# due to nasm output some linkers will make stack executable

@@ -209,6 +209,11 @@ void LoadOpenGLImports()
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 }
+#elif __ANDROID__
+void LoadOpenGLImports()
+{
+	cemu_assert_unimplemented();
+}
 #elif BOOST_OS_LINUX
 GL_IMPORT _GetOpenGLFunction(void* hLib, PFNGLXGETPROCADDRESSPROC func, const char* name)
 {

@@ -165,36 +165,36 @@ public:
 		return tmp;
 	}
 
-	betype<T>& operator^=(const betype<T>& v) requires std::integral<T>
+	betype<T>& operator^=(const betype<T>& v) requires std::is_integral_v<T>
 	{
 		m_value ^= v.m_value;
 		return *this;
 	}
 
-	betype<T>& operator>>=(std::size_t idx) requires std::integral<T>
+	betype<T>& operator>>=(std::size_t idx) requires std::is_integral_v<T>
 	{
 		m_value = SwapEndian(T(value() >> idx));
 		return *this;
 	}
 
-	betype<T>& operator<<=(std::size_t idx) requires std::integral<T>
+	betype<T>& operator<<=(std::size_t idx) requires std::is_integral_v<T>
 	{
 		m_value = SwapEndian(T(value() << idx));
 		return *this;
 	}
 
-	betype<T> operator~() const requires std::integral<T>
+	betype<T> operator~() const requires std::is_integral_v<T>
 	{
 		return from_bevalue(T(~m_value));
 	}
 
-	betype<T>& operator++() requires std::integral<T>
+	betype<T>& operator++() requires std::is_integral_v<T>
 	{
 		m_value = SwapEndian(T(value() + 1));
 		return *this;
 	}
 
-	betype<T>& operator--() requires std::integral<T>
+	betype<T>& operator--() requires std::is_integral_v<T>
 	{
 		m_value = SwapEndian(T(value() - 1));
 		return *this;

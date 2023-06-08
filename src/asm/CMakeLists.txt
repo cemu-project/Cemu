@@ -16,6 +16,8 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
 	
 		set_property(TARGET CemuAsm PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+	elseif(ANDROID)
+		set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> -g dwarf2 -f elf64 -o <OBJECT> <SOURCE>")
 	else()
 
 		# NASM

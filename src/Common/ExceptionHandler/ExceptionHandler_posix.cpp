@@ -61,6 +61,7 @@ void DemangleAndPrintBacktrace(char** backtrace, size_t size)
 // handle signals that would dump core, print stacktrace and then dump depending on config
 void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 {
+#if !__ANDROID__
     if(!CrashLog_Create())
         return; // give up if crashlog was already created
 
@@ -118,6 +119,7 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 		raise(sig);
 		return;
 	}
+#endif // __ANDROID__
 	// exit process ignoring all issues
 	_Exit(1);
 }

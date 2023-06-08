@@ -5,7 +5,9 @@
 #include "input/emulated/ClassicController.h"
 #include "input/emulated/WiimoteController.h"
 
+#if HAS_SDL
 #include "input/api/SDL/SDLController.h"
+#endif // HAS_SDL
 #include "input/api/Keyboard/KeyboardController.h"
 #include "input/api/DSU/DSUController.h"
 #include "input/api/GameCube/GameCubeController.h"

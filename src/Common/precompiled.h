@@ -74,7 +74,6 @@
 #include <type_traits>
 #include <optional>
 #include <span>
-#include <ranges>
 
 #include <boost/predef.h>
 #include <boost/nowide/convert.hpp>
@@ -450,16 +449,24 @@ inline std::string_view _utf8Wrapper(std::u8string_view input)
 // convert fs::path to utf8 encoded string
 inline std::string _pathToUtf8(const fs::path& path)
 {
+#if __ANDROID__
+    return path.generic_string();
+#else
     std::u8string strU8 = path.generic_u8string();
     std::string v((const char*)strU8.data(), strU8.size());
     return v;
+#endif // __ANDROID__
 }
 
 // convert utf8 encoded string to fs::path
 inline fs::path _utf8ToPath(std::string_view input)
 {
+#if __ANDROID__
+    return fs::path(input);
+#else
     std::basic_string_view<char8_t> v((char8_t*)input.data(), input.size());
     return fs::path(v);
+#endif // __ANDROID__
 }
 
 class RunAtCemuBoot // -> replaces this with direct function calls. Linkers other than MSVC may optimize way object files entirely if they are not referenced from outside. So a source file self-registering using this would be causing issues

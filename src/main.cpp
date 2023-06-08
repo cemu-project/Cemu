@@ -31,8 +31,10 @@
 #pragma comment(lib,"Dbghelp.lib")
 #endif
 
+#if HAS_SDL
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#endif
 
 #if BOOST_OS_LINUX
 #define _putenv(__s) putenv((char*)(__s))
@@ -329,7 +331,7 @@ int main(int argc, char* argv[])
 
 int main(int argc, char *argv[])
 {
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX && !__ANDROID__
     XInitThreads();
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))

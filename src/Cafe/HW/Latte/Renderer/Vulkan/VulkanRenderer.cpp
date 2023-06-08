@@ -106,15 +106,19 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	requiredExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-	#elif BOOST_OS_LINUX
+    #elif BOOST_OS_LINUX
+    #if __ANDROID__
+	requiredExtensions.emplace_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+    #else
 	auto backend = gui_getWindowInfo().window_main.backend;
 	if(backend == WindowHandleInfo::Backend::X11)
 		requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#ifdef HAS_WAYLAND
 	else if (backend == WindowHandleInfo::Backend::WAYLAND)
 		requiredExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-	#endif
-	#elif BOOST_OS_MACOS
+    #endif // HAS_WAYLAND
+    #endif // __ANDROID__
+    #elif BOOST_OS_MACOS
 	requiredExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
 
@@ -1177,14 +1181,18 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	requiredInstanceExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-	#elif BOOST_OS_LINUX
+    #elif BOOST_OS_LINUX
+    #if __ANDROID__
+	requiredInstanceExtensions.emplace_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+    #else
 	auto backend = gui_getWindowInfo().window_main.backend;
 	if(backend == WindowHandleInfo::Backend::X11)
 		requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#if HAS_WAYLAND
 	else if (backend == WindowHandleInfo::Backend::WAYLAND)
 		requiredInstanceExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-	#endif
+    #endif // HAS_WAYLAND
+    #endif // __ANDROID__
 	#elif BOOST_OS_MACOS
 	requiredInstanceExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 	#endif
@@ -1265,6 +1273,25 @@ VkSurfaceKHR VulkanRenderer::CreateWinSurface(VkInstance instance, HWND hwindow)
 #endif
 
 #if BOOST_OS_LINUX
+#if __ANDROID__
+VkSurfaceKHR VulkanRenderer::CreateAndroidSurface(VkInstance instance, ANativeWindow* window)
+{
+    VkAndroidSurfaceCreateInfoKHR sci{};
+    sci.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    sci.flags = 0;
+    sci.window = window;
+
+    VkSurfaceKHR result;
+    VkResult err;
+    if ((err = vkCreateAndroidSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
+    {
+        forceLog_printf("Cannot create an Android Vulkan surface: %d", (sint32)err);
+        throw std::runtime_error(fmt::format("Cannot create an Android Vulkan surface: {}", err));
+    }
+
+    return result;
+}
+#else
 VkSurfaceKHR VulkanRenderer::CreateXlibSurface(VkInstance instance, Display* dpy, Window window)
 {
     VkXlibSurfaceCreateInfoKHR sci{};
@@ -1322,6 +1349,7 @@ VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_displa
     return result;
 }
 #endif // HAS_WAYLAND
+#endif // __ANDROID__
 #endif // BOOST_OS_LINUX
 
 VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo)
@@ -1329,6 +1357,8 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 #if BOOST_OS_WINDOWS
 	return CreateWinSurface(instance, windowInfo.hwnd);
 #elif BOOST_OS_LINUX
+#if __ANDROID__
+#else
 	if(windowInfo.backend == WindowHandleInfo::Backend::X11)
 		return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
 	#ifdef HAS_WAYLAND
@@ -1336,6 +1366,7 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 		return CreateWaylandSurface(instance, windowInfo.display, windowInfo.surface);
 	#endif
 	return {};
+#endif // __ANDROID__
 #elif BOOST_OS_MACOS
 	return CreateCocoaSurface(instance, windowInfo.handle);
 #endif
