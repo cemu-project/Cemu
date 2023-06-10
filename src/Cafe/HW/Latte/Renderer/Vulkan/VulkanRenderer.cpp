@@ -1285,7 +1285,7 @@ VkSurfaceKHR VulkanRenderer::CreateAndroidSurface(VkInstance instance, ANativeWi
     VkResult err;
     if ((err = vkCreateAndroidSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
     {
-        forceLog_printf("Cannot create an Android Vulkan surface: %d", (sint32)err);
+		cemuLog_log(LogType::Force, "Cannot create an Android Vulkan surface: {}", (sint32)err);
         throw std::runtime_error(fmt::format("Cannot create an Android Vulkan surface: {}", err));
     }
 
@@ -1358,6 +1358,7 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 	return CreateWinSurface(instance, windowInfo.hwnd);
 #elif BOOST_OS_LINUX
 #if __ANDROID__
+	return CreateAndroidSurface(instance, static_cast<ANativeWindow *>(windowInfo.handle));
 #else
 	if(windowInfo.backend == WindowHandleInfo::Backend::X11)
 		return CreateXlibSurface(instance, windowInfo.xlib_display, windowInfo.xlib_window);
