@@ -43,6 +43,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_subdirectory(Common)
 add_subdirectory(gui)
+if(ANDROID)
+	add_subdirectory(android/app/src/main/cpp)
+endif()
 add_subdirectory(Cafe)
 add_subdirectory(Cemu)
 add_subdirectory(config)
@@ -53,20 +56,26 @@ add_subdirectory(imgui)
 add_subdirectory(resource)
 add_subdirectory(asm)
 
-add_executable(CemuBin
-	main.cpp
-	mainLLE.cpp
-)
+if(ANDROID)
+	add_library(CemuBin
+		main.cpp
+		mainLLE.cpp
+	)
+else()
+	add_executable(CemuBin
+		main.cpp
+		mainLLE.cpp
+	)
 
-if(WIN32)
-	target_sources(CemuBin PRIVATE
-	resource/cemu.rc
-)
+	if(WIN32)
+		target_sources(CemuBin PRIVATE
+		resource/cemu.rc
+	)
+	endif()
+	set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
+	set(OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>")
 endif()
-
-set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
-set(OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>")
 
 if (MACOS_BUNDLE)
 	set_property(TARGET CemuBin PROPERTY MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resource/MacOSXBundleInfo.plist.in")

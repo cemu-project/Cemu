@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'info.cemu.Cemu'
-    compileSdk 33
+    compileSdk 34
     ndkVersion '25.2.9519653'
     defaultConfig {
         applicationId "info.cemu.Cemu"
         minSdk 30
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
         ndk {
@@ -17,20 +17,6 @@ android {
             abiFilters("x86_64")
         }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        externalNativeBuild {
-            cmake {
-                arguments(
-                        '-DENABLE_VCPKG=ON',
-                        '-DVCPKG_TARGET_ANDROID=ON',
-                        '-DENABLE_SDL=OFF',
-                        '-DENABLE_OPENGL=OFF',
-                        '-DENABLE_WXWIDGETS=OFF',
-                        '-DBUNDLE_SPEEX=ON',
-                        '-DENABLE_DISCORD_RPC=OFF',
-                        '-DENABLE_WAYLAND=OFF'
-                )
-            }
-        }
     }
 
     buildTypes {
@@ -45,8 +31,25 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path file('../../../CMakeLists.txt')
             version '3.22.1'
+            path file('../../../CMakeLists.txt')
+        }
+    }
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                arguments(
+                        '-DENABLE_VCPKG=ON',
+                        '-DVCPKG_TARGET_ANDROID=ON',
+                        '-DENABLE_SDL=OFF',
+                        '-DENABLE_WXWIDGETS=OFF',
+                        '-DENABLE_OPENGL=OFF',
+                        '-DBUNDLE_SPEEX=ON',
+                        '-DENABLE_DISCORD_RPC=OFF',
+                        '-DENABLE_WAYLAND=OFF'
+                )
+                abiFilters("x86_64")
+            }
         }
     }
     buildFeatures {
@@ -55,7 +58,6 @@ android {
 }
 
 dependencies {
-
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'

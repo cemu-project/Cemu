@@ -327,11 +327,12 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+#elif __ANDROID__
 #else
 
 int main(int argc, char *argv[])
 {
-#if BOOST_OS_LINUX && !__ANDROID__
+#if BOOST_OS_LINUX
     XInitThreads();
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))

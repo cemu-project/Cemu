@@ -9,9 +9,8 @@ import info.cemu.Cemu.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Used to load the 'Cemu' library on application startup.
     static {
-        System.loadLibrary("Cemu");
+        System.loadLibrary("CemuAndroid");
     }
 
     private ActivityMainBinding binding;
