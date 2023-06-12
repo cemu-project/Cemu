@@ -12,10 +12,12 @@ void GameTitleLoader::queueTitle(TitleId titleId) {
     m_condVar.notify_one();
 }
 
-void GameTitleLoader::setOnTitleLoaded(const std::function<void(const Game &)> &onTitleLoaded) {
+
+void GameTitleLoader::setOnTitleLoaded(
+        const std::shared_ptr<GameTitleLoadedCallback> &gameTitleLoadedCallback) {
     {
         std::lock_guard lock(m_threadMutex);
-        m_onTitleLoaded = onTitleLoaded;
+        m_gameTitleLoadedCallback = gameTitleLoadedCallback;
     }
     m_condVar.notify_one();
 }
@@ -25,6 +27,7 @@ void GameTitleLoader::reloadGameTitles() {
         CafeTitleList::Refresh();
         CafeTitleList::UnregisterCallback(m_callbackIdTitleList.value());
     }
+    m_gameInfos.clear();
     registerCallback();
 }
 
@@ -43,9 +46,8 @@ void GameTitleLoader::titleRefresh(TitleId titleId) {
     }
     TitleId baseTitleId = gameInfo.GetBaseTitleId();
     bool isNewEntry = false;
-    if (auto gameIndex = m_gameInfos.find(baseTitleId); gameIndex == m_gameInfos.end()) {
+    if (auto gameInfoIt = m_gameInfos.find(baseTitleId); gameInfoIt == m_gameInfos.end()) {
         isNewEntry = true;
-        m_titleIds.push_back(baseTitleId);
         m_gameInfos[baseTitleId] = Game();
     }
     Game &game = m_gameInfos[baseTitleId];
@@ -57,10 +59,10 @@ void GameTitleLoader::titleRefresh(TitleId titleId) {
         game.dlc = gameInfo.GetAOCVersion();
     }
     if (isNewEntry) {
-        iosu::pdm::GameListStat playTimeStat;
+        iosu::pdm::GameListStat playTimeStat{};
         if (iosu::pdm::GetStatForGamelist(baseTitleId, playTimeStat))
             game.secondsPlayed = playTimeStat.numMinutesPlayed * 60;
-        if (m_onTitleLoaded) m_onTitleLoaded(game);
+        if (m_gameTitleLoadedCallback) m_gameTitleLoadedCallback->onTitleLoaded(game);
     } else {
         // TODO: Update
     }

@@ -13,6 +13,11 @@ struct Game {
     CafeConsoleRegion region;
 };
 
+class GameTitleLoadedCallback {
+public:
+    virtual void onTitleLoaded(const Game &game) = 0;
+};
+
 class GameTitleLoader {
     std::atomic_bool m_continueLoading = true;
     std::mutex m_threadMutex;
@@ -20,16 +25,15 @@ class GameTitleLoader {
     std::thread m_loaderThread;
     std::deque<TitleId> m_titlesToLoad;
     std::optional<uint64> m_callbackIdTitleList;
-    std::vector<TitleId> m_titleIds;
     std::map<TitleId, Game> m_gameInfos;
     std::map<TitleId, std::string> m_name_cache;
-    std::function<void(const Game &)> m_onTitleLoaded = nullptr;
+    std::shared_ptr<GameTitleLoadedCallback> m_gameTitleLoadedCallback = nullptr;
 public:
     GameTitleLoader();
 
     void queueTitle(TitleId titleId);
 
-    void setOnTitleLoaded(const std::function<void(const Game &)> &onTitleLoaded);
+    void setOnTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback> &gameTitleLoadedCallback);
 
     void reloadGameTitles();
 

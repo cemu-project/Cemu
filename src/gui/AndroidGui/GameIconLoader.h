@@ -3,6 +3,11 @@
 #include "Cafe/TitleList/TitleId.h"
 #include "Image.h"
 
+class GameIconLoadedCallback {
+public:
+    virtual void onIconLoaded(TitleId titleId, const Image &iconData) = 0;
+};
+
 class GameIconLoader {
     std::atomic_bool m_continueLoading = true;
     std::condition_variable m_condVar;
@@ -10,16 +15,16 @@ class GameIconLoader {
     std::mutex m_threadMutex;
     std::deque <TitleId> m_iconsToLoad;
     std::map <TitleId, Image> m_iconCache;
-    std::function<void(TitleId, const Image &)> m_onIconLoaded = nullptr;
-
-    void loadGameIcons();
-
+    std::shared_ptr <GameIconLoadedCallback> m_onIconLoaded = nullptr;
 public:
     GameIconLoader();
 
     ~GameIconLoader();
 
-    void setOnIconLoaded(const std::function<void(TitleId, const Image &)> &onIconLoaded);
+    void setOnIconLoaded(const std::shared_ptr <GameIconLoadedCallback> &onIconLoaded);
 
     void requestIcon(TitleId titleId);
+
+private:
+    void loadGameIcons();
 };

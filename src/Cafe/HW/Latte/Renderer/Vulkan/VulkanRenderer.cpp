@@ -49,7 +49,9 @@ const  std::vector<const char*> kOptionalDeviceExtensions =
 const std::vector<const char*> kRequiredDeviceExtensions =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#if !__ANDROID__
 	VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME
+#endif
 }; // Intel doesnt support VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -442,7 +444,7 @@ VulkanRenderer::VulkanRenderer()
 	deviceFeatures.imageCubeArray = VK_TRUE;
 #if !BOOST_OS_MACOS
 	deviceFeatures.geometryShader = VK_TRUE;
-	deviceFeatures.logicOp = VK_TRUE;
+//	deviceFeatures.logicOp = VK_TRUE;
 #endif
 	deviceFeatures.occlusionQueryPrecise = VK_TRUE;
 	deviceFeatures.depthClamp = VK_TRUE;

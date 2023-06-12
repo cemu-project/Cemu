@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/game_icon"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="8dp"
+        android:contentDescription="@string/game_icon"
+        android:scaleType="fitXY" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/game_title"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="8dp"
+        android:gravity="center_vertical"
+        android:textSize="24sp" />
+</LinearLayout>

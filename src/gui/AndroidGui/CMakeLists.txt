@@ -1,13 +1,17 @@
 
 add_library(CemuAndroidGui
         AndroidGuiWrapper.cpp
+        AndroidGuiWrapper.h
         GameIconLoader.cpp
         GameIconLoader.h
         GameTitleLoader.cpp
         GameTitleLoader.h
         OpenGLCanvas.cpp
         Image.cpp
-)
+        Image.h
+        Utils.cpp
+        Utils.h
+        )
 
 target_include_directories(CemuAndroidGui PUBLIC "../")
 
@@ -26,4 +30,4 @@ target_link_libraries(CemuAndroidGui PRIVATE
         OpenSSL::Crypto
         pugixml::pugixml
         ZArchive::zarchive
-)
+        )

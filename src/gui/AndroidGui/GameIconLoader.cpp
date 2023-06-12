@@ -39,7 +39,7 @@ void GameIconLoader::loadGameIcons() {
             continue;
 
         if (auto iconIt = m_iconCache.find(titleId); iconIt != m_iconCache.end()) {
-            if (m_onIconLoaded) m_onIconLoaded(titleId, iconIt->second);
+            if (m_onIconLoaded) m_onIconLoaded->onIconLoaded(titleId, iconIt->second);
             continue;
         }
 
@@ -51,7 +51,7 @@ void GameIconLoader::loadGameIcons() {
             int width, height, channels;
             Image image(tgaData.value());
             if (image.isOk()) {
-                if (m_onIconLoaded) m_onIconLoaded(titleId, image);
+                if (m_onIconLoaded) m_onIconLoaded->onIconLoaded(titleId, image);
                 m_iconCache.emplace(titleId, std::move(image));
             }
         } else {
@@ -61,7 +61,7 @@ void GameIconLoader::loadGameIcons() {
     }
 }
 
-void GameIconLoader::setOnIconLoaded(const std::function<void(TitleId, const Image &)> &onIconLoaded) {
+void GameIconLoader::setOnIconLoaded(const std::shared_ptr<GameIconLoadedCallback> &onIconLoaded) {
     {
         std::lock_guard lock(m_threadMutex);
         m_onIconLoaded = onIconLoaded;
