@@ -2923,7 +2923,25 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	auto descriptSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);
 
 	vkCmdBeginRenderPass(m_state.currentCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
+#if __ANDROID__
+	float radians = 0.0f;
+	switch (chainInfo.m_preTransform)
+	{
+        case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
+            radians = glm::radians(90.0f);
+            break;
+        case VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR:
+            radians = glm::radians(180.0f);
+            break;
+        case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
+            radians = glm::radians(270.0f);
+            break;
+        default:
+            break;
+    }
+	const glm::mat2 preRotate = glm::rotate(glm::mat4(1.0), radians, glm::vec3(0.0F, 0.0F, 1.0F));
+    vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(preRotate), &preRotate);
+#endif // __ANDROID__
 	vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	m_state.currentPipeline = pipeline;
 

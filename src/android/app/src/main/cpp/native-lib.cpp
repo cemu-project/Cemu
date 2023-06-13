@@ -113,6 +113,7 @@ public:
                                reinterpret_cast<const jint *>(iconData.m_image));
         env->CallVoidMethod(*m_gameTitleLoadedCallbackObj, m_onGameIconLoadedMID, jTitleId,
                             jIconData, iconData.m_width, iconData.m_height);
+        env->DeleteLocalRef(jIconData);
     }
 };
 
@@ -179,5 +180,10 @@ Java_info_cemu_Cemu_NativeLibrary_initializeRendererSurface(JNIEnv *env, jclass 
     VulkanRenderer::GetInstance()->InitializeSurface(
             {width, height},
             is_main_canvas);
-
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setDPI(JNIEnv *env, jclass clazz, jfloat dpi) {
+    auto& windowInfo = gui_getWindowInfo();
+    windowInfo.dpi_scale = windowInfo.pad_dpi_scale = dpi;
 }

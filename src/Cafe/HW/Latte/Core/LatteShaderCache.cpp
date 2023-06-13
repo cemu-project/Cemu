@@ -338,7 +338,7 @@ void LatteShaderCache_load()
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 		LatteShaderCache_loadVulkanPipelineCache(cacheTitleId);
 
-
+#if !__ANDROID__
 	g_renderer->BeginFrame(true);
 	if (g_renderer->ImguiBegin(true))
 	{
@@ -351,7 +351,7 @@ void LatteShaderCache_load()
 		LatteShaderCache_drawBackgroundImage(g_shaderCacheLoaderState.textureDRCId, 854, 480);
 		g_renderer->ImguiEnd();
 	}
-
+#endif // __ANDROID__
 	g_renderer->SwapBuffers(true, true);
 
 	if (g_shaderCacheLoaderState.textureTVId)

@@ -12,6 +12,9 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	const auto details = QuerySwapchainSupport(surface, physicalDevice);
 	m_surfaceFormat = ChooseSurfaceFormat(details.formats);
 	m_actualExtent = ChooseSwapExtent(details.capabilities);
+#if __ANDROID__
+	m_preTransform = details.capabilities.currentTransform;
+#endif // __ANDROID__
 
 	// use at least two swapchain images. fewer than that causes problems on some drivers
 	uint32_t image_count = std::max(2u, details.capabilities.minImageCount);

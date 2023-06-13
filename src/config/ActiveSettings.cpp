@@ -65,7 +65,7 @@ bool ActiveSettings::FullscreenEnabled()
 
 CPUMode ActiveSettings::GetCPUMode()
 {
-#if !ARCH_X86_64
+#ifndef ARCH_X86_64
 	return CPUMode::SinglecoreInterpreter;
 #else
 	auto mode = g_current_game_profile->GetCPUMode().value_or(CPUMode::Auto);

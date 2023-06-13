@@ -72,11 +72,11 @@ void gui_getPadWindowPhysSize(int& w, int& h)
 }
 double gui_getWindowDPIScale()
 {
-    return 1.0;
+    return gui_getWindowInfo().dpi_scale;
 }
 double gui_getPadDPIScale()
 {
-    return 1.0;
+    return gui_getWindowInfo().pad_dpi_scale;
 }
 bool gui_isPadWindowOpen()
 {

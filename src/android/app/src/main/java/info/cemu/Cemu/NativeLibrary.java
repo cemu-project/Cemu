@@ -7,6 +7,8 @@ public class NativeLibrary {
         System.loadLibrary("CemuAndroid");
     }
 
+    public static native void setDPI(float dpi);
+
     public static native void setSurface(Surface surface, boolean isMainCanvas);
 
     public static native void setSurfaceSize(int width, int height, boolean isMainCanvas);
