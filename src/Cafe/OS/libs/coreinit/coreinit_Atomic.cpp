@@ -33,10 +33,11 @@ namespace coreinit
 
 	uint32 OSAddAtomic(std::atomic<uint32be>* mem, uint32 adder)
 	{
+        // used by SDL Wii U port
 		uint32be knownValue;
 		while (true)
 		{
-			uint32be knownValue = mem->load();
+			knownValue = mem->load();
 			uint32be newValue = knownValue + adder;
 			if (mem->compare_exchange_strong(knownValue, newValue))
 				break;
@@ -68,7 +69,7 @@ namespace coreinit
 		uint64be knownValue;
 		while (true)
 		{
-			uint64be knownValue = mem->load();
+			knownValue = mem->load();
 			uint64be newValue = knownValue + adder;
 			if (mem->compare_exchange_strong(knownValue, newValue))
 				break;
@@ -81,7 +82,7 @@ namespace coreinit
 		uint64be knownValue;
 		while (true)
 		{
-			uint64be knownValue = mem->load();
+			knownValue = mem->load();
 			uint64be newValue = knownValue & val;
 			if (mem->compare_exchange_strong(knownValue, newValue))
 				break;
@@ -94,7 +95,7 @@ namespace coreinit
 		uint64be knownValue;
 		while (true)
 		{
-			uint64be knownValue = mem->load();
+			knownValue = mem->load();
 			uint64be newValue = knownValue | val;
 			if (mem->compare_exchange_strong(knownValue, newValue))
 				break;
