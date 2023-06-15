@@ -346,7 +346,7 @@ namespace save
 		{
 			char fullPath[SAVE_MAX_PATH_SIZE];
 			if (GetAbsoluteFullPath(persistentId, path, fullPath))
-				result = coreinit::FSMakeDirAsync(client, block, (uint8*)fullPath, errHandling, (FSAsyncParamsNew_t*)asyncParams);
+				result = coreinit::FSMakeDirAsync(client, block, fullPath, errHandling, (FSAsyncParamsNew_t*)asyncParams);
 		}
 		else
 			result = (FSStatus)FS_RESULT::NOT_FOUND;

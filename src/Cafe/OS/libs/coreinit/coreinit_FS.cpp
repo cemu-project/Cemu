@@ -1581,7 +1581,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_MakeDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, const uint8* path, uint32 uknVal660)
+	FSA_RESULT __FSPrepareCmd_MakeDir(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle devHandle, const char* path, uint32 uknVal660)
 	{
 		if (fsaShimBuffer == NULL)
 			return FSA_RESULT::INVALID_BUFFER;
@@ -1608,7 +1608,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSMakeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const uint8* dirPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSMakeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* dirPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		// used by titles: XCX (via SAVEMakeDirAsync)
 		_FSCmdIntro();
@@ -1625,7 +1625,7 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSMakeDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const uint8* path, uint32 errorMask)
+	sint32 FSMakeDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, uint32 errorMask)
 	{
 		StackAllocator<FSAsyncParamsNew_t> asyncParams;
 		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
@@ -2092,7 +2092,7 @@ namespace coreinit
 		return result;
 	}
 
-	FSA_RESULT FSAMakeDir(FSAClientHandle client, const uint8* path, uint32 uknVal660)
+	FSA_RESULT FSAMakeDir(FSAClientHandle client, const char* path, uint32 uknVal660)
 	{
 		if (!FSAShimCheckClientHandle(client))
 			return FSA_RESULT::INVALID_CLIENT_HANDLE;
