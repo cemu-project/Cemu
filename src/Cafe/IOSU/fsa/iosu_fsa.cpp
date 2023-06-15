@@ -108,14 +108,30 @@ namespace iosu
 					if ((input.size() - idx) >= 3 && input[idx + 1] == '.' && input[idx + 2] == '/')
 					{
 						// "../"
-						cemu_assert_unimplemented();
+                        while(!tmp.empty())
+                        {
+                            if(tmp.back() == '/')
+                            {
+                                tmp.pop_back();
+                                break;
+                            }
+                            tmp.pop_back();
+                        }
 						idx += 3;
 						continue;
 					}
 					else if ((input.size() - idx) == 2 && input[idx + 1] == '.')
 					{
 						// ".." at the end
-						cemu_assert_unimplemented();
+                        while(!tmp.empty())
+                        {
+                            if(tmp.back() == '/')
+                            {
+                                tmp.pop_back();
+                                break;
+                            }
+                            tmp.pop_back();
+                        }
 						idx += 2;
 						continue;
 					}
