@@ -263,9 +263,7 @@ namespace coreinit
 			thread = (OSThread_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(OSThread_t), 32));
 		memset(thread, 0x00, sizeof(OSThread_t));
 		// init signatures
-		thread->context.magic0 = OS_CONTEXT_MAGIC_0;
-		thread->context.magic1 = OS_CONTEXT_MAGIC_1;
-		thread->magic = 'tHrD';
+		thread->SetMagic();
 		thread->type = threadType;
 		thread->state = (entryPoint != MPTR_NULL) ? OSThread_t::THREAD_STATE::STATE_READY : OSThread_t::THREAD_STATE::STATE_NONE;
 		thread->entrypoint = _swapEndianU32(entryPoint);
@@ -563,7 +561,10 @@ namespace coreinit
 	// adds the thread to each core's run queue if in runable state
 	void __OSAddReadyThreadToRunQueue(OSThread_t* thread)
 	{
+        cemu_assert_debug(MMU_IsInPPCMemorySpace(thread));
+        cemu_assert_debug(thread->IsValidMagic());
 		cemu_assert_debug(__OSHasSchedulerLock());
+
 		if (thread->state != OSThread_t::THREAD_STATE::STATE_READY)
 			return;
 		if (thread->suspendCounter != 0)
@@ -703,10 +704,18 @@ namespace coreinit
 		}
 		else if (prevAffinityMask != affinityMask)
 		{
-			__OSRemoveThreadFromRunQueues(thread);
-			thread->attr = (thread->attr & ~7) | (affinityMask & 7);
-			thread->context.setAffinity(affinityMask);
-			__OSAddReadyThreadToRunQueue(thread);
+            if(thread->state != OSThread_t::THREAD_STATE::STATE_NONE)
+            {
+                __OSRemoveThreadFromRunQueues(thread);
+                thread->attr = (thread->attr & ~7) | (affinityMask & 7);
+                thread->context.setAffinity(affinityMask);
+                __OSAddReadyThreadToRunQueue(thread);
+            }
+            else
+            {
+                thread->attr = (thread->attr & ~7) | (affinityMask & 7);
+                thread->context.setAffinity(affinityMask);
+            }
 		}
 		__OSUnlockScheduler();
 		return true;

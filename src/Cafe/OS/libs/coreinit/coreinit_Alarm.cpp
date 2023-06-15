@@ -211,6 +211,7 @@ namespace coreinit
 
 	void __OSInitiateAlarm(OSAlarm_t* alarm, uint64 startTime, uint64 period, MPTR handlerFunc, bool isPeriodic)
 	{
+        cemu_assert_debug(MMU_IsInPPCMemorySpace(alarm));
 		cemu_assert_debug(__OSHasSchedulerLock());
 
 		uint64 nextTime = startTime;

@@ -50,7 +50,7 @@ namespace coreinit
 	MEMList g_list3;
 
 	std::array<uint32, 3> gHeapFillValues{ 0xC3C3C3C3, 0xF3F3F3F3, 0xD3D3D3D3 };
-	OSSpinLock gHeapGlobalLock;
+	SysAllocator<OSSpinLock> gHeapGlobalLock;
 	MEMHeapBase* gDefaultHeap;
 
 	bool MEMHeapTable_Add(MEMHeapBase* heap)

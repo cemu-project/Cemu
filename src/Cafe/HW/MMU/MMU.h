@@ -264,3 +264,5 @@ namespace MMU
 	uint16 ReadMMIO_16(PAddr address);
 
 }
+
+#define MMU_IsInPPCMemorySpace(__ptr) ((const uint8*)(__ptr) >= memory_base && (const uint8*)(__ptr) < (memory_base + 0x100000000))

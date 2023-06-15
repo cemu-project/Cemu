@@ -404,6 +404,18 @@ struct OSThread_t
 		return 0;
 	}
 
+    void SetMagic()
+    {
+        context.magic0 = OS_CONTEXT_MAGIC_0;
+        context.magic1 = OS_CONTEXT_MAGIC_1;
+        magic = 'tHrD';
+    }
+
+    bool IsValidMagic() const
+    {
+        return magic == 'tHrD' && context.magic0 == OS_CONTEXT_MAGIC_0 && context.magic1 == OS_CONTEXT_MAGIC_1;
+    }
+
 	/* +0x000 */ OSContext_t						context;
 	/* +0x320 */ uint32be							magic;								// 'tHrD'
 	/* +0x324 */ betype<THREAD_STATE>				state;

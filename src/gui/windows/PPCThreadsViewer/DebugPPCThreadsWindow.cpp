@@ -173,100 +173,103 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 	const int scrollPos = m_thread_list->GetScrollPos(0);
 	m_thread_list->DeleteAllItems();
 
-	__OSLockScheduler();
-	srwlock_activeThreadList.LockWrite();
-	for (sint32 i = 0; i < activeThreadCount; i++)
-	{
-		MPTR threadItrMPTR = activeThread[i];
-		OSThread_t* cafeThread = (OSThread_t*)memory_getPointerFromVirtualOffset(threadItrMPTR);
+    if(activeThreadCount > 0)
+    {
+        __OSLockScheduler();
+        srwlock_activeThreadList.LockWrite();
+        for (sint32 i = 0; i < activeThreadCount; i++)
+        {
+            MPTR threadItrMPTR = activeThread[i];
+            OSThread_t* cafeThread = (OSThread_t*)memory_getPointerFromVirtualOffset(threadItrMPTR);
 
-		char tempStr[512];
-		sprintf(tempStr, "%08X", threadItrMPTR);
+            char tempStr[512];
+            sprintf(tempStr, "%08X", threadItrMPTR);
 
 
-		wxListItem item;
-		item.SetId(i);
-		item.SetText(tempStr);
-		m_thread_list->InsertItem(item);
-		m_thread_list->SetItemData(item, (long)threadItrMPTR);
-		// entry point
-		sprintf(tempStr, "%08X", _swapEndianU32(cafeThread->entrypoint));
-		m_thread_list->SetItem(i, 1, tempStr);
-		// stack base (low)
-		sprintf(tempStr, "%08X - %08X", _swapEndianU32(cafeThread->stackEnd), _swapEndianU32(cafeThread->stackBase));
-		m_thread_list->SetItem(i, 2, tempStr);
-		// pc
-		RPLStoredSymbol* symbol = rplSymbolStorage_getByAddress(cafeThread->context.srr0);
-		if (symbol)
-			sprintf(tempStr, "%s (0x%08x)", (const char*)symbol->symbolName, cafeThread->context.srr0);
-		else
-			sprintf(tempStr, "%08X", cafeThread->context.srr0);
-		m_thread_list->SetItem(i, 3, tempStr);
-		// lr
-		sprintf(tempStr, "%08X", _swapEndianU32(cafeThread->context.lr));
-		m_thread_list->SetItem(i, 4, tempStr);
-		// state
-		OSThread_t::THREAD_STATE threadState = cafeThread->state;
-		wxString threadStateStr = "UNDEFINED";
-		if (cafeThread->suspendCounter != 0)
-			threadStateStr = "SUSPENDED";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_NONE)
-			threadStateStr = "NONE";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_READY)
-			threadStateStr = "READY";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_RUNNING)
-			threadStateStr = "RUNNING";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_WAITING)
-			threadStateStr = "WAITING";
-		else if (threadState == OSThread_t::THREAD_STATE::STATE_MORIBUND)
-			threadStateStr = "MORIBUND";
-		m_thread_list->SetItem(i, 5, threadStateStr);
-		// affinity
-		uint8 affinity = cafeThread->attr&7;
-		uint8 affinityReal = cafeThread->context.affinity;
-		if(affinity != affinityReal)
-			sprintf(tempStr, "(!) %d%d%d real: %d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, (affinityReal >> 0) & 1, (affinityReal >> 1) & 1, (affinityReal >> 2) & 1);
-		else
-			sprintf(tempStr, "%d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1);
-		m_thread_list->SetItem(i, 6, tempStr);
-		// priority
-		sint32 effectivePriority = cafeThread->effectivePriority;
-		sprintf(tempStr, "%d", effectivePriority);
-		m_thread_list->SetItem(i, 7, tempStr);
-		// last awake in cycles
-		uint64 lastWakeUpTime = cafeThread->wakeUpTime;
-		sprintf(tempStr, "%" PRIu64, lastWakeUpTime);
-		m_thread_list->SetItem(i, 8, tempStr);
-		// awake time in cycles
-		uint64 awakeTime = cafeThread->totalCycles;
-		sprintf(tempStr, "%" PRIu64, awakeTime);
-		m_thread_list->SetItem(i, 9, tempStr);
-		// thread name
-		const char* threadName = "NULL";
-		if (!cafeThread->threadName.IsNull())
-			threadName = cafeThread->threadName.GetPtr();
-		m_thread_list->SetItem(i, 10, threadName);
-		// GPR
-		sprintf(tempStr, "r3 %08x r4 %08x r5 %08x r6 %08x r7 %08x", _r(3), _r(4), _r(5), _r(6), _r(7));
-		m_thread_list->SetItem(i, 11, tempStr);
-		// waiting condition / extra info
-		coreinit::OSMutex* mutex = cafeThread->waitingForMutex;
-		if (mutex)
-			sprintf(tempStr, "Mutex 0x%08x (Held by thread 0x%08X Lock-Count: %d)", memory_getVirtualOffsetFromPointer(mutex), mutex->owner.GetMPTR(), (uint32)mutex->lockCount);
-		else
-			sprintf(tempStr, "");
+            wxListItem item;
+            item.SetId(i);
+            item.SetText(tempStr);
+            m_thread_list->InsertItem(item);
+            m_thread_list->SetItemData(item, (long)threadItrMPTR);
+            // entry point
+            sprintf(tempStr, "%08X", _swapEndianU32(cafeThread->entrypoint));
+            m_thread_list->SetItem(i, 1, tempStr);
+            // stack base (low)
+            sprintf(tempStr, "%08X - %08X", _swapEndianU32(cafeThread->stackEnd), _swapEndianU32(cafeThread->stackBase));
+            m_thread_list->SetItem(i, 2, tempStr);
+            // pc
+            RPLStoredSymbol* symbol = rplSymbolStorage_getByAddress(cafeThread->context.srr0);
+            if (symbol)
+                sprintf(tempStr, "%s (0x%08x)", (const char*)symbol->symbolName, cafeThread->context.srr0);
+            else
+                sprintf(tempStr, "%08X", cafeThread->context.srr0);
+            m_thread_list->SetItem(i, 3, tempStr);
+            // lr
+            sprintf(tempStr, "%08X", _swapEndianU32(cafeThread->context.lr));
+            m_thread_list->SetItem(i, 4, tempStr);
+            // state
+            OSThread_t::THREAD_STATE threadState = cafeThread->state;
+            wxString threadStateStr = "UNDEFINED";
+            if (cafeThread->suspendCounter != 0)
+                threadStateStr = "SUSPENDED";
+            else if (threadState == OSThread_t::THREAD_STATE::STATE_NONE)
+                threadStateStr = "NONE";
+            else if (threadState == OSThread_t::THREAD_STATE::STATE_READY)
+                threadStateStr = "READY";
+            else if (threadState == OSThread_t::THREAD_STATE::STATE_RUNNING)
+                threadStateStr = "RUNNING";
+            else if (threadState == OSThread_t::THREAD_STATE::STATE_WAITING)
+                threadStateStr = "WAITING";
+            else if (threadState == OSThread_t::THREAD_STATE::STATE_MORIBUND)
+                threadStateStr = "MORIBUND";
+            m_thread_list->SetItem(i, 5, threadStateStr);
+            // affinity
+            uint8 affinity = cafeThread->attr&7;
+            uint8 affinityReal = cafeThread->context.affinity;
+            if(affinity != affinityReal)
+                sprintf(tempStr, "(!) %d%d%d real: %d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, (affinityReal >> 0) & 1, (affinityReal >> 1) & 1, (affinityReal >> 2) & 1);
+            else
+                sprintf(tempStr, "%d%d%d", (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1);
+            m_thread_list->SetItem(i, 6, tempStr);
+            // priority
+            sint32 effectivePriority = cafeThread->effectivePriority;
+            sprintf(tempStr, "%d", effectivePriority);
+            m_thread_list->SetItem(i, 7, tempStr);
+            // last awake in cycles
+            uint64 lastWakeUpTime = cafeThread->wakeUpTime;
+            sprintf(tempStr, "%" PRIu64, lastWakeUpTime);
+            m_thread_list->SetItem(i, 8, tempStr);
+            // awake time in cycles
+            uint64 awakeTime = cafeThread->totalCycles;
+            sprintf(tempStr, "%" PRIu64, awakeTime);
+            m_thread_list->SetItem(i, 9, tempStr);
+            // thread name
+            const char* threadName = "NULL";
+            if (!cafeThread->threadName.IsNull())
+                threadName = cafeThread->threadName.GetPtr();
+            m_thread_list->SetItem(i, 10, threadName);
+            // GPR
+            sprintf(tempStr, "r3 %08x r4 %08x r5 %08x r6 %08x r7 %08x", _r(3), _r(4), _r(5), _r(6), _r(7));
+            m_thread_list->SetItem(i, 11, tempStr);
+            // waiting condition / extra info
+            coreinit::OSMutex* mutex = cafeThread->waitingForMutex;
+            if (mutex)
+                sprintf(tempStr, "Mutex 0x%08x (Held by thread 0x%08X Lock-Count: %d)", memory_getVirtualOffsetFromPointer(mutex), mutex->owner.GetMPTR(), (uint32)mutex->lockCount);
+            else
+                sprintf(tempStr, "");
 
-		// OSSetThreadCancelState
-		if (cafeThread->requestFlags & OSThread_t::REQUEST_FLAG_CANCEL)
-			strcat(tempStr, "[Cancel requested]");
+            // OSSetThreadCancelState
+            if (cafeThread->requestFlags & OSThread_t::REQUEST_FLAG_CANCEL)
+                strcat(tempStr, "[Cancel requested]");
 
-		m_thread_list->SetItem(i, 12, tempStr);
+            m_thread_list->SetItem(i, 12, tempStr);
 
-		if(selected_thread != 0 && selected_thread == (long)threadItrMPTR)
-			m_thread_list->SetItemState(i, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED);
-	}
-	srwlock_activeThreadList.UnlockWrite();
-	__OSUnlockScheduler();
+            if(selected_thread != 0 && selected_thread == (long)threadItrMPTR)
+                m_thread_list->SetItemState(i, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED);
+        }
+        srwlock_activeThreadList.UnlockWrite();
+        __OSUnlockScheduler();
+    }
 
 	m_thread_list->SetScrollPos(0, scrollPos, true);
 }

@@ -54,7 +54,7 @@ namespace padscore
 	WPADState_t g_wpad_state = kWPADStateMaster;
 
 	struct {
-		coreinit::OSAlarm_t alarm;
+		SysAllocator<coreinit::OSAlarm_t> alarm;
 		bool kpad_initialized = false;
 
 		struct WPADData
