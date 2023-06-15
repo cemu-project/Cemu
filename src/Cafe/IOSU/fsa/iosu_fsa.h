@@ -111,10 +111,25 @@ namespace iosu
 				{
 					uint32be fileHandle;
 				} cmdIsEof;
+				struct
+				{
+					uint32be dirHandle;
+				} cmdRewindDir;
+				struct
+				{
+					uint32be fileHandle;
+				} cmdFlushFile;
+				struct
+				{
+					uint8 path[FSA_CMD_PATH_MAX_LENGTH];
+					uint32be mode1;
+					uint32be mode2;
+				} cmdChangeMode;
 			};
 		};
 		static_assert(sizeof(FSARequest) == 0x520);
 
+#pragma pack(1)
 		struct FSAResponse
 		{
 			uint32be ukn0;
@@ -158,11 +173,16 @@ namespace iosu
 						{
 							FSStat_t stat;
 						} queryStat;
+						struct
+						{
+							FSADeviceInfo_t info;
+						} queryDeviceInfo;
 					};
 				} cmdQueryInfo;
 			};
 		};
-		// static_assert(sizeof(FSAResponse) == 0x293);
+		static_assert(sizeof(FSAResponse) == 0x293);
+#pragma pack()
 
 		struct FSAShimBuffer
 		{
@@ -189,7 +209,7 @@ namespace iosu
 			uint32 ukn0930;
 			uint32 ukn0934;
 		};
-		// static_assert(sizeof(FSAShimBuffer) == 0x938); // exact size of this is not known
+		static_assert(sizeof(FSAShimBuffer) == 0x938); // exact size of this is not known
 
 		void Initialize();
 		void Shutdown();

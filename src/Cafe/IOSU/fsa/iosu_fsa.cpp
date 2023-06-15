@@ -54,7 +54,7 @@ namespace iosu
 		FSA_RESULT FSA_convertFSCtoFSAStatus(sint32 fscError)
 		{
 			if (fscError == FSC_STATUS_OK)
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
 			else if (fscError == FSC_STATUS_FILE_NOT_FOUND)
 				return FSA_RESULT::NOT_FOUND;
 			else if (fscError == FSC_STATUS_ALREADY_EXISTS)
@@ -175,7 +175,7 @@ namespace iosu
 					it.isAllocated = true;
 					uint32 handleVal = ((uint32)i << 16) | (uint32)checkValue;
 					handleOut = (FSResHandle)handleVal;
-					return FSA_RESULT::SUCCESS;
+					return FSA_RESULT::OK;
 				}
 				cemuLog_log(LogType::Force, "FSA: Ran out of file handles");
 				return FSA_RESULT::FATAL_ERROR;
@@ -194,7 +194,7 @@ namespace iosu
 					return FSA_RESULT::INVALID_FILE_HANDLE;
 				it.fscFile = nullptr;
 				it.isAllocated = false;
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
 			}
 
 			FSCVirtualFile* GetByHandle(FSResHandle handle)
@@ -229,10 +229,9 @@ namespace iosu
 				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION;
 			else if (strcmp(accessModifierStr, "r+") == 0)
 			{
-				// r+ will create a new file if it doesn't exist
 				// the cursor will be set to the beginning of the file
 				// allows read and write access
-				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE; // create if non exists, read, write
+				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION; // read, write
 			}
 			else if (strcmp(accessModifierStr, "w") == 0)
 			{
@@ -252,10 +251,12 @@ namespace iosu
 			}
 			else if (strcmp(accessModifierStr, "a+") == 0)
 			{
-				cemu_assert_debug(false); // a+ is kind of special. Writing always happens at the end but the read cursor can dynamically move
-				// but Cafe OS might not support this. Needs investigation.
-				// this also used to be FILE_ALWAYS_CREATE in 1.26.2 and before
-				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE;
+				accessModifier = FSC_ACCESS_FLAG::READ_PERMISSION | FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE | FSC_ACCESS_FLAG::IS_APPEND;
+				isAppend = true;
+			}
+			else if (strcmp(accessModifierStr, "a") == 0)
+			{
+				accessModifier = FSC_ACCESS_FLAG::WRITE_PERMISSION | FSC_ACCESS_FLAG::FILE_ALLOW_CREATE | FSC_ACCESS_FLAG::IS_APPEND;
 				isAppend = true;
 			}
 			else
@@ -275,7 +276,7 @@ namespace iosu
 				fsc_setFileSeek(fscFile, fsc_getFileSize(fscFile));
 			FSResHandle fsFileHandle;
 			FSA_RESULT r = sFileHandleTable.AllocateHandle(fsFileHandle, fscFile);
-			if (r != FSA_RESULT::SUCCESS)
+			if (r != FSA_RESULT::OK)
 			{
 				cemuLog_log(LogType::Force, "Exceeded maximum number of FSA file handles");
 				delete fscFile;
@@ -283,7 +284,7 @@ namespace iosu
 			}
 			*fileHandle = fsFileHandle;
 			cemuLog_log(LogType::CoreinitFile, "Open file {} (access: {} result: ok handle: 0x{})", path, accessModifierStr, (uint32)*fileHandle);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT __FSAOpenDirectory(FSAClient* client, std::string_view path, sint32* dirHandle)
@@ -300,14 +301,14 @@ namespace iosu
 			}
 			FSResHandle fsDirHandle;
 			FSA_RESULT r = sDirHandleTable.AllocateHandle(fsDirHandle, fscFile);
-			if (r != FSA_RESULT::SUCCESS)
+			if (r != FSA_RESULT::OK)
 			{
 				delete fscFile;
 				return FSA_RESULT::MAX_DIRS;
 			}
 			*dirHandle = fsDirHandle;
 			cemuLog_log(LogType::CoreinitFile, "Open directory {} (result: ok handle: 0x{})", path, (uint32)*dirHandle);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT __FSACloseFile(uint32 fileHandle)
@@ -322,7 +323,7 @@ namespace iosu
 			// unregister file
 			sFileHandleTable.ReleaseHandle(fileHandle); // todo - use the error code of this
 			fsc_close(fscFile);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_remove(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -383,7 +384,7 @@ namespace iosu
 				return FSA_convertFSCtoFSAStatus(fscStatus);
 			__FSA_GetStatFromFSCFile(fscFile, fsStatOut);
 			delete fscFile;
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_queryInfo(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -407,7 +408,16 @@ namespace iosu
 				betype<uint64>* fsStatSize = &shimBuffer->response.cmdQueryInfo.queryFreeSpace.freespace;
 				*fsStatSize = 30ull * 1024 * 1024 * 1024; // placeholder value. How is this determined?
 				delete fscFile;
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
+			}
+			else if (queryType == FSA_QUERY_TYPE_DEVICE_INFO)
+			{
+				FSADeviceInfo_t* deviceInfo = &shimBuffer->response.cmdQueryInfo.queryDeviceInfo.info;
+				// always report hardcoded values for now.
+				deviceInfo->deviceSectorSize = 512;
+				deviceInfo->deviceSizeInSectors = (32ull * 1024 * 1024 * 1024) / deviceInfo->deviceSectorSize;
+				cemu_assert_suspicious();
+				return FSA_RESULT::OK;
 			}
 			else
 				cemu_assert_unimplemented();
@@ -423,7 +433,7 @@ namespace iosu
 				return FSA_RESULT::NOT_FOUND;
 			cemu_assert_debug(fsc_isFile(fscFile));
 			__FSA_GetStatFromFSCFile(fscFile, statOut);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_read(FSAClient* client, FSAShimBuffer* shimBuffer, MEMPTR<void> destPtr, uint32be transferSize)
@@ -444,7 +454,7 @@ namespace iosu
 			// todo: File permissions
 			uint32 bytesSuccessfullyRead = fsc_readFile(fscFile, destPtr, bytesToRead);
 			if (transferElementSize == 0)
-				return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::OK;
 
 			LatteBufferCache_notifyDCFlush(destPtr.GetMPTR(), bytesToRead);
 
@@ -485,7 +495,7 @@ namespace iosu
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 			fsc_setFileSeek(fscFile, filePos);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_getPos(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -496,7 +506,7 @@ namespace iosu
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 			uint32 filePos = fsc_getFileSeek(fscFile);
 			shimBuffer->response.cmdGetPosFile.filePos = filePos;
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_openFile(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -528,7 +538,7 @@ namespace iosu
 			FSDirEntry_t* dirEntryOut = &shimBuffer->response.cmdReadDir.dirEntry;
 			FSCDirEntry fscDirEntry;
 			if (fsc_nextDir(fscFile, &fscDirEntry) == false)
-				return FSA_RESULT::END_DIR;
+				return FSA_RESULT::END_OF_DIRECTORY;
 			strcpy(dirEntryOut->name, fscDirEntry.path);
 			FSFlag statFlag = FSFlag::NONE;
 			dirEntryOut->stat.size = 0;
@@ -538,11 +548,12 @@ namespace iosu
 			}
 			else if (fscDirEntry.isFile)
 			{
+				statFlag |= FSFlag::IS_FILE;
 				dirEntryOut->stat.size = fscDirEntry.fileSize;
 			}
 			dirEntryOut->stat.flag = statFlag;
 			dirEntryOut->stat.permissions = 0x777;
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_closeDir(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -555,12 +566,31 @@ namespace iosu
 			}
 			sDirHandleTable.ReleaseHandle(shimBuffer->request.cmdReadDir.dirHandle);
 			fsc_close(fscFile);
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_flushQuota(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
+		}
+
+		FSA_RESULT FSAProcessCmd_rewindDir(FSAClient* client, FSAShimBuffer* shimBuffer)
+		{
+			FSCVirtualFile* fscFile = sDirHandleTable.GetByHandle((sint32)shimBuffer->request.cmdRewindDir.dirHandle);
+			if (!fscFile)
+			{
+				cemuLog_logDebug(LogType::Force, "RewindDir: Invalid handle (0x{:08x})", (sint32)shimBuffer->request.cmdRewindDir.dirHandle);
+				return FSA_RESULT::INVALID_DIR_HANDLE;
+			}
+			if (!fscFile->fscRewindDir())
+				return FSA_RESULT::FATAL_ERROR;
+
+			return FSA_RESULT::OK;
+		}
+
+		FSA_RESULT FSAProcessCmd_flushFile(FSAClient* client, FSAShimBuffer* shimBuffer)
+		{
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_appendFile(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -582,7 +612,7 @@ namespace iosu
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 			fsc_setFileLength(fscFile, fsc_getFileSeek(fscFile));
-			return FSA_RESULT::SUCCESS;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_isEof(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -594,8 +624,8 @@ namespace iosu
 			uint32 filePos = fsc_getFileSeek(fscFile);
 			uint32 fileSize = fsc_getFileSize(fscFile);
 			if (filePos >= fileSize)
-				return FSA_RESULT::END_FILE;
-			return FSA_RESULT::SUCCESS;
+				return FSA_RESULT::END_OF_FILE;
+			return FSA_RESULT::OK;
 		}
 
 		FSA_RESULT FSAProcessCmd_getCwd(FSAClient* client, FSAShimBuffer* shimBuffer)
@@ -764,16 +794,21 @@ namespace iosu
 				fsaResult = FSAProcessCmd_flushQuota(client, shimBuffer);
 				break;
 			}
+			case FSA_CMD_OPERATION_TYPE::REWINDDIR:
+			{
+				fsaResult = FSAProcessCmd_rewindDir(client, shimBuffer);
+				break;
+			}
+			case FSA_CMD_OPERATION_TYPE::FLUSHFILE:
+			{
+				fsaResult = FSAProcessCmd_flushFile(client, shimBuffer);
+				break;
+			}
 			case FSA_CMD_OPERATION_TYPE::READ:
 			case FSA_CMD_OPERATION_TYPE::WRITE:
 			{
 				// These commands are IOCTLVs not IOCTL
 				cemu_assert_error();
-			}
-			default:
-			{
-				cemu_assert_unimplemented();
-				break;
 			}
 			}
 			IOS_ResourceReply(cmd, (IOS_ERROR)fsaResult);
