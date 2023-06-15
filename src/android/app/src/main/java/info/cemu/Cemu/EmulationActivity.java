@@ -1,11 +1,13 @@
 package info.cemu.Cemu;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsAnimationCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 
 import info.cemu.Cemu.databinding.ActivityEmulationBinding;
@@ -36,6 +38,24 @@ public class EmulationActivity extends AppCompatActivity {
                     .add(R.id.emulation_frame, emulationFragment)
                     .commit();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        showExitConfirmationDialog();
+    }
+
+    private void showExitConfirmationDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Exit Confirmation");
+        builder.setMessage("Are you sure you want to exit?");
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            finishAffinity();
+            System.exit(0);
+        });
+        builder.setNegativeButton("No", (dialog, which) -> dialog.cancel());
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     void setFullscreen() {
