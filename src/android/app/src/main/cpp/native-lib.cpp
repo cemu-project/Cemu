@@ -180,10 +180,23 @@ Java_info_cemu_Cemu_NativeLibrary_initializeRendererSurface(JNIEnv *env, jclass 
     VulkanRenderer::GetInstance()->InitializeSurface(
             {width, height},
             is_main_canvas);
+
 }
 extern "C"
 JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_setDPI(JNIEnv *env, jclass clazz, jfloat dpi) {
-    auto& windowInfo = gui_getWindowInfo();
+    auto &windowInfo = gui_getWindowInfo();
     windowInfo.dpi_scale = windowInfo.pad_dpi_scale = dpi;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_clearSurface(JNIEnv *env, jclass clazz, jboolean is_main_canvas) {
+    VulkanRenderer::GetInstance()->ClearSurface(is_main_canvas);
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_recreateRenderSurface(JNIEnv *env, jclass clazz,
+                                                        jboolean is_main_canvas) {
+    VulkanRenderer::GetInstance()->NotifySurfaceChanged(is_main_canvas);
 }

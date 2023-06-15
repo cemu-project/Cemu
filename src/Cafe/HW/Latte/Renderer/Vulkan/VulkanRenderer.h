@@ -183,7 +183,10 @@ public:
 	void GetDeviceFeatures();
 	void DetermineVendor();
 	void InitializeSurface(const Vector2i& size, bool mainWindow);
-
+#if __ANDROID__
+	void ClearSurface(bool mainWindow);
+	void NotifySurfaceChanged(bool mainWindow);
+#endif // __ANDROID
 	const std::unique_ptr<SwapchainInfoVk>& GetChainInfoPtr(bool mainWindow) const;
 	SwapchainInfoVk& GetChainInfo(bool mainWindow) const;
 
@@ -610,6 +613,11 @@ private:
 	VkPipelineLayout m_pipelineLayout{nullptr};
 	VkCommandPool m_commandPool{ nullptr };
 	
+#if __ANDROID__
+	std::mutex m_surfaceMutex;
+	std::condition_variable m_surfaceCondVar;
+#endif // __ANDROID__
+
 	// buffer to cache uniform vars
 	VkBuffer m_uniformVarBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_uniformVarBufferMemory = VK_NULL_HANDLE;

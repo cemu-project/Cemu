@@ -11,6 +11,8 @@ public class NativeLibrary {
 
     public static native void setSurface(Surface surface, boolean isMainCanvas);
 
+    public static native void clearSurface(boolean isMainCanvas);
+
     public static native void setSurfaceSize(int width, int height, boolean isMainCanvas);
 
     public static native void initializerRenderer();
@@ -18,6 +20,8 @@ public class NativeLibrary {
     public static native void initializeRendererSurface(boolean isMainCanvas);
 
     public static native void startGame(long titleId);
+
+    public static native void recreateRenderSurface(boolean isMainCanvas);
 
 
     public interface GameTitleLoadedCallback {

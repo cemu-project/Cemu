@@ -1,24 +1,16 @@
 package info.cemu.Cemu;
 
-import android.content.Intent;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.util.Objects;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
 
 import info.cemu.Cemu.databinding.FragmentEmulationBinding;
-import info.cemu.Cemu.databinding.FragmentGamesBinding;
 
 public class EmulationFragment extends Fragment implements SurfaceHolder.Callback {
     FragmentEmulationBinding binding;
@@ -35,7 +27,7 @@ public class EmulationFragment extends Fragment implements SurfaceHolder.Callbac
     }
 
     long gameTitleId;
-    boolean isRunning;
+    boolean isGameRunning;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,15 +47,6 @@ public class EmulationFragment extends Fragment implements SurfaceHolder.Callbac
         return binding.getRoot();
     }
 
-    private void startGame() {
-        if (!isRunning) {
-            isRunning = true;
-            NativeLibrary.initializerRenderer();
-            NativeLibrary.initializeRendererSurface(true);
-            NativeLibrary.startGame(gameTitleId);
-        }
-    }
-
     @Override
     public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
 
@@ -73,11 +56,18 @@ public class EmulationFragment extends Fragment implements SurfaceHolder.Callbac
     public void surfaceChanged(@NonNull SurfaceHolder surfaceHolder, int format, int width, int height) {
         NativeLibrary.setSurface(surfaceHolder.getSurface(), true);
         NativeLibrary.setSurfaceSize(width, height, true);
-        startGame();
+        if (!isGameRunning) {
+            isGameRunning = true;
+            NativeLibrary.initializerRenderer();
+            NativeLibrary.initializeRendererSurface(true);
+            NativeLibrary.startGame(gameTitleId);
+        }else{
+            NativeLibrary.recreateRenderSurface(true);
+        }
     }
 
     @Override
     public void surfaceDestroyed(@NonNull SurfaceHolder surfaceHolder) {
-
+        NativeLibrary.clearSurface(true);
     }
 }

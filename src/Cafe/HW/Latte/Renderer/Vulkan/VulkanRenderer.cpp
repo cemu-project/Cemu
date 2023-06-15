@@ -2631,7 +2631,13 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 		m_padCloseReadySemaphore.notify();
 		return false;
 	}
-
+#if __ANDROID__
+	std::unique_lock lock(m_surfaceMutex);
+	m_surfaceCondVar.wait(lock,[&](){
+		auto& chainInfo = GetChainInfoPtr(mainWindow);
+		return chainInfo && chainInfo->surface;
+	});
+#endif // __ANDROID__
 	auto& chainInfo = GetChainInfo(mainWindow);
 
 	if (chainInfo.swapchainImageIndex != -1)
@@ -3770,7 +3776,29 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 	ImGui::Text("--- Tex heaps ---");
 	memoryManager->appendOverlayHeapDebugInfo();
 }
-
+#if __ANDROID__
+void VulkanRenderer::ClearSurface(bool mainWindow)
+{
+	std::lock_guard lock(m_surfaceMutex);
+	auto& chainInfo = GetChainInfoPtr(mainWindow);
+	if(!chainInfo || !chainInfo->surface)
+		return;
+	vkDestroySurfaceKHR(m_instance, chainInfo->surface, nullptr);
+	chainInfo->surface = nullptr;
+}
+void VulkanRenderer::NotifySurfaceChanged(bool mainWindow)
+{
+	std::lock_guard lock(m_surfaceMutex);
+	auto& chainInfo = GetChainInfoPtr(mainWindow);
+	if(!chainInfo)
+		return;
+	if(mainWindow)
+		chainInfo->surface = CreateFramebufferSurface(m_instance, gui_getWindowInfo().canvas_main);
+	else
+		chainInfo->surface = CreateFramebufferSurface(m_instance, gui_getWindowInfo().canvas_pad);
+	m_surfaceCondVar.notify_one();
+}
+#endif // __ANDROID__
 void VKRDestructibleObject::flagForCurrentCommandBuffer()
 {
 	m_lastCmdBufferId = VulkanRenderer::GetInstance()->GetCurrentCommandBufferId();
