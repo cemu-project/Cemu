@@ -1406,7 +1406,7 @@ namespace coreinit
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	FSA_RESULT __FSPrepareCmd_AppendFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 fileHandle, uint32 size, uint32 count, uint32 uknParam)
+	FSA_RESULT __FSPrepareCmd_AppendFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 size, uint32 count, uint32 fileHandle, uint32 uknParam)
 	{
 		if (fsaShimBuffer == nullptr)
 			return FSA_RESULT::INVALID_BUFFER;
@@ -1415,17 +1415,17 @@ namespace coreinit
 		fsaShimBuffer->operationType = (uint32)FSA_CMD_OPERATION_TYPE::APPENDFILE;
 
 		fsaShimBuffer->request.cmdAppendFile.fileHandle = fileHandle;
-		fsaShimBuffer->request.cmdAppendFile.count = size;
-		fsaShimBuffer->request.cmdAppendFile.size = count;
+		fsaShimBuffer->request.cmdAppendFile.count = count;
+		fsaShimBuffer->request.cmdAppendFile.size = size;
 		fsaShimBuffer->request.cmdAppendFile.uknParam = uknParam;
 
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSAppendFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 size, uint32 count, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSAppendFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 size, uint32 count, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
 	{
 		_FSCmdIntro();
-		FSA_RESULT prepareResult = __FSPrepareCmd_AppendFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle, size, count, 0);
+		FSA_RESULT prepareResult = __FSPrepareCmd_AppendFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, size, count, fileHandle, 0);
 		if (prepareResult != FSA_RESULT::OK)
 			return (FSStatus)_FSAStatusToFSStatus(prepareResult);
 
@@ -1433,11 +1433,11 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSAppendFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 size, uint32 count, uint32 errorMask)
+	sint32 FSAppendFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 size, uint32 count, uint32 fileHandle,  uint32 errorMask)
 	{
 		StackAllocator<FSAsyncParamsNew_t> asyncParams;
 		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSAppendFileAsync(fsClient, fsCmdBlock, fileHandle, size, count, errorMask, asyncParams.GetPointer());
+		sint32 fsAsyncRet = FSAppendFileAsync(fsClient, fsCmdBlock, size, count, fileHandle, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 

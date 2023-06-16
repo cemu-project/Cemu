@@ -611,14 +611,13 @@ namespace iosu
 
 		FSA_RESULT FSAProcessCmd_appendFile(FSAClient* client, FSAShimBuffer* shimBuffer)
 		{
-			uint32 fileHandle = shimBuffer->request.cmdAppendFile.fileHandle;
-			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(fileHandle);
+			FSCVirtualFile* fscFile = sFileHandleTable.GetByHandle(shimBuffer->request.cmdAppendFile.fileHandle);
 			if (!fscFile)
 				return FSA_RESULT::INVALID_FILE_HANDLE;
 #ifdef CEMU_DEBUG_ASSERT
 			cemuLog_log(LogType::Force, "FSAProcessCmd_appendFile(): size 0x{:08x} count 0x{:08x} (todo)\n", shimBuffer->request.cmdAppendFile.size, shimBuffer->request.cmdAppendFile.count);
 #endif
-			return (FSA_RESULT)(shimBuffer->request.cmdAppendFile.size * shimBuffer->request.cmdAppendFile.count);
+			return (FSA_RESULT)(shimBuffer->request.cmdAppendFile.count.value());
 		}
 
 		FSA_RESULT FSAProcessCmd_truncateFile(FSAClient* client, FSAShimBuffer* shimBuffer)
