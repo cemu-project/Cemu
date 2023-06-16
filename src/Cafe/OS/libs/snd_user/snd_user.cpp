@@ -247,7 +247,7 @@ namespace snd
 			channel->drc_control[index].fader = 0;
 			channel->drc_control[index].lfe = -960;
 
-			for (size_t i = 0; i < AX_MAX_NUM_BUS; ++i)
+			for (size_t i = 0; i < AX_AUX_BUS_COUNT; ++i)
 			{
 				channel->drc_control[index].aux[i] = -960;
 			}
@@ -272,7 +272,7 @@ namespace snd
 			channel->rmt_control[index].fader = 0;
 			channel->rmt_control[index].lfe = -960;
 
-			for (size_t i = 0; i < AX_MAX_NUM_BUS; ++i)
+			for (size_t i = 0; i < AX_AUX_BUS_COUNT; ++i)
 			{
 				channel->rmt_control[index].aux[i] = -960;
 			}
