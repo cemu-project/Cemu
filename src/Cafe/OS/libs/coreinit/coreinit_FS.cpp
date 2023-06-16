@@ -74,22 +74,16 @@ namespace coreinit
 
 	FS_RESULT FSGetMountSourceNext(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, MOUNT_TYPE mountSourceType, FS_MOUNT_SOURCE* mountSourceInfo, FS_ERROR_MASK errMask)
 	{
-		// hacky
-		static FS_MOUNT_SOURCE* s_last_source = nullptr;
-		if (s_last_source != mountSourceInfo)
+		if (mountSourceType == MOUNT_TYPE::SD)
 		{
-			s_last_source = mountSourceInfo;
-			fsCmdBlock->data.mount_it = 0;
+			// This function is supposed to be called after an initial FSGetMountSource call => always returns FS_RESULT::END_ITERATION because we only have one SD Card
+			// It *might* causes issues if this function is called for getting the first MountSource (instead of "FSGetMountSource")
+			cemu_assert_suspicious();
+			return FS_RESULT::END_ITERATION;
 		}
-
-		fsCmdBlock->data.mount_it++;
-
-		// SD
-		if (mountSourceType == MOUNT_TYPE::SD && fsCmdBlock->data.mount_it == 1)
+		else
 		{
-			mountSourceInfo->sourceType = 0;
-			strcpy(mountSourceInfo->path, "/sd");
-			return FS_RESULT::SUCCESS;
+			cemu_assert_unimplemented();
 		}
 
 		return FS_RESULT::END_ITERATION;
@@ -97,7 +91,20 @@ namespace coreinit
 
 	FS_RESULT FSGetMountSource(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, MOUNT_TYPE mountSourceType, FS_MOUNT_SOURCE* mountSourceInfo, FS_ERROR_MASK errMask)
 	{
-		return FSGetMountSourceNext(fsClient, fsCmdBlock, mountSourceType, mountSourceInfo, errMask);
+		// This implementation is simplified A LOT compared to what the Wii U is actually doing. On Cemu we expect to only have one mountable source (SD Card) anyway,
+		// so we can just hard code it. Other mount types are not (yet) supported.
+		if (mountSourceType == MOUNT_TYPE::SD)
+		{
+			mountSourceInfo->sourceType = 0;
+			strcpy(mountSourceInfo->path, "/sd");
+			return FS_RESULT::SUCCESS;
+		}
+		else
+		{
+			cemu_assert_unimplemented();
+		}
+
+		return FS_RESULT::END_ITERATION;
 	}
 
 	bool _sdCard01Mounted = false;
