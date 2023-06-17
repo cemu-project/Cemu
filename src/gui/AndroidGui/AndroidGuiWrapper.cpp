@@ -20,7 +20,10 @@ void gui_setOnGameIconLoaded(const std::shared_ptr<class GameIconLoadedCallback>
 {
     g_gameIconLoader.setOnIconLoaded(onGameIconLoaded);
 }
-
+void gui_addGamePath(const fs::path& gamePath)
+{
+    g_gameTitleLoader.addGamePath(gamePath);
+}
 void gui_requestGameIcon(TitleId titleId)
 {
     g_gameIconLoader.requestIcon(titleId);

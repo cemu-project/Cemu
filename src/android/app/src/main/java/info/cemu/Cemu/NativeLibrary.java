@@ -2,10 +2,26 @@ package info.cemu.Cemu;
 
 import android.view.Surface;
 
+import java.util.ArrayList;
+
 public class NativeLibrary {
     static {
         System.loadLibrary("CemuAndroid");
     }
+
+    public interface FileSystemCallbacks {
+        int openContentUri(String uri);
+
+        String[] listFiles(String uri);
+
+        boolean isDirectory(String uri);
+
+        boolean isFile(String uri);
+
+        boolean exists(String uri);
+    }
+
+    public static native void setFileSystemCallbacks(FileSystemCallbacks fileSystemCallbacks);
 
     public static native void setDPI(float dpi);
 
@@ -43,4 +59,6 @@ public class NativeLibrary {
     public static native void initializeActiveSettings(String dataPath, String cachePath);
 
     public static native void initializeEmulation();
+
+    public static native void addGamePath(String uri);
 }

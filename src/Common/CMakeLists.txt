@@ -6,6 +6,7 @@ add_library(CemuCommon
   ExceptionHandler/ExceptionHandler.cpp
   ExceptionHandler/ExceptionHandler.h
   FileStream.h
+  FileStream.cpp
   GLInclude/glext.h
   GLInclude/glFunctions.h
   GLInclude/GLInclude.h
@@ -52,6 +53,16 @@ if(UNIX AND NOT APPLE)
 	)
 endif()
 
+if(ANDROID)
+  target_sources(CemuCommon PRIVATE
+    unix/ContentUriIStream.h
+    unix/FilesystemAndroid.cpp
+    unix/FilesystemAndroid.h
+    unix/FileStream_contentUri.cpp
+    unix/FileStream_contentUri.h
+  )
+endif()
+
 # All the targets wanting to use the precompiled.h header
 # have to link to CemuCommon
 target_precompile_headers(CemuCommon PUBLIC precompiled.h)
@@ -65,6 +76,10 @@ target_link_libraries(CemuCommon PRIVATE
 	Boost::filesystem
 	glm::glm
 )
+
+if(ANDROID)
+  target_link_libraries(CemuCommon PRIVATE Boost::iostreams)
+endif()
 
 if (UNIX AND NOT APPLE AND NOT ANDROID)
 	target_link_libraries(CemuCommon PRIVATE X11::X11 X11::Xrender X11::Xutil)

@@ -1,8 +1,9 @@
 #pragma once
-#include "Common/precompiled.h"
-#include "Common/FileStream.h"
 
-class FileStreamUnix : public FileStream
+#include "Common/FileStream.h"
+#include "Common/unix/ContentUriIStream.h"
+
+class FileStreamContentUri : public FileStream
 {
    public:
     // size and seek
@@ -19,26 +20,18 @@ class FileStreamUnix : public FileStream
     bool readU8(uint8& v) override;
     bool readLine(std::string& line) override;
 
-    // writing (binary)
+    // writing (not supported)
     sint32 writeData(const void* data, sint32 length) override;
     void writeU64(uint64 v) override;
     void writeU32(uint32 v) override;
     void writeU8(uint8 v) override;
-
-    // writing (strings)
     void writeStringFmt(const char* format, ...) override;
     void writeString(const char* str) override;
     void writeLine(const char* str) override;
 
-    virtual ~FileStreamUnix();
-    FileStreamUnix() = default;
-
    private:
     friend class FileStream;
-    void SyncReadWriteSeek(bool nextOpIsWrite);
-    FileStreamUnix(const fs::path& path, bool isOpen, bool isWriteable);
-
-    bool m_isValid{};
-    std::fstream m_fileStream;
-    bool m_prevOperationWasWrite{false};
+    FileStreamContentUri(const std::string& uri);
+    ContentUriIStream m_contentUriIStream;
+    bool m_isValid = false;
 };

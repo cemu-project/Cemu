@@ -31,6 +31,10 @@
       "name": "boost-context",
       "platform" : "android"
     },
+    {
+      "name": "boost-iostreams",
+      "platform" : "android"
+    },
     "boost-random",
     "fmt",
     "libpng",

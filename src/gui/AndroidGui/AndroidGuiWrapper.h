@@ -14,3 +14,5 @@ void gui_requestGameIcon(TitleId titleId);
 void gui_reloadGameTitles();
 
 void gui_createCemuDirs();
+
+void gui_addGamePath(const fs::path& gamePath);

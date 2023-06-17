@@ -114,3 +114,9 @@ void GameTitleLoader::HandleTitleListCallback(CafeTitleListCallbackEvent *evt) {
         queueTitle(evt->titleInfo->GetAppTitleId());
     }
 }
+
+void GameTitleLoader::addGamePath(const fs::path &path) {
+    CafeTitleList::ClearScanPaths();
+    CafeTitleList::AddScanPath(path);
+    CafeTitleList::Refresh();
+}

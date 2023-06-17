@@ -3,6 +3,11 @@
 
 #include "util/helpers/helpers.h"
 
+#if __ANDROID__
+#include "Common/unix/FilesystemAndroid.h"
+#include "Common/unix/ContentUriIStream.h"
+#endif // __ANDROID__
+
 #include <zarchive/zarchivereader.h>
 
 bool sTLInitialized{ false };
@@ -213,7 +218,13 @@ void CafeTitleList::AddTitleFromPath(fs::path path)
 {
 	if (path.has_extension() && boost::iequals(_pathToUtf8(path.extension()), ".wua"))
 	{
-		ZArchiveReader* zar = ZArchiveReader::OpenFromFile(path);
+		ZArchiveReader* zar = nullptr;
+#if __ANDROID__
+		if(FilesystemAndroid::isContentUri(path))
+			zar = ZArchiveReader::OpenFromStream(std::make_unique<ContentUriIStream>(path));
+		else
+#endif // __ANDROID__
+			zar = ZArchiveReader::OpenFromFile(path);
 		if (!zar)
 		{
 			cemuLog_log(LogType::Force, "Found {} but it is not a valid Wii U archive file", _pathToUtf8(path));
@@ -340,26 +351,51 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 	std::vector<fs::path> filesInDirectory;
 	std::vector<fs::path> dirsInDirectory;
 	bool hasContentFolder = false, hasCodeFolder = false, hasMetaFolder = false;
-	std::error_code ec;
-	for (auto& it : fs::directory_iterator(path, ec))
-	{		
-		if (it.is_regular_file(ec))
+	auto checkForTitleFolders = [&](const std::string& dirName)
+	{
+		if (boost::iequals(dirName, "content"))
+			hasContentFolder = true;
+		else if (boost::iequals(dirName, "code"))
+			hasCodeFolder = true;
+		else if (boost::iequals(dirName, "meta"))
+			hasMetaFolder = true;
+	};
+#if __ANDROID__
+	if(FilesystemAndroid::isContentUri(path))
+	{
+		for(auto&& file:FilesystemAndroid::listFiles(path))
 		{
-			filesInDirectory.emplace_back(it.path());
-		}
-		else if (it.is_directory(ec))
-		{
-			dirsInDirectory.emplace_back(it.path());
+			if(FilesystemAndroid::isFile(file))
+			{
+				filesInDirectory.emplace_back(file);
+			}
+			else if(FilesystemAndroid::isDirectory(file))
+			{
+				dirsInDirectory.emplace_back(file);
 
-			std::string dirName = _pathToUtf8(it.path().filename());
-			if (boost::iequals(dirName, "content"))
-				hasContentFolder = true;
-			else if (boost::iequals(dirName, "code"))
-				hasCodeFolder = true;
-			else if (boost::iequals(dirName, "meta"))
-				hasMetaFolder = true;
+				checkForTitleFolders(_pathToUtf8(file.filename()));
+			}
 		}
 	}
+	else 
+#endif // __ANDROID__
+	{
+		std::error_code ec;
+		for (auto& it : fs::directory_iterator(path, ec))
+		{		
+			if (it.is_regular_file(ec))
+			{
+				filesInDirectory.emplace_back(it.path());
+			}
+			else if (it.is_directory(ec))
+			{
+				dirsInDirectory.emplace_back(it.path());
+
+				checkForTitleFolders(_pathToUtf8(it.path().filename()));
+			}
+		}
+	}
+
 	// always check individual files
 	for (auto& it : filesInDirectory)
 	{

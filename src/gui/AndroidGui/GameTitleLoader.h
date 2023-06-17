@@ -41,6 +41,8 @@ public:
 
     void titleRefresh(TitleId titleId);
 
+    void addGamePath(const fs::path &path);
+
 private:
     void loadGameTitles();
 

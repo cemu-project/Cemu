@@ -7,6 +7,7 @@
 #include <AndroidGui/AndroidGuiWrapper.h>
 #include <Cafe/HW/Latte/Renderer/Renderer.h>
 #include <Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h>
+#include <Common/unix/FilesystemAndroid.h>
 #include "AndroidGui/Utils.h"
 #include "config/ActiveSettings.h"
 #include "config/NetworkSettings.h"
@@ -199,4 +200,104 @@ JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_recreateRenderSurface(JNIEnv *env, jclass clazz,
                                                         jboolean is_main_canvas) {
     VulkanRenderer::GetInstance()->NotifySurfaceChanged(is_main_canvas);
+}
+
+
+class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks {
+    JNIUtils::Scopedjobject m_filesystemCallbacksObj;
+    jmethodID m_openContentUriMid;
+    jmethodID m_listFilesMid;
+    jmethodID m_isDirectoryMid;
+    jmethodID m_isFileMid;
+    jmethodID m_existsMid;
+public:
+    AndroidFilesystemCallbacks(jobject filesystemCallbacksObj, jmethodID openContentUriMid,
+                               jmethodID listFilesMid,
+                               jmethodID isDirectoryMid,
+                               jmethodID isFileMid,
+                               jmethodID existsMid)
+            : m_filesystemCallbacksObj(filesystemCallbacksObj),
+              m_openContentUriMid(openContentUriMid),
+              m_listFilesMid(listFilesMid),
+              m_isDirectoryMid(isDirectoryMid),
+              m_isFileMid(isFileMid),
+              m_existsMid(existsMid) {}
+
+    int openContentUri(const std::filesystem::path &uri) override {
+        JNIUtils::ScopedJNIENV env;
+        jstring uriString = env->NewStringUTF(uri.c_str());
+        int fd = env->CallIntMethod(*m_filesystemCallbacksObj, m_openContentUriMid, uriString);
+        env->DeleteLocalRef(uriString);
+        return fd;
+    }
+
+    std::vector<std::filesystem::path> listFiles(const std::filesystem::path &uri) override {
+        JNIUtils::ScopedJNIENV env;
+        jstring uriString = env->NewStringUTF(uri.c_str());
+        jobjectArray pathsObjArray = static_cast<jobjectArray>(env->CallObjectMethod(
+                *m_filesystemCallbacksObj, m_listFilesMid, uriString));
+        env->DeleteLocalRef(uriString);
+        jsize arrayLength = env->GetArrayLength(pathsObjArray);
+        std::vector<std::filesystem::path> paths;
+        paths.reserve(arrayLength);
+        for (jsize i = 0; i < arrayLength; i++) {
+            jstring pathStrObj = static_cast<jstring>(env->GetObjectArrayElement(pathsObjArray, i));
+            paths.push_back(JNIUtils::JStringToString(*env, pathStrObj));
+            env->DeleteLocalRef(pathStrObj);
+        }
+        env->DeleteLocalRef(pathsObjArray);
+        return paths;
+    }
+
+    bool isDirectory(const std::filesystem::path &uri) override {
+        JNIUtils::ScopedJNIENV env;
+        jstring uriString = env->NewStringUTF(uri.c_str());
+        bool isDir = env->CallBooleanMethod(*m_filesystemCallbacksObj, m_isDirectoryMid, uriString);
+        env->DeleteLocalRef(uriString);
+        return isDir;
+    }
+
+    bool isFile(const std::filesystem::path &uri) override {
+        JNIUtils::ScopedJNIENV env;
+        jstring uriString = env->NewStringUTF(uri.c_str());
+        bool isFile = env->CallBooleanMethod(*m_filesystemCallbacksObj, m_isFileMid, uriString);
+        env->DeleteLocalRef(uriString);
+        return isFile;
+    }
+
+    bool exists(const std::filesystem::path &uri) override {
+        JNIUtils::ScopedJNIENV env;
+        jstring uriString = env->NewStringUTF(uri.c_str());
+        bool exists = env->CallBooleanMethod(*m_filesystemCallbacksObj, m_existsMid, uriString);
+        env->DeleteLocalRef(uriString);
+        return exists;
+    }
+
+};
+
+std::shared_ptr<AndroidFilesystemCallbacks> g_androidFilesystemCallbacks = nullptr;
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setFileSystemCallbacks(JNIEnv *env, jclass clazz,
+                                                         jobject file_system_callbacks) {
+    jclass fileSystemCallbackClass = env->GetObjectClass(file_system_callbacks);
+    jmethodID openContentUriMid = env->GetMethodID(fileSystemCallbackClass, "openContentUri",
+                                                   "(Ljava/lang/String;)I");
+    jmethodID listFilesMid = env->GetMethodID(fileSystemCallbackClass, "listFiles",
+                                              "(Ljava/lang/String;)[Ljava/lang/String;");
+    jmethodID isDirectoryMid = env->GetMethodID(fileSystemCallbackClass, "isDirectory",
+                                                "(Ljava/lang/String;)Z");
+    jmethodID isFileMid = env->GetMethodID(fileSystemCallbackClass, "isFile",
+                                           "(Ljava/lang/String;)Z");
+    jmethodID existsMid = env->GetMethodID(fileSystemCallbackClass, "exists",
+                                           "(Ljava/lang/String;)Z");
+    g_androidFilesystemCallbacks = std::make_shared<AndroidFilesystemCallbacks>(
+            file_system_callbacks, openContentUriMid, listFilesMid, isDirectoryMid, isFileMid,
+            existsMid);
+    FilesystemAndroid::setFilesystemCallbacks(g_androidFilesystemCallbacks);
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_addGamePath(JNIEnv *env, jclass clazz, jstring uri) {
+    gui_addGamePath(JNIUtils::JStringToString(env, uri));
 }
