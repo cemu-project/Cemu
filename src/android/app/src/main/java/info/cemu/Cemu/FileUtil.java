@@ -19,6 +19,12 @@ public class FileUtil {
     private static final String COLON_ENCODED = "%3A";
     private static final String MODE = "r";
 
+    private static CemuApplication cemuApplication;
+
+    public static void setCemuApplication(CemuApplication cemuApplication) {
+        FileUtil.cemuApplication = cemuApplication;
+    }
+
     private static String toCppPath(Uri uri) {
         String uriPath = uri.toString();
         int delimiterPos = uriPath.lastIndexOf(COLON_ENCODED);
@@ -30,12 +36,12 @@ public class FileUtil {
         return Uri.parse(cppPath.substring(0, delimiterPos) + cppPath.substring(delimiterPos).replace(PATH_SEPARATOR_DECODED, PATH_SEPARATOR_ENCODED));
     }
 
-    public static int openContentUri(Context context, String uri) {
+    public static int openContentUri(String uri) {
         try {
-            if (!exists(context, uri)) {
+            if (!exists(uri)) {
                 return -1;
             }
-            ParcelFileDescriptor parcelFileDescriptor = context.getContentResolver().openFileDescriptor(fromCppPath(uri), MODE);
+            ParcelFileDescriptor parcelFileDescriptor = cemuApplication.getApplicationContext().getContentResolver().openFileDescriptor(fromCppPath(uri), MODE);
             if (parcelFileDescriptor != null) {
                 int fd = parcelFileDescriptor.detachFd();
                 parcelFileDescriptor.close();
@@ -47,11 +53,11 @@ public class FileUtil {
         return -1;
     }
 
-    public static String[] listFiles(Context context, String uri) {
+    public static String[] listFiles(String uri) {
         ArrayList<String> files = new ArrayList<>();
         Uri directoryUri = fromCppPath(uri);
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(directoryUri, DocumentsContract.getDocumentId(directoryUri));
-        try (Cursor cursor = context.getContentResolver().query(childrenUri, new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null)) {
+        try (Cursor cursor = cemuApplication.getApplicationContext().getContentResolver().query(childrenUri, new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null)) {
             while (cursor != null && cursor.moveToNext()) {
                 String documentId = cursor.getString(0);
                 Uri documentUri = DocumentsContract.buildDocumentUriUsingTree(directoryUri, documentId);
@@ -65,17 +71,17 @@ public class FileUtil {
         return filesArray;
     }
 
-    public static boolean isDirectory(Context context, String uri) {
-        String mimeType = context.getContentResolver().getType(fromCppPath(uri));
+    public static boolean isDirectory(String uri) {
+        String mimeType = cemuApplication.getApplicationContext().getContentResolver().getType(fromCppPath(uri));
         return DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType);
     }
 
-    public static boolean isFile(Context context, String uri) {
-        return !isDirectory(context, uri);
+    public static boolean isFile(String uri) {
+        return !isDirectory(uri);
     }
 
-    public static boolean exists(Context context, String uri) {
-        try (Cursor cursor = context.getContentResolver().query(fromCppPath(uri), null, null, null, null)) {
+    public static boolean exists(String uri) {
+        try (Cursor cursor = cemuApplication.getApplicationContext().getContentResolver().query(fromCppPath(uri), null, null, null, null)) {
             return cursor != null && cursor.moveToFirst();
         } catch (Exception e) {
             Log.e("FileUtil", "Failed checking if file exists: " + e.getMessage());

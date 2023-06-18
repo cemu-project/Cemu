@@ -200,3 +200,18 @@ bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTarg
 // redirect device
 void fscDeviceRedirect_map();
 void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority);
+
+#if __ANDROID__
+#include "Common/unix/FilesystemAndroid.h"
+bool FSCDeviceAndroidSAF_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority);
+#endif // __ANDROID__
+
+inline bool FSCDeviceHost_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority)
+{
+#if __ANDROID__
+    if (FilesystemAndroid::isContentUri(std::string(hostTargetPath)))
+        return FSCDeviceAndroidSAF_Mount(mountPath, hostTargetPath, priority);
+    else
+#endif  // __ANDROID__
+        return FSCDeviceHostFS_Mount(mountPath, hostTargetPath, priority);
+}

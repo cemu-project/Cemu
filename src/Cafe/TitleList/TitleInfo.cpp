@@ -7,7 +7,6 @@
 #include "Common/FileStream.h"
 
 #if __ANDROID__
-#include "Common/unix/FilesystemAndroid.h"
 #include "Common/unix/ContentUriIStream.h"
 #endif // __ANDROID__
 
@@ -180,7 +179,7 @@ bool TitleInfo::ParseWuaTitleFolderName(std::string_view name, TitleId& titleIdO
 bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataFormat& formatOut)
 {
 	std::error_code ec;
-	if (path.has_extension() && fs::is_regular_file(path, ec))
+	if (path.has_extension() && cemu::fs::is_file(path, ec))
 	{
 		std::string filenameStr = _pathToUtf8(path.filename());
 		if (boost::iends_with(filenameStr, ".rpx"))
@@ -192,7 +191,7 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 				parentPath = parentPath.parent_path();
 				// next to content and meta?
 				std::error_code ec;
-				if (fs::exists(parentPath / "content", ec) && fs::exists(parentPath / "meta", ec))
+				if (cemu::fs::exists(parentPath / "content", ec) && cemu::fs::exists(parentPath / "meta", ec))
 				{
 					formatOut = TitleDataFormat::HOST_FS;
 					pathOut = parentPath;
@@ -265,7 +264,7 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 	{
 		// does it point to the root folder of a title?
 		std::error_code ec;
-		if (fs::exists(path / "content", ec) && fs::exists(path / "meta", ec) && fs::exists(path / "code", ec))
+		if (cemu::fs::exists(path / "content", ec) && cemu::fs::exists(path / "meta", ec) && cemu::fs::exists(path / "code", ec))
 		{
 			formatOut = TitleDataFormat::HOST_FS;
 			pathOut = path;
@@ -386,7 +385,7 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 	{
 		fs::path hostFSPath = m_fullPath;
 		hostFSPath.append(subfolder);
-		bool r = FSCDeviceHostFS_Mount(std::string(virtualPath).c_str(), _pathToUtf8(hostFSPath), mountPriority);
+		bool r = FSCDeviceHost_Mount(std::string(virtualPath).c_str(), _pathToUtf8(hostFSPath), mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
 		{

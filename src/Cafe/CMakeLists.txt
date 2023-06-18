@@ -473,6 +473,13 @@ if(APPLE)
 	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
 endif()
 
+if(ANDROID)
+  target_sources(CemuCafe PRIVATE
+    Filesystem/fscDeviceAndroidSAF.cpp
+    Filesystem/fscDeviceAndroidSAF.h
+  )
+endif()
+
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(CemuCafe PUBLIC "../")
