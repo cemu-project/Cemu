@@ -11,13 +11,13 @@ assignees: ''
 Please keep in mind Cemu is EXPERIMENTAL SOFTWARE.
 
 Please read the FAQ:
-https://cemu.info/faq.html/
+https://cemu.info/faq.html
 
 THIS IS NOT A SUPPORT FORUM, FOR SUPPORT GO TO:
-https://discord.com/invite/5psYsup/
+https://discord.com/invite/5psYsup
 
 If the FAQ does not answer your question, please go to:
-https://discord.com/invite/5psYsup/
+https://discord.com/invite/5psYsup
 
 When submitting an issue, please check the following:
 
