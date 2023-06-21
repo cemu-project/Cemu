@@ -74,10 +74,25 @@ CURLcode _sslctx_function_OLIVE(CURL* curl, void* sslctx, void* param)
 		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
 		cemuLog_log(LogType::Force, "Certificate error");
 	}
-	if (iosuCrypto_addClientCertificate(sslctx, 6) == false)
+	if (iosuCrypto_addClientCertificate(sslctx, 7) == false)
 	{
 		cemuLog_log(LogType::Force, "Olive client certificate error");
 	}
+
+	// NSSLAddServerPKIGroups(sslCtx, 3, &x, &y);
+	{
+		std::vector<sint16> certGroups = {
+			100,  101,  102,   103,  104,  105,
+			1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009,
+			1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019,
+			1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029,
+			1030, 1031, 1032, 1033
+		};
+
+		for (auto& certId : certGroups)
+			iosuCrypto_addCACertificate(sslctx, certId);
+	}
+
 	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
 	SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_PEER, nullptr);
