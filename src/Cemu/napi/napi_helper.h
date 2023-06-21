@@ -27,6 +27,7 @@ public:
 		CCS, // ccs.
 		IDBE, // idbe-wup.
 		TAGAYA, // tagaya.wup.shop.nintendo.net
+		OLIVE, // olv.
 	};
 
 	CurlRequestHelper();
@@ -50,6 +51,11 @@ public:
 		return m_receiveBuffer;
 	}
 
+	void setUseMultipartFormData(bool isUsingMultipartFormData)
+	{
+		m_isUsingMultipartFormData = isUsingMultipartFormData;
+	}
+
 private:
 	static size_t __curlWriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata);
 
@@ -61,6 +67,8 @@ private:
 	// write callback redirect
 	bool (*m_cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast);
 	void* m_writeCallbackUserData{};
+
+	bool m_isUsingMultipartFormData = false;
 };
 
 class CurlSOAPHelper // todo - make this use CurlRequestHelper

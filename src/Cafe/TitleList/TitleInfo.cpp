@@ -615,6 +615,16 @@ CafeConsoleRegion TitleInfo::GetMetaRegion() const
 	return CafeConsoleRegion::JPN;
 }
 
+uint32 TitleInfo::GetOlvAccesskey() const
+{
+	cemu_assert_debug(m_isValid);
+	if (m_parsedMetaXml)
+		return m_parsedMetaXml->GetOlvAccesskey();
+
+	cemu_assert_suspicious();
+	return -1;
+}
+
 std::string TitleInfo::GetArgStr() const
 {
 	cemu_assert_debug(m_parsedCosXml);

@@ -1,6 +1,9 @@
-#include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/OS/libs/nn_common.h"
 #include "nn_olv.h"
+
+#include "nn_olv_InitializeTypes.h"
+#include "nn_olv_UploadCommunityTypes.h"
+#include "nn_olv_DownloadCommunityTypes.h"
+#include "nn_olv_UploadFavoriteTypes.h"
 
 namespace nn
 {
@@ -124,14 +127,6 @@ namespace nn
 			osLib_returnFromFunction(hCPU, 0);
 		}
 
-		void export_DownloadCommunityDataList(PPCInterpreter_t* hCPU)
-		{
-			ppcDefineParamTypePtr(communityListSizeOut, uint32be, 1);
-
-			*communityListSizeOut = 0;
-			osLib_returnFromFunction(hCPU, 0);
-		}
-
 		void exportDownloadPostData_TestFlags(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamTypePtr(downloadedPostData, DownloadedPostData_t, 0);
@@ -209,16 +204,73 @@ namespace nn
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_OLV, 0); // undefined error
 		}
 
+		uint32 GetErrorCode(uint32* inResultRef) {
+
+			uint32_t v2 = *inResultRef;
+			uint32_t v3 = (*inResultRef >> 27) & 3;
+			uint32_t v4 = 0x7F00000;
+
+			if (v3 != 3)
+				v4 = 0x1FF00000;
+
+			if ((v2 & v4) >> 20 == 7)
+			{
+				if (v2 == 0xA0757A80 || v2 == 0xA0758480)
+				{
+					uint32_t v9 = 0xA111F800;
+					return GetErrorCode(&v9);
+				}
+				else if (v2 == 0xA0757F80 || v2 == 0xA0758980)
+				{
+					uint32_t v10 = 0xA111F880;
+					return GetErrorCode(&v10);
+				}
+				else
+				{
+					/*
+					nn::act::Initialize();
+					v6 = nn::act::GetErrorCode(inResultRef);
+					nn::act::Finalize(v6);
+					result = v6;
+					*/
+					return 1159999;
+				}
+			}
+			else
+			{
+				uint32_t v7 = 0x7F00000;
+				if (v3 != 3)
+					v7 = 0x1FF00000;
+				if ((v2 & v7) >> 20 == 17 && (v2 & 0x80000000) != 0)
+				{
+					uint32_t v8 = 1023;
+					if (v3 != 3)
+						v8 = 0xFFFFF;
+					return (v2 & v8) / 128 + 1150000;
+				}
+				else
+				{
+					return 1159999;
+				}
+			}
+		}
+
 		void load()
 		{
+
+			loadOliveInitializeTypes();
+			loadOliveUploadCommunityTypes();
+			loadOliveDownloadCommunityTypes();
+			loadOliveUploadFavoriteTypes();
+
+			cafeExportRegisterFunc(GetErrorCode, "nn_olv", "GetErrorCode__Q2_2nn3olvFRCQ2_2nn6Result", LogType::None);
+
 			osLib_addFunction("nn_olv", "DownloadPostDataList__Q2_2nn3olvFPQ3_2nn3olv19DownloadedTopicDataPQ3_2nn3olv18DownloadedPostDataPUiUiPCQ3_2nn3olv25DownloadPostDataListParam", export_DownloadPostDataList);
 			osLib_addFunction("nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", exportDownloadPostData_TestFlags);
 			osLib_addFunction("nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetPostId);
 			osLib_addFunction("nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetMiiNickname);
 			osLib_addFunction("nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetTopicTag);
 			osLib_addFunction("nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", exportDownloadPostData_GetBodyText);
-
-			osLib_addFunction("nn_olv", "DownloadCommunityDataList__Q2_2nn3olvFPQ3_2nn3olv23DownloadedCommunityDataPUiUiPCQ3_2nn3olv30DownloadCommunityDataListParam", export_DownloadCommunityDataList);
 
 			osLib_addFunction("nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetServiceToken);
 

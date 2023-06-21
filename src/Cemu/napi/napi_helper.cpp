@@ -67,6 +67,23 @@ CURLcode _sslctx_function_SOAP(CURL* curl, void* sslctx, void* param)
 	return CURLE_OK;
 }
 
+CURLcode _sslctx_function_OLIVE(CURL* curl, void* sslctx, void* param)
+{
+	if (iosuCrypto_addCACertificate(sslctx, 105) == false)
+	{
+		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
+		cemuLog_log(LogType::Force, "Certificate error");
+	}
+	if (iosuCrypto_addClientCertificate(sslctx, 6) == false)
+	{
+		cemuLog_log(LogType::Force, "Olive client certificate error");
+	}
+	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
+	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
+	SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_PEER, nullptr);
+	return CURLE_OK;
+}
+
 CurlRequestHelper::CurlRequestHelper()
 {
 	m_curl = curl_easy_init();
@@ -120,6 +137,11 @@ void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
 	else if (sslContext == SERVER_SSL_CONTEXT::CCS)
 	{
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
+	}
+	else if (sslContext == SERVER_SSL_CONTEXT::OLIVE)
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_OLIVE);
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
 	}
 	else
@@ -178,9 +200,11 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 	// post
 	if (isPost)
 	{
-		curl_easy_setopt(m_curl, CURLOPT_POST, 1);
-		curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_postData.data());
-		curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, m_postData.size());
+		if (!m_isUsingMultipartFormData) {
+			curl_easy_setopt(m_curl, CURLOPT_POST, 1);
+			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_postData.data());
+			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, m_postData.size());
+		}
 	}
 	else
 		curl_easy_setopt(m_curl, CURLOPT_POST, 0);
