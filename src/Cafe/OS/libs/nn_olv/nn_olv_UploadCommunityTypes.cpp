@@ -19,13 +19,13 @@ namespace nn
 
 		sint32 UploadCommunityData(UploadedCommunityData* pOutData, UploadCommunityDataParam const* pParam) {
 			if (!nn::olv::g_IsInitialized)
-				return 0xC1106680;
+				return OLV_RESULT_NOT_INITIALIZED;
 			
 			if (!nn::olv::g_IsOnlineMode)
-				return 0xC1106780;
+				return OLV_RESULT_OFFLINE_MODE_REQUEST;
 
 			if (!pParam)
-				return 0xC1106600;
+				return OLV_RESULT_INVALID_PTR;
 
 			if (pOutData)
 				UploadedCommunityData::Clean(pOutData);
@@ -33,7 +33,7 @@ namespace nn
 			char requestUrl[512];
 			if (pParam->flags & UploadCommunityDataParam::FLAG_DELETION) {
 				if (!pParam->communityId)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu.delete", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 			}
@@ -78,10 +78,10 @@ namespace nn
 			if (!pParam->iconData.IsNull()) {
 				encodedIcon = new uint8[pParam->iconDataLen];
 				if (encodedIcon) {
-					sint32 iconEncodeRes = EncodeTGA(pParam->iconData.GetPtr(), pParam->iconDataLen, encodedIcon, pParam->iconDataLen, 1);
+					sint32 iconEncodeRes = EncodeTGA(pParam->iconData.GetPtr(), pParam->iconDataLen, encodedIcon, pParam->iconDataLen, TGACheckType::CHECK_COMMUNITY_ICON);
 					if (iconEncodeRes <= 0) {
 						delete[] encodedIcon;
-						return 0xC1106580;
+						return OLV_RESULT_NOT_ENOUGH_SIZE; // ?
 					}
 
 					base64icon = NCrypto::base64Encode(encodedIcon, iconEncodeRes);
@@ -144,7 +144,7 @@ namespace nn
 			if (!pParam->appData.IsNull()) {
 				encodedAppData = NCrypto::base64Encode(pParam->appData.GetPtr(), pParam->appDataLen);
 				if (encodedAppData.size() < pParam->appDataLen)
-					res = 0xE1103280;
+					res = OLV_RESULT_FATAL(101);
 				else {
 					res = olv_curlformcode_to_error(
 						curl_formadd(&post, &last,
@@ -178,7 +178,7 @@ namespace nn
 			if (!reqResult) {
 				cemuLog_log(LogType::Force, "Failed request: {} ({})", reqUrl, httpCode);
 				if (!(httpCode >= 400)) {
-					return 0xA113E980;
+					return OLV_RESULT_FAILED_REQUEST;
 				}
 			}
 
@@ -186,19 +186,16 @@ namespace nn
 			if (!doc.load_buffer(req.getReceivedData().data(), req.getReceivedData().size()))
 			{
 				cemuLog_log(LogType::Force, fmt::format("Invalid XML in community upload response"));
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
-			if (httpCode != 200) {
-				sint32 responseError = CheckOliveResponse(doc);
-				if (responseError < 0) {
-					return responseError;
-				}
-				else {
-					return ((httpCode << 7) - 0x5EE83000) & 0xFFFFF | 0xA1100000;
-				}
-			}
+			sint32 responseError = CheckOliveResponse(doc);
+			if (responseError < 0)
+				return responseError;
 
+			if (httpCode != 200)
+				return OLV_RESULT_STATUS(httpCode + 4000);
+			
 			if (pOutData) {
 
 				std::string_view app_data = doc.select_single_node("//app_data").node().child_value();
@@ -216,13 +213,13 @@ namespace nn
 						pOutData->appDataLen = app_data_bin.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
 				sint64 community_id_val = StringHelpers::ToInt64(community_id, -1);
 				if (community_id_val == -1) {
-					return 0xA113EB80;
+					return OLV_RESULT_INVALID_INTEGER_FIELD;
 				}
 
 				pOutData->communityId = community_id_val;
@@ -237,7 +234,7 @@ namespace nn
 						pOutData->titleTextMaxLen = name_utf16.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
@@ -251,13 +248,13 @@ namespace nn
 						pOutData->descriptionMaxLen = description_utf16.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
 				sint64 pid_val = StringHelpers::ToInt64(pid, -1);
 				if (pid_val == -1) {
-					return 0xA113EB80;
+					return OLV_RESULT_INVALID_INTEGER_FIELD;
 				}
 
 				pOutData->pid = pid_val;
@@ -270,7 +267,7 @@ namespace nn
 						pOutData->iconDataSize = icon_bin.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 			}

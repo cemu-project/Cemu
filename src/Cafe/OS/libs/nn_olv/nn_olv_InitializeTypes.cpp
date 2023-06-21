@@ -38,7 +38,7 @@ namespace nn
 			*pOutKey = 0;
 			uint32_t accessKey = CafeSystem::GetForegroundTitleOlvAccesskey();
 			if (accessKey == -1)
-				return 0xA1122700;
+				return OLV_RESULT_STATUS(1102);
 
 			*pOutKey = accessKey;
 			return OLV_RESULT_SUCCESS;
@@ -125,7 +125,7 @@ namespace nn
 			if (!reqResult) {
 				cemuLog_log(LogType::Force, "Failed request: {} ({})", reqUrl, httpCode);
 				if (!(httpCode >= 400)) {
-					return 0xA113E980;
+					return OLV_RESULT_FAILED_REQUEST;
 				}
 			}
 
@@ -133,18 +133,15 @@ namespace nn
 			if (!doc.load_buffer(req.getReceivedData().data(), req.getReceivedData().size()))
 			{
 				cemuLog_log(LogType::Force, fmt::format("Invalid XML in discovery service response"));
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
-			if (httpCode != 200) {
-				sint32 responseError = CheckOliveResponse(doc);
-				if (responseError < 0) {
-					return responseError;
-				}
-				else {
-					return ((httpCode << 7) - 0x5EE83000) & 0xFFFFF | 0xA1100000;
-				}
-			}
+			sint32 responseError = CheckOliveResponse(doc);
+			if (responseError < 0)
+				return responseError;
+
+			if (httpCode != 200)
+				return OLV_RESULT_STATUS(httpCode + 4000);
 
 
 			/*
@@ -163,13 +160,13 @@ namespace nn
 			pugi::xml_node resultNode = doc.child("result");
 			if (!resultNode) {
 				cemuLog_log(LogType::Force, "Discovery response doesn't contain <result>");
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
 			pugi::xml_node endpointNode = resultNode.child("endpoint");
 			if (!endpointNode) {
 				cemuLog_log(LogType::Force, "Discovery response doesn't contain <result><endpoint>");
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
 			// Yes it only uses <host> and <portal_host>
@@ -222,18 +219,18 @@ namespace nn
 
 		sint32 Initialize(nn::olv::InitializeParam* pParam) {
 			if (g_IsInitialized)
-				return 0xC1106700;
+				return OLV_RESULT_ALREADY_INITIALIZED;
 
 			if (!pParam->m_Work)
 			{
 				g_IsInitialized = false;
-				return 0xC1106600;
+				return OLV_RESULT_INVALID_PTR;
 			}
 
 			if (pParam->m_WorkSize < 0x10000)
 			{
 				g_IsInitialized = false;
-				return 0xC1106880;
+				return OLV_RESULT_INVALID_SIZE;
 			}
 
 			uint32_t accessKey;

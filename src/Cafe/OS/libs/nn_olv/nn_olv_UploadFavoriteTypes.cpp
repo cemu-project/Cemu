@@ -20,13 +20,13 @@ namespace nn
 
 		sint32 UploadFavoriteToCommunityData(UploadedFavoriteToCommunityData* pOutData, const UploadFavoriteToCommunityDataParam* pParam) {
 			if (!nn::olv::g_IsInitialized)
-				return 0xC1106680;
+				return OLV_RESULT_NOT_INITIALIZED;
 
 			if (!nn::olv::g_IsOnlineMode)
-				return 0xC1106780;
+				return OLV_RESULT_OFFLINE_MODE_REQUEST;
 
 			if (!pParam)
-				return 0xC1106600;
+				return OLV_RESULT_INVALID_PTR;
 
 			if (pOutData)
 				UploadedFavoriteToCommunityData::Clean(pOutData);
@@ -63,7 +63,7 @@ namespace nn
 			if (!reqResult) {
 				cemuLog_log(LogType::Force, "Failed request: {} ({})", reqUrl, httpCode);
 				if (!(httpCode >= 400)) {
-					return 0xA113E980;
+					return OLV_RESULT_FAILED_REQUEST;
 				}
 			}
 
@@ -71,18 +71,15 @@ namespace nn
 			if (!doc.load_buffer(req.getReceivedData().data(), req.getReceivedData().size()))
 			{
 				cemuLog_log(LogType::Force, fmt::format("Invalid XML in community favorite upload response"));
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
-			if (httpCode != 200) {
-				sint32 responseError = CheckOliveResponse(doc);
-				if (responseError < 0) {
-					return responseError;
-				}
-				else {
-					return ((httpCode << 7) - 0x5EE83000) & 0xFFFFF | 0xA1100000;
-				}
-			}
+			sint32 responseError = CheckOliveResponse(doc);
+			if (responseError < 0)
+				return responseError;
+
+			if (httpCode != 200)
+				return OLV_RESULT_STATUS(httpCode + 4000);
 
 			if (pOutData) {
 
@@ -101,13 +98,13 @@ namespace nn
 						pOutData->appDataLen = app_data_bin.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
 				sint64 community_id_val = StringHelpers::ToInt64(community_id, -1);
 				if (community_id_val == -1) {
-					return 0xA113EB80;
+					return OLV_RESULT_INVALID_INTEGER_FIELD;
 				}
 
 				pOutData->communityId = community_id_val;
@@ -122,7 +119,7 @@ namespace nn
 						pOutData->titleTextMaxLen = name_utf16.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
@@ -136,13 +133,13 @@ namespace nn
 						pOutData->descriptionMaxLen = description_utf16.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
 				sint64 pid_val = StringHelpers::ToInt64(pid, -1);
 				if (pid_val == -1) {
-					return 0xA113EB80;
+					return OLV_RESULT_INVALID_INTEGER_FIELD;
 				}
 
 				pOutData->pid = pid_val;
@@ -155,7 +152,7 @@ namespace nn
 						pOutData->iconDataSize = icon_bin.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 			}

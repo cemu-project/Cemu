@@ -21,16 +21,16 @@ namespace nn
 
 		sint32 DownloadCommunityDataList(DownloadedCommunityData* pOutList, uint32* pOutNum, uint32 numMaxList, const DownloadCommunityDataListParam* pParam) {
 			if (!g_IsInitialized)
-				return 0xC1106680;
+				return OLV_RESULT_NOT_INITIALIZED;
 
 			if (!g_IsOnlineMode)
-				return 0xC1106780;
+				return OLV_RESULT_OFFLINE_MODE_REQUEST;
 
 			if (!pOutList || !pOutNum || !pParam)
-				return 0xC1106600;
+				return OLV_RESULT_INVALID_PTR;
 
 			if (!numMaxList)
-				return 0xC1106580;
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 			for (int i = 0; i < numMaxList; i++)
 				DownloadedCommunityData::Clean(&pOutList[i]);
@@ -66,7 +66,7 @@ namespace nn
 			if (!reqResult) {
 				cemuLog_log(LogType::Force, "Failed request: {} ({})", reqUrl, httpCode);
 				if (!(httpCode >= 400)) {
-					return 0xA113E980;
+					return OLV_RESULT_FAILED_REQUEST;
 				}
 			}
 
@@ -74,34 +74,31 @@ namespace nn
 			if (!doc.load_buffer(req.getReceivedData().data(), req.getReceivedData().size()))
 			{
 				cemuLog_log(LogType::Force, fmt::format("Invalid XML in community download response"));
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
-			if (httpCode != 200) {
-				sint32 responseError = CheckOliveResponse(doc);
-				if (responseError < 0) {
-					return responseError;
-				}
-				else {
-					return ((httpCode << 7) - 0x5EE83000) & 0xFFFFF | 0xA1100000;
-				}
-			}
+			sint32 responseError = CheckOliveResponse(doc);
+			if (responseError < 0)
+				return responseError;
+
+			if (httpCode != 200)
+				return OLV_RESULT_STATUS(httpCode + 4000);
 
 			std::string request_name = doc.select_single_node("//request_name").node().child_value();
 			if (request_name.size() == 0) {
 				cemuLog_log(LogType::Force, "Community download response doesn't contain <request_name>");
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
 			if ((request_name.compare("communities") != 0) && (request_name.compare("specified_communities") != 0)) {
 				cemuLog_log(LogType::Force, "Community download response <request_name> isn't \"communities\" or \"specified_communities\"");
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
 			pugi::xml_node communities = doc.select_single_node("//communities").node();
 			if (!communities) {
 				cemuLog_log(LogType::Force, "Community download response doesn't contain <communities>");
-				return 0xA113EA00;
+				return OLV_RESULT_INVALID_XML;
 			}
 
 			int idx = 0;
@@ -128,13 +125,13 @@ namespace nn
 						pOutData->appDataLen = app_data_bin.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
 				sint64 community_id_val = StringHelpers::ToInt64(community_id, -1);
 				if (community_id_val == -1) {
-					return 0xA113EB80;
+					return OLV_RESULT_INVALID_INTEGER_FIELD;
 				}
 
 				pOutData->communityId = community_id_val;
@@ -149,7 +146,7 @@ namespace nn
 						pOutData->titleTextMaxLen = name_utf16.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
@@ -163,13 +160,13 @@ namespace nn
 						pOutData->descriptionMaxLen = description_utf16.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
 				sint64 pid_val = StringHelpers::ToInt64(pid, -1);
 				if (pid_val == -1) {
-					return 0xA113EB80;
+					return OLV_RESULT_INVALID_INTEGER_FIELD;
 				}
 
 				pOutData->pid = pid_val;
@@ -182,7 +179,7 @@ namespace nn
 						pOutData->iconDataSize = icon_bin.size();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
@@ -193,7 +190,7 @@ namespace nn
 						pOutData->flags |= DownloadedCommunityData::FLAG_HAS_MII_DATA;
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 
@@ -204,7 +201,7 @@ namespace nn
 							pOutData->miiDisplayName[i] = screen_name_utf16.at(i).bevalue();
 					}
 					else {
-						return 0xA113EB00;
+						return OLV_RESULT_INVALID_TEXT_FIELD;
 					}
 				}
 

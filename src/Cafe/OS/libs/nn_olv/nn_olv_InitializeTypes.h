@@ -44,9 +44,9 @@ namespace nn
 
 			sint32 SetWork(MEMPTR<uint8_t> pWorkData, uint32 workDataSize) {
 				if (!pWorkData)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 				if (workDataSize < 0x10000)
-					return 0xC1106580;
+					return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 				this->m_Work = pWorkData;
 				this->m_WorkSize = workDataSize;
@@ -66,10 +66,10 @@ namespace nn
 
 			sint32 SetSysArgs(MEMPTR<const void> pSysArgs, uint32 sysArgsSize) {
 				if (!pSysArgs)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				if (!sysArgsSize)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				this->m_SysArgs = pSysArgs;
 				this->m_SysArgsSize = sysArgsSize;
@@ -100,7 +100,7 @@ namespace nn
 		sint32 Initialize(nn::olv::InitializeParam* pParam);
 
 		static void loadOliveInitializeTypes() {
-			cafeExportRegisterFunc(Initialize, "nn_olv", "Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam", LogType::None);
+			cafeExportRegisterFunc(Initialize, "nn_olv", "Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam", LogType::Force);
 			cafeExportRegisterFunc(IsInitialized, "nn_olv", "IsInitialized__Q2_2nn3olvFv", LogType::None);
 			cafeExportRegisterFunc(Report::GetReportTypes, "nn_olv", "GetReportTypes__Q3_2nn3olv6ReportFv", LogType::None);
 			cafeExportRegisterFunc(Report::SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv6ReportFUi", LogType::None);

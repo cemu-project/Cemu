@@ -70,16 +70,16 @@ namespace nn
 
 			sint32 GetCommunityCode(char* pBuffer, uint32 bufferSize) const {
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				if (bufferSize <= 12)
-					return 0xC1106580;
+					return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 				uint32 len = 0;
 				if (FormatCommunityCode(pBuffer, &len, this->communityId))
 					return OLV_RESULT_SUCCESS;
 
-				return 0xC1106480;
+				return OLV_RESULT_INVALID_PARAMETER;
 			}
 			static sint32 __GetCommunityCode(DownloadedCommunityData* _this, char* pBuffer, uint32 bufferSize) {
 				return _this->GetCommunityCode(pBuffer, bufferSize);
@@ -94,12 +94,11 @@ namespace nn
 
 			sint32 GetTitleText(char16_t* pBuffer, uint32 numChars) {
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
-				sint32 res = 0xC1106580;
 				if (numChars) {
 					if (!this->TestFlags(FLAG_HAS_TITLE_TEXT))
-						return res + 0x280;
+						return OLV_RESULT_MISSING_DATA;
 
 					memset(pBuffer, 0, 2 * numChars);
 					uint32 readSize = this->titleTextMaxLen;
@@ -107,10 +106,10 @@ namespace nn
 						readSize = numChars;
 
 					olv_wstrncpy(pBuffer, this->titleText, readSize);
-					res = OLV_RESULT_SUCCESS;
+					return OLV_RESULT_SUCCESS;
 				}
 
-				return res;
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
 			static sint32 __GetTitleText(DownloadedCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
 				return _this->GetTitleText(pBuffer, numChars);
@@ -118,19 +117,18 @@ namespace nn
 
 			sint32 GetDescriptionText(char16_t* pBuffer, uint32 numChars) {
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
-				sint32 res = 0xC1106580;
 				if (numChars) {
 					if (!this->TestFlags(FLAG_HAS_DESC_TEXT))
-						return res + 0x280;
+						return OLV_RESULT_MISSING_DATA;
 
 					memset(pBuffer, 0, 2 * numChars);
 					olv_wstrncpy(pBuffer, this->description, numChars);
-					res = OLV_RESULT_SUCCESS;
+					return OLV_RESULT_SUCCESS;
 				}
 
-				return res;
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
 			static sint32 __GetDescriptionText(DownloadedCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
 				return _this->GetDescriptionText(pBuffer, numChars);
@@ -138,14 +136,12 @@ namespace nn
 
 			sint32 GetAppData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
 				uint32 appDataSize = bufferSize;
-				uint32 res = 0xC1106580;
-
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				if (bufferSize) {
 					if (!this->TestFlags(FLAG_HAS_APP_DATA))
-						return res + 0x280;
+						return OLV_RESULT_MISSING_DATA;
 
 					if (this->appDataLen < appDataSize)
 						appDataSize = this->appDataLen;
@@ -154,10 +150,10 @@ namespace nn
 					if (pOutSize)
 						*pOutSize = appDataSize;
 
-					res = OLV_RESULT_SUCCESS;
+					return OLV_RESULT_SUCCESS;
 				}
 
-				return res;
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
 			static sint32 __GetAppData(DownloadedCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
 				return _this->GetAppData(pBuffer, pOutSize, bufferSize);
@@ -174,17 +170,16 @@ namespace nn
 			}
 
 			sint32 GetIconData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
-				sint32 res = 0xC1106580;
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				if (bufferSize < sizeof(this->iconData))
-					return res;
+					return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 				if (!this->TestFlags(FLAG_HAS_ICON_DATA))
-					return res + 0x280;
+					return OLV_RESULT_MISSING_DATA;
 
-				sint32 decodeRes = DecodeTGA(this->iconData, this->iconDataSize, pBuffer, bufferSize, 1);
+				sint32 decodeRes = DecodeTGA(this->iconData, this->iconDataSize, pBuffer, bufferSize, TGACheckType::CHECK_COMMUNITY_ICON);
 				if (decodeRes >= 0) {
 					if (pOutSize)
 						*pOutSize = (uint32)decodeRes;
@@ -200,7 +195,7 @@ namespace nn
 				else if (decodeRes == -2)
 					cemuLog_log(LogType::Force, "OLIVE - icon decode error. NOT TGA.\n");
 
-				return 0xA113EB00;
+				return OLV_RESULT_INVALID_TEXT_FIELD;
 			}
 			static sint32 __GetIconData(DownloadedCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
 				return _this->GetIconData(pBuffer, pOutSize, bufferSize);
@@ -208,10 +203,10 @@ namespace nn
 
 			sint32 GetOwnerMiiData(/* FFLStoreData* */void* pBuffer) const {
 				if (!this->TestFlags(FLAG_HAS_MII_DATA))
-					return 0xC1106800;
+					return OLV_RESULT_MISSING_DATA;
 
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				memcpy(pBuffer, this->miiFFLStoreData, sizeof(this->miiFFLStoreData));
 				return OLV_RESULT_SUCCESS;
@@ -283,7 +278,7 @@ namespace nn
 
 			sint32 SetCommunityId(uint32 communityId) {
 				if (communityId == -1)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				this->communityId = communityId;
 				if (communityId)
@@ -300,10 +295,10 @@ namespace nn
 
 			sint32 SetCommunityId(uint32 communityId, uint8 idx) {
 				if (communityId == -1)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				if (idx >= 20)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				this->additionalCommunityIdList[idx] = communityId;
 				int validIdsCount = 0;
@@ -323,7 +318,7 @@ namespace nn
 
 			sint32 SetCommunityDataMaxNum(uint32 num) {
 				if (!num)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				int validIdsCount = 0;
 				for (int i = 0; i < 20; ++i) {
@@ -332,7 +327,7 @@ namespace nn
 				}
 
 				if (validIdsCount > num)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				this->communityDownloadLimit = num;
 				return OLV_RESULT_SUCCESS;
@@ -344,13 +339,13 @@ namespace nn
 			sint32 GetRawDataUrl(char* pBuffer, uint32 bufferSize) const {
 
 				if (!g_IsOnlineMode)
-					return 0xC1106780;
+					return OLV_RESULT_OFFLINE_MODE_REQUEST;
 
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				if (!bufferSize)
-					return 0xC1106580;
+					return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 				char tmpFormatBuffer[64];
 				char urlBuffer[1024];
@@ -367,11 +362,11 @@ namespace nn
 
 				if (validIdsCount) {
 					if (this->communityId && this->communityId != -2)
-						return 0xC1106480;
+						return OLV_RESULT_INVALID_PARAMETER;
 
 					uint32 unkFlag = this->flags & 0xFFFFFFE7;
 					if (unkFlag)
-						return 0xC1106480;
+						return OLV_RESULT_INVALID_PARAMETER;
 
 					// It's how it's done in the real nn_olv, what even the fuck is this, never seen used yet.
 					snprintf(urlBuffer, sizeof(urlBuffer), "%s/v1/communities/%u.search", g_DiscoveryResults.apiEndpoint, communityId);
@@ -398,7 +393,7 @@ namespace nn
 					uint32 filterBy_selfmade = (this->flags & FLAG_FILTER_OWNED) != 0;
 				
 					if ((filterBy_favorite + filterBy_official + filterBy_selfmade) != 1)
-						return 0xC1106480;
+						return OLV_RESULT_INVALID_PARAMETER;
 
 					snprintf(tmpFormatBuffer, 64, "limit=%u", this->communityDownloadLimit.value());
 					appendQueryToURL(urlBuffer, tmpFormatBuffer);
@@ -428,7 +423,7 @@ namespace nn
 
 				int res = snprintf(pBuffer, bufferSize, "%s", urlBuffer);
 				if (res < 0)
-					return 0xC1106580;
+					return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 				return OLV_RESULT_SUCCESS;
 			}

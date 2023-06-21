@@ -1,11 +1,34 @@
 #pragma once
 
-#define OLV_RESULT_SUCCESS 0x1100080
-
+#include "Cafe/OS/libs/nn_common.h"
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cemu/napi/napi_helper.h"
 #include "util/helpers/StringHelpers.h"
 #include "pugixml.hpp"
+
+// https://github.com/kinnay/NintendoClients/wiki/Wii-U-Error-Codes#act-error-codes
+#define OLV_ACT_RESULT_STATUS(code) (BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_OLV, ((code) << 7)))
+
+#define OLV_RESULT_STATUS(code) (BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_OLV, ((code) << 7)))
+#define OLV_RESULT_LVL6(code) (BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_OLV, ((code) << 7)))
+#define OLV_RESULT_FATAL(code) (BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_OLV, ((code) << 7)))
+#define OLV_RESULT_SUCCESS (BUILD_NN_RESULT(0, NN_RESULT_MODULE_NN_OLV, 1 << 7))
+
+#define OLV_RESULT_INVALID_PARAMETER (OLV_RESULT_LVL6(201))
+#define OLV_RESULT_INVALID_DATA (OLV_RESULT_LVL6(202))
+#define OLV_RESULT_NOT_ENOUGH_SIZE (OLV_RESULT_LVL6(203))
+#define OLV_RESULT_INVALID_PTR (OLV_RESULT_LVL6(204))
+#define OLV_RESULT_NOT_INITIALIZED (OLV_RESULT_LVL6(205))
+#define OLV_RESULT_ALREADY_INITIALIZED (OLV_RESULT_LVL6(206))
+#define OLV_RESULT_OFFLINE_MODE_REQUEST (OLV_RESULT_LVL6(207))
+#define OLV_RESULT_MISSING_DATA (OLV_RESULT_LVL6(208))
+#define OLV_RESULT_INVALID_SIZE (OLV_RESULT_LVL6(209))
+
+#define OLV_RESULT_BAD_VERSION (OLV_RESULT_STATUS(2001))
+#define OLV_RESULT_FAILED_REQUEST (OLV_RESULT_STATUS(2003))
+#define OLV_RESULT_INVALID_XML (OLV_RESULT_STATUS(2004))
+#define OLV_RESULT_INVALID_TEXT_FIELD (OLV_RESULT_STATUS(2006))
+#define OLV_RESULT_INVALID_INTEGER_FIELD (OLV_RESULT_STATUS(2007))
 
 #define OLV_CLIENT_ID "87cd32617f1985439ea608c2746e4610"
 
@@ -79,7 +102,7 @@ namespace nn
 			pugi::xml_node resultNode = doc.child("result");
 			if (!resultNode) {
 				cemuLog_log(LogType::Force, "Discovery response doesn't contain <result>...</result>");
-				return 0xA113EA00;
+				return OLV_RESULT_STATUS(2004);
 			}
 
 			std::string_view has_error = resultNode.child_value("has_error");
@@ -88,16 +111,17 @@ namespace nn
 			std::string_view error_code = resultNode.child_value("error_code");
 
 			if (has_error.compare("1") == 0) {
-				int codeVal = StringHelpers::ToInt(code, -1);
+				int codeVal = StringHelpers::ToInt(error_code, -1);
 				if (codeVal < 0) {
-					codeVal = StringHelpers::ToInt(error_code, -1);
-					return ((codeVal << 7) - 0x5EE63C00) & 0xFFFFF | 0xA1100000;
+					codeVal = StringHelpers::ToInt(code, -1);
+					return OLV_RESULT_STATUS(codeVal + 4000);
 				}
-				return ((codeVal << 7) - 0x5EE83000) & 0xFFFFF | 0xA1100000;
+				return OLV_RESULT_STATUS(codeVal + 5000);
+
 			}
 
 			if (version.compare("1") != 0) {
-				return 0xA113E880;
+				return OLV_RESULT_BAD_VERSION; // Version mismatch
 			}
 
 			return OLV_RESULT_SUCCESS;
@@ -107,13 +131,40 @@ namespace nn
 		size_t olv_wstrnlen(const char16_t* str, size_t max_len);
 		char16_t* olv_wstrncpy(char16_t* dest, const char16_t* src, size_t n);
 
-		sint32 DecodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, sint32 checkEnum);
-		sint32 EncodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, sint32 checkEnum);
+#pragma pack(push, 1)
+		struct TGAHeader {
+			uint8 idLength;
+			uint8 colorMapType;
+			uint8 imageType;
+			uint16 first_entry_idx;
+			uint16 colormap_length;
+			uint8 bpp;
+			uint16 x_origin;
+			uint16 y_origin;
+			uint16 width;
+			uint16 height;
+			uint8 pixel_depth_bpp;
+			uint8 image_desc_bits;
+		};
+#pragma pack(pop)
+		static_assert(sizeof(nn::olv::TGAHeader) == 0x12, "sizeof(nn::olv::TGAHeader != 0x12");
+
+		enum TGACheckType : uint32 {
+			CHECK_PAINTING = 0,
+			CHECK_COMMUNITY_ICON = 1,
+			CHECK_100x100_200x200 = 2
+		};
+
+
+		bool CheckTGA(const uint8* pTgaFile, uint32 pTgaFileLen, TGACheckType checkType);
+		sint32 DecodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkType);
+		sint32 EncodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkTyp);
 		
+
 		bool CompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize);
 		bool DecompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize);
 
-		bool CheckTGA(const uint8* pTgaFile, uint32 pTgaFileLen, sint32 unk);
+		
 
 		bool GetCommunityIdFromCode(uint32* pOutId, const char* pCode);
 		bool FormatCommunityCode(char* pOutCode, uint32* outLen, uint32 communityId);

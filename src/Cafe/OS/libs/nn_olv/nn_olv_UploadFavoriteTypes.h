@@ -66,16 +66,16 @@ namespace nn
 
 			sint32 GetCommunityCode(char* pBuffer, uint32 bufferSize) const {
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				if (bufferSize <= 12)
-					return 0xC1106580;
+					return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 				uint32 len = 0;
 				if (FormatCommunityCode(pBuffer, &len, this->communityId))
 					return OLV_RESULT_SUCCESS;
 				
-				return 0xC1106480;
+				return OLV_RESULT_INVALID_PARAMETER;
 			}
 			static sint32 __GetCommunityCode(UploadedFavoriteToCommunityData* _this, char* pBuffer, uint32 bufferSize) {
 				return _this->GetCommunityCode(pBuffer, bufferSize);
@@ -90,12 +90,11 @@ namespace nn
 
 			sint32 GetTitleText(char16_t* pBuffer, uint32 numChars) {
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 				
-				sint32 res = 0xC1106580;
 				if (numChars) {
 					if (!this->TestFlags(FLAG_HAS_TITLE_TEXT))
-						return res + 0x280;
+						return OLV_RESULT_MISSING_DATA;
 
 					memset(pBuffer, 0, 2 * numChars);
 					uint32 readSize = this->titleTextMaxLen;
@@ -103,10 +102,10 @@ namespace nn
 						readSize = numChars;
 
 					olv_wstrncpy(pBuffer, this->titleText, readSize);
-					res = OLV_RESULT_SUCCESS;
+					return OLV_RESULT_SUCCESS;
 				}
 
-				return res;
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
 			static sint32 __GetTitleText(UploadedFavoriteToCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
 				return _this->GetTitleText(pBuffer, numChars);
@@ -114,19 +113,18 @@ namespace nn
 
 			sint32 GetDescriptionText(char16_t* pBuffer, uint32 numChars) {
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
-				sint32 res = 0xC1106580;
 				if (numChars) {
 					if (!this->TestFlags(FLAG_HAS_DESC_TEXT))
-						return res + 0x280;
+						return OLV_RESULT_MISSING_DATA;
 
 					memset(pBuffer, 0, 2 * numChars);
 					olv_wstrncpy(pBuffer, this->description, numChars);
-					res = OLV_RESULT_SUCCESS;
+					return OLV_RESULT_SUCCESS;
 				}
 
-				return res;
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
 			static sint32 __GetDescriptionText(UploadedFavoriteToCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
 				return _this->GetDescriptionText(pBuffer, numChars);
@@ -134,14 +132,12 @@ namespace nn
 
 			sint32 GetAppData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
 				uint32 appDataSize = bufferSize;
-				uint32 res = 0xC1106580;
-
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 				
 				if (bufferSize) {
 					if (!this->TestFlags(FLAG_HAS_APP_DATA))
-						return res + 0x280;
+						return OLV_RESULT_MISSING_DATA;
 
 					if (this->appDataLen < appDataSize)
 						appDataSize = this->appDataLen;
@@ -150,10 +146,10 @@ namespace nn
 					if (pOutSize)
 						*pOutSize = appDataSize;
 
-					res = OLV_RESULT_SUCCESS;
+					return OLV_RESULT_SUCCESS;
 				}
 
-				return res;
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
 			static sint32 __GetAppData(UploadedFavoriteToCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
 				return _this->GetAppData(pBuffer, pOutSize, bufferSize);
@@ -170,17 +166,16 @@ namespace nn
 			}
 
 			sint32 GetIconData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
-				sint32 res = 0xC1106580;
 				if (!pBuffer)
-					return 0xC1106600;
+					return OLV_RESULT_INVALID_PTR;
 
 				if (bufferSize < sizeof(this->iconData))
-					return res;
+					return OLV_RESULT_NOT_ENOUGH_SIZE;
 
 				if (!this->TestFlags(FLAG_HAS_ICON_DATA))
-					return res + 0x280;
+					return OLV_RESULT_MISSING_DATA;
 
-				sint32 decodeRes = DecodeTGA(this->iconData, this->iconDataSize, pBuffer, bufferSize, 1);
+				sint32 decodeRes = DecodeTGA(this->iconData, this->iconDataSize, pBuffer, bufferSize, TGACheckType::CHECK_COMMUNITY_ICON);
 				if (decodeRes >= 0) {
 					if (pOutSize)
 						*pOutSize = (uint32)decodeRes;
@@ -196,7 +191,7 @@ namespace nn
 				else if (decodeRes == -2)
 					cemuLog_log(LogType::Force, "OLIVE - icon decode error. NOT TGA.\n");
 
-				return 0xA113EB00;
+				return OLV_RESULT_INVALID_TEXT_FIELD;
 			}
 			static sint32 __GetIconData(UploadedFavoriteToCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
 				return _this->GetIconData(pBuffer, pOutSize, bufferSize);
@@ -246,7 +241,7 @@ namespace nn
 
 			sint32 SetCommunityCode(const char* pBuffer) {
 				if (strnlen(pBuffer, 13) != 12)
-					return 0xC1106580;
+					return OLV_RESULT_INVALID_TEXT_FIELD;
 
 				uint32_t id;
 				if (GetCommunityIdFromCode(&id, pBuffer)) {
@@ -254,7 +249,7 @@ namespace nn
 					return OLV_RESULT_SUCCESS;
 				}
 
-				return 0xA113B680;
+				return OLV_RESULT_STATUS(1901);
 			}
 			static sint32 __SetCommunityCode(UploadFavoriteToCommunityDataParam* _this, char* pBuffer) {
 				return _this->SetCommunityCode(pBuffer);
@@ -262,7 +257,7 @@ namespace nn
 
 			sint32 SetCommunityId(uint32 communityId) {
 				if (communityId == -1)
-					return 0xC1106480;
+					return OLV_RESULT_INVALID_PARAMETER;
 
 				this->communityId = communityId;
 				return OLV_RESULT_SUCCESS;
