@@ -102,7 +102,7 @@ namespace nn
 			pugi::xml_node resultNode = doc.child("result");
 			if (!resultNode) {
 				cemuLog_log(LogType::Force, "Discovery response doesn't contain <result>...</result>");
-				return OLV_RESULT_STATUS(2004);
+				return OLV_RESULT_INVALID_XML;
 			}
 
 			std::string_view has_error = resultNode.child_value("has_error");
