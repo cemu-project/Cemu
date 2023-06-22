@@ -273,7 +273,8 @@ namespace nn
 		};
 		static_assert(sizeof(nn::olv::DownloadedCommunityData) == 0x12000, "sizeof(nn::olv::DownloadedCommunityData) != 0x12000");
 
-		class DownloadCommunityDataListParam {
+		class DownloadCommunityDataListParam
+		{
 		public:
 			static const inline uint32 FLAG_FILTER_FAVORITES = (1 << 0);
 			static const inline uint32 FLAG_FILTER_OFFICIALS = (1 << 1);

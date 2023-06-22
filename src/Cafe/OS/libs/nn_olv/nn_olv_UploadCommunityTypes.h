@@ -67,7 +67,8 @@ namespace nn
 			{
 				return this->communityId;
 			}
-			static uint32 __GetCommunityId(UploadedCommunityData* _this) {
+			static uint32 __GetCommunityId(UploadedCommunityData* _this)
+			{
 				return _this->GetCommunityId();
 			}
 

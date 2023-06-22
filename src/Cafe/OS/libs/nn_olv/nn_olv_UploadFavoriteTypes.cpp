@@ -19,7 +19,8 @@ namespace nn
 			return res;
 		}
 
-		sint32 UploadFavoriteToCommunityData(UploadedFavoriteToCommunityData* pOutData, const UploadFavoriteToCommunityDataParam* pParam) {
+		sint32 UploadFavoriteToCommunityData(UploadedFavoriteToCommunityData* pOutData, const UploadFavoriteToCommunityDataParam* pParam)
+		{
 			if (!nn::olv::g_IsInitialized)
 				return OLV_RESULT_NOT_INITIALIZED;
 

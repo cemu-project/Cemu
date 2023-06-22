@@ -53,7 +53,8 @@ struct ParsedMetaXml
 		return m_company_code;
 	}
 
-	uint32 GetOlvAccesskey() const {
+	uint32 GetOlvAccesskey() const
+	{
 		return m_olv_accesskey;
 	}
 

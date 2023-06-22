@@ -184,13 +184,15 @@ namespace nn
 			return OLV_RESULT_SUCCESS;
 		}
 
-		sint32 MakeDiscoveryRequest_AsyncRequest(CurlRequestHelper& req, const char* reqUrl, coreinit::OSEvent* requestDoneEvent) {
+		sint32 MakeDiscoveryRequest_AsyncRequest(CurlRequestHelper& req, const char* reqUrl, coreinit::OSEvent* requestDoneEvent)
+		{
 			sint32 res = MakeDiscoveryRequest_AsyncRequestImpl(req, reqUrl);
 			coreinit::OSSignalEvent(requestDoneEvent);
 			return res;
 		}
 
-		sint32 MakeDiscoveryRequest() {
+		sint32 MakeDiscoveryRequest()
+		{
 			// =============================================================================
 			// Discovery request | https://discovery.olv.nintendo.net/v1/endpoint
 			// =============================================================================
@@ -222,7 +224,8 @@ namespace nn
 			return requestRes.get();
 		}
 
-		sint32 Initialize(nn::olv::InitializeParam* pParam) {
+		sint32 Initialize(nn::olv::InitializeParam* pParam)
+		{
 			if (g_IsInitialized)
 				return OLV_RESULT_ALREADY_INITIALIZED;
 
@@ -288,7 +291,8 @@ namespace nn
 			return OLV_RESULT_SUCCESS;
 		}
 
-		namespace Report {
+		namespace Report
+		{
 			uint32 GetReportTypes()
 			{
 				return g_ReportTypes;

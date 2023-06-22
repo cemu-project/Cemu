@@ -81,7 +81,8 @@ namespace nn
 			struct curl_httppost* post = nullptr;
 			struct curl_httppost* last = nullptr;
 
-			try {
+			try
+			{
 				if (!pParam->iconData.IsNull())
 				{
 					encodedIcon = new uint8[pParam->iconDataLen];
