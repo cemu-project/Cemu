@@ -1,5 +1,7 @@
 
 add_library(CemuAndroidGui
+        AndroidAudio.cpp
+        AndroidAudio.h
         AndroidGuiWrapper.cpp
         AndroidGuiWrapper.h
         GameIconLoader.cpp
@@ -11,7 +13,7 @@ add_library(CemuAndroidGui
         Image.h
         Utils.cpp
         Utils.h
-        )
+)
 
 target_include_directories(CemuAndroidGui PUBLIC "../")
 
@@ -30,4 +32,4 @@ target_link_libraries(CemuAndroidGui PRIVATE
         OpenSSL::Crypto
         pugixml::pugixml
         ZArchive::zarchive
-        )
+)

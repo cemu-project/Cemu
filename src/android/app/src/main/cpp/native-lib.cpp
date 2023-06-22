@@ -13,7 +13,7 @@
 #include "config/NetworkSettings.h"
 #include "input/InputManager.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
-
+#include "AndroidGui/AndroidAudio.h"
 
 #include "JNIUtils.h"
 
@@ -297,6 +297,11 @@ Java_info_cemu_Cemu_NativeLibrary_initializeEmulation(JNIEnv *env, jclass clazz)
     InputManager::instance().load();
     InitializeGlobalVulkan();
     createCemuDirectories();
+    g_config.Load();
+    auto &config = g_config.data();
+    AndroidAudio::createAudioDevice(IAudioAPI::AudioAPI::Cubeb,
+                                    config.tv_channels,
+                                    config.tv_volume);
 }
 extern "C"
 JNIEXPORT void JNICALL
