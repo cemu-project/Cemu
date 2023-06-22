@@ -19,7 +19,8 @@ namespace nn
 			static const inline uint32 FLAG_HAS_ICON_DATA = (1 << 3);
 			static const inline uint32 FLAG_HAS_MII_DATA = (1 << 4);
 
-			DownloadedCommunityData() {
+			DownloadedCommunityData()
+			{
 				this->titleTextMaxLen = 0;
 				this->appDataLen = 0;
 				this->descriptionMaxLen = 0;
@@ -29,8 +30,10 @@ namespace nn
 				this->iconDataSize = 0;
 				this->miiDisplayName[0] = 0;
 			}
-			static DownloadedCommunityData* __ctor(DownloadedCommunityData* _this) {
-				if (!_this) {
+			static DownloadedCommunityData* __ctor(DownloadedCommunityData* _this)
+			{
+				if (!_this)
+				{
 					assert_dbg(); // DO NOT CONTINUE, SHOULD NEVER HAPPEN
 					return nullptr;
 				}
@@ -38,7 +41,8 @@ namespace nn
 					return new (_this) DownloadedCommunityData();
 			}
 
-			static DownloadedCommunityData* Clean(DownloadedCommunityData* data) {
+			static DownloadedCommunityData* Clean(DownloadedCommunityData* data)
+			{
 				data->flags = 0;
 				data->communityId = 0;
 				data->pid = 0;
@@ -54,21 +58,26 @@ namespace nn
 				return data;
 			}
 
-			bool TestFlags(uint32 flags) const {
+			bool TestFlags(uint32 flags) const
+			{
 				return (this->flags & flags) != 0;
 			}
-			static bool __TestFlags(DownloadedCommunityData* _this, uint32 flags) {
+			static bool __TestFlags(DownloadedCommunityData* _this, uint32 flags)
+			{
 				return _this->TestFlags(flags);
 			}
 
-			uint32 GetCommunityId() const {
+			uint32 GetCommunityId() const
+			{
 				return this->communityId;
 			}
-			static uint32 __GetCommunityId(DownloadedCommunityData* _this) {
+			static uint32 __GetCommunityId(DownloadedCommunityData* _this)
+			{
 				return _this->GetCommunityId();
 			}
 
-			sint32 GetCommunityCode(char* pBuffer, uint32 bufferSize) const {
+			sint32 GetCommunityCode(char* pBuffer, uint32 bufferSize) const
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
@@ -81,22 +90,27 @@ namespace nn
 
 				return OLV_RESULT_INVALID_PARAMETER;
 			}
-			static sint32 __GetCommunityCode(DownloadedCommunityData* _this, char* pBuffer, uint32 bufferSize) {
+			static sint32 __GetCommunityCode(DownloadedCommunityData* _this, char* pBuffer, uint32 bufferSize)
+			{
 				return _this->GetCommunityCode(pBuffer, bufferSize);
 			}
 
-			uint32 GetOwnerPid() const {
+			uint32 GetOwnerPid() const
+			{
 				return this->pid;
 			}
-			static uint32 __GetOwnerPid(DownloadedCommunityData* _this) {
+			static uint32 __GetOwnerPid(DownloadedCommunityData* _this)
+			{
 				return _this->GetOwnerPid();
 			}
 
-			sint32 GetTitleText(char16_t* pBuffer, uint32 numChars) {
+			sint32 GetTitleText(char16_t* pBuffer, uint32 numChars)
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
-				if (numChars) {
+				if (numChars)
+				{
 					if (!this->TestFlags(FLAG_HAS_TITLE_TEXT))
 						return OLV_RESULT_MISSING_DATA;
 
@@ -111,15 +125,18 @@ namespace nn
 
 				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
-			static sint32 __GetTitleText(DownloadedCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
+			static sint32 __GetTitleText(DownloadedCommunityData* _this, char16_t* pBuffer, uint32 numChars)
+			{
 				return _this->GetTitleText(pBuffer, numChars);
 			}
 
-			sint32 GetDescriptionText(char16_t* pBuffer, uint32 numChars) {
+			sint32 GetDescriptionText(char16_t* pBuffer, uint32 numChars)
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
-				if (numChars) {
+				if (numChars)
+				{
 					if (!this->TestFlags(FLAG_HAS_DESC_TEXT))
 						return OLV_RESULT_MISSING_DATA;
 
@@ -130,16 +147,19 @@ namespace nn
 
 				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
-			static sint32 __GetDescriptionText(DownloadedCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
+			static sint32 __GetDescriptionText(DownloadedCommunityData* _this, char16_t* pBuffer, uint32 numChars)
+			{
 				return _this->GetDescriptionText(pBuffer, numChars);
 			}
 
-			sint32 GetAppData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			sint32 GetAppData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				uint32 appDataSize = bufferSize;
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
-				if (bufferSize) {
+				if (bufferSize)
+				{
 					if (!this->TestFlags(FLAG_HAS_APP_DATA))
 						return OLV_RESULT_MISSING_DATA;
 
@@ -155,21 +175,25 @@ namespace nn
 
 				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
-			static sint32 __GetAppData(DownloadedCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			static sint32 __GetAppData(DownloadedCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				return _this->GetAppData(pBuffer, pOutSize, bufferSize);
 			}
 
-			uint32 GetAppDataSize() const {
+			uint32 GetAppDataSize() const
+			{
 				if (this->TestFlags(FLAG_HAS_APP_DATA))
 					return this->appDataLen;
 
 				return 0;
 			}
-			static uint32 __GetAppDataSize(DownloadedCommunityData* _this) {
+			static uint32 __GetAppDataSize(DownloadedCommunityData* _this)
+			{
 				return _this->GetAppDataSize();
 			}
 
-			sint32 GetIconData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			sint32 GetIconData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
@@ -180,7 +204,8 @@ namespace nn
 					return OLV_RESULT_MISSING_DATA;
 
 				sint32 decodeRes = DecodeTGA(this->iconData, this->iconDataSize, pBuffer, bufferSize, TGACheckType::CHECK_COMMUNITY_ICON);
-				if (decodeRes >= 0) {
+				if (decodeRes >= 0)
+				{
 					if (pOutSize)
 						*pOutSize = (uint32)decodeRes;
 
@@ -197,11 +222,13 @@ namespace nn
 
 				return OLV_RESULT_INVALID_TEXT_FIELD;
 			}
-			static sint32 __GetIconData(DownloadedCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			static sint32 __GetIconData(DownloadedCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				return _this->GetIconData(pBuffer, pOutSize, bufferSize);
 			}
 
-			sint32 GetOwnerMiiData(/* FFLStoreData* */void* pBuffer) const {
+			sint32 GetOwnerMiiData(/* FFLStoreData* */void* pBuffer) const
+			{
 				if (!this->TestFlags(FLAG_HAS_MII_DATA))
 					return OLV_RESULT_MISSING_DATA;
 
@@ -211,17 +238,20 @@ namespace nn
 				memcpy(pBuffer, this->miiFFLStoreData, sizeof(this->miiFFLStoreData));
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __GetOwnerMiiData(DownloadedCommunityData* _this, /* FFLStoreData* */void* pBuffer) {
+			static sint32 __GetOwnerMiiData(DownloadedCommunityData* _this, /* FFLStoreData* */void* pBuffer)
+			{
 				return _this->GetOwnerMiiData(pBuffer);
 			}
 
-			const char16_t* GetOwnerMiiNickname() const {
+			const char16_t* GetOwnerMiiNickname() const
+			{
 				if (this->miiDisplayName[0])
 					return this->miiDisplayName;
 
 				return nullptr;
 			}
-			static const char16_t* __GetOwnerMiiNickname(DownloadedCommunityData* _this) {
+			static const char16_t* __GetOwnerMiiNickname(DownloadedCommunityData* _this)
+			{
 				return _this->GetOwnerMiiNickname();
 			}
 
@@ -251,7 +281,8 @@ namespace nn
 			static const inline uint32 FLAG_QUERY_MII_DATA = (1 << 3);
 			static const inline uint32 FLAG_QUERY_ICON_DATA = (1 << 4);
 
-			DownloadCommunityDataListParam() {
+			DownloadCommunityDataListParam()
+			{
 				this->flags = 0;
 				this->communityDownloadLimit = 0;
 				this->communityId = 0;
@@ -259,8 +290,10 @@ namespace nn
 				for (int i = 0; i < 20; i++)
 					this->additionalCommunityIdList[i] = -2;
 			}
-			static DownloadCommunityDataListParam* __ctor(DownloadCommunityDataListParam* _this) {
-				if (!_this) {
+			static DownloadCommunityDataListParam* __ctor(DownloadCommunityDataListParam* _this)
+			{
+				if (!_this)
+				{
 					assert_dbg(); // DO NOT CONTINUE, SHOULD NEVER HAPPEN
 					return nullptr;
 				}
@@ -268,15 +301,18 @@ namespace nn
 					return new (_this) DownloadCommunityDataListParam();
 			}
 
-			sint32 SetFlags(uint32 flags) {
+			sint32 SetFlags(uint32 flags)
+			{
 				this->flags = flags;
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetFlags(DownloadCommunityDataListParam* _this, uint32 flags) {
+			static sint32 __SetFlags(DownloadCommunityDataListParam* _this, uint32 flags)
+			{
 				return _this->SetFlags(flags);
 			}
 
-			sint32 SetCommunityId(uint32 communityId) {
+			sint32 SetCommunityId(uint32 communityId)
+			{
 				if (communityId == -1)
 					return OLV_RESULT_INVALID_PARAMETER;
 
@@ -289,11 +325,13 @@ namespace nn
 
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetCommunityId(DownloadCommunityDataListParam* _this, uint32 communityId) {
+			static sint32 __SetCommunityId(DownloadCommunityDataListParam* _this, uint32 communityId)
+			{
 				return _this->SetCommunityId(communityId);
 			}
 
-			sint32 SetCommunityId(uint32 communityId, uint8 idx) {
+			sint32 SetCommunityId(uint32 communityId, uint8 idx)
+			{
 				if (communityId == -1)
 					return OLV_RESULT_INVALID_PARAMETER;
 
@@ -302,7 +340,8 @@ namespace nn
 
 				this->additionalCommunityIdList[idx] = communityId;
 				int validIdsCount = 0;
-				for (int i = 0; i < 20; i++ ) {
+				for (int i = 0; i < 20; i++ )
+				{
 					if (this->additionalCommunityIdList[i] != -2)
 						++validIdsCount;
 				}
@@ -312,16 +351,19 @@ namespace nn
 
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetCommunityId(DownloadCommunityDataListParam* _this, uint32 communityId, uint8 idx) {
+			static sint32 __SetCommunityId(DownloadCommunityDataListParam* _this, uint32 communityId, uint8 idx)
+			{
 				return _this->SetCommunityId(communityId, idx);
 			}
 
-			sint32 SetCommunityDataMaxNum(uint32 num) {
+			sint32 SetCommunityDataMaxNum(uint32 num)
+			{
 				if (!num)
 					return OLV_RESULT_INVALID_PARAMETER;
 
 				int validIdsCount = 0;
-				for (int i = 0; i < 20; ++i) {
+				for (int i = 0; i < 20; ++i)
+				{
 					if (this->additionalCommunityIdList[i] != -2)
 						++validIdsCount;
 				}
@@ -332,12 +374,13 @@ namespace nn
 				this->communityDownloadLimit = num;
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetCommunityDataMaxNum(DownloadCommunityDataListParam* _this, uint32 num) {
+			static sint32 __SetCommunityDataMaxNum(DownloadCommunityDataListParam* _this, uint32 num)
+			{
 				return _this->SetCommunityDataMaxNum(num);
 			}
 
-			sint32 GetRawDataUrl(char* pBuffer, uint32 bufferSize) const {
-
+			sint32 GetRawDataUrl(char* pBuffer, uint32 bufferSize) const
+			{
 				if (!g_IsOnlineMode)
 					return OLV_RESULT_OFFLINE_MODE_REQUEST;
 
@@ -353,14 +396,17 @@ namespace nn
 
 				uint32 communityId;
 				int validIdsCount = 0;
-				for (int i = 0; i < 20; ++i) {
-					if (this->additionalCommunityIdList[i] != -2) {
+				for (int i = 0; i < 20; ++i)
+				{
+					if (this->additionalCommunityIdList[i] != -2)
+					{
 						communityId = this->additionalCommunityIdList[i];
 						++validIdsCount;
 					}
 				}
 
-				if (validIdsCount) {
+				if (validIdsCount)
+				{
 					if (this->communityId && this->communityId != -2)
 						return OLV_RESULT_INVALID_PARAMETER;
 
@@ -371,23 +417,26 @@ namespace nn
 					// It's how it's done in the real nn_olv, what even the fuck is this, never seen used yet.
 					snprintf(urlBuffer, sizeof(urlBuffer), "%s/v1/communities/%u.search", g_DiscoveryResults.apiEndpoint, communityId);
 
-					for (int i = 0; i < 20; ++i) {
-						if (this->additionalCommunityIdList[i] != -2) {
+					for (int i = 0; i < 20; ++i)
+					{
+						if (this->additionalCommunityIdList[i] != -2)
+						{
 							snprintf(tmpFormatBuffer, 64, "community_id=%u", this->additionalCommunityIdList[i].value());
 							appendQueryToURL(urlBuffer, tmpFormatBuffer);
 							++unkFlag;
 						}
 					}
 				}
-				else {
+				else
 					snprintf(urlBuffer, sizeof(urlBuffer), "%s/v1/communities", g_DiscoveryResults.apiEndpoint);
-				}
 
-				if (this->communityId) {
+				if (this->communityId)
+				{
 					snprintf(tmpFormatBuffer, 64, "community_id=%u", this->communityId.value());
 					appendQueryToURL(urlBuffer, tmpFormatBuffer);
 				}
-				else {
+				else
+				{
 					uint32 filterBy_favorite = (this->flags & FLAG_FILTER_FAVORITES) != 0;
 					uint32 filterBy_official = (this->flags & FLAG_FILTER_OFFICIALS) != 0;
 					uint32 filterBy_selfmade = (this->flags & FLAG_FILTER_OWNED) != 0;
@@ -398,25 +447,31 @@ namespace nn
 					snprintf(tmpFormatBuffer, 64, "limit=%u", this->communityDownloadLimit.value());
 					appendQueryToURL(urlBuffer, tmpFormatBuffer);
 
-					if (filterBy_favorite) {
+					if (filterBy_favorite)
+					{
 						strncpy(tmpFormatBuffer, "type=favorite", 64);
 						appendQueryToURL(urlBuffer, tmpFormatBuffer);
-					} else if (filterBy_official) {
+					}
+					else if (filterBy_official)
+					{
 						strncpy(tmpFormatBuffer, "type=official", 64);
 						appendQueryToURL(urlBuffer, tmpFormatBuffer);
 					}
-					else {
+					else
+					{
 						strncpy(tmpFormatBuffer, "type=my", 64);
 						appendQueryToURL(urlBuffer, tmpFormatBuffer);
 					}
 				}
 
-				if (this->flags & FLAG_QUERY_MII_DATA) {
+				if (this->flags & FLAG_QUERY_MII_DATA)
+				{
 					strncpy(tmpFormatBuffer, "with_mii=1", 64);
 					appendQueryToURL(urlBuffer, tmpFormatBuffer);
 				}
 
-				if (this->flags & FLAG_QUERY_ICON_DATA) {
+				if (this->flags & FLAG_QUERY_ICON_DATA)
+				{
 					strncpy(tmpFormatBuffer, "with_icon=1", 64);
 					appendQueryToURL(urlBuffer, tmpFormatBuffer);
 				}
@@ -427,7 +482,8 @@ namespace nn
 
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __GetRawDataUrl(DownloadCommunityDataListParam* _this, char* pBuffer, uint32 bufferSize) {
+			static sint32 __GetRawDataUrl(DownloadCommunityDataListParam* _this, char* pBuffer, uint32 bufferSize)
+			{
 				return _this->GetRawDataUrl(pBuffer, bufferSize);
 			}
 
@@ -442,7 +498,8 @@ namespace nn
 
 		sint32 DownloadCommunityDataList(DownloadedCommunityData* pOutList, uint32* pOutNum, uint32 numMaxList, const DownloadCommunityDataListParam* pParam);
 
-		static void loadOliveDownloadCommunityTypes() {
+		static void loadOliveDownloadCommunityTypes()
+		{
 			cafeExportRegisterFunc(DownloadedCommunityData::__ctor, "nn_olv", "__ct__Q3_2nn3olv23DownloadedCommunityDataFv", LogType::None);
 			cafeExportRegisterFunc(DownloadedCommunityData::__TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv23DownloadedCommunityDataCFUi", LogType::None);
 			cafeExportRegisterFunc(DownloadedCommunityData::__GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::None);
@@ -467,7 +524,6 @@ namespace nn
 				"nn_olv", "SetCommunityId__Q3_2nn3olv30DownloadCommunityDataListParamFUiUc", LogType::None);
 		
 			cafeExportRegisterFunc(DownloadCommunityDataList, "nn_olv", "DownloadCommunityDataList__Q2_2nn3olvFPQ3_2nn3olv23DownloadedCommunityDataPUiUiPCQ3_2nn3olv30DownloadCommunityDataListParam", LogType::None);
-
 		}
 	}
 }

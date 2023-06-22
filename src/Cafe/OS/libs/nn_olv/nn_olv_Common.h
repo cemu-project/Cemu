@@ -70,13 +70,15 @@ namespace nn
 		extern bool g_IsInitialized;
 		extern bool g_IsOnlineMode;
 
-		static void InitializeOliveRequest(CurlRequestHelper& req) {
+		static void InitializeOliveRequest(CurlRequestHelper& req)
+		{
 			req.addHeaderField("X-Nintendo-ServiceToken", g_DiscoveryResults.serviceToken);
 			req.addHeaderField("X-Nintendo-ParamPack", g_ParamPack.encodedParamPack);
 			curl_easy_setopt(req.getCURL(), CURLOPT_USERAGENT, g_DiscoveryResults.userAgent);
 		}
 
-		static void appendQueryToURL(char* url, const char* query) {
+		static void appendQueryToURL(char* url, const char* query)
+		{
 			size_t urlLength = strlen(url);
 			size_t queryLength = strlen(query);
 
@@ -87,7 +89,8 @@ namespace nn
 				snprintf(url + urlLength, queryLength + 2, "?%s", query);
 		}
 
-		static sint32 CheckOliveResponse(pugi::xml_document& doc) {
+		static sint32 CheckOliveResponse(pugi::xml_document& doc)
+		{
 
 			/*
 				<result>
@@ -100,7 +103,8 @@ namespace nn
 			*/
 
 			pugi::xml_node resultNode = doc.child("result");
-			if (!resultNode) {
+			if (!resultNode)
+			{
 				cemuLog_log(LogType::Force, "Discovery response doesn't contain <result>...</result>");
 				return OLV_RESULT_INVALID_XML;
 			}
@@ -110,9 +114,11 @@ namespace nn
 			std::string_view code = resultNode.child_value("code");
 			std::string_view error_code = resultNode.child_value("error_code");
 
-			if (has_error.compare("1") == 0) {
+			if (has_error.compare("1") == 0)
+			{
 				int codeVal = StringHelpers::ToInt(error_code, -1);
-				if (codeVal < 0) {
+				if (codeVal < 0)
+				{
 					codeVal = StringHelpers::ToInt(code, -1);
 					return OLV_RESULT_STATUS(codeVal + 4000);
 				}
@@ -120,9 +126,8 @@ namespace nn
 
 			}
 
-			if (version.compare("1") != 0) {
+			if (version.compare("1") != 0)
 				return OLV_RESULT_BAD_VERSION; // Version mismatch
-			}
 
 			return OLV_RESULT_SUCCESS;
 		}
@@ -132,7 +137,8 @@ namespace nn
 		char16_t* olv_wstrncpy(char16_t* dest, const char16_t* src, size_t n);
 
 #pragma pack(push, 1)
-		struct TGAHeader {
+		struct TGAHeader
+		{
 			uint8 idLength;
 			uint8 colorMapType;
 			uint8 imageType;
@@ -149,7 +155,8 @@ namespace nn
 #pragma pack(pop)
 		static_assert(sizeof(nn::olv::TGAHeader) == 0x12, "sizeof(nn::olv::TGAHeader != 0x12");
 
-		enum TGACheckType : uint32 {
+		enum TGACheckType : uint32
+		{
 			CHECK_PAINTING = 0,
 			CHECK_COMMUNITY_ICON = 1,
 			CHECK_100x100_200x200 = 2
@@ -160,16 +167,13 @@ namespace nn
 		sint32 DecodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkType);
 		sint32 EncodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkTyp);
 		
-
 		bool CompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize);
 		bool DecompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize);
 
-		
 
 		bool GetCommunityIdFromCode(uint32* pOutId, const char* pCode);
 		bool FormatCommunityCode(char* pOutCode, uint32* outLen, uint32 communityId);
 
 		sint32 olv_curlformcode_to_error(CURLFORMcode code);
-
 	}
 }

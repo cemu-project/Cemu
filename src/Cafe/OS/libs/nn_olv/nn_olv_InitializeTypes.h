@@ -17,7 +17,8 @@ namespace nn
 		public:
 			static const inline uint32 FLAG_OFFLINE_MODE = (1 << 0);
 
-			InitializeParam() {
+			InitializeParam()
+			{
 				this->m_Flags = 0;
 				this->m_ReportTypes = 7039;
 				this->m_SysArgsSize = 0;
@@ -25,8 +26,10 @@ namespace nn
 				this->m_SysArgs = MEMPTR<const void>(nullptr);
 				this->m_WorkSize = 0;
 			}
-			static InitializeParam* __ctor(InitializeParam* _this) {
-				if (!_this) {
+			static InitializeParam* __ctor(InitializeParam* _this)
+			{
+				if (!_this)
+				{
 					assert_dbg(); // DO NOT CONTINUE, SHOULD NEVER HAPPEN
 					return nullptr;
 				}
@@ -34,15 +37,18 @@ namespace nn
 					return new (_this) InitializeParam();
 			}
 
-			sint32 SetFlags(uint32 flags) {
+			sint32 SetFlags(uint32 flags)
+			{
 				this->m_Flags = flags;
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetFlags(InitializeParam* _this, uint32 flags) {
+			static sint32 __SetFlags(InitializeParam* _this, uint32 flags)
+			{
 				return _this->SetFlags(flags);
 			}
 
-			sint32 SetWork(MEMPTR<uint8_t> pWorkData, uint32 workDataSize) {
+			sint32 SetWork(MEMPTR<uint8_t> pWorkData, uint32 workDataSize)
+			{
 				if (!pWorkData)
 					return OLV_RESULT_INVALID_PTR;
 				if (workDataSize < 0x10000)
@@ -52,19 +58,23 @@ namespace nn
 				this->m_WorkSize = workDataSize;
 				return OLV_RESULT_SUCCESS;
 			}
-			static uint32 __SetWork(InitializeParam* _this, MEMPTR<uint8> pWorkData, uint32 workDataSize) {
+			static uint32 __SetWork(InitializeParam* _this, MEMPTR<uint8> pWorkData, uint32 workDataSize)
+			{
 				return _this->SetWork(pWorkData, workDataSize);
 			}
 
-			sint32 SetReportTypes(uint32 reportTypes) {
+			sint32 SetReportTypes(uint32 reportTypes)
+			{
 				this->m_ReportTypes = reportTypes;
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetReportTypes(InitializeParam* _this, uint32 reportTypes) {
+			static sint32 __SetReportTypes(InitializeParam* _this, uint32 reportTypes)
+			{
 				return _this->SetReportTypes(reportTypes);
 			}
 
-			sint32 SetSysArgs(MEMPTR<const void> pSysArgs, uint32 sysArgsSize) {
+			sint32 SetSysArgs(MEMPTR<const void> pSysArgs, uint32 sysArgsSize)
+			{
 				if (!pSysArgs)
 					return OLV_RESULT_INVALID_PTR;
 
@@ -76,7 +86,8 @@ namespace nn
 
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetSysArgs(InitializeParam* _this, MEMPTR<const void> pSysArgs, uint32 sysArgsSize) {
+			static sint32 __SetSysArgs(InitializeParam* _this, MEMPTR<const void> pSysArgs, uint32 sysArgsSize)
+			{
 				return _this->SetSysArgs(pSysArgs, sysArgsSize);
 			}
 
@@ -91,7 +102,8 @@ namespace nn
 		static_assert(sizeof(nn::olv::InitializeParam) == 0x40, "sizeof(nn::olv::InitializeParam) != 0x40");
 
 
-		namespace Report {
+		namespace Report
+		{
 			uint32 GetReportTypes();
 			void SetReportTypes(uint32 reportTypes);
 		}
@@ -99,7 +111,8 @@ namespace nn
 		bool IsInitialized();
 		sint32 Initialize(nn::olv::InitializeParam* pParam);
 
-		static void loadOliveInitializeTypes() {
+		static void loadOliveInitializeTypes()
+		{
 			cafeExportRegisterFunc(Initialize, "nn_olv", "Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam", LogType::None);
 			cafeExportRegisterFunc(IsInitialized, "nn_olv", "IsInitialized__Q2_2nn3olvFv", LogType::None);
 			cafeExportRegisterFunc(Report::GetReportTypes, "nn_olv", "GetReportTypes__Q3_2nn3olv6ReportFv", LogType::None);

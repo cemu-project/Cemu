@@ -205,7 +205,8 @@ namespace nn
 		}
 
 		// https://github.com/kinnay/NintendoClients/wiki/Wii-U-Error-Codes#act-error-codes
-		constexpr uint32 GetErrorCodeImpl(uint32 in) {
+		constexpr uint32 GetErrorCodeImpl(uint32 in)
+		{
 			uint32_t errorCode = in;
 			uint32_t errorVersion = (errorCode >> 27) & 3;
 			uint32_t errorModuleMask = (errorVersion != 3) ? 0x1FF00000 : 0x7F00000;
@@ -245,7 +246,8 @@ namespace nn
 			}
 		}
 
-		uint32 GetErrorCode(uint32be* pResult) {
+		uint32 GetErrorCode(uint32be* pResult)
+		{
 			return GetErrorCodeImpl(pResult->value());
 		}
 

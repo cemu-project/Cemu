@@ -6,7 +6,8 @@ namespace nn
 	namespace olv
 	{
 
-		sint32 olv_copy_wstr(char16_t* dest, const char16_t* src, uint32_t maxSize, uint32_t destSize) {
+		sint32 olv_copy_wstr(char16_t* dest, const char16_t* src, uint32_t maxSize, uint32_t destSize)
+		{
 			size_t len = maxSize + 1;
 			if (olv_wstrnlen(src, len) > maxSize)
 				return OLV_RESULT_NOT_ENOUGH_SIZE;
@@ -16,7 +17,8 @@ namespace nn
 			return OLV_RESULT_SUCCESS;
 		}
 
-		size_t olv_wstrnlen(const char16_t* str, size_t max_len) {
+		size_t olv_wstrnlen(const char16_t* str, size_t max_len)
+		{
 			size_t len = 0;
 			while (len < max_len && str[len] != u'\0')
 				len++;
@@ -24,86 +26,104 @@ namespace nn
 			return len;
 		}
 
-		char16_t* olv_wstrncpy(char16_t* dest, const char16_t* src, size_t n) {
+		char16_t* olv_wstrncpy(char16_t* dest, const char16_t* src, size_t n)
+		{
 			char16_t* ret = dest;
-			while (n > 0 && *src != u'\0') {
+			while (n > 0 && *src != u'\0')
+			{
 				*dest++ = *src++;
 				n--;
 			}
-			while (n > 0) {
+			while (n > 0)
+			{
 				*dest++ = u'\0';
 				n--;
 			}
 			return ret;
 		}
 
-		bool CheckTGA(const uint8* pTgaFile, uint32 pTgaFileLen, TGACheckType checkType) {
+		bool CheckTGA(const uint8* pTgaFile, uint32 pTgaFileLen, TGACheckType checkType)
+		{
 			const TGAHeader* header = (const TGAHeader*)pTgaFile;
-			if (checkType == TGACheckType::CHECK_PAINTING) {
-				if (
-					header->idLength ||
-					header->colorMapType ||
-					header->imageType != 2 || // Uncompressed true color
-					header->first_entry_idx ||
-					header->colormap_length ||
-					header->bpp ||
-					header->x_origin ||
-					header->y_origin ||
-					header->width != 320 ||
-					header->height != 120 ||
-					header->pixel_depth_bpp != 32 ||
-					header->image_desc_bits != 8
-					)
+			try
+			{
+				if (checkType == TGACheckType::CHECK_PAINTING)
 				{
-					goto error;
+					if (
+						header->idLength ||
+						header->colorMapType ||
+						header->imageType != 2 || // Uncompressed true color
+						header->first_entry_idx ||
+						header->colormap_length ||
+						header->bpp ||
+						header->x_origin ||
+						header->y_origin ||
+						header->width != 320 ||
+						header->height != 120 ||
+						header->pixel_depth_bpp != 32 ||
+						header->image_desc_bits != 8
+						)
+					{
+						throw std::runtime_error("TGACheckType::CHECK_PAINTING - Invalid TGA file!");
+					}
 				}
-			}
-			else if (checkType == TGACheckType::CHECK_COMMUNITY_ICON) {
-				if (header->width != 128 || header->height != 128 || header->pixel_depth_bpp != 32) {
-					goto error;
+				else if (checkType == TGACheckType::CHECK_COMMUNITY_ICON)
+				{
+					if (header->width != 128 || header->height != 128 || header->pixel_depth_bpp != 32)
+						throw std::runtime_error("TGACheckType::CHECK_COMMUNITY_ICON - Invalid TGA file -> width, height or bpp is wrong");
 				}
-			}
-			else if (checkType == TGACheckType::CHECK_100x100_200x200) {
-				if (header->pixel_depth_bpp != 32)
-					goto error;
+				else if (checkType == TGACheckType::CHECK_100x100_200x200)
+				{
+					if (header->pixel_depth_bpp != 32)
+						throw std::runtime_error("TGACheckType::CHECK_100x100_200x200 - Invalid TGA file -> bpp is wrong");
 
-				if (header->width == 100) {
-					if (header->height != 100)
-						goto error;
+					if (header->width == 100)
+					{
+						if (header->height != 100)
+							throw std::runtime_error("TGACheckType::CHECK_100x100_200x200 - Invalid TGA file -> Not 100x100");
+					}
+					else if (header->width != 200 || header->height != 200)
+						throw std::runtime_error("TGACheckType::CHECK_100x100_200x200 - Invalid TGA file -> Not 100x100 or 200x200");
 				}
-				else if (header->width != 200 || header->height != 200)
-					goto error;
 			}
-
+			catch (const std::runtime_error& error)
+			{
+				// TGA Check Error! illegal format
+				cemuLog_log(LogType::Force, error.what());
+				return false;
+			}
 			return true;
-		error:
-			cemuLog_log(LogType::Force, "OLIVE - TGA Check Error! illegal format.\n");
-			return 0;
 		}
 
-		sint32 DecodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkType) {
+		sint32 DecodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkType)
+		{
 			uint32 decompressedSize = outSize;
-			if (DecompressTGA(pOutBuffer, &decompressedSize, pInBuffer, inSize)) {
+			if (DecompressTGA(pOutBuffer, &decompressedSize, pInBuffer, inSize))
+			{
 				if (CheckTGA(pOutBuffer, decompressedSize, checkType))
 					return decompressedSize;
 				
 				return -2;
 			}
-			else {
+			else
+			{
 				cemuLog_log(LogType::Force, "OLIVE uncompress error.\n");
 				return -1;
 			}
 		}
 
-		sint32 EncodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkType) {
-			if (inSize == outSize) {
+		sint32 EncodeTGA(uint8* pInBuffer, uint32 inSize, uint8* pOutBuffer, uint32 outSize, TGACheckType checkType)
+		{
+			if (inSize == outSize)
+			{
 				if (!CheckTGA(pInBuffer, inSize, checkType))
 					return -1;
 				
 					uint32 compressedSize = outSize;
 					if (CompressTGA(pOutBuffer, &compressedSize, pInBuffer, inSize))
 						return compressedSize;
-					else {
+					else
+					{
 						cemuLog_log(LogType::Force, "OLIVE compress error.\n");
 						return -1;
 					}
@@ -115,34 +135,42 @@ namespace nn
 			}
 		}
 
-		bool DecompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize) {
+		bool DecompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize)
+		{
 			if (pOutBuffer == nullptr || pOutSize == nullptr || pInBuffer == nullptr || inSize == 0)
 				return false;
 
 			uLongf bufferSize = *pOutSize;
 			int result = uncompress(pOutBuffer, &bufferSize, pInBuffer, inSize);
 
-			if (result == Z_OK) {
+			if (result == Z_OK)
+			{
 				*pOutSize = static_cast<unsigned int>(bufferSize);
 				return true;
-			} else {
+			}
+			else
+			{
 				const char* error_msg = (result == Z_MEM_ERROR) ? "Insufficient memory" : "Unknown decompression error";
 				cemuLog_log(LogType::Force, "OLIVE ZLIB - ERROR: {}\n", error_msg);
 				return false;
 			}
 		}
 
-		bool CompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize) {
+		bool CompressTGA(uint8* pOutBuffer, uint32* pOutSize, uint8* pInBuffer, uint32 inSize)
+		{
 			if (pOutBuffer == nullptr || pOutSize == nullptr || pInBuffer == nullptr || inSize == 0)
 				return false;
 
 			uLongf bufferSize = *pOutSize;
 			int result = compress(pOutBuffer, &bufferSize, pInBuffer, inSize);
 
-			if (result == Z_OK) {
+			if (result == Z_OK)
+			{
 				*pOutSize = static_cast<unsigned int>(bufferSize);
 				return true;
-			} else {
+			}
+			else
+			{
 				const char* error_msg = (result == Z_MEM_ERROR) ? "Insufficient memory" : "Unknown compression error";
 				cemuLog_log(LogType::Force, "OLIVE ZLIB - ERROR: {}\n", error_msg);
 				return false;
@@ -174,21 +202,24 @@ namespace nn
 		constexpr uint64 GetRealCommunityCode(uint32_t communityId)
 		{
 			uint64 uVar1 = GetCommunityCodeTopByte(communityId);
-			if ((0xe7 < uVar1) && ((0xe8 < uVar1 || (0xd4a50fff < communityId)))) {
+			if ((0xe7 < uVar1) && ((0xe8 < uVar1 || (0xd4a50fff < communityId))))
 				return ((uVar1 << 32) | communityId) & 0x7fffffffff;
-			}
+
 			return ((uVar1 << 32) | communityId);
 		}
 
-		void WriteCommunityCode(char* pOutCode, uint32 communityId) {
+		void WriteCommunityCode(char* pOutCode, uint32 communityId)
+		{
 			uint32 code = CreateCommunityCodeById(communityId);
 			uint64 communityCode = GetRealCommunityCode(code);
 			sprintf(pOutCode, "%012llu", communityCode);
 		}
 
-		bool EnsureCommunityCode(char* pCode) {
+		bool EnsureCommunityCode(char* pCode)
+		{
 			uint64 code;
-			if (sscanf(pCode, "%012llu", &code) > 0) {
+			if (sscanf(pCode, "%012llu", &code) > 0)
+			{
 				uint32 lowerCode = code;
 				uint64 newCode = GetRealCommunityCode(code);
 				return code == newCode;
@@ -196,10 +227,13 @@ namespace nn
 			return false;
 		}
 
-		bool FormatCommunityCode(char* pOutCode, uint32* outLen, uint32 communityId) {
+		bool FormatCommunityCode(char* pOutCode, uint32* outLen, uint32 communityId)
+		{
 			bool result = false;
-			if (communityId != -1) {
-				if (communityId) {
+			if (communityId != -1)
+			{
+				if (communityId)
+				{
 					WriteCommunityCode(pOutCode, communityId);
 					*outLen = strnlen(pOutCode, 12);
 					if (EnsureCommunityCode(pOutCode))
@@ -211,17 +245,20 @@ namespace nn
 
 		static_assert(GetRealCommunityCode(CreateCommunityCodeById(140500)) == 717651734336, "Wrong community code generation code, result must match.");
 
-		uint32 ExtractCommunityIdFromCode(char* pCode) {
+		uint32 ExtractCommunityIdFromCode(char* pCode)
+		{
 			uint32 id = 0;
 			uint64 code;
-			if (sscanf(pCode, "%012llu", &code) > 0) {
+			if (sscanf(pCode, "%012llu", &code) > 0)
+			{
 				uint32 lower_code = code;
 				id = CreateCommunityIdByCode(lower_code);
 			}
 			return id;
 		}
 
-		bool GetCommunityIdFromCode(uint32* pOutId, const char* pCode) {
+		bool GetCommunityIdFromCode(uint32* pOutId, const char* pCode)
+		{
 			if (!EnsureCommunityCode((char*)pCode))
 				return false;
 
@@ -229,17 +266,19 @@ namespace nn
 			return true;
 		}
 
-		sint32 olv_curlformcode_to_error(CURLFORMcode code) {
-			switch (code) {
-			case CURL_FORMADD_OK:
-				return OLV_RESULT_SUCCESS;
+		sint32 olv_curlformcode_to_error(CURLFORMcode code)
+		{
+			switch (code)
+			{
+				case CURL_FORMADD_OK:
+					return OLV_RESULT_SUCCESS;
 
-			case CURL_FORMADD_MEMORY:
-				return OLV_RESULT_FATAL(25);
+				case CURL_FORMADD_MEMORY:
+					return OLV_RESULT_FATAL(25);
 
-			case CURL_FORMADD_OPTION_TWICE:
-			default:
-				return OLV_RESULT_LVL6(50);
+				case CURL_FORMADD_OPTION_TWICE:
+				default:
+					return OLV_RESULT_LVL6(50);
 			}
 		}
 	}

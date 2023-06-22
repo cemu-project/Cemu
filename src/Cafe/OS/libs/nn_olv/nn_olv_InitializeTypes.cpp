@@ -34,7 +34,8 @@ namespace nn
 			return (uint64)difftime(rawtime, gmt);
 		}
 
-		sint32 GetOlvAccessKey(uint32_t* pOutKey) {
+		sint32 GetOlvAccessKey(uint32_t* pOutKey)
+		{
 			*pOutKey = 0;
 			uint32_t accessKey = CafeSystem::GetForegroundTitleOlvAccesskey();
 			if (accessKey == -1)
@@ -44,7 +45,8 @@ namespace nn
 			return OLV_RESULT_SUCCESS;
 		}
 
-		sint32 CreateParamPack(uint64_t titleId, uint32_t accessKey) {
+		sint32 CreateParamPack(uint64_t titleId, uint32_t accessKey)
+		{
 			g_ParamPack.languageId = uint8(GetConfig().console_language.GetValue());
 
 			uint32be simpleAddress = 0;
@@ -118,15 +120,16 @@ namespace nn
 			return OLV_RESULT_SUCCESS;
 		}
 
-		sint32 MakeDiscoveryRequest_AsyncRequestImpl(CurlRequestHelper& req, const char* reqUrl) {
+		sint32 MakeDiscoveryRequest_AsyncRequestImpl(CurlRequestHelper& req, const char* reqUrl)
+		{
 			bool reqResult = req.submitRequest();
 			long httpCode = 0;
 			curl_easy_getinfo(req.getCURL(), CURLINFO_RESPONSE_CODE, &httpCode);
-			if (!reqResult) {
+			if (!reqResult)
+			{
 				cemuLog_log(LogType::Force, "Failed request: {} ({})", reqUrl, httpCode);
-				if (!(httpCode >= 400)) {
+				if (!(httpCode >= 400))
 					return OLV_RESULT_FAILED_REQUEST;
-				}
 			}
 
 			pugi::xml_document doc;
@@ -158,13 +161,15 @@ namespace nn
 			*/
 
 			pugi::xml_node resultNode = doc.child("result");
-			if (!resultNode) {
+			if (!resultNode)
+			{
 				cemuLog_log(LogType::Force, "Discovery response doesn't contain <result>");
 				return OLV_RESULT_INVALID_XML;
 			}
 
 			pugi::xml_node endpointNode = resultNode.child("endpoint");
-			if (!endpointNode) {
+			if (!endpointNode)
+			{
 				cemuLog_log(LogType::Force, "Discovery response doesn't contain <result><endpoint>");
 				return OLV_RESULT_INVALID_XML;
 			}
@@ -194,16 +199,16 @@ namespace nn
 			std::string requestUrl;
 			switch (ActiveSettings::GetNetworkService())
 			{
-			case NetworkService::Pretendo:
-				requestUrl = PretendoURLs::OLVURL;
-				break;
-			case NetworkService::Custom:
-				requestUrl = GetNetworkConfig().urls.OLV.GetValue();
-				break;
-			case NetworkService::Nintendo:
-			default:
-				requestUrl = NintendoURLs::OLVURL;
-				break;
+				case NetworkService::Pretendo:
+					requestUrl = PretendoURLs::OLVURL;
+					break;
+				case NetworkService::Custom:
+					requestUrl = GetNetworkConfig().urls.OLV.GetValue();
+					break;
+				case NetworkService::Nintendo:
+				default:
+					requestUrl = NintendoURLs::OLVURL;
+					break;
 			}
 
 			req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
@@ -243,20 +248,23 @@ namespace nn
 
 			uint64_t tid = CafeSystem::GetForegroundTitleId();
 			int32_t createParamPackResult = CreateParamPack(tid, accessKey);
-			if (createParamPackResult < 0) {
+			if (createParamPackResult < 0)
+			{
 				g_IsInitialized = false;
 				return createParamPackResult;
 			}
 
 			g_IsInitialized = true;
 
-			if ((pParam->m_Flags & InitializeParam::FLAG_OFFLINE_MODE) == 0) {
+			if ((pParam->m_Flags & InitializeParam::FLAG_OFFLINE_MODE) == 0)
+			{
 
 				g_IsOnlineMode = true;
 
 				independentServiceToken_t token;
 				sint32 res = (sint32)nn::act::AcquireIndependentServiceToken(&token, OLV_CLIENT_ID, 0);
-				if (res < 0) {
+				if (res < 0)
+				{
 					g_IsInitialized = false;
 					return res;
 				}
@@ -271,9 +279,8 @@ namespace nn
 				memcpy(g_DiscoveryResults.serviceToken, token.token, sizeof(g_DiscoveryResults.serviceToken));
 
 				sint32 discoveryRes = MakeDiscoveryRequest();
-				if (discoveryRes < 0) {
+				if (discoveryRes < 0)
 					g_IsInitialized = false;
-				}
 
 				return discoveryRes;
 			}
@@ -282,16 +289,19 @@ namespace nn
 		}
 
 		namespace Report {
-			uint32 GetReportTypes() {
+			uint32 GetReportTypes()
+			{
 				return g_ReportTypes;
 			}
 
-			void SetReportTypes(uint32 reportTypes) {
+			void SetReportTypes(uint32 reportTypes)
+			{
 				g_ReportTypes = reportTypes | 0x1000;
 			}
 		}
 
-		bool IsInitialized() {
+		bool IsInitialized()
+		{
 			return g_IsInitialized;
 		}
 	}

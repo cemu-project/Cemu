@@ -17,7 +17,8 @@ namespace nn
 			static const inline uint32 FLAG_HAS_APP_DATA = (1 << 2);
 			static const inline uint32 FLAG_HAS_ICON_DATA = (1 << 3);
 		
-			UploadedFavoriteToCommunityData() {
+			UploadedFavoriteToCommunityData()
+			{
 				this->titleTextMaxLen = 0;
 				this->appDataLen = 0;
 				this->descriptionMaxLen = 0;
@@ -26,8 +27,10 @@ namespace nn
 				this->flags = 0;
 				this->iconDataSize = 0;
 			}
-			static UploadedFavoriteToCommunityData* __ctor(UploadedFavoriteToCommunityData* _this) {
-				if (!_this) {
+			static UploadedFavoriteToCommunityData* __ctor(UploadedFavoriteToCommunityData* _this)
+			{
+				if (!_this)
+				{
 					assert_dbg(); // DO NOT CONTINUE, SHOULD NEVER HAPPEN
 					return nullptr;
 				} 
@@ -35,7 +38,8 @@ namespace nn
 					return new (_this) UploadedFavoriteToCommunityData();
 			}
 
-			static UploadedFavoriteToCommunityData* Clean(UploadedFavoriteToCommunityData* data) {
+			static UploadedFavoriteToCommunityData* Clean(UploadedFavoriteToCommunityData* data)
+			{
 				data->appDataLen = 0;
 				data->pid = 0;
 				data->titleText[0] = 0;
@@ -50,21 +54,26 @@ namespace nn
 				return data;
 			}
 
-			bool TestFlags(uint32 flags) const {
+			bool TestFlags(uint32 flags) const
+			{
 				return (this->flags & flags) != 0;
 			}
-			static bool __TestFlags(UploadedFavoriteToCommunityData* _this, uint32 flags) {
+			static bool __TestFlags(UploadedFavoriteToCommunityData* _this, uint32 flags)
+			{
 				return _this->TestFlags(flags);
 			}
 
-			uint32 GetCommunityId() const {
+			uint32 GetCommunityId() const
+			{
 				return this->communityId;
 			}
-			static uint32 __GetCommunityId(UploadedFavoriteToCommunityData* _this) {
+			static uint32 __GetCommunityId(UploadedFavoriteToCommunityData* _this)
+			{
 				return _this->GetCommunityId();
 			}
 
-			sint32 GetCommunityCode(char* pBuffer, uint32 bufferSize) const {
+			sint32 GetCommunityCode(char* pBuffer, uint32 bufferSize) const
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
@@ -77,22 +86,27 @@ namespace nn
 				
 				return OLV_RESULT_INVALID_PARAMETER;
 			}
-			static sint32 __GetCommunityCode(UploadedFavoriteToCommunityData* _this, char* pBuffer, uint32 bufferSize) {
+			static sint32 __GetCommunityCode(UploadedFavoriteToCommunityData* _this, char* pBuffer, uint32 bufferSize)
+			{
 				return _this->GetCommunityCode(pBuffer, bufferSize);
 			}
 
-			uint32 GetOwnerPid() const {
+			uint32 GetOwnerPid() const
+			{
 				return this->pid;
 			}
-			static uint32 __GetOwnerPid(UploadedFavoriteToCommunityData* _this) {
+			static uint32 __GetOwnerPid(UploadedFavoriteToCommunityData* _this)
+			{
 				return _this->GetOwnerPid();
 			}
 
-			sint32 GetTitleText(char16_t* pBuffer, uint32 numChars) {
+			sint32 GetTitleText(char16_t* pBuffer, uint32 numChars)
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 				
-				if (numChars) {
+				if (numChars)
+				{
 					if (!this->TestFlags(FLAG_HAS_TITLE_TEXT))
 						return OLV_RESULT_MISSING_DATA;
 
@@ -107,15 +121,18 @@ namespace nn
 
 				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
-			static sint32 __GetTitleText(UploadedFavoriteToCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
+			static sint32 __GetTitleText(UploadedFavoriteToCommunityData* _this, char16_t* pBuffer, uint32 numChars)
+			{
 				return _this->GetTitleText(pBuffer, numChars);
 			}
 
-			sint32 GetDescriptionText(char16_t* pBuffer, uint32 numChars) {
+			sint32 GetDescriptionText(char16_t* pBuffer, uint32 numChars)
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
-				if (numChars) {
+				if (numChars)
+				{
 					if (!this->TestFlags(FLAG_HAS_DESC_TEXT))
 						return OLV_RESULT_MISSING_DATA;
 
@@ -126,16 +143,19 @@ namespace nn
 
 				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
-			static sint32 __GetDescriptionText(UploadedFavoriteToCommunityData* _this, char16_t* pBuffer, uint32 numChars) {
+			static sint32 __GetDescriptionText(UploadedFavoriteToCommunityData* _this, char16_t* pBuffer, uint32 numChars)
+			{
 				return _this->GetDescriptionText(pBuffer, numChars);
 			}
 
-			sint32 GetAppData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			sint32 GetAppData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				uint32 appDataSize = bufferSize;
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 				
-				if (bufferSize) {
+				if (bufferSize)
+				{
 					if (!this->TestFlags(FLAG_HAS_APP_DATA))
 						return OLV_RESULT_MISSING_DATA;
 
@@ -151,21 +171,25 @@ namespace nn
 
 				return OLV_RESULT_NOT_ENOUGH_SIZE;
 			}
-			static sint32 __GetAppData(UploadedFavoriteToCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			static sint32 __GetAppData(UploadedFavoriteToCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				return _this->GetAppData(pBuffer, pOutSize, bufferSize);
 			}
 
-			uint32 GetAppDataSize() const {
+			uint32 GetAppDataSize() const
+			{
 				if (this->TestFlags(FLAG_HAS_APP_DATA))
 					return this->appDataLen;
 
 				return 0;
 			}
-			static uint32 __GetAppDataSize(UploadedFavoriteToCommunityData* _this)  {
+			static uint32 __GetAppDataSize(UploadedFavoriteToCommunityData* _this)
+			{
 				return _this->GetAppDataSize();
 			}
 
-			sint32 GetIconData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			sint32 GetIconData(uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				if (!pBuffer)
 					return OLV_RESULT_INVALID_PTR;
 
@@ -176,7 +200,8 @@ namespace nn
 					return OLV_RESULT_MISSING_DATA;
 
 				sint32 decodeRes = DecodeTGA(this->iconData, this->iconDataSize, pBuffer, bufferSize, TGACheckType::CHECK_COMMUNITY_ICON);
-				if (decodeRes >= 0) {
+				if (decodeRes >= 0)
+				{
 					if (pOutSize)
 						*pOutSize = (uint32)decodeRes;
 
@@ -193,7 +218,8 @@ namespace nn
 
 				return OLV_RESULT_INVALID_TEXT_FIELD;
 			}
-			static sint32 __GetIconData(UploadedFavoriteToCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize) {
+			static sint32 __GetIconData(UploadedFavoriteToCommunityData* _this, uint8* pBuffer, uint32be* pOutSize, uint32 bufferSize)
+			{
 				return _this->GetIconData(pBuffer, pOutSize, bufferSize);
 			}
 
@@ -213,17 +239,21 @@ namespace nn
 		};
 		static_assert(sizeof(nn::olv::UploadedFavoriteToCommunityData) == 0x12000, "sizeof(nn::olv::UploadedFavoriteToCommunityData) != 0x12000");
 
-		class UploadFavoriteToCommunityDataParam {
+		class UploadFavoriteToCommunityDataParam
+		{
 
 		public:
 			static const inline uint32 FLAG_DELETION = (1 << 0);
 
-			UploadFavoriteToCommunityDataParam() {
+			UploadFavoriteToCommunityDataParam()
+			{
 				this->communityId = 0;
 				this->flags = 0;
 			}
-			static UploadFavoriteToCommunityDataParam* __ctor(UploadFavoriteToCommunityDataParam* _this) {
-				if (!_this) {
+			static UploadFavoriteToCommunityDataParam* __ctor(UploadFavoriteToCommunityDataParam* _this)
+			{
+				if (!_this)
+				{
 					assert_dbg(); // DO NOT CONTINUE, SHOULD NEVER HAPPEN
 					return nullptr;
 				}
@@ -231,38 +261,45 @@ namespace nn
 					return new (_this) UploadFavoriteToCommunityDataParam();
 			}
 
-			sint32 SetFlags(uint32 flags) {
+			sint32 SetFlags(uint32 flags)
+			{
 				this->flags = flags;
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetFlags(UploadFavoriteToCommunityDataParam* _this, uint32 flags) {
+			static sint32 __SetFlags(UploadFavoriteToCommunityDataParam* _this, uint32 flags)
+			{
 				return _this->SetFlags(flags);
 			}
 
-			sint32 SetCommunityCode(const char* pBuffer) {
+			sint32 SetCommunityCode(const char* pBuffer)
+			{
 				if (strnlen(pBuffer, 13) != 12)
 					return OLV_RESULT_INVALID_TEXT_FIELD;
 
 				uint32_t id;
-				if (GetCommunityIdFromCode(&id, pBuffer)) {
+				if (GetCommunityIdFromCode(&id, pBuffer))
+				{
 					this->communityId = id;
 					return OLV_RESULT_SUCCESS;
 				}
 
 				return OLV_RESULT_STATUS(1901);
 			}
-			static sint32 __SetCommunityCode(UploadFavoriteToCommunityDataParam* _this, char* pBuffer) {
+			static sint32 __SetCommunityCode(UploadFavoriteToCommunityDataParam* _this, char* pBuffer)
+			{
 				return _this->SetCommunityCode(pBuffer);
 			}
 
-			sint32 SetCommunityId(uint32 communityId) {
+			sint32 SetCommunityId(uint32 communityId)
+			{
 				if (communityId == -1)
 					return OLV_RESULT_INVALID_PARAMETER;
 
 				this->communityId = communityId;
 				return OLV_RESULT_SUCCESS;
 			}
-			static sint32 __SetCommunityId(UploadFavoriteToCommunityDataParam* _this, uint32 communityId) {
+			static sint32 __SetCommunityId(UploadFavoriteToCommunityDataParam* _this, uint32 communityId)
+			{
 				return _this->SetCommunityId(communityId);
 			}
 
@@ -276,7 +313,8 @@ namespace nn
 		sint32 UploadFavoriteToCommunityData(const UploadFavoriteToCommunityDataParam* pParam);
 		sint32 UploadFavoriteToCommunityData(UploadedFavoriteToCommunityData* pOutData, const UploadFavoriteToCommunityDataParam* pParam);
 
-		static void loadOliveUploadFavoriteTypes() {
+		static void loadOliveUploadFavoriteTypes()
+		{
 			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__ctor, "nn_olv", "__ct__Q3_2nn3olv31UploadedFavoriteToCommunityDataFv", LogType::None);
 			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFUi", LogType::None);
 			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFv", LogType::None);
