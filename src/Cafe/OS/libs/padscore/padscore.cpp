@@ -287,7 +287,7 @@ void padscoreExport_KPADGetUnifiedWpadStatus(PPCInterpreter_t* hCPU)
 	ppcDefineParamPtr(status, KPADUnifiedWpadStatus_t, 1);
 	ppcDefineParamU32(count, 2);
 
-	cemuLog_log(LogType::InputAPI, "KPADGetUnifiedWpadStatus({}, 0x{:x}, 0x{:x})", channel, fmt::ptr(status), count);
+	cemuLog_log(LogType::InputAPI, "KPADGetUnifiedWpadStatus({}, 0x{:08x}, 0x{:x})", channel, MEMPTR<void>(status).GetMPTR(), count);
 
 	if (channel < InputManager::kMaxWPADControllers)
 	{
