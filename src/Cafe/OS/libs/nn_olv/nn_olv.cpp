@@ -1,6 +1,9 @@
-#include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/OS/libs/nn_common.h"
 #include "nn_olv.h"
+
+#include "nn_olv_InitializeTypes.h"
+#include "nn_olv_UploadCommunityTypes.h"
+#include "nn_olv_DownloadCommunityTypes.h"
+#include "nn_olv_UploadFavoriteTypes.h"
 
 namespace nn
 {
@@ -124,14 +127,6 @@ namespace nn
 			osLib_returnFromFunction(hCPU, 0);
 		}
 
-		void export_DownloadCommunityDataList(PPCInterpreter_t* hCPU)
-		{
-			ppcDefineParamTypePtr(communityListSizeOut, uint32be, 1);
-
-			*communityListSizeOut = 0;
-			osLib_returnFromFunction(hCPU, 0);
-		}
-
 		void exportDownloadPostData_TestFlags(PPCInterpreter_t* hCPU)
 		{
 			ppcDefineParamTypePtr(downloadedPostData, DownloadedPostData_t, 0);
@@ -209,16 +204,71 @@ namespace nn
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_OLV, 0); // undefined error
 		}
 
+		// https://github.com/kinnay/NintendoClients/wiki/Wii-U-Error-Codes#act-error-codes
+		constexpr uint32 GetErrorCodeImpl(uint32 in)
+		{
+			uint32_t errorCode = in;
+			uint32_t errorVersion = (errorCode >> 27) & 3;
+			uint32_t errorModuleMask = (errorVersion != 3) ? 0x1FF00000 : 0x7F00000;
+			bool isCodeFailure = errorCode & 0x80000000;
+
+			if (((errorCode & errorModuleMask) >> 20) == NN_RESULT_MODULE_NN_ACT)
+			{
+				// BANNED_ACCOUNT_IN_INDEPENDENT_SERVICE or BANNED_ACCOUNT_IN_INDEPENDENT_SERVICE_TEMPORARILY
+				if (errorCode == OLV_ACT_RESULT_STATUS(2805) || errorCode == OLV_ACT_RESULT_STATUS(2825))
+				{
+					uint32 tmpCode = OLV_RESULT_STATUS(1008);
+					return GetErrorCodeImpl(tmpCode);
+				}
+				// BANNED_DEVICE_IN_INDEPENDENT_SERVICE or  BANNED_DEVICE_IN_INDEPENDENT_SERVICE_TEMPORARILY
+				else if (errorCode == OLV_ACT_RESULT_STATUS(2815) || errorCode == OLV_ACT_RESULT_STATUS(2835))
+				{
+					uint32 tmpCode = OLV_RESULT_STATUS(1009);
+					return GetErrorCodeImpl(tmpCode);
+				}
+				else
+				{
+					// Check ACT error code
+					return 1159999;
+				}
+			}
+			else
+			{
+				if (((errorCode & errorModuleMask) >> 20) == NN_RESULT_MODULE_NN_OLV && isCodeFailure)
+				{
+					uint32_t errorValueMask = (errorVersion != 3) ? 0xFFFFF : 0x3FF;
+					return ((errorCode & errorValueMask) >> 7) + 1150000;
+				}
+				else
+				{
+					return 1159999;
+				}
+			}
+		}
+
+		uint32 GetErrorCode(uint32be* pResult)
+		{
+			return GetErrorCodeImpl(pResult->value());
+		}
+
+		static_assert(GetErrorCodeImpl(0xa119c600) == 1155004);
+
 		void load()
 		{
+
+			loadOliveInitializeTypes();
+			loadOliveUploadCommunityTypes();
+			loadOliveDownloadCommunityTypes();
+			loadOliveUploadFavoriteTypes();
+
+			cafeExportRegisterFunc(GetErrorCode, "nn_olv", "GetErrorCode__Q2_2nn3olvFRCQ2_2nn6Result", LogType::None);
+
 			osLib_addFunction("nn_olv", "DownloadPostDataList__Q2_2nn3olvFPQ3_2nn3olv19DownloadedTopicDataPQ3_2nn3olv18DownloadedPostDataPUiUiPCQ3_2nn3olv25DownloadPostDataListParam", export_DownloadPostDataList);
 			osLib_addFunction("nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", exportDownloadPostData_TestFlags);
 			osLib_addFunction("nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetPostId);
 			osLib_addFunction("nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetMiiNickname);
 			osLib_addFunction("nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetTopicTag);
 			osLib_addFunction("nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", exportDownloadPostData_GetBodyText);
-
-			osLib_addFunction("nn_olv", "DownloadCommunityDataList__Q2_2nn3olvFPQ3_2nn3olv23DownloadedCommunityDataPUiUiPCQ3_2nn3olv30DownloadCommunityDataListParam", export_DownloadCommunityDataList);
 
 			osLib_addFunction("nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetServiceToken);
 

@@ -406,6 +406,16 @@ add_library(CemuCafe
   OS/libs/nn_nim/nn_nim.h
   OS/libs/nn_olv/nn_olv.cpp
   OS/libs/nn_olv/nn_olv.h
+  OS/libs/nn_olv/nn_olv_Common.cpp
+  OS/libs/nn_olv/nn_olv_Common.h
+  OS/libs/nn_olv/nn_olv_InitializeTypes.cpp
+  OS/libs/nn_olv/nn_olv_InitializeTypes.h
+  OS/libs/nn_olv/nn_olv_DownloadCommunityTypes.cpp
+  OS/libs/nn_olv/nn_olv_DownloadCommunityTypes.h
+  OS/libs/nn_olv/nn_olv_UploadCommunityTypes.cpp
+  OS/libs/nn_olv/nn_olv_UploadCommunityTypes.h
+  OS/libs/nn_olv/nn_olv_UploadFavoriteTypes.cpp
+  OS/libs/nn_olv/nn_olv_UploadFavoriteTypes.h
   OS/libs/nn_pdm/nn_pdm.cpp
   OS/libs/nn_pdm/nn_pdm.h
   OS/libs/nn_save/nn_save.cpp

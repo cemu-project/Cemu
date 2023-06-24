@@ -67,6 +67,38 @@ CURLcode _sslctx_function_SOAP(CURL* curl, void* sslctx, void* param)
 	return CURLE_OK;
 }
 
+CURLcode _sslctx_function_OLIVE(CURL* curl, void* sslctx, void* param)
+{
+	if (iosuCrypto_addCACertificate(sslctx, 105) == false)
+	{
+		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
+		cemuLog_log(LogType::Force, "Certificate error");
+	}
+	if (iosuCrypto_addClientCertificate(sslctx, 7) == false)
+	{
+		cemuLog_log(LogType::Force, "Olive client certificate error");
+	}
+
+	// NSSLAddServerPKIGroups(sslCtx, 3, &x, &y);
+	{
+		std::vector<sint16> certGroups = {
+			100,  101,  102,   103,  104,  105,
+			1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009,
+			1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019,
+			1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029,
+			1030, 1031, 1032, 1033
+		};
+
+		for (auto& certId : certGroups)
+			iosuCrypto_addCACertificate(sslctx, certId);
+	}
+
+	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
+	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
+	SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_PEER, nullptr);
+	return CURLE_OK;
+}
+
 CurlRequestHelper::CurlRequestHelper()
 {
 	m_curl = curl_easy_init();
@@ -120,6 +152,11 @@ void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
 	else if (sslContext == SERVER_SSL_CONTEXT::CCS)
 	{
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
+	}
+	else if (sslContext == SERVER_SSL_CONTEXT::OLIVE)
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_OLIVE);
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
 	}
 	else
@@ -178,9 +215,11 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 	// post
 	if (isPost)
 	{
-		curl_easy_setopt(m_curl, CURLOPT_POST, 1);
-		curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_postData.data());
-		curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, m_postData.size());
+		if (!m_isUsingMultipartFormData) {
+			curl_easy_setopt(m_curl, CURLOPT_POST, 1);
+			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_postData.data());
+			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, m_postData.size());
+		}
 	}
 	else
 		curl_easy_setopt(m_curl, CURLOPT_POST, 0);

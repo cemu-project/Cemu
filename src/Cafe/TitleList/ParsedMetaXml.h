@@ -16,6 +16,8 @@ struct ParsedMetaXml
 	std::array<std::string, 12> m_short_name;
 	std::array<std::string, 12> m_publisher;
 
+	uint32 m_olv_accesskey;
+
 	std::string GetShortName(CafeConsoleLanguage languageId) const
 	{
 		return m_short_name[(size_t)languageId].empty() ? m_short_name[(size_t)CafeConsoleLanguage::EN] : m_short_name[(size_t)languageId];
@@ -49,6 +51,11 @@ struct ParsedMetaXml
 	std::string GetCompanyCode() const
 	{
 		return m_company_code;
+	}
+
+	uint32 GetOlvAccesskey() const
+	{
+		return m_olv_accesskey;
 	}
 
 	static ParsedMetaXml* Parse(uint8* xmlData, size_t xmlSize)
@@ -98,6 +105,8 @@ struct ParsedMetaXml
 				if (index != -1)
 					parsedMetaXml->m_publisher[index] = child.text().as_string();
 			}
+			else if (boost::starts_with(name, L"olv_accesskey"))
+				parsedMetaXml->m_olv_accesskey = child.text().as_uint(-1);
 		}
 		if (parsedMetaXml->m_title_id == 0)
 		{

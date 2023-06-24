@@ -26,6 +26,7 @@ namespace CafeSystem
 	CafeConsoleRegion GetPlatformRegion();
 	std::string GetForegroundTitleName();
 	std::string GetForegroundTitleArgStr();
+	uint32 GetForegroundTitleOlvAccesskey();
 
 	void ShutdownTitle();
 

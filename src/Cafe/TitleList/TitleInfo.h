@@ -122,6 +122,7 @@ public:
 	uint32 GetAppType() const; // from app.xml
 	std::string GetTitleName() const; // from meta.xml
 	CafeConsoleRegion GetMetaRegion() const; // from meta.xml
+	uint32 GetOlvAccesskey() const;
 
 	// cos.xml
 	std::string GetArgStr() const;

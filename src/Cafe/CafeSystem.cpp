@@ -723,6 +723,13 @@ namespace CafeSystem
 		return applicationName;
 	}
 
+	uint32 GetForegroundTitleOlvAccesskey()
+	{
+		if (sLaunchModeIsStandalone)
+			return -1;
+		return sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetOlvAccesskey();
+	}
+
 	std::string GetForegroundTitleArgStr()
 	{
 		if (sLaunchModeIsStandalone)

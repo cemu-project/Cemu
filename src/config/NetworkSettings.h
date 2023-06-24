@@ -30,6 +30,7 @@ struct NetworkConfig {
 		 ConfigValue<std::string> IDBE;
 		 ConfigValue<std::string> BOSS;
 		 ConfigValue<std::string> TAGAYA;
+		 ConfigValue<std::string> OLV;
 	}urls{};
 
     public:
@@ -50,6 +51,7 @@ struct NintendoURLs {
    inline static std::string IDBEURL = "https://idbe-wup.cdn.nintendo.net/icondata";
    inline static std::string BOSSURL = "https://npts.app.nintendo.net/p01/tasksheet";
    inline static std::string TAGAYAURL = "https://tagaya.wup.shop.nintendo.net/tagaya/versionlist";
+   inline static std::string OLVURL = "https://discovery.olv.nintendo.net/v1/endpoint";
 };
 
 struct PretendoURLs {
@@ -62,6 +64,7 @@ struct PretendoURLs {
    inline static std::string IDBEURL = "https://idbe-wup.cdn.pretendo.cc/icondata";
    inline static std::string BOSSURL = "https://npts.app.pretendo.cc/p01/tasksheet";
    inline static std::string TAGAYAURL = "https://tagaya.wup.shop.pretendo.cc/tagaya/versionlist";
+   inline static std::string OLVURL = "https://discovery.olv.pretendo.cc/v1/endpoint";
 };
 
 typedef XMLDataConfig<NetworkConfig, &NetworkConfig::Load, &NetworkConfig::Save> XMLNetworkConfig_t;
