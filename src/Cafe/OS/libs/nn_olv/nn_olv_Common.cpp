@@ -201,11 +201,11 @@ namespace nn
 
 		constexpr uint64 GetRealCommunityCode(uint32_t communityId)
 		{
-			uint64 uVar1 = GetCommunityCodeTopByte(communityId);
-			if ((0xe7 < uVar1) && ((0xe8 < uVar1 || (0xd4a50fff < communityId))))
-				return ((uVar1 << 32) | communityId) & 0x7fffffffff;
+			uint64 topByte = GetCommunityCodeTopByte(communityId);
+			if ((0xe7 < topByte) && ((0xe8 < topByte || (0xd4a50fff < communityId))))
+				return ((topByte << 32) | communityId) & 0x7fffffffff;
 
-			return ((uVar1 << 32) | communityId);
+			return ((topByte << 32) | communityId);
 		}
 
 		void WriteCommunityCode(char* pOutCode, uint32 communityId)
