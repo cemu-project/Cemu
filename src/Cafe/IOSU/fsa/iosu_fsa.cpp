@@ -382,6 +382,7 @@ namespace iosu
 			else if (fsc_isFile(fscFile))
 			{
 				fsStatOut->size = fsc_getFileSize(fscFile);
+                statFlag |= FSFlag::IS_FILE;
 			}
 			else
 			{
