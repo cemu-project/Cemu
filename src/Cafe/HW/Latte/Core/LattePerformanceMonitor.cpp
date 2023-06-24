@@ -113,7 +113,6 @@ void LattePerformanceMonitor_frameEnd()
 			gui_updateWindowTitles(false, false, fps);
 		}
 	}
-	LatteOverlay_updateStatsPerFrame();
 }
 
 void LattePerformanceMonitor_frameBegin()

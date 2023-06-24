@@ -1201,20 +1201,10 @@ void OpenGLRenderer::draw_beginSequence()
 void OpenGLRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
 	bool isMinimal = !isFirst;
-	if (ActiveSettings::FrameProfilerEnabled())
-	{
-		if (isMinimal)
-			draw_genericDrawHandler<true, true>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-		else
-			draw_genericDrawHandler<false, true>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-	}
-	else
-	{
-		if (isMinimal)
-			draw_genericDrawHandler<true, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-		else
-			draw_genericDrawHandler<false, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-	}	
+    if (isMinimal)
+        draw_genericDrawHandler<true, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
+    else
+        draw_genericDrawHandler<false, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
 }
 
 void OpenGLRenderer::draw_endSequence()

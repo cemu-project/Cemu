@@ -139,7 +139,6 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS,
-	MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER,
 	MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY,
 	MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS,
 
@@ -225,7 +224,6 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS, MainWindow::OnDebugViewPPCThr
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, MainWindow::OnDebugViewPPCDebugger)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, MainWindow::OnDebugViewAudioDebugger)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugViewTextureRelations)
-EVT_MENU(MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER, MainWindow::OnDebugSetting)
 // help menu
 EVT_MENU(MAINFRAME_MENU_ID_HELP_WEB, MainWindow::OnHelpVistWebpage)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
@@ -1037,10 +1035,6 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 				volumeFST_dump(bootGame_getMountedWUD());
 				wxMessageBox(_("Dump complete"));
 			}*/
-	}
-	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER)
-	{
-		ActiveSettings::EnableFrameProfiler(event.IsChecked());
 	}
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS)
 	{
@@ -2231,7 +2225,6 @@ void MainWindow::RecreateMenu()
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, _("&View PPC debugger"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, _("&View audio debugger"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, _("&View texture cache info"));
-	debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER, _("&Show frame profiler"), wxEmptyString);
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, _("&Dump current RAM"));
 	// debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_FST, _("&Dump WUD filesystem"))->Enable(false);
 

@@ -104,10 +104,6 @@ public:
 	static void EnableDumpTextures(bool state);
 	static void EnableDumpLibcurlRequests(bool state);
 
-	// debug
-	[[nodiscard]] static bool FrameProfilerEnabled();
-	static void EnableFrameProfiler(bool state);
-
 	// hacks
 	[[nodiscard]] static bool VPADDelayEnabled();
 	[[nodiscard]] static bool ShaderPreventInfiniteLoopsEnabled();
@@ -124,7 +120,6 @@ private:
 	inline static uint8 s_timer_shift = 3; // right shift factor, 0 -> 8x, 3 -> 1x, 4 -> 0.5x
 
 	// debug
-	inline static bool s_frame_profiler_enabled = false;
 	inline static bool s_audio_aux_only = false;
 
 	inline static bool s_has_required_online_files = false;

@@ -115,9 +115,9 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 
 void coreinitExport_OSPanic(PPCInterpreter_t* hCPU)
 {
-	debug_printf("OSPanic!\n");
-	debug_printf("File: %s:%d\n", memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4]);
-	debug_printf("Msg: %s\n", memory_getPointerFromVirtualOffset(hCPU->gpr[5]));
+	cemuLog_log(LogType::Force, "OSPanic!\n");
+    cemuLog_log(LogType::Force, "File: {}:{}\n", (const char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4]);
+    cemuLog_log(LogType::Force, "Msg: {}\n", (const char*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]));
 	DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
 #ifdef CEMU_DEBUG_ASSERT
 	assert_dbg();
@@ -271,7 +271,8 @@ namespace coreinit
 
 	void coreinit_exit(uint32 r)
 	{
-		cemuLog_log(LogType::Force, "coreinit.exit({})", r);
+		cemuLog_log(LogType::Force, "The title terminated the process by calling coreinit.exit({})", (sint32)r);
+        DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
 		cemu_assert_debug(false);
 		// never return
 		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
