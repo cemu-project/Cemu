@@ -538,6 +538,7 @@ namespace coreinit
 
 	bool OSIsThreadTerminated(OSThread_t* thread);
 	bool OSIsThreadSuspended(OSThread_t* thread);
+    bool OSIsThreadRunningNoLock(OSThread_t* thread);
 	bool OSIsThreadRunning(OSThread_t* thread);
 
 	// OSThreadQueue
@@ -603,6 +604,8 @@ namespace coreinit
 	void __OSAddReadyThreadToRunQueue(OSThread_t* thread);
 	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread);
 	void __OSQueueThreadDeallocation(OSThread_t* thread);
+
+    bool __OSIsThreadActive(OSThread_t* thread);
 }
 
 #pragma pack()

@@ -83,6 +83,20 @@ RPLStoredSymbol* rplSymbolStorage_getByAddress(MPTR address)
 	return rplSymbolStorage.map_symbolByAddress[address];
 }
 
+RPLStoredSymbol* rplSymbolStorage_getByClosestAddress(MPTR address)
+{
+    // highly inefficient but doesn't matter for now
+    std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
+    for(uint32 i=0; i<4096; i++)
+    {
+        RPLStoredSymbol* symbol = rplSymbolStorage.map_symbolByAddress[address];
+        if(symbol)
+            return symbol;
+        address -= 4;
+    }
+    return nullptr;
+}
+
 void rplSymbolStorage_remove(RPLStoredSymbol* storedSymbol)
 {
 	std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);

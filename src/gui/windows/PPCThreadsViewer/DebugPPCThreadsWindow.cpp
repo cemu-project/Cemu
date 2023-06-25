@@ -5,6 +5,8 @@
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 
+#include "gui/components/wxProgressDialogManager.h"
+
 #include <cinttypes>
 
 enum
@@ -23,17 +25,18 @@ enum
 	THREADLIST_MENU_SUSPEND,
 	THREADLIST_MENU_RESUME,
 	THREADLIST_MENU_DUMP_STACK_TRACE,
+	THREADLIST_MENU_PROFILE_THREAD,
 };
 
 wxBEGIN_EVENT_TABLE(DebugPPCThreadsWindow, wxFrame)
-		EVT_BUTTON(CLOSE_ID,DebugPPCThreadsWindow::OnCloseButton)
-		EVT_BUTTON(REFRESH_ID,DebugPPCThreadsWindow::OnRefreshButton)
-
-		EVT_CLOSE(DebugPPCThreadsWindow::OnClose)
+	EVT_BUTTON(CLOSE_ID, DebugPPCThreadsWindow::OnCloseButton)
+	EVT_BUTTON(REFRESH_ID, DebugPPCThreadsWindow::OnRefreshButton)
+	EVT_CLOSE(DebugPPCThreadsWindow::OnClose)
 wxEND_EVENT_TABLE()
 
 DebugPPCThreadsWindow::DebugPPCThreadsWindow(wxFrame& parent)
-	: wxFrame(&parent, wxID_ANY, _("PPC threads"), wxDefaultPosition, wxSize(930, 280), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
+	: wxFrame(&parent, wxID_ANY, _("PPC threads"), wxDefaultPosition, wxSize(930, 280),
+			  wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
 {
 	wxFrame::SetBackgroundColour(*wxWHITE);
 
@@ -158,7 +161,6 @@ void DebugPPCThreadsWindow::OnTimer(wxTimerEvent& event)
 		RefreshThreadList();
 }
 
-
 #define _r(__idx) _swapEndianU32(cafeThread->context.gpr[__idx])
 
 void DebugPPCThreadsWindow::RefreshThreadList()
@@ -278,30 +280,126 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
 
 void DebugPPCThreadsWindow::DumpStackTrace(OSThread_t* thread)
 {
-	cemuLog_log(LogType::Force, fmt::format("Dumping stack trace for thread {0:08x} LR: {1:08x}", memory_getVirtualOffsetFromPointer(thread), _swapEndianU32(thread->context.lr)));
+	cemuLog_log(LogType::Force, fmt::format("Dumping stack trace for thread {0:08x} LR: {1:08x}",
+											memory_getVirtualOffsetFromPointer(thread),
+											_swapEndianU32(thread->context.lr)));
 	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]));
+}
+
+void DebugPPCThreadsWindow::PresentProfileResults(OSThread_t* thread, const std::unordered_map<VAddr, uint32>& samples)
+{
+	std::vector<std::pair<VAddr, uint32>> sortedSamples;
+	// count samples
+	uint32 totalSampleCount = 0;
+	for (auto& sample : samples)
+		totalSampleCount += sample.second;
+	cemuLog_log(LogType::Force, "--- Thread {:08x} profile results with {:} samples captured ---",
+				MEMPTR<OSThread_t>(thread).GetMPTR(), totalSampleCount);
+	cemuLog_log(LogType::Force, "Exclusive time, grouped by function:");
+	// print samples grouped by function
+	sortedSamples.clear();
+	for (auto& sample : samples)
+	{
+		RPLStoredSymbol* symbol = rplSymbolStorage_getByClosestAddress(sample.first);
+		VAddr sampleAddr = sample.first;
+		if (symbol)
+			sampleAddr = symbol->address;
+		auto it = std::find_if(sortedSamples.begin(), sortedSamples.end(),
+							   [sampleAddr](const std::pair<VAddr, uint32>& a) { return a.first == sampleAddr; });
+		if (it != sortedSamples.end())
+			it->second += sample.second;
+		else
+			sortedSamples.push_back(std::make_pair(sampleAddr, sample.second));
+	}
+	std::sort(sortedSamples.begin(), sortedSamples.end(),
+			  [](const std::pair<VAddr, uint32>& a, const std::pair<VAddr, uint32>& b) { return a.second > b.second; });
+	for (auto& sample : sortedSamples)
+	{
+		if (sample.second < 3)
+			continue;
+		VAddr sampleAddr = sample.first;
+		RPLStoredSymbol* symbol = rplSymbolStorage_getByClosestAddress(sample.first);
+		std::string strName;
+		if (symbol)
+		{
+			strName = fmt::format("{}.{}+0x{:x}", (const char*)symbol->libName, (const char*)symbol->symbolName,
+								  sampleAddr - symbol->address);
+		}
+		else
+			strName = "Unknown";
+		cemuLog_log(LogType::Force, "[{:08x}] {:8.2f}% (Samples: {:5}) Symbol: {}", sample.first,
+					(double)(sample.second * 100) / (double)totalSampleCount, sample.second, strName);
+	}
+}
+
+void DebugPPCThreadsWindow::ProfileThreadWorker(OSThread_t* thread)
+{
+	wxProgressDialogManager progressDialog(this);
+	progressDialog.Create("Profiling thread",
+						  _("Capturing samples..."),
+						  1000, // range
+						  wxPD_CAN_SKIP);
+
+	std::unordered_map<VAddr, uint32> samples;
+	// loop for one minute
+	uint64 startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+						   std::chrono::system_clock::now().time_since_epoch())
+						   .count();
+	uint32 totalSampleCount = 0;
+	while (true)
+	{
+		// suspend thread
+		coreinit::OSSuspendThread(thread);
+		// wait until thread is not running anymore
+		__OSLockScheduler();
+		while (coreinit::OSIsThreadRunningNoLock(thread))
+		{
+			__OSUnlockScheduler();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			__OSLockScheduler();
+		}
+		uint32 sampleIP = thread->context.srr0;
+		__OSUnlockScheduler();
+		coreinit::OSResumeThread(thread);
+		// count sample
+		samples[sampleIP]++;
+		totalSampleCount++;
+		if ((totalSampleCount % 50) == 0)
+		{
+			wxString msg = fmt::format("Capturing samples... ({:})\nResults will be written to log.txt\n",
+									   totalSampleCount);
+			if (totalSampleCount < 30000)
+				msg.Append(_("Click Skip button for early results with lower accuracy"));
+			else
+				msg.Append(_("Click Skip button to finish"));
+			progressDialog.Update(totalSampleCount * 1000 / 30000, msg);
+			if (progressDialog.IsCancelledOrSkipped())
+				break;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+	PresentProfileResults(thread, samples);
+	progressDialog.Destroy();
+}
+
+void DebugPPCThreadsWindow::ProfileThread(OSThread_t* thread)
+{
+	std::thread profileThread(&DebugPPCThreadsWindow::ProfileThreadWorker, this, thread);
+	profileThread.detach();
 }
 
 void DebugPPCThreadsWindow::OnThreadListPopupClick(wxCommandEvent& evt)
 {
-	MPTR threadMPTR = (MPTR)(size_t)static_cast<wxMenu *>(evt.GetEventObject())->GetClientData();
-	// check if thread is still active
-	bool threadIsActive = false;
-	srwlock_activeThreadList.LockWrite();
-	for (sint32 i = 0; i < activeThreadCount; i++)
-	{
-		MPTR threadItrMPTR = activeThread[i];
-		if (threadItrMPTR == threadMPTR)
-		{
-			threadIsActive = true;
-			break;
-		}
-	}
-	srwlock_activeThreadList.UnlockWrite();
-	if (threadIsActive == false)
-		return;
-	// handle command
+	MPTR threadMPTR = (MPTR)(size_t) static_cast<wxMenu*>(evt.GetEventObject())->GetClientData();
 	OSThread_t* osThread = (OSThread_t*)memory_getPointerFromVirtualOffset(threadMPTR);
+	__OSLockScheduler();
+	if (!coreinit::__OSIsThreadActive(osThread))
+	{
+		__OSUnlockScheduler();
+		return;
+	}
+	__OSUnlockScheduler();
+	// handle command
 	switch (evt.GetId())
 	{
 	case THREADLIST_MENU_BOOST_PRIO_5:
@@ -325,6 +423,9 @@ void DebugPPCThreadsWindow::OnThreadListPopupClick(wxCommandEvent& evt)
 	case THREADLIST_MENU_DUMP_STACK_TRACE:
 		DumpStackTrace(osThread);
 		break;
+	case THREADLIST_MENU_PROFILE_THREAD:
+		ProfileThread(osThread);
+		break;
 	}
 	coreinit::__OSUpdateThreadEffectivePriority(osThread);
 	// update thread list
@@ -341,26 +442,19 @@ void DebugPPCThreadsWindow::OnThreadListRightClick(wxMouseEvent& event)
 	// select item
 	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_FOCUSED, wxLIST_STATE_FOCUSED);
 	long sel = m_thread_list->GetNextItem(-1, wxLIST_NEXT_ALL,
-	                                   wxLIST_STATE_SELECTED);
+										  wxLIST_STATE_SELECTED);
 	if (sel != -1)
 		m_thread_list->SetItemState(sel, 0, wxLIST_STATE_SELECTED);
 	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
 	// check if thread is still on the list of active threads
 	MPTR threadMPTR = (MPTR)m_thread_list->GetItemData(itemIndex);
-	bool threadIsActive = false;
-	srwlock_activeThreadList.LockWrite();
-	for (sint32 i = 0; i < activeThreadCount; i++)
+	__OSLockScheduler();
+	if (!coreinit::__OSIsThreadActive(MEMPTR<OSThread_t>(threadMPTR)))
 	{
-		MPTR threadItrMPTR = activeThread[i];
-		if (threadItrMPTR == threadMPTR)
-		{
-			threadIsActive = true;
-			break;
-		}
-	}
-	srwlock_activeThreadList.UnlockWrite();
-	if (threadIsActive == false)
+		__OSUnlockScheduler();
 		return;
+	}
+	__OSUnlockScheduler();
 	// create menu entry
 	wxMenu menu;
 	menu.SetClientData((void*)(size_t)threadMPTR);
@@ -374,6 +468,7 @@ void DebugPPCThreadsWindow::OnThreadListRightClick(wxMouseEvent& event)
 	menu.Append(THREADLIST_MENU_SUSPEND, _("Suspend"));
 	menu.AppendSeparator();
 	menu.Append(THREADLIST_MENU_DUMP_STACK_TRACE, _("Write stack trace to log"));
+	menu.Append(THREADLIST_MENU_PROFILE_THREAD, _("Profile thread"));
 	menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(DebugPPCThreadsWindow::OnThreadListPopupClick), nullptr, this);
 	PopupMenu(&menu);
 }

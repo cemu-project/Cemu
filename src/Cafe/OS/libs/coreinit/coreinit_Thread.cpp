@@ -812,16 +812,20 @@ namespace coreinit
 		return suspendCounter > 0;
 	}
 
+    bool OSIsThreadRunningNoLock(OSThread_t* thread)
+    {
+        cemu_assert_debug(__OSHasSchedulerLock());
+        return thread->state == OSThread_t::THREAD_STATE::STATE_RUNNING;
+    }
+
     bool OSIsThreadRunning(OSThread_t* thread)
     {
         bool isRunning = false;
         __OSLockScheduler();
-        if (thread->state == OSThread_t::THREAD_STATE::STATE_RUNNING)
-            isRunning = true;
+        isRunning = OSIsThreadRunningNoLock(thread);
         __OSUnlockScheduler();
         return isRunning;
     }
-
 
     void OSCancelThread(OSThread_t* thread)
 	{
