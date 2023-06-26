@@ -48,24 +48,23 @@ vec4 cubic(float x)
 	return w / 6.0;
 }
 
-vec4 bcFilter(vec2 texcoord, vec2 texscale)
+vec4 bcFilter(vec2 uv, vec4 texelSize)
 {
-	float fx = fract(texcoord.x);
-	float fy = fract(texcoord.y);
-	texcoord.x -= fx;
-	texcoord.y -= fy;
+	vec2 pixel = uv*texelSize.zw - 0.5;
+	vec2 pixelFrac = fract(pixel);
+	vec2 pixelInt = pixel - frac;
 
-	vec4 xcubic = cubic(fx);
-	vec4 ycubic = cubic(fy);
+	vec4 xcubic = cubic(pixelFrac.x);
+	vec4 ycubic = cubic(pixelFrac.y);
 
-	vec4 c = vec4(texcoord.x - 0.5, texcoord.x + 1.5, texcoord.y - 0.5, texcoord.y + 1.5);
+	vec4 c = vec4(pixelInt.x - 0.5, pixelInt.x + 1.5, pixelInt.y - 0.5, pixelInt.y + 1.5);
 	vec4 s = vec4(xcubic.x + xcubic.y, xcubic.z + xcubic.w, ycubic.x + ycubic.y, ycubic.z + ycubic.w);
 	vec4 offset = c + vec4(xcubic.y, xcubic.w, ycubic.y, ycubic.w) / s;
 
-	vec4 sample0 = texture(textureSrc, vec2(offset.x, offset.z) * texscale);
-	vec4 sample1 = texture(textureSrc, vec2(offset.y, offset.z) * texscale);
-	vec4 sample2 = texture(textureSrc, vec2(offset.x, offset.w) * texscale);
-	vec4 sample3 = texture(textureSrc, vec2(offset.y, offset.w) * texscale);
+	vec4 sample0 = texture(textureSrc, vec2(offset.x, offset.z) * texelSize.xy);
+	vec4 sample1 = texture(textureSrc, vec2(offset.y, offset.z) * texelSize.xy);
+	vec4 sample2 = texture(textureSrc, vec2(offset.x, offset.w) * texelSize.xy);
+	vec4 sample3 = texture(textureSrc, vec2(offset.y, offset.w) * texelSize.xy);
 
 	float sx = s.x / (s.x + s.y);
 	float sy = s.z / (s.z + s.w);
@@ -76,7 +75,8 @@ vec4 bcFilter(vec2 texcoord, vec2 texscale)
 }
 
 void main(){
-	colorOut0 = vec4(bcFilter(passUV*textureSrcResolution, vec2(1.0,1.0)/textureSrcResolution).rgb,1.0);
+	vec4 texelSize = vec4( 1.0 / textureSrcResolution.xy, textureSrcResolution.xy);
+	colorOut0 = vec4(bcFilter(passUV, texelSize).rgb,1.0);
 }
 )";
 
@@ -92,7 +92,7 @@ layout(location = 0) out vec4 colorOut0;
 
 // https://www.shadertoy.com/view/MllSzX
 
-vec3 CubicHermite (vec3 A, vec3 B, vec3 C, vec3 D, float t)
+vec3 CubicHermite(vec3 A, vec3 B, vec3 C, vec3 D, float t)
 {
 	float t2 = t*t;
     float t3 = t*t*t;
@@ -108,10 +108,10 @@ vec3 CubicHermite (vec3 A, vec3 B, vec3 C, vec3 D, float t)
 vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
 {
 	vec2 pixel = uv*texelSize.zw + 0.5;
-	vec2 frac = fract(pixel);	
+	vec2 frac = fract(pixel);
     pixel = floor(pixel) / texelSize.zw - vec2(texelSize.xy/2.0);
 	
-	vec4 doubleSize = texelSize*texelSize;
+	vec4 doubleSize = texelSize*2.0;
 
 	vec3 C00 = texture(textureSrc, pixel + vec2(-texelSize.x ,-texelSize.y)).rgb;
     vec3 C10 = texture(textureSrc, pixel + vec2( 0.0        ,-texelSize.y)).rgb;
@@ -142,7 +142,7 @@ vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
 }
 
 void main(){
-	vec4 texelSize = vec4( 1.0 / outputResolution.xy, outputResolution.xy);
+	vec4 texelSize = vec4( 1.0 / textureSrcResolution.xy, textureSrcResolution.xy);
 	colorOut0 = vec4(BicubicHermiteTexture(passUV, texelSize), 1.0);
 }
 )";
