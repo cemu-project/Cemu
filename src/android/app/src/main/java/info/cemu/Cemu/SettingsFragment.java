@@ -62,7 +62,7 @@ public class SettingsFragment extends Fragment {
         View headerLayout = getLayoutInflater().inflate(R.layout.settings_header, null);
         binding.settingsLayout.addView(headerLayout);
         SettingsHeaderBinding headerBinding = SettingsHeaderBinding.bind(headerLayout);
-        headerBinding.textviewHeaderName.setText(title);
+        headerBinding.settingsTextviewHeaderName.setText(title);
     }
 
     protected void addSpinner(String title, List<String> items, int initialPosition, OnItemSelectedPositionListener itemSelectedPositionListener) {

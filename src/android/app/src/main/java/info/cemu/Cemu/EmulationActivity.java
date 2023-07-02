@@ -9,6 +9,10 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import info.cemu.Cemu.databinding.ActivityEmulationBinding;
 import info.cemu.Cemu.databinding.ActivityMainBinding;
@@ -16,9 +20,24 @@ import info.cemu.Cemu.databinding.ActivityMainBinding;
 public class EmulationActivity extends AppCompatActivity {
 
     public static final String GAME_TITLE_ID = "GameTitleId";
-    long gameTitleId;
-    ActivityEmulationBinding binding;
-    EmulationFragment emulationFragment;
+    private long gameTitleId;
+    private ActivityEmulationBinding binding;
+    private EmulationFragment emulationFragment;
+    private final InputManager inputManager = new InputManager();
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        if (inputManager.onMotionEvent(event))
+            return true;
+        return super.onGenericMotionEvent(event);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (inputManager.onKeyEvent(event))
+            return true;
+        return super.dispatchKeyEvent(event);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +51,7 @@ public class EmulationActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         emulationFragment = (EmulationFragment) getSupportFragmentManager().findFragmentById(R.id.emulation_frame);
         if (emulationFragment == null) {
-            emulationFragment = EmulationFragment.newInstance(gameTitleId);
+            emulationFragment = new EmulationFragment(gameTitleId);
             getSupportFragmentManager()
                     .beginTransaction()
                     .add(R.id.emulation_frame, emulationFragment)
@@ -46,19 +65,18 @@ public class EmulationActivity extends AppCompatActivity {
     }
 
     private void showExitConfirmationDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Exit Confirmation");
-        builder.setMessage("Are you sure you want to exit?");
-        builder.setPositiveButton("Yes", (dialog, which) -> {
-            finishAffinity();
-            System.exit(0);
-        });
-        builder.setNegativeButton("No", (dialog, which) -> dialog.cancel());
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
+        builder.setTitle(R.string.exit_confirmation_title)
+                .setMessage(R.string.exit_confirm_message)
+                .setPositiveButton(R.string.yes, (dialog, which) -> {
+                    finishAffinity();
+                    System.exit(0);
+                }).setNegativeButton(R.string.no, (dialog, which) -> dialog.cancel())
+                .create()
+                .show();
     }
 
-    void setFullscreen() {
+    private void setFullscreen() {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         WindowInsetsControllerCompat controller = new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
         controller.hide(WindowInsetsCompat.Type.systemBars());

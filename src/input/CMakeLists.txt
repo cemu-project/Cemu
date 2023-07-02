@@ -69,6 +69,15 @@ if(WIN32)
 	)
 endif()
 
+if(ANDROID)
+	target_sources(CemuInput PRIVATE
+		api/Android/AndroidControllerProvider.cpp
+		api/Android/AndroidControllerProvider.h
+		api/Android/AndroidController.cpp
+		api/Android/AndroidController.h
+	)
+endif()
+
 if(ENABLE_SDL)
 	target_sources(CemuInput PRIVATE
 		api/SDL/SDLController.cpp
@@ -77,7 +86,6 @@ if(ENABLE_SDL)
 		api/SDL/SDLControllerProvider.h
 	)
 endif()
-
 target_include_directories(CemuInput PUBLIC "../")
 
 target_link_libraries(CemuInput PRIVATE

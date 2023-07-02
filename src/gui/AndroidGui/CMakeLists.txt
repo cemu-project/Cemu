@@ -2,6 +2,8 @@
 add_library(CemuAndroidGui
         AndroidAudio.cpp
         AndroidAudio.h
+        AndroidEmulatedController.h
+        AndroidEmulatedController.cpp
         AndroidGuiWrapper.cpp
         AndroidGuiWrapper.h
         GameIconLoader.cpp
