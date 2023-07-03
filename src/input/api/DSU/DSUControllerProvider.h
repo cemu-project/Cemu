@@ -7,8 +7,10 @@
 
 #include <boost/asio.hpp>
 
+#if !____ANDROID___
 #ifndef HAS_DSU
 #define HAS_DSU 1
+#endif
 #endif
 
 // #define DEBUG_DSU_CLIENT
