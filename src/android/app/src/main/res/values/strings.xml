@@ -59,4 +59,10 @@
     <string name="exit_confirmation_title">Exit Confirmation</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+    <string name="buttons">Buttons</string>
+    <string name="d_pad">D-Pad</string>
+    <string name="left_axis">Left Axis</string>
+    <string name="right_axis">Right Axis</string>
+    <string name="extra">Extra</string>
+    <string name="nunchuck">Nunchuck</string>
 </resources>

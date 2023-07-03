@@ -1,5 +1,5 @@
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/textview_controller_header"
+    android:id="@+id/textview_header"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
