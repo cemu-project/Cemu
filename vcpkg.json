@@ -35,6 +35,10 @@
       "name": "boost-iostreams",
       "platform" : "android"
     },
+    {
+      "name": "boost-stacktrace",
+      "platform" : "android"
+    },
     "boost-random",
     "fmt",
     "libpng",
