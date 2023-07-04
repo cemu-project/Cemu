@@ -307,7 +307,32 @@ MainWindow::MainWindow()
 #endif
 
 	auto* main_sizer = new wxBoxSizer(wxVERTICAL);
-	if (!LaunchSettings::GetLoadFile().has_value())
+    auto load_file = LaunchSettings::GetLoadFile();
+    auto load_title_id = LaunchSettings::GetLoadTitleID();
+    bool quick_launch = false;
+
+    if (load_file)
+    {
+        MainWindow::RequestLaunchGame(load_file.value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
+        quick_launch = true;
+    }
+    else if (load_title_id)
+    {
+        TitleInfo info;
+        TitleId baseId;
+        if (CafeTitleList::FindBaseTitleId(load_title_id.value(), baseId) && CafeTitleList::GetFirstByTitleId(baseId, info))
+        {
+            MainWindow::RequestLaunchGame(info.GetPath(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
+            quick_launch = true;
+        }
+        else
+        {
+            wxString errorMsg = fmt::format("Title ID {:016x} not found", load_title_id.value());
+            wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+
+        }
+    }
+	if (!quick_launch)
 	{
 		{
 			m_main_panel = new wxPanel(this);
@@ -330,7 +355,7 @@ MainWindow::MainWindow()
 	}
 	else
 	{
-		// launching game via -g option. Dont setup or load game list
+		// launching game via -g or -t option. Don't set up or load game list
 		m_game_list = nullptr;
 		m_info_bar = nullptr;
 	}
@@ -352,10 +377,6 @@ MainWindow::MainWindow()
 	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
 	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
 
-	if (LaunchSettings::GetLoadFile().has_value())
-	{
-		MainWindow::RequestLaunchGame(LaunchSettings::GetLoadFile().value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
-	}
 	if (LaunchSettings::GDBStubEnabled())
 	{
 		g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
