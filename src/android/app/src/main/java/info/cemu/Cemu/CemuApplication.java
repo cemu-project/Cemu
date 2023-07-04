@@ -1,10 +1,7 @@
 package info.cemu.Cemu;
 
 import android.app.Application;
-import android.os.FileUtils;
 import android.util.DisplayMetrics;
-
-import java.util.ArrayList;
 
 public class CemuApplication extends Application {
     @Override

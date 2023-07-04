@@ -1,34 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:clickable="true"
     android:focusable="true">
 
     <TextView
-        android:id="@+id/textview_checkbox_name"
+        android:id="@+id/checkbox_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_toStartOf="@+id/checkbox" />
+        android:layout_marginHorizontal="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_toStartOf="@+id/checkbox"
+        android:text="Checkbox label"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        tools:ignore="HardcodedText" />
 
     <TextView
-        android:id="@+id/textview_checkbox_description"
+        android:id="@+id/checkbox_description"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/textview_checkbox_name"
-        android:layout_alignStart="@+id/textview_checkbox_name"
+        android:layout_below="@+id/checkbox_label"
+        android:layout_alignStart="@+id/checkbox_label"
         android:layout_alignParentStart="true"
+        android:layout_margin="8dp"
         android:layout_toStartOf="@+id/checkbox"
-        android:textAlignment="textStart" />
+        android:text="Checkbox description"
+        android:textAlignment="textStart"
+        android:textAppearance="?attr/textAppearanceSubtitle1"
+        tools:ignore="HardcodedText" />
 
-    <CheckBox
+    <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/checkbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
+        android:layout_marginVertical="8dp"
+        android:layout_marginEnd="8dp"
         android:clickable="false"
         android:focusable="false" />
 

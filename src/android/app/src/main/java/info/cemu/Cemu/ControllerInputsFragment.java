@@ -35,10 +35,15 @@ public class ControllerInputsFragment extends Fragment {
     }
 
     private void setControllerInputs(Map<Integer, String> inputs) {
-        emulatedControllerTypeAdapter.setCurrentControllerType(controllerType);
+        emulatedControllerTypeAdapter.setSelectedValue(controllerType);
         emulatedControllerTypeAdapter.setControllerTypeCounts(NativeLibrary.getVPADControllersCount(), NativeLibrary.getWPADControllersCount());
-        SpinnerRecyclerViewItem emulatedControllerSpinner = new SpinnerRecyclerViewItem(R.string.emulated_controller_label, emulatedControllerTypeAdapter, emulatedControllerTypeAdapter.getPosition(controllerType), position -> onTypeChanged(emulatedControllerTypeAdapter.getItem(position)));
-        genericRecyclerViewAdapter.addRecyclerViewItem(emulatedControllerSpinner);
+        String controllerTypeName = getString(NativeLibrary.controllerTypeToResourceNameId(controllerType));
+
+        SingleSelectionRecyclerViewItem<Integer> emulatedControllerSelection = new SingleSelectionRecyclerViewItem<>(getString(R.string.emulated_controller_label),
+                getString(R.string.emulated_controller_selection_description, controllerTypeName),
+                emulatedControllerTypeAdapter,
+                (controllerType, selectionRecyclerViewItem) -> onTypeChanged(controllerType));
+        genericRecyclerViewAdapter.addRecyclerViewItem(emulatedControllerSelection);
         for (var controllerInputsGroups : controllerInputsDataProvider.getControllerInputs(controllerType, inputs)) {
             genericRecyclerViewAdapter.addRecyclerViewItem(new HeaderRecyclerViewItem(controllerInputsGroups.groupResourceIdName));
             for (var controllerInput : controllerInputsGroups.inputs) {

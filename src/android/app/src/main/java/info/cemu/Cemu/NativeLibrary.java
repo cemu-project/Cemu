@@ -198,17 +198,14 @@ public class NativeLibrary {
     static final int MAX_WPAD_CONTROLLERS = 7;
 
     public static int controllerTypeToResourceNameId(int type) {
-        if (type == NativeLibrary.EMULATED_CONTROLLER_TYPE_DISABLED)
-            return R.string.disabled;
-        else if (type == NativeLibrary.EMULATED_CONTROLLER_TYPE_VPAD)
-            return R.string.vpad_controller;
-        else if (type == NativeLibrary.EMULATED_CONTROLLER_TYPE_PRO)
-            return R.string.pro_controller;
-        else if (type == NativeLibrary.EMULATED_CONTROLLER_TYPE_WIIMOTE)
-            return R.string.wiimote_controller;
-        else if (type == NativeLibrary.EMULATED_CONTROLLER_TYPE_CLASSIC)
-            return R.string.classic_controller;
-        throw new RuntimeException("Invalid controller type: " + type);
+        return switch (type) {
+            case EMULATED_CONTROLLER_TYPE_DISABLED -> R.string.disabled;
+            case EMULATED_CONTROLLER_TYPE_VPAD -> R.string.vpad_controller;
+            case EMULATED_CONTROLLER_TYPE_PRO -> R.string.pro_controller;
+            case EMULATED_CONTROLLER_TYPE_WIIMOTE -> R.string.wiimote_controller;
+            case EMULATED_CONTROLLER_TYPE_CLASSIC -> R.string.classic_controller;
+            default -> throw new RuntimeException("Invalid controller type: " + type);
+        };
     }
 
     public static native void setControllerType(int index, int emulatedControllerType);
@@ -232,4 +229,58 @@ public class NativeLibrary {
     public static native void onKeyEvent(String deviceDescriptor, String deviceName, int keyCode, boolean isPressed);
 
     public static native void onAxisEvent(String deviceDescriptor, String deviceName, int axisCode, float value);
+
+    public static native boolean getAsyncShaderCompile();
+
+    public static native void setAsyncShaderCompile(boolean enabled);
+
+    static final int VSYNC_MODE_OFF = 0;
+    static final int VSYNC_MODE_DOUBLE_BUFFERING = 1;
+    static final int VSYNC_MODE_TRIPLE_BUFFERING = 2;
+
+    public static int vsyncModeToResourceNameId(int vsyncMode) {
+        return switch (vsyncMode) {
+            case VSYNC_MODE_OFF -> R.string.off;
+            case VSYNC_MODE_DOUBLE_BUFFERING -> R.string.double_buffering;
+            case VSYNC_MODE_TRIPLE_BUFFERING -> R.string.triple_buffering;
+            default -> throw new RuntimeException("Invalid vsync mode: " + vsyncMode);
+        };
+    }
+
+    public static native int getVSyncMode();
+
+    public static native void setVSyncMode(int vsyncMode);
+
+    public static native boolean getAccurateBarriers();
+
+    public static native void setAccurateBarriers(boolean enabled);
+
+    public static native boolean getAudioDeviceEnabled(boolean tv);
+
+    public static native void setAudioDeviceEnabled(boolean enabled, boolean tv);
+
+    static final int AUDIO_CHANNELS_MONO = 0;
+    static final int AUDIO_CHANNELS_STEREO = 1;
+    static final int AUDIO_CHANNELS_SURROUND = 2;
+
+    public static int channelsToResourceNameId(int channels) {
+        return switch (channels) {
+            case AUDIO_CHANNELS_MONO -> R.string.mono;
+            case AUDIO_CHANNELS_STEREO -> R.string.stereo;
+            case AUDIO_CHANNELS_SURROUND -> R.string.surround;
+            default -> throw new RuntimeException("Invalid channels type: " + channels);
+        };
+    }
+
+    public static native void setAudioDeviceChannels(int channels, boolean tv);
+
+    public static native int getAudioDeviceChannels(boolean tv);
+
+    static final int AUDIO_MIN_VOLUME = 0;
+    static final int AUDIO_MAX_VOLUME = 100;
+
+    public static native void setAudioDeviceVolume(int volume, boolean tv);
+
+    public static native int getAudioDeviceVolume(boolean tv);
+
 }

@@ -1,6 +1,8 @@
 package info.cemu.Cemu;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +28,11 @@ public class GamesFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentGamesBinding.inflate(inflater, container, false);
+
+        SharedPreferences cemuPreferences = requireActivity().getSharedPreferences(CemuPreferences.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        String gamesPath = cemuPreferences.getString(CemuPreferences.GAMES_PATH_KEY, null);
+        if (gamesPath != null)
+            NativeLibrary.addGamePath(gamesPath);
         RecyclerView recyclerView = binding.gamesRecyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         View rootView = binding.getRoot();

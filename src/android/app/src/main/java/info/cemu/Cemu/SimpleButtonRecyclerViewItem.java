@@ -7,42 +7,37 @@ import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
-public class ButtonRecyclerViewItem implements RecyclerViewItem {
+public class SimpleButtonRecyclerViewItem implements RecyclerViewItem {
     public interface OnButtonClickListener {
         void onButtonClick();
     }
 
-    private static class ButtonViewHolder extends RecyclerView.ViewHolder {
+    private static class SimpleButtonViewHolder extends RecyclerView.ViewHolder {
         TextView text;
-        TextView description;
 
-        public ButtonViewHolder(View itemView) {
+        public SimpleButtonViewHolder(View itemView) {
             super(itemView);
-            text = itemView.findViewById(R.id.button_text);
-            description = itemView.findViewById(R.id.button_description);
+            text = itemView.findViewById(R.id.simple_button_text);
         }
     }
 
-    private final OnButtonClickListener onButtonClickListener;
+    private final SimpleButtonRecyclerViewItem.OnButtonClickListener onButtonClickListener;
     private final String text;
-    private final String description;
 
-    public ButtonRecyclerViewItem(String text, String description, OnButtonClickListener onButtonClickListener) {
+    public SimpleButtonRecyclerViewItem(String text, OnButtonClickListener onButtonClickListener) {
         this.text = text;
-        this.description = description;
         this.onButtonClickListener = onButtonClickListener;
     }
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent) {
-        return new ButtonViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_button, parent, false));
+        return new SimpleButtonRecyclerViewItem.SimpleButtonViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_simple_button, parent, false));
     }
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, RecyclerView.Adapter<RecyclerView.ViewHolder> adapter) {
-        ButtonViewHolder buttonViewHolder = (ButtonViewHolder) viewHolder;
+        SimpleButtonRecyclerViewItem.SimpleButtonViewHolder buttonViewHolder = (SimpleButtonRecyclerViewItem.SimpleButtonViewHolder) viewHolder;
         buttonViewHolder.text.setText(text);
-        buttonViewHolder.description.setText(description);
         buttonViewHolder.itemView.setOnClickListener(view -> {
             if (onButtonClickListener != null)
                 onButtonClickListener.onButtonClick();

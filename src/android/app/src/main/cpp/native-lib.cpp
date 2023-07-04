@@ -26,6 +26,21 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
     return JNI_VERSION_1_6;
 }
 
+void initializeAudioDevices() {
+    auto &config = g_config.data();
+    if (!config.tv_device.empty())
+        AndroidAudio::createAudioDevice(IAudioAPI::AudioAPI::Cubeb,
+                                        config.tv_channels,
+                                        config.tv_volume,
+                                        true);
+
+    if (!config.pad_device.empty())
+        AndroidAudio::createAudioDevice(IAudioAPI::AudioAPI::Cubeb,
+                                        config.pad_channels,
+                                        config.pad_volume,
+                                        false);
+}
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_setSurface(JNIEnv *env, jclass clazz, jobject surface,
@@ -60,6 +75,7 @@ Java_info_cemu_Cemu_NativeLibrary_setSurfaceSize(JNIEnv *env, jclass clazz, jint
 extern "C"
 JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_startGame(JNIEnv *env, jclass clazz, jlong title_id) {
+    initializeAudioDevices();
     gui_startGame(*reinterpret_cast<TitleId *>(&title_id));
 }
 
@@ -301,10 +317,6 @@ Java_info_cemu_Cemu_NativeLibrary_initializeEmulation(JNIEnv *env, jclass clazz)
     InitializeGlobalVulkan();
     createCemuDirectories();
     g_config.Load();
-    auto &config = g_config.data();
-    AndroidAudio::createAudioDevice(IAudioAPI::AudioAPI::Cubeb,
-                                    config.tv_channels,
-                                    config.tv_volume);
 }
 extern "C"
 JNIEXPORT void JNICALL
@@ -511,4 +523,99 @@ Java_info_cemu_Cemu_NativeLibrary_onAxisEvent(JNIEnv *env, jclass clazz, jstring
     auto deviceDescriptor = JNIUtils::JStringToString(env, device_descriptor);
     auto deviceName = JNIUtils::JStringToString(env, device_name);
     androidControllerProvider->on_axis_event(deviceDescriptor, deviceName, axis_code, value);
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getAsyncShaderCompile(JNIEnv *env, jclass clazz) {
+    return g_config.data().async_compile;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setAsyncShaderCompile(JNIEnv *env, jclass clazz,
+                                                        jboolean enabled) {
+    g_config.data().async_compile = enabled;
+    g_config.Save();
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getVSyncMode(JNIEnv *env, jclass clazz) {
+    return g_config.data().vsync;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setVSyncMode(JNIEnv *env, jclass clazz,
+                                               jint vsync_mode) {
+    g_config.data().vsync = vsync_mode;
+    g_config.Save();
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getAccurateBarriers(JNIEnv *env, jclass clazz) {
+    return g_config.data().vk_accurate_barriers;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setAccurateBarriers(JNIEnv *env, jclass clazz,
+                                                      jboolean enabled) {
+    g_config.data().vk_accurate_barriers = enabled;
+    g_config.Save();
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getAudioDeviceEnabled(JNIEnv *env, jclass clazz, jboolean tv) {
+    const auto &device = tv ? g_config.data().tv_device : g_config.data().pad_device;
+    return !device.empty();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setAudioDeviceEnabled(JNIEnv *env, jclass clazz,
+                                                        jboolean enabled, jboolean tv) {
+    auto &device = tv ? g_config.data().tv_device : g_config.data().pad_device;
+    if (enabled)
+        device = L"Default";
+    else
+        device.clear();
+    g_config.Save();
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getAudioDeviceChannels(JNIEnv *env, jclass clazz, jboolean tv) {
+    const auto &deviceChannels = tv ? g_config.data().tv_channels : g_config.data().pad_channels;
+    return deviceChannels;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setAudioDeviceChannels(JNIEnv *env, jclass clazz,
+                                                         jint channels, jboolean tv) {
+    auto &deviceChannels = tv ? g_config.data().tv_channels : g_config.data().pad_channels;
+    deviceChannels = static_cast<AudioChannels>(channels);
+    g_config.Save();
+}
+
+
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getAudioDeviceVolume(JNIEnv *env, jclass clazz, jboolean tv) {
+    const auto &deviceVolume = tv ? g_config.data().tv_volume : g_config.data().pad_volume;
+    return deviceVolume;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setAudioDeviceVolume(JNIEnv *env, jclass clazz,
+                                                       jint volume, jboolean tv) {
+    auto &deviceVolume = tv ? g_config.data().tv_volume : g_config.data().pad_volume;
+    deviceVolume = volume;
+    g_config.Save();
 }

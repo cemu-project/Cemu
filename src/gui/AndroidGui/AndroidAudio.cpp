@@ -15,6 +15,18 @@ void createAudioDevice(IAudioAPI::AudioAPI audioApi, sint32 channels, sint32 vol
     static constexpr int AX_FRAMES_PER_GROUP = 4;
     std::unique_lock lock(g_audioMutex);
     auto& audioDevice = isTV ? g_tvAudio : g_padAudio;
+    switch (channels)
+    {
+        case 0:
+            channels = 1;
+            break;
+        case 2:
+            channels = 6;
+            break;
+        default:  // stereo
+            channels = 2;
+            break;
+    }
     switch (audioApi)
     {
 #if HAS_CUBEB
