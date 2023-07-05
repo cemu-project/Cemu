@@ -202,7 +202,7 @@ namespace nn
 		}
 
 		static SysAllocator<OSThread_t> s_OlvReleaseBgThread;
-		SysAllocator<uint8, 1024 * 128> s_OlvReleaseBgThreadStack;
+		SysAllocator<uint8, 1024> s_OlvReleaseBgThreadStack;
 		SysAllocator<char, 32> s_OlvReleaseBgThreadName;
 
 		void StubPostAppReleaseBackground(PPCInterpreter_t* hCPU)
