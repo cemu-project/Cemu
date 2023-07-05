@@ -504,7 +504,7 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 	// fd write set
 	for (uint32 i = 0; i < h_writeFd.fd_count; i++)
 	{
-		cemu_assert_debug(false);
+		hostFdSet(h_writeFd.fd_array[i], writeFd.GetPtr());
 	}
 	// fd exception set
 	for (uint32 i = 0; i < h_exceptionFd.fd_count; i++)
@@ -906,7 +906,8 @@ int sockopt_callback(void* clientp, curl_socket_t curlfd, curlsocktype purpose)
 }
 
 size_t read_callback(char* buffer, size_t size, size_t nitems, void* instream)
-{
+{	
+	nitems = std::min<uint32>(nitems, 0x4000);
 	CURL_t* curl = (CURL_t*)instream;
 
 	cemuLog_logDebug(LogType::Force, "read_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [func: 0x{:x}]", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), curl->fread_func_set.GetMPTR());

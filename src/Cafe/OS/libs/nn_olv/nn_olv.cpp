@@ -5,6 +5,9 @@
 #include "nn_olv_DownloadCommunityTypes.h"
 #include "nn_olv_UploadFavoriteTypes.h"
 
+#include "Cafe/OS/libs/proc_ui/proc_ui.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+
 namespace nn
 {
 	namespace olv
@@ -198,10 +201,35 @@ namespace nn
 			osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(&portalAppParam->serviceToken));
 		}
 
-		uint32 UploadPostDataByPostApp(void *postParam)
+		static SysAllocator<OSThread_t> s_OlvReleaseBgThread;
+		SysAllocator<uint8, 1024> s_OlvReleaseBgThreadStack;
+		SysAllocator<char, 32> s_OlvReleaseBgThreadName;
+
+		void StubPostAppReleaseBackground(PPCInterpreter_t* hCPU)
 		{
-			cemuLog_log(LogType::Force, "UploadPostDataByPostApp() called. Returning error");
-			return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_OLV, 0); // undefined error
+			coreinit::OSSleepTicks(ESPRESSO_TIMER_CLOCK * 2); // Sleep 2s
+			ProcUI_SendForegroundMessage();
+		}
+
+		sint32 StubPostApp(void* pAnyPostParam)
+		{
+			coreinit::OSCreateThreadType(s_OlvReleaseBgThread.GetPtr(), RPLLoader_MakePPCCallable(StubPostAppReleaseBackground), 0, nullptr, s_OlvReleaseBgThreadStack.GetPtr() + s_OlvReleaseBgThreadStack.GetByteSize(), (sint32)s_OlvReleaseBgThreadStack.GetByteSize(), 0, (1 << 1) | (1 << 3), OSThread_t::THREAD_TYPE::TYPE_APP);
+			coreinit::OSResumeThread(s_OlvReleaseBgThread.GetPtr());
+			strcpy(s_OlvReleaseBgThreadName.GetPtr(), "StubPostApp!");
+			coreinit::OSSetThreadName(s_OlvReleaseBgThread.GetPtr(),s_OlvReleaseBgThreadName.GetPtr());
+			return OLV_RESULT_SUCCESS;
+		}
+
+		sint32 StubPostAppResult()
+		{
+			return OLV_RESULT_STATUS(301); // Cancelled post app
+		}
+
+		// Somehow required, MK8 doesn't even seem to care about the error codes lol
+		char* UploadedPostData_GetPostId(char* pPostData)
+		{
+			pPostData[4] = '\0';
+			return &pPostData[4];
 		}
 
 		// https://github.com/kinnay/NintendoClients/wiki/Wii-U-Error-Codes#act-error-codes
@@ -272,7 +300,16 @@ namespace nn
 
 			osLib_addFunction("nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetServiceToken);
 
-			cafeExportRegisterFunc(UploadPostDataByPostApp, "nn_olv", "UploadPostDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv28UploadPostDataByPostAppParam", LogType::Placeholder);
+			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadPostDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv28UploadPostDataByPostAppParam", LogType::Force);
+			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadCommentDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv31UploadCommentDataByPostAppParam", LogType::Force);
+			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadDirectMessageDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv37UploadDirectMessageDataByPostAppParam", LogType::Force);
+
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultByPostApp__Q2_2nn3olvFv", LogType::Force);
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedPostDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv16UploadedPostData", LogType::Force);
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedDirectMessageDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv25UploadedDirectMessageData", LogType::Force);
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedCommentDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv19UploadedCommentData", LogType::Force);
+
+			cafeExportRegisterFunc(UploadedPostData_GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv16UploadedPostDataCFv", LogType::Force);
 		}
 
 	}
