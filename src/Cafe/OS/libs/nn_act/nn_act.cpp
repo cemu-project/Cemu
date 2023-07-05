@@ -130,7 +130,7 @@ namespace act
 			return ((ppcCyclesSince2000 / ESPRESSO_CORE_CLOCK) - (ppcCyclesSince2000_UTC / ESPRESSO_CORE_CLOCK)) * 1'000'000;
 		}
 
-		sint32 GetUtcOffsetEx(uint64* pOutOffset, uint8 slotNo)
+		sint32 GetUtcOffsetEx(sint64be* pOutOffset, uint8 slotNo)
 		{
 
 			if (!pOutOffset)
