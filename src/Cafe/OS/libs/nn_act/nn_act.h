@@ -20,7 +20,7 @@ namespace act
 	uint32 GetTransferableIdEx(uint64* transferableId, uint32 unique, uint8 slot);
 
 	sint64 GetUtcOffset();
-	sint32 GetUtcOffsetEx(uint64* pOutOffset, uint8 slotNo);
+	sint32 GetUtcOffsetEx(sint64be* pOutOffset, uint8 slotNo);
 
 	uint32 AcquireIndependentServiceToken(independentServiceToken_t* token, const char* clientId, uint32 cacheDurationInSeconds);
 
