@@ -69,8 +69,8 @@ You can use GCC by doing the following:
 
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and 
 below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. The OpenGL graphics
-API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
-Molten-VK compatibility layer
+API isn't supported on macOS, so Vulkan must be used. Additionally, Vulkan must be used through the 
+Molten-VK compatibility layer.
 
 ### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
 
@@ -103,4 +103,4 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
     - This should update your local copy of Cemu and all of its dependencies.
 2. Then, you can rebuild Cemu using the steps listed above, according to whether you use Linux or Windows.
 
-If CMake complains about Cemu already being compiled or another similar error, try deleting the `CMakeCache.txt` file inside the `build` folder and retry building.
+If CMake complains about Cemu already being compiled or another similar error, try deleting the `CMakeCache.txt` file inside the `build` folder and try rebuilding.
