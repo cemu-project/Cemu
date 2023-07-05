@@ -16,6 +16,11 @@ void gui_setOnGameTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback> &on
     g_gameTitleLoader.setOnTitleLoaded(onGameTitleLoaded);
 }
 
+const Image& gui_getGameIcon(TitleId titleId)
+{
+    return g_gameIconLoader.getGameIcon(titleId);
+}
+
 void gui_setOnGameIconLoaded(const std::shared_ptr<class GameIconLoadedCallback>& onGameIconLoaded)
 {
     g_gameIconLoader.setOnIconLoaded(onGameIconLoaded);

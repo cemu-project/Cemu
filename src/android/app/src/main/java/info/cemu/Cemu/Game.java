@@ -12,8 +12,8 @@ public class Game {
         this.title = title;
     }
 
-    public void setIconData(int[] colors, int width, int height) {
-        icon = Bitmap.createBitmap(colors, width, height, Bitmap.Config.ARGB_8888);
+    public void setIconData(Bitmap icon) {
+        this.icon = icon;
     }
 
     public Bitmap getIcon() {

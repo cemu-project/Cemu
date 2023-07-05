@@ -63,11 +63,6 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_setSurfaceSize(JNIEnv *env, jclass clazz, jint width, jint height,
                                                  jboolean is_main_canvas) {
-    WindowHandleInfo *windowHandleInfo;
-    if (is_main_canvas)
-        windowHandleInfo = &gui_getWindowInfo().canvas_main;
-    else
-        windowHandleInfo = &gui_getWindowInfo().canvas_pad;
     gui_getWindowInfo().width = width;
     gui_getWindowInfo().height = height;
 }
@@ -125,18 +120,34 @@ public:
             : m_onGameIconLoadedMID(onGameIconLoadedMID),
               m_gameTitleLoadedCallbackObj(gameTitleLoadedCallbackObj) {}
 
-    void onIconLoaded(TitleId titleId, const Image &iconData) override {
+    void onIconLoaded(TitleId titleId) override {
         JNIUtils::ScopedJNIENV env;
         jlong jTitleId = *reinterpret_cast<jlong *>(&titleId);
-        jintArray jIconData = env->NewIntArray(iconData.m_width * iconData.m_height);
-        env->SetIntArrayRegion(jIconData, 0, iconData.m_width * iconData.m_height,
-                               reinterpret_cast<const jint *>(iconData.m_image));
-        env->CallVoidMethod(*m_gameTitleLoadedCallbackObj, m_onGameIconLoadedMID, jTitleId,
-                            jIconData, iconData.m_width, iconData.m_height);
-        env->DeleteLocalRef(jIconData);
+        env->CallVoidMethod(*m_gameTitleLoadedCallbackObj, m_onGameIconLoadedMID, jTitleId);
     }
 };
 
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getGameIcon(JNIEnv *env, jclass clazz, jlong title_id) {
+    TitleId titleId = *reinterpret_cast<TitleId *>(&title_id);
+    const Image &iconData = gui_getGameIcon(titleId);
+    jintArray jIconData = env->NewIntArray(iconData.m_width * iconData.m_height);
+    env->SetIntArrayRegion(jIconData, 0, iconData.m_width * iconData.m_height,
+                           reinterpret_cast<const jint *>(iconData.m_image));
+    jclass bitmapClass = env->FindClass("android/graphics/Bitmap");
+
+    jmethodID createBitmapMethodID = env->GetStaticMethodID(bitmapClass, "createBitmap",
+                                                            "([IIILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;");
+    jclass bitmapConfigClass = env->FindClass("android/graphics/Bitmap$Config");
+    jfieldID argb8888FieldID = env->GetStaticFieldID(bitmapConfigClass, "ARGB_8888",
+                                                     "Landroid/graphics/Bitmap$Config;");
+    jobject argb8888Obj = env->GetStaticObjectField(bitmapConfigClass, argb8888FieldID);
+    jobject bitmapObj = env->CallStaticObjectMethod(bitmapClass, createBitmapMethodID, jIconData,
+                                                    iconData.m_width,
+                                                    iconData.m_height, argb8888Obj);
+    return bitmapObj;
+}
 extern "C"
 JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_setGameIconLoadedCallback(JNIEnv *env, jclass clazz,
@@ -144,8 +155,7 @@ Java_info_cemu_Cemu_NativeLibrary_setGameIconLoadedCallback(JNIEnv *env, jclass 
     jclass gameIconLoadedCallbackClass = env->GetObjectClass(game_icon_loaded_callback);
     jmethodID gameIconLoadedMID = env->GetMethodID(gameIconLoadedCallbackClass,
                                                    "onGameIconLoaded",
-                                                   "(J[III)V");
-    env->DeleteLocalRef(gameIconLoadedCallbackClass);
+                                                   "(J)V");
     g_gameIconLoadedCallback = std::make_shared<AndroidGameIconLoadedCallback>(gameIconLoadedMID,
                                                                                game_icon_loaded_callback);
     gui_setOnGameIconLoaded(g_gameIconLoadedCallback);
@@ -183,7 +193,6 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
     jmethodID m_existsMid;
     JNIUtils::Scopedjclass m_fileUtilClass;
     std::function<void(JNIEnv *)> m_function = nullptr;
-    std::atomic_bool m_functionFinished;
     std::mutex m_functionMutex;
     std::condition_variable m_functionCV;
     std::thread m_thread;
@@ -192,19 +201,20 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
     std::atomic_bool m_continue = true;
 
     bool callBooleanFunction(const std::filesystem::path &uri, jmethodID methodId) {
-        std::unique_lock functionLock(m_functionMutex);
-        m_functionFinished = false;
-        bool condition;
-        {
-            std::lock_guard threadLock(m_threadMutex);
-            m_function = [&, this](JNIEnv *env) {
-                jstring uriString = env->NewStringUTF(uri.c_str());
-                condition = env->CallStaticBooleanMethod(*m_fileUtilClass, methodId, uriString);
-                env->DeleteLocalRef(uriString);
-            };
-        }
+        std::lock_guard lock(m_functionMutex);
+        bool functionFinished = false;
+        bool condition = false;
+        m_function = [&, this](JNIEnv *env) {
+            jstring uriString = env->NewStringUTF(uri.c_str());
+            condition = env->CallStaticBooleanMethod(*m_fileUtilClass, methodId, uriString);
+            env->DeleteLocalRef(uriString);
+            functionFinished = true;
+        };
         m_threadCV.notify_one();
-        m_functionCV.wait(functionLock, [this]() -> bool { return m_functionFinished; });
+        {
+            std::unique_lock threadLock(m_threadMutex);
+            m_functionCV.wait(threadLock, [&]() -> bool { return functionFinished; });
+        }
         return condition;
     }
 
@@ -233,7 +243,6 @@ public:
                     return;
                 m_function(*env);
                 m_function = nullptr;
-                m_functionFinished = true;
                 m_functionCV.notify_one();
             }
         });
@@ -246,48 +255,51 @@ public:
     }
 
     int openContentUri(const std::filesystem::path &uri) override {
-        std::unique_lock functionLock(m_functionMutex);
-        m_functionFinished = false;
-        int fd;
-        {
-            std::lock_guard threadLock(m_threadMutex);
-            m_function = [&, this](JNIEnv *env) {
-                jstring uriString = env->NewStringUTF(uri.c_str());
-                fd = env->CallStaticIntMethod(*m_fileUtilClass, m_openContentUriMid, uriString);
-                env->DeleteLocalRef(uriString);
-            };
-        }
+        std::lock_guard lock(m_functionMutex);
+        bool functionFinished = false;
+        int fd = -1;
+        m_function = [&, this](JNIEnv *env) {
+            jstring uriString = env->NewStringUTF(uri.c_str());
+            fd = env->CallStaticIntMethod(*m_fileUtilClass, m_openContentUriMid, uriString);
+            env->DeleteLocalRef(uriString);
+            functionFinished = true;
+        };
         m_threadCV.notify_one();
-        m_functionCV.wait(functionLock, [this]() -> bool { return m_functionFinished; });
+        {
+            std::unique_lock threadLock(m_threadMutex);
+            m_functionCV.wait(threadLock, [&]() { return functionFinished; });
+        }
         return fd;
     }
 
     std::vector<std::filesystem::path> listFiles(const std::filesystem::path &uri) override {
-        std::unique_lock functionLock(m_functionMutex);
-        m_functionFinished = false;
+        std::lock_guard lock(m_functionMutex);
+        bool functionFinished = false;
         std::vector<std::filesystem::path> paths;
-        {
-            std::lock_guard threadLock(m_threadMutex);
-            m_function = [&, this](JNIEnv *env) {
-                jstring uriString = env->NewStringUTF(uri.c_str());
-                jobjectArray pathsObjArray = static_cast<jobjectArray>(env->CallStaticObjectMethod(
-                        *m_fileUtilClass,
-                        m_listFilesMid, uriString));
-                env->DeleteLocalRef(uriString);
-                jsize arrayLength = env->GetArrayLength(pathsObjArray);
-                paths.reserve(arrayLength);
-                for (jsize i = 0; i < arrayLength; i++) {
-                    jstring pathStr = static_cast<jstring>(env->GetObjectArrayElement(
-                            pathsObjArray,
-                            i));
-                    paths.push_back(JNIUtils::JStringToString(env, pathStr));
-                    env->DeleteLocalRef(pathStr);
-                }
-                env->DeleteLocalRef(pathsObjArray);
-            };
-        }
+        m_function = [&, this](JNIEnv *env) {
+            jstring uriString = env->NewStringUTF(uri.c_str());
+            jobjectArray pathsObjArray = static_cast<jobjectArray>(env->CallStaticObjectMethod(
+                    *m_fileUtilClass,
+                    m_listFilesMid, uriString));
+            env->DeleteLocalRef(uriString);
+            jsize arrayLength = env->GetArrayLength(pathsObjArray);
+            paths.reserve(arrayLength);
+            for (jsize i = 0; i < arrayLength; i++) {
+                jstring pathStr = static_cast<jstring>(env->GetObjectArrayElement(
+                        pathsObjArray,
+                        i));
+                paths.push_back(JNIUtils::JStringToString(env, pathStr));
+                env->DeleteLocalRef(pathStr);
+            }
+            env->DeleteLocalRef(pathsObjArray);
+            functionFinished = true;
+        };
         m_threadCV.notify_one();
-        m_functionCV.wait(functionLock, [this]() -> bool { return m_functionFinished; });
+
+        {
+            std::unique_lock threadLock(m_threadMutex);
+            m_functionCV.wait(threadLock, [&]() { return functionFinished; });
+        }
         return paths;
     }
 

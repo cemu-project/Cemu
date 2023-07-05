@@ -1,5 +1,6 @@
 package info.cemu.Cemu;
 
+import android.graphics.Bitmap;
 import android.view.KeyEvent;
 import android.view.Surface;
 
@@ -49,12 +50,14 @@ public class NativeLibrary {
     public static native void setGameTitleLoadedCallback(GameTitleLoadedCallback gameTitleLoadedCallback);
 
     public interface GameIconLoadedCallback {
-        void onGameIconLoaded(long titleId, int[] colors, int width, int height);
+        void onGameIconLoaded(long titleId);
     }
 
     public static native void setGameIconLoadedCallback(GameIconLoadedCallback gameIconLoadedCallback);
 
     public static native void requestGameIcon(long titleId);
+
+    public static native Bitmap getGameIcon(long titleId);
 
     public static native void reloadGameTitles();
 

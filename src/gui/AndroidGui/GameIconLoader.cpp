@@ -13,6 +13,10 @@ GameIconLoader::~GameIconLoader() {
     m_loaderThread.join();
 }
 
+const Image &GameIconLoader::getGameIcon(TitleId titleId) {
+    return m_iconCache.at(titleId);
+}
+
 void GameIconLoader::requestIcon(TitleId titleId) {
     {
         std::lock_guard lock(m_threadMutex);
@@ -39,7 +43,7 @@ void GameIconLoader::loadGameIcons() {
             continue;
 
         if (auto iconIt = m_iconCache.find(titleId); iconIt != m_iconCache.end()) {
-            if (m_onIconLoaded) m_onIconLoaded->onIconLoaded(titleId, iconIt->second);
+            if (m_onIconLoaded) m_onIconLoaded->onIconLoaded(titleId);
             continue;
         }
 
@@ -51,8 +55,8 @@ void GameIconLoader::loadGameIcons() {
             int width, height, channels;
             Image image(tgaData.value());
             if (image.isOk()) {
-                if (m_onIconLoaded) m_onIconLoaded->onIconLoaded(titleId, image);
                 m_iconCache.emplace(titleId, std::move(image));
+                if (m_onIconLoaded) m_onIconLoaded->onIconLoaded(titleId);
             }
         } else {
             cemuLog_log(LogType::Force, "Failed to load icon for title {:016x}", titleId);

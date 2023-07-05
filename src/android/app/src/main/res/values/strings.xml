@@ -91,4 +91,6 @@
     <string name="gamepad_channels">Gamepad channels</string>
     <string name="tv_volume">TV volume</string>
     <string name="pad_volume">Gamepad volume</string>
+    <string name="search_games">Search games</string>
+    <string name="no_games_found">No games were found</string>
 </resources>

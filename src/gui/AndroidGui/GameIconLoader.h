@@ -5,7 +5,7 @@
 
 class GameIconLoadedCallback {
 public:
-    virtual void onIconLoaded(TitleId titleId, const Image &iconData) = 0;
+    virtual void onIconLoaded(TitleId titleId) = 0;
 };
 
 class GameIconLoader {
@@ -20,6 +20,8 @@ public:
     GameIconLoader();
 
     ~GameIconLoader();
+
+    const Image &getGameIcon(TitleId titleId);
 
     void setOnIconLoaded(const std::shared_ptr <GameIconLoadedCallback> &onIconLoaded);
 
