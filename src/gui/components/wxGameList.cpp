@@ -13,6 +13,9 @@
 #include <wx/textdlg.h>
 #include <wx/stattext.h>
 #include <wx/sizer.h>
+#include <wx/wfstream.h>
+#include <wx/imagtga.h>
+#include <wx/imagpng.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -79,6 +82,7 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	InsertColumn(ColumnGameTime, _("You've played"), wxLIST_FORMAT_LEFT, config.column_width.game_time);
 	InsertColumn(ColumnGameStarted, _("Last played"), wxLIST_FORMAT_LEFT, config.column_width.game_started);
 	InsertColumn(ColumnRegion, _("Region"), wxLIST_FORMAT_LEFT, config.column_width.region);
+    InsertColumn(ColumnTitleID, _("Title ID"), wxLIST_FORMAT_LEFT, config.column_width.title_id);
 
 	const char transparent_bitmap[kIconWidth * kIconWidth * 4] = {0};
 	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
@@ -528,6 +532,7 @@ enum ContextMenuEntries
 	kContextMenuStyleList,
 	kContextMenuStyleIcon,
 	kContextMenuStyleIconSmall,
+    kContextMenuCreateDesktopEntry
 };
 void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 {
@@ -568,6 +573,10 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.Append(kContextMenuEditGraphicPacks, _("&Edit graphic packs"));
 			menu.Append(kContextMenuEditGameProfile, _("&Edit game profile"));
 
+            menu.AppendSeparator();
+#if BOOST_OS_LINUX
+            menu.Append(kContextMenuCreateDesktopEntry, _("&Create desktop entry"));
+#endif
 			menu.AppendSeparator();
 		}
 	}
@@ -687,6 +696,11 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				(new GameProfileWindow(GetParent(), title_id))->Show();
 				break;
 			}
+            case kContextMenuCreateDesktopEntry:
+#if BOOST_OS_LINUX
+                    CreateDesktopEntry(gameInfo);
+#endif
+                break;
 			}
 		}
 	}
@@ -706,6 +720,64 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 		SetStyle(Style::kSmallIcons);
 		break;
 	}
+}
+void wxGameList::CreateDesktopEntry(GameInfo2& gameInfo) {
+    const fs::path game_path(gameInfo.GetBase().GetPath());
+    const auto title_id = gameInfo.GetBaseTitleId();
+    const auto title_name = gameInfo.GetTitleName();
+    auto icon_path = game_path / "meta" / "iconTex.tga";
+
+    wxMessageDialog create_icon_dialog(this, "Creates an icon as PNG, so that the icon is viewable on more desktop environments", "Create a png icon" , wxYES_NO | wxCANCEL);
+    auto result = create_icon_dialog.ShowModal();
+    if (result == wxID_CANCEL)
+        return;
+    if (result == wxID_YES){
+        const auto out_icon_dir = ActiveSettings::GetDataPath("icons");
+
+        wxImage image;
+        wxFileInputStream tga_file(_pathToUtf8(icon_path));
+        wxTGAHandler tgaHandler;
+        tgaHandler.LoadFile(&image, tga_file, false);
+
+        fs::create_directories(out_icon_dir);
+        icon_path = out_icon_dir / (std::to_string(title_id) + ".png");
+
+        wxFileOutputStream png_file(_pathToUtf8(icon_path));
+        wxPNGHandler pngHandler;
+        pngHandler.SaveFile(&image, png_file, false);
+    }
+
+    const auto desktop_entry_string =
+            fmt::format("[Desktop Entry]\n"
+                        "Name={}\n"
+                        "Comment=Play {} on Cemu\n"
+                        "Exec={} --title-id {:016x}\n"
+                        "Icon={}\n"
+                        "Terminal=false\n"
+                        "Type=Application\n"
+                        "Categories=Game;",
+                        title_name,
+                        title_name,
+                        _pathToUtf8(ActiveSettings::GetExecutablePath()),
+                        title_id,
+                        _pathToUtf8(icon_path));
+
+    const wxString desktop_entry_name = fmt::format("{:016x}.desktop", gameInfo.GetBaseTitleId());
+    wxFileDialog entry_dialog(this, _("Choose desktop entry location"), _("~/.local/share/applications"), _(desktop_entry_name),
+                              "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+
+    if (entry_dialog.ShowModal() == wxID_CANCEL)
+        return;
+
+    const auto output_path = entry_dialog.GetPath();
+    std::ofstream output_stream(output_path);
+    if (!output_stream.good())
+    {
+        wxString errorMsg = fmt::format("Failed to save desktop entry to {}", output_path.utf8_string());
+        wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+        return;
+    }
+    output_stream << desktop_entry_string;
 }
 
 void wxGameList::OnColumnClick(wxListEvent& event)
@@ -729,6 +801,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 		ShowGameTime,
 		ShowLastPlayed,
 		ShowRegion,
+        ShowTitleId
 	};
 	const int column = event.GetColumn();
 	wxMenu menu;
@@ -744,6 +817,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 	menu.AppendCheckItem(ShowGameTime, _("Show &game time"))->Check(GetColumnWidth(ColumnGameTime) > 0);
 	menu.AppendCheckItem(ShowLastPlayed, _("Show &last played"))->Check(GetColumnWidth(ColumnGameStarted) > 0);
 	menu.AppendCheckItem(ShowRegion, _("Show &region"))->Check(GetColumnWidth(ColumnRegion) > 0);
+    menu.AppendCheckItem(ShowTitleId, _("Show &title ID"))->Check(GetColumnWidth(ColumnTitleID) > 0);
 
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED,
 		[this](wxCommandEvent& event) {
@@ -836,6 +910,7 @@ void wxGameList::ApplyGameListColumnWidths()
 	SetColumnWidth(ColumnGameTime, config.column_width.game_time);
 	SetColumnWidth(ColumnGameStarted, config.column_width.game_started);
 	SetColumnWidth(ColumnRegion, config.column_width.region);
+    SetColumnWidth(ColumnTitleID, config.column_width.title_id);
 
 	AdjustLastColumnWidth();
 }
@@ -1003,6 +1078,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 
 		const auto region_text = fmt::format("{}", gameInfo.GetRegion());
 		SetItem(index, ColumnRegion, _(region_text));
+        SetItem(index, ColumnTitleID, _(fmt::format("{:016x}", titleId)));
 	}
 	else if (m_style == Style::kIcons)
 	{
