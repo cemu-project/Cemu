@@ -5,8 +5,8 @@
 #include "nn_olv_DownloadCommunityTypes.h"
 #include "nn_olv_UploadFavoriteTypes.h"
 
-#include "Cafe/OS//libs/proc_ui/proc_ui.h"
-#include "Cafe/OS//libs/coreinit/coreinit_Time.h"
+#include "Cafe/OS/libs/proc_ui/proc_ui.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 
 namespace nn
 {
