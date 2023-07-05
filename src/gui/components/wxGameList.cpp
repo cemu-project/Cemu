@@ -727,7 +727,8 @@ void wxGameList::CreateDesktopEntry(GameInfo2& gameInfo) {
     const auto title_name = gameInfo.GetTitleName();
     auto icon_path = game_path / "meta" / "iconTex.tga";
 
-    wxMessageDialog create_icon_dialog(this, "Creates an icon as PNG, so that the icon is viewable on more desktop environments", "Create a png icon" , wxYES_NO | wxCANCEL);
+    wxMessageDialog create_icon_dialog(this, "Creates an icon as PNG, so that the icon is viewable on more desktop environments. Otherwise, a direct path to the tga file icon in the game directory is used", "Create a png icon" , wxYES_NO | wxCANCEL);
+
     auto result = create_icon_dialog.ShowModal();
     if (result == wxID_CANCEL)
         return;
@@ -740,7 +741,7 @@ void wxGameList::CreateDesktopEntry(GameInfo2& gameInfo) {
         tgaHandler.LoadFile(&image, tga_file, false);
 
         fs::create_directories(out_icon_dir);
-        icon_path = out_icon_dir / (std::to_string(title_id) + ".png");
+        icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
 
         wxFileOutputStream png_file(_pathToUtf8(icon_path));
         wxPNGHandler pngHandler;
