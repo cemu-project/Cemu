@@ -125,6 +125,21 @@ namespace act
 			return getNNReturnCode(resultCode, actRequest);
 		}
 
+		sint64 GetUtcOffset()
+		{
+			return ((ppcCyclesSince2000 / ESPRESSO_CORE_CLOCK) - (ppcCyclesSince2000_UTC / ESPRESSO_CORE_CLOCK)) * 1'000'000;
+		}
+
+		sint32 GetUtcOffsetEx(sint64be* pOutOffset, uint8 slotNo)
+		{
+
+			if (!pOutOffset)
+				return 0xc0712c80;
+
+			*pOutOffset = GetUtcOffset();
+			return 0;
+		}
+
 		sint32 g_initializeCount = 0; // inc in Initialize and dec in Finalize
 		uint32 Initialize()
 		{
@@ -649,30 +664,6 @@ void nnActExport_AcquirePrincipalIdByAccountId(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, result);
 }
 
-void nnActExport_GetUtcOffsetEx(PPCInterpreter_t* hCPU)
-{
-	// GetUtcOffsetEx__Q2_2nn3actFPLUc
-	ppcDefineParamU32BEPtr(utcOffsetOut, 0);
-	ppcDefineParamU32(uknParam, 1);
-
-	cemuLog_logDebug(LogType::Force, "Called nn_act.GetUtcOffsetEx");
-
-	*utcOffsetOut = 0;
-
-	cemuLog_logDebug(LogType::Force, "GetUtcOffsetEx stub");
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-void nnActExport_GetUtcOffset(PPCInterpreter_t* hCPU)
-{
-	uint64 utcOffset = 0;
-
-	uint64 utcDifferenceInSeconds = (ppcCyclesSince2000_UTC / ESPRESSO_CORE_CLOCK) - (ppcCyclesSince2000 / ESPRESSO_CORE_CLOCK);
-
-	osLib_returnFromFunction64(hCPU, utcDifferenceInSeconds * 1000000ULL);
-}
-
 // register account functions
 void nnAct_load()
 {
@@ -737,8 +728,8 @@ void nnAct_load()
 	// placeholders / incomplete implementations
 	osLib_addFunction("nn_act", "HasNfsAccount__Q2_2nn3actFv", nnActExport_HasNfsAccount);
 	osLib_addFunction("nn_act", "GetHostServerSettings__Q2_2nn3actFPcT1Uc", nnActExport_GetHostServerSettings);
-	osLib_addFunction("nn_act", "GetUtcOffset__Q2_2nn3actFv", nnActExport_GetUtcOffset);
-	osLib_addFunction("nn_act", "GetUtcOffsetEx__Q2_2nn3actFPLUc", nnActExport_GetUtcOffsetEx);
+	cafeExportRegisterFunc(nn::act::GetUtcOffset, "nn_act", "GetUtcOffset__Q2_2nn3actFv", LogType::Placeholder);
+	cafeExportRegisterFunc(nn::act::GetUtcOffsetEx, "nn_act", "GetUtcOffsetEx__Q2_2nn3actFPLUc", LogType::Placeholder);
 
 }
 
