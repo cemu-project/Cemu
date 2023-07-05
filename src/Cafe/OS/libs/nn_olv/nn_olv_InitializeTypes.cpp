@@ -16,24 +16,6 @@ namespace nn
 		ParamPackStorage g_ParamPack;
 		DiscoveryResultStorage g_DiscoveryResults;
 
-		uint64 get_utc_offset()
-		{
-			time_t gmt, rawtime = time(NULL);
-			struct tm* ptm;
-
-#if !defined(WIN32)
-			struct tm gbuf;
-			ptm = gmtime_r(&rawtime, &gbuf);
-#else
-			ptm = gmtime(&rawtime);
-#endif
-
-			ptm->tm_isdst = -1;
-			gmt = mktime(ptm);
-
-			return (uint64)difftime(rawtime, gmt);
-		}
-
 		sint32 GetOlvAccessKey(uint32_t* pOutKey)
 		{
 			*pOutKey = 0;
@@ -77,7 +59,7 @@ namespace nn
 			g_ParamPack.transferableId = transferrableId;
 
 			strcpy(g_ParamPack.tzName, "CEMU/Olive"); // Should be nn::act::GetTimeZoneId
-			g_ParamPack.utcOffset = get_utc_offset();
+			g_ParamPack.utcOffset = (uint64_t)nn::act::GetUtcOffset() / 1'000'000;
 
 			char paramPackStr[1024];
 			snprintf(
