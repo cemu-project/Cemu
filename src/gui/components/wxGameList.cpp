@@ -40,6 +40,8 @@
 #include <objidl.h>
 #include <shlguid.h>
 #include <shlobj.h>
+
+#include <fmt/xchar.h>
 #endif
 
 // public events
