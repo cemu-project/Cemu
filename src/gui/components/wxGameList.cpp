@@ -1226,20 +1226,20 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
 #if BOOST_OS_LINUX
     const wxString desktop_entry_name = fmt::format("{}.desktop", title_name);
     wxFileDialog entry_dialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktop_entry_name,
-                              "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+                              "Desktop file (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #elif BOOST_OS_WINDOWS
     PWSTR user_shortcut_folder;
     SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &user_shortcut_folder);
     const wxString shortcut_name = fmt::format("{}.lnk", title_name);
     wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
-                              "Desktop files (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+                              "Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #endif
     const auto result = entry_dialog.ShowModal();
     if (result == wxID_CANCEL)
         return;
     const auto output_path = entry_dialog.GetPath();
 
-
+#if BOOST_OS_LINUX
     std::optional<fs::path> icon_path;
     // Obtain and convert icon
     {
@@ -1264,7 +1264,6 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
             pngHandler.SaveFile(&image, png_file, false);
         }
     }
-#if BOOST_OS_LINUX
     const auto desktop_entry_string =
             fmt::format("[Desktop Entry]\n"
                         "Name={}\n"
@@ -1283,7 +1282,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     std::ofstream output_stream(output_path);
     if (!output_stream.good())
     {
-        wxString errorMsg = fmt::format("Failed to save desktop entry to {}", output_path.utf8_string());
+        const wxString errorMsg = fmt::format("Failed to save desktop entry to {}", output_path.utf8_string());
         wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
         return;
     }
