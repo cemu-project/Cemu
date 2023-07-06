@@ -12,7 +12,6 @@ on:
       - "*.md"
     branches:
       - main
-      - launching
 
 jobs:
   build:
