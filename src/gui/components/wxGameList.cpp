@@ -31,6 +31,7 @@
 #include "../wxHelper.h"
 
 #include "Cafe/IOSU/PDM/iosu_pdm.h" // for last played and play time
+
 #if BOOST_OS_WINDOWS
 #include <windows.h>
 #include <winnls.h>
@@ -38,6 +39,7 @@
 #include <objbase.h>
 #include <objidl.h>
 #include <shlguid.h>
+#include <shlobj.h>
 #endif
 
 // public events
@@ -1227,7 +1229,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
                               "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #elif BOOST_OS_WINDOWS
     PWSTR user_shortcut_folder;
-    SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &userFolderPath);
+    SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &user_shortcut_folder);
     const wxString shortcut_name = fmt::format("{}.lnk", title_name);
     wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
                               "Desktop files (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
@@ -1235,6 +1237,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     const auto result = entry_dialog.ShowModal();
     if (result == wxID_CANCEL)
         return;
+    const auto output_path = entry_dialog.GetPath();
 
 
     std::optional<fs::path> icon_path;
@@ -1277,9 +1280,6 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
                         title_id,
                         _pathToUtf8(icon_path.value_or("")));
 
-
-
-    const auto output_path = entry_dialog.GetPath();
     std::ofstream output_stream(output_path);
     if (!output_stream.good())
     {
@@ -1294,11 +1294,11 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&psl));
     if (SUCCEEDED(hres)) {
 
-        psl->SetPath(_pathToUtf8(exe_path).c_str());
-        psl->SetDescription(fmt::format("Play {} on Cemu", title_name).c_str());
-        psl->SetArguments(fmt::format("--title {}", title_id).c_str());
-        psl->SetWorkingDirectory(_pathToUTF8(exe_path.parent_path()).c_str())
-        psl->SetIconLocation(_pathToUtf8(exe_path).c_str(), 0);
+        psl->SetPath(output_path.wc_str());
+        psl->SetDescription(fmt::format(L"Play {} on Cemu", title_name).c_str());
+        psl->SetArguments(fmt::format(L"--title {}", title_id).c_str());
+        psl->SetWorkingDirectory(exe_path.parent_path().wstring().c_str());
+        psl->SetIconLocation(exe_path.wstring().c_str(), 0);
         IPersistFile *ppf;
         // Query IShellLink for the IPersistFile interface, used for saving the
         // shortcut in persistent storage.
@@ -1307,7 +1307,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
         if (SUCCEEDED(hres)) {
 
             // Save the link by calling IPersistFile::Save.
-            hres = ppf->Save(output_path.wstring().c_str(), TRUE);
+            hres = ppf->Save(output_path.wc_str(), TRUE);
             ppf->Release();
         }
         psl->Release();
