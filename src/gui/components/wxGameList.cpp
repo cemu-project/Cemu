@@ -14,7 +14,6 @@
 #include <wx/stattext.h>
 #include <wx/sizer.h>
 #include <wx/wfstream.h>
-#include <wx/imagtga.h>
 #include <wx/imagpng.h>
 
 #include <boost/algorithm/string.hpp>
@@ -32,6 +31,14 @@
 #include "../wxHelper.h"
 
 #include "Cafe/IOSU/PDM/iosu_pdm.h" // for last played and play time
+#if BOOST_OS_WINDOWS
+#include <windows.h>
+#include <winnls.h>
+#include <shobjidl.h>
+#include <objbase.h>
+#include <objidl.h>
+#include <shlguid.h>
+#endif
 
 // public events
 wxDEFINE_EVENT(wxEVT_OPEN_SETTINGS, wxCommandEvent);
@@ -1219,10 +1226,16 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     wxFileDialog entry_dialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktop_entry_name,
                               "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #elif BOOST_OS_WINDOWS
+    PWSTR user_shortcut_folder;
+    SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &userFolderPath);
     const wxString shortcut_name = fmt::format("{}.lnk", title_name);
-    wxFileDialog entry_dialog(this, _("Choose shortcut location"), "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs", shortcut_name,
+    wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
                               "Desktop files (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #endif
+    const auto result = entry_dialog.ShowModal();
+    if (result == wxID_CANCEL)
+        return;
+
 
     std::optional<fs::path> icon_path;
     // Obtain and convert icon
