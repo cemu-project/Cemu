@@ -532,7 +532,7 @@ enum ContextMenuEntries
 	kContextMenuStyleList,
 	kContextMenuStyleIcon,
 	kContextMenuStyleIconSmall,
-    kContextMenuCreateDesktopEntry
+    kContextMenuCreateShortcut
 };
 void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 {
@@ -575,7 +575,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 
             menu.AppendSeparator();
 #if BOOST_OS_LINUX
-            menu.Append(kContextMenuCreateDesktopEntry, _("&Create desktop entry"));
+            menu.Append(kContextMenuCreateShortcut, _("&Create shortcut"));
 #endif
 			menu.AppendSeparator();
 		}
@@ -696,9 +696,9 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				(new GameProfileWindow(GetParent(), title_id))->Show();
 				break;
 			}
-            case kContextMenuCreateDesktopEntry:
+            case kContextMenuCreateShortcut:
 #if BOOST_OS_LINUX
-                    CreateDesktopEntry(gameInfo);
+                 CreateShortcut(gameInfo);
 #endif
                 break;
 			}
@@ -720,72 +720,6 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 		SetStyle(Style::kSmallIcons);
 		break;
 	}
-}
-void wxGameList::CreateDesktopEntry(GameInfo2& gameInfo) {
-    const auto title_id = gameInfo.GetBaseTitleId();
-    const auto title_name = gameInfo.GetTitleName();
-    std::optional<fs::path> icon_path;
-
-    wxMessageDialog create_icon_dialog(this, "Saves the icon PNG, to be used by the desktop entry. ",
-                                       "Create Icon" , wxYES_NO | wxCANCEL);
-
-    const auto dialog_result = create_icon_dialog.ShowModal();
-    if (dialog_result == wxID_CANCEL)
-        return;
-    else if (dialog_result == wxID_YES){
-
-        m_icon_cache_mtx.lock();
-        const auto icon_iter = m_icon_cache.find(title_id);
-        std::optional<int> result_index = (icon_iter != m_icon_cache.cend()) ? std::optional<int>(icon_iter->second.first) : std::nullopt;
-        m_icon_cache_mtx.unlock();
-
-        if (!result_index){
-            wxMessageBox("Icon has not yet loaded", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
-        }
-        else {
-            auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
-
-            const auto out_icon_dir = ActiveSettings::GetDataPath("icons");
-            fs::create_directories(out_icon_dir);
-            icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
-
-            wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
-            wxPNGHandler pngHandler;
-            pngHandler.SaveFile(&image, png_file, false);
-        }
-    }
-
-    const auto desktop_entry_string =
-            fmt::format("[Desktop Entry]\n"
-                        "Name={}\n"
-                        "Comment=Play {} on Cemu\n"
-                        "Exec={} --title-id {:016x}\n"
-                        "Icon={}\n"
-                        "Terminal=false\n"
-                        "Type=Application\n"
-                        "Categories=Game;",
-                        title_name,
-                        title_name,
-                        _pathToUtf8(ActiveSettings::GetExecutablePath()),
-                        title_id,
-                        _pathToUtf8(icon_path.value_or("")));
-
-    const wxString desktop_entry_name = fmt::format("{:016x}.desktop", gameInfo.GetBaseTitleId());
-    wxFileDialog entry_dialog(this, _("Choose desktop entry location"), _("~/.local/share/applications"), _(desktop_entry_name),
-                              "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
-
-    if (entry_dialog.ShowModal() == wxID_CANCEL)
-        return;
-
-    const auto output_path = entry_dialog.GetPath();
-    std::ofstream output_stream(output_path);
-    if (!output_stream.good())
-    {
-        wxString errorMsg = fmt::format("Failed to save desktop entry to {}", output_path.utf8_string());
-        wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-        return;
-    }
-    output_stream << desktop_entry_string;
 }
 
 void wxGameList::OnColumnClick(wxListEvent& event)
@@ -1273,3 +1207,71 @@ void wxGameList::DeleteCachedStrings()
 {
 	m_name_cache.clear();
 }
+
+#if BOOST_OS_LINUX
+void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
+    const auto title_id = gameInfo.GetBaseTitleId();
+    const auto title_name = gameInfo.GetTitleName();
+    std::optional<fs::path> icon_path;
+
+    wxMessageDialog create_icon_dialog(this, "Saves the icon PNG, to be used by the desktop entry. ",
+                                       "Create Icon" , wxYES_NO | wxCANCEL);
+
+    const auto dialog_result = create_icon_dialog.ShowModal();
+    if (dialog_result == wxID_CANCEL)
+        return;
+    else if (dialog_result == wxID_YES){
+        m_icon_cache_mtx.lock();
+        const auto icon_iter = m_icon_cache.find(title_id);
+        std::optional<int> result_index = (icon_iter != m_icon_cache.cend()) ? std::optional<int>(icon_iter->second.first) : std::nullopt;
+        m_icon_cache_mtx.unlock();
+
+        if (!result_index){
+            wxMessageBox("Icon has not yet loaded", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+        }
+        else {
+            auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
+
+            const auto out_icon_dir = ActiveSettings::GetDataPath("icons");
+            fs::create_directories(out_icon_dir);
+            icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+
+            wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
+            wxPNGHandler pngHandler;
+            pngHandler.SaveFile(&image, png_file, false);
+        }
+    }
+
+    const auto desktop_entry_string =
+            fmt::format("[Desktop Entry]\n"
+                        "Name={}\n"
+                        "Comment=Play {} on Cemu\n"
+                        "Exec={} --title-id {:016x}\n"
+                        "Icon={}\n"
+                        "Terminal=false\n"
+                        "Type=Application\n"
+                        "Categories=Game;",
+                        title_name,
+                        title_name,
+                        _pathToUtf8(ActiveSettings::GetExecutablePath()),
+                        title_id,
+                        _pathToUtf8(icon_path.value_or("")));
+
+    const wxString desktop_entry_name = fmt::format("{:016x}.desktop", gameInfo.GetBaseTitleId());
+    wxFileDialog entry_dialog(this, _("Choose desktop entry location"), _("~/.local/share/applications"), _(desktop_entry_name),
+                              "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+
+    if (entry_dialog.ShowModal() == wxID_CANCEL)
+        return;
+
+    const auto output_path = entry_dialog.GetPath();
+    std::ofstream output_stream(output_path);
+    if (!output_stream.good())
+    {
+        wxString errorMsg = fmt::format("Failed to save desktop entry to {}", output_path.utf8_string());
+        wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+        return;
+    }
+    output_stream << desktop_entry_string;
+}
+#endif

@@ -54,7 +54,7 @@ public:
 	void DeleteCachedStrings();
 
 #if BOOST_OS_LINUX
-    void CreateDesktopEntry(GameInfo2& gameInfo);
+    void CreateShortcut(GameInfo2& gameInfo);
 #endif
 
 	long FindListItemByTitleId(uint64 title_id) const;
