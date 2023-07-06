@@ -53,7 +53,7 @@ public:
 	void ReloadGameEntries(bool cached = false);
 	void DeleteCachedStrings();
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
     void CreateShortcut(GameInfo2& gameInfo);
 #endif
 

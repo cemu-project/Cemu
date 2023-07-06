@@ -574,7 +574,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.Append(kContextMenuEditGameProfile, _("&Edit game profile"));
 
             menu.AppendSeparator();
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
             menu.Append(kContextMenuCreateShortcut, _("&Create shortcut"));
 #endif
 			menu.AppendSeparator();
@@ -697,7 +697,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				break;
 			}
             case kContextMenuCreateShortcut:
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
                  CreateShortcut(gameInfo);
 #endif
                 break;
@@ -1208,40 +1208,47 @@ void wxGameList::DeleteCachedStrings()
 	m_name_cache.clear();
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
 void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     const auto title_id = gameInfo.GetBaseTitleId();
     const auto title_name = gameInfo.GetTitleName();
+    const auto exe_path = ActiveSettings::GetExecutablePath();
+
+#if BOOST_OS_LINUX
+    const wxString desktop_entry_name = fmt::format("{}.desktop", title_name);
+    wxFileDialog entry_dialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktop_entry_name,
+                              "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+#elif BOOST_OS_WINDOWS
+    const wxString shortcut_name = fmt::format("{}.lnk", title_name);
+    wxFileDialog entry_dialog(this, _("Choose shortcut location"), "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs", shortcut_name,
+                              "Desktop files (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+#endif
+
     std::optional<fs::path> icon_path;
-
-    wxMessageDialog create_icon_dialog(this, "Saves the icon PNG, to be used by the desktop entry. ",
-                                       "Create Icon" , wxYES_NO | wxCANCEL);
-
-    const auto dialog_result = create_icon_dialog.ShowModal();
-    if (dialog_result == wxID_CANCEL)
-        return;
-    else if (dialog_result == wxID_YES){
+    // Obtain and convert icon
+    {
         m_icon_cache_mtx.lock();
         const auto icon_iter = m_icon_cache.find(title_id);
-        std::optional<int> result_index = (icon_iter != m_icon_cache.cend()) ? std::optional<int>(icon_iter->second.first) : std::nullopt;
+        const auto result_index = (icon_iter != m_icon_cache.cend()) ? std::optional<int>(icon_iter->second.first) : std::nullopt;
         m_icon_cache_mtx.unlock();
 
+        // In most cases it should find it
         if (!result_index){
-            wxMessageBox("Icon has not yet loaded", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+            wxMessageBox("Icon is yet to load, so will not be used by the shortcut", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
         }
         else {
-            auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
-
             const auto out_icon_dir = ActiveSettings::GetDataPath("icons");
             fs::create_directories(out_icon_dir);
             icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+
+            auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
 
             wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
             wxPNGHandler pngHandler;
             pngHandler.SaveFile(&image, png_file, false);
         }
     }
-
+#if BOOST_OS_LINUX
     const auto desktop_entry_string =
             fmt::format("[Desktop Entry]\n"
                         "Name={}\n"
@@ -1253,16 +1260,11 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
                         "Categories=Game;",
                         title_name,
                         title_name,
-                        _pathToUtf8(ActiveSettings::GetExecutablePath()),
+                        _pathToUtf8(exe_path),
                         title_id,
                         _pathToUtf8(icon_path.value_or("")));
 
-    const wxString desktop_entry_name = fmt::format("{:016x}.desktop", gameInfo.GetBaseTitleId());
-    wxFileDialog entry_dialog(this, _("Choose desktop entry location"), _("~/.local/share/applications"), _(desktop_entry_name),
-                              "Desktop files (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 
-    if (entry_dialog.ShowModal() == wxID_CANCEL)
-        return;
 
     const auto output_path = entry_dialog.GetPath();
     std::ofstream output_stream(output_path);
@@ -1273,5 +1275,31 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
         return;
     }
     output_stream << desktop_entry_string;
+#elif BOOST_OS_WINDOWS
+    CoInitialize(nullptr);
+    IShellLink *psl;
+    HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&psl));
+    if (SUCCEEDED(hres)) {
+
+        psl->SetPath(_pathToUtf8(exe_path).c_str());
+        psl->SetDescription(fmt::format("Play {} on Cemu", title_name).c_str());
+        psl->SetArguments(fmt::format("--title {}", title_id).c_str());
+        psl->SetWorkingDirectory(_pathToUTF8(exe_path.parent_path()).c_str())
+        psl->SetIconLocation(_pathToUtf8(exe_path).c_str(), 0);
+        IPersistFile *ppf;
+        // Query IShellLink for the IPersistFile interface, used for saving the
+        // shortcut in persistent storage.
+        hres = psl->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&ppf));
+
+        if (SUCCEEDED(hres)) {
+
+            // Save the link by calling IPersistFile::Save.
+            hres = ppf->Save(output_path.wstring().c_str(), TRUE);
+            ppf->Release();
+        }
+        psl->Release();
+    }
+    CoUninitialize();
+#endif
 }
 #endif
