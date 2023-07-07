@@ -10,6 +10,7 @@
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <wx/panel.h>
+#include <Cafe/TitleList/GameInfo.h>
 #include "util/helpers/Semaphore.h"
 
 class wxTitleIdEvent : public wxCommandEvent
@@ -52,6 +53,10 @@ public:
 	void ReloadGameEntries(bool cached = false);
 	void DeleteCachedStrings();
 
+#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
+    void CreateShortcut(GameInfo2& gameInfo);
+#endif
+
 	long FindListItemByTitleId(uint64 title_id) const;
 	void OnClose(wxCloseEvent& event);
 
@@ -75,8 +80,9 @@ private:
 		ColumnGameTime,
 		ColumnGameStarted,
 		ColumnRegion,
-		//ColumnFavorite,
-		ColumnCounts
+        ColumnTitleID,
+        //ColumnFavorite,
+		ColumnCounts,
 	};
 
 	int s_last_column = ColumnName;

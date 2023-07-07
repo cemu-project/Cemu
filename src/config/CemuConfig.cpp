@@ -100,6 +100,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	column_width.game_time = loadColumnSize("game_time_width", DefaultColumnSize::game_time);
 	column_width.game_started = loadColumnSize("game_started_width", DefaultColumnSize::game_started);
 	column_width.region = loadColumnSize("region_width", DefaultColumnSize::region);
+    column_width.title_id = loadColumnSize("title_id", DefaultColumnSize::title_id);
 
 	recent_launch_files.clear();
 	auto launch_parser = parser.get("RecentLaunchFiles");
@@ -398,6 +399,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	gamelist.set("game_time_width", column_width.game_time);
 	gamelist.set("game_started_width", column_width.game_started);
 	gamelist.set("region_width", column_width.region);
+    gamelist.set("title_id", column_width.title_id);
 
 	auto launch_files_parser = config.set("RecentLaunchFiles");
 	for (const auto& entry : recent_launch_files)

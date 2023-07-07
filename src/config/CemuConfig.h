@@ -340,6 +340,7 @@ namespace DefaultColumnSize {
 		game_time = 140u,
 		game_started = 160u,
 		region = 80u,
+        title_id = 160u
 	};
 };
 
@@ -427,6 +428,7 @@ struct CemuConfig
 		uint32 game_time = DefaultColumnSize::game_time;
 		uint32 game_started = DefaultColumnSize::game_started;
 		uint32 region = DefaultColumnSize::region;
+        uint32 title_id = 0;
 	} column_width{};
 
 	// graphics
