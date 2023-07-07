@@ -142,9 +142,10 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
                 if (title_param.starts_with('=')){
                     title_param.erase(title_param.begin());
                 }
-                s_load_title_id = std::stoul(title_param, nullptr, 16);
+                s_load_title_id = std::stoull(title_param, nullptr, 16);
             }
-            catch (std::invalid_argument const& e){
+            catch (std::invalid_argument const& e)
+            {
                 std::cerr << "Expected title_param ID as an unsigned 64-bit hexadecimal string\n";
             }
         }

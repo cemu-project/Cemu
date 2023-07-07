@@ -15,6 +15,7 @@
 #include <wx/sizer.h>
 #include <wx/wfstream.h>
 #include <wx/imagpng.h>
+#include <wx/string.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -33,6 +34,7 @@
 #include "Cafe/IOSU/PDM/iosu_pdm.h" // for last played and play time
 
 #if BOOST_OS_WINDOWS
+// for shortcut creation
 #include <windows.h>
 #include <winnls.h>
 #include <shobjidl.h>
@@ -40,8 +42,6 @@
 #include <objidl.h>
 #include <shlguid.h>
 #include <shlobj.h>
-
-#include <wx/string.h>
 #endif
 
 // public events
@@ -1299,37 +1299,31 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     output_stream << desktop_entry_string;
 
 #elif BOOST_OS_WINDOWS
-    CoInitialize(nullptr);
-    IShellLink *shell_link;
+    IShellLinkW *shell_link;
     HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shell_link));
-    if (SUCCEEDED(hres)) {
-
-        shell_link->SetPath(output_path.wc_str());
-
-        // Seemingly the only way to mix strings and wide-strings is to use wxString
+    if (SUCCEEDED(hres))
+    {
         const auto description = wxString::Format("Play %s on Cemu", title_name);
-        const auto args = wxString::Format("Play %s on Cemu", title_id);
+        const auto args = wxString::Format("-t %016llx", title_id);
 
+        shell_link->SetPath(exe_path.wstring().c_str());
         shell_link->SetDescription(description.wc_str());
         shell_link->SetArguments(args.wc_str());
         shell_link->SetWorkingDirectory(exe_path.parent_path().wstring().c_str());
-        // Use icon from Cemu exe, because Windows supposedly doesn't allow non-embedded icons
+        // Use icon from Cemu exe for now since we can't embed icons into the shortcut
+        // in the future we could convert and store icons in AppData or ProgramData
         shell_link->SetIconLocation(exe_path.wstring().c_str(), 0);
 
         IPersistFile *shell_link_file;
-        // Query IShellLink for the IPersistFile interface, used for saving the
-        // shortcut in persistent storage.
+        // save the shortcut
         hres = shell_link->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shell_link_file));
-
-        if (SUCCEEDED(hres)) {
-
-            // Save the link by calling IPersistFile::Save.
+        if (SUCCEEDED(hres))
+        {
             hres = shell_link_file->Save(output_path.wc_str(), TRUE);
             shell_link_file->Release();
         }
         shell_link->Release();
     }
-    CoUninitialize();
 #endif
 }
 #endif
