@@ -259,6 +259,8 @@ int wxGameList::GetColumnDefaultWidth(int column)
 		return DefaultColumnSize::game_started;
 	case ColumnRegion:
 		return DefaultColumnSize::region;
+    case ColumnTitleID:
+        return DefaultColumnSize::title_id;
 	default:
 		return 80;
 	}
@@ -800,6 +802,9 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			case ShowRegion:
 				config.column_width.region = menu->IsChecked(ShowRegion) ? DefaultColumnSize::region : 0;
 				break;
+            case ShowTitleId:
+                config.column_width.title_id = menu->IsChecked(ShowTitleId) ? DefaultColumnSize::title_id : 0;
+                break;
 			case ResetWidth:
 			{
 				switch (column)
@@ -824,6 +829,8 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 				case ColumnRegion:
 					config.column_width.region = DefaultColumnSize::region;
 					break;
+                case ColumnTitleID:
+                    config.column_width.title_id = DefaultColumnSize::title_id;
 				default:
 					return;
 				}

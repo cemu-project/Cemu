@@ -428,7 +428,7 @@ struct CemuConfig
 		uint32 game_time = DefaultColumnSize::game_time;
 		uint32 game_started = DefaultColumnSize::game_started;
 		uint32 region = DefaultColumnSize::region;
-        uint32 title_id = DefaultColumnSize::title_id;
+        uint32 title_id = 0;
 	} column_width{};
 
 	// graphics
