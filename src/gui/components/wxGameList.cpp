@@ -1233,7 +1233,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     // Get '%APPDATA%\Microsoft\Windows\Start Menu\Programs' path
     PWSTR user_shortcut_folder;
     SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &user_shortcut_folder);
-    const wxString desktop_entry_name = wxString::Format("%s.lnk", title_name);
+    const wxString shortcut_name = wxString::Format("%s.lnk", title_name);
     wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
                               "Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #endif
