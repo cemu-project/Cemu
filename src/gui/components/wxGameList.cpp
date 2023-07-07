@@ -41,7 +41,7 @@
 #include <shlguid.h>
 #include <shlobj.h>
 
-#include <fmt/xchar.h>
+#include <wx/string.h>
 #endif
 
 // public events
@@ -1226,13 +1226,14 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     const auto exe_path = ActiveSettings::GetExecutablePath();
 
 #if BOOST_OS_LINUX
-    const wxString desktop_entry_name = fmt::format("{}.desktop", title_name);
+    const wxString desktop_entry_name = wxString::Format("%s.desktop", title_name);
     wxFileDialog entry_dialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktop_entry_name,
                               "Desktop file (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #elif BOOST_OS_WINDOWS
+    // Get '%APPDATA%\Microsoft\Windows\Start Menu\Programs' path
     PWSTR user_shortcut_folder;
     SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &user_shortcut_folder);
-    const wxString shortcut_name = fmt::format("{}.lnk", title_name);
+    const wxString desktop_entry_name = wxString::Format("%s.lnk", title_name);
     wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
                               "Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 #endif
@@ -1289,29 +1290,37 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
         return;
     }
     output_stream << desktop_entry_string;
+
 #elif BOOST_OS_WINDOWS
     CoInitialize(nullptr);
-    IShellLink *psl;
-    HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&psl));
+    IShellLink *shell_link;
+    HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shell_link));
     if (SUCCEEDED(hres)) {
 
-        psl->SetPath(output_path.wc_str());
-        psl->SetDescription(fmt::format(L"Play {} on Cemu", title_name).c_str());
-        psl->SetArguments(fmt::format(L"--title {}", title_id).c_str());
-        psl->SetWorkingDirectory(exe_path.parent_path().wstring().c_str());
-        psl->SetIconLocation(exe_path.wstring().c_str(), 0);
-        IPersistFile *ppf;
+        shell_link->SetPath(output_path.wc_str());
+
+        // Seemingly the only way to mix strings and wide-strings is to use wxString
+        const auto description = wxString::Format("Play %s on Cemu", title_name);
+        const auto args = wxString::Format("Play %s on Cemu", title_id);
+
+        shell_link->SetDescription(description.wc_str());
+        shell_link->SetArguments(args.wc_str());
+        shell_link->SetWorkingDirectory(exe_path.parent_path().wstring().c_str());
+        // Use icon from Cemu exe, because Windows supposedly doesn't allow non-embedded icons
+        shell_link->SetIconLocation(exe_path.wstring().c_str(), 0);
+
+        IPersistFile *shell_link_file;
         // Query IShellLink for the IPersistFile interface, used for saving the
         // shortcut in persistent storage.
-        hres = psl->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&ppf));
+        hres = shell_link->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shell_link_file));
 
         if (SUCCEEDED(hres)) {
 
             // Save the link by calling IPersistFile::Save.
-            hres = ppf->Save(output_path.wc_str(), TRUE);
-            ppf->Release();
+            hres = shell_link_file->Save(output_path.wc_str(), TRUE);
+            shell_link_file->Release();
         }
-        psl->Release();
+        shell_link->Release();
     }
     CoUninitialize();
 #endif
