@@ -1263,9 +1263,10 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
             wxMessageBox("Icon is yet to load, so will not be used by the shortcut", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
         }
         else {
-            const auto out_icon_dir = ActiveSettings::GetDataPath("icons");
-            if (!fs::exists(out_icon_dir) || !fs::create_directories(out_icon_dir)){
-                wxMessageBox("Unable to create icon directory, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+            const fs::path out_icon_dir = ActiveSettings::GetUserDataPath("icons");
+
+            if (!fs::exists(out_icon_dir) && !fs::create_directories(out_icon_dir)){
+                wxMessageBox("Cannot access the icon directory, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
             }
             else {
                 icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
