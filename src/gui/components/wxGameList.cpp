@@ -1264,14 +1264,21 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
         }
         else {
             const auto out_icon_dir = ActiveSettings::GetDataPath("icons");
-            fs::create_directories(out_icon_dir);
-            icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+            if (!fs::exists(out_icon_dir) || !fs::create_directories(out_icon_dir)){
+                wxMessageBox("Unable to create icon directory, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+            }
+            else {
+                icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
 
-            auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
+                auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
 
-            wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
-            wxPNGHandler pngHandler;
-            pngHandler.SaveFile(&image, png_file, false);
+                wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
+                wxPNGHandler pngHandler;
+                if (!pngHandler.SaveFile(&image, png_file, false)) {
+                    icon_path = std::nullopt;
+                    wxMessageBox("The icon was unable to be saved, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+                }
+            }
         }
     }
     const auto desktop_entry_string =
