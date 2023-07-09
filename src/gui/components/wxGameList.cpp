@@ -16,6 +16,7 @@
 #include <wx/wfstream.h>
 #include <wx/imagpng.h>
 #include <wx/string.h>
+#include <wx/utils.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -1230,7 +1231,13 @@ void wxGameList::DeleteCachedStrings()
 void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     const auto title_id = gameInfo.GetBaseTitleId();
     const auto title_name = gameInfo.GetTitleName();
-    const auto exe_path = ActiveSettings::GetExecutablePath();
+    auto exe_path = ActiveSettings::GetExecutablePath();
+
+    // GetExecutablePath returns the AppImage's temporary mount location, instead of its actual path
+    wxString appimage_path;
+    if (wxGetEnv(("APPIMAGE"), &appimage_path)) {
+        exe_path = appimage_path.utf8_string();
+    }
 
 #if BOOST_OS_LINUX
     const wxString desktop_entry_name = wxString::Format("%s.desktop", title_name);
