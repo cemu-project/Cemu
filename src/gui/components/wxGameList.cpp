@@ -16,6 +16,7 @@
 #include <wx/wfstream.h>
 #include <wx/imagpng.h>
 #include <wx/string.h>
+#include <wx/utils.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -1230,7 +1231,13 @@ void wxGameList::DeleteCachedStrings()
 void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     const auto title_id = gameInfo.GetBaseTitleId();
     const auto title_name = gameInfo.GetTitleName();
-    const auto exe_path = ActiveSettings::GetExecutablePath();
+    auto exe_path = ActiveSettings::GetExecutablePath();
+
+    // GetExecutablePath returns the AppImage's temporary mount location, instead of its actual path
+    wxString appimage_path;
+    if (wxGetEnv(("APPIMAGE"), &appimage_path)) {
+        exe_path = appimage_path.utf8_string();
+    }
 
 #if BOOST_OS_LINUX
     const wxString desktop_entry_name = wxString::Format("%s.desktop", title_name);
@@ -1263,15 +1270,23 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
             wxMessageBox("Icon is yet to load, so will not be used by the shortcut", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
         }
         else {
-            const auto out_icon_dir = ActiveSettings::GetDataPath("icons");
-            fs::create_directories(out_icon_dir);
-            icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+            const fs::path out_icon_dir = ActiveSettings::GetUserDataPath("icons");
 
-            auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
+            if (!fs::exists(out_icon_dir) && !fs::create_directories(out_icon_dir)){
+                wxMessageBox("Cannot access the icon directory, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+            }
+            else {
+                icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
 
-            wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
-            wxPNGHandler pngHandler;
-            pngHandler.SaveFile(&image, png_file, false);
+                auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
+
+                wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
+                wxPNGHandler pngHandler;
+                if (!pngHandler.SaveFile(&image, png_file, false)) {
+                    icon_path = std::nullopt;
+                    wxMessageBox("The icon was unable to be saved, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+                }
+            }
         }
     }
     const auto desktop_entry_string =
