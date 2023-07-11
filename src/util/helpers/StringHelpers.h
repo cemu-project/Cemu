@@ -108,5 +108,94 @@ namespace StringHelpers
 		}
 		return parsedLen;
 	}
+
+	class StringLineIterator
+	{
+	public:
+		class Iterator
+		{
+		public:
+			using iterator_category = std::input_iterator_tag;
+			using value_type = std::string_view;
+			using difference_type = std::ptrdiff_t;
+			using pointer = const std::string_view*;
+			using reference = const std::string_view&;
+
+			Iterator(std::string_view str, sint32 pos) : m_str(str), m_pos(pos)
+			{
+				update_line();
+			}
+
+			reference operator*() const
+			{
+				return m_line;
+			}
+
+			pointer operator->() const
+			{
+				return &m_line;
+			}
+
+			Iterator& operator++()
+			{
+				m_pos = m_nextPos;
+				update_line();
+				return *this;
+			}
+
+			friend bool operator==(const Iterator& lhs, const Iterator& rhs)
+			{
+				return lhs.m_str.data() == rhs.m_str.data() && lhs.m_pos == rhs.m_pos;
+			}
+
+			friend bool operator!=(const Iterator& lhs, const Iterator& rhs)
+			{
+				return !(lhs == rhs);
+			}
+
+		private:
+			void update_line()
+			{
+				if (m_pos >= m_str.size())
+				{
+					m_pos = -1;
+					m_line = {};
+					return;
+				}
+				auto pos = m_str.find('\n', m_pos);
+				m_nextPos = pos != std::string_view::npos ? pos : -1;
+				if(m_nextPos < 0)
+					m_line = m_str.substr(m_pos, std::string::npos);
+				else
+				{
+					m_line = m_str.substr(m_pos, m_nextPos - m_pos);
+					++m_nextPos; // skip \n
+				}
+				while (!m_line.empty() && m_line.back() == '\r')
+					m_line.remove_suffix(1);
+			}
+
+			std::string_view m_str;
+			sint32 m_pos;
+			sint32 m_nextPos;
+			std::string_view m_line;
+		};
+
+		StringLineIterator(std::string_view str) : m_str(str) {}
+		StringLineIterator(std::span<uint8> str) : m_str((const char*)str.data(), str.size()) {}
+
+		Iterator begin() const
+		{
+			return Iterator{m_str, 0 };
+		}
+
+		Iterator end() const
+		{
+			return Iterator{m_str, -1 };
+		}
+
+	private:
+		std::string_view m_str;
+	};
 };
 
