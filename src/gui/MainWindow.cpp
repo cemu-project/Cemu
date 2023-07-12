@@ -2061,9 +2061,9 @@ void MainWindow::RecreateMenu()
 	
 	auto& config = GetConfig();
 	
-	m_menuBar = new wxMenuBar;
+	m_menuBar = new wxMenuBar();
 	// file submenu
-	m_fileMenu = new wxMenu;
+	m_fileMenu = new wxMenu();
 
 	if (!m_game_launched)
 	{
@@ -2107,7 +2107,7 @@ void MainWindow::RecreateMenu()
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));
 	m_menuBar->Append(m_fileMenu, _("&File"));
 	// options->account submenu
-	m_optionsAccountMenu = new wxMenu;
+	m_optionsAccountMenu = new wxMenu();
 	const auto account_id = ActiveSettings::GetPersistentId();
 	int index = 0;
 	for(const auto& account : Account::GetAccounts())
@@ -2121,7 +2121,7 @@ void MainWindow::RecreateMenu()
 	}
 
 	// options->console language submenu
-	wxMenu* optionsConsoleLanguageMenu = new wxMenu;
+	wxMenu* optionsConsoleLanguageMenu = new wxMenu();
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ENGLISH, _("&English"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::EN);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_JAPANESE, _("&Japanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::JA);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_FRENCH, _("&French"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::FR);
@@ -2136,7 +2136,7 @@ void MainWindow::RecreateMenu()
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_TAIWANESE, _("&Taiwanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::TW);
 
 	// options submenu
-	wxMenu* optionsMenu = new wxMenu;
+	wxMenu* optionsMenu = new wxMenu();
 	m_fullscreenMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN, _("&Fullscreen"), wxEmptyString);
 	m_fullscreenMenuItem->Check(ActiveSettings::FullscreenEnabled());		
 	
@@ -2153,7 +2153,7 @@ void MainWindow::RecreateMenu()
 	m_menuBar->Append(optionsMenu, _("&Options"));
 
 	// tools submenu
-	wxMenu* toolsMenu = new wxMenu;
+	wxMenu* toolsMenu = new wxMenu();
 	m_memorySearcherMenuItem = toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, _("&Memory searcher"));
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
@@ -2161,7 +2161,7 @@ void MainWindow::RecreateMenu()
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 
 	// cpu timer speed menu
-	wxMenu* timerSpeedMenu = new wxMenu;
+	wxMenu* timerSpeedMenu = new wxMenu();
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_1X, _("&1x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 3);
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_2X, _("&2x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 2);
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_4X, _("&4x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 1);
@@ -2171,12 +2171,12 @@ void MainWindow::RecreateMenu()
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_0125X, _("&0.125x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 6);
 
 	// cpu submenu
-	wxMenu* cpuMenu = new wxMenu;
+	wxMenu* cpuMenu = new wxMenu();
 	cpuMenu->AppendSubMenu(timerSpeedMenu, _("&Timer speed"));
 	m_menuBar->Append(cpuMenu, _("&CPU"));
 
 	// nfc submenu
-	wxMenu* nfcMenu = new wxMenu;
+	wxMenu* nfcMenu = new wxMenu();
 	m_nfcMenu = nfcMenu;
 	nfcMenu->Append(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, _("&Scan NFC tag from file"))->Enable(false);
 	m_menuBar->Append(nfcMenu, _("&NFC"));
@@ -2213,7 +2213,7 @@ void MainWindow::RecreateMenu()
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"), wxEmptyString)->Check(ActiveSettings::DumpShadersEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString);
 	// debug submenu
-	wxMenu* debugMenu = new wxMenu;
+	wxMenu* debugMenu = new wxMenu();
 	m_debugMenu = debugMenu;
 	debugMenu->AppendSubMenu(debugLoggingMenu, _("&Logging"));
 	debugMenu->AppendSubMenu(debugDumpMenu, _("&Dump"));
@@ -2248,7 +2248,7 @@ void MainWindow::RecreateMenu()
 
 	m_menuBar->Append(debugMenu, _("&Debug"));
 	// help menu
-	wxMenu* helpMenu = new wxMenu;
+	wxMenu* helpMenu = new wxMenu();
 	//helpMenu->Append(MAINFRAME_MENU_ID_HELP_WEB, wxT("&Visit website"));
 	//helpMenu->AppendSeparator();
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
@@ -2268,7 +2268,7 @@ void MainWindow::RecreateMenu()
 
 		m_memorySearcherMenuItem->Enable(true);
 		m_nfcMenu->Enable(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, true);
-		
+
 		// these options cant be toggled after the renderer backend is initialized:
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), false);
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), false);
@@ -2340,29 +2340,7 @@ void MainWindow::RestoreSettingsAfterGameExited()
 void MainWindow::UpdateSettingsAfterGameLaunch()
 {
 	m_update_available = {};
-	//m_game_launched = true;
 	RecreateMenu();
-}
-
-std::string MainWindow::GetRegionString(uint32 region) const
-{
-	switch (region)
-	{
-	case 0x1:
-		return "JPN";
-	case 0x2:
-		return "USA";
-	case 0x4:
-		return "EUR";
-	case 0x10:
-		return "CHN";
-	case 0x20:
-		return "KOR";
-	case 0x40:
-		return "TWN";
-	default:
-		return std::to_string(region);
-	}
 }
 
 void MainWindow::OnGraphicWindowClose(wxCloseEvent& event)
@@ -2375,7 +2353,6 @@ void MainWindow::OnGraphicWindowOpen(wxTitleIdEvent& event)
 {
 	if (m_graphic_pack_window)
 		return;
-
 	m_graphic_pack_window = new GraphicPacksWindow2(this, event.GetTitleId());
 	m_graphic_pack_window->Bind(wxEVT_CLOSE_WINDOW, &MainWindow::OnGraphicWindowClose, this);
 	m_graphic_pack_window->Show(true);

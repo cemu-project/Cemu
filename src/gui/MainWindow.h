@@ -186,8 +186,6 @@ private:
 	void LoadSettings();
 	void SaveSettings();
 
-	std::string GetRegionString(uint32 region) const;
-
 	void OnGraphicWindowClose(wxCloseEvent& event);
 	void OnGraphicWindowOpen(wxTitleIdEvent& event);
 

@@ -444,10 +444,16 @@ namespace CafeSystem
 		if (s_initialized)
 			return;
 		s_initialized = true;
+		// init core systems
+		fsc_init();
+		memory_init();
+		PPCCore_init();
+		RPLLoader_InitState();
 		// allocate memory for all SysAllocators
-		// must happen before all COS modules, but also before iosu::kernel::Init()
+		// must happen before COS module init, but also before iosu::kernel::Initialize()
 		SysAllocatorContainer::GetInstance().Initialize();
 		// init IOSU
+		iosuCrypto_init();
 		iosu::kernel::Initialize();
 		iosu::fsa::Initialize();
 		iosuIoctl_init();
