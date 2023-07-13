@@ -323,7 +323,7 @@ std::string wxGameList::GetNameByTitleId(uint64 titleId)
 		return "Unknown title";
 	std::string name;
 	if (!GetConfig().GetGameListCustomName(titleId, name))
-		name = titleInfo.GetTitleName();
+		name = titleInfo.GetMetaTitleName();
 	m_name_cache.emplace(titleId, name);
 	return name;
 }
@@ -967,13 +967,11 @@ int wxGameList::FindInsertPosition(TitleId titleId)
 void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 {
 	const auto titleId = event.GetTitleId();
-	// get GameInfo from title list
 	GameInfo2 gameInfo = CafeTitleList::GetGameInfo(titleId);
-
-	if (!gameInfo.IsValid())
+	if (!gameInfo.IsValid() || gameInfo.IsSystemDataTitle())
 	{
-		// entry no longer exists
-		// we dont need to do anything here because all delete operations should trigger a full list refresh
+		// entry no longer exists or is not a valid game
+		// we dont need to remove list entries here because all delete operations should trigger a full list refresh
 		return;
 	}
 	TitleId baseTitleId = gameInfo.GetBaseTitleId();

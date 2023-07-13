@@ -45,6 +45,7 @@
 // IOSU initializer functions
 #include "Cafe/IOSU/kernel/iosu_kernel.h"
 #include "Cafe/IOSU/fsa/iosu_fsa.h"
+#include "Cafe/IOSU/ODM/iosu_odm.h"
 
 // Cafe OS initializer and shutdown functions
 #include "Cafe/OS/libs/avm/avm.h"
@@ -466,6 +467,7 @@ namespace CafeSystem
 		iosu::boss_init();
 		iosu::nim::Initialize();
 		iosu::pdm::Initialize();
+		iosu::odm::Initialize();
 		// init Cafe OS
 		avm::Initialize();
 		drmapp::Initialize();
@@ -490,7 +492,8 @@ namespace CafeSystem
         if (sSystemRunning)
             ShutdownTitle();
         // shutdown persistent subsystems
-        iosu::act::Stop();
+		iosu::odm::Shutdown();
+		iosu::act::Stop();
         iosu::mcp::Shutdown();
         iosu::fsa::Shutdown();
         s_initialized = false;
@@ -752,6 +755,13 @@ namespace CafeSystem
 		if (sLaunchModeIsStandalone)
 			return 0;
 		return sGameInfo_ForegroundTitle.GetVersion();
+	}
+
+	uint32 GetForegroundTitleSDKVersion()
+	{
+		if (sLaunchModeIsStandalone)
+			return 999999;
+		return sGameInfo_ForegroundTitle.GetSDKVersion();
 	}
 
 	CafeConsoleRegion GetForegroundTitleRegion()

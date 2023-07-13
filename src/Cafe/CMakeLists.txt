@@ -240,6 +240,8 @@ add_library(CemuCafe
   IOSU/nn/iosu_nn_service.h
   IOSU/PDM/iosu_pdm.cpp
   IOSU/PDM/iosu_pdm.h
+  IOSU/ODM/iosu_odm.cpp
+  IOSU/ODM/iosu_odm.h
   OS/common/OSCommon.cpp
   OS/common/OSCommon.h
   OS/common/OSUtil.h
@@ -464,8 +466,6 @@ add_library(CemuCafe
   OS/RPL/rpl_structs.h
   OS/RPL/rpl_symbol_storage.cpp
   OS/RPL/rpl_symbol_storage.h
-  TitleList/BaseInfo.cpp
-  TitleList/BaseInfo.h
   TitleList/GameInfo.h
   TitleList/ParsedMetaXml.h
   TitleList/SaveInfo.cpp

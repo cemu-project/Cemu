@@ -20,6 +20,11 @@ public:
 		return m_base.IsValid(); // at least the base must be valid for this to be a runnable title
 	}
 
+	bool IsSystemDataTitle() const
+	{
+		return m_base.IsSystemDataTitle();
+	}
+
 	void SetBase(const TitleInfo& titleInfo)
 	{
 		m_base = titleInfo;
@@ -84,7 +89,7 @@ public:
 	std::string GetTitleName()
 	{
 		cemu_assert_debug(m_base.IsValid());
-		return m_base.GetTitleName(); // long name
+		return m_base.GetMetaTitleName(); // long name
 	}
 
 	uint16 GetVersion() const
@@ -92,6 +97,13 @@ public:
 		if (m_update.IsValid())
 			return m_update.GetAppTitleVersion();
 		return m_base.GetAppTitleVersion();
+	}
+
+	uint32 GetSDKVersion() const
+	{
+		if (m_update.IsValid())
+			return m_update.GetAppSDKVersion();
+		return m_base.GetAppSDKVersion();
 	}
 
 	CafeConsoleRegion GetRegion() const

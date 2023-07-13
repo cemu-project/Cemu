@@ -1,5 +1,6 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
+#include "Cafe/CafeSystem.h"
 
 namespace coreinit
 {
@@ -309,14 +310,20 @@ namespace coreinit
 		cemu_assert_unimplemented();
 	}
 
-	void COSWarn()
+	void COSWarn(int moduleId, const char* format)
 	{
-		cemu_assert_debug(false);
+		char buffer[1024 * 2];
+		int prefixLen = sprintf(buffer, "[COSWarn-%d] ", moduleId);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 2);
+		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 
-	void OSLogPrintf()
+	void OSLogPrintf(int ukn1, int ukn2, int ukn3, const char* format)
 	{
-		cemu_assert_debug(false);
+		char buffer[1024 * 2];
+		int prefixLen = sprintf(buffer, "[OSLogPrintf-%d-%d-%d] ", ukn1, ukn2, ukn3);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 4);
+		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 
 	void OSConsoleWrite(const char* strPtr, sint32 length)
@@ -341,14 +348,24 @@ namespace coreinit
 		return true;
 	}
 
+	uint32 s_sdkVersion;
+
+	uint32 __OSGetProcessSDKVersion()
+	{
+		return s_sdkVersion;
+	}
+
 	void miscInit()
 	{
+		s_sdkVersion = CafeSystem::GetForegroundTitleSDKVersion();
+
 		cafeExportRegister("coreinit", __os_snprintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSReport, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSVReport, LogType::Placeholder);
 		cafeExportRegister("coreinit", COSWarn, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSLogPrintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSConsoleWrite, LogType::Placeholder);
+		cafeExportRegister("coreinit", __OSGetProcessSDKVersion, LogType::Placeholder);
 
 		g_homeButtonMenuEnabled = true; // enabled by default
 		// Disney Infinity 2.0 actually relies on home button menu being enabled by default. If it's false it will crash due to calling erreula->IsAppearHomeNixSign() before initializing erreula

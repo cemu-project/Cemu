@@ -24,6 +24,7 @@ namespace CafeSystem
 
 	TitleId GetForegroundTitleId();
 	uint16 GetForegroundTitleVersion();
+	uint32 GetForegroundTitleSDKVersion();
 	CafeConsoleRegion GetForegroundTitleRegion();
 	CafeConsoleRegion GetPlatformRegion();
 	std::string GetForegroundTitleName();
