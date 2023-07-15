@@ -5,78 +5,18 @@
 
 #include <libusb.h>
 
-#if BOOST_OS_WINDOWS
-
-#include <setupapi.h>
-#include <initguid.h>
-#include <hidsdi.h>
-
-#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
-
-#pragma comment(lib,"Setupapi.lib")
-#pragma comment(lib,"hid.lib")
-
-DEFINE_GUID(GUID_DEVINTERFACE_HID, 0x4D1E55B2L, 0xF16F, 0x11CF, 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30);
-
 namespace nsyshid
 {
 
-	typedef struct
+	HIDClient_t *firstHIDClient = nullptr;
+	std::vector<std::shared_ptr<usb_device>> usb_devices;
+	libusb_context *ctx = nullptr;
+	uint32 _lastGeneratedHidHandle = 1;
+
+	uint32 generateHIDHandle()
 	{
-		/* +0x00 */ uint32be handle;
-		/* +0x04 */ uint32 ukn04;
-		/* +0x08 */ uint16 vendorId; // little-endian ?
-		/* +0x0A */ uint16 productId; // little-endian ?
-		/* +0x0C */ uint8 ifIndex;
-		/* +0x0D */ uint8 subClass;
-		/* +0x0E */ uint8 protocol;
-		/* +0x0F */ uint8 paddingGuessed0F;
-		/* +0x10 */ uint16be maxPacketSizeRX;
-		/* +0x12 */ uint16be maxPacketSizeTX;
-	}HIDDevice_t;
-
-	static_assert(offsetof(HIDDevice_t, vendorId) == 0x8, "");
-	static_assert(offsetof(HIDDevice_t, productId) == 0xA, "");
-	static_assert(offsetof(HIDDevice_t, ifIndex) == 0xC, "");
-	static_assert(offsetof(HIDDevice_t, protocol) == 0xE, "");
-
-	typedef struct _HIDDeviceInfo_t
-	{
-		uint32 handle;
-		uint32 physicalDeviceInstance;
-		uint16 vendorId;
-		uint16 productId;
-		uint8 interfaceIndex;
-		uint8 interfaceSubClass;
-		uint8 protocol;
-		HIDDevice_t* hidDevice; // this info is passed to applications and must remain intact
-		wchar_t* devicePath;
-		_HIDDeviceInfo_t* next;
-		// host
-		HANDLE hFile;
-	}HIDDeviceInfo_t;
-
-	HIDDeviceInfo_t* firstDevice = nullptr;
-
-
-	typedef struct _HIDClient_t
-	{
-		MEMPTR<_HIDClient_t> next;
-		uint32be callbackFunc; // attach/detach callback
-	}HIDClient_t;
-
-	HIDClient_t* firstHIDClient = nullptr;
-
-	HANDLE openDevice(wchar_t* devicePath)
-	{
-		return CreateFile(devicePath,
-			GENERIC_READ | GENERIC_WRITE,
-			FILE_SHARE_READ |
-			FILE_SHARE_WRITE,
-			NULL,
-			OPEN_EXISTING,
-			FILE_FLAG_OVERLAPPED,
-			NULL);
+		_lastGeneratedHidHandle++;
+		return _lastGeneratedHidHandle;
 	}
 
 	void attachClientToList(HIDClient_t* hidClient)
@@ -94,202 +34,92 @@ namespace nsyshid
 		}
 	}
 
-	void attachDeviceToList(HIDDeviceInfo_t* hidDeviceInfo)
+	std::shared_ptr<usb_device> getHIDDeviceInfoByHandle(uint32 handle, bool openFileHandle = false)
 	{
-		if (firstDevice)
-		{
-			hidDeviceInfo->next = firstDevice;
-			firstDevice = hidDeviceInfo;
-		}
-		else
-		{
-			hidDeviceInfo->next = nullptr;
-			firstDevice = hidDeviceInfo;
-		}
-	}
-
-	HIDDeviceInfo_t* getHIDDeviceInfoByHandle(uint32 handle, bool openFileHandle = false)
-	{
-		HIDDeviceInfo_t* deviceItr = firstDevice;
-		while (deviceItr)
-		{
-			if (deviceItr->handle == handle)
-			{
-				if (openFileHandle && deviceItr->hFile == INVALID_HANDLE_VALUE)
-				{
-					deviceItr->hFile = openDevice(deviceItr->devicePath);
-					if (deviceItr->hFile == INVALID_HANDLE_VALUE)
-					{
-						cemuLog_log(LogType::Force, "HID: Failed to open device \"{}\"", boost::nowide::narrow(std::wstring(deviceItr->devicePath)));
-						return nullptr;
-					}
-					HidD_SetNumInputBuffers(deviceItr->hFile, 2); // dont cache too many reports
-				}
-				return deviceItr;
-			}
-			deviceItr = deviceItr->next;
-		}
-		return nullptr;
-	}
-
-	uint32 _lastGeneratedHidHandle = 1;
-
-	uint32 generateHIDHandle()
-	{
-		_lastGeneratedHidHandle++;
-		return _lastGeneratedHidHandle;
-	}
-
-	const int HID_MAX_NUM_DEVICES = 128;
-
-	SysAllocator<HIDDevice_t, HID_MAX_NUM_DEVICES> _devicePool;
-	std::bitset<HID_MAX_NUM_DEVICES> _devicePoolMask;
-
-	HIDDevice_t* getFreeDevice()
-	{
-		for (sint32 i = 0; i < HID_MAX_NUM_DEVICES; i++)
-		{
-			if (_devicePoolMask.test(i) == false)
-			{
-				_devicePoolMask.set(i);
-				return _devicePool.GetPtr() + i;
+		for (std::shared_ptr<usb_device> device : usb_devices) {
+			if (device->handle == handle) {
+				return device;
 			}
 		}
 		return nullptr;
-	}
-
-	void checkAndAddDevice(wchar_t* devicePath, HANDLE hDevice)
-	{
-		HIDD_ATTRIBUTES hidAttr;
-		hidAttr.Size = sizeof(HIDD_ATTRIBUTES);
-		if (HidD_GetAttributes(hDevice, &hidAttr) == FALSE)
-			return;
-		HIDDevice_t* hidDevice = getFreeDevice();
-		if (hidDevice == nullptr)
-		{
-			cemuLog_log(LogType::Force, "HID: Maximum number of supported devices exceeded");
-			return;
-		}
-
-		HIDDeviceInfo_t* deviceInfo = (HIDDeviceInfo_t*)malloc(sizeof(HIDDeviceInfo_t));
-		memset(deviceInfo, 0, sizeof(HIDDeviceInfo_t));
-		deviceInfo->devicePath = _wcsdup(devicePath);
-		deviceInfo->vendorId = hidAttr.VendorID;
-		deviceInfo->productId = hidAttr.ProductID;
-		deviceInfo->hFile = INVALID_HANDLE_VALUE;
-		// generate handle
-		deviceInfo->handle = generateHIDHandle();
-		// get additional device info
-		sint32 maxPacketInputLength = -1;
-		sint32 maxPacketOutputLength = -1;
-		PHIDP_PREPARSED_DATA ppData = nullptr;
-		if (HidD_GetPreparsedData(hDevice, &ppData))
-		{
-			HIDP_CAPS caps;
-			if (HidP_GetCaps(ppData, &caps) == HIDP_STATUS_SUCCESS)
-			{
-				// length includes the report id byte
-				maxPacketInputLength = caps.InputReportByteLength - 1;
-				maxPacketOutputLength = caps.OutputReportByteLength - 1;
-			}
-			HidD_FreePreparsedData(ppData);
-		}
-		if (maxPacketInputLength <= 0 || maxPacketInputLength >= 0xF000)
-		{
-			cemuLog_log(LogType::Force, "HID: Input packet length not available or out of range (length = {})", maxPacketInputLength);
-			maxPacketInputLength = 0x20;
-		}
-		if (maxPacketOutputLength <= 0 || maxPacketOutputLength >= 0xF000)
-		{
-			cemuLog_log(LogType::Force, "HID: Output packet length not available or out of range (length = {})", maxPacketOutputLength);
-			maxPacketOutputLength = 0x20;
-		}
-		// setup HIDDevice struct
-		deviceInfo->hidDevice = hidDevice;
-		memset(hidDevice, 0, sizeof(HIDDevice_t));
-		hidDevice->handle = deviceInfo->handle;
-		hidDevice->vendorId = deviceInfo->vendorId;
-		hidDevice->productId = deviceInfo->productId;
-		hidDevice->maxPacketSizeRX = maxPacketInputLength;
-		hidDevice->maxPacketSizeTX = maxPacketOutputLength;
-
-		hidDevice->ukn04 = 0x11223344;
-
-		hidDevice->ifIndex = 1;
-		hidDevice->protocol = 0;
-		hidDevice->subClass = 2;
-
-		// todo - other values
-		//hidDevice->ifIndex = 1;
-
-
-		attachDeviceToList(deviceInfo);
-
 	}
 
 	void initDeviceList()
 	{
-		if (firstDevice)
+		if (usb_devices.empty())
 			return;
-		HDEVINFO                         hDevInfo;
-		SP_DEVICE_INTERFACE_DATA         DevIntfData;
-		PSP_DEVICE_INTERFACE_DETAIL_DATA DevIntfDetailData;
-		SP_DEVINFO_DATA                  DevData;
 
-		DWORD dwSize, dwMemberIdx;
-
-		hDevInfo = SetupDiGetClassDevs(&GUID_DEVINTERFACE_HID, NULL, 0, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
-
-		if (hDevInfo != INVALID_HANDLE_VALUE)
+		if (int res = libusb_init(&ctx); res < 0)
 		{
-			DevIntfData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-			dwMemberIdx = 0;
-
-			SetupDiEnumDeviceInterfaces(hDevInfo, NULL, &GUID_DEVINTERFACE_HID,
-				dwMemberIdx, &DevIntfData);
-
-			while (GetLastError() != ERROR_NO_MORE_ITEMS)
-			{
-				DevData.cbSize = sizeof(DevData);
-				SetupDiGetDeviceInterfaceDetail(
-					hDevInfo, &DevIntfData, NULL, 0, &dwSize, NULL);
-
-				DevIntfDetailData = (PSP_DEVICE_INTERFACE_DETAIL_DATA)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize);
-				DevIntfDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-
-				if (SetupDiGetDeviceInterfaceDetail(hDevInfo, &DevIntfData,
-					DevIntfDetailData, dwSize, &dwSize, &DevData))
-				{
-					HANDLE hHIDDevice = openDevice(DevIntfDetailData->DevicePath);
-					if (hHIDDevice != INVALID_HANDLE_VALUE)
-					{
-						checkAndAddDevice(DevIntfDetailData->DevicePath, hHIDDevice);
-						CloseHandle(hHIDDevice);
-					}
-				}
-				HeapFree(GetProcessHeap(), 0, DevIntfDetailData);
-				// next
-				SetupDiEnumDeviceInterfaces(hDevInfo, NULL, &GUID_DEVINTERFACE_HID, ++dwMemberIdx, &DevIntfData);
-			}
-			SetupDiDestroyDeviceInfoList(hDevInfo);
+			return;
 		}
+		// look if any device which we could be interested in is actually connected
+		libusb_device** list = nullptr;
+		ssize_t ndev         = libusb_get_device_list(ctx, &list);
+
+		if (ndev < 0)
+		{
+			return;
+		}
+
+		bool found_skylander = false;
+		bool found_infinity  = false;
+		bool found_dimension = false;
+
+		for (ssize_t index = 0; index < ndev; index++)
+		{
+			libusb_device_descriptor desc;
+			if (int res = libusb_get_device_descriptor(list[index], &desc); res < 0)
+			{
+				continue;
+			}
+
+			auto check_device = [&](const uint16 id_vendor, const uint16 id_product_min, const uint16 id_product_max, const char* s_name) -> bool
+			{
+				if (desc.idVendor == id_vendor && desc.idProduct >= id_product_min && desc.idProduct <= id_product_max)
+				{
+					libusb_ref_device(list[index]);
+					std::shared_ptr<usb_device_passthrough> usb_dev = std::make_shared<usb_device_passthrough>(list[index], desc, generateHIDHandle());
+					usb_devices.push_back(usb_dev);
+					return true;
+				}
+				return false;
+			};
+
+			// Portals
+			if (check_device(0x1430, 0x0150, 0x0150, "Skylanders Portal"))
+			{
+				found_skylander = true;
+			}
+
+			if (check_device(0x0E6F, 0x0129, 0x0129, "Disney Infinity Base"))
+			{
+				found_infinity = true;
+			}
+			
+			if (check_device(0x0E6F, 0x0241, 0x0241, "Lego Dimensions Portal"))
+			{
+				found_dimension = true;
+			}
+		}
+
+		libusb_free_device_list(list, 1);
 	}
 
 	const int HID_CALLBACK_DETACH = 0;
 	const int HID_CALLBACK_ATTACH = 1;
 
-	uint32 doAttachCallback(HIDClient_t* hidClient, HIDDeviceInfo_t* deviceInfo)
+	uint32 doAttachCallback(HIDClient_t* hidClient, std::shared_ptr<usb_device> deviceInfo)
 	{
 		return PPCCoreCallback(hidClient->callbackFunc, memory_getVirtualOffsetFromPointer(hidClient), memory_getVirtualOffsetFromPointer(deviceInfo->hidDevice), HID_CALLBACK_ATTACH);
 	}
 
-	void doDetachCallback(HIDClient_t* hidClient, HIDDeviceInfo_t* deviceInfo)
+	void doDetachCallback(HIDClient_t* hidClient, std::shared_ptr<usb_device> deviceInfo)
 	{
 		PPCCoreCallback(hidClient->callbackFunc, memory_getVirtualOffsetFromPointer(hidClient), memory_getVirtualOffsetFromPointer(deviceInfo->hidDevice), HID_CALLBACK_DETACH);
 	}
-
-	void export_HIDAddClient(PPCInterpreter_t* hCPU)
-	{
+	
+	void export_HIDAddClient(PPCInterpreter_t* hCPU) {
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
 		ppcDefineParamMPTR(callbackFuncMPTR, 1);
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDAddClient(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
@@ -297,36 +127,29 @@ namespace nsyshid
 		attachClientToList(hidClient);
 		initDeviceList();
 		// do attach callbacks
-		HIDDeviceInfo_t* deviceItr = firstDevice;
-		while (deviceItr)
-		{
+		for (std::shared_ptr<usb_device> deviceItr : usb_devices) {
 			if (doAttachCallback(hidClient, deviceItr) != 0)
 				break;
-			deviceItr = deviceItr->next;
 		}
 
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
-	void export_HIDDelClient(PPCInterpreter_t* hCPU)
-	{
+	void export_HIDDelClient(PPCInterpreter_t* hCPU) {
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDDelClient(0x{:08x})", hCPU->gpr[3]);
 	
 		// todo
 		// do detach callbacks
-		HIDDeviceInfo_t* deviceItr = firstDevice;
-		while (deviceItr)
+		for (std::shared_ptr<usb_device> deviceItr : usb_devices)
 		{
 			doDetachCallback(hidClient, deviceItr);
-			deviceItr = deviceItr->next;
 		}
 
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
-	void export_HIDGetDescriptor(PPCInterpreter_t* hCPU)
-	{
+	void export_HIDGetDescriptor(PPCInterpreter_t* hCPU) {
 		ppcDefineParamU32(hidHandle, 0); // r3
 		ppcDefineParamU8(descType, 1); // r4
 		ppcDefineParamU8(descIndex, 2); // r5
@@ -336,75 +159,66 @@ namespace nsyshid
 		ppcDefineParamMPTR(cbFuncMPTR, 6); // r9
 		ppcDefineParamMPTR(cbParamMPTR, 7); // r10
 
-		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle);
+		std::shared_ptr<usb_device> hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle);
 		if (hidDeviceInfo)
 		{
-			HANDLE hHIDDevice = openDevice(hidDeviceInfo->devicePath);
-			if (hHIDDevice != INVALID_HANDLE_VALUE)
+			if (descType == 0x02)
 			{
-				if (descType == 0x02)
-				{
-					uint8 configurationDescriptor[0x29];
+				uint8 configurationDescriptor[0x29];
 
-					uint8* currentWritePtr;
+				uint8* currentWritePtr;
 
-					// configuration descriptor
-					currentWritePtr = configurationDescriptor + 0;
-					*(uint8*)(currentWritePtr + 0) = 9; // bLength
-					*(uint8*)(currentWritePtr + 1) = 2; // bDescriptorType
-					*(uint16be*)(currentWritePtr + 2) = 0x0029; // wTotalLength
-					*(uint8*)(currentWritePtr + 4) = 1; // bNumInterfaces
-					*(uint8*)(currentWritePtr + 5) = 1; // bConfigurationValue
-					*(uint8*)(currentWritePtr + 6) = 0; // iConfiguration
-					*(uint8*)(currentWritePtr + 7) = 0x80; // bmAttributes
-					*(uint8*)(currentWritePtr + 8) = 0xFA; // MaxPower
-					currentWritePtr = currentWritePtr + 9;
-					// configuration descriptor
-					*(uint8*)(currentWritePtr + 0) = 9; // bLength
-					*(uint8*)(currentWritePtr + 1) = 0x04; // bDescriptorType
-					*(uint8*)(currentWritePtr + 2) = 0; // bInterfaceNumber
-					*(uint8*)(currentWritePtr + 3) = 0; // bAlternateSetting
-					*(uint8*)(currentWritePtr + 4) = 2; // bNumEndpoints
-					*(uint8*)(currentWritePtr + 5) = 3; // bInterfaceClass
-					*(uint8*)(currentWritePtr + 6) = 0; // bInterfaceSubClass
-					*(uint8*)(currentWritePtr + 7) = 0; // bInterfaceProtocol
-					*(uint8*)(currentWritePtr + 8) = 0; // iInterface
-					currentWritePtr = currentWritePtr + 9;
-					// configuration descriptor
-					*(uint8*)(currentWritePtr + 0) = 9; // bLength
-					*(uint8*)(currentWritePtr + 1) = 0x21; // bDescriptorType
-					*(uint16be*)(currentWritePtr + 2) = 0x0111; // bcdHID
-					*(uint8*)(currentWritePtr + 4) = 0x00; // bCountryCode
-					*(uint8*)(currentWritePtr + 5) = 0x01; // bNumDescriptors
-					*(uint8*)(currentWritePtr + 6) = 0x22; // bDescriptorType
-					*(uint16be*)(currentWritePtr + 7) = 0x001D; // wDescriptorLength
-					currentWritePtr = currentWritePtr + 9;
-					// endpoint descriptor 1
-					*(uint8*)(currentWritePtr + 0) = 7; // bLength
-					*(uint8*)(currentWritePtr + 1) = 0x05; // bDescriptorType
-					*(uint8*)(currentWritePtr + 1) = 0x81; // bEndpointAddress
-					*(uint8*)(currentWritePtr + 2) = 0x03; // bmAttributes
-					*(uint16be*)(currentWritePtr + 3) = 0x40; // wMaxPacketSize
-					*(uint8*)(currentWritePtr + 5) = 0x01; // bInterval
-					currentWritePtr = currentWritePtr + 7;
-					// endpoint descriptor 2
-					*(uint8*)(currentWritePtr + 0) = 7; // bLength
-					*(uint8*)(currentWritePtr + 1) = 0x05; // bDescriptorType
-					*(uint8*)(currentWritePtr + 1) = 0x02; // bEndpointAddress
-					*(uint8*)(currentWritePtr + 2) = 0x03; // bmAttributes
-					*(uint16be*)(currentWritePtr + 3) = 0x40; // wMaxPacketSize
-					*(uint8*)(currentWritePtr + 5) = 0x01; // bInterval
-					currentWritePtr = currentWritePtr + 7;
+				// configuration descriptor
+				currentWritePtr = configurationDescriptor + 0;
+				*(uint8*)(currentWritePtr + 0) = 9; // bLength
+				*(uint8*)(currentWritePtr + 1) = 2; // bDescriptorType
+				*(uint16be*)(currentWritePtr + 2) = 0x0029; // wTotalLength
+				*(uint8*)(currentWritePtr + 4) = 1; // bNumInterfaces
+				*(uint8*)(currentWritePtr + 5) = 1; // bConfigurationValue
+				*(uint8*)(currentWritePtr + 6) = 0; // iConfiguration
+				*(uint8*)(currentWritePtr + 7) = 0x80; // bmAttributes
+				*(uint8*)(currentWritePtr + 8) = 0xFA; // MaxPower
+				currentWritePtr = currentWritePtr + 9;
+				// configuration descriptor
+				*(uint8*)(currentWritePtr + 0) = 9; // bLength
+				*(uint8*)(currentWritePtr + 1) = 0x04; // bDescriptorType
+				*(uint8*)(currentWritePtr + 2) = 0; // bInterfaceNumber
+				*(uint8*)(currentWritePtr + 3) = 0; // bAlternateSetting
+				*(uint8*)(currentWritePtr + 4) = 2; // bNumEndpoints
+				*(uint8*)(currentWritePtr + 5) = 3; // bInterfaceClass
+				*(uint8*)(currentWritePtr + 6) = 0; // bInterfaceSubClass
+				*(uint8*)(currentWritePtr + 7) = 0; // bInterfaceProtocol
+				*(uint8*)(currentWritePtr + 8) = 0; // iInterface
+				currentWritePtr = currentWritePtr + 9;
+				// configuration descriptor
+				*(uint8*)(currentWritePtr + 0) = 9; // bLength
+				*(uint8*)(currentWritePtr + 1) = 0x21; // bDescriptorType
+				*(uint16be*)(currentWritePtr + 2) = 0x0111; // bcdHID
+				*(uint8*)(currentWritePtr + 4) = 0x00; // bCountryCode
+				*(uint8*)(currentWritePtr + 5) = 0x01; // bNumDescriptors
+				*(uint8*)(currentWritePtr + 6) = 0x22; // bDescriptorType
+				*(uint16be*)(currentWritePtr + 7) = 0x001D; // wDescriptorLength
+				currentWritePtr = currentWritePtr + 9;
+				// endpoint descriptor 1
+				*(uint8*)(currentWritePtr + 0) = 7; // bLength
+				*(uint8*)(currentWritePtr + 1) = 0x05; // bDescriptorType
+				*(uint8*)(currentWritePtr + 1) = 0x81; // bEndpointAddress
+				*(uint8*)(currentWritePtr + 2) = 0x03; // bmAttributes
+				*(uint16be*)(currentWritePtr + 3) = 0x40; // wMaxPacketSize
+				*(uint8*)(currentWritePtr + 5) = 0x01; // bInterval
+				currentWritePtr = currentWritePtr + 7;
+				// endpoint descriptor 2
+				*(uint8*)(currentWritePtr + 0) = 7; // bLength
+				*(uint8*)(currentWritePtr + 1) = 0x05; // bDescriptorType
+				*(uint8*)(currentWritePtr + 1) = 0x02; // bEndpointAddress
+				*(uint8*)(currentWritePtr + 2) = 0x03; // bmAttributes
+				*(uint16be*)(currentWritePtr + 3) = 0x40; // wMaxPacketSize
+				*(uint8*)(currentWritePtr + 5) = 0x01; // bInterval
+				currentWritePtr = currentWritePtr + 7;
 
-					cemu_assert_debug((currentWritePtr - configurationDescriptor) == 0x29);
+				cemu_assert_debug((currentWritePtr - configurationDescriptor) == 0x29);
 
-					memcpy(output, configurationDescriptor, std::min<uint32>(outputMaxLength, sizeof(configurationDescriptor)));
-				}
-				else
-				{
-					cemu_assert_unimplemented();
-				}
-				CloseHandle(hHIDDevice);
+				memcpy(output, configurationDescriptor, std::min<uint32>(outputMaxLength, sizeof(configurationDescriptor)));
 			}
 			else
 			{
@@ -416,6 +230,7 @@ namespace nsyshid
 			cemu_assert_suspicious();
 		}
 		osLib_returnFromFunction(hCPU, 0);
+		
 	}
 
 	void _debugPrintHex(std::string prefix, uint8* data, size_t len)
@@ -434,7 +249,7 @@ namespace nsyshid
 		coreinitAsyncCallback_add(callbackFuncMPTR, 5, hidHandle, errorCode, buffer, length, callbackParamMPTR);
 	}
 
-	void export_HIDSetIdle(PPCInterpreter_t* hCPU)
+	void export_HIDSetIdle(PPCInterpreter_t* hCPU) 
 	{
 		ppcDefineParamU32(hidHandle, 0); // r3
 		ppcDefineParamU32(ifIndex, 1); // r4
@@ -456,8 +271,7 @@ namespace nsyshid
 		osLib_returnFromFunction(hCPU, 0); // for non-async version, return number of bytes transferred
 	}
 
-	void export_HIDSetProtocol(PPCInterpreter_t* hCPU)
-	{
+	void export_HIDSetProtocol(PPCInterpreter_t* hCPU) {
 		ppcDefineParamU32(hidHandle, 0); // r3
 		ppcDefineParamU32(ifIndex, 1); // r4
 		ppcDefineParamU32(protocol, 2); // r5
@@ -477,15 +291,12 @@ namespace nsyshid
 	}
 
 	// handler for async HIDSetReport transfers
-	void _hidSetReportAsync(HIDDeviceInfo_t* hidDeviceInfo, uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
+	void _hidSetReportAsync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
 	{
 		sint32 retryCount = 0;
 		while (true)
 		{
-			BOOL r = HidD_SetOutputReport(hidDeviceInfo->hFile, reportData, length);
-			if (r != FALSE)
-				break;
-			Sleep(20); // retry
+			// TODO libsub control transfer
 			retryCount++;
 			if (retryCount >= 40)
 			{
@@ -501,7 +312,7 @@ namespace nsyshid
 	}
 
 	// handler for synchronous HIDSetReport transfers
-	sint32 _hidSetReportSync(HIDDeviceInfo_t* hidDeviceInfo, uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength, OSThread_t* osThread)
+	sint32 _hidSetReportSync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength, OSThread_t* osThread)
 	{
 		//cemuLog_logDebug(LogType::Force, "_hidSetReportSync begin");
 		_debugPrintHex("_hidSetReportSync Begin", reportData, length);
@@ -509,16 +320,7 @@ namespace nsyshid
 		sint32 returnCode = 0;
 		while (true)
 		{
-			BOOL r = HidD_SetOutputReport(hidDeviceInfo->hFile, reportData, length);
-			if (r != FALSE)
-			{
-				returnCode = originalLength;
-				break;
-			}
-			Sleep(100); // retry
-			retryCount++;
-			if (retryCount >= 10)
-				assert_dbg();
+			// TODO libsub control transfer
 		}
 		free(reportData);
 		cemuLog_logDebug(LogType::Force, "_hidSetReportSync end. returnCode: {}", returnCode);
@@ -526,7 +328,7 @@ namespace nsyshid
 		return returnCode;
 	}
 
-	void export_HIDSetReport(PPCInterpreter_t* hCPU)
+	void export_HIDSetReport(PPCInterpreter_t* hCPU) 
 	{
 		ppcDefineParamU32(hidHandle, 0); // r3
 		ppcDefineParamU32(reportRelatedUkn, 1); // r4
@@ -544,7 +346,7 @@ namespace nsyshid
 			assert_dbg();
 #endif
 
-		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
+		std::shared_ptr<usb_device> hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
 			cemuLog_log(LogType::Force, "nsyshid.HIDSetReport(): Unable to find device with hid handle {}", hidHandle);
@@ -580,78 +382,14 @@ namespace nsyshid
 		osLib_returnFromFunction(hCPU, returnCode);
 	}
 
-	sint32 _hidReadInternalSync(HIDDeviceInfo_t* hidDeviceInfo, uint8* data, sint32 maxLength)
+	sint32 _hidReadInternalSync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* data, sint32 maxLength)
 	{
-		DWORD bt;
-		OVERLAPPED ovlp = { 0 };
-		ovlp.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-		uint8* tempBuffer = (uint8*)malloc(maxLength + 1);
-		sint32 transferLength = 0; // minus report byte
-
-		_debugPrintHex("HID_READ_BEFORE", data, maxLength);
-
-		cemuLog_logDebug(LogType::Force, "HidRead Begin (Length 0x{:08x})", maxLength);
-		BOOL readResult = ReadFile(hidDeviceInfo->hFile, tempBuffer, maxLength + 1, &bt, &ovlp);
-		if (readResult != FALSE)
-		{
-			// sometimes we get the result immediately
-			if (bt == 0)
-				transferLength = 0;
-			else
-				transferLength = bt - 1;
-			cemuLog_logDebug(LogType::Force, "HidRead Result received immediately (error 0x{:08x}) Length 0x{:08x}", GetLastError(), transferLength);
-		}
-		else
-		{
-			// wait for result
-			cemuLog_logDebug(LogType::Force, "HidRead WaitForResult (error 0x{:08x})", GetLastError());
-			// async hid read is never supposed to return unless there is an response? Lego Dimensions stops HIDRead calls as soon as one of them fails with a non-zero error (which includes time out)
-			DWORD r = WaitForSingleObject(ovlp.hEvent, 2000*100);
-			if (r == WAIT_TIMEOUT)
-			{
-				cemuLog_logDebug(LogType::Force, "HidRead internal timeout (error 0x{:08x})", GetLastError());
-				// return -108 in case of timeout
-				free(tempBuffer);
-				CloseHandle(ovlp.hEvent);
-				return -108;
-			}
-
-
-			cemuLog_logDebug(LogType::Force, "HidRead WaitHalfComplete");
-			GetOverlappedResult(hidDeviceInfo->hFile, &ovlp, &bt, false);
-			if (bt == 0)
-				transferLength = 0;
-			else
-				transferLength = bt - 1;
-			cemuLog_logDebug(LogType::Force, "HidRead WaitComplete Length: 0x{:08x}", transferLength);
-		}
 		sint32 returnCode = 0;
-		if (bt != 0)
-		{
-			memcpy(data, tempBuffer + 1, transferLength);
-			sint32 hidReadLength = transferLength;
-
-			char debugOutput[1024] = { 0 };
-			for (sint32 i = 0; i < transferLength; i++)
-			{
-				sprintf(debugOutput + i * 3, "%02x ", tempBuffer[1 + i]);
-			}
-			cemuLog_logDebug(LogType::Force, "HIDRead data: {}", debugOutput);
-
-			returnCode = transferLength;
-		}
-		else
-		{
-			cemuLog_log(LogType::Force, "Failed HID read");
-			returnCode = -1;
-		}
-		free(tempBuffer);
-		CloseHandle(ovlp.hEvent);
+		// TODO libusb interrupt transfer
 		return returnCode;
 	}
 
-	void _hidReadAsync(HIDDeviceInfo_t* hidDeviceInfo, uint8* data, sint32 maxLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
+	void _hidReadAsync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* data, sint32 maxLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
 	{
 		sint32 returnCode = _hidReadInternalSync(hidDeviceInfo, data, maxLength);
 		sint32 errorCode = 0;
@@ -660,7 +398,7 @@ namespace nsyshid
 		doHIDTransferCallback(callbackFuncMPTR, callbackParamMPTR, hidDeviceInfo->handle, errorCode, memory_getVirtualOffsetFromPointer(data), (returnCode>0)?returnCode:0);
 	}
 
-	sint32 _hidReadSync(HIDDeviceInfo_t* hidDeviceInfo, uint8* data, sint32 maxLength, OSThread_t* osThread)
+	sint32 _hidReadSync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* data, sint32 maxLength, OSThread_t* osThread)
 	{
 		sint32 returnCode = _hidReadInternalSync(hidDeviceInfo, data, maxLength);
 		coreinit_resumeThread(osThread, 1000);
@@ -676,7 +414,7 @@ namespace nsyshid
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDRead(0x{:x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 
-		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
+		std::shared_ptr<usb_device> hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
 			cemuLog_log(LogType::Force, "nsyshid.HIDRead(): Unable to find device with hid handle {}", hidHandle);
@@ -700,57 +438,17 @@ namespace nsyshid
 		}
 
 		osLib_returnFromFunction(hCPU, returnCode);
+		
 	}
 
-	sint32 _hidWriteInternalSync(HIDDeviceInfo_t* hidDeviceInfo, uint8* data, sint32 maxLength)
+	sint32 _hidWriteInternalSync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* data, sint32 maxLength)
 	{
-		DWORD bt;
-		OVERLAPPED ovlp = { 0 };
-		ovlp.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-		uint8* tempBuffer = (uint8*)malloc(maxLength + 1);
-		memcpy(tempBuffer + 1, data, maxLength);
-		tempBuffer[0] = 0; // report byte?
-
-		cemuLog_logDebug(LogType::Force, "HidWrite Begin (Length 0x{:08x})", maxLength);
-		BOOL WriteResult = WriteFile(hidDeviceInfo->hFile, tempBuffer, maxLength + 1, &bt, &ovlp);
-		if (WriteResult != FALSE)
-		{
-			// sometimes we get the result immediately
-			cemuLog_logDebug(LogType::Force, "HidWrite Result received immediately (error 0x{:08x}) Length 0x{:08x}", GetLastError());
-		}
-		else
-		{
-			// wait for result
-			cemuLog_logDebug(LogType::Force, "HidWrite WaitForResult (error 0x{:08x})", GetLastError());
-			// todo - check for error type
-			DWORD r = WaitForSingleObject(ovlp.hEvent, 2000);
-			if (r == WAIT_TIMEOUT)
-			{
-				cemuLog_logDebug(LogType::Force, "HidWrite internal timeout");
-				// return -108 in case of timeout
-				free(tempBuffer);
-				CloseHandle(ovlp.hEvent);
-				return -108;
-			}
-
-
-			cemuLog_logDebug(LogType::Force, "HidWrite WaitHalfComplete");
-			GetOverlappedResult(hidDeviceInfo->hFile, &ovlp, &bt, false);
-			cemuLog_logDebug(LogType::Force, "HidWrite WaitComplete");
-		}
 		sint32 returnCode = 0;
-		if (bt != 0)
-			returnCode = maxLength;
-		else
-			returnCode = -1;
-		
-		free(tempBuffer);
-		CloseHandle(ovlp.hEvent);
+		// TODO libusb interrupt transfer
 		return returnCode;
 	}
 
-	void _hidWriteAsync(HIDDeviceInfo_t* hidDeviceInfo, uint8* data, sint32 maxLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
+	void _hidWriteAsync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* data, sint32 maxLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
 	{
 		sint32 returnCode = _hidWriteInternalSync(hidDeviceInfo, data, maxLength);
 		sint32 errorCode = 0;
@@ -759,7 +457,7 @@ namespace nsyshid
 		doHIDTransferCallback(callbackFuncMPTR, callbackParamMPTR, hidDeviceInfo->handle, errorCode, memory_getVirtualOffsetFromPointer(data), (returnCode > 0) ? returnCode : 0);
 	}
 
-	sint32 _hidWriteSync(HIDDeviceInfo_t* hidDeviceInfo, uint8* data, sint32 maxLength, OSThread_t* osThread)
+	sint32 _hidWriteSync(std::shared_ptr<usb_device> hidDeviceInfo, uint8* data, sint32 maxLength, OSThread_t* osThread)
 	{
 		sint32 returnCode = _hidWriteInternalSync(hidDeviceInfo, data, maxLength);
 		coreinit_resumeThread(osThread, 1000);
@@ -775,7 +473,7 @@ namespace nsyshid
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDWrite(0x{:x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
 
-		HIDDeviceInfo_t* hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
+		std::shared_ptr<usb_device> hidDeviceInfo = getHIDDeviceInfoByHandle(hidHandle, true);
 		if (hidDeviceInfo == nullptr)
 		{
 			cemuLog_log(LogType::Force, "nsyshid.HIDWrite(): Unable to find device with hid handle {}", hidHandle);
@@ -829,89 +527,31 @@ namespace nsyshid
 
 		osLib_addFunction("nsyshid", "HIDDecodeError", export_HIDDecodeError);
 		firstHIDClient = nullptr;
-	}
-}
-
-#else
-
-namespace nsyshid
-{
-
-	HIDClient_t *firstHIDClient = nullptr;
-	std::vector<std::shared_ptr<usb_device>> usb_devices;
-	libusb_context *ctx = nullptr;
-
-	void attachClientToList(HIDClient_t* hidClient)
-	{
-		// todo - append at the beginning or end of the list? List order matters because it also controls the order in which attach callbacks are called
-		if (firstHIDClient)
-		{
-			hidClient->next = firstHIDClient;
-			firstHIDClient = hidClient;
-		}
-		else
-		{
-			hidClient->next = nullptr;
-			firstHIDClient = hidClient;
-		}
-	}
-	
-	void export_HIDAddClient(PPCInterpreter_t* hCPU) {
-		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
-		ppcDefineParamMPTR(callbackFuncMPTR, 1);
-		cemuLog_logDebug(LogType::Force, "nsyshid.HIDAddClient(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
-		hidClient->callbackFunc = callbackFuncMPTR;
-		attachClientToList(hidClient);
-	}
-
-	void export_HIDDelClient(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void export_HIDGetDescriptor(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void export_HIDSetIdle(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void export_HIDSetProtocol(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void export_HIDSetReport(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void export_HIDRead(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void export_HIDWrite(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void export_HIDDecodeError(PPCInterpreter_t* hCPU) {
-		
-	}
-
-	void load()
-	{
-		osLib_addFunction("nsyshid", "HIDAddClient", export_HIDAddClient);
-		osLib_addFunction("nsyshid", "HIDDelClient", export_HIDDelClient);
-		osLib_addFunction("nsyshid", "HIDGetDescriptor", export_HIDGetDescriptor);
-		osLib_addFunction("nsyshid", "HIDSetIdle", export_HIDSetIdle);
-		osLib_addFunction("nsyshid", "HIDSetProtocol", export_HIDSetProtocol);
-		osLib_addFunction("nsyshid", "HIDSetReport", export_HIDSetReport);
-
-		osLib_addFunction("nsyshid", "HIDRead", export_HIDRead);
-		osLib_addFunction("nsyshid", "HIDWrite", export_HIDWrite);
-
-		osLib_addFunction("nsyshid", "HIDDecodeError", export_HIDDecodeError);
-		firstHIDClient = nullptr;
 	};
+
+	usb_device::usb_device(uint32 handle)
+	{
+		handle = handle;
+	}
+
+	usb_device_passthrough::usb_device_passthrough(libusb_device* _device, libusb_device_descriptor& desc, uint32 handle)
+		: usb_device(handle), lusb_device(_device)
+	{
+		vendorId = desc.idVendor;
+		productId = desc.idProduct;
+	}
+
+	usb_device_passthrough::~usb_device_passthrough()
+	{
+		if (lusb_handle)
+		{
+			libusb_release_interface(lusb_handle, 0);
+			libusb_close(lusb_handle);
+		}
+
+		if (lusb_device)
+		{
+			libusb_unref_device(lusb_device);
+		}
+	}
 };
-
-
-#endif

@@ -27,9 +27,10 @@ typedef struct _HIDClient_t {
 } HIDClient_t;
 class usb_device {
 public:
-protected:
-private:
-  uint32 handle;
+  usb_device(uint32 handle);
+  virtual ~usb_device() = default;
+
+  uint32 handle = 0;
   uint32 physicalDeviceInstance;
   uint16 vendorId;
   uint16 productId;
@@ -39,16 +40,29 @@ private:
   HIDDevice_t
       *hidDevice; // this info is passed to applications and must remain intact
   wchar_t *devicePath;
+
+protected:
+private:
 };
 
-class libusb_device : public usb_device {
+class usb_device_passthrough : public usb_device {
 public:
+  usb_device_passthrough(libusb_device *_device, libusb_device_descriptor &desc,
+                         uint32 handle);
+  ~usb_device_passthrough();
+
 protected:
   void send_libusb_transfer(libusb_transfer *transfer);
 
 protected:
   libusb_device *lusb_device = nullptr;
   libusb_device_handle *lusb_handle = nullptr;
+};
+
+class usb_device_emulated : public usb_device {
+public:
+protected:
+private:
 };
 void load();
 
