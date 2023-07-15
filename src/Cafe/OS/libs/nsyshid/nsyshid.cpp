@@ -836,31 +836,32 @@ namespace nsyshid
 
 namespace nsyshid
 {
-	typedef struct
-	{
-		/* +0x00 */ uint32be handle;
-		/* +0x04 */ uint32 ukn04;
-		/* +0x08 */ uint16 vendorId; // little-endian ?
-		/* +0x0A */ uint16 productId; // little-endian ?
-		/* +0x0C */ uint8 ifIndex;
-		/* +0x0D */ uint8 subClass;
-		/* +0x0E */ uint8 protocol;
-		/* +0x0F */ uint8 paddingGuessed0F;
-		/* +0x10 */ uint16be maxPacketSizeRX;
-		/* +0x12 */ uint16be maxPacketSizeTX;
-	}HIDDevice_t;
 
-	typedef struct _HIDClient_t
+	HIDClient_t *firstHIDClient = nullptr;
+	std::vector<std::shared_ptr<usb_device>> usb_devices;
+	libusb_context *ctx = nullptr;
+
+	void attachClientToList(HIDClient_t* hidClient)
 	{
-		MEMPTR<_HIDClient_t> next;
-		uint32be callbackFunc; // attach/detach callback
-	}HIDClient_t;
+		// todo - append at the beginning or end of the list? List order matters because it also controls the order in which attach callbacks are called
+		if (firstHIDClient)
+		{
+			hidClient->next = firstHIDClient;
+			firstHIDClient = hidClient;
+		}
+		else
+		{
+			hidClient->next = nullptr;
+			firstHIDClient = hidClient;
+		}
+	}
 	
 	void export_HIDAddClient(PPCInterpreter_t* hCPU) {
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
 		ppcDefineParamMPTR(callbackFuncMPTR, 1);
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDAddClient(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		hidClient->callbackFunc = callbackFuncMPTR;
+		attachClientToList(hidClient);
 	}
 
 	void export_HIDDelClient(PPCInterpreter_t* hCPU) {
@@ -908,7 +909,7 @@ namespace nsyshid
 		osLib_addFunction("nsyshid", "HIDWrite", export_HIDWrite);
 
 		osLib_addFunction("nsyshid", "HIDDecodeError", export_HIDDecodeError);
-		// firstHIDClient = nullptr;
+		firstHIDClient = nullptr;
 	};
 };
 
