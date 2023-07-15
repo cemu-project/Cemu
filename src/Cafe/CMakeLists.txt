@@ -485,7 +485,10 @@ endif()
 
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-target_include_directories(CemuCafe PUBLIC "../")
+target_include_directories(CemuCafe PUBLIC 
+  "../" 
+  ${LIBUSB_INCLUDE_DIR}
+)
 
 target_link_libraries(CemuCafe PRIVATE
 	CemuAsm
@@ -504,6 +507,7 @@ target_link_libraries(CemuCafe PRIVATE
 	fmt::fmt
 	glslang::SPIRV
 	ih264d
+  ${LIBUSB_LIBRARIES}
 	OpenSSL::Crypto
 	OpenSSL::SSL
 	PNG::PNG

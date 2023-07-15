@@ -3,6 +3,8 @@
 #include <bitset>
 #include "nsyshid.h"
 
+#include <libusb.h>
+
 #if BOOST_OS_WINDOWS
 
 #include <setupapi.h>
@@ -834,9 +836,56 @@ namespace nsyshid
 
 namespace nsyshid
 {
+	void export_HIDAddClient(PPCInterpreter_t* hCPU) {
+
+	}
+
+	void export_HIDDelClient(PPCInterpreter_t* hCPU) {
+		
+	}
+
+	void export_HIDGetDescriptor(PPCInterpreter_t* hCPU) {
+		
+	}
+
+	void export_HIDSetIdle(PPCInterpreter_t* hCPU) {
+		
+	}
+
+	void export_HIDSetProtocol(PPCInterpreter_t* hCPU) {
+		
+	}
+
+	void export_HIDSetReport(PPCInterpreter_t* hCPU) {
+		
+	}
+
+	void export_HIDRead(PPCInterpreter_t* hCPU) {
+		
+	}
+
+	void export_HIDWrite(PPCInterpreter_t* hCPU) {
+		
+	}
+
+	void export_HIDDecodeError(PPCInterpreter_t* hCPU) {
+		
+	}
+
 	void load()
 	{
-		// unimplemented
+		osLib_addFunction("nsyshid", "HIDAddClient", export_HIDAddClient);
+		osLib_addFunction("nsyshid", "HIDDelClient", export_HIDDelClient);
+		osLib_addFunction("nsyshid", "HIDGetDescriptor", export_HIDGetDescriptor);
+		osLib_addFunction("nsyshid", "HIDSetIdle", export_HIDSetIdle);
+		osLib_addFunction("nsyshid", "HIDSetProtocol", export_HIDSetProtocol);
+		osLib_addFunction("nsyshid", "HIDSetReport", export_HIDSetReport);
+
+		osLib_addFunction("nsyshid", "HIDRead", export_HIDRead);
+		osLib_addFunction("nsyshid", "HIDWrite", export_HIDWrite);
+
+		osLib_addFunction("nsyshid", "HIDDecodeError", export_HIDDecodeError);
+		// firstHIDClient = nullptr;
 	};
 };
 
