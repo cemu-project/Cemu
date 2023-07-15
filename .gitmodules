@@ -16,3 +16,8 @@
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "dependencies/libusb/libusb"]
+	path = dependencies/libusb/libusb
+	url = https://github.com/libusb/libusb
+	branch = master
+	shallow = true
