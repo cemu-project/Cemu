@@ -49,3 +49,6 @@ bin/controllerProfiles/*
 bin/gameProfiles/*
 
 bin/graphicPacks/*
+
+# macOS
+.DS_Store

@@ -836,8 +836,31 @@ namespace nsyshid
 
 namespace nsyshid
 {
-	void export_HIDAddClient(PPCInterpreter_t* hCPU) {
+	typedef struct
+	{
+		/* +0x00 */ uint32be handle;
+		/* +0x04 */ uint32 ukn04;
+		/* +0x08 */ uint16 vendorId; // little-endian ?
+		/* +0x0A */ uint16 productId; // little-endian ?
+		/* +0x0C */ uint8 ifIndex;
+		/* +0x0D */ uint8 subClass;
+		/* +0x0E */ uint8 protocol;
+		/* +0x0F */ uint8 paddingGuessed0F;
+		/* +0x10 */ uint16be maxPacketSizeRX;
+		/* +0x12 */ uint16be maxPacketSizeTX;
+	}HIDDevice_t;
 
+	typedef struct _HIDClient_t
+	{
+		MEMPTR<_HIDClient_t> next;
+		uint32be callbackFunc; // attach/detach callback
+	}HIDClient_t;
+	
+	void export_HIDAddClient(PPCInterpreter_t* hCPU) {
+		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
+		ppcDefineParamMPTR(callbackFuncMPTR, 1);
+		cemuLog_logDebug(LogType::Force, "nsyshid.HIDAddClient(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
+		hidClient->callbackFunc = callbackFuncMPTR;
 	}
 
 	void export_HIDDelClient(PPCInterpreter_t* hCPU) {
