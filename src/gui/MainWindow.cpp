@@ -83,6 +83,8 @@ enum
 	MAINFRAME_MENU_ID_FILE_LOAD = 20100,
 	MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE,
 	MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER,
+	MAINFRAME_MENU_ID_FILE_SAVESTATE,
+	MAINFRAME_MENU_ID_FILE_LOADSTATE,
 	MAINFRAME_MENU_ID_FILE_EXIT,
 	MAINFRAME_MENU_ID_FILE_END_EMULATION,
 	MAINFRAME_MENU_ID_FILE_RECENT_0,
@@ -131,6 +133,13 @@ enum
 	MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE = 21000,
 	MAINFRAME_MENU_ID_NFC_RECENT_0,
 	MAINFRAME_MENU_ID_NFC_RECENT_LAST = MAINFRAME_MENU_ID_NFC_RECENT_0 + 15,
+
+	// savestates
+	MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE,
+	MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE,
+	MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE,
+	MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE,
+
 	// debug
 	MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN = 21100,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW,
@@ -174,6 +183,7 @@ EVT_MOVE(MainWindow::OnMove)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_LOAD, MainWindow::OnFileMenu)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, MainWindow::OnInstallUpdate)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, MainWindow::OnOpenCemuFolder)
+
 EVT_MENU(MAINFRAME_MENU_ID_FILE_EXIT, MainWindow::OnFileExit)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_END_EMULATION, MainWindow::OnFileMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_FILE_RECENT_0 + 0, MAINFRAME_MENU_ID_FILE_RECENT_LAST, MainWindow::OnFileMenu)
@@ -204,6 +214,11 @@ EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_0125X, MainWindow::OnDebugSetting)
 // nfc menu
 EVT_MENU(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, MainWindow::OnNFCMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_NFC_RECENT_0 + 0, MAINFRAME_MENU_ID_NFC_RECENT_LAST, MainWindow::OnNFCMenu)
+// savestates menu
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE, MainWindow::OnSavestatesMenu)
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE, MainWindow::OnSavestatesMenu)
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE, MainWindow::OnSavestatesMenu)
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE, MainWindow::OnSavestatesMenu)
 // debug -> logging menu
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 0, MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 98, MainWindow::OnDebugLoggingToggleFlagGeneric)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, MainWindow::OnPPCInfoToggle)
@@ -775,6 +790,27 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 				}
 			}
 		}
+	}
+}
+
+void MainWindow::OnSavestatesMenu(wxCommandEvent& event)
+{
+	const auto menuId = event.GetId();
+	if (menuId == MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE)
+	{
+		CafeSystem::PauseTitle();
+	}
+	if (menuId == MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE)
+	{
+		CafeSystem::ResumeTitle();
+	}
+	else if (menuId == MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE)
+	{
+		CafeSystem::SaveState("state.bin");
+	}
+	else if (menuId == MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE)
+	{
+		CafeSystem::LoadState("state.bin");
 	}
 }
 
@@ -2184,6 +2220,16 @@ void MainWindow::RecreateMenu()
 	nfcMenu->Append(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, _("&Scan NFC tag from file"))->Enable(false);
 	m_menuBar->Append(nfcMenu, _("&NFC"));
 	m_nfcMenuSeparator0 = nullptr;
+
+	// savestates menu
+	wxMenu* savestatesMenu = new wxMenu;
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE, _("&Pause"), wxEmptyString);
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE, _("&Resume"), wxEmptyString);
+	savestatesMenu->AppendSeparator();
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE, _("&Save state"), wxEmptyString);
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE, _("&Load state"), wxEmptyString);
+	m_menuBar->Append(savestatesMenu, _("&Savestates"));
+
 	// debug->logging submenu
 	wxMenu* debugLoggingMenu = new wxMenu;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util/helpers/Serializer.h"
+
 void memory_init();
 void memory_mapForCurrentTitle();
 void memory_logModifiedMemoryRanges();
@@ -47,6 +49,9 @@ struct MMURange
 		FLAG_OPTIONAL = (1 << 0), // allocate only on explicit request
 		FLAG_MAP_EARLY = (1 << 1), // map at Cemu launch, normally memory is mapped when a game is loaded
 	};
+
+	bool serializeImpl(MemStreamWriter& streamWriter);
+	bool deserializeImpl(MemStreamReader& streamReader);
 
 	MMURange(const uint32 baseAddress, const uint32 size, MMU_MEM_AREA_ID areaId, const std::string_view name, MFLAG flags = (MFLAG)0);
 
@@ -107,14 +112,16 @@ struct MMURange
 	bool isOptional() const { return (flags & MFLAG::FLAG_OPTIONAL) != 0; };
 	bool isMappedEarly() const { return (flags & MFLAG::FLAG_MAP_EARLY) != 0; };
 
-	const uint32 baseAddress;
-	const uint32 initSize; // initial size
-	const std::string name;
-	const MFLAG flags;
-	const MMU_MEM_AREA_ID areaId;
+	uint32 baseAddress;
+	uint32 initSize; // initial size
+	std::string name;
+	MFLAG flags;
+	MMU_MEM_AREA_ID areaId;
 	// runtime parameters
 	uint32 size;
 	bool m_isMapped{};
+	friend class MemStreamWriter;
+	friend class MemStreamReader;
 };
 
 
@@ -201,6 +208,9 @@ uint16 memory_readU16(uint32 address);
 uint8 memory_readU8(uint32 address);
 
 void memory_createDump();
+
+void memory_Serialize(MemStreamWriter& s);
+void memory_Deserialize(MemStreamReader& s);
 
 template<size_t count>
 void memory_readBytes(VAddr address, std::array<uint8, count>& buffer)

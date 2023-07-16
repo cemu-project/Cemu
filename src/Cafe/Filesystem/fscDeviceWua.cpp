@@ -15,6 +15,11 @@ protected:
 	};
 
 public:
+	void Save(MemStreamWriter& writer) override
+	{
+		throw std::exception("Not implemented");
+	}
+
 	sint32 fscGetType() override
 	{
 		return m_fscType;

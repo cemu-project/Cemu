@@ -68,6 +68,8 @@
 // dependency to be removed
 #include "gui/guiWrapper.h"
 
+#include "Cafe/OS/libs/coreinit/coreinit_FS.h"
+
 std::string _pathToExecutable;
 std::string _pathToBaseExecutable;
 
@@ -790,6 +792,99 @@ namespace CafeSystem
 		GraphicPack2::Reset();
 		UnmountCurrentTitle();
 		sSystemRunning = false;
+	}
+
+	void PauseTitle()
+	{
+		if (!sSystemRunning)
+			return;
+		coreinit::SuspendAllThreads();
+		sSystemRunning = false;
+	}
+
+	void ResumeTitle(bool* runningThreads)
+	{
+		if (sSystemRunning)
+			return;
+
+		coreinit::ResumeAllThreads(runningThreads);
+		sSystemRunning = true;
+	}
+
+	void SaveState(std::string path)
+	{
+		cemuLog_log(LogType::Force, "[SAVESTATE] Saving state...");
+		MemStreamWriter writer(0);
+		// pause game
+		PauseTitle();
+		// memory
+		memory_Serialize(writer);
+		// gpu
+		writer.writeData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
+		writer.writeData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
+		writer.writeData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
+		// cpu
+		auto threads = coreinit::GetAllThreads();
+		for (auto& thr : threads)
+		{
+			writer.writeBE<bool>(thr != nullptr);
+			if (thr != nullptr)
+				writer.writeData(thr, sizeof(OSThread_t));
+		}
+		for (auto& thr : activeThread)
+		{
+			writer.writeBE(thr);
+		}
+		// fs
+		coreinit::FSSave(writer);
+		iosu::fsa::Save(writer);
+
+		FileStream* stream = FileStream::createFile(path);
+		stream->writeData(writer.getResult().data(), writer.getResult().size_bytes());
+		delete stream;
+		cemuLog_log(LogType::Force, "[SAVESTATE] Saved state to {}.", path);
+		ResumeTitle(/*isThreadRunning*/);
+	}
+
+	void LoadState(std::string path)
+	{
+		PauseTitle();
+		cemuLog_log(LogType::Force, "[SAVESTATE] Loading state...", path);
+
+		auto data = FileStream::LoadIntoMemory(path);
+		assert(data.has_value());
+		MemStreamReader reader(data->data(), data->size());
+		// memory
+		memory_Deserialize(reader);
+		// gpu
+		reader.readData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
+		reader.readData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
+		reader.readData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
+		// cpu
+		auto threads = coreinit::GetAllThreads();
+		for (auto& thr : threads)
+		{
+			bool notnull = reader.readBE<bool>();
+			if (notnull)
+			{
+				if (!thr)
+				{
+					thr = new OSThread_t;
+				}
+				reader.readData(thr, sizeof(OSThread_t));
+			}
+		}
+		for (size_t i = 0; i < 256; i++)
+		{
+			activeThread[i] = reader.readBE<uint32>();
+		}
+		// fs
+		coreinit::FSRestore(reader);
+		iosu::fsa::Restore(reader);
+
+		cemuLog_log(LogType::Force, "[SAVESTATE] Loaded state from {}.", path);
+
+		ResumeTitle(/*isThreadRunning*/);
 	}
 
 	/* Virtual mlc storage */

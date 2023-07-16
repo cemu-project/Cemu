@@ -157,6 +157,19 @@ bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
 	return true;
 }
 
+void FSCVirtualFile_Host::Save(MemStreamWriter& writer)
+{
+	writer.writeBE<uint32>((uint32)Child::HOST);
+
+	writer.writeBE(m_path->string());
+	writer.writeBE((uint32)m_accessFlags);
+
+	writer.writeBE(m_seek);
+
+	FSCVirtualFile::Save(writer);
+}
+
+
 FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus)
 {
 	if (!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) && !HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
@@ -191,9 +204,11 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 		if (fs)
 		{
 			FSCVirtualFile_Host* vf = new FSCVirtualFile_Host(FSC_TYPE_FILE);
+			vf->m_path.reset(new std::filesystem::path(path));
 			vf->m_fs = fs;
 			vf->m_isWritable = writeAccessRequested;
 			vf->m_fileSize = fs->GetSize();
+			vf->m_accessFlags = accessFlags;
 			fscStatus = FSC_STATUS_OK;
 			return vf;
 		}
@@ -208,6 +223,7 @@ FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_F
 		{
 			FSCVirtualFile_Host* vf = new FSCVirtualFile_Host(FSC_TYPE_DIRECTORY);
 			vf->m_path.reset(new std::filesystem::path(path));
+			vf->m_accessFlags = accessFlags;
 			fscStatus = FSC_STATUS_OK;
 			return vf;
 		}

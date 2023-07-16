@@ -93,6 +93,7 @@ public:
 	void OnInstallUpdate(wxCommandEvent& event);
 	void OnFileExit(wxCommandEvent& event);
 	void OnNFCMenu(wxCommandEvent& event);
+	void OnSavestatesMenu(wxCommandEvent& event);
 	void OnOptionsInput(wxCommandEvent& event);
 	void OnAccountSelect(wxCommandEvent& event);
 	void OnConsoleLanguage(wxCommandEvent& event);
@@ -226,6 +227,12 @@ private:
 	// nfc
 	wxMenu* m_nfcMenu;
 	wxMenuItem* m_nfcMenuSeparator0;
+
+	// savestates
+	//wxMenuItem* m_pause;
+	//wxMenuItem* m_resume;
+	//wxMenuItem* m_saveState;
+	//wxMenuItem* m_loadState;
 
 	// debug
 	wxMenu* m_debugMenu;

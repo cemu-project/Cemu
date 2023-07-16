@@ -269,6 +269,8 @@ FSCMountPathNode* fsc_lookupPathVirtualNode(const char* path, sint32 priority)
 class FSCVirtualFileDirectoryIterator : public FSCVirtualFile
 {
 public:
+	void Save(MemStreamWriter& writer) override;
+
 	sint32 fscGetType() override
 	{
 		return FSC_TYPE_DIRECTORY;
@@ -716,4 +718,60 @@ bool fsc_doesDirectoryExist(const char* path, sint32 maxPriority)
 void fsc_init()
 {
 	fsc_reset();
+}
+
+void FSCVirtualFile::Save(MemStreamWriter& writer)
+{
+	writer.writeBE(dirIterator != nullptr);
+	if (dirIterator) writer.writeBE(*dirIterator);
+}
+#include "Cafe/Filesystem/fscDeviceHostFS.h"
+
+FSCVirtualFile* FSCVirtualFile::Restore(MemStreamReader& reader)
+{
+	FSCVirtualFile* file;
+	switch ((Child)reader.readBE<uint32>())
+	{
+	case Child::DIRECTORY_ITERATOR:
+	{
+		std::string path = reader.readBE<std::string>();
+		std::vector<FSCVirtualFile*> folders{};
+		size_t size = reader.readBE<size_t>();
+		for (size_t i = 0; i < size; i++)
+		{
+			folders.push_back(Restore(reader));
+		}
+		file = new FSCVirtualFileDirectoryIterator(path, folders);
+		break;
+	}
+	case Child::HOST:
+	{
+		std::string path = reader.readBE<std::string>();
+		FSC_ACCESS_FLAG flags = (FSC_ACCESS_FLAG)reader.readBE<uint32>();
+		sint32 status{};
+		file = FSCVirtualFile_Host::OpenFile(path, flags, status);
+		file->fscSetSeek(reader.readBE<uint64>());
+		break;
+	}
+	default:
+		throw std::exception("Not implemented");
+	}
+	if (reader.readBE<bool>())
+	{
+		file->dirIterator = new FSCDirIteratorState;
+		*file->dirIterator = reader.readBE<FSCDirIteratorState>();
+	}
+	return file;
+}
+
+void FSCVirtualFileDirectoryIterator::Save(MemStreamWriter& writer)
+{
+	writer.writeBE<uint32>((uint32)Child::DIRECTORY_ITERATOR);
+	writer.writeBE(m_path);
+	writer.writeBE(m_folders.size());
+	for (auto& folder : m_folders)
+	{
+		folder->Save(writer);
+	}
+	FSCVirtualFile::Save(writer);
 }

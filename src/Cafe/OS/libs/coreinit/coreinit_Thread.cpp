@@ -198,6 +198,65 @@ namespace coreinit
 		return __currentCoreThread[currentInstance->spr.UPIR];
 	}
 
+	void SuspendAllThreads()
+	{
+		for (auto& thr : activeThread)
+		{
+			auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+			if (thr != 0)
+			{
+				OSSuspendThread(ptr);
+			}
+		}
+		if (__currentCoreThread[0])
+			OSSuspendThread(__currentCoreThread[0]);
+		if (__currentCoreThread[1])
+			OSSuspendThread(__currentCoreThread[1]);
+		if (__currentCoreThread[2])
+			OSSuspendThread(__currentCoreThread[2]);
+
+	}
+
+	void ResumeAllThreads(bool* runningThreads)
+	{
+		for (auto& thr : activeThread)
+		{
+			int i = 0;
+			auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+			if (thr != 0)
+			{
+				if (runningThreads && runningThreads[i])
+				{
+					if (s_threadToFiber.find(ptr) == s_threadToFiber.end())
+						__OSCreateHostThread(ptr);
+					OSResumeThread(ptr);
+				}
+				else if (!runningThreads)
+				{
+					if (s_threadToFiber.find(ptr) == s_threadToFiber.end())
+						__OSCreateHostThread(ptr);
+					OSResumeThread(ptr);
+				}
+			}
+			i++;
+		}
+		if (__currentCoreThread[0])
+			OSResumeThread(__currentCoreThread[0]);
+		if (__currentCoreThread[1])
+			OSResumeThread(__currentCoreThread[1]);
+		if (__currentCoreThread[2])
+			OSResumeThread(__currentCoreThread[2]);
+	}
+
+	std::vector<OSThread_t*> GetAllThreads()
+	{
+		auto ret = std::vector<OSThread_t*>();
+		ret.push_back(__currentCoreThread[0]);
+		ret.push_back(__currentCoreThread[1]);
+		ret.push_back(__currentCoreThread[2]);
+		return ret;
+	}
+
 	MPTR funcPtr_threadEntry = 0;
 
 	void threadEntry(PPCInterpreter_t* hCPU)

@@ -37,6 +37,19 @@ uint32 MemStreamReader::readBE()
 }
 
 template<>
+sint32 MemStreamReader::readBE()
+{
+	if (!reserveReadLength(sizeof(sint32)))
+		return 0;
+	const uint8* p = m_data + m_cursorPos;
+	sint32 v;
+	std::memcpy(&v, p, sizeof(v));
+	v = _BE(v);
+	m_cursorPos += sizeof(sint32);
+	return v;
+}
+
+template<>
 uint64 MemStreamReader::readBE()
 {
 	if (!reserveReadLength(sizeof(uint64)))
@@ -117,6 +130,14 @@ void MemStreamWriter::writeBE<uint32>(const uint32& v)
 	std::memcpy(p, &tmp, sizeof(tmp));
 }
 
+template<>
+void MemStreamWriter::writeBE<sint32>(const sint32& v)
+{
+	m_buffer.resize(m_buffer.size() + 4);
+	uint8* p = m_buffer.data() + m_buffer.size() - 4;
+	uint32 tmp = _BE(v);
+	std::memcpy(p, &tmp, sizeof(tmp));
+}
 
 template<>
 void MemStreamWriter::writeBE<uint16>(const uint16& v)
@@ -134,6 +155,19 @@ void MemStreamWriter::writeBE<uint8>(const uint8& v)
 	m_buffer.emplace_back(v);
 }
 
+template<>
+void MemStreamWriter::writeBE<bool>(const bool& v)
+{
+	writeData(&v, sizeof(bool));
+}
+
+template<>
+bool MemStreamReader::readBE<bool>()
+{
+	bool v{ false };
+	readData(&v, sizeof(bool));
+	return v;
+}
 
 template<>
 void MemStreamWriter::writeBE<std::string>(const std::string& v)
