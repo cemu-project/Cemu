@@ -892,10 +892,7 @@ namespace CafeSystem
 		}
 		TitleId titleId = titleInfo.GetAppTitleId();
 		if (m_mlcMountedTitles.find(titleId) != m_mlcMountedTitles.end())
-		{
-			cemu_assert_suspicious(); // already mounted
 			return;
-		}
 		std::string mlcStoragePath = GetMlcStoragePath(titleId);
 		TitleInfo* mountTitleInfo = new TitleInfo(titleInfo);
 		if (!mountTitleInfo->Mount(mlcStoragePath, "", FSC_PRIORITY_BASE))

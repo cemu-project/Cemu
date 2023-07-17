@@ -449,7 +449,7 @@ namespace acp
 		acpPrepareRequest();
 		acpRequest->requestCode = IOSU_ACP_GET_TITLE_META_XML;
 		acpRequest->ptr = acpMetaXml;
-		acpRequest->titleId = CafeSystem::GetForegroundTitleId();
+		acpRequest->titleId = titleId;//CafeSystem::GetForegroundTitleId();
 
 		__depr__IOS_Ioctlv(IOS_DEVICE_ACP_MAIN, IOSU_ACP_REQUEST_CEMU, 1, 1, acpBufferVector);
 

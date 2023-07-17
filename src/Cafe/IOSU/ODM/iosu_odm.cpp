@@ -25,13 +25,31 @@ namespace iosu
 			UKN_5 = 5,
 		};
 
+		enum class ODM_STATE
+		{
+			NONE = 0,
+			INITIAL = 1,
+			AUTHENTICATION = 2,
+			WAIT_FOR_DISC_READY = 3,
+			CAFE_DISC = 4,
+			RVL_DISC = 5,
+			CLEANING_DISC = 6,
+			INVALID_DISC = 8,
+			DIRTY_DISC = 9,
+			NO_DISC = 10,
+			INVALID_DRIVE = 11,
+			FATAL = 12,
+			HARD_FATAL = 13,
+			SHUTDOWN = 14,
+		};
+
 		void ODMHandleCommandIoctl(uint32 clientHandle, IPCCommandBody* cmd, ODM_CMD_OPERATION_TYPE operationId, void* ptrIn, uint32 sizeIn, void* ptrOut, uint32 sizeOut)
 		{
 			switch(operationId)
 			{
 				case ODM_CMD_OPERATION_TYPE::CHECK_STATE:
 				{
-					*(uint32be*)ptrOut = 0xA;
+					*(uint32be*)ptrOut = (uint32)ODM_STATE::NO_DISC;
 					break;
 				}
 				case ODM_CMD_OPERATION_TYPE::UKN_5:

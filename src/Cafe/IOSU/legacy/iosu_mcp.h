@@ -13,7 +13,8 @@ struct MCPTitleInfo
 	// everything below is uncertain
 	/* +0x4A */ uint64be osVersion; // app.xml
 	/* +0x52 */ uint32be sdkVersion; // app.xml
-	/* +0x56 */ uint8 ukn[0x61 - 0x56];
+	/* +0x56 */ uint8 deviceName[10];
+	/* +0x60 */ uint8 uknPadding; // possibly the index of the device?
 	//move this and the stuff below
 };
 

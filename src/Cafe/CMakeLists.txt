@@ -401,6 +401,8 @@ add_library(CemuCafe
   OS/libs/nn_idbe/nn_idbe.h
   OS/libs/nn_ndm/nn_ndm.cpp
   OS/libs/nn_ndm/nn_ndm.h
+  OS/libs/nn_spm/nn_spm.cpp
+  OS/libs/nn_spm/nn_spm.h
   OS/libs/nn_nfp/AmiiboCrypto.h
   OS/libs/nn_nfp/nn_nfp.cpp
   OS/libs/nn_nfp/nn_nfp.h
@@ -418,6 +420,8 @@ add_library(CemuCafe
   OS/libs/nn_olv/nn_olv_UploadCommunityTypes.h
   OS/libs/nn_olv/nn_olv_UploadFavoriteTypes.cpp
   OS/libs/nn_olv/nn_olv_UploadFavoriteTypes.h
+  OS/libs/nn_olv/nn_olv_PostTypes.cpp
+  OS/libs/nn_olv/nn_olv_PostTypes.h
   OS/libs/nn_pdm/nn_pdm.cpp
   OS/libs/nn_pdm/nn_pdm.h
   OS/libs/nn_save/nn_save.cpp
