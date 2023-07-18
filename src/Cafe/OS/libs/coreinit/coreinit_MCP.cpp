@@ -187,7 +187,6 @@ void coreinitExport_MCP_GetTitleInfoByTitleAndDevice(PPCInterpreter_t* hCPU)
 	}
 
 	osLib_returnFromFunction(hCPU, mcpRequest->returnCode);
-
 }
 
 namespace coreinit
@@ -397,11 +396,23 @@ namespace coreinit
 		return 0;
 	}
 
+	uint32 MCP_InstallUtilGetTitleEnability(uint32 mcpHandle, uint32be* enabilityOutput, MCPTitleInfo* title)
+	{
+		*enabilityOutput = 1;
+		return 0;
+	}
+
 	uint32 MCP_GetEcoSettings(uint32 mcpHandle, uint32be* flagCaffeineEnable, uint32be* uknFlag2, uint32be* uknFlag3)
 	{
 		*flagCaffeineEnable = 1; // returning 1 here will stop the Wii U Menu from showing the Quick Start setup dialogue
 		*uknFlag2 = 0;
 		*uknFlag3 = 0;
+		return 0;
+	}
+
+	uint32 MCP_RightCheckLaunchable(uint32 mcpHandle, uint64 titleId, uint32be* launchableOut)
+	{
+		*launchableOut = 1;
 		return 0;
 	}
 
@@ -427,6 +438,9 @@ namespace coreinit
 		osLib_addFunction("coreinit", "MCP_TitleListUpdateGetNext", export_MCP_TitleListUpdateGetNext);
 		osLib_addFunction("coreinit", "MCP_GetOverlayAppInfo", export_MCP_GetOverlayAppInfo);
 		cafeExportRegister("coreinit", MCP_UpdateClearContextAsync, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", MCP_InstallUtilGetTitleEnability, LogType::Placeholder);
+		cafeExportRegister("coreinit", MCP_RightCheckLaunchable, LogType::Placeholder);
 
 		cafeExportRegister("coreinit", MCP_GetEcoSettings, LogType::Placeholder);
 	}

@@ -432,7 +432,9 @@ namespace CafeSystem
     void MlcStorageUnmountAllTitles();
 
     static bool s_initialized = false;
+	static SystemImplementation* s_implementation{nullptr};
     bool sLaunchModeIsStandalone = false;
+	std::optional<std::vector<std::string>> s_overrideArgs;
 
 	bool sSystemRunning = false;
 	TitleId sForegroundTitleId = 0;
@@ -483,6 +485,11 @@ namespace CafeSystem
 		mic::Initialize();
 		// init hardware register interfaces
 		HW_SI::Initialize();
+	}
+
+	void SetImplementation(SystemImplementation* impl)
+	{
+		s_implementation = impl;
 	}
 
     void Shutdown()
@@ -801,6 +808,26 @@ namespace CafeSystem
 		return sGameInfo_ForegroundTitle.GetBase().GetArgStr();
 	}
 
+	// when switching titles custom parameters can be passed, returns true if override args are used
+	bool GetOverrideArgStr(std::vector<std::string>& args)
+	{
+		args.clear();
+		if(!s_overrideArgs)
+			return false;
+		args = *s_overrideArgs;
+		return true;
+	}
+
+	void SetOverrideArgs(std::span<std::string> args)
+	{
+		s_overrideArgs = std::vector<std::string>(args.begin(), args.end());
+	}
+
+	void UnsetOverrideArgs()
+	{
+		s_overrideArgs = std::nullopt;
+	}
+
 	// pick platform region based on title region
 	CafeConsoleRegion GetPlatformRegion()
 	{
@@ -937,6 +964,11 @@ namespace CafeSystem
 	uint32 GetRPXHashUpdated()
 	{
 		return currentUpdatedApplicationHash;
+	}
+
+	void RequestRecreateCanvas()
+	{
+		s_implementation->CafeRecreateCanvas();
 	}
 
 }

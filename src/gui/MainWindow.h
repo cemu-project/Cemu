@@ -15,6 +15,7 @@
 
 #include <future>
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
+#include "Cafe/CafeSystem.h"
 
 class DebuggerWindow2;
 struct GameEntry;
@@ -50,7 +51,7 @@ private:
 	INITIATED_BY m_initiatedBy;
 };
 
-class MainWindow : public wxFrame
+class MainWindow : public wxFrame, public CafeSystem::SystemImplementation
 {
 	friend class CemuApp;
 
@@ -153,6 +154,11 @@ private:
 	bool InstallUpdate(const fs::path& metaFilePath);
 
 	void OnTimer(wxTimerEvent& event);
+
+	// CafeSystem implementation
+	void CafeRecreateCanvas() override;
+
+	void OnRequestRecreateCanvas(wxCommandEvent& event);
 
 	wxRect GetDesktopRect();
 

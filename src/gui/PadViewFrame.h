@@ -14,6 +14,7 @@ public:
 
 	bool Initialize();
 	void InitializeRenderCanvas();
+	void DestroyCanvas();
 
 	void OnKeyUp(wxKeyEvent& event);
 	void OnChar(wxKeyEvent& event);

@@ -444,7 +444,7 @@ namespace acp
 		ppcDefineParamU32(deviceId, 3);
 
 		if (deviceId != 3)
-			assert_dbg();
+			cemuLog_logDebug(LogType::Force, "ACPGetTitleMetaXmlByDevice(): Unsupported deviceId");
 
 		acpPrepareRequest();
 		acpRequest->requestCode = IOSU_ACP_GET_TITLE_META_XML;

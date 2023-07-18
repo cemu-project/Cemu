@@ -73,8 +73,6 @@
 extern WindowInfo g_window_info;
 extern std::shared_mutex g_mutex;
 
-wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
-
 enum
 {
 	// ui elements
@@ -161,8 +159,10 @@ enum
 	MAINFRAME_ID_TIMER1 = 21800,
 };
 
+wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_GAMELIST_REFRESH, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
+wxDEFINE_EVENT(wxEVT_REQUEST_RECREATE_CANVAS, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
 EVT_TIMER(MAINFRAME_ID_TIMER1, MainWindow::OnTimer)
@@ -237,6 +237,8 @@ EVT_COMMAND(wxID_ANY, wxEVT_GAMELIST_END_UPDATE, MainWindow::OnGameListEndUpdate
 EVT_COMMAND(wxID_ANY, wxEVT_ACCOUNTLIST_REFRESH, MainWindow::OnAccountListRefresh)
 EVT_COMMAND(wxID_ANY, wxEVT_SET_WINDOW_TITLE, MainWindow::OnSetWindowTitle)
 
+EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_RECREATE_CANVAS, MainWindow::OnRequestRecreateCanvas)
+
 wxEND_EVENT_TABLE()
 
 class wxGameDropTarget : public wxFileDropTarget
@@ -290,6 +292,7 @@ MainWindow::MainWindow()
 {
 	gui_initHandleContextFromWxWidgetsWindow(g_window_info.window_main, this);
 	g_mainFrame = this;
+	CafeSystem::SetImplementation(this);
 
 	RecreateMenu();
 	SetClientSize(1280, 720);
@@ -1588,8 +1591,7 @@ void MainWindow::DestroyCanvas()
 {
 	if (m_padView)
 	{
-		m_padView->Destroy();
-		m_padView = nullptr;
+		m_padView->DestroyCanvas();
 	}
 	if (m_render_canvas)
 	{
@@ -2368,4 +2370,21 @@ void MainWindow::RequestLaunchGame(fs::path filePath, wxLaunchGameEvent::INITIAT
 {
 	wxLaunchGameEvent evt(filePath, initiatedBy);
 	wxPostEvent(g_mainFrame, evt);
+}
+
+void MainWindow::OnRequestRecreateCanvas(wxCommandEvent& event)
+{
+	CounterSemaphore* sem = (CounterSemaphore*)event.GetClientData();
+	DestroyCanvas();
+	CreateCanvas();
+	sem->increment();
+}
+
+void MainWindow::CafeRecreateCanvas()
+{
+	CounterSemaphore sem;
+	auto* evt = new wxCommandEvent(wxEVT_REQUEST_RECREATE_CANVAS);
+	evt->SetClientData((void*)&sem);
+	wxQueueEvent(g_mainFrame, evt);
+	sem.decrementWithWait();
 }

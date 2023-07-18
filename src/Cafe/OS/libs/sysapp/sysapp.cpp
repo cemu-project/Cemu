@@ -616,6 +616,37 @@ void sysappExport_SYSGetStandardResult(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
+namespace sysapp
+{
+	void SYSClearSysArgs()
+	{
+		cemuLog_logDebug(LogType::Force, "SYSClearSysArgs()");
+		coreinit::__OSClearCopyData();
+	}
+
+	uint32 _SYSLaunchTitleByPathFromLauncher(const char* path, uint32 pathLength)
+	{
+		coreinit::__OSClearCopyData();
+		_SYSAppendCallerInfo();
+		return coreinit::OSLaunchTitleByPathl(path, pathLength, 0);
+	}
+
+	uint32 SYSRelaunchTitle(uint32 argc, MEMPTR<char>* argv)
+	{
+		// calls ACPCheckSelfTitleNotReferAccountLaunch?
+		coreinit::__OSClearCopyData();
+		_SYSAppendCallerInfo();
+		return coreinit::OSRestartGame(argc, argv);
+	}
+
+	void load()
+	{
+		cafeExportRegisterFunc(SYSClearSysArgs, "sysapp", "SYSClearSysArgs", LogType::Placeholder);
+		cafeExportRegisterFunc(_SYSLaunchTitleByPathFromLauncher, "sysapp", "_SYSLaunchTitleByPathFromLauncher", LogType::Placeholder);
+		cafeExportRegisterFunc(SYSRelaunchTitle, "sysapp", "SYSRelaunchTitle", LogType::Placeholder);
+	}
+}
+
 // register sysapp functions
 void sysapp_load()
 {
@@ -635,4 +666,6 @@ void sysapp_load()
 
 	cafeExportRegisterFunc(_SYSGetLauncherArgs, "sysapp", "_SYSGetLauncherArgs", LogType::Placeholder);
 	cafeExportRegisterFunc(_SYSGetAccountArgs, "sysapp", "_SYSGetAccountArgs", LogType::Placeholder);
+
+	sysapp::load();
 }

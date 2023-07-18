@@ -90,6 +90,14 @@ void PadViewFrame::InitializeRenderCanvas()
 	SendSizeEvent();
 }
 
+void PadViewFrame::DestroyCanvas()
+{
+	if(!m_render_canvas)
+		return;
+	m_render_canvas->Destroy();
+	m_render_canvas = nullptr;
+}
+
 void PadViewFrame::OnSizeEvent(wxSizeEvent& event)
 {
 	if (!IsMaximized() && !IsFullScreen())
