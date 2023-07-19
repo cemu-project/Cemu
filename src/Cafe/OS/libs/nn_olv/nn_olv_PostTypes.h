@@ -219,7 +219,6 @@ namespace nn
 			// DownloadExternalBinaryData__Q3_2nn3olv18DownloadedDataBaseCFPvPUiUi
 			// GetExternalBinaryDataSize__Q3_2nn3olv18DownloadedDataBaseCFv
 		};
-		ENABLE_BITMASK_OPERATORS(DownloadedDataBase::FLAGS);
 
 		static_assert(sizeof(DownloadedDataBase) == 0xC008);
 
@@ -283,7 +282,6 @@ namespace nn
 				return _this->communityId;
 			}
 		};
-		ENABLE_BITMASK_OPERATORS(DownloadedTopicData::FLAGS);
 
 		static_assert(sizeof(DownloadedTopicData) == 0x1000);
 

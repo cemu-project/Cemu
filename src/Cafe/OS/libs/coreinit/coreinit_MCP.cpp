@@ -242,7 +242,7 @@ namespace coreinit
 		/* +0x008 */ char volumeId[16]; //
 		/* +0x018 */ char ukn[0x90 - 0x18];
 		/* +0x090 */ char storagePath[0x280 - 1]; // /vol/storage_%s%02x
-		/* +0x30F */ uint32be flags; // the id in the storage path, but this might also be a MASK of indices (e.g. 1 -> Only device 1, 7 -> Device 1,2,3) men.rpx expects 0xF (or 0x7?) to be set for MLC, SLC and USB for MLC_FullDeviceList
+		/* +0x30F */ uint32be flags; // men.rpx checks for 0x2 and 0x8
 		uint8 ukn313[4];
 		uint8 ukn317[4];
 	};

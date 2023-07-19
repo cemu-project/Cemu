@@ -2,7 +2,7 @@
 #include "sysapp.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/coreinit/coreinit_FG.h"
-#include "Cafe/OS/libs/coreinit/coreinit_misc.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 
 typedef struct  
 {
