@@ -6,6 +6,12 @@
 
 namespace CafeSystem
 {
+	class SystemImplementation
+	{
+	public:
+		virtual void CafeRecreateCanvas() = 0;
+	};
+
 	enum class STATUS_CODE
 	{
 		SUCCESS,
@@ -15,13 +21,21 @@ namespace CafeSystem
 	};
 
 	void Initialize();
+	void SetImplementation(SystemImplementation* impl);
+    void Shutdown();
+
 	STATUS_CODE PrepareForegroundTitle(TitleId titleId);
 	STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path);
 	void LaunchForegroundTitle();
 	bool IsTitleRunning();
 
+	bool GetOverrideArgStr(std::vector<std::string>& args);
+	void SetOverrideArgs(std::span<std::string> args);
+	void UnsetOverrideArgs();
+
 	TitleId GetForegroundTitleId();
 	uint16 GetForegroundTitleVersion();
+	uint32 GetForegroundTitleSDKVersion();
 	CafeConsoleRegion GetForegroundTitleRegion();
 	CafeConsoleRegion GetPlatformRegion();
 	std::string GetForegroundTitleName();
@@ -37,6 +51,8 @@ namespace CafeSystem
 
 	uint32 GetRPXHashBase();
 	uint32 GetRPXHashUpdated();
+
+	void RequestRecreateCanvas();
 };
 
 extern RPLModule* applicationRPX;

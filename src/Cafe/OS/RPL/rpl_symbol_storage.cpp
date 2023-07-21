@@ -159,6 +159,7 @@ void rplSymbolStorage_unloadAll()
 	// free strings
 	for (auto it : rplSymbolStorage.list_strAllocatedBlocks)
 		free(it);
+    rplSymbolStorage.list_strAllocatedBlocks.clear();
 	rplSymbolStorage.strAllocatorBlock = nullptr;
 	rplSymbolStorage.strAllocatorOffset = 0;
 }

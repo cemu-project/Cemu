@@ -113,19 +113,6 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 	}
 }
 
-void coreinitExport_OSPanic(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::Force, "OSPanic!\n");
-    cemuLog_log(LogType::Force, "File: {}:{}\n", (const char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4]);
-    cemuLog_log(LogType::Force, "Msg: {}\n", (const char*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]));
-	DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
-#ifdef CEMU_DEBUG_ASSERT
-	assert_dbg();
-	while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#endif
-	osLib_returnFromFunction(hCPU, 0);
-}
-
 typedef struct
 {
 	/* +0x00 */ uint32be name;
@@ -296,6 +283,17 @@ namespace coreinit
 		return 0;
 	}
 
+	void OSPanic(const char* file, sint32 lineNumber, const char* msg)
+	{
+		cemuLog_log(LogType::Force, "OSPanic!");
+		cemuLog_log(LogType::Force, "File: {}:{}", file, lineNumber);
+		cemuLog_log(LogType::Force, "Msg: {}", msg);
+		DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
+#ifdef CEMU_DEBUG_ASSERT
+		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif
+	}
+
 	void InitializeCore()
 	{
 		cafeExportRegister("coreinit", OSGetCoreId, LogType::CoreinitThread);
@@ -313,6 +311,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSIsOffBoot, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetBootPMFlags, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetSystemMode, LogType::CoreinitThread);
+
+		cafeExportRegister("coreinit", OSPanic, LogType::Placeholder);
 	}
 };
 

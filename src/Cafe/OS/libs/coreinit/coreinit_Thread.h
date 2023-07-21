@@ -606,6 +606,7 @@ namespace coreinit
 	void __OSQueueThreadDeallocation(OSThread_t* thread);
 
     bool __OSIsThreadActive(OSThread_t* thread);
+	void __OSDeleteAllActivePPCThreads();
 }
 
 #pragma pack()

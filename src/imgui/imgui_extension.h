@@ -12,5 +12,6 @@ inline bool operator>=(const ImVec2& lhs, const ImVec2& rhs) { return lhs.x >= r
 bool ImGui_BeginPadDistinct(const char* name, bool* p_open, ImGuiWindowFlags flags, bool pad);
 
 void ImGui_PrecacheFonts();
+void ImGui_ClearFonts();
 ImFont* ImGui_GetFont(float size);
 void ImGui_UpdateWindowInformation(bool mainWindow);

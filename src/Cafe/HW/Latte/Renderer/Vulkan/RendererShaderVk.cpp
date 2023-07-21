@@ -451,3 +451,9 @@ void RendererShaderVk::ShaderCacheLoading_end()
 	// keep g_spirvCache open since we will write to it while the game is running
 	s_isLoadingShadersVk = false;
 }
+
+void RendererShaderVk::ShaderCacheLoading_Close()
+{
+    delete s_spirvCache;
+    s_spirvCache = nullptr;
+}

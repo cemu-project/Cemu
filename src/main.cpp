@@ -5,14 +5,15 @@
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+#include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
 #include "config/NetworkSettings.h"
-#include "gui/CemuApp.h"
-#include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "config/LaunchSettings.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+#include "input/InputManager.h"
+#include "gui/CemuApp.h"
 
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
@@ -113,7 +114,6 @@ void infoLog_cemuStartup()
 	cemuLog_log(LogType::Force, "------- Init {} -------", BUILD_VERSION_WITH_NAME_STRING);
 	cemuLog_log(LogType::Force, "Init Wii U memory space (base: 0x{:016x})", (size_t)memory_base);
 	cemuLog_log(LogType::Force, "mlc01 path: {}", _pathToUtf8(ActiveSettings::GetMlcPath()));
-	// check for wine version
 	checkForWine();
 	// CPU and RAM info
 	logCPUAndMemoryInfo();
@@ -158,16 +158,9 @@ void reconfigureVkDrivers()
     _putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
 }
 
-void mainEmulatorCommonInit()
+void WindowsInitCwd()
 {
-	reconfigureGLDrivers();
-	reconfigureVkDrivers();
-	// crypto init
-	AES128_init();
-	// init PPC timer (call this as early as possible because it measures frequency of RDTSC using an asynchronous thread over 3 seconds)
-	PPCTimer_init();
-
-#if BOOST_OS_WINDOWS
+	#if BOOST_OS_WINDOWS
 	executablePath.resize(4096);
 	int i = GetModuleFileName(NULL, executablePath.data(), executablePath.size());
 	if(i >= 0)
@@ -175,24 +168,54 @@ void mainEmulatorCommonInit()
 	else
 		executablePath.clear();
 	SetCurrentDirectory(executablePath.c_str());
-
 	// set high priority
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-#endif
+	#endif
+}
+
+void CemuCommonInit()
+{
+	reconfigureGLDrivers();
+	reconfigureVkDrivers();
+	// crypto init
+	AES128_init();
+	// init PPC timer
+	// call this as early as possible because it measures frequency of RDTSC using an asynchronous thread over 3 seconds
+	PPCTimer_init();
+
+	WindowsInitCwd();
     ExceptionHandler_Init();
 	// read config
 	g_config.Load();
 	if (NetworkConfig::XMLExists())
-	n_config.Load();
+		n_config.Load();
 	// symbol storage
 	rplSymbolStorage_init();
-	// static initialization
-	IAudioAPI::InitializeStatic();
-	IAudioInputAPI::InitializeStatic();
-	// load graphic packs (must happen before config is loaded)
-	GraphicPack2::LoadAll();
-	// initialize file system
-	fsc_init();
+	// parallelize expensive init code
+	std::future<int> futureInitAudioAPI = std::async(std::launch::async, []{ IAudioAPI::InitializeStatic(); IAudioInputAPI::InitializeStatic(); return 0; });
+	std::future<int> futureInitGraphicPacks = std::async(std::launch::async, []{ GraphicPack2::LoadAll(); return 0; });
+	InputManager::instance().load();
+	futureInitAudioAPI.wait();
+	futureInitGraphicPacks.wait();
+	// log Cemu startup info
+	infoLog_cemuStartup();
+	// init Cafe system
+	CafeSystem::Initialize();
+	// init title list
+	CafeTitleList::Initialize(ActiveSettings::GetUserDataPath("title_list_cache.xml"));
+	for (auto& it : GetConfig().game_paths)
+		CafeTitleList::AddScanPath(it);
+	fs::path mlcPath = ActiveSettings::GetMlcPath();
+	if (!mlcPath.empty())
+		CafeTitleList::SetMLCPath(mlcPath);
+	CafeTitleList::Refresh();
+	// init save list
+	CafeSaveList::Initialize();
+	if (!mlcPath.empty())
+	{
+		CafeSaveList::SetMLCPath(mlcPath);
+		CafeSaveList::Refresh();
+	}
 }
 
 void mainEmulatorLLE();
@@ -218,35 +241,7 @@ int mainEmulatorHLE()
 #ifdef CEMU_DEBUG_ASSERT
 	unitTests();
 #endif
-	// init common
-	mainEmulatorCommonInit();
-	// reserve memory (no allocations yet)
-	memory_init();
-	// init ppc core
-	PPCCore_init();
-	// log Cemu startup info
-	infoLog_cemuStartup();
-	// init RPL loader
-	RPLLoader_InitState();
-	// init IOSU components
-	iosuCrypto_init();
-	// init Cafe system (todo - the stuff above should be part of this too)
-	CafeSystem::Initialize();
-	// init title list
-	CafeTitleList::Initialize(ActiveSettings::GetUserDataPath("title_list_cache.xml"));
-	for (auto& it : GetConfig().game_paths)
-		CafeTitleList::AddScanPath(it);
-	fs::path mlcPath = ActiveSettings::GetMlcPath();
-	if (!mlcPath.empty())
-		CafeTitleList::SetMLCPath(mlcPath);
-	CafeTitleList::Refresh();
-	// init save list
-	CafeSaveList::Initialize();
-	if (!mlcPath.empty())
-	{
-		CafeSaveList::SetMLCPath(mlcPath);
-		CafeSaveList::Refresh();
-	}
+	CemuCommonInit();
 	return 0;
 }
 

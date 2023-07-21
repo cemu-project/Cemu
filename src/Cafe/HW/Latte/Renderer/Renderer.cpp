@@ -62,6 +62,7 @@ void Renderer::Shutdown()
 	// imgui
 	ImGui::DestroyContext(imguiTVContext);
 	ImGui::DestroyContext(imguiPadContext);
+    ImGui_ClearFonts();
 	delete imguiFontAtlas;
 }
 

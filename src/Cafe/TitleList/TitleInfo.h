@@ -22,6 +22,7 @@ struct ParsedAppXml
 	uint16 title_version;
 	uint32 app_type;
 	uint32 group_id;
+	uint32 sdk_version;
 };
 
 struct ParsedCosXml 
@@ -69,6 +70,7 @@ public:
 		std::string subPath; // for WUA
 		uint64 titleId;
 		uint16 titleVersion;
+		uint32 sdkVersion;
 		std::string titleName;
 		CafeConsoleRegion region;
 		uint32 group_id;
@@ -115,12 +117,23 @@ public:
 		return m_uid == rhs.m_uid;
 	}
 
+	bool IsSystemDataTitle() const
+	{
+		if(!IsValid())
+			return false;
+		uint32 appType = GetAppType();
+		if(appType == 0)
+			return false; // not a valid app_type, but handle this in case some users use placeholder .xml data with fields zeroed-out
+		return ((appType>>24)&0x80) == 0;
+	}
+
 	// API which requires parsed meta data or cached info
 	TitleId GetAppTitleId() const; // from app.xml
 	uint16 GetAppTitleVersion() const; // from app.xml
+	uint32 GetAppSDKVersion() const; // from app.xml
 	uint32 GetAppGroup() const; // from app.xml
 	uint32 GetAppType() const; // from app.xml
-	std::string GetTitleName() const; // from meta.xml
+	std::string GetMetaTitleName() const; // from meta.xml
 	CafeConsoleRegion GetMetaRegion() const; // from meta.xml
 	uint32 GetOlvAccesskey() const;
 

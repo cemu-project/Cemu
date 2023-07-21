@@ -20,6 +20,7 @@ namespace acp
 
 	ACPStatus ACPGetApplicationBox(uint32be* applicationBox, uint64 titleId);
 	ACPStatus ACPMountSaveDir();
+    ACPStatus ACPUnmountSaveDir();
 	ACPStatus ACPCreateSaveDir(uint32 persistentId, ACPDeviceType type);
 	ACPStatus ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, ACPDeviceType deviceType);;
 

@@ -238,7 +238,7 @@ namespace iosu
 
 			nnResult ServiceCall(uint32 serviceId, void* request, void* response) override
 			{
-				cemuLog_log(LogType::Force, "Unsupported service call to /dec/act");
+				cemuLog_log(LogType::Force, "Unsupported service call to /dev/act");
 				cemu_assert_unimplemented();
 				return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACT, 0);
 			}

@@ -103,7 +103,7 @@ void MMURange::mapMem()
 
 void MMURange::unmapMem()
 {
-	cemu_assert_debug(false);
+    MemMapper::FreeMemory(memory_base + baseAddress, size, true);
 	m_isMapped = false;
 }
 
@@ -194,6 +194,15 @@ void memory_mapForCurrentTitle()
 		if (!itr->isOptional() && !itr->isMappedEarly())
 			itr->mapMem();
 	}
+}
+
+void memory_unmapForCurrentTitle()
+{
+    for (auto& itr : g_mmuRanges)
+    {
+        if (itr->isMapped() && !itr->isMappedEarly())
+            itr->unmapMem();
+    }
 }
 
 void memory_logModifiedMemoryRanges()

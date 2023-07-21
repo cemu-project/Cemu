@@ -40,11 +40,6 @@ namespace snd_core
 		return vpb;
 	}
 
-	void AXVoiceList_ResetFreeVoiceList()
-	{
-		__AXFreeVoices.clear();
-	}
-
 	std::vector<AXVPB*>& AXVoiceList_GetFreeVoices()
 	{
 		return __AXFreeVoices;
@@ -79,6 +74,13 @@ namespace snd_core
 		cemu_assert(priority != AX_PRIORITY_FREE && priority < AX_PRIORITY_MAX);
 		return __AXVoicesPerPriority[priority];
 	}
+
+    void AXVoiceList_Reset()
+    {
+        __AXFreeVoices.clear();
+        for (uint32 i = 0; i < AX_PRIORITY_MAX; i++)
+            __AXVoicesPerPriority[i].clear();
+    }
 
 	SysAllocator<AXVPBInternal_t, AX_MAX_VOICES> _buffer__AXVPBInternalVoiceArray;
 	AXVPBInternal_t* __AXVPBInternalVoiceArray;
@@ -445,14 +447,22 @@ namespace snd_core
 		__AXVoiceListSpinlock.unlock();
 	}
 
+    void __AXVPBResetVoices()
+    {
+        __AXVPBInternalVoiceArray = _buffer__AXVPBInternalVoiceArray.GetPtr();
+        __AXVPBInternalVoiceShadowCopyArrayPtr = _buffer__AXVPBInternalVoiceShadowCopyArray.GetPtr();
+        __AXVPBArrayPtr = _buffer__AXVPBArray.GetPtr();
+        __AXVPBItdArrayPtr = _buffer__AXVPBItdArray.GetPtr();
+
+        memset(__AXVPBInternalVoiceShadowCopyArrayPtr, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
+        memset(__AXVPBInternalVoiceArray, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
+        memset(__AXVPBItdArrayPtr, 0, sizeof(AXVPBItd)*AX_MAX_VOICES);
+        memset(__AXVPBArrayPtr, 0, sizeof(AXVPB)*AX_MAX_VOICES);
+    }
+
 	void AXVPBInit()
 	{
-		__AXVPBInternalVoiceArray = _buffer__AXVPBInternalVoiceArray.GetPtr();
-
-		memset(__AXVPBInternalVoiceShadowCopyArrayPtr, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
-		memset(__AXVPBInternalVoiceArray, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
-		memset(__AXVPBItdArrayPtr, 0, sizeof(AXVPBItd)*AX_MAX_VOICES);
-		memset(__AXVPBArrayPtr, 0, sizeof(AXVPB)*AX_MAX_VOICES);
+        __AXVPBResetVoices();
 		for (sint32 i = 0; i < AX_MAX_VOICES; i++)
 		{
 			AXVPBItd* itd = __AXVPBItdArrayPtr + i;
@@ -494,11 +504,15 @@ namespace snd_core
 
 	void AXVPB_Init()
 	{
-		__AXVPBInternalVoiceShadowCopyArrayPtr = _buffer__AXVPBInternalVoiceShadowCopyArray.GetPtr();
-		__AXVPBArrayPtr = _buffer__AXVPBArray.GetPtr();
-		__AXVPBItdArrayPtr = _buffer__AXVPBItdArray.GetPtr();
+		__AXVPBResetVoices();
 		AXVPBInit();
 	}
+
+    void AXVBP_Reset()
+    {
+        AXVoiceList_Reset();
+        __AXVPBResetVoices();
+    }
 
 	sint32 AXIsValidDevice(sint32 device, sint32 deviceIndex)
 	{

@@ -289,13 +289,6 @@ public:
 	}
 };
 
-void fscDeviceHostFS_mapBaseDirectories_deprecated()
-{
-	const auto mlc = ActiveSettings::GetMlcPath();
-	fsc_mount("/cemuBossStorage/", _pathToUtf8(mlc / "usr/boss/"), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
-	fsc_mount("/vol/storage_mlc01/", _pathToUtf8(mlc / ""), &fscDeviceHostFSC::instance(), NULL, FSC_PRIORITY_BASE);
-}
-
 bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority)
 {
 	return fsc_mount(mountPath, hostTargetPath, &fscDeviceHostFSC::instance(), nullptr, priority) == FSC_STATUS_OK;

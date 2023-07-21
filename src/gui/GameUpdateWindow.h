@@ -26,7 +26,7 @@ public:
 	//bool IsDLC() const { return m_game_info->IsDLC(); }
 	//bool IsUpdate() const { return m_game_info->IsUpdate(); }
 	const std::string& GetExceptionMessage() const { return m_thread_exception; }
-	const std::string GetGameName() const { return m_title_info.GetTitleName(); }
+	const std::string GetGameName() const { return m_title_info.GetMetaTitleName(); }
 	uint32 GetTargetVersion() const { return m_title_info.GetAppTitleVersion(); }
 	fs::path GetTargetPath() const { return fs::path(m_target_path); }
 

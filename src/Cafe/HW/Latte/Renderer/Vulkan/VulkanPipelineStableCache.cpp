@@ -117,6 +117,15 @@ void VulkanPipelineStableCache::EndLoading()
 	// keep cache file open for writing of new pipelines
 }
 
+void VulkanPipelineStableCache::Close()
+{
+    if(s_cache)
+    {
+        delete s_cache;
+        s_cache = nullptr;
+    }
+}
+
 struct CachedPipeline
 {
 	struct ShaderHash

@@ -8,11 +8,12 @@ namespace snd_core
 {
 	sndGeneric_t sndGeneric;
 
-	void resetToDefaultState()
+	void AXResetToDefaultState()
 	{
 		memset(&sndGeneric, 0x00, sizeof(sndGeneric));
 		resetNumProcessedFrames();
-	}
+        AXVBP_Reset();
+    }
 
 	bool AXIsInit()
 	{
@@ -77,14 +78,13 @@ namespace snd_core
 
 	void AXQuit()
 	{
-		cemuLog_logDebug(LogType::Force, "AXQuit called from 0x{:08x}", ppcInterpreterCurrentInstance->spr.LR);
-		// clean up
-		AXResetCallbacks();
-		AXVoiceList_ResetFreeVoiceList();
-		// todo - should we wait to make sure any active callbacks are finished with execution before we exit AXQuit?
+        AXResetCallbacks();
+        // todo - should we wait to make sure any active callbacks are finished with execution before we exit AXQuit?
+        // request worker thread stop and wait until complete
+        AXIst_StopThread();
+        // clean up subsystems
+        AXVBP_Reset();
 		sndGeneric.isInitialized = false;
-		// request worker thread stop and wait until complete
-		AXIst_StopThread();
 	}
 
 	sint32 AXGetMaxVoices()
@@ -500,7 +500,7 @@ namespace snd_core
 
 	void loadExports()
 	{
-		resetToDefaultState();
+        AXResetToDefaultState();
 
 		loadExportsSndCore1();
 		loadExportsSndCore2();
@@ -513,7 +513,9 @@ namespace snd_core
 
 	void reset()
 	{
-		sndGeneric.isInitialized = false;
+        AXOut_reset();
+        AXResetToDefaultState();
+        sndGeneric.isInitialized = false;
 	}
 
 }

@@ -45,6 +45,12 @@ namespace GX2
 	sint32 gx2WriteGatherCurrentMainCoreIndex = -1;
 	bool gx2WriteGatherInited = false;
 
+    void GX2WriteGather_ResetToDefaultState()
+    {
+        gx2WriteGatherCurrentMainCoreIndex = -1;
+        gx2WriteGatherInited = false;
+    }
+
 	void GX2Init_writeGather() // init write gather, make current core 
 	{
 		if (gx2WriteGatherPipe.gxRingBuffer == NULL)
@@ -289,7 +295,6 @@ namespace GX2
 
 	void GX2CommandInit()
 	{
-
 		cafeExportRegister("gx2", GX2BeginDisplayList, LogType::GX2);
 		cafeExportRegister("gx2", GX2BeginDisplayListEx, LogType::GX2);
 		cafeExportRegister("gx2", GX2EndDisplayList, LogType::GX2);
@@ -304,5 +309,10 @@ namespace GX2
 
 		cafeExportRegister("gx2", GX2PatchDisplayList, LogType::GX2);
 	}
+
+    void GX2CommandResetToDefaultState()
+    {
+        GX2WriteGather_ResetToDefaultState();
+    }
 
 }

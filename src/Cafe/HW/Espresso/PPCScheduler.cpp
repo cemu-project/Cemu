@@ -100,11 +100,6 @@ PPCInterpreter_t* PPCCore_executeCallbackInternal(uint32 functionMPTR)
 	return hCPU;
 }
 
-void PPCCore_deleteAllThreads()
-{
-	assert_dbg();
-}
-
 void PPCCore_init()
 {
 }

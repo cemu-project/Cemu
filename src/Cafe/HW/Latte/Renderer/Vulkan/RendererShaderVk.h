@@ -22,7 +22,8 @@ class RendererShaderVk : public RendererShader
 
 public:
 	static void ShaderCacheLoading_begin(uint64 cacheTitleId);
-	static void ShaderCacheLoading_end();
+    static void ShaderCacheLoading_end();
+    static void ShaderCacheLoading_Close();
 
 	RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslCode);
 	virtual ~RendererShaderVk();

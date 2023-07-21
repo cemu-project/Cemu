@@ -194,7 +194,6 @@ namespace snd_core
 
 	std::vector<AXVPB*>& AXVoiceList_GetListByPriority(uint32 priority);
 	std::vector<AXVPB*>& AXVoiceList_GetFreeVoices();
-	void AXVoiceList_ResetFreeVoiceList();
 
 	inline AXVPBInternal_t* GetInternalVoice(const AXVPB* vpb)
 	{
@@ -205,6 +204,8 @@ namespace snd_core
 	{
 		return (uint32)vpb->index;
 	}
+
+    void AXVBP_Reset();
 
 	// AXIst
 	void AXIst_InitThread();

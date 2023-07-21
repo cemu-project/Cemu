@@ -958,6 +958,7 @@ namespace snd_core
 
 	void AXIst_InitThread()
 	{
+        __AXIstIsProcessingFrame = false;
 		// create ist message queue
 		OSInitMessageQueue(__AXIstThreadMsgQueue.GetPtr(), __AXIstThreadMsgArray.GetPtr(), 0x10);
 		// create thread

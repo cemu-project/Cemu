@@ -4,6 +4,7 @@
 #include "nn_olv_UploadCommunityTypes.h"
 #include "nn_olv_DownloadCommunityTypes.h"
 #include "nn_olv_UploadFavoriteTypes.h"
+#include "nn_olv_PostTypes.h"
 
 #include "Cafe/OS/libs/proc_ui/proc_ui.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
@@ -288,15 +289,16 @@ namespace nn
 			loadOliveUploadCommunityTypes();
 			loadOliveDownloadCommunityTypes();
 			loadOliveUploadFavoriteTypes();
+			loadOlivePostAndTopicTypes();
 
 			cafeExportRegisterFunc(GetErrorCode, "nn_olv", "GetErrorCode__Q2_2nn3olvFRCQ2_2nn6Result", LogType::None);
 
 			osLib_addFunction("nn_olv", "DownloadPostDataList__Q2_2nn3olvFPQ3_2nn3olv19DownloadedTopicDataPQ3_2nn3olv18DownloadedPostDataPUiUiPCQ3_2nn3olv25DownloadPostDataListParam", export_DownloadPostDataList);
-			osLib_addFunction("nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", exportDownloadPostData_TestFlags);
-			osLib_addFunction("nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetPostId);
-			osLib_addFunction("nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetMiiNickname);
-			osLib_addFunction("nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetTopicTag);
-			osLib_addFunction("nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", exportDownloadPostData_GetBodyText);
+//			osLib_addFunction("nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", exportDownloadPostData_TestFlags);
+//			osLib_addFunction("nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetPostId);
+//			osLib_addFunction("nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetMiiNickname);
+//			osLib_addFunction("nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", exportDownloadPostData_GetTopicTag);
+//			osLib_addFunction("nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", exportDownloadPostData_GetBodyText);
 
 			osLib_addFunction("nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetServiceToken);
 
