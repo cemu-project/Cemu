@@ -7,7 +7,7 @@
 
 #include <boost/asio.hpp>
 
-#if !____ANDROID___
+#if !__ANDROID__
 #ifndef HAS_DSU
 #define HAS_DSU 1
 #endif
