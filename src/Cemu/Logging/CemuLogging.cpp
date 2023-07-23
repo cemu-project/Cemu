@@ -1,6 +1,5 @@
 #include "CemuLogging.h"
 #include "config/CemuConfig.h"
-#include "gui/guiWrapper.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
 
@@ -53,6 +52,19 @@ const std::map<LogType, std::string> g_logging_window_mapping
 	{LogType::OpenGLLogging, "OpenGL debug output"},
 	{LogType::VulkanValidation, "Vulkan validation layer"},
 };
+
+LogCallbacks* g_logCallbacks = nullptr;
+
+void cemuLog_registerLogCallbacks(LogCallbacks* logCallbacks)
+{
+	g_logCallbacks = logCallbacks;
+}
+
+void cemuLog_unregisterLogCallbacks()
+{
+	g_logCallbacks = nullptr;
+}
+
 
 uint64 cemuLog_getFlag(LogType type)
 {
@@ -157,10 +169,13 @@ bool cemuLog_log(LogType type, std::string_view text)
 
 	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
 		[type](const auto& entry) { return entry.first == type; });
-	if (it == g_logging_window_mapping.cend())
-		gui_loggingWindowLog(text);
-	else
-		gui_loggingWindowLog(it->second, text);
+	if (g_logCallbacks)
+	{
+		if (it == g_logging_window_mapping.cend())
+			g_logCallbacks->Log("", text);
+		else
+			g_logCallbacks->Log(it->second, text);
+	}
 
 	return true;
 }

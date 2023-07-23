@@ -1,5 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "gui/guiWrapper.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
@@ -65,9 +65,9 @@ bool Renderer::ImguiBegin(bool mainWindow)
 {
 	sint32 w = 0, h = 0;
 	if(mainWindow)
-		gui_getWindowPhysSize(w, h);
-	else if(gui_isPadWindowOpen())
-		gui_getPadWindowPhysSize(w, h);
+		GuiSystem::getWindowPhysSize(w, h);
+	else if(GuiSystem::isPadWindowOpen())
+		GuiSystem::getPadWindowPhysSize(w, h);
 	else
 		return false;
 		
@@ -109,74 +109,29 @@ uint8 Renderer::RGBComponentToSRGB(uint8 cli)
 	return (uint8)(cs * 255.0f);
 }
 
-static std::optional<fs::path> GenerateScreenshotFilename(bool isDRC)
+void Renderer::RequestScreenshot(const std::function<std::optional<std::string>(const std::vector<uint8>&, int, int, bool)>& onSaveScreenshot)
 {
-	fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
-	// build screenshot name with format Screenshot_YYYY-MM-DD_HH-MM-SS[_GamePad].png
-	// if the file already exists add a suffix counter (_2.png, _3.png etc)
-	std::time_t time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	std::tm* tm = std::localtime(&time_t);
-
-	std::string screenshotFileName = fmt::format("Screenshot_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
-	if (isDRC)
-		screenshotFileName.append("_GamePad");
-
-	fs::path screenshotPath;
-	for(sint32 i=0; i<999; i++)
-	{
-		screenshotPath = screendir;
-		if (i == 0)
-			screenshotPath.append(fmt::format("{}.png", screenshotFileName));
-		else
-			screenshotPath.append(fmt::format("{}_{}.png", screenshotFileName, i + 1));
-		
-		std::error_code ec;
-		bool exists = fs::exists(screenshotPath, ec);
-		
-		if (!ec && !exists)
-			return screenshotPath;
-	}
-	return std::nullopt;
+	m_screenshot_requested = true;
+	m_on_save_screenshot = onSaveScreenshot;
 }
 
-static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
+void Renderer::CancelScreenshotRequest()
 {
-#if BOOST_OS_WINDOWS
-	// on Windows wxWidgets uses OLE API for the clipboard
-	// to make this work we need to call OleInitialize() on the same thread
-	OleInitialize(nullptr);
-#endif
-
-	if (mainWindow)
-	{
-		if(gui_saveScreenshotToClipboard(data, width, height))
-		{
-			if (!save_screenshot)
-				LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
-		}
-		else
-		{
-			LatteOverlay_pushNotification("Failed to open clipboard", 2500);
-		}
-	}
-
-	if (save_screenshot)
-	{
-		auto imagePath = GenerateScreenshotFilename(mainWindow);
-		if (imagePath.has_value() && gui_saveScreenshotToFile(imagePath.value(), data, width, height))
-		{
-			if (mainWindow)
-				LatteOverlay_pushNotification("Screenshot saved", 2500);
-		}
-		else
-		{
-			LatteOverlay_pushNotification("Failed to save screenshot to file", 2500);
-		}
-	}
+	m_screenshot_requested = false;
+	m_on_save_screenshot = nullptr;
 }
 
 void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const
 {
-	const bool save_screenshot = GetConfig().save_screenshot;
-	std::thread(ScreenshotThread, rgb_data, save_screenshot, width, height, mainWindow).detach();
+	std::thread(
+		[=, this]()
+		{
+			if (m_on_save_screenshot)
+			{
+				auto notificationMessage = m_on_save_screenshot(rgb_data, width, height, mainWindow);
+				if (notificationMessage.has_value())
+					LatteOverlay_pushNotification(notificationMessage.value(), 2500);
+			}
+		})
+		.detach();
 }

@@ -4,9 +4,9 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
-#include "Cemu/FileCache/FileCache.h"
 #include "Cafe/GameProfile/GameProfile.h"
-#include "gui/guiWrapper.h"
+#include "Cemu/FileCache/FileCache.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
@@ -379,7 +379,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 			continue;
 
 		int w, h;
-		gui_getWindowPhysSize(w, h);
+		GuiSystem::getWindowPhysSize(w, h);
 		const Vector2f window_size{ (float)w,(float)h };
 
 		ImGui_GetFont(window_size.y / 32.0f); // = 24 by default

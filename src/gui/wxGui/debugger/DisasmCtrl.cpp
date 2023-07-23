@@ -9,7 +9,6 @@
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "debugger/DebuggerWindow2.h"
 #include "util/helpers/helpers.h"
-#include "guiWrapper.h"
 
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 #include "Cafe/HW/Espresso/Debugger/DebugSymbolStorage.h"
@@ -797,7 +796,7 @@ void DisasmCtrl::GoToAddressDialog()
 			debug_printf("goto eval result: %x\n", result);
 			m_lastGotoTarget = result;
 			CenterOffset(result);
-			debuggerWindow_updateViewThreadsafe2();
+			debugger_getDebuggerCallbacks()->updateViewThreadsafe();
 		}
 		catch (const std::exception& )
 		{

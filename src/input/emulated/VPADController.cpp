@@ -3,7 +3,7 @@
 #if HAS_SDL
 #include "input/api/SDL/SDLController.h"
 #endif // HAS_SDL
-#include "gui/guiWrapper.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 #include "input/InputManager.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/CafeSystem.h"
@@ -288,9 +288,9 @@ void VPADController::update_motion(VPADStatus_t& status)
 
 		int w, h;
 		if (pad_view)
-			gui_getPadWindowPhysSize(w, h);
+			GuiSystem::getPadWindowPhysSize(w, h);
 		else
-			gui_getWindowPhysSize(w, h);
+			GuiSystem::getWindowPhysSize(w, h);
 
 		float wx = mousePos.x / w;
 		float wy = mousePos.y / h;

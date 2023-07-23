@@ -122,7 +122,6 @@ add_library(CemuwxGui
   wxcomponents/unchecked_mo.xpm
   wxcomponents/unchecked.xpm
   wxgui.h
-  wxGuiWrapper.cpp
   wxHelper.h
 )
 

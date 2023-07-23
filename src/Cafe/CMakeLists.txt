@@ -490,7 +490,6 @@ target_link_libraries(CemuCafe PRIVATE
 	CemuCommon
 	CemuComponents
 	CemuConfig
-	CemuGui
 	CemuInput
 	CemuResource
 	CemuUtil

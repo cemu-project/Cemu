@@ -12,6 +12,7 @@
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
 #include "util/containers/robin_hood.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 struct VkSupportedFormatInfo_t
 {
@@ -213,7 +214,7 @@ public:
 #endif // __ANDROID__
 #endif // BOOST_OS_LINUX
 
-	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo);
+	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, GuiSystem::WindowHandleInfo& windowInfo);
 
 	void AppendOverlayDebugInfo() override;
 

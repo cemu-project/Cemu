@@ -6,7 +6,7 @@
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "gui/guiWrapper.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 
@@ -117,7 +117,7 @@ int Latte_ThreadEntry()
 {
 	SetThreadName("LatteThread");
 	sint32 w,h;
-	gui_getWindowPhysSize(w,h);
+	GuiSystem::getWindowPhysSize(w,h);
 
 	// renderer
 	g_renderer->Initialize();
@@ -174,8 +174,7 @@ int Latte_ThreadEntry()
 
 		g_renderer->DrawEmptyFrame(true);
 		g_renderer->DrawEmptyFrame(false);
-
-		gui_hasScreenshotRequest(); // keep the screenshot request queue empty
+		g_renderer->CancelScreenshotRequest();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000/60));
 	}
 

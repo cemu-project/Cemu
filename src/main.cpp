@@ -1,4 +1,3 @@
-#include "gui/guiWrapper.h"
 #include "util/crypto/aes128.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
@@ -300,6 +299,8 @@ void HandlePostUpdate()
 }
 
 void ToolShaderCacheMerger();
+
+void gui_create();
 
 #if BOOST_OS_WINDOWS
 

@@ -1,5 +1,4 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
-#include "gui/guiWrapper.h"
 
 #include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
@@ -18,6 +17,8 @@
 
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
+
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 #include "GLCanvas.h"
 
@@ -478,7 +479,7 @@ void OpenGLRenderer::ClearColorbuffer(bool padView)
 
 void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView)
 {
-	const bool hasScreenshotRequest = gui_hasScreenshotRequest();
+	const bool hasScreenshotRequest = std::exchange(m_screenshot_requested, false);
 	if(!hasScreenshotRequest && m_screenshot_state == ScreenshotState::None)
 		return;
 
@@ -562,9 +563,9 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	{
 		int windowWidth, windowHeight;
 		if (padView)
-			gui_getPadWindowPhysSize(windowWidth, windowHeight);
+			GuiSystem::getPadWindowPhysSize(windowWidth, windowHeight);
 		else
-			gui_getWindowPhysSize(windowWidth, windowHeight);
+			GuiSystem::getWindowPhysSize(windowWidth, windowHeight);
 		g_renderer->renderTarget_setViewport(0, 0, windowWidth, windowHeight, 0.0f, 1.0f);
 		g_renderer->ClearColorbuffer(padView);
 	}

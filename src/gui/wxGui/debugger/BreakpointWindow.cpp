@@ -4,7 +4,6 @@
 #include <sstream>
 
 #include "debugger/DebuggerWindow2.h"
-#include "guiWrapper.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "Cemu/ExpressionParser/ExpressionParser.h"
@@ -176,7 +175,7 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 		const auto item = m_breakpoints->GetItemText(index, ColumnAddress);
 		const auto address = std::stoul(item.ToStdString(), nullptr, 16);
 		debuggerState.debugSession.instructionPointer = address;
-		debuggerWindow_moveIP();
+		debugger_getDebuggerCallbacks()->moveIP();
 		return;
 	}
 

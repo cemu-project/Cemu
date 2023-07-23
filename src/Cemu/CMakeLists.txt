@@ -5,6 +5,8 @@ add_library(CemuComponents
   ExpressionParser/ExpressionParser.h
   FileCache/FileCache.cpp
   FileCache/FileCache.h
+  GuiSystem/GuiSystem.cpp
+  GuiSystem/GuiSystem.h
   Logging/CemuDebugLogging.h
   Logging/CemuLogging.cpp
   Logging/CemuLogging.h

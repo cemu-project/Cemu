@@ -1,6 +1,5 @@
 #include "wxgui.h"
 #include "MainWindow.h"
-#include "guiWrapper.h"
 
 #include <wx/mstream.h>
 #include <wx/clipbrd.h>
@@ -30,6 +29,7 @@
 #include "LoggingWindow.h"
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 #include "Cafe/Filesystem/FST/FST.h"
 
@@ -70,8 +70,7 @@
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
 
-extern WindowInfo g_window_info;
-extern std::shared_mutex g_mutex;
+MainWindow* g_mainFrame;
 
 wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 
@@ -290,9 +289,9 @@ private:
 MainWindow::MainWindow()
 	: wxFrame(nullptr, -1, GetInitialWindowTitle(), wxDefaultPosition, wxSize(1280, 720), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER)
 {
-	gui_initHandleContextFromWxWidgetsWindow(g_window_info.window_main, this);
+	GuiSystem::getWindowInfo().window_main = get_window_handle_info_for_wxWindow(this);
 	g_mainFrame = this;
-
+	DownloadManager::GetInstance()->setOnGameListRefreshRequested([this](){RequestGameListRefresh();});
 	RecreateMenu();
 	SetClientSize(1280, 720);
 	SetIcon(wxICON(M_WND_ICON128));
@@ -360,10 +359,12 @@ MainWindow::MainWindow()
 	{
 		g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
 	}
+	CafeSystem::registerCafeSystemCallbacks(this);
 }
 
 MainWindow::~MainWindow()
 {
+	CafeSystem::unregisterCafeSystemCallbacks();
 	if (m_padView)
 	{
 		//delete m_padView;
@@ -373,9 +374,96 @@ MainWindow::~MainWindow()
 
 	m_timer->Stop();
 
-	std::unique_lock lock(g_mutex);
 	g_mainFrame = nullptr;
 }
+
+void MainWindow::updateWindowTitles(bool isIdle, bool isLoading, double fps)
+{
+ 	std::string windowText;
+    windowText = BUILD_VERSION_WITH_NAME_STRING;
+
+	if (isIdle)
+	{
+		if (g_mainFrame)
+			g_mainFrame->AsyncSetTitle(windowText);
+		return;
+	}
+	if (isLoading)
+	{
+        windowText.append(" - loading...");
+		if (g_mainFrame)
+			g_mainFrame->AsyncSetTitle(windowText);
+		return;
+	}
+
+	const char* renderer = "";
+	if(g_renderer)
+	{
+		switch(g_renderer->GetType())
+		{
+		case RendererAPI::OpenGL:
+			renderer =  "[OpenGL]";
+			break;
+		case RendererAPI::Vulkan: 
+			renderer = "[Vulkan]";
+			break;
+		default: ;
+		}			
+	}
+
+	// get GPU vendor/mode
+	const char* graphicMode = "[Generic]";
+	if (LatteGPUState.glVendor == GLVENDOR_AMD)
+		graphicMode = "[AMD GPU]";
+	else if (LatteGPUState.glVendor == GLVENDOR_INTEL_LEGACY)
+		graphicMode = "[Intel GPU - Legacy]";
+	else if (LatteGPUState.glVendor == GLVENDOR_INTEL_NOLEGACY)
+		graphicMode = "[Intel GPU]";
+	else if (LatteGPUState.glVendor == GLVENDOR_INTEL)
+		graphicMode = "[Intel GPU]";
+	else if (LatteGPUState.glVendor == GLVENDOR_NVIDIA)
+		graphicMode = "[NVIDIA GPU]";
+	else if (LatteGPUState.glVendor == GLVENDOR_APPLE)
+		graphicMode = "[Apple GPU]";
+
+	const uint64 titleId = CafeSystem::GetForegroundTitleId();
+    windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
+
+    if (ActiveSettings::IsOnlineEnabled())
+	{
+		if (ActiveSettings::GetNetworkService() == NetworkService::Nintendo)
+			windowText.append(" [Online]");
+		else if (ActiveSettings::GetNetworkService() == NetworkService::Pretendo)
+			 windowText.append(" [Online-Pretendo]");
+		else if (ActiveSettings::GetNetworkService() == NetworkService::Custom)
+			 windowText.append(" [Online-" + GetNetworkConfig().networkname.GetValue() + "]");
+	}
+    windowText.append(" ");
+	windowText.append(CafeSystem::GetForegroundTitleName());
+	// append region
+	CafeConsoleRegion region = CafeSystem::GetForegroundTitleRegion();
+	uint16 titleVersion = CafeSystem::GetForegroundTitleVersion();
+	if (region == CafeConsoleRegion::JPN)
+		windowText.append(fmt::format(" [JP v{}]", titleVersion));
+	else if (region == CafeConsoleRegion::USA)
+		windowText.append(fmt::format(" [US v{}]", titleVersion));
+	else if (region == CafeConsoleRegion::EUR)
+		windowText.append(fmt::format(" [EU v{}]", titleVersion));
+	else
+		windowText.append(fmt::format(" [v{}]", titleVersion));
+
+	AsyncSetTitle(windowText);
+	auto* pad = GetPadView();
+	if (pad)
+		pad->AsyncSetTitle(fmt::format("GamePad View - FPS: {:.02f}", fps));
+}
+
+void MainWindow::notifyGameLoaded()
+{
+	OnGameLoaded();
+	UpdateSettingsAfterGameLaunch();
+}
+
 
 wxString MainWindow::GetInitialWindowTitle()
 {
@@ -408,7 +496,7 @@ void MainWindow::OnClose(wxCloseEvent& event)
 	if(m_game_list)
 		m_game_list->OnClose(event);
 
-	if (!IsMaximized() && !gui_isFullScreen())
+	if (!IsMaximized() && !IsFullScreen())
 		m_restored_size = GetSize();
 
 	SaveSettings();
@@ -1297,19 +1385,19 @@ void MainWindow::LoadSettings()
 		if (config.window_maximized)
 			this->Maximize();
 	}
-
+	auto& windowInfo = GuiSystem::getWindowInfo();
 	if (config.pad_position != Vector2i{ -1,-1 })
 	{
-		g_window_info.restored_pad_x = config.pad_position.x;
-		g_window_info.restored_pad_y = config.pad_position.y;
+		windowInfo.restored_pad_x = config.pad_position.x;
+		windowInfo.restored_pad_y = config.pad_position.y;
 	}
 
 	if (config.pad_size != Vector2i{ -1,-1 })
 	{
-		g_window_info.restored_pad_width = config.pad_size.x;
-		g_window_info.restored_pad_height = config.pad_size.y;
+		windowInfo.restored_pad_width = config.pad_size.x;
+		windowInfo.restored_pad_height = config.pad_size.y;
 
-		g_window_info.pad_maximized = config.pad_maximized;
+		windowInfo.pad_maximized = config.pad_maximized;
 	}
 
 	this->TogglePadView();
@@ -1322,6 +1410,7 @@ void MainWindow::SaveSettings()
 {
 	auto lock = g_config.Lock();
 	auto& config = GetConfig();
+	auto& windowInfo = GuiSystem::getWindowInfo();
 	
 	if (config.window_position != Vector2i{ -1,-1 })
 	{
@@ -1341,16 +1430,16 @@ void MainWindow::SaveSettings()
 
 	config.pad_open = m_padView != nullptr;
 
-	if (config.pad_position != Vector2i{ -1,-1 } && g_window_info.restored_pad_x != -1)
+	if (config.pad_position != Vector2i{ -1,-1 } && windowInfo.restored_pad_x != -1)
 	{
-		config.pad_position.x = g_window_info.restored_pad_x;
-		config.pad_position.y = g_window_info.restored_pad_y;
+		config.pad_position.x = windowInfo.restored_pad_x;
+		config.pad_position.y = windowInfo.restored_pad_y;
 	}
-	if (config.pad_size != Vector2i{ -1,-1 } && g_window_info.restored_pad_width != -1)
+	if (config.pad_size != Vector2i{ -1,-1 } && windowInfo.restored_pad_width != -1)
 	{
-		config.pad_size.x = g_window_info.restored_pad_width;
-		config.pad_size.y = g_window_info.restored_pad_height;
-		config.pad_maximized = g_window_info.pad_maximized;
+		config.pad_size.x = windowInfo.restored_pad_width;
+		config.pad_size.y = windowInfo.restored_pad_height;
+		config.pad_maximized = windowInfo.pad_maximized;
 	}
 	else
 	{
@@ -1440,6 +1529,102 @@ void MainWindow::OnSetWindowTitle(wxCommandEvent& event)
 	this->SetTitle(event.GetString());
 }
 
+static std::optional<fs::path> GenerateScreenshotFilename(bool isDRC)
+{
+	fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
+	// build screenshot name with format Screenshot_YYYY-MM-DD_HH-MM-SS[_GamePad].png
+	// if the file already exists add a suffix counter (_2.png, _3.png etc)
+	std::time_t time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::tm* tm = std::localtime(&time_t);
+
+	std::string screenshotFileName = fmt::format("Screenshot_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+	if (isDRC)
+		screenshotFileName.append("_GamePad");
+
+	fs::path screenshotPath;
+	for(sint32 i=0; i<999; i++)
+	{
+		screenshotPath = screendir;
+		if (i == 0)
+			screenshotPath.append(fmt::format("{}.png", screenshotFileName));
+		else
+			screenshotPath.append(fmt::format("{}_{}.png", screenshotFileName, i + 1));
+		
+		std::error_code ec;
+		bool exists = fs::exists(screenshotPath, ec);
+		
+		if (!ec && !exists)
+			return screenshotPath;
+	}
+	return std::nullopt;
+}
+
+bool SaveScreenshotToFile(const fs::path& imagePath, const wxImage& image)
+{
+
+	std::error_code ec;
+	fs::create_directories(imagePath.parent_path(), ec);
+	if (ec) return false;
+
+	// suspend wxWidgets logging for the lifetime this object, to prevent a message box if wxImage::SaveFile fails
+	wxLogNull _logNo;
+	return image.SaveFile(imagePath.wstring());
+}
+
+bool SaveScreenshotToClipboard(const wxImage& image)
+{
+	static std::mutex s_clipboardMutex;
+	bool success = false;
+
+	s_clipboardMutex.lock();
+	if (wxTheClipboard->Open())
+	{
+		wxTheClipboard->SetData(new wxImageDataObject(image));
+		wxTheClipboard->Close();
+		success = true;
+	}
+	s_clipboardMutex.unlock();
+
+	return success;
+}
+
+std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, int height, bool mainWindow)
+{
+#if BOOST_OS_WINDOWS
+	// on Windows wxWidgets uses OLE API for the clipboard
+	// to make this work we need to call OleInitialize() on the same thread
+	OleInitialize(nullptr);
+#endif
+	bool save_screenshot = g_config.data().save_screenshot;
+	wxImage image(width, height, data.data(), true);
+	if (mainWindow)
+	{
+		if(SaveScreenshotToClipboard(image))
+		{
+			if (!save_screenshot)
+				return "Screenshot saved to clipboard";
+		}
+		else
+		{
+			return "Failed to open clipboard";
+		}
+	}
+	if (save_screenshot)
+	{
+		auto imagePath = GenerateScreenshotFilename(mainWindow);
+		if (imagePath.has_value() && SaveScreenshotToFile(imagePath.value(), image))
+		{
+			if (mainWindow)
+				return "Screenshot saved";
+		}
+		else
+		{
+			return "Failed to save screenshot to file";
+		}
+	}
+	return std::nullopt;
+}
+
 void MainWindow::OnKeyUp(wxKeyEvent& event)
 {
 	event.Skip();
@@ -1452,8 +1637,8 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		SetFullScreen(false);
 	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
 		SetFullScreen(!IsFullScreen());
-	else if (code == WXK_F12)
-		g_window_info.has_screenshot_request = true; // async screenshot request
+	else if (code == WXK_F12 && g_renderer)
+		g_renderer->RequestScreenshot(SaveScreenshot); // async screenshot request
 }
 
 void MainWindow::OnChar(wxKeyEvent& event)
@@ -1577,15 +1762,16 @@ void MainWindow::DestroyCanvas()
 
 void MainWindow::OnSizeEvent(wxSizeEvent& event)
 {
-	if (!IsMaximized() && !gui_isFullScreen())
+	if (!IsMaximized() && !IsFullScreen())
 		m_restored_size = GetSize();
 
+	auto& windowInfo = GuiSystem::getWindowInfo();
 	const wxSize client_size = GetClientSize();
-	g_window_info.width = client_size.GetWidth();
-	g_window_info.height = client_size.GetHeight();
-	g_window_info.phys_width = ToPhys(client_size.GetWidth());
-	g_window_info.phys_height = ToPhys(client_size.GetHeight());
-	g_window_info.dpi_scale = GetDPIScaleFactor();
+	windowInfo.width = client_size.GetWidth();
+	windowInfo.height = client_size.GetHeight();
+	windowInfo.phys_width = ToPhys(client_size.GetWidth());
+	windowInfo.phys_height = ToPhys(client_size.GetHeight());
+	windowInfo.dpi_scale = GetDPIScaleFactor();
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), event.GetSize());
@@ -1598,17 +1784,18 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
 {
 	event.Skip();
+	auto& windowInfo = GuiSystem::getWindowInfo();
 	const wxSize client_size = GetClientSize();
-	g_window_info.width = client_size.GetWidth();
-	g_window_info.height = client_size.GetHeight();
-	g_window_info.phys_width = ToPhys(client_size.GetWidth());
-	g_window_info.phys_height = ToPhys(client_size.GetHeight());
-	g_window_info.dpi_scale = GetDPIScaleFactor();
+	windowInfo.width = client_size.GetWidth();
+	windowInfo.height = client_size.GetHeight();
+	windowInfo.phys_width = ToPhys(client_size.GetWidth());
+	windowInfo.phys_height = ToPhys(client_size.GetHeight());
+	windowInfo.dpi_scale = GetDPIScaleFactor();
 }
 
 void MainWindow::OnMove(wxMoveEvent& event)
 {
-	if (!IsMaximized() && !gui_isFullScreen())
+	if (!IsMaximized() && !IsFullScreen())
 		m_restored_position = GetPosition();
 
 	if (m_debugger_window && m_debugger_window->IsShown())
@@ -1668,7 +1855,7 @@ void MainWindow::SetFullScreen(bool state)
 	}
 	if (state && !m_game_launched)
 		return;
-	g_window_info.is_fullscreen = state;
+	GuiSystem::getWindowInfo().is_fullscreen = state;
 	m_fullscreenMenuItem->Check(state);
 
 	this->ShowFullScreen(state);

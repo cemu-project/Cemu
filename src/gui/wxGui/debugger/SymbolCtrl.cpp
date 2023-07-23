@@ -1,5 +1,4 @@
 #include "debugger/SymbolCtrl.h"
-#include "guiWrapper.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
@@ -114,7 +113,7 @@ void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 	if (address == 0)
 		return;
 	debuggerState.debugSession.instructionPointer = address;
-	debuggerWindow_moveIP();
+	debugger_getDebuggerCallbacks()->moveIP();
 }
 
 void SymbolListCtrl::OnRightClick(wxListEvent& event)

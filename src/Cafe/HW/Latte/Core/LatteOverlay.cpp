@@ -1,6 +1,5 @@
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
-#include "gui/guiWrapper.h"
 
 #include "config/CemuConfig.h"
 
@@ -13,6 +12,8 @@
 
 #include "input/InputManager.h"
 #include "util/SystemInfo/SystemInfo.h"
+
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 #include <cinttypes>
 
@@ -512,17 +513,17 @@ void LatteOverlay_render(bool pad_view)
 		return;
 
 	sint32 w = 0, h = 0;
-	if (pad_view && gui_isPadWindowOpen())
-		gui_getPadWindowPhysSize(w, h);
+	if (pad_view && GuiSystem::isPadWindowOpen())
+		GuiSystem::getPadWindowPhysSize(w, h);
 	else
-		gui_getWindowPhysSize(w, h);
+		GuiSystem::getWindowPhysSize(w, h);
 
 	if (w == 0 || h == 0)
 		return;
 
 	const Vector2f window_size{ (float)w,(float)h };
 
-	float fontDPIScale = !pad_view ? gui_getWindowDPIScale() : gui_getPadDPIScale();
+	float fontDPIScale = !pad_view ? GuiSystem::getWindowDPIScale() : GuiSystem::getPadDPIScale();
 
 	float overlayFontSize = 14.0f * (float)config.overlay.text_scale / 100.0f * fontDPIScale;
 

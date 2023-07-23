@@ -1,7 +1,6 @@
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 
 #include "Cafe/Account/Account.h"
-#include "gui/guiWrapper.h"
 #include "util/crypto/md5.h"
 #include "Cafe/TitleList/TitleId.h"
 #include "Common/FileStream.h"
@@ -27,6 +26,11 @@ FileCache* s_nupFileCache = nullptr;
 // Todo: replace this
 std::string _(const std::string& str) { return str; }
 std::string from_wxString(const std::string& str){ return str; }
+
+void DownloadManager::setOnGameListRefreshRequested(const std::function<void()>& onGameListRefreshRequested)
+{
+	m_onGameListRefreshRequested = onGameListRefreshRequested;
+}
 
 /* version list */
 void DownloadManager::downloadTitleVersionList()
@@ -1449,7 +1453,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	reportPackageStatus(package);
 	checkPackagesState();
 	// lastly request game list to be refreshed
-	gui_requestGameListRefresh();
+	if (m_onGameListRefreshRequested) m_onGameListRefreshRequested();
 	return;
 }
 

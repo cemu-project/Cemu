@@ -64,9 +64,6 @@
 // HW interfaces
 #include "Cafe/HW/SI/si.h"
 
-// dependency to be removed
-#include "gui/guiWrapper.h"
-
 std::string _pathToExecutable;
 std::string _pathToBaseExecutable;
 
@@ -354,7 +351,9 @@ uint32 loadSharedData()
 
 void cemu_initForGame()
 {
-	gui_updateWindowTitles(false, true, 0.0);
+	auto cafeSystemCallbacks = CafeSystem::getCafeSystemCallbacks();
+	if (cafeSystemCallbacks)
+		cafeSystemCallbacks->updateWindowTitles(false, true, 0.0);
 	// input manager apply game profile
 	InputManager::instance().apply_game_profile();
 	// log info for launched title
@@ -443,6 +442,20 @@ void cemu_deinitForGame()
 
 namespace CafeSystem
 {
+	CafeSystemCallbacks* sCafeSystemCallbacks = nullptr;
+	void registerCafeSystemCallbacks(CafeSystemCallbacks* cafeSystemCallbacks)
+	{
+		sCafeSystemCallbacks = cafeSystemCallbacks;
+	}
+	void unregisterCafeSystemCallbacks()
+	{
+		sCafeSystemCallbacks = nullptr;
+	}
+	CafeSystemCallbacks* getCafeSystemCallbacks()
+	{
+		return sCafeSystemCallbacks;
+	}
+
 	void InitVirtualMlcStorage();
 	void MlcStorageMountTitle(TitleInfo& titleInfo);
 
@@ -679,7 +692,9 @@ namespace CafeSystem
 		PPCTimer_waitForInit();
 		// start system
 		sSystemRunning = true;
-		gui_notifyGameLoaded();
+		auto cafeSystemCallbacks = CafeSystem::getCafeSystemCallbacks();
+		if (cafeSystemCallbacks)
+			cafeSystemCallbacks->notifyGameLoaded();
 		std::thread t(_LaunchTitleThread);
 		t.detach();
 	}

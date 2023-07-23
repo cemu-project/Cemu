@@ -14,6 +14,17 @@ namespace CafeSystem
 		//BAD_META_DATA, - the title list only stores titles with valid meta, so this error code is impossible
 	};
 
+	class CafeSystemCallbacks
+	{
+	public:
+		virtual void updateWindowTitles(bool isIdle, bool isLoading, double fps) = 0;
+		virtual void notifyGameLoaded() = 0;
+	};
+
+	void registerCafeSystemCallbacks(CafeSystemCallbacks* cafeSystemCallbacks);
+	void unregisterCafeSystemCallbacks();
+	CafeSystemCallbacks* getCafeSystemCallbacks();
+
 	void Initialize();
 	STATUS_CODE PrepareForegroundTitle(TitleId titleId);
 	STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path);

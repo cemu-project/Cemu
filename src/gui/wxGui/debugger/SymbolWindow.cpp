@@ -1,5 +1,4 @@
 #include "wxgui.h"
-#include "guiWrapper.h"
 #include "debugger/SymbolWindow.h"
 #include "debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"

@@ -15,6 +15,7 @@
 
 #include <future>
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
+#include "Cafe/CafeSystem.h"
 
 class DebuggerWindow2;
 struct GameEntry;
@@ -50,14 +51,17 @@ private:
 	INITIATED_BY m_initiatedBy;
 };
 
-class MainWindow : public wxFrame
+class MainWindow : public wxFrame, CafeSystem::CafeSystemCallbacks
 {
 	friend class CemuApp;
 
 public:
 	MainWindow();
 	~MainWindow();
-	
+
+	virtual void updateWindowTitles(bool isIdle, bool isLoading, double fps) override;
+	virtual void notifyGameLoaded() override;
+
 	void UpdateSettingsAfterGameLaunch();
 	void RestoreSettingsAfterGameExited();
 
