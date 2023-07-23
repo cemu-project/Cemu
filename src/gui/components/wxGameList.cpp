@@ -21,6 +21,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 
+#include <fmt/std.h>
+
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
 #include "Cafe/TitleList/GameInfo.h"
@@ -1291,16 +1293,16 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
             fmt::format("[Desktop Entry]\n"
                         "Name={}\n"
                         "Comment=Play {} on Cemu\n"
-                        "Exec={} --title-id {:016x}\n"
-                        "Icon={}\n"
+                        "Exec={:?} --title-id {:016x}\n"
+                        "Icon={:?}\n"
                         "Terminal=false\n"
                         "Type=Application\n"
                         "Categories=Game;",
                         title_name,
                         title_name,
-                        _pathToUtf8(exe_path),
+                        exe_path,
                         title_id,
-                        _pathToUtf8(icon_path.value_or("")));
+                        icon_path.value_or(""));
 
     std::ofstream output_stream(output_path);
     if (!output_stream.good())
