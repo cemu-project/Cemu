@@ -1005,7 +1005,8 @@ void wxTitleManagerList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt
 		wxTitleManagerList::TitleEntry entry(entryType, entryFormat, titleInfo.GetPath());
 
 		ParsedMetaXml* metaInfo = titleInfo.GetMetaInfo();
-
+		if(titleInfo.IsSystemDataTitle())
+			return; // dont show system data titles for now
 		entry.location_uid = titleInfo.GetUID();
 		entry.title_id = titleInfo.GetAppTitleId();
 		std::string name = metaInfo->GetLongName(GetConfig().console_language.GetValue());
