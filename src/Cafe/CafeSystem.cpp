@@ -4,17 +4,16 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
+#include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "audio/IAudioAPI.h"
 #include "audio/IAudioInputAPI.h"
-#include "Cafe/HW/Espresso/Debugger/Debugger.h"
-
 #include "config/ActiveSettings.h"
 #include "Cafe/TitleList/GameInfo.h"
-#include "util/helpers/SystemException.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
-
+#include "util/helpers/SystemException.h"
+#include "Common/cpu_features.h"
 #include "input/InputManager.h"
-
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "Cafe/TitleList/GameInfo.h"
@@ -22,14 +21,9 @@
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-
 #include "Cafe/Filesystem/FST/FST.h"
-
 #include "Common/FileStream.h"
-
 #include "GamePatch.h"
-
-#include <time.h>
 #include "HW/Espresso/Debugger/GDBStub.h"
 
 #include "Cafe/IOSU/legacy/iosu_ioctl.h"
@@ -69,6 +63,15 @@
 
 // dependency to be removed
 #include "gui/guiWrapper.h"
+
+#include <time.h>
+
+#if BOOST_OS_LINUX
+#include <sys/sysinfo.h>
+#elif BOOST_OS_MACOS
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 
 std::string _pathToExecutable;
 std::string _pathToBaseExecutable;
@@ -441,17 +444,66 @@ namespace CafeSystem
 
 	GameInfo2 sGameInfo_ForegroundTitle;
 
-    // initialize all subsystems which are persistent and don't depend on a game running
+
+	static void _CheckForWine()
+	{
+		#if BOOST_OS_WINDOWS
+		const HMODULE hmodule = GetModuleHandleA("ntdll.dll");
+		if (!hmodule)
+			return;
+
+		const auto pwine_get_version = (const char*(__cdecl*)())GetProcAddress(hmodule, "wine_get_version");
+		if (pwine_get_version)
+		{
+			cemuLog_log(LogType::Force, "Wine version: {}", pwine_get_version());
+		}
+		#endif
+	}
+
+	void logCPUAndMemoryInfo()
+	{
+		std::string cpuName = g_CPUFeatures.GetCPUName();
+		if (!cpuName.empty())
+			cemuLog_log(LogType::Force, "CPU: {}", cpuName);
+		#if BOOST_OS_WINDOWS
+		MEMORYSTATUSEX statex;
+		statex.dwLength = sizeof(statex);
+		GlobalMemoryStatusEx(&statex);
+		uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
+		cemuLog_log(LogType::Force, "RAM: {}MB", memoryInMB);
+		#elif BOOST_OS_LINUX
+		struct sysinfo info {};
+		sysinfo(&info);
+		cemuLog_log(LogType::Force, "RAM: {}MB", ((static_cast<uint64_t>(info.totalram) * info.mem_unit) / 1024LL / 1024LL));
+		#elif BOOST_OS_MACOS
+		int64_t totalRam;
+		size_t size = sizeof(totalRam);
+		int result = sysctlbyname("hw.memsize", &totalRam, &size, NULL, 0);
+		if (result == 0)
+			cemuLog_log(LogType::Force, "RAM: {}MB", (totalRam / 1024LL / 1024LL));
+		#endif
+	}
+
+	// initialize all subsystems which are persistent and don't depend on a game running
 	void Initialize()
 	{
 		if (s_initialized)
 			return;
 		s_initialized = true;
 		// init core systems
+		cemuLog_log(LogType::Force, "------- Init {} -------", BUILD_VERSION_WITH_NAME_STRING);
 		fsc_init();
 		memory_init();
+		cemuLog_log(LogType::Force, "Init Wii U memory space (base: 0x{:016x})", (size_t)memory_base);
 		PPCCore_init();
 		RPLLoader_InitState();
+		cemuLog_log(LogType::Force, "mlc01 path: {}", _pathToUtf8(ActiveSettings::GetMlcPath()));
+		_CheckForWine();
+		// CPU and RAM info
+		logCPUAndMemoryInfo();
+		cemuLog_log(LogType::Force, "Used CPU extensions: {}", g_CPUFeatures.GetCommaSeparatedExtensionList());
+		// misc systems
+		rplSymbolStorage_init();
 		// allocate memory for all SysAllocators
 		// must happen before COS module init, but also before iosu::kernel::Initialize()
 		SysAllocatorContainer::GetInstance().Initialize();

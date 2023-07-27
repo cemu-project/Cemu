@@ -363,9 +363,6 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 	glFlush();
 }
 
-
-bool IsRunningInWine();
-
 void OpenGLRenderer::GetVendorInformation()
 {
 	// example vendor strings:
