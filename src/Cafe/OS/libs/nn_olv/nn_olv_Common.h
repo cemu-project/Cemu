@@ -69,6 +69,7 @@ namespace nn
 		extern uint32_t g_ReportTypes;
 		extern bool g_IsInitialized;
 		extern bool g_IsOnlineMode;
+		extern bool g_IsOfflineDBMode; // use offline cache for posts
 
 		static void InitializeOliveRequest(CurlRequestHelper& req)
 		{
@@ -175,5 +176,39 @@ namespace nn
 		bool FormatCommunityCode(char* pOutCode, uint32* outLen, uint32 communityId);
 
 		sint32 olv_curlformcode_to_error(CURLFORMcode code);
+
+		// convert and copy utf8 string into UC2 big-endian array
+		template<size_t TLength>
+		uint32 SetStringUC2(uint16be(&str)[TLength], std::string_view sv, bool unescape = false)
+		{
+			if(unescape)
+			{
+				// todo
+			}
+			std::wstring ws = boost::nowide::widen(sv);
+			size_t copyLen = std::min<size_t>(TLength-1, ws.size());
+			for(size_t i=0; i<copyLen; i++)
+				str[i] = ws[i];
+			str[copyLen] = '\0';
+			return copyLen;
+		}
+
+		// safely copy null-terminated UC2 big-endian string into UC2 big-endian array
+		template<size_t TLength>
+		uint32 SetStringUC2(uint16be(&str)[TLength], const uint16be* strIn)
+		{
+			size_t copyLen = TLength-1;
+			for(size_t i=0; i<copyLen; i++)
+			{
+				if(strIn[i] == 0)
+				{
+					str[i] = 0;
+					return i;
+				}
+				str[i] = strIn[i];
+			}
+			str[copyLen] = '\0';
+			return copyLen;
+		}
 	}
 }

@@ -422,6 +422,8 @@ add_library(CemuCafe
   OS/libs/nn_olv/nn_olv_UploadFavoriteTypes.h
   OS/libs/nn_olv/nn_olv_PostTypes.cpp
   OS/libs/nn_olv/nn_olv_PostTypes.h
+  OS/libs/nn_olv/nn_olv_OfflineDB.cpp
+  OS/libs/nn_olv/nn_olv_OfflineDB.h
   OS/libs/nn_pdm/nn_pdm.cpp
   OS/libs/nn_pdm/nn_pdm.h
   OS/libs/nn_save/nn_save.cpp

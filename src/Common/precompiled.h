@@ -485,6 +485,14 @@ bool future_is_ready(std::future<T>& f)
 #endif
 }
 
+// replace with std::scope_exit once available
+struct scope_exit
+{
+	std::function<void()> f_;
+	explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
+	~scope_exit() { if (f_) f_(); }
+};
+
 // helper function to cast raw pointers to std::atomic
 // this is technically not legal but works on most platforms as long as alignment restrictions are met and the implementation of atomic doesnt come with additional members
 
