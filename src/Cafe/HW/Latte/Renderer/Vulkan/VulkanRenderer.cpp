@@ -179,7 +179,6 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 
 }
 
-bool IsRunningInWine();
 void VulkanRenderer::DetermineVendor()
 {
 	VkPhysicalDeviceProperties2 properties{};
