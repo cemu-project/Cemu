@@ -9,7 +9,7 @@ bool sTLInitialized{ false };
 fs::path sTLCacheFilePath;
 
 // lists for tracking known titles
-// note: The list may only contain titles with valid meta data. Entries loaded from the cache may not have been parsed yet, but they will use a cached value for titleId and titleVersion
+// note: The list may only contain titles with valid meta data (except for certain system titles). Entries loaded from the cache may not have been parsed yet, but they will use a cached value for titleId and titleVersion
 std::mutex sTLMutex;
 std::vector<TitleInfo*> sTLList;
 std::vector<TitleInfo*> sTLListPending;

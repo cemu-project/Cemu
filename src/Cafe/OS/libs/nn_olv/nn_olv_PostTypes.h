@@ -1,5 +1,6 @@
 #pragma once
 #include <zlib.h>
+#include "nn_olv_Common.h"
 
 namespace nn
 {
@@ -154,8 +155,11 @@ namespace nn
 					return OLV_RESULT_INVALID_PTR;
 				if (maxLength == 0)
 					return OLV_RESULT_NOT_ENOUGH_SIZE;
+				if (!TestFlags(_this, FLAGS::HAS_BODY_TEXT))
+					return OLV_RESULT_MISSING_DATA;
+				memset(bodyTextOut, 0, maxLength * sizeof(uint16));
 				uint32 outputLength = std::min<uint32>(_this->bodyTextLength, maxLength);
-				olv_wstrncpy((char16_t*)bodyTextOut, (char16_t*)_this->bodyText, _this->bodyTextLength);
+				olv_wstrncpy((char16_t*)bodyTextOut, (char16_t*)_this->bodyText, outputLength);
 				return OLV_RESULT_SUCCESS;
 			}
 
@@ -213,9 +217,19 @@ namespace nn
 				return _this->postId;
 			}
 
-			// todo:
 			// DownloadExternalImageData__Q3_2nn3olv18DownloadedDataBaseCFPvPUiUi
+			static nnResult DownloadExternalImageData(DownloadedDataBase* _this, void* imageDataOut, uint32be* imageSizeOut, uint32 maxSize);
+
 			// GetExternalImageDataSize__Q3_2nn3olv18DownloadedDataBaseCFv
+			static uint32 GetExternalImageDataSize(DownloadedDataBase* _this)
+			{
+				if (!TestFlags(_this, FLAGS::HAS_EXTERNAL_IMAGE))
+					return 0;
+				return _this->externalImageDataSize;
+			}
+
+			// todo:
+			// DownloadExternalImageData__Q3_2nn3olv18DownloadedDataBaseCFPvPUiUi (implement downloading)
 			// DownloadExternalBinaryData__Q3_2nn3olv18DownloadedDataBaseCFPvPUiUi
 			// GetExternalBinaryDataSize__Q3_2nn3olv18DownloadedDataBaseCFv
 		};
@@ -424,6 +438,174 @@ namespace nn
 
 			static_assert(sizeof(DownloadedSystemTopicDataList) == 0xC1000);
 		}
+
+
+		struct DownloadPostDataListParam
+		{
+			static constexpr size_t MAX_NUM_SEARCH_PID = 12;
+			static constexpr size_t MAX_NUM_SEARCH_KEY = 5;
+			static constexpr size_t MAX_NUM_POST_ID = 20;
+
+			enum class FLAGS
+			{
+				FRIENDS_ONLY = 0x01, // friends only
+				FOLLOWERS_ONLY = 0x02, // followers only
+				SELF_ONLY = 0x04, // self only
+				ONLY_TYPE_TEXT = 0x08,
+				ONLY_TYPE_MEMO = 0x10,
+				UKN_20 = 0x20,
+				WITH_MII = 0x40, // with mii
+				WITH_EMPATHY = 0x80, // with yeahs added
+				UKN_100 = 0x100,
+				UKN_200 = 0x200, // "is_delay" parameter
+				UKN_400 = 0x400, // "is_hot" parameter
+
+
+			};
+
+			struct SearchKey
+			{
+				uint16be str[152];
+			};
+
+			struct PostId
+			{
+				char str[32];
+			};
+
+			betype<FLAGS> flags;
+			uint32be communityId;
+			uint32be searchPid[MAX_NUM_SEARCH_PID];
+			uint8 languageId;
+			uint8 hasLanguageId_039;
+			uint8 padding03A[2];
+			uint32be postDataMaxNum;
+			SearchKey searchKeyArray[MAX_NUM_SEARCH_KEY];
+			PostId searchPostId[MAX_NUM_POST_ID];
+			uint64be postDate; // OSTime?
+			uint64be titleId; // only used by System posts?
+			uint32be bodyTextMaxLength;
+			uint8 padding8C4[1852];
+
+			bool _HasFlag(FLAGS flag)
+			{
+				return ((uint32)flags.value() & (uint32)flag) != 0;
+			}
+
+			void _SetFlags(FLAGS flag)
+			{
+				flags = (FLAGS)((uint32)flags.value() | (uint32)flag);
+			}
+
+			// constructor and getters
+			// __ct__Q3_2nn3olv25DownloadPostDataListParamFv
+			static DownloadPostDataListParam* Construct(DownloadPostDataListParam* _this)
+			{
+				memset(_this, 0, sizeof(DownloadPostDataListParam));
+				return _this;
+			}
+
+			// SetFlags__Q3_2nn3olv25DownloadPostDataListParamFUi
+			static nnResult SetFlags(DownloadPostDataListParam* _this, FLAGS flags)
+			{
+				// todo - verify flag combos
+				_this->flags = flags;
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetLanguageId__Q3_2nn3olv25DownloadPostDataListParamFUc
+			static nnResult SetLanguageId(DownloadPostDataListParam* _this, uint8 languageId)
+			{
+				_this->languageId = languageId;
+				_this->hasLanguageId_039 = 1;
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetCommunityId__Q3_2nn3olv25DownloadPostDataListParamFUi
+			static nnResult SetCommunityId(DownloadPostDataListParam* _this, uint32 communityId)
+			{
+				_this->communityId = communityId;
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCwUc
+			static nnResult SetSearchKey(DownloadPostDataListParam* _this, const uint16be* searchKey, uint8 searchKeyIndex)
+			{
+				if (searchKeyIndex >= MAX_NUM_SEARCH_KEY)
+					return OLV_RESULT_INVALID_PARAMETER;
+				memset(&_this->searchKeyArray[searchKeyIndex], 0, sizeof(SearchKey));
+				if(olv_wstrnlen((const char16_t*)searchKey, 152) > 50)
+				{
+					cemuLog_log(LogType::Force, "DownloadPostDataListParam::SetSearchKey: searchKey is too long\n");
+					return OLV_RESULT_INVALID_PARAMETER;
+				}
+				SetStringUC2(_this->searchKeyArray[searchKeyIndex].str, searchKey);
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCw
+			static nnResult SetSearchKeySingle(DownloadPostDataListParam* _this, const uint16be* searchKey)
+			{
+				return SetSearchKey(_this, searchKey, 0);
+			}
+
+			// SetSearchPid__Q3_2nn3olv25DownloadPostDataListParamFUi
+			static nnResult SetSearchPid(DownloadPostDataListParam* _this, uint32 searchPid)
+			{
+				if(_this->_HasFlag(FLAGS::FRIENDS_ONLY) || _this->_HasFlag(FLAGS::FOLLOWERS_ONLY) || _this->_HasFlag(FLAGS::SELF_ONLY))
+					return OLV_RESULT_INVALID_PARAMETER;
+				_this->searchPid[0] = searchPid;
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetPostId__Q3_2nn3olv25DownloadPostDataListParamFPCcUi
+			static nnResult SetPostId(DownloadPostDataListParam* _this, const char* postId, uint32 postIdIndex)
+			{
+				if (postIdIndex >= MAX_NUM_POST_ID)
+					return OLV_RESULT_INVALID_PARAMETER;
+				memset(&_this->searchPostId[postIdIndex], 0, sizeof(PostId));
+				if (strlen(postId) > 22)
+				{
+					cemuLog_log(LogType::Force, "DownloadPostDataListParam::SetPostId: postId is too long\n");
+					return OLV_RESULT_INVALID_PARAMETER;
+				}
+				strcpy(_this->searchPostId[postIdIndex].str, postId);
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetPostDate__Q3_2nn3olv25DownloadPostDataListParamFL
+			static nnResult SetPostDate(DownloadPostDataListParam* _this, uint64 postDate)
+			{
+				_this->postDate = postDate;
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetPostDataMaxNum__Q3_2nn3olv25DownloadPostDataListParamFUi
+			static nnResult SetPostDataMaxNum(DownloadPostDataListParam* _this, uint32 postDataMaxNum)
+			{
+				if(postDataMaxNum == 0)
+					return OLV_RESULT_INVALID_PARAMETER;
+				_this->postDataMaxNum = postDataMaxNum;
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// SetBodyTextMaxLength__Q3_2nn3olv25DownloadPostDataListParamFUi
+			static nnResult SetBodyTextMaxLength(DownloadPostDataListParam* _this, uint32 bodyTextMaxLength)
+			{
+				if(bodyTextMaxLength >= 256)
+					return OLV_RESULT_INVALID_PARAMETER;
+				_this->bodyTextMaxLength = bodyTextMaxLength;
+				return OLV_RESULT_SUCCESS;
+			}
+
+			// GetRawDataUrl__Q3_2nn3olv25DownloadPostDataListParamCFPcUi
+			static nnResult GetRawDataUrl(DownloadPostDataListParam* _this, char* urlOut, uint32 urlMaxSize);
+		};
+
+		static_assert(sizeof(DownloadPostDataListParam) == 0x1000);
+
+		// parsing functions
+		bool ParseXML_DownloadedPostData(DownloadedPostData& obj, pugi::xml_node& xmlNode);
 
 		void loadOlivePostAndTopicTypes();
 	}
