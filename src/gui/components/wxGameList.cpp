@@ -21,8 +21,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 
-#include <fmt/std.h>
-
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
 #include "Cafe/TitleList/GameInfo.h"
