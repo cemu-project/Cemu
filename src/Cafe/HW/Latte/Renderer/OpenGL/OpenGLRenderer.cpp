@@ -126,7 +126,7 @@ bool OpenGLRenderer::ImguiBegin(bool mainWindow)
 {
 	if (!mainWindow)
 	{
-		GLCanvas_MakeCurrent(true);
+		m_openGLCallbacks->GLCanvas_MakeCurrent(true);
 		m_isPadViewContext = true;
 	}
 
@@ -153,7 +153,7 @@ void OpenGLRenderer::ImguiEnd()
 
 	if (m_isPadViewContext)
 	{
-		GLCanvas_MakeCurrent(false);
+		m_openGLCallbacks->GLCanvas_MakeCurrent(false);
 		m_isPadViewContext = false;
 	}
 
@@ -262,7 +262,7 @@ void OpenGLRenderer::Initialize()
 	auto lock = cemuLog_acquire();
 	cemuLog_log(LogType::Force, "------- Init OpenGL graphics backend -------");
 
-	GLCanvas_MakeCurrent(false);
+	m_openGLCallbacks->GLCanvas_MakeCurrent(false);
 	LoadOpenGLImports();
 	GetVendorInformation();	
 
@@ -354,7 +354,7 @@ void OpenGLRenderer::Initialize()
 
 bool OpenGLRenderer::IsPadWindowActive()
 {
-	return GLCanvas_HasPadViewOpen();
+	return m_openGLCallbacks->GLCanvas_HasPadViewOpen();
 }
 
 void OpenGLRenderer::Flush(bool waitIdle)
@@ -369,6 +369,15 @@ void OpenGLRenderer::NotifyLatteCommandProcessorIdle()
 	glFlush();
 }
 
+void OpenGLRenderer::RegisterOpenGLCallbacks(OpenGLCallbacks* openGLCallbacks)
+{
+	m_openGLCallbacks = openGLCallbacks;
+}
+
+void OpenGLRenderer::UnregisterOpenGLCallbacks()
+{
+	m_openGLCallbacks = nullptr;
+}
 
 bool IsRunningInWine();
 
@@ -445,7 +454,7 @@ void OpenGLRenderer::EnableDebugMode()
 
 void OpenGLRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
-	GLCanvas_SwapBuffers(swapTV, swapDRC);
+	m_openGLCallbacks->GLCanvas_SwapBuffers(swapTV, swapDRC);
 
 	if (swapTV)
 		cleanupAfterFrame();
@@ -456,7 +465,7 @@ bool OpenGLRenderer::BeginFrame(bool mainWindow)
 	if (!mainWindow && !IsPadWindowActive())
 		return false;
 
-	GLCanvas_MakeCurrent(!mainWindow);
+	m_openGLCallbacks->GLCanvas_MakeCurrent(!mainWindow);
 
 	ClearColorbuffer(!mainWindow);
 	return true;
@@ -550,7 +559,7 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		return;
 
 	catchOpenGLError();
-	GLCanvas_MakeCurrent(padView);
+	m_openGLCallbacks->GLCanvas_MakeCurrent(padView);
 
 	renderstate_resetColorControl();
 	renderstate_resetDepthControl();
@@ -609,7 +618,7 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	// switch back to TV context
 	if (padView)
-		GLCanvas_MakeCurrent(false);
+		m_openGLCallbacks->GLCanvas_MakeCurrent(false);
 }
 
 void OpenGLRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ /*= false*/)

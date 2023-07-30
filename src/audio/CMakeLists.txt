@@ -34,7 +34,6 @@ target_link_libraries(CemuAudio PRIVATE
 	CemuCafe
 	CemuCommon
 	CemuConfig
-	CemuGui
 	CemuUtil
 )
 

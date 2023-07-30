@@ -18,7 +18,7 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	auto& canvas = is_main_window ? GuiSystem::getWindowInfo().canvas_main : GuiSystem::getWindowInfo().canvas_pad;
 	canvas = get_window_handle_info_for_wxWindow(this);
 	#if BOOST_OS_LINUX && HAS_WAYLAND
-	if (canvas.backend == GuiSystem::WindowHandleInfo::Backend::WAYLAND)
+	if (canvas.backend == GuiSystem::WindowHandleInfo::Backend::Wayland)
 	{
 		m_subsurface = std::make_unique<wxWlSubsurface>(this);
 		canvas.surface = m_subsurface->getSurface();

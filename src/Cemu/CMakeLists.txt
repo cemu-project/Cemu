@@ -42,7 +42,6 @@ target_link_libraries(CemuComponents PRIVATE
 	CemuCafe
 	CemuCommon
 	CemuConfig
-	CemuGui
 	CemuUtil
 	Boost::headers
 	CURL::libcurl

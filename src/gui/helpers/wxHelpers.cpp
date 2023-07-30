@@ -143,7 +143,7 @@ GuiSystem::WindowHandleInfo get_window_handle_info_for_wxWindow(wxWindow* wxw)
 {
 	GuiSystem::WindowHandleInfo handleInfo;
 #if BOOST_OS_WINDOWS
-	handleInfo.backend = GuiSystem::WindowHandleInfo::Backend::WINDOWS;
+	handleInfo.backend = GuiSystem::WindowHandleInfo::Backend::Windows;
 	handleInfo.surface = reinterpret_cast<void*>(wxw->GetHWND());
 #elif BOOST_OS_LINUX
 	GtkWidget* gtkWidget = (GtkWidget*)wxw->GetHandle();  // returns GtkWidget
@@ -163,7 +163,7 @@ GuiSystem::WindowHandleInfo get_window_handle_info_for_wxWindow(wxWindow* wxw)
 #ifdef HAS_WAYLAND
 	else if (GDK_IS_WAYLAND_WINDOW(gdkWindow))
 	{
-		handleInfo.backend = GuiSystem::WindowHandleInfo::Backend::WAYLAND;
+		handleInfo.backend = GuiSystem::WindowHandleInfo::Backend::Wayland;
 		handleInfo.surface = gdk_wayland_window_get_wl_surface(gdkWindow);
 		handleInfo.display = gdk_wayland_display_get_wl_display(gdkDisplay);
 	}
@@ -173,7 +173,7 @@ GuiSystem::WindowHandleInfo get_window_handle_info_for_wxWindow(wxWindow* wxw)
 		cemuLog_log(LogType::Force, "Unsuported GTK backend");
 	}
 #elif BOOST_OS_MACOS
-	handleInfo.backend = GuiSystem::WindowHandleInfo::Backend::COCOA;
+	handleInfo.backend = GuiSystem::WindowHandleInfo::Backend::Cocoa;
 	handleInfo.surface = reinterpret_cast<void*>(wxw->GetHandle());
 #endif
 	return handleInfo;

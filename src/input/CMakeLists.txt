@@ -92,7 +92,6 @@ target_link_libraries(CemuInput PRIVATE
 	CemuCafe
 	CemuCommon
 	CemuConfig
-	CemuGui
 	CemuUtil
 	Boost::headers
 	Boost::program_options
