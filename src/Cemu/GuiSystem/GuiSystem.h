@@ -8,10 +8,10 @@ struct WindowHandleInfo
 	enum class Backend
 	{
 		X11,
-		WAYLAND,
-		ANDROID,
-		COCOA,
-		WINDOWS
+		Wayland,
+		Android,
+		Cocoa,
+		Windows
 	} backend;
 	void* display = nullptr;
 	void* surface = nullptr;

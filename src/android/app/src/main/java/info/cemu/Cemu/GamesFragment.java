@@ -72,8 +72,8 @@ public class GamesFragment extends Fragment {
                 NativeLibrary.requestGameIcon(titleId);
             });
         });
-        NativeLibrary.setGameIconLoadedCallback((titleId) -> {
-            Bitmap icon = NativeLibrary.getGameIcon(titleId);
+        NativeLibrary.setGameIconLoadedCallback((titleId, colors, width, height) -> {
+            Bitmap icon = Bitmap.createBitmap(colors, width, height, Bitmap.Config.ARGB_8888);
             requireActivity().runOnUiThread(() -> gameAdapter.setGameIcon(titleId, icon));
         });
         NativeLibrary.reloadGameTitles();

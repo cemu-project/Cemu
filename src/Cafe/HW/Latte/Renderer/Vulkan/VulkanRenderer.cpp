@@ -116,7 +116,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	if(backend == GuiSystem::WindowHandleInfo::Backend::X11)
 		requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#ifdef HAS_WAYLAND
-	else if (backend == GuiSystem::WindowHandleInfo::Backend::WAYLAND)
+	else if (backend == GuiSystem::WindowHandleInfo::Backend::Wayland)
 		requiredExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
     #endif // HAS_WAYLAND
     #endif // __ANDROID__
@@ -1191,7 +1191,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	if(backend == GuiSystem::WindowHandleInfo::Backend::X11)
 		requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#if HAS_WAYLAND
-	else if (backend == GuiSystem::WindowHandleInfo::Backend::WAYLAND)
+	else if (backend == GuiSystem::WindowHandleInfo::Backend::Wayland)
 		requiredInstanceExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
     #endif // HAS_WAYLAND
     #endif // __ANDROID__
@@ -1365,7 +1365,7 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struc
 	if(windowInfo.backend == GuiSystem::WindowHandleInfo::Backend::X11)
 		return CreateXlibSurface(instance, static_cast<Display*>(windowInfo.display), reinterpret_cast<Window>(windowInfo.surface));
 	#ifdef HAS_WAYLAND
-	if(windowInfo.backend == GuiSystem::WindowHandleInfo::Backend::WAYLAND)
+	if(windowInfo.backend == GuiSystem::WindowHandleInfo::Backend::Wayland)
 		return CreateWaylandSurface(instance, static_cast<wl_display*>(windowInfo.display), static_cast<wl_surface*>(windowInfo.surface));
 	#endif
 	return {};
