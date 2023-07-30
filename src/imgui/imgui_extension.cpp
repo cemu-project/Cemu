@@ -104,6 +104,11 @@ void ImGui_PrecacheFonts()
 	}
 }
 
+void ImGui_ClearFonts()
+{
+    g_imgui_fonts.clear();
+}
+
 ImFont* ImGui_GetFont(float size)
 {
 	const auto it = g_imgui_fonts.find((int)size);

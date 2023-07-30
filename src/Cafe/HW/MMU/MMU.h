@@ -2,6 +2,7 @@
 
 void memory_init();
 void memory_mapForCurrentTitle();
+void memory_unmapForCurrentTitle();
 void memory_logModifiedMemoryRanges();
 
 void memory_enableOverlayArena();
@@ -264,3 +265,5 @@ namespace MMU
 	uint16 ReadMMIO_16(PAddr address);
 
 }
+
+#define MMU_IsInPPCMemorySpace(__ptr) ((const uint8*)(__ptr) >= memory_base && (const uint8*)(__ptr) < (memory_base + 0x100000000))

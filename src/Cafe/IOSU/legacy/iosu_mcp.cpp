@@ -53,8 +53,10 @@ namespace iosu
 				std::string titlePath = CafeSystem::GetMlcStoragePath(titleId);
 				strcpy(titleOut.appPath, titlePath.c_str());
 
+				strcpy((char*)titleOut.deviceName, "mlc");
+
 				titleOut.osVersion = 0; // todo
-				titleOut.sdkVersion = 0;
+				titleOut.sdkVersion = it->GetAppSDKVersion();
 			}
 
 			numTitlesCopied++;
@@ -73,7 +75,8 @@ namespace iosu
 	sint32 mcpGetTitleList(MCPTitleInfo* titleList, uint32 titleListBufferSize, uint32be* titleCount)
 	{
 		std::unique_lock _lock(sTitleInfoMutex);
-		*titleCount = mcpBuildTitleList(titleList, *titleCount, [](const TitleInfo& titleInfo) -> bool { return true; });
+		uint32 maxEntryCount = titleListBufferSize / sizeof(MCPTitleInfo);
+		*titleCount = mcpBuildTitleList(titleList, maxEntryCount, [](const TitleInfo& titleInfo) -> bool { return true; });
 		return 0;
 	}
 
@@ -86,7 +89,7 @@ namespace iosu
 	sint32 mcpGetTitleListByAppType(MCPTitleInfo* titleList, uint32 titleListBufferSize, uint32be* titleCount, uint32 appType)
 	{
 		std::unique_lock _lock(sTitleInfoMutex);
-		uint32 maxEntryCount = (uint32)*titleCount;
+		uint32 maxEntryCount = titleListBufferSize / sizeof(MCPTitleInfo);
 		*titleCount = mcpBuildTitleList(titleList, maxEntryCount, [appType](const TitleInfo& titleInfo) -> bool { return titleInfo.GetAppType() == appType; });
 		return 0;
 	}
@@ -94,7 +97,7 @@ namespace iosu
 	sint32 mcpGetTitleListByTitleId(MCPTitleInfo* titleList, uint32 titleListBufferSize, uint32be* titleCount, uint64 titleId)
 	{
 		std::unique_lock _lock(sTitleInfoMutex);
-		uint32 maxEntryCount = (uint32)*titleCount;
+		uint32 maxEntryCount = titleListBufferSize / sizeof(MCPTitleInfo);
 		*titleCount = mcpBuildTitleList(titleList, maxEntryCount, [titleId](const TitleInfo& titleInfo) -> bool { return titleInfo.GetAppTitleId() == titleId; });
 		return 0;
 	}
@@ -143,11 +146,11 @@ namespace iosu
 		return 0;
 	}
 
+    // deprecated
 	void iosuMcp_init()
 	{
 		if (iosuMcp.isInitialized)
 			return;
-		// start the act thread
 		std::thread t(iosuMcp_thread);
 		t.detach();
 		iosuMcp.isInitialized = true;

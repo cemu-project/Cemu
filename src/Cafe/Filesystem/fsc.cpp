@@ -6,7 +6,7 @@ struct FSCMountPathNode
 	std::string path;
 	std::vector<FSCMountPathNode*> subnodes;
 	FSCMountPathNode* parent;
-	// device target and path (if subnodes is empty)
+	// associated device target and path
 	fscDeviceC* device{ nullptr };
 	void* ctx{ nullptr };
 	std::string deviceTargetPath; // the destination base path for the device, utf8
@@ -16,6 +16,25 @@ struct FSCMountPathNode
 	FSCMountPathNode(FSCMountPathNode* parent) : parent(parent)
 	{
 	}
+
+    void AssignDevice(fscDeviceC* device, void* ctx, std::string_view deviceBasePath)
+    {
+        this->device = device;
+        this->ctx = ctx;
+        this->deviceTargetPath = deviceBasePath;
+    }
+
+    void UnassignDevice()
+    {
+        this->device = nullptr;
+        this->ctx = nullptr;
+        this->deviceTargetPath.clear();
+    }
+
+    bool IsRootNode() const
+    {
+        return !parent;
+    }
 
 	~FSCMountPathNode()
 	{
@@ -141,9 +160,7 @@ sint32 fsc_mount(std::string_view mountPath, std::string_view targetPath, fscDev
 		fscLeave();
 		return FSC_STATUS_INVALID_PATH;
 	}
-	node->device = fscDevice;
-	node->ctx = ctx;
-	node->deviceTargetPath = std::move(targetPathWithSlash);
+    node->AssignDevice(fscDevice, ctx, targetPathWithSlash);
 	fscLeave();
 	return FSC_STATUS_OK;
 }
@@ -160,14 +177,13 @@ bool fsc_unmount(std::string_view mountPath, sint32 priority)
 	}
 	cemu_assert(mountPathNode->priority == priority);
 	cemu_assert(mountPathNode->device);
-	// delete node
-	while (mountPathNode && mountPathNode->parent)
+    // unassign device
+    mountPathNode->UnassignDevice();
+	// prune empty branch
+	while (mountPathNode && !mountPathNode->IsRootNode() && mountPathNode->subnodes.empty() && !mountPathNode->device)
 	{
 		FSCMountPathNode* parent = mountPathNode->parent;
-		cemu_assert(!(!mountPathNode->subnodes.empty() && mountPathNode->device));
-		if (!mountPathNode->subnodes.empty())
-			break;
-		parent->subnodes.erase(std::find(parent->subnodes.begin(), parent->subnodes.end(), mountPathNode));
+        std::erase(parent->subnodes, mountPathNode);
 		delete mountPathNode;
 		mountPathNode = parent;
 	}
@@ -302,6 +318,15 @@ public:
 		return true;
 	}
 
+	bool fscRewindDir() override
+	{
+		if (!dirIterator)
+			return true;
+
+		dirIterator->index  = 0;
+		return true;
+	}
+
 	void addUniqueDirEntry(const FSCDirEntry& dirEntry)
 	{
 		// skip if already in list
@@ -378,6 +403,7 @@ FSCVirtualFile* fsc_open(const char* path, FSC_ACCESS_FLAG accessFlags, sint32* 
 				{
 					// return first found file
 					cemu_assert_debug(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE));
+					fscVirtualFile->m_isAppend = HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::IS_APPEND);
 					fscLeave();
 					return fscVirtualFile;
 				}				
@@ -598,6 +624,9 @@ uint32 fsc_writeFile(FSCVirtualFile* fscFile, void* buffer, uint32 size)
 		fscLeave();
 		return 0;
 	}
+	if (fscFile->m_isAppend)
+		fsc_setFileSeek(fscFile, fsc_getFileSize(fscFile));
+
 	uint32 fscStatus = fscFile->fscWriteData(buffer, size);
 	fscLeave();
 	return fscStatus;

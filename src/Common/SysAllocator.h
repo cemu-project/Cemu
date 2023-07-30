@@ -49,6 +49,13 @@ public:
 			m_tempData.insert(m_tempData.end(), count - l.size(), T());
 	}
 
+	template <size_t N>
+	SysAllocator(const char(&str)[N])
+	{
+		m_tempData.reserve(count);
+		m_tempData.insert(m_tempData.begin(), str, str + N);
+	}
+
 	constexpr uint32 GetCount() const
 	{
 		return count;
@@ -134,6 +141,9 @@ private:
 	MEMPTR<T> m_sysMem;
 	std::vector<T> m_tempData;
 };
+
+template <size_t N>
+SysAllocator(const char(&str)[N]) -> SysAllocator<char, N>;
 
 template<typename T>
 class SysAllocator<T, 1> : public SysAllocatorBase

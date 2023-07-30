@@ -373,6 +373,7 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 		if ((colorBufferWidth < (sint32)scissorAccessWidth) ||
 			(colorBufferHeight < (sint32)scissorAccessHeight))
 		{
+            // log this?
 			colorBufferMask &= ~(1<<i);
 		}
 

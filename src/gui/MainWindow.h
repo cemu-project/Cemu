@@ -51,13 +51,17 @@ private:
 	INITIATED_BY m_initiatedBy;
 };
 
-class MainWindow : public wxFrame, CafeSystem::CafeSystemCallbacks
+class MainWindow : public wxFrame, public CafeSystem::CafeSystemCallbacks, public CafeSystem::SystemImplementation
 {
 	friend class CemuApp;
 
 public:
 	MainWindow();
 	~MainWindow();
+
+    void CreateGameListAndStatusBar();
+    void DestroyGameListAndStatusBar();
+
 
 	virtual void updateWindowTitles(bool isIdle, bool isLoading, double fps) override;
 	virtual void notifyGameLoaded() override;
@@ -155,6 +159,11 @@ private:
 
 	void OnTimer(wxTimerEvent& event);
 
+	// CafeSystem implementation
+	void CafeRecreateCanvas() override;
+
+	void OnRequestRecreateCanvas(wxCommandEvent& event);
+
 	wxRect GetDesktopRect();
 
 	MemorySearcherTool* m_toolWindow = nullptr;
@@ -187,8 +196,6 @@ private:
 	void LoadSettings();
 	void SaveSettings();
 
-	std::string GetRegionString(uint32 region) const;
-
 	void OnGraphicWindowClose(wxCloseEvent& event);
 	void OnGraphicWindowOpen(wxTitleIdEvent& event);
 
@@ -199,42 +206,40 @@ private:
 	wxWindow* m_render_canvas{};
 
 	// gamelist
-	wxGameList* m_game_list;
-	wxInfoBar* m_info_bar;
+	wxGameList* m_game_list{};
+	wxInfoBar* m_info_bar{};
 
 	// menu
-	wxMenuBar* m_menuBar = nullptr;
+	wxMenuBar* m_menuBar{};
 
 	// file
-	wxMenu* m_fileMenu;
-	wxMenuItem* m_fileMenuSeparator0;
-	wxMenuItem* m_fileMenuSeparator1;
-	wxMenuItem* m_loadMenuItem;
-	wxMenuItem* m_installUpdateMenuItem;
-	wxMenuItem* m_exitMenuItem;
+	wxMenu* m_fileMenu{};
+	wxMenuItem* m_fileMenuSeparator0{};
+	wxMenuItem* m_fileMenuSeparator1{};
+	wxMenuItem* m_loadMenuItem{};
+	wxMenuItem* m_installUpdateMenuItem{};
+	wxMenuItem* m_exitMenuItem{};
 
 	// options
-	//wxMenu* m_gpuBufferCacheAccuracySubmenu;
-	wxMenu* m_optionsAccountMenu;
+	wxMenu* m_optionsAccountMenu{};
 
-	wxMenuItem* m_fullscreenMenuItem;
-	wxMenuItem* m_padViewMenuItem;
+	wxMenuItem* m_fullscreenMenuItem{};
+	wxMenuItem* m_padViewMenuItem{};
 
 	// tools
-	wxMenuItem* m_memorySearcherMenuItem;
+	wxMenuItem* m_memorySearcherMenuItem{};
 
 	// cpu
-	//wxMenu* m_cpuModeSubmenu;
-	wxMenu* m_cpuTimerSubmenu;
+	wxMenu* m_cpuTimerSubmenu{};
 
 	// nfc
-	wxMenu* m_nfcMenu;
-	wxMenuItem* m_nfcMenuSeparator0;
+	wxMenu* m_nfcMenu{};
+	wxMenuItem* m_nfcMenuSeparator0{};
 
 	// debug
-	wxMenu* m_debugMenu;
-	wxMenu* m_loggingSubmenu;
-	wxMenuItem* m_asyncCompile;
+	wxMenu* m_debugMenu{};
+	wxMenu* m_loggingSubmenu{};
+	wxMenuItem* m_asyncCompile{};
 
 wxDECLARE_EVENT_TABLE();
 };

@@ -50,7 +50,7 @@ namespace coreinit
 	MEMList g_list3;
 
 	std::array<uint32, 3> gHeapFillValues{ 0xC3C3C3C3, 0xF3F3F3F3, 0xD3D3D3D3 };
-	OSSpinLock gHeapGlobalLock;
+	SysAllocator<OSSpinLock> gHeapGlobalLock;
 	MEMHeapBase* gDefaultHeap;
 
 	bool MEMHeapTable_Add(MEMHeapBase* heap)
@@ -615,10 +615,24 @@ namespace coreinit
 		cemu_assert_unimplemented();
 	}
 
+    void MEMResetToDefaultState()
+    {
+        for (auto& it : sHeapBaseHandle)
+            it = nullptr;
+
+        g_heapTableCount = 0;
+        g_slockInitialized = false;
+        g_listsInitialized = false;
+        gDefaultHeap = nullptr;
+
+        memset(&g_list1, 0, sizeof(g_list1));
+        memset(&g_list2, 0, sizeof(g_list2));
+        memset(&g_list3, 0, sizeof(g_list3));
+    }
+
 	void InitializeMEM()
 	{
-		for (auto& it : sHeapBaseHandle)
-			it = nullptr;
+        MEMResetToDefaultState();
 
 		cafeExportRegister("coreinit", CoreInitDefaultHeap, LogType::CoreinitMem);
 

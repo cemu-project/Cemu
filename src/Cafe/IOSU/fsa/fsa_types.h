@@ -17,9 +17,11 @@ enum class FS_RESULT : sint32 // aka FSStatus
 
 enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 {
-	SUCCESS = 0,
-	END_DIR = -0x30000 - 0x04,
-	END_FILE = -0x30000 - 0x05,
+	OK = 0,
+	NOT_INIT = -0x30000 - 0x01,
+	END_OF_DIRECTORY = -0x30000 - 0x04,
+	END_OF_FILE = -0x30000 - 0x05,
+	MAX_CLIENTS = -0x30000 - 0x12,
 	MAX_FILES = -0x30000 - 0x13,
 	MAX_DIRS = -0x30000 - 0x14,
 	ALREADY_EXISTS = -0x30000 - 0x16,
@@ -34,6 +36,7 @@ enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 	INVALID_DIR_HANDLE = -0x30000 - 0x27,
 	NOT_FILE = -0x30000 - 0x28,
 	NOT_DIR = -0x30000 - 0x29,
+	OUT_OF_RESOURCES = -0x30000 - 0x2C,
 	FATAL_ERROR = -0x30000 - 0x400,
 };
 
@@ -46,6 +49,7 @@ enum class FSA_CMD_OPERATION_TYPE : uint32
 	RENAME = 0x9,
 	OPENDIR = 0xA,
 	READDIR = 0xB,
+	REWINDDIR = 0xC,
 	CLOSEDIR = 0xD,
 	OPENFILE = 0xE,
 	READ = 0xF,
@@ -55,6 +59,7 @@ enum class FSA_CMD_OPERATION_TYPE : uint32
 	ISEOF = 0x13,
 	GETSTATFILE = 0x14,
 	CLOSEFILE = 0x15,
+	FLUSHFILE = 0x17,
 	QUERYINFO = 0x18,
 	APPENDFILE = 0x19,
 	TRUNCATEFILE = 0x1A,
@@ -81,6 +86,7 @@ enum class FSFlag : uint32
 {
 	NONE = 0,
 	IS_DIR = 0x80000000,
+	IS_FILE = 0x01000000,
 };
 DEFINE_ENUM_FLAG_OPERATORS(FSFlag);
 
@@ -111,8 +117,18 @@ struct FSDirEntry_t
 
 static_assert(sizeof(FSDirEntry_t) == 0xE4);
 
+struct FSADeviceInfo_t
+{
+	uint8 ukn0[0x8];
+	uint64be deviceSizeInSectors;
+	uint32be deviceSectorSize;
+	uint8 ukn014[0x14];
+};
+static_assert(sizeof(FSADeviceInfo_t) == 0x28);
+
 #pragma pack()
 
 // query types for QueryInfo
 #define FSA_QUERY_TYPE_FREESPACE 0
+#define FSA_QUERY_TYPE_DEVICE_INFO 4
 #define FSA_QUERY_TYPE_STAT 5

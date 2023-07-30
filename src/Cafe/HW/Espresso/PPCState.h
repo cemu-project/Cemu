@@ -236,7 +236,6 @@ HLECALL PPCInterpreter_getHLECall(HLEIDX funcIndex);
 
 // HLE scheduler
 
-void PPCCore_deleteAllThreads();
 void PPCInterpreter_relinquishTimeslice();
 
 void PPCCore_boostQuantum(sint32 numCycles);

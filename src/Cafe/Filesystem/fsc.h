@@ -24,7 +24,10 @@ enum class FSC_ACCESS_FLAG : uint8
 	// which types can be opened
 	// invalid operation if neither is set
 	OPEN_DIR = (1 << 4), 
-	OPEN_FILE = (1 << 5)
+	OPEN_FILE = (1 << 5),
+
+	// Writing seeks to the end of the file if set
+	IS_APPEND = (1 << 6)
 };
 DEFINE_ENUM_FLAG_OPERATORS(FSC_ACCESS_FLAG);
 
@@ -149,7 +152,15 @@ struct FSCVirtualFile
 		return false;
 	}
 
+	virtual bool fscRewindDir()
+	{
+		cemu_assert_unimplemented();
+		return false;
+	}
+
 	FSCDirIteratorState* dirIterator{};
+
+	bool m_isAppend{ false };
 };
 
 #define FSC_PRIORITY_BASE				(0)
@@ -194,7 +205,6 @@ bool FSCDeviceWUD_Mount(std::string_view mountPath, std::string_view destination
 bool FSCDeviceWUA_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
 
 // hostFS device
-void fscDeviceHostFS_mapBaseDirectories_deprecated();
 bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority);
 
 // redirect device

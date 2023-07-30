@@ -373,6 +373,7 @@ extern PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
 extern bool ppcRecompilerEnabled;
 
 void PPCRecompiler_init();
+void PPCRecompiler_Shutdown();
 
 void PPCRecompiler_allocateRange(uint32 startAddress, uint32 size);
 

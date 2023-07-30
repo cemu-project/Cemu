@@ -125,7 +125,7 @@ uint32 LatteCP_readU32Deprc()
 		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
 		if (readDistance != 0)
 			break;
-		if (!Latte_IsActive())
+		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 
 		// still no command data available, do some other tasks
@@ -172,7 +172,7 @@ void LatteCP_waitForNWords(uint32 numWords)
 		if (readDistance >= waitDistance)
 			break;
 
-		if (!Latte_IsActive())
+		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 
 		// still no command data available, do some other tasks

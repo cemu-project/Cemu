@@ -80,7 +80,7 @@ namespace erreula
 
 	struct ErrEula_t
 	{
-		coreinit::OSMutex mutex;
+		SysAllocator<coreinit::OSMutex> mutex;
 		uint32 regionType;
 		uint32 langType;
 		MEMPTR<coreinit::FSClient_t> fsClient;

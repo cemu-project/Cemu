@@ -162,7 +162,7 @@ namespace vpad
 	
 	struct
 	{
-		coreinit::OSAlarm_t alarm;
+		SysAllocator<coreinit::OSAlarm_t> alarm;
 
 		struct
 		{

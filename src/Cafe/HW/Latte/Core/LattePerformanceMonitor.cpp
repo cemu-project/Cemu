@@ -116,7 +116,6 @@ void LattePerformanceMonitor_frameEnd()
 				cafeSystemCallbacks->updateWindowTitles(false, false, fps);
 		}
 	}
-	LatteOverlay_updateStatsPerFrame();
 }
 
 void LattePerformanceMonitor_frameBegin()

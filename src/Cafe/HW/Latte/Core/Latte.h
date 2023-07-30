@@ -173,4 +173,5 @@ void LatteRenderTarget_updateViewport();
 // Latte emulation control
 void Latte_Start();
 void Latte_Stop();
-bool Latte_IsActive();
+bool Latte_GetStopSignal(); // returns true if stop was requested or if in stopped state
+void LatteThread_Exit();

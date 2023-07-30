@@ -115,6 +115,9 @@ namespace GX2
 	void _GX2DriverReset()
 	{
 		LatteGPUState.gx2InitCalled = 0;
+        sGX2MainCoreIndex = 0;
+        GX2CommandResetToDefaultState();
+        GX2EventResetToDefaultState();
 	}
 
 	sint32 GX2GetMainCoreId(PPCInterpreter_t* hCPU)

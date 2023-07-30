@@ -29,6 +29,7 @@ void NetworkConfig::Load(XMLConfigParser& parser)
 	urls.IDBE = u.get("idbe", NintendoURLs::IDBEURL);
 	urls.BOSS = u.get("boss", NintendoURLs::BOSSURL);
 	urls.TAGAYA = u.get("tagaya", NintendoURLs::TAGAYAURL);
+	urls.OLV = u.get("olv", NintendoURLs::OLVURL);
 	if (static_cast<NetworkService>(GetConfig().account.active_service.GetValue()) == NetworkService::Custom)
 		LaunchSettings::ChangeNetworkServiceURL(2);
 }

@@ -110,13 +110,14 @@ bool CemuApp::OnInit()
 		wxMessageBox(fmt::format("Cemu can't write to {} !", path.generic_string()), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	NetworkConfig::LoadOnce();
+	g_config.Load();
 
 	HandlePostUpdate();
 	mainEmulatorHLE();
 
 	wxInitAllImageHandlers();
 
-	g_config.Load();
+
 	m_languages = GetAvailableLanguages();
 
 	const sint32 language = GetConfig().language;
@@ -153,10 +154,6 @@ bool CemuApp::OnInit()
 			__fastfail(0);
 	}
 #endif
-
-	// init input
-	InputManager::instance().load();
-	
 	InitializeGlobalVulkan();
 
 	Bind(wxEVT_ACTIVATE_APP, &CemuApp::ActivateApp, this);

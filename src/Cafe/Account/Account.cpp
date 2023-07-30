@@ -1,12 +1,13 @@
 #include "Account.h"
 #include "util/helpers/helpers.h"
 #include "util/helpers/SystemException.h"
+#include "util/helpers/StringHelpers.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Common/FileStream.h"
+#include <boost/random/uniform_int.hpp>
 
 #include <random>
-#include <boost/random/uniform_int.hpp>
 
 std::vector<Account> Account::s_account_list;
 
@@ -460,15 +461,14 @@ OnlineValidator Account::ValidateOnlineFiles() const
 
 void Account::ParseFile(class FileStream* file)
 {
-	std::vector<std::string> buffer;
-	
-	std::string tmp;
-	while (file->readLine(tmp))
-		buffer.emplace_back(tmp);
-	for (const auto& s : buffer)
+	std::vector<uint8> buffer;
+	buffer.resize(file->GetSize());
+	if( file->readData(buffer.data(), buffer.size()) != buffer.size())
+		throw std::system_error(AccountErrc::ParseError);
+	for (const auto& s : StringHelpers::StringLineIterator(buffer))
 	{
 		std::string_view view = s;
-		const auto find = view.find(L'=');
+		const auto find = view.find('=');
 		if (find == std::string_view::npos)
 			continue;
 

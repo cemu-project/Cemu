@@ -72,8 +72,6 @@
 
 MainWindow* g_mainFrame;
 
-wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
-
 enum
 {
 	// ui elements
@@ -138,7 +136,6 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS,
-	MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER,
 	MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY,
 	MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS,
 
@@ -161,8 +158,10 @@ enum
 	MAINFRAME_ID_TIMER1 = 21800,
 };
 
+wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_GAMELIST_REFRESH, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
+wxDEFINE_EVENT(wxEVT_REQUEST_RECREATE_CANVAS, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
 EVT_TIMER(MAINFRAME_ID_TIMER1, MainWindow::OnTimer)
@@ -224,7 +223,6 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_THREADS, MainWindow::OnDebugViewPPCThr
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, MainWindow::OnDebugViewPPCDebugger)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, MainWindow::OnDebugViewAudioDebugger)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugViewTextureRelations)
-EVT_MENU(MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER, MainWindow::OnDebugSetting)
 // help menu
 EVT_MENU(MAINFRAME_MENU_ID_HELP_WEB, MainWindow::OnHelpVistWebpage)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
@@ -237,6 +235,8 @@ EVT_COMMAND(wxID_ANY, wxEVT_GAMELIST_BEGIN_UPDATE, MainWindow::OnGameListBeginUp
 EVT_COMMAND(wxID_ANY, wxEVT_GAMELIST_END_UPDATE, MainWindow::OnGameListEndUpdate)
 EVT_COMMAND(wxID_ANY, wxEVT_ACCOUNTLIST_REFRESH, MainWindow::OnAccountListRefresh)
 EVT_COMMAND(wxID_ANY, wxEVT_SET_WINDOW_TITLE, MainWindow::OnSetWindowTitle)
+
+EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_RECREATE_CANVAS, MainWindow::OnRequestRecreateCanvas)
 
 wxEND_EVENT_TABLE()
 
@@ -292,6 +292,8 @@ MainWindow::MainWindow()
 	GuiSystem::getWindowInfo().window_main = get_window_handle_info_for_wxWindow(this);
 	g_mainFrame = this;
 	DownloadManager::GetInstance()->setOnGameListRefreshRequested([this](){RequestGameListRefresh();});
+	CafeSystem::SetImplementation(this);
+
 	RecreateMenu();
 	SetClientSize(1280, 720);
 	SetIcon(wxICON(M_WND_ICON128));
@@ -306,59 +308,64 @@ MainWindow::MainWindow()
 #endif
 
 	auto* main_sizer = new wxBoxSizer(wxVERTICAL);
-	if (!LaunchSettings::GetLoadFile().has_value())
-	{
-		{
-			m_main_panel = new wxPanel(this);
-			auto* sizer = new wxBoxSizer(wxVERTICAL);
-			// game list
-			m_game_list = new wxGameList(m_main_panel, MAINFRAME_GAMELIST_ID);
-			m_game_list->Bind(wxEVT_OPEN_SETTINGS, [this](auto&) {OpenSettings(); });
-			m_game_list->SetDropTarget(new wxGameDropTarget(this));
-			sizer->Add(m_game_list, 1, wxEXPAND);
+    auto load_file = LaunchSettings::GetLoadFile();
+    auto load_title_id = LaunchSettings::GetLoadTitleID();
+    bool quick_launch = false;
 
-			// info, warning bar
-			m_info_bar = new wxInfoBar(m_main_panel);
-			m_info_bar->SetShowHideEffects(wxSHOW_EFFECT_BLEND, wxSHOW_EFFECT_BLEND);
-			m_info_bar->SetEffectDuration(500);
-			sizer->Add(m_info_bar, 0, wxALL | wxEXPAND, 5);
+    if (load_file)
+    {
+        MainWindow::RequestLaunchGame(load_file.value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
+        quick_launch = true;
+    }
+    else if (load_title_id)
+    {
+        TitleInfo info;
+        TitleId baseId;
+        if (CafeTitleList::FindBaseTitleId(load_title_id.value(), baseId) && CafeTitleList::GetFirstByTitleId(baseId, info))
+        {
+            MainWindow::RequestLaunchGame(info.GetPath(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
+            quick_launch = true;
+        }
+        else
+        {
+            wxString errorMsg = fmt::format("Title ID {:016x} not found", load_title_id.value());
+            wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 
-			m_main_panel->SetSizer(sizer);
-			main_sizer->Add(m_main_panel, 1, wxEXPAND, 0, nullptr);
-		}
-	}
-	else
-	{
-		// launching game via -g option. Dont setup or load game list
-		m_game_list = nullptr;
-		m_info_bar = nullptr;
-	}
-	SetSizer(main_sizer);
+        }
+    }
+    SetSizer(main_sizer);
+    if (!quick_launch)
+    {
+        CreateGameListAndStatusBar();
+    }
+    else
+    {
+      // launching game via -g or -t option. Don't set up or load game list
+      m_game_list = nullptr;
+      m_info_bar = nullptr;
+    }
+    SetSizer(main_sizer);
 
-	m_last_mouse_move_time = std::chrono::steady_clock::now();
+    m_last_mouse_move_time = std::chrono::steady_clock::now();
 
-	m_timer = new wxTimer(this, MAINFRAME_ID_TIMER1);
-	m_timer->Start(500);
+    m_timer = new wxTimer(this, MAINFRAME_ID_TIMER1);
+    m_timer->Start(500);
 
-	LoadSettings();
+    LoadSettings();
 
-	auto& config = GetConfig();
-#ifdef ENABLE_DISCORD_RPC
-	if (config.use_discord_presence)
-		m_discord = std::make_unique<DiscordPresence>();
-#endif
+    auto& config = GetConfig();
+    #ifdef ENABLE_DISCORD_RPC
+    if (config.use_discord_presence)
+            m_discord = std::make_unique<DiscordPresence>();
+    #endif
 
-	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
-	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
+    Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
+    Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
 
-	if (LaunchSettings::GetLoadFile().has_value())
-	{
-		MainWindow::RequestLaunchGame(LaunchSettings::GetLoadFile().value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
-	}
-	if (LaunchSettings::GDBStubEnabled())
-	{
-		g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
-	}
+    if (LaunchSettings::GDBStubEnabled())
+    {
+            g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
+    }
 	CafeSystem::registerCafeSystemCallbacks(this);
 }
 
@@ -367,7 +374,6 @@ MainWindow::~MainWindow()
 	CafeSystem::unregisterCafeSystemCallbacks();
 	if (m_padView)
 	{
-		//delete m_padView;
 		m_padView->Destroy();
 		m_padView = nullptr;
 	}
@@ -465,13 +471,47 @@ void MainWindow::notifyGameLoaded()
 }
 
 
+void MainWindow::CreateGameListAndStatusBar()
+{
+    if(m_main_panel)
+        return; // already displayed
+    m_main_panel = new wxPanel(this);
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+    // game list
+    m_game_list = new wxGameList(m_main_panel, MAINFRAME_GAMELIST_ID);
+    m_game_list->Bind(wxEVT_OPEN_SETTINGS, [this](auto&) {OpenSettings(); });
+    m_game_list->SetDropTarget(new wxGameDropTarget(this));
+    sizer->Add(m_game_list, 1, wxEXPAND);
+
+    // info, warning bar
+    m_info_bar = new wxInfoBar(m_main_panel);
+    m_info_bar->SetShowHideEffects(wxSHOW_EFFECT_BLEND, wxSHOW_EFFECT_BLEND);
+    m_info_bar->SetEffectDuration(500);
+    sizer->Add(m_info_bar, 0, wxALL | wxEXPAND, 5);
+
+    m_main_panel->SetSizer(sizer);
+
+    auto* main_sizer = this->GetSizer();
+    main_sizer->Add(m_main_panel, 1, wxEXPAND, 0, nullptr);
+}
+
+void MainWindow::DestroyGameListAndStatusBar()
+{
+    if(!m_main_panel)
+        return;
+    m_main_panel->Destroy();
+    m_main_panel = nullptr;
+    m_game_list = nullptr;
+    m_info_bar = nullptr;
+}
+
 wxString MainWindow::GetInitialWindowTitle()
 {
 	return BUILD_VERSION_WITH_NAME_STRING;
 }
 
 void MainWindow::ShowGettingStartedDialog()
-{	
+{
 	GettingStartedDialog dia(this);
 	dia.ShowModal();
 	if (dia.HasGamePathChanged() || dia.HasMLCChanged())
@@ -504,7 +544,7 @@ void MainWindow::OnClose(wxCloseEvent& event)
 
 	event.Skip();
 
-	CafeSystem::ShutdownTitle();
+    CafeSystem::Shutdown();
 	DestroyCanvas();
 }
 
@@ -627,35 +667,12 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 
 	wxWindowUpdateLocker lock(this);
 
-	auto* main_sizer = GetSizer();
-	// remove old gamelist panel
-	if (m_main_panel)
-	{
-		m_main_panel->Hide();
-		main_sizer->Detach(m_main_panel);
-	}
-
-	// create render canvas rendering
-	m_game_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS);
-	auto* sizer = new wxBoxSizer(wxVERTICAL);
-
-	// shouldn't be needed, but who knows
-	m_game_panel->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
-	m_game_panel->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
-
-	m_game_panel->SetSizer(sizer);
-	main_sizer->Add(m_game_panel, 1, wxEXPAND, 0, nullptr);
+    DestroyGameListAndStatusBar();
 
 	m_game_launched = true;
 	m_loadMenuItem->Enable(false);
 	m_installUpdateMenuItem->Enable(false);
 	m_memorySearcherMenuItem->Enable(true);
-
-	if (m_game_list)
-	{
-		delete m_game_list;
-		m_game_list = nullptr;
-	}
 
 	m_launched_game_name = CafeSystem::GetForegroundTitleName();
 	#ifdef ENABLE_DISCORD_RPC
@@ -744,10 +761,12 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	}
 	else if (menuId == MAINFRAME_MENU_ID_FILE_END_EMULATION)
 	{
-		CafeSystem::ShutdownTitle();
+        CafeSystem::ShutdownTitle();
 		DestroyCanvas();
 		m_game_launched = false;
 		RecreateMenu();
+        CreateGameListAndStatusBar();
+        DoLayout();
 	}
 }
 
@@ -1125,10 +1144,6 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 				volumeFST_dump(bootGame_getMountedWUD());
 				wxMessageBox(_("Dump complete"));
 			}*/
-	}
-	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER)
-	{
-		ActiveSettings::EnableFrameProfiler(event.IsChecked());
 	}
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS)
 	{
@@ -1717,7 +1732,19 @@ void MainWindow::AsyncSetTitle(std::string_view windowTitle)
 
 void MainWindow::CreateCanvas()
 {
-	if (ActiveSettings::GetGraphicsAPI() == kVulkan)
+    // create panel for canvas
+    m_game_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS);
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+
+    // shouldn't be needed, but who knows
+    m_game_panel->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
+    m_game_panel->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
+
+    m_game_panel->SetSizer(sizer);
+    this->GetSizer()->Add(m_game_panel, 1, wxEXPAND, 0, nullptr);
+
+    // create canvas
+    if (ActiveSettings::GetGraphicsAPI() == kVulkan)
 		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
 	else
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
@@ -1750,14 +1777,18 @@ void MainWindow::DestroyCanvas()
 {
 	if (m_padView)
 	{
-		m_padView->Destroy();
-		m_padView = nullptr;
+		m_padView->DestroyCanvas();
 	}
 	if (m_render_canvas)
 	{
 		m_render_canvas->Destroy();
 		m_render_canvas = nullptr;
 	}
+    if(m_game_panel)
+    {
+        m_game_panel->Destroy();
+        m_game_panel = nullptr;
+    }
 }
 
 void MainWindow::OnSizeEvent(wxSizeEvent& event)
@@ -2220,9 +2251,9 @@ void MainWindow::RecreateMenu()
 	
 	auto& config = GetConfig();
 	
-	m_menuBar = new wxMenuBar;
+	m_menuBar = new wxMenuBar();
 	// file submenu
-	m_fileMenu = new wxMenu;
+	m_fileMenu = new wxMenu();
 
 	if (!m_game_launched)
 	{
@@ -2256,7 +2287,7 @@ void MainWindow::RecreateMenu()
 	{
 		// add 'Stop emulation' menu entry to file menu
 #ifdef CEMU_DEBUG_ASSERT
-		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("End emulation"));
+		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("Stop emulation"));
 #endif
 	}
 
@@ -2266,7 +2297,7 @@ void MainWindow::RecreateMenu()
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));
 	m_menuBar->Append(m_fileMenu, _("&File"));
 	// options->account submenu
-	m_optionsAccountMenu = new wxMenu;
+	m_optionsAccountMenu = new wxMenu();
 	const auto account_id = ActiveSettings::GetPersistentId();
 	int index = 0;
 	for(const auto& account : Account::GetAccounts())
@@ -2278,23 +2309,9 @@ void MainWindow::RecreateMenu()
 		
 		++index;
 	}
-	//optionsAccountMenu->AppendSeparator(); TODO
-	//optionsAccountMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 + index, _("Online enabled"))->Check(config.account.online_enabled);
-	
-	// options->region submenu
-	//wxMenu* optionsRegionMenu = new wxMenu;
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_AUTO, _("&Auto"), wxEmptyString)->Check(config.console_region == ConsoleRegion::Auto);
-	////optionsRegionMenu->AppendSeparator();
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_USA, _("&USA"), wxEmptyString)->Check(config.console_region == ConsoleRegion::USA);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_EUR, _("&Europe"), wxEmptyString)->Check(config.console_region == ConsoleRegion::EUR);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_JPN, _("&Japan"), wxEmptyString)->Check(config.console_region == ConsoleRegion::JPN);
-	//// optionsRegionMenu->Append(MAINFRAME_MENU_ID_OPTIONS_REGION_AUS, wxT("&Australia"), wxEmptyString, wxITEM_RADIO)->Check(config_get()->region==3); -> Was merged into Europe?
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_CHN, _("&China"), wxEmptyString)->Check(config.console_region == ConsoleRegion::CHN);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_KOR, _("&Korea"), wxEmptyString)->Check(config.console_region == ConsoleRegion::KOR);
-	//optionsRegionMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_REGION_TWN, _("&Taiwan"), wxEmptyString)->Check(config.console_region == ConsoleRegion::TWN);
 
 	// options->console language submenu
-	wxMenu* optionsConsoleLanguageMenu = new wxMenu;
+	wxMenu* optionsConsoleLanguageMenu = new wxMenu();
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ENGLISH, _("&English"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::EN);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_JAPANESE, _("&Japanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::JA);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_FRENCH, _("&French"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::FR);
@@ -2309,12 +2326,11 @@ void MainWindow::RecreateMenu()
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_TAIWANESE, _("&Taiwanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::TW);
 
 	// options submenu
-	wxMenu* optionsMenu = new wxMenu;
+	wxMenu* optionsMenu = new wxMenu();
 	m_fullscreenMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN, _("&Fullscreen"), wxEmptyString);
 	m_fullscreenMenuItem->Check(ActiveSettings::FullscreenEnabled());		
 	
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GRAPHIC_PACKS2, _("&Graphic packs"));
-	//optionsMenu->AppendSubMenu(optionsVCAMenu, _("&GPU buffer cache accuracy"));
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
 	m_padViewMenuItem->Check(GetConfig().pad_open);
 	optionsMenu->AppendSeparator();
@@ -2323,12 +2339,11 @@ void MainWindow::RecreateMenu()
 
 	optionsMenu->AppendSeparator();
 	optionsMenu->AppendSubMenu(m_optionsAccountMenu, _("&Active account"));
-	//optionsMenu->AppendSubMenu(optionsRegionMenu, _("&Console region"));
 	optionsMenu->AppendSubMenu(optionsConsoleLanguageMenu, _("&Console language"));
 	m_menuBar->Append(optionsMenu, _("&Options"));
 
 	// tools submenu
-	wxMenu* toolsMenu = new wxMenu;
+	wxMenu* toolsMenu = new wxMenu();
 	m_memorySearcherMenuItem = toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, _("&Memory searcher"));
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
@@ -2336,7 +2351,7 @@ void MainWindow::RecreateMenu()
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 
 	// cpu timer speed menu
-	wxMenu* timerSpeedMenu = new wxMenu;
+	wxMenu* timerSpeedMenu = new wxMenu();
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_1X, _("&1x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 3);
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_2X, _("&2x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 2);
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_4X, _("&4x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 1);
@@ -2346,12 +2361,12 @@ void MainWindow::RecreateMenu()
 	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_0125X, _("&0.125x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 6);
 
 	// cpu submenu
-	wxMenu* cpuMenu = new wxMenu;
+	wxMenu* cpuMenu = new wxMenu();
 	cpuMenu->AppendSubMenu(timerSpeedMenu, _("&Timer speed"));
 	m_menuBar->Append(cpuMenu, _("&CPU"));
 
 	// nfc submenu
-	wxMenu* nfcMenu = new wxMenu;
+	wxMenu* nfcMenu = new wxMenu();
 	m_nfcMenu = nfcMenu;
 	nfcMenu->Append(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, _("&Scan NFC tag from file"))->Enable(false);
 	m_menuBar->Append(nfcMenu, _("&NFC"));
@@ -2388,7 +2403,7 @@ void MainWindow::RecreateMenu()
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"), wxEmptyString)->Check(ActiveSettings::DumpShadersEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString);
 	// debug submenu
-	wxMenu* debugMenu = new wxMenu;
+	wxMenu* debugMenu = new wxMenu();
 	m_debugMenu = debugMenu;
 	debugMenu->AppendSubMenu(debugLoggingMenu, _("&Logging"));
 	debugMenu->AppendSubMenu(debugDumpMenu, _("&Dump"));
@@ -2418,13 +2433,12 @@ void MainWindow::RecreateMenu()
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, _("&View PPC debugger"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, _("&View audio debugger"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, _("&View texture cache info"));
-	debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_SHOW_FRAME_PROFILER, _("&Show frame profiler"), wxEmptyString);
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, _("&Dump current RAM"));
 	// debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_FST, _("&Dump WUD filesystem"))->Enable(false);
 
 	m_menuBar->Append(debugMenu, _("&Debug"));
 	// help menu
-	wxMenu* helpMenu = new wxMenu;
+	wxMenu* helpMenu = new wxMenu();
 	//helpMenu->Append(MAINFRAME_MENU_ID_HELP_WEB, wxT("&Visit website"));
 	//helpMenu->AppendSeparator();
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
@@ -2444,8 +2458,8 @@ void MainWindow::RecreateMenu()
 
 		m_memorySearcherMenuItem->Enable(true);
 		m_nfcMenu->Enable(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, true);
-		
-		// disable OpenGL logging (currently cant be toggled after OpenGL backend is initialized)
+
+		// these options cant be toggled after the renderer backend is initialized:
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), false);
 		m_loggingSubmenu->Enable(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), false);
 
@@ -2516,29 +2530,7 @@ void MainWindow::RestoreSettingsAfterGameExited()
 void MainWindow::UpdateSettingsAfterGameLaunch()
 {
 	m_update_available = {};
-	//m_game_launched = true;
 	RecreateMenu();
-}
-
-std::string MainWindow::GetRegionString(uint32 region) const
-{
-	switch (region)
-	{
-	case 0x1:
-		return "JPN";
-	case 0x2:
-		return "USA";
-	case 0x4:
-		return "EUR";
-	case 0x10:
-		return "CHN";
-	case 0x20:
-		return "KOR";
-	case 0x40:
-		return "TWN";
-	default:
-		return std::to_string(region);
-	}
 }
 
 void MainWindow::OnGraphicWindowClose(wxCloseEvent& event)
@@ -2551,7 +2543,6 @@ void MainWindow::OnGraphicWindowOpen(wxTitleIdEvent& event)
 {
 	if (m_graphic_pack_window)
 		return;
-
 	m_graphic_pack_window = new GraphicPacksWindow2(this, event.GetTitleId());
 	m_graphic_pack_window->Bind(wxEVT_CLOSE_WINDOW, &MainWindow::OnGraphicWindowClose, this);
 	m_graphic_pack_window->Show(true);
@@ -2567,4 +2558,21 @@ void MainWindow::RequestLaunchGame(fs::path filePath, wxLaunchGameEvent::INITIAT
 {
 	wxLaunchGameEvent evt(filePath, initiatedBy);
 	wxPostEvent(g_mainFrame, evt);
+}
+
+void MainWindow::OnRequestRecreateCanvas(wxCommandEvent& event)
+{
+	CounterSemaphore* sem = (CounterSemaphore*)event.GetClientData();
+	DestroyCanvas();
+	CreateCanvas();
+	sem->increment();
+}
+
+void MainWindow::CafeRecreateCanvas()
+{
+	CounterSemaphore sem;
+	auto* evt = new wxCommandEvent(wxEVT_REQUEST_RECREATE_CANVAS);
+	evt->SetClientData((void*)&sem);
+	wxQueueEvent(g_mainFrame, evt);
+	sem.decrementWithWait();
 }

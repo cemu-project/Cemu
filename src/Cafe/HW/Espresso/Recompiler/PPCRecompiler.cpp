@@ -289,11 +289,16 @@ void PPCRecompiler_recompileAtAddress(uint32 address)
 	bool r = PPCRecompiler_makeRecompiledFunctionActive(address, range, func, functionEntryPoints);
 }
 
+std::thread s_threadRecompiler;
+std::atomic_bool s_recompilerThreadStopSignal{false};
+
 void PPCRecompiler_thread()
 {
 	SetThreadName("PPCRecompiler_thread");
 	while (true)
 	{
+        if(s_recompilerThreadStopSignal)
+            return;
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		// asynchronous recompilation:
 		// 1) take address from queue
@@ -326,7 +331,12 @@ void PPCRecompiler_thread()
 
 #define PPC_REC_ALLOC_BLOCK_SIZE	(4*1024*1024) // 4MB
 
-std::bitset<(MEMORY_CODEAREA_ADDR + MEMORY_CODEAREA_SIZE) / PPC_REC_ALLOC_BLOCK_SIZE> ppcRecompiler_reservedBlockMask;
+constexpr uint32 PPCRecompiler_GetNumAddressSpaceBlocks()
+{
+    return (MEMORY_CODEAREA_ADDR + MEMORY_CODEAREA_SIZE + PPC_REC_ALLOC_BLOCK_SIZE - 1) / PPC_REC_ALLOC_BLOCK_SIZE;
+}
+
+std::bitset<PPCRecompiler_GetNumAddressSpaceBlocks()> ppcRecompiler_reservedBlockMask;
 
 void PPCRecompiler_reserveLookupTableBlock(uint32 offset)
 {
@@ -496,16 +506,9 @@ void PPCRecompiler_init()
 	MemMapper::AllocateMemory(&(ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom), sizeof(PPCRecompilerInstanceData_t) - offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom), MemMapper::PAGE_PERMISSION::P_RW, true);
 	PPCRecompilerX64Gen_generateRecompilerInterfaceFunctions();
 
-	uint32 codeRegionEnd = RPLLoader_GetMaxCodeOffset();
-	codeRegionEnd = (codeRegionEnd + PPC_REC_ALLOC_BLOCK_SIZE - 1) & ~(PPC_REC_ALLOC_BLOCK_SIZE - 1);
-
-	uint32 codeRegionSize = codeRegionEnd - PPC_REC_CODE_AREA_START;
-	cemuLog_logDebug(LogType::Force, "Allocating recompiler tables for range 0x{:08x}-0x{:08x}", PPC_REC_CODE_AREA_START, codeRegionEnd);
-
-	for (uint32 i = 0; i < codeRegionSize; i += PPC_REC_ALLOC_BLOCK_SIZE)
-	{
-		PPCRecompiler_reserveLookupTableBlock(i);
-	}
+    PPCRecompiler_allocateRange(0, 0x1000); // the first entry is used for fallback to interpreter
+    PPCRecompiler_allocateRange(mmuRange_TRAMPOLINE_AREA.getBase(), mmuRange_TRAMPOLINE_AREA.getSize());
+    PPCRecompiler_allocateRange(mmuRange_CODECAVE.getBase(), mmuRange_CODECAVE.getSize());
 
 	// init x64 recompiler instance data
 	ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom[0] = 1ULL << 63ULL;
@@ -589,6 +592,33 @@ void PPCRecompiler_init()
 	ppcRecompilerEnabled = true;
 
 	// launch recompilation thread
-	std::thread t_recompiler(PPCRecompiler_thread);
-	t_recompiler.detach();
+    s_recompilerThreadStopSignal = false;
+    s_threadRecompiler = std::thread(PPCRecompiler_thread);
+}
+
+void PPCRecompiler_Shutdown()
+{
+    // shut down recompiler thread
+    s_recompilerThreadStopSignal = true;
+    if(s_threadRecompiler.joinable())
+        s_threadRecompiler.join();
+    // clean up queues
+    while(!PPCRecompilerState.targetQueue.empty())
+        PPCRecompilerState.targetQueue.pop();
+    PPCRecompilerState.invalidationRanges.clear();
+    // clean range store
+    rangeStore_ppcRanges.clear();
+    // clean up memory
+    uint32 numBlocks = PPCRecompiler_GetNumAddressSpaceBlocks();
+    for(uint32 i=0; i<numBlocks; i++)
+    {
+        if(!ppcRecompiler_reservedBlockMask[i])
+            continue;
+        // deallocate
+        uint64 offset = i * PPC_REC_ALLOC_BLOCK_SIZE;
+        MemMapper::FreeMemory(&(ppcRecompilerInstanceData->ppcRecompilerFuncTable[offset/4]), (PPC_REC_ALLOC_BLOCK_SIZE/4)*sizeof(void*), true);
+        MemMapper::FreeMemory(&(ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[offset/4]), (PPC_REC_ALLOC_BLOCK_SIZE/4)*sizeof(void*), true);
+        // mark as unmapped
+        ppcRecompiler_reservedBlockMask[i] = false;
+    }
 }

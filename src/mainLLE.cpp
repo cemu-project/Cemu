@@ -1,8 +1,8 @@
 #include "util/crypto/aes128.h"
 #include "Common/FileStream.h"
 
-void mainEmulatorCommonInit();
 void gui_create();
+void CemuCommonInit();
 
 typedef struct  
 {
@@ -31,7 +31,7 @@ void loadPPCBootrom()
 
 void mainEmulatorLLE()
 {
-	mainEmulatorCommonInit();
+	CemuCommonInit();
 	// memory init
 	memory_initPhysicalLayout();
 	

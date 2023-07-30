@@ -16,6 +16,7 @@ public:
 	static bool HandleCommandline(const std::vector<std::wstring>& args);
 
 	static std::optional<fs::path> GetLoadFile() { return s_load_game_file; }
+    static std::optional<uint64> GetLoadTitleID() {return s_load_title_id;}
 	static std::optional<fs::path> GetMLCPath() { return s_mlc_path; }
 
 	static std::optional<bool> RenderUpsideDownEnabled() { return s_render_upside_down; }
@@ -35,6 +36,7 @@ public:
 
 private:
 	inline static std::optional<fs::path> s_load_game_file{};
+    inline static std::optional<uint64> s_load_title_id{};
 	inline static std::optional<fs::path> s_mlc_path{};
 
 	inline static std::optional<bool> s_render_upside_down{};

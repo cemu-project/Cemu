@@ -144,7 +144,7 @@ LatteShaderPSInputTable* LatteSHRC_GetPSInputTable()
 	return &_activePSImportTable;
 }
 
-bool LatteSHRC_RemoveFromCache(LatteDecompilerShader* shader)
+void LatteSHRC_RemoveFromCache(LatteDecompilerShader* shader)
 {
 	bool removed = false;
 	auto& cache = LatteSHRC_GetCacheByType(shader->shaderType);
@@ -156,10 +156,14 @@ bool LatteSHRC_RemoveFromCache(LatteDecompilerShader* shader)
 	}
 	else if (baseIt->second == shader)
 	{
-		if (baseIt->second->next)
-			cache.emplace(shader->baseHash, baseIt->second->next);
-		else
-			cache.erase(baseIt);
+        cemu_assert_debug(baseIt->second == shader);
+        cache.erase(baseIt);
+		if (shader->next)
+        {
+            cemu_assert_debug(shader->baseHash == shader->next->baseHash);
+            cache.emplace(shader->baseHash, shader->next);
+        }
+        shader->next = 0;
 		removed = true;
 	}
 	else
@@ -176,7 +180,7 @@ bool LatteSHRC_RemoveFromCache(LatteDecompilerShader* shader)
 			}
 		}
 	}
-	return removed;
+	cemu_assert(removed);
 }
 
 void LatteSHRC_RemoveFromCacheByHash(uint64 shader_base_hash, uint64 shader_aux_hash, LatteConst::ShaderType type)
@@ -1008,4 +1012,17 @@ void LatteSHRC_Init()
 	cemu_assert_debug(sVertexShaders.empty());
 	cemu_assert_debug(sGeometryShaders.empty());
 	cemu_assert_debug(sPixelShaders.empty());
+}
+
+void LatteSHRC_UnloadAll()
+{
+    while(!sVertexShaders.empty())
+        LatteShader_free(sVertexShaders.begin()->second);
+    cemu_assert_debug(sVertexShaders.empty());
+    while(!sGeometryShaders.empty())
+        LatteShader_free(sGeometryShaders.begin()->second);
+    cemu_assert_debug(sGeometryShaders.empty());
+    while(!sPixelShaders.empty())
+        LatteShader_free(sPixelShaders.begin()->second);
+    cemu_assert_debug(sPixelShaders.empty());
 }

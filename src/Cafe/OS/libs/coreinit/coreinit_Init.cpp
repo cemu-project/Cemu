@@ -64,6 +64,24 @@ sint32 _GetArgLength(const char* arg)
 	return c;
 }
 
+static std::string GetLaunchArgs()
+{
+	std::string argStr = CafeSystem::GetForegroundTitleArgStr();
+	if(std::vector<std::string> overrideArgs; CafeSystem::GetOverrideArgStr(overrideArgs))
+	{
+		// args are overriden by launch directive (OSLaunchTitleByPath)
+		// keep the rpx path but use the arguments from the override
+		if (size_t pos = argStr.find(' '); pos != std::string::npos)
+			argStr.resize(pos);
+		for(size_t i=0; i<overrideArgs.size(); i++)
+		{
+			argStr += " ";
+			argStr += overrideArgs[i];
+		}
+	}
+	return argStr;
+}
+
 void CafeInit()
 {
 	// extract executable filename
@@ -85,7 +103,8 @@ void CafeInit()
 	_AddArg(rpxFileName.data(), rpxFileName.size());
 	strcpy((char*)_coreinitInfo->argStorage, std::string(rpxFileName).c_str());
 
-	std::string _argStr = CafeSystem::GetForegroundTitleArgStr();
+	std::string _argStr = GetLaunchArgs();
+	CafeSystem::UnsetOverrideArgs(); // make sure next launch doesn't accidentally use the same arguments
 	const char* argString = _argStr.c_str();
 	// attach parameters from arg string
 	if (argString && argString[0] != '\0')

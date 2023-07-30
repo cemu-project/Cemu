@@ -178,16 +178,6 @@ void ActiveSettings::EnableDumpLibcurlRequests(bool state)
 	s_dump_libcurl_requests = state;
 }
 
-bool ActiveSettings::FrameProfilerEnabled()
-{
-	return s_frame_profiler_enabled;
-}
-
-void ActiveSettings::EnableFrameProfiler(bool state)
-{
-	s_frame_profiler_enabled = state;
-}
-
 bool ActiveSettings::VPADDelayEnabled()
 {
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();

@@ -117,6 +117,12 @@ namespace coreinit
 			return currentTick >= g_soonestAlarm;
 		}
 
+        static void Reset()
+        {
+            g_activeAlarmList.clear();
+            g_soonestAlarm = 0;
+        }
+
 	public:
 		struct ComparatorFireTime
 		{
@@ -211,6 +217,7 @@ namespace coreinit
 
 	void __OSInitiateAlarm(OSAlarm_t* alarm, uint64 startTime, uint64 period, MPTR handlerFunc, bool isPeriodic)
 	{
+        cemu_assert_debug(MMU_IsInPPCMemorySpace(alarm));
 		cemu_assert_debug(__OSHasSchedulerLock());
 
 		uint64 nextTime = startTime;
@@ -281,11 +288,21 @@ namespace coreinit
 		return alarm->userData;
 	}
 
-	void OSAlarm_resetAll()
+	void OSAlarm_Shutdown()
 	{
-		cemu_assert_debug(g_activeAlarms.empty());
-
-		cemu_assert_debug(false);
+        __OSLockScheduler();
+        if(g_activeAlarms.empty())
+        {
+            __OSUnlockScheduler();
+            return;
+        }
+        for(auto& itr : g_activeAlarms)
+        {
+            OSHostAlarmDestroy(itr.second);
+        }
+        g_activeAlarms.clear();
+        OSHostAlarm::Reset();
+        __OSUnlockScheduler();
 	}
 
 	void _OSAlarmThread(PPCInterpreter_t* hCPU)

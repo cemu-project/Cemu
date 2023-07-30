@@ -55,6 +55,7 @@
 #define WU_SO_ECONNRESET	0x0008
 #define WU_SO_EINVAL		0x000B
 #define WU_SO_EINPROGRESS	0x0016
+#define WU_SO_EAFNOSUPPORT  0x0021
 
 #define WU_SO_ESHUTDOWN		0x000F
 
@@ -90,15 +91,12 @@ uint32* __gh_errno_ptr()
 
 void _setSockError(sint32 errCode)
 {
-	// todo -> Call __gh_errno_ptr and then write 32bit error code
-	*(uint32*)__gh_errno_ptr() = _swapEndianU32(errCode);
-	//coreinitData->ghsErrno = _swapEndianU32(errCode);
+	*(uint32be*)__gh_errno_ptr() = (uint32)errCode;
 }
 
 sint32 _getSockError()
 {
-	return (sint32)_swapEndianU32(*(uint32*)__gh_errno_ptr());
-	//return (sint32)_swapEndianU32(coreinitData->ghsErrno);
+	return (sint32)*(uint32be*)__gh_errno_ptr();
 }
 
 // error translation modes for _translateError
@@ -644,6 +642,16 @@ void nsysnetExport_getsockopt(PPCInterpreter_t* hCPU)
 			*(uint32*)optval = _swapEndianU32(optvalLE);
 			// used by Lost Reavers after some loading screens
 		}
+        else if (optname == WU_SO_NONBLOCK)
+        {
+            if (memory_readU32(optlenMPTR) != 4)
+                assert_dbg();
+            int optvalLE = 0;
+            socklen_t optlenLE = 4;
+            memory_writeU32(optlenMPTR, 4);
+            *(uint32*)optval = _swapEndianU32(vs->isNonBlocking ? 1 : 0);
+            r = WU_SO_SUCCESS;
+        }
 		else
 		{
 			cemu_assert_debug(false);
@@ -712,13 +720,10 @@ void nsysnetExport_inet_pton(PPCInterpreter_t* hCPU)
 		invalidIp = true;
 	if (d3 < 0 || d3 > 255)
 		invalidIp = true;
-#ifdef CEMU_DEBUG_ASSERT
-	if (invalidIp)
-		assert_dbg();
-#endif
 	if (invalidIp)
 	{
 		cemuLog_log(LogType::Socket, "inet_pton({}, \"{}\", 0x{:08x}) -> Invalid ip", af, ip, hCPU->gpr[5]);
+        _setSockError(WU_SO_EAFNOSUPPORT);
 		osLib_returnFromFunction(hCPU, 0); // 0 -> invalid address
 		return;
 	}
@@ -727,6 +732,32 @@ void nsysnetExport_inet_pton(PPCInterpreter_t* hCPU)
 	cemuLog_log(LogType::Socket, "inet_pton({}, \"{}\", 0x{:08x}) -> Ok", af, ip, hCPU->gpr[5]);
 
 	osLib_returnFromFunction(hCPU, 1); // 1 -> success
+}
+
+namespace nsysnet
+{
+    const char* inet_ntop(sint32 af, const void* src, char* dst, uint32 size)
+    {
+        if( af != WU_AF_INET)
+        {
+            // set error
+            _setSockError(WU_SO_EAFNOSUPPORT);
+            return nullptr;
+        }
+        const uint8* ip = (const uint8*)src;
+        char buf[32];
+        sprintf(buf, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+        size_t bufLen = strlen(buf);
+        if( (bufLen+1) > size )
+        {
+            // set error
+            _setSockError(WU_SO_EAFNOSUPPORT);
+            return nullptr;
+        }
+        strcpy(dst, buf);
+        cemuLog_log(LogType::Socket, "inet_ntop -> {}", buf);
+        return dst;
+    }
 }
 
 MEMPTR<char> _ntoa_tempString = nullptr;
@@ -2122,13 +2153,22 @@ namespace nsysnet
 
 }
 
-
+namespace nsysnet
+{
+    void Initialize()
+    {
+        cafeExportRegister("nsysnet", inet_ntop, LogType::Socket);
+    }
+}
 
 // register nsysnet functions
 void nsysnet_load()
 {
-	
-	osLib_addFunction("nsysnet", "socket_lib_init", nsysnetExport_socket_lib_init);
+    nsysnet::Initialize();
+
+    // the below code is the old way of registering API which is deprecated
+
+    osLib_addFunction("nsysnet", "socket_lib_init", nsysnetExport_socket_lib_init);
 	osLib_addFunction("nsysnet", "socket_lib_finish", nsysnetExport_socket_lib_finish);
 	
 	// socket API

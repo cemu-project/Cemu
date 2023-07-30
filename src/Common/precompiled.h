@@ -351,6 +351,61 @@ inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, un
 
 #endif
 
+// asserts
+
+
+inline void cemu_assert(bool _condition)
+{
+    if ((_condition) == false)
+    {
+        DEBUG_BREAK;
+    }
+}
+
+#ifndef CEMU_DEBUG_ASSERT
+//#define cemu_assert_debug(__cond) -> Forcing __cond not to be evaluated currently has unexpected side-effects
+
+inline void cemu_assert_debug(bool _condition)
+{
+}
+
+inline void cemu_assert_unimplemented()
+{
+}
+
+inline void cemu_assert_suspicious()
+{
+}
+
+inline void cemu_assert_error()
+{
+	DEBUG_BREAK;
+}
+#else
+inline void cemu_assert_debug(bool _condition)
+{
+    if ((_condition) == false)
+        DEBUG_BREAK;
+}
+
+inline void cemu_assert_unimplemented()
+{
+    DEBUG_BREAK;
+}
+
+inline void cemu_assert_suspicious()
+{
+    DEBUG_BREAK;
+}
+
+inline void cemu_assert_error()
+{
+    DEBUG_BREAK;
+}
+#endif
+
+#define assert_dbg() DEBUG_BREAK // old style unconditional generic assert
+
 // MEMPTR
 #include "Common/MemPtr.h"
 
@@ -434,58 +489,6 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 		std::chrono::nanoseconds(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)));
 #endif
 }
-
-inline void cemu_assert(bool _condition)
-{
-    if ((_condition) == false)
-    {
-        DEBUG_BREAK;
-    }
-}
-
-#ifndef CEMU_DEBUG_ASSERT
-//#define cemu_assert_debug(__cond) -> Forcing __cond not to be evaluated currently has unexpected side-effects
-
-inline void cemu_assert_debug(bool _condition)
-{
-}
-
-inline void cemu_assert_unimplemented()
-{
-}
-
-inline void cemu_assert_suspicious()
-{
-}
-
-inline void cemu_assert_error()
-{
-	DEBUG_BREAK;
-}
-#else
-inline void cemu_assert_debug(bool _condition)
-{
-    if ((_condition) == false)
-        DEBUG_BREAK;
-}
-
-inline void cemu_assert_unimplemented()
-{
-    DEBUG_BREAK;
-}
-
-inline void cemu_assert_suspicious()
-{
-    DEBUG_BREAK;
-}
-
-inline void cemu_assert_error()
-{
-    DEBUG_BREAK;
-}
-#endif
-
-#define assert_dbg() DEBUG_BREAK // old style unconditional generic assert
 
 // Some string conversion helpers because C++20 std::u8string is too cumbersome to use in practice
 // mixing string types generally causes loads of issues and many of the libraries we use dont expose interfaces for u8string

@@ -20,8 +20,6 @@ SlimRWLock srwlock_activeThreadList;
 MPTR activeThread[256];
 sint32 activeThreadCount = 0;
 
-MPTR exitThreadPtr = 0;
-
 void nnNfp_update();
 
 namespace coreinit
@@ -198,8 +196,6 @@ namespace coreinit
 		return __currentCoreThread[currentInstance->spr.UPIR];
 	}
 
-	MPTR funcPtr_threadEntry = 0;
-
 	void threadEntry(PPCInterpreter_t* hCPU)
 	{
 		OSThread_t* currentThread = coreinitThread_getCurrentThreadDepr(hCPU);
@@ -223,12 +219,6 @@ namespace coreinit
 
 	void coreinitExport_OSExitThreadDepr(PPCInterpreter_t* hCPU);
 
-	void initFunctionPointers()
-	{
-		exitThreadPtr = PPCInterpreter_makeCallableExportDepr(coreinitExport_OSExitThreadDepr);
-		funcPtr_threadEntry = PPCInterpreter_makeCallableExportDepr(threadEntry);
-	}
-
 	void OSCreateThreadInternal(OSThread_t* thread, uint32 entryPoint, MPTR stackLowerBaseAddr, uint32 stackSize, uint8 affinityMask, OSThread_t::THREAD_TYPE threadType)
 	{
 		cemu_assert_debug(thread != nullptr); // make thread struct mandatory. Caller can always use SysAllocator
@@ -236,7 +226,7 @@ namespace coreinit
 		bool isThreadStillActive = __OSIsThreadActive(thread);
 		if (isThreadStillActive)
 		{
-			// workaround for games that restart threads to quickly
+			// workaround for games that restart threads before they correctly entered stopped/moribund state
 			// seen in Fast Racing Neo at boot (0x020617BC OSCreateThread)
 			cemuLog_log(LogType::Force, "Game attempting to re-initialize existing thread");
 			while ((thread->state == OSThread_t::THREAD_STATE::STATE_READY || thread->state == OSThread_t::THREAD_STATE::STATE_RUNNING) && thread->suspendCounter == 0)
@@ -257,15 +247,9 @@ namespace coreinit
 		}
 		cemu_assert_debug(__OSIsThreadActive(thread) == false);
 		__OSUnlockScheduler();
-
-		initFunctionPointers();
-		if (thread == nullptr)
-			thread = (OSThread_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(OSThread_t), 32));
 		memset(thread, 0x00, sizeof(OSThread_t));
 		// init signatures
-		thread->context.magic0 = OS_CONTEXT_MAGIC_0;
-		thread->context.magic1 = OS_CONTEXT_MAGIC_1;
-		thread->magic = 'tHrD';
+		thread->SetMagic();
 		thread->type = threadType;
 		thread->state = (entryPoint != MPTR_NULL) ? OSThread_t::THREAD_STATE::STATE_READY : OSThread_t::THREAD_STATE::STATE_NONE;
 		thread->entrypoint = _swapEndianU32(entryPoint);
@@ -279,8 +263,8 @@ namespace coreinit
 		// init misc stuff
 		thread->attr = affinityMask;
 		thread->context.setAffinity(affinityMask);
-		thread->context.srr0 = funcPtr_threadEntry;
-		thread->context.lr = _swapEndianU32(exitThreadPtr);
+		thread->context.srr0 = PPCInterpreter_makeCallableExportDepr(threadEntry);
+		thread->context.lr = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(coreinitExport_OSExitThreadDepr));
 		thread->id = 0x8000; // Warriors Orochi 3 softlocks if this is zero due to confusing threads (_OSActivateThread should set this?)
 		// init ugqr
 		thread->context.gqr[0] = 0x00000000;
@@ -362,8 +346,8 @@ namespace coreinit
 		// todo - this should fully reinitialize the thread?
 
 		thread->entrypoint = _swapEndianU32(funcAddress);
-		thread->context.srr0 = coreinit::funcPtr_threadEntry;
-		thread->context.lr = _swapEndianU32(exitThreadPtr);
+		thread->context.srr0 = PPCInterpreter_makeCallableExportDepr(threadEntry);
+		thread->context.lr = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(coreinitExport_OSExitThreadDepr));
 		thread->context.gpr[3] = _swapEndianU32(numParam);
 		thread->context.gpr[4] = _swapEndianU32(memory_getVirtualOffsetFromPointer(ptrParam));
 		thread->suspendCounter = 0;	// verify
@@ -563,7 +547,10 @@ namespace coreinit
 	// adds the thread to each core's run queue if in runable state
 	void __OSAddReadyThreadToRunQueue(OSThread_t* thread)
 	{
+        cemu_assert_debug(MMU_IsInPPCMemorySpace(thread));
+        cemu_assert_debug(thread->IsValidMagic());
 		cemu_assert_debug(__OSHasSchedulerLock());
+
 		if (thread->state != OSThread_t::THREAD_STATE::STATE_READY)
 			return;
 		if (thread->suspendCounter != 0)
@@ -703,10 +690,18 @@ namespace coreinit
 		}
 		else if (prevAffinityMask != affinityMask)
 		{
-			__OSRemoveThreadFromRunQueues(thread);
-			thread->attr = (thread->attr & ~7) | (affinityMask & 7);
-			thread->context.setAffinity(affinityMask);
-			__OSAddReadyThreadToRunQueue(thread);
+            if(thread->state != OSThread_t::THREAD_STATE::STATE_NONE)
+            {
+                __OSRemoveThreadFromRunQueues(thread);
+                thread->attr = (thread->attr & ~7) | (affinityMask & 7);
+                thread->context.setAffinity(affinityMask);
+                __OSAddReadyThreadToRunQueue(thread);
+            }
+            else
+            {
+                thread->attr = (thread->attr & ~7) | (affinityMask & 7);
+                thread->context.setAffinity(affinityMask);
+            }
 		}
 		__OSUnlockScheduler();
 		return true;
@@ -803,16 +798,20 @@ namespace coreinit
 		return suspendCounter > 0;
 	}
 
+    bool OSIsThreadRunningNoLock(OSThread_t* thread)
+    {
+        cemu_assert_debug(__OSHasSchedulerLock());
+        return thread->state == OSThread_t::THREAD_STATE::STATE_RUNNING;
+    }
+
     bool OSIsThreadRunning(OSThread_t* thread)
     {
         bool isRunning = false;
         __OSLockScheduler();
-        if (thread->state == OSThread_t::THREAD_STATE::STATE_RUNNING)
-            isRunning = true;
+        isRunning = OSIsThreadRunningNoLock(thread);
         __OSUnlockScheduler();
         return isRunning;
     }
-
 
     void OSCancelThread(OSThread_t* thread)
 	{
@@ -1005,6 +1004,18 @@ namespace coreinit
 		return selectedThread;
 	}
 
+    void __OSDeleteAllActivePPCThreads()
+    {
+        __OSLockScheduler();
+        while(activeThreadCount > 0)
+        {
+            MEMPTR<OSThread_t> t{activeThread[0]};
+            t->state = OSThread_t::THREAD_STATE::STATE_NONE;
+            __OSDeactivateThread(t.GetPtr());
+        }
+        __OSUnlockScheduler();
+    }
+
 	void __OSCheckSystemEvents()
 	{
 		// AX update
@@ -1189,7 +1200,7 @@ namespace coreinit
 			g_schedulerThreadHandles.emplace_back(it.native_handle());
 	}
 
-	// shuts down all scheduler host threads and deletes all fibers and their state
+    // shuts down all scheduler host threads and deletes all fibers and ppc threads
 	void OSSchedulerEnd()
 	{
 		std::unique_lock _lock(sSchedulerStateMtx);
@@ -1371,9 +1382,10 @@ namespace coreinit
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 			__currentCoreThread[i] = nullptr;
 
-		__OSInitDefaultThreads();
+        __OSInitDefaultThreads();
 		__OSInitTerminatorThreads();
-	}
+
+    }
 }
 
 void coreinit_suspendThread(OSThread_t* OSThreadBE, sint32 count)

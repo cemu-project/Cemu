@@ -150,23 +150,7 @@ namespace snd_core
 			/* +0x1E4 */ uint16 a1;
 			/* +0x1E6 */ uint16 a2;
 		}biquad;
-		uint16 reserved1E8[1];
-		uint16 reserved1EA;
-		uint16 reserved1EC;
-		uint16 reserved1EE;
-		uint32 reserved1F0[4];
-		uint16 reserved200;
-		uint16 reserved202;
-		uint16 reserved204;
-		uint16 reserved206;
-		uint16 reserved208;
-		uint16 reserved20A;
-		uint16 reserved20C;
-		uint16 reserved20E;
-		uint16 reserved210;
-		uint16 reserved212;
-		uint16 reserved214;
-		uint16 reserved216;
+		uint16 reserved1E8[0x18];
 		uint16 reserved218[0x20]; // not related to device mix?
 		uint16 reserved258[0x10]; // not related to device mix?
 		// rmt src related
@@ -210,7 +194,6 @@ namespace snd_core
 
 	std::vector<AXVPB*>& AXVoiceList_GetListByPriority(uint32 priority);
 	std::vector<AXVPB*>& AXVoiceList_GetFreeVoices();
-	void AXVoiceList_ResetFreeVoiceList();
 
 	inline AXVPBInternal_t* GetInternalVoice(const AXVPB* vpb)
 	{
@@ -221,6 +204,8 @@ namespace snd_core
 	{
 		return (uint32)vpb->index;
 	}
+
+    void AXVBP_Reset();
 
 	// AXIst
 	void AXIst_InitThread();

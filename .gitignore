@@ -38,6 +38,7 @@ bin/debugger/*
 bin/sdcard/*
 bin/screenshots/*
 bin/dump/*
+bin/cafeLibs/*
 
 !bin/shaderCache/info.txt
 bin/shaderCache/*

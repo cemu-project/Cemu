@@ -51,7 +51,7 @@ struct
 	sint32 pipelineFileCount;
 }g_shaderCacheLoaderState;
 
-FileCache* fc_shaderCacheGeneric = nullptr;	// contains hardware and Cemu version independent shader information
+FileCache* s_shaderCacheGeneric = nullptr;	// contains hardware and version independent shader information
 
 #define SHADER_CACHE_GENERIC_EXTRA_VERSION		2 // changing this constant will invalidate all hardware-independent cache files
 
@@ -60,7 +60,7 @@ FileCache* fc_shaderCacheGeneric = nullptr;	// contains hardware and Cemu versio
 #define SHADER_CACHE_TYPE_PIXEL					(2)
 
 bool LatteShaderCache_readSeparableShader(uint8* shaderInfoData, sint32 shaderInfoSize);
-void LatteShaderCache_loadVulkanPipelineCache(uint64 cacheTitleId);
+void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId);
 bool LatteShaderCache_updatePipelineLoadingProgress();
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines);
 
@@ -212,7 +212,7 @@ void LatteShaderCache_drawBackgroundImage(ImTextureID texture, int width, int he
 	ImGui::PopStyleVar(2);
 }
 
-void LatteShaderCache_load()
+void LatteShaderCache_Load()
 {
 	shaderCacheScreenStats.compiledShaderCount = 0;
 	shaderCacheScreenStats.vertexShaderCount = 0;
@@ -244,21 +244,21 @@ void LatteShaderCache_load()
 
 	// calculate extraVersion for transferable and precompiled shader cache
 	uint32 transferableExtraVersion = SHADER_CACHE_GENERIC_EXTRA_VERSION;
-	fc_shaderCacheGeneric = FileCache::Open(pathGeneric.generic_wstring(), false, transferableExtraVersion); // legacy extra version (1.25.0 - 1.25.1b)
-	if(!fc_shaderCacheGeneric)
-		fc_shaderCacheGeneric = FileCache::Open(pathGeneric.generic_wstring(), true, LatteShaderCache_getShaderCacheExtraVersion(cacheTitleId));
-	if(!fc_shaderCacheGeneric)
+    s_shaderCacheGeneric = FileCache::Open(pathGeneric, false, transferableExtraVersion); // legacy extra version (1.25.0 - 1.25.1b)
+	if(!s_shaderCacheGeneric)
+        s_shaderCacheGeneric = FileCache::Open(pathGeneric, true, LatteShaderCache_getShaderCacheExtraVersion(cacheTitleId));
+	if(!s_shaderCacheGeneric)
 	{
 		// no shader cache available yet
 		cemuLog_log(LogType::Force, "Unable to open or create shader cache file \"{}\"", _pathToUtf8(pathGeneric));
 		LatteShaderCache_finish();
 		return;
 	}
-	fc_shaderCacheGeneric->UseCompression(false);
+	s_shaderCacheGeneric->UseCompression(false);
 
 	// load/compile cached shaders
-	sint32 entryCount = fc_shaderCacheGeneric->GetMaximumFileIndex();
-	g_shaderCacheLoaderState.shaderFileCount = fc_shaderCacheGeneric->GetFileCount();
+	sint32 entryCount = s_shaderCacheGeneric->GetMaximumFileIndex();
+	g_shaderCacheLoaderState.shaderFileCount = s_shaderCacheGeneric->GetFileCount();
 	g_shaderCacheLoaderState.loadedShaderFiles = 0;
 
 	// get game background loading image
@@ -297,13 +297,13 @@ void LatteShaderCache_load()
 
 	auto LoadShadersUpdate = [&]() -> bool
 	{
-		if (loadIndex >= (uint32)fc_shaderCacheGeneric->GetMaximumFileIndex())
+		if (loadIndex >= (uint32)s_shaderCacheGeneric->GetMaximumFileIndex())
 			return false;
 		LatteShaderCache_updateCompileQueue(SHADER_CACHE_COMPILE_QUEUE_SIZE - 2);
 		uint64 name1;
 		uint64 name2;
 		std::vector<uint8> fileData;
-		if (!fc_shaderCacheGeneric->GetFileByIndex(loadIndex, &name1, &name2, fileData))
+		if (!s_shaderCacheGeneric->GetFileByIndex(loadIndex, &name1, &name2, fileData))
 		{
 			loadIndex++;
 			return true;
@@ -313,7 +313,7 @@ void LatteShaderCache_load()
 		{
 			// something is wrong with the stored shader, remove entry from shader cache files
 			cemuLog_log(LogType::Force, "Shader cache entry {} invalid, deleting...", loadIndex);
-			fc_shaderCacheGeneric->DeleteFile({ name1, name2 });
+			s_shaderCacheGeneric->DeleteFile({name1, name2 });
 		}
 		numLoadedShaders++;
 		loadIndex++;
@@ -336,7 +336,7 @@ void LatteShaderCache_load()
 	LatteShaderCache_finish();
 	// if Vulkan then also load pipeline cache
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
-		LatteShaderCache_loadVulkanPipelineCache(cacheTitleId);
+        LatteShaderCache_LoadVulkanPipelineCache(cacheTitleId);
 
 #if !__ANDROID__
 	g_renderer->BeginFrame(true);
@@ -369,6 +369,8 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 
 	while (true)
 	{
+        if (Latte_GetStopSignal())
+            break; // thread stop requested, cancel shader loading
 		bool r = loadUpdateFunc();
 		if (!r)
 			break;
@@ -489,13 +491,15 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 	}
 }
 
-void LatteShaderCache_loadVulkanPipelineCache(uint64 cacheTitleId)
+void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId)
 {
 	auto& pipelineCache = VulkanPipelineStableCache::GetInstance();
 	g_shaderCacheLoaderState.pipelineFileCount = pipelineCache.BeginLoading(cacheTitleId);
 	g_shaderCacheLoaderState.loadedPipelines = 0;
 	LatteShaderCache_ShowProgress(LatteShaderCache_updatePipelineLoadingProgress, true);
 	pipelineCache.EndLoading();
+    if(Latte_GetStopSignal())
+        LatteThread_Exit();
 }
 
 bool LatteShaderCache_updatePipelineLoadingProgress()
@@ -513,7 +517,7 @@ uint64 LatteShaderCache_getShaderNameInTransferableCache(uint64 baseHash, uint32
 
 void LatteShaderCache_writeSeparableVertexShader(uint64 shaderBaseHash, uint64 shaderAuxHash, uint8* fetchShader, uint32 fetchShaderSize, uint8* vertexShader, uint32 vertexShaderSize, uint32* contextRegisters, bool usesGeometryShader)
 {
-	if (!fc_shaderCacheGeneric)
+	if (!s_shaderCacheGeneric)
 		return;
 	MemStreamWriter streamWriter(128 * 1024);
 	// header
@@ -532,12 +536,12 @@ void LatteShaderCache_writeSeparableVertexShader(uint64 shaderBaseHash, uint64 s
 	// write to cache
 	uint64 shaderCacheName = LatteShaderCache_getShaderNameInTransferableCache(shaderBaseHash, SHADER_CACHE_TYPE_VERTEX);
 	std::span<uint8> dataBlob = streamWriter.getResult();
-	fc_shaderCacheGeneric->AddFileAsync({ shaderCacheName, shaderAuxHash }, dataBlob.data(), dataBlob.size());
+	s_shaderCacheGeneric->AddFileAsync({shaderCacheName, shaderAuxHash }, dataBlob.data(), dataBlob.size());
 }
 
 void LatteShaderCache_writeSeparableGeometryShader(uint64 shaderBaseHash, uint64 shaderAuxHash, uint8* geometryShader, uint32 geometryShaderSize, uint8* gsCopyShader, uint32 gsCopyShaderSize, uint32* contextRegisters, uint32* hleSpecialState, uint32 vsRingParameterCount)
 {
-	if (!fc_shaderCacheGeneric)
+	if (!s_shaderCacheGeneric)
 		return;
 	MemStreamWriter streamWriter(128 * 1024);
 	// header
@@ -557,12 +561,12 @@ void LatteShaderCache_writeSeparableGeometryShader(uint64 shaderBaseHash, uint64
 	// write to cache
 	uint64 shaderCacheName = LatteShaderCache_getShaderNameInTransferableCache(shaderBaseHash, SHADER_CACHE_TYPE_GEOMETRY);
 	std::span<uint8> dataBlob = streamWriter.getResult();
-	fc_shaderCacheGeneric->AddFileAsync({ shaderCacheName, shaderAuxHash }, dataBlob.data(), dataBlob.size());
+	s_shaderCacheGeneric->AddFileAsync({shaderCacheName, shaderAuxHash }, dataBlob.data(), dataBlob.size());
 }
 
 void LatteShaderCache_writeSeparablePixelShader(uint64 shaderBaseHash, uint64 shaderAuxHash, uint8* pixelShader, uint32 pixelShaderSize, uint32* contextRegisters, bool usesGeometryShader)
 {
-	if (!fc_shaderCacheGeneric)
+	if (!s_shaderCacheGeneric)
 		return;
 	MemStreamWriter streamWriter(128 * 1024);
 	streamWriter.writeBE<uint8>(1 | (SHADER_CACHE_TYPE_PIXEL << 4)); // version and type (shared field)
@@ -578,7 +582,7 @@ void LatteShaderCache_writeSeparablePixelShader(uint64 shaderBaseHash, uint64 sh
 	// write to cache
 	uint64 shaderCacheName = LatteShaderCache_getShaderNameInTransferableCache(shaderBaseHash, SHADER_CACHE_TYPE_PIXEL);
 	std::span<uint8> dataBlob = streamWriter.getResult();
-	fc_shaderCacheGeneric->AddFileAsync({ shaderCacheName, shaderAuxHash }, dataBlob.data(), dataBlob.size());
+	s_shaderCacheGeneric->AddFileAsync({shaderCacheName, shaderAuxHash }, dataBlob.data(), dataBlob.size());
 }
 
 void LatteShaderCache_loadOrCompileSeparableShader(LatteDecompilerShader* shader, uint64 shaderBaseHash, uint64 shaderAuxHash)
@@ -750,4 +754,21 @@ bool LatteShaderCache_readSeparableShader(uint8* shaderInfoData, sint32 shaderIn
 	else if (type == SHADER_CACHE_TYPE_PIXEL)
 		return LatteShaderCache_readSeparablePixelShader(streamReader, version);
 	return false;
+}
+
+void LatteShaderCache_Close()
+{
+    if(s_shaderCacheGeneric)
+    {
+        delete s_shaderCacheGeneric;
+        s_shaderCacheGeneric = nullptr;
+    }
+    if (g_renderer->GetType() == RendererAPI::Vulkan)
+        RendererShaderVk::ShaderCacheLoading_Close();
+    else if (g_renderer->GetType() == RendererAPI::OpenGL)
+        RendererShaderGL::ShaderCacheLoading_Close();
+
+    // if Vulkan then also close pipeline cache
+    if (g_renderer->GetType() == RendererAPI::Vulkan)
+        VulkanPipelineStableCache::GetInstance().Close();
 }

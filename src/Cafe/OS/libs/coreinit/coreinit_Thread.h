@@ -404,6 +404,18 @@ struct OSThread_t
 		return 0;
 	}
 
+    void SetMagic()
+    {
+        context.magic0 = OS_CONTEXT_MAGIC_0;
+        context.magic1 = OS_CONTEXT_MAGIC_1;
+        magic = 'tHrD';
+    }
+
+    bool IsValidMagic() const
+    {
+        return magic == 'tHrD' && context.magic0 == OS_CONTEXT_MAGIC_0 && context.magic1 == OS_CONTEXT_MAGIC_1;
+    }
+
 	/* +0x000 */ OSContext_t						context;
 	/* +0x320 */ uint32be							magic;								// 'tHrD'
 	/* +0x324 */ betype<THREAD_STATE>				state;
@@ -526,6 +538,7 @@ namespace coreinit
 
 	bool OSIsThreadTerminated(OSThread_t* thread);
 	bool OSIsThreadSuspended(OSThread_t* thread);
+    bool OSIsThreadRunningNoLock(OSThread_t* thread);
 	bool OSIsThreadRunning(OSThread_t* thread);
 
 	// OSThreadQueue
@@ -591,6 +604,9 @@ namespace coreinit
 	void __OSAddReadyThreadToRunQueue(OSThread_t* thread);
 	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread);
 	void __OSQueueThreadDeallocation(OSThread_t* thread);
+
+    bool __OSIsThreadActive(OSThread_t* thread);
+	void __OSDeleteAllActivePPCThreads();
 }
 
 #pragma pack()
