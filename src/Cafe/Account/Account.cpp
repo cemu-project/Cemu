@@ -524,6 +524,10 @@ void Account::ParseFile(class FileStream* file)
 			m_country = ConvertString<uint32>(value, 16);
 		else if (key == "SimpleAddressId")
 			m_simple_address_id = ConvertString<uint32>(value, 16);
+		else if (key == "TimeZoneId")
+			m_timezone_id = value;
+		else if (key == "UtcOffset")
+			m_utc_offset = ConvertString<uint64>(value, 16);
 		else if (key == "PrincipalId")
 			m_principal_id = ConvertString<uint32>(value, 16);
 		else if (key == "IsPasswordCacheEnabled")

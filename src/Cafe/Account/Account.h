@@ -77,6 +77,8 @@ public:
 	[[nodiscard]] std::string_view GetEmail() const { return m_email; }
 	[[nodiscard]] uint32 GetCountry() const { return m_country; }
 	[[nodiscard]] uint32 GetSimpleAddressId() const { return m_simple_address_id; }
+	[[nodiscard]] std::string_view GetTimeZoneId() const { return m_timezone_id; }
+	[[nodiscard]] sint64 GetUtcOffset() const { return m_utc_offset; }
 	[[nodiscard]] uint32 GetPrincipalId() const { return m_principal_id; }
 	[[nodiscard]] bool IsPasswordCacheEnabled() const { return m_password_cache_enabled != 0; }
 	[[nodiscard]] const std::array<uint8, 32>& GetAccountPasswordCache() const { return m_account_password_cache; }
@@ -90,6 +92,8 @@ public:
 	void SetGender(uint8 gender) { m_gender = gender; }
 	void SetEmail(std::string_view email) { m_email = email; }
 	void SetCountry(uint32 country) { m_country = country; }
+	void SetTimeZoneId(std::string_view timezone_id) { m_timezone_id = timezone_id; }
+	void SetUtcOffset(sint64 utc_offset) { m_utc_offset = utc_offset; }
 
 	// this will always return at least one account (default one)
 	static const std::vector<Account>& RefreshAccounts();
@@ -123,6 +127,8 @@ private:
 	std::string m_email;
 	uint32 m_country = 0;
 	uint32 m_simple_address_id = 0;
+	std::string m_timezone_id;
+	sint64 m_utc_offset;
 	uint32 m_principal_id = 0;
 	uint8 m_password_cache_enabled = 0;
 	std::array<uint8, 32> m_account_password_cache{};
