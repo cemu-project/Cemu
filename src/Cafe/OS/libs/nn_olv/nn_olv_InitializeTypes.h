@@ -101,6 +101,48 @@ namespace nn
 		};
 		static_assert(sizeof(nn::olv::InitializeParam) == 0x40, "sizeof(nn::olv::InitializeParam) != 0x40");
 
+		class PortalAppParam
+		{
+		public:
+			PortalAppParam()
+			{
+				this->m_serviceToken = ""; // todo
+				this->m_startUrl = "https://discovery.olv.pretendo.cc/v1/endpoint";
+			}
+			static PortalAppParam* __ctor(PortalAppParam* _this)
+			{
+				if (!_this)
+				{
+					assert_dbg(); // DO NOT CONTINUE, SHOULD NEVER HAPPEN
+					return nullptr;
+				}
+				else
+					return new (_this) PortalAppParam();
+			}
+
+			std::string GetStartUrl()
+			{
+				return this->m_startUrl;
+			}
+			static std::string __GetStartUrl(PortalAppParam* _this)
+			{
+				return _this->GetStartUrl();
+			}
+
+			std::string GetDefaultBodyMemo()
+			{
+				// todo - i dont think this is right
+				return "Default Body Baby";
+			}
+			static std::string __GetDefaultBodyMemo(PortalAppParam* _this)
+			{
+				return _this->GetDefaultBodyMemo();
+			}
+
+			std::string m_serviceToken;
+			std::string m_startUrl;
+		};
+
 
 		namespace Report
 		{
@@ -110,6 +152,7 @@ namespace nn
 
 		bool IsInitialized();
 		sint32 Initialize(nn::olv::InitializeParam* pParam);
+		sint32 InitializePortalApp(nn::olv::PortalAppParam* pPortalAppParam, nn::olv::InitializeParam* pInitializeParam);
 
 		static void loadOliveInitializeTypes()
 		{
@@ -123,6 +166,10 @@ namespace nn
 			cafeExportRegisterFunc(InitializeParam::__SetWork, "nn_olv", "SetWork__Q3_2nn3olv15InitializeParamFPUcUi", LogType::NN_OLV);
 			cafeExportRegisterFunc(InitializeParam::__SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv15InitializeParamFUi", LogType::NN_OLV);
 			cafeExportRegisterFunc(InitializeParam::__SetSysArgs, "nn_olv", "SetSysArgs__Q3_2nn3olv15InitializeParamFPCvUi", LogType::NN_OLV);
+
+			cafeExportRegisterFunc(PortalAppParam::__ctor, "nn_olv", "__ct__Q4_2nn3olv6hidden14PortalAppParamFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(PortalAppParam::__GetStartUrl, "nn_olv", "GetStartUrl__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(PortalAppParam::__GetDefaultBodyMemo, "nn_olv", "GetDefaultBodyMemo__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
 		}
 	}
 }

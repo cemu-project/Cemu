@@ -18,6 +18,7 @@ namespace nn
 		struct PortalAppParam_t
 		{
 			/* +0x1A663B */ char serviceToken[32]; // size is unknown
+			/* +0x1A5E3C */ char startUrl[37]; // https://discovery.olv.pretendo.cc/v1/endpoint
 		};
 
 		void exportPortalAppParam_GetServiceToken(PPCInterpreter_t* hCPU)
@@ -109,6 +110,16 @@ namespace nn
 			return GetErrorCodeImpl(pResult->value());
 		}
 
+		void exportPortalAppParam_GetStartUrl(PPCInterpreter_t* hCPU)
+		{
+			// r3 = PortalAppParam
+			ppcDefineParamTypePtr(portalAppParam, PortalAppParam_t, 0);
+
+			strcpy(portalAppParam->startUrl, "discovery.olv.pretendo.cc/v1/endpoint");
+
+			osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(&portalAppParam->startUrl));
+		}
+
 		static_assert(GetErrorCodeImpl(0xa119c600) == 1155004);
 
 		void load()
@@ -126,6 +137,7 @@ namespace nn
 
 			cafeExportRegisterFunc(GetErrorCode, "nn_olv", "GetErrorCode__Q2_2nn3olvFRCQ2_2nn6Result", LogType::NN_OLV);
 
+			osLib_addFunction("nn_olv", "GetStartUrl__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetStartUrl);
 			osLib_addFunction("nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetServiceToken);
 
 			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadPostDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv28UploadPostDataByPostAppParam", LogType::NN_OLV);

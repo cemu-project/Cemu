@@ -277,6 +277,14 @@ namespace nn
 			return OLV_RESULT_SUCCESS;
 		}
 
+		sint32 InitializePortalApp(nn::olv::PortalAppParam* pPortalAppParam, nn::olv::InitializeParam* pInitializeParam)
+		{
+			// todo - stub
+			Initialize(pInitializeParam);
+
+			return OLV_RESULT_SUCCESS;
+		}
+
 		namespace Report
 		{
 			uint32 GetReportTypes()
