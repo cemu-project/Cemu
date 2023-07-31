@@ -141,7 +141,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	{
 		VkResult err;
 		if ((err = vkCreateInstance(&create_info, nullptr, &instance)) != VK_SUCCESS)
-			throw std::runtime_error(fmt::format("Unable to create a Vulkan instance: {}", err));
+			throw std::runtime_error(fmt::format("Unable to create a Vulkan instance: {}", fmt::underlying(err)));
 
 		if (!InitializeInstanceVulkan(instance))
 			throw std::runtime_error("can't initialize instanced vulkan functions");
@@ -358,7 +358,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	if (err != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Unable to create a Vulkan instance: {}", err));
+		throw std::runtime_error(fmt::format("Unable to create a Vulkan instance: {}", fmt::underlying(err)));
 
 	if (!InitializeInstanceVulkan(m_instance))
 		throw std::runtime_error("Unable to load instanced Vulkan functions");
@@ -495,7 +495,7 @@ VulkanRenderer::VulkanRenderer()
 	if (result != VK_SUCCESS)
 	{
 		cemuLog_log(LogType::Force, "Vulkan: Unable to create a logical device. Error {}", (sint32)result);
-		throw std::runtime_error(fmt::format("Unable to create a logical device: {}", result));
+		throw std::runtime_error(fmt::format("Unable to create a logical device: {}", fmt::underlying(result)));
 	}
 
 	InitializeDeviceVulkan(m_logicalDevice);
@@ -1112,12 +1112,12 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	uint32_t extensionCount;
 	VkResult result = vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 	if (result != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Cannot retrieve count of properties for a physical device: {}", result));
+		throw std::runtime_error(fmt::format("Cannot retrieve count of properties for a physical device: {}", fmt::underlying(result)));
 
 	availableDeviceExtensions.resize(extensionCount);
 	result = vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableDeviceExtensions.data());
 	if (result != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Cannot retrieve properties for a physical device: {}", result));
+		throw std::runtime_error(fmt::format("Cannot retrieve properties for a physical device: {}", fmt::underlying(result)));
 
 	std::set<std::string> requiredExtensions(kRequiredDeviceExtensions.begin(), kRequiredDeviceExtensions.end());
 	for (const auto& extension : availableDeviceExtensions)
@@ -1179,11 +1179,11 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	// get list of available instance extensions
 	uint32_t count;
 	if ((err = vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr)) != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Failed to retrieve the instance extension properties : {}", err));
+		throw std::runtime_error(fmt::format("Failed to retrieve the instance extension properties : {}", fmt::underlying(err)));
 
 	availableInstanceExtensions.resize(count);
 	if ((err = vkEnumerateInstanceExtensionProperties(nullptr, &count, availableInstanceExtensions.data())) != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Failed to retrieve the instance extension properties: {}", err));
+		throw std::runtime_error(fmt::format("Failed to retrieve the instance extension properties: {}", fmt::underlying(err)));
 
 	// build list of required extensions
 	std::vector<const char*> requiredInstanceExtensions;
@@ -1270,7 +1270,7 @@ VkSurfaceKHR VulkanRenderer::CreateWinSurface(VkInstance instance, HWND hwindow)
 	if ((err = vkCreateWin32SurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
 	{
 		cemuLog_log(LogType::Force, "Cannot create a Win32 Vulkan surface: {}", (sint32)err);
-		throw std::runtime_error(fmt::format("Cannot create a Win32 Vulkan surface: {}", err));
+		throw std::runtime_error(fmt::format("Cannot create a Win32 Vulkan surface: {}", fmt::underlying(err)));
 	}
 
 	return result;
@@ -1291,7 +1291,7 @@ VkSurfaceKHR VulkanRenderer::CreateXlibSurface(VkInstance instance, Display* dpy
     if ((err = vkCreateXlibSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
     {
 		cemuLog_log(LogType::Force, "Cannot create a X11 Vulkan surface: {}", (sint32)err);
-        throw std::runtime_error(fmt::format("Cannot create a X11 Vulkan surface: {}", err));
+        throw std::runtime_error(fmt::format("Cannot create a X11 Vulkan surface: {}", fmt::underlying(err)));
     }
 
     return result;
@@ -1310,7 +1310,7 @@ VkSurfaceKHR VulkanRenderer::CreateXcbSurface(VkInstance instance, xcb_connectio
     if ((err = vkCreateXcbSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
     {
         cemuLog_log(LogType::Force, "Cannot create a XCB Vulkan surface: {}", (sint32)err);
-        throw std::runtime_error(fmt::format("Cannot create a XCB Vulkan surface: {}", err));
+        throw std::runtime_error(fmt::format("Cannot create a XCB Vulkan surface: {}", fmt::underlying(err)));
     }
 
     return result;
@@ -1329,7 +1329,7 @@ VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_displa
     if ((err = vkCreateWaylandSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
     {
         cemuLog_log(LogType::Force, "Cannot create a Wayland Vulkan surface: {}", (sint32)err);
-        throw std::runtime_error(fmt::format("Cannot create a Wayland Vulkan surface: {}", err));
+        throw std::runtime_error(fmt::format("Cannot create a Wayland Vulkan surface: {}", fmt::underlying(err)));
     }
 
     return result;
@@ -1363,7 +1363,7 @@ void VulkanRenderer::CreateCommandPool()
 
 	VkResult result = vkCreateCommandPool(m_logicalDevice, &poolInfo, nullptr, &m_commandPool);
 	if (result != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Failed to create command pool: {}", result));
+		throw std::runtime_error(fmt::format("Failed to create command pool: {}", fmt::underlying(result)));
 }
 
 void VulkanRenderer::CreateCommandBuffers()
@@ -1389,8 +1389,8 @@ void VulkanRenderer::CreateCommandBuffers()
 	const VkResult result = vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, m_commandBuffers.data());
 	if (result != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "Failed to allocate command buffers: {}", result);
-		throw std::runtime_error(fmt::format("Failed to allocate command buffers: {}", result));
+		cemuLog_log(LogType::Force, "Failed to allocate command buffers: {}", fmt::underlying(result));
+		throw std::runtime_error(fmt::format("Failed to allocate command buffers: {}", fmt::underlying(result)));
 	}
 
 	for (auto& semItr : m_commandBufferSemaphores)
@@ -1963,7 +1963,7 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 
 	const VkResult result = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_cmd_buffer_fences[m_commandBufferIndex]);
 	if (result != VK_SUCCESS)
-		UnrecoverableError(fmt::format("failed to submit command buffer. Error {}", result).c_str());
+		UnrecoverableError(fmt::format("failed to submit command buffer. Error {}", fmt::underlying(result)).c_str());
 	m_numSubmittedCmdBuffers++;
 
 	// check if any previously submitted command buffers have finished execution
@@ -2101,7 +2101,7 @@ void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 			}
 			else
 			{
-				cemuLog_log(LogType::Force, "can't retrieve pipeline cache data: 0x{:x}", res);
+				cemuLog_log(LogType::Force, "can't retrieve pipeline cache data: 0x{:x}", fmt::underlying(res));
 			}
 		}
 		else
@@ -2140,7 +2140,7 @@ void VulkanRenderer::CreatePipelineCache()
 	createInfo.pInitialData = cacheData.data();
 	VkResult result = vkCreatePipelineCache(m_logicalDevice, &createInfo, nullptr, &m_pipeline_cache);
 	if (result != VK_SUCCESS)
-		UnrecoverableError(fmt::format("Failed to create pipeline cache: {}", result).c_str());
+		UnrecoverableError(fmt::format("Failed to create pipeline cache: {}", fmt::underlying(result)).c_str());
 
 	size_t cache_size = 0;
 	vkGetPipelineCacheData(m_logicalDevice, m_pipeline_cache, &cache_size, nullptr);
@@ -2565,7 +2565,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 
 	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
 	if (result != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Failed to create pipeline layout: {}", result));
+		throw std::runtime_error(fmt::format("Failed to create pipeline layout: {}", fmt::underlying(result)));
 
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -2588,8 +2588,8 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	result = vkCreateGraphicsPipelines(m_logicalDevice, m_pipeline_cache, 1, &pipelineInfo, nullptr, &pipeline);
 	if (result != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "Failed to create graphics pipeline. Error {}", result);
-		throw std::runtime_error(fmt::format("Failed to create graphics pipeline: {}", result));
+		cemuLog_log(LogType::Force, "Failed to create graphics pipeline. Error {}", fmt::underlying(result));
+		throw std::runtime_error(fmt::format("Failed to create graphics pipeline: {}", fmt::underlying(result)));
 	}
 
 	s_pipeline_cache[hash] = pipeline;
@@ -2730,7 +2730,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		throw std::runtime_error(fmt::format("Failed to present image: {}", result));
+		throw std::runtime_error(fmt::format("Failed to present image: {}", fmt::underlying(result)));
 	}
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;

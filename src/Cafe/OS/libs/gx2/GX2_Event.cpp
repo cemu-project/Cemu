@@ -12,6 +12,7 @@
 
 namespace GX2
 {
+	using fmt::enums::format_as;
 
 	SysAllocator<coreinit::OSThreadQueue> g_vsyncThreadQueue;
 	SysAllocator<coreinit::OSThreadQueue> g_flipThreadQueue;

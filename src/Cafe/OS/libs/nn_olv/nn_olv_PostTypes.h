@@ -6,6 +6,8 @@ namespace nn
 {
 	namespace olv
 	{
+		using fmt::enums::format_as;
+
 		struct DownloadedDataBase
 		{
 			enum class FLAGS : uint32

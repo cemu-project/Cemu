@@ -53,7 +53,7 @@ VkSurfaceKHR CreateCocoaSurface(VkInstance instance, void* handle)
 	if ((err = vkCreateMetalSurfaceEXT(instance, &surface, nullptr, &result)) != VK_SUCCESS)
 	{
 		cemuLog_log(LogType::Force, "Cannot create a Metal Vulkan surface: {}", (sint32)err);
-		throw std::runtime_error(fmt::format("Cannot create a Metal Vulkan surface: {}", err));
+		throw std::runtime_error(fmt::format("Cannot create a Metal Vulkan surface: {}", fmt::underlying(err)));
 	}
 
 	return result;

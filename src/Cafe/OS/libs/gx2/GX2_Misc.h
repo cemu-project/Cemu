@@ -2,6 +2,8 @@
 
 namespace GX2
 {
+	using fmt::enums::format_as;
+
 	extern uint32 sGX2MainCoreIndex;
 
 	enum class E_TVRES

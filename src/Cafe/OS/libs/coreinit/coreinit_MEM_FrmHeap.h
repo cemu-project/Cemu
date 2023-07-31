@@ -3,6 +3,8 @@
 
 namespace coreinit
 {
+	using fmt::enums::format_as;
+
 	struct MEMFrmHeapRecordedState
 	{
 		uint32be id;

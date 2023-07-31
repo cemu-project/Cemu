@@ -42,6 +42,8 @@ void gx2WriteGather_submitU32AsLEArray(uint32* v, uint32 numValues)
 
 namespace GX2
 {
+	using fmt::enums::format_as;
+
 	sint32 gx2WriteGatherCurrentMainCoreIndex = -1;
 	bool gx2WriteGatherInited = false;
 

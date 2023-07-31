@@ -49,6 +49,8 @@ void coreinitExport_MEMGetBaseHeapHandle(PPCInterpreter_t* hCPU);
 
 namespace coreinit
 {
+	using fmt::enums::format_as;
+
 #define MEM_HEAP_INVALID_HANDLE (nullptr)
 #define MEM_HEAP_DEFAULT_ALIGNMENT 4
 #define MIN_ALIGNMENT 4

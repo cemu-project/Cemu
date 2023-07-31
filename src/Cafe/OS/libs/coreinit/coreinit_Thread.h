@@ -87,6 +87,7 @@ static_assert(sizeof(crt_t) == 0x1D8, "");
 
 namespace coreinit
 {
+	using fmt::enums::format_as;
 
 	/********* OSThreadQueue *********/
 
@@ -491,6 +492,11 @@ struct OSThread_t
 
 	/* +0x680 */ uint32								padding680[28 / 4];
 };
+
+inline auto format_as(OSThread_t::THREAD_TYPE type)
+{
+	return fmt::underlying(type);
+}
 
 static_assert(sizeof(OSThread_t) == 0x6A0-4); // todo - determine correct size
 

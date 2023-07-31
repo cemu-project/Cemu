@@ -3,6 +3,8 @@
 
 namespace coreinit
 {
+	using fmt::enums::format_as;
+
 	enum class RegisterInterfaceId : uint32 // for __OSRead/__OSWrite API (register access in userspace)
 	{
 		INTERFACE_VI_UKN = 0, // 0x0C1E0000

@@ -103,6 +103,8 @@ using LatteIndexType = Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE;
 
 namespace LatteConst
 {
+	using fmt::enums::format_as;
+
 	enum class ShaderType : uint32
 	{
 		Reserved = 0,

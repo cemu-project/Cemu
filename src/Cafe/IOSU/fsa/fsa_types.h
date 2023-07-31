@@ -40,6 +40,11 @@ enum class FSA_RESULT : sint32 // aka FSError/FSAStatus
 	FATAL_ERROR = -0x30000 - 0x400,
 };
 
+inline auto format_as(FSA_RESULT result)
+{
+	return fmt::underlying(result);
+}
+
 enum class FSA_CMD_OPERATION_TYPE : uint32
 {
 	CHANGEDIR = 0x5,

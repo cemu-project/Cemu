@@ -49,6 +49,11 @@ namespace InputAPI
 		throw std::runtime_error(fmt::format("unknown input api: {}", to_underlying(type)));
 	}
 
+	inline auto format_as(Type type)
+	{
+		return to_string(type);
+	}
+
 	constexpr Type from_string(std::string_view str)
 	{
 		if (str == to_string(Keyboard))

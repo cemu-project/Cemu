@@ -204,6 +204,12 @@ private:
 	T m_value;
 };
 
+template <typename T>
+inline auto format_as(const betype<T>& v)
+{
+	return v.value();
+}
+
 using uint64be = betype<uint64>;
 using uint32be = betype<uint32>;
 using uint16be = betype<uint16>;

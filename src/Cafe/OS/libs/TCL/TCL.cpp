@@ -3,6 +3,7 @@
 
 namespace TCL
 {
+	using fmt::enums::format_as;
 
 	enum class TCL_SUBMISSION_FLAG : uint32
 	{

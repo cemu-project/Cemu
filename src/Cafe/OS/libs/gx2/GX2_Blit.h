@@ -2,6 +2,8 @@
 
 namespace GX2
 {
+	using fmt::enums::format_as;
+
 	enum class GX2ClearFlags : uint32
 	{
 		CLEAR_DEPTH = 0x01, // clear depth to given clear value

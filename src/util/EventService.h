@@ -10,6 +10,11 @@ enum class Events : int32_t
 	ControllerChanged,
 };
 
+inline auto format_as(Events event)
+{
+	return fmt::underlying(event);
+}
+
 using ControllerChangedFunc = void(void);
 
 class EventService : public Singleton<EventService>

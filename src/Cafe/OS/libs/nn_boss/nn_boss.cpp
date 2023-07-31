@@ -23,6 +23,8 @@ memset(bossRequest, 0, sizeof(iosuBossCemuRequest_t)); \
 memset(bossBufferVector, 0, sizeof(ioBufferVector_t)); \
 bossBufferVector->buffer = (uint8*)bossRequest;
 
+	using fmt::enums::format_as;
+
 	SysAllocator<coreinit::OSMutex> g_mutex;
 	sint32 g_initCounter = 0;
 	bool g_isInitialized = false;

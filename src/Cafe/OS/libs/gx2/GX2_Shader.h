@@ -23,6 +23,11 @@ struct GX2FetchShader_t
 	}
 };
 
+inline auto format_as(GX2FetchShader_t::FetchShaderType type)
+{
+	return fmt::underlying(type);
+}
+
 static_assert(sizeof(GX2FetchShader_t) == 0x20);
 static_assert(sizeof(betype<GX2FetchShader_t::FetchShaderType>) == 4);
 

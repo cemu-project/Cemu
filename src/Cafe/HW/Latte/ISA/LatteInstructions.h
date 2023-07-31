@@ -117,6 +117,11 @@ protected:
 	uint32 word1;
 };
 
+inline auto format_as(LatteCFInstruction::OPCODE opcode)
+{
+	return fmt::underlying(opcode);
+}
+
 // default encoding, CF_DWORD0 + CF_DWORD1
 // used for opcodes: See list in MatchesOpcode()
 class LatteCFInstruction_DEFAULT : public LatteCFInstruction

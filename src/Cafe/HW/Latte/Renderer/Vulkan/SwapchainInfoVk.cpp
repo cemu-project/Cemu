@@ -214,7 +214,7 @@ bool SwapchainInfoVk::AcquireImage(uint64 timeout)
 	{
 		swapchainImageIndex = -1;
 		if (result != VK_ERROR_OUT_OF_DATE_KHR)
-			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
+			throw std::runtime_error(fmt::format("Failed to acquire next image: {}", fmt::underlying(result)));
 		return false;
 	}
 	m_currentSemaphore = acquireSemaphore;
@@ -249,7 +249,7 @@ SwapchainInfoVk::QueueFamilyIndices SwapchainInfoVk::FindQueueFamilies(VkSurface
 		VkBool32 presentSupport = false;
 		const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 		if (result != VK_SUCCESS)
-			throw std::runtime_error(fmt::format("Error while attempting to check if a surface supports presentation: {}", result));
+			throw std::runtime_error(fmt::format("Error while attempting to check if a surface supports presentation: {}", fmt::underlying(result)));
 
 		if (queueFamily.queueCount > 0 && presentSupport)
 			indices.presentFamily = i;
@@ -270,7 +270,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 	{
 		if (result != VK_ERROR_SURFACE_LOST_KHR)
 			cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed. Error {}", (sint32)result);
-		throw std::runtime_error(fmt::format("Unable to retrieve physical device surface capabilities: {}", result));
+		throw std::runtime_error(fmt::format("Unable to retrieve physical device surface capabilities: {}", fmt::underlying(result)));
 	}
 
 	uint32_t formatCount = 0;
@@ -278,7 +278,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 	if (result != VK_SUCCESS)
 	{
 		cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error {}", (sint32)result);
-		throw std::runtime_error(fmt::format("Unable to retrieve the number of formats for a surface on a physical device: {}", result));
+		throw std::runtime_error(fmt::format("Unable to retrieve the number of formats for a surface on a physical device: {}", fmt::underlying(result)));
 	}
 
 	if (formatCount != 0)
@@ -288,7 +288,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 		if (result != VK_SUCCESS)
 		{
 			cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfaceFormatsKHR failed. Error {}", (sint32)result);
-			throw std::runtime_error(fmt::format("Unable to retrieve the formats for a surface on a physical device: {}", result));
+			throw std::runtime_error(fmt::format("Unable to retrieve the formats for a surface on a physical device: {}", fmt::underlying(result)));
 		}
 	}
 
@@ -297,7 +297,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 	if (result != VK_SUCCESS)
 	{
 		cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error {}", (sint32)result);
-		throw std::runtime_error(fmt::format("Unable to retrieve the count of present modes for a surface on a physical device: {}", result));
+		throw std::runtime_error(fmt::format("Unable to retrieve the count of present modes for a surface on a physical device: {}", fmt::underlying(result)));
 	}
 
 	if (presentModeCount != 0)
@@ -307,7 +307,7 @@ SwapchainInfoVk::SwapchainSupportDetails SwapchainInfoVk::QuerySwapchainSupport(
 		if (result != VK_SUCCESS)
 		{
 			cemuLog_log(LogType::Force, "vkGetPhysicalDeviceSurfacePresentModesKHR failed. Error {}", (sint32)result);
-			throw std::runtime_error(fmt::format("Unable to retrieve the present modes for a surface on a physical device: {}", result));
+			throw std::runtime_error(fmt::format("Unable to retrieve the present modes for a surface on a physical device: {}", fmt::underlying(result)));
 		}
 	}
 

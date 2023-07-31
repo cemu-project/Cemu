@@ -2,6 +2,8 @@
 
 namespace GX2
 {
+	using fmt::enums::format_as;
+
 	void GX2Init_event();
 	void GX2EventResetToDefaultState();
 

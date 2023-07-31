@@ -66,6 +66,11 @@ protected:
 private:
 };
 
+inline auto format_as(IAudioInputAPI::AudioInputAPI api)
+{
+	return fmt::underlying(api);
+}
+
 using AudioInputAPIPtr = std::unique_ptr<IAudioInputAPI>;
 extern std::shared_mutex g_audioInputMutex;
 extern AudioInputAPIPtr g_inputAudio;

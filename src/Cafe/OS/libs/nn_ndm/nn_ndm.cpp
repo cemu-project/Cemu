@@ -6,6 +6,7 @@ namespace nn
 {
 	namespace ndm
 	{
+		using fmt::enums::format_as;
 
 		enum class DAEMON_NAME : uint32
 		{

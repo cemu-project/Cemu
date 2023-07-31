@@ -353,7 +353,7 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &vkObjPipeline->pipeline_layout);
 	if (result != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "Failed to create pipeline layout: {}", result);
+		cemuLog_log(LogType::Force, "Failed to create pipeline layout: {}", fmt::underlying(result));
 		vkObjPipeline->pipeline = VK_NULL_HANDLE;
 		return copyPipeline;
 	}

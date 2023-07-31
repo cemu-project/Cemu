@@ -11,8 +11,15 @@ enum class NAPI_RESULT
 	SERVICE_ERROR = 4, // server reply indicates error. Extended error code (serviceError) is set
 };
 
+inline auto format_as(NAPI_RESULT apiError)
+{
+	return fmt::underlying(apiError);
+}
+
 namespace NAPI
 {
+	using fmt::enums::format_as;
+
 	// common auth info structure shared by ACT, ECS and IAS service
 	struct AuthInfo
 	{

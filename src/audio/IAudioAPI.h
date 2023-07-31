@@ -82,6 +82,11 @@ private:
 	
 };
 
+inline auto format_as(IAudioAPI::AudioAPI api)
+{
+	return fmt::underlying(api);
+}
+
 using AudioAPIPtr = std::unique_ptr<IAudioAPI>;
 extern std::shared_mutex g_audioMutex;
 extern AudioAPIPtr g_tvAudio;

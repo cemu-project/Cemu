@@ -2,6 +2,8 @@
 
 namespace Latte
 {
+	using fmt::enums::format_as;
+
 	// common enums
 	enum class E_DIM : uint32 // shared between Latte backend and GX2 code
 	{

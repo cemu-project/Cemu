@@ -42,6 +42,8 @@ bool strcpy_whole(char* dst, size_t dstLength, const char* src)
 
 namespace coreinit
 {
+	using fmt::enums::format_as;
+
 	std::mutex sFSClientLock;
 	std::recursive_mutex sFSGlobalMutex;
 
