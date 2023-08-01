@@ -34,6 +34,9 @@ public:
 	static std::string GetServiceURL_ecs() { return serviceURL_ECS; }
 	static void ChangeNetworkServiceURL(int ID);
 
+	static uint32 GetPPCRecLowerAddr() { return ppcRec_limitLowerAddr; };
+	static uint32 GetPPCRecUpperAddr() { return ppcRec_limitUpperAddr; };
+
 private:
 	inline static std::optional<fs::path> s_load_game_file{};
     inline static std::optional<uint64> s_load_title_id{};
@@ -55,6 +58,9 @@ private:
 	inline static std::string serviceURL_ECS;
 	// todo - npts and other boss urls
 
+	// for recompiler debugging
+	inline static uint32 ppcRec_limitLowerAddr{};
+	inline static uint32 ppcRec_limitUpperAddr{};
 
 	static bool ExtractorTool(std::wstring_view wud_path, std::string_view output_path, std::wstring_view log_path);
 };

@@ -1,5 +1,4 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerX64.h"
+#include "BackendX64.h"
 
 void _x64Gen_writeMODRMDeprecated(x64GenContext_t* x64GenContext, sint32 dataRegister, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32);
 
@@ -69,12 +68,49 @@ void x64Gen_shrx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 regist
 	x64Gen_writeU8(x64GenContext, 0xC0 + (registerDst & 7) * 8 + (registerA & 7));
 }
 
+void x64Gen_shrx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB)
+{
+	x64Gen_writeU8(x64GenContext, 0xC4);
+	x64Gen_writeU8(x64GenContext, 0xE2 - ((registerDst >= 8) ? 0x80 : 0) - ((registerA >= 8) ? 0x20 : 0));
+	x64Gen_writeU8(x64GenContext, 0x7B - registerB * 8);
+	x64Gen_writeU8(x64GenContext, 0xF7);
+	x64Gen_writeU8(x64GenContext, 0xC0 + (registerDst & 7) * 8 + (registerA & 7));
+}
+
+void x64Gen_sarx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB)
+{
+	// SARX reg64, reg64, reg64
+	x64Gen_writeU8(x64GenContext, 0xC4);
+	x64Gen_writeU8(x64GenContext, 0xE2 - ((registerDst >= 8) ? 0x80 : 0) - ((registerA >= 8) ? 0x20 : 0));
+	x64Gen_writeU8(x64GenContext, 0xFA - registerB * 8);
+	x64Gen_writeU8(x64GenContext, 0xF7);
+	x64Gen_writeU8(x64GenContext, 0xC0 + (registerDst & 7) * 8 + (registerA & 7));
+}
+
+void x64Gen_sarx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB)
+{
+	x64Gen_writeU8(x64GenContext, 0xC4);
+	x64Gen_writeU8(x64GenContext, 0xE2 - ((registerDst >= 8) ? 0x80 : 0) - ((registerA >= 8) ? 0x20 : 0));
+	x64Gen_writeU8(x64GenContext, 0x7A - registerB * 8);
+	x64Gen_writeU8(x64GenContext, 0xF7);
+	x64Gen_writeU8(x64GenContext, 0xC0 + (registerDst & 7) * 8 + (registerA & 7));
+}
+
 void x64Gen_shlx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB)
 {
 	// SHLX reg64, reg64, reg64
 	x64Gen_writeU8(x64GenContext, 0xC4);
 	x64Gen_writeU8(x64GenContext, 0xE2 - ((registerDst >= 8) ? 0x80 : 0) - ((registerA >= 8) ? 0x20 : 0));
 	x64Gen_writeU8(x64GenContext, 0xF9 - registerB * 8);
+	x64Gen_writeU8(x64GenContext, 0xF7);
+	x64Gen_writeU8(x64GenContext, 0xC0 + (registerDst & 7) * 8 + (registerA & 7));
+}
+
+void x64Gen_shlx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB)
+{
+	x64Gen_writeU8(x64GenContext, 0xC4);
+	x64Gen_writeU8(x64GenContext, 0xE2 - ((registerDst >= 8) ? 0x80 : 0) - ((registerA >= 8) ? 0x20 : 0));
+	x64Gen_writeU8(x64GenContext, 0x79 - registerB * 8);
 	x64Gen_writeU8(x64GenContext, 0xF7);
 	x64Gen_writeU8(x64GenContext, 0xC0 + (registerDst & 7) * 8 + (registerA & 7));
 }

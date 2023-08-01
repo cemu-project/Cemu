@@ -91,13 +91,15 @@ namespace Espresso
 		BCCTR = 528
 	};
 
-	enum class OPCODE_31
+	enum class Opcode31
 	{
-
+		TW = 4,
+		MFTB = 371,
 	};
 
 	inline PrimaryOpcode GetPrimaryOpcode(uint32 opcode) { return (PrimaryOpcode)(opcode >> 26); };
 	inline Opcode19 GetGroup19Opcode(uint32 opcode) { return (Opcode19)((opcode >> 1) & 0x3FF); };
+	inline Opcode31 GetGroup31Opcode(uint32 opcode) { return (Opcode31)((opcode >> 1) & 0x3FF); };
 
 	struct BOField 
 	{
@@ -131,6 +133,12 @@ namespace Espresso
 
 		uint8 bo;
 	};
+
+	// returns true if LK bit is set, only valid for branch instructions
+	inline bool DecodeLK(uint32 opcode)
+	{
+		return (opcode & 1) != 0;
+	}
 
 	inline void _decodeForm_I(uint32 opcode, uint32& LI, bool& AA, bool& LK)
 	{
@@ -183,13 +191,7 @@ namespace Espresso
 		_decodeForm_D_branch(opcode, BD, BO, BI, AA, LK);
 	}
 
-	inline void decodeOp_BCLR(uint32 opcode, BOField& BO, uint32& BI, bool& LK)
-	{
-		// form XL (with BD field expected to be zero)
-		_decodeForm_XL(opcode, BO, BI, LK);
-	}
-
-	inline void decodeOp_BCCTR(uint32 opcode, BOField& BO, uint32& BI, bool& LK)
+	inline void decodeOp_BCSPR(uint32 opcode, BOField& BO, uint32& BI, bool& LK) // BCLR and BCSPR
 	{
 		// form XL (with BD field expected to be zero)
 		_decodeForm_XL(opcode, BO, BI, LK);
