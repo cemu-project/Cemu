@@ -80,6 +80,13 @@ public:
 	}
 
 private:
+	void _reserve(uint32 newLimit)
+	{
+		cemu_assert_debug(newLimit > length);
+		this->str = (uint8*)realloc(this->str, newLimit + 4);
+		this->limit = newLimit;
+	}
+
 	uint8*	str;
 	uint32	length; /* in bytes */
 	uint32	limit; /* in bytes */
