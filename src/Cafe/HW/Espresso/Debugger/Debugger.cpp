@@ -1,5 +1,6 @@
 #include "gui/guiWrapper.h"
 #include "Debugger.h"
+#include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cemu/ExpressionParser/ExpressionParser.h"
@@ -74,7 +75,7 @@ uint32 debugger_getAddressOriginalOpcode(uint32 address)
 	auto bpItr = debugger_getFirstBP(address);
 	while (bpItr)
 	{
-		if (bpItr->bpType == DEBUGGER_BP_T_NORMAL || bpItr->bpType == DEBUGGER_BP_T_ONE_SHOT)
+		if (bpItr->isExecuteBP())
 			return bpItr->originalOpcodeValue;
 		bpItr = bpItr->next;
 	}
@@ -121,32 +122,23 @@ void debugger_updateExecutionBreakpoint(uint32 address, bool forceRestore)
 	}
 }
 
-void debugger_createExecuteBreakpoint(uint32 address)
+void debugger_createCodeBreakpoint(uint32 address, uint8 bpType)
 {
 	// check if breakpoint already exists
 	auto existingBP = debugger_getFirstBP(address);
-	if (existingBP && debuggerBPChain_hasType(existingBP, DEBUGGER_BP_T_NORMAL))
+	if (existingBP && debuggerBPChain_hasType(existingBP, bpType))
 		return; // breakpoint already exists
 	// get original opcode at address
 	uint32 originalOpcode = debugger_getAddressOriginalOpcode(address);
 	// init breakpoint object
-	DebuggerBreakpoint* bp = new DebuggerBreakpoint(address, originalOpcode, DEBUGGER_BP_T_NORMAL, true);
+	DebuggerBreakpoint* bp = new DebuggerBreakpoint(address, originalOpcode, bpType, true);
 	debuggerBPChain_add(address, bp);
 	debugger_updateExecutionBreakpoint(address);
 }
 
-void debugger_createSingleShotExecuteBreakpoint(uint32 address)
+void debugger_createExecuteBreakpoint(uint32 address)
 {
-	// check if breakpoint already exists
-	auto existingBP = debugger_getFirstBP(address);
-	if (existingBP && debuggerBPChain_hasType(existingBP, DEBUGGER_BP_T_ONE_SHOT))
-		return; // breakpoint already exists
-	// get original opcode at address
-	uint32 originalOpcode = debugger_getAddressOriginalOpcode(address);
-	// init breakpoint object
-	DebuggerBreakpoint* bp = new DebuggerBreakpoint(address, originalOpcode, DEBUGGER_BP_T_ONE_SHOT, true);
-	debuggerBPChain_add(address, bp);
-	debugger_updateExecutionBreakpoint(address);
+	debugger_createCodeBreakpoint(address, DEBUGGER_BP_T_NORMAL);
 }
 
 namespace coreinit
@@ -218,7 +210,7 @@ void debugger_handleSingleStepException(uint64 dr6)
 	}
 	if (catchBP)
 	{
-		debugger_createSingleShotExecuteBreakpoint(ppcInterpreterCurrentInstance->instructionPointer + 4);
+		debugger_createCodeBreakpoint(ppcInterpreterCurrentInstance->instructionPointer + 4, DEBUGGER_BP_T_ONE_SHOT);
 	}
 }
 
@@ -250,7 +242,7 @@ void debugger_handleEntryBreakpoint(uint32 address)
 	if (!debuggerState.breakOnEntry)
 		return;
 
-	debugger_createExecuteBreakpoint(address);
+	debugger_createCodeBreakpoint(address, DEBUGGER_BP_T_NORMAL);
 }
 
 void debugger_deleteBreakpoint(DebuggerBreakpoint* bp)
@@ -298,10 +290,12 @@ void debugger_toggleExecuteBreakpoint(uint32 address)
 	{ 
 		// delete existing breakpoint
 		debugger_deleteBreakpoint(existingBP);
-		return;
 	}
-	// create new
-	debugger_createExecuteBreakpoint(address);
+	else
+	{
+		// create new breakpoint
+		debugger_createExecuteBreakpoint(address);
+	}
 }
 
 void debugger_forceBreak()
@@ -327,7 +321,7 @@ void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* b
 	{
 		if (bpItr == bp)
 		{
-			if (bpItr->bpType == DEBUGGER_BP_T_NORMAL)
+			if (bpItr->bpType == DEBUGGER_BP_T_NORMAL || bpItr->bpType == DEBUGGER_BP_T_LOGGING)
 			{
 				bp->enabled = state;
 				debugger_updateExecutionBreakpoint(address);
@@ -486,7 +480,7 @@ bool debugger_stepOver(PPCInterpreter_t* hCPU)
 		return false;
 	}
 	// create one-shot breakpoint at next instruction
-	debugger_createSingleShotExecuteBreakpoint(initialIP +4);
+	debugger_createCodeBreakpoint(initialIP + 4, DEBUGGER_BP_T_ONE_SHOT);
 	// step over current instruction (to avoid breakpoint)
 	debugger_stepInto(hCPU);
 	debuggerWindow_moveIP();
@@ -506,8 +500,39 @@ void debugger_createPPCStateSnapshot(PPCInterpreter_t* hCPU)
 		debuggerState.debugSession.ppcSnapshot.cr[i] = hCPU->cr[i];
 }
 
+void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
+
 void debugger_enterTW(PPCInterpreter_t* hCPU)
 {
+	// handle logging points
+	DebuggerBreakpoint* bp = debugger_getFirstBP(hCPU->instructionPointer);
+	bool shouldBreak = debuggerBPChain_hasType(bp, DEBUGGER_BP_T_NORMAL) || debuggerBPChain_hasType(bp, DEBUGGER_BP_T_ONE_SHOT);
+	while (bp)
+	{
+		if (bp->bpType == DEBUGGER_BP_T_LOGGING && bp->enabled)
+		{
+			std::wstring logName = !bp->comment.empty() ? L"Breakpoint '"+bp->comment+L"'" : fmt::format(L"Breakpoint at 0x{:08X} (no comment)", bp->address);
+			std::wstring logContext = fmt::format(L"Thread: {:08x} LR: 0x{:08x}", coreinitThread_getCurrentThreadMPTRDepr(hCPU), hCPU->spr.LR, cemuLog_advancedPPCLoggingEnabled() ? L" Stack Trace:" : L"");
+			cemuLog_log(LogType::Force, L"[Debugger] {} was executed! {}", logName, logContext);
+			if (cemuLog_advancedPPCLoggingEnabled())
+				DebugLogStackTrace(coreinitThread_getCurrentThreadDepr(hCPU), hCPU->gpr[1]);
+			break;
+		}
+		bp = bp->next;
+	}
+
+	// return early if it's only a non-pausing logging breakpoint to prevent a modified debugger state and GUI updates
+	if (!shouldBreak)
+	{
+		uint32 backupIP = debuggerState.debugSession.instructionPointer;
+		debuggerState.debugSession.instructionPointer = hCPU->instructionPointer;
+		debugger_stepInto(hCPU, false);
+		PPCInterpreterSlim_executeInstruction(hCPU);
+		debuggerState.debugSession.instructionPointer = backupIP;
+		return;
+	}
+
+	// handle breakpoints
 	debuggerState.debugSession.isTrapped = true;
 	debuggerState.debugSession.debuggedThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(hCPU);
 	debuggerState.debugSession.instructionPointer = hCPU->instructionPointer;
@@ -579,6 +604,20 @@ void debugger_shouldBreak(PPCInterpreter_t* hCPU)
 
 void debugger_addParserSymbols(class ExpressionParser& ep)
 {
+	const auto module_count = RPLLoader_GetModuleCount();
+	const auto module_list = RPLLoader_GetModuleList();
+
+	std::vector<double> module_tmp(module_count);
+	for (int i = 0; i < module_count; i++)
+	{
+		const auto module = module_list[i];
+		if (module)
+		{
+			module_tmp[i] = (double)module->regionMappingBase_text.GetMPTR();
+			ep.AddConstant(module->moduleName2, module_tmp[i]);
+		}
+	}
+
 	for (sint32 i = 0; i < 32; i++)
 		ep.AddConstant(fmt::format("r{}", i), debuggerState.debugSession.ppcSnapshot.gpr[i]);
 }
