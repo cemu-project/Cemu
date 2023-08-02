@@ -261,7 +261,7 @@ void DebuggerWindow2::LoadModuleStorage(const RPLModule* module)
 	bool already_loaded = std::any_of(m_modules_storage.begin(), m_modules_storage.end(), [path](const std::unique_ptr<XMLDebuggerModuleConfig>& debug) { return debug->GetFilename() == path; });
 	if (!path.empty() && !already_loaded)
 	{
-		m_modules_storage.emplace_back(std::move(new XMLDebuggerModuleConfig(path, { module->moduleName2, module->patchCRC, module, false })));
+		m_modules_storage.emplace_back(new XMLDebuggerModuleConfig(path, { module->moduleName2, module->patchCRC, module, false }))->Load();
 	}
 }
 
