@@ -19,8 +19,7 @@ private:
 	void OnRightDown(wxMouseEvent& event);
 
 	void OnContextMenuClick(wxCommandEvent& evt);
-
-	void MemoryBreakpointDialog(bool isWrite);
+	void OnContextMenuClickSelected(wxCommandEvent& evt);
 
 	wxCheckedListCtrl* m_breakpoints;
 };
