@@ -148,7 +148,7 @@ public:
 		return m_parsedMetaXml;
 	}
 
-	std::string GetPrintPath() const; // formatted path for log writing
+	std::string GetPrintPath() const; // formatted path including type and WUA subpath. Intended for logging and user-facing information
 	std::string GetInstallPath() const; // installation subpath, relative to storage base. E.g. "usr/title/.../..." or "sys/title/.../..."
 
 	static std::string GetUniqueTempMountingPath();
