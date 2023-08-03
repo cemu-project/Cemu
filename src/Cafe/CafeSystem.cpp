@@ -484,6 +484,28 @@ namespace CafeSystem
 		#endif
 	}
 
+	void logPlatformInfo()
+	{
+		const char* platform = NULL;
+		#if BOOST_OS_WINDOWS
+		platform = "Windows";
+		#elif BOOST_OS_LINUX
+		if (getenv ("APPIMAGE"))
+			platform = "Linux (AppImage)";
+		else if (getenv ("SNAP"))
+			platform = "Linux (Snap)";
+		else if (platform = getenv ("container"))
+			if (strcmp (platform, "flatpak") == 0)
+				platform = "Linux (Flatpak)";
+		else
+			platform = "Linux";
+		#elif BOOST_OS_MACOS
+		platform = "MacOS";
+		#endif
+		cemuLog_log(LogType::Force, "Platform: {}", platform);
+
+	}
+
 	// initialize all subsystems which are persistent and don't depend on a game running
 	void Initialize()
 	{
@@ -501,6 +523,7 @@ namespace CafeSystem
 		_CheckForWine();
 		// CPU and RAM info
 		logCPUAndMemoryInfo();
+		logPlatformInfo();
 		cemuLog_log(LogType::Force, "Used CPU extensions: {}", g_CPUFeatures.GetCommaSeparatedExtensionList());
 		// misc systems
 		rplSymbolStorage_init();
