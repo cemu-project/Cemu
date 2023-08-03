@@ -108,7 +108,7 @@ private:
 	[[nodiscard]] boost::optional<TitleEntry&> GetTitleEntry(const fs::path& path);
 	
 	bool VerifyEntryFiles(TitleEntry& entry);
-	void OnConvertToCompressedFormat(uint64 titleId);
+	void OnConvertToCompressedFormat(uint64 titleId, uint64 rightClickedUID);
 	bool DeleteEntry(long index, const TitleEntry& entry);
 
 	void RemoveItem(long item);

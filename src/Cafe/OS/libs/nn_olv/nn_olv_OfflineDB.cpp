@@ -3,7 +3,7 @@
 #include "nn_olv_OfflineDB.h"
 #include "Cemu/ncrypto/ncrypto.h" // for base64 encoder/decoder
 #include "util/helpers/helpers.h"
-#include "Config/ActiveSettings.h"
+#include "config/ActiveSettings.h"
 #include "Cafe/CafeSystem.h"
 #include <pugixml.hpp>
 #include <zlib.h>
