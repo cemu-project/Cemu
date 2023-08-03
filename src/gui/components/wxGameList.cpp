@@ -1287,16 +1287,17 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
             }
         }
     }
+    // 'Icon' accepts spaces in file name, does not accept quoted file paths
+    // 'Exec' does not accept non-escaped spaces, and can accept quoted file paths
     const auto desktop_entry_string =
             fmt::format("[Desktop Entry]\n"
-                        "Name={}\n"
-                        "Comment=Play {} on Cemu\n"
-                        "Exec={} --title-id {:016x}\n"
-                        "Icon={}\n"
+                        "Name={0}\n"
+                        "Comment=Play {0} on Cemu\n"
+                        "Exec={1:?} --title-id {2:016x}\n"
+                        "Icon={3}\n"
                         "Terminal=false\n"
                         "Type=Application\n"
                         "Categories=Game;",
-                        title_name,
                         title_name,
                         _pathToUtf8(exe_path),
                         title_id,
