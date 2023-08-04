@@ -3,15 +3,15 @@
   <!--Created with jdAppdataEdit 4.2-->
   <id>info.cemu.Cemu</id>
   <name>Cemu</name>
-  <summary>Software to emulate Wii U games and applications on PC</summary>
-  <summary xml:lang="de">Software zum emulieren von Wii U Spielen und Anwendungen auf dem PC</summary>
-  <summary xml:lang="fr">Application pour émuler des jeux et applications Wii U sur PC</summary>
-  <summary xml:lang="nl">Applicatie om Wii U spellen en applicaties te emuleren op PC</summary>
-  <summary xml:lang="el">Πρόγραμμα προσομοίωσης παιχνιδιών και εφαρμογών Wii U στον υπολογιστή</summary>
-  <summary xml:lang="es">Software para emular juegos y aplicaciones de Wii U en PC</summary>
-  <summary xml:lang="pt_BR">Software para emular jogos e aplicativos de Wii U no PC</summary>
-  <summary xml:lang="it">Software per emulare giochi e applicazioni per Wii U su PC</summary>
-  <summary xml:lang="fi">Ojelmisto Wii U -pelien ja -sovellusten emulointiin PC:llä</summary>
+  <summary>Nintendo Wii U Emulator</summary>
+  <summary xml:lang="de">Nintendo Wii U Emulator</summary>
+  <summary xml:lang="fr">Émulateur Nintendo Wii U</summary>
+  <summary xml:lang="nl">Nintendo Wii U Emulator</summary>
+  <summary xml:lang="el">Εξομοιωτής Nintendo Wii U</summary>
+  <summary xml:lang="es">Emulador de Nintendo Wii U</summary>
+  <summary xml:lang="pt_BR">Emulador Nintendo Wii U</summary>
+  <summary xml:lang="it">Emulatore Nintendo Wii U</summary>
+  <summary xml:lang="fi">Nintendo Wii U Emulaattori</summary>
   <developer_name>Cemu Project</developer_name>
   <launchable type="desktop-id">info.cemu.Cemu.desktop</launchable>
   <metadata_license>CC0-1.0</metadata_license>
