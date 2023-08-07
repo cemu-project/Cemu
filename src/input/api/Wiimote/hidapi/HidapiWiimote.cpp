@@ -1,5 +1,9 @@
 #include "HidapiWiimote.h"
 
+static constexpr uint16 WIIMOTE_VENDOR_ID = 0x057e;
+static constexpr uint16 WIIMOTE_PRODUCT_ID = 0x0306;
+static constexpr uint16 WIIMOTE_MAX_MESSAGE_LENGTH = 21;
+
 HidapiWiimote::HidapiWiimote(fs::path const& device_path, uint64_t identifier)
  : m_handle(hid_open_path(_pathToUtf8(device_path).c_str())), m_identifier(identifier) {
 
@@ -10,8 +14,8 @@ bool HidapiWiimote::write_data(const std::vector<uint8> &data) {
 }
 
 std::optional<std::vector<uint8>> HidapiWiimote::read_data() {
-    std::array<uint8_t, 21> read_data{};
-    const auto result = hid_read(m_handle, read_data.data(), 20);
+    std::array<uint8, WIIMOTE_MAX_MESSAGE_LENGTH> read_data{};
+    const auto result = hid_read(m_handle, read_data.data(), WIIMOTE_MAX_MESSAGE_LENGTH);
     if (result < 0)
         return {};
     return {{read_data.cbegin(), read_data.cend()}};
@@ -20,7 +24,7 @@ std::optional<std::vector<uint8>> HidapiWiimote::read_data() {
 std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
     std::vector<WiimoteDevicePtr> wiimote_devices;
     hid_init();
-    const auto device_enumeration = hid_enumerate(0x057e, 0x0306);
+    const auto device_enumeration = hid_enumerate(WIIMOTE_VENDOR_ID, WIIMOTE_PRODUCT_ID);
     auto it = device_enumeration;
     while (it){
         // Enough to have a unique id for each device within a session
