@@ -8,6 +8,11 @@
 #include "input/api/Wiimote/windows/WinWiimoteDevice.h"
 #endif
 
+#ifdef WIIMOTE_DEBUG
+#define WIIMOTE_DEBUG_LOG(FMT, ARGS...) cemuLog_logDebug(LogType::Force, FMT, ##ARGS);
+#else
+#define WIIMOTE_DEBUG_LOG(FMT, ARGS...)
+#endif
 #include <numbers>
 
 WiimoteControllerProvider::WiimoteControllerProvider()
@@ -165,9 +170,7 @@ void WiimoteControllerProvider::reader_thread()
 			{
 			case kStatus:
 				{
-#ifdef WIIMOTE_DEBUG
-					printf("WiimoteControllerProvider::read_thread: kStatus\n");
-#endif
+                    WIIMOTE_DEBUG_LOG("WiimoteControllerProvider::read_thread: kStatus")
 					new_state.buttons = (*(uint16*)data) & (~0x60E0);
 					data += 2;
 					new_state.flags = *data;
@@ -185,9 +188,7 @@ void WiimoteControllerProvider::reader_thread()
 
 					if (HAS_FLAG(new_state.flags, kExtensionConnected))
 					{
-#ifdef WIIMOTE_DEBUG
-						printf("\tExtension flag is set\n");
-#endif
+                        WIIMOTE_DEBUG_LOG("Extension flag is set")
 						if(new_state.m_extension.index() == 0)
 							request_extension(index);
 					}
@@ -201,9 +202,7 @@ void WiimoteControllerProvider::reader_thread()
 				break;
 			case kRead:
 				{
-#ifdef WIIMOTE_DEBUG
-					printf("WiimoteControllerProvider::read_thread: kRead\n");
-#endif
+                    WIIMOTE_DEBUG_LOG("WiimoteControllerProvider::read_thread: kRead")
 					new_state.buttons = (*(uint16*)data) & (~0x60E0);
 					data += 2;
 					const uint8 error_flag = *data & 0xF, size = (*data >> 4) + 1;
@@ -211,10 +210,9 @@ void WiimoteControllerProvider::reader_thread()
 
 					if (error_flag)
 					{
+
 						// 7 means that wiimote is already enabled or not available
-#ifdef WIIMOTE_DEBUG
-						printf("Received error on data read 0x%x\n", error_flag);
-#endif
+                        WIIMOTE_DEBUG_LOG("Received error on data read {:#x}", error_flag)
 						continue;
 					}
 
@@ -222,9 +220,7 @@ void WiimoteControllerProvider::reader_thread()
 					data += 2;
 					if (address == (kRegisterCalibration & 0xFFFF))
 					{
-#ifdef WIIMOTE_DEBUG
-						printf("Calibration received\n");
-#endif
+                        WIIMOTE_DEBUG_LOG("Calibration received");
 
 						cemu_assert(size == 8);
 
@@ -257,16 +253,9 @@ void WiimoteControllerProvider::reader_thread()
 					{
 						if (size == 0xf)
 						{
-#ifdef WIIMOTE_DEBUG
-							printf("Extension type received but no extension connected\n");
-#endif
+							WIIMOTE_DEBUG_LOG("Extension type received but no extension connected")
 							continue;
 						}
-
-
-#ifdef WIIMOTE_DEBUG
-						printf("Extension type received\n");
-#endif
 
 						cemu_assert(size == 6);
 						auto be_type = *(betype<uint64>*)data;
@@ -276,37 +265,32 @@ void WiimoteControllerProvider::reader_thread()
 						switch (be_type.value())
 						{
 						case kExtensionNunchuck:
-#ifdef WIIMOTE_DEBUG
-							printf("\tNunchuck\n");
-#endif
+                            WIIMOTE_DEBUG_LOG("Extension Type Received: Nunchuck")
 							new_state.m_extension = NunchuckData{};
 							break;
 						case kExtensionClassic:
-#ifdef WIIMOTE_DEBUG
-							printf("\tClassic\n");
-#endif
+                            WIIMOTE_DEBUG_LOG("Extension Type Received: Classic")
 							new_state.m_extension = ClassicData{};
 							break;
 						case kExtensionClassicPro:
-							break;
+                            WIIMOTE_DEBUG_LOG("Extension Type Received: Classic Pro")
+                            break;
 						case kExtensionGuitar:
-							break;
+                            WIIMOTE_DEBUG_LOG("Extension Type Received: Guitar")
+                            break;
 						case kExtensionDrums:
-							break;
+                            WIIMOTE_DEBUG_LOG("Extension Type Received: Drums")
+                            break;
 						case kExtensionBalanceBoard:
-							break;
+                            WIIMOTE_DEBUG_LOG("Extension Type Received: Balance Board")
+                            break;
 						case kExtensionMotionPlus:
-							//m_motion_plus = true;
-#ifdef WIIMOTE_DEBUG
-							printf("\tMotion plus detected\n");
-#endif
+                            WIIMOTE_DEBUG_LOG("Extension Type Received: MotionPlus")
 							set_motion_plus(index, true);
 							new_state.m_motion_plus = MotionPlusData{};
 							break;
 						case kExtensionPartialyInserted:
-#ifdef WIIMOTE_DEBUG
-							printf("\tExtension only partially inserted!\n");
-#endif
+                            WIIMOTE_DEBUG_LOG("Extension only partially inserted")
 							new_state.m_extension = {};
 							request_status(index);
 							break;
@@ -321,9 +305,7 @@ void WiimoteControllerProvider::reader_thread()
 					else if (address == (kRegisterExtensionCalibration & 0xFFFF))
 					{
 						cemu_assert(size == 0x10);
-#ifdef WIIMOTE_DEBUG
-						printf("Extension calibration received\n");
-#endif
+                        WIIMOTE_DEBUG_LOG("Extension calibration received")
 						std::visit(
 							overloaded
 							{
@@ -339,9 +321,7 @@ void WiimoteControllerProvider::reader_thread()
 									std::array<uint8, 14> zero{};
 									if (memcmp(zero.data(), data, zero.size()) == 0)
 									{
-#ifdef WIIMOTE_DEBUG
-										printf("\tExtension calibration data is zero!\n");
-#endif
+                                        WIIMOTE_DEBUG_LOG("\tExtension calibration data is zero")
 										return;
 									}
 
@@ -374,10 +354,8 @@ void WiimoteControllerProvider::reader_thread()
 					}
 					else
 					{
-#ifdef WIIMOTE_DEBUG
-						printf("Unhandled read data received\n");
-#endif
-						continue;
+                        WIIMOTE_DEBUG_LOG("Unhandled read data received")
+                        continue;
 					}
 
 					update_report = true;
@@ -478,10 +456,7 @@ void WiimoteControllerProvider::reader_thread()
 								orientation /= tmp;*/
 
 								mp.orientation = orientation;
-#ifdef WIIMOTE_DEBUG
-								printf("\tmp: %.2lf %.2lf %.2lf\n", mp.orientation.x, mp.orientation.y,
-								       mp.orientation.z);
-#endif
+                                WIIMOTE_DEBUG_LOG("MotionPlus: {:.2f}, {:.2f} {:.2f}", mp.orientation.x, mp.orientation.y, mp.orientation.z)
 							},
 							[data](NunchuckData& nunchuck) mutable
 							{
@@ -555,12 +530,11 @@ void WiimoteControllerProvider::reader_thread()
 									zero3,
 									zero4
 								);
-#ifdef WIIMOTE_DEBUG
-								printf("\tn: %d,%d | %lf - %lf | %.2lf %.2lf %.2lf\n", nunchuck.z, nunchuck.c,
-								       nunchuck.axis.x, nunchuck.axis.y,
-								       RadToDeg(nunchuck.acceleration.x), RadToDeg(nunchuck.acceleration.y),
-								       RadToDeg(nunchuck.acceleration.z));
-#endif
+                                WIIMOTE_DEBUG_LOG("Nunchuck: Z={}, C={} | {}, {} | {:.2f}, {:.2f}, {:.2f}",
+                                                 nunchuck.z, nunchuck.c,
+                                                 nunchuck.axis.x, nunchuck.axis.y,
+                                                 RadToDeg(nunchuck.acceleration.x), RadToDeg(nunchuck.acceleration.y),
+                                                 RadToDeg(nunchuck.acceleration.z))
 							},
 							[data](ClassicData& classic) mutable
 							{
@@ -594,11 +568,11 @@ void WiimoteControllerProvider::reader_thread()
 
 								classic.trigger = classic.raw_trigger;
 								classic.trigger /= 31.0f;
-#ifdef WIIMOTE_DEBUG
-								printf("\tc: %d | %lf - %lf | %lf - %lf | %lf - %lf\n", classic.buttons,
-								       classic.left_axis.x, classic.left_axis.y, classic.right_axis.x,
-								       classic.right_axis.y, classic.trigger.x, classic.trigger.y);
-#endif
+                                WIIMOTE_DEBUG_LOG("\tClassic Controller: Buttons={:b} | {}, {} | {}, {} | {}, {}",
+                                                 classic.buttons, classic.left_axis.x, classic.left_axis.y,
+                                                 classic.right_axis.x, classic.right_axis.y, classic.trigger.x,
+                                                 classic.trigger.y);
+
 							}
 						}, new_state.m_extension);
 
@@ -611,9 +585,7 @@ void WiimoteControllerProvider::reader_thread()
 					break;
 				}
 			default:
-#ifdef WIIMOTE_DEBUG
-				printf("unhandled input packet id %d for wiimote\n", data[0]);
-#endif
+                WIIMOTE_DEBUG_LOG("unhandled input packet id {} for wiimote", data[0])
 			}
 
 			// update motion data
@@ -975,9 +947,7 @@ void WiimoteControllerProvider::update_report_type(size_t index)
 	else
 		report_type = kDataCore;
 
-#ifdef WIIMOTE_DEBUG
-	printf("Setting report type to %d\n", report_type);
-#endif
+    WIIMOTE_DEBUG_LOG("Setting report type to {}", report_type)
 	send_packet(index, {kType, 0x04, report_type});
 
 	state.ir_camera.mode = set_ir_camera(index, true);
@@ -1056,3 +1026,5 @@ void WiimoteControllerProvider::send_write_packet(size_t index, MemoryType type,
 	std::copy(data.begin(), data.end(), packet.data() + 2 + 3 + 1);
 	send_packet(index, std::move(packet));
 }
+
+#undef WIIMOTE_DEBUG_LOG
