@@ -26,6 +26,7 @@
     "boost-static-string",
     "boost-random",
     "fmt",
+    "hidapi",
     "libpng",
     "glm",
     {

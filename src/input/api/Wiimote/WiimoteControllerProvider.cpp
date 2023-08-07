@@ -2,7 +2,9 @@
 #include "input/api/Wiimote/NativeWiimoteController.h"
 #include "input/api/Wiimote/WiimoteMessages.h"
 
-#if BOOST_OS_WINDOWS
+#ifdef HAS_HIDAPI
+#include "input/api/Wiimote/hidapi/HidapiWiimote.h"
+#elif BOOST_OS_WINDOWS
 #include "input/api/Wiimote/windows/WinWiimoteDevice.h"
 #endif
 
