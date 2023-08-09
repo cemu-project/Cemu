@@ -9,9 +9,9 @@
 #endif
 
 #ifdef WIIMOTE_DEBUG
-#define WIIMOTE_DEBUG_LOG(FMT, ARGS...) cemuLog_logDebug(LogType::Force, FMT, ##ARGS);
+#define WIIMOTE_DEBUG_LOG(FMT, ...) cemuLog_logDebug(LogType::Force, FMT __VA_OPT__(,) __VA_ARGS__);
 #else
-#define WIIMOTE_DEBUG_LOG(FMT, ARGS...)
+#define WIIMOTE_DEBUG_LOG(FMT, ...)
 #endif
 #include <numbers>
 
@@ -321,7 +321,7 @@ void WiimoteControllerProvider::reader_thread()
 									std::array<uint8, 14> zero{};
 									if (memcmp(zero.data(), data, zero.size()) == 0)
 									{
-                                        WIIMOTE_DEBUG_LOG("\tExtension calibration data is zero")
+                                        WIIMOTE_DEBUG_LOG("Extension calibration data is zero")
 										return;
 									}
 
@@ -568,7 +568,7 @@ void WiimoteControllerProvider::reader_thread()
 
 								classic.trigger = classic.raw_trigger;
 								classic.trigger /= 31.0f;
-                                WIIMOTE_DEBUG_LOG("\tClassic Controller: Buttons={:b} | {}, {} | {}, {} | {}, {}",
+                                WIIMOTE_DEBUG_LOG("Classic Controller: Buttons={:b} | {}, {} | {}, {} | {}, {}",
                                                  classic.buttons, classic.left_axis.x, classic.left_axis.y,
                                                  classic.right_axis.x, classic.right_axis.y, classic.trigger.x,
                                                  classic.trigger.y);
@@ -668,7 +668,6 @@ void WiimoteControllerProvider::parse_acceleration(WiimoteState& wiimote_state, 
 	tmp -= calib.zero;
 	acceleration = (wiimote_state.m_acceleration / tmp);
 
-	//printf("%d, %d, %d\n", (int)m_acceleration.x, (int)m_acceleration.y, (int)m_acceleration.z);
 	const float pi_2 = (float)std::numbers::pi / 2.0f;
 	wiimote_state.m_roll = std::atan2(acceleration.z, acceleration.x) - pi_2;
 }
@@ -687,7 +686,6 @@ void WiimoteControllerProvider::rotate_ir(WiimoteState& wiimote_state)
 		i++;
 		if (!dot.visible)
 			continue;
-		//printf("%d:\t%.02lf | %.02lf\n", i, dot.pos.x, dot.pos.y);
 		// move to center, rotate and move back
 		dot.pos -= 0.5f;
 		dot.pos.x = (dot.pos.x * cos) + (dot.pos.y * (-sin));
