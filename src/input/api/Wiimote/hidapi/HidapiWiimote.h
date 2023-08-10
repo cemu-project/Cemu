@@ -5,7 +5,7 @@
 
 class HidapiWiimote : public WiimoteDevice {
 public:
-    HidapiWiimote(fs::path const& device_path, uint64_t identifier);
+    HidapiWiimote(hid_device* dev, uint64_t identifier);
     ~HidapiWiimote() override;
 
     bool write_data(const std::vector<uint8> &data) override;
