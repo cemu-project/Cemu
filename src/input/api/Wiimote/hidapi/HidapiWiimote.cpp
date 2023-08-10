@@ -2,7 +2,7 @@
 
 static constexpr uint16 WIIMOTE_VENDOR_ID = 0x057e;
 static constexpr uint16 WIIMOTE_PRODUCT_ID = 0x0306;
-static constexpr uint16 WIIMOTE_MAX_INPUT_REPROT_LENGTH = 21;
+static constexpr uint16 WIIMOTE_MAX_INPUT_REPORT_LENGTH = 21;
 
 HidapiWiimote::HidapiWiimote(hid_device* dev, uint64_t identifier)
  : m_handle(dev), m_identifier(identifier) {
@@ -14,11 +14,11 @@ bool HidapiWiimote::write_data(const std::vector<uint8> &data) {
 }
 
 std::optional<std::vector<uint8>> HidapiWiimote::read_data() {
-    std::array<uint8, WIIMOTE_MAX_INPUT_REPROT_LENGTH> read_data{};
-    const auto result = hid_read(m_handle, read_data.data(), WIIMOTE_MAX_INPUT_REPROT_LENGTH);
+    std::array<uint8, WIIMOTE_MAX_INPUT_REPORT_LENGTH> read_data{};
+    const auto result = hid_read(m_handle, read_data.data(), WIIMOTE_MAX_INPUT_REPORT_LENGTH);
     if (result < 0)
         return {};
-    return {{read_data.cbegin(), read_data.cend()}};
+    return {{read_data.cbegin(), read_data.cbegin() + result}};
 }
 
 std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
