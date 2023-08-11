@@ -1019,5 +1019,3 @@ void WiimoteControllerProvider::send_write_packet(size_t index, MemoryType type,
 	std::copy(data.begin(), data.end(), packet.data() + 2 + 3 + 1);
 	send_packet(index, std::move(packet));
 }
-
-#undef WIIMOTE_DEBUG_LOG
