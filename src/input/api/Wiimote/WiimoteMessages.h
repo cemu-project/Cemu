@@ -8,7 +8,7 @@ enum InputReportId : uint8
 
 	kStatus = 0x20,
 	kRead = 0x21,
-	kWrite = 0x22,
+	kAcknowledge = 0x22,
 
 	kDataCore = 0x30,
 	kDataCoreAcc = 0x31,

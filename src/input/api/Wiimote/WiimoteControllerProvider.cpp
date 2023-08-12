@@ -38,7 +38,7 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
 		{
 			// only add unknown, connected devices to our list
 			const bool is_new_device = std::none_of(m_wiimotes.cbegin(), m_wiimotes.cend(),
-			                                        [&device](const auto& it) { return *it.device == *device; });
+			                                        [device](const auto& it) { return *it.device == *device; });
 			if (is_new_device)
 			{
 				m_wiimotes.push_back(std::make_unique<Wiimote>(device));
@@ -290,7 +290,8 @@ void WiimoteControllerProvider::reader_thread()
 							request_status(index);
 							break;
 						default:
-							new_state.m_extension = {};
+                            cemuLog_logDebug(LogType::Force,"Unknown extension: {:#x}", be_type.value());
+                            new_state.m_extension = {};
 							break;
 						}
 
@@ -356,6 +357,16 @@ void WiimoteControllerProvider::reader_thread()
 					update_report = true;
 				}
 				break;
+            case kAcknowledge:
+                {
+                    new_state.buttons = *(uint16*)data & (~0x60E0);
+                    data += 2;
+                    const auto report_id = *data++;
+                    const auto error = *data++;
+                    if (error)
+                        cemuLog_logDebug(LogType::Force, "Error {:#x} from output report {:#x}", error, report_id);
+                    break;
+                }
 			case kDataCore:
 				{
 					// 30 BB BB
@@ -580,7 +591,7 @@ void WiimoteControllerProvider::reader_thread()
 					break;
 				}
 			default:
-                cemuLog_logDebug(LogType::Force,"unhandled input packet id {} for wiimote", data[0]);
+                cemuLog_logDebug(LogType::Force,"unhandled input packet id {} for wiimote {}", id, index);
 			}
 
 			// update motion data
