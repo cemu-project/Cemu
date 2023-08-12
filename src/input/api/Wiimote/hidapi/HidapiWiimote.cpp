@@ -2,7 +2,8 @@
 
 static constexpr uint16 WIIMOTE_VENDOR_ID = 0x057e;
 static constexpr uint16 WIIMOTE_PRODUCT_ID = 0x0306;
-static constexpr uint16 WIIMOTE_MAX_INPUT_REPORT_LENGTH = 21;
+static constexpr uint16 WIIMOTE_MP_PRODUCT_ID = 0x0330;
+static constexpr uint16 WIIMOTE_MAX_INPUT_REPORT_LENGTH = 22;
 
 HidapiWiimote::HidapiWiimote(hid_device* dev, uint64_t identifier)
  : m_handle(dev), m_identifier(identifier) {
@@ -24,9 +25,11 @@ std::optional<std::vector<uint8>> HidapiWiimote::read_data() {
 std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
     std::vector<WiimoteDevicePtr> wiimote_devices;
     hid_init();
-    const auto device_enumeration = hid_enumerate(WIIMOTE_VENDOR_ID, WIIMOTE_PRODUCT_ID);
-    auto it = device_enumeration;
-    while (it){
+    const auto device_enumeration = hid_enumerate(WIIMOTE_VENDOR_ID, 0x0);
+
+    for (auto it = device_enumeration; it != nullptr; it = it->next){
+        if (it->product_id != WIIMOTE_PRODUCT_ID && it->product_id != WIIMOTE_MP_PRODUCT_ID)
+            continue;
         auto dev = hid_open_path(it->path);
         if (!dev){
             cemuLog_logDebug(LogType::Force, "Unable to open Wiimote device at {}: {}", it->path, boost::nowide::narrow(hid_error(nullptr)));
@@ -38,7 +41,6 @@ std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
                           (it->usage);
             wiimote_devices.push_back(std::make_shared<HidapiWiimote>(dev, id));
         }
-        it = it->next;
     }
     hid_free_enumeration(device_enumeration);
     return wiimote_devices;
