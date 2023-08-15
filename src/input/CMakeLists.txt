@@ -44,18 +44,6 @@ add_library(CemuInput
 set_property(TARGET CemuInput PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 if(WIN32)
-	# Native wiimote (Win32 only for now)
-	target_sources(CemuInput PRIVATE
-		api/Wiimote/WiimoteControllerProvider.h
-		api/Wiimote/windows/WinWiimoteDevice.cpp
-		api/Wiimote/windows/WinWiimoteDevice.h
-		api/Wiimote/WiimoteControllerProvider.cpp
-		api/Wiimote/WiimoteMessages.h
-		api/Wiimote/NativeWiimoteController.h
-		api/Wiimote/NativeWiimoteController.cpp
-		api/Wiimote/WiimoteDevice.h
-	)
-
 	# XInput
 	target_sources(CemuInput PRIVATE
 		api/XInput/XInputControllerProvider.cpp
@@ -73,6 +61,29 @@ if(WIN32)
 	)
 endif()
 
+if (ENABLE_WIIMOTE)
+	target_sources(CemuInput PRIVATE
+			api/Wiimote/WiimoteControllerProvider.h
+			api/Wiimote/WiimoteControllerProvider.cpp
+			api/Wiimote/WiimoteMessages.h
+			api/Wiimote/NativeWiimoteController.h
+			api/Wiimote/NativeWiimoteController.cpp
+			api/Wiimote/WiimoteDevice.h
+	)
+	if (ENABLE_HIDAPI)
+		target_sources(CemuInput PRIVATE
+			api/Wiimote/hidapi/HidapiWiimote.cpp
+			api/Wiimote/hidapi/HidapiWiimote.h
+		)
+	elseif (WIN32)
+		target_sources(CemuInput PRIVATE
+			api/Wiimote/windows/WinWiimoteDevice.cpp
+			api/Wiimote/windows/WinWiimoteDevice.h
+		)
+	endif()
+endif ()
+
+
 target_include_directories(CemuInput PUBLIC "../")
 
 target_link_libraries(CemuInput PRIVATE
@@ -87,6 +98,9 @@ target_link_libraries(CemuInput PRIVATE
 	pugixml::pugixml
 	SDL2::SDL2
 )
+if (ENABLE_HIDAPI)
+	target_link_libraries(CemuInput PRIVATE hidapi::hidapi)
+endif()
 
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuInput PRIVATE wx::base wx::core)

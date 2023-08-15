@@ -26,6 +26,10 @@
     "boost-static-string",
     "boost-random",
     "fmt",
+    {
+      "name": "hidapi",
+      "platform": "!windows"
+    },
     "libpng",
     "glm",
     {
