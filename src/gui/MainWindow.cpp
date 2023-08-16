@@ -42,6 +42,7 @@
 #include "util/helpers/SystemException.h"
 #include "gui/DownloadGraphicPacksWindow.h"
 #include "gui/GettingStartedDialog.h"
+#include "gui/PairingDialog.h"
 #include "gui/helpers/wxHelpers.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #include "gui/input/InputSettings2.h"
@@ -115,6 +116,7 @@ enum
 	MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER = 20600,
 	MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER,
 	MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER,
+    MAINFRAME_MENU_ID_TOOLS_PAIR_WIIMOTE,
 	// cpu
 	// cpu->timer speed
 	MAINFRAME_MENU_ID_TIMER_SPEED_1X = 20700,
@@ -193,6 +195,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, MainWindow::OnToolsInput)
+EVT_MENU(MAINFRAME_MENU_ID_TOOLS_PAIR_WIIMOTE, MainWindow::OnToolsInput)
 // cpu menu
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_8X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_4X, MainWindow::OnDebugSetting)
@@ -1512,7 +1515,13 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 				});
 			m_title_manager->Show();
 		}
+        break;
 	}
+    case MAINFRAME_MENU_ID_TOOLS_PAIR_WIIMOTE:
+    {
+        PairingDialog pairing_dialog(this);
+        pairing_dialog.ShowModal();
+    }
 	break;
 	}
 }
@@ -2160,6 +2169,7 @@ void MainWindow::RecreateMenu()
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
+    toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_PAIR_WIIMOTE, _("&Pair a Wiimote or Wii U Pro Controller..."));
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 
 	// cpu timer speed menu

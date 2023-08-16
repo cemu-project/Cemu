@@ -97,6 +97,8 @@ add_library(CemuGui
   MemorySearcherTool.h
   PadViewFrame.cpp
   PadViewFrame.h
+  PairingDialog.cpp
+  PairingDialog.h
   TitleManager.cpp
   TitleManager.h
   windows/PPCThreadsViewer
@@ -169,4 +171,8 @@ endif()
 if (ENABLE_WXWIDGETS)
 	# PUBLIC because wx/app.h is included in CemuApp.h
 	target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
+endif()
+
+if(WIN32)
+	target_link_libraries(CemuGui PRIVATE bthprops)
 endif()
