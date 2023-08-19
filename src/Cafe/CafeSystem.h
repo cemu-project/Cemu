@@ -31,7 +31,7 @@ namespace CafeSystem
 	void ShutdownTitle();
 
 	void PauseTitle();
-	void ResumeTitle(bool* runningThreads = nullptr);
+	void ResumeTitle();
 
 	void SaveState(std::string path);
 	void LoadState(std::string path);

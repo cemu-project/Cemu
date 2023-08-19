@@ -525,8 +525,7 @@ namespace coreinit
 	sint32 __OSResumeThreadInternal(OSThread_t* thread, sint32 resumeCount);
 	sint32 OSResumeThread(OSThread_t* thread);
 	void SuspendAllThreads();
-	void ResumeAllThreads(bool* runningThreads);
-	std::vector<OSThread_t*> GetAllThreads();
+	void ResumeAllThreads();
 	void OSContinueThread(OSThread_t* thread);
 	void __OSSuspendThreadInternal(OSThread_t* thread);
 	void __OSSuspendThreadNolock(OSThread_t* thread);

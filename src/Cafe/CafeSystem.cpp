@@ -802,12 +802,11 @@ namespace CafeSystem
 		sSystemRunning = false;
 	}
 
-	void ResumeTitle(bool* runningThreads)
+	void ResumeTitle()
 	{
 		if (sSystemRunning)
 			return;
-
-		coreinit::ResumeAllThreads(runningThreads);
+		coreinit::ResumeAllThreads();
 		sSystemRunning = true;
 	}
 
@@ -824,13 +823,6 @@ namespace CafeSystem
 		writer.writeData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
 		writer.writeData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
 		// cpu
-		auto threads = coreinit::GetAllThreads();
-		for (auto& thr : threads)
-		{
-			writer.writeBE<bool>(thr != nullptr);
-			if (thr != nullptr)
-				writer.writeData(thr, sizeof(OSThread_t));
-		}
 		for (auto& thr : activeThread)
 		{
 			writer.writeBE(thr);
@@ -861,19 +853,6 @@ namespace CafeSystem
 		reader.readData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
 		reader.readData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
 		// cpu
-		auto threads = coreinit::GetAllThreads();
-		for (auto& thr : threads)
-		{
-			bool notnull = reader.readBE<bool>();
-			if (notnull)
-			{
-				if (!thr)
-				{
-					thr = new OSThread_t;
-				}
-				reader.readData(thr, sizeof(OSThread_t));
-			}
-		}
 		for (size_t i = 0; i < 256; i++)
 		{
 			activeThread[i] = reader.readBE<uint32>();

@@ -108,19 +108,15 @@ void MemStreamWriter::writeBE<MMURange>(const MMURange& v)
 }
 
 template <>
-MMURange MemStreamReader::readBE<MMURange>()
+void MemStreamReader::readBE<MMURange>(MMURange& mmuRange)
 {
-	bool mapped = readBE<bool>();
-	uint32 base = readBE<uint32>();
-	MMU_MEM_AREA_ID areaid = (MMU_MEM_AREA_ID)readBE<uint8>();
-	MMURange::MFLAG flags = (MMURange::MFLAG)readBE<uint8>();
-	std::string name = readBE<std::string>();
-	uint32 size = readBE<uint32>();
-	uint32 initsize = readBE<uint32>();
-	MMURange range(base, size, areaid, name, flags);
-	if (mapped)
-		range.mapMem();
-	return range;
+	mmuRange.m_isMapped = readBE<bool>();
+	mmuRange.baseAddress = readBE<uint32>();
+	mmuRange.areaId = (MMU_MEM_AREA_ID)readBE<uint8>();
+	mmuRange.flags = (MMURange::MFLAG)readBE<uint8>();
+	mmuRange.name = readBE<std::string>();
+	mmuRange.size = readBE<uint32>();
+	mmuRange.initSize = readBE<uint32>();
 }
 
 bool MMURange::deserializeImpl(MemStreamReader& streamReader)
@@ -478,17 +474,14 @@ void memory_Serialize(MemStreamWriter& s)
 
 void memory_Deserialize(MemStreamReader& s)
 {
-	g_mmuRanges.clear();
 	size_t cnt = s.readBE<uint64>();
-	for (size_t i = 0; i < cnt; i++)
+	for (auto& itr : g_mmuRanges)
 	{
-		auto range = s.readBE<MMURange>();
-		bool mapped = range.isMapped();
-		if (mapped)
+		s.readBE<MMURange>(*itr);
+		if (itr->isMapped())
 		{
-			s.readData(memory_base + range.getBase(), range.getSize());
+			s.readData(memory_base + itr->getBase(), itr->getSize());
 		}
-		g_mmuRanges.push_back(std::move(&range));
 	}
 }
 
