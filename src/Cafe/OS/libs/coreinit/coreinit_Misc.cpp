@@ -1,5 +1,8 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
+#include "Cafe/CafeSystem.h"
+#include "Cafe/Filesystem/fsc.h"
+#include <pugixml.hpp>
 
 namespace coreinit
 {
@@ -309,14 +312,20 @@ namespace coreinit
 		cemu_assert_unimplemented();
 	}
 
-	void COSWarn()
+	void COSWarn(int moduleId, const char* format)
 	{
-		cemu_assert_debug(false);
+		char buffer[1024 * 2];
+		int prefixLen = sprintf(buffer, "[COSWarn-%d] ", moduleId);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 2);
+		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 
-	void OSLogPrintf()
+	void OSLogPrintf(int ukn1, int ukn2, int ukn3, const char* format)
 	{
-		cemu_assert_debug(false);
+		char buffer[1024 * 2];
+		int prefixLen = sprintf(buffer, "[OSLogPrintf-%d-%d-%d] ", ukn1, ukn2, ukn3);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 4);
+		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 
 	void OSConsoleWrite(const char* strPtr, sint32 length)
@@ -341,19 +350,124 @@ namespace coreinit
 		return true;
 	}
 
+	uint32 s_sdkVersion;
+
+	uint32 __OSGetProcessSDKVersion()
+	{
+		return s_sdkVersion;
+	}
+
+	// move this to CafeSystem.cpp?
+	void OSLauncherThread(uint64 titleId)
+	{
+		CafeSystem::ShutdownTitle();
+		CafeSystem::PrepareForegroundTitle(titleId);
+		CafeSystem::RequestRecreateCanvas();
+		CafeSystem::LaunchForegroundTitle();
+	}
+
+	uint32 __LaunchByTitleId(uint64 titleId, uint32 argc, MEMPTR<char>* argv)
+	{
+		// prepare argument buffer
+		#if 0
+		char argumentBuffer[4096];
+		uint32 argumentBufferLength = 0;
+		char* argWriter = argumentBuffer;
+		for(uint32 i=0; i<argc; i++)
+		{
+			const char* arg = argv[i];
+			uint32 argLength = strlen(arg);
+			if((argumentBufferLength + argLength + 1) >= sizeof(argumentBuffer))
+			{
+				// argument buffer full
+				cemuLog_logDebug(LogType::Force, "LaunchByTitleId: argument buffer full");
+				return 0x80000000;
+			}
+			memcpy(argWriter, arg, argLength);
+			argWriter[argLength] = '\0';
+			argWriter += argLength + 1;
+			argumentBufferLength += argLength + 1;
+		}
+		#endif
+		// normally the above buffer is passed to the PPC kernel via syscall 0x2B and then
+		// the kernel forwards it to IOSU MCP when requesting a title launch
+		// but for now we HLE most of the launching code and can just set the argument array directly
+		std::vector<std::string> argArray;
+		for(uint32 i=0; i<argc; i++)
+			argArray.emplace_back(argv[i]);
+		CafeSystem::SetOverrideArgs(argArray);
+		// spawn launcher thread (this current thread will be destroyed during relaunch)
+		std::thread launcherThread(OSLauncherThread, titleId);
+		launcherThread.detach();
+		// suspend this thread
+		coreinit::OSSuspendThread(coreinit::OSGetCurrentThread());
+		return 0;
+	}
+
+	uint32 OSLaunchTitleByPathl(const char* path, uint32 pathLength, uint32 argc)
+	{
+		char appXmlPath[1024];
+		cemu_assert_debug(argc == 0); // custom args not supported yet
+		if(pathLength >= (sizeof(appXmlPath) - 32))
+		{
+			// path too long
+			cemuLog_logDebug(LogType::Force, "OSLaunchTitleByPathl: path too long");
+			return 0x80000000;
+		}
+		// read app.xml to get the titleId
+		memcpy(appXmlPath, path, pathLength);
+		appXmlPath[pathLength] = '\0';
+		strcat(appXmlPath, "/code/app.xml");
+		sint32 status;
+		auto fscfile = fsc_open(appXmlPath, FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &status);
+		if (!fscfile)
+		{
+			cemuLog_logDebug(LogType::Force, "OSLaunchTitleByPathl: failed to open target app.xml");
+			return 0x80000000;
+		}
+		uint32 size = fsc_getFileSize(fscfile);
+		std::vector<uint8> tmpData(size);
+		fsc_readFile(fscfile, tmpData.data(), size);
+		fsc_close(fscfile);
+		// parse app.xml to get the titleId
+		pugi::xml_document app_doc;
+		if (!app_doc.load_buffer_inplace(tmpData.data(), tmpData.size()))
+			return false;
+		uint64 titleId = std::stoull(app_doc.child("app").child("title_id").child_value(), nullptr, 16);
+		if(titleId == 0)
+		{
+			cemuLog_logDebug(LogType::Force, "OSLaunchTitleByPathl: failed to parse titleId from app.xml");
+			return 0x80000000;
+		}
+		__LaunchByTitleId(titleId, 0, nullptr);
+		return 0;
+	}
+
+	uint32 OSRestartGame(uint32 argc, MEMPTR<char>* argv)
+	{
+		__LaunchByTitleId(CafeSystem::GetForegroundTitleId(), argc, argv);
+		return 0;
+	}
+
 	void miscInit()
 	{
+		s_sdkVersion = CafeSystem::GetForegroundTitleSDKVersion();
+
 		cafeExportRegister("coreinit", __os_snprintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSReport, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSVReport, LogType::Placeholder);
 		cafeExportRegister("coreinit", COSWarn, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSLogPrintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSConsoleWrite, LogType::Placeholder);
+		cafeExportRegister("coreinit", __OSGetProcessSDKVersion, LogType::Placeholder);
 
 		g_homeButtonMenuEnabled = true; // enabled by default
 		// Disney Infinity 2.0 actually relies on home button menu being enabled by default. If it's false it will crash due to calling erreula->IsAppearHomeNixSign() before initializing erreula
 		cafeExportRegister("coreinit", OSIsHomeButtonMenuEnabled, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSEnableHomeButtonMenu, LogType::CoreinitThread);
+
+		cafeExportRegister("coreinit", OSLaunchTitleByPathl, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSRestartGame, LogType::Placeholder);
 	}
 
 };

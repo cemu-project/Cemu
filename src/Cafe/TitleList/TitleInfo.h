@@ -3,6 +3,7 @@
 #include "Cafe/Filesystem/fsc.h"
 #include "config/CemuConfig.h" // for CafeConsoleRegion. Move to NCrypto?
 #include "TitleId.h"
+#include "AppType.h"
 #include "ParsedMetaXml.h"
 
 enum class CafeTitleFileType
@@ -22,6 +23,7 @@ struct ParsedAppXml
 	uint16 title_version;
 	uint32 app_type;
 	uint32 group_id;
+	uint32 sdk_version;
 };
 
 struct ParsedCosXml 
@@ -69,6 +71,7 @@ public:
 		std::string subPath; // for WUA
 		uint64 titleId;
 		uint16 titleVersion;
+		uint32 sdkVersion;
 		std::string titleName;
 		CafeConsoleRegion region;
 		uint32 group_id;
@@ -115,12 +118,21 @@ public:
 		return m_uid == rhs.m_uid;
 	}
 
+	bool IsSystemDataTitle() const
+	{
+		if(!IsValid())
+			return false;
+		uint32 appType = GetAppType();
+		return appType == APP_TYPE::DRC_FIRMWARE || appType == APP_TYPE::DRC_TEXTURE_ATLAS || appType == APP_TYPE::VERSION_DATA_TITLE;
+	}
+
 	// API which requires parsed meta data or cached info
 	TitleId GetAppTitleId() const; // from app.xml
 	uint16 GetAppTitleVersion() const; // from app.xml
+	uint32 GetAppSDKVersion() const; // from app.xml
 	uint32 GetAppGroup() const; // from app.xml
 	uint32 GetAppType() const; // from app.xml
-	std::string GetTitleName() const; // from meta.xml
+	std::string GetMetaTitleName() const; // from meta.xml
 	CafeConsoleRegion GetMetaRegion() const; // from meta.xml
 	uint32 GetOlvAccesskey() const;
 
@@ -136,7 +148,7 @@ public:
 		return m_parsedMetaXml;
 	}
 
-	std::string GetPrintPath() const; // formatted path for log writing
+	std::string GetPrintPath() const; // formatted path including type and WUA subpath. Intended for logging and user-facing information
 	std::string GetInstallPath() const; // installation subpath, relative to storage base. E.g. "usr/title/.../..." or "sys/title/.../..."
 
 	static std::string GetUniqueTempMountingPath();

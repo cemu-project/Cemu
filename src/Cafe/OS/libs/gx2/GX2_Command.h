@@ -97,5 +97,6 @@ namespace GX2
 	void GX2DirectCallDisplayList(void* addr, uint32 size);
 
 	void GX2Init_writeGather();
-	void GX2CommandInit();
+    void GX2CommandInit();
+    void GX2CommandResetToDefaultState();
 }

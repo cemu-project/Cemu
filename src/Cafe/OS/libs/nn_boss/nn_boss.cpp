@@ -1483,7 +1483,7 @@ std::string nnBossNsDataExport_GetPath(nsData_t* nsData)
 	if (title_id == 0)
 		title_id = CafeSystem::GetForegroundTitleId();
 
-	fs::path path = fmt::format(L"cemuBossStorage/{:08x}/{:08x}/user/{:08x}", (uint32)(title_id >> 32), (uint32)(title_id & 0xFFFFFFFF), accountId);
+	fs::path path = fmt::format("cemuBossStorage/{:08x}/{:08x}/user/{:08x}", (uint32)(title_id >> 32), (uint32)(title_id & 0xFFFFFFFF), accountId);
 	path /= nsData->storage.storageName;
 	path /= nsData->name;
 	return path.string();
@@ -1576,6 +1576,13 @@ void nnBossNsDataExport_getSize(PPCInterpreter_t* hCPU)
 	// close file
 	fsc_close(fscStorageFile);
 	osLib_returnFromFunction64(hCPU, fileSize);
+}
+
+uint64 nnBossNsData_GetCreatedTime(nsData_t* nsData)
+{
+	cemuLog_logDebug(LogType::Force, "nn_boss.NsData_GetCreatedTime() not implemented. Returning 0");
+	uint64 createdTime = 0;
+	return createdTime;
 }
 
 uint32 nnBossNsData_read(nsData_t* nsData, uint64* sizeOutBE, void* buffer, sint32 length)
@@ -1797,6 +1804,7 @@ void nnBoss_load()
 	osLib_addFunction("nn_boss", "DeleteRealFileWithHistory__Q3_2nn4boss6NsDataFv", nnBossNsDataExport_DeleteRealFileWithHistory);
 	osLib_addFunction("nn_boss", "Exist__Q3_2nn4boss6NsDataCFv", nnBossNsDataExport_Exist);
 	osLib_addFunction("nn_boss", "GetSize__Q3_2nn4boss6NsDataCFv", nnBossNsDataExport_getSize);
+	cafeExportRegisterFunc(nnBossNsData_GetCreatedTime, "nn_boss", "GetCreatedTime__Q3_2nn4boss6NsDataCFv", LogType::Placeholder);
 	osLib_addFunction("nn_boss", "Read__Q3_2nn4boss6NsDataFPvUi", nnBossNsDataExport_read);
 	osLib_addFunction("nn_boss", "Read__Q3_2nn4boss6NsDataFPLPvUi", nnBossNsDataExport_readWithSizeOut);
 	osLib_addFunction("nn_boss", "Seek__Q3_2nn4boss6NsDataFLQ3_2nn4boss12PositionBase", nnBossNsDataExport_seek);

@@ -118,7 +118,7 @@ void DebuggerModuleStorage::Load(XMLConfigParser& parser)
 		const auto comment = element.get("Comment", "");
 
 		// calculate absolute address
-		uint32 module_base_address = (type == DEBUGGER_BP_T_NORMAL ? this->rpl_module->regionMappingBase_text.GetMPTR() : this->rpl_module->regionMappingBase_data);
+		uint32 module_base_address = (type == DEBUGGER_BP_T_NORMAL || type == DEBUGGER_BP_T_LOGGING) ? this->rpl_module->regionMappingBase_text.GetMPTR() : this->rpl_module->regionMappingBase_data;
 		uint32 address = module_base_address + relative_address;
 
 		// don't change anything if there's already a breakpoint
@@ -127,7 +127,9 @@ void DebuggerModuleStorage::Load(XMLConfigParser& parser)
 
 		// register breakpoints in debugger
 		if (type == DEBUGGER_BP_T_NORMAL)
-			debugger_createExecuteBreakpoint(address);
+			debugger_createCodeBreakpoint(address, DEBUGGER_BP_T_NORMAL);
+		else if (type == DEBUGGER_BP_T_LOGGING)
+			debugger_createCodeBreakpoint(address, DEBUGGER_BP_T_LOGGING);
 		else if (type == DEBUGGER_BP_T_MEMORY_READ)
 			debugger_createMemoryBreakpoint(address, true, false);
 		else if (type == DEBUGGER_BP_T_MEMORY_WRITE)
@@ -173,7 +175,7 @@ void DebuggerModuleStorage::Save(XMLConfigParser& parser)
 
 		// check whether the breakpoint is part of the current module being saved
 		RPLModule* address_module;
-		if (bp->bpType == DEBUGGER_BP_T_NORMAL) address_module = RPLLoader_FindModuleByCodeAddr(bp->address);
+		if (bp->bpType == DEBUGGER_BP_T_NORMAL || bp->bpType == DEBUGGER_BP_T_LOGGING) address_module = RPLLoader_FindModuleByCodeAddr(bp->address);
 		else if (bp->isMemBP()) address_module = RPLLoader_FindModuleByDataAddr(bp->address);
 		else continue;
 
@@ -259,7 +261,7 @@ void DebuggerWindow2::LoadModuleStorage(const RPLModule* module)
 	bool already_loaded = std::any_of(m_modules_storage.begin(), m_modules_storage.end(), [path](const std::unique_ptr<XMLDebuggerModuleConfig>& debug) { return debug->GetFilename() == path; });
 	if (!path.empty() && !already_loaded)
 	{
-		m_modules_storage.emplace_back(std::move(new XMLDebuggerModuleConfig(path, { module->moduleName2, module->patchCRC, module, false })));
+		m_modules_storage.emplace_back(new XMLDebuggerModuleConfig(path, { module->moduleName2, module->patchCRC, module, false }))->Load();
 	}
 }
 
@@ -522,6 +524,7 @@ void DebuggerWindow2::OnToolClicked(wxCommandEvent& event)
 void DebuggerWindow2::OnBreakpointChange(wxCommandEvent& event)
 {
 	m_breakpoint_window->OnUpdateView();
+	m_disasm_ctrl->RefreshControl();
 	UpdateModuleLabel();
 }
 

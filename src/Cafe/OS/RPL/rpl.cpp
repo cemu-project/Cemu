@@ -1429,6 +1429,7 @@ void RPLLoader_InitState()
 	rplLoaderHeap_codeArea2.setHeapBase(memory_getPointerFromVirtualOffset(MEMORY_CODEAREA_ADDR));
 	rplLoaderHeap_workarea.setHeapBase(memory_getPointerFromVirtualOffset(MEMORY_RPLLOADER_AREA_ADDR));
 	g_heapTrampolineArea.setBaseAllocator(&rplLoaderHeap_lowerAreaCodeMem2);
+    RPLLoader_ResetState();
 }
 
 void RPLLoader_ResetState()
@@ -1436,8 +1437,7 @@ void RPLLoader_ResetState()
 	// unload all RPL modules
 	while (rplModuleCount > 0)
 		RPLLoader_UnloadModule(rplModuleList[0]);
-	// clear dependency list
-	cemu_assert_debug(false);
+    rplDependencyList.clear();
 	// unload all remaining symbols
 	rplSymbolStorage_unloadAll();
 	// free all code imports
@@ -1448,8 +1448,6 @@ void RPLLoader_ResetState()
 	rplLoader_applicationHasMemoryControl = false;
 	rplLoader_maxCodeAddress = 0;
 	rpl3_currentDataAllocatorAddr = 0x10000000;
-	cemu_assert_debug(rplDependencyList.empty());
-	rplDependencyList.clear();
 	_currentTLSModuleIndex = 1;
 	rplLoader_sdataAddr = MPTR_NULL;
 	rplLoader_sdata2Addr = MPTR_NULL;

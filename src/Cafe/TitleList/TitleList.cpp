@@ -9,7 +9,7 @@ bool sTLInitialized{ false };
 fs::path sTLCacheFilePath;
 
 // lists for tracking known titles
-// note: The list may only contain titles with valid meta data. Entries loaded from the cache may not have been parsed yet, but they will use a cached value for titleId and titleVersion
+// note: The list may only contain titles with valid meta data (except for certain system titles). Entries loaded from the cache may not have been parsed yet, but they will use a cached value for titleId and titleVersion
 std::mutex sTLMutex;
 std::vector<TitleInfo*> sTLList;
 std::vector<TitleInfo*> sTLListPending;
@@ -65,6 +65,7 @@ void CafeTitleList::LoadCacheFile()
 		if( !TitleIdParser::ParseFromStr(titleInfoNode.attribute("titleId").as_string(), titleId))
 			continue;
 		uint16 titleVersion = titleInfoNode.attribute("version").as_uint();
+		uint32 sdkVersion = titleInfoNode.attribute("sdk_version").as_uint();
 		TitleInfo::TitleDataFormat format = (TitleInfo::TitleDataFormat)ConvertString<uint32>(titleInfoNode.child_value("format"));
 		CafeConsoleRegion region = (CafeConsoleRegion)ConvertString<uint32>(titleInfoNode.child_value("region"));
 		std::string name = titleInfoNode.child_value("name");
@@ -76,6 +77,7 @@ void CafeTitleList::LoadCacheFile()
 		TitleInfo::CachedInfo cacheEntry;
 		cacheEntry.titleId = titleId;
 		cacheEntry.titleVersion = titleVersion;
+		cacheEntry.sdkVersion = sdkVersion;
 		cacheEntry.titleDataFormat = format;
 		cacheEntry.region = region;
 		cacheEntry.titleName = std::move(name);
@@ -115,6 +117,7 @@ void CafeTitleList::StoreCacheFile()
 		auto titleInfoNode = title_list_node.append_child("title");
 		titleInfoNode.append_attribute("titleId").set_value(fmt::format("{:016x}", info.titleId).c_str());
 		titleInfoNode.append_attribute("version").set_value(fmt::format("{:}", info.titleVersion).c_str());
+		titleInfoNode.append_attribute("sdk_version").set_value(fmt::format("{:}", info.sdkVersion).c_str());
 		titleInfoNode.append_attribute("group_id").set_value(fmt::format("{:08x}", info.group_id).c_str());
 		titleInfoNode.append_attribute("app_type").set_value(fmt::format("{:08x}", info.app_type).c_str());
 		titleInfoNode.append_child("region").append_child(pugi::node_pcdata).set_value(fmt::format("{}", (uint32)info.region).c_str());
@@ -638,12 +641,15 @@ GameInfo2 CafeTitleList::GetGameInfo(TitleId titleId)
 	{
 		TitleId appTitleId = it->GetAppTitleId();
 		if (appTitleId == baseTitleId)
+		{
 			gameInfo.SetBase(*it);
+		}
 		if (hasSeparateUpdateTitleId && appTitleId == updateTitleId)
 		{
 			gameInfo.SetUpdate(*it);
 		}
 	}
+
 	// if this title can have AOC content then do a second scan
 	// todo - get a list of all AOC title ids from the base/update meta information
 	// for now we assume there is a direct match between the base titleId and the aoc titleId

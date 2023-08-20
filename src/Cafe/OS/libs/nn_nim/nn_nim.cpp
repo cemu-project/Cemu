@@ -2,6 +2,7 @@
 #include "Cafe/IOSU/legacy/iosu_ioctl.h"
 #include "Cafe/IOSU/legacy/iosu_nim.h"
 #include "Cafe/OS/libs/coreinit/coreinit_IOS.h"
+#include "Cafe/OS/libs/nn_common.h"
 
 #define nimPrepareRequest() \
 StackAllocator<iosu::nim::iosuNimCemuRequest_t> _buf_nimRequest; \
@@ -61,8 +62,6 @@ namespace nn
 
 		void export_GetNumTitlePackages(PPCInterpreter_t* hCPU)
 		{
-			cemuLog_logDebug(LogType::Force, "GetNumTitlePackages() - placeholder");
-
 			nimPrepareRequest();
 
 			nimRequest->requestCode = IOSU_NIM_GET_PACKAGE_COUNT;
@@ -152,9 +151,10 @@ namespace nn
 		{
 			cemuLog_logDebug(LogType::Force, "QuerySchedulerStatus() - placeholder");
 
-			// scheduler status seems to a be a 32bit value?
+			// scheduler status seems to be either a 4 byte array or 8 byte array (or structs)?
 			// scope.rpx only checks the second byte and if it matches 0x01 then the scheduler is considered paused/stopped (displays that downloads are inactive)
-			
+			// men.rpx checks the first byte for == 1 and if true, it will show the download manager icon as downloading
+
 			// downloads disabled:
 			//memory_writeU32(hCPU->gpr[3], (0x00010000));
 			// downloads enabled:
@@ -163,24 +163,44 @@ namespace nn
 			osLib_returnFromFunction(hCPU, 0);
 		}
 
-		typedef struct  
+		struct nimResultError
 		{
 			uint32be iosError;
 			uint32be ukn04;
-		}nimResultError_t; // size unknown, but probably is 0x8
+		};
 
-
-		void export_ConstructResultError(PPCInterpreter_t* hCPU)
+		void ConstructResultError(nimResultError* resultError, uint32be* nimErrorCodePtr, uint32 uknParam)
 		{
-			cemuLog_logDebug(LogType::Force, "Construct__Q3_2nn3nim11ResultErrorFQ2_2nn6Resulti() - placeholder");
-			ppcDefineParamTypePtr(resultError, nimResultError_t, 0);
-			ppcDefineParamU32BEPtr(nimErrorCodePtr, 1);
-			ppcDefineParamU32(uknParam, 2);
-
-			resultError->iosError = 0;
+			uint32 nnResultCode = *nimErrorCodePtr;
+			resultError->iosError = nnResultCode;
 			resultError->ukn04 = uknParam;
 
-			osLib_returnFromFunction(hCPU, 0);
+			if (nnResultCode == 0xFFFFFFFF)
+			{
+				// not a valid code, used by a Wii U menu
+				return;
+			}
+
+			// IOS errors need to be translated
+			if ( (nnResultCode&0x18000000) == 0x18000000)
+			{
+				// alternative error format
+				cemu_assert_unimplemented();
+			}
+			else
+			{
+				auto moduleId = nn::nnResult_GetModule(nnResultCode);
+				if (moduleId == NN_RESULT_MODULE_NN_IOS)
+				{
+					// ios error
+					cemu_assert_unimplemented();
+				}
+				else
+				{
+					// other error
+					resultError->iosError = 0;
+				}
+			}
 		}
 
 		void export_GetECommerceInfrastructureCountry(PPCInterpreter_t* hCPU)
@@ -272,7 +292,7 @@ namespace nn
 
 			osLib_addFunction("nn_nim", "GetIconDatabaseEntries__Q2_2nn3nimFPQ3_2nn3nim17IconDatabaseEntryPCULUi", export_GetIconDatabaseEntries);
 
-			osLib_addFunction("nn_nim", "Construct__Q3_2nn3nim11ResultErrorFQ2_2nn6Resulti", export_ConstructResultError);
+			cafeExportRegisterFunc(ConstructResultError, "nn_nim", "Construct__Q3_2nn3nim11ResultErrorFQ2_2nn6Resulti", LogType::Placeholder);
 
 			osLib_addFunction("nn_nim", "MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy__Q3_2nn3nim4utilFULiQ3_2nn4Cafe9TitleType", export_MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy);
 			osLib_addFunction("nn_nim", "CalculateTitleInstallSize__Q2_2nn3nimFPLRCQ3_2nn3nim22TitlePackageTaskConfigPCUsUi", export_CalculateTitleInstallSize);

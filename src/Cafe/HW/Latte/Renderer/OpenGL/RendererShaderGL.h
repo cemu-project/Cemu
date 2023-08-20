@@ -24,6 +24,7 @@ public:
 
 	static void ShaderCacheLoading_begin(uint64 cacheTitleId);
 	static void ShaderCacheLoading_end();
+    static void ShaderCacheLoading_Close();
 
 private:
 	GLuint m_program;
@@ -37,6 +38,6 @@ private:
 	bool m_shader_attached{ false };
 	bool m_isCompiled{ false };
 
-	static class FileCache* g_programBinaryCache;
+	static class FileCache* s_programBinaryCache;
 };
 

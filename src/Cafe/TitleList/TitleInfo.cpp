@@ -127,7 +127,8 @@ TitleInfo::CachedInfo TitleInfo::MakeCacheEntry()
 	e.subPath = m_subPath;
 	e.titleId = GetAppTitleId();
 	e.titleVersion = GetAppTitleVersion();
-	e.titleName = GetTitleName();
+	e.sdkVersion = GetAppSDKVersion();
+	e.titleName = GetMetaTitleName();
 	e.region = GetMetaRegion();
 	e.group_id = GetAppGroup();
 	e.app_type = GetAppType();
@@ -427,7 +428,7 @@ void TitleInfo::Unmount(std::string_view virtualPath)
 			continue;
 		fsc_unmount(itr.second.c_str(), itr.first);
 		std::erase(m_mountpoints, itr);
-		// if the last mount point got unmounted, delete any open devices
+		// if the last mount point got unmounted, close any open devices
 		if (m_mountpoints.empty())
 		{
 			if (m_wudVolume)
@@ -436,13 +437,12 @@ void TitleInfo::Unmount(std::string_view virtualPath)
 				delete m_wudVolume;
 				m_wudVolume = nullptr;
 			}
-		}
-		// wua files use reference counting
-		if (m_zarchive)
-		{
-			_ZArchivePool_ReleaseInstance(m_fullPath, m_zarchive);
-			if (m_mountpoints.empty())
-				m_zarchive = nullptr;
+            if (m_zarchive)
+            {
+                _ZArchivePool_ReleaseInstance(m_fullPath, m_zarchive);
+                if (m_mountpoints.empty())
+                    m_zarchive = nullptr;
+            }
 		}
 		return;
 	}
@@ -467,7 +467,7 @@ bool TitleInfo::ParseXmlInfo()
 {
 	cemu_assert(m_isValid);
 	if (m_hasParsedXmlFiles)
-		return m_parsedMetaXml && m_parsedAppXml && m_parsedCosXml;
+		return m_isValid;
 	m_hasParsedXmlFiles = true;
 
 	std::string mountPath = GetUniqueTempMountingPath();
@@ -489,10 +489,16 @@ bool TitleInfo::ParseXmlInfo()
 
 	Unmount(mountPath);
 
-	bool hasAnyXml = m_parsedMetaXml || m_parsedAppXml || m_parsedCosXml;
-
-	if (!m_parsedMetaXml || !m_parsedAppXml || !m_parsedCosXml)
+	// some system titles dont have a meta.xml file
+	bool allowMissingMetaXml = false;
+	if(m_parsedAppXml && this->IsSystemDataTitle())
 	{
+		allowMissingMetaXml = true;
+	}
+
+	if ((allowMissingMetaXml == false && !m_parsedMetaXml) || !m_parsedAppXml || !m_parsedCosXml)
+	{
+		bool hasAnyXml = m_parsedMetaXml || m_parsedAppXml || m_parsedCosXml;
 		if (hasAnyXml)
 			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _pathToUtf8(m_fullPath));
 		delete m_parsedMetaXml;
@@ -531,6 +537,8 @@ bool TitleInfo::ParseAppXml(std::vector<uint8>& appXmlData)
 			m_parsedAppXml->app_type = (uint32)std::stoull(child.text().as_string(), nullptr, 16);
 		else if (name == "group_id")
 			m_parsedAppXml->group_id = (uint32)std::stoull(child.text().as_string(), nullptr, 16);
+		else if (name == "sdk_version")
+			m_parsedAppXml->sdk_version = (uint32)std::stoull(child.text().as_string(), nullptr, 16);
 	}
 	return true;
 }
@@ -553,6 +561,17 @@ uint16 TitleInfo::GetAppTitleVersion() const
 		return m_parsedAppXml->title_version;
 	if (m_cachedInfo)
 		return m_cachedInfo->titleVersion;
+	cemu_assert_suspicious();
+	return 0;
+}
+
+uint32 TitleInfo::GetAppSDKVersion() const
+{
+	cemu_assert_debug(m_isValid);
+	if (m_parsedAppXml)
+		return m_parsedAppXml->sdk_version;
+	if (m_cachedInfo)
+		return m_cachedInfo->sdkVersion;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -585,7 +604,7 @@ TitleIdParser::TITLE_TYPE TitleInfo::GetTitleType()
 	return tip.GetType();
 }
 
-std::string TitleInfo::GetTitleName() const
+std::string TitleInfo::GetMetaTitleName() const
 {
 	cemu_assert_debug(m_isValid);
 	if (m_parsedMetaXml)
@@ -600,7 +619,6 @@ std::string TitleInfo::GetTitleName() const
 	}
 	if (m_cachedInfo)
 		return m_cachedInfo->titleName;
-	cemu_assert_suspicious();
 	return "";
 }
 
@@ -611,7 +629,6 @@ CafeConsoleRegion TitleInfo::GetMetaRegion() const
 		return m_parsedMetaXml->GetRegion();
 	if (m_cachedInfo)
 		return m_cachedInfo->region;
-	cemu_assert_suspicious();
 	return CafeConsoleRegion::JPN;
 }
 

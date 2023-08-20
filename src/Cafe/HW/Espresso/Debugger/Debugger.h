@@ -7,6 +7,7 @@
 #define DEBUGGER_BP_T_ONE_SHOT		1 // normal breakpoint, deletes itself after trigger (used for stepping)
 #define DEBUGGER_BP_T_MEMORY_READ	2 // memory breakpoint
 #define DEBUGGER_BP_T_MEMORY_WRITE	3 // memory breakpoint
+#define DEBUGGER_BP_T_LOGGING		4 // logging breakpoint, prints the breakpoint comment and stack trace whenever hit
 
 #define DEBUGGER_BP_T_GDBSTUB		1 // breakpoint created by GDBStub
 #define DEBUGGER_BP_T_DEBUGGER		2 // breakpoint created by Cemu's debugger
@@ -42,7 +43,7 @@ struct DebuggerBreakpoint
 
 	bool isExecuteBP() const
 	{
-		return bpType == DEBUGGER_BP_T_NORMAL || bpType == DEBUGGER_BP_T_ONE_SHOT;
+		return bpType == DEBUGGER_BP_T_NORMAL || bpType == DEBUGGER_BP_T_LOGGING || bpType == DEBUGGER_BP_T_ONE_SHOT;
 	}
 
 	bool isMemBP() const
@@ -98,8 +99,9 @@ extern debuggerState_t debuggerState;
 
 // new API
 DebuggerBreakpoint* debugger_getFirstBP(uint32 address);
-void debugger_toggleExecuteBreakpoint(uint32 address); // create/remove execute breakpoint
+void debugger_createCodeBreakpoint(uint32 address, uint8 bpType);
 void debugger_createExecuteBreakpoint(uint32 address);
+void debugger_toggleExecuteBreakpoint(uint32 address); // create/remove execute breakpoint
 void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* bp);
 
 void debugger_createMemoryBreakpoint(uint32 address, bool onRead, bool onWrite);

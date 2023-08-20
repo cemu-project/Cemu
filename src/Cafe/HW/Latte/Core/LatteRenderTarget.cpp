@@ -373,6 +373,7 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 		if ((colorBufferWidth < (sint32)scissorAccessWidth) ||
 			(colorBufferHeight < (sint32)scissorAccessHeight))
 		{
+            // log this?
 			colorBufferMask &= ~(1<<i);
 		}
 
@@ -1047,9 +1048,9 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		}
 	}
 
-	if (renderTarget == 4 && g_renderer->IsPadWindowActive())
+	if ((renderTarget & RENDER_TARGET_DRC) && g_renderer->IsPadWindowActive())
 		LatteRenderTarget_copyToBackbuffer(texView, true);
-	if ((renderTarget == 1 && !showDRC) || (renderTarget == 4 && showDRC))
+	if (((renderTarget & RENDER_TARGET_TV) && !showDRC) || ((renderTarget & RENDER_TARGET_DRC) && showDRC))
 		LatteRenderTarget_copyToBackbuffer(texView, false);
 }
 

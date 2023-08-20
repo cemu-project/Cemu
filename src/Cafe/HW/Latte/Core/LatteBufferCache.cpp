@@ -257,6 +257,11 @@ public:
 		}
 	}
 
+    bool empty() const
+    {
+        return m_map.empty();
+    }
+
 	const std::map<InternalRange, TNodeObject*>& getAll() const { return m_map; };
 };
 
@@ -455,48 +460,6 @@ public:
 			}
 			if(m_invalidationRangeEnd <= m_invalidationRangeBegin)
 				m_hasInvalidation = false;
-
-			//if (resRangeBegin <= m_invalidationRangeBegin)
-			//{
-			//	// shrink/replace invalidation range from the bottom
-			//	uint32 uploadBegin = m_invalidationRangeBegin;//std::max(m_invalidationRangeBegin, resRangeBegin);
-			//	uint32 uploadEnd = std::min(resRangeEnd, m_invalidationRangeEnd);
-			//	cemu_assert_debug(uploadEnd >= uploadBegin);
-			//	if (uploadBegin != uploadEnd)
-			//		checkAndSyncModifications(uploadBegin, uploadEnd, true);
-			//	m_invalidationRangeBegin = uploadEnd;
-			//	cemu_assert_debug(m_invalidationRangeBegin <= m_invalidationRangeEnd);
-			//	if (m_invalidationRangeBegin >= m_invalidationRangeEnd)
-			//		m_hasInvalidation = false;
-			//}
-			//else if (resRangeEnd >= m_invalidationRangeEnd)
-			//{
-			//	// shrink/replace invalidation range from the top
-			//	uint32 uploadBegin = std::max(m_invalidationRangeBegin, resRangeBegin);
-			//	uint32 uploadEnd = m_invalidationRangeEnd;// std::min(resRangeEnd, m_invalidationRangeEnd);
-			//	cemu_assert_debug(uploadEnd >= uploadBegin);
-			//	if (uploadBegin != uploadEnd)
-			//		checkAndSyncModifications(uploadBegin, uploadEnd, true);
-			//	m_invalidationRangeEnd = uploadBegin;
-			//	cemu_assert_debug(m_invalidationRangeBegin <= m_invalidationRangeEnd);
-			//	if (m_invalidationRangeBegin >= m_invalidationRangeEnd)
-			//		m_hasInvalidation = false;
-			//}
-			//else
-			//{
-			//	// since we cant cut holes into the range upload it in it's entirety
-			//	cemu_assert_debug(m_invalidationRangeEnd <= m_rangeEnd);
-			//	cemu_assert_debug(m_invalidationRangeBegin >= m_rangeBegin);
-			//	cemu_assert_debug(m_invalidationRangeBegin < m_invalidationRangeEnd);
-			//	checkAndSyncModifications(m_invalidationRangeBegin, m_invalidationRangeEnd, true);
-			//	m_hasInvalidation = false;
-			//}
-
-
-
-			// todo - dont re-upload the whole range immediately
-			// under ideal circumstances we would only upload the data range requested for the current draw call
-			// but this is a hot path so we can't check
 		}
 	}
 
@@ -827,6 +790,21 @@ private:
 	static std::vector<uint32> g_deallocateQueue;
 
 public:
+    static void UnloadAll()
+    {
+        size_t i = 0;
+        while (i < s_allCacheNodes.size())
+        {
+            BufferCacheNode* node = s_allCacheNodes[i];
+            node->ReleaseCacheMemoryImmediately();
+            LatteBufferCache_removeSingleNodeFromTree(node);
+            delete node;
+        }
+        for(auto& it : s_allCacheNodes)
+            delete it;
+        s_allCacheNodes.clear();
+        g_deallocateQueue.clear();
+    }
 	
 	static void ProcessDeallocations()
 	{
@@ -931,7 +909,6 @@ public:
 };
 
 std::vector<uint32> BufferCacheNode::g_deallocateQueue;
-
 IntervalTree2<MPTR, BufferCacheNode> g_gpuBufferCache;
 
 void LatteBufferCache_removeSingleNodeFromTree(BufferCacheNode* node)
@@ -1009,8 +986,14 @@ void LatteBufferCache_processDeallocations()
 
 void LatteBufferCache_init(size_t bufferSize)
 {
+    cemu_assert_debug(g_gpuBufferCache.empty());
 	g_gpuBufferHeap.reset(new VHeap(nullptr, (uint32)bufferSize));
 	g_renderer->bufferCache_init((uint32)bufferSize);
+}
+
+void LatteBufferCache_UnloadAll()
+{
+    BufferCacheNode::UnloadAll();
 }
 
 void LatteBufferCache_getStats(uint32& heapSize, uint32& allocationSize, uint32& allocNum)

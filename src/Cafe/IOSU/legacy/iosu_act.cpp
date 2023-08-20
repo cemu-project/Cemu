@@ -238,7 +238,7 @@ namespace iosu
 
 			nnResult ServiceCall(uint32 serviceId, void* request, void* response) override
 			{
-				cemuLog_log(LogType::Force, "Unsupported service call to /dec/act");
+				cemuLog_log(LogType::Force, "Unsupported service call to /dev/act");
 				cemu_assert_unimplemented();
 				return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACT, 0);
 			}
@@ -623,10 +623,19 @@ int iosuAct_thread()
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_PERSISTENTID)
 			{
-				accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
-				_cancelIfAccountDoesNotExist();
-				actCemuRequest->resultU32.u32 = _actAccountData[accountIndex].persistentId;
-				actCemuRequest->setACTReturnCode(0);
+				if(actCemuRequest->accountSlot != 0)
+				{
+					accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
+					_cancelIfAccountDoesNotExist();
+					actCemuRequest->resultU32.u32 = _actAccountData[accountIndex].persistentId;
+					actCemuRequest->setACTReturnCode(0);
+				}
+				else
+				{
+					// F1 Race Stars calls IsSlotOccupied and indirectly GetPersistentId on slot 0 which is not valid
+					actCemuRequest->resultU32.u32 = 0;
+					actCemuRequest->setACTReturnCode(0);
+				}
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_COUNTRY)
 			{

@@ -179,7 +179,6 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 
 }
 
-bool IsRunningInWine();
 void VulkanRenderer::DetermineVendor()
 {
 	VkPhysicalDeviceProperties2 properties{};
@@ -350,7 +349,15 @@ VulkanRenderer::VulkanRenderer()
 	create_info.ppEnabledLayerNames = m_layerNames.data();
 	create_info.enabledLayerCount = m_layerNames.size();
 
-	if ((err = vkCreateInstance(&create_info, nullptr, &m_instance)) != VK_SUCCESS)
+	err = vkCreateInstance(&create_info, nullptr, &m_instance);
+
+	if (err == VK_ERROR_LAYER_NOT_PRESENT) {
+		cemuLog_log(LogType::Force, "Failed to enable vulkan validation (VK_LAYER_KHRONOS_validation)");
+		create_info.enabledLayerCount = 0;
+		err = vkCreateInstance(&create_info, nullptr, &m_instance);
+	}
+
+	if (err != VK_SUCCESS)
 		throw std::runtime_error(fmt::format("Unable to create a Vulkan instance: {}", err));
 
 	if (!InitializeInstanceVulkan(m_instance))

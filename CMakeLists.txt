@@ -89,6 +89,9 @@ if (WIN32)
 	option(ENABLE_XINPUT "Enables the usage of XInput" ON)
 	option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
 	add_compile_definitions(HAS_DIRECTINPUT)
+	set(ENABLE_WIIMOTE ON)
+elseif (UNIX)
+	option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 endif()
 option(ENABLE_SDL "Enables the SDLController backend" ON)
 
@@ -114,7 +117,7 @@ find_package(ZLIB REQUIRED)
 find_package(zstd MODULE REQUIRED) # MODULE so that zstd::zstd is available
 find_package(OpenSSL COMPONENTS Crypto SSL REQUIRED)
 find_package(glm REQUIRED)
-find_package(fmt 9.1.0 REQUIRED)
+find_package(fmt 9.1.0...<10 REQUIRED)
 find_package(PNG REQUIRED)
 
 # glslang versions older than 11.11.0 define targets without a namespace
@@ -154,6 +157,12 @@ if (ENABLE_DISCORD_RPC)
 	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
 	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
 endif()
+
+if (ENABLE_HIDAPI)
+	find_package(hidapi REQUIRED)
+	set(ENABLE_WIIMOTE ON)
+	add_compile_definitions(HAS_HIDAPI)
+endif ()
 
 if(UNIX AND NOT APPLE)
 	if(ENABLE_FERAL_GAMEMODE)

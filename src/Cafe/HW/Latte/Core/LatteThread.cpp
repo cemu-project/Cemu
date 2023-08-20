@@ -183,9 +183,8 @@ int Latte_ThreadEntry()
 
 	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
 	GraphicPack2::WaitUntilReady();
-	// load/init shader cache file
-	LatteShaderCache_load();
-
+	// load disk shader cache
+    LatteShaderCache_Load();
 	// init registers
 	Latte_LoadInitialRegisters();
 	// let CPU thread know the GPU is done initializing
@@ -196,7 +195,7 @@ int Latte_ThreadEntry()
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		LatteThread_HandleOSScreen();
-		if (!Latte_IsActive())
+		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 	}
 	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
@@ -232,20 +231,24 @@ void Latte_Stop()
 	sLatteThread.join();
 }
 
-bool Latte_IsActive()
+bool Latte_GetStopSignal()
 {
-	return sLatteThreadRunning;
+	return !sLatteThreadRunning;
 }
 
 void LatteThread_Exit()
 {
 	if (g_renderer)
 		g_renderer->Shutdown();
+    // clean up vertex/uniform cache
+    LatteBufferCache_UnloadAll();
 	// clean up texture cache
 	LatteTC_UnloadAllTextures();
 	// clean up runtime shader cache
-	// todo
-	// destroy renderer but make sure that g_renderer remains valid until the destructor has finished
+    LatteSHRC_UnloadAll();
+    // close disk cache
+    LatteShaderCache_Close();
+    // destroy renderer but make sure that g_renderer remains valid until the destructor has finished
 	if (g_renderer)
 	{
 		Renderer* renderer = g_renderer.get();

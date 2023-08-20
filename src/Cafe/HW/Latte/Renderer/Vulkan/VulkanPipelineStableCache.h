@@ -41,6 +41,7 @@ public:
 	bool UpdateLoading(uint32& pipelinesLoadedTotal, uint32& pipelinesMissingShaders);
 	void EndLoading();
 	void LoadPipelineFromCache(std::span<uint8> fileData);
+    void Close(); // called on title exit
 
 	bool HasPipelineCached(uint64 baseHash, uint64 pipelineStateHash);
 	void AddCurrentStateToCache(uint64 baseHash, uint64 pipelineStateHash);

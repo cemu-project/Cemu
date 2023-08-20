@@ -84,6 +84,10 @@ extern uint8* gxRingBufferReadPtr; // currently active read pointer (gx2 ring bu
 void LatteTextureLoader_estimateAccessedDataRange(LatteTexture* texture, sint32 sliceIndex, sint32 mipIndex, uint32& addrStart, uint32& addrEnd);
 
 // render target
+
+#define RENDER_TARGET_TV (1 << 0)
+#define RENDER_TARGET_DRC (1 << 2)
+
 void LatteRenderTarget_updateScissorBox();
 
 void LatteRenderTarget_trackUpdates();
@@ -173,4 +177,5 @@ void LatteRenderTarget_updateViewport();
 // Latte emulation control
 void Latte_Start();
 void Latte_Stop();
-bool Latte_IsActive();
+bool Latte_GetStopSignal(); // returns true if stop was requested or if in stopped state
+void LatteThread_Exit();

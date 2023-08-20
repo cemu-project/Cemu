@@ -147,7 +147,7 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 	else if (is_active_bp)
 		background_colour = wxColour(0xFF80A0FF);
 	else if (bp != nullptr)
-		background_colour = wxColour(0xFF8080FF);
+		background_colour = wxColour(bp->bpType == DEBUGGER_BP_T_NORMAL ? 0xFF8080FF : 0x80FFFFFF);
 	else if(virtualAddress == m_lastGotoTarget)
 		background_colour = wxColour(0xFFE0E0E0);
 	else
@@ -540,8 +540,6 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 			{
 				debugger_toggleExecuteBreakpoint(*optVirtualAddress);
 
-				RefreshControl();
-
 				wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
 				wxPostEvent(this->m_parent, evt);
 			}
@@ -767,40 +765,31 @@ void DisasmCtrl::GoToAddressDialog()
 		auto value = goto_dialog.GetValue().ToStdString();
 		std::transform(value.begin(), value.end(), value.begin(), tolower);
 
-		const auto module_count = RPLLoader_GetModuleCount();
-		const auto module_list = RPLLoader_GetModuleList();
+		debugger_addParserSymbols(parser);
 
-		std::vector<double> module_tmp(module_count);
-		for (int i = 0; i < module_count; i++)
+		// try to parse expression as hex value first (it should interpret 1234 as 0x1234, not 1234)
+		if (parser.IsConstantExpression("0x"+value))
 		{
-			const auto module = module_list[i];
-			if (module)
-			{
-				module_tmp[i] = (double)module->regionMappingBase_text.GetMPTR();
-				parser.AddConstant(module->moduleName2, module_tmp[i]);
-			}
-		}
-
-		double grp_tmp[32];
-		PPCSnapshot& ppc_snapshot = debuggerState.debugSession.ppcSnapshot;
-		for (int i = 0; i < 32; i++)
-		{
-			char var_name[32];
-			sprintf(var_name, "r%d", i);
-			grp_tmp[i] = ppc_snapshot.gpr[i];
-			parser.AddConstant(var_name, grp_tmp[i]);
-		}
-
-		try
-		{
-			const auto result = (uint32)parser.Evaluate(value);
-			debug_printf("goto eval result: %x\n", result);
+			const auto result = (uint32)parser.Evaluate("0x"+value);
 			m_lastGotoTarget = result;
 			CenterOffset(result);
-			debuggerWindow_updateViewThreadsafe2();
 		}
-		catch (const std::exception& )
+		else if (parser.IsConstantExpression(value))
 		{
+			const auto result = (uint32)parser.Evaluate(value);
+			m_lastGotoTarget = result;
+			CenterOffset(result);
+		}
+		else
+		{
+			try
+			{
+				const auto _ = (uint32)parser.Evaluate(value);
+			}
+			catch (const std::exception& ex)
+			{
+				wxMessageBox(ex.what(), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+			}
 		}
 	}
 }

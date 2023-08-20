@@ -117,6 +117,12 @@ namespace coreinit
 			return currentTick >= g_soonestAlarm;
 		}
 
+        static void Reset()
+        {
+            g_activeAlarmList.clear();
+            g_soonestAlarm = 0;
+        }
+
 	public:
 		struct ComparatorFireTime
 		{
@@ -282,11 +288,21 @@ namespace coreinit
 		return alarm->userData;
 	}
 
-	void OSAlarm_resetAll()
+	void OSAlarm_Shutdown()
 	{
-		cemu_assert_debug(g_activeAlarms.empty());
-
-		cemu_assert_debug(false);
+        __OSLockScheduler();
+        if(g_activeAlarms.empty())
+        {
+            __OSUnlockScheduler();
+            return;
+        }
+        for(auto& itr : g_activeAlarms)
+        {
+            OSHostAlarmDestroy(itr.second);
+        }
+        g_activeAlarms.clear();
+        OSHostAlarm::Reset();
+        __OSUnlockScheduler();
 	}
 
 	void _OSAlarmThread(PPCInterpreter_t* hCPU)

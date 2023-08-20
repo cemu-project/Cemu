@@ -242,7 +242,7 @@ boost::optional<const wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetTi
 	return {};
 }
 
-void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
+void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 rightClickedUID)
 {
 	TitleInfo titleInfo_base;
 	TitleInfo titleInfo_update;
@@ -269,22 +269,26 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 		{
 			if (!titleInfo_base.IsValid())
 			{
-				titleInfo_base = TitleInfo(data->entry.path);
-			}
-			else
-			{
-				// duplicate entry
+				titleInfo_base = CafeTitleList::GetTitleInfoByUID(data->entry.location_uid);
+				if(data->entry.location_uid == rightClickedUID)
+					break; // prefer the users selection
 			}
 		}
 		if (hasUpdateTitleId && data->entry.title_id == updateTitleId)
 		{
 			if (!titleInfo_update.IsValid())
 			{
-				titleInfo_update = TitleInfo(data->entry.path);
+				titleInfo_update = CafeTitleList::GetTitleInfoByUID(data->entry.location_uid);
+				if(data->entry.location_uid == rightClickedUID)
+					break;
 			}
 			else
 			{
-				// duplicate entry
+				// if multiple updates are present use the newest one
+				if (titleInfo_update.GetAppTitleVersion() < data->entry.version)
+					titleInfo_update = CafeTitleList::GetTitleInfoByUID(data->entry.location_uid);
+				if(data->entry.location_uid == rightClickedUID)
+					break;
 			}
 		}
 	}
@@ -293,7 +297,9 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 	{
 		if (data->entry.title_id == aocTitleId)
 		{
-			titleInfo_aoc = TitleInfo(data->entry.path);
+			titleInfo_aoc = CafeTitleList::GetTitleInfoByUID(data->entry.location_uid);
+			if(data->entry.location_uid == rightClickedUID)
+				break;
 		}
 	}
 
@@ -301,23 +307,23 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId)
 	msg.append("\n \n");
 	
 	if (titleInfo_base.IsValid())
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game: {}"))), _pathToUtf8(titleInfo_base.GetPath())));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game:\n{}"))), titleInfo_base.GetPrintPath()));
 	else
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game: Not installed")))));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game:\nNot installed")))));
 
-	msg.append("\n");
+	msg.append("\n\n");
 
 	if (titleInfo_update.IsValid())
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update: {}"))), _pathToUtf8(titleInfo_update.GetPath())));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update:\n{}"))), titleInfo_update.GetPrintPath()));
 	else
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update: Not installed")))));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update:\nNot installed")))));
 
-	msg.append("\n");
+	msg.append("\n\n");
 
 	if (titleInfo_aoc.IsValid())
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC: {}"))), _pathToUtf8(titleInfo_aoc.GetPath())));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC:\n{}"))), titleInfo_aoc.GetPrintPath()));
 	else
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC: Not installed")))));
+		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC:\nNot installed")))));
 
 	const int answer = wxMessageBox(wxString::FromUTF8(msg), _("Confirmation"), wxOK | wxCANCEL | wxCENTRE | wxICON_QUESTION, this);
 	if (answer != wxOK)
@@ -884,7 +890,7 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 		break;
 	case kContextMenuConvertToWUA:
 		
-		OnConvertToCompressedFormat(entry.value().title_id);
+		OnConvertToCompressedFormat(entry.value().title_id, entry.value().location_uid);
 		break;
 	}
 }
@@ -1005,7 +1011,8 @@ void wxTitleManagerList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt
 		wxTitleManagerList::TitleEntry entry(entryType, entryFormat, titleInfo.GetPath());
 
 		ParsedMetaXml* metaInfo = titleInfo.GetMetaInfo();
-
+		if(titleInfo.IsSystemDataTitle())
+			return; // dont show system data titles for now
 		entry.location_uid = titleInfo.GetUID();
 		entry.title_id = titleInfo.GetAppTitleId();
 		std::string name = metaInfo->GetLongName(GetConfig().console_language.GetValue());

@@ -10,6 +10,7 @@
 #include "Cafe/OS/libs/nn_uds/nn_uds.h"
 #include "Cafe/OS/libs/nn_nim/nn_nim.h"
 #include "Cafe/OS/libs/nn_ndm/nn_ndm.h"
+#include "Cafe/OS/libs/nn_spm/nn_spm.h"
 #include "Cafe/OS/libs/nn_ec/nn_ec.h"
 #include "Cafe/OS/libs/nn_boss/nn_boss.h"
 #include "Cafe/OS/libs/nn_fp/nn_fp.h"
@@ -204,6 +205,7 @@ void osLib_load()
 	nnUds_load();
 	nn::nim::load();
 	nn::ndm::load();
+	nn::spm::load();
 	nn::save::load();
 	nsysnet_load();
 	nn::fp::load();

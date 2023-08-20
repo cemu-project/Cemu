@@ -19,5 +19,6 @@ namespace nn
 		sint32 GetOlvAccessKey(uint32_t* pOutKey);
 
 		void load();
+		void unload();
 	}
 }

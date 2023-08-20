@@ -36,8 +36,6 @@ public:
 	OpenGLCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)
 		: IRenderCanvas(is_main_window), wxGLCanvas(parent, wxID_ANY, g_gl_attribute_list, wxDefaultPosition, size, wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
 	{
-		cemuLog_logDebug(LogType::Force, "Creating OpenGL canvas");
-
 		if (m_is_main_window)
 		{
 			sGLTVView = this;

@@ -615,10 +615,24 @@ namespace coreinit
 		cemu_assert_unimplemented();
 	}
 
+    void MEMResetToDefaultState()
+    {
+        for (auto& it : sHeapBaseHandle)
+            it = nullptr;
+
+        g_heapTableCount = 0;
+        g_slockInitialized = false;
+        g_listsInitialized = false;
+        gDefaultHeap = nullptr;
+
+        memset(&g_list1, 0, sizeof(g_list1));
+        memset(&g_list2, 0, sizeof(g_list2));
+        memset(&g_list3, 0, sizeof(g_list3));
+    }
+
 	void InitializeMEM()
 	{
-		for (auto& it : sHeapBaseHandle)
-			it = nullptr;
+        MEMResetToDefaultState();
 
 		cafeExportRegister("coreinit", CoreInitDefaultHeap, LogType::CoreinitMem);
 

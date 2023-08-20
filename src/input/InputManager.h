@@ -3,6 +3,9 @@
 #if BOOST_OS_WINDOWS
 #include "input/api/DirectInput/DirectInputControllerProvider.h"
 #include "input/api/XInput/XInputControllerProvider.h"
+#endif
+
+#if defined(HAS_HIDAPI) || BOOST_OS_WINDOWS
 #include "input/api/Wiimote/WiimoteControllerProvider.h"
 #endif
 

@@ -96,7 +96,7 @@ void LatteAsyncCommands_waitUntilAllProcessed()
 void LatteAsyncCommands_checkAndExecute()
 {
 	// quick check if queue is empty (requires no lock)
-	if (!Latte_IsActive())
+	if (Latte_GetStopSignal())
 		LatteThread_Exit();
 	if (LatteAsyncCommandQueue.empty())
 		return;

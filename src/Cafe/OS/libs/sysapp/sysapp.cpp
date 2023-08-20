@@ -2,6 +2,7 @@
 #include "sysapp.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/coreinit/coreinit_FG.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 
 typedef struct  
 {
@@ -469,7 +470,6 @@ void sysappExport__SYSGetEShopArgs(PPCInterpreter_t* hCPU)
 void sysappExport_SYSGetUPIDFromTitleID(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU64(titleId, 0);
-	cemuLog_logDebug(LogType::Force, "SYSGetUPIDFromTitleID(0x{:08x}{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	uint32 titleIdHigh = (titleId >> 32);
 	uint32 titleIdLow = (uint32)(titleId & 0xFFFFFFFF);
 	if ((titleIdHigh & 0xFFFF0000) != 0x50000)
@@ -541,32 +541,67 @@ void sysappExport_SYSGetVodArgs(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 1);
 }
 
+struct SysLauncherArgs18
+{
+	uint64be caller_id; // titleId
+	uint64be launch_title; // titleId
+	uint32be mode;
+	uint32be slot_id;
+};
+
+static_assert(sizeof(SysLauncherArgs18) == 0x18);
+
 struct SysLauncherArgs28
 {
 	uint32 ukn00;
 	uint32 ukn04;
 	uint32 ukn08;
 	uint32 ukn0C;
-	uint32 ukn10; // caller title id? (8 byte)
-	uint32 ukn14;
-	uint32 ukn18; // launched title id? (8 byte)
-	uint32 ukn1C;
-	uint32 ukn20; // mode
-	uint32 ukn24; // slot
+	// standard args above
+	uint64be caller_id; // titleId
+	uint64be launch_title; // titleId
+	uint32be mode;
+	uint32be slot_id;
 };
 
 static_assert(sizeof(SysLauncherArgs28) == 0x28);
 
-void sysappExport__SYSGetLauncherArgs(PPCInterpreter_t* hCPU)
+uint32 _SYSGetLauncherArgs(void* argsOut)
 {
-	cemuLog_logDebug(LogType::Force, "_SYSGetLauncherArgs(0x{:08x}) - todo", hCPU->gpr[3]);
+	uint32 sdkVersion = coreinit::__OSGetProcessSDKVersion();
+	if(sdkVersion < 21103)
+	{
+		// old format
+		SysLauncherArgs18* launcherArgs18 = (SysLauncherArgs18*)argsOut;
+		memset(launcherArgs18, 0, sizeof(SysLauncherArgs18));
+	}
+	else
+	{
+		// new format
+		SysLauncherArgs28* launcherArgs28 = (SysLauncherArgs28*)argsOut;
+		memset(launcherArgs28, 0, sizeof(SysLauncherArgs28));
+	}
+	return 0; // return argument is todo
+}
 
-	// todo: Handle OS library version. Older versions used a different struct (only 0x18 bytes?)
-	//ppcDefineParamStructPtr(launcherArgs, SysLauncherArgs, 0);
-	//memset(launcherArgs, 0, sizeof(SysLauncherArgs));
+struct SysAccountArgs18
+{
+	uint32be ukn00;
+	uint32be ukn04;
+	uint32be ukn08;
+	uint32be ukn0C;
+	// shares part above with Standard arg
+	uint32be slotId; // "slot_id"
+	uint32be mode; // "mode"
+};
 
+uint32 _SYSGetAccountArgs(SysAccountArgs18* argsOut)
+{
+	memset(argsOut, 0, sizeof(SysAccountArgs18));
 
-	osLib_returnFromFunction(hCPU, 0); // return argument is todo (probably number of args?)
+	// sysDeserializeStandardArguments_t ?
+
+	return 0;
 }
 
 void sysappExport_SYSGetStandardResult(PPCInterpreter_t* hCPU)
@@ -574,7 +609,42 @@ void sysappExport_SYSGetStandardResult(PPCInterpreter_t* hCPU)
 	cemuLog_logDebug(LogType::Force, "SYSGetStandardResult(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	memset(memory_getPointerFromVirtualOffset(hCPU->gpr[3]), 0, 4);
 
+	// r3 = uint32be* output
+	// r4 = pointer to data to parse?
+	// r5 = size to parse?
+
 	osLib_returnFromFunction(hCPU, 0);
+}
+
+namespace sysapp
+{
+	void SYSClearSysArgs()
+	{
+		cemuLog_logDebug(LogType::Force, "SYSClearSysArgs()");
+		coreinit::__OSClearCopyData();
+	}
+
+	uint32 _SYSLaunchTitleByPathFromLauncher(const char* path, uint32 pathLength)
+	{
+		coreinit::__OSClearCopyData();
+		_SYSAppendCallerInfo();
+		return coreinit::OSLaunchTitleByPathl(path, pathLength, 0);
+	}
+
+	uint32 SYSRelaunchTitle(uint32 argc, MEMPTR<char>* argv)
+	{
+		// calls ACPCheckSelfTitleNotReferAccountLaunch?
+		coreinit::__OSClearCopyData();
+		_SYSAppendCallerInfo();
+		return coreinit::OSRestartGame(argc, argv);
+	}
+
+	void load()
+	{
+		cafeExportRegisterFunc(SYSClearSysArgs, "sysapp", "SYSClearSysArgs", LogType::Placeholder);
+		cafeExportRegisterFunc(_SYSLaunchTitleByPathFromLauncher, "sysapp", "_SYSLaunchTitleByPathFromLauncher", LogType::Placeholder);
+		cafeExportRegisterFunc(SYSRelaunchTitle, "sysapp", "SYSRelaunchTitle", LogType::Placeholder);
+	}
 }
 
 // register sysapp functions
@@ -592,6 +662,10 @@ void sysapp_load()
 
 	osLib_addFunction("sysapp", "SYSGetVodArgs", sysappExport_SYSGetVodArgs);
 
-	osLib_addFunction("sysapp", "_SYSGetLauncherArgs", sysappExport__SYSGetLauncherArgs);
 	osLib_addFunction("sysapp", "SYSGetStandardResult", sysappExport_SYSGetStandardResult);
+
+	cafeExportRegisterFunc(_SYSGetLauncherArgs, "sysapp", "_SYSGetLauncherArgs", LogType::Placeholder);
+	cafeExportRegisterFunc(_SYSGetAccountArgs, "sysapp", "_SYSGetAccountArgs", LogType::Placeholder);
+
+	sysapp::load();
 }
