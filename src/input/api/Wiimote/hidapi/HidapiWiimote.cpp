@@ -5,8 +5,8 @@ static constexpr uint16 WIIMOTE_PRODUCT_ID = 0x0306;
 static constexpr uint16 WIIMOTE_MP_PRODUCT_ID = 0x0330;
 static constexpr uint16 WIIMOTE_MAX_INPUT_REPORT_LENGTH = 22;
 
-HidapiWiimote::HidapiWiimote(hid_device* dev, uint64_t identifier)
- : m_handle(dev), m_identifier(identifier) {
+HidapiWiimote::HidapiWiimote(hid_device* dev, uint64_t identifier, std::string_view path)
+ : m_handle(dev), m_identifier(identifier), m_path(path) {
 
 }
 
@@ -39,7 +39,7 @@ std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
             uint64_t id = (static_cast<uint64>(it->interface_number) << 32) |
                           (static_cast<uint64>(it->usage_page) << 16) |
                           (it->usage);
-            wiimote_devices.push_back(std::make_shared<HidapiWiimote>(dev, id));
+            wiimote_devices.push_back(std::make_shared<HidapiWiimote>(dev, id, it->path));
         }
     }
     hid_free_enumeration(device_enumeration);
@@ -47,7 +47,8 @@ std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
 }
 
 bool HidapiWiimote::operator==(WiimoteDevice& o) const  {
-    return m_identifier == static_cast<HidapiWiimote&>(o).m_identifier;
+    auto const& other_mote = static_cast<HidapiWiimote const&>(o);
+    return m_identifier == other_mote.m_identifier && other_mote.m_path == m_path;
 }
 
 HidapiWiimote::~HidapiWiimote() {
