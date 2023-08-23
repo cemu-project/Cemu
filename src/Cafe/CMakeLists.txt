@@ -524,6 +524,10 @@ if (ENABLE_WAYLAND)
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
 endif()
 
+if (UNIX AND NOT APPLE)
+	target_link_libraries(CemuCafe PRIVATE usb-1.0)
+endif()
+
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuCafe PRIVATE wx::base wx::core)
 endif()
