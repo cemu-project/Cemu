@@ -35,6 +35,7 @@ std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
             cemuLog_logDebug(LogType::Force, "Unable to open Wiimote device at {}: {}", it->path, boost::nowide::narrow(hid_error(nullptr)));
         }
         else {
+            hid_set_nonblocking(dev, true);
             // Enough to have a unique id for each device within a session
             uint64_t id = (static_cast<uint64>(it->interface_number) << 32) |
                           (static_cast<uint64>(it->usage_page) << 16) |

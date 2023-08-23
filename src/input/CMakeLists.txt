@@ -62,6 +62,7 @@ if(WIN32)
 endif()
 
 if (ENABLE_WIIMOTE)
+	target_compile_definitions(CemuInput PUBLIC SUPPORTS_WIIMOTE)
 	target_sources(CemuInput PRIVATE
 			api/Wiimote/WiimoteControllerProvider.h
 			api/Wiimote/WiimoteControllerProvider.cpp
