@@ -16,7 +16,8 @@ private:
         Finished,
         NoBluetoothAvailable,
         BluetoothFailed,
-        PairingFailed
+        PairingFailed,
+        BluetoothUnusable
     };
 
     void OnClose(wxCloseEvent& event);

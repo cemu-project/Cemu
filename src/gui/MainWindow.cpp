@@ -2169,7 +2169,12 @@ void MainWindow::RecreateMenu()
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
-    toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_PAIR_WIIMOTE, _("&Pair a Wiimote or Wii U Pro Controller..."));
+    
+	wxMenuItem* pairItem = toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_PAIR_WIIMOTE, _("&Pair a Wiimote or Wii U Pro Controller..."));
+#if !BOOST_OS_WINDOWS
+	pairItem->Enable(false);
+#endif
+
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 
 	// cpu timer speed menu

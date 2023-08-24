@@ -107,6 +107,15 @@ void PairingDialog::OnGaugeUpdate(wxCommandEvent& event)
         break;
     }
 
+    case PairingState::BluetoothUnusable:
+    {
+        m_text->SetLabel(_("Please use your system's Bluetooth manager instead."));
+        m_gauge->SetValue(0);
+        m_cancelButton->SetLabel(_("Close"));
+        break;
+    }
+
+
     default:
     {
         break;
@@ -218,11 +227,8 @@ void PairingDialog::WorkerThread()
 
         BluetoothFindDeviceClose(deviceFind);
     }
-
 #else
-    cemuLog_log(LogType::Force, "pairing not implemented");
-
-    UpdateCallback(PairingState::NoBluetoothAvailable);
+    UpdateCallback(PairingState::BluetoothUnusable);
 #endif
 }
 
