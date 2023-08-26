@@ -440,6 +440,8 @@ add_library(CemuCafe
   OS/libs/nsyshid/Whitelist.h
   OS/libs/nsyshid/BackendLibusb.cpp
   OS/libs/nsyshid/BackendLibusb.h
+  OS/libs/nsyshid/BackendWindowsHID.cpp
+  OS/libs/nsyshid/BackendWindowsHID.h
   OS/libs/nsyskbd/nsyskbd.cpp
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
