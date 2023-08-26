@@ -102,6 +102,12 @@ if (WIN32)
 endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
+# usb hid backends
+option(ENABLE_NSYSHID_LIBUSB "Enables the libusb backend for nsyshid" ON)
+if (ENABLE_NSYSHID_LIBUSB)
+	add_compile_definitions(NSYSHID_ENABLE_BACKEND_LIBUSB)
+endif ()
+
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG true)

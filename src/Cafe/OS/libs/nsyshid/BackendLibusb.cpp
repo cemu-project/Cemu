@@ -1,0 +1,791 @@
+#include "BackendLibusb.h"
+
+#if NSYSHID_ENABLE_BACKEND_LIBUSB
+
+namespace nsyshid::backend::libusb
+{
+	BackendLibusb::BackendLibusb()
+		: m_ctx(nullptr),
+		  m_initReturnCode(0),
+		  m_callbackRegistered(false),
+		  m_hotplugCallbackHandle(0),
+		  m_hotplugThreadStop(false)
+	{
+		m_initReturnCode = libusb_init(&m_ctx);
+		if (m_initReturnCode < 0)
+		{
+			m_ctx = nullptr;
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb with return code %i",
+							 m_initReturnCode);
+			return;
+		}
+
+		if (libusb_has_capability(LIBUSB_CAP_HAS_HOTPLUG))
+		{
+			int ret = libusb_hotplug_register_callback(m_ctx,
+													   (libusb_hotplug_event)(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
+																			  LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
+													   (libusb_hotplug_flag)0,
+													   LIBUSB_HOTPLUG_MATCH_ANY,
+													   LIBUSB_HOTPLUG_MATCH_ANY,
+													   LIBUSB_HOTPLUG_MATCH_ANY,
+													   HotplugCallback,
+													   this,
+													   &m_hotplugCallbackHandle);
+			if (ret != LIBUSB_SUCCESS)
+			{
+				cemuLog_logDebug(LogType::Force,
+								 "nsyshid::BackendLibusb: failed to register hotplug callback with return code %i",
+								 ret);
+			}
+			else
+			{
+				cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: registered hotplug callback");
+				m_callbackRegistered = true;
+				m_hotplugThread = std::thread([this] {
+					while (!m_hotplugThreadStop)
+					{
+						timeval timeout{
+							.tv_sec = 1,
+							.tv_usec = 0,
+						};
+						int ret = libusb_handle_events_timeout_completed(m_ctx, &timeout, nullptr);
+						if (ret != 0)
+						{
+							cemuLog_logDebug(LogType::Force,
+											 "nsyshid::BackendLibusb: hotplug thread: error handling events: {}",
+											 ret);
+							std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+						}
+					}
+				});
+			}
+		}
+		else
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: hotplug not supported by this version of libusb");
+		}
+	}
+
+	bool BackendLibusb::IsInitialisedOk()
+	{
+		return m_initReturnCode == 0;
+	}
+
+	void BackendLibusb::AttachVisibleDevices()
+	{
+		// add all currently connected devices
+		libusb_device** devices;
+		ssize_t deviceCount = libusb_get_device_list(m_ctx, &devices);
+		if (deviceCount < 0)
+		{
+			cemuLog_log(LogType::Force, "nsyshid::BackendLibusb: failed to get usb devices");
+			return;
+		}
+		libusb_device* dev;
+		for (int i = 0; (dev = devices[i]) != nullptr; i++)
+		{
+			auto device = CheckAndCreateDevice(dev);
+			if (device != nullptr)
+			{
+				if (IsDeviceWhitelisted(device->m_vendorId, device->m_productId))
+				{
+					if (!AttachDevice(device))
+					{
+						cemuLog_log(LogType::Force,
+									"nsyshid::BackendLibusb: failed to attach device: {:04x}:{:04x}",
+									device->m_vendorId,
+									device->m_productId);
+					}
+				}
+				else
+				{
+					cemuLog_log(LogType::Force,
+								"nsyshid::BackendLibusb: device not on whitelist: {:04x}:{:04x}",
+								device->m_vendorId,
+								device->m_productId);
+				}
+			}
+		}
+
+		libusb_free_device_list(devices, 1);
+	}
+
+	int BackendLibusb::HotplugCallback(libusb_context* ctx,
+									   libusb_device* dev,
+									   libusb_hotplug_event event,
+									   void* user_data)
+	{
+		if (user_data)
+		{
+			BackendLibusb* backend = static_cast<BackendLibusb*>(user_data);
+			return backend->OnHotplug(dev, event);
+		}
+		return 0;
+	}
+
+	int BackendLibusb::OnHotplug(libusb_device* dev, libusb_hotplug_event event)
+	{
+		struct libusb_device_descriptor desc;
+		int ret = libusb_get_device_descriptor(dev, &desc);
+		if (ret < 0)
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): failed to get device descriptor");
+			return 0;
+		}
+
+		switch (event)
+		{
+		case LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED:
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device arrived: {:04x}:{:04x}",
+							 desc.idVendor,
+							 desc.idProduct);
+			auto device = CheckAndCreateDevice(dev);
+			if (device != nullptr)
+			{
+				if (IsDeviceWhitelisted(device->m_vendorId, device->m_productId))
+				{
+					if (!AttachDevice(device))
+					{
+						cemuLog_log(LogType::Force,
+									"nsyshid::BackendLibusb::OnHotplug(): failed to attach device: {:04x}:{:04x}",
+									device->m_vendorId,
+									device->m_productId);
+					}
+				}
+				else
+				{
+					cemuLog_log(LogType::Force,
+								"nsyshid::BackendLibusb::OnHotplug(): device not on whitelist: {:04x}:{:04x}",
+								device->m_vendorId,
+								device->m_productId);
+				}
+			}
+		}
+		break;
+		case LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT:
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device left: {:04x}:{:04x}",
+							 desc.idVendor,
+							 desc.idProduct);
+			auto device = FindLibusbDevice(dev);
+			if (device != nullptr)
+			{
+				DetachDevice(device);
+			}
+		}
+		break;
+		}
+
+		return 0;
+	}
+
+	BackendLibusb::~BackendLibusb()
+	{
+		if (m_callbackRegistered)
+		{
+			m_hotplugThreadStop = true;
+			libusb_hotplug_deregister_callback(m_ctx, m_hotplugCallbackHandle);
+			m_hotplugThread.join();
+		}
+		DetachAllDevices();
+		if (m_ctx)
+		{
+			libusb_exit(m_ctx);
+			m_ctx = nullptr;
+		}
+	}
+
+	std::shared_ptr<Device> BackendLibusb::FindLibusbDevice(libusb_device* dev)
+	{
+		libusb_device_descriptor desc;
+		int ret = libusb_get_device_descriptor(dev, &desc);
+		if (ret < 0)
+		{
+			cemuLog_logDebug(LogType::Force,
+							 "nsyshid::BackendLibusb::FindLibusbDevice(): failed to get device descriptor");
+			return nullptr;
+		}
+		uint8 busNumber = libusb_get_bus_number(dev);
+		uint8 deviceAddress = libusb_get_device_address(dev);
+		auto device = FindDevice([desc, busNumber, deviceAddress](const std::shared_ptr<Device>& d) -> bool {
+			auto device = std::dynamic_pointer_cast<DeviceLibusb>(d);
+			if (device != nullptr &&
+				desc.idVendor == device->m_vendorId &&
+				desc.idProduct == device->m_productId &&
+				busNumber == device->m_libusbBusNumber &&
+				deviceAddress == device->m_libusbDeviceAddress)
+			{
+				// we found our device!
+				return true;
+			}
+			return false;
+		});
+
+		if (device != nullptr)
+		{
+			return device;
+		}
+		return nullptr;
+	}
+
+	std::shared_ptr<Device> BackendLibusb::CheckAndCreateDevice(libusb_device* dev)
+	{
+		struct libusb_device_descriptor desc;
+		int ret = libusb_get_device_descriptor(dev, &desc);
+		if (ret < 0)
+		{
+			cemuLog_log(LogType::Force,
+						"nsyshid::BackendLibusb::CheckAndCreateDevice(): failed to get device descriptor; return code: %i",
+						ret);
+			return nullptr;
+		}
+		if (desc.idVendor == 0x0e6f && desc.idProduct == 0x0241)
+		{
+			cemuLog_logDebug(LogType::Force,
+							 "nsyshid::BackendLibusb::CheckAndCreateDevice(): lego dimensions portal detected");
+		}
+		auto device = std::make_shared<DeviceLibusb>(m_ctx,
+													 desc.idVendor,
+													 desc.idProduct,
+													 1,
+													 2,
+													 0,
+													 libusb_get_bus_number(dev),
+													 libusb_get_device_address(dev));
+		// figure out device endpoints
+		if (!FindDefaultDeviceEndpoints(dev,
+										device->m_libusbHasEndpointIn,
+										device->m_libusbEndpointIn,
+										device->m_maxPacketSizeRX,
+										device->m_libusbHasEndpointOut,
+										device->m_libusbEndpointOut,
+										device->m_maxPacketSizeTX))
+		{
+			// most likely couldn't read config descriptor
+			cemuLog_log(LogType::Force,
+						"nsyshid::BackendLibusb::CheckAndCreateDevice(): failed to find default endpoints for device: {:04x}:{:04x}",
+						device->m_vendorId,
+						device->m_productId);
+			return nullptr;
+		}
+		return device;
+	}
+
+	bool BackendLibusb::FindDefaultDeviceEndpoints(libusb_device* dev, bool& endpointInFound, uint8& endpointIn,
+												   uint16& endpointInMaxPacketSize, bool& endpointOutFound,
+												   uint8& endpointOut, uint16& endpointOutMaxPacketSize)
+	{
+		endpointInFound = false;
+		endpointIn = 0;
+		endpointInMaxPacketSize = 0;
+		endpointOutFound = false;
+		endpointOut = 0;
+		endpointOutMaxPacketSize = 0;
+
+		struct libusb_config_descriptor* conf = nullptr;
+		int ret = libusb_get_active_config_descriptor(dev, &conf);
+
+		if (ret == 0)
+		{
+			for (uint8 interfaceIndex = 0; interfaceIndex < conf->bNumInterfaces; interfaceIndex++)
+			{
+				const struct libusb_interface& interface = conf->interface[interfaceIndex];
+				for (int altsettingIndex = 0; altsettingIndex < interface.num_altsetting; altsettingIndex++)
+				{
+					const struct libusb_interface_descriptor& altsetting = interface.altsetting[altsettingIndex];
+					for (uint8 endpointIndex = 0; endpointIndex < altsetting.bNumEndpoints; endpointIndex++)
+					{
+						const struct libusb_endpoint_descriptor& endpoint = altsetting.endpoint[endpointIndex];
+						// figure out direction
+						if ((endpoint.bEndpointAddress & (1 << 7)) != 0)
+						{
+							// in
+							if (!endpointInFound)
+							{
+								endpointInFound = true;
+								endpointIn = endpoint.bEndpointAddress;
+								endpointInMaxPacketSize = endpoint.wMaxPacketSize;
+							}
+						}
+						else
+						{
+							// out
+							if (!endpointOutFound)
+							{
+								endpointOutFound = true;
+								endpointOut = endpoint.bEndpointAddress;
+								endpointOutMaxPacketSize = endpoint.wMaxPacketSize;
+							}
+						}
+					}
+				}
+			}
+			libusb_free_config_descriptor(conf);
+			return true;
+		}
+		return false;
+	}
+
+	DeviceLibusb::DeviceLibusb(libusb_context* ctx,
+							   uint16 vendorId,
+							   uint16 productId,
+							   uint8 interfaceIndex,
+							   uint8 interfaceSubClass,
+							   uint8 protocol,
+							   uint8 libusbBusNumber,
+							   uint8 libusbDeviceAddress)
+		: Device(vendorId,
+				 productId,
+				 interfaceIndex,
+				 interfaceSubClass,
+				 protocol),
+		  m_ctx(ctx),
+		  m_libusbHandle(nullptr),
+		  m_handleInUseCounter(-1),
+		  m_libusbBusNumber(libusbBusNumber),
+		  m_libusbDeviceAddress(libusbDeviceAddress),
+		  m_libusbHasEndpointIn(false),
+		  m_libusbEndpointIn(0),
+		  m_libusbHasEndpointOut(false),
+		  m_libusbEndpointOut(0)
+	{
+	}
+
+	DeviceLibusb::~DeviceLibusb()
+	{
+		CloseDevice();
+	}
+
+	bool DeviceLibusb::Open()
+	{
+		std::unique_lock<std::mutex> lock(m_handleMutex);
+		if (IsOpened())
+		{
+			return true;
+		}
+		// we may still be in the process of closing the device; wait for that to finish
+		while (m_handleInUseCounter != -1)
+		{
+			m_handleInUseCounterDecremented.wait(lock);
+		}
+
+		libusb_device** devices;
+		ssize_t deviceCount = libusb_get_device_list(m_ctx, &devices);
+		if (deviceCount < 0)
+		{
+			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::open(): failed to get usb devices");
+			return false;
+		}
+		libusb_device* dev;
+		libusb_device* found = nullptr;
+		for (int i = 0; (dev = devices[i]) != nullptr; i++)
+		{
+			struct libusb_device_descriptor desc;
+			int ret = libusb_get_device_descriptor(dev, &desc);
+			if (ret < 0)
+			{
+				cemuLog_log(LogType::Force,
+							"nsyshid::DeviceLibusb::open(): failed to get device descriptor; return code: %i",
+							ret);
+				libusb_free_device_list(devices, 1);
+				return false;
+			}
+			if (desc.idVendor == this->m_vendorId &&
+				desc.idProduct == this->m_productId &&
+				libusb_get_bus_number(dev) == this->m_libusbBusNumber &&
+				libusb_get_device_address(dev) == this->m_libusbDeviceAddress)
+			{
+				// we found our device!
+				found = dev;
+				break;
+			}
+		}
+
+		if (found != nullptr)
+		{
+			{
+				int ret = libusb_open(dev, &(this->m_libusbHandle));
+				if (ret < 0)
+				{
+					this->m_libusbHandle = nullptr;
+					cemuLog_log(LogType::Force,
+								"nsyshid::DeviceLibusb::open(): failed to open device; return code: %i",
+								ret);
+					libusb_free_device_list(devices, 1);
+					return false;
+				}
+				this->m_handleInUseCounter = 0;
+			}
+			if (libusb_kernel_driver_active(this->m_libusbHandle, 0) == 1)
+			{
+				cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): kernel driver active");
+				if (libusb_detach_kernel_driver(this->m_libusbHandle, 0) == 0)
+				{
+					cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): kernel driver detached");
+				}
+				else
+				{
+					cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): failed to detach kernel driver");
+				}
+			}
+			{
+				int ret = libusb_claim_interface(this->m_libusbHandle, 0);
+				if (ret != 0)
+				{
+					cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): cannot claim interface");
+				}
+			}
+		}
+
+		libusb_free_device_list(devices, 1);
+		return found != nullptr;
+	}
+
+	void DeviceLibusb::Close()
+	{
+		CloseDevice();
+	}
+
+	void DeviceLibusb::CloseDevice()
+	{
+		std::unique_lock<std::mutex> lock(m_handleMutex);
+		if (IsOpened())
+		{
+			auto handle = m_libusbHandle;
+			m_libusbHandle = nullptr;
+			while (m_handleInUseCounter > 0)
+			{
+				m_handleInUseCounterDecremented.wait(lock);
+			}
+			libusb_release_interface(handle, 0);
+			libusb_close(handle);
+			m_handleInUseCounter = -1;
+			m_handleInUseCounterDecremented.notify_all();
+		}
+	}
+
+	bool DeviceLibusb::IsOpened()
+	{
+		return m_libusbHandle != nullptr && m_handleInUseCounter >= 0;
+	}
+
+	Device::ReadResult DeviceLibusb::Read(uint8* data, sint32 length, sint32& bytesRead)
+	{
+		auto handleLock = AquireHandleLock();
+		if (!handleLock->IsValid())
+		{
+			cemuLog_logDebug(LogType::Force,
+							 "nsyshid::DeviceLibusb::read(): cannot read from a non-opened device\n");
+			return ReadResult::Error;
+		}
+
+		const unsigned int timeout = 50;
+		int actualLength = 0;
+		int ret = 0;
+		do
+		{
+			ret = libusb_bulk_transfer(handleLock->GetHandle(),
+									   this->m_libusbEndpointIn,
+									   data,
+									   length,
+									   &actualLength,
+									   timeout);
+		}
+		while (ret == LIBUSB_ERROR_TIMEOUT && actualLength == 0 && IsOpened());
+
+		if (ret == 0 || ret == LIBUSB_ERROR_TIMEOUT)
+		{
+			// success
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::read(): read {} of {} bytes",
+							 actualLength,
+							 length);
+			bytesRead = actualLength;
+			return ReadResult::Success;
+		}
+		cemuLog_logDebug(LogType::Force,
+						 "nsyshid::DeviceLibusb::read(): failed with error code: {}",
+						 ret);
+		return ReadResult::Error;
+	}
+
+	Device::WriteResult DeviceLibusb::Write(uint8* data, sint32 length, sint32& bytesWritten)
+	{
+		auto handleLock = AquireHandleLock();
+		if (!handleLock->IsValid())
+		{
+			cemuLog_logDebug(LogType::Force,
+							 "nsyshid::DeviceLibusb::write(): cannot write to a non-opened device\n");
+			return WriteResult::Error;
+		}
+
+		bytesWritten = 0;
+		int actualLength = 0;
+		int ret = libusb_bulk_transfer(handleLock->GetHandle(),
+									   this->m_libusbEndpointOut,
+									   data,
+									   length,
+									   &actualLength,
+									   0);
+
+		if (ret == 0)
+		{
+			// success
+			bytesWritten = actualLength;
+			cemuLog_logDebug(LogType::Force,
+							 "nsyshid::DeviceLibusb::write(): wrote {} of {} bytes",
+							 bytesWritten,
+							 length);
+			return WriteResult::Success;
+		}
+		cemuLog_logDebug(LogType::Force,
+						 "nsyshid::DeviceLibusb::write(): failed with error code: {}",
+						 ret);
+		return WriteResult::Error;
+	}
+
+	bool DeviceLibusb::GetDescriptor(uint8 descType,
+									 uint8 descIndex,
+									 uint8 lang,
+									 uint8* output,
+									 uint32 outputMaxLength)
+	{
+		auto handleLock = AquireHandleLock();
+		if (!handleLock->IsValid())
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::getDescriptor(): device is not opened");
+			return false;
+		}
+
+		if (descType == 0x02)
+		{
+			struct libusb_config_descriptor* conf = nullptr;
+			libusb_device* dev = libusb_get_device(handleLock->GetHandle());
+			int ret = libusb_get_active_config_descriptor(dev, &conf);
+
+			if (ret == 0)
+			{
+				std::vector<uint8> configurationDescriptor(conf->wTotalLength);
+				uint8* currentWritePtr = &configurationDescriptor[0];
+
+				// configuration descriptor
+				cemu_assert_debug(conf->bLength == LIBUSB_DT_CONFIG_SIZE);
+				*(uint8*)(currentWritePtr + 0) = conf->bLength;				// bLength
+				*(uint8*)(currentWritePtr + 1) = conf->bDescriptorType;		// bDescriptorType
+				*(uint16be*)(currentWritePtr + 2) = conf->wTotalLength;		// wTotalLength
+				*(uint8*)(currentWritePtr + 4) = conf->bNumInterfaces;		// bNumInterfaces
+				*(uint8*)(currentWritePtr + 5) = conf->bConfigurationValue; // bConfigurationValue
+				*(uint8*)(currentWritePtr + 6) = conf->iConfiguration;		// iConfiguration
+				*(uint8*)(currentWritePtr + 7) = conf->bmAttributes;		// bmAttributes
+				*(uint8*)(currentWritePtr + 8) = conf->MaxPower;			// MaxPower
+				currentWritePtr = currentWritePtr + conf->bLength;
+
+				for (uint8_t interfaceIndex = 0; interfaceIndex < conf->bNumInterfaces; interfaceIndex++)
+				{
+					const struct libusb_interface& interface = conf->interface[interfaceIndex];
+					for (int altsettingIndex = 0; altsettingIndex < interface.num_altsetting; altsettingIndex++)
+					{
+						// interface descriptor
+						const struct libusb_interface_descriptor& altsetting = interface.altsetting[altsettingIndex];
+						cemu_assert_debug(altsetting.bLength == LIBUSB_DT_INTERFACE_SIZE);
+						*(uint8*)(currentWritePtr + 0) = altsetting.bLength;			// bLength
+						*(uint8*)(currentWritePtr + 1) = altsetting.bDescriptorType;	// bDescriptorType
+						*(uint8*)(currentWritePtr + 2) = altsetting.bInterfaceNumber;	// bInterfaceNumber
+						*(uint8*)(currentWritePtr + 3) = altsetting.bAlternateSetting;	// bAlternateSetting
+						*(uint8*)(currentWritePtr + 4) = altsetting.bNumEndpoints;		// bNumEndpoints
+						*(uint8*)(currentWritePtr + 5) = altsetting.bInterfaceClass;	// bInterfaceClass
+						*(uint8*)(currentWritePtr + 6) = altsetting.bInterfaceSubClass; // bInterfaceSubClass
+						*(uint8*)(currentWritePtr + 7) = altsetting.bInterfaceProtocol; // bInterfaceProtocol
+						*(uint8*)(currentWritePtr + 8) = altsetting.iInterface;			// iInterface
+						currentWritePtr = currentWritePtr + altsetting.bLength;
+
+						if (altsetting.extra_length > 0)
+						{
+							// unknown descriptors - copy the ones that we can identify ourselves
+							const unsigned char* extraReadPointer = altsetting.extra;
+							while (extraReadPointer - altsetting.extra < altsetting.extra_length)
+							{
+								uint8 bLength = *(uint8*)(extraReadPointer + 0);
+								if (bLength == 0)
+								{
+									// prevent endless loop
+									break;
+								}
+								if (extraReadPointer + bLength - altsetting.extra > altsetting.extra_length)
+								{
+									// prevent out of bounds read
+									break;
+								}
+								uint8 bDescriptorType = *(uint8*)(extraReadPointer + 1);
+								// HID descriptor
+								if (bDescriptorType == LIBUSB_DT_HID && bLength == 9)
+								{
+									*(uint8*)(currentWritePtr + 0) =
+										*(uint8*)(extraReadPointer + 0); // bLength
+									*(uint8*)(currentWritePtr + 1) =
+										*(uint8*)(extraReadPointer + 1); // bDescriptorType
+									*(uint16be*)(currentWritePtr + 2) =
+										*(uint16*)(extraReadPointer + 2); // bcdHID
+									*(uint8*)(currentWritePtr + 4) =
+										*(uint8*)(extraReadPointer + 4); // bCountryCode
+									*(uint8*)(currentWritePtr + 5) =
+										*(uint8*)(extraReadPointer + 5); // bNumDescriptors
+									*(uint8*)(currentWritePtr + 6) =
+										*(uint8*)(extraReadPointer + 6); // bDescriptorType
+									*(uint16be*)(currentWritePtr + 7) =
+										*(uint16*)(extraReadPointer + 7); // wDescriptorLength
+									currentWritePtr += bLength;
+								}
+								extraReadPointer += bLength;
+							}
+						}
+
+						for (int endpointIndex = 0; endpointIndex < altsetting.bNumEndpoints; endpointIndex++)
+						{
+							// endpoint descriptor
+							const struct libusb_endpoint_descriptor& endpoint = altsetting.endpoint[endpointIndex];
+							cemu_assert_debug(endpoint.bLength == LIBUSB_DT_ENDPOINT_SIZE ||
+											  endpoint.bLength == LIBUSB_DT_ENDPOINT_AUDIO_SIZE);
+							*(uint8*)(currentWritePtr + 0) = endpoint.bLength;
+							*(uint8*)(currentWritePtr + 1) = endpoint.bDescriptorType;
+							*(uint8*)(currentWritePtr + 2) = endpoint.bEndpointAddress;
+							*(uint8*)(currentWritePtr + 3) = endpoint.bmAttributes;
+							*(uint16be*)(currentWritePtr + 4) = endpoint.wMaxPacketSize;
+							*(uint8*)(currentWritePtr + 6) = endpoint.bInterval;
+							if (endpoint.bLength == LIBUSB_DT_ENDPOINT_AUDIO_SIZE)
+							{
+								*(uint8*)(currentWritePtr + 7) = endpoint.bRefresh;
+								*(uint8*)(currentWritePtr + 8) = endpoint.bSynchAddress;
+							}
+							currentWritePtr += endpoint.bLength;
+						}
+					}
+				}
+				uint32 bytesWritten = currentWritePtr - &configurationDescriptor[0];
+				libusb_free_config_descriptor(conf);
+				cemu_assert_debug(bytesWritten <= conf->wTotalLength);
+
+				memcpy(output, &configurationDescriptor[0],
+					   std::min<uint32>(outputMaxLength, bytesWritten));
+				return true;
+			}
+			else
+			{
+				cemuLog_logDebug(LogType::Force,
+								 "nsyshid::DeviceLibusb::getDescriptor(): failed to get config descriptor with error code: {}",
+								 ret);
+				return false;
+			}
+		}
+		else
+		{
+			cemu_assert_unimplemented();
+		}
+		return false;
+	}
+
+	bool DeviceLibusb::SetProtocol(uint32 ifIndex, uint32 protocol)
+	{
+		auto handleLock = AquireHandleLock();
+		if (!handleLock->IsValid())
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): device is not opened");
+			return false;
+		}
+
+		// ToDo: implement this
+#if 0
+		// is this correct? Discarding "ifIndex" seems like a bad idea
+		int ret = libusb_set_configuration(handleLock->getHandle(), protocol);
+		if (ret == 0) {
+			cemuLog_logDebug(LogType::Force,
+							 "nsyshid::DeviceLibusb::setProtocol(): success");
+			return true;
+		}
+		cemuLog_logDebug(LogType::Force,
+						 "nsyshid::DeviceLibusb::setProtocol(): failed with error code: {}",
+						 ret);
+		return false;
+#endif
+
+		// pretend that everything is fine
+		return true;
+	}
+
+	bool DeviceLibusb::SetReport(uint8* reportData, sint32 length, uint8* originalData,
+								 sint32 originalLength)
+	{
+		auto handleLock = AquireHandleLock();
+		if (!handleLock->IsValid())
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetReport(): device is not opened");
+			return false;
+		}
+
+		// ToDo: implement this
+#if 0
+		// not sure if libusb_control_transfer() is the right candidate for this
+		int ret = libusb_control_transfer(handleLock->getHandle(),
+										  bmRequestType,
+										  bRequest,
+										  wValue,
+										  wIndex,
+										  reportData,
+										  length,
+										  timeout);
+#endif
+
+		// pretend that everything is fine
+		return true;
+	}
+
+	std::unique_ptr<DeviceLibusb::HandleLock> DeviceLibusb::AquireHandleLock()
+	{
+		return std::make_unique<HandleLock>(&m_libusbHandle,
+											m_handleMutex,
+											m_handleInUseCounter,
+											m_handleInUseCounterDecremented,
+											*this);
+	}
+
+	DeviceLibusb::HandleLock::HandleLock(libusb_device_handle** handle,
+										 std::mutex& handleMutex,
+										 std::atomic<sint32>& handleInUseCounter,
+										 std::condition_variable& handleInUseCounterDecremented,
+										 DeviceLibusb& device)
+		: m_handle(nullptr),
+		  m_handleMutex(handleMutex),
+		  m_handleInUseCounter(handleInUseCounter),
+		  m_handleInUseCounterDecremented(handleInUseCounterDecremented)
+	{
+		std::lock_guard<std::mutex> lock(handleMutex);
+		if (device.IsOpened() && handle != nullptr && handleInUseCounter >= 0)
+		{
+			this->m_handle = *handle;
+			this->m_handleInUseCounter++;
+		}
+	}
+
+	DeviceLibusb::HandleLock::~HandleLock()
+	{
+		if (IsValid())
+		{
+			std::lock_guard<std::mutex> lock(m_handleMutex);
+			m_handleInUseCounter--;
+			m_handleInUseCounterDecremented.notify_all();
+		}
+	}
+
+	bool DeviceLibusb::HandleLock::IsValid()
+	{
+		return m_handle != nullptr;
+	}
+
+	libusb_device_handle* DeviceLibusb::HandleLock::GetHandle()
+	{
+		return m_handle;
+	}
+} // namespace nsyshid::backend::libusb
+
+#endif // NSYSHID_ENABLE_BACKEND_LIBUSB
