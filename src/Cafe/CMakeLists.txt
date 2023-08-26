@@ -434,6 +434,10 @@ add_library(CemuCafe
   OS/libs/nn_uds/nn_uds.h
   OS/libs/nsyshid/nsyshid.cpp
   OS/libs/nsyshid/nsyshid.h
+  OS/libs/nsyshid/Backend.h
+  OS/libs/nsyshid/AttachDefaultBackends.cpp
+  OS/libs/nsyshid/Whitelist.cpp
+  OS/libs/nsyshid/Whitelist.h
   OS/libs/nsyskbd/nsyskbd.cpp
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
