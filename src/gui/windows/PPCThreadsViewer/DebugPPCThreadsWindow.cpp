@@ -333,7 +333,7 @@ void DebugPPCThreadsWindow::PresentProfileResults(OSThread_t* thread, const std:
 void DebugPPCThreadsWindow::ProfileThreadWorker(OSThread_t* thread)
 {
 	wxProgressDialogManager progressDialog(this);
-	progressDialog.Create("Profiling thread",
+	progressDialog.Create(_("Profiling thread"),
 						  _("Capturing samples..."),
 						  1000, // range
 						  wxPD_CAN_SKIP);
@@ -364,7 +364,7 @@ void DebugPPCThreadsWindow::ProfileThreadWorker(OSThread_t* thread)
 		totalSampleCount++;
 		if ((totalSampleCount % 50) == 0)
 		{
-			wxString msg = fmt::format("Capturing samples... ({:})\nResults will be written to log.txt\n",
+			wxString msg = fmt::format(fmt::runtime(_("Capturing samples... ({:})\nResults will be written to log.txt\n").ToStdString()),
 									   totalSampleCount);
 			if (totalSampleCount < 30000)
 				msg.Append(_("Click Skip button for early results with lower accuracy"));
