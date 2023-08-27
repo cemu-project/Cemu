@@ -610,7 +610,7 @@ void ChecksumTool::OnVerifyOnline(wxCommandEvent& event)
 	d.ParseStream(str);
 	if (d.HasParseError())
 	{
-		wxMessageBox(_("Can't parse json file!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+		wxMessageBox(_("Can't parse JSON file!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
 
@@ -638,7 +638,7 @@ void ChecksumTool::OnVerifyLocal(wxCommandEvent& event)
 	d.ParseStream(str);
 	if (d.HasParseError())
 	{
-		wxMessageBox(_("Can't parse json file!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+		wxMessageBox(_("Can't parse JSON file!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
 
