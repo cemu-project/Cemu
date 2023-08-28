@@ -67,13 +67,6 @@ void unused_translation_dummy()
 	void(_("Russian"));
 	void(_("Taiwanese"));
 	void(_("unknown"));
-
-
-	// account.h
-	void(_("AccountId missing (The account is not connected to a NNID)"));
-	void(_("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)"));
-	void(_("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)"));
-	void(_("PrincipalId missing"));
 }
 
 bool CemuApp::OnInit()

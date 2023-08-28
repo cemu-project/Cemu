@@ -2036,9 +2036,25 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 
 	if (!validator.valid_account)
 	{
-		err << _("The currently selected account is not a valid or dumped online account:") << fmt::format("\n{}", validator.account_error);
+		err << _("The currently selected account is not a valid or dumped online account:") << '\n';
+		err << GetOnlineAccountErrorMessage(validator.account_error);
 	}
-		
-	
+
 	wxMessageBox(err, _("Online Status"), wxOK | wxCENTRE | wxICON_INFORMATION);
+}
+
+std::string GeneralSettings2::GetOnlineAccountErrorMessage(OnlineAccountError error)
+{
+	switch (error) {
+		case OnlineAccountError::kNoAccountId:
+			return _("AccountId missing (The account is not connected to a NNID)").ToStdString();
+		case OnlineAccountError::kNoPasswordCached:
+			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)").ToStdString();
+		case OnlineAccountError::kPasswordCacheEmpty:
+			return _("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)").ToStdString();
+		case OnlineAccountError::kNoPrincipalId:
+			return _("PrincipalId missing").ToStdString();
+		default:
+			return "no error";
+	}
 }
