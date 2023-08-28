@@ -2287,57 +2287,6 @@ void MainWindow::RecreateMenu()
 		SetMenuVisible(false);
 }
 
-void MainWindow::OnAfterCallShowErrorDialog()
-{
-	//wxMessageBox((const wxString&)dialogText, (const wxString&)dialogTitle, wxICON_INFORMATION);
-	//wxDialog* dialog = new wxDialog(NULL,wxID_ANY,(const wxString&)dialogTitle,wxDefaultPosition,wxSize(310,170));
-	//dialog->ShowModal();
-	//dialogState = 1;
-}
-
-bool MainWindow::EnableOnlineMode() const
-{
-	// TODO: not used anymore
-	// 
-	// if enabling online mode, check if all requirements are met
-	std::wstring additionalErrorInfo;
-	const sint32 onlineReqError = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo);
-
-	bool enableOnline = false;
-	if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_OTP_MISSING)
-	{
-		wxMessageBox(_("otp.bin could not be found"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_OTP_CORRUPTED)
-	{
-		wxMessageBox(_("otp.bin is corrupted or has invalid size"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_SEEPROM_MISSING)
-	{
-		wxMessageBox(_("seeprom.bin could not be found"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_SEEPROM_CORRUPTED)
-	{
-		wxMessageBox(_("seeprom.bin is corrupted or has invalid size"), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_MISSING_FILE)
-	{
-		std::wstring errorMessage = fmt::format(L"Unable to load a necessary file:\n{}", additionalErrorInfo);
-		wxMessageBox(errorMessage.c_str(), _("Error"), wxICON_ERROR);
-	}
-	else if (onlineReqError == IOS_CRYPTO_ONLINE_REQ_OK)
-	{
-		enableOnline = true;
-	}
-	else
-	{
-		wxMessageBox(_("Unknown error occured"), _("Error"), wxICON_ERROR);
-	}
-
-	//config_get()->enableOnlineMode = enableOnline;
-	return enableOnline;
-}
-
 void MainWindow::RestoreSettingsAfterGameExited()
 {
 	RecreateMenu();
