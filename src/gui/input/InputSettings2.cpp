@@ -976,7 +976,7 @@ void InputSettings2::on_controller_settings(wxCommandEvent& event)
 
 	case InputAPI::Keyboard: break;
 
-	#if BOOST_OS_WINDOWS
+	#if SUPPORTS_WIIMOTE
 	case InputAPI::Wiimote: {
 		const auto wiimote = std::dynamic_pointer_cast<NativeWiimoteController>(controller);
 		wxASSERT(wiimote);
