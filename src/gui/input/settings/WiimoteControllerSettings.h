@@ -1,6 +1,6 @@
 #pragma once
 
-#if SUPPORTS_WIIMOTE
+#ifdef SUPPORTS_WIIMOTE
 
 #include <wx/dialog.h>
 #include <wx/timer.h>
