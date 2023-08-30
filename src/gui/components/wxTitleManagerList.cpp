@@ -926,7 +926,7 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	case ColumnName:
 		return entry.name;
 	case ColumnType:
-		return wxStringFormat2("{}", entry.type);
+		return GetTranslatedTitleEntryType(entry.type);
 	case ColumnVersion:
 		return wxStringFormat2("{}", entry.version);
 	case ColumnRegion:
@@ -962,6 +962,25 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	}
 	
 	return wxEmptyString;
+}
+
+std::string wxTitleManagerList::GetTranslatedTitleEntryType(EntryType type)
+{
+	switch (type)
+	{
+		case EntryType::Base:
+			return _("base").ToStdString();
+		case EntryType::Update:
+			return _("update").ToStdString();
+		case EntryType::Dlc:
+			return _("DLC").ToStdString();
+		case EntryType::Save:
+			return _("save").ToStdString();
+		case EntryType::System:
+			return _("system").ToStdString();
+		default:
+			return std::to_string(static_cast<std::underlying_type_t<EntryType>>(type));
+	}
 }
 
 void wxTitleManagerList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)

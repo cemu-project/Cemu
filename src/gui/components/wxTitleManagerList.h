@@ -132,32 +132,9 @@ private:
 	bool SortFunc(int column, const Type_t& v1, const Type_t& v2);
 
 	static wxString GetTitleEntryText(const TitleEntry& entry, ItemColumn column);
+	static std::string GetTranslatedTitleEntryType(EntryType entryType);
 	std::future<bool> m_context_worker;
 
 	uint64 m_callbackIdTitleList;
 	uint64 m_callbackIdSaveList;
-};
-
-template <>
-struct fmt::formatter<wxTitleManagerList::EntryType> : formatter<string_view>
-{
-	using base = fmt::formatter<fmt::string_view>;
-	template <typename FormatContext>
-	auto format(const wxTitleManagerList::EntryType& type, FormatContext& ctx)
-	{
-		switch (type)
-		{
-		case wxTitleManagerList::EntryType::Base:
-			return base::format("base", ctx);
-		case wxTitleManagerList::EntryType::Update:
-			return base::format("update", ctx);
-		case wxTitleManagerList::EntryType::Dlc:
-			return base::format("DLC", ctx);
-		case wxTitleManagerList::EntryType::Save:
-			return base::format("save", ctx);
-		case wxTitleManagerList::EntryType::System:
-			return base::format("system", ctx);
-		}
-		return base::format(std::to_string(static_cast<std::underlying_type_t<wxTitleManagerList::EntryType>>(type)), ctx);
-	}
 };

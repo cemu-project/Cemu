@@ -38,11 +38,6 @@ void unused_translation_dummy()
 	void(_("Browse"));
 	void(_("Select a file"));
 	void(_("Select a directory"));
-	
-	void(_("base"));
-	void(_("update"));
-	void(_("dlc"));
-	void(_("save"));
 
 	void(_("Japanese"));
 	void(_("English"));

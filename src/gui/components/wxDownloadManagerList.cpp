@@ -434,11 +434,9 @@ wxString wxDownloadManagerList::GetTitleEntryText(const TitleEntry& entry, ItemC
 	case ColumnTitleId:
 		return wxStringFormat2("{:08x}-{:08x}", (uint32)(entry.titleId >> 32), (uint32)(entry.titleId & 0xFFFFFFFF));
 	case ColumnName:
-	{
 		return entry.name;
-	}
 	case ColumnType:
-		return wxStringFormat2("{}", entry.type);
+		return GetTranslatedTitleEntryType(entry.type);
 	case ColumnVersion:
 	{
 		// dont show version for base game unless it is not v0
@@ -501,6 +499,21 @@ wxString wxDownloadManagerList::GetTitleEntryText(const TitleEntry& entry, ItemC
 	}
 	
 	return wxEmptyString;
+}
+
+std::string wxDownloadManagerList::GetTranslatedTitleEntryType(EntryType type)
+{
+	switch (type)
+	{
+		case EntryType::Base:
+			return _("base").ToStdString();
+		case EntryType::Update:
+			return _("update").ToStdString();
+		case EntryType::DLC:
+			return _("DLC").ToStdString();
+		default:
+			return std::to_string(static_cast<std::underlying_type_t<EntryType>>(type));
+	}
 }
 
 void wxDownloadManagerList::AddOrUpdateTitle(TitleEntryData_t* obj)
