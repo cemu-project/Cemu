@@ -44,16 +44,6 @@ void unused_translation_dummy()
 	void(_("dlc"));
 	void(_("save"));
 
-	void(_("Japan"));
-	void(_("USA"));
-	void(_("Europe"));
-	void(_("Australia"));
-	void(_("China"));
-	void(_("Korea"));
-	void(_("Taiwan"));
-	void(_("Auto"));
-	void(_("many"));
-
 	void(_("Japanese"));
 	void(_("English"));
 	void(_("French"));

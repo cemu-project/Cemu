@@ -930,7 +930,7 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	case ColumnVersion:
 		return wxStringFormat2("{}", entry.version);
 	case ColumnRegion:
-		return wxStringFormat2("{}", entry.region); // TODO its a flag so formatter is currently not correct
+		return wxGetTranslation(fmt::format("{}", entry.region));
 	case ColumnFormat:
 	{
 		if (entry.type == EntryType::Save)

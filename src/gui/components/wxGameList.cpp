@@ -1036,8 +1036,8 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 
 
 		const auto region_text = fmt::format("{}", gameInfo.GetRegion());
-		SetItem(index, ColumnRegion, _(region_text));
-        SetItem(index, ColumnTitleID, _(fmt::format("{:016x}", titleId)));
+		SetItem(index, ColumnRegion, wxGetTranslation(region_text));
+        SetItem(index, ColumnTitleID, fmt::format("{:016x}", titleId));
 	}
 	else if (m_style == Style::kIcons)
 	{
