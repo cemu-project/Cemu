@@ -298,6 +298,7 @@ void DownloadManager::loadTicketCache()
 	if (version != 1)
 		return; // unsupported version
 	uint32 numTickets = memReader.readBE<uint32>();
+	m_ticketCache.reserve(numTickets);
 	for (uint32 i = 0; i < numTickets; i++)
 	{
 		if (memReader.hasError())
@@ -316,6 +317,7 @@ void DownloadManager::loadTicketCache()
 		std::vector<uint8> eTicketData = memReader.readPODVector<uint8>();
 		std::vector<std::vector<uint8>> eTicketCerts;
 		uint8 certCount = memReader.readBE<uint8>();
+		eTicketCerts.reserve(certCount);
 		for (uint32 c = 0; c < certCount; c++)
 			eTicketCerts.emplace_back(memReader.readPODVector<uint8>());
 		if (memReader.hasError())
@@ -584,6 +586,7 @@ void DownloadManager::searchForIncompleteDownloads()
 		if( sscanf(name.c_str(), "cemu_%" PRIx64 "_v%u", &titleId, &version) != 2)
 			continue;
 		std::unique_lock<std::recursive_mutex> _l(m_mutex);
+		m_unfinishedDownloads.reserve(m_ticketCache.size());
 		for (auto& itr : m_ticketCache)
 			m_unfinishedDownloads.emplace_back(titleId, version);
 	}

@@ -462,6 +462,7 @@ namespace NCrypto
 
 		// parse content
 		TMDFileContentEntryWiiU* contentEntry = (TMDFileContentEntryWiiU*)(header + 1);
+		m_content.reserve(header->numContent);
 		for (uint32 i = 0; i < header->numContent; i++)
 		{
 			ContentEntry c{};

@@ -805,7 +805,7 @@ std::vector<std::string> InputManager::get_profiles()
 
 	std::vector<std::string> result;
 	result.reserve(tmp.size());
-	result.insert(result.end(), tmp.begin(), tmp.end());
+	result.insert(result.end(), tmp.cbegin(), tmp.cend());
 	return result;
 }
 

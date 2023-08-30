@@ -229,6 +229,7 @@ void MemorySearcherTool::OnSearch(wxCommandEvent&)
 			wxQueueEvent(this, new wxSetGaugeValue(0, total_size, m_gauge));
 			
 			ListType_t tmp;
+			tmp.reserve(m_search_jobs.size() * m_search_jobs[0].get().size());
 			for (auto& it : m_search_jobs)
 			{
 				const auto result = it.get();

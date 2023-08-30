@@ -2286,6 +2286,7 @@ bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo, ASM_DATA
 			}
 			// write string bytes + null-termination character
 			size_t strConstantLength = expressionStr.size() - 2;
+			internalInfo.ctx->outputData.reserve(strConstantLength + 1);
 			internalInfo.ctx->outputData.insert(internalInfo.ctx->outputData.end(), expressionStr.data() + 1, expressionStr.data() + 1 + strConstantLength);
 			internalInfo.ctx->outputData.emplace_back(0);
 			continue;
@@ -2418,6 +2419,7 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	_ppcAssembler_translateAlias(instructionName);
 	// parse operands
 	internalInfo.listOperandStr.clear();
+	internalInfo.listOperandStr.reserve(endPtr - currentPtr);
 	while (currentPtr < endPtr)
 	{
 		currentPtr++;

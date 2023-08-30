@@ -201,6 +201,7 @@ bool GameProfile::Load(uint64_t title_id)
 	{
 		char c;
 		size_t idx = 1;
+		game_name.reserve(profileContents->size() - idx);
 		while (idx < profileContents->size() && (c = profileContents->data()[idx]) != '\n' && idx < 128)
 		{
 			game_name.emplace_back(c);

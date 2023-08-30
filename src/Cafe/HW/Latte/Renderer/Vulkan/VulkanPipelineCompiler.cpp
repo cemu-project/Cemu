@@ -321,6 +321,7 @@ void PipelineCompiler::CreateDescriptorSetLayout(VulkanRenderer* vkRenderer, Lat
 	if (textureBindingBase >= 0)
 	{
 		sint32 textureCount = shader->resourceMapping.getTextureCount();
+		descriptorSetLayoutBindings.reserve(textureCount);
 		for (sint32 i = 0; i < textureCount; i++)
 		{
 			VkDescriptorSetLayoutBinding entry{};
