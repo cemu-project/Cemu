@@ -1,6 +1,6 @@
 #pragma once
 
-#if BOOST_OS_WINDOWS
+#ifdef SUPPORTS_WIIMOTE
 
 #include <wx/dialog.h>
 #include <wx/timer.h>

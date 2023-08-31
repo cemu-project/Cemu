@@ -14,7 +14,7 @@
 #include "gui/components/wxInputDraw.h"
 #include "gui/input/InputAPIAddWindow.h"
 
-#if BOOST_OS_WINDOWS
+#ifdef SUPPORTS_WIIMOTE
 
 WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxPoint& position, std::shared_ptr<NativeWiimoteController> controller)
 	: wxDialog(parent, wxID_ANY, _("Controller settings"), position, wxDefaultSize,
@@ -55,6 +55,7 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 
 			// Motion
 			m_use_motion = new wxCheckBox(box, wxID_ANY, _("Use motion"));
+			m_use_motion->SetValue(m_settings.motion);
 			m_use_motion->SetValue(m_settings.motion);
 			m_use_motion->Enable(m_controller->has_motion());
 			row_sizer->Add(m_use_motion, 0, wxALL, 5);
