@@ -630,6 +630,46 @@ namespace coreinit
         memset(&g_list3, 0, sizeof(g_list3));
     }
 
+	void ci_MEM_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_MEM_S", 15);
+
+		s.writeBE(sysAreaAllocatorOffset);
+		s.writeBE(g_heapTableCount);
+		s.writeData(g_heapTable, sizeof(MEMHeapBase) * MEM_MAX_HEAP_TABLE);
+		s.writeBE(g_slockInitialized);
+		s.writeBE(g_listsInitialized);
+		s.writeData(&g_list1, sizeof(MEMList));
+		s.writeData(&g_list2, sizeof(MEMList));
+		s.writeData(&g_list3, sizeof(MEMList));
+		s.writeData(&gHeapFillValues, sizeof(uint32) * 3);
+		s.writeBE(gHeapGlobalLock.GetMPTR());
+		s.writeData(&gDefaultHeap, sizeof(MEMHeapBase));
+		s.writeData(&sHeapBaseHandle, sizeof(MEMHeapBase) * 9);
+		s.writeBE(gDefaultHeapAllocator.GetMPTR());
+	}
+
+	void ci_MEM_Restore(MemStreamReader& s)
+	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_MEM_S") == 0);
+
+		sysAreaAllocatorOffset = s.readBE<MPTR>();
+		g_heapTableCount = s.readBE<sint32>();
+		s.readData(g_heapTable, sizeof(MEMHeapBase) * MEM_MAX_HEAP_TABLE);
+		g_slockInitialized = s.readBE<bool>();
+		g_listsInitialized = s.readBE<bool>();
+		s.readData(&g_list1, sizeof(MEMList));
+		s.readData(&g_list2, sizeof(MEMList));
+		s.readData(&g_list3, sizeof(MEMList));
+		s.readData(&gHeapFillValues, sizeof(uint32) * 3);
+		gHeapGlobalLock = (OSSpinLock*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s.readData(&gDefaultHeap, sizeof(MEMHeapBase));
+		s.readData(&sHeapBaseHandle, sizeof(MEMHeapBase) * 9);
+		gDefaultHeapAllocator = (MEMAllocatorFunc*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	}
+
 	void InitializeMEM()
 	{
         MEMResetToDefaultState();

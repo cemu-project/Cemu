@@ -110,13 +110,16 @@ void MemStreamWriter::writeBE<MMURange>(const MMURange& v)
 template <>
 void MemStreamReader::readBE<MMURange>(MMURange& mmuRange)
 {
-	mmuRange.m_isMapped = readBE<bool>();
+	bool needsMapped = readBE<bool>();
+	mmuRange.m_isMapped = false;
 	mmuRange.baseAddress = readBE<uint32>();
 	mmuRange.areaId = (MMU_MEM_AREA_ID)readBE<uint8>();
 	mmuRange.flags = (MMURange::MFLAG)readBE<uint8>();
 	mmuRange.name = readBE<std::string>();
 	mmuRange.size = readBE<uint32>();
 	mmuRange.initSize = readBE<uint32>();
+	if (needsMapped)
+		mmuRange.mapMem();
 }
 
 bool MMURange::deserializeImpl(MemStreamReader& streamReader)
@@ -470,7 +473,6 @@ void memory_createDump()
 
 void memory_Serialize(MemStreamWriter& s)
 {
-	s.writeBE<uint64>(g_mmuRanges.size());
 	for (auto& itr : g_mmuRanges)
 	{
 		s.writeBE(*itr);
@@ -483,7 +485,6 @@ void memory_Serialize(MemStreamWriter& s)
 
 void memory_Deserialize(MemStreamReader& s)
 {
-	size_t cnt = s.readBE<uint64>();
 	for (auto& itr : g_mmuRanges)
 	{
 		s.readBE<MMURange>(*itr);

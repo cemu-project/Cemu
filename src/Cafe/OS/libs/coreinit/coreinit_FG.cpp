@@ -191,6 +191,26 @@ namespace coreinit
 		osLib_returnFromFunction(hCPU, r ? 1 : 0);
 	}
 
+	void ci_FG_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_FG_S", 15);
+
+		s.writeBE(fgAddr.GetMPTR());
+		s.writeBE(fgSaveAreaAddr.GetMPTR());
+		s.writeData(&fgAreaEntries, sizeof(fgAreaEntries) * FG_BUCKET_AREA_COUNT);
+	}
+
+	void ci_FG_Restore(MemStreamReader& s)
+	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_FG_S") == 0);
+
+		fgAddr = memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		fgSaveAreaAddr = memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s.readData(&fgAreaEntries, sizeof(fgAreaEntries) * FG_BUCKET_AREA_COUNT);
+	}
+
 	void InitializeFG()
 	{
 		osLib_addFunction("coreinit", "OSGetForegroundBucket", coreinitExport_OSGetForegroundBucket);

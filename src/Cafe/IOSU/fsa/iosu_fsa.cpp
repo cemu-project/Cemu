@@ -992,6 +992,8 @@ namespace iosu::fsa
 
 	void Save(MemStreamWriter& writer)
 	{
+		writer.writeData("iosu_fsa_S", 15);
+
 		writer.writeBE(sFSAIoMsgQueue);
 		for (size_t i = 0; i < 352; i++)
 		{
@@ -1003,6 +1005,10 @@ namespace iosu::fsa
 
 	void Restore(MemStreamReader& reader)
 	{
+		char section[16] = { '\0' };
+		reader.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "iosu_fsa_S") == 0);
+
 		sFSAIoMsgQueue = reader.readBE<IOSMsgQueueId>();
 		for (size_t i = 0; i < 352; i++)
 		{

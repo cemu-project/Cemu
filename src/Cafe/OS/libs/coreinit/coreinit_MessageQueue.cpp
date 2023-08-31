@@ -117,6 +117,24 @@ namespace coreinit
 		return g_systemMessageQueue.GetPtr();
 	}
 
+	void ci_MessageQueue_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_MessQue_S", 15);
+
+		s.writeBE(g_systemMessageQueue.GetMPTR());
+		s.writeBE(_systemMessageQueueArray.GetMPTR());
+	}
+
+	void ci_MessageQueue_Restore(MemStreamReader& s)
+	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_MessQue_S") == 0);
+
+		g_systemMessageQueue = (OSMessageQueue*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		_systemMessageQueueArray = (OSMessage*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	}
+
 	void InitializeMessageQueue()
 	{
 		OSInitMessageQueue(g_systemMessageQueue.GetPtr(), _systemMessageQueueArray.GetPtr(), _systemMessageQueueArray.GetCount());

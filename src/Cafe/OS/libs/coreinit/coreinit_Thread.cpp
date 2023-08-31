@@ -196,36 +196,6 @@ namespace coreinit
 		return __currentCoreThread[currentInstance->spr.UPIR];
 	}
 
-	void SuspendAllThreads()
-	{
-		for (auto& thr : activeThread)
-		{
-			auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
-			if (thr != 0)
-			{
-				OSSuspendThread(ptr);
-			}
-		}
-	}
-
-	void ResumeAllThreads()
-	{
-		for (auto& thr : activeThread)
-		{
-			auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
-			if (thr != 0)
-			{
-				if (s_threadToFiber.find(ptr) == s_threadToFiber.end())
-				{
-					__OSLockScheduler();
-					__OSCreateHostThread(ptr);
-					__OSUnlockScheduler();
-				}
-				OSResumeThread(ptr);
-			}
-		}
-	}
-
 	void threadEntry(PPCInterpreter_t* hCPU)
 	{
 		OSThread_t* currentThread = coreinitThread_getCurrentThreadDepr(hCPU);
@@ -1358,6 +1328,104 @@ namespace coreinit
 			void* stackBase = coreinit::OSGetDefaultThreadStack(i, stackSize);
 			coreinit::OSCreateThreadType(coreDefaultThread, MPTR_NULL, 0, nullptr, (uint8*)stackBase + stackSize, stackSize, 16, 1 << i, OSThread_t::THREAD_TYPE::TYPE_APP);
 			coreinit::OSSetThreadName(coreDefaultThread, _defaultThreadName[i].GetPtr());
+		}
+	}
+
+	void ci_Thread_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_T_S", 15);
+
+		s.writeBE(g_activeThreadQueue.GetMPTR());
+		s.writeBE(g_coreRunQueue.GetMPTR());
+
+		s.writeBE(activeThreadCount);
+		for (sint32 i = 0; i < activeThreadCount; i++)
+		{
+			s.writeBE(activeThread[i]);
+		}
+		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
+		{
+			s.writeBE(memory_getVirtualOffsetFromPointer(__currentCoreThread[i]));
+			s.writeBE(s_lehmer_lcg[i]);
+			s.writeBE(s_terminatorThreads[i].terminatorThread.GetMPTR());
+			s.writeBE(s_terminatorThreads[i].threadStack.GetMPTR());
+			s.writeBE(s_terminatorThreads[i].threadName.GetMPTR());
+			s.writeBE(s_terminatorThreads[i].semaphoreQueuedDeallocators.GetMPTR());
+		}
+		s.writeBE(s_defaultThreads.GetMPTR());
+		s.writeBE(s_stack.GetMPTR());
+	}
+
+	void ci_Thread_Restore(MemStreamReader& s, bool recreate)
+	{
+		char section[16] = { '\0' };
+		s.readData(section,15);
+		cemu_assert_debug(strcmp(section, "ci_T_S") == 0);
+
+		g_activeThreadQueue = (OSThreadQueue*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		g_coreRunQueue = (OSThreadQueue*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+
+		sint32 prevActiveThreadCount = s.readBE<sint32>();
+		for (sint32 i = 0; i < prevActiveThreadCount; i++)
+		{
+			MPTR threadMPTR = s.readBE<MPTR>();
+			if (recreate)
+			{
+				__OSLockScheduler();
+				__OSActivateThread((OSThread_t*)memory_getPointerFromVirtualOffset(threadMPTR));
+				__OSUnlockScheduler();
+			}
+			else
+			{
+				activeThreadCount = prevActiveThreadCount;
+				activeThread[i] = threadMPTR;
+			}
+		}
+		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
+		{
+			__currentCoreThread[i] = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+			s_lehmer_lcg[i] = s.readBE<uint32>();
+			s_terminatorThreads[i].terminatorThread = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+			s_terminatorThreads[i].threadStack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+			s_terminatorThreads[i].threadName = (char*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+			s_terminatorThreads[i].semaphoreQueuedDeallocators = (OSSemaphore*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		}
+		s_defaultThreads = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s_stack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	}
+
+	void SuspendActiveThreads()
+	{
+
+		for (auto& thr : activeThread)
+		{
+			if (thr != MPTR_NULL)
+			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+				cemuLog_log(LogType::SaveStates, "Before State: {}", ptr->state.value());
+				cemuLog_log(LogType::SaveStates, "Before SusCnt: {}", ptr->suspendCounter);
+				OSSuspendThread(ptr);
+				cemuLog_log(LogType::SaveStates, "After State: {}", ptr->state.value());
+				cemuLog_log(LogType::SaveStates, "After SusCnt: {}", ptr->suspendCounter);
+			}
+		}
+	}
+
+	void ResumeActiveThreads()
+	{
+		for (auto& thr : activeThread)
+		{
+			if (thr != MPTR_NULL)
+			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+				if (s_threadToFiber.find(ptr) == s_threadToFiber.end())
+				{
+					__OSLockScheduler();
+					__OSCreateHostThread(ptr);
+					__OSUnlockScheduler();
+				}
+				OSResumeThread(ptr);
+			}
 		}
 	}
 

@@ -2638,14 +2638,38 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	void FSSave(MemStreamWriter& s)
+	void ci_FS_Save(MemStreamWriter& s)
 	{
+		s.writeData("ci_FS_S", 15);
 		s.writeData(g_fsRegisteredClientBodies, sizeof(FSClientBody_t));
+		s.writeBE(_sdCard01Mounted);
+		s.writeBE(_mlc01Mounted);
+		s.writeBE(_tempFSSpace.GetMPTR());
+		size_t s_fsa_activeClients_size = s_fsa_activeClients.size();
+		s.writeBE(s_fsa_activeClients_size);
+		s.writeData(&s_fsa_activeClients, sizeof(FSAClientHandle) * s_fsa_activeClients_size);
+		s.writeBE(s_fsaIpcPool.GetMPTR());
+		s.writeBE(s_fsaIpcPoolBuffer.GetMPTR());
+		s.writeBE(s_fsaIpcPoolBufferNumItems.GetMPTR());
 	}
 
-	void FSRestore(MemStreamReader& s)
+	void ci_FS_Restore(MemStreamReader& s)
 	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_FS_S") == 0);
+
 		s.readData(g_fsRegisteredClientBodies, sizeof(FSClientBody_t));
+		_sdCard01Mounted = s.readBE<bool>();
+		_mlc01Mounted = s.readBE<bool>();
+		_tempFSSpace = memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		size_t s_fsa_activeClients_size = s.readBE<size_t>();
+		s_fsa_activeClients.clear();
+		s_fsa_activeClients.resize(s_fsa_activeClients_size);
+		s.readData(&s_fsa_activeClients, sizeof(FSAClientHandle) * s_fsa_activeClients_size);
+		s_fsaIpcPool = (IPCBufPool_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s_fsaIpcPoolBuffer = memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s_fsaIpcPoolBufferNumItems = (uint32be*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
 	}
 
 	void InitializeFS()

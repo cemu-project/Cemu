@@ -614,6 +614,22 @@ namespace coreinit
 		OSWakeupThread(&fastCond->threadQueue);
 	}
 
+	void ci_Sync_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_Sync_S", 15);
+
+		s.writeBE(g_rendezvousEvent.GetMPTR());
+	}
+
+	void ci_Sync_Restore(MemStreamReader& s)
+	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_Sync_S") == 0);
+
+		g_rendezvousEvent = (OSEvent*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	}
+
 	/************* init ************/
 
 	void InitializeConcurrency()

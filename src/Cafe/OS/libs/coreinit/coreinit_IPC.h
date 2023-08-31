@@ -12,5 +12,8 @@ namespace coreinit
 	IOS_ERROR IOS_Ioctlv(IOSDevHandle devHandle, uint32 requestId, uint32 numIn, uint32 numOut, IPCIoctlVector* vec);
 	IOS_ERROR IOS_IoctlvAsync(IOSDevHandle devHandle, uint32 requestId, uint32 numIn, uint32 numOut, IPCIoctlVector* vec, MEMPTR<void> asyncResultFunc, MEMPTR<void> asyncResultUserParam);
 
+	void ci_IPC_Save(MemStreamWriter& s);
+	void ci_IPC_Restore(MemStreamReader& s);
+
 	void InitializeIPC();
 };

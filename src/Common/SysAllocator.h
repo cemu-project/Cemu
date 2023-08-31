@@ -56,6 +56,12 @@ public:
 		m_tempData.insert(m_tempData.begin(), str, str + N);
 	}
 
+	SysAllocator& operator=(T* value)
+	{
+		m_sysMem = value;
+		return *this;
+	}
+
 	constexpr uint32 GetCount() const
 	{
 		return count;
@@ -162,6 +168,12 @@ public:
 	SysAllocator& operator=(const T& value)
 	{
 		*m_sysMem = value;
+		return *this;
+	}
+
+	SysAllocator& operator=(T* value)
+	{
+		m_sysMem = value;
 		return *this;
 	}
 

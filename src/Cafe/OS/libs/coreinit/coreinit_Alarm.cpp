@@ -247,7 +247,7 @@ namespace coreinit
 		}
 		else
 		{
-			alarm->nextTime = _swapEndianU64(startTime);
+			alarm->nextTime = _swapEndianU64(nextTime);
 			alarm->period = 0;
 			alarm->handler = _swapEndianU32(handlerFunc);
 		}
@@ -303,6 +303,70 @@ namespace coreinit
         g_activeAlarms.clear();
         OSHostAlarm::Reset();
         __OSUnlockScheduler();
+	}
+
+	void ci_Alarm_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_A_S", 15);
+
+		s.writeBE(g_alarmEvent.GetMPTR());
+		s.writeBE(g_alarmThread.GetMPTR());
+		s.writeBE(_g_alarmThreadStack.GetMPTR());
+		s.writeBE(_g_alarmThreadName.GetMPTR());
+
+		s.writeBE(coreinit_getOSTime());
+
+		s.writeBE(g_activeAlarms.size());
+		for (auto& itr : g_activeAlarms)
+		{
+			s.writeBE(memory_getVirtualOffsetFromPointer(itr.first));
+			s.writeBE(itr.second->getNextFire());
+		}
+	}
+
+	void ci_Alarm_Restore(MemStreamReader& s)
+	{
+		OSAlarm_Shutdown();
+
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_A_S") == 0);
+
+		g_alarmEvent = (OSEvent*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		g_alarmThread = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		_g_alarmThreadStack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		_g_alarmThreadName = (char*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+
+		uint64 currentTime = coreinit_getOSTime();
+		uint64_t timeOffset = currentTime - s.readBE<uint64_t>();
+
+		size_t alms = s.readBE<size_t>();
+		for (size_t alm = 0; alm < alms; alm++)
+		{
+			OSAlarm_t* alarm = (OSAlarm_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+
+			uint64 startTime = _swapEndianU64(alarm->startTime) + timeOffset;
+			uint64 nextTime = _swapEndianU64(alarm->nextTime) + timeOffset;
+			//uint64 nextTime = startTime;
+
+			uint64 period = _swapEndianU64(alarm->period);
+
+			if (period != 0)
+			{
+				//uint64 ticksSinceStart = currentTime - startTime;
+				//uint64 numPeriods = ticksSinceStart / period;
+			
+				//nextTime = startTime + (numPeriods + 1ull) * period;
+			
+				alarm->startTime = _swapEndianU64(startTime);
+			}
+			alarm->nextTime = _swapEndianU64(nextTime);
+
+			uint64 nextFire = s.readBE<uint64>() + timeOffset;
+			__OSLockScheduler();
+			g_activeAlarms[alarm] = OSHostAlarmCreate(nextFire, period, __OSHostAlarmTriggered, nullptr);
+			__OSUnlockScheduler();
+		}
 	}
 
 	void _OSAlarmThread(PPCInterpreter_t* hCPU)

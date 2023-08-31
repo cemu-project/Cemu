@@ -31,6 +31,19 @@ struct CoreinitAsyncCallback
 		s_asyncCallbackSpinlock.unlock();
 	}
 
+	static std::vector<struct CoreinitAsyncCallback*>* getPoolPtr()
+	{
+		return &s_asyncCallbackPool;
+	}
+
+	static std::vector<struct CoreinitAsyncCallback*>* getQueuePtr()
+	{
+		return &s_asyncCallbackQueue;
+	}
+
+	friend void ci_Callbacks_Save(MemStreamWriter& s);
+	friend void ci_Callbacks_Restore(MemStreamReader& s);
+
 private:
 	void doCall()
 	{
@@ -102,6 +115,50 @@ void coreinitAsyncCallback_add(MPTR functionMPTR, uint32 numParameters, uint32 r
 {
 	cemu_assert_debug(__OSHasSchedulerLock() == false); // do not call when holding scheduler lock
 	coreinitAsyncCallback_addWithLock(functionMPTR, numParameters, r3, r4, r5, r6, r7, r8, r9, r10);
+}
+
+void ci_Callbacks_Save(MemStreamWriter& s)
+{
+	s.writeData("ci_C_S", 15);
+
+	s.writeBE(g_coreinitCallbackThread.GetMPTR());
+	s.writeBE(_g_coreinitCallbackThreadStack.GetMPTR());
+	s.writeBE(g_asyncCallbackAsync.GetMPTR());
+	s.writeBE(_g_coreinitCBThreadName.GetMPTR());
+
+	std::vector<struct CoreinitAsyncCallback*>* pool = CoreinitAsyncCallback::getPoolPtr();
+	size_t poolSize = pool->size();
+	s.writeBE(poolSize);
+	s.writeData(pool, sizeof(CoreinitAsyncCallback) * poolSize);
+
+	std::vector<struct CoreinitAsyncCallback*>* queue = CoreinitAsyncCallback::getQueuePtr();
+	size_t queueSize = queue->size();
+	s.writeBE(queueSize);
+	s.writeData(queue, sizeof(CoreinitAsyncCallback) * queueSize);
+}
+
+void ci_Callbacks_Restore(MemStreamReader& s)
+{
+	char section[16] = { '\0' };
+	s.readData(section, 15);
+	cemu_assert_debug(strcmp(section, "ci_C_S") == 0);
+
+	g_coreinitCallbackThread = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	_g_coreinitCallbackThreadStack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	g_asyncCallbackAsync = (coreinit::OSSemaphore*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	_g_coreinitCBThreadName = (char*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+
+	std::vector<struct CoreinitAsyncCallback*>* pool = CoreinitAsyncCallback::getPoolPtr();
+	size_t poolSize = s.readBE<size_t>();
+	pool->clear();
+	pool->resize(poolSize);
+	s.readData(pool, sizeof(CoreinitAsyncCallback) * poolSize);
+
+	std::vector<struct CoreinitAsyncCallback*>* queue = CoreinitAsyncCallback::getPoolPtr();
+	size_t queueSize = s.readBE<size_t>();
+	queue->clear();
+	queue->resize(queueSize);
+	s.readData(queue, sizeof(CoreinitAsyncCallback) * queueSize);
 }
 
 void InitializeAsyncCallback()
