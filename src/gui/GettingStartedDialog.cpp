@@ -146,6 +146,9 @@ wxPanel* GettingStartedDialog::CreatePage2()
 
 		m_update = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Automatically check for updates"));
 		option_sizer->Add(m_update, 0, wxALL, 5);
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+		m_update->Disable();
+#endif
 
 		sizer->Add(option_sizer, 1, wxEXPAND, 5);
 		page2_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
