@@ -74,7 +74,7 @@ void KeyCache_Prepare()
 		}
 		else
 		{
-			wxMessageBox("Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to it's own directory, the disk is full or if anti-virus software is blocking Cemu.", "Error", wxOK | wxCENTRE | wxICON_ERROR);
+			wxMessageBox(_("Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to its own directory, the disk is full or if anti-virus software is blocking Cemu."), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		}
 		mtxKeyCache.unlock();
 		return;
@@ -107,10 +107,8 @@ void KeyCache_Prepare()
 			continue;
 		if( strishex(line) == false )
 		{
-			// show error message
-			char errorMsg[512];
-			sprintf(errorMsg, "Error in keys.txt in line %d\n", lineNumber);
-			wxMessageBox(errorMsg, "Error", wxOK | wxCENTRE | wxICON_ERROR);
+			auto errorMsg = fmt::format(fmt::runtime(_("Error in keys.txt at line {}").ToStdString()), lineNumber);
+			wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			continue;
 		}
 		if(line.size() == 32 )

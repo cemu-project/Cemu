@@ -88,7 +88,8 @@ bool CemuApp::OnInit()
 #endif
 	auto failed_write_access = ActiveSettings::LoadOnce(exePath, user_data_path, config_path, cache_path, data_path);
 	for (auto&& path : failed_write_access)
-		wxMessageBox(fmt::format("Cemu can't write to {} !", path.generic_string()), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
+		wxMessageBox(fmt::format(fmt::runtime(_("Cemu can't write to {}!").ToStdString()), path.generic_string()),
+			_("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	NetworkConfig::LoadOnce();
 	g_config.Load();
@@ -268,7 +269,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	{
 		const std::wstring message = fmt::format(fmt::runtime(_(L"Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?").ToStdWstring()), mlc.wstring());
 		
-		wxMessageDialog dialog(nullptr, message, "Error", wxCENTRE | wxYES_NO | wxCANCEL| wxICON_WARNING);
+		wxMessageDialog dialog(nullptr, message, _("Error"), wxCENTRE | wxYES_NO | wxCANCEL| wxICON_WARNING);
 		dialog.SetYesNoCancelLabels(_("Yes"), _("No"), _("Select a custom path"));
 		const auto dialogResult = dialog.ShowModal();
 		if (dialogResult == wxID_NO)

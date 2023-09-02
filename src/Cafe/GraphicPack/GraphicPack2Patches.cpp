@@ -43,9 +43,9 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	if (m_gp)
 	{
 		if (m_stage == STAGE::PARSER)
-			errorMsg.assign(fmt::format("Failed to load patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to load patches for graphic pack \'{}\'").ToStdString()), m_gp->GetName()));
 		else
-			errorMsg.assign(fmt::format("Failed to apply patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to apply patches for graphic pack \'{}\'").ToStdString()), m_gp->GetName()));
 	}
 	else
 	{
@@ -53,7 +53,9 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	}
 	if (cemuLog_isLoggingEnabled(LogType::Patches))
 	{
-		errorMsg.append("\n \nDetails:\n");
+		errorMsg.append("\n \n")
+			.append(_("Details:"))
+			.append("\n");
 		for (auto& itr : errorMessages)
 		{
 			errorMsg.append(itr);
@@ -61,7 +63,7 @@ void PatchErrorHandler::showStageErrorMessageBox()
 		}
 	}
 
-	wxMessageBox(errorMsg, "Graphic pack error");
+	wxMessageBox(errorMsg, _("Graphic pack error"));
 }
 
 // loads Cemu-style patches (patch_<anything>.asm)
