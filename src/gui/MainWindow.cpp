@@ -2254,6 +2254,9 @@ void MainWindow::RecreateMenu()
 	//helpMenu->Append(MAINFRAME_MENU_ID_HELP_WEB, wxT("&Visit website"));
 	//helpMenu->AppendSeparator();
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+	m_check_update_menu->Enable(false);
+#endif
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, _("&Getting started"));
 	helpMenu->AppendSeparator();
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Cemu"));
