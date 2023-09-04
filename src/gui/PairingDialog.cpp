@@ -9,7 +9,7 @@ wxDECLARE_EVENT(wxEVT_PROGRESS_PAIR, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_PROGRESS_PAIR, wxCommandEvent);
 
 PairingDialog::PairingDialog(wxWindow* parent)
-    : wxDialog(parent, wxID_ANY, "Pairing...", wxDefaultPosition, wxDefaultSize, wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
+    : wxDialog(parent, wxID_ANY, _("Pairing..."), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
 {
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     m_gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(350, 20), wxGA_HORIZONTAL);
@@ -19,7 +19,7 @@ PairingDialog::PairingDialog(wxWindow* parent)
     auto* rows = new wxFlexGridSizer(0, 2, 0, 0);
     rows->AddGrowableCol(1);
 
-    m_text = new wxStaticText(this, wxID_ANY, "Searching for controllers...");
+    m_text = new wxStaticText(this, wxID_ANY, _("Searching for controllers..."));
     rows->Add(m_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     {
@@ -180,8 +180,6 @@ void PairingDialog::WorkerThread()
 
     while (!m_threadShouldQuit)
     {
-        OutputDebugStringW(L"begin\n");
-
         HBLUETOOTH_DEVICE_FIND deviceFind = BluetoothFindFirstDevice(&searchParams, &info);
         if (deviceFind == nullptr)
         {
@@ -191,8 +189,6 @@ void PairingDialog::WorkerThread()
 
         while (!m_threadShouldQuit)
         {
-            OutputDebugStringW(info.szName);
-            OutputDebugStringW(L"\n");
             if (info.szName == wiimoteName || info.szName == wiiUProControllerName)
             {
                 BluetoothFindDeviceClose(deviceFind);

@@ -1,5 +1,6 @@
 #include "gui/input/panels/WiimoteInputPanel.h"
 
+#include <wx/button.h>
 #include <wx/gbsizer.h>
 #include <wx/stattext.h>
 #include <wx/statline.h>
@@ -11,6 +12,7 @@
 #include "input/emulated/WiimoteController.h"
 #include "gui/helpers/wxHelpers.h"
 #include "gui/components/wxInputDraw.h"
+#include "gui/PairingDialog.h"
 
 constexpr WiimoteController::ButtonId g_kFirstColumnItems[] =
 {
@@ -36,10 +38,18 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	bold_font.MakeBold();
 
 	auto* main_sizer = new wxBoxSizer(wxVERTICAL);
+    auto* horiz_main_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-	auto* extensions_sizer = new wxBoxSizer(wxHORIZONTAL);
-	extensions_sizer->Add(new wxStaticText(this, wxID_ANY, _("Extensions:")));
-	extensions_sizer->AddSpacer(10);
+    auto* pair_button = new wxButton(this, wxID_ANY, _("Pair a Wii or Wii U controller"));
+    pair_button->Bind(wxEVT_BUTTON, &WiimoteInputPanel::on_pair_button, this);
+    horiz_main_sizer->Add(pair_button);
+    horiz_main_sizer->AddSpacer(10);
+
+    auto* extensions_sizer = new wxBoxSizer(wxHORIZONTAL);
+    horiz_main_sizer->Add(extensions_sizer, wxSizerFlags(0).Align(wxALIGN_CENTER_VERTICAL));
+
+    extensions_sizer->Add(new wxStaticText(this, wxID_ANY, _("Extensions:")));
+    extensions_sizer->AddSpacer(10);
 
 	m_motion_plus = new wxCheckBox(this, wxID_ANY, _("MotionPlus"));
 	m_motion_plus->Bind(wxEVT_CHECKBOX, &WiimoteInputPanel::on_extension_change, this);
@@ -54,7 +64,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	m_classic->Hide();
 	extensions_sizer->Add(m_classic);
 
-	main_sizer->Add(extensions_sizer, 0, wxEXPAND | wxALL, 5);
+	main_sizer->Add(horiz_main_sizer, 0, wxEXPAND | wxALL, 5);
 	main_sizer->Add(new wxStaticLine(this), 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 5);
 
 	m_item_sizer = new wxGridBagSizer();
@@ -253,4 +263,10 @@ void WiimoteInputPanel::load_controller(const EmulatedControllerPtr& emulated_co
 		wxASSERT(wiimote);
 		set_active_device_type(wiimote->get_device_type());
 	}
+}
+
+void WiimoteInputPanel::on_pair_button(wxCommandEvent& event)
+{
+    PairingDialog pairing_dialog(this);
+    pairing_dialog.ShowModal();
 }

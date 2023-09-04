@@ -1,7 +1,9 @@
 #pragma once
 
-#include <wx/collpane.h>
-#include <wx/propgrid/propgrid.h>
+#include <wx/button.h>
+#include <wx/dialog.h>
+#include <wx/gauge.h>
+#include <wx/stattext.h>
 
 class PairingDialog : public wxDialog
 {
