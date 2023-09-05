@@ -30,6 +30,7 @@ WiimoteControllerProvider::~WiimoteControllerProvider()
 std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_controllers()
 {
 	std::scoped_lock lock(m_device_mutex);
+    m_wiimotes.clear();
 	for (const auto& device : WiimoteDevice_t::get_devices())
 	{
 		// test connection of all devices as they might have been changed

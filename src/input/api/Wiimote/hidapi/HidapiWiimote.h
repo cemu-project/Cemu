@@ -5,7 +5,7 @@
 
 class HidapiWiimote : public WiimoteDevice {
 public:
-    HidapiWiimote(hid_device* dev, uint64_t identifier, std::string_view path);
+    HidapiWiimote(hid_device* dev, std::string_view path);
     ~HidapiWiimote() override;
 
     bool write_data(const std::vector<uint8> &data) override;
@@ -16,7 +16,6 @@ public:
 
 private:
     hid_device* m_handle;
-    const uint64_t m_identifier;
     const std::string m_path;
 
 };
