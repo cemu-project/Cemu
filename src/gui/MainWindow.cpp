@@ -1837,7 +1837,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = fmt::format(fmt::runtime(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}").ToStdString()), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = fmt::format(fmt::runtime(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}").utf8_string()), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));

@@ -629,7 +629,7 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 			const auto packs = str.str();
 			if(!packs.empty())
 			{
-				wxMessageBox(fmt::format("{}\n \n{} \n{}", _("This update removed or renamed the following graphic packs:").ToStdString(), packs, _("You may need to set them up again.").ToStdString()),
+				wxMessageBox(fmt::format("{}\n \n{} \n{}", _("This update removed or renamed the following graphic packs:").utf8_string(), packs, _("You may need to set them up again.").utf8_string()),
 					_("Warning"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
 			}
 		}

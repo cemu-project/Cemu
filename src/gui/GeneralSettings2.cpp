@@ -2047,13 +2047,13 @@ std::string GeneralSettings2::GetOnlineAccountErrorMessage(OnlineAccountError er
 {
 	switch (error) {
 		case OnlineAccountError::kNoAccountId:
-			return _("AccountId missing (The account is not connected to a NNID)").ToStdString();
+			return _("AccountId missing (The account is not connected to a NNID)").utf8_string();
 		case OnlineAccountError::kNoPasswordCached:
-			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)").ToStdString();
+			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)").utf8_string();
 		case OnlineAccountError::kPasswordCacheEmpty:
-			return _("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)").ToStdString();
+			return _("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)").utf8_string();
 		case OnlineAccountError::kNoPrincipalId:
-			return _("PrincipalId missing").ToStdString();
+			return _("PrincipalId missing").utf8_string();
 		default:
 			return "no error";
 	}

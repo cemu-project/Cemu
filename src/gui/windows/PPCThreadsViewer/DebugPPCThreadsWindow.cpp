@@ -364,7 +364,7 @@ void DebugPPCThreadsWindow::ProfileThreadWorker(OSThread_t* thread)
 		totalSampleCount++;
 		if ((totalSampleCount % 50) == 0)
 		{
-			wxString msg = fmt::format(fmt::runtime(_("Capturing samples... ({:})\nResults will be written to log.txt\n").ToStdString()),
+			wxString msg = fmt::format(fmt::runtime(_("Capturing samples... ({:})\nResults will be written to log.txt\n").utf8_string()),
 									   totalSampleCount);
 			if (totalSampleCount < 30000)
 				msg.Append(_("Click Skip button for early results with lower accuracy"));

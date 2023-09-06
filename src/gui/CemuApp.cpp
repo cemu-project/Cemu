@@ -88,7 +88,7 @@ bool CemuApp::OnInit()
 #endif
 	auto failed_write_access = ActiveSettings::LoadOnce(exePath, user_data_path, config_path, cache_path, data_path);
 	for (auto&& path : failed_write_access)
-		wxMessageBox(fmt::format(fmt::runtime(_("Cemu can't write to {}!").ToStdString()), path.generic_string()),
+		wxMessageBox(fmt::format(fmt::runtime(_("Cemu can't write to {}!").utf8_string()), path.generic_string()),
 			_("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	NetworkConfig::LoadOnce();
@@ -342,7 +342,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	catch (const std::exception& ex)
 	{
 		std::stringstream errorMsg;
-		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required mlc01 subfolder or file!\n\nError: {0}\nTarget path:\n{1}").ToStdString()), ex.what(), _pathToUtf8(mlc));
+		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required mlc01 subfolder or file!\n\nError: {0}\nTarget path:\n{1}").utf8_string()), ex.what(), _pathToUtf8(mlc));
 
 #if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();
@@ -368,7 +368,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	catch (const std::exception& ex)
 	{
 		std::stringstream errorMsg;
-		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required cemu directory or file!\n\nError: {0}").ToStdString()), ex.what());
+		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required cemu directory or file!\n\nError: {0}").utf8_string()), ex.what());
 
 #if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();

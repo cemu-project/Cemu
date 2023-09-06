@@ -43,9 +43,9 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	if (m_gp)
 	{
 		if (m_stage == STAGE::PARSER)
-			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to load patches for graphic pack \'{}\'").ToStdString()), m_gp->GetName()));
+			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to load patches for graphic pack \'{}\'").utf8_string()), m_gp->GetName()));
 		else
-			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to apply patches for graphic pack \'{}\'").ToStdString()), m_gp->GetName()));
+			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to apply patches for graphic pack \'{}\'").utf8_string()), m_gp->GetName()));
 	}
 	else
 	{

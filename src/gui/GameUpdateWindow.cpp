@@ -16,18 +16,18 @@ std::string _GetTitleIdTypeStr(TitleId titleId)
 	switch (tip.GetType())
 	{
 	case TitleIdParser::TITLE_TYPE::AOC:
-		return _("DLC").ToStdString();
+		return _("DLC").utf8_string();
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE:
-		return _("Base game").ToStdString();
+		return _("Base game").utf8_string();
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE_DEMO:
-		return _("Demo").ToStdString();
+		return _("Demo").utf8_string();
 	case TitleIdParser::TITLE_TYPE::SYSTEM_TITLE:
 	case TitleIdParser::TITLE_TYPE::SYSTEM_OVERLAY_TITLE:
-		return _("System title").ToStdString();
+		return _("System title").utf8_string();
 	case TitleIdParser::TITLE_TYPE::SYSTEM_DATA:
-		return _("System data title").ToStdString();
+		return _("System data title").utf8_string();
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE:
-		return _("Update").ToStdString();
+		return _("Update").utf8_string();
 	default:
 		break;
 	}
@@ -244,7 +244,7 @@ void GameUpdateWindow::ThreadWork()
 		error_msg << GetSystemErrorMessage(ex);
 
 		if(currentDirEntry != fs::directory_entry{})
-			error_msg << fmt::format("\n{}\n{}",_("Current file:").ToStdString(), _pathToUtf8(currentDirEntry.path()));
+			error_msg << fmt::format("\n{}\n{}",_("Current file:").utf8_string(), _pathToUtf8(currentDirEntry.path()));
 
 		m_thread_exception = error_msg.str();
 		m_thread_state = ThreadCanceled;

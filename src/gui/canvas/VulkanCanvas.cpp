@@ -36,7 +36,7 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	}
 	catch(const std::exception& ex)
 	{
-		const auto msg = fmt::format(fmt::runtime(_("Error when initializing Vulkan renderer:\n{}").ToStdString()), ex.what());
+		const auto msg = fmt::format(fmt::runtime(_("Error when initializing Vulkan renderer:\n{}").utf8_string()), ex.what());
 		cemuLog_log(LogType::Force, msg);
 		wxMessageDialog dialog(this, msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		dialog.ShowModal();

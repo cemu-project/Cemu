@@ -107,7 +107,7 @@ void KeyCache_Prepare()
 			continue;
 		if( strishex(line) == false )
 		{
-			auto errorMsg = fmt::format(fmt::runtime(_("Error in keys.txt at line {}").ToStdString()), lineNumber);
+			auto errorMsg = fmt::format(fmt::runtime(_("Error in keys.txt at line {}").utf8_string()), lineNumber);
 			wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			continue;
 		}

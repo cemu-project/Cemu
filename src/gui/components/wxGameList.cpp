@@ -1124,7 +1124,7 @@ void wxGameList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)
 
 void wxGameList::RemoveCache(const std::list<fs::path>& cachePaths, const std::string& titleName)
 {
-	wxMessageDialog dialog(this, fmt::format(fmt::runtime(_("Remove the shader caches for {}?").ToStdString()), titleName), _("Remove shader caches"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
+	wxMessageDialog dialog(this, fmt::format(fmt::runtime(_("Remove the shader caches for {}?").utf8_string()), titleName), _("Remove shader caches"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
 	dialog.SetYesNoLabels(_("Yes"), _("No"));
 
 	const auto dialogResult = dialog.ShowModal();
@@ -1139,7 +1139,7 @@ void wxGameList::RemoveCache(const std::list<fs::path>& cachePaths, const std::s
 	if (errs.empty())
 		wxMessageDialog(this, _("The shader caches were removed!"), _("Shader caches removed"), wxCENTRE | wxOK | wxICON_INFORMATION).ShowModal();
 	else
-		wxMessageDialog(this, fmt::format(fmt::runtime(_("Failed to remove the shader caches:\n{}").ToStdString()), fmt::join(errs, "\n")), _("Error"), wxCENTRE | wxOK | wxICON_ERROR).ShowModal();
+		wxMessageDialog(this, fmt::format(fmt::runtime(_("Failed to remove the shader caches:\n{}").utf8_string()), fmt::join(errs, "\n")), _("Error"), wxCENTRE | wxOK | wxICON_ERROR).ShowModal();
 }
 
 void wxGameList::AsyncWorkerThread()
@@ -1306,7 +1306,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     std::ofstream output_stream(output_path);
     if (!output_stream.good())
     {
-        auto errorMsg = fmt::format(fmt::runtime(_("Failed to save desktop entry to {}").ToStdString()), output_path.utf8_string());
+        auto errorMsg = fmt::format(fmt::runtime(_("Failed to save desktop entry to {}").utf8_string()), output_path.utf8_string());
         wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
         return;
     }

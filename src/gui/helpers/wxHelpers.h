@@ -86,14 +86,6 @@ inline wxString to_wxString(std::string_view str)
 	return wxString::FromUTF8(str.data(), str.size());
 }
 
-// creates utf8 std::string from wxString
-inline std::string from_wxString(const wxString& str)
-{
-	const auto tmp = str.ToUTF8();
-	return std::string{ tmp.data(), tmp.length() };
-}
-
-
 template <typename T>
 T get_next_sibling(const T element)
 {

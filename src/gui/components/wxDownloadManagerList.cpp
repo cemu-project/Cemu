@@ -506,11 +506,11 @@ std::string wxDownloadManagerList::GetTranslatedTitleEntryType(EntryType type)
 	switch (type)
 	{
 		case EntryType::Base:
-			return _("base").ToStdString();
+			return _("base").utf8_string();
 		case EntryType::Update:
-			return _("update").ToStdString();
+			return _("update").utf8_string();
 		case EntryType::DLC:
-			return _("DLC").ToStdString();
+			return _("DLC").utf8_string();
 		default:
 			return std::to_string(static_cast<std::underlying_type_t<EntryType>>(type));
 	}
