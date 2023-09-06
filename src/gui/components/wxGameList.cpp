@@ -633,7 +633,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				if(dialog.ShowModal() == wxID_OK)
 				{
 					const auto custom_name = dialog.GetValue();
-					GetConfig().SetGameListCustomName(title_id, wxHelper::MakeUTF8(custom_name));
+					GetConfig().SetGameListCustomName(title_id, custom_name.utf8_string());
 					m_name_cache.clear();
 					g_config.Save();
 					// update list entry

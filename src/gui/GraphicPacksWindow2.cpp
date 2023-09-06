@@ -570,8 +570,8 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 	wxASSERT(obj);
 	const auto string_data = dynamic_cast<wxStringClientData*>(obj->GetClientObject());
 	wxASSERT(string_data);
-	const auto preset = wxHelper::MakeUTF8(obj->GetStringSelection());
-	if(m_shown_graphic_pack->SetActivePreset(wxHelper::MakeUTF8(string_data->GetData()), preset))
+	const auto preset = obj->GetStringSelection().utf8_string();
+	if(m_shown_graphic_pack->SetActivePreset(string_data->GetData().utf8_string(), preset))
 	{
 		wxWindowUpdateLocker lock(this);
 		ClearPresets();
@@ -668,7 +668,7 @@ void GraphicPacksWindow2::SashPositionChanged(wxEvent& event)
 
 void GraphicPacksWindow2::OnFilterUpdate(wxEvent& event)
 {
-	m_filter = wxHelper::MakeUTF8(m_filter_text->GetValue());
+	m_filter = m_filter_text->GetValue().utf8_string();
 	FillGraphicPackList();
 	event.Skip();
 }
