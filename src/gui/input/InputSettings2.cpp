@@ -79,7 +79,7 @@ InputSettings2::InputSettings2(wxWindow* parent)
 	{
 		auto* page = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 		page->SetClientObject(nullptr); // force internal type to client object
-		m_notebook->AddPage(page, wxStringFormat2(_("Controller {}"), i + 1));
+		m_notebook->AddPage(page, formatWxString(_("Controller {}"), i + 1));
 	}
 
 	m_notebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &InputSettings2::on_controller_page_changed, this);

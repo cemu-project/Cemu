@@ -6,6 +6,7 @@
 #include "boost/algorithm/string.hpp"
 
 #include "gui/wxgui.h" // for wxMessageBox
+#include "gui/helpers/wxHelpers.h"
 
 // error handler
 void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumber, std::string_view errorMsg)
@@ -39,13 +40,13 @@ void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumb
 
 void PatchErrorHandler::showStageErrorMessageBox()
 {
-	std::string errorMsg;
+	wxString errorMsg;
 	if (m_gp)
 	{
 		if (m_stage == STAGE::PARSER)
-			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to load patches for graphic pack \'{}\'").utf8_string()), m_gp->GetName()));
+			errorMsg.assign(formatWxString(_("Failed to load patches for graphic pack \'{}\'"), m_gp->GetName()));
 		else
-			errorMsg.assign(fmt::format(fmt::runtime(_("Failed to apply patches for graphic pack \'{}\'").utf8_string()), m_gp->GetName()));
+			errorMsg.assign(formatWxString(_("Failed to apply patches for graphic pack \'{}\'"), m_gp->GetName()));
 	}
 	else
 	{

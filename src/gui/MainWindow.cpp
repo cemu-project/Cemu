@@ -638,7 +638,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	const auto menuId = event.GetId();
 	if (menuId == MAINFRAME_MENU_ID_FILE_LOAD)
 	{
-		const auto wildcard = wxStringFormat2(
+		const auto wildcard = formatWxString(
 			"{}|*.wud;*.wux;*.wua;*.iso;*.rpx;*.elf"
 			"|{}|*.wud;*.wux;*.iso"
 			"|{}|*.wua"
@@ -648,7 +648,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			_("Wii U image (*.wud, *.wux, *.iso, *.wad)"),
 			_("Wii U archive (*.wua)"),
 			_("Wii U executable (*.rpx, *.elf)"),
-			_("All files (*.*)")		
+			_("All files (*.*)")
 		);
 		
 		wxFileDialog openFileDialog(this, _("Open file to launch"), wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
@@ -706,7 +706,7 @@ void MainWindow::OnInstallUpdate(wxCommandEvent& event)
 			{
 				if (!fs::exists(dirPath.parent_path() / "code") || !fs::exists(dirPath.parent_path() / "content") || !fs::exists(dirPath.parent_path() / "meta"))
 				{
-					wxMessageBox(wxStringFormat2(_("The (parent) folder of the title you selected is missing at least one of the required subfolders (\"code\", \"content\" and \"meta\")\nMake sure that the files are complete."), dirPath.filename().string()));
+					wxMessageBox(formatWxString(_("The (parent) folder of the title you selected is missing at least one of the required subfolders (\"code\", \"content\" and \"meta\")\nMake sure that the files are complete."), dirPath.filename().string()));
 					continue;
 				}
 				else
@@ -1837,7 +1837,7 @@ public:
 
 	void AddHeaderInfo(wxWindow* parent, wxSizer* sizer)
 	{
-		auto versionString = fmt::format(fmt::runtime(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}").utf8_string()), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
+		auto versionString = formatWxString(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}"), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
 		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));

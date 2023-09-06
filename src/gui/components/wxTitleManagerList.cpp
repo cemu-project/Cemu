@@ -303,29 +303,29 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 		}
 	}
 
-	std::string msg = wxHelper::MakeUTF8(_("The following content will be converted to a compressed Wii U archive file (.wua):"));
+	wxString msg = _("The following content will be converted to a compressed Wii U archive file (.wua):");
 	msg.append("\n \n");
 	
 	if (titleInfo_base.IsValid())
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game:\n{}"))), titleInfo_base.GetPrintPath()));
+		msg.append(formatWxString(_("Base game:\n{}"), titleInfo_base.GetPrintPath()));
 	else
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Base game:\nNot installed")))));
+		msg.append(_("Base game:\nNot installed"));
 
 	msg.append("\n\n");
 
 	if (titleInfo_update.IsValid())
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update:\n{}"))), titleInfo_update.GetPrintPath()));
+		msg.append(formatWxString(_("Update:\n{}"), titleInfo_update.GetPrintPath()));
 	else
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("Update:\nNot installed")))));
+		msg.append(_("Update:\nNot installed"));
 
 	msg.append("\n\n");
 
 	if (titleInfo_aoc.IsValid())
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC:\n{}"))), titleInfo_aoc.GetPrintPath()));
+		msg.append(formatWxString(_("DLC:\n{}"), titleInfo_aoc.GetPrintPath()));
 	else
-		msg.append(fmt::format(fmt::runtime(wxHelper::MakeUTF8(_("DLC:\nNot installed")))));
+		msg.append(_("DLC:\nNot installed"));
 
-	const int answer = wxMessageBox(wxString::FromUTF8(msg), _("Confirmation"), wxOK | wxCANCEL | wxCENTRE | wxICON_QUESTION, this);
+	const int answer = wxMessageBox(msg, _("Confirmation"), wxOK | wxCANCEL | wxCENTRE | wxICON_QUESTION, this);
 	if (answer != wxOK)
 		return;
 	std::vector<TitleInfo*> titlesToConvert;
@@ -732,7 +732,7 @@ void wxTitleManagerList::OnItemSelected(wxListEvent& event)
 	//	return;;
 	//}
 
-	//m_tooltip_text->SetLabel(wxStringFormat2("{}\n{}", msg, _("You can use the context menu to fix it.")));
+	//m_tooltip_text->SetLabel(formatWxString("{}\n{}", msg, _("You can use the context menu to fix it.")));
 	//m_tooltip_window->Fit();
 	//m_tooltip_timer->StartOnce(250);
 }
@@ -792,9 +792,9 @@ bool wxTitleManagerList::DeleteEntry(long index, const TitleEntry& entry)
 	wxString msg;
 	const bool is_directory = fs::is_directory(entry.path);
 	if(is_directory)
-		msg = wxStringFormat2(_("Are you really sure that you want to delete the following folder:\n{}"), wxHelper::FromUtf8(_pathToUtf8(entry.path)));
+		msg = formatWxString(_("Are you really sure that you want to delete the following folder:\n{}"), _pathToUtf8(entry.path));
 	else
-		msg = wxStringFormat2(_("Are you really sure that you want to delete the following file:\n{}"), wxHelper::FromUtf8(_pathToUtf8(entry.path)));
+		msg = formatWxString(_("Are you really sure that you want to delete the following file:\n{}"), _pathToUtf8(entry.path));
 	
 	const auto result = wxMessageBox(msg, _("Warning"), wxYES_NO | wxCENTRE | wxICON_EXCLAMATION, this);
 	if (result == wxNO)
@@ -835,7 +835,7 @@ bool wxTitleManagerList::DeleteEntry(long index, const TitleEntry& entry)
 	
 	if(ec)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when trying to delete the entry:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = formatWxString(_("Error when trying to delete the entry:\n{}"), GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK|wxCENTRE, this);
 		return false;
 	}
@@ -922,13 +922,13 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	switch (column)
 	{
 	case ColumnTitleId:
-		return wxStringFormat2("{:08x}-{:08x}", (uint32)(entry.title_id >> 32), (uint32)(entry.title_id & 0xFFFFFFFF));
+		return formatWxString("{:08x}-{:08x}", (uint32) (entry.title_id >> 32), (uint32) (entry.title_id & 0xFFFFFFFF));
 	case ColumnName:
 		return entry.name;
 	case ColumnType:
 		return GetTranslatedTitleEntryType(entry.type);
 	case ColumnVersion:
-		return wxStringFormat2("{}", entry.version);
+		return formatWxString("{}", entry.version);
 	case ColumnRegion:
 		return wxGetTranslation(fmt::format("{}", entry.region));
 	case ColumnFormat:
@@ -945,7 +945,6 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 			return _("WUA");
 		}
 		return "";
-		//return wxStringFormat2("{}", entry.format);
 	}
 	case ColumnLocation:
 	{

@@ -88,7 +88,7 @@ bool CemuApp::OnInit()
 #endif
 	auto failed_write_access = ActiveSettings::LoadOnce(exePath, user_data_path, config_path, cache_path, data_path);
 	for (auto&& path : failed_write_access)
-		wxMessageBox(fmt::format(fmt::runtime(_("Cemu can't write to {}!").utf8_string()), path.generic_string()),
+		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), path.generic_string()),
 			_("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	NetworkConfig::LoadOnce();
@@ -267,7 +267,8 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	// check for mlc01 folder missing if custom path has been set
 	if (!fs::exists(mlc) && !first_start)
 	{
-		const std::wstring message = fmt::format(fmt::runtime(_(L"Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?").ToStdWstring()), mlc.wstring());
+		const wxString message = formatWxString(_("Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?"),
+												_pathToUtf8(mlc));
 		
 		wxMessageDialog dialog(nullptr, message, _("Error"), wxCENTRE | wxYES_NO | wxCANCEL| wxICON_WARNING);
 		dialog.SetYesNoCancelLabels(_("Yes"), _("No"), _("Select a custom path"));
@@ -341,16 +342,15 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	}
 	catch (const std::exception& ex)
 	{
-		std::stringstream errorMsg;
-		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required mlc01 subfolder or file!\n\nError: {0}\nTarget path:\n{1}").utf8_string()), ex.what(), _pathToUtf8(mlc));
+		wxString errorMsg = formatWxString(_("Couldn't create a required mlc01 subfolder or file!\n\nError: {0}\nTarget path:\n{1}"), ex.what(), _pathToUtf8(mlc));
 
 #if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();
 		if (lastError != ERROR_SUCCESS)
 			errorMsg << fmt::format("\n\n{}", GetSystemErrorMessage(lastError));
-
-		wxMessageBox(errorMsg.str(), "Error", wxOK | wxCENTRE | wxICON_ERROR);
 #endif
+
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		exit(0);
 	}
 
@@ -367,17 +367,15 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	}
 	catch (const std::exception& ex)
 	{
-		std::stringstream errorMsg;
-		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required cemu directory or file!\n\nError: {0}").utf8_string()), ex.what());
+		wxString errorMsg = formatWxString(_("Couldn't create a required cemu directory or file!\n\nError: {0}"), ex.what());
 
 #if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();
 		if (lastError != ERROR_SUCCESS)
 			errorMsg << fmt::format("\n\n{}", GetSystemErrorMessage(lastError));
-
-
-		wxMessageBox(errorMsg.str(), "Error", wxOK | wxCENTRE | wxICON_ERROR);
 #endif
+
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		exit(0);
 	}
 }

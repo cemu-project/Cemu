@@ -8,6 +8,7 @@
 #include "gui/components/wxProgressDialogManager.h"
 
 #include <cinttypes>
+#include <helpers/wxHelpers.h>
 
 enum
 {
@@ -364,8 +365,7 @@ void DebugPPCThreadsWindow::ProfileThreadWorker(OSThread_t* thread)
 		totalSampleCount++;
 		if ((totalSampleCount % 50) == 0)
 		{
-			wxString msg = fmt::format(fmt::runtime(_("Capturing samples... ({:})\nResults will be written to log.txt\n").utf8_string()),
-									   totalSampleCount);
+			wxString msg = formatWxString(_("Capturing samples... ({:})\nResults will be written to log.txt\n"), totalSampleCount);
 			if (totalSampleCount < 30000)
 				msg.Append(_("Click Skip button for early results with lower accuracy"));
 			else

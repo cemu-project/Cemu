@@ -60,8 +60,8 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 					std::string typeStrToInstall = _GetTitleIdTypeStr(m_title_info.GetAppTitleId());
 					std::string typeStrCurrentlyInstalled = _GetTitleIdTypeStr(tmp.GetAppTitleId());
 
-					std::string wxMsg = wxHelper::MakeUTF8(_("It seems that there is already a title installed at the target location but it has a different type.\nCurrently installed: \'{}\' Installing: \'{}\'\n\nThis can happen for titles which were installed with very old Cemu versions.\nDo you still want to continue with the installation? It will replace the currently installed title."));
-					wxMessageDialog dialog(this, fmt::format(fmt::runtime(wxMsg), typeStrCurrentlyInstalled, typeStrToInstall), _("Warning"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
+					auto wxMsg = _("It seems that there is already a title installed at the target location but it has a different type.\nCurrently installed: \'{}\' Installing: \'{}\'\n\nThis can happen for titles which were installed with very old Cemu versions.\nDo you still want to continue with the installation? It will replace the currently installed title.");
+					wxMessageDialog dialog(this, formatWxString(wxMsg, typeStrCurrentlyInstalled, typeStrToInstall), _("Warning"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
 					if (dialog.ShowModal() != wxID_YES)
 						return false;
 				}
@@ -90,7 +90,7 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 
 				if (ec)
 				{
-					const auto error_msg = wxStringFormat2(_("Error when trying to move former title installation:\n{}"), GetSystemErrorMessage(ec));
+					const auto error_msg = formatWxString(_("Error when trying to move former title installation:\n{}"), GetSystemErrorMessage(ec));
 					wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 					return false;
 				}

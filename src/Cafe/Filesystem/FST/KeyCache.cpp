@@ -1,5 +1,6 @@
 #include <wx/msgdlg.h>
 #include <mutex>
+#include <gui/helpers/wxHelpers.h>
 
 #include "config/ActiveSettings.h"
 #include "util/crypto/aes128.h"
@@ -107,7 +108,7 @@ void KeyCache_Prepare()
 			continue;
 		if( strishex(line) == false )
 		{
-			auto errorMsg = fmt::format(fmt::runtime(_("Error in keys.txt at line {}").utf8_string()), lineNumber);
+			auto errorMsg = formatWxString(_("Error in keys.txt at line {}"), lineNumber);
 			wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			continue;
 		}
