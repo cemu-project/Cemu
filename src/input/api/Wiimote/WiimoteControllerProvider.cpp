@@ -9,6 +9,7 @@
 #endif
 
 #include <numbers>
+#include <ranges>
 
 WiimoteControllerProvider::WiimoteControllerProvider()
 	: m_running(true)
@@ -30,21 +31,38 @@ WiimoteControllerProvider::~WiimoteControllerProvider()
 std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_controllers()
 {
 	std::scoped_lock lock(m_device_mutex);
-    m_wiimotes.clear();
-	for (const auto& device : WiimoteDevice_t::get_devices())
+
+    std::queue<uint32> discon_idx;
+    for (auto i{0u}; i < m_wiimotes.size(); ++i){
+        if (!(m_wiimotes[i].connected = m_wiimotes[i].device->write_data({kStatusRequest, 0x00}))){
+            discon_idx.push(i);
+        }
+    }
+
+    const auto valid_new_device = [&](std::shared_ptr<WiimoteDevice> & device) {
+        const auto writeable = device->write_data({kStatusRequest, 0x00});
+        const auto not_already_connected =
+                std::none_of(m_wiimotes.cbegin(), m_wiimotes.cend(),
+                             [device](const auto& it) {
+            return (*it.device == *device) && it.connected;
+        });
+        return writeable && not_already_connected;
+    };
+
+	for (const auto& device : WiimoteDevice_t::get_devices()
+    | std::views::filter(valid_new_device))
 	{
-		// test connection of all devices as they might have been changed
-		const bool is_connected = device->write_data({kStatusRequest, 0x00});
-		if (is_connected)
-		{
-			// only add unknown, connected devices to our list
-			const bool is_new_device = std::none_of(m_wiimotes.cbegin(), m_wiimotes.cend(),
-			                                        [device](const auto& it) { return *it.device == *device; });
-			if (is_new_device)
-			{
-				m_wiimotes.push_back(std::make_unique<Wiimote>(device));
-			}
-		}
+        // Replace disconnected wiimotes
+        if (!discon_idx.empty()){
+            const auto idx = discon_idx.front();
+            discon_idx.pop();
+
+            m_wiimotes.replace(idx, std::make_unique<Wiimote>(device));
+        }
+        // Otherwise add them
+        else {
+            m_wiimotes.push_back(std::make_unique<Wiimote>(device));
+        }
 	}
 
 	std::vector<std::shared_ptr<ControllerBase>> result;
