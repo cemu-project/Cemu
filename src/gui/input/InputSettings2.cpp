@@ -79,7 +79,7 @@ InputSettings2::InputSettings2(wxWindow* parent)
 	{
 		auto* page = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 		page->SetClientObject(nullptr); // force internal type to client object
-		m_notebook->AddPage(page, wxStringFormat2(_("Controller {}"), i + 1));
+		m_notebook->AddPage(page, formatWxString(_("Controller {}"), i + 1));
 	}
 
 	m_notebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &InputSettings2::on_controller_page_changed, this);
@@ -585,9 +585,7 @@ void InputSettings2::on_profile_text_changed(wxCommandEvent& event)
 
 	// load_bttn, save_bttn, delete_bttn, profile_status
 	const auto text = event.GetString();
-	const auto text_str = from_wxString(text);
-
-	const bool valid_name = InputManager::is_valid_profilename(text_str);
+	const bool valid_name = InputManager::is_valid_profilename(text.utf8_string());
 	const bool name_exists = profile_names->FindString(text) != wxNOT_FOUND;
 
 	page_data.m_profile_load->Enable(name_exists);
@@ -603,7 +601,7 @@ void InputSettings2::on_profile_load(wxCommandEvent& event)
 	auto* profile_names = page_data.m_profiles;
 	auto* text = page_data.m_profile_status;
 
-	const auto selection = from_wxString(profile_names->GetValue());
+	const auto selection = profile_names->GetValue().utf8_string();
 	text->Show();
 	if (selection.empty() || !InputManager::is_valid_profilename(selection))
 	{
@@ -639,7 +637,7 @@ void InputSettings2::on_profile_save(wxCommandEvent& event)
 	auto* profile_names = page_data.m_profiles;
 	auto* text = page_data.m_profile_status;
 
-	const auto selection = from_wxString(profile_names->GetValue());
+	const auto selection = profile_names->GetValue().utf8_string();
 	text->Show();
 	if (selection.empty() || !InputManager::is_valid_profilename(selection))
 	{
@@ -670,7 +668,7 @@ void InputSettings2::on_profile_delete(wxCommandEvent& event)
 	auto* profile_names = page_data.m_profiles;
 	auto* text = page_data.m_profile_status;
 
-	const auto selection = from_wxString(profile_names->GetStringSelection());
+	const auto selection = profile_names->GetStringSelection().utf8_string();
 
 	text->Show();
 	if (selection.empty() || !InputManager::is_valid_profilename(selection))
@@ -725,10 +723,9 @@ void InputSettings2::on_emulated_controller_selected(wxCommandEvent& event)
 	}
 	else
 	{
-		const auto type_str = from_wxString(event.GetString());
 		try
 		{
-			const auto type = EmulatedController::type_from_string(type_str);
+			const auto type = EmulatedController::type_from_string(event.GetString().utf8_string());
 			// same has already been selected
 			if (page_data.m_controller && page_data.m_controller->type() == type)
 				return;

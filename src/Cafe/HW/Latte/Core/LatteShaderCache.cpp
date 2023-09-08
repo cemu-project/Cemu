@@ -792,10 +792,9 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 	if (hasOldCacheFiles && !hasNewCacheFiles)
 	{
 		// ask user if they want to delete or keep the old cache file
-		const auto infoMsg = L"Outdated shader cache\n\nCemu detected that the shader cache for this game is outdated\nOnly shader caches generated with Cemu 1.25.0 or above are supported\n\n"
-			"We recommend deleting the outdated cache file as it will no longer be used by Cemu";
+		auto infoMsg = _("Cemu detected that the shader cache for this game is outdated.\nOnly shader caches generated with Cemu 1.25.0 or above are supported.\n\nWe recommend deleting the outdated cache file as it will no longer be used by Cemu.");
 			
-		wxMessageDialog dialog(nullptr, _(infoMsg), _("Outdated shader cache"),
+		wxMessageDialog dialog(nullptr, infoMsg, _("Outdated shader cache"),
 			wxYES_NO | wxCENTRE | wxICON_EXCLAMATION);
 
 		dialog.SetYesNoLabels(_("Delete outdated cache file [recommended]"), _("Keep outdated cache file"));

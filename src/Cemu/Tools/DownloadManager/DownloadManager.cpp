@@ -371,7 +371,7 @@ bool DownloadManager::syncAccountTickets()
 	for (auto& tiv : resultTicketIds.tivs)
 	{
 		index++;
-		std::string msg = _("Downloading account ticket").ToStdString();
+		std::string msg = _("Downloading account ticket").utf8_string();
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		// skip if already cached
@@ -508,7 +508,7 @@ bool DownloadManager::syncUpdateTickets()
 		if (titleIdParser.GetType() != TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE)
 			continue;
 
-		std::string msg = _("Downloading ticket").ToStdString();
+		std::string msg = _("Downloading ticket").utf8_string();
 		msg.append(fmt::format(" {0}/{1}", updateIndex, numUpdates));
 		updateIndex++;
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
@@ -561,7 +561,7 @@ bool DownloadManager::syncTicketCache()
 	for (auto& ticketInfo : m_ticketCache)
 	{
 		index++;
-		std::string msg = _("Downloading meta data").ToStdString();
+		std::string msg = _("Downloading meta data").utf8_string();
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		prepareIDBE(ticketInfo.titleId);
@@ -1054,7 +1054,7 @@ void DownloadManager::asyncPackageDownloadTMD(Package* package)
 	std::unique_lock<std::recursive_mutex> _l(m_mutex);
 	if (!tmdResult.isValid)
 	{
-		setPackageError(package, from_wxString(_("TMD download failed")));
+		setPackageError(package, _("TMD download failed").utf8_string());
 		package->state.isDownloadingTMD = false;
 		return;
 	}
@@ -1063,7 +1063,7 @@ void DownloadManager::asyncPackageDownloadTMD(Package* package)
 	NCrypto::TMDParser tmdParser;
 	if (!tmdParser.parse(tmdResult.tmdData.data(), tmdResult.tmdData.size()))
 	{
-		setPackageError(package, from_wxString(_("Invalid TMD")));
+		setPackageError(package, _("Invalid TMD").utf8_string());
 		package->state.isDownloadingTMD = false;
 		return;
 	}
@@ -1172,7 +1172,7 @@ void DownloadManager::asyncPackageDownloadContentFile(Package* package, uint16 i
 				size_t bytesWritten = callbackInfo->receiveBuffer.size();
 				if (callbackInfo->fileOutput->writeData(callbackInfo->receiveBuffer.data(), callbackInfo->receiveBuffer.size()) != (uint32)callbackInfo->receiveBuffer.size())
 				{
-					callbackInfo->downloadMgr->setPackageError(callbackInfo->package, from_wxString(_("Cannot write file. Disk full?")));
+					callbackInfo->downloadMgr->setPackageError(callbackInfo->package, _("Cannot write file. Disk full?").utf8_string());
 					return false;
 				}
 				callbackInfo->receiveBuffer.clear();
@@ -1193,12 +1193,12 @@ void DownloadManager::asyncPackageDownloadContentFile(Package* package, uint16 i
 	callbackInfoData.fileOutput = FileStream::createFile2(packageDownloadPath / fmt::format("{:08x}.app", contentId));
 	if (!callbackInfoData.fileOutput)
 	{
-		setPackageError(package, from_wxString(_("Cannot create file")));
+		setPackageError(package, _("Cannot create file").utf8_string());
 		return;
 	}
 	if (!NAPI::CCS_GetContentFile(titleId, contentId, CallbackInfo::writeCallback, &callbackInfoData))
 	{
-		setPackageError(package, from_wxString(_("Download failed")));
+		setPackageError(package, _("Download failed").utf8_string());
 		delete callbackInfoData.fileOutput;
 		return;
 	}

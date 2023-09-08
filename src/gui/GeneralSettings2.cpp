@@ -2001,44 +2001,60 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 	if (validator) // everything valid? shouldn't happen
 		return;
 	
-	std::wstringstream err;
-	err << L"The following error(s) have been found:" << std::endl;
+	wxString err;
+	err << _("The following error(s) have been found:") << '\n';
 	
 	if (validator.otp == OnlineValidator::FileState::Missing)
-		err << L"otp.bin missing in cemu root directory" << std::endl;
+		err << _("otp.bin missing in Cemu root directory") << '\n';
 	else if(validator.otp == OnlineValidator::FileState::Corrupted)
-		err << L"otp.bin is invalid" << std::endl;
+		err << _("otp.bin is invalid") << '\n';
 	
 	if (validator.seeprom == OnlineValidator::FileState::Missing)
-		err << L"seeprom.bin missing in cemu root directory" << std::endl;
+		err << _("seeprom.bin missing in Cemu root directory") << '\n';
 	else if(validator.seeprom == OnlineValidator::FileState::Corrupted)
-		err << L"seeprom.bin is invalid" << std::endl;
+		err << _("seeprom.bin is invalid") << '\n';
 
 	if(!validator.missing_files.empty())
 	{
-		err << L"Missing certificate and key files:" << std::endl;
+		err << _("Missing certificate and key files:") << '\n';
 
 		int counter = 0;
 		for (const auto& f : validator.missing_files)
 		{
-			err << f << std::endl;
+			err << f << '\n';
 
 			++counter;
 			if(counter > 10)
 			{
-				err << L"..." << std::endl;
+				err << "..." << '\n';
 				break;
 			}
 		}
 
-		err << std::endl;
+		err << '\n';
 	}
 
 	if (!validator.valid_account)
 	{
-		err << L"The currently selected account is not a valid or dumped online account:\n" << boost::nowide::widen(fmt::format("{}", validator.account_error));
+		err << _("The currently selected account is not a valid or dumped online account:") << '\n';
+		err << GetOnlineAccountErrorMessage(validator.account_error);
 	}
-		
-	
-	wxMessageBox(err.str(), _("Online Status"), wxOK | wxCENTRE | wxICON_INFORMATION);
+
+	wxMessageBox(err, _("Online Status"), wxOK | wxCENTRE | wxICON_INFORMATION);
+}
+
+std::string GeneralSettings2::GetOnlineAccountErrorMessage(OnlineAccountError error)
+{
+	switch (error) {
+		case OnlineAccountError::kNoAccountId:
+			return _("AccountId missing (The account is not connected to a NNID)").utf8_string();
+		case OnlineAccountError::kNoPasswordCached:
+			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)").utf8_string();
+		case OnlineAccountError::kPasswordCacheEmpty:
+			return _("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)").utf8_string();
+		case OnlineAccountError::kNoPrincipalId:
+			return _("PrincipalId missing").utf8_string();
+		default:
+			return "no error";
+	}
 }

@@ -16,22 +16,6 @@ enum class OnlineAccountError
 	kPasswordCacheEmpty,
 	kNoPrincipalId,
 };
-template <>
-struct fmt::formatter<OnlineAccountError> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const OnlineAccountError v, FormatContext& ctx) {
-		switch (v)
-		{
-		case OnlineAccountError::kNoAccountId: return formatter<string_view>::format("AccountId missing (The account is not connected to a NNID)", ctx);
-		case OnlineAccountError::kNoPasswordCached: return formatter<string_view>::format("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)", ctx);
-		case OnlineAccountError::kPasswordCacheEmpty: return formatter<string_view>::format("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)", ctx);
-		case OnlineAccountError::kNoPrincipalId: return formatter<string_view>::format("PrincipalId missing", ctx);
-		default: break;
-		}
-		return formatter<string_view>::format("no error", ctx);
-	}
-};
-
 
 struct OnlineValidator
 {

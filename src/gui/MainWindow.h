@@ -104,7 +104,6 @@ public:
 	void OnHelpAbout(wxCommandEvent& event);
 	void OnHelpGettingStarted(wxCommandEvent& event);
 	void OnHelpUpdate(wxCommandEvent& event);
-	void OnAfterCallShowErrorDialog();
 	void OnDebugSetting(wxCommandEvent& event);
 	void OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event);
 	void OnPPCInfoToggle(wxCommandEvent& event);
@@ -149,7 +148,6 @@ private:
 	void RecreateMenu();
 	static wxString GetInitialWindowTitle();
 	void ShowGettingStartedDialog();
-	bool EnableOnlineMode() const;
 
 	bool InstallUpdate(const fs::path& metaFilePath);
 

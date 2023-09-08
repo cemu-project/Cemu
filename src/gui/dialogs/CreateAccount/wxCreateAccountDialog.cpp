@@ -7,6 +7,7 @@
 #include <wx/button.h>
 #include <wx/textctrl.h>
 #include <wx/msgdlg.h>
+#include <helpers/wxHelpers.h>
 #include "util/helpers/helpers.h"
 
 wxCreateAccountDialog::wxCreateAccountDialog(wxWindow* parent)
@@ -71,7 +72,7 @@ void wxCreateAccountDialog::OnOK(wxCommandEvent& event)
 	const auto id = GetPersistentId();
 	if(id < Account::kMinPersistendId)
 	{
-		wxMessageBox(fmt::format(fmt::runtime(_("The persistent id must be greater than {:x}!").ToStdString()), Account::kMinPersistendId),
+		wxMessageBox(formatWxString(_("The persistent id must be greater than {:x}!"), Account::kMinPersistendId),
 			_("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}

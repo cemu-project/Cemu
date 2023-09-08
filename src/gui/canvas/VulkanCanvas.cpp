@@ -7,6 +7,7 @@
 #endif
 
 #include <wx/msgdlg.h>
+#include <helpers/wxHelpers.h>
 
 VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)
 	: IRenderCanvas(is_main_window), wxWindow(parent, wxID_ANY, wxDefaultPosition, size, wxNO_FULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
@@ -36,8 +37,8 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	}
 	catch(const std::exception& ex)
 	{
-		const auto msg = fmt::format(fmt::runtime(_("Error when initializing Vulkan renderer:\n{}").ToStdString()), ex.what());
-		cemuLog_log(LogType::Force, msg);
+		cemuLog_log(LogType::Force, "Error when initializing Vulkan renderer: {}", ex.what());
+		auto msg = formatWxString(_("Error when initializing Vulkan renderer:\n{}"), ex.what());
 		wxMessageDialog dialog(this, msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		dialog.ShowModal();
 		exit(0);

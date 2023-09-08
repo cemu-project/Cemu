@@ -6,6 +6,7 @@
 #include "boost/algorithm/string.hpp"
 
 #include "gui/wxgui.h" // for wxMessageBox
+#include "gui/helpers/wxHelpers.h"
 
 // error handler
 void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumber, std::string_view errorMsg)
@@ -39,13 +40,13 @@ void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumb
 
 void PatchErrorHandler::showStageErrorMessageBox()
 {
-	std::string errorMsg;
+	wxString errorMsg;
 	if (m_gp)
 	{
 		if (m_stage == STAGE::PARSER)
-			errorMsg.assign(fmt::format("Failed to load patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg.assign(formatWxString(_("Failed to load patches for graphic pack \'{}\'"), m_gp->GetName()));
 		else
-			errorMsg.assign(fmt::format("Failed to apply patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg.assign(formatWxString(_("Failed to apply patches for graphic pack \'{}\'"), m_gp->GetName()));
 	}
 	else
 	{
@@ -53,7 +54,9 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	}
 	if (cemuLog_isLoggingEnabled(LogType::Patches))
 	{
-		errorMsg.append("\n \nDetails:\n");
+		errorMsg.append("\n \n")
+			.append(_("Details:"))
+			.append("\n");
 		for (auto& itr : errorMessages)
 		{
 			errorMsg.append(itr);
@@ -61,7 +64,7 @@ void PatchErrorHandler::showStageErrorMessageBox()
 		}
 	}
 
-	wxMessageBox(errorMsg, "Graphic pack error");
+	wxMessageBox(errorMsg, _("Graphic pack error"));
 }
 
 // loads Cemu-style patches (patch_<anything>.asm)

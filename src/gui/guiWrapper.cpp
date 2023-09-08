@@ -136,7 +136,7 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 		g_mainFrame->AsyncSetTitle(windowText);
 		auto* pad = g_mainFrame->GetPadView();
 		if (pad)
-			pad->AsyncSetTitle(fmt::format("GamePad View - FPS: {:.02f}", fps));
+			pad->AsyncSetTitle(fmt::format("{} - FPS: {:.02f}", _("GamePad View").utf8_string(), fps));
 	}
 }
 
