@@ -123,7 +123,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 
 			first_row->Add(new wxStaticText(box, wxID_ANY, _("Language"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-			wxString language_choices[] = { _("Default"), "English" };
+			wxString language_choices[] = { _("Default") };
 			m_language = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(language_choices), language_choices);
 			m_language->SetSelection(0);
 			m_language->SetToolTip(_("Changes the interface language of Cemu\nAvailable languages are stored in the translation directory\nA restart will be required after changing the language"));
@@ -928,8 +928,6 @@ void GeneralSettings2::StoreConfig()
 	auto selection = m_language->GetSelection();
 	if (selection == 0)
 		GetConfig().language = wxLANGUAGE_DEFAULT;
-	else if (selection == 1)
-		GetConfig().language = wxLANGUAGE_ENGLISH;
 	else
 	{
 		const auto language = m_language->GetStringSelection();

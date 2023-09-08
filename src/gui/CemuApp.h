@@ -13,7 +13,7 @@ public:
 	void OnAssertFailure(const wxChar* file, int line, const wxChar* func, const wxChar* cond, const wxChar* msg) override;
 	int FilterEvent(wxEvent& event) override;
 
-	const std::vector<const wxLanguageInfo*>& GetLanguages() const { return m_availableTranslations; }
+	std::vector<const wxLanguageInfo*> GetLanguages() const;
 
 	static void CreateDefaultFiles(bool first_start = false);
 	static bool TrySelectMLCPath(fs::path path);

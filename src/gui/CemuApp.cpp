@@ -209,13 +209,20 @@ int CemuApp::FilterEvent(wxEvent& event)
 	return wxApp::FilterEvent(event);
 }
 
+std::vector<const wxLanguageInfo *> CemuApp::GetLanguages() const {
+	std::vector availableLanguages(m_availableTranslations);
+	availableLanguages.insert(availableLanguages.begin(), wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH));
+	return availableLanguages;
+}
+
 void CemuApp::LocalizeUI()
 {
 	std::unique_ptr<wxTranslations> translationsMgr(new wxTranslations());
 	m_availableTranslations = GetAvailableTranslationLanguages(translationsMgr.get());
 
 	const sint32 configuredLanguage = GetConfig().language;
-	bool isTranslationAvailable = std::any_of(m_availableTranslations.begin(), m_availableTranslations.end(), [configuredLanguage](const wxLanguageInfo* info) { return info->Language == configuredLanguage; });
+	bool isTranslationAvailable = std::any_of(m_availableTranslations.begin(), m_availableTranslations.end(),
+											  [configuredLanguage](const wxLanguageInfo* info) { return info->Language == configuredLanguage; });
 	if (configuredLanguage == wxLANGUAGE_DEFAULT || isTranslationAvailable)
 	{
 		translationsMgr->SetLanguage(static_cast<wxLanguage>(configuredLanguage));
