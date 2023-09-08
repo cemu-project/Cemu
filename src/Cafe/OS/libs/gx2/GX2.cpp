@@ -396,12 +396,7 @@ void gx2_load()
 	osLib_addFunction("gx2", "GX2GetCurrentScanBuffer", gx2Export_GX2GetCurrentScanBuffer);
 
 	// shader stuff
-	osLib_addFunction("gx2", "GX2GetVertexShaderGPRs", gx2Export_GX2GetVertexShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetVertexShaderStackEntries", gx2Export_GX2GetVertexShaderStackEntries);
-	osLib_addFunction("gx2", "GX2GetPixelShaderGPRs", gx2Export_GX2GetPixelShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetPixelShaderStackEntries", gx2Export_GX2GetPixelShaderStackEntries);
-	osLib_addFunction("gx2", "GX2SetFetchShader", gx2Export_GX2SetFetchShader);
-	osLib_addFunction("gx2", "GX2SetVertexShader", gx2Export_GX2SetVertexShader);
+	//osLib_addFunction("gx2", "GX2SetVertexShader", gx2Export_GX2SetVertexShader);
 	osLib_addFunction("gx2", "GX2SetPixelShader", gx2Export_GX2SetPixelShader);
 	osLib_addFunction("gx2", "GX2SetGeometryShader", gx2Export_GX2SetGeometryShader);
 	osLib_addFunction("gx2", "GX2SetComputeShader", gx2Export_GX2SetComputeShader);

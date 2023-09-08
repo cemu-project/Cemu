@@ -228,13 +228,13 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	else if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_Y)
 	{
 		// use alu divisor 1
-		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[mmVGT_INSTANCE_STEP_RATE_0 + 0];
+		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[Latte::REGADDR::VGT_INSTANCE_STEP_RATE_0];
 		cemu_assert_debug(attribGroup->attrib[groupAttribIndex].aluDivisor > 0);
 	}
 	else if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_Z)
 	{
 		// use alu divisor 2
-		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[mmVGT_INSTANCE_STEP_RATE_0 + 1];
+		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[Latte::REGADDR::VGT_INSTANCE_STEP_RATE_1];
 		cemu_assert_debug(attribGroup->attrib[groupAttribIndex].aluDivisor > 0);
 	}
 }

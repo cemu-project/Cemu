@@ -8,204 +8,6 @@
 #include "GX2.h"
 #include "GX2_Shader.h"
 
-void gx2Export_GX2SetFetchShader(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2SetFetchShader(0x{:08x})", hCPU->gpr[3]);
-	GX2ReserveCmdSpace(11);
-	GX2FetchShader_t* fetchShaderPtr = (GX2FetchShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-	cemu_assert_debug((_swapEndianU32(fetchShaderPtr->shaderPtr) & 0xFF) == 0);
-
-	gx2WriteGather_submit(
-	// setup fetch shader
-	pm4HeaderType3(IT_SET_CONTEXT_REG, 1+5),
-	mmSQ_PGM_START_FS-0xA000,
-	_swapEndianU32(fetchShaderPtr->shaderPtr)>>8, // pointer divided by 256
-	_swapEndianU32(fetchShaderPtr->shaderSize)>>3, // size divided by 8
-	0x10000, // ukn (ring buffer size?)
-	0x10000, // ukn (ring buffer size?)
-	*(uint32be*)&(fetchShaderPtr->_regs[0]),
-
-	// write instance step
-	pm4HeaderType3(IT_SET_CONTEXT_REG, 1+2),
-	mmVGT_INSTANCE_STEP_RATE_0-0xA000,
-	*(uint32be*)&(fetchShaderPtr->divisors[0]),
-	*(uint32be*)&(fetchShaderPtr->divisors[1]));
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-void gx2Export_GX2GetVertexShaderGPRs(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2GetVertexShaderGPRs(0x{:08x})", hCPU->gpr[3]);
-	GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-	uint8 numGPRs = _swapEndianU32(vertexShader->regs[0])&0xFF;
-	osLib_returnFromFunction(hCPU, numGPRs);
-}
-
-void gx2Export_GX2GetVertexShaderStackEntries(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2GetVertexShaderStackEntries(0x{:08x})", hCPU->gpr[3]);
-	GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-	uint8 stackEntries = (_swapEndianU32(vertexShader->regs[0])>>8)&0xFF;
-	osLib_returnFromFunction(hCPU, stackEntries);
-}
-
-void gx2Export_GX2GetPixelShaderGPRs(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2GetPixelShaderGPRs(0x{:08x})", hCPU->gpr[3]);
-	GX2PixelShader_t* pixelShader = (GX2PixelShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-	uint8 stackEntries = (_swapEndianU32(pixelShader->regs[0]))&0xFF;
-	osLib_returnFromFunction(hCPU, stackEntries);
-}
-
-void gx2Export_GX2GetPixelShaderStackEntries(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2GetPixelShaderStackEntries(0x{:08x})", hCPU->gpr[3]);
-	GX2PixelShader_t* pixelShader = (GX2PixelShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-	uint8 numGPRs = (_swapEndianU32(pixelShader->regs[0]>>8))&0xFF;
-	osLib_returnFromFunction(hCPU, numGPRs);
-}
-
-void gx2Export_GX2SetVertexShader(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2SetVertexShader(0x{:08x})", hCPU->gpr[3]);
-	GX2ReserveCmdSpace(100);
-
-	GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-
-	MPTR shaderProgramAddr;
-	uint32 shaderProgramSize;
-
-	if( _swapEndianU32(vertexShader->shaderPtr) != MPTR_NULL )
-	{
-		// without R API
-		shaderProgramAddr = _swapEndianU32(vertexShader->shaderPtr);
-		shaderProgramSize = _swapEndianU32(vertexShader->shaderSize);
-	}
-	else
-	{
-		shaderProgramAddr = vertexShader->rBuffer.GetVirtualAddr();
-		shaderProgramSize = vertexShader->rBuffer.GetSize();
-	}
-
-	cemu_assert_debug(shaderProgramAddr != 0);
-	cemu_assert_debug(shaderProgramSize != 0);
-
-	if( _swapEndianU32(vertexShader->shaderMode) == GX2_SHADER_MODE_GEOMETRY_SHADER )
-	{
-		// in geometry shader mode the vertex shader is written to _ES register and almost all vs control registers are set by GX2SetGeometryShader
-		gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 6));
-		gx2WriteGather_submitU32AsBE(mmSQ_PGM_START_ES-0xA000);
-		gx2WriteGather_submitU32AsBE(memory_virtualToPhysical(shaderProgramAddr)>>8);
-		gx2WriteGather_submitU32AsBE(shaderProgramSize>>3);
-		gx2WriteGather_submitU32AsBE(0x100000);
-		gx2WriteGather_submitU32AsBE(0x100000);
-		gx2WriteGather_submitU32AsBE(_swapEndianU32(vertexShader->regs[0])); // unknown
-	}
-	else
-	{
-		gx2WriteGather_submit(
-			/* vertex shader program */
-			pm4HeaderType3(IT_SET_CONTEXT_REG, 6),
-			mmSQ_PGM_START_VS-0xA000,
-			memory_virtualToPhysical(shaderProgramAddr)>>8, // physical address
-			shaderProgramSize>>3, // size
-			0x100000,
-			0x100000,
-			_swapEndianU32(vertexShader->regs[0]), // unknown
-			/* primitive id enable */
-			pm4HeaderType3(IT_SET_CONTEXT_REG, 2),
-			mmVGT_PRIMITIVEID_EN-0xA000,
-			_swapEndianU32(vertexShader->regs[1]),
-			/* output config */
-			pm4HeaderType3(IT_SET_CONTEXT_REG, 2),
-			mmSPI_VS_OUT_CONFIG-0xA000,
-			_swapEndianU32(vertexShader->regs[2]));
-
-		if( (_swapEndianU32(vertexShader->regs[2]) & 1) != 0 )
-			debugBreakpoint(); // per-component flag?
-
-		// ukn
-		gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 2));
-		gx2WriteGather_submitU32AsBE(mmPA_CL_VS_OUT_CNTL-0xA000);
-		gx2WriteGather_submitU32AsBE(_swapEndianU32(vertexShader->regs[14]));
-		
-		uint32 numOutputIds = _swapEndianU32(vertexShader->regs[3]);
-		numOutputIds = std::min<uint32>(numOutputIds, 0xA);
-		gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 1+numOutputIds));
-		gx2WriteGather_submitU32AsBE(mmSPI_VS_OUT_ID_0-0xA000);
-		for(uint32 i=0; i<numOutputIds; i++)
-		{
-			gx2WriteGather_submitU32AsBE(_swapEndianU32(vertexShader->regs[4+i]));
-		}
-
-		/*
-		 VS _regs[]:
-		 0			?
-		 1			mmVGT_PRIMITIVEID_EN (?)
-		 2			mmSPI_VS_OUT_CONFIG
-		 3			Number of used SPI_VS_OUT_ID_* entries
-		 4 - 13		SPI_VS_OUT_ID_0 - SPI_VS_OUT_ID_9
-		 14			pa_cl_vs_out_cntl
-		 ...
-		 17 - ??	semantic table entry (input)
-
-		 ...
-		 50			vgt_vertex_reuse_block_cntl
-		 51			vgt_hos_reuse_depth
-		 */
-
-		// todo: mmSQ_PGM_CF_OFFSET_VS
-		// todo: mmVGT_STRMOUT_BUFFER_EN
-		// stream out
-		if( _swapEndianU32(vertexShader->usesStreamOut) != 0 )
-		{
-			// stride 0
-			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 2));
-			gx2WriteGather_submitU32AsBE(mmVGT_STRMOUT_VTX_STRIDE_0-0xA000);
-			gx2WriteGather_submitU32AsBE(_swapEndianU32(vertexShader->streamOutVertexStride[0])>>2);
-			// stride 1
-			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 2));
-			gx2WriteGather_submitU32AsBE(mmVGT_STRMOUT_VTX_STRIDE_1-0xA000);
-			gx2WriteGather_submitU32AsBE(_swapEndianU32(vertexShader->streamOutVertexStride[1])>>2);
-			// stride 2
-			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 2));
-			gx2WriteGather_submitU32AsBE(mmVGT_STRMOUT_VTX_STRIDE_2-0xA000);
-			gx2WriteGather_submitU32AsBE(_swapEndianU32(vertexShader->streamOutVertexStride[2])>>2);
-			// stride 3
-			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 2));
-			gx2WriteGather_submitU32AsBE(mmVGT_STRMOUT_VTX_STRIDE_3-0xA000);
-			gx2WriteGather_submitU32AsBE(_swapEndianU32(vertexShader->streamOutVertexStride[3])>>2);
-		}
-	}
-	// update semantic table
-	uint32 vsSemanticTableSize = _swapEndianU32(vertexShader->regs[0x40/4]);
-	if( vsSemanticTableSize > 0 )
-	{
-		gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 1+1));
-		gx2WriteGather_submitU32AsBE(mmSQ_VTX_SEMANTIC_CLEAR-0xA000);
-		gx2WriteGather_submitU32AsBE(0xFFFFFFFF);
-		if( vsSemanticTableSize == 0 )
-		{
-			// todo: Figure out how this is done on real SW/HW (some vertex shaders don't have a semantic table)
-			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 1+1));
-			gx2WriteGather_submitU32AsBE(mmSQ_VTX_SEMANTIC_0-0xA000);
-			gx2WriteGather_submitU32AsBE(0xFFFFFFFF);
-		}
-		else
-		{
-			uint32* vsSemanticTable = vertexShader->regs+(0x44/4);
-			vsSemanticTableSize = std::min<uint32>(vsSemanticTableSize, 0x20);
-			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 1+vsSemanticTableSize));
-			gx2WriteGather_submitU32AsBE(mmSQ_VTX_SEMANTIC_0-0xA000);
-			for(uint32 i=0; i<vsSemanticTableSize; i++)
-				gx2WriteGather_submitU32AsLE(vsSemanticTable[i]);
-		}
-	}
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
 void gx2Export_GX2SetPixelShader(PPCInterpreter_t* hCPU)
 {
 	cemuLog_log(LogType::GX2, "GX2SetPixelShader(0x{:08x})", hCPU->gpr[3]);
@@ -415,14 +217,14 @@ void gx2Export_GX2SetGeometryShader(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
-struct GX2ComputeShader_t
+struct GX2ComputeShader
 {
 	/* +0x00 */ uint32be regs[12];
 	/* +0x30 */ uint32be programSize;
 	/* +0x34 */ uint32be programPtr;
-	/* +0x38 */ uint32   ukn38;
-	/* +0x3C */ uint32   ukn3C;
-	/* +0x40 */ uint32   ukn40[8];
+	/* +0x38 */ uint32be ukn38;
+	/* +0x3C */ uint32be ukn3C;
+	/* +0x40 */ uint32be ukn40[8];
 	/* +0x60 */ uint32be workgroupSizeX;
 	/* +0x64 */ uint32be workgroupSizeY;
 	/* +0x68 */ uint32be workgroupSizeZ;
@@ -431,13 +233,13 @@ struct GX2ComputeShader_t
 	/* +0x74 */ GX2RBuffer rBuffer;
 };
 
-static_assert(offsetof(GX2ComputeShader_t, programSize) == 0x30);
-static_assert(offsetof(GX2ComputeShader_t, workgroupSizeX) == 0x60);
-static_assert(offsetof(GX2ComputeShader_t, rBuffer) == 0x74);
+static_assert(offsetof(GX2ComputeShader, programSize) == 0x30);
+static_assert(offsetof(GX2ComputeShader, workgroupSizeX) == 0x60);
+static_assert(offsetof(GX2ComputeShader, rBuffer) == 0x74);
 
 void gx2Export_GX2SetComputeShader(PPCInterpreter_t* hCPU)
 {
-	ppcDefineParamTypePtr(computeShader, GX2ComputeShader_t, 0);
+	ppcDefineParamTypePtr(computeShader, GX2ComputeShader, 0);
 	cemuLog_log(LogType::GX2, "GX2SetComputeShader(0x{:08x})", hCPU->gpr[3]);
 
 	MPTR shaderPtr;

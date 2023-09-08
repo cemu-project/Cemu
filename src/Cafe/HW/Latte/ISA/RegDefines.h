@@ -50,8 +50,6 @@
 #define mmVGT_PRIMITIVEID_EN                            0xA2A1
 #define mmVGT_VTX_CNT_EN                                0xA2AE
 #define mmVGT_REUSE_OFF                                 0xA2AD
-#define mmVGT_INSTANCE_STEP_RATE_0                      0xA2A8
-#define mmVGT_INSTANCE_STEP_RATE_1                      0xA2A9
 #define mmVGT_MAX_VTX_INDX                              0xA100
 #define mmVGT_MIN_VTX_INDX                              0xA101
 #define mmVGT_INDX_OFFSET                               0xA102

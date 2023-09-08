@@ -263,7 +263,7 @@ namespace GX2
 
 		if (patchType == GX2_PATCH_TYPE::VERTEX_SHADER)
 		{
-			GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)obj;
+			GX2VertexShader* vertexShader = (GX2VertexShader*)obj;
 			displayData[patchOffset / 4 + 2] = memory_virtualToPhysical(vertexShader->GetProgramAddr()) >> 8;
 		}
 		else if (patchType == GX2_PATCH_TYPE::PIXEL_SHADER)
@@ -273,7 +273,7 @@ namespace GX2
 		}
 		else if (patchType == GX2_PATCH_TYPE::FETCH_SHADER)
 		{
-			GX2FetchShader_t* fetchShader = (GX2FetchShader_t*)obj;
+			GX2FetchShader* fetchShader = (GX2FetchShader*)obj;
 			displayData[patchOffset / 4 + 2] = memory_virtualToPhysical(fetchShader->GetProgramAddr()) >> 8;
 		}
 		else if (patchType == GX2_PATCH_TYPE::GEOMETRY_COPY_SHADER)

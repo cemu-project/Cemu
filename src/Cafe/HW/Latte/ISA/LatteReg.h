@@ -381,6 +381,9 @@ namespace Latte
 		PA_SC_GENERIC_SCISSOR_TL			= 0xA090,
 		PA_SC_GENERIC_SCISSOR_BR			= 0xA091,
 
+		SQ_VTX_SEMANTIC_0					= 0xA0E0,
+		SQ_VTX_SEMANTIC_31					= 0xA0FF,
+
 		VGT_MULTI_PRIM_IB_RESET_INDX		= 0xA103,
 		SX_ALPHA_TEST_CONTROL				= 0xA104,
 		CB_BLEND_RED						= 0xA105,
@@ -398,6 +401,10 @@ namespace Latte
 		PA_CL_VPORT_ZSCALE					= 0xA113,
 		PA_CL_VPORT_ZOFFSET					= 0xA114,
 
+		SPI_VS_OUT_ID_0						= 0xA185,
+
+		SPI_VS_OUT_CONFIG					= 0xA1B1,
+
 		CB_BLEND0_CONTROL					= 0xA1E0, // first
 		CB_BLEND7_CONTROL					= 0xA1E7, // last
 
@@ -408,13 +415,58 @@ namespace Latte
 		PA_CL_CLIP_CNTL						= 0xA204,
 		PA_SU_SC_MODE_CNTL					= 0xA205,
 		PA_CL_VTE_CNTL						= 0xA206,
-		
+		PA_CL_VS_OUT_CNTL					= 0xA207,
+
+		// shader program descriptors:
+		SQ_PGM_START_PS						= 0xA210,
+		SQ_PGM_RESOURCES_PS					= 0xA214,
+		SQ_PGM_EXPORTS_PS					= 0xA215,
+		SQ_PGM_START_VS						= 0xA216,
+		SQ_PGM_RESOURCES_VS					= 0xA21A,
+		SQ_PGM_START_GS 					= 0xA21B,
+		SQ_PGM_RESOURCES_GS					= 0xA21F,
+		SQ_PGM_START_ES						= 0xA220,
+		SQ_PGM_RESOURCES_ES					= 0xA224,
+		SQ_PGM_START_FS						= 0xA225,
+		SQ_PGM_RESOURCES_FS					= 0xA229,
+
+		SQ_VTX_SEMANTIC_CLEAR				= 0xA238,
+
 		PA_SU_POINT_SIZE					= 0xA280,
 		PA_SU_POINT_MINMAX					= 0xA281,
 
 		VGT_GS_MODE							= 0xA290,
 
 		VGT_DMA_INDEX_TYPE					= 0xA29F, // todo - verify offset
+
+		VGT_PRIMITIVEID_EN					= 0xA2A1,
+
+		VGT_MULTI_PRIM_IB_RESET_EN 			= 0xA2A5,
+
+		VGT_INSTANCE_STEP_RATE_0			= 0xA2A8,
+		VGT_INSTANCE_STEP_RATE_1			= 0xA2A9,
+
+		VGT_STRMOUT_BUFFER_SIZE_0			= 0xA2B4,
+		VGT_STRMOUT_VTX_STRIDE_0			= 0xA2B5,
+		VGT_STRMOUT_BUFFER_BASE_0			= 0xA2B6,
+		VGT_STRMOUT_BUFFER_OFFSET_0			= 0xA2B7,
+		VGT_STRMOUT_BUFFER_SIZE_1			= 0xA2B8,
+		VGT_STRMOUT_VTX_STRIDE_1			= 0xA2B9,
+		VGT_STRMOUT_BUFFER_BASE_1			= 0xA2BA,
+		VGT_STRMOUT_BUFFER_OFFSET_1			= 0xA2BB,
+		VGT_STRMOUT_BUFFER_SIZE_2			= 0xA2BC,
+		VGT_STRMOUT_VTX_STRIDE_2			= 0xA2BD,
+		VGT_STRMOUT_BUFFER_BASE_2			= 0xA2BE,
+		VGT_STRMOUT_BUFFER_OFFSET_2			= 0xA2BF,
+		VGT_STRMOUT_BUFFER_SIZE_3			= 0xA2C0,
+		VGT_STRMOUT_VTX_STRIDE_3			= 0xA2C1,
+		VGT_STRMOUT_BUFFER_BASE_3			= 0xA2C2,
+		VGT_STRMOUT_BUFFER_OFFSET_3			= 0xA2C3,
+		VGT_STRMOUT_BASE_OFFSET_0			= 0xA2C4,
+		VGT_STRMOUT_BASE_OFFSET_1			= 0xA2C5,
+		VGT_STRMOUT_BASE_OFFSET_2			= 0xA2C6,
+		VGT_STRMOUT_BASE_OFFSET_3			= 0xA2C7,
+		VGT_STRMOUT_BUFFER_EN				= 0xA2C8,
 
 		// HiZ early stencil test?
 		DB_SRESULTS_COMPARE_STATE0			= 0xA34A,
@@ -842,6 +894,12 @@ float get_##__regname() const \
 		LATTE_BITFIELD_BOOL(VTX_W0_FMT, 10);
 	};
 
+	struct LATTE_PA_CL_VS_OUT_CNTL : LATTEREG // 0xA207
+	{
+		LATTE_BITFIELD(CLIP_DIST_ENA_MASK, 0, 8);
+		LATTE_BITFIELD(CULL_DIST_ENA_MASK, 8, 8);
+	};
+
 	struct LATTE_PA_SU_POINT_SIZE : LATTEREG // 0xA280
 	{
 		LATTE_BITFIELD(HEIGHT, 0, 16);
@@ -909,6 +967,54 @@ float get_##__regname() const \
 		LATTE_BITFIELD_FULL_TYPED(INDEX_TYPE, E_INDEX_TYPE);
 	};
 
+	struct LATTE_VGT_PRIMITIVEID_EN : LATTEREG // 0xA2A1
+	{
+		LATTE_BITFIELD_BOOL(PRIMITIVEID_EN, 0);
+	};
+
+	struct LATTE_VGT_MULTI_PRIM_IB_RESET_EN : LATTEREG // 0xA2A5
+	{
+		LATTE_BITFIELD_BOOL(RESET_EN, 0);
+	};
+
+	struct LATTE_VGT_INSTANCE_STEP_RATE_X : LATTEREG // 0xA2A8-0xA2A9
+	{
+		LATTE_BITFIELD_FULL_TYPED(STEP_RATE, uint32);
+	};
+
+	struct LATTE_VGT_STRMOUT_BUFFER_SIZE_X : LATTEREG // 0xA2B4 + index * 4
+	{
+		LATTE_BITFIELD_FULL_TYPED(SIZE, uint32);
+	};
+
+	struct LATTE_VGT_STRMOUT_STRIDE_X : LATTEREG // 0xA2B5 + index * 4
+	{
+		LATTE_BITFIELD_FULL_TYPED(STRIDE, uint32);
+	};
+
+	struct LATTE_VGT_STRMOUT_BUFFER_BASE_X : LATTEREG // 0xA2B6 + index * 4
+	{
+		LATTE_BITFIELD_FULL_TYPED(BASE, uint32);
+	};
+
+	struct LATTE_VGT_STRMOUT_BUFFER_OFFSET_X : LATTEREG // 0xA2B7 + index * 4
+	{
+		LATTE_BITFIELD_FULL_TYPED(BUFFER_OFFSET, uint32);
+	};
+
+	struct LATTE_VGT_STRMOUT_BASE_OFFSET_X : LATTEREG // 0xA2C4-0xA2C7
+	{
+		LATTE_BITFIELD_FULL_TYPED(BASE_OFFSET, uint32);
+	};
+
+	struct LATTE_VGT_STRMOUT_BUFFER_EN : LATTEREG // 0xA2C8
+	{
+		LATTE_BITFIELD_BOOL(BUFFER_ENABLE_0, 0);
+		LATTE_BITFIELD_BOOL(BUFFER_ENABLE_1, 1);
+		LATTE_BITFIELD_BOOL(BUFFER_ENABLE_2, 2);
+		LATTE_BITFIELD_BOOL(BUFFER_ENABLE_3, 3);
+	};
+
 	struct LATTE_PA_SU_POLY_OFFSET_CLAMP : LATTEREG // 0xA37F
 	{
 		LATTE_BITFIELD_FLOAT(CLAMP);
@@ -932,6 +1038,16 @@ float get_##__regname() const \
 	struct LATTE_PA_SU_POLY_OFFSET_BACK_OFFSET : LATTEREG // 0xA383
 	{
 		LATTE_BITFIELD_FLOAT(OFFSET);
+	};
+
+	struct LATTE_SQ_VTX_SEMANTIC_CLEAR : LATTEREG // 0xA238
+	{
+		LATTE_BITFIELD_FULL_TYPED(CLEAR_MASK, uint32); // probably a bitmask
+	};
+
+	struct LATTE_SQ_VTX_SEMANTIC_X : LATTEREG // 0xA0E0 - 0xA0FF
+	{
+		LATTE_BITFIELD(SEMANTIC_ID, 0, 8);
 	};
 
 	struct LATTE_SQ_TEX_RESOURCE_WORD0_N : LATTEREG // 0xE000 + index * 7
@@ -1154,6 +1270,65 @@ float get_##__regname() const \
 		LATTE_BITFIELD_TYPED(TYPE, 31, 1, E_SAMPLER_TYPE);
 	};
 
+	struct LATTE_SQ_PGM_START_X : LATTEREG // 0xA210 / 0xA216 / 0xA21B / 0xA220 / 0xA225
+	{
+		LATTE_BITFIELD_FULL_TYPED(PGM_START, uint32);
+	};
+
+	struct LATTE_SQ_PGM_RESOURCES_PS : LATTEREG // 0xA214
+	{
+		LATTE_BITFIELD(NUM_GPRS, 0, 8);
+		LATTE_BITFIELD(NUM_STACK_ENTRIES, 8, 8);
+		LATTE_BITFIELD_BOOL(DX10_CLAMP, 21); // if true, CLAMP modifier in shaders will return 0 for NaN
+		LATTE_BITFIELD(FETCH_CACHE_LINES, 24, 3);
+		LATTE_BITFIELD_BOOL(UNCACHED_FIRST_INST, 28);
+		LATTE_BITFIELD_BOOL(CLAMP_CONSTS, 31);
+	};
+
+	struct LATTE_SQ_PGM_RESOURCES_VS : LATTEREG // 0xA21A
+	{
+		LATTE_BITFIELD(NUM_GPRS, 0, 8);
+		LATTE_BITFIELD(NUM_STACK_ENTRIES, 8, 8);
+		LATTE_BITFIELD_BOOL(DX10_CLAMP, 21); // if true, CLAMP modifier in shaders will return 0 for NaN
+		LATTE_BITFIELD(FETCH_CACHE_LINES, 24, 3);
+		LATTE_BITFIELD_BOOL(UNCACHED_FIRST_INST, 28);
+	};
+
+	struct LATTE_SQ_PGM_RESOURCES_GS : LATTEREG // 0xA21F
+	{
+		LATTE_BITFIELD(NUM_GPRS, 0, 8);
+		LATTE_BITFIELD(NUM_STACK_ENTRIES, 8, 8);
+		LATTE_BITFIELD_BOOL(DX10_CLAMP, 21); // if true, CLAMP modifier in shaders will return 0 for NaN
+	};
+
+	struct LATTE_SQ_PGM_RESOURCES_ES : LATTEREG // 0xA224
+	{
+		LATTE_BITFIELD(NUM_GPRS, 0, 8);
+		LATTE_BITFIELD(NUM_STACK_ENTRIES, 8, 8);
+		LATTE_BITFIELD_BOOL(DX10_CLAMP, 21); // if true, CLAMP modifier in shaders will return 0 for NaN
+	};
+
+	struct LATTE_SQ_PGM_RESOURCES_FS : LATTEREG // 0xA229
+	{
+		LATTE_BITFIELD(NUM_GPRS, 0, 8);
+		LATTE_BITFIELD(NUM_STACK_ENTRIES, 8, 8);
+		LATTE_BITFIELD_BOOL(DX10_CLAMP, 21); // if true, CLAMP modifier in shaders will return 0 for NaN
+	};
+
+	struct LATTE_SQ_XX_ITEMSIZE : LATTEREG // 0xA227 - 0xA2XX
+	{
+		// used by:
+		// SQ_ESGS_RING_ITEMSIZE
+		// SQ_GSVS_RING_ITEMSIZE
+		// SQ_ESTMP_RING_ITEMSIZE
+		// SQ_GSTMP_RING_ITEMSIZE
+		// SQ_VSTMP_RING_ITEMSIZE
+		// SQ_PSTMP_RING_ITEMSIZE
+		// SQ_FBUF_RING_ITEMSIZE
+		// SQ_REDUC_RING_ITEMSIZE
+		LATTE_BITFIELD(ITEMSIZE, 0, 15);
+	};
+
 	struct LATTE_PA_SU_SC_MODE_CNTL : LATTEREG // 0xA205
 	{
 		enum class E_FRONTFACE
@@ -1185,7 +1360,32 @@ float get_##__regname() const \
 		LATTE_BITFIELD_BOOL(OFFSET_PARA_ENABLED, 13); // offset enable for lines and points?
 		// additional fields?
 	};
-}
+
+	struct LATTE_SPI_VS_OUT_CONFIG : LATTEREG // 0xA1B1
+	{
+		LATTE_BITFIELD_BOOL(VS_PER_COMPONENT, 0);
+		LATTE_BITFIELD(VS_EXPORT_COUNT, 1, 5);
+		LATTE_BITFIELD_BOOL(EXPORTS_FOG, 8);
+		LATTE_BITFIELD(VS_OUT_FOG_VEC_ADDR, 9, 5);
+	};
+
+	struct LATTE_SPI_VS_OUT_ID_N : LATTEREG // 0xA185 - 0xA18E(?) - 0xA1B2 - 0xA1B3
+	{
+		uint8 get_SEMANTIC(sint32 index)
+		{
+			cemu_assert_debug(index < 4);
+			return (uint8)((v >> (index * 8)) & 0xFF);
+		}
+
+		void set_SEMANTIC(sint32 index, uint8 value)
+		{
+			cemu_assert_debug(index < 4);
+			v &= ~(0xFF << (index * 8));
+			v |= (value & 0xFF) << (index * 8);
+		}
+	};
+
+};
 
 struct _LatteRegisterSetTextureUnit
 {
@@ -1219,6 +1419,16 @@ struct _LatteRegisterSetSamplerBorderColor
 
 static_assert(sizeof(_LatteRegisterSetSamplerBorderColor) == 16);
 
+struct _LatteRegisterSetStreamoutBuffer
+{
+	Latte::LATTE_VGT_STRMOUT_BUFFER_SIZE_X SIZE;
+	Latte::LATTE_VGT_STRMOUT_STRIDE_X STRIDE;
+	Latte::LATTE_VGT_STRMOUT_BUFFER_BASE_X BASE;
+	Latte::LATTE_VGT_STRMOUT_BUFFER_OFFSET_X BUFFER_OFFSET;
+};
+
+static_assert(sizeof(_LatteRegisterSetStreamoutBuffer) == 16);
+
 struct LatteContextRegister
 {
 	uint8 padding0[0x08958];
@@ -1235,7 +1445,9 @@ struct LatteContextRegister
 	uint8 padding_2823C[4];
 	/* +0x28240 */ Latte::LATTE_PA_SC_GENERIC_SCISSOR_TL PA_SC_GENERIC_SCISSOR_TL;
 	/* +0x28244 */ Latte::LATTE_PA_SC_GENERIC_SCISSOR_BR PA_SC_GENERIC_SCISSOR_BR;
-	uint8 padding_28248[0x2840C - 0x28248];
+	uint8 padding_28248[0x28380 - 0x28248];
+	/* +0x28380 */ Latte::LATTE_SQ_VTX_SEMANTIC_X SQ_VTX_SEMANTIC_X[32];
+	/* +0x28400 */ uint8 padding_28400[0x2840C - 0x28400];
 	/* +0x2840C */ Latte::LATTE_VGT_MULTI_PRIM_IB_RESET_INDX VGT_MULTI_PRIM_IB_RESET_INDX;
 	/* +0x28410 */ Latte::LATTE_SX_ALPHA_TEST_CONTROL SX_ALPHA_TEST_CONTROL;
 	/* +0x28414 */ Latte::LATTE_CB_BLEND_RED CB_BLEND_RED;
@@ -1253,7 +1465,15 @@ struct LatteContextRegister
 	/* +0x2844C */ Latte::LATTE_PA_CL_VPORT_ZSCALE	PA_CL_VPORT_ZSCALE;
 	/* +0x28450 */ Latte::LATTE_PA_CL_VPORT_ZOFFSET PA_CL_VPORT_ZOFFSET;
 
-	uint8 padding_28450[0x28780 - 0x28454];
+	uint8 padding_28450[0x28614 - 0x28454];
+
+	/* +0x28614 */ Latte::LATTE_SPI_VS_OUT_ID_N LATTE_SPI_VS_OUT_ID_N[10];
+
+	uint8 padding_2863C[0x286C4 - 0x2863C];
+
+	/* +0x286C4 */ Latte::LATTE_SPI_VS_OUT_CONFIG SPI_VS_OUT_CONFIG;
+
+	uint8 padding_286C8[0x28780 - 0x286C8];
 
 	/* +0x28780 */ Latte::LATTE_CB_BLENDN_CONTROL CB_BLENDN_CONTROL[8];
 
@@ -1266,9 +1486,44 @@ struct LatteContextRegister
 	/* +0x28810 */ Latte::LATTE_PA_CL_CLIP_CNTL PA_CL_CLIP_CNTL;
 	/* +0x28814 */ Latte::LATTE_PA_SU_SC_MODE_CNTL PA_SU_SC_MODE_CNTL;
 	/* +0x28818 */ Latte::LATTE_PA_CL_VTE_CNTL PA_CL_VTE_CNTL;
+	/* +0x2881C */ Latte::LATTE_PA_CL_VS_OUT_CNTL PA_CL_VS_OUT_CNTL;
 
-	uint8 padding_2881C[0x28A00 - 0x2881C];
+	uint8 padding_2881C[0x28840 - 0x28820];
 
+	/* +0x28840 */ Latte::LATTE_SQ_PGM_START_X SQ_PGM_START_PS;
+	/* +0x28844 */ uint32 ukn28844; // PS size
+	/* +0x28848 */ uint32 ukn28848;
+	/* +0x2884C */ uint32 ukn2884C;
+	/* +0x28850 */ Latte::LATTE_SQ_PGM_RESOURCES_PS SQ_PGM_RESOURCES_PS;
+	/* +0x28854 */ uint32 ukn28854; // SQ_PGM_EXPORTS_PS
+	/* +0x28858 */ Latte::LATTE_SQ_PGM_START_X SQ_PGM_START_VS;
+	/* +0x2885C */ uint32 ukn2885C; // VS size
+	/* +0x28860 */ uint32 ukn28860;
+	/* +0x28864 */ uint32 ukn28864;
+	/* +0x28868 */ Latte::LATTE_SQ_PGM_RESOURCES_VS SQ_PGM_RESOURCES_VS;
+	/* +0x2886C */ Latte::LATTE_SQ_PGM_START_X SQ_PGM_START_GS;
+	/* +0x28870 */ uint32 ukn28870; // GS size
+	/* +0x28874 */ uint32 ukn28874;
+	/* +0x28878 */ uint32 ukn28878;
+	/* +0x2887C */ Latte::LATTE_SQ_PGM_RESOURCES_GS SQ_PGM_RESOURCES_GS;
+	/* +0x28880 */ Latte::LATTE_SQ_PGM_START_X SQ_PGM_START_ES;
+	/* +0x28884 */ uint32 ukn28884; // ES size
+	/* +0x28888 */ uint32 ukn28888;
+	/* +0x2888C */ uint32 ukn2888C;
+	/* +0x28890 */ Latte::LATTE_SQ_PGM_RESOURCES_ES SQ_PGM_RESOURCES_ES;
+	/* +0x28894 */ Latte::LATTE_SQ_PGM_START_X SQ_PGM_START_FS;
+	/* +0x28898 */ uint32 ukn28898; // FS size
+	/* +0x2889C */ uint32 ukn2889C;
+	/* +0x288A0 */ uint32 ukn288A0;
+	/* +0x288A4 */ Latte::LATTE_SQ_PGM_RESOURCES_FS SQ_PGM_RESOURCES_FS;
+	/* +0x288A8 */ Latte::LATTE_SQ_XX_ITEMSIZE SQ_ESGS_RING_ITEMSIZE;
+	/* +0x288AC */ Latte::LATTE_SQ_XX_ITEMSIZE SQ_GSVS_RING_ITEMSIZE;
+	/* +0x288B0 */ Latte::LATTE_SQ_XX_ITEMSIZE SQ_ESTMP_RING_ITEMSIZE;
+	/* +0x288B4 */ Latte::LATTE_SQ_XX_ITEMSIZE SQ_GSTMP_RING_ITEMSIZE;
+	/* +0x288B8 */ Latte::LATTE_SQ_XX_ITEMSIZE SQ_VSTMP_RING_ITEMSIZE;
+	uint8 padding_288BC[0x288E0 - 0x288BC];
+	/* +0x288E0 */ Latte::LATTE_SQ_VTX_SEMANTIC_CLEAR SQ_VTX_SEMANTIC_CLEAR;
+	uint8 padding_288E4[0x28A00 - 0x288E4];
 	/* +0x28A00 */ Latte::LATTE_PA_SU_POINT_SIZE PA_SU_POINT_SIZE;
 	/* +0x28A04 */ Latte::LATTE_PA_SU_POINT_MINMAX PA_SU_POINT_MINMAX;
 
@@ -1279,8 +1534,24 @@ struct LatteContextRegister
 	uint8 padding_28A44[0x28A7C - 0x28A44];
 
 	/* +0x28A7C */ Latte::LATTE_VGT_DMA_INDEX_TYPE VGT_DMA_INDEX_TYPE;
+	/* +0x28A80 */ uint32 ukn28A80;
+	/* +0x28A84 */ Latte::LATTE_VGT_PRIMITIVEID_EN VGT_PRIMITIVEID_EN;
+	/* +0x28A88 */ uint32 ukn28A88;
+	/* +0x28A8C */ uint32 ukn28A8C;
+	/* +0x28A90 */ uint32 ukn28A90;
+	/* +0x28A94 */ Latte::LATTE_VGT_MULTI_PRIM_IB_RESET_EN VGT_MULTI_PRIM_IB_RESET_EN;
+	/* +0x28A98 */ uint32 ukn28A98;
+	/* +0x28A9C */ uint32 ukn28A9C;
+	/* +0x28AA0 */ Latte::LATTE_VGT_INSTANCE_STEP_RATE_X VGT_INSTANCE_STEP_RATE_0;
+	/* +0x28AA4 */ Latte::LATTE_VGT_INSTANCE_STEP_RATE_X VGT_INSTANCE_STEP_RATE_1;
 
-	uint8 padding_28A80[0x28DFC - 0x28A80];
+	uint8 padding_28AA8[0x28AD0 - 0x28AA8];
+
+	/* +0x28AD0 */ _LatteRegisterSetStreamoutBuffer VGT_STRMOUT_BUFFER_X[4];
+	/* +0x28B10 */ Latte::LATTE_VGT_STRMOUT_BASE_OFFSET_X VGT_STRMOUT_BASE_OFFSET_X[4];
+	/* +0x28B20 */ Latte::LATTE_VGT_STRMOUT_BUFFER_EN VGT_STRMOUT_BUFFER_EN;
+
+	uint8 padding_28B24[0x28DFC - 0x28B24];
 
 	/* +0x28DFC */ Latte::LATTE_PA_SU_POLY_OFFSET_CLAMP PA_SU_POLY_OFFSET_CLAMP;
 	/* +0x28E00 */ Latte::LATTE_PA_SU_POLY_OFFSET_FRONT_SCALE PA_SU_POLY_OFFSET_FRONT_SCALE;
@@ -1334,6 +1605,13 @@ static_assert(offsetof(LatteContextRegister, CB_TARGET_MASK) == Latte::REGADDR::
 static_assert(offsetof(LatteContextRegister, PA_SC_GENERIC_SCISSOR_TL) == Latte::REGADDR::PA_SC_GENERIC_SCISSOR_TL * 4);
 static_assert(offsetof(LatteContextRegister, PA_SC_GENERIC_SCISSOR_BR) == Latte::REGADDR::PA_SC_GENERIC_SCISSOR_BR * 4);
 static_assert(offsetof(LatteContextRegister, VGT_MULTI_PRIM_IB_RESET_INDX) == Latte::REGADDR::VGT_MULTI_PRIM_IB_RESET_INDX * 4);
+static_assert(offsetof(LatteContextRegister, VGT_PRIMITIVEID_EN) == Latte::REGADDR::VGT_PRIMITIVEID_EN * 4);
+static_assert(offsetof(LatteContextRegister, VGT_MULTI_PRIM_IB_RESET_EN) == Latte::REGADDR::VGT_MULTI_PRIM_IB_RESET_EN * 4);
+static_assert(offsetof(LatteContextRegister, VGT_INSTANCE_STEP_RATE_0) == Latte::REGADDR::VGT_INSTANCE_STEP_RATE_0 * 4);
+static_assert(offsetof(LatteContextRegister, VGT_INSTANCE_STEP_RATE_1) == Latte::REGADDR::VGT_INSTANCE_STEP_RATE_1 * 4);
+static_assert(offsetof(LatteContextRegister, VGT_STRMOUT_BUFFER_X) == Latte::REGADDR::VGT_STRMOUT_BUFFER_SIZE_0 * 4);
+static_assert(offsetof(LatteContextRegister, VGT_STRMOUT_BASE_OFFSET_X) == Latte::REGADDR::VGT_STRMOUT_BASE_OFFSET_0 * 4);
+static_assert(offsetof(LatteContextRegister, VGT_STRMOUT_BUFFER_EN) == Latte::REGADDR::VGT_STRMOUT_BUFFER_EN * 4);
 static_assert(offsetof(LatteContextRegister, SX_ALPHA_TEST_CONTROL) == Latte::REGADDR::SX_ALPHA_TEST_CONTROL * 4);
 static_assert(offsetof(LatteContextRegister, DB_STENCILREFMASK) == Latte::REGADDR::DB_STENCILREFMASK * 4);
 static_assert(offsetof(LatteContextRegister, DB_STENCILREFMASK_BF) == Latte::REGADDR::DB_STENCILREFMASK_BF * 4);
@@ -1351,6 +1629,7 @@ static_assert(offsetof(LatteContextRegister, PA_CL_VPORT_ZOFFSET) == Latte::REGA
 static_assert(offsetof(LatteContextRegister, PA_CL_CLIP_CNTL) == Latte::REGADDR::PA_CL_CLIP_CNTL * 4);
 static_assert(offsetof(LatteContextRegister, PA_SU_SC_MODE_CNTL) == Latte::REGADDR::PA_SU_SC_MODE_CNTL * 4);
 static_assert(offsetof(LatteContextRegister, PA_CL_VTE_CNTL) == Latte::REGADDR::PA_CL_VTE_CNTL * 4);
+static_assert(offsetof(LatteContextRegister, PA_CL_VS_OUT_CNTL) == Latte::REGADDR::PA_CL_VS_OUT_CNTL * 4);
 static_assert(offsetof(LatteContextRegister, PA_SU_POINT_SIZE) == Latte::REGADDR::PA_SU_POINT_SIZE * 4);
 static_assert(offsetof(LatteContextRegister, PA_SU_POINT_MINMAX) == Latte::REGADDR::PA_SU_POINT_MINMAX * 4);
 static_assert(offsetof(LatteContextRegister, CB_BLENDN_CONTROL) == Latte::REGADDR::CB_BLEND0_CONTROL * 4);
@@ -1363,7 +1642,21 @@ static_assert(offsetof(LatteContextRegister, PA_SU_POLY_OFFSET_FRONT_SCALE) == L
 static_assert(offsetof(LatteContextRegister, PA_SU_POLY_OFFSET_FRONT_OFFSET) == Latte::REGADDR::PA_SU_POLY_OFFSET_FRONT_OFFSET * 4);
 static_assert(offsetof(LatteContextRegister, PA_SU_POLY_OFFSET_BACK_SCALE) == Latte::REGADDR::PA_SU_POLY_OFFSET_BACK_SCALE * 4);
 static_assert(offsetof(LatteContextRegister, PA_SU_POLY_OFFSET_BACK_OFFSET) == Latte::REGADDR::PA_SU_POLY_OFFSET_BACK_OFFSET * 4);
+static_assert(offsetof(LatteContextRegister, SQ_VTX_SEMANTIC_X) == Latte::REGADDR::SQ_VTX_SEMANTIC_0 * 4);
+static_assert(offsetof(LatteContextRegister, SQ_VTX_SEMANTIC_CLEAR) == Latte::REGADDR::SQ_VTX_SEMANTIC_CLEAR * 4);
 static_assert(offsetof(LatteContextRegister, SQ_TEX_START_PS) == Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS * 4);
 static_assert(offsetof(LatteContextRegister, SQ_TEX_START_VS) == Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS * 4);
 static_assert(offsetof(LatteContextRegister, SQ_TEX_START_GS) == Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS * 4);
 static_assert(offsetof(LatteContextRegister, SQ_TEX_SAMPLER) == Latte::REGADDR::SQ_TEX_SAMPLER_WORD0_0 * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_START_PS) == Latte::REGADDR::SQ_PGM_START_PS * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_RESOURCES_PS) == Latte::REGADDR::SQ_PGM_RESOURCES_PS * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_START_VS) == Latte::REGADDR::SQ_PGM_START_VS * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_RESOURCES_VS) == Latte::REGADDR::SQ_PGM_RESOURCES_VS * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_START_FS) == Latte::REGADDR::SQ_PGM_START_FS * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_RESOURCES_FS) == Latte::REGADDR::SQ_PGM_RESOURCES_FS * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_START_ES) == Latte::REGADDR::SQ_PGM_START_ES * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_RESOURCES_ES) == Latte::REGADDR::SQ_PGM_RESOURCES_ES * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_START_GS) == Latte::REGADDR::SQ_PGM_START_GS * 4);
+static_assert(offsetof(LatteContextRegister, SQ_PGM_RESOURCES_GS) == Latte::REGADDR::SQ_PGM_RESOURCES_GS * 4);
+static_assert(offsetof(LatteContextRegister, SPI_VS_OUT_CONFIG) == Latte::REGADDR::SPI_VS_OUT_CONFIG * 4);
+static_assert(offsetof(LatteContextRegister, LATTE_SPI_VS_OUT_ID_N) == Latte::REGADDR::SPI_VS_OUT_ID_0 * 4);
