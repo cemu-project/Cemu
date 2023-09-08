@@ -1,5 +1,6 @@
 #include "Fiber.h"
 #include <ucontext.h>
+#include <atomic>
 
 thread_local Fiber* sCurrentFiber{};
 
@@ -44,7 +45,9 @@ void Fiber::Switch(Fiber& targetFiber)
 {
     Fiber* leavingFiber = sCurrentFiber;
     sCurrentFiber = &targetFiber;
+	std::atomic_thread_fence(std::memory_order_seq_cst);
 	swapcontext((ucontext_t*)(leavingFiber->m_implData), (ucontext_t*)(targetFiber.m_implData));
+	std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 void* Fiber::GetFiberPrivateData()
