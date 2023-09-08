@@ -9,7 +9,7 @@
 #endif
 
 #include <numbers>
-#include <ranges>
+#include <queue>
 
 WiimoteControllerProvider::WiimoteControllerProvider()
 	: m_running(true)
@@ -32,10 +32,10 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
 {
 	std::scoped_lock lock(m_device_mutex);
 
-    std::queue<uint32> discon_idx;
+    std::queue<uint32> disconnected_wiimote_indices;
     for (auto i{0u}; i < m_wiimotes.size(); ++i){
         if (!(m_wiimotes[i].connected = m_wiimotes[i].device->write_data({kStatusRequest, 0x00}))){
-            discon_idx.push(i);
+            disconnected_wiimote_indices.push(i);
         }
     }
 
@@ -49,13 +49,14 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
         return writeable && not_already_connected;
     };
 
-	for (const auto& device : WiimoteDevice_t::get_devices()
-    | std::views::filter(valid_new_device))
+	for (auto& device : WiimoteDevice_t::get_devices())
 	{
+        if (!valid_new_device(device))
+            continue;
         // Replace disconnected wiimotes
-        if (!discon_idx.empty()){
-            const auto idx = discon_idx.front();
-            discon_idx.pop();
+        if (!disconnected_wiimote_indices.empty()){
+            const auto idx = disconnected_wiimote_indices.front();
+            disconnected_wiimote_indices.pop();
 
             m_wiimotes.replace(idx, std::make_unique<Wiimote>(device));
         }
