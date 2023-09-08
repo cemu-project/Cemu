@@ -99,29 +99,7 @@ bool CemuApp::OnInit()
 
 	wxInitAllImageHandlers();
 
-
-	m_languages = GetAvailableLanguages();
-
-	const sint32 language = GetConfig().language;
-	const auto it = std::find_if(m_languages.begin(), m_languages.end(), [language](const wxLanguageInfo* info) { return info->Language == language; });
-	if (it != m_languages.end() && wxLocale::IsAvailable(language))
-	{
-		if (m_locale.Init(language))
-		{
-			m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
-			m_locale.AddCatalog("cemu");
-		}
-	}
-
-	if (!m_locale.IsOk())
-	{
-		if (!wxLocale::IsAvailable(wxLANGUAGE_DEFAULT) || !m_locale.Init(wxLANGUAGE_DEFAULT))
-		{
-            m_locale.Init(wxLANGUAGE_ENGLISH);
-            m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
-            m_locale.AddCatalog("cemu");
-		}
-	}
+	LocalizeUI();
 
 	// fill colour db
 	wxTheColourDatabase->AddColour("ERROR", wxColour(0xCC, 0, 0));
@@ -231,33 +209,37 @@ int CemuApp::FilterEvent(wxEvent& event)
 	return wxApp::FilterEvent(event);
 }
 
-std::vector<const wxLanguageInfo*> CemuApp::GetAvailableLanguages()
+void CemuApp::LocalizeUI()
 {
-	const auto path = ActiveSettings::GetDataPath("resources");
-	if (!exists(path))
-		return {};
-	
-	std::vector<const wxLanguageInfo*> result;
-	for (const auto& p : fs::directory_iterator(path))
+	std::unique_ptr<wxTranslations> translationsMgr(new wxTranslations());
+	m_availableTranslations = GetAvailableTranslationLanguages(translationsMgr.get());
+
+	const sint32 configuredLanguage = GetConfig().language;
+	bool isTranslationAvailable = std::any_of(m_availableTranslations.begin(), m_availableTranslations.end(), [configuredLanguage](const wxLanguageInfo* info) { return info->Language == configuredLanguage; });
+	if (configuredLanguage == wxLANGUAGE_DEFAULT || isTranslationAvailable)
 	{
-		if (!fs::is_directory(p))
-			continue;
+		translationsMgr->SetLanguage(static_cast<wxLanguage>(configuredLanguage));
+		translationsMgr->AddCatalog("cemu");
 
-		const auto& path = p.path();
-		auto filename = path.filename();
+		if (wxLocale::IsAvailable(configuredLanguage))
+			m_locale.Init(configuredLanguage);
 
-		const auto* lang_info = wxLocale::FindLanguageInfo(filename.c_str());
-		if (!lang_info)
-			continue;
-
-		const auto language_file = path / "cemu.mo";
-		if (!fs::exists(language_file))
-			continue;
-
-		result.emplace_back(lang_info);
+		// This must be run after wxLocale::Init, as the latter sets up its own wxTranslations instance which we want to override
+		wxTranslations::Set(translationsMgr.release());
 	}
+}
 
-	return result;
+std::vector<const wxLanguageInfo*> CemuApp::GetAvailableTranslationLanguages(wxTranslations* translationsMgr)
+{
+	wxFileTranslationsLoader::AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
+	std::vector<const wxLanguageInfo*> languages;
+	for (const auto& langName : translationsMgr->GetAvailableTranslations("cemu"))
+	{
+		const auto* langInfo = wxLocale::FindLanguageInfo(langName);
+		if (langInfo)
+			languages.emplace_back(langInfo);
+	}
+	return languages;
 }
 
 void CemuApp::CreateDefaultFiles(bool first_start)
