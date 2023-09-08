@@ -56,7 +56,6 @@ WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxP
 			// Motion
 			m_use_motion = new wxCheckBox(box, wxID_ANY, _("Use motion"));
 			m_use_motion->SetValue(m_settings.motion);
-			m_use_motion->SetValue(m_settings.motion);
 			m_use_motion->Enable(m_controller->has_motion());
 			row_sizer->Add(m_use_motion, 0, wxALL, 5);
 
