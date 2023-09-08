@@ -123,13 +123,13 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 
 			first_row->Add(new wxStaticText(box, wxID_ANY, _("Language"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-			wxString language_choices[] = { _("Default"), _("English") };
+			wxString language_choices[] = { _("Default"), "English" };
 			m_language = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(language_choices), language_choices);
 			m_language->SetSelection(0);
 			m_language->SetToolTip(_("Changes the interface language of Cemu\nAvailable languages are stored in the translation directory\nA restart will be required after changing the language"));
 			for (const auto& language : wxGetApp().GetLanguages())
 			{
-				m_language->Append(language->Description);
+				m_language->Append(language->DescriptionNative);
 			}
 
 			first_row->Add(m_language, 0, wxALL | wxEXPAND, 5);
@@ -935,7 +935,7 @@ void GeneralSettings2::StoreConfig()
 		const auto language = m_language->GetStringSelection();
 		for (const auto& lang : app->GetLanguages())
 		{
-			if (lang->Description == language)
+			if (lang->DescriptionNative == language)
 			{
 				GetConfig().language = lang->Language;
 				break;
@@ -1538,7 +1538,7 @@ void GeneralSettings2::ApplyConfig()
 	{
 		if (config.language == language->Language)
 		{
-			m_language->SetStringSelection(language->Description);
+			m_language->SetStringSelection(language->DescriptionNative);
 			break;
 		}
 	}
