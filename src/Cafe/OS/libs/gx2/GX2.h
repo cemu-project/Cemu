@@ -20,12 +20,6 @@ void gx2_load();
 
 // shader
 
-void gx2Export_GX2SetFetchShader(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetVertexShaderGPRs(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetVertexShaderStackEntries(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetPixelShaderGPRs(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetPixelShaderStackEntries(PPCInterpreter_t* hCPU);
-void gx2Export_GX2SetVertexShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetPixelShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetGeometryShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetComputeShader(PPCInterpreter_t* hCPU);

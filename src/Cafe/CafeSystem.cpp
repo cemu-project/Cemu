@@ -487,7 +487,7 @@ namespace CafeSystem
 	#if BOOST_OS_WINDOWS
 	std::string GetWindowsNamedVersion(uint32& buildNumber)
 	{
-		static char productName[256];
+		char productName[256];
 		HKEY hKey;
 		DWORD dwType = REG_SZ;
 		DWORD dwSize = sizeof(productName);
