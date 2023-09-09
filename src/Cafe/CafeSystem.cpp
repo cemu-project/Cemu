@@ -165,7 +165,7 @@ void LoadMainExecutable()
 	{
 		// RPX
 		RPLLoader_AddDependency(_pathToExecutable.c_str());
-		applicationRPX = rpl_loadFromMem(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
+		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
 			wxMessageBox(_("Failed to run this title because the executable is damaged"));

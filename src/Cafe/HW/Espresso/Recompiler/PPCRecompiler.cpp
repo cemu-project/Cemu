@@ -325,6 +325,8 @@ void PPCRecompiler_thread()
 			PPCRecompilerState.recompilerSpinlock.unlock();
 
 			PPCRecompiler_recompileAtAddress(enterAddress);
+			if(s_recompilerThreadStopSignal)
+				return;
 		}
 	}
 }

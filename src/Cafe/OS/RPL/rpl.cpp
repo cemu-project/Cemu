@@ -39,20 +39,22 @@ VHeap rplLoaderHeap_workarea(nullptr, MEMORY_RPLLOADER_AREA_SIZE);
 PPCCodeHeap rplLoaderHeap_lowerAreaCodeMem2(nullptr, MEMORY_CODE_TRAMPOLINE_AREA_SIZE);
 PPCCodeHeap rplLoaderHeap_codeArea2(nullptr, MEMORY_CODEAREA_SIZE);
 
-bool rplLoader_applicationHasMemoryControl = false;
-uint32 rplLoader_maxCodeAddress = 0; // highest used code address
-
 ChunkedFlatAllocator<64 * 1024> g_heapTrampolineArea;
 
-std::vector<rplDependency_t*> rplDependencyList = std::vector<rplDependency_t*>();
+std::vector<RPLDependency*> rplDependencyList;
 
 RPLModule* rplModuleList[256];
 sint32 rplModuleCount = 0;
 
-uint32 _currentTLSModuleIndex = 1; // value 0 is reserved
-
+bool rplLoader_applicationHasMemoryControl = false;
+uint32 rplLoader_maxCodeAddress = 0; // highest used code address
+uint32 rplLoader_currentTLSModuleIndex = 1; // value 0 is reserved
+uint32 rplLoader_currentHandleCounter = 0x00001000;
+sint16 rplLoader_currentTlsModuleIndex = 0x0001;
+RPLModule* rplLoader_mainModule = nullptr;
 uint32 rplLoader_sdataAddr = MPTR_NULL; // r13
 uint32 rplLoader_sdata2Addr = MPTR_NULL; // r2
+uint32 rplLoader_currentDataAllocatorAddr = 0x10000000;
 
 std::map<void(*)(PPCInterpreter_t* hCPU), uint32> g_map_callableExports;
 
@@ -110,8 +112,6 @@ MPTR RPLLoader_AllocateCodeSpace(uint32 size, uint32 alignment)
 	return codeAddr;
 }
 
-uint32 rpl3_currentDataAllocatorAddr = 0x10000000;
-
 uint32 RPLLoader_AllocateDataSpace(RPLModule* rpl, uint32 size, uint32 alignment)
 {
 	if (rplLoader_applicationHasMemoryControl)
@@ -121,9 +121,9 @@ uint32 RPLLoader_AllocateDataSpace(RPLModule* rpl, uint32 size, uint32 alignment
 		PPCCoreCallback(rpl->funcAlloc.value(), size, alignment, memPtr.GetPointer());
 		return (uint32)*(memPtr.GetPointer());
 	}
-	rpl3_currentDataAllocatorAddr = (rpl3_currentDataAllocatorAddr + alignment - 1)&~(alignment-1);
-	uint32 mem = rpl3_currentDataAllocatorAddr;
-	rpl3_currentDataAllocatorAddr += size;
+	rplLoader_currentDataAllocatorAddr = (rplLoader_currentDataAllocatorAddr + alignment - 1) & ~(alignment - 1);
+	uint32 mem = rplLoader_currentDataAllocatorAddr;
+	rplLoader_currentDataAllocatorAddr += size;
 	return mem;
 }
 
@@ -134,7 +134,7 @@ void RPLLoader_FreeData(RPLModule* rpl, void* ptr)
 
 uint32 RPLLoader_GetDataAllocatorAddr()
 {
-	return (rpl3_currentDataAllocatorAddr + 0xFFF)&(~0xFFF);
+	return (rplLoader_currentDataAllocatorAddr + 0xFFF) & (~0xFFF);
 }
 
 uint32 RPLLoader_GetMaxCodeOffset()
@@ -1385,12 +1385,11 @@ bool RPLLoader_HandleRelocs(RPLModule* rplLoaderContext, std::span<RPLSharedImpo
 	return true;
 }
 
-void _RPLLoader_ExtractModuleNameFromPath(char* output, const char* input)
+void _RPLLoader_ExtractModuleNameFromPath(char* output, std::string_view input)
 {
 	// scan to last '/'
-	sint32 inputLen = (sint32)strlen(input);
-	cemu_assert(inputLen > 0);
-	sint32 startIndex = inputLen - 1;
+	cemu_assert(!input.empty());
+	size_t startIndex = input.size() - 1;
 	while (startIndex > 0)
 	{
 		if (input[startIndex] == '/')
@@ -1401,23 +1400,20 @@ void _RPLLoader_ExtractModuleNameFromPath(char* output, const char* input)
 		startIndex--;
 	}
 	// cut off after '.'
-	sint32 endIndex = startIndex;
-	while (endIndex <= inputLen)
+	size_t endIndex = startIndex;
+	while (endIndex < input.size())
 	{
 		if (input[endIndex] == '.')
 			break;
 		endIndex++;
 	}
-	sint32 nameLen = endIndex - startIndex;
+	size_t nameLen = endIndex - startIndex;
 	cemu_assert(nameLen != 0);
-	nameLen = std::min(nameLen, RPL_MODULE_NAME_LENGTH-1);
-	memcpy(output, input + startIndex, nameLen);
+	nameLen = std::min<size_t>(nameLen, RPL_MODULE_NAME_LENGTH-1);
+	memcpy(output, input.data() + startIndex, nameLen);
 	output[nameLen] = '\0';
 	// convert to lower case
-	for (sint32 i = 0; i < nameLen; i++)
-	{
-		output[i] = _ansiToLower(output[i]);
-	}
+	std::for_each(output, output + nameLen, [](char& c) {c = _ansiToLower(c);});
 }
 
 void RPLLoader_InitState()
@@ -1430,27 +1426,6 @@ void RPLLoader_InitState()
 	rplLoaderHeap_workarea.setHeapBase(memory_getPointerFromVirtualOffset(MEMORY_RPLLOADER_AREA_ADDR));
 	g_heapTrampolineArea.setBaseAllocator(&rplLoaderHeap_lowerAreaCodeMem2);
     RPLLoader_ResetState();
-}
-
-void RPLLoader_ResetState()
-{
-	// unload all RPL modules
-	while (rplModuleCount > 0)
-		RPLLoader_UnloadModule(rplModuleList[0]);
-    rplDependencyList.clear();
-	// unload all remaining symbols
-	rplSymbolStorage_unloadAll();
-	// free all code imports
-	g_heapTrampolineArea.releaseAll();
-	list_mappedFunctionImports.clear();
-	g_map_callableExports.clear();
-
-	rplLoader_applicationHasMemoryControl = false;
-	rplLoader_maxCodeAddress = 0;
-	rpl3_currentDataAllocatorAddr = 0x10000000;
-	_currentTLSModuleIndex = 1;
-	rplLoader_sdataAddr = MPTR_NULL;
-	rplLoader_sdata2Addr = MPTR_NULL;
 }
 
 void RPLLoader_BeginCemuhookCRC(RPLModule* rpl)
@@ -1610,7 +1585,7 @@ void RPLLoader_InitModuleAllocator(RPLModule* rpl)
 }
 
 // map rpl into memory, but do not resolve relocs and imports yet
-RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name)
+RPLModule* RPLLoader_LoadFromMemory(uint8* rplData, sint32 size, char* name)
 {
 	char moduleName[RPL_MODULE_NAME_LENGTH];
 	_RPLLoader_ExtractModuleNameFromPath(moduleName, name);
@@ -1699,7 +1674,7 @@ RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name)
 	return rpl;
 }
 
-void RPLLoader_flushMemory(RPLModule* rpl)
+void RPLLoader_FlushMemory(RPLModule* rpl)
 {
 	// invalidate recompiler cache
 	PPCRecompiler_invalidateRange(rpl->regionMappingBase_text.GetMPTR(), rpl->regionMappingBase_text.GetMPTR() + rpl->regionSize_text);
@@ -1755,7 +1730,7 @@ void RPLLoader_LinkSingleModule(RPLModule* rplLoaderContext, bool resolveOnlyExp
 	else
 		RPLLoader_HandleRelocs(rplLoaderContext, sharedImportTracking, 0);
 
-	RPLLoader_flushMemory(rplLoaderContext);
+	RPLLoader_FlushMemory(rplLoaderContext);
 }
 
 void RPLLoader_LoadSectionDebugSymbols(RPLModule* rplLoaderContext, rplSectionEntryNew_t* section, int symtabSectionIndex)
@@ -1919,8 +1894,24 @@ uint32 RPLLoader_GetModuleEntrypoint(RPLModule* rplLoaderContext)
 	return rplLoaderContext->entrypoint;
 }
 
-uint32 rplLoader_currentHandleCounter = 0x00001000;
-sint16 rplLoader_currentTlsModuleIndex = 0x0001;
+// takes a module name without extension, returns true if the RPL module is a known Cafe OS module
+bool RPLLoader_IsKnownCafeOSModule(std::string_view name)
+{
+	static std::unordered_set<std::string> s_systemModules556 = {
+			"avm","camera","coreinit","dc","dmae","drmapp","erreula",
+			"gx2","h264","lzma920","mic","nfc","nio_prof","nlibcurl",
+			"nlibnss","nlibnss2","nn_ac","nn_acp","nn_act","nn_aoc","nn_boss",
+			"nn_ccr","nn_cmpt","nn_dlp","nn_ec","nn_fp","nn_hai","nn_hpad",
+			"nn_idbe","nn_ndm","nn_nets2","nn_nfp","nn_nim","nn_olv","nn_pdm",
+			"nn_save","nn_sl","nn_spm","nn_temp","nn_uds","nn_vctl","nsysccr",
+			"nsyshid","nsyskbd","nsysnet","nsysuhs","nsysuvd","ntag","padscore",
+			"proc_ui","sndcore2","snduser2","snd_core","snd_user","swkbd","sysapp",
+			"tcl","tve","uac","uac_rpl","usb_mic","uvc","uvd","vpad","vpadbase",
+			"zlib125"};
+	std::string nameLower{name};
+	std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), _ansiToLower);
+	return s_systemModules556.contains(nameLower);
+}
 
 // increment reference counter for module
 void RPLLoader_AddDependency(const char* name)
@@ -1946,18 +1937,18 @@ void RPLLoader_AddDependency(const char* name)
 	{
 		if (strcmp(moduleName, dep->modulename) == 0)
 		{
-			// entry already exists, increment reference counter
 			dep->referenceCount++;
 			return;
 		}
 	}
 	// add new entry
-	rplDependency_t* newDependency = new rplDependency_t();
+	RPLDependency* newDependency = new RPLDependency();
 	strcpy(newDependency->modulename, moduleName);
 	newDependency->referenceCount = 1;
 	newDependency->coreinitHandle = rplLoader_currentHandleCounter;
 	newDependency->tlsModuleIndex = rplLoader_currentTlsModuleIndex;
-	rplLoader_currentTlsModuleIndex++;
+	newDependency->isCafeOSModule = RPLLoader_IsKnownCafeOSModule(moduleName);
+	rplLoader_currentTlsModuleIndex++; // todo - delay handle and tls allocation until the module is actually loaded. It may not exist
 	rplLoader_currentHandleCounter++;
 	if (rplLoader_currentTlsModuleIndex == 0x7FFF)
 		cemuLog_log(LogType::Force, "RPLLoader: Exhausted TLS module indices pool");
@@ -2005,6 +1996,18 @@ void RPLLoader_RemoveDependency(const char* name)
 	}
 }
 
+bool RPLLoader_HasDependency(std::string_view name)
+{
+	char moduleName[RPL_MODULE_NAME_LENGTH];
+	_RPLLoader_ExtractModuleNameFromPath(moduleName, name);
+	for (const auto& dep : rplDependencyList)
+	{
+		if (strcmp(moduleName, dep->modulename) == 0)
+			return true;
+	}
+	return false;
+}
+
 // decrement reference counter for dependency by module handle
 void RPLLoader_RemoveDependency(uint32 handle)
 {
@@ -2030,6 +2033,9 @@ uint32 RPLLoader_GetHandleByModuleName(const char* name)
 	{
 		if (strcmp(moduleName, dep->modulename) == 0)
 		{
+			cemu_assert_debug(dep->loadAttempted);
+			if (!dep->isCafeOSModule && !dep->rplLoaderContext)
+				return RPL_INVALID_HANDLE; // module not found
 			return dep->coreinitHandle;
 		}
 	}
@@ -2062,21 +2068,21 @@ bool RPLLoader_GetTLSDataByTLSIndex(sint16 tlsModuleIndex, uint8** tlsData, sint
 	return true;
 }
 
-bool RPLLoader_LoadFromVirtualPath(rplDependency_t* dependency, char* filePath)
+bool RPLLoader_LoadFromVirtualPath(RPLDependency* dependency, char* filePath)
 {
 	uint32 rplSize = 0;
 	uint8* rplData = fsc_extractFile(filePath, &rplSize);
 	if (rplData)
 	{
 		cemuLog_logDebug(LogType::Force, "Loading: {}", filePath);
-		dependency->rplLoaderContext = rpl_loadFromMem(rplData, rplSize, filePath);
+		dependency->rplLoaderContext = RPLLoader_LoadFromMemory(rplData, rplSize, filePath);
 		free(rplData);
 		return true;
 	}
 	return false;
 }
 
-void RPLLoader_LoadDependency(rplDependency_t* dependency)
+void RPLLoader_LoadDependency(RPLDependency* dependency)
 {
 	dependency->loadAttempted = true;
 	// check if module is already loaded
@@ -2084,11 +2090,9 @@ void RPLLoader_LoadDependency(rplDependency_t* dependency)
 	{
 		if(!boost::iequals(rplModuleList[i]->moduleName2, dependency->modulename))
 			continue;
-		// already loaded
 		dependency->rplLoaderContext = rplModuleList[i];
 		return;
 	}
-	// attempt to load rpl from various locations
 	char filePath[RPL_MODULE_PATH_LENGTH];
 	// check if path is absolute
 	if (dependency->filepath[0] == '/')
@@ -2097,7 +2101,7 @@ void RPLLoader_LoadDependency(rplDependency_t* dependency)
 		RPLLoader_LoadFromVirtualPath(dependency, filePath);
 		return;
 	}
-	// attempt to load rpl from internal folder
+	// attempt to load rpl from code directory of current title
 	strcpy_s(filePath, "/internal/current_title/code/");
 	strcat_s(filePath, dependency->filepath);
 	// except if it is blacklisted
@@ -2119,7 +2123,8 @@ void RPLLoader_LoadDependency(rplDependency_t* dependency)
 		if (fileData)
 		{
 			cemuLog_log(LogType::Force, "Loading RPL: /cafeLibs/{}", dependency->filepath);
-			dependency->rplLoaderContext = rpl_loadFromMem(fileData->data(), fileData->size(), dependency->filepath);
+			dependency->rplLoaderContext = RPLLoader_LoadFromMemory(fileData->data(), fileData->size(),
+																	dependency->filepath);
 			return;
 		}
 	}
@@ -2167,8 +2172,6 @@ void RPLLoader_UpdateDependencies()
 	}
 	RPLLoader_Link();
 }
-
-RPLModule* rplLoader_mainModule = nullptr;
 
 void RPLLoader_SetMainModule(RPLModule* rplLoaderContext)
 {
@@ -2250,7 +2253,7 @@ uint32 RPLLoader_FindModuleOrHLEExport(uint32 moduleHandle, bool isData, const c
 {
 	// find dependency from handle
 	RPLModule* rplLoaderContext = nullptr;
-	rplDependency_t* dependency = nullptr;
+	RPLDependency* dependency = nullptr;
 	for (auto& dep : rplDependencyList)
 	{
 		if (dep->coreinitHandle == moduleHandle)
@@ -2378,4 +2381,25 @@ MEMPTR<void> RPLLoader_AllocateCodeCaveMem(uint32 alignment, uint32 size)
 void RPLLoader_ReleaseCodeCaveMem(MEMPTR<void> addr)
 {
 	heapCodeCaveArea.free(addr.GetMPTR());
+}
+
+void RPLLoader_ResetState()
+{
+	// unload all RPL modules
+	while (rplModuleCount > 0)
+		RPLLoader_UnloadModule(rplModuleList[0]);
+	rplDependencyList.clear();
+	// unload all remaining symbols
+	rplSymbolStorage_unloadAll();
+	// free all code imports
+	g_heapTrampolineArea.releaseAll();
+	list_mappedFunctionImports.clear();
+	g_map_callableExports.clear();
+	rplLoader_applicationHasMemoryControl = false;
+	rplLoader_maxCodeAddress = 0;
+	rplLoader_currentDataAllocatorAddr = 0x10000000;
+	rplLoader_currentTLSModuleIndex = 1;
+	rplLoader_sdataAddr = MPTR_NULL;
+	rplLoader_sdata2Addr = MPTR_NULL;
+	rplLoader_mainModule = nullptr;
 }
