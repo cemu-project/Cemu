@@ -2119,18 +2119,14 @@ void VulkanRenderer::CreatePipelineCache()
 	if (fs::exists(dir))
 	{
 		const auto filename = dir / fmt::format("{:016x}.bin", CafeSystem::GetForegroundTitleId());
-
 		auto file = std::ifstream(filename, std::ios::in | std::ios::binary | std::ios::ate);
 		if (file.is_open())
 		{
 			const size_t fileSize = file.tellg();
 			file.seekg(0, std::ifstream::beg);
-
 			cacheData.resize(fileSize);
 			file.read((char*)cacheData.data(), cacheData.size());
 			file.close();
-
-			cemuLog_logDebug(LogType::Force, "pipeline cache loaded");
 		}
 	}
 
@@ -2140,7 +2136,16 @@ void VulkanRenderer::CreatePipelineCache()
 	createInfo.pInitialData = cacheData.data();
 	VkResult result = vkCreatePipelineCache(m_logicalDevice, &createInfo, nullptr, &m_pipeline_cache);
 	if (result != VK_SUCCESS)
-		UnrecoverableError(fmt::format("Failed to create pipeline cache: {}", result).c_str());
+	{
+		cemuLog_log(LogType::Force, "Failed to open Vulkan pipeline cache: {}", result);
+		// unable to load the existing cache, start with an empty cache instead
+		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+		createInfo.initialDataSize = 0;
+		createInfo.pInitialData = nullptr;
+		result = vkCreatePipelineCache(m_logicalDevice, &createInfo, nullptr, &m_pipeline_cache);
+		if (result != VK_SUCCESS)
+			UnrecoverableError(fmt::format("Failed to create new Vulkan pipeline cache: {}", result).c_str());
+	}
 
 	size_t cache_size = 0;
 	vkGetPipelineCacheData(m_logicalDevice, m_pipeline_cache, &cache_size, nullptr);
