@@ -86,8 +86,7 @@ namespace coreinit
 		}
 		// search for loaded modules with matching name
 		uint32 rplHandle = RPLLoader_GetHandleByModuleName(libName);
-
-		if (rplHandle == RPL_INVALID_HANDLE)
+		if (rplHandle == RPL_INVALID_HANDLE && !RPLLoader_HasDependency(libName))
 		{
 			RPLLoader_AddDependency(libName);
 			RPLLoader_UpdateDependencies();
@@ -100,7 +99,10 @@ namespace coreinit
 		else
 			*moduleHandleOut = rplHandle;
 		if (rplHandle == RPL_INVALID_HANDLE)
+		{
+			cemuLog_logDebug(LogType::Force, "OSDynLoad_Acquire() failed to load module '{}'", libName);
 			return 0xFFFCFFE9; // module not found
+		}
 		return 0;
 	}
 
