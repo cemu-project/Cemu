@@ -183,4 +183,10 @@ endif()
 
 if(MSVC)
 set_property(TARGET ih264d PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# tune settings for slightly better performance
+target_compile_options(ih264d PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:/Oi>) # enable intrinsic functions
+target_compile_options(ih264d PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:/Ot>) # favor speed
+target_compile_options(ih264d PRIVATE "/GS-") # disable runtime checks
+
 endif()

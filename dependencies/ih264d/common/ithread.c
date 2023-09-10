@@ -85,28 +85,59 @@ UWORD32 ithread_get_mutex_lock_size(void)
 	return sizeof(CRITICAL_SECTION);
 }
 
+struct _ithread_launch_param
+{
+	void (*startFunc)(void* argument);
+	void* argument;
+};
+
+DWORD WINAPI _ithread_WinThreadStartRoutine(LPVOID lpThreadParameter)
+{
+	struct _ithread_launch_param* param = (struct _ithread_launch_param*)lpThreadParameter;
+	typedef void *(*ThreadStartRoutineType)(void *);
+	ThreadStartRoutineType pfnThreadRoutine = (ThreadStartRoutineType)param->startFunc;
+	void* arg = param->argument;
+	free(param);
+	pfnThreadRoutine(arg);
+	return 0;
+}
+
 WORD32 ithread_create(void* thread_handle, void* attribute, void* strt, void* argument)
 {
-	//UNUSED(attribute);
-	//return pthread_create((pthread_t*)thread_handle, NULL, (void* (*)(void*)) strt, argument);
-	__debugbreak();
+	UNUSED(attribute);
+	struct _ithread_launch_param* param = malloc(sizeof(struct _ithread_launch_param));
+	param->startFunc = (void (*)(void*))strt;
+	param->argument = argument;
+	HANDLE *handle = (HANDLE*)thread_handle;
+	*handle = CreateThread(NULL, 0, _ithread_WinThreadStartRoutine, param, 0, NULL);
+	if(*handle == NULL)
+	{
+		return -1;
+	}
 	return 0;
 }
 
 WORD32 ithread_join(void* thread_handle, void** val_ptr)
 {
 	//UNUSED(val_ptr);
-	//pthread_t* pthread_handle = (pthread_t*)thread_handle;
-	//return pthread_join(*pthread_handle, NULL);
-
-	__debugbreak();
-	return 0;
+	HANDLE *handle = (HANDLE*)thread_handle;
+	DWORD result = WaitForSingleObject(*handle, INFINITE);
+	if(result == WAIT_OBJECT_0)
+	{
+		CloseHandle(*handle);
+		return 0;
+	}
+	else
+	{
+		return -1;
+	}
 }
 
 WORD32 ithread_get_mutex_struct_size(void)
 {
 	return sizeof(CRITICAL_SECTION);
 }
+
 WORD32 ithread_mutex_init(void* mutex)
 {
 	InitializeCriticalSection((LPCRITICAL_SECTION)mutex);
@@ -153,7 +184,6 @@ UWORD32 ithread_get_sem_struct_size(void)
 	//return(sizeof(sem_t));
 }
 
-
 WORD32 ithread_sem_init(void* sem, WORD32 pshared, UWORD32 value)
 {
 	__debugbreak();
@@ -168,14 +198,12 @@ WORD32 ithread_sem_post(void* sem)
 	//return sem_post((sem_t*)sem);
 }
 
-
 WORD32 ithread_sem_wait(void* sem)
 {
 	__debugbreak();
 	return 0;
 	//return sem_wait((sem_t*)sem);
 }
-
 
 WORD32 ithread_sem_destroy(void* sem)
 {
