@@ -439,7 +439,7 @@ void DebugPPCThreadsWindow::OnThreadListRightClick(wxMouseEvent& event)
 	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_FOCUSED, wxLIST_STATE_FOCUSED);
 	long sel = m_thread_list->GetNextItem(-1, wxLIST_NEXT_ALL,
 										  wxLIST_STATE_SELECTED);
-	if (sel != -1)
+	if (sel != wxNOT_FOUND)
 		m_thread_list->SetItemState(sel, 0, wxLIST_STATE_SELECTED);
 	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
 	// check if thread is still on the list of active threads
