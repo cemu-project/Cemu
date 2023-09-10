@@ -254,6 +254,8 @@ namespace H264
 			m_codecCtx->pv_fxns = (void*)&ih264d_api_function;
 			m_codecCtx->u4_size = sizeof(iv_obj_t);
 
+			SetDecoderCoreCount(1);
+
 			m_isBufferedMode = isBufferedMode;
 
 			UpdateParameters(false);
@@ -276,6 +278,19 @@ namespace H264
 			WORD32 status = ih264d_api_function(m_codecCtx, &s_delete_ip, &s_delete_op);
 			cemu_assert_debug(!status);
 			m_codecCtx = nullptr;
+		}
+
+		void SetDecoderCoreCount(uint32 coreCount)
+		{
+			ih264d_ctl_set_num_cores_ip_t s_set_cores_ip;
+			ih264d_ctl_set_num_cores_op_t s_set_cores_op;
+			s_set_cores_ip.e_cmd = IVD_CMD_VIDEO_CTL;
+			s_set_cores_ip.e_sub_cmd = (IVD_CONTROL_API_COMMAND_TYPE_T)IH264D_CMD_CTL_SET_NUM_CORES;
+			s_set_cores_ip.u4_num_cores = coreCount; // valid numbers are 1-4
+			s_set_cores_ip.u4_size = sizeof(ih264d_ctl_set_num_cores_ip_t);
+			s_set_cores_op.u4_size = sizeof(ih264d_ctl_set_num_cores_op_t);
+			IV_API_CALL_STATUS_T status = ih264d_api_function(m_codecCtx, (void *)&s_set_cores_ip, (void *)&s_set_cores_op);
+			cemu_assert(status == IV_SUCCESS);
 		}
 
 		static bool GetImageInfo(uint8* stream, uint32 length, uint32& imageWidth, uint32& imageHeight)
@@ -702,7 +717,6 @@ namespace H264
 			decodeResult = m_bufferedResults.front();
 			m_bufferedResults.erase(m_bufferedResults.begin());
 		}
-
 	private:
 		iv_obj_t* m_codecCtx{nullptr};
 		bool m_hasBufferSizeInfo{ false };
