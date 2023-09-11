@@ -169,7 +169,7 @@ bool CemuApp::OnInit()
 			"Thank you for testing the in-development build of Cemu for macOS.\n \n"
 			"The macOS port is currently purely experimental and should not be considered stable or ready for issue-free gameplay. "
 			"There are also known issues with degraded performance due to the use of MoltenVk and Rosetta for ARM Macs. We appreciate your patience while we improve Cemu for macOS.");
-		wxMessageDialog dialog(nullptr, message, "Preview version", wxCENTRE | wxOK | wxICON_WARNING);
+		wxMessageDialog dialog(nullptr, message, _("Preview version"), wxCENTRE | wxOK | wxICON_WARNING);
 		dialog.SetOKLabel(_("I understand"));
 		dialog.ShowModal();
 		GetConfig().did_show_macos_disclaimer = true;
