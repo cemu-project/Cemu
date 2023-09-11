@@ -113,16 +113,16 @@ namespace nn
 
 		static void loadOliveInitializeTypes()
 		{
-			cafeExportRegisterFunc(Initialize, "nn_olv", "Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam", LogType::None);
-			cafeExportRegisterFunc(IsInitialized, "nn_olv", "IsInitialized__Q2_2nn3olvFv", LogType::None);
-			cafeExportRegisterFunc(Report::GetReportTypes, "nn_olv", "GetReportTypes__Q3_2nn3olv6ReportFv", LogType::None);
-			cafeExportRegisterFunc(Report::SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv6ReportFUi", LogType::None);
+			cafeExportRegisterFunc(Initialize, "nn_olv", "Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam", LogType::NN_OLV);
+			cafeExportRegisterFunc(IsInitialized, "nn_olv", "IsInitialized__Q2_2nn3olvFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(Report::GetReportTypes, "nn_olv", "GetReportTypes__Q3_2nn3olv6ReportFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(Report::SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv6ReportFUi", LogType::NN_OLV);
 
-			cafeExportRegisterFunc(InitializeParam::__ctor, "nn_olv", "__ct__Q3_2nn3olv15InitializeParamFv", LogType::None);
-			cafeExportRegisterFunc(InitializeParam::__SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv15InitializeParamFUi", LogType::None);
-			cafeExportRegisterFunc(InitializeParam::__SetWork, "nn_olv", "SetWork__Q3_2nn3olv15InitializeParamFPUcUi", LogType::None);
-			cafeExportRegisterFunc(InitializeParam::__SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv15InitializeParamFUi", LogType::None);
-			cafeExportRegisterFunc(InitializeParam::__SetSysArgs, "nn_olv", "SetSysArgs__Q3_2nn3olv15InitializeParamFPCvUi", LogType::None);
+			cafeExportRegisterFunc(InitializeParam::__ctor, "nn_olv", "__ct__Q3_2nn3olv15InitializeParamFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(InitializeParam::__SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv15InitializeParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(InitializeParam::__SetWork, "nn_olv", "SetWork__Q3_2nn3olv15InitializeParamFPUcUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(InitializeParam::__SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv15InitializeParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(InitializeParam::__SetSysArgs, "nn_olv", "SetSysArgs__Q3_2nn3olv15InitializeParamFPCvUi", LogType::NN_OLV);
 		}
 	}
 }

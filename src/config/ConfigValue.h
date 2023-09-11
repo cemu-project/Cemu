@@ -39,7 +39,7 @@ public:
 		return *this;
 	}
 
-	[[nodiscard]] TType GetValue() const { return m_value.load(); }
+	[[nodiscard]] inline TType GetValue() const { return m_value.load(); }
 	void SetValue(const TType& v) { m_value = v; }
 
 	[[nodiscard]] const TType& GetInitValue() const { return m_init_value; }

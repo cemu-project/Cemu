@@ -123,20 +123,20 @@ namespace nn
 			loadOliveUploadFavoriteTypes();
 			loadOlivePostAndTopicTypes();
 
-			cafeExportRegisterFunc(GetErrorCode, "nn_olv", "GetErrorCode__Q2_2nn3olvFRCQ2_2nn6Result", LogType::None);
+			cafeExportRegisterFunc(GetErrorCode, "nn_olv", "GetErrorCode__Q2_2nn3olvFRCQ2_2nn6Result", LogType::NN_OLV);
 
 			osLib_addFunction("nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetServiceToken);
 
-			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadPostDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv28UploadPostDataByPostAppParam", LogType::Force);
-			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadCommentDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv31UploadCommentDataByPostAppParam", LogType::Force);
-			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadDirectMessageDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv37UploadDirectMessageDataByPostAppParam", LogType::Force);
+			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadPostDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv28UploadPostDataByPostAppParam", LogType::NN_OLV);
+			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadCommentDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv31UploadCommentDataByPostAppParam", LogType::NN_OLV);
+			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadDirectMessageDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv37UploadDirectMessageDataByPostAppParam", LogType::NN_OLV);
 
-			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultByPostApp__Q2_2nn3olvFv", LogType::Force);
-			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedPostDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv16UploadedPostData", LogType::Force);
-			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedDirectMessageDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv25UploadedDirectMessageData", LogType::Force);
-			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedCommentDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv19UploadedCommentData", LogType::Force);
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultByPostApp__Q2_2nn3olvFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedPostDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv16UploadedPostData", LogType::NN_OLV);
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedDirectMessageDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv25UploadedDirectMessageData", LogType::NN_OLV);
+			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedCommentDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv19UploadedCommentData", LogType::NN_OLV);
 
-			cafeExportRegisterFunc(UploadedPostData_GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv16UploadedPostDataCFv", LogType::Force);
+			cafeExportRegisterFunc(UploadedPostData_GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv16UploadedPostDataCFv", LogType::NN_OLV);
 		}
 
 		void unload() // not called yet

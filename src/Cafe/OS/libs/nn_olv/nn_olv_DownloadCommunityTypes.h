@@ -501,30 +501,30 @@ namespace nn
 
 		static void loadOliveDownloadCommunityTypes()
 		{
-			cafeExportRegisterFunc(DownloadedCommunityData::__ctor, "nn_olv", "__ct__Q3_2nn3olv23DownloadedCommunityDataFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv23DownloadedCommunityDataCFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetCommunityCode, "nn_olv", "GetCommunityCode__Q3_2nn3olv23DownloadedCommunityDataCFPcUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetOwnerPid, "nn_olv", "GetOwnerPid__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetTitleText, "nn_olv", "GetTitleText__Q3_2nn3olv23DownloadedCommunityDataCFPwUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetDescriptionText, "nn_olv", "GetDescriptionText__Q3_2nn3olv23DownloadedCommunityDataCFPwUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv23DownloadedCommunityDataCFPUcPUiUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetIconData, "nn_olv", "GetIconData__Q3_2nn3olv23DownloadedCommunityDataCFPUcPUiUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetOwnerMiiData, "nn_olv", "GetOwnerMiiData__Q3_2nn3olv23DownloadedCommunityDataCFP12FFLStoreData", LogType::None);
-			cafeExportRegisterFunc(DownloadedCommunityData::__GetOwnerMiiNickname, "nn_olv", "GetOwnerMiiNickname__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::None);
+			cafeExportRegisterFunc(DownloadedCommunityData::__ctor, "nn_olv", "__ct__Q3_2nn3olv23DownloadedCommunityDataFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv23DownloadedCommunityDataCFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetCommunityCode, "nn_olv", "GetCommunityCode__Q3_2nn3olv23DownloadedCommunityDataCFPcUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetOwnerPid, "nn_olv", "GetOwnerPid__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetTitleText, "nn_olv", "GetTitleText__Q3_2nn3olv23DownloadedCommunityDataCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetDescriptionText, "nn_olv", "GetDescriptionText__Q3_2nn3olv23DownloadedCommunityDataCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv23DownloadedCommunityDataCFPUcPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetIconData, "nn_olv", "GetIconData__Q3_2nn3olv23DownloadedCommunityDataCFPUcPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetOwnerMiiData, "nn_olv", "GetOwnerMiiData__Q3_2nn3olv23DownloadedCommunityDataCFP12FFLStoreData", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedCommunityData::__GetOwnerMiiNickname, "nn_olv", "GetOwnerMiiNickname__Q3_2nn3olv23DownloadedCommunityDataCFv", LogType::NN_OLV);
 
-			cafeExportRegisterFunc(DownloadCommunityDataListParam::__ctor, "nn_olv", "__ct__Q3_2nn3olv30DownloadCommunityDataListParamFv", LogType::None);
-			cafeExportRegisterFunc(DownloadCommunityDataListParam::__SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv30DownloadCommunityDataListParamFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadCommunityDataListParam::__SetCommunityDataMaxNum, "nn_olv", "SetCommunityDataMaxNum__Q3_2nn3olv30DownloadCommunityDataListParamFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadCommunityDataListParam::__GetRawDataUrl, "nn_olv", "GetRawDataUrl__Q3_2nn3olv30DownloadCommunityDataListParamCFPcUi", LogType::None);
+			cafeExportRegisterFunc(DownloadCommunityDataListParam::__ctor, "nn_olv", "__ct__Q3_2nn3olv30DownloadCommunityDataListParamFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadCommunityDataListParam::__SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv30DownloadCommunityDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadCommunityDataListParam::__SetCommunityDataMaxNum, "nn_olv", "SetCommunityDataMaxNum__Q3_2nn3olv30DownloadCommunityDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadCommunityDataListParam::__GetRawDataUrl, "nn_olv", "GetRawDataUrl__Q3_2nn3olv30DownloadCommunityDataListParamCFPcUi", LogType::NN_OLV);
 
 			cafeExportRegisterFunc((sint32 (*)(DownloadCommunityDataListParam*, uint32))DownloadCommunityDataListParam::__SetCommunityId,
-				"nn_olv", "SetCommunityId__Q3_2nn3olv30DownloadCommunityDataListParamFUi", LogType::None);
+				"nn_olv", "SetCommunityId__Q3_2nn3olv30DownloadCommunityDataListParamFUi", LogType::NN_OLV);
 			cafeExportRegisterFunc((sint32(*)(DownloadCommunityDataListParam*, uint32, uint8))DownloadCommunityDataListParam::__SetCommunityId,
-				"nn_olv", "SetCommunityId__Q3_2nn3olv30DownloadCommunityDataListParamFUiUc", LogType::None);
+				"nn_olv", "SetCommunityId__Q3_2nn3olv30DownloadCommunityDataListParamFUiUc", LogType::NN_OLV);
 		
-			cafeExportRegisterFunc(DownloadCommunityDataList, "nn_olv", "DownloadCommunityDataList__Q2_2nn3olvFPQ3_2nn3olv23DownloadedCommunityDataPUiUiPCQ3_2nn3olv30DownloadCommunityDataListParam", LogType::None);
+			cafeExportRegisterFunc(DownloadCommunityDataList, "nn_olv", "DownloadCommunityDataList__Q2_2nn3olvFPQ3_2nn3olv23DownloadedCommunityDataPUiUiPCQ3_2nn3olv30DownloadCommunityDataListParam", LogType::NN_OLV);
 		}
 	}
 }

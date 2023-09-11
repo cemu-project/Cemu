@@ -621,49 +621,49 @@ namespace coreinit
 		OSInitEvent(g_rendezvousEvent.GetPtr(), OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, OSEvent::EVENT_MODE::MODE_AUTO);
 
 		// OSEvent
-		cafeExportRegister("coreinit", OSInitEvent, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSInitEventEx, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSResetEvent, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSWaitEvent, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSWaitEventWithTimeout, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSSignalEvent, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSSignalEventAll, LogType::ThreadSync);
+		cafeExportRegister("coreinit", OSInitEvent, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSInitEventEx, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSResetEvent, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSWaitEvent, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSWaitEventWithTimeout, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSSignalEvent, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSSignalEventAll, LogType::CoreinitThreadSync);
 
 		// OSRendezvous
-		cafeExportRegister("coreinit", OSInitRendezvous, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSWaitRendezvous, LogType::ThreadSync);
+		cafeExportRegister("coreinit", OSInitRendezvous, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSWaitRendezvous, LogType::CoreinitThreadSync);
 
 		// OSMutex
-		cafeExportRegister("coreinit", OSInitMutex, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSInitMutexEx, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSLockMutex, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSTryLockMutex, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSUnlockMutex, LogType::ThreadSync);
+		cafeExportRegister("coreinit", OSInitMutex, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSInitMutexEx, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSLockMutex, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSTryLockMutex, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSUnlockMutex, LogType::CoreinitThreadSync);
 
 		// OSCond
-		cafeExportRegister("coreinit", OSInitCond, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSInitCondEx, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSSignalCond, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSWaitCond, LogType::ThreadSync);
+		cafeExportRegister("coreinit", OSInitCond, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSInitCondEx, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSSignalCond, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSWaitCond, LogType::CoreinitThreadSync);
 
 		// OSSemaphore
-		cafeExportRegister("coreinit", OSInitSemaphore, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSInitSemaphoreEx, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSWaitSemaphore, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSTryWaitSemaphore, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSSignalSemaphore, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSGetSemaphoreCount, LogType::ThreadSync);
+		cafeExportRegister("coreinit", OSInitSemaphore, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSInitSemaphoreEx, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSWaitSemaphore, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSTryWaitSemaphore, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSSignalSemaphore, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSGetSemaphoreCount, LogType::CoreinitThreadSync);
 
 		// OSFastMutex
-		cafeExportRegister("coreinit", OSFastMutex_Init, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSFastMutex_Lock, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSFastMutex_TryLock, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSFastMutex_Unlock, LogType::ThreadSync);
+		cafeExportRegister("coreinit", OSFastMutex_Init, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSFastMutex_Lock, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSFastMutex_TryLock, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSFastMutex_Unlock, LogType::CoreinitThreadSync);
 
 		// OSFastCond
-		cafeExportRegister("coreinit", OSFastCond_Init, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSFastCond_Wait, LogType::ThreadSync);
-		cafeExportRegister("coreinit", OSFastCond_Signal, LogType::ThreadSync);
+		cafeExportRegister("coreinit", OSFastCond_Init, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSFastCond_Wait, LogType::CoreinitThreadSync);
+		cafeExportRegister("coreinit", OSFastCond_Signal, LogType::CoreinitThreadSync);
 	}
 
 };

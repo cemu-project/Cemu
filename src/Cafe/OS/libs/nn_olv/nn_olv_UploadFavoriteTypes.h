@@ -315,27 +315,27 @@ namespace nn
 
 		static void loadOliveUploadFavoriteTypes()
 		{
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__ctor, "nn_olv", "__ct__Q3_2nn3olv31UploadedFavoriteToCommunityDataFv", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFUi", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFv", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetCommunityCode, "nn_olv", "GetCommunityCode__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPcUi", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetOwnerPid, "nn_olv", "GetOwnerPid__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFv", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetTitleText, "nn_olv", "GetTitleText__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPwUi", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetDescriptionText, "nn_olv", "GetDescriptionText__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPwUi", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPUcPUiUi", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFv", LogType::None);
-			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetIconData, "nn_olv", "GetIconData__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPUcPUiUi", LogType::None);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__ctor, "nn_olv", "__ct__Q3_2nn3olv31UploadedFavoriteToCommunityDataFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetCommunityCode, "nn_olv", "GetCommunityCode__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPcUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetOwnerPid, "nn_olv", "GetOwnerPid__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetTitleText, "nn_olv", "GetTitleText__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetDescriptionText, "nn_olv", "GetDescriptionText__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPUcPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadedFavoriteToCommunityData::__GetIconData, "nn_olv", "GetIconData__Q3_2nn3olv31UploadedFavoriteToCommunityDataCFPUcPUiUi", LogType::NN_OLV);
 			
-			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__ctor, "nn_olv", "__ct__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFv", LogType::None);
-			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFUi", LogType::None);
-			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__SetCommunityCode, "nn_olv", "SetCommunityCode__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFPCc", LogType::None);
-			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__SetCommunityId, "nn_olv", "SetCommunityId__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFUi", LogType::None);
+			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__ctor, "nn_olv", "__ct__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__SetCommunityCode, "nn_olv", "SetCommunityCode__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFPCc", LogType::NN_OLV);
+			cafeExportRegisterFunc(UploadFavoriteToCommunityDataParam::__SetCommunityId, "nn_olv", "SetCommunityId__Q3_2nn3olv34UploadFavoriteToCommunityDataParamFUi", LogType::NN_OLV);
 
 			cafeExportRegisterFunc((sint32(*)(const UploadFavoriteToCommunityDataParam*))UploadFavoriteToCommunityData,
-				"nn_olv", "UploadFavoriteToCommunityData__Q2_2nn3olvFPCQ3_2nn3olv34UploadFavoriteToCommunityDataParam", LogType::None);
+				"nn_olv", "UploadFavoriteToCommunityData__Q2_2nn3olvFPCQ3_2nn3olv34UploadFavoriteToCommunityDataParam", LogType::NN_OLV);
 
 			cafeExportRegisterFunc((sint32(*)(UploadedFavoriteToCommunityData*, const UploadFavoriteToCommunityDataParam*))UploadFavoriteToCommunityData,
-				"nn_olv", "UploadFavoriteToCommunityData__Q2_2nn3olvFPQ3_2nn3olv31UploadedFavoriteToCommunityDataPCQ3_2nn3olv34UploadFavoriteToCommunityDataParam", LogType::None);
+				"nn_olv", "UploadFavoriteToCommunityData__Q2_2nn3olvFPQ3_2nn3olv31UploadedFavoriteToCommunityDataPCQ3_2nn3olv34UploadFavoriteToCommunityDataParam", LogType::NN_OLV);
 		}
 
 	}
