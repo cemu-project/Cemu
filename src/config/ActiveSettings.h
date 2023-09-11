@@ -69,12 +69,12 @@ private:
 	inline static fs::path s_executable_filename; // cemu.exe
 	inline static fs::path s_mlc_path;
 
-public:	
+public:
 	// general
 	[[nodiscard]] static bool LoadSharedLibrariesEnabled();
 	[[nodiscard]] static bool DisplayDRCEnabled();
 	[[nodiscard]] static bool FullscreenEnabled();
-	
+
 	// cpu
 	[[nodiscard]] static CPUMode GetCPUMode();
 	[[nodiscard]] static uint8 GetTimerShiftFactor();

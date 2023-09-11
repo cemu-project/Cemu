@@ -1,14 +1,16 @@
 #include "CemuLogging.h"
-#include "config/CemuConfig.h"
 #include "gui/LoggingWindow.h"
-#include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
+#include "config/CemuConfig.h"
+#include "config/ActiveSettings.h"
 
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
 
 #include <fmt/printf.h>
+
+uint64 s_loggingFlagMask = cemuLog_getFlag(LogType::Force);
 
 struct _LogContext
 {
@@ -33,46 +35,30 @@ struct _LogContext
 
 const std::map<LogType, std::string> g_logging_window_mapping
 {
-	{LogType::UnsupportedAPI, "Unsupported API calls"},
-	{LogType::CoreinitLogging, "Coreinit Logging"},
-	{LogType::CoreinitFile, "Coreinit File-Access"},
-	{LogType::ThreadSync, "Coreinit Thread-Synchronization"},
-	{LogType::CoreinitMem, "Coreinit Memory"},
-	{LogType::CoreinitMP, "Coreinit MP"},
-	{LogType::CoreinitThread, "Coreinit Thread"},
-	{LogType::nn_nfp, "nn::nfp"},
-	{LogType::GX2, "GX2"},
-	{LogType::SoundAPI, "Audio"},
-	{LogType::InputAPI, "Input"},
-	{LogType::Socket, "Socket"},
-	{LogType::Save, "Save"},
-	{LogType::H264, "H264"},
-	{LogType::Patches, "Graphic pack patches"},
-	{LogType::TextureCache, "Texture cache"},
-	{LogType::TextureReadback, "Texture readback"},
-	{LogType::OpenGLLogging, "OpenGL debug output"},
-	{LogType::VulkanValidation, "Vulkan validation layer"},
+	{LogType::UnsupportedAPI,     "Unsupported API calls"},
+	{LogType::CoreinitLogging,    "Coreinit Logging"},
+	{LogType::CoreinitFile,       "Coreinit File-Access"},
+	{LogType::CoreinitThreadSync, "Coreinit Thread-Synchronization"},
+	{LogType::CoreinitMem,        "Coreinit Memory"},
+	{LogType::CoreinitMP,         "Coreinit MP"},
+	{LogType::CoreinitThread,     "Coreinit Thread"},
+	{LogType::NN_NFP,             "nn::nfp"},
+	{LogType::GX2,                "GX2"},
+	{LogType::SoundAPI,           "Audio"},
+	{LogType::InputAPI,           "Input"},
+	{LogType::Socket,             "Socket"},
+	{LogType::Save,               "Save"},
+	{LogType::H264,               "H264"},
+	{LogType::Patches,            "Graphic pack patches"},
+	{LogType::TextureCache,       "Texture cache"},
+	{LogType::TextureReadback,    "Texture readback"},
+	{LogType::OpenGLLogging,      "OpenGL debug output"},
+	{LogType::VulkanValidation,   "Vulkan validation layer"},
 };
-
-uint64 cemuLog_getFlag(LogType type)
-{
-	return type <= LogType::Force ? 0 : (1ULL << ((uint64)type - 1));
-}
 
 bool cemuLog_advancedPPCLoggingEnabled()
 {
 	return GetConfig().advanced_ppc_logging;
-}
-
-bool cemuLog_isLoggingEnabled(LogType type)
-{
-	if (type == LogType::Placeholder)
-		return false;
-
-	if (type == LogType::None)
-		return false;
-	
-	return (type == LogType::Force)	|| ((GetConfig().log_flag.GetValue() & cemuLog_getFlag(type)) != 0);
 }
 
 void cemuLog_thread()
@@ -198,12 +184,7 @@ std::unique_lock<decltype(LogContext.log_mutex)> cemuLog_acquire()
 	return std::unique_lock(LogContext.log_mutex);
 }
 
-void cemuLog_setFlag(LogType loggingType, bool isEnable)
+void cemuLog_setActiveLoggingFlags(uint64 flagMask)
 {
-	if (isEnable)
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() | cemuLog_getFlag(loggingType);
-	else
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag(loggingType);
-	
-	g_config.Save();
+	s_loggingFlagMask = flagMask | cemuLog_getFlag(LogType::Force);
 }

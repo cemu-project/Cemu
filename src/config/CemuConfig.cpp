@@ -43,6 +43,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	// general settings
 	log_flag = parser.get("logflag", log_flag.GetInitValue());
+	cemuLog_setActiveLoggingFlags(GetConfig().log_flag.GetValue());
 	advanced_ppc_logging = parser.get("advanced_ppc_logging", advanced_ppc_logging.GetInitValue());
 
 	const char* mlc = parser.get("mlc_path", "");
@@ -53,7 +54,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	language = parser.get<sint32>("language", wxLANGUAGE_DEFAULT);
 	use_discord_presence = parser.get("use_discord_presence", true);
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
-    	feral_gamemode = parser.get("feral_gamemode", false);
+	feral_gamemode = parser.get("feral_gamemode", false);
 	check_update = parser.get("check_update", check_update);
 	save_screenshot = parser.get("save_screenshot", save_screenshot);
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
@@ -62,9 +63,6 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen = parser.get("fullscreen", fullscreen);
 	proxy_server = parser.get("proxy_server", "");
 	disable_screensaver = parser.get("disable_screensaver", disable_screensaver);
-
-	// cpu_mode = parser.get("cpu_mode", cpu_mode.GetInitValue());
-	//console_region = parser.get("console_region", console_region.GetInitValue());
 	console_language = parser.get("console_language", console_language.GetInitValue());
 
 	window_position.x = parser.get("window_position").get("x", -1);

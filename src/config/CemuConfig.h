@@ -353,7 +353,6 @@ struct CemuConfig
 	};
 
 	CemuConfig(const CemuConfig&) = delete;
-	//
 
 	// sets mlc path, updates permanent config value, saves config
 	void SetMLCPath(fs::path path, bool save = true);
@@ -365,10 +364,10 @@ struct CemuConfig
 	
 	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
 	ConfigValue<bool> use_discord_presence{ true };
-	ConfigValue<std::string> mlc_path {};
+	ConfigValue<std::string> mlc_path{};
 	ConfigValue<bool> fullscreen_menubar{ false };
 	ConfigValue<bool> fullscreen{ false };
-    	ConfigValue<bool> feral_gamemode{false};
+	ConfigValue<bool> feral_gamemode{false};
 	ConfigValue<std::string> proxy_server{};
 
 	// temporary workaround because feature crashes on macOS

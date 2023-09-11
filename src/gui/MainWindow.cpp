@@ -1103,7 +1103,14 @@ void MainWindow::OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event)
 	sint32 id = event.GetId();
 	if (id >= loggingIdBase && id < (MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 64))
 	{
-		cemuLog_setFlag(static_cast<LogType>(id - loggingIdBase), event.IsChecked());
+		bool isEnable = event.IsChecked();
+		LogType loggingType = static_cast<LogType>(id - loggingIdBase);
+		if (isEnable)
+			GetConfig().log_flag = GetConfig().log_flag.GetValue() | cemuLog_getFlag(loggingType);
+		else
+			GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag(loggingType);
+		cemuLog_setActiveLoggingFlags(GetConfig().log_flag.GetValue());
+		g_config.Save();
 	}
 }
 
@@ -2190,11 +2197,11 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::UnsupportedAPI), _("&Unsupported API calls"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::UnsupportedAPI));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitLogging), _("&Coreinit Logging (OSReport/OSConsole)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitLogging));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("&Coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::ThreadSync), _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::ThreadSync));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("&Coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("&Coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("&Coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::nn_nfp), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::nn_nfp));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("&GX2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("&Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("&Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
