@@ -609,7 +609,7 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 
 			// check if enabled graphic packs are lost:
 			const auto& new_packs = GraphicPack2::GetGraphicPacks();
-			std::stringstream str;
+			std::stringstream lost_packs;
 			for(const auto& p : old_packs)
 			{
 				if (!p->IsEnabled())
@@ -622,15 +622,16 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 				
 				if(it == new_packs.cend())
 				{
-					str << p->GetPath() << std::endl;
+					lost_packs << p->GetPath() << "\n";
 				}
 			}
 
-			const auto packs = str.str();
-			if(!packs.empty())
+			const auto lost_packs_str = lost_packs.str();
+			if (!lost_packs_str.empty())
 			{
-				wxMessageBox(fmt::format("{}\n \n{} \n{}", _("This update removed or renamed the following graphic packs:").utf8_string(), packs, _("You may need to set them up again.").utf8_string()),
-					_("Warning"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
+				wxString message = _("This update removed or renamed the following graphic packs:");
+				message << "\n \n" << lost_packs_str << " \n" << _("You may need to set them up again.");
+				wxMessageBox(message, _("Warning"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
 			}
 		}
 	}

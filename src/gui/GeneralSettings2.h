@@ -101,7 +101,7 @@ private:
 	void OnShowOnlineValidator(wxCommandEvent& event);
 	void OnOnlineEnable(wxCommandEvent& event);
 	void OnAccountServiceChanged(wxCommandEvent& event);
-	std::string GetOnlineAccountErrorMessage(OnlineAccountError error);
+	static wxString GetOnlineAccountErrorMessage(OnlineAccountError error);
 
 	// updates cemu audio devices
 	void UpdateAudioDevice();

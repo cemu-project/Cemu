@@ -371,7 +371,7 @@ bool DownloadManager::syncAccountTickets()
 	for (auto& tiv : resultTicketIds.tivs)
 	{
 		index++;
-		std::string msg = _("Downloading account ticket").utf8_string();
+		std::string msg = _("Downloading account ticket").ToStdString();
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		// skip if already cached
@@ -508,7 +508,7 @@ bool DownloadManager::syncUpdateTickets()
 		if (titleIdParser.GetType() != TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE)
 			continue;
 
-		std::string msg = _("Downloading ticket").utf8_string();
+		std::string msg = _("Downloading ticket").ToStdString();
 		msg.append(fmt::format(" {0}/{1}", updateIndex, numUpdates));
 		updateIndex++;
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
@@ -561,7 +561,7 @@ bool DownloadManager::syncTicketCache()
 	for (auto& ticketInfo : m_ticketCache)
 	{
 		index++;
-		std::string msg = _("Downloading meta data").utf8_string();
+		std::string msg = _("Downloading meta data").ToStdString();
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		prepareIDBE(ticketInfo.titleId);
