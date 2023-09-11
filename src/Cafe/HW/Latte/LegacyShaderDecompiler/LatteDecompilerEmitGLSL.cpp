@@ -4037,8 +4037,8 @@ void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext,
 		for (auto& subroutineInfo : shaderContext->list_subroutines)
 		{
 			sint32 subroutineMaxStackDepth = 0;
-			src->addFmt("bool activeMaskStackSub%04x[{}];" _CRLF, subroutineInfo.cfAddr, subroutineMaxStackDepth + 1);
-			src->addFmt("bool activeMaskStackCSub%04x[{}];" _CRLF, subroutineInfo.cfAddr, subroutineMaxStackDepth + 2);
+			src->addFmt("bool activeMaskStackSub{:04x}[{}];" _CRLF, subroutineInfo.cfAddr, subroutineMaxStackDepth + 1);
+			src->addFmt("bool activeMaskStackCSub{:04x}[{}];" _CRLF, subroutineInfo.cfAddr, subroutineMaxStackDepth + 2);
 		}
 	}
 	// helper variables for cube maps (todo: Only emit when used)
