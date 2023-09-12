@@ -1009,15 +1009,20 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 			if (iosu::pdm::GetStatForGamelist(baseTitleId, playTimeStat))
 			{
 				// time played
-				uint32 timePlayed = playTimeStat.numMinutesPlayed * 60;
-				if (timePlayed == 0)
+				uint32 minutesPlayed = playTimeStat.numMinutesPlayed;
+				if (minutesPlayed == 0)
 					SetItem(index, ColumnGameTime, wxEmptyString);
-				else if (timePlayed < 60)
-					SetItem(index, ColumnGameTime, fmt::format("{} seconds", timePlayed));
-				else if (timePlayed < 60 * 60)
-					SetItem(index, ColumnGameTime, fmt::format("{} minutes", timePlayed / 60));
+				else if (minutesPlayed < 60)
+					SetItem(index, ColumnGameTime, formatWxString(wxPLURAL("{} minute", "{} minutes", minutesPlayed), minutesPlayed));
 				else
-					SetItem(index, ColumnGameTime, fmt::format("{} hours {} minutes", timePlayed / 3600, (timePlayed / 60) % 60));
+				{
+					uint32 hours = minutesPlayed / 60;
+					uint32 minutes = minutesPlayed % 60;
+					wxString hoursText = formatWxString(wxPLURAL("{} hour", "{} hours", hours), hours);
+					wxString minutesText = formatWxString(wxPLURAL("{} minute", "{} minutes", minutes), minutes);
+					SetItem(index, ColumnGameTime, hoursText + " " + minutesText);
+				}
+				
 				// last played
 				if (playTimeStat.last_played.year != 0)
 				{
