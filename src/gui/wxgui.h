@@ -1,5 +1,7 @@
 #pragma once
 
+#define wxNO_UNSAFE_WXSTRING_CONV 1
+
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
 #include <wx/wx.h>

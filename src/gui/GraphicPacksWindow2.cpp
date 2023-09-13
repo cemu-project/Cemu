@@ -445,7 +445,7 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 				m_graphic_pack_name->SetLabel(wxHelper::FromUtf8(m_gp_name));
 
 				if (gp->GetDescription().empty())
-					m_gp_description = _("This graphic pack has no description");
+					m_gp_description = _("This graphic pack has no description").utf8_string();
 				else
 					m_gp_description = gp->GetDescription();
 

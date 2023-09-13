@@ -132,7 +132,7 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 	if (targetSpace.free <= m_required_size)
 	{
 		auto string = formatWxString(_("Not enough space available.\nRequired: {0} MB\nAvailable: {1} MB"), (m_required_size / 1024 / 1024), (targetSpace.free / 1024 / 1024));
-		throw std::runtime_error(string);
+		throw std::runtime_error(string.utf8_string());
 	}
 
 	return true;
