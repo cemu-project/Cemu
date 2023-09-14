@@ -10,24 +10,24 @@
 #include "gui/helpers/wxHelpers.h"
 #include "wxHelper.h"
 
-std::string _GetTitleIdTypeStr(TitleId titleId)
+wxString _GetTitleIdTypeStr(TitleId titleId)
 {
 	TitleIdParser tip(titleId);
 	switch (tip.GetType())
 	{
 	case TitleIdParser::TITLE_TYPE::AOC:
-		return _("DLC").utf8_string();
+		return _("DLC");
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE:
-		return _("Base game").utf8_string();
+		return _("Base game");
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE_DEMO:
-		return _("Demo").utf8_string();
+		return _("Demo");
 	case TitleIdParser::TITLE_TYPE::SYSTEM_TITLE:
 	case TitleIdParser::TITLE_TYPE::SYSTEM_OVERLAY_TITLE:
-		return _("System title").utf8_string();
+		return _("System title");
 	case TitleIdParser::TITLE_TYPE::SYSTEM_DATA:
-		return _("System data title").utf8_string();
+		return _("System data title");
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE:
-		return _("Update").utf8_string();
+		return _("Update");
 	default:
 		break;
 	}
@@ -57,8 +57,8 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 
 				if (tip.GetType() != tipOther.GetType())
 				{
-					std::string typeStrToInstall = _GetTitleIdTypeStr(m_title_info.GetAppTitleId());
-					std::string typeStrCurrentlyInstalled = _GetTitleIdTypeStr(tmp.GetAppTitleId());
+					auto typeStrToInstall = _GetTitleIdTypeStr(m_title_info.GetAppTitleId());
+					auto typeStrCurrentlyInstalled = _GetTitleIdTypeStr(tmp.GetAppTitleId());
 
 					auto wxMsg = _("It seems that there is already a title installed at the target location but it has a different type.\nCurrently installed: \'{}\' Installing: \'{}\'\n\nThis can happen for titles which were installed with very old Cemu versions.\nDo you still want to continue with the installation? It will replace the currently installed title.");
 					wxMessageDialog dialog(this, formatWxString(wxMsg, typeStrCurrentlyInstalled, typeStrToInstall), _("Warning"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
@@ -131,8 +131,8 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 	const fs::space_info targetSpace = fs::space(ActiveSettings::GetMlcPath());
 	if (targetSpace.free <= m_required_size)
 	{
-		auto string = wxStringFormat(_("Not enough space available.\nRequired: {0} MB\nAvailable: {1} MB"), L"%lld %lld", (m_required_size / 1024 / 1024), (targetSpace.free / 1024 / 1024));
-		throw std::runtime_error(string);
+		auto string = formatWxString(_("Not enough space available.\nRequired: {0} MB\nAvailable: {1} MB"), (m_required_size / 1024 / 1024), (targetSpace.free / 1024 / 1024));
+		throw std::runtime_error(string.utf8_string());
 	}
 
 	return true;

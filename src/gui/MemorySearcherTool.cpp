@@ -472,9 +472,7 @@ bool MemorySearcherTool::VerifySearchValue() const
 
 void MemorySearcherTool::FillResultList()
 {
-	//char text[128];
-	//sprintf(text, "Results (%u)", (uint32)m_searchBuffer.size());
-	auto text = wxStringFormat(_("Results ({0})"), L"%llu", m_searchBuffer.size());
+	auto text = formatWxString(_("Results ({0})"), m_searchBuffer.size());
 	m_textEntryTable->SetLabelText(text);
 
 	m_listResults->DeleteAllItems();

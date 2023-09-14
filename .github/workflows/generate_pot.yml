@@ -29,8 +29,8 @@ jobs:
       - name: "Generate POT file using xgettext"
         run: >
           find src -name *.cpp -o -name *.hpp -o -name *.h | 
-          xargs xgettext --from-code=utf-8
-          -k_ -kwxTRANSLATE -w 100
+          xargs xgettext --from-code=utf-8 -w 100
+          --keyword="_" --keyword="wxTRANSLATE" --keyword="wxPLURAL:1,2"
           --check=space-ellipsis --omit-header
           -o cemu.pot
 

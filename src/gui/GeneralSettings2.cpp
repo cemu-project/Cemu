@@ -2043,17 +2043,17 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 	wxMessageBox(err, _("Online Status"), wxOK | wxCENTRE | wxICON_INFORMATION);
 }
 
-std::string GeneralSettings2::GetOnlineAccountErrorMessage(OnlineAccountError error)
+wxString GeneralSettings2::GetOnlineAccountErrorMessage(OnlineAccountError error)
 {
 	switch (error) {
 		case OnlineAccountError::kNoAccountId:
-			return _("AccountId missing (The account is not connected to a NNID)").utf8_string();
+			return _("AccountId missing (The account is not connected to a NNID)");
 		case OnlineAccountError::kNoPasswordCached:
-			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)").utf8_string();
+			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)");
 		case OnlineAccountError::kPasswordCacheEmpty:
-			return _("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)").utf8_string();
+			return _("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)");
 		case OnlineAccountError::kNoPrincipalId:
-			return _("PrincipalId missing").utf8_string();
+			return _("PrincipalId missing");
 		default:
 			return "no error";
 	}

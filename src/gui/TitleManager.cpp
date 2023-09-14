@@ -799,7 +799,7 @@ void TitleManager::SetConnected(bool state)
 void TitleManager::Callback_ConnectStatusUpdate(std::string statusText, DLMGR_STATUS_CODE statusCode)
 {
 	TitleManager* titleManager = static_cast<TitleManager*>(DownloadManager::GetInstance()->getUserData());
-	titleManager->SetDownloadStatusText(statusText);
+	titleManager->SetDownloadStatusText(wxString::FromUTF8(statusText));
 	if (statusCode == DLMGR_STATUS_CODE::FAILED)
 	{
 		auto* evt = new wxCommandEvent(wxEVT_DL_DISCONNECT_COMPLETE);

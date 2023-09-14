@@ -963,20 +963,20 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	return wxEmptyString;
 }
 
-std::string wxTitleManagerList::GetTranslatedTitleEntryType(EntryType type)
+wxString wxTitleManagerList::GetTranslatedTitleEntryType(EntryType type)
 {
 	switch (type)
 	{
 		case EntryType::Base:
-			return _("base").utf8_string();
+			return _("base");
 		case EntryType::Update:
-			return _("update").utf8_string();
+			return _("update");
 		case EntryType::Dlc:
-			return _("DLC").utf8_string();
+			return _("DLC");
 		case EntryType::Save:
-			return _("save").utf8_string();
+			return _("save");
 		case EntryType::System:
-			return _("system").utf8_string();
+			return _("system");
 		default:
 			return std::to_string(static_cast<std::underlying_type_t<EntryType>>(type));
 	}

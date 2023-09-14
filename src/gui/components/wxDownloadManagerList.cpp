@@ -501,16 +501,16 @@ wxString wxDownloadManagerList::GetTitleEntryText(const TitleEntry& entry, ItemC
 	return wxEmptyString;
 }
 
-std::string wxDownloadManagerList::GetTranslatedTitleEntryType(EntryType type)
+wxString wxDownloadManagerList::GetTranslatedTitleEntryType(EntryType type)
 {
 	switch (type)
 	{
 		case EntryType::Base:
-			return _("base").utf8_string();
+			return _("base");
 		case EntryType::Update:
-			return _("update").utf8_string();
+			return _("update");
 		case EntryType::DLC:
-			return _("DLC").utf8_string();
+			return _("DLC");
 		default:
 			return std::to_string(static_cast<std::underlying_type_t<EntryType>>(type));
 	}

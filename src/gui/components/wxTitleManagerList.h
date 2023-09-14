@@ -132,7 +132,7 @@ private:
 	bool SortFunc(int column, const Type_t& v1, const Type_t& v2);
 
 	static wxString GetTitleEntryText(const TitleEntry& entry, ItemColumn column);
-	static std::string GetTranslatedTitleEntryType(EntryType entryType);
+	static wxString GetTranslatedTitleEntryType(EntryType entryType);
 	std::future<bool> m_context_worker;
 
 	uint64 m_callbackIdTitleList;
