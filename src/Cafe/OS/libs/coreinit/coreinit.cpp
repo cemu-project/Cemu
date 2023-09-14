@@ -316,6 +316,56 @@ namespace coreinit
 	}
 };
 
+void ci_Save(MemStreamWriter& s)
+{
+	s.writeData("ci_S", 15);
+
+	s.writeData(gCoreinitData, sizeof(coreinitData_t));
+	s.writeBE(placeholderFont);
+	s.writeBE(placeholderFontSize);
+
+	using namespace coreinit;
+	ci_CodeGen_Save(s);
+	ci_DynLoad_Save(s);
+	ci_FG_Save(s);
+	ci_GHS_Save(s);
+	ci_IPC_Save(s);
+	ci_LockedCache_Save(s);
+	ci_MEM_Save(s);
+	ci_MemoryMapping_Save(s);
+	ci_MessageQueue_Save(s);
+	ci_OverlayArena_Save(s);
+	ci_Sync_Save(s);
+	ci_SysHeap_Save(s);
+	ci_SystemInfo_Save(s);
+}
+
+void ci_Restore(MemStreamReader& s)
+{
+	char section[16] = { '\0' };
+	s.readData(section, 15);
+	cemu_assert_debug(strcmp(section, "ci_S") == 0);
+
+	s.readData(gCoreinitData, sizeof(coreinitData_t));
+	placeholderFont = s.readBE<MPTR>();
+	placeholderFontSize = s.readBE<sint32>();
+
+	using namespace coreinit;
+	ci_CodeGen_Restore(s);
+	ci_DynLoad_Restore(s);
+	ci_FG_Restore(s);
+	ci_GHS_Restore(s);
+	ci_IPC_Restore(s);
+	ci_LockedCache_Restore(s);
+	ci_MEM_Restore(s);
+	ci_MemoryMapping_Restore(s);
+	ci_MessageQueue_Restore(s);
+	ci_OverlayArena_Restore(s);
+	ci_Sync_Restore(s);
+	ci_SysHeap_Restore(s);
+	ci_SystemInfo_Restore(s);
+}
+
 void coreinit_load()
 {
 	coreinit::InitializeCore();

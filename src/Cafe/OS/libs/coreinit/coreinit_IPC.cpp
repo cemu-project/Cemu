@@ -462,6 +462,34 @@ namespace coreinit
 		return r;
 	}
 
+	void ci_IPC_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_IPC_S", 15);
+
+		s.writeBE(s_ipcResourceBuffers.GetMPTR());
+		s.writeBE(s_ipcDriver.GetMPTR());
+		s.writeBE(gIPCThread.GetMPTR());
+		s.writeBE(_gIPCThreadStack.GetMPTR());
+		s.writeBE(_gIPCThreadNameStorage.GetMPTR());
+		s.writeBE(gIPCThreadMsgQueue.GetMPTR());
+		s.writeBE(_gIPCThreadSemaphoreStorage.GetMPTR());
+	}
+
+	void ci_IPC_Restore(MemStreamReader& s)
+	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_IPC_S") == 0);
+
+		s_ipcResourceBuffers = (IPCResourceBuffer*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s_ipcDriver = (IPCDriver*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		gIPCThread = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		_gIPCThreadStack = memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		_gIPCThreadNameStorage = memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		gIPCThreadMsgQueue = (OSMessageQueue*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		_gIPCThreadSemaphoreStorage = (OSMessage*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+	}
+
 	void InitializeIPC()
 	{
 		for (uint32 i = 0; i < Espresso::CORE_COUNT; i++)
@@ -478,5 +506,4 @@ namespace coreinit
 		cafeExportRegister("coreinit", IOS_Ioctlv, LogType::PPC_IPC);
 		cafeExportRegister("coreinit", IOS_IoctlvAsync, LogType::PPC_IPC);
 	}
-
 };

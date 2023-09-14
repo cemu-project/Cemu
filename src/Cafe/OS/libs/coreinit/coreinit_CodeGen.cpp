@@ -136,6 +136,21 @@ namespace coreinit
 		return true;
 	}
 
+	void ci_CodeGen_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_CG_S", 15);
+		s.writeData(&coreinitCodeGen, sizeof(coreinitCodeGen));
+	}
+
+	void ci_CodeGen_Restore(MemStreamReader& s)
+	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_CG_S") == 0);
+
+		s.readData(&coreinitCodeGen, sizeof(coreinitCodeGen));
+	}
+
 	void InitializeCodeGen()
 	{
 		cafeExportRegister("coreinit", OSGetCodegenVirtAddrRange, LogType::Placeholder);

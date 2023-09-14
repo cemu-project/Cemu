@@ -80,6 +80,65 @@ MMURange* memory_getMMURangeByAddress(MPTR address)
 	return nullptr;
 }
 
+bool MMURange::serializeImpl(MemStreamWriter& streamWriter)
+{
+	streamWriter.writeBE<bool>(this->m_isMapped);
+	if (m_isMapped)
+	{
+		streamWriter.writeBE(this->baseAddress);
+		streamWriter.writeBE<uint8>((uint8)this->areaId);
+		streamWriter.writeBE<uint8>((uint8)this->flags);
+		streamWriter.writeBE(this->name);
+		streamWriter.writeBE(this->size);
+		streamWriter.writeBE(this->initSize);
+	}
+	return true;
+}
+
+template<>
+void MemStreamWriter::writeBE<MMURange>(const MMURange& v)
+{
+	writeBE(v.m_isMapped);
+	writeBE(v.baseAddress);
+	writeBE<uint8>((uint8)v.areaId);
+	writeBE<uint8>((uint8)v.flags);
+	writeBE(v.name);
+	writeBE(v.size);
+	writeBE(v.initSize);
+}
+
+template <>
+void MemStreamReader::readBE<MMURange>(MMURange& mmuRange)
+{
+	bool needsMapped = readBE<bool>();
+	mmuRange.m_isMapped = false;
+	mmuRange.baseAddress = readBE<uint32>();
+	mmuRange.areaId = (MMU_MEM_AREA_ID)readBE<uint8>();
+	mmuRange.flags = (MMURange::MFLAG)readBE<uint8>();
+	mmuRange.name = readBE<std::string>();
+	mmuRange.size = readBE<uint32>();
+	mmuRange.initSize = readBE<uint32>();
+	if (needsMapped)
+		mmuRange.mapMem();
+}
+
+bool MMURange::deserializeImpl(MemStreamReader& streamReader)
+{
+	m_isMapped = streamReader.readBE<bool>();
+	if (m_isMapped)
+	{
+		baseAddress = streamReader.readBE<uint32>();
+		areaId = (MMU_MEM_AREA_ID)streamReader.readBE<uint8>();
+		this->flags = (MFLAG)streamReader.readBE<uint8>();
+		this->name = streamReader.readBE<std::string>();
+		this->size = streamReader.readBE<uint32>();
+		this->initSize = streamReader.readBE<uint32>();
+		m_isMapped = false;
+		mapMem();
+	}
+	return true;
+}
+
 MMURange::MMURange(const uint32 baseAddress, const uint32 size, MMU_MEM_AREA_ID areaId, const std::string_view name, MFLAG flags) : baseAddress(baseAddress), size(size), initSize(size), areaId(areaId), name(name), flags(flags)
 {
 	g_mmuRanges.emplace_back(this);
@@ -409,6 +468,30 @@ void memory_createDump()
 		if(!itr->isMapped())
 			continue;
 		memory_writeDumpFile(itr->getBase(), itr->getSize(), path);
+	}
+}
+
+void memory_Serialize(MemStreamWriter& s)
+{
+	for (auto& itr : g_mmuRanges)
+	{
+		s.writeBE(*itr);
+		if (itr->isMapped())
+		{
+			s.writeData(memory_base + itr->getBase(), itr->getSize());
+		}
+	}
+}
+
+void memory_Deserialize(MemStreamReader& s)
+{
+	for (auto& itr : g_mmuRanges)
+	{
+		s.readBE<MMURange>(*itr);
+		if (itr->isMapped())
+		{
+			s.readData(memory_base + itr->getBase(), itr->getSize());
+		}
 	}
 }
 

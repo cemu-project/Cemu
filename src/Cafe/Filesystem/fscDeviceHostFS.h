@@ -3,6 +3,7 @@
 class FSCVirtualFile_Host : public FSCVirtualFile
 {
 public:
+	void Save(MemStreamWriter& writer) override;
 	static FSCVirtualFile* OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus);
 	~FSCVirtualFile_Host() override;
 
@@ -31,4 +32,6 @@ private:
 	// directory
 	std::unique_ptr<std::filesystem::path> m_path{};
 	std::unique_ptr<std::filesystem::directory_iterator> m_dirIterator{};
+	// serialization
+	FSC_ACCESS_FLAG m_accessFlags;
 };

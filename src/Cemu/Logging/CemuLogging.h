@@ -35,6 +35,8 @@ enum class LogType : sint32
 
 	ProcUi = 40,
 
+	SaveStates = 50,
+
 	APIErrors = 0, // alias for Force. Logs bad parameters or other API errors in OS libs
 
 	

@@ -9,6 +9,7 @@ public:
 	}
 
 	template<typename T> T readBE();
+	template<typename T> void readBE(T& v);
 	template<typename T> T readLE();
 
 	template<typename T>

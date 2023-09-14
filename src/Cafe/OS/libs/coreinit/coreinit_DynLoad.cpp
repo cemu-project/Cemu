@@ -129,6 +129,28 @@ namespace coreinit
 		return 0;
 	}
 
+	void ci_DynLoad_Save(MemStreamWriter& s)
+	{
+		s.writeData("ci_DL_S", 15);
+
+		s.writeBE(_osDynLoadFuncAlloc);
+		s.writeBE(_osDynLoadFuncFree);
+		s.writeBE(_osDynLoadTLSFuncAlloc);
+		s.writeBE(_osDynLoadTLSFuncFree);
+	}
+
+	void ci_DynLoad_Restore(MemStreamReader& s)
+	{
+		char section[16] = { '\0' };
+		s.readData(section, 15);
+		cemu_assert_debug(strcmp(section, "ci_DL_S") == 0);
+
+		_osDynLoadFuncAlloc = s.readBE<MPTR>();
+		_osDynLoadFuncFree = s.readBE<MPTR>();
+		_osDynLoadTLSFuncAlloc = s.readBE<MPTR>();
+		_osDynLoadTLSFuncFree = s.readBE<MPTR>();
+	}
+
 	void InitializeDynLoad()
 	{
 		cafeExportRegister("coreinit", OSDynLoad_SetAllocator, LogType::Placeholder);

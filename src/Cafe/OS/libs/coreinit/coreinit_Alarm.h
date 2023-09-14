@@ -47,6 +47,9 @@ namespace coreinit
 
 	void OSAlarm_Shutdown();
 
+	void ci_Alarm_Save(MemStreamWriter& s);
+	void ci_Alarm_Restore(MemStreamReader& s);
+
 	void alarm_update();
 
 	void InitializeAlarm();
