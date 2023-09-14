@@ -42,17 +42,16 @@ bool strcpy_whole(char* dst, size_t dstLength, const char* src)
 
 namespace coreinit
 {
-	std::mutex sFSClientLock;
-	std::recursive_mutex sFSGlobalMutex;
+	SysAllocator<OSMutex> s_fsGlobalMutex;
 
 	inline void FSLockMutex()
 	{
-		sFSGlobalMutex.lock();
+		OSLockMutex(&s_fsGlobalMutex);
 	}
 
 	inline void FSUnlockMutex()
 	{
-		sFSGlobalMutex.unlock();
+		OSUnlockMutex(&s_fsGlobalMutex);
 	}
 
 	void _debugVerifyCommand(const char* stage, FSCmdBlockBody_t* fsCmdBlockBody);
@@ -251,7 +250,7 @@ namespace coreinit
 		fsCmdQueueBE->dequeueHandlerFuncMPTR = _swapEndianU32(dequeueHandlerFuncMPTR);
 		fsCmdQueueBE->numCommandsInFlight = 0;
 		fsCmdQueueBE->numMaxCommandsInFlight = numMaxCommandsInFlight;
-		coreinit::OSInitMutexEx(&fsCmdQueueBE->mutex, nullptr);
+		coreinit::OSFastMutex_Init(&fsCmdQueueBE->fastMutex, nullptr);
 		fsCmdQueueBE->firstMPTR = _swapEndianU32(0);
 		fsCmdQueueBE->lastMPTR = _swapEndianU32(0);
 	}
@@ -672,12 +671,12 @@ namespace coreinit
 		_debugVerifyCommand("FSCmdSubmitResult", fsCmdBlockBody);
 
 		FSClientBody_t* fsClientBody = fsCmdBlockBody->fsClientBody.GetPtr();
-		sFSClientLock.lock();					  // OSFastMutex_Lock(&fsClientBody->fsCmdQueue.mutex)
+		OSFastMutex_Lock(&fsClientBody->fsCmdQueue.fastMutex);
 		fsCmdBlockBody->cancelState &= ~(1 << 0); // clear cancel bit
 		if (fsClientBody->currentCmdBlockBody.GetPtr() == fsCmdBlockBody)
 			fsClientBody->currentCmdBlockBody = nullptr;
 		fsCmdBlockBody->statusCode = _swapEndianU32(FSA_CMD_STATUS_CODE_D900A24);
-		sFSClientLock.unlock();
+		OSFastMutex_Unlock(&fsClientBody->fsCmdQueue.fastMutex);
 		// send result via msg queue or callback
 		cemu_assert_debug(!fsCmdBlockBody->asyncResult.fsAsyncParamsNew.ioMsgQueue != !fsCmdBlockBody->asyncResult.fsAsyncParamsNew.userCallback); // either must be set
 		fsCmdBlockBody->ukn09EA = 0;
@@ -1433,7 +1432,7 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSAppendFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 size, uint32 count, uint32 fileHandle,  uint32 errorMask)
+	sint32 FSAppendFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 size, uint32 count, uint32 fileHandle, uint32 errorMask)
 	{
 		StackAllocator<FSAsyncParamsNew_t> asyncParams;
 		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
@@ -2640,6 +2639,8 @@ namespace coreinit
 
 	void InitializeFS()
 	{
+		OSInitMutex(&s_fsGlobalMutex);
+
 		cafeExportRegister("coreinit", FSInit, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSShutdown, LogType::CoreinitFile);
 
