@@ -434,6 +434,14 @@ add_library(CemuCafe
   OS/libs/nn_uds/nn_uds.h
   OS/libs/nsyshid/nsyshid.cpp
   OS/libs/nsyshid/nsyshid.h
+  OS/libs/nsyshid/Backend.h
+  OS/libs/nsyshid/AttachDefaultBackends.cpp
+  OS/libs/nsyshid/Whitelist.cpp
+  OS/libs/nsyshid/Whitelist.h
+  OS/libs/nsyshid/BackendLibusb.cpp
+  OS/libs/nsyshid/BackendLibusb.h
+  OS/libs/nsyshid/BackendWindowsHID.cpp
+  OS/libs/nsyshid/BackendWindowsHID.h
   OS/libs/nsyskbd/nsyskbd.cpp
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
@@ -523,6 +531,17 @@ if (ENABLE_WAYLAND)
 	# PUBLIC because wayland-client.h is included in VulkanAPI.h
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
 endif()
+
+if (ENABLE_NSYSHID_LIBUSB)
+	if (ENABLE_VCPKG)
+		find_package(libusb CONFIG REQUIRED)
+		target_include_directories(CemuCafe PRIVATE ${LIBUSB_INCLUDE_DIRS})
+		target_link_libraries(CemuCafe PRIVATE ${LIBUSB_LIBRARIES})
+	else ()
+		find_package(libusb MODULE REQUIRED)
+		target_link_libraries(CemuCafe PRIVATE libusb::libusb)
+	endif ()
+endif ()
 
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuCafe PRIVATE wx::base wx::core)

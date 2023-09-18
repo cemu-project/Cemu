@@ -3,6 +3,9 @@
 #include <hidsdi.h>
 #include <SetupAPI.h>
 
+#pragma comment(lib, "Setupapi.lib")
+#pragma comment(lib, "hid.lib")
+
 WinWiimoteDevice::WinWiimoteDevice(HANDLE handle, std::vector<uint8_t> identifier)
 	: m_handle(handle), m_identifier(std::move(identifier))
 {

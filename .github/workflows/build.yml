@@ -232,7 +232,7 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install llvm@15 ninja nasm molten-vk
+        brew install llvm@15 ninja nasm molten-vk automake libtool
 
     - name: "Bootstrap vcpkg"
       run: |

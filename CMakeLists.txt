@@ -102,6 +102,23 @@ if (WIN32)
 endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
+# usb hid backends
+if (WIN32)
+	option(ENABLE_NSYSHID_WINDOWS_HID "Enables the native Windows HID backend for nsyshid" ON)
+endif ()
+# libusb and windows hid backends shouldn't be active at the same time; otherwise we'd see all devices twice!
+if (NOT ENABLE_NSYSHID_WINDOWS_HID)
+	option(ENABLE_NSYSHID_LIBUSB "Enables the libusb backend for nsyshid" ON)
+else ()
+	set(ENABLE_NSYSHID_LIBUSB OFF CACHE BOOL "" FORCE)
+endif ()
+if (ENABLE_NSYSHID_WINDOWS_HID)
+	add_compile_definitions(NSYSHID_ENABLE_BACKEND_WINDOWS_HID)
+endif ()
+if (ENABLE_NSYSHID_LIBUSB)
+	add_compile_definitions(NSYSHID_ENABLE_BACKEND_LIBUSB)
+endif ()
+
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG true)
