@@ -484,7 +484,7 @@ namespace Latte
 		SQ_TEX_RESOURCE_WORD0_N_GS			= 0xE930,
 		SQ_TEX_RESOURCE_WORD_FIRST			= SQ_TEX_RESOURCE_WORD0_N_PS,
 		SQ_TEX_RESOURCE_WORD_LAST			= (SQ_TEX_RESOURCE_WORD0_N_GS + GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 7 - 1),
-		// there are 54 samplers with 3 registers each. 18 per stage. For stage indices see SAMPLER_BASE_INDEX_*
+		// there are 54 samplers with 3 registers each. 18 (actually only 16?) per stage. For stage indices see SAMPLER_BASE_INDEX_*
 		SQ_TEX_SAMPLER_WORD0_0				= 0xF000,
 		SQ_TEX_SAMPLER_WORD1_0				= 0xF001,
 		SQ_TEX_SAMPLER_WORD2_0				= 0xF002,

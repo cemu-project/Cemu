@@ -295,6 +295,34 @@ LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createN
 	uint32 colorBufferHeight = pitchHeight / colorBufferPitch;
 	uint32 colorBufferWidth = colorBufferPitch;
 
+	// colorbuffer width/height has to be padded to 8/32 alignment but the actual resolution might be smaller
+	// use the scissor box as a clue to figure out the original resolution if possible
+#if 0
+	uint32 scissorBoxWidth = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_BR.get_BR_X();
+	uint32 scissorBoxHeight = LatteGPUState.contextNew.PA_SC_GENERIC_SCISSOR_BR.get_BR_Y();
+	if (((scissorBoxWidth + 7) & ~7) == colorBufferWidth)
+		colorBufferWidth = scissorBoxWidth;
+	if (((colorBufferHeight + 31) & ~31) == colorBufferHeight)
+		colorBufferHeight = scissorBoxHeight;
+#endif
+
+	// log resolution changes if the above heuristic takes effect
+	// this is useful to find resolutions which need to be updated in gfx pack texture rules
+#if 0
+	uint32 colorBufferHeight2 = pitchHeight / colorBufferPitch;
+	static std::unordered_set<uint64> s_foundColorBufferResMappings;
+	if (colorBufferPitch != colorBufferWidth || colorBufferHeight != colorBufferHeight2)
+	{
+		// only log unique, source and dest resolution. Encode into a key with 16 bits per component
+		uint64 resHash = (uint64)colorBufferWidth | ((uint64)colorBufferHeight << 16) | ((uint64)colorBufferPitch << 32) | ((uint64)colorBufferHeight2 << 48);
+		if( !s_foundColorBufferResMappings.contains(resHash) )
+		{
+			s_foundColorBufferResMappings.insert(resHash);
+			cemuLog_log(LogType::Force, "[COLORBUFFER-DBG] Using res {}x{} instead of {}x{}", colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferHeight2);
+		}
+	}
+#endif
+
 	bool colorBufferWasFound = false;
 	sint32 viewFirstMip = 0; // todo
 

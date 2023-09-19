@@ -84,6 +84,7 @@ typedef struct
 		uint32 lastUpdate;
 		uint32 frameCounter;
 		uint32 drawCallCounter;
+		uint32 fastDrawCallCounter;
 		uint32 shaderBindCount;
 		uint64 vertexDataUploaded; // amount of vertex data uploaded to GPU (bytes)
 		uint64 vertexDataCached; // amount of vertex data reused from GPU cache (bytes)
