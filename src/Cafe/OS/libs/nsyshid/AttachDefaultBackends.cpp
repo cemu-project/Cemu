@@ -1,5 +1,6 @@
 #include "nsyshid.h"
 #include "Backend.h"
+#include "BackendEmulated.h"
 
 #if NSYSHID_ENABLE_BACKEND_LIBUSB
 
@@ -37,5 +38,13 @@ namespace nsyshid::backend
 			}
 		}
 #endif // NSYSHID_ENABLE_BACKEND_WINDOWS_HID
+	   // add emulated backend
+		{
+			auto backendEmulated = std::make_shared<backend::emulated::BackendEmulated>();
+			if (backendEmulated->IsInitialisedOk())
+			{
+				AttachBackend(backendEmulated);
+			}
+		}
 	}
 } // namespace nsyshid::backend

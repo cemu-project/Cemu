@@ -196,20 +196,20 @@ namespace nsyshid::backend::windows
 		return m_hFile != INVALID_HANDLE_VALUE;
 	}
 
-	Device::ReadResult DeviceWindowsHID::Read(uint8* data, sint32 length, sint32& bytesRead)
+	Device::ReadResult DeviceWindowsHID::Read(ReadMessage* message)
 	{
-		bytesRead = 0;
+		message->bytesRead = 0;
 		DWORD bt;
 		OVERLAPPED ovlp = {0};
 		ovlp.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-		uint8* tempBuffer = (uint8*)malloc(length + 1);
+		uint8* tempBuffer = (uint8*)malloc(message->length + 1);
 		sint32 transferLength = 0; // minus report byte
 
-		_debugPrintHex("HID_READ_BEFORE", data, length);
+		_debugPrintHex("HID_READ_BEFORE", message->data, message->length);
 
-		cemuLog_logDebug(LogType::Force, "HidRead Begin (Length 0x{:08x})", length);
-		BOOL readResult = ReadFile(this->m_hFile, tempBuffer, length + 1, &bt, &ovlp);
+		cemuLog_logDebug(LogType::Force, "HidRead Begin (Length 0x{:08x})", message->length);
+		BOOL readResult = ReadFile(this->m_hFile, tempBuffer, message->length + 1, &bt, &ovlp);
 		if (readResult != FALSE)
 		{
 			// sometimes we get the result immediately
@@ -247,7 +247,7 @@ namespace nsyshid::backend::windows
 		ReadResult result = ReadResult::Success;
 		if (bt != 0)
 		{
-			memcpy(data, tempBuffer + 1, transferLength);
+			memcpy(message->data, tempBuffer + 1, transferLength);
 			sint32 hidReadLength = transferLength;
 
 			char debugOutput[1024] = {0};
@@ -257,7 +257,7 @@ namespace nsyshid::backend::windows
 			}
 			cemuLog_logDebug(LogType::Force, "HIDRead data: {}", debugOutput);
 
-			bytesRead = transferLength;
+			message->bytesRead = transferLength;
 			result = ReadResult::Success;
 		}
 		else
@@ -270,19 +270,19 @@ namespace nsyshid::backend::windows
 		return result;
 	}
 
-	Device::WriteResult DeviceWindowsHID::Write(uint8* data, sint32 length, sint32& bytesWritten)
+	Device::WriteResult DeviceWindowsHID::Write(WriteMessage* message)
 	{
-		bytesWritten = 0;
+		message->bytesWritten = 0;
 		DWORD bt;
 		OVERLAPPED ovlp = {0};
 		ovlp.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-		uint8* tempBuffer = (uint8*)malloc(length + 1);
-		memcpy(tempBuffer + 1, data, length);
+		uint8* tempBuffer = (uint8*)malloc(message->length + 1);
+		memcpy(tempBuffer + 1, message->data, message->length);
 		tempBuffer[0] = 0; // report byte?
 
-		cemuLog_logDebug(LogType::Force, "HidWrite Begin (Length 0x{:08x})", length);
-		BOOL writeResult = WriteFile(this->m_hFile, tempBuffer, length + 1, &bt, &ovlp);
+		cemuLog_logDebug(LogType::Force, "HidWrite Begin (Length 0x{:08x})", message->length);
+		BOOL writeResult = WriteFile(this->m_hFile, tempBuffer, message->length + 1, &bt, &ovlp);
 		if (writeResult != FALSE)
 		{
 			// sometimes we get the result immediately
@@ -314,7 +314,7 @@ namespace nsyshid::backend::windows
 
 		if (bt != 0)
 		{
-			bytesWritten = length;
+			message->bytesWritten = message->length;
 			return WriteResult::Success;
 		}
 		return WriteResult::Error;
@@ -407,12 +407,12 @@ namespace nsyshid::backend::windows
 		return true;
 	}
 
-	bool DeviceWindowsHID::SetReport(uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength)
+	bool DeviceWindowsHID::SetReport(ReportMessage* message)
 	{
 		sint32 retryCount = 0;
 		while (true)
 		{
-			BOOL r = HidD_SetOutputReport(this->m_hFile, reportData, length);
+			BOOL r = HidD_SetOutputReport(this->m_hFile, message->reportData, message->length);
 			if (r != FALSE)
 				break;
 			Sleep(20); // retry

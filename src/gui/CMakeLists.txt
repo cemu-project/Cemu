@@ -101,6 +101,8 @@ add_library(CemuGui
   PairingDialog.h
   TitleManager.cpp
   TitleManager.h
+  EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp
+  EmulatedUSBDevices/EmulatedUSBDeviceFrame.h
   windows/PPCThreadsViewer
   windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp
   windows/PPCThreadsViewer/DebugPPCThreadsWindow.h
