@@ -457,10 +457,14 @@ add_library(CemuCafe
   OS/libs/nsyshid/AttachDefaultBackends.cpp
   OS/libs/nsyshid/Whitelist.cpp
   OS/libs/nsyshid/Whitelist.h
+  OS/libs/nsyshid/BackendEmulated.cpp
+  OS/libs/nsyshid/BackendEmulated.h
   OS/libs/nsyshid/BackendLibusb.cpp
   OS/libs/nsyshid/BackendLibusb.h
   OS/libs/nsyshid/BackendWindowsHID.cpp
   OS/libs/nsyshid/BackendWindowsHID.h
+  OS/libs/nsyshid/Skylander.cpp
+  OS/libs/nsyshid/Skylander.h
   OS/libs/nsyskbd/nsyskbd.cpp
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
