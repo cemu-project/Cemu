@@ -370,8 +370,12 @@ void VulkanRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
 	// does nothing since the index buffer memory is coherent
 }
 
+float s_vkUniformData[512 * 4];
+
 void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader)
 {
+	auto GET_UNIFORM_DATA_PTR = [&](size_t index) { return s_vkUniformData + (index / 4); };
+
 	sint32 shaderAluConst;
 	sint32 shaderUniformRegisterOffset;
 
@@ -390,27 +394,23 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 		shaderUniformRegisterOffset = mmSQ_GS_UNIFORM_BLOCK_START;
 		break;
 	default:
-		cemu_assert_debug(false);
+		UNREACHABLE;
 	}
 
 	if (shader->resourceMapping.uniformVarsBufferBindingPoint >= 0)
 	{
-		float uniformData[512 * 4];
-
 		if (shader->uniform.list_ufTexRescale.empty() == false)
 		{
 			for (auto& entry : shader->uniform.list_ufTexRescale)
 			{
 				float* xyScale = LatteTexture_getEffectiveTextureScale(shader->shaderType, entry.texUnit);
-				float* v = uniformData + (entry.uniformLocation / 4);
 				memcpy(entry.currentValue, xyScale, sizeof(float) * 2);
-				memcpy(v, xyScale, sizeof(float) * 2);
+				memcpy(GET_UNIFORM_DATA_PTR(entry.uniformLocation), xyScale, sizeof(float) * 2);
 			}
 		}
 		if (shader->uniform.loc_alphaTestRef >= 0)
 		{
-			float* v = uniformData + (shader->uniform.loc_alphaTestRef / 4);
-			v[0] = LatteGPUState.contextNew.SX_ALPHA_REF.get_ALPHA_TEST_REF();
+			*GET_UNIFORM_DATA_PTR(shader->uniform.loc_alphaTestRef) = LatteGPUState.contextNew.SX_ALPHA_REF.get_ALPHA_TEST_REF();
 		}
 		if (shader->uniform.loc_pointSize >= 0)
 		{
@@ -418,41 +418,38 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 			float pointWidth = (float)pointSizeReg.get_WIDTH() / 8.0f;
 			if (pointWidth == 0.0f)
 				pointWidth = 1.0f / 8.0f; // minimum size
-			float* v = uniformData + (shader->uniform.loc_pointSize / 4);
-			v[0] = pointWidth;
+			*GET_UNIFORM_DATA_PTR(shader->uniform.loc_pointSize) = pointWidth;
 		}
 		if (shader->uniform.loc_remapped >= 0)
 		{
-			LatteBufferCache_LoadRemappedUniforms(shader, uniformData + (shader->uniform.loc_remapped / 4));
+			LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped));
 		}
 		if (shader->uniform.loc_uniformRegister >= 0)
 		{
 			uint32* uniformRegData = (uint32*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst);
-			float* v = uniformData + (shader->uniform.loc_uniformRegister / 4);
-			memcpy(v, uniformRegData, shader->uniform.count_uniformRegister * 16);
+			memcpy(GET_UNIFORM_DATA_PTR(shader->uniform.loc_uniformRegister), uniformRegData, shader->uniform.count_uniformRegister * 16);
 		}
 		if (shader->uniform.loc_windowSpaceToClipSpaceTransform >= 0)
 		{
 			sint32 viewportWidth;
 			sint32 viewportHeight;
 			LatteRenderTarget_GetCurrentVirtualViewportSize(&viewportWidth, &viewportHeight); // always call after _updateViewport()
-			float* v = uniformData + (shader->uniform.loc_windowSpaceToClipSpaceTransform / 4);
+			float* v = GET_UNIFORM_DATA_PTR(shader->uniform.loc_windowSpaceToClipSpaceTransform);
 			v[0] = 2.0f / (float)viewportWidth;
 			v[1] = 2.0f / (float)viewportHeight;
 		}
 		if (shader->uniform.loc_fragCoordScale >= 0)
 		{
-			float* coordScale = uniformData + (shader->uniform.loc_fragCoordScale / 4);
-			LatteMRT::GetCurrentFragCoordScale(coordScale);
+			LatteMRT::GetCurrentFragCoordScale(GET_UNIFORM_DATA_PTR(shader->uniform.loc_fragCoordScale));
 		}
 		if (shader->uniform.loc_verticesPerInstance >= 0)
 		{
-			*(int*)(uniformData + (shader->uniform.loc_verticesPerInstance / 4)) = m_streamoutState.verticesPerInstance;
+			*(int*)(s_vkUniformData + ((size_t)shader->uniform.loc_verticesPerInstance / 4)) = m_streamoutState.verticesPerInstance;
 			for (sint32 b = 0; b < LATTE_NUM_STREAMOUT_BUFFER; b++)
 			{
 				if (shader->uniform.loc_streamoutBufferBase[b] >= 0)
 				{
-					*(int*)(uniformData + (shader->uniform.loc_streamoutBufferBase[b] / 4)) = m_streamoutState.buffer[b].ringBufferOffset;
+					*(uint32*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_streamoutBufferBase[b]) = m_streamoutState.buffer[b].ringBufferOffset;
 				}
 			}
 		}
@@ -463,7 +460,7 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 		}
 		uint32 bufferAlignmentM1 = std::max(m_featureControl.limits.minUniformBufferOffsetAlignment, m_featureControl.limits.nonCoherentAtomSize) - 1;
 		const uint32 uniformOffset = m_uniformVarBufferWriteIndex;
-		memcpy(m_uniformVarBufferPtr + uniformOffset, uniformData, shader->uniform.uniformRangeSize);
+		memcpy(m_uniformVarBufferPtr + uniformOffset, s_vkUniformData, shader->uniform.uniformRangeSize);
 		m_uniformVarBufferWriteIndex += shader->uniform.uniformRangeSize;
 		m_uniformVarBufferWriteIndex = (m_uniformVarBufferWriteIndex + bufferAlignmentM1) & ~bufferAlignmentM1;
 		// update dynamic offset
