@@ -441,7 +441,7 @@ private:
 	bool m_destroyPadSwapchainNextAcquire = false;
 	bool IsSwapchainInfoValid(bool mainWindow) const;
 
-	VkRenderPass m_imguiRenderPass = nullptr;
+	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 
 	VkDescriptorPool m_descriptorPool;
 
