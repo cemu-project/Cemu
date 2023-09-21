@@ -546,6 +546,10 @@ namespace nn
 			// SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCw
 			static nnResult SetSearchKeySingle(DownloadPostDataListParam* _this, const uint16be* searchKey)
 			{
+				if (searchKey == NULL)
+				{
+					return OLV_RESULT_INVALID_PARAMETER;
+				}
 				return SetSearchKey(_this, searchKey, 0);
 			}
 
