@@ -546,8 +546,9 @@ namespace nn
 			// SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCw
 			static nnResult SetSearchKeySingle(DownloadPostDataListParam* _this, const uint16be* searchKey)
 			{
-				if (searchKey == NULL)
+				if (searchKey == nullptr)
 				{
+					cemuLog_logDebug(LogType::NN_OLV, "DownloadPostDataListParam::SetSearchKeySingle: searchKeySingle is Null\n");			
 					return OLV_RESULT_INVALID_PARAMETER;
 				}
 				return SetSearchKey(_this, searchKey, 0);
