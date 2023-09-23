@@ -1591,10 +1591,9 @@ void VulkanRenderer::draw_updateUniformBuffersDirectAccess(LatteDecompilerShader
 {
 	if (shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
 	{
-		// use full uniform buffers
-		for (sint32 t = 0; t < shader->uniformBufferListCount; t++)
+		for(const auto& buf : shader->list_quickBufferList)
 		{
-			sint32 i = shader->uniformBufferList[t];
+			sint32 i = buf.index;
 			MPTR physicalAddr = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 0];
 			uint32 uniformSize = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 1] + 1;
 
@@ -1603,6 +1602,7 @@ void VulkanRenderer::draw_updateUniformBuffersDirectAccess(LatteDecompilerShader
 				cemu_assert_unimplemented();
 				continue;
 			}
+			uniformSize = std::min<uint32>(uniformSize, buf.size);
 
 			cemu_assert_debug(physicalAddr < 0x50000000);
 
@@ -1621,7 +1621,7 @@ void VulkanRenderer::draw_updateUniformBuffersDirectAccess(LatteDecompilerShader
 				dynamicOffsetInfo.shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT].unformBufferOffset[bufferIndex] = physicalAddr - m_importedMemBaseAddress;
 				break;
 			default:
-				cemu_assert_debug(false);
+				UNREACHABLE;
 			}
 		}
 	}
