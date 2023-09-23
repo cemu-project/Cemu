@@ -37,36 +37,14 @@ namespace LatteDecompiler
 		}
 		else if (decompilerContext->shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CFILE)
 		{
-			// here we try to predict the accessed range so we dont have to upload the whole register file
-			// we assume that if there is a fixed-index access on an index higher than a relative access, it bounds the prior relative access
-			sint16 highestAccessIndex = -1;
-			bool highestAccessIndexIsRel = false;
-			for(auto& accessItr : decompilerContext->analyzer.uniformRegisterAccessIndices)
-			{
-				if (accessItr.index > highestAccessIndex || (accessItr.index == highestAccessIndex && accessItr.isRelative && !highestAccessIndexIsRel))
-				{
-					highestAccessIndex = accessItr.index;
-					highestAccessIndexIsRel = accessItr.isRelative;
-				}
-			}
-			if (highestAccessIndex < 0)
-				highestAccessIndex = 0;
-
-			uint32 cfileSize;
-			if (highestAccessIndexIsRel)
-				cfileSize = 256;
-			else
-				cfileSize = highestAccessIndex + 1;
-
-			// full uniform register file has to be present
+			uint32 cfileSize = decompilerContext->analyzer.uniformRegisterAccessTracker.DetermineSize(256);
+			// full or partial uniform register file has to be present
 			if (shaderType == LatteConst::ShaderType::Vertex)
 				shaderSrc->addFmt("uniform ivec4 uf_uniformRegisterVS[{}];" _CRLF, cfileSize);
 			else if (shaderType == LatteConst::ShaderType::Pixel)
 				shaderSrc->addFmt("uniform ivec4 uf_uniformRegisterPS[{}];" _CRLF, cfileSize);
 			else if (shaderType == LatteConst::ShaderType::Geometry)
 				shaderSrc->addFmt("uniform ivec4 uf_uniformRegisterGS[{}];" _CRLF, cfileSize);
-			else
-				debugBreakpoint();
 			uniformOffsets.offset_uniformRegister = uniformCurrentOffset;
 			uniformOffsets.count_uniformRegister = cfileSize;
 			uniformCurrentOffset += 16 * cfileSize;
@@ -168,7 +146,7 @@ namespace LatteDecompiler
 		{
 			for (uint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
 			{
-				if ((decompilerContext->analyzer.uniformBufferAccessMask&(1 << i)) == 0)
+				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 
 				cemu_assert_debug(decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i] >= 0);
@@ -178,7 +156,7 @@ namespace LatteDecompiler
 
 				shaderSrc->addFmt("uniform {}{}" _CRLF, _getShaderUniformBlockInterfaceName(decompilerContext->shaderType), i);
 				shaderSrc->add("{" _CRLF);
-				shaderSrc->addFmt("vec4 {}{}[{}];" _CRLF, _getShaderUniformBlockVariableName(decompilerContext->shaderType), i, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE);
+				shaderSrc->addFmt("vec4 {}{}[{}];" _CRLF, _getShaderUniformBlockVariableName(decompilerContext->shaderType), i, decompilerContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE));
 				shaderSrc->add("};" _CRLF _CRLF);
 				shaderSrc->add(_CRLF);
 			}
