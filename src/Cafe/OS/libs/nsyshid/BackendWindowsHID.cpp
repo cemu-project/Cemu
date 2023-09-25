@@ -446,8 +446,17 @@ namespace nsyshid::backend::windows
 		{
 			sprintf(debugOutput + i * 3, "%02x ", data[i]);
 		}
-		fmt::print("{} Data: {}\n", prefix, debugOutput);
-		cemuLog_logDebug(LogType::Force, "[{}] Data: {}", prefix, debugOutput);
+
+		try
+		{
+			fmt::print("{} Data: {}\n", prefix, debugOutput);
+			cemuLog_logDebug(LogType::Force, "[{}] Data: {}", prefix, debugOutput);
+		} catch (const std::exception& e)
+		{
+			fmt::print("Error while logging: {}\n", e.what());
+			cemuLog_logDebug(LogType::Force, "Error while logging: {}", e.what());
+
+		}
 	}
 } // namespace nsyshid::backend::windows
 
