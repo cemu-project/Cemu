@@ -36,7 +36,7 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 `sudo pacman -S --needed base-devel clang cmake freeglut git glm gtk3 libgcrypt libpulse libsecret linux-headers llvm nasm ninja systemd unzip zip`
 
 #### For Fedora and derivatives:
-`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel nasm ninja-build perl-core systemd-devel zlib-devel`
+`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel nasm ninja-build perl-core systemd-devel zlib-devel`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
