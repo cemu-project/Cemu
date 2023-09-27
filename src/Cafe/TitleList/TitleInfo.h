@@ -65,6 +65,16 @@ public:
 		INVALID_STRUCTURE = 0,
 	};
 
+	enum class InvalidReason : uint8
+	{
+		NONE = 0,
+		BAD_PATH_OR_INACCESSIBLE = 1,
+		UNKNOWN_FORMAT = 2,
+		NO_DISC_KEY = 3,
+		NO_TITLE_TIK = 4,
+		MISSING_XML_FILES = 4,
+	};
+
 	struct CachedInfo
 	{
 		TitleDataFormat titleDataFormat;
@@ -101,6 +111,7 @@ public:
 	CachedInfo MakeCacheEntry();
 
 	bool IsValid() const;
+	InvalidReason GetInvalidReason() const { return m_invalidReason; }
 	uint64 GetUID(); // returns a unique identifier derived from the absolute canonical title location which can be used to identify this title by its location. May not persist across sessions, especially when Cemu is used portable
 
 	fs::path GetPath() const;
@@ -182,7 +193,7 @@ private:
 
 	bool DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataFormat& formatOut);
 	void CalcUID();
-
+	void SetInvalidReason(InvalidReason reason);
 	bool ParseAppXml(std::vector<uint8>& appXmlData);
 
 	bool m_isValid{ false };
@@ -190,6 +201,7 @@ private:
 	fs::path m_fullPath;
 	std::string m_subPath; // used for formats where fullPath isn't unique on its own (like WUA)
 	uint64 m_uid{};
+	InvalidReason m_invalidReason{ InvalidReason::NONE }; // if m_isValid == false, this contains a more detailed error code
 	// mounting info
 	std::vector<std::pair<sint32, std::string>> m_mountpoints;
 	class FSTVolume* m_wudVolume{};

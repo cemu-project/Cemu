@@ -20,11 +20,21 @@ private:
 class FSTVolume
 {
 public:
+	enum class ErrorCode
+  	{
+		OK = 0,
+		UNKNOWN_ERROR = 1,
+	  	DISC_KEY_MISSING = 2,
+	  	TITLE_TIK_MISSING = 3,
+	    BAD_TITLE_TMD = 4,
+	    BAD_TITLE_TIK = 5,
+  	};
+
 	static bool FindDiscKey(const fs::path& path, NCrypto::AesKey& discTitleKey);
 
-	static FSTVolume* OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& discTitleKey);
-	static FSTVolume* OpenFromDiscImage(const fs::path& path, bool* keyFound = nullptr);
-	static FSTVolume* OpenFromContentFolder(fs::path folderPath);
+	static FSTVolume* OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& discTitleKey, ErrorCode* errorCodeOut = nullptr);
+	static FSTVolume* OpenFromDiscImage(const fs::path& path, ErrorCode* errorCodeOut = nullptr);
+	static FSTVolume* OpenFromContentFolder(fs::path folderPath, ErrorCode* errorCodeOut = nullptr);
 
 	~FSTVolume();
 

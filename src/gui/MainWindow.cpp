@@ -559,6 +559,16 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		{
 			wxString t = _("Unable to launch game\nPath:\n");
 			t.append(fileName);
+			if(launchTitle.GetInvalidReason() == TitleInfo::InvalidReason::NO_DISC_KEY)
+			{
+				t.append(_("\n\n"));
+				t.append(_("Could not decrypt title. Make sure that keys.txt contains the correct disc key for this title."));
+			}
+			if(launchTitle.GetInvalidReason() == TitleInfo::InvalidReason::NO_TITLE_TIK)
+			{
+				t.append(_(""));
+				t.append(_("\n\nCould not decrypt title because title.tik is missing."));
+			}
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
