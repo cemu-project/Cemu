@@ -78,13 +78,6 @@ struct RPLRegionMappingTable
 void RPLLoader_UnloadModule(RPLModule* rpl);
 void RPLLoader_RemoveDependency(const char* name);
 
-char _ansiToLower(char c)
-{
-	if (c >= 'A' && c <= 'Z')
-		c -= ('A' - 'a');
-	return c;
-}
-
 uint8* RPLLoader_AllocateTrampolineCodeSpace(RPLModule* rplLoaderContext, sint32 size)
 {	
 	if (rplLoaderContext)
