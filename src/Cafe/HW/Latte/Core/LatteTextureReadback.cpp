@@ -8,7 +8,7 @@
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
 
-//#define LOG_READBACK_TIME
+#define LOG_READBACK_TIME
 
 struct LatteTextureReadbackQueueEntry
 {
@@ -47,9 +47,7 @@ bool LatteTextureReadback_Update(bool forceStart)
 		{
 #ifdef LOG_READBACK_TIME
 			double elapsedSecondsSinceInitiate = HighResolutionTimer::getTimeDiff(entry.initiateTime, HighResolutionTimer().now().getTick());
-			char initiateElapsedTimeStr[32];
-			sprintf(initiateElapsedTimeStr, "%.4lfms", elapsedSecondsSinceInitiate);
-			cemuLog_log(LogType::TextureReadback, "[TextureReadback-Update] Starting transfer for {:08x} after {} elapsed drawcalls. Time since initiate: {} Force-start: {}", entry.textureView->baseTexture->physAddress, numElapsedDrawcalls, initiateElapsedTimeStr, forceStart?"yes":"no");
+			cemuLog_log(LogType::TextureReadback, "[TextureReadback-Update] Starting transfer for {:08x} after {} elapsed drawcalls. Time since initiate: {:.4} Force-start: {}", entry.textureView->baseTexture->physAddress, numElapsedDrawcalls, elapsedSecondsSinceInitiate, forceStart?"yes":"no");
 #endif
 			LatteTextureReadback_StartTransfer(entry.textureView);
 			// remove element
@@ -83,7 +81,7 @@ void LatteTextureReadback_Initate(LatteTextureView* textureView)
 	// currently we don't support readback for resized textures
 	if (textureView->baseTexture->overwriteInfo.hasResolutionOverwrite)
 	{
-		cemuLog_log(LogType::Force, "_initate(): Readback is not supported for textures with modified resolution");
+		cemuLog_log(LogType::Force, "Texture readback is not supported for textures with modified resolution. Texture: {:08x} {}x{}", textureView->baseTexture->physAddress, textureView->baseTexture->width, textureView->baseTexture->height);
 		return;
 	}
 	// check if texture isn't already queued for transfer
@@ -124,7 +122,7 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 				if (cemuLog_isLoggingEnabled(LogType::TextureReadback))
 				{
 					double elapsedSecondsTransfer = HighResolutionTimer::getTimeDiff(readbackInfo->transferStartTime, HighResolutionTimer().now().getTick());
-					forceLog_printf("[Texture-Readback] Force-finish: %08x Res %4d/%4d TM %d FMT %04x Transfer time so far: %.4lfms", readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode, (uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0);
+					cemuLog_log(LogType::TextureReadback, "[Texture-Readback] Force-finish: {:08x} Res {:}/{:} TM {:} FMT {:04x} Transfer time so far: {:.4}ms", readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode, (uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0);
 				}
 #endif
 				readbackInfo->forceFinish = true;
@@ -146,7 +144,7 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 			HRTick currentTick = HighResolutionTimer().now().getTick();
 			double elapsedSecondsTransfer = HighResolutionTimer::getTimeDiff(readbackInfo->transferStartTime, currentTick);
 			double elapsedSecondsWaiting = HighResolutionTimer::getTimeDiff(readbackInfo->waitStartTime, currentTick);
-			forceLog_printf("[Texture-Readback] %08x Res %4d/%4d TM %d FMT %04x ReadbackLatency: %6.3lfms WaitTime: %6.3lfms ForcedWait %s", readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode, (uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0, elapsedSecondsWaiting * 1000.0, readbackInfo->forceFinish ? "yes" : "no");
+			cemuLog_log(LogType::TextureReadback, "[Texture-Readback] {:08x} Res {}/{} TM {} FMT {:04x} ReadbackLatency: {:6.3}ms WaitTime: {:6.3}ms ForcedWait {}", readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.tileMode, (uint32)readbackInfo->hostTextureCopy.format, elapsedSecondsTransfer * 1000.0, elapsedSecondsWaiting * 1000.0, readbackInfo->forceFinish ? "yes" : "no");
 		}
 #endif
 		uint8* pixelData = readbackInfo->GetData();

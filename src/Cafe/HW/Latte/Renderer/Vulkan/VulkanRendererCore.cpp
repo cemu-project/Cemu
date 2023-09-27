@@ -1574,7 +1574,7 @@ void VulkanRenderer::draw_updateVertexBuffersDirectAccess()
 		uint32 bufferSize = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 1] + 1;
 		uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
-		if (bufferAddress == MPTR_NULL)
+		if (bufferAddress == MPTR_NULL) [[unlikely]]
 		{
 			bufferAddress = 0x10000000;
 		}
@@ -1597,7 +1597,7 @@ void VulkanRenderer::draw_updateUniformBuffersDirectAccess(LatteDecompilerShader
 			MPTR physicalAddr = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 0];
 			uint32 uniformSize = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 1] + 1;
 
-			if (physicalAddr == MPTR_NULL)
+			if (physicalAddr == MPTR_NULL) [[unlikely]]
 			{
 				cemu_assert_unimplemented();
 				continue;

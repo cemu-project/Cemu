@@ -14,7 +14,11 @@ extern bool g_vulkan_available;
 
 #endif
 
-#ifdef VKFUNC_DEFINE
+#ifdef VKFUNC_DEFINE_CUSTOM
+	#define VKFUNC(__FUNC__) VKFUNC_DEFINE_CUSTOM(__FUNC__)
+	#define VKFUNC_INSTANCE(__FUNC__) VKFUNC_DEFINE_CUSTOM(__FUNC__)
+	#define VKFUNC_DEVICE(__FUNC__) VKFUNC_DEFINE_CUSTOM(__FUNC__)
+#elif defined(VKFUNC_DEFINE)
 	#define VKFUNC(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
 	#define VKFUNC_INSTANCE(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
 	#define VKFUNC_DEVICE(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
@@ -239,3 +243,4 @@ VKFUNC_DEVICE(vkDestroyDescriptorSetLayout);
 #undef VKFUNC
 #undef VKFUNC_INSTANCE
 #undef VKFUNC_DEVICE
+#undef VKFUNC_DEFINE_CUSTOM

@@ -2768,6 +2768,8 @@ void VulkanRenderer::NotifyLatteCommandProcessorIdle()
 		SubmitCommandBuffer();
 }
 
+void VulkanBenchmarkPrintResults();
+
 void VulkanRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
 	SubmitCommandBuffer();
@@ -2777,6 +2779,9 @@ void VulkanRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 
 	if (swapDRC && IsSwapchainInfoValid(false))
 		SwapBuffer(false);
+
+	if(swapTV)
+		VulkanBenchmarkPrintResults();
 }
 
 void VulkanRenderer::ClearColorbuffer(bool padView)
