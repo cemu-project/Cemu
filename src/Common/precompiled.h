@@ -468,6 +468,14 @@ inline fs::path _utf8ToPath(std::string_view input)
     return fs::path(v);
 }
 
+// locale-independent variant of tolower() which also matches Wii U behavior
+inline char _ansiToLower(char c)
+{
+	if (c >= 'A' && c <= 'Z')
+		c -= ('A' - 'a');
+	return c;
+}
+
 class RunAtCemuBoot // -> replaces this with direct function calls. Linkers other than MSVC may optimize way object files entirely if they are not referenced from outside. So a source file self-registering using this would be causing issues
 {
 public:

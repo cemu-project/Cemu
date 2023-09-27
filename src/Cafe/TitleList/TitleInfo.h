@@ -60,6 +60,7 @@ public:
 		HOST_FS = 1, // host filesystem directory (fullPath points to root with content/code/meta subfolders)
 		WUD = 2, // WUD or WUX
 		WIIU_ARCHIVE = 3, // Wii U compressed single-file archive (.wua)
+	  	NUS = 4, // NUS format. Directory with .app files, title.tik and title.tmd
 		// error
 		INVALID_STRUCTURE = 0,
 	};

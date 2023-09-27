@@ -42,6 +42,7 @@ public:
 	{
 		Folder,
 		WUD,
+		NUS,
 		WUA,
 	};
 

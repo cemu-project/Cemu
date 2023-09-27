@@ -324,17 +324,25 @@ bool CafeTitleList::RefreshWorkerThread()
 	return true;
 }
 
-bool _IsKnownFileExtension(std::string fileExtension)
+bool _IsKnownFileNameOrExtension(const fs::path& path)
 {
+	std::string fileExtension = _pathToUtf8(path.extension());
 	for (auto& it : fileExtension)
-		if (it >= 'A' && it <= 'Z')
-			it -= ('A' - 'a');
+		it = _ansiToLower(it);
+	if(fileExtension == ".tmd")
+	{
+		// must be "title.tmd"
+		std::string fileName = _pathToUtf8(path.filename());
+		for (auto& it : fileName)
+			it = _ansiToLower(it);
+		return fileName == "title.tmd";
+	}
 	return
 		fileExtension == ".wud" ||
 		fileExtension == ".wux" ||
 		fileExtension == ".iso" ||
 		fileExtension == ".wua";
-	// note: To detect extracted titles with RPX we use the content/code/meta folder structure
+	// note: To detect extracted titles with RPX we rely on the presence of the content,code,meta directory structure
 }
 
 void CafeTitleList::ScanGamePath(const fs::path& path)
@@ -353,7 +361,6 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 		else if (it.is_directory(ec))
 		{
 			dirsInDirectory.emplace_back(it.path());
-
 			std::string dirName = _pathToUtf8(it.path().filename());
 			if (boost::iequals(dirName, "content"))
 				hasContentFolder = true;
@@ -366,10 +373,10 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 	// always check individual files
 	for (auto& it : filesInDirectory)
 	{
-		// since checking files is slow, we only do it for known file extensions
+		// since checking individual files is slow, we limit it to known file names or extensions
 		if (!it.has_extension())
 			continue;
-		if (!_IsKnownFileExtension(_pathToUtf8(it.extension())))
+		if (!_IsKnownFileNameOrExtension(it))
 			continue;
 		AddTitleFromPath(it);
 	}

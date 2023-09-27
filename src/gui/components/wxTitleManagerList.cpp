@@ -941,6 +941,8 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 			return _("Folder");
 		case wxTitleManagerList::EntryFormat::WUD:
 			return _("WUD");
+		case wxTitleManagerList::EntryFormat::NUS:
+			return _("NUS");
 		case wxTitleManagerList::EntryFormat::WUA:
 			return _("WUA");
 		}
@@ -1010,15 +1012,18 @@ void wxTitleManagerList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt
 	wxTitleManagerList::EntryFormat entryFormat;
 	switch (titleInfo.GetFormat())
 	{
-	case TitleInfo::TitleDataFormat::HOST_FS:
-	default:
-		entryFormat = EntryFormat::Folder;
-		break;
 	case TitleInfo::TitleDataFormat::WUD:
 		entryFormat = EntryFormat::WUD;
 		break;
+	case TitleInfo::TitleDataFormat::NUS:
+		entryFormat = EntryFormat::NUS;
+		break;
 	case TitleInfo::TitleDataFormat::WIIU_ARCHIVE:
 		entryFormat = EntryFormat::WUA;
+		break;
+	case TitleInfo::TitleDataFormat::HOST_FS:
+	default:
+		entryFormat = EntryFormat::Folder;
 		break;
 	}
 
