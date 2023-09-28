@@ -923,7 +923,7 @@ void GeneralSettings2::StoreConfig()
 
 	config.game_paths.clear();
 	for (auto& path : m_game_paths->GetStrings())
-		config.game_paths.emplace_back(path);
+		config.game_paths.emplace_back(path.utf8_string());
 
 	auto selection = m_language->GetSelection();
 	if (selection == 0)
@@ -1530,7 +1530,7 @@ void GeneralSettings2::ApplyConfig()
 
 	for (auto& path : config.game_paths)
 	{
-		m_game_paths->Append(path);
+		m_game_paths->Append(to_wxString(path));
 	}
 
 	const auto app = (CemuApp*)wxTheApp;

@@ -54,7 +54,7 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 
 		if (versionNum > GP_LEGACY_VERSION)
 		{
-			GraphicPack2::LoadGraphicPack(rulesPath.generic_wstring(), iniParser);
+			GraphicPack2::LoadGraphicPack(_pathToUtf8(rulesPath), iniParser);
 			return;
 		}
 	}
@@ -79,7 +79,7 @@ void GraphicPack2::LoadAll()
 	}
 }
 
-bool GraphicPack2::LoadGraphicPack(const std::wstring& filename, IniParser& rules)
+bool GraphicPack2::LoadGraphicPack(const std::string& filename, IniParser& rules)
 {
 	try
 	{
@@ -216,12 +216,6 @@ void GraphicPack2::WaitUntilReady()
 		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
-GraphicPack2::GraphicPack2(std::wstring filename)
-	: m_filename(std::move(filename))
-{
-	// unused for now
-}
-
 std::unordered_map<std::string, GraphicPack2::PresetVar> GraphicPack2::ParsePresetVars(IniParser& rules) const
 {
 	ExpressionParser parser;
@@ -255,7 +249,7 @@ std::unordered_map<std::string, GraphicPack2::PresetVar> GraphicPack2::ParsePres
 	return vars;
 }
 
-GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
+GraphicPack2::GraphicPack2(std::string filename, IniParser& rules)
 	: m_filename(std::move(filename))
 {
 	// we're already in [Definition]
@@ -265,7 +259,7 @@ GraphicPack2::GraphicPack2(std::wstring filename, IniParser& rules)
 	m_version = StringHelpers::ToInt(*option_version, -1);
 	if (m_version < 0)
 	{
-		cemuLog_log(LogType::Force, L"{}: Invalid version", m_filename);
+		cemuLog_log(LogType::Force, "{}: Invalid version", m_filename);
 		throw std::exception();
 	}
 
@@ -839,7 +833,7 @@ void GraphicPack2::LoadReplacedFiles()
 		return;
 	m_patchedFilesLoaded = true;
 
-	fs::path gfxPackPath(m_filename.c_str());
+	fs::path gfxPackPath = _utf8ToPath(m_filename);
 	gfxPackPath = gfxPackPath.remove_filename();
 
 	// /content/
@@ -892,14 +886,14 @@ bool GraphicPack2::Activate()
 			return false;
 	}
 
-	FileStream* fs_rules = FileStream::openFile2({ m_filename });
+	FileStream* fs_rules = FileStream::openFile2(_utf8ToPath(m_filename));
 	if (!fs_rules)
 		return false;
 	std::vector<uint8> rulesData;
 	fs_rules->extract(rulesData);
 	delete fs_rules;
 
-	IniParser rules({ (char*)rulesData.data(), rulesData.size()}, boost::nowide::narrow(m_filename));
+	IniParser rules({ (char*)rulesData.data(), rulesData.size()}, m_filename);
 
 	// load rules
 	try
@@ -953,7 +947,7 @@ bool GraphicPack2::Activate()
 					else if (anisotropyValue == 16)
 						rule.overwrite_settings.anistropic_value = 4;
 					else
-						cemuLog_log(LogType::Force, fmt::format(L"Invalid value {} for overwriteAnisotropy in graphic pack {}. Only the values 1, 2, 4, 8 or 16 are allowed.", anisotropyValue, m_filename));
+						cemuLog_log(LogType::Force, "Invalid value {} for overwriteAnisotropy in graphic pack {}. Only the values 1, 2, 4, 8 or 16 are allowed.", anisotropyValue, m_filename);
 				}
 				m_texture_rules.emplace_back(rule);
 			}

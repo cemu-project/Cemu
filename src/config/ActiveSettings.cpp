@@ -40,7 +40,7 @@ ActiveSettings::LoadOnce(
 	g_config.SetFilename(GetConfigPath("settings.xml").generic_wstring());
 	g_config.Load();
 	LaunchSettings::ChangeNetworkServiceURL(GetConfig().account.active_service);
-	std::wstring additionalErrorInfo;
+	std::string additionalErrorInfo;
 	s_has_required_online_files = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo) == IOS_CRYPTO_ONLINE_REQ_OK;
 	return failed_write_access;
 }

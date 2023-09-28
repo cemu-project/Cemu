@@ -352,7 +352,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 		boost::replace_all(shortName, ":", "");
 	}
 	// for the default output directory we use the first game path configured by the user
-	std::wstring defaultDir = L"";
+	std::string defaultDir = "";
 	if (!GetConfig().game_paths.empty())
 		defaultDir = GetConfig().game_paths.front();
 	// get the short name, which we will use as a suggested default file name

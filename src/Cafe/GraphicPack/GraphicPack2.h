@@ -97,13 +97,12 @@ public:
 	};
 	using PresetPtr = std::shared_ptr<Preset>;
 
-	GraphicPack2(std::wstring filename);
-	GraphicPack2(std::wstring filename, IniParser& rules);
+	GraphicPack2(std::string filename, IniParser& rules);
 
 	bool IsEnabled() const { return m_enabled; }
 	bool IsActivated() const { return m_activated; }
 	sint32 GetVersion() const { return m_version; }
-	const std::wstring& GetFilename() const { return m_filename; }
+	const std::string& GetFilename() const { return m_filename; }
 	const fs::path GetFilename2() const { return fs::path(m_filename); }
 	bool RequiresRestart(bool changeEnableState, bool changePreset);
 	bool Reload();
@@ -165,7 +164,7 @@ public:
 	static const std::vector<std::shared_ptr<GraphicPack2>>& GetGraphicPacks() { return s_graphic_packs; }
 	static const std::vector<std::shared_ptr<GraphicPack2>>& GetActiveGraphicPacks() { return s_active_graphic_packs; }
 	static void LoadGraphicPack(fs::path graphicPackPath);
-	static bool LoadGraphicPack(const std::wstring& filename, class IniParser& rules);
+	static bool LoadGraphicPack(const std::string& filename, class IniParser& rules);
 	static bool ActivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack);
 	static bool DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack);
 	static void ClearGraphicPacks();
@@ -209,7 +208,7 @@ private:
 			parser.TryAddConstant(var.first, (TType)var.second.second);
 	}
 
-	std::wstring m_filename;
+	std::string m_filename;
 
 	sint32 m_version;
 	std::string m_name;

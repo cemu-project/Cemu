@@ -110,7 +110,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 		try
 		{
-			recent_launch_files.emplace_back(boost::nowide::widen(path));
+			recent_launch_files.emplace_back(path);
 		}
 		catch (const std::exception&)
 		{
@@ -125,10 +125,9 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		const std::string path = element.value("");
 		if (path.empty())
 			continue;
-
 		try
 		{
-			recent_nfc_files.emplace_back(boost::nowide::widen(path));
+			recent_nfc_files.emplace_back(path);
 		}
 		catch (const std::exception&)
 		{
@@ -143,10 +142,9 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		const std::string path = element.value("");
 		if (path.empty())
 			continue;
-
 		try
 		{
-			game_paths.emplace_back(boost::nowide::widen(path));
+			game_paths.emplace_back(path);
 		}
 		catch (const std::exception&)
 		{
@@ -402,20 +400,20 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto launch_files_parser = config.set("RecentLaunchFiles");
 	for (const auto& entry : recent_launch_files)
 	{
-		launch_files_parser.set("Entry", boost::nowide::narrow(entry).c_str());
+		launch_files_parser.set("Entry", entry.c_str());
 	}
 	
 	auto nfc_files_parser = config.set("RecentNFCFiles");
 	for (const auto& entry : recent_nfc_files)
 	{
-		nfc_files_parser.set("Entry", boost::nowide::narrow(entry).c_str());
+		nfc_files_parser.set("Entry", entry.c_str());
 	}
 		
 	// game paths
 	auto game_path_parser = config.set("GamePaths");
 	for (const auto& entry : game_paths)
 	{
-		game_path_parser.set("Entry", boost::nowide::narrow(entry).c_str());
+		game_path_parser.set("Entry", entry.c_str());
 	}
 
 	// game list cache
@@ -593,22 +591,18 @@ void CemuConfig::SetGameListCustomName(uint64 titleId, std::string customName)
 	gameEntry->custom_name = std::move(customName);
 }
 
-void CemuConfig::AddRecentlyLaunchedFile(std::wstring_view file)
+void CemuConfig::AddRecentlyLaunchedFile(std::string_view file)
 {
-	// insert into front
-	recent_launch_files.insert(recent_launch_files.begin(), std::wstring{ file });
+	recent_launch_files.insert(recent_launch_files.begin(), std::string(file));
 	RemoveDuplicatesKeepOrder(recent_launch_files);
-	// keep maximum of entries
 	while(recent_launch_files.size() > kMaxRecentEntries)
 		recent_launch_files.pop_back();
 }
 
-void CemuConfig::AddRecentNfcFile(std::wstring_view file)
+void CemuConfig::AddRecentNfcFile(std::string_view file)
 {
-	// insert into front
-	recent_nfc_files.insert(recent_nfc_files.begin(), std::wstring{ file });
+	recent_nfc_files.insert(recent_nfc_files.begin(), std::string(file));
 	RemoveDuplicatesKeepOrder(recent_nfc_files);
-	// keep maximum of entries
 	while (recent_nfc_files.size() > kMaxRecentEntries)
 		recent_nfc_files.pop_back();
 }

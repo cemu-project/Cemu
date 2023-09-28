@@ -25,7 +25,7 @@ sint32 GraphicPack2::GetLengthWithoutComment(const char* str, size_t length)
 
 void GraphicPack2::LogPatchesSyntaxError(sint32 lineNumber, std::string_view errorMsg)
 {
-	cemuLog_log(LogType::Force, fmt::format(L"Syntax error while parsing patch for graphic pack '{}':", this->GetFilename()));
+	cemuLog_log(LogType::Force, "Syntax error while parsing patch for graphic pack '{}':", this->GetFilename());
 	if(lineNumber >= 0)
 		cemuLog_log(LogType::Force, fmt::format("Line {0}: {1}", lineNumber, errorMsg));
 	else

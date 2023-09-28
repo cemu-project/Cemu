@@ -248,7 +248,7 @@ public:
 	bool OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames) override
 	{
 		if(!m_window->IsGameLaunched() && filenames.GetCount() == 1)
-			return m_window->FileLoad(filenames[0].wc_str(), wxLaunchGameEvent::INITIATED_BY::DRAG_AND_DROP);
+			return m_window->FileLoad(_utf8ToPath(filenames[0].utf8_string()), wxLaunchGameEvent::INITIATED_BY::DRAG_AND_DROP);
 		
 		return false;
 	}
@@ -265,11 +265,11 @@ public:
 	{
 		if (!m_window->IsGameLaunched() || filenames.GetCount() != 1)
 			return false;
-		
 		uint32 nfcError;
-		if (nnNfp_touchNfcTagFromFile(filenames[0].wc_str(), &nfcError))
+		std::string path = filenames[0].utf8_string();
+		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError))
 		{
-			GetConfig().AddRecentNfcFile((wchar_t*)filenames[0].wc_str());
+			GetConfig().AddRecentNfcFile(path);
 			m_window->UpdateNFCMenu();
 			return true;
 		}
@@ -493,9 +493,8 @@ bool MainWindow::InstallUpdate(const fs::path& metaFilePath)
 	return false;
 }
 
-bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY initiatedBy)
+bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATED_BY initiatedBy)
 {
-	const fs::path launchPath = fs::path(fileName);
 	TitleInfo launchTitle{ launchPath };
 	if (launchTitle.IsValid())
 	{
@@ -518,14 +517,14 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		else if (r == CafeSystem::STATUS_CODE::UNABLE_TO_MOUNT)
 		{
 			wxString t = _("Unable to mount title.\nMake sure the configured game paths are still valid and refresh the game list.\n\nFile which failed to load:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 		else if (r != CafeSystem::STATUS_CODE::SUCCESS)
 		{
 			wxString t = _("Failed to launch game.");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
@@ -542,7 +541,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 			{
 				cemu_assert_debug(false); // todo
 				wxString t = _("Failed to launch executable. Path: ");
-				t.append(fileName);
+				t.append(_pathToUtf8(launchPath));
 				wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 				return false;
 			}
@@ -550,7 +549,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		else if (initiatedBy == wxLaunchGameEvent::INITIATED_BY::GAME_LIST)
 		{
 			wxString t = _("Unable to launch title.\nMake sure the configured game paths are still valid and refresh the game list.\n\nPath which failed to load:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
@@ -558,7 +557,7 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 			initiatedBy == wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE)
 		{
 			wxString t = _("Unable to launch game\nPath:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			if(launchTitle.GetInvalidReason() == TitleInfo::InvalidReason::NO_DISC_KEY)
 			{
 				t.append(_("\n\n"));
@@ -575,16 +574,16 @@ bool MainWindow::FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY
 		else
 		{
 			wxString t = _("Unable to launch game\nPath:\n");
-			t.append(fileName);
+			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 	}
 
 	if(launchTitle.IsValid())
-		GetConfig().AddRecentlyLaunchedFile(launchTitle.GetPath().generic_wstring());
+		GetConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchTitle.GetPath()));
 	else
-		GetConfig().AddRecentlyLaunchedFile(fileName);
+		GetConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchPath));
 
 	wxWindowUpdateLocker lock(this);
 
@@ -640,7 +639,7 @@ void MainWindow::OnLaunchFromFile(wxLaunchGameEvent& event)
 {
 	if (event.GetPath().empty())
 		return;
-	FileLoad(event.GetPath().generic_wstring(), event.GetInitiatedBy());
+	FileLoad(event.GetPath(), event.GetInitiatedBy());
 }
 
 void MainWindow::OnFileMenu(wxCommandEvent& event)
@@ -669,7 +668,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			return;
 
 		const wxString wxStrFilePath = openFileDialog.GetPath();	
-		FileLoad(wxStrFilePath.wc_str(), wxLaunchGameEvent::INITIATED_BY::MENU);
+		FileLoad(_utf8ToPath(wxStrFilePath.utf8_string()), wxLaunchGameEvent::INITIATED_BY::MENU);
 	}
 	else if (menuId >= MAINFRAME_MENU_ID_FILE_RECENT_0 && menuId <= MAINFRAME_MENU_ID_FILE_RECENT_LAST)
 	{
@@ -749,7 +748,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			return;
 		wxString wxStrFilePath = openFileDialog.GetPath();
 		uint32 nfcError;
-		if (nnNfp_touchNfcTagFromFile(wxStrFilePath.wc_str(), &nfcError) == false)
+		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(wxStrFilePath.utf8_string()), &nfcError) == false)
 		{
 			if (nfcError == NFC_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"));
@@ -758,7 +757,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 		}
 		else
 		{
-			GetConfig().AddRecentNfcFile((wchar_t*)wxStrFilePath.wc_str());
+			GetConfig().AddRecentNfcFile(wxStrFilePath.utf8_string());
 			UpdateNFCMenu();
 		}
 	}
@@ -772,7 +771,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			if (!path.empty())
 			{
 				uint32 nfcError = 0;
-				if (nnNfp_touchNfcTagFromFile(path.c_str(), &nfcError) == false)
+				if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError) == false)
 				{
 					if (nfcError == NFC_ERROR_NO_ACCESS)
 						wxMessageBox(_("Cannot open file"));
@@ -1766,7 +1765,7 @@ void MainWindow::UpdateNFCMenu()
 		if (recentFileIndex == 0)
 			m_nfcMenuSeparator0 = m_nfcMenu->AppendSeparator();
 
-		m_nfcMenu->Append(MAINFRAME_MENU_ID_NFC_RECENT_0 + i, fmt::format(L"{}. {}", recentFileIndex, entry ));
+		m_nfcMenu->Append(MAINFRAME_MENU_ID_NFC_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, entry)));
 
 		recentFileIndex++;
 		if (recentFileIndex >= 12)
@@ -2106,7 +2105,7 @@ void MainWindow::RecreateMenu()
 			if (recentFileIndex == 0)
 				m_fileMenuSeparator0 = m_fileMenu->AppendSeparator();
 
-			m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, fmt::format(L"{}. {}", recentFileIndex, entry));
+			m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, entry)));
 			recentFileIndex++;
 
 			if (recentFileIndex >= 8)

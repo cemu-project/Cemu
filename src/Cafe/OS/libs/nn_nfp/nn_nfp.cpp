@@ -180,7 +180,7 @@ struct
 	bool hasOpenApplicationArea; // set to true if application area was opened or created
 	// currently active Amiibo
 	bool hasActiveAmiibo;
-	std::wstring amiiboPath;
+	fs::path amiiboPath;
 	bool hasInvalidHMAC;
 	uint32 amiiboTouchTime;
 	AmiiboRawNFCData amiiboNFCData; // raw data
@@ -188,7 +188,6 @@ struct
 	AmiiboProcessedData amiiboProcessedData;
 }nfp_data = { 0 };
 
-bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError);
 bool nnNfp_writeCurrentAmiibo();
 
 #include "AmiiboCrypto.h"
@@ -770,7 +769,7 @@ void nnNfp_unloadAmiibo()
 	nnNfpUnlock();
 }
 
-bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError)
+bool nnNfp_touchNfcTagFromFile(const fs::path& filePath, uint32* nfcError)
 {
 	AmiiboRawNFCData rawData = { 0 };
 	auto nfcData = FileStream::LoadIntoMemory(filePath);
@@ -847,11 +846,11 @@ bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError)
 	memcpy(&nfp_data.amiiboNFCData, &rawData, sizeof(AmiiboRawNFCData));
 	// decrypt amiibo
 	amiiboDecrypt();
-	nfp_data.amiiboPath = std::wstring(filePath);
+	nfp_data.amiiboPath = filePath;
 	nfp_data.hasActiveAmiibo = true;
 	if (nfp_data.activateEvent)
 	{
-		coreinit::OSEvent* osEvent = (coreinit::OSEvent*)memory_getPointerFromVirtualOffset(nfp_data.activateEvent);
+		MEMPTR<coreinit::OSEvent> osEvent(nfp_data.activateEvent);
 		coreinit::OSSignalEvent(osEvent);
 	}
 	nfp_data.amiiboTouchTime = GetTickCount();

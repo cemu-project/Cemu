@@ -33,7 +33,6 @@ FileStream* FileStream::openFile(const wchar_t* path, bool allowWrite)
 
 FileStream* FileStream::openFile2(const fs::path& path, bool allowWrite)
 {
-	//return openFile(path.generic_wstring().c_str(), allowWrite);
 	FileStream* fs = new FileStream(path, true, allowWrite);
 	if (fs->m_isValid)
 		return fs;

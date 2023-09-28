@@ -379,7 +379,7 @@ struct CemuConfig
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
 
-	std::vector<std::wstring> game_paths;
+	std::vector<std::string> game_paths;
 	std::mutex game_cache_entries_mutex;
 	std::vector<GameEntry> game_cache_entries;
 
@@ -399,8 +399,8 @@ struct CemuConfig
 
 	// max 15 entries
 	static constexpr size_t kMaxRecentEntries = 15;
-	std::vector<std::wstring> recent_launch_files;
-	std::vector<std::wstring> recent_nfc_files;
+	std::vector<std::string> recent_launch_files;
+	std::vector<std::string> recent_nfc_files;
 
 	Vector2i window_position{-1,-1};
 	Vector2i window_size{ -1,-1 };
@@ -499,8 +499,8 @@ struct CemuConfig
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
 
-	void AddRecentlyLaunchedFile(std::wstring_view file);
-	void AddRecentNfcFile(std::wstring_view file);
+	void AddRecentlyLaunchedFile(std::string_view file);
+	void AddRecentNfcFile(std::string_view file);
 
 	bool IsGameListFavorite(uint64 titleId);
 	void SetGameListFavorite(uint64 titleId, bool isFavorite);

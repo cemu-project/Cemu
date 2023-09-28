@@ -229,7 +229,7 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
 		const auto it = std::find(config.game_paths.cbegin(), config.game_paths.cend(), gamePath);
 		if (it == config.game_paths.cend())
 		{
-			config.game_paths.emplace_back(gamePath.generic_wstring());
+			config.game_paths.emplace_back(_pathToUtf8(gamePath));
 			m_game_path_changed = true;
 		}
 	}
@@ -248,7 +248,7 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
 
 	CafeTitleList::ClearScanPaths();
 	for (auto& it : GetConfig().game_paths)
-		CafeTitleList::AddScanPath(it);
+		CafeTitleList::AddScanPath(_utf8ToPath(it));
 	CafeTitleList::Refresh();
 }
 

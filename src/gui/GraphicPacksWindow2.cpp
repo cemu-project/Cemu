@@ -329,7 +329,7 @@ void GraphicPacksWindow2::SaveStateToConfig()
 
 	for (const auto& gp : GraphicPack2::GetGraphicPacks())
 	{
-		auto filename = MakeRelativePath(ActiveSettings::GetUserDataPath(), gp->GetFilename()).lexically_normal();
+		auto filename = MakeRelativePath(ActiveSettings::GetUserDataPath(), _utf8ToPath(gp->GetFilename())).lexically_normal();
 		if (gp->IsEnabled())
 		{
 			data.graphic_pack_entries.try_emplace(filename);
