@@ -157,14 +157,6 @@ bool cemuLog_log(LogType type, std::u8string_view text)
 	return cemuLog_log(type, s);
 }
 
-bool cemuLog_log(LogType type, std::wstring_view text)
-{
-	if (!cemuLog_isLoggingEnabled(type))
-		return false;
-
-	return cemuLog_log(type, boost::nowide::narrow(text.data(), text.size()));
-}
-
 void cemuLog_waitForFlush()
 {
 	cemuLog_createLogFile(false);

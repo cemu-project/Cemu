@@ -68,7 +68,6 @@ inline bool cemuLog_isLoggingEnabled(LogType type)
 
 bool cemuLog_log(LogType type, std::string_view text);
 bool cemuLog_log(LogType type, std::u8string_view text);
-bool cemuLog_log(LogType type, std::wstring_view text);
 void cemuLog_waitForFlush(); // wait until all log lines are written
 
 template <typename T>

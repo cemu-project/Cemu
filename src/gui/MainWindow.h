@@ -65,7 +65,7 @@ public:
 	void UpdateSettingsAfterGameLaunch();
 	void RestoreSettingsAfterGameExited();
 
-	bool FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY initiatedBy);
+	bool FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATED_BY initiatedBy);
 
 	[[nodiscard]] bool IsGameLaunched() const { return m_game_launched; }
 

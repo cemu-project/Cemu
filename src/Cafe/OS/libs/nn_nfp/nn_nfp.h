@@ -8,7 +8,7 @@ namespace nn::nfp
 void nnNfp_load();
 void nnNfp_update();
 
-bool nnNfp_touchNfcTagFromFile(const wchar_t* filePath, uint32* nfcError);
+bool nnNfp_touchNfcTagFromFile(const fs::path& filePath, uint32* nfcError);
 
 #define NFP_STATE_NONE			(0)
 #define NFP_STATE_INIT			(1)

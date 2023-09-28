@@ -83,7 +83,7 @@ bool GraphicPack2::LoadCemuPatches()
 	};
 
 	bool foundPatches = false;
-	fs::path path(m_filename);
+	fs::path path(_utf8ToPath(m_filename));
 	path.remove_filename();
 	for (auto& p : fs::directory_iterator(path))
 	{
@@ -91,10 +91,10 @@ bool GraphicPack2::LoadCemuPatches()
 		if (fs::is_regular_file(p.status()) && path.has_filename())
 		{
 			// check if filename matches
-			std::wstring filename = path.filename().generic_wstring();
-			if (boost::istarts_with(filename, L"patch_") && boost::iends_with(filename, L".asm"))
+			std::string filename = _pathToUtf8(path.filename());
+			if (boost::istarts_with(filename, "patch_") && boost::iends_with(filename, ".asm"))
 			{
-				FileStream* patchFile = FileStream::openFile(path.generic_wstring().c_str());
+				FileStream* patchFile = FileStream::openFile2(path);
 				if (patchFile)
 				{
 					// read file
@@ -126,27 +126,20 @@ void GraphicPack2::LoadPatchFiles()
 	// order of loading patches:
 	// 1) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
 	// 2) Load Cemuhook patches.txt
-
-	// update: As of 1.20.2b Cemu always takes over patching since Cemuhook patching broke due to other internal changes (memory allocation changed and some reordering on when graphic packs get loaded)
 	if (LoadCemuPatches())
 		return; // exit if at least one Cemu style patch file was found
 	// fall back to Cemuhook patches.txt to guarantee backward compatibility
-	fs::path path(m_filename);
+	fs::path path(_utf8ToPath(m_filename));
 	path.remove_filename();
 	path.append("patches.txt");
-
-	FileStream* patchFile = FileStream::openFile(path.generic_wstring().c_str());
-
+	FileStream* patchFile = FileStream::openFile2(path);
 	if (patchFile == nullptr)
 		return;
-
 	// read file
 	std::vector<uint8> fileData;
 	patchFile->extract(fileData);
 	delete patchFile;
-
 	cemu_assert_debug(list_patchGroups.empty());
-
 	// parse
 	MemStreamReader patchesStream(fileData.data(), (sint32)fileData.size());
 	ParseCemuhookPatchesTxtInternal(patchesStream);

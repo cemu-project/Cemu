@@ -1541,7 +1541,7 @@ void DownloadManager::runManager()
 	auto cacheFilePath = ActiveSettings::GetMlcPath("usr/save/system/nim/nup/");
 	fs::create_directories(cacheFilePath);
 	cacheFilePath /= "cemu_cache.dat";
-	s_nupFileCache = FileCache::Open(cacheFilePath.generic_wstring(), true);
+	s_nupFileCache = FileCache::Open(cacheFilePath, true);
 	// launch worker thread
 	std::thread t(&DownloadManager::threadFunc, this);
 	t.detach();
