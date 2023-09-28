@@ -59,7 +59,8 @@ add_executable(CemuBin
 if(WIN32)
 	target_sources(CemuBin PRIVATE
 	resource/cemu.rc
-)
+	../dist/windows/cemu.manifest
+	)
 endif()
 
 set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -77,7 +78,7 @@ if (MACOS_BUNDLE)
 	set(MACOSX_BUNDLE_BUNDLE_NAME "Cemu")
 	set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
 	set(MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
-	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2022 Cemu Project")
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2023 Cemu Project")
 
 	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
 
