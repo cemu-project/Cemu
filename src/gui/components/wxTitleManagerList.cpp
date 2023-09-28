@@ -274,6 +274,9 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 					break; // prefer the users selection
 			}
 		}
+	}
+	for (const auto& data : m_data)
+	{
 		if (hasUpdateTitleId && data->entry.title_id == updateTitleId)
 		{
 			if (!titleInfo_update.IsValid())
