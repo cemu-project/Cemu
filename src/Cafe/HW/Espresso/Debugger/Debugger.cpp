@@ -210,7 +210,8 @@ void debugger_handleSingleStepException(uint64 dr6)
 	}
 	if (catchBP)
 	{
-		debugger_createCodeBreakpoint(ppcInterpreterCurrentInstance->instructionPointer + 4, DEBUGGER_BP_T_ONE_SHOT);
+		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+		debugger_createCodeBreakpoint(hCPU->instructionPointer + 4, DEBUGGER_BP_T_ONE_SHOT);
 	}
 }
 

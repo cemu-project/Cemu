@@ -17,7 +17,7 @@
 .idea/
 
 build/
-cmake-build-*-*/
+cmake-build-*/
 out/
 .cache/
 bin/Cemu_*

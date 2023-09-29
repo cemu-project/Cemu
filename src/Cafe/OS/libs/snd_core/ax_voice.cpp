@@ -3,6 +3,7 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/libs/snd_core/ax_internal.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "util/helpers/fspinlock.h"
 
 namespace snd_core
@@ -120,7 +121,7 @@ namespace snd_core
 		{
 			return -2;
 		}
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		for (sint32 i = __AXUserProtectionArraySize - 1; i >= 0; i--)
 		{
 			if (__AXUserProtectionArray[i].threadMPTR == currentThreadMPTR)
@@ -151,7 +152,7 @@ namespace snd_core
 		PPCCore_deboostQuantum(10000);
 		if (AXIst_IsFrameBeingProcessed())
 			return -2;
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		for (sint32 i = __AXUserProtectionArraySize - 1; i >= 0; i--)
 		{
 			if (__AXUserProtectionArray[i].threadMPTR == currentThreadMPTR)
@@ -206,7 +207,7 @@ namespace snd_core
 		if (AXIst_IsFrameBeingProcessed())
 			isProtected = __AXVoiceProtection[index].threadMPTR != MPTR_NULL;
 		else
-			isProtected = __AXVoiceProtection[index].threadMPTR != coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+			isProtected = __AXVoiceProtection[index].threadMPTR != memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		return isProtected;
 	}
 
@@ -219,7 +220,7 @@ namespace snd_core
 			return;
 		if (__AXVoiceProtection[index].threadMPTR == MPTR_NULL)
 		{
-			__AXVoiceProtection[index].threadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+			__AXVoiceProtection[index].threadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 			// does not set count?
 		}
 	}
@@ -246,7 +247,7 @@ namespace snd_core
 		}
 		if (AXIst_IsFrameBeingProcessed())
 			return -2;
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		if (__AXVoiceProtection[index].threadMPTR == MPTR_NULL)
 		{
 			__AXVoiceProtection[index].threadMPTR = currentThreadMPTR;
@@ -286,7 +287,7 @@ namespace snd_core
 		}
 		if (AXIst_IsFrameBeingProcessed())
 			return -2;
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		if (__AXVoiceProtection[index].threadMPTR == currentThreadMPTR)
 		{
 			if (__AXVoiceProtection[index].count > 0)

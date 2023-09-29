@@ -236,12 +236,17 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 #if defined(_MSC_VER)
     #define UNREACHABLE __assume(false)
 	#define ASSUME(__cond) __assume(__cond)
-#elif defined(__GNUC__)
+	#define TLS_WORKAROUND_NOINLINE // no-op for MSVC as it has a flag for fiber-safe TLS optimizations
+#elif defined(__GNUC__) && !defined(__llvm__)
     #define UNREACHABLE __builtin_unreachable()
 	#define ASSUME(__cond) __attribute__((assume(__cond)))
+	#define TLS_WORKAROUND_NOINLINE __attribute__((noinline))
+#elif defined(__clang__)
+	#define UNREACHABLE __builtin_unreachable()
+	#define ASSUME(__cond) __builtin_assume(__cond)
+	#define TLS_WORKAROUND_NOINLINE __attribute__((noinline))
 #else
-    #define UNREACHABLE
-	#define ASSUME(__cond)
+    #error Unknown compiler
 #endif
 
 #if defined(_MSC_VER)

@@ -6,7 +6,6 @@
 thread_local PPCInterpreter_t* ppcInterpreterCurrentInstance;
 
 // main thread instruction counter and timing
-volatile uint64 ppcMainThreadCycleCounter = 0;
 uint64 ppcMainThreadDECCycleValue = 0; // value that was set to dec register
 uint64 ppcMainThreadDECCycleStart = 0; // at which cycle the dec register was set, if == 0 -> dec is 0
 uint64 ppcCyclesSince2000 = 0;
@@ -29,9 +28,14 @@ PPCInterpreter_t* PPCInterpreter_createInstance(unsigned int Entrypoint)
 	return pData;
 }
 
-PPCInterpreter_t* PPCInterpreter_getCurrentInstance()
+TLS_WORKAROUND_NOINLINE PPCInterpreter_t* PPCInterpreter_getCurrentInstance()
 {
 	return ppcInterpreterCurrentInstance;
+}
+
+TLS_WORKAROUND_NOINLINE void PPCInterpreter_setCurrentInstance(PPCInterpreter_t* hCPU)
+{
+	ppcInterpreterCurrentInstance = hCPU;
 }
 
 uint64 PPCInterpreter_getMainCoreCycleCounter()
@@ -78,24 +82,25 @@ uint32 PPCInterpreter_getCoreIndex(PPCInterpreter_t* hCPU)
 
 uint32 PPCInterpreter_getCurrentCoreIndex()
 {
-	return ppcInterpreterCurrentInstance->spr.UPIR;
+	return PPCInterpreter_getCurrentInstance()->spr.UPIR;
 };
 
 uint8* PPCInterpreterGetStackPointer()
 {
-	return memory_getPointerFromVirtualOffset(ppcInterpreterCurrentInstance->gpr[1]);
+	return memory_getPointerFromVirtualOffset(PPCInterpreter_getCurrentInstance()->gpr[1]);
 }
 
 uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset)
 {
-	uint8* result = memory_getPointerFromVirtualOffset(ppcInterpreterCurrentInstance->gpr[1] - offset);
-	ppcInterpreterCurrentInstance->gpr[1] -= offset;
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	uint8* result = memory_getPointerFromVirtualOffset(hCPU->gpr[1] - offset);
+	hCPU->gpr[1] -= offset;
 	return result;
 }
 
 void PPCInterpreterModifyStackPointer(sint32 offset)
 {
-	ppcInterpreterCurrentInstance->gpr[1] -= offset;
+	PPCInterpreter_getCurrentInstance()->gpr[1] -= offset;
 }
 
 uint32 RPLLoader_MakePPCCallable(void(*ppcCallableExport)(PPCInterpreter_t* hCPU));

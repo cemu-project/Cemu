@@ -142,10 +142,11 @@ void CafeInit()
 		}
 	}
 	// setup UGQR
-	ppcInterpreterCurrentInstance->spr.UGQR[0 + 2] = 0x00040004;
-	ppcInterpreterCurrentInstance->spr.UGQR[0 + 3] = 0x00050005;
-	ppcInterpreterCurrentInstance->spr.UGQR[0 + 4] = 0x00060006;
-	ppcInterpreterCurrentInstance->spr.UGQR[0 + 5] = 0x00070007;
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	hCPU->spr.UGQR[0 + 2] = 0x00040004;
+	hCPU->spr.UGQR[0 + 3] = 0x00050005;
+	hCPU->spr.UGQR[0 + 4] = 0x00060006;
+	hCPU->spr.UGQR[0 + 5] = 0x00070007;
 	coreinit::InitForegroundBucket();
 	coreinit::InitSysHeap();
 }

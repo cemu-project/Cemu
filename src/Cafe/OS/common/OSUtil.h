@@ -65,7 +65,7 @@ public:
 		}
 		else if constexpr (std::is_floating_point_v<T>)
 		{
-			v = (T)ppcInterpreterCurrentInstance->fpr[1 + fprIndex].fpr;
+			v = (T)hCPU->fpr[1 + fprIndex].fpr;
 			fprIndex++;
 		}
 		else

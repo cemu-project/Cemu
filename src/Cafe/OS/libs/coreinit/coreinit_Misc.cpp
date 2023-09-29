@@ -235,7 +235,7 @@ namespace coreinit
 
 	sint32 __os_snprintf(char* outputStr, sint32 maxLength, const char* formatStr)
 	{
-		sint32 r = ppcSprintf(formatStr, outputStr, maxLength, ppcInterpreterCurrentInstance, 3);
+		sint32 r = ppcSprintf(formatStr, outputStr, maxLength, PPCInterpreter_getCurrentInstance(), 3);
 		return r;
 	}
 
@@ -303,7 +303,7 @@ namespace coreinit
 	void OSReport(const char* format)
 	{
 		char buffer[1024 * 2];
-		sint32 len = ppcSprintf(format, buffer, sizeof(buffer), ppcInterpreterCurrentInstance, 1);
+		sint32 len = ppcSprintf(format, buffer, sizeof(buffer), PPCInterpreter_getCurrentInstance(), 1);
 		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len);
 	}
 
@@ -316,7 +316,7 @@ namespace coreinit
 	{
 		char buffer[1024 * 2];
 		int prefixLen = sprintf(buffer, "[COSWarn-%d] ", moduleId);
-		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 2);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, PPCInterpreter_getCurrentInstance(), 2);
 		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 
@@ -324,7 +324,7 @@ namespace coreinit
 	{
 		char buffer[1024 * 2];
 		int prefixLen = sprintf(buffer, "[OSLogPrintf-%d-%d-%d] ", ukn1, ukn2, ukn3);
-		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 4);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, PPCInterpreter_getCurrentInstance(), 4);
 		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 

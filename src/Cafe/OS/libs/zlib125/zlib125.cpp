@@ -28,8 +28,7 @@ static_assert(sizeof(z_stream_ppc2) == 0x38);
 voidpf zcallocWrapper(voidpf opaque, uInt items, uInt size)
 {
 	z_stream_ppc2* zstream = (z_stream_ppc2*)opaque;
-	
-	PPCInterpreter_t* hCPU = ppcInterpreterCurrentInstance;
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 	hCPU->gpr[3] = zstream->opaque.GetMPTR();
 	hCPU->gpr[4] = items;
 	hCPU->gpr[5] = size;
@@ -41,7 +40,7 @@ voidpf zcallocWrapper(voidpf opaque, uInt items, uInt size)
 void zcfreeWrapper(voidpf opaque, voidpf baseIndex)
 {
 	z_stream_ppc2* zstream = (z_stream_ppc2*)opaque;
-	PPCInterpreter_t* hCPU = ppcInterpreterCurrentInstance;
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 	hCPU->gpr[3] = zstream->opaque.GetMPTR();
 	hCPU->gpr[4] = memory_getVirtualOffsetFromPointer(baseIndex);
 	PPCCore_executeCallbackInternal(zstream->zfree.GetMPTR());

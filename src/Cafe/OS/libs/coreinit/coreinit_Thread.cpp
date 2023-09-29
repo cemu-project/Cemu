@@ -305,7 +305,7 @@ namespace coreinit
 		affinityMask = attr & 0x7;
 		// if no core is selected -> set current one
 		if (affinityMask == 0)
-			affinityMask |= (1 << PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance));
+			affinityMask |= (1 << PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance()));
 		// set attr
 		// todo: Support for other attr bits
 		thread->attr = (affinityMask & 0xFF) | (attr & OSThread_t::ATTR_BIT::ATTR_DETACHED);
@@ -325,7 +325,7 @@ namespace coreinit
 	{
 		__OSLockScheduler();
 
-		cemu_assert_debug(ppcInterpreterCurrentInstance == nullptr || OSGetCurrentThread() != thread); // called on self, what should this function do?
+		cemu_assert_debug(PPCInterpreter_getCurrentInstance() == nullptr || OSGetCurrentThread() != thread); // called on self, what should this function do?
 
 		if (thread->state != OSThread_t::THREAD_STATE::STATE_NONE && thread->state != OSThread_t::THREAD_STATE::STATE_MORIBUND)
 		{
@@ -607,7 +607,7 @@ namespace coreinit
 			// todo - only set this once?
 			thread->wakeUpTime = PPCInterpreter_getMainCoreCycleCounter();
 			// reschedule if thread has higher priority
-			if (ppcInterpreterCurrentInstance && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
+			if (PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
 				PPCCore_switchToSchedulerWithLock();
 		}
 		return previousSuspendCount;
@@ -930,17 +930,17 @@ namespace coreinit
 		thread->requestFlags = (OSThread_t::REQUEST_FLAG_BIT)(thread->requestFlags & OSThread_t::REQUEST_FLAG_CANCEL); // remove all flags except cancel flag
 
 		// update total cycles
-		uint64 remainingCycles = std::min((uint64)ppcInterpreterCurrentInstance->remainingCycles, (uint64)thread->quantumTicks);
+		uint64 remainingCycles = std::min((uint64)hCPU->remainingCycles, (uint64)thread->quantumTicks);
 		uint64 executedCycles = thread->quantumTicks - remainingCycles;
-		if (executedCycles < ppcInterpreterCurrentInstance->skippedCycles)
+		if (executedCycles < hCPU->skippedCycles)
 			executedCycles = 0;
 		else
-			executedCycles -= ppcInterpreterCurrentInstance->skippedCycles;
+			executedCycles -= hCPU->skippedCycles;
 		thread->totalCycles += executedCycles;
 		// store context and set current thread to null
 		__OSThreadStoreContext(hCPU, thread);
 		OSSetCurrentThread(OSGetCoreId(), nullptr);
-		ppcInterpreterCurrentInstance = nullptr;
+		PPCInterpreter_setCurrentInstance(nullptr);
 	}
 
 	void __OSLoadThread(OSThread_t* thread, PPCInterpreter_t* hCPU, uint32 coreIndex)
@@ -951,7 +951,7 @@ namespace coreinit
 		hCPU->reservedMemValue = 0;
 		hCPU->spr.UPIR = coreIndex;
 		hCPU->coreInterruptMask = 1;
-		ppcInterpreterCurrentInstance = hCPU;
+		PPCInterpreter_setCurrentInstance(hCPU);
 		OSSetCurrentThread(OSGetCoreId(), thread);
 		__OSThreadLoadContext(hCPU, thread);
 		thread->context.upir = coreIndex;
@@ -1076,7 +1076,7 @@ namespace coreinit
 
 		// store context of current thread
 		__OSStoreThread(OSGetCurrentThread(), &hostThread->ppcInstance);
-		cemu_assert_debug(ppcInterpreterCurrentInstance == nullptr);
+		cemu_assert_debug(PPCInterpreter_getCurrentInstance() == nullptr);
 
 		if (!sSchedulerActive.load(std::memory_order::relaxed))
 		{
@@ -1165,7 +1165,7 @@ namespace coreinit
 		
 		// create scheduler idle fiber and switch to it
 		g_idleLoopFiber[t_assignedCoreIndex] = new Fiber(__OSThreadCoreIdle, nullptr, nullptr);
-		cemu_assert_debug(ppcInterpreterCurrentInstance == nullptr);
+		cemu_assert_debug(PPCInterpreter_getCurrentInstance() == nullptr);
 		__OSLockScheduler();
 		Fiber::Switch(*g_idleLoopFiber[t_assignedCoreIndex]);
 		// returned from scheduler loop, exit thread

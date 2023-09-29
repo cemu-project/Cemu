@@ -959,8 +959,9 @@ void GDBServer::HandleAccessException(uint64 dr6)
 
 	if (!response.empty())
 	{
+		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 		cemuLog_logDebug(LogType::Force, "Received matching breakpoint exception: {}", response);
-		auto nextInstructions = findNextInstruction(ppcInterpreterCurrentInstance->instructionPointer, ppcInterpreterCurrentInstance->spr.LR, ppcInterpreterCurrentInstance->spr.CTR);
+		auto nextInstructions = findNextInstruction(hCPU->instructionPointer, hCPU->spr.LR, hCPU->spr.CTR);
 		for (MPTR nextInstr : nextInstructions)
 		{
 			auto bpIt = m_patchedInstructions.find(nextInstr);

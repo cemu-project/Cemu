@@ -19,17 +19,17 @@ Any other IDE should also work as long as it has CMake and MSVC support. CLion a
 
 ## Linux
 
-To compile Cemu, a recent enough compiler and STL with C++20 support is required! clang-12 or higher is what we recommend.
+To compile Cemu, a recent enough compiler and STL with C++20 support is required! clang-15 or higher is what we recommend.
 
 ### Installing dependencies
 
 #### For Ubuntu and derivatives:
-`sudo apt install -y cmake curl freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build` 
+`sudo apt install -y cmake curl clang-15 freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build`
 
-*Additionally, for Ubuntu 22.04 only:*
- - `sudo apt install -y clang-12`
- - At step 3 while building, use  
-   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+You may also need to install `libusb-1.0-0-dev` as a workaround for an issue with the vcpkg hidapi package.
+
+At step 3 while building, use:
+   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Arch and derivatives:
 `sudo pacman -S --needed base-devel clang cmake freeglut git glm gtk3 libgcrypt libpulse libsecret linux-headers llvm nasm ninja systemd unzip zip`
