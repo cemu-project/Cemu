@@ -28,12 +28,12 @@ PPCInterpreter_t* PPCInterpreter_createInstance(unsigned int Entrypoint)
 	return pData;
 }
 
-PPCInterpreter_t* PPCInterpreter_getCurrentInstance()
+TLS_WORKAROUND_NOINLINE PPCInterpreter_t* PPCInterpreter_getCurrentInstance()
 {
 	return ppcInterpreterCurrentInstance;
 }
 
-void PPCInterpreter_setCurrentInstance(PPCInterpreter_t* hCPU)
+TLS_WORKAROUND_NOINLINE void PPCInterpreter_setCurrentInstance(PPCInterpreter_t* hCPU)
 {
 	ppcInterpreterCurrentInstance = hCPU;
 }
