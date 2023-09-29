@@ -15,7 +15,7 @@ Cemu comes with a `.clang-format` file which is supported by most IDEs for forma
 
 ## About types
 
-Cemu provides it's own set of basic fixed-width types. They are:
+Cemu provides its own set of basic fixed-width types. They are:
 `uint8`, `sint8`, `uint16`, `sint16`, `uint32`, `sint32`, `uint64`, `sint64`. Always use these types over something like `uint32_t`. Using `size_t` is also acceptable where suitable. Avoid C types like `int` or `long`. The only exception is when interacting with external libraries which expect these types as parameters.
 
 ## When and where to put brackets
@@ -48,7 +48,7 @@ In UI related code you can use `formatWxString`, but be aware that number format
 
 ## Strings and encoding
 
-We use UTF-8 encoded `std::string` where possible. Some conversations need special handling and we have helper functions for those:
+We use UTF-8 encoded `std::string` where possible. Some conversions need special handling and we have helper functions for those:
 ```cpp
 // std::filesystem::path <-> std::string (in precompiled.h)
 std::string _pathToUtf8(const fs::path& path);
@@ -69,7 +69,7 @@ If you want to write to log.txt use `cemuLog_log()`. The log type parameter shou
 
 A pretty large part of Cemu's code base are re-implementations of various Cafe OS modules (e.g. `coreinit.rpl`, `gx2.rpl`...). These generally run in the context of the emulated process, thus special care has to be taken to use types with the correct size and endianness when interacting with memory.
 
-Keep in mind that the emulated Espresso CPU is 32bit big-endian, while the host architectures targeted by Cemu are 64bit litte-endian! 
+Keep in mind that the emulated Espresso CPU is 32bit big-endian, while the host architectures targeted by Cemu are 64bit little-endian! 
 
 To keep code simple and remove the need for manual endian-swapping, Cemu has templates and aliases of the basic types with explicit endian-ness.
 For big-endian types add the suffix `be`. Example: `uint32be`

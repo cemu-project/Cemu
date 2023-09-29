@@ -3,20 +3,19 @@
 ## Windows
 
 Prerequisites:
-- A recent version of Visual Studio 2022 (recommended but not required) with the following additional components:
-  - C++ CMake tools for Windows
-  - Windows 10/11 SDK
 - git
+- A recent version of Visual Studio 2022 with the following additional components:
+   - C++ CMake tools for Windows
+   - Windows 10/11 SDK
 
-Instructions:
+Instructions for Visual Studio 2022:
 
 1. Run `git clone --recursive https://github.com/cemu-project/Cemu`
-2. Launch `Cemu/generate_vs_solution.bat`.
-    - If you installed VS to a custom location or use VS 2019, you may need to manually change the path inside the .bat file.
-3. Wait until it's done, then open `Cemu/build/Cemu.sln` in Visual Studio.
-4. Then build the solution and once finished you can run and debug it, or build it and check the /bin folder for the final Cemu_release.exe.
+2. Open the newly created Cemu directory in Visual Studio using the "Open a local folder" option
+3. In the menu select Project -> Configure CMake. Wait until it is done, this may take a long time
+4. You can now build, run and debug Cemu
 
-You can also skip steps 3-5 and open the root folder of the cloned repo directly in Visual Studio (as a folder) and use the built-in CMake support but be warned that cmake support in VS can be a bit finicky.
+Any other IDE should also work as long as it has CMake and MSVC support. CLion and Visual Studio Code have been confirmed to work.
 
 ## Linux
 
@@ -46,7 +45,8 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
 #### Using GCC
-While we use and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).  
+While we build and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).
+
 You can use GCC by doing the following:
 - make sure you have g++ installed in your system
   - installation for Ubuntu and derivatives: `sudo apt install g++`
