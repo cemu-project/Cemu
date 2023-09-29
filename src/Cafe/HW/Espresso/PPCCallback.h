@@ -18,19 +18,20 @@ uint32 PPCCoreCallback(MPTR function, PPCCoreCallbackData_t& data, T currentArg,
 {
 	cemu_assert_debug(data.gprCount <= 8);
 	cemu_assert_debug(data.floatCount <= 8);
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 	if constexpr (std::is_pointer_v<T>)
 	{
-		ppcInterpreterCurrentInstance->gpr[3 + data.gprCount] = MEMPTR(currentArg).GetMPTR();
+		hCPU->gpr[3 + data.gprCount] = MEMPTR(currentArg).GetMPTR();
 		data.gprCount++;
 	}
 	else if constexpr (std::is_base_of_v<MEMPTRBase, std::remove_reference_t<T>>)
 	{
-		ppcInterpreterCurrentInstance->gpr[3 + data.gprCount] = currentArg.GetMPTR();
+		hCPU->gpr[3 + data.gprCount] = currentArg.GetMPTR();
 		data.gprCount++;
 	}
 	else if constexpr (std::is_reference_v<T>)
 	{
-		ppcInterpreterCurrentInstance->gpr[3 + data.gprCount] = MEMPTR(&currentArg).GetMPTR();
+		hCPU->gpr[3 + data.gprCount] = MEMPTR(&currentArg).GetMPTR();
 		data.gprCount++;
 	}
 	else if constexpr(std::is_enum_v<T>)
@@ -40,19 +41,19 @@ uint32 PPCCoreCallback(MPTR function, PPCCoreCallbackData_t& data, T currentArg,
 	}
 	else if constexpr (std::is_floating_point_v<T>)
 	{
-		ppcInterpreterCurrentInstance->fpr[1 + data.floatCount].fpr = (double)currentArg;
+		hCPU->fpr[1 + data.floatCount].fpr = (double)currentArg;
 		data.floatCount++;
 	}
 	else if constexpr (std::is_integral_v<T> && sizeof(T) == sizeof(uint64))
 	{
-		ppcInterpreterCurrentInstance->gpr[3 + data.gprCount] = (uint32)(currentArg >> 32); // high
-		ppcInterpreterCurrentInstance->gpr[3 + data.gprCount + 1] = (uint32)currentArg; // low
+		hCPU->gpr[3 + data.gprCount] = (uint32)(currentArg >> 32); // high
+		hCPU->gpr[3 + data.gprCount + 1] = (uint32)currentArg; // low
 
 		data.gprCount += 2;
 	}
 	else
 	{
-		ppcInterpreterCurrentInstance->gpr[3 + data.gprCount] = (uint32)currentArg;
+		hCPU->gpr[3 + data.gprCount] = (uint32)currentArg;
 		data.gprCount++;
 	}
 	

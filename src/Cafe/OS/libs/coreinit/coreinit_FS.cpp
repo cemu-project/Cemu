@@ -691,7 +691,7 @@ namespace coreinit
 			while (OSSendMessage(ioMsgQueue, &fsCmdBlockBody->asyncResult.msgUnion.osMsg, 0) == 0)
 			{
 				cemuLog_log(LogType::Force, "FS driver: Failed to add message to result queue. Retrying...");
-				if (ppcInterpreterCurrentInstance)
+				if (PPCInterpreter_getCurrentInstance())
 					PPCCore_switchToScheduler();
 				else
 					std::this_thread::sleep_for(std::chrono::milliseconds(10));

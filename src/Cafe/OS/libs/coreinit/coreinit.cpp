@@ -204,7 +204,7 @@ namespace coreinit
 {
 	sint32 OSGetCoreId()
 	{
-		return PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		return PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	}
 
 	uint32 OSGetCoreCount()
@@ -239,7 +239,7 @@ namespace coreinit
 
 	uint32 OSGetStackPointer()
 	{
-		return ppcInterpreterCurrentInstance->gpr[1];
+		return PPCInterpreter_getCurrentInstance()->gpr[1];
 	}
 
 	void coreinitExport_ENVGetEnvironmentVariable(PPCInterpreter_t* hCPU)

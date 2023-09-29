@@ -451,14 +451,14 @@ namespace save
 		asyncParams.userCallback = PPCInterpreter_makeCallableExportDepr(AsyncCallback);
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetPointer();
 
 		SAVEStatus status = SAVEOpenFileOtherApplicationAsync(client, block, titleId, accountSlot, path, mode, hFile, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -685,14 +685,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEGetFreeSpaceSizeAsync(client, block, accountSlot, freeSize, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -754,14 +754,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVERemoveAsync(client, block, accountSlot, path, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -867,14 +867,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEOpenDirAsync(client, block, accountSlot, path, hDir, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -940,14 +940,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEOpenDirOtherApplicationAsync(client, block, titleId, accountSlot, path, hDir, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -1076,14 +1076,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEMakeDirAsync(client, block, accountSlot, path, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -1127,14 +1127,14 @@ namespace save
 		asyncParams.userCallback = PPCInterpreter_makeCallableExportDepr(AsyncCallback);
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetPointer();
 
 		SAVEStatus status = SAVEOpenFileAsync(client, block, accountSlot, path, mode, hFile, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -1187,14 +1187,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEGetStatAsync(client, block, accountSlot, path, stat, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -1238,14 +1238,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEGetStatOtherApplicationAsync(client, block, titleId, accountSlot, path, stat, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -1427,14 +1427,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEChangeDirAsync(client, block, accountSlot, path, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}
@@ -1496,14 +1496,14 @@ namespace save
 		asyncParams.userCallback = _swapEndianU32(PPCInterpreter_makeCallableExportDepr(AsyncCallback));
 
 		StackAllocator<AsyncCallbackParam_t> param;
-		param->thread = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		param->thread = coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_getCurrentInstance());
 		param->returnStatus = (FSStatus)FS_RESULT::SUCCESS;
 		asyncParams.userContext = param.GetMPTRBE();
 
 		SAVEStatus status = SAVEFlushQuotaAsync(client, block, accountSlot, errHandling, &asyncParams);
 		if (status == (FSStatus)FS_RESULT::SUCCESS)
 		{
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance), 1000);
+			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance()), 1000);
 			PPCCore_switchToScheduler();
 			return param->returnStatus;
 		}

@@ -24,7 +24,9 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 ### Installing dependencies
 
 #### For Ubuntu and derivatives:
-`sudo apt install -y cmake curl freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build` 
+`sudo apt install -y cmake curl freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build`
+
+You may also need to install `libusb-1.0-0-dev` as a workaround for an issue with the vcpkg hidapi package.
 
 *Additionally, for Ubuntu 22.04 only:*
  - `sudo apt install -y clang-12`
