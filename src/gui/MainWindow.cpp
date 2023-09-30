@@ -560,13 +560,13 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 			t.append(_pathToUtf8(launchPath));
 			if(launchTitle.GetInvalidReason() == TitleInfo::InvalidReason::NO_DISC_KEY)
 			{
-				t.append(_("\n\n"));
+				t.append("\n\n");
 				t.append(_("Could not decrypt title. Make sure that keys.txt contains the correct disc key for this title."));
 			}
 			if(launchTitle.GetInvalidReason() == TitleInfo::InvalidReason::NO_TITLE_TIK)
 			{
-				t.append(_(""));
-				t.append(_("\n\nCould not decrypt title because title.tik is missing."));
+				t.append("\n\n");
+				t.append(_("Could not decrypt title because title.tik is missing."));
 			}
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
