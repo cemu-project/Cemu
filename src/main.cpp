@@ -139,7 +139,7 @@ void CemuCommonInit()
 	// init title list
 	CafeTitleList::Initialize(ActiveSettings::GetUserDataPath("title_list_cache.xml"));
 	for (auto& it : GetConfig().game_paths)
-		CafeTitleList::AddScanPath(it);
+		CafeTitleList::AddScanPath(_utf8ToPath(it));
 	fs::path mlcPath = ActiveSettings::GetMlcPath();
 	if (!mlcPath.empty())
 		CafeTitleList::SetMLCPath(mlcPath);
