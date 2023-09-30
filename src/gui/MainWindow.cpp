@@ -150,8 +150,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_DUMP_FST,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS,
 	// help
-	MAINFRAME_MENU_ID_HELP_WEB = 21700,
-	MAINFRAME_MENU_ID_HELP_ABOUT,
+	MAINFRAME_MENU_ID_HELP_ABOUT = 21700,
 	MAINFRAME_MENU_ID_HELP_UPDATE,
 	MAINFRAME_MENU_ID_HELP_GETTING_STARTED,
 
@@ -225,7 +224,6 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, MainWindow::OnDebugViewPPCDe
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, MainWindow::OnDebugViewAudioDebugger)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugViewTextureRelations)
 // help menu
-EVT_MENU(MAINFRAME_MENU_ID_HELP_WEB, MainWindow::OnHelpVistWebpage)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_UPDATE, MainWindow::OnHelpUpdate)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, MainWindow::OnHelpGettingStarted)
@@ -1815,8 +1813,6 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 		
 }
 
-void MainWindow::OnHelpVistWebpage(wxCommandEvent& event) {}
-
 #define BUILD_DATE __DATE__ " " __TIME__
 
 class CemuAboutDialog : public wxDialog
@@ -2270,8 +2266,6 @@ void MainWindow::RecreateMenu()
 	m_menuBar->Append(debugMenu, _("&Debug"));
 	// help menu
 	wxMenu* helpMenu = new wxMenu();
-	//helpMenu->Append(MAINFRAME_MENU_ID_HELP_WEB, wxT("&Visit website"));
-	//helpMenu->AppendSeparator();
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
 	m_check_update_menu->Enable(false);
