@@ -674,7 +674,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 		const size_t index = menuId - MAINFRAME_MENU_ID_FILE_RECENT_0;
 		if (index < config.recent_launch_files.size())
 		{
-			const auto& path = config.recent_launch_files[index];
+			fs::path path = _utf8ToPath(config.recent_launch_files[index]);
 			if (!path.empty())
 				FileLoad(path, wxLaunchGameEvent::INITIATED_BY::MENU);
 		}
@@ -2091,17 +2091,12 @@ void MainWindow::RecreateMenu()
 		m_fileMenuSeparator1 = nullptr;
 		for (size_t i = 0; i < config.recent_launch_files.size(); i++)
 		{
-			const auto& entry = config.recent_launch_files[i];
-			if (entry.empty())
+			const std::string& pathStr = config.recent_launch_files[i];
+			if (pathStr.empty())
 				continue;
-
-			if (!fs::exists(entry))
-				continue;
-
 			if (recentFileIndex == 0)
 				m_fileMenuSeparator0 = m_fileMenu->AppendSeparator();
-
-			m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, entry)));
+			m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, pathStr)));
 			recentFileIndex++;
 
 			if (recentFileIndex >= 8)
