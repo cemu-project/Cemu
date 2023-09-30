@@ -633,8 +633,7 @@ GameInfo2 CafeTitleList::GetGameInfo(TitleId titleId)
 	uint64 baseTitleId;
 	if (!FindBaseTitleId(titleId, baseTitleId))
 	{
-		cemuLog_logDebug(LogType::Force, "Failed to translate title id in GetGameInfo()");
-		return gameInfo;
+		cemu_assert_suspicious();
 	}
 	// determine if an optional update title id exists
 	TitleIdParser tip(baseTitleId);

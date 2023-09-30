@@ -953,9 +953,7 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 	}
 	case ColumnLocation:
 	{
-		const auto relative_mlc_path = 
-			entry.path.lexically_relative(ActiveSettings::GetMlcPath()).string();
-
+		const auto relative_mlc_path = _pathToUtf8(entry.path.lexically_relative(ActiveSettings::GetMlcPath()));
 		if (relative_mlc_path.starts_with("usr") || relative_mlc_path.starts_with("sys"))
 			return _("MLC");
 		else
