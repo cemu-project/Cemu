@@ -33,93 +33,93 @@ AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
 	// add columns
 	wxListItem col0;
 	col0.SetId(0);
-	col0.SetText(wxT("idx"));
+	col0.SetText("idx");
 	col0.SetWidth(40);
 	voiceListbox->InsertColumn(0, col0);
 	wxListItem col1;
 	col1.SetId(1);
-	col1.SetText(wxT("state"));
+	col1.SetText("state");
 	col1.SetWidth(48);
 	voiceListbox->InsertColumn(1, col1);
 	//wxListItem col2;
 	// format
 	col1.SetId(2);
-	col1.SetText(wxT("fmt"));
+	col1.SetText("fmt");
 	col1.SetWidth(52);
 	voiceListbox->InsertColumn(2, col1);
 	// sample base addr
 	col1.SetId(3);
-	col1.SetText(wxT("base"));
+	col1.SetText("base");
 	col1.SetWidth(70);
 	voiceListbox->InsertColumn(3, col1);
 	// current offset
 	col1.SetId(4);
-	col1.SetText(wxT("current"));
+	col1.SetText("current");
 	col1.SetWidth(70);
 	voiceListbox->InsertColumn(4, col1);
 	// loop offset
 	col1.SetId(5);
-	col1.SetText(wxT("loop"));
+	col1.SetText("loop");
 	col1.SetWidth(70);
 	voiceListbox->InsertColumn(5, col1);
 	// end offset
 	col1.SetId(6);
-	col1.SetText(wxT("end"));
+	col1.SetText("end");
 	col1.SetWidth(70);
 	voiceListbox->InsertColumn(6, col1);
 	// volume
 	col1.SetId(7);
-	col1.SetText(wxT("vol"));
+	col1.SetText("vol");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(7, col1);
 	// volume delta
 	col1.SetId(8);
-	col1.SetText(wxT("volD"));
+	col1.SetText("volD");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(8, col1);
 	// src
 	col1.SetId(9);
-	col1.SetText(wxT("src"));
+	col1.SetText("src");
 	col1.SetWidth(70);
 	voiceListbox->InsertColumn(9, col1);
 	// low-pass filter coef a0
 	col1.SetId(10);
-	col1.SetText(wxT("lpa0"));
+	col1.SetText("lpa0");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(10, col1);
 	// low-pass filter coef b0
 	col1.SetId(11);
-	col1.SetText(wxT("lpb0"));
+	col1.SetText("lpb0");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(11, col1);
 	// biquad filter coef b0
 	col1.SetId(12);
-	col1.SetText(wxT("bqb0"));
+	col1.SetText("bqb0");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(12, col1);
 	// biquad filter coef b0
 	col1.SetId(13);
-	col1.SetText(wxT("bqb1"));
+	col1.SetText("bqb1");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(13, col1);
 	// biquad filter coef b0
 	col1.SetId(14);
-	col1.SetText(wxT("bqb2"));
+	col1.SetText("bqb2");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(14, col1);
 	// biquad filter coef a0
 	col1.SetId(15);
-	col1.SetText(wxT("bqa1"));
+	col1.SetText("bqa1");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(15, col1);
 	// biquad filter coef a1
 	col1.SetId(16);
-	col1.SetText(wxT("bqa2"));
+	col1.SetText("bqa2");
 	col1.SetWidth(46);
 	voiceListbox->InsertColumn(16, col1);
 	// device mix
 	col1.SetId(17);
-	col1.SetText(wxT("deviceMix"));
+	col1.SetText("deviceMix");
 	col1.SetWidth(186);
 	voiceListbox->InsertColumn(17, col1);
 

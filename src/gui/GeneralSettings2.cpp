@@ -51,17 +51,17 @@
 
 #include "util/ScreenSaver/ScreenSaver.h"
 
-const wxString kDirectSound(wxT("DirectSound"));
-const wxString kXAudio27(wxT("XAudio2.7"));
-const wxString kXAudio2(wxT("XAudio2"));
-const wxString kCubeb(wxT("Cubeb"));
+const wxString kDirectSound("DirectSound");
+const wxString kXAudio27("XAudio2.7");
+const wxString kXAudio2("XAudio2");
+const wxString kCubeb("Cubeb");
 
-const wxString kPropertyPersistentId(wxT("PersistentId"));
-const wxString kPropertyMiiName(wxT("MiiName"));
-const wxString kPropertyBirthday(wxT("Birthday"));
-const wxString kPropertyGender(wxT("Gender"));
-const wxString kPropertyEmail(wxT("Email"));
-const wxString kPropertyCountry(wxT("Country"));
+const wxString kPropertyPersistentId("PersistentId");
+const wxString kPropertyMiiName("MiiName");
+const wxString kPropertyBirthday("Birthday");
+const wxString kPropertyGender("Gender");
+const wxString kPropertyEmail("Email");
+const wxString kPropertyCountry("Country");
 
 wxDEFINE_EVENT(wxEVT_ACCOUNTLIST_REFRESH, wxCommandEvent);
 
@@ -211,7 +211,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 
 		box_sizer->Add(m_mlc_path, 1, wxALL | wxEXPAND, 5);
 
-		auto* change_path = new wxButton(box, wxID_ANY, wxT("..."));
+		auto* change_path = new wxButton(box, wxID_ANY, "...");
 		change_path->Bind(wxEVT_BUTTON, &GeneralSettings2::OnMLCPathSelect, this);
 		change_path->SetToolTip(_("Select a custom mlc path\nThe mlc path is used to store Wii U related files like save games, game updates and dlc data"));
 		box_sizer->Add(change_path, 0, wxALL, 5);
@@ -369,7 +369,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 		m_audio_latency = new wxSlider(box, wxID_ANY, 2, 0, IAudioAPI::kBlockCount - 1, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL);
 		m_audio_latency->SetToolTip(_("Controls the amount of buffered audio data\nHigher values will create a delay in audio playback, but may avoid audio problems when emulation is too slow"));
 		audio_general_row->Add(m_audio_latency, 0, wxEXPAND | wxALL, 5);
-		auto latency_text = new wxStaticText(box, wxID_ANY, wxT("24ms"));
+		auto latency_text = new wxStaticText(box, wxID_ANY, "24ms");
 		audio_general_row->Add(latency_text, 0, wxALIGN_CENTER_VERTICAL | wxALL | wxALIGN_RIGHT, 5);
 		m_audio_latency->Bind(wxEVT_SLIDER, &GeneralSettings2::OnLatencySliderChanged, this, wxID_ANY, wxID_ANY, new wxControlObject(latency_text));
 		m_audio_latency->Bind(wxEVT_SLIDER, &GeneralSettings2::OnAudioLatencyChanged, this);
@@ -408,7 +408,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 		audio_tv_row->Add(new wxStaticText(box, wxID_ANY, _("Volume")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_tv_volume = new wxSlider(box, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL);
 		audio_tv_row->Add(m_tv_volume, 0, wxEXPAND | wxALL, 5);
-		auto audio_tv_volume_text = new wxStaticText(box, wxID_ANY, wxT("100%"));
+		auto audio_tv_volume_text = new wxStaticText(box, wxID_ANY, "100%");
 		audio_tv_row->Add(audio_tv_volume_text, 0, wxALIGN_CENTER_VERTICAL | wxALL | wxALIGN_RIGHT, 5);
 
 		m_tv_volume->Bind(wxEVT_SLIDER, &GeneralSettings2::OnSliderChangedPercent, this, wxID_ANY, wxID_ANY, new wxControlObject(audio_tv_volume_text));
@@ -449,7 +449,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 		audio_pad_row->Add(new wxStaticText(box, wxID_ANY, _("Volume")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_pad_volume = new wxSlider(box, wxID_ANY, 100, 0, 100);
 		audio_pad_row->Add(m_pad_volume, 0, wxEXPAND | wxALL, 5);
-		auto audio_pad_volume_text = new wxStaticText(box, wxID_ANY, wxT("100%"));
+		auto audio_pad_volume_text = new wxStaticText(box, wxID_ANY, "100%");
 		audio_pad_row->Add(audio_pad_volume_text, 0, wxALIGN_CENTER_VERTICAL | wxALL | wxALIGN_RIGHT, 5);
 
 		m_pad_volume->Bind(wxEVT_SLIDER, &GeneralSettings2::OnSliderChangedPercent, this, wxID_ANY, wxID_ANY, new wxControlObject(audio_pad_volume_text));
@@ -490,7 +490,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 		audio_input_row->Add(new wxStaticText(box, wxID_ANY, _("Volume")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_input_volume = new wxSlider(box, wxID_ANY, 100, 0, 100);
 		audio_input_row->Add(m_input_volume, 0, wxEXPAND | wxALL, 5);
-		auto audio_input_volume_text = new wxStaticText(box, wxID_ANY, wxT("100%"));
+		auto audio_input_volume_text = new wxStaticText(box, wxID_ANY, "100%");
 		audio_input_row->Add(audio_input_volume_text, 0, wxALIGN_CENTER_VERTICAL | wxALL | wxALIGN_RIGHT, 5);
 
 		m_input_volume->Bind(wxEVT_SLIDER, &GeneralSettings2::OnSliderChangedPercent, this, wxID_ANY, wxID_ANY, new wxControlObject(audio_input_volume_text));
@@ -747,7 +747,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		m_account_grid->SetMinSize({ 300, -1 });
 		//m_account_grid->Append(new wxPropertyCategory("Main"));
 
-		auto* persistent_id_gprop = m_account_grid->Append(new wxStringProperty(wxT("PersistentId"), kPropertyPersistentId));
+		auto* persistent_id_gprop = m_account_grid->Append(new wxStringProperty("PersistentId", kPropertyPersistentId));
 		persistent_id_gprop->SetHelpString(_("The persistent id is the internal folder name used for your saves"));
 		m_account_grid->SetPropertyReadOnly(persistent_id_gprop);
 
@@ -821,7 +821,7 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 
 		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("GDB Stub port"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		m_gdb_port = new wxSpinCtrl(panel, wxID_ANY, wxT("1337"), wxDefaultPosition, wxDefaultSize, 0, 1000, 65535);
+		m_gdb_port = new wxSpinCtrl(panel, wxID_ANY, "1337", wxDefaultPosition, wxDefaultSize, 0, 1000, 65535);
 		m_gdb_port->SetToolTip(_("Changes the port that the GDB stub will use, which you can use by either starting Cemu with the --enable-gdbstub option or by enabling it the Debug tab."));
 
 		debug_row->Add(m_gdb_port, 0, wxALL | wxEXPAND, 5);
