@@ -215,7 +215,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		std::string errorMsg;
 		errorMsg.append("Error while trying to parse command line parameter:\n");
 		errorMsg.append(ex.what());
-		wxMessageBox(errorMsg, wxT("Parameter error"), wxICON_ERROR);
+		wxMessageBox(errorMsg, "Parameter error", wxICON_ERROR);
 		return false;
 	}
 	

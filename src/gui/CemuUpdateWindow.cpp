@@ -24,7 +24,7 @@ wxDECLARE_EVENT(wxEVT_PROGRESS, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_PROGRESS, wxCommandEvent);
 
 CemuUpdateWindow::CemuUpdateWindow(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, "Cemu update", wxDefaultPosition, wxDefaultSize,
+	: wxDialog(parent, wxID_ANY, _("Cemu update"), wxDefaultPosition, wxDefaultSize,
 		wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
@@ -35,7 +35,7 @@ CemuUpdateWindow::CemuUpdateWindow(wxWindow* parent)
 	auto* rows = new wxFlexGridSizer(0, 2, 0, 0);
 	rows->AddGrowableCol(1);
 
-	m_text = new wxStaticText(this, wxID_ANY, "Checking for latest version...");
+	m_text = new wxStaticText(this, wxID_ANY, _("Checking for latest version..."));
 	rows->Add(m_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 	{

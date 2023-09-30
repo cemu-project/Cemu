@@ -90,11 +90,11 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 			auto* row = new wxBoxSizer(wxHORIZONTAL);
 			// we only have dsu settings atm, so add elements now
 			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("IP")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-			m_ip = new wxTextCtrl(m_settings_panel, wxID_ANY, wxT("127.0.0.1"));
+			m_ip = new wxTextCtrl(m_settings_panel, wxID_ANY, "127.0.0.1");
 			row->Add(m_ip, 0, wxALL, 5);
 
 			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("Port")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-			m_port = new wxTextCtrl(m_settings_panel, wxID_ANY, wxT("26760"));
+			m_port = new wxTextCtrl(m_settings_panel, wxID_ANY, "26760");
 			row->Add(m_port, 0, wxALL, 5);
 
 			panel_sizer->Add(row, 0, wxEXPAND);

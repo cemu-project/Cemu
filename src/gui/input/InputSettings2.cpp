@@ -238,11 +238,11 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 			// add/remove buttons
 			auto* bttn_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-			auto* add_api = new wxButton(page, wxID_ANY, wxT(" + "), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+			auto* add_api = new wxButton(page, wxID_ANY, " + ", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 			add_api->Bind(wxEVT_BUTTON, &InputSettings2::on_controller_add, this);
 			bttn_sizer->Add(add_api, 0, wxALL, 5);
 
-			auto* remove_api = new wxButton(page, wxID_ANY, wxT("  -  "), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+			auto* remove_api = new wxButton(page, wxID_ANY, "  -  ", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 			remove_api->Bind(wxEVT_BUTTON, &InputSettings2::on_controller_remove, this);
 			bttn_sizer->Add(remove_api, 0, wxALL, 5);
 
