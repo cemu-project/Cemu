@@ -757,7 +757,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		wxPGChoices gender;
 		gender.Add(_("Female"), 0);
 		gender.Add(_("Male"), 1);
-		m_account_grid->Append(new wxEnumProperty("Gender", kPropertyGender, gender));
+		m_account_grid->Append(new wxEnumProperty(_("Gender"), kPropertyGender, gender));
 
 		m_account_grid->Append(new wxStringProperty(_("Email"), kPropertyEmail));
 
