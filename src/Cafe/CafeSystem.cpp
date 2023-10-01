@@ -254,13 +254,6 @@ void InfoLog_PrintActiveSettings()
 	cemuLog_log(LogType::Force, "Console language: {}", config.console_language);
 }
 
-void PPCCore_setupSPR(PPCInterpreter_t* hCPU, uint32 coreIndex)
-{
-	hCPU->sprExtended.PVR = 0x70010001;
-	hCPU->spr.UPIR = coreIndex;
-	hCPU->sprExtended.msr |= MSR_FP; // enable floating point
-}
-
 struct SharedDataEntry
 {
 	/* +0x00 */ uint32be name;

@@ -85,7 +85,7 @@ void nsysnetExport_socket_lib_finish(PPCInterpreter_t* hCPU)
 
 uint32* __gh_errno_ptr()
 {
-	OSThread_t* osThread = coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance());
+	OSThread_t* osThread = coreinit::OSGetCurrentThread();
 	return &osThread->context.error;
 }
 

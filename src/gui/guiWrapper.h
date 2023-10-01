@@ -1,7 +1,5 @@
 #pragma once
 
-#include <atomic>
-
 #if BOOST_OS_LINUX
 #include "xcb/xproto.h"
 #include <gdk/gdkkeysyms.h>

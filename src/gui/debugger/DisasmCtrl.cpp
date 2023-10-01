@@ -256,7 +256,7 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 			{
 				sint32 sImm = disasmInstr.operand[o].immS32;
 				if (disasmInstr.operand[o].immWidth == 16 && (sImm & 0x8000))
-					sImm |= 0xFFFF0000;
+					sImm |= (sint32)0xFFFF0000;
 
 				if ((sImm > -10 && sImm < 10) || forceDecDisplay)
 					string = wxString::Format("%d", sImm);

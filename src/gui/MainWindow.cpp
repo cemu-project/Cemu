@@ -14,8 +14,6 @@
 #include "gui/canvas/VulkanCanvas.h"
 #include "Cafe/OS/libs/nn_nfp/nn_nfp.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
-#include "Cafe/IOSU/legacy/iosu_crypto.h"
-#include "Cafe/GameProfile/GameProfile.h"
 #include "gui/debugger/DebuggerWindow2.h"
 #include "util/helpers/helpers.h"
 #include "config/CemuConfig.h"
@@ -23,10 +21,8 @@
 #include "util/ScreenSaver/ScreenSaver.h"
 #include "gui/GeneralSettings2.h"
 #include "gui/GraphicPacksWindow2.h"
-#include "gui/GameProfileWindow.h"
 #include "gui/CemuApp.h"
 #include "gui/CemuUpdateWindow.h"
-#include "gui/helpers/wxCustomData.h"
 #include "gui/LoggingWindow.h"
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -36,9 +32,7 @@
 #include "gui/TitleManager.h"
 
 #include "Cafe/CafeSystem.h"
-#include "Cafe/TitleList/GameInfo.h"
 
-#include <boost/algorithm/string.hpp>
 #include "util/helpers/SystemException.h"
 #include "gui/DownloadGraphicPacksWindow.h"
 #include "gui/GettingStartedDialog.h"
@@ -529,8 +523,8 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 	}
 	else //if (launchTitle.GetFormat() == TitleInfo::TitleDataFormat::INVALID_STRUCTURE )
 	{
-		// title is invalid, if its an RPX/ELF we can launch it directly
-		// otherwise its an error
+		// title is invalid, if it's an RPX/ELF we can launch it directly
+		// otherwise it's an error
 		CafeTitleFileType fileType = DetermineCafeSystemFileType(launchPath);
 		if (fileType == CafeTitleFileType::RPX || fileType == CafeTitleFileType::ELF)
 		{
@@ -1875,7 +1869,7 @@ public:
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
 			lineSizer->Add(new wxStaticText(parent, -1, "zLib ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "http://www.zlib.net", "http://www.zlib.net"), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.zlib.net", "https://www.zlib.net"), 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
 			sizer->Add(lineSizer);
 		}

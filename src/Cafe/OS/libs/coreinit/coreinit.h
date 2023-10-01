@@ -16,8 +16,7 @@ void coreinitAsyncCallback_addWithLock(MPTR functionMPTR, uint32 numParameters, 
 void coreinit_load();
 
 // coreinit shared memory
-
-typedef struct  
+struct CoreinitSharedData
 {
 	MEMPTR<void> MEMAllocFromDefaultHeap;
 	MEMPTR<void> MEMAllocFromDefaultHeapEx;
@@ -26,11 +25,9 @@ typedef struct
 	MPTR __cpp_exception_init_ptr;
 	MPTR __cpp_exception_cleanup_ptr;
 	MPTR __stdio_cleanup;
-}coreinitData_t;
+};
 
-extern coreinitData_t* gCoreinitData;
-
-#include "Cafe/OS/libs/coreinit/coreinit_Spinlock.h"
+extern CoreinitSharedData* gCoreinitData;
 
 // coreinit init
 void coreinit_start(PPCInterpreter_t* hCPU);

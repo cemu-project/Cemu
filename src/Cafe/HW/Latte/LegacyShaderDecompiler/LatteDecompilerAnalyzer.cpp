@@ -1,9 +1,7 @@
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LatteShaderAssembly.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "Cafe/OS/libs/gx2/GX2.h" // todo - remove this dependency
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInternal.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
@@ -477,11 +475,11 @@ namespace LatteDecompiler
 				continue;
 			sint32 textureBindingPoint;
 			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
-				textureBindingPoint = i + CEMU_VS_TEX_UNIT_BASE;
+				textureBindingPoint = i + LATTE_CEMU_VS_TEX_UNIT_BASE;
 			else if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
-				textureBindingPoint = i + CEMU_GS_TEX_UNIT_BASE;
+				textureBindingPoint = i + LATTE_CEMU_GS_TEX_UNIT_BASE;
 			else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
-				textureBindingPoint = i + CEMU_PS_TEX_UNIT_BASE;
+				textureBindingPoint = i + LATTE_CEMU_PS_TEX_UNIT_BASE;
 
 			decompilerContext->output->resourceMappingGL.textureUnitToBindingPoint[i] = textureBindingPoint;
 		}

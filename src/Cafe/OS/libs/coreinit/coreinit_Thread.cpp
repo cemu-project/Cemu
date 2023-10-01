@@ -198,7 +198,7 @@ namespace coreinit
 
 	void threadEntry(PPCInterpreter_t* hCPU)
 	{
-		OSThread_t* currentThread = coreinitThread_getCurrentThreadDepr(hCPU);
+		OSThread_t* currentThread = coreinit::OSGetCurrentThread();
 		uint32 r3 = hCPU->gpr[3];
 		uint32 r4 = hCPU->gpr[4];
 		uint32 lr = hCPU->spr.LR;
@@ -368,39 +368,38 @@ namespace coreinit
 	{
 		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 		hCPU->gpr[3] = exitValue;
-		OSThread_t* threadBE = coreinitThread_getCurrentThreadDepr(hCPU);
-		MPTR t = memory_getVirtualOffsetFromPointer(threadBE);
+		OSThread_t* currentThread = coreinit::OSGetCurrentThread();
 
 		// thread cleanup callback
-		if (!threadBE->cleanupCallback2.IsNull())
+		if (!currentThread->cleanupCallback2.IsNull())
 		{
-			threadBE->stateFlags = _swapEndianU32(_swapEndianU32(threadBE->stateFlags) | 0x00000001);
-			PPCCoreCallback(threadBE->cleanupCallback2.GetMPTR(), threadBE, _swapEndianU32(threadBE->stackEnd));
+			currentThread->stateFlags = _swapEndianU32(_swapEndianU32(currentThread->stateFlags) | 0x00000001);
+			PPCCoreCallback(currentThread->cleanupCallback2.GetMPTR(), currentThread, _swapEndianU32(currentThread->stackEnd));
 		}
 		// cpp exception cleanup
-		if (gCoreinitData->__cpp_exception_cleanup_ptr != 0 && threadBE->crt.eh_globals != nullptr)
+		if (gCoreinitData->__cpp_exception_cleanup_ptr != 0 && currentThread->crt.eh_globals != nullptr)
 		{
-			PPCCoreCallback(_swapEndianU32(gCoreinitData->__cpp_exception_cleanup_ptr), &threadBE->crt.eh_globals);
-			threadBE->crt.eh_globals = nullptr;
+			PPCCoreCallback(_swapEndianU32(gCoreinitData->__cpp_exception_cleanup_ptr), &currentThread->crt.eh_globals);
+			currentThread->crt.eh_globals = nullptr;
 		}
 		// set exit code
-		threadBE->exitValue = exitValue;
+		currentThread->exitValue = exitValue;
 
 		__OSLockScheduler();
 
 		// release held synchronization primitives
-		if (!threadBE->mutexQueue.isEmpty())
+		if (!currentThread->mutexQueue.isEmpty())
 		{
 			cemuLog_log(LogType::Force, "OSExitThread: Thread is holding mutexes");
 			while (true)
 			{
-				OSMutex* mutex = threadBE->mutexQueue.getFirst();
+				OSMutex* mutex = currentThread->mutexQueue.getFirst();
 				if (!mutex)
 					break;
-				if (mutex->owner != threadBE)
+				if (mutex->owner != currentThread)
 				{
 					cemuLog_log(LogType::Force, "OSExitThread: Thread is holding mutex which it doesn't own");
-					threadBE->mutexQueue.removeMutex(mutex);
+					currentThread->mutexQueue.removeMutex(mutex);
 					continue;
 				}
 				coreinit::OSUnlockMutexInternal(mutex);
@@ -409,22 +408,22 @@ namespace coreinit
 		// todo - release all fast mutexes
 
 		// handle join queue
-		if (!threadBE->joinQueue.isEmpty())
-			threadBE->joinQueue.wakeupEntireWaitQueue(false);
+		if (!currentThread->joinQueue.isEmpty())
+			currentThread->joinQueue.wakeupEntireWaitQueue(false);
 	
-		if ((threadBE->attr & 8) != 0)
+		if ((currentThread->attr & 8) != 0)
 		{
 			// deactivate thread since it is detached
-			threadBE->state = OSThread_t::THREAD_STATE::STATE_NONE;
-			coreinit::__OSDeactivateThread(threadBE);
+			currentThread->state = OSThread_t::THREAD_STATE::STATE_NONE;
+			coreinit::__OSDeactivateThread(currentThread);
 			// queue call to thread deallocator if set
-			if (!threadBE->deallocatorFunc.IsNull())
-				__OSQueueThreadDeallocation(threadBE);
+			if (!currentThread->deallocatorFunc.IsNull())
+				__OSQueueThreadDeallocation(currentThread);
 		}
 		else
 		{
 			// non-detached threads remain active
-			threadBE->state = OSThread_t::THREAD_STATE::STATE_MORIBUND;
+			currentThread->state = OSThread_t::THREAD_STATE::STATE_MORIBUND;
 		}
 		PPCCore_switchToSchedulerWithLock();
 	}
@@ -1399,11 +1398,6 @@ void coreinit_resumeThread(OSThread_t* OSThreadBE, sint32 count)
 	__OSLockScheduler();
 	coreinit::__OSResumeThreadInternal(OSThreadBE, count);
 	__OSUnlockScheduler();
-}
-
-MPTR coreinitThread_getCurrentThreadMPTRDepr(PPCInterpreter_t* hCPU)
-{
-	return memory_getVirtualOffsetFromPointer(coreinit::__currentCoreThread[PPCInterpreter_getCoreIndex(hCPU)]);
 }
 
 OSThread_t* coreinitThread_getCurrentThreadDepr(PPCInterpreter_t* hCPU)

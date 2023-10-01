@@ -35,7 +35,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_BlockHeap.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
 
-coreinitData_t* gCoreinitData = NULL;
+CoreinitSharedData* gCoreinitData = NULL;
 
 sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 {
@@ -323,8 +323,8 @@ void coreinit_load()
 	coreinit::InitializeSysHeap();
 
 	// allocate coreinit global data
-	gCoreinitData = (coreinitData_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(coreinitData_t), 32));
-	memset(gCoreinitData, 0x00, sizeof(coreinitData_t));
+	gCoreinitData = (CoreinitSharedData*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(CoreinitSharedData), 32));
+	memset(gCoreinitData, 0x00, sizeof(CoreinitSharedData));
 
 	// coreinit weak links
 	osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeap));

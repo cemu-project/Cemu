@@ -1,10 +1,8 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "Cafe/OS/libs/gx2/GX2.h" // todo - remove this dependency
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/GraphicPack/GraphicPack2.h"
 
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureGL.h"
@@ -330,15 +328,15 @@ void LatteTexture_updateTextures()
 	// pixel shader
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	if (pixelShader)
-		LatteTexture_updateTexturesForStage(pixelShader, CEMU_PS_TEX_UNIT_BASE, LatteGPUState.contextNew.SQ_TEX_START_PS);
+		LatteTexture_updateTexturesForStage(pixelShader, LATTE_CEMU_PS_TEX_UNIT_BASE, LatteGPUState.contextNew.SQ_TEX_START_PS);
 	// vertex shader
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	cemu_assert_debug(vertexShader != nullptr);
-	LatteTexture_updateTexturesForStage(vertexShader, CEMU_VS_TEX_UNIT_BASE, LatteGPUState.contextNew.SQ_TEX_START_VS);
+	LatteTexture_updateTexturesForStage(vertexShader, LATTE_CEMU_VS_TEX_UNIT_BASE, LatteGPUState.contextNew.SQ_TEX_START_VS);
 	// geometry shader
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
 	if (geometryShader)
-		LatteTexture_updateTexturesForStage(geometryShader, CEMU_GS_TEX_UNIT_BASE, LatteGPUState.contextNew.SQ_TEX_START_GS);
+		LatteTexture_updateTexturesForStage(geometryShader, LATTE_CEMU_GS_TEX_UNIT_BASE, LatteGPUState.contextNew.SQ_TEX_START_GS);
 }
 
 // returns the width, height, depth of the texture

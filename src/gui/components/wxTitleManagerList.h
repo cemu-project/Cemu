@@ -107,8 +107,7 @@ private:
 	[[nodiscard]] boost::optional<TitleEntry&> GetTitleEntry(long item);
 	[[nodiscard]] boost::optional<const TitleEntry&> GetTitleEntry(const fs::path& path) const;
 	[[nodiscard]] boost::optional<TitleEntry&> GetTitleEntry(const fs::path& path);
-	
-	bool VerifyEntryFiles(TitleEntry& entry);
+
 	void OnConvertToCompressedFormat(uint64 titleId, uint64 rightClickedUID);
 	bool DeleteEntry(long index, const TitleEntry& entry);
 

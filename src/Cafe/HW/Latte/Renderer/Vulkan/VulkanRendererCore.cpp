@@ -513,15 +513,15 @@ uint64 VulkanRenderer::GetDescriptorSetStateHash(LatteDecompilerShader* shader)
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-			hostTextureUnit += CEMU_VS_TEX_UNIT_BASE;
+			hostTextureUnit += LATTE_CEMU_VS_TEX_UNIT_BASE;
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS;
 			break;
 		case LatteConst::ShaderType::Pixel:
-			hostTextureUnit += CEMU_PS_TEX_UNIT_BASE;
+			hostTextureUnit += LATTE_CEMU_PS_TEX_UNIT_BASE;
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS;
 			break;
 		case LatteConst::ShaderType::Geometry:
-			hostTextureUnit += CEMU_GS_TEX_UNIT_BASE;
+			hostTextureUnit += LATTE_CEMU_GS_TEX_UNIT_BASE;
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
 			break;
 		default:
@@ -631,15 +631,15 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-			hostTextureUnit += CEMU_VS_TEX_UNIT_BASE;
+			hostTextureUnit += LATTE_CEMU_VS_TEX_UNIT_BASE;
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS;
 			break;
 		case LatteConst::ShaderType::Pixel:
-			hostTextureUnit += CEMU_PS_TEX_UNIT_BASE;
+			hostTextureUnit += LATTE_CEMU_PS_TEX_UNIT_BASE;
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS;
 			break;
 		case LatteConst::ShaderType::Geometry:
-			hostTextureUnit += CEMU_GS_TEX_UNIT_BASE;
+			hostTextureUnit += LATTE_CEMU_GS_TEX_UNIT_BASE;
 			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
 			break;
 		default:

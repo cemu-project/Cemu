@@ -283,7 +283,6 @@ void nnActExport_GetSimpleAddressIdEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetPrincipalId(PPCInterpreter_t* hCPU)
 {
 	// return error for non-nnid accounts?
-	cemuLog_logDebug(LogType::Force, "nn_act.GetPrincipalId()");
 	uint32be principalId;
 	GetPrincipalIdEx(&principalId, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, (uint32)principalId);

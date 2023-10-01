@@ -7,11 +7,6 @@
 #define GX2_ENABLE	1
 #define GX2_DISABLE	0
 
-// tex unit base for render backends
-#define CEMU_PS_TEX_UNIT_BASE	0
-#define CEMU_VS_TEX_UNIT_BASE	32
-#define CEMU_GS_TEX_UNIT_BASE	64
-
 #include "GX2_Surface.h"
 
 // general

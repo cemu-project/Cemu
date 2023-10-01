@@ -900,7 +900,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 		return cemu_assert_suspicious();
 
 	// Secondly, delete one-shot breakpoints but also temporarily delete patched instruction to run original instruction
-	OSThread_t* currThread = coreinitThread_getCurrentThreadDepr(hCPU);
+	OSThread_t* currThread = coreinit::OSGetCurrentThread();
 	std::string pauseReason = fmt::format("T05thread:{:08X};core:{:02X};{}", GET_THREAD_ID(currThread), PPCInterpreter_getCoreIndex(hCPU), patchedBP->second.GetReason());
 	bool pauseThreads = patchedBP->second.ShouldBreakThreads() || patchedBP->second.ShouldBreakThreadsOnNextInterrupt();
 	if (patchedBP->second.IsPersistent())
@@ -939,7 +939,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 			ThreadPool::FireAndForget(&waitForBrokenThreads, std::move(m_resumed_context), pauseReason);
 		}
 
-		breakThreads(GET_THREAD_ID(coreinitThread_getCurrentThreadDepr(hCPU)));
+		breakThreads(GET_THREAD_ID(coreinit::OSGetCurrentThread()));
 		cemuLog_logDebug(LogType::Force, "[GDBStub] Resumed from a breakpoint!");
 	}
 }
