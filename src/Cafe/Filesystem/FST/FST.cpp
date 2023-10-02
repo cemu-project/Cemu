@@ -686,25 +686,25 @@ bool FSTVolume::OpenFile(std::string_view path, FSTFileHandle& fileHandleOut, bo
 	return true;
 }
 
-bool FSTVolume::IsDirectory(FSTFileHandle& fileHandle) const
+bool FSTVolume::IsDirectory(const FSTFileHandle& fileHandle) const
 {
 	cemu_assert_debug(fileHandle.m_fstIndex < m_entries.size());
 	return m_entries[fileHandle.m_fstIndex].GetType() == FSTEntry::TYPE::DIRECTORY;
 };
 
-bool FSTVolume::IsFile(FSTFileHandle& fileHandle) const
+bool FSTVolume::IsFile(const FSTFileHandle& fileHandle) const
 {
 	cemu_assert_debug(fileHandle.m_fstIndex < m_entries.size());
 	return m_entries[fileHandle.m_fstIndex].GetType() == FSTEntry::TYPE::FILE;
 };
 
-bool FSTVolume::HasLinkFlag(FSTFileHandle& fileHandle) const
+bool FSTVolume::HasLinkFlag(const FSTFileHandle& fileHandle) const
 {
 	cemu_assert_debug(fileHandle.m_fstIndex < m_entries.size());
 	return HAS_FLAG(m_entries[fileHandle.m_fstIndex].GetFlags(), FSTEntry::FLAGS::FLAG_LINK);
 };
 
-std::string_view FSTVolume::GetName(FSTFileHandle& fileHandle) const
+std::string_view FSTVolume::GetName(const FSTFileHandle& fileHandle) const
 {
 	if (fileHandle.m_fstIndex > m_entries.size())
 		return "";
@@ -712,7 +712,7 @@ std::string_view FSTVolume::GetName(FSTFileHandle& fileHandle) const
 	return entryName;
 }
 
-std::string FSTVolume::GetPath(FSTFileHandle& fileHandle) const
+std::string FSTVolume::GetPath(const FSTFileHandle& fileHandle) const
 {
 	std::string path;
 	auto& entry = m_entries[fileHandle.m_fstIndex];
@@ -743,7 +743,7 @@ std::string FSTVolume::GetPath(FSTFileHandle& fileHandle) const
 	return path;
 }
 
-uint32 FSTVolume::GetFileSize(FSTFileHandle& fileHandle) const
+uint32 FSTVolume::GetFileSize(const FSTFileHandle& fileHandle) const
 {
 	if (m_entries[fileHandle.m_fstIndex].GetType() != FSTEntry::TYPE::FILE)
 		return 0;
@@ -994,6 +994,7 @@ bool FSTVolume::OpenDirectoryIterator(std::string_view path, FSTDirectoryIterato
 	if (!IsDirectory(fileHandle))
 		return false;
 	auto const& fstEntry = m_entries[fileHandle.m_fstIndex];
+	directoryIteratorOut.dirHandle = fileHandle;
 	directoryIteratorOut.startIndex = fileHandle.m_fstIndex + 1;
 	directoryIteratorOut.endIndex = fstEntry.dirInfo.endIndex;
 	directoryIteratorOut.currentIndex = directoryIteratorOut.startIndex;

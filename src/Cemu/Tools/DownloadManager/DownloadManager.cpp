@@ -1286,7 +1286,11 @@ bool DownloadManager::asyncPackageInstallRecursiveExtractFiles(Package* package,
 		setPackageError(package, "Internal error");
 		return false;
 	}
-
+	if (fstVolume->HasLinkFlag(dirItr.GetDirHandle()))
+	{
+		cemu_assert_suspicious();
+		return true;
+	}
 	FSTFileHandle itr;
 	while (fstVolume->Next(dirItr, itr))
 	{

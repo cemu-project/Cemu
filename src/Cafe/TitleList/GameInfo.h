@@ -136,8 +136,8 @@ private:
 		// this is to stay consistent with previous Cemu versions which did not support NUS format at all
 		TitleInfo::TitleDataFormat currentFormat = currentTitle.GetFormat();
 		TitleInfo::TitleDataFormat newFormat = newTitle.GetFormat();
-		if (currentFormat != newFormat && currentFormat == TitleInfo::TitleDataFormat::NUS)
-			return true;
+		if (currentFormat != TitleInfo::TitleDataFormat::NUS && newFormat == TitleInfo::TitleDataFormat::NUS)
+			return false;
 		return true;
 	};
 
