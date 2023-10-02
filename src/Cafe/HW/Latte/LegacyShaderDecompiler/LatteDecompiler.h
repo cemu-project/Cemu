@@ -162,8 +162,8 @@ struct LatteDecompilerShader
 	// compact resource lists for optimized access
 	struct QuickBufferEntry
 	{
-		uint8 index;
-		uint16 size;
+		uint32 index : 8;
+		uint32 size : 24;
 	};
 	boost::container::static_vector<QuickBufferEntry, LATTE_NUM_MAX_UNIFORM_BUFFERS> list_quickBufferList;
 	uint8 textureUnitList[LATTE_NUM_MAX_TEX_UNITS];

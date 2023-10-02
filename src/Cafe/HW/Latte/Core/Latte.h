@@ -167,7 +167,7 @@ void LatteBufferCache_LoadRemappedUniforms(struct LatteDecompilerShader* shader,
 
 void LatteRenderTarget_updateViewport();
 
-#define LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE	(1024) // maximum size for uniform blocks (in vec4s). On Nvidia hardware 4096 is the maximum (64K / 16 = 4096) all other vendors have much higher limits
+#define LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE	(4096) // maximum size for uniform blocks (in vec4s). On Nvidia hardware 4096 is the maximum (64K / 16 = 4096) all other vendors have much higher limits
 
 //static uint32 glTempError;
 //#define catchOpenGLError() glFinish(); if( (glTempError = glGetError()) != 0 ) { printf("OpenGL error 0x%x: %s : %d timestamp %08x\n", glTempError, __FILE__, __LINE__, GetTickCount()); __debugbreak(); }
