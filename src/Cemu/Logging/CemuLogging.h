@@ -70,21 +70,6 @@ bool cemuLog_log(LogType type, std::string_view text);
 bool cemuLog_log(LogType type, std::u8string_view text);
 void cemuLog_waitForFlush(); // wait until all log lines are written
 
-template <typename T>
-auto ForwardEnum(T t) 
-{
-  if constexpr (std::is_enum_v<T>)
-    return fmt::underlying(t);
-  else
-    return std::forward<T>(t);
-}
-
-template <typename... TArgs>
-auto ForwardEnum(std::tuple<TArgs...> t) 
-{ 
-	return std::apply([](auto... x) { return std::make_tuple(ForwardEnum(x)...); }, t);
-}
-
 template<typename T, typename ... TArgs>
 bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 {
@@ -98,7 +83,7 @@ bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 	else
 	{
 		const auto format_view = fmt::basic_string_view<T>(formatStr);
-		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(ForwardEnum(args)...));
+		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(args...));
 		cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
 	}
 	return true;

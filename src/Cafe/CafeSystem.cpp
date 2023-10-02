@@ -251,7 +251,7 @@ void InfoLog_PrintActiveSettings()
 		if(!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
-	cemuLog_log(LogType::Force, "Console language: {}", config.console_language);
+	cemuLog_log(LogType::Force, "Console language: {}", stdx::to_underlying(config.console_language.GetValue()));
 }
 
 struct SharedDataEntry

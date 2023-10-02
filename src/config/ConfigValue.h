@@ -232,19 +232,3 @@ private:
 	const TType m_min_value;
 	const TType m_max_value;
 };
-
-template <typename TType>
-struct fmt::formatter< ConfigValue<TType> > : formatter<TType> {
-	template <typename FormatContext>
-	auto format(const ConfigValue<TType>& v, FormatContext& ctx) {
-		return formatter<TType>::format(v.GetValue(), ctx);
-	}
-};
-
-template <typename TType>
-struct fmt::formatter< ConfigValueBounds<TType> > : formatter<TType> {
-	template <typename FormatContext>
-	auto format(const ConfigValueBounds<TType>& v, FormatContext& ctx) {
-		return formatter<TType>::format(v.GetValue(), ctx);
-	}
-};
