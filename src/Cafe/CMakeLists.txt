@@ -78,15 +78,6 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/PPCRecompilerImlGenFPU.cpp
   HW/Espresso/Recompiler/PPCRecompilerIml.h
   HW/Espresso/Recompiler/PPCRecompilerIntermediate.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64AVX.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64BMI.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64FPU.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64Gen.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64GenFPU.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64.h
-  HW/Espresso/Recompiler/BackendX64/X64Emit.hpp
-  HW/Espresso/Recompiler/BackendX64/x86Emitter.h
   HW/Latte/Common/RegisterSerializer.cpp
   HW/Latte/Common/RegisterSerializer.h
   HW/Latte/Common/ShaderSerializer.cpp
@@ -490,6 +481,25 @@ add_library(CemuCafe
   TitleList/TitleList.h
 )
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+  target_sources(CemuCafe PRIVATE
+    HW/Espresso/Recompiler/BackendX64/BackendX64AVX.cpp
+    HW/Espresso/Recompiler/BackendX64/BackendX64BMI.cpp
+    HW/Espresso/Recompiler/BackendX64/BackendX64.cpp
+    HW/Espresso/Recompiler/BackendX64/BackendX64FPU.cpp
+    HW/Espresso/Recompiler/BackendX64/BackendX64Gen.cpp
+    HW/Espresso/Recompiler/BackendX64/BackendX64GenFPU.cpp
+    HW/Espresso/Recompiler/BackendX64/BackendX64.h
+    HW/Espresso/Recompiler/BackendX64/X64Emit.hpp
+    HW/Espresso/Recompiler/BackendX64/x86Emitter.h
+  )
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
+  target_sources(CemuCafe PRIVATE
+    HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.cpp
+    HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.h
+  )
+endif()
+
 if(APPLE)
 	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
 endif()
@@ -533,6 +543,10 @@ target_link_libraries(CemuCafe PRIVATE
 if (ENABLE_WAYLAND)
 	# PUBLIC because wayland-client.h is included in VulkanAPI.h
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
+  target_link_libraries(CemuCafe PRIVATE xbyak_aarch64)
 endif()
 
 if(WIN32)

@@ -84,8 +84,8 @@
 
 namespace fs = std::filesystem;
 #if __ANDROID__
-#endif // __ANDROID
 #include "Common/unix/FilesystemAndroid.h"
+#endif // __ANDROID
 
 namespace cemu
 {
@@ -93,8 +93,10 @@ namespace fs
 {
 inline bool is_directory(const std::filesystem::path& p)
 {
+#if __ANDROID__
     if (FilesystemAndroid::isContentUri(p))
         return FilesystemAndroid::isDirectory(p);
+#endif  // __ANDROID__
     return std::filesystem::is_directory(p);
 }
 inline bool is_directory(const std::filesystem::path& p, std::error_code& ec)

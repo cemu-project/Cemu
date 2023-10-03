@@ -10,7 +10,6 @@
 #include "config/NetworkSettings.h"
 #include "config/LaunchSettings.h"
 #include "input/InputManager.h"
-#include "gui/CemuApp.h"
 
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"

@@ -13,7 +13,8 @@ android {
         versionCode 1
         versionName "1.0"
         ndk {
-            abiFilters("x86_64", "arm64-v8a")
+//            abiFilters("x86_64", "arm64-v8a")
+            abiFilters("arm64-v8a")
         }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,6 +39,7 @@ android {
         externalNativeBuild {
             cmake {
                 arguments(
+                        "-DANDROID_ARM_MODE=arm", "-DANDROID_STL=c++_shared",
                         '-DENABLE_VCPKG=ON',
                         '-DVCPKG_TARGET_ANDROID=ON',
                         '-DENABLE_SDL=OFF',
@@ -47,7 +49,8 @@ android {
                         '-DENABLE_DISCORD_RPC=OFF',
                         '-DENABLE_WAYLAND=OFF'
                 )
-                abiFilters("x86_64", "arm64-v8a")
+//                abiFilters("x86_64", "arm64-v8a")
+                abiFilters("arm64-v8a")
             }
         }
     }

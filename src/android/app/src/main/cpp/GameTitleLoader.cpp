@@ -109,7 +109,7 @@ std::string GameTitleLoader::GetNameByTitleId(uint64 titleId)
 		return "Unknown title";
 	std::string name;
 	if (!GetConfig().GetGameListCustomName(titleId, name))
-		name = titleInfo.GetTitleName();
+		name = titleInfo.GetMetaTitleName();
 	m_name_cache.emplace(titleId, name);
 	return name;
 }
