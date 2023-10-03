@@ -937,9 +937,6 @@ private:
 	{
 		VkImage imageVk = vkTexture->GetImageObj()->m_image;
 
-		VkPipelineStageFlags srcStages = 0;
-		VkPipelineStageFlags dstStages = 0;
-
 		VkImageSubresourceRange subresourceRange;
 		subresourceRange.aspectMask = subresourceLayers.aspectMask;
 		subresourceRange.baseArrayLayer = subresourceLayers.baseArrayLayer;
