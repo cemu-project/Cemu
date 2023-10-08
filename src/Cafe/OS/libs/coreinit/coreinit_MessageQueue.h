@@ -36,8 +36,8 @@ namespace coreinit
 	bool OSPeekMessage(OSMessageQueue* msgQueue, OSMessage* msg);
 	sint32 OSSendMessage(OSMessageQueue* msgQueue, OSMessage* msg, uint32 flags);
 
-	void ci_MessageQueue_Save(MemStreamWriter& s);
-	void ci_MessageQueue_Restore(MemStreamReader& s);
+	void MessageQueue_Save(MemStreamWriter& s);
+	void MessageQueue_Restore(MemStreamReader& s);
 
 	void InitializeMessageQueue();
 };

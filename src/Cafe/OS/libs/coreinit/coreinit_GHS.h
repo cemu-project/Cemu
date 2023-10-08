@@ -4,8 +4,8 @@ namespace coreinit
 {
 	void PrepareGHSRuntime();
 
-	void ci_GHS_Save(MemStreamWriter& s);
-	void ci_GHS_Restore(MemStreamReader& s);
+	void GHS_Save(MemStreamWriter& s);
+	void GHS_Restore(MemStreamReader& s);
 
 	void InitializeGHS();
 };

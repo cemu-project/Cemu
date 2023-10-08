@@ -1521,6 +1521,18 @@ namespace save
 		osLib_returnFromFunction(hCPU, result);
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("nn_save");
+		s.writeMPTR(g_nn_save);
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("nn_save");
+		s.readMPTR(g_nn_save);
+	}
+
 	void load()
 	{
 

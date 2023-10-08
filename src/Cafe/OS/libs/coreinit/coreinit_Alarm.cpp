@@ -305,18 +305,18 @@ namespace coreinit
         __OSUnlockScheduler();
 	}
 
-	void ci_Alarm_Save(MemStreamWriter& s)
+	void Alarm_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_A_S", 15);
+		s.writeSection("coreinit_Alarm");
 
-		s.writeBE(g_alarmEvent.GetMPTR());
-		s.writeBE(g_alarmThread.GetMPTR());
-		s.writeBE(_g_alarmThreadStack.GetMPTR());
-		s.writeBE(_g_alarmThreadName.GetMPTR());
+		s.writeMPTR(g_alarmEvent);
+		s.writeMPTR(g_alarmThread);
+		s.writeMPTR(_g_alarmThreadStack);
+		s.writeMPTR(_g_alarmThreadName);
 
 		s.writeBE(coreinit_getOSTime());
 
-		s.writeBE(g_activeAlarms.size());
+		s.writeBE((uint64)g_activeAlarms.size());
 		for (auto& itr : g_activeAlarms)
 		{
 			s.writeBE(memory_getVirtualOffsetFromPointer(itr.first));
@@ -324,23 +324,21 @@ namespace coreinit
 		}
 	}
 
-	void ci_Alarm_Restore(MemStreamReader& s)
+	void Alarm_Restore(MemStreamReader& s)
 	{
 		OSAlarm_Shutdown();
 
-		char section[16] = { '\0' };
-		s.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "ci_A_S") == 0);
+		s.readSection("coreinit_Alarm");
 
-		g_alarmEvent = (OSEvent*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-		g_alarmThread = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-		_g_alarmThreadStack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-		_g_alarmThreadName = (char*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s.readMPTR(g_alarmEvent);
+		s.readMPTR(g_alarmThread);
+		s.readMPTR(_g_alarmThreadStack);
+		s.readMPTR(_g_alarmThreadName);
 
 		uint64 currentTime = coreinit_getOSTime();
 		uint64_t timeOffset = currentTime - s.readBE<uint64_t>();
 
-		size_t alms = s.readBE<size_t>();
+		size_t alms = s.readBE<uint64>();
 		for (size_t alm = 0; alm < alms; alm++)
 		{
 			OSAlarm_t* alarm = (OSAlarm_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());

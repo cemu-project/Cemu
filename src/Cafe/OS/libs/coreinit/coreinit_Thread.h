@@ -496,15 +496,15 @@ static_assert(sizeof(OSThread_t) == 0x6A0-4); // todo - determine correct size
 
 namespace coreinit
 {
-	void ci_Thread_Save(MemStreamWriter& s);
-	void ci_Thread_Restore(MemStreamReader& s, bool recreate);
+	void Thread_Save(MemStreamWriter& s);
+	void Thread_Restore(MemStreamReader& s, bool recreate);
 	void SuspendActiveThreads();
 	void ResumeActiveThreads();
 
 	void InitializeThread();
 
-	void ci_Sync_Save(MemStreamWriter& s);
-	void ci_Sync_Restore(MemStreamReader& s);
+	void Synchronization_Save(MemStreamWriter& s);
+	void Synchronization_Restore(MemStreamReader& s);
 
 	void InitializeConcurrency();
 

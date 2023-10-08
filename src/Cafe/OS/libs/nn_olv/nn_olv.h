@@ -18,6 +18,9 @@ namespace nn
 
 		sint32 GetOlvAccessKey(uint32_t* pOutKey);
 
+		void save(MemStreamWriter& s);
+		void restore(MemStreamReader& s);
+
 		void load();
 		void unload();
 	}

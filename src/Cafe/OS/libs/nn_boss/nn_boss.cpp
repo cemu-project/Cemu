@@ -1714,6 +1714,22 @@ void nnBossNsDataExport_seek(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
+void nnBoss_save(MemStreamWriter& s)
+{
+	s.writeSection("nn_boss");
+	s.writeMPTR(nn::boss::g_mutex);
+	s.writeBE(nn::boss::g_initCounter);
+	s.writeBool(nn::boss::g_isInitialized);
+}
+
+void nnBoss_restore(MemStreamReader& s)
+{
+	s.readSection("nn_boss");
+	s.readMPTR(nn::boss::g_mutex);
+	s.readBE(nn::boss::g_initCounter);
+	s.readBool(nn::boss::g_isInitialized);
+}
+
 void nnBoss_load()
 {
 	OSInitMutexEx(&nn::boss::g_mutex, nullptr);

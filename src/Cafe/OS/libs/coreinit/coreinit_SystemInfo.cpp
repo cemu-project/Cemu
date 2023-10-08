@@ -10,20 +10,16 @@ namespace coreinit
 		return *g_system_info.GetPtr();
 	}
 
-	void ci_SystemInfo_Save(MemStreamWriter& s)
+	void SystemInfo_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_SysInfo_S", 15);
-
-		s.writeBE(g_system_info.GetMPTR());
+		s.writeSection("coreinit_SysInfo");
+		s.writeMPTR(g_system_info);
 	}
 
-	void ci_SystemInfo_Restore(MemStreamReader& s)
+	void SystemInfo_Restore(MemStreamReader& s)
 	{
-		char section[16] = { '\0' };
-		s.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "ci_SysInfo_S") == 0);
-
-		g_system_info = (OSSystemInfo*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s.readSection("coreinit_SysInfo");
+		s.readMPTR(g_system_info);
 	}
 
 	void InitializeSystemInfo()

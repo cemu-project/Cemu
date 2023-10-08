@@ -13,8 +13,8 @@ namespace coreinit
 
 	void InitForegroundBucket();
 
-	void ci_FG_Save(MemStreamWriter& s);
-	void ci_FG_Restore(MemStreamReader& s);
+	void FG_Save(MemStreamWriter& s);
+	void FG_Restore(MemStreamReader& s);
 
 	void InitializeFG();
 }

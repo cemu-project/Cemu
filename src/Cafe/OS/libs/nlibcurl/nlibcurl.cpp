@@ -1354,6 +1354,29 @@ void export_curl_global_init_mem(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, result);
 }
 
+void save(MemStreamWriter& s)
+{
+	s.writeSection("nlibcurl");
+	s.writeBE(g_nlibcurl.initialized);
+	s.writeMPTR(g_nlibcurl.proxyConfig);
+	s.writeMPTR(g_nlibcurl.malloc);
+	s.writeMPTR(g_nlibcurl.free);
+	s.writeMPTR(g_nlibcurl.realloc);
+	s.writeMPTR(g_nlibcurl.strdup);
+	s.writeMPTR(g_nlibcurl.calloc);
+}
+void restore(MemStreamReader& s)
+{
+	s.readSection("nlibcurl");
+	s.readBE(g_nlibcurl.initialized);
+	s.readMPTR(g_nlibcurl.proxyConfig);
+	s.readMPTR(g_nlibcurl.malloc);
+	s.readMPTR(g_nlibcurl.free);
+	s.readMPTR(g_nlibcurl.realloc);
+	s.readMPTR(g_nlibcurl.strdup);
+	s.readMPTR(g_nlibcurl.calloc);
+}
+
 void load()
 {
 	osLib_addFunction("nlibcurl", "curl_global_init_mem", export_curl_global_init_mem);

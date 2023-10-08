@@ -271,24 +271,20 @@ namespace coreinit
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
-	void ci_LockedCache_Save(MemStreamWriter& s)
+	void LockedCache_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_LC_S", 15);
-
+		s.writeSection("coreinit_LockedCache");
 		s.writeData(lcCacheMask, sizeof(uint8) * PPC_CORE_COUNT * (LC_LOCKED_CACHE_SIZE + LC_LOCKED_CACHE_GRANULARITY - 1) / LC_LOCKED_CACHE_GRANULARITY);
 		s.writeData(lcAllocatedBlocks, sizeof(uint32) * PPC_CORE_COUNT);
 		s.writeBE(_lcDisableErrorCounter);
 	}
 
-	void ci_LockedCache_Restore(MemStreamReader& s)
+	void LockedCache_Restore(MemStreamReader& s)
 	{
-		char section[16] = { '\0' };
-		s.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "ci_LC_S") == 0);
-
+		s.readSection("coreinit_LockedCache");
 		s.readData(lcCacheMask, sizeof(uint8) * PPC_CORE_COUNT * (LC_LOCKED_CACHE_SIZE + LC_LOCKED_CACHE_GRANULARITY - 1) / LC_LOCKED_CACHE_GRANULARITY);
 		s.readData(lcAllocatedBlocks, sizeof(uint32) * PPC_CORE_COUNT);
-		_lcDisableErrorCounter = s.readBE<sint32>();
+		s.readBE(_lcDisableErrorCounter);
 	}
 
 	void InitializeLC()

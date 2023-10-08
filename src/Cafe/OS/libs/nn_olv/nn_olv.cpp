@@ -110,6 +110,40 @@ namespace nn
 
 		static_assert(GetErrorCodeImpl(0xa119c600) == 1155004);
 
+		void save(MemStreamWriter& s)
+		{
+			s.writeSection("nn_olv");
+			s.writeMPTR(s_OlvReleaseBgThread);
+			s.writeMPTR(s_OlvReleaseBgThreadStack);
+			s.writeMPTR(s_OlvReleaseBgThreadName);
+			s.writeData(&g_ParamPack, sizeof(ParamPackStorage));
+			s.writeData(&g_DiscoveryResults, sizeof(DiscoveryResultStorage));
+			s.writeBE(g_ReportTypes);
+			s.writeBool(g_IsInitialized);
+			s.writeBool(g_IsOnlineMode);
+			s.writeBool(g_IsOfflineDBMode);
+			s.writeBool(OfflineDB_Initialized());
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			s.readSection("nn_olv");
+			s.readMPTR(s_OlvReleaseBgThread);
+			s.readMPTR(s_OlvReleaseBgThreadStack);
+			s.readMPTR(s_OlvReleaseBgThreadName);
+			s.readData(&g_ParamPack, sizeof(ParamPackStorage));
+			s.readData(&g_DiscoveryResults, sizeof(DiscoveryResultStorage));
+			s.readBE(g_ReportTypes);
+			s.readBool(g_IsInitialized);
+			s.readBool(g_IsOnlineMode);
+			s.readBool(g_IsOfflineDBMode);
+			if (s.readBool())
+			{
+				OfflineDB_Shutdown();
+				OfflineDB_LazyInit();
+			}
+		}
+
 		void load()
 		{
 			g_ReportTypes = 0;

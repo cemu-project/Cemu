@@ -15,11 +15,6 @@ protected:
 	};
 
 public:
-	void Save(MemStreamWriter& writer) override
-	{
-		throw std::exception("Not implemented");
-	}
-
 	sint32 fscGetType() override
 	{
 		return m_fscType;
@@ -110,6 +105,11 @@ public:
 		std::memset(dirEntry->path, 0, sizeof(dirEntry->path));
 		std::strncpy(dirEntry->path, zarDirEntry.name.data(), std::min(sizeof(dirEntry->path) - 1, zarDirEntry.name.size()));
 		return true;
+	}
+
+	void Save(MemStreamWriter& writer) override
+	{
+		throw std::exception("Not implemented");
 	}
 
 private:

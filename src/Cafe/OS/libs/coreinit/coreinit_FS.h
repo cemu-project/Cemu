@@ -308,8 +308,8 @@ namespace coreinit
 
 	FS_VOLSTATE FSGetVolumeState(FSClient_t* fsClient);
 
-	void ci_FS_Save(MemStreamWriter& s);
-	void ci_FS_Restore(MemStreamReader& s);
+	void FS_Save(MemStreamWriter& s);
+	void FS_Restore(MemStreamReader& s);
 
 	void InitializeFS();
 }; // namespace coreinit

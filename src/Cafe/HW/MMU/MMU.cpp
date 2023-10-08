@@ -80,37 +80,22 @@ MMURange* memory_getMMURangeByAddress(MPTR address)
 	return nullptr;
 }
 
-bool MMURange::serializeImpl(MemStreamWriter& streamWriter)
-{
-	streamWriter.writeBE<bool>(this->m_isMapped);
-	if (m_isMapped)
-	{
-		streamWriter.writeBE(this->baseAddress);
-		streamWriter.writeBE<uint8>((uint8)this->areaId);
-		streamWriter.writeBE<uint8>((uint8)this->flags);
-		streamWriter.writeBE(this->name);
-		streamWriter.writeBE(this->size);
-		streamWriter.writeBE(this->initSize);
-	}
-	return true;
-}
-
 template<>
-void MemStreamWriter::writeBE<MMURange>(const MMURange& v)
+void MemStreamWriter::writeBE(const MMURange& v)
 {
-	writeBE(v.m_isMapped);
+	writeBool(v.m_isMapped);
 	writeBE(v.baseAddress);
-	writeBE<uint8>((uint8)v.areaId);
-	writeBE<uint8>((uint8)v.flags);
+	writeBE((uint8)v.areaId);
+	writeBE((uint8)v.flags);
 	writeBE(v.name);
 	writeBE(v.size);
 	writeBE(v.initSize);
 }
 
 template <>
-void MemStreamReader::readBE<MMURange>(MMURange& mmuRange)
+void MemStreamReader::readBE(MMURange& mmuRange)
 {
-	bool needsMapped = readBE<bool>();
+	bool needsMapped = readBool();
 	mmuRange.m_isMapped = false;
 	mmuRange.baseAddress = readBE<uint32>();
 	mmuRange.areaId = (MMU_MEM_AREA_ID)readBE<uint8>();
@@ -120,23 +105,6 @@ void MemStreamReader::readBE<MMURange>(MMURange& mmuRange)
 	mmuRange.initSize = readBE<uint32>();
 	if (needsMapped)
 		mmuRange.mapMem();
-}
-
-bool MMURange::deserializeImpl(MemStreamReader& streamReader)
-{
-	m_isMapped = streamReader.readBE<bool>();
-	if (m_isMapped)
-	{
-		baseAddress = streamReader.readBE<uint32>();
-		areaId = (MMU_MEM_AREA_ID)streamReader.readBE<uint8>();
-		this->flags = (MFLAG)streamReader.readBE<uint8>();
-		this->name = streamReader.readBE<std::string>();
-		this->size = streamReader.readBE<uint32>();
-		this->initSize = streamReader.readBE<uint32>();
-		m_isMapped = false;
-		mapMem();
-	}
-	return true;
 }
 
 MMURange::MMURange(const uint32 baseAddress, const uint32 size, MMU_MEM_AREA_ID areaId, const std::string_view name, MFLAG flags) : baseAddress(baseAddress), size(size), initSize(size), areaId(areaId), name(name), flags(flags)

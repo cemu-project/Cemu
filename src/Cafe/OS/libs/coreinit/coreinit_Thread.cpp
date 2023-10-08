@@ -1331,12 +1331,13 @@ namespace coreinit
 		}
 	}
 
-	void ci_Thread_Save(MemStreamWriter& s)
+	void Thread_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_T_S", 15);
+		s.writeSection("coreinit_Thread");
 
-		s.writeBE(g_activeThreadQueue.GetMPTR());
-		s.writeBE(g_coreRunQueue.GetMPTR());
+		s.writeBE((uint8)sSchedulerActive.load());
+		s.writeMPTR(g_activeThreadQueue);
+		s.writeMPTR(g_coreRunQueue);
 
 		s.writeBE(activeThreadCount);
 		for (sint32 i = 0; i < activeThreadCount; i++)
@@ -1345,25 +1346,25 @@ namespace coreinit
 		}
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 		{
-			s.writeBE(memory_getVirtualOffsetFromPointer(__currentCoreThread[i]));
+			s.writePTR(__currentCoreThread[i]);
 			s.writeBE(s_lehmer_lcg[i]);
-			s.writeBE(s_terminatorThreads[i].terminatorThread.GetMPTR());
-			s.writeBE(s_terminatorThreads[i].threadStack.GetMPTR());
-			s.writeBE(s_terminatorThreads[i].threadName.GetMPTR());
-			s.writeBE(s_terminatorThreads[i].semaphoreQueuedDeallocators.GetMPTR());
+			s.writeMPTR(s_terminatorThreads[i].terminatorThread);
+			s.writeMPTR(s_terminatorThreads[i].threadStack);
+			s.writeMPTR(s_terminatorThreads[i].threadName);
+			s.writeMPTR(s_terminatorThreads[i].semaphoreQueuedDeallocators);
+			s.writeMPTR(_defaultThreadName[i]);
 		}
-		s.writeBE(s_defaultThreads.GetMPTR());
-		s.writeBE(s_stack.GetMPTR());
+		s.writeMPTR(s_defaultThreads);
+		s.writeMPTR(s_stack);
 	}
 
-	void ci_Thread_Restore(MemStreamReader& s, bool recreate)
+	void Thread_Restore(MemStreamReader& s, bool recreate)
 	{
-		char section[16] = { '\0' };
-		s.readData(section,15);
-		cemu_assert_debug(strcmp(section, "ci_T_S") == 0);
+		s.readSection("coreinit_Thread");
 
-		g_activeThreadQueue = (OSThreadQueue*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-		g_coreRunQueue = (OSThreadQueue*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		sSchedulerActive.store(s.readBE<uint8>());
+		s.readMPTR(g_activeThreadQueue);
+		s.readMPTR(g_coreRunQueue);
 
 		sint32 prevActiveThreadCount = s.readBE<sint32>();
 		for (sint32 i = 0; i < prevActiveThreadCount; i++)
@@ -1383,15 +1384,16 @@ namespace coreinit
 		}
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 		{
-			__currentCoreThread[i] = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-			s_lehmer_lcg[i] = s.readBE<uint32>();
-			s_terminatorThreads[i].terminatorThread = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-			s_terminatorThreads[i].threadStack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-			s_terminatorThreads[i].threadName = (char*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-			s_terminatorThreads[i].semaphoreQueuedDeallocators = (OSSemaphore*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+			s.readPTR(__currentCoreThread[i]);
+			s.readBE(s_lehmer_lcg[i]);
+			s.readMPTR(s_terminatorThreads[i].terminatorThread);
+			s.readMPTR(s_terminatorThreads[i].threadStack);
+			s.readMPTR(s_terminatorThreads[i].threadName);
+			s.readMPTR(s_terminatorThreads[i].semaphoreQueuedDeallocators);
+			s.readMPTR(_defaultThreadName[i]);
 		}
-		s_defaultThreads = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-		s_stack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+		s.readMPTR(s_defaultThreads);
+		s.readMPTR(s_stack);
 	}
 
 	void SuspendActiveThreads()

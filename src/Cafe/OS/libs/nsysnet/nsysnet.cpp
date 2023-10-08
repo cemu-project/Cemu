@@ -2161,6 +2161,32 @@ namespace nsysnet
     }
 }
 
+void nsysnet_save(MemStreamWriter& s)
+{
+	s.writeSection("nsysnet");
+	s.writeMPTR(_ntoa_tempString);
+	s.writeMPTR(_staticHostent);
+	s.writeMPTR(_staticHostentName);
+	s.writeMPTR(_staticHostentPtrList);
+	s.writeMPTR(_staticHostentEntries);
+	s.writePODVector(nsysnet::g_nsslInternalStates);
+	s.writeBool(sockLibReady);
+	s.writeData(virtualSocketTable, sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
+}
+
+void nsysnet_restore(MemStreamReader& s)
+{
+	s.readSection("nsysnet");
+	s.readMPTR(_ntoa_tempString);
+	s.readMPTR(_staticHostent);
+	s.readMPTR(_staticHostentName);
+	s.readMPTR(_staticHostentPtrList);
+	s.readMPTR(_staticHostentEntries);
+	s.readPODVector(nsysnet::g_nsslInternalStates);
+	s.readBool(sockLibReady);
+	s.readData(virtualSocketTable, sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
+}
+
 // register nsysnet functions
 void nsysnet_load()
 {

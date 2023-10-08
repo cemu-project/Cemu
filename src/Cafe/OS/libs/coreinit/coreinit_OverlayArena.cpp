@@ -25,19 +25,15 @@ namespace coreinit
 		*areaSize = MEMORY_OVERLAY_AREA_SIZE;
 	}
 
-	void ci_OverlayArena_Save(MemStreamWriter& s)
+	void OverlayArena_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_OverArea_S", 15);
-
-		s.writeData(&g_coreinitOverlayArena, sizeof(g_coreinitOverlayArena));
+		s.writeSection("coreinit_OverlayArena");
+		s.writeBool(g_coreinitOverlayArena.isEnabled);
 	}
-	void ci_OverlayArena_Restore(MemStreamReader& s)
+	void OverlayArena_Restore(MemStreamReader& s)
 	{
-		char section[16] = { '\0' };
-		s.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "ci_OverArea_S") == 0);
-
-		s.readData(&g_coreinitOverlayArena, sizeof(g_coreinitOverlayArena));
+		s.readSection("coreinit_OverlayArena");
+		s.readBool(g_coreinitOverlayArena.isEnabled);
 	}
 
 	void InitializeOverlayArena()

@@ -1015,6 +1015,18 @@ namespace nn::nfp
 		osLib_addFunction("nn_nfp", "GetAmiiboSettingsArgs__Q2_2nn3nfpFPQ3_2nn3nfp18AmiiboSettingsArgs", nnNfpExport_GetAmiiboSettingsArgs);
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("nn_nfp");
+		s.writeData(&nfp_data, sizeof(nfp_data));
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("nn_nfp");
+		s.readData(&nfp_data, sizeof(nfp_data));
+	}
+
 	void load()
 	{
 		nnNfp_load(); // legacy interface, update these to use cafeExportRegister / cafeExportRegisterFunc

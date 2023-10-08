@@ -739,6 +739,18 @@ namespace nn
 			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
 		}
 
+		void save(MemStreamWriter& s)
+		{
+			s.writeSection("nn_fp");
+			s.writeData(&g_fp, sizeof(g_fp));
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			s.readSection("nn_fp");
+			s.readData(&g_fp, sizeof(g_fp));
+		}
+
 		void load()
 		{
 			osLib_addFunction("nn_fp", "Initialize__Q2_2nn2fpFv", export_Initialize);

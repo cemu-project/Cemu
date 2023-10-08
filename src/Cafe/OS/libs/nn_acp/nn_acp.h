@@ -24,6 +24,9 @@ namespace acp
 	ACPStatus ACPCreateSaveDir(uint32 persistentId, ACPDeviceType type);
 	ACPStatus ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, ACPDeviceType deviceType);;
 
+	void save(MemStreamWriter& s);
+	void restore(MemStreamReader& s);
+
 	void load();
 }
 }

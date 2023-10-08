@@ -316,54 +316,64 @@ namespace coreinit
 	}
 };
 
-void ci_Save(MemStreamWriter& s)
+void coreinit_save(MemStreamWriter& s)
 {
-	s.writeData("ci_S", 15);
+	s.writeSection("coreinit");
 
 	s.writeData(gCoreinitData, sizeof(coreinitData_t));
 	s.writeBE(placeholderFont);
 	s.writeBE(placeholderFontSize);
 
-	using namespace coreinit;
-	ci_CodeGen_Save(s);
-	ci_DynLoad_Save(s);
-	ci_FG_Save(s);
-	ci_GHS_Save(s);
-	ci_IPC_Save(s);
-	ci_LockedCache_Save(s);
-	ci_MEM_Save(s);
-	ci_MemoryMapping_Save(s);
-	ci_MessageQueue_Save(s);
-	ci_OverlayArena_Save(s);
-	ci_Sync_Save(s);
-	ci_SysHeap_Save(s);
-	ci_SystemInfo_Save(s);
+	coreinit_Init_Save(s);
+	coreinit::SysHeap_Save(s);
+	coreinit::Thread_Save(s);
+	coreinit::MEM_Save(s);
+	coreinit::FG_Save(s);
+	coreinit::OverlayArena_Save(s);
+	coreinit::DynLoad_Save(s);
+	coreinit::GHS_Save(s);
+	coreinit::LockedCache_Save(s);
+	coreinit::Alarm_Save(s);
+	coreinit::FS_Save(s);
+	coreinit::SystemInfo_Save(s);
+	coreinit::Synchronization_Save(s);
+	coreinit::MessageQueue_Save(s);
+	coreinit::IPC_Save(s);
+	coreinit::MemoryMapping_Save(s);
+	coreinit::CodeGen_Save(s);
+	coreinit_Callbacks_Save(s);
 }
 
-void ci_Restore(MemStreamReader& s)
+void coreinit_restore(MemStreamReader& s)
 {
-	char section[16] = { '\0' };
-	s.readData(section, 15);
-	cemu_assert_debug(strcmp(section, "ci_S") == 0);
+	s.readSection("coreinit");
+
+	bool recreate = false;
+	if (recreate)
+		coreinit::__OSDeleteAllActivePPCThreads();
 
 	s.readData(gCoreinitData, sizeof(coreinitData_t));
-	placeholderFont = s.readBE<MPTR>();
-	placeholderFontSize = s.readBE<sint32>();
+	s.readBE(placeholderFont);
+	s.readBE(placeholderFontSize);
 
-	using namespace coreinit;
-	ci_CodeGen_Restore(s);
-	ci_DynLoad_Restore(s);
-	ci_FG_Restore(s);
-	ci_GHS_Restore(s);
-	ci_IPC_Restore(s);
-	ci_LockedCache_Restore(s);
-	ci_MEM_Restore(s);
-	ci_MemoryMapping_Restore(s);
-	ci_MessageQueue_Restore(s);
-	ci_OverlayArena_Restore(s);
-	ci_Sync_Restore(s);
-	ci_SysHeap_Restore(s);
-	ci_SystemInfo_Restore(s);
+	coreinit_Init_Restore(s);
+	coreinit::SysHeap_Restore(s);
+	coreinit::Thread_Restore(s, recreate);
+	coreinit::MEM_Restore(s);
+	coreinit::FG_Restore(s);
+	coreinit::OverlayArena_Restore(s);
+	coreinit::DynLoad_Restore(s);
+	coreinit::GHS_Restore(s);
+	coreinit::LockedCache_Restore(s);
+	coreinit::Alarm_Restore(s);
+	coreinit::FS_Restore(s);
+	coreinit::SystemInfo_Restore(s);
+	coreinit::Synchronization_Restore(s);
+	coreinit::MessageQueue_Restore(s);
+	coreinit::IPC_Restore(s);
+	coreinit::MemoryMapping_Restore(s);
+	coreinit::CodeGen_Restore(s);
+	coreinit_Callbacks_Restore(s);
 }
 
 void coreinit_load()

@@ -1,66 +1,25 @@
 #include "Serializer.h"
 
-template<>
-uint8 MemStreamReader::readBE()
+// readBE return
+
+template<typename T>
+T MemStreamReader::readBE()
 {
-	if (!reserveReadLength(sizeof(uint8)))
+	if (!reserveReadLength(sizeof(T)))
 		return 0;
-	uint8 v = m_data[m_cursorPos];
-	m_cursorPos += sizeof(uint8);
+	const uint8* p = m_data + m_cursorPos;
+	T v;
+	std::memcpy(&v, p, sizeof(v));
+	v = _BE(v);
+	m_cursorPos += sizeof(T);
 	return v;
 }
 
-template<>
-uint16 MemStreamReader::readBE()
-{
-	if (!reserveReadLength(sizeof(uint16)))
-		return 0;
-	const uint8* p = m_data + m_cursorPos;
-	uint16 v;
-	std::memcpy(&v, p, sizeof(v));
-	v = _BE(v);
-	m_cursorPos += sizeof(uint16);
-	return v;
-}
-
-template<>
-uint32 MemStreamReader::readBE()
-{
-	if (!reserveReadLength(sizeof(uint32)))
-		return 0;
-	const uint8* p = m_data + m_cursorPos;
-	uint32 v;
-	std::memcpy(&v, p, sizeof(v));
-	v = _BE(v);
-	m_cursorPos += sizeof(uint32);
-	return v;
-}
-
-template<>
-sint32 MemStreamReader::readBE()
-{
-	if (!reserveReadLength(sizeof(sint32)))
-		return 0;
-	const uint8* p = m_data + m_cursorPos;
-	sint32 v;
-	std::memcpy(&v, p, sizeof(v));
-	v = _BE(v);
-	m_cursorPos += sizeof(sint32);
-	return v;
-}
-
-template<>
-uint64 MemStreamReader::readBE()
-{
-	if (!reserveReadLength(sizeof(uint64)))
-		return 0;
-	const uint8* p = m_data + m_cursorPos;
-	uint64 v;
-	std::memcpy(&v, p, sizeof(v));
-	v = _BE(v);
-	m_cursorPos += sizeof(uint64);
-	return v;
-}
+template uint8 MemStreamReader::readBE<uint8>();
+template uint16 MemStreamReader::readBE<uint16>();
+template uint32 MemStreamReader::readBE<uint32>();
+template uint64 MemStreamReader::readBE<uint64>();
+template int MemStreamReader::readBE<int>();
 
 template<>
 std::string MemStreamReader::readBE()
@@ -80,94 +39,88 @@ std::string MemStreamReader::readBE()
 	return s;
 }
 
-template<>
-uint8 MemStreamReader::readLE()
+// readBE void
+
+template<typename T>
+void MemStreamReader::readBE(T& v)
 {
-	return readBE<uint8>();
+	if (reserveReadLength(sizeof(T)))
+	{
+		const uint8* p = m_data + m_cursorPos;
+		std::memcpy(&v, p, sizeof(v));
+		v = _BE(v);
+		m_cursorPos += sizeof(T);
+	}
 }
 
+template void MemStreamReader::readBE(uint8& v);
+template void MemStreamReader::readBE(uint16& v);
+template void MemStreamReader::readBE(uint32& v);
+template void MemStreamReader::readBE(uint64& v);
+template void MemStreamReader::readBE(int& v);
+
 template<>
-uint32 MemStreamReader::readLE()
+void MemStreamReader::readBE(std::string& v)
 {
-	if (!reserveReadLength(sizeof(uint32)))
+	uint32 stringSize = readBE<uint32>();
+	if (!hasError())
+	{
+		if (stringSize >= (32 * 1024 * 1024))
+		{
+			// out of bounds read or suspiciously large string
+			m_hasError = true;
+		}
+		else
+		{
+			v.resize(stringSize);
+			readData(v.data(), stringSize);
+		}
+	}
+}
+
+// readLE return
+
+template<typename T>
+T MemStreamReader::readLE()
+{
+	if (!reserveReadLength(sizeof(T)))
 		return 0;
 	const uint8* p = m_data + m_cursorPos;
-	uint32 v;
+	T v;
 	std::memcpy(&v, p, sizeof(v));
 	v = _LE(v);
-	m_cursorPos += sizeof(uint32);
+	m_cursorPos += sizeof(T);
 	return v;
 }
 
-template<>
-uint64 MemStreamReader::readLE()
+template uint8 MemStreamReader::readLE<uint8>();
+template uint16 MemStreamReader::readLE<uint16>();
+template uint32 MemStreamReader::readLE<uint32>();
+
+// readSection
+
+void MemStreamReader::readSection(const char* sec)
 {
-	if (!reserveReadLength(sizeof(uint64)))
-		return 0;
-	const uint8* p = m_data + m_cursorPos;
-	uint64 v;
-	std::memcpy(&v, p, sizeof(v));
-	v = _LE(v);
-	m_cursorPos += sizeof(uint64);
-	return v;
+	std::string sec_str = std::string(sec);
+	cemu_assert_debug(readBE<std::string>() == sec_str);
 }
 
-template<>
-void MemStreamWriter::writeBE<uint64>(const uint64& v)
+// writeBE void
+
+template<typename T>
+void MemStreamWriter::writeBE(const T& v)
 {
-	m_buffer.resize(m_buffer.size() + 8);
-	uint8* p = m_buffer.data() + m_buffer.size() - 8;
-	uint64 tmp = _BE(v);
+	m_buffer.resize(m_buffer.size() + sizeof(T));
+	uint8* p = m_buffer.data() + m_buffer.size() - sizeof(T);
+	T tmp = _BE(v);
 	std::memcpy(p, &tmp, sizeof(tmp));
 }
 
-template<>
-void MemStreamWriter::writeBE<uint32>(const uint32& v)
-{
-	m_buffer.resize(m_buffer.size() + 4);
-	uint8* p = m_buffer.data() + m_buffer.size() - 4;
-	uint32 tmp = _BE(v);
-	std::memcpy(p, &tmp, sizeof(tmp));
-}
-
-template<>
-void MemStreamWriter::writeBE<sint32>(const sint32& v)
-{
-	m_buffer.resize(m_buffer.size() + 4);
-	uint8* p = m_buffer.data() + m_buffer.size() - 4;
-	uint32 tmp = _BE(v);
-	std::memcpy(p, &tmp, sizeof(tmp));
-}
-
-template<>
-void MemStreamWriter::writeBE<uint16>(const uint16& v)
-{
-	m_buffer.resize(m_buffer.size() + 2);
-	uint8* p = m_buffer.data() + m_buffer.size() - 2;
-	uint16 tmp = _BE(v);
-	std::memcpy(p, &tmp, sizeof(tmp));
-}
-
-
-template<>
-void MemStreamWriter::writeBE<uint8>(const uint8& v)
-{
-	m_buffer.emplace_back(v);
-}
-
-template<>
-void MemStreamWriter::writeBE<bool>(const bool& v)
-{
-	writeData(&v, sizeof(bool));
-}
-
-template<>
-bool MemStreamReader::readBE<bool>()
-{
-	bool v{ false };
-	readData(&v, sizeof(bool));
-	return v;
-}
+template void MemStreamWriter::writeBE(const uint8& v);
+template void MemStreamWriter::writeBE(const uint16& v);
+template void MemStreamWriter::writeBE(const uint32& v);
+template void MemStreamWriter::writeBE(const uint64& v);
+template void MemStreamWriter::writeBE(const int& v);
 
 template<>
 void MemStreamWriter::writeBE<std::string>(const std::string& v)
@@ -176,21 +129,25 @@ void MemStreamWriter::writeBE<std::string>(const std::string& v)
 	writeData(v.data(), v.size());
 }
 
-template<>
-void MemStreamWriter::writeLE<uint64>(const uint64& v)
+// writeLE void
+
+template<typename T>
+void MemStreamWriter::writeLE(const T& v)
 {
-	m_buffer.resize(m_buffer.size() + 8);
-	uint8* p = m_buffer.data() + m_buffer.size() - 8;
-	uint64 tmp = _LE(v);
+	m_buffer.resize(m_buffer.size() + sizeof(T));
+	uint8* p = m_buffer.data() + m_buffer.size() - sizeof(T);
+	T tmp = _LE(v);
 	std::memcpy(p, &tmp, sizeof(tmp));
 }
 
+template void MemStreamWriter::writeLE(const uint8& v);
+template void MemStreamWriter::writeLE(const uint16& v);
+template void MemStreamWriter::writeLE(const uint32& v);
 
-template<>
-void MemStreamWriter::writeLE<uint32>(const uint32& v)
+// writeSection
+
+void MemStreamWriter::writeSection(const char* sec)
 {
-	m_buffer.resize(m_buffer.size() + 4);
-	uint8* p = m_buffer.data() + m_buffer.size() - 4;
-	uint32 tmp = _LE(v);
-	std::memcpy(p, &tmp, sizeof(tmp));
+	std::string sec_str = std::string(sec);
+	writeBE(sec_str);
 }

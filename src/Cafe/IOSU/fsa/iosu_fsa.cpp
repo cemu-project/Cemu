@@ -36,7 +36,9 @@ namespace iosu
 			}
 		};
 
-		std::array<FSAClient, 624> sFSAClientArray;
+		static constexpr int const sFSAClientArraySize = 624;
+
+		std::array<FSAClient, sFSAClientArraySize> sFSAClientArray;
 
 		IOS_ERROR FSAAllocateClient(sint32& indexOut)
 		{
@@ -229,9 +231,10 @@ namespace iosu
 				return it.fscFile;
 			}
 
+			static constexpr int const m_handleTableSize = 0x3C0;
 		private:
 			uint32 m_currentCounter = 1;
-			std::array<_FSAHandleResource, 0x3C0> m_handleTable;
+			std::array<_FSAHandleResource, m_handleTableSize> m_handleTable;
 		};
 
 		_FSAHandleTable sFileHandleTable;
@@ -908,113 +911,76 @@ namespace iosu
 } // namespace iosu
 
 template <>
-void MemStreamWriter::writeBE<FSCDirEntry>(const FSCDirEntry& v);
-template <>
-FSCDirEntry MemStreamReader::readBE<FSCDirEntry>();
-template <>
-FSCVirtualFile::FSCDirIteratorState MemStreamReader::readBE<FSCVirtualFile::FSCDirIteratorState>();
-template <>
-void MemStreamWriter::writeBE<FSCVirtualFile::FSCDirIteratorState>(const FSCVirtualFile::FSCDirIteratorState& v);
+void MemStreamWriter::writeBE(const iosu::fsa::FSAClient& v)
+{
+	writeBE(v.workingDirectory);
+	writeBool(v.isAllocated);
+}
 
 template <>
-void MemStreamWriter::writeBE<iosu::fsa::_FSAHandleTable>(const iosu::fsa::_FSAHandleTable& v)
+void MemStreamReader::readBE(iosu::fsa::FSAClient& v)
+{
+	readBE(v.workingDirectory);
+	readBool(v.isAllocated);
+}
+
+template <>
+void MemStreamWriter::writeBE(const iosu::fsa::_FSAHandleTable& v)
 {
 	writeBE(v.m_currentCounter);
-	for (int i = 0; i < 0x3C0; i++)
+	for (sint32 i = 0; i < v.m_handleTableSize; i++)
 	{
 		writeBE(v.m_handleTable[i].handleCheckValue);
-		writeBE(v.m_handleTable[i].isAllocated);
-		writeBE(v.m_handleTable[i].fscFile != nullptr);
+		writeBool(v.m_handleTable[i].isAllocated);
+
+		writeBool(v.m_handleTable[i].fscFile != nullptr);
 		if (v.m_handleTable[i].fscFile != nullptr) v.m_handleTable[i].fscFile->Save(*this);
 	}
 }
 
 template <>
-iosu::fsa::_FSAHandleTable MemStreamReader::readBE<iosu::fsa::_FSAHandleTable>()
+void MemStreamReader::readBE(iosu::fsa::_FSAHandleTable& v)
 {
-	iosu::fsa::_FSAHandleTable table{};
-	table.m_currentCounter = readBE<uint32>();
-	for (int i = 0; i < 0x3C0; i++)
+	readBE(v.m_currentCounter);
+	for (sint32 i = 0; i < v.m_handleTableSize; i++)
 	{
-		table.m_handleTable[i].handleCheckValue = readBE<uint16>();
-		table.m_handleTable[i].isAllocated = readBE<bool>();
-		if (readBE<bool>()) table.m_handleTable[i].fscFile = FSCVirtualFile::Restore(*this);
-	}
-	return table;
-}
+		readBE(v.m_handleTable[i].handleCheckValue);
+		readBool(v.m_handleTable[i].isAllocated);
 
-template <>
-void MemStreamWriter::writeBE<FSCVirtualFile::FSCDirIteratorState>(const FSCVirtualFile::FSCDirIteratorState& v)
-{
-	writeBE(v.index);
-	writeBE(v.dirEntries.size());
-	for (int i = 0; i < v.dirEntries.size(); i++)
-	{
-		writeBE(v.dirEntries[i]);
+		if (readBool()) v.m_handleTable[i].fscFile = FSCVirtualFile::Restore(*this);
 	}
 }
 
-template <>
-void MemStreamWriter::writeBE<FSCDirEntry>(const FSCDirEntry& v)
+namespace iosu
 {
-	writeData(v.path, FSC_MAX_DIR_NAME_LENGTH);
-	writeBE(v.isDirectory);
-	writeBE(v.isFile);
-	writeBE(v.fileSize);
-}
-
-template <>
-FSCDirEntry MemStreamReader::readBE<FSCDirEntry>()
-{
-	FSCDirEntry entry{};
-	readData(entry.path, FSC_MAX_DIR_NAME_LENGTH);
-	entry.isDirectory = readBE<bool>();
-	entry.isFile = readBE<bool>();
-	entry.fileSize = readBE<uint32>();
-	return entry;
-}
-
-template <>
-FSCVirtualFile::FSCDirIteratorState MemStreamReader::readBE<FSCVirtualFile::FSCDirIteratorState>()
-{
-	FSCVirtualFile::FSCDirIteratorState state{};
-	state.index = readBE<sint32>();
-	size_t size = readBE<size_t>();
-	for (size_t i = 0; i < size; i++)
+	namespace fsa
 	{
-		state.dirEntries[i] = readBE<FSCDirEntry>();
-	}
-	return state;
-}
-
-namespace iosu::fsa
-{
-
-	void Save(MemStreamWriter& writer)
-	{
-		writer.writeData("iosu_fsa_S", 15);
-
-		writer.writeBE(sFSAIoMsgQueue);
-		for (size_t i = 0; i < 352; i++)
+		void Save(MemStreamWriter& s)
 		{
-			writer.writeBE(_m_sFSAIoMsgQueueMsgBuffer[i]);
+			s.writeSection("iosu_fsa");
+			s.writeBE(sFSAIoMsgQueue);
+			s.writeMPTR(_m_sFSAIoMsgQueueMsgBuffer);
+
+			for (sint32 i = 0; i < sFSAClientArraySize; i++)
+			{
+				s.writeBE(sFSAClientArray[i]);
+			}
+			s.writeBE(sDirHandleTable);
+			s.writeBE(sFileHandleTable);
 		}
-		writer.writeBE(sDirHandleTable);
-		writer.writeBE(sFileHandleTable);
-	}
 
-	void Restore(MemStreamReader& reader)
-	{
-		char section[16] = { '\0' };
-		reader.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "iosu_fsa_S") == 0);
-
-		sFSAIoMsgQueue = reader.readBE<IOSMsgQueueId>();
-		for (size_t i = 0; i < 352; i++)
+		void Restore(MemStreamReader& s)
 		{
-			_m_sFSAIoMsgQueueMsgBuffer[i] = reader.readBE<iosu::kernel::IOSMessage>();
+			s.readSection("iosu_fsa");
+			s.readBE(sFSAIoMsgQueue);
+			s.readMPTR(_m_sFSAIoMsgQueueMsgBuffer);
+
+			for (sint32 i = 0; i < sFSAClientArraySize; i++)
+			{
+				s.readBE(sFSAClientArray[i]);
+			}
+			s.readBE(sDirHandleTable);
+			s.readBE(sFileHandleTable);
 		}
-		sDirHandleTable = reader.readBE<_FSAHandleTable>();
-		sFileHandleTable = reader.readBE<_FSAHandleTable>();
-	}
-}
+	} // namespace fsa
+} // namespace iosu

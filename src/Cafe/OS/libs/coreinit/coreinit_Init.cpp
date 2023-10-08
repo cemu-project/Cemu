@@ -216,24 +216,20 @@ void coreinit_start(PPCInterpreter_t* hCPU)
 	hCPU->instructionPointer = _coreinitTitleEntryPoint;
 }
 
-void ci_Init_Save(MemStreamWriter& s)
+void coreinit_Init_Save(MemStreamWriter& s)
 {
-	s.writeData("ci_Init_S", 15);
-
+	s.writeSection("coreinit_Init");
 	s.writeData(_coreinitInfo, sizeof(coreinitInit_t));
 	s.writeBE(argStorageIndex);
-	s.writeBE(g_preinitUserParam.GetMPTR());
+	s.writeMPTR(g_preinitUserParam);
 	s.writeBE(_coreinitTitleEntryPoint);
 }
 
-void ci_Init_Restore(MemStreamReader& s)
+void coreinit_Init_Restore(MemStreamReader& s)
 {
-	char section[16] = { '\0' };
-	s.readData(section, 15);
-	cemu_assert_debug(strcmp(section, "ci_Init_S") == 0);
-
+	s.readSection("coreinit_Init");
 	s.readData(_coreinitInfo, sizeof(coreinitInit_t));
-	argStorageIndex = s.readBE<sint32>();
-	g_preinitUserParam = (PreinitUserHeapStruct*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-	_coreinitTitleEntryPoint = s.readBE<sint32>();
+	s.readBE(argStorageIndex);
+	s.readMPTR(g_preinitUserParam);
+	s.readBE(_coreinitTitleEntryPoint);
 }

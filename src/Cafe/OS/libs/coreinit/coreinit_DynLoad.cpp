@@ -129,26 +129,22 @@ namespace coreinit
 		return 0;
 	}
 
-	void ci_DynLoad_Save(MemStreamWriter& s)
+	void DynLoad_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_DL_S", 15);
-
+		s.writeSection("coreinit_DynLoad");
 		s.writeBE(_osDynLoadFuncAlloc);
 		s.writeBE(_osDynLoadFuncFree);
 		s.writeBE(_osDynLoadTLSFuncAlloc);
 		s.writeBE(_osDynLoadTLSFuncFree);
 	}
 
-	void ci_DynLoad_Restore(MemStreamReader& s)
+	void DynLoad_Restore(MemStreamReader& s)
 	{
-		char section[16] = { '\0' };
-		s.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "ci_DL_S") == 0);
-
-		_osDynLoadFuncAlloc = s.readBE<MPTR>();
-		_osDynLoadFuncFree = s.readBE<MPTR>();
-		_osDynLoadTLSFuncAlloc = s.readBE<MPTR>();
-		_osDynLoadTLSFuncFree = s.readBE<MPTR>();
+		s.readSection("coreinit_DynLoad");
+		s.readBE(_osDynLoadFuncAlloc);
+		s.readBE(_osDynLoadFuncFree);
+		s.readBE(_osDynLoadTLSFuncAlloc);
+		s.readBE(_osDynLoadTLSFuncFree);
 	}
 
 	void InitializeDynLoad()

@@ -1007,13 +1007,10 @@ namespace CafeSystem
 		writer.writeData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
 		writer.writeData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
 		writer.writeData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
-		// cpu
-		ci_Save(writer);
-		coreinit::ci_Alarm_Save(writer);
-		ci_Callbacks_Save(writer);
-		coreinit::ci_FS_Save(writer);
-		ci_Init_Save(writer);
-		coreinit::ci_Thread_Save(writer);
+
+		nn::temp::save(writer);
+		nn::aoc::save(writer);
+		osLib_save(writer);
 		iosu::fsa::Save(writer);
 
 		FileStream* stream = FileStream::createFile(path);
@@ -1034,10 +1031,6 @@ namespace CafeSystem
 		assert(data.has_value());
 		MemStreamReader reader(data->data(), data->size());
 
-		bool recreate = false;
-		if (recreate)
-			coreinit::__OSDeleteAllActivePPCThreads();
-
 		// memory
 		DestroyMemorySpace();
 		memory_Deserialize(reader);
@@ -1045,13 +1038,10 @@ namespace CafeSystem
 		reader.readData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
 		reader.readData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
 		reader.readData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
-		// cpu
-		ci_Restore(reader);
-		coreinit::ci_Alarm_Restore(reader);
-		ci_Callbacks_Restore(reader);
-		coreinit::ci_FS_Restore(reader);
-		ci_Init_Restore(reader);
-		coreinit::ci_Thread_Restore(reader, recreate);
+
+		nn::temp::restore(reader);
+		nn::aoc::restore(reader);
+		osLib_restore(reader);
 		iosu::fsa::Restore(reader);
 
 		cemuLog_log(LogType::SaveStates, "Loaded state from {}.", path);

@@ -16,8 +16,8 @@ namespace coreinit
 
 	const OSSystemInfo& OSGetSystemInfo();
 	
-	void ci_SystemInfo_Save(MemStreamWriter& s);
-	void ci_SystemInfo_Restore(MemStreamReader& s);
+	void SystemInfo_Save(MemStreamWriter& s);
+	void SystemInfo_Restore(MemStreamReader& s);
 
 	void InitializeSystemInfo();
 };

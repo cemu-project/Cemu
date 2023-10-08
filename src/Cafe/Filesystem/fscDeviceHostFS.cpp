@@ -157,19 +157,6 @@ bool FSCVirtualFile_Host::fscDirNext(FSCDirEntry* dirEntry)
 	return true;
 }
 
-void FSCVirtualFile_Host::Save(MemStreamWriter& writer)
-{
-	writer.writeBE<uint32>((uint32)Child::HOST);
-
-	writer.writeBE(m_path->string());
-	writer.writeBE((uint32)m_accessFlags);
-
-	writer.writeBE(m_seek);
-
-	FSCVirtualFile::Save(writer);
-}
-
-
 FSCVirtualFile* FSCVirtualFile_Host::OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus)
 {
 	if (!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) && !HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
@@ -308,4 +295,13 @@ public:
 bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority)
 {
 	return fsc_mount(mountPath, hostTargetPath, &fscDeviceHostFSC::instance(), nullptr, priority) == FSC_STATUS_OK;
+}
+
+void FSCVirtualFile_Host::Save(MemStreamWriter& writer)
+{
+	writer.writeBE<uint32>((uint32)Child::HOST);
+	writer.writeBE(m_path->string());
+	writer.writeBE((uint32)m_accessFlags);
+	writer.writeBE(m_seek);
+	FSCVirtualFile::Save(writer);
 }

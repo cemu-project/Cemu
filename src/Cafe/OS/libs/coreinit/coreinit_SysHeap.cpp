@@ -32,24 +32,20 @@ namespace coreinit
 		_sysHeapFreeCounter = 0;
 	}
 
-	void ci_SysHeap_Save(MemStreamWriter& s)
+	void SysHeap_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_SysHeap_S", 15);
-
+		s.writeSection("coreinit_SysHeap");
 		s.writeData(_sysHeapHandle, sizeof(MEMHeapBase));
 		s.writeBE(_sysHeapAllocCounter);
 		s.writeBE(_sysHeapFreeCounter);
 	}
 
-	void ci_SysHeap_Restore(MemStreamReader& s)
+	void SysHeap_Restore(MemStreamReader& s)
 	{
-		char section[16] = { '\0' };
-		s.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "ci_SysHeap_S") == 0);
-
+		s.readSection("coreinit_SysHeap");
 		s.readData(_sysHeapHandle, sizeof(MEMHeapBase));
-		_sysHeapAllocCounter = s.readBE<sint32>();
-		_sysHeapFreeCounter = s.readBE<sint32>();
+		s.readBE(_sysHeapAllocCounter);
+		s.readBE(_sysHeapFreeCounter);
 	}
 
 	void InitializeSysHeap()

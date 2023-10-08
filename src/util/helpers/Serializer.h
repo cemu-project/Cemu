@@ -13,6 +13,12 @@ public:
 	template<typename T> T readLE();
 
 	template<typename T>
+	void readAtomic(std::atomic<T>& v)
+	{
+		v.store(readBE<T>());
+	}
+
+	template<typename T>
 	std::vector<T> readPODVector()
 	{
 		uint32 numElements = readBE<uint32>();
@@ -26,6 +32,48 @@ public:
 		readData(v.data(), v.size() * sizeof(T));
 		return v;
 	}
+
+	template<typename T>
+	void readPODVector(std::vector<T>& v)
+	{
+		uint32 numElements = readBE<uint32>();
+		if (!hasError())
+		{
+			v.reserve(numElements);
+			v.resize(numElements);
+			readData(v.data(), v.size() * sizeof(T));
+		}
+	}
+
+	template<typename T>
+	void readPTR(T& v)
+	{
+		v = (T)(memory_base + readBE<uint32>());
+	}
+
+	template<template<typename> class C, typename T>
+	void readMPTR(C<T>& v)
+	{
+		v = (T*)(memory_base + readBE<MPTR>());
+	}
+
+	template<template<typename, size_t, size_t> class C, typename T, size_t c, size_t a>
+	void readMPTR(C<T,c,a>& v)
+	{
+		v = (T*)(memory_base + readBE<MPTR>());
+	}
+
+	void readBool(bool& v)
+	{
+		v = readBE<uint8>();
+	}
+
+	bool readBool()
+	{
+		return readBE<uint8>();
+	}
+
+	void readSection(const char* sec);
 
 	// read string terminated by newline character (or end of stream)
 	// will also trim off any carriage return
@@ -71,15 +119,23 @@ public:
 
 	bool readData(void* ptr, size_t size)
 	{
-		if (m_cursorPos + size > m_size)
+		if (readBE<uint8>())
 		{
-			m_cursorPos = m_size;
-			m_hasError = true;
+			ptr = NULL;
 			return false;
 		}
-		memcpy(ptr, m_data + m_cursorPos, size);
-		m_cursorPos += (sint32)size;
-		return true;
+		else
+		{
+			if (m_cursorPos + size > m_size)
+			{
+				m_cursorPos = m_size;
+				m_hasError = true;
+				return false;
+			}
+			memcpy(ptr, m_data + m_cursorPos, size);
+			m_cursorPos += (sint32)size;
+			return true;
+		}	
 	}
 
 	std::span<uint8> readDataNoCopy(size_t size)
@@ -147,20 +203,50 @@ public:
 
 	void writeData(const void* ptr, size_t size)
 	{
-		m_buffer.resize(m_buffer.size() + size);
-		uint8* p = m_buffer.data() + m_buffer.size() - size;
-		memcpy(p, ptr, size);
+		writeBE((uint8)(ptr == NULL));
+		if (ptr)
+		{
+			m_buffer.resize(m_buffer.size() + size);
+			uint8* p = m_buffer.data() + m_buffer.size() - size;
+			memcpy(p, ptr, size);
+		}
 	}
 
 	template<typename T> void writeBE(const T& v);
 	template<typename T> void writeLE(const T& v);
+	
+	template<typename T>
+	void writeAtomic(const std::atomic<T>& v)
+	{
+		writeBE(v.load());
+	}
 
 	template<typename T>
 	void writePODVector(const std::vector<T>& v)
 	{
+		cemu_assert(std::is_trivial_v<T>);
 		writeBE<uint32>(v.size());
 		writeData(v.data(), v.size() * sizeof(T));
 	}
+
+	template<typename T>
+	void writePTR(const T& v)
+	{
+		writeBE((uint32)((uint8*)v - (uint8*)memory_base));
+	}
+
+	template<typename T>
+	void writeMPTR(const T& v)
+	{
+		writeBE(v.GetMPTR());
+	}
+
+	void writeBool(const bool& v)
+	{
+		writeBE((uint8)v);
+	}
+
+	void writeSection(const char* sec);
 
 	// get result buffer without copy
 	// resets internal state

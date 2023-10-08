@@ -31,14 +31,14 @@ struct CoreinitAsyncCallback
 		s_asyncCallbackSpinlock.unlock();
 	}
 
-	static std::vector<struct CoreinitAsyncCallback*>* getPoolPtr()
+	static std::vector<struct CoreinitAsyncCallback*>& getPool()
 	{
-		return &s_asyncCallbackPool;
+		return s_asyncCallbackPool;
 	}
 
-	static std::vector<struct CoreinitAsyncCallback*>* getQueuePtr()
+	static std::vector<struct CoreinitAsyncCallback*>& getQueue()
 	{
-		return &s_asyncCallbackQueue;
+		return s_asyncCallbackQueue;
 	}
 
 	friend void ci_Callbacks_Save(MemStreamWriter& s);
@@ -117,48 +117,26 @@ void coreinitAsyncCallback_add(MPTR functionMPTR, uint32 numParameters, uint32 r
 	coreinitAsyncCallback_addWithLock(functionMPTR, numParameters, r3, r4, r5, r6, r7, r8, r9, r10);
 }
 
-void ci_Callbacks_Save(MemStreamWriter& s)
+void coreinit_Callbacks_Save(MemStreamWriter& s)
 {
-	s.writeData("ci_C_S", 15);
-
-	s.writeBE(g_coreinitCallbackThread.GetMPTR());
-	s.writeBE(_g_coreinitCallbackThreadStack.GetMPTR());
-	s.writeBE(g_asyncCallbackAsync.GetMPTR());
-	s.writeBE(_g_coreinitCBThreadName.GetMPTR());
-
-	std::vector<struct CoreinitAsyncCallback*>* pool = CoreinitAsyncCallback::getPoolPtr();
-	size_t poolSize = pool->size();
-	s.writeBE(poolSize);
-	s.writeData(pool, sizeof(CoreinitAsyncCallback) * poolSize);
-
-	std::vector<struct CoreinitAsyncCallback*>* queue = CoreinitAsyncCallback::getQueuePtr();
-	size_t queueSize = queue->size();
-	s.writeBE(queueSize);
-	s.writeData(queue, sizeof(CoreinitAsyncCallback) * queueSize);
+	s.writeSection("coreinit_Callbacks");
+	s.writeMPTR(g_coreinitCallbackThread);
+	s.writeMPTR(_g_coreinitCallbackThreadStack);
+	s.writeMPTR(g_asyncCallbackAsync);
+	s.writeMPTR(_g_coreinitCBThreadName);
+	s.writePODVector(CoreinitAsyncCallback::getPool());
+	s.writePODVector(CoreinitAsyncCallback::getQueue());
 }
 
-void ci_Callbacks_Restore(MemStreamReader& s)
+void coreinit_Callbacks_Restore(MemStreamReader& s)
 {
-	char section[16] = { '\0' };
-	s.readData(section, 15);
-	cemu_assert_debug(strcmp(section, "ci_C_S") == 0);
-
-	g_coreinitCallbackThread = (OSThread_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-	_g_coreinitCallbackThreadStack = (uint8*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-	g_asyncCallbackAsync = (coreinit::OSSemaphore*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-	_g_coreinitCBThreadName = (char*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
-
-	std::vector<struct CoreinitAsyncCallback*>* pool = CoreinitAsyncCallback::getPoolPtr();
-	size_t poolSize = s.readBE<size_t>();
-	pool->clear();
-	pool->resize(poolSize);
-	s.readData(pool, sizeof(CoreinitAsyncCallback) * poolSize);
-
-	std::vector<struct CoreinitAsyncCallback*>* queue = CoreinitAsyncCallback::getPoolPtr();
-	size_t queueSize = s.readBE<size_t>();
-	queue->clear();
-	queue->resize(queueSize);
-	s.readData(queue, sizeof(CoreinitAsyncCallback) * queueSize);
+	s.readSection("coreinit_Callbacks");
+	s.readMPTR(g_coreinitCallbackThread);
+	s.readMPTR(_g_coreinitCallbackThreadStack);
+	s.readMPTR(g_asyncCallbackAsync);
+	s.readMPTR(_g_coreinitCBThreadName);
+	s.readPODVector(CoreinitAsyncCallback::getPool());
+	s.readPODVector(CoreinitAsyncCallback::getQueue());
 }
 
 void InitializeAsyncCallback()

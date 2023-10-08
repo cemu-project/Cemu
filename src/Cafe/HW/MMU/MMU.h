@@ -51,9 +51,6 @@ struct MMURange
 		FLAG_MAP_EARLY = (1 << 1), // map at Cemu launch, normally memory is mapped when a game is loaded
 	};
 
-	bool serializeImpl(MemStreamWriter& streamWriter);
-	bool deserializeImpl(MemStreamReader& streamReader);
-
 	MMURange(const uint32 baseAddress, const uint32 size, MMU_MEM_AREA_ID areaId, const std::string_view name, MFLAG flags = (MFLAG)0);
 
 	void mapMem();

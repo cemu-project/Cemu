@@ -813,6 +813,28 @@ namespace nsyshid
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("nsyshid");
+		s.writeData(firstDevice, sizeof(HIDDeviceInfo_t));
+		s.writeData(firstHIDClient, sizeof(HIDClient_t));
+		s.writeBE(_lastGeneratedHidHandle);
+		s.writeMPTR(_devicePool);
+		s.writeBE(_devicePoolMask.count());
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("nsyshid");
+		s.readData(firstDevice, sizeof(HIDDeviceInfo_t));
+		s.readData(firstHIDClient, sizeof(HIDClient_t));
+		s.readBE(_lastGeneratedHidHandle);
+		s.readMPTR(_devicePool);
+		_devicePoolMask.reset();
+		for (size_t i = 0; i < s.readBE<size_t>(); i++)
+			_devicePoolMask.set(i);
+	}
+
 	void load()
 	{
 		osLib_addFunction("nsyshid", "HIDAddClient", export_HIDAddClient);

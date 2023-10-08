@@ -3,7 +3,6 @@
 class FSCVirtualFile_Host : public FSCVirtualFile
 {
 public:
-	void Save(MemStreamWriter& writer) override;
 	static FSCVirtualFile* OpenFile(const fs::path& path, FSC_ACCESS_FLAG accessFlags, sint32& fscStatus);
 	~FSCVirtualFile_Host() override;
 
@@ -18,6 +17,8 @@ public:
 	uint64 fscGetSeek() override;
 	void fscSetFileLength(uint64 endOffset) override;
 	bool fscDirNext(FSCDirEntry* dirEntry) override;
+
+	void Save(MemStreamWriter& writer) override;
 
 private:
 	FSCVirtualFile_Host(uint32 type) : m_type(type) {};

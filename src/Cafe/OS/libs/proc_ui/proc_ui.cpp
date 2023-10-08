@@ -49,6 +49,16 @@ void ProcUI_SendForegroundMessage()
 	}
 }
 
+void procui_save(MemStreamWriter& s)
+{
+	s.writeSection("proc_ui");
+}
+
+void procui_restore(MemStreamReader& s)
+{
+	s.readSection("proc_ui");
+}
+
 void procui_load()
 {
 	cafeExportRegister("proc_ui", ProcUIRegisterCallback, LogType::ProcUi);

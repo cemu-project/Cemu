@@ -53,7 +53,8 @@ namespace padscore
 
 	WPADState_t g_wpad_state = kWPADStateMaster;
 
-	struct {
+	struct g_padscore_t 
+	{
 		SysAllocator<coreinit::OSAlarm_t> alarm;
 		bool kpad_initialized = false;
 
@@ -744,6 +745,30 @@ namespace padscore
 		const uint64 period_tick = coreinit::EspressoTime::GetTimerClock(); // once a second
 		MPTR handler = PPCInterpreter_makeCallableExportDepr(TickFunction);
 		OSSetPeriodicAlarm(&g_padscore.alarm, start_tick, period_tick, handler);
+	}
+
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("padscore");
+		s.writeBool(debugUseDRC1);
+		s.writeBool(g_kpadIsInited);
+		s.writeData(&g_padscore, sizeof(g_padscore_t));
+		s.writeData(g_kpad_ringbuffer, sizeof(KPADUnifiedWpadStatus_t));
+		s.writeBE(g_kpad_ringbuffer_length);
+		s.writeBool(g_wpad_callback_by_kpad);
+		s.writeBE((uint32)g_wpad_state);
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("padscore");
+		s.readBool(debugUseDRC1);
+		s.readBool(g_kpadIsInited);
+		s.readData(&g_padscore, sizeof(g_padscore_t));
+		s.readData(g_kpad_ringbuffer, sizeof(KPADUnifiedWpadStatus_t));
+		s.readBE(g_kpad_ringbuffer_length);
+		s.readBool(g_wpad_callback_by_kpad);
+		g_wpad_state = (WPADState_t)s.readBE<uint32>();
 	}
 
 	void load()

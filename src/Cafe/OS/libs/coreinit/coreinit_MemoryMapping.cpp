@@ -153,25 +153,16 @@ namespace coreinit
 		return 1;
 	}
 
-	void ci_MemoryMapping_Save(MemStreamWriter& s)
+	void MemoryMapping_Save(MemStreamWriter& s)
 	{
-		s.writeData("ci_MemMap_S", 15);
-		
-		size_t s_allocatedVirtMemorySize = s_allocatedVirtMemory.size();
-		s.writeBE(s_allocatedVirtMemorySize);
-		s.writeData(&s_allocatedVirtMemory, sizeof(OSVirtMemoryEntry) * s_allocatedVirtMemorySize);
+		s.writeSection("coreinit_MemoryMapping ");
+		s.writePODVector(s_allocatedVirtMemory);
 	}
 
-	void ci_MemoryMapping_Restore(MemStreamReader& s)
+	void MemoryMapping_Restore(MemStreamReader& s)
 	{
-		char section[16] = { '\0' };
-		s.readData(section, 15);
-		cemu_assert_debug(strcmp(section, "ci_MemMap_S") == 0);
-
-		size_t s_allocatedVirtMemorySize = s.readBE<size_t>();
-		s_allocatedVirtMemory.clear();
-		s_allocatedVirtMemory.resize(s_allocatedVirtMemorySize);
-		s.readData(&s_allocatedVirtMemory, sizeof(OSVirtMemoryEntry) * s_allocatedVirtMemorySize);
+		s.readSection("coreinit_MemoryMapping ");
+		s.readPODVector(s_allocatedVirtMemory);
 	}
 
 	void InitializeMemoryMapping()

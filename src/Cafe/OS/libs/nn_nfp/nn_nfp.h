@@ -2,6 +2,9 @@
 
 namespace nn::nfp
 {
+	void save(MemStreamWriter& s);
+	void restore(MemStreamReader& s);
+
 	void load();
 }
 
