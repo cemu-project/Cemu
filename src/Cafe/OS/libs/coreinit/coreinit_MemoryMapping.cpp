@@ -156,13 +156,26 @@ namespace coreinit
 	void MemoryMapping_Save(MemStreamWriter& s)
 	{
 		s.writeSection("coreinit_MemoryMapping ");
-		s.writePODVector(s_allocatedVirtMemory);
+		s.writeBE<uint32>(s_allocatedVirtMemory.size());
+		for (auto i : s_allocatedVirtMemory)
+		{
+			s.writeBE(i.virtualAddress);
+			s.writeBE(i.size);
+			s.writeBE(i.alignment);
+		}
 	}
 
 	void MemoryMapping_Restore(MemStreamReader& s)
 	{
 		s.readSection("coreinit_MemoryMapping ");
 		s.readPODVector(s_allocatedVirtMemory);
+		uint32 s_allocatedVirtMemorySize = s.readBE<uint32>();
+		s_allocatedVirtMemory.clear();
+		s_allocatedVirtMemory.reserve(s_allocatedVirtMemorySize);
+		for (sint32 i = 0; i < s_allocatedVirtMemorySize; i++)
+		{
+			s_allocatedVirtMemory.push_back(OSVirtMemoryEntry(s.readBE<MPTR>(), s.readBE<uint32>(), s.readBE<uint32>()));
+		}
 	}
 
 	void InitializeMemoryMapping()

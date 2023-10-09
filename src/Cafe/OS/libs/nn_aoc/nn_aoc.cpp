@@ -36,7 +36,6 @@ namespace nn
 
 		struct AOCCacheEntry
 		{
-			AOCCacheEntry() {};
 			AOCCacheEntry(uint64 titleId) : aocTitleId(titleId) {};
 
 			uint64 aocTitleId;
@@ -153,14 +152,24 @@ namespace nn
 		void save(MemStreamWriter& s)
 		{
 			s.writeSection("nn_aoc");
-			s.writePODVector(sAocCache);
+			s.writeBE<uint32>(sAocCache.size());
+			for (auto i : sAocCache)
+			{
+				s.writeBE(i.aocTitleId);
+			}
 			s.writeBool(sAocCacheGenerated);
 		}
 
 		void restore(MemStreamReader& s)
 		{
 			s.readSection("nn_aoc");
-			s.readPODVector(sAocCache);
+			uint32 sAocCacheSize = s.readBE<uint32>();
+			sAocCache.clear();
+			sAocCache.reserve(sAocCacheSize);
+			for (sint32 i = 0; i < sAocCacheSize; i++)
+			{
+				sAocCache.emplace_back(s.readBE<uint64>());
+			}
 			s.readBool(sAocCacheGenerated);
 		}
 
