@@ -111,13 +111,13 @@ void dmaeExport_DMAEGetRetiredTimeStamp(PPCInterpreter_t* hCPU)
 void dmae_save(MemStreamWriter& s)
 {
 	s.writeSection("dmae");
-	s.writeBE(dmaeRetiredTimestamp);
+	s.write(dmaeRetiredTimestamp);
 }
 
 void dmae_restore(MemStreamReader& s)
 {
 	s.readSection("dmae");
-	s.readBE(dmaeRetiredTimestamp);
+	s.read(dmaeRetiredTimestamp);
 }
 
 void dmae_load()

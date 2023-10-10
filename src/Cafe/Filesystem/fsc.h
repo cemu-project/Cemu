@@ -38,6 +38,7 @@ DEFINE_ENUM_FLAG_OPERATORS(FSC_ACCESS_FLAG);
 #define FSC_STATUS_ALREADY_EXISTS		(3)
 // note: Unlike the native Wii U filesystem, FSC does not provide separate error codes for NOT_A_FILE and NOT_A_DIRECTORY
 // to determine them manually, open with both modes (file and dir) and check the type
+
 #define FSC_MAX_DIR_NAME_LENGTH			(256)
 #define FSC_MAX_DEVICE_PATH_LENGTH		((std::max)(260,FSA_PATH_SIZE_MAX))	// max length for FSC device paths (should be at least equal or greater than supported by host filesystem)
 

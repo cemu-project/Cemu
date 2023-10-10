@@ -132,19 +132,19 @@ namespace coreinit
 	void DynLoad_Save(MemStreamWriter& s)
 	{
 		s.writeSection("coreinit_DynLoad");
-		s.writeBE(_osDynLoadFuncAlloc);
-		s.writeBE(_osDynLoadFuncFree);
-		s.writeBE(_osDynLoadTLSFuncAlloc);
-		s.writeBE(_osDynLoadTLSFuncFree);
+		s.write(_osDynLoadFuncAlloc);
+		s.write(_osDynLoadFuncFree);
+		s.write(_osDynLoadTLSFuncAlloc);
+		s.write(_osDynLoadTLSFuncFree);
 	}
 
 	void DynLoad_Restore(MemStreamReader& s)
 	{
 		s.readSection("coreinit_DynLoad");
-		s.readBE(_osDynLoadFuncAlloc);
-		s.readBE(_osDynLoadFuncFree);
-		s.readBE(_osDynLoadTLSFuncAlloc);
-		s.readBE(_osDynLoadTLSFuncFree);
+		s.read(_osDynLoadFuncAlloc);
+		s.read(_osDynLoadFuncFree);
+		s.read(_osDynLoadTLSFuncAlloc);
+		s.read(_osDynLoadTLSFuncFree);
 	}
 
 	void InitializeDynLoad()

@@ -81,28 +81,28 @@ MMURange* memory_getMMURangeByAddress(MPTR address)
 }
 
 template<>
-void MemStreamWriter::writeBE(const MMURange& v)
+void MemStreamWriter::write(const MMURange& v)
 {
 	writeBool(v.m_isMapped);
-	writeBE(v.baseAddress);
-	writeBE((uint8)v.areaId);
-	writeBE((uint8)v.flags);
-	writeBE(v.name);
-	writeBE(v.size);
-	writeBE(v.initSize);
+	write(v.baseAddress);
+	write((uint8)v.areaId);
+	write((uint8)v.flags);
+	write(v.name);
+	write(v.size);
+	write(v.initSize);
 }
 
 template <>
-void MemStreamReader::readBE(MMURange& mmuRange)
+void MemStreamReader::read(MMURange& mmuRange)
 {
 	bool needsMapped = readBool();
 	mmuRange.m_isMapped = false;
-	mmuRange.baseAddress = readBE<uint32>();
-	mmuRange.areaId = (MMU_MEM_AREA_ID)readBE<uint8>();
-	mmuRange.flags = (MMURange::MFLAG)readBE<uint8>();
-	mmuRange.name = readBE<std::string>();
-	mmuRange.size = readBE<uint32>();
-	mmuRange.initSize = readBE<uint32>();
+	mmuRange.baseAddress = read<uint32>();
+	mmuRange.areaId = (MMU_MEM_AREA_ID)read<uint8>();
+	mmuRange.flags = (MMURange::MFLAG)read<uint8>();
+	mmuRange.name = read<std::string>();
+	mmuRange.size = read<uint32>();
+	mmuRange.initSize = read<uint32>();
 	if (needsMapped)
 		mmuRange.mapMem();
 }
@@ -443,7 +443,7 @@ void memory_Serialize(MemStreamWriter& s)
 {
 	for (auto& itr : g_mmuRanges)
 	{
-		s.writeBE(*itr);
+		s.write(*itr);
 		if (itr->isMapped())
 		{
 			s.writeData(memory_base + itr->getBase(), itr->getSize());
@@ -455,7 +455,7 @@ void memory_Deserialize(MemStreamReader& s)
 {
 	for (auto& itr : g_mmuRanges)
 	{
-		s.readBE<MMURange>(*itr);
+		s.read<MMURange>(*itr);
 		if (itr->isMapped())
 		{
 			s.readData(memory_base + itr->getBase(), itr->getSize());

@@ -1357,7 +1357,7 @@ void export_curl_global_init_mem(PPCInterpreter_t* hCPU)
 void save(MemStreamWriter& s)
 {
 	s.writeSection("nlibcurl");
-	s.writeBE(g_nlibcurl.initialized);
+	s.write(g_nlibcurl.initialized);
 	s.writeMPTR(g_nlibcurl.proxyConfig);
 	s.writeMPTR(g_nlibcurl.malloc);
 	s.writeMPTR(g_nlibcurl.free);
@@ -1368,7 +1368,7 @@ void save(MemStreamWriter& s)
 void restore(MemStreamReader& s)
 {
 	s.readSection("nlibcurl");
-	s.readBE(g_nlibcurl.initialized);
+	s.read(g_nlibcurl.initialized);
 	s.readMPTR(g_nlibcurl.proxyConfig);
 	s.readMPTR(g_nlibcurl.malloc);
 	s.readMPTR(g_nlibcurl.free);

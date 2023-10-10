@@ -19,13 +19,13 @@ namespace nn::temp
 	void save(MemStreamWriter& s)
 	{
 		s.writeSection("nn_temp");
-		s.writeBE(tempIdGenerator);
+		s.write(tempIdGenerator);
 	}
 
 	void restore(MemStreamReader& s)
 	{
 		s.readSection("nn_temp");
-		s.readBE(tempIdGenerator);
+		s.read(tempIdGenerator);
 	}
 
 	void Initialize()

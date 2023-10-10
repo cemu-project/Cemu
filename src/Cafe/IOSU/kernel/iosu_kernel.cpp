@@ -217,11 +217,13 @@ namespace iosu
 
 		/* IPC */
 		
+		static constexpr size_t IOCTLV_VECTOR_ARRAY_SIZE = 8;
+
 		struct IOSDispatchableCommand
 		{
 			// stores a copy of incoming IPC requests with some extra information required for replies
 			IPCCommandBody body; // our dispatchable copy
-			IPCIoctlVector vecCopy[8]; // our copy of the Ioctlv vector array
+			IPCIoctlVector vecCopy[IOCTLV_VECTOR_ARRAY_SIZE]; // our copy of the Ioctlv vector array
 			IPCCommandBody* originalBody; // the original command that was sent to us
 			uint32 ppcCoreIndex;
 			IOSDevHandle replyHandle; // handle for outgoing replies
@@ -547,10 +549,138 @@ namespace iosu
 			return IOS_ERROR_OK;
 		}
 
+
+
 		void Initialize()
 		{
 			_IPCInitDispatchablePool();
 		}
 
+	}
+}
+
+template <>
+void MemStreamWriter::write(const iosu::kernel::IOSMessageQueue& v)
+{
+	write(v.ukn00);
+	write(v.ukn04);
+	write(v.numQueuedMessages);
+	write(v.readIndex);
+	write(v.msgArraySize);
+	writeMPTR(v.msgArray);
+	write(v.queueHandle);
+	write(v.ukn1C);
+}
+
+template <>
+void MemStreamReader::read(iosu::kernel::IOSMessageQueue& v)
+{
+	read(v.ukn00);
+	read(v.ukn04);
+	read(v.numQueuedMessages);
+	read(v.readIndex);
+	read(v.msgArraySize);
+	readMPTR(v.msgArray);
+	read(v.queueHandle);
+	read(v.ukn1C);
+}
+
+template <>
+void MemStreamWriter::write(const iosu::kernel::IOSResourceManager& v)
+{
+	writeBool(v.isSet);
+	write(v.path);
+	write(v.msgQueueId);
+}
+
+template <>
+void MemStreamReader::read(iosu::kernel::IOSResourceManager& v)
+{
+	readBool(v.isSet);
+	read(v.path);
+	read(v.msgQueueId);
+}
+
+template <>
+void MemStreamWriter::write(const iosu::kernel::IPCActiveDeviceHandle& v)
+{
+	writeBool(v.isSet);
+	write(v.handleCheckValue);
+	write(v.path);
+	write(v.msgQueueId);
+	writeBool(v.hasDispatchTargetHandle);
+	write(v.dispatchTargetHandle);
+}
+
+template <>
+void MemStreamReader::read(iosu::kernel::IPCActiveDeviceHandle& v)
+{
+	readBool(v.isSet);
+	read(v.handleCheckValue);
+	read(v.path);
+	read(v.msgQueueId);
+	readBool(v.hasDispatchTargetHandle);
+	read(v.dispatchTargetHandle);
+}
+
+namespace iosu
+{
+	namespace kernel
+	{
+		void save(MemStreamWriter& s)
+		{
+			s.write<uint32>(sMsgQueuePool.size());
+			for (const auto& i : sMsgQueuePool)
+				s.write(i);
+
+			s.write<uint32>(sDeviceResources.size());
+			for (const auto& i : sDeviceResources)
+				s.write(i);
+
+			s.writeMPTR(sIPCDispatchableCommandPool);
+
+			size_t sIPCFreeDispatchableCommandsSize = sIPCFreeDispatchableCommands.size();
+			s.write<uint32>(sIPCFreeDispatchableCommandsSize);
+			while (sIPCFreeDispatchableCommandsSize)
+			{
+				IOSDispatchableCommand* front = sIPCFreeDispatchableCommands.front();
+				sIPCFreeDispatchableCommands.pop();
+				s.writePTR(front);
+				sIPCFreeDispatchableCommands.push(front);
+				sIPCFreeDispatchableCommandsSize--;
+			}
+
+			s.write<uint32>(MAX_NUM_ACTIVE_DEV_HANDLES);
+			for (uint32 i = 0; i < MAX_NUM_ACTIVE_DEV_HANDLES; i++)
+				s.write(sActiveDeviceHandles[i]);
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			cemu_assert(s.read<uint32>() == sMsgQueuePool.size());
+			for (auto& i : sMsgQueuePool)
+				s.read(i);
+
+			cemu_assert(s.read<uint32>() == sDeviceResources.size());
+			for (auto& i : sDeviceResources)
+				s.read(i);
+
+			s.readMPTR(sIPCDispatchableCommandPool);
+
+			size_t sIPCFreeDispatchableCommandsSize = s.read<uint32>();
+			cemu_assert(sIPCFreeDispatchableCommandsSize == sIPCFreeDispatchableCommands.size());
+			while (!sIPCFreeDispatchableCommands.empty())
+				sIPCFreeDispatchableCommands.pop();
+			for (uint32 i = 0; i < sIPCFreeDispatchableCommandsSize; i++)
+			{
+				IOSDispatchableCommand* cmd = nullptr;
+				s.readPTR(cmd);
+				sIPCFreeDispatchableCommands.push(cmd);
+			}
+			
+			cemu_assert(s.read<uint32>() == MAX_NUM_ACTIVE_DEV_HANDLES);
+			for (uint32 i = 0; i < MAX_NUM_ACTIVE_DEV_HANDLES; i++)
+				s.read(sActiveDeviceHandles[i]);
+		}
 	}
 }

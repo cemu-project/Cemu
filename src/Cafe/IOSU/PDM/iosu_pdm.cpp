@@ -352,6 +352,15 @@ namespace iosu
 			}
 		}
 
+		void save(MemStreamWriter& s)
+		{
+
+		}
+		void restore(MemStreamReader& s)
+		{
+
+		}
+
 		void Initialize()
 		{
 			// todo - add support for per-account handling

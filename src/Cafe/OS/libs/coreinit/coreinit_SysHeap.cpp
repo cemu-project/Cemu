@@ -36,16 +36,16 @@ namespace coreinit
 	{
 		s.writeSection("coreinit_SysHeap");
 		s.writeData(_sysHeapHandle, sizeof(MEMHeapBase));
-		s.writeBE(_sysHeapAllocCounter);
-		s.writeBE(_sysHeapFreeCounter);
+		s.write(_sysHeapAllocCounter);
+		s.write(_sysHeapFreeCounter);
 	}
 
 	void SysHeap_Restore(MemStreamReader& s)
 	{
 		s.readSection("coreinit_SysHeap");
 		s.readData(_sysHeapHandle, sizeof(MEMHeapBase));
-		s.readBE(_sysHeapAllocCounter);
-		s.readBE(_sysHeapFreeCounter);
+		s.read(_sysHeapAllocCounter);
+		s.read(_sysHeapFreeCounter);
 	}
 
 	void InitializeSysHeap()

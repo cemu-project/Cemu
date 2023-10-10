@@ -8,14 +8,21 @@ public:
 		m_cursorPos = 0;
 	}
 
+	template<typename T> T read();
+	template<typename T> void read(T& v);
 	template<typename T> T readBE();
 	template<typename T> void readBE(T& v);
 	template<typename T> T readLE();
 
+	void readAtomic(std::atomic<bool>& v)
+	{
+		v.store(readBool());
+	}
+
 	template<typename T>
 	void readAtomic(std::atomic<T>& v)
 	{
-		v.store(readBE<T>());
+		v.store(read<T>());
 	}
 
 	template<typename T>
@@ -48,29 +55,29 @@ public:
 	template<typename T>
 	void readPTR(T& v)
 	{
-		v = (T)(memory_base + readBE<uint32>());
+		v = (T)(memory_base + read<uint32>());
 	}
 
 	template<template<typename> class C, typename T>
 	void readMPTR(C<T>& v)
 	{
-		v = (T*)(memory_base + readBE<MPTR>());
+		v = (T*)(memory_base + read<MPTR>());
 	}
 
 	template<template<typename, size_t, size_t> class C, typename T, size_t c, size_t a>
 	void readMPTR(C<T,c,a>& v)
 	{
-		v = (T*)(memory_base + readBE<MPTR>());
+		v = (T*)(memory_base + read<MPTR>());
 	}
 
 	void readBool(bool& v)
 	{
-		v = readBE<uint8>();
+		v = read<uint8>();
 	}
 
 	bool readBool()
 	{
-		return readBE<uint8>();
+		return read<uint8>();
 	}
 
 	void readSection(const char* sec);
@@ -212,13 +219,19 @@ public:
 		}
 	}
 
+	template<typename T> void write(const T& v);
 	template<typename T> void writeBE(const T& v);
 	template<typename T> void writeLE(const T& v);
 	
+	void writeAtomic(const std::atomic<bool>& v)
+	{
+		writeBool(v.load());
+	}
+
 	template<typename T>
 	void writeAtomic(const std::atomic<T>& v)
 	{
-		writeBE(v.load());
+		write(v.load());
 	}
 
 	template<typename T>
@@ -232,18 +245,18 @@ public:
 	template<typename T>
 	void writePTR(const T& v)
 	{
-		writeBE((uint32)((uint8*)v - (uint8*)memory_base));
+		write((uint32)((uint8*)v - (uint8*)memory_base));
 	}
 
 	template<typename T>
 	void writeMPTR(const T& v)
 	{
-		writeBE(v.GetMPTR());
+		write(v.GetMPTR());
 	}
 
 	void writeBool(const bool& v)
 	{
-		writeBE((uint8)v);
+		write((uint8)v);
 	}
 
 	void writeSection(const char* sec);

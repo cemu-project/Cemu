@@ -78,14 +78,14 @@ namespace nn
 		{
 			s.writeSection("nn_ndm");
 			s.writeData(s_daemonStatus, sizeof(DAEMON_STATUS) * NUM_DAEMONS);
-			s.writeBE(s_initializeRefCount);
+			s.write(s_initializeRefCount);
 		}
 
 		void restore(MemStreamReader& s)
 		{
 			s.readSection("nn_ndm");
 			s.readData(s_daemonStatus, sizeof(DAEMON_STATUS) * NUM_DAEMONS);
-			s.readBE(s_initializeRefCount);
+			s.read(s_initializeRefCount);
 		}
 
 		void load()

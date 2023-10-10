@@ -633,8 +633,8 @@ namespace coreinit
 	void MEM_Save(MemStreamWriter& s)
 	{
 		s.writeSection("coreinit_MEM");
-		s.writeBE(sysAreaAllocatorOffset);
-		s.writeBE(g_heapTableCount);
+		s.write(sysAreaAllocatorOffset);
+		s.write(g_heapTableCount);
 		s.writeData(g_heapTable, sizeof(MEMHeapBase) * MEM_MAX_HEAP_TABLE);
 		s.writeBool(g_slockInitialized);
 		s.writeBool(g_listsInitialized);
@@ -651,8 +651,8 @@ namespace coreinit
 	void MEM_Restore(MemStreamReader& s)
 	{
 		s.readSection("coreinit_MEM");
-		s.readBE(sysAreaAllocatorOffset);
-		s.readBE(g_heapTableCount);
+		s.read(sysAreaAllocatorOffset);
+		s.read(g_heapTableCount);
 		s.readData(g_heapTable, sizeof(MEMHeapBase) * MEM_MAX_HEAP_TABLE);
 		s.readBool(g_slockInitialized);
 		s.readBool(g_listsInitialized);

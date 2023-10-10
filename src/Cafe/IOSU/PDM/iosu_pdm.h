@@ -4,6 +4,9 @@ namespace iosu
 {
 	namespace pdm
 	{
+		void save(MemStreamWriter& s);
+		void restore(MemStreamReader& s);
+
 		void Initialize();
 		void StartTrackingTime(uint64 titleId);
 		void Stop();

@@ -2162,34 +2162,34 @@ namespace nsysnet
 }
 
 template<>
-void MemStreamWriter::writeBE(const nsysnet::NSSLInternalState_t& v)
+void MemStreamWriter::write(const nsysnet::NSSLInternalState_t& v)
 {
 	writeBool(v.destroyed);
-	writeBE(v.sslVersion);
-	writeBE(v.clientPKI);
+	write(v.sslVersion);
+	write(v.clientPKI);
 
-	writeBE<uint32>(v.serverPKIs.size());
+	write<uint32>(v.serverPKIs.size());
 	for (auto i : v.serverPKIs)
-		writeBE<uint32>(i);
+		write<uint32>(i);
 
-	writeBE<uint32>(v.serverCustomPKIs.size());
+	write<uint32>(v.serverCustomPKIs.size());
 	for (auto i : v.serverCustomPKIs)
 		writePODVector(i);
 }
 
 template<>
-void MemStreamReader::readBE(nsysnet::NSSLInternalState_t& v)
+void MemStreamReader::read(nsysnet::NSSLInternalState_t& v)
 {
 	readBool(v.destroyed);
-	readBE(v.sslVersion);
-	readBE(v.clientPKI);
+	read(v.sslVersion);
+	read(v.clientPKI);
 
-	uint32 serverPKIsSize = readBE<uint32>();
+	uint32 serverPKIsSize = read<uint32>();
 	v.serverPKIs.clear();
 	for (uint32 i = 0; i < serverPKIsSize; i++)
-		v.serverPKIs.insert(readBE<uint32>());
+		v.serverPKIs.insert(read<uint32>());
 
-	uint32 serverCustomPKIsSize = readBE<uint32>();
+	uint32 serverCustomPKIsSize = read<uint32>();
 	v.serverCustomPKIs.clear();
 	v.serverCustomPKIs.resize(serverCustomPKIsSize);
 	for (uint32 i = 0; i < serverCustomPKIsSize; i++)
@@ -2208,9 +2208,9 @@ void nsysnet_save(MemStreamWriter& s)
 	s.writeMPTR(_staticHostentName);
 	s.writeMPTR(_staticHostentPtrList);
 	s.writeMPTR(_staticHostentEntries);
-	s.writeBE<uint32>(nsysnet::g_nsslInternalStates.size());
+	s.write<uint32>(nsysnet::g_nsslInternalStates.size());
 	for (auto i : nsysnet::g_nsslInternalStates)
-		s.writeBE(i);
+		s.write(i);
 	s.writeBool(sockLibReady);
 	s.writeData(virtualSocketTable, sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
 }
@@ -2223,13 +2223,13 @@ void nsysnet_restore(MemStreamReader& s)
 	s.readMPTR(_staticHostentName);
 	s.readMPTR(_staticHostentPtrList);
 	s.readMPTR(_staticHostentEntries);
-	uint32 g_nsslInternalStatesSize = s.readBE<uint32>();
+	uint32 g_nsslInternalStatesSize = s.read<uint32>();
 	nsysnet::g_nsslInternalStates.clear();
 	nsysnet::g_nsslInternalStates.resize(g_nsslInternalStatesSize);
 	for (uint32 i = 0; i < g_nsslInternalStatesSize; i++)
 	{
 		nsysnet::NSSLInternalState_t t;
-		s.readBE(t);
+		s.read(t);
 		nsysnet::g_nsslInternalStates.push_back(t);
 	}
 	s.readBool(sockLibReady);

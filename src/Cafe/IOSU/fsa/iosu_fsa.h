@@ -214,7 +214,7 @@ namespace iosu
 		void Initialize();
 		void Shutdown();
 
-		void Save(MemStreamWriter& writer);
-		void Restore(MemStreamReader& reader);
+		void save(MemStreamWriter& writer);
+		void restore(MemStreamReader& reader);
 	} // namespace fsa
 } // namespace iosu

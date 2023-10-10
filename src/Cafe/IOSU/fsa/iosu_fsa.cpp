@@ -911,26 +911,26 @@ namespace iosu
 } // namespace iosu
 
 template <>
-void MemStreamWriter::writeBE(const iosu::fsa::FSAClient& v)
+void MemStreamWriter::write(const iosu::fsa::FSAClient& v)
 {
-	writeBE(v.workingDirectory);
+	write(v.workingDirectory);
 	writeBool(v.isAllocated);
 }
 
 template <>
-void MemStreamReader::readBE(iosu::fsa::FSAClient& v)
+void MemStreamReader::read(iosu::fsa::FSAClient& v)
 {
-	readBE(v.workingDirectory);
+	read(v.workingDirectory);
 	readBool(v.isAllocated);
 }
 
 template <>
-void MemStreamWriter::writeBE(const iosu::fsa::_FSAHandleTable& v)
+void MemStreamWriter::write(const iosu::fsa::_FSAHandleTable& v)
 {
-	writeBE(v.m_currentCounter);
+	write(v.m_currentCounter);
 	for (sint32 i = 0; i < v.m_handleTableSize; i++)
 	{
-		writeBE(v.m_handleTable[i].handleCheckValue);
+		write(v.m_handleTable[i].handleCheckValue);
 		writeBool(v.m_handleTable[i].isAllocated);
 
 		writeBool(v.m_handleTable[i].fscFile != nullptr);
@@ -939,12 +939,12 @@ void MemStreamWriter::writeBE(const iosu::fsa::_FSAHandleTable& v)
 }
 
 template <>
-void MemStreamReader::readBE(iosu::fsa::_FSAHandleTable& v)
+void MemStreamReader::read(iosu::fsa::_FSAHandleTable& v)
 {
-	readBE(v.m_currentCounter);
+	read(v.m_currentCounter);
 	for (sint32 i = 0; i < v.m_handleTableSize; i++)
 	{
-		readBE(v.m_handleTable[i].handleCheckValue);
+		read(v.m_handleTable[i].handleCheckValue);
 		readBool(v.m_handleTable[i].isAllocated);
 
 		if (readBool()) v.m_handleTable[i].fscFile = FSCVirtualFile::Restore(*this);
@@ -955,32 +955,32 @@ namespace iosu
 {
 	namespace fsa
 	{
-		void Save(MemStreamWriter& s)
+		void save(MemStreamWriter& s)
 		{
 			s.writeSection("iosu_fsa");
-			s.writeBE(sFSAIoMsgQueue);
+			s.write(sFSAIoMsgQueue);
 			s.writeMPTR(_m_sFSAIoMsgQueueMsgBuffer);
 
 			for (sint32 i = 0; i < sFSAClientArraySize; i++)
 			{
-				s.writeBE(sFSAClientArray[i]);
+				s.write(sFSAClientArray[i]);
 			}
-			s.writeBE(sDirHandleTable);
-			s.writeBE(sFileHandleTable);
+			s.write(sDirHandleTable);
+			s.write(sFileHandleTable);
 		}
 
-		void Restore(MemStreamReader& s)
+		void restore(MemStreamReader& s)
 		{
 			s.readSection("iosu_fsa");
-			s.readBE(sFSAIoMsgQueue);
+			s.read(sFSAIoMsgQueue);
 			s.readMPTR(_m_sFSAIoMsgQueueMsgBuffer);
 
 			for (sint32 i = 0; i < sFSAClientArraySize; i++)
 			{
-				s.readBE(sFSAClientArray[i]);
+				s.read(sFSAClientArray[i]);
 			}
-			s.readBE(sDirHandleTable);
-			s.readBE(sFileHandleTable);
+			s.read(sDirHandleTable);
+			s.read(sFileHandleTable);
 		}
 	} // namespace fsa
 } // namespace iosu

@@ -220,16 +220,16 @@ void coreinit_Init_Save(MemStreamWriter& s)
 {
 	s.writeSection("coreinit_Init");
 	s.writeData(_coreinitInfo, sizeof(coreinitInit_t));
-	s.writeBE(argStorageIndex);
+	s.write(argStorageIndex);
 	s.writeMPTR(g_preinitUserParam);
-	s.writeBE(_coreinitTitleEntryPoint);
+	s.write(_coreinitTitleEntryPoint);
 }
 
 void coreinit_Init_Restore(MemStreamReader& s)
 {
 	s.readSection("coreinit_Init");
 	s.readData(_coreinitInfo, sizeof(coreinitInit_t));
-	s.readBE(argStorageIndex);
+	s.read(argStorageIndex);
 	s.readMPTR(g_preinitUserParam);
-	s.readBE(_coreinitTitleEntryPoint);
+	s.read(_coreinitTitleEntryPoint);
 }

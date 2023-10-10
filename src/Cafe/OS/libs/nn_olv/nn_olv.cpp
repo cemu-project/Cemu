@@ -118,7 +118,7 @@ namespace nn
 			s.writeMPTR(s_OlvReleaseBgThreadName);
 			s.writeData(&g_ParamPack, sizeof(ParamPackStorage));
 			s.writeData(&g_DiscoveryResults, sizeof(DiscoveryResultStorage));
-			s.writeBE(g_ReportTypes);
+			s.write(g_ReportTypes);
 			s.writeBool(g_IsInitialized);
 			s.writeBool(g_IsOnlineMode);
 			s.writeBool(g_IsOfflineDBMode);
@@ -133,7 +133,7 @@ namespace nn
 			s.readMPTR(s_OlvReleaseBgThreadName);
 			s.readData(&g_ParamPack, sizeof(ParamPackStorage));
 			s.readData(&g_DiscoveryResults, sizeof(DiscoveryResultStorage));
-			s.readBE(g_ReportTypes);
+			s.read(g_ReportTypes);
 			s.readBool(g_IsInitialized);
 			s.readBool(g_IsOnlineMode);
 			s.readBool(g_IsOfflineDBMode);

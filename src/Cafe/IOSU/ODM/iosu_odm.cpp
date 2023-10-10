@@ -133,6 +133,26 @@ namespace iosu
 			s_threadInitialized = false;
 		}
 
+		void save(MemStreamWriter& s)
+		{
+			s.writeSection("iosu_odm");
+			s.writeAtomic(s_requestStop);
+			s.writeAtomic(s_isRunning);
+			s.writeAtomic(s_threadInitialized);
+			s.write(s_msgQueueId);
+			s.writeMPTR(_s_msgBuffer);
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			s.readSection("iosu_odm");
+			s.readAtomic(s_requestStop);
+			s.readAtomic(s_isRunning);
+			s.readAtomic(s_threadInitialized);
+			s.read(s_msgQueueId);
+			s.readMPTR(_s_msgBuffer);
+		}
+
 		void Initialize()
 		{
 			if (s_isRunning.exchange(true))

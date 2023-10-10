@@ -737,31 +737,31 @@ void fsc_init()
 }
 
 template <>
-void MemStreamWriter::writeBE<FSCVirtualFile::FSCDirIteratorState>(const FSCVirtualFile::FSCDirIteratorState& v)
+void MemStreamWriter::write<FSCVirtualFile::FSCDirIteratorState>(const FSCVirtualFile::FSCDirIteratorState& v)
 {
-	writeBE(v.index);
+	write(v.index);
 	writePODVector(v.dirEntries);
 }
 
 template <>
-void MemStreamReader::readBE(FSCVirtualFile::FSCDirIteratorState& v)
+void MemStreamReader::read(FSCVirtualFile::FSCDirIteratorState& v)
 {
-	readBE(v.index);
+	read(v.index);
 	readPODVector(v.dirEntries);
 }
 
 void FSCVirtualFile::Save(MemStreamWriter& writer)
 {
 	writer.writeBool(dirIterator != nullptr);
-	if (dirIterator) writer.writeBE(*dirIterator);
+	if (dirIterator) writer.write(*dirIterator);
 	writer.writeBool(m_isAppend);
 }
 
 void FSCVirtualFileDirectoryIterator::Save(MemStreamWriter& writer)
 {
-	writer.writeBE<uint32>((uint32)Child::DIRECTORY_ITERATOR);
-	writer.writeBE(m_path);
-	writer.writeBE<uint32>(m_folders.size());
+	writer.write<uint32>((uint32)Child::DIRECTORY_ITERATOR);
+	writer.write(m_path);
+	writer.write<uint32>(m_folders.size());
 	for (auto& folder : m_folders)
 	{
 		folder->Save(writer);
@@ -774,13 +774,13 @@ void FSCVirtualFileDirectoryIterator::Save(MemStreamWriter& writer)
 FSCVirtualFile* FSCVirtualFile::Restore(MemStreamReader& reader)
 {
 	FSCVirtualFile* file;
-	switch ((Child)reader.readBE<uint32>())
+	switch ((Child)reader.read<uint32>())
 	{
 		case Child::DIRECTORY_ITERATOR:
 		{
-			std::string path = reader.readBE<std::string>();
+			std::string path = reader.read<std::string>();
 			std::vector<FSCVirtualFile*> folders{};
-			size_t size = reader.readBE<uint32>();
+			size_t size = reader.read<uint32>();
 			for (size_t i = 0; i < size; i++)
 			{
 				folders.push_back(Restore(reader));
@@ -790,11 +790,11 @@ FSCVirtualFile* FSCVirtualFile::Restore(MemStreamReader& reader)
 		}
 		case Child::HOST:
 		{
-			std::string path = reader.readBE<std::string>();
-			FSC_ACCESS_FLAG flags = (FSC_ACCESS_FLAG)reader.readBE<uint32>();
+			std::string path = reader.read<std::string>();
+			FSC_ACCESS_FLAG flags = (FSC_ACCESS_FLAG)reader.read<uint32>();
 			sint32 status{};
 			file = FSCVirtualFile_Host::OpenFile(path, flags, status);
-			file->fscSetSeek(reader.readBE<uint64>());
+			file->fscSetSeek(reader.read<uint64>());
 			break;
 		}
 		default:
@@ -803,7 +803,7 @@ FSCVirtualFile* FSCVirtualFile::Restore(MemStreamReader& reader)
 	if (reader.readBool())
 	{
 		file->dirIterator = new FSCDirIteratorState;
-		reader.readBE(*file->dirIterator);
+		reader.read(*file->dirIterator);
 	}
 	reader.readBool(file->m_isAppend);
 	return file;

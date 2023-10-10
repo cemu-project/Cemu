@@ -1335,19 +1335,19 @@ namespace coreinit
 	{
 		s.writeSection("coreinit_Thread");
 
-		s.writeBE((uint8)sSchedulerActive.load());
+		s.write((uint8)sSchedulerActive.load());
 		s.writeMPTR(g_activeThreadQueue);
 		s.writeMPTR(g_coreRunQueue);
 
-		s.writeBE(activeThreadCount);
+		s.write(activeThreadCount);
 		for (sint32 i = 0; i < activeThreadCount; i++)
 		{
-			s.writeBE(activeThread[i]);
+			s.write(activeThread[i]);
 		}
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 		{
 			s.writePTR(__currentCoreThread[i]);
-			s.writeBE(s_lehmer_lcg[i]);
+			s.write(s_lehmer_lcg[i]);
 			s.writeMPTR(s_terminatorThreads[i].terminatorThread);
 			s.writeMPTR(s_terminatorThreads[i].threadStack);
 			s.writeMPTR(s_terminatorThreads[i].threadName);
@@ -1362,14 +1362,14 @@ namespace coreinit
 	{
 		s.readSection("coreinit_Thread");
 
-		sSchedulerActive.store(s.readBE<uint8>());
+		sSchedulerActive.store(s.read<uint8>());
 		s.readMPTR(g_activeThreadQueue);
 		s.readMPTR(g_coreRunQueue);
 
-		sint32 prevActiveThreadCount = s.readBE<sint32>();
+		sint32 prevActiveThreadCount = s.read<sint32>();
 		for (sint32 i = 0; i < prevActiveThreadCount; i++)
 		{
-			MPTR threadMPTR = s.readBE<MPTR>();
+			MPTR threadMPTR = s.read<MPTR>();
 			if (recreate)
 			{
 				__OSLockScheduler();
@@ -1385,7 +1385,7 @@ namespace coreinit
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 		{
 			s.readPTR(__currentCoreThread[i]);
-			s.readBE(s_lehmer_lcg[i]);
+			s.read(s_lehmer_lcg[i]);
 			s.readMPTR(s_terminatorThreads[i].terminatorThread);
 			s.readMPTR(s_terminatorThreads[i].threadStack);
 			s.readMPTR(s_terminatorThreads[i].threadName);

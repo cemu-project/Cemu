@@ -18,6 +18,9 @@ namespace iosu
 
 		void IPCSubmitFromCOS(uint32 ppcCoreIndex, IPCCommandBody* cmd);
 
+		void save(MemStreamWriter& s);
+		void restore(MemStreamReader& s);
+
 		void Initialize();
 	}
 }

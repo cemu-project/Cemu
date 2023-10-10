@@ -299,9 +299,9 @@ bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTarg
 
 void FSCVirtualFile_Host::Save(MemStreamWriter& writer)
 {
-	writer.writeBE<uint32>((uint32)Child::HOST);
-	writer.writeBE(m_path->string());
-	writer.writeBE((uint32)m_accessFlags);
-	writer.writeBE(m_seek);
+	writer.write<uint32>((uint32)Child::HOST);
+	writer.write(m_path->string());
+	writer.write((uint32)m_accessFlags);
+	writer.write(m_seek);
 	FSCVirtualFile::Save(writer);
 }

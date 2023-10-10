@@ -754,9 +754,9 @@ namespace padscore
 		s.writeBool(g_kpadIsInited);
 		s.writeData(&g_padscore, sizeof(g_padscore_t));
 		s.writeData(g_kpad_ringbuffer, sizeof(KPADUnifiedWpadStatus_t));
-		s.writeBE(g_kpad_ringbuffer_length);
+		s.write(g_kpad_ringbuffer_length);
 		s.writeBool(g_wpad_callback_by_kpad);
-		s.writeBE((uint32)g_wpad_state);
+		s.write((uint32)g_wpad_state);
 	}
 
 	void restore(MemStreamReader& s)
@@ -766,9 +766,9 @@ namespace padscore
 		s.readBool(g_kpadIsInited);
 		s.readData(&g_padscore, sizeof(g_padscore_t));
 		s.readData(g_kpad_ringbuffer, sizeof(KPADUnifiedWpadStatus_t));
-		s.readBE(g_kpad_ringbuffer_length);
+		s.read(g_kpad_ringbuffer_length);
 		s.readBool(g_wpad_callback_by_kpad);
-		g_wpad_state = (WPADState_t)s.readBE<uint32>();
+		g_wpad_state = (WPADState_t)s.read<uint32>();
 	}
 
 	void load()

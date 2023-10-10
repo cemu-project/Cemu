@@ -276,7 +276,7 @@ namespace coreinit
 		s.writeSection("coreinit_LockedCache");
 		s.writeData(lcCacheMask, sizeof(uint8) * PPC_CORE_COUNT * (LC_LOCKED_CACHE_SIZE + LC_LOCKED_CACHE_GRANULARITY - 1) / LC_LOCKED_CACHE_GRANULARITY);
 		s.writeData(lcAllocatedBlocks, sizeof(uint32) * PPC_CORE_COUNT);
-		s.writeBE(_lcDisableErrorCounter);
+		s.write(_lcDisableErrorCounter);
 	}
 
 	void LockedCache_Restore(MemStreamReader& s)
@@ -284,7 +284,7 @@ namespace coreinit
 		s.readSection("coreinit_LockedCache");
 		s.readData(lcCacheMask, sizeof(uint8) * PPC_CORE_COUNT * (LC_LOCKED_CACHE_SIZE + LC_LOCKED_CACHE_GRANULARITY - 1) / LC_LOCKED_CACHE_GRANULARITY);
 		s.readData(lcAllocatedBlocks, sizeof(uint32) * PPC_CORE_COUNT);
-		s.readBE(_lcDisableErrorCounter);
+		s.read(_lcDisableErrorCounter);
 	}
 
 	void InitializeLC()

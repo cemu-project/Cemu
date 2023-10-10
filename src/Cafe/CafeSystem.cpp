@@ -1011,7 +1011,9 @@ namespace CafeSystem
 		nn::temp::save(writer);
 		nn::aoc::save(writer);
 		osLib_save(writer);
-		iosu::fsa::Save(writer);
+		iosu::kernel::save(writer);
+		iosu::fsa::save(writer);
+		iosu::odm::save(writer);
 
 		FileStream* stream = FileStream::createFile(path);
 		stream->writeData(writer.getResult().data(), writer.getResult().size_bytes());
@@ -1042,7 +1044,9 @@ namespace CafeSystem
 		nn::temp::restore(reader);
 		nn::aoc::restore(reader);
 		osLib_restore(reader);
-		iosu::fsa::Restore(reader);
+		iosu::kernel::restore(reader);
+		iosu::fsa::restore(reader);
+		iosu::odm::restore(reader);
 
 		cemuLog_log(LogType::SaveStates, "Loaded state from {}.", path);
 

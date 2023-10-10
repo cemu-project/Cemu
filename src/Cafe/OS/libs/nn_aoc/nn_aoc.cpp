@@ -152,10 +152,10 @@ namespace nn
 		void save(MemStreamWriter& s)
 		{
 			s.writeSection("nn_aoc");
-			s.writeBE<uint32>(sAocCache.size());
+			s.write<uint32>(sAocCache.size());
 			for (auto i : sAocCache)
 			{
-				s.writeBE(i.aocTitleId);
+				s.write(i.aocTitleId);
 			}
 			s.writeBool(sAocCacheGenerated);
 		}
@@ -163,12 +163,12 @@ namespace nn
 		void restore(MemStreamReader& s)
 		{
 			s.readSection("nn_aoc");
-			uint32 sAocCacheSize = s.readBE<uint32>();
+			uint32 sAocCacheSize = s.read<uint32>();
 			sAocCache.clear();
 			sAocCache.reserve(sAocCacheSize);
 			for (sint32 i = 0; i < sAocCacheSize; i++)
 			{
-				sAocCache.emplace_back(s.readBE<uint64>());
+				sAocCache.emplace_back(s.read<uint64>());
 			}
 			s.readBool(sAocCacheGenerated);
 		}

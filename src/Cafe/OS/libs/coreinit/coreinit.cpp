@@ -321,8 +321,8 @@ void coreinit_save(MemStreamWriter& s)
 	s.writeSection("coreinit");
 
 	s.writeData(gCoreinitData, sizeof(coreinitData_t));
-	s.writeBE(placeholderFont);
-	s.writeBE(placeholderFontSize);
+	s.write(placeholderFont);
+	s.write(placeholderFontSize);
 
 	coreinit_Init_Save(s);
 	coreinit::SysHeap_Save(s);
@@ -353,8 +353,8 @@ void coreinit_restore(MemStreamReader& s)
 		coreinit::__OSDeleteAllActivePPCThreads();
 
 	s.readData(gCoreinitData, sizeof(coreinitData_t));
-	s.readBE(placeholderFont);
-	s.readBE(placeholderFontSize);
+	s.read(placeholderFont);
+	s.read(placeholderFontSize);
 
 	coreinit_Init_Restore(s);
 	coreinit::SysHeap_Restore(s);

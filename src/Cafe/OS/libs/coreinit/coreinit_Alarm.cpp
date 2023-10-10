@@ -314,13 +314,13 @@ namespace coreinit
 		s.writeMPTR(_g_alarmThreadStack);
 		s.writeMPTR(_g_alarmThreadName);
 
-		s.writeBE(coreinit_getOSTime());
+		s.write(coreinit_getOSTime());
 
-		s.writeBE((uint64)g_activeAlarms.size());
+		s.write((uint64)g_activeAlarms.size());
 		for (auto& itr : g_activeAlarms)
 		{
-			s.writeBE(memory_getVirtualOffsetFromPointer(itr.first));
-			s.writeBE(itr.second->getNextFire());
+			s.write(memory_getVirtualOffsetFromPointer(itr.first));
+			s.write(itr.second->getNextFire());
 		}
 	}
 
@@ -336,12 +336,12 @@ namespace coreinit
 		s.readMPTR(_g_alarmThreadName);
 
 		uint64 currentTime = coreinit_getOSTime();
-		uint64_t timeOffset = currentTime - s.readBE<uint64_t>();
+		uint64_t timeOffset = currentTime - s.read<uint64_t>();
 
-		size_t alms = s.readBE<uint64>();
+		size_t alms = s.read<uint64>();
 		for (size_t alm = 0; alm < alms; alm++)
 		{
-			OSAlarm_t* alarm = (OSAlarm_t*)memory_getPointerFromVirtualOffset(s.readBE<MPTR>());
+			OSAlarm_t* alarm = (OSAlarm_t*)memory_getPointerFromVirtualOffset(s.read<MPTR>());
 
 			uint64 startTime = _swapEndianU64(alarm->startTime) + timeOffset;
 			uint64 nextTime = _swapEndianU64(alarm->nextTime) + timeOffset;
@@ -360,7 +360,7 @@ namespace coreinit
 			}
 			alarm->nextTime = _swapEndianU64(nextTime);
 
-			uint64 nextFire = s.readBE<uint64>() + timeOffset;
+			uint64 nextFire = s.read<uint64>() + timeOffset;
 			__OSLockScheduler();
 			g_activeAlarms[alarm] = OSHostAlarmCreate(nextFire, period, __OSHostAlarmTriggered, nullptr);
 			__OSUnlockScheduler();
