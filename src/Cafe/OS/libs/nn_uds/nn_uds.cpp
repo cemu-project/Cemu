@@ -18,13 +18,13 @@ void nnUdsExport___sti___11_uds_Api_cpp_f5d9abb2(PPCInterpreter_t* hCPU)
 void nnUds_save(MemStreamWriter& s)
 {
 	s.writeSection("nn_uds");
-	s.writeData(udsWorkspace, sizeof(udsWorkspace_t));
+	s.writeNullableData(udsWorkspace, sizeof(udsWorkspace_t));
 }
 
 void nnUds_restore(MemStreamReader& s)
 {
 	s.readSection("nn_uds");
-	s.readData(udsWorkspace, sizeof(udsWorkspace_t));
+	s.readNullableData(udsWorkspace, sizeof(udsWorkspace_t));
 }
 
 /*

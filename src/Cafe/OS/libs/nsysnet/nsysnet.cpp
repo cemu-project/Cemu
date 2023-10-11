@@ -2212,6 +2212,7 @@ void nsysnet_save(MemStreamWriter& s)
 	for (auto i : nsysnet::g_nsslInternalStates)
 		s.write(i);
 	s.writeBool(sockLibReady);
+	s.write<uint32>(sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
 	s.writeData(virtualSocketTable, sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
 }
 
@@ -2233,6 +2234,7 @@ void nsysnet_restore(MemStreamReader& s)
 		nsysnet::g_nsslInternalStates.push_back(t);
 	}
 	s.readBool(sockLibReady);
+	cemu_assert(s.read<uint32>() == sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
 	s.readData(virtualSocketTable, sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
 }
 

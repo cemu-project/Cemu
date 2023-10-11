@@ -497,7 +497,7 @@ static_assert(sizeof(OSThread_t) == 0x6A0-4); // todo - determine correct size
 namespace coreinit
 {
 	void Thread_Save(MemStreamWriter& s);
-	void Thread_Restore(MemStreamReader& s, bool recreate);
+	void Thread_Restore(MemStreamReader& s);
 	void SuspendActiveThreads();
 	void ResumeActiveThreads();
 

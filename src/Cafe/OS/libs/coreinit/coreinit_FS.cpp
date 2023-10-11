@@ -2641,7 +2641,7 @@ namespace coreinit
 	void FS_Save(MemStreamWriter& s)
 	{
 		s.writeSection("coreinit_FS");
-		s.writeData(g_fsRegisteredClientBodies, sizeof(FSClientBody_t));
+		s.writePTR(g_fsRegisteredClientBodies);
 		s.writeBool(_sdCard01Mounted);
 		s.writeBool(_mlc01Mounted);
 		s.writeMPTR(_tempFSSpace);
@@ -2654,7 +2654,7 @@ namespace coreinit
 	void FS_Restore(MemStreamReader& s)
 	{
 		s.readSection("coreinit_FS");
-		s.readData(g_fsRegisteredClientBodies, sizeof(FSClientBody_t));
+		s.readPTR(g_fsRegisteredClientBodies);
 		s.readBool(_sdCard01Mounted);
 		s.readBool(_mlc01Mounted);
 		s.readMPTR(_tempFSSpace);

@@ -35,7 +35,7 @@ namespace coreinit
 	void SysHeap_Save(MemStreamWriter& s)
 	{
 		s.writeSection("coreinit_SysHeap");
-		s.writeData(_sysHeapHandle, sizeof(MEMHeapBase));
+		s.writePTR(_sysHeapHandle);
 		s.write(_sysHeapAllocCounter);
 		s.write(_sysHeapFreeCounter);
 	}
@@ -43,7 +43,7 @@ namespace coreinit
 	void SysHeap_Restore(MemStreamReader& s)
 	{
 		s.readSection("coreinit_SysHeap");
-		s.readData(_sysHeapHandle, sizeof(MEMHeapBase));
+		s.readPTR(_sysHeapHandle);
 		s.read(_sysHeapAllocCounter);
 		s.read(_sysHeapFreeCounter);
 	}

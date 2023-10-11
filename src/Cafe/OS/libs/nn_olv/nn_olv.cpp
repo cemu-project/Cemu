@@ -116,7 +116,9 @@ namespace nn
 			s.writeMPTR(s_OlvReleaseBgThread);
 			s.writeMPTR(s_OlvReleaseBgThreadStack);
 			s.writeMPTR(s_OlvReleaseBgThreadName);
+			s.write<uint32>(sizeof(ParamPackStorage));
 			s.writeData(&g_ParamPack, sizeof(ParamPackStorage));
+			s.write<uint32>(sizeof(DiscoveryResultStorage));
 			s.writeData(&g_DiscoveryResults, sizeof(DiscoveryResultStorage));
 			s.write(g_ReportTypes);
 			s.writeBool(g_IsInitialized);
@@ -131,7 +133,9 @@ namespace nn
 			s.readMPTR(s_OlvReleaseBgThread);
 			s.readMPTR(s_OlvReleaseBgThreadStack);
 			s.readMPTR(s_OlvReleaseBgThreadName);
+			cemu_assert(s.read<uint32>() == sizeof(ParamPackStorage));
 			s.readData(&g_ParamPack, sizeof(ParamPackStorage));
+			cemu_assert(s.read<uint32>() == sizeof(DiscoveryResultStorage));
 			s.readData(&g_DiscoveryResults, sizeof(DiscoveryResultStorage));
 			s.read(g_ReportTypes);
 			s.readBool(g_IsInitialized);

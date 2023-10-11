@@ -742,13 +742,15 @@ namespace nn
 		void save(MemStreamWriter& s)
 		{
 			s.writeSection("nn_fp");
-			s.writeData(&g_fp, sizeof(g_fp));
+			s.writeBool(g_fp.isAdminMode);
+			s.writeBool(g_fp.isInitialized);
 		}
 
 		void restore(MemStreamReader& s)
 		{
 			s.readSection("nn_fp");
-			s.readData(&g_fp, sizeof(g_fp));
+			s.readBool(g_fp.isAdminMode);
+			s.readBool(g_fp.isInitialized);
 		}
 
 		void load()

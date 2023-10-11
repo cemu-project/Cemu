@@ -126,6 +126,19 @@ public:
 
 	bool readData(void* ptr, size_t size)
 	{
+		if (m_cursorPos + size > m_size)
+		{
+			m_cursorPos = m_size;
+			m_hasError = true;
+			return false;
+		}
+		memcpy(ptr, m_data + m_cursorPos, size);
+		m_cursorPos += (sint32)size;
+		return true;
+	}
+
+	bool readNullableData(void* ptr, size_t size)
+	{
 		if (readBE<uint8>())
 		{
 			ptr = NULL;
@@ -133,16 +146,8 @@ public:
 		}
 		else
 		{
-			if (m_cursorPos + size > m_size)
-			{
-				m_cursorPos = m_size;
-				m_hasError = true;
-				return false;
-			}
-			memcpy(ptr, m_data + m_cursorPos, size);
-			m_cursorPos += (sint32)size;
-			return true;
-		}	
+			return readData(ptr, size);
+		}
 	}
 
 	std::span<uint8> readDataNoCopy(size_t size)
@@ -210,13 +215,16 @@ public:
 
 	void writeData(const void* ptr, size_t size)
 	{
+		m_buffer.resize(m_buffer.size() + size);
+		uint8* p = m_buffer.data() + m_buffer.size() - size;
+		memcpy(p, ptr, size);
+	}
+
+	void writeNullableData(void* ptr, size_t size)
+	{
 		writeBE((uint8)(ptr == NULL));
 		if (ptr)
-		{
-			m_buffer.resize(m_buffer.size() + size);
-			uint8* p = m_buffer.data() + m_buffer.size() - size;
-			memcpy(p, ptr, size);
-		}
+			writeData(ptr, size);
 	}
 
 	template<typename T> void write(const T& v);

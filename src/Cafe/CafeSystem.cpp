@@ -1003,10 +1003,7 @@ namespace CafeSystem
 		PauseTitle();
 		// memory
 		memory_Serialize(writer);
-		// gpu
-		writer.writeData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
-		writer.writeData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
-		writer.writeData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
+
 
 		nn::temp::save(writer);
 		nn::aoc::save(writer);
@@ -1014,6 +1011,11 @@ namespace CafeSystem
 		iosu::kernel::save(writer);
 		iosu::fsa::save(writer);
 		iosu::odm::save(writer);
+
+		// gpu
+		writer.writeData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
+		writer.writeData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
+		writer.writeData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
 
 		FileStream* stream = FileStream::createFile(path);
 		stream->writeData(writer.getResult().data(), writer.getResult().size_bytes());
@@ -1025,8 +1027,10 @@ namespace CafeSystem
 
 	void LoadState(std::string path)
 	{
-		
 		PauseTitle();
+		//coreinit::__OSDeleteAllActivePPCThreads();
+		DestroyMemorySpace();
+
 		cemuLog_log(LogType::SaveStates, "Loading state...", path);
 
 		auto data = FileStream::LoadIntoMemory(path);
@@ -1034,12 +1038,8 @@ namespace CafeSystem
 		MemStreamReader reader(data->data(), data->size());
 
 		// memory
-		DestroyMemorySpace();
+		
 		memory_Deserialize(reader);
-		// gpu
-		reader.readData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
-		reader.readData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
-		reader.readData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
 
 		nn::temp::restore(reader);
 		nn::aoc::restore(reader);
@@ -1047,6 +1047,11 @@ namespace CafeSystem
 		iosu::kernel::restore(reader);
 		iosu::fsa::restore(reader);
 		iosu::odm::restore(reader);
+
+		// gpu
+		reader.readData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
+		reader.readData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
+		reader.readData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
 
 		cemuLog_log(LogType::SaveStates, "Loaded state from {}.", path);
 

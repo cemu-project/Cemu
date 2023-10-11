@@ -53,7 +53,7 @@ namespace padscore
 
 	WPADState_t g_wpad_state = kWPADStateMaster;
 
-	struct g_padscore_t 
+	typedef struct _g_padscore_t
 	{
 		SysAllocator<coreinit::OSAlarm_t> alarm;
 		bool kpad_initialized = false;
@@ -72,7 +72,9 @@ namespace padscore
 		} controller_data[InputManager::kMaxWPADControllers] = {};
 
 		int max_controllers = kWPADMaxControllers; // max bt controllers?
-	} g_padscore;
+	} g_padscore_t;
+
+	g_padscore_t g_padscore;
 }
 
 
@@ -747,30 +749,6 @@ namespace padscore
 		OSSetPeriodicAlarm(&g_padscore.alarm, start_tick, period_tick, handler);
 	}
 
-	void save(MemStreamWriter& s)
-	{
-		s.writeSection("padscore");
-		s.writeBool(debugUseDRC1);
-		s.writeBool(g_kpadIsInited);
-		s.writeData(&g_padscore, sizeof(g_padscore_t));
-		s.writeData(g_kpad_ringbuffer, sizeof(KPADUnifiedWpadStatus_t));
-		s.write(g_kpad_ringbuffer_length);
-		s.writeBool(g_wpad_callback_by_kpad);
-		s.write((uint32)g_wpad_state);
-	}
-
-	void restore(MemStreamReader& s)
-	{
-		s.readSection("padscore");
-		s.readBool(debugUseDRC1);
-		s.readBool(g_kpadIsInited);
-		s.readData(&g_padscore, sizeof(g_padscore_t));
-		s.readData(g_kpad_ringbuffer, sizeof(KPADUnifiedWpadStatus_t));
-		s.read(g_kpad_ringbuffer_length);
-		s.readBool(g_wpad_callback_by_kpad);
-		g_wpad_state = (WPADState_t)s.read<uint32>();
-	}
-
 	void load()
 	{
 		cafeExportRegister("padscore", WPADIsMplsAttached, LogType::InputAPI);
@@ -813,3 +791,73 @@ namespace padscore
 	}
 
 }
+
+template<>
+void MemStreamWriter::write(const padscore::g_padscore_t& v)
+{
+	writeMPTR(v.alarm);
+	writeBool(v.kpad_initialized);
+	write<uint32>(InputManager::kMaxWPADControllers);
+	for (auto i : v.controller_data)
+	{
+		writeMPTR(i.extension_callback);
+		writeMPTR(i.connectCallback);
+		writeMPTR(i.sampling_callback);
+		writeMPTR(i.dpd_callback);
+		writeBool(i.dpd_enabled);
+		writeBool(i.disconnectCalled);
+		writeBool(i.disconnectCalled);
+		write(i.btn_repeat.delay);
+		write(i.btn_repeat.pulse);
+	}
+	write(v.max_controllers);
+}
+
+template <>
+void MemStreamReader::read(padscore::g_padscore_t& v)
+{
+	readMPTR(v.alarm);
+	readBool(v.kpad_initialized);
+	cemu_assert(read<uint32>() == InputManager::kMaxWPADControllers);
+	for (auto i : v.controller_data)
+	{
+		readMPTR(i.extension_callback);
+		readMPTR(i.connectCallback);
+		readMPTR(i.sampling_callback);
+		readMPTR(i.dpd_callback);
+		readBool(i.dpd_enabled);
+		readBool(i.disconnectCalled);
+		readBool(i.disconnectCalled);
+		read(i.btn_repeat.delay);
+		read(i.btn_repeat.pulse);
+	}
+	read(v.max_controllers);
+}
+
+namespace padscore
+{
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("padscore");
+		s.writeBool(debugUseDRC1);
+		s.writeBool(g_kpadIsInited);
+		s.write(g_padscore);
+		s.writePTR(g_kpad_ringbuffer);
+		s.write(g_kpad_ringbuffer_length);
+		s.writeBool(g_wpad_callback_by_kpad);
+		s.write((uint32)g_wpad_state);
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("padscore");
+		s.readBool(debugUseDRC1);
+		s.readBool(g_kpadIsInited);
+		s.read(g_padscore);
+		s.readPTR(g_kpad_ringbuffer);
+		s.read(g_kpad_ringbuffer_length);
+		s.readBool(g_wpad_callback_by_kpad);
+		g_wpad_state = (WPADState_t)s.read<uint32>();
+	}
+}
+

@@ -13,6 +13,7 @@
 #include "util/Fiber/Fiber.h"
 
 #include "util/helpers/helpers.h"
+#include "Common/FileStream.h"
 
 SlimRWLock srwlock_activeThreadList;
 
@@ -1331,11 +1332,27 @@ namespace coreinit
 		}
 	}
 
+	void DumpActiveThreads(std::string v)
+	{
+		for (auto& thr : activeThread)
+		{
+			if (thr != MPTR_NULL)
+			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+				MemStreamWriter writer(0);
+				writer.writeData(ptr, sizeof(OSThread_t));
+				FileStream* stream = FileStream::createFile(std::to_string(thr) + "_" + v + ".bin");
+				stream->writeData(writer.getResult().data(), writer.getResult().size_bytes());
+				delete stream;
+			}
+		}
+	}
+
 	void Thread_Save(MemStreamWriter& s)
 	{
 		s.writeSection("coreinit_Thread");
 
-		s.write((uint8)sSchedulerActive.load());
+		s.writeAtomic(sSchedulerActive);
 		s.writeMPTR(g_activeThreadQueue);
 		s.writeMPTR(g_coreRunQueue);
 
@@ -1343,6 +1360,8 @@ namespace coreinit
 		for (sint32 i = 0; i < activeThreadCount; i++)
 		{
 			s.write(activeThread[i]);
+			auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(activeThread[i]);
+			//s.write((uint8)ptr->state.value());
 		}
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 		{
@@ -1356,15 +1375,19 @@ namespace coreinit
 		}
 		s.writeMPTR(s_defaultThreads);
 		s.writeMPTR(s_stack);
+
+		DumpActiveThreads("save");
 	}
 
-	void Thread_Restore(MemStreamReader& s, bool recreate)
+	void Thread_Restore(MemStreamReader& s)
 	{
 		s.readSection("coreinit_Thread");
 
-		sSchedulerActive.store(s.read<uint8>());
+		s.readAtomic(sSchedulerActive);
 		s.readMPTR(g_activeThreadQueue);
 		s.readMPTR(g_coreRunQueue);
+
+		bool recreate = false;
 
 		sint32 prevActiveThreadCount = s.read<sint32>();
 		for (sint32 i = 0; i < prevActiveThreadCount; i++)
@@ -1372,9 +1395,12 @@ namespace coreinit
 			MPTR threadMPTR = s.read<MPTR>();
 			if (recreate)
 			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(threadMPTR);
+                
 				__OSLockScheduler();
-				__OSActivateThread((OSThread_t*)memory_getPointerFromVirtualOffset(threadMPTR));
+				__OSActivateThread(ptr);
 				__OSUnlockScheduler();
+				//ptr->state = betype((OSThread_t::THREAD_STATE)s.read<uint8>());
 			}
 			else
 			{
@@ -1394,6 +1420,8 @@ namespace coreinit
 		}
 		s.readMPTR(s_defaultThreads);
 		s.readMPTR(s_stack);
+
+		DumpActiveThreads("restore");
 	}
 
 	void SuspendActiveThreads()

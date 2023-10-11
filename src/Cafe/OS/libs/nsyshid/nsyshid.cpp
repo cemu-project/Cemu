@@ -816,8 +816,8 @@ namespace nsyshid
 	void save(MemStreamWriter& s)
 	{
 		s.writeSection("nsyshid");
-		s.writeData(firstDevice, sizeof(HIDDeviceInfo_t));
-		s.writeData(firstHIDClient, sizeof(HIDClient_t));
+		s.writePTR(firstDevice);
+		s.writeNullableData(firstHIDClient, sizeof(HIDClient_t));
 		s.write(_lastGeneratedHidHandle);
 		s.writeMPTR(_devicePool);
 		s.write(_devicePoolMask.count());
@@ -826,8 +826,8 @@ namespace nsyshid
 	void restore(MemStreamReader& s)
 	{
 		s.readSection("nsyshid");
-		s.readData(firstDevice, sizeof(HIDDeviceInfo_t));
-		s.readData(firstHIDClient, sizeof(HIDClient_t));
+		s.readPTR(firstDevice);
+		s.readNullableData(firstHIDClient, sizeof(HIDClient_t));
 		s.read(_lastGeneratedHidHandle);
 		s.readMPTR(_devicePool);
 		_devicePoolMask.reset();

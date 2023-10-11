@@ -319,8 +319,7 @@ namespace coreinit
 void coreinit_save(MemStreamWriter& s)
 {
 	s.writeSection("coreinit");
-
-	s.writeData(gCoreinitData, sizeof(coreinitData_t));
+	s.writeNullableData(gCoreinitData, sizeof(coreinitData_t));
 	s.write(placeholderFont);
 	s.write(placeholderFontSize);
 
@@ -347,18 +346,13 @@ void coreinit_save(MemStreamWriter& s)
 void coreinit_restore(MemStreamReader& s)
 {
 	s.readSection("coreinit");
-
-	bool recreate = false;
-	if (recreate)
-		coreinit::__OSDeleteAllActivePPCThreads();
-
-	s.readData(gCoreinitData, sizeof(coreinitData_t));
+	s.readNullableData(gCoreinitData, sizeof(coreinitData_t));
 	s.read(placeholderFont);
 	s.read(placeholderFontSize);
 
 	coreinit_Init_Restore(s);
 	coreinit::SysHeap_Restore(s);
-	coreinit::Thread_Restore(s, recreate);
+	coreinit::Thread_Restore(s);
 	coreinit::MEM_Restore(s);
 	coreinit::FG_Restore(s);
 	coreinit::OverlayArena_Restore(s);
