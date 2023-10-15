@@ -228,7 +228,7 @@ void CemuApp::LocalizeUI()
 		translationsMgr->SetLanguage(static_cast<wxLanguage>(configuredLanguage));
 		translationsMgr->AddCatalog("cemu");
 
-		if (wxLocale::IsAvailable(configuredLanguage))
+		if (translationsMgr->IsLoaded("cemu") && wxLocale::IsAvailable(configuredLanguage))
 			m_locale.Init(configuredLanguage);
 
 		// This must be run after wxLocale::Init, as the latter sets up its own wxTranslations instance which we want to override
