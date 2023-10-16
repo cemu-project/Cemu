@@ -238,7 +238,7 @@ void CemuApp::LocalizeUI()
 
 std::vector<const wxLanguageInfo*> CemuApp::GetAvailableTranslationLanguages(wxTranslations* translationsMgr)
 {
-	wxFileTranslationsLoader::AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
+	wxFileTranslationsLoader::AddCatalogLookupPathPrefix(wxHelper::FromPath(ActiveSettings::GetDataPath("resources")));
 	std::vector<const wxLanguageInfo*> languages;
 	for (const auto& langName : translationsMgr->GetAvailableTranslations("cemu"))
 	{
