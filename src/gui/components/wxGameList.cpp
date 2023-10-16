@@ -1027,7 +1027,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 				if (playTimeStat.last_played.year != 0)
 				{
 					const wxDateTime tmp((wxDateTime::wxDateTime_t)playTimeStat.last_played.day, (wxDateTime::Month)playTimeStat.last_played.month, (wxDateTime::wxDateTime_t)playTimeStat.last_played.year, 0, 0, 0, 0);
-					SetItem(index, ColumnGameStarted, tmp.FormatISODate());
+					SetItem(index, ColumnGameStarted, tmp.FormatDate());
 				}
 				else
 					SetItem(index, ColumnGameStarted, _("never"));
