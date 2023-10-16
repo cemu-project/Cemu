@@ -906,10 +906,8 @@ private:
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
-	void barrier_image(LatteTextureVk* vkTexture, VkImageSubresourceLayers& subresourceLayers, VkImageLayout newLayout)
+	void barrier_image(VkImage imageVk, VkImageSubresourceRange& subresourceRange, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
-		VkImage imageVk = vkTexture->GetImageObj()->m_image;
-
 		VkPipelineStageFlags srcStages = 0;
 		VkPipelineStageFlags dstStages = 0;
 
@@ -922,22 +920,33 @@ private:
 		barrier_calcStageAndMask<TSrcSyncOp>(srcStages, imageMemBarrier.srcAccessMask);
 		barrier_calcStageAndMask<TDstSyncOp>(dstStages, imageMemBarrier.dstAccessMask);
 		imageMemBarrier.image = imageVk;
-		imageMemBarrier.subresourceRange.aspectMask = subresourceLayers.aspectMask;
-		imageMemBarrier.subresourceRange.baseArrayLayer = subresourceLayers.baseArrayLayer;
-		imageMemBarrier.subresourceRange.layerCount = subresourceLayers.layerCount;
-		imageMemBarrier.subresourceRange.baseMipLevel = subresourceLayers.mipLevel;
-		imageMemBarrier.subresourceRange.levelCount = 1;
-		imageMemBarrier.oldLayout = vkTexture->GetImageLayout(imageMemBarrier.subresourceRange);
+		imageMemBarrier.subresourceRange = subresourceRange;
+		imageMemBarrier.oldLayout = oldLayout;
 		imageMemBarrier.newLayout = newLayout;
 
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer,
-			srcStages, dstStages,
-			0,
-			0, NULL,
-			0, NULL,
-			1, &imageMemBarrier);
+							 srcStages, dstStages,
+							 0,
+							 0, NULL,
+							 0, NULL,
+							 1, &imageMemBarrier);
+	}
 
-		vkTexture->SetImageLayout(imageMemBarrier.subresourceRange, newLayout);
+	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
+	void barrier_image(LatteTextureVk* vkTexture, VkImageSubresourceLayers& subresourceLayers, VkImageLayout newLayout)
+	{
+		VkImage imageVk = vkTexture->GetImageObj()->m_image;
+
+		VkImageSubresourceRange subresourceRange;
+		subresourceRange.aspectMask = subresourceLayers.aspectMask;
+		subresourceRange.baseArrayLayer = subresourceLayers.baseArrayLayer;
+		subresourceRange.layerCount = subresourceLayers.layerCount;
+		subresourceRange.baseMipLevel = subresourceLayers.mipLevel;
+		subresourceRange.levelCount = 1;
+
+		barrier_image<TSrcSyncOp, TDstSyncOp>(imageVk, subresourceRange, vkTexture->GetImageLayout(subresourceRange), newLayout);
+
+		vkTexture->SetImageLayout(subresourceRange, newLayout);
 	}
 
 
