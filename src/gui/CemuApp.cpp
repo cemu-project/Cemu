@@ -58,7 +58,7 @@ bool CemuApp::OnInit()
 {
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
-	fs::path exePath(standardPaths.GetExecutablePath().ToStdString());
+	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
 #ifdef PORTABLE
 #if MACOS_BUNDLE
     exePath = exePath.parent_path().parent_path().parent_path();
@@ -88,7 +88,7 @@ bool CemuApp::OnInit()
 #endif
 	auto failed_write_access = ActiveSettings::LoadOnce(exePath, user_data_path, config_path, cache_path, data_path);
 	for (auto&& path : failed_write_access)
-		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), path.generic_string()),
+		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), wxString::FromUTF8(_pathToUtf8(path))),
 			_("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	NetworkConfig::LoadOnce();
