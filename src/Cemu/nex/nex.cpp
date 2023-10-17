@@ -160,11 +160,10 @@ bool nexService::isMarkedForDestruction()
 
 void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* parameter, void(*nexServiceResponse)(nexService* nex, nexServiceResponse_t* serviceResponse), void* custom, bool callHandlerIfError)
 {
-	// add to queue
 	queuedRequest_t queueRequest = { 0 };
 	queueRequest.protocolId = protocolId;
 	queueRequest.methodId = methodId;
-	queueRequest.parameterData = std::vector<uint8>(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
+	queueRequest.parameterData.assign(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
 	queueRequest.nexServiceResponse = nexServiceResponse;
 	queueRequest.custom = custom;
 	queueRequest.callHandlerIfError = callHandlerIfError;
@@ -175,11 +174,10 @@ void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* 
 
 void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* parameter, std::function<void(nexServiceResponse_t*)> cb, bool callHandlerIfError)
 {
-	// add to queue
 	queuedRequest_t queueRequest = { 0 };
 	queueRequest.protocolId = protocolId;
 	queueRequest.methodId = methodId;
-	queueRequest.parameterData = std::vector<uint8>(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
+	queueRequest.parameterData.assign(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
 	queueRequest.nexServiceResponse = nullptr;
 	queueRequest.cb2 = cb;
 	queueRequest.callHandlerIfError = callHandlerIfError;

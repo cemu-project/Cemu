@@ -859,10 +859,10 @@ namespace H264
 			return H264DEC_STATUS::SUCCESS;
 		}
 		StackAllocator<coreinit::OSEvent> executeDoneEvent;
-		coreinit::OSInitEvent(executeDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+		coreinit::OSInitEvent(&executeDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 		std::vector<H264AVCDecoder::DecodeResult> results;
 		auto asyncTask = std::async(std::launch::async, _async_H264DECEnd, executeDoneEvent.GetPointer(), session, ctx, &results);
-		coreinit::OSWaitEvent(executeDoneEvent);
+		coreinit::OSWaitEvent(&executeDoneEvent);
 		_ReleaseDecoderSession(session);
 		if (!results.empty())
 		{
@@ -977,9 +977,9 @@ namespace H264
 		StackAllocator<H264DECFrameOutput, 8> stack_decodedFrameResult;
 
 		for (sint32 i = 0; i < outputFrameCount; i++)
-			stack_resultPtrArray[i] = stack_decodedFrameResult + i;
+			stack_resultPtrArray[i] = &stack_decodedFrameResult + i;
 
-		H264DECFrameOutput* frameOutput = stack_decodedFrameResult + 0;
+		H264DECFrameOutput* frameOutput = &stack_decodedFrameResult + 0;
 		memset(frameOutput, 0x00, sizeof(H264DECFrameOutput));
 		frameOutput->imagePtr = (uint8*)decodeResult.imageOutput;
 		frameOutput->result = 100;
@@ -1022,10 +1022,10 @@ namespace H264
 			return 0;
 		}
 		StackAllocator<coreinit::OSEvent> executeDoneEvent;
-		coreinit::OSInitEvent(executeDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+		coreinit::OSInitEvent(&executeDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 		H264AVCDecoder::DecodeResult decodeResult;
-		auto asyncTask = std::async(std::launch::async, _async_H264DECExecute, executeDoneEvent.GetPointer(), session, ctx, imageOutput , &decodeResult);
-		coreinit::OSWaitEvent(executeDoneEvent);
+		auto asyncTask = std::async(std::launch::async, _async_H264DECExecute, &executeDoneEvent, session, ctx, imageOutput , &decodeResult);
+		coreinit::OSWaitEvent(&executeDoneEvent);
 		_ReleaseDecoderSession(session);
 		if(decodeResult.frameReady)
 			H264DoFrameOutputCallback(ctx, decodeResult);

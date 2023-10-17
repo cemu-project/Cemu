@@ -526,6 +526,13 @@ namespace CafeSystem
 		cemuLog_log(LogType::Force, "Platform: {}", platform);
 	}
 
+	static std::vector<IOSUModule*> s_iosuModules =
+	{
+		// entries in this list are ordered by initialization order. Shutdown in reverse order
+		iosu::kernel::GetModule(),
+		iosu::fpd::GetModule()
+	};
+
 	// initialize all subsystems which are persistent and don't depend on a game running
 	void Initialize()
 	{
@@ -550,14 +557,15 @@ namespace CafeSystem
 		// allocate memory for all SysAllocators
 		// must happen before COS module init, but also before iosu::kernel::Initialize()
 		SysAllocatorContainer::GetInstance().Initialize();
-		// init IOSU
+		// init IOSU modules
+		for(auto& module : s_iosuModules)
+			module->SystemLaunch();
+		// init IOSU (deprecated manual init)
 		iosuCrypto_init();
-		iosu::kernel::Initialize();
 		iosu::fsa::Initialize();
 		iosuIoctl_init();
 		iosuAct_init_depr();
 		iosu::act::Initialize();
-		iosu::fpd::Initialize();
 		iosu::iosuMcp_init();
 		iosu::mcp::Init();
 		iosu::iosuAcp_init();
@@ -593,11 +601,14 @@ namespace CafeSystem
         // if a title is running, shut it down
         if (sSystemRunning)
             ShutdownTitle();
-        // shutdown persistent subsystems
+        // shutdown persistent subsystems (deprecated manual shutdown)
 		iosu::odm::Shutdown();
 		iosu::act::Stop();
         iosu::mcp::Shutdown();
         iosu::fsa::Shutdown();
+		// shutdown IOSU modules
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->SystemExit();
         s_initialized = false;
     }
 
@@ -821,7 +832,8 @@ namespace CafeSystem
 
 	void _LaunchTitleThread()
 	{
-		// init
+		for(auto& module : s_iosuModules)
+			module->TitleStart();
 		cemu_initForGame();
 		// enter scheduler
 		if (ActiveSettings::GetCPUMode() == CPUMode::MulticoreRecompiler)
@@ -956,6 +968,8 @@ namespace CafeSystem
         nn::save::ResetToDefaultState();
         coreinit::__OSDeleteAllActivePPCThreads();
         RPLLoader_ResetState();
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->TitleStop();
         // stop time tracking
 		iosu::pdm::Stop();
         // reset Cemu subsystems

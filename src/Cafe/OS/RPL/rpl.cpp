@@ -724,7 +724,7 @@ uint32 RPLLoader_MakePPCCallable(void(*ppcCallableExport)(PPCInterpreter_t* hCPU
 	if (it != g_map_callableExports.end())
 		return it->second;
 	// get HLE function index
-	sint32 functionIndex = PPCInterpreter_registerHLECall(ppcCallableExport);
+	sint32 functionIndex = PPCInterpreter_registerHLECall(ppcCallableExport, fmt::format("PPCCallback{:x}", (uintptr_t)ppcCallableExport));
 	MPTR codeAddr = memory_getVirtualOffsetFromPointer(RPLLoader_AllocateTrampolineCodeSpace(4));
 	uint32 opcode = (1 << 26) | functionIndex;
 	memory_write<uint32>(codeAddr, opcode);

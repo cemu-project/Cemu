@@ -36,6 +36,16 @@ public:
 	static HighResolutionTimer now();
 	static HRTick getFrequency();
 
+	static HRTick microsecondsToTicks(uint64 microseconds)
+	{
+		return microseconds * m_freq / 1000000;
+	}
+
+	static uint64 ticksToMicroseconds(HRTick ticks)
+	{
+		return ticks * 1000000 / m_freq;
+	}
+
 private:
 	HighResolutionTimer(uint64 timePoint) : m_timePoint(timePoint) {};
 

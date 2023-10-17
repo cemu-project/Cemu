@@ -25,7 +25,7 @@ namespace nn
 			// open archive
 			g_offlineDBArchive = ZArchiveReader::OpenFromFile(ActiveSettings::GetUserDataPath("resources/miiverse/OfflineDB.zar"));
 			if(!g_offlineDBArchive)
-				cemuLog_log(LogType::Force, "Failed to open resources/miiverse/OfflineDB.zar. Miiverse posts will not be available");
+				cemuLog_log(LogType::Force, "Offline miiverse posts are not available");
 			g_offlineDBInitialized = true;
 		}
 
@@ -175,9 +175,9 @@ namespace nn
 				return OLV_RESULT_SUCCESS; // the offlineDB doesn't contain any self posts
 
 			StackAllocator<coreinit::OSEvent> doneEvent;
-			coreinit::OSInitEvent(doneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+			coreinit::OSInitEvent(&doneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 			auto asyncTask = std::async(std::launch::async, _Async_OfflineDB_DownloadPostDataListParam_DownloadPostDataList, doneEvent.GetPointer(), downloadedTopicData, downloadedPostData, postCountOut, maxCount, param);
-			coreinit::OSWaitEvent(doneEvent);
+			coreinit::OSWaitEvent(&doneEvent);
 			nnResult r = asyncTask.get();
 			return r;
 		}
@@ -204,9 +204,9 @@ namespace nn
 		nnResult OfflineDB_DownloadPostDataListParam_DownloadExternalImageData(DownloadedDataBase* _this, void* imageDataOut, uint32be* imageSizeOut, uint32 maxSize)
 		{
 			StackAllocator<coreinit::OSEvent> doneEvent;
-			coreinit::OSInitEvent(doneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+			coreinit::OSInitEvent(&doneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 			auto asyncTask = std::async(std::launch::async, _Async_OfflineDB_DownloadPostDataListParam_DownloadExternalImageData, doneEvent.GetPointer(), _this, imageDataOut, imageSizeOut, maxSize);
-			coreinit::OSWaitEvent(doneEvent);
+			coreinit::OSWaitEvent(&doneEvent);
 			nnResult r = asyncTask.get();
 			return r;
 		}

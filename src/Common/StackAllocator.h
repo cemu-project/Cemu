@@ -29,9 +29,36 @@ public:
 	T* GetPointer() const { return m_ptr; }
 	uint32 GetMPTR() const { return MEMPTR<T>(m_ptr).GetMPTR(); }
 	uint32 GetMPTRBE() const { return MEMPTR<T>(m_ptr).GetMPTRBE(); }
-	
-	operator T*() const { return GetPointer(); }
+
+	T* operator&() { return GetPointer(); }
+	explicit operator T*() const { return GetPointer(); }
 	explicit operator uint32() const { return GetMPTR(); }
+	explicit operator bool() const { return *m_ptr != 0; }
+
+	// for arrays (count > 1) allow direct access via [] operator
+	template<int c = count>
+	requires (c > 1)
+	T& operator[](const uint32 index)
+	{
+		return m_ptr[index];
+	}
+
+	// if count is 1, then allow direct value assignment via = operator
+	template<int c = count>
+	requires (c == 1)
+	T& operator=(const T& rhs)
+	{
+		*m_ptr = rhs;
+		return *m_ptr;
+	}
+
+	// if count is 1, then allow == and != operators
+	template<int c = count>
+	requires (c == 1)
+	bool operator==(const T& rhs) const
+	{
+		return *m_ptr == rhs;
+	}
 
 private:
 	static const uint32 kStaticMemOffset = 64;
