@@ -191,7 +191,6 @@ int CemuApp::FilterEvent(wxEvent& event)
 	if(event.GetEventType() == wxEVT_KEY_DOWN)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
-		wxGetKeyState(wxKeyCode::WXK_F17);
 		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
 	}
 	else if(event.GetEventType() == wxEVT_KEY_UP)

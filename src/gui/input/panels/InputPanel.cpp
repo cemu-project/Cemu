@@ -1,3 +1,4 @@
+#include "gui/guiWrapper.h"
 #include "gui/input/panels/InputPanel.h"
 
 #include <wx/textctrl.h>
@@ -26,7 +27,7 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 	const auto mapping = reinterpret_cast<uint64>(element->GetClientData());
 
 	// reset mapping
-	if(std::exchange(m_right_down, false) || wxGetKeyState(WXK_ESCAPE))
+	if(std::exchange(m_right_down, false) || gui_isKeyDown(PlatformKeyCodes::ESCAPE))
 	{
 		element->SetBackgroundColour(kKeyColourNormalMode);
 		m_color_backup[element->GetId()] = kKeyColourNormalMode;

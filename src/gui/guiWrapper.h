@@ -41,18 +41,22 @@ enum struct PlatformKeyCodes : uint32
 	LCONTROL = VK_LCONTROL,
 	RCONTROL = VK_RCONTROL,
 	TAB = VK_TAB,
+	ESCAPE = VK_ESCAPE,
 #elif BOOST_OS_LINUX
 	LCONTROL = GDK_KEY_Control_L,
 	RCONTROL = GDK_KEY_Control_R,
 	TAB = GDK_KEY_Tab,
+	ESCAPE = GDK_KEY_Escape,
 #elif BOOST_OS_MACOS
 	LCONTROL = kVK_Control,
 	RCONTROL = kVK_RightControl,
 	TAB = kVK_Tab,
+	ESCAPE = kVK_Escape,
 #else
 	LCONTROL = 0,
 	RCONTROL = 0,
 	TAB = 0,
+	ESCAPE = 0,
 #endif
 };
 
