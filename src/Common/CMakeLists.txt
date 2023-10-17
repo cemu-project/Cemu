@@ -20,6 +20,7 @@ add_library(CemuCommon
   StackAllocator.h
   SysAllocator.cpp
   SysAllocator.h
+  CafeString.h
   version.h
 )
 

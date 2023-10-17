@@ -44,9 +44,9 @@ namespace nn
 			InitializeOliveRequest(req);
 
 			StackAllocator<coreinit::OSEvent> requestDoneEvent;
-			coreinit::OSInitEvent(requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+			coreinit::OSInitEvent(&requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 			std::future<sint32> requestRes = std::async(std::launch::async, UploadFavoriteToCommunityData_AsyncRequest, std::ref(req), requestUrl, requestDoneEvent.GetPointer(), pOutData, pParam);
-			coreinit::OSWaitEvent(requestDoneEvent);
+			coreinit::OSWaitEvent(&requestDoneEvent);
 
 			return requestRes.get();
 		}

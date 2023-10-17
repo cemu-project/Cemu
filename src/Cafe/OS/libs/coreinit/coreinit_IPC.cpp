@@ -355,23 +355,6 @@ namespace coreinit
 	IOS_ERROR _IPCDriver_SetupCmd_IOSIoctlv(IPCDriver& ipcDriver, IPCResourceBufferDescriptor* requestDescriptor, uint32 requestId, uint32 numIn, uint32 numOut, IPCIoctlVector* vec)
 	{
 		IPCCommandBody& cmdBody = requestDescriptor->resourcePtr->commandBody;
-		// verify input and output vectors
-		IPCIoctlVector* vecIn = vec;
-		IPCIoctlVector* vecOut = vec + numIn;
-		for (uint32 i = 0; i < numIn; i++)
-		{
-			if (vecIn[i].baseVirt == nullptr && vecIn[i].size != 0)
-				return IOS_ERROR_INVALID_ARG;
-			vecIn[i].basePhys = vecIn[i].baseVirt;
-			vecIn[i].baseVirt = nullptr;
-		}
-		for (uint32 i = 0; i < numOut; i++)
-		{
-			if (vecOut[i].baseVirt == nullptr && vecOut[i].size != 0)
-				return IOS_ERROR_INVALID_ARG;
-			vecOut[i].basePhys = vecOut[i].baseVirt;
-			vecOut[i].baseVirt = nullptr;
-		}
 		// set args
 		cmdBody.ppcVirt0 = MEMPTR<void>(vec).GetMPTR();
 		cmdBody.args[0] = requestId;

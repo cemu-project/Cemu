@@ -2198,6 +2198,7 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("&Coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("&Coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_FP), _("&NN FP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_FP));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("&GX2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("&Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("&Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));

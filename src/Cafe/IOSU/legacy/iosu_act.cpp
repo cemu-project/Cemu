@@ -192,6 +192,15 @@ namespace iosu
 			return true;
 		}
 
+		// returns empty string if invalid
+		std::string getAccountId2(uint8 slot)
+		{
+			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+			if (_actAccountData[accountIndex].isValid == false)
+				return {};
+			return {_actAccountData[accountIndex].accountId};
+		}
+
 		bool getMii(uint8 slot, FFLData_t* fflData)
 		{
 			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);

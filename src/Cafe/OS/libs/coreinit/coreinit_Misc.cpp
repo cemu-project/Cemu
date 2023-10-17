@@ -195,7 +195,28 @@ namespace coreinit
 				else if ((formatStr[0] == 'l' && formatStr[1] == 'l' && (formatStr[2] == 'x' || formatStr[2] == 'X')))
 				{
 					formatStr += 3;
-					// number (64bit)
+					// double (64bit)
+					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
+					if ((formatStr - formatStart) < sizeof(tempFormat))
+						tempFormat[(formatStr - formatStart)] = '\0';
+					else
+						tempFormat[sizeof(tempFormat) - 1] = '\0';
+					if (integerParamIndex & 1)
+						integerParamIndex++;
+					sint32 tempLen = sprintf(tempStr, tempFormat, PPCInterpreter_getCallParamU64(hCPU, integerParamIndex));
+					integerParamIndex += 2;
+					for (sint32 i = 0; i < tempLen; i++)
+					{
+						if (writeIndex >= maxLength)
+							break;
+						strOut[writeIndex] = tempStr[i];
+						writeIndex++;
+					}
+				}
+				else if ((formatStr[0] == 'l' && formatStr[1] == 'l' && formatStr[2] == 'd'))
+				{
+					formatStr += 3;
+					// signed integer (64bit)
 					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
 					if ((formatStr - formatStart) < sizeof(tempFormat))
 						tempFormat[(formatStr - formatStart)] = '\0';

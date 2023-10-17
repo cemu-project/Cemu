@@ -19,7 +19,7 @@ void PPCInterpreter_handleUnsupportedHLECall(PPCInterpreter_t* hCPU)
 
 std::vector<void(*)(PPCInterpreter_t* hCPU)>* sPPCHLETable{};
 
-HLEIDX PPCInterpreter_registerHLECall(HLECALL hleCall)
+HLEIDX PPCInterpreter_registerHLECall(HLECALL hleCall, std::string hleName)
 {
 	if (!sPPCHLETable)
 		sPPCHLETable = new std::vector<void(*)(PPCInterpreter_t* hCPU)>();
