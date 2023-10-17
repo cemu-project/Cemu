@@ -1751,7 +1751,7 @@ void MainWindow::UpdateNFCMenu()
 		if (entry.empty())
 			continue;
 		
-		if (!fs::exists(entry))
+		if (!fs::exists(_utf8ToPath(entry)))
 			continue;
 		
 		if (recentFileIndex == 0)
