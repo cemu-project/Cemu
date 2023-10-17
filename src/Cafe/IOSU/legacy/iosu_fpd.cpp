@@ -173,7 +173,7 @@ namespace iosu
 			return t;
 		}
 
-		void NexPresenceToGameMode(nexPresenceV2* presence, GameMode* gameMode)
+		void NexPresenceToGameMode(const nexPresenceV2* presence, GameMode* gameMode)
 		{
 			memset(gameMode, 0, sizeof(GameMode));
 			gameMode->joinFlagMask = presence->joinFlagMask;
@@ -185,9 +185,9 @@ namespace iosu
 			memcpy(gameMode->appSpecificData, presence->appSpecificData, 0x14);
 		}
 
-		void GameModeToNexPresence(GameMode* gameMode, nexPresenceV2* presence)
+		void GameModeToNexPresence(const GameMode* gameMode, nexPresenceV2* presence)
 		{
-			memset(presence, 0, sizeof(nexPresenceV2));
+			*presence = {};
 			presence->joinFlagMask = gameMode->joinFlagMask;
 			presence->joinAvailability = (uint8)(uint32)gameMode->matchmakeType;
 			presence->gameId = gameMode->joinGameId;
@@ -197,7 +197,7 @@ namespace iosu
 			memcpy(presence->appSpecificData, gameMode->appSpecificData, 0x14);
 		}
 
-		void NexFriendToFPDFriendData(FriendData* friendData, nexFriend* frd)
+		void NexFriendToFPDFriendData(const nexFriend* frd, FriendData* friendData)
 		{
 			memset(friendData, 0, sizeof(FriendData));
 			// setup friend data
@@ -232,7 +232,7 @@ namespace iosu
 			convertFPDTimestampToDate(frd->lastOnlineTimestamp, &friendData->friendExtraData.lastOnline);
 		}
 
-		void NexFriendRequestToFPDFriendData(FriendData* friendData, nexFriendRequest* frdReq, bool isIncoming)
+		void NexFriendRequestToFPDFriendData(const nexFriendRequest* frdReq, bool isIncoming, FriendData* friendData)
 		{
 			memset(friendData, 0, sizeof(FriendData));
 			// setup friend data
@@ -282,7 +282,7 @@ namespace iosu
 			convertFPDTimestampToDate(frdReq->message.expireTimestamp, &friendData->requestExtraData.uknData1);
 		}
 
-		void NexFriendRequestToFPDFriendRequest(FriendRequest* friendRequest, nexFriendRequest* frdReq, bool isIncoming)
+		void NexFriendRequestToFPDFriendRequest(const nexFriendRequest* frdReq, bool isIncoming, FriendRequest* friendRequest)
 		{
 			memset(friendRequest, 0, sizeof(FriendRequest));
 
@@ -1007,7 +1007,7 @@ namespace iosu
 						cemuLog_log(LogType::Force, "GetFriendRequestListEx: Failed to get friend request");
 						return FPResult_RequestFailed;
 					}
-					NexFriendRequestToFPDFriendRequest(friendRequests + i, &frdReq, incoming);
+					NexFriendRequestToFPDFriendRequest(&frdReq, incoming, friendRequests + i);
 				}
 				return FPResult_Ok;
 			}
@@ -1063,13 +1063,13 @@ namespace iosu
 						nexFriendRequest frdReq;
 						if (g_fpd.nexFriendSession->getFriendByPID(frd, pid))
 						{
-							NexFriendToFPDFriendData(friendData, &frd);
+							NexFriendToFPDFriendData(&frd, friendData);
 							continue;
 						}
 						bool incoming = false;
 						if (g_fpd.nexFriendSession->getFriendRequestByPID(frdReq, &incoming, pid))
 						{
-							NexFriendRequestToFPDFriendData(friendData, &frdReq, incoming);
+							NexFriendRequestToFPDFriendData(&frdReq, incoming, friendData);
 							continue;
 						}
 						cemuLog_logDebug(LogType::Force, "GetFriendListEx: Failed to find friend or request with pid {}", pid);
