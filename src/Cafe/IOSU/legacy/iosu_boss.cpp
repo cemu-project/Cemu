@@ -119,7 +119,7 @@ namespace iosu
 		uint32 turn_state = 0;
 		uint32 wait_state = 0;
 
-		uint32 http_status_code = 0;
+		long http_status_code = 0;
 		ContentType content_type = ContentType::kUnknownContent;
 
 		std::vector<uint8> result_buffer;
@@ -592,6 +592,7 @@ namespace iosu
 
 		int curl_result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &it->http_status_code);
+		static_assert(sizeof(it->http_status_code) == sizeof(long));
 
 		//it->turn_state = kFinished;
 
@@ -909,10 +910,10 @@ namespace iosu
 		return it != g_boss.tasks.cend() ? std::make_pair(it->exec_count, it->processed_length) : std::make_pair(0u, (uint64)0);
 	}
 
-	std::pair<uint32, uint32> task_get_http_status_code(const char* taskId, uint32 accountId, uint64 titleId)
+	std::pair<uint32, long> task_get_http_status_code(const char* taskId, uint32 accountId, uint64 titleId)
 	{
 		const auto it = get_task(taskId, accountId, titleId);
-		return it != g_boss.tasks.cend() ? std::make_pair(it->exec_count, it->http_status_code) : std::make_pair(0u, (uint32)0);
+		return it != g_boss.tasks.cend() ? std::make_pair(it->exec_count, it->http_status_code) : std::make_pair(0u, (long)0);
 	}
 
 	std::pair<uint32, uint32> task_get_turn_state(const char* taskId, uint32 accountId, uint64 titleId)
