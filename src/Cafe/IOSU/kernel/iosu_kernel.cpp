@@ -578,8 +578,12 @@ namespace iosu
 			return r;
 		}
 
+		std::mutex sMtxReply[3];
+
 		void _IPCReplyAndRelease(IOSDispatchableCommand* dispatchCmd, uint32 result)
 		{
+			cemu_assert(dispatchCmd->ppcCoreIndex < 3);
+			std::unique_lock _l(sMtxReply[(uint32)dispatchCmd->ppcCoreIndex]);
 			cemu_assert(dispatchCmd >= sIPCDispatchableCommandPool.GetPtr() && dispatchCmd < sIPCDispatchableCommandPool.GetPtr() + sIPCDispatchableCommandPool.GetCount());	
 			dispatchCmd->originalBody->result = result;
 			// submit to COS
