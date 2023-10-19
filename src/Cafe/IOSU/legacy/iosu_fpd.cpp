@@ -328,6 +328,7 @@ namespace iosu
 		static const auto FPResult_Ok = 0;
 		static const auto FPResult_InvalidIPCParam = BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_FP, 0x680);
 		static const auto FPResult_RequestFailed = BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_FP, 0); // figure out proper error code
+		static const auto FPResult_Aborted = BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_FP, 0x3480);
 
 		class FPDService : public iosu::nn::IPCSimpleService
 		{
@@ -586,7 +587,7 @@ namespace iosu
 				if (!ActiveSettings::IsOnlineEnabled())
 				{
 					// not online, fail immediately
-					return BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_FP, 0); // todo
+					return FPResult_Ok; // Splatoon expects this to always return success otherwise it will softlock. This should be FPResult_Aborted?
 				}
 				StartFriendSession();
 				fpdClient->hasLoggedIn = true;

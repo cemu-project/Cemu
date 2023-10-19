@@ -55,8 +55,8 @@ namespace nn
 			{
 				std::unique_lock _l(m_mtx);
 				void* p = g_fp.fpBufferHeap->alloc(size, 32);
-				uint32 heapSize, allocationSize, allocNum;
-				g_fp.fpBufferHeap->getStats(heapSize, allocationSize, allocNum);
+				if (!p)
+					cemuLog_log(LogType::Force, "nn_fp: Internal heap is full");
 				return p;
 			}
 
@@ -153,8 +153,11 @@ namespace nn
 					totalBufferSize += m_vec[i].size;
 					totalBufferSize = (totalBufferSize+31)&~31;
 				}
-				m_dataBuffer = FPIpcBufferAllocator.Allocate(totalBufferSize, 32);
-				cemu_assert_debug(m_dataBuffer);
+				if(totalBufferSize > 0)
+				{
+					m_dataBuffer = FPIpcBufferAllocator.Allocate(totalBufferSize, 32);
+					cemu_assert_debug(m_dataBuffer);
+				}
 				// update Ioctl vector addresses
 				for(uint8 i=0; i<m_numVecIn + m_numVecOut; i++)
 				{
@@ -176,9 +179,7 @@ namespace nn
 				ppcDefineParamPtr(ipcCtx, FPIpcContext, 1);
 				ipcCtx->m_asyncResult = result; // store result in variable since FP callbacks pass a pointer to nnResult and not the value directly
 				ipcCtx->CopyBackOutputs();
-				cemuLog_logDebug(LogType::Force, "[DBG] AsyncHandler BeforeCallback");
 				PPCCoreCallback(ipcCtx->m_callbackFunc, &ipcCtx->m_asyncResult, ipcCtx->m_callbackParam);
-				cemuLog_logDebug(LogType::Force, "[DBG] AsyncHandler AfterCallback");
 				delete ipcCtx;
 				osLib_returnFromFunction(hCPU, 0);
 			}
