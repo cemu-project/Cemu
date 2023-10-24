@@ -23,10 +23,10 @@ public class InputSettingsFragment extends Fragment {
         GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
         for (int index = 0; index < NativeLibrary.MAX_CONTROLLERS; index++) {
             int controllerIndex = index;
-            String controllerType = getString(NativeLibrary.controllerTypeToResourceNameId(NativeLibrary.getControllerType(controllerIndex)));
+            int controllerType = NativeLibrary.isControllerDisabled(controllerIndex) ? NativeLibrary.EMULATED_CONTROLLER_TYPE_DISABLED : NativeLibrary.getControllerType(controllerIndex);
             ButtonRecyclerViewItem buttonRecyclerViewItem = new ButtonRecyclerViewItem(
                     getString(R.string.controller_numbered, controllerIndex + 1),
-                    getString(R.string.emulated_controller_with_type, controllerType),
+                    getString(R.string.emulated_controller_with_type, getString(NativeLibrary.controllerTypeToResourceNameId(controllerType))),
                     () -> {
                         Bundle bundle = new Bundle();
                         bundle.putInt(ControllerInputsFragment.CONTROLLER_INDEX, controllerIndex);
