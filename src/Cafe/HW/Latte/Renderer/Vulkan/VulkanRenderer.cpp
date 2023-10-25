@@ -2706,7 +2706,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
 #if !BOOST_OS_WINDOW
-		if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow)
+		if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
 			((VsyncDriverVulkan*)g_vsyncDriver.get())->SetDeviceAndSwapchain(m_logicalDevice, chainInfo.swapchain);
 #endif
 	}
@@ -2787,7 +2787,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 #if !BOOST_OS_WINDOWS
-	bool addSyncMarkers = (VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && m_featureControl.deviceExtensions.present_wait ;
+	bool addSyncMarkers = (VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && m_featureControl.deviceExtensions.present_wait && g_vsyncDriver;
 	if (addSyncMarkers)
 	{
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;

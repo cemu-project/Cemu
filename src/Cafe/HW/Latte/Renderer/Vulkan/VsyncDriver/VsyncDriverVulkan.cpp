@@ -43,8 +43,10 @@ void VsyncDriverVulkan::vsyncThread()
 	while (!m_thd.get_stop_token().stop_requested())
 	{
 		auto presentId = PopPresentID();
-		std::lock_guard lock(deviceSwapchainMutex);
-		vkWaitForPresentKHR(device, swapchain, presentId, 10 * 16'666'666);
+		{
+			std::lock_guard lock(deviceSwapchainMutex);
+			vkWaitForPresentKHR(device, swapchain, presentId, 10 * 16'666'666);
+		}
 		signalVsync();
 	}
 }
