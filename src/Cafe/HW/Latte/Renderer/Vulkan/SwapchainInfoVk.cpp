@@ -136,8 +136,6 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 
 	m_acquireIndex = 0;
 	hasDefinedSwapchainImage = false;
-
-	m_numQueued = 0;
 }
 
 void SwapchainInfoVk::Cleanup()
@@ -353,7 +351,6 @@ VkExtent2D SwapchainInfoVk::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 
 VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes)
 {
-	m_maxQueued = 0;
 	const auto vsyncState = (VSync)GetConfig().vsync.GetValue();
 	if (vsyncState == VSync::MAILBOX)
 	{
@@ -380,7 +377,6 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
-	m_maxQueued = 1;
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 

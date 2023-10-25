@@ -5,6 +5,8 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CocoaSurface.h"
 
+#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriverVulkan.h"
+
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 
@@ -2703,6 +2705,10 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
+#if !BOOST_OS_WINDOW
+		if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow)
+			((VsyncDriverVulkan*)g_vsyncDriver.get())->SetDeviceAndSwapchain(m_logicalDevice, chainInfo.swapchain);
+#endif
 	}
 
 	if (mainWindow)
@@ -2780,8 +2786,9 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
-	// if present_wait is available, use it to enforce double buffering.
-	if (m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued != 0)
+#if !BOOST_OS_WINDOWS
+	bool addSyncMarkers = (VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && m_featureControl.deviceExtensions.present_wait ;
+	if (addSyncMarkers)
 	{
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
 		presentId.swapchainCount = 1;
@@ -2789,6 +2796,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 
 		presentInfo.pNext = &presentId;
 	}
+#endif
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
@@ -2798,23 +2806,13 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(result == VK_SUCCESS)
+#if !BOOST_OS_WINDOWS
+	if(addSyncMarkers && result == VK_SUCCESS)
 	{
-		std::cout << "justQueued: " << chainInfo.m_presentId << std::endl;
-		chainInfo.m_numQueued++;
+		((VsyncDriverVulkan*)g_vsyncDriver.get())->PushPresentID(chainInfo.m_presentId);
 		chainInfo.m_presentId++;
-		if (chainInfo.m_maxQueued != 0 && chainInfo.m_numQueued != 0)
-		{
-			if (chainInfo.m_numQueued > chainInfo.m_maxQueued)
-			{
-				uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_numQueued;
-				std::cout << "WAITING" << std::endl;
-				std::cout << "waitingID: " << waitFrameId << std::endl;
-				vkWaitForPresentKHR(m_logicalDevice, chainInfo.swapchain, waitFrameId, 40'000'000);
-				chainInfo.m_numQueued--;
-			}
-		}
 	}
+#endif
 
 
 	chainInfo.hasDefinedSwapchainImage = false;

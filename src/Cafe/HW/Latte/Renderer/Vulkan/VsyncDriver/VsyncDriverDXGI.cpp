@@ -1,8 +1,6 @@
 #include "gui/MainWindow.h"
-
-#if BOOST_OS_WINDOWS
-
 #include <Windows.h>
+#include "VsyncDriver.h"
 
 typedef LONG NTSTATUS;
 
@@ -23,26 +21,18 @@ typedef struct _D3DKMT_WAITFORVERTICALBLANKEVENT {
 	D3DDDI_VIDEO_PRESENT_SOURCE_ID VidPnSourceId;
 } D3DKMT_WAITFORVERTICALBLANKEVENT;
 
-class DeviceVsyncHandler
+class VsyncDriverDXGI : VsyncDriver
 {
 public:
-	DeviceVsyncHandler(void(*cbVSync)()) : m_vsyncDriverVSyncCb(cbVSync)
+	VsyncDriverDXGI(void(*cbVSync)()) : VsyncDriver(cbVSync)
 	{
-		m_shutdownThread = false;
 		if (!pfnD3DKMTOpenAdapterFromHdc)
 		{
 			HMODULE hModuleGDI = LoadLibraryA("gdi32.dll");
 			*(void**)&pfnD3DKMTOpenAdapterFromHdc = GetProcAddress(hModuleGDI, "D3DKMTOpenAdapterFromHdc");
 			*(void**)&pfnD3DKMTWaitForVerticalBlankEvent = GetProcAddress(hModuleGDI, "D3DKMTWaitForVerticalBlankEvent");
 		}
-		m_thd = std::thread(&DeviceVsyncHandler::vsyncThread, this);
-	}
-
-	~DeviceVsyncHandler()
-	{
-		m_shutdownThread = true;
-		cemu_assert_debug(m_thd.joinable());
-		m_thd.join();
+		startThread();
 	}
 
 	void notifyWindowPosChanged()
@@ -113,14 +103,14 @@ private:
 		return E_FAIL;
 	}
 
-	void vsyncThread()
+	virtual void vsyncThread() override
 	{
 		D3DKMT_HANDLE hAdapter;
 		UINT hOutput;
 		GetAdapterHandleFromHwnd(&hAdapter, &hOutput);
 
 		int failCount = 0;
-		while (!m_shutdownThread)
+		while (!m_thd.get_stop_token().stop_requested())
 		{
 			D3DKMT_WAITFORVERTICALBLANKEVENT arg;
 			arg.hDevice = 0;
@@ -137,7 +127,7 @@ private:
 					while (GetAdapterHandleFromHwnd(&hAdapter, &hOutput) != S_OK)
 					{
 						Sleep(1000 / 60);
-						if (m_shutdownThread)
+						if (m_thd.get_stop_token().stop_requested())
 							return;
 					}
 					failCount = 0;
@@ -153,7 +143,7 @@ private:
 					while (GetAdapterHandleFromHwnd(&hAdapter, &hOutput) != S_OK)
 					{
 						Sleep(1000 / 60);
-						if (m_shutdownThread)
+						if (m_thd.get_stop_token().stop_requested())
 							return;
 					}
 				}
@@ -161,57 +151,12 @@ private:
 		}
 	}
 
-	void signalVsync()
-	{
-		if(m_vsyncDriverVSyncCb)
-			m_vsyncDriverVSyncCb();
-	}
-
-	void setCallback(void(*cbVSync)())
-	{
-		m_vsyncDriverVSyncCb = cbVSync;
-	}
 
 private:
 	NTSTATUS(__stdcall* pfnD3DKMTOpenAdapterFromHdc)(D3DKMT_OPENADAPTERFROMHDC* Arg1) = nullptr;
 	NTSTATUS(__stdcall* pfnD3DKMTWaitForVerticalBlankEvent)(const D3DKMT_WAITFORVERTICALBLANKEVENT* Arg1) = nullptr;
 
-	std::thread m_thd;
-	bool m_shutdownThread;
 	bool m_checkMonitorChange{};
 	WCHAR m_activeMonitorDevice[32];
 
-	void (*m_vsyncDriverVSyncCb)() = nullptr;
 };
-
-DeviceVsyncHandler* s_vsyncDriver = nullptr;
-
-std::mutex s_driverAccess;
-
-void VsyncDriver_startThread(void(*cbVSync)())
-{
-	std::unique_lock<std::mutex> ul(s_driverAccess);
-	if (!s_vsyncDriver)
-		s_vsyncDriver = new DeviceVsyncHandler(cbVSync);
-}
-
-void VsyncDriver_notifyWindowPosChanged()
-{
-	std::unique_lock<std::mutex> ul(s_driverAccess);
-	if (s_vsyncDriver)
-		s_vsyncDriver->notifyWindowPosChanged();
-}
-
-#else
-
-void VsyncDriver_startThread(void(*cbVSync)())
-{
-	cemu_assert_unimplemented();
-}
-
-void VsyncDriver_notifyWindowPosChanged()
-{
-
-}
-
-#endif
