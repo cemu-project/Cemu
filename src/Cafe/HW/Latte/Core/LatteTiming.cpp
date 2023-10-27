@@ -54,10 +54,11 @@ bool s_usingHostDrivenVSync = false;
 
 void LatteTiming_EnableHostDrivenVSync()
 {
-	if (s_usingHostDrivenVSync)
-		return;
-	VsyncDriver_startThread(LatteTiming_NotifyHostVSync);
 	s_usingHostDrivenVSync = true;
+}
+void LatteTiming_DisableHostDrivenVSync()
+{
+	s_usingHostDrivenVSync = false;
 }
 
 bool LatteTiming_IsUsingHostDrivenVSync()
@@ -97,7 +98,6 @@ void LatteTiming_signalVsync()
 		GX2::__GX2NotifyEvent(GX2::GX2CallbackEventType::FLIP);
 		s_vsyncIntervalCounter = 0;
 	}
-	g_renderer->PresentFrontBuffer();
 	// vsync
 	GX2::__GX2NotifyEvent(GX2::GX2CallbackEventType::VSYNC);
 }
@@ -130,6 +130,7 @@ void LatteTiming_HandleTimedVsync()
 	{
 		if(!LatteTiming_IsUsingHostDrivenVSync())
 			LatteTiming_signalVsync();
+		g_renderer->PresentFrontBuffers();
 		// even if vsync is delegated to the host device, we still use this virtual vsync timer to check finished states
 		LatteQuery_UpdateFinishedQueries();
 		LatteTextureReadback_UpdateFinishedTransfers(false);

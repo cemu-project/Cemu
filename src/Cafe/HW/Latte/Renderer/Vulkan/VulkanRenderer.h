@@ -223,7 +223,7 @@ public:
 	void Shutdown() override;
 
 	void SwapBuffers(bool swapTV = true, bool swapDRC = true) override;
-	void PresentFrontBuffer() override;
+	void PresentFrontBuffers() override;
 
 	void Flush(bool waitIdle = false) override;
 	void NotifyLatteCommandProcessorIdle() override;
@@ -497,7 +497,7 @@ private:
 	static std::vector<const char*> CheckInstanceExtensionSupport(FeatureControl& info);
 
 	bool UpdateSwapchainProperties(bool mainWindow);
-	void SwapBuffer(bool mainWindow);
+	void PresentFrontBuffer(bool mainWindow);
 
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
 

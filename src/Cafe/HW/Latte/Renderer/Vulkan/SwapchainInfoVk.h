@@ -10,9 +10,8 @@ struct SwapchainInfoVk
 	{
 		// values here must match GeneralSettings2::m_vsync
 		Immediate = 0,
-		FIFO = 1,
+		SYNC_AND_LIMIT = 1, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
 		MAILBOX = 2,
-		SYNC_AND_LIMIT = 3, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
 	};
 
 	struct QueueFamilyIndices

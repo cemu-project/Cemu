@@ -4,6 +4,7 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteTiming.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h" // circular dependence
+#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriverVulkan.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 
 void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
@@ -388,6 +389,7 @@ VkExtent2D SwapchainInfoVk::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes)
 {
 	const auto vsyncState = (VSync)GetConfig().vsync.GetValue();
+	LatteTiming_DisableHostDrivenVSync();
 	if (vsyncState == VSync::MAILBOX)
 	{
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
@@ -405,11 +407,6 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 	else if (vsyncState == VSync::SYNC_AND_LIMIT)
 	{
 		LatteTiming_EnableHostDrivenVSync();
-		// use immediate mode if available, other wise fall back to
-		//if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_IMMEDIATE_KHR) != modes.cend())
-		//	return VK_PRESENT_MODE_IMMEDIATE_KHR;
-		//else
-		//	cemuLog_log(LogType::Force, "Vulkan: Present mode 'immediate' not available. Vsync might not behave as intended");
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 

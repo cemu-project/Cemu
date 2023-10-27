@@ -66,7 +66,7 @@ public:
 	virtual void ClearColorbuffer(bool padView) = 0;
 	virtual void DrawEmptyFrame(bool mainWindow) = 0;
 	virtual void SwapBuffers(bool swapTV, bool swapDRC) = 0;
-	virtual void PresentFrontBuffer() {};
+	virtual void PresentFrontBuffers() {};
 
 	virtual void HandleScreenshotRequest(LatteTextureView* texView, bool padView){}
 	
