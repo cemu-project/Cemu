@@ -3,6 +3,7 @@
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteTiming.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h" // circular dependence
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 
 void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
@@ -15,9 +16,9 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 
 	// use at least two swapchain images. fewer than that causes problems on some drivers
 	uint32_t image_count = std::max(2u, details.capabilities.minImageCount);
-	if(details.capabilities.maxImageCount > 0)
+	if (details.capabilities.maxImageCount > 0)
 		image_count = std::min(image_count, details.capabilities.maxImageCount);
-	if(image_count < 2)
+	if (image_count < 2)
 		cemuLog_log(LogType::Force, "Vulkan: Swapchain image count less than 2 may cause problems");
 
 	VkSwapchainCreateInfoKHR create_info = CreateSwapchainCreateInfo(surface, details, m_surfaceFormat, image_count, m_actualExtent);
@@ -66,13 +67,15 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Failed to create renderpass for swapchain");
 
-	// create swapchain image views
-	m_swapchainImageViews.resize(m_swapchainImages.size());
-	for (sint32 i = 0; i < m_swapchainImages.size(); i++)
+	for (auto& image : m_images)
 	{
+		CreateImageFromSwapchain(&image.image, create_info);
+		image.alloc = VulkanRenderer::GetInstance()->GetMemoryManager()->imageMemoryAllocate(image.image);
+
+		// create image views
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = m_swapchainImages[i];
+		createInfo.image = image.image;
 		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		createInfo.format = m_surfaceFormat.format;
 		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -84,17 +87,13 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 		createInfo.subresourceRange.levelCount = 1;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
-		result = vkCreateImageView(logicalDevice, &createInfo, nullptr, &m_swapchainImageViews[i]);
+		result = vkCreateImageView(logicalDevice, &createInfo, nullptr, &image.view);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create imageviews for swapchain");
-	}
 
-	// create swapchain framebuffers
-	m_swapchainFramebuffers.resize(m_swapchainImages.size());
-	for (size_t i = 0; i < m_swapchainImages.size(); i++)
-	{
+		// create swapchain framebuffers
 		VkImageView attachments[1];
-		attachments[0] = m_swapchainImageViews[i];
+		attachments[0] = image.view;
 		// create framebuffer
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -104,7 +103,7 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 		framebufferInfo.width = m_actualExtent.width;
 		framebufferInfo.height = m_actualExtent.height;
 		framebufferInfo.layers = 1;
-		result = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &m_swapchainFramebuffers[i]);
+		result = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &image.frameBuffer);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create framebuffer for swapchain");
 	}
@@ -135,7 +134,7 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 		UnrecoverableError("Failed to create fence for swapchain");
 
 	m_acquireIndex = 0;
-	hasDefinedSwapchainImage = false;
+	hasDefinedBackBuffer = false;
 }
 
 void SwapchainInfoVk::Cleanup()
@@ -156,13 +155,14 @@ void SwapchainInfoVk::Cleanup()
 		m_swapchainRenderPass = nullptr;
 	}
 
-	for (auto& imageView : m_swapchainImageViews)
-		vkDestroyImageView(m_logicalDevice, imageView, nullptr);
-	m_swapchainImageViews.clear();
-
-	for (auto& framebuffer : m_swapchainFramebuffers)
-		vkDestroyFramebuffer(m_logicalDevice, framebuffer, nullptr);
-	m_swapchainFramebuffers.clear();
+	for(auto& image : m_images)
+	{
+		vkDestroyFramebuffer(m_logicalDevice, image.frameBuffer, nullptr);
+		vkDestroyImageView(m_logicalDevice, image.view, nullptr);
+		vkDestroyImage(m_logicalDevice, image.image, nullptr);
+		VulkanRenderer::GetInstance()->GetMemoryManager()->imageMemoryFree(image.alloc);
+		image.alloc = nullptr;
+	}
 
 
 	if (m_imageAvailableFence)
@@ -177,9 +177,38 @@ void SwapchainInfoVk::Cleanup()
 	}
 }
 
+void SwapchainInfoVk::CreateImageFromSwapchain(VkImage* image, VkSwapchainCreateInfoKHR swapchainCreateInfo)
+{
+	VkImageCreateInfo imageCreateInfo{};
+	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageCreateInfo.imageType = VkImageType::VK_IMAGE_TYPE_2D;
+	imageCreateInfo.format = swapchainCreateInfo.imageFormat;
+	imageCreateInfo.extent = {swapchainCreateInfo.imageExtent.width, swapchainCreateInfo.imageExtent.height, 1};
+	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.arrayLayers = swapchainCreateInfo.imageArrayLayers;
+	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageCreateInfo.usage = swapchainCreateInfo.imageUsage;
+	imageCreateInfo.sharingMode = swapchainCreateInfo.imageSharingMode;
+	imageCreateInfo.queueFamilyIndexCount = swapchainCreateInfo.queueFamilyIndexCount;
+	imageCreateInfo.pQueueFamilyIndices = swapchainCreateInfo.pQueueFamilyIndices;
+	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	vkCreateImage(m_logicalDevice, &imageCreateInfo, nullptr, image);
+}
+
 bool SwapchainInfoVk::IsValid() const
 {
 	return swapchain && !m_acquireSemaphores.empty();
+}
+
+SwapchainInfoVk::FBImage& SwapchainInfoVk::GetBackBuffer()
+{
+	return *backBuffer;
+}
+void SwapchainInfoVk::SwapBuffers()
+{
+	std::swap(backBuffer, frontBuffer);
 }
 
 void SwapchainInfoVk::WaitAvailableFence()

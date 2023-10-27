@@ -911,11 +911,6 @@ void LatteRenderTarget_getScreenImageArea(sint32* x, sint32* y, sint32* width, s
 
 void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPadView)
 {
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
-		((VulkanRenderer*)g_renderer.get())->PreparePresentationFrame(!isPadView);
-	}
-
 	// make sure texture is updated to latest data in cache
 	LatteTexture_UpdateDataToLatest(textureView->baseTexture);
 	// mark source texture as still in use

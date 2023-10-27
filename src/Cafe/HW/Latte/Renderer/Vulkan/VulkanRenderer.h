@@ -230,7 +230,6 @@ public:
 	uint64 GenUniqueId(); // return unique id (uses incrementing counter)
 
 	void DrawEmptyFrame(bool mainWindow) override;
-	void PreparePresentationFrame(bool mainWindow);
 
 	void ProcessDestructionQueues(size_t commandBufferIndex);
 	void InitFirstCommandBuffer();
@@ -440,6 +439,7 @@ private:
 	Semaphore m_padCloseReadySemaphore;
 	bool m_destroyPadSwapchainNextAcquire = false;
 	bool IsSwapchainInfoValid(bool mainWindow) const;
+	std::jthread m_presentThread;
 
 	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 
@@ -569,6 +569,8 @@ private:
 	void CreatePipelineCache();
 	VkPipelineShaderStageCreateInfo CreatePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule& module, const char* entryName) const;
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
+
+	void PresentLoop();
 	bool AcquireNextSwapchainImage(bool mainWindow);
 	void RecreateSwapchain(bool mainWindow, bool skipCreate = false);
 

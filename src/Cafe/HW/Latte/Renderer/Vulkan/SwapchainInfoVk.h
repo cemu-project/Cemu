@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util/math/vector2.h"
+#include "VKRMemoryManager.h"
 #include <vulkan/vulkan_core.h>
 
 struct SwapchainInfoVk
@@ -29,6 +30,13 @@ struct SwapchainInfoVk
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
+	struct FBImage {
+		VkImage image;
+		VkImageView view;
+		VkFramebuffer frameBuffer;
+		VkImageMemAllocation* alloc = nullptr;
+	};
+
 	void Cleanup();
 	void Create(VkPhysicalDevice physicalDevice, VkDevice logicalDevice);
 
@@ -55,11 +63,15 @@ struct SwapchainInfoVk
 
 	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
 
+	void CreateImageFromSwapchain(VkImage* image, VkSwapchainCreateInfoKHR swapchainCreateInfo);
 
 	VkExtent2D getExtent() const
 	{
 		return m_actualExtent;
 	}
+
+	FBImage& GetBackBuffer();
+	void SwapBuffers();
 
 	SwapchainInfoVk(VkSurfaceKHR surface, bool mainWindow)
 		: surface(surface), mainWindow(mainWindow) {}
@@ -75,7 +87,7 @@ struct SwapchainInfoVk
 	bool m_shouldRecreate = false;
 	bool m_usesSRGB = false;
 	VSync m_vsyncState = VSync::Immediate;
-	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
+	bool hasDefinedBackBuffer{}; // indicates if the swapchain image is in a defined state
 
 	VkPhysicalDevice m_physicalDevice{};
 	VkDevice m_logicalDevice{};
@@ -88,9 +100,12 @@ struct SwapchainInfoVk
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
 	std::vector<VkImage> m_swapchainImages;
-	std::vector<VkImageView> m_swapchainImageViews;
-	std::vector<VkFramebuffer> m_swapchainFramebuffers;
 	std::vector<VkSemaphore> m_presentSemaphores; // indexed by swapchainImageIndex
+
+
+	std::array<FBImage, 2> m_images;
+	FBImage* frontBuffer = &m_images[0];
+	FBImage* backBuffer = &m_images[1];
 
 	VkRenderPass m_swapchainRenderPass = nullptr;
 
