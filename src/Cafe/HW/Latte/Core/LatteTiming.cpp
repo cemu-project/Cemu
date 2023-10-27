@@ -87,30 +87,10 @@ void LatteTiming_signalVsync()
 	{
 		if (LatteGPUState.sharedArea)
 		{
-			// hack/workaround - only execute flip if GX2SwapScanBuffers() isn't lagging behind
-			uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
-			if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 || currentTitleId == 0x0005000e101c9300)
+			if (LatteGPUState.flipRequestCount > 0)
 			{
-				uint32 currentFlipRequestCount = _swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE);
-				uint32 currentFlipExecuteCount = _swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE);
-
-				if ((currentFlipRequestCount >= currentFlipExecuteCount) || (currentFlipExecuteCount - currentFlipRequestCount < 4))
-				{
-					LatteGPUState.sharedArea->flipExecuteCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE) + 1);
-				}
-
-				LatteGPUState.flipCounter++;
-
-			}
-			else
-			{
-				// old code for all other games
-				if (LatteGPUState.flipRequestCount > 0)
-				{
-					LatteGPUState.flipRequestCount.fetch_sub(1);
-					LatteGPUState.sharedArea->flipExecuteCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE) + 1);
-				}
-
+				LatteGPUState.flipRequestCount.fetch_sub(1);
+				LatteGPUState.sharedArea->flipExecuteCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE) + 1);
 			}
 		}
 		GX2::__GX2NotifyEvent(GX2::GX2CallbackEventType::FLIP);
@@ -131,21 +111,12 @@ void LatteTiming_NotifyHostVSync()
 	auto dif = nowTimePoint - s_lastHostVsync;
 	auto vsyncPeriod = LatteTime_CalculateTimeBetweenVSync();
 
-
-	if (dif < vsyncPeriod)
-	{
-		// skip
-		return;
-	}
-	uint64 elapsedPeriods = dif / vsyncPeriod;
-	if (elapsedPeriods >= 10)
-	{
-		s_lastHostVsync = nowTimePoint;
-	}
-	else
-		s_lastHostVsync += vsyncPeriod;
-
-	LatteTiming_signalVsync();
+	s_lastHostVsync = nowTimePoint;
+	auto wholeperiods = dif/vsyncPeriod;
+	if (dif % vsyncPeriod >= vsyncPeriod/2)
+		wholeperiods++;
+	for(int i = 0; i < wholeperiods; i++)
+		LatteTiming_signalVsync();
 }
 
 // handle timed vsync event
