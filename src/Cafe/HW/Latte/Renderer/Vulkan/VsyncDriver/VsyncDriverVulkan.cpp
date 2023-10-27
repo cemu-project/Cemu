@@ -1,41 +1,38 @@
 #include "VsyncDriverVulkan.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 
-void VsyncDriverVulkan::QueueWait(VkFence waitFence)
+void VsyncDriverVulkan::PushPresentID(uint64_t presentID)
 {
-	std::lock_guard lock(fenceMutex);
-	this->waitFence = waitFence;
+	std::lock_guard lock(queueMutex);
+	frameQueue.emplace(presentID);
 	newWork.notify_all();
 }
 void VsyncDriverVulkan::EmptyQueue()
 {
-	std::unique_lock lock(fenceMutex);
-	while(waitFence != VK_NULL_HANDLE)
-	{
-		lock.unlock();
-		newWork.notify_all();
-		lock.lock();
-	}
+	std::lock_guard lock(queueMutex);
+	frameQueue = {};
 }
 
-VkFence VsyncDriverVulkan::GetWaitFence()
+uint64_t VsyncDriverVulkan::PopPresentID()
 {
 	using std::chrono_literals::operator""ns;
-	std::unique_lock lock(fenceMutex);
-	while(waitFence == VK_NULL_HANDLE){
-		auto waitSuccess = newWork.wait_for(lock, 10 * 16'666'666ns, [this](){return waitFence != VK_NULL_HANDLE;});
+	std::unique_lock lock(queueMutex);
+	while(frameQueue.empty()){
+		auto waitSuccess = newWork.wait_for(lock, 10 * 16'666'666ns, [this](){return !frameQueue.empty();});
 		if(!waitSuccess)
 			signalVsync();
 	}
 
-	VkFence ret = waitFence;
-	waitFence = VK_NULL_HANDLE;
+
+	uint64_t ret = frameQueue.front();
+	frameQueue.pop();
 	return ret;
 }
 
 void VsyncDriverVulkan::SetDeviceAndSwapchain(VkDevice device, VkSwapchainKHR swapchain)
 {
 	std::lock_guard lock(deviceSwapchainMutex);
+	EmptyQueue();
 	this->device = device;
 	this->swapchain = swapchain;
 }
@@ -45,9 +42,10 @@ void VsyncDriverVulkan::vsyncThread()
 	std::cout << "thread was started" << std::endl;
 	while (!m_thd.get_stop_token().stop_requested())
 	{
-		auto fence = GetWaitFence();
+		auto presentId = PopPresentID();
 		{
-			vkWaitForFences(device, 1, &fence, true, 10 * 16'666'666);
+			std::lock_guard lock(deviceSwapchainMutex);
+			vkWaitForPresentKHR(device, swapchain, presentId, 10 * 16'666'666);
 		}
 		signalVsync();
 	}

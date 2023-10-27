@@ -2702,6 +2702,10 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
+#if !BOOST_OS_WINDOW
+		if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
+			((VsyncDriverVulkan*)g_vsyncDriver.get())->SetDeviceAndSwapchain(m_logicalDevice, chainInfo.swapchain);
+#endif
 	}
 
 	if (mainWindow)
@@ -2806,6 +2810,18 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
+#if !BOOST_OS_WINDOWS
+	bool addSyncMarkers = (VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && m_featureControl.deviceExtensions.present_wait && g_vsyncDriver;
+	if (addSyncMarkers)
+	{
+		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
+		presentId.swapchainCount = 1;
+		presentId.pPresentIds = &chainInfo.m_presentId;
+
+		presentInfo.pNext = &presentId;
+	}
+#endif
+
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -2814,8 +2830,14 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(mainWindow && chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT)
-		LatteTiming_NotifyHostVSync();
+#if !BOOST_OS_WINDOWS
+	if(addSyncMarkers && result == VK_SUCCESS)
+	{
+		((VsyncDriverVulkan*)g_vsyncDriver.get())->PushPresentID(chainInfo.m_presentId);
+		chainInfo.m_presentId++;
+	}
+#endif
+
 
 	chainInfo.swapchainImageIndex = -1;
 }

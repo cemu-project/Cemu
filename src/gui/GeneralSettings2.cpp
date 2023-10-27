@@ -1467,6 +1467,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("Double buffering"));
 		m_vsync->AppendString(_("Triple buffering"));
+		m_vsync->AppendString(_("Match emulated display (Experimental)"));
 
 		m_vsync->Select(selection);
 		

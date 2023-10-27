@@ -11,18 +11,18 @@ class VsyncDriverVulkan : public VsyncDriver {
 	{startThread();}
 
   public:
-	void QueueWait(VkFence waitFence);
+	void PushPresentID(uint64_t presentID);
 	void EmptyQueue();
 
 	void SetDeviceAndSwapchain(VkDevice device, VkSwapchainKHR swapchain);
 
   private:
-	VkFence GetWaitFence();
+	uint64_t PopPresentID();
 	void vsyncThread();
 
-	std::mutex fenceMutex;
+	std::mutex queueMutex;
 	std::condition_variable newWork;
-	VkFence waitFence = VK_NULL_HANDLE;
+	std::queue<uint64_t> frameQueue;
 
 	std::mutex deviceSwapchainMutex;
 	VkDevice device;

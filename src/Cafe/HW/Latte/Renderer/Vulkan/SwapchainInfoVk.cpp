@@ -4,7 +4,6 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteTiming.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h" // circular dependence
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriverVulkan.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 
 void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
