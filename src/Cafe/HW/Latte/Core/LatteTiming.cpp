@@ -1,7 +1,7 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/OS/libs/gx2/GX2_Event.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriver.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 #include "config/CemuConfig.h"
 #include "Cafe/CafeSystem.h"
@@ -54,11 +54,15 @@ bool s_usingHostDrivenVSync = false;
 
 void LatteTiming_EnableHostDrivenVSync()
 {
+	if (s_usingHostDrivenVSync)
+		return;
+	VsyncDriver_startThread(LatteTiming_NotifyHostVSync);
 	s_usingHostDrivenVSync = true;
 }
 void LatteTiming_DisableHostDrivenVSync()
 {
 	s_usingHostDrivenVSync = false;
+	LatteGPUState.timer_nextVSync = HighResolutionTimer::now().getTick();
 }
 
 bool LatteTiming_IsUsingHostDrivenVSync()
@@ -119,6 +123,7 @@ void LatteTiming_NotifyHostVSync()
 		wholeperiods++;
 	for(int i = 0; i < wholeperiods; i++)
 		LatteTiming_signalVsync();
+	LatteGPUState.timer_nextVSync = nowTimePoint;
 }
 
 // handle timed vsync event
@@ -130,18 +135,25 @@ void LatteTiming_HandleTimedVsync()
 	{
 		if(!LatteTiming_IsUsingHostDrivenVSync())
 			LatteTiming_signalVsync();
-		g_renderer->PresentFrontBuffers();
 		// even if vsync is delegated to the host device, we still use this virtual vsync timer to check finished states
 		LatteQuery_UpdateFinishedQueries();
 		LatteTextureReadback_UpdateFinishedTransfers(false);
-		// update vsync timer
-		uint64 vsyncTime = LatteTime_CalculateTimeBetweenVSync();
-		uint64 missedVsyncCount = (currentTimer - LatteGPUState.timer_nextVSync) / vsyncTime;
-		if (missedVsyncCount >= 2)
+		if(LatteTiming_IsUsingHostDrivenVSync())
 		{
-			LatteGPUState.timer_nextVSync += vsyncTime*(missedVsyncCount+1ULL);
+			LatteGPUState.timer_nextVSync = UINT64_MAX;
 		}
-		else	
-			LatteGPUState.timer_nextVSync += vsyncTime;
+		else
+		{
+			// update vsync timer
+			uint64 vsyncTime = LatteTime_CalculateTimeBetweenVSync();
+			uint64 missedVsyncCount = (currentTimer - LatteGPUState.timer_nextVSync) / vsyncTime;
+			if (missedVsyncCount >= 2)
+			{
+				LatteGPUState.timer_nextVSync += vsyncTime * (missedVsyncCount + 1ULL);
+			}
+			else
+				LatteGPUState.timer_nextVSync += vsyncTime;
+		}
+		g_renderer->PresentFrontBuffers();
 	}
 }

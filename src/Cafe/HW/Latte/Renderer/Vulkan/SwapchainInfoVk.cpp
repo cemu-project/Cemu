@@ -241,9 +241,17 @@ bool SwapchainInfoVk::AcquireImage(uint64 timeout)
 {
 	WaitAvailableFence();
 	ResetAvailableFence();
+	static auto lastinvocation = HighResolutionTimer::now().getTick();
+	auto now = HighResolutionTimer::now().getTick();
+	auto betweeninvoc = now-lastinvocation;
+	lastinvocation = now;
+
 
 	VkSemaphore acquireSemaphore = m_acquireSemaphores[m_acquireIndex];
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapchain, timeout, acquireSemaphore, m_imageAvailableFence, &swapchainImageIndex);
+	auto before = HighResolutionTimer::now().getTick();
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapchain, timeout, acquireSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
+	auto after = HighResolutionTimer::now().getTick();
+	std::cout << fmt::format("acquireblock: {:>11} between invocations: {:>11}\n", after-before, betweeninvoc);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		m_shouldRecreate = true;
 	if (result < 0)
@@ -254,7 +262,7 @@ bool SwapchainInfoVk::AcquireImage(uint64 timeout)
 		return false;
 	}
 	m_currentSemaphore = acquireSemaphore;
-	m_awaitableFence = m_imageAvailableFence;
+//	m_awaitableFence = m_imageAvailableFence;
 	m_acquireIndex = (m_acquireIndex + 1) % m_swapchainImages.size();
 
 	return true;
