@@ -465,6 +465,8 @@ add_library(CemuCafe
   OS/libs/nsyshid/BackendLibusb.h
   OS/libs/nsyshid/BackendWindowsHID.cpp
   OS/libs/nsyshid/BackendWindowsHID.h
+  OS/libs/nsyshid/Dimensions.cpp
+  OS/libs/nsyshid/Dimensions.h
   OS/libs/nsyshid/Infinity.cpp
   OS/libs/nsyshid/Infinity.h
   OS/libs/nsyshid/Skylander.cpp
