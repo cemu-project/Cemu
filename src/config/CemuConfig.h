@@ -519,6 +519,7 @@ struct CemuConfig
 	struct
 	{
 		ConfigValue<bool> emulate_skylander_portal{false};
+		ConfigValue<bool> emulate_infinity_base{true};
 	}emulated_usb_devices{};
 
 	private:
