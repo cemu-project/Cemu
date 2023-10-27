@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/OS/libs/gx2/GX2_Event.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriver.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 #include "config/CemuConfig.h"
 #include "Cafe/CafeSystem.h"
@@ -96,6 +97,7 @@ void LatteTiming_signalVsync()
 		GX2::__GX2NotifyEvent(GX2::GX2CallbackEventType::FLIP);
 		s_vsyncIntervalCounter = 0;
 	}
+	g_renderer->PresentFrontBuffer();
 	// vsync
 	GX2::__GX2NotifyEvent(GX2::GX2CallbackEventType::VSYNC);
 }

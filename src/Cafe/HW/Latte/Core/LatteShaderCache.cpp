@@ -360,6 +360,7 @@ void LatteShaderCache_Load()
 	}
 
 	g_renderer->SwapBuffers(true, true);
+	g_renderer->PresentFrontBuffer();
 
 	if (g_shaderCacheLoaderState.textureTVId)
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureTVId);
@@ -495,6 +496,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 
 		// finish frame
 		g_renderer->SwapBuffers(true, true);
+		g_renderer->PresentFrontBuffer();
 	}
 }
 

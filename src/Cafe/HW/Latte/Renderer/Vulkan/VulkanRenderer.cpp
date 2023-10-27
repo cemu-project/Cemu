@@ -1599,7 +1599,6 @@ void VulkanRenderer::Initialize()
 	CreatePipelineCache();
 	ImguiInit();
 	CreateNullObjects();
-	m_presentThread = std::jthread(&VulkanRenderer::PresentLoop, this);
 }
 
 void VulkanRenderer::Shutdown()
@@ -1844,12 +1843,13 @@ bool VulkanRenderer::BeginFrame(bool mainWindow)
 		return false;
 
 	auto& chainInfo = GetChainInfo(mainWindow);
+	auto& backBuffer = chainInfo.GetBackBuffer();
 
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
-	ClearColorImageRaw(chainInfo.GetBackBuffer().image, 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	ClearColorImageRaw(backBuffer.image, 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 	// mark current swapchain image as well defined
-	chainInfo.hasDefinedBackBuffer = true;
+	backBuffer.defined = true;
 
 	return true;
 }
@@ -1859,6 +1859,7 @@ void VulkanRenderer::DrawEmptyFrame(bool mainWindow)
 	if (!BeginFrame(mainWindow))
 		return;
 	SwapBuffers(mainWindow, !mainWindow);
+	PresentFrontBuffer();
 }
 
 void VulkanRenderer::ProcessDestructionQueues(size_t commandBufferIndex)
@@ -2647,19 +2648,6 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	return pipeline;
 }
 
-void VulkanRenderer::PresentLoop()
-{
-	while(!m_presentThread.get_stop_token().stop_requested())
-	{
-//		if(AcquireNextSwapchainImage(true))
-//			SwapBuffer(true);
-//
-//		if(AcquireNextSwapchainImage(false))
-//			SwapBuffer(false);
-	}
-}
-
-
 bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 {
 	if(!IsSwapchainInfoValid(mainWindow))
@@ -2685,7 +2673,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!result)
 		return false;
 
-//	SubmitCommandBuffer(VK_NULL_HANDLE, chainInfo.ConsumeAcquireSemaphore());
+	SubmitCommandBuffer(VK_NULL_HANDLE, chainInfo.ConsumeAcquireSemaphore());
 	return true;
 }
 
@@ -2771,12 +2759,39 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		return;
 
 	auto& chainInfo = GetChainInfo(mainWindow);
+	auto& frontBuffer = chainInfo.GetFrontBuffer();
 
-	if (!chainInfo.hasDefinedBackBuffer)
+	if (!frontBuffer.defined)
 	{
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	} else {
+		VkImageSubresourceRange barrierRange{};
+		barrierRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrierRange.baseArrayLayer = 0;
+		barrierRange.layerCount = 1;
+		barrierRange.baseMipLevel = 0;
+		barrierRange.levelCount = 1;
+
+		barrier_image<0, TRANSFER_WRITE>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		//		barrier_image<IMAGE_WRITE, TRANSFER_READ>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+		VkImageSubresourceLayers subResourceLayers{};
+		subResourceLayers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subResourceLayers.baseArrayLayer = 0;
+		subResourceLayers.layerCount = 1;
+		subResourceLayers.mipLevel = 0;
+		// copy the backbuffer to the swapchain image
+		auto chainExtent = chainInfo.getExtent();
+		VkImageCopy copyRegion{};
+		copyRegion.extent = {chainExtent.width, chainExtent.height, 1};
+		copyRegion.dstSubresource = subResourceLayers;
+		copyRegion.srcSubresource = subResourceLayers;
+		vkCmdCopyImage(m_state.currentCommandBuffer, chainInfo.GetFrontBuffer().image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex],VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1, &copyRegion);
+
+		barrier_image<TRANSFER_WRITE, IMAGE_READ>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		barrier_image<TRANSFER_WRITE, IMAGE_READ>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
 	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
@@ -2824,9 +2839,13 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 #endif
 
 
-	chainInfo.hasDefinedBackBuffer = false;
-
 	chainInfo.swapchainImageIndex = -1;
+}
+
+void VulkanRenderer::PresentFrontBuffer()
+{
+	SwapBuffer(true);
+	SwapBuffer(false);
 }
 
 void VulkanRenderer::Flush(bool waitIdle)
@@ -2924,6 +2943,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		return;
 
 	auto& chainInfo = GetChainInfo(!padView);
+	auto& backBuffer = chainInfo.GetBackBuffer();
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
@@ -2944,7 +2964,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = chainInfo.m_swapchainRenderPass;
-	renderPassInfo.framebuffer = chainInfo.GetBackBuffer().frameBuffer;
+	renderPassInfo.framebuffer = backBuffer.frameBuffer;
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = chainInfo.getExtent();
 	renderPassInfo.clearValueCount = 0;
@@ -2981,7 +3001,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &m_state.currentViewport);
 
 	// mark current swapchain image as well defined
-	chainInfo.hasDefinedBackBuffer = true;
+	backBuffer.defined = true;
 }
 
 void VulkanRenderer::CreateDescriptorPool()

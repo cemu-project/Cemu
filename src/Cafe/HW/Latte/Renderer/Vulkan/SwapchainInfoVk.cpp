@@ -46,8 +46,8 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
@@ -106,6 +106,8 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 		result = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &image.frameBuffer);
 		if (result != VK_SUCCESS)
 			UnrecoverableError("Failed to create framebuffer for swapchain");
+
+		image.defined = false;
 	}
 
 	m_presentSemaphores.resize(m_swapchainImages.size());
@@ -134,7 +136,6 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 		UnrecoverableError("Failed to create fence for swapchain");
 
 	m_acquireIndex = 0;
-	hasDefinedBackBuffer = false;
 }
 
 void SwapchainInfoVk::Cleanup()
@@ -188,11 +189,11 @@ void SwapchainInfoVk::CreateImageFromSwapchain(VkImage* image, VkSwapchainCreate
 	imageCreateInfo.arrayLayers = swapchainCreateInfo.imageArrayLayers;
 	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageCreateInfo.usage = swapchainCreateInfo.imageUsage;
+	imageCreateInfo.usage = swapchainCreateInfo.imageUsage | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	imageCreateInfo.sharingMode = swapchainCreateInfo.imageSharingMode;
 	imageCreateInfo.queueFamilyIndexCount = swapchainCreateInfo.queueFamilyIndexCount;
 	imageCreateInfo.pQueueFamilyIndices = swapchainCreateInfo.pQueueFamilyIndices;
-	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	vkCreateImage(m_logicalDevice, &imageCreateInfo, nullptr, image);
 }
@@ -206,6 +207,12 @@ SwapchainInfoVk::FBImage& SwapchainInfoVk::GetBackBuffer()
 {
 	return *backBuffer;
 }
+
+SwapchainInfoVk::FBImage& SwapchainInfoVk::GetFrontBuffer()
+{
+	return *frontBuffer;
+}
+
 void SwapchainInfoVk::SwapBuffers()
 {
 	std::swap(backBuffer, frontBuffer);
@@ -418,7 +425,7 @@ VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR
 	createInfo.imageFormat = surfaceFormat.format;
 	createInfo.imageExtent = extent;
 	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	const QueueFamilyIndices indices = FindQueueFamilies(surface, m_physicalDevice);
 	m_swapchainQueueFamilyIndices = { (uint32)indices.graphicsFamily, (uint32)indices.presentFamily };

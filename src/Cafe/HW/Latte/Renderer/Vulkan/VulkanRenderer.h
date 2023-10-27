@@ -223,6 +223,7 @@ public:
 	void Shutdown() override;
 
 	void SwapBuffers(bool swapTV = true, bool swapDRC = true) override;
+	void PresentFrontBuffer() override;
 
 	void Flush(bool waitIdle = false) override;
 	void NotifyLatteCommandProcessorIdle() override;
@@ -439,7 +440,6 @@ private:
 	Semaphore m_padCloseReadySemaphore;
 	bool m_destroyPadSwapchainNextAcquire = false;
 	bool IsSwapchainInfoValid(bool mainWindow) const;
-	std::jthread m_presentThread;
 
 	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 

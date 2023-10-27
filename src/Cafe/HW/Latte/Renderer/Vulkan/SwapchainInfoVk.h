@@ -35,6 +35,7 @@ struct SwapchainInfoVk
 		VkImageView view;
 		VkFramebuffer frameBuffer;
 		VkImageMemAllocation* alloc = nullptr;
+		bool defined = false;
 	};
 
 	void Cleanup();
@@ -71,6 +72,7 @@ struct SwapchainInfoVk
 	}
 
 	FBImage& GetBackBuffer();
+	FBImage& GetFrontBuffer();
 	void SwapBuffers();
 
 	SwapchainInfoVk(VkSurfaceKHR surface, bool mainWindow)
@@ -87,7 +89,6 @@ struct SwapchainInfoVk
 	bool m_shouldRecreate = false;
 	bool m_usesSRGB = false;
 	VSync m_vsyncState = VSync::Immediate;
-	bool hasDefinedBackBuffer{}; // indicates if the swapchain image is in a defined state
 
 	VkPhysicalDevice m_physicalDevice{};
 	VkDevice m_logicalDevice{};
@@ -101,15 +102,13 @@ struct SwapchainInfoVk
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
 	std::vector<VkImage> m_swapchainImages;
 	std::vector<VkSemaphore> m_presentSemaphores; // indexed by swapchainImageIndex
+	VkRenderPass m_swapchainRenderPass = nullptr;
 
-
+private:
 	std::array<FBImage, 2> m_images;
 	FBImage* frontBuffer = &m_images[0];
 	FBImage* backBuffer = &m_images[1];
 
-	VkRenderPass m_swapchainRenderPass = nullptr;
-
-private:
 	uint32 m_acquireIndex = 0;
 	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by m_acquireIndex
 	VkFence m_imageAvailableFence{};
