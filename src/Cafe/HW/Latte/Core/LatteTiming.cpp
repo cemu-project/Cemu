@@ -24,8 +24,8 @@ HRTick LatteTime_CalculateTimeBetweenVSync()
 	}
 	else
 	{
-		tick *= 1000ull;
-		tick /= 1002ull;
+		tick *= 1001ull;
+		tick /= 1000ull;
 		tick /= 60ull;
 	}
 	return tick;

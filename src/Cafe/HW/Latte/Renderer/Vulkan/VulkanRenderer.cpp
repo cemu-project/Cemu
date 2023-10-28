@@ -1603,6 +1603,7 @@ void VulkanRenderer::Initialize()
 
 void VulkanRenderer::Shutdown()
 {
+	g_vsyncDriver = {};
 	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();

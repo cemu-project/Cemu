@@ -40,6 +40,8 @@ void VsyncDriverVulkan::SetDeviceAndSwapchain(VkDevice device, VkSwapchainKHR sw
 void VsyncDriverVulkan::vsyncThread()
 {
 	std::cout << "thread was started" << std::endl;
+	if(!vkWaitForPresentKHR)
+		return;
 	while (!m_thd.get_stop_token().stop_requested())
 	{
 		auto presentId = PopPresentID();
