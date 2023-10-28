@@ -2669,7 +2669,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
-	bool result = chainInfo.AcquireImage(UINT64_MAX);
+	bool result = chainInfo.AcquireImage();
 	if (!result)
 		return false;
 
@@ -2682,8 +2682,6 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
-	// make sure fence has no signal operation submitted
-	chainInfo.WaitAvailableFence();
 
 	Vector2i size;
 	if (mainWindow)
@@ -2810,8 +2808,7 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
-#if !BOOST_OS_WINDOWS
-	bool addSyncMarkers = (VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && m_featureControl.deviceExtensions.present_wait && g_vsyncDriver;
+	bool addSyncMarkers = m_featureControl.deviceExtensions.present_wait && chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && g_vsyncDriver;
 	if (addSyncMarkers)
 	{
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
@@ -2820,7 +2817,6 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 
 		presentInfo.pNext = &presentId;
 	}
-#endif
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
@@ -2830,13 +2826,15 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-#if !BOOST_OS_WINDOWS
+	if(chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && !addSyncMarkers)
+	{
+		LatteTiming_NotifyHostVSync();
+	}
 	if(addSyncMarkers && result == VK_SUCCESS)
 	{
 		((VsyncDriverVulkan*)g_vsyncDriver.get())->PushPresentID(chainInfo.m_presentId);
 		chainInfo.m_presentId++;
 	}
-#endif
 
 
 	chainInfo.swapchainImageIndex = -1;

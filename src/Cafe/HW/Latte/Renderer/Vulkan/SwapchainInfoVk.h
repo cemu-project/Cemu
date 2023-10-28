@@ -10,9 +10,8 @@ struct SwapchainInfoVk
 	{
 		// values here must match GeneralSettings2::m_vsync
 		Immediate = 0,
-		FIFO = 1,
+		SYNC_AND_LIMIT = 1, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
 		MAILBOX = 2,
-		SYNC_AND_LIMIT = 3, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
 	};
 
 	struct QueueFamilyIndices
@@ -43,10 +42,7 @@ struct SwapchainInfoVk
 
 	bool IsValid() const;
 
-	void WaitAvailableFence();
-	void ResetAvailableFence() const;
-
-	bool AcquireImage(uint64 timeout);
+	bool AcquireImage();
 	// retrieve semaphore of last acquire for submitting a wait operation
 	// only one wait operation must be submitted per acquire (which submits a single signal operation)
 	// therefore subsequent calls will return a NULL handle
@@ -111,9 +107,7 @@ private:
 
 	uint32 m_acquireIndex = 0;
 	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by m_acquireIndex
-	VkFence m_imageAvailableFence{};
 	VkSemaphore m_currentSemaphore = VK_NULL_HANDLE;
-	VkFence m_awaitableFence = VK_NULL_HANDLE;
 
 	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 	VkExtent2D m_actualExtent{};

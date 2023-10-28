@@ -123,7 +123,6 @@ void LatteTiming_NotifyHostVSync()
 		wholeperiods++;
 	for(int i = 0; i < wholeperiods; i++)
 		LatteTiming_signalVsync();
-	LatteGPUState.timer_nextVSync = nowTimePoint;
 }
 
 // handle timed vsync event
@@ -131,29 +130,26 @@ void LatteTiming_HandleTimedVsync()
 {
 	// simulate VSync
 	uint64 currentTimer = HighResolutionTimer::now().getTick();
+	if(LatteTiming_IsUsingHostDrivenVSync())
+		g_renderer->PresentFrontBuffers();
 	if( currentTimer >= LatteGPUState.timer_nextVSync )
 	{
 		if(!LatteTiming_IsUsingHostDrivenVSync())
+		{
+			g_renderer->PresentFrontBuffers();
 			LatteTiming_signalVsync();
+		}
 		// even if vsync is delegated to the host device, we still use this virtual vsync timer to check finished states
 		LatteQuery_UpdateFinishedQueries();
 		LatteTextureReadback_UpdateFinishedTransfers(false);
-		if(LatteTiming_IsUsingHostDrivenVSync())
+		// update vsync timer
+		uint64 vsyncTime = LatteTime_CalculateTimeBetweenVSync();
+		uint64 missedVsyncCount = (currentTimer - LatteGPUState.timer_nextVSync) / vsyncTime;
+		if (missedVsyncCount >= 2)
 		{
-			LatteGPUState.timer_nextVSync = UINT64_MAX;
+			LatteGPUState.timer_nextVSync += vsyncTime * (missedVsyncCount + 1ULL);
 		}
 		else
-		{
-			// update vsync timer
-			uint64 vsyncTime = LatteTime_CalculateTimeBetweenVSync();
-			uint64 missedVsyncCount = (currentTimer - LatteGPUState.timer_nextVSync) / vsyncTime;
-			if (missedVsyncCount >= 2)
-			{
-				LatteGPUState.timer_nextVSync += vsyncTime * (missedVsyncCount + 1ULL);
-			}
-			else
-				LatteGPUState.timer_nextVSync += vsyncTime;
-		}
-		g_renderer->PresentFrontBuffers();
+			LatteGPUState.timer_nextVSync += vsyncTime;
 	}
 }

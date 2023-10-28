@@ -128,13 +128,6 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	result = vkCreateFence(logicalDevice, &fenceInfo, nullptr, &m_imageAvailableFence);
-	if (result != VK_SUCCESS)
-		UnrecoverableError("Failed to create fence for swapchain");
-
 	m_acquireIndex = 0;
 }
 
@@ -165,12 +158,6 @@ void SwapchainInfoVk::Cleanup()
 		image.alloc = nullptr;
 	}
 
-
-	if (m_imageAvailableFence)
-	{
-		vkDestroyFence(m_logicalDevice, m_imageAvailableFence, nullptr);
-		m_imageAvailableFence = nullptr;
-	}
 	if (swapchain)
 	{
 		vkDestroySwapchainKHR(m_logicalDevice, swapchain, nullptr);
@@ -218,18 +205,6 @@ void SwapchainInfoVk::SwapBuffers()
 	std::swap(backBuffer, frontBuffer);
 }
 
-void SwapchainInfoVk::WaitAvailableFence()
-{
-	if(m_awaitableFence != VK_NULL_HANDLE)
-		vkWaitForFences(m_logicalDevice, 1, &m_awaitableFence, VK_TRUE, UINT64_MAX);
-	m_awaitableFence = VK_NULL_HANDLE;
-}
-
-void SwapchainInfoVk::ResetAvailableFence() const
-{
-	vkResetFences(m_logicalDevice, 1, &m_imageAvailableFence);
-}
-
 VkSemaphore SwapchainInfoVk::ConsumeAcquireSemaphore()
 {
 	VkSemaphore ret = m_currentSemaphore;
@@ -237,23 +212,14 @@ VkSemaphore SwapchainInfoVk::ConsumeAcquireSemaphore()
 	return ret;
 }
 
-bool SwapchainInfoVk::AcquireImage(uint64 timeout)
+bool SwapchainInfoVk::AcquireImage()
 {
-	WaitAvailableFence();
-	ResetAvailableFence();
-	static auto lastinvocation = HighResolutionTimer::now().getTick();
-	auto now = HighResolutionTimer::now().getTick();
-	auto betweeninvoc = now-lastinvocation;
-	lastinvocation = now;
-
-
 	VkSemaphore acquireSemaphore = m_acquireSemaphores[m_acquireIndex];
-	auto before = HighResolutionTimer::now().getTick();
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapchain, timeout, acquireSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
-	auto after = HighResolutionTimer::now().getTick();
-	std::cout << fmt::format("acquireblock: {:>11} between invocations: {:>11}\n", after-before, betweeninvoc);
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, swapchain, 0, acquireSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		m_shouldRecreate = true;
+	if(result == VK_NOT_READY || result == VK_TIMEOUT)
+		return false;
 	if (result < 0)
 	{
 		swapchainImageIndex = -1;
@@ -262,7 +228,6 @@ bool SwapchainInfoVk::AcquireImage(uint64 timeout)
 		return false;
 	}
 	m_currentSemaphore = acquireSemaphore;
-//	m_awaitableFence = m_imageAvailableFence;
 	m_acquireIndex = (m_acquireIndex + 1) % m_swapchainImages.size();
 
 	return true;
@@ -411,12 +376,8 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 
 		cemuLog_log(LogType::Force, "Vulkan: Can't find immediate present mode");
 	}
-	else if (vsyncState == VSync::SYNC_AND_LIMIT)
-	{
-		LatteTiming_EnableHostDrivenVSync();
-		return VK_PRESENT_MODE_FIFO_KHR;
-	}
 
+	LatteTiming_EnableHostDrivenVSync();
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
