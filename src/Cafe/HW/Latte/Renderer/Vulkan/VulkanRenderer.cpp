@@ -2631,6 +2631,9 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
+	if(!chainInfo.GetFrontBuffer().defined)
+		return false;
+
 	bool result = chainInfo.AcquireImage();
 	if (!result)
 		return false;
