@@ -1802,6 +1802,7 @@ void VulkanRenderer::ImguiEnd()
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_state.currentCommandBuffer);
 	vkCmdEndRenderPass(m_state.currentCommandBuffer);
+	m_state.resetCommandBufferState();
 }
 
 std::vector<LatteTextureVk*> g_imgui_textures; // TODO manage better
