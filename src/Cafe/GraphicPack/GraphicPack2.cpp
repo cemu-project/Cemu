@@ -12,6 +12,7 @@
 #include "util/helpers/StringHelpers.h"
 #include "Cafe/CafeSystem.h"
 #include <cinttypes>
+#include "gui/wxHelper.h"
 
 std::vector<GraphicPackPtr> GraphicPack2::s_graphic_packs;
 std::vector<GraphicPackPtr> GraphicPack2::s_active_graphic_packs;
@@ -89,12 +90,12 @@ bool GraphicPack2::LoadGraphicPack(const std::string& filename, IniParser& rules
 		const auto& config_entries = g_config.data().graphic_pack_entries;
 
 		// legacy absolute path checking for not breaking compatibility
-		auto file = gp->GetFilename2();
+		auto file = wxHelper::MakeFSPath(gp->GetFilename());
 		auto it = config_entries.find(file.lexically_normal());
 		if (it == config_entries.cend())
 		{
 			// check for relative path
-			it = config_entries.find(MakeRelativePath(ActiveSettings::GetUserDataPath(), gp->GetFilename2()).lexically_normal());
+			it = config_entries.find(MakeRelativePath(ActiveSettings::GetUserDataPath(), wxHelper::FromUtf8(gp->GetFilename()).ToStdString()).lexically_normal());
 		}
 
 		if (it != config_entries.cend())
@@ -650,7 +651,7 @@ bool GraphicPack2::SetActivePreset(std::string_view category, std::string_view n
 
 void GraphicPack2::LoadShaders()
 {
-	fs::path path(m_filename);
+	fs::path path(wxHelper::FromUtf8(m_filename).ToStdString());
 	for (auto& it : fs::directory_iterator(path.remove_filename()))
 	{
 		if (!is_regular_file(it))
