@@ -114,7 +114,7 @@ void LatteTiming_signalVsync()
 
 HRTick s_lastHostVsync = 0;
 int s_hostPaceWithinRangeCounter = 0;
-std::atomic<bool> s_hostPaceWithinRange = false;
+bool s_hostPaceWithinRange = false;
 
 // notify when host vsync event is triggered (on renderer canvas)
 void LatteTiming_NotifyHostVSync()
