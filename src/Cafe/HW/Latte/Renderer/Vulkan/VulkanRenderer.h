@@ -464,7 +464,6 @@ private:
 			bool synchronization2 = false; // VK_KHR_synchronization2
 			bool dynamic_rendering = false; // VK_KHR_dynamic_rendering
 			bool shader_float_controls = false; // VK_KHR_shader_float_controls
-			bool present_wait = false; // VK_KHR_present_wait
 		}deviceExtensions;
 
 		struct
@@ -569,8 +568,6 @@ private:
 	void CreatePipelineCache();
 	VkPipelineShaderStageCreateInfo CreatePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule& module, const char* entryName) const;
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
-
-	void PresentLoop();
 	bool AcquireNextSwapchainImage(bool mainWindow);
 	void RecreateSwapchain(bool mainWindow, bool skipCreate = false);
 

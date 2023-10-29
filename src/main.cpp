@@ -24,7 +24,6 @@
 #include <wx/setup.h>
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/vpad/vpad.h"

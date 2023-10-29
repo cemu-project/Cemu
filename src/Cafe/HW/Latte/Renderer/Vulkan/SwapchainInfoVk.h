@@ -93,7 +93,7 @@ struct SwapchainInfoVk
 	VkSwapchainKHR swapchain{};
 	Vector2i m_desiredExtent{};
 	uint32 swapchainImageIndex = (uint32)-1;
-	uint64 m_presentId = 1;
+
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
 	std::vector<VkImage> m_swapchainImages;

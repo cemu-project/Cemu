@@ -1,6 +1,5 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/OS/libs/gx2/GX2_Event.h"
-#include "HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 #include "config/CemuConfig.h"
@@ -54,15 +53,12 @@ bool s_usingHostDrivenVSync = false;
 
 void LatteTiming_EnableHostDrivenVSync()
 {
-	if (s_usingHostDrivenVSync)
-		return;
-	VsyncDriver_startThread(LatteTiming_NotifyHostVSync);
 	s_usingHostDrivenVSync = true;
 }
+
 void LatteTiming_DisableHostDrivenVSync()
 {
 	s_usingHostDrivenVSync = false;
-	LatteGPUState.timer_nextVSync = HighResolutionTimer::now().getTick();
 }
 
 bool LatteTiming_IsUsingHostDrivenVSync()

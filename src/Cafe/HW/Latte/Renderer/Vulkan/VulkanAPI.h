@@ -188,9 +188,6 @@ VKFUNC_DEVICE(vkCmdPipelineBarrier2KHR);
 VKFUNC_DEVICE(vkCmdBeginRenderingKHR);
 VKFUNC_DEVICE(vkCmdEndRenderingKHR);
 
-// khr_present_wait
-VKFUNC_DEVICE(vkWaitForPresentKHR);
-
 // transform feedback extension
 VKFUNC_DEVICE(vkCmdBindTransformFeedbackBuffersEXT);
 VKFUNC_DEVICE(vkCmdBeginTransformFeedbackEXT);

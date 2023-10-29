@@ -5,8 +5,6 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CocoaSurface.h"
 
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
-
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 
@@ -47,9 +45,7 @@ const  std::vector<const char*> kOptionalDeviceExtensions =
 	VK_EXT_FILTER_CUBIC_EXTENSION_NAME, // not supported by any device yet
 	VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME,
 	VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
-	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-	VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
-	VK_KHR_PRESENT_ID_EXTENSION_NAME
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
 };
 
 const std::vector<const char*> kRequiredDeviceExtensions =
@@ -253,23 +249,11 @@ void VulkanRenderer::GetDeviceFeatures()
 	pcc.pNext = prevStruct;
 	prevStruct = &pcc;
 
-	VkPhysicalDevicePresentIdFeaturesKHR pidf{};
-	pidf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
-	pidf.pNext = prevStruct;
-	prevStruct = &pidf;
-
-	VkPhysicalDevicePresentWaitFeaturesKHR pwf{};
-	pwf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
-	pwf.pNext = prevStruct;
-	prevStruct = &pwf;
-
 	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 	physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	physicalDeviceFeatures2.pNext = prevStruct;
 
 	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &physicalDeviceFeatures2);
-
-	std::cout << "device support pid: " << pidf.presentId << " device support pwf: " << pwf.presentWait << std::endl;
 
 	/* Get Vulkan device properties and limits */
 	VkPhysicalDeviceFloatControlsPropertiesKHR pfcp{};
@@ -502,24 +486,6 @@ VulkanRenderer::VulkanRenderer()
 		deviceExtensionFeatures = &customBorderColorFeature;
 		customBorderColorFeature.customBorderColors = VK_TRUE;
 		customBorderColorFeature.customBorderColorWithoutFormat = VK_TRUE;
-	}
-	// enable VK_KHR_present_id
-	VkPhysicalDevicePresentIdFeaturesKHR presentIdFeature{};
-	if(m_featureControl.deviceExtensions.present_wait)
-	{
-		presentIdFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
-		presentIdFeature.pNext = deviceExtensionFeatures;
-		deviceExtensionFeatures = &presentIdFeature;
-		presentIdFeature.presentId = VK_TRUE;
-	}
-	// enable VK_KHR_present_wait
-	VkPhysicalDevicePresentWaitFeaturesKHR presentWaitFeature{};
-	if(m_featureControl.deviceExtensions.present_wait)
-	{
-		presentWaitFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
-		presentWaitFeature.pNext = deviceExtensionFeatures;
-		deviceExtensionFeatures = &presentWaitFeature;
-		presentWaitFeature.presentWait = VK_TRUE;
 	}
 
 	std::vector<const char*> used_extensions;
@@ -1094,10 +1060,6 @@ VkDeviceCreateInfo VulkanRenderer::CreateDeviceCreateInfo(const std::vector<VkDe
 		used_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.shader_float_controls)
 		used_extensions.emplace_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
-	if (m_featureControl.deviceExtensions.present_wait)
-		used_extensions.emplace_back(VK_KHR_PRESENT_ID_EXTENSION_NAME);
-	if (m_featureControl.deviceExtensions.present_wait)
-		used_extensions.emplace_back(VK_KHR_PRESENT_WAIT_EXTENSION_NAME);
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1176,7 +1138,6 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	info.deviceExtensions.shader_float_controls = isExtensionAvailable(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 	info.deviceExtensions.dynamic_rendering = false; // isExtensionAvailable(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	// dynamic rendering doesn't provide any benefits for us right now. Driver implementations are very unoptimized as of Feb 2022
-	info.deviceExtensions.present_wait = false; //isExtensionAvailable(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) && isExtensionAvailable(VK_KHR_PRESENT_ID_EXTENSION_NAME);
 
 	// check for framedebuggers
 	info.debugMarkersSupported = false;
@@ -1603,7 +1564,6 @@ void VulkanRenderer::Initialize()
 
 void VulkanRenderer::Shutdown()
 {
-	g_vsyncDriver = {};
 	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
@@ -2696,17 +2656,12 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 		gui_getPadWindowPhysSize(size.x, size.y);
 	}
 
-	if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
-		g_vsyncDriver->EmptyQueue();
-
 	chainInfo.swapchainImageIndex = -1;
 	chainInfo.Cleanup();
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
-		if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
-			g_vsyncDriver->SetDeviceAndSwapchain(m_logicalDevice, chainInfo.swapchain);
 	}
 
 	if (mainWindow)
@@ -2800,8 +2755,6 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
 
-	VkPresentIdKHR presentId = {};
-
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.swapchainCount = 1;
@@ -2811,16 +2764,6 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
-	bool addSyncMarkers = m_featureControl.deviceExtensions.present_wait && mainWindow && chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && g_vsyncDriver;
-	if (addSyncMarkers)
-	{
-		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
-		presentId.swapchainCount = 1;
-		presentId.pPresentIds = &chainInfo.m_presentId;
-
-		presentInfo.pNext = &presentId;
-	}
-
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -2829,16 +2772,10 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && !addSyncMarkers && mainWindow)
+	if(chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && mainWindow)
 	{
 		LatteTiming_NotifyHostVSync();
 	}
-	if(addSyncMarkers && result == VK_SUCCESS)
-	{
-		g_vsyncDriver->PushPresentID(chainInfo.m_presentId);
-		chainInfo.m_presentId++;
-	}
-
 
 	chainInfo.swapchainImageIndex = -1;
 }

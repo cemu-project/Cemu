@@ -188,8 +188,6 @@ add_library(CemuCafe
   HW/Latte/Renderer/Vulkan/VKRMemoryManager.cpp
   HW/Latte/Renderer/Vulkan/VKRMemoryManager.h
   HW/Latte/Renderer/Vulkan/VKRPipelineInfo.cpp
-	HW/Latte/Renderer/Vulkan/VsyncDriver.cpp
-	HW/Latte/Renderer/Vulkan/VsyncDriver.h
   HW/Latte/Renderer/Vulkan/VulkanAPI.cpp
   HW/Latte/Renderer/Vulkan/VulkanAPI.h
   HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.cpp

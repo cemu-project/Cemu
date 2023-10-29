@@ -37,7 +37,6 @@
 #include "gui/DownloadGraphicPacksWindow.h"
 #include "gui/GettingStartedDialog.h"
 #include "gui/helpers/wxHelpers.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #include "gui/input/InputSettings2.h"
 #include "input/InputManager.h"
 
