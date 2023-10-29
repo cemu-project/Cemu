@@ -2634,7 +2634,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if(!chainInfo.GetFrontBuffer().defined)
 	{
 		if(chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT)
-			LatteTiming_NotifyHostVSync();
+			LatteTiming_signalVsync();
 		return false;
 	}
 
