@@ -5,7 +5,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CocoaSurface.h"
 
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriverVulkan.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
@@ -2697,7 +2697,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	}
 
 	if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
-		((VsyncDriverVulkan*)g_vsyncDriver.get())->EmptyQueue();
+		g_vsyncDriver->EmptyQueue();
 
 	chainInfo.swapchainImageIndex = -1;
 	chainInfo.Cleanup();
@@ -2706,7 +2706,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
 		if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
-			((VsyncDriverVulkan*)g_vsyncDriver.get())->SetDeviceAndSwapchain(m_logicalDevice, chainInfo.swapchain);
+			g_vsyncDriver->SetDeviceAndSwapchain(m_logicalDevice, chainInfo.swapchain);
 	}
 
 	if (mainWindow)
@@ -2835,7 +2835,7 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	}
 	if(addSyncMarkers && result == VK_SUCCESS)
 	{
-		((VsyncDriverVulkan*)g_vsyncDriver.get())->PushPresentID(chainInfo.m_presentId);
+		g_vsyncDriver->PushPresentID(chainInfo.m_presentId);
 		chainInfo.m_presentId++;
 	}
 

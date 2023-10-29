@@ -1,6 +1,6 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/OS/libs/gx2/GX2_Event.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriver.h"
+#include "HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 #include "config/CemuConfig.h"

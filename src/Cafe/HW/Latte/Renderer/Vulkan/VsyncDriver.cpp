@@ -1,19 +1,21 @@
-#include "VsyncDriverVulkan.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#include "HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#include "HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#include "HW/Latte/Renderer/Renderer.h"
+#include "HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 
-void VsyncDriverVulkan::PushPresentID(uint64_t presentID)
+void VsyncDriver::PushPresentID(uint64_t presentID)
 {
 	std::lock_guard lock(queueMutex);
 	frameQueue.emplace(presentID);
 	newWork.notify_all();
 }
-void VsyncDriverVulkan::EmptyQueue()
+void VsyncDriver::EmptyQueue()
 {
 	std::lock_guard lock(queueMutex);
 	frameQueue = {};
 }
 
-uint64_t VsyncDriverVulkan::PopPresentID()
+uint64_t VsyncDriver::PopPresentID()
 {
 	using std::chrono_literals::operator""ns;
 	std::unique_lock lock(queueMutex);
@@ -29,7 +31,7 @@ uint64_t VsyncDriverVulkan::PopPresentID()
 	return ret;
 }
 
-void VsyncDriverVulkan::SetDeviceAndSwapchain(VkDevice device, VkSwapchainKHR swapchain)
+void VsyncDriver::SetDeviceAndSwapchain(VkDevice device, VkSwapchainKHR swapchain)
 {
 	std::lock_guard lock(deviceSwapchainMutex);
 	EmptyQueue();
@@ -37,7 +39,7 @@ void VsyncDriverVulkan::SetDeviceAndSwapchain(VkDevice device, VkSwapchainKHR sw
 	this->swapchain = swapchain;
 }
 
-void VsyncDriverVulkan::vsyncThread()
+void VsyncDriver::vsyncThread()
 {
 	std::cout << "thread was started" << std::endl;
 	if(!vkWaitForPresentKHR)
@@ -51,4 +53,23 @@ void VsyncDriverVulkan::vsyncThread()
 		}
 		signalVsync();
 	}
+}
+
+void VsyncDriver::signalVsync()
+{
+	if (m_vsyncDriverVSyncCb)
+		m_vsyncDriverVSyncCb();
+}
+
+void VsyncDriver::setCallback(void (*cbVSync)())
+{
+	m_vsyncDriverVSyncCb = cbVSync;
+}
+
+std::unique_ptr<VsyncDriver> g_vsyncDriver;
+
+void VsyncDriver_startThread(void (*cbVSync)())
+{
+	if (!g_vsyncDriver)
+		g_vsyncDriver = std::make_unique<VsyncDriver>(cbVSync);
 }

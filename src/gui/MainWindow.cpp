@@ -37,7 +37,7 @@
 #include "gui/DownloadGraphicPacksWindow.h"
 #include "gui/GettingStartedDialog.h"
 #include "gui/helpers/wxHelpers.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriver.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #include "gui/input/InputSettings2.h"
 #include "input/InputManager.h"
 
@@ -1631,8 +1631,6 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 		m_debugger_window->OnParentMove(GetPosition(), event.GetSize());
 
 	event.Skip();
-
-	VsyncDriver_notifyWindowPosChanged();
 }
 
 void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
@@ -1653,7 +1651,6 @@ void MainWindow::OnMove(wxMoveEvent& event)
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), GetSize());
-	VsyncDriver_notifyWindowPosChanged();
 }
 
 void MainWindow::OnDebuggerClose(wxCloseEvent& event)

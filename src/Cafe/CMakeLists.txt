@@ -188,8 +188,8 @@ add_library(CemuCafe
   HW/Latte/Renderer/Vulkan/VKRMemoryManager.cpp
   HW/Latte/Renderer/Vulkan/VKRMemoryManager.h
   HW/Latte/Renderer/Vulkan/VKRPipelineInfo.cpp
-	HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriver.cpp
-	HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriver.h
+	HW/Latte/Renderer/Vulkan/VsyncDriver.cpp
+	HW/Latte/Renderer/Vulkan/VsyncDriver.h
   HW/Latte/Renderer/Vulkan/VulkanAPI.cpp
   HW/Latte/Renderer/Vulkan/VulkanAPI.h
   HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.cpp
@@ -492,13 +492,6 @@ add_library(CemuCafe
   TitleList/TitleList.cpp
   TitleList/TitleList.h
 )
-
-if(WIN32)
-	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriverDXGI.cpp")
-else()
-	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriverVulkan.cpp")
-	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/VsyncDriver/VsyncDriverVulkan.h")
-endif()
 
 if(APPLE)
 	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
