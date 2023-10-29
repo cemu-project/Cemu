@@ -2632,7 +2632,11 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 		return false;
 
 	if(!chainInfo.GetFrontBuffer().defined)
+	{
+		if(chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT)
+			LatteTiming_NotifyHostVSync();
 		return false;
+	}
 
 	bool result = chainInfo.AcquireImage();
 	if (!result)
