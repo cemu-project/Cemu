@@ -107,6 +107,8 @@ void LatteTiming_signalVsync()
 }
 
 HRTick s_lastHostVsync = 0;
+int s_hostPaceWithinRangeCounter = 0;
+std::atomic<bool> s_hostPaceWithinRange = false;
 
 // notify when host vsync event is triggered (on renderer canvas)
 void LatteTiming_NotifyHostVSync()
@@ -116,12 +118,30 @@ void LatteTiming_NotifyHostVSync()
 	auto nowTimePoint = HighResolutionTimer::now().getTick();
 	auto dif = nowTimePoint - s_lastHostVsync;
 	auto vsyncPeriod = LatteTime_CalculateTimeBetweenVSync();
-
 	s_lastHostVsync = nowTimePoint;
-	auto wholeperiods = dif/vsyncPeriod;
-	if (dif % vsyncPeriod >= vsyncPeriod/2)
-		wholeperiods++;
-	for(int i = 0; i < wholeperiods; i++)
+
+	// if presentation keeps up the right pace for 60 frames take over vsync
+	// if it loses pace for 60 frames release vsync
+	bool inRange = dif > vsyncPeriod * 100 / 101 && dif < vsyncPeriod * 101 / 100;
+
+	if(inRange)
+	{
+		if(s_hostPaceWithinRangeCounter < 120)
+			s_hostPaceWithinRangeCounter++;
+		if(s_hostPaceWithinRangeCounter == 60)
+			s_hostPaceWithinRangeCounter = 120;
+	}
+	else
+	{
+		if(s_hostPaceWithinRangeCounter > 0)
+			s_hostPaceWithinRangeCounter--;
+		if(s_hostPaceWithinRangeCounter == 60)
+			s_hostPaceWithinRangeCounter = 0;
+	}
+
+	s_hostPaceWithinRange = s_hostPaceWithinRangeCounter >= 60;
+
+	if(s_hostPaceWithinRange)
 		LatteTiming_signalVsync();
 }
 
@@ -137,6 +157,9 @@ void LatteTiming_HandleTimedVsync()
 		if(!LatteTiming_IsUsingHostDrivenVSync())
 		{
 			g_renderer->PresentFrontBuffers();
+		}
+		if(!LatteTiming_IsUsingHostDrivenVSync() || !s_hostPaceWithinRange)
+		{
 			LatteTiming_signalVsync();
 		}
 		// even if vsync is delegated to the host device, we still use this virtual vsync timer to check finished states
