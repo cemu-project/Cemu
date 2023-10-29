@@ -47,7 +47,7 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
@@ -151,11 +151,26 @@ void SwapchainInfoVk::Cleanup()
 
 	for(auto& image : m_images)
 	{
-		vkDestroyFramebuffer(m_logicalDevice, image.frameBuffer, nullptr);
-		vkDestroyImageView(m_logicalDevice, image.view, nullptr);
-		vkDestroyImage(m_logicalDevice, image.image, nullptr);
-		VulkanRenderer::GetInstance()->GetMemoryManager()->imageMemoryFree(image.alloc);
-		image.alloc = nullptr;
+		if(image.frameBuffer)
+		{
+			vkDestroyFramebuffer(m_logicalDevice, image.frameBuffer, nullptr);
+			image.frameBuffer = nullptr;
+		}
+		if(image.view)
+		{
+			vkDestroyImageView(m_logicalDevice, image.view, nullptr);
+			image.view = nullptr;
+		}
+		if(image.image)
+		{
+			vkDestroyImage(m_logicalDevice, image.image, nullptr);
+			image.image = nullptr;
+		}
+		if(image.alloc)
+		{
+			VulkanRenderer::GetInstance()->GetMemoryManager()->imageMemoryFree(image.alloc);
+			image.alloc = nullptr;
+		}
 	}
 
 	if (swapchain)

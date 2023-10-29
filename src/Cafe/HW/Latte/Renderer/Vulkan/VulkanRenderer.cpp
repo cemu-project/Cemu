@@ -1557,8 +1557,8 @@ void VulkanRenderer::ImguiInit()
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentReference colorAttachmentRef = {};
 		colorAttachmentRef.attachment = 0;
@@ -1847,7 +1847,7 @@ bool VulkanRenderer::BeginFrame(bool mainWindow)
 	auto& backBuffer = chainInfo.GetBackBuffer();
 
 	VkClearColorValue clearColor{ 0, 0, 0, 0 };
-	ClearColorImageRaw(backBuffer.image, 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	ClearColorImageRaw(backBuffer.image, 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	// mark current swapchain image as well defined
 	backBuffer.defined = true;
@@ -2695,16 +2695,17 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 		gui_getPadWindowPhysSize(size.x, size.y);
 	}
 
+	if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
+		((VsyncDriverVulkan*)g_vsyncDriver.get())->EmptyQueue();
+
 	chainInfo.swapchainImageIndex = -1;
 	chainInfo.Cleanup();
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
 		chainInfo.Create(m_physicalDevice, m_logicalDevice);
-#if !BOOST_OS_WINDOW
 		if((VSync)GetConfig().vsync.GetValue() == VSync::SYNC_AND_LIMIT && mainWindow && g_vsyncDriver)
 			((VsyncDriverVulkan*)g_vsyncDriver.get())->SetDeviceAndSwapchain(m_logicalDevice, chainInfo.swapchain);
-#endif
 	}
 
 	if (mainWindow)
@@ -2773,8 +2774,8 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 		barrierRange.baseMipLevel = 0;
 		barrierRange.levelCount = 1;
 
-		barrier_image<0, TRANSFER_WRITE>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		//		barrier_image<IMAGE_WRITE, TRANSFER_READ>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		barrier_image<IMAGE_WRITE | IMAGE_READ | ANY_TRANSFER, TRANSFER_WRITE>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		barrier_image<IMAGE_WRITE, TRANSFER_READ>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
 		VkImageSubresourceLayers subResourceLayers{};
 		subResourceLayers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2787,10 +2788,10 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 		copyRegion.extent = {chainExtent.width, chainExtent.height, 1};
 		copyRegion.dstSubresource = subResourceLayers;
 		copyRegion.srcSubresource = subResourceLayers;
-		vkCmdCopyImage(m_state.currentCommandBuffer, chainInfo.GetFrontBuffer().image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex],VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1, &copyRegion);
+		vkCmdCopyImage(m_state.currentCommandBuffer, chainInfo.GetFrontBuffer().image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-		barrier_image<TRANSFER_WRITE, IMAGE_READ>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-		barrier_image<TRANSFER_WRITE, IMAGE_READ>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		barrier_image<TRANSFER_WRITE, IMAGE_READ | ANY_TRANSFER>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		barrier_image<TRANSFER_WRITE, IMAGE_READ | ANY_TRANSFER>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
 	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
@@ -2809,7 +2810,7 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
-	bool addSyncMarkers = m_featureControl.deviceExtensions.present_wait && chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && g_vsyncDriver;
+	bool addSyncMarkers = m_featureControl.deviceExtensions.present_wait && mainWindow && chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && g_vsyncDriver;
 	if (addSyncMarkers)
 	{
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
@@ -2827,7 +2828,7 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && !addSyncMarkers)
+	if(chainInfo.m_vsyncState == VSync::SYNC_AND_LIMIT && !addSyncMarkers && mainWindow)
 	{
 		LatteTiming_NotifyHostVSync();
 	}
