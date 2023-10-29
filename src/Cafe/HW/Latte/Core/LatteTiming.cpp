@@ -10,7 +10,7 @@ sint32 s_customVsyncFrequency = -1;
 void LatteTiming_NotifyHostVSync();
 
 // calculate time between vsync events in timer units
-// standard rate on Wii U is 59.94, however to prevent tearing and microstutter on ~60Hz displays it is better if we slightly overshoot 60 Hz
+// standard rate on Wii U is 59.94, however to prevent tearing and microstutter on ~60Hz fixed refresh rate displays it is better if we slightly overshoot 60 Hz
 // can be modified by graphic packs
 HRTick LatteTime_CalculateTimeBetweenVSync()
 {
@@ -23,9 +23,19 @@ HRTick LatteTime_CalculateTimeBetweenVSync()
 	}
 	else
 	{
-		tick *= 1001ull;
-		tick /= 1000ull;
-		tick /= 60ull;
+		// Vulkan backend can intelligently choose between emulated rate and display rate so this can be the real hardware vsync interval
+		if(g_renderer->GetType() == RendererAPI::Vulkan)
+		{ // 59.94
+			tick *= 1001ull;
+			tick /= 1000ull;
+			tick /= 60ull;
+		}
+		else
+		{ // 60.06
+			tick *= 1000ull;
+			tick /= 1001ull;
+			tick /= 60ull;
+		}
 	}
 	return tick;
 }
