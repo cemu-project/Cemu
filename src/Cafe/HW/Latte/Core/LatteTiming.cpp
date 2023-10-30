@@ -151,6 +151,12 @@ void LatteTiming_NotifyHostVSync()
 		LatteTiming_signalVsync();
 }
 
+void LatteTiming_ResetHostVsyncDetection()
+{
+	s_hostPaceWithinRange = 0;
+	s_hostPaceWithinRangeCounter = 0;
+}
+
 // handle timed vsync event
 void LatteTiming_HandleTimedVsync()
 {

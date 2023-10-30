@@ -128,6 +128,7 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 
+	LatteTiming_ResetHostVsyncDetection();
 	m_acquireIndex = 0;
 }
 
