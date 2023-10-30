@@ -160,10 +160,6 @@ void LatteTiming_HandleTimedVsync()
 		g_renderer->PresentFrontBuffers();
 	if( currentTimer >= LatteGPUState.timer_nextVSync )
 	{
-		if(!LatteTiming_IsUsingHostDrivenVSync())
-		{
-			g_renderer->PresentFrontBuffers();
-		}
 		if(!LatteTiming_IsUsingHostDrivenVSync() || !s_hostPaceWithinRange)
 		{
 			LatteTiming_signalVsync();

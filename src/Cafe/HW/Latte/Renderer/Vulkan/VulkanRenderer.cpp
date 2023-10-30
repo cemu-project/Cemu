@@ -2814,10 +2814,20 @@ void VulkanRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 	SubmitCommandBuffer();
 
 	if (swapTV && IsSwapchainInfoValid(true))
-		GetChainInfo(true).SwapBuffers();
+	{
+		auto& chain = GetChainInfo(true);
+		chain.SwapBuffers();
+		if (chain.m_vsyncState != VSync::SYNC_AND_LIMIT)
+			PresentFrontBuffer(true);
+	}
 
 	if (swapDRC && IsSwapchainInfoValid(false))
-		GetChainInfo(false).SwapBuffers();
+	{
+		auto& chain = GetChainInfo(false);
+		chain.SwapBuffers();
+		if (chain.m_vsyncState != VSync::SYNC_AND_LIMIT)
+			PresentFrontBuffer(false);
+	}
 
 	if(swapTV)
 		VulkanBenchmarkPrintResults();
