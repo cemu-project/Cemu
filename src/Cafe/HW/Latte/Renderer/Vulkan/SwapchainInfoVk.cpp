@@ -195,7 +195,7 @@ void SwapchainInfoVk::CreateImageFromSwapchain(VkImage* image, VkSwapchainCreate
 	imageCreateInfo.sharingMode = swapchainCreateInfo.imageSharingMode;
 	imageCreateInfo.queueFamilyIndexCount = swapchainCreateInfo.queueFamilyIndexCount;
 	imageCreateInfo.pQueueFamilyIndices = swapchainCreateInfo.pQueueFamilyIndices;
-	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	vkCreateImage(m_logicalDevice, &imageCreateInfo, nullptr, image);
 }
