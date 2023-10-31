@@ -2719,12 +2719,13 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 
 	auto& chainInfo = GetChainInfo(mainWindow);
 	auto& frontBuffer = chainInfo.GetFrontBuffer();
+	auto& chainImage = chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex];
 
 	if (!frontBuffer.defined)
 	{
 		// set the swapchain image to a defined state
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
-		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		ClearColorImageRaw(chainImage, 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	} else {
 		VkImageSubresourceRange barrierRange{};
 		barrierRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2733,8 +2734,28 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 		barrierRange.baseMipLevel = 0;
 		barrierRange.levelCount = 1;
 
-		barrier_image<IMAGE_WRITE | IMAGE_READ | ANY_TRANSFER, TRANSFER_WRITE>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		barrier_image<IMAGE_WRITE, TRANSFER_READ>(frontBuffer.image, barrierRange, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		// discard swapchain image previous content and transition for transfer
+		// nothing has to wait because execution of copy doesn't start until semaphore is signalled
+		// again
+		VkImageMemoryBarrier imgBarrier{};
+		imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imgBarrier.image = chainImage;
+		imgBarrier.subresourceRange = barrierRange;
+		imgBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imgBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imgBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		imgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer,
+							 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+							 VK_PIPELINE_STAGE_TRANSFER_BIT,
+							 0,
+							 0, nullptr,
+							 0, nullptr,
+							 1, &imgBarrier);
+
+		barrier_image<IMAGE_WRITE | TRANSFER_WRITE, TRANSFER_READ>(frontBuffer.image, barrierRange, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
 		VkImageSubresourceLayers subResourceLayers{};
 		subResourceLayers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2747,10 +2768,30 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 		copyRegion.extent = {chainExtent.width, chainExtent.height, 1};
 		copyRegion.dstSubresource = subResourceLayers;
 		copyRegion.srcSubresource = subResourceLayers;
-		vkCmdCopyImage(m_state.currentCommandBuffer, frontBuffer.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+		vkCmdCopyImage(m_state.currentCommandBuffer, frontBuffer.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-		barrier_image<TRANSFER_WRITE, IMAGE_READ | ANY_TRANSFER>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-		barrier_image<TRANSFER_WRITE, IMAGE_READ | ANY_TRANSFER>(frontBuffer.image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		// wait with future writes to buffer until the transfer is done
+		barrier_image<TRANSFER_READ, IMAGE_WRITE | TRANSFER_WRITE>(frontBuffer.image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+		// transition swapchain image into present layout. only the transfer needs to be forced done.
+		// specification states that no future work has to wait vkQueuePresent handles that, but barrier_image does not support this
+		// in a way that doesn't leave dstStageMask empty, which violates the spec.
+		imgBarrier = {};
+		imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imgBarrier.image = chainImage;
+		imgBarrier.subresourceRange = barrierRange;
+		imgBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		imgBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		imgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer,
+							 VK_PIPELINE_STAGE_TRANSFER_BIT,
+							 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+							 0,
+							 0, nullptr,
+							 0, nullptr,
+							 1, &imgBarrier);
 	}
 
 	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
