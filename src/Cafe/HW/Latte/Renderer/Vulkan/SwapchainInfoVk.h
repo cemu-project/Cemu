@@ -30,9 +30,9 @@ struct SwapchainInfoVk
 	};
 
 	struct FBImage {
-		VkImage image;
-		VkImageView view;
-		VkFramebuffer frameBuffer;
+		VkImage image = VK_NULL_HANDLE;
+		VkImageView view = VK_NULL_HANDLE;
+		VkFramebuffer frameBuffer = VK_NULL_HANDLE;
 		VkImageMemAllocation* alloc = nullptr;
 		bool defined = false;
 	};
@@ -101,7 +101,7 @@ struct SwapchainInfoVk
 	VkRenderPass m_swapchainRenderPass = nullptr;
 
 private:
-	std::array<FBImage, 2> m_images;
+	std::array<FBImage, 2> m_images{};
 	FBImage* frontBuffer = &m_images[0];
 	FBImage* backBuffer = &m_images[1];
 
