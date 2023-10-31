@@ -919,6 +919,10 @@ private:
 		imageMemBarrier.dstAccessMask = 0;
 		barrier_calcStageAndMask<TSrcSyncOp>(srcStages, imageMemBarrier.srcAccessMask);
 		barrier_calcStageAndMask<TDstSyncOp>(dstStages, imageMemBarrier.dstAccessMask);
+		if(srcStages == VK_PIPELINE_STAGE_NONE)
+			srcStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		if(dstStages == VK_PIPELINE_STAGE_NONE)
+			dstStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		imageMemBarrier.image = imageVk;
 		imageMemBarrier.subresourceRange = subresourceRange;
 		imageMemBarrier.oldLayout = oldLayout;
