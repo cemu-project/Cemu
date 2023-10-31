@@ -2632,9 +2632,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 		return false;
 
 	if(!chainInfo.GetFrontBuffer().defined)
-	{
 		return false;
-	}
 
 	bool result = chainInfo.AcquireImage();
 	if (!result)
@@ -2736,7 +2734,7 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 		barrierRange.levelCount = 1;
 
 		barrier_image<IMAGE_WRITE | IMAGE_READ | ANY_TRANSFER, TRANSFER_WRITE>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		barrier_image<IMAGE_WRITE, TRANSFER_READ>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		barrier_image<IMAGE_WRITE, TRANSFER_READ>(frontBuffer.image, barrierRange, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
 		VkImageSubresourceLayers subResourceLayers{};
 		subResourceLayers.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2749,10 +2747,10 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 		copyRegion.extent = {chainExtent.width, chainExtent.height, 1};
 		copyRegion.dstSubresource = subResourceLayers;
 		copyRegion.srcSubresource = subResourceLayers;
-		vkCmdCopyImage(m_state.currentCommandBuffer, chainInfo.GetFrontBuffer().image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+		vkCmdCopyImage(m_state.currentCommandBuffer, frontBuffer.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
 		barrier_image<TRANSFER_WRITE, IMAGE_READ | ANY_TRANSFER>(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], barrierRange, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-		barrier_image<TRANSFER_WRITE, IMAGE_READ | ANY_TRANSFER>(chainInfo.GetFrontBuffer().image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		barrier_image<TRANSFER_WRITE, IMAGE_READ | ANY_TRANSFER>(frontBuffer.image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	}
 
 	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
