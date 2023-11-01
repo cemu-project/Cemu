@@ -393,9 +393,13 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 
 		cemuLog_log(LogType::Force, "Vulkan: Can't find immediate present mode");
 	}
+	else if (vsyncState == VSync::SYNC_AND_LIMIT)
+	{
+		if(mainWindow)
+			LatteTiming_EnableHostDrivenVSync();
+		return VK_PRESENT_MODE_FIFO_KHR;
+	}
 
-	if(mainWindow)
-		LatteTiming_EnableHostDrivenVSync();
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
