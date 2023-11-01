@@ -2816,12 +2816,11 @@ void VulkanRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
 	SubmitCommandBuffer();
 
-	VSync sync = static_cast<VSync>(GetConfig().vsync.GetValue());
 	if (swapTV && IsSwapchainInfoValid(true))
 	{
 		auto& chain = GetChainInfo(true);
 		chain.SwapBuffers();
-		if (sync != VSync::SYNC_AND_LIMIT)
+		if (chain.m_vsyncState != VSync::SYNC_AND_LIMIT)
 			PresentFrontBuffer(true);
 	}
 
@@ -2829,7 +2828,7 @@ void VulkanRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 	{
 		auto& chain = GetChainInfo(false);
 		chain.SwapBuffers();
-		if (sync != VSync::SYNC_AND_LIMIT)
+		if (chain.m_vsyncState != VSync::SYNC_AND_LIMIT)
 			PresentFrontBuffer(false);
 	}
 
