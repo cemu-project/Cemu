@@ -377,7 +377,8 @@ VkExtent2D SwapchainInfoVk::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes)
 {
 	const auto vsyncState = (VSync)GetConfig().vsync.GetValue();
-	LatteTiming_DisableHostDrivenVSync();
+	if(mainWindow)
+		LatteTiming_DisableHostDrivenVSync();
 	if (vsyncState == VSync::MAILBOX)
 	{
 		if (std::find(modes.cbegin(), modes.cend(), VK_PRESENT_MODE_MAILBOX_KHR) != modes.cend())
@@ -393,7 +394,8 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		cemuLog_log(LogType::Force, "Vulkan: Can't find immediate present mode");
 	}
 
-	LatteTiming_EnableHostDrivenVSync();
+	if(mainWindow)
+		LatteTiming_EnableHostDrivenVSync();
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
