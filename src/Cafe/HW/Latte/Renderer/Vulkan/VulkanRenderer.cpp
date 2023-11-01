@@ -2750,7 +2750,7 @@ void VulkanRenderer::PresentFrontBuffer(bool mainWindow)
 		copyRegion.extent = {chainExtent.width, chainExtent.height, 1};
 		copyRegion.dstSubresource = subResourceLayers;
 		copyRegion.srcSubresource = subResourceLayers;
-		vkCmdCopyImage(m_state.currentCommandBuffer, frontBuffer.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+		vkCmdCopyImage(m_state.currentCommandBuffer, frontBuffer.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, chainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
 		// wait with future writes to buffer until the transfer is done
 		barrier_image<TRANSFER_READ, IMAGE_WRITE | TRANSFER_WRITE>(frontBuffer.image, barrierRange, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
