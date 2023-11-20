@@ -46,9 +46,7 @@ void LatteSurfaceCopy_copySurfaceNew(MPTR srcPhysAddr, MPTR srcMipAddr, uint32 s
 		// mark source and destination texture as still in use
 		LatteTC_MarkTextureStillInUse(destinationTexture);
 		LatteTC_MarkTextureStillInUse(sourceTexture);
-		// determine GL slice indices
 		sint32 realSrcSlice = srcSlice;
-		sint32 realDstSlice = dstSlice;
 		if (LatteTexture_doesEffectiveRescaleRatioMatch(sourceTexture, sourceView->firstMip, destinationTexture, destinationView->firstMip))
 		{
 			// adjust copy size
@@ -62,29 +60,11 @@ void LatteSurfaceCopy_copySurfaceNew(MPTR srcPhysAddr, MPTR srcMipAddr, uint32 s
 			LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
 			// copy slice
 			if (sourceView->baseTexture->isDepth != destinationView->baseTexture->isDepth)
-			{
 				g_renderer->surfaceCopy_copySurfaceWithFormatConversion(sourceTexture, sourceView->firstMip, sourceView->firstSlice, destinationTexture, destinationView->firstMip, destinationView->firstSlice, copyWidth, copyHeight);
-				uint64 eventCounter = LatteTexture_getNextUpdateEventCounter();
-				LatteTexture_MarkDynamicTextureAsChanged(destinationTexture->baseView, destinationView->firstSlice, destinationView->firstMip, eventCounter);
-			}
 			else
-			{
-				// calculate mip levels relative to texture base
-				sint32 texDstMipLevel;
-				if (destinationTexture->physAddress == dstPhysAddr)
-				{
-					texDstMipLevel = dstLevel;
-				}
-				else
-				{
-					// todo - handle mip addresses properly
-					texDstMipLevel = dstLevel - destinationView->firstMip;
-				}
-
-				g_renderer->texture_copyImageSubData(sourceTexture, sourceView->firstMip, 0, 0, realSrcSlice, destinationTexture, texDstMipLevel, 0, 0, realDstSlice, effectiveCopyWidth, effectiveCopyHeight, 1);
-				uint64 eventCounter = LatteTexture_getNextUpdateEventCounter();
-				LatteTexture_MarkDynamicTextureAsChanged(destinationTexture->baseView, destinationView->firstSlice, texDstMipLevel, eventCounter);
-			}
+				g_renderer->texture_copyImageSubData(sourceTexture, sourceView->firstMip, 0, 0, realSrcSlice, destinationTexture, destinationView->firstMip, 0, 0, destinationView->firstSlice, effectiveCopyWidth, effectiveCopyHeight, 1);
+			const uint64 eventCounter = LatteTexture_getNextUpdateEventCounter();
+			LatteTexture_MarkDynamicTextureAsChanged(destinationTexture->baseView, destinationView->firstSlice, destinationView->firstMip, eventCounter);
 		}
 		else
 		{
