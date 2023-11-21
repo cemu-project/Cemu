@@ -694,22 +694,58 @@ namespace nsyshid::backend::libusb
 			return false;
 		}
 
-		// ToDo: implement this
-#if 0
-		// is this correct? Discarding "ifIndex" seems like a bad idea
-		int ret = libusb_set_configuration(handleLock->getHandle(), protocol);
-		if (ret == 0) {
-			cemuLog_logDebug(LogType::Force,
-							 "nsyshid::DeviceLibusb::setProtocol(): success");
-			return true;
+		struct libusb_config_descriptor* conf = nullptr;
+		libusb_device* dev = libusb_get_device(handleLock->GetHandle());
+		int getConfig = libusb_get_active_config_descriptor(dev, &conf);
+		if (getConfig == LIBUSB_SUCCESS)
+		{
+			for (uint8 i = 0; i < conf->bNumInterfaces; ++i)
+			{
+				int releaseSuccess = libusb_release_interface(handleLock->GetHandle(), i);
+				if (releaseSuccess < LIBUSB_SUCCESS)
+				{
+					cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): Failed to release interface %i", i);
+					return false;
+				}
+			}
 		}
-		cemuLog_logDebug(LogType::Force,
-						 "nsyshid::DeviceLibusb::setProtocol(): failed with error code: {}",
-						 ret);
-		return false;
-#endif
+		else
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): Failed to Get Active Config");
+		}
 
-		// pretend that everything is fine
+		const int setConfig = libusb_set_configuration(handleLock->GetHandle(), protocol);
+		if (setConfig == LIBUSB_SUCCESS)
+		{
+			getConfig = libusb_get_active_config_descriptor(dev, &conf);
+			if (getConfig == LIBUSB_SUCCESS)
+			{
+				for (uint8 i = 0; i < conf->bNumInterfaces; ++i)
+				{
+					int detachSuccess = libusb_detach_kernel_driver(handleLock->GetHandle(), i);
+					if (detachSuccess < LIBUSB_SUCCESS && detachSuccess != LIBUSB_ERROR_NOT_FOUND &&
+						detachSuccess != LIBUSB_ERROR_NOT_SUPPORTED)
+					{
+						cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): failed to detach kernel driver");
+						return false;
+					}
+					int claimInterface = libusb_claim_interface(handleLock->GetHandle(), i);
+					if (claimInterface < LIBUSB_SUCCESS)
+					{
+						cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): failed to claim interface");
+						return false;
+					}
+				}
+			}
+			
+			libusb_free_config_descriptor(conf);
+		}
+		else
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): Failed to set config %i", protocol);
+			return false;
+		}
+
 		return true;
 	}
 
@@ -723,18 +759,20 @@ namespace nsyshid::backend::libusb
 			return false;
 		}
 
-		// ToDo: implement this
-#if 0
-		// not sure if libusb_control_transfer() is the right candidate for this
-		int ret = libusb_control_transfer(handleLock->getHandle(),
-										  bmRequestType,
-										  bRequest,
-										  wValue,
-										  wIndex,
-										  reportData,
-										  length,
-										  timeout);
-#endif
+		int ret = libusb_control_transfer(handleLock->GetHandle(),
+										  LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE | LIBUSB_ENDPOINT_OUT,
+										  LIBUSB_REQUEST_SET_CONFIGURATION,
+										  512 /* This may be skylander specific, but other games don't use this method anyway */,
+										  0,
+										  originalData,
+										  originalLength,
+										  0);
+
+		if (ret != originalLength)
+		{
+			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::SetReport(): Control Transfer Failed: {}", libusb_error_name(ret));
+			return false;
+		}
 
 		// pretend that everything is fine
 		return true;
