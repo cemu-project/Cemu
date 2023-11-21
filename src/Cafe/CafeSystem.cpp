@@ -530,7 +530,8 @@ namespace CafeSystem
 	{
 		// entries in this list are ordered by initialization order. Shutdown in reverse order
 		iosu::kernel::GetModule(),
-		iosu::fpd::GetModule()
+		iosu::fpd::GetModule(),
+		iosu::pdm::GetModule(),
 	};
 
 	// initialize all subsystems which are persistent and don't depend on a game running
@@ -571,7 +572,6 @@ namespace CafeSystem
 		iosu::iosuAcp_init();
 		iosu::boss_init();
 		iosu::nim::Initialize();
-		iosu::pdm::Initialize();
 		iosu::odm::Initialize();
 		// init Cafe OS
 		avm::Initialize();
@@ -840,7 +840,6 @@ namespace CafeSystem
 			coreinit::OSSchedulerBegin(3);
 		else
 			coreinit::OSSchedulerBegin(1);
-		iosu::pdm::StartTrackingTime(GetForegroundTitleId());
 	}
 
 	void LaunchForegroundTitle()
@@ -970,8 +969,6 @@ namespace CafeSystem
         RPLLoader_ResetState();
 		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
 			(*it)->TitleStop();
-        // stop time tracking
-		iosu::pdm::Stop();
         // reset Cemu subsystems
         PPCRecompiler_Shutdown();
         GraphicPack2::Reset();
