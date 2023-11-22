@@ -130,7 +130,7 @@ public:
 
 	struct AxisSetting
 	{
-		AxisSetting(float deadzone = 0.25f) : deadzone(deadzone) {}
+		AxisSetting(float deadzone = 0.15f) : deadzone(deadzone) {}
 		float deadzone;
 		float range = 1.0f;
 	};
