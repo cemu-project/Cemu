@@ -356,7 +356,7 @@ void GDBServer::ThreadFunc()
 				}
 				char checkSumStr[2];
 				receiveMessage(checkSumStr, 2);
-				uint32_t checkSum = std::stoi(checkSumStr, nullptr, 16);
+				uint32_t checkSum = std::stoi(std::string(checkSumStr, sizeof(checkSumStr)), nullptr, 16);
 				assert((checkedSum & 0xFF) == checkSum);
 
 				HandleCommand(message);
