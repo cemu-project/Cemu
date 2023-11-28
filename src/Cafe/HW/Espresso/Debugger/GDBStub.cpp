@@ -263,6 +263,14 @@ bool GDBServer::Initialize()
 		return false;
 	}
 
+	int nodelayEnabled = TRUE;
+	if (setsockopt(m_server_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&nodelayEnabled, sizeof(nodelayEnabled)) == SOCKET_ERROR)
+	{
+		closesocket(m_server_socket);
+		m_server_socket = INVALID_SOCKET;
+		return false;
+	}
+
 	memset(&m_server_addr, 0, sizeof(m_server_addr));
 	m_server_addr.sin_family = AF_INET;
 	m_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
