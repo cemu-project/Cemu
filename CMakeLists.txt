@@ -89,10 +89,9 @@ if (WIN32)
 	option(ENABLE_XINPUT "Enables the usage of XInput" ON)
 	option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
 	add_compile_definitions(HAS_DIRECTINPUT)
-	set(ENABLE_WIIMOTE ON)
-elseif (UNIX)
-	option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 endif()
+
+option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 option(ENABLE_SDL "Enables the SDLController backend" ON)
 
 # audio backends
