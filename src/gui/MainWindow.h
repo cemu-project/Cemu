@@ -124,6 +124,7 @@ public:
 	void OnSetWindowTitle(wxCommandEvent& event);
 
 	void OnKeyUp(wxKeyEvent& event);
+	void OnKeyDown(wxKeyEvent& event);
 	void OnChar(wxKeyEvent& event);
 
 	void OnToolsInput(wxCommandEvent& event);

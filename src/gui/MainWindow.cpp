@@ -1480,6 +1480,18 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		g_window_info.has_screenshot_request = true; // async screenshot request
 }
 
+void MainWindow::OnKeyDown(wxKeyEvent& event)
+{
+	if (event.AltDown() && event.GetKeyCode() == WXK_F4)
+	{
+		Close(true);
+	}
+	else
+	{
+		event.Skip();
+	}
+}
+
 void MainWindow::OnChar(wxKeyEvent& event)
 {
 	if (swkbd_hasKeyboardInputHook())
@@ -1585,6 +1597,7 @@ void MainWindow::CreateCanvas()
 
 	// key events
 	m_render_canvas->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
+	m_render_canvas->Bind(wxEVT_KEY_DOWN, &MainWindow::OnKeyDown, this);
 	m_render_canvas->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
 
 	m_render_canvas->SetDropTarget(new wxAmiiboDropTarget(this));
