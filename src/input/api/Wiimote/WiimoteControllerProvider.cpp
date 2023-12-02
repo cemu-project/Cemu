@@ -268,7 +268,7 @@ void WiimoteControllerProvider::reader_thread()
 					{
 						if (size == 0xf)
 						{
-							cemuLog_logDebug(LogType::Force,"Extension type received but no extension connected");
+							wiimote_log("Extension type received but no extension connected");
 							continue;
 						}
 
@@ -277,42 +277,12 @@ void WiimoteControllerProvider::reader_thread()
 						data += 6; // 48
 						be_type >>= 16;
 						be_type &= 0xFFFFFFFFFFFF;
-						switch (be_type.value())
-						{
-						case kExtensionNunchuck:
-                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Nunchuck");
-							new_state.m_extension = NunchuckData{};
-							break;
-						case kExtensionClassic:
-                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Classic");
-							new_state.m_extension = ClassicData{};
-							break;
-						case kExtensionClassicPro:
-                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Classic Pro");
-                            break;
-						case kExtensionGuitar:
-                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Guitar");
-                            break;
-						case kExtensionDrums:
-                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Drums");
-                            break;
-						case kExtensionBalanceBoard:
-                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Balance Board");
-                            break;
-						case kExtensionMotionPlus:
-                            cemuLog_logDebug(LogType::Force,"Extension Type Received: MotionPlus");
-							set_motion_plus(index, true);
-							new_state.m_motion_plus = MotionPlusData{};
-							break;
-						case kExtensionPartialyInserted:
-                            cemuLog_logDebug(LogType::Force,"Extension only partially inserted");
-							new_state.m_extension = {};
-							request_status(index);
-							break;
-						default:
-                            cemuLog_logDebug(LogType::Force,"Unknown extension: {:#x}", be_type.value());
-                            new_state.m_extension = {};
-							break;
+
+						if (!identify_extension(new_state, index, be_type)){
+							// Second attempt with less bytes, because some controllers will report the first two bytes incorrectly
+							if (!identify_extension(new_state, index, be_type & 0xFFFFFFFF)){
+								wiimote_log("Extension unknown {:#x}", be_type);
+							}
 						}
 
 						if (new_state.m_extension.index() != 0)
@@ -1049,4 +1019,44 @@ void WiimoteControllerProvider::send_write_packet(size_t index, MemoryType type,
 	*(packet.data() + 2 + 3) = (uint8)data.size();
 	std::copy(data.begin(), data.end(), packet.data() + 2 + 3 + 1);
 	send_packet(index, std::move(packet));
+}
+
+bool WiimoteControllerProvider::identify_extension(WiimoteState& state, size_t controllerIndex, uint64 identifier)
+{
+	switch (identifier)
+	{
+	case kExtensionNunchuck:
+		wiimote_log("Extension Type Received: Nunchuck");
+		state.m_extension = NunchuckData{};
+		return true;
+	case kExtensionClassic:
+		wiimote_log( "Extension Type Received: Classic");
+		state.m_extension = ClassicData{};
+		return true;
+	case kExtensionClassicPro:
+		wiimote_log( "Extension Type Received: Classic Pro");
+		return true;
+	case kExtensionGuitar:
+		wiimote_log( "Extension Type Received: Guitar");
+		return true;
+	case kExtensionDrums:
+		wiimote_log( "Extension Type Received: Drums");
+		return true;
+	case kExtensionBalanceBoard:
+		wiimote_log( "Extension Type Received: Balance Board");
+		return true;
+	case kExtensionMotionPlus:
+		wiimote_log( "Extension Type Received: MotionPlus");
+		set_motion_plus(controllerIndex, true);
+		state.m_motion_plus = MotionPlusData{};
+		return true;
+	case kExtensionPartialyInserted:
+		wiimote_log( "Extension only partially inserted");
+		state.m_extension = {};
+		request_status(controllerIndex);
+		return true;
+	default:
+		state.m_extension = {};
+		return false;
+	}
 }
