@@ -591,6 +591,9 @@ VulkanRenderer::VulkanRenderer()
 	{
 		//cemuLog_log(LogType::Force, "Disable surface copies via buffer (Requires 2GB. Has only {}MB available)", availableSurfaceCopyBufferMem / 1024ull / 1024ull);
 	}
+
+	// start compilation threads
+	RendererShaderVk::Init();
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -598,6 +601,8 @@ VulkanRenderer::~VulkanRenderer()
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	WaitCommandBufferFinished(GetCurrentCommandBufferId());
+	// shut down compilation threads
+	RendererShaderVk::Shutdown();
 	// shut down pipeline save thread
 	m_destructionRequested = true;
 	m_pipeline_cache_semaphore.notify();
