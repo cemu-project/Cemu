@@ -139,7 +139,7 @@ public:
 		}
 	}
 
-	~_ShaderVkThreadPool()
+	void StopThreads()
 	{
 		m_shutdownThread.store(true);
 		for (uint32 i = 0; i < s_threads.size(); ++i)
@@ -147,6 +147,11 @@ public:
 		for (auto& it : s_threads)
 			it.join();
 		s_threads.clear();
+	}
+
+	~_ShaderVkThreadPool()
+	{
+		StopThreads();
 	}
 
 	void CompilerThreadFunc()
@@ -176,6 +181,8 @@ public:
 		}
 	}
 
+	bool HasThreadsRunning() const { return !m_shutdownThread; }
+
 public:
 	std::vector<std::thread> s_threads;
 
@@ -195,13 +202,23 @@ RendererShaderVk::RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxH
 	m_compilationState.setValue(COMPILATION_STATE::QUEUED);
 	ShaderVkThreadPool.s_compilationQueue.push_back(this);
 	ShaderVkThreadPool.s_compilationQueueCount.increment();
-	ShaderVkThreadPool.StartThreads();
 	ShaderVkThreadPool.s_compilationQueueMutex.unlock();
+	cemu_assert_debug(ShaderVkThreadPool.HasThreadsRunning()); // make sure .StartThreads() was called
 }
 
 RendererShaderVk::~RendererShaderVk()
 {
 	VulkanRenderer::GetInstance()->destroyShader(this);
+}
+
+void RendererShaderVk::Init()
+{
+	ShaderVkThreadPool.StartThreads();
+}
+
+void RendererShaderVk::Shutdown()
+{
+	ShaderVkThreadPool.StopThreads();
 }
 
 sint32 RendererShaderVk::GetUniformLocation(const char* name)
