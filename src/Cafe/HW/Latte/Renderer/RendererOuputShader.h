@@ -18,7 +18,6 @@ public:
 	virtual ~RendererOutputShader() = default;
 
 	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res, const Vector2i& output_res) const;
-	void Bind() const;
 
 	RendererShader* GetVertexShader() const
 	{

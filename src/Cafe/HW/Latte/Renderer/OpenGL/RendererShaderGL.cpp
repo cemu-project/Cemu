@@ -230,11 +230,6 @@ sint32 RendererShaderGL::GetUniformLocation(const char* name)
 	return glGetUniformLocation(m_program, name);
 }
 
-void RendererShaderGL::SetUniform1iv(sint32 location, void* data, sint32 count)
-{
-	glProgramUniform1iv(m_program, location, count, (const GLint*)data);
-}
-
 void RendererShaderGL::SetUniform2fv(sint32 location, void* data, sint32 count)
 {
 	glProgramUniform2fv(m_program, location, count, (const GLfloat*)data);

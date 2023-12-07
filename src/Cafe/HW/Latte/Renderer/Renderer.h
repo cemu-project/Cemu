@@ -135,8 +135,6 @@ public:
 
 	// shader
 	virtual RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool compileAsync, bool isGfxPackSource) = 0;
-	virtual void shader_bind(RendererShader* shader) = 0;
-	virtual void shader_unbind(RendererShader::ShaderType shaderType) = 0;
 
 	// streamout
 	virtual void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) = 0;

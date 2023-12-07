@@ -32,7 +32,6 @@ public:
 	static void Shutdown();
 
 	sint32 GetUniformLocation(const char* name) override;
-	void SetUniform1iv(sint32 location, void* data, sint32 count) override;
 	void SetUniform2fv(sint32 location, void* data, sint32 count) override;
 	void SetUniform4iv(sint32 location, void* data, sint32 count) override;
 	VkShaderModule& GetShaderModule() { return m_shader_module; }
