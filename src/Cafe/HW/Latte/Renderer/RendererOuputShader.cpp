@@ -233,12 +233,6 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 	}
 }
 
-void RendererOutputShader::Bind() const
-{
-	g_renderer->shader_bind(m_vertex_shader);
-	g_renderer->shader_bind(m_fragment_shader);
-}
-
 RendererOutputShader* RendererOutputShader::s_copy_shader;
 RendererOutputShader* RendererOutputShader::s_copy_shader_ud;
 

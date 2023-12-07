@@ -127,9 +127,8 @@ public:
 
 	// shader
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
-	void shader_bind(RendererShader* shader) override;
-	void shader_bind(GLuint program, GLbitfield shaderType);
-	void shader_unbind(RendererShader::ShaderType shaderType) override;
+	void shader_bind(RendererShader* shader);
+	void shader_unbind(RendererShader::ShaderType shaderType);
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;
@@ -165,7 +164,6 @@ private:
 	void texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
 	void texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
 
-	GLuint m_defaultFramebufferId;
 	GLuint m_pipeline = 0;
 
 	bool m_isPadViewContext{};
@@ -216,8 +214,6 @@ private:
 	uint32 prevLogicOp = 0;
 	uint32 prevBlendColorConstant[4] = { 0 };
 	uint8 prevAlphaTestEnable = 0;
-	uint8 prevAlphaTestFunc = 0;
-	uint32 prevAlphaTestRefU32 = 0;	
 	bool prevDepthEnable = 0;
 	bool prevDepthWriteEnable = 0;
 	Latte::LATTE_DB_DEPTH_CONTROL::E_ZFUNC prevDepthFunc = (Latte::LATTE_DB_DEPTH_CONTROL::E_ZFUNC)-1;
@@ -263,9 +259,9 @@ private:
 	std::vector<class LatteQueryObjectGL*> list_queryCacheOcclusion; // cache for unused queries
 
 	// resource garbage collection	
-	struct bufferCacheReleaseQueueEntry_t
+	struct BufferCacheReleaseQueueEntry
 	{
-		bufferCacheReleaseQueueEntry_t(VirtualBufferHeap_t* heap, VirtualBufferHeapEntry_t* entry) : m_heap(heap), m_entry(entry) {};
+		BufferCacheReleaseQueueEntry(VirtualBufferHeap_t* heap, VirtualBufferHeapEntry_t* entry) : m_heap(heap), m_entry(entry) {};
 		
 		void free()
 		{
@@ -279,7 +275,7 @@ private:
 	struct
 	{
 		sint32 index;
-		std::vector<bufferCacheReleaseQueueEntry_t> bufferCacheEntries;
+		std::vector<BufferCacheReleaseQueueEntry> bufferCacheEntries;
 	}m_destructionQueues;
 
 };

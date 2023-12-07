@@ -227,11 +227,6 @@ sint32 RendererShaderVk::GetUniformLocation(const char* name)
 	return 0;
 }
 
-void RendererShaderVk::SetUniform1iv(sint32 location, void* data, sint32 count)
-{
-	cemu_assert_suspicious();
-}
-
 void RendererShaderVk::SetUniform2fv(sint32 location, void* data, sint32 count)
 {
 	cemu_assert_suspicious();

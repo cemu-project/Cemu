@@ -1090,17 +1090,6 @@ RendererShader* VulkanRenderer::shader_create(RendererShader::ShaderType type, u
 	return new RendererShaderVk(type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
 }
 
-void VulkanRenderer::shader_bind(RendererShader* shader)
-{
-	// does nothing on Vulkan
-	// remove from main render backend and internalize into GL backend
-}
-
-void VulkanRenderer::shader_unbind(RendererShader::ShaderType shaderType)
-{
-	// does nothing on Vulkan
-}
-
 bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info)
 {
 	std::vector<VkExtensionProperties> availableDeviceExtensions;

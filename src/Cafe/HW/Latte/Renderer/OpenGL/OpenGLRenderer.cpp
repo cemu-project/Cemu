@@ -275,10 +275,6 @@ void OpenGLRenderer::Initialize()
 	cemuLog_log(LogType::Force, "ARB_copy_image: {}", (glCopyImageSubData != NULL) ? "available" : "not supported");
 	cemuLog_log(LogType::Force, "NV_depth_buffer_float: {}", (glDepthRangedNV != NULL) ? "available" : "not supported");
 
-	// generate default frame buffer
-	glGenFramebuffers(1, &m_defaultFramebufferId);
-	catchOpenGLError();
-
 	// enable framebuffer SRGB support
 	glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -566,10 +562,9 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	sint32 effectiveHeight;
 	LatteTexture_getEffectiveSize(texView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, 0);
 
-	g_renderer->shader_unbind(RendererShader::ShaderType::kVertex);
-	g_renderer->shader_unbind(RendererShader::ShaderType::kGeometry);
-	g_renderer->shader_unbind(RendererShader::ShaderType::kFragment);
-	shader->Bind();
+	shader_unbind(RendererShader::ShaderType::kGeometry);
+	shader_bind(shader->GetVertexShader());
+	shader_bind(shader->GetFragmentShader());
 	shader->SetUniformParameters(*texView, { effectiveWidth, effectiveHeight }, { imageWidth, imageHeight });
 
 	// set viewport
@@ -1433,31 +1428,25 @@ RendererShader* OpenGLRenderer::shader_create(RendererShader::ShaderType type, u
 void OpenGLRenderer::shader_bind(RendererShader* shader)
 {
 	auto shaderGL = (RendererShaderGL*)shader;
-	
 	GLbitfield shaderBit;
-
 	const auto program = shaderGL->GetProgram();
-
 	switch(shader->GetType())
 	{
 	case RendererShader::ShaderType::kVertex:
 		if (program == prevVertexShaderProgram)
 			return;
-
 		shaderBit = GL_VERTEX_SHADER_BIT;
 		prevVertexShaderProgram = program;
 		break;
 	case RendererShader::ShaderType::kFragment:
 		if (program == prevPixelShaderProgram)
 			return;
-
 		shaderBit = GL_FRAGMENT_SHADER_BIT;
 		prevPixelShaderProgram = program;
 		break;
 	case RendererShader::ShaderType::kGeometry:
 		if (program == prevGeometryShaderProgram)
 			return;
-
 		shaderBit = GL_GEOMETRY_SHADER_BIT;
 		prevGeometryShaderProgram = program;
 		break;
@@ -1467,13 +1456,6 @@ void OpenGLRenderer::shader_bind(RendererShader* shader)
 
 	catchOpenGLError();
 	glUseProgramStages(m_pipeline, shaderBit, program);
-	catchOpenGLError();
-}
-
-void OpenGLRenderer::shader_bind(GLuint program, GLbitfield shaderType)
-{
-	catchOpenGLError();
-	glUseProgramStages(m_pipeline, shaderType, program);
 	catchOpenGLError();
 }
 

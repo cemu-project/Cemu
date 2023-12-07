@@ -350,8 +350,6 @@ public:
 	void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) override;
 
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
-	void shader_bind(RendererShader* shader) override;
-	void shader_unbind(RendererShader::ShaderType shaderType) override;
 
 	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
 	void indexData_uploadIndexMemory(uint32 offset, uint32 size) override;
