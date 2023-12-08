@@ -300,15 +300,10 @@ public:
 
 	void texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize) override;
 
-	LatteTexture* texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
+	LatteTexture* texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
 
-	void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit) override;
-	void texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit) override;
+	void texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit) override;
 
-	void texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit) override {};
-	
-	void texture_rememberBoundTexture(uint32 textureUnit) override {};
-	void texture_restoreBoundTexture(uint32 textureUnit) override {};
 	void texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth) override;
 	LatteTextureReadbackInfo* texture_createReadback(LatteTextureView* textureView) override;
 

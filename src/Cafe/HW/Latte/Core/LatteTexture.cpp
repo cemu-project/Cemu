@@ -985,7 +985,7 @@ void LatteTexture_RecreateTextureWithDifferentMipSliceCount(LatteTexture* textur
 		newDim = Latte::E_DIM::DIM_2D_ARRAY;
 	else if (newDim == Latte::E_DIM::DIM_1D && newDepth > 1)
 		newDim = Latte::E_DIM::DIM_1D_ARRAY;
-	LatteTextureView* view = LatteTexture_CreateTexture(0, newDim, texture->physAddress, physMipAddr, texture->format, texture->width, texture->height, newDepth, texture->pitch, newMipCount, texture->swizzle, texture->tileMode, texture->isDepth);
+	LatteTextureView* view = LatteTexture_CreateTexture(newDim, texture->physAddress, physMipAddr, texture->format, texture->width, texture->height, newDepth, texture->pitch, newMipCount, texture->swizzle, texture->tileMode, texture->isDepth);
 	cemu_assert(!(view->baseTexture->mipLevels <= 1 && physMipAddr == MPTR_NULL && newMipCount > 1));
 	// copy data from old texture if its dynamically updated
 	if (texture->isUpdatedOnGPU)
@@ -1112,7 +1112,7 @@ LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, si
 	// create new texture
 	if (allowCreateNewDataTexture == false)
 		return nullptr;
-	LatteTextureView* view = LatteTexture_CreateTexture(0, dimBase, physAddr, physMipAddr, format, width, height, depth, pitch, firstMip + numMip, swizzle, tileMode, isDepth);
+	LatteTextureView* view = LatteTexture_CreateTexture(dimBase, physAddr, physMipAddr, format, width, height, depth, pitch, firstMip + numMip, swizzle, tileMode, isDepth);
 	LatteTexture* newTexture = view->baseTexture;
 	LatteTexture_GatherTextureRelations(view->baseTexture);
 	LatteTexture_UpdateTextureFromDynamicChanges(view->baseTexture);
@@ -1191,12 +1191,8 @@ LatteTextureView* LatteTC_GetTextureSliceViewOrTryCreate(MPTR srcImagePtr, MPTR 
 void LatteTexture_UpdateDataToLatest(LatteTexture* texture)
 {
 	if (LatteTC_HasTextureChanged(texture))
-	{
-		g_renderer->texture_rememberBoundTexture(0);
-		g_renderer->texture_bindAndActivateRawTex(texture, 0);
-		LatteTexture_ReloadData(texture, 0);
-		g_renderer->texture_restoreBoundTexture(0);
-	}
+		LatteTexture_ReloadData(texture);
+
 	if (texture->reloadFromDynamicTextures)
 	{
 		LatteTexture_UpdateCacheFromDynamicTextures(texture);
@@ -1245,7 +1241,7 @@ std::vector<LatteTexture*>& LatteTexture::GetAllTextures()
 	return sAllTextures;
 }
 
-LatteTexture::LatteTexture(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
+LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
 	_AddTextureToGlobalList(this);

@@ -79,13 +79,10 @@ public:
 	void texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a) override;
 	void texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue) override;
 
-	LatteTexture* texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
+	LatteTexture* texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
 
-	void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit) override;
-	void texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit) override;
-	void texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit) override;
-	void texture_rememberBoundTexture(uint32 textureUnit) override;
-	void texture_restoreBoundTexture(uint32 textureUnit) override;
+	void texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit) override;
+	void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit);
 	void texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth) override;
 
 	void texture_notifyDelete(LatteTextureView* textureView);
@@ -188,14 +185,7 @@ private:
 	bool m_isXfbActive = false;
 
 	sint32 activeTextureUnit = 0;
-	void* LatteBoundTextures[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLuint texUnitTexId[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLenum texUnitTexTarget[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-
-	void* LatteBoundTexturesBackup[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLuint texUnitTexIdBackup[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLenum texUnitTexTargetBackup[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	bool texUnitBackupSlotUsed[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
+	void* m_latteBoundTextures[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
 
 	// attribute stream
 	GLuint glAttributeCacheAB{};

@@ -44,7 +44,7 @@ LatteTextureView* LatteHandleOSScreen_getOrCreateScreenTex(MPTR physAddress, uin
 	LatteTextureView* texView = LatteTextureViewLookupCache::lookup(physAddress, width, height, 1, pitch, 0, 1, 0, 1, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, Latte::E_DIM::DIM_2D);
 	if (texView)
 		return texView;
-	return LatteTexture_CreateTexture(0, Latte::E_DIM::DIM_2D, physAddress, 0, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, width, height, 1, pitch, 1, 0, Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED, false);
+	return LatteTexture_CreateTexture(Latte::E_DIM::DIM_2D, physAddress, 0, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, width, height, 1, pitch, 1, 0, Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED, false);
 }
 
 void LatteHandleOSScreen_prepareTextures()
@@ -71,8 +71,7 @@ bool LatteHandleOSScreen_TV()
 	const uint32 bufferIndexTV = (bufferDisplayTV);
 	const uint32 bufferIndexDRC = bufferDisplayDRC;
 
-	g_renderer->texture_bindAndActivate(osScreenTVTex[bufferIndexTV], 0);
-	LatteTexture_ReloadData(osScreenTVTex[bufferIndexTV]->baseTexture, 0);
+	LatteTexture_ReloadData(osScreenTVTex[bufferIndexTV]->baseTexture);
 
 	// TV screen
 	LatteRenderTarget_copyToBackbuffer(osScreenTVTex[bufferIndexTV]->baseTexture->baseView, false);
@@ -94,8 +93,7 @@ bool LatteHandleOSScreen_DRC()
 
 	const uint32 bufferIndexDRC = bufferDisplayDRC;
 
-	g_renderer->texture_bindAndActivate(osScreenDRCTex[bufferIndexDRC], 0);
-	LatteTexture_ReloadData(osScreenDRCTex[bufferIndexDRC]->baseTexture, 0);
+	LatteTexture_ReloadData(osScreenDRCTex[bufferIndexDRC]->baseTexture);
 
 	// GamePad screen
 	LatteRenderTarget_copyToBackbuffer(osScreenDRCTex[bufferIndexDRC]->baseTexture->baseView, true);

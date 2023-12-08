@@ -115,7 +115,7 @@ void LatteTC_RegisterTexture(LatteTexture* tex);
 void LatteTC_UnregisterTexture(LatteTexture* tex);
 
 uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture);
-void LatteTexture_ReloadData(LatteTexture* hostTexture, uint32 textureUnit);
+void LatteTexture_ReloadData(LatteTexture* hostTexture);
 
 bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force = false);
 void LatteTC_ResetTextureChangeTracker(LatteTexture* hostTexture, bool force = false);

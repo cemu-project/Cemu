@@ -3326,18 +3326,13 @@ void VulkanRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, 
 	barrier_image<ANY_TRANSFER, ANY_TRANSFER | IMAGE_READ | IMAGE_WRITE>(vkTexture, barrierSubresourceRange, VK_IMAGE_LAYOUT_GENERAL);
 }
 
-LatteTexture* VulkanRenderer::texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
+LatteTexture* VulkanRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
 	uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
-	return new LatteTextureVk(this, textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
+	return new LatteTextureVk(this, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
 }
 
-void VulkanRenderer::texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit)
-{
-	m_state.boundTexture[textureUnit] = static_cast<LatteTextureViewVk*>(textureView);
-}
-
-void VulkanRenderer::texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit)
+void VulkanRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit)
 {
 	m_state.boundTexture[textureUnit] = static_cast<LatteTextureViewVk*>(textureView);
 }

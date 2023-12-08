@@ -1342,7 +1342,7 @@ uint32 _correctTextureCompSelGL(Latte::E_GX2SURFFMT format, uint32 compSel)
 	return compSel;
 }
 
-#define quickBindTexture() 		if( textureIsActive == false ) { g_renderer->texture_bindAndActivate(hostTextureView, hostTextureUnit); textureIsActive = true; }
+#define quickBindTexture() 		if( textureIsActive == false ) { texture_bindAndActivate(hostTextureView, hostTextureUnit); textureIsActive = true; }
 
 uint32 _getGLMinFilter(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_XY_FILTER filterMin, Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_Z_FILTER filterMip)
 {
@@ -1365,11 +1365,9 @@ uint32 _getGLMinFilter(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_XY_FILTER filterMi
 /*
 * Update channel swizzling and other texture settings for a texture unit
 * hostTextureView is the texture unit view used on the host side
-* The baseGX2TexUnit parameter is used to identify the shader stage in which this texture is accessed
 */
 void OpenGLRenderer::renderstate_updateTextureSettingsGL(LatteDecompilerShader* shaderContext, LatteTextureView* _hostTextureView, uint32 hostTextureUnit, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N texUnitWord4, uint32 texUnitIndex, bool isDepthSampler)
 {
-	// todo - this is OpenGL-specific, decouple this from the renderer-neutral backend
 	auto hostTextureView = (LatteTextureViewGL*)_hostTextureView;
 
 	LatteTexture* baseTexture = hostTextureView->baseTexture;

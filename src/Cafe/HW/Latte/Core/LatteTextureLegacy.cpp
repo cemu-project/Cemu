@@ -32,9 +32,9 @@ void LatteTexture_setEffectiveTextureScale(LatteConst::ShaderType shaderType, si
 	t[1] = v;
 }
 
-void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 textureUnit, uint32 sliceIndex, uint32 mipIndex, MPTR physImagePtr, MPTR physMipPtr, Latte::E_DIM dim, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, uint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, bool dumpTex);
+void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIndex, uint32 mipIndex, MPTR physImagePtr, MPTR physMipPtr, Latte::E_DIM dim, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, uint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, bool dumpTex);
 
-void LatteTexture_ReloadData(LatteTexture* tex, uint32 textureUnit)
+void LatteTexture_ReloadData(LatteTexture* tex)
 {
 	tex->reloadCount++;
 	for(sint32 mip=0; mip<tex->mipLevels; mip++)
@@ -44,35 +44,35 @@ void LatteTexture_ReloadData(LatteTexture* tex, uint32 textureUnit)
 		{
 			sint32 numSlices = std::max(tex->depth, 1);
 			for(sint32 s=0; s<numSlices; s++)
-				LatteTextureLoader_UpdateTextureSliceData(tex, textureUnit, s, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
+				LatteTextureLoader_UpdateTextureSliceData(tex, s, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
 		}
 		else if( tex->dim == Latte::E_DIM::DIM_CUBEMAP )
 		{
 			cemu_assert_debug((tex->depth % 6) == 0);
 			sint32 numFullCubeMaps = tex->depth/6; // number of cubemaps (if numFullCubeMaps is >1 then this texture is a cubemap array)
 			for(sint32 s=0; s<numFullCubeMaps*6; s++)
-				LatteTextureLoader_UpdateTextureSliceData(tex, textureUnit, s, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
+				LatteTextureLoader_UpdateTextureSliceData(tex, s, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
 		}
 		else if( tex->dim == Latte::E_DIM::DIM_3D )
 		{
 			sint32 mipDepth = std::max(tex->depth>>mip, 1);
 			for(sint32 s=0; s<mipDepth; s++)
 			{
-				LatteTextureLoader_UpdateTextureSliceData(tex, textureUnit, s, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
+				LatteTextureLoader_UpdateTextureSliceData(tex, s, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
 			}
 		}
 		else
 		{
 			// load slice 0
-			LatteTextureLoader_UpdateTextureSliceData(tex, textureUnit, 0, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
+			LatteTextureLoader_UpdateTextureSliceData(tex, 0, mip, tex->physAddress, tex->physMipAddress, tex->dim, tex->width, tex->height, tex->depth, tex->mipLevels, tex->pitch, tex->tileMode, tex->swizzle, true);
 		}
 	}
 	tex->lastUpdateEventCounter = LatteTexture_getNextUpdateEventCounter();
 }
 
-LatteTextureView* LatteTexture_CreateTexture(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
+LatteTextureView* LatteTexture_CreateTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
-	const auto tex = g_renderer->texture_createTextureEx(textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
+	const auto tex = g_renderer->texture_createTextureEx(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
 	// init slice/mip info array
 	LatteTexture_InitSliceAndMipInfo(tex);
 	LatteTexture_RegisterTextureMemoryOccupancy(tex);
@@ -110,7 +110,7 @@ LatteTextureView* LatteTexture_CreateTexture(uint32 textureUnit, Latte::E_DIM di
 			}
 		}
 	}
-	LatteTexture_ReloadData(tex, textureUnit);
+	LatteTexture_ReloadData(tex);
 	LatteTC_MarkTextureStillInUse(tex);
 	LatteTC_RegisterTexture(tex);
 	// create initial view that maps to the whole texture
@@ -247,7 +247,7 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 			textureView->lastTextureBindIndex = LatteGPUState.textureBindCounter;
 			rendererGL->renderstate_updateTextureSettingsGL(shaderContext, textureView, textureIndex + glBackendBaseTexUnit, word4, textureIndex, isDepthSampler);
 		}
-		g_renderer->texture_bindOnly(textureView, textureIndex + glBackendBaseTexUnit);
+		g_renderer->texture_setLatteTexture(textureView, textureIndex + glBackendBaseTexUnit);
 		// update if data changed
 		bool swizzleChanged = false;
 		if (textureView->baseTexture->swizzle != swizzle)
@@ -285,9 +285,8 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 					textureView->baseTexture->physMipAddress = physMipAddr;
 				}
 			}
-			g_renderer->texture_bindAndActivateRawTex(textureView->baseTexture, textureIndex + glBackendBaseTexUnit);
 			debug_printf("Reload reason: Data-change when bound as texture (new hash 0x%08x)\n", textureView->baseTexture->texDataHash2);
-			LatteTexture_ReloadData(textureView->baseTexture, textureIndex + glBackendBaseTexUnit);
+			LatteTexture_ReloadData(textureView->baseTexture);
 		}
 		LatteTexture* baseTexture = textureView->baseTexture;
 		if (baseTexture->reloadFromDynamicTextures)
