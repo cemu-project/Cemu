@@ -239,8 +239,6 @@ LatteTextureView* LatteMRT_CreateColorBuffer(MPTR colorBufferPhysMem, uint32 wid
 		textureView = LatteTexture_CreateMapping(colorBufferPhysMem, MPTR_NULL, width, height, viewSlice+1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, false);
 	else
 		textureView = LatteTexture_CreateMapping(colorBufferPhysMem, MPTR_NULL, width, height, 1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, false);
-	// unbind texture
-	g_renderer->texture_bindAndActivate(nullptr, 0);
 	return textureView;
 }
 
@@ -253,8 +251,6 @@ LatteTextureView* LatteMRT_CreateDepthBuffer(MPTR depthBufferPhysMem, uint32 wid
 		textureView = LatteTexture_CreateMapping(depthBufferPhysMem, MPTR_NULL, width, height, viewSlice+1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, true);
 
 	LatteMRT::SetDepthAndStencilAttachment(textureView, textureView->baseTexture->hasStencil);
-	// unbind texture
-	g_renderer->texture_bindAndActivate(nullptr, 0);
 	return textureView;
 }
 

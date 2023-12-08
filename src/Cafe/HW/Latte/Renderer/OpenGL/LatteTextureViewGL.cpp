@@ -11,7 +11,7 @@ LatteTextureViewGL::LatteTextureViewGL(LatteTextureGL* texture, Latte::E_DIM dim
 		firstSlice != 0 || firstMip != 0 || mipCount != texture->mipLevels || sliceCount != texture->depth ||	
 		forceCreateNewTexId)
 	{
-		LatteTextureGL::GenerateEmptyTextureFromGX2Dim(dim, glTexId, glTexTarget);
+		LatteTextureGL::GenerateEmptyTextureFromGX2Dim(dim, glTexId, glTexTarget, false);
 		this->glInternalFormat = 0;
 		InitAliasView();
 	}
