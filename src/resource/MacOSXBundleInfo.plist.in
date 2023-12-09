@@ -37,8 +37,6 @@
 			<array>
 			<string>${MACOSX_BUNDLE_TYPE_EXTENSION}</string>
 			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>cemu.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Wii U File</string>
 			<key>CFBundleTypeRole</key>
