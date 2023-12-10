@@ -82,6 +82,7 @@ if (MACOS_BUNDLE)
 
 	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
  	set(MACOSX_MINIMUM_SYSTEM_VERSION "12.0")
+  	set(MACOSX_BUNDLE_TYPE_EXTENSION "wua")
 
 	set_target_properties(CemuBin PROPERTIES
 		MACOSX_BUNDLE true

@@ -30,5 +30,18 @@
     	<string>${MACOSX_BUNDLE_CATEGORY}</string>
      	<key>LSMinimumSystemVersion</key>
     	<string>${MACOSX_MINIMUM_SYSTEM_VERSION}</string>
+     	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+			<string>${MACOSX_BUNDLE_TYPE_EXTENSION}</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Wii U File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+	</array>
 </dict>
 </plist>
