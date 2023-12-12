@@ -1030,28 +1030,37 @@ bool WiimoteControllerProvider::identify_extension(WiimoteState& state, size_t c
 		state.m_extension = NunchuckData{};
 		return true;
 	case kExtensionClassic:
-		wiimote_log( "Extension Type Received: Classic");
+		wiimote_log("Extension Type Received: Classic");
 		state.m_extension = ClassicData{};
 		return true;
 	case kExtensionClassicPro:
-		wiimote_log( "Extension Type Received: Classic Pro");
+		wiimote_log("Extension Type Received: Classic Pro");
 		return true;
 	case kExtensionGuitar:
-		wiimote_log( "Extension Type Received: Guitar");
+		wiimote_log("Extension Type Received: Guitar");
 		return true;
 	case kExtensionDrums:
-		wiimote_log( "Extension Type Received: Drums");
+		wiimote_log("Extension Type Received: Drums");
 		return true;
 	case kExtensionBalanceBoard:
-		wiimote_log( "Extension Type Received: Balance Board");
+		wiimote_log("Extension Type Received: Balance Board");
 		return true;
+	case kExtensionMotionPlusBuiltin:
 	case kExtensionMotionPlus:
-		wiimote_log( "Extension Type Received: MotionPlus");
+		wiimote_log("Extension Type Received: MotionPlus");
 		set_motion_plus(controllerIndex, true);
 		state.m_motion_plus = MotionPlusData{};
 		return true;
-	case kExtensionPartialyInserted:
-		wiimote_log( "Extension only partially inserted");
+	case kExtensionMotionPlusDeactivated:
+		wiimote_log("Extension Type Received: MotionPlus deactivated by other extension");
+		return true;
+	case kExtensionMotionPlusActivated:
+		wiimote_log("Extension Type Received: Activated MotionPlus");
+		if (!state.m_motion_plus)
+			state.m_motion_plus = MotionPlusData{};
+		return true;
+	case kExtensionPartiallyInserted:
+		wiimote_log("Extension only partially inserted");
 		state.m_extension = {};
 		request_status(controllerIndex);
 		return true;

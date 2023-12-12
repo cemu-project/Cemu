@@ -52,10 +52,13 @@ enum ExtensionType : uint64
 	kExtensionGuitar = 0x0000A4200103,
 	kExtensionDrums = 0x0100A4200103,
 	kExtensionBalanceBoard = 0x2A2C,
+	kExtensionMotionPlusBuiltin = 0xA4200005,
+	kExtensionMotionPlusActivated = 0xA4200405,
 
-	kExtensionMotionPlus = 0xa6200005,
+	kExtensionMotionPlus = 0xA6200005,
+	kExtensionMotionPlusDeactivated = 0xA6200405,
 
-	kExtensionPartialyInserted = 0xffffffffffff,
+	kExtensionPartiallyInserted = 0xFFFFFFFFFFFF
 };
 
 enum MemoryType : uint8
