@@ -795,6 +795,8 @@ bool IsDimensionCompatibleForView(Latte::E_DIM baseDim, Latte::E_DIM viewDim)
 	bool incompatibleDim = false;
 	if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D)
 		;
+	else if (baseDim == Latte::E_DIM::DIM_1D && viewDim == Latte::E_DIM::DIM_1D)
+		;
 	else if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D_ARRAY)
 		;
 	else if (baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_CUBEMAP)
