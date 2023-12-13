@@ -1190,7 +1190,7 @@ void _IMLRA_checkAndTryExtendRange(IMLRegisterAllocatorContext& ctx, IMLSegment*
 {
 	if (routeDepth >= 64)
 	{
-		forceLogDebug_printf("Recompiler RA route maximum depth exceeded\n");
+		cemuLog_logDebug(LogType::Force, "Recompiler RA route maximum depth exceeded\n");
 		return;
 	}
 	route[routeDepth] = currentSegment;
