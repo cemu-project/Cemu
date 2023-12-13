@@ -57,6 +57,7 @@ struct LatteDecompilerTEXInstruction
 		sint8 offsetY{};
 		sint8 offsetZ{};
 		bool unnormalized[4]{}; // set if texture coordinates are in [0,dim] range instead of [0,1]
+		sint8 lodBias{}; // divide by 16 to get actual value
 	}textureFetch;
 	// memRead
 	struct
