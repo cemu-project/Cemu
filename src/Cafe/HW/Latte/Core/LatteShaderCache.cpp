@@ -27,6 +27,7 @@
 #include <wx/msgdlg.h>
 #include <audio/IAudioAPI.h>
 #include <util/bootSound/BootSoundReader.h>
+#include <thread>
 
 #if BOOST_OS_WINDOWS
 #include <psapi.h>
