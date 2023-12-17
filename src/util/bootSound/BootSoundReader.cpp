@@ -21,10 +21,10 @@ sint16* BootSoundReader::getSamples()
 		if (read % sizeof(sint16be) != 0)
 			cemu_assert_suspicious();
 
-		std::copy_n(bufferBE.begin(), read / sizeof(sint16be), buffer.begin() + totalRead);
+		std::copy_n(bufferBE.begin(), read / sizeof(sint16be), buffer.begin() + (totalRead / sizeof(sint16)));
 		totalRead += read;
 		if (totalRead < blockSize)
-			fsc_setFileSeek(bootsndFile, loopPoint * 4);
+			fsc_setFileSeek(bootsndFile, 8 + loopPoint * 4);
 	}
 
 	return buffer.data();
