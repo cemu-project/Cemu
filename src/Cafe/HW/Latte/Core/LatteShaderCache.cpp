@@ -301,6 +301,10 @@ void LatteShaderCache_Load()
 	loadBackgroundTexture(true, g_shaderCacheLoaderState.textureTVId);
 	loadBackgroundTexture(false, g_shaderCacheLoaderState.textureDRCId);
 
+	// initialise resources for playing bootup sound
+	if(GetConfig().play_boot_sound)
+		LatteShaderCache_InitBootSound();
+
 	sint32 numLoadedShaders = 0;
 	uint32 loadIndex = 0;
 
@@ -367,6 +371,9 @@ void LatteShaderCache_Load()
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureTVId);
 	if (g_shaderCacheLoaderState.textureDRCId)
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureDRCId);
+
+	// free resources for playing boot sound
+	LatteShaderCache_ShutdownBootSound();
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
@@ -497,7 +504,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 
 		// finish frame
 		g_renderer->SwapBuffers(true, true);
-		LatteThread_StreamBootSound();
+		LatteShaderCache_StreamBootSound();
 	}
 }
 
@@ -808,4 +815,49 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 			fs::remove(pathGenericPre1_25_0, ec);
 		}
 	}
+}
+
+AudioAPIPtr g_BootSndAudioDev = nullptr;
+std::unique_ptr<BootSoundReader> g_BootSndFileReader;
+FSCVirtualFile* g_bootSndFileHandle = 0;
+
+void LatteShaderCache_InitBootSound()
+{
+	const sint32 samplesPerBlock = 4800;
+	const sint32 audioBlockSize = samplesPerBlock * 2 * 2;
+	try
+	{
+		g_BootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
+	}
+	catch (const std::runtime_error& ex)
+	{
+		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
+		return;
+	}
+	g_BootSndAudioDev->Play();
+
+	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
+	sint32 fscStatus = FSC_STATUS_UNDEFINED;
+	g_bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+	if(!g_bootSndFileHandle)
+		return;
+
+	g_BootSndFileReader = std::make_unique<BootSoundReader>(g_bootSndFileHandle, audioBlockSize);
+}
+
+void LatteShaderCache_StreamBootSound()
+{
+	if(g_BootSndAudioDev && g_bootSndFileHandle && g_BootSndFileReader)
+	{
+		if (g_BootSndAudioDev->NeedAdditionalBlocks())
+			g_BootSndAudioDev->FeedBlock(g_BootSndFileReader->getSamples());
+	}
+}
+
+void LatteShaderCache_ShutdownBootSound()
+{
+	g_BootSndFileReader.reset();
+	if(g_bootSndFileHandle)
+		fsc_close(g_bootSndFileHandle);
+	g_BootSndAudioDev.reset();
 }

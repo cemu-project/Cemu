@@ -15,9 +15,6 @@
 #include "util/helpers/helpers.h"
 
 #include <imgui.h>
-#include <audio/IAudioAPI.h>
-#include <Filesystem/fsc.h>
-#include <util/bootSound/BootSoundReader.h>
 #include "config/ActiveSettings.h"
 
 #include "Cafe/CafeSystem.h"
@@ -184,17 +181,8 @@ int Latte_ThreadEntry()
 
 	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
 	GraphicPack2::WaitUntilReady();
-
-	// initialise resources for playing bootup sound
-	if(GetConfig().play_boot_sound)
-		LatteThread_InitBootSound();
-
 	// load disk shader cache
     LatteShaderCache_Load();
-
-	// free resources for playing boot sound
-	LatteThread_ShutdownBootSound();
-
 	// init registers
 	Latte_LoadInitialRegisters();
 	// let CPU thread know the GPU is done initializing
@@ -273,49 +261,4 @@ void LatteThread_Exit()
 	pthread_exit(nullptr);
 	#endif
 	cemu_assert_unimplemented();
-}
-
-AudioAPIPtr g_BootSndAudioDev = nullptr;
-std::unique_ptr<BootSoundReader> g_BootSndFileReader;
-FSCVirtualFile* g_bootSndFileHandle = 0;
-
-void LatteThread_InitBootSound()
-{
-	const sint32 samplesPerBlock = 4800;
-	const sint32 audioBlockSize = samplesPerBlock * 2 * 2;
-	try
-	{
-		g_BootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
-	}
-	catch (const std::runtime_error& ex)
-	{
-		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
-		return;
-	}
-	g_BootSndAudioDev->Play();
-
-	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
-	sint32 fscStatus = FSC_STATUS_UNDEFINED;
-	g_bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
-	if(!g_bootSndFileHandle)
-		return;
-
-	g_BootSndFileReader = std::make_unique<BootSoundReader>(g_bootSndFileHandle, audioBlockSize);
-}
-
-void LatteThread_StreamBootSound()
-{
-	if(g_BootSndAudioDev && g_bootSndFileHandle && g_BootSndFileReader)
-	{
-		if (g_BootSndAudioDev->NeedAdditionalBlocks())
-			g_BootSndAudioDev->FeedBlock(g_BootSndFileReader->getSamples());
-	}
-}
-
-void LatteThread_ShutdownBootSound()
-{
-	g_BootSndFileReader.reset();
-	if(g_bootSndFileHandle)
-		fsc_close(g_bootSndFileHandle);
-	g_BootSndAudioDev.reset();
 }
