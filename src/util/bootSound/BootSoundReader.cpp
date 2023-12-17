@@ -14,14 +14,18 @@ BootSoundReader::BootSoundReader(FSCVirtualFile* bootsndFile, sint32 blockSize) 
 
 sint16* BootSoundReader::getSamples()
 {
-	auto read = fsc_readFile(bootsndFile, bufferBE.data(), blockSize);
-	if(read % sizeof(sint16be) != 0)
-		cemu_assert_suspicious();
+	size_t totalRead = 0;
+	while(totalRead < blockSize)
+	{
+		auto read = fsc_readFile(bootsndFile, bufferBE.data(), blockSize - totalRead);
+		if (read % sizeof(sint16be) != 0)
+			cemu_assert_suspicious();
 
-	auto readValues = read / sizeof(sint16be);
-	if (readValues < blockSize)
-		std::fill(buffer.begin() + readValues, buffer.end(), 0);
+		std::copy_n(bufferBE.begin(), read / sizeof(sint16be), buffer.begin() + totalRead);
+		totalRead += read;
+		if (totalRead < blockSize)
+			fsc_setFileSeek(bootsndFile, loopPoint * 4);
+	}
 
-	std::copy_n(bufferBE.begin(), read / sizeof(sint16be), buffer.begin());
 	return buffer.data();
 }
