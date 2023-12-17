@@ -10,6 +10,11 @@ BootSoundReader::BootSoundReader(FSCVirtualFile* bootsndFile, sint32 blockSize) 
 	bufferBE.resize(blockSize / sizeof(sint16be));
 	if(blockSize % (sizeof(sint16be) * 2) != 0)
 		cemu_assert_suspicious();
+
+	// workaround: SM3DW has incorrect loop point
+	const auto titleId = CafeSystem::GetForegroundTitleId();
+	if(titleId == 0x0005000010145D00 || titleId == 0x0005000010145C00 || titleId == 0x0005000010106100)
+		loopPoint = 113074;
 }
 
 sint16* BootSoundReader::getSamples()
