@@ -507,6 +507,19 @@ struct CemuConfig
 	bool GetGameListCustomName(uint64 titleId, std::string& customName);
 	void SetGameListCustomName(uint64 titleId, std::string customName);
 
+	static int AudioChannelsToNChannels(AudioChannels kStereo)
+	{
+		switch (kStereo)
+		{
+		case 0:
+			return 1; // will mix mono sound on both output channels
+		case 2:
+			return 6;
+		default: // stereo
+			return 2;
+		}
+	}
+
 	private:
 	GameEntry* GetGameEntryByTitleId(uint64 titleId);
 	GameEntry* CreateGameEntry(uint64 titleId);

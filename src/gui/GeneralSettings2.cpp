@@ -1734,20 +1734,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_tvAudio)
 					channels = g_tvAudio->GetChannels();
 				else
-				{
-					switch (config.tv_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.tv_channels);
 
 				try
 				{
@@ -1782,20 +1769,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_padAudio)
 					channels = g_padAudio->GetChannels();
 				else
-				{
-					switch (config.pad_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.tv_channels);
 
 				try
 				{
@@ -1831,20 +1805,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_inputAudio)
 					channels = g_inputAudio->GetChannels();
 				else
-				{
-					switch (config.input_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.input_channels);
 
 				try
 				{
