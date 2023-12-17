@@ -186,12 +186,12 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
 			second_row->Add(m_play_boot_sound, 0, botflag, 5);
 
-            		// Enable/disable feral interactive gamemode
+			// Enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
-					second_row->AddSpacer(10);
-            		m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
-            		m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
-            		second_row->Add(m_feral_gamemode, 0, botflag, 5);
+			second_row->AddSpacer(10);
+			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
+			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
+			second_row->Add(m_feral_gamemode, 0, botflag, 5);
 #endif
 
 			// temporary workaround because feature crashes on macOS
