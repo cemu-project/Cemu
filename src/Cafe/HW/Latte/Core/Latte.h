@@ -179,3 +179,7 @@ void Latte_Start();
 void Latte_Stop();
 bool Latte_GetStopSignal(); // returns true if stop was requested or if in stopped state
 void LatteThread_Exit();
+
+void LatteThread_InitBootSound();
+void LatteThread_StreamBootSound();
+void LatteThread_ShutdownBootSound();

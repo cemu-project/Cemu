@@ -376,25 +376,6 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 	
 	auto lastFrameUpdate = tick_cached();
 
-	AudioAPIPtr audioDev;
-	const sint32 samplesPerBlock = 4800;
-	const sint32 audioBlockSize = samplesPerBlock * 2 * 2;
-	try
-	{
-		audioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
-	}
-	catch (const std::runtime_error& ex)
-	{
-		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
-	}
-	audioDev->Play();
-
-	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
-	sint32 fscStatus = FSC_STATUS_UNDEFINED;
-	static auto bootsndFile = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
-
-	static BootSoundReader reader{bootsndFile, audioBlockSize};
-
 	while (true)
 	{
         if (Latte_GetStopSignal())
@@ -516,15 +497,8 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 
 		// finish frame
 		g_renderer->SwapBuffers(true, true);
-
-		if(audioDev && bootsndFile)
-		{
-			if (audioDev->NeedAdditionalBlocks())
-				audioDev->FeedBlock(reader.getSamples());
-		}
-
+		LatteThread_StreamBootSound();
 	}
-	audioDev->Stop();
 }
 
 void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId)

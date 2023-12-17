@@ -418,7 +418,8 @@ namespace snd_core
 			try
 			{
 				g_padAudio = IAudioAPI::CreateDeviceFromConfig(false, 48000, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
-				g_padVolume = g_padAudio->GetVolume();
+				if(g_padAudio)
+					g_padVolume = g_padAudio->GetVolume();
 			}
 			catch (std::runtime_error& ex)
 			{

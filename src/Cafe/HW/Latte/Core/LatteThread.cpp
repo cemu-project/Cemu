@@ -15,6 +15,9 @@
 #include "util/helpers/helpers.h"
 
 #include <imgui.h>
+#include <audio/IAudioAPI.h>
+#include <Filesystem/fsc.h>
+#include <util/bootSound/BootSoundReader.h>
 #include "config/ActiveSettings.h"
 
 #include "Cafe/CafeSystem.h"
@@ -181,6 +184,8 @@ int Latte_ThreadEntry()
 
 	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
 	GraphicPack2::WaitUntilReady();
+
+	LatteThread_InitBootSound();
 	// load disk shader cache
     LatteShaderCache_Load();
 	// init registers
@@ -193,9 +198,11 @@ int Latte_ThreadEntry()
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		LatteThread_HandleOSScreen();
+		LatteThread_StreamBootSound();
 		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 	}
+	LatteThread_ShutdownBootSound();
 	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
 	LatteCP_ProcessRingbuffer();
 	cemu_assert_debug(false); // should never reach
@@ -261,4 +268,50 @@ void LatteThread_Exit()
 	pthread_exit(nullptr);
 	#endif
 	cemu_assert_unimplemented();
+}
+
+AudioAPIPtr g_BootSndAudioDev = nullptr;
+std::unique_ptr<BootSoundReader> g_BootSndFileReader;
+FSCVirtualFile* g_bootSndFileHandle = 0;
+
+void LatteThread_InitBootSound()
+{
+	const sint32 samplesPerBlock = 4800;
+	const sint32 audioBlockSize = samplesPerBlock * 2 * 2;
+	try
+	{
+		g_BootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
+	}
+	catch (const std::runtime_error& ex)
+	{
+		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
+	}
+	g_BootSndAudioDev->Play();
+
+	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
+	sint32 fscStatus = FSC_STATUS_UNDEFINED;
+	g_bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+
+	g_BootSndFileReader = std::make_unique<BootSoundReader>(g_bootSndFileHandle, audioBlockSize);
+}
+
+void LatteThread_StreamBootSound()
+{
+	if(g_BootSndAudioDev && g_bootSndFileHandle && g_BootSndFileReader)
+	{
+		if (g_BootSndAudioDev->NeedAdditionalBlocks())
+			g_BootSndAudioDev->FeedBlock(g_BootSndFileReader->getSamples());
+	}
+}
+
+void LatteThread_ShutdownBootSound()
+{
+	g_BootSndFileReader.reset();
+	if(g_bootSndFileHandle)
+		fsc_close(g_bootSndFileHandle);
+	if(g_BootSndAudioDev)
+	{
+		g_BootSndAudioDev->Stop();
+		g_BootSndAudioDev.reset();
+	}
 }

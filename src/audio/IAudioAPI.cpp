@@ -113,6 +113,9 @@ AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(bool TV, sint32 rate, sint32 chann
 	const auto audio_api = (IAudioAPI::AudioAPI)config.audio_api;
 	auto& selectedDevice = TV ? config.tv_device : config.pad_device;
 
+	if(selectedDevice.empty())
+		return {};
+
 	IAudioAPI::DeviceDescriptionPtr device_description;
 	if (IAudioAPI::IsAudioAPIAvailable(audio_api))
 	{
