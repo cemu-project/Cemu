@@ -1769,7 +1769,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_padAudio)
 					channels = g_padAudio->GetChannels();
 				else
-					channels = CemuConfig::AudioChannelsToNChannels(config.tv_channels);
+					channels = CemuConfig::AudioChannelsToNChannels(config.pad_channels);
 
 				try
 				{
