@@ -817,9 +817,9 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 	}
 }
 
-AudioAPIPtr g_BootSndAudioDev = nullptr;
-std::unique_ptr<BootSoundReader> g_BootSndFileReader;
-FSCVirtualFile* g_bootSndFileHandle = 0;
+static AudioAPIPtr g_BootSndAudioDev = nullptr;
+static std::unique_ptr<BootSoundReader> g_BootSndFileReader;
+static FSCVirtualFile* g_bootSndFileHandle = 0;
 
 void LatteShaderCache_InitBootSound()
 {
