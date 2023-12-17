@@ -309,9 +309,5 @@ void LatteThread_ShutdownBootSound()
 	g_BootSndFileReader.reset();
 	if(g_bootSndFileHandle)
 		fsc_close(g_bootSndFileHandle);
-	if(g_BootSndAudioDev)
-	{
-		g_BootSndAudioDev->Stop();
-		g_BootSndAudioDev.reset();
-	}
+	g_BootSndAudioDev.reset();
 }
