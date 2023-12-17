@@ -285,12 +285,15 @@ void LatteThread_InitBootSound()
 	catch (const std::runtime_error& ex)
 	{
 		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
+		return;
 	}
 	g_BootSndAudioDev->Play();
 
 	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
 	sint32 fscStatus = FSC_STATUS_UNDEFINED;
 	g_bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+	if(!g_bootSndFileHandle)
+		return;
 
 	g_BootSndFileReader = std::make_unique<BootSoundReader>(g_bootSndFileHandle, audioBlockSize);
 }
