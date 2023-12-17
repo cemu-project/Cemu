@@ -127,7 +127,3 @@ void LatteShaderCache_writeSeparablePixelShader(uint64 shaderBaseHash, uint64 sh
 
 // todo - refactor this
 sint32 LatteDecompiler_getTextureSamplerBaseIndex(LatteConst::ShaderType shaderType);
-
-void LatteShaderCache_InitBootSound();
-void LatteShaderCache_StreamBootSound();
-void LatteShaderCache_ShutdownBootSound();

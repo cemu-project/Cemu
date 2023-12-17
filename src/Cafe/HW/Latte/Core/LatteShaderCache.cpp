@@ -68,6 +68,9 @@ void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId);
 bool LatteShaderCache_updatePipelineLoadingProgress();
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines);
 
+void LatteShaderCache_InitBootSound();
+void LatteShaderCache_ShutdownBootSound();
+
 void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path pathGenericPre1_25_0, fs::path pathGenericPre1_16_0);
 
 struct
@@ -504,7 +507,6 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 
 		// finish frame
 		g_renderer->SwapBuffers(true, true);
-		LatteShaderCache_StreamBootSound();
 	}
 }
 
@@ -817,47 +819,57 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 	}
 }
 
-static AudioAPIPtr g_BootSndAudioDev = nullptr;
-static std::unique_ptr<BootSoundReader> g_BootSndFileReader;
-static FSCVirtualFile* g_bootSndFileHandle = 0;
+constexpr sint32 samplesPerBlock = 4800;
 
-void LatteShaderCache_InitBootSound()
+void LatteShaderCache_StreamBootSound(const std::stop_token& token)
 {
-	const sint32 samplesPerBlock = 4800;
+	AudioAPIPtr bootSndAudioDev;
+	std::unique_ptr<BootSoundReader> bootSndFileReader;
+	FSCVirtualFile* bootSndFileHandle = 0;
+
 	const sint32 audioBlockSize = samplesPerBlock * 2 * 2;
 	try
 	{
-		g_BootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
+		bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
 	}
 	catch (const std::runtime_error& ex)
 	{
 		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
 		return;
 	}
-	g_BootSndAudioDev->Play();
+	bootSndAudioDev->Play();
 
 	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
 	sint32 fscStatus = FSC_STATUS_UNDEFINED;
-	g_bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
-	if(!g_bootSndFileHandle)
+	bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+	if(!bootSndFileHandle)
 		return;
 
-	g_BootSndFileReader = std::make_unique<BootSoundReader>(g_bootSndFileHandle, audioBlockSize);
+	bootSndFileReader = std::make_unique<BootSoundReader>(bootSndFileHandle, audioBlockSize);
+
+	if(bootSndAudioDev && bootSndFileHandle && bootSndFileReader)
+	{
+		while(!token.stop_requested())
+		{
+			if (bootSndAudioDev->NeedAdditionalBlocks())
+				bootSndAudioDev->FeedBlock(bootSndFileReader->getSamples());
+			// sleep for half the duration of a single block
+			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (48'000/ 1'000) / 2));
+		}
+	}
+
+	if(bootSndFileHandle)
+		fsc_close(bootSndFileHandle);
 }
 
-void LatteShaderCache_StreamBootSound()
+static std::jthread g_bootSndPlayThread;
+void LatteShaderCache_InitBootSound()
 {
-	if(g_BootSndAudioDev && g_bootSndFileHandle && g_BootSndFileReader)
-	{
-		if (g_BootSndAudioDev->NeedAdditionalBlocks())
-			g_BootSndAudioDev->FeedBlock(g_BootSndFileReader->getSamples());
-	}
+	if(!g_bootSndPlayThread.joinable())
+		g_bootSndPlayThread = std::jthread{LatteShaderCache_StreamBootSound};
 }
 
 void LatteShaderCache_ShutdownBootSound()
 {
-	g_BootSndFileReader.reset();
-	if(g_bootSndFileHandle)
-		fsc_close(g_bootSndFileHandle);
-	g_BootSndAudioDev.reset();
+	g_bootSndPlayThread = {};
 }
