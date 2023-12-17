@@ -821,8 +821,9 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 }
 
 constexpr sint32 samplesPerBlock = 4800;
+static std::atomic<bool> audiothread_keeprunning = true;
 
-void LatteShaderCache_StreamBootSound(const std::stop_token& token)
+void LatteShaderCache_StreamBootSound()
 {
 	AudioAPIPtr bootSndAudioDev;
 	std::unique_ptr<BootSoundReader> bootSndFileReader;
@@ -850,7 +851,7 @@ void LatteShaderCache_StreamBootSound(const std::stop_token& token)
 
 	if(bootSndAudioDev && bootSndFileHandle && bootSndFileReader)
 	{
-		while(!token.stop_requested())
+		while(audiothread_keeprunning)
 		{
 			if (bootSndAudioDev->NeedAdditionalBlocks())
 				bootSndAudioDev->FeedBlock(bootSndFileReader->getSamples());
@@ -863,14 +864,18 @@ void LatteShaderCache_StreamBootSound(const std::stop_token& token)
 		fsc_close(bootSndFileHandle);
 }
 
-static std::jthread g_bootSndPlayThread;
+static std::thread g_bootSndPlayThread;
 void LatteShaderCache_InitBootSound()
 {
+	audiothread_keeprunning = true;
 	if(!g_bootSndPlayThread.joinable())
-		g_bootSndPlayThread = std::jthread{LatteShaderCache_StreamBootSound};
+		g_bootSndPlayThread = std::thread{LatteShaderCache_StreamBootSound};
 }
 
 void LatteShaderCache_ShutdownBootSound()
 {
+	audiothread_keeprunning = false;
+	if(g_bootSndPlayThread.joinable())
+		g_bootSndPlayThread.join();
 	g_bootSndPlayThread = {};
 }
