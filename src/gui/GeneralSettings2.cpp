@@ -182,8 +182,13 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
 
+			m_play_boot_sound = new wxCheckBox(box, wxID_ANY, _("Enable intro sound"));
+			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
+			second_row->Add(m_play_boot_sound, 0, botflag, 5);
+
             		// Enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+					second_row->AddSpacer(10);
             		m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
             		m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
             		second_row->Add(m_feral_gamemode, 0, botflag, 5);
@@ -912,6 +917,8 @@ void GeneralSettings2::StoreConfig()
 		ScreenSaver::SetInhibit(config.disable_screensaver);
 	}
 
+	config.play_boot_sound = m_play_boot_sound->IsChecked();
+
 	if (!LaunchSettings::GetMLCPath().has_value())
 		config.SetMLCPath(wxHelper::MakeFSPath(m_mlc_path->GetValue()), false);
 	
@@ -1518,6 +1525,7 @@ void GeneralSettings2::ApplyConfig()
 
 	m_permanent_storage->SetValue(config.permanent_storage);
 	m_disable_screensaver->SetValue(config.disable_screensaver);
+	m_play_boot_sound->SetValue(config.play_boot_sound);
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     	m_feral_gamemode->SetValue(config.feral_gamemode);
 #endif

@@ -185,9 +185,16 @@ int Latte_ThreadEntry()
 	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
 	GraphicPack2::WaitUntilReady();
 
-	LatteThread_InitBootSound();
+	// initialise resources for playing bootup sound
+	if(GetConfig().play_boot_sound)
+		LatteThread_InitBootSound();
+
 	// load disk shader cache
     LatteShaderCache_Load();
+
+	// free resources for playing boot sound
+	LatteThread_ShutdownBootSound();
+
 	// init registers
 	Latte_LoadInitialRegisters();
 	// let CPU thread know the GPU is done initializing
@@ -198,11 +205,9 @@ int Latte_ThreadEntry()
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		LatteThread_HandleOSScreen();
-		LatteThread_StreamBootSound();
 		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 	}
-	LatteThread_ShutdownBootSound();
 	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
 	LatteCP_ProcessRingbuffer();
 	cemu_assert_debug(false); // should never reach
