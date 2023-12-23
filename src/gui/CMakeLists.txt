@@ -151,7 +151,7 @@ target_link_libraries(CemuGui PRIVATE
 	ZArchive::zarchive
 )
 
-if(UNIX AND NOT APPLE)
+if(ENABLE_WXWIDGETS AND UNIX AND NOT APPLE)
 	target_link_libraries(CemuGui PRIVATE GTK3::gtk)
   if (ENABLE_WAYLAND)
     target_link_libraries(CemuGui PRIVATE Wayland::Client CemuWaylandProtocols)
@@ -167,10 +167,11 @@ if(UNIX AND NOT APPLE)
 		target_link_libraries(CemuGui PRIVATE gamemode)
 	endif()
 endif()
-
-# PUBLIC because wx/app.h is included in CemuApp.h
-target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
+if (ENABLE_WXWIDGETS)
+	# PUBLIC because wx/app.h is included in CemuApp.h
+	target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
 endif()
 
 if(WIN32)
 	target_link_libraries(CemuGui PRIVATE bthprops)
+endif()

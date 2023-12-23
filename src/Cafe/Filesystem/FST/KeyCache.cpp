@@ -1,5 +1,4 @@
 #include <mutex>
-#include <gui/helpers/wxHelpers.h>
 
 #include "config/ActiveSettings.h"
 #include "util/crypto/aes128.h"

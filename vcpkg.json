@@ -60,6 +60,9 @@
       "default-features": false,
       "features": [ "openssl" ]
     },
-    "libusb"
+    {
+      "name": "libusb",
+      "platform": "!android"
+    }
   ]
 }
