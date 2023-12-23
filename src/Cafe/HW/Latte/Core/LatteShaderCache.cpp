@@ -833,12 +833,15 @@ void LatteShaderCache_StreamBootSound()
 	try
 	{
 		bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
+		if(!bootSndAudioDev)
+			return;
 	}
 	catch (const std::runtime_error& ex)
 	{
 		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
 		return;
 	}
+	bootSndAudioDev->SetAudioDelayOverride(4);
 	bootSndAudioDev->Play();
 
 	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
@@ -853,10 +856,10 @@ void LatteShaderCache_StreamBootSound()
 	{
 		while(audiothread_keeprunning)
 		{
-			if (bootSndAudioDev->NeedAdditionalBlocks())
+			while (bootSndAudioDev->NeedAdditionalBlocks())
 				bootSndAudioDev->FeedBlock(bootSndFileReader->getSamples());
-			// sleep for half the duration of a single block
-			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (48'000/ 1'000) / 2));
+			// sleep for the duration of a single block
+			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (48'000/ 1'000)));
 		}
 	}
 

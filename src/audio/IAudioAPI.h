@@ -55,6 +55,8 @@ public:
 	virtual bool FeedBlock(sint16* data) = 0;
 	virtual bool Play() = 0;
 	virtual bool Stop() = 0;
+	void SetAudioDelayOverride(uint32 delay);
+	uint32 GetAudioDelay() const;
 
 	static void PrintLogging();
 	static void InitializeStatic();
@@ -77,9 +79,10 @@ protected:
 	bool m_playing = false;
 
 	static std::array<bool, AudioAPIEnd> s_availableApis;
-	static uint32 s_audioDelay;
+	uint32 m_audioDelayOverride = 0;
 
 private:
+	static uint32 s_audioDelay;
 	void InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_sample);
 	
 };
