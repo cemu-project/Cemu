@@ -1,4 +1,4 @@
-#include "gui/CemuUpdateWindow.h"
+#include "CemuUpdateWindow.h"
 
 #include "Common/version.h"
 #include "util/helpers/helpers.h"

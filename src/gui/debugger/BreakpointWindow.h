@@ -1,5 +1,5 @@
 #pragma once
-#include "gui/wxcomponents/checkedlistctrl.h"
+#include "wxcomponents/checkedlistctrl.h"
 
 class DebuggerWindow2;
 

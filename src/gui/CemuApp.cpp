@@ -1,19 +1,19 @@
-#include "gui/CemuApp.h"
-#include "gui/MainWindow.h"
-#include "gui/wxgui.h"
+#include "CemuApp.h"
+#include "MainWindow.h"
+#include "wxgui.h"
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
-#include "gui/guiWrapper.h"
 #include "config/ActiveSettings.h"
-#include "gui/GettingStartedDialog.h"
+#include "GettingStartedDialog.h"
 #include "config/PermanentConfig.h"
 #include "config/PermanentStorage.h"
 #include "input/InputManager.h"
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 #include "Cemu/ncrypto/ncrypto.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 #if BOOST_OS_LINUX && HAS_WAYLAND
-#include "gui/helpers/wxWayland.h"
+#include "helpers/wxWayland.h"
 #endif
 
 #include <wx/image.h>
@@ -25,10 +25,6 @@
 #include "Cafe/TitleList/SaveList.h"
 
 wxIMPLEMENT_APP_NO_MAIN(CemuApp);
-
-// defined in guiWrapper.cpp
-extern WindowInfo g_window_info;
-extern std::shared_mutex g_mutex;
 
 int mainEmulatorHLE();
 void HandlePostUpdate();
@@ -56,6 +52,7 @@ void unused_translation_dummy()
 
 bool CemuApp::OnInit()
 {
+	GuiSystem::registerKeyCodeToStringCallback(rawKeyCodeToString);
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
@@ -128,8 +125,7 @@ bool CemuApp::OnInit()
 	if (first_start)
 		m_mainFrame->ShowGettingStartedDialog();
 
-	std::unique_lock lock(g_mutex);
-	g_window_info.app_active = true;
+	GuiSystem::getWindowInfo().app_active = true;
 
 	SetTopWindow(m_mainFrame);
 	m_mainFrame->Show();
@@ -188,21 +184,28 @@ void CemuApp::OnAssertFailure(const wxChar* file, int line, const wxChar* func, 
 
 int CemuApp::FilterEvent(wxEvent& event)
 {
+	auto& windowInfo = GuiSystem::getWindowInfo();
 	if(event.GetEventType() == wxEVT_KEY_DOWN)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
-		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
+		windowInfo.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
+		auto platformKeyCode = rawKeyCodeToPlatformKeyCode(key_event.GetRawKeyCode());
+		if (platformKeyCode.has_value())
+			windowInfo.set_keystate(platformKeyCode.value(), true);
 	}
 	else if(event.GetEventType() == wxEVT_KEY_UP)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
-		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
+		windowInfo.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
+		auto platformKeyCode = rawKeyCodeToPlatformKeyCode(key_event.GetRawKeyCode());
+		if (platformKeyCode.has_value())
+			windowInfo.set_keystate(platformKeyCode.value(), false);
 	}
 	else if(event.GetEventType() == wxEVT_ACTIVATE_APP)
 	{
 		const auto& activate_event = (wxActivateEvent&)event;
 		if(!activate_event.GetActive())
-			g_window_info.set_keystatesup();
+			windowInfo.set_keystates_up();
 	}
 
 	return wxApp::FilterEvent(event);
@@ -422,8 +425,29 @@ bool CemuApp::SelectMLCPath(wxWindow* parent)
 
 void CemuApp::ActivateApp(wxActivateEvent& event)
 {
-	g_window_info.app_active = event.GetActive();
+	GuiSystem::getWindowInfo().app_active = event.GetActive();
 	event.Skip();
 }
 
+#if BOOST_OS_WINDOWS
+void _wxLaunch()
+{
+	SetThreadName("MainThread_UI");
+	wxEntry();
+}
+#endif
 
+void gui_create()
+{
+	SetThreadName("MainThread");
+#if BOOST_OS_WINDOWS
+	// on Windows wxWidgets there is a bug where wxDirDialog->ShowModal will deadlock in Windows internals somehow
+	// moving the UI thread off the main thread fixes this
+	std::thread t = std::thread(_wxLaunch);
+	t.join();
+#else
+	int argc = 0;
+	char* argv[1]{};
+	wxEntry(argc, argv);
+#endif
+}

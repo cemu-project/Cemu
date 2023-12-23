@@ -5,9 +5,7 @@
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "boost/algorithm/string.hpp"
 
-#include "gui/wxgui.h" // for wxMessageBox
 #include "gui/helpers/wxHelpers.h"
-
 // error handler
 void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumber, std::string_view errorMsg)
 {
@@ -63,8 +61,7 @@ void PatchErrorHandler::showStageErrorMessageBox()
 			errorMsg.append("\n");
 		}
 	}
-
-	wxMessageBox(errorMsg, _("Graphic pack error"));
+	cemuLog_log(LogType::Force, "Graphic pack error: {}", errorMsg);
 }
 
 // loads Cemu-style patches (patch_<anything>.asm)

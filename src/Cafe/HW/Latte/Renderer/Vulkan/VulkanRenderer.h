@@ -12,6 +12,7 @@
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
 #include "util/containers/robin_hood.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 
 struct VkSupportedFormatInfo_t
 {
@@ -183,7 +184,10 @@ public:
 	void GetDeviceFeatures();
 	void DetermineVendor();
 	void InitializeSurface(const Vector2i& size, bool mainWindow);
-
+#if __ANDROID__
+	void ClearSurface(bool mainWindow);
+	void NotifySurfaceChanged(bool mainWindow);
+#endif // __ANDROID
 	const std::unique_ptr<SwapchainInfoVk>& GetChainInfoPtr(bool mainWindow) const;
 	SwapchainInfoVk& GetChainInfo(bool mainWindow) const;
 
@@ -199,14 +203,18 @@ public:
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
 #endif
 #if BOOST_OS_LINUX
+#if __ANDROID__
+	static VkSurfaceKHR CreateAndroidSurface(VkInstance instance, ANativeWindow* window);
+#else
 	static VkSurfaceKHR CreateXlibSurface(VkInstance instance, Display* dpy, Window window);
     static VkSurfaceKHR CreateXcbSurface(VkInstance instance, xcb_connection_t* connection, xcb_window_t window);
-	#ifdef HAS_WAYLAND
+#ifdef HAS_WAYLAND
 	static VkSurfaceKHR CreateWaylandSurface(VkInstance instance, wl_display* display, wl_surface* surface);
-	#endif
-#endif
+#endif // HAS_WAYLAND
+#endif // __ANDROID__
+#endif // BOOST_OS_LINUX
 
-	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo);
+	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, GuiSystem::WindowHandleInfo& windowInfo);
 
 	void AppendOverlayDebugInfo() override;
 
@@ -599,6 +607,11 @@ private:
 	VkPipelineLayout m_pipelineLayout{nullptr};
 	VkCommandPool m_commandPool{ nullptr };
 	
+#if __ANDROID__
+	std::mutex m_surfaceMutex;
+	std::condition_variable m_surfaceCondVar;
+#endif // __ANDROID__
+
 	// buffer to cache uniform vars
 	VkBuffer m_uniformVarBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_uniformVarBufferMemory = VK_NULL_HANDLE;

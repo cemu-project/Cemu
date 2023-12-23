@@ -1,4 +1,4 @@
-#include "gui/wxgui.h"
+#include "wxgui.h"
 #include "TextList.h"
 #include <wx/setup.h>
 #include <wx/tooltip.h>

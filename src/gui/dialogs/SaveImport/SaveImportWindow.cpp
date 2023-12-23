@@ -16,7 +16,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "util/helpers/helpers.h"
 #include "Cafe/HW/Espresso/PPCState.h"
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 
 SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
 	: wxDialog(parent, wxID_ANY, _("Import save entry"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxFRAME_TOOL_WINDOW | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),

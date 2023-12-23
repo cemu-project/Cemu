@@ -1,6 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
-#include "gui/wxgui.h"
 #include "Cafe/OS/libs/vpad/vpad.h"
 #include "audio/IAudioAPI.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
@@ -263,7 +262,7 @@ namespace vpad
 			PPCCore_switchToScheduler();
 		}
 
-		if (!g_inputConfigWindowHasFocus)
+		if (!InputManager::input_config_window_has_focus())
 		{
 			if (channel <= 1 && vpadDelayEnabled)
 			{

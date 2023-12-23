@@ -1,4 +1,4 @@
-#include "gui/wxgui.h"
+#include "wxgui.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Scheduler.h"
 #include "DebugPPCThreadsWindow.h"

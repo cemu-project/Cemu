@@ -1,5 +1,5 @@
 #pragma once
-#include "gui/components/TextList.h"
+#include "components/TextList.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 class RegisterCtrl : public TextList

@@ -1,7 +1,7 @@
-#include "gui/wxgui.h"
-#include "gui/GeneralSettings2.h"
-#include "gui/CemuApp.h"
-#include "gui/helpers/wxControlObject.h"
+#include "wxgui.h"
+#include "GeneralSettings2.h"
+#include "CemuApp.h"
+#include "helpers/wxControlObject.h"
 
 #include "util/helpers/helpers.h"
 
@@ -31,7 +31,7 @@
 
 #include <boost/tokenizer.hpp>
 #include "util/helpers/SystemException.h"
-#include "gui/dialogs/CreateAccount/wxCreateAccountDialog.h"
+#include "dialogs/CreateAccount/wxCreateAccountDialog.h"
 #include "config/PermanentStorage.h"
 
 #if BOOST_OS_WINDOWS
@@ -40,7 +40,7 @@
 
 #include "config/LaunchSettings.h"
 #include "config/ActiveSettings.h"
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 
 #include "resource/embedded/resources.h"
 

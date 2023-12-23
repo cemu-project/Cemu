@@ -1,8 +1,8 @@
-#include "gui/input/InputAPIAddWindow.h"
+#include "input/InputAPIAddWindow.h"
 
 #include "input/InputManager.h"
-#include "gui/helpers/wxCustomData.h"
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxCustomData.h"
+#include "helpers/wxHelpers.h"
 #include "input/api/Controller.h"
 
 #include <wx/sizer.h>

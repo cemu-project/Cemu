@@ -1,7 +1,6 @@
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 
 #include "Cafe/Account/Account.h"
-#include "gui/CemuApp.h"
 #include "util/crypto/md5.h"
 #include "Cafe/TitleList/TitleId.h"
 #include "Common/FileStream.h"
@@ -10,7 +9,6 @@
 #include "config/ActiveSettings.h"
 #include "util/ThreadPool/ThreadPool.h"
 #include "util/helpers/enum_array.hpp"
-#include "gui/MainWindow.h"
 
 #include "Cafe/Filesystem/FST/FST.h"
 #include "Cafe/TitleList/TitleList.h"
@@ -20,15 +18,21 @@
 #include <curl/curl.h>
 #include <pugixml.hpp>
 
-#include "gui/helpers/wxHelpers.h"
-
 #include "Cemu/napi/napi.h"
 #include "util/helpers/Serializer.h"
 
 FileCache* s_nupFileCache = nullptr;
 
-/* version list */
+// Todo: replace this
+std::string _(const std::string& str) { return str; }
+std::string from_wxString(const std::string& str){ return str; }
 
+void DownloadManager::setOnGameListRefreshRequested(const std::function<void()>& onGameListRefreshRequested)
+{
+	m_onGameListRefreshRequested = onGameListRefreshRequested;
+}
+
+/* version list */
 void DownloadManager::downloadTitleVersionList()
 {
 	if (m_hasTitleVersionList)
@@ -371,7 +375,7 @@ bool DownloadManager::syncAccountTickets()
 	for (auto& tiv : resultTicketIds.tivs)
 	{
 		index++;
-		std::string msg = _("Downloading account ticket").utf8_string();
+		std::string msg = _("Downloading account ticket");
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		// skip if already cached
@@ -508,7 +512,7 @@ bool DownloadManager::syncUpdateTickets()
 		if (titleIdParser.GetType() != TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE)
 			continue;
 
-		std::string msg = _("Downloading ticket").utf8_string();
+		std::string msg = _("Downloading ticket");
 		msg.append(fmt::format(" {0}/{1}", updateIndex, numUpdates));
 		updateIndex++;
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
@@ -561,7 +565,7 @@ bool DownloadManager::syncTicketCache()
 	for (auto& ticketInfo : m_ticketCache)
 	{
 		index++;
-		std::string msg = _("Downloading meta data").utf8_string();
+		std::string msg = _("Downloading meta data");
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		prepareIDBE(ticketInfo.titleId);
@@ -1453,7 +1457,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	reportPackageStatus(package);
 	checkPackagesState();
 	// lastly request game list to be refreshed
-	MainWindow::RequestGameListRefresh();
+	if (m_onGameListRefreshRequested) m_onGameListRefreshRequested();
 	return;
 }
 

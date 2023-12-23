@@ -6,8 +6,12 @@
 #include "wglext.h"
 #endif
 
-#if BOOST_OS_LINUX > 0
-
+#if BOOST_OS_LINUX
+#if __ANDROID__
+#define EGL_EGL_PROTOTYPES 0
+#include "egl.h"
+#undef EGL_EGL_PROTOTYPES
+#else
 // from Xlib
 #define Bool int
 #define Status int
@@ -33,8 +37,8 @@ typedef struct __GLXFBConfigRec *GLXFBConfig;
 #undef Status
 #undef True
 #undef False
-
-#endif
+#endif // __ANDROID__
+#endif // BOOST_OS_LINUX
 
 #define GLFUNC(__type, __name)	extern __type __name;
 #define EGLFUNC(__type, __name) extern __type __name;

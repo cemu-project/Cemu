@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/debugger/DumpCtrl.h"
+#include "debugger/DumpCtrl.h"
 
 class DebuggerWindow2;
 

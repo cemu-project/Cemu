@@ -1,7 +1,6 @@
-#include "gui/wxgui.h"
-#include "gui/guiWrapper.h"
-#include "gui/debugger/SymbolWindow.h"
-#include "gui/debugger/DebuggerWindow2.h"
+#include "wxgui.h"
+#include "debugger/SymbolWindow.h"
+#include "debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 

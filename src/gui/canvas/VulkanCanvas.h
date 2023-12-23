@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/canvas/IRenderCanvas.h"
+#include "canvas/IRenderCanvas.h"
 
 #include <wx/frame.h>
 

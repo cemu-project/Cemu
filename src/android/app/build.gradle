@@ -1,0 +1,71 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'info.cemu.Cemu'
+    compileSdk 34
+    ndkVersion '25.2.9519653'
+    defaultConfig {
+        applicationId "info.cemu.Cemu"
+        minSdk 30
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+        ndk {
+//            abiFilters("x86_64", "arm64-v8a")
+            abiFilters("arm64-v8a")
+        }
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    externalNativeBuild {
+        cmake {
+            version '3.22.1'
+            path file('../../../CMakeLists.txt')
+        }
+    }
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                arguments(
+                        '-DENABLE_VCPKG=ON',
+                        '-DVCPKG_TARGET_ANDROID=ON',
+                        '-DENABLE_SDL=OFF',
+                        '-DENABLE_WXWIDGETS=OFF',
+                        '-DENABLE_OPENGL=OFF',
+                        '-DBUNDLE_SPEEX=ON',
+                        '-DENABLE_DISCORD_RPC=OFF',
+                        '-DENABLE_WAYLAND=OFF'
+                )
+//                abiFilters("x86_64", "arm64-v8a")
+                abiFilters("arm64-v8a")
+            }
+        }
+    }
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.navigation:navigation-fragment:2.5.3'
+    implementation 'androidx.navigation:navigation-ui:2.5.3'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

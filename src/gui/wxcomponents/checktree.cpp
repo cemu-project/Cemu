@@ -1,12 +1,12 @@
-#include "gui/wxcomponents/checktree.h"
-#include "gui/wxcomponents/checked2.xpm"
-#include "gui/wxcomponents/checked_d.xpm"
-#include "gui/wxcomponents/checked_ld.xpm"
-#include "gui/wxcomponents/checked_mo.xpm"
-#include "gui/wxcomponents/unchecked2.xpm"
-#include "gui/wxcomponents/unchecked_d.xpm"
-#include "gui/wxcomponents/unchecked_ld.xpm"
-#include "gui/wxcomponents/unchecked_mo.xpm"
+#include "wxcomponents/checktree.h"
+#include "wxcomponents/checked2.xpm"
+#include "wxcomponents/checked_d.xpm"
+#include "wxcomponents/checked_ld.xpm"
+#include "wxcomponents/checked_mo.xpm"
+#include "wxcomponents/unchecked2.xpm"
+#include "wxcomponents/unchecked_d.xpm"
+#include "wxcomponents/unchecked_ld.xpm"
+#include "wxcomponents/unchecked_mo.xpm"
 #include <wx/icon.h>
 #include <wx/imaglist.h>
 

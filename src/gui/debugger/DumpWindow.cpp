@@ -1,9 +1,9 @@
-#include "gui/wxgui.h"
-#include "gui/debugger/DumpWindow.h"
+#include "wxgui.h"
+#include "debugger/DumpWindow.h"
 
-#include "gui/debugger/DebuggerWindow2.h"
+#include "debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
-#include "gui/debugger/DumpCtrl.h"
+#include "debugger/DumpCtrl.h"
 
 enum
 {

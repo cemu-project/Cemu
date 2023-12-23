@@ -1,10 +1,9 @@
-#include "gui/wxgui.h"
-#include "gui/debugger/BreakpointWindow.h"
+#include "wxgui.h"
+#include "debugger/BreakpointWindow.h"
 
 #include <sstream>
 
-#include "gui/debugger/DebuggerWindow2.h"
-#include "gui/guiWrapper.h"
+#include "debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "Cemu/ExpressionParser/ExpressionParser.h"
@@ -180,7 +179,7 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 		const auto item = m_breakpoints->GetItemText(index, ColumnAddress);
 		const auto address = std::stoul(item.ToStdString(), nullptr, 16);
 		debuggerState.debugSession.instructionPointer = address;
-		debuggerWindow_moveIP();
+		debugger_getDebuggerCallbacks()->moveIP();
 		return;
 	}
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/helpers/wxCustomData.h"
+#include "helpers/wxCustomData.h"
 #include "config/CemuConfig.h"
 
 #include <wx/listctrl.h>

@@ -1,4 +1,4 @@
-#include "gui/helpers/wxWayland.h"
+#include "helpers/wxWayland.h"
 
 #if BOOST_OS_LINUX && HAS_WAYLAND
 

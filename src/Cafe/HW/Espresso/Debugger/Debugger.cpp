@@ -1,11 +1,8 @@
-#include "gui/guiWrapper.h"
 #include "Debugger.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cemu/ExpressionParser/ExpressionParser.h"
-
-#include "gui/debugger/DebuggerWindow2.h"
 
 #include "Cafe/OS/libs/coreinit/coreinit.h"
 
@@ -14,6 +11,21 @@
 #endif
 
 debuggerState_t debuggerState{ };
+
+DebuggerCallbacks* sDebuggerCallbacks = nullptr;
+
+void debugger_registerDebuggerCallbacks(DebuggerCallbacks* debuggerCallbacks)
+{
+	sDebuggerCallbacks = debuggerCallbacks;
+}
+void debugger_unregisterDebuggerCallbacks()
+{
+	sDebuggerCallbacks = nullptr;
+}
+DebuggerCallbacks* debugger_getDebuggerCallbacks()
+{
+	return sDebuggerCallbacks;
+}
 
 DebuggerBreakpoint* debugger_getFirstBP(uint32 address)
 {
@@ -326,7 +338,8 @@ void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* b
 			{
 				bp->enabled = state;
 				debugger_updateExecutionBreakpoint(address);
-				debuggerWindow_updateViewThreadsafe2();
+				if (sDebuggerCallbacks)
+					sDebuggerCallbacks->updateViewThreadsafe();
 			}
 			else if (bpItr->isMemBP())
 			{
@@ -348,7 +361,8 @@ void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* b
 					debugger_updateMemoryBreakpoint(bpItr);
 				else
 					debugger_updateMemoryBreakpoint(nullptr);
-				debuggerWindow_updateViewThreadsafe2();
+				if (sDebuggerCallbacks)
+					sDebuggerCallbacks->updateViewThreadsafe();
 			}
 			return;
 		}
@@ -456,8 +470,8 @@ void debugger_stepInto(PPCInterpreter_t* hCPU, bool updateDebuggerWindow = true)
 	PPCInterpreterSlim_executeInstruction(hCPU);
 	debugger_updateExecutionBreakpoint(initialIP);
 	debuggerState.debugSession.instructionPointer = hCPU->instructionPointer;
-	if(updateDebuggerWindow)
-		debuggerWindow_moveIP();
+	if(updateDebuggerWindow && sDebuggerCallbacks)
+			sDebuggerCallbacks->moveIP();
 	ppcRecompilerEnabled = isRecEnabled;
 }
 
@@ -476,7 +490,8 @@ bool debugger_stepOver(PPCInterpreter_t* hCPU)
 		// nothing to skip, use step-into
 		debugger_stepInto(hCPU);
 		debugger_updateExecutionBreakpoint(initialIP);
-		debuggerWindow_moveIP();
+		if (sDebuggerCallbacks)
+			sDebuggerCallbacks->moveIP();
 		ppcRecompilerEnabled = isRecEnabled;
 		return false;
 	}
@@ -484,7 +499,8 @@ bool debugger_stepOver(PPCInterpreter_t* hCPU)
 	debugger_createCodeBreakpoint(initialIP + 4, DEBUGGER_BP_T_ONE_SHOT);
 	// step over current instruction (to avoid breakpoint)
 	debugger_stepInto(hCPU);
-	debuggerWindow_moveIP();
+	if (sDebuggerCallbacks)
+		sDebuggerCallbacks->moveIP();
 	// restore breakpoints
 	debugger_updateExecutionBreakpoint(initialIP);
 	// run
@@ -543,8 +559,11 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 	DebuggerBreakpoint* singleshotBP = debugger_getFirstBP(debuggerState.debugSession.instructionPointer, DEBUGGER_BP_T_ONE_SHOT);
 	if (singleshotBP)
 		debugger_deleteBreakpoint(singleshotBP);
-	debuggerWindow_notifyDebugBreakpointHit2();
-	debuggerWindow_updateViewThreadsafe2();
+	if (sDebuggerCallbacks)
+	{
+		sDebuggerCallbacks->notifyDebugBreakpointHit();
+		sDebuggerCallbacks->updateViewThreadsafe();
+	}
 	// reset step control
 	debuggerState.debugSession.stepInto = false;
 	debuggerState.debugSession.stepOver = false;
@@ -561,14 +580,16 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 				break; // if true is returned, continue with execution
 			}
 			debugger_createPPCStateSnapshot(hCPU);
-			debuggerWindow_updateViewThreadsafe2();
+			if (sDebuggerCallbacks)
+				sDebuggerCallbacks->updateViewThreadsafe();
 			debuggerState.debugSession.stepOver = false;
 		}
 		if (debuggerState.debugSession.stepInto)
 		{
 			debugger_stepInto(hCPU);
 			debugger_createPPCStateSnapshot(hCPU);
-			debuggerWindow_updateViewThreadsafe2();
+			if (sDebuggerCallbacks)
+				sDebuggerCallbacks->updateViewThreadsafe();
 			debuggerState.debugSession.stepInto = false;
 			continue;
 		}
@@ -585,8 +606,11 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 
 	debuggerState.debugSession.isTrapped = false;
 	debuggerState.debugSession.hCPU = nullptr;
-	debuggerWindow_updateViewThreadsafe2();
-	debuggerWindow_notifyRun();
+	if (sDebuggerCallbacks)
+	{
+		sDebuggerCallbacks->updateViewThreadsafe();
+		sDebuggerCallbacks->notifyRun();
+	}
 }
 
 void debugger_shouldBreak(PPCInterpreter_t* hCPU)

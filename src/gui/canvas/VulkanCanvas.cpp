@@ -1,9 +1,10 @@
-#include "gui/canvas/VulkanCanvas.h"
+#include "canvas/VulkanCanvas.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "gui/guiWrapper.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
+#include "helpers/wxHelpers.h"
 
 #if BOOST_OS_LINUX && HAS_WAYLAND
-#include "gui/helpers/wxWayland.h"
+#include "helpers/wxWayland.h"
 #endif
 
 #include <wx/msgdlg.h>
@@ -15,10 +16,10 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	Bind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Bind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
 
-	WindowHandleInfo& canvas = is_main_window ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
-	gui_initHandleContextFromWxWidgetsWindow(canvas, this);
+	auto& canvas = is_main_window ? GuiSystem::getWindowInfo().canvas_main : GuiSystem::getWindowInfo().canvas_pad;
+	canvas = get_window_handle_info_for_wxWindow(this);
 	#if BOOST_OS_LINUX && HAS_WAYLAND
-	if (canvas.backend == WindowHandleInfo::Backend::WAYLAND)
+	if (canvas.backend == GuiSystem::WindowHandleInfo::Backend::Wayland)
 	{
 		m_subsurface = std::make_unique<wxWlSubsurface>(this);
 		canvas.surface = m_subsurface->getSurface();

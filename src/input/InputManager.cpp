@@ -46,6 +46,9 @@ InputManager::InputManager()
 #if HAS_WIIMOTE
 	create_provider<WiimoteControllerProvider>();
 #endif
+#if __ANDROID__
+	create_provider<AndroidControllerProvider>();
+#endif
 
 	m_update_thread_shutdown.store(false);
 	m_update_thread = std::thread(&InputManager::update_thread, this);
@@ -55,6 +58,18 @@ InputManager::~InputManager()
 {
 	m_update_thread_shutdown.store(true);
 	m_update_thread.join();
+}
+
+bool s_input_config_window_has_focus = false;
+
+bool InputManager::input_config_window_has_focus()
+{
+	return s_input_config_window_has_focus;
+}
+
+void InputManager::set_input_config_window_focus(bool has_focus)
+{
+	s_input_config_window_has_focus = has_focus;
 }
 
 void InputManager::load() noexcept

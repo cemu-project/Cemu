@@ -5,7 +5,7 @@
 #include "input/emulated/EmulatedController.h"
 #include "input/api/Controller.h"
 
-#include "gui/wxHelper.h"
+#include "wxHelper.h"
 
 class ControllerBase;
 class wxTextCtrl;

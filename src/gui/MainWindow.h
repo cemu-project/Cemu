@@ -5,13 +5,13 @@
 #include <wx/infobar.h>
 #include "wxcomponents/checkedlistctrl.h"
 
-#include "gui/PadViewFrame.h"
-#include "gui/MemorySearcherTool.h"
+#include "PadViewFrame.h"
+#include "MemorySearcherTool.h"
 
 #include "config/XMLConfig.h"
 
-#include "gui/LoggingWindow.h"
-#include "gui/components/wxGameList.h"
+#include "LoggingWindow.h"
+#include "components/wxGameList.h"
 
 #include <future>
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
@@ -51,7 +51,7 @@ private:
 	INITIATED_BY m_initiatedBy;
 };
 
-class MainWindow : public wxFrame, public CafeSystem::SystemImplementation
+class MainWindow : public wxFrame, public CafeSystem::CafeSystemCallbacks, public CafeSystem::SystemImplementation
 {
 	friend class CemuApp;
 
@@ -61,6 +61,10 @@ public:
 
     void CreateGameListAndStatusBar();
     void DestroyGameListAndStatusBar();
+
+
+	virtual void updateWindowTitles(bool isIdle, bool isLoading, double fps) override;
+	virtual void notifyGameLoaded() override;
 
 	void UpdateSettingsAfterGameLaunch();
 	void RestoreSettingsAfterGameExited();

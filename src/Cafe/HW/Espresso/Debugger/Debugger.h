@@ -98,6 +98,21 @@ typedef struct
 extern debuggerState_t debuggerState;
 
 // new API
+class DebuggerCallbacks
+{
+   public:
+	virtual void updateViewThreadsafe() = 0;
+	virtual void notifyDebugBreakpointHit() = 0;
+	virtual void notifyRun() = 0;
+	virtual void moveIP() = 0;
+	virtual void notifyModuleLoaded(void* module) = 0;
+	virtual void notifyModuleUnloaded(void* module) = 0;
+};
+
+void debugger_registerDebuggerCallbacks(DebuggerCallbacks* debuggerCallbacks);
+void debugger_unregisterDebuggerCallbacks();
+DebuggerCallbacks* debugger_getDebuggerCallbacks();
+
 DebuggerBreakpoint* debugger_getFirstBP(uint32 address);
 void debugger_createCodeBreakpoint(uint32 address, uint8 bpType);
 void debugger_createExecuteBreakpoint(uint32 address);

@@ -12,7 +12,7 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "gui/guiWrapper.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 #include "Cafe/OS/libs/erreula/erreula.h"
 #include "input/InputManager.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
@@ -871,10 +871,10 @@ sint32 _currentOutputImageHeight = 0;
 void LatteRenderTarget_getScreenImageArea(sint32* x, sint32* y, sint32* width, sint32* height, sint32* fullWidth, sint32* fullHeight, bool padView)
 {
 	int w, h;
-	if(padView && gui_isPadWindowOpen())
-		gui_getPadWindowPhysSize(w, h);
+	if(padView && GuiSystem::isPadWindowOpen())
+		GuiSystem::getPadWindowPhysSize(w, h);
 	else
-		gui_getWindowPhysSize(w, h);
+		GuiSystem::getWindowPhysSize(w, h);
 
 	sint32 scaledOutputX;
 	sint32 scaledOutputY;
@@ -1039,8 +1039,8 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		return;
 	}
 
-	const bool tabPressed = gui_isKeyDown(PlatformKeyCodes::TAB);
-	const bool ctrlPressed = gui_isKeyDown(PlatformKeyCodes::LCONTROL);
+	const bool tabPressed = GuiSystem::isKeyDown(GuiSystem::PlatformKeyCodes::TAB);
+	const bool ctrlPressed = GuiSystem::isKeyDown(GuiSystem::PlatformKeyCodes::LCONTROL);
 
 	bool showDRC = swkbd_hasKeyboardInputHook() == false && tabPressed;
 	bool& alwaysDisplayDRC = LatteGPUState.alwaysDisplayDRC;

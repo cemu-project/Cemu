@@ -1,5 +1,5 @@
-#include "gui/wxgui.h"
-#include "gui/debugger/DumpCtrl.h"
+#include "wxgui.h"
+#include "debugger/DumpCtrl.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"

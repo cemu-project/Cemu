@@ -1,6 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
-#include "gui/wxgui.h"
 #include "Cafe/OS/libs/padscore/padscore.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
@@ -450,7 +449,7 @@ sint32 _KPADRead(uint32 channel, KPADStatus_t* samplingBufs, uint32 length, bety
 	samplingBufs->wpadErr = WPAD_ERR_NONE;
 	samplingBufs->data_format = controller->get_data_format();
 	samplingBufs->devType = controller->get_device_type();
-	if(!g_inputConfigWindowHasFocus)
+	if (!InputManager::input_config_window_has_focus())
 	{
 		const auto btn_repeat = padscore::g_padscore.controller_data[channel].btn_repeat;
 		controller->KPADRead(*samplingBufs, btn_repeat);

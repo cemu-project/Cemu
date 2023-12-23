@@ -1,9 +1,9 @@
-#include "gui/wxgui.h"
-#include "gui/debugger/RegisterWindow.h"
+#include "wxgui.h"
+#include "debugger/RegisterWindow.h"
 
 #include <sstream>
 
-#include "gui/debugger/DebuggerWindow2.h"
+#include "debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"

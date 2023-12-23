@@ -1,4 +1,4 @@
-#include "gui/components/wxLogCtrl.h"
+#include "components/wxLogCtrl.h"
 
 #include <boost/algorithm/string.hpp>
 

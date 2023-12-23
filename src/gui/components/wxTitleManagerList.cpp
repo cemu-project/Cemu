@@ -1,12 +1,12 @@
-#include "gui/components/wxTitleManagerList.h"
-#include "gui/helpers/wxHelpers.h"
+#include "components/wxTitleManagerList.h"
+#include "helpers/wxHelpers.h"
 #include "util/helpers/SystemException.h"
 #include "Cafe/TitleList/GameInfo.h"
 #include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/TitleList/TitleList.h"
-#include "gui/components/wxGameList.h"
-#include "gui/helpers/wxCustomEvents.h"
-#include "gui/helpers/wxHelpers.h"
+#include "components/wxGameList.h"
+#include "helpers/wxCustomEvents.h"
+#include "helpers/wxHelpers.h"
 
 #include <wx/imaglist.h>
 #include <wx/wupdlock.h>
@@ -22,8 +22,8 @@
 #include <functional>
 
 #include "config/ActiveSettings.h"
-#include "gui/ChecksumTool.h"
-#include "gui/MainWindow.h"
+#include "ChecksumTool.h"
+#include "MainWindow.h"
 #include "Cafe/TitleList/TitleId.h"
 #include "Cafe/TitleList/SaveList.h"
 #include "Cafe/TitleList/TitleList.h"

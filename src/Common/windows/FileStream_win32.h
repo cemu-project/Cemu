@@ -1,52 +1,44 @@
 #pragma once
 #include "Common/precompiled.h"
+#include "Common/FileStream.h"
 
-class FileStream
+class FileStreamWin32 : public FileStream
 {
  public:
-	static FileStream* openFile(std::string_view path);
-	static FileStream* openFile(const wchar_t* path, bool allowWrite = false);
-	static FileStream* openFile2(const fs::path& path, bool allowWrite = false);
-
-	static FileStream* createFile(const wchar_t* path);
-	static FileStream* createFile(std::string_view path);
-	static FileStream* createFile2(const fs::path& path);
-
 	// helper function to load a file into memory
 	static std::optional<std::vector<uint8>> LoadIntoMemory(const fs::path& path);
 
 	// size and seek
-	void SetPosition(uint64 pos);
+	void SetPosition(uint64 pos) override;
 
-	uint64 GetSize();
-	bool SetEndOfFile();
-	void extract(std::vector<uint8>& data);
+	uint64 GetSize() override;
+	bool SetEndOfFile() override;
+	void extract(std::vector<uint8>& data) override;
 
 	// reading
-	uint32 readData(void* data, uint32 length);
-	bool readU64(uint64& v);
-	bool readU32(uint32& v);
-	bool readU16(uint16& v);
-	bool readU8(uint8& v);
-	bool readLine(std::string& line);
+	uint32 readData(void* data, uint32 length) override;
+	bool readU64(uint64& v) override;
+	bool readU32(uint32& v) override;
+	bool readU8(uint8& v) override;
+	bool readLine(std::string& line) override;
 
 	// writing (binary)
-	sint32 writeData(const void* data, sint32 length);
-	void writeU64(uint64 v);
-	void writeU32(uint32 v);
-	void writeU16(uint16 v);
-	void writeU8(uint8 v);
+	sint32 writeData(const void* data, sint32 length) override;
+	void writeU64(uint64 v) override;
+	void writeU32(uint32 v) override;
+	void writeU8(uint8 v) override;
 
 	// writing (strings)
-	void writeStringFmt(const char* format, ...);
-	void writeString(const char* str);
-	void writeLine(const char* str);
+	void writeStringFmt(const char* format, ...) override;
+	void writeString(const char* str) override;
+	void writeLine(const char* str) override;
 
-	~FileStream();
-	FileStream() = default;
+	virtual ~FileStreamWin32();
+	FileStreamWin32() = default;
 
  private:
-	FileStream(HANDLE hFile);
+    friend class FileStream;
+	FileStreamWin32(HANDLE hFile);
 
 	bool m_isValid{};
 	HANDLE m_hFile;

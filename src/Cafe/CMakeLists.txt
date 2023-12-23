@@ -497,6 +497,13 @@ if(APPLE)
 	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
 endif()
 
+if(ANDROID)
+  target_sources(CemuCafe PRIVATE
+    Filesystem/fscDeviceAndroidSAF.cpp
+    Filesystem/fscDeviceAndroidSAF.h
+  )
+endif()
+
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(CemuCafe PUBLIC "../")
@@ -507,7 +514,6 @@ target_link_libraries(CemuCafe PRIVATE
 	CemuCommon
 	CemuComponents
 	CemuConfig
-	CemuGui
 	CemuInput
 	CemuResource
 	CemuUtil
@@ -542,10 +548,6 @@ if (ENABLE_NSYSHID_LIBUSB)
 		target_link_libraries(CemuCafe PRIVATE libusb::libusb)
 	endif ()
 endif ()
-
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuCafe PRIVATE wx::base wx::core)
-endif()
 
 if(WIN32)
 	target_link_libraries(CemuCafe PRIVATE iphlpapi)

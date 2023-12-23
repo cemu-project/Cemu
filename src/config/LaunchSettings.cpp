@@ -6,7 +6,6 @@
 #include "Cafe/OS/libs/coreinit/coreinit.h"
 
 #include "boost/program_options.hpp"
-#include <wx/msgdlg.h>
 
 #include "config/ActiveSettings.h"
 #include "config/NetworkSettings.h"
@@ -212,10 +211,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 	}
 	catch (const std::exception& ex)
 	{
-		std::string errorMsg;
-		errorMsg.append("Error while trying to parse command line parameter:\n");
-		errorMsg.append(ex.what());
-		wxMessageBox(errorMsg, "Parameter error", wxICON_ERROR);
+		cemuLog_log(LogType::Force, "Error while trying to parse command line parameter: {}", ex.what());
 		return false;
 	}
 	

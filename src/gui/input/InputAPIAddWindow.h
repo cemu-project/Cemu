@@ -6,7 +6,7 @@
 #include <wx/dialog.h>
 #include <wx/panel.h>
 
-#include "gui/helpers/wxCustomData.h"
+#include "helpers/wxCustomData.h"
 #include "input/api/Controller.h"
 
 class wxComboBox;

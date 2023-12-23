@@ -1,4 +1,4 @@
-#include "gui/wxgui.h"
+#include "wxgui.h"
 #include "TextureRelationWindow.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 

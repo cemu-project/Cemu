@@ -1,5 +1,5 @@
 #pragma once
-#include "gui/components/TextList.h"
+#include "components/TextList.h"
 
 
 class DumpCtrl : public TextList

@@ -1,0 +1,3 @@
+<resources>
+    <dimen name="settings_fab_margin">48dp</dimen>
+</resources>

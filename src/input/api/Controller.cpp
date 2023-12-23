@@ -1,7 +1,5 @@
 #include "input/api/Controller.h"
 
-#include "gui/guiWrapper.h"
-
 ControllerBase::ControllerBase(std::string_view uuid, std::string_view display_name)
 	: m_uuid{uuid}, m_display_name{display_name}
 {

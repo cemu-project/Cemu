@@ -1,4 +1,4 @@
-#include "gui/helpers/wxCustomEvents.h"
+#include "helpers/wxCustomEvents.h"
 
 wxDEFINE_EVENT(wxEVT_SET_STATUS_BAR_TEXT, wxSetStatusBarTextEvent);
 wxDEFINE_EVENT(wxEVT_SET_GAUGE_VALUE, wxSetGaugeValue);

@@ -1,10 +1,10 @@
-#include "gui/ChecksumTool.h"
+#include "ChecksumTool.h"
 
 #include "Cafe/TitleList/GameInfo.h"
-#include "gui/helpers/wxCustomEvents.h"
+#include "helpers/wxCustomEvents.h"
 #include "util/helpers/helpers.h"
-#include "gui/helpers/wxHelpers.h"
-#include "gui/wxHelper.h"
+#include "helpers/wxHelpers.h"
+#include "wxHelper.h"
 #include "Cafe/Filesystem/WUD/wud.h"
 
 #include <zip.h>

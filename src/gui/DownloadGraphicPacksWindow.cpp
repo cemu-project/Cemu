@@ -1,5 +1,5 @@
-#include "gui/wxgui.h"
-#include "gui/DownloadGraphicPacksWindow.h"
+#include "wxgui.h"
+#include "DownloadGraphicPacksWindow.h"
 
 #include <filesystem>
 #include <curl/curl.h>

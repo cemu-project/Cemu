@@ -15,10 +15,6 @@ add_library(CemuInput
 	api/DSU/DSUControllerProvider.h
 	api/DSU/DSUMessages.h
 	api/DSU/DSUMessages.cpp
-	api/SDL/SDLController.cpp
-	api/SDL/SDLControllerProvider.cpp
-	api/SDL/SDLController.h
-	api/SDL/SDLControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.cpp
 	api/Keyboard/KeyboardController.cpp
@@ -76,24 +72,39 @@ if (ENABLE_WIIMOTE)
 endif ()
 
 
+if(ANDROID)
+	target_sources(CemuInput PRIVATE
+		api/Android/AndroidControllerProvider.cpp
+		api/Android/AndroidControllerProvider.h
+		api/Android/AndroidController.cpp
+		api/Android/AndroidController.h
+	)
+endif()
+
+if(ENABLE_SDL)
+	target_sources(CemuInput PRIVATE
+		api/SDL/SDLController.cpp
+		api/SDL/SDLControllerProvider.cpp
+		api/SDL/SDLController.h
+		api/SDL/SDLControllerProvider.h
+	)
+endif()
 target_include_directories(CemuInput PUBLIC "../")
 
 target_link_libraries(CemuInput PRIVATE
 	CemuCafe
 	CemuCommon
 	CemuConfig
-	CemuGui
 	CemuUtil
 	Boost::headers
 	Boost::program_options
 	glm::glm
 	pugixml::pugixml
-	SDL2::SDL2
 )
 if (ENABLE_HIDAPI)
 	target_link_libraries(CemuInput PRIVATE hidapi::hidapi)
 endif()
 
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuInput PRIVATE wx::base wx::core)
+if(ENABLE_SDL)
+	target_link_libraries(CemuInput PRIVATE	SDL2::SDL2)
 endif()

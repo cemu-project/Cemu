@@ -1,10 +1,9 @@
-#include "gui/guiWrapper.h"
-#include "gui/input/panels/InputPanel.h"
+#include "input/panels/InputPanel.h"
 
 #include <wx/textctrl.h>
 #include <wx/wupdlock.h>
 
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 
 InputPanel::InputPanel(wxWindow* parent)
 	: wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)

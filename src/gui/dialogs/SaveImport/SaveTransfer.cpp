@@ -12,7 +12,7 @@
 #include "Cafe/Account/Account.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 
 SaveTransfer::SaveTransfer(wxWindow* parent, uint64 title_id, const wxString& source_account, uint32 source_id)
 : wxDialog(parent, wxID_ANY, _("Save transfer"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxFRAME_TOOL_WINDOW | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),

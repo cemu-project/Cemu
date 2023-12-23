@@ -16,6 +16,10 @@
 #include "input/api/DSU/DSUControllerProvider.h"
 #include "input/api/GameCube/GameCubeControllerProvider.h"
 
+#if __ANDROID__
+#include "input/api/Android//AndroidControllerProvider.h"
+#endif
+
 #include "input/emulated/VPADController.h"
 #include "input/emulated/WPADController.h"
 
@@ -36,6 +40,9 @@ public:
 	constexpr static size_t kMaxVPADControllers = 2;
 	constexpr static size_t kMaxWPADControllers = 7;
 	
+	static bool input_config_window_has_focus();
+	static void set_input_config_window_focus(bool has_focus);
+
 	void load() noexcept;
 	bool load(size_t player_index, std::string_view filename = {});
 

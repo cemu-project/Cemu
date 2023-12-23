@@ -1,13 +1,13 @@
-#include "gui/wxgui.h"
+#include "wxgui.h"
 
-#include "gui/MemorySearcherTool.h"
+#include "MemorySearcherTool.h"
 
 #include <vector>
 #include <sstream>
 #include <thread>
 
 #include "config/ActiveSettings.h"
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 #include "Common/FileStream.h"
 #include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"

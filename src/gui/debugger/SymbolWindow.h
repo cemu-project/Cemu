@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/debugger/SymbolCtrl.h"
+#include "debugger/SymbolCtrl.h"
 
 class DebuggerWindow2;
 

@@ -1,6 +1,6 @@
 #pragma once
 #include <wx/dialog.h>
-#include "gui/components/wxTitleManagerList.h"
+#include "components/wxTitleManagerList.h"
 #include "Cafe/TitleList/TitleInfo.h"
 #include <rapidjson/document.h>
 

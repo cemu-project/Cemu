@@ -18,7 +18,7 @@
 #endif
 
 // includes
-#include "gui/wxcomponents/checkedlistctrl.h"
+#include "wxcomponents/checkedlistctrl.h"
 #include <wx/icon.h>
 
 #include <wx/settings.h>
@@ -27,10 +27,10 @@
 
 // resources
 
-#include "gui/wxcomponents/checked.xpm"
-#include "gui/wxcomponents/unchecked.xpm"
-#include "gui/wxcomponents/checked_dis.xpm"
-#include "gui/wxcomponents/unchecked_dis.xpm"
+#include "wxcomponents/checked.xpm"
+#include "wxcomponents/unchecked.xpm"
+#include "wxcomponents/checked_dis.xpm"
+#include "wxcomponents/unchecked_dis.xpm"
 
 IMPLEMENT_CLASS(wxCheckedListCtrl, wxListCtrl)
 BEGIN_EVENT_TABLE(wxCheckedListCtrl, wxListCtrl)

@@ -1,4 +1,4 @@
-#include "gui/components/wxInputDraw.h"
+#include "components/wxInputDraw.h"
 
 #include <wx/dcbuffer.h>
 

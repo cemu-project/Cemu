@@ -1,12 +1,12 @@
-#include "gui/LoggingWindow.h"
+#include "LoggingWindow.h"
 
-#include "gui/helpers/wxLogEvent.h"
+#include "helpers/wxLogEvent.h"
 
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/wupdlock.h>
 
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 
 wxDEFINE_EVENT(EVT_LOG, wxLogEvent);
 
@@ -15,6 +15,7 @@ LoggingWindow* s_instance;
 LoggingWindow::LoggingWindow(wxFrame* parent)
 	: wxFrame(parent, wxID_ANY, _("Logging window"), wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
+	cemuLog_registerLogCallbacks(this);
 	auto*  sizer = new wxBoxSizer( wxVERTICAL );
 	{
 		auto filter_row = new wxBoxSizer( wxHORIZONTAL );
@@ -41,44 +42,25 @@ LoggingWindow::LoggingWindow(wxFrame* parent)
 	this->Layout();
 
 	this->Bind(EVT_LOG, &LoggingWindow::OnLogMessage, this);
-
-	std::unique_lock lock(s_mutex);
-	cemu_assert_debug(s_instance == nullptr);
-	s_instance = this;
 }
 
 LoggingWindow::~LoggingWindow()
 {
+	cemuLog_unregisterLogCallbacks();
 	this->Unbind(EVT_LOG, &LoggingWindow::OnLogMessage, this);
-
-	std::unique_lock lock(s_mutex);
-	s_instance = nullptr;
 }
 
 void LoggingWindow::Log(std::string_view filter, std::string_view message)
 {
-	std::shared_lock lock(s_mutex);
-	if(!s_instance)
-		return;
 
 	wxLogEvent event(std::string {filter}, std::string{ message });
-	s_instance->OnLogMessage(event);
-
-	//const auto log_event = new wxLogEvent(filter, message);
-	//wxQueueEvent(s_instance, log_event);
+	OnLogMessage(event);
 }
 
 void LoggingWindow::Log(std::string_view filter, std::wstring_view message)
 {
-	std::shared_lock lock(s_mutex);
-	if(!s_instance)
-		return;
-
 	wxLogEvent event(std::string {filter}, std::wstring{ message });
-	s_instance->OnLogMessage(event);
-
-	//const auto log_event = new wxLogEvent(filter, message);
-	//wxQueueEvent(s_instance, log_event);
+	OnLogMessage(event);
 }
 
 void LoggingWindow::OnLogMessage(wxLogEvent& event)

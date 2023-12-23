@@ -1,5 +1,5 @@
-#include "gui/wxgui.h"
-#include "gui/debugger/DebuggerWindow2.h"
+#include "wxgui.h"
+#include "debugger/DebuggerWindow2.h"
 
 #include <filesystem>
 
@@ -7,16 +7,16 @@
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/OS/RPL/rpl_debug_symbols.h"
 
-#include "gui/debugger/RegisterWindow.h"
-#include "gui/debugger/DumpWindow.h"
+#include "debugger/RegisterWindow.h"
+#include "debugger/DumpWindow.h"
 
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "Cafe/OS/RPL/rpl.h"
-#include "gui/debugger/DisasmCtrl.h"
-#include "gui/debugger/SymbolWindow.h"
-#include "gui/debugger/BreakpointWindow.h"
-#include "gui/debugger/ModuleWindow.h"
+#include "debugger/DisasmCtrl.h"
+#include "debugger/SymbolWindow.h"
+#include "debugger/BreakpointWindow.h"
+#include "debugger/ModuleWindow.h"
 #include "util/helpers/helpers.h"
 
 #include "resource/embedded/resources.h"
@@ -69,8 +69,6 @@ wxBEGIN_EVENT_TABLE(DebuggerWindow2, wxFrame)
 	// window
 	EVT_MENU_RANGE(MENU_ID_WINDOW_REGISTERS, MENU_ID_WINDOW_MODULE, DebuggerWindow2::OnWindowMenu)
 wxEND_EVENT_TABLE()
-
-DebuggerWindow2* g_debugger_window;
 
 void DebuggerConfig::Load(XMLConfigParser& parser)
 {
@@ -328,14 +326,13 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	m_config.data().pin_to_main = true;
 	OnParentMove(m_main_position, m_main_size);
 	m_config.data().pin_to_main = value;
-
-	g_debugger_window = this;
+	debugger_registerDebuggerCallbacks(this);
 }
 
 DebuggerWindow2::~DebuggerWindow2()
 {
 	debuggerState.breakOnEntry = false;
-	g_debugger_window = nullptr;
+	debugger_unregisterDebuggerCallbacks();
 
 	// save configs for all modules that are still loaded
 	// doesn't delete breakpoints since that should (in the future) be done by unloading the rpl modules when exiting the current game
@@ -472,6 +469,39 @@ std::wstring DebuggerWindow2::GetModuleStoragePath(std::string module_name, uint
 {
 	if (module_name.empty() || crc_hash == 0) return {};
 	return ActiveSettings::GetConfigPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
+}
+
+void DebuggerWindow2::updateViewThreadsafe()
+{
+	auto* evt = new wxCommandEvent(wxEVT_UPDATE_VIEW);
+	wxQueueEvent(this, evt);
+}
+void DebuggerWindow2::notifyDebugBreakpointHit()
+{
+	auto* evt = new wxCommandEvent(wxEVT_BREAKPOINT_HIT);
+	wxQueueEvent(this, evt);
+}
+void DebuggerWindow2::notifyRun()
+{
+	auto* evt = new wxCommandEvent(wxEVT_RUN);
+	wxQueueEvent(this, evt);
+}
+void DebuggerWindow2::moveIP()
+{
+	auto* evt = new wxCommandEvent(wxEVT_MOVE_IP);
+	wxQueueEvent(this, evt);
+}
+void DebuggerWindow2::notifyModuleLoaded(void* module)
+{
+	auto* evt = new wxCommandEvent(wxEVT_NOTIFY_MODULE_LOADED);
+	evt->SetClientData(module);
+	wxQueueEvent(this, evt);
+}
+void DebuggerWindow2::notifyModuleUnloaded(void* module)
+{
+	auto* evt = new wxCommandEvent(wxEVT_NOTIFY_MODULE_UNLOADED);
+	evt->SetClientData(module);
+	wxQueueEvent(this, evt);
 }
 
 void DebuggerWindow2::OnBreakpointHit(wxCommandEvent& event)

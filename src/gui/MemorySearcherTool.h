@@ -6,7 +6,7 @@
 
 #include "Cafe/HW/MMU/MMU.h"
 #include "util/helpers/helpers.h"
-#include "gui/helpers/wxCustomEvents.h"
+#include "helpers/wxCustomEvents.h"
 
 enum SearchDataType
 {

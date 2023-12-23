@@ -1,4 +1,4 @@
-#include "gui/input/panels/ClassicControllerInputPanel.h"
+#include "input/panels/ClassicControllerInputPanel.h"
 
 #include <wx/gbsizer.h>
 #include <wx/stattext.h>
@@ -6,10 +6,10 @@
 #include <wx/textctrl.h>
 #include <wx/slider.h>
 
-#include "gui/helpers/wxControlObject.h"
+#include "helpers/wxControlObject.h"
 #include "input/emulated/ClassicController.h"
-#include "gui/helpers/wxHelpers.h"
-#include "gui/components/wxInputDraw.h"
+#include "helpers/wxHelpers.h"
+#include "components/wxInputDraw.h"
 
 constexpr ClassicController::ButtonId g_kFirstColumnItems[] = { ClassicController::kButtonId_A, ClassicController::kButtonId_B, ClassicController::kButtonId_X, ClassicController::kButtonId_Y, ClassicController::kButtonId_L, ClassicController::kButtonId_R, ClassicController::kButtonId_ZL, ClassicController::kButtonId_ZR, ClassicController::kButtonId_Plus, ClassicController::kButtonId_Minus };
 constexpr ClassicController::ButtonId g_kSecondColumnItems[] = { ClassicController::kButtonId_StickL_Up, ClassicController::kButtonId_StickL_Down, ClassicController::kButtonId_StickL_Left, ClassicController::kButtonId_StickL_Right };

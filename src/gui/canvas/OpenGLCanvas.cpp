@@ -1,8 +1,8 @@
-#include "gui/canvas/OpenGLCanvas.h"
+#include "canvas/OpenGLCanvas.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 
 #include "config/CemuConfig.h"
-
+#include "Cafe/HW/Latte/Renderer/OpenGL/GLCanvas.h"
 #include "Common/GLInclude/GLInclude.h"
 #include <wx/glcanvas.h> // this includes GL/gl.h, avoid using this in a header because it would contaminate our own OpenGL definitions (GLInclude)
 
@@ -30,7 +30,7 @@ wxGLContext* sGLContext = nullptr;
 class OpenGLCanvas* sGLTVView = nullptr;
 class OpenGLCanvas* sGLPadView = nullptr;
 
-class OpenGLCanvas : public IRenderCanvas, public wxGLCanvas
+class OpenGLCanvas : public IRenderCanvas, public wxGLCanvas, public OpenGLRenderer::OpenGLCallbacks
 {
 public:
 	OpenGLCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)
@@ -40,8 +40,8 @@ public:
 		{
 			sGLTVView = this;
 			sGLContext = new wxGLContext(this);
-
 			g_renderer = std::make_unique<OpenGLRenderer>();
+			OpenGLRenderer::GetInstance()->RegisterOpenGLCallbacks(this);
 		}
 		else
 			sGLPadView = this;
@@ -61,6 +61,10 @@ public:
 		if (sGLTVView == nullptr && sGLPadView == nullptr && sGLContext)
 			delete sGLContext;
 	}
+
+	bool GLCanvas_HasPadViewOpen() override;
+	bool GLCanvas_MakeCurrent(bool padView) override;
+	void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC) override;
 
 	void UpdateVSyncState()
 	{
@@ -95,12 +99,12 @@ wxWindow* GLCanvas_Create(wxWindow* parent, const wxSize& size, bool is_main_win
 	return new OpenGLCanvas(parent, size, is_main_window);
 }
 
-bool GLCanvas_HasPadViewOpen()
+bool OpenGLCanvas::GLCanvas_HasPadViewOpen()
 {
 	return sGLPadView != nullptr;
 }
 
-bool GLCanvas_MakeCurrent(bool padView)
+bool OpenGLCanvas::GLCanvas_MakeCurrent(bool padView)
 {
 	OpenGLCanvas* canvas = padView ? sGLPadView : sGLTVView;
 	if (!canvas)
@@ -109,7 +113,7 @@ bool GLCanvas_MakeCurrent(bool padView)
 	return true;
 }
 
-void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
+void OpenGLCanvas::GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
 {
 	if (swapTV && sGLTVView)
 	{

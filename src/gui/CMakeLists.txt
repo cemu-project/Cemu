@@ -22,6 +22,8 @@ add_library(CemuGui
   components/wxLogCtrl.h
   components/wxTitleManagerList.cpp
   components/wxTitleManagerList.h
+  debugger/AudioDebuggerWindow.cpp
+  debugger/AudioDebuggerWindow.h
   debugger/BreakpointWindow.cpp
   debugger/BreakpointWindow.h
   debugger/DebuggerWindow2.cpp
@@ -60,8 +62,6 @@ add_library(CemuGui
   GettingStartedDialog.h
   GraphicPacksWindow2.cpp
   GraphicPacksWindow2.h
-  guiWrapper.cpp
-  guiWrapper.h
   helpers/wxControlObject.h
   helpers/wxCustomData.h
   helpers/wxCustomEvents.cpp
@@ -151,9 +151,8 @@ target_link_libraries(CemuGui PRIVATE
 	ZArchive::zarchive
 )
 
-if(ENABLE_WXWIDGETS AND UNIX AND NOT APPLE)
-	# PUBLIC because gdk/gdkkeysyms.h is included in guiWrapper.h
-	target_link_libraries(CemuGui PUBLIC GTK3::gtk)
+if(UNIX AND NOT APPLE)
+	target_link_libraries(CemuGui PRIVATE GTK3::gtk)
   if (ENABLE_WAYLAND)
     target_link_libraries(CemuGui PRIVATE Wayland::Client CemuWaylandProtocols)
   endif()
@@ -168,11 +167,10 @@ if(UNIX AND NOT APPLE)
 		target_link_libraries(CemuGui PRIVATE gamemode)
 	endif()
 endif()
-if (ENABLE_WXWIDGETS)
-	# PUBLIC because wx/app.h is included in CemuApp.h
-	target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
+
+# PUBLIC because wx/app.h is included in CemuApp.h
+target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
 endif()
 
 if(WIN32)
 	target_link_libraries(CemuGui PRIVATE bthprops)
-endif()

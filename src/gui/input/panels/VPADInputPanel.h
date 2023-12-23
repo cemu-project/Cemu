@@ -1,7 +1,7 @@
 #pragma once
 
 #include <wx/gbsizer.h>
-#include "gui/input/panels/InputPanel.h"
+#include "input/panels/InputPanel.h"
 
 class wxInputDraw;
 

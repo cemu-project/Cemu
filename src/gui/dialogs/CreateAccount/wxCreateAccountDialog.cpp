@@ -1,4 +1,4 @@
-#include "gui/dialogs/CreateAccount/wxCreateAccountDialog.h"
+#include "dialogs/CreateAccount/wxCreateAccountDialog.h"
 #include "Cafe/Account/Account.h"
 
 #include <wx/sizer.h>

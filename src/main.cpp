@@ -1,7 +1,4 @@
-#include "gui/guiWrapper.h"
-#include "gui/wxgui.h"
 #include "util/crypto/aes128.h"
-#include "gui/MainWindow.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
@@ -12,7 +9,6 @@
 #include "config/NetworkSettings.h"
 #include "config/LaunchSettings.h"
 #include "input/InputManager.h"
-#include "gui/CemuApp.h"
 
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
@@ -21,7 +17,6 @@
 #include "Common/ExceptionHandler/ExceptionHandler.h"
 #include "Common/cpu_features.h"
 
-#include <wx/setup.h>
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
@@ -35,8 +30,10 @@
 #pragma comment(lib,"Dbghelp.lib")
 #endif
 
+#if HAS_SDL
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#endif
 
 #if BOOST_OS_LINUX
 #define _putenv(__s) putenv((char*)(__s))
@@ -233,6 +230,8 @@ void HandlePostUpdate()
 
 void ToolShaderCacheMerger();
 
+void gui_create();
+
 #if BOOST_OS_WINDOWS
 
 // entrypoint for release builds
@@ -259,6 +258,7 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+#elif __ANDROID__
 #else
 
 int main(int argc, char *argv[])

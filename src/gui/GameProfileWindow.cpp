@@ -1,4 +1,4 @@
-#include "gui/GameProfileWindow.h"
+#include "GameProfileWindow.h"
 
 #include <wx/statbox.h>
 #include <wx/sizer.h>
@@ -8,7 +8,7 @@
 #include <wx/wupdlock.h>
 #include <wx/slider.h>
 
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 #include "input/InputManager.h"
 
 #if BOOST_OS_LINUX || BOOST_OS_MACOS

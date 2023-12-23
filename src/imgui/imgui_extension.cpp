@@ -1,6 +1,6 @@
 #include "imgui_extension.h"
-#include "gui/guiWrapper.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cemu/GuiSystem/GuiSystem.h"
 #include "resource/IconsFontAwesome5.h"
 #include "imgui_impl_opengl3.h"
 #include "resource/resource.h"
@@ -121,14 +121,15 @@ ImFont* ImGui_GetFont(float size)
 
 void ImGui_UpdateWindowInformation(bool mainWindow)
 {
-	extern WindowInfo g_window_info;
+
+	auto& window_info = GuiSystem::getWindowInfo();
 	static std::map<uint32, ImGuiKey> keyboard_mapping;
 	static uint32 current_key = 0;
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 #if BOOST_OS_WINDOWS
-	io.ImeWindowHandle = mainWindow ? g_window_info.window_main.hwnd : g_window_info.window_pad.hwnd;
+	io.ImeWindowHandle = mainWindow ? window_info.window_main.surface : window_info.window_pad.surface;
 #else
 	io.ImeWindowHandle = nullptr;
 #endif
@@ -153,7 +154,7 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 		keyboard_mapping[key_code] = mapped_key;
 		return mapped_key;
 	};
-	g_window_info.iter_keystates([&](auto&& el){ io.AddKeyEvent(get_mapping(el.first), el.second); });
+	window_info.iter_keystates([&](auto&& el){ io.AddKeyEvent(get_mapping(el.first), el.second); });
 
 	// printf("%f %f %d\n", io.MousePos.x, io.MousePos.y, io.MouseDown[0]);
 

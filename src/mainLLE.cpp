@@ -1,9 +1,7 @@
-#include "gui/wxgui.h"
 #include "util/crypto/aes128.h"
-#include "gui/MainWindow.h"
-#include "gui/guiWrapper.h"
 #include "Common/FileStream.h"
 
+void gui_create();
 void CemuCommonInit();
 
 typedef struct  

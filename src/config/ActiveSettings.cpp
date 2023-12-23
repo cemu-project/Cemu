@@ -65,6 +65,9 @@ bool ActiveSettings::FullscreenEnabled()
 
 CPUMode ActiveSettings::GetCPUMode()
 {
+#ifndef ARCH_X86_64
+	return CPUMode::SinglecoreInterpreter;
+#else
 	auto mode = g_current_game_profile->GetCPUMode().value_or(CPUMode::Auto);
 
 	if (mode == CPUMode::Auto)
@@ -78,6 +81,7 @@ CPUMode ActiveSettings::GetCPUMode()
 		mode = CPUMode::MulticoreRecompiler;
 
 	return mode;
+#endif
 }
 
 uint8 ActiveSettings::GetTimerShiftFactor()

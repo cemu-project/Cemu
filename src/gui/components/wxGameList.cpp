@@ -1,8 +1,8 @@
-#include "gui/components/wxGameList.h"
+#include "components/wxGameList.h"
 
-#include "gui/helpers/wxCustomData.h"
+#include "helpers/wxCustomData.h"
 #include "util/helpers/helpers.h"
-#include "gui/GameProfileWindow.h"
+#include "GameProfileWindow.h"
 
 #include <numeric>
 
@@ -26,9 +26,9 @@
 #include "Cafe/TitleList/GameInfo.h"
 #include "Cafe/TitleList/TitleList.h"
 
-#include "gui/CemuApp.h"
-#include "gui/helpers/wxHelpers.h"
-#include "gui/MainWindow.h"
+#include "CemuApp.h"
+#include "helpers/wxHelpers.h"
+#include "MainWindow.h"
 
 #include "../wxHelper.h"
 

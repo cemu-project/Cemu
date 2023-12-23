@@ -6,8 +6,6 @@
 #include <imgui.h>
 #include "imgui/imgui_extension.h"
 
-#include <wx/msgdlg.h>
-
 #include "Cafe/OS/libs/coreinit/coreinit_FS.h"
 #include "Cafe/OS/libs/vpad/vpad.h"
 

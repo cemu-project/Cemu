@@ -110,6 +110,16 @@ bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 #endif
 }
 
+class LogCallbacks
+{
+public:
+	virtual void Log(std::string_view filter, std::string_view message) = 0;
+	virtual void Log(std::string_view filter, std::wstring_view message) = 0;
+};
+
+void cemuLog_registerLogCallbacks(LogCallbacks* logCallbacks);
+void cemuLog_unregisterLogCallbacks();
+
 // cafe lib calls
 bool cemuLog_advancedPPCLoggingEnabled();
 

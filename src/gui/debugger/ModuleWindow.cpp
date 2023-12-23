@@ -1,10 +1,9 @@
-#include "gui/wxgui.h"
-#include "gui/guiWrapper.h"
-#include "gui/debugger/ModuleWindow.h"
+#include "wxgui.h"
+#include "debugger/ModuleWindow.h"
 
 #include <sstream>
 
-#include "gui/debugger/DebuggerWindow2.h"
+#include "debugger/DebuggerWindow2.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "Cafe/OS/RPL/rpl.h"
@@ -133,5 +132,5 @@ void ModuleWindow::OnLeftDClick(wxMouseEvent& event)
 	if (address == 0)
 		return;
 	debuggerState.debugSession.instructionPointer = address;
-	debuggerWindow_moveIP();
+	debugger_getDebuggerCallbacks()->moveIP();
 }

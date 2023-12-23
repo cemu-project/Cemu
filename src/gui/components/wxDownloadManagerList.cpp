@@ -1,10 +1,10 @@
-#include "gui/components/wxDownloadManagerList.h"
+#include "components/wxDownloadManagerList.h"
 
-#include "gui/helpers/wxHelpers.h"
+#include "helpers/wxHelpers.h"
 #include "util/helpers/SystemException.h"
 #include "Cafe/TitleList/GameInfo.h"
-#include "gui/components/wxGameList.h"
-#include "gui/helpers/wxCustomEvents.h"
+#include "components/wxGameList.h"
+#include "helpers/wxCustomEvents.h"
 
 #include <wx/imaglist.h>
 #include <wx/wupdlock.h>
@@ -18,10 +18,10 @@
 #include <functional>
 
 #include "config/ActiveSettings.h"
-#include "gui/ChecksumTool.h"
+#include "ChecksumTool.h"
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 #include "Cafe/TitleList/TitleId.h"
-#include "gui/MainWindow.h"
+#include "MainWindow.h"
 
 wxDEFINE_EVENT(wxEVT_REMOVE_ENTRY, wxCommandEvent);
 

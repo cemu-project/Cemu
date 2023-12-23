@@ -1,4 +1,4 @@
-#include "gui/input/panels/VPADInputPanel.h"
+#include "input/panels/VPADInputPanel.h"
 
 #include <wx/gbsizer.h>
 #include <wx/stattext.h>
@@ -7,9 +7,9 @@
 #include <wx/slider.h>
 
 
-#include "gui/helpers/wxControlObject.h"
-#include "gui/helpers/wxHelpers.h"
-#include "gui/components/wxInputDraw.h"
+#include "helpers/wxControlObject.h"
+#include "helpers/wxHelpers.h"
+#include "components/wxInputDraw.h"
 #include "input/emulated/VPADController.h"
 
 constexpr VPADController::ButtonId g_kFirstColumnItems[] =
