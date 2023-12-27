@@ -1123,9 +1123,7 @@ namespace coreinit
 	{
 		OSHostThread* hostThread = (OSHostThread*)_thread;
 
-        #if defined(ARCH_X86_64)
 		_mm_setcsr(_mm_getcsr() | 0x8000); // flush denormals to zero
-        #endif
 
 		PPCInterpreter_t* hCPU = &hostThread->ppcInstance;
 		__OSLoadThread(hostThread->m_thread, hCPU, hostThread->selectedCore);
@@ -1157,9 +1155,7 @@ namespace coreinit
 	{
 		SetThreadName(fmt::format("OSSchedulerThread[core={}]", (uintptr_t)_assignedCoreIndex).c_str());
 		t_assignedCoreIndex = (sint32)(uintptr_t)_assignedCoreIndex;
-        #if defined(ARCH_X86_64)
 		_mm_setcsr(_mm_getcsr() | 0x8000); // flush denormals to zero
-        #endif
 		t_schedulerFiber = Fiber::PrepareCurrentThread();
 		
 		// create scheduler idle fiber and switch to it

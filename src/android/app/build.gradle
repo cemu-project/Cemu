@@ -5,7 +5,7 @@ plugins {
 android {
     namespace 'info.cemu.Cemu'
     compileSdk 34
-    ndkVersion '25.2.9519653'
+    ndkVersion '26.1.10909125'
     defaultConfig {
         applicationId "info.cemu.Cemu"
         minSdk 30
@@ -47,6 +47,7 @@ android {
                         '-DBUNDLE_SPEEX=ON',
                         '-DENABLE_DISCORD_RPC=OFF',
                         '-DENABLE_NSYSHID_LIBUSB=OFF',
+                        '-DENABLE_HIDAPI=OFF',
                         '-DENABLE_WAYLAND=OFF',
                 )
 //                abiFilters("x86_64", "arm64-v8a")

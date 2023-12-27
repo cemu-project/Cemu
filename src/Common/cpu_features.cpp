@@ -61,6 +61,17 @@ CPUFeaturesImpl::CPUFeaturesImpl()
 			memcpy(m_cpuBrandName + 32, cpuInfo, sizeof(cpuInfo));
 	}
 #endif
+#if defined(__aarch64__)
+	x86.ssse3 = true;
+	x86.sse4_1 = true;
+	x86.avx = true;
+	x86.avx2 = true;
+	x86.lzcnt = true;
+	x86.movbe = true;
+	x86.bmi2 = true;
+	x86.aesni = true;
+	x86.invariant_tsc = true;
+#endif
 }
 
 std::string CPUFeaturesImpl::GetCPUName()

@@ -118,9 +118,7 @@ class EmulationState
 		int wpadCount = 0;
 		for (int i = 0; i < InputManager::kMaxController; i++)
 		{
-			auto emulatedController = AndroidEmulatedController::getAndroidEmulatedController(
-										  i)
-			                              .getEmulatedController();
+			auto emulatedController = AndroidEmulatedController::getAndroidEmulatedController(i).getEmulatedController();
 			if (!emulatedController)
 				continue;
 			if (emulatedController->type() != EmulatedController::Type::VPAD)

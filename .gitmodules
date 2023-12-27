@@ -16,3 +16,6 @@
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "dependencies/libucontext"]
+	path = dependencies/libucontext
+	url = https://github.com/SSimco/libucontext
