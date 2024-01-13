@@ -82,6 +82,36 @@ X86Cond _x86Cond(IMLCondition imlCond)
 	return X86_CONDITION_Z;
 }
 
+X86Cond _x86CondInverted(IMLCondition imlCond)
+{
+	switch (imlCond)
+	{
+	case IMLCondition::EQ:
+		return X86_CONDITION_NZ;
+	case IMLCondition::NEQ:
+		return X86_CONDITION_Z;
+	case IMLCondition::UNSIGNED_GT:
+		return X86_CONDITION_BE;
+	case IMLCondition::UNSIGNED_LT:
+		return X86_CONDITION_NB;
+	case IMLCondition::SIGNED_GT:
+		return X86_CONDITION_LE;
+	case IMLCondition::SIGNED_LT:
+		return X86_CONDITION_NL;
+	default:
+		break;
+	}
+	cemu_assert_suspicious();
+	return X86_CONDITION_Z;
+}
+
+X86Cond _x86Cond(IMLCondition imlCond, bool condIsInverted)
+{
+	if (condIsInverted)
+		return _x86CondInverted(imlCond);
+	return _x86Cond(imlCond);
+}
+
 /*
 * Remember current instruction output offset for reloc
 * The instruction generated after this method has been called will be adjusted
@@ -638,6 +668,10 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 			PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpInstructionOffset2, x64GenContext->emitter->GetWriteIndex());
 		}
 	}
+	else if( imlInstruction->operation == PPCREC_IML_OP_X86_CMP)
+	{
+		x64GenContext->emitter->CMP_dd(regR, regA);
+	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_DCBZ )
 	{
 		if( regR != regA )
@@ -679,6 +713,11 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	{
 		cemu_assert_debug((imlInstruction->op_r_immS32.immS32 & 0x80) == 0);
 		x64Gen_rol_reg64Low32_imm8(x64GenContext, regR, (uint8)imlInstruction->op_r_immS32.immS32);
+	}
+	else if( imlInstruction->operation == PPCREC_IML_OP_X86_CMP)
+	{
+		sint32 imm = imlInstruction->op_r_immS32.immS32;
+		x64GenContext->emitter->CMP_di32(regR, imm);
 	}
 	else
 	{
@@ -1080,6 +1119,13 @@ bool PPCRecompilerX64Gen_imlInstruction_cjump2(PPCRecFunction_t* PPCRecFunction,
 	PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
 	x64GenContext->emitter->Jcc_j32(mustBeTrue ? X86_CONDITION_NZ : X86_CONDITION_Z, 0);
 	return true;
+}
+
+void PPCRecompilerX64Gen_imlInstruction_x86_eflags_jcc(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, IMLSegment* imlSegment)
+{
+	X86Cond cond = _x86Cond(imlInstruction->op_x86_eflags_jcc.cond, imlInstruction->op_x86_eflags_jcc.invertedCondition);
+	PPCRecompilerX64Gen_rememberRelocatableOffset(x64GenContext, imlSegment->nextSegmentBranchTaken);
+	x64GenContext->emitter->Jcc_j32(cond, 0);
 }
 
 bool PPCRecompilerX64Gen_imlInstruction_jump2(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, IMLSegment* imlSegment)
@@ -1503,6 +1549,10 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			{
 				if (PPCRecompilerX64Gen_imlInstruction_cjump2(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction, segIt) == false)
 					codeGenerationFailed = true;
+			}
+			else if(imlInstruction->type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
+			{
+				PPCRecompilerX64Gen_imlInstruction_x86_eflags_jcc(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction, segIt);
 			}
 			else if (imlInstruction->type == PPCREC_IML_TYPE_JUMP)
 			{

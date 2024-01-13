@@ -6,6 +6,11 @@
 #include "../PPCRecompilerIml.h"
 #include "../BackendX64/BackendX64.h"
 
+#include "Common/FileStream.h"
+
+#include <boost/container/static_vector.hpp>
+#include <boost/container/small_vector.hpp>
+
 IMLReg _FPRRegFromID(IMLRegID regId)
 {
 	return IMLReg(IMLRegFormat::F64, IMLRegFormat::F64, 0, regId);
@@ -326,5 +331,466 @@ void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext)
 				}
 			}
 		}
+	}
+}
+
+// analyses register dependencies across the entire function
+// per segment this will generate information about which registers need to be preserved and which ones don't (e.g. are overwritten)
+class IMLOptimizerRegIOAnalysis
+{
+  public:
+	// constructor with segment pointer list as span
+	IMLOptimizerRegIOAnalysis(std::span<IMLSegment*> segmentList, uint32 maxRegId) : m_segmentList(segmentList), m_maxRegId(maxRegId)
+	{
+		m_segRegisterInOutList.resize(segmentList.size());
+	}
+
+	struct IMLSegmentRegisterInOut
+	{
+		// todo - since our register ID range is usually pretty small (<64) we could use integer bitmasks to accelerate this? There is a helper class used in RA code already
+		std::unordered_set<IMLRegID> regWritten; // registers which are modified in this segment
+		std::unordered_set<IMLRegID> regImported; // registers which are read in this segment before they are written (importing value from previous segments)
+		std::unordered_set<IMLRegID> regForward; // registers which are not read or written in this segment, but are imported into a later segment (propagated info)
+	};
+
+	// calculate which registers are imported (read-before-written) and forwarded (read-before-written by a later segment) per segment
+	// then in a second step propagate the dependencies across linked segments
+	void ComputeDepedencies()
+	{
+		std::vector<IMLSegmentRegisterInOut>& segRegisterInOutList = m_segRegisterInOutList;
+		IMLSegmentRegisterInOut* segIO = segRegisterInOutList.data();
+		uint32 index = 0;
+		for(auto& seg : m_segmentList)
+		{
+			seg->momentaryIndex = index;
+			index++;
+			for(auto& instr : seg->imlList)
+			{
+				IMLUsedRegisters registerUsage;
+				instr.CheckRegisterUsage(&registerUsage);
+				// registers are considered imported if they are read before being written in this seg
+				registerUsage.ForEachReadGPR([&](IMLReg gprReg) {
+					IMLRegID gprId = gprReg.GetRegID();
+					if (!segIO->regWritten.contains(gprId))
+					{
+						segIO->regImported.insert(gprId);
+					}
+				});
+				registerUsage.ForEachWrittenGPR([&](IMLReg gprReg) {
+					IMLRegID gprId = gprReg.GetRegID();
+					segIO->regWritten.insert(gprId);
+				});
+			}
+			segIO++;
+		}
+		// for every exit segment, import all registers
+		for(auto& seg : m_segmentList)
+		{
+			if (!seg->nextSegmentIsUncertain)
+				continue;
+			if(seg->deadCodeEliminationHintSeg)
+				continue;
+			IMLSegmentRegisterInOut& segIO = segRegisterInOutList[seg->momentaryIndex];
+			for(uint32 i=0; i<=m_maxRegId; i++)
+			{
+				segIO.regImported.insert((IMLRegID)i);
+			}
+		}
+		// broadcast dependencies across segment chains
+		std::unordered_set<uint32> segIdsWhichNeedUpdate;
+		for (uint32 i = 0; i < m_segmentList.size(); i++)
+		{
+			segIdsWhichNeedUpdate.insert(i);
+		}
+		while(!segIdsWhichNeedUpdate.empty())
+		{
+			auto firstIt = segIdsWhichNeedUpdate.begin();
+			uint32 segId = *firstIt;
+			segIdsWhichNeedUpdate.erase(firstIt);
+			// forward regImported and regForward to earlier segments into their regForward, unless the register is written
+			auto& curSeg = m_segmentList[segId];
+			IMLSegmentRegisterInOut& curSegIO = segRegisterInOutList[segId];
+			for(auto& prevSeg : curSeg->list_prevSegments)
+			{
+				IMLSegmentRegisterInOut& prevSegIO = segRegisterInOutList[prevSeg->momentaryIndex];
+				bool prevSegChanged = false;
+				for(auto& regId : curSegIO.regImported)
+				{
+					if (!prevSegIO.regWritten.contains(regId))
+						prevSegChanged |= prevSegIO.regForward.insert(regId).second;
+				}
+				for(auto& regId : curSegIO.regForward)
+				{
+					if (!prevSegIO.regWritten.contains(regId))
+						prevSegChanged |= prevSegIO.regForward.insert(regId).second;
+				}
+				if(prevSegChanged)
+					segIdsWhichNeedUpdate.insert(prevSeg->momentaryIndex);
+			}
+			// same for hint links
+			for(auto& prevSeg : curSeg->list_deadCodeHintBy)
+			{
+				IMLSegmentRegisterInOut& prevSegIO = segRegisterInOutList[prevSeg->momentaryIndex];
+				bool prevSegChanged = false;
+				for(auto& regId : curSegIO.regImported)
+				{
+					if (!prevSegIO.regWritten.contains(regId))
+						prevSegChanged |= prevSegIO.regForward.insert(regId).second;
+				}
+				for(auto& regId : curSegIO.regForward)
+				{
+					if (!prevSegIO.regWritten.contains(regId))
+						prevSegChanged |= prevSegIO.regForward.insert(regId).second;
+				}
+				if(prevSegChanged)
+					segIdsWhichNeedUpdate.insert(prevSeg->momentaryIndex);
+			}
+		}
+	}
+
+	std::unordered_set<IMLRegID> GetRegistersNeededAtEndOfSegment(IMLSegment& seg)
+	{
+		std::unordered_set<IMLRegID> regsNeeded;
+		if(seg.nextSegmentIsUncertain)
+		{
+			if(seg.deadCodeEliminationHintSeg)
+			{
+				auto& nextSegIO = m_segRegisterInOutList[seg.deadCodeEliminationHintSeg->momentaryIndex];
+				regsNeeded.insert(nextSegIO.regImported.begin(), nextSegIO.regImported.end());
+				regsNeeded.insert(nextSegIO.regForward.begin(), nextSegIO.regForward.end());
+			}
+			else
+			{
+				// add all regs
+				for(uint32 i = 0; i <= m_maxRegId; i++)
+					regsNeeded.insert(i);
+			}
+			return regsNeeded;
+		}
+		if(seg.nextSegmentBranchTaken)
+		{
+			auto& nextSegIO = m_segRegisterInOutList[seg.nextSegmentBranchTaken->momentaryIndex];
+			regsNeeded.insert(nextSegIO.regImported.begin(), nextSegIO.regImported.end());
+			regsNeeded.insert(nextSegIO.regForward.begin(), nextSegIO.regForward.end());
+		}
+		if(seg.nextSegmentBranchNotTaken)
+		{
+			auto& nextSegIO = m_segRegisterInOutList[seg.nextSegmentBranchNotTaken->momentaryIndex];
+			regsNeeded.insert(nextSegIO.regImported.begin(), nextSegIO.regImported.end());
+			regsNeeded.insert(nextSegIO.regForward.begin(), nextSegIO.regForward.end());
+		}
+		return regsNeeded;
+	}
+
+	bool IsRegisterNeededAtEndOfSegment(IMLSegment& seg, IMLRegID regId)
+	{
+		if(seg.nextSegmentIsUncertain)
+		{
+			if(!seg.deadCodeEliminationHintSeg)
+				return true;
+			auto& nextSegIO = m_segRegisterInOutList[seg.deadCodeEliminationHintSeg->momentaryIndex];
+			if(nextSegIO.regImported.contains(regId))
+				return true;
+			if(nextSegIO.regForward.contains(regId))
+				return true;
+			return false;
+		}
+		if(seg.nextSegmentBranchTaken)
+		{
+			auto& nextSegIO = m_segRegisterInOutList[seg.nextSegmentBranchTaken->momentaryIndex];
+			if(nextSegIO.regImported.contains(regId))
+				return true;
+			if(nextSegIO.regForward.contains(regId))
+				return true;
+		}
+		if(seg.nextSegmentBranchNotTaken)
+		{
+			auto& nextSegIO = m_segRegisterInOutList[seg.nextSegmentBranchNotTaken->momentaryIndex];
+			if(nextSegIO.regImported.contains(regId))
+				return true;
+			if(nextSegIO.regForward.contains(regId))
+				return true;
+		}
+		return false;
+	}
+
+  private:
+	std::span<IMLSegment*> m_segmentList;
+	uint32 m_maxRegId;
+
+	std::vector<IMLSegmentRegisterInOut> m_segRegisterInOutList;
+
+};
+
+// scan backwards starting from index and return the index of the first found instruction which writes to the given register (by id)
+sint32 IMLUtil_FindInstructionWhichWritesRegister(IMLSegment& seg, sint32 startIndex, IMLReg reg, sint32 maxScanDistance = -1)
+{
+	sint32 endIndex = std::max<sint32>(startIndex - maxScanDistance, 0);
+	for (sint32 i = startIndex; i >= endIndex; i--)
+	{
+		IMLInstruction& imlInstruction = seg.imlList[i];
+		IMLUsedRegisters registersUsed;
+		imlInstruction.CheckRegisterUsage(&registersUsed);
+		if (registersUsed.IsBaseGPRWritten(reg))
+			return i;
+	}
+	return -1;
+}
+
+// returns true if the instruction can safely be moved while keeping ordering constraints and data dependencies intact
+// initialIndex is inclusive, targetIndex is exclusive
+bool IMLUtil_CanMoveInstructionTo(IMLSegment& seg, sint32 initialIndex, sint32 targetIndex)
+{
+	boost::container::static_vector<IMLRegID, 8> regsWritten;
+	boost::container::static_vector<IMLRegID, 8> regsRead;
+	// get list of read and written registers
+	IMLUsedRegisters registersUsed;
+	seg.imlList[initialIndex].CheckRegisterUsage(&registersUsed);
+	registersUsed.ForEachAccessedGPR([&](IMLReg reg, bool isWritten) {
+		if (isWritten)
+			regsWritten.push_back(reg.GetRegID());
+		else
+			regsRead.push_back(reg.GetRegID());
+	});
+	// check all the instructions inbetween
+	if(initialIndex < targetIndex)
+	{
+		sint32 scanStartIndex = initialIndex+1; // +1 to skip the moving instruction itself
+		sint32 scanEndIndex = targetIndex;
+		for (sint32 i = scanStartIndex; i < scanEndIndex; i++)
+		{
+			IMLUsedRegisters registersUsed;
+			seg.imlList[i].CheckRegisterUsage(&registersUsed);
+			// in order to be able to move an instruction past another instruction, any of the read registers must not be modified (written)
+			// and any of it's written registers must not be read
+			bool canMove = true;
+			registersUsed.ForEachAccessedGPR([&](IMLReg reg, bool isWritten) {
+				IMLRegID regId = reg.GetRegID();
+				if (!isWritten)
+					canMove = canMove && std::find(regsWritten.begin(), regsWritten.end(), regId) == regsWritten.end();
+				else
+					canMove = canMove && std::find(regsRead.begin(), regsRead.end(), regId) == regsRead.end();
+			});
+			if(!canMove)
+				return false;
+		}
+	}
+	else
+	{
+		cemu_assert_unimplemented(); // backwards scan is todo
+		return false;
+	}
+	return true;
+}
+
+sint32 IMLUtil_CountRegisterReadsInRange(IMLSegment& seg, sint32 scanStartIndex, sint32 scanEndIndex, IMLRegID regId)
+{
+	cemu_assert_debug(scanStartIndex <= scanEndIndex);
+	cemu_assert_debug(scanEndIndex < seg.imlList.size());
+	sint32 count = 0;
+	for (sint32 i = scanStartIndex; i <= scanEndIndex; i++)
+	{
+		IMLUsedRegisters registersUsed;
+		seg.imlList[i].CheckRegisterUsage(&registersUsed);
+		registersUsed.ForEachReadGPR([&](IMLReg reg) {
+			if (reg.GetRegID() == regId)
+				count++;
+		});
+	}
+	return count;
+}
+
+// move instruction from one index to another
+// instruction will be inserted before the instruction at targetIndex
+// returns the new instruction index of the moved instruction
+sint32 IMLUtil_MoveInstructionTo(IMLSegment& seg, sint32 initialIndex, sint32 targetIndex)
+{
+	cemu_assert_debug(initialIndex != targetIndex);
+	IMLInstruction temp = seg.imlList[initialIndex];
+	if (initialIndex < targetIndex)
+	{
+		cemu_assert_debug(targetIndex > 0);
+		targetIndex--;
+		std::copy_backward(seg.imlList.begin() + initialIndex + 1, seg.imlList.begin() + targetIndex + 1, seg.imlList.begin() + targetIndex);
+		seg.imlList[targetIndex] = temp;
+		return targetIndex;
+	}
+	else
+	{
+		cemu_assert_unimplemented(); // testing needed
+		std::copy(seg.imlList.begin() + targetIndex, seg.imlList.begin() + initialIndex, seg.imlList.begin() + targetIndex + 1);
+		seg.imlList[targetIndex] = temp;
+		return targetIndex;
+	}
+}
+
+// x86 specific
+bool IMLOptimizerX86_ModifiesEFlags(IMLInstruction& inst)
+{
+	// this is a very conservative implementation. There are more cases but this is good enough for now
+	if(inst.type == PPCREC_IML_TYPE_NAME_R || inst.type == PPCREC_IML_TYPE_R_NAME)
+		return false;
+	if((inst.type == PPCREC_IML_TYPE_R_R || inst.type == PPCREC_IML_TYPE_R_S32) && inst.operation == PPCREC_IML_OP_ASSIGN)
+		return false;
+	return true; // if we dont know for sure, assume it does
+}
+
+void IMLOptimizer_DebugPrintSeg(ppcImlGenContext_t& ppcImlGenContext, IMLSegment& seg)
+{
+	printf("----------------\n");
+	IMLDebug_DumpSegment(&ppcImlGenContext, &seg);
+	fflush(stdout);
+}
+
+void IMLOptimizer_RemoveDeadCodeFromSegment(IMLOptimizerRegIOAnalysis& regIoAnalysis, IMLSegment& seg)
+{
+	// algorithm works like this:
+	// Calculate which registers need to be preserved at the end of each segment
+	// Then for each segment:
+	// - Iterate instructions backwards
+	// - Maintain a list of registers which are read at a later point (initially this is the list from the first step)
+	// - If an instruction only modifies registers which are not in the read list, then it is dead code and can be replaced with a no-op
+
+	std::unordered_set<IMLRegID> regsNeeded = regIoAnalysis.GetRegistersNeededAtEndOfSegment(seg);
+
+	// start with suffix instruction
+	if(seg.HasSuffixInstruction())
+	{
+		IMLInstruction& imlInstruction = seg.imlList[seg.GetSuffixInstructionIndex()];
+		IMLUsedRegisters registersUsed;
+		imlInstruction.CheckRegisterUsage(&registersUsed);
+		registersUsed.ForEachWrittenGPR([&](IMLReg reg) {
+			regsNeeded.erase(reg.GetRegID());
+		});
+		registersUsed.ForEachReadGPR([&](IMLReg reg) {
+			regsNeeded.insert(reg.GetRegID());
+		});
+	}
+	// iterate instructions backwards
+	for (sint32 i = seg.imlList.size() - (seg.HasSuffixInstruction() ? 2:1); i >= 0; i--)
+	{
+		IMLInstruction& imlInstruction = seg.imlList[i];
+		IMLUsedRegisters registersUsed;
+		imlInstruction.CheckRegisterUsage(&registersUsed);
+		// register read -> remove from overwritten list
+		// register written -> add to overwritten list
+
+		// check if this instruction only writes registers which will never be read
+		bool onlyWritesRedundantRegisters = true;
+		registersUsed.ForEachWrittenGPR([&](IMLReg reg) {
+			if (regsNeeded.contains(reg.GetRegID()))
+				onlyWritesRedundantRegisters = false;
+		});
+		// check if any of the written registers are read after this point
+		registersUsed.ForEachWrittenGPR([&](IMLReg reg) {
+			regsNeeded.erase(reg.GetRegID());
+		});
+		registersUsed.ForEachReadGPR([&](IMLReg reg) {
+			regsNeeded.insert(reg.GetRegID());
+		});
+		// for now we only allow some instruction types to be deleted, eventually we should find a safer way to identify side effects that can't be judged by register usage alone
+		if(imlInstruction.type != PPCREC_IML_TYPE_R_R && imlInstruction.type != PPCREC_IML_TYPE_R_R_S32 && imlInstruction.type != PPCREC_IML_TYPE_COMPARE && imlInstruction.type != PPCREC_IML_TYPE_COMPARE_S32)
+			continue;
+		if(onlyWritesRedundantRegisters)
+		{
+			imlInstruction.make_no_op();
+		}
+	}
+}
+
+void IMLOptimizerX86_SubstituteCJumpForEflagsJump(IMLOptimizerRegIOAnalysis& regIoAnalysis, IMLSegment& seg)
+{
+	// convert and optimize bool condition jumps to eflags condition jumps
+	// - Moves eflag setter (e.g. cmp) closer to eflags consumer (conditional jump) if necessary. If not possible but required then exit early
+	// - Since we only rely on eflags, the boolean register can be optimized out if DCE considers it unused
+	// - Further detect and optimize patterns like DEC + CMP + JCC into fused ops (todo)
+
+	// check if this segment ends with a conditional jump
+	if(!seg.HasSuffixInstruction())
+		return;
+	sint32 cjmpInstIndex = seg.GetSuffixInstructionIndex();
+	if(cjmpInstIndex < 0)
+		return;
+	IMLInstruction& cjumpInstr = seg.imlList[cjmpInstIndex];
+	if( cjumpInstr.type != PPCREC_IML_TYPE_CONDITIONAL_JUMP )
+		return;
+	IMLReg regCondBool = cjumpInstr.op_conditional_jump.registerBool;
+	bool invertedCondition = !cjumpInstr.op_conditional_jump.mustBeTrue;
+	// find the instruction which sets the bool
+	sint32 cmpInstrIndex = IMLUtil_FindInstructionWhichWritesRegister(seg, cjmpInstIndex-1, regCondBool, 20);
+	if(cmpInstrIndex < 0)
+		return;
+	// check if its an instruction combo which can be optimized (currently only cmp + cjump) and get the condition
+	IMLInstruction& condSetterInstr = seg.imlList[cmpInstrIndex];
+	IMLCondition cond;
+	if(condSetterInstr.type == PPCREC_IML_TYPE_COMPARE)
+		cond = condSetterInstr.op_compare.cond;
+	else if(condSetterInstr.type == PPCREC_IML_TYPE_COMPARE_S32)
+		cond = condSetterInstr.op_compare_s32.cond;
+	else
+		return;
+	// check if instructions inbetween modify eflags
+	sint32 indexEflagsSafeStart = -1; // index of the first instruction which does not modify eflags up to cjump
+	for(sint32 i = cjmpInstIndex-1; i > cmpInstrIndex; i--)
+	{
+		if(IMLOptimizerX86_ModifiesEFlags(seg.imlList[i]))
+		{
+			indexEflagsSafeStart = i+1;
+			break;
+		}
+	}
+	if(indexEflagsSafeStart >= 0)
+	{
+		cemu_assert(indexEflagsSafeStart > 0);
+		// there are eflags-modifying instructions inbetween the bool setter and cjump
+		// try to move the eflags setter close enough to the cjump (to indexEflagsSafeStart)
+		bool canMove = IMLUtil_CanMoveInstructionTo(seg, cmpInstrIndex, indexEflagsSafeStart);
+		if(!canMove)
+		{
+			return;
+		}
+		else
+		{
+			cmpInstrIndex = IMLUtil_MoveInstructionTo(seg, cmpInstrIndex, indexEflagsSafeStart);
+		}
+	}
+	// we can turn the jump into an eflags jump
+	cjumpInstr.make_x86_eflags_jcc(cond, invertedCondition);
+
+	if (IMLUtil_CountRegisterReadsInRange(seg, cmpInstrIndex, cjmpInstIndex, regCondBool.GetRegID()) > 1 || regIoAnalysis.IsRegisterNeededAtEndOfSegment(seg, regCondBool.GetRegID()))
+		return; // bool register is used beyond the CMP, we can't drop it
+
+	auto& cmpInstr = seg.imlList[cmpInstrIndex];
+	cemu_assert_debug(cmpInstr.type == PPCREC_IML_TYPE_COMPARE || cmpInstr.type == PPCREC_IML_TYPE_COMPARE_S32);
+	if(cmpInstr.type == PPCREC_IML_TYPE_COMPARE)
+	{
+		IMLReg regA = cmpInstr.op_compare.regA;
+		IMLReg regB = cmpInstr.op_compare.regB;
+		seg.imlList[cmpInstrIndex].make_r_r(PPCREC_IML_OP_X86_CMP, regA, regB);
+	}
+	else
+	{
+		IMLReg regA = cmpInstr.op_compare_s32.regA;
+		sint32 val = cmpInstr.op_compare_s32.immS32;
+		seg.imlList[cmpInstrIndex].make_r_s32(PPCREC_IML_OP_X86_CMP, regA, val);
+	}
+
+}
+
+void IMLOptimizer_StandardOptimizationPassForSegment(IMLOptimizerRegIOAnalysis& regIoAnalysis, IMLSegment& seg)
+{
+	IMLOptimizer_RemoveDeadCodeFromSegment(regIoAnalysis, seg);
+
+	// x86 specific optimizations
+	IMLOptimizerX86_SubstituteCJumpForEflagsJump(regIoAnalysis, seg); // this pass should be applied late since it creates invisible eflags dependencies (which would break further register dependency analysis)
+}
+
+void IMLOptimizer_StandardOptimizationPass(ppcImlGenContext_t& ppcImlGenContext)
+{
+	IMLOptimizerRegIOAnalysis regIoAnalysis(ppcImlGenContext.segmentList2, ppcImlGenContext.GetMaxRegId());
+	regIoAnalysis.ComputeDepedencies();
+	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
+	{
+		IMLOptimizer_StandardOptimizationPassForSegment(regIoAnalysis, *segIt);
 	}
 }

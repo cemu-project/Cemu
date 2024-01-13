@@ -2935,6 +2935,10 @@ void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, P
 	splitSeg->SetLinkBranchTaken(exitSegment);
 
 	exitSegment->AppendInstruction()->make_macro(PPCREC_IML_MACRO_LEAVE, basicBlockInfo.startAddress, 0, 0, IMLREG_INVALID);
+
+	cemu_assert_debug(splitSeg->nextSegmentBranchNotTaken);
+	// let the IML optimizer and RA know that the original segment should be used during analysis for dead code elimination
+	exitSegment->SetNextSegmentForOverwriteHints(splitSeg->nextSegmentBranchNotTaken);
 }
 
 void PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext_t& ppcImlGenContext)

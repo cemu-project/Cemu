@@ -41,12 +41,14 @@ struct ppcImlGenContext_t
 	bool PSE{ true };
 	// cycle counter
 	uint32 cyclesSinceLastBranch; // used to track ppc cycles
-	// temporary general purpose registers
-	//uint32 mappedRegister[PPC_REC_MAX_VIRTUAL_GPR];
-	// temporary floating point registers (single and double precision)
-	//uint32 mappedFPRRegister[256];
-
 	std::unordered_map<IMLName, IMLReg> mappedRegs;
+
+	uint32 GetMaxRegId() const
+	{
+		if (mappedRegs.empty())
+			return 0;
+		return mappedRegs.size()-1;
+	}
 
 	// list of segments
 	std::vector<IMLSegment*> segmentList2;
@@ -62,6 +64,8 @@ struct ppcImlGenContext_t
 	{
 		bool modifiesGQR[8];
 	}tracking;
+	// debug helpers
+	uint32 debug_entryPPCAddress{0};
 
 	~ppcImlGenContext_t()
 	{

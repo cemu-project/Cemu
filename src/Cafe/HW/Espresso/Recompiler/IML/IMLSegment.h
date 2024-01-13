@@ -81,6 +81,10 @@ struct IMLSegment
 	IMLSegment* nextSegmentBranchTaken{};
 	bool nextSegmentIsUncertain{};
 	std::vector<IMLSegment*> list_prevSegments{};
+	// source for overwrite analysis (if nextSegmentIsUncertain is true)
+	// sometimes a segment is marked as an exit point, but for the purposes of dead code elimination we know the next segment
+	IMLSegment* deadCodeEliminationHintSeg{};
+	std::vector<IMLSegment*> list_deadCodeHintBy{};
 	// enterable segments
 	bool isEnterable{}; // this segment can be entered from outside the recompiler (no preloaded registers necessary)
 	uint32 enterPPCAddress{}; // used if isEnterable is true
@@ -99,6 +103,14 @@ struct IMLSegment
 	IMLSegment* GetBranchNotTaken()
 	{
 		return nextSegmentBranchNotTaken;
+	}
+
+	void SetNextSegmentForOverwriteHints(IMLSegment* seg)
+	{
+		cemu_assert_debug(!deadCodeEliminationHintSeg);
+		deadCodeEliminationHintSeg = seg;
+		if (seg)
+			seg->list_deadCodeHintBy.push_back(this);
 	}
 
 	// instruction API

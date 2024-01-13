@@ -75,14 +75,14 @@ bool _detectLoop(IMLSegment* currentSegment, sint32 depth, uint32 iterationIndex
 	{
 		if (currentSegment->nextSegmentBranchNotTaken->momentaryIndex > currentSegment->momentaryIndex)
 		{
-			currentSegment->raInfo.isPartOfProcessedLoop = _detectLoop(currentSegment->nextSegmentBranchNotTaken, depth + 1, iterationIndex, imlSegmentLoopBase);
+			currentSegment->raInfo.isPartOfProcessedLoop |= _detectLoop(currentSegment->nextSegmentBranchNotTaken, depth + 1, iterationIndex, imlSegmentLoopBase);
 		}
 	}
 	if (currentSegment->nextSegmentBranchTaken)
 	{
 		if (currentSegment->nextSegmentBranchTaken->momentaryIndex > currentSegment->momentaryIndex)
 		{
-			currentSegment->raInfo.isPartOfProcessedLoop = _detectLoop(currentSegment->nextSegmentBranchTaken, depth + 1, iterationIndex, imlSegmentLoopBase);
+			currentSegment->raInfo.isPartOfProcessedLoop |= _detectLoop(currentSegment->nextSegmentBranchTaken, depth + 1, iterationIndex, imlSegmentLoopBase);
 		}
 	}
 	if (currentSegment->raInfo.isPartOfProcessedLoop)
@@ -341,8 +341,8 @@ void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment
 {
 	// this works as a pre-pass to actual register allocation. Assigning registers in advance based on fixed requirements (e.g. calling conventions and operations with fixed-reg input/output like x86 DIV/MUL)
 	// algorithm goes as follows:
-	// 1) Iterate all instructions from beginning to end and keep a list of covering ranges
-	// 2) If we encounter an instruction with a fixed register we:
+	// 1) Iterate all instructions in the function from beginning to end and keep a list of active ranges for the currently iterated instruction
+	// 2) If we encounter an instruction with a fixed register requirement we:
 	//   2.0) Check if there are any other ranges already using the same fixed-register and if yes, we split them and unassign the register for any follow-up instructions just prior to the current instruction
 	//   2.1) For inputs: Split the range that needs to be assigned a phys reg on the current instruction. Basically creating a 1-instruction long subrange that we can assign the physical register. RA will then schedule register allocation around that and avoid moves
 	//	 2.2) For outputs: Split the range that needs to be assigned a phys reg on the current instruction

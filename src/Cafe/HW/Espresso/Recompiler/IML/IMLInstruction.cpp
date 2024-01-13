@@ -26,7 +26,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	}
 	else if (type == PPCREC_IML_TYPE_R_R)
 	{
-		if (operation == PPCREC_IML_OP_DCBZ)
+		if (operation == PPCREC_IML_OP_DCBZ ||
+			operation == PPCREC_IML_OP_X86_CMP)
 		{
 			// both operands are read only
 			registersUsed->readGPR1 = op_r_r.regR;
@@ -58,13 +59,18 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 
 		if (operation == PPCREC_IML_OP_LEFT_ROTATE)
 		{
-			// operand register is read and write
+			// register operand is read and write
 			registersUsed->readGPR1 = op_r_immS32.regR;
 			registersUsed->writtenGPR1 = op_r_immS32.regR;
 		}
+		else if (operation == PPCREC_IML_OP_X86_CMP)
+		{
+			// register operand is read only
+			registersUsed->readGPR1 = op_r_immS32.regR;
+		}
 		else
 		{
-			// operand register is write only
+			// register operand is write only
 			// todo - use explicit lists, avoid default cases
 			registersUsed->writtenGPR1 = op_r_immS32.regR;
 		}
@@ -453,6 +459,10 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		registersUsed->readFPR1 = op_fpr_compare.regA;
 		registersUsed->readFPR2 = op_fpr_compare.regB;
 	}
+	else if (type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
+	{
+		// no registers read or written (except for the implicit eflags)
+	}
 	else
 	{
 		cemu_assert_unimplemented();
@@ -674,6 +684,10 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& tr
 		op_fpr_compare.regA = replaceRegisterIdMultiple(op_fpr_compare.regA, translationTable);
 		op_fpr_compare.regB = replaceRegisterIdMultiple(op_fpr_compare.regB, translationTable);
 		op_fpr_compare.regR = replaceRegisterIdMultiple(op_fpr_compare.regR, translationTable);
+	}
+	else if (type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
+	{
+		// no registers read or written (except for the implicit eflags)
 	}
 	else
 	{

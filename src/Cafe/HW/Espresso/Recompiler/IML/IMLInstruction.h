@@ -180,6 +180,11 @@ enum
 
 	// R_R_R_carry
 	PPCREC_IML_OP_ADD_WITH_CARRY, // similar to ADD but also adds carry bit (0 or 1)
+
+	// X86 extension
+	PPCREC_IML_OP_X86_CMP, // R_R and R_S32
+
+	PPCREC_IML_OP_INVALID
 };
 
 #define PPCREC_IML_OP_FPR_COPY_PAIR (PPCREC_IML_OP_ASSIGN)
@@ -261,6 +266,9 @@ enum
 	PPCREC_IML_TYPE_FPR_R,
 
 	PPCREC_IML_TYPE_FPR_COMPARE,		// r* = r* CMP[cond] r*
+
+	// X86 specific
+	PPCREC_IML_TYPE_X86_EFLAGS_JCC,
 };
 
 enum // IMLName
@@ -350,13 +358,29 @@ struct IMLUsedRegisters
 		};
 	};
 
+	bool IsWrittenByRegId(IMLRegID regId) const
+	{
+		if (writtenGPR1.IsValid() && writtenGPR1.GetRegID() == regId)
+			return true;
+		if (writtenGPR2.IsValid() && writtenGPR2.GetRegID() == regId)
+			return true;
+		return false;
+	}
+
 	bool IsBaseGPRWritten(IMLReg imlReg) const
 	{
 		cemu_assert_debug(imlReg.IsValid());
 		auto regId = imlReg.GetRegID();
-		if (writtenGPR1.IsValid() && writtenGPR1.GetRegID() == regId)
+		return IsWrittenByRegId(regId);
+	}
+
+	bool IsRegIdRead(IMLRegID regId) const
+	{
+		if (readGPR1.IsValid() && readGPR1.GetRegID() == regId)
 			return true;
-		if (writtenGPR2.IsValid() && writtenGPR2.GetRegID() == regId)
+		if (readGPR2.IsValid() && readGPR2.GetRegID() == regId)
+			return true;
+		if (readGPR3.IsValid() && readGPR3.GetRegID() == regId)
 			return true;
 		return false;
 	}
@@ -556,6 +580,12 @@ struct IMLInstruction
 			uint8 crBitIndex;
 			bool  bitMustBeSet;
 		}op_conditional_r_s32;
+		// X86 specific
+		struct
+		{
+			IMLCondition cond;
+			bool invertedCondition;
+		}op_x86_eflags_jcc;
 	};
 
 	bool IsSuffixInstruction() const
@@ -568,7 +598,8 @@ struct IMLInstruction
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_MFTB ||
 			type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK ||
 			type == PPCREC_IML_TYPE_JUMP ||
-			type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
+			type == PPCREC_IML_TYPE_CONDITIONAL_JUMP ||
+			type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
 			return true;
 		return false;
 	}
@@ -676,7 +707,7 @@ struct IMLInstruction
 	void make_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
 	{
 		this->type = PPCREC_IML_TYPE_COMPARE;
-		this->operation = -999;
+		this->operation = PPCREC_IML_OP_INVALID;
 		this->op_compare.regR = regR;
 		this->op_compare.regA = regA;
 		this->op_compare.regB = regB;
@@ -686,7 +717,7 @@ struct IMLInstruction
 	void make_compare_s32(IMLReg regA, sint32 immS32, IMLReg regR, IMLCondition cond)
 	{
 		this->type = PPCREC_IML_TYPE_COMPARE_S32;
-		this->operation = -999;
+		this->operation = PPCREC_IML_OP_INVALID;
 		this->op_compare_s32.regR = regR;
 		this->op_compare_s32.regA = regA;
 		this->op_compare_s32.immS32 = immS32;
@@ -696,7 +727,7 @@ struct IMLInstruction
 	void make_conditional_jump(IMLReg regBool, bool mustBeTrue)
 	{
 		this->type = PPCREC_IML_TYPE_CONDITIONAL_JUMP;
-		this->operation = -999;
+		this->operation = PPCREC_IML_OP_INVALID;
 		this->op_conditional_jump.registerBool = regBool;
 		this->op_conditional_jump.mustBeTrue = mustBeTrue;
 	}
@@ -704,7 +735,7 @@ struct IMLInstruction
 	void make_jump()
 	{
 		this->type = PPCREC_IML_TYPE_JUMP;
-		this->operation = -999;
+		this->operation = PPCREC_IML_OP_INVALID;
 	}
 
 	// load from memory
@@ -751,6 +782,15 @@ struct IMLInstruction
 		this->op_fpr_compare.regA = regA;
 		this->op_fpr_compare.regB = regB;
 		this->op_fpr_compare.cond = cond;
+	}
+
+	/* X86 specific */
+	void make_x86_eflags_jcc(IMLCondition cond, bool invertedCondition)
+	{
+		this->type = PPCREC_IML_TYPE_X86_EFLAGS_JCC;
+		this->operation = -999;
+		this->op_x86_eflags_jcc.cond = cond;
+		this->op_x86_eflags_jcc.invertedCondition = invertedCondition;
 	}
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;

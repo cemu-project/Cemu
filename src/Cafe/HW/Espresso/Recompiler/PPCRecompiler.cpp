@@ -139,7 +139,6 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		cemuLog_log(LogType::Force, "Attempting to recompile function outside of allowed code area");
 		return nullptr;
 	}
-
 	uint32 codeGenRangeStart;
 	uint32 codeGenRangeSize = 0;
 	coreinit::OSGetCodegenVirtAddrRangeInternal(codeGenRangeStart, codeGenRangeSize);
@@ -160,6 +159,7 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 
 	// generate intermediate code
 	ppcImlGenContext_t ppcImlGenContext = { 0 };
+	ppcImlGenContext.debug_entryPPCAddress = range.startAddress;
 	bool compiledSuccessfully = PPCRecompiler_generateIntermediateCode(ppcImlGenContext, ppcRecFunc, entryAddresses, boundaryTracker);
 	if (compiledSuccessfully == false)
 	{
@@ -240,7 +240,9 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		entryPointsOut.emplace_back(ppcEnterOffset, x64Offset);
 	}
 
-	cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {} Entrypoints: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size(), entryPointsOut.size());
+	//cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {} Entrypoints: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size(), entryPointsOut.size());
+
+	cemuLog_logDebug(LogType::Force, "[Recompiler] PPC 0x{:08x} -> x64: 0x{:x}", (uint32)ppcRecFunc->ppcAddress, (uint64)(uintptr_t)ppcRecFunc->x86Code);
 
 	return ppcRecFunc;
 }
@@ -301,10 +303,18 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 	// delay byte swapping for certain load+store patterns
 	IMLOptimizer_OptimizeDirectIntegerCopies(&ppcImlGenContext);
 
+	IMLOptimizer_StandardOptimizationPass(ppcImlGenContext);
+
 	PPCRecompiler_NativeRegisterAllocatorPass(ppcImlGenContext);
 
 	//PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
 	//PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
+
+//	if(ppcImlGenContext.debug_entryPPCAddress == 0x0200E1E8)
+//	{
+//		IMLDebug_Dump(&ppcImlGenContext);
+//		__debugbreak();
+//	}
 
 	return true;
 }
