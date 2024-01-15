@@ -78,7 +78,7 @@ if (MACOS_BUNDLE)
 	set(MACOSX_BUNDLE_BUNDLE_NAME "Cemu")
 	set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
 	set(MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
-	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2023 Cemu Project")
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2024 Cemu Project")
 
 	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
  	set(MACOSX_MINIMUM_SYSTEM_VERSION "12.0")
@@ -100,6 +100,9 @@ if (MACOS_BUNDLE)
 
 	add_custom_command (TARGET CemuBin POST_BUILD
 		COMMAND bash -c "install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}")
+
+	add_custom_command (TARGET CemuBin POST_BUILD
+			COMMAND bash -c "install_name_tool -change /usr/local/opt/libusb/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}")
 endif()
 
 set_target_properties(CemuBin PROPERTIES
