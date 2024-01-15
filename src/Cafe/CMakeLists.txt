@@ -40,6 +40,7 @@ add_library(CemuCafe
   HW/Espresso/Debugger/DebugSymbolStorage.h
   HW/Espresso/Debugger/GDBStub.h
   HW/Espresso/Debugger/GDBStub.cpp
+  HW/Espresso/Debugger/GDBBreakpoints.cpp
   HW/Espresso/Debugger/GDBBreakpoints.h
   HW/Espresso/EspressoISA.h
   HW/Espresso/Interpreter/PPCInterpreterALU.hpp
@@ -534,9 +535,9 @@ endif()
 
 if (ENABLE_NSYSHID_LIBUSB)
 	if (ENABLE_VCPKG)
-		find_package(libusb CONFIG REQUIRED)
-		target_include_directories(CemuCafe PRIVATE ${LIBUSB_INCLUDE_DIRS})
-		target_link_libraries(CemuCafe PRIVATE ${LIBUSB_LIBRARIES})
+		find_package(PkgConfig REQUIRED)
+		pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+		target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
 	else ()
 		find_package(libusb MODULE REQUIRED)
 		target_link_libraries(CemuCafe PRIVATE libusb::libusb)

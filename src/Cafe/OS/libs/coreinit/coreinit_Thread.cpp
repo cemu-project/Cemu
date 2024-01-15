@@ -5,6 +5,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
 #include "Cafe/OS/libs/snd_core/ax.h"
+#include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 
@@ -1153,6 +1154,18 @@ namespace coreinit
 		}
 	}
 
+#if BOOST_OS_LINUX
+	#include <unistd.h>
+	#include <sys/prctl.h>
+
+	std::vector<pid_t> g_schedulerThreadIds;
+
+	std::vector<pid_t>& OSGetSchedulerThreadIds()
+	{
+		return g_schedulerThreadIds;
+	}
+#endif
+
 	void OSSchedulerCoreEmulationThread(void* _assignedCoreIndex)
 	{
 		SetThreadName(fmt::format("OSSchedulerThread[core={}]", (uintptr_t)_assignedCoreIndex).c_str());
@@ -1160,8 +1173,21 @@ namespace coreinit
         #if defined(ARCH_X86_64)
 		_mm_setcsr(_mm_getcsr() | 0x8000); // flush denormals to zero
         #endif
+
+#if BOOST_OS_LINUX
+		if (g_gdbstub)
+		{
+			// need to allow the GDBStub to attach to our thread
+			prctl(PR_SET_DUMPABLE, (unsigned long)1);
+			prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY);
+		}
+
+		pid_t tid = gettid();
+		g_schedulerThreadIds.emplace_back(tid);
+#endif
+
 		t_schedulerFiber = Fiber::PrepareCurrentThread();
-		
+
 		// create scheduler idle fiber and switch to it
 		g_idleLoopFiber[t_assignedCoreIndex] = new Fiber(__OSThreadCoreIdle, nullptr, nullptr);
 		cemu_assert_debug(PPCInterpreter_getCurrentInstance() == nullptr);
@@ -1211,6 +1237,9 @@ namespace coreinit
 			threadItr.join();
 		sSchedulerThreads.clear();
 		g_schedulerThreadHandles.clear();
+#if BOOST_OS_LINUX
+		g_schedulerThreadIds.clear();
+#endif
 		// clean up all fibers
 		for (auto& it : g_idleLoopFiber)
 		{
