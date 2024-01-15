@@ -820,19 +820,23 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 	}
 }
 
-constexpr sint32 samplesPerBlock = 4800;
 static std::atomic<bool> audiothread_keeprunning = true;
 
 void LatteShaderCache_StreamBootSound()
 {
+	constexpr sint32 sampleRate = 48'000;
+	constexpr sint32 bitsPerSample = 16;
+	constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
+	constexpr sint32 nChannels = 2;
+	static_assert(bitsPerSample % 8 == 0, "bits per sample is not a multiple of 8");
+
 	AudioAPIPtr bootSndAudioDev;
 	std::unique_ptr<BootSoundReader> bootSndFileReader;
 	FSCVirtualFile* bootSndFileHandle = 0;
 
-	const sint32 audioBlockSize = samplesPerBlock * 2 * 2;
 	try
 	{
-		bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, 48000, 2, samplesPerBlock, 16);
+		bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, sampleRate, nChannels, samplesPerBlock, bitsPerSample);
 		if(!bootSndAudioDev)
 			return;
 	}
@@ -850,6 +854,7 @@ void LatteShaderCache_StreamBootSound()
 	if(!bootSndFileHandle)
 		return;
 
+	constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
 	bootSndFileReader = std::make_unique<BootSoundReader>(bootSndFileHandle, audioBlockSize);
 
 	if(bootSndAudioDev && bootSndFileHandle && bootSndFileReader)
@@ -859,7 +864,7 @@ void LatteShaderCache_StreamBootSound()
 			while (bootSndAudioDev->NeedAdditionalBlocks())
 				bootSndAudioDev->FeedBlock(bootSndFileReader->getSamples());
 			// sleep for the duration of a single block
-			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (48'000/ 1'000)));
+			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (sampleRate/ 1'000)));
 		}
 	}
 
