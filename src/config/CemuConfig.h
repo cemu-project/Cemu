@@ -378,7 +378,7 @@ struct CemuConfig
 #endif
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
-	ConfigValue<bool> play_boot_sound{true};
+	ConfigValue<bool> play_boot_sound{false};
 
 	std::vector<std::string> game_paths;
 	std::mutex game_cache_entries_mutex;
