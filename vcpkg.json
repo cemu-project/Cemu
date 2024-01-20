@@ -41,7 +41,10 @@
     },
     "boost-random",
     "fmt",
-    "hidapi",
+    {
+      "name": "hidapi",
+      "platform": "!android"
+    },
     "libpng",
     "glm",
     {
