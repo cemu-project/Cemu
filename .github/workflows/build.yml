@@ -183,7 +183,7 @@ jobs:
     - name: "Build Cemu"
       run: |
         cd build
-        cmake --build . --config ${{ env.BUILD_MODE }} -j 2
+        cmake --build . --config ${{ env.BUILD_MODE }}
 
     - name: Prepare artifact
       if: ${{ inputs.deploymode == 'release' }}

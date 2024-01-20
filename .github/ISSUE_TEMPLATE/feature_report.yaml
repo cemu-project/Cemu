@@ -1,0 +1,28 @@
+# Docs - https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+name: Feature suggestion
+description: Suggest a new feature
+title: "Enter a title for the suggestion here"
+labels: feature request
+body:
+  - type: markdown
+    id: md_readme
+    attributes:
+      value: |
+        ## Important: Read First
+        
+        While we appreciate suggestions, it is important to note that we are a very small team and there are already many more ideas than we could ever implement in the near future. Therefore, please only suggest something if you believe it is a great addition and the idea is reasonably unique.
+        
+        *Avoid* to create suggestions for:
+        - Overly obvious features ("Game xyz does not work and should be fixed", "Wiimote support should be improved", "You should add an Android port", "Copy feature xyz from another emulator", "A button to pause/stop emulation")
+        - Niche features which are only interesting to a tiny percentage of users
+        - Large scale features ("Add a Metal backend for MacOS", "Add ARM support", "Add savestates")
+         
+        Note that this doesn't mean we aren't interested in these ideas, but rather we likely have them planned anyway and it's mostly up to finding the time to implement them.
+        If you believe your idea is worthwhile even if it doesn't meet all the criteria above, you can still try suggesting it but we might close it.        
+  - type: textarea
+    id: idea_suggestion
+    attributes:
+      label: Your suggestion
+      description: "Describe what your suggestion is in as much detail as possible"
+    validations:
+      required: true

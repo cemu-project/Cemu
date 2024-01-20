@@ -246,6 +246,22 @@ static void _appendPVPS(LatteDecompilerShaderContext* shaderContext, StringBuf* 
 	_appendChannel(src, aluUnit);
 }
 
+std::string _FormatFloatAsGLSLConstant(float f)
+{
+	char floatAsStr[64];
+	size_t floatAsStrLen = fmt::format_to_n(floatAsStr, 64, "{:#}", f).size;
+	size_t floatAsStrLenOrg = floatAsStrLen;
+	if(floatAsStrLen > 0 && floatAsStr[floatAsStrLen-1] == '.')
+	{
+		floatAsStr[floatAsStrLen] = '0';
+		floatAsStrLen++;
+	}
+	cemu_assert(floatAsStrLen < 50); // constant suspiciously long?
+	floatAsStr[floatAsStrLen] = '\0';
+	cemu_assert_debug(floatAsStrLen >= 3); // shortest possible form is "0.0"
+	return floatAsStr;
+}
+
 // tracks PV/PS and register backups
 struct ALUClauseTemporariesState
 {
@@ -926,15 +942,7 @@ void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, LatteDec
 			exponent -= 127;
 			if ((constVal & 0xFF) == 0 && exponent >= -10 && exponent <= 10)
 			{
-				char floatAsStr[32];
-				size_t floatAsStrLen = fmt::format_to_n(floatAsStr, 32, "{:#}", *(float*)&constVal).size;
-				if(floatAsStrLen > 0 && floatAsStr[floatAsStrLen-1] == '.')
-				{
-					floatAsStr[floatAsStrLen] = '0';
-					floatAsStrLen++;
-				}
-				cemu_assert_debug(floatAsStrLen >= 3); // shortest possible form is "0.0"
-				src->add(std::string_view(floatAsStr, floatAsStrLen));
+				src->add(_FormatFloatAsGLSLConstant(*(float*)&constVal));
 			}
 			else
 				src->addFmt("intBitsToFloat(0x{:08x})", constVal);
@@ -2561,13 +2569,11 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		// lod or lod bias parameter
 		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
 		{
+			src->add(",");
 			if(texOpcode == GPU7_TEX_INST_SAMPLE_LB)
-				src->addFmt("{}", (float)texInstruction->textureFetch.lodBias / 16.0f);
+				src->add(_FormatFloatAsGLSLConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
 			else
-			{
-				src->add(",");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
-			}
 		}
 		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
 		{
