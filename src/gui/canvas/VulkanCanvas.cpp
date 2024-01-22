@@ -66,6 +66,10 @@ void VulkanCanvas::OnPaint(wxPaintEvent& event)
 
 void VulkanCanvas::OnResize(wxSizeEvent& event)
 {
+	const wxSize size = GetSize();
+	if (size.GetWidth() == 0 || size.GetHeight() == 0)
+		return;
+
 #if BOOST_OS_LINUX && HAS_WAYLAND
 	if(m_subsurface)
 	{
@@ -73,9 +77,6 @@ void VulkanCanvas::OnResize(wxSizeEvent& event)
 		m_subsurface->setSize(sRect.GetX(), sRect.GetY(), sRect.GetWidth(), sRect.GetHeight());
 	}
 #endif
-	const wxSize size = GetSize();
-	if (size.GetWidth() == 0 || size.GetHeight() == 0)
-		return;
 
 	const wxRect refreshRect(size);
 	RefreshRect(refreshRect, false);

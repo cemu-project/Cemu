@@ -1235,6 +1235,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     const auto title_id = gameInfo.GetBaseTitleId();
     const auto title_name = gameInfo.GetTitleName();
     auto exe_path = ActiveSettings::GetExecutablePath();
+    const char *flatpak_id = getenv("FLATPAK_ID");
 
     // GetExecutablePath returns the AppImage's temporary mount location, instead of its actual path
     wxString appimage_path;
@@ -1292,21 +1293,30 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
             }
         }
     }
+
+    std::string desktop_exec_entry;
+    if (flatpak_id)
+        desktop_exec_entry = fmt::format("/usr/bin/flatpak run {0} --title-id {1:016x}", flatpak_id, title_id);
+    else
+        desktop_exec_entry = fmt::format("{0:?} --title-id {1:016x}", _pathToUtf8(exe_path), title_id);
+
     // 'Icon' accepts spaces in file name, does not accept quoted file paths
     // 'Exec' does not accept non-escaped spaces, and can accept quoted file paths
-    const auto desktop_entry_string =
+    auto desktop_entry_string =
             fmt::format("[Desktop Entry]\n"
                         "Name={0}\n"
                         "Comment=Play {0} on Cemu\n"
-                        "Exec={1:?} --title-id {2:016x}\n"
-                        "Icon={3}\n"
+                        "Exec={1}\n"
+                        "Icon={2}\n"
                         "Terminal=false\n"
                         "Type=Application\n"
-                        "Categories=Game;",
+                        "Categories=Game;\n",
                         title_name,
-                        _pathToUtf8(exe_path),
-                        title_id,
+                        desktop_exec_entry,
                         _pathToUtf8(icon_path.value_or("")));
+
+    if (flatpak_id)
+        desktop_entry_string += fmt::format("X-Flatpak={}\n", flatpak_id);
 
     std::ofstream output_stream(output_path);
     if (!output_stream.good())
