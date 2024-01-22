@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21.1)
+cmake_minimum_required(VERSION 3.22...3.28.1)
 
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(PORTABLE "All data created and maintained by Cemu will be in the directory where the executable file is located" ON)
