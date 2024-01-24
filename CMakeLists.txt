@@ -86,7 +86,7 @@ option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
 
-# input backends
+# input backends for Windows
 if (WIN32)
 	option(ENABLE_XINPUT "Enables the usage of XInput" ON)
 	option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
@@ -96,14 +96,14 @@ endif()
 option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 option(ENABLE_SDL "Enables the SDLController backend" ON)
 
-# audio backends
+# audio backends for Windows
 if (WIN32)
 	option(ENABLE_DIRECTAUDIO "Enables the directaudio backend" ON)
 	option(ENABLE_XAUDIO "Enables the xaudio backend" ON)
 endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
-# usb hid backends
+# usb hid backends for Windows
 if (WIN32)
 	option(ENABLE_NSYSHID_WINDOWS_HID "Enables the native Windows HID backend for nsyshid" ON)
 endif ()
@@ -143,7 +143,7 @@ if (NOT TARGET glslang::SPIRV AND TARGET SPIRV)
 	add_library(glslang::SPIRV ALIAS SPIRV)
 endif()
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE) # Require X11 or Wayland and GTK3
 	find_package(X11 REQUIRED)
 	if (ENABLE_WAYLAND)
 		find_package(Wayland REQUIRED Client)
@@ -162,7 +162,7 @@ if (UNIX AND NOT APPLE)
 
 endif()
 
-if (ENABLE_VULKAN)
+if (ENABLE_VULKAN) # Vulkan Headers Files
 	include_directories("dependencies/Vulkan-Headers/include")
 endif()
 
@@ -176,13 +176,13 @@ if (ENABLE_DISCORD_RPC)
 	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
 endif()
 
-if (ENABLE_HIDAPI)
+if (ENABLE_HIDAPI) # Wii Remote Emulator
 	find_package(hidapi REQUIRED)
 	set(ENABLE_WIIMOTE ON)
 	add_compile_definitions(HAS_HIDAPI)
 endif ()
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE) # Enable Gamemode for better performance in Linux 
 	if(ENABLE_FERAL_GAMEMODE)
 		add_compile_definitions(ENABLE_FERAL_GAMEMODE)
 		add_subdirectory(dependencies/gamemode EXCLUDE_FROM_ALL)
