@@ -1482,7 +1482,8 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 
 void MainWindow::OnKeyDown(wxKeyEvent& event)
 {
-	if (event.AltDown() && event.GetKeyCode() == WXK_F4)
+	if ((event.AltDown() && event.GetKeyCode() == WXK_F4) || 
+		(event.CmdDown() && event.GetKeyCode() == 'Q'))
 	{
 		Close(true);
 	}
