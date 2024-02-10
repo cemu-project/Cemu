@@ -14,7 +14,6 @@ std::vector<Account> Account::s_account_list;
 Account::Account(uint32 persistent_id)
 	: m_persistent_id(persistent_id) {}
 
-
 typedef struct
 {
 	uint32be high;

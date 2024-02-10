@@ -50,7 +50,6 @@ struct LatteFetchShader
 	CacheHash m_cacheHash{};
 	bool m_isRegistered{}; // if true, fetch shader is referenced by cache (RegisterInCache() succeeded)
 
-
 	void CalculateFetchShaderVkHash();
 
 	uint64 getVkPipelineHashFragment() const { return vkPipelineHashFragment; };

@@ -190,7 +190,6 @@ private:
 		struct ZpIR::ZpIRFunction* irObject;
 	}m_ctx;
 
-
 	// vertex shader info
 	struct
 	{

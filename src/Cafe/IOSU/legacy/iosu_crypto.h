@@ -45,7 +45,6 @@ struct CertECC_t
 	/* +0x108 */ uint8				publicKey[0x3C];
 	/* +0x144 */ uint8				padding[0x180 - 0x144];
 
-	
 };
 
 static_assert(sizeof(CertECC_t) == 0x180);

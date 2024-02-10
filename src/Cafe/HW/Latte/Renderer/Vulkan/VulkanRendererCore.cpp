@@ -950,7 +950,6 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		}
 	}
 
-
 	VkDescriptorBufferInfo tfStorageBufferInfo{};
 
 	if (shader->resourceMapping.tfStorageBindingPoint >= 0)

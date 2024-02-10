@@ -267,7 +267,6 @@ namespace iosu
 	}
 }
 
-
 // IOSU act IO
 
 typedef struct  

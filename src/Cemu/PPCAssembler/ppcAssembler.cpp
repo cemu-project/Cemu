@@ -320,7 +320,6 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 	case PPCASM_OP_CRMOVE: return "CRMOVE";
 	case PPCASM_OP_CRNOT: return "CRNOT";
 
-
 	default:
 		return "UNDEF";
 	}

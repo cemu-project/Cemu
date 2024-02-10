@@ -288,7 +288,6 @@ public:
 	void* texture_acquireTextureUploadBuffer(uint32 size) override;
 	void texture_releaseTextureUploadBuffer(uint8* mem) override;
 	
-
 	TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) override;
 
 	void texture_reserveTextureOnGPU(LatteTexture* hostTexture) override;
@@ -941,7 +940,6 @@ private:
 
 		vkTexture->SetImageLayout(subresourceRange, newLayout);
 	}
-
 
 public:
 	bool GetDisableMultithreadedCompilation() const { return m_featureControl.disableMultithreadedCompilation; }

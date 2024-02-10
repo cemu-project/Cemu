@@ -2181,7 +2181,6 @@ bool PPCRecompilerX64Gen_imlInstruction_cr(PPCRecFunction_t* PPCRecFunction, ppc
 	return false;
 }
 
-
 void PPCRecompilerX64Gen_imlInstruction_ppcEnter(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction)
 {
 	imlInstruction->op_ppcEnter.x64Offset = x64GenContext->codeBufferIndex;

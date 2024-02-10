@@ -306,9 +306,3 @@ static void FSTPathUnitTest()
 	cemu_assert_debug(p7.MatchNodeName(1, "content"));
 	cemu_assert_debug(p7.MatchNodeName(2, ".."));
 }
-
-
-
-
-
-

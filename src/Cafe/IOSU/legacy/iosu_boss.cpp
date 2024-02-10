@@ -189,7 +189,6 @@ namespace iosu
 	static_assert(sizeof(BossNbdlHeader) == 0x40, "BossNbdlHeader has invalid size");
 	static_assert(offsetof(BossNbdlHeader, encryptedHeader) == 0x20, "offsetof(BossNbdlHeader, encryptedHeader)");
 
-
 	struct
 	{
 		bool is_initialized;
@@ -637,7 +636,6 @@ namespace iosu
 			cemuLog_logDebug(LogType::Force, "task_run returns text: {}", fmt::ptr(it->result_buffer.data()));
 			break;
 		}
-
 
 		if (!it->queued_files.empty())
 		{

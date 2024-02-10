@@ -62,7 +62,6 @@ void PPCInterpreter_PS_DIV(PPCInterpreter_t* hCPU, uint32 Opcode)
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
-
 void PPCInterpreter_PS_MADD(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
 	FPUCheckAvailable();

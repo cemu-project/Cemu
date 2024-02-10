@@ -2811,7 +2811,6 @@ void _emitTEXGetCompTexLodCode(LatteDecompilerShaderContext* shaderContext, Latt
 		debugBreakpoint();
 	}
 
-
 	_emitTypeConversionSuffix(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType);
 	src->add(".");
 

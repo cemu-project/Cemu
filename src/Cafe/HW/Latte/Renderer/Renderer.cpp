@@ -37,7 +37,6 @@ bool Renderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 	return false;
 }
 
-
 void Renderer::Initialize()
 {
 	// imgui

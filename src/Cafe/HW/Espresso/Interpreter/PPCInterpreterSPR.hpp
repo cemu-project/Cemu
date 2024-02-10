@@ -846,8 +846,6 @@ static uint32 PPCSpr_get(PPCInterpreter_t* hCPU, uint32 spr)
 		break;
 	}
 
-
-
 	//if( spr == SPR_LR || spr == SPR_PVR || spr == SPR_UPIR || spr == SPR_SCR || (spr >= SPR_UGQR0 && spr <= SPR_UGQR7) )
 	//{
 	//	// readable registers

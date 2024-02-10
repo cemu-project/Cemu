@@ -143,7 +143,6 @@ void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenConte
 	imlInstruction->op_conditional_r_s32.bitMustBeSet = bitMustBeSet;
 }
 
-
 void PPCRecompilerImlGen_generateNewInstruction_jump(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 jumpmarkAddress)
 {
 	// jump
@@ -2773,7 +2772,6 @@ bool PPCRecompilerImlGen_XOR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 	}
 	return true;
 }
-
 
 bool PPCRecompilerImlGen_EQV(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {

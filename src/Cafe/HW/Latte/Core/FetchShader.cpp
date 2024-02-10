@@ -402,7 +402,6 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 		newFetchShader->m_isRegistered = true;
 	}
 
-
 	return newFetchShader;
 }
 

@@ -160,7 +160,6 @@ namespace Latte
 		U_HWFMT_32_32_32 = 0x2F,
 		U_HWFMT_32_32_32_FLOAT = 0x30,
 
-
 	};
 
 	enum class E_GX2SURFFMT // GX2 surface format
@@ -488,7 +487,6 @@ namespace Latte
 		SQ_TEX_SAMPLER_WORD0_0				= 0xF000,
 		SQ_TEX_SAMPLER_WORD1_0				= 0xF001,
 		SQ_TEX_SAMPLER_WORD2_0				= 0xF002,
-
 
 	};
 

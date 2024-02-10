@@ -341,13 +341,11 @@ void CurlSOAPHelper::SOAP_generateEnvelope()
 	//m_envelopeStr.append(fmt::format("<{}:Region>EUR</{}:Region>", serviceType, serviceType));
 	//m_envelopeStr.append(fmt::format("<{}:Country>AT</{}:Country>", serviceType, serviceType));
 
-
 	// device token format:
 	// <ECS:DeviceToken>WT-<md5hash_in_hex></ECS:DeviceToken>
 
 	// unknown fields:
 	// VirtualDeviceType (shared but optional?)
-
 
 	// device cert not needed for ECS:GetAccountStatus ? (it complains if present)
 	//char deviceCertStr[1024 * 4];
@@ -361,7 +359,6 @@ void CurlSOAPHelper::SOAP_generateEnvelope()
 
 	m_envelopeStr.append("</SOAP-ENV:Body>\n");
 	m_envelopeStr.append("</SOAP-ENV:Envelope>\n");
-
 
 }
 

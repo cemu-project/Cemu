@@ -674,7 +674,6 @@ static void PPCInterpreter_STFSUX(PPCInterpreter_t* hCPU, uint32 Opcode)
 		hCPU->gpr[rA] += hCPU->gpr[rB];
 }
 
-
 static void PPCInterpreter_STFD(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
 	FPUCheckAvailable();
@@ -860,7 +859,6 @@ static void PPCInterpreter_PSQ_STU(PPCInterpreter_t* hCPU, unsigned int opcode)
 
 	PPCInterpreter_nextInstruction(hCPU);
 }
-
 
 static void PPCInterpreter_PSQ_STX(PPCInterpreter_t* hCPU, unsigned int opcode)
 {

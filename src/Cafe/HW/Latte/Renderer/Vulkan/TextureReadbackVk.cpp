@@ -87,7 +87,6 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 	}
 }
 
-
 void LatteTextureReadbackInfoVk::StartTransfer()
 {
 	cemu_assert(m_textureView);

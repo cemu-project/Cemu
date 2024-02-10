@@ -2,7 +2,6 @@
 
 struct PPCInterpreter_t;
 
-
 #define OSLIB_FUNCTIONTABLE_TYPE_FUNCTION	(1)
 #define OSLIB_FUNCTIONTABLE_TYPE_POINTER	(2)
 

@@ -262,8 +262,6 @@ void PPCRecompilerImlGen_generateNewInstruction_r_s32(ppcImlGenContext_t* ppcIml
 void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 operation, uint8 registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet);
 void PPCRecompilerImlGen_generateNewInstruction_r_r(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction, uint32 operation, uint8 registerResult, uint8 registerA, uint8 crRegister = PPC_REC_INVALID_REGISTER, uint8 crMode = 0);
 
-
-
 // IML instruction generation (new style, can generate new instructions but also overwrite existing ones)
 
 void PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext_t* ppcImlGenContext, PPCRecImlInstruction_t* imlInstruction);
@@ -388,7 +386,6 @@ void PPCRecompiler_reorderConditionModifyInstructions(ppcImlGenContext_t* ppcIml
 // debug
 
 void PPCRecompiler_dumpIMLSegment(PPCRecImlSegment_t* imlSegment, sint32 segmentIndex, bool printLivenessRangeInfo = false);
-
 
 typedef struct
 {

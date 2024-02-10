@@ -645,7 +645,6 @@ int NexFriends::getPendingFriendRequestCount()
 	return (int)this->list_friendReqIncoming.size();
 }
 
-
 bool NexFriends::getFriendByPID(nexFriend& friendData, uint32 searchedPid)
 {
 	std::unique_lock listLock(this->mtx_lists);

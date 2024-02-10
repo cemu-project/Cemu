@@ -238,7 +238,6 @@ void iosuCrypto_generateDeviceCertificate()
 	g_wiiuDeviceCert.ukn0C0[2] = 0x00;
 	g_wiiuDeviceCert.ukn0C0[3] = 0x02;
 
-
 	iosuCrypto_readOtpData(g_wiiuDeviceCert.signature, 0xA3, 0x3C);
 
 	uint32be caValue;
@@ -253,7 +252,6 @@ void iosuCrypto_generateDeviceCertificate()
 	sprintf(g_wiiuDeviceCert.ngName, "NG%08x", (uint32)ngNameValue);
 
 	iosuCrypto_readOtpData(&g_wiiuDeviceCert.ngKeyId, 0xA2, sizeof(uint32));
-
 
 	uint8 privateKey[0x20];
 	memset(privateKey, 0, sizeof(privateKey));

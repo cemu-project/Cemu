@@ -19,7 +19,6 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "config/ActiveSettings.h"
 
-
 using _INDEX_TYPE = Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE;
 
 GLenum sGLActiveDrawMode = 0;
@@ -367,7 +366,6 @@ void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 		cemu_assert_debug(false);
 	}
 }
-
 
 void LatteDraw_cleanupAfterFrame()
 {
@@ -1261,7 +1259,6 @@ void OpenGLRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32
 	attributeStream_bindVertexCacheBuffer();
 	glCopyBufferSubData(GL_ARRAY_BUFFER, GL_ARRAY_BUFFER, srcOffset, dstOffset, size);
 }
-
 
 GLint glClampTable[] =
 {

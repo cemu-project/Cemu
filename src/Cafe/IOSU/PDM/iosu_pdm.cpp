@@ -13,7 +13,6 @@ namespace chrono_d = date;
 namespace chrono_d = std::chrono;
 #endif
 
-
 namespace iosu
 {
 	namespace pdm

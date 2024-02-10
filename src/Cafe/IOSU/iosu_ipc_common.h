@@ -67,7 +67,5 @@ struct IPCCommandBody
 		args[1] = numIn
 		args[2] = numOut
 		args[3] = IPCIoctlVector*
-
-
 	*/
 };

@@ -18,7 +18,6 @@ enum class DEBUG_SYMBOL_TYPE
 	DOUBLE,
 };
 
-
 class DebugSymbolStorage
 {
 public:

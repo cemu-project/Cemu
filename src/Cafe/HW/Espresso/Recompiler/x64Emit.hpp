@@ -1,5 +1,4 @@
 
-
 template<uint8 op0, bool rex64Bit = false>
 class x64_opc_1byte
 {

@@ -1779,7 +1779,6 @@ void x64Gen_jmpc_far(x64GenContext_t* x64GenContext, sint32 conditionType, sint3
 	x64Gen_writeU32(x64GenContext, (uint32)relativeDest);
 }
 
-
 void x64Gen_jmpc_near(x64GenContext_t* x64GenContext, sint32 conditionType, sint32 relativeDest)
 {
 	// near JMPc #+relativeDest

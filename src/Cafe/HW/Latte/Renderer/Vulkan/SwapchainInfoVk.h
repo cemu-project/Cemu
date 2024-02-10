@@ -55,7 +55,6 @@ struct SwapchainInfoVk
 
 	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapchainSupportDetails& swapchainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
 
-
 	VkExtent2D getExtent() const
 	{
 		return m_actualExtent;
@@ -84,7 +83,6 @@ struct SwapchainInfoVk
 	VkSwapchainKHR swapchain{};
 	Vector2i m_desiredExtent{};
 	uint32 swapchainImageIndex = (uint32)-1;
-
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
 	std::vector<VkImage> m_swapchainImages;

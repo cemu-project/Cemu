@@ -143,7 +143,6 @@ void LatteTextureViewLookupCache::RemoveAll(LatteTextureView* view)
 	}
 }
 
-
 LatteTextureView* LatteTextureViewLookupCache::lookup(MPTR physAddr, sint32 width, sint32 height, sint32 depth, sint32 pitch, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, Latte::E_GX2SURFFMT format, Latte::E_DIM dim)
 {
 	// todo - add tileMode param to this and the other lookup functions?

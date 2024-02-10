@@ -648,7 +648,6 @@ namespace H264
 			status = ih264d_api_function(m_codecCtx, &s_set_display_frame_ip, &s_set_display_frame_op);
 			cemu_assert(!status);
 
-
 			// mark all as released (available)
 			for (uint32 i = 0; i < s_ctl_op.u4_num_disp_bufs; i++)
 			{

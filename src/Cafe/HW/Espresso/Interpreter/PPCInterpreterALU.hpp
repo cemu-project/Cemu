@@ -922,4 +922,3 @@ static void PPCInterpreter_CMPLI(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->cr[cr * 4 + CR_BIT_SO] = 1;
 	PPCInterpreter_nextInstruction(hCPU);
 }
-

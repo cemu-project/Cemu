@@ -315,7 +315,6 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 		colorBlending.logicOpEnable = VK_FALSE;
 	}
 
-
 	// ##########################################################################################################################################
 
 	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings;
@@ -562,7 +561,6 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 	draw_endRenderPass();
 
 	//debug_printf("surfaceCopy_viaDrawcall Src %04d %04d Dst %04d %04d CopySize %04d %04d\n", srcTextureVk->width, srcTextureVk->height, dstTextureVk->width, dstTextureVk->height, effectiveCopyWidth, effectiveCopyHeight);
-
 
 	VkImageSubresourceLayers srcImageSubresource;
 	srcImageSubresource.aspectMask = srcTextureVk->GetImageAspect();

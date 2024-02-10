@@ -292,7 +292,6 @@ public:
 	}
 };
 
-
 class TextureDecoder_R32_UINT : public TextureDecoder, public SingletonClass<TextureDecoder_R32_UINT>
 {
 public:
@@ -722,7 +721,6 @@ public:
 		*(outputPixel + 3) = c3;
 	}
 };
-
 
 class TextureDecoder_R4G4B4A4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_RGBA8>
 {

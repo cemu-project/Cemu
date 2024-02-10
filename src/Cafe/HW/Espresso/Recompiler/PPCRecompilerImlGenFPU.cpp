@@ -359,7 +359,6 @@ bool PPCRecompilerImlGen_STFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	return true;
 }
 
-
 bool PPCRecompilerImlGen_STFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
 	sint32 rA, frS, rB;

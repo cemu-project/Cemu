@@ -231,7 +231,6 @@ bool PPCRecompiler_makeRecompiledFunctionActive(uint32 initialEntryPoint, PPCFun
 		ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[itr.first / 4] = (PPCREC_JUMP_ENTRY)((uint8*)ppcRecFunc->x86Code + itr.second);
 	}
 
-
 	// due to inlining, some entrypoints can get optimized away
 	// therefore we reset all addresses that are still marked as visited (but not recompiled)
 	// we dont remove the points from the queue but any address thats not marked as visited won't get recompiled

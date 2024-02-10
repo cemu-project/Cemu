@@ -548,7 +548,6 @@ LatteCMDPtr LatteCP_itMemWrite(LatteCMDPtr cmd, uint32 nWords)
 	return cmd;
 }
 
-
 LatteCMDPtr LatteCP_itMemSemaphore(LatteCMDPtr cmd, uint32 nWords)
 {
 	cemu_assert_debug(nWords == 2);

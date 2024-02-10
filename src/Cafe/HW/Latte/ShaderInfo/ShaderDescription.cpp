@@ -7,7 +7,6 @@ namespace Latte
 	{
 		assert_dbg();
 
-
 		// parse CF flow
 		// we need to parse:
 		// - Export clauses to gather info about exported attributes and written render targets

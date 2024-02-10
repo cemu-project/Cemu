@@ -108,7 +108,6 @@ void dmaeExport_DMAEGetRetiredTimeStamp(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction64(hCPU, dmaeRetiredTimestamp);
 }
 
-
 void dmae_load()
 {
 	osLib_addFunction("dmae", "DMAECopyMem", dmaeExport_DMAECopyMem);

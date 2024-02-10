@@ -707,8 +707,6 @@ void _calculateFrameOrder(h264ParserState_t* h264ParserState, const h264State_se
 			else
 				FrameNumOffset = prevFrameNumOffset;
 
-
-
 		}
 
 		uint32 tempPicOrderCnt;

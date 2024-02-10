@@ -63,7 +63,6 @@ void LatteQueryObjectVk::beginFragment()
 	qf.m_finishCommandBuffer = 0;
 	list_queryFragments.emplace_back(qf);
 
-
 	vkCmdResetQueryPool(m_rendererVk->m_state.currentCommandBuffer, m_rendererVk->m_occlusionQueries.queryPool, newQueryIndex, 1);
 	vkCmdBeginQuery(m_rendererVk->m_state.currentCommandBuffer, m_rendererVk->m_occlusionQueries.queryPool, newQueryIndex, VK_QUERY_CONTROL_PRECISE_BIT);
 	// todo - we already synchronize with command buffers, should we also set wait bits?

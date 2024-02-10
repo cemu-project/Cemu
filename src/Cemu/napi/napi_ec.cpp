@@ -273,7 +273,6 @@ namespace NAPI
 			<Currency>EUR</Currency>
 		*/
 
-
 		return result;
 	}
 

@@ -47,7 +47,6 @@ bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameP
 	return false;
 }
 
-
 bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName, bool& option)
 {
 	auto option_value = iniParser.FindOption(optionName);

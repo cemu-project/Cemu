@@ -15,7 +15,6 @@
 #define DEBUGGER_BP_T_GDBSTUB_TW    0x7C010008
 #define DEBUGGER_BP_T_DEBUGGER_TW   0x7C020008
 
-
 struct DebuggerBreakpoint
 {
 	uint32 address;
@@ -30,7 +29,6 @@ struct DebuggerBreakpoint
 	{
 		next = nullptr;
 	}
-
 
 	bool operator<(const DebuggerBreakpoint& rhs) const
 	{

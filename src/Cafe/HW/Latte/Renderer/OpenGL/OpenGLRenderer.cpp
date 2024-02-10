@@ -306,7 +306,6 @@ void OpenGLRenderer::Initialize()
 	if (m_vendor == GfxVendor::Nvidia)
 		glClampColor(GL_CLAMP_FRAGMENT_COLOR, GL_FALSE);
 
-
 	glEnable(GL_PRIMITIVE_RESTART);
 	glPrimitiveRestartIndex(0xFFFFFFFF);
 
@@ -460,7 +459,6 @@ void OpenGLRenderer::ClearColorbuffer(bool padView)
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 }
-
 
 void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView)
 {
@@ -1147,7 +1145,6 @@ void OpenGLRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 s
 	glClear((clearDepth ? GL_DEPTH_BUFFER_BIT : 0) | (clearStencil ? GL_STENCIL_BUFFER_BIT : 0));
 	catchOpenGLError();
 }
-
 
 void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32 sliceIndex, sint32 mipIndex)
 {

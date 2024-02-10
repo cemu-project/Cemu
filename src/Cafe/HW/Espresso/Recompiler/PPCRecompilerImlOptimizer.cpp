@@ -1382,7 +1382,6 @@ bool PPCRecompiler_manageFPRRegisters(ppcImlGenContext_t* ppcImlGenContext)
 	return true;
 }
 
-
 /*
  * Returns true if the loaded value is guaranteed to be overwritten
  */

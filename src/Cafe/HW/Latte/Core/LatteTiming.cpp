@@ -131,7 +131,6 @@ void LatteTiming_NotifyHostVSync()
 	auto dif = nowTimePoint - s_lastHostVsync;
 	auto vsyncPeriod = LatteTime_CalculateTimeBetweenVSync();
 
-
 	if (dif < vsyncPeriod)
 	{
 		// skip

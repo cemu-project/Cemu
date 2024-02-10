@@ -360,7 +360,6 @@ namespace iosu
 			sprintf(titlePath, "/vol/storage_mlc01/usr/title/%08x/%08x/", (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF));
 		}
 
-
 		char filePath[FSA_CMD_PATH_MAX_LENGTH];
 		sprintf(filePath, "%smeta/bootMovie.h264", titlePath);
 
@@ -404,7 +403,6 @@ namespace iosu
 		{
 			sprintf(titlePath, "/vol/storage_mlc01/usr/title/%08x/%08x/", (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF));
 		}
-
 
 		char filePath[FSA_CMD_PATH_MAX_LENGTH];
 		sprintf(filePath, "%smeta/meta.xml", titlePath);

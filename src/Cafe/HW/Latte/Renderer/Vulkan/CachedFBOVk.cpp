@@ -98,7 +98,6 @@ void CachedFBOVk::CreateFramebuffer()
 	m_extend = { (uint32)m_size.x, (uint32)m_size.y };
 }
 
-
 void CachedFBOVk::InitDynamicRenderingData()
 {
 	// init struct for KHR_dynamic_rendering
@@ -188,7 +187,6 @@ void CachedFBOVk::InitDynamicRenderingData()
 	m_vkRenderingInfo.viewMask = 0; // multiview disabled
 	m_vkRenderingInfo.layerCount = 1;
 }
-
 
 uint32 s_currentCollisionCheckIndex = 1;
 

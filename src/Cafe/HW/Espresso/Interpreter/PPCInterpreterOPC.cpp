@@ -172,7 +172,6 @@ void PPCInterpreter_BX(PPCInterpreter_t* hCPU, uint32 Opcode)
 	PPCInterpreter_jumpToInstruction(hCPU, li);
 }
 
-
 void PPCInterpreter_BCX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
 	uint32 BO, BI, BD;

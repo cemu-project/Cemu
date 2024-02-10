@@ -26,7 +26,7 @@
 
 #include "Cafe/HW/Latte/Core/LatteTiming.h" // vsync control
 
-#include <glslang/Public/ShaderLang.h>
+#include <glslang/Include/Types.h>
 
 #include <wx/msgdlg.h>
 
@@ -1791,7 +1791,6 @@ void VulkanRenderer::DeleteFontTextures()
 	ImGui_ImplVulkan_DestroyFontsTexture();
 }
 
-
 bool VulkanRenderer::BeginFrame(bool mainWindow)
 {
 	if (!AcquireNextSwapchainImage(mainWindow))
@@ -2993,7 +2992,6 @@ void VulkanRenderer::renderTarget_setViewport(float x, float y, float width, flo
 
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &m_state.currentViewport);
 }
-
 
 void VulkanRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, sint32 scissorWidth, sint32 scissorHeight)
 {

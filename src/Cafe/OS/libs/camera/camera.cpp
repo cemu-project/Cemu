@@ -50,7 +50,6 @@ namespace camera
 		/* +0xC */ uint32be field3;
 	};
 
-
 	#define CAM_ERROR_SUCCESS			0
 	#define CAM_ERROR_INVALID_HANDLE		-8
 
@@ -176,7 +175,6 @@ namespace camera
 		}
 		osLib_returnFromFunction(hCPU, 0);
 	}
-
 
 	sint32 CAMInit(uint32 cameraId, CAMInitInfo_t* camInitInfo, uint32be* error)
 	{

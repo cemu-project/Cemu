@@ -32,7 +32,6 @@ void SwapchainInfoVk::Create(VkPhysicalDevice physicalDevice, VkDevice logicalDe
 	if (result != VK_SUCCESS)
 		UnrecoverableError("Error attempting to retrieve the count of swapchain images");
 
-
 	m_swapchainImages.resize(image_count);
 	result = vkGetSwapchainImagesKHR(logicalDevice, swapchain, &image_count, m_swapchainImages.data());
 	if (result != VK_SUCCESS)

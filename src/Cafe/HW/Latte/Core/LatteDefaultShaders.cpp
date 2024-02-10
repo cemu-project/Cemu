@@ -76,7 +76,6 @@ LatteDefaultShader_t* LatteDefaultShader_getPixelCopyShader_colorToDepth()
 	fCStr_defaultFragShader.add("gl_FragDepth = texture(textureSrc, passUV).r;\r\n");
 	fCStr_defaultFragShader.add("}\r\n");
 
-
 	defaultShader->glProgamId = gxShaderDepr_compileRaw(&fCStr_vertexShader, &fCStr_defaultFragShader);
 	defaultShader->copyShaderUniforms.uniformLoc_textureSrc = glGetUniformLocation(defaultShader->glProgamId, "textureSrc");
 	defaultShader->copyShaderUniforms.uniformLoc_vertexOffsets = glGetUniformLocation(defaultShader->glProgamId, "uf_vertexOffsets");

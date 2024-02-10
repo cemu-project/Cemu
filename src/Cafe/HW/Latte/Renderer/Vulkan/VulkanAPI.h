@@ -46,8 +46,6 @@ extern bool g_vulkan_available;
 	#endif
 #endif
 
-
-
 // global functions
 VKFUNC(vkGetInstanceProcAddr);
 VKFUNC(vkCreateInstance);

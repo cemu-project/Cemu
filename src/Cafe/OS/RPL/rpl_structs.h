@@ -97,7 +97,6 @@ typedef struct
 static_assert(offsetof(rplHeaderNew_t, dataRegionSize) == 0xC);
 static_assert(offsetof(rplHeaderNew_t, programHeaderTableEntrySize) == 0x2A);
 
-
 typedef struct
 {
 	/* +0x00 */ uint32be fileInfoMagic; // always 0xCAFE0402
@@ -126,7 +125,6 @@ typedef struct
 }RPLFileInfoData;
 
 static_assert(offsetof(RPLFileInfoData, tlsModuleIndex) == 0x58);
-
 
 typedef struct
 {

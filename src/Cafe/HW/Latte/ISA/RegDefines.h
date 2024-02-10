@@ -310,7 +310,6 @@
 #define mmSQ_GSTMP_RING_BASE							0x2316
 #define mmSQ_GSTMP_RING_SIZE							0x2317
 
-
 #define mmSQ_TEX_RESOURCE_WORD0							0xE000
 #define mmSQ_ALU_CONSTANT0_0							0xC000
 

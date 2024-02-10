@@ -86,7 +86,6 @@ public:
 
 };
 
-
 struct FSCVirtualFile
 {
 	struct FSCDirIteratorState

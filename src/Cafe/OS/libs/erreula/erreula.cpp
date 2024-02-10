@@ -96,8 +96,6 @@ namespace erreula
 
 		std::chrono::steady_clock::time_point stateTimer{};
 	} g_errEula = {};
-
-
 	
 	std::wstring GetText(uint16be* text)
 	{
@@ -111,7 +109,6 @@ namespace erreula
 
 		return result.str();
 	}
-	
 
 	void export_ErrEulaCreate(PPCInterpreter_t* hCPU)
 	{

@@ -332,7 +332,6 @@ struct h264State_pic_parameter_set_t
 	sint32 second_chroma_qp_index_offset;
 };
 
-
 struct h264State_seq_parameter_set_t
 {
 	uint8 profile_idc; // 0x64 = high profile

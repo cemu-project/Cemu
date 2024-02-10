@@ -437,7 +437,6 @@ namespace CafeSystem
 
 	GameInfo2 sGameInfo_ForegroundTitle;
 
-
 	static void _CheckForWine()
 	{
 		#if BOOST_OS_WINDOWS

@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 
+#include <glslang/Include/Types.h>
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 
@@ -46,7 +47,6 @@ PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash, LatteFe
 			neverSkipAccurateBarrier = true;
 	}
 }
-
 
 PipelineInfo::~PipelineInfo()
 {

@@ -266,7 +266,6 @@ void LatteIndices_generateAutoQuadStripIndices(void* indexDataOutput, uint32 cou
 	indexMax = std::max(count, 1u) - 1;
 }
 
-
 template<typename T>
 void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {

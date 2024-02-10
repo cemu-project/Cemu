@@ -1148,7 +1148,6 @@ RendererOutputShader* GraphicPack2::GetDownscalingShader(bool render_upside_down
 	}
 }
 
-
 std::vector<GraphicPack2::PresetPtr> GraphicPack2::GetActivePresets() const
 {
 	std::vector<PresetPtr> result;

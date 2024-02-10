@@ -100,7 +100,6 @@ namespace NCrypto
 
 	static_assert(sizeof(CertECC) == 0x180);
 
-
 	/* ETicket */
 
 	class ETicketParser  // .tik parser

@@ -111,7 +111,6 @@ void optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy(LatteTextureLoade
 				// 6	->	10
 				// 7	->	11
 
-
 				if ((sizeof(texelBaseType)*texelBaseTypeCount) == 8)
 				{
 					// bpp = 64

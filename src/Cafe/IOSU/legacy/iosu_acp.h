@@ -141,7 +141,6 @@ typedef struct
 	// size is 0x80, but actual content size is only 0x60 and padded to 0x80?
 }acpSaveDirInfo_t;
 
-
 // custom dev/acp_main protocol (Cemu only)
 #define IOSU_ACP_REQUEST_CEMU		(0xEE)
 

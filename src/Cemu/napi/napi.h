@@ -43,7 +43,6 @@ namespace NAPI
 
 		// ACT token (for account.nintendo.net requests)
 
-
 	};
 
 	bool NAPI_MakeAuthInfoFromCurrentAccount(AuthInfo& authInfo); // helper function. Returns false if online credentials/dumped files are not available

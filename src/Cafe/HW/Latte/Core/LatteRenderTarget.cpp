@@ -1078,8 +1078,6 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		LatteRenderTarget_copyToBackbuffer(texView, false);
 }
 
-
-
 // returns the current size of the virtual viewport (not the same as effective size, which can be influenced by texture rules)
 void LatteRenderTarget_GetCurrentVirtualViewportSize(sint32* viewportWidth, sint32* viewportHeight)
 {

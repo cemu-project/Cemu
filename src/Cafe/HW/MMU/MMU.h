@@ -118,7 +118,6 @@ struct MMURange
 	bool m_isMapped{};
 };
 
-
 extern MMURange mmuRange_LOW0;
 extern MMURange mmuRange_TRAMPOLINE_AREA;
 extern MMURange mmuRange_CODECAVE;

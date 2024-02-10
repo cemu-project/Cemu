@@ -110,7 +110,6 @@ struct
 	MEMPTR<curl_calloc_callback> calloc;
 } g_nlibcurl = {};
 
-
 #pragma pack(1)
 
 struct CURL_t
@@ -339,7 +338,6 @@ void export_realloc(PPCInterpreter_t* hCPU)
 	coreinit::default_MEMFreeToDefaultHeap(mem.GetPtr());
 	osLib_returnFromFunction(hCPU, result.GetMPTR());
 }
-
 
 CURLcode curl_global_init(uint32 flags)
 {
@@ -938,7 +936,6 @@ size_t read_callback(char* buffer, size_t size, size_t nitems, void* instream)
 	return msg.result;
 }
 
-
 int progress_callback(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
 {
 	//peterBreak();
@@ -1245,8 +1242,6 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 	cemuLog_logDebug(LogType::Force, "curl_easy_getinfo(0x{:08x}, 0x{:x}, 0x{:08x}) -> 0x{:x}", curl.GetMPTR(), info, parameter.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
 }
-
-
 
 void export_curl_global_init(PPCInterpreter_t* hCPU)
 {

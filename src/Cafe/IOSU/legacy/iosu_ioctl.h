@@ -29,7 +29,6 @@ typedef struct
 	uint32 returnValue;
 }ioQueueEntry_t;
 
-
 #define IOS_PATH_SOCKET		"/dev/socket"
 #define IOS_PATH_ODM		"/dev/odm"
 #define IOS_PATH_ACT		"/dev/act"
@@ -53,7 +52,6 @@ typedef struct
 #define IOS_DEVICE_COUNT	10
 
 void iosuIoctl_init();
-
 
 // for use by IOSU
 ioQueueEntry_t* iosuIoctl_getNextWithWait(uint32 deviceIndex);

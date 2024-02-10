@@ -34,7 +34,6 @@ public:
 		return &m_vkRenderingInfo;
 	}
 
-
 	void TrackDependency(class PipelineInfo* pipelineInfo)
 	{
 		s_spinlockDependency.lock();

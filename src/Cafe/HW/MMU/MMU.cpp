@@ -27,7 +27,6 @@ void memory_initPhysicalLayout()
 	//// allocate memory for bootrom
 	//checkMemAlloc(VirtualAlloc(memory_base + 0x00000000, 1024*16, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE));
 
-
 	//// allocate memory at 0x016FFFFC (is this some sort of register interface or maybe just temporary storage?)
 	//checkMemAlloc(VirtualAlloc(memory_base + 0x016FF000, 0x1000, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
 

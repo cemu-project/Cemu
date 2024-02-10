@@ -9,7 +9,6 @@ public:
 		APPLY,
 	};
 
-
 	void setCurrentGraphicPack(class GraphicPack2* gp)
 	{
 		m_gp = gp;
