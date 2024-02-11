@@ -739,7 +739,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
             {
                 if (wxTheClipboard->Open())
                 {
-                    wxTheClipboard->SetData(new wxTextDataObject(fmt::format("{:016x}", title_id)));
+                    wxTheClipboard->SetData(new wxTextDataObject(fmt::format("{:016x}", gameInfo.GetBaseTitleId())));
                     wxTheClipboard->Close();
                 }
                 break;
@@ -1071,7 +1071,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 
 		const auto region_text = fmt::format("{}", gameInfo.GetRegion());
 		SetItem(index, ColumnRegion, wxGetTranslation(region_text));
-        SetItem(index, ColumnTitleID, fmt::format("{:016x}", titleId));
+        SetItem(index, ColumnTitleID, fmt::format("{:016x}", baseTitleId));
 	}
 	else if (m_style == Style::kIcons)
 	{
