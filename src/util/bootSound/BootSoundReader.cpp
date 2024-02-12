@@ -3,13 +3,15 @@
 
 BootSoundReader::BootSoundReader(FSCVirtualFile* bootsndFile, sint32 blockSize) : bootsndFile(bootsndFile), blockSize(blockSize)
 {
+	// crash if this constructor is invoked with a blockSize that has a different number of samples per channel
+	cemu_assert(blockSize % (sizeof(sint16be) * 2) == 0);
+
 	fsc_setFileSeek(bootsndFile, 0);
 	fsc_readFile(bootsndFile, &muteBits, 4);
 	fsc_readFile(bootsndFile, &loopPoint, 4);
+
 	buffer.resize(blockSize / sizeof(sint16));
 	bufferBE.resize(blockSize / sizeof(sint16be));
-	if(blockSize % (sizeof(sint16be) * 2) != 0)
-		cemu_assert_suspicious();
 
 	// workaround: SM3DW has incorrect loop point
 	const auto titleId = CafeSystem::GetForegroundTitleId();
@@ -23,8 +25,16 @@ sint16* BootSoundReader::getSamples()
 	while(totalRead < blockSize)
 	{
 		auto read = fsc_readFile(bootsndFile, bufferBE.data(), blockSize - totalRead);
+		if (read == 0)
+		{
+			cemuLog_log(LogType::Force, "failed to read PCM samples from bootSound.btsnd");
+			return nullptr;
+		}
 		if (read % (sizeof(sint16be) * 2) != 0)
-			cemu_assert_suspicious();
+		{
+			cemuLog_log(LogType::Force, "failed to play bootSound.btsnd: reading PCM data stopped at an odd number of samples (is the file corrupt?)");
+			return nullptr;
+		}
 
 		std::copy_n(bufferBE.begin(), read / sizeof(sint16be), buffer.begin() + (totalRead / sizeof(sint16)));
 		totalRead += read;

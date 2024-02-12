@@ -862,7 +862,15 @@ void LatteShaderCache_StreamBootSound()
 		while(audiothread_keeprunning)
 		{
 			while (bootSndAudioDev->NeedAdditionalBlocks())
-				bootSndAudioDev->FeedBlock(bootSndFileReader->getSamples());
+			{
+				sint16* data = bootSndFileReader->getSamples();
+				if(data == nullptr)
+				{
+					audiothread_keeprunning = false;
+					break;
+				}
+				bootSndAudioDev->FeedBlock(data);
+			}
 			// sleep for the duration of a single block
 			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (sampleRate/ 1'000)));
 		}
