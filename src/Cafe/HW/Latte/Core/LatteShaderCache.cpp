@@ -852,7 +852,10 @@ void LatteShaderCache_StreamBootSound()
 	sint32 fscStatus = FSC_STATUS_UNDEFINED;
 	bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
 	if(!bootSndFileHandle)
+	{
+		cemuLog_log(LogType::Force, "failed to open bootSound.btsnd");
 		return;
+	}
 
 	constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
 	bootSndFileReader = std::make_unique<BootSoundReader>(bootSndFileHandle, audioBlockSize);
