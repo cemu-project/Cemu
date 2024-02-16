@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bitset>
+#include <condition_variable>
 #define PPC_REC_CODE_AREA_START		(0x00000000) // lower bound of executable memory area. Recompiler expects this address to be 0
 #define PPC_REC_CODE_AREA_END		(0x10000000) // upper bound of executable memory area
 #define PPC_REC_CODE_AREA_SIZE		(PPC_REC_CODE_AREA_END - PPC_REC_CODE_AREA_START)
