@@ -1,426 +1,555 @@
 #include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/IOSU/legacy/iosu_ioctl.h"
 #include "Cafe/IOSU/legacy/iosu_act.h"
 #include "Cafe/IOSU/legacy/iosu_fpd.h"
+#include "Cafe/IOSU/legacy/iosu_ioctl.h" // deprecated
+#include "Cafe/IOSU/iosu_ipc_common.h"
 #include "Cafe/OS/libs/coreinit/coreinit_IOS.h"
-
-#define fpdPrepareRequest() \
-StackAllocator<iosu::fpd::iosuFpdCemuRequest_t> _buf_fpdRequest; \
-StackAllocator<ioBufferVector_t> _buf_bufferVector; \
-iosu::fpd::iosuFpdCemuRequest_t* fpdRequest = _buf_fpdRequest.GetPointer(); \
-ioBufferVector_t* fpdBufferVector = _buf_bufferVector.GetPointer(); \
-memset(fpdRequest, 0, sizeof(iosu::fpd::iosuFpdCemuRequest_t)); \
-memset(fpdBufferVector, 0, sizeof(ioBufferVector_t)); \
-fpdBufferVector->buffer = (uint8*)fpdRequest;
+#include "Cafe/OS/libs/coreinit/coreinit_IPC.h"
+#include "Cafe/OS/libs/nn_common.h"
+#include "util/ChunkedHeap/ChunkedHeap.h"
+#include "Common/CafeString.h"
 
 namespace nn
 {
 	namespace fp
 	{
+		static const auto FPResult_OkZero = 0;
+		static const auto FPResult_Ok = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_FP, 0);
+		static const auto FPResult_InvalidIPCParam = BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_FP, 0x680);
+		static const auto FPResult_RequestFailed = BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_FP, 0); // figure out proper error code
 
-		struct  
+		struct
 		{
-			bool isInitialized;
+			uint32 initCounter;
 			bool isAdminMode;
+			bool isLoggedIn;
+			IOSDevHandle fpdHandle;
+			SysAllocator<coreinit::OSMutex> fpMutex;
+			SysAllocator<uint8, 0x12000> g_fpdAllocatorSpace;
+			VHeap* fpBufferHeap{nullptr};
+			// PPC buffers for async notification query
+			SysAllocator<uint32be> notificationCount;
+			SysAllocator<iosu::fpd::FPDNotification, 256> notificationBuffer;
+			bool getNotificationCalled{false};
+			// notification handler
+			MEMPTR<void> notificationHandler{nullptr};
+			MEMPTR<void> notificationHandlerParam{nullptr};
 		}g_fp = { };
 
-		void Initialize()
+		class
 		{
-			if (g_fp.isInitialized == false)
+		  public:
+			void Init()
 			{
-				g_fp.isInitialized = true;
-				fpdPrepareRequest();
-				fpdRequest->requestCode = iosu::fpd::IOSU_FPD_INITIALIZE;
-				__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
+				std::unique_lock _l(m_mtx);
+				g_fp.fpBufferHeap = new VHeap(g_fp.g_fpdAllocatorSpace.GetPtr(), g_fp.g_fpdAllocatorSpace.GetByteSize());
 			}
-		}
 
-
-
-
-		void export_IsInitialized(PPCInterpreter_t* hCPU)
-		{
-			cemuLog_logDebug(LogType::Force, "Called nn_fp.IsInitialized");
-			osLib_returnFromFunction(hCPU, g_fp.isInitialized ? 1 : 0);
-		}
-
-		void export_Initialize(PPCInterpreter_t* hCPU)
-		{
-			cemuLog_logDebug(LogType::Force, "Called nn_fp.Initialize");
-
-			Initialize();
-
-			osLib_returnFromFunction(hCPU, 0);
-		}
-
-		void export_InitializeAdmin(PPCInterpreter_t* hCPU)
-		{
-			cemuLog_logDebug(LogType::Force, "Called nn_fp.InitializeAdmin");
-			Initialize();
-			g_fp.isAdminMode = true;
-			osLib_returnFromFunction(hCPU, 0);
-		}
-
-		void export_IsInitializedAdmin(PPCInterpreter_t* hCPU)
-		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.IsInitializedAdmin()");
-			osLib_returnFromFunction(hCPU, g_fp.isInitialized ? 1 : 0);
-		}
-
-		void export_SetNotificationHandler(PPCInterpreter_t* hCPU)
-		{
-			ppcDefineParamU32(notificationMask, 0);
-			ppcDefineParamMPTR(funcMPTR, 1);
-			ppcDefineParamMPTR(customParam, 2);
-
-			cemuLog_logDebug(LogType::Force, "nn_fp.SetNotificationHandler(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_SET_NOTIFICATION_HANDLER;
-			fpdRequest->setNotificationHandler.notificationMask = notificationMask;
-			fpdRequest->setNotificationHandler.funcPtr = funcMPTR;
-			fpdRequest->setNotificationHandler.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, 0);
-		}
-
-		void export_LoginAsync(PPCInterpreter_t* hCPU)
-		{
-			ppcDefineParamMPTR(funcPtr, 0);
-			ppcDefineParamMPTR(custom, 1);
-			cemuLog_logDebug(LogType::Force, "nn_fp.LoginAsync(0x{:08x},0x{:08x})", funcPtr, custom);
-			if (g_fp.isInitialized == false)
+			void Destroy()
 			{
-				osLib_returnFromFunction(hCPU, 0xC0C00580);
+				std::unique_lock _l(m_mtx);
+				delete g_fp.fpBufferHeap;
+			}
+
+			void* Allocate(uint32 size, uint32 alignment)
+			{
+				std::unique_lock _l(m_mtx);
+				void* p = g_fp.fpBufferHeap->alloc(size, 32);
+				if (!p)
+					cemuLog_log(LogType::Force, "nn_fp: Internal heap is full");
+				return p;
+			}
+
+			void Free(void* ptr)
+			{
+				std::unique_lock _l(m_mtx);
+				g_fp.fpBufferHeap->free(ptr);
+			}
+
+		  private:
+			std::mutex m_mtx;
+		}FPIpcBufferAllocator;
+
+		class FPIpcContext {
+			static inline constexpr uint32 MAX_VEC_COUNT = 8;
+		  public:
+			// use FP heap for this class
+			static void* operator new(size_t size)
+			{
+				return FPIpcBufferAllocator.Allocate(size, (uint32)alignof(FPIpcContext));
+			}
+
+			static void operator delete(void* ptr)
+			{
+				FPIpcBufferAllocator.Free(ptr);
+			}
+
+			FPIpcContext(iosu::fpd::FPD_REQUEST_ID requestId) : m_requestId(requestId)
+			{
+			}
+
+			~FPIpcContext()
+			{
+				if(m_dataBuffer)
+					FPIpcBufferAllocator.Free(m_dataBuffer);
+			}
+
+			void AddInput(void* ptr, uint32 size)
+			{
+				size_t vecIndex = GetVecInIndex(m_numVecIn);
+				m_vec[vecIndex].baseVirt = ptr;
+				m_vec[vecIndex].size = size;
+				m_numVecIn = m_numVecIn + 1;
+			}
+
+			void AddOutput(void* ptr, uint32 size)
+			{
+				cemu_assert_debug(m_numVecIn == 0); // all outputs need to be added before any inputs
+				size_t vecIndex = GetVecOutIndex(m_numVecOut);
+				m_vec[vecIndex].baseVirt = ptr;
+				m_vec[vecIndex].size = size;
+				m_numVecOut = m_numVecOut + 1;
+			}
+
+			uint32 Submit(std::unique_ptr<FPIpcContext> owner)
+			{
+				InitSubmissionBuffer();
+				// note: While generally, Ioctlv() usage has the order as input (app->IOSU) followed by output (IOSU->app), FP uses it the other way around
+				nnResult r = coreinit::IOS_Ioctlv(g_fp.fpdHandle, (uint32)m_requestId.value(), m_numVecOut, m_numVecIn, m_vec);
+				CopyBackOutputs();
+				owner.reset();
+				return r;
+			}
+
+			nnResult SubmitAsync(std::unique_ptr<FPIpcContext> owner, MEMPTR<void> callbackFunc, MEMPTR<void> callbackParam)
+			{
+				InitSubmissionBuffer();
+				this->m_callbackFunc = callbackFunc;
+				this->m_callbackParam = callbackParam;
+				nnResult r = coreinit::IOS_IoctlvAsync(g_fp.fpdHandle, (uint32)m_requestId.value(), m_numVecOut, m_numVecIn, m_vec, MEMPTR<void>(PPCInterpreter_makeCallableExportDepr(AsyncHandler)), MEMPTR<void>(this));
+				owner.release();
+				return r;
+			}
+
+		  private:
+			size_t GetVecInIndex(uint8 inIndex)
+			{
+				return m_numVecOut + inIndex;
+			}
+
+			size_t GetVecOutIndex(uint8 outIndex)
+			{
+				return outIndex;
+			}
+
+			void InitSubmissionBuffer()
+			{
+				// allocate a chunk of memory to hold the input/output vectors and their data
+				uint32 vecOffset[MAX_VEC_COUNT];
+				uint32 totalBufferSize = 0;
+				for(uint8 i=0; i<m_numVecIn + m_numVecOut; i++)
+				{
+					vecOffset[i] = totalBufferSize;
+					totalBufferSize += m_vec[i].size;
+					totalBufferSize = (totalBufferSize+31)&~31;
+				}
+				if(totalBufferSize > 0)
+				{
+					m_dataBuffer = FPIpcBufferAllocator.Allocate(totalBufferSize, 32);
+					cemu_assert_debug(m_dataBuffer);
+				}
+				// update Ioctl vector addresses
+				for(uint8 i=0; i<m_numVecIn + m_numVecOut; i++)
+				{
+					void* bufferAddr = (uint8be*)m_dataBuffer.GetPtr() + vecOffset[i];
+					m_vecOriginalAddress[i] = m_vec[i].baseVirt;
+					m_vec[i].baseVirt = bufferAddr;
+				}
+				// copy input data to buffer
+				for(uint8 i=0; i<m_numVecIn; i++)
+				{
+					uint8 vecIndex = GetVecInIndex(i);
+					memcpy(MEMPTR<void>(m_vec[vecIndex].baseVirt).GetPtr(), MEMPTR<void>(m_vecOriginalAddress[vecIndex]).GetPtr(), m_vec[vecIndex].size);
+				}
+			}
+
+			static void AsyncHandler(PPCInterpreter_t* hCPU)
+			{
+				ppcDefineParamU32(result, 0);
+				ppcDefineParamPtr(ipcCtx, FPIpcContext, 1);
+				ipcCtx->m_asyncResult = result; // store result in variable since FP callbacks pass a pointer to nnResult and not the value directly
+				ipcCtx->CopyBackOutputs();
+				PPCCoreCallback(ipcCtx->m_callbackFunc, &ipcCtx->m_asyncResult, ipcCtx->m_callbackParam);
+				delete ipcCtx;
+				osLib_returnFromFunction(hCPU, 0);
+			}
+
+			void CopyBackOutputs()
+			{
+				if(m_numVecOut > 0)
+				{
+					// copy output from temporary output buffers to the original addresses
+					for(uint8 i=0; i<m_numVecOut; i++)
+					{
+						uint32 vecOffset = (uint32)m_vec[GetVecOutIndex(i)].baseVirt.GetMPTR() - (uint32)m_vec[0].baseVirt.GetMPTR();
+						memcpy(m_vecOriginalAddress[GetVecOutIndex(i)].GetPtr(), (uint8be*)m_dataBuffer.GetPtr() + vecOffset, m_vec[GetVecOutIndex(i)].size);
+					}
+				}
+			}
+
+			betype<iosu::fpd::FPD_REQUEST_ID> m_requestId;
+			uint8be m_numVecIn{0};
+			uint8be m_numVecOut{0};
+			IPCIoctlVector m_vec[MAX_VEC_COUNT];
+			MEMPTR<void> m_vecOriginalAddress[MAX_VEC_COUNT]{};
+			MEMPTR<void> m_dataBuffer{nullptr};
+			MEMPTR<void> m_callbackFunc{nullptr};
+			MEMPTR<void> m_callbackParam{nullptr};
+			betype<nnResult> m_asyncResult;
+		};
+
+		struct FPGlobalLock
+		{
+			FPGlobalLock()
+			{
+				coreinit::OSLockMutex(&g_fp.fpMutex);
+			}
+			~FPGlobalLock()
+			{
+				coreinit::OSUnlockMutex(&g_fp.fpMutex);
+			}
+		};
+		#define FP_API_BASE() if (g_fp.initCounter == 0) return 0xC0C00580; FPGlobalLock _fpLock;
+		#define FP_API_BASE_ZeroOnError() if (g_fp.initCounter == 0) return 0; FPGlobalLock _fpLock;
+
+		nnResult Initialize()
+		{
+			FPGlobalLock _fpLock;
+			if (g_fp.initCounter == 0)
+			{
+				g_fp.fpdHandle = coreinit::IOS_Open("/dev/fpd", 0);
+			}
+			g_fp.initCounter++;
+			return FPResult_OkZero;
+		}
+
+		uint32 IsInitialized()
+		{
+			FPGlobalLock _fpLock;
+			return g_fp.initCounter > 0 ? 1 : 0;
+		}
+
+		nnResult InitializeAdmin(PPCInterpreter_t* hCPU)
+		{
+			FPGlobalLock _fpLock;
+			g_fp.isAdminMode = true;
+			return Initialize();
+		}
+
+		uint32 IsInitializedAdmin()
+		{
+			FPGlobalLock _fpLock;
+			return g_fp.initCounter > 0 ? 1 : 0;
+		}
+
+		nnResult Finalize()
+		{
+			FPGlobalLock _fpLock;
+			if (g_fp.initCounter == 1)
+			{
+				g_fp.initCounter = 0;
+				g_fp.isAdminMode = false;
+				g_fp.isLoggedIn = false;
+				coreinit::IOS_Close(g_fp.fpdHandle);
+				g_fp.getNotificationCalled = false;
+			}
+			else if (g_fp.initCounter > 0)
+				g_fp.initCounter--;
+			return FPResult_OkZero;
+		}
+
+		nnResult FinalizeAdmin()
+		{
+			return Finalize();
+		}
+
+		void GetNextNotificationAsync();
+
+		nnResult SetNotificationHandler(uint32 notificationMask, void* funcPtr, void* userParam)
+		{
+			FP_API_BASE();
+			g_fp.notificationHandler = funcPtr;
+			g_fp.notificationHandlerParam = userParam;
+			StackAllocator<uint32be> notificationMaskBuf; notificationMaskBuf = notificationMask;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::SetNotificationMask);
+			ipcCtx->AddInput(&notificationMaskBuf, sizeof(uint32be));
+			nnResult r = ipcCtx->Submit(std::move(ipcCtx));
+			if (NN_RESULT_IS_SUCCESS(r))
+			{
+				// async query for notifications
+				GetNextNotificationAsync();
+			}
+			return r;
+		}
+
+		void GetNextNotificationAsyncHandler(PPCInterpreter_t* hCPU)
+		{
+			coreinit::OSLockMutex(&g_fp.fpMutex);
+			cemu_assert_debug(g_fp.getNotificationCalled);
+			g_fp.getNotificationCalled = false;
+			auto bufPtr = g_fp.notificationBuffer.GetPtr();
+			uint32 count = g_fp.notificationCount->value();
+			if (count == 0)
+			{
+				GetNextNotificationAsync();
+				coreinit::OSUnlockMutex(&g_fp.fpMutex);
+				osLib_returnFromFunction(hCPU, 0);
 				return;
 			}
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_LOGIN_ASYNC;
-			fpdRequest->loginAsync.funcPtr = funcPtr;
-			fpdRequest->loginAsync.custom = custom;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
+			// copy notifications to temporary buffer using std::copy
+			iosu::fpd::FPDNotification tempBuffer[256];
+			std::copy(g_fp.notificationBuffer.GetPtr(), g_fp.notificationBuffer.GetPtr() + count, tempBuffer);
+			// call handler for each notification, but do it outside of the lock
+			void* notificationHandler = g_fp.notificationHandler;
+			void* notificationHandlerParam = g_fp.notificationHandlerParam;
+			coreinit::OSUnlockMutex(&g_fp.fpMutex);
+			iosu::fpd::FPDNotification* notificationBuffer = g_fp.notificationBuffer.GetPtr();
+			for (uint32 i = 0; i < count; i++)
+				PPCCoreCallback(notificationHandler, (uint32)notificationBuffer[i].type, notificationBuffer[i].pid, notificationHandlerParam);
+			coreinit::OSLockMutex(&g_fp.fpMutex);
+			// query more notifications
+			GetNextNotificationAsync();
+			coreinit::OSUnlockMutex(&g_fp.fpMutex);
 			osLib_returnFromFunction(hCPU, 0);
 		}
 
-		void export_HasLoggedIn(PPCInterpreter_t* hCPU)
+		void GetNextNotificationAsync()
 		{
-			// Sonic All Star Racing needs this
-			cemuLog_logDebug(LogType::Force, "nn_fp.HasLoggedIn()");
-			osLib_returnFromFunction(hCPU, 1);
+			if (g_fp.getNotificationCalled)
+				return;
+			g_fp.getNotificationCalled = true;
+			g_fp.notificationCount = 0;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetNotificationAsync);
+			ipcCtx->AddOutput(g_fp.notificationBuffer.GetPtr(), g_fp.notificationBuffer.GetByteSize());
+			ipcCtx->AddOutput(g_fp.notificationCount.GetPtr(), sizeof(uint32be));
+			cemu_assert_debug(g_fp.notificationBuffer.GetByteSize() == 0x800);
+			nnResult r = ipcCtx->SubmitAsync(std::move(ipcCtx), MEMPTR<void>(PPCInterpreter_makeCallableExportDepr(GetNextNotificationAsyncHandler)), nullptr);
 		}
 
-		void export_IsOnline(PPCInterpreter_t* hCPU)
+		nnResult LoginAsync(void* funcPtr, void* userParam)
 		{
-			//cemuLog_logDebug(LogType::Force, "nn_fp.IsOnline();");
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_IS_ONLINE;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-			cemuLog_logDebug(LogType::Force, "nn_fp.IsOnline() -> {}", fpdRequest->resultU32.u32);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->resultU32.u32);
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::LoginAsync);
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, userParam);
 		}
 
-		void export_GetFriendList(PPCInterpreter_t* hCPU)
+		uint32 HasLoggedIn()
 		{
-			ppcDefineParamMEMPTR(pidList, uint32be, 0);
-			ppcDefineParamMEMPTR(returnedCount, uint32be, 1);
-			ppcDefineParamU32(startIndex, 2);
-			ppcDefineParamU32(maxCount, 3);
-
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendList(...)");
-			//debug_printf("nn_fp.GetFriendList(0x%08x, 0x%08x, %d, %d)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_LIST;
-
-			fpdRequest->getFriendList.pidList = pidList;
-			fpdRequest->getFriendList.startIndex = startIndex;
-			fpdRequest->getFriendList.maxCount = maxCount;
-
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			*returnedCount = fpdRequest->resultU32.u32;
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE_ZeroOnError();
+			// Sonic All Star Racing uses this
+			// and Monster Hunter 3 Ultimate needs this to return false at least once to initiate login and not get stuck
+			// this returns false until LoginAsync was called and has completed (?) even if the user is already logged in
+			StackAllocator<uint32be> resultBuf;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::HasLoggedIn);
+			ipcCtx->AddOutput(&resultBuf, sizeof(uint32be));
+			ipcCtx->Submit(std::move(ipcCtx));
+			return resultBuf != 0 ? 1 : 0;
 		}
 
-		void export_GetFriendRequestList(PPCInterpreter_t* hCPU)
+		uint32 IsOnline()
 		{
-			// GetFriendRequestList__Q2_2nn2fpFPUiT1UiT3
-			ppcDefineParamMEMPTR(pidList, uint32be, 0);
-			ppcDefineParamMEMPTR(returnedCount, uint32be, 1);
-			ppcDefineParamU32(startIndex, 2);
-			ppcDefineParamU32(maxCount, 3);
-
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendRequestList(...)");
-			//debug_printf("nn_fp.GetFriendList(0x%08x, 0x%08x, %d, %d)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIENDREQUEST_LIST;
-
-			fpdRequest->getFriendList.pidList = pidList;
-			fpdRequest->getFriendList.startIndex = startIndex;
-			fpdRequest->getFriendList.maxCount = maxCount;
-
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			*returnedCount = fpdRequest->resultU32.u32;
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE_ZeroOnError();
+			StackAllocator<uint32be> resultBuf;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::IsOnline);
+			ipcCtx->AddOutput(&resultBuf, sizeof(uint32be));
+			ipcCtx->Submit(std::move(ipcCtx));
+			return resultBuf != 0 ? 1 : 0;
 		}
 
-		void export_GetFriendListAll(PPCInterpreter_t* hCPU)
+		nnResult GetFriendList(uint32be* pidList, uint32be* returnedCount, uint32 startIndex, uint32 maxCount)
 		{
-			ppcDefineParamMEMPTR(pidList, uint32be, 0);
-			ppcDefineParamMEMPTR(returnedCount, uint32be, 1);
-			ppcDefineParamU32(startIndex, 2);
-			ppcDefineParamU32(maxCount, 3);
-
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendListAll(...)");
-
-			//debug_printf("nn_fp.GetFriendListAll(0x%08x, 0x%08x, %d, %d)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_LIST_ALL;
-
-			fpdRequest->getFriendList.pidList = pidList;
-			fpdRequest->getFriendList.startIndex = startIndex;
-			fpdRequest->getFriendList.maxCount = maxCount;
-
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			*returnedCount = fpdRequest->resultU32.u32;
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint32be> startIndexBuf; startIndexBuf = startIndex;
+			StackAllocator<uint32be> maxCountBuf; maxCountBuf = maxCount;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendList);
+			ipcCtx->AddOutput(pidList, sizeof(uint32be) * maxCount);
+			ipcCtx->AddOutput(returnedCount, sizeof(uint32be));
+			ipcCtx->AddInput(&startIndexBuf, sizeof(uint32be));
+			ipcCtx->AddInput(&maxCountBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetFriendListEx(PPCInterpreter_t* hCPU)
+		nnResult GetFriendRequestList(uint32be* pidList, uint32be* returnedCount, uint32 startIndex, uint32 maxCount)
 		{
-			ppcDefineParamMEMPTR(friendData, iosu::fpd::friendData_t, 0);
-			ppcDefineParamMEMPTR(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendListEx(...)");
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_LIST_EX;
-
-			fpdRequest->getFriendListEx.friendData = friendData;
-			fpdRequest->getFriendListEx.pidList = pidList;
-			fpdRequest->getFriendListEx.count = count;
-
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint32be> startIndexBuf; startIndexBuf = startIndex;
+			StackAllocator<uint32be> maxCountBuf; maxCountBuf = maxCount;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendRequestList);
+			ipcCtx->AddOutput(pidList, sizeof(uint32be) * maxCount);
+			ipcCtx->AddOutput(returnedCount, sizeof(uint32be));
+			ipcCtx->AddInput(&startIndexBuf, sizeof(uint32be));
+			ipcCtx->AddInput(&maxCountBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetFriendRequestListEx(PPCInterpreter_t* hCPU)
+		nnResult GetFriendListAll(uint32be* pidList, uint32be* returnedCount, uint32 startIndex, uint32 maxCount)
 		{
-			ppcDefineParamMEMPTR(friendRequest, iosu::fpd::friendRequest_t, 0);
-			ppcDefineParamMEMPTR(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendRequestListEx(...)");
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIENDREQUEST_LIST_EX;
-
-			fpdRequest->getFriendRequestListEx.friendRequest = friendRequest;
-			fpdRequest->getFriendRequestListEx.pidList = pidList;
-			fpdRequest->getFriendRequestListEx.count = count;
-
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint32be> startIndexBuf; startIndexBuf = startIndex;
+			StackAllocator<uint32be> maxCountBuf; maxCountBuf = maxCount;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendListAll);
+			ipcCtx->AddOutput(pidList, sizeof(uint32be) * maxCount);
+			ipcCtx->AddOutput(returnedCount, sizeof(uint32be));
+			ipcCtx->AddInput(&startIndexBuf, sizeof(uint32be));
+			ipcCtx->AddInput(&maxCountBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetBasicInfoAsync(PPCInterpreter_t* hCPU)
+		nnResult GetFriendListEx(iosu::fpd::FriendData* friendData, uint32be* pidList, uint32 count)
 		{
-			ppcDefineParamMEMPTR(basicInfo, iosu::fpd::friendBasicInfo_t, 0);
-			ppcDefineParamTypePtr(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-			ppcDefineParamMPTR(funcMPTR, 3);
-			ppcDefineParamU32(customParam, 4);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_BASIC_INFO_ASYNC;
-			fpdRequest->getBasicInfo.basicInfo = basicInfo;
-			fpdRequest->getBasicInfo.pidList = pidList;
-			fpdRequest->getBasicInfo.count = count;
-			fpdRequest->getBasicInfo.funcPtr = funcMPTR;
-			fpdRequest->getBasicInfo.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);;
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendListEx);
+			ipcCtx->AddOutput(friendData, sizeof(iosu::fpd::FriendData) * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetMyPrincipalId(PPCInterpreter_t* hCPU)
+		nnResult GetFriendRequestListEx(iosu::fpd::FriendRequest* friendRequest, uint32be* pidList, uint32 count)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyPrincipalId()");
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_MY_PRINCIPAL_ID;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			uint32 principalId = fpdRequest->resultU32.u32;
-
-			osLib_returnFromFunction(hCPU, principalId);
+			FP_API_BASE();
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendRequestListEx);
+			ipcCtx->AddOutput(friendRequest, sizeof(iosu::fpd::FriendRequest) * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetMyAccountId(PPCInterpreter_t* hCPU)
+		nnResult GetBasicInfoAsync(iosu::fpd::FriendBasicInfo* basicInfo, uint32be* pidList, uint32 count, void* funcPtr, void* customParam)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyAccountId(0x{:08x})", hCPU->gpr[3]);
-			ppcDefineParamTypePtr(accountId, uint8, 0);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_MY_ACCOUNT_ID;
-			fpdRequest->common.ptr = (void*)accountId;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetBasicInfoAsync);
+			ipcCtx->AddOutput(basicInfo, sizeof(iosu::fpd::FriendBasicInfo) * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-		void export_GetMyScreenName(PPCInterpreter_t* hCPU)
+		uint32 GetMyPrincipalId()
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyScreenName(0x{:08x})", hCPU->gpr[3]);
-			ppcDefineParamTypePtr(screenname, uint16be, 0);
-
-			screenname[0] = '\0';
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_MY_SCREENNAME;
-			fpdRequest->common.ptr = (void*)screenname;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, 0);
+			FP_API_BASE_ZeroOnError();
+			StackAllocator<uint32be> resultBuf;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyPrincipalId);
+			ipcCtx->AddOutput(&resultBuf, sizeof(uint32be));
+			ipcCtx->Submit(std::move(ipcCtx));
+			return resultBuf->value();
 		}
 
-		typedef struct  
+		nnResult GetMyAccountId(uint8be* accountId)
 		{
-			uint8 showOnline; // show online status to others
-			uint8 showGame; // show played game to others
-			uint8 blockFriendRequests; // block friend requests
-		}fpPerference_t;
-
-		void export_GetMyPreference(PPCInterpreter_t* hCPU)
-		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyPreference(0x{:08x}) - placeholder", hCPU->gpr[3]);
-			ppcDefineParamTypePtr(pref, fpPerference_t, 0);
-
-			pref->showOnline = 1;
-			pref->showGame = 1;
-			pref->blockFriendRequests = 0;
-
-			osLib_returnFromFunction(hCPU, 0);
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyAccountId);
+			ipcCtx->AddOutput(accountId, ACT_ACCOUNTID_LENGTH);
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		// GetMyPreference__Q2_2nn2fpFPQ3_2nn2fp10Preference
-
-		void export_GetMyMii(PPCInterpreter_t* hCPU)
+		nnResult GetMyScreenName(uint16be* screenname)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetMyMii(0x{:08x})", hCPU->gpr[3]);
-			ppcDefineParamTypePtr(fflData, FFLData_t, 0);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_MY_MII;
-			fpdRequest->common.ptr = (void*)fflData;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyScreenName);
+			ipcCtx->AddOutput(screenname, ACT_NICKNAME_SIZE*sizeof(uint16));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetFriendAccountId(PPCInterpreter_t* hCPU)
+		nnResult GetMyPreference(iosu::fpd::FPDPreference* myPreference)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendAccountId(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-			ppcDefineParamMEMPTR(accountIds, char, 0);
-			ppcDefineParamMEMPTR(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_ACCOUNT_ID;
-			fpdRequest->getFriendAccountId.accountIds = accountIds;
-			fpdRequest->getFriendAccountId.pidList = pidList;
-			fpdRequest->getFriendAccountId.count = count;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyPreference);
+			ipcCtx->AddOutput(myPreference, sizeof(iosu::fpd::FPDPreference));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetFriendScreenName(PPCInterpreter_t* hCPU)
+		nnResult GetMyMii(FFLData_t* fflData)
 		{
-			// GetFriendScreenName__Q2_2nn2fpFPA11_wPCUiUibPUc
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendScreenName(0x{:08x},0x{:08x},0x{:08x},{},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7]);
-			ppcDefineParamMEMPTR(nameList, uint16be, 0);
-			ppcDefineParamMEMPTR(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-			ppcDefineParamU32(replaceNonAscii, 3);
-			ppcDefineParamMEMPTR(languageList, uint8, 4);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_SCREENNAME;
-			fpdRequest->getFriendScreenname.nameList = nameList;
-			fpdRequest->getFriendScreenname.pidList = pidList;
-			fpdRequest->getFriendScreenname.count = count;
-			fpdRequest->getFriendScreenname.replaceNonAscii = replaceNonAscii != 0;
-			fpdRequest->getFriendScreenname.languageList = languageList;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyMii);
+			ipcCtx->AddOutput(fflData, sizeof(FFLData_t));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetFriendMii(PPCInterpreter_t* hCPU)
+		nnResult GetFriendAccountId(uint8be* accountIdArray, uint32be* pidList, uint32 count)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendMii(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-			ppcDefineParamMEMPTR(miiList, FFLData_t, 0);
-			ppcDefineParamMEMPTR(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_MII;
-			fpdRequest->getFriendMii.miiList = (uint8*)miiList.GetPtr();
-			fpdRequest->getFriendMii.pidList = pidList;
-			fpdRequest->getFriendMii.count = count;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			if (count == 0)
+				return 0;
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendAccountId);
+			ipcCtx->AddOutput(accountIdArray, ACT_ACCOUNTID_LENGTH * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetFriendPresence(PPCInterpreter_t* hCPU)
+		nnResult GetFriendScreenName(uint16be* nameList, uint32be* pidList, uint32 count, uint8 replaceNonAscii, uint8be* languageList)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendPresence(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-			ppcDefineParamMEMPTR(presenceList, uint8, 0);
-			ppcDefineParamMEMPTR(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_PRESENCE;
-			fpdRequest->getFriendPresence.presenceList = (uint8*)presenceList.GetPtr();
-			fpdRequest->getFriendPresence.pidList = pidList;
-			fpdRequest->getFriendPresence.count = count;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			if (count == 0)
+				return 0;
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			StackAllocator<uint32be> replaceNonAsciiBuf; replaceNonAsciiBuf = replaceNonAscii;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendScreenName);
+			ipcCtx->AddOutput(nameList, ACT_NICKNAME_SIZE * sizeof(uint16be) * count);
+			ipcCtx->AddOutput(languageList, languageList ? sizeof(uint8be) * count : 0);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			ipcCtx->AddInput(&replaceNonAsciiBuf, sizeof(uint8be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_GetFriendRelationship(PPCInterpreter_t* hCPU)
+		nnResult GetFriendMii(FFLData_t* miiList, uint32be* pidList, uint32 count)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.GetFriendRelationship(0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-			ppcDefineParamMEMPTR(relationshipList, uint8, 0);
-			ppcDefineParamMEMPTR(pidList, uint32be, 1);
-			ppcDefineParamU32(count, 2);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_RELATIONSHIP;
-			fpdRequest->getFriendRelationship.relationshipList = (uint8*)relationshipList.GetPtr();
-			fpdRequest->getFriendRelationship.pidList = pidList;
-			fpdRequest->getFriendRelationship.count = count;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			if(count == 0)
+				return 0;
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendMii);
+			ipcCtx->AddOutput(miiList, sizeof(FFLData_t) * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_IsJoinable(PPCInterpreter_t* hCPU)
+		nnResult GetFriendPresence(iosu::fpd::FriendPresence* presenceList, uint32be* pidList, uint32 count)
 		{
-			ppcDefineParamTypePtr(presence, iosu::fpd::friendPresence_t, 0);
-			ppcDefineParamU64(joinMask, 2);
+			FP_API_BASE();
+			if(count == 0)
+				return 0;
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendPresence);
+			ipcCtx->AddOutput(presenceList, sizeof(iosu::fpd::FriendPresence) * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
+		}
 
+		nnResult GetFriendRelationship(uint8* relationshipList, uint32be* pidList, uint32 count)
+		{
+			FP_API_BASE();
+			if(count == 0)
+				return 0;
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetFriendRelationship);
+			ipcCtx->AddOutput(relationshipList, sizeof(uint8) * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->Submit(std::move(ipcCtx));
+		}
+
+		uint32 IsJoinable(iosu::fpd::FriendPresence* presence, uint64 joinMask)
+		{
 			if (presence->isValid == 0 ||
 				presence->isOnline == 0 ||
 				presence->gameMode.joinGameId == 0 ||
@@ -428,368 +557,237 @@ namespace nn
 				presence->gameMode.groupId == 0 ||
 				presence->gameMode.joinGameMode >= 64 )
 			{
-				osLib_returnFromFunction(hCPU, 0);
-				return;
+				return 0;
 			}
 
 			uint32 joinGameMode = presence->gameMode.joinGameMode;
 			uint64 joinModeMask = (1ULL<<joinGameMode);
 			if ((joinModeMask&joinMask) == 0)
-			{
-				osLib_returnFromFunction(hCPU, 0);
-				return;
-			}
+				return 0;
 
 			// check relation ship
 			uint32 joinFlagMask = presence->gameMode.joinFlagMask;
 			if (joinFlagMask == 0)
-			{
-				osLib_returnFromFunction(hCPU, 0);
-				return;
-			}
+				return 0;
 			if (joinFlagMask == 1)
-			{
-				osLib_returnFromFunction(hCPU, 1);
-				return;
-			}
+				return 1;
 			if (joinFlagMask == 2)
 			{
-				//  check relationship
+				// check relationship
 				uint8 relationship[1] = { 0 };
 				StackAllocator<uint32be, 1> pidList;
-				pidList[0] = presence->gameMode.hostPid;
-				fpdPrepareRequest();
-				fpdRequest->requestCode = iosu::fpd::IOSU_FPD_GET_FRIEND_RELATIONSHIP;
-				fpdRequest->getFriendRelationship.relationshipList = relationship;
-				fpdRequest->getFriendRelationship.pidList = pidList.GetPointer();
-				fpdRequest->getFriendRelationship.count = 1;
-				__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
+				pidList = presence->gameMode.hostPid;
+				GetFriendRelationship(relationship, &pidList, 1);
 				if(relationship[0] == iosu::fpd::RELATIONSHIP_FRIEND)
-					osLib_returnFromFunction(hCPU, 1);
-				else
-					osLib_returnFromFunction(hCPU, 0);
-				return;
+					return 1;
+				return 0;
 			}
 			if (joinFlagMask == 0x65 || joinFlagMask == 0x66)
 			{
 				cemuLog_log(LogType::Force, "Unsupported friend invite");
 			}
-
-			osLib_returnFromFunction(hCPU, 0);
+			return 0;
 		}
 
-		void export_CheckSettingStatusAsync(PPCInterpreter_t* hCPU)
+		nnResult CheckSettingStatusAsync(uint8* status, void* funcPtr, void* customParam)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.CheckSettingStatusAsync(0x{:08x},0x{:08x},0x{:08x}) - placeholder", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-			ppcDefineParamTypePtr(uknR3, uint8, 0);
-			ppcDefineParamMPTR(funcMPTR, 1);
-			ppcDefineParamU32(customParam, 2);
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::CheckSettingStatusAsync);
+			ipcCtx->AddOutput(status, sizeof(uint8be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
+		}
 
-			if (g_fp.isAdminMode == false)
+		uint32 IsPreferenceValid()
+		{
+			FP_API_BASE_ZeroOnError();
+			StackAllocator<uint32be> resultBuf;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::IsPreferenceValid);
+			ipcCtx->AddOutput(&resultBuf, sizeof(uint32be));
+			ipcCtx->Submit(std::move(ipcCtx));
+			return resultBuf != 0 ? 1 : 0;
+		}
+
+		nnResult UpdatePreferenceAsync(iosu::fpd::FPDPreference* newPreference, void* funcPtr, void* customParam)
+		{
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::UpdatePreferenceAsync);
+			ipcCtx->AddInput(newPreference, sizeof(iosu::fpd::FPDPreference));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
+		}
+
+		nnResult UpdateGameModeWithUnusedParam(iosu::fpd::GameMode* gameMode, uint16be* gameModeMessage, uint32 unusedParam)
+		{
+			FP_API_BASE();
+			uint32 messageLen = CafeStringHelpers::Length(gameModeMessage, iosu::fpd::GAMEMODE_MAX_MESSAGE_LENGTH);
+			if(messageLen >= iosu::fpd::GAMEMODE_MAX_MESSAGE_LENGTH)
 			{
-
-				osLib_returnFromFunction(hCPU, 0xC0C00800);
-				return;
+				cemuLog_log(LogType::Force, "UpdateGameMode: message too long");
+				return FPResult_InvalidIPCParam;
 			}
-
-			*uknR3 = 1;
-
-			StackAllocator<uint32be> callbackResultCode;
-
-			*callbackResultCode.GetPointer() = 0;
-
-			hCPU->gpr[3] = callbackResultCode.GetMPTR();
-			hCPU->gpr[4] = customParam;
-			PPCCore_executeCallbackInternal(funcMPTR);
-
-			osLib_returnFromFunction(hCPU, 0);
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::UpdateGameModeVariation2);
+			ipcCtx->AddInput(gameMode, sizeof(iosu::fpd::GameMode));
+			ipcCtx->AddInput(gameModeMessage, sizeof(uint16be) * (messageLen + 1));
+			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		void export_IsPreferenceValid(PPCInterpreter_t* hCPU)
+		nnResult UpdateGameMode(iosu::fpd::GameMode* gameMode, uint16be* gameModeMessage)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.IsPreferenceValid()");
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_IS_PREFERENCE_VALID;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->resultU32.u32);
+			return UpdateGameModeWithUnusedParam(gameMode, gameModeMessage, 0);
 		}
 
-		void export_UpdatePreferenceAsync(PPCInterpreter_t* hCPU)
+		nnResult GetRequestBlockSettingAsync(uint8* blockSettingList, uint32be* pidList, uint32 count, void* funcPtr, void* customParam)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.UpdatePreferenceAsync(0x{:08x},0x{:08x},0x{:08x}) - placeholder", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-			ppcDefineParamTypePtr(uknR3, uint8, 0);
-			ppcDefineParamMPTR(funcMPTR, 1);
-			ppcDefineParamU32(customParam, 2);
-
-			if (g_fp.isAdminMode == false)
-			{
-
-				osLib_returnFromFunction(hCPU, 0xC0C00800);
-				return;
-			}
-
-			//*uknR3 = 0;	// seems to be 3 bytes (nn::fp::Preference const *)
-
-			StackAllocator<uint32be> callbackResultCode;
-
-			*callbackResultCode.GetPointer() = 0;
-
-			hCPU->gpr[3] = callbackResultCode.GetMPTR();
-			hCPU->gpr[4] = customParam;
-			PPCCore_executeCallbackInternal(funcMPTR);
-
-			osLib_returnFromFunction(hCPU, 0);
+			FP_API_BASE();
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetRequestBlockSettingAsync);
+			ipcCtx->AddOutput(blockSettingList, sizeof(uint8be) * count);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-		void export_UpdateGameMode(PPCInterpreter_t* hCPU)
+		// overload of AddFriendAsync
+		nnResult AddFriendAsyncByPid(uint32 pid, void* funcPtr, void* customParam)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.UpdateGameMode(0x{:08x},0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-			ppcDefineParamMEMPTR(gameMode, iosu::fpd::gameMode_t, 0);
-			ppcDefineParamMEMPTR(gameModeMessage, uint16be, 1);
-			ppcDefineParamU32(uknR5, 2);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_UPDATE_GAMEMODE;
-			fpdRequest->updateGameMode.gameMode = gameMode;
-			fpdRequest->updateGameMode.gameModeMessage = gameModeMessage;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, 0);
+			FP_API_BASE();
+			StackAllocator<uint32be> pidBuf; pidBuf = pid;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::AddFriendAsyncByPid);
+			ipcCtx->AddInput(&pidBuf, sizeof(uint32be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-		void export_GetRequestBlockSettingAsync(PPCInterpreter_t* hCPU)
+		nnResult DeleteFriendFlagsAsync(uint32be* pidList, uint32 pidCount, uint32 ukn, void* funcPtr, void* customParam)
 		{
-			ppcDefineParamTypePtr(settingList, uint8, 0);
-			ppcDefineParamTypePtr(pidList, uint32be, 1);
-			ppcDefineParamU32(pidCount, 2);
-			ppcDefineParamMPTR(funcMPTR, 3);
-			ppcDefineParamMPTR(customParam, 4);
-
-			cemuLog_logDebug(LogType::Force, "GetRequestBlockSettingAsync(...) - todo");
-
-			for (uint32 i = 0; i < pidCount; i++)
-				settingList[i] = 0;
-			// 0 means not blocked. Friend app will continue with GetBasicInformation()
-			// 1 means blocked. Friend app will continue with AddFriendAsync to add the user as a provisional friend
-			
-			StackAllocator<uint32be> callbackResultCode;
-
-			*callbackResultCode.GetPointer() = 0;
-
-			hCPU->gpr[3] = callbackResultCode.GetMPTR();
-			hCPU->gpr[4] = customParam;
-			PPCCore_executeCallbackInternal(funcMPTR);
-
-			osLib_returnFromFunction(hCPU, 0);
+			// admin function?
+			FP_API_BASE();
+			StackAllocator<uint32be> pidCountBuf; pidCountBuf = pidCount;
+			StackAllocator<uint32be> uknBuf; uknBuf = ukn;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::DeleteFriendFlagsAsync);
+			ipcCtx->AddInput(pidList, sizeof(uint32be) * pidCount);
+			ipcCtx->AddInput(&pidCountBuf, sizeof(uint32be));
+			ipcCtx->AddInput(&uknBuf, sizeof(uint32be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-		void export_AddFriendAsync(PPCInterpreter_t* hCPU)
+		// overload of AddFriendRequestAsync
+		nnResult AddFriendRequestByPlayRecordAsync(iosu::fpd::RecentPlayRecordEx* playRecord, uint16be* message, void* funcPtr, void* customParam)
 		{
-			// AddFriendAsync__Q2_2nn2fpFPCcPFQ2_2nn6ResultPv_vPv
-			ppcDefineParamU32(principalId, 0);
-			ppcDefineParamMPTR(funcMPTR, 1);
-			ppcDefineParamMPTR(customParam, 2);
-
-#ifdef CEMU_DEBUG_ASSERT
-			assert_dbg();
-#endif
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_ADD_FRIEND;
-			fpdRequest->addOrRemoveFriend.pid = principalId;
-			fpdRequest->addOrRemoveFriend.funcPtr = funcMPTR;
-			fpdRequest->addOrRemoveFriend.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::AddFriendRequestByPlayRecordAsync);
+			uint32 messageLen = 0;
+			while(message[messageLen] != 0)
+				messageLen++;
+			ipcCtx->AddInput(playRecord, sizeof(iosu::fpd::RecentPlayRecordEx));
+			ipcCtx->AddInput(message, sizeof(uint16be) * (messageLen+1));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-
-		void export_DeleteFriendFlagsAsync(PPCInterpreter_t* hCPU)
+		nnResult RemoveFriendAsync(uint32 pid, void* funcPtr, void* customParam)
 		{
-			cemuLog_logDebug(LogType::Force, "nn_fp.DeleteFriendFlagsAsync(...) - todo");
-			ppcDefineParamU32(uknR3, 0); // example value: pointer
-			ppcDefineParamU32(uknR4, 1); // example value: 1
-			ppcDefineParamU32(uknR5, 2); // example value: 1
-			ppcDefineParamMPTR(funcMPTR, 3);
-			ppcDefineParamU32(customParam, 4);
-
-			if (g_fp.isAdminMode == false)
-			{
-				osLib_returnFromFunction(hCPU, 0xC0C00800);
-				return;
-			}
-
-			StackAllocator<uint32be> callbackResultCode;
-
-			*callbackResultCode.GetPointer() = 0;
-
-			hCPU->gpr[3] = callbackResultCode.GetMPTR();
-			hCPU->gpr[4] = customParam;
-			PPCCore_executeCallbackInternal(funcMPTR);
-
-			osLib_returnFromFunction(hCPU, 0);
+			FP_API_BASE();
+			StackAllocator<uint32be> pidBuf; pidBuf = pid;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::RemoveFriendAsync);
+			ipcCtx->AddInput(&pidBuf, sizeof(uint32be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-
-		typedef struct  
+		nnResult MarkFriendRequestsAsReceivedAsync(uint64be* messageIdList, uint32 count, void* funcPtr, void* customParam)
 		{
-			/* +0x00 */ uint32be pid;
-			/* +0x04 */ uint8 ukn04;
-			/* +0x05 */ uint8 ukn05;
-			/* +0x06 */ uint8 ukn06[0x22];
-			/* +0x28 */ uint8 ukn28[0x22];
-			/* +0x4A */ uint8 _uknOrPadding4A[6];
-			/* +0x50 */ uint32be ukn50;
-			/* +0x54 */ uint32be ukn54;
-			/* +0x58 */ uint16be ukn58;
-			/* +0x5C */ uint8 _padding5C[4];
-			/* +0x60 */ iosu::fpd::fpdDate_t date;
-		}RecentPlayRecordEx_t;
-
-		static_assert(sizeof(RecentPlayRecordEx_t) == 0x68, "");
-		static_assert(offsetof(RecentPlayRecordEx_t, ukn06) == 0x06, "");
-		static_assert(offsetof(RecentPlayRecordEx_t, ukn50) == 0x50, "");
-
-		void export_AddFriendRequestAsync(PPCInterpreter_t* hCPU)
-		{
-			ppcDefineParamTypePtr(playRecord, RecentPlayRecordEx_t, 0);
-			ppcDefineParamTypePtr(message, uint16be, 1);
-			ppcDefineParamMPTR(funcMPTR, 2);
-			ppcDefineParamMPTR(customParam, 3);
-
-			fpdPrepareRequest();
-
-			uint8* uknData = (uint8*)playRecord;
-
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_ADD_FRIEND_REQUEST;
-			fpdRequest->addFriendRequest.pid = playRecord->pid;
-			fpdRequest->addFriendRequest.message = message;
-			fpdRequest->addFriendRequest.funcPtr = funcMPTR;
-			fpdRequest->addFriendRequest.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint32be> countBuf; countBuf = count;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::MarkFriendRequestsAsReceivedAsync);
+			ipcCtx->AddInput(messageIdList, sizeof(uint64be) * count);
+			ipcCtx->AddInput(&countBuf, sizeof(uint32be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-		void export_RemoveFriendAsync(PPCInterpreter_t* hCPU)
+		nnResult CancelFriendRequestAsync(uint64 requestId, void* funcPtr, void* customParam)
 		{
-			ppcDefineParamU32(principalId, 0);
-			ppcDefineParamMPTR(funcMPTR, 1);
-			ppcDefineParamMPTR(customParam, 2);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_REMOVE_FRIEND_ASYNC;
-			fpdRequest->addOrRemoveFriend.pid = principalId;
-			fpdRequest->addOrRemoveFriend.funcPtr = funcMPTR;
-			fpdRequest->addOrRemoveFriend.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint64be> requestIdBuf; requestIdBuf = requestId;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::CancelFriendRequestAsync);
+			ipcCtx->AddInput(&requestIdBuf, sizeof(uint64be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-		void export_MarkFriendRequestsAsReceivedAsync(PPCInterpreter_t* hCPU)
+		nnResult DeleteFriendRequestAsync(uint64 requestId, void* funcPtr, void* customParam)
 		{
-			ppcDefineParamTypePtr(messageIdList, uint64, 0);
-			ppcDefineParamU32(count, 1);
-			ppcDefineParamMPTR(funcMPTR, 2);
-			ppcDefineParamMPTR(customParam, 3);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_MARK_FRIEND_REQUEST_AS_RECEIVED_ASYNC;
-			fpdRequest->markFriendRequest.messageIdList = messageIdList;
-			fpdRequest->markFriendRequest.count = count;
-			fpdRequest->markFriendRequest.funcPtr = funcMPTR;
-			fpdRequest->markFriendRequest.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint64be> requestIdBuf; requestIdBuf = requestId;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::DeleteFriendRequestAsync);
+			ipcCtx->AddInput(&requestIdBuf, sizeof(uint64be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
-		void export_CancelFriendRequestAsync(PPCInterpreter_t* hCPU)
+		nnResult AcceptFriendRequestAsync(uint64 requestId, void* funcPtr, void* customParam)
 		{
-			ppcDefineParamU64(frqMessageId, 0);
-			ppcDefineParamMPTR(funcMPTR, 2);
-			ppcDefineParamMPTR(customParam, 3);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_CANCEL_FRIEND_REQUEST_ASYNC;
-			fpdRequest->cancelOrAcceptFriendRequest.messageId = frqMessageId;
-			fpdRequest->cancelOrAcceptFriendRequest.funcPtr = funcMPTR;
-			fpdRequest->cancelOrAcceptFriendRequest.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
-		}
-
-		void export_AcceptFriendRequestAsync(PPCInterpreter_t* hCPU)
-		{
-			ppcDefineParamU64(frqMessageId, 0);
-			ppcDefineParamMPTR(funcMPTR, 2);
-			ppcDefineParamMPTR(customParam, 3);
-
-			fpdPrepareRequest();
-			fpdRequest->requestCode = iosu::fpd::IOSU_FPD_ACCEPT_FRIEND_REQUEST_ASYNC;
-			fpdRequest->cancelOrAcceptFriendRequest.messageId = frqMessageId;
-			fpdRequest->cancelOrAcceptFriendRequest.funcPtr = funcMPTR;
-			fpdRequest->cancelOrAcceptFriendRequest.custom = customParam;
-			__depr__IOS_Ioctlv(IOS_DEVICE_FPD, IOSU_FPD_REQUEST_CEMU, 1, 1, fpdBufferVector);
-
-			osLib_returnFromFunction(hCPU, fpdRequest->returnCode);
+			FP_API_BASE();
+			StackAllocator<uint64be> requestIdBuf; requestIdBuf = requestId;
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::AcceptFriendRequestAsync);
+			ipcCtx->AddInput(&requestIdBuf, sizeof(uint64be));
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
 		void load()
 		{
-			osLib_addFunction("nn_fp", "Initialize__Q2_2nn2fpFv", export_Initialize);
-			osLib_addFunction("nn_fp", "InitializeAdmin__Q2_2nn2fpFv", export_InitializeAdmin);
-			osLib_addFunction("nn_fp", "IsInitialized__Q2_2nn2fpFv", export_IsInitialized);
-			osLib_addFunction("nn_fp", "IsInitializedAdmin__Q2_2nn2fpFv", export_IsInitializedAdmin);
+			g_fp.initCounter = 0;
+			g_fp.isAdminMode = false;
+			g_fp.isLoggedIn = false;
+			g_fp.getNotificationCalled = false;
+			g_fp.notificationHandler = nullptr;
+			g_fp.notificationHandlerParam = nullptr;
 
-			osLib_addFunction("nn_fp", "SetNotificationHandler__Q2_2nn2fpFUiPFQ3_2nn2fp16NotificationTypeUiPv_vPv", export_SetNotificationHandler);
+			coreinit::OSInitMutex(&g_fp.fpMutex);
+			FPIpcBufferAllocator.Init();
 
-			osLib_addFunction("nn_fp", "LoginAsync__Q2_2nn2fpFPFQ2_2nn6ResultPv_vPv", export_LoginAsync);
-			osLib_addFunction("nn_fp", "HasLoggedIn__Q2_2nn2fpFv", export_HasLoggedIn);
+			cafeExportRegisterFunc(Initialize, "nn_fp", "Initialize__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(InitializeAdmin, "nn_fp", "InitializeAdmin__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(IsInitialized, "nn_fp", "IsInitialized__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(IsInitializedAdmin, "nn_fp", "IsInitializedAdmin__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(Finalize, "nn_fp", "Finalize__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(FinalizeAdmin, "nn_fp", "FinalizeAdmin__Q2_2nn2fpFv", LogType::NN_FP);
 
-			osLib_addFunction("nn_fp", "IsOnline__Q2_2nn2fpFv", export_IsOnline);
+			cafeExportRegisterFunc(SetNotificationHandler, "nn_fp", "SetNotificationHandler__Q2_2nn2fpFUiPFQ3_2nn2fp16NotificationTypeUiPv_vPv", LogType::NN_FP);
 
-			osLib_addFunction("nn_fp", "GetFriendList__Q2_2nn2fpFPUiT1UiT3", export_GetFriendList);
-			osLib_addFunction("nn_fp", "GetFriendRequestList__Q2_2nn2fpFPUiT1UiT3", export_GetFriendRequestList);
-			osLib_addFunction("nn_fp", "GetFriendListAll__Q2_2nn2fpFPUiT1UiT3", export_GetFriendListAll);
-			osLib_addFunction("nn_fp", "GetFriendListEx__Q2_2nn2fpFPQ3_2nn2fp10FriendDataPCUiUi", export_GetFriendListEx);
-			osLib_addFunction("nn_fp", "GetFriendRequestListEx__Q2_2nn2fpFPQ3_2nn2fp13FriendRequestPCUiUi", export_GetFriendRequestListEx);
-			osLib_addFunction("nn_fp", "GetBasicInfoAsync__Q2_2nn2fpFPQ3_2nn2fp9BasicInfoPCUiUiPFQ2_2nn6ResultPv_vPv", export_GetBasicInfoAsync);
+			cafeExportRegisterFunc(LoginAsync, "nn_fp", "LoginAsync__Q2_2nn2fpFPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(HasLoggedIn, "nn_fp", "HasLoggedIn__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(IsOnline, "nn_fp", "IsOnline__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendList, "nn_fp", "GetFriendList__Q2_2nn2fpFPUiT1UiT3", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendRequestList, "nn_fp", "GetFriendRequestList__Q2_2nn2fpFPUiT1UiT3", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendListAll, "nn_fp", "GetFriendListAll__Q2_2nn2fpFPUiT1UiT3", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendListEx, "nn_fp", "GetFriendListEx__Q2_2nn2fpFPQ3_2nn2fp10FriendDataPCUiUi", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendRequestListEx, "nn_fp", "GetFriendRequestListEx__Q2_2nn2fpFPQ3_2nn2fp13FriendRequestPCUiUi", LogType::NN_FP);
+			cafeExportRegisterFunc(GetBasicInfoAsync, "nn_fp", "GetBasicInfoAsync__Q2_2nn2fpFPQ3_2nn2fp9BasicInfoPCUiUiPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 
-			osLib_addFunction("nn_fp", "GetMyPrincipalId__Q2_2nn2fpFv", export_GetMyPrincipalId);
-			osLib_addFunction("nn_fp", "GetMyAccountId__Q2_2nn2fpFPc", export_GetMyAccountId);
-			osLib_addFunction("nn_fp", "GetMyScreenName__Q2_2nn2fpFPw", export_GetMyScreenName);
-			osLib_addFunction("nn_fp", "GetMyMii__Q2_2nn2fpFP12FFLStoreData", export_GetMyMii);
-			osLib_addFunction("nn_fp", "GetMyPreference__Q2_2nn2fpFPQ3_2nn2fp10Preference", export_GetMyPreference);
+			cafeExportRegisterFunc(GetMyPrincipalId, "nn_fp", "GetMyPrincipalId__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyAccountId, "nn_fp", "GetMyAccountId__Q2_2nn2fpFPc", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyScreenName, "nn_fp", "GetMyScreenName__Q2_2nn2fpFPw", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyMii, "nn_fp", "GetMyMii__Q2_2nn2fpFP12FFLStoreData", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyPreference, "nn_fp", "GetMyPreference__Q2_2nn2fpFPQ3_2nn2fp10Preference", LogType::NN_FP);
 
-			osLib_addFunction("nn_fp", "GetFriendAccountId__Q2_2nn2fpFPA17_cPCUiUi", export_GetFriendAccountId);
-			osLib_addFunction("nn_fp", "GetFriendScreenName__Q2_2nn2fpFPA11_wPCUiUibPUc", export_GetFriendScreenName);
-			osLib_addFunction("nn_fp", "GetFriendMii__Q2_2nn2fpFP12FFLStoreDataPCUiUi", export_GetFriendMii);
-			osLib_addFunction("nn_fp", "GetFriendPresence__Q2_2nn2fpFPQ3_2nn2fp14FriendPresencePCUiUi", export_GetFriendPresence);
-			osLib_addFunction("nn_fp", "GetFriendRelationship__Q2_2nn2fpFPUcPCUiUi", export_GetFriendRelationship);
-			osLib_addFunction("nn_fp", "IsJoinable__Q2_2nn2fpFPCQ3_2nn2fp14FriendPresenceUL", export_IsJoinable);
+			cafeExportRegisterFunc(GetFriendAccountId, "nn_fp", "GetFriendAccountId__Q2_2nn2fpFPA17_cPCUiUi", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendScreenName, "nn_fp", "GetFriendScreenName__Q2_2nn2fpFPA11_wPCUiUibPUc", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendMii, "nn_fp", "GetFriendMii__Q2_2nn2fpFP12FFLStoreDataPCUiUi", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendPresence, "nn_fp", "GetFriendPresence__Q2_2nn2fpFPQ3_2nn2fp14FriendPresencePCUiUi", LogType::NN_FP);
+			cafeExportRegisterFunc(GetFriendRelationship, "nn_fp", "GetFriendRelationship__Q2_2nn2fpFPUcPCUiUi", LogType::NN_FP);
+			cafeExportRegisterFunc(IsJoinable, "nn_fp", "IsJoinable__Q2_2nn2fpFPCQ3_2nn2fp14FriendPresenceUL", LogType::NN_FP);
 
-			osLib_addFunction("nn_fp", "CheckSettingStatusAsync__Q2_2nn2fpFPUcPFQ2_2nn6ResultPv_vPv", export_CheckSettingStatusAsync);
-			osLib_addFunction("nn_fp", "IsPreferenceValid__Q2_2nn2fpFv", export_IsPreferenceValid);
-			osLib_addFunction("nn_fp", "UpdatePreferenceAsync__Q2_2nn2fpFPCQ3_2nn2fp10PreferencePFQ2_2nn6ResultPv_vPv", export_UpdatePreferenceAsync);
+			cafeExportRegisterFunc(CheckSettingStatusAsync, "nn_fp", "CheckSettingStatusAsync__Q2_2nn2fpFPUcPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(IsPreferenceValid, "nn_fp", "IsPreferenceValid__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(UpdatePreferenceAsync, "nn_fp", "UpdatePreferenceAsync__Q2_2nn2fpFPCQ3_2nn2fp10PreferencePFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(GetRequestBlockSettingAsync, "nn_fp", "GetRequestBlockSettingAsync__Q2_2nn2fpFPUcPCUiUiPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 
-			osLib_addFunction("nn_fp", "UpdateGameMode__Q2_2nn2fpFPCQ3_2nn2fp8GameModePCwUi", export_UpdateGameMode);
+			cafeExportRegisterFunc(UpdateGameModeWithUnusedParam, "nn_fp", "UpdateGameMode__Q2_2nn2fpFPCQ3_2nn2fp8GameModePCwUi", LogType::NN_FP);
+			cafeExportRegisterFunc(UpdateGameMode, "nn_fp", "UpdateGameMode__Q2_2nn2fpFPCQ3_2nn2fp8GameModePCw", LogType::NN_FP);
 
-			osLib_addFunction("nn_fp", "GetRequestBlockSettingAsync__Q2_2nn2fpFPUcPCUiUiPFQ2_2nn6ResultPv_vPv", export_GetRequestBlockSettingAsync);
-
-			osLib_addFunction("nn_fp", "AddFriendAsync__Q2_2nn2fpFPCcPFQ2_2nn6ResultPv_vPv", export_AddFriendAsync);
-			osLib_addFunction("nn_fp", "AddFriendRequestAsync__Q2_2nn2fpFPCQ3_2nn2fp18RecentPlayRecordExPCwPFQ2_2nn6ResultPv_vPv", export_AddFriendRequestAsync);
-			osLib_addFunction("nn_fp", "DeleteFriendFlagsAsync__Q2_2nn2fpFPCUiUiT2PFQ2_2nn6ResultPv_vPv", export_DeleteFriendFlagsAsync);
-
-			osLib_addFunction("nn_fp", "RemoveFriendAsync__Q2_2nn2fpFUiPFQ2_2nn6ResultPv_vPv", export_RemoveFriendAsync);
-			osLib_addFunction("nn_fp", "MarkFriendRequestsAsReceivedAsync__Q2_2nn2fpFPCULUiPFQ2_2nn6ResultPv_vPv", export_MarkFriendRequestsAsReceivedAsync);
-			osLib_addFunction("nn_fp", "CancelFriendRequestAsync__Q2_2nn2fpFULPFQ2_2nn6ResultPv_vPv", export_CancelFriendRequestAsync);
-			osLib_addFunction("nn_fp", "AcceptFriendRequestAsync__Q2_2nn2fpFULPFQ2_2nn6ResultPv_vPv", export_AcceptFriendRequestAsync);
-
+			cafeExportRegisterFunc(AddFriendAsyncByPid, "nn_fp", "AddFriendAsync__Q2_2nn2fpFUiPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(AddFriendRequestByPlayRecordAsync, "nn_fp", "AddFriendRequestAsync__Q2_2nn2fpFPCQ3_2nn2fp18RecentPlayRecordExPCwPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(DeleteFriendFlagsAsync, "nn_fp", "DeleteFriendFlagsAsync__Q2_2nn2fpFPCUiUiT2PFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(RemoveFriendAsync, "nn_fp", "RemoveFriendAsync__Q2_2nn2fpFUiPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(MarkFriendRequestsAsReceivedAsync, "nn_fp", "MarkFriendRequestsAsReceivedAsync__Q2_2nn2fpFPCULUiPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(CancelFriendRequestAsync, "nn_fp", "CancelFriendRequestAsync__Q2_2nn2fpFULPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(DeleteFriendRequestAsync, "nn_fp", "DeleteFriendRequestAsync__Q2_2nn2fpFULPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
+			cafeExportRegisterFunc(AcceptFriendRequestAsync, "nn_fp", "AcceptFriendRequestAsync__Q2_2nn2fpFULPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 		}
 	}
 }

@@ -86,7 +86,6 @@ private:
 	void OnDisconnect(wxCommandEvent& event);
 
 	void OnDlFilterCheckbox(wxCommandEvent& event);
-	void OnDlCheckboxShowUpdates(wxCommandEvent& event);
 
 	void SetConnected(bool state);
 

@@ -35,7 +35,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_BlockHeap.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
 
-coreinitData_t* gCoreinitData = NULL;
+CoreinitSharedData* gCoreinitData = NULL;
 
 sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 {
@@ -204,7 +204,7 @@ namespace coreinit
 {
 	sint32 OSGetCoreId()
 	{
-		return PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		return PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	}
 
 	uint32 OSGetCoreCount()
@@ -239,7 +239,7 @@ namespace coreinit
 
 	uint32 OSGetStackPointer()
 	{
-		return ppcInterpreterCurrentInstance->gpr[1];
+		return PPCInterpreter_getCurrentInstance()->gpr[1];
 	}
 
 	void coreinitExport_ENVGetEnvironmentVariable(PPCInterpreter_t* hCPU)
@@ -323,8 +323,8 @@ void coreinit_load()
 	coreinit::InitializeSysHeap();
 
 	// allocate coreinit global data
-	gCoreinitData = (coreinitData_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(coreinitData_t), 32));
-	memset(gCoreinitData, 0x00, sizeof(coreinitData_t));
+	gCoreinitData = (CoreinitSharedData*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(CoreinitSharedData), 32));
+	memset(gCoreinitData, 0x00, sizeof(CoreinitSharedData));
 
 	// coreinit weak links
 	osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeap));

@@ -12,6 +12,8 @@
 
 #include "boost/range/adaptor/reversed.hpp"
 
+#define SET_FST_ERROR(__code) 	if (errorCodeOut) *errorCodeOut = ErrorCode::__code
+
 class FSTDataSource
 {
 public:
@@ -215,23 +217,22 @@ bool FSTVolume::FindDiscKey(const fs::path& path, NCrypto::AesKey& discTitleKey)
 
 // open WUD image using key cache
 // if no matching key is found then keyFound will return false
-FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, bool* keyFound)
+FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, ErrorCode* errorCodeOut)
 {
+	SET_FST_ERROR(UNKNOWN_ERROR);
 	KeyCache_Prepare();
 	NCrypto::AesKey discTitleKey;
 	if (!FindDiscKey(path, discTitleKey))
 	{
-		if(keyFound)
-			*keyFound = false;
+		SET_FST_ERROR(DISC_KEY_MISSING);
 		return nullptr;
 	}
-	if(keyFound)
-		*keyFound = true;
-	return OpenFromDiscImage(path, discTitleKey);
+	return OpenFromDiscImage(path, discTitleKey, errorCodeOut);
 }
 
 // open WUD image
-FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& discTitleKey)
+FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& discTitleKey, ErrorCode* errorCodeOut)
+
 {
 	// WUD images support multiple partitions, each with their own key and FST
 	// the process for loading game data FSTVolume from a WUD image is as follows:
@@ -240,6 +241,7 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 	// 3) find main GM partition
 	// 4) use SI information to get titleKey for GM partition
 	// 5) Load FST for GM
+	SET_FST_ERROR(UNKNOWN_ERROR);
 	std::unique_ptr<FSTDataSourceWUD> dataSource(FSTDataSourceWUD::Open(path));
 	if (!dataSource)
 		return nullptr;
@@ -365,11 +367,15 @@ FSTVolume* FSTVolume::OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& d
 
 	// load GM partition
 	dataSource->SetBaseOffset((uint64)partitionArray[gmPartitionIndex].partitionAddress * DISC_SECTOR_SIZE);
-	return OpenFST(std::move(dataSource), (uint64)partitionHeaderGM.fstSector * DISC_SECTOR_SIZE, partitionHeaderGM.fstSize, &gmTitleKey, static_cast<FSTVolume::ClusterHashMode>(partitionHeaderGM.fstHashType));
+	FSTVolume* r = OpenFST(std::move(dataSource), (uint64)partitionHeaderGM.fstSector * DISC_SECTOR_SIZE, partitionHeaderGM.fstSize, &gmTitleKey, static_cast<FSTVolume::ClusterHashMode>(partitionHeaderGM.fstHashType));
+	if (r)
+		SET_FST_ERROR(OK);
+	return r;
 }
 
-FSTVolume* FSTVolume::OpenFromContentFolder(fs::path folderPath)
+FSTVolume* FSTVolume::OpenFromContentFolder(fs::path folderPath, ErrorCode* errorCodeOut)
 {
+	SET_FST_ERROR(UNKNOWN_ERROR);
 	// load TMD
 	FileStream* tmdFile = FileStream::openFile2(folderPath / "title.tmd");
 	if (!tmdFile)
@@ -379,17 +385,26 @@ FSTVolume* FSTVolume::OpenFromContentFolder(fs::path folderPath)
 	delete tmdFile;
 	NCrypto::TMDParser tmdParser;
 	if (!tmdParser.parse(tmdData.data(), tmdData.size()))
+	{
+		SET_FST_ERROR(BAD_TITLE_TMD);
 		return nullptr;
+	}
 	// load ticket
 	FileStream* ticketFile = FileStream::openFile2(folderPath / "title.tik");
 	if (!ticketFile)
+	{
+		SET_FST_ERROR(TITLE_TIK_MISSING);
 		return nullptr;
+	}
 	std::vector<uint8> ticketData;
 	ticketFile->extract(ticketData);
 	delete ticketFile;
 	NCrypto::ETicketParser ticketParser;
 	if (!ticketParser.parse(ticketData.data(), ticketData.size()))
+	{
+		SET_FST_ERROR(BAD_TITLE_TIK);
 		return nullptr;
+	}
 	NCrypto::AesKey titleKey;
 	ticketParser.GetTitleKey(titleKey);
 	// open data source
@@ -412,6 +427,8 @@ FSTVolume* FSTVolume::OpenFromContentFolder(fs::path folderPath)
 	// load FST
 	// fstSize = size of first cluster?
 	FSTVolume* fstVolume = FSTVolume::OpenFST(std::move(dataSource), 0, fstSize, &titleKey, fstHashMode);
+	if (fstVolume)
+		SET_FST_ERROR(OK);
 	return fstVolume;
 }
 
@@ -669,25 +686,25 @@ bool FSTVolume::OpenFile(std::string_view path, FSTFileHandle& fileHandleOut, bo
 	return true;
 }
 
-bool FSTVolume::IsDirectory(FSTFileHandle& fileHandle) const
+bool FSTVolume::IsDirectory(const FSTFileHandle& fileHandle) const
 {
 	cemu_assert_debug(fileHandle.m_fstIndex < m_entries.size());
 	return m_entries[fileHandle.m_fstIndex].GetType() == FSTEntry::TYPE::DIRECTORY;
 };
 
-bool FSTVolume::IsFile(FSTFileHandle& fileHandle) const
+bool FSTVolume::IsFile(const FSTFileHandle& fileHandle) const
 {
 	cemu_assert_debug(fileHandle.m_fstIndex < m_entries.size());
 	return m_entries[fileHandle.m_fstIndex].GetType() == FSTEntry::TYPE::FILE;
 };
 
-bool FSTVolume::HasLinkFlag(FSTFileHandle& fileHandle) const
+bool FSTVolume::HasLinkFlag(const FSTFileHandle& fileHandle) const
 {
 	cemu_assert_debug(fileHandle.m_fstIndex < m_entries.size());
 	return HAS_FLAG(m_entries[fileHandle.m_fstIndex].GetFlags(), FSTEntry::FLAGS::FLAG_LINK);
 };
 
-std::string_view FSTVolume::GetName(FSTFileHandle& fileHandle) const
+std::string_view FSTVolume::GetName(const FSTFileHandle& fileHandle) const
 {
 	if (fileHandle.m_fstIndex > m_entries.size())
 		return "";
@@ -695,7 +712,7 @@ std::string_view FSTVolume::GetName(FSTFileHandle& fileHandle) const
 	return entryName;
 }
 
-std::string FSTVolume::GetPath(FSTFileHandle& fileHandle) const
+std::string FSTVolume::GetPath(const FSTFileHandle& fileHandle) const
 {
 	std::string path;
 	auto& entry = m_entries[fileHandle.m_fstIndex];
@@ -726,7 +743,7 @@ std::string FSTVolume::GetPath(FSTFileHandle& fileHandle) const
 	return path;
 }
 
-uint32 FSTVolume::GetFileSize(FSTFileHandle& fileHandle) const
+uint32 FSTVolume::GetFileSize(const FSTFileHandle& fileHandle) const
 {
 	if (m_entries[fileHandle.m_fstIndex].GetType() != FSTEntry::TYPE::FILE)
 		return 0;
@@ -977,6 +994,7 @@ bool FSTVolume::OpenDirectoryIterator(std::string_view path, FSTDirectoryIterato
 	if (!IsDirectory(fileHandle))
 		return false;
 	auto const& fstEntry = m_entries[fileHandle.m_fstIndex];
+	directoryIteratorOut.dirHandle = fileHandle;
 	directoryIteratorOut.startIndex = fileHandle.m_fstIndex + 1;
 	directoryIteratorOut.endIndex = fstEntry.dirInfo.endIndex;
 	directoryIteratorOut.currentIndex = directoryIteratorOut.startIndex;

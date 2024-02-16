@@ -263,7 +263,7 @@ namespace GX2
 			gx2WriteGather_submitU32AsBE(0x00000000); // unused
 		}
 		// flush pipeline
-		if (_GX2GetUnflushedBytes(PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance)) > 0)
+		if (_GX2GetUnflushedBytes(coreinit::OSGetCoreId()) > 0)
 			_GX2SubmitToTCL();
 
 		uint64 ts = GX2GetLastSubmittedTimeStamp();

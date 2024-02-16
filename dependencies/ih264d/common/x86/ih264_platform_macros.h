@@ -79,10 +79,8 @@
 static inline int __builtin_clz(unsigned x)
 {
 	unsigned long n;
-	if (x == 0)
-		return 32;
 	_BitScanReverse(&n, x);
-	return 31 - n;
+	return n ^ 31;
 }
 
 static inline int __builtin_ctz(unsigned x) {

@@ -1,6 +1,7 @@
 #pragma once
 #include <wx/collpane.h>
 #include <wx/propgrid/propgrid.h>
+#include <Cafe/Account/Account.h>
 
 class wxColourPickerCtrl;
 
@@ -100,6 +101,7 @@ private:
 	void OnShowOnlineValidator(wxCommandEvent& event);
 	void OnOnlineEnable(wxCommandEvent& event);
 	void OnAccountServiceChanged(wxCommandEvent& event);
+	static wxString GetOnlineAccountErrorMessage(OnlineAccountError error);
 
 	// updates cemu audio devices
 	void UpdateAudioDevice();

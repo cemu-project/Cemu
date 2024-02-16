@@ -633,7 +633,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				if(dialog.ShowModal() == wxID_OK)
 				{
 					const auto custom_name = dialog.GetValue();
-					GetConfig().SetGameListCustomName(title_id, wxHelper::MakeUTF8(custom_name));
+					GetConfig().SetGameListCustomName(title_id, custom_name.utf8_string());
 					m_name_cache.clear();
 					g_config.Save();
 					// update list entry
@@ -1009,20 +1009,25 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 			if (iosu::pdm::GetStatForGamelist(baseTitleId, playTimeStat))
 			{
 				// time played
-				uint32 timePlayed = playTimeStat.numMinutesPlayed * 60;
-				if (timePlayed == 0)
+				uint32 minutesPlayed = playTimeStat.numMinutesPlayed;
+				if (minutesPlayed == 0)
 					SetItem(index, ColumnGameTime, wxEmptyString);
-				else if (timePlayed < 60)
-					SetItem(index, ColumnGameTime, fmt::format("{} seconds", timePlayed));
-				else if (timePlayed < 60 * 60)
-					SetItem(index, ColumnGameTime, fmt::format("{} minutes", timePlayed / 60));
+				else if (minutesPlayed < 60)
+					SetItem(index, ColumnGameTime, formatWxString(wxPLURAL("{} minute", "{} minutes", minutesPlayed), minutesPlayed));
 				else
-					SetItem(index, ColumnGameTime, fmt::format("{} hours {} minutes", timePlayed / 3600, (timePlayed / 60) % 60));
+				{
+					uint32 hours = minutesPlayed / 60;
+					uint32 minutes = minutesPlayed % 60;
+					wxString hoursText = formatWxString(wxPLURAL("{} hour", "{} hours", hours), hours);
+					wxString minutesText = formatWxString(wxPLURAL("{} minute", "{} minutes", minutes), minutes);
+					SetItem(index, ColumnGameTime, hoursText + " " + minutesText);
+				}
+				
 				// last played
 				if (playTimeStat.last_played.year != 0)
 				{
 					const wxDateTime tmp((wxDateTime::wxDateTime_t)playTimeStat.last_played.day, (wxDateTime::Month)playTimeStat.last_played.month, (wxDateTime::wxDateTime_t)playTimeStat.last_played.year, 0, 0, 0, 0);
-					SetItem(index, ColumnGameStarted, tmp.FormatISODate());
+					SetItem(index, ColumnGameStarted, tmp.FormatDate());
 				}
 				else
 					SetItem(index, ColumnGameStarted, _("never"));
@@ -1036,8 +1041,8 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 
 
 		const auto region_text = fmt::format("{}", gameInfo.GetRegion());
-		SetItem(index, ColumnRegion, _(region_text));
-        SetItem(index, ColumnTitleID, _(fmt::format("{:016x}", titleId)));
+		SetItem(index, ColumnRegion, wxGetTranslation(region_text));
+        SetItem(index, ColumnTitleID, fmt::format("{:016x}", titleId));
 	}
 	else if (m_style == Style::kIcons)
 	{
@@ -1124,7 +1129,7 @@ void wxGameList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)
 
 void wxGameList::RemoveCache(const std::list<fs::path>& cachePaths, const std::string& titleName)
 {
-	wxMessageDialog dialog(this, fmt::format(fmt::runtime(_("Remove the shader caches for {}?").ToStdString()), titleName), _("Remove shader caches"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
+	wxMessageDialog dialog(this, formatWxString(_("Remove the shader caches for {}?"), titleName), _("Remove shader caches"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
 	dialog.SetYesNoLabels(_("Yes"), _("No"));
 
 	const auto dialogResult = dialog.ShowModal();
@@ -1139,7 +1144,7 @@ void wxGameList::RemoveCache(const std::list<fs::path>& cachePaths, const std::s
 	if (errs.empty())
 		wxMessageDialog(this, _("The shader caches were removed!"), _("Shader caches removed"), wxCENTRE | wxOK | wxICON_INFORMATION).ShowModal();
 	else
-		wxMessageDialog(this, fmt::format(fmt::runtime(_("Failed to remove the shader caches:\n{}").ToStdString()), fmt::join(errs, "\n")), _("Error"), wxCENTRE | wxOK | wxICON_ERROR).ShowModal();
+		wxMessageDialog(this, formatWxString(_("Failed to remove the shader caches:\n{}"), fmt::join(errs, "\n")), _("Error"), wxCENTRE | wxOK | wxICON_ERROR).ShowModal();
 }
 
 void wxGameList::AsyncWorkerThread()
@@ -1230,6 +1235,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
     const auto title_id = gameInfo.GetBaseTitleId();
     const auto title_name = gameInfo.GetTitleName();
     auto exe_path = ActiveSettings::GetExecutablePath();
+    const char *flatpak_id = getenv("FLATPAK_ID");
 
     // GetExecutablePath returns the AppImage's temporary mount location, instead of its actual path
     wxString appimage_path;
@@ -1265,13 +1271,13 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
 
         // In most cases it should find it
         if (!result_index){
-            wxMessageBox("Icon is yet to load, so will not be used by the shortcut", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+            wxMessageBox(_("Icon is yet to load, so will not be used by the shortcut"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
         }
         else {
             const fs::path out_icon_dir = ActiveSettings::GetUserDataPath("icons");
 
             if (!fs::exists(out_icon_dir) && !fs::create_directories(out_icon_dir)){
-                wxMessageBox("Cannot access the icon directory, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+                wxMessageBox(_("Cannot access the icon directory, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
             }
             else {
                 icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
@@ -1282,30 +1288,40 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
                 wxPNGHandler pngHandler;
                 if (!pngHandler.SaveFile(&image, png_file, false)) {
                     icon_path = std::nullopt;
-                    wxMessageBox("The icon was unable to be saved, the shortcut will have no icon", "Warning", wxOK | wxCENTRE | wxICON_WARNING);
+                    wxMessageBox(_("The icon was unable to be saved, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
                 }
             }
         }
     }
-    const auto desktop_entry_string =
+
+    std::string desktop_exec_entry;
+    if (flatpak_id)
+        desktop_exec_entry = fmt::format("/usr/bin/flatpak run {0} --title-id {1:016x}", flatpak_id, title_id);
+    else
+        desktop_exec_entry = fmt::format("{0:?} --title-id {1:016x}", _pathToUtf8(exe_path), title_id);
+
+    // 'Icon' accepts spaces in file name, does not accept quoted file paths
+    // 'Exec' does not accept non-escaped spaces, and can accept quoted file paths
+    auto desktop_entry_string =
             fmt::format("[Desktop Entry]\n"
-                        "Name={}\n"
-                        "Comment=Play {} on Cemu\n"
-                        "Exec={} --title-id {:016x}\n"
-                        "Icon={}\n"
+                        "Name={0}\n"
+                        "Comment=Play {0} on Cemu\n"
+                        "Exec={1}\n"
+                        "Icon={2}\n"
                         "Terminal=false\n"
                         "Type=Application\n"
-                        "Categories=Game;",
+                        "Categories=Game;\n",
                         title_name,
-                        title_name,
-                        _pathToUtf8(exe_path),
-                        title_id,
+                        desktop_exec_entry,
                         _pathToUtf8(icon_path.value_or("")));
+
+    if (flatpak_id)
+        desktop_entry_string += fmt::format("X-Flatpak={}\n", flatpak_id);
 
     std::ofstream output_stream(output_path);
     if (!output_stream.good())
     {
-        const wxString errorMsg = fmt::format("Failed to save desktop entry to {}", output_path.utf8_string());
+        auto errorMsg = formatWxString(_("Failed to save desktop entry to {}"), output_path.utf8_string());
         wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
         return;
     }

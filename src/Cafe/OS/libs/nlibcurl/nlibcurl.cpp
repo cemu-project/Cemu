@@ -225,7 +225,7 @@ void CurlWorkerThread(CURL_t* curl, PPCConcurrentQueue<QueueMsg_t>* callerQueue,
 
 uint32 SendOrderToWorker(CURL_t* curl, QueueOrder order, uint32 arg1 = 0)
 {
-	OSThread_t* currentThread = coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance);
+	OSThread_t* currentThread = coreinit::OSGetCurrentThread();
 	curl->curlThread = currentThread;
 
 	// cemuLog_logDebug(LogType::Force, "CURRENTTHREAD: 0x{} -> {}",currentThread, order)
@@ -707,7 +707,7 @@ void export_curl_easy_init(PPCInterpreter_t* hCPU)
 		memset(result.GetPtr(), 0, sizeof(CURL_t));
 		*result = {};
 		result->curl = curl_easy_init();
-		result->curlThread = coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance);
+		result->curlThread = coreinit::OSGetCurrentThread();
 
 		result->info_contentType = nullptr;
 		result->info_redirectUrl = nullptr;

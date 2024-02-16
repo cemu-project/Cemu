@@ -97,21 +97,20 @@ public:
 	};
 	using PresetPtr = std::shared_ptr<Preset>;
 
-	GraphicPack2(std::wstring filename);
-	GraphicPack2(std::wstring filename, IniParser& rules);
+	GraphicPack2(fs::path rulesPath, IniParser& rules);
 
 	bool IsEnabled() const { return m_enabled; }
 	bool IsActivated() const { return m_activated; }
 	sint32 GetVersion() const { return m_version; }
-	const std::wstring& GetFilename() const { return m_filename; }
-	const fs::path GetFilename2() const { return fs::path(m_filename); }
+	const fs::path GetRulesPath() const { return m_rulesPath; }
+	std::string GetNormalizedPathString() const;
 	bool RequiresRestart(bool changeEnableState, bool changePreset);
 	bool Reload();
 
 	bool HasName() const { return !m_name.empty();  }
 
-	const std::string& GetName() const { return m_name.empty() ? m_path : m_name; }
-	const std::string& GetPath() const { return m_path; }
+	const std::string& GetName() const { return m_name.empty() ? m_virtualPath : m_name; }
+	const std::string& GetVirtualPath() const { return m_virtualPath; } // returns the path in the gfx tree hierarchy
 	const std::string& GetDescription() const { return m_description; }
 	bool IsDefaultEnabled() const {	return m_default_enabled; }
 
@@ -165,7 +164,7 @@ public:
 	static const std::vector<std::shared_ptr<GraphicPack2>>& GetGraphicPacks() { return s_graphic_packs; }
 	static const std::vector<std::shared_ptr<GraphicPack2>>& GetActiveGraphicPacks() { return s_active_graphic_packs; }
 	static void LoadGraphicPack(fs::path graphicPackPath);
-	static bool LoadGraphicPack(const std::wstring& filename, class IniParser& rules);
+	static bool LoadGraphicPack(const fs::path& rulesPath, class IniParser& rules);
 	static bool ActivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack);
 	static bool DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& graphic_pack);
 	static void ClearGraphicPacks();
@@ -209,11 +208,11 @@ private:
 			parser.TryAddConstant(var.first, (TType)var.second.second);
 	}
 
-	std::wstring m_filename;
+	fs::path m_rulesPath;
 
 	sint32 m_version;
 	std::string m_name;
-	std::string m_path;
+	std::string m_virtualPath;
 	std::string m_description;
 
 	bool m_default_enabled = false;
@@ -258,7 +257,7 @@ private:
 	CustomShader LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type) const;
 	void ApplyShaderPresets(std::string& shader_source) const;
 	void LoadReplacedFiles();
-	void _iterateReplacedFiles(const fs::path& currentPath, std::wstring& internalPath, bool isAOC);
+	void _iterateReplacedFiles(const fs::path& currentPath, bool isAOC);
 
 	// ram mappings
 	std::vector<std::pair<MPTR, MPTR>> m_ramMappings;

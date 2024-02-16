@@ -218,9 +218,10 @@ namespace snd_core
 				AXAUXCBCHANNELINFO* cbStruct = __AXAuxCB_auxCBStruct.GetPtr();
 				cbStruct->numChannels = tvChannelCount;
 				cbStruct->numSamples = sampleCount;
-				ppcInterpreterCurrentInstance->gpr[3] = __AXAuxCB_dataPtrs.GetMPTR();
-				ppcInterpreterCurrentInstance->gpr[4] = __AXAuxTVCallbackUserParam[auxBusIndex];
-				ppcInterpreterCurrentInstance->gpr[5] = __AXAuxCB_auxCBStruct.GetMPTR();
+				PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+				hCPU->gpr[3] = __AXAuxCB_dataPtrs.GetMPTR();
+				hCPU->gpr[4] = __AXAuxTVCallbackUserParam[auxBusIndex];
+				hCPU->gpr[5] = __AXAuxCB_auxCBStruct.GetMPTR();
 				PPCCore_executeCallbackInternal(auxCBFuncMPTR);
 			}
 			else
@@ -255,9 +256,10 @@ namespace snd_core
 					AXAUXCBCHANNELINFO* cbStruct = __AXAuxCB_auxCBStruct.GetPtr();
 					cbStruct->numChannels = drcChannelCount;
 					cbStruct->numSamples = sampleCount;
-					ppcInterpreterCurrentInstance->gpr[3] = __AXAuxCB_dataPtrs.GetMPTR();
-					ppcInterpreterCurrentInstance->gpr[4] = __AXAuxDRCCallbackUserParam[auxBusIndex + drcIndex * 3];
-					ppcInterpreterCurrentInstance->gpr[5] = __AXAuxCB_auxCBStruct.GetMPTR();
+					PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+					hCPU->gpr[3] = __AXAuxCB_dataPtrs.GetMPTR();
+					hCPU->gpr[4] = __AXAuxDRCCallbackUserParam[auxBusIndex + drcIndex * 3];
+					hCPU->gpr[5] = __AXAuxCB_auxCBStruct.GetMPTR();
 					PPCCore_executeCallbackInternal(auxCBFuncMPTR);
 				}
 				else

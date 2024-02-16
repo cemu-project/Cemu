@@ -17,7 +17,7 @@
 .idea/
 
 build/
-cmake-build-*-*/
+cmake-build-*/
 out/
 .cache/
 bin/Cemu_*
@@ -49,3 +49,6 @@ bin/controllerProfiles/*
 bin/gameProfiles/*
 
 bin/graphicPacks/*
+
+# Ignore Finder view option files created by OS X
+.DS_Store

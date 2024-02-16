@@ -308,15 +308,10 @@ public:
 
 	void texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize) override;
 
-	LatteTexture* texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
+	LatteTexture* texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
 
-	void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit) override;
-	void texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit) override;
+	void texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit) override;
 
-	void texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit) override {};
-	
-	void texture_rememberBoundTexture(uint32 textureUnit) override {};
-	void texture_restoreBoundTexture(uint32 textureUnit) override {};
 	void texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth) override;
 	LatteTextureReadbackInfo* texture_createReadback(LatteTextureView* textureView) override;
 
@@ -358,8 +353,6 @@ public:
 	void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) override;
 
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
-	void shader_bind(RendererShader* shader) override;
-	void shader_unbind(RendererShader::ShaderType shaderType) override;
 
 	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
 	void indexData_uploadIndexMemory(uint32 offset, uint32 size) override;
@@ -449,7 +442,7 @@ private:
 	bool m_destroyPadSwapchainNextAcquire = false;
 	bool IsSwapchainInfoValid(bool mainWindow) const;
 
-	VkRenderPass m_imguiRenderPass = nullptr;
+	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 
 	VkDescriptorPool m_descriptorPool;
 
@@ -919,10 +912,8 @@ private:
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
-	void barrier_image(LatteTextureVk* vkTexture, VkImageSubresourceLayers& subresourceLayers, VkImageLayout newLayout)
+	void barrier_image(VkImage imageVk, VkImageSubresourceRange& subresourceRange, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
-		VkImage imageVk = vkTexture->GetImageObj()->m_image;
-
 		VkPipelineStageFlags srcStages = 0;
 		VkPipelineStageFlags dstStages = 0;
 
@@ -935,22 +926,33 @@ private:
 		barrier_calcStageAndMask<TSrcSyncOp>(srcStages, imageMemBarrier.srcAccessMask);
 		barrier_calcStageAndMask<TDstSyncOp>(dstStages, imageMemBarrier.dstAccessMask);
 		imageMemBarrier.image = imageVk;
-		imageMemBarrier.subresourceRange.aspectMask = subresourceLayers.aspectMask;
-		imageMemBarrier.subresourceRange.baseArrayLayer = subresourceLayers.baseArrayLayer;
-		imageMemBarrier.subresourceRange.layerCount = subresourceLayers.layerCount;
-		imageMemBarrier.subresourceRange.baseMipLevel = subresourceLayers.mipLevel;
-		imageMemBarrier.subresourceRange.levelCount = 1;
-		imageMemBarrier.oldLayout = vkTexture->GetImageLayout(imageMemBarrier.subresourceRange);
+		imageMemBarrier.subresourceRange = subresourceRange;
+		imageMemBarrier.oldLayout = oldLayout;
 		imageMemBarrier.newLayout = newLayout;
 
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer,
-			srcStages, dstStages,
-			0,
-			0, NULL,
-			0, NULL,
-			1, &imageMemBarrier);
+							 srcStages, dstStages,
+							 0,
+							 0, NULL,
+							 0, NULL,
+							 1, &imageMemBarrier);
+	}
 
-		vkTexture->SetImageLayout(imageMemBarrier.subresourceRange, newLayout);
+	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
+	void barrier_image(LatteTextureVk* vkTexture, VkImageSubresourceLayers& subresourceLayers, VkImageLayout newLayout)
+	{
+		VkImage imageVk = vkTexture->GetImageObj()->m_image;
+
+		VkImageSubresourceRange subresourceRange;
+		subresourceRange.aspectMask = subresourceLayers.aspectMask;
+		subresourceRange.baseArrayLayer = subresourceLayers.baseArrayLayer;
+		subresourceRange.layerCount = subresourceLayers.layerCount;
+		subresourceRange.baseMipLevel = subresourceLayers.mipLevel;
+		subresourceRange.levelCount = 1;
+
+		barrier_image<TSrcSyncOp, TDstSyncOp>(imageVk, subresourceRange, vkTexture->GetImageLayout(subresourceRange), newLayout);
+
+		vkTexture->SetImageLayout(subresourceRange, newLayout);
 	}
 
 

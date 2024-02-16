@@ -56,8 +56,6 @@ private:
 	void RefreshResultList();
 	void RefreshStashList();
 	void SetSearchDataType();
-	std::string GetSearchTypeName() const;
-	void CreateRightClickPopupMenu();
 
 	void Load();
 	void Save();

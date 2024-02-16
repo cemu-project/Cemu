@@ -13,6 +13,7 @@
 #define WSAESHUTDOWN ESHUTDOWN
 #define WSAECONNABORTED ECONNABORTED
 #define WSAHOST_NOT_FOUND EAI_NONAME
+#define WSAENOTCONN ENOTCONN
 
 #define GETLASTERR errno
 
@@ -40,6 +41,7 @@
 #define WU_SO_RCVBUF		0x1002
 #define WU_SO_LASTERROR		0x1007
 #define WU_SO_NBIO			0x1014
+#define WU_SO_BIO			0x1015
 #define WU_SO_NONBLOCK		0x1016
 
 #define WU_TCP_NODELAY		0x2004
@@ -53,6 +55,7 @@
 #define WU_SO_SUCCESS		0x0000
 #define WU_SO_EWOULDBLOCK	0x0006
 #define WU_SO_ECONNRESET	0x0008
+#define WU_SO_ENOTCONN		0x0009
 #define WU_SO_EINVAL		0x000B
 #define WU_SO_EINPROGRESS	0x0016
 #define WU_SO_EAFNOSUPPORT  0x0021
@@ -85,7 +88,7 @@ void nsysnetExport_socket_lib_finish(PPCInterpreter_t* hCPU)
 
 uint32* __gh_errno_ptr()
 {
-	OSThread_t* osThread = coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance());
+	OSThread_t* osThread = coreinit::OSGetCurrentThread();
 	return &osThread->context.error;
 }
 
@@ -148,8 +151,11 @@ sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_
 	case WSAESHUTDOWN:
 		_setSockError(WU_SO_ESHUTDOWN);
 		break;
+	case WSAENOTCONN:
+		_setSockError(WU_SO_ENOTCONN);
+		break;
 	default:
-		cemuLog_logDebug(LogType::Force, "Unhandled wsaError {}\n", wsaError);
+		cemuLog_logDebug(LogType::Force, "Unhandled wsaError {}", wsaError);
 		_setSockError(99999); // unhandled error
 	}
 	return -1;
@@ -157,7 +163,7 @@ sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_
 
 void nsysnetExport_socketlasterr(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "socketlasterr() -> {}", _getSockError());
+	cemuLog_logDebug(LogType::Socket, "socketlasterr() -> {}", _getSockError());
 	osLib_returnFromFunction(hCPU, _getSockError());
 }
 
@@ -485,9 +491,9 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 				if (r != 0)
 					cemu_assert_suspicious();
 			}
-			else if (optname == WU_SO_NBIO)
+			else if (optname == WU_SO_NBIO || optname == WU_SO_BIO)
 			{
-				// similar to WU_SO_NONBLOCK but always sets non-blocking mode regardless of option value
+				// similar to WU_SO_NONBLOCK but always sets blocking (_BIO) or non-blocking (_NBIO) mode regardless of option value
 				if (optlen == 4)
 				{
 					sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
@@ -498,9 +504,10 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 				}
 				else
 					cemu_assert_suspicious();
-				u_long mode = 1;
+				bool setNonBlocking = optname == WU_SO_NBIO;
+				u_long mode = setNonBlocking ? 1 : 0;
 				_socket_nonblock(vs->s,  mode);
-				vs->isNonBlocking = true;
+				vs->isNonBlocking = setNonBlocking;
 			}
 			else if (optname == WU_SO_NONBLOCK)
 			{

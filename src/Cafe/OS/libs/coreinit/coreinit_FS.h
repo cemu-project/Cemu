@@ -42,13 +42,15 @@ namespace coreinit
 
 		/* +0x00 */ MPTR firstMPTR;
 		/* +0x04 */ MPTR lastMPTR;
-		/* +0x08 */ OSMutex mutex;
+		/* +0x08 */ OSFastMutex fastMutex;
 		/* +0x34 */ MPTR dequeueHandlerFuncMPTR;
 		/* +0x38 */ uint32be numCommandsInFlight;
 		/* +0x3C */ uint32 numMaxCommandsInFlight;
 		/* +0x40 */ betype<QUEUE_FLAG> queueFlags;
 	};
 	DEFINE_ENUM_FLAG_OPERATORS(FSCmdQueue::QUEUE_FLAG);
+
+	static_assert(sizeof(FSCmdQueue) == 0x44);
 
 #define FS_CLIENT_BUFFER_SIZE (5888)
 #define FS_CMD_BLOCK_SIZE (2688)

@@ -52,7 +52,7 @@ typedef struct
 void hleExport_xcx_enterCriticalSection(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(xcxCS, xcxCS_t, 0);
-	uint32 threadId = coreinitThread_getCurrentThreadMPTRDepr(hCPU);
+	uint32 threadId = MEMPTR<OSThread_t>(coreinit::OSGetCurrentThread()).GetMPTR();
 	cemu_assert_debug(xcxCS->ukn08 != 0);
 	cemu_assert_debug(threadId);
 	if (xcxCS->ownerThreadId == (uint32be)threadId)

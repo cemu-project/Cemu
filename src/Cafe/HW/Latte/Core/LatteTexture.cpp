@@ -795,6 +795,8 @@ bool IsDimensionCompatibleForView(Latte::E_DIM baseDim, Latte::E_DIM viewDim)
 	bool incompatibleDim = false;
 	if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D)
 		;
+	else if (baseDim == Latte::E_DIM::DIM_1D && viewDim == Latte::E_DIM::DIM_1D)
+		;
 	else if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D_ARRAY)
 		;
 	else if (baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_CUBEMAP)
@@ -836,6 +838,11 @@ bool IsDimensionCompatibleForView(Latte::E_DIM baseDim, Latte::E_DIM viewDim)
 		// not compatible
 		incompatibleDim = true;
 	}
+	else if (baseDim == Latte::E_DIM::DIM_3D && viewDim == Latte::E_DIM::DIM_3D)
+	{
+		// incompatible by default, but may be compatible if the view matches the depth of the base texture and starts at mip/slice 0
+		incompatibleDim = true;
+	}
 	else if ((baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_CUBEMAP) ||
 		(baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_2D))
 	{
@@ -872,7 +879,9 @@ VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseT
 			return VIEW_NOT_COMPATIBLE; // depth and non-depth formats are never compatible (on OpenGL)
 		if (!LatteTexture_IsTexelSizeCompatibleFormat(baseTexture->format, format) || baseTexture->width != width || baseTexture->height != height)
 			return VIEW_NOT_COMPATIBLE;
-		if (!IsDimensionCompatibleForView(baseTexture->dim, dimView))
+		// 3D views are only compatible on Vulkan if they match the base texture in regards to mip and slice count
+		bool isCompatible3DView = dimView == Latte::E_DIM::DIM_3D && baseTexture->dim == dimView && firstSlice == 0 && firstMip == 0 && baseTexture->mipLevels == numMip && baseTexture->depth == numSlice;
+		if (!isCompatible3DView && !IsDimensionCompatibleForView(baseTexture->dim, dimView))
 			return VIEW_NOT_COMPATIBLE;
 		if (baseTexture->isDepth && baseTexture->format != format)
 		{
@@ -978,7 +987,7 @@ void LatteTexture_RecreateTextureWithDifferentMipSliceCount(LatteTexture* textur
 		newDim = Latte::E_DIM::DIM_2D_ARRAY;
 	else if (newDim == Latte::E_DIM::DIM_1D && newDepth > 1)
 		newDim = Latte::E_DIM::DIM_1D_ARRAY;
-	LatteTextureView* view = LatteTexture_CreateTexture(0, newDim, texture->physAddress, physMipAddr, texture->format, texture->width, texture->height, newDepth, texture->pitch, newMipCount, texture->swizzle, texture->tileMode, texture->isDepth);
+	LatteTextureView* view = LatteTexture_CreateTexture(newDim, texture->physAddress, physMipAddr, texture->format, texture->width, texture->height, newDepth, texture->pitch, newMipCount, texture->swizzle, texture->tileMode, texture->isDepth);
 	cemu_assert(!(view->baseTexture->mipLevels <= 1 && physMipAddr == MPTR_NULL && newMipCount > 1));
 	// copy data from old texture if its dynamically updated
 	if (texture->isUpdatedOnGPU)
@@ -999,6 +1008,7 @@ void LatteTexture_RecreateTextureWithDifferentMipSliceCount(LatteTexture* textur
 
 // create new texture representation
 // if allowCreateNewDataTexture is true, a new texture will be created if necessary. If it is false, only existing textures may be used, except if a data-compatible version of the requested texture already exists and it's not view compatible
+// the returned view will map to the provided mip and slice range within the created texture, this is to match the behavior of lookupSliceEx
 LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, sint32 width, sint32 height, sint32 depth, sint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, Latte::E_GX2SURFFMT format, Latte::E_DIM dimBase, Latte::E_DIM dimView, bool isDepth, bool allowCreateNewDataTexture)
 {
 	if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
@@ -1104,12 +1114,18 @@ LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, si
 	// create new texture
 	if (allowCreateNewDataTexture == false)
 		return nullptr;
-	LatteTextureView* view = LatteTexture_CreateTexture(0, dimBase, physAddr, physMipAddr, format, width, height, depth, pitch, firstMip + numMip, swizzle, tileMode, isDepth);
+	LatteTextureView* view = LatteTexture_CreateTexture(dimBase, physAddr, physMipAddr, format, width, height, depth, pitch, firstMip + numMip, swizzle, tileMode, isDepth);
+	LatteTexture* newTexture = view->baseTexture;
 	LatteTexture_GatherTextureRelations(view->baseTexture);
 	LatteTexture_UpdateTextureFromDynamicChanges(view->baseTexture);
 	// delete any individual smaller slices/mips that have become redundant
 	LatteTexture_DeleteAbsorbedSubtextures(view->baseTexture);
-	return view;
+	// create view
+	sint32 relativeMipIndex;
+	sint32 relativeSliceIndex;
+	VIEWCOMPATIBILITY viewCompatibility = LatteTexture_CanTextureBeRepresentedAsView(newTexture, physAddr, width, height, pitch, dimView, format, isDepth, firstMip, numMip, firstSlice, numSlice, relativeMipIndex, relativeSliceIndex);
+	cemu_assert(viewCompatibility == VIEW_COMPATIBLE);
+	return view->baseTexture->GetOrCreateView(dimView, format, relativeMipIndex + firstMip, numMip, relativeSliceIndex + firstSlice, numSlice);
 }
 
 LatteTextureView* LatteTC_LookupTextureByData(MPTR physAddr, sint32 width, sint32 height, sint32 pitch, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, sint32* searchIndex)
@@ -1177,12 +1193,8 @@ LatteTextureView* LatteTC_GetTextureSliceViewOrTryCreate(MPTR srcImagePtr, MPTR 
 void LatteTexture_UpdateDataToLatest(LatteTexture* texture)
 {
 	if (LatteTC_HasTextureChanged(texture))
-	{
-		g_renderer->texture_rememberBoundTexture(0);
-		g_renderer->texture_bindAndActivateRawTex(texture, 0);
-		LatteTexture_ReloadData(texture, 0);
-		g_renderer->texture_restoreBoundTexture(0);
-	}
+		LatteTexture_ReloadData(texture);
+
 	if (texture->reloadFromDynamicTextures)
 	{
 		LatteTexture_UpdateCacheFromDynamicTextures(texture);
@@ -1231,7 +1243,7 @@ std::vector<LatteTexture*>& LatteTexture::GetAllTextures()
 	return sAllTextures;
 }
 
-LatteTexture::LatteTexture(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
+LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
 	_AddTextureToGlobalList(this);

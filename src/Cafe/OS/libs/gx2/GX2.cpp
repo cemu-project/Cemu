@@ -4,8 +4,8 @@
 #include "GX2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/CafeSystem.h"
-
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 
 #include "GX2_Command.h"
@@ -68,7 +68,7 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 
 	// Orochi Warriors seems to call GX2SwapScanBuffers on arbitrary threads/cores. The PM4 commands should go through to the GPU as long as there is no active display list and no other core is submitting commands simultaneously
 	// right now, we work around this by avoiding the infinite loop below (request counter incremented, but PM4 not sent)
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = coreinit::OSGetCoreId();
 	if (GX2::sGX2MainCoreIndex == coreIndex)
 		LatteGPUState.sharedArea->flipRequestCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE) + 1);
 
@@ -332,7 +332,7 @@ uint64 Latte_GetTime()
 
 void _GX2SubmitToTCL()
 {
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	// do nothing if called from non-main GX2 core
 	if (GX2::sGX2MainCoreIndex != coreIndex)
 	{
@@ -373,7 +373,7 @@ uint32 _GX2GetUnflushedBytes(uint32 coreIndex)
  */
 void GX2ReserveCmdSpace(uint32 reservedFreeSpaceInU32)
 {
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = coreinit::OSGetCoreId();
 	// if we are in a display list then do nothing
 	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
 		return;
@@ -396,12 +396,7 @@ void gx2_load()
 	osLib_addFunction("gx2", "GX2GetCurrentScanBuffer", gx2Export_GX2GetCurrentScanBuffer);
 
 	// shader stuff
-	osLib_addFunction("gx2", "GX2GetVertexShaderGPRs", gx2Export_GX2GetVertexShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetVertexShaderStackEntries", gx2Export_GX2GetVertexShaderStackEntries);
-	osLib_addFunction("gx2", "GX2GetPixelShaderGPRs", gx2Export_GX2GetPixelShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetPixelShaderStackEntries", gx2Export_GX2GetPixelShaderStackEntries);
-	osLib_addFunction("gx2", "GX2SetFetchShader", gx2Export_GX2SetFetchShader);
-	osLib_addFunction("gx2", "GX2SetVertexShader", gx2Export_GX2SetVertexShader);
+	//osLib_addFunction("gx2", "GX2SetVertexShader", gx2Export_GX2SetVertexShader);
 	osLib_addFunction("gx2", "GX2SetPixelShader", gx2Export_GX2SetPixelShader);
 	osLib_addFunction("gx2", "GX2SetGeometryShader", gx2Export_GX2SetGeometryShader);
 	osLib_addFunction("gx2", "GX2SetComputeShader", gx2Export_GX2SetComputeShader);

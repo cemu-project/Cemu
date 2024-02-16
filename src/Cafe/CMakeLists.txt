@@ -40,6 +40,7 @@ add_library(CemuCafe
   HW/Espresso/Debugger/DebugSymbolStorage.h
   HW/Espresso/Debugger/GDBStub.h
   HW/Espresso/Debugger/GDBStub.cpp
+  HW/Espresso/Debugger/GDBBreakpoints.cpp
   HW/Espresso/Debugger/GDBBreakpoints.h
   HW/Espresso/EspressoISA.h
   HW/Espresso/Interpreter/PPCInterpreterALU.hpp
@@ -420,6 +421,8 @@ add_library(CemuCafe
   OS/libs/nn_olv/nn_olv_UploadFavoriteTypes.h
   OS/libs/nn_olv/nn_olv_PostTypes.cpp
   OS/libs/nn_olv/nn_olv_PostTypes.h
+  OS/libs/nn_olv/nn_olv_OfflineDB.cpp
+  OS/libs/nn_olv/nn_olv_OfflineDB.h
   OS/libs/nn_pdm/nn_pdm.cpp
   OS/libs/nn_pdm/nn_pdm.h
   OS/libs/nn_save/nn_save.cpp
@@ -430,6 +433,14 @@ add_library(CemuCafe
   OS/libs/nn_uds/nn_uds.h
   OS/libs/nsyshid/nsyshid.cpp
   OS/libs/nsyshid/nsyshid.h
+  OS/libs/nsyshid/Backend.h
+  OS/libs/nsyshid/AttachDefaultBackends.cpp
+  OS/libs/nsyshid/Whitelist.cpp
+  OS/libs/nsyshid/Whitelist.h
+  OS/libs/nsyshid/BackendLibusb.cpp
+  OS/libs/nsyshid/BackendLibusb.h
+  OS/libs/nsyshid/BackendWindowsHID.cpp
+  OS/libs/nsyshid/BackendWindowsHID.h
   OS/libs/nsyskbd/nsyskbd.cpp
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
@@ -544,6 +555,17 @@ if (ENABLE_WAYLAND)
 	# PUBLIC because wayland-client.h is included in VulkanAPI.h
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
 endif()
+
+if (ENABLE_NSYSHID_LIBUSB)
+	if (ENABLE_VCPKG)
+		find_package(PkgConfig REQUIRED)
+		pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+		target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
+	else ()
+		find_package(libusb MODULE REQUIRED)
+		target_link_libraries(CemuCafe PRIVATE libusb::libusb)
+	endif ()
+endif ()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
   target_link_libraries(CemuCafe PRIVATE xbyak_aarch64)

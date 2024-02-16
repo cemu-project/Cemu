@@ -1,6 +1,5 @@
 #include "util/crypto/aes128.h"
 #include "Cafe/OS/RPL/rpl.h"
-#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
@@ -56,66 +55,6 @@ extern "C"
 std::atomic_bool g_isGPUInitFinished = false;
 
 std::wstring executablePath;
-
-void logCPUAndMemoryInfo()
-{
-	std::string cpuName = g_CPUFeatures.GetCPUName();
-	if (!cpuName.empty())
-		cemuLog_log(LogType::Force, "CPU: {}", cpuName);
-
-	#if BOOST_OS_WINDOWS
-	MEMORYSTATUSEX statex;
-	statex.dwLength = sizeof(statex);
-	GlobalMemoryStatusEx(&statex);
-	uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
-	cemuLog_log(LogType::Force, "RAM: {}MB", memoryInMB);
-	#elif BOOST_OS_LINUX
-	struct sysinfo info {};
-	sysinfo(&info);
-	cemuLog_log(LogType::Force, "RAM: {}MB", ((static_cast<uint64_t>(info.totalram) * info.mem_unit) / 1024LL / 1024LL));
-	#elif BOOST_OS_MACOS
-	int64_t totalRam;
-	size_t size = sizeof(totalRam);
-	int result = sysctlbyname("hw.memsize", &totalRam, &size, NULL, 0);
-	if (result == 0)
-		cemuLog_log(LogType::Force, "RAM: {}MB", (totalRam / 1024LL / 1024LL));
-	#endif
-}
-
-bool g_running_in_wine = false;
-bool IsRunningInWine()
-{
-	return g_running_in_wine;
-}
-
-void checkForWine()
-{
-	#if BOOST_OS_WINDOWS
-	const HMODULE hmodule = GetModuleHandleA("ntdll.dll");
-	if (!hmodule)
-		return;
-
-	const auto pwine_get_version = (const char*(__cdecl*)())GetProcAddress(hmodule, "wine_get_version");
-	if (pwine_get_version)
-	{
-		g_running_in_wine = true;
-		cemuLog_log(LogType::Force, "Wine version: {}", pwine_get_version());
-	}
-	#else
-	g_running_in_wine = false;
-	#endif
-}
-
-void infoLog_cemuStartup()
-{
-	cemuLog_log(LogType::Force, "------- Init {} -------", BUILD_VERSION_WITH_NAME_STRING);
-	cemuLog_log(LogType::Force, "Init Wii U memory space (base: 0x{:016x})", (size_t)memory_base);
-	cemuLog_log(LogType::Force, "mlc01 path: {}", _pathToUtf8(ActiveSettings::GetMlcPath()));
-	checkForWine();
-	// CPU and RAM info
-	logCPUAndMemoryInfo();
-	cemuLog_log(LogType::Force, "Used CPU extensions: {}", g_CPUFeatures.GetCommaSeparatedExtensionList());
-}
 
 // some implementations of _putenv dont copy the string and instead only store a pointer
 // thus we use a helper to keep a permanent copy
@@ -186,22 +125,18 @@ void CemuCommonInit()
 	g_config.Load();
 	if (NetworkConfig::XMLExists())
 		n_config.Load();
-	// symbol storage
-	rplSymbolStorage_init();
 	// parallelize expensive init code
 	std::future<int> futureInitAudioAPI = std::async(std::launch::async, []{ IAudioAPI::InitializeStatic(); IAudioInputAPI::InitializeStatic(); return 0; });
 	std::future<int> futureInitGraphicPacks = std::async(std::launch::async, []{ GraphicPack2::LoadAll(); return 0; });
 	InputManager::instance().load();
 	futureInitAudioAPI.wait();
 	futureInitGraphicPacks.wait();
-	// log Cemu startup info
-	infoLog_cemuStartup();
 	// init Cafe system
 	CafeSystem::Initialize();
 	// init title list
 	CafeTitleList::Initialize(ActiveSettings::GetUserDataPath("title_list_cache.xml"));
 	for (auto& it : GetConfig().game_paths)
-		CafeTitleList::AddScanPath(it);
+		CafeTitleList::AddScanPath(_utf8ToPath(it));
 	fs::path mlcPath = ActiveSettings::GetMlcPath();
 	if (!mlcPath.empty())
 		CafeTitleList::SetMLCPath(mlcPath);

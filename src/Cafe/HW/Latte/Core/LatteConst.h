@@ -1,21 +1,27 @@
 #pragma once
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 
-// this file contains legacy C-style defines, modernize and merge into LatteReg.h
+// todo - this file contains legacy C-style defines, modernize and merge into LatteReg.h
 
 // GPU7/Latte hardware info
 
-#define LATTE_NUM_GPR						(128)
-#define LATTE_NUM_STREAMOUT_BUFFER			(4)
-#define LATTE_NUM_COLOR_TARGET				(8)
+#define LATTE_NUM_GPR						128
+#define LATTE_NUM_STREAMOUT_BUFFER			4
+#define LATTE_NUM_COLOR_TARGET				8
 
-#define LATTE_NUM_MAX_TEX_UNITS				(18) // number of available texture units per shader stage (this might be higher than 18? BotW is the only game which uses more than 16?)
-#define LATTE_NUM_MAX_UNIFORM_BUFFERS		(16) // number of supported uniform buffer binding locations
+#define LATTE_NUM_MAX_TEX_UNITS				18 // number of available texture units per shader stage (this might be higher than 18? BotW is the only game which uses more than 16?)
+#define LATTE_NUM_MAX_UNIFORM_BUFFERS		16 // number of supported uniform buffer binding locations
 
-#define LATTE_VS_ATTRIBUTE_LIMIT			(32) // todo: verify
-#define	LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS	(256) // should this be 128 since there are only 128 GPRs?
+#define LATTE_VS_ATTRIBUTE_LIMIT			32 // todo: verify
+#define	LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS	256 // should this be 128 since there are only 128 GPRs?
 
-#define LATTE_MAX_VERTEX_BUFFERS			(16)
+#define LATTE_MAX_VERTEX_BUFFERS			16
+
+// Cemu-specific constants
+
+#define LATTE_CEMU_PS_TEX_UNIT_BASE 		0
+#define LATTE_CEMU_VS_TEX_UNIT_BASE 		32
+#define LATTE_CEMU_GS_TEX_UNIT_BASE 		64
 
 // vertex formats
 

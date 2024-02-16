@@ -34,21 +34,6 @@ void unused_translation_dummy()
 	void(_("Browse"));
 	void(_("Select a file"));
 	void(_("Select a directory"));
-	
-	void(_("base"));
-	void(_("update"));
-	void(_("dlc"));
-	void(_("save"));
-
-	void(_("Japan"));
-	void(_("USA"));
-	void(_("Europe"));
-	void(_("Australia"));
-	void(_("China"));
-	void(_("Korea"));
-	void(_("Taiwan"));
-	void(_("Auto"));
-	void(_("many"));
 
 	void(_("Japanese"));
 	void(_("English"));
@@ -63,13 +48,6 @@ void unused_translation_dummy()
 	void(_("Russian"));
 	void(_("Taiwanese"));
 	void(_("unknown"));
-
-
-	// account.h
-	void(_("AccountId missing (The account is not connected to a NNID)"));
-	void(_("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)"));
-	void(_("AccountPasswordCache is empty (The remember password option on your Wii U must be enabled for this account before dumping it)"));
-	void(_("PrincipalId missing"));
 }
 
 bool CemuApp::OnInit()
@@ -77,7 +55,7 @@ bool CemuApp::OnInit()
 	GuiSystem::registerKeyCodeToStringCallback(rawKeyCodeToString);
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
-	fs::path exePath(standardPaths.GetExecutablePath().ToStdString());
+	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
 #ifdef PORTABLE
 #if MACOS_BUNDLE
     exePath = exePath.parent_path().parent_path().parent_path();
@@ -107,7 +85,8 @@ bool CemuApp::OnInit()
 #endif
 	auto failed_write_access = ActiveSettings::LoadOnce(exePath, user_data_path, config_path, cache_path, data_path);
 	for (auto&& path : failed_write_access)
-		wxMessageBox(fmt::format("Cemu can't write to {} !", path.generic_string()), _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
+		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), wxString::FromUTF8(_pathToUtf8(path))),
+			_("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 
 	NetworkConfig::LoadOnce();
 	g_config.Load();
@@ -117,29 +96,7 @@ bool CemuApp::OnInit()
 
 	wxInitAllImageHandlers();
 
-
-	m_languages = GetAvailableLanguages();
-
-	const sint32 language = GetConfig().language;
-	const auto it = std::find_if(m_languages.begin(), m_languages.end(), [language](const wxLanguageInfo* info) { return info->Language == language; });
-	if (it != m_languages.end() && wxLocale::IsAvailable(language))
-	{
-		if (m_locale.Init(language))
-		{
-			m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
-			m_locale.AddCatalog("cemu");
-		}
-	}
-
-	if (!m_locale.IsOk())
-	{
-		if (!wxLocale::IsAvailable(wxLANGUAGE_DEFAULT) || !m_locale.Init(wxLANGUAGE_DEFAULT))
-		{
-            m_locale.Init(wxLANGUAGE_ENGLISH);
-            m_locale.AddCatalogLookupPathPrefix(ActiveSettings::GetDataPath("resources").generic_string());
-            m_locale.AddCatalog("cemu");
-		}
-	}
+	LocalizeUI();
 
 	// fill colour db
 	wxTheColourDatabase->AddColour("ERROR", wxColour(0xCC, 0, 0));
@@ -186,7 +143,7 @@ bool CemuApp::OnInit()
 			"Thank you for testing the in-development build of Cemu for macOS.\n \n"
 			"The macOS port is currently purely experimental and should not be considered stable or ready for issue-free gameplay. "
 			"There are also known issues with degraded performance due to the use of MoltenVk and Rosetta for ARM Macs. We appreciate your patience while we improve Cemu for macOS.");
-		wxMessageDialog dialog(nullptr, message, "Preview version", wxCENTRE | wxOK | wxICON_WARNING);
+		wxMessageDialog dialog(nullptr, message, _("Preview version"), wxCENTRE | wxOK | wxICON_WARNING);
 		dialog.SetOKLabel(_("I understand"));
 		dialog.ShowModal();
 		GetConfig().did_show_macos_disclaimer = true;
@@ -215,9 +172,9 @@ void CemuApp::OnAssertFailure(const wxChar* file, int line, const wxChar* func, 
 {
 	cemuLog_createLogFile(false);
 	cemuLog_log(LogType::Force, "Encountered wxWidgets assert!");
-	cemuLog_log(LogType::Force, fmt::format(L"File: {0} Line: {1}", std::wstring_view(file), line));
-	cemuLog_log(LogType::Force, fmt::format(L"Func: {0} Cond: {1}", func, std::wstring_view(cond)));
-	cemuLog_log(LogType::Force, fmt::format(L"Message: {}", std::wstring_view(msg)));
+	cemuLog_log(LogType::Force, "File: {0} Line: {1}", wxString(file).utf8_string(), line);
+	cemuLog_log(LogType::Force, "Func: {0} Cond: {1}", wxString(func).utf8_string(), wxString(cond).utf8_string());
+	cemuLog_log(LogType::Force, "Message: {}", wxString(msg).utf8_string());
 
 #if BOOST_OS_WINDOWS
 	DumpThreadStackTrace();
@@ -231,7 +188,6 @@ int CemuApp::FilterEvent(wxEvent& event)
 	if(event.GetEventType() == wxEVT_KEY_DOWN)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
-		wxGetKeyState(wxKeyCode::WXK_F17);
 		windowInfo.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
 		auto platformKeyCode = rawKeyCodeToPlatformKeyCode(key_event.GetRawKeyCode());
 		if (platformKeyCode.has_value())
@@ -255,33 +211,44 @@ int CemuApp::FilterEvent(wxEvent& event)
 	return wxApp::FilterEvent(event);
 }
 
-std::vector<const wxLanguageInfo*> CemuApp::GetAvailableLanguages()
+std::vector<const wxLanguageInfo *> CemuApp::GetLanguages() const {
+	std::vector availableLanguages(m_availableTranslations);
+	availableLanguages.insert(availableLanguages.begin(), wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH));
+	return availableLanguages;
+}
+
+void CemuApp::LocalizeUI()
 {
-	const auto path = ActiveSettings::GetDataPath("resources");
-	if (!exists(path))
-		return {};
-	
-	std::vector<const wxLanguageInfo*> result;
-	for (const auto& p : fs::directory_iterator(path))
+	std::unique_ptr<wxTranslations> translationsMgr(new wxTranslations());
+	m_availableTranslations = GetAvailableTranslationLanguages(translationsMgr.get());
+
+	const sint32 configuredLanguage = GetConfig().language;
+	bool isTranslationAvailable = std::any_of(m_availableTranslations.begin(), m_availableTranslations.end(),
+											  [configuredLanguage](const wxLanguageInfo* info) { return info->Language == configuredLanguage; });
+	if (configuredLanguage == wxLANGUAGE_DEFAULT || isTranslationAvailable)
 	{
-		if (!fs::is_directory(p))
-			continue;
+		translationsMgr->SetLanguage(static_cast<wxLanguage>(configuredLanguage));
+		translationsMgr->AddCatalog("cemu");
 
-		const auto& path = p.path();
-		auto filename = path.filename();
+		if (translationsMgr->IsLoaded("cemu") && wxLocale::IsAvailable(configuredLanguage))
+			m_locale.Init(configuredLanguage);
 
-		const auto* lang_info = wxLocale::FindLanguageInfo(filename.c_str());
-		if (!lang_info)
-			continue;
-
-		const auto language_file = path / "cemu.mo";
-		if (!fs::exists(language_file))
-			continue;
-
-		result.emplace_back(lang_info);
+		// This must be run after wxLocale::Init, as the latter sets up its own wxTranslations instance which we want to override
+		wxTranslations::Set(translationsMgr.release());
 	}
+}
 
-	return result;
+std::vector<const wxLanguageInfo*> CemuApp::GetAvailableTranslationLanguages(wxTranslations* translationsMgr)
+{
+	wxFileTranslationsLoader::AddCatalogLookupPathPrefix(wxHelper::FromPath(ActiveSettings::GetDataPath("resources")));
+	std::vector<const wxLanguageInfo*> languages;
+	for (const auto& langName : translationsMgr->GetAvailableTranslations("cemu"))
+	{
+		const auto* langInfo = wxLocale::FindLanguageInfo(langName);
+		if (langInfo)
+			languages.emplace_back(langInfo);
+	}
+	return languages;
 }
 
 void CemuApp::CreateDefaultFiles(bool first_start)
@@ -291,9 +258,10 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	// check for mlc01 folder missing if custom path has been set
 	if (!fs::exists(mlc) && !first_start)
 	{
-		const std::wstring message = fmt::format(fmt::runtime(_(L"Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?").ToStdWstring()), mlc.wstring());
+		const wxString message = formatWxString(_("Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?"),
+												_pathToUtf8(mlc));
 		
-		wxMessageDialog dialog(nullptr, message, "Error", wxCENTRE | wxYES_NO | wxCANCEL| wxICON_WARNING);
+		wxMessageDialog dialog(nullptr, message, _("Error"), wxCENTRE | wxYES_NO | wxCANCEL| wxICON_WARNING);
 		dialog.SetYesNoCancelLabels(_("Yes"), _("No"), _("Select a custom path"));
 		const auto dialogResult = dialog.ShowModal();
 		if (dialogResult == wxID_NO)
@@ -365,16 +333,15 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	}
 	catch (const std::exception& ex)
 	{
-		std::stringstream errorMsg;
-		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required mlc01 subfolder or file!\n\nError: {0}\nTarget path:\n{1}").ToStdString()), ex.what(), _pathToUtf8(mlc));
+		wxString errorMsg = formatWxString(_("Couldn't create a required mlc01 subfolder or file!\n\nError: {0}\nTarget path:\n{1}"), ex.what(), _pathToUtf8(mlc));
 
 #if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();
 		if (lastError != ERROR_SUCCESS)
 			errorMsg << fmt::format("\n\n{}", GetSystemErrorMessage(lastError));
-
-		wxMessageBox(errorMsg.str(), "Error", wxOK | wxCENTRE | wxICON_ERROR);
 #endif
+
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		exit(0);
 	}
 
@@ -391,17 +358,15 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 	}
 	catch (const std::exception& ex)
 	{
-		std::stringstream errorMsg;
-		errorMsg << fmt::format(fmt::runtime(_("Couldn't create a required cemu directory or file!\n\nError: {0}").ToStdString()), ex.what());
+		wxString errorMsg = formatWxString(_("Couldn't create a required cemu directory or file!\n\nError: {0}"), ex.what());
 
 #if BOOST_OS_WINDOWS
 		const DWORD lastError = GetLastError();
 		if (lastError != ERROR_SUCCESS)
 			errorMsg << fmt::format("\n\n{}", GetSystemErrorMessage(lastError));
-
-
-		wxMessageBox(errorMsg.str(), "Error", wxOK | wxCENTRE | wxICON_ERROR);
 #endif
+
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		exit(0);
 	}
 }

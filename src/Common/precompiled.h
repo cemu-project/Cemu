@@ -292,10 +292,18 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 
 #if defined(_MSC_VER)
     #define UNREACHABLE __assume(false)
-#elif defined(__GNUC__)
+	#define ASSUME(__cond) __assume(__cond)
+	#define TLS_WORKAROUND_NOINLINE // no-op for MSVC as it has a flag for fiber-safe TLS optimizations
+#elif defined(__GNUC__) && !defined(__llvm__)
     #define UNREACHABLE __builtin_unreachable()
+	#define ASSUME(__cond) __attribute__((assume(__cond)))
+	#define TLS_WORKAROUND_NOINLINE __attribute__((noinline))
+#elif defined(__clang__)
+	#define UNREACHABLE __builtin_unreachable()
+	#define ASSUME(__cond) __builtin_assume(__cond)
+	#define TLS_WORKAROUND_NOINLINE __attribute__((noinline))
 #else
-    #define UNREACHABLE
+    #error Unknown compiler
 #endif
 
 #if defined(_MSC_VER)
@@ -530,6 +538,14 @@ inline fs::path _utf8ToPath(std::string_view input)
 #endif // __ANDROID__
 }
 
+// locale-independent variant of tolower() which also matches Wii U behavior
+inline char _ansiToLower(char c)
+{
+	if (c >= 'A' && c <= 'Z')
+		c -= ('A' - 'a');
+	return c;
+}
+
 class RunAtCemuBoot // -> replaces this with direct function calls. Linkers other than MSVC may optimize way object files entirely if they are not referenced from outside. So a source file self-registering using this would be causing issues
 {
 public:
@@ -549,6 +565,14 @@ bool future_is_ready(std::future<T>& f)
 	return f._Is_ready();
 #endif
 }
+
+// replace with std::scope_exit once available
+struct scope_exit
+{
+	std::function<void()> f_;
+	explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
+	~scope_exit() { if (f_) f_(); }
+};
 
 // helper function to cast raw pointers to std::atomic
 // this is technically not legal but works on most platforms as long as alignment restrictions are met and the implementation of atomic doesnt come with additional members
@@ -593,6 +617,29 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 
+// generic formatter for enums (to underlying)
+template <typename Enum>
+	requires std::is_enum_v<Enum>
+struct fmt::formatter<Enum> : fmt::formatter<underlying_t<Enum>>
+{
+	auto format(const Enum& e, format_context& ctx) const
+	{
+		//return fmt::format_to(ctx.out(), "{}", fmt::underlying(e));
+
+		return formatter<underlying_t<Enum>>::format(fmt::underlying(e), ctx);
+	}
+};
+
+// formatter for betype<T>
+template <typename T>
+struct fmt::formatter<betype<T>> : fmt::formatter<T>
+{
+	auto format(const betype<T>& e, format_context& ctx) const
+	{
+		return formatter<T>::format(static_cast<T>(e), ctx);
+	}
+};
+
 // useful C++23 stuff that isn't yet widely supported
 
 // std::to_underlying
@@ -603,4 +650,3 @@ namespace stdx
         return static_cast<std::underlying_type_t<EnumT>>(e);
     };
 }
-

@@ -358,7 +358,7 @@ namespace NAPI
 		std::string_view port = tokenNode.child_value("port");
 		std::string_view token = tokenNode.child_value("token");
 
-		std::memset(&result.nexToken, 0, sizeof(result.nexToken));
+		memset(&result.nexToken, 0, sizeof(ACTNexToken));
 		if (host.size() > 15)
 			cemuLog_log(LogType::Force, "NexToken response: host field too long");
 		if (nex_password.size() > 64)

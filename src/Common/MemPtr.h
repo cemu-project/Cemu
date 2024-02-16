@@ -159,5 +159,5 @@ template <typename T>
 struct fmt::formatter<MEMPTR<T>> : formatter<string_view>
 {
 	template <typename FormatContext>
-	auto format(const MEMPTR<T>& v, FormatContext& ctx) { return formatter<string_view>::format(fmt::format("{:#x}", v.GetMPTR()), ctx); }
+	auto format(const MEMPTR<T>& v, FormatContext& ctx) const -> format_context::iterator { return fmt::format_to(ctx.out(), "{:#x}", v.GetMPTR()); }
 };

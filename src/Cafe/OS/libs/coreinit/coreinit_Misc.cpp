@@ -195,7 +195,28 @@ namespace coreinit
 				else if ((formatStr[0] == 'l' && formatStr[1] == 'l' && (formatStr[2] == 'x' || formatStr[2] == 'X')))
 				{
 					formatStr += 3;
-					// number (64bit)
+					// double (64bit)
+					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
+					if ((formatStr - formatStart) < sizeof(tempFormat))
+						tempFormat[(formatStr - formatStart)] = '\0';
+					else
+						tempFormat[sizeof(tempFormat) - 1] = '\0';
+					if (integerParamIndex & 1)
+						integerParamIndex++;
+					sint32 tempLen = sprintf(tempStr, tempFormat, PPCInterpreter_getCallParamU64(hCPU, integerParamIndex));
+					integerParamIndex += 2;
+					for (sint32 i = 0; i < tempLen; i++)
+					{
+						if (writeIndex >= maxLength)
+							break;
+						strOut[writeIndex] = tempStr[i];
+						writeIndex++;
+					}
+				}
+				else if ((formatStr[0] == 'l' && formatStr[1] == 'l' && formatStr[2] == 'd'))
+				{
+					formatStr += 3;
+					// signed integer (64bit)
 					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
 					if ((formatStr - formatStart) < sizeof(tempFormat))
 						tempFormat[(formatStr - formatStart)] = '\0';
@@ -235,7 +256,7 @@ namespace coreinit
 
 	sint32 __os_snprintf(char* outputStr, sint32 maxLength, const char* formatStr)
 	{
-		sint32 r = ppcSprintf(formatStr, outputStr, maxLength, ppcInterpreterCurrentInstance, 3);
+		sint32 r = ppcSprintf(formatStr, outputStr, maxLength, PPCInterpreter_getCurrentInstance(), 3);
 		return r;
 	}
 
@@ -303,7 +324,7 @@ namespace coreinit
 	void OSReport(const char* format)
 	{
 		char buffer[1024 * 2];
-		sint32 len = ppcSprintf(format, buffer, sizeof(buffer), ppcInterpreterCurrentInstance, 1);
+		sint32 len = ppcSprintf(format, buffer, sizeof(buffer), PPCInterpreter_getCurrentInstance(), 1);
 		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len);
 	}
 
@@ -316,7 +337,7 @@ namespace coreinit
 	{
 		char buffer[1024 * 2];
 		int prefixLen = sprintf(buffer, "[COSWarn-%d] ", moduleId);
-		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 2);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, PPCInterpreter_getCurrentInstance(), 2);
 		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 
@@ -324,7 +345,7 @@ namespace coreinit
 	{
 		char buffer[1024 * 2];
 		int prefixLen = sprintf(buffer, "[OSLogPrintf-%d-%d-%d] ", ukn1, ukn2, ukn3);
-		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, ppcInterpreterCurrentInstance, 4);
+		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, PPCInterpreter_getCurrentInstance(), 4);
 		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
 	}
 

@@ -9,10 +9,10 @@ namespace nn
 {
 	namespace olv
 	{
-
 		uint32_t g_ReportTypes = 0;
 		bool g_IsOnlineMode = false;
 		bool g_IsInitialized = false;
+		bool g_IsOfflineDBMode = false;
 		ParamPackStorage g_ParamPack;
 		DiscoveryResultStorage g_DiscoveryResults;
 
@@ -199,9 +199,9 @@ namespace nn
 			InitializeOliveRequest(req);
 
 			StackAllocator<coreinit::OSEvent> requestDoneEvent;
-			coreinit::OSInitEvent(requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+			coreinit::OSInitEvent(&requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 			std::future<sint32> requestRes = std::async(std::launch::async, MakeDiscoveryRequest_AsyncRequest, std::ref(req), requestUrl.c_str(), requestDoneEvent.GetPointer());
-			coreinit::OSWaitEvent(requestDoneEvent);
+			coreinit::OSWaitEvent(&requestDoneEvent);
 
 			return requestRes.get();
 		}
@@ -241,9 +241,15 @@ namespace nn
 
 			g_IsInitialized = true;
 
+			if(ActiveSettings::GetNetworkService() == NetworkService::Nintendo)
+			{
+				// since the official Miiverse was shut down, use local post archive instead
+				g_IsOnlineMode = true;
+				g_IsOfflineDBMode = true;
+				return OLV_RESULT_SUCCESS;
+			}
 			if ((pParam->m_Flags & InitializeParam::FLAG_OFFLINE_MODE) == 0)
 			{
-
 				g_IsOnlineMode = true;
 
 				independentServiceToken_t token;

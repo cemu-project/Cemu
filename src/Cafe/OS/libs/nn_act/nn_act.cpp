@@ -283,7 +283,6 @@ void nnActExport_GetSimpleAddressIdEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetPrincipalId(PPCInterpreter_t* hCPU)
 {
 	// return error for non-nnid accounts?
-	cemuLog_logDebug(LogType::Force, "nn_act.GetPrincipalId()");
 	uint32be principalId;
 	GetPrincipalIdEx(&principalId, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, (uint32)principalId);
@@ -392,7 +391,7 @@ void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
 
 	StackAllocator<FFLData_t> miiData;
 
-	uint32 r = nn::act::GetMiiEx(miiData, iosu::act::ACT_SLOT_CURRENT);
+	uint32 r = nn::act::GetMiiEx(&miiData, iosu::act::ACT_SLOT_CURRENT);
 	// extract name
 	sint32 miiNameLength = 0;
 	for (sint32 i = 0; i < MII_FFL_NAME_LENGTH; i++)
@@ -415,7 +414,7 @@ void nnActExport_GetMiiNameEx(PPCInterpreter_t* hCPU)
 
 	StackAllocator<FFLData_t> miiData;
 
-	uint32 r = nn::act::GetMiiEx(miiData, slot);
+	uint32 r = nn::act::GetMiiEx(&miiData, slot);
 	// extract name
 	sint32 miiNameLength = 0;
 	for (sint32 i = 0; i < MII_FFL_NAME_LENGTH; i++)

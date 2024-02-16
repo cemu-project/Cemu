@@ -220,7 +220,7 @@ void PPCCoreLLE_startSingleCoreScheduler(uint32 entrypoint)
 		for (uint32 coreIndex = 0; coreIndex < 3; coreIndex++)
 		{
 			PPCInterpreter_t* hCPU = cpuContext->cores+coreIndex;
-			ppcInterpreterCurrentInstance = hCPU;
+			PPCInterpreter_setCurrentInstance(hCPU);
 			if (coreIndex == 1)
 			{
 				// check SCR core 1 enable bit

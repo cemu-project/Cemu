@@ -5,7 +5,7 @@ plugins {
 android {
     namespace 'info.cemu.Cemu'
     compileSdk 34
-    ndkVersion '25.2.9519653'
+    ndkVersion '26.1.10909125'
     defaultConfig {
         applicationId "info.cemu.Cemu"
         minSdk 30
@@ -18,11 +18,23 @@ android {
         }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        release {
+            storeFile file(RELEASE_STORE_FILE)
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
+        }
+    }
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix ".debug"
         }
     }
     compileOptions {
@@ -47,7 +59,9 @@ android {
                         '-DENABLE_OPENGL=OFF',
                         '-DBUNDLE_SPEEX=ON',
                         '-DENABLE_DISCORD_RPC=OFF',
-                        '-DENABLE_WAYLAND=OFF'
+                        '-DENABLE_NSYSHID_LIBUSB=OFF',
+                        '-DENABLE_WAYLAND=OFF',
+                        '-DENABLE_HIDAPI=OFF',
                 )
 //                abiFilters("x86_64", "arm64-v8a")
                 abiFilters("arm64-v8a")

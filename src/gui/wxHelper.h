@@ -3,13 +3,6 @@
 
 namespace wxHelper
 {
-    // wxString to utf8 std::string
-    inline std::string MakeUTF8(const wxString& str)
-    {
-        auto tmpUtf8 = str.ToUTF8();
-        return std::string(tmpUtf8.data(), tmpUtf8.length());
-    }
-
     inline fs::path MakeFSPath(const wxString& str)
     {
         auto tmpUtf8 = str.ToUTF8();

@@ -39,7 +39,7 @@ public:
 		return *this;
 	}
 
-	[[nodiscard]] TType GetValue() const { return m_value.load(); }
+	[[nodiscard]] inline TType GetValue() const { return m_value.load(); }
 	void SetValue(const TType& v) { m_value = v; }
 
 	[[nodiscard]] const TType& GetInitValue() const { return m_init_value; }
@@ -231,20 +231,4 @@ public:
 private:
 	const TType m_min_value;
 	const TType m_max_value;
-};
-
-template <typename TType>
-struct fmt::formatter< ConfigValue<TType> > : formatter<TType> {
-	template <typename FormatContext>
-	auto format(const ConfigValue<TType>& v, FormatContext& ctx) {
-		return formatter<TType>::format(v.GetValue(), ctx);
-	}
-};
-
-template <typename TType>
-struct fmt::formatter< ConfigValueBounds<TType> > : formatter<TType> {
-	template <typename FormatContext>
-	auto format(const ConfigValueBounds<TType>& v, FormatContext& ctx) {
-		return formatter<TType>::format(v.GetValue(), ctx);
-	}
 };

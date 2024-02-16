@@ -41,9 +41,9 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	if (m_gp)
 	{
 		if (m_stage == STAGE::PARSER)
-			errorMsg.assign(fmt::format("Failed to load patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg = fmt::format("Failed to load patches for graphic pack \'{}\'", m_gp->GetName());
 		else
-			errorMsg.assign(fmt::format("Failed to apply patches for graphic pack \'{}\'", m_gp->GetName()));
+			errorMsg = fmt::format("Failed to apply patches for graphic pack \'{}\'", m_gp->GetName());
 	}
 	else
 	{
@@ -51,11 +51,11 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	}
 	if (cemuLog_isLoggingEnabled(LogType::Patches))
 	{
-		errorMsg.append("\n \nDetails:\n");
+		errorMsg += "\n\nDetails:\n";
 		for (auto& itr : errorMessages)
 		{
-			errorMsg.append(itr);
-			errorMsg.append("\n");
+			errorMsg += itr;
+			errorMsg += "\n";
 		}
 	}
 	cemuLog_log(LogType::Force, "Graphic pack error: {}", errorMsg);
@@ -65,19 +65,8 @@ void PatchErrorHandler::showStageErrorMessageBox()
 // returns true if at least one file was found even if it could not be successfully parsed
 bool GraphicPack2::LoadCemuPatches()
 {
-	// todo - once we have updated to C++20 we can replace these with the new std::string functions
-	auto startsWith = [](const std::wstring& str, const std::wstring& prefix)
-	{
-		return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-	};
-
-	auto endsWith = [](const std::wstring& str, const std::wstring& suffix)
-	{
-		return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-	};
-
 	bool foundPatches = false;
-	fs::path path(m_filename);
+	fs::path path(m_rulesPath);
 	path.remove_filename();
 	for (auto& p : fs::directory_iterator(path))
 	{
@@ -85,10 +74,10 @@ bool GraphicPack2::LoadCemuPatches()
 		if (fs::is_regular_file(p.status()) && path.has_filename())
 		{
 			// check if filename matches
-			std::wstring filename = path.filename().generic_wstring();
-			if (boost::istarts_with(filename, L"patch_") && boost::iends_with(filename, L".asm"))
+			std::string filename = _pathToUtf8(path.filename());
+			if (boost::istarts_with(filename, "patch_") && boost::iends_with(filename, ".asm"))
 			{
-				FileStream* patchFile = FileStream::openFile(path.generic_wstring().c_str());
+				FileStream* patchFile = FileStream::openFile2(path);
 				if (patchFile)
 				{
 					// read file
@@ -120,27 +109,20 @@ void GraphicPack2::LoadPatchFiles()
 	// order of loading patches:
 	// 1) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
 	// 2) Load Cemuhook patches.txt
-
-	// update: As of 1.20.2b Cemu always takes over patching since Cemuhook patching broke due to other internal changes (memory allocation changed and some reordering on when graphic packs get loaded)
 	if (LoadCemuPatches())
 		return; // exit if at least one Cemu style patch file was found
 	// fall back to Cemuhook patches.txt to guarantee backward compatibility
-	fs::path path(m_filename);
+	fs::path path(m_rulesPath);
 	path.remove_filename();
 	path.append("patches.txt");
-
-	FileStream* patchFile = FileStream::openFile(path.generic_wstring().c_str());
-
+	FileStream* patchFile = FileStream::openFile2(path);
 	if (patchFile == nullptr)
 		return;
-
 	// read file
 	std::vector<uint8> fileData;
 	patchFile->extract(fileData);
 	delete patchFile;
-
 	cemu_assert_debug(list_patchGroups.empty());
-
 	// parse
 	MemStreamReader patchesStream(fileData.data(), (sint32)fileData.size());
 	ParseCemuhookPatchesTxtInternal(patchesStream);

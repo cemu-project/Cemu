@@ -3,17 +3,16 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
+#include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "audio/IAudioAPI.h"
 #include "audio/IAudioInputAPI.h"
-#include "Cafe/HW/Espresso/Debugger/Debugger.h"
-
 #include "config/ActiveSettings.h"
 #include "Cafe/TitleList/GameInfo.h"
-#include "util/helpers/SystemException.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
-
+#include "util/helpers/SystemException.h"
+#include "Common/cpu_features.h"
 #include "input/InputManager.h"
-
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "Cafe/TitleList/GameInfo.h"
@@ -21,14 +20,9 @@
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-
 #include "Cafe/Filesystem/FST/FST.h"
-
 #include "Common/FileStream.h"
-
 #include "GamePatch.h"
-
-#include <time.h>
 #include "HW/Espresso/Debugger/GDBStub.h"
 
 #include "Cafe/IOSU/legacy/iosu_ioctl.h"
@@ -65,6 +59,15 @@
 
 // HW interfaces
 #include "Cafe/HW/SI/si.h"
+
+#include <time.h>
+
+#if BOOST_OS_LINUX
+#include <sys/sysinfo.h>
+#elif BOOST_OS_MACOS
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 
 std::string _pathToExecutable;
 std::string _pathToBaseExecutable;
@@ -158,7 +161,7 @@ void LoadMainExecutable()
 	{
 		// RPX
 		RPLLoader_AddDependency(_pathToExecutable.c_str());
-		applicationRPX = rpl_loadFromMem(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
+		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
 			cemuLog_log(LogType::Force, "Failed to run this title because the executable is damaged");
@@ -244,14 +247,7 @@ void InfoLog_PrintActiveSettings()
 		if(!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
-	cemuLog_log(LogType::Force, "Console language: {}", config.console_language);
-}
-
-void PPCCore_setupSPR(PPCInterpreter_t* hCPU, uint32 coreIndex)
-{
-	hCPU->sprExtended.PVR = 0x70010001;
-	hCPU->spr.UPIR = coreIndex;
-	hCPU->sprExtended.msr |= MSR_FP; // enable floating point
+	cemuLog_log(LogType::Force, "Console language: {}", stdx::to_underlying(config.console_language.GetValue()));
 }
 
 struct SharedDataEntry
@@ -453,34 +449,143 @@ namespace CafeSystem
 
 	GameInfo2 sGameInfo_ForegroundTitle;
 
-    // initialize all subsystems which are persistent and don't depend on a game running
+
+	static void _CheckForWine()
+	{
+		#if BOOST_OS_WINDOWS
+		const HMODULE hmodule = GetModuleHandleA("ntdll.dll");
+		if (!hmodule)
+			return;
+
+		const auto pwine_get_version = (const char*(__cdecl*)())GetProcAddress(hmodule, "wine_get_version");
+		if (pwine_get_version)
+		{
+			cemuLog_log(LogType::Force, "Wine version: {}", pwine_get_version());
+		}
+		#endif
+	}
+
+	void logCPUAndMemoryInfo()
+	{
+		std::string cpuName = g_CPUFeatures.GetCPUName();
+		if (!cpuName.empty())
+			cemuLog_log(LogType::Force, "CPU: {}", cpuName);
+		#if BOOST_OS_WINDOWS
+		MEMORYSTATUSEX statex;
+		statex.dwLength = sizeof(statex);
+		GlobalMemoryStatusEx(&statex);
+		uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
+		cemuLog_log(LogType::Force, "RAM: {}MB", memoryInMB);
+		#elif BOOST_OS_LINUX
+		struct sysinfo info {};
+		sysinfo(&info);
+		cemuLog_log(LogType::Force, "RAM: {}MB", ((static_cast<uint64_t>(info.totalram) * info.mem_unit) / 1024LL / 1024LL));
+		#elif BOOST_OS_MACOS
+		int64_t totalRam;
+		size_t size = sizeof(totalRam);
+		int result = sysctlbyname("hw.memsize", &totalRam, &size, NULL, 0);
+		if (result == 0)
+			cemuLog_log(LogType::Force, "RAM: {}MB", (totalRam / 1024LL / 1024LL));
+		#endif
+	}
+
+	#if BOOST_OS_WINDOWS
+	std::string GetWindowsNamedVersion(uint32& buildNumber)
+	{
+		char productName[256];
+		HKEY hKey;
+		DWORD dwType = REG_SZ;
+		DWORD dwSize = sizeof(productName);
+		if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
+		{
+			if (RegQueryValueExA(hKey, "ProductName", NULL, &dwType, (LPBYTE)productName, &dwSize) != ERROR_SUCCESS)
+				strcpy(productName, "Windows");
+			RegCloseKey(hKey);
+		}
+		OSVERSIONINFO osvi;
+		ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+		osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+		GetVersionEx(&osvi);
+		buildNumber = osvi.dwBuildNumber;
+		return std::string(productName);
+	}
+	#endif
+
+	void logPlatformInfo()
+	{
+		std::string buffer;
+		const char* platform = NULL;
+        #if __ANDROID__
+        platform = "Android";
+		#elif BOOST_OS_WINDOWS
+		uint32 buildNumber;
+		std::string windowsVersionName = GetWindowsNamedVersion(buildNumber);
+		buffer = fmt::format("{} (Build {})", windowsVersionName, buildNumber);
+		platform = buffer.c_str();
+		#elif BOOST_OS_LINUX
+		if (getenv ("APPIMAGE"))
+			platform = "Linux (AppImage)";
+		else if (getenv ("SNAP"))
+			platform = "Linux (Snap)";
+		else if (platform = getenv ("container"))
+		{
+			if (strcmp (platform, "flatpak") == 0)
+				platform = "Linux (Flatpak)";
+		}
+		else
+			platform = "Linux";
+		#elif BOOST_OS_MACOS
+		platform = "MacOS";
+		#endif
+		cemuLog_log(LogType::Force, "Platform: {}", platform);
+	}
+
+	static std::vector<IOSUModule*> s_iosuModules =
+	{
+		// entries in this list are ordered by initialization order. Shutdown in reverse order
+		iosu::kernel::GetModule(),
+		iosu::fpd::GetModule(),
+		iosu::pdm::GetModule(),
+	};
+
+	// initialize all subsystems which are persistent and don't depend on a game running
 	void Initialize()
 	{
 		if (s_initialized)
 			return;
 		s_initialized = true;
 		// init core systems
+		cemuLog_log(LogType::Force, "------- Init {} -------", BUILD_VERSION_WITH_NAME_STRING);
 		fsc_init();
 		memory_init();
+		cemuLog_log(LogType::Force, "Init Wii U memory space (base: 0x{:016x})", (size_t)memory_base);
 		PPCCore_init();
 		RPLLoader_InitState();
+		cemuLog_log(LogType::Force, "mlc01 path: {}", _pathToUtf8(ActiveSettings::GetMlcPath()));
+		_CheckForWine();
+		// CPU and RAM info
+		logCPUAndMemoryInfo();
+		logPlatformInfo();
+		cemuLog_log(LogType::Force, "Used CPU extensions: {}", g_CPUFeatures.GetCommaSeparatedExtensionList());
+		// misc systems
+		rplSymbolStorage_init();
 		// allocate memory for all SysAllocators
 		// must happen before COS module init, but also before iosu::kernel::Initialize()
 		SysAllocatorContainer::GetInstance().Initialize();
-		// init IOSU
+		// init IOSU modules
+		for(auto& module : s_iosuModules)
+			module->SystemLaunch();
+		// init IOSU (deprecated manual init)
 		iosuCrypto_init();
-		iosu::kernel::Initialize();
 		iosu::fsa::Initialize();
 		iosuIoctl_init();
 		iosuAct_init_depr();
 		iosu::act::Initialize();
-		iosu::fpd::Initialize();
 		iosu::iosuMcp_init();
 		iosu::mcp::Init();
 		iosu::iosuAcp_init();
 		iosu::boss_init();
 		iosu::nim::Initialize();
-		iosu::pdm::Initialize();
 		iosu::odm::Initialize();
 		// init Cafe OS
 		avm::Initialize();
@@ -510,11 +615,14 @@ namespace CafeSystem
         // if a title is running, shut it down
         if (sSystemRunning)
             ShutdownTitle();
-        // shutdown persistent subsystems
+        // shutdown persistent subsystems (deprecated manual shutdown)
 		iosu::odm::Shutdown();
 		iosu::act::Stop();
         iosu::mcp::Shutdown();
         iosu::fsa::Shutdown();
+		// shutdown IOSU modules
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->SystemExit();
         s_initialized = false;
     }
 
@@ -738,14 +846,14 @@ namespace CafeSystem
 
 	void _LaunchTitleThread()
 	{
-		// init
+		for(auto& module : s_iosuModules)
+			module->TitleStart();
 		cemu_initForGame();
 		// enter scheduler
 		if (ActiveSettings::GetCPUMode() == CPUMode::MulticoreRecompiler)
 			coreinit::OSSchedulerBegin(3);
 		else
 			coreinit::OSSchedulerBegin(1);
-		iosu::pdm::StartTrackingTime(GetForegroundTitleId());
 	}
 
 	void LaunchForegroundTitle()
@@ -875,8 +983,8 @@ namespace CafeSystem
         nn::save::ResetToDefaultState();
         coreinit::__OSDeleteAllActivePPCThreads();
         RPLLoader_ResetState();
-        // stop time tracking
-		iosu::pdm::Stop();
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->TitleStop();
         // reset Cemu subsystems
         PPCRecompiler_Shutdown();
         GraphicPack2::Reset();

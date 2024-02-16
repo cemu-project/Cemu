@@ -139,7 +139,7 @@ namespace coreinit
 			thread->state = OSThread_t::THREAD_STATE::STATE_READY;
 			thread->currentWaitQueue = nullptr;
 			coreinit::__OSAddReadyThreadToRunQueue(thread);
-			if (reschedule && thread->suspendCounter == 0 && ppcInterpreterCurrentInstance && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
+			if (reschedule && thread->suspendCounter == 0 && PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
 				shouldReschedule = true;
 		}
 		if (shouldReschedule)
@@ -159,7 +159,7 @@ namespace coreinit
 			thread->state = OSThread_t::THREAD_STATE::STATE_READY;
 			thread->currentWaitQueue = nullptr;
 			coreinit::__OSAddReadyThreadToRunQueue(thread);
-			if (reschedule && thread->suspendCounter == 0 && ppcInterpreterCurrentInstance && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
+			if (reschedule && thread->suspendCounter == 0 && PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
 				shouldReschedule = true;
 		}
 		if (shouldReschedule)

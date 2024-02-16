@@ -263,6 +263,14 @@ bool GDBServer::Initialize()
 		return false;
 	}
 
+	int nodelayEnabled = TRUE;
+	if (setsockopt(m_server_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&nodelayEnabled, sizeof(nodelayEnabled)) == SOCKET_ERROR)
+	{
+		closesocket(m_server_socket);
+		m_server_socket = INVALID_SOCKET;
+		return false;
+	}
+
 	memset(&m_server_addr, 0, sizeof(m_server_addr));
 	m_server_addr.sin_family = AF_INET;
 	m_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -356,7 +364,7 @@ void GDBServer::ThreadFunc()
 				}
 				char checkSumStr[2];
 				receiveMessage(checkSumStr, 2);
-				uint32_t checkSum = std::stoi(checkSumStr, nullptr, 16);
+				uint32_t checkSum = std::stoi(std::string(checkSumStr, sizeof(checkSumStr)), nullptr, 16);
 				assert((checkedSum & 0xFF) == checkSum);
 
 				HandleCommand(message);
@@ -900,7 +908,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 		return cemu_assert_suspicious();
 
 	// Secondly, delete one-shot breakpoints but also temporarily delete patched instruction to run original instruction
-	OSThread_t* currThread = coreinitThread_getCurrentThreadDepr(hCPU);
+	OSThread_t* currThread = coreinit::OSGetCurrentThread();
 	std::string pauseReason = fmt::format("T05thread:{:08X};core:{:02X};{}", GET_THREAD_ID(currThread), PPCInterpreter_getCoreIndex(hCPU), patchedBP->second.GetReason());
 	bool pauseThreads = patchedBP->second.ShouldBreakThreads() || patchedBP->second.ShouldBreakThreadsOnNextInterrupt();
 	if (patchedBP->second.IsPersistent())
@@ -939,7 +947,7 @@ void GDBServer::HandleTrapInstruction(PPCInterpreter_t* hCPU)
 			ThreadPool::FireAndForget(&waitForBrokenThreads, std::move(m_resumed_context), pauseReason);
 		}
 
-		breakThreads(GET_THREAD_ID(coreinitThread_getCurrentThreadDepr(hCPU)));
+		breakThreads(GET_THREAD_ID(coreinit::OSGetCurrentThread()));
 		cemuLog_logDebug(LogType::Force, "[GDBStub] Resumed from a breakpoint!");
 	}
 }
@@ -959,8 +967,9 @@ void GDBServer::HandleAccessException(uint64 dr6)
 
 	if (!response.empty())
 	{
+		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 		cemuLog_logDebug(LogType::Force, "Received matching breakpoint exception: {}", response);
-		auto nextInstructions = findNextInstruction(ppcInterpreterCurrentInstance->instructionPointer, ppcInterpreterCurrentInstance->spr.LR, ppcInterpreterCurrentInstance->spr.CTR);
+		auto nextInstructions = findNextInstruction(hCPU->instructionPointer, hCPU->spr.LR, hCPU->spr.CTR);
 		for (MPTR nextInstr : nextInstructions)
 		{
 			auto bpIt = m_patchedInstructions.find(nextInstr);

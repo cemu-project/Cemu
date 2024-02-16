@@ -214,46 +214,36 @@ void DumpCtrl::GoToAddressDialog()
 	wxTextEntryDialog goto_dialog(this, _("Enter a target address."), _("GoTo address"), wxEmptyString);
 	if (goto_dialog.ShowModal() == wxID_OK)
 	{
-		try
+		ExpressionParser parser;
+
+		auto value = goto_dialog.GetValue().ToStdString();
+		std::transform(value.begin(), value.end(), value.begin(), tolower);
+
+		debugger_addParserSymbols(parser);
+
+		// try to parse expression as hex value first (it should interpret 1234 as 0x1234, not 1234)
+		if (parser.IsConstantExpression("0x"+value))
 		{
-			ExpressionParser parser;
-
-			auto value = goto_dialog.GetValue().ToStdString();
-			std::transform(value.begin(), value.end(), value.begin(), tolower);
-			//parser.SetExpr(value);
-
-			const auto module_count = RPLLoader_GetModuleCount();
-			const auto module_list = RPLLoader_GetModuleList();
-
-			std::vector<double> module_tmp(module_count);
-			for (int i = 0; i < module_count; i++)
-			{
-				const auto module = module_list[i];
-				if (module)
-				{
-					module_tmp[i] = (double)module->regionMappingBase_text.GetMPTR();
-					parser.AddConstant(module->moduleName2, module_tmp[i]);
-				}
-			}
-
-			double grp_tmp[32];
-			PPCSnapshot& ppc_snapshot = debuggerState.debugSession.ppcSnapshot;
-			for (int i = 0; i < 32; i++)
-			{
-				char var_name[32];
-				sprintf(var_name, "r%d", i);
-				grp_tmp[i] = ppc_snapshot.gpr[i];
-				parser.AddConstant(var_name, grp_tmp[i]);
-			}
-
-			const auto result = (uint32)parser.Evaluate(value);
-			debug_printf("goto eval result: %x\n", result);
+			const auto result = (uint32)parser.Evaluate("0x"+value);
 			m_lastGotoOffset = result;
 			CenterOffset(result);
 		}
-		catch (const std::exception& ex)
+		else if (parser.IsConstantExpression(value))
 		{
-			wxMessageBox(ex.what(), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+			const auto result = (uint32)parser.Evaluate(value);
+			m_lastGotoOffset = result;
+			CenterOffset(result);
+		}
+		else
+		{
+			try
+			{
+				const auto _ = (uint32)parser.Evaluate(value);
+			}
+			catch (const std::exception& ex)
+			{
+				wxMessageBox(ex.what(), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+			}
 		}
 	}
 }

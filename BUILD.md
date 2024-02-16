@@ -3,40 +3,39 @@
 ## Windows
 
 Prerequisites:
-- A recent version of Visual Studio 2022 (recommended but not required) with the following additional components:
-  - C++ CMake tools for Windows
-  - Windows 10/11 SDK
 - git
+- A recent version of Visual Studio 2022 with the following additional components:
+   - C++ CMake tools for Windows
+   - Windows 10/11 SDK
 
-Instructions:
+Instructions for Visual Studio 2022:
 
 1. Run `git clone --recursive https://github.com/cemu-project/Cemu`
-2. Launch `Cemu/generate_vs_solution.bat`.
-    - If you installed VS to a custom location or use VS 2019, you may need to manually change the path inside the .bat file.
-3. Wait until it's done, then open `Cemu/build/Cemu.sln` in Visual Studio.
-4. Then build the solution and once finished you can run and debug it, or build it and check the /bin folder for the final Cemu_release.exe.
+2. Open the newly created Cemu directory in Visual Studio using the "Open a local folder" option
+3. In the menu select Project -> Configure CMake. Wait until it is done, this may take a long time
+4. You can now build, run and debug Cemu
 
-You can also skip steps 3-5 and open the root folder of the cloned repo directly in Visual Studio (as a folder) and use the built-in CMake support but be warned that cmake support in VS can be a bit finicky.
+Any other IDE should also work as long as it has CMake and MSVC support. CLion and Visual Studio Code have been confirmed to work.
 
 ## Linux
 
-To compile Cemu, a recent enough compiler and STL with C++20 support is required! clang-12 or higher is what we recommend.
+To compile Cemu, a recent enough compiler and STL with C++20 support is required! clang-15 or higher is what we recommend.
 
 ### Installing dependencies
 
 #### For Ubuntu and derivatives:
-`sudo apt install -y cmake curl freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build` 
+`sudo apt install -y cmake curl clang-15 freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build`
 
-*Additionally, for Ubuntu 22.04 only:*
- - `sudo apt install -y clang-12`
- - At step 3 while building, use  
-   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-12 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-12 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+You may also need to install `libusb-1.0-0-dev` as a workaround for an issue with the vcpkg hidapi package.
+
+At step 3 while building, use:
+   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Arch and derivatives:
 `sudo pacman -S --needed base-devel clang cmake freeglut git glm gtk3 libgcrypt libpulse libsecret linux-headers llvm nasm ninja systemd unzip zip`
 
 #### For Fedora and derivatives:
-`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel nasm ninja-build perl-core systemd-devel zlib-devel`
+`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel nasm ninja-build perl-core systemd-devel zlib-devel`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
@@ -46,7 +45,8 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
 #### Using GCC
-While we use and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).  
+While we build and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).
+
 You can use GCC by doing the following:
 - make sure you have g++ installed in your system
   - installation for Ubuntu and derivatives: `sudo apt install g++`
@@ -86,7 +86,7 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 
 ### Installing dependencies
 
-`brew install boost git cmake llvm ninja nasm molten-vk`
+`brew install boost git cmake llvm ninja nasm molten-vk automake libtool`
 
 ### Build Cemu using cmake and clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`

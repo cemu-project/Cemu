@@ -14,7 +14,7 @@
 #include "components/wxInputDraw.h"
 #include "input/InputAPIAddWindow.h"
 
-#if BOOST_OS_WINDOWS
+#ifdef SUPPORTS_WIIMOTE
 
 WiimoteControllerSettings::WiimoteControllerSettings(wxWindow* parent, const wxPoint& position, std::shared_ptr<NativeWiimoteController> controller)
 	: wxDialog(parent, wxID_ANY, _("Controller settings"), position, wxDefaultSize,

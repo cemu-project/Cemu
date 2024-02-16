@@ -3,6 +3,7 @@
 #include "Cafe/Filesystem/fsc.h"
 #include "config/CemuConfig.h" // for CafeConsoleRegion. Move to NCrypto?
 #include "TitleId.h"
+#include "AppType.h"
 #include "ParsedMetaXml.h"
 
 enum class CafeTitleFileType
@@ -59,8 +60,19 @@ public:
 		HOST_FS = 1, // host filesystem directory (fullPath points to root with content/code/meta subfolders)
 		WUD = 2, // WUD or WUX
 		WIIU_ARCHIVE = 3, // Wii U compressed single-file archive (.wua)
+	  	NUS = 4, // NUS format. Directory with .app files, title.tik and title.tmd
 		// error
 		INVALID_STRUCTURE = 0,
+	};
+
+	enum class InvalidReason : uint8
+	{
+		NONE = 0,
+		BAD_PATH_OR_INACCESSIBLE = 1,
+		UNKNOWN_FORMAT = 2,
+		NO_DISC_KEY = 3,
+		NO_TITLE_TIK = 4,
+		MISSING_XML_FILES = 4,
 	};
 
 	struct CachedInfo
@@ -99,6 +111,7 @@ public:
 	CachedInfo MakeCacheEntry();
 
 	bool IsValid() const;
+	InvalidReason GetInvalidReason() const { return m_invalidReason; }
 	uint64 GetUID(); // returns a unique identifier derived from the absolute canonical title location which can be used to identify this title by its location. May not persist across sessions, especially when Cemu is used portable
 
 	fs::path GetPath() const;
@@ -122,9 +135,7 @@ public:
 		if(!IsValid())
 			return false;
 		uint32 appType = GetAppType();
-		if(appType == 0)
-			return false; // not a valid app_type, but handle this in case some users use placeholder .xml data with fields zeroed-out
-		return ((appType>>24)&0x80) == 0;
+		return appType == APP_TYPE::DRC_FIRMWARE || appType == APP_TYPE::DRC_TEXTURE_ATLAS || appType == APP_TYPE::VERSION_DATA_TITLE;
 	}
 
 	// API which requires parsed meta data or cached info
@@ -149,7 +160,7 @@ public:
 		return m_parsedMetaXml;
 	}
 
-	std::string GetPrintPath() const; // formatted path for log writing
+	std::string GetPrintPath() const; // formatted path including type and WUA subpath. Intended for logging and user-facing information
 	std::string GetInstallPath() const; // installation subpath, relative to storage base. E.g. "usr/title/.../..." or "sys/title/.../..."
 
 	static std::string GetUniqueTempMountingPath();
@@ -182,7 +193,7 @@ private:
 
 	bool DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataFormat& formatOut);
 	void CalcUID();
-
+	void SetInvalidReason(InvalidReason reason);
 	bool ParseAppXml(std::vector<uint8>& appXmlData);
 
 	bool m_isValid{ false };
@@ -190,6 +201,7 @@ private:
 	fs::path m_fullPath;
 	std::string m_subPath; // used for formats where fullPath isn't unique on its own (like WUA)
 	uint64 m_uid{};
+	InvalidReason m_invalidReason{ InvalidReason::NONE }; // if m_isValid == false, this contains a more detailed error code
 	// mounting info
 	std::vector<std::pair<sint32, std::string>> m_mountpoints;
 	class FSTVolume* m_wudVolume{};

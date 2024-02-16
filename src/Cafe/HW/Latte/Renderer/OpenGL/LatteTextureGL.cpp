@@ -19,20 +19,17 @@ static GLuint _genTextureHandleGL()
 	return texIdPool[texIdPoolIndex - 1];
 }
 
-LatteTextureGL::LatteTextureGL(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
+LatteTextureGL::LatteTextureGL(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
-	: LatteTexture(textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth)
+	: LatteTexture(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth)
 {
-	GenerateEmptyTextureFromGX2Dim(dim, this->glId_texture, this->glTexTarget);
+	GenerateEmptyTextureFromGX2Dim(dim, this->glId_texture, this->glTexTarget, true);
 	// set format info
 	FormatInfoGL glFormatInfo;
 	GetOpenGLFormatInfo(isDepth, format, dim, &glFormatInfo);
 	this->glInternalFormat = glFormatInfo.glInternalFormat;
 	this->isAlternativeFormat = glFormatInfo.isUsingAlternativeFormat;
 	this->hasStencil = glFormatInfo.hasStencil; // todo - should get this from the GX2 format?
-	// bind texture
-	g_renderer->texture_bindAndActivateRawTex(this, textureUnit);
-	LatteTextureGL::InitTextureState();
 	// set debug name
 	bool useGLDebugNames = false;
 #ifdef CEMU_DEBUG_ASSERT
@@ -54,9 +51,8 @@ LatteTextureGL::~LatteTextureGL()
 	catchOpenGLError();
 }
 
-void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget)
+void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget, bool createForTargetType)
 {
-	texId = _genTextureHandleGL();
 	if (dim == Latte::E_DIM::DIM_2D)
 		texTarget = GL_TEXTURE_2D;
 	else if (dim == Latte::E_DIM::DIM_1D)
@@ -73,23 +69,15 @@ void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& te
 	{
 		cemu_assert_unimplemented();
 	}
+	if(createForTargetType)
+		texId = glCreateTextureWrapper(texTarget); // initializes the texture to texTarget (equivalent to calling glGenTextures + glBindTexture)
+	else
+		glGenTextures(1, &texId);
 }
 
 LatteTextureView* LatteTextureGL::CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
 {
 	return new LatteTextureViewGL(this, dim, format, firstMip, mipCount, firstSlice, sliceCount);
-}
-
-void  LatteTextureGL::InitTextureState()
-{
-	// init texture with some default parameters (todo - this shouldn't be necessary if we properly set parameters when a texture is used)
-	catchOpenGLError();
-	glTexParameteri(glTexTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(glTexTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(glTexTarget, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(glTexTarget, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(glTexTarget, GL_TEXTURE_COMPARE_MODE, GL_NONE);
-	catchOpenGLError();
 }
 
 void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT format, Latte::E_DIM dim, FormatInfoGL* formatInfoOut)

@@ -59,10 +59,10 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 
 	// open cache file or create it
 	cemu_assert_debug(s_cache == nullptr);
-	s_cache = FileCache::Open(pathCacheFile.generic_wstring(), true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
+	s_cache = FileCache::Open(pathCacheFile, true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
 	if (!s_cache)
 	{
-		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", pathCacheFile.generic_string());
+		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", _pathToUtf8(pathCacheFile));
 		return 0;
 	}
 	else

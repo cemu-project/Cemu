@@ -146,6 +146,9 @@ wxPanel* GettingStartedDialog::CreatePage2()
 
 		m_update = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Automatically check for updates"));
 		option_sizer->Add(m_update, 0, wxALL, 5);
+#if BOOST_OS_LINUX || BOOST_OS_MACOS
+		m_update->Disable();
+#endif
 
 		sizer->Add(option_sizer, 1, wxEXPAND, 5);
 		page2_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
@@ -226,7 +229,7 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
 		const auto it = std::find(config.game_paths.cbegin(), config.game_paths.cend(), gamePath);
 		if (it == config.game_paths.cend())
 		{
-			config.game_paths.emplace_back(gamePath.generic_wstring());
+			config.game_paths.emplace_back(_pathToUtf8(gamePath));
 			m_game_path_changed = true;
 		}
 	}
@@ -245,7 +248,7 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
 
 	CafeTitleList::ClearScanPaths();
 	for (auto& it : GetConfig().game_paths)
-		CafeTitleList::AddScanPath(it);
+		CafeTitleList::AddScanPath(_utf8ToPath(it));
 	CafeTitleList::Refresh();
 }
 

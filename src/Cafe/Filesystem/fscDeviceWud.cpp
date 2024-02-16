@@ -128,7 +128,7 @@ class fscDeviceWUDC : public fscDeviceC
 		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
 		{
 			FSTFileHandle fstFileHandle;
-			if (mountedVolume->OpenFile(path, fstFileHandle, true))
+			if (mountedVolume->OpenFile(path, fstFileHandle, true) && !mountedVolume->HasLinkFlag(fstFileHandle))
 			{
 				*fscStatus = FSC_STATUS_OK;
 				return new FSCDeviceWudFileCtx(mountedVolume, fstFileHandle);
@@ -137,7 +137,7 @@ class fscDeviceWUDC : public fscDeviceC
 		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
 		{
 			FSTDirectoryIterator dirIterator;
-			if (mountedVolume->OpenDirectoryIterator(path, dirIterator))
+			if (mountedVolume->OpenDirectoryIterator(path, dirIterator) && !mountedVolume->HasLinkFlag(dirIterator.GetDirHandle()))
 			{
 				*fscStatus = FSC_STATUS_OK;
 				return new FSCDeviceWudFileCtx(mountedVolume, dirIterator);

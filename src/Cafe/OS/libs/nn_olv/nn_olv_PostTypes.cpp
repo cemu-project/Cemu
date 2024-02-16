@@ -1,5 +1,6 @@
 #include "Cafe/OS/libs/nn_olv/nn_olv_Common.h"
 #include "nn_olv_PostTypes.h"
+#include "nn_olv_OfflineDB.h"
 #include "Cemu/ncrypto/ncrypto.h" // for base64 decoder
 #include "util/helpers/helpers.h"
 #include <pugixml.hpp>
@@ -9,41 +10,28 @@ namespace nn
 {
 	namespace olv
 	{
-
-		template<size_t TLength>
-		uint32 SetStringUC2(uint16be(&str)[TLength], std::string_view sv, bool unescape = false)
-		{
-			if(unescape)
-			{
-				// todo
-			}
-			std::wstring ws = boost::nowide::widen(sv);
-			size_t copyLen = std::min<size_t>(TLength-1, ws.size());
-			for(size_t i=0; i<copyLen; i++)
-				str[i] = ws[i];
-			str[copyLen] = '\0';
-			return copyLen;
-		}
-
 		bool ParseXml_DownloadedDataBase(DownloadedDataBase& obj, pugi::xml_node& xmlNode)
 		{
 			// todo:
-			// app_data, body, painting, name
+			// painting with url?
 
 			pugi::xml_node tokenNode;
 			if(tokenNode = xmlNode.child("body"); tokenNode)
 			{
-				//cemu_assert_unimplemented();
 				obj.bodyTextLength = SetStringUC2(obj.bodyText, tokenNode.child_value(), true);
 				if(obj.bodyTextLength > 0)
 					obj.SetFlag(DownloadedDataBase::FLAGS::HAS_BODY_TEXT);
+			}
+			if(tokenNode = xmlNode.child("topic_tag"); tokenNode)
+			{
+				SetStringUC2(obj.topicTag, tokenNode.child_value(), true);
 			}
 			if(tokenNode = xmlNode.child("feeling_id"); tokenNode)
 			{
 				obj.feeling = ConvertString<sint8>(tokenNode.child_value());
 				if(obj.feeling < 0 || obj.feeling >= 5)
 				{
-					cemuLog_log(LogType::Force, "DownloadedDataBase::ParseXml: feeling_id out of range");
+					cemuLog_log(LogType::Force, "[Olive-XML] DownloadedDataBase::ParseXml: feeling_id out of range");
 					return false;
 				}
 			}
@@ -52,7 +40,7 @@ namespace nn
 				std::string_view id_sv = tokenNode.child_value();
 				if(id_sv.size() > 22)
 				{
-					cemuLog_log(LogType::Force, "DownloadedDataBase::ParseXml: id too long");
+					cemuLog_log(LogType::Force, "[Olive-XML] DownloadedDataBase::ParseXml: id too long");
 					return false;
 				}
 				memcpy(obj.postId, id_sv.data(), id_sv.size());
@@ -67,7 +55,7 @@ namespace nn
 					obj.SetFlag(DownloadedDataBase::FLAGS::IS_NOT_AUTOPOST);
 				else
 				{
-					cemuLog_log(LogType::Force, "DownloadedDataBase::ParseXml: is_autopost has invalid value");
+					cemuLog_log(LogType::Force, "[Olive-XML] DownloadedDataBase::ParseXml: is_autopost has invalid value");
 					return false;
 				}
 			}
@@ -115,6 +103,36 @@ namespace nn
 			if(tokenNode = xmlNode.child("country_id"); tokenNode)
 			{
 				obj.countryId = ConvertString<uint8>(tokenNode.child_value());
+			}
+			if(tokenNode = xmlNode.child("painting"); tokenNode)
+			{
+				if(pugi::xml_node subNode = tokenNode.child("content"); subNode)
+				{
+					std::vector<uint8> paintingData = NCrypto::base64Decode(subNode.child_value());
+					if (paintingData.size() > 0xA000)
+					{
+						cemuLog_log(LogType::Force, "[Olive-XML] DownloadedDataBase painting content is too large");
+						return false;
+					}
+					memcpy(obj.compressedMemoBody, paintingData.data(), paintingData.size());
+					obj.SetFlag(DownloadedDataBase::FLAGS::HAS_BODY_MEMO);
+				}
+				if(pugi::xml_node subNode = tokenNode.child("size"); subNode)
+				{
+					obj.compressedMemoBodySize = ConvertString<uint32>(subNode.child_value());
+				}
+			}
+			if(tokenNode = xmlNode.child("app_data"); tokenNode)
+			{
+				std::vector<uint8> appData = NCrypto::base64Decode(tokenNode.child_value());
+				if (appData.size() > 0x400)
+				{
+					cemuLog_log(LogType::Force, "[Olive-XML] DownloadedDataBase AppData is too large");
+					return false;
+				}
+				memcpy(obj.appData, appData.data(), appData.size());
+				obj.appDataLength = appData.size();
+				obj.SetFlag(DownloadedDataBase::FLAGS::HAS_APP_DATA);
 			}
 			return true;
 		}
@@ -256,54 +274,188 @@ namespace nn
 			return 0;
 		}
 
+		nnResult DownloadedDataBase::DownloadExternalImageData(DownloadedDataBase* _this, void* imageDataOut, uint32be* imageSizeOut, uint32 maxSize)
+		{
+			if(g_IsOfflineDBMode)
+				return OfflineDB_DownloadPostDataListParam_DownloadExternalImageData(_this, imageDataOut, imageSizeOut, maxSize);
+
+			if(!g_IsOnlineMode)
+				return OLV_RESULT_OFFLINE_MODE_REQUEST;
+			if (!TestFlags(_this, FLAGS::HAS_EXTERNAL_IMAGE))
+				return OLV_RESULT_MISSING_DATA;
+
+			cemuLog_logDebug(LogType::Force, "DownloadedDataBase::DownloadExternalImageData not implemented");
+			return OLV_RESULT_FAILED_REQUEST; // placeholder error
+		}
+
+		nnResult DownloadPostDataListParam::GetRawDataUrl(DownloadPostDataListParam* _this, char* urlOut, uint32 urlMaxSize)
+		{
+			if(!g_IsOnlineMode)
+				return OLV_RESULT_OFFLINE_MODE_REQUEST;
+			//if(_this->communityId == 0)
+			//	cemuLog_log(LogType::Force, "DownloadPostDataListParam::GetRawDataUrl called with invalid communityId");
+
+			// get base url
+			std::string baseUrl;
+			baseUrl.append(g_DiscoveryResults.apiEndpoint);
+			//baseUrl.append(fmt::format("/v1/communities/{}/posts", (uint32)_this->communityId));
+			cemu_assert_debug(_this->communityId == 0);
+			baseUrl.append(fmt::format("/v1/posts.search", (uint32)_this->communityId));
+
+			// "v1/posts.search"
+
+			// build parameter string
+			std::string params;
+
+			// this function behaves differently for the Wii U menu? Where it can lookup posts by titleId?
+			if(_this->titleId != 0)
+			{
+				cemu_assert_unimplemented(); // Wii U menu mode
+			}
+
+			// todo: Generic parameters. Which includes: language_id, limit, type=text/memo
+
+			// handle postIds
+			for(size_t i=0; i<_this->MAX_NUM_POST_ID; i++)
+			{
+				if(_this->searchPostId[i].str[0] == '\0')
+					continue;
+				cemu_assert_unimplemented(); // todo
+				// todo - postId parameter
+				// handle filters
+				if(_this->_HasFlag(DownloadPostDataListParam::FLAGS::WITH_MII))
+					params.append("&with_mii=1");
+				if(_this->_HasFlag(DownloadPostDataListParam::FLAGS::WITH_EMPATHY))
+					params.append("&with_empathy_added=1");
+				if(_this->bodyTextMaxLength != 0)
+					params.append(fmt::format("&max_body_length={}", _this->bodyTextMaxLength));
+			}
+
+			if(_this->titleId != 0)
+				params.append(fmt::format("&title_id={}", (uint64)_this->titleId));
+
+			if (_this->_HasFlag(DownloadPostDataListParam::FLAGS::FRIENDS_ONLY))
+				params.append("&by=friend");
+			if (_this->_HasFlag(DownloadPostDataListParam::FLAGS::FOLLOWERS_ONLY))
+				params.append("&by=followings");
+			if (_this->_HasFlag(DownloadPostDataListParam::FLAGS::SELF_ONLY))
+				params.append("&by=self");
+
+			if(!params.empty())
+				params[0] = '?'; // replace the leading ampersand
+
+			baseUrl.append(params);
+			if(baseUrl.size()+1 > urlMaxSize)
+				return OLV_RESULT_NOT_ENOUGH_SIZE;
+			strncpy(urlOut, baseUrl.c_str(), urlMaxSize);
+			return OLV_RESULT_SUCCESS;
+		}
+
+		nnResult DownloadPostDataList(DownloadedTopicData* downloadedTopicData, DownloadedPostData* downloadedPostData, uint32be* postCountOut, uint32 maxCount, DownloadPostDataListParam* param)
+		{
+			if(g_IsOfflineDBMode)
+				return OfflineDB_DownloadPostDataListParam_DownloadPostDataList(downloadedTopicData, downloadedPostData, postCountOut, maxCount, param);
+			memset(downloadedTopicData, 0, sizeof(DownloadedTopicData));
+			downloadedTopicData->communityId = param->communityId;
+			*postCountOut = 0;
+
+			char urlBuffer[2048];
+			if (NN_RESULT_IS_FAILURE(DownloadPostDataListParam::GetRawDataUrl(param, urlBuffer, sizeof(urlBuffer))))
+				return OLV_RESULT_INVALID_PARAMETER;
+
+			/*
+			CurlRequestHelper req;
+			req.initate(urlBuffer, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
+			InitializeOliveRequest(req);
+			bool reqResult = req.submitRequest();
+			if (!reqResult)
+			{
+				long httpCode = 0;
+				curl_easy_getinfo(req.getCURL(), CURLINFO_RESPONSE_CODE, &httpCode);
+				cemuLog_log(LogType::Force, "Failed request: {} ({})", urlBuffer, httpCode);
+				if (!(httpCode >= 400))
+					return OLV_RESULT_FAILED_REQUEST;
+			}
+			pugi::xml_document doc;
+			if (!doc.load_buffer(req.getReceivedData().data(), req.getReceivedData().size()))
+			{
+				cemuLog_log(LogType::Force, fmt::format("Invalid XML in community download response"));
+				return OLV_RESULT_INVALID_XML;
+			}
+			*/
+
+			*postCountOut = 0;
+
+			return OLV_RESULT_SUCCESS;
+		}
+
 		void loadOlivePostAndTopicTypes()
 		{
-			cafeExportRegisterFunc(GetSystemTopicDataListFromRawData, "nn_olv", "GetSystemTopicDataListFromRawData__Q3_2nn3olv6hiddenFPQ4_2nn3olv6hidden29DownloadedSystemTopicDataListPQ4_2nn3olv6hidden24DownloadedSystemPostDataPUiUiPCUcT4", LogType::None);
+			cafeExportRegisterFunc(GetSystemTopicDataListFromRawData, "nn_olv", "GetSystemTopicDataListFromRawData__Q3_2nn3olv6hiddenFPQ4_2nn3olv6hidden29DownloadedSystemTopicDataListPQ4_2nn3olv6hidden24DownloadedSystemPostDataPUiUiPCUcT4", LogType::NN_OLV);
 
 			// DownloadedDataBase getters
-			cafeExportRegisterFunc(DownloadedDataBase::TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetUserPid, "nn_olv", "GetUserPid__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetPostDate, "nn_olv", "GetPostDate__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetFeeling, "nn_olv", "GetFeeling__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetRegionId, "nn_olv", "GetRegionId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetPlatformId, "nn_olv", "GetPlatformId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetLanguageId, "nn_olv", "GetLanguageId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetCountryId, "nn_olv", "GetCountryId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetExternalUrl, "nn_olv", "GetExternalUrl__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData1, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFP12FFLStoreData", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetMiiNickname, "nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetBodyText, "nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetBodyMemo, "nn_olv", "GetBodyMemo__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetTopicTag, "nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData2, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
+			cafeExportRegisterFunc(DownloadedDataBase::TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetUserPid, "nn_olv", "GetUserPid__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetPostDate, "nn_olv", "GetPostDate__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetFeeling, "nn_olv", "GetFeeling__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetRegionId, "nn_olv", "GetRegionId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetPlatformId, "nn_olv", "GetPlatformId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetLanguageId, "nn_olv", "GetLanguageId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetCountryId, "nn_olv", "GetCountryId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetExternalUrl, "nn_olv", "GetExternalUrl__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData1, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFP12FFLStoreData", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetMiiNickname, "nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetBodyText, "nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetBodyMemo, "nn_olv", "GetBodyMemo__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetTopicTag, "nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData2, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::DownloadExternalImageData, "nn_olv", "DownloadExternalImageData__Q3_2nn3olv18DownloadedDataBaseCFPvPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetExternalImageDataSize, "nn_olv", "GetExternalImageDataSize__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
 
 			// DownloadedPostData getters
-			cafeExportRegisterFunc(DownloadedPostData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedPostData::GetEmpathyCount, "nn_olv", "GetEmpathyCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedPostData::GetCommentCount, "nn_olv", "GetCommentCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedPostData::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
+			cafeExportRegisterFunc(DownloadedPostData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedPostData::GetEmpathyCount, "nn_olv", "GetEmpathyCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedPostData::GetCommentCount, "nn_olv", "GetCommentCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedPostData::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
 
 			// DownloadedSystemPostData getters
-			cafeExportRegisterFunc(hidden::DownloadedSystemPostData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden24DownloadedSystemPostDataCFv", LogType::None);
+			cafeExportRegisterFunc(hidden::DownloadedSystemPostData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden24DownloadedSystemPostDataCFv", LogType::NN_OLV);
 
 			// DownloadedTopicData getters
-			cafeExportRegisterFunc(DownloadedTopicData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv19DownloadedTopicDataCFv", LogType::None);
+			cafeExportRegisterFunc(DownloadedTopicData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv19DownloadedTopicDataCFv", LogType::NN_OLV);
 
 			// DownloadedSystemTopicData getters
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::TestFlags, "nn_olv", "TestFlags__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFUi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIdNum, "nn_olv", "GetTitleIdNum__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleText, "nn_olv", "GetTitleText__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPwUi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIconData, "nn_olv", "GetTitleIconData__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPUcPUiUi", LogType::None);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::TestFlags, "nn_olv", "TestFlags__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIdNum, "nn_olv", "GetTitleIdNum__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleText, "nn_olv", "GetTitleText__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIconData, "nn_olv", "GetTitleIconData__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPUcPUiUi", LogType::NN_OLV);
 
 			// DownloadedSystemTopicDataList getters
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicDataNum, "nn_olv", "GetDownloadedSystemTopicDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFv", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostDataNum, "nn_olv", "GetDownloadedSystemPostDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicData, "nn_olv", "GetDownloadedSystemTopicData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostData, "nn_olv", "GetDownloadedSystemPostData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFiT1", LogType::None);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicDataNum, "nn_olv", "GetDownloadedSystemTopicDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostDataNum, "nn_olv", "GetDownloadedSystemPostDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicData, "nn_olv", "GetDownloadedSystemTopicData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostData, "nn_olv", "GetDownloadedSystemPostData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFiT1", LogType::NN_OLV);
+
+			// DownloadPostDataListParam constructor and getters
+			cafeExportRegisterFunc(DownloadPostDataListParam::Construct, "nn_olv", "__ct__Q3_2nn3olv25DownloadPostDataListParamFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetLanguageId, "nn_olv", "SetLanguageId__Q3_2nn3olv25DownloadPostDataListParamFUc", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetCommunityId, "nn_olv", "SetCommunityId__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchKey, "nn_olv", "SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCwUc", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchKeySingle, "nn_olv", "SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCw", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchPid, "nn_olv", "SetSearchPid__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostId, "nn_olv", "SetPostId__Q3_2nn3olv25DownloadPostDataListParamFPCcUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostDate, "nn_olv", "SetPostDate__Q3_2nn3olv25DownloadPostDataListParamFL", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostDataMaxNum, "nn_olv", "SetPostDataMaxNum__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetBodyTextMaxLength, "nn_olv", "SetBodyTextMaxLength__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+
+			// URL and downloading functions
+			cafeExportRegisterFunc(DownloadPostDataListParam::GetRawDataUrl, "nn_olv", "GetRawDataUrl__Q3_2nn3olv25DownloadPostDataListParamCFPcUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataList, "nn_olv", "DownloadPostDataList__Q2_2nn3olvFPQ3_2nn3olv19DownloadedTopicDataPQ3_2nn3olv18DownloadedPostDataPUiUiPCQ3_2nn3olv25DownloadPostDataListParam", LogType::NN_OLV);
 
 		}
 

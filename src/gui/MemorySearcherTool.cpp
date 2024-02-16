@@ -472,9 +472,7 @@ bool MemorySearcherTool::VerifySearchValue() const
 
 void MemorySearcherTool::FillResultList()
 {
-	//char text[128];
-	//sprintf(text, "Results (%u)", (uint32)m_searchBuffer.size());
-	auto text = wxStringFormat(_("Results ({0})"), L"%llu", m_searchBuffer.size());
+	auto text = formatWxString(_("Results ({0})"), m_searchBuffer.size());
 	m_textEntryTable->SetLabelText(text);
 
 	m_listResults->DeleteAllItems();
@@ -662,30 +660,6 @@ void MemorySearcherTool::SetSearchDataType()
 		m_searchDataType = SearchDataType_String;
 	else
 		m_searchDataType = SearchDataType_None;
-}
-
-std::string MemorySearcherTool::GetSearchTypeName() const
-{
-	switch (m_searchDataType)
-	{
-	case SearchDataType_String:
-		return from_wxString(kDatatypeString);
-	case SearchDataType_Float:
-		return from_wxString(kDatatypeFloat);
-	case SearchDataType_Double:
-		return from_wxString(kDatatypeDouble);
-	case SearchDataType_Int8:
-		return from_wxString(kDatatypeInt8);
-	case SearchDataType_Int16:
-		return from_wxString(kDatatypeInt16);
-	case SearchDataType_Int32:
-		return from_wxString(kDatatypeInt32);
-	case SearchDataType_Int64:
-		return from_wxString(kDatatypeInt64);
-	default: 
-		return "";
-	}
-	
 }
 
 template <>

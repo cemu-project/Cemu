@@ -209,7 +209,7 @@ bool GameProfile::Load(uint64_t title_id)
 		m_gameName = std::string(game_name.begin(), game_name.end());
 		trim(m_gameName.value());
 	}
-	IniParser iniParser(*profileContents, gameProfilePath.string());
+	IniParser iniParser(*profileContents, _pathToUtf8(gameProfilePath));
 	// parse ini
 	while (iniParser.NextSection())
 	{

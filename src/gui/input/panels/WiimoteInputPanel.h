@@ -25,6 +25,7 @@ private:
 
 	void on_volume_change(wxCommandEvent& event);
 	void on_extension_change(wxCommandEvent& event);
+    void on_pair_button(wxCommandEvent& event);
 
 	wxGridBagSizer* m_item_sizer;
 

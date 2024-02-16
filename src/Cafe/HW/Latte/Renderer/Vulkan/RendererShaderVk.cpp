@@ -139,7 +139,7 @@ public:
 		}
 	}
 
-	~_ShaderVkThreadPool()
+	void StopThreads()
 	{
 		m_shutdownThread.store(true);
 		for (uint32 i = 0; i < s_threads.size(); ++i)
@@ -147,6 +147,11 @@ public:
 		for (auto& it : s_threads)
 			it.join();
 		s_threads.clear();
+	}
+
+	~_ShaderVkThreadPool()
+	{
+		StopThreads();
 	}
 
 	void CompilerThreadFunc()
@@ -176,6 +181,8 @@ public:
 		}
 	}
 
+	bool HasThreadsRunning() const { return !m_shutdownThread; }
+
 public:
 	std::vector<std::thread> s_threads;
 
@@ -195,8 +202,8 @@ RendererShaderVk::RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxH
 	m_compilationState.setValue(COMPILATION_STATE::QUEUED);
 	ShaderVkThreadPool.s_compilationQueue.push_back(this);
 	ShaderVkThreadPool.s_compilationQueueCount.increment();
-	ShaderVkThreadPool.StartThreads();
 	ShaderVkThreadPool.s_compilationQueueMutex.unlock();
+	cemu_assert_debug(ShaderVkThreadPool.HasThreadsRunning()); // make sure .StartThreads() was called
 }
 
 RendererShaderVk::~RendererShaderVk()
@@ -204,15 +211,20 @@ RendererShaderVk::~RendererShaderVk()
 	VulkanRenderer::GetInstance()->destroyShader(this);
 }
 
+void RendererShaderVk::Init()
+{
+	ShaderVkThreadPool.StartThreads();
+}
+
+void RendererShaderVk::Shutdown()
+{
+	ShaderVkThreadPool.StopThreads();
+}
+
 sint32 RendererShaderVk::GetUniformLocation(const char* name)
 {
 	cemu_assert_suspicious();
 	return 0;
-}
-
-void RendererShaderVk::SetUniform1iv(sint32 location, void* data, sint32 count)
-{
-	cemu_assert_suspicious();
 }
 
 void RendererShaderVk::SetUniform2fv(sint32 location, void* data, sint32 count)
@@ -335,6 +347,7 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	if (!Shader.parse(&Resources, 100, false, messagesParseLink))
 	{
 		cemuLog_log(LogType::Force, fmt::format("GLSL parsing failed for {:016x}_{:016x}: \"{}\"", m_baseHash, m_auxHash, Shader.getInfoLog()));
+		cemuLog_logDebug(LogType::Force, "GLSL source:\n{}", m_glslCode);
 		cemu_assert_debug(false);
 		FinishCompilation();
 		return;
@@ -439,7 +452,7 @@ void RendererShaderVk::ShaderCacheLoading_begin(uint64 cacheTitleId)
 	}
 	uint32 spirvCacheMagic = GeneratePrecompiledCacheId();
 	const std::string cacheFilename = fmt::format("{:016x}_spirv.bin", cacheTitleId);
-	const std::wstring cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename).generic_wstring();
+	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename);
 	s_spirvCache = FileCache::Open(cachePath, true, spirvCacheMagic);
 	if (s_spirvCache == nullptr)
 		cemuLog_log(LogType::Force, "Unable to open SPIR-V cache {}", cacheFilename);

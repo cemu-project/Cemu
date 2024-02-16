@@ -30,8 +30,8 @@ SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
 
 		row1->Add(new wxStaticText(this, wxID_ANY, _("Source")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_source_selection = new wxFilePickerCtrl(this, wxID_ANY, wxEmptyString,
-			_("Select a zipped save file"), 
-			wxStringFormat2("{}|*.zip", _("Save entry (*.zip)")));
+			_("Select a zipped save file"),
+			formatWxString("{}|*.zip", _("Save entry (*.zip)")));
 		m_source_selection->SetMinSize({ 270, -1 });
 		row1->Add(m_source_selection, 1, wxALL | wxEXPAND, 5);
 
@@ -118,7 +118,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 					const uint64_t titleId = ConvertString<uint64>(str.substr(sizeof("titleId = ") + 1), 16);
 					if(titleId != 0 && titleId != m_title_id)
 					{
-						const auto msg = wxStringFormat2(_("You are trying to import a savegame for a different title than your currently selected one: {:016x} vs {:016x}\nAre you sure that you want to continue?"), titleId, m_title_id);
+						const auto msg = formatWxString(_("You are trying to import a savegame for a different title than your currently selected one: {:016x} vs {:016x}\nAre you sure that you want to continue?"), titleId, m_title_id);
 						const auto res = wxMessageBox(msg, _("Error"), wxYES_NO | wxCENTRE | wxICON_WARNING, this);
 						if(res == wxNO)
 						{
@@ -143,7 +143,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 	//auto tmp_source = fs::temp_directory_path(ec);
 	//if(ec)
 	//{
-	//	const auto error_msg = wxStringFormat2(_("Error when getting the temp directory path:\n{}"), GetSystemErrorMessage(ec));
+	//	const auto error_msg = formatWxString(_("Error when getting the temp directory path:\n{}"), GetSystemErrorMessage(ec));
 	//	wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 	//	return;
 	//}
@@ -158,7 +158,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 		target_id = ConvertString<uint32>(m_target_selection->GetValue().ToStdString(), 16);
 		if (target_id < Account::kMinPersistendId)
 		{
-			const auto msg = wxStringFormat2(_("The given account id is not valid!\nIt must be a hex number bigger or equal than {:08x}"), Account::kMinPersistendId);
+			const auto msg = formatWxString(_("The given account id is not valid!\nIt must be a hex number bigger or equal than {:08x}"), Account::kMinPersistendId);
 			wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			return;
 		}
@@ -170,7 +170,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 	{
 		if (!fs::is_directory(target_path))
 		{
-			const auto msg = wxStringFormat2(_("There's already a file at the target directory:\n{}"), _pathToUtf8(target_path));
+			const auto msg = formatWxString(_("There's already a file at the target directory:\n{}"), _pathToUtf8(target_path));
 			wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			m_return_code = wxCANCEL;
 			Close();
@@ -193,7 +193,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 
 			if (ec)
 			{
-				const auto error_msg = wxStringFormat2(_("Error when trying to delete the former save game:\n{}"), GetSystemErrorMessage(ec));
+				const auto error_msg = formatWxString(_("Error when trying to delete the former save game:\n{}"), GetSystemErrorMessage(ec));
 				wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 				return;
 			}
@@ -213,7 +213,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 	fs::create_directories(tmp_source, ec);
 	if (ec)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when creating the extraction path:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = formatWxString(_("Error when creating the extraction path:\n{}"), GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
@@ -221,7 +221,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 	zip = zip_open(zipfile.c_str(), ZIP_RDONLY, &ziperr);
 	if (!zip)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when opening the import zip file:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = formatWxString(_("Error when opening the import zip file:\n{}"), GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
@@ -319,7 +319,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 	fs::rename(tmp_source, target_path, ec);
 	if (ec)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when trying to move the extracted save game:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = formatWxString(_("Error when trying to move the extracted save game:\n{}"), GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 		return;
 	}*/

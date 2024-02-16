@@ -71,7 +71,6 @@ sint32 MCP_GetSysProdSettings(MCPHANDLE mcpHandle, SysProdSettings* sysProdSetti
 
 void coreinitExport_MCP_GetSysProdSettings(PPCInterpreter_t* hCPU)
 {
-	cemuLog_logDebug(LogType::Force, "MCP_GetSysProdSettings(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	sint32 result = MCP_GetSysProdSettings(hCPU->gpr[3], (SysProdSettings*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]));
 	osLib_returnFromFunction(hCPU, result);
 }
@@ -546,6 +545,7 @@ void coreinitExport_UCReadSysConfig(PPCInterpreter_t* hCPU)
 		{
 			// get parental online control for online features
 			// note: This option is account-bound, the p_acct1 prefix indicates that the account in slot 1 is used
+			// a non-zero value means network access is restricted through parental access. 0 means allowed
 			// account in slot 1
 			if (ucParam->resultPtr != _swapEndianU32(MPTR_NULL))
 				memory_writeU8(_swapEndianU32(ucParam->resultPtr), 0); // data type is guessed
@@ -561,7 +561,7 @@ void coreinitExport_UCReadSysConfig(PPCInterpreter_t* hCPU)
 		{
 			// miiverse restrictions
 			if (ucParam->resultPtr != _swapEndianU32(MPTR_NULL))
-				memory_writeU8(_swapEndianU32(ucParam->resultPtr), 0); // data type is guessed (0 -> no restrictions, 1 -> read only?, 2 -> no access?)
+				memory_writeU8(_swapEndianU32(ucParam->resultPtr), 0); // data type is guessed (0 -> no restrictions, 1 -> read only, 2 -> no access)
 		}
 		else if (_strcmpi(ucParam->settingName, "s_acct01.uuid") == 0)
 		{

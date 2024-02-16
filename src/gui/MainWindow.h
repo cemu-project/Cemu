@@ -69,7 +69,7 @@ public:
 	void UpdateSettingsAfterGameLaunch();
 	void RestoreSettingsAfterGameExited();
 
-	bool FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY initiatedBy);
+	bool FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATED_BY initiatedBy);
 
 	[[nodiscard]] bool IsGameLaunched() const { return m_game_launched; }
 
@@ -96,7 +96,7 @@ public:
 	void OnMouseWheel(wxMouseEvent& event);
 	void OnClose(wxCloseEvent& event);
 	void OnFileMenu(wxCommandEvent& event);
-	void OnOpenCemuFolder(wxCommandEvent& event);
+	void OnOpenFolder(wxCommandEvent& event);
 	void OnLaunchFromFile(wxLaunchGameEvent& event);
 	void OnInstallUpdate(wxCommandEvent& event);
 	void OnFileExit(wxCommandEvent& event);
@@ -104,11 +104,9 @@ public:
 	void OnOptionsInput(wxCommandEvent& event);
 	void OnAccountSelect(wxCommandEvent& event);
 	void OnConsoleLanguage(wxCommandEvent& event);
-	void OnHelpVistWebpage(wxCommandEvent& event);
 	void OnHelpAbout(wxCommandEvent& event);
 	void OnHelpGettingStarted(wxCommandEvent& event);
 	void OnHelpUpdate(wxCommandEvent& event);
-	void OnAfterCallShowErrorDialog();
 	void OnDebugSetting(wxCommandEvent& event);
 	void OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event);
 	void OnPPCInfoToggle(wxCommandEvent& event);
@@ -153,7 +151,6 @@ private:
 	void RecreateMenu();
 	static wxString GetInitialWindowTitle();
 	void ShowGettingStartedDialog();
-	bool EnableOnlineMode() const;
 
 	bool InstallUpdate(const fs::path& metaFilePath);
 

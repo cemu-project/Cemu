@@ -74,7 +74,7 @@ enum
 	IOS_CRYPTO_ONLINE_REQ_MISSING_FILE
 };
 
-sint32 iosuCrypt_checkRequirementsForOnlineMode(std::wstring& additionalErrorInfo);
+sint32 iosuCrypt_checkRequirementsForOnlineMode(std::string& additionalErrorInfo);
 void iosuCrypto_readOtpData(void* output, sint32 wordIndex, sint32 size);
 
 std::vector<const wchar_t*> iosuCrypt_getCertificateKeys();

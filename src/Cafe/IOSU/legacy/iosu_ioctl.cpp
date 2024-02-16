@@ -1,6 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
-#include "Cafe/OS/libs/coreinit/coreinit.h"
 #include "iosu_ioctl.h"
 #include "util/helpers/ringbuffer.h"
 
@@ -23,7 +22,7 @@ sint32 iosuIoctl_pushAndWait(uint32 ioctlHandle, ioQueueEntry_t* ioQueueEntry)
 	}
 	__OSLockScheduler();
 	ioctlMutex.lock();
-	ioQueueEntry->ppcThread = coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance);
+	ioQueueEntry->ppcThread = coreinit::OSGetCurrentThread();
 	
 	_ioctlRingbuffer[ioctlHandle].Push(ioQueueEntry);
 	ioctlMutex.unlock();

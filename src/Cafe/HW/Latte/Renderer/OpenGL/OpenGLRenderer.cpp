@@ -78,8 +78,6 @@ static const GLenum glAlphaTestFunc[] =
 	GL_ALWAYS
 };
 
-
-
 OpenGLRenderer::OpenGLRenderer()
 {
 	glRendererState.useTextureUploadBuffer = false;
@@ -281,10 +279,6 @@ void OpenGLRenderer::Initialize()
 	cemuLog_log(LogType::Force, "ARB_copy_image: {}", (glCopyImageSubData != NULL) ? "available" : "not supported");
 	cemuLog_log(LogType::Force, "NV_depth_buffer_float: {}", (glDepthRangedNV != NULL) ? "available" : "not supported");
 
-	// generate default frame buffer
-	glGenFramebuffers(1, &m_defaultFramebufferId);
-	catchOpenGLError();
-
 	// enable framebuffer SRGB support
 	glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -378,9 +372,6 @@ void OpenGLRenderer::UnregisterOpenGLCallbacks()
 {
 	m_openGLCallbacks = nullptr;
 }
-
-bool IsRunningInWine();
-
 void OpenGLRenderer::GetVendorInformation()
 {
 	// example vendor strings:
@@ -584,17 +575,16 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	sint32 effectiveHeight;
 	LatteTexture_getEffectiveSize(texView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, 0);
 
-	g_renderer->shader_unbind(RendererShader::ShaderType::kVertex);
-	g_renderer->shader_unbind(RendererShader::ShaderType::kGeometry);
-	g_renderer->shader_unbind(RendererShader::ShaderType::kFragment);
-	shader->Bind();
+	shader_unbind(RendererShader::ShaderType::kGeometry);
+	shader_bind(shader->GetVertexShader());
+	shader_bind(shader->GetFragmentShader());
 	shader->SetUniformParameters(*texView, { effectiveWidth, effectiveHeight }, { imageWidth, imageHeight });
 
 	// set viewport
 	glViewportIndexedf(0, imageX, imageY, imageWidth, imageHeight);
 
 	LatteTextureViewGL* texViewGL = (LatteTextureViewGL*)texView;
-	g_renderer->texture_bindAndActivate(texView, 0);
+	texture_bindAndActivate(texView, 0);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, useLinearTexFilter ? GL_LINEAR : GL_NEAREST);
 	texViewGL->samplerState.filterMag = 0xFFFFFFFF;
@@ -609,7 +599,7 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
 	// unbind texture
-	g_renderer->texture_bindAndActivate(nullptr, 0);
+	texture_bindAndActivate(nullptr, 0);
 
 	catchOpenGLError();
 
@@ -1013,8 +1003,9 @@ void OpenGLRenderer::texture_destroy(LatteTexture* hostTexture)
 	delete hostTexture;
 }
 
-void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
+void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTextureGeneric)
 {
+	auto hostTexture = (LatteTextureGL*)hostTextureGeneric;
 	cemu_assert_debug(hostTexture->isDataDefined == false);
 	sint32 effectiveBaseWidth = hostTexture->width;
 	sint32 effectiveBaseHeight = hostTexture->height;
@@ -1035,25 +1026,25 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
 	if (hostTexture->dim == Latte::E_DIM::DIM_2D || hostTexture->dim == Latte::E_DIM::DIM_2D_MSAA)
 	{
 		cemu_assert_debug(effectiveBaseDepth == 1);
-		glTexStorage2D(GL_TEXTURE_2D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight);
+		glTextureStorage2DWrapper(GL_TEXTURE_2D, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_1D)
 	{
 		cemu_assert_debug(effectiveBaseHeight == 1);
 		cemu_assert_debug(effectiveBaseDepth == 1);
-		glTexStorage1D(GL_TEXTURE_1D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth);
+		glTextureStorage1DWrapper(GL_TEXTURE_1D, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
 	{
-		glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+		glTextureStorage3DWrapper(GL_TEXTURE_2D_ARRAY, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_3D)
 	{
-		glTexStorage3D(GL_TEXTURE_3D, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+		glTextureStorage3DWrapper(GL_TEXTURE_3D, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
 	{
-		glTexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
+		glTextureStorage3DWrapper(GL_TEXTURE_CUBE_MAP_ARRAY, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
 	}
 	else
 	{
@@ -1065,7 +1056,6 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
 void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 imageSize)
 {
 	auto hostTexture = (LatteTextureGL*)hostTextureGeneric;
-
 	sint32 effectiveWidth = width;
 	sint32 effectiveHeight = height;
 	sint32 effectiveDepth = depth;
@@ -1076,57 +1066,36 @@ void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, s
 	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth, hostTexture->overwriteInfo.hasFormatOverwrite ? (Latte::E_GX2SURFFMT)hostTexture->overwriteInfo.format : hostTexture->format, hostTexture->dim, &glFormatInfo);
 	// upload slice
 	catchOpenGLError();
+	if (mipIndex >= hostTexture->maxPossibleMipLevels)
+	{
+		cemuLog_logDebug(LogType::Force, "2D texture mip level allocated out of range");
+		return;
+	}
 	if (hostTexture->dim == Latte::E_DIM::DIM_2D || hostTexture->dim == Latte::E_DIM::DIM_2D_MSAA)
 	{
 		if (glFormatInfo.glIsCompressed)
-		{
-			if (glCompressedTextureSubImage2D)
-				glCompressedTextureSubImage2D(hostTexture->glId_texture, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glInternalFormat, imageSize, pixelData);
-			else
-				glCompressedTexSubImage2D(GL_TEXTURE_2D, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glInternalFormat, imageSize, pixelData);
-		}
+			glCompressedTextureSubImage2DWrapper(hostTexture->glTexTarget, hostTexture->glId_texture, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glInternalFormat, imageSize, pixelData);
 		else
-		{
-			if (mipIndex < hostTexture->maxPossibleMipLevels)
-				glTexSubImage2D(GL_TEXTURE_2D, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
-			else
-				cemuLog_logDebug(LogType::Force, "2D texture mip level allocated out of range");
-		}
+			glTextureSubImage2DWrapper(hostTexture->glTexTarget, hostTexture->glId_texture, mipIndex, 0, 0, effectiveWidth, effectiveHeight, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_1D)
 	{
-		if (glFormatInfo.glIsCompressed == true)
-			cemu_assert_unimplemented();
-		glTexSubImage1D(GL_TEXTURE_1D, mipIndex, 0, width, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
+		if (glFormatInfo.glIsCompressed)
+			glCompressedTextureSubImage1DWrapper(hostTexture->glTexTarget, hostTexture->glId_texture, mipIndex, 0, width, glFormatInfo.glInternalFormat, imageSize, pixelData);
+		else
+			glTextureSubImage1DWrapper(hostTexture->glTexTarget, hostTexture->glId_texture, mipIndex, 0, width, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
 	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
+	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA ||
+			 hostTexture->dim == Latte::E_DIM::DIM_3D ||
+			 hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
 	{
 		if (glFormatInfo.glIsCompressed)
-			glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glInternalFormat, imageSize, pixelData);
+			glCompressedTextureSubImage3DWrapper(hostTexture->glTexTarget, hostTexture->glId_texture, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glInternalFormat, imageSize, pixelData);
 		else
-			glTexSubImage3D(GL_TEXTURE_2D_ARRAY, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
-	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_3D)
-	{
-		if (glFormatInfo.glIsCompressed)
-			glCompressedTexSubImage3D(GL_TEXTURE_3D, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glInternalFormat, imageSize, pixelData);
-		else
-			glTexSubImage3D(GL_TEXTURE_3D, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
-	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
-	{
-		if (glFormatInfo.glIsCompressed)
-			glCompressedTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipIndex, 0, 0, sliceIndex, width, height, 1, glFormatInfo.glInternalFormat, imageSize, pixelData);
-		else
-			glTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mipIndex, 0, 0, sliceIndex, width, height, 1, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
-	}
-	else
-	{
-		cemu_assert_debug(false);
+			glTextureSubImage3DWrapper(hostTexture->glTexTarget, hostTexture->glId_texture, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, glFormatInfo.glSuppliedFormat, glFormatInfo.glSuppliedFormatType, pixelData);
 	}
 	catchOpenGLError();
 }
-
 
 // use persistent buffers to upload data
 void OpenGLRenderer_texture_loadSlice_viaBuffers(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 imageSize)
@@ -1243,10 +1212,10 @@ void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32
 	glClearTexSubImage(hostTexture->glId_texture, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, formatInfoGL.glSuppliedFormat, formatInfoGL.glSuppliedFormatType, NULL);
 }
 
-LatteTexture* OpenGLRenderer::texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
+LatteTexture* OpenGLRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
 	uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
-	return new LatteTextureGL(textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
+	return new LatteTextureGL(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
 	
 }
 
@@ -1262,42 +1231,18 @@ void OpenGLRenderer::texture_setActiveTextureUnit(sint32 index)
 void OpenGLRenderer::texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit)
 {
 	const auto textureViewGL = (LatteTextureViewGL*)textureView;
-	cemu_assert_debug(textureUnit < (sizeof(LatteBoundTexturesBackup) / sizeof(LatteBoundTexturesBackup[0])));
 	// don't call glBindTexture if the texture is already bound
-	if (LatteBoundTextures[textureUnit] == textureViewGL)
+	if (m_latteBoundTextures[textureUnit] == textureViewGL)
 	{
 		texture_setActiveTextureUnit(textureUnit);
 		return; // already bound
 	}
 	// bind
-	LatteBoundTextures[textureUnit] = textureViewGL;
+	m_latteBoundTextures[textureUnit] = textureViewGL;
 	texture_setActiveTextureUnit(textureUnit);
 	if (textureViewGL)
 	{
 		glBindTexture(textureViewGL->glTexTarget, textureViewGL->glTexId);
-		texUnitTexId[textureUnit] = textureViewGL->glTexId;
-		texUnitTexTarget[textureUnit] = textureViewGL->glTexTarget;
-	}
-}
-
-void OpenGLRenderer::texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit)
-{
-	cemu_assert_debug(textureUnit < (sizeof(LatteBoundTexturesBackup) / sizeof(LatteBoundTexturesBackup[0])));
-	// don't call glBindTexture if the texture is already bound
-	if (LatteBoundTextures[textureUnit] == texture)
-	{
-		texture_setActiveTextureUnit(textureUnit);
-		return; // already bound
-	}
-	// bind
-	LatteBoundTextures[textureUnit] = texture;
-	texture_setActiveTextureUnit(textureUnit);
-	if (texture)
-	{
-		auto textureGL = (LatteTextureGL*)texture;
-		glBindTexture(textureGL->glTexTarget, textureGL->glId_texture);
-		texUnitTexId[textureUnit] = textureGL->glId_texture;
-		texUnitTexTarget[textureUnit] = textureGL->glTexTarget;
 	}
 }
 
@@ -1305,18 +1250,18 @@ void OpenGLRenderer::texture_notifyDelete(LatteTextureView* textureView)
 {
 	for (uint32 i = 0; i < Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3; i++)
 	{
-		if (LatteBoundTextures[i] == textureView)
-			LatteBoundTextures[i] = nullptr;
+		if (m_latteBoundTextures[i] == textureView)
+			m_latteBoundTextures[i] = nullptr;
 	}
 }
 
-// similar to _bindAndActivate() but doesn't call _setActiveTextureUnit() if texture is already bound
-void OpenGLRenderer::texture_bindOnly(LatteTextureView* textureView1, uint32 textureUnit)
+// set Latte texture, on the OpenGL renderer this behaves like _bindAndActivate() but doesn't call _setActiveTextureUnit() if the texture is already bound
+void OpenGLRenderer::texture_setLatteTexture(LatteTextureView* textureView1, uint32 textureUnit)
 {
 	auto textureView = ((LatteTextureViewGL*)textureView1);
 
 	cemu_assert_debug(textureUnit < Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3);
-	if (LatteBoundTextures[textureUnit] == textureView)
+	if (m_latteBoundTextures[textureUnit] == textureView)
 		return;
 	if (textureView == nullptr)
 		return;
@@ -1324,43 +1269,15 @@ void OpenGLRenderer::texture_bindOnly(LatteTextureView* textureView1, uint32 tex
 	if (glBindTextureUnit)
 	{
 		glBindTextureUnit(textureUnit, textureView->glTexId);
-		LatteBoundTextures[textureUnit] = textureView;
-		texUnitTexId[textureUnit] = textureView->glTexId;
-		texUnitTexTarget[textureUnit] = textureView->glTexTarget;
+		m_latteBoundTextures[textureUnit] = textureView;
 		activeTextureUnit = -1;
 	}
 	else
 	{
 		texture_setActiveTextureUnit(textureUnit);
 		glBindTexture(textureView->glTexTarget, textureView->glTexId);
-		LatteBoundTextures[textureUnit] = textureView;
-		texUnitTexId[textureUnit] = textureView->glTexId;
-		texUnitTexTarget[textureUnit] = textureView->glTexTarget;
+		m_latteBoundTextures[textureUnit] = textureView;
 	}
-}
-
-void OpenGLRenderer::texture_rememberBoundTexture(uint32 textureUnit)
-{
-	cemu_assert_debug(texUnitBackupSlotUsed[textureUnit] == false);
-	texUnitBackupSlotUsed[textureUnit] = true;
-	LatteBoundTexturesBackup[textureUnit] = LatteBoundTextures[textureUnit];
-	texUnitTexIdBackup[textureUnit] = texUnitTexId[textureUnit];
-	texUnitTexTargetBackup[textureUnit] = texUnitTexTarget[textureUnit];
-}
-
-void OpenGLRenderer::texture_restoreBoundTexture(uint32 textureUnit)
-{
-	cemu_assert_debug(texUnitBackupSlotUsed[textureUnit] == true);
-	texUnitBackupSlotUsed[textureUnit] = false;
-	if (LatteBoundTextures[textureUnit] == LatteBoundTexturesBackup[textureUnit])
-	{
-		return; // already bound
-	}
-	LatteBoundTextures[textureUnit] = LatteBoundTexturesBackup[textureUnit];
-	texUnitTexId[textureUnit] = texUnitTexIdBackup[textureUnit];
-	texUnitTexTarget[textureUnit] = texUnitTexTargetBackup[textureUnit];
-	texture_setActiveTextureUnit(textureUnit);
-	glBindTexture(texUnitTexTargetBackup[textureUnit], texUnitTexIdBackup[textureUnit]);
 }
 
 void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY,
@@ -1451,31 +1368,25 @@ RendererShader* OpenGLRenderer::shader_create(RendererShader::ShaderType type, u
 void OpenGLRenderer::shader_bind(RendererShader* shader)
 {
 	auto shaderGL = (RendererShaderGL*)shader;
-	
 	GLbitfield shaderBit;
-
 	const auto program = shaderGL->GetProgram();
-
 	switch(shader->GetType())
 	{
 	case RendererShader::ShaderType::kVertex:
 		if (program == prevVertexShaderProgram)
 			return;
-
 		shaderBit = GL_VERTEX_SHADER_BIT;
 		prevVertexShaderProgram = program;
 		break;
 	case RendererShader::ShaderType::kFragment:
 		if (program == prevPixelShaderProgram)
 			return;
-
 		shaderBit = GL_FRAGMENT_SHADER_BIT;
 		prevPixelShaderProgram = program;
 		break;
 	case RendererShader::ShaderType::kGeometry:
 		if (program == prevGeometryShaderProgram)
 			return;
-
 		shaderBit = GL_GEOMETRY_SHADER_BIT;
 		prevGeometryShaderProgram = program;
 		break;
@@ -1485,13 +1396,6 @@ void OpenGLRenderer::shader_bind(RendererShader* shader)
 
 	catchOpenGLError();
 	glUseProgramStages(m_pipeline, shaderBit, program);
-	catchOpenGLError();
-}
-
-void OpenGLRenderer::shader_bind(GLuint program, GLbitfield shaderType)
-{
-	catchOpenGLError();
-	glUseProgramStages(m_pipeline, shaderType, program);
 	catchOpenGLError();
 }
 

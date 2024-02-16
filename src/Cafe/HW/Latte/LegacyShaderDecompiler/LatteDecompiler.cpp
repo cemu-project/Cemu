@@ -666,6 +666,9 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 			uint32 offsetY = (word2 >> 5) & 0x1F;
 			uint32 offsetZ = (word2 >> 10) & 0x1F;
 
+			sint8 lodBias = (word2 >> 21) & 0x7F;
+			if ((lodBias&0x40) != 0)
+				lodBias |= 0x80;
 			// bufferID -> Texture index
 			// samplerId -> Sampler index
 			sint32 textureIndex = bufferId - 0x00;
@@ -693,6 +696,7 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 			texInstruction.textureFetch.unnormalized[1] = coordTypeY == 0;
 			texInstruction.textureFetch.unnormalized[2] = coordTypeZ == 0;
 			texInstruction.textureFetch.unnormalized[3] = coordTypeW == 0;
+			texInstruction.textureFetch.lodBias = (sint8)lodBias;
 			cfInstruction->instructionsTEX.emplace_back(texInstruction);
 		}
 		else if( inst0_4 == GPU7_TEX_INST_SET_CUBEMAP_INDEX )

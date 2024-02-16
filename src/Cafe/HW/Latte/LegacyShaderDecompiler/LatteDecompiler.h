@@ -1,6 +1,7 @@
 #pragma once
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Renderer/RendererShader.h"
+#include <boost/container/static_vector.hpp>
 
 namespace LatteDecompiler
 {
@@ -158,11 +159,13 @@ struct LatteDecompilerShader
 	struct LatteFetchShader* compatibleFetchShader{};
 	// error tracking
 	bool hasError{false}; // if set, the shader cannot be used
-	// optimized access / iteration
-	// list of uniform buffers used
-	uint8 uniformBufferList[LATTE_NUM_MAX_UNIFORM_BUFFERS];
-	uint8 uniformBufferListCount{ 0 };
-	// list of used texture units (faster access than iterating textureUnitMask)
+	// compact resource lists for optimized access
+	struct QuickBufferEntry
+	{
+		uint32 index : 8;
+		uint32 size : 24;
+	};
+	boost::container::static_vector<QuickBufferEntry, LATTE_NUM_MAX_UNIFORM_BUFFERS> list_quickBufferList;
 	uint8 textureUnitList[LATTE_NUM_MAX_TEX_UNITS];
 	uint8 textureUnitListCount{ 0 };
 	// input

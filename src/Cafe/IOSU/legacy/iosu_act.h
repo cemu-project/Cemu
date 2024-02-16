@@ -3,6 +3,8 @@
 void iosuAct_init_depr();
 bool iosuAct_isInitialized();
 
+#define ACT_ACCOUNTID_LENGTH 	(17) // includes '\0'
+
 // Mii
 
 #define MII_FFL_STORAGE_SIZE	(96)
@@ -47,6 +49,8 @@ namespace iosu
 		bool getMii(uint8 slot, FFLData_t* fflData);
 		bool getScreenname(uint8 slot, uint16 screenname[ACT_NICKNAME_LENGTH]);
 		bool getCountryIndex(uint8 slot, uint32* countryIndex);
+
+		std::string getAccountId2(uint8 slot);
 
 		const uint8 ACT_SLOT_CURRENT = 0xFE;
 

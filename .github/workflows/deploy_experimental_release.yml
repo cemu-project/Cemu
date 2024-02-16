@@ -10,7 +10,7 @@ jobs:
       experimentalversion: ${{ github.run_number }}
   deploy:
     name: Deploy experimental release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: call-release-build
     steps:
       - uses: actions/checkout@v3
@@ -72,7 +72,7 @@ jobs:
           ls ./bin/
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
           mv cemu-bin-linux-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
-          zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-20.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
+          zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-22.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
           
       - name: Create release from macos-bin

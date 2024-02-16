@@ -81,6 +81,7 @@ TitleInfo::TitleInfo(const fs::path& path, std::string_view subPath)
 	if (!path.has_filename())
 	{
 		m_isValid = false;
+		SetInvalidReason(InvalidReason::BAD_PATH_OR_INACCESSIBLE);
 		return;
 	}
 	m_isValid = true;
@@ -103,6 +104,7 @@ TitleInfo::TitleInfo(const TitleInfo::CachedInfo& cachedInfo)
 	if (cachedInfo.titleDataFormat != TitleDataFormat::HOST_FS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WIIU_ARCHIVE &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WUD &&
+		cachedInfo.titleDataFormat != TitleDataFormat::NUS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::INVALID_STRUCTURE)
 		return;
 	if (cachedInfo.path.empty())
@@ -201,10 +203,16 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			}
 		}
 		else if (boost::iends_with(filenameStr, ".wud") ||
-			boost::iends_with(filenameStr, ".wux") ||
-			boost::iends_with(filenameStr, ".iso"))
+				 boost::iends_with(filenameStr, ".wux") ||
+				 boost::iends_with(filenameStr, ".iso"))
 		{
 			formatOut = TitleDataFormat::WUD;
+			pathOut = path;
+			return true;
+		}
+		else if (boost::iequals(filenameStr, "title.tmd"))
+		{
+			formatOut = TitleDataFormat::NUS;
 			pathOut = path;
 			return true;
 		}
@@ -272,6 +280,7 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			return true;
 		}
 	}
+	SetInvalidReason(InvalidReason::UNKNOWN_FORMAT);
 	return false;
 }
 
@@ -322,6 +331,12 @@ uint64 TitleInfo::GetUID()
 {
 	cemu_assert_debug(m_isValid);
 	return m_uid;
+}
+
+void TitleInfo::SetInvalidReason(InvalidReason reason)
+{
+	if(m_invalidReason == InvalidReason::NONE)
+		m_invalidReason = reason; // only update reason when it hasn't been set before
 }
 
 std::mutex sZArchivePoolMtx;
@@ -391,18 +406,29 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 		if (!r)
 		{
 			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
+			SetInvalidReason(InvalidReason::BAD_PATH_OR_INACCESSIBLE);
 			return false;
 		}
 	}
-	else if (m_titleFormat == TitleDataFormat::WUD)
+	else if (m_titleFormat == TitleDataFormat::WUD || m_titleFormat == TitleDataFormat::NUS)
 	{
+		FSTVolume::ErrorCode fstError;
 		if (m_mountpoints.empty())
 		{
 			cemu_assert_debug(!m_wudVolume);
-			m_wudVolume = FSTVolume::OpenFromDiscImage(m_fullPath);
+			if(m_titleFormat == TitleDataFormat::WUD)
+				m_wudVolume = FSTVolume::OpenFromDiscImage(m_fullPath, &fstError); // open wud/wux
+			else
+				m_wudVolume = FSTVolume::OpenFromContentFolder(m_fullPath.parent_path(), &fstError); // open from .app files directory, the path points to /title.tmd
 		}
 		if (!m_wudVolume)
+		{
+			if (fstError == FSTVolume::ErrorCode::DISC_KEY_MISSING)
+				SetInvalidReason(InvalidReason::NO_DISC_KEY);
+			else if (fstError == FSTVolume::ErrorCode::TITLE_TIK_MISSING)
+				SetInvalidReason(InvalidReason::NO_TITLE_TIK);
 			return false;
+		}
 		bool r = FSCDeviceWUD_Mount(virtualPath, subfolder, m_wudVolume, mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
@@ -449,7 +475,7 @@ void TitleInfo::Unmount(std::string_view virtualPath)
 		{
 			if (m_wudVolume)
 			{
-				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUD);
+				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUD || m_titleFormat == TitleDataFormat::NUS);
 				delete m_wudVolume;
 				m_wudVolume = nullptr;
 			}
@@ -524,6 +550,7 @@ bool TitleInfo::ParseXmlInfo()
 		m_parsedAppXml = nullptr;
 		m_parsedCosXml = nullptr;
 		m_isValid = false;
+		SetInvalidReason(InvalidReason::MISSING_XML_FILES);
 		return false;
 	}
 	m_isValid = true;
@@ -679,6 +706,9 @@ std::string TitleInfo::GetPrintPath() const
 		break;
 	case TitleDataFormat::WUD:
 		tmp.append(" [WUD]");
+		break;
+	case TitleDataFormat::NUS:
+		tmp.append(" [NUS]");
 		break;
 	case TitleDataFormat::WIIU_ARCHIVE:
 		tmp.append(" [WUA]");

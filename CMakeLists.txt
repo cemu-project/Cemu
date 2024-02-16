@@ -20,6 +20,8 @@ if (ENABLE_VCPKG)
 
 	if(UNIX AND NOT APPLE AND NOT VCPKG_TARGET_ANDROID)
 		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_linux")
+	elseif(APPLE)
+		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_mac")
 	else()
 		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
 	endif()
@@ -99,6 +101,8 @@ if (WIN32)
 	option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
 	add_compile_definitions(HAS_DIRECTINPUT)
 endif()
+
+option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 option(ENABLE_SDL "Enables the SDLController backend" ON)
 
 # audio backends
@@ -107,6 +111,23 @@ if (WIN32)
 	option(ENABLE_XAUDIO "Enables the xaudio backend" ON)
 endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
+
+# usb hid backends
+if (WIN32)
+	option(ENABLE_NSYSHID_WINDOWS_HID "Enables the native Windows HID backend for nsyshid" ON)
+endif ()
+# libusb and windows hid backends shouldn't be active at the same time; otherwise we'd see all devices twice!
+if (NOT ENABLE_NSYSHID_WINDOWS_HID)
+	option(ENABLE_NSYSHID_LIBUSB "Enables the libusb backend for nsyshid" ON)
+else ()
+	set(ENABLE_NSYSHID_LIBUSB OFF CACHE BOOL "" FORCE)
+endif ()
+if (ENABLE_NSYSHID_WINDOWS_HID)
+	add_compile_definitions(NSYSHID_ENABLE_BACKEND_WINDOWS_HID)
+endif ()
+if (ENABLE_NSYSHID_LIBUSB)
+	add_compile_definitions(NSYSHID_ENABLE_BACKEND_LIBUSB)
+endif ()
 
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
@@ -129,7 +150,7 @@ find_package(ZLIB REQUIRED)
 find_package(zstd MODULE REQUIRED) # MODULE so that zstd::zstd is available
 find_package(OpenSSL COMPONENTS Crypto SSL REQUIRED)
 find_package(glm REQUIRED)
-find_package(fmt 9.1.0...<10 REQUIRED)
+find_package(fmt 9 REQUIRED)
 find_package(PNG REQUIRED)
 
 # glslang versions older than 11.11.0 define targets without a namespace
@@ -169,6 +190,12 @@ if (ENABLE_DISCORD_RPC)
 	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
 	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
 endif()
+
+if (ENABLE_HIDAPI)
+	find_package(hidapi REQUIRED)
+	set(ENABLE_WIIMOTE ON)
+	add_compile_definitions(HAS_HIDAPI)
+endif ()
 
 if(UNIX AND NOT APPLE AND NOT ANDROID)
 	if(ENABLE_FERAL_GAMEMODE)

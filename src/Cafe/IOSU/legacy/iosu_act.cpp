@@ -112,7 +112,7 @@ void iosuAct_loadAccounts()
 	//	}
 	//}
 
-	cemuLog_log(LogType::Force, L"IOSU_ACT: using account {} in first slot", first_acc.GetMiiName());
+	cemuLog_log(LogType::Force, "IOSU_ACT: using account {} in first slot", boost::nowide::narrow(first_acc.GetMiiName()));
 	
 	_actAccountDataInitialized = true;
 }
@@ -189,6 +189,15 @@ namespace iosu
 			}
 			strcpy(accountId, _actAccountData[accountIndex].accountId);
 			return true;
+		}
+
+		// returns empty string if invalid
+		std::string getAccountId2(uint8 slot)
+		{
+			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+			if (_actAccountData[accountIndex].isValid == false)
+				return {};
+			return {_actAccountData[accountIndex].accountId};
 		}
 
 		bool getMii(uint8 slot, FFLData_t* fflData)
@@ -622,10 +631,19 @@ int iosuAct_thread()
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_PERSISTENTID)
 			{
-				accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
-				_cancelIfAccountDoesNotExist();
-				actCemuRequest->resultU32.u32 = _actAccountData[accountIndex].persistentId;
-				actCemuRequest->setACTReturnCode(0);
+				if(actCemuRequest->accountSlot != 0)
+				{
+					accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
+					_cancelIfAccountDoesNotExist();
+					actCemuRequest->resultU32.u32 = _actAccountData[accountIndex].persistentId;
+					actCemuRequest->setACTReturnCode(0);
+				}
+				else
+				{
+					// F1 Race Stars calls IsSlotOccupied and indirectly GetPersistentId on slot 0 which is not valid
+					actCemuRequest->resultU32.u32 = 0;
+					actCemuRequest->setACTReturnCode(0);
+				}
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_COUNTRY)
 			{

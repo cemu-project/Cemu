@@ -5,7 +5,7 @@
 [![Matrix Server](https://img.shields.io/matrix/cemu:cemu.info?server_fqdn=matrix.cemu.info&label=cemu:cemu.info&logo=matrix&logoColor=FFFFFF)](https://matrix.to/#/#cemu:cemu.info)
 
 This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
-It's written in C/C++ and is being actively developed with new features and fixes to increase compatibility, convenience and usability.
+It's written in C/C++ and is being actively developed with new features and fixes.
 
 Cemu is currently only available for 64-bit Windows, Linux & macOS devices.
 
@@ -24,11 +24,9 @@ Cemu is currently only available for 64-bit Windows, Linux & macOS devices.
 
 ## Download
 
-You can download the latest Cemu releases from the [GitHub Releases](https://github.com/cemu-project/Cemu/releases/) or from [Cemu's website](https://cemu.info).
+You can download the latest Cemu releases for Windows, Linux and Mac from the [GitHub Releases](https://github.com/cemu-project/Cemu/releases/). For Linux you can also find Cemu on [flathub](https://flathub.org/apps/info.cemu.Cemu).
 
-Cemu is currently only available in a portable format so no installation is required besides extracting it in a safe place.
-
-The native Linux build is currently a work-in-progress. See [Current State Of Linux builds](https://github.com/cemu-project/Cemu/issues/107) for more information about the things to be aware of. 
+On Windows Cemu is currently only available in a portable format so no installation is required besides extracting it in a safe place.
 
 The native macOS build is currently purely experimental and should not be considered stable or ready for issue-free gameplay. There are also known issues with degraded performance due to the use of MoltenVK and Rosetta for ARM Macs. We appreciate your patience while we improve Cemu for macOS.
 
@@ -36,7 +34,7 @@ Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/chang
 
 ## Build Instructions
 
-To compile Cemu yourself on Windows, Linux or macOS, view the [BUILD.md file](/BUILD.md).
+To compile Cemu yourself on Windows, Linux or macOS, view [BUILD.md](/BUILD.md).
 
 ## Issues
 
@@ -46,6 +44,7 @@ The old bug tracker can be found at [bugs.cemu.info](https://bugs.cemu.info) and
 ## Contributing
 
 Pull requests are very welcome. For easier coordination you can visit the developer discussion channel on [Discord](https://discord.gg/5psYsup) or alternatively the [Matrix Server](https://matrix.to/#/#cemu:cemu.info).
+Before submitting a pull request, please read and follow our code style guidelines listed in [CODING_STYLE.md](/CODING_STYLE.md).
 
 If coding isn't your thing, testing games and making detailed bug reports or updating the (usually outdated) compatibility wiki is also appreciated!
 

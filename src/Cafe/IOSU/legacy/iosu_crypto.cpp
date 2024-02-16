@@ -615,10 +615,10 @@ void iosuCrypto_init()
 	iosuCrypto_loadSSLCertificates();
 }
 
-bool iosuCrypto_checkRequirementMLCFile(std::string_view mlcSubpath, std::wstring& additionalErrorInfo_filePath)
+bool iosuCrypto_checkRequirementMLCFile(std::string_view mlcSubpath, std::string& additionalErrorInfo_filePath)
 {
 	const auto path = ActiveSettings::GetMlcPath(mlcSubpath);
-	additionalErrorInfo_filePath = path.generic_wstring();
+	additionalErrorInfo_filePath = _pathToUtf8(path);
 	sint32 fileDataSize = 0;
 	auto fileData = FileStream::LoadIntoMemory(path);
 	if (!fileData)
@@ -626,7 +626,7 @@ bool iosuCrypto_checkRequirementMLCFile(std::string_view mlcSubpath, std::wstrin
 	return true;
 }
 
-sint32 iosuCrypt_checkRequirementsForOnlineMode(std::wstring& additionalErrorInfo)
+sint32 iosuCrypt_checkRequirementsForOnlineMode(std::string& additionalErrorInfo)
 {
 	std::error_code ec;
 	// check if otp.bin is present

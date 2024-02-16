@@ -132,22 +132,18 @@ void LatteBufferCache_syncGPUUniformBuffers(LatteDecompilerShader* shader, const
 {
 	if (shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
 	{
-		// use full uniform buffers
-		for (sint32 t = 0; t < shader->uniformBufferListCount; t++)
+		for(const auto& buf : shader->list_quickBufferList)
 		{
-			sint32 i = shader->uniformBufferList[t];
+			sint32 i = buf.index;
 			MPTR physicalAddr = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 0];
 			uint32 uniformSize = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 1] + 1;
-
-			if (physicalAddr == MPTR_NULL)
+			if (physicalAddr == MPTR_NULL) [[unlikely]]
 			{
-				// no data
 				g_renderer->buffer_bindUniformBuffer(shaderType, i, 0, 0);
 				continue;
 			}
-
+			uniformSize = std::min<uint32>(uniformSize, buf.size);
 			uint32 bindOffset = LatteBufferCache_retrieveDataInCache(physicalAddr, uniformSize);
-
 			g_renderer->buffer_bindUniformBuffer(shaderType, i, bindOffset, uniformSize);
 		}
 	}

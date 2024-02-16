@@ -84,6 +84,10 @@ extern uint8* gxRingBufferReadPtr; // currently active read pointer (gx2 ring bu
 void LatteTextureLoader_estimateAccessedDataRange(LatteTexture* texture, sint32 sliceIndex, sint32 mipIndex, uint32& addrStart, uint32& addrEnd);
 
 // render target
+
+#define RENDER_TARGET_TV (1 << 0)
+#define RENDER_TARGET_DRC (1 << 2)
+
 void LatteRenderTarget_updateScissorBox();
 
 void LatteRenderTarget_trackUpdates();
@@ -111,7 +115,7 @@ void LatteTC_RegisterTexture(LatteTexture* tex);
 void LatteTC_UnregisterTexture(LatteTexture* tex);
 
 uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture);
-void LatteTexture_ReloadData(LatteTexture* hostTexture, uint32 textureUnit);
+void LatteTexture_ReloadData(LatteTexture* hostTexture);
 
 bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force = false);
 void LatteTC_ResetTextureChangeTracker(LatteTexture* hostTexture, bool force = false);
@@ -163,7 +167,7 @@ void LatteBufferCache_LoadRemappedUniforms(struct LatteDecompilerShader* shader,
 
 void LatteRenderTarget_updateViewport();
 
-#define LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE	(1024) // maximum size for uniform blocks (in vec4s). On Nvidia hardware 4096 is the maximum (64K / 16 = 4096) all other vendors have much higher limits
+#define LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE	(4096) // maximum size for uniform blocks (in vec4s). On Nvidia hardware 4096 is the maximum (64K / 16 = 4096) all other vendors have much higher limits
 
 //static uint32 glTempError;
 //#define catchOpenGLError() glFinish(); if( (glTempError = glGetError()) != 0 ) { printf("OpenGL error 0x%x: %s : %d timestamp %08x\n", glTempError, __FILE__, __LINE__, GetTickCount()); __debugbreak(); }
