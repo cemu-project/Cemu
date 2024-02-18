@@ -1,4 +1,26 @@
-# Build instructions
+# Build Instructions
+
+## Table of Contents
+
+- [Windows](#windows)
+- [Linux](#linux)
+   - [Dependencies](#dependencies)
+      - [For Arch and derivatives:](#for-arch-and-derivatives)
+      - [For Fedora and derivatives:](#for-fedora-and-derivatives)
+      - [For Ubuntu and derivatives](#for-ubuntu-and-derivatives)
+   - [Build Cemu](#build-cemu)
+      - [CMake and Clang](#cmake-and-clang)
+      - [GCC](#gcc)
+      - [Debug Build](#debug-build)
+      - [Troubleshooting Steps](#troubleshooting-steps)
+         - [Compiling Errors](#compiling-errors)
+         - [Building Errors](#building-errors)
+- [macOS](#macos)
+   - [On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used](#on-apple-silicon-macs-rosetta-2-and-the-x86_64-version-of-homebrew-must-be-used)
+   - [Installing brew](#installing-brew)
+   - [Installing Dependencies](#installing-dependencies)
+   - [Build Cemu using CMake and Clang](#build-cemu-using-cmake-and-clang)
+   - [Updating Cemu and source code](#updating-cemu-and-source-code)
 
 ## Windows
 
@@ -19,17 +41,9 @@ Any other IDE should also work as long as it has CMake and MSVC support. CLion a
 
 ## Linux
 
-To compile Cemu, a recent enough compiler and STL with C++20 support is required! clang-15 or higher is what we recommend.
+To compile Cemu, a recent enough compiler and STL with C++20 support is required! Clang-15 or higher is what we recommend.
 
-### Installing dependencies
-
-#### For Ubuntu and derivatives:
-`sudo apt install -y cmake curl clang-15 freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build`
-
-You may also need to install `libusb-1.0-0-dev` as a workaround for an issue with the vcpkg hidapi package.
-
-At step 3 while building, use:
-   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+### Dependencies
 
 #### For Arch and derivatives:
 `sudo pacman -S --needed base-devel clang cmake freeglut git glm gtk3 libgcrypt libpulse libsecret linux-headers llvm nasm ninja systemd unzip zip`
@@ -37,39 +51,99 @@ At step 3 while building, use:
 #### For Fedora and derivatives:
 `sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel nasm ninja-build perl-core systemd-devel zlib-devel`
 
-### Build Cemu using cmake and clang
-1. `git clone --recursive https://github.com/cemu-project/Cemu`
-2. `cd Cemu`
-3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja`
-4. `cmake --build build`
-5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
+#### For Ubuntu and derivatives:
+`sudo apt install -y cmake curl clang-15 freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libtool nasm ninja-build`
 
-#### Using GCC
-While we build and test Cemu using clang, using GCC might work better with your distro (they should be fairly similar performance/issues wise and should only be considered if compilation is the issue).
+You may also need to install `libusb-1.0-0-dev` as a workaround for an issue with the vcpkg hidapi package.
 
-You can use GCC by doing the following:
-- make sure you have g++ installed in your system
-  - installation for Ubuntu and derivatives: `sudo apt install g++`
-  - installation for Fedora and derivatives: `sudo dnf install gcc-c++`
-- replace the step 3 with the following:
-`cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
+At Step 3 in [Build Cemu using cmake and clang](#build-cemu-using-cmake-and-clang), use the following command instead:
+   `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
-#### Troubleshooting steps
- - If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja` to the command and running it again.
- - If step 3 fails while compiling the boost-build dependency, it means you don't have a working/good standard library installation. Check the integrity of your system headers and making sure that C++ related packages are installed and intact.
- - If step 3 gives a random error, read the `[package-name-and-platform]-out.log` and `[package-name-and-platform]-err.log` for the actual reason to see if you might be lacking the headers from a dependency.
- - If step 3 is still failing or if you're not able to find the cause, please make an issue on our Github about it!
- - If step 3 fails during rebuild after `git pull` with an error that mentions RPATH, add this to the end of step 3: `-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON`
- - If step 4 gives you an error that contains something like `main.cpp.o: in function 'std::__cxx11::basic_string...`, you likely are experiencing a clang-14 issue. This can only be fixed by either lowering the clang version or using GCC, see below.
- - If step 4 gives you a different error, you could report it to this repo or try using GCC. Just make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
- - If step 4 gives you undefined libdecor_xx, you are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
- - If step 4 gives you `fatal error: 'span' file not found`, then you're either missing `libstdc++` or are using a version that's too old. Install at least v10 with your package manager, eg `sudo apt install libstdc++-10-dev`. See #644.
+### Build Cemu
+
+#### CMake and Clang
+
+```
+git clone --recursive https://github.com/cemu-project/Cemu
+cd Cemu
+cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja
+cmake --build build
+```
+
+#### GCC
+
+If you are building using GCC, make sure you have g++ installed:
+- Installation for Arch and derivatives: `sudo pacman -S gcc`
+- Installation for Fedora and derivatives: `sudo dnf install gcc-c++`
+- Installation for Ubuntu and derivatives: `sudo apt install g++`
+
+```
+git clone --recursive https://github.com/cemu-project/Cemu
+cd Cemu
+cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja
+cmake --build build
+```
+
+#### Debug Build
+
+```
+git clone --recursive https://github.com/cemu-project/Cemu
+cd Cemu
+cmake -S . -B build -DCMAKE_BUILD_TYPE=debug -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja
+cmake --build build
+```
+
+If you are using GCC, replace `cmake -S . -B build -DCMAKE_BUILD_TYPE=debug -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja` with `cmake -S . -B build -DCMAKE_BUILD_TYPE=debug -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja`
+
+#### Troubleshooting Steps
+
+##### Compiling Errors
+
+This section refers to running `cmake -S...` (truncated).
+
+* `vcpkg install failed`
+   * Run the following in the root directory and try running the command again (don't forget to change directories afterwards):
+      * `cd dependencies/vcpkg && git fetch --unshallow`
+* `Please ensure you're using the latest port files with git pull and vcpkg update.`
+   * Either:
+      * Update vcpkg by running by the following command:
+         * `git submodule update --remote dependencies/vcpkg`
+      * If you are sure vcpkg is up to date, check the following logs:
+         * `Cemu/dependencies/vcpkg/buildtrees/wxwidgets/config-x64-linux-out.log`
+         * `Cemu/dependencies/vcpkg/buildtrees/libsystemd/config-x64-linux-dbg-meson-log.txt.log`
+         * `Cemu/dependencies/vcpkg/buildtrees/libsystemd/config-x64-linux-dbg-out.log`
+* Not able to find Ninja.
+   * Add the following and try running the command again:
+      * `-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+* Compiling failed during the boost-build dependency.
+   * It means you don't have a working/good standard library installation. Check the integrity of your system headers and making sure that C++ related packages are installed and intact.
+* Compiling failed during rebuild after `git pull` with an error that mentions RPATH
+   * Add the following and try running the command again:
+      * `-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON`
+* If you are getting a random error, read the [package-name-and-platform]-out.log and [package-name-and-platform]-err.log for the actual reason to see if you might be lacking the headers from a dependency.
+
+
+If you are getting a different error than any of the errors listed above, you may either open an issue in this repo or try using [GCC](#gcc). Make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
+
+
+##### Building Errors
+
+This section refers to running `cmake --build build`. 
+
+* `main.cpp.o: in function 'std::__cxx11::basic_string...`
+   * You likely are experiencing a clang-14 issue. This can only be fixed by either lowering the clang version or using GCC, see [GCC](#gcc).
+* `fatal error: 'span' file not found`
+   *  You're either missing `libstdc++` or are using a version that's too old. Install at least v10 with your package manager, eg `sudo apt install libstdc++-10-dev`. See [#644](https://github.com/cemu-project/Cemu/issues/644).
+* `undefined libdecor_xx`
+   * You are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
+
+If you are getting a different error than any of the errors listed above, you may either open an issue in this repo or try using [GCC](#gcc). Make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
 
 ## macOS
 
-To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and 
+To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and
 below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. The OpenGL graphics
-API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the 
+API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the
 Molten-VK compatibility layer
 
 ### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
@@ -84,11 +158,11 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 2. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
 
-### Installing dependencies
+### Installing Dependencies
 
 `brew install boost git cmake llvm ninja nasm molten-vk automake libtool`
 
-### Build Cemu using cmake and clang
+### Build Cemu using CMake and Clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
 3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja`
@@ -104,3 +178,4 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 2. Then, you can rebuild Cemu using the steps listed above, according to whether you use Linux or Windows.
 
 If CMake complains about Cemu already being compiled or another similar error, try deleting the `CMakeCache.txt` file inside the `build` folder and retry building.
+
