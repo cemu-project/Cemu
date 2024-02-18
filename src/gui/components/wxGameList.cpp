@@ -17,6 +17,8 @@
 #include <wx/imagpng.h>
 #include <wx/string.h>
 #include <wx/utils.h>
+#include <wx/clipbrd.h>
+
 
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -546,7 +548,12 @@ enum ContextMenuEntries
 	kContextMenuStyleList,
 	kContextMenuStyleIcon,
 	kContextMenuStyleIconSmall,
-    kContextMenuCreateShortcut
+
+    kContextMenuCreateShortcut,
+
+    kContextMenuCopyTitleName,
+    kContextMenuCopyTitleId,
+    kContextMenuCopyTitleImage
 };
 void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 {
@@ -591,6 +598,10 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 #if BOOST_OS_LINUX || BOOST_OS_WINDOWS
             menu.Append(kContextMenuCreateShortcut, _("&Create shortcut"));
 #endif
+            menu.AppendSeparator();
+            menu.Append(kContextMenuCopyTitleName, _("&Copy Title Name"));
+            menu.Append(kContextMenuCopyTitleId, _("&Copy Title ID"));
+            menu.Append(kContextMenuCopyTitleImage, _("&Copy Title Image"));
 			menu.AppendSeparator();
 		}
 	}
@@ -711,10 +722,44 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				break;
 			}
             case kContextMenuCreateShortcut:
+            {
 #if BOOST_OS_LINUX || BOOST_OS_WINDOWS
-                 CreateShortcut(gameInfo);
+                CreateShortcut(gameInfo);
 #endif
                 break;
+            }
+            case kContextMenuCopyTitleName:
+            {
+                if (wxTheClipboard->Open())
+                {
+                    wxTheClipboard->SetData(new wxTextDataObject(gameInfo.GetTitleName()));
+                    wxTheClipboard->Close();
+                }
+                break;
+            }
+            case kContextMenuCopyTitleId:
+            {
+                if (wxTheClipboard->Open())
+                {
+                    wxTheClipboard->SetData(new wxTextDataObject(fmt::format("{:016x}", gameInfo.GetBaseTitleId())));
+                    wxTheClipboard->Close();
+                }
+                break;
+            }
+            case kContextMenuCopyTitleImage:
+            {
+                if (wxTheClipboard->Open())
+                {
+                    int icon_large;
+                    int icon_small;
+                    if (!QueryIconForTitle(title_id, icon_large, icon_small))
+                        break;
+                    auto icon = m_image_list->GetBitmap(icon_large);
+                    wxTheClipboard->SetData(new wxBitmapDataObject(icon));
+                    wxTheClipboard->Close();
+                }
+                break;
+            }
 			}
 		}
 	}
@@ -1042,7 +1087,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 
 		const auto region_text = fmt::format("{}", gameInfo.GetRegion());
 		SetItem(index, ColumnRegion, wxGetTranslation(region_text));
-        SetItem(index, ColumnTitleID, fmt::format("{:016x}", titleId));
+        SetItem(index, ColumnTitleID, fmt::format("{:016x}", baseTitleId));
 	}
 	else if (m_style == Style::kIcons)
 	{
