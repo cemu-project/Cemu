@@ -6,8 +6,8 @@
 - [Linux](#linux)
    - [Dependencies](#dependencies)
       - [For Arch and derivatives:](#for-arch-and-derivatives)
+      - [For Debian, Ubuntu and derivatives](#for-debian-ubuntu-and-derivatives)
       - [For Fedora and derivatives:](#for-fedora-and-derivatives)
-      - [For Ubuntu and derivatives](#for-ubuntu-and-derivatives)
    - [Build Cemu](#build-cemu)
       - [CMake and Clang](#cmake-and-clang)
       - [GCC](#gcc)
@@ -48,16 +48,16 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 #### For Arch and derivatives:
 `sudo pacman -S --needed base-devel clang cmake freeglut git glm gtk3 libgcrypt libpulse libsecret linux-headers llvm nasm ninja systemd unzip zip`
 
-#### For Fedora and derivatives:
-`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel nasm ninja-build perl-core systemd-devel zlib-devel`
-
-#### For Ubuntu and derivatives:
+#### For Debian, Ubuntu and derivatives:
 `sudo apt install -y cmake curl clang-15 freeglut3-dev git libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libtool nasm ninja-build`
 
 You may also need to install `libusb-1.0-0-dev` as a workaround for an issue with the vcpkg hidapi package.
 
 At Step 3 in [Build Cemu using cmake and clang](#build-cemu-using-cmake-and-clang), use the following command instead:
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
+
+#### For Fedora and derivatives:
+`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel nasm ninja-build perl-core systemd-devel zlib-devel`
 
 ### Build Cemu
 
@@ -74,8 +74,8 @@ cmake --build build
 
 If you are building using GCC, make sure you have g++ installed:
 - Installation for Arch and derivatives: `sudo pacman -S gcc`
+- Installation for Debian, Ubuntu and derivatives: `sudo apt install g++`
 - Installation for Fedora and derivatives: `sudo dnf install gcc-c++`
-- Installation for Ubuntu and derivatives: `sudo apt install g++`
 
 ```
 git clone --recursive https://github.com/cemu-project/Cemu
