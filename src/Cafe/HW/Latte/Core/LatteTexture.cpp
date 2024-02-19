@@ -790,81 +790,30 @@ enum VIEWCOMPATIBILITY
 	VIEW_NOT_COMPATIBLE,
 };
 
-bool IsDimensionCompatibleForView(Latte::E_DIM baseDim, Latte::E_DIM viewDim)
+bool IsDimensionCompatibleForGX2View(Latte::E_DIM baseDim, Latte::E_DIM viewDim)
 {
-	bool incompatibleDim = false;
-	if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_1D && viewDim == Latte::E_DIM::DIM_1D)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D_ARRAY)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_CUBEMAP)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_2D_ARRAY)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_2D_ARRAY && viewDim == Latte::E_DIM::DIM_2D_ARRAY)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_2D_ARRAY && viewDim == Latte::E_DIM::DIM_2D)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_2D_ARRAY && viewDim == Latte::E_DIM::DIM_CUBEMAP)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_3D && viewDim == Latte::E_DIM::DIM_2D_ARRAY)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_2D_MSAA && viewDim == Latte::E_DIM::DIM_2D_MSAA)
-		;
-	else if (baseDim == Latte::E_DIM::DIM_2D_ARRAY && viewDim == Latte::E_DIM::DIM_3D)
-	{
-		// not compatible on OpenGL
-		incompatibleDim = true;
-	}
-	else if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D_MSAA)
-	{
-		// not compatible
-		incompatibleDim = true;
-	}
-	else if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_1D)
-	{
-		// not compatible
-		incompatibleDim = true;
-	}
-	else if (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_3D)
-	{
-		// not compatible
-		incompatibleDim = true;
-	}
-	else if (baseDim == Latte::E_DIM::DIM_3D && viewDim == Latte::E_DIM::DIM_2D)
-	{
-		// not compatible
-		incompatibleDim = true;
-	}
-	else if (baseDim == Latte::E_DIM::DIM_3D && viewDim == Latte::E_DIM::DIM_3D)
-	{
-		// incompatible by default, but may be compatible if the view matches the depth of the base texture and starts at mip/slice 0
-		incompatibleDim = true;
-	}
-	else if ((baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_CUBEMAP) ||
-		(baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_2D))
-	{
-		// not compatible
-		incompatibleDim = true;
-	}
-	else if (baseDim == Latte::E_DIM::DIM_2D_MSAA && viewDim == Latte::E_DIM::DIM_2D)
-	{
-		// not compatible
-		incompatibleDim = true;
-	}
-	else if (baseDim == Latte::E_DIM::DIM_1D && viewDim == Latte::E_DIM::DIM_2D)
-	{
-		// not compatible (probably?)
-		incompatibleDim = true;
-	}
-	else
-	{
-		cemu_assert_debug(false);
-		incompatibleDim = true;
-	}
-	return !incompatibleDim;
+	// Note that some combinations depend on the exact view/slice index and count which we currently ignore (like a 3D view of a 3D texture)
+	bool isCompatible =
+		(baseDim == viewDim) ||
+		(baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_2D) ||
+		(baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D_ARRAY) ||
+		(baseDim == Latte::E_DIM::DIM_2D_ARRAY && viewDim == Latte::E_DIM::DIM_2D) ||
+		(baseDim == Latte::E_DIM::DIM_CUBEMAP && viewDim == Latte::E_DIM::DIM_2D_ARRAY) ||
+		(baseDim == Latte::E_DIM::DIM_2D_ARRAY && viewDim == Latte::E_DIM::DIM_CUBEMAP) ||
+		(baseDim == Latte::E_DIM::DIM_3D && viewDim == Latte::E_DIM::DIM_2D_ARRAY);
+	if(isCompatible)
+		return true;
+	// these combinations have been seen in use by games and are considered incompatible:
+	// (baseDim == Latte::E_DIM::DIM_2D_ARRAY && viewDim == Latte::E_DIM::DIM_3D) -> Not allowed on OpenGL
+	// (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_2D_MSAA)
+	// (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_1D)
+	// (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_3D)
+	// (baseDim == Latte::E_DIM::DIM_3D && viewDim == Latte::E_DIM::DIM_2D)
+	// (baseDim == Latte::E_DIM::DIM_3D && viewDim == Latte::E_DIM::DIM_3D) -> Only compatible if the same depth and shared at mip/slice 0
+	// (baseDim == Latte::E_DIM::DIM_2D && viewDim == Latte::E_DIM::DIM_CUBEMAP)
+	// (baseDim == Latte::E_DIM::DIM_2D_MSAA && viewDim == Latte::E_DIM::DIM_2D)
+	// (baseDim == Latte::E_DIM::DIM_1D && viewDim == Latte::E_DIM::DIM_2D)
+	return false;
 }
 
 VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseTexture, uint32 physAddr, sint32 width, sint32 height, sint32 pitch, Latte::E_DIM dimView, Latte::E_GX2SURFFMT format, bool isDepth, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, sint32& relativeMipIndex, sint32& relativeSliceIndex)
@@ -881,7 +830,7 @@ VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseT
 			return VIEW_NOT_COMPATIBLE;
 		// 3D views are only compatible on Vulkan if they match the base texture in regards to mip and slice count
 		bool isCompatible3DView = dimView == Latte::E_DIM::DIM_3D && baseTexture->dim == dimView && firstSlice == 0 && firstMip == 0 && baseTexture->mipLevels == numMip && baseTexture->depth == numSlice;
-		if (!isCompatible3DView && !IsDimensionCompatibleForView(baseTexture->dim, dimView))
+		if (!isCompatible3DView && !IsDimensionCompatibleForGX2View(baseTexture->dim, dimView))
 			return VIEW_NOT_COMPATIBLE;
 		if (baseTexture->isDepth && baseTexture->format != format)
 		{
@@ -933,7 +882,7 @@ VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseT
 				if (!LatteTexture_IsTexelSizeCompatibleFormat(baseTexture->format, format) )
 					return VIEW_NOT_COMPATIBLE;
 
-				if (!IsDimensionCompatibleForView(baseTexture->dim, dimView))
+				if (!IsDimensionCompatibleForGX2View(baseTexture->dim, dimView))
 					return VIEW_NOT_COMPATIBLE;
 				if (baseTexture->isDepth && baseTexture->format != format)
 				{
