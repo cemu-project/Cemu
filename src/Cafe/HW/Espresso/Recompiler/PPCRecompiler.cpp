@@ -21,15 +21,7 @@
 #include "BackendAArch64/BackendAArch64.h"
 #endif
 
-std::bitset<PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE/4)> ppcRecompilerDirectJumpTableInitialized;
-void ppcRecompilerDirectJumpTableUpdateInitialzed(int position)
-{
-	ppcRecompilerDirectJumpTableInitialized.set(position);
-}
-bool isppcRecompilerDirectJumpTableUpdateInitialzed(int position)
-{
-	return ppcRecompilerDirectJumpTableInitialized.test(position);
-}
+std::vector<bool> jumpTableInitialized;
 
 struct PPCInvalidationRange
 {
@@ -58,8 +50,8 @@ bool ppcRecompilerEnabled = false;
 // this function does never block and can fail if the recompiler lock cannot be acquired immediately
 void PPCRecompiler_visitAddressNoBlock(uint32 enterAddress)
 {
-    if(!isppcRecompilerDirectJumpTableUpdateInitialzed(enterAddress/4))
-        return;
+	if (!jumpTableInitialized[enterAddress / 4])
+		return;
 
 	// quick read-only check without lock
 	if (ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] != PPCRecompiler_leaveRecompilerCode_unvisited)
@@ -119,7 +111,7 @@ void PPCRecompiler_attemptEnterWithoutRecompile(PPCInterpreter_t* hCPU, uint32 e
 	cemu_assert_debug(hCPU->instructionPointer == enterAddress);
 	if (ppcRecompilerEnabled == false)
 		return;
-	if(!isppcRecompilerDirectJumpTableUpdateInitialzed(enterAddress/4))
+	if(!jumpTableInitialized[enterAddress / 4])
 		return;
 
 	auto funcPtr = ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4];
@@ -137,7 +129,7 @@ void PPCRecompiler_attemptEnter(PPCInterpreter_t* hCPU, uint32 enterAddress)
 		return;
 	if (hCPU->remainingCycles <= 0)
 		return;
-	if(!isppcRecompilerDirectJumpTableUpdateInitialzed(enterAddress/4))
+	if(!jumpTableInitialized[enterAddress / 4])
 		return;
 
 	auto funcPtr = ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4];
@@ -507,17 +499,17 @@ void PPCRecompiler_reserveLookupTableBlock(uint32 offset)
 	ppcRecompiler_reservedBlockMask[blockIndex] = true;
 	void* p1 = MemMapper::AllocateMemory(&(ppcRecompilerInstanceData->ppcRecompilerFuncTable[offset/4]), (PPC_REC_ALLOC_BLOCK_SIZE/4)*sizeof(void*), MemMapper::PAGE_PERMISSION::P_RW, true);
 	void* p3 = MemMapper::AllocateMemory(&(ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[offset/4]), (PPC_REC_ALLOC_BLOCK_SIZE/4)*sizeof(void*), MemMapper::PAGE_PERMISSION::P_RW, true);
-	ppcRecompilerDirectJumpTableUpdateInitialzed(offset/4);
 	if( !p1 || !p3 )
 	{
 		cemuLog_log(LogType::Force, "Failed to allocate memory for recompiler (0x{:08x})", offset);
 		cemu_assert(false);
 		return;
 	}
+	jumpTableInitialized[offset / 4] = true;
 	for(uint32 i=0; i<PPC_REC_ALLOC_BLOCK_SIZE/4; i++)
 	{
 		ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[offset/4+i] = PPCRecompiler_leaveRecompilerCode_unvisited;
-		ppcRecompilerDirectJumpTableUpdateInitialzed(offset/4+1);
+		jumpTableInitialized[offset / 4 + 1] = true;
 	}
 }
 
@@ -696,6 +688,7 @@ void PPCRecompiler_init()
 		MemMapper::FreeReservation(ppcRecompilerInstanceData, sizeof(PPCRecompilerInstanceData_t));
 		ppcRecompilerInstanceData = nullptr;
 	}
+	jumpTableInitialized = std::vector<bool>(PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE / 4), false);
 	debug_printf("Allocating %dMB for recompiler instance data...\n", (sint32)(sizeof(PPCRecompilerInstanceData_t) / 1024 / 1024));
 	ppcRecompilerInstanceData = (PPCRecompilerInstanceData_t*)MemMapper::ReserveMemory(nullptr, sizeof(PPCRecompilerInstanceData_t), MemMapper::PAGE_PERMISSION::P_RW);
 	MemMapper::AllocateMemory(&(ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom), sizeof(PPCRecompilerInstanceData_t) - offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom), MemMapper::PAGE_PERMISSION::P_RW, true);
@@ -783,4 +776,5 @@ void PPCRecompiler_Shutdown()
         // mark as unmapped
         ppcRecompiler_reservedBlockMask[i] = false;
     }
+	jumpTableInitialized = {};
 }

@@ -602,7 +602,7 @@ void *ATTR_MS_ABI PPCRecompiler_virtualHLE(PPCInterpreter_t *hCPU, uint32 hleFun
 		hCPU->remainingCycles -= 500;  // let subtract about 500 cycles for each HLE call
 		hCPU->gpr[3] = 0;
 		PPCInterpreter_nextInstruction(hCPU);
-		return ppcInterpreterCurrentInstance;
+		return PPCInterpreter_getCurrentInstance();
 	}
 	else
 	{
@@ -611,7 +611,7 @@ void *ATTR_MS_ABI PPCRecompiler_virtualHLE(PPCInterpreter_t *hCPU, uint32 hleFun
 		hleCall(hCPU);
 	}
 	hCPU->rspTemp = prevRSPTemp;
-	return ppcInterpreterCurrentInstance;
+	return PPCInterpreter_getCurrentInstance();
 }
 
 bool PPCRecompilerAArch64Gen_imlInstruction_macro(PPCRecFunction_t *PPCRecFunction, ppcImlGenContext_t *ppcImlGenContext, AArch64GenContext_t *aarch64GenContext, IMLInstruction *imlInstruction)
