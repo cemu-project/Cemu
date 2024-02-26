@@ -548,14 +548,10 @@ private:
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
 
 	// command buffer
-
 	VkCommandBuffer getCurrentCommandBuffer() const { return m_state.currentCommandBuffer; }
 
 	// uniform
 	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader);
-
-	// indices
-	void CreateBackbufferIndexBuffer();
 
 	// misc
 	void CreatePipelineCache();
@@ -580,9 +576,6 @@ private:
 	void occlusionQuery_notifyBeginCommandBuffer();
 
 private:
-	VkBuffer m_indexBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
-	
 	std::vector<const char*> m_layerNames;
 	VkInstance m_instance = VK_NULL_HANDLE;
 	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
