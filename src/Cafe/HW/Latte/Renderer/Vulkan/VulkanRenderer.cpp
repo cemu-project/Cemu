@@ -468,6 +468,15 @@ VulkanRenderer::VulkanRenderer()
 
 	void* deviceExtensionFeatures = nullptr;
 
+	// enable VK_KHR_synchonization_2
+	VkPhysicalDeviceSynchronization2FeaturesKHR sync2Feature{};
+	{
+		sync2Feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
+		sync2Feature.pNext = deviceExtensionFeatures;
+		deviceExtensionFeatures = &sync2Feature;
+		sync2Feature.synchronization2 = VK_TRUE;
+	}
+
 	// enable VK_EXT_pipeline_creation_cache_control
 	VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT cacheControlFeature{};
 	if (m_featureControl.deviceExtensions.pipeline_creation_cache_control)
@@ -2852,13 +2861,20 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		ClearColorbuffer(padView);
 
 	// barrier for input texture
-	VkMemoryBarrier memoryBarrier{};
-	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-	VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT;
-	VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-	memoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-	memoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
-	vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+	{
+		VkMemoryBarrier2 memoryBarrier2{};
+		memoryBarrier2.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+		memoryBarrier2.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR | VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR;
+		memoryBarrier2.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR;
+		memoryBarrier2.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+		memoryBarrier2.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
+		VkDependencyInfo dependencyInfo{};
+		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyInfo.dependencyFlags = 0;
+		dependencyInfo.memoryBarrierCount = 1;
+		dependencyInfo.pMemoryBarriers = &memoryBarrier2;
+		vkCmdPipelineBarrier2KHR(m_state.currentCommandBuffer, &dependencyInfo);
+	}
 
 	auto pipeline = backbufferBlit_createGraphicsPipeline(m_swapchainDescriptorSetLayout, padView, shader);
 
