@@ -94,7 +94,7 @@ namespace coreinit
 			// wait and set timeout
 
 			// workaround for a bad implementation in some Unity games (like Qube Directors Cut, see FEventWiiU::Wait)
-			// where the the return value of OSWaitEventWithTimeout is ignored and instead the game measures the elapsed time to determine if a timeout occurred
+			// where the return value of OSWaitEventWithTimeout is ignored and instead the game measures the elapsed time to determine if a timeout occurred
 			timeout = timeout * 98ULL / 100ULL; // 98% (we want the function to return slightly before the actual timeout)
 
 			WaitEventWithTimeoutData data;
