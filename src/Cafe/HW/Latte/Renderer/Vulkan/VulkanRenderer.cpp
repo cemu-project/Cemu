@@ -1412,8 +1412,7 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 
 void VulkanRenderer::CreateNullTexture(NullTexture& nullTex, VkImageType imageType)
 {
-	// these are used when the game requests NULL ptr textures or buffers
-	// texture
+	// these are used when the game requests NULL ptr textures
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	if (imageType == VK_IMAGE_TYPE_1D)
@@ -2818,6 +2817,35 @@ void VulkanRenderer::ClearColorImageRaw(VkImage image, uint32 sliceIndex, uint32
 
 void VulkanRenderer::ClearColorImage(LatteTextureVk* vkTexture, uint32 sliceIndex, uint32 mipIndex, const VkClearColorValue& color, VkImageLayout outputLayout)
 {
+	if(vkTexture->isDepth)
+	{
+		cemu_assert_suspicious();
+		return;
+	}
+	if (vkTexture->IsCompressedFormat())
+	{
+		// vkCmdClearColorImage cannot be called on compressed formats
+		// for now we ignore affected clears but still transition the image to the correct layout
+		auto imageObj = vkTexture->GetImageObj();
+		imageObj->flagForCurrentCommandBuffer();
+		VkImageSubresourceLayers subresourceRange{};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.mipLevel = mipIndex;
+		subresourceRange.baseArrayLayer = sliceIndex;
+		subresourceRange.layerCount = 1;
+		barrier_image<ANY_TRANSFER | IMAGE_READ, ANY_TRANSFER | IMAGE_READ | IMAGE_WRITE>(vkTexture, subresourceRange, outputLayout);
+		if(color.float32[0] == 0.0f && color.float32[1] == 0.0f && color.float32[2] == 0.0f && color.float32[3] == 0.0f)
+		{
+			static bool dbgMsgPrinted = false;
+			if(!dbgMsgPrinted)
+			{
+				cemuLog_logDebug(LogType::Force, "Unsupported compressed texture clear to zero");
+				dbgMsgPrinted = true;
+			}
+		}
+		return;
+	}
+
 	VkImageSubresourceRange subresourceRange;
 
 	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -3154,32 +3182,18 @@ void VulkanRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceI
 	else
 	{
 		cemu_assert_debug(vkTexture->dim != Latte::E_DIM::DIM_3D);
-		if (hostTexture->IsCompressedFormat())
-		{
-			auto imageObj = vkTexture->GetImageObj();
-			imageObj->flagForCurrentCommandBuffer();
-
-			cemuLog_logDebug(LogType::Force, "Compressed texture ({}/{} fmt {:04x}) unsupported clear", vkTexture->width, vkTexture->height, (uint32)vkTexture->format);
-
-			VkImageSubresourceLayers subresourceRange{};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			subresourceRange.mipLevel = mipIndex;
-			subresourceRange.baseArrayLayer = sliceIndex;
-			subresourceRange.layerCount = 1;
-			barrier_image<ANY_TRANSFER | IMAGE_READ, ANY_TRANSFER | IMAGE_READ | IMAGE_WRITE>(vkTexture, subresourceRange, VK_IMAGE_LAYOUT_GENERAL);
-		}
-		else
-		{
-			ClearColorImage(vkTexture, sliceIndex, mipIndex, { 0,0,0,0 }, VK_IMAGE_LAYOUT_GENERAL);
-		}
+		ClearColorImage(vkTexture, sliceIndex, mipIndex, { 0,0,0,0 }, VK_IMAGE_LAYOUT_GENERAL);
 	}
 }
 
 void VulkanRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
 {
 	auto vkTexture = (LatteTextureVk*)hostTexture;
-	cemu_assert_debug(vkTexture->dim != Latte::E_DIM::DIM_3D);
-	ClearColorImage(vkTexture, sliceIndex, mipIndex, { r,g,b,a }, VK_IMAGE_LAYOUT_GENERAL);
+	if(vkTexture->dim == Latte::E_DIM::DIM_3D)
+	{
+		cemu_assert_unimplemented();
+	}
+	ClearColorImage(vkTexture, sliceIndex, mipIndex, {r, g, b, a}, VK_IMAGE_LAYOUT_GENERAL);
 }
 
 void VulkanRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue)

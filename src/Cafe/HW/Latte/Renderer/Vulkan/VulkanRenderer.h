@@ -130,7 +130,6 @@ class VulkanRenderer : public Renderer
 	using QueueFamilyIndices = SwapchainInfoVk::QueueFamilyIndices;
 
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
-	static const inline int INDEX_STREAM_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
 
 	static const inline int TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
 
