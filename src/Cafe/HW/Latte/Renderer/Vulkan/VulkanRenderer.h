@@ -720,192 +720,201 @@ private:
 
 		IMAGE_READ			= 0x20,
 		IMAGE_WRITE			= 0x40,
+
 	};
 
 	template<uint32 TSyncOp>
-	void barrier_calcStageAndMask(VkPipelineStageFlags2& stages, VkAccessFlags2& accessFlags)
+	void barrier_calcStageAndMask(VkPipelineStageFlags& stages, VkAccessFlags& accessFlags)
 	{
 		stages = 0;
 		accessFlags = 0;
 		if constexpr ((TSyncOp & BUFFER_SHADER_READ) != 0)
 		{
-			// in theory: VK_ACCESS_2_INDEX_READ_BIT should be set here too but indices are currently separated
-			stages |= VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			accessFlags |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_2_UNIFORM_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
+			// in theory: VK_ACCESS_INDEX_READ_BIT should be set here too but indices are currently separated			
+			stages |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			accessFlags |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 		}
-
+		
 		if constexpr ((TSyncOp & BUFFER_SHADER_WRITE) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			accessFlags |= VK_ACCESS_2_SHADER_WRITE_BIT;
+			stages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
 		}
 
 		if constexpr ((TSyncOp & ANY_TRANSFER) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-			accessFlags |= VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			//stages |= VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT;
+			//accessFlags |= VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_HOST_WRITE_BIT;
+			stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+			accessFlags |= VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+
+			//accessFlags |= VK_ACCESS_MEMORY_READ_BIT;
+			//accessFlags |= VK_ACCESS_MEMORY_WRITE_BIT;
 		}
 
 		if constexpr ((TSyncOp & TRANSFER_READ) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-			accessFlags |= VK_ACCESS_2_TRANSFER_READ_BIT;
+			stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+			accessFlags |= VK_ACCESS_TRANSFER_READ_BIT;
+
+			//accessFlags |= VK_ACCESS_MEMORY_READ_BIT;
 		}
 
 		if constexpr ((TSyncOp & TRANSFER_WRITE) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-			accessFlags |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+			accessFlags |= VK_ACCESS_TRANSFER_WRITE_BIT;
+
+			//accessFlags |= VK_ACCESS_MEMORY_WRITE_BIT;
 		}
 
 		if constexpr ((TSyncOp & HOST_WRITE) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_HOST_BIT;
-			accessFlags |= VK_ACCESS_2_HOST_WRITE_BIT;
+			stages |= VK_PIPELINE_STAGE_HOST_BIT;
+			accessFlags |= VK_ACCESS_HOST_WRITE_BIT;
 		}
 
 		if constexpr ((TSyncOp & HOST_READ) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_HOST_BIT;
-			accessFlags |= VK_ACCESS_2_HOST_READ_BIT;
+			stages |= VK_PIPELINE_STAGE_HOST_BIT;
+			accessFlags |= VK_ACCESS_HOST_READ_BIT;
 		}
 
 		if constexpr ((TSyncOp & IMAGE_READ) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			accessFlags |= VK_ACCESS_2_SHADER_READ_BIT;
+			stages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			accessFlags |= VK_ACCESS_SHADER_READ_BIT;
 
-			stages |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-			accessFlags |= VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+			stages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			accessFlags |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 
-			stages |= VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-			accessFlags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+			stages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			accessFlags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 		}
 
 		if constexpr ((TSyncOp & IMAGE_WRITE) != 0)
 		{
-			stages |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-			accessFlags |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			stages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			accessFlags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-			stages |= VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-			accessFlags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			stages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			accessFlags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		}
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
 	void barrier_bufferRange(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size)
 	{
-		VkBufferMemoryBarrier2 bufMemBarrier{};
-		bufMemBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+		VkBufferMemoryBarrier bufMemBarrier{};
+		bufMemBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 		bufMemBarrier.pNext = nullptr;
 		bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-		barrier_calcStageAndMask<TSrcSyncOp>(bufMemBarrier.srcStageMask, bufMemBarrier.srcAccessMask);
-		barrier_calcStageAndMask<TDstSyncOp>(bufMemBarrier.dstStageMask, bufMemBarrier.dstAccessMask);
+		VkPipelineStageFlags srcStages = 0;
+		VkPipelineStageFlags dstStages = 0;
+
+		bufMemBarrier.srcAccessMask = 0;
+		bufMemBarrier.dstAccessMask = 0;
+
+		barrier_calcStageAndMask<TSrcSyncOp>(srcStages, bufMemBarrier.srcAccessMask);
+		barrier_calcStageAndMask<TDstSyncOp>(dstStages, bufMemBarrier.dstAccessMask);
 
 		bufMemBarrier.buffer = buffer;
 		bufMemBarrier.offset = offset;
 		bufMemBarrier.size = size;
-
-		VkDependencyInfo depInfo{};
-		depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		depInfo.pNext = nullptr;
-		depInfo.bufferMemoryBarrierCount = 1;
-		depInfo.pBufferMemoryBarriers = &bufMemBarrier;
-		vkCmdPipelineBarrier2KHR(m_state.currentCommandBuffer, &depInfo);
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
 	}
 
 	template<uint32 TSrcSyncOpA, uint32 TDstSyncOpA, uint32 TSrcSyncOpB, uint32 TDstSyncOpB>
 	void barrier_bufferRange(VkBuffer bufferA, VkDeviceSize offsetA, VkDeviceSize sizeA,
 							 VkBuffer bufferB, VkDeviceSize offsetB, VkDeviceSize sizeB)
 	{
-		VkBufferMemoryBarrier2 bufMemBarrier2[2] = {};
-		bufMemBarrier2[0].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR;
-		bufMemBarrier2[0].pNext = nullptr;
-		bufMemBarrier2[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		bufMemBarrier2[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		bufMemBarrier2[0].buffer = bufferA;
-		bufMemBarrier2[0].offset = offsetA;
-		bufMemBarrier2[0].size = sizeA;
-		barrier_calcStageAndMask<TSrcSyncOpA>(bufMemBarrier2[0].srcStageMask, bufMemBarrier2[0].srcAccessMask);
-		barrier_calcStageAndMask<TDstSyncOpA>(bufMemBarrier2[0].dstStageMask, bufMemBarrier2[0].dstAccessMask);
+		VkPipelineStageFlags srcStagesA = 0;
+		VkPipelineStageFlags dstStagesA = 0;
+		VkPipelineStageFlags srcStagesB = 0;
+		VkPipelineStageFlags dstStagesB = 0;
 
-		bufMemBarrier2[1].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR;
-		bufMemBarrier2[1].pNext = nullptr;
-		bufMemBarrier2[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		bufMemBarrier2[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		bufMemBarrier2[1].buffer = bufferB;
-		bufMemBarrier2[1].offset = offsetB;
-		bufMemBarrier2[1].size = sizeB;
-		barrier_calcStageAndMask<TSrcSyncOpB>(bufMemBarrier2[1].srcStageMask, bufMemBarrier2[1].srcAccessMask);
-		barrier_calcStageAndMask<TDstSyncOpB>(bufMemBarrier2[1].dstStageMask, bufMemBarrier2[1].dstAccessMask);
+		VkBufferMemoryBarrier bufMemBarrier[2];
 
-		VkDependencyInfo dependencyInfo = {};
-		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfo.pNext = nullptr;
-		dependencyInfo.bufferMemoryBarrierCount = 2;
-		dependencyInfo.pBufferMemoryBarriers = bufMemBarrier2;
-		vkCmdPipelineBarrier2KHR(m_state.currentCommandBuffer, &dependencyInfo);
+		bufMemBarrier[0].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		bufMemBarrier[0].pNext = nullptr;
+		bufMemBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufMemBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufMemBarrier[0].srcAccessMask = 0;
+		bufMemBarrier[0].dstAccessMask = 0;
+		barrier_calcStageAndMask<TSrcSyncOpA>(srcStagesA, bufMemBarrier[0].srcAccessMask);
+		barrier_calcStageAndMask<TDstSyncOpA>(dstStagesA, bufMemBarrier[0].dstAccessMask);
+		bufMemBarrier[0].buffer = bufferA;
+		bufMemBarrier[0].offset = offsetA;
+		bufMemBarrier[0].size = sizeA;
+
+		bufMemBarrier[1].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		bufMemBarrier[1].pNext = nullptr;
+		bufMemBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufMemBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		bufMemBarrier[1].srcAccessMask = 0;
+		bufMemBarrier[1].dstAccessMask = 0;
+		barrier_calcStageAndMask<TSrcSyncOpB>(srcStagesB, bufMemBarrier[1].srcAccessMask);
+		barrier_calcStageAndMask<TDstSyncOpB>(dstStagesB, bufMemBarrier[1].dstAccessMask);
+		bufMemBarrier[1].buffer = bufferB;
+		bufMemBarrier[1].offset = offsetB;
+		bufMemBarrier[1].size = sizeB;
+
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStagesA|srcStagesB, dstStagesA|dstStagesB, 0, 0, nullptr, 2, bufMemBarrier, 0, nullptr);
 	}
 
 	void barrier_sequentializeTransfer()
 	{
-		VkMemoryBarrier2 memoryBarrier2{};
-		memoryBarrier2.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-		memoryBarrier2.pNext = nullptr;
-		memoryBarrier2.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		memoryBarrier2.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT;
-		memoryBarrier2.dstStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-		memoryBarrier2.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
+		VkMemoryBarrier memBarrier{};
+		memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		memBarrier.pNext = nullptr;
 
-		VkDependencyInfo dependencyInfo{};
-		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfo.pNext = nullptr;
-		dependencyInfo.memoryBarrierCount = 1;
-		dependencyInfo.pMemoryBarriers = &memoryBarrier2;
-		dependencyInfo.bufferMemoryBarrierCount = 0;
-		dependencyInfo.imageMemoryBarrierCount = 0;
-		vkCmdPipelineBarrier2KHR(m_state.currentCommandBuffer, &dependencyInfo);
+		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+		memBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+		memBarrier.dstAccessMask = 0;
+
+		memBarrier.srcAccessMask |= (VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
+		memBarrier.dstAccessMask |= (VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
+
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 1, &memBarrier, 0, nullptr, 0, nullptr);
 	}
 
 	void barrier_sequentializeCommand()
 	{
-		VkMemoryBarrier2 memoryBarrier = {};
-		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR;
-		memoryBarrier.srcAccessMask = 0;
-		memoryBarrier.dstStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT_KHR;
-		memoryBarrier.dstAccessMask = 0;
+		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
-		VkDependencyInfo dependencyInfo = {};
-		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfo.dependencyFlags = 0;
-		dependencyInfo.memoryBarrierCount = 1;
-		dependencyInfo.pMemoryBarriers = &memoryBarrier;
-		vkCmdPipelineBarrier2KHR(m_state.currentCommandBuffer, &dependencyInfo);
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 0, nullptr, 0, nullptr, 0, nullptr);
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
 	void barrier_image(VkImage imageVk, VkImageSubresourceRange& subresourceRange, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
-		VkImageMemoryBarrier2 imageMemBarrier2{};
-		imageMemBarrier2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-		imageMemBarrier2.oldLayout = oldLayout;
-		imageMemBarrier2.newLayout = newLayout;
-		imageMemBarrier2.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemBarrier2.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imageMemBarrier2.image = imageVk;
-		imageMemBarrier2.subresourceRange = subresourceRange;
+		VkPipelineStageFlags srcStages = 0;
+		VkPipelineStageFlags dstStages = 0;
 
-		barrier_calcStageAndMask<TSrcSyncOp>(imageMemBarrier2.srcStageMask, imageMemBarrier2.srcAccessMask);
-		barrier_calcStageAndMask<TDstSyncOp>(imageMemBarrier2.dstStageMask, imageMemBarrier2.dstAccessMask);
+		VkImageMemoryBarrier imageMemBarrier{};
+		imageMemBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemBarrier.srcAccessMask = 0;
+		imageMemBarrier.dstAccessMask = 0;
+		barrier_calcStageAndMask<TSrcSyncOp>(srcStages, imageMemBarrier.srcAccessMask);
+		barrier_calcStageAndMask<TDstSyncOp>(dstStages, imageMemBarrier.dstAccessMask);
+		imageMemBarrier.image = imageVk;
+		imageMemBarrier.subresourceRange = subresourceRange;
+		imageMemBarrier.oldLayout = oldLayout;
+		imageMemBarrier.newLayout = newLayout;
 
-		VkDependencyInfo dependencyInfo{};
-		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfo.imageMemoryBarrierCount = 1;
-		dependencyInfo.pImageMemoryBarriers = &imageMemBarrier2;
-		vkCmdPipelineBarrier2KHR(m_state.currentCommandBuffer, &dependencyInfo);
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer,
+							 srcStages, dstStages,
+							 0,
+							 0, NULL,
+							 0, NULL,
+							 1, &imageMemBarrier);
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
@@ -924,6 +933,7 @@ private:
 
 		vkTexture->SetImageLayout(subresourceRange, newLayout);
 	}
+
 
 public:
 	bool GetDisableMultithreadedCompilation() const { return m_featureControl.disableMultithreadedCompilation; }
