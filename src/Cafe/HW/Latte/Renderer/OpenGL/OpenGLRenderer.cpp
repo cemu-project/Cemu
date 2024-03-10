@@ -24,13 +24,14 @@
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)
 
+namespace CemuGL
+{
 #define GLFUNC(__type, __name)	__type __name;
 #define EGLFUNC(__type, __name)	__type __name;
-#define EGLFUNC_CUSTOM_NAME(__type, __symbol, __name)	__type __name;
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 #undef EGLFUNC
-#undef EGLFUNC_CUSTOM_NAME
+}
 
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -239,11 +240,9 @@ void LoadOpenGLImports()
 
 #define GLFUNC(__type, __name)	__name = (__type)_GetOpenGLFunction(libGL, _glXGetProcAddress, STRINGIFY(__name));
 #define EGLFUNC(__type, __name)	__name = (__type)dlsym(libEGL, STRINGIFY(__name));
-#define EGLFUNC_CUSTOM_NAME(__type, __symbol, __name)	__name = (__type)dlsym(libEGL, STRINGIFY(__symbol));
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 #undef EGLFUNC
-#undef EGLFUNC_CUSTOM_NAME
 }
 
 #if BOOST_OS_LINUX

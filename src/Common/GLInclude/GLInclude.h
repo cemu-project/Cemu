@@ -36,13 +36,13 @@ typedef struct __GLXFBConfigRec *GLXFBConfig;
 
 #endif
 
+namespace CemuGL
+{
 #define GLFUNC(__type, __name)	extern __type __name;
 #define EGLFUNC(__type, __name) extern __type __name;
-#define EGLFUNC_CUSTOM_NAME(__type, __symbol, __name) extern __type __name;
 #include "glFunctions.h"
 #undef GLFUNC
 #undef EGLFUNC
-#undef EGLFUNC_CUSTOM_NAME
 
 // DSA-style helpers with fallback to legacy API if DSA is not supported
 
@@ -215,6 +215,8 @@ static void glCompressedTextureSubImage3DWrapper(GLenum target, GLuint texture, 
 	glBindTexture(target, originalTexture);
 }
 
+}
+using namespace CemuGL;
 // this prevents Windows GL.h from being included:
 #define __gl_h_
 #define __GL_H__
