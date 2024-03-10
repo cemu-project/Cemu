@@ -243,6 +243,7 @@ void LoadOpenGLImports()
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 #undef EGLFUNC
+#undef EGLFUNC_CUSTOM_NAME
 }
 
 #if BOOST_OS_LINUX
