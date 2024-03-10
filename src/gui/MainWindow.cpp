@@ -2162,6 +2162,14 @@ void MainWindow::RecreateMenu()
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_PORTUGUESE, _("&Portuguese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::PT);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_RUSSIAN, _("&Russian"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::RU);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_TAIWANESE, _("&Taiwanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::TW);
+	if(IsGameLaunched())
+	{
+		auto items = optionsConsoleLanguageMenu->GetMenuItems();
+		for (auto& item : items)
+		{
+			item->Enable(false);
+		}
+	}
 
 	// options submenu
 	wxMenu* optionsMenu = new wxMenu();
