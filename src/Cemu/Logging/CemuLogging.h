@@ -7,7 +7,7 @@ enum class LogType : sint32
 	// note: IDs must be in range 1-64
 	Force = 63, // always enabled
 	Placeholder = 62, // always disabled
-	APIErrors = Force, // alias for Force. Logs bad parameters or other API errors in OS libs
+	APIErrors = Force, // alias for Force. Logs bad parameters or other API usage mistakes or unintended errors in OS libs
 
 	CoreinitFile = 0,
 	GX2 = 1,
@@ -98,6 +98,8 @@ bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 	auto format_str = std::basic_string<T>(format);
 	return cemuLog_log(type, format_str, std::forward<TArgs>(args)...);
 }
+
+#define cemuLog_logOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_log(__VA_ARGS__); } }
 
 // same as cemuLog_log, but only outputs in debug mode
 template<typename TFmt, typename ... TArgs>
