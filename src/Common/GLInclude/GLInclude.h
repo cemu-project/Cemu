@@ -38,9 +38,11 @@ typedef struct __GLXFBConfigRec *GLXFBConfig;
 
 #define GLFUNC(__type, __name)	extern __type __name;
 #define EGLFUNC(__type, __name) extern __type __name;
+#define EGLFUNC_CUSTOM_NAME(__type, __symbol, __name) extern __type __name;
 #include "glFunctions.h"
 #undef GLFUNC
 #undef EGLFUNC
+#undef EGLFUNC_CUSTOM_NAME
 
 // DSA-style helpers with fallback to legacy API if DSA is not supported
 
