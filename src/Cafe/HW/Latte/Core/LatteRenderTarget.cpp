@@ -516,14 +516,12 @@ bool LatteMRT::UpdateCurrentFBO()
 		sLatteRenderTargetState.rtUpdateList[sLatteRenderTargetState.rtUpdateListCount] = colorAttachmentView;
 		sLatteRenderTargetState.rtUpdateListCount++;
 
-		sint32 colorAttachmentWidth;
-		sint32 colorAttachmentHeight;
-
-		LatteTexture_getSize(colorAttachmentView->baseTexture, &colorAttachmentWidth, &colorAttachmentHeight, nullptr, colorAttachmentView->firstMip);
+		sint32 colorAttachmentWidth, colorAttachmentHeight;
+		colorAttachmentView->baseTexture->GetSize(colorAttachmentWidth, colorAttachmentHeight, colorAttachmentView->firstMip);
 
 		// set effective size
 		sint32 effectiveWidth, effectiveHeight;
-		LatteTexture_getEffectiveSize(colorAttachmentView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, colorAttachmentView->firstMip);
+		colorAttachmentView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, colorAttachmentView->firstMip);
 		if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
 		{
 			rtEffectiveSize->width = effectiveWidth;
@@ -531,9 +529,7 @@ bool LatteMRT::UpdateCurrentFBO()
 		}
 		else if (rtEffectiveSize->width != effectiveWidth && rtEffectiveSize->height != effectiveHeight)
 		{
-#ifdef CEMU_DEBUG_ASSERT
-			cemuLog_log(LogType::Force, "Color buffer size mismatch ({}x{}). Effective size: {}x{} Real size: {}x{} Mismatching texture: {:08x} {}x{} fmt {:04x}", rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, colorAttachmentView->baseTexture->physAddress, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, (uint32)colorAttachmentView->baseTexture->format);
-#endif
+			cemuLog_logDebug(LogType::Force, "Color buffer size mismatch ({}x{}). Effective size: {}x{} Real size: {}x{} Mismatching texture: {:08x} {}x{} fmt {:04x}", rtEffectiveSize->width, rtEffectiveSize->height, effectiveWidth, effectiveHeight, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, colorAttachmentView->baseTexture->physAddress, colorAttachmentView->baseTexture->width, colorAttachmentView->baseTexture->height, (uint32)colorAttachmentView->baseTexture->format);
 		}
 		// currently the first color attachment defines the size of the current render target
 		if (rtRealSize->width == 0 && rtRealSize->height == 0)
@@ -608,15 +604,11 @@ bool LatteMRT::UpdateCurrentFBO()
 
 			if (depthBufferPhysMem != MPTR_NULL)
 			{
-				bool depthBufferWasFound = false;
 				LatteTextureView* depthBufferView = LatteTextureViewLookupCache::lookupSliceEx(depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0, depthBufferViewFirstSlice, depthBufferFormat, true);
 				if (depthBufferView == nullptr)
 				{
-					// create depth buffer view
-					if(depthBufferViewFirstSlice == 0)
-						depthBufferView = LatteTexture_CreateMapping(depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, 1, depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, 0, 1, depthBufferFormat, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
-					else
-						depthBufferView = LatteTexture_CreateMapping(depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, depthBufferViewFirstSlice+1, depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, depthBufferViewFirstSlice, 1, depthBufferFormat, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, true);
+					// create new depth buffer view and if it doesn't exist then also create the texture
+					depthBufferView = LatteTexture_CreateMapping(depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, depthBufferViewFirstSlice+1, depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, depthBufferViewFirstSlice, 1, depthBufferFormat, depthBufferViewFirstSlice > 0 ? Latte::E_DIM::DIM_2D_ARRAY : Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
 					LatteGPUState.repeatTextureInitialization = true;
 				}
 				else
@@ -626,7 +618,7 @@ bool LatteMRT::UpdateCurrentFBO()
 				}
 				// set effective size
 				sint32 effectiveWidth, effectiveHeight;
-				LatteTexture_getEffectiveSize(depthBufferView->baseTexture, &effectiveWidth, &effectiveHeight, NULL);
+				depthBufferView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, depthBufferViewFirstSlice);
 				if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
 				{
 					rtEffectiveSize->width = effectiveWidth;
@@ -917,10 +909,8 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	// mark source texture as still in use
 	LatteTC_MarkTextureStillInUse(textureView->baseTexture);
 
-	sint32 effectiveWidth;
-	sint32 effectiveHeight;
-	sint32 effectiveDepth;
-	LatteTexture_getEffectiveSize(textureView->baseTexture, &effectiveWidth, &effectiveHeight, &effectiveDepth, 0);
+	sint32 effectiveWidth, effectiveHeight;
+	textureView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
 	_currentOutputImageWidth = effectiveWidth;
 	_currentOutputImageHeight = effectiveHeight;
 	

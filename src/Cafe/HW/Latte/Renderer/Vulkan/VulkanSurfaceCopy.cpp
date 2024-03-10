@@ -464,9 +464,8 @@ VKRObjectFramebuffer* VulkanRenderer::surfaceCopy_getOrCreateFramebuffer(VkCopyS
 	VKRObjectTextureView* vkObjTextureView = surfaceCopy_createImageView(state.destinationTexture, state.dstSlice, state.dstMip);
 
 	// create new framebuffer
-	sint32 effectiveWidth = 0;
-	sint32 effectiveHeight = 0;
-	LatteTexture_getEffectiveSize(state.destinationTexture, &effectiveWidth, &effectiveHeight, nullptr, state.dstMip);
+	sint32 effectiveWidth, effectiveHeight;
+	state.destinationTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, state.dstMip);
 
 	std::array<VKRObjectTextureView*, 1> fbAttachments;
 	fbAttachments[0] = vkObjTextureView;
@@ -595,15 +594,11 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 	// get descriptor set
 	VKRObjectDescriptorSet* vkObjDescriptorSet = surfaceCopy_getOrCreateDescriptorSet(copySurfaceState, copySurfacePipelineInfo);
 	
-	// get extend
-	sint32 effectiveWidth = 0;
-	sint32 effectiveHeight = 0;
-	LatteTexture_getEffectiveSize(dstTextureVk, &effectiveWidth, &effectiveHeight, nullptr, texDstMip);
+	sint32 dstEffectiveWidth, dstEffectiveHeight;
+	dstTextureVk->GetEffectiveSize(dstEffectiveWidth, dstEffectiveHeight, texDstMip);
 
-	// get extend
-	sint32 srcEffectiveWidth = 0;
-	sint32 srcEffectiveHeight = 0;
-	LatteTexture_getEffectiveSize(srcTextureVk, &srcEffectiveWidth, &srcEffectiveHeight, nullptr, texSrcMip);
+	sint32 srcEffectiveWidth, srcEffectiveHeight;
+	srcTextureVk->GetEffectiveSize(srcEffectiveWidth, srcEffectiveHeight, texSrcMip);
 
 	CopyShaderPushConstantData_t pushConstantData;
 
@@ -878,9 +873,8 @@ void VulkanRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 	sint32 effectiveCopyWidth = width;
 	sint32 effectiveCopyHeight = height;
 	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
-	sint32 sourceEffectiveWidth;
-	sint32 sourceEffectiveHeight;
-	LatteTexture_getEffectiveSize(sourceTexture, &sourceEffectiveWidth, &sourceEffectiveHeight, nullptr, srcMip);
+	sint32 sourceEffectiveWidth, sourceEffectiveHeight;
+	sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 
 	sint32 texSrcMip = srcMip;
 	sint32 texSrcSlice = srcSlice;

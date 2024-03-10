@@ -112,6 +112,8 @@ bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 #endif
 }
 
+#define cemuLog_logDebugOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_logDebug(__VA_ARGS__); } }
+
 // cafe lib calls
 bool cemuLog_advancedPPCLoggingEnabled();
 

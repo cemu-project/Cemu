@@ -569,10 +569,8 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		g_renderer->ClearColorbuffer(padView);
 	}
 
-	// calculate effective size
-	sint32 effectiveWidth;
-	sint32 effectiveHeight;
-	LatteTexture_getEffectiveSize(texView->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, 0);
+	sint32 effectiveWidth, effectiveHeight;
+	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
 
 	shader_unbind(RendererShader::ShaderType::kGeometry);
 	shader_bind(shader->GetVertexShader());
@@ -1127,8 +1125,8 @@ void OpenGLRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 s
 	LatteTextureGL* texGL = (LatteTextureGL*)hostTexture;
 	cemu_assert_debug(!texGL->isDepth);
 
-	sint32 eWidth, eHeight, eDepth;
-	LatteTexture_getEffectiveSize(hostTexture, &eWidth, &eHeight, &eDepth, mipIndex);
+	sint32 eWidth, eHeight;
+	hostTexture->GetEffectiveSize(eWidth, eHeight, mipIndex);
 	renderstate_resetColorControl();
 	renderTarget_setViewport(0, 0, eWidth, eHeight, 0.0f, 1.0f);
 	LatteMRT::BindColorBufferOnly(hostTexture->GetOrCreateView(mipIndex, 1, sliceIndex, 1));
@@ -1141,8 +1139,8 @@ void OpenGLRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 s
 	LatteTextureGL* texGL = (LatteTextureGL*)hostTexture;
 	cemu_assert_debug(texGL->isDepth);
 
-	sint32 eWidth, eHeight, eDepth;
-	LatteTexture_getEffectiveSize(hostTexture, &eWidth, &eHeight, &eDepth, mipIndex);
+	sint32 eWidth, eHeight;
+	hostTexture->GetEffectiveSize(eWidth, eHeight, mipIndex);
 	renderstate_resetColorControl();
 	renderstate_resetDepthControl();
 	renderTarget_setViewport(0, 0, eWidth, eHeight, 0.0f, 1.0f);
@@ -1170,13 +1168,12 @@ void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32
 	LatteTextureGL::FormatInfoGL formatInfoGL;
 	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth, hostTexture->format, hostTexture->dim, &formatInfoGL);
 	// get effective size of mip
-	sint32 effectiveWidth;
-	sint32 effectiveHeight;
-	LatteTexture_getEffectiveSize(hostTexture, &effectiveWidth, &effectiveHeight, nullptr, mipIndex);
+	sint32 effectiveWidth, effectiveHeight;
+	hostTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, mipIndex);
 
 	// on Nvidia glClearTexImage and glClearTexSubImage has bad performance (clearing a 4K texture takes up to 50ms)
 	// clearing with glTextureSubImage2D from a CPU RAM buffer is only slightly slower
-	// clearing with glTextureSubImage2D from a OpenGL buffer is 10-20% faster than glClearTexImage)
+	// clearing with glTextureSubImage2D from a OpenGL buffer is 10-20% faster than glClearTexImage
 	// clearing with FBO and glClear is orders of magnitude faster than the other methods
 	// (these are results from 2018, may be different now)
 
@@ -1207,7 +1204,6 @@ void OpenGLRenderer::texture_clearSlice(LatteTexture* hostTextureGeneric, sint32
 	}
 	if (glClearTexSubImage == nullptr)
 		return;
-	// clear
 	glClearTexSubImage(hostTexture->glId_texture, mipIndex, 0, 0, sliceIndex, effectiveWidth, effectiveHeight, 1, formatInfoGL.glSuppliedFormat, formatInfoGL.glSuppliedFormatType, NULL);
 }
 
@@ -1215,7 +1211,6 @@ LatteTexture* OpenGLRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR phy
 	uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
 	return new LatteTextureGL(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
-	
 }
 
 void OpenGLRenderer::texture_setActiveTextureUnit(sint32 index)

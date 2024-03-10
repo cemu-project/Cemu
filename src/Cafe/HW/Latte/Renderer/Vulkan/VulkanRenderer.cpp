@@ -764,7 +764,7 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	//dumpImage->flagForCurrentCommandBuffer();
 
 	int width, height;
-	LatteTexture_getEffectiveSize(baseImageTex, &width, &height, nullptr, 0);
+	baseImageTex->GetEffectiveSize(width, height, 0);
 
 	VkImage image = nullptr;
 	VkDeviceMemory imageMemory = nullptr;;

@@ -297,9 +297,9 @@ void LatteTexture_copyData(LatteTexture* srcTexture, LatteTexture* dstTexture, s
 	else
 	{
 		sint32 effectiveWidth_dst, effectiveHeight_dst;
-		LatteTexture_getEffectiveSize(srcTexture, &effectiveWidth_dst, &effectiveHeight_dst, NULL, 0);
+		srcTexture->GetEffectiveSize(effectiveWidth_dst, effectiveHeight_dst, 0);
 		sint32 effectiveWidth_src, effectiveHeight_src;
-		LatteTexture_getEffectiveSize(dstTexture, &effectiveWidth_src, &effectiveHeight_src, NULL, 0);
+		dstTexture->GetEffectiveSize(effectiveWidth_src, effectiveHeight_src, 0);
 
 		debug_printf("texture_copyData(): Effective size mismatch\n");
 		cemuLog_logDebug(LogType::Force, "texture_copyData(): Effective size mismatch (due to texture rule)");
@@ -307,8 +307,6 @@ void LatteTexture_copyData(LatteTexture* srcTexture, LatteTexture* dstTexture, s
 		cemuLog_logDebug(LogType::Force, "Source:      origResolution {:04}x{:04} effectiveResolution {:04}x{:04} fmt {:04x} mipIndex {}", srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, 0);
 		return;
 	}
-	catchOpenGLError();
-
 	for (sint32 mipIndex = 0; mipIndex < mipCount; mipIndex++)
 	{
 		sint32 sliceCopyWidth = std::max(effectiveCopyWidth >> mipIndex, 1);
@@ -323,9 +321,7 @@ void LatteTexture_copyData(LatteTexture* srcTexture, LatteTexture* dstTexture, s
 			LatteTextureSliceMipInfo* dstTexSliceInfo = dstTexture->sliceMipInfo + dstTexture->GetSliceMipArrayIndex(sliceIndex, mipIndex);
 			dstTexSliceInfo->lastDynamicUpdate = srcTexSliceInfo->lastDynamicUpdate;
 		}
-		catchOpenGLError();
 	}
-	catchOpenGLError();
 }
 
 template<bool bothMustMatch>
