@@ -270,41 +270,6 @@ void gx2Export_GX2SetComputeShader(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
-void _GX2SubmitUniformReg(uint32 aluRegisterOffset, MPTR virtualAddress, uint32 count)
-{
-	uint32* dataWords = (uint32*)memory_getPointerFromVirtualOffset(virtualAddress);
-	GX2ReserveCmdSpace(2 + (count / 0xFF) * 2 + count);
-	// write PM4 command(s)
-	uint32 currentRegisterOffset = aluRegisterOffset;
-	while (count > 0)
-	{
-		uint32 subCount = std::min(count, 0xFFu); // a single command can write at most 0xFF values
-		gx2WriteGather_submit(pm4HeaderType3(IT_SET_ALU_CONST, 1 + subCount),
-			currentRegisterOffset);
-		gx2WriteGather_submitU32AsLEArray(dataWords, subCount);
-
-		dataWords += subCount;
-		count -= subCount;
-		currentRegisterOffset += subCount;
-	}
-}
-
-void gx2Export_GX2SetVertexUniformReg(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2SetVertexUniformReg(0x{:08x},0x{:x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-	_GX2SubmitUniformReg(hCPU->gpr[3] + 0x400, hCPU->gpr[5], hCPU->gpr[4]);
-	cemu_assert_debug((hCPU->gpr[3] + hCPU->gpr[4]) <= 0x400);
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-void gx2Export_GX2SetPixelUniformReg(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2SetPixelUniformReg(0x{:08x},0x{:x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
-	_GX2SubmitUniformReg(hCPU->gpr[3], hCPU->gpr[5], hCPU->gpr[4]);
-	cemu_assert_debug((hCPU->gpr[3] + hCPU->gpr[4]) <= 0x400);
-	osLib_returnFromFunction(hCPU, 0);
-}
-
 void _GX2SubmitUniformBlock(uint32 registerBase, uint32 index, MPTR virtualAddress, uint32 size)
 {
 	GX2ReserveCmdSpace(9);
