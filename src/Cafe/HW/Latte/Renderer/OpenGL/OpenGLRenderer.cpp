@@ -248,7 +248,6 @@ void LoadOpenGLImports()
 #if BOOST_OS_LINUX
 // dummy function for all code that is statically linked with cemu and attempts to use eglSwapInterval
 // used to suppress wxWidgets calls to eglSwapInterval
-// Real eglSwapInterval is a function pointer defined as eglSwapIntervalCemu
 extern "C"
 EGLAPI EGLBoolean EGLAPIENTRY eglSwapInterval(EGLDisplay dpy, EGLint interval)
 {
