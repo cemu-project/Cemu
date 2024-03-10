@@ -1019,8 +1019,11 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 	default:
 		cemu_assert_debug(false);
 	}
-	m_game_list->DeleteCachedStrings();
-	m_game_list->ReloadGameEntries(false);
+	if(!IsGameLaunched())
+	{
+		m_game_list->DeleteCachedStrings();
+		m_game_list->ReloadGameEntries(false);
+	}
 	g_config.Save();
 }
 
