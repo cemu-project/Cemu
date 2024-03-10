@@ -24,11 +24,14 @@
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)
 
+namespace CemuGL
+{
 #define GLFUNC(__type, __name)	__type __name;
 #define EGLFUNC(__type, __name)	__type __name;
 #include "Common/GLInclude/glFunctions.h"
 #undef GLFUNC
 #undef EGLFUNC
+}
 
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -241,6 +244,17 @@ void LoadOpenGLImports()
 #undef GLFUNC
 #undef EGLFUNC
 }
+
+#if BOOST_OS_LINUX
+// dummy function for all code that is statically linked with cemu and attempts to use eglSwapInterval
+// used to suppress wxWidgets calls to eglSwapInterval
+extern "C"
+EGLAPI EGLBoolean EGLAPIENTRY eglSwapInterval(EGLDisplay dpy, EGLint interval)
+{
+	return EGL_TRUE;
+}
+#endif
+
 #elif BOOST_OS_MACOS
 void LoadOpenGLImports()
 {
