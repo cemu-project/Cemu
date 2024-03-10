@@ -1019,7 +1019,7 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 	default:
 		cemu_assert_debug(false);
 	}
-	if(!IsGameLaunched())
+	if (m_game_list)
 	{
 		m_game_list->DeleteCachedStrings();
 		m_game_list->ReloadGameEntries(false);
