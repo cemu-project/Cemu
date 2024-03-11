@@ -129,19 +129,18 @@ class _ShaderVkThreadPool
 public:
 	void StartThreads()
 	{
-		if (s_threads.empty())
-		{
-			// create thread pool
-			m_shutdownThread.store(false);
-			const uint32 threadCount = 2;
-			for (uint32 i = 0; i < threadCount; ++i)
-				s_threads.emplace_back(&_ShaderVkThreadPool::CompilerThreadFunc, this);
-		}
+		if (m_threadsActive.exchange(true))
+			return;
+		// create thread pool
+		const uint32 threadCount = 2;
+		for (uint32 i = 0; i < threadCount; ++i)
+			s_threads.emplace_back(&_ShaderVkThreadPool::CompilerThreadFunc, this);
 	}
 
 	void StopThreads()
 	{
-		m_shutdownThread.store(true);
+		if (!m_threadsActive.exchange(false))
+			return;
 		for (uint32 i = 0; i < s_threads.size(); ++i)
 			s_compilationQueueCount.increment();
 		for (auto& it : s_threads)
@@ -156,7 +155,7 @@ public:
 
 	void CompilerThreadFunc()
 	{
-		while (!m_shutdownThread.load(std::memory_order::relaxed))
+		while (m_threadsActive.load(std::memory_order::relaxed))
 		{
 			s_compilationQueueCount.decrementWithWait();
 			s_compilationQueueMutex.lock();
@@ -181,7 +180,7 @@ public:
 		}
 	}
 
-	bool HasThreadsRunning() const { return !m_shutdownThread; }
+	bool HasThreadsRunning() const { return m_threadsActive; }
 
 public:
 	std::vector<std::thread> s_threads;
@@ -191,7 +190,7 @@ public:
 	std::mutex s_compilationQueueMutex;
 
 private:
-	std::atomic<bool> m_shutdownThread;
+	std::atomic<bool> m_threadsActive;
 }ShaderVkThreadPool;
 
 RendererShaderVk::RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslCode)

@@ -600,7 +600,7 @@ VulkanRenderer::~VulkanRenderer()
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	WaitCommandBufferFinished(GetCurrentCommandBufferId());
-	// shut down compilation threads
+	// make sure compilation threads have been shut down
 	RendererShaderVk::Shutdown();
 	// shut down pipeline save thread
 	m_destructionRequested = true;
@@ -1558,12 +1558,12 @@ void VulkanRenderer::Shutdown()
 	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
-
 	if (m_imguiRenderPass != VK_NULL_HANDLE)
 	{
 		vkDestroyRenderPass(m_logicalDevice, m_imguiRenderPass, nullptr);
 		m_imguiRenderPass = VK_NULL_HANDLE;
 	}
+	RendererShaderVk::Shutdown();
 }
 
 void VulkanRenderer::UnrecoverableError(const char* errMsg) const
