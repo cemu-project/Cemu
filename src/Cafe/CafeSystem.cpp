@@ -821,11 +821,11 @@ namespace CafeSystem
 		uint32 h = generateHashFromRawRPXData(execData->data(), execData->size());
 		sForegroundTitleId = 0xFFFFFFFF00000000ULL | (uint64)h;
 		cemuLog_log(LogType::Force, "Generated placeholder TitleId: {:016x}", sForegroundTitleId);
-		// setup memory space and ppc recompiler
+		// setup memory space
         SetupMemorySpace();
-        PPCRecompiler_init();
         // load executable
         SetupExecutable();
+		PPCRecompiler_init();
 		InitVirtualMlcStorage();
 		return STATUS_CODE::SUCCESS;
 	}
