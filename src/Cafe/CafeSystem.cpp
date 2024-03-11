@@ -748,7 +748,6 @@ namespace CafeSystem
 			}
 		}
 		LoadMainExecutable();
-		gameProfile_load();
 		return STATUS_CODE::SUCCESS;
 	}
 
@@ -777,12 +776,13 @@ namespace CafeSystem
 		STATUS_CODE r = LoadAndMountForegroundTitle(titleId);
 		if (r != STATUS_CODE::SUCCESS)
 			return r;
+		gameProfile_load();
 		// setup memory space and PPC recompiler
         SetupMemorySpace();
+        PPCRecompiler_init();
 		r = SetupExecutable(); // load RPX
 		if (r != STATUS_CODE::SUCCESS)
 			return r;
-		PPCRecompiler_init();
 		InitVirtualMlcStorage();
 		return STATUS_CODE::SUCCESS;
 	}
@@ -821,11 +821,11 @@ namespace CafeSystem
 		uint32 h = generateHashFromRawRPXData(execData->data(), execData->size());
 		sForegroundTitleId = 0xFFFFFFFF00000000ULL | (uint64)h;
 		cemuLog_log(LogType::Force, "Generated placeholder TitleId: {:016x}", sForegroundTitleId);
-		// setup memory space
+		// setup memory space and ppc recompiler
         SetupMemorySpace();
+        PPCRecompiler_init();
         // load executable
         SetupExecutable();
-		PPCRecompiler_init();
 		InitVirtualMlcStorage();
 		return STATUS_CODE::SUCCESS;
 	}
