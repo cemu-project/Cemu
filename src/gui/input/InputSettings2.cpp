@@ -309,7 +309,7 @@ std::pair<size_t, size_t> InputSettings2::get_emulated_controller_types() const
 			continue;
 
 		const auto api_type = page_data->ref().m_controller->type();
-		if (api_type) 
+		if (api_type >= EmulatedController::MAX)
 			continue;
 
 		if (api_type == EmulatedController::VPAD)
