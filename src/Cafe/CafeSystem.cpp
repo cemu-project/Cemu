@@ -779,10 +779,10 @@ namespace CafeSystem
 			return r;
 		// setup memory space and PPC recompiler
         SetupMemorySpace();
-        PPCRecompiler_init();
 		r = SetupExecutable(); // load RPX
 		if (r != STATUS_CODE::SUCCESS)
 			return r;
+		PPCRecompiler_init();
 		InitVirtualMlcStorage();
 		return STATUS_CODE::SUCCESS;
 	}
