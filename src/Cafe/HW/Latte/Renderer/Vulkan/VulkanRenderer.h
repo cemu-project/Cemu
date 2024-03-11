@@ -311,7 +311,6 @@ public:
 	void surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTexture);
 
 	private:
-	void surfaceCopy_viaBuffer(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcLevel, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstLevel, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
 	void surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcSlice, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
 
 	void surfaceCopy_cleanup();
@@ -327,10 +326,6 @@ private:
 	VKRObjectRenderPass* copySurface_createRenderpass(struct VkCopySurfaceState_t& state);
 
 	std::unordered_map<uint64, struct CopySurfacePipelineInfo*> m_copySurfacePipelineCache;
-
-	VkBuffer m_surfaceCopyBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_surfaceCopyBufferMemory = VK_NULL_HANDLE;
-	size_t m_surfaceCopyBufferSize{};
 
 public:
 	// renderer interface
@@ -470,7 +465,6 @@ private:
 
 		struct  
 		{
-			bool useBufferSurfaceCopies; // if GPU has enough VRAM to spare, allow to use a buffer to copy surfaces (instead of drawcalls)
 			bool useTFEmulationViaSSBO = true; // emulate transform feedback via shader writes to a storage buffer
 		}mode;
 

@@ -577,20 +577,6 @@ VulkanRenderer::VulkanRenderer()
 	for (sint32 i = 0; i < OCCLUSION_QUERY_POOL_SIZE; i++)
 		m_occlusionQueries.list_availableQueryIndices.emplace_back(i);
 
-	// enable surface copies via buffer if we have plenty of memory available (otherwise use drawcalls)
-	size_t availableSurfaceCopyBufferMem = memoryManager->GetTotalMemoryForBufferType(VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	//m_featureControl.mode.useBufferSurfaceCopies = availableSurfaceCopyBufferMem >= 2000ull * 1024ull * 1024ull; // enable if at least 2000MB VRAM
-	m_featureControl.mode.useBufferSurfaceCopies = false;
-
-	if (m_featureControl.mode.useBufferSurfaceCopies)
-	{
-		//cemuLog_log(LogType::Force, "Enable surface copies via buffer");
-	}
-	else
-	{
-		//cemuLog_log(LogType::Force, "Disable surface copies via buffer (Requires 2GB. Has only {}MB available)", availableSurfaceCopyBufferMem / 1024ull / 1024ull);
-	}
-
 	// start compilation threads
 	RendererShaderVk::Init();
 }
