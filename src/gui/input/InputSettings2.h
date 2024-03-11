@@ -25,7 +25,7 @@ private:
 
 	wxBitmap m_connected, m_disconnected, m_low_battery;
 
-	wxWindow* initialize_page(size_t index);
+	void initialize_page(size_t index);
 
 	// count active <vpad, wpad> controllers
 	std::pair<size_t, size_t> get_emulated_controller_types() const; 
