@@ -618,7 +618,7 @@ bool LatteMRT::UpdateCurrentFBO()
 				}
 				// set effective size
 				sint32 effectiveWidth, effectiveHeight;
-				depthBufferView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, depthBufferViewFirstSlice);
+				depthBufferView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
 				if (rtEffectiveSize->width == 0 && rtEffectiveSize->height == 0)
 				{
 					rtEffectiveSize->width = effectiveWidth;
