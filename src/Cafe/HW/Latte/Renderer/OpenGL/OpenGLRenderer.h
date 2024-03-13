@@ -195,7 +195,7 @@ private:
 	GLuint glStreamoutCacheRingBuffer;
 
 	// cfbo
-	GLuint prevBoundFBO = -1;
+	GLuint prevBoundFBO = 0;
 	GLuint glId_fbo = 0;
 
 	// renderstate

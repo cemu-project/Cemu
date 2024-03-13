@@ -330,13 +330,14 @@ void OpenGLRenderer::Initialize()
 	lock.unlock();
 
 	// create framebuffer for fast clearing (avoid glClearTexSubImage on Nvidia)
-	if (this->m_vendor == GfxVendor::Nvidia || glClearTexSubImage == nullptr)
+	if (glCreateFramebuffers)
+		glCreateFramebuffers(1, &glRendererState.clearFBO);
+	else
 	{
-		// generate framebuffer
-		if (glCreateFramebuffers && false)
-			glCreateFramebuffers(1, &glRendererState.clearFBO);
-		else
-			glGenFramebuffers(1, &glRendererState.clearFBO);
+		glGenFramebuffers(1, &glRendererState.clearFBO);
+		// bind to initialize
+		glBindFramebuffer(GL_FRAMEBUFFER_EXT, glRendererState.clearFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
 	}
 
 	draw_init();
@@ -425,8 +426,11 @@ void _glDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GL
 		return;
 	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "Dithering is enabled"))
 		return;
-
+	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "Blending is enabled, but is not supported for integer framebuffers"))
+		return;
 	if (LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "does not have a defined base level"))
+		return;
+	if(LatteGPUState.glVendor == GLVENDOR_NVIDIA && strstr(message, "has depth comparisons disabled, with a texture object"))
 		return;
 
 	cemuLog_log(LogType::Force, "GLDEBUG: {}", message);
@@ -670,7 +674,10 @@ void OpenGLRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* cfbo)
 {
 	auto cfboGL = (CachedFBOGL*)cfbo;
 	if (prevBoundFBO == cfboGL->glId_fbo)
-		prevBoundFBO = -1;
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
+		prevBoundFBO = 0;
+	}
 	glDeleteFramebuffers(1, &cfboGL->glId_fbo);
 }
 
@@ -1013,9 +1020,6 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTextureGeneri
 		effectiveBaseHeight = hostTexture->overwriteInfo.height;
 		effectiveBaseDepth = hostTexture->overwriteInfo.depth;
 	}
-	// get format info
-	LatteTextureGL::FormatInfoGL glFormatInfo;
-	LatteTextureGL::GetOpenGLFormatInfo(hostTexture->isDepth, hostTexture->overwriteInfo.hasFormatOverwrite ? (Latte::E_GX2SURFFMT)hostTexture->overwriteInfo.format : hostTexture->format, hostTexture->dim, &glFormatInfo);
 	// calculate mip count
 	sint32 mipLevels = std::min(hostTexture->mipLevels, hostTexture->maxPossibleMipLevels);
 	mipLevels = std::max(mipLevels, 1);
@@ -1023,25 +1027,25 @@ void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTextureGeneri
 	if (hostTexture->dim == Latte::E_DIM::DIM_2D || hostTexture->dim == Latte::E_DIM::DIM_2D_MSAA)
 	{
 		cemu_assert_debug(effectiveBaseDepth == 1);
-		glTextureStorage2DWrapper(GL_TEXTURE_2D, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight);
+		glTextureStorage2DWrapper(GL_TEXTURE_2D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_1D)
 	{
 		cemu_assert_debug(effectiveBaseHeight == 1);
 		cemu_assert_debug(effectiveBaseDepth == 1);
-		glTextureStorage1DWrapper(GL_TEXTURE_1D, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth);
+		glTextureStorage1DWrapper(GL_TEXTURE_1D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth);
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
 	{
-		glTextureStorage3DWrapper(GL_TEXTURE_2D_ARRAY, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+		glTextureStorage3DWrapper(GL_TEXTURE_2D_ARRAY, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_3D)
 	{
-		glTextureStorage3DWrapper(GL_TEXTURE_3D, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+		glTextureStorage3DWrapper(GL_TEXTURE_3D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
 	}
 	else if (hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
 	{
-		glTextureStorage3DWrapper(GL_TEXTURE_CUBE_MAP_ARRAY, hostTexture->glId_texture, mipLevels, glFormatInfo.glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
+		glTextureStorage3DWrapper(GL_TEXTURE_CUBE_MAP_ARRAY, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
 	}
 	else
 	{
@@ -1279,7 +1283,6 @@ void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 {
 	auto srcGL = (LatteTextureGL*)src;
 	auto dstGL = (LatteTextureGL*)dst;
-
 	if ((srcGL->isAlternativeFormat || dstGL->isAlternativeFormat) && (srcGL->glInternalFormat != dstGL->glInternalFormat))
 	{
 		if (srcGL->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT && dstGL->format == Latte::E_GX2SURFFMT::BC4_UNORM)

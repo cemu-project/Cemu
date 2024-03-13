@@ -434,6 +434,11 @@ void LatteTexture_SyncSlice(LatteTexture* srcTexture, sint32 srcSliceIndex, sint
 	sint32 dstWidth = dstTexture->width;
 	sint32 dstHeight = dstTexture->height;
 
+	if(srcTexture->overwriteInfo.hasFormatOverwrite != dstTexture->overwriteInfo.hasFormatOverwrite)
+		return; // dont sync: format overwrite state needs to match. Not strictly necessary but it simplifies logic down the road
+	else if(srcTexture->overwriteInfo.hasFormatOverwrite && srcTexture->overwriteInfo.format != dstTexture->overwriteInfo.format)
+		return; // both are overwritten but with different formats
+
 	if (srcMipIndex == 0 && dstMipIndex == 0 && (srcTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED || srcTexture->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1) && srcTexture->height > dstTexture->height && (srcTexture->height % dstTexture->height) == 0)
 	{
 		bool isMatch = srcTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED;
@@ -816,6 +821,12 @@ VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseT
 {
 	relativeMipIndex = 0;
 	relativeSliceIndex = 0;
+	if (baseTexture->overwriteInfo.hasFormatOverwrite)
+	{
+		// if the base format is overwritten, then we only allow aliasing if the view format matches the base format
+		if (baseTexture->format != format)
+			return VIEW_NOT_COMPATIBLE;
+	}
 	if (LatteTexture_IsFormatViewCompatible(baseTexture->format, format) == false)
 		return VIEW_NOT_COMPATIBLE;
 	if (baseTexture->physAddress == physAddr && baseTexture->pitch == pitch)
