@@ -813,9 +813,9 @@ void VulkanRenderer::surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTextur
 			{
 				if (p)
 				{
-					VulkanRenderer::GetInstance()->releaseDestructibleObject(p->vkObjDescriptorSet);
+					VulkanRenderer::GetInstance()->ReleaseDestructibleObject(p->vkObjDescriptorSet);
 					p->vkObjDescriptorSet = nullptr;
-					VulkanRenderer::GetInstance()->releaseDestructibleObject(p->vkObjImageView);
+					VulkanRenderer::GetInstance()->ReleaseDestructibleObject(p->vkObjImageView);
 					p->vkObjImageView = nullptr;
 				}
 			}
@@ -829,9 +829,9 @@ void VulkanRenderer::surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTextur
 			{
 				if (p)
 				{
-					VulkanRenderer::GetInstance()->releaseDestructibleObject(p->vkObjFramebuffer);
+					VulkanRenderer::GetInstance()->ReleaseDestructibleObject(p->vkObjFramebuffer);
 					p->vkObjFramebuffer = nullptr;
-					VulkanRenderer::GetInstance()->releaseDestructibleObject(p->vkObjImageView);
+					VulkanRenderer::GetInstance()->ReleaseDestructibleObject(p->vkObjImageView);
 					p->vkObjImageView = nullptr;
 				}
 			}

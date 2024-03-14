@@ -27,6 +27,8 @@ public:
 	LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
 	virtual ~LatteTexture();
 
+	virtual void AllocateOnHost() = 0;
+
 	LatteTextureView* GetOrCreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
 	{
 		for (auto& itr : views)

@@ -221,35 +221,9 @@ void LatteMRT::BindDepthBufferOnly(LatteTextureView* view)
 	ApplyCurrentState();
 }
 
-/***************************************************/
-
-LatteTextureView* LatteMRT_FindColorBufferForClearing(MPTR colorBufferPtr, sint32 colorBufferWidth, sint32 colorBufferHeight, sint32 colorBufferPitch, uint32 format, sint32 sliceIndex, sint32* searchIndex)
-{
-	LatteTextureView* view = LatteTC_LookupTextureByData(colorBufferPtr, colorBufferWidth, colorBufferHeight, colorBufferPitch, 0, 1, sliceIndex, 1, searchIndex);
-	if (view == nullptr)
-		return nullptr;
-	return view;
-}
-
-LatteTextureView* LatteMRT_CreateColorBuffer(MPTR colorBufferPhysMem, uint32 width, uint32 height, uint32 pitch, Latte::E_GX2SURFFMT format, Latte::E_HWTILEMODE tileMode, uint32 swizzle, uint32 viewSlice)
-{
-	cemu_assert_debug(colorBufferPhysMem != MPTR_NULL);
-	LatteTextureView* textureView;
-	if(viewSlice != 0)
-		textureView = LatteTexture_CreateMapping(colorBufferPhysMem, MPTR_NULL, width, height, viewSlice+1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, false);
-	else
-		textureView = LatteTexture_CreateMapping(colorBufferPhysMem, MPTR_NULL, width, height, 1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, false);
-	return textureView;
-}
-
 LatteTextureView* LatteMRT_CreateDepthBuffer(MPTR depthBufferPhysMem, uint32 width, uint32 height, uint32 pitch, Latte::E_HWTILEMODE tileMode, Latte::E_GX2SURFFMT format, uint32 swizzle, sint32 viewSlice)
 {
-	LatteTextureView* textureView;
-	if(viewSlice == 0)
-		textureView = LatteTexture_CreateMapping(depthBufferPhysMem, MPTR_NULL, width, height, 1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
-	else
-		textureView = LatteTexture_CreateMapping(depthBufferPhysMem, MPTR_NULL, width, height, viewSlice+1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, Latte::E_DIM::DIM_2D_ARRAY, Latte::E_DIM::DIM_2D, true);
-
+	LatteTextureView* textureView = LatteTexture_CreateMapping(depthBufferPhysMem, MPTR_NULL, width, height, viewSlice+1, pitch, tileMode, swizzle, 0, 1, viewSlice, 1, format, viewSlice > 0 ? Latte::E_DIM::DIM_2D_ARRAY : Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
 	LatteMRT::SetDepthAndStencilAttachment(textureView, textureView->baseTexture->hasStencil);
 	return textureView;
 }
@@ -605,7 +579,7 @@ bool LatteMRT::UpdateCurrentFBO()
 			if (depthBufferPhysMem != MPTR_NULL)
 			{
 				LatteTextureView* depthBufferView = LatteTextureViewLookupCache::lookupSliceEx(depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0, depthBufferViewFirstSlice, depthBufferFormat, true);
-				if (depthBufferView == nullptr)
+				if (!depthBufferView)
 				{
 					// create new depth buffer view and if it doesn't exist then also create the texture
 					depthBufferView = LatteTexture_CreateMapping(depthBufferPhysMem, 0, depthBufferWidth, depthBufferHeight, depthBufferViewFirstSlice+1, depthBufferPitch, depthBufferTileMode, depthBufferSwizzle, 0, 1, depthBufferViewFirstSlice, 1, depthBufferFormat, depthBufferViewFirstSlice > 0 ? Latte::E_DIM::DIM_2D_ARRAY : Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, true);
@@ -768,7 +742,10 @@ void LatteRenderTarget_applyTextureDepthClear(LatteTexture* texture, uint32 slic
 	LatteTexture_MarkDynamicTextureAsChanged(texture->baseView, sliceIndex, mipIndex, eventCounter);
 }
 
-void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorBufferMPTR, MPTR colorBufferFormat, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferPitch, uint32 colorBufferViewFirstSlice, uint32 colorBufferViewNumSlice, MPTR depthBufferMPTR, MPTR depthBufferFormat, Latte::E_HWTILEMODE depthBufferTileMode, sint32 depthBufferWidth, sint32 depthBufferHeight, sint32 depthBufferPitch, sint32 depthBufferViewFirstSlice, sint32 depthBufferViewNumSlice, float r, float g, float b, float a, float clearDepth, uint32 clearStencil)
+void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask,
+												   MPTR colorBufferMPTR, Latte::E_GX2SURFFMT colorBufferFormat, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferPitch, uint32 colorBufferViewFirstSlice, uint32 colorBufferViewNumSlice,
+												   MPTR depthBufferMPTR, Latte::E_GX2SURFFMT depthBufferFormat, Latte::E_HWTILEMODE depthBufferTileMode, sint32 depthBufferWidth, sint32 depthBufferHeight, sint32 depthBufferPitch, sint32 depthBufferViewFirstSlice, sint32 depthBufferViewNumSlice,
+												   float r, float g, float b, float a, float clearDepth, uint32 clearStencil)
 {
 	uint32 depthBufferMipIndex = 0; // todo
 	uint32 colorBufferMipIndex = 0; // todo
@@ -803,13 +780,11 @@ void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorB
 		bool targetFound = false;
 		while (true)
 		{
-			LatteTextureView* colorView = LatteMRT_FindColorBufferForClearing(colorBufferMPTR, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferFormat, colorBufferViewFirstSlice, &searchIndex);
+			LatteTextureView* colorView = LatteTC_LookupTextureByData(colorBufferMPTR, colorBufferWidth, colorBufferHeight, colorBufferPitch, 0, 1, colorBufferViewFirstSlice, 1, &searchIndex);
 			if (!colorView)
 				break;
-			if (Latte::GetFormatBits((Latte::E_GX2SURFFMT)colorBufferFormat) != Latte::GetFormatBits(colorView->baseTexture->format))
-			{
+			if (Latte::GetFormatBits(colorBufferFormat) != Latte::GetFormatBits(colorView->baseTexture->format))
 				continue;
-			}
 
 			if (colorView->baseTexture->pitch == colorBufferPitch && colorView->baseTexture->height == colorBufferHeight)
 				targetFound = true;
@@ -821,7 +796,7 @@ void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorB
 		{
 			// create new texture with matching format
 			cemu_assert_debug(colorBufferViewNumSlice <= 1);
-			LatteTextureView* newColorView = LatteMRT_CreateColorBuffer(colorBufferMPTR, colorBufferWidth, colorBufferHeight, colorBufferPitch, (Latte::E_GX2SURFFMT)colorBufferFormat, colorBufferTilemode, colorBufferSwizzle, colorBufferViewFirstSlice);
+			LatteTextureView* newColorView = LatteTexture_CreateMapping(colorBufferMPTR, MPTR_NULL, colorBufferWidth, colorBufferHeight, colorBufferViewFirstSlice+1, colorBufferPitch, colorBufferTilemode, colorBufferSwizzle, 0, 1, colorBufferViewFirstSlice, 1, colorBufferFormat, colorBufferViewFirstSlice > 0 ? Latte::E_DIM::DIM_2D_ARRAY : Latte::E_DIM::DIM_2D, Latte::E_DIM::DIM_2D, false);
 			LatteRenderTarget_applyTextureColorClear(newColorView->baseTexture, colorBufferViewFirstSlice, colorBufferMipIndex, r, g, b, a, eventCounter);
 		}
 	}

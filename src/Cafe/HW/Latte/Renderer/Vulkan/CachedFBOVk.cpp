@@ -44,9 +44,9 @@ CachedFBOVk::~CachedFBOVk()
 	while (!m_usedByPipelines.empty())
 		delete m_usedByPipelines[0];
 	auto vkr = VulkanRenderer::GetInstance();
-	vkr->releaseDestructibleObject(m_vkrObjFramebuffer);
+	vkr->ReleaseDestructibleObject(m_vkrObjFramebuffer);
 	m_vkrObjFramebuffer = nullptr;
-	vkr->releaseDestructibleObject(m_vkrObjRenderPass);
+	vkr->ReleaseDestructibleObject(m_vkrObjRenderPass);
 	m_vkrObjRenderPass = nullptr;
 }
 

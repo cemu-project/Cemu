@@ -207,7 +207,8 @@ RendererShaderVk::RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxH
 
 RendererShaderVk::~RendererShaderVk()
 {
-	VulkanRenderer::GetInstance()->destroyShader(this);
+	while (!list_pipelineInfo.empty())
+		delete list_pipelineInfo[0];
 }
 
 void RendererShaderVk::Init()

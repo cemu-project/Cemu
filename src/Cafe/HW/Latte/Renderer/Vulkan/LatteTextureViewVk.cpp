@@ -79,14 +79,14 @@ LatteTextureViewVk::~LatteTextureViewVk()
 		delete list_descriptorSets[0];
 
 	if (m_smallCacheView0)
-		VulkanRenderer::GetInstance()->releaseDestructibleObject(m_smallCacheView0);
+		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_smallCacheView0);
 	if (m_smallCacheView1)
-		VulkanRenderer::GetInstance()->releaseDestructibleObject(m_smallCacheView1);
+		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_smallCacheView1);
 
 	if (m_fallbackCache)
 	{
 		for (auto& itr : *m_fallbackCache)
-			VulkanRenderer::GetInstance()->releaseDestructibleObject(itr.second);
+			VulkanRenderer::GetInstance()->ReleaseDestructibleObject(itr.second);
 		delete m_fallbackCache;
 		m_fallbackCache = nullptr;
 	}

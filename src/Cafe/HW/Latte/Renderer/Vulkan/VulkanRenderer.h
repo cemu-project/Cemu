@@ -231,7 +231,6 @@ public:
 	void DrawEmptyFrame(bool mainWindow) override;
 	void PreparePresentationFrame(bool mainWindow);
 
-	void ProcessDestructionQueues(size_t commandBufferIndex);
 	void InitFirstCommandBuffer();
 	void ProcessFinishedCommandBuffers();
 	void WaitForNextFinishedCommandBuffer();
@@ -244,15 +243,9 @@ public:
 	bool HasCommandBufferFinished(uint64 commandBufferId) const;
 	void WaitCommandBufferFinished(uint64 commandBufferId);
 
-	// clean up (deprecated)
-	void destroyViewDepr(VkImageView imageView);
-	void destroyBuffer(VkBuffer buffer);
-	void destroyDeviceMemory(VkDeviceMemory mem);
-	void destroyPipelineInfo(PipelineInfo* pipelineInfo);
-	void destroyShader(RendererShaderVk* shader);
-	// clean up (new)
-	void releaseDestructibleObject(VKRDestructibleObject* destructibleObject);
-	void ProcessDestructionQueue2();
+	// resource destruction queue
+	void ReleaseDestructibleObject(VKRDestructibleObject* destructibleObject);
+	void ProcessDestructionQueue();
 
 	FSpinlock m_spinlockDestructionQueue;
 	std::vector<VKRDestructibleObject*> m_destructionQueue;
@@ -289,9 +282,6 @@ public:
 	
 
 	TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) override;
-
-	void texture_reserveTextureOnGPU(LatteTexture* hostTexture) override;
-	void texture_destroy(LatteTexture* hostTexture) override;
 
 	void texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) override;
 	void texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a) override;
@@ -633,15 +623,6 @@ private:
 
 	// command buffer, garbage collection, synchronization
 	static constexpr uint32 kCommandBufferPoolSize = 128;
-
-	struct
-	{
-		std::array<std::vector<VkDescriptorSet>, kCommandBufferPoolSize> m_cmd_descriptor_set_objects;
-		std::array<std::vector<VkImageView>, kCommandBufferPoolSize> m_cmd_image_views;
-		std::array<std::vector<LatteTextureVk*>, kCommandBufferPoolSize> m_host_textures;
-		std::array<std::vector<VkBuffer>, kCommandBufferPoolSize> m_buffers;
-		std::array<std::vector<VkDeviceMemory>, kCommandBufferPoolSize> m_memory;
-	}m_destructionQueues;
 
 	size_t m_commandBufferIndex = 0; // current buffer being filled
 	size_t m_commandBufferSyncIndex = 0; // latest buffer that finished execution (updated on submit)

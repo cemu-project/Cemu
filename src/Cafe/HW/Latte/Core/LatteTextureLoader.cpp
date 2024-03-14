@@ -621,7 +621,7 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIn
 
 	if (tex->isDataDefined == false)
 	{
-		g_renderer->texture_reserveTextureOnGPU(tex);
+		tex->AllocateOnHost();
 		tex->isDataDefined = true;
 		// if decoder is not set then clear texture
 		// on Vulkan this is used to make sure the texture is no longer in UNDEFINED layout

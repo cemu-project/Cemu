@@ -1803,44 +1803,6 @@ void VulkanRenderer::PreparePresentationFrame(bool mainWindow)
 	AcquireNextSwapchainImage(mainWindow);
 }
 
-void VulkanRenderer::ProcessDestructionQueues(size_t commandBufferIndex)
-{
-	auto& current_descriptor_cache = m_destructionQueues.m_cmd_descriptor_set_objects[commandBufferIndex];
-	if (!current_descriptor_cache.empty())
-	{
-		assert_dbg();
-		//for (const auto& descriptor : current_descriptor_cache)
-		//{
-		//	vkFreeDescriptorSets(m_logicalDevice, m_descriptorPool, 1, &descriptor);
-		//	performanceMonitor.vk.numDescriptorSets.decrement();
-		//}
-
-		current_descriptor_cache.clear();
-	}
-
-	// destroy buffers
-	for (auto& itr : m_destructionQueues.m_buffers[commandBufferIndex])
-		vkDestroyBuffer(m_logicalDevice, itr, nullptr);
-	m_destructionQueues.m_buffers[commandBufferIndex].clear();
-
-	// destroy device memory objects
-	for (auto& itr : m_destructionQueues.m_memory[commandBufferIndex])
-		vkFreeMemory(m_logicalDevice, itr, nullptr);
-	m_destructionQueues.m_memory[commandBufferIndex].clear();
-
-	// destroy image views
-	for (auto& itr : m_destructionQueues.m_cmd_image_views[commandBufferIndex])
-		vkDestroyImageView(m_logicalDevice, itr, nullptr);
-	m_destructionQueues.m_cmd_image_views[commandBufferIndex].clear();
-
-	// destroy host textures
-	for (auto itr : m_destructionQueues.m_host_textures[commandBufferIndex])
-		delete itr;
-	m_destructionQueues.m_host_textures[commandBufferIndex].clear();
-
-	ProcessDestructionQueue2();
-}
-
 void VulkanRenderer::InitFirstCommandBuffer()
 {
 	cemu_assert_debug(m_state.currentCommandBuffer == nullptr);
@@ -1869,7 +1831,7 @@ void VulkanRenderer::ProcessFinishedCommandBuffers()
 		VkResult fenceStatus = vkGetFenceStatus(m_logicalDevice, m_cmd_buffer_fences[m_commandBufferSyncIndex]);
 		if (fenceStatus == VK_SUCCESS)
 		{
-			ProcessDestructionQueues(m_commandBufferSyncIndex);
+			ProcessDestructionQueue();
 			m_commandBufferSyncIndex = (m_commandBufferSyncIndex + 1) % m_commandBuffers.size();
 			memoryManager->cleanupBuffers(m_countCommandBufferFinished);
 			m_countCommandBufferFinished++;
@@ -3035,48 +2997,7 @@ TextureDecoder* VulkanRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	return texFormatInfo.decoder;
 }
 
-void VulkanRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
-{
-	LatteTextureVk* vkTexture = (LatteTextureVk*)hostTexture;
-	auto allocationInfo = memoryManager->imageMemoryAllocate(vkTexture->GetImageObj()->m_image);
-	vkTexture->setAllocation(allocationInfo);
-}
-
-void VulkanRenderer::texture_destroy(LatteTexture* hostTexture)
-{
-	LatteTextureVk* texVk = (LatteTextureVk*)hostTexture;
-	delete texVk;
-}
-
-void VulkanRenderer::destroyViewDepr(VkImageView imageView)
-{
-	cemu_assert_debug(false);
-
-	m_destructionQueues.m_cmd_image_views[m_commandBufferIndex].emplace_back(imageView);
-}
-
-void VulkanRenderer::destroyBuffer(VkBuffer buffer)
-{
-	m_destructionQueues.m_buffers[m_commandBufferIndex].emplace_back(buffer);
-}
-
-void VulkanRenderer::destroyDeviceMemory(VkDeviceMemory mem)
-{
-	m_destructionQueues.m_memory[m_commandBufferIndex].emplace_back(mem);
-}
-
-void VulkanRenderer::destroyPipelineInfo(PipelineInfo* pipelineInfo)
-{
-	cemu_assert_debug(false);
-}
-
-void VulkanRenderer::destroyShader(RendererShaderVk* shader)
-{
-	while (!shader->list_pipelineInfo.empty())
-		delete shader->list_pipelineInfo[0];
-}
-
-void VulkanRenderer::releaseDestructibleObject(VKRDestructibleObject* destructibleObject)
+void VulkanRenderer::ReleaseDestructibleObject(VKRDestructibleObject* destructibleObject)
 {
 	// destroy immediately if possible
 	if (destructibleObject->canDestroy())
@@ -3090,7 +3011,7 @@ void VulkanRenderer::releaseDestructibleObject(VKRDestructibleObject* destructib
 	m_spinlockDestructionQueue.unlock();
 }
 
-void VulkanRenderer::ProcessDestructionQueue2()
+void VulkanRenderer::ProcessDestructionQueue()
 {
 	m_spinlockDestructionQueue.lock();
 	for (auto it = m_destructionQueue.begin(); it != m_destructionQueue.end();)
@@ -3139,7 +3060,7 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 	performanceMonitor.vk.numDescriptorDynUniformBuffers.decrement(statsNumDynUniformBuffers);
 	performanceMonitor.vk.numDescriptorStorageBuffers.decrement(statsNumStorageBuffers);
 
-	VulkanRenderer::GetInstance()->releaseDestructibleObject(m_vkObjDescriptorSet);
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_vkObjDescriptorSet);
 	m_vkObjDescriptorSet = nullptr;
 }
 

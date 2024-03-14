@@ -864,8 +864,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 	cemu_assert_debug(nWords == 23);
 	uint32 clearMask = LatteReadCMD(); // color (1), depth (2), stencil (4)
 	// color buffer
-	MPTR colorBufferMPTR = LatteReadCMD(); // MPTR for color buffer (physical address)
-	MPTR colorBufferFormat = LatteReadCMD(); // format for color buffer
+	MPTR colorBufferMPTR = LatteReadCMD(); // physical address for color buffer
+	Latte::E_GX2SURFFMT colorBufferFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
 	Latte::E_HWTILEMODE colorBufferTilemode = (Latte::E_HWTILEMODE)LatteReadCMD();
 	uint32 colorBufferWidth = LatteReadCMD();
 	uint32 colorBufferHeight = LatteReadCMD();
@@ -873,8 +873,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 	uint32 colorBufferViewFirstSlice = LatteReadCMD();
 	uint32 colorBufferViewNumSlice = LatteReadCMD();
 	// depth buffer
-	MPTR depthBufferMPTR = LatteReadCMD(); // MPTR for depth buffer (physical address)
-	MPTR depthBufferFormat = LatteReadCMD(); // format for depth buffer
+	MPTR depthBufferMPTR = LatteReadCMD(); // physical address for depth buffer
+	Latte::E_GX2SURFFMT depthBufferFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
 	Latte::E_HWTILEMODE depthBufferTileMode = (Latte::E_HWTILEMODE)LatteReadCMD();
 	uint32 depthBufferWidth = LatteReadCMD();
 	uint32 depthBufferHeight = LatteReadCMD();
@@ -893,8 +893,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 
 	LatteRenderTarget_itHLEClearColorDepthStencil(
 		clearMask, 
-		colorBufferMPTR, colorBufferFormat, colorBufferTilemode, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferViewFirstSlice, colorBufferViewNumSlice, 
-		depthBufferMPTR, depthBufferFormat, depthBufferTileMode, depthBufferWidth, depthBufferHeight, depthBufferPitch, depthBufferViewFirstSlice, depthBufferViewNumSlice, 
+		colorBufferMPTR, colorBufferFormat, colorBufferTilemode, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferViewFirstSlice, colorBufferViewNumSlice,
+		depthBufferMPTR, depthBufferFormat, depthBufferTileMode, depthBufferWidth, depthBufferHeight, depthBufferPitch, depthBufferViewFirstSlice, depthBufferViewNumSlice,
 		r, g, b, a,
 		clearDepth, clearStencil);
 	return cmd;

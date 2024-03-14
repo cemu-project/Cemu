@@ -1002,57 +1002,6 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	return texDecoder;
 }
 
-void OpenGLRenderer::texture_destroy(LatteTexture* hostTexture)
-{
-	delete hostTexture;
-}
-
-void OpenGLRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTextureGeneric)
-{
-	auto hostTexture = (LatteTextureGL*)hostTextureGeneric;
-	cemu_assert_debug(hostTexture->isDataDefined == false);
-	sint32 effectiveBaseWidth = hostTexture->width;
-	sint32 effectiveBaseHeight = hostTexture->height;
-	sint32 effectiveBaseDepth = hostTexture->depth;
-	if (hostTexture->overwriteInfo.hasResolutionOverwrite)
-	{
-		effectiveBaseWidth = hostTexture->overwriteInfo.width;
-		effectiveBaseHeight = hostTexture->overwriteInfo.height;
-		effectiveBaseDepth = hostTexture->overwriteInfo.depth;
-	}
-	// calculate mip count
-	sint32 mipLevels = std::min(hostTexture->mipLevels, hostTexture->maxPossibleMipLevels);
-	mipLevels = std::max(mipLevels, 1);
-	// create immutable storage
-	if (hostTexture->dim == Latte::E_DIM::DIM_2D || hostTexture->dim == Latte::E_DIM::DIM_2D_MSAA)
-	{
-		cemu_assert_debug(effectiveBaseDepth == 1);
-		glTextureStorage2DWrapper(GL_TEXTURE_2D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight);
-	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_1D)
-	{
-		cemu_assert_debug(effectiveBaseHeight == 1);
-		cemu_assert_debug(effectiveBaseDepth == 1);
-		glTextureStorage1DWrapper(GL_TEXTURE_1D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth);
-	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
-	{
-		glTextureStorage3DWrapper(GL_TEXTURE_2D_ARRAY, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
-	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_3D)
-	{
-		glTextureStorage3DWrapper(GL_TEXTURE_3D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
-	}
-	else if (hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
-	{
-		glTextureStorage3DWrapper(GL_TEXTURE_CUBE_MAP_ARRAY, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
-	}
-	else
-	{
-		cemu_assert_unimplemented();
-	}
-}
-
 // use standard API to upload texture data
 void OpenGLRenderer_texture_loadSlice_normal(LatteTexture* hostTextureGeneric, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 imageSize)
 {

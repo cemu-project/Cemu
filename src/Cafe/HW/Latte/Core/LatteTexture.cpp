@@ -1199,6 +1199,15 @@ std::vector<LatteTexture*>& LatteTexture::GetAllTextures()
 	return sAllTextures;
 }
 
+bool LatteTexture_GX2FormatHasStencil(bool isDepth, Latte::E_GX2SURFFMT format)
+{
+	if (!isDepth)
+		return false;
+	return format == Latte::E_GX2SURFFMT::D24_S8_UNORM ||
+		   format == Latte::E_GX2SURFFMT::D24_S8_FLOAT ||
+		   format == Latte::E_GX2SURFFMT::D32_S8_FLOAT;
+}
+
 LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
@@ -1217,6 +1226,7 @@ LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddre
 	this->mipLevels = mipLevels;
 	this->tileMode = tileMode;
 	this->isDepth = isDepth;
+	this->hasStencil = LatteTexture_GX2FormatHasStencil(isDepth, format);
 	this->physMipAddress = physMipAddress;
 	this->lastUpdateEventCounter = LatteTexture_getNextUpdateEventCounter();
 	this->lastWriteEventCounter = LatteTexture_getNextUpdateEventCounter();

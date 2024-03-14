@@ -300,7 +300,7 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	delete pipelineInfo;
 	delete lcr;
 	delete cachedPipeline;
-	VulkanRenderer::GetInstance()->releaseDestructibleObject(renderPass);
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(renderPass);
 	s_spinlockSharedInternal.unlock();
 }
 

@@ -84,7 +84,7 @@ PipelineInfo::~PipelineInfo()
 	// queue pipeline for destruction
 	if (m_vkrObjPipeline)
 	{
-		VulkanRenderer::GetInstance()->releaseDestructibleObject(m_vkrObjPipeline);
+		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_vkrObjPipeline);
 		m_vkrObjPipeline = nullptr;
 	}
 
