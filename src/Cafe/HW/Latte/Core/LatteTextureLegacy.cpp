@@ -229,21 +229,16 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 			// if this texture is bound multiple times then use alternative views
 			if (textureView->lastTextureBindIndex == LatteGPUState.textureBindCounter)
 			{
-				// Intel driver has issues with textures that have multiple views bound and used by a shader, causes a softlock in BotW
-				// therefore we disable this on Intel
-				if (LatteGPUState.glVendor != GLVENDOR_INTEL_NOLEGACY)
+				LatteTextureViewGL* textureViewGL = (LatteTextureViewGL*)textureView;
+				// get next unused alternative texture view
+				while (true)
 				{
-					LatteTextureViewGL* textureViewGL = (LatteTextureViewGL*)textureView;
-					// get next unused alternative texture view
-					while (true)
-					{
-						textureViewGL = textureViewGL->GetAlternativeView();
-						if (textureViewGL->lastTextureBindIndex != LatteGPUState.textureBindCounter)
-							break;
-					}
-					textureView = textureViewGL;
+					textureViewGL = textureViewGL->GetAlternativeView();
+					if (textureViewGL->lastTextureBindIndex != LatteGPUState.textureBindCounter)
+						break;
 				}
-			}
+				textureView = textureViewGL;
+		}
 			textureView->lastTextureBindIndex = LatteGPUState.textureBindCounter;
 			rendererGL->renderstate_updateTextureSettingsGL(shaderContext, textureView, textureIndex + glBackendBaseTexUnit, word4, textureIndex, isDepthSampler);
 		}

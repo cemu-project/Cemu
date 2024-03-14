@@ -21,8 +21,6 @@ enum class GfxVendor
 	Generic,
 
 	AMD,
-	IntelLegacy,
-	IntelNoLegacy,
 	Intel,
 	Nvidia,
 	Apple,

@@ -140,13 +140,7 @@ int Latte_ThreadEntry()
 	case GfxVendor::AMD: 
 		LatteGPUState.glVendor = GLVENDOR_AMD;
 		break;
-	case GfxVendor::IntelLegacy: 
-		LatteGPUState.glVendor = GLVENDOR_INTEL_LEGACY; 
-		break;
-	case GfxVendor::IntelNoLegacy: 
-		LatteGPUState.glVendor = GLVENDOR_INTEL_NOLEGACY; 
-		break;
-	case GfxVendor::Intel: 
+	case GfxVendor::Intel:
 		LatteGPUState.glVendor = GLVENDOR_INTEL; 
 		break;
 	case GfxVendor::Nvidia: 

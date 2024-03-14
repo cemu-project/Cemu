@@ -24,7 +24,6 @@ public:
 
 	static bool GDBStubEnabled() { return s_enable_gdbstub; }
 	static bool NSightModeEnabled() { return s_nsight_mode; }
-	static bool ForceIntelLegacyEnabled() { return s_force_intel_legacy; }
 
 	static bool ForceInterpreter() { return s_force_interpreter; };
 
@@ -44,7 +43,6 @@ private:
 	
 	inline static bool s_enable_gdbstub = false;
 	inline static bool s_nsight_mode = false;
-	inline static bool s_force_intel_legacy = false;
 
 	inline static bool s_force_interpreter = false;
 	

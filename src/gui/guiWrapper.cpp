@@ -93,10 +93,6 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 	const char* graphicMode = "[Generic]";
 	if (LatteGPUState.glVendor == GLVENDOR_AMD)
 		graphicMode = "[AMD GPU]";
-	else if (LatteGPUState.glVendor == GLVENDOR_INTEL_LEGACY)
-		graphicMode = "[Intel GPU - Legacy]";
-	else if (LatteGPUState.glVendor == GLVENDOR_INTEL_NOLEGACY)
-		graphicMode = "[Intel GPU]";
 	else if (LatteGPUState.glVendor == GLVENDOR_INTEL)
 		graphicMode = "[Intel GPU]";
 	else if (LatteGPUState.glVendor == GLVENDOR_NVIDIA)

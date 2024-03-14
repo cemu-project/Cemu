@@ -878,9 +878,6 @@ bool GraphicPack2::Activate()
 	if (m_gfx_vendor.has_value())
 	{
 		auto vendor = g_renderer->GetVendor();
-		if (vendor == GfxVendor::IntelLegacy || vendor == GfxVendor::IntelNoLegacy)
-			vendor = GfxVendor::Intel;
-		
 		if (m_gfx_vendor.value() != vendor)
 			return false;
 	}

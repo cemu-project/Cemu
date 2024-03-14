@@ -407,10 +407,7 @@ void OpenGLRenderer::GetVendorInformation()
 		}
 		else if (memcmp(glVendorString, "Intel", 5) == 0)
 		{
-			if (LaunchSettings::ForceIntelLegacyEnabled())
-				m_vendor = GfxVendor::IntelLegacy;
-			else
-				m_vendor = GfxVendor::IntelNoLegacy;
+			m_vendor = GfxVendor::Intel;
 			return;
 		}
 	}
@@ -849,45 +846,6 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 		}
 		return nullptr;
 	}
-
-	if (LatteGPUState.glVendor == GLVENDOR_INTEL_LEGACY)
-	{
-		if (format == Latte::E_GX2SURFFMT::BC1_UNORM)
-		{
-			texDecoder = TextureDecoder_BC1_UNORM_uncompress::getInstance();
-		}
-		else if (format == Latte::E_GX2SURFFMT::BC1_SRGB)
-		{
-			texDecoder = TextureDecoder_BC1_SRGB_uncompress::getInstance();
-		}
-		else if (format == Latte::E_GX2SURFFMT::BC3_UNORM)
-		{
-			texDecoder = TextureDecoder_BC3_UNORM_uncompress::getInstance();
-		}
-		else if (format == Latte::E_GX2SURFFMT::BC3_SRGB)
-		{
-			texDecoder = TextureDecoder_BC3_SRGB_uncompress::getInstance();
-		}
-		else if (format == Latte::E_GX2SURFFMT::BC4_UNORM)
-		{
-			texDecoder = TextureDecoder_BC4_UNORM_uncompress::getInstance();
-		}
-		else if (format == Latte::E_GX2SURFFMT::BC4_SNORM)
-		{
-			cemu_assert_debug(false); // todo
-		}
-		else if (format == Latte::E_GX2SURFFMT::BC5_UNORM)
-		{
-			texDecoder = TextureDecoder_BC5_UNORM_uncompress::getInstance();
-		}
-		else if (format == Latte::E_GX2SURFFMT::BC5_SNORM)
-		{
-			texDecoder = TextureDecoder_BC5_SNORM_uncompress::getInstance();
-		}
-		if (texDecoder)
-			return texDecoder;
-	}
-	
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
 		texDecoder = TextureDecoder_R4_G4_UNORM_To_RGBA4::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM)
