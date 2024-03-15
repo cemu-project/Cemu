@@ -50,7 +50,7 @@ struct _FileCacheAsyncWriter
 private:
 	void FileCacheThread()
 	{
-		SetThreadName("fileCache_thread");
+		SetThreadName("fileCache");
 		while (true)
 		{
 			std::unique_lock lock(m_fileCacheMutex);

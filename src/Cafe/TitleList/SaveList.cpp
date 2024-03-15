@@ -1,5 +1,6 @@
 #include "SaveList.h"
 #include <charconv>
+#include <util/helpers/helpers.h>
 
 std::mutex sSLMutex;
 fs::path sSLMLCPath;
@@ -44,6 +45,7 @@ void CafeSaveList::Refresh()
 
 void CafeSaveList::RefreshThreadWorker()
 {
+	SetThreadName("SaveListWorker");
 	// clear save list
 	for (auto& itSaveInfo : sSLList)
 	{

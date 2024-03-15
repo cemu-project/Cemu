@@ -8,6 +8,7 @@
 
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
+#include <util/helpers/helpers.h>
 
 bool s_isLoadingShadersVk{ false };
 class FileCache* s_spirvCache{nullptr};
@@ -155,6 +156,7 @@ public:
 
 	void CompilerThreadFunc()
 	{
+		SetThreadName("vkShaderComp");
 		while (m_threadsActive.load(std::memory_order::relaxed))
 		{
 			s_compilationQueueCount.decrementWithWait();

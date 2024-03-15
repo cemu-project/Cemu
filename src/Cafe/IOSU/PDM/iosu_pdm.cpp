@@ -1,3 +1,4 @@
+#include <util/helpers/helpers.h>
 #include "iosu_pdm.h"
 #include "Cafe/CafeSystem.h"
 #include "config/ActiveSettings.h"
@@ -387,6 +388,7 @@ namespace iosu
 
 		void TimeTrackingThread(uint64 titleId)
 		{
+			SetThreadName("PlayDiaryThread");
 			PlayStatsEntry* playStatsEntry = PlayStats_BeginNewTracking(titleId);
 
 			auto startTime = std::chrono::steady_clock::now();

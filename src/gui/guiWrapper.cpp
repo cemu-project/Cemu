@@ -37,7 +37,7 @@ void _wxLaunch()
 
 void gui_create()
 {
-	SetThreadName("MainThread");
+	SetThreadName("cemu");
 #if BOOST_OS_WINDOWS
 	// on Windows wxWidgets there is a bug where wxDirDialog->ShowModal will deadlock in Windows internals somehow
 	// moving the UI thread off the main thread fixes this

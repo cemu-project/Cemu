@@ -297,7 +297,7 @@ bool GDBServer::Initialize()
 
 void GDBServer::ThreadFunc()
 {
-	SetThreadName("GDBServer::ThreadFunc");
+	SetThreadName("GDBServer");
 
 	while (!m_stopRequested)
 	{
