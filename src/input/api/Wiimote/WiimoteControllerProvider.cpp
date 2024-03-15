@@ -143,7 +143,7 @@ WiimoteControllerProvider::WiimoteState WiimoteControllerProvider::get_state(siz
 
 void WiimoteControllerProvider::reader_thread()
 {
-	SetThreadName("WiimoteControllerProvider::reader_thread");
+	SetThreadName("Wiimote-reader");
 	std::chrono::steady_clock::time_point lastCheck = {};
 	while (m_running.load(std::memory_order_relaxed))
 	{
@@ -878,7 +878,7 @@ void WiimoteControllerProvider::set_motion_plus(size_t index, bool state)
 
 void WiimoteControllerProvider::writer_thread()
 {
-	SetThreadName("WiimoteControllerProvider::writer_thread");
+	SetThreadName("Wiimote-writer");
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		std::unique_lock writer_lock(m_writer_mutex);

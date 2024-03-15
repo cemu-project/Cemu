@@ -155,6 +155,7 @@ namespace iosu
 
 		void IPCService::ServiceThread()
 		{
+			SetThreadName("IPCService");
 			m_msgQueueId = IOS_CreateMessageQueue(_m_msgBuffer.GetPtr(), _m_msgBuffer.GetCount());
 			cemu_assert(!IOS_ResultIsError((IOS_ERROR)m_msgQueueId));
 			IOS_ERROR r = IOS_RegisterResourceManager(m_devicePath.c_str(), m_msgQueueId);

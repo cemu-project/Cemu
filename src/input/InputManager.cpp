@@ -934,7 +934,7 @@ std::optional<glm::ivec2> InputManager::get_right_down_mouse_info(bool* is_pad)
 
 void InputManager::update_thread()
 {
-	SetThreadName("InputManager::update_thread");
+	SetThreadName("Input_update");
 	while (!m_update_thread_shutdown.load(std::memory_order::relaxed))
 	{
 		std::shared_lock lock(m_mutex);

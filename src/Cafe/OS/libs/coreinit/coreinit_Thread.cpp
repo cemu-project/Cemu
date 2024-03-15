@@ -1168,7 +1168,7 @@ namespace coreinit
 
 	void OSSchedulerCoreEmulationThread(void* _assignedCoreIndex)
 	{
-		SetThreadName(fmt::format("OSSchedulerThread[core={}]", (uintptr_t)_assignedCoreIndex).c_str());
+		SetThreadName(fmt::format("OSSched[core={}]", (uintptr_t)_assignedCoreIndex).c_str());
 		t_assignedCoreIndex = (sint32)(uintptr_t)_assignedCoreIndex;
         #if defined(ARCH_X86_64)
 		_mm_setcsr(_mm_getcsr() | 0x8000); // flush denormals to zero
