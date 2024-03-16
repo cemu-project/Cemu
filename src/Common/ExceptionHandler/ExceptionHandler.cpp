@@ -209,7 +209,7 @@ void ExceptionHandler_DisplayErrorInfo(PPCInterpreter_t* hCpu)
 	bool clipboardSet = false;
 
 	// Copy log file to clipboard
-#ifdef BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 	if (OpenClipboard(nullptr))
 	{
 		const auto logPath = fs::absolute(cemuLog_GetLogFilePath());
