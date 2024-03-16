@@ -706,8 +706,8 @@ SwapchainInfoVk& VulkanRenderer::GetChainInfo(bool mainWindow) const
 
 void VulkanRenderer::StopUsingPadAndWait()
 {
-	m_destroyPadSwapchainNextAcquire = true;
-	m_padCloseReadySemaphore.wait();
+	m_destroyPadSwapchainNextAcquire.test_and_set();
+	m_destroyPadSwapchainNextAcquire.wait(true);
 }
 
 bool VulkanRenderer::IsPadWindowActive()
@@ -2557,11 +2557,11 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if(!IsSwapchainInfoValid(mainWindow))
 		return false;
 
-	if(!mainWindow && m_destroyPadSwapchainNextAcquire)
+	if(!mainWindow && m_destroyPadSwapchainNextAcquire.test())
 	{
 		RecreateSwapchain(mainWindow, true);
-		m_destroyPadSwapchainNextAcquire = false;
-		m_padCloseReadySemaphore.notify();
+		m_destroyPadSwapchainNextAcquire.clear();
+		m_destroyPadSwapchainNextAcquire.notify_all();
 		return false;
 	}
 

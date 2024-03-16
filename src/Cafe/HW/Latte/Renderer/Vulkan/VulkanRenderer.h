@@ -414,8 +414,7 @@ private:
 	}m_state;
 
 	std::unique_ptr<SwapchainInfoVk> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	Semaphore m_padCloseReadySemaphore;
-	bool m_destroyPadSwapchainNextAcquire = false;
+	std::atomic_flag m_destroyPadSwapchainNextAcquire{};
 	bool IsSwapchainInfoValid(bool mainWindow) const;
 
 	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
