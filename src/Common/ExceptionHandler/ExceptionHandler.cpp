@@ -5,6 +5,11 @@
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 #include "ExceptionHandler.h"
+#include "gui/MainWindow.h"
+
+#include <wx/utils.h>
+#include <wx/msgdlg.h>
+#include <boost/algorithm/string.hpp>
 
 void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
 
@@ -159,4 +164,42 @@ void ExceptionHandler_LogGeneralInfo()
         // write line to log
         CrashLog_WriteLine(dumpLine);
     }
+}
+
+void ExceptionHandler_DisplayErrorInfo(PPCInterpreter_t* hCpu)
+{
+    if (g_mainFrame->IsFullScreen())
+		g_mainFrame->SetFullScreen(false);
+        
+       wxString errorTitle;
+       wxString errorMessage;
+
+       // Game crash
+       if (hCpu)
+       {
+           errorTitle = _("The game crashed");
+           errorMessage = _("Oops! It looks like the game has encountered an unexpected error and crashed.\n"
+							"\n"
+							"Please note that this crash may be specific to the game and not necessarily due to CEMU.\n"
+                            "\n"
+							"If this is a recurring issue, please consider reporting the bug on the Discord or GitGub.\n");
+
+       } 
+       // CEMU crash
+       else
+       {
+            errorTitle = _("CEMU has crashed");
+            errorMessage = _("Oops! It looks like CEMU has encountered an unexpected error and crashed.\n"
+							 "\n"
+                            "If this is a recurring issue, please consider reporting the bug on the Discord or GitGub.\n");
+       }
+
+       // Display error message
+	   wxMessageDialog dialog(nullptr, errorMessage, errorTitle, wxYES_NO | wxCENTRE | wxICON_ERROR);
+	   dialog.SetYesNoLabels(_("Quit"), _("Open GitHub and Quit"));
+
+	   if (dialog.ShowModal() == wxID_NO)
+		   wxLaunchDefaultBrowser("https://github.com/cemu-project/Cemu/issues/new?template=emulation_bug_report.yaml&title=Enter+a+title+for+the+bug+report+here");
+
+       _Exit(0);
 }
