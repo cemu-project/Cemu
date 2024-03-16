@@ -9,7 +9,7 @@
 
 #include <wx/msgdlg.h>
 
-#ifdef BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 #include <shlobj_core.h>
 #endif
 
