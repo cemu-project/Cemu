@@ -19,7 +19,6 @@
 #include <wx/utils.h>
 #include <wx/clipbrd.h>
 
-
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 
@@ -525,7 +524,6 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 		}
 	}
 }
-
 
 enum ContextMenuEntries
 {
@@ -1276,8 +1274,9 @@ void wxGameList::DeleteCachedStrings()
 	m_name_cache.clear();
 }
 
-#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
-void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
+#if BOOST_OS_LINUX
+void wxGameList::CreateShortcut(GameInfo2& gameInfo)
+{
     const auto title_id = gameInfo.GetBaseTitleId();
     const auto title_name = gameInfo.GetTitleName();
     auto exe_path = ActiveSettings::GetExecutablePath();
@@ -1400,5 +1399,75 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo) {
         shell_link->Release();
     }
 #endif
+}
+#endif
+
+#if BOOST_OS_WINDOWS
+void wxGameList::CreateShortcut(GameInfo2& gameInfo)
+{
+	const auto title_id = gameInfo.GetBaseTitleId();
+	const auto title_name = gameInfo.GetTitleName();
+	auto exe_path = ActiveSettings::GetExecutablePath();
+
+	// Get '%APPDATA%\Microsoft\Windows\Start Menu\Programs' path
+	PWSTR user_shortcut_folder;
+	SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &user_shortcut_folder);
+	const wxString shortcut_name = wxString::Format("%s.lnk", title_name);
+	wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
+							  "Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+
+	const auto result = entry_dialog.ShowModal();
+	if (result == wxID_CANCEL)
+		return;
+	const auto output_path = entry_dialog.GetPath();
+
+	int icon_idx;
+	int small_icon_idx;
+	std::optional<fs::path> icon_path = std::nullopt;
+	if (GetConfig().permanent_storage && QueryIconForTitle(title_id, icon_idx, small_icon_idx))
+	{
+		const auto icon = m_image_list->GetIcon(icon_idx);
+		PWSTR local_appdata;
+		const auto hres = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &local_appdata);
+		wxBitmap bitmap{};
+		auto folder = fs::path(local_appdata) / "Cemu" / "icons";
+		if (SUCCEEDED(hres) && bitmap.CopyFromIcon(icon) && (fs::exists(folder) || fs::create_directories(folder)))
+		{
+			icon_path = folder / fmt::format("{:016x}.ico", title_id);
+			auto stream = wxFileOutputStream(_pathToUtf8(*icon_path));
+			auto image = bitmap.ConvertToImage();
+			wxICOHandler icohandler{};
+			if (!icohandler.SaveFile(&image, stream, false))
+				icon_path = std::nullopt;
+		}
+	}
+
+	IShellLinkW* shell_link;
+	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shell_link));
+	if (SUCCEEDED(hres))
+	{
+		const auto description = wxString::Format("Play %s on Cemu", title_name);
+		const auto args = wxString::Format("-t %016llx", title_id);
+
+		shell_link->SetPath(exe_path.wstring().c_str());
+		shell_link->SetDescription(description.wc_str());
+		shell_link->SetArguments(args.wc_str());
+		shell_link->SetWorkingDirectory(exe_path.parent_path().wstring().c_str());
+
+		if (icon_path)
+			shell_link->SetIconLocation(icon_path->wstring().c_str(), 0);
+		else
+			shell_link->SetIconLocation(exe_path.wstring().c_str(), 0);
+
+		IPersistFile* shell_link_file;
+		// save the shortcut
+		hres = shell_link->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shell_link_file));
+		if (SUCCEEDED(hres))
+		{
+			hres = shell_link_file->Save(output_path.wc_str(), TRUE);
+			shell_link_file->Release();
+		}
+		shell_link->Release();
+	}
 }
 #endif
