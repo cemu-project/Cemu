@@ -73,8 +73,10 @@ void VulkanCanvas::OnResize(wxSizeEvent& event)
 #if BOOST_OS_LINUX && HAS_WAYLAND
 	if(m_subsurface)
 	{
-		auto sRect = GetScreenRect();
-		m_subsurface->setSize(sRect.GetX(), sRect.GetY(), sRect.GetWidth(), sRect.GetHeight());
+		auto screenRect = GetScreenRect();
+		auto screenPos = ToPhys(screenRect.GetPosition());
+		auto screenSize = ToPhys(screenRect.GetSize());
+		m_subsurface->setSize(screenPos.x, screenPos.y, screenSize.x, screenSize.y);
 	}
 #endif
 
