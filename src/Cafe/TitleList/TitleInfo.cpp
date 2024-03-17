@@ -637,9 +637,9 @@ std::string TitleInfo::GetMetaTitleName() const
 	if (m_parsedMetaXml)
 	{
 		std::string titleNameCfgLanguage;
-		titleNameCfgLanguage = m_parsedMetaXml->GetShortName(GetConfig().console_language);
+		titleNameCfgLanguage = m_parsedMetaXml->GetLongName(GetConfig().console_language);
 		if (titleNameCfgLanguage.empty()) //Get English Title
-			titleNameCfgLanguage = m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+			titleNameCfgLanguage = m_parsedMetaXml->GetLongName(CafeConsoleLanguage::EN);
 		if (titleNameCfgLanguage.empty()) //Unknown Title
 			titleNameCfgLanguage = "Unknown Title";
 		return titleNameCfgLanguage;
