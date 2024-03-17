@@ -1288,24 +1288,14 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
         exe_path = appimage_path.utf8_string();
     }
 
-#if BOOST_OS_LINUX
     const wxString desktop_entry_name = wxString::Format("%s.desktop", title_name);
     wxFileDialog entry_dialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktop_entry_name,
                               "Desktop file (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
-#elif BOOST_OS_WINDOWS
-    // Get '%APPDATA%\Microsoft\Windows\Start Menu\Programs' path
-    PWSTR user_shortcut_folder;
-    SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &user_shortcut_folder);
-    const wxString shortcut_name = wxString::Format("%s.lnk", title_name);
-    wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
-                              "Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
-#endif
     const auto result = entry_dialog.ShowModal();
     if (result == wxID_CANCEL)
         return;
     const auto output_path = entry_dialog.GetPath();
 
-#if BOOST_OS_LINUX
     std::optional<fs::path> icon_path;
     // Obtain and convert icon
     {
@@ -1372,37 +1362,8 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
     }
     output_stream << desktop_entry_string;
 
-#elif BOOST_OS_WINDOWS
-    IShellLinkW *shell_link;
-    HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shell_link));
-    if (SUCCEEDED(hres))
-    {
-        const auto description = wxString::Format("Play %s on Cemu", title_name);
-        const auto args = wxString::Format("-t %016llx", title_id);
-
-        shell_link->SetPath(exe_path.wstring().c_str());
-        shell_link->SetDescription(description.wc_str());
-        shell_link->SetArguments(args.wc_str());
-        shell_link->SetWorkingDirectory(exe_path.parent_path().wstring().c_str());
-        // Use icon from Cemu exe for now since we can't embed icons into the shortcut
-        // in the future we could convert and store icons in AppData or ProgramData
-        shell_link->SetIconLocation(exe_path.wstring().c_str(), 0);
-
-        IPersistFile *shell_link_file;
-        // save the shortcut
-        hres = shell_link->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shell_link_file));
-        if (SUCCEEDED(hres))
-        {
-            hres = shell_link_file->Save(output_path.wc_str(), TRUE);
-            shell_link_file->Release();
-        }
-        shell_link->Release();
-    }
-#endif
 }
-#endif
-
-#if BOOST_OS_WINDOWS
+#elif BOOST_OS_WINDOWS
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 {
 	const auto title_id = gameInfo.GetBaseTitleId();
