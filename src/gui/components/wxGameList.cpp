@@ -1299,13 +1299,9 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
     std::optional<fs::path> icon_path;
     // Obtain and convert icon
     {
-        m_icon_cache_mtx.lock();
-        const auto icon_iter = m_icon_cache.find(title_id);
-        const auto result_index = (icon_iter != m_icon_cache.cend()) ? std::optional<int>(icon_iter->second.first) : std::nullopt;
-        m_icon_cache_mtx.unlock();
+		int iconIndex, smallIconIndex;
 
-        // In most cases it should find it
-        if (!result_index){
+        if (!QueryIconForTitle(title_id, iconIndex, smallIconIndex)){
             wxMessageBox(_("Icon is yet to load, so will not be used by the shortcut"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
         }
         else {
@@ -1316,10 +1312,9 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
             }
             else {
                 icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
-
-                auto image = m_image_list->GetIcon(result_index.value()).ConvertToImage();
-
                 wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
+
+				auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
                 wxPNGHandler pngHandler;
                 if (!pngHandler.SaveFile(&image, png_file, false)) {
                     icon_path = std::nullopt;
