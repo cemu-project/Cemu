@@ -1376,7 +1376,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 	int iconIdx;
 	int smallIconIdx;
 	std::optional<fs::path> icon_path = std::nullopt;
-	if (GetConfig().permanent_storage && QueryIconForTitle(titleId, iconIdx, smallIconIdx))
+	if (QueryIconForTitle(titleId, iconIdx, smallIconIdx))
 	{
 		const auto icon = m_image_list->GetIcon(iconIdx);
 		PWSTR localAppData;
@@ -1413,7 +1413,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 
 		IPersistFile* shellLinkFile;
 		// save the shortcut
-		hres = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shell_link_file));
+		hres = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shellLinkFile));
 		if (SUCCEEDED(hres))
 		{
 			hres = shellLinkFile->Save(outputPath.wc_str(), TRUE);
