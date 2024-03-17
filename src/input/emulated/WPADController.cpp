@@ -311,7 +311,7 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 
 	if (has_position())
 	{
-		status.dpd_valid_fg = 1;
+		status.dpd_valid_fg = 2;
 
 		const auto position = get_position();
 
@@ -324,6 +324,8 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 		status.vec.y = delta.y;
 		status.speed = glm::length(delta);
 	}
+	else
+		status.dpd_valid_fg = 0;
 
 	switch (type())
 	{
