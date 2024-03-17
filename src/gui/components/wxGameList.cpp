@@ -1277,119 +1277,115 @@ void wxGameList::DeleteCachedStrings()
 #if BOOST_OS_LINUX
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 {
-    const auto title_id = gameInfo.GetBaseTitleId();
-    const auto title_name = gameInfo.GetTitleName();
-    auto exe_path = ActiveSettings::GetExecutablePath();
-    const char *flatpak_id = getenv("FLATPAK_ID");
+	const auto titleId = gameInfo.GetBaseTitleId();
+	const auto titleName = gameInfo.GetTitleName();
+	auto exePath = ActiveSettings::GetExecutablePath();
+	const char* flatpakId = getenv("FLATPAK_ID");
 
-    // GetExecutablePath returns the AppImage's temporary mount location, instead of its actual path
-    wxString appimage_path;
-    if (wxGetEnv(("APPIMAGE"), &appimage_path)) {
-        exe_path = appimage_path.utf8_string();
-    }
+	// GetExecutablePath returns the AppImage's temporary mount location, instead of its actual path
+	wxString appimagePath;
+	if (wxGetEnv(("APPIMAGE"), &appimagePath))
+		exePath = appimagePath.utf8_string();
 
-    const wxString desktop_entry_name = wxString::Format("%s.desktop", title_name);
-    wxFileDialog entry_dialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktop_entry_name,
-                              "Desktop file (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
-    const auto result = entry_dialog.ShowModal();
-    if (result == wxID_CANCEL)
-        return;
-    const auto output_path = entry_dialog.GetPath();
+	const wxString desktopEntryName = wxString::Format("%s.desktop", titleName);
+	wxFileDialog entryDialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktopEntryName,
+							 "Desktop file (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+	const auto result = entryDialog.ShowModal();
+	if (result == wxID_CANCEL)
+		return;
+	const auto output_path = entryDialog.GetPath();
 
-    std::optional<fs::path> icon_path;
-    // Obtain and convert icon
-    {
+	std::optional<fs::path> iconPath;
+	// Obtain and convert icon
+	{
 		int iconIndex, smallIconIndex;
 
-        if (!QueryIconForTitle(title_id, iconIndex, smallIconIndex)){
-            wxMessageBox(_("Icon is yet to load, so will not be used by the shortcut"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
-        }
-        else {
-            const fs::path out_icon_dir = ActiveSettings::GetUserDataPath("icons");
+		if (!QueryIconForTitle(titleId, iconIndex, smallIconIndex))
+			wxMessageBox(_("Icon is yet to load, so will not be used by the shortcut"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
+		else
+		{
+			const fs::path outIconDir = ActiveSettings::GetUserDataPath("icons");
 
-            if (!fs::exists(out_icon_dir) && !fs::create_directories(out_icon_dir)){
-                wxMessageBox(_("Cannot access the icon directory, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
-            }
-            else {
-                icon_path = out_icon_dir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
-                wxFileOutputStream png_file(_pathToUtf8(icon_path.value()));
+			if (!fs::exists(outIconDir) && !fs::create_directories(outIconDir))
+				wxMessageBox(_("Cannot access the icon directory, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
+			else
+			{
+				iconPath = outIconDir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+				wxFileOutputStream pngFileStream(_pathToUtf8(iconPath.value()));
 
 				auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
-                wxPNGHandler pngHandler;
-                if (!pngHandler.SaveFile(&image, png_file, false)) {
-                    icon_path = std::nullopt;
-                    wxMessageBox(_("The icon was unable to be saved, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
-                }
-            }
-        }
-    }
+				wxPNGHandler pngHandler;
+				if (!pngHandler.SaveFile(&image, pngFileStream, false))
+				{
+					iconPath = std::nullopt;
+					wxMessageBox(_("The icon was unable to be saved, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
+				}
+			}
+		}
+	}
 
-    std::string desktop_exec_entry;
-    if (flatpak_id)
-        desktop_exec_entry = fmt::format("/usr/bin/flatpak run {0} --title-id {1:016x}", flatpak_id, title_id);
-    else
-        desktop_exec_entry = fmt::format("{0:?} --title-id {1:016x}", _pathToUtf8(exe_path), title_id);
+	std::string desktopExecEntry = flatpakId ? fmt::format("/usr/bin/flatpak run {0} --title-id {1:016x}", flatpakId, titleId)
+											 : fmt::format("{0:?} --title-id {1:016x}", _pathToUtf8(exePath), titleId);
 
-    // 'Icon' accepts spaces in file name, does not accept quoted file paths
-    // 'Exec' does not accept non-escaped spaces, and can accept quoted file paths
-    auto desktop_entry_string =
-            fmt::format("[Desktop Entry]\n"
-                        "Name={0}\n"
-                        "Comment=Play {0} on Cemu\n"
-                        "Exec={1}\n"
-                        "Icon={2}\n"
-                        "Terminal=false\n"
-                        "Type=Application\n"
-                        "Categories=Game;\n",
-                        title_name,
-                        desktop_exec_entry,
-                        _pathToUtf8(icon_path.value_or("")));
+	// 'Icon' accepts spaces in file name, does not accept quoted file paths
+	// 'Exec' does not accept non-escaped spaces, and can accept quoted file paths
+	auto desktopEntryString = fmt::format(
+		"[Desktop Entry]\n"
+		"Name={0}\n"
+		"Comment=Play {0} on Cemu\n"
+		"Exec={1}\n"
+		"Icon={2}\n"
+		"Terminal=false\n"
+		"Type=Application\n"
+		"Categories=Game;\n",
+		titleName,
+		desktopExecEntry,
+		_pathToUtf8(iconPath.value_or("")));
 
-    if (flatpak_id)
-        desktop_entry_string += fmt::format("X-Flatpak={}\n", flatpak_id);
+	if (flatpakId)
+		desktopEntryString += fmt::format("X-Flatpak={}\n", flatpakId);
 
-    std::ofstream output_stream(output_path);
-    if (!output_stream.good())
-    {
-        auto errorMsg = formatWxString(_("Failed to save desktop entry to {}"), output_path.utf8_string());
-        wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-        return;
-    }
-    output_stream << desktop_entry_string;
-
+	std::ofstream outputStream(output_path);
+	if (!outputStream.good())
+	{
+		auto errorMsg = formatWxString(_("Failed to save desktop entry to {}"), output_path.utf8_string());
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+		return;
+	}
+	outputStream << desktopEntryString;
 }
 #elif BOOST_OS_WINDOWS
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 {
-	const auto title_id = gameInfo.GetBaseTitleId();
-	const auto title_name = gameInfo.GetTitleName();
-	auto exe_path = ActiveSettings::GetExecutablePath();
+	const auto titleId = gameInfo.GetBaseTitleId();
+	const auto titleName = gameInfo.GetTitleName();
+	auto exePath = ActiveSettings::GetExecutablePath();
 
 	// Get '%APPDATA%\Microsoft\Windows\Start Menu\Programs' path
-	PWSTR user_shortcut_folder;
-	SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &user_shortcut_folder);
-	const wxString shortcut_name = wxString::Format("%s.lnk", title_name);
-	wxFileDialog entry_dialog(this, _("Choose shortcut location"), _pathToUtf8(user_shortcut_folder), shortcut_name,
-							  "Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+	PWSTR userShortcutFolder;
+	SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &userShortcutFolder);
+	const wxString shortcutName = wxString::Format("%s.lnk", titleName);
+	wxFileDialog shortcutDialog(this, _("Choose shortcut location"), _pathToUtf8(userShortcutFolder), shortcutName,
+								"Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
 
-	const auto result = entry_dialog.ShowModal();
+	const auto result = shortcutDialog.ShowModal();
 	if (result == wxID_CANCEL)
 		return;
-	const auto output_path = entry_dialog.GetPath();
+	const auto outputPath = shortcutDialog.GetPath();
 
-	int icon_idx;
-	int small_icon_idx;
+	int iconIdx;
+	int smallIconIdx;
 	std::optional<fs::path> icon_path = std::nullopt;
-	if (GetConfig().permanent_storage && QueryIconForTitle(title_id, icon_idx, small_icon_idx))
+	if (GetConfig().permanent_storage && QueryIconForTitle(titleId, iconIdx, smallIconIdx))
 	{
-		const auto icon = m_image_list->GetIcon(icon_idx);
-		PWSTR local_appdata;
-		const auto hres = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &local_appdata);
+		const auto icon = m_image_list->GetIcon(iconIdx);
+		PWSTR localAppData;
+		const auto hres = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppData);
 		wxBitmap bitmap{};
-		auto folder = fs::path(local_appdata) / "Cemu" / "icons";
+		auto folder = fs::path(localAppData) / "Cemu" / "icons";
 		if (SUCCEEDED(hres) && bitmap.CopyFromIcon(icon) && (fs::exists(folder) || fs::create_directories(folder)))
 		{
-			icon_path = folder / fmt::format("{:016x}.ico", title_id);
+			icon_path = folder / fmt::format("{:016x}.ico", titleId);
 			auto stream = wxFileOutputStream(_pathToUtf8(*icon_path));
 			auto image = bitmap.ConvertToImage();
 			wxICOHandler icohandler{};
@@ -1398,32 +1394,32 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		}
 	}
 
-	IShellLinkW* shell_link;
-	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shell_link));
+	IShellLinkW* shellLink;
+	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
 	if (SUCCEEDED(hres))
 	{
-		const auto description = wxString::Format("Play %s on Cemu", title_name);
-		const auto args = wxString::Format("-t %016llx", title_id);
+		const auto description = wxString::Format("Play %s on Cemu", titleName);
+		const auto args = wxString::Format("-t %016llx", titleId);
 
-		shell_link->SetPath(exe_path.wstring().c_str());
-		shell_link->SetDescription(description.wc_str());
-		shell_link->SetArguments(args.wc_str());
-		shell_link->SetWorkingDirectory(exe_path.parent_path().wstring().c_str());
+		shellLink->SetPath(exePath.wstring().c_str());
+		shellLink->SetDescription(description.wc_str());
+		shellLink->SetArguments(args.wc_str());
+		shellLink->SetWorkingDirectory(exePath.parent_path().wstring().c_str());
 
 		if (icon_path)
-			shell_link->SetIconLocation(icon_path->wstring().c_str(), 0);
+			shellLink->SetIconLocation(icon_path->wstring().c_str(), 0);
 		else
-			shell_link->SetIconLocation(exe_path.wstring().c_str(), 0);
+			shellLink->SetIconLocation(exePath.wstring().c_str(), 0);
 
-		IPersistFile* shell_link_file;
+		IPersistFile* shellLinkFile;
 		// save the shortcut
-		hres = shell_link->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shell_link_file));
+		hres = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shell_link_file));
 		if (SUCCEEDED(hres))
 		{
-			hres = shell_link_file->Save(output_path.wc_str(), TRUE);
-			shell_link_file->Release();
+			hres = shellLinkFile->Save(outputPath.wc_str(), TRUE);
+			shellLinkFile->Release();
 		}
-		shell_link->Release();
+		shellLink->Release();
 	}
 }
 #endif
