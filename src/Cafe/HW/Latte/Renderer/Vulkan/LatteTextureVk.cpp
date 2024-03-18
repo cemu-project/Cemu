@@ -46,7 +46,7 @@ LatteTextureVk::LatteTextureVk(class VulkanRenderer* vkRenderer, Latte::E_DIM di
 	
 	VulkanRenderer::FormatInfoVK texFormatInfo;
 	vkRenderer->GetTextureFormatInfoVK(format, isDepth, dim, effectiveBaseWidth, effectiveBaseHeight, &texFormatInfo);
-	hasStencil = (texFormatInfo.vkImageAspect & VK_IMAGE_ASPECT_STENCIL_BIT) != 0;
+	cemu_assert_debug(hasStencil == ((texFormatInfo.vkImageAspect & VK_IMAGE_ASPECT_STENCIL_BIT) != 0));
 	imageInfo.format = texFormatInfo.vkImageFormat;
 	vkObjTex->m_imageAspect = texFormatInfo.vkImageAspect;
 	
@@ -117,7 +117,7 @@ LatteTextureVk::~LatteTextureVk()
 
 	m_vkr->surfaceCopy_notifyTextureRelease(this);
 
-	VulkanRenderer::GetInstance()->releaseDestructibleObject(vkObjTex);
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(vkObjTex);
 	vkObjTex = nullptr;
 }
 
@@ -130,12 +130,8 @@ LatteTextureView* LatteTextureVk::CreateView(Latte::E_DIM dim, Latte::E_GX2SURFF
 	return new LatteTextureViewVk(m_vkr->GetLogicalDevice(), this, dim, format, firstMip, mipCount, firstSlice, sliceCount);
 }
 
-void LatteTextureVk::setAllocation(struct VkImageMemAllocation* memAllocation)
+void LatteTextureVk::AllocateOnHost()
 {
-	vkObjTex->m_allocation = memAllocation;
-}
-
-struct VkImageMemAllocation* LatteTextureVk::getAllocation() const
-{
-	return vkObjTex->m_allocation;
+	auto allocationInfo = VulkanRenderer::GetInstance()->GetMemoryManager()->imageMemoryAllocate(GetImageObj()->m_image);
+	vkObjTex->m_allocation = allocationInfo;
 }

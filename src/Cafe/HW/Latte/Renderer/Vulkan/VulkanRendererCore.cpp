@@ -190,6 +190,7 @@ std::queue<PipelineCompiler*> g_compilePipelineRequests;
 
 void compilePipeline_thread(sint32 threadIndex)
 {
+	SetThreadName("compilePl");
 #ifdef _WIN32
 	// one thread runs at normal priority while the others run at lower priority
 	if(threadIndex != 0)

@@ -950,7 +950,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	bool streamoutEnable = LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] != 0;
 	if (streamoutEnable)
 	{
-		if (glBeginTransformFeedback == nullptr || LatteGPUState.glVendor == GLVENDOR_INTEL_NOLEGACY)
+		if (glBeginTransformFeedback == nullptr)
 		{
 			cemu_assert_debug(false);
 			return; // transform feedback not supported

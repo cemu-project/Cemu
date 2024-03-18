@@ -1019,8 +1019,11 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 	default:
 		cemu_assert_debug(false);
 	}
-	m_game_list->DeleteCachedStrings();
-	m_game_list->ReloadGameEntries(false);
+	if (m_game_list)
+	{
+		m_game_list->DeleteCachedStrings();
+		m_game_list->ReloadGameEntries(false);
+	}
 	g_config.Save();
 }
 
@@ -1485,6 +1488,19 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		g_window_info.has_screenshot_request = true; // async screenshot request
 }
 
+void MainWindow::OnKeyDown(wxKeyEvent& event)
+{
+	if ((event.AltDown() && event.GetKeyCode() == WXK_F4) || 
+		(event.CmdDown() && event.GetKeyCode() == 'Q'))
+	{
+		Close(true);
+	}
+	else
+	{
+		event.Skip();
+	}
+}
+
 void MainWindow::OnChar(wxKeyEvent& event)
 {
 	if (swkbd_hasKeyboardInputHook())
@@ -1590,6 +1606,7 @@ void MainWindow::CreateCanvas()
 
 	// key events
 	m_render_canvas->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
+	m_render_canvas->Bind(wxEVT_KEY_DOWN, &MainWindow::OnKeyDown, this);
 	m_render_canvas->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
 
 	m_render_canvas->SetDropTarget(new wxAmiiboDropTarget(this));
@@ -2145,6 +2162,14 @@ void MainWindow::RecreateMenu()
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_PORTUGUESE, _("&Portuguese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::PT);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_RUSSIAN, _("&Russian"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::RU);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_TAIWANESE, _("&Taiwanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::TW);
+	if(IsGameLaunched())
+	{
+		auto items = optionsConsoleLanguageMenu->GetMenuItems();
+		for (auto& item : items)
+		{
+			item->Enable(false);
+		}
+	}
 
 	// options submenu
 	wxMenu* optionsMenu = new wxMenu();

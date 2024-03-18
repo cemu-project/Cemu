@@ -37,7 +37,7 @@ namespace LatteDecompiler
 		}
 		else if (decompilerContext->shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CFILE)
 		{
-			uint32 cfileSize = decompilerContext->analyzer.uniformRegisterAccessTracker.DetermineSize(256);
+			uint32 cfileSize = decompilerContext->analyzer.uniformRegisterAccessTracker.DetermineSize(decompilerContext->shaderBaseHash, 256);
 			// full or partial uniform register file has to be present
 			if (shaderType == LatteConst::ShaderType::Vertex)
 				shaderSrc->addFmt("uniform ivec4 uf_uniformRegisterVS[{}];" _CRLF, cfileSize);
@@ -156,7 +156,7 @@ namespace LatteDecompiler
 
 				shaderSrc->addFmt("uniform {}{}" _CRLF, _getShaderUniformBlockInterfaceName(decompilerContext->shaderType), i);
 				shaderSrc->add("{" _CRLF);
-				shaderSrc->addFmt("vec4 {}{}[{}];" _CRLF, _getShaderUniformBlockVariableName(decompilerContext->shaderType), i, decompilerContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE));
+				shaderSrc->addFmt("vec4 {}{}[{}];" _CRLF, _getShaderUniformBlockVariableName(decompilerContext->shaderType), i, decompilerContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(decompilerContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE));
 				shaderSrc->add("};" _CRLF _CRLF);
 				shaderSrc->add(_CRLF);
 			}

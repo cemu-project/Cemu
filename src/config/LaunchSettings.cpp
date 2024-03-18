@@ -174,8 +174,6 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		
 		if (vm.count("nsight"))
 			s_nsight_mode = vm["nsight"].as<bool>();
-		if (vm.count("legacy"))
-			s_force_intel_legacy = vm["legacy"].as<bool>();
 
 		if(vm.count("force-interpreter"))
 			s_force_interpreter = vm["force-interpreter"].as<bool>();

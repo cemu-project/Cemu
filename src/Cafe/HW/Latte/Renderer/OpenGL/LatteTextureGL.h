@@ -11,6 +11,8 @@ public:
 
 	~LatteTextureGL();
 
+	void AllocateOnHost() override;
+
 	static void GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget, bool createForTargetType);
 
 protected:
@@ -23,7 +25,6 @@ public:
 		sint32 glSuppliedFormat;
 		sint32 glSuppliedFormatType;
 		bool glIsCompressed;
-		bool hasStencil{};
 		bool isUsingAlternativeFormat{};
 
 		void setFormat(sint32 glInternalFormat, sint32 glSuppliedFormat, sint32 glSuppliedFormatType)
@@ -32,15 +33,6 @@ public:
 			this->glSuppliedFormat = glSuppliedFormat;
 			this->glSuppliedFormatType = glSuppliedFormatType;
 			this->glIsCompressed = false;
-		}
-
-		void setDepthFormat(sint32 glInternalFormat, sint32 glSuppliedFormat, sint32 glSuppliedFormatType, bool hasStencil)
-		{
-			this->glInternalFormat = glInternalFormat;
-			this->glSuppliedFormat = glSuppliedFormat;
-			this->glSuppliedFormatType = glSuppliedFormatType;
-			this->glIsCompressed = false;
-			this->hasStencil = hasStencil;
 		}
 
 		void setCompressed(sint32 glInternalFormat, sint32 glSuppliedFormat, sint32 glSuppliedFormatType)

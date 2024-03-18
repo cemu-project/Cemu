@@ -332,7 +332,6 @@ namespace nsyshid
 		{
 			sprintf(debugOutput + i * 3, "%02x ", data[i]);
 		}
-		fmt::print("{} Data: {}\n", prefix, debugOutput);
 		cemuLog_logDebug(LogType::Force, "[{}] Data: {}", prefix, debugOutput);
 	}
 

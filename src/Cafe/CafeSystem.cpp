@@ -748,7 +748,6 @@ namespace CafeSystem
 			}
 		}
 		LoadMainExecutable();
-		gameProfile_load();
 		return STATUS_CODE::SUCCESS;
 	}
 
@@ -777,6 +776,7 @@ namespace CafeSystem
 		STATUS_CODE r = LoadAndMountForegroundTitle(titleId);
 		if (r != STATUS_CODE::SUCCESS)
 			return r;
+		gameProfile_load();
 		// setup memory space and PPC recompiler
         SetupMemorySpace();
         PPCRecompiler_init();

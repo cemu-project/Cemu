@@ -787,7 +787,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 			continue;
 		LatteDecompilerShader::QuickBufferEntry entry;
 		entry.index = i;
-		entry.size = shaderContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE) * 16;
+		entry.size = shaderContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(shaderContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE) * 16;
 		shader->list_quickBufferList.push_back(entry);
 	}
 	// get dimension of each used texture

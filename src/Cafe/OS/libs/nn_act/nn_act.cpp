@@ -543,8 +543,6 @@ void nnActExport_GetDefaultAccount(PPCInterpreter_t* hCPU)
 void nnActExport_GetSlotNo(PPCInterpreter_t* hCPU)
 {
 	// id of active account
-	// uint8 GetSlotNo(void);
-	cemuLog_logDebug(LogType::Force, "nn_act.GetSlotNo()");
 	osLib_returnFromFunction(hCPU, 1); // 1 is the first slot (0 is invalid)
 }
 
