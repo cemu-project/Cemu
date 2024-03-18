@@ -1,6 +1,6 @@
 #pragma once
 
-#include <dxgi1_4.h>
+#include <dxgi1_6.h>
 //#include <atlbase.h>
 
 class DXGIWrapper
