@@ -1371,7 +1371,8 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 	const auto outputPath = shortcutDialog.GetPath();
 
 	std::optional<fs::path> icon_path = std::nullopt;
-	[&]() {
+	[&]()
+	{
 		int iconIdx;
 		int smallIconIdx;
 		if (!QueryIconForTitle(titleId, iconIdx, smallIconIdx))
@@ -1404,7 +1405,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 			icon_path = std::nullopt;
 			cemuLog_log(LogType::Force, "Icon failed to save");
 		}
-	}s();
+	}();
 
 	IShellLinkW* shellLink;
 	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
