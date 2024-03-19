@@ -1430,9 +1430,13 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		if (SUCCEEDED(hres))
 		{
 			hres = shellLinkFile->Save(outputPath.wc_str(), TRUE);
-			shellLinkFile->Release();
+			shellLinkFile->Release();	
 		}
 		shellLink->Release();
+	}
+	if (!SUCCEEDED(hres)) {
+		auto errorMsg = formatWxString(_("Failed to save shortcut to {}"), outputPath);
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 	}
 }
 #endif
