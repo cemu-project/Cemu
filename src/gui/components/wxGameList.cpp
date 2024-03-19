@@ -1392,6 +1392,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		if (!bitmap.CopyFromIcon(icon))
 		{
 			cemuLog_log(LogType::Force, "Failed to copy icon");
+			return;
 		}
 
 		icon_path = folder / fmt::format("{:016x}.ico", titleId);
