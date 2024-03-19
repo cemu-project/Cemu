@@ -59,7 +59,12 @@ bool CemuApp::OnInit()
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
-
+#if BOOST_OS_LINUX
+	// GetExecutablePath returns the AppImage's temporary mount location
+	wxString appImagePath;
+	if (wxGetEnv(("APPIMAGE"), &appImagePath))
+		exePath = wxHelper::MakeFSPath(appImagePath);
+#endif
 	// Try a portable path first, if it exists.
 	user_data_path = config_path = cache_path = data_path = exePath.parent_path() / "portable";
 #if BOOST_OS_MACOS

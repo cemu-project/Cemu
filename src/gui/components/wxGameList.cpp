@@ -1282,11 +1282,6 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 	auto exePath = ActiveSettings::GetExecutablePath();
 	const char* flatpakId = getenv("FLATPAK_ID");
 
-	// GetExecutablePath returns the AppImage's temporary mount location, instead of its actual path
-	wxString appimagePath;
-	if (wxGetEnv(("APPIMAGE"), &appimagePath))
-		exePath = appimagePath.utf8_string();
-
 	const wxString desktopEntryName = wxString::Format("%s.desktop", titleName);
 	wxFileDialog entryDialog(this, _("Choose desktop entry location"), "~/.local/share/applications", desktopEntryName,
 							 "Desktop file (*.desktop)|*.desktop", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
