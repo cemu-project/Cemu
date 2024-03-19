@@ -295,11 +295,6 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 	return page;
 }
 
-std::pair<size_t, size_t> InputSettings2::get_emulated_controller_types() const
-{
-	return InputManager::instance().get_controller_count();
-}
-
 std::shared_ptr<ControllerBase> InputSettings2::get_active_controller() const
 {
 	auto& page_data = get_current_page_data();
@@ -757,7 +752,7 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 		is_gamepad_selected = selected_value == to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD));
 	}
 
-	const auto [vpad_count, wpad_count] = get_emulated_controller_types();
+	const auto [vpad_count, wpad_count] = InputManager::instance().get_controller_count();
 
 	emulated_controllers->Clear();
 	emulated_controllers->AppendString(_("Disabled"));
