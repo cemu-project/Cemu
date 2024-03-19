@@ -297,28 +297,7 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 
 std::pair<size_t, size_t> InputSettings2::get_emulated_controller_types() const
 {
-	size_t vpad = 0, wpad = 0;
-	for(size_t i = 0; i < m_notebook->GetPageCount(); ++i)
-	{
-		auto* page = m_notebook->GetPage(i);
-		auto* page_data = (wxControllerPageData*)page->GetClientObject();
-		if (!page_data)
-			continue;
-		
-		if (!page_data->ref().m_controller) // = disabled
-			continue;
-
-		const auto api_type = page_data->ref().m_controller->type();
-		if (api_type >= EmulatedController::MAX)
-			continue;
-
-		if (api_type == EmulatedController::VPAD)
-			++vpad;
-		else
-			++wpad;
-	}
-
-	return std::make_pair(vpad, wpad);
+	return InputManager::instance().get_controller_count();
 }
 
 std::shared_ptr<ControllerBase> InputSettings2::get_active_controller() const
