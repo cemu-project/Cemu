@@ -745,11 +745,13 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	wxWindowUpdateLocker lock(emulated_controllers);
 
 	bool is_gamepad_selected = false;
+	bool is_wpad_selected = false;
 	const auto selected = emulated_controllers->GetSelection();
 	const auto selected_value = emulated_controllers->GetStringSelection();
 	if(selected != wxNOT_FOUND)
 	{
 		is_gamepad_selected = selected_value == to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD));
+		is_wpad_selected = !is_gamepad_selected && selected != 0;
 	}
 
 	const auto [vpad_count, wpad_count] = InputManager::instance().get_controller_count();
@@ -760,7 +762,7 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	if (vpad_count < InputManager::kMaxVPADControllers || is_gamepad_selected)
 		emulated_controllers->Append(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD)));
 
-	if (wpad_count < InputManager::kMaxWPADControllers || !is_gamepad_selected)
+	if (wpad_count < InputManager::kMaxWPADControllers || is_wpad_selected)
 	{
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Pro)));
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Classic)));
