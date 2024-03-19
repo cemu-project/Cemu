@@ -730,7 +730,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
             {
                 if (wxTheClipboard->Open())
                 {
-                    wxTheClipboard->SetData(new wxTextDataObject(gameInfo.GetTitleName()));
+                    wxTheClipboard->SetData(new wxTextDataObject(wxString::FromUTF8(gameInfo.GetTitleName())));
                     wxTheClipboard->Close();
                 }
                 break;
