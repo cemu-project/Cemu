@@ -1278,7 +1278,7 @@ void wxGameList::DeleteCachedStrings()
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 {
 	const auto titleId = gameInfo.GetBaseTitleId();
-	const auto titleName = gameInfo.GetTitleName();
+	const auto titleName = wxString::FromUTF8(gameInfo.GetTitleName());
 	auto exePath = ActiveSettings::GetExecutablePath();
 	const char* flatpakId = getenv("FLATPAK_ID");
 
@@ -1335,14 +1335,14 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		"Terminal=false\n"
 		"Type=Application\n"
 		"Categories=Game;\n",
-		titleName,
+		titleName.utf8_string(),
 		desktopExecEntry,
 		_pathToUtf8(iconPath.value_or("")));
 
 	if (flatpakId)
 		desktopEntryString += fmt::format("X-Flatpak={}\n", flatpakId);
 
-	std::ofstream outputStream(output_path);
+	std::ofstream outputStream(output_path.utf8_string());
 	if (!outputStream.good())
 	{
 		auto errorMsg = formatWxString(_("Failed to save desktop entry to {}"), output_path.utf8_string());
@@ -1355,7 +1355,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 {
 	const auto titleId = gameInfo.GetBaseTitleId();
-	const auto titleName = gameInfo.GetTitleName();
+	const auto titleName = wxString::FromUTF8(gameInfo.GetTitleName());
 	auto exePath = ActiveSettings::GetExecutablePath();
 
 	// Get '%APPDATA%\Microsoft\Windows\Start Menu\Programs' path
