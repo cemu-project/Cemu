@@ -1292,32 +1292,34 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 
 	std::optional<fs::path> iconPath;
 	// Obtain and convert icon
+	[&]()
 	{
 		int iconIndex, smallIconIndex;
 
 		if (!QueryIconForTitle(titleId, iconIndex, smallIconIndex))
-			wxMessageBox(_("Icon is yet to load, so will not be used by the shortcut"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
-		else
 		{
-			const fs::path outIconDir = ActiveSettings::GetUserDataPath("icons");
-
-			if (!fs::exists(outIconDir) && !fs::create_directories(outIconDir))
-				wxMessageBox(_("Cannot access the icon directory, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
-			else
-			{
-				iconPath = outIconDir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
-				wxFileOutputStream pngFileStream(_pathToUtf8(iconPath.value()));
-
-				auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
-				wxPNGHandler pngHandler;
-				if (!pngHandler.SaveFile(&image, pngFileStream, false))
-				{
-					iconPath = std::nullopt;
-					wxMessageBox(_("The icon was unable to be saved, the shortcut will have no icon"), _("Warning"), wxOK | wxCENTRE | wxICON_WARNING);
-				}
-			}
+			cemuLog_log(LogType::Force, "Icon hasn't loaded");
+			return;
 		}
-	}
+		const fs::path outIconDir = ActiveSettings::GetUserDataPath("icons");
+
+		if (!fs::exists(outIconDir) && !fs::create_directories(outIconDir))
+		{
+			cemuLog_log(LogType::Force, "Failed to create icon directory");
+			return;
+		}
+
+		iconPath = outIconDir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+		wxFileOutputStream pngFileStream(_pathToUtf8(iconPath.value()));
+
+		auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
+		wxPNGHandler pngHandler;
+		if (!pngHandler.SaveFile(&image, pngFileStream, false))
+		{
+			iconPath = std::nullopt;
+			cemuLog_log(LogType::Force, "Icon failed to save");
+		}
+	}();
 
 	std::string desktopExecEntry = flatpakId ? fmt::format("/usr/bin/flatpak run {0} --title-id {1:016x}", flatpakId, titleId)
 											 : fmt::format("{0:?} --title-id {1:016x}", _pathToUtf8(exePath), titleId);
@@ -1368,26 +1370,40 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		return;
 	const auto outputPath = shortcutDialog.GetPath();
 
-	int iconIdx;
-	int smallIconIdx;
 	std::optional<fs::path> icon_path = std::nullopt;
-	if (QueryIconForTitle(titleId, iconIdx, smallIconIdx))
-	{
+	[&]() {
+		int iconIdx;
+		int smallIconIdx;
+		if (!QueryIconForTitle(titleId, iconIdx, smallIconIdx))
+		{
+			cemuLog_log(LogType::Force, "Icon hasn't loaded");
+			return;
+		}
 		const auto icon = m_image_list->GetIcon(iconIdx);
 		PWSTR localAppData;
 		const auto hres = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppData);
 		wxBitmap bitmap{};
 		auto folder = fs::path(localAppData) / "Cemu" / "icons";
-		if (SUCCEEDED(hres) && bitmap.CopyFromIcon(icon) && (fs::exists(folder) || fs::create_directories(folder)))
+		if (!SUCCEEDED(hres) || (!fs::exists(folder) && !fs::create_directories(folder)))
 		{
-			icon_path = folder / fmt::format("{:016x}.ico", titleId);
-			auto stream = wxFileOutputStream(_pathToUtf8(*icon_path));
-			auto image = bitmap.ConvertToImage();
-			wxICOHandler icohandler{};
-			if (!icohandler.SaveFile(&image, stream, false))
-				icon_path = std::nullopt;
+			cemuLog_log(LogType::Force, "Failed to create icon directory");
+			return;
 		}
-	}
+		if (!bitmap.CopyFromIcon(icon))
+		{
+			cemuLog_log(LogType::Force, "Failed to copy icon");
+		}
+
+		icon_path = folder / fmt::format("{:016x}.ico", titleId);
+		auto stream = wxFileOutputStream(_pathToUtf8(*icon_path));
+		auto image = bitmap.ConvertToImage();
+		wxICOHandler icohandler{};
+		if (!icohandler.SaveFile(&image, stream, false))
+		{
+			icon_path = std::nullopt;
+			cemuLog_log(LogType::Force, "Icon failed to save");
+		}
+	}s();
 
 	IShellLinkW* shellLink;
 	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
