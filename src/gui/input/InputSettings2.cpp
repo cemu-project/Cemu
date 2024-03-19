@@ -80,14 +80,13 @@ InputSettings2::InputSettings2(wxWindow* parent)
 		auto* page = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 		page->SetClientObject(nullptr); // force internal type to client object
 		m_notebook->AddPage(page, formatWxString(_("Controller {}"), i + 1));
-		initialize_page(i);
 	}
 
 	m_notebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &InputSettings2::on_controller_page_changed, this);
 	sizer->Add(m_notebook, 1, wxEXPAND);
 
 	m_notebook->SetSelection(0);
-	auto* first_page = m_notebook->GetPage(0);
+	auto* first_page = initialize_page(0);
 
 	// init first/default page for fitting size
 	auto* page_data = (wxControllerPageData*)first_page->GetClientObject();
@@ -127,11 +126,11 @@ InputSettings2::~InputSettings2()
 }
 
 
-void InputSettings2::initialize_page(size_t index)
+wxWindow* InputSettings2::initialize_page(size_t index)
 {
 	auto* page = m_notebook->GetPage(index);
 	if (page->GetClientObject()) // already initialized
-		return;
+		return page;
 
 	page->Bind(wxEVT_LEFT_UP, &InputSettings2::on_left_click, this);
 
@@ -292,6 +291,8 @@ void InputSettings2::initialize_page(size_t index)
 	page->Layout();
 
 	page->SetClientObject(new wxCustomData(page_data));
+
+	return page;
 }
 
 std::pair<size_t, size_t> InputSettings2::get_emulated_controller_types() const
@@ -520,6 +521,7 @@ void InputSettings2::on_controller_changed()
 
 void InputSettings2::on_notebook_page_changed(wxBookCtrlEvent& event)
 {
+	initialize_page(event.GetSelection());
 	update_state();
 	event.Skip();
 }
@@ -703,6 +705,7 @@ void InputSettings2::on_profile_delete(wxCommandEvent& event)
 
 void InputSettings2::on_controller_page_changed(wxBookCtrlEvent& event)
 {
+	initialize_page(event.GetSelection());
 	update_state();
 	event.Skip();
 }
@@ -768,13 +771,11 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	wxWindowUpdateLocker lock(emulated_controllers);
 
 	bool is_gamepad_selected = false;
-	bool is_wpad_selected = false;
 	const auto selected = emulated_controllers->GetSelection();
 	const auto selected_value = emulated_controllers->GetStringSelection();
 	if(selected != wxNOT_FOUND)
 	{
 		is_gamepad_selected = selected_value == to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD));
-		is_wpad_selected = !is_gamepad_selected && selected != 0;
 	}
 
 	const auto [vpad_count, wpad_count] = get_emulated_controller_types();
@@ -785,7 +786,7 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	if (vpad_count < InputManager::kMaxVPADControllers || is_gamepad_selected)
 		emulated_controllers->Append(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD)));
 
-	if (wpad_count < InputManager::kMaxWPADControllers || is_wpad_selected)
+	if (wpad_count < InputManager::kMaxWPADControllers || !is_gamepad_selected)
 	{
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Pro)));
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Classic)));
