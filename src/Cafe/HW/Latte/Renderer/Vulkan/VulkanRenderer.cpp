@@ -167,6 +167,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 				result.emplace_back(physDeviceProps.properties.deviceName, physDeviceIDProps.deviceUUID);
 			}
 		}
+		vkDestroySurfaceKHR(instance, surface, nullptr);
 	}
 	catch (...)
 	{
@@ -441,7 +442,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	// create logical device
-	m_indices = SwapchainInfoVk::FindQueueFamilies(surface, m_physicalDevice);
+	m_indices = FindQueueFamilies(surface, m_physicalDevice);
 	std::set<int> uniqueQueueFamilies = { m_indices.graphicsFamily, m_indices.presentFamily };
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = CreateQueueCreateInfos(uniqueQueueFamilies);
 	VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -510,7 +511,7 @@ VulkanRenderer::VulkanRenderer()
 		PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCallback{};
-		debugCallback.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+		debugCallback.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 		debugCallback.pNext = nullptr;
 		debugCallback.flags = 0;
 		debugCallback.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
@@ -673,24 +674,19 @@ VulkanRenderer* VulkanRenderer::GetInstance()
 
 void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
 {
-	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
-
-	const auto surface = CreateFramebufferSurface(m_instance, windowHandleInfo);
 	if (mainWindow)
 	{
-		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_mainSwapchainInfo->m_desiredExtent = size;
-		m_mainSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
+		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(mainWindow, size);
+		m_mainSwapchainInfo->Create();
 
 		// aquire first command buffer
 		InitFirstCommandBuffer();
 	}
 	else
 	{
-		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_padSwapchainInfo->m_desiredExtent = size;
+		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(mainWindow, size);
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
-		m_padSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
+		m_padSwapchainInfo->Create();
 	}
 }
 
@@ -1074,6 +1070,36 @@ RendererShader* VulkanRenderer::shader_create(RendererShader::ShaderType type, u
 	return new RendererShaderVk(type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
 }
 
+VulkanRenderer::QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device)
+{
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+	QueueFamilyIndices indices;
+	for (int i = 0; i < (int)queueFamilies.size(); ++i)
+	{
+		const auto& queueFamily = queueFamilies[i];
+		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			indices.graphicsFamily = i;
+
+		VkBool32 presentSupport = false;
+		const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+		if (result != VK_SUCCESS)
+			throw std::runtime_error(fmt::format("Error while attempting to check if a surface supports presentation: {}", result));
+
+		if (queueFamily.queueCount > 0 && presentSupport)
+			indices.presentFamily = i;
+
+		if (indices.IsComplete())
+			break;
+	}
+
+	return indices;
+}
+
 bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info)
 {
 	std::vector<VkExtensionProperties> availableDeviceExtensions;
@@ -1215,7 +1241,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 
 bool VulkanRenderer::IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device)
 {
-	if (!SwapchainInfoVk::FindQueueFamilies(surface, device).IsComplete())
+	if (!FindQueueFamilies(surface, device).IsComplete())
 		return false;
 
 	// check API version (using Vulkan 1.0 way of querying properties)
@@ -2605,7 +2631,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
-		chainInfo.Create(m_physicalDevice, m_logicalDevice);
+		chainInfo.Create();
 	}
 
 	if (mainWindow)
@@ -2675,7 +2701,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &chainInfo.swapchain;
+	presentInfo.pSwapchains = &chainInfo.m_swapchain;
 	presentInfo.pImageIndices = &chainInfo.swapchainImageIndex;
 	// wait on command buffer semaphore
 	presentInfo.waitSemaphoreCount = 1;

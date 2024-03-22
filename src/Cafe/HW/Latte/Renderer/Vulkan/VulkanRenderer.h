@@ -125,9 +125,9 @@ class VulkanRenderer : public Renderer
 	friend class LatteQueryObjectVk;
 	friend class LatteTextureReadbackInfoVk;
 	friend class PipelineCompiler;
+	friend class SwapchainInfoVk;
 
 	using VSync = SwapchainInfoVk::VSync;
-	using QueueFamilyIndices = SwapchainInfoVk::QueueFamilyIndices;
 
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
 
@@ -420,6 +420,15 @@ private:
 	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 
 	VkDescriptorPool m_descriptorPool;
+
+	struct QueueFamilyIndices
+	{
+		int32_t graphicsFamily = -1;
+		int32_t presentFamily = -1;
+
+		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
+	};
+	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
 
 	struct FeatureControl
 	{
