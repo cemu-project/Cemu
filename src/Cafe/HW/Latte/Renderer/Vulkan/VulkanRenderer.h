@@ -125,7 +125,6 @@ class VulkanRenderer : public Renderer
 	friend class LatteQueryObjectVk;
 	friend class LatteTextureReadbackInfoVk;
 	friend class PipelineCompiler;
-	friend class SwapchainInfoVk;
 
 	using VSync = SwapchainInfoVk::VSync;
 
@@ -421,6 +420,7 @@ private:
 
 	VkDescriptorPool m_descriptorPool;
 
+  public:
 	struct QueueFamilyIndices
 	{
 		int32_t graphicsFamily = -1;
@@ -429,6 +429,8 @@ private:
 		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
 	};
 	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
+
+  private:
 
 	struct FeatureControl
 	{
