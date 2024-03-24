@@ -300,6 +300,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		auto* row = new wxBoxSizer(wxHORIZONTAL);
 		m_update_graphicPacks = new wxButton(m_right_panel, wxID_ANY, _("Download latest community graphic packs"));
 		m_update_graphicPacks->Bind(wxEVT_BUTTON, &GraphicPacksWindow2::OnCheckForUpdates, this);
+		m_update_graphicPacks->Enable(!CafeSystem::IsTitleRunning());
 		row->Add(m_update_graphicPacks, 0, wxALL, 5);
 
 		sizer->Add(row, 0, wxALL | wxEXPAND, 5);
@@ -674,6 +675,11 @@ void GraphicPacksWindow2::OnInstalledGamesChanged(wxCommandEvent& event)
 	m_filter_installed_games = m_installed_games_only->GetValue();
 	FillGraphicPackList();
 	event.Skip();
+}
+
+void GraphicPacksWindow2::OnTitleRunningStateChanged(bool running)
+{
+	m_update_graphicPacks->Enable(!running);
 }
 
 void GraphicPacksWindow2::ReloadPack(const GraphicPackPtr& graphic_pack) const
