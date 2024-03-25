@@ -1159,9 +1159,11 @@ namespace coreinit
 	#include <sys/prctl.h>
 
 	std::vector<pid_t> g_schedulerThreadIds;
+	std::mutex g_schedulerThreadIdsLock;
 
 	std::vector<pid_t>& OSGetSchedulerThreadIds()
 	{
+		std::lock_guard schedulerThreadIdsLockGuard(g_schedulerThreadIdsLock);
 		return g_schedulerThreadIds;
 	}
 #endif
@@ -1183,7 +1185,10 @@ namespace coreinit
 		}
 
 		pid_t tid = gettid();
-		g_schedulerThreadIds.emplace_back(tid);
+		{
+			std::lock_guard schedulerThreadIdsLockGuard(g_schedulerThreadIdsLock);
+			g_schedulerThreadIds.emplace_back(tid);
+		}
 #endif
 
 		t_schedulerFiber = Fiber::PrepareCurrentThread();
@@ -1238,7 +1243,10 @@ namespace coreinit
 		sSchedulerThreads.clear();
 		g_schedulerThreadHandles.clear();
 #if BOOST_OS_LINUX
-		g_schedulerThreadIds.clear();
+		{
+			std::lock_guard schedulerThreadIdsLockGuard(g_schedulerThreadIdsLock);
+			g_schedulerThreadIds.clear();
+		}
 #endif
 		// clean up all fibers
 		for (auto& it : g_idleLoopFiber)
