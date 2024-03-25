@@ -43,14 +43,21 @@ public:
 		return t;
 	}
 
-	static void ClearRange(MPTR base, uint32 length)
+	static void ClearRange(MPTR address, uint32 length)
 	{
+		if (length == 0)
+			return;
 		s_lock.lock();
-		for (MPTR address = base; address < base + length; address += 4)
+		for (;;)
 		{
 			auto itr = s_typeStorage.find(address);
 			if (itr != s_typeStorage.end())
 				s_typeStorage.erase(itr);
+			// break if length has surpassed zero and wrapped around
+			if (length - (uint32)4u > length)
+				break;
+			address += 4;
+			length -= 4;
 		}
 		s_lock.unlock();
 	}
