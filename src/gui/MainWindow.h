@@ -21,6 +21,7 @@ class DebuggerWindow2;
 struct GameEntry;
 class DiscordPresence;
 class TitleManager;
+class GraphicPacksWindow2;
 class wxLaunchGameEvent;
 
 wxDECLARE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
@@ -164,7 +165,7 @@ private:
 	MemorySearcherTool* m_toolWindow = nullptr;
 	TitleManager* m_title_manager = nullptr;
 	PadViewFrame* m_padView = nullptr;
-	wxWindow* m_graphic_pack_window = nullptr;
+	GraphicPacksWindow2* m_graphic_pack_window = nullptr;
 
 	wxTimer* m_timer;
 	wxPoint m_mouse_position{};

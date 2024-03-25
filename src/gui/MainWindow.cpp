@@ -2326,8 +2326,8 @@ void MainWindow::UpdateChildWindowTitleRunningState()
 {
 	const bool running = CafeSystem::IsTitleRunning();
 
-	if(auto graphicPacksWindow = dynamic_cast<GraphicPacksWindow2*>(m_graphic_pack_window))
-		graphicPacksWindow->UpdateTitleRunning(running);
+	if(m_graphic_pack_window)
+		m_graphic_pack_window->UpdateTitleRunning(running);
 }
 
 void MainWindow::RestoreSettingsAfterGameExited()
