@@ -84,6 +84,8 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	game_list_style = gamelist.get("style", 0);
 	game_list_column_order = gamelist.get("order", "");
 
+	show_icon_column = parser.get("show_icon_column", true);
+
 	// return default width if value in config file out of range
 	auto loadColumnSize = [&gamelist] (const char *name, uint32 defaultWidth)
 	{
@@ -385,6 +387,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	psize.set<sint32>("x", pad_size.x);
 	psize.set<sint32>("y", pad_size.y);
 	config.set<bool>("pad_maximized", pad_maximized);
+	config.set<bool>("show_icon_column" , show_icon_column);
 
 	auto gamelist = config.set("GameList");
 	gamelist.set("style", game_list_style);
