@@ -300,7 +300,6 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		auto* row = new wxBoxSizer(wxHORIZONTAL);
 		m_update_graphicPacks = new wxButton(m_right_panel, wxID_ANY, _("Download latest community graphic packs"));
 		m_update_graphicPacks->Bind(wxEVT_BUTTON, &GraphicPacksWindow2::OnCheckForUpdates, this);
-		m_update_graphicPacks->Enable(!CafeSystem::IsTitleRunning());
 		row->Add(m_update_graphicPacks, 0, wxALL, 5);
 
 		sizer->Add(row, 0, wxALL | wxEXPAND, 5);
@@ -320,6 +319,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 
 	SetSizer(main_sizer);
 
+	UpdateTitleRunning(CafeSystem::IsTitleRunning());
 	FillGraphicPackList();
 }
 
@@ -677,9 +677,13 @@ void GraphicPacksWindow2::OnInstalledGamesChanged(wxCommandEvent& event)
 	event.Skip();
 }
 
-void GraphicPacksWindow2::OnTitleRunningStateChanged(bool running)
+void GraphicPacksWindow2::UpdateTitleRunning(bool running)
 {
 	m_update_graphicPacks->Enable(!running);
+	if(running)
+		m_update_graphicPacks->SetToolTip(_("Graphic packs cannot be updated while a game is running."));
+	else
+		m_update_graphicPacks->SetToolTip(nullptr);
 }
 
 void GraphicPacksWindow2::ReloadPack(const GraphicPackPtr& graphic_pack) const
