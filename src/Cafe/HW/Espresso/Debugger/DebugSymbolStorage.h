@@ -54,7 +54,7 @@ public:
 			if (itr != s_typeStorage.end())
 				s_typeStorage.erase(itr);
 			// break if length has surpassed zero and wrapped around
-			if (length - (uint32)4u > length)
+			if (length < 4)
 				break;
 			address += 4;
 			length -= 4;
