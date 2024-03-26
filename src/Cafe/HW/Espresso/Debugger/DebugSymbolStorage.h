@@ -53,8 +53,8 @@ public:
 			auto itr = s_typeStorage.find(address);
 			if (itr != s_typeStorage.end())
 				s_typeStorage.erase(itr);
-			// break if length has surpassed zero and wrapped around
-			if (length < 4)
+			
+			if (length <= 4)
 				break;
 			address += 4;
 			length -= 4;
