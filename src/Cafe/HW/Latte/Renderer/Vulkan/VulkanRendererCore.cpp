@@ -1285,9 +1285,9 @@ void VulkanRenderer::draw_beginSequence()
 
 	// update shader state
 	LatteSHRC_UpdateActiveShaders();
-	if (m_state.drawSequenceSkip)
+	if (LatteGPUState.activeShaderHasError)
 	{
-		debug_printf("Skipping drawcalls due to shader error\n");
+		cemuLog_logDebugOnce(LogType::Force, "Skipping drawcalls due to shader error");
 		m_state.drawSequenceSkip = true;
 		cemu_assert_debug(false);
 		return;
