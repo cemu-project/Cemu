@@ -6,9 +6,8 @@
 
 namespace CafeSystem
 {
-	class SystemImplementation
-	{
-	public:
+	class SystemImplementation {
+	  public:
 		virtual void CafeRecreateCanvas() = 0;
 	};
 
@@ -17,12 +16,12 @@ namespace CafeSystem
 		SUCCESS,
 		INVALID_RPX,
 		UNABLE_TO_MOUNT, // failed to mount through TitleInfo (most likely caused by an invalid or outdated path)
-		//BAD_META_DATA, - the title list only stores titles with valid meta, so this error code is impossible
+						 // BAD_META_DATA, - the title list only stores titles with valid meta, so this error code is impossible
 	};
 
 	void Initialize();
 	void SetImplementation(SystemImplementation* impl);
-    void Shutdown();
+	void Shutdown();
 
 	STATUS_CODE PrepareForegroundTitle(TitleId titleId);
 	STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path);
@@ -53,7 +52,10 @@ namespace CafeSystem
 	uint32 GetRPXHashUpdated();
 
 	void RequestRecreateCanvas();
-};
+
+	void StartCrashErrorThread(PPCInterpreter_t* interpreter);
+
+}; // namespace CafeSystem
 
 extern RPLModule* applicationRPX;
 

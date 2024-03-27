@@ -238,7 +238,7 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 		fs::copy_file(ActiveSettings::GetUserDataPath("log.txt"), p, ec);
 	}
 
-	exit(0);
+	CafeSystem::StartCrashErrorThread(PPCInterpreter_getCurrentInstance());
 
 	return;
 }
@@ -276,7 +276,7 @@ LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 LONG WINAPI cemu_unhandledExceptionFilter(EXCEPTION_POINTERS* pExceptionInfo)
 {
 	createCrashlog(pExceptionInfo, pExceptionInfo->ContextRecord);
-	return EXCEPTION_NONCONTINUABLE_EXCEPTION;
+	return EXCEPTION_CONTINUE_EXECUTION;
 }
 
 void ExceptionHandler_Init()
