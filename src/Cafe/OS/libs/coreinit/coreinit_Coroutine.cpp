@@ -3,9 +3,13 @@
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/MMU/MMU.h"
+#include "Cafe/OS/RPL/rpl.h"
 
 namespace coreinit
 {
+	static_assert(sizeof(OSCoroutine) == 0x180);
+
+	static uint32 s_PPCAddrOSSwitchCoroutineAfterOSLoadCoroutine = 0;
 
 	void coreinitExport_OSInitCoroutine(PPCInterpreter_t* hCPU)
 	{
@@ -57,14 +61,30 @@ namespace coreinit
 
 	void coreinitExport_OSSwitchCoroutine(PPCInterpreter_t* hCPU)
 	{
-		OSCoroutine* coroutineCurrent = (OSCoroutine*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-		OSCoroutine* coroutineNext = (OSCoroutine*)memory_getPointerFromVirtualOffsetAllowNull(hCPU->gpr[4]);
+		// OSSwitchCoroutine is a wrapper for OSSaveCoroutine + OSLoadCoroutine but it has side effects that we need to care about:
+		// r31 is saved and restored via the stack in OSSwitchCoroutine
+		// r4 is stored in the r31 field of coroutineCurrent. Injustice: Gods Among Us reads the r31 field and expects it to match coroutineCurrent (0x027183D4 @ EU v16)
+		OSCoroutine* coroutineCurrent = MEMPTR<OSCoroutine>(hCPU->gpr[3]);
+		OSCoroutine* coroutineNext = MEMPTR<OSCoroutine>(hCPU->gpr[4]);
+		hCPU->gpr[1] -= 0x10;
+		memory_writeU32(hCPU->gpr[1]+0xC, hCPU->gpr[31]);
+		memory_writeU32(hCPU->gpr[1]+0x14, hCPU->spr.LR);
+		hCPU->spr.LR = s_PPCAddrOSSwitchCoroutineAfterOSLoadCoroutine;
+		hCPU->gpr[31] = hCPU->gpr[4];
 		coreinitCoroutine_OSSaveCoroutine(coroutineCurrent, hCPU);
-		if (coroutineNext != NULL)
-		{
-			coreinitCoroutine_OSLoadCoroutine(coroutineNext, hCPU);
-		}
-		osLib_returnFromFunction(hCPU, 0);
+		hCPU->gpr[3] = hCPU->gpr[31];
+		hCPU->gpr[4] = 1;
+		coreinitCoroutine_OSLoadCoroutine(coroutineNext, hCPU);
+		hCPU->instructionPointer = hCPU->spr.LR;
+	}
+
+	void coreinitExport_OSSwitchCoroutineAfterOSLoadCoroutine(PPCInterpreter_t* hCPU)
+	{
+		// resuming after OSSaveCoroutine
+		hCPU->gpr[31] = memory_readU32(hCPU->gpr[1]+0xC);
+		hCPU->spr.LR = memory_readU32(hCPU->gpr[1]+0x14);
+		hCPU->gpr[1] += 0x10;
+		hCPU->instructionPointer = hCPU->spr.LR;
 	}
 
 	void coreinitExport_OSSwitchFiberEx(PPCInterpreter_t* hCPU)
@@ -96,5 +116,7 @@ namespace coreinit
 		osLib_addFunction("coreinit", "OSInitCoroutine", coreinitExport_OSInitCoroutine);
 		osLib_addFunction("coreinit", "OSSwitchCoroutine", coreinitExport_OSSwitchCoroutine);
 		osLib_addFunction("coreinit", "OSSwitchFiberEx", coreinitExport_OSSwitchFiberEx);
+
+		s_PPCAddrOSSwitchCoroutineAfterOSLoadCoroutine = RPLLoader_MakePPCCallable(coreinitExport_OSSwitchCoroutineAfterOSLoadCoroutine);
 	}
 }
