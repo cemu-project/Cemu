@@ -32,6 +32,7 @@ public:
 	bool has_position() override;
 	glm::vec2 get_position() override;
 	glm::vec2 get_prev_position() override;
+	PositionVisibility GetPositionVisibility() override;
 
 	std::string get_button_name(uint64 button) const override;
 

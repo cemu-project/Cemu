@@ -40,6 +40,7 @@ public:
 	bool has_position() override;
 	glm::vec2 get_position() override;
 	glm::vec2 get_prev_position() override;
+	PositionVisibility GetPositionVisibility() override;
 	
 	bool has_motion() override { return true; }
 	bool has_rumble() override { return true; }

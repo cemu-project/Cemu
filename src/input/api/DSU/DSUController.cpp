@@ -93,6 +93,13 @@ glm::vec2 DSUController::get_prev_position()
 	return {};
 }
 
+PositionVisibility DSUController::GetPositionVisibility()
+{
+	const auto state = m_provider->get_prev_state(m_index);
+
+	return (state.data.tpad1.active || state.data.tpad2.active) ? PositionVisibility::FULL : PositionVisibility::NONE;
+}
+
 std::string DSUController::get_button_name(uint64 button) const
 {
 	switch (button)

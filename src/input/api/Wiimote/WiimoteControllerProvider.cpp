@@ -766,14 +766,20 @@ void WiimoteControllerProvider::calculate_ir_position(WiimoteState& wiimote_stat
 		ir.middle = ir.position;
 		ir.distance = glm::length(ir.dots[indices.first].pos - ir.dots[indices.second].pos);
 		ir.indices = indices;
+		ir.m_positionVisibility = PositionVisibility::FULL;
 	}
 	else if (ir.dots[indices.first].visible)
 	{
 		ir.position = ir.middle + (ir.dots[indices.first].pos - ir.prev_dots[indices.first].pos);
+		ir.m_positionVisibility = PositionVisibility::PARTIAL;
 	}
 	else if (ir.dots[indices.second].visible)
 	{
 		ir.position = ir.middle + (ir.dots[indices.second].pos - ir.prev_dots[indices.second].pos);
+		ir.m_positionVisibility = PositionVisibility::PARTIAL;
+	}
+	else {
+		ir.m_positionVisibility = PositionVisibility::NONE;
 	}
 }
 

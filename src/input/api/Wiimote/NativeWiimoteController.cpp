@@ -98,6 +98,11 @@ glm::vec2 NativeWiimoteController::get_prev_position()
 	const auto state = m_provider->get_state(m_index);
 	return state.ir_camera.m_prev_position;
 }
+PositionVisibility NativeWiimoteController::GetPositionVisibility()
+{
+	const auto state = m_provider->get_state(m_index);
+	return state.ir_camera.m_positionVisibility;
+}
 
 bool NativeWiimoteController::has_low_battery()
 {

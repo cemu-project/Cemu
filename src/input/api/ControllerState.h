@@ -3,6 +3,12 @@
 #include <glm/vec2.hpp>
 #include "util/helpers/fspinlock.h"
 
+enum class PositionVisibility {
+	NONE = 0,
+	FULL = 1,
+	PARTIAL = 2
+};
+
 // helper class for storing and managing button press states in a thread-safe manner
 struct ControllerButtonState
 {

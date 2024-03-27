@@ -207,6 +207,17 @@ glm::vec2 EmulatedController::get_prev_position() const
 	return {};
 }
 
+PositionVisibility EmulatedController::GetPositionVisibility() const
+{
+	std::shared_lock lock(m_mutex);
+	for (const auto& controller : m_controllers)
+	{
+		if (controller->has_position())
+			return controller->GetPositionVisibility();
+	}
+	return PositionVisibility::NONE;
+}
+
 void EmulatedController::add_controller(std::shared_ptr<ControllerBase> controller)
 {
 	controller->connect();
