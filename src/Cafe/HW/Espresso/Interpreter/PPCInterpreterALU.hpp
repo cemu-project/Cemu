@@ -3,12 +3,12 @@ static void PPCInterpreter_setXerOV(PPCInterpreter_t* hCPU, bool hasOverflow)
 {
 	if (hasOverflow)
 	{
-		hCPU->spr.XER |= XER_SO;
-		hCPU->spr.XER |= XER_OV;
+		hCPU->xer_so = 1;
+		hCPU->xer_ov = 1;
 	}
 	else
 	{
-		hCPU->spr.XER &= ~XER_OV;
+		hCPU->xer_ov = 0;
 	}
 }
 
@@ -245,7 +245,7 @@ static void PPCInterpreter_SUBFCO(PPCInterpreter_t* hCPU, uint32 opcode)
 	uint32 a = hCPU->gpr[rA];
 	uint32 b = hCPU->gpr[rB];
 	hCPU->gpr[rD] = ~a + b + 1;
-	// update xer
+	// update carry
 	if (ppc_carry_3(~a, b, 1))
 		hCPU->xer_ca = 1;
 	else
@@ -847,8 +847,7 @@ static void PPCInterpreter_CMP(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->cr[cr * 4 + CR_BIT_GT] = 1;
 	else 
 		hCPU->cr[cr * 4 + CR_BIT_EQ] = 1;
-	if ((hCPU->spr.XER & XER_SO) != 0)
-		hCPU->cr[cr * 4 + CR_BIT_SO] = 1;
+	hCPU->cr[cr * 4 + CR_BIT_SO] = hCPU->xer_so;
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
@@ -870,8 +869,7 @@ static void PPCInterpreter_CMPL(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->cr[cr * 4 + CR_BIT_GT] = 1;
 	else
 		hCPU->cr[cr * 4 + CR_BIT_EQ] = 1;
-	if ((hCPU->spr.XER & XER_SO) != 0)
-		hCPU->cr[cr * 4 + CR_BIT_SO] = 1;
+	hCPU->cr[cr * 4 + CR_BIT_SO] = hCPU->xer_so;
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
@@ -894,8 +892,7 @@ static void PPCInterpreter_CMPI(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->cr[cr * 4 + CR_BIT_GT] = 1;
 	else 
 		hCPU->cr[cr * 4 + CR_BIT_EQ] = 1;
-	if (hCPU->spr.XER & XER_SO)
-		hCPU->cr[cr * 4 + CR_BIT_SO] = 1;
+	hCPU->cr[cr * 4 + CR_BIT_SO] = hCPU->xer_so;
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
@@ -918,8 +915,7 @@ static void PPCInterpreter_CMPLI(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->cr[cr * 4 + CR_BIT_GT] = 1;
 	else
 		hCPU->cr[cr * 4 + CR_BIT_EQ] = 1;
-	if (hCPU->spr.XER & XER_SO)
-		hCPU->cr[cr * 4 + CR_BIT_SO] = 1;
+	hCPU->cr[cr * 4 + CR_BIT_SO] = hCPU->xer_so;
 	PPCInterpreter_nextInstruction(hCPU);
 }
 

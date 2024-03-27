@@ -37,9 +37,8 @@ enum class LogType : sint32
 	NN_FP = 24,
 
 	TextureReadback = 29,
-
 	ProcUi = 39,
-
+	Recompiler = 60,
 };
 
 template <>

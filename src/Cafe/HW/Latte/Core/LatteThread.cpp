@@ -235,6 +235,8 @@ void Latte_Start()
 void Latte_Stop()
 {
 	std::unique_lock _lock(sLatteThreadStateMutex);
+	if (!sLatteThreadRunning)
+		return;
 	sLatteThreadRunning = false;
 	_lock.unlock();
 	sLatteThread.join();

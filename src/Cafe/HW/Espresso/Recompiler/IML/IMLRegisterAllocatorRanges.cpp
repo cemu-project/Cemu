@@ -1,20 +1,26 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
-#include "PPCRecompilerImlRanges.h"
+#include "../PPCRecompiler.h"
+#include "../PPCRecompilerIml.h"
+#include "IMLRegisterAllocatorRanges.h"
 #include "util/helpers/MemoryPool.h"
 
-void PPCRecRARange_addLink_perVirtualGPR(raLivenessSubrange_t** root, raLivenessSubrange_t* subrange)
+void PPCRecRARange_addLink_perVirtualGPR(std::unordered_map<IMLRegID, raLivenessSubrange_t*>& root, raLivenessSubrange_t* subrange)
 {
-#ifdef CEMU_DEBUG_ASSERT
-	if ((*root) && (*root)->range->virtualRegister != subrange->range->virtualRegister)
-		assert_dbg();
-#endif
-	subrange->link_sameVirtualRegisterGPR.next = *root;
-	if (*root)
-		(*root)->link_sameVirtualRegisterGPR.prev = subrange;
-	subrange->link_sameVirtualRegisterGPR.prev = nullptr;
-	*root = subrange;
+	IMLRegID regId = subrange->range->virtualRegister;
+	auto it = root.find(regId);
+	if (it == root.end())
+	{
+		// new single element
+		root.try_emplace(regId, subrange);
+		subrange->link_sameVirtualRegisterGPR.prev = nullptr;
+		subrange->link_sameVirtualRegisterGPR.next = nullptr;
+	}
+	else
+	{
+		// insert in first position
+		subrange->link_sameVirtualRegisterGPR.next = it->second;
+		it->second = subrange;
+		subrange->link_sameVirtualRegisterGPR.prev = subrange;
+	}
 }
 
 void PPCRecRARange_addLink_allSubrangesGPR(raLivenessSubrange_t** root, raLivenessSubrange_t* subrange)
@@ -26,15 +32,28 @@ void PPCRecRARange_addLink_allSubrangesGPR(raLivenessSubrange_t** root, raLivene
 	*root = subrange;
 }
 
-void PPCRecRARange_removeLink_perVirtualGPR(raLivenessSubrange_t** root, raLivenessSubrange_t* subrange)
+void PPCRecRARange_removeLink_perVirtualGPR(std::unordered_map<IMLRegID, raLivenessSubrange_t*>& root, raLivenessSubrange_t* subrange)
 {
-	raLivenessSubrange_t* tempPrev = subrange->link_sameVirtualRegisterGPR.prev;
-	if (subrange->link_sameVirtualRegisterGPR.prev)
-		subrange->link_sameVirtualRegisterGPR.prev->link_sameVirtualRegisterGPR.next = subrange->link_sameVirtualRegisterGPR.next;
-	else
-		(*root) = subrange->link_sameVirtualRegisterGPR.next;
-	if (subrange->link_sameVirtualRegisterGPR.next)
-		subrange->link_sameVirtualRegisterGPR.next->link_sameVirtualRegisterGPR.prev = tempPrev;
+	IMLRegID regId = subrange->range->virtualRegister;
+	raLivenessSubrange_t* nextRange = subrange->link_sameVirtualRegisterGPR.next;
+	raLivenessSubrange_t* prevRange = subrange->link_sameVirtualRegisterGPR.prev;
+	raLivenessSubrange_t* newBase = prevRange ? prevRange : nextRange;
+	if (prevRange)
+		prevRange->link_sameVirtualRegisterGPR.next = subrange->link_sameVirtualRegisterGPR.next;
+	if (nextRange)
+		nextRange->link_sameVirtualRegisterGPR.prev = subrange->link_sameVirtualRegisterGPR.prev;
+
+	if (!prevRange)
+	{
+		if (nextRange)
+		{
+			root.find(regId)->second = nextRange;
+		}
+		else
+		{
+			root.erase(regId);
+		}
+	}
 #ifdef CEMU_DEBUG_ASSERT
 	subrange->link_sameVirtualRegisterGPR.prev = (raLivenessSubrange_t*)1;
 	subrange->link_sameVirtualRegisterGPR.next = (raLivenessSubrange_t*)1;
@@ -70,7 +89,7 @@ raLivenessRange_t* PPCRecRA_createRangeBase(ppcImlGenContext_t* ppcImlGenContext
 	return livenessRange;
 }
 
-raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_t* range, PPCRecImlSegment_t* imlSegment, sint32 startIndex, sint32 endIndex)
+raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_t* range, IMLSegment* imlSegment, sint32 startIndex, sint32 endIndex)
 {
 	raLivenessSubrange_t* livenessSubrange = memPool_livenessSubrange.acquireObj();
 	livenessSubrange->list_locations.resize(0);
@@ -88,15 +107,15 @@ raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenConte
 	// add to range
 	range->list_subranges.push_back(livenessSubrange);
 	// add to segment
-	PPCRecRARange_addLink_perVirtualGPR(&(imlSegment->raInfo.linkedList_perVirtualGPR[range->virtualRegister]), livenessSubrange);
+	PPCRecRARange_addLink_perVirtualGPR(imlSegment->raInfo.linkedList_perVirtualGPR2, livenessSubrange);
 	PPCRecRARange_addLink_allSubrangesGPR(&imlSegment->raInfo.linkedList_allSubranges, livenessSubrange);
 	return livenessSubrange;
 }
 
 void _unlinkSubrange(raLivenessSubrange_t* subrange)
 {
-	PPCRecImlSegment_t* imlSegment = subrange->imlSegment;
-	PPCRecRARange_removeLink_perVirtualGPR(&imlSegment->raInfo.linkedList_perVirtualGPR[subrange->range->virtualRegister], subrange);
+	IMLSegment* imlSegment = subrange->imlSegment;
+	PPCRecRARange_removeLink_perVirtualGPR(imlSegment->raInfo.linkedList_perVirtualGPR2, subrange);
 	PPCRecRARange_removeLink_allSubrangesGPR(&imlSegment->raInfo.linkedList_allSubranges, subrange);
 }
 
@@ -226,9 +245,9 @@ void PPCRecRA_debugValidateSubrange(raLivenessSubrange_t* subrange) {}
 #endif
 
 // split subrange at the given index
-// After the split there will be two ranges/subranges:
-// head -> subrange is shortned to end at splitIndex
-// tail -> a new subrange that reaches from splitIndex to the end of the original subrange
+// After the split there will be two ranges and subranges:
+// head -> subrange is shortened to end at splitIndex (exclusive)
+// tail -> a new subrange that ranges from splitIndex (inclusive) to the end of the original subrange
 // if head has a physical register assigned it will not carry over to tail
 // The return value is the tail subrange
 // If trimToHole is true, the end of the head subrange and the start of the tail subrange will be moved to fit the locations
@@ -237,7 +256,9 @@ raLivenessSubrange_t* PPCRecRA_splitLocalSubrange(ppcImlGenContext_t* ppcImlGenC
 {
 	// validation
 #ifdef CEMU_DEBUG_ASSERT
-	if (subrange->end.index == RA_INTER_RANGE_END || subrange->end.index == RA_INTER_RANGE_START)
+	//if (subrange->end.index == RA_INTER_RANGE_END || subrange->end.index == RA_INTER_RANGE_START)
+	//	assert_dbg();
+	if (subrange->start.index == RA_INTER_RANGE_END || subrange->end.index == RA_INTER_RANGE_START)
 		assert_dbg();
 	if (subrange->start.index >= splitIndex)
 		assert_dbg();
@@ -283,6 +304,11 @@ raLivenessSubrange_t* PPCRecRA_splitLocalSubrange(ppcImlGenContext_t* ppcImlGenC
 			tailSubrange->start.index = tailSubrange->list_locations.front().index;
 		}
 	}
+	else
+	{
+		// set head range to end at split index
+		subrange->end.index = splitIndex;
+	}
 	return tailSubrange;
 }
 
@@ -306,7 +332,7 @@ void PPCRecRA_updateOrAddSubrangeLocation(raLivenessSubrange_t* subrange, sint32
 	subrange->list_locations.emplace_back(index, isRead, isWrite);
 }
 
-sint32 PPCRecRARange_getReadWriteCost(PPCRecImlSegment_t* imlSegment)
+sint32 PPCRecRARange_getReadWriteCost(IMLSegment* imlSegment)
 {
 	sint32 v = imlSegment->loopDepth + 1;
 	v *= 5;
@@ -397,3 +423,4 @@ sint32 PPCRecRARange_estimateAdditionalCostAfterSplit(raLivenessSubrange_t* subr
 
 	return cost;
 }
+
