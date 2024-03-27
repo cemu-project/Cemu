@@ -47,6 +47,8 @@ public:
 	static std::vector<DeviceDescriptionPtr> GetDevices();
 
 private:
+	uint32 GetQueuedBuffers() const;
+
 	struct XAudioDeleter
 	{
 		void operator()(IXAudio2* ptr) const;

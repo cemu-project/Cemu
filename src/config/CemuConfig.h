@@ -378,6 +378,7 @@ struct CemuConfig
 #endif
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
+	ConfigValue<bool> play_boot_sound{false};
 
 	std::vector<std::string> game_paths;
 	std::mutex game_cache_entries_mutex;
@@ -508,6 +509,19 @@ struct CemuConfig
 	void SetGameListFavorite(uint64 titleId, bool isFavorite);
 	bool GetGameListCustomName(uint64 titleId, std::string& customName);
 	void SetGameListCustomName(uint64 titleId, std::string customName);
+
+	static int AudioChannelsToNChannels(AudioChannels kStereo)
+	{
+		switch (kStereo)
+		{
+		case 0:
+			return 1; // will mix mono sound on both output channels
+		case 2:
+			return 6;
+		default: // stereo
+			return 2;
+		}
+	}
 
 	private:
 	GameEntry* GetGameEntryByTitleId(uint64 titleId);

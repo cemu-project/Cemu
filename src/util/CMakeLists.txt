@@ -1,5 +1,7 @@
 add_library(CemuUtil
   boost/bluetooth.h
+  bootSound/BootSoundReader.cpp
+  bootSound/BootSoundReader.h
   ChunkedHeap/ChunkedHeap.h
   containers/flat_hash_map.hpp
   containers/IntervalBucketContainer.h

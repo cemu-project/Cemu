@@ -25,6 +25,9 @@
 #include "util/helpers/Serializer.h"
 
 #include <wx/msgdlg.h>
+#include <audio/IAudioAPI.h>
+#include <util/bootSound/BootSoundReader.h>
+#include <thread>
 
 #if BOOST_OS_WINDOWS
 #include <psapi.h>
@@ -65,6 +68,9 @@ bool LatteShaderCache_readSeparableShader(uint8* shaderInfoData, sint32 shaderIn
 void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId);
 bool LatteShaderCache_updatePipelineLoadingProgress();
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines);
+
+void LatteShaderCache_InitBootSound();
+void LatteShaderCache_ShutdownBootSound();
 
 void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path pathGenericPre1_25_0, fs::path pathGenericPre1_16_0);
 
@@ -299,6 +305,10 @@ void LatteShaderCache_Load()
 	loadBackgroundTexture(true, g_shaderCacheLoaderState.textureTVId);
 	loadBackgroundTexture(false, g_shaderCacheLoaderState.textureDRCId);
 
+	// initialise resources for playing bootup sound
+	if(GetConfig().play_boot_sound)
+		LatteShaderCache_InitBootSound();
+
 	sint32 numLoadedShaders = 0;
 	uint32 loadIndex = 0;
 
@@ -365,6 +375,9 @@ void LatteShaderCache_Load()
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureTVId);
 	if (g_shaderCacheLoaderState.textureDRCId)
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureDRCId);
+
+	// free resources for playing boot sound
+	LatteShaderCache_ShutdownBootSound();
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
@@ -805,4 +818,83 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 			fs::remove(pathGenericPre1_25_0, ec);
 		}
 	}
+}
+
+static std::atomic<bool> audiothread_keeprunning = true;
+
+void LatteShaderCache_StreamBootSound()
+{
+	constexpr sint32 sampleRate = 48'000;
+	constexpr sint32 bitsPerSample = 16;
+	constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
+	constexpr sint32 nChannels = 2;
+	static_assert(bitsPerSample % 8 == 0, "bits per sample is not a multiple of 8");
+
+	AudioAPIPtr bootSndAudioDev;
+	std::unique_ptr<BootSoundReader> bootSndFileReader;
+	FSCVirtualFile* bootSndFileHandle = 0;
+
+	try
+	{
+		bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, sampleRate, nChannels, samplesPerBlock, bitsPerSample);
+		if(!bootSndAudioDev)
+			return;
+	}
+	catch (const std::runtime_error& ex)
+	{
+		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
+		return;
+	}
+	bootSndAudioDev->SetAudioDelayOverride(4);
+	bootSndAudioDev->Play();
+
+	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
+	sint32 fscStatus = FSC_STATUS_UNDEFINED;
+	bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+	if(!bootSndFileHandle)
+	{
+		cemuLog_log(LogType::Force, "failed to open bootSound.btsnd");
+		return;
+	}
+
+	constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
+	bootSndFileReader = std::make_unique<BootSoundReader>(bootSndFileHandle, audioBlockSize);
+
+	if(bootSndAudioDev && bootSndFileHandle && bootSndFileReader)
+	{
+		while(audiothread_keeprunning)
+		{
+			while (bootSndAudioDev->NeedAdditionalBlocks())
+			{
+				sint16* data = bootSndFileReader->getSamples();
+				if(data == nullptr)
+				{
+					audiothread_keeprunning = false;
+					break;
+				}
+				bootSndAudioDev->FeedBlock(data);
+			}
+			// sleep for the duration of a single block
+			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (sampleRate/ 1'000)));
+		}
+	}
+
+	if(bootSndFileHandle)
+		fsc_close(bootSndFileHandle);
+}
+
+static std::thread g_bootSndPlayThread;
+void LatteShaderCache_InitBootSound()
+{
+	audiothread_keeprunning = true;
+	if(!g_bootSndPlayThread.joinable())
+		g_bootSndPlayThread = std::thread{LatteShaderCache_StreamBootSound};
+}
+
+void LatteShaderCache_ShutdownBootSound()
+{
+	audiothread_keeprunning = false;
+	if(g_bootSndPlayThread.joinable())
+		g_bootSndPlayThread.join();
+	g_bootSndPlayThread = {};
 }

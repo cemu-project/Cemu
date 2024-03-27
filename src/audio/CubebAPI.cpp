@@ -114,7 +114,7 @@ CubebAPI::~CubebAPI()
 bool CubebAPI::NeedAdditionalBlocks() const
 {
 	std::shared_lock lock(m_mutex);
-	return m_buffer.size() < s_audioDelay * m_bytesPerBlock;
+	return m_buffer.size() < GetAudioDelay() * m_bytesPerBlock;
 }
 
 bool CubebAPI::FeedBlock(sint16* data)

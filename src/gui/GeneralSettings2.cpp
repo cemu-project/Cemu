@@ -182,11 +182,16 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
 
-            		// Enable/disable feral interactive gamemode
+			m_play_boot_sound = new wxCheckBox(box, wxID_ANY, _("Enable intro sound"));
+			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
+			second_row->Add(m_play_boot_sound, 0, botflag, 5);
+
+			// Enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
-            		m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
-            		m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
-            		second_row->Add(m_feral_gamemode, 0, botflag, 5);
+			second_row->AddSpacer(10);
+			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
+			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
+			second_row->Add(m_feral_gamemode, 0, botflag, 5);
 #endif
 
 			// temporary workaround because feature crashes on macOS
@@ -912,6 +917,8 @@ void GeneralSettings2::StoreConfig()
 		ScreenSaver::SetInhibit(config.disable_screensaver);
 	}
 
+	config.play_boot_sound = m_play_boot_sound->IsChecked();
+
 	if (!LaunchSettings::GetMLCPath().has_value())
 		config.SetMLCPath(wxHelper::MakeFSPath(m_mlc_path->GetValue()), false);
 	
@@ -1518,6 +1525,7 @@ void GeneralSettings2::ApplyConfig()
 
 	m_permanent_storage->SetValue(config.permanent_storage);
 	m_disable_screensaver->SetValue(config.disable_screensaver);
+	m_play_boot_sound->SetValue(config.play_boot_sound);
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     	m_feral_gamemode->SetValue(config.feral_gamemode);
 #endif
@@ -1734,20 +1742,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_tvAudio)
 					channels = g_tvAudio->GetChannels();
 				else
-				{
-					switch (config.tv_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.tv_channels);
 
 				try
 				{
@@ -1782,20 +1777,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_padAudio)
 					channels = g_padAudio->GetChannels();
 				else
-				{
-					switch (config.pad_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.pad_channels);
 
 				try
 				{
@@ -1831,20 +1813,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_inputAudio)
 					channels = g_inputAudio->GetChannels();
 				else
-				{
-					switch (config.input_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.input_channels);
 
 				try
 				{
