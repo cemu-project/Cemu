@@ -973,7 +973,7 @@ void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, LatteDec
 	}
 	else
 	{
-		cemuLog_log(LogType::Force, "Unsupported shader ALU operand sel 0x%x\n", aluInstruction->sourceOperand[operandIndex].sel);
+		cemuLog_log(LogType::Force, "Unsupported shader ALU operand sel {:#x}\n", aluInstruction->sourceOperand[operandIndex].sel);
 		debugBreakpoint();
 	}
 

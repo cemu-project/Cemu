@@ -1,5 +1,4 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
@@ -8,6 +7,8 @@
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 
 #include "Cafe/GraphicPack/GraphicPack2.h"
+
+#include <boost/container/small_vector.hpp>
 
 struct TexMemOccupancyEntry
 {
@@ -963,7 +964,7 @@ void LatteTexture_RecreateTextureWithDifferentMipSliceCount(LatteTexture* textur
 }
 
 // create new texture representation
-// if allowCreateNewDataTexture is true, a new texture will be created if necessary. If it is false, only existing textures may be used, except if a data-compatible version of the requested texture already exists and it's not view compatible
+// if allowCreateNewDataTexture is true, a new texture will be created if necessary. If it is false, only existing textures may be used, except if a data-compatible version of the requested texture already exists and it's not view compatible (todo - we should differentiate between Latte compatible views and renderer compatible)
 // the returned view will map to the provided mip and slice range within the created texture, this is to match the behavior of lookupSliceEx
 LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, sint32 width, sint32 height, sint32 depth, sint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, Latte::E_GX2SURFFMT format, Latte::E_DIM dimBase, Latte::E_DIM dimView, bool isDepth, bool allowCreateNewDataTexture)
 {
@@ -980,7 +981,7 @@ LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, si
 	// todo, depth and numSlice are redundant
 
 	sint32 sliceCount = firstSlice + numSlice;
-	std::vector<LatteTexture*> list_overlappingTextures;
+	boost::container::small_vector<LatteTexture*, 16> list_overlappingTextures;
 	for (sint32 sliceIndex = 0; sliceIndex < sliceCount; sliceIndex++)
 	{
 		sint32 mipIndex = 0;

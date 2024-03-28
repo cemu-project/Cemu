@@ -25,6 +25,8 @@ struct LatteGPUState_t
 	// context control
 	uint32 contextControl0;
 	uint32 contextControl1;
+	// optional features
+	bool allowFramebufferSizeOptimization{false}; // allow using scissor box as size hint to determine non-padded rendertarget size
 	// draw context
 	struct  
 	{

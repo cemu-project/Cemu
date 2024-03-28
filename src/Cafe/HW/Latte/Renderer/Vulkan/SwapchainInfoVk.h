@@ -14,14 +14,6 @@ struct SwapchainInfoVk
 		SYNC_AND_LIMIT = 3, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
 	};
 
-	struct QueueFamilyIndices
-	{
-		int32_t graphicsFamily = -1;
-		int32_t presentFamily = -1;
-
-		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
-	};
-
 	struct SwapchainSupportDetails
 	{
 		VkSurfaceCapabilitiesKHR capabilities;
@@ -30,7 +22,7 @@ struct SwapchainInfoVk
 	};
 
 	void Cleanup();
-	void Create(VkPhysicalDevice physicalDevice, VkDevice logicalDevice);
+	void Create();
 
 	bool IsValid() const;
 
@@ -45,8 +37,6 @@ struct SwapchainInfoVk
 
 	static void UnrecoverableError(const char* errMsg);
 
-	// todo: move this function somewhere more sensible. Not directly swapchain related
-	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
 	static SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device);
 
 	VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes);
@@ -61,14 +51,10 @@ struct SwapchainInfoVk
 		return m_actualExtent;
 	}
 
-	SwapchainInfoVk(VkSurfaceKHR surface, bool mainWindow)
-		: surface(surface), mainWindow(mainWindow) {}
+	SwapchainInfoVk(bool mainWindow, Vector2i size);
 	SwapchainInfoVk(const SwapchainInfoVk&) = delete;
 	SwapchainInfoVk(SwapchainInfoVk&&) noexcept = default;
-	~SwapchainInfoVk()
-	{
-		Cleanup();
-	}
+	~SwapchainInfoVk();
 
 	bool mainWindow{};
 
@@ -77,11 +63,12 @@ struct SwapchainInfoVk
 	VSync m_vsyncState = VSync::Immediate;
 	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
 
+	VkInstance m_instance{};
 	VkPhysicalDevice m_physicalDevice{};
 	VkDevice m_logicalDevice{};
-	VkSurfaceKHR surface{};
+	VkSurfaceKHR m_surface{};
 	VkSurfaceFormatKHR m_surfaceFormat{};
-	VkSwapchainKHR swapchain{};
+	VkSwapchainKHR m_swapchain{};
 	Vector2i m_desiredExtent{};
 	uint32 swapchainImageIndex = (uint32)-1;
 

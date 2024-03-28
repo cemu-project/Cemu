@@ -175,6 +175,23 @@ int Latte_ThreadEntry()
 
 	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
 	GraphicPack2::WaitUntilReady();
+	// if legacy packs are enabled we cannot use the colorbuffer resolution optimization
+	LatteGPUState.allowFramebufferSizeOptimization = true;
+	for(auto& pack : GraphicPack2::GetActiveGraphicPacks())
+	{
+		if(pack->AllowRendertargetSizeOptimization())
+			continue;
+		for(auto& rule : pack->GetTextureRules())
+		{
+			if(rule.filter_settings.width >= 0 || rule.filter_settings.height >= 0 || rule.filter_settings.depth >= 0 ||
+				rule.overwrite_settings.width >= 0 || rule.overwrite_settings.height >= 0 || rule.overwrite_settings.depth >= 0)
+			{
+				LatteGPUState.allowFramebufferSizeOptimization = false;
+				cemuLog_log(LogType::Force, "Graphic pack {} prevents rendertarget size optimization.", pack->GetName());
+				break;
+			}
+		}
+	}
 	// load disk shader cache
     LatteShaderCache_Load();
 	// init registers

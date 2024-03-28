@@ -127,7 +127,6 @@ class VulkanRenderer : public Renderer
 	friend class PipelineCompiler;
 
 	using VSync = SwapchainInfoVk::VSync;
-	using QueueFamilyIndices = SwapchainInfoVk::QueueFamilyIndices;
 
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
 
@@ -414,13 +413,24 @@ private:
 	}m_state;
 
 	std::unique_ptr<SwapchainInfoVk> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	Semaphore m_padCloseReadySemaphore;
-	bool m_destroyPadSwapchainNextAcquire = false;
+	std::atomic_flag m_destroyPadSwapchainNextAcquire{};
 	bool IsSwapchainInfoValid(bool mainWindow) const;
 
 	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 
 	VkDescriptorPool m_descriptorPool;
+
+  public:
+	struct QueueFamilyIndices
+	{
+		int32_t graphicsFamily = -1;
+		int32_t presentFamily = -1;
+
+		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
+	};
+	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
+
+  private:
 
 	struct FeatureControl
 	{

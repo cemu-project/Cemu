@@ -625,6 +625,7 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 	CreateCanvas();
 	CafeSystem::LaunchForegroundTitle();
 	RecreateMenu();
+	UpdateChildWindowTitleRunningState();
 
 	return true;
 }
@@ -683,6 +684,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 		RecreateMenu();
         CreateGameListAndStatusBar();
         DoLayout();
+		UpdateChildWindowTitleRunningState();
 	}
 }
 
@@ -2318,6 +2320,14 @@ void MainWindow::RecreateMenu()
 	// hide new menu in fullscreen
 	if (IsFullScreen())
 		SetMenuVisible(false);
+}
+
+void MainWindow::UpdateChildWindowTitleRunningState()
+{
+	const bool running = CafeSystem::IsTitleRunning();
+
+	if(m_graphic_pack_window)
+		m_graphic_pack_window->UpdateTitleRunning(running);
 }
 
 void MainWindow::RestoreSettingsAfterGameExited()
