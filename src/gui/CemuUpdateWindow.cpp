@@ -12,8 +12,11 @@
 #include <wx/msgdlg.h>
 #include <wx/stdpaths.h>
 
+#ifndef BOOST_OS_WINDOWS
 #include <unistd.h>
 #include <sys/stat.h>
+#endif
+
 #include <curl/curl.h>
 #include <zip.h>
 #include <boost/tokenizer.hpp>
