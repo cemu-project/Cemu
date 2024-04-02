@@ -44,6 +44,7 @@ const std::map<LogType, std::string> g_logging_window_mapping
 	{LogType::CoreinitThread,     "Coreinit Thread"},
 	{LogType::NN_NFP,             "nn::nfp"},
 	{LogType::NN_FP,              "nn::fp"},
+	{LogType::NN_BOSS,            "nn::boss"},
 	{LogType::GX2,                "GX2"},
 	{LogType::SoundAPI,           "Audio"},
 	{LogType::InputAPI,           "Input"},
