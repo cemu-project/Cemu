@@ -12,7 +12,7 @@
 #define GPU7_CF_INST_VTX				(0x02) // used only in GS copy program?
 #define GPU7_CF_INST_LOOP_END			(0x05)
 #define GPU7_CF_INST_LOOP_START_DX10	(0x06)
-#define GPU7_CF_INST_LOOP_START_NO_AL	(0x07) // (Seen in Project Zero)
+#define GPU7_CF_INST_LOOP_START_NO_AL	(0x07) // (Seen in Project Zero, Injustice: Gods Among Us)
 
 #define GPU7_CF_INST_LOOP_BREAK			(0x09)
 #define GPU7_CF_INST_JUMP				(0x0A)

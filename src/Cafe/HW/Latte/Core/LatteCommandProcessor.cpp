@@ -475,17 +475,44 @@ LatteCMDPtr LatteCP_itWaitRegMem(LatteCMDPtr cmd, uint32 nWords)
 		{
 			uint32 fenceMemValue = _swapEndianU32(*fencePtr);
 			fenceMemValue &= fenceMask;
-			if (compareOp == GPU7_WAIT_MEM_OP_GEQUAL)
+			if (compareOp == GPU7_WAIT_MEM_OP_LESS)
 			{
-				// greater or equal
-				if (fenceMemValue >= fenceValue)
+				if (fenceMemValue < fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_LEQUAL)
+			{
+				if (fenceMemValue <= fenceValue)
 					break;
 			}
 			else if (compareOp == GPU7_WAIT_MEM_OP_EQUAL)
 			{
-				// equal
 				if (fenceMemValue == fenceValue)
 					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_NOTEQUAL)
+			{
+				if (fenceMemValue != fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_GEQUAL)
+			{
+				if (fenceMemValue >= fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_GREATER)
+			{
+				if (fenceMemValue > fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_ALWAYS)
+			{
+				break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_NEVER)
+			{
+				cemuLog_logOnce(LogType::Force, "Latte: WAIT_MEM_OP_NEVER encountered");
+				break;
 			}
 			else
 				assert_dbg();

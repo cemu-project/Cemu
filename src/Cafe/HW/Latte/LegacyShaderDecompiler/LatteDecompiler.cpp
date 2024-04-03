@@ -101,7 +101,8 @@ bool LatteDecompiler_ParseCFInstruction(LatteDecompilerShaderContext* shaderCont
 			// ignored (we use ALU/IF/ELSE/PUSH/POP clauses to determine code flow)
 			return true;
 		}
-		else if (cf_inst23_7 == GPU7_CF_INST_LOOP_START_DX10 || cf_inst23_7 == GPU7_CF_INST_LOOP_END)
+		else if (cf_inst23_7 == GPU7_CF_INST_LOOP_START_DX10 || cf_inst23_7 == GPU7_CF_INST_LOOP_END ||
+				 cf_inst23_7 == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			LatteDecompilerCFInstruction& cfInstruction = instructionList.emplace_back();
 			// set type and address
@@ -966,7 +967,8 @@ void LatteDecompiler_ParseClauses(LatteDecompilerShaderContext* decompilerContex
 		{
 			// no sub-instructions
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			// no sub-instructions
 		}
