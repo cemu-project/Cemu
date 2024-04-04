@@ -35,6 +35,7 @@ enum class LogType : sint32
 	NN_OLV = 23,
 	NN_NFP = 13,
 	NN_FP = 24,
+	NN_BOSS = 25,
 
 	TextureReadback = 29,
 
