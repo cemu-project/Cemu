@@ -50,6 +50,10 @@ typedef struct
 
 static_assert(sizeof(elfSectionEntry_t) == 0x28, "");
 
+#define PF_X		(1 << 0)	/* Segment is executable */
+#define PF_W		(1 << 1)	/* Segment is writable */
+#define PF_R		(1 << 2)	/* Segment is readable */
+
 // Map elf into memory
 uint32 ELF_LoadFromMemory(uint8* elfData, sint32 size, const char* name)
 {
@@ -68,6 +72,7 @@ uint32 ELF_LoadFromMemory(uint8* elfData, sint32 size, const char* name)
 		uint32 shSize = (uint32)sectionTable[i].shSize;
 		uint32 shOffset = (uint32)sectionTable[i].shOffset;
 		uint32 shType = (uint32)sectionTable[i].shType;
+		uint32 shFlags = (uint32)sectionTable[i].shFlags;
 
 		if (shOffset > (uint32)size)
 		{
@@ -89,6 +94,8 @@ uint32 ELF_LoadFromMemory(uint8* elfData, sint32 size, const char* name)
 			}
 			//  	SHT_NOBITS
 		}
+		if((shFlags & PF_X) > 0)
+			PPCRecompiler_allocateRange(shAddr, shSize);
 	}
 	return header->entrypoint;
 }
