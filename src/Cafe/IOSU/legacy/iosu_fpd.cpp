@@ -213,6 +213,9 @@ namespace iosu
 			friendData->friendExtraData.gameKey.titleId = frd->presence.gameKey.titleId;
 			friendData->friendExtraData.gameKey.ukn08 = frd->presence.gameKey.ukn;
 			NexPresenceToGameMode(&frd->presence, &friendData->friendExtraData.gameMode);
+
+			auto fixed_presence_msg = '\0' + frd->presence.msg; // avoid first character of comment from being cut off
+			friendData->friendExtraData.gameModeDescription.assignFromUTF8(fixed_presence_msg);
 			
 			auto comment_utf16 = StringHelpers::FromUtf8(frd->comment.commentString);
 			comment_utf16.insert(0, 1, '\0'); // avoid first character of comment from being cut off
