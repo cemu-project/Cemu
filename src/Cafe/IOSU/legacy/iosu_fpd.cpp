@@ -716,7 +716,7 @@ namespace iosu
 				static constexpr uint32 MY_COMMENT_LENGTH = 0x12; // are comments utf16? Buffer length is 0x24
 				if(numVecIn != 0 || numVecOut != 1)
 					return FPResult_InvalidIPCParam;
-				if(vecOut->size != MY_COMMENT_LENGTH*sizeof(uint16be))
+				if (vecOut->size != MY_COMMENT_LENGTH * sizeof(uint16be))
 				{
 					cemuLog_log(LogType::Force, "GetMyComment: Unexpected output size");
 					return FPResult_InvalidIPCParam;
@@ -750,9 +750,18 @@ namespace iosu
 			{
 				if(numVecIn != 0 || numVecOut != 1)
 					return FPResult_InvalidIPCParam;
-				SelfPlayingGame selfPlayingGame{0};
-				cemuLog_log(LogType::Force, "GetMyPlayingGame is todo");
-				return WriteValueOutput<SelfPlayingGame>(vecOut, selfPlayingGame);
+				GameKey selfPlayingGame
+				{
+					CafeSystem::GetForegroundTitleId(),
+					CafeSystem::GetForegroundTitleVersion(),
+					{0,0,0,0,0,0}
+				};
+				if (GetTitleIdHigh(CafeSystem::GetForegroundTitleId()) != 0x00050000)
+				{
+					selfPlayingGame.titleId = 0;
+					selfPlayingGame.ukn08 = 0;
+				}
+				return WriteValueOutput<GameKey>(vecOut, selfPlayingGame);
 			}
 
 			nnResult CallHandler_GetFriendAccountId(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
@@ -1410,8 +1419,16 @@ namespace iosu
 				act::getCountryIndex(currentSlot, &countryCode);
 				// init presence
 				g_fpd.myPresence.isOnline = 1;
-				g_fpd.myPresence.gameKey.titleId = CafeSystem::GetForegroundTitleId();
-				g_fpd.myPresence.gameKey.ukn = CafeSystem::GetForegroundTitleVersion();
+				if (GetTitleIdHigh(CafeSystem::GetForegroundTitleId()) == 0x00050000)
+				{
+					g_fpd.myPresence.gameKey.titleId = CafeSystem::GetForegroundTitleId();
+					g_fpd.myPresence.gameKey.ukn = CafeSystem::GetForegroundTitleVersion();
+				}
+				else
+				{
+					g_fpd.myPresence.gameKey.titleId = 0; // icon will not be ??? or invalid to others
+					g_fpd.myPresence.gameKey.ukn = 0;
+				}
 				// resolve potential domain to IP address
 				struct addrinfo hints = {0}, *addrs;
 				hints.ai_family = AF_INET;
