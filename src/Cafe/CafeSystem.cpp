@@ -914,6 +914,27 @@ namespace CafeSystem
 		return sGameInfo_ForegroundTitle.GetBase().GetArgStr();
 	}
 
+	CosCapabilityBits GetForegroundTitleCosCapabilities(CosCapabilityGroup group)
+	{
+		if (sLaunchModeIsStandalone)
+			return CosCapabilityBits::All;
+		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
+		if (update.IsValid())
+		{
+			ParsedCosXml* cosXml = update.GetCosInfo();
+			if (cosXml)
+				return cosXml->GetCapabilityBits(group);
+		}
+		auto& base = sGameInfo_ForegroundTitle.GetBase();
+		if(base.IsValid())
+		{
+			ParsedCosXml* cosXml = base.GetCosInfo();
+			if (cosXml)
+				return cosXml->GetCapabilityBits(group);
+		}
+		return CosCapabilityBits::All;
+	}
+
 	// when switching titles custom parameters can be passed, returns true if override args are used
 	bool GetOverrideArgStr(std::vector<std::string>& args)
 	{

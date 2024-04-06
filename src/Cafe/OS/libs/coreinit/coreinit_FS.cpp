@@ -11,6 +11,8 @@
 #include "coreinit_IPC.h"
 #include "Cafe/Filesystem/fsc.h"
 #include "coreinit_IPCBuf.h"
+#include "Cafe/CafeSystem.h"
+#include "Cafe/TitleList/TitleInfo.h"
 
 #define FS_CB_PLACEHOLDER_FINISHCMD (MPTR)(0xF122330E)
 
@@ -94,6 +96,14 @@ namespace coreinit
 		// so we can just hard code it. Other mount types are not (yet) supported.
 		if (mountSourceType == MOUNT_TYPE::SD)
 		{
+			// check for SD card permissions (from cos.xml)
+			// One Piece relies on failing here, otherwise it will call FSGetMountSource in an infinite loop
+			CosCapabilityBitsFS perms = static_cast<CosCapabilityBitsFS>(CafeSystem::GetForegroundTitleCosCapabilities(CosCapabilityGroup::FS));
+			if(!HAS_FLAG(perms, CosCapabilityBitsFS::SDCARD_MOUNT))
+			{
+				cemuLog_logOnce(LogType::Force, "Title is trying to access SD card mount info without having SD card permissions. This may not be a bug");
+				return FS_RESULT::END_ITERATION;
+			}
 			mountSourceInfo->sourceType = 0;
 			strcpy(mountSourceInfo->path, "/sd");
 			return FS_RESULT::SUCCESS;
