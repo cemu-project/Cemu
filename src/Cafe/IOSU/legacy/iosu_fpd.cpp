@@ -213,7 +213,11 @@ namespace iosu
 			friendData->friendExtraData.gameKey.titleId = frd->presence.gameKey.titleId;
 			friendData->friendExtraData.gameKey.ukn08 = frd->presence.gameKey.ukn;
 			NexPresenceToGameMode(&frd->presence, &friendData->friendExtraData.gameMode);
-
+			
+			auto comment_utf16 = StringHelpers::FromUtf8(frd->comment.commentString);
+			comment_utf16.insert(0, 1, '\0'); // avoid first character of comment from being cut off
+			memcpy(friendData->friendExtraData.comment, comment_utf16.c_str(), 36);
+			
 			// set valid dates
 			friendData->uknDate.year = 2018;
 			friendData->uknDate.day = 1;
@@ -716,7 +720,7 @@ namespace iosu
 				static constexpr uint32 MY_COMMENT_LENGTH = 0x12; // are comments utf16? Buffer length is 0x24
 				if(numVecIn != 0 || numVecOut != 1)
 					return FPResult_InvalidIPCParam;
-				if (vecOut->size != MY_COMMENT_LENGTH * sizeof(uint16be))
+				if(vecOut->size != MY_COMMENT_LENGTH*sizeof(uint16be))
 				{
 					cemuLog_log(LogType::Force, "GetMyComment: Unexpected output size");
 					return FPResult_InvalidIPCParam;
