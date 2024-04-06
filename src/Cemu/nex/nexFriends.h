@@ -431,7 +431,7 @@ public:
 	{
 		nnaInfo.readData(pb);
 		presence.readData(pb);
-		gameModeMessage.readData(pb);
+		comment.readData(pb);
 		friendsSinceTimestamp = pb->readU64();
 		lastOnlineTimestamp = pb->readU64();
 		ukn6 = pb->readU64();
