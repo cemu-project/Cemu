@@ -439,7 +439,7 @@ public:
 public:
 	nexNNAInfo		nnaInfo;
 	nexPresenceV2	presence;
-	nexComment		gameModeMessage;
+	nexComment		comment;
 	uint64			friendsSinceTimestamp;
 	uint64			lastOnlineTimestamp;
 	uint64			ukn6;
