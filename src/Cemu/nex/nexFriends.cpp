@@ -933,7 +933,6 @@ void NexFriends::updateMyPresence(nexPresenceV2& myPresence)
 	uint8 tempNexBufferArray[1024];
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	myPresence.writeData(&packetBuffer);
-
 	nexCon->callMethod(NEX_PROTOCOL_FRIENDS_WIIU, 13, &packetBuffer, +[](nexServiceResponse_t* nexResponse){}, false);
 }
 
