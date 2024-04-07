@@ -1,17 +1,15 @@
 package info.cemu.Cemu;
 
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.util.Log;
 
-import androidx.documentfile.provider.DocumentFile;
-
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class FileUtil {
     private static final String PATH_SEPARATOR_ENCODED = "%2F";
@@ -86,6 +84,31 @@ public class FileUtil {
         } catch (Exception e) {
             Log.e("FileUtil", "Failed checking if file exists: " + e.getMessage());
             return false;
+        }
+    }
+
+    public static void delete(Path fileToDelete) {
+        try {
+            if (!Files.exists(fileToDelete)) {
+                return;
+            }
+            if (Files.isRegularFile(fileToDelete)) {
+                Files.delete(fileToDelete);
+                return;
+            }
+            var files = Files.list(fileToDelete);
+            files.forEach(path -> {
+                if (Files.isDirectory(path)) {
+                    delete(path);
+                }
+                try {
+                    Files.delete(path);
+                } catch (IOException ignored) {
+                }
+            });
+            files.close();
+            Files.delete(fileToDelete);
+        } catch (IOException ignored) {
         }
     }
 }

@@ -82,7 +82,7 @@
     <string name="tv">TV</string>
     <string name="tv_audio_description">Enable audio output for the Wii U TV</string>
     <string name="gamepad">Gamepad</string>
-    <string name="gamepad_audio_description">Enable audio output for for the Wii U Gamepad</string>
+    <string name="gamepad_audio_description">Enable audio output for the Wii U Gamepad</string>
     <string name="audio_settings">Audio settings</string>
     <string name="mono">Mono</string>
     <string name="stereo">Stereo</string>
@@ -93,4 +93,23 @@
     <string name="pad_volume">Gamepad volume</string>
     <string name="search_games">Search games</string>
     <string name="no_games_found">No games were found</string>
+    <string name="graphic_packs">Graphic packs</string>
+    <string name="download_graphic_packs_description">Download latest community graphic packs</string>
+    <string name="download_graphic_packs_title">Download graphic packs</string>
+    <string name="search_graphic_packs_title">Search</string>
+    <string name="checking_version_download_text">Checking version</string>
+    <string name="graphic_packs_download_text">Downloading graphic packs</string>
+    <string name="download_graphic_packs_error_text">Failed to download graphic packs</string>
+    <string name="download_graphic_packs_finish_text">Downloaded latest graphic packs</string>
+    <string name="graphic_packs_no_updates_text">No updates available</string>
+    <string name="graphic_packs_download_dialog_title">Graphic packs download</string>
+    <string name="expand_graphic_section_description">Expand graphic packs section</string>
+    <string name="graphic_pack_section_item_description">Graphic pack section</string>
+    <string name="active_preset_category">Active preset</string>
+    <string name="graphic_pack_enabled_checkbox_label">Enabled</string>
+    <string name="graphic_pack_name">Graphic pack name</string>
+    <string name="graphic_pack_description">Graphic pack description</string>
+    <string name="graphic_pack_no_description">This graphic pack has no description</string>
+    <string name="graphic_pack_icon_description">Graphic pack icon</string>
+    <string name="search_graphic_packs_action">Search graphic packs</string>
 </resources>

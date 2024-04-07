@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-public class SingleSelectionRecyclerViewItem<T> implements RecyclerViewItem {
+public abstract class BaseSingleSelectionRecyclerViewItem<T> implements RecyclerViewItem {
     private static class SingleSelectionViewHolder extends RecyclerView.ViewHolder {
         TextView label;
         TextView description;
@@ -22,17 +22,17 @@ public class SingleSelectionRecyclerViewItem<T> implements RecyclerViewItem {
     }
 
     public interface OnItemSelectedListener<T> {
-        void onItemSelected(T selectedValue, SingleSelectionRecyclerViewItem<T> selectionRecyclerViewItem);
+        void onItemSelected(T selectedValue, BaseSingleSelectionRecyclerViewItem<T> selectionRecyclerViewItem);
     }
 
-    private final BaseSelectionAdapter<T> selectionAdapter;
+    private final SelectionAdapter<T> selectionAdapter;
     private final String label;
     private String description;
     private final OnItemSelectedListener<T> onItemSelectedListener;
     private SingleSelectionViewHolder singleSelectionViewHolder;
     private RecyclerView.Adapter<RecyclerView.ViewHolder> recyclerViewAdapter;
 
-    public SingleSelectionRecyclerViewItem(String label, String description, BaseSelectionAdapter<T> selectionAdapter, OnItemSelectedListener<T> onItemSelectedListener) {
+    public BaseSingleSelectionRecyclerViewItem(String label, String description, SelectionAdapter<T> selectionAdapter, OnItemSelectedListener<T> onItemSelectedListener) {
         this.label = label;
         this.description = description;
         this.selectionAdapter = selectionAdapter;
@@ -63,7 +63,7 @@ public class SingleSelectionRecyclerViewItem<T> implements RecyclerViewItem {
                 T selectedValue = selectionAdapter.getItem(position);
                 selectionAdapter.setSelectedValue(selectedValue);
                 if (onItemSelectedListener != null)
-                    onItemSelectedListener.onItemSelected(selectedValue, SingleSelectionRecyclerViewItem.this);
+                    onItemSelectedListener.onItemSelected(selectedValue, BaseSingleSelectionRecyclerViewItem.this);
 
             }).setNegativeButton(R.string.cancel, (dialogInterface, i) -> dialogInterface.dismiss()).show();
         });

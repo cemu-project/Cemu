@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name="info.cemu.Cemu.CemuApplication"
         android:allowBackup="true"
@@ -17,11 +19,13 @@
         <activity
             android:name=".EmulationActivity"
             android:launchMode="singleTop"
+            android:parentActivityName=".MainActivity"
             android:screenOrientation="userLandscape" />
 
         <activity
             android:name=".SettingsActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -33,5 +37,4 @@
             </intent-filter>
         </activity>
     </application>
-
 </manifest>

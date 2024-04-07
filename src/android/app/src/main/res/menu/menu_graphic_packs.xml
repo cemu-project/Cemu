@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="info.cemu.Cemu.MainActivity">
+
+    <item
+        android:id="@+id/action_graphic_packs_search"
+        android:icon="@drawable/ic_search"
+        android:title="@string/search_graphic_packs_action"
+        app:actionViewClass="androidx.appcompat.widget.SearchView"
+        app:showAsAction="collapseActionView|ifRoom" />
+
+    <item
+        android:id="@+id/action_graphic_packs_download"
+        android:contentDescription="@string/download_graphic_packs_description"
+        android:icon="@drawable/ic_download"
+        android:title="@string/download_graphic_packs_title"
+        app:showAsAction="ifRoom" />
+</menu>

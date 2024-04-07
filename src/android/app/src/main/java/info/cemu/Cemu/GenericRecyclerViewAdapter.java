@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class GenericRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -15,6 +16,13 @@ public class GenericRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVie
     public void addRecyclerViewItem(RecyclerViewItem recyclerViewItem) {
         recyclerViewItems.add(recyclerViewItem);
         notifyItemInserted(recyclerViewItems.size() - 1);
+    }
+
+    public void removeRecyclerViewItem(RecyclerViewItem recyclerViewItem) {
+        int position = recyclerViewItems.indexOf(recyclerViewItem);
+        if (position == -1) return;
+        recyclerViewItems.remove(position);
+        notifyItemRemoved(position);
     }
 
     public void clearRecyclerViewItems() {

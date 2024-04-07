@@ -1,3 +1,4 @@
+#include "Cafe/GraphicPack/GraphicPack2.h"
 #include "AndroidGameIconLoadedCallback.h"
 #include "AndroidGameTitleLoadedCallback.h"
 #include "EmulationState.h"
@@ -291,4 +292,112 @@ Java_info_cemu_Cemu_NativeLibrary_setAudioDeviceVolume([[maybe_unused]] JNIEnv *
 	auto &deviceVolume = tv ? g_config.data().tv_volume : g_config.data().pad_volume;
 	deviceVolume = volume;
 	g_config.Save();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_refreshGraphicPacks([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	s_emulationState.refreshGraphicPacks();
+}
+
+extern "C" JNIEXPORT jobject JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getGraphicPackIdsAndVirtualPaths(JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	auto graphicPackInfoClass = env->FindClass("info/cemu/Cemu/NativeLibrary$GraphicPackIdAndVirtualPath");
+	auto graphicPackInfoCtorId = env->GetMethodID(graphicPackInfoClass, "<init>", "(JLjava/lang/String;)V");
+
+	auto graphicPacks = s_emulationState.getGraphicPacks();
+	std::vector<jobject> graphicPackInfoJObjects;
+	for (auto&& graphicPack : graphicPacks)
+	{
+		jstring virtualPath = env->NewStringUTF(graphicPack.second->GetVirtualPath().c_str());
+		jlong id = graphicPack.first;
+		jobject jGraphicPack = env->NewObject(graphicPackInfoClass, graphicPackInfoCtorId, id, virtualPath);
+		graphicPackInfoJObjects.push_back(jGraphicPack);
+	}
+	return JNIUtils::createArrayList(env, graphicPackInfoJObjects);
+}
+
+jobject getGraphicPresets(JNIEnv* env, GraphicPackPtr graphicPack, int64_t id)
+{
+	auto graphicPackPresetClass = env->FindClass("info/cemu/Cemu/NativeLibrary$GraphicPackPreset");
+	auto graphicPackPresetCtorId = env->GetMethodID(graphicPackPresetClass, "<init>", "(JLjava/lang/String;Ljava/util/ArrayList;Ljava/lang/String;)V");
+
+	std::vector<std::string> order;
+	auto presets = graphicPack->GetCategorizedPresets(order);
+
+	std::vector<jobject> presetsJobjects;
+	for (const auto& category : order)
+	{
+		const auto& entry = presets[category];
+		// test if any preset is visible and update its status
+		if (std::none_of(entry.cbegin(), entry.cend(), [graphicPack](const auto& p) { return p->visible; }))
+		{
+			continue;
+		}
+
+		jstring categoryJStr = category.empty() ? nullptr : env->NewStringUTF(category.c_str());
+		std::vector<std::string> presetSelections;
+		std::optional<std::string> activePreset;
+		for (auto& pentry : entry)
+		{
+			if (!pentry->visible)
+				continue;
+
+			presetSelections.push_back(pentry->name);
+
+			if (pentry->active)
+				activePreset = pentry->name;
+		}
+
+		jstring activePresetJstr = nullptr;
+		if (activePreset)
+			activePresetJstr = env->NewStringUTF(activePreset->c_str());
+		else if (!presetSelections.empty())
+			activePresetJstr = env->NewStringUTF(presetSelections.front().c_str());
+		auto presetJObject = env->NewObject(graphicPackPresetClass,
+											graphicPackPresetCtorId,
+											id,
+											categoryJStr,
+											JNIUtils::createJavaStringArrayList(env, presetSelections),
+											activePresetJstr);
+		presetsJobjects.push_back(presetJObject);
+	}
+	return JNIUtils::createArrayList(env, presetsJobjects);
+}
+extern "C" JNIEXPORT jobject JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getGraphicPack(JNIEnv* env, [[maybe_unused]] jclass clazz, jlong id)
+{
+	auto graphicPackClass = env->FindClass("info/cemu/Cemu/NativeLibrary$GraphicPack");
+	auto graphicPackCtorId = env->GetMethodID(graphicPackClass, "<init>", "(JZLjava/lang/String;Ljava/lang/String;Ljava/util/ArrayList;)V");
+	auto graphicPack = s_emulationState.getGraphicPack(id);
+
+	jstring graphicPackName = env->NewStringUTF(graphicPack->GetName().c_str());
+	jstring graphicPackDescription = env->NewStringUTF(graphicPack->GetDescription().c_str());
+	return env->NewObject(graphicPackClass,
+						  graphicPackCtorId,
+						  id,
+						  graphicPack->IsEnabled(),
+						  graphicPackName,
+						  graphicPackDescription,
+						  getGraphicPresets(env, graphicPack, id));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setGraphicPackActive([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong id, jboolean active)
+{
+	s_emulationState.setEnabledStateForGraphicPack(id, active);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setGraphicPackActivePreset([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong id, jstring category, jstring preset)
+{
+	std::string presetCategory = category == nullptr ? "" : JNIUtils::JStringToString(env, category);
+	s_emulationState.setGraphicPackActivePreset(id, presetCategory, JNIUtils::JStringToString(env, preset));
+}
+
+extern "C" JNIEXPORT jobject JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getGraphicPackPresets(JNIEnv* env, [[maybe_unused]] jclass clazz, jlong id)
+{
+	return getGraphicPresets(env, s_emulationState.getGraphicPack(id), id);
 }

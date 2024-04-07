@@ -8,6 +8,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "CafeSystemUtils.h"
+#include "Cafe/CafeSystem.h"
 #include "Cemu/GuiSystem/GuiSystem.h"
 #include "GameIconLoader.h"
 #include "GameTitleLoader.h"
@@ -19,24 +20,34 @@
 
 int mainEmulatorHLE();
 
-class EmulationState
-{
+class EmulationState {
 	GameIconLoader m_gameIconLoader;
 	GameTitleLoader m_gameTitleLoader;
+	std::unordered_map<int64_t, GraphicPackPtr> m_graphicPacks;
+	void fillGraphicPacks()
+	{
+		m_graphicPacks.clear();
+		auto graphicPacks = GraphicPack2::GetGraphicPacks();
+		for (auto&& graphicPack : graphicPacks)
+		{
+			m_graphicPacks[reinterpret_cast<int64_t>(graphicPack.get())] = graphicPack;
+		}
+	}
 
-   public:
+  public:
 	void initializeEmulation()
 	{
+		g_config.Load();
 		FilesystemAndroid::setFilesystemCallbacks(std::make_shared<AndroidFilesystemCallbacks>());
 		NetworkConfig::LoadOnce();
-		mainEmulatorHLE();
 		InputManager::instance().load();
 		InitializeGlobalVulkan();
 		createCemuDirectories();
-		g_config.Load();
+		mainEmulatorHLE();
+		fillGraphicPacks();
 	}
 
-	void initializeActiveSettings(const fs::path &dataPath, const fs::path &cachePath)
+	void initializeActiveSettings(const fs::path& dataPath, const fs::path& cachePath)
 	{
 		ActiveSettings::LoadOnce({}, dataPath, dataPath, cachePath, dataPath);
 	}
@@ -51,12 +62,12 @@ class EmulationState
 		VulkanRenderer::GetInstance()->NotifySurfaceChanged(isMainCanvas);
 	}
 
-	void setSurface(JNIEnv *env, jobject surface, bool isMainCanvas)
+	void setSurface(JNIEnv* env, jobject surface, bool isMainCanvas)
 	{
-		auto &windowHandleInfo = isMainCanvas ? GuiSystem::getWindowInfo().canvas_main : GuiSystem::getWindowInfo().canvas_pad;
+		auto& windowHandleInfo = isMainCanvas ? GuiSystem::getWindowInfo().canvas_main : GuiSystem::getWindowInfo().canvas_pad;
 		if (windowHandleInfo.surface)
 		{
-			ANativeWindow_release(static_cast<ANativeWindow *>(windowHandleInfo.surface));
+			ANativeWindow_release(static_cast<ANativeWindow*>(windowHandleInfo.surface));
 			windowHandleInfo.surface = nullptr;
 		}
 		if (surface)
@@ -67,7 +78,7 @@ class EmulationState
 
 	void setSurfaceSize(int width, int height, bool isMainCanvas)
 	{
-		auto &windowInfo = GuiSystem::getWindowInfo();
+		auto& windowInfo = GuiSystem::getWindowInfo();
 		if (isMainCanvas)
 		{
 			windowInfo.width = windowInfo.phys_width = width;
@@ -80,17 +91,17 @@ class EmulationState
 		}
 	}
 
-	void onKeyEvent(const std::string &deviceDescriptor, const std::string &deviceName, int keyCode, bool isPressed)
+	void onKeyEvent(const std::string& deviceDescriptor, const std::string& deviceName, int keyCode, bool isPressed)
 	{
 		auto apiProvider = InputManager::instance().get_api_provider(InputAPI::Android);
-		auto androidControllerProvider = dynamic_cast<AndroidControllerProvider *>(apiProvider.get());
+		auto androidControllerProvider = dynamic_cast<AndroidControllerProvider*>(apiProvider.get());
 		androidControllerProvider->on_key_event(deviceDescriptor, deviceName, keyCode, isPressed);
 	}
 
-	void onAxisEvent(const std::string &deviceDescriptor, const std::string &deviceName, int axisCode, float value)
+	void onAxisEvent(const std::string& deviceDescriptor, const std::string& deviceName, int axisCode, float value)
 	{
 		auto apiProvider = InputManager::instance().get_api_provider(InputAPI::Android);
-		auto androidControllerProvider = dynamic_cast<AndroidControllerProvider *>(apiProvider.get());
+		auto androidControllerProvider = dynamic_cast<AndroidControllerProvider*>(apiProvider.get());
 		androidControllerProvider->on_axis_event(deviceDescriptor, deviceName, axisCode, value);
 	}
 
@@ -120,7 +131,7 @@ class EmulationState
 		{
 			auto emulatedController = AndroidEmulatedController::getAndroidEmulatedController(
 										  i)
-			                              .getEmulatedController();
+										  .getEmulatedController();
 			if (!emulatedController)
 				continue;
 			if (emulatedController->type() != EmulatedController::Type::VPAD)
@@ -144,7 +155,7 @@ class EmulationState
 
 	void setEmulatedControllerType(size_t index, EmulatedController::Type type)
 	{
-		auto &androidEmulatedController = AndroidEmulatedController::getAndroidEmulatedController(index);
+		auto& androidEmulatedController = AndroidEmulatedController::getAndroidEmulatedController(index);
 		if (EmulatedController::Type::VPAD <= type && type < EmulatedController::Type::MAX)
 			androidEmulatedController.setType(type);
 		else
@@ -166,7 +177,7 @@ class EmulationState
 
 	void setDPI(float dpi)
 	{
-		auto &windowInfo = GuiSystem::getWindowInfo();
+		auto& windowInfo = GuiSystem::getWindowInfo();
 		windowInfo.dpi_scale = windowInfo.pad_dpi_scale = dpi;
 	}
 
@@ -180,7 +191,7 @@ class EmulationState
 		return AndroidEmulatedController::getAndroidEmulatedController(index).getMappings();
 	}
 
-	void setControllerMapping(const std::string &deviceDescriptor, const std::string &deviceName, size_t index, uint64 mappingId, uint64 buttonId)
+	void setControllerMapping(const std::string& deviceDescriptor, const std::string& deviceName, size_t index, uint64 mappingId, uint64 buttonId)
 	{
 		auto apiProvider = InputManager::instance().get_api_provider(InputAPI::Android);
 		auto controller = ControllerFactory::CreateController(InputAPI::Android, deviceDescriptor, deviceName);
@@ -188,7 +199,7 @@ class EmulationState
 	}
 	void initializeAudioDevices()
 	{
-		auto &config = g_config.data();
+		auto& config = g_config.data();
 		if (!config.tv_device.empty())
 			AndroidAudio::createAudioDevice(IAudioAPI::AudioAPI::Cubeb, config.tv_channels, config.tv_volume, true);
 
@@ -196,22 +207,22 @@ class EmulationState
 			AndroidAudio::createAudioDevice(IAudioAPI::AudioAPI::Cubeb, config.pad_channels, config.pad_volume, false);
 	}
 
-	void setOnGameTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback> &onGameTitleLoaded)
+	void setOnGameTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback>& onGameTitleLoaded)
 	{
 		m_gameTitleLoader.setOnTitleLoaded(onGameTitleLoaded);
 	}
 
-	const Image &getGameIcon(TitleId titleId)
+	const Image& getGameIcon(TitleId titleId)
 	{
 		return m_gameIconLoader.getGameIcon(titleId);
 	}
 
-	void setOnGameIconLoaded(const std::shared_ptr<class GameIconLoadedCallback> &onGameIconLoaded)
+	void setOnGameIconLoaded(const std::shared_ptr<class GameIconLoadedCallback>& onGameIconLoaded)
 	{
 		m_gameIconLoader.setOnIconLoaded(onGameIconLoaded);
 	}
 
-	void addGamePath(const fs::path &gamePath)
+	void addGamePath(const fs::path& gamePath)
 	{
 		m_gameTitleLoader.addGamePath(gamePath);
 	}
@@ -230,5 +241,30 @@ class EmulationState
 	{
 		initializeAudioDevices();
 		CafeSystemUtils::startGame(titleId);
+	}
+
+	void refreshGraphicPacks()
+	{
+		if (!CafeSystem::IsTitleRunning())
+		{
+			GraphicPack2::ClearGraphicPacks();
+			GraphicPack2::LoadAll();
+			fillGraphicPacks();
+		}
+	}
+
+	const std::unordered_map<int64_t, GraphicPackPtr>& getGraphicPacks() const
+	{
+		return m_graphicPacks;
+	}
+
+	void setEnabledStateForGraphicPack(int64_t id, bool state)
+	{
+		m_graphicPacks.at(id)->SetEnabled(state);
+	}
+
+	GraphicPackPtr getGraphicPack(int64_t id) const
+	{
+		return m_graphicPacks.at(id);
 	}
 };
