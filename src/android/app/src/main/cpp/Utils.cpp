@@ -15,9 +15,9 @@ void createCemuDirectories()
 
 		const auto usrFolder = fs::path(mlc).append(L"usr");
 		fs::create_directories(usrFolder);
-		fs::create_directories(fs::path(usrFolder).append("title/00050000"));  // base
-		fs::create_directories(fs::path(usrFolder).append("title/0005000c"));  // dlc
-		fs::create_directories(fs::path(usrFolder).append("title/0005000e"));  // update
+		fs::create_directories(fs::path(usrFolder).append("title/00050000")); // base
+		fs::create_directories(fs::path(usrFolder).append("title/0005000c")); // dlc
+		fs::create_directories(fs::path(usrFolder).append("title/0005000e")); // update
 
 		// Mii Maker save folders {0x500101004A000, 0x500101004A100, 0x500101004A200},
 		fs::create_directories(fs::path(mlc).append(L"usr/save/00050010/1004a000/user/common/db"));
@@ -34,8 +34,8 @@ void createCemuDirectories()
 			std::ofstream file(langFile);
 			if (file.is_open())
 			{
-				const char *langStrings[] = {"ja", "en", "fr", "de", "it", "es", "zh", "ko", "nl", "pt", "ru", "zh"};
-				for (const char *lang : langStrings)
+				const char* langStrings[] = {"ja", "en", "fr", "de", "it", "es", "zh", "ko", "nl", "pt", "ru", "zh"};
+				for (const char* lang : langStrings)
 					file << fmt::format(R"("{}",)", lang) << std::endl;
 
 				file.flush();
@@ -49,7 +49,7 @@ void createCemuDirectories()
 			std::ofstream file(countryFile);
 			for (sint32 i = 0; i < 201; i++)
 			{
-				const char *countryCode = NCrypto::GetCountryAsString(i);
+				const char* countryCode = NCrypto::GetCountryAsString(i);
 				if (boost::iequals(countryCode, "NN"))
 					file << "NULL," << std::endl;
 				else
@@ -58,8 +58,7 @@ void createCemuDirectories()
 			file.flush();
 			file.close();
 		}
-	}
-	catch (const std::exception &ex)
+	} catch (const std::exception& ex)
 	{
 		exit(0);
 	}
@@ -74,8 +73,7 @@ void createCemuDirectories()
 		const auto memorySearcherFolder = ActiveSettings::GetUserDataPath(L"memorySearcher").generic_wstring();
 		if (!fs::exists(memorySearcherFolder))
 			fs::create_directories(memorySearcherFolder);
-	}
-	catch (const std::exception &ex)
+	} catch (const std::exception& ex)
 	{
 		exit(0);
 	}

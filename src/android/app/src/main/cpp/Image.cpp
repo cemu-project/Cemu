@@ -5,7 +5,7 @@
 
 #include "stb_image.h"
 
-Image::Image(Image &&image)
+Image::Image(Image&& image)
 {
 	this->m_image = image.m_image;
 	this->m_width = image.m_width;
@@ -14,7 +14,7 @@ Image::Image(Image &&image)
 	image.m_image = nullptr;
 }
 
-Image::Image(const std::vector<uint8> &imageBytes)
+Image::Image(const std::vector<uint8>& imageBytes)
 {
 	m_image = stbi_load_from_memory(imageBytes.data(), imageBytes.size(), &m_width, &m_height, &m_channels, STBI_rgb_alpha);
 	if (m_image)
@@ -33,9 +33,15 @@ Image::Image(const std::vector<uint8> &imageBytes)
 	}
 }
 
-bool Image::isOk() const { return m_image != nullptr; }
+bool Image::isOk() const
+{
+	return m_image != nullptr;
+}
 
-int *Image::intColors() const { return reinterpret_cast<int *>(m_image); }
+int* Image::intColors() const
+{
+	return reinterpret_cast<int*>(m_image);
+}
 
 Image::~Image()
 {

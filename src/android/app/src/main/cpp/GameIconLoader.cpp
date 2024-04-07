@@ -15,7 +15,7 @@ GameIconLoader::~GameIconLoader()
 	m_loaderThread.join();
 }
 
-const Image &GameIconLoader::getGameIcon(TitleId titleId)
+const Image& GameIconLoader::getGameIcon(TitleId titleId)
 {
 	return m_iconCache.at(titleId);
 }
@@ -36,8 +36,7 @@ void GameIconLoader::loadGameIcons()
 		TitleId titleId = 0;
 		{
 			std::unique_lock lock(m_threadMutex);
-			m_condVar.wait(lock, [this]
-			               { return !m_iconsToLoad.empty() || !m_continueLoading; });
+			m_condVar.wait(lock, [this] { return !m_iconsToLoad.empty() || !m_continueLoading; });
 			if (!m_continueLoading)
 				return;
 			titleId = m_iconsToLoad.front();
@@ -49,7 +48,7 @@ void GameIconLoader::loadGameIcons()
 
 		if (auto iconIt = m_iconCache.find(titleId); iconIt != m_iconCache.end())
 		{
-			auto &icon = iconIt->second;
+			auto& icon = iconIt->second;
 			if (m_onIconLoaded)
 				m_onIconLoaded->onIconLoaded(titleId, icon.intColors(), icon.m_width, icon.m_height);
 			continue;
@@ -77,7 +76,7 @@ void GameIconLoader::loadGameIcons()
 	}
 }
 
-void GameIconLoader::setOnIconLoaded(const std::shared_ptr<GameIconLoadedCallback> &onIconLoaded)
+void GameIconLoader::setOnIconLoaded(const std::shared_ptr<GameIconLoadedCallback>& onIconLoaded)
 {
 	{
 		std::lock_guard lock(m_threadMutex);

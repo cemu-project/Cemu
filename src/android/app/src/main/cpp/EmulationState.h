@@ -260,11 +260,42 @@ class EmulationState {
 
 	void setEnabledStateForGraphicPack(int64_t id, bool state)
 	{
-		m_graphicPacks.at(id)->SetEnabled(state);
+		auto graphicPack = m_graphicPacks.at(id);
+		graphicPack->SetEnabled(state);
+		saveGraphicPackStateToConfig(graphicPack);
 	}
 
 	GraphicPackPtr getGraphicPack(int64_t id) const
 	{
 		return m_graphicPacks.at(id);
+	}
+	void setGraphicPackActivePreset(int64_t id, const std::string& presetCategory, const std::string& preset) const
+	{
+		auto graphicPack = m_graphicPacks.at(id);
+		graphicPack->SetActivePreset(presetCategory, preset);
+		saveGraphicPackStateToConfig(graphicPack);
+	}
+	void saveGraphicPackStateToConfig(GraphicPackPtr graphicPack) const
+	{
+		auto& data = g_config.data();
+		auto filename = _utf8ToPath(graphicPack->GetNormalizedPathString());
+		if (data.graphic_pack_entries.contains(filename))
+			data.graphic_pack_entries.erase(filename);
+		if (graphicPack->IsEnabled())
+		{
+			data.graphic_pack_entries.try_emplace(filename);
+			auto& it = data.graphic_pack_entries[filename];
+			// otherwise store all selected presets
+			for (const auto& preset : graphicPack->GetActivePresets())
+				it.try_emplace(preset->category, preset->name);
+		}
+		else if (graphicPack->IsDefaultEnabled())
+		{
+			// save that its disabled
+			data.graphic_pack_entries.try_emplace(filename);
+			auto& it = data.graphic_pack_entries[filename];
+			it.try_emplace("_disabled", "false");
+		}
+		g_config.Save();
 	}
 };

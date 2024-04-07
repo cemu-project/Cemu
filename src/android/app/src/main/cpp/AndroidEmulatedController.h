@@ -6,21 +6,21 @@
 #include "input/emulated/ProController.h"
 #include "input/emulated/WiimoteController.h"
 
-class AndroidEmulatedController
-{
-   private:
+class AndroidEmulatedController {
+  private:
 	size_t m_index;
 	static std::array<std::unique_ptr<AndroidEmulatedController>, InputManager::kMaxController> s_emulatedControllers;
 	EmulatedControllerPtr m_emulatedController;
-	AndroidEmulatedController(size_t index) : m_index(index)
+	AndroidEmulatedController(size_t index)
+		: m_index(index)
 	{
 		m_emulatedController = InputManager::instance().get_controller(m_index);
 	}
 
-   public:
-	static AndroidEmulatedController &getAndroidEmulatedController(size_t index)
+  public:
+	static AndroidEmulatedController& getAndroidEmulatedController(size_t index)
 	{
-		auto &controller = s_emulatedControllers.at(index);
+		auto& controller = s_emulatedControllers.at(index);
 		if (!controller)
 			controller = std::unique_ptr<AndroidEmulatedController>(new AndroidEmulatedController(index));
 		return *controller;
@@ -36,9 +36,8 @@ class AndroidEmulatedController
 	{
 		if (m_emulatedController && controller)
 		{
-			const auto &controllers = m_emulatedController->get_controllers();
-			auto controllerIt = std::find_if(controllers.begin(), controllers.end(), [&](const ControllerPtr &c)
-			                                 { return c->api() == controller->api() && c->uuid() == controller->uuid(); });
+			const auto& controllers = m_emulatedController->get_controllers();
+			auto controllerIt = std::find_if(controllers.begin(), controllers.end(), [&](const ControllerPtr& c) { return c->api() == controller->api() && c->uuid() == controller->uuid(); });
 			if (controllerIt == controllers.end())
 				m_emulatedController->add_controller(controller);
 			else

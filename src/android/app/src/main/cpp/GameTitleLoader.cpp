@@ -14,7 +14,7 @@ void GameTitleLoader::queueTitle(TitleId titleId)
 	m_condVar.notify_one();
 }
 
-void GameTitleLoader::setOnTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback> &gameTitleLoadedCallback)
+void GameTitleLoader::setOnTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback>& gameTitleLoadedCallback)
 {
 	{
 		std::lock_guard lock(m_threadMutex);
@@ -57,7 +57,7 @@ void GameTitleLoader::titleRefresh(TitleId titleId)
 		isNewEntry = true;
 		m_gameInfos[baseTitleId] = Game();
 	}
-	Game &game = m_gameInfos[baseTitleId];
+	Game& game = m_gameInfos[baseTitleId];
 	game.titleId = baseTitleId;
 	game.name = GetNameByTitleId(baseTitleId);
 	game.version = gameInfo.GetVersion();
@@ -87,9 +87,8 @@ void GameTitleLoader::loadGameTitles()
 		TitleId titleId = 0;
 		{
 			std::unique_lock lock(m_threadMutex);
-			m_condVar.wait(lock, [this]
-			               { return (!m_titlesToLoad.empty()) ||
-				                    !m_continueLoading; });
+			m_condVar.wait(lock, [this] { return (!m_titlesToLoad.empty()) ||
+												 !m_continueLoading; });
 			if (!m_continueLoading)
 				return;
 			titleId = m_titlesToLoad.front();
@@ -117,14 +116,13 @@ std::string GameTitleLoader::GetNameByTitleId(uint64 titleId)
 void GameTitleLoader::registerCallback()
 {
 	m_callbackIdTitleList = CafeTitleList::RegisterCallback(
-		[](CafeTitleListCallbackEvent *evt, void *ctx)
-		{
-			static_cast<GameTitleLoader *>(ctx)->HandleTitleListCallback(evt);
+		[](CafeTitleListCallbackEvent* evt, void* ctx) {
+			static_cast<GameTitleLoader*>(ctx)->HandleTitleListCallback(evt);
 		},
 		this);
 }
 
-void GameTitleLoader::HandleTitleListCallback(CafeTitleListCallbackEvent *evt)
+void GameTitleLoader::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)
 {
 	if (evt->eventType == CafeTitleListCallbackEvent::TYPE::TITLE_DISCOVERED || evt->eventType == CafeTitleListCallbackEvent::TYPE::TITLE_REMOVED)
 	{
@@ -132,7 +130,7 @@ void GameTitleLoader::HandleTitleListCallback(CafeTitleListCallbackEvent *evt)
 	}
 }
 
-void GameTitleLoader::addGamePath(const fs::path &path)
+void GameTitleLoader::addGamePath(const fs::path& path)
 {
 	CafeTitleList::ClearScanPaths();
 	CafeTitleList::AddScanPath(path);

@@ -4,5 +4,5 @@
 
 namespace CafeSystemUtils
 {
-void startGame(TitleId titleId);
+	void startGame(TitleId titleId);
 };

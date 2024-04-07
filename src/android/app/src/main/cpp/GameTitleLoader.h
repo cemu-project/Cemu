@@ -14,14 +14,12 @@ struct Game
 	CafeConsoleRegion region;
 };
 
-class GameTitleLoadedCallback
-{
-   public:
-	virtual void onTitleLoaded(const Game &game) = 0;
+class GameTitleLoadedCallback {
+  public:
+	virtual void onTitleLoaded(const Game& game) = 0;
 };
 
-class GameTitleLoader
-{
+class GameTitleLoader {
 	std::mutex m_threadMutex;
 	std::condition_variable m_condVar;
 	std::thread m_loaderThread;
@@ -32,12 +30,12 @@ class GameTitleLoader
 	std::map<TitleId, std::string> m_name_cache;
 	std::shared_ptr<GameTitleLoadedCallback> m_gameTitleLoadedCallback = nullptr;
 
-   public:
+  public:
 	GameTitleLoader();
 
 	void queueTitle(TitleId titleId);
 
-	void setOnTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback> &gameTitleLoadedCallback);
+	void setOnTitleLoaded(const std::shared_ptr<GameTitleLoadedCallback>& gameTitleLoadedCallback);
 
 	void reloadGameTitles();
 
@@ -45,14 +43,14 @@ class GameTitleLoader
 
 	void titleRefresh(TitleId titleId);
 
-	void addGamePath(const fs::path &path);
+	void addGamePath(const fs::path& path);
 
-   private:
+  private:
 	void loadGameTitles();
 
 	std::string GetNameByTitleId(uint64 titleId);
 
 	void registerCallback();
 
-	void HandleTitleListCallback(CafeTitleListCallbackEvent *evt);
+	void HandleTitleListCallback(CafeTitleListCallbackEvent* evt);
 };

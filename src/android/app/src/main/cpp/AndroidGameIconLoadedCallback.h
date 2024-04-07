@@ -3,14 +3,13 @@
 #include "GameIconLoader.h"
 #include "JNIUtils.h"
 
-class AndroidGameIconLoadedCallback : public GameIconLoadedCallback
-{
+class AndroidGameIconLoadedCallback : public GameIconLoadedCallback {
 	jmethodID m_onGameIconLoadedMID;
 	JNIUtils::Scopedjobject m_gameTitleLoadedCallbackObj;
 
-   public:
+  public:
 	AndroidGameIconLoadedCallback(jmethodID onGameIconLoadedMID,
-	                              jobject gameTitleLoadedCallbackObj)
+								  jobject gameTitleLoadedCallbackObj)
 		: m_onGameIconLoadedMID(onGameIconLoadedMID),
 		  m_gameTitleLoadedCallbackObj(gameTitleLoadedCallbackObj) {}
 

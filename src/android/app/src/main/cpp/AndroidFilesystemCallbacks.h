@@ -3,15 +3,14 @@
 #include "JNIUtils.h"
 #include "Common/unix/FilesystemAndroid.h"
 
-class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
-{
+class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks {
 	jmethodID m_openContentUriMid;
 	jmethodID m_listFilesMid;
 	jmethodID m_isDirectoryMid;
 	jmethodID m_isFileMid;
 	jmethodID m_existsMid;
 	JNIUtils::Scopedjclass m_fileUtilClass;
-	std::function<void(JNIEnv *)> m_function = nullptr;
+	std::function<void(JNIEnv*)> m_function = nullptr;
 	std::mutex m_functionMutex;
 	std::condition_variable m_functionCV;
 	std::thread m_thread;
@@ -19,13 +18,12 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 	std::condition_variable m_threadCV;
 	std::atomic_bool m_continue = true;
 
-	bool callBooleanFunction(const std::filesystem::path &uri, jmethodID methodId)
+	bool callBooleanFunction(const std::filesystem::path& uri, jmethodID methodId)
 	{
 		std::lock_guard lock(m_functionMutex);
 		bool functionFinished = false;
 		bool result = false;
-		m_function = [&, this](JNIEnv *env)
-		{
+		m_function = [&, this](JNIEnv* env) {
 			jstring uriString = env->NewStringUTF(uri.c_str());
 			result = env->CallStaticBooleanMethod(*m_fileUtilClass, methodId, uriString);
 			env->DeleteLocalRef(uriString);
@@ -34,8 +32,7 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 		m_threadCV.notify_one();
 		{
 			std::unique_lock threadLock(m_threadMutex);
-			m_functionCV.wait(threadLock, [&]() -> bool
-			                  { return functionFinished; });
+			m_functionCV.wait(threadLock, [&]() -> bool { return functionFinished; });
 		}
 		return result;
 	}
@@ -46,8 +43,7 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 		while (m_continue)
 		{
 			std::unique_lock threadLock(m_threadMutex);
-			m_threadCV.wait(threadLock, [&]
-			                { return m_function || !m_continue; });
+			m_threadCV.wait(threadLock, [&] { return m_function || !m_continue; });
 			if (!m_continue)
 				return;
 			m_function(*env);
@@ -56,7 +52,7 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 		}
 	}
 
-   public:
+  public:
 	AndroidFilesystemCallbacks()
 	{
 		JNIUtils::ScopedJNIENV env;
@@ -76,13 +72,12 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 		m_thread.join();
 	}
 
-	int openContentUri(const std::filesystem::path &uri) override
+	int openContentUri(const std::filesystem::path& uri) override
 	{
 		std::lock_guard lock(m_functionMutex);
 		bool functionFinished = false;
 		int fd = -1;
-		m_function = [&, this](JNIEnv *env)
-		{
+		m_function = [&, this](JNIEnv* env) {
 			jstring uriString = env->NewStringUTF(uri.c_str());
 			fd = env->CallStaticIntMethod(*m_fileUtilClass, m_openContentUriMid, uriString);
 			env->DeleteLocalRef(uriString);
@@ -91,19 +86,17 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 		m_threadCV.notify_one();
 		{
 			std::unique_lock threadLock(m_threadMutex);
-			m_functionCV.wait(threadLock, [&]()
-			                  { return functionFinished; });
+			m_functionCV.wait(threadLock, [&]() { return functionFinished; });
 		}
 		return fd;
 	}
 
-	std::vector<std::filesystem::path> listFiles(const std::filesystem::path &uri) override
+	std::vector<std::filesystem::path> listFiles(const std::filesystem::path& uri) override
 	{
 		std::lock_guard lock(m_functionMutex);
 		bool functionFinished = false;
 		std::vector<std::filesystem::path> paths;
-		m_function = [&, this](JNIEnv *env)
-		{
+		m_function = [&, this](JNIEnv* env) {
 			jstring uriString = env->NewStringUTF(uri.c_str());
 			jobjectArray pathsObjArray = static_cast<jobjectArray>(env->CallStaticObjectMethod(*m_fileUtilClass, m_listFilesMid, uriString));
 			env->DeleteLocalRef(uriString);
@@ -121,23 +114,22 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 		m_threadCV.notify_one();
 		{
 			std::unique_lock threadLock(m_threadMutex);
-			m_functionCV.wait(threadLock, [&]()
-			                  { return functionFinished; });
+			m_functionCV.wait(threadLock, [&]() { return functionFinished; });
 		}
 		return paths;
 	}
 
-	bool isDirectory(const std::filesystem::path &uri) override
+	bool isDirectory(const std::filesystem::path& uri) override
 	{
 		return callBooleanFunction(uri, m_isDirectoryMid);
 	}
 
-	bool isFile(const std::filesystem::path &uri) override
+	bool isFile(const std::filesystem::path& uri) override
 	{
 		return callBooleanFunction(uri, m_isFileMid);
 	}
 
-	bool exists(const std::filesystem::path &uri) override
+	bool exists(const std::filesystem::path& uri) override
 	{
 		return callBooleanFunction(uri, m_existsMid);
 	}
