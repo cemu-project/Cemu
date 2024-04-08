@@ -217,9 +217,8 @@ namespace iosu
 			auto fixed_presence_msg = '\0' + frd->presence.msg; // avoid first character of comment from being cut off
 			friendData->friendExtraData.gameModeDescription.assignFromUTF8(fixed_presence_msg);
 			
-			auto comment_utf16 = StringHelpers::FromUtf8(frd->comment.commentString);
-			comment_utf16.insert(0, 1, '\0'); // avoid first character of comment from being cut off
-			memcpy(friendData->friendExtraData.comment, comment_utf16.c_str(), 36);
+			auto fixed_comment = '\0' + frd->comment.commentString; // avoid first character of comment from being cut off
+			friendData->friendExtraData.comment.assignFromUTF8(fixed_comment);
 			
 			// set valid dates
 			friendData->uknDate.year = 2018;
