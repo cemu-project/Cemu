@@ -94,7 +94,7 @@ namespace iosu
 					/* +0x1EC */ uint8 isOnline;
 					/* +0x1ED */ uint8 _padding1ED[3];
 					// some other sub struct?
-					/* +0x1F0 */ char comment[36]; // pops up every few seconds in friend list
+					/* +0x1F0 */ CafeWideString<0x12> comment; // pops up every few seconds in friend list
 					/* +0x214 */ uint32be _padding214;
 					/* +0x218 */ FPDDate approvalTime;
 					/* +0x220 */ FPDDate lastOnline;
