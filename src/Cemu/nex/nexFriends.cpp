@@ -1,6 +1,7 @@
 #include "prudp.h"
 #include "nex.h"
 #include "nexFriends.h"
+#include "Cafe/CafeSystem.h"
 
 static const int NOTIFICATION_SRV_FRIEND_OFFLINE = 0x0A; // the opposite event (friend online) is notified via _PRESENCE_CHANGE
 static const int NOTIFICATION_SRV_FRIEND_PRESENCE_CHANGE = 0x18;
@@ -912,6 +913,18 @@ void NexFriends::markFriendRequestsAsReceived(uint64* messageIdList, sint32 coun
 void NexFriends::updateMyPresence(nexPresenceV2& myPresence)
 {
 	this->myPresence = myPresence;
+
+	if (GetTitleIdHigh(CafeSystem::GetForegroundTitleId()) == 0x00050000)
+	{
+		myPresence.gameKey.titleId = CafeSystem::GetForegroundTitleId();
+		myPresence.gameKey.ukn = CafeSystem::GetForegroundTitleVersion();
+	}
+	else
+	{
+		myPresence.gameKey.titleId = 0; // icon will not be ??? or invalid to others
+		myPresence.gameKey.ukn = 0;
+	}
+
 	if (nexCon == nullptr || nexCon->getState() != nexService::STATE_CONNECTED)
 	{
 		// not connected
