@@ -9,7 +9,7 @@
 #include "Cafe/CafeSystem.h"
 #include "Cafe/Filesystem/fsc.h"
 
-namespace nn 
+namespace nn
 {
 	typedef uint32 Result;
 namespace boss
@@ -782,9 +782,9 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			bossRequest->taskId = _thisptr->taskId.id;
 			bossRequest->titleId = _thisptr->titleId.u64;
 			bossRequest->bool_parameter = isForegroundRun != 0;
-			
+
 			__depr__IOS_Ioctlv(IOS_DEVICE_BOSS, IOSU_BOSS_REQUEST_CEMU, 1, 1, bossBufferVector);
-	
+
 			return 0;
 		}
 
@@ -796,9 +796,9 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			bossRequest->taskId = _thisptr->taskId.id;
 			bossRequest->titleId = _thisptr->titleId.u64;
 			bossRequest->bool_parameter = executeImmediately != 0;
-			
+
 			__depr__IOS_Ioctlv(IOS_DEVICE_BOSS, IOSU_BOSS_REQUEST_CEMU, 1, 1, bossBufferVector);
-	
+
 			return 0;
 		}
 
@@ -809,9 +809,9 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			bossRequest->accountId = _thisptr->accountId;
 			bossRequest->taskId = _thisptr->taskId.id;
 			bossRequest->titleId = _thisptr->titleId.u64;
-			
+
 			__depr__IOS_Ioctlv(IOS_DEVICE_BOSS, IOSU_BOSS_REQUEST_CEMU, 1, 1, bossBufferVector);
-	
+
 			return 0;
 		}
 
@@ -1001,7 +1001,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 		}
 	};
 	static_assert(sizeof(PrivilegedTask) == 0x20);
-	
+
 	struct AlmightyTask : PrivilegedTask
 	{
 		struct VTableAlmightyTask : public VTablePrivilegedTask
@@ -1615,7 +1615,7 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 	};
 	static_assert(sizeof(NsData) == 0x58);
 
-} 
+}
 }
 void nnBoss_load()
 {
@@ -1666,7 +1666,7 @@ void nnBoss_load()
 	cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss15NbdlTaskSettingFv", LogType::NN_BOSS);
 	cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::Initialize, "nn_boss", "Initialize__Q3_2nn4boss15NbdlTaskSettingFPCcLT1", LogType::NN_BOSS);
 	cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::SetFileName, "nn_boss", "SetFileName__Q3_2nn4boss15NbdlTaskSettingFPCc", LogType::NN_BOSS);
-	
+
 	// PlayReportSetting
 	nn::boss::PlayReportSetting::InitVTable();
 	cafeExportRegisterFunc(nn::boss::PlayReportSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss17PlayReportSettingFv", LogType::NN_BOSS);
