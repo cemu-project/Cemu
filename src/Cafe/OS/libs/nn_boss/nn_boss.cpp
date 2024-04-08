@@ -1169,14 +1169,17 @@ bossBufferVector->buffer = (uint8*)bossRequest;
 			// initialize titleId of storage if not already done
 			nnBossStorage_prepareTitleId(storage);
 
-			cemu_assert_debug(startIndex == 0); // non-zero index is todo
+			if(startIndex >= FAD_ENTRY_MAX_COUNT) {
+				*outputEntryCount = 0;
+				return 0;
+			}
 
 			// load fad.db
 			BossStorageFadEntry* fadTable = nnBossStorageFad_getTable(storage);
 			if (fadTable)
 			{
 				sint32 validEntryCount = 0;
-				for (sint32 i = 0; i < FAD_ENTRY_MAX_COUNT; i++)
+				for (sint32 i = startIndex; i < FAD_ENTRY_MAX_COUNT; i++)
 				{
 					if( fadTable[i].name[0] == '\0' )
 						continue;
