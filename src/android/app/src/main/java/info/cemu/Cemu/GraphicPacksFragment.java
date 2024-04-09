@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 import info.cemu.Cemu.databinding.FragmentGraphicPacksBinding;
 
@@ -81,7 +82,8 @@ public class GraphicPacksFragment extends Fragment {
 
     private void fillPresets(NativeLibrary.GraphicPack graphicPack) {
         var recyclerViewItems = new ArrayList<SingleSelectionRecyclerViewItem<String>>();
-        graphicPack.presets.forEach(graphicPackPreset -> {
+        IntStream.range(0, graphicPack.presets.size()).forEach(index -> {
+            var graphicPackPreset = graphicPack.presets.get(index);
             String category = graphicPackPreset.getCategory();
             if (category == null) category = getString(R.string.active_preset_category);
             var recyclerViewItem = new SingleSelectionRecyclerViewItem<>(
@@ -92,11 +94,11 @@ public class GraphicPacksFragment extends Fragment {
                             graphicPackPreset.getActivePreset()
                     ),
                     (selectedValue, selectionRecyclerViewItem) -> {
-                        graphicPackPreset.setActivePreset(selectedValue);
-                        selectionRecyclerViewItem.setDescription(selectedValue);
                         var oldPresets = graphicPack.presets;
+                        graphicPack.presets.get(index).setActivePreset(selectedValue);
+                        selectionRecyclerViewItem.setDescription(selectedValue);
                         graphicPack.reloadPresets();
-                        if (!new HashSet<>(oldPresets).containsAll(graphicPack.presets)) {
+                        if (!oldPresets.equals(graphicPack.presets)) {
                             recyclerViewItems.forEach(genericRecyclerViewAdapter::removeRecyclerViewItem);
                             fillPresets(graphicPack);
                         }
