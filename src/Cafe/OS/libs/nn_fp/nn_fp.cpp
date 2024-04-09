@@ -607,6 +607,14 @@ namespace nn
 			return resultBuf != 0 ? 1 : 0;
 		}
 
+		nnResult UpdateCommentAsync(char16_t* newComment, void* funcPtr, void* customParam)
+		{
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::UpdateCommentAsync);
+			ipcCtx->AddInput(newComment, 36);
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
+		}
+
 		nnResult UpdatePreferenceAsync(iosu::fpd::FPDPreference* newPreference, void* funcPtr, void* customParam)
 		{
 			FP_API_BASE();
@@ -774,6 +782,7 @@ namespace nn
 
 			cafeExportRegisterFunc(CheckSettingStatusAsync, "nn_fp", "CheckSettingStatusAsync__Q2_2nn2fpFPUcPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 			cafeExportRegisterFunc(IsPreferenceValid, "nn_fp", "IsPreferenceValid__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(UpdateCommentAsync, "nn_fp", "UpdateCommentAsync__Q2_2nn2fpFPCwPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 			cafeExportRegisterFunc(UpdatePreferenceAsync, "nn_fp", "UpdatePreferenceAsync__Q2_2nn2fpFPCQ3_2nn2fp10PreferencePFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 			cafeExportRegisterFunc(GetRequestBlockSettingAsync, "nn_fp", "GetRequestBlockSettingAsync__Q2_2nn2fpFPUcPCUiUiPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 
