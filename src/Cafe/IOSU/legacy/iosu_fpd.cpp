@@ -511,6 +511,8 @@ namespace iosu
 					return CallHandler_GetBlackList(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
 				case FPD_REQUEST_ID::GetFriendListEx:
 					return CallHandler_GetFriendListEx(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
+				case FPD_REQUEST_ID::UpdateCommentAsync:
+					return CallHandler_UpdateCommentAsync(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
 				case FPD_REQUEST_ID::UpdatePreferenceAsync:
 					return CallHandler_UpdatePreferenceAsync(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
 				case FPD_REQUEST_ID::AddFriendRequestByPlayRecordAsync:
@@ -727,9 +729,11 @@ namespace iosu
 					cemuLog_log(LogType::Force, "GetMyComment: Unexpected output size");
 					return FPResult_InvalidIPCParam;
 				}
-				std::basic_string<uint16be> myComment;
-				myComment.resize(MY_COMMENT_LENGTH);
-				memcpy(vecOut->basePhys.GetPtr(), myComment.data(), MY_COMMENT_LENGTH*sizeof(uint16be));
+				nexComment myComment;
+				g_fpd.nexFriendSession->getMyComment(myComment);
+				auto comment_utf16 = StringHelpers::FromUtf8(myComment.commentString);
+				comment_utf16.insert(0, 1, '\0'); // avoid first character of comment from being cut off
+				memcpy(vecOut->basePhys.GetPtr(), comment_utf16.c_str(), MY_COMMENT_LENGTH*sizeof(uint16be));
 				return 0;
 			}
 
@@ -1138,6 +1142,31 @@ namespace iosu
 					cemu_assert_debug(basicInfo.size() == count);
 					for(uint32 i = 0; i < count; i++)
 						NexBasicInfoToBasicInfo(basicInfo[i], basicInfoList[i]);
+					ServiceCallAsyncRespond(cmd, FPResult_Ok);
+				});
+				return FPResult_Ok;
+			}
+
+			nnResult CallHandler_UpdateCommentAsync(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
+			{
+				std::unique_lock _l(g_fpd.mtxFriendSession);
+				if (numVecIn != 1 || numVecOut != 0)
+					return FPResult_InvalidIPCParam;
+				if (!g_fpd.nexFriendSession)
+					return FPResult_RequestFailed;
+				DeclareInputPtr(newComment, char16_t, (vecOut[0].size / 2), 0);
+				IPCCommandBody* cmd = ServiceCallDelayCurrentResponse();
+
+				auto utf8_comment = StringHelpers::ToUtf8((const uint16be*)newComment, vecIn[0].size);
+
+				nexComment temporaryComment;
+				temporaryComment.ukn0 = 0;
+				temporaryComment.commentString = utf8_comment;
+				temporaryComment.ukn1 = 0;
+
+				g_fpd.nexFriendSession->updateCommentAsync(temporaryComment, [cmd](NexFriends::RpcErrorCode result) {
+					if (result != NexFriends::ERR_NONE)
+						return ServiceCallAsyncRespond(cmd, FPResult_RequestFailed);
 					ServiceCallAsyncRespond(cmd, FPResult_Ok);
 				});
 				return FPResult_Ok;
