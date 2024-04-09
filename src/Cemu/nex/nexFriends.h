@@ -297,7 +297,9 @@ public:
 
 	void writeData(nexPacketBuffer* pb) const override
 	{
-		cemu_assert_unimplemented();
+		pb->writeU8(ukn0);
+		pb->writeString(commentString.c_str());
+		pb->writeU64(ukn1);
 	}
 
 	void readData(nexPacketBuffer* pb) override
@@ -554,6 +556,7 @@ public:
 	bool getFriendRequestByMessageId(nexFriendRequest& friendRequestData, bool* isIncoming, uint64 messageId);
 	bool isOnline();
 	void getMyPreference(nexPrincipalPreference& preference);
+	void getMyComment(nexComment& comment);
 
 	// asynchronous API (data has to be requested)
 	bool addProvisionalFriend(char* name, std::function<void(RpcErrorCode)> cb);
@@ -565,6 +568,7 @@ public:
 	void acceptFriendRequest(uint64 messageId, std::function<void(RpcErrorCode)> cb);
 	void deleteFriendRequest(uint64 messageId, std::function<void(RpcErrorCode)> cb); // rejecting incoming friend request (differs from blocking friend requests)
 	bool updatePreferencesAsync(const nexPrincipalPreference newPreferences, std::function<void(RpcErrorCode)> cb);
+	bool updateCommentAsync(const nexComment newComment, std::function<void(RpcErrorCode)> cb);
 	void updateMyPresence(nexPresenceV2& myPresence);
 
 	void setNotificationHandler(void(*notificationHandler)(NOTIFICATION_TYPE notificationType, uint32 pid));
@@ -619,6 +623,7 @@ private:
 	// local friend state
 	nexPresenceV2 myPresence;
 	nexPrincipalPreference myPreference;
+	nexComment myComment;
 
 	std::recursive_mutex mtx_lists;
 	std::vector<nexFriend> list_friends;
