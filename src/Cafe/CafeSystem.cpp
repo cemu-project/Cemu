@@ -530,6 +530,7 @@ namespace CafeSystem
 	{
 		// entries in this list are ordered by initialization order. Shutdown in reverse order
 		iosu::kernel::GetModule(),
+		iosu::acp::GetModule(),
 		iosu::fpd::GetModule(),
 		iosu::pdm::GetModule(),
 	};

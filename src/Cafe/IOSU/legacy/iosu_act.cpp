@@ -240,6 +240,18 @@ namespace iosu
 			return true;
 		}
 
+		bool GetPersistentId(uint8 slot, uint32* persistentId)
+		{
+			sint32 accountIndex = iosuAct_getAccountIndexBySlot(slot);
+			if(!_actAccountData[accountIndex].isValid)
+			{
+				*persistentId = 0;
+				return false;
+			}
+			*persistentId = _actAccountData[accountIndex].persistentId;
+			return true;
+		}
+
 		class ActService : public iosu::nn::IPCService
 		{
 		public:

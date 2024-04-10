@@ -72,11 +72,11 @@ namespace save
 		return result != 0;
 	}
 
-	bool GetCurrentTitleApplicationBox(acp::ACPDeviceType* deviceType)
+	bool GetCurrentTitleApplicationBox(nn::acp::ACPDeviceType* deviceType)
 	{
 		if (deviceType)
 		{
-			*deviceType = acp::InternalDeviceType;
+			*deviceType = nn::acp::ACPDeviceType::InternalDeviceType;
 			return true;
 		}
 		return false;
@@ -84,7 +84,7 @@ namespace save
 
 	void UpdateSaveTimeStamp(uint32 persistentId)
 	{
-		acp::ACPDeviceType deviceType;
+		nn::acp::ACPDeviceType deviceType;
 		if (GetCurrentTitleApplicationBox(&deviceType))
 			ACPUpdateSaveTimeStamp(persistentId, CafeSystem::GetForegroundTitleId(), deviceType);
 	}
@@ -314,7 +314,7 @@ namespace save
 			sprintf(path, "%susr/save/%08x/%08x/meta/", "/vol/storage_mlc01/", high, low);
 			fsc_createDir(path, &fscStatus);
 
-			acp::CreateSaveMetaFiles(ActiveSettings::GetPersistentId(), titleId);
+			iosu::acp::CreateSaveMetaFiles(ActiveSettings::GetPersistentId(), titleId);
 		}
 
 		return SAVE_STATUS_OK;
@@ -669,7 +669,7 @@ namespace save
 		uint32 persistentId;
 		if (GetPersistentIdEx(accountSlot, &persistentId))
 		{
-			acp::ACPStatus status = ACPCreateSaveDir(persistentId, acp::InternalDeviceType);
+			acp::ACPStatus status = nn::acp::ACPCreateSaveDir(persistentId, iosu::acp::ACPDeviceType::InternalDeviceType);
 			result = ConvertACPToSaveStatus(status);
 		}
 		else

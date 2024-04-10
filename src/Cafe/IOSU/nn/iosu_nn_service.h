@@ -8,7 +8,7 @@ namespace iosu
 {
 	namespace nn
 	{
-		// a simple service interface which wraps handle management and Ioctlv/IoctlvAsync
+		// a simple service interface which wraps handle management and Ioctlv/IoctlvAsync (used by /dev/fpd and others are still to be determined)
 		class IPCSimpleService
 		{
 		  public:
@@ -88,7 +88,7 @@ namespace iosu
 			uint32be nnResultCode;
 		};
 
-		// a complex service interface which wraps Ioctlv and adds an additional service channel, used by /dev/act, ?
+		// a complex service interface which wraps Ioctlv and adds an additional service channel, used by /dev/act, /dev/acp_main, ?
 		class IPCService
 		{
 		public:
