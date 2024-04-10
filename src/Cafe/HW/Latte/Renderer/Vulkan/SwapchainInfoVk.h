@@ -26,10 +26,7 @@ struct SwapchainInfoVk
 
 	bool IsValid() const;
 
-	void WaitAvailableFence();
-	void ResetAvailableFence() const;
-
-	bool AcquireImage(uint64 timeout);
+	bool AcquireImage();
 	// retrieve semaphore of last acquire for submitting a wait operation
 	// only one wait operation must be submitted per acquire (which submits a single signal operation)
 	// therefore subsequent calls will return a NULL handle
@@ -84,9 +81,7 @@ struct SwapchainInfoVk
 private:
 	uint32 m_acquireIndex = 0;
 	std::vector<VkSemaphore> m_acquireSemaphores; // indexed by m_acquireIndex
-	VkFence m_imageAvailableFence{};
 	VkSemaphore m_currentSemaphore = VK_NULL_HANDLE;
-	VkFence m_awaitableFence = VK_NULL_HANDLE;
 
 	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 	VkExtent2D m_actualExtent{};
