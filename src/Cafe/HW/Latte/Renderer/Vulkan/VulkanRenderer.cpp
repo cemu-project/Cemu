@@ -1824,11 +1824,6 @@ void VulkanRenderer::DrawEmptyFrame(bool mainWindow)
 	SwapBuffers(mainWindow, !mainWindow);
 }
 
-void VulkanRenderer::PreparePresentationFrame(bool mainWindow)
-{
-	AcquireNextSwapchainImage(mainWindow);
-}
-
 void VulkanRenderer::InitFirstCommandBuffer()
 {
 	cemu_assert_debug(m_state.currentCommandBuffer == nullptr);
