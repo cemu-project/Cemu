@@ -228,7 +228,6 @@ public:
 	uint64 GenUniqueId(); // return unique id (uses incrementing counter)
 
 	void DrawEmptyFrame(bool mainWindow) override;
-	void PreparePresentationFrame(bool mainWindow);
 
 	void InitFirstCommandBuffer();
 	void ProcessFinishedCommandBuffers();

@@ -1824,11 +1824,6 @@ void VulkanRenderer::DrawEmptyFrame(bool mainWindow)
 	SwapBuffers(mainWindow, !mainWindow);
 }
 
-void VulkanRenderer::PreparePresentationFrame(bool mainWindow)
-{
-	AcquireNextSwapchainImage(mainWindow);
-}
-
 void VulkanRenderer::InitFirstCommandBuffer()
 {
 	cemu_assert_debug(m_state.currentCommandBuffer == nullptr);
@@ -2599,7 +2594,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
-	bool result = chainInfo.AcquireImage(UINT64_MAX);
+	bool result = chainInfo.AcquireImage();
 	if (!result)
 		return false;
 
@@ -2612,8 +2607,6 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
-	// make sure fence has no signal operation submitted
-	chainInfo.WaitAvailableFence();
 
 	Vector2i size;
 	if (mainWindow)
