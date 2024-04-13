@@ -1147,6 +1147,7 @@ namespace iosu
 				return FPResult_Ok;
 			}
 
+
 			nnResult CallHandler_UpdateCommentAsync(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
 			{
 				std::unique_lock _l(g_fpd.mtxFriendSession);
@@ -1154,11 +1155,16 @@ namespace iosu
 					return FPResult_InvalidIPCParam;
 				if (!g_fpd.nexFriendSession)
 					return FPResult_RequestFailed;
-				DeclareInputPtr(newComment, char16_t, (vecOut[0].size / 2), 0);
+				uint32 messageLength = vecIn[0].size / sizeof(uint16be);
+				if (messageLength == 0 || (vecIn[0].size % sizeof(uint16be)) != 0)
+				{
+					cemuLog_log(LogType::Force, "UpdateCommentAsync: Message must contain at least a null-termination character");
+					return FPResult_InvalidIPCParam;
+				}
+				DeclareInputPtr(newComment, uint16be, messageLength, 0);
 				IPCCommandBody* cmd = ServiceCallDelayCurrentResponse();
 
-				auto utf8_comment = StringHelpers::ToUtf8((const uint16be*)newComment, vecIn[0].size);
-
+				auto utf8_comment = StringHelpers::ToUtf8(newComment, messageLength);
 				nexComment temporaryComment;
 				temporaryComment.ukn0 = 0;
 				temporaryComment.commentString = utf8_comment;
