@@ -452,9 +452,7 @@ prudpIncomingPacket::prudpIncomingPacket(prudpStreamSettings_t* streamSettings, 
 	}
 	else
 	{
-#ifdef CEMU_DEBUG_ASSERT
-		assert_dbg();
-#endif
+		cemu_assert_suspicious();
 	}
 }
 
@@ -696,6 +694,8 @@ void prudpClient::handleIncomingPacket(prudpIncomingPacket* incomingPacket)
 		if (currentConnectionState == STATE_CONNECTING)
 		{
 			lastPingTimestamp = prudpGetMSTimestamp();
+			if(serverSessionId != 0)
+				cemuLog_logDebug(LogType::Force, "PRUDP: ServerSessionId is already set");
 			serverSessionId = incomingPacket->sessionId;
 			currentConnectionState = STATE_CONNECTED;
 			//printf("Connection established. ClientSession %02x ServerSession %02x\n", clientSessionId, serverSessionId);
@@ -763,7 +763,6 @@ bool prudpClient::update()
 		sint32 r = recvfrom(socketUdp, (char*)receiveBuffer, sizeof(receiveBuffer), 0, &receiveFrom, &receiveFromLen);
 		if (r >= 0)
 		{
-			//printf("RECV 0x%04x byte\n", r);
 			// todo: Verify sender (receiveFrom)
 			// calculate packet size
 			sint32 pIdx = 0;
@@ -772,18 +771,25 @@ bool prudpClient::update()
 				sint32 packetLength = prudpPacket::calculateSizeFromPacketData(receiveBuffer + pIdx, r - pIdx);
 				if (packetLength <= 0 || (pIdx + packetLength) > r)
 				{
-					//printf("Invalid packet length\n");
+					cemuLog_logDebug(LogType::Force, "PRUDP: Invalid packet length");
 					break;
 				}
 				prudpIncomingPacket* incomingPacket = new prudpIncomingPacket(&streamSettings, receiveBuffer + pIdx, packetLength);
+
 				pIdx += packetLength;
 				if (incomingPacket->hasError())
 				{
+					cemuLog_logDebug(LogType::Force, "PRUDP: Packet error");
 					delete incomingPacket;
 					break;
 				}
-				if (incomingPacket->type != prudpPacket::TYPE_CON && incomingPacket->sessionId != serverSessionId)
+				// sessionId validation is complicated and depends on specific flags and type combinations. It does not seem to cover all packet types
+				bool validateSessionId = serverSessionId != 0;
+				if((incomingPacket->type == prudpPacket::TYPE_PING && (incomingPacket->flags&prudpPacket::FLAG_ACK) != 0))
+					validateSessionId = false; // PING + ack -> disable session id validation. Pretendo's friend server sends PING ack packets without setting the sessionId (it is 0)
+				if (validateSessionId && incomingPacket->sessionId != serverSessionId)
 				{
+					cemuLog_logDebug(LogType::Force, "PRUDP: Invalid session id");
 					delete incomingPacket;
 					continue; // different session
 				}
