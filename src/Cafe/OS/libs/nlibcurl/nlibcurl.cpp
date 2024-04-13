@@ -386,7 +386,12 @@ uint32 SendOrderToWorker(CURL_t* curl, QueueOrder order, uint32 arg1 = 0)
 	return result;
 }
 
-int curl_closesocket(void *clientp, curl_socket_t item);
+static int curl_closesocket(void *clientp, curl_socket_t item)
+{
+	nsysnet_notifyCloseSharedSocket((SOCKET)item);
+	closesocket(item);
+	return 0;
+}
 
 void _curl_set_default_parameters(CURL_t* curl)
 {
@@ -841,13 +846,6 @@ void export_curl_share_cleanup(PPCInterpreter_t* hCPU)
 	cemuLog_logDebug(LogType::Force, "curl_share_cleanup(0x{:08x}) -> 0x{:x}", curlsh.GetMPTR(), result);
 	PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curlsh.GetMPTR());
 	osLib_returnFromFunction(hCPU, 0);
-}
-
-static int curl_closesocket(void *clientp, curl_socket_t item)
-{
-	nsysnet_notifyCloseSharedSocket((SOCKET)item);
-	closesocket(item);
-	return 0;
 }
 
 CURL_t* curl_easy_init()
