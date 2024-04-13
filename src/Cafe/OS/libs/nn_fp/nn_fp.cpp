@@ -607,11 +607,15 @@ namespace nn
 			return resultBuf != 0 ? 1 : 0;
 		}
 
-		nnResult UpdateCommentAsync(char16_t* newComment, void* funcPtr, void* customParam)
+		nnResult UpdateCommentAsync(uint16be* newComment, void* funcPtr, void* customParam)
 		{
 			FP_API_BASE();
 			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::UpdateCommentAsync);
-			ipcCtx->AddInput(newComment, 36);
+			uint32 commentLen = CafeStringHelpers::Length(newComment, 17);
+			if (commentLen >= 17)
+				cemuLog_log(LogType::Force, "UpdateCommentAsync: message too long");
+				return FPResult_InvalidIPCParam;
+			ipcCtx->AddInput(newComment, sizeof(uint16be) * (commentLen + 1));    
 			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
