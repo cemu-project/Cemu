@@ -604,9 +604,15 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 		exit(0);
 	}
 #elif BOOST_OS_MACOS
-	//
-	// MacOS Code Goes Here
-	//	
+	if (m_restartRequired)
+	{
+	    const auto tmppath = fs::temp_directory_path() / L"cemu_update/Cemu.dmg";
+	    fs::path exePath = ActiveSettings::GetExecutablePath().parent_path();
+	    const auto apppath = exePath / L"update.sh";
+	    execlp("sh", "sh", apppath.c_str(), NULL);
+        
+        exit(0);
+	}	
 #endif
 }
 

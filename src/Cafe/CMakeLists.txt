@@ -404,6 +404,8 @@ add_library(CemuCafe
   OS/libs/nn_ndm/nn_ndm.h
   OS/libs/nn_spm/nn_spm.cpp
   OS/libs/nn_spm/nn_spm.h
+  OS/libs/nn_sl/nn_sl.cpp
+  OS/libs/nn_sl/nn_sl.h
   OS/libs/nn_nfp/AmiiboCrypto.h
   OS/libs/nn_nfp/nn_nfp.cpp
   OS/libs/nn_nfp/nn_nfp.h

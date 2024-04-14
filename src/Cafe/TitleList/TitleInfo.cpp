@@ -1,13 +1,11 @@
 #include "TitleInfo.h"
-
 #include "Cafe/Filesystem/fscDeviceHostFS.h"
 #include "Cafe/Filesystem/FST/FST.h"
-
 #include "pugixml.hpp"
 #include "Common/FileStream.h"
-
 #include <zarchive/zarchivereader.h>
 #include "config/ActiveSettings.h"
+#include "util/helpers/helpers.h"
 
 // detect format by reading file header/footer
 CafeTitleFileType DetermineCafeSystemFileType(fs::path filePath)
@@ -709,10 +707,41 @@ std::string TitleInfo::GetInstallPath() const
 {
 	TitleId titleId = GetAppTitleId();
 	TitleIdParser tip(titleId);
-        std::string tmp;
+	std::string tmp;
 	if (tip.IsSystemTitle())
-               tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-        else
-               tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+		tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+    else
+		tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
 	return tmp;
+}
+
+ParsedCosXml* ParsedCosXml::Parse(uint8* xmlData, size_t xmlLen)
+{
+	pugi::xml_document app_doc;
+	if (!app_doc.load_buffer_inplace(xmlData, xmlLen))
+		return nullptr;
+
+	const auto root = app_doc.child("app");
+	if (!root)
+		return nullptr;
+
+	ParsedCosXml* parsedCos = new ParsedCosXml();
+
+	auto node = root.child("argstr");
+	if (node)
+		parsedCos->argstr = node.text().as_string();
+
+	// parse permissions
+	auto permissionsNode = root.child("permissions");
+	for(uint32 permissionIndex = 0; permissionIndex < 19; ++permissionIndex)
+	{
+		std::string permissionName = fmt::format("p{}", permissionIndex);
+		auto permissionNode = permissionsNode.child(permissionName.c_str());
+		if (!permissionNode)
+			break;
+		parsedCos->permissions[permissionIndex].group = static_cast<CosCapabilityGroup>(ConvertString<uint32>(permissionNode.child("group").text().as_string(), 10));
+		parsedCos->permissions[permissionIndex].mask = static_cast<CosCapabilityBits>(ConvertString<uint64>(permissionNode.child("mask").text().as_string(), 16));
+	}
+
+	return parsedCos;
 }

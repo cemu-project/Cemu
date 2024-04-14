@@ -1,4 +1,5 @@
 #pragma once
+#include "Cafe/IOSU/legacy/iosu_acp.h"
 
 namespace nn
 {
@@ -9,20 +10,13 @@ namespace acp
 		SUCCESS = 0,
 	};
 
-	enum ACPDeviceType
-	{
-		UnknownType = 0,
-		InternalDeviceType = 1,
-		USBDeviceType = 3,
-	};
-
-	void CreateSaveMetaFiles(uint32 persistentId, uint64 titleId);
+	using ACPDeviceType = iosu::acp::ACPDeviceType;
 
 	ACPStatus ACPGetApplicationBox(uint32be* applicationBox, uint64 titleId);
 	ACPStatus ACPMountSaveDir();
     ACPStatus ACPUnmountSaveDir();
-	ACPStatus ACPCreateSaveDir(uint32 persistentId, ACPDeviceType type);
-	ACPStatus ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, ACPDeviceType deviceType);;
+	ACPStatus ACPCreateSaveDir(uint32 persistentId, iosu::acp::ACPDeviceType type);
+	ACPStatus ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, iosu::acp::ACPDeviceType deviceType);
 
 	void load();
 }

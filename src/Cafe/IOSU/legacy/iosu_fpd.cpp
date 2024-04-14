@@ -214,6 +214,12 @@ namespace iosu
 			friendData->friendExtraData.gameKey.ukn08 = frd->presence.gameKey.ukn;
 			NexPresenceToGameMode(&frd->presence, &friendData->friendExtraData.gameMode);
 
+			auto fixed_presence_msg = '\0' + frd->presence.msg; // avoid first character of comment from being cut off
+			friendData->friendExtraData.gameModeDescription.assignFromUTF8(fixed_presence_msg);
+			
+			auto fixed_comment = '\0' + frd->comment.commentString; // avoid first character of comment from being cut off
+			friendData->friendExtraData.comment.assignFromUTF8(fixed_comment);
+			
 			// set valid dates
 			friendData->uknDate.year = 2018;
 			friendData->uknDate.day = 1;
@@ -750,9 +756,18 @@ namespace iosu
 			{
 				if(numVecIn != 0 || numVecOut != 1)
 					return FPResult_InvalidIPCParam;
-				SelfPlayingGame selfPlayingGame{0};
-				cemuLog_log(LogType::Force, "GetMyPlayingGame is todo");
-				return WriteValueOutput<SelfPlayingGame>(vecOut, selfPlayingGame);
+				GameKey selfPlayingGame
+				{
+					CafeSystem::GetForegroundTitleId(),
+					CafeSystem::GetForegroundTitleVersion(),
+					{0,0,0,0,0,0}
+				};
+				if (GetTitleIdHigh(CafeSystem::GetForegroundTitleId()) != 0x00050000)
+				{
+					selfPlayingGame.titleId = 0;
+					selfPlayingGame.ukn08 = 0;
+				}
+				return WriteValueOutput<GameKey>(vecOut, selfPlayingGame);
 			}
 
 			nnResult CallHandler_GetFriendAccountId(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
@@ -1410,8 +1425,16 @@ namespace iosu
 				act::getCountryIndex(currentSlot, &countryCode);
 				// init presence
 				g_fpd.myPresence.isOnline = 1;
-				g_fpd.myPresence.gameKey.titleId = CafeSystem::GetForegroundTitleId();
-				g_fpd.myPresence.gameKey.ukn = CafeSystem::GetForegroundTitleVersion();
+				if (GetTitleIdHigh(CafeSystem::GetForegroundTitleId()) == 0x00050000)
+				{
+					g_fpd.myPresence.gameKey.titleId = CafeSystem::GetForegroundTitleId();
+					g_fpd.myPresence.gameKey.ukn = CafeSystem::GetForegroundTitleVersion();
+				}
+				else
+				{
+					g_fpd.myPresence.gameKey.titleId = 0; // icon will not be ??? or invalid to others
+					g_fpd.myPresence.gameKey.ukn = 0;
+				}
 				// resolve potential domain to IP address
 				struct addrinfo hints = {0}, *addrs;
 				hints.ai_family = AF_INET;

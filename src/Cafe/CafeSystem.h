@@ -4,6 +4,9 @@
 #include "Cafe/TitleList/TitleId.h"
 #include "config/CemuConfig.h"
 
+enum class CosCapabilityBits : uint64;
+enum class CosCapabilityGroup : uint32;
+
 namespace CafeSystem
 {
 	class SystemImplementation
@@ -41,6 +44,7 @@ namespace CafeSystem
 	std::string GetForegroundTitleName();
 	std::string GetForegroundTitleArgStr();
 	uint32 GetForegroundTitleOlvAccesskey();
+	CosCapabilityBits GetForegroundTitleCosCapabilities(CosCapabilityGroup group);
 
 	void ShutdownTitle();
 
