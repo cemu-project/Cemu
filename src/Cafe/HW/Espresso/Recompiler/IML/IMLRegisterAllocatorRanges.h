@@ -1,7 +1,7 @@
 #pragma once
 
 raLivenessRange_t* PPCRecRA_createRangeBase(ppcImlGenContext_t* ppcImlGenContext, uint32 virtualRegister, uint32 name);
-raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_t* range, PPCRecImlSegment_t* imlSegment, sint32 startIndex, sint32 endIndex);
+raLivenessSubrange_t* PPCRecRA_createSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_t* range, IMLSegment* imlSegment, sint32 startIndex, sint32 endIndex);
 void PPCRecRA_deleteSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessSubrange_t* subrange);
 void PPCRecRA_deleteRange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange_t* range);
 void PPCRecRA_deleteAllRanges(ppcImlGenContext_t* ppcImlGenContext);
@@ -17,7 +17,7 @@ void PPCRecRA_updateOrAddSubrangeLocation(raLivenessSubrange_t* subrange, sint32
 void PPCRecRA_debugValidateSubrange(raLivenessSubrange_t* subrange);
 
 // cost estimation
-sint32 PPCRecRARange_getReadWriteCost(PPCRecImlSegment_t* imlSegment);
+sint32 PPCRecRARange_getReadWriteCost(IMLSegment* imlSegment);
 sint32 PPCRecRARange_estimateCost(raLivenessRange_t* range);
 sint32 PPCRecRARange_estimateAdditionalCostAfterRangeExplode(raLivenessRange_t* range);
 sint32 PPCRecRARange_estimateAdditionalCostAfterSplit(raLivenessSubrange_t* subrange, sint32 splitIndex);

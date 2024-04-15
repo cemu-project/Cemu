@@ -1,5 +1,4 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerX64.h"
+#include "BackendX64.h"
 
 void _x64Gen_writeMODRMDeprecated(x64GenContext_t* x64GenContext, sint32 dataRegister, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32);
 
@@ -21,11 +20,10 @@ void _x64Gen_vex128_nds(x64GenContext_t* x64GenContext, uint8 opcodeMap, uint8 a
 	x64Gen_writeU8(x64GenContext, opcode);
 }
 
-#define VEX_PP_0F		0 // guessed
+#define VEX_PP_0F		0
 #define VEX_PP_66_0F	1
-#define VEX_PP_F3_0F	2 // guessed
-#define VEX_PP_F2_0F	3 // guessed
-
+#define VEX_PP_F3_0F	2
+#define VEX_PP_F2_0F	3
 
 void x64Gen_avx_VPUNPCKHQDQ_xmm_xmm_xmm(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegisterA, sint32 srcRegisterB)
 {
