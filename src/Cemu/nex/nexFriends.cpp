@@ -221,7 +221,8 @@ NexFriends::NexFriends(uint32 authServerIp, uint16 authServerPort, const char* a
 
 NexFriends::~NexFriends()
 {
-	nexCon->destroy();
+	if(nexCon)
+		nexCon->destroy();
 }
 
 void NexFriends::doAsyncLogin()

@@ -71,14 +71,13 @@ public:
 	void setData(uint8* data, sint32 length);
 	void setFragmentIndex(uint8 fragmentIndex);
 	sint32 buildData(uint8* output, sint32 maxLength);
+	uint8 GetType() const { return type; }
+	uint16 GetSequenceId() const { return m_sequenceId; }
 
 private:
 	uint32 packetSignature();
 
 	uint8 calculateChecksum(uint8* data, sint32 length);
-
-public:
-	uint16 sequenceId;
 
 private:
 	uint8 src;
@@ -91,6 +90,8 @@ private:
 	prudpStreamSettings_t* streamSettings;
 	std::vector<uint8> packetData;
 	bool isEncrypted;
+	uint16 m_sequenceId{0};
+
 };
 
 class prudpIncomingPacket
@@ -185,6 +186,9 @@ private:
 
 	uint16 outgoingSequenceId;
 	uint16 incomingSequenceId;
+
+	uint16 m_outgoingSequenceId_ping{0};
+	uint8 m_unacknowledgedPingCount{0};
 
 	uint8 clientSessionId;
 	uint8 serverSessionId;
