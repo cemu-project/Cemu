@@ -288,7 +288,7 @@ uint32 prudpPacket::packetSignature()
 		return specifiedPacketSignature;
 	else if (type == TYPE_DATA)
 	{
-		if (packetData.size() == 0)
+		if (packetData.empty())
 			return 0x12345678;
 
 		HMACMD5Ctx ctx;
@@ -307,8 +307,7 @@ uint32 prudpPacket::packetSignature()
 
 void prudpPacket::setData(uint8* data, sint32 length)
 {
-	packetData.resize(length);
-	memcpy(&packetData.front(), data, length);
+	packetData.assign(data, data + length);
 }
 
 void prudpPacket::setFragmentIndex(uint8 fragmentIndex)
@@ -509,12 +508,12 @@ prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key)
 	u_long nonBlockingMode = 1; // 1 to enable non-blocking socket
 	ioctlsocket(m_socketUdp, FIONBIO, &nonBlockingMode);
 #else
-	int flags = fcntl(socketUdp, F_GETFL);
-	fcntl(socketUdp, F_SETFL, flags | O_NONBLOCK);
+	int flags = fcntl(m_socketUdp, F_GETFL);
+	fcntl(m_socketUdp, F_SETFL, flags | O_NONBLOCK);
 #endif
 	// generate frequently used parameters
-	this->m_srcVPort = PRUDP_VPORT(prudpPacket::STREAM_TYPE_SECURE, 0xF);
-	this->m_dstVPort = PRUDP_VPORT(prudpPacket::STREAM_TYPE_SECURE, 0x1);
+	m_srcVPort = PRUDP_VPORT(prudpPacket::STREAM_TYPE_SECURE, 0xF);
+	m_dstVPort = PRUDP_VPORT(prudpPacket::STREAM_TYPE_SECURE, 0x1);
 	// set stream settings
 	uint8 checksumBase = 0;
 	for (sint32 i = 0; key[i] != '\0'; i++)
@@ -540,8 +539,8 @@ prudpClient::prudpClient(uint32 dstIp, uint16 dstPort, const char* key, prudpAut
 {
 	RC4_initCtx(&m_streamSettings.rc4Server, authInfo->secureKey, 16);
 	RC4_initCtx(&m_streamSettings.rc4Client, authInfo->secureKey, 16);
-	this->m_isSecureConnection = true;
-	memcpy(&this->m_authInfo, authInfo, sizeof(prudpAuthServerInfo));
+	m_isSecureConnection = true;
+	memcpy(&m_authInfo, authInfo, sizeof(prudpAuthServerInfo));
 }
 
 prudpClient::~prudpClient()
@@ -601,7 +600,7 @@ void prudpClient::SortIncomingDataPacket(std::unique_ptr<prudpIncomingPacket> in
 sint32 prudpClient::KerberosEncryptData(uint8* input, sint32 length, uint8* output)
 {
 	RC4Ctx rc4Kerberos;
-	RC4_initCtx(&rc4Kerberos, this->m_authInfo.secureKey, 16);
+	RC4_initCtx(&rc4Kerberos, m_authInfo.secureKey, 16);
 	memcpy(output, input, length);
 	RC4_transform(&rc4Kerberos, output, length, output);
 	// calculate and append hmac
@@ -627,7 +626,7 @@ void prudpClient::SendCurrentHandshakePacket()
 		{
 			uint8 tempBuffer[512];
 			nexPacketBuffer conData(tempBuffer, sizeof(tempBuffer), true);
-			conData.writeU32(this->m_clientConnectionSignature);
+			conData.writeU32(m_clientConnectionSignature);
 			conData.writeBuffer(m_authInfo.secureTicket, m_authInfo.secureTicketLength);
 			// encrypted request data
 			uint8 requestData[4 * 3];
@@ -641,7 +640,7 @@ void prudpClient::SendCurrentHandshakePacket()
 		}
 		else
 		{
-			conPacket.setData((uint8*)&this->m_clientConnectionSignature, sizeof(uint32));
+			conPacket.setData((uint8*)&m_clientConnectionSignature, sizeof(uint32));
 		}
 		DirectSendPacket(&conPacket);
 	}
@@ -889,7 +888,7 @@ bool prudpClient::Update()
 				cemuLog_log(LogType::PRUDP, "[PRUDP] Sending new ping packet with sequenceId {}", this->m_outgoingSequenceId_ping + 1);
 				// start a new ping packet with a new sequenceId. Note that ping packets have their own sequenceId and acknowledgement happens by manually comparing the incoming ping ACK against the last sent sequenceId
 				// only one unacknowledged ping packet can be in flight at a time. We will resend the same ping packet until we receive an ack
-				this->m_outgoingSequenceId_ping++; // increment before sending. The first ping has a sequenceId of 1
+				m_outgoingSequenceId_ping++; // increment before sending. The first ping has a sequenceId of 1
 				prudpPacket pingPacket(&m_streamSettings, m_srcVPort, m_dstVPort, prudpPacket::TYPE_PING, prudpPacket::FLAG_NEED_ACK, this->m_clientSessionId, this->m_outgoingSequenceId_ping, m_serverConnectionSignature);
 				DirectSendPacket(&pingPacket);
 				m_unacknowledgedPingCount++;
