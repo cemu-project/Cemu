@@ -10,7 +10,6 @@ sint32 s_customVsyncFrequency = -1;
 void LatteTiming_NotifyHostVSync();
 
 // calculate time between vsync events in timer units
-// standard rate on Wii U is 59.94, however to prevent tearing and microstutter on ~60Hz displays it is better if we slightly overshoot 60 Hz
 // can be modified by graphic packs
 HRTick LatteTime_CalculateTimeBetweenVSync()
 {
@@ -24,7 +23,7 @@ HRTick LatteTime_CalculateTimeBetweenVSync()
 	else
 	{
 		tick *= 1000ull;
-		tick /= 1002ull;
+		tick /= 999ull;
 		tick /= 60ull;
 	}
 	return tick;
