@@ -31,17 +31,15 @@
 #include <wx/dirdlg.h>
 #include <wx/notebook.h>
 
+#include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "config/ActiveSettings.h"
 #include "gui/dialogs/SaveImport/SaveImportWindow.h"
 #include "Cafe/Account/Account.h"
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 #include "gui/CemuApp.h"
-
 #include "Cafe/TitleList/TitleList.h"
-
-#include "resource/embedded/resources.h"
-
 #include "Cafe/TitleList/SaveList.h"
+#include "resource/embedded/resources.h"
 
 wxDEFINE_EVENT(wxEVT_TITLE_FOUND, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TITLE_SEARCH_COMPLETE, wxCommandEvent);
@@ -155,6 +153,7 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 	{
 		auto* row = new wxBoxSizer(wxHORIZONTAL);
 
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 		m_account = new wxChoice(panel, wxID_ANY);
 		m_account->SetMinSize({ 250,-1 });
 		auto accounts = Account::GetAccounts();
@@ -172,6 +171,7 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 		}
 	
 		row->Add(m_account, 0, wxALL, 5);
+#endif
 
 		m_connect = new wxButton(panel, wxID_ANY, _("Connect"));
 		m_connect->Bind(wxEVT_BUTTON, &TitleManager::OnConnect, this);
@@ -180,7 +180,17 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 		sizer->Add(row, 0, wxEXPAND, 5);
 	}
 
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 	m_status_text = new wxStaticText(panel, wxID_ANY, _("Select an account and press Connect"));
+#else
+	if(!NCrypto::HasDataForConsoleCert())
+	{
+		m_status_text = new wxStaticText(panel, wxID_ANY, _("Valid online files are required to download eShop titles. For more information, go to the Account tab in the General Settings."));
+		m_connect->Enable(false);
+	}
+	else
+		m_status_text = new wxStaticText(panel, wxID_ANY, _("Click on Connect to load the list of downloadable titles"));
+#endif
 	this->Bind(wxEVT_SET_TEXT, &TitleManager::OnSetStatusText, this);
 	sizer->Add(m_status_text, 0, wxALL, 5);
 	
@@ -720,9 +730,10 @@ void TitleManager::OnSaveImport(wxCommandEvent& event)
 void TitleManager::InitiateConnect()
 {
 	// init connection to download manager if queued
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 	uint32 persistentId = (uint32)(uintptr_t)m_account->GetClientData(m_account->GetSelection());
 	auto& account = Account::GetAccount(persistentId);
-
+#endif
 	DownloadManager* dlMgr = DownloadManager::GetInstance();
 	dlMgr->reset();
 	m_download_list->SetCurrentDownloadMgr(dlMgr);
@@ -742,7 +753,15 @@ void TitleManager::InitiateConnect()
 		TitleManager::Callback_ConnectStatusUpdate,
 		TitleManager::Callback_AddDownloadableTitle,
 		TitleManager::Callback_RemoveDownloadableTitle);
-	dlMgr->connect(account.GetAccountId(), account.GetAccountPasswordCache(), NCrypto::SEEPROM_GetRegion(), NCrypto::GetCountryAsString(account.GetCountry()), NCrypto::GetDeviceId(), NCrypto::GetSerial(), deviceCertBase64);
+	std::string accountName;
+	std::array<uint8, 32> accountPassword;
+	std::string accountCountry;
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
+	accountName = account.GetAccountId();
+	accountPassword = account.GetAccountPasswordCache();
+	accountCountry.assign(NCrypto::GetCountryAsString(account.GetCountry()));
+#endif
+	dlMgr->connect(accountName, accountPassword, NCrypto::SEEPROM_GetRegion(), accountCountry, NCrypto::GetDeviceId(), NCrypto::GetSerial(), deviceCertBase64);
 }
 
 void TitleManager::OnConnect(wxCommandEvent& event)
@@ -787,7 +806,9 @@ void TitleManager::OnDisconnect(wxCommandEvent& event)
 
 void TitleManager::SetConnected(bool state)
 {
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 	m_account->Enable(!state);
+#endif
 	m_connect->Enable(!state);
 
 	m_show_titles->Enable(state);

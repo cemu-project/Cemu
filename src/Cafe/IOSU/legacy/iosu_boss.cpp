@@ -498,7 +498,7 @@ namespace iosu
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, task_header_callback);
 		curl_easy_setopt(curl, CURLOPT_HEADERDATA, &(*it));
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0x3C);
-		if (GetNetworkConfig().disablesslver.GetValue() && ActiveSettings::GetNetworkService() == NetworkService::Custom || ActiveSettings::GetNetworkService() == NetworkService::Pretendo) // remove Pretendo Function once SSL is in the Service
+		if (IsNetworkServiceSSLDisabled(ActiveSettings::GetNetworkService()))
 		{ 
 			curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
 		}

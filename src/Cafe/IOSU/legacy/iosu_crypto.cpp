@@ -292,16 +292,6 @@ void iosuCrypto_generateDeviceCertificate()
 	BN_CTX_free(context);
 }
 
-bool iosuCrypto_hasAllDataForLogin()
-{
-	if (hasOtpMem == false)
-		return false;
-	if (hasSeepromMem == false)
-		return false;
-	// todo - check if certificates are available
-	return true;
-}
-
 sint32 iosuCrypto_getDeviceCertificateBase64Encoded(char* output)
 {
 	iosuCrypto_base64Encode((uint8*)&g_wiiuDeviceCert, sizeof(g_wiiuDeviceCert), output);

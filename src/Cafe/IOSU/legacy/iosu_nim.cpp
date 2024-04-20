@@ -228,7 +228,7 @@ namespace iosu
 				}
 			}
 
-			auto result = NAPI::IDBE_Request(titleId);
+			auto result = NAPI::IDBE_Request(ActiveSettings::GetNetworkService(), titleId);
 			if (!result)
 			{
 				memset(idbeIconOutput, 0, sizeof(NAPI::IDBEIconDataV0));

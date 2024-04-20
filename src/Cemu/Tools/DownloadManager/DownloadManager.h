@@ -2,17 +2,14 @@
 #include "util/helpers/Semaphore.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "Cafe/TitleList/TitleId.h"
-
 #include "util/helpers/ConcurrentQueue.h"
+#include "config/NetworkSettings.h"
 
-#include <functional>
-#include <optional>
-
-#include <future>
-
+// forward declarations
 namespace NAPI
 {
 	struct IDBEIconDataV0;
+	struct AuthInfo;
 }
 
 namespace NCrypto
@@ -86,7 +83,6 @@ public:
 
 	bool IsConnected() const;
 
-
 private:
 	/* connect / login */
 	
@@ -101,6 +97,7 @@ private:
 
 	struct 
 	{
+		std::string cachefileName;
 		std::string nnidAccountName;
 		std::array<uint8, 32> passwordHash;
 		std::string deviceCertBase64;
@@ -122,7 +119,10 @@ private:
 	void _handle_connect();
 	bool _connect_refreshIASAccountIdAndDeviceToken();
 	bool _connect_queryAccountStatusAndServiceURLs();
-	
+
+	NetworkService GetDownloadMgrNetworkService();
+	NAPI::AuthInfo GetAuthInfo(bool withIasToken);
+
 	/* idbe cache */
 public:
 	void prepareIDBE(uint64 titleId);
