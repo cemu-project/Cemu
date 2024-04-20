@@ -464,6 +464,14 @@ namespace nn
 			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
+		nnResult GetMyPlayingGame(iosu::fpd::GameKey* myPlayingGame)
+		{
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyPlayingGame);
+			ipcCtx->AddOutput(myPlayingGame, sizeof(iosu::fpd::GameKey));
+			return ipcCtx->Submit(std::move(ipcCtx));
+		}
+
 		nnResult GetMyPreference(iosu::fpd::FPDPreference* myPreference)
 		{
 			FP_API_BASE();
@@ -785,6 +793,7 @@ namespace nn
 			cafeExportRegisterFunc(GetMyAccountId, "nn_fp", "GetMyAccountId__Q2_2nn2fpFPc", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyScreenName, "nn_fp", "GetMyScreenName__Q2_2nn2fpFPw", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyMii, "nn_fp", "GetMyMii__Q2_2nn2fpFP12FFLStoreData", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyPlayingGame, "nn_fp", "GetMyPlayingGame__Q2_2nn2fpFPQ3_2nn2fp7GameKey", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyPreference, "nn_fp", "GetMyPreference__Q2_2nn2fpFPQ3_2nn2fp10Preference", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyComment, "nn_fp", "GetMyComment__Q2_2nn2fpFPQ3_2nn2fp7Comment", LogType::NN_FP);
 
