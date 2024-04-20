@@ -42,6 +42,7 @@ enum class LogType : sint32
 
 	ProcUi = 39,
 
+	PRUDP = 40,
 };
 
 template <>

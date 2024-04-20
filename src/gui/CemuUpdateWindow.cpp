@@ -495,18 +495,15 @@ void CemuUpdateWindow::WorkerThread()
 				fs::rename(exec, target_exe);
 				m_restartFile = exec;				
 #elif BOOST_OS_LINUX
-				if (std::getenv("APPIMAGE"))
-				{
-				std::string target_directory = exePath.parent_path().generic_string();
-				const auto exec = exePath;
-				const auto target_exe = fs::path(exePath).replace_extension("AppImage.backup");
+				const char* appimage_path = std::getenv("APPIMAGE");
+				const auto target_exe = fs::path(appimage_path).replace_extension("AppImage.backup");
 				const char* filePath = update_file.c_str();
 				mode_t permissions = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
-				fs::rename(exec, target_exe);
-				m_restartFile = exec;
+				fs::rename(appimage_path, target_exe);
+				m_restartFile = appimage_path;
 				chmod(filePath, permissions);
-				wxCopyFile (wxT("/tmp/cemu_update/Cemu.AppImage"), wxT("/home/ubuntu/Downloads/Cemu.AppImage"));
-				}
+				wxString wxAppPath = wxString::FromUTF8(appimage_path);
+				wxCopyFile (wxT("/tmp/cemu_update/Cemu.AppImage"), wxAppPath);
 #endif
 #if BOOST_OS_WINDOWS
 				const auto index = expected_path.wstring().size();
@@ -595,11 +592,8 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 #elif BOOST_OS_LINUX
 	if (m_restartRequired && !m_restartFile.empty() && fs::exists(m_restartFile))
 	{
-		fs::path exePath = ActiveSettings::GetExecutablePath();
 		const char* appimage_path = std::getenv("APPIMAGE");
-		const auto tmppath = fs::temp_directory_path() / L"cemu_update";
-		std::string target_exe = (exePath);
-		execlp(target_exe.c_str(), target_exe.c_str(), (char *)NULL);
+		execlp(appimage_path, appimage_path, (char *)NULL);
 
 		exit(0);
 	}
