@@ -464,19 +464,19 @@ namespace nn
 			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		nnResult GetMyComment(iosu::fpd::FPDPreference* myPreference)
-		{
-			FP_API_BASE();
-			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyComment);
-			ipcCtx->AddOutput(myPreference, sizeof(uint16be)*0x12);
-			return ipcCtx->Submit(std::move(ipcCtx));
-		}
-
 		nnResult GetMyPreference(iosu::fpd::FPDPreference* myPreference)
 		{
 			FP_API_BASE();
 			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyPreference);
 			ipcCtx->AddOutput(myPreference, sizeof(iosu::fpd::FPDPreference));
+			return ipcCtx->Submit(std::move(ipcCtx));
+		}
+
+		nnResult GetMyComment(iosu::fpd::FPDPreference* myPreference)
+		{
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyComment);
+			ipcCtx->AddOutput(myPreference, sizeof(uint16be)*0x12);
 			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
@@ -621,9 +621,11 @@ namespace nn
 			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::UpdateCommentAsync);
 			uint32 commentLen = CafeStringHelpers::Length(newComment, 17);
 			if (commentLen >= 17)
+			{
 				cemuLog_log(LogType::Force, "UpdateCommentAsync: message too long");
 				return FPResult_InvalidIPCParam;
-			ipcCtx->AddInput(newComment, sizeof(uint16be) * (commentLen + 1));    
+			}
+			ipcCtx->AddInput(newComment, sizeof(uint16be) * commentLen + 2);    
 			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
@@ -783,8 +785,8 @@ namespace nn
 			cafeExportRegisterFunc(GetMyAccountId, "nn_fp", "GetMyAccountId__Q2_2nn2fpFPc", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyScreenName, "nn_fp", "GetMyScreenName__Q2_2nn2fpFPw", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyMii, "nn_fp", "GetMyMii__Q2_2nn2fpFP12FFLStoreData", LogType::NN_FP);
-			cafeExportRegisterFunc(GetMyComment, "nn_fp", "GetMyComment__Q2_2nn2fpFPQ3_2nn2fp7Comment", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyPreference, "nn_fp", "GetMyPreference__Q2_2nn2fpFPQ3_2nn2fp10Preference", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyComment, "nn_fp", "GetMyComment__Q2_2nn2fpFPQ3_2nn2fp7Comment", LogType::NN_FP);
 
 			cafeExportRegisterFunc(GetFriendAccountId, "nn_fp", "GetFriendAccountId__Q2_2nn2fpFPA17_cPCUiUi", LogType::NN_FP);
 			cafeExportRegisterFunc(GetFriendScreenName, "nn_fp", "GetFriendScreenName__Q2_2nn2fpFPA11_wPCUiUibPUc", LogType::NN_FP);
