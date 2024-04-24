@@ -1,5 +1,6 @@
 #include "TitleInfo.h"
 #include "Cafe/Filesystem/fscDeviceHostFS.h"
+#include "Cafe/Filesystem/WUHB/WUHBReader.h"
 #include "Cafe/Filesystem/FST/FST.h"
 #include "pugixml.hpp"
 #include "Common/FileStream.h"
@@ -245,6 +246,16 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			delete zar;
 			return foundBase;
 		}
+		else if (boost::iends_with(filenameStr, ".wuhb"))
+		{
+			std::unique_ptr<WUHBReader> reader{WUHBReader::FromPath(path)};
+			if(reader)
+			{
+				formatOut = TitleDataFormat::WUHB;
+				pathOut = path;
+				return true;
+			}
+		}
 		// note: Since a Wii U archive file (.wua) contains multiple titles we shouldn't auto-detect them here
 		// instead TitleInfo has a second constructor which takes a subpath
 		// unable to determine type by extension, check contents
@@ -433,6 +444,23 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 		{
 			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
 			_ZArchivePool_ReleaseInstance(m_fullPath, m_zarchive);
+			return false;
+		}
+	}
+	else if (m_titleFormat == TitleDataFormat::WUHB)
+	{
+		if(!m_wuhbreader)
+		{
+			m_wuhbreader = WUHBReader::FromPath(m_fullPath);
+			if(!m_wuhbreader)
+				return false;
+		}
+		bool r = FSCDeviceWUHB_Mount(virtualPath, subfolder, m_wuhbreader, mountPriority);
+		if (!r)
+		{
+			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
+			delete m_wuhbreader;
+			m_wuhbreader = nullptr;
 			return false;
 		}
 	}
