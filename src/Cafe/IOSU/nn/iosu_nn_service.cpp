@@ -155,7 +155,9 @@ namespace iosu
 
 		void IPCService::ServiceThread()
 		{
-			SetThreadName("IPCService");
+			std::string serviceName = m_devicePath.substr(m_devicePath.find_last_of('/') == std::string::npos ? 0 : m_devicePath.find_last_of('/') + 1);
+			serviceName.insert(0, "NNsvc_");
+			SetThreadName(serviceName.c_str());
 			m_msgQueueId = IOS_CreateMessageQueue(_m_msgBuffer.GetPtr(), _m_msgBuffer.GetCount());
 			cemu_assert(!IOS_ResultIsError((IOS_ERROR)m_msgQueueId));
 			IOS_ERROR r = IOS_RegisterResourceManager(m_devicePath.c_str(), m_msgQueueId);
@@ -208,6 +210,7 @@ namespace iosu
 					IOS_ResourceReply(cmd, IOS_ERROR_INVALID);
 				}
 			}
+			IOS_DestroyMessageQueue(m_msgQueueId);
 			m_threadInitialized = false;
 		}
 	};
