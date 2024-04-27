@@ -386,7 +386,7 @@ void OpenGLRenderer::GetVendorInformation()
 	cemuLog_log(LogType::Force, "GL_RENDERER: {}", glRendererString ? glRendererString : "unknown");
 	cemuLog_log(LogType::Force, "GL_VERSION: {}", glVersionString ? glVersionString : "unknown");
 
-	if(boost::icontains(glVersionString, "Mesa"))
+	if(glVersionString && boost::icontains(glVersionString, "Mesa"))
 	{
 		m_vendor = GfxVendor::Mesa;
 		return;
