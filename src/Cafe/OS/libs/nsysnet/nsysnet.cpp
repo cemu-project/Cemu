@@ -684,6 +684,16 @@ void nsysnetExport_getsockopt(PPCInterpreter_t* hCPU)
 			*(uint32*)optval = _swapEndianU32(optvalLE);
 			// used by Lost Reavers after some loading screens
 		}
+		else if (optname == WU_SO_TYPE)
+		{
+			if (memory_readU32(optlenMPTR) != 4)
+				assert_dbg();
+			int optvalLE = 0;
+			socklen_t optlenLE = 4;
+			memory_writeU32(optlenMPTR, 4);
+			*(uint32*)optval = _swapEndianU32(vs->type);
+			r = WU_SO_SUCCESS;
+		}
         else if (optname == WU_SO_NONBLOCK)
         {
             if (memory_readU32(optlenMPTR) != 4)
