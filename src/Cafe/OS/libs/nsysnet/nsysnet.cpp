@@ -1568,7 +1568,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "recvfrom({},0x{:08x},{},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	cemuLog_log(LogType::Socket, "recvfrom({},0x{:08x},{},0x{:x},0x{:x},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1597,8 +1597,8 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 	if (vs->isNonBlocking)
 		requestIsNonBlocking = vs->isNonBlocking;
 
-	socklen_t fromLenHost = *fromLen;
 	sockaddr fromAddrHost;
+	socklen_t fromLenHost = sizeof(fromAddrHost);
 	sint32 wsaError = 0;
 
 	while( true )
@@ -1640,9 +1640,13 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 				if (r < 0)
 					cemu_assert_debug(false);
 				cemuLog_logDebug(LogType::Force, "recvfrom returned {} bytes", r);
-				*fromLen = fromLenHost;
-				fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
-				memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+
+				// fromAddr and fromLen can be NULL
+				if (fromAddr && fromLen) {
+					*fromLen = fromLenHost;
+					fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
+					memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+				}
 
 				_setSockError(0);
 				osLib_returnFromFunction(hCPU, r);
@@ -1692,9 +1696,12 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 		assert_dbg();
 	}
 
-	*fromLen = fromLenHost;
-	fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
-	memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+	// fromAddr and fromLen can be NULL
+	if (fromAddr && fromLen) {
+		*fromLen = fromLenHost;
+		fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
+		memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+	}
 
 	_translateError(r <= 0 ? -1 : 0, wsaError);
 
