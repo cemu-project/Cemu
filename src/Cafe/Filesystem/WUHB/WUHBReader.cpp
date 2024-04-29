@@ -80,6 +80,25 @@ romfs_fentry_t WUHBReader::GetFileEntry(uint32_t offset)
 	return ret;
 }
 
+uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
+{
+	const auto hash_table_size = (isFile ? m_header.file_hash_table_size : m_header.dir_hash_table_size);
+	const auto hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.file_hash_table_size);
+
+	const uint64_t hash_table_entry_count = hash_table_size / sizeof(uint32_t);
+	const auto hash_table_entry_offset = hash_table_ofs + (hash % hash_table_entry_count) * sizeof(uint32_t);
+
+	m_fileIn->SetPosition(hash_table_entry_offset);
+	uint32_t tableOffset;
+	if(!m_fileIn->readU32(tableOffset))
+	{
+		cemuLog_log(LogType::Force, "failed to read WUHB hash table entry at file offset: {}", hash_table_entry_offset);
+		cemu_assert_error();
+	}
+
+	return uint32be::from_bevalue(tableOffset);
+}
+
 uint32_t WUHBReader::Lookup(std::string_view path)
 {
 
@@ -91,12 +110,17 @@ uint32_t WUHBReader::Lookup(std::string_view path)
 		std::string test;
 		for(auto& i : part)
 			test.push_back(i);
+		currentParent = CalcPathHash(currentParent, test.c_str(), 0, test.size());
+		auto fileEntry = GetHashTableEntryOffset(currentParent, true);
+		if(fileEntry != ROMFS_ENTRY_EMPTY)
+			return fileEntry;
 
-		std::cout << test << std::endl;
+		auto dirEntry = GetHashTableEntryOffset(currentParent, false);
+		if(dirEntry == ROMFS_ENTRY_EMPTY)
+			return ROMFS_ENTRY_EMPTY;
 	}
-	return 0;
+	return ROMFS_ENTRY_EMPTY;
 }
-
 bool WUHBReader::CheckMagicValue()
 {
 	uint8_t magic[4];
@@ -131,7 +155,7 @@ unsigned char WUHBReader::NormalizeChar(unsigned char c)
 		return c;
 	}
 }
-uint32_t WUHBReader::CalcPathHash(uint32_t parent, const unsigned char* path, uint32_t start, size_t path_len)
+uint32_t WUHBReader::CalcPathHash(uint32_t parent, const char* path, uint32_t start, size_t path_len)
 {
 	cemu_assert(path != nullptr || path_len == 0);
 	uint32_t hash = parent ^ 123456789;

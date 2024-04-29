@@ -21,7 +21,7 @@ typedef struct {
     uint32be sibling;
     uint32be child;
     uint32be file;
-    uint32be hash;
+    uint32 hash;
     uint32be name_size;
     std::string name;
 } romfs_direntry_t;
@@ -31,7 +31,7 @@ typedef struct {
     uint32be sibling;
     uint64be offset;
     uint64be size;
-    uint32be hash;
+    uint32 hash;
     uint32be name_size;
     std::string name;
 } romfs_fentry_t;
