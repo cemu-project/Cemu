@@ -32,8 +32,8 @@ romfs_direntry_t WUHBReader::GetDirEntry(uint32_t offset)
 
 	// read the direntry
 	m_fileIn->SetPosition(m_header.dir_table_ofs + offset);
-	auto read = m_fileIn->readData(&ret, sizeof(romfs_direntry_t));
-	if (read != sizeof(romfs_direntry_t))
+	auto read = m_fileIn->readData(&ret, offsetof(romfs_direntry_t, name));
+	if (read != offsetof(romfs_direntry_t, name))
 	{
 		cemuLog_log(LogType::Force, "failed to read WUHB direntry at offset: {}", offset);
 		cemu_assert_error();
@@ -61,8 +61,8 @@ romfs_fentry_t WUHBReader::GetFileEntry(uint32_t offset)
 
 	// read the fentry
 	m_fileIn->SetPosition(m_header.file_table_ofs + offset);
-	auto read = m_fileIn->readData(&ret, sizeof(romfs_fentry_t));
-	if (read != sizeof(romfs_fentry_t))
+	auto read = m_fileIn->readData(&ret, offsetof(romfs_fentry_t, name));
+	if (read != offsetof(romfs_fentry_t,name))
 	{
 		cemuLog_log(LogType::Force, "failed to read WUHB fentry at offset: {}", offset);
 		cemu_assert_error();
@@ -80,10 +80,22 @@ romfs_fentry_t WUHBReader::GetFileEntry(uint32_t offset)
 	return ret;
 }
 
+uint64_t WUHBReader::GetFileSize(uint32_t entryOffset)
+{
+	return GetFileEntry(entryOffset).size;
+}
+
+uint64_t WUHBReader::ReadFromFile(uint32_t entryOffset, uint64_t fileOffset, uint64_t length, void* buffer)
+{
+	const auto wuhbOffset = m_header.file_partition_ofs + GetFileEntry(entryOffset).offset + fileOffset;
+	m_fileIn->SetPosition(wuhbOffset);
+	return m_fileIn->readData(buffer, length);
+}
+
 uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 {
 	const auto hash_table_size = (isFile ? m_header.file_hash_table_size : m_header.dir_hash_table_size);
-	const auto hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.file_hash_table_size);
+	const auto hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.dir_hash_table_ofs);
 
 	const uint64_t hash_table_entry_count = hash_table_size / sizeof(uint32_t);
 	const auto hash_table_entry_offset = hash_table_ofs + (hash % hash_table_entry_count) * sizeof(uint32_t);
@@ -99,27 +111,32 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 	return uint32be::from_bevalue(tableOffset);
 }
 
-uint32_t WUHBReader::Lookup(std::string_view path)
+uint32_t WUHBReader::Lookup(const std::filesystem::path& path)
 {
 
-	auto currentParent = CalcPathHash(0, 0, 1, 0);
-	if(path == "/")
-		return currentParent;
-	for (const auto part : path | std::views::split('/'))
-	{
-		std::string test;
-		for(auto& i : part)
-			test.push_back(i);
-		currentParent = CalcPathHash(currentParent, test.c_str(), 0, test.size());
-		auto fileEntry = GetHashTableEntryOffset(currentParent, true);
-		if(fileEntry != ROMFS_ENTRY_EMPTY)
-			return fileEntry;
+	auto currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(0, 0, 1, 0), false);
+	if(path.empty())
+		return currentEntryOffset;
 
-		auto dirEntry = GetHashTableEntryOffset(currentParent, false);
-		if(dirEntry == ROMFS_ENTRY_EMPTY)
+	auto it = path.begin();
+	while (it != path.end() && currentEntryOffset != ROMFS_ENTRY_EMPTY)
+	{
+		fs::path part = *it;
+		++it;
+
+		const auto partString = part.string();
+		const bool isLast = it == path.end();
+
+		currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), isLast);
+		if(currentEntryOffset == ROMFS_ENTRY_EMPTY)
 			return ROMFS_ENTRY_EMPTY;
+
+		const std::string& entryName = isLast ? GetFileEntry(currentEntryOffset).name : GetDirEntry(currentEntryOffset).name;
+		if(entryName != part)
+			return ROMFS_ENTRY_EMPTY;
+
 	}
-	return ROMFS_ENTRY_EMPTY;
+	return currentEntryOffset;
 }
 bool WUHBReader::CheckMagicValue()
 {
@@ -132,7 +149,7 @@ bool WUHBReader::CheckMagicValue()
 		return false;
 	}
 	static_assert(sizeof(magic) == headerMagicValue.size());
-	return std::memcmp(&magic, "WUHB", headerMagicValue.size()) == 0;
+	return std::memcmp(&magic, headerMagicValue.data(), sizeof(magic)) == 0;
 }
 bool WUHBReader::ReadHeader()
 {
@@ -142,10 +159,6 @@ bool WUHBReader::ReadHeader()
 	if (!readSuccess)
 		cemuLog_log(LogType::Force, "Failed to read WUHB header");
 	return readSuccess;
-}
-WUHBReader::~WUHBReader()
-{
-	delete m_fileIn;
 }
 unsigned char WUHBReader::NormalizeChar(unsigned char c)
 {
