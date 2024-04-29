@@ -5,6 +5,7 @@
 #include "pugixml.hpp"
 #include "Common/FileStream.h"
 #include <zarchive/zarchivereader.h>
+#include <util/IniParser/IniParser.h>
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
 
@@ -530,6 +531,11 @@ bool TitleInfo::ParseXmlInfo()
 	auto xmlData = fsc_extractFile(fmt::format("{}meta/meta.xml", mountPath).c_str());
 	if(xmlData)
 		m_parsedMetaXml = ParsedMetaXml::Parse(xmlData->data(), xmlData->size());
+	// meta/meta.ini (WUHB)
+	auto iniData = fsc_extractFile(fmt::format("{}meta/meta.ini", mountPath).c_str());
+	if(iniData)
+		ParseAromaIni(*iniData);
+
 	// code/app.xml
 	xmlData = fsc_extractFile(fmt::format("{}code/app.xml", mountPath).c_str());
 	if(xmlData)
@@ -541,29 +547,59 @@ bool TitleInfo::ParseXmlInfo()
 
 	Unmount(mountPath);
 
-	// some system titles dont have a meta.xml file
-	bool allowMissingMetaXml = false;
-	if(m_parsedAppXml && this->IsSystemDataTitle())
+	if(m_titleFormat != TitleDataFormat::WUHB)
 	{
-		allowMissingMetaXml = true;
+		// some system titles dont have a meta.xml file
+		bool allowMissingMetaXml = false;
+		if (m_parsedAppXml && this->IsSystemDataTitle())
+		{
+			allowMissingMetaXml = true;
+		}
+
+		if ((allowMissingMetaXml == false && !m_parsedMetaXml) || !m_parsedAppXml || !m_parsedCosXml)
+		{
+			bool hasAnyXml = m_parsedMetaXml || m_parsedAppXml || m_parsedCosXml;
+			if (hasAnyXml)
+				cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _pathToUtf8(m_fullPath));
+			delete m_parsedMetaXml;
+			delete m_parsedAppXml;
+			delete m_parsedCosXml;
+			m_parsedMetaXml = nullptr;
+			m_parsedAppXml = nullptr;
+			m_parsedCosXml = nullptr;
+			m_isValid = false;
+			SetInvalidReason(InvalidReason::MISSING_XML_FILES);
+			return false;
+		}
 	}
 
-	if ((allowMissingMetaXml == false && !m_parsedMetaXml) || !m_parsedAppXml || !m_parsedCosXml)
-	{
-		bool hasAnyXml = m_parsedMetaXml || m_parsedAppXml || m_parsedCosXml;
-		if (hasAnyXml)
-			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _pathToUtf8(m_fullPath));
-		delete m_parsedMetaXml;
-		delete m_parsedAppXml;
-		delete m_parsedCosXml;
-		m_parsedMetaXml = nullptr;
-		m_parsedAppXml = nullptr;
-		m_parsedCosXml = nullptr;
-		m_isValid = false;
-		SetInvalidReason(InvalidReason::MISSING_XML_FILES);
-		return false;
-	}
 	m_isValid = true;
+	return true;
+}
+
+bool TitleInfo::ParseAromaIni(std::span<unsigned char> content)
+{
+	IniParser parser{content};
+	while(parser.NextSection() && parser.GetCurrentSectionName() != "menu") continue;
+	if(parser.GetCurrentSectionName() != "menu")
+		return false;
+
+	auto parsed = std::make_unique<ParsedAromaIni>();
+
+	const auto author = parser.FindOption("author");
+	if(author)
+		parsed->author = *author;
+
+	const auto longName = parser.FindOption("longname");
+	if(longName)
+		parsed->longName = *longName;
+
+	const auto shortName = parser.FindOption("shortname");
+	if(shortName)
+		parsed->shortName = *shortName;
+
+
+	m_parsedAromaIni = parsed.release();
 	return true;
 }
 
@@ -672,6 +708,8 @@ std::string TitleInfo::GetMetaTitleName() const
 	}
 	if (m_cachedInfo)
 		return m_cachedInfo->titleName;
+	if (m_parsedAromaIni)
+		return m_parsedAromaIni->longName;
 	return "";
 }
 

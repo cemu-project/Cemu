@@ -26,6 +26,13 @@ struct ParsedAppXml
 	uint32 sdk_version;
 };
 
+struct ParsedAromaIni
+{
+	std::string longName;
+	std::string shortName;
+	std::string author;
+};
+
 enum class CosCapabilityGroup : uint32
 {
 	None = 0,
@@ -266,6 +273,7 @@ private:
 	bool DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataFormat& formatOut);
 	void CalcUID();
 	void SetInvalidReason(InvalidReason reason);
+	bool ParseAromaIni(std::span<unsigned char> content);
 	bool ParseAppXml(std::vector<uint8>& appXmlData);
 
 	bool m_isValid{ false };
@@ -282,6 +290,7 @@ private:
 	// xml info
 	bool m_hasParsedXmlFiles{ false };
 	ParsedMetaXml* m_parsedMetaXml{};
+	ParsedAromaIni* m_parsedAromaIni{};
 	ParsedAppXml* m_parsedAppXml{};
 	ParsedCosXml* m_parsedCosXml{};
 	// cached info if called with cache constructor
