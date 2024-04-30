@@ -126,7 +126,7 @@ namespace coreinit
 		return physicalAddr;
 	}
 
-	void OSMemoryBarrier(PPCInterpreter_t* hCPU)
+	void OSMemoryBarrier()
 	{
 		// no-op
 	}

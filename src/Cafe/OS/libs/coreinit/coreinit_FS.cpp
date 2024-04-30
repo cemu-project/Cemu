@@ -837,7 +837,7 @@ namespace coreinit
 
 	FSAsyncResult* FSGetAsyncResult(OSMessage* msg)
 	{
-		return (FSAsyncResult*)memory_getPointerFromVirtualOffset(_swapEndianU32(msg->message));
+		return (FSAsyncResult*)memory_getPointerFromVirtualOffset(msg->message);
 	}
 
 	sint32 __FSProcessAsyncResult(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, sint32 fsStatus, uint32 errHandling)

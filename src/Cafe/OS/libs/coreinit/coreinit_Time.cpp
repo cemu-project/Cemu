@@ -22,10 +22,9 @@ namespace coreinit
 		osLib_returnFromFunction(hCPU, (uint32)osTime);
 	}
 
-	void export_OSGetTime(PPCInterpreter_t* hCPU)
+	uint64 OSGetTime()
 	{
-		uint64 osTime = coreinit_getOSTime();
-		osLib_returnFromFunction64(hCPU, osTime);
+		return coreinit_getOSTime();
 	}
 
 	void export_OSGetSystemTime(PPCInterpreter_t* hCPU)
@@ -360,7 +359,7 @@ namespace coreinit
 
 	void InitializeTimeAndCalendar()
 	{
-		osLib_addFunction("coreinit", "OSGetTime", export_OSGetTime);
+		cafeExportRegister("coreinit", OSGetTime, LogType::Placeholder);
 		osLib_addFunction("coreinit", "OSGetSystemTime", export_OSGetSystemTime);
 		osLib_addFunction("coreinit", "OSGetTick", export_OSGetTick);
 		osLib_addFunction("coreinit", "OSGetSystemTick", export_OSGetSystemTick);

@@ -294,9 +294,9 @@ namespace coreinit
 		__OSUnlockScheduler();
 	}
 
-	bool OSCreateThreadType(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop2, sint32 stackSize, sint32 priority, uint32 attr, OSThread_t::THREAD_TYPE threadType)
+	bool OSCreateThreadType(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop, sint32 stackSize, sint32 priority, uint32 attr, OSThread_t::THREAD_TYPE threadType)
 	{
-		OSCreateThreadInternal(thread, entryPoint, memory_getVirtualOffsetFromPointer(stackTop2) - stackSize, stackSize, attr, threadType);
+		OSCreateThreadInternal(thread, entryPoint, memory_getVirtualOffsetFromPointer(stackTop) - stackSize, stackSize, attr, threadType);
 		thread->context.gpr[3] = _swapEndianU32(numParam); // num arguments
 		thread->context.gpr[4] = _swapEndianU32(memory_getVirtualOffsetFromPointer(ptrParam)); // arguments pointer
 		__OSSetThreadBasePriority(thread, priority);
@@ -317,9 +317,15 @@ namespace coreinit
 		return true;
 	}
 
-	bool OSCreateThread(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop2, sint32 stackSize, sint32 priority, uint32 attr)
+	bool OSCreateThread(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop, sint32 stackSize, sint32 priority, uint32 attr)
 	{
-		return OSCreateThreadType(thread, entryPoint, numParam, ptrParam, stackTop2, stackSize, priority, attr, OSThread_t::THREAD_TYPE::TYPE_APP);
+		return OSCreateThreadType(thread, entryPoint, numParam, ptrParam, stackTop, stackSize, priority, attr, OSThread_t::THREAD_TYPE::TYPE_APP);
+	}
+
+	// alias to OSCreateThreadType, similar to OSCreateThread, but with an additional parameter for the thread type
+	bool __OSCreateThreadType(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop, sint32 stackSize, sint32 priority, uint32 attr, OSThread_t::THREAD_TYPE threadType)
+	{
+		return OSCreateThreadType(thread, entryPoint, numParam, ptrParam, stackTop, stackSize, priority, attr, threadType);
 	}
 
 	bool OSRunThread(OSThread_t* thread, MPTR funcAddress, sint32 numParam, void* ptrParam)
@@ -445,12 +451,12 @@ namespace coreinit
 		return currentThread->specificArray[index].GetPtr();
 	}
 
-	void OSSetThreadName(OSThread_t* thread, char* name)
+	void OSSetThreadName(OSThread_t* thread, const char* name)
 	{
 		thread->threadName = name;
 	}
 
-	char* OSGetThreadName(OSThread_t* thread)
+	const char* OSGetThreadName(OSThread_t* thread)
 	{
 		return thread->threadName.GetPtr();
 	}
@@ -1371,6 +1377,7 @@ namespace coreinit
 	{
 		cafeExportRegister("coreinit", OSCreateThreadType, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSCreateThread, LogType::CoreinitThread);
+		cafeExportRegister("coreinit", __OSCreateThreadType, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSExitThread, LogType::CoreinitThread);
 
 		cafeExportRegister("coreinit", OSGetCurrentThread, LogType::CoreinitThread);
