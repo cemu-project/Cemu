@@ -101,11 +101,6 @@ class fscDeviceWUHB : public fscDeviceC {
 		WUHBReader* reader = (WUHBReader*)ctx;
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUHB is not supported
 
-		if (!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR) && !HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
-		{
-			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
-			return nullptr;
-		}
 		bool isFile;
 		uint32_t table_offset = ROMFS_ENTRY_EMPTY;
 
