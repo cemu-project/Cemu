@@ -332,7 +332,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 		if (!fs::exists(countryFile))
 		{
 			std::ofstream file(countryFile);
-			for (sint32 i = 0; i < 201; i++)
+			for (sint32 i = 0; i < NCrypto::GetCountryCount(); i++)
 			{
 				const char* countryCode = NCrypto::GetCountryAsString(i);
 				if (boost::iequals(countryCode, "NN"))

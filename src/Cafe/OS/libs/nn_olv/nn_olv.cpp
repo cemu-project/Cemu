@@ -9,6 +9,7 @@
 
 #include "Cafe/OS/libs/proc_ui/proc_ui.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 
 namespace nn
 {
@@ -37,7 +38,7 @@ namespace nn
 		void StubPostAppReleaseBackground(PPCInterpreter_t* hCPU)
 		{
 			coreinit::OSSleepTicks(ESPRESSO_TIMER_CLOCK * 2); // Sleep 2s
-			ProcUI_SendForegroundMessage();
+			coreinit::StartBackgroundForegroundTransition();
 		}
 
 		sint32 StubPostApp(void* pAnyPostParam)

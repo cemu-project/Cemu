@@ -449,7 +449,7 @@ struct OSThread_t
 	/* +0x578 */ sint32								alarmRelatedUkn;
 	/* +0x57C */ std::array<MEMPTR<void>, 16>		specificArray;
 	/* +0x5BC */ betype<THREAD_TYPE>				type;
-	/* +0x5C0 */ MEMPTR<char>						threadName;
+	/* +0x5C0 */ MEMPTR<const char>					threadName;
 	/* +0x5C4 */ MPTR								waitAlarm;							// used only by OSWaitEventWithTimeout/OSSignalEvent ?
 
 	/* +0x5C8 */ uint32								userStackPointer;
@@ -505,6 +505,7 @@ namespace coreinit
 	void* OSGetDefaultThreadStack(sint32 coreIndex, uint32& size);
 
 	bool OSCreateThreadType(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop2, sint32 stackSize, sint32 priority, uint32 attr, OSThread_t::THREAD_TYPE threadType);
+	bool __OSCreateThreadType(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop, sint32 stackSize, sint32 priority, uint32 attr, OSThread_t::THREAD_TYPE threadType);
 	void OSCreateThreadInternal(OSThread_t* thread, uint32 entryPoint, MPTR stackLowerBaseAddr, uint32 stackSize, uint8 affinityMask, OSThread_t::THREAD_TYPE threadType);
 	bool OSRunThread(OSThread_t* thread, MPTR funcAddress, sint32 numParam, void* ptrParam);
 	void OSExitThread(sint32 exitValue);
@@ -519,8 +520,8 @@ namespace coreinit
 	bool OSSetThreadPriority(OSThread_t* thread, sint32 newPriority);
 	uint32 OSGetThreadAffinity(OSThread_t* thread);
 
-	void OSSetThreadName(OSThread_t* thread, char* name);
-	char* OSGetThreadName(OSThread_t* thread);
+	void OSSetThreadName(OSThread_t* thread, const char* name);
+	const char* OSGetThreadName(OSThread_t* thread);
 
 	sint32 __OSResumeThreadInternal(OSThread_t* thread, sint32 resumeCount);
 	sint32 OSResumeThread(OSThread_t* thread);
@@ -530,6 +531,7 @@ namespace coreinit
 	void OSSuspendThread(OSThread_t* thread);
 	void OSSleepThread(OSThreadQueue* threadQueue);
 	void OSWakeupThread(OSThreadQueue* threadQueue);
+	bool OSJoinThread(OSThread_t* thread, uint32be* exitValue);
 
 	void OSTestThreadCancelInternal();
 

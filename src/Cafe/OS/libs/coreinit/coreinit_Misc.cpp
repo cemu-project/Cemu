@@ -1,5 +1,6 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
+#include "Cafe/OS/libs/coreinit/coreinit_MessageQueue.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/Filesystem/fsc.h"
 #include <pugixml.hpp>
@@ -371,6 +372,23 @@ namespace coreinit
 		return true;
 	}
 
+	uint32 OSGetPFID()
+	{
+		return 15; // hardcoded as game
+	}
+
+	uint32 OSGetUPID()
+	{
+		return OSGetPFID();
+	}
+
+	uint64 s_currentTitleId;
+
+	uint64 OSGetTitleID()
+	{
+		return s_currentTitleId;
+	}
+
 	uint32 s_sdkVersion;
 
 	uint32 __OSGetProcessSDKVersion()
@@ -470,9 +488,78 @@ namespace coreinit
 		return 0;
 	}
 
+	void OSReleaseForeground()
+	{
+		cemuLog_logDebug(LogType::Force, "OSReleaseForeground not implemented");
+	}
+
+	bool s_transitionToBackground = false;
+	bool s_transitionToForeground = false;
+
+	void StartBackgroundForegroundTransition()
+	{
+		s_transitionToBackground = true;
+		s_transitionToForeground = true;
+	}
+
+	// called at the beginning of OSReceiveMessage if the queue is the system message queue
+	void UpdateSystemMessageQueue()
+	{
+		if(!OSIsInterruptEnabled())
+			return;
+		cemu_assert_debug(!__OSHasSchedulerLock());
+		// normally syscall 0x2E is used to get the next message
+		// for now we just have some preliminary logic here to allow a fake transition to background & foreground
+		if(s_transitionToBackground)
+		{
+			// add transition to background message
+			OSMessage msg{};
+			msg.data0 = stdx::to_underlying(SysMessageId::MsgReleaseForeground);
+			msg.data1 = 0; // 1 -> System is shutting down 0 -> Begin transitioning to background
+			OSMessageQueue* systemMessageQueue = coreinit::OSGetSystemMessageQueue();
+			if(OSSendMessage(systemMessageQueue, &msg, 0))
+				s_transitionToBackground = false;
+			return;
+		}
+		if(s_transitionToForeground)
+		{
+			// add transition to foreground message
+			OSMessage msg{};
+			msg.data0 = stdx::to_underlying(SysMessageId::MsgAcquireForeground);
+			msg.data1 = 1; // ?
+			msg.data2 = 1; // ?
+			OSMessageQueue* systemMessageQueue = coreinit::OSGetSystemMessageQueue();
+			if(OSSendMessage(systemMessageQueue, &msg, 0))
+				s_transitionToForeground = false;
+			return;
+		}
+	}
+
+	// called when OSReceiveMessage returns a message from the system message queue
+	void HandleReceivedSystemMessage(OSMessage* msg)
+	{
+		cemu_assert_debug(!__OSHasSchedulerLock());
+		cemuLog_log(LogType::Force, "Receiving message: {:08x}", (uint32)msg->data0);
+	}
+
+	uint32 OSDriver_Register(uint32 moduleHandle, sint32 priority, OSDriverInterface* driverCallbacks, sint32 driverId, uint32be* outUkn1, uint32be* outUkn2, uint32be* outUkn3)
+	{
+		cemuLog_logDebug(LogType::Force, "OSDriver_Register stubbed");
+		return 0;
+	}
+
+	uint32 OSDriver_Deregister(uint32 moduleHandle, sint32 driverId)
+	{
+		cemuLog_logDebug(LogType::Force, "OSDriver_Deregister stubbed");
+		return 0;
+	}
+
 	void miscInit()
 	{
+		s_currentTitleId = CafeSystem::GetForegroundTitleId();
 		s_sdkVersion = CafeSystem::GetForegroundTitleSDKVersion();
+		s_transitionToBackground = false;
+		s_transitionToForeground = false;
 
 		cafeExportRegister("coreinit", __os_snprintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSReport, LogType::Placeholder);
@@ -480,6 +567,10 @@ namespace coreinit
 		cafeExportRegister("coreinit", COSWarn, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSLogPrintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSConsoleWrite, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", OSGetPFID, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSGetUPID, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSGetTitleID, LogType::Placeholder);
 		cafeExportRegister("coreinit", __OSGetProcessSDKVersion, LogType::Placeholder);
 
 		g_homeButtonMenuEnabled = true; // enabled by default
@@ -489,6 +580,11 @@ namespace coreinit
 
 		cafeExportRegister("coreinit", OSLaunchTitleByPathl, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSRestartGame, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", OSReleaseForeground, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", OSDriver_Register, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSDriver_Deregister, LogType::Placeholder);
 	}
 
 };

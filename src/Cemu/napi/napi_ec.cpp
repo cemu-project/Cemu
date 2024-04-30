@@ -16,103 +16,112 @@
 namespace NAPI
 {
 	/* Service URL manager */
-	std::string s_serviceURL_ContentPrefixURL;
-	std::string s_serviceURL_UncachedContentPrefixURL;
-	std::string s_serviceURL_EcsURL;
-	std::string s_serviceURL_IasURL;
-	std::string s_serviceURL_CasURL;
-	std::string s_serviceURL_NusURL;
-
-	std::string _getNUSUrl()
+	struct CachedServiceUrls
 	{
-		if (!s_serviceURL_NusURL.empty())
-			return s_serviceURL_NusURL;
-			switch (ActiveSettings::GetNetworkService())
-			{
-			case NetworkService::Nintendo:
-				return NintendoURLs::NUSURL;
-				break;
-			case NetworkService::Pretendo:
-				return PretendoURLs::NUSURL;
-				break;
-			case NetworkService::Custom:
-				return GetNetworkConfig().urls.NUS;
-				break;
-			default:
-				return NintendoURLs::NUSURL;
-				break;
-			}
+		std::string s_serviceURL_ContentPrefixURL;
+		std::string s_serviceURL_UncachedContentPrefixURL;
+		std::string s_serviceURL_EcsURL;
+		std::string s_serviceURL_IasURL;
+		std::string s_serviceURL_CasURL;
+		std::string s_serviceURL_NusURL;
+	};
+
+	std::unordered_map<NetworkService, CachedServiceUrls> s_cachedServiceUrlsMap;
+
+	CachedServiceUrls& GetCachedServiceUrls(NetworkService service)
+	{
+		return s_cachedServiceUrlsMap[service];
 	}
 
-	std::string _getIASUrl()
+	std::string _getNUSUrl(NetworkService service)
 	{
-		if (!s_serviceURL_IasURL.empty())
-			return s_serviceURL_IasURL;
-		switch (ActiveSettings::GetNetworkService())
-			{
-			case NetworkService::Nintendo:
-				return NintendoURLs::IASURL;
-				break;
-			case NetworkService::Pretendo:
-				return PretendoURLs::IASURL;
-				break;
-			case NetworkService::Custom:
-				return GetNetworkConfig().urls.IAS;
-				break;
-			default:
-				return NintendoURLs::IASURL;
-				break;
-			}
+		auto& cachedServiceUrls = GetCachedServiceUrls(service);
+		if (!cachedServiceUrls.s_serviceURL_NusURL.empty())
+			return cachedServiceUrls.s_serviceURL_NusURL;
+		switch (service)
+		{
+		case NetworkService::Nintendo:
+			return NintendoURLs::NUSURL;
+		case NetworkService::Pretendo:
+			return PretendoURLs::NUSURL;
+		case NetworkService::Custom:
+			return GetNetworkConfig().urls.NUS;
+		default:
+			return NintendoURLs::NUSURL;
+		}
 	}
 
-	std::string _getECSUrl()
+	std::string _getIASUrl(NetworkService service)
+	{
+		auto& cachedServiceUrls = GetCachedServiceUrls(service);
+		if (!cachedServiceUrls.s_serviceURL_IasURL.empty())
+			return cachedServiceUrls.s_serviceURL_IasURL;
+		switch (service)
+		{
+		case NetworkService::Nintendo:
+			return NintendoURLs::IASURL;
+		case NetworkService::Pretendo:
+			return PretendoURLs::IASURL;
+		case NetworkService::Custom:
+			return GetNetworkConfig().urls.IAS;
+		default:
+			return NintendoURLs::IASURL;
+		}
+	}
+
+	std::string _getECSUrl(NetworkService service)
 	{
 		// this is the first url queried (GetAccountStatus). The others are dynamically set if provided by the server but will fallback to hardcoded defaults otherwise
-		if (!s_serviceURL_EcsURL.empty())
-			return s_serviceURL_EcsURL;
-		return LaunchSettings::GetServiceURL_ecs(); // by default this is "https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP"
+		auto& cachedServiceUrls = GetCachedServiceUrls(service);
+		if (!cachedServiceUrls.s_serviceURL_EcsURL.empty())
+			return cachedServiceUrls.s_serviceURL_EcsURL;
+		switch (service)
+		{
+		case NetworkService::Nintendo:
+			return NintendoURLs::ECSURL;
+		case NetworkService::Pretendo:
+			return PretendoURLs::ECSURL;
+		case NetworkService::Custom:
+			return GetNetworkConfig().urls.ECS;
+		default:
+			return NintendoURLs::ECSURL;
+		}
 	}
 
-	std::string _getCCSUncachedUrl() // used for TMD requests
+	std::string _getCCSUncachedUrl(NetworkService service) // used for TMD requests
 	{
-		if (!s_serviceURL_UncachedContentPrefixURL.empty())
-			return s_serviceURL_UncachedContentPrefixURL;
-		switch (ActiveSettings::GetNetworkService())
-			{
-			case NetworkService::Nintendo:
-				return NintendoURLs::CCSUURL;
-				break;
-			case NetworkService::Pretendo:
-				return PretendoURLs::CCSUURL;
-				break;
-			case NetworkService::Custom:
-				return GetNetworkConfig().urls.CCSU;
-				break;
-			default:
-				return NintendoURLs::CCSUURL;
-				break;
-			}
+		auto& cachedServiceUrls = GetCachedServiceUrls(service);
+		if (!cachedServiceUrls.s_serviceURL_UncachedContentPrefixURL.empty())
+			return cachedServiceUrls.s_serviceURL_UncachedContentPrefixURL;
+		switch (service)
+		{
+		case NetworkService::Nintendo:
+			return NintendoURLs::CCSUURL;
+		case NetworkService::Pretendo:
+			return PretendoURLs::CCSUURL;
+		case NetworkService::Custom:
+			return GetNetworkConfig().urls.CCSU;
+		default:
+			return NintendoURLs::CCSUURL;
+		}
 	}
 
-	std::string _getCCSUrl() // used for game data downloads
+	std::string _getCCSUrl(NetworkService service) // used for game data downloads
 	{
-		if (!s_serviceURL_ContentPrefixURL.empty())
-			return s_serviceURL_ContentPrefixURL;
-		switch (ActiveSettings::GetNetworkService())
-			{
-			case NetworkService::Nintendo:
-				return NintendoURLs::CCSURL;
-				break;
-			case NetworkService::Pretendo:
-				return PretendoURLs::CCSURL;
-				break;
-			case NetworkService::Custom:
-				return GetNetworkConfig().urls.CCS;
-				break;
-			default:
-				return NintendoURLs::CCSURL;
-				break;
-			}
+		auto& cachedServiceUrls = GetCachedServiceUrls(service);
+		if (!cachedServiceUrls.s_serviceURL_ContentPrefixURL.empty())
+			return cachedServiceUrls.s_serviceURL_ContentPrefixURL;
+		switch (service)
+		{
+		case NetworkService::Nintendo:
+			return NintendoURLs::CCSURL;
+		case NetworkService::Pretendo:
+			return PretendoURLs::CCSURL;
+		case NetworkService::Custom:
+			return GetNetworkConfig().urls.CCS;
+		default:
+			return NintendoURLs::CCSURL;
+		}
 	}
 
 	/* NUS */
@@ -122,8 +131,8 @@ namespace NAPI
 	{
 		NAPI_NUSGetSystemCommonETicket_Result result{};
 
-		CurlSOAPHelper soapHelper;
-		soapHelper.SOAP_initate("nus", _getNUSUrl(), "GetSystemCommonETicket", "1.0");
+		CurlSOAPHelper soapHelper(authInfo.GetService());
+		soapHelper.SOAP_initate("nus", _getNUSUrl(authInfo.GetService()), "GetSystemCommonETicket", "1.0");
 
 		soapHelper.SOAP_addRequestField("DeviceId", fmt::format("{}", authInfo.getDeviceIdWithPlatform()));
 		soapHelper.SOAP_addRequestField("RegionId", NCrypto::GetRegionAsString(authInfo.region));
@@ -175,8 +184,8 @@ namespace NAPI
 	{
 		NAPI_IASGetChallenge_Result result{};
 		
-		CurlSOAPHelper soapHelper;
-		soapHelper.SOAP_initate("ias", _getIASUrl(), "GetChallenge", "2.0");
+		CurlSOAPHelper soapHelper(authInfo.GetService());
+		soapHelper.SOAP_initate("ias", _getIASUrl(authInfo.GetService()), "GetChallenge", "2.0");
 
 		soapHelper.SOAP_addRequestField("DeviceId", fmt::format("{}", authInfo.getDeviceIdWithPlatform())); // not validated but the generated Challenge is bound to this DeviceId
 		soapHelper.SOAP_addRequestField("Region", NCrypto::GetRegionAsString(authInfo.region));
@@ -200,8 +209,8 @@ namespace NAPI
 	NAPI_IASGetRegistrationInfo_Result IAS_GetRegistrationInfo_QueryInfo(AuthInfo& authInfo, std::string challenge)
 	{
 		NAPI_IASGetRegistrationInfo_Result result;
-		CurlSOAPHelper soapHelper;
-		soapHelper.SOAP_initate("ias", _getIASUrl(), "GetRegistrationInfo", "2.0");
+		CurlSOAPHelper soapHelper(authInfo.GetService());
+		soapHelper.SOAP_initate("ias", _getIASUrl(authInfo.GetService()), "GetRegistrationInfo", "2.0");
 
 		soapHelper.SOAP_addRequestField("DeviceId", fmt::format("{}", authInfo.getDeviceIdWithPlatform())); // this must match the DeviceId used to generate Challenge
 		soapHelper.SOAP_addRequestField("Region", NCrypto::GetRegionAsString(authInfo.region));
@@ -301,8 +310,8 @@ namespace NAPI
 	{
 		NAPI_ECSGetAccountStatus_Result result{};
 
-		CurlSOAPHelper soapHelper;
-		soapHelper.SOAP_initate("ecs", _getECSUrl(), "GetAccountStatus", "2.0");
+		CurlSOAPHelper soapHelper(authInfo.GetService());
+		soapHelper.SOAP_initate("ecs", _getECSUrl(authInfo.GetService()), "GetAccountStatus", "2.0");
 
 		soapHelper.SOAP_addRequestField("DeviceId", fmt::format("{}", authInfo.getDeviceIdWithPlatform()));
 		soapHelper.SOAP_addRequestField("Region", NCrypto::GetRegionAsString(authInfo.region));
@@ -367,19 +376,19 @@ namespace NAPI
 		}
 
 		// assign service URLs
+		auto& cachedServiceUrls = GetCachedServiceUrls(authInfo.GetService());
 		if (!result.serviceURLs.ContentPrefixURL.empty())
-			s_serviceURL_ContentPrefixURL = result.serviceURLs.ContentPrefixURL;
+			cachedServiceUrls.s_serviceURL_ContentPrefixURL = result.serviceURLs.ContentPrefixURL;
 		if (!result.serviceURLs.UncachedContentPrefixURL.empty())
-			s_serviceURL_UncachedContentPrefixURL = result.serviceURLs.UncachedContentPrefixURL;
+			cachedServiceUrls.s_serviceURL_UncachedContentPrefixURL = result.serviceURLs.UncachedContentPrefixURL;
 		if (!result.serviceURLs.IasURL.empty())
-			s_serviceURL_IasURL = result.serviceURLs.IasURL;
+			cachedServiceUrls.s_serviceURL_IasURL = result.serviceURLs.IasURL;
 		if (!result.serviceURLs.CasURL.empty())
-			s_serviceURL_CasURL = result.serviceURLs.CasURL;
+			cachedServiceUrls.s_serviceURL_CasURL = result.serviceURLs.CasURL;
 		if (!result.serviceURLs.NusURL.empty())
-			s_serviceURL_NusURL = result.serviceURLs.NusURL;
+			cachedServiceUrls.s_serviceURL_NusURL = result.serviceURLs.NusURL;
 		if (!result.serviceURLs.EcsURL.empty())
-			s_serviceURL_EcsURL = result.serviceURLs.EcsURL;
-
+			cachedServiceUrls.s_serviceURL_EcsURL = result.serviceURLs.EcsURL;
 		return result;
 	}
 
@@ -387,8 +396,8 @@ namespace NAPI
 	{
 		NAPI_ECSAccountListETicketIds_Result result{};
 
-		CurlSOAPHelper soapHelper;
-		soapHelper.SOAP_initate("ecs", _getECSUrl(), "AccountListETicketIds", "2.0");
+		CurlSOAPHelper soapHelper(authInfo.GetService());
+		soapHelper.SOAP_initate("ecs", _getECSUrl(authInfo.GetService()), "AccountListETicketIds", "2.0");
 
 		soapHelper.SOAP_addRequestField("DeviceId", fmt::format("{}", authInfo.getDeviceIdWithPlatform()));
 		soapHelper.SOAP_addRequestField("Region", NCrypto::GetRegionAsString(authInfo.region));
@@ -446,8 +455,8 @@ namespace NAPI
 	{
 		NAPI_ECSAccountGetETickets_Result result{};
 
-		CurlSOAPHelper soapHelper;
-		soapHelper.SOAP_initate("ecs", _getECSUrl(), "AccountGetETickets", "2.0");
+		CurlSOAPHelper soapHelper(authInfo.GetService());
+		soapHelper.SOAP_initate("ecs", _getECSUrl(authInfo.GetService()), "AccountGetETickets", "2.0");
 
 		soapHelper.SOAP_addRequestField("DeviceId", fmt::format("{}", authInfo.getDeviceIdWithPlatform()));
 		soapHelper.SOAP_addRequestField("Region", NCrypto::GetRegionAsString(authInfo.region));
@@ -512,7 +521,7 @@ namespace NAPI
 	{
 		NAPI_CCSGetTMD_Result result{};
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/{:016x}/tmd.{}?deviceId={}&accountId={}", _getCCSUncachedUrl(), titleId, titleVersion, authInfo.getDeviceIdWithPlatform(), authInfo.IASToken.accountId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
+		req.initate(authInfo.GetService(), fmt::format("{}/{:016x}/tmd.{}?deviceId={}&accountId={}", _getCCSUncachedUrl(authInfo.GetService()), titleId, titleVersion, authInfo.getDeviceIdWithPlatform(), authInfo.IASToken.accountId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
 		req.setTimeout(180);
 		if (!req.submitRequest(false))
 		{
@@ -528,7 +537,7 @@ namespace NAPI
 	{
 		NAPI_CCSGetTMD_Result result{};
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/{:016x}/tmd?deviceId={}&accountId={}", _getCCSUncachedUrl(), titleId, authInfo.getDeviceIdWithPlatform(), authInfo.IASToken.accountId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
+		req.initate(authInfo.GetService(), fmt::format("{}/{:016x}/tmd?deviceId={}&accountId={}", _getCCSUncachedUrl(authInfo.GetService()), titleId, authInfo.getDeviceIdWithPlatform(), authInfo.IASToken.accountId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
 		req.setTimeout(180);
 		if (!req.submitRequest(false))
 		{
@@ -540,11 +549,11 @@ namespace NAPI
 		return result;
 	}
 
-	NAPI_CCSGetETicket_Result CCS_GetCETK(AuthInfo& authInfo, uint64 titleId, uint16 titleVersion)
+	NAPI_CCSGetETicket_Result CCS_GetCETK(NetworkService service, uint64 titleId, uint16 titleVersion)
 	{
 		NAPI_CCSGetETicket_Result result{};
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/{:016x}/cetk", _getCCSUncachedUrl(), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
+		req.initate(service, fmt::format("{}/{:016x}/cetk", _getCCSUncachedUrl(service), titleId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
 		req.setTimeout(180);
 		if (!req.submitRequest(false))
 		{
@@ -556,10 +565,10 @@ namespace NAPI
 		return result;
 	}
 
-	bool CCS_GetContentFile(uint64 titleId, uint32 contentId, bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData)
+	bool CCS_GetContentFile(NetworkService service, uint64 titleId, uint32 contentId, bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData)
 	{
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/{:016x}/{:08x}", _getCCSUrl(), titleId, contentId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
+		req.initate(service, fmt::format("{}/{:016x}/{:08x}", _getCCSUrl(service), titleId, contentId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
 		req.setWriteCallback(cbWriteCallback, userData);
 		req.setTimeout(0);
 		if (!req.submitRequest(false))
@@ -570,11 +579,11 @@ namespace NAPI
 		return true;
 	}
 
-	NAPI_CCSGetContentH3_Result CCS_GetContentH3File(uint64 titleId, uint32 contentId)
+	NAPI_CCSGetContentH3_Result CCS_GetContentH3File(NetworkService service, uint64 titleId, uint32 contentId)
 	{
 		NAPI_CCSGetContentH3_Result result{};
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/{:016x}/{:08x}.h3", _getCCSUrl(), titleId, contentId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
+		req.initate(service, fmt::format("{}/{:016x}/{:08x}.h3", _getCCSUrl(service), titleId, contentId), CurlRequestHelper::SERVER_SSL_CONTEXT::CCS);
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request content hash file {:08x}.h3 for title {:016X}", contentId, titleId));

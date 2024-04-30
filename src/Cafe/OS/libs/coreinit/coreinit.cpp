@@ -179,27 +179,6 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 1);
 }
 
-typedef struct
-{
-	MPTR getDriverName;
-	MPTR ukn04;
-	MPTR onAcquiredForeground;
-	MPTR onReleaseForeground;
-	MPTR ukn10;
-}OSDriverCallbacks_t;
-
-void coreinitExport_OSDriver_Register(PPCInterpreter_t* hCPU)
-{
-#ifdef CEMU_DEBUG_ASSERT
-	cemuLog_log(LogType::Force, "OSDriver_Register(0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
-#endif
-	OSDriverCallbacks_t* driverCallbacks = (OSDriverCallbacks_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]);
-
-	// todo
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
 namespace coreinit
 {
 	sint32 OSGetCoreId()
@@ -379,7 +358,6 @@ void coreinit_load()
 	coreinit::miscInit();
 	osLib_addFunction("coreinit", "OSGetSharedData", coreinitExport_OSGetSharedData);
 	osLib_addFunction("coreinit", "UCReadSysConfig", coreinitExport_UCReadSysConfig);
-	osLib_addFunction("coreinit", "OSDriver_Register", coreinitExport_OSDriver_Register);
 
 	// async callbacks
 	InitializeAsyncCallback();

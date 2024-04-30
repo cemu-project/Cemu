@@ -221,5 +221,5 @@ void osLib_load()
 	nsyskbd::nsyskbd_load();
 	swkbd::load();
 	camera::load();
-	procui_load();
+	proc_ui::load();
 }

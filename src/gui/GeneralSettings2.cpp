@@ -686,8 +686,10 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		if (!NetworkConfig::XMLExists())
 			m_active_service->Enable(2, false);
 
+		m_active_service->SetItemToolTip(0, _("Connect to the official Nintendo Network Service"));
+		m_active_service->SetItemToolTip(1, _("Connect to the Pretendo Network Service"));
+		m_active_service->SetItemToolTip(2, _("Connect to a custom Network Service (configured via network_services.xml)"));
 
-		m_active_service->SetToolTip(_("Connect to which Network Service"));
 		m_active_service->Bind(wxEVT_RADIOBOX, &GeneralSettings2::OnAccountServiceChanged,this);
 		content->Add(m_active_service, 0, wxEXPAND | wxALL, 5);
 
@@ -762,7 +764,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		m_account_grid->Append(new wxStringProperty(_("Email"), kPropertyEmail));
 
 		wxPGChoices countries;
-		for (int i = 0; i < 195; ++i)
+		for (int i = 0; i < NCrypto::GetCountryCount(); ++i)
 		{
 			const auto country = NCrypto::GetCountryAsString(i);
 			if (country && (i == 0 || !boost::equals(country, "NN")))
@@ -1948,8 +1950,6 @@ void GeneralSettings2::OnActiveAccountChanged(wxCommandEvent& event)
 
 void GeneralSettings2::OnAccountServiceChanged(wxCommandEvent& event)
 {
-	LaunchSettings::ChangeNetworkServiceURL(m_active_service->GetSelection());
-
 	UpdateAccountInformation();
 }
 
