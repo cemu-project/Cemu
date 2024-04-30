@@ -497,6 +497,12 @@ void TitleInfo::Unmount(std::string_view virtualPath)
                 if (m_mountpoints.empty())
                     m_zarchive = nullptr;
             }
+			if(m_wuhbreader)
+			{
+				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUHB);
+				delete m_wuhbreader;
+				m_wuhbreader = nullptr;
+			}
 		}
 		return;
 	}
