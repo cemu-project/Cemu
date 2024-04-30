@@ -31,7 +31,7 @@ namespace NAPI
 			requestUrl = NintendoURLs::TAGAYAURL;
 			break;
 		}
-		requestUrl.append(fmt::format(fmt::runtime("/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country));
+		requestUrl.append(fmt::format(fmt::runtime("/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country.empty() ? "NN" : authInfo.country));
 		req.initate(authInfo.GetService(), requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
 
 		if (!req.submitRequest(false))
@@ -63,7 +63,7 @@ namespace NAPI
 	{
 		NAPI_VersionList_Result result;
 		CurlRequestHelper req;
-		req.initate(authInfo.GetService(), fmt::format("https://{}/tagaya/versionlist/{}/{}/list/{}.versionlist", fqdnURL, NCrypto::GetRegionAsString(authInfo.region), authInfo.country, versionListVersion), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+		req.initate(authInfo.GetService(), fmt::format("https://{}/tagaya/versionlist/{}/{}/list/{}.versionlist", fqdnURL, NCrypto::GetRegionAsString(authInfo.region), authInfo.country.empty() ? "NN" : authInfo.country, versionListVersion), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request update list"));
