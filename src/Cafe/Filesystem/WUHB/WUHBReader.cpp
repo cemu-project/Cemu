@@ -112,7 +112,7 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 }
 
 template<bool T>
-void WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName)
+bool WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName)
 {
 	auto getHashTableEntry = [&](uint32_t entryOffset) -> auto
 	{
@@ -121,26 +121,34 @@ void WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& tar
 	  else
 		  return GetDirEntry(entryOffset);
 	};
-
-	auto entry = getHashTableEntry(entryOffset);
 	for (;;)
 	{
-		if(entry.name == targetName)
-			return;
-		entryOffset = entry.hash;
 		if(entryOffset == ROMFS_ENTRY_EMPTY)
-			return;
-		entry = getHashTableEntry(entryOffset);
+			return false;
+		auto entry = getHashTableEntry(entryOffset);
+
+		if(entry.name == targetName)
+			return true;
+		entryOffset = entry.hash;
 	}
+	return false;
 }
 
 uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 {
-
-	auto currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(0, 0, 1, 0), false);
-	ResolveHashCollision<false>(currentEntryOffset, "");
-	if(path.empty())
-		return currentEntryOffset;
+	uint32_t currentEntryOffset = 0;
+	auto look = [&](const fs::path& part, bool lookInFileHT)
+	{
+	  const auto partString = part.string();
+	  currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), lookInFileHT);
+	  if(lookInFileHT)
+		  return ResolveHashCollision<true>(currentEntryOffset, part);
+	  else
+		  return ResolveHashCollision<false>(currentEntryOffset, part);
+	};
+	//look for the root entry
+	if(!look("", false))
+		return ROMFS_ENTRY_EMPTY;
 
 	auto it = path.begin();
 	while (it != path.end() && currentEntryOffset != ROMFS_ENTRY_EMPTY)
@@ -148,20 +156,9 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 		fs::path part = *it;
 		++it;
 
-		const auto partString = part.string();
-		const bool isLast = it == path.end();
 		// if the lookup target is a file and this is the last iteration, look in the file hash table instead.
-		const bool lookInFileHT = isLast && isFile;
-
-		currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), lookInFileHT);
-		if(currentEntryOffset == ROMFS_ENTRY_EMPTY)
+		if(!look(part, it == path.end() && isFile))
 			return ROMFS_ENTRY_EMPTY;
-
-		if(lookInFileHT)
-			ResolveHashCollision<true>(currentEntryOffset, part);
-		else
-			ResolveHashCollision<false>(currentEntryOffset, part);
-
 	}
 	return currentEntryOffset;
 }
