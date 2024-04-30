@@ -5,7 +5,14 @@
 class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
   public:
 	FSCDeviceWuhbFileCtx(WUHBReader* reader, uint32_t entryOffset, uint32 fscType) : m_wuhbReader(reader), m_entryOffset(entryOffset), m_fscType(fscType)
-	{ }
+	{
+		if(fscType == FSC_TYPE_DIRECTORY)
+		{
+			romfs_direntry_t entry = reader->GetDirEntry(entryOffset);
+			m_dirIterOffset = entry.dirListHead;
+			m_fileIterOffset = entry.fileListHead;
+		}
+	}
 	sint32 fscGetType() override
 	{
 		return m_fscType;
@@ -54,13 +61,36 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
 	}
 	bool fscDirNext(FSCDirEntry* dirEntry) override
 	{
-		return FSCVirtualFile::fscDirNext(dirEntry);
+		if(m_dirIterOffset != ROMFS_ENTRY_EMPTY)
+		{
+			romfs_direntry_t entry = m_wuhbReader->GetDirEntry(m_dirIterOffset);
+			m_dirIterOffset = entry.listNext;
+			dirEntry->isDirectory = true;
+			dirEntry->isFile = false;
+			dirEntry->fileSize = 0;
+			std::strncpy(dirEntry->path,entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
+			return true;
+		}
+		if(m_fileIterOffset != ROMFS_ENTRY_EMPTY)
+		{
+			romfs_fentry_t entry = m_wuhbReader->GetFileEntry(m_fileIterOffset);
+			m_fileIterOffset = entry.listNext;
+			dirEntry->isDirectory = false;
+			dirEntry->isFile = true;
+			dirEntry->fileSize = entry.size;
+			std::strncpy(dirEntry->path,entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
+			return true;
+		}
+
+		return false;
 	}
 
   private:
 	WUHBReader* m_wuhbReader{};
 	uint32_t m_fscType;
 	uint32_t m_entryOffset;
+	uint32_t m_dirIterOffset;
+	uint32_t m_fileIterOffset;
 	uint64_t m_seek = 0;
 };
 
@@ -75,8 +105,9 @@ class fscDeviceWUHB : public fscDeviceC {
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			return nullptr;
 		}
+		const bool isFile = HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE);
 
-		uint32_t table_offset = reader->Lookup(path, HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE));
+		uint32_t table_offset = reader->Lookup(path, isFile);
 		if(table_offset == ROMFS_ENTRY_EMPTY)
 		{
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
@@ -84,7 +115,7 @@ class fscDeviceWUHB : public fscDeviceC {
 		}
 
 		*fscStatus = FSC_STATUS_OK;
-		return new FSCDeviceWuhbFileCtx(reader, table_offset, FSC_TYPE_FILE);
+		return new FSCDeviceWuhbFileCtx(reader, table_offset, isFile ? FSC_TYPE_FILE : FSC_TYPE_DIRECTORY);
 	}
 
 	// singleton

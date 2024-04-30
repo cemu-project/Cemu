@@ -914,8 +914,6 @@ namespace CafeSystem
 		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
 		if (update.IsValid())
 			return update.GetArgStr();
-		if (sGameInfo_ForegroundTitle.IsWUHBDataTitle())
-			return "root.rpx";
 		return sGameInfo_ForegroundTitle.GetBase().GetArgStr();
 	}
 

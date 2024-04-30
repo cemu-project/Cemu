@@ -20,12 +20,6 @@ public:
 		return m_base.IsValid(); // at least the base must be valid for this to be a runnable title
 	}
 
-	bool IsWUHBDataTitle() const
-	{
-		return m_base.IsWUHBTitle();
-	}
-
-
 	bool IsSystemDataTitle() const
 	{
 		return m_base.IsSystemDataTitle();

@@ -155,6 +155,9 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 	{
 		fs::path part = *it;
 		++it;
+		//no need to recurse after directory.
+		if(part.empty() && !isFile)
+			break;
 
 		// if the lookup target is a file and this is the last iteration, look in the file hash table instead.
 		if(!look(part, it == path.end() && isFile))

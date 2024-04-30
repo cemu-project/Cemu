@@ -18,9 +18,9 @@ typedef struct {
 
 typedef struct {
     uint32be parent;
-    uint32be sibling;
-    uint32be child;
-    uint32be file;
+    uint32be listNext; //offset to next directory entry in linked list of parent directory (aka "sibling")
+    uint32be dirListHead; //offset to first entry in linked list of directory entries (aka "child")
+    uint32be fileListHead; //offset to first entry in linked list of file entries (aka "file")
     uint32be hash;
     uint32be name_size;
     std::string name;
@@ -28,7 +28,7 @@ typedef struct {
 
 typedef struct {
     uint32be parent;
-    uint32be sibling;
+    uint32be listNext; //offset to next file entry in linked list of parent directory (aka "sibling")
     uint64be offset;
     uint64be size;
     uint32be hash;

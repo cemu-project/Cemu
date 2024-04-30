@@ -204,11 +204,6 @@ public:
 		return m_uid == rhs.m_uid;
 	}
 
-	bool IsWUHBTitle() const
-	{
-		return m_parsedAromaIni != nullptr;
-	}
-
 	bool IsSystemDataTitle() const
 	{
 		if(!IsValid())
