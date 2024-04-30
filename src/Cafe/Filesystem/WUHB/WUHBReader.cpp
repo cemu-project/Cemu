@@ -26,7 +26,7 @@ WUHBReader::EntryType<File> WUHBReader::GetEntry(uint32_t offset)
 {
 	const char* typeName = File ? "fentry" : "direntry";
 	EntryType<File> ret;
-	if (offset >= m_header.dir_table_size)
+	if (offset >= (File ? m_header.file_table_size : m_header.dir_table_size))
 	{
 		cemuLog_log(LogType::Force, "WUHB {} offset exceeds table size declared in header", typeName);
 		cemu_assert_suspicious();
