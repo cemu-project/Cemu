@@ -111,10 +111,34 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 	return uint32be::from_bevalue(tableOffset);
 }
 
+template<bool T>
+void WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName)
+{
+	auto getHashTableEntry = [&](uint32_t entryOffset) -> auto
+	{
+	  if constexpr (T)
+		  return GetFileEntry(entryOffset);
+	  else
+		  return GetDirEntry(entryOffset);
+	};
+
+	auto entry = getHashTableEntry(entryOffset);
+	for (;;)
+	{
+		if(entry.name == targetName)
+			return;
+		entryOffset = entry.hash;
+		if(entryOffset == ROMFS_ENTRY_EMPTY)
+			return;
+		entry = getHashTableEntry(entryOffset);
+	}
+}
+
 uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 {
 
 	auto currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(0, 0, 1, 0), false);
+	ResolveHashCollision<false>(currentEntryOffset, "");
 	if(path.empty())
 		return currentEntryOffset;
 
@@ -133,9 +157,10 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 		if(currentEntryOffset == ROMFS_ENTRY_EMPTY)
 			return ROMFS_ENTRY_EMPTY;
 
-		const std::string& entryName = lookInFileHT ? GetFileEntry(currentEntryOffset).name : GetDirEntry(currentEntryOffset).name;
-		if(entryName != part)
-			return ROMFS_ENTRY_EMPTY;
+		if(lookInFileHT)
+			ResolveHashCollision<true>(currentEntryOffset, part);
+		else
+			ResolveHashCollision<false>(currentEntryOffset, part);
 
 	}
 	return currentEntryOffset;

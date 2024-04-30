@@ -28,5 +28,7 @@ class WUHBReader {
 	static inline unsigned char NormalizeChar(unsigned char c);
 	static uint32_t CalcPathHash(uint32_t parent, const char* path, uint32_t start, size_t path_len);
 
+	template<bool T>
+	void ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName);
 	uint32_t GetHashTableEntryOffset(uint32_t hash, bool isFile);
 };
