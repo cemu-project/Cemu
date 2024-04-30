@@ -97,18 +97,11 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 template<bool T>
 bool WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName)
 {
-	auto getHashTableEntry = [&](uint32_t entryOffset) -> auto
-	{
-	  if constexpr (T)
-		  return GetFileEntry(entryOffset);
-	  else
-		  return GetDirEntry(entryOffset);
-	};
 	for (;;)
 	{
 		if(entryOffset == ROMFS_ENTRY_EMPTY)
 			return false;
-		auto entry = getHashTableEntry(entryOffset);
+		auto entry = GetEntry<T>(entryOffset);
 
 		if(entry.name == targetName)
 			return true;
