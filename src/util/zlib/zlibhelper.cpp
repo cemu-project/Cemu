@@ -5,7 +5,7 @@ namespace zlibhelper
 	{
 		int err;
 		std::vector<uint8> decompressed;
-		std::array<uint8, 64*1024> chunk;
+		size_t outWritten = 0;
 		z_stream stream;
 		stream.zalloc = Z_NULL;
 		stream.zfree = Z_NULL;
@@ -18,18 +18,21 @@ namespace zlibhelper
 
 		do
 		{
-			stream.avail_out = chunk.size();
-			stream.next_out = chunk.data();
+			decompressed.resize(decompressed.size() + 1024);
+			const auto availBefore = decompressed.size() - outWritten;
+			stream.avail_out = availBefore;
+			stream.next_out = decompressed.data() + outWritten;
 			err = inflate(&stream, Z_NO_FLUSH);
 			if(!(err == Z_OK || err == Z_STREAM_END))
 			{
 				inflateEnd(&stream);
 				return {};
 			}
-			decompressed.insert(decompressed.end(), chunk.begin(), chunk.begin() + chunk.size() - stream.avail_out);
+			outWritten += availBefore - stream.avail_out;
 		} while(err != Z_STREAM_END);
 
 		inflateEnd(&stream);
+		decompressed.resize(stream.total_out);
 
 		return decompressed;
 	}
