@@ -5,8 +5,6 @@ class WUHBReader {
   public:
 	static WUHBReader* FromPath(const fs::path& path);
 
-	bool CheckMagicValue();
-
 	romfs_direntry_t GetDirEntry(uint32_t offset);
 	romfs_fentry_t GetFileEntry(uint32_t offset);
 
@@ -24,9 +22,15 @@ class WUHBReader {
 	std::unique_ptr<FileStream> m_fileIn;
 	constexpr static std::string_view headerMagicValue = "WUHB";
 	bool ReadHeader();
+	bool CheckMagicValue();
 
 	static inline unsigned char NormalizeChar(unsigned char c);
 	static uint32_t CalcPathHash(uint32_t parent, const char* path, uint32_t start, size_t path_len);
+
+	template <bool File>
+	using EntryType = std::conditional_t<File, romfs_fentry_t, romfs_direntry_t>;
+	template <bool File>
+	EntryType<File> GetEntry(uint32_t offset);
 
 	template<bool T>
 	bool ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName);

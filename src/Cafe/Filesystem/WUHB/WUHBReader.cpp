@@ -21,21 +21,23 @@ WUHBReader* WUHBReader::FromPath(const fs::path& path)
 	return ret;
 }
 
-romfs_direntry_t WUHBReader::GetDirEntry(uint32_t offset)
+template <bool File>
+WUHBReader::EntryType<File> WUHBReader::GetEntry(uint32_t offset)
 {
-	romfs_direntry_t ret;
+	const char* typeName = File ? "fentry" : "direntry";
+	EntryType<File> ret;
 	if (offset >= m_header.dir_table_size)
 	{
-		cemuLog_log(LogType::Force, "WUHB direntry offset exceeds table size declared in header");
+		cemuLog_log(LogType::Force, "WUHB {} offset exceeds table size declared in header", typeName);
 		cemu_assert_suspicious();
 	}
 
-	// read the direntry
-	m_fileIn->SetPosition(m_header.dir_table_ofs + offset);
-	auto read = m_fileIn->readData(&ret, offsetof(romfs_direntry_t, name));
-	if (read != offsetof(romfs_direntry_t, name))
+	// read the entry
+	m_fileIn->SetPosition((File ? m_header.file_table_ofs : m_header.dir_table_ofs) + offset);
+	auto read = m_fileIn->readData(&ret, offsetof(EntryType<File>, name));
+	if (read != offsetof(EntryType<File>, name))
 	{
-		cemuLog_log(LogType::Force, "failed to read WUHB direntry at offset: {}", offset);
+		cemuLog_log(LogType::Force, "failed to read WUHB {} at offset: {}", typeName, offset);
 		cemu_assert_error();
 	}
 
@@ -44,40 +46,21 @@ romfs_direntry_t WUHBReader::GetDirEntry(uint32_t offset)
 	read = m_fileIn->readData(ret.name.data(), ret.name_size);
 	if (read != ret.name_size)
 	{
-		cemuLog_log(LogType::Force, "failed to read WUHB direntry name");
+		cemuLog_log(LogType::Force, "failed to read WUHB {} name", typeName);
 		cemu_assert_error();
 	}
 
 	return ret;
 }
+
+
+romfs_direntry_t WUHBReader::GetDirEntry(uint32_t offset)
+{
+	return GetEntry<false>(offset);
+}
 romfs_fentry_t WUHBReader::GetFileEntry(uint32_t offset)
 {
-	romfs_fentry_t ret;
-	if (offset >= m_header.file_table_size)
-	{
-		cemuLog_log(LogType::Force, "WUHB fentry offset exceeds table size declared in header");
-		cemu_assert_suspicious();
-	}
-
-	// read the fentry
-	m_fileIn->SetPosition(m_header.file_table_ofs + offset);
-	auto read = m_fileIn->readData(&ret, offsetof(romfs_fentry_t, name));
-	if (read != offsetof(romfs_fentry_t,name))
-	{
-		cemuLog_log(LogType::Force, "failed to read WUHB fentry at offset: {}", offset);
-		cemu_assert_error();
-	}
-
-	// read the name
-	ret.name.resize(ret.name_size);
-	read = m_fileIn->readData(ret.name.data(), ret.name_size);
-	if (read != ret.name_size)
-	{
-		cemuLog_log(LogType::Force, "failed to read WUHB fentry name");
-		cemu_assert_error();
-	}
-
-	return ret;
+	return GetEntry<true>(offset);
 }
 
 uint64_t WUHBReader::GetFileSize(uint32_t entryOffset)
