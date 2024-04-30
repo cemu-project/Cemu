@@ -151,7 +151,7 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 		return ROMFS_ENTRY_EMPTY;
 
 	auto it = path.begin();
-	while (it != path.end() && currentEntryOffset != ROMFS_ENTRY_EMPTY)
+	while (it != path.end())
 	{
 		fs::path part = *it;
 		++it;
