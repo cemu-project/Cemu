@@ -131,7 +131,7 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 	{
 		fs::path part = *it;
 		++it;
-		//no need to recurse after directory.
+		// no need to recurse after trailing forward slash (e.g. directory/)
 		if(part.empty() && !isFile)
 			break;
 

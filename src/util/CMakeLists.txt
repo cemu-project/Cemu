@@ -67,8 +67,8 @@ add_library(CemuUtil
   Zir/EmitterGLSL/ZpIREmitGLSL.h
   Zir/Passes/RegisterAllocatorForGLSL.cpp
   Zir/Passes/ZpIRRegisterAllocator.cpp
-	zlib/zlibhelper.cpp
-	zlib/zlibhelper.h
+  zlib/zlibhelper.cpp
+  zlib/zlibhelper.h
 )
 
 if(WIN32)
