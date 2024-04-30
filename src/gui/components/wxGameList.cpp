@@ -31,6 +31,7 @@
 #include "gui/helpers/wxHelpers.h"
 #include "gui/MainWindow.h"
 
+#include "util/zlib/zlibhelper.h"
 #include "../wxHelper.h"
 
 #include "Cafe/IOSU/PDM/iosu_pdm.h" // for last played and play time
@@ -1230,6 +1231,16 @@ void wxGameList::AsyncWorkerThread()
 		if(!titleInfo.Mount(tempMountPath, "", FSC_PRIORITY_BASE))
 			continue;
 		auto tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga").c_str());
+		// try iconTex.tga.gz
+		if(!tgaData)
+		{
+			tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga.gz").c_str());
+			if(tgaData)
+			{
+				auto decompressed = zlibhelper::decompress(*tgaData);
+				std::swap(tgaData, decompressed);
+			}
+		}
 		bool iconSuccessfullyLoaded = false;
 		if (tgaData && tgaData->size() > 16)
 		{

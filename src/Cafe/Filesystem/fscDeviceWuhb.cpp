@@ -6,6 +6,7 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
   public:
 	FSCDeviceWuhbFileCtx(WUHBReader* reader, uint32_t entryOffset, uint32 fscType) : m_wuhbReader(reader), m_entryOffset(entryOffset), m_fscType(fscType)
 	{
+		cemu_assert(entryOffset != ROMFS_ENTRY_EMPTY);
 		if(fscType == FSC_TYPE_DIRECTORY)
 		{
 			romfs_direntry_t entry = reader->GetDirEntry(entryOffset);
