@@ -111,7 +111,7 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 	return uint32be::from_bevalue(tableOffset);
 }
 
-uint32_t WUHBReader::Lookup(const std::filesystem::path& path)
+uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 {
 
 	auto currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(0, 0, 1, 0), false);
@@ -126,12 +126,14 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path)
 
 		const auto partString = part.string();
 		const bool isLast = it == path.end();
+		// if the lookup target is a file and this is the last iteration, look in the file hash table instead.
+		const bool lookInFileHT = isLast && isFile;
 
-		currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), isLast);
+		currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), lookInFileHT);
 		if(currentEntryOffset == ROMFS_ENTRY_EMPTY)
 			return ROMFS_ENTRY_EMPTY;
 
-		const std::string& entryName = isLast ? GetFileEntry(currentEntryOffset).name : GetDirEntry(currentEntryOffset).name;
+		const std::string& entryName = lookInFileHT ? GetFileEntry(currentEntryOffset).name : GetDirEntry(currentEntryOffset).name;
 		if(entryName != part)
 			return ROMFS_ENTRY_EMPTY;
 

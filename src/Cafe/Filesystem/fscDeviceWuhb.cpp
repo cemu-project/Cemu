@@ -17,7 +17,7 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
 			if (id == FSC_QUERY_SIZE)
 				return m_wuhbReader->GetFileSize(m_entryOffset);
 			else if (id == FSC_QUERY_WRITEABLE)
-				return 0; // WUD images are read-only
+				return 0; // WUHB images are read-only
 			else
 				cemu_assert_error();
 		}
@@ -40,23 +40,21 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
 	}
 	void fscSetSeek(uint64 seek) override
 	{
-		FSCVirtualFile::fscSetSeek(seek);
+		m_seek = seek;
 	}
 	uint64 fscGetSeek() override
 	{
-		return FSCVirtualFile::fscGetSeek();
+		if (m_fscType != FSC_TYPE_FILE)
+			return 0;
+		return m_seek;
 	}
 	void fscSetFileLength(uint64 endOffset) override
 	{
-		FSCVirtualFile::fscSetFileLength(endOffset);
+		cemu_assert_error();
 	}
 	bool fscDirNext(FSCDirEntry* dirEntry) override
 	{
 		return FSCVirtualFile::fscDirNext(dirEntry);
-	}
-	bool fscRewindDir() override
-	{
-		return FSCVirtualFile::fscRewindDir();
 	}
 
   private:
@@ -72,7 +70,13 @@ class fscDeviceWUHB : public fscDeviceC {
 		WUHBReader* reader = (WUHBReader*)ctx;
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUHB is not supported
 
-		uint32_t table_offset = reader->Lookup(path);
+		if(!(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR) ^ HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE)))
+		{
+			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
+			return nullptr;
+		}
+
+		uint32_t table_offset = reader->Lookup(path, HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE));
 		if(table_offset == ROMFS_ENTRY_EMPTY)
 		{
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;

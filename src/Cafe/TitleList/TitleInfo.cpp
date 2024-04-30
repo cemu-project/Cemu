@@ -115,6 +115,7 @@ TitleInfo::~TitleInfo()
 {
 	cemu_assert(m_mountpoints.empty());
 	delete m_parsedMetaXml;
+	delete m_parsedAromaIni;
 	delete m_parsedAppXml;
 	delete m_parsedCosXml;
 	delete m_cachedInfo;
@@ -639,6 +640,8 @@ TitleId TitleInfo::GetAppTitleId() const
 		return m_parsedAppXml->title_id;
 	if (m_cachedInfo)
 		return m_cachedInfo->titleId;
+	if (m_parsedAromaIni)
+		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -650,6 +653,8 @@ uint16 TitleInfo::GetAppTitleVersion() const
 		return m_parsedAppXml->title_version;
 	if (m_cachedInfo)
 		return m_cachedInfo->titleVersion;
+	if (m_parsedAromaIni)
+		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -661,6 +666,8 @@ uint32 TitleInfo::GetAppSDKVersion() const
 		return m_parsedAppXml->sdk_version;
 	if (m_cachedInfo)
 		return m_cachedInfo->sdkVersion;
+	if (m_parsedAromaIni)
+		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -672,6 +679,8 @@ uint32 TitleInfo::GetAppGroup() const
 		return m_parsedAppXml->group_id;
 	if (m_cachedInfo)
 		return m_cachedInfo->group_id;
+	if (m_parsedAromaIni)
+		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -683,6 +692,8 @@ uint32 TitleInfo::GetAppType() const
 		return m_parsedAppXml->app_type;
 	if (m_cachedInfo)
 		return m_cachedInfo->app_type;
+	if (m_parsedAromaIni)
+		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -700,8 +711,6 @@ std::string TitleInfo::GetMetaTitleName() const
 	{
 		std::string titleNameCfgLanguage;
 		titleNameCfgLanguage = m_parsedMetaXml->GetLongName(GetConfig().console_language);
-		if (titleNameCfgLanguage.empty()) //Get English Title
-			titleNameCfgLanguage = m_parsedMetaXml->GetLongName(CafeConsoleLanguage::EN);
 		if (titleNameCfgLanguage.empty()) //Unknown Title
 			titleNameCfgLanguage = "Unknown Title";
 		return titleNameCfgLanguage;
@@ -711,6 +720,13 @@ std::string TitleInfo::GetMetaTitleName() const
 	if (m_parsedAromaIni)
 		return m_parsedAromaIni->longName;
 	return "";
+}
+
+std::string TitleInfo::GetAromaShortTitle() const
+{
+	if(!m_parsedAromaIni)
+		return {};
+	return m_parsedAromaIni->shortName;
 }
 
 CafeConsoleRegion TitleInfo::GetMetaRegion() const

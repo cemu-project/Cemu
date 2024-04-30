@@ -890,9 +890,11 @@ namespace CafeSystem
 		if (sLaunchModeIsStandalone)
 			return "Unknown Game";
 		std::string applicationName;
-		applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(GetConfig().console_language);
-		if (applicationName.empty()) //Try to get the English Title
-			applicationName = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo()->GetShortName(CafeConsoleLanguage::EN);
+
+		if(auto metaInfo = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo())
+			applicationName = metaInfo->GetShortName(GetConfig().console_language);
+		if(applicationName.empty())
+			applicationName = sGameInfo_ForegroundTitle.GetBase().GetAromaShortTitle();
 		if (applicationName.empty()) //Unknown Game
 			applicationName = "Unknown Game";
 		return applicationName;
@@ -912,6 +914,8 @@ namespace CafeSystem
 		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
 		if (update.IsValid())
 			return update.GetArgStr();
+		if (sGameInfo_ForegroundTitle.IsWUHBDataTitle())
+			return "root.rpx";
 		return sGameInfo_ForegroundTitle.GetBase().GetArgStr();
 	}
 

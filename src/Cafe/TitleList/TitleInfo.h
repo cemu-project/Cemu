@@ -204,6 +204,11 @@ public:
 		return m_uid == rhs.m_uid;
 	}
 
+	bool IsWUHBTitle() const
+	{
+		return m_parsedAromaIni != nullptr;
+	}
+
 	bool IsSystemDataTitle() const
 	{
 		if(!IsValid())
@@ -219,6 +224,7 @@ public:
 	uint32 GetAppGroup() const; // from app.xml
 	uint32 GetAppType() const; // from app.xml
 	std::string GetMetaTitleName() const; // from meta.xml
+	std::string GetAromaShortTitle() const; // from meta.ini
 	CafeConsoleRegion GetMetaRegion() const; // from meta.xml
 	uint32 GetOlvAccesskey() const;
 
@@ -258,6 +264,8 @@ private:
 
 		if (other.m_parsedMetaXml)
 			m_parsedMetaXml = new ParsedMetaXml(*other.m_parsedMetaXml);
+		if (other.m_parsedAromaIni)
+			m_parsedAromaIni = new ParsedAromaIni(*other.m_parsedAromaIni);
 		if (other.m_parsedAppXml)
 			m_parsedAppXml = new ParsedAppXml(*other.m_parsedAppXml);
 		if (other.m_parsedCosXml)

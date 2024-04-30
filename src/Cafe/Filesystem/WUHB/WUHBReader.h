@@ -14,7 +14,7 @@ class WUHBReader {
 
 	uint64_t ReadFromFile(uint32_t entryOffset, uint64_t fileOffset, uint64_t length, void* buffer);
 
-	uint32_t Lookup(const std::filesystem::path& path);
+	uint32_t Lookup(const std::filesystem::path& path, bool isFile);
 
   private:
 	WUHBReader(FileStream* file) : m_fileIn(file) {cemu_assert_debug(file != nullptr);};
