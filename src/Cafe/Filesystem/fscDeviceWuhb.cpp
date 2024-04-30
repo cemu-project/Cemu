@@ -101,15 +101,26 @@ class fscDeviceWUHB : public fscDeviceC {
 		WUHBReader* reader = (WUHBReader*)ctx;
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUHB is not supported
 
-		if(!(HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR) ^ HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE)))
+		if (!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR) && !HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
 		{
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			return nullptr;
 		}
-		const bool isFile = HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE);
+		bool isFile;
+		uint32_t table_offset = ROMFS_ENTRY_EMPTY;
 
-		uint32_t table_offset = reader->Lookup(path, isFile);
-		if(table_offset == ROMFS_ENTRY_EMPTY)
+		if (table_offset == ROMFS_ENTRY_EMPTY && HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
+		{
+			table_offset = reader->Lookup(path, false);
+			isFile = false;
+		}
+		if (table_offset == ROMFS_ENTRY_EMPTY && HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE))
+		{
+			table_offset = reader->Lookup(path, true);
+			isFile = true;
+		}
+
+		if (table_offset == ROMFS_ENTRY_EMPTY)
 		{
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			return nullptr;
