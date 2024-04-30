@@ -10,7 +10,7 @@ add_library(CemuCafe
   Filesystem/fscDeviceRedirect.cpp
   Filesystem/fscDeviceWua.cpp
   Filesystem/fscDeviceWud.cpp
-	Filesystem/fscDeviceWuhb.cpp
+  Filesystem/fscDeviceWuhb.cpp
   Filesystem/fsc.h
   Filesystem/FST/FST.cpp
   Filesystem/FST/FST.h
@@ -19,9 +19,9 @@ add_library(CemuCafe
   Filesystem/FST/KeyCache.h
   Filesystem/WUD/wud.cpp
   Filesystem/WUD/wud.h
-	Filesystem/WUHB/RomFSStructs.h
-	Filesystem/WUHB/WUHBReader.cpp
-	Filesystem/WUHB/WUHBReader.h
+  Filesystem/WUHB/RomFSStructs.h
+  Filesystem/WUHB/WUHBReader.cpp
+  Filesystem/WUHB/WUHBReader.h
   GamePatch.cpp
   GamePatch.h
   GameProfile/GameProfile.cpp
