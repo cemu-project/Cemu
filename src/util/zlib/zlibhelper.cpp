@@ -23,17 +23,18 @@ namespace zlibhelper
 			stream.avail_out = availBefore;
 			stream.next_out = decompressed.data() + outWritten;
 			err = inflate(&stream, Z_NO_FLUSH);
-			if(!(err == Z_OK || err == Z_STREAM_END))
+			if (!(err == Z_OK || err == Z_STREAM_END))
 			{
 				inflateEnd(&stream);
 				return {};
 			}
 			outWritten += availBefore - stream.avail_out;
-		} while(err != Z_STREAM_END);
+		}
+		while (err != Z_STREAM_END);
 
 		inflateEnd(&stream);
 		decompressed.resize(stream.total_out);
 
 		return decompressed;
 	}
-}
+} // namespace zlibhelper

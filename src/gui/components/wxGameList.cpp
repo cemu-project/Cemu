@@ -1232,10 +1232,10 @@ void wxGameList::AsyncWorkerThread()
 			continue;
 		auto tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga").c_str());
 		// try iconTex.tga.gz
-		if(!tgaData)
+		if (!tgaData)
 		{
 			tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga.gz").c_str());
-			if(tgaData)
+			if (tgaData)
 			{
 				auto decompressed = zlibhelper::decompress(*tgaData);
 				std::swap(tgaData, decompressed);

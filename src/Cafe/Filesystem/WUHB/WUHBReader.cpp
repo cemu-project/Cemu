@@ -21,7 +21,7 @@ WUHBReader* WUHBReader::FromPath(const fs::path& path)
 	return ret;
 }
 
-template <bool File>
+template<bool File>
 WUHBReader::EntryType<File> WUHBReader::GetEntry(uint32_t offset)
 {
 	const char* typeName = File ? "fentry" : "direntry";
@@ -52,7 +52,6 @@ WUHBReader::EntryType<File> WUHBReader::GetEntry(uint32_t offset)
 
 	return ret;
 }
-
 
 romfs_direntry_t WUHBReader::GetDirEntry(uint32_t offset)
 {
@@ -85,7 +84,7 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 
 	m_fileIn->SetPosition(hash_table_entry_offset);
 	uint32_t tableOffset;
-	if(!m_fileIn->readU32(tableOffset))
+	if (!m_fileIn->readU32(tableOffset))
 	{
 		cemuLog_log(LogType::Force, "failed to read WUHB hash table entry at file offset: {}", hash_table_entry_offset);
 		cemu_assert_error();
@@ -99,11 +98,11 @@ bool WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& tar
 {
 	for (;;)
 	{
-		if(entryOffset == ROMFS_ENTRY_EMPTY)
+		if (entryOffset == ROMFS_ENTRY_EMPTY)
 			return false;
 		auto entry = GetEntry<T>(entryOffset);
 
-		if(entry.name == targetName)
+		if (entry.name == targetName)
 			return true;
 		entryOffset = entry.hash;
 	}
@@ -113,17 +112,16 @@ bool WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& tar
 uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 {
 	uint32_t currentEntryOffset = 0;
-	auto look = [&](const fs::path& part, bool lookInFileHT)
-	{
-	  const auto partString = part.string();
-	  currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), lookInFileHT);
-	  if(lookInFileHT)
-		  return ResolveHashCollision<true>(currentEntryOffset, part);
-	  else
-		  return ResolveHashCollision<false>(currentEntryOffset, part);
+	auto look = [&](const fs::path& part, bool lookInFileHT) {
+		const auto partString = part.string();
+		currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), lookInFileHT);
+		if (lookInFileHT)
+			return ResolveHashCollision<true>(currentEntryOffset, part);
+		else
+			return ResolveHashCollision<false>(currentEntryOffset, part);
 	};
-	//look for the root entry
-	if(!look("", false))
+	// look for the root entry
+	if (!look("", false))
 		return ROMFS_ENTRY_EMPTY;
 
 	auto it = path.begin();
@@ -132,11 +130,11 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 		fs::path part = *it;
 		++it;
 		// no need to recurse after trailing forward slash (e.g. directory/)
-		if(part.empty() && !isFile)
+		if (part.empty() && !isFile)
 			break;
 
 		// if the lookup target is a file and this is the last iteration, look in the file hash table instead.
-		if(!look(part, it == path.end() && isFile))
+		if (!look(part, it == path.end() && isFile))
 			return ROMFS_ENTRY_EMPTY;
 	}
 	return currentEntryOffset;
@@ -165,9 +163,12 @@ bool WUHBReader::ReadHeader()
 }
 unsigned char WUHBReader::NormalizeChar(unsigned char c)
 {
-	if (c >= 'a' && c <= 'z') {
+	if (c >= 'a' && c <= 'z')
+	{
 		return c + 'A' - 'a';
-	} else {
+	}
+	else
+	{
 		return c;
 	}
 }
@@ -175,7 +176,8 @@ uint32_t WUHBReader::CalcPathHash(uint32_t parent, const char* path, uint32_t st
 {
 	cemu_assert(path != nullptr || path_len == 0);
 	uint32_t hash = parent ^ 123456789;
-	for (uint32_t i = 0; i < path_len; i++) {
+	for (uint32_t i = 0; i < path_len; i++)
+	{
 		hash = (hash >> 5) | (hash << 27);
 		hash ^= NormalizeChar(path[start + i]);
 	}

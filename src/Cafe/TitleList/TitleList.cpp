@@ -4,7 +4,6 @@
 #include "util/helpers/helpers.h"
 
 #include <zarchive/zarchivereader.h>
-#include <Filesystem/WUHB/WUHBReader.h>
 
 bool sTLInitialized{ false };
 fs::path sTLCacheFilePath;

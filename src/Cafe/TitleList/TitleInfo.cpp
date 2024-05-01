@@ -451,10 +451,10 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 	}
 	else if (m_titleFormat == TitleDataFormat::WUHB)
 	{
-		if(!m_wuhbreader)
+		if (!m_wuhbreader)
 		{
 			m_wuhbreader = WUHBReader::FromPath(m_fullPath);
-			if(!m_wuhbreader)
+			if (!m_wuhbreader)
 				return false;
 		}
 		bool r = FSCDeviceWUHB_Mount(virtualPath, subfolder, m_wuhbreader, mountPriority);
@@ -497,7 +497,7 @@ void TitleInfo::Unmount(std::string_view virtualPath)
                 if (m_mountpoints.empty())
                     m_zarchive = nullptr;
             }
-			if(m_wuhbreader)
+			if (m_wuhbreader)
 			{
 				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUHB);
 				delete m_wuhbreader;
@@ -540,7 +540,7 @@ bool TitleInfo::ParseXmlInfo()
 		m_parsedMetaXml = ParsedMetaXml::Parse(xmlData->data(), xmlData->size());
 	// meta/meta.ini (WUHB)
 	auto iniData = fsc_extractFile(fmt::format("{}meta/meta.ini", mountPath).c_str());
-	if(iniData)
+	if (iniData)
 		ParseAromaIni(*iniData);
 
 	// code/app.xml
@@ -554,7 +554,7 @@ bool TitleInfo::ParseXmlInfo()
 
 	Unmount(mountPath);
 
-	if(m_titleFormat != TitleDataFormat::WUHB)
+	if (m_titleFormat != TitleDataFormat::WUHB)
 	{
 		// some system titles dont have a meta.xml file
 		bool allowMissingMetaXml = false;
@@ -579,7 +579,6 @@ bool TitleInfo::ParseXmlInfo()
 			return false;
 		}
 	}
-
 	m_isValid = true;
 	return true;
 }
@@ -587,24 +586,24 @@ bool TitleInfo::ParseXmlInfo()
 bool TitleInfo::ParseAromaIni(std::span<unsigned char> content)
 {
 	IniParser parser{content};
-	while(parser.NextSection() && parser.GetCurrentSectionName() != "menu") continue;
-	if(parser.GetCurrentSectionName() != "menu")
+	while (parser.NextSection() && parser.GetCurrentSectionName() != "menu")
+		continue;
+	if (parser.GetCurrentSectionName() != "menu")
 		return false;
 
 	auto parsed = std::make_unique<ParsedAromaIni>();
 
 	const auto author = parser.FindOption("author");
-	if(author)
+	if (author)
 		parsed->author = *author;
 
 	const auto longName = parser.FindOption("longname");
-	if(longName)
+	if (longName)
 		parsed->longName = *longName;
 
 	const auto shortName = parser.FindOption("shortname");
-	if(shortName)
+	if (shortName)
 		parsed->shortName = *shortName;
-
 
 	m_parsedAromaIni = parsed.release();
 	return true;
@@ -730,7 +729,7 @@ std::string TitleInfo::GetMetaTitleName() const
 
 std::string TitleInfo::GetAromaShortTitle() const
 {
-	if(!m_parsedAromaIni)
+	if (!m_parsedAromaIni)
 		return {};
 	return m_parsedAromaIni->shortName;
 }

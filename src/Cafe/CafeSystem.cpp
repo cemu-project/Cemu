@@ -891,9 +891,9 @@ namespace CafeSystem
 			return "Unknown Game";
 		std::string applicationName;
 
-		if(auto metaInfo = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo())
+		if (auto metaInfo = sGameInfo_ForegroundTitle.GetBase().GetMetaInfo())
 			applicationName = metaInfo->GetShortName(GetConfig().console_language);
-		if(applicationName.empty())
+		if (applicationName.empty())
 			applicationName = sGameInfo_ForegroundTitle.GetBase().GetAromaShortTitle();
 		if (applicationName.empty()) //Unknown Game
 			applicationName = "Unknown Game";

@@ -15,7 +15,11 @@ class WUHBReader {
 	uint32_t Lookup(const std::filesystem::path& path, bool isFile);
 
   private:
-	WUHBReader(FileStream* file) : m_fileIn(file) {cemu_assert_debug(file != nullptr);};
+	WUHBReader(FileStream* file)
+		: m_fileIn(file)
+	{
+		cemu_assert_debug(file != nullptr);
+	};
 	WUHBReader() = delete;
 
 	romfs_header_t m_header;
@@ -27,9 +31,9 @@ class WUHBReader {
 	static inline unsigned char NormalizeChar(unsigned char c);
 	static uint32_t CalcPathHash(uint32_t parent, const char* path, uint32_t start, size_t path_len);
 
-	template <bool File>
+	template<bool File>
 	using EntryType = std::conditional_t<File, romfs_fentry_t, romfs_direntry_t>;
-	template <bool File>
+	template<bool File>
 	EntryType<File> GetEntry(uint32_t offset);
 
 	template<bool T>
