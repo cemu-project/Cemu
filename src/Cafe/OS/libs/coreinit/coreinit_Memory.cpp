@@ -131,7 +131,7 @@ namespace coreinit
 		// no-op
 	}
 
-	void OSGetMemBound(sint32 memType, MPTR* offsetOutput, uint32* sizeOutput)
+	void OSGetMemBound(sint32 memType, MEMPTR<void>* offsetOutput, uint32be* sizeOutput)
 	{
 		MPTR memAddr = MPTR_NULL;
 		uint32 memSize = 0;
@@ -195,9 +195,9 @@ namespace coreinit
 			cemu_assert_debug(false);
 		}
 		if (offsetOutput)
-			*offsetOutput = _swapEndianU32(memAddr);
+			*offsetOutput = memAddr;
 		if (sizeOutput)
-			*sizeOutput = _swapEndianU32(memSize);
+			*sizeOutput = memSize;
 	}
 
 	void InitializeMemory()

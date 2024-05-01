@@ -1401,12 +1401,10 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 		}
 		case CURLINFO_CONTENT_TYPE:
 		{
-			//cemuLog_logDebug(LogType::Force, "CURLINFO_CONTENT_TYPE not supported");
-			//*(uint32*)parameter.GetPtr() = MPTR_NULL;
 			char* contentType = nullptr;
 			result = curl_easy_getinfo(curlObj, CURLINFO_REDIRECT_URL, &contentType);
 			_updateGuestString(curl.GetPtr(), curl->info_contentType, contentType);
-			*(uint32*)parameter.GetPtr() = curl->info_contentType.GetMPTRBE();
+			*(MEMPTR<char>*)parameter.GetPtr() = curl->info_contentType;
 			break;
 		}
 		case CURLINFO_REDIRECT_URL:
@@ -1414,7 +1412,7 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 			char* redirectUrl = nullptr;
 			result = curl_easy_getinfo(curlObj, CURLINFO_REDIRECT_URL, &redirectUrl);
 			_updateGuestString(curl.GetPtr(), curl->info_redirectUrl, redirectUrl);
-			*(uint32*)parameter.GetPtr() = curl->info_redirectUrl.GetMPTRBE();
+			*(MEMPTR<char>*)parameter.GetPtr() = curl->info_redirectUrl;
 			break;
 		}
 		default:

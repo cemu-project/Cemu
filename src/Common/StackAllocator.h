@@ -28,7 +28,6 @@ public:
 
 	T* GetPointer() const { return m_ptr; }
 	uint32 GetMPTR() const { return MEMPTR<T>(m_ptr).GetMPTR(); }
-	uint32 GetMPTRBE() const { return MEMPTR<T>(m_ptr).GetMPTRBE(); }
 
 	T* operator&() { return GetPointer(); }
 	explicit operator T*() const { return GetPointer(); }

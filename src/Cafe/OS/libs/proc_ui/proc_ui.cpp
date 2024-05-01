@@ -511,7 +511,7 @@ namespace proc_ui
 	{
 		MEMPTR<void> fgBase;
 		uint32be fgFreeSize;
-		OSGetForegroundBucketFreeArea((MPTR*)&fgBase, (MPTR*)&fgFreeSize);
+		OSGetForegroundBucketFreeArea(&fgBase, &fgFreeSize);
 		if(fgFreeSize < size)
 			cemuLog_log(LogType::Force, "ProcUISetBucketStorage: Buffer size too small");
 		s_bucketStorageBasePtr = memBase;
@@ -521,7 +521,7 @@ namespace proc_ui
 	{
 		MEMPTR<void> memBound;
 		uint32be memBoundSize;
-		OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+		OSGetMemBound(1, &memBound, &memBoundSize);
 		if(memBoundSize < size)
 			cemuLog_log(LogType::Force, "ProcUISetMEM1Storage: Buffer size too small");
 		s_mem1StorageBasePtr = memBase;
@@ -751,14 +751,14 @@ namespace proc_ui
 		{
 			MEMPTR<void> memBound;
 			uint32be memBoundSize;
-			OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+			OSGetMemBound(1, &memBound, &memBoundSize);
 			OSBlockMove(s_mem1StorageBasePtr.GetPtr(), memBound.GetPtr(), memBoundSize, true);
 		}
 		if (s_bucketStorageBasePtr)
 		{
 			MEMPTR<void> memBound;
 			uint32be memBoundSize;
-			OSGetForegroundBucketFreeArea((MPTR*)memBound.GetBEPtr(), (MPTR*)&memBoundSize);
+			OSGetForegroundBucketFreeArea(&memBound, &memBoundSize);
 			OSBlockMove(s_bucketStorageBasePtr.GetPtr(), memBound.GetPtr(), memBoundSize, true);
 		}
 	}
@@ -769,7 +769,7 @@ namespace proc_ui
 		{
 			MEMPTR<void> memBound;
 			uint32be memBoundSize;
-			OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+			OSGetMemBound(1, &memBound, &memBoundSize);
 			OSBlockMove(memBound.GetPtr(), s_mem1StorageBasePtr, memBoundSize, true);
 			GX2::GX2Invalidate(0x40, s_mem1StorageBasePtr.GetMPTR(), memBoundSize);
 		}
@@ -777,7 +777,7 @@ namespace proc_ui
 		{
 			MEMPTR<void> memBound;
 			uint32be memBoundSize;
-			OSGetForegroundBucketFreeArea((MPTR*)memBound.GetBEPtr(), (MPTR*)&memBoundSize);
+			OSGetForegroundBucketFreeArea(&memBound, &memBoundSize);
 			OSBlockMove(memBound.GetPtr(), s_bucketStorageBasePtr, memBoundSize, true);
 			GX2::GX2Invalidate(0x40, memBound.GetMPTR(), memBoundSize);
 		}
