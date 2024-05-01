@@ -45,7 +45,9 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
 	{
 		if (m_fscType != FSC_TYPE_FILE)
 			return 0;
-		return m_wuhbReader->ReadFromFile(m_entryOffset, m_seek, size, buffer);
+		auto read = m_wuhbReader->ReadFromFile(m_entryOffset, m_seek, size, buffer);
+		m_seek += read;
+		return read;
 	}
 	void fscSetSeek(uint64 seek) override
 	{

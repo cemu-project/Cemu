@@ -69,9 +69,11 @@ uint64_t WUHBReader::GetFileSize(uint32_t entryOffset)
 
 uint64_t WUHBReader::ReadFromFile(uint32_t entryOffset, uint64_t fileOffset, uint64_t length, void* buffer)
 {
-	const auto wuhbOffset = m_header.file_partition_ofs + GetFileEntry(entryOffset).offset + fileOffset;
+	const auto fileEntry = GetFileEntry(entryOffset);
+	const auto readAmount = std::min(length, fileEntry.size - fileOffset);
+	const auto wuhbOffset = m_header.file_partition_ofs + fileEntry.offset + fileOffset;
 	m_fileIn->SetPosition(wuhbOffset);
-	return m_fileIn->readData(buffer, length);
+	return m_fileIn->readData(buffer, readAmount);
 }
 
 uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
