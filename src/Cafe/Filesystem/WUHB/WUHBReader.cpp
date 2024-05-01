@@ -70,6 +70,8 @@ uint64_t WUHBReader::GetFileSize(uint32_t entryOffset)
 uint64_t WUHBReader::ReadFromFile(uint32_t entryOffset, uint64_t fileOffset, uint64_t length, void* buffer)
 {
 	const auto fileEntry = GetFileEntry(entryOffset);
+	if (fileOffset >= fileEntry.size)
+		return 0;
 	const auto readAmount = std::min(length, fileEntry.size - fileOffset);
 	const auto wuhbOffset = m_header.file_partition_ofs + fileEntry.offset + fileOffset;
 	m_fileIn->SetPosition(wuhbOffset);
