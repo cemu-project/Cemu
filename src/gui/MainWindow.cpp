@@ -643,16 +643,18 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	if (menuId == MAINFRAME_MENU_ID_FILE_LOAD)
 	{
 		const auto wildcard = formatWxString(
-			"{}|*.wud;*.wux;*.wua;*.iso;*.rpx;*.elf;title.tmd"
+			"{}|*.wud;*.wux;*.wua;*.wuhb;*.iso;*.rpx;*.elf;title.tmd"
 			"|{}|*.wud;*.wux;*.iso"
 			"|{}|title.tmd"
 			"|{}|*.wua"
+			"|{}|*.wuhb"
 			"|{}|*.rpx;*.elf"
 			"|{}|*",
-			_("All Wii U files (*.wud, *.wux, *.wua, *.iso, *.rpx, *.elf)"),
+			_("All Wii U files (*.wud, *.wux, *.wua, *.wuhb, *.iso, *.rpx, *.elf)"),
 			_("Wii U image (*.wud, *.wux, *.iso, *.wad)"),
 			_("Wii U NUS content"),
 			_("Wii U archive (*.wua)"),
+			_("Wii U homebrew (*.wuhb)"),
 			_("Wii U executable (*.rpx, *.elf)"),
 			_("All files (*.*)")
 		);
