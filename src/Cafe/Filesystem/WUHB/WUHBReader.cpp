@@ -132,6 +132,9 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 		// no need to recurse after trailing forward slash (e.g. directory/)
 		if (part.empty() && !isFile)
 			break;
+		// skip leading forward slash
+		if (part == "/")
+			continue;
 
 		// if the lookup target is a file and this is the last iteration, look in the file hash table instead.
 		if (!look(part, it == path.end() && isFile))
