@@ -98,7 +98,7 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile)
 }
 
 template<bool T>
-bool WUHBReader::ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName)
+bool WUHBReader::SearchHashList(uint32_t& entryOffset, const fs::path& targetName)
 {
 	for (;;)
 	{
@@ -120,9 +120,9 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile)
 		const auto partString = part.string();
 		currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), lookInFileHT);
 		if (lookInFileHT)
-			return ResolveHashCollision<true>(currentEntryOffset, part);
+			return SearchHashList<true>(currentEntryOffset, part);
 		else
-			return ResolveHashCollision<false>(currentEntryOffset, part);
+			return SearchHashList<false>(currentEntryOffset, part);
 	};
 	// look for the root entry
 	if (!look("", false))

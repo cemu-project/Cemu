@@ -37,6 +37,6 @@ class WUHBReader {
 	EntryType<File> GetEntry(uint32_t offset);
 
 	template<bool T>
-	bool ResolveHashCollision(uint32_t& entryOffset, const fs::path& targetName);
+	bool SearchHashList(uint32_t& entryOffset, const fs::path& targetName);
 	uint32_t GetHashTableEntryOffset(uint32_t hash, bool isFile);
 };
