@@ -21,27 +21,27 @@ WUHBReader* WUHBReader::FromPath(const fs::path& path)
 	return ret;
 }
 
+static const romfs_direntry_t fallbackDirEntry{
+	.parent = ROMFS_ENTRY_EMPTY,
+	.listNext = ROMFS_ENTRY_EMPTY,
+	.dirListHead = ROMFS_ENTRY_EMPTY,
+	.fileListHead = ROMFS_ENTRY_EMPTY,
+	.hash = ROMFS_ENTRY_EMPTY,
+	.name_size = 0,
+	.name = ""
+};
+static const romfs_fentry_t fallbackFileEntry{
+	.parent = ROMFS_ENTRY_EMPTY,
+	.listNext = ROMFS_ENTRY_EMPTY,
+	.offset = 0,
+	.size = 0,
+	.hash = ROMFS_ENTRY_EMPTY,
+	.name_size = 0,
+	.name = ""
+};
 template<bool File>
 const WUHBReader::EntryType<File>& WUHBReader::getFallback()
 {
-	static constexpr romfs_direntry_t fallbackDirEntry{
-		.parent = ROMFS_ENTRY_EMPTY,
-		.listNext = ROMFS_ENTRY_EMPTY,
-		.dirListHead = ROMFS_ENTRY_EMPTY,
-		.fileListHead = ROMFS_ENTRY_EMPTY,
-		.hash = ROMFS_ENTRY_EMPTY,
-		.name_size = 0,
-		.name = ""
-	};
-	static constexpr romfs_fentry_t fallbackFileEntry{
-		.parent = ROMFS_ENTRY_EMPTY,
-		.listNext = ROMFS_ENTRY_EMPTY,
-		.offset = 0,
-		.size = 0,
-		.hash = ROMFS_ENTRY_EMPTY,
-		.name_size = 0,
-		.name = ""
-	};
 	if constexpr (File)
 		return fallbackFileEntry;
 	else
