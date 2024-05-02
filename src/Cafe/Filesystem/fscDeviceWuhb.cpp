@@ -69,21 +69,27 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
 		{
 			romfs_direntry_t entry = m_wuhbReader->GetDirEntry(m_dirIterOffset);
 			m_dirIterOffset = entry.listNext;
-			dirEntry->isDirectory = true;
-			dirEntry->isFile = false;
-			dirEntry->fileSize = 0;
-			std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
-			return true;
+			if(entry.name_size > 0)
+			{
+				dirEntry->isDirectory = true;
+				dirEntry->isFile = false;
+				dirEntry->fileSize = 0;
+				std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
+				return true;
+			}
 		}
 		if (m_fileIterOffset != ROMFS_ENTRY_EMPTY)
 		{
 			romfs_fentry_t entry = m_wuhbReader->GetFileEntry(m_fileIterOffset);
 			m_fileIterOffset = entry.listNext;
-			dirEntry->isDirectory = false;
-			dirEntry->isFile = true;
-			dirEntry->fileSize = entry.size;
-			std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
-			return true;
+			if(entry.name_size > 0)
+			{
+				dirEntry->isDirectory = false;
+				dirEntry->isFile = true;
+				dirEntry->fileSize = entry.size;
+				std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
+				return true;
+			}
 		}
 
 		return false;
@@ -92,9 +98,9 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
   private:
 	WUHBReader* m_wuhbReader{};
 	uint32_t m_fscType;
-	uint32_t m_entryOffset;
-	uint32_t m_dirIterOffset;
-	uint32_t m_fileIterOffset;
+	uint32_t m_entryOffset = ROMFS_ENTRY_EMPTY;
+	uint32_t m_dirIterOffset = ROMFS_ENTRY_EMPTY;
+	uint32_t m_fileIterOffset = ROMFS_ENTRY_EMPTY;
 	uint64_t m_seek = 0;
 };
 

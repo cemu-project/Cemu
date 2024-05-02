@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 struct romfs_header_t
 {
 	uint32_t header_magic;
