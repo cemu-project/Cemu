@@ -654,7 +654,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			_("Wii U image (*.wud, *.wux, *.iso, *.wad)"),
 			_("Wii U NUS content"),
 			_("Wii U archive (*.wua)"),
-			_("Wii U homebrew (*.wuhb)"),
+			_("Wii U homebrew bundle (*.wuhb)"),
 			_("Wii U executable (*.rpx, *.elf)"),
 			_("All files (*.*)")
 		);
