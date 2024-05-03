@@ -5,6 +5,7 @@
 #include "nn_act.h"
 #include "Cafe/OS/libs/nn_common.h"
 #include "Cafe/CafeSystem.h"
+#include "Common/CafeString.h"
 
 sint32 numAccounts = 1;
 
@@ -140,6 +141,14 @@ namespace act
 			return 0;
 		}
 
+		nnResult GetTimeZoneId(CafeString<65>* outTimezoneId)
+		{
+			// return a placeholder timezone id for now
+			// in the future we should emulated this correctly and read the timezone from the account via IOSU
+			outTimezoneId->assign("Europe/London");
+			return 0;
+		}
+
 		sint32 g_initializeCount = 0; // inc in Initialize and dec in Finalize
 		uint32 Initialize()
 		{
@@ -162,7 +171,6 @@ namespace act
 			NN_ERROR_CODE errCode = NNResultToErrorCode(*nnResult, NN_RESULT_MODULE_NN_ACT);
 			return errCode;
 		}
-
 	}
 }
 
@@ -691,6 +699,8 @@ void nnAct_load()
 	osLib_addFunction("nn_act", "GetPersistentIdEx__Q2_2nn3actFUc", nnActExport_GetPersistentIdEx);
 	// country
 	osLib_addFunction("nn_act", "GetCountry__Q2_2nn3actFPc", nnActExport_GetCountry);
+	// timezone
+	cafeExportRegisterFunc(nn::act::GetTimeZoneId, "nn_act", "GetTimeZoneId__Q2_2nn3actFPc", LogType::Placeholder);
 
 	// parental
 	osLib_addFunction("nn_act", "EnableParentalControlCheck__Q2_2nn3actFb", nnActExport_EnableParentalControlCheck);
