@@ -5,8 +5,8 @@
 #include "pugixml.hpp"
 #include "Common/FileStream.h"
 #include <zarchive/zarchivereader.h>
-#include <util/IniParser/IniParser.h>
-#include <util/crypto/crc32.h>
+#include "util/IniParser/IniParser.h"
+#include "util/crypto/crc32.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
 

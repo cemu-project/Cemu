@@ -103,19 +103,19 @@ uint64_t WUHBReader::ReadFromFile(uint32_t entryOffset, uint64_t fileOffset, uin
 	const auto fileEntry = GetFileEntry(entryOffset);
 	if (fileOffset >= fileEntry.size)
 		return 0;
-	const auto readAmount = std::min(length, fileEntry.size - fileOffset);
-	const auto wuhbOffset = m_header.file_partition_ofs + fileEntry.offset + fileOffset;
+	const uint64_t readAmount = std::min(length, fileEntry.size - fileOffset);
+	const uint64_t wuhbOffset = m_header.file_partition_ofs + fileEntry.offset + fileOffset;
 	m_fileIn->SetPosition(wuhbOffset);
 	return m_fileIn->readData(buffer, readAmount);
 }
 
 uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile) const
 {
-	const auto hash_table_size = (isFile ? m_header.file_hash_table_size : m_header.dir_hash_table_size);
-	const auto hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.dir_hash_table_ofs);
+	const uint64_t hash_table_size = (isFile ? m_header.file_hash_table_size : m_header.dir_hash_table_size);
+	const uint64_t hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.dir_hash_table_ofs);
 
 	const uint64_t hash_table_entry_count = hash_table_size / sizeof(uint32_t);
-	const auto hash_table_entry_offset = hash_table_ofs + (hash % hash_table_entry_count) * sizeof(uint32_t);
+	const uint64_t hash_table_entry_offset = hash_table_ofs + (hash % hash_table_entry_count) * sizeof(uint32_t);
 
 	m_fileIn->SetPosition(hash_table_entry_offset);
 	uint32_t tableOffset;
