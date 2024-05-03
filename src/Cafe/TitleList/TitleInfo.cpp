@@ -6,6 +6,7 @@
 #include "Common/FileStream.h"
 #include <zarchive/zarchivereader.h>
 #include <util/IniParser/IniParser.h>
+#include <util/crypto/crc32.h>
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
 
@@ -115,7 +116,6 @@ TitleInfo::~TitleInfo()
 {
 	cemu_assert(m_mountpoints.empty());
 	delete m_parsedMetaXml;
-	delete m_parsedAromaIni;
 	delete m_parsedAppXml;
 	delete m_parsedCosXml;
 	delete m_cachedInfo;
@@ -538,10 +538,19 @@ bool TitleInfo::ParseXmlInfo()
 	auto xmlData = fsc_extractFile(fmt::format("{}meta/meta.xml", mountPath).c_str());
 	if(xmlData)
 		m_parsedMetaXml = ParsedMetaXml::Parse(xmlData->data(), xmlData->size());
-	// meta/meta.ini (WUHB)
-	auto iniData = fsc_extractFile(fmt::format("{}meta/meta.ini", mountPath).c_str());
-	if (iniData)
-		ParseAromaIni(*iniData);
+
+	if(!m_parsedMetaXml)
+	{
+		// meta/meta.ini (WUHB)
+		auto iniData = fsc_extractFile(fmt::format("{}meta/meta.ini", mountPath).c_str());
+		if (iniData)
+			m_parsedMetaXml = ParseAromaIni(*iniData);
+		if(m_parsedMetaXml)
+		{
+			m_parsedCosXml = new ParsedCosXml{.argstr = "root.rpx"};
+			m_parsedAppXml = new ParsedAppXml{m_parsedMetaXml->m_title_id, 0, 0, 0, 0};
+		}
+	}
 
 	// code/app.xml
 	xmlData = fsc_extractFile(fmt::format("{}code/app.xml", mountPath).c_str());
@@ -554,59 +563,58 @@ bool TitleInfo::ParseXmlInfo()
 
 	Unmount(mountPath);
 
-	if (m_titleFormat != TitleDataFormat::WUHB)
+	// some system titles dont have a meta.xml file
+	bool allowMissingMetaXml = false;
+	if(m_parsedAppXml && this->IsSystemDataTitle())
 	{
-		// some system titles dont have a meta.xml file
-		bool allowMissingMetaXml = false;
-		if (m_parsedAppXml && this->IsSystemDataTitle())
-		{
-			allowMissingMetaXml = true;
-		}
+		allowMissingMetaXml = true;
+	}
 
-		if ((allowMissingMetaXml == false && !m_parsedMetaXml) || !m_parsedAppXml || !m_parsedCosXml)
-		{
-			bool hasAnyXml = m_parsedMetaXml || m_parsedAppXml || m_parsedCosXml;
-			if (hasAnyXml)
-				cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _pathToUtf8(m_fullPath));
-			delete m_parsedMetaXml;
-			delete m_parsedAppXml;
-			delete m_parsedCosXml;
-			m_parsedMetaXml = nullptr;
-			m_parsedAppXml = nullptr;
-			m_parsedCosXml = nullptr;
-			m_isValid = false;
-			SetInvalidReason(InvalidReason::MISSING_XML_FILES);
-			return false;
-		}
+	if ((allowMissingMetaXml == false && !m_parsedMetaXml) || !m_parsedAppXml || !m_parsedCosXml)
+	{
+		bool hasAnyXml = m_parsedMetaXml || m_parsedAppXml || m_parsedCosXml;
+		if (hasAnyXml)
+			cemuLog_log(LogType::Force, "Title has missing meta .xml files. Title path: {}", _pathToUtf8(m_fullPath));
+		delete m_parsedMetaXml;
+		delete m_parsedAppXml;
+		delete m_parsedCosXml;
+		m_parsedMetaXml = nullptr;
+		m_parsedAppXml = nullptr;
+		m_parsedCosXml = nullptr;
+		m_isValid = false;
+		SetInvalidReason(InvalidReason::MISSING_XML_FILES);
+		return false;
 	}
 	m_isValid = true;
 	return true;
 }
 
-bool TitleInfo::ParseAromaIni(std::span<unsigned char> content)
+ParsedMetaXml* TitleInfo::ParseAromaIni(std::span<unsigned char> content)
 {
 	IniParser parser{content};
 	while (parser.NextSection() && parser.GetCurrentSectionName() != "menu")
 		continue;
 	if (parser.GetCurrentSectionName() != "menu")
-		return false;
+		return nullptr;
 
-	auto parsed = std::make_unique<ParsedAromaIni>();
+	auto parsed = std::make_unique<ParsedMetaXml>();
 
 	const auto author = parser.FindOption("author");
 	if (author)
-		parsed->author = *author;
+		parsed->m_publisher[(size_t)CafeConsoleLanguage::EN] = *author;
 
 	const auto longName = parser.FindOption("longname");
 	if (longName)
-		parsed->longName = *longName;
+		parsed->m_long_name[(size_t)CafeConsoleLanguage::EN] = *longName;
 
 	const auto shortName = parser.FindOption("shortname");
 	if (shortName)
-		parsed->shortName = *shortName;
+		parsed->m_short_name[(size_t)CafeConsoleLanguage::EN] = *shortName;
 
-	m_parsedAromaIni = parsed.release();
-	return true;
+	auto checksumInput = std::string{*author}.append(*longName).append(*shortName);
+	parsed->m_title_id = (0x0005000Full<<32) | crc32_calc(checksumInput.data(), checksumInput.length());
+
+	return parsed.release();
 }
 
 bool TitleInfo::ParseAppXml(std::vector<uint8>& appXmlData)
@@ -645,8 +653,6 @@ TitleId TitleInfo::GetAppTitleId() const
 		return m_parsedAppXml->title_id;
 	if (m_cachedInfo)
 		return m_cachedInfo->titleId;
-	if (m_parsedAromaIni)
-		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -658,8 +664,6 @@ uint16 TitleInfo::GetAppTitleVersion() const
 		return m_parsedAppXml->title_version;
 	if (m_cachedInfo)
 		return m_cachedInfo->titleVersion;
-	if (m_parsedAromaIni)
-		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -671,8 +675,6 @@ uint32 TitleInfo::GetAppSDKVersion() const
 		return m_parsedAppXml->sdk_version;
 	if (m_cachedInfo)
 		return m_cachedInfo->sdkVersion;
-	if (m_parsedAromaIni)
-		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -684,8 +686,6 @@ uint32 TitleInfo::GetAppGroup() const
 		return m_parsedAppXml->group_id;
 	if (m_cachedInfo)
 		return m_cachedInfo->group_id;
-	if (m_parsedAromaIni)
-		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -697,8 +697,6 @@ uint32 TitleInfo::GetAppType() const
 		return m_parsedAppXml->app_type;
 	if (m_cachedInfo)
 		return m_cachedInfo->app_type;
-	if (m_parsedAromaIni)
-		return 0;
 	cemu_assert_suspicious();
 	return 0;
 }
@@ -716,22 +714,15 @@ std::string TitleInfo::GetMetaTitleName() const
 	{
 		std::string titleNameCfgLanguage;
 		titleNameCfgLanguage = m_parsedMetaXml->GetLongName(GetConfig().console_language);
+		if (titleNameCfgLanguage.empty()) //Get English Title
+			titleNameCfgLanguage = m_parsedMetaXml->GetLongName(CafeConsoleLanguage::EN);
 		if (titleNameCfgLanguage.empty()) //Unknown Title
 			titleNameCfgLanguage = "Unknown Title";
 		return titleNameCfgLanguage;
 	}
 	if (m_cachedInfo)
 		return m_cachedInfo->titleName;
-	if (m_parsedAromaIni)
-		return m_parsedAromaIni->longName;
 	return "";
-}
-
-std::string TitleInfo::GetAromaShortTitle() const
-{
-	if (!m_parsedAromaIni)
-		return {};
-	return m_parsedAromaIni->shortName;
 }
 
 CafeConsoleRegion TitleInfo::GetMetaRegion() const
