@@ -31,7 +31,6 @@
 #include "gui/helpers/wxHelpers.h"
 #include "gui/MainWindow.h"
 
-#include "util/zlib/zlibhelper.h"
 #include "../wxHelper.h"
 
 #include "Cafe/IOSU/PDM/iosu_pdm.h" // for last played and play time
@@ -1237,7 +1236,7 @@ void wxGameList::AsyncWorkerThread()
 			tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga.gz").c_str());
 			if (tgaData)
 			{
-				auto decompressed = zlibhelper::decompress(*tgaData);
+				auto decompressed = zlibDecompress(*tgaData);
 				std::swap(tgaData, decompressed);
 			}
 		}
