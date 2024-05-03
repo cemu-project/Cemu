@@ -289,6 +289,18 @@ namespace acp
 		osLib_returnFromFunction(hCPU, acpRequest->returnCode);
 	}
 
+	uint32 ACPGetTitleMetaXml(uint64 titleId, acpMetaXml_t* acpMetaXml)
+	{
+		acpPrepareRequest();
+		acpRequest->requestCode = IOSU_ACP_GET_TITLE_META_XML;
+		acpRequest->ptr = acpMetaXml;
+		acpRequest->titleId = titleId;
+
+		__depr__IOS_Ioctlv(IOS_DEVICE_ACP_MAIN, IOSU_ACP_REQUEST_CEMU, 1, 1, acpBufferVector);
+
+		return acpRequest->returnCode;
+	}
+
 	void export_ACPIsOverAgeEx(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(age, 0);
@@ -341,6 +353,7 @@ namespace acp
 
 		osLib_addFunction("nn_acp", "ACPGetTitleMetaDirByDevice", export_ACPGetTitleMetaDirByDevice);
 		osLib_addFunction("nn_acp", "ACPGetTitleMetaXmlByDevice", export_ACPGetTitleMetaXmlByDevice);
+		cafeExportRegister("nn_acp", ACPGetTitleMetaXml, LogType::Placeholder);
 
 		cafeExportRegister("nn_acp", ACPGetApplicationBox, LogType::Placeholder);
 
