@@ -218,21 +218,36 @@ namespace snd_core
 		// validate parameters
 		if (deviceId == AX_DEV_TV)
 		{
-			cemu_assert(inputChannelCount <= AX_TV_CHANNEL_COUNT);
-			cemu_assert(outputChannelCount == 1 || outputChannelCount == 2 || outputChannelCount == 6);
+			if(inputChannelCount > AX_TV_CHANNEL_COUNT)
+			{
+				cemuLog_log(LogType::APIErrors, "AXSetDeviceRemixMatrix: Input channel count must be smaller or equal to 6 for TV device");
+				return -7;
+			}
+			if(outputChannelCount != 1 && outputChannelCount != 2 && outputChannelCount != 6)
+			{
+				// seems like Watch Dogs uses 4 as outputChannelCount for some reason?
+				cemuLog_log(LogType::APIErrors, "AXSetDeviceRemixMatrix: Output channel count must be 1, 2 or 6 for TV device");
+				return -8;
+			}
 		}
 		else if (deviceId == AX_DEV_DRC)
 		{
-			cemu_assert(inputChannelCount <= AX_DRC_CHANNEL_COUNT);
-			cemu_assert(outputChannelCount == 1 || outputChannelCount == 2 || outputChannelCount == 4);
-		}
-		else if (deviceId == AX_DEV_RMT)
-		{
-			cemu_assert(false);
+			if(inputChannelCount > AX_DRC_CHANNEL_COUNT)
+			{
+				cemuLog_log(LogType::APIErrors, "AXSetDeviceRemixMatrix: Input channel count must be smaller or equal to 4 for DRC device");
+				return -7;
+			}
+			if(outputChannelCount != 1 && outputChannelCount != 2 && outputChannelCount != 4)
+			{
+				cemuLog_log(LogType::APIErrors, "AXSetDeviceRemixMatrix: Output channel count must be 1, 2 or 4 for DRC device");
+				return -8;
+			}
 		}
 		else
+		{
+			cemuLog_log(LogType::APIErrors, "AXSetDeviceRemixMatrix: Only TV (0) and DRC (1) device are supported");
 			return -1;
-
+		}
 		auto matrices = g_remix_matrices.GetPtr();
 
 		// test if we already have an entry and just need to update the matrix data
