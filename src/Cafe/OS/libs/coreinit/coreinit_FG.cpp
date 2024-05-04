@@ -185,6 +185,7 @@ namespace coreinit
 	{
 		osLib_addFunction("coreinit", "OSGetForegroundBucket", coreinitExport_OSGetForegroundBucket);
 		cafeExportRegister("coreinit", OSGetForegroundBucket, LogType::CoreinitMem);
+		cafeExportRegister("coreinit", OSGetForegroundBucketFreeArea, LogType::CoreinitMem);
 		osLib_addFunction("coreinit", "OSCopyFromClipboard", coreinitExport_OSCopyFromClipboard);
 	}
 }
