@@ -1,7 +1,8 @@
 #pragma once
 #include <Common/FileStream.h>
 #include "RomFSStructs.h"
-class WUHBReader {
+class WUHBReader
+{
   public:
 	static WUHBReader* FromPath(const fs::path& path);
 

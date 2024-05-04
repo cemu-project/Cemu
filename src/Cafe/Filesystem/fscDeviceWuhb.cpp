@@ -2,7 +2,8 @@
 #include "Cafe/Filesystem/fsc.h"
 #include "Cafe/Filesystem/FST/FST.h"
 
-class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
+class FSCDeviceWuhbFileCtx : public FSCVirtualFile
+{
   public:
 	FSCDeviceWuhbFileCtx(WUHBReader* reader, uint32 entryOffset, uint32 fscType)
 		: m_wuhbReader(reader), m_entryOffset(entryOffset), m_fscType(fscType)
@@ -104,7 +105,8 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
 	uint64 m_seek = 0;
 };
 
-class fscDeviceWUHB : public fscDeviceC {
+class fscDeviceWUHB : public fscDeviceC
+{
 	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		WUHBReader* reader = (WUHBReader*)ctx;
