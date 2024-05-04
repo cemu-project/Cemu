@@ -774,6 +774,9 @@ std::string TitleInfo::GetPrintPath() const
 	case TitleDataFormat::WIIU_ARCHIVE:
 		tmp.append(" [WUA]");
 		break;
+	case TitleDataFormat::WUHB:
+		tmp.append(" [WUHB]");
+		break;
 	default:
 		break;
 	}
