@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: "Checkout repo"
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: "recursive"
         fetch-depth: 0
@@ -91,7 +91,7 @@ jobs:
       run: mv bin/Cemu_release bin/Cemu
               
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: ${{ inputs.deploymode == 'release' }}
       with:
         name: cemu-bin-linux-x64
@@ -102,9 +102,9 @@ jobs:
     needs: build-ubuntu
     steps:
     - name: Checkout Upstream Repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: cemu-bin-linux-x64
         path: bin
@@ -121,7 +121,7 @@ jobs:
         dist/linux/appimage.sh
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: cemu-appimage-x64
         path: artifacts
@@ -130,7 +130,7 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: "Checkout repo"
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: "recursive"
 
@@ -200,7 +200,7 @@ jobs:
       run: Rename-Item bin/Cemu_release.exe Cemu.exe
       
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: ${{ inputs.deploymode == 'release' }}
       with:
         name: cemu-bin-windows-x64
@@ -210,7 +210,7 @@ jobs:
     runs-on: macos-12
     steps:
     - name: "Checkout repo"
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: "recursive"
         
@@ -289,14 +289,14 @@ jobs:
         mv bin/Cemu_release.app bin/Cemu_app/Cemu.app
         mv bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu_release bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
         sed -i '' 's/Cemu_release/Cemu/g' bin/Cemu_app/Cemu.app/Contents/Info.plist
-        chmod a+x bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
+        chmod a+x bin/Cemu_app/Cemu.app/Contents/MacOS/{Cemu,update.sh}
         ln -s /Applications bin/Cemu_app/Applications
         hdiutil create ./bin/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./bin/Cemu_app"
         hdiutil convert ./bin/tmp.dmg -format UDZO -o bin/Cemu.dmg
         rm bin/tmp.dmg
               
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: ${{ inputs.deploymode == 'release' }}
       with:
         name: cemu-bin-macos-x64

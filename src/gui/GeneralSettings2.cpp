@@ -166,9 +166,11 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
 			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
 			second_row->Add(m_auto_update, 0, botflag, 5);
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-			m_auto_update->Disable();
-#endif
+#if BOOST_OS_LINUX 
+			if (!std::getenv("APPIMAGE")) {
+				m_auto_update->Disable();
+			} 
+#endif	
 			second_row->AddSpacer(10);
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
 			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
