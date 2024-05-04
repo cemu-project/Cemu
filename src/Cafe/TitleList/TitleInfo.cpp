@@ -563,7 +563,7 @@ bool TitleInfo::ParseAppXml(std::vector<uint8>& appXmlData)
 		else if (name == "group_id")
 			m_parsedAppXml->group_id = (uint32)std::stoull(child.text().as_string(), nullptr, 16);
 		else if (name == "sdk_version")
-			m_parsedAppXml->sdk_version = (uint32)std::stoull(child.text().as_string(), nullptr, 16);
+			m_parsedAppXml->sdk_version = (uint32)std::stoull(child.text().as_string(), nullptr, 10);
 	}
 	return true;
 }

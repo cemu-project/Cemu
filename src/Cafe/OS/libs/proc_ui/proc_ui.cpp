@@ -391,6 +391,9 @@ namespace proc_ui
 		{
 			cemuLog_log(LogType::Force, "ProcUI: Trying to register callback before init");
 			cemu_assert_suspicious();
+			// this shouldn't happen but lets set the memory pointers anyway to prevent a crash in case the user has incorrect meta info
+			s_memAllocPtr = gCoreinitData->MEMAllocFromDefaultHeap.GetMPTR();
+			s_memFreePtr = gCoreinitData->MEMFreeToDefaultHeap.GetMPTR();
 		}
 		ProcUIInternalCallbackEntry* entry = (ProcUIInternalCallbackEntry*)_AllocMem(sizeof(ProcUIInternalCallbackEntry));
 		entry->funcPtr = funcPtr;
