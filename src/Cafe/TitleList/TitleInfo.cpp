@@ -100,6 +100,7 @@ TitleInfo::TitleInfo(const TitleInfo::CachedInfo& cachedInfo)
 	m_isValid = false;
 	if (cachedInfo.titleDataFormat != TitleDataFormat::HOST_FS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WIIU_ARCHIVE &&
+		cachedInfo.titleDataFormat != TitleDataFormat::WUHB &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WUD &&
 		cachedInfo.titleDataFormat != TitleDataFormat::NUS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::INVALID_STRUCTURE)
