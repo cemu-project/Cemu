@@ -35,12 +35,12 @@
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_BlockHeap.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
 
-CoreinitSharedData* gCoreinitData = NULL;
+CoreinitSharedData* gCoreinitData = nullptr;
 
 sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 {
-	uint32 stackMinAddr = _swapEndianU32(thread->stackEnd);
-	uint32 stackMaxAddr = _swapEndianU32(thread->stackBase);
+	uint32 stackMinAddr = thread->stackEnd.GetMPTR();
+	uint32 stackMaxAddr = thread->stackBase.GetMPTR();
 
 	sint32 score = 0;
 	uint32 currentStackPtr = sp;
@@ -95,8 +95,8 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 
 	// print stack trace
 	uint32 currentStackPtr = highestScoreSP;
-	uint32 stackMinAddr = _swapEndianU32(thread->stackEnd);
-	uint32 stackMaxAddr = _swapEndianU32(thread->stackBase);
+	uint32 stackMinAddr = thread->stackEnd.GetMPTR();
+	uint32 stackMaxAddr = thread->stackBase.GetMPTR();
 	for (sint32 i = 0; i < 20; i++)
 	{
 		uint32 nextStackPtr = memory_readU32(currentStackPtr);

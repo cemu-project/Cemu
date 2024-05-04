@@ -117,10 +117,10 @@ void nsysnetExport_socket_lib_finish(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0); // 0 -> Success
 }
 
-uint32* __gh_errno_ptr()
+static uint32be* __gh_errno_ptr()
 {
 	OSThread_t* osThread = coreinit::OSGetCurrentThread();
-	return &osThread->context.error;
+	return &osThread->context.ghs_errno;
 }
 
 void _setSockError(sint32 errCode)

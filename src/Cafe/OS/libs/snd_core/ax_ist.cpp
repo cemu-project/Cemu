@@ -963,7 +963,7 @@ namespace snd_core
 		OSInitMessageQueue(__AXIstThreadMsgQueue.GetPtr(), __AXIstThreadMsgArray.GetPtr(), 0x10);
 		// create thread
 		uint8 istThreadAttr = 0;
-		coreinit::OSCreateThreadType(__AXIstThread.GetPtr(), PPCInterpreter_makeCallableExportDepr(AXIst_ThreadEntry), 0, &__AXIstThreadMsgQueue, __AXIstThreadStack.GetPtr() + 0x4000, 0x4000, 14, istThreadAttr, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
+		coreinit::__OSCreateThreadType(__AXIstThread.GetPtr(), PPCInterpreter_makeCallableExportDepr(AXIst_ThreadEntry), 0, &__AXIstThreadMsgQueue, __AXIstThreadStack.GetPtr() + 0x4000, 0x4000, 14, istThreadAttr, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
 		coreinit::OSResumeThread(__AXIstThread.GetPtr());
 	}
 

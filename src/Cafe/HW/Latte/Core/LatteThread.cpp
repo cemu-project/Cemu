@@ -187,7 +187,7 @@ int Latte_ThreadEntry()
 				rule.overwrite_settings.width >= 0 || rule.overwrite_settings.height >= 0 || rule.overwrite_settings.depth >= 0)
 			{
 				LatteGPUState.allowFramebufferSizeOptimization = false;
-				cemuLog_log(LogType::Force, "Graphic pack {} prevents rendertarget size optimization.", pack->GetName());
+				cemuLog_log(LogType::Force, "Graphic pack \"{}\" prevents rendertarget size optimization. This warning can be ignored and is intended for graphic pack developers", pack->GetName());
 				break;
 			}
 		}

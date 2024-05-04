@@ -22,7 +22,7 @@ namespace coreinit
 		MPTR _iob_lock[GHS_FOPEN_MAX];
 		uint16be __gh_FOPEN_MAX;
 		MEMPTR<void> ghs_environ;
-		uint32 ghs_Errno; // exposed by __gh_errno_ptr() or via 'errno' data export
+		uint32 ghs_Errno; // exposed as 'errno' data export
 	};
 
 	SysAllocator<GHSAccessibleData> g_ghs_data;
@@ -159,7 +159,7 @@ namespace coreinit
 	void* __gh_errno_ptr()
 	{
 		OSThread_t* currentThread = coreinit::OSGetCurrentThread();
-		return &currentThread->context.error;
+		return &currentThread->context.ghs_errno;
 	}
 
 	void* __get_eh_store_globals()
