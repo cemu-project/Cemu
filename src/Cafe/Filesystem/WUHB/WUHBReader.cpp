@@ -40,7 +40,7 @@ static const romfs_fentry_t fallbackFileEntry{
 	.name = ""
 };
 template<bool File>
-const WUHBReader::EntryType<File>& WUHBReader::getFallback()
+const WUHBReader::EntryType<File>& WUHBReader::GetFallback()
 {
 	if constexpr (File)
 		return fallbackFileEntry;
@@ -49,9 +49,9 @@ const WUHBReader::EntryType<File>& WUHBReader::getFallback()
 }
 
 template<bool File>
-WUHBReader::EntryType<File> WUHBReader::GetEntry(uint32_t offset) const
+WUHBReader::EntryType<File> WUHBReader::GetEntry(uint32 offset) const
 {
-	auto fallback = getFallback<File>();
+	auto fallback = GetFallback<File>();
 	if(offset == ROMFS_ENTRY_EMPTY)
 		return fallback;
 
@@ -84,41 +84,41 @@ WUHBReader::EntryType<File> WUHBReader::GetEntry(uint32_t offset) const
 	return ret;
 }
 
-romfs_direntry_t WUHBReader::GetDirEntry(uint32_t offset) const
+romfs_direntry_t WUHBReader::GetDirEntry(uint32 offset) const
 {
 	return GetEntry<false>(offset);
 }
-romfs_fentry_t WUHBReader::GetFileEntry(uint32_t offset) const
+romfs_fentry_t WUHBReader::GetFileEntry(uint32 offset) const
 {
 	return GetEntry<true>(offset);
 }
 
-uint64_t WUHBReader::GetFileSize(uint32_t entryOffset) const
+uint64 WUHBReader::GetFileSize(uint32 entryOffset) const
 {
 	return GetFileEntry(entryOffset).size;
 }
 
-uint64_t WUHBReader::ReadFromFile(uint32_t entryOffset, uint64_t fileOffset, uint64_t length, void* buffer) const
+uint64 WUHBReader::ReadFromFile(uint32 entryOffset, uint64 fileOffset, uint64 length, void* buffer) const
 {
 	const auto fileEntry = GetFileEntry(entryOffset);
 	if (fileOffset >= fileEntry.size)
 		return 0;
-	const uint64_t readAmount = std::min(length, fileEntry.size - fileOffset);
-	const uint64_t wuhbOffset = m_header.file_partition_ofs + fileEntry.offset + fileOffset;
+	const uint64 readAmount = std::min(length, fileEntry.size - fileOffset);
+	const uint64 wuhbOffset = m_header.file_partition_ofs + fileEntry.offset + fileOffset;
 	m_fileIn->SetPosition(wuhbOffset);
 	return m_fileIn->readData(buffer, readAmount);
 }
 
-uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile) const
+uint32 WUHBReader::GetHashTableEntryOffset(uint32 hash, bool isFile) const
 {
-	const uint64_t hash_table_size = (isFile ? m_header.file_hash_table_size : m_header.dir_hash_table_size);
-	const uint64_t hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.dir_hash_table_ofs);
+	const uint64 hash_table_size = (isFile ? m_header.file_hash_table_size : m_header.dir_hash_table_size);
+	const uint64 hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.dir_hash_table_ofs);
 
-	const uint64_t hash_table_entry_count = hash_table_size / sizeof(uint32_t);
-	const uint64_t hash_table_entry_offset = hash_table_ofs + (hash % hash_table_entry_count) * sizeof(uint32_t);
+	const uint64 hash_table_entry_count = hash_table_size / sizeof(uint32);
+	const uint64 hash_table_entry_offset = hash_table_ofs + (hash % hash_table_entry_count) * sizeof(uint32);
 
 	m_fileIn->SetPosition(hash_table_entry_offset);
-	uint32_t tableOffset;
+	uint32 tableOffset;
 	if (!m_fileIn->readU32(tableOffset))
 	{
 		cemuLog_log(LogType::Force, "failed to read WUHB hash table entry at file offset: {}", hash_table_entry_offset);
@@ -129,7 +129,7 @@ uint32_t WUHBReader::GetHashTableEntryOffset(uint32_t hash, bool isFile) const
 }
 
 template<bool T>
-bool WUHBReader::SearchHashList(uint32_t& entryOffset, const fs::path& targetName) const
+bool WUHBReader::SearchHashList(uint32& entryOffset, const fs::path& targetName) const
 {
 	for (;;)
 	{
@@ -144,9 +144,9 @@ bool WUHBReader::SearchHashList(uint32_t& entryOffset, const fs::path& targetNam
 	return false;
 }
 
-uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile) const
+uint32 WUHBReader::Lookup(const std::filesystem::path& path, bool isFile) const
 {
-	uint32_t currentEntryOffset = 0;
+	uint32 currentEntryOffset = 0;
 	auto look = [&](const fs::path& part, bool lookInFileHT) {
 		const auto partString = part.string();
 		currentEntryOffset = GetHashTableEntryOffset(CalcPathHash(currentEntryOffset, partString.c_str(), 0, partString.size()), lookInFileHT);
@@ -179,7 +179,7 @@ uint32_t WUHBReader::Lookup(const std::filesystem::path& path, bool isFile) cons
 }
 bool WUHBReader::CheckMagicValue() const
 {
-	uint8_t magic[4];
+	uint8 magic[4];
 	m_fileIn->SetPosition(0);
 	int read = m_fileIn->readData(magic, 4);
 	if (read != 4)
@@ -187,8 +187,8 @@ bool WUHBReader::CheckMagicValue() const
 		cemuLog_log(LogType::Force, "Failed to read WUHB magic numbers");
 		return false;
 	}
-	static_assert(sizeof(magic) == headerMagicValue.size());
-	return std::memcmp(&magic, headerMagicValue.data(), sizeof(magic)) == 0;
+	static_assert(sizeof(magic) == s_headerMagicValue.size());
+	return std::memcmp(&magic, s_headerMagicValue.data(), sizeof(magic)) == 0;
 }
 bool WUHBReader::ReadHeader()
 {
@@ -210,11 +210,11 @@ unsigned char WUHBReader::NormalizeChar(unsigned char c)
 		return c;
 	}
 }
-uint32_t WUHBReader::CalcPathHash(uint32_t parent, const char* path, uint32_t start, size_t path_len)
+uint32 WUHBReader::CalcPathHash(uint32 parent, const char* path, uint32 start, size_t path_len)
 {
 	cemu_assert(path != nullptr || path_len == 0);
-	uint32_t hash = parent ^ 123456789;
-	for (uint32_t i = 0; i < path_len; i++)
+	uint32 hash = parent ^ 123456789;
+	for (uint32 i = 0; i < path_len; i++)
 	{
 		hash = (hash >> 5) | (hash << 27);
 		hash ^= NormalizeChar(path[start + i]);

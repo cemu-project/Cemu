@@ -4,7 +4,7 @@
 
 class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
   public:
-	FSCDeviceWuhbFileCtx(WUHBReader* reader, uint32_t entryOffset, uint32 fscType)
+	FSCDeviceWuhbFileCtx(WUHBReader* reader, uint32 entryOffset, uint32 fscType)
 		: m_wuhbReader(reader), m_entryOffset(entryOffset), m_fscType(fscType)
 	{
 		cemu_assert(entryOffset != ROMFS_ENTRY_EMPTY);
@@ -97,11 +97,11 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile {
 
   private:
 	WUHBReader* m_wuhbReader{};
-	uint32_t m_fscType;
-	uint32_t m_entryOffset = ROMFS_ENTRY_EMPTY;
-	uint32_t m_dirIterOffset = ROMFS_ENTRY_EMPTY;
-	uint32_t m_fileIterOffset = ROMFS_ENTRY_EMPTY;
-	uint64_t m_seek = 0;
+	uint32 m_fscType;
+	uint32 m_entryOffset = ROMFS_ENTRY_EMPTY;
+	uint32 m_dirIterOffset = ROMFS_ENTRY_EMPTY;
+	uint32 m_fileIterOffset = ROMFS_ENTRY_EMPTY;
+	uint64 m_seek = 0;
 };
 
 class fscDeviceWUHB : public fscDeviceC {
@@ -111,7 +111,7 @@ class fscDeviceWUHB : public fscDeviceC {
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUHB is not supported
 
 		bool isFile;
-		uint32_t table_offset = ROMFS_ENTRY_EMPTY;
+		uint32 table_offset = ROMFS_ENTRY_EMPTY;
 
 		if (table_offset == ROMFS_ENTRY_EMPTY && HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR))
 		{

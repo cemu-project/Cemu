@@ -2,7 +2,7 @@
 
 struct romfs_header_t
 {
-	uint32_t header_magic;
+	uint32 header_magic;
 	uint32be header_size;
 	uint64be dir_hash_table_ofs;
 	uint64be dir_hash_table_size;
