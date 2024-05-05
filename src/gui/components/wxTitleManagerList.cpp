@@ -948,6 +948,8 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 			return _("NUS");
 		case wxTitleManagerList::EntryFormat::WUA:
 			return _("WUA");
+		case wxTitleManagerList::EntryFormat::WUHB:
+			return _("WUHB");
 		}
 		return "";
 	}
@@ -1021,6 +1023,9 @@ void wxTitleManagerList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt
 		break;
 	case TitleInfo::TitleDataFormat::WIIU_ARCHIVE:
 		entryFormat = EntryFormat::WUA;
+		break;
+	case TitleInfo::TitleDataFormat::WUHB:
+		entryFormat = EntryFormat::WUHB;
 		break;
 	case TitleInfo::TitleDataFormat::HOST_FS:
 	default:

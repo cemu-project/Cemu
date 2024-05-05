@@ -1,9 +1,12 @@
 #include "TitleInfo.h"
 #include "Cafe/Filesystem/fscDeviceHostFS.h"
+#include "Cafe/Filesystem/WUHB/WUHBReader.h"
 #include "Cafe/Filesystem/FST/FST.h"
 #include "pugixml.hpp"
 #include "Common/FileStream.h"
 #include <zarchive/zarchivereader.h>
+#include "util/IniParser/IniParser.h"
+#include "util/crypto/crc32.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
 
@@ -97,6 +100,7 @@ TitleInfo::TitleInfo(const TitleInfo::CachedInfo& cachedInfo)
 	m_isValid = false;
 	if (cachedInfo.titleDataFormat != TitleDataFormat::HOST_FS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WIIU_ARCHIVE &&
+		cachedInfo.titleDataFormat != TitleDataFormat::WUHB &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WUD &&
 		cachedInfo.titleDataFormat != TitleDataFormat::NUS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::INVALID_STRUCTURE)
@@ -244,6 +248,16 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			}
 			delete zar;
 			return foundBase;
+		}
+		else if (boost::iends_with(filenameStr, ".wuhb"))
+		{
+			std::unique_ptr<WUHBReader> reader{WUHBReader::FromPath(path)};
+			if(reader)
+			{
+				formatOut = TitleDataFormat::WUHB;
+				pathOut = path;
+				return true;
+			}
 		}
 		// note: Since a Wii U archive file (.wua) contains multiple titles we shouldn't auto-detect them here
 		// instead TitleInfo has a second constructor which takes a subpath
@@ -436,6 +450,23 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 			return false;
 		}
 	}
+	else if (m_titleFormat == TitleDataFormat::WUHB)
+	{
+		if (!m_wuhbreader)
+		{
+			m_wuhbreader = WUHBReader::FromPath(m_fullPath);
+			if (!m_wuhbreader)
+				return false;
+		}
+		bool r = FSCDeviceWUHB_Mount(virtualPath, subfolder, m_wuhbreader, mountPriority);
+		if (!r)
+		{
+			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
+			delete m_wuhbreader;
+			m_wuhbreader = nullptr;
+			return false;
+		}
+	}
 	else
 	{
 		cemu_assert_unimplemented();
@@ -467,6 +498,12 @@ void TitleInfo::Unmount(std::string_view virtualPath)
                 if (m_mountpoints.empty())
                     m_zarchive = nullptr;
             }
+			if (m_wuhbreader)
+			{
+				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUHB);
+				delete m_wuhbreader;
+				m_wuhbreader = nullptr;
+			}
 		}
 		return;
 	}
@@ -502,6 +539,20 @@ bool TitleInfo::ParseXmlInfo()
 	auto xmlData = fsc_extractFile(fmt::format("{}meta/meta.xml", mountPath).c_str());
 	if(xmlData)
 		m_parsedMetaXml = ParsedMetaXml::Parse(xmlData->data(), xmlData->size());
+
+	if(!m_parsedMetaXml)
+	{
+		// meta/meta.ini (WUHB)
+		auto iniData = fsc_extractFile(fmt::format("{}meta/meta.ini", mountPath).c_str());
+		if (iniData)
+			m_parsedMetaXml = ParseAromaIni(*iniData);
+		if(m_parsedMetaXml)
+		{
+			m_parsedCosXml = new ParsedCosXml{.argstr = "root.rpx"};
+			m_parsedAppXml = new ParsedAppXml{m_parsedMetaXml->m_title_id, 0, 0, 0, 0};
+		}
+	}
+
 	// code/app.xml
 	xmlData = fsc_extractFile(fmt::format("{}code/app.xml", mountPath).c_str());
 	if(xmlData)
@@ -537,6 +588,34 @@ bool TitleInfo::ParseXmlInfo()
 	}
 	m_isValid = true;
 	return true;
+}
+
+ParsedMetaXml* TitleInfo::ParseAromaIni(std::span<unsigned char> content)
+{
+	IniParser parser{content};
+	while (parser.NextSection() && parser.GetCurrentSectionName() != "menu")
+		continue;
+	if (parser.GetCurrentSectionName() != "menu")
+		return nullptr;
+
+	auto parsed = std::make_unique<ParsedMetaXml>();
+
+	const auto author = parser.FindOption("author");
+	if (author)
+		parsed->m_publisher[(size_t)CafeConsoleLanguage::EN] = *author;
+
+	const auto longName = parser.FindOption("longname");
+	if (longName)
+		parsed->m_long_name[(size_t)CafeConsoleLanguage::EN] = *longName;
+
+	const auto shortName = parser.FindOption("shortname");
+	if (shortName)
+		parsed->m_short_name[(size_t)CafeConsoleLanguage::EN] = *shortName;
+
+	auto checksumInput = std::string{*author}.append(*longName).append(*shortName);
+	parsed->m_title_id = (0x0005000Full<<32) | crc32_calc(checksumInput.data(), checksumInput.length());
+
+	return parsed.release();
 }
 
 bool TitleInfo::ParseAppXml(std::vector<uint8>& appXmlData)
@@ -694,6 +773,9 @@ std::string TitleInfo::GetPrintPath() const
 		break;
 	case TitleDataFormat::WIIU_ARCHIVE:
 		tmp.append(" [WUA]");
+		break;
+	case TitleDataFormat::WUHB:
+		tmp.append(" [WUHB]");
 		break;
 	default:
 		break;

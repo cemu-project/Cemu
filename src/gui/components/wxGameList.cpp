@@ -1230,6 +1230,16 @@ void wxGameList::AsyncWorkerThread()
 		if(!titleInfo.Mount(tempMountPath, "", FSC_PRIORITY_BASE))
 			continue;
 		auto tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga").c_str());
+		// try iconTex.tga.gz
+		if (!tgaData)
+		{
+			tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga.gz").c_str());
+			if (tgaData)
+			{
+				auto decompressed = zlibDecompress(*tgaData, 70*1024);
+				std::swap(tgaData, decompressed);
+			}
+		}
 		bool iconSuccessfullyLoaded = false;
 		if (tgaData && tgaData->size() > 16)
 		{

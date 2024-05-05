@@ -127,6 +127,7 @@ public:
 		WUD = 2, // WUD or WUX
 		WIIU_ARCHIVE = 3, // Wii U compressed single-file archive (.wua)
 	  	NUS = 4, // NUS format. Directory with .app files, title.tik and title.tmd
+	  	WUHB = 5,
 		// error
 		INVALID_STRUCTURE = 0,
 	};
@@ -265,6 +266,7 @@ private:
 	bool DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataFormat& formatOut);
 	void CalcUID();
 	void SetInvalidReason(InvalidReason reason);
+	ParsedMetaXml* ParseAromaIni(std::span<unsigned char> content);
 	bool ParseAppXml(std::vector<uint8>& appXmlData);
 
 	bool m_isValid{ false };
@@ -277,6 +279,7 @@ private:
 	std::vector<std::pair<sint32, std::string>> m_mountpoints;
 	class FSTVolume* m_wudVolume{};
 	class ZArchiveReader* m_zarchive{};
+	class WUHBReader* m_wuhbreader{};
 	// xml info
 	bool m_hasParsedXmlFiles{ false };
 	ParsedMetaXml* m_parsedMetaXml{};
