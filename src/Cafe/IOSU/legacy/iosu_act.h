@@ -53,7 +53,7 @@ namespace iosu
 
 		std::string getAccountId2(uint8 slot);
 
-		const uint8 ACT_SLOT_CURRENT = 0xFE;
+		static constexpr uint8 ACT_SLOT_CURRENT = 0xFE;
 
 		void Initialize();
 		void Stop();

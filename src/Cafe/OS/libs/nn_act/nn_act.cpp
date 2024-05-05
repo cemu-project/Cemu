@@ -114,6 +114,7 @@ namespace act
 		{
 			memset(token, 0, sizeof(independentServiceToken_t));
 			actPrepareRequest();
+			actRequest->accountSlot = iosu::act::ACT_SLOT_CURRENT;
 			actRequest->requestCode = IOSU_ARC_ACQUIREINDEPENDENTTOKEN;
 			actRequest->titleId = CafeSystem::GetForegroundTitleId();
 			actRequest->titleVersion = CafeSystem::GetForegroundTitleVersion();
@@ -611,6 +612,7 @@ void nnActExport_AcquireNexServiceToken(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(serverId, 1);
 	memset(token, 0, sizeof(nexServiceToken_t));
 	actPrepareRequest();
+	actRequest->accountSlot = iosu::act::ACT_SLOT_CURRENT;
 	actRequest->requestCode = IOSU_ARC_ACQUIRENEXTOKEN;
 	actRequest->titleId = CafeSystem::GetForegroundTitleId();
 	actRequest->titleVersion = CafeSystem::GetForegroundTitleVersion();
@@ -627,10 +629,8 @@ void nnActExport_AcquireNexServiceToken(PPCInterpreter_t* hCPU)
 void nnActExport_AcquireIndependentServiceToken(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(token, independentServiceToken_t, 0);
-	ppcDefineParamMEMPTR(serviceToken, const char, 1);
-	uint32 result = nn::act::AcquireIndependentServiceToken(token.GetPtr(), serviceToken.GetPtr(), 0);
-	cemuLog_logDebug(LogType::Force, "nn_act.AcquireIndependentServiceToken(0x{}, {}) -> {:x}", (void*)token.GetPtr(), serviceToken.GetPtr(), result);
-	cemuLog_logDebug(LogType::Force, "Token: {}", serviceToken.GetPtr());
+	ppcDefineParamMEMPTR(clientId, const char, 1);
+	uint32 result = nn::act::AcquireIndependentServiceToken(token.GetPtr(), clientId.GetPtr(), 0);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -640,7 +640,6 @@ void nnActExport_AcquireIndependentServiceToken2(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(clientId, const char, 1);
 	ppcDefineParamU32(cacheDurationInSeconds, 2); 
 	uint32 result = nn::act::AcquireIndependentServiceToken(token, clientId.GetPtr(), cacheDurationInSeconds);
-	cemuLog_logDebug(LogType::Force, "Called nn_act.AcquireIndependentServiceToken2");
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -648,7 +647,6 @@ void nnActExport_AcquireEcServiceToken(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(pEcServiceToken, independentServiceToken_t, 0);
 	uint32 result = nn::act::AcquireIndependentServiceToken(pEcServiceToken.GetPtr(), "71a6f5d6430ea0183e3917787d717c46", 0);
-	cemuLog_logDebug(LogType::Force, "Called nn_act.AcquireEcServiceToken");
 	osLib_returnFromFunction(hCPU, result);
 }
 
