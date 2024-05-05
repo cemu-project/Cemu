@@ -440,11 +440,12 @@ std::string GenerateRandomString(const size_t length, const std::string_view cha
 	return result;
 }
 
-std::optional<std::vector<uint8>> zlibDecompress(const std::vector<uint8>& compressed)
+std::optional<std::vector<uint8>> zlibDecompress(const std::vector<uint8>& compressed, size_t sizeHint)
 {
 	int err;
 	std::vector<uint8> decompressed;
 	size_t outWritten = 0;
+	size_t bytesPerIteration = sizeHint;
 	z_stream stream;
 	stream.zalloc = Z_NULL;
 	stream.zfree = Z_NULL;
@@ -457,7 +458,7 @@ std::optional<std::vector<uint8>> zlibDecompress(const std::vector<uint8>& compr
 
 	do
 	{
-		decompressed.resize(decompressed.size() + 1024);
+		decompressed.resize(decompressed.size() + bytesPerIteration);
 		const auto availBefore = decompressed.size() - outWritten;
 		stream.avail_out = availBefore;
 		stream.next_out = decompressed.data() + outWritten;
@@ -468,6 +469,7 @@ std::optional<std::vector<uint8>> zlibDecompress(const std::vector<uint8>& compr
 			return {};
 		}
 		outWritten += availBefore - stream.avail_out;
+		bytesPerIteration *= 2;
 	}
 	while (err != Z_STREAM_END);
 
