@@ -118,11 +118,11 @@ namespace save
 		return false;
 	}
 
-	SAVEStatus GetAbsoluteFullPathOtherApplication(uint32 persistentId, uint64 titleId, const char* subDir, char* outPath)
+	FS_RESULT GetAbsoluteFullPathOtherApplication(uint32 persistentId, uint64 titleId, const char* subDir, char* outPath)
 	{
 		uint32be applicationBox;
 		if(acp::ACPGetApplicationBox(&applicationBox, titleId) != acp::ACPStatus::SUCCESS)
-			return (FSStatus)FS_RESULT::NOT_FOUND;
+			return FS_RESULT::NOT_FOUND;
 
 		sint32 written = 0;
 		if(applicationBox == 3)	
@@ -151,13 +151,13 @@ namespace save
 			cemu_assert_unimplemented();
 		}
 		else 
-			return (FSStatus)FS_RESULT::NOT_FOUND;
+			return FS_RESULT::NOT_FOUND;
 
 		if (written < SAVE_MAX_PATH_SIZE - 1)
-			return (FSStatus)FS_RESULT::SUCCESS;
+			return FS_RESULT::SUCCESS;
 
 		cemu_assert_suspicious();
-		return (FSStatus)(FS_RESULT::FATAL_ERROR);
+		return FS_RESULT::FATAL_ERROR;
 	}
 
 	typedef struct
@@ -417,7 +417,7 @@ namespace save
 		if (GetPersistentIdEx(accountSlot, &persistentId))
 		{
 			char fullPath[SAVE_MAX_PATH_SIZE];
-			if (GetAbsoluteFullPathOtherApplication(persistentId, titleId, path, fullPath))
+			if (GetAbsoluteFullPathOtherApplication(persistentId, titleId, path, fullPath) == FS_RESULT::SUCCESS)
 				result = coreinit::FSOpenFileAsync(client, block, fullPath, (char*)mode, outFileHandle, errHandling, (FSAsyncParams*)asyncParams);
 		}
 		else
@@ -527,7 +527,7 @@ namespace save
 		if (GetPersistentIdEx(accountSlot, &persistentId))
 		{
 			char fullPath[SAVE_MAX_PATH_SIZE];
-			if (GetAbsoluteFullPathOtherApplication(persistentId, titleId, path, fullPath) == (FSStatus)FS_RESULT::SUCCESS)
+			if (GetAbsoluteFullPathOtherApplication(persistentId, titleId, path, fullPath) == FS_RESULT::SUCCESS)
 				result = coreinit::__FSQueryInfoAsync(client, block, (uint8*)fullPath, FSA_QUERY_TYPE_STAT, stat, errHandling, (FSAsyncParams*)asyncParams); // FSGetStatAsync(...)
 		}
 		else
@@ -811,7 +811,7 @@ namespace save
 		if (GetPersistentIdEx(accountSlot, &persistentId))
 		{
 			char fullPath[SAVE_MAX_PATH_SIZE];
-			if (GetAbsoluteFullPathOtherApplication(persistentId, titleId, path, fullPath))
+			if (GetAbsoluteFullPathOtherApplication(persistentId, titleId, path, fullPath) == FS_RESULT::SUCCESS)
 				result = coreinit::FSOpenDirAsync(client, block, fullPath, hDir, errHandling, (FSAsyncParams*)asyncParams);
 		}
 		else
