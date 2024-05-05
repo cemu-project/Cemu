@@ -41,6 +41,7 @@ enum class LogType : sint32
 	TextureReadback = 29,
 
 	ProcUi = 39,
+	nlibcurl = 41,
 
 	PRUDP = 40,
 };

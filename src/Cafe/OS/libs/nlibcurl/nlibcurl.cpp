@@ -1505,18 +1505,18 @@ CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_
 
 void load()
 {
-	cafeExportRegister("nlibcurl", curl_global_init_mem, LogType::Force);
-	cafeExportRegister("nlibcurl", curl_global_init, LogType::Force);
+	cafeExportRegister("nlibcurl", curl_global_init_mem, LogType::nlibcurl);
+	cafeExportRegister("nlibcurl", curl_global_init, LogType::nlibcurl);
 
-	cafeExportRegister("nlibcurl", curl_slist_append, LogType::Force);
-	cafeExportRegister("nlibcurl", curl_slist_free_all, LogType::Force);
+	cafeExportRegister("nlibcurl", curl_slist_append, LogType::nlibcurl);
+	cafeExportRegister("nlibcurl", curl_slist_free_all, LogType::nlibcurl);
 	osLib_addFunction("nlibcurl", "curl_easy_strerror", export_curl_easy_strerror);
 
 	osLib_addFunction("nlibcurl", "curl_share_init", export_curl_share_init);
 	osLib_addFunction("nlibcurl", "curl_share_setopt", export_curl_share_setopt);
 	osLib_addFunction("nlibcurl", "curl_share_cleanup", export_curl_share_cleanup);
 
-	cafeExportRegister("nlibcurl", mw_curl_easy_init, LogType::Force);
+	cafeExportRegister("nlibcurl", mw_curl_easy_init, LogType::nlibcurl);
 	osLib_addFunction("nlibcurl", "curl_multi_init", export_curl_multi_init);
 	osLib_addFunction("nlibcurl", "curl_multi_add_handle", export_curl_multi_add_handle);
 	osLib_addFunction("nlibcurl", "curl_multi_perform", export_curl_multi_perform);
@@ -1527,11 +1527,11 @@ void load()
 	osLib_addFunction("nlibcurl", "curl_multi_cleanup", export_curl_multi_cleanup);
 	osLib_addFunction("nlibcurl", "curl_multi_timeout", export_curl_multi_timeout);
 
-	cafeExportRegister("nlibcurl", curl_easy_init, LogType::Force);
+	cafeExportRegister("nlibcurl", curl_easy_init, LogType::nlibcurl);
 	osLib_addFunction("nlibcurl", "curl_easy_reset", export_curl_easy_reset);
 	osLib_addFunction("nlibcurl", "curl_easy_setopt", export_curl_easy_setopt);
 	osLib_addFunction("nlibcurl", "curl_easy_getinfo", export_curl_easy_getinfo);
-	cafeExportRegister("nlibcurl", curl_easy_perform, LogType::Force);
+	cafeExportRegister("nlibcurl", curl_easy_perform, LogType::nlibcurl);
 
 
 
