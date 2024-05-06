@@ -5,9 +5,11 @@
 
 enum class NetworkService
 {
+	Offline,
 	Nintendo,
 	Pretendo,
-	Custom
+	Custom,
+	COUNT = Custom
 };
 
 struct NetworkConfig

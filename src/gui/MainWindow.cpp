@@ -948,38 +948,6 @@ void MainWindow::OnAccountSelect(wxCommandEvent& event)
 	g_config.Save();
 }
 
-//void MainWindow::OnConsoleRegion(wxCommandEvent& event)
-//{
-//	switch (event.GetId())
-//	{
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_AUTO:
-//		GetConfig().console_region = ConsoleRegion::Auto;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_JPN:
-//		GetConfig().console_region = ConsoleRegion::JPN;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_USA:
-//		GetConfig().console_region = ConsoleRegion::USA;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_EUR:
-//		GetConfig().console_region = ConsoleRegion::EUR;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_CHN:
-//		GetConfig().console_region = ConsoleRegion::CHN;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_KOR:
-//		GetConfig().console_region = ConsoleRegion::KOR;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_TWN:
-//		GetConfig().console_region = ConsoleRegion::TWN;
-//		break;
-//	default:
-//		cemu_assert_debug(false);
-//	}
-//	
-//	g_config.Save();
-//}
-
 void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 {
 	switch (event.GetId())

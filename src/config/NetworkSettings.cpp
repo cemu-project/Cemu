@@ -34,14 +34,15 @@ void NetworkConfig::Load(XMLConfigParser& parser)
 
 bool NetworkConfig::XMLExists() 
 {
+	static std::optional<bool> s_exists; // caches result of fs::exists
+	if(s_exists.has_value())
+		return *s_exists;
 	std::error_code ec;
 	if (!fs::exists(ActiveSettings::GetConfigPath("network_services.xml"), ec))
 	{
-		if (static_cast<NetworkService>(GetConfig().account.active_service.GetValue()) == NetworkService::Custom)
-		{
-			GetConfig().account.active_service = 0;
-		}
+		s_exists = false;
 		return false;
 	}
+	s_exists = true;
 	return true;
 }

@@ -71,7 +71,6 @@ private:
 	wxButton* m_create_account, * m_delete_account;
 	wxChoice* m_active_account;
 	wxRadioBox* m_active_service;
-	wxCheckBox* m_online_enabled;
 	wxCollapsiblePane* m_account_information;
 	wxPropertyGrid* m_account_grid;
 	wxBitmapButton* m_validate_online;
@@ -99,9 +98,10 @@ private:
 	void OnMLCPathSelect(wxCommandEvent& event);
 	void OnMLCPathChar(wxKeyEvent& event);
 	void OnShowOnlineValidator(wxCommandEvent& event);
-	void OnOnlineEnable(wxCommandEvent& event);
 	void OnAccountServiceChanged(wxCommandEvent& event);
 	static wxString GetOnlineAccountErrorMessage(OnlineAccountError error);
+
+	uint32 GetSelectedAccountPersistentId();
 
 	// updates cemu audio devices
 	void UpdateAudioDevice();

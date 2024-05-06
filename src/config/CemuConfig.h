@@ -8,6 +8,8 @@
 #include <wx/language.h>
 #include <wx/intl.h>
 
+enum class NetworkService;
+
 struct GameEntry
 {
 	GameEntry() = default;
@@ -483,8 +485,9 @@ struct CemuConfig
 	struct
 	{
 		ConfigValueBounds<uint32> m_persistent_id{ Account::kMinPersistendId, Account::kMinPersistendId, 0xFFFFFFFF };
-		ConfigValue<bool> online_enabled{false};
-		ConfigValue<int> active_service{0};
+		ConfigValue<bool> legacy_online_enabled{false};
+		ConfigValue<int> legacy_active_service{0};
+		std::unordered_map<uint32, NetworkService> service_select; // per-account service index. Key is persistentId
 	}account{};
 
 	// input
@@ -508,6 +511,9 @@ struct CemuConfig
 	void SetGameListFavorite(uint64 titleId, bool isFavorite);
 	bool GetGameListCustomName(uint64 titleId, std::string& customName);
 	void SetGameListCustomName(uint64 titleId, std::string customName);
+
+	NetworkService GetAccountNetworkService(uint32 persistentId);
+	void SetAccountSelectedService(uint32 persistentId, NetworkService serviceIndex);
 
 	private:
 	GameEntry* GetGameEntryByTitleId(uint64 titleId);

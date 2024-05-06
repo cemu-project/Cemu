@@ -328,8 +328,22 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	// account
 	auto acc = parser.get("Account");
 	account.m_persistent_id = acc.get("PersistentId", account.m_persistent_id);
-	account.online_enabled = acc.get("OnlineEnabled", account.online_enabled);
-	account.active_service = acc.get("ActiveService",account.active_service);
+	// legacy online settings, we only parse these for upgrading purposes
+	account.legacy_online_enabled = acc.get("OnlineEnabled", account.legacy_online_enabled);
+	account.legacy_active_service = acc.get("ActiveService",account.legacy_active_service);
+	// per-account online setting
+	auto accService = parser.get("AccountService");
+	account.service_select.clear();
+	for (auto element = accService.get("SelectedService"); element.valid(); element = accService.get("SelectedService", element))
+	{
+		uint32 persistentId = element.get_attribute<uint32>("PersistentId", 0);
+		sint32 serviceIndex = element.get_attribute<sint32>("Service", 0);
+		NetworkService networkService = static_cast<NetworkService>(serviceIndex);
+		if (persistentId < Account::kMinPersistendId)
+			continue;
+		if(networkService == NetworkService::Offline || networkService == NetworkService::Nintendo || networkService == NetworkService::Pretendo || networkService == NetworkService::Custom)
+			account.service_select.emplace(persistentId, networkService);
+	}
 	// debug
 	auto debug = parser.get("Debug");
 #if BOOST_OS_WINDOWS
@@ -512,8 +526,17 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	// account
 	auto acc = config.set("Account");
 	acc.set("PersistentId", account.m_persistent_id.GetValue());
-	acc.set("OnlineEnabled", account.online_enabled.GetValue());
-	acc.set("ActiveService",account.active_service.GetValue());
+	// legacy online mode setting
+	acc.set("OnlineEnabled", account.legacy_online_enabled.GetValue());
+	acc.set("ActiveService",account.legacy_active_service.GetValue());
+	// per-account online setting
+	auto accService = config.set("AccountService");
+	for(auto& it : account.service_select)
+	{
+		auto entry = accService.set("SelectedService");
+		entry.set_attribute("PersistentId", it.first);
+		entry.set_attribute("Service", static_cast<sint32>(it.second));
+	}
 	// debug
 	auto debug = config.set("Debug");
 #if BOOST_OS_WINDOWS
@@ -608,4 +631,31 @@ void CemuConfig::AddRecentNfcFile(std::string_view file)
 	RemoveDuplicatesKeepOrder(recent_nfc_files);
 	while (recent_nfc_files.size() > kMaxRecentEntries)
 		recent_nfc_files.pop_back();
+}
+
+NetworkService CemuConfig::GetAccountNetworkService(uint32 persistentId)
+{
+	auto it = account.service_select.find(persistentId);
+	if (it != account.service_select.end())
+	{
+		NetworkService serviceIndex = it->second;
+		// make sure the returned service is valid
+		if (serviceIndex != NetworkService::Offline &&
+			serviceIndex != NetworkService::Nintendo &&
+			serviceIndex != NetworkService::Pretendo &&
+			serviceIndex != NetworkService::Custom)
+			return NetworkService::Offline;
+		if( static_cast<NetworkService>(serviceIndex) == NetworkService::Custom && !NetworkConfig::XMLExists() )
+			return NetworkService::Offline; // custom is selected but no custom config exists
+		return serviceIndex;
+	}
+	// if not found, return the legacy value
+	if(!account.legacy_online_enabled)
+		return NetworkService::Offline;
+	return static_cast<NetworkService>(account.legacy_active_service.GetValue() + 1); // +1 because "Offline" now takes index 0
+}
+
+void CemuConfig::SetAccountSelectedService(uint32 persistentId, NetworkService serviceIndex)
+{
+	account.service_select[persistentId] = serviceIndex;
 }
