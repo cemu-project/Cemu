@@ -763,6 +763,11 @@ namespace coreinit
 		uint32 coreIndex = OSGetCoreId();
 		if (!newThread->context.hasCoreAffinitySet(coreIndex))
 			return false;
+		// special case: if current and new thread are running only on the same core then reschedule even if priority is equal
+		// this resolves a deadlock in Just Dance 2019 where one thread would always reacquire the same mutex within it's timeslice, blocking another thread on the same core from acquiring it
+		if ((1<<coreIndex) == newThread->context.affinity && currentThread->context.affinity == newThread->context.affinity && currentThread->effectivePriority == newThread->effectivePriority)
+			return true;
+		// otherwise reschedule if new thread has higher priority
 		return newThread->effectivePriority < currentThread->effectivePriority;
 	}
 
