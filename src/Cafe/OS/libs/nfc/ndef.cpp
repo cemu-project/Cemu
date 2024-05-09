@@ -6,6 +6,7 @@ namespace ndef
 {
 
 	Record::Record()
+	 : mFlags(0), mTNF(NDEF_TNF_EMPTY)
 	{
 	}
 

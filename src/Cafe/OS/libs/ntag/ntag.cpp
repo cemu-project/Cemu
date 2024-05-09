@@ -9,7 +9,10 @@ namespace ntag
 {
 	struct NTAGWriteData
 	{
-
+		uint16 size;
+		uint8 data[0x1C8];
+		nfc::NFCUid uid;
+		nfc::NFCUid uidMask;
 	};
 	NTAGWriteData gWriteData[2];
 
@@ -72,7 +75,7 @@ namespace ntag
 	{
 		gFormatSettings.version = formatSettings->version;
 		gFormatSettings.makerCode = _swapEndianU32(formatSettings->makerCode);
-		gFormatSettings.indentifyCode = _swapEndianU32(formatSettings->indentifyCode);
+		gFormatSettings.identifyCode = _swapEndianU32(formatSettings->identifyCode);
 	}
 
 	void __NTAGDetectCallback(PPCInterpreter_t* hCPU)
@@ -220,7 +223,7 @@ namespace ntag
 		return true;
 	}
 
-	sint32 __NTAGDecryptData(void* decryptedData, void* rawData)
+	sint32 __NTAGDecryptData(void* decryptedData, const void* rawData)
 	{
 		StackAllocator<iosu::ccr_nfc::CCRNFCCryptData> nfcRawData, nfcInData, nfcOutData;
 
@@ -256,7 +259,41 @@ namespace ntag
 
 	sint32 __NTAGValidateHeaders(NTAGNoftHeader* noftHeader, NTAGInfoHeader* infoHeader, NTAGAreaHeader* rwHeader, NTAGAreaHeader* roHeader)
 	{
-		// TODO
+		if (infoHeader->formatVersion != gFormatSettings.version || noftHeader->version != 0x1)
+		{
+			cemuLog_log(LogType::Force, "Invalid format version");
+			return -0x2710;
+		}
+
+		if (_swapEndianU32(noftHeader->magic) != 0x4E4F4654 /* 'NOFT' */ ||
+			_swapEndianU16(rwHeader->magic) != 0x5257 /* 'RW' */ ||
+			_swapEndianU16(roHeader->magic) != 0x524F /* 'RO' */)
+		{
+			cemuLog_log(LogType::Force, "Invalid header magic");
+			return -0x270F;
+		}
+
+		if (_swapEndianU32(rwHeader->makerCode) != gFormatSettings.makerCode ||
+			_swapEndianU32(roHeader->makerCode) != gFormatSettings.makerCode)
+		{
+			cemuLog_log(LogType::Force, "Invalid maker code");
+			return -0x270E;
+		}
+
+		if (infoHeader->formatVersion != 0 &&
+			(_swapEndianU32(rwHeader->identifyCode) != gFormatSettings.identifyCode ||
+			 _swapEndianU32(roHeader->identifyCode) != gFormatSettings.identifyCode))
+		{
+			cemuLog_log(LogType::Force, "Invalid identify code");
+			return -0x2709;
+		}
+
+		if (_swapEndianU16(rwHeader->size) + _swapEndianU16(roHeader->size) != 0x130)
+		{
+			cemuLog_log(LogType::Force, "Invalid data size");
+			return -0x270D;
+		}
+
 		return 0;
 	}
 
@@ -264,8 +301,13 @@ namespace ntag
 	{
 		memcpy(noftHeader, data + 0x20, sizeof(NTAGNoftHeader));
 		memcpy(infoHeader, data + 0x198, sizeof(NTAGInfoHeader));
+
+		cemu_assert(_swapEndianU16(infoHeader->rwHeaderOffset) + sizeof(NTAGAreaHeader) < 0x200);
+		cemu_assert(_swapEndianU16(infoHeader->roHeaderOffset) + sizeof(NTAGAreaHeader) < 0x200);
+
 		memcpy(rwHeader, data + _swapEndianU16(infoHeader->rwHeaderOffset), sizeof(NTAGAreaHeader));
 		memcpy(roHeader, data + _swapEndianU16(infoHeader->roHeaderOffset), sizeof(NTAGAreaHeader));
+
 		return __NTAGValidateHeaders(noftHeader, infoHeader, rwHeader, roHeader);
 	}
 
@@ -317,7 +359,7 @@ namespace ntag
 		ppcDefineParamPtr(lockedData, void, 7);
 		ppcDefineParamPtr(context, void, 8);
 
-		uint8 rawData[0x1C8];
+		uint8 rawData[0x1C8]{};
 		StackAllocator<NTAGData> readResult;
 		StackAllocator<uint8, 0x1C8> rwData;
 		StackAllocator<uint8, 0x1C8> roData;
@@ -331,6 +373,9 @@ namespace ntag
 		error = __NTAGConvertNFCError(error);
 		if (error == 0)
 		{
+			memset(rwData.GetPointer(), 0, 0x1C8);
+			memset(roData.GetPointer(), 0, 0x1C8);
+
 			// Copy raw and locked data into a contigous buffer
 			memcpy(rawData, data, dataSize);
 			memcpy(rawData + dataSize, lockedData, lockedDataSize);
@@ -388,28 +433,173 @@ namespace ntag
 		return __NTAGConvertNFCError(result);
 	}
 
+	sint32 __NTAGEncryptData(void* encryptedData, const void* rawData)
+	{
+		StackAllocator<iosu::ccr_nfc::CCRNFCCryptData> nfcRawData, nfcInData, nfcOutData;
+
+		if (!ccrNfcOpened)
+		{
+			gCcrNfcHandle = coreinit::IOS_Open("/dev/ccr_nfc", 0);
+		}
+
+		// Prepare nfc buffer
+		nfcRawData->version = 0;
+		memcpy(nfcRawData->data, rawData, 0x1C8);
+		__NTAGRawDataToNfcData(nfcRawData.GetPointer(), nfcInData.GetPointer());
+
+		// Encrypt
+		sint32 result = coreinit::IOS_Ioctl(gCcrNfcHandle, 1, nfcInData.GetPointer(), sizeof(iosu::ccr_nfc::CCRNFCCryptData), nfcOutData.GetPointer(), sizeof(iosu::ccr_nfc::CCRNFCCryptData));
+
+		// Unpack nfc buffer
+		__NTAGNfcDataToRawData(nfcOutData.GetPointer(), nfcRawData.GetPointer());
+		memcpy(encryptedData, nfcRawData->data, 0x1C8);
+
+		return result;
+	}
+
+	sint32 __NTAGPrepareWriteData(void* outBuffer, uint32 dataSize, const void* data, const void* tagData, NTAGNoftHeader* noftHeader, NTAGAreaHeader* rwHeader)
+	{
+		uint8 decryptedBuffer[0x1C8];
+		uint8 encryptedBuffer[0x1C8];
+
+		memcpy(decryptedBuffer, tagData, 0x1C8);
+
+		// Fill the rest of the rw area with random data
+		if (dataSize < _swapEndianU16(rwHeader->size))
+		{
+			uint8 randomBuffer[0x1C8];
+			for (int i = 0; i < sizeof(randomBuffer); i++)
+			{
+				randomBuffer[i] = rand() & 0xFF;
+			}
+
+			memcpy(decryptedBuffer + _swapEndianU16(rwHeader->offset) + dataSize, randomBuffer, _swapEndianU16(rwHeader->size) - dataSize);
+		}
+		
+		// Make sure the data fits into the rw area
+		if (_swapEndianU16(rwHeader->size) < dataSize)
+		{
+			return -0x270D;
+		}
+
+		// Update write count (check for overflow)
+		if ((_swapEndianU16(noftHeader->writeCount) & 0x7fff) == 0x7fff)
+		{
+			noftHeader->writeCount = _swapEndianU16(_swapEndianU16(noftHeader->writeCount) & 0x8000);
+		}
+		else
+		{
+			noftHeader->writeCount = _swapEndianU16(_swapEndianU16(noftHeader->writeCount) + 1);
+		}
+
+		memcpy(decryptedBuffer + 0x20, noftHeader, sizeof(noftHeader));
+		memcpy(decryptedBuffer + _swapEndianU16(rwHeader->offset), data, dataSize);
+
+		// Encrypt
+		sint32 result = __NTAGEncryptData(encryptedBuffer, decryptedBuffer);
+		if (result < 0)
+		{
+			return result;
+		}
+
+		memcpy(outBuffer, encryptedBuffer, _swapEndianU16(rwHeader->size) + 0x28);
+		return 0;
+	}
+
+	void __NTAGWriteCallback(PPCInterpreter_t* hCPU)
+	{
+		ppcDefineParamU32(chan, 0);
+		ppcDefineParamS32(error, 1);
+		ppcDefineParamPtr(context, void, 2);
+
+		PPCCoreCallback(gWriteCallbacks[chan], chan, __NTAGConvertNFCError(error), context);
+
+		osLib_returnFromFunction(hCPU, 0);
+	}
+
 	void __NTAGReadBeforeWriteCallback(PPCInterpreter_t* hCPU)
 	{
+		ppcDefineParamU32(chan, 0);
+		ppcDefineParamS32(error, 1);
+		ppcDefineParamPtr(uid, nfc::NFCUid, 2);
+		ppcDefineParamU32(readOnly, 3);
+		ppcDefineParamU32(dataSize, 4);
+		ppcDefineParamPtr(data, void, 5);
+		ppcDefineParamU32(lockedDataSize, 6);
+		ppcDefineParamPtr(lockedData, void, 7);
+		ppcDefineParamPtr(context, void, 8);
+
+		uint8 rawData[0x1C8]{};
+		uint8 rwData[0x1C8]{};
+		uint8 roData[0x1C8]{};
+		NTAGNoftHeader noftHeader;
+		NTAGInfoHeader infoHeader;
+		NTAGAreaHeader rwHeader;
+		NTAGAreaHeader roHeader;
+		uint8 writeBuffer[0x1C8]{};
+
+		error = __NTAGConvertNFCError(error);
+		if (error == 0)
+		{
+			// Copy raw and locked data into a contigous buffer
+			memcpy(rawData, data, dataSize);
+			memcpy(rawData + dataSize, lockedData, lockedDataSize);
+
+			error = __NTAGParseData(rawData, rwData, roData, uid, lockedDataSize, &noftHeader, &infoHeader, &rwHeader, &roHeader);
+			if (error < 0)
+			{
+				cemuLog_log(LogType::Force, "Failed to parse data before write");
+				PPCCoreCallback(gWriteCallbacks[chan], chan, -0x3E3, context);
+				osLib_returnFromFunction(hCPU, 0);
+				return;
+			}
+
+			// Prepare data
+			memcpy(rawData + _swapEndianU16(infoHeader.rwHeaderOffset), &rwHeader, sizeof(rwHeader));
+			memcpy(rawData + _swapEndianU16(infoHeader.roHeaderOffset), &roHeader, sizeof(roHeader));
+			memcpy(rawData + _swapEndianU16(roHeader.offset), roData, _swapEndianU16(roHeader.size));
+			error = __NTAGPrepareWriteData(writeBuffer, gWriteData[chan].size, gWriteData[chan].data, rawData, &noftHeader, &rwHeader);
+			if (error < 0)
+			{
+				cemuLog_log(LogType::Force, "Failed to prepare write data");
+				PPCCoreCallback(gWriteCallbacks[chan], chan, -0x3E3, context);
+				osLib_returnFromFunction(hCPU, 0);
+				return;
+			}
+
+			// Write data to tag
+			error = nfc::NFCWrite(chan, 200, &gWriteData[chan].uid, &gWriteData[chan].uidMask,
+				_swapEndianU16(rwHeader.size) + 0x28, writeBuffer, RPLLoader_MakePPCCallable(__NTAGWriteCallback), context);
+			if (error >= 0)
+			{
+				osLib_returnFromFunction(hCPU, 0);
+				return;
+			}
+
+			error = __NTAGConvertNFCError(error);
+		}
+
+		PPCCoreCallback(gWriteCallbacks[chan], chan, error, context);
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
 	sint32 NTAGWrite(uint32 chan, uint32 timeout, nfc::NFCUid* uid, uint32 rwSize, void* rwData, MPTR callback, void* context)
 	{
 		cemu_assert(chan < 2);
+		cemu_assert(rwSize < 0x1C8);
 
 		gWriteCallbacks[chan] = callback;
 
-		nfc::NFCUid _uid{}, _uidMask{};
 		if (uid)
 		{
-			memcpy(&_uid, uid, sizeof(*uid));
+			memcpy(&gWriteData[chan].uid, uid, sizeof(nfc::NFCUid));
 		}
-		memset(_uidMask.uid, 0xff, sizeof(_uidMask.uid));
+		memset(&gWriteData[chan].uidMask, 0xff, sizeof(nfc::NFCUid));
 
-		// TODO save write data
+		gWriteData[chan].size = rwSize;
+		memcpy(gWriteData[chan].data, rwData, rwSize);
 
-		// TODO we probably don't need to read first here
-		sint32 result = nfc::NFCRead(chan, timeout, &_uid, &_uidMask, RPLLoader_MakePPCCallable(__NTAGReadBeforeWriteCallback), context);
+		sint32 result = nfc::NFCRead(chan, timeout, &gWriteData[chan].uid, &gWriteData[chan].uidMask, RPLLoader_MakePPCCallable(__NTAGReadBeforeWriteCallback), context);
 		return __NTAGConvertNFCError(result);
 	}
 
@@ -418,7 +608,7 @@ namespace ntag
 		cemu_assert(chan < 2);
 
 		// TODO
-		return 0;
+		return -1;
 	}
 
 	void Initialize()

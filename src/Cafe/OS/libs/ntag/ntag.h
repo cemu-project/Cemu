@@ -7,7 +7,7 @@ namespace ntag
 	{
 		/* +0x00 */ uint8 version;
 		/* +0x04 */ uint32 makerCode;
-		/* +0x08 */ uint32 indentifyCode;
+		/* +0x08 */ uint32 identifyCode;
 		/* +0x0C */ uint8 reserved[0x1C];
 	};
 	static_assert(sizeof(NTAGFormatSettings) == 0x28);

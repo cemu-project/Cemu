@@ -39,6 +39,7 @@ namespace nfc
 		bool hasTag;
 
 		uint32 nfcStatus;
+		std::chrono::time_point<std::chrono::system_clock> touchTime;
 		std::chrono::time_point<std::chrono::system_clock> discoveryTimeout;
 
 		MPTR tagDetectCallback;
@@ -146,7 +147,8 @@ namespace nfc
 				// Look for the unknown TNF which contains the data we care about
 				for (const auto& rec : *ndefMsg)
 				{
-					if (rec.GetTNF() == ndef::Record::NDEF_TNF_UNKNOWN) {
+					if (rec.GetTNF() == ndef::Record::NDEF_TNF_UNKNOWN)
+					{
 						dataSize = rec.GetPayload().size();
 						cemu_assert(dataSize < 0x200);
 						memcpy(data.GetPointer(), rec.GetPayload().data(), dataSize);
@@ -174,11 +176,6 @@ namespace nfc
 			{
 				result = -0xBFE;
 			}
-
-			// Clear tag status after read
-			// TODO this is not really nice here
-			ctx->nfcStatus &= ~NFC_STATUS_HAS_TAG;
-			ctx->tag = {};
 		}
 		else
 		{
@@ -194,9 +191,42 @@ namespace nfc
 
 		ctx->state = NFC_STATE_IDLE;
 
-		// TODO write to file
+		sint32 result;
 
-		PPCCoreCallback(ctx->writeCallback, chan, 0, ctx->writeContext);
+		if (ctx->tag)
+		{
+			// Update tag NDEF data
+			ctx->tag->SetNDEFData(ctx->writeMessage.ToBytes());
+
+			// TODO remove this once writing is confirmed working
+			fs::path newPath = ctx->tagPath;
+			if (newPath.extension() != ".bak")
+			{
+				newPath += ".bak";
+			}
+			cemuLog_log(LogType::Force, "Saving tag as {}...", newPath.string());
+
+			// open file for writing
+			FileStream* fs = FileStream::createFile2(newPath);
+			if (!fs)
+			{
+				result = -0x2DE;
+			}
+			else
+			{
+				auto tagBytes = ctx->tag->ToBytes();
+				fs->writeData(tagBytes.data(), tagBytes.size());
+				delete fs;
+
+				result = 0;
+			}
+		}
+		else
+		{
+			result = -0x2DD;
+		}
+
+		PPCCoreCallback(ctx->writeCallback, chan, result, ctx->writeContext);
 	}
 
 	void __NFCHandleAbort(uint32 chan)
@@ -231,6 +261,29 @@ namespace nfc
 		PPCCoreCallback(ctx->rawCallback, chan, result, responseSize, responseData, ctx->rawContext);
 	}
 
+	bool __NFCShouldHandleState(NFCContext* ctx)
+	{
+		// Always handle abort
+		if (ctx->state == NFC_STATE_ABORT)
+		{
+			return true;
+		}
+
+		// Do we have a tag?
+		if (ctx->nfcStatus & NFC_STATUS_HAS_TAG)
+		{
+			return true;
+		}
+
+		// Did the timeout expire?
+		if (ctx->discoveryTimeout < std::chrono::system_clock::now())
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	void NFCProc(uint32 chan)
 	{
 		cemu_assert(chan < 2);
@@ -240,6 +293,11 @@ namespace nfc
 		if (!ctx->isInitialized)
 		{
 			return;
+		}
+
+		if (ctx->state == NFC_STATE_INITIALIZED)
+		{
+			ctx->state = NFC_STATE_IDLE;
 		}
 
 		// Check if the detect callback should be called
@@ -253,6 +311,14 @@ namespace nfc
 				}
 
 				ctx->hasTag = true;
+			}
+
+			// Check if the tag should be removed again
+			if (ctx->touchTime + std::chrono::seconds(2) < std::chrono::system_clock::now())
+			{
+				ctx->nfcStatus &= ~NFC_STATUS_HAS_TAG;
+				ctx->tag = {};
+				ctx->tagPath = "";
 			}
 		}
 		else
@@ -268,33 +334,25 @@ namespace nfc
 			}
 		}
 
-		switch (ctx->state)
+		if (__NFCShouldHandleState(ctx))
 		{
-		case NFC_STATE_INITIALIZED:
-			ctx->state = NFC_STATE_IDLE;
-			break;
-		case NFC_STATE_IDLE:
-			break;
-		case NFC_STATE_READ:
-			// Do we have a tag or did the timeout expire?
-			if ((ctx->nfcStatus & NFC_STATUS_HAS_TAG) || ctx->discoveryTimeout < std::chrono::system_clock::now())
+			switch (ctx->state)
 			{
+			case NFC_STATE_READ:
 				__NFCHandleRead(chan);
-			}
-			break;
-		case NFC_STATE_WRITE:
-			__NFCHandleWrite(chan);
-			break;
-		case NFC_STATE_ABORT:
-			__NFCHandleAbort(chan);
-			break;
-		case NFC_STATE_RAW:
-			// Do we have a tag or did the timeout expire?
-			if ((ctx->nfcStatus & NFC_STATUS_HAS_TAG) || ctx->discoveryTimeout < std::chrono::system_clock::now())
-			{
+				break;
+			case NFC_STATE_WRITE:
+				__NFCHandleWrite(chan);
+				break;
+			case NFC_STATE_ABORT:
+				__NFCHandleAbort(chan);
+				break;
+			case NFC_STATE_RAW:
 				__NFCHandleRaw(chan);
+				break;
+			default:
+				break;
 			}
-			break;
 		}
 	}
 
@@ -589,6 +647,7 @@ namespace nfc
 
 		ctx->nfcStatus |= NFC_STATUS_HAS_TAG;
 		ctx->tagPath = filePath;
+		ctx->touchTime = std::chrono::system_clock::now();
 
 		*nfcError = NFC_ERROR_NONE;
 		return true;
