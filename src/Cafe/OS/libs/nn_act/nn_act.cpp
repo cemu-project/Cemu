@@ -308,6 +308,22 @@ void nnActExport_GetPrincipalIdEx(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0); // ResultSuccess
 }
 
+void nnActExport_GetTransferableId(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(unique, 0);
+
+	cemuLog_logDebug(LogType::Force, "nn_act.GetTransferableId(0x{:08x})", hCPU->gpr[3]);
+
+	uint64 transferableId;
+	uint32 r = nn::act::GetTransferableIdEx(&transferableId, unique, iosu::act::ACT_SLOT_CURRENT);
+	if (NN_RESULT_IS_FAILURE(r))
+	{
+		transferableId = 0;
+	}
+
+	osLib_returnFromFunction64(hCPU, _swapEndianU64(transferableId));
+}
+
 void nnActExport_GetTransferableIdEx(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(transferableId, uint64, 0);
@@ -691,6 +707,7 @@ void nnAct_load()
 	osLib_addFunction("nn_act", "GetPrincipalId__Q2_2nn3actFv", nnActExport_GetPrincipalId);
 	osLib_addFunction("nn_act", "GetPrincipalIdEx__Q2_2nn3actFPUiUc", nnActExport_GetPrincipalIdEx);
 	// transferable id
+	osLib_addFunction("nn_act", "GetTransferableId__Q2_2nn3actFUi", nnActExport_GetTransferableId);
 	osLib_addFunction("nn_act", "GetTransferableIdEx__Q2_2nn3actFPULUiUc", nnActExport_GetTransferableIdEx);
 	// persistent id
 	osLib_addFunction("nn_act", "GetPersistentId__Q2_2nn3actFv", nnActExport_GetPersistentId);
