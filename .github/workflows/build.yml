@@ -28,7 +28,6 @@ jobs:
       run: |
         cd dependencies/vcpkg
         git fetch --unshallow
-        git checkout 431eb6bda0950874c8d4ed929cc66e15d8aae46f
 
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
@@ -138,7 +137,6 @@ jobs:
       run: |
         cd dependencies/vcpkg
         git fetch --unshallow
-        git checkout 431eb6bda0950874c8d4ed929cc66e15d8aae46f     
         
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
@@ -218,7 +216,6 @@ jobs:
       run: |
         cd dependencies/vcpkg
         git fetch --unshallow
-        git pull --all        
         
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
