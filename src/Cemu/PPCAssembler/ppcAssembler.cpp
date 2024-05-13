@@ -2418,6 +2418,9 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	_ppcAssembler_translateAlias(instructionName);
 	// parse operands
 	internalInfo.listOperandStr.clear();
+
+	bool isInString = false;
+
 	while (currentPtr < endPtr)
 	{
 		currentPtr++;
@@ -2425,7 +2428,10 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 		// find end of operand
 		while (currentPtr < endPtr)
 		{
-			if (*currentPtr == ',')
+			if (*currentPtr == '"')
+				isInString=!isInString;
+
+			if (*currentPtr == ',' && !isInString)
 				break;
 			currentPtr++;
 		}
