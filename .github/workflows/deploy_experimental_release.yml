@@ -15,22 +15,22 @@ jobs:
     steps:
       - uses: actions/checkout@v3
  
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cemu-bin-linux-x64
           path: cemu-bin-linux-x64
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cemu-appimage-x64
           path: cemu-appimage-x64
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cemu-bin-windows-x64
           path: cemu-bin-windows-x64
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cemu-bin-macos-x64
           path: cemu-bin-macos-x64

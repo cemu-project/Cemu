@@ -639,11 +639,34 @@ namespace sysapp
 		return coreinit::OSRestartGame(argc, argv);
 	}
 
+	struct EManualArgs
+	{
+		sysStandardArguments_t stdArgs;
+		uint64be titleId;
+	};
+	static_assert(sizeof(EManualArgs) == 0x10);
+
+	void _SYSSwitchToEManual(EManualArgs* args)
+	{
+		// the struct has the titleId at offset 8 and standard args at 0 (total size is most likely 0x10)
+		cemuLog_log(LogType::Force, "SYSSwitchToEManual called. Opening the manual is not supported");
+		coreinit::StartBackgroundForegroundTransition();
+	}
+
+	void SYSSwitchToEManual()
+	{
+		EManualArgs args{};
+		args.titleId = coreinit::OSGetTitleID();
+		_SYSSwitchToEManual(&args);
+	}
+
 	void load()
 	{
 		cafeExportRegisterFunc(SYSClearSysArgs, "sysapp", "SYSClearSysArgs", LogType::Placeholder);
 		cafeExportRegisterFunc(_SYSLaunchTitleByPathFromLauncher, "sysapp", "_SYSLaunchTitleByPathFromLauncher", LogType::Placeholder);
 		cafeExportRegisterFunc(SYSRelaunchTitle, "sysapp", "SYSRelaunchTitle", LogType::Placeholder);
+		cafeExportRegister("sysapp", _SYSSwitchToEManual, LogType::Placeholder);
+		cafeExportRegister("sysapp", SYSSwitchToEManual, LogType::Placeholder);
 	}
 }
 

@@ -13,6 +13,7 @@
 #include "Cafe/OS/libs/nn_spm/nn_spm.h"
 #include "Cafe/OS/libs/nn_ec/nn_ec.h"
 #include "Cafe/OS/libs/nn_boss/nn_boss.h"
+#include "Cafe/OS/libs/nn_sl/nn_sl.h"
 #include "Cafe/OS/libs/nn_fp/nn_fp.h"
 #include "Cafe/OS/libs/nn_olv/nn_olv.h"
 #include "Cafe/OS/libs/nn_idbe/nn_idbe.h"
@@ -208,6 +209,7 @@ void osLib_load()
 	nn::ndm::load();
 	nn::spm::load();
 	nn::save::load();
+	nnSL_load();
 	nsysnet_load();
 	nn::fp::load();
 	nn::olv::load();
@@ -219,5 +221,5 @@ void osLib_load()
 	nsyskbd::nsyskbd_load();
 	swkbd::load();
 	camera::load();
-	procui_load();
+	proc_ui::load();
 }

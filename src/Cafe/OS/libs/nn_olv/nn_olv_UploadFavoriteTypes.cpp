@@ -40,7 +40,7 @@ namespace nn
 				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu.favorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 			
 			CurlRequestHelper req;
-			req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
+			req.initate(ActiveSettings::GetNetworkService(), requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
 			InitializeOliveRequest(req);
 
 			StackAllocator<coreinit::OSEvent> requestDoneEvent;

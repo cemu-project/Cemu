@@ -3,13 +3,17 @@
 #include "ConfigValue.h"
 #include "XMLConfig.h"
 
-
-enum class NetworkService {
-Nintendo,
-Pretendo,
-Custom,
+enum class NetworkService
+{
+	Offline,
+	Nintendo,
+	Pretendo,
+	Custom,
+	COUNT = Custom
 };
-struct NetworkConfig {
+
+struct NetworkConfig
+{
     NetworkConfig()
 	{
 
@@ -70,3 +74,14 @@ struct PretendoURLs {
 typedef XMLDataConfig<NetworkConfig, &NetworkConfig::Load, &NetworkConfig::Save> XMLNetworkConfig_t;
 extern XMLNetworkConfig_t n_config;
 inline NetworkConfig& GetNetworkConfig() { return n_config.data();};
+
+inline bool IsNetworkServiceSSLDisabled(NetworkService service)
+{
+	if(service == NetworkService::Nintendo)
+		return false;
+	else if(service == NetworkService::Pretendo)
+		return true;
+	else if(service == NetworkService::Custom)
+		return GetNetworkConfig().disablesslver.GetValue();
+	return false;
+}

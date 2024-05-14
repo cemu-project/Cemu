@@ -8,6 +8,8 @@
 #include <wx/language.h>
 #include <wx/intl.h>
 
+enum class NetworkService;
+
 struct GameEntry
 {
 	GameEntry() = default;
@@ -419,7 +421,7 @@ struct CemuConfig
 	ConfigValue<bool> did_show_graphic_pack_download{false};
 	ConfigValue<bool> did_show_macos_disclaimer{false};
 
-	ConfigValue<bool> show_icon_column{ false };
+	ConfigValue<bool> show_icon_column{ true };
 
 	int game_list_style = 0;
 	std::string game_list_column_order;
@@ -484,8 +486,9 @@ struct CemuConfig
 	struct
 	{
 		ConfigValueBounds<uint32> m_persistent_id{ Account::kMinPersistendId, Account::kMinPersistendId, 0xFFFFFFFF };
-		ConfigValue<bool> online_enabled{false};
-		ConfigValue<int> active_service{0};
+		ConfigValue<bool> legacy_online_enabled{false};
+		ConfigValue<int> legacy_active_service{0};
+		std::unordered_map<uint32, NetworkService> service_select; // per-account service index. Key is persistentId
 	}account{};
 
 	// input
@@ -510,6 +513,9 @@ struct CemuConfig
 	bool GetGameListCustomName(uint64 titleId, std::string& customName);
 	void SetGameListCustomName(uint64 titleId, std::string customName);
 
+	NetworkService GetAccountNetworkService(uint32 persistentId);
+	void SetAccountSelectedService(uint32 persistentId, NetworkService serviceIndex);
+
 	static int AudioChannelsToNChannels(AudioChannels kStereo)
 	{
 		switch (kStereo)
@@ -523,7 +529,7 @@ struct CemuConfig
 		}
 	}
 
-	private:
+  private:
 	GameEntry* GetGameEntryByTitleId(uint64 titleId);
 	GameEntry* CreateGameEntry(uint64 titleId);
 };

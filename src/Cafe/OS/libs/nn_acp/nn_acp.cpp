@@ -17,6 +17,8 @@
 #include "Common/FileStream.h"
 #include "Cafe/CafeSystem.h"
 
+using ACPDeviceType = iosu::acp::ACPDeviceType;
+
 #define acpPrepareRequest() \
 StackAllocator<iosuAcpCemuRequest_t> _buf_acpRequest; \
 StackAllocator<ioBufferVector_t> _buf_bufferVector; \
@@ -30,17 +32,25 @@ namespace nn
 {
 namespace acp
 {
-	ACPStatus _ACPConvertResultToACPStatus(uint32* nnResult, const char* functionName, uint32 someConstant)
+	ACPStatus ACPConvertResultToACPStatus(uint32* nnResult, const char* functionName, uint32 lineNumber)
 	{
 		// todo
 		return ACPStatus::SUCCESS;
 	}
+
+	#define _ACPConvertResultToACPStatus(nnResult) ACPConvertResultToACPStatus(nnResult, __func__, __LINE__)
 
 	ACPStatus ACPGetApplicationBox(uint32be* applicationBox, uint64 titleId)
 	{
 		// todo
 		*applicationBox = 3; // storage mlc
 		return ACPStatus::SUCCESS;
+	}
+
+	ACPStatus ACPGetOlvAccesskey(uint32be* accessKey)
+	{
+		nnResult r = iosu::acp::ACPGetOlvAccesskey(accessKey);
+		return _ACPConvertResultToACPStatus(&r);
 	}
 
     bool sSaveDirMounted{false};
@@ -56,7 +66,7 @@ namespace acp
 		const auto mlc = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/", high, low);
 		FSCDeviceHostFS_Mount("/vol/save/", _pathToUtf8(mlc), FSC_PRIORITY_BASE);
 		nnResult mountResult = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACP, 0);
-		return _ACPConvertResultToACPStatus(&mountResult, "ACPMountSaveDir", 0x60);
+		return _ACPConvertResultToACPStatus(&mountResult);
 	}
 
     ACPStatus ACPUnmountSaveDir()
@@ -66,199 +76,22 @@ namespace acp
         return ACPStatus::SUCCESS;
     }
 
-	uint64 _acpGetTimestamp()
-	{
-		return coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK;
-	}
-
-	nnResult __ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, ACPDeviceType deviceType)
-	{
-		if (deviceType == UnknownType)
-		{
-			return (nnResult)0xA030FB80;
-		}
-
-		// create or modify the saveinfo
-		const auto saveinfoPath = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/meta/saveinfo.xml", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-		auto saveinfoData = FileStream::LoadIntoMemory(saveinfoPath);
-		if (saveinfoData && !saveinfoData->empty())
-		{
-			namespace xml = tinyxml2;
-			xml::XMLDocument doc;
-			tinyxml2::XMLError xmlError = doc.Parse((const char*)saveinfoData->data(), saveinfoData->size());
-			if (xmlError == xml::XML_SUCCESS || xmlError == xml::XML_ERROR_EMPTY_DOCUMENT)
-			{
-				xml::XMLNode* child = doc.FirstChild();
-				// check for declaration -> <?xml version="1.0" encoding="utf-8"?>
-				if (!child || !child->ToDeclaration())
-				{
-					xml::XMLDeclaration* decl = doc.NewDeclaration();
-					doc.InsertFirstChild(decl);
-				}
-
-				xml::XMLElement* info = doc.FirstChildElement("info");
-				if (!info)
-				{
-					info = doc.NewElement("info");
-					doc.InsertEndChild(info);
-				}
-
-				// find node with persistentId
-				char tmp[64];
-				sprintf(tmp, "%08x", persistentId);
-				bool foundNode = false;
-				for (xml::XMLElement* account = info->FirstChildElement("account"); account; account = account->NextSiblingElement("account"))
-				{
-					if (account->Attribute("persistentId", tmp))
-					{
-						// found the entry! -> update timestamp
-						xml::XMLElement* timestamp = account->FirstChildElement("timestamp");
-						sprintf(tmp, "%" PRIx64, _acpGetTimestamp());
-						if (timestamp)
-							timestamp->SetText(tmp);
-						else
-						{
-							timestamp = doc.NewElement("timestamp");
-							account->InsertFirstChild(timestamp);
-						}
-
-						foundNode = true;
-						break;
-					}
-				}
-
-				if (!foundNode)
-				{
-					tinyxml2::XMLElement* account = doc.NewElement("account");
-					{
-						sprintf(tmp, "%08x", persistentId);
-						account->SetAttribute("persistentId", tmp);
-
-						tinyxml2::XMLElement* timestamp = doc.NewElement("timestamp");
-						{
-							sprintf(tmp, "%" PRIx64, _acpGetTimestamp());
-							timestamp->SetText(tmp);
-						}
-
-						account->InsertFirstChild(timestamp);
-					}
-
-					info->InsertFirstChild(account);
-				}
-
-				// update file
-				tinyxml2::XMLPrinter printer;
-				doc.Print(&printer);
-				FileStream* fs = FileStream::createFile2(saveinfoPath);
-				if (fs)
-				{
-					fs->writeString(printer.CStr());
-					delete fs;
-				}
-			}
-		}
-		return NN_RESULT_SUCCESS;
-	}
-
 	ACPStatus ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, ACPDeviceType deviceType)
 	{
-		nnResult r = __ACPUpdateSaveTimeStamp(persistentId, titleId, deviceType);
+		nnResult r = iosu::acp::ACPUpdateSaveTimeStamp(persistentId, titleId, deviceType);
 		return ACPStatus::SUCCESS;
-	}
-
-	void CreateSaveMetaFiles(uint32 persistentId, uint64 titleId)
-	{
-		std::string titlePath = CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId());
-
-		sint32 fscStatus;
-		FSCVirtualFile* fscFile = fsc_open((titlePath + "/meta/meta.xml").c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
-		if (fscFile)
-		{
-			sint32 fileSize = fsc_getFileSize(fscFile);
-
-			std::unique_ptr<uint8[]> fileContent = std::make_unique<uint8[]>(fileSize);
-			fsc_readFile(fscFile, fileContent.get(), fileSize);
-			fsc_close(fscFile);
-
-			const auto outPath = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/meta/meta.xml", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-
-			std::ofstream myFile(outPath, std::ios::out | std::ios::binary);
-			myFile.write((char*)fileContent.get(), fileSize);
-			myFile.close();
-		}
-
-		fscFile = fsc_open((titlePath + "/meta/iconTex.tga").c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
-		if (fscFile)
-		{
-			sint32 fileSize = fsc_getFileSize(fscFile);
-
-			std::unique_ptr<uint8[]> fileContent = std::make_unique<uint8[]>(fileSize);
-			fsc_readFile(fscFile, fileContent.get(), fileSize);
-			fsc_close(fscFile);
-
-			const auto outPath = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/meta/iconTex.tga", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-
-			std::ofstream myFile(outPath, std::ios::out | std::ios::binary);
-			myFile.write((char*)fileContent.get(), fileSize);
-			myFile.close();
-		}
-
-		ACPUpdateSaveTimeStamp(persistentId, titleId, InternalDeviceType);
-	}
-
-	nnResult CreateSaveDir(uint32 persistentId, ACPDeviceType type)
-	{
-		uint64 titleId = CafeSystem::GetForegroundTitleId();
-		uint32 high = GetTitleIdHigh(titleId) & (~0xC);
-		uint32 low = GetTitleIdLow(titleId);
-
-		sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
-		char path[256];
-
-		sprintf(path, "%susr/save/%08x/", "/vol/storage_mlc01/", high);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/save/%08x/%08x/", "/vol/storage_mlc01/", high, low);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/save/%08x/%08x/meta/", "/vol/storage_mlc01/", high, low);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/save/%08x/%08x/user/", "/vol/storage_mlc01/", high, low);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/save/%08x/%08x/user/common", "/vol/storage_mlc01/", high, low);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/save/%08x/%08x/user/%08x", "/vol/storage_mlc01/", high, low, persistentId == 0 ? 0x80000001 : persistentId);
-		fsc_createDir(path, &fscStatus);
-
-		// not sure about this
-		sprintf(path, "%susr/boss/", "/vol/storage_mlc01/");
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/boss/%08x/", "/vol/storage_mlc01/", high);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/boss/%08x/%08x/", "/vol/storage_mlc01/", high, low);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/boss/%08x/%08x/user/", "/vol/storage_mlc01/", high, low);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/boss/%08x/%08x/user/common", "/vol/storage_mlc01/", high, low);
-		fsc_createDir(path, &fscStatus);
-		sprintf(path, "%susr/boss/%08x/%08x/user/%08x/", "/vol/storage_mlc01/", high, low, persistentId == 0 ? 0x80000001 : persistentId);
-		fsc_createDir(path, &fscStatus);
-
-		// copy xml meta files
-		CreateSaveMetaFiles(persistentId, titleId);
-
-		nnResult result = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_ACP, 0);
-		return result;
-	}
-
-	ACPStatus ACPCreateSaveDir(uint32 persistentId, ACPDeviceType type)
-	{
-		nnResult result = CreateSaveDir(persistentId, type);
-		return _ACPConvertResultToACPStatus(&result, "ACPCreateSaveDir", 0x2FA);
 	}
 
 	ACPStatus ACPCheckApplicationDeviceEmulation(uint32be* isEmulated)
 	{
 		*isEmulated = 0;
 		return ACPStatus::SUCCESS;
+	}
+
+	ACPStatus ACPCreateSaveDir(uint32 persistentId, ACPDeviceType type)
+	{
+		nnResult result = iosu::acp::ACPCreateSaveDir(persistentId, type);
+		return _ACPConvertResultToACPStatus(&result);
 	}
 
 	nnResult ACPCreateSaveDirEx(uint8 accountSlot, uint64 titleId)
@@ -279,7 +112,7 @@ namespace acp
 		ppcDefineParamU8(accountSlot, 0);
 		ppcDefineParamU64(titleId, 2); // index 2 because of alignment -> guessed parameters
 		nnResult result = ACPCreateSaveDirEx(accountSlot, titleId);
-		osLib_returnFromFunction(hCPU, _ACPConvertResultToACPStatus(&result, "ACPCreateSaveDirEx", 0x300));
+		osLib_returnFromFunction(hCPU, _ACPConvertResultToACPStatus(&result));
 	}
 
 	void export_ACPGetSaveDataTitleIdList(PPCInterpreter_t* hCPU)
@@ -456,6 +289,18 @@ namespace acp
 		osLib_returnFromFunction(hCPU, acpRequest->returnCode);
 	}
 
+	uint32 ACPGetTitleMetaXml(uint64 titleId, acpMetaXml_t* acpMetaXml)
+	{
+		acpPrepareRequest();
+		acpRequest->requestCode = IOSU_ACP_GET_TITLE_META_XML;
+		acpRequest->ptr = acpMetaXml;
+		acpRequest->titleId = titleId;
+
+		__depr__IOS_Ioctlv(IOS_DEVICE_ACP_MAIN, IOSU_ACP_REQUEST_CEMU, 1, 1, acpBufferVector);
+
+		return acpRequest->returnCode;
+	}
+
 	void export_ACPIsOverAgeEx(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(age, 0);
@@ -508,8 +353,11 @@ namespace acp
 
 		osLib_addFunction("nn_acp", "ACPGetTitleMetaDirByDevice", export_ACPGetTitleMetaDirByDevice);
 		osLib_addFunction("nn_acp", "ACPGetTitleMetaXmlByDevice", export_ACPGetTitleMetaXmlByDevice);
+		cafeExportRegister("nn_acp", ACPGetTitleMetaXml, LogType::Placeholder);
 
 		cafeExportRegister("nn_acp", ACPGetApplicationBox, LogType::Placeholder);
+
+		cafeExportRegister("nn_acp", ACPGetOlvAccesskey, LogType::Placeholder);
 
 		osLib_addFunction("nn_acp", "ACPIsOverAgeEx", export_ACPIsOverAgeEx);
 

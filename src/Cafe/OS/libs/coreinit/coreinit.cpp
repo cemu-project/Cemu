@@ -35,12 +35,12 @@
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_BlockHeap.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
 
-CoreinitSharedData* gCoreinitData = NULL;
+CoreinitSharedData* gCoreinitData = nullptr;
 
 sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 {
-	uint32 stackMinAddr = _swapEndianU32(thread->stackEnd);
-	uint32 stackMaxAddr = _swapEndianU32(thread->stackBase);
+	uint32 stackMinAddr = thread->stackEnd.GetMPTR();
+	uint32 stackMaxAddr = thread->stackBase.GetMPTR();
 
 	sint32 score = 0;
 	uint32 currentStackPtr = sp;
@@ -95,8 +95,8 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 
 	// print stack trace
 	uint32 currentStackPtr = highestScoreSP;
-	uint32 stackMinAddr = _swapEndianU32(thread->stackEnd);
-	uint32 stackMaxAddr = _swapEndianU32(thread->stackBase);
+	uint32 stackMinAddr = thread->stackEnd.GetMPTR();
+	uint32 stackMaxAddr = thread->stackBase.GetMPTR();
 	for (sint32 i = 0; i < 20; i++)
 	{
 		uint32 nextStackPtr = memory_readU32(currentStackPtr);
@@ -177,27 +177,6 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 	memory_writeU32(hCPU->gpr[5], placeholderFont);
 	memory_writeU32(hCPU->gpr[6], placeholderFontSize);
 	osLib_returnFromFunction(hCPU, 1);
-}
-
-typedef struct
-{
-	MPTR getDriverName;
-	MPTR ukn04;
-	MPTR onAcquiredForeground;
-	MPTR onReleaseForeground;
-	MPTR ukn10;
-}OSDriverCallbacks_t;
-
-void coreinitExport_OSDriver_Register(PPCInterpreter_t* hCPU)
-{
-#ifdef CEMU_DEBUG_ASSERT
-	cemuLog_log(LogType::Force, "OSDriver_Register(0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
-#endif
-	OSDriverCallbacks_t* driverCallbacks = (OSDriverCallbacks_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]);
-
-	// todo
-
-	osLib_returnFromFunction(hCPU, 0);
 }
 
 namespace coreinit
@@ -379,7 +358,6 @@ void coreinit_load()
 	coreinit::miscInit();
 	osLib_addFunction("coreinit", "OSGetSharedData", coreinitExport_OSGetSharedData);
 	osLib_addFunction("coreinit", "UCReadSysConfig", coreinitExport_UCReadSysConfig);
-	osLib_addFunction("coreinit", "OSDriver_Register", coreinitExport_OSDriver_Register);
 
 	// async callbacks
 	InitializeAsyncCallback();

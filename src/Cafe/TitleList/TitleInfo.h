@@ -26,29 +26,95 @@ struct ParsedAppXml
 	uint32 sdk_version;
 };
 
+enum class CosCapabilityGroup : uint32
+{
+	None = 0,
+	BSP  =  1,
+	DK   =  3,
+	USB  =  9,
+	UHS  = 12,
+	FS   = 11,
+	MCP  = 13,
+	NIM  = 14,
+	ACT  = 15,
+	FPD  = 16,
+	BOSS = 17,
+	ACP  = 18,
+	PDM  = 19,
+	AC   = 20,
+	NDM  = 21,
+	NSEC = 22
+};
+
+enum class CosCapabilityBits : uint64
+{
+	All = 0xFFFFFFFFFFFFFFFFull
+};
+
+enum class CosCapabilityBitsFS : uint64
+{
+	ODD_READ         = (1llu << 0),
+	ODD_WRITE        = (1llu << 1),
+	ODD_RAW_OPEN     = (1llu << 2),
+	ODD_MOUNT        = (1llu << 3),
+	SLCCMPT_READ     = (1llu << 4),
+	SLCCMPT_WRITE    = (1llu << 5),
+	SLCCMPT_RAW_OPEN = (1llu << 6),
+	SLCCMPT_MOUNT    = (1llu << 7),
+	SLC_READ         = (1llu << 8),
+	SLC_WRITE        = (1llu << 9),
+	SLC_RAW_OPEN     = (1llu << 10),
+	SLC_MOUNT        = (1llu << 11),
+	MLC_READ         = (1llu << 12),
+	MLC_WRITE        = (1llu << 13),
+	MLC_RAW_OPEN     = (1llu << 14),
+	MLC_MOUNT        = (1llu << 15),
+	SDCARD_READ      = (1llu << 16),
+	SDCARD_WRITE     = (1llu << 17),
+	SDCARD_RAW_OPEN  = (1llu << 18),
+	SDCARD_MOUNT     = (1llu << 19),
+	HFIO_READ        = (1llu << 20),
+	HFIO_WRITE       = (1llu << 21),
+	HFIO_RAW_OPEN    = (1llu << 22),
+	HFIO_MOUNT       = (1llu << 23),
+	RAMDISK_READ     = (1llu << 24),
+	RAMDISK_WRITE    = (1llu << 25),
+	RAMDISK_RAW_OPEN = (1llu << 26),
+	RAMDISK_MOUNT    = (1llu << 27),
+	USB_READ         = (1llu << 28),
+	USB_WRITE        = (1llu << 29),
+	USB_RAW_OPEN     = (1llu << 30),
+	USB_MOUNT        = (1llu << 31),
+	OTHER_READ       = (1llu << 32),
+	OTHER_WRITE      = (1llu << 33),
+	OTHER_RAW_OPEN   = (1llu << 34),
+	OTHER_MOUNT      = (1llu << 35)
+};
+ENABLE_BITMASK_OPERATORS(CosCapabilityBitsFS);
+
 struct ParsedCosXml 
 {
+  public:
+
 	std::string argstr;
 
-	static ParsedCosXml* Parse(uint8* xmlData, size_t xmlLen)
+	struct Permission
 	{
-		pugi::xml_document app_doc;
-		if (!app_doc.load_buffer_inplace(xmlData, xmlLen))
-			return nullptr;
+		CosCapabilityGroup group{CosCapabilityGroup::None};
+		CosCapabilityBits mask{CosCapabilityBits::All};
+	};
+	Permission permissions[19]{};
 
-		const auto root = app_doc.child("app");
-		if (!root)
-			return nullptr;
+	static ParsedCosXml* Parse(uint8* xmlData, size_t xmlLen);
 
-		ParsedCosXml* parsedCos = new ParsedCosXml();
-
-		for (const auto& child : root.children())
+	CosCapabilityBits GetCapabilityBits(CosCapabilityGroup group) const
+	{
+		for (const auto& perm : permissions)
 		{
-			std::string_view name = child.name();
-			if (name == "argstr")
-				parsedCos->argstr = child.text().as_string();
+			if (perm.group == group)
+				return perm.mask;
 		}
-		return parsedCos;
+		return CosCapabilityBits::All;
 	}
 };
 
@@ -61,6 +127,7 @@ public:
 		WUD = 2, // WUD or WUX
 		WIIU_ARCHIVE = 3, // Wii U compressed single-file archive (.wua)
 	  	NUS = 4, // NUS format. Directory with .app files, title.tik and title.tmd
+	  	WUHB = 5,
 		// error
 		INVALID_STRUCTURE = 0,
 	};
@@ -151,13 +218,18 @@ public:
 	// cos.xml
 	std::string GetArgStr() const;
 
-	// meta.xml also contains a version which seems to match the one from app.xml
+	// meta.xml also contains a version field which seems to match the one from app.xml
 	// the titleId in meta.xml seems to be the title id of the base game for updates specifically. For AOC content it's the AOC's titleId
 
 	TitleIdParser::TITLE_TYPE GetTitleType();
 	ParsedMetaXml* GetMetaInfo()
 	{
 		return m_parsedMetaXml;
+	}
+
+	ParsedCosXml* GetCosInfo()
+	{
+		return m_parsedCosXml;
 	}
 
 	std::string GetPrintPath() const; // formatted path including type and WUA subpath. Intended for logging and user-facing information
@@ -194,6 +266,7 @@ private:
 	bool DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataFormat& formatOut);
 	void CalcUID();
 	void SetInvalidReason(InvalidReason reason);
+	ParsedMetaXml* ParseAromaIni(std::span<unsigned char> content);
 	bool ParseAppXml(std::vector<uint8>& appXmlData);
 
 	bool m_isValid{ false };
@@ -206,6 +279,7 @@ private:
 	std::vector<std::pair<sint32, std::string>> m_mountpoints;
 	class FSTVolume* m_wudVolume{};
 	class ZArchiveReader* m_zarchive{};
+	class WUHBReader* m_wuhbreader{};
 	// xml info
 	bool m_hasParsedXmlFiles{ false };
 	ParsedMetaXml* m_parsedMetaXml{};
