@@ -850,6 +850,10 @@ void LatteShaderCache_StreamBootSound()
 
 	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
 	sint32 fscStatus = FSC_STATUS_UNDEFINED;
+
+	if(!fsc_doesFileExist(sndPath.c_str()))
+		return;
+
 	bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
 	if(!bootSndFileHandle)
 	{
