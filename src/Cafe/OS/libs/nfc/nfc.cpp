@@ -41,6 +41,10 @@ namespace nfc
 		uint32 nfcStatus;
 		std::chrono::time_point<std::chrono::system_clock> touchTime;
 		std::chrono::time_point<std::chrono::system_clock> discoveryTimeout;
+		struct {
+			NFCUid uid;
+			NFCUid mask;
+		} filter;
 
 		MPTR tagDetectCallback;
 		void* tagDetectContext;
@@ -124,6 +128,19 @@ namespace nfc
 		return gNFCContexts[chan].isInitialized;
 	}
 
+	bool __NFCCompareUid(NFCUid* uid, NFCUid* filterUid, NFCUid* filterMask)
+	{
+		for (int i = 0; i < sizeof(uid->uid); i++)
+		{
+			if ((uid->uid[i] & filterMask->uid[i]) != filterUid->uid[i])
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	void __NFCHandleRead(uint32 chan)
 	{
 		NFCContext* ctx = &gNFCContexts[chan];
@@ -140,32 +157,38 @@ namespace nfc
 
 		if (ctx->tag)
 		{
-			// Try to parse ndef message
-			auto ndefMsg = ndef::Message::FromBytes(ctx->tag->GetNDEFData());
-			if (ndefMsg)
+			// Compare UID
+			memcpy(uid.GetPointer(), ctx->tag->GetUIDBlock().data(), sizeof(NFCUid));
+			if (__NFCCompareUid(uid.GetPointer(), &ctx->filter.uid, &ctx->filter.mask))
 			{
-				// Look for the unknown TNF which contains the data we care about
-				for (const auto& rec : *ndefMsg)
+				// Try to parse ndef message
+				auto ndefMsg = ndef::Message::FromBytes(ctx->tag->GetNDEFData());
+				if (ndefMsg)
 				{
-					if (rec.GetTNF() == ndef::Record::NDEF_TNF_UNKNOWN)
+					// Look for the unknown TNF which contains the data we care about
+					for (const auto& rec : *ndefMsg)
 					{
-						dataSize = rec.GetPayload().size();
-						cemu_assert(dataSize < 0x200);
-						memcpy(data.GetPointer(), rec.GetPayload().data(), dataSize);
-						break;
+						if (rec.GetTNF() == ndef::Record::NDEF_TNF_UNKNOWN)
+						{
+							dataSize = rec.GetPayload().size();
+							cemu_assert(dataSize < 0x200);
+							memcpy(data.GetPointer(), rec.GetPayload().data(), dataSize);
+							break;
+						}
 					}
-				}
 
-				if (dataSize)
-				{
-					// Get locked data
-					lockedDataSize = ctx->tag->GetLockedArea().size();
-					memcpy(lockedData.GetPointer(), ctx->tag->GetLockedArea().data(), lockedDataSize);
+					if (dataSize)
+					{
+						// Get locked data
+						lockedDataSize = ctx->tag->GetLockedArea().size();
+						memcpy(lockedData.GetPointer(), ctx->tag->GetLockedArea().data(), lockedDataSize);
 
-					// Fill in uid
-					memcpy(uid.GetPointer(), ctx->tag->GetUIDBlock().data(), sizeof(NFCUid));
-
-					result = 0;
+						result = 0;
+					}
+					else
+					{
+						result = -0xBFE;
+					}
 				}
 				else
 				{
@@ -174,7 +197,7 @@ namespace nfc
 			}
 			else
 			{
-				result = -0xBFE;
+				result = -0x1F6;
 			}
 		}
 		else
@@ -195,30 +218,39 @@ namespace nfc
 
 		if (ctx->tag)
 		{
-			// Update tag NDEF data
-			ctx->tag->SetNDEFData(ctx->writeMessage.ToBytes());
-
-			// TODO remove this once writing is confirmed working
-			fs::path newPath = ctx->tagPath;
-			if (newPath.extension() != ".bak")
+			NFCUid uid;
+			memcpy(&uid, ctx->tag->GetUIDBlock().data(), sizeof(NFCUid));
+			if (__NFCCompareUid(&uid, &ctx->filter.uid, &ctx->filter.mask))
 			{
-				newPath += ".bak";
-			}
-			cemuLog_log(LogType::Force, "Saving tag as {}...", newPath.string());
+				// Update tag NDEF data
+				ctx->tag->SetNDEFData(ctx->writeMessage.ToBytes());
 
-			// open file for writing
-			FileStream* fs = FileStream::createFile2(newPath);
-			if (!fs)
-			{
-				result = -0x2DE;
+				// TODO remove this once writing is confirmed working
+				fs::path newPath = ctx->tagPath;
+				if (newPath.extension() != ".bak")
+				{
+					newPath += ".bak";
+				}
+				cemuLog_log(LogType::Force, "Saving tag as {}...", newPath.string());
+
+				// open file for writing
+				FileStream* fs = FileStream::createFile2(newPath);
+				if (!fs)
+				{
+					result = -0x2DE;
+				}
+				else
+				{
+					auto tagBytes = ctx->tag->ToBytes();
+					fs->writeData(tagBytes.data(), tagBytes.size());
+					delete fs;
+
+					result = 0;
+				}
 			}
 			else
 			{
-				auto tagBytes = ctx->tag->ToBytes();
-				fs->writeData(tagBytes.data(), tagBytes.size());
-				delete fs;
-
-				result = 0;
+				result = -0x2F6;
 			}
 		}
 		else
@@ -548,7 +580,8 @@ namespace nfc
 			ctx->discoveryTimeout = std::chrono::system_clock::now() + std::chrono::milliseconds(discoveryTimeout);
 		}
 
-		// TODO uid filter?
+		memcpy(&ctx->filter.uid, uid, sizeof(*uid));
+		memcpy(&ctx->filter.mask, uidMask, sizeof(*uidMask));
 
 		return 0;
 	}
@@ -598,7 +631,8 @@ namespace nfc
 			ctx->discoveryTimeout = std::chrono::system_clock::now() + std::chrono::milliseconds(discoveryTimeout);
 		}
 
-		// TODO uid filter?
+		memcpy(&ctx->filter.uid, uid, sizeof(*uid));
+		memcpy(&ctx->filter.mask, uidMask, sizeof(*uidMask));
 
 		return 0;
 	}
