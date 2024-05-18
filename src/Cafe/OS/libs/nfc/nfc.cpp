@@ -7,27 +7,25 @@
 #include "TagV0.h"
 #include "ndef.h"
 
-// TODO move errors to header and allow ntag to convert them
+#define NFC_MODE_INVALID	-1
+#define NFC_MODE_IDLE		0
+#define NFC_MODE_ACTIVE		1
 
-#define NFC_MODE_INVALID     -1
-#define NFC_MODE_IDLE        0
-#define NFC_MODE_ACTIVE      1
+#define NFC_STATE_UNINITIALIZED		0x0
+#define NFC_STATE_INITIALIZED		0x1
+#define NFC_STATE_IDLE			0x2
+#define NFC_STATE_READ			0x3
+#define NFC_STATE_WRITE			0x4
+#define NFC_STATE_ABORT			0x5
+#define NFC_STATE_FORMAT		0x6
+#define NFC_STATE_SET_READ_ONLY		0x7
+#define NFC_STATE_TAG_PRESENT		0x8
+#define NFC_STATE_DETECT		0x9
+#define NFC_STATE_SEND_RAW_DATA		0xA
 
-#define NFC_STATE_UNINITIALIZED 0x0
-#define NFC_STATE_INITIALIZED   0x1
-#define NFC_STATE_IDLE          0x2
-#define NFC_STATE_READ          0x3
-#define NFC_STATE_WRITE         0x4
-#define NFC_STATE_ABORT         0x5
-#define NFC_STATE_FORMAT        0x6
-#define NFC_STATE_SET_READ_ONLY 0x7
-#define NFC_STATE_TAG_PRESENT   0x8
-#define NFC_STATE_DETECT        0x9
-#define NFC_STATE_RAW           0xA
-
-#define NFC_STATUS_COMMAND_COMPLETE 0x1
-#define NFC_STATUS_READY            0x2
-#define NFC_STATUS_HAS_TAG          0x4
+#define NFC_STATUS_COMMAND_COMPLETE	0x1
+#define NFC_STATUS_READY		0x2
+#define NFC_STATUS_HAS_TAG		0x4
 
 namespace nfc
 {
@@ -107,7 +105,7 @@ namespace nfc
 		ctx->isInitialized = true;
 		ctx->state = NFC_STATE_INITIALIZED;
 
-		return 0;
+		return NFC_RESULT_SUCCESS;
 	}
 
 	sint32 NFCShutdown(uint32 chan)
@@ -118,7 +116,7 @@ namespace nfc
 
 		__NFCClearContext(ctx);
 
-		return 0;
+		return NFC_RESULT_SUCCESS;
 	}
 
 	bool NFCIsInit(uint32 chan)
@@ -183,26 +181,26 @@ namespace nfc
 						lockedDataSize = ctx->tag->GetLockedArea().size();
 						memcpy(lockedData.GetPointer(), ctx->tag->GetLockedArea().data(), lockedDataSize);
 
-						result = 0;
+						result = NFC_RESULT_SUCCESS;
 					}
 					else
 					{
-						result = -0xBFE;
+						result = NFC_MAKE_RESULT(NFC_RESULT_BASE_TAG_PARSE, NFC_RESULT_INVALID_TAG);
 					}
 				}
 				else
 				{
-					result = -0xBFE;
+					result = NFC_MAKE_RESULT(NFC_RESULT_BASE_TAG_PARSE, NFC_RESULT_INVALID_TAG);
 				}
 			}
 			else
 			{
-				result = -0x1F6;
+				result = NFC_MAKE_RESULT(NFC_RESULT_BASE_READ, NFC_RESULT_UID_MISMATCH);
 			}
 		}
 		else
 		{
-			result = -0x1DD;
+			result = NFC_MAKE_RESULT(NFC_RESULT_BASE_READ, NFC_RESULT_NO_TAG);
 		}
 
 		PPCCoreCallback(ctx->readCallback, chan, result, uid.GetPointer(), readOnly, dataSize, data.GetPointer(), lockedDataSize, lockedData.GetPointer(), ctx->readContext);
@@ -231,13 +229,13 @@ namespace nfc
 				{
 					newPath += ".bak";
 				}
-				cemuLog_log(LogType::Force, "Saving tag as {}...", newPath.string());
+				cemuLog_log(LogType::NFC, "Saving tag as {}...", newPath.string());
 
 				// open file for writing
 				FileStream* fs = FileStream::createFile2(newPath);
 				if (!fs)
 				{
-					result = -0x2DE;
+					result = NFC_MAKE_RESULT(NFC_RESULT_BASE_WRITE, 0x22);
 				}
 				else
 				{
@@ -245,17 +243,17 @@ namespace nfc
 					fs->writeData(tagBytes.data(), tagBytes.size());
 					delete fs;
 
-					result = 0;
+					result = NFC_RESULT_SUCCESS;
 				}
 			}
 			else
 			{
-				result = -0x2F6;
+				result = NFC_MAKE_RESULT(NFC_RESULT_BASE_WRITE, NFC_RESULT_UID_MISMATCH);
 			}
 		}
 		else
 		{
-			result = -0x2DD;
+			result = NFC_MAKE_RESULT(NFC_RESULT_BASE_WRITE, NFC_RESULT_NO_TAG);
 		}
 
 		PPCCoreCallback(ctx->writeCallback, chan, result, ctx->writeContext);
@@ -279,11 +277,11 @@ namespace nfc
 		sint32 result;
 		if (ctx->nfcStatus & NFC_STATUS_HAS_TAG)
 		{
-			result = 0;
+			result = NFC_RESULT_SUCCESS;
 		}
 		else
 		{
-			result = -0x9DD;
+			result = NFC_MAKE_RESULT(NFC_RESULT_BASE_SEND_RAW_DATA, NFC_RESULT_NO_TAG);
 		}
 
 		// We don't actually send any commands/responses
@@ -379,12 +377,15 @@ namespace nfc
 			case NFC_STATE_ABORT:
 				__NFCHandleAbort(chan);
 				break;
-			case NFC_STATE_RAW:
+			case NFC_STATE_SEND_RAW_DATA:
 				__NFCHandleRaw(chan);
 				break;
 			default:
 				break;
 			}
+
+			// Return back to idle mode
+			ctx->mode = NFC_MODE_IDLE;
 		}
 	}
 
@@ -410,17 +411,17 @@ namespace nfc
 
 		if (!NFCIsInit(chan))
 		{
-			return -0xAE0;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_SET_MODE, NFC_RESULT_UNINITIALIZED);
 		}
 
 		if (ctx->state == NFC_STATE_UNINITIALIZED)
 		{
-			return -0xADF;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_SET_MODE, NFC_RESULT_INVALID_STATE);
 		}
 
 		ctx->mode = mode;
 
-		return 0;
+		return NFC_RESULT_SUCCESS;
 	}
 
 	void NFCSetTagDetectCallback(uint32 chan, MPTR callback, void* context)
@@ -440,19 +441,30 @@ namespace nfc
 
 		if (!NFCIsInit(chan))
 		{
-			return -0x6E0;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_ABORT, NFC_RESULT_UNINITIALIZED);
 		}
 
 		if (ctx->state <= NFC_STATE_IDLE)
 		{
-			return -0x6DF;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_ABORT, NFC_RESULT_INVALID_STATE);
 		}
 
 		ctx->state = NFC_STATE_ABORT;
 		ctx->abortCallback = callback;
 		ctx->abortContext = context;
 
-		return 0;
+		return NFC_RESULT_SUCCESS;
+	}
+
+	sint32 __NFCConvertGetTagInfoResult(sint32 result)
+	{
+		if (result == NFC_MAKE_RESULT(NFC_RESULT_BASE_SEND_RAW_DATA, NFC_RESULT_NO_TAG))
+		{
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_GET_TAG_INFO, NFC_RESULT_TAG_INFO_TIMEOUT);
+		}
+
+		// TODO convert the rest of the results
+		return result;
 	}
 
 	void __NFCGetTagInfoCallback(PPCInterpreter_t* hCPU)
@@ -465,8 +477,7 @@ namespace nfc
 
 		NFCContext* ctx = &gNFCContexts[chan];
 
-		// TODO convert error
-		error = error;
+		error = __NFCConvertGetTagInfoResult(error);
 		if (error == 0 && ctx->tag)
 		{
 			// this is usually parsed from response data
@@ -496,7 +507,7 @@ namespace nfc
 		ctx->getTagInfoCallback = callback;
 
 		sint32 result = NFCSendRawData(chan, true, discoveryTimeout, 1000U, 0, 0, nullptr, RPLLoader_MakePPCCallable(__NFCGetTagInfoCallback), context);
-		return result; // TODO convert result
+		return __NFCConvertGetTagInfoResult(result);
 	}
 
 	sint32 NFCSendRawData(uint32 chan, bool startDiscovery, uint32 discoveryTimeout, uint32 commandTimeout, uint32 commandSize, uint32 responseSize, void* commandData, MPTR callback, void* context)
@@ -507,26 +518,26 @@ namespace nfc
 
 		if (!NFCIsInit(chan))
 		{
-			return -0x9E0;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_SEND_RAW_DATA, NFC_RESULT_UNINITIALIZED);
 		}
 
 		// Only allow discovery
 		if (!startDiscovery)
 		{
-			return -0x9DC; 
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_SEND_RAW_DATA, NFC_RESULT_INVALID_MODE);
 		}
 
 		if (NFCGetMode(chan) == NFC_MODE_ACTIVE && NFCSetMode(chan, NFC_MODE_IDLE) < 0)
 		{
-			return -0x9DC;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_SEND_RAW_DATA, NFC_RESULT_INVALID_MODE);
 		}
 
 		if (ctx->state != NFC_STATE_IDLE)
 		{
-			return -0x9DF;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_SEND_RAW_DATA, NFC_RESULT_INVALID_STATE);
 		}
 
-		ctx->state = NFC_STATE_RAW;
+		ctx->state = NFC_STATE_SEND_RAW_DATA;
 		ctx->rawCallback = callback;
 		ctx->rawContext = context;
 
@@ -540,7 +551,7 @@ namespace nfc
 			ctx->discoveryTimeout = std::chrono::system_clock::now() + std::chrono::milliseconds(discoveryTimeout);
 		}
 
-		return 0;
+		return NFC_RESULT_SUCCESS;
 	}
 
 	sint32 NFCRead(uint32 chan, uint32 discoveryTimeout, NFCUid* uid, NFCUid* uidMask, MPTR callback, void* context)
@@ -551,20 +562,18 @@ namespace nfc
 
 		if (!NFCIsInit(chan))
 		{
-			return -0x1E0;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_READ, NFC_RESULT_UNINITIALIZED);
 		}
 
 		if (NFCGetMode(chan) == NFC_MODE_ACTIVE && NFCSetMode(chan, NFC_MODE_IDLE) < 0)
 		{
-			return -0x1DC;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_READ, NFC_RESULT_INVALID_MODE);
 		}
 
 		if (ctx->state != NFC_STATE_IDLE)
 		{
-			return -0x1DF;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_READ, NFC_RESULT_INVALID_STATE);
 		}
-
-		cemuLog_log(LogType::NFC, "starting read");
 
 		ctx->state = NFC_STATE_READ;
 		ctx->readCallback = callback;
@@ -583,7 +592,7 @@ namespace nfc
 		memcpy(&ctx->filter.uid, uid, sizeof(*uid));
 		memcpy(&ctx->filter.mask, uidMask, sizeof(*uidMask));
 
-		return 0;
+		return NFC_RESULT_SUCCESS;
 	}
 
 	sint32 NFCWrite(uint32 chan, uint32 discoveryTimeout, NFCUid* uid, NFCUid* uidMask, uint32 size, void* data, MPTR callback, void* context)
@@ -594,17 +603,17 @@ namespace nfc
 
 		if (!NFCIsInit(chan))
 		{
-			return -0x2e0;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_WRITE, NFC_RESULT_UNINITIALIZED);
 		}
 
 		if (NFCGetMode(chan) == NFC_MODE_ACTIVE && NFCSetMode(chan, NFC_MODE_IDLE) < 0)
 		{
-			return -0x2dc;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_WRITE, NFC_RESULT_INVALID_MODE);
 		}
 
 		if (ctx->state != NFC_STATE_IDLE)
 		{
-			return -0x1df;
+			return NFC_MAKE_RESULT(NFC_RESULT_BASE_WRITE, NFC_RESULT_INVALID_STATE);
 		}
 
 		// Create unknown record which contains the rw area
@@ -634,7 +643,7 @@ namespace nfc
 		memcpy(&ctx->filter.uid, uid, sizeof(*uid));
 		memcpy(&ctx->filter.mask, uidMask, sizeof(*uidMask));
 
-		return 0;
+		return NFC_RESULT_SUCCESS;
 	}
 
 	void Initialize()
@@ -668,14 +677,14 @@ namespace nfc
 		auto nfcData = FileStream::LoadIntoMemory(filePath);
 		if (!nfcData)
 		{
-			*nfcError = NFC_ERROR_NO_ACCESS;
+			*nfcError = NFC_TOUCH_TAG_ERROR_NO_ACCESS;
 			return false;
 		}
 
 		ctx->tag = TagV0::FromBytes(std::as_bytes(std::span(nfcData->data(), nfcData->size())));
 		if (!ctx->tag)
 		{
-			*nfcError = NFC_ERROR_INVALID_FILE_FORMAT;
+			*nfcError = NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT;
 			return false;
 		}
 
@@ -683,7 +692,7 @@ namespace nfc
 		ctx->tagPath = filePath;
 		ctx->touchTime = std::chrono::system_clock::now();
 
-		*nfcError = NFC_ERROR_NONE;
+		*nfcError = NFC_TOUCH_TAG_ERROR_NONE;
 		return true;
 	}
 }

@@ -269,10 +269,10 @@ public:
 		}
 		else
 		{
-			if (nfcError == NFC_ERROR_NO_ACCESS)
+			if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-			else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-				wxMessageBox(_("Not a valid NFC NTAG215 file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+			else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+				wxMessageBox(_("Not a valid NFC file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 	}
@@ -751,10 +751,10 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 		uint32 nfcError;
 		if (nfc::TouchTagFromFile(_utf8ToPath(wxStrFilePath.utf8_string()), &nfcError) == false)
 		{
-			if (nfcError == NFC_ERROR_NO_ACCESS)
+			if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"));
-			else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-				wxMessageBox(_("Not a valid NFC NTAG215 file"));
+			else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+				wxMessageBox(_("Not a valid NFC file"));
 		}
 		else
 		{
@@ -774,10 +774,10 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 				uint32 nfcError = 0;
 				if (nfc::TouchTagFromFile(_utf8ToPath(path), &nfcError) == false)
 				{
-					if (nfcError == NFC_ERROR_NO_ACCESS)
+					if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 						wxMessageBox(_("Cannot open file"));
-					else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-						wxMessageBox(_("Not a valid NFC NTAG215 file"));
+					else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+						wxMessageBox(_("Not a valid NFC file"));
 				}
 				else
 				{

@@ -26,10 +26,27 @@ namespace ntag
 	MPTR gReadCallbacks[2];
 	MPTR gWriteCallbacks[2];
 
-	sint32 __NTAGConvertNFCError(sint32 error)
+	sint32 __NTAGConvertNFCResult(sint32 result)
 	{
-		// TODO
-		return error;
+		if (result == NFC_RESULT_SUCCESS)
+		{
+			return NTAG_RESULT_SUCCESS;
+		}
+
+		switch (result & NFC_RESULT_MASK)
+		{
+		case NFC_RESULT_UNINITIALIZED:
+			return NTAG_RESULT_UNINITIALIZED;
+		case NFC_RESULT_INVALID_STATE:
+			return NTAG_RESULT_INVALID_STATE;
+		case NFC_RESULT_NO_TAG:
+			return NTAG_RESULT_NO_TAG;
+		case NFC_RESULT_UID_MISMATCH:
+			return NTAG_RESULT_UID_MISMATCH;
+		}
+
+		// TODO convert more errors
+		return NTAG_RESULT_INVALID;
 	}
 
 	sint32 NTAGInit(uint32 chan)
@@ -40,7 +57,7 @@ namespace ntag
 	sint32 NTAGInitEx(uint32 chan)
 	{
 		sint32 result = nfc::NFCInitEx(chan, 1);
-		return __NTAGConvertNFCError(result);
+		return __NTAGConvertNFCResult(result);
 	}
 
 	sint32 NTAGShutdown(uint32 chan)
@@ -58,7 +75,7 @@ namespace ntag
 		gReadCallbacks[chan] = MPTR_NULL;
 		gWriteCallbacks[chan] = MPTR_NULL;
 
-		return __NTAGConvertNFCError(result);
+		return __NTAGConvertNFCResult(result);
 	}
 
 	bool NTAGIsInit(uint32 chan)
@@ -105,7 +122,7 @@ namespace ntag
 		ppcDefineParamS32(error, 1);
 		ppcDefineParamPtr(context, void, 2);
 
-		PPCCoreCallback(gAbortCallbacks[chan], chan, __NTAGConvertNFCError(error), context);
+		PPCCoreCallback(gAbortCallbacks[chan], chan, __NTAGConvertNFCResult(error), context);
 
 		osLib_returnFromFunction(hCPU, 0);
 	}
@@ -118,7 +135,7 @@ namespace ntag
 
 		gAbortCallbacks[chan] = callback;
 		sint32 result = nfc::NFCAbort(chan, RPLLoader_MakePPCCallable(__NTAGAbortCallback), context);
-		return __NTAGConvertNFCError(result);
+		return __NTAGConvertNFCResult(result);
 	}
 
 	bool __NTAGRawDataToNfcData(iosu::ccr_nfc::CCRNFCCryptData* raw, iosu::ccr_nfc::CCRNFCCryptData* nfc)
@@ -370,7 +387,7 @@ namespace ntag
 
 		readResult->readOnly = readOnly;
 
-		error = __NTAGConvertNFCError(error);
+		error = __NTAGConvertNFCResult(error);
 		if (error == 0)
 		{
 			memset(rwData.GetPointer(), 0, 0x1C8);
@@ -430,7 +447,7 @@ namespace ntag
 		}
 
 		sint32 result = nfc::NFCRead(chan, timeout, &_uid, &_uidMask, RPLLoader_MakePPCCallable(__NTAGReadCallback), context);
-		return __NTAGConvertNFCError(result);
+		return __NTAGConvertNFCResult(result);
 	}
 
 	sint32 __NTAGEncryptData(void* encryptedData, const void* rawData)
@@ -512,7 +529,7 @@ namespace ntag
 		ppcDefineParamS32(error, 1);
 		ppcDefineParamPtr(context, void, 2);
 
-		PPCCoreCallback(gWriteCallbacks[chan], chan, __NTAGConvertNFCError(error), context);
+		PPCCoreCallback(gWriteCallbacks[chan], chan, __NTAGConvertNFCResult(error), context);
 
 		osLib_returnFromFunction(hCPU, 0);
 	}
@@ -538,7 +555,7 @@ namespace ntag
 		NTAGAreaHeader roHeader;
 		uint8 writeBuffer[0x1C8]{};
 
-		error = __NTAGConvertNFCError(error);
+		error = __NTAGConvertNFCResult(error);
 		if (error == 0)
 		{
 			// Copy raw and locked data into a contigous buffer
@@ -576,7 +593,7 @@ namespace ntag
 				return;
 			}
 
-			error = __NTAGConvertNFCError(error);
+			error = __NTAGConvertNFCResult(error);
 		}
 
 		PPCCoreCallback(gWriteCallbacks[chan], chan, error, context);
@@ -600,7 +617,7 @@ namespace ntag
 		memcpy(gWriteData[chan].data, rwData, rwSize);
 
 		sint32 result = nfc::NFCRead(chan, timeout, &gWriteData[chan].uid, &gWriteData[chan].uidMask, RPLLoader_MakePPCCallable(__NTAGReadBeforeWriteCallback), context);
-		return __NTAGConvertNFCError(result);
+		return __NTAGConvertNFCResult(result);
 	}
 
 	sint32 NTAGFormat(uint32 chan, uint32 timeout, nfc::NFCUid* uid, uint32 rwSize, void* rwData, MPTR callback, void* context)
@@ -608,7 +625,9 @@ namespace ntag
 		cemu_assert(chan < 2);
 
 		// TODO
-		return -1;
+		cemu_assert_debug(false);
+
+		return NTAG_RESULT_INVALID;
 	}
 
 	void Initialize()
