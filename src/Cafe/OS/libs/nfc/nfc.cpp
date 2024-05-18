@@ -223,16 +223,8 @@ namespace nfc
 				// Update tag NDEF data
 				ctx->tag->SetNDEFData(ctx->writeMessage.ToBytes());
 
-				// TODO remove this once writing is confirmed working
-				fs::path newPath = ctx->tagPath;
-				if (newPath.extension() != ".bak")
-				{
-					newPath += ".bak";
-				}
-				cemuLog_log(LogType::NFC, "Saving tag as {}...", newPath.string());
-
 				// open file for writing
-				FileStream* fs = FileStream::createFile2(newPath);
+				FileStream* fs = FileStream::openFile2(ctx->tagPath, true);
 				if (!fs)
 				{
 					result = NFC_MAKE_RESULT(NFC_RESULT_BASE_WRITE, 0x22);
