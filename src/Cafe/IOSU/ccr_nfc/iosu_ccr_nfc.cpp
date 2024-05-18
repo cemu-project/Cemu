@@ -71,9 +71,9 @@ namespace iosu
 			return CCR_NFC_ERROR;
 		}
 
-		sint32 CCRNFCAESCTRCrypt(const uint8* key, const void* ivNonce, const void* inData, uint32_t inSize, void* outData, uint32_t outSize)
+		sint32 CCRNFCAESCTRCrypt(const uint8* key, const void* ivNonce, const void* inData, uint32 inSize, void* outData, uint32 outSize)
 		{
-			uint8_t tmpIv[0x10];
+			uint8 tmpIv[0x10];
 			memcpy(tmpIv, ivNonce, sizeof(tmpIv));
 
 			memcpy(outData, inData, inSize);
@@ -81,7 +81,7 @@ namespace iosu
 			return 0;
 		}
 
-		sint32 __CCRNFCGenerateKey(const uint8* hmacKey, uint32 hmacKeySize, const uint8* name, uint32_t nameSize, const uint8* inData, uint32_t inSize, uint8* outData, uint32_t outSize)
+		sint32 __CCRNFCGenerateKey(const uint8* hmacKey, uint32 hmacKeySize, const uint8* name, uint32 nameSize, const uint8* inData, uint32 inSize, uint8* outData, uint32 outSize)
 		{
 			if (nameSize != 0xe || outSize != 0x40)
 			{
@@ -89,13 +89,13 @@ namespace iosu
 			}
 
    			// Create a buffer containing 2 counter bytes, the key name, and the key data
-			uint8_t buffer[0x50];
+			uint8 buffer[0x50];
 			buffer[0] = 0;
 			buffer[1] = 0;
 			memcpy(buffer + 2, name, nameSize);
 			memcpy(buffer + nameSize + 2, inData, inSize);
 
-			uint16_t counter = 0;
+			uint16 counter = 0;
 			while (outSize > 0)
 			{
         		// Set counter bytes and increment counter
@@ -118,9 +118,9 @@ namespace iosu
 
 		sint32 __CCRNFCGenerateInternalKeys(const CCRNFCCryptData* in, const uint8* keyGenSalt)
 		{
-			uint8_t lockedSecretBuffer[0x40] = { 0 };
-			uint8_t unfixedInfosBuffer[0x40] = { 0 };
-			uint8_t outBuffer[0x40] = { 0 };
+			uint8 lockedSecretBuffer[0x40] = { 0 };
+			uint8 unfixedInfosBuffer[0x40] = { 0 };
+			uint8 outBuffer[0x40] = { 0 };
 
 			// Fill the locked secret buffer
 			memcpy(lockedSecretBuffer, sLockedSecretMagicBytes, sizeof(sLockedSecretMagicBytes));
@@ -193,7 +193,7 @@ namespace iosu
 		sint32 __CCRNFCCryptData(const CCRNFCCryptData* in, CCRNFCCryptData* out, bool decrypt)
 		{
 			// Decrypt key generation salt
-			uint8_t keyGenSalt[0x20];
+			uint8 keyGenSalt[0x20];
 			sint32 res = CCRNFCAESCTRCrypt(sNfcKey, sNfcKeyIV, in->data + in->keyGenSaltOffset, 0x20, keyGenSalt, sizeof(keyGenSalt));
 			if (res != 0)
 			{
@@ -227,7 +227,7 @@ namespace iosu
 				}
 
 				// Verify HMACs
-				uint8_t hmacBuffer[0x20];
+				uint8 hmacBuffer[0x20];
 				uint32 hmacLen = sizeof(hmacBuffer);
 
 				if (!HMAC(EVP_sha256(), sLockedSecretInternalHmacKey, sizeof(sLockedSecretInternalHmacKey), out->data + in->lockedSecretHmacOffset + 0x20, (in->dataSize - in->lockedSecretHmacOffset) - 0x20, hmacBuffer, &hmacLen))
@@ -258,7 +258,7 @@ namespace iosu
 			}
 			else
 			{
-				uint8_t hmacBuffer[0x20];
+				uint8 hmacBuffer[0x20];
 				uint32 hmacLen = sizeof(hmacBuffer);
 
 				if (!HMAC(EVP_sha256(), sLockedSecretInternalHmacKey, sizeof(sLockedSecretInternalHmacKey), out->data + in->lockedSecretHmacOffset + 0x20, (in->dataSize - in->lockedSecretHmacOffset) - 0x20, hmacBuffer, &hmacLen))

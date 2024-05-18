@@ -9,17 +9,17 @@ namespace
 constexpr std::size_t kTagSize = 512u;
 constexpr std::size_t kMaxBlockCount = kTagSize / sizeof(TagV0::Block);
 
-constexpr std::uint8_t kLockbyteBlock0 = 0xe;
-constexpr std::uint8_t kLockbytesStart0 = 0x0;
-constexpr std::uint8_t kLockbytesEnd0 = 0x2;
-constexpr std::uint8_t kLockbyteBlock1 = 0xf;
-constexpr std::uint8_t kLockbytesStart1 = 0x2;
-constexpr std::uint8_t kLockbytesEnd1 = 0x8;
+constexpr uint8 kLockbyteBlock0 = 0xe;
+constexpr uint8 kLockbytesStart0 = 0x0;
+constexpr uint8 kLockbytesEnd0 = 0x2;
+constexpr uint8 kLockbyteBlock1 = 0xf;
+constexpr uint8 kLockbytesStart1 = 0x2;
+constexpr uint8 kLockbytesEnd1 = 0x8;
 
-constexpr std::uint8_t kNDEFMagicNumber = 0xe1;
+constexpr uint8 kNDEFMagicNumber = 0xe1;
 
 // These blocks are not part of the locked area
-constexpr bool IsBlockLockedOrReserved(std::uint8_t blockIdx)
+constexpr bool IsBlockLockedOrReserved(uint8 blockIdx)
 {
 	// Block 0 is the UID
 	if (blockIdx == 0x0)
@@ -153,7 +153,7 @@ std::vector<std::byte> TagV0::ToBytes() const
 
 	// The rest will be the data area
 	auto dataIterator = dataArea.begin();
-	for (std::uint8_t currentBlock = 0; currentBlock < kMaxBlockCount; currentBlock++)
+	for (uint8 currentBlock = 0; currentBlock < kMaxBlockCount; currentBlock++)
 	{
 		// All blocks which aren't locked make up the dataArea
 		if (!IsBlockLocked(currentBlock))
@@ -189,15 +189,15 @@ void TagV0::SetNDEFData(const std::span<const std::byte>& data)
 
 bool TagV0::ParseLockedArea(const std::span<const std::byte>& data)
 {
-	std::uint8_t currentBlock = 0;
+	uint8 currentBlock = 0;
 
 	// Start by parsing the first set of lock bytes
-	for (std::uint8_t i = kLockbytesStart0; i < kLockbytesEnd0; i++)
+	for (uint8 i = kLockbytesStart0; i < kLockbytesEnd0; i++)
 	{
-		std::uint8_t lockByte = std::uint8_t(data[kLockbyteBlock0 * sizeof(Block) + i]);
+		uint8 lockByte = uint8(data[kLockbyteBlock0 * sizeof(Block) + i]);
 
 		// Iterate over the individual bits in the lock byte
-		for (std::uint8_t j = 0; j < 8; j++)
+		for (uint8 j = 0; j < 8; j++)
 		{
 			// Is block locked?
 			if (lockByte & (1u << j))
@@ -221,11 +221,11 @@ bool TagV0::ParseLockedArea(const std::span<const std::byte>& data)
 	}
 
 	// Parse the second set of lock bytes
-	for (std::uint8_t i = kLockbytesStart1; i < kLockbytesEnd1; i++) {
-		std::uint8_t lockByte = std::uint8_t(data[kLockbyteBlock1 * sizeof(Block) + i]);
+	for (uint8 i = kLockbytesStart1; i < kLockbytesEnd1; i++) {
+		uint8 lockByte = uint8(data[kLockbyteBlock1 * sizeof(Block) + i]);
 
 		// Iterate over the individual bits in the lock byte
-		for (std::uint8_t j = 0; j < 8; j++)
+		for (uint8 j = 0; j < 8; j++)
 		{
 			// Is block locked?
 			if (lockByte & (1u << j))
@@ -251,14 +251,14 @@ bool TagV0::ParseLockedArea(const std::span<const std::byte>& data)
 	return true;
 }
 
-bool TagV0::IsBlockLocked(std::uint8_t blockIdx) const
+bool TagV0::IsBlockLocked(uint8 blockIdx) const
 {
 	return mLockedBlocks.contains(blockIdx) || IsBlockLockedOrReserved(blockIdx);
 }
 
 bool TagV0::ParseDataArea(const std::span<const std::byte>& data, std::vector<std::byte>& dataArea)
 {
-	for (std::uint8_t currentBlock = 0; currentBlock < kMaxBlockCount; currentBlock++)
+	for (uint8 currentBlock = 0; currentBlock < kMaxBlockCount; currentBlock++)
 	{
 		// All blocks which aren't locked make up the dataArea
 		if (!IsBlockLocked(currentBlock))
@@ -274,7 +274,7 @@ bool TagV0::ParseDataArea(const std::span<const std::byte>& data, std::vector<st
 bool TagV0::ValidateCapabilityContainer()
 {
 	// NDEF Magic Number
-	std::uint8_t nmn = mCapabilityContainer[0];
+	uint8 nmn = mCapabilityContainer[0];
 	if (nmn != kNDEFMagicNumber)
 	{
 		cemuLog_log(LogType::Force, "Error: CC: Invalid NDEF Magic Number");
@@ -282,7 +282,7 @@ bool TagV0::ValidateCapabilityContainer()
 	}
 
 	// Version Number
-	std::uint8_t vno = mCapabilityContainer[1];
+	uint8 vno = mCapabilityContainer[1];
 	if (vno >> 4 != 1)
 	{
 		cemuLog_log(LogType::Force, "Error: CC: Invalid Version Number");
@@ -290,7 +290,7 @@ bool TagV0::ValidateCapabilityContainer()
 	}
 
 	// Tag memory size
-	std::uint8_t tms = mCapabilityContainer[2];
+	uint8 tms = mCapabilityContainer[2];
 	if (8u * (tms + 1) < kTagSize)
 	{
 		cemuLog_log(LogType::Force, "Error: CC: Incomplete tag memory size");

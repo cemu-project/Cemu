@@ -149,9 +149,9 @@ namespace nfc
 		StackAllocator<NFCUid> uid;
 		bool readOnly = false;
 		uint32 dataSize = 0;
-		StackAllocator<uint8_t, 0x200> data;
+		StackAllocator<uint8, 0x200> data;
 		uint32 lockedDataSize = 0;
-		StackAllocator<uint8_t, 0x200> lockedData;
+		StackAllocator<uint8, 0x200> lockedData;
 
 		if (ctx->tag)
 		{

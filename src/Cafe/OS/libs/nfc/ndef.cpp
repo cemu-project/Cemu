@@ -19,20 +19,20 @@ namespace ndef
 		Record rec;
 
 		// Read record header
-		uint8_t recHdr;
+		uint8 recHdr;
 		stream >> recHdr;
 		rec.mFlags = recHdr & ~NDEF_TNF_MASK;
 		rec.mTNF = static_cast<TypeNameFormat>(recHdr & NDEF_TNF_MASK);
 
 		// Type length
-		uint8_t typeLen;
+		uint8 typeLen;
 		stream >> typeLen;
 
 		// Payload length;
-		uint32_t payloadLen;
+		uint32 payloadLen;
 		if (recHdr & NDEF_SR)
 		{
-			uint8_t len;
+			uint8 len;
 			stream >> len;
 			payloadLen = len;
 		}
@@ -48,7 +48,7 @@ namespace ndef
 		}
 
 		// ID length
-		uint8_t idLen = 0;
+		uint8 idLen = 0;
 		if (recHdr & NDEF_IL)
 		{
 			stream >> idLen;
@@ -81,35 +81,35 @@ namespace ndef
 		return rec;
 	}
 
-	std::vector<std::byte> Record::ToBytes(uint8_t flags) const
+	std::vector<std::byte> Record::ToBytes(uint8 flags) const
 	{
 		std::vector<std::byte> bytes;
 		VectorStream stream(bytes, std::endian::big);
 
 		// Combine flags (clear message begin and end flags)
-		std::uint8_t finalFlags = mFlags & ~(NDEF_MB | NDEF_ME);
+		uint8 finalFlags = mFlags & ~(NDEF_MB | NDEF_ME);
 		finalFlags |= flags;
 
 		// Write flags + tnf
-		stream << std::uint8_t(finalFlags | std::uint8_t(mTNF));
+		stream << uint8(finalFlags | uint8(mTNF));
 
 		// Type length
-		stream << std::uint8_t(mType.size());
+		stream << uint8(mType.size());
 
 		// Payload length
 		if (IsShort())
 		{
-			stream << std::uint8_t(mPayload.size());
+			stream << uint8(mPayload.size());
 		}
 		else
 		{
-			stream << std::uint32_t(mPayload.size());
+			stream << uint32(mPayload.size());
 		}
 
 		// ID length
 		if (mFlags & NDEF_IL)
 		{
-			stream << std::uint8_t(mID.size());
+			stream << uint8(mID.size());
 		}
 
 		// Type
@@ -249,7 +249,7 @@ namespace ndef
 
 		for (std::size_t i = 0; i < mRecords.size(); i++)
 		{
-			std::uint8_t flags = 0;
+			uint8 flags = 0;
 
 			// Add message begin flag to first record
 			if (i == 0)

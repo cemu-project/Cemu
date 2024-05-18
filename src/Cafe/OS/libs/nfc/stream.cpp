@@ -28,7 +28,7 @@ std::endian Stream::GetEndianness() const
 
 Stream& Stream::operator>>(bool& val)
 {
-	std::uint8_t i;
+	uint8 i;
 	*this >> i;
 	val = !!i;
 
@@ -37,7 +37,7 @@ Stream& Stream::operator>>(bool& val)
 
 Stream& Stream::operator>>(float& val)
 {
-	std::uint32_t i;
+	uint32 i;
 	*this >> i;
 	val = std::bit_cast<float>(i);
 
@@ -46,7 +46,7 @@ Stream& Stream::operator>>(float& val)
 
 Stream& Stream::operator>>(double& val)
 {
-	std::uint64_t i;
+	uint64 i;
 	*this >> i;
 	val = std::bit_cast<double>(i);
 
@@ -55,7 +55,7 @@ Stream& Stream::operator>>(double& val)
 
 Stream& Stream::operator<<(bool val)
 {
-	std::uint8_t i = val;
+	uint8 i = val;
 	*this >> i;
 
 	return *this;
@@ -63,7 +63,7 @@ Stream& Stream::operator<<(bool val)
 
 Stream& Stream::operator<<(float val)
 {
-	std::uint32_t i = std::bit_cast<std::uint32_t>(val);
+	uint32 i = std::bit_cast<uint32>(val);
 	*this >> i;
 
 	return *this;
@@ -71,7 +71,7 @@ Stream& Stream::operator<<(float val)
 
 Stream& Stream::operator<<(double val)
 {
-	std::uint64_t i = std::bit_cast<std::uint64_t>(val);
+	uint64 i = std::bit_cast<uint64>(val);
 	*this >> i;
 
 	return *this;

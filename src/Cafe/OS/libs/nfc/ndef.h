@@ -39,7 +39,7 @@ namespace ndef
 		virtual ~Record();
 
 		static std::optional<Record> FromStream(Stream& stream);
-		std::vector<std::byte> ToBytes(uint8_t flags = 0) const;
+		std::vector<std::byte> ToBytes(uint8 flags = 0) const;
 
 		TypeNameFormat GetTNF() const;
 		const std::vector<std::byte>& GetID() const;
@@ -55,7 +55,7 @@ namespace ndef
 		bool IsShort() const;
 
 	private:
-		uint8_t mFlags;
+		uint8 mFlags;
 		TypeNameFormat mTNF;
 		std::vector<std::byte> mID;
 		std::vector<std::byte> mType;

@@ -25,7 +25,7 @@ std::vector<TLV> TLV::FromBytes(const std::span<std::byte>& data)
 	while (stream.GetRemaining() > 0 && !hasTerminator)
 	{
 		// Read the tag
-		uint8_t byte;
+		uint8 byte;
 		stream >> byte;
 		Tag tag = static_cast<Tag>(byte);
 
@@ -43,7 +43,7 @@ std::vector<TLV> TLV::FromBytes(const std::span<std::byte>& data)
 			default:
 			{
 				// Read the length
-				uint16_t length;
+				uint16 length;
 				stream >> byte;
 				length = byte;
 
@@ -85,7 +85,7 @@ std::vector<std::byte> TLV::ToBytes() const
 	VectorStream stream(bytes, std::endian::big);
 
 	// Write tag
-	stream << std::uint8_t(mTag);
+	stream << uint8(mTag);
 
 	switch (mTag)
 	{
@@ -99,12 +99,12 @@ std::vector<std::byte> TLV::ToBytes() const
 			// Write length (decide if as a 8-bit or 16-bit value)
 			if (mValue.size() >= 0xff)
 			{
-				stream << std::uint8_t(0xff);
-				stream << std::uint16_t(mValue.size());
+				stream << uint8(0xff);
+				stream << uint16(mValue.size());
 			}
 			else
 			{
-				stream << std::uint8_t(mValue.size());
+				stream << uint8(mValue.size());
 			}
 
 			// Write value

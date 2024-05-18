@@ -26,13 +26,13 @@ public:
 
 private:
 	bool ParseLockedArea(const std::span<const std::byte>& data);
-	bool IsBlockLocked(std::uint8_t blockIdx) const;
+	bool IsBlockLocked(uint8 blockIdx) const;
 	bool ParseDataArea(const std::span<const std::byte>& data, std::vector<std::byte>& dataArea);
 	bool ValidateCapabilityContainer();
 
-	std::map<std::uint8_t, Block> mLockedOrReservedBlocks;
-	std::map<std::uint8_t, Block> mLockedBlocks;
-	std::array<std::uint8_t, 0x4> mCapabilityContainer;
+	std::map<uint8, Block> mLockedOrReservedBlocks;
+	std::map<uint8, Block> mLockedBlocks;
+	std::array<uint8, 0x4> mCapabilityContainer;
 	std::vector<TLV> mTLVs;
 	std::size_t mNdefTlvIdx;
 	std::vector<std::byte> mLockedArea;
