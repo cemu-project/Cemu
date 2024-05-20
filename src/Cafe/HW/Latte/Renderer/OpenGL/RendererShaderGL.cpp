@@ -23,14 +23,11 @@ bool RendererShaderGL::loadBinary()
 	cemu_assert_debug(m_baseHash != 0);
 	uint64 h1, h2;
 	GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
-	sint32 fileSize = 0;
 	std::vector<uint8> cacheFileData;
 	if (!s_programBinaryCache->GetFile({h1, h2 }, cacheFileData))
 		return false;
-	if (fileSize < sizeof(uint32))
-	{
+	if (cacheFileData.empty())
 		return false;
-	}
 
 	uint32 shaderBinFormat = *(uint32*)(cacheFileData.data() + 0);
 
