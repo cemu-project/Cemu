@@ -341,9 +341,11 @@ void LatteShaderCache_Load()
 	cemuLog_log(LogType::Force, "Shader cache loaded with {} shaders. Commited mem {}MB. Took {}ms", numLoadedShaders, (sint32)(memCommited/1024/1024), timeLoad);
 #endif
 	LatteShaderCache_finish();
+#if !BOOST_OS_MACOS
 	// if Vulkan then also load pipeline cache
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
         LatteShaderCache_LoadVulkanPipelineCache(cacheTitleId);
+#endif
 
 
 	g_renderer->BeginFrame(true);
