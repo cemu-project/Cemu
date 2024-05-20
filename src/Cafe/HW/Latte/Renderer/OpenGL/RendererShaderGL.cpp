@@ -26,10 +26,10 @@ bool RendererShaderGL::loadBinary()
 	std::vector<uint8> cacheFileData;
 	if (!s_programBinaryCache->GetFile({h1, h2 }, cacheFileData))
 		return false;
-	if (cacheFileData.empty())
+	if (cacheFileData.size() <= sizeof(uint32))
 		return false;
 
-	uint32 shaderBinFormat = *(uint32*)(cacheFileData.data() + 0);
+	uint32 shaderBinFormat = *(uint32*)(cacheFileData.data());
 
 	m_program = glCreateProgram();
 	glProgramBinary(m_program, shaderBinFormat, cacheFileData.data()+4, cacheFileData.size()-4);
