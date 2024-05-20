@@ -31,6 +31,7 @@
 #endif
 
 // c includes
+#include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
 #include <cmath>
