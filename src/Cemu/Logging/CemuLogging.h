@@ -44,6 +44,9 @@ enum class LogType : sint32
 	nlibcurl = 41,
 
 	PRUDP = 40,
+
+	NFC	= 41,
+	NTAG = 42,
 };
 
 template <>

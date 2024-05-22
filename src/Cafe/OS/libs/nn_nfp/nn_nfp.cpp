@@ -293,41 +293,6 @@ void nnNfpExport_GetTagInfo(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NFP, 0));
 }
 
-typedef struct  
-{
-	/* +0x00 */ uint8 uidLength;
-	/* +0x01 */ uint8 uid[0xA];
-	/* +0x0B */ uint8 ukn0B;
-	/* +0x0C */ uint8 ukn0C;
-	/* +0x0D */ uint8 ukn0D;
-	// more?
-}NFCTagInfoCallbackParam_t;
-
-uint32 NFCGetTagInfo(uint32 index, uint32 timeout, MPTR functionPtr, void* userParam)
-{
-	cemuLog_log(LogType::NN_NFP, "NFCGetTagInfo({},{},0x{:08x},0x{:08x})", index, timeout, functionPtr, userParam ? memory_getVirtualOffsetFromPointer(userParam) : 0);
-
-
-	cemu_assert(index == 0);
-
-	nnNfpLock();
-
-	StackAllocator<NFCTagInfoCallbackParam_t> _callbackParam;
-	NFCTagInfoCallbackParam_t* callbackParam = _callbackParam.GetPointer();
-
-	memset(callbackParam, 0x00, sizeof(NFCTagInfoCallbackParam_t));
-
-	memcpy(callbackParam->uid, nfp_data.amiiboProcessedData.uid, nfp_data.amiiboProcessedData.uidLength);
-	callbackParam->uidLength = (uint8)nfp_data.amiiboProcessedData.uidLength;
-
-	PPCCoreCallback(functionPtr, index, 0, _callbackParam.GetPointer(), userParam);
-
-	nnNfpUnlock();
-
-
-	return 0; // 0 -> success
-}
-
 void nnNfpExport_Mount(PPCInterpreter_t* hCPU)
 {
 	cemuLog_log(LogType::NN_NFP, "Mount()");
@@ -769,6 +734,16 @@ void nnNfp_unloadAmiibo()
 	nnNfpUnlock();
 }
 
+bool nnNfp_isInitialized()
+{
+	return nfp_data.nfpIsInitialized;
+}
+
+// CEMU NFC error codes
+#define NFC_ERROR_NONE					(0)
+#define NFC_ERROR_NO_ACCESS				(1)
+#define NFC_ERROR_INVALID_FILE_FORMAT	(2)
+
 bool nnNfp_touchNfcTagFromFile(const fs::path& filePath, uint32* nfcError)
 {
 	AmiiboRawNFCData rawData = { 0 };
@@ -960,6 +935,41 @@ void nnNfpExport_GetNfpState(PPCInterpreter_t* hCPU)
 
 namespace nn::nfp
 {
+	typedef struct  
+	{
+		/* +0x00 */ uint8 uidLength;
+		/* +0x01 */ uint8 uid[0xA];
+		/* +0x0B */ uint8 ukn0B;
+		/* +0x0C */ uint8 ukn0C;
+		/* +0x0D */ uint8 ukn0D;
+		// more?
+	}NFCTagInfoCallbackParam_t;
+
+	uint32 NFCGetTagInfo(uint32 index, uint32 timeout, MPTR functionPtr, void* userParam)
+	{
+		cemuLog_log(LogType::NN_NFP, "NFCGetTagInfo({},{},0x{:08x},0x{:08x})", index, timeout, functionPtr, userParam ? memory_getVirtualOffsetFromPointer(userParam) : 0);
+
+
+		cemu_assert(index == 0);
+
+		nnNfpLock();
+
+		StackAllocator<NFCTagInfoCallbackParam_t> _callbackParam;
+		NFCTagInfoCallbackParam_t* callbackParam = _callbackParam.GetPointer();
+
+		memset(callbackParam, 0x00, sizeof(NFCTagInfoCallbackParam_t));
+
+		memcpy(callbackParam->uid, nfp_data.amiiboProcessedData.uid, nfp_data.amiiboProcessedData.uidLength);
+		callbackParam->uidLength = (uint8)nfp_data.amiiboProcessedData.uidLength;
+
+		PPCCoreCallback(functionPtr, index, 0, _callbackParam.GetPointer(), userParam);
+
+		nnNfpUnlock();
+
+
+		return 0; // 0 -> success
+	}
+
 	uint32 GetErrorCode(uint32 result)
 	{
 		uint32 level = (result >> 0x1b) & 3;
@@ -1019,9 +1029,6 @@ namespace nn::nfp
 		nnNfp_load(); // legacy interface, update these to use cafeExportRegister / cafeExportRegisterFunc
 
 		cafeExportRegisterFunc(nn::nfp::GetErrorCode, "nn_nfp", "GetErrorCode__Q2_2nn3nfpFRCQ2_2nn6Result", LogType::Placeholder);
-
-		// NFC API 
-		cafeExportRegister("nn_nfp", NFCGetTagInfo, LogType::Placeholder);
 	}
 
 }

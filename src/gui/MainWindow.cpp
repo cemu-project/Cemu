@@ -12,7 +12,7 @@
 #include "audio/audioDebuggerWindow.h"
 #include "gui/canvas/OpenGLCanvas.h"
 #include "gui/canvas/VulkanCanvas.h"
-#include "Cafe/OS/libs/nn_nfp/nn_nfp.h"
+#include "Cafe/OS/libs/nfc/nfc.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
 #include "gui/debugger/DebuggerWindow2.h"
 #include "util/helpers/helpers.h"
@@ -261,7 +261,7 @@ public:
 			return false;
 		uint32 nfcError;
 		std::string path = filenames[0].utf8_string();
-		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError))
+		if (nfc::TouchTagFromFile(_utf8ToPath(path), &nfcError))
 		{
 			GetConfig().AddRecentNfcFile(path);
 			m_window->UpdateNFCMenu();
@@ -269,10 +269,10 @@ public:
 		}
 		else
 		{
-			if (nfcError == NFC_ERROR_NO_ACCESS)
+			if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-			else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-				wxMessageBox(_("Not a valid NFC NTAG215 file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+			else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+				wxMessageBox(_("Not a valid NFC file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 	}
@@ -749,12 +749,12 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			return;
 		wxString wxStrFilePath = openFileDialog.GetPath();
 		uint32 nfcError;
-		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(wxStrFilePath.utf8_string()), &nfcError) == false)
+		if (nfc::TouchTagFromFile(_utf8ToPath(wxStrFilePath.utf8_string()), &nfcError) == false)
 		{
-			if (nfcError == NFC_ERROR_NO_ACCESS)
+			if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"));
-			else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-				wxMessageBox(_("Not a valid NFC NTAG215 file"));
+			else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+				wxMessageBox(_("Not a valid NFC file"));
 		}
 		else
 		{
@@ -772,12 +772,12 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			if (!path.empty())
 			{
 				uint32 nfcError = 0;
-				if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError) == false)
+				if (nfc::TouchTagFromFile(_utf8ToPath(path), &nfcError) == false)
 				{
-					if (nfcError == NFC_ERROR_NO_ACCESS)
+					if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 						wxMessageBox(_("Cannot open file"));
-					else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-						wxMessageBox(_("Not a valid NFC NTAG215 file"));
+					else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+						wxMessageBox(_("Not a valid NFC file"));
 				}
 				else
 				{
@@ -2210,6 +2210,8 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("&Socket API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Socket));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("&Save API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Save));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("&H264 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::H264));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NFC), _("&NFC API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NFC));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NTAG), _("&NTAG API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NTAG));
 	debugLoggingMenu->AppendSeparator();
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Patches), _("&Graphic pack patches"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Patches));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureCache), _("&Texture cache warnings"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureCache));

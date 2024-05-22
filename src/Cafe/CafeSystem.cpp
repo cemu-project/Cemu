@@ -35,6 +35,7 @@
 #include "Cafe/IOSU/legacy/iosu_boss.h"
 #include "Cafe/IOSU/legacy/iosu_nim.h"
 #include "Cafe/IOSU/PDM/iosu_pdm.h"
+#include "Cafe/IOSU/ccr_nfc/iosu_ccr_nfc.h"
 
 // IOSU initializer functions
 #include "Cafe/IOSU/kernel/iosu_kernel.h"
@@ -51,6 +52,8 @@
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/OS/libs/gx2/GX2_Misc.h"
 #include "Cafe/OS/libs/mic/mic.h"
+#include "Cafe/OS/libs/nfc/nfc.h"
+#include "Cafe/OS/libs/ntag/ntag.h"
 #include "Cafe/OS/libs/nn_aoc/nn_aoc.h"
 #include "Cafe/OS/libs/nn_pdm/nn_pdm.h"
 #include "Cafe/OS/libs/nn_cmpt/nn_cmpt.h"
@@ -533,6 +536,7 @@ namespace CafeSystem
 		iosu::acp::GetModule(),
 		iosu::fpd::GetModule(),
 		iosu::pdm::GetModule(),
+		iosu::ccr_nfc::GetModule(),
 	};
 
 	// initialize all subsystems which are persistent and don't depend on a game running
@@ -587,6 +591,8 @@ namespace CafeSystem
 		H264::Initialize();
 		snd_core::Initialize();
 		mic::Initialize();
+		nfc::Initialize();
+		ntag::Initialize();
 		// init hardware register interfaces
 		HW_SI::Initialize();
 	}

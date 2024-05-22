@@ -218,6 +218,8 @@ add_library(CemuCafe
   HW/SI/SI.cpp
   HW/SI/si.h
   HW/VI/VI.cpp
+  IOSU/ccr_nfc/iosu_ccr_nfc.cpp
+  IOSU/ccr_nfc/iosu_ccr_nfc.h
   IOSU/fsa/fsa_types.h
   IOSU/fsa/iosu_fsa.cpp
   IOSU/fsa/iosu_fsa.h
@@ -378,6 +380,16 @@ add_library(CemuCafe
   OS/libs/h264_avc/parser/H264Parser.h
   OS/libs/mic/mic.cpp
   OS/libs/mic/mic.h
+  OS/libs/nfc/ndef.cpp
+  OS/libs/nfc/ndef.h
+  OS/libs/nfc/nfc.cpp
+  OS/libs/nfc/nfc.h
+  OS/libs/nfc/stream.cpp
+  OS/libs/nfc/stream.h
+  OS/libs/nfc/TagV0.cpp
+  OS/libs/nfc/TagV0.h
+  OS/libs/nfc/TLV.cpp
+  OS/libs/nfc/TLV.h
   OS/libs/nlibcurl/nlibcurl.cpp
   OS/libs/nlibcurl/nlibcurlDebug.hpp
   OS/libs/nlibcurl/nlibcurl.h
@@ -453,6 +465,8 @@ add_library(CemuCafe
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
   OS/libs/nsysnet/nsysnet.h
+  OS/libs/ntag/ntag.cpp
+  OS/libs/ntag/ntag.h
   OS/libs/padscore/padscore.cpp
   OS/libs/padscore/padscore.h
   OS/libs/proc_ui/proc_ui.cpp
