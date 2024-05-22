@@ -388,9 +388,8 @@ bool CurlSOAPHelper::submitRequest()
 	headers = curl_slist_append(headers, "Accept-Charset: UTF-8");
 	headers = curl_slist_append(headers, fmt::format("SOAPAction: urn:{}.wsapi.broadon.com/{}", m_serviceType, m_requestMethod).c_str());
 	headers = curl_slist_append(headers, "Accept: */*");
-	headers = curl_slist_append(headers, "User-Agent: EVL NUP 040800 Sep 18 2012 20:20:02");
-
 	curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(m_curl, CURLOPT_USERAGENT, "EVL NUP 040800 Sep 18 2012 20:20:02");
 
 	// send request
 	auto res = curl_easy_perform(m_curl);
