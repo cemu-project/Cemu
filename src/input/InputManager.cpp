@@ -472,15 +472,12 @@ bool InputManager::save(size_t player_index, std::string_view filename)
 		emulated_controller->type_string()
 	}.c_str());
 
+	if(!is_default_file)
+		emulated_controller->m_profile_name = std::string{filename};
+
 	if (emulated_controller->has_profile_name())
 		emulated_controller_node.append_child("profile").append_child(pugi::node_pcdata).set_value(
 			emulated_controller->get_profile_name().c_str());
-	else if (!is_default_file)
-	{
-		emulated_controller->m_profile_name = std::string{filename};
-		emulated_controller_node.append_child("profile").append_child(pugi::node_pcdata).set_value(
-			emulated_controller->get_profile_name().c_str());
-	}
 
 	// custom settings
 	emulated_controller->save(emulated_controller_node);
