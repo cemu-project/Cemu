@@ -2,7 +2,7 @@
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "Cafe/HW/Espresso/Const.h"
 
-struct GX2WriteGatherPipeState
+struct GX2WriteGatherPipeStateData
 {
 	uint8* gxRingBuffer;
 	// each core has it's own write gatherer and display list state (writing)
@@ -11,6 +11,26 @@ struct GX2WriteGatherPipeState
 	uint8* writeGatherPtrDisplayList[Espresso::CORE_COUNT];
 	MPTR displayListStart[Espresso::CORE_COUNT];
 	uint32 displayListMaxSize[Espresso::CORE_COUNT];
+};
+
+struct GX2WriteGatherPipeState
+{
+	template<typename Fn>
+	inline void accessData(Fn fn)
+	{
+		std::lock_guard lock(_mutex);
+		fn(_data);
+	}
+	template<typename T, typename Fn>
+	inline T accessDataRet(Fn fn)
+	{
+		std::lock_guard lock(_mutex);
+		return fn(_data);
+	}
+
+  private:
+  	std::recursive_mutex _mutex;
+	GX2WriteGatherPipeStateData _data = {};
 };
 
 extern GX2WriteGatherPipeState gx2WriteGatherPipe;
@@ -27,7 +47,9 @@ uint32 PPCInterpreter_getCurrentCoreIndex();
 template <typename ...Targs>
 inline void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr)
 {
-	(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) = (uint8*)writePtr;
+	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
+		(*data.writeGatherPtrWrite[coreIndex]) = (uint8*)writePtr;
+	});
 }
 
 template <typename T, typename ...Targs>
@@ -74,12 +96,14 @@ gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs
 template <typename ...Targs>
 inline void gx2WriteGather_submit(Targs... args)
 {
-	uint32 coreIndex = PPCInterpreter_getCurrentCoreIndex();
-	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == nullptr)
-		return;
+	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
+		uint32 coreIndex = PPCInterpreter_getCurrentCoreIndex();
+		if (data.writeGatherPtrWrite[coreIndex] == nullptr)
+			return;
 
-	uint32be* writePtr = (uint32be*)(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]);
-	gx2WriteGather_submit_(coreIndex, writePtr, std::forward<Targs>(args)...);
+		uint32be* writePtr = (uint32be*)(*data.writeGatherPtrWrite[coreIndex]);
+		gx2WriteGather_submit_(coreIndex, writePtr, std::forward<Targs>(args)...);
+	});
 }
 
 namespace GX2
