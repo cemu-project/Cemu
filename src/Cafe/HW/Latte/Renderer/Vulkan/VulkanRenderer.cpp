@@ -2769,7 +2769,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 				uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_numQueued;
 				std::cout << "WAITING" << std::endl;
 				std::cout << "waitingID: " << waitFrameId << std::endl;
-				vkWaitForPresentKHR(m_logicalDevice, chainInfo.swapchain, waitFrameId, 40'000'000);
+				vkWaitForPresentKHR(m_logicalDevice, chainInfo.m_swapchain, waitFrameId, 40'000'000);
 				chainInfo.m_numQueued--;
 			}
 		}
