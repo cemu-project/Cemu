@@ -3,6 +3,8 @@
 #include "input/api/SDL/SDLController.h"
 #include "util/helpers/TempState.h"
 
+#include "config/ActiveSettings.h"
+
 #include <SDL2/SDL.h>
 #include <boost/functional/hash.hpp>
 
@@ -30,6 +32,9 @@ SDLControllerProvider::SDLControllerProvider()
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STADIA, "1");
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STEAM, "1");
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_LUNA, "1");
+
+	fs::path controllerDBFile = ActiveSettings::GetUserDataPath("gamecontrollerdb.txt");
+	SDL_GameControllerAddMappingsFromFile(controllerDBFile.c_str());
 
 	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_EVENTS) < 0) 
 		throw std::runtime_error(fmt::format("couldn't initialize SDL: {}", SDL_GetError()));
