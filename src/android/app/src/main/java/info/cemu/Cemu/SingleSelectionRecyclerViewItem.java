@@ -5,6 +5,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -31,6 +32,7 @@ public class SingleSelectionRecyclerViewItem<T> implements RecyclerViewItem {
     private final OnItemSelectedListener<T> onItemSelectedListener;
     private SingleSelectionViewHolder singleSelectionViewHolder;
     private RecyclerView.Adapter<RecyclerView.ViewHolder> recyclerViewAdapter;
+    private AlertDialog selectAlertDialog;
 
     public SingleSelectionRecyclerViewItem(String label, String description, BaseSelectionAdapter<T> selectionAdapter, OnItemSelectedListener<T> onItemSelectedListener) {
         this.label = label;
@@ -56,16 +58,20 @@ public class SingleSelectionRecyclerViewItem<T> implements RecyclerViewItem {
         singleSelectionViewHolder.label.setText(label);
         singleSelectionViewHolder.description.setText(description);
         singleSelectionViewHolder.itemView.setOnClickListener(view -> {
-            MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(viewHolder.itemView.getContext());
-            builder.setTitle(label).setAdapter(selectionAdapter, (dialogInterface, position) -> {
-                if (!selectionAdapter.isEnabled(position))
-                    return;
-                T selectedValue = selectionAdapter.getItem(position);
-                selectionAdapter.setSelectedValue(selectedValue);
-                if (onItemSelectedListener != null)
-                    onItemSelectedListener.onItemSelected(selectedValue, SingleSelectionRecyclerViewItem.this);
+            if (selectAlertDialog == null) {
+                MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(viewHolder.itemView.getContext());
+                selectAlertDialog = builder.setTitle(label).setAdapter(selectionAdapter, (dialogInterface, position) -> {
+                    if (!selectionAdapter.isEnabled(position))
+                        return;
+                    T selectedValue = selectionAdapter.getItem(position);
+                    selectionAdapter.setSelectedValue(selectedValue);
+                    if (onItemSelectedListener != null)
+                        onItemSelectedListener.onItemSelected(selectedValue, SingleSelectionRecyclerViewItem.this);
 
-            }).setNegativeButton(R.string.cancel, (dialogInterface, i) -> dialogInterface.dismiss()).show();
+                }).setNegativeButton(R.string.cancel, (dialogInterface, i) -> dialogInterface.dismiss()).show();
+                return;
+            }
+            selectAlertDialog.show();
         });
     }
 }

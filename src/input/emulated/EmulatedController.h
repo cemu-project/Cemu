@@ -100,7 +100,8 @@ public:
 	bool was_home_button_down() { return std::exchange(m_homebutton_down, false); }
 
 	virtual bool set_default_mapping(const std::shared_ptr<ControllerBase>& controller) { return false; }
-
+	void setButtonValue(uint64 mapping, bool value);
+	void setAxisValue(uint64 mapping, float value);
 protected:
 	size_t m_player_index;
 	std::string m_profile_name = "default";
@@ -117,7 +118,9 @@ protected:
 		uint64 button;
 	};
 	std::unordered_map<uint64, Mapping> m_mappings;
-
+	std::unordered_map<uint64, bool> m_overridenButtonMappings;
+	std::unordered_map<uint64, float> m_overridenAxisMappings;
+ 
 	bool m_homebutton_down = false;
 };
 

@@ -26,7 +26,7 @@ public class GraphicsSettingsFragment extends Fragment {
 
         int vsyncMode = NativeLibrary.getVSyncMode();
         var vsyncChoices = Stream.of(NativeLibrary.VSYNC_MODE_OFF, NativeLibrary.VSYNC_MODE_DOUBLE_BUFFERING, NativeLibrary.VSYNC_MODE_TRIPLE_BUFFERING)
-                .map(vsync -> new SelectionAdapter.ChoiceItem<>(NativeLibrary.vsyncModeToResourceNameId(vsync), vsync))
+                .map(vsync -> new SelectionAdapter.ChoiceItem<>(t -> t.setText(NativeLibrary.vsyncModeToResourceNameId(vsync)), vsync))
                 .collect(Collectors.toList());
         SelectionAdapter<Integer> vsyncSelectionAdapter = new SelectionAdapter<>(vsyncChoices, vsyncMode);
         SingleSelectionRecyclerViewItem<Integer> vsyncModeSelection = new SingleSelectionRecyclerViewItem<>(getString(R.string.vsync),

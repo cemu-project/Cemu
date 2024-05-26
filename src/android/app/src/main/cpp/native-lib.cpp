@@ -401,3 +401,15 @@ Java_info_cemu_Cemu_NativeLibrary_getGraphicPackPresets(JNIEnv* env, [[maybe_unu
 {
 	return getGraphicPresets(env, s_emulationState.getGraphicPack(id), id);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_onOverlayButton([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint controllerIndex, jint mappingId, jboolean state)
+{
+	s_emulationState.getEmulatedController(controllerIndex).setButtonValue(mappingId, state);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_onOverlayAxis([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint controllerIndex, jint mappingId, jfloat value)
+{
+	s_emulationState.getEmulatedController(controllerIndex).setAxisValue(mappingId, value);
+}

@@ -25,6 +25,18 @@ class AndroidEmulatedController {
 			controller = std::unique_ptr<AndroidEmulatedController>(new AndroidEmulatedController(index));
 		return *controller;
 	}
+	void setButtonValue(uint64 mappingId, bool value)
+	{
+		if (!m_emulatedController)
+			return;
+		m_emulatedController->setButtonValue(mappingId, value);
+	}
+	void setAxisValue(uint64 mappingId, float value)
+	{
+		if (!m_emulatedController)
+			return;
+		m_emulatedController->setAxisValue(mappingId, value);
+	}
 	void setType(EmulatedController::Type type)
 	{
 		if (m_emulatedController && m_emulatedController->type() == type)

@@ -28,7 +28,7 @@ public class AudioSettingsFragment extends Fragment {
         genericRecyclerViewAdapter.addRecyclerViewItem(tvDeviceCheckbox);
 
         var tvChannelsChoices = Stream.of(NativeLibrary.AUDIO_CHANNELS_MONO, NativeLibrary.AUDIO_CHANNELS_STEREO, NativeLibrary.AUDIO_CHANNELS_SURROUND)
-                .map(channels -> new SelectionAdapter.ChoiceItem<>(NativeLibrary.channelsToResourceNameId(channels), channels))
+                .map(channels -> new SelectionAdapter.ChoiceItem<>(t -> t.setText(NativeLibrary.channelsToResourceNameId(channels)), channels))
                 .collect(Collectors.toList());
         int tvChannels = NativeLibrary.getAudioDeviceChannels(true);
         SelectionAdapter<Integer> tvChannelsSelectionAdapter = new SelectionAdapter<>(tvChannelsChoices, tvChannels);
@@ -53,7 +53,7 @@ public class AudioSettingsFragment extends Fragment {
                 checked -> NativeLibrary.setAudioDeviceEnabled(checked, true));
         genericRecyclerViewAdapter.addRecyclerViewItem(padDeviceCheckbox);
 
-        var gamepadChannelsChoices = List.of(new SelectionAdapter.ChoiceItem<>(NativeLibrary.channelsToResourceNameId(NativeLibrary.AUDIO_CHANNELS_STEREO), NativeLibrary.AUDIO_CHANNELS_STEREO));
+        var gamepadChannelsChoices = List.of(new SelectionAdapter.ChoiceItem<>(t -> t.setText(NativeLibrary.channelsToResourceNameId(NativeLibrary.AUDIO_CHANNELS_STEREO)), NativeLibrary.AUDIO_CHANNELS_STEREO));
         int gamepadChannels = NativeLibrary.getAudioDeviceChannels(false);
         SelectionAdapter<Integer> gamepadChannelsSelectionAdapter = new SelectionAdapter<>(gamepadChannelsChoices, gamepadChannels);
         SingleSelectionRecyclerViewItem<Integer> gamepadChannelsModeSelection = new SingleSelectionRecyclerViewItem<>(getString(R.string.gamepad_channels),

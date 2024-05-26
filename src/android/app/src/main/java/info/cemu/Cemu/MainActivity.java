@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         binding.fab.setOnClickListener(
                 view -> {
-                    Intent intent = new Intent(this, SettingsActivity.class);
+                    Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                     startActivity(intent);
                 }
         );

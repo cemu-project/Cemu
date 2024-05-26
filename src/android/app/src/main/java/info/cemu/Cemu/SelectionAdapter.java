@@ -4,21 +4,26 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.TextView;
+
+import androidx.annotation.StringRes;
 
 import com.google.android.material.radiobutton.MaterialRadioButton;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 public class SelectionAdapter<T> extends BaseSelectionAdapter<T> {
     public static class ChoiceItem<T> {
-        int choiceTextResourceId;
+        Consumer<TextView> setTextForChoice;
         T choiceValue;
 
-        public ChoiceItem(int choiceTextResourceId, T choiceValue) {
-            this.choiceTextResourceId = choiceTextResourceId;
+        public ChoiceItem(Consumer<TextView> setTextForChoice, T choiceValue) {
+            this.setTextForChoice = setTextForChoice;
             this.choiceValue = choiceValue;
         }
     }
@@ -50,7 +55,7 @@ public class SelectionAdapter<T> extends BaseSelectionAdapter<T> {
 
     @Override
     protected void setRadioButtonText(MaterialRadioButton radioButton, int position) {
-        radioButton.setText(choiceItems.get(position).choiceTextResourceId);
+        choiceItems.get(position).setTextForChoice.accept(radioButton);
     }
 
     @Override

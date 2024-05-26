@@ -112,4 +112,22 @@
     <string name="graphic_pack_no_description">This graphic pack has no description</string>
     <string name="graphic_pack_icon_description">Graphic pack icon</string>
     <string name="search_graphic_packs_action">Search graphic packs</string>
+    <string name="input_mode_edit_size">Edit input size</string>
+    <string name="input_mode_edit_position">Edit input positions</string>
+    <string name="input_mode_default">Exited input edit mode</string>
+    <string name="input_mode_button_description">Change input mode to move/resize or default</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="inputoverlaysettings_shared_preferences_name">info.cemu.Cemu.InputOverlaySettings</string>
+    <string name="overlay_controller">Overlay controller</string>
+    <string name="input_overlay">Input overlay</string>
+    <string name="input_overlay_settings">Input overlay settings</string>
+    <string name="enable_input_overlay">Enable input overlay</string>
+    <string name="alpha_slider">Inputs opacity</string>
+    <string name="configure_input_mode_button_desc">Change the input mode to move position or resize</string>
+    <string name="configure_inputs_description">Configure the positions/sizes of the inputs</string>
+    <string name="configure_inputs_label">Configure inputs</string>
+    <string name="reset_overlay_button_desc">Reset the positions and sizes of the inputs</string>
+    <string name="vibrate">Vibrate</string>
+    <string name="enable_vibrate_on_touch">Enable vibrate on touch</string>
 </resources>

@@ -110,6 +110,11 @@ class EmulationState {
 		return AndroidEmulatedController::getAndroidEmulatedController(index).getMapping(mappingId);
 	}
 
+	AndroidEmulatedController& getEmulatedController(size_t index)
+	{
+		return AndroidEmulatedController::getAndroidEmulatedController(index);
+	}
+
 	int getVPADControllersCount()
 	{
 		int vpadCount = 0;

@@ -21,6 +21,8 @@ public class InputSettingsFragment extends Fragment {
 
         FragmentInputSettingsBinding binding = FragmentInputSettingsBinding.inflate(inflater, container, false);
         GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
+        genericRecyclerViewAdapter.addRecyclerViewItem(new SimpleButtonRecyclerViewItem(getString(R.string.input_overlay_settings), () -> NavHostFragment.findNavController(InputSettingsFragment.this).navigate(R.id.action_inputSettingsFragment_to_inputOverlaySettingsFragment)));
+
         for (int index = 0; index < NativeLibrary.MAX_CONTROLLERS; index++) {
             int controllerIndex = index;
             int controllerType = NativeLibrary.isControllerDisabled(controllerIndex) ? NativeLibrary.EMULATED_CONTROLLER_TYPE_DISABLED : NativeLibrary.getControllerType(controllerIndex);

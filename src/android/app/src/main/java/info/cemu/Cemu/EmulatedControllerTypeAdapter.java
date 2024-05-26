@@ -14,7 +14,7 @@ public class EmulatedControllerTypeAdapter extends SelectionAdapter<Integer> {
                         NativeLibrary.EMULATED_CONTROLLER_TYPE_PRO,
                         NativeLibrary.EMULATED_CONTROLLER_TYPE_CLASSIC,
                         NativeLibrary.EMULATED_CONTROLLER_TYPE_WIIMOTE)
-                .map(type -> new ChoiceItem<>(NativeLibrary.controllerTypeToResourceNameId(type), type))
+                .map(type -> new ChoiceItem<>(t->t.setText(NativeLibrary.controllerTypeToResourceNameId(type)), type))
                 .collect(Collectors.toList());
         setSelectedValue(NativeLibrary.EMULATED_CONTROLLER_TYPE_DISABLED);
     }

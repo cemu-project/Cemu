@@ -379,4 +379,8 @@ public class NativeLibrary {
     public static native void setGraphicPackActivePreset(long id, String category, String preset);
 
     public static native ArrayList<GraphicPackPreset> getGraphicPackPresets(long id);
+
+    public static native void onOverlayButton(int controllerIndex, int mappingId, boolean value);
+
+    public static native void onOverlayAxis(int controllerIndex, int mappingId, float value);
 }
