@@ -652,7 +652,7 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	}
 	else
 	{
-		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsVK.count_uniformRegister;
+		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsGL.count_uniformRegister;
 	}
 	// calculate aux hash
 	if (calculateAuxHash)
@@ -838,7 +838,6 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 void LatteSHRC_UpdateVertexShader(uint8* vertexShaderPtr, uint32 vertexShaderSize, bool usesGeometryShader)
 {
 	// todo - should include VTX_SEMANTIC table in state
-
 	LatteSHRC_UpdateVSBaseHash(vertexShaderPtr, vertexShaderSize, usesGeometryShader);
 	uint64 vsAuxHash = 0;
 	auto itBaseShader = sVertexShaders.find(_shaderBaseHash_vs);
@@ -855,15 +854,13 @@ void LatteSHRC_UpdateVertexShader(uint8* vertexShaderPtr, uint32 vertexShaderSiz
 		LatteGPUState.activeShaderHasError = true;
 		return;
 	}
-	g_renderer->shader_bind(vertexShader->shader);
 	_activeVertexShader = vertexShader;
 }
 
 void LatteSHRC_UpdateGeometryShader(bool usesGeometryShader, uint8* geometryShaderPtr, uint32 geometryShaderSize, uint8* geometryCopyShader, uint32 geometryCopyShaderSize)
 {
-	if (usesGeometryShader == false || _activeVertexShader == nullptr)
+	if (!usesGeometryShader || !_activeVertexShader)
 	{
-		g_renderer->shader_unbind(RendererShader::ShaderType::kGeometry);
 		_shaderBaseHash_gs = 0;
 		_activeGeometryShader = nullptr;
 		return;
@@ -887,21 +884,11 @@ void LatteSHRC_UpdateGeometryShader(bool usesGeometryShader, uint8* geometryShad
 		LatteGPUState.activeShaderHasError = true;
 		return;
 	}
-	g_renderer->shader_bind(geometryShader->shader);
 	_activeGeometryShader = geometryShader;
 }
 
 void LatteSHRC_UpdatePixelShader(uint8* pixelShaderPtr, uint32 pixelShaderSize, bool usesGeometryShader)
 {
-	if (LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] != 0 && g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (_activePixelShader)
-		{
-			g_renderer->shader_unbind(RendererShader::ShaderType::kFragment);
-			_activePixelShader = nullptr;
-		}
-		return;
-	}
 	LatteSHRC_UpdatePSBaseHash(pixelShaderPtr, pixelShaderSize, usesGeometryShader);
 	uint64 psAuxHash = 0;
 	auto itBaseShader = sPixelShaders.find(_shaderBaseHash_ps);
@@ -918,7 +905,6 @@ void LatteSHRC_UpdatePixelShader(uint8* pixelShaderPtr, uint32 pixelShaderSize, 
 		LatteGPUState.activeShaderHasError = true;
 		return;
 	}
-	g_renderer->shader_bind(pixelShader->shader);
 	_activePixelShader = pixelShader;
 }
 

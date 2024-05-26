@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.21.1)
 
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
-option(PORTABLE "All data created and maintained by Cemu will be in the directory where the executable file is located" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
 set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
@@ -19,6 +18,8 @@ endif()
 if (ENABLE_VCPKG)
 	if(UNIX AND NOT APPLE)
 		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_linux")
+	elseif(APPLE)
+		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_mac")
 	else()
 		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports")
 	endif()
@@ -42,10 +43,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_definitions($<$<CONFIG:Debug>:CEMU_DEBUG_ASSERT>) # if build type is debug, set CEMU_DEBUG_ASSERT
-
-if(PORTABLE)
-	add_compile_definitions(PORTABLE)
-endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -89,10 +86,9 @@ if (WIN32)
 	option(ENABLE_XINPUT "Enables the usage of XInput" ON)
 	option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
 	add_compile_definitions(HAS_DIRECTINPUT)
-	set(ENABLE_WIIMOTE ON)
-elseif (UNIX)
-	option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 endif()
+
+option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 option(ENABLE_SDL "Enables the SDLController backend" ON)
 
 # audio backends

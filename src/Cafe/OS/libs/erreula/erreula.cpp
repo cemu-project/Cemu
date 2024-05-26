@@ -277,10 +277,11 @@ namespace erreula
 		ImGui::SetNextWindowBgAlpha(0.9f);
 		ImGui::PushFont(font);
 		
-		std::string title = "ErrEula";
+		std::string title;
 		if (appearArg.title)
 			title = boost::nowide::narrow(GetText(appearArg.title.GetPtr()));
-		
+		if(title.empty()) // ImGui doesn't allow empty titles, so set one if appearArg.title is not set or empty
+			title = "ErrEula";
 		if (ImGui::Begin(title.c_str(), nullptr, kPopupFlags))
 		{
 			const float startx = ImGui::GetWindowSize().x / 2.0f;

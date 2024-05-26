@@ -50,7 +50,7 @@ namespace nn
 
 			
 			CurlRequestHelper req;
-			req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
+			req.initate(ActiveSettings::GetNetworkService(), requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
 			InitializeOliveRequest(req);
 
 			StackAllocator<coreinit::OSEvent> requestDoneEvent;

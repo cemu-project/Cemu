@@ -57,6 +57,7 @@ struct LatteDecompilerTEXInstruction
 		sint8 offsetY{};
 		sint8 offsetZ{};
 		bool unnormalized[4]{}; // set if texture coordinates are in [0,dim] range instead of [0,1]
+		sint8 lodBias{}; // divide by 16 to get actual value
 	}textureFetch;
 	// memRead
 	struct
@@ -156,19 +157,23 @@ struct LatteDecompilerBufferAccessTracker
 		}
 	}
 
-	sint32 DetermineSize(sint32 maximumSize) const
+	sint32 DetermineSize(uint64 shaderBaseHash, sint32 maximumSize) const
 	{
-		// here we try to predict the accessed range so we dont have to upload the whole buffer
-		// potential risky optimization: assume that if there is a fixed-index access on an index higher than any other non-zero relative accesses, it bounds the prior relative access
+		// here we try to predict the accessed byte range so we dont have to upload the whole buffer
+		// if no bound can be determined then return maximumSize
+		// for some known shaders we use hand-tuned values instead of the maximumSize fallback value that those shaders would normally use
+		if(shaderBaseHash == 0x8ff56afdf1a2f837) // XCX text rendering
+			return 24;
+		if(shaderBaseHash == 0x37b9100c1310d3bb) // BotW UI backdrops 1
+			return 24;
+		if(shaderBaseHash == 0xf7ba548c1fefe24a) // BotW UI backdrops 2
+			return 30;
+
 		sint32 highestAccessIndex = -1;
 		if(hasStaticIndexAccess)
-		{
 			highestAccessIndex = highestAccessStaticIndex;
-		}
 		if(hasDynamicIndexAccess)
-		{
 			return maximumSize; // dynamic index exists and no bound can be determined
-		}
 		if (highestAccessIndex < 0)
 			return 1; // no access at all? But avoid zero as a size
 		return highestAccessIndex + 1;

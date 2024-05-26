@@ -475,17 +475,44 @@ LatteCMDPtr LatteCP_itWaitRegMem(LatteCMDPtr cmd, uint32 nWords)
 		{
 			uint32 fenceMemValue = _swapEndianU32(*fencePtr);
 			fenceMemValue &= fenceMask;
-			if (compareOp == GPU7_WAIT_MEM_OP_GEQUAL)
+			if (compareOp == GPU7_WAIT_MEM_OP_LESS)
 			{
-				// greater or equal
-				if (fenceMemValue >= fenceValue)
+				if (fenceMemValue < fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_LEQUAL)
+			{
+				if (fenceMemValue <= fenceValue)
 					break;
 			}
 			else if (compareOp == GPU7_WAIT_MEM_OP_EQUAL)
 			{
-				// equal
 				if (fenceMemValue == fenceValue)
 					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_NOTEQUAL)
+			{
+				if (fenceMemValue != fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_GEQUAL)
+			{
+				if (fenceMemValue >= fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_GREATER)
+			{
+				if (fenceMemValue > fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_ALWAYS)
+			{
+				break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_NEVER)
+			{
+				cemuLog_logOnce(LogType::Force, "Latte: WAIT_MEM_OP_NEVER encountered");
+				break;
 			}
 			else
 				assert_dbg();
@@ -864,8 +891,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 	cemu_assert_debug(nWords == 23);
 	uint32 clearMask = LatteReadCMD(); // color (1), depth (2), stencil (4)
 	// color buffer
-	MPTR colorBufferMPTR = LatteReadCMD(); // MPTR for color buffer (physical address)
-	MPTR colorBufferFormat = LatteReadCMD(); // format for color buffer
+	MPTR colorBufferMPTR = LatteReadCMD(); // physical address for color buffer
+	Latte::E_GX2SURFFMT colorBufferFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
 	Latte::E_HWTILEMODE colorBufferTilemode = (Latte::E_HWTILEMODE)LatteReadCMD();
 	uint32 colorBufferWidth = LatteReadCMD();
 	uint32 colorBufferHeight = LatteReadCMD();
@@ -873,8 +900,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 	uint32 colorBufferViewFirstSlice = LatteReadCMD();
 	uint32 colorBufferViewNumSlice = LatteReadCMD();
 	// depth buffer
-	MPTR depthBufferMPTR = LatteReadCMD(); // MPTR for depth buffer (physical address)
-	MPTR depthBufferFormat = LatteReadCMD(); // format for depth buffer
+	MPTR depthBufferMPTR = LatteReadCMD(); // physical address for depth buffer
+	Latte::E_GX2SURFFMT depthBufferFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
 	Latte::E_HWTILEMODE depthBufferTileMode = (Latte::E_HWTILEMODE)LatteReadCMD();
 	uint32 depthBufferWidth = LatteReadCMD();
 	uint32 depthBufferHeight = LatteReadCMD();
@@ -893,8 +920,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 
 	LatteRenderTarget_itHLEClearColorDepthStencil(
 		clearMask, 
-		colorBufferMPTR, colorBufferFormat, colorBufferTilemode, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferViewFirstSlice, colorBufferViewNumSlice, 
-		depthBufferMPTR, depthBufferFormat, depthBufferTileMode, depthBufferWidth, depthBufferHeight, depthBufferPitch, depthBufferViewFirstSlice, depthBufferViewNumSlice, 
+		colorBufferMPTR, colorBufferFormat, colorBufferTilemode, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferViewFirstSlice, colorBufferViewNumSlice,
+		depthBufferMPTR, depthBufferFormat, depthBufferTileMode, depthBufferWidth, depthBufferHeight, depthBufferPitch, depthBufferViewFirstSlice, depthBufferViewNumSlice,
 		r, g, b, a,
 		clearDepth, clearStencil);
 	return cmd;

@@ -246,6 +246,22 @@ static void _appendPVPS(LatteDecompilerShaderContext* shaderContext, StringBuf* 
 	_appendChannel(src, aluUnit);
 }
 
+std::string _FormatFloatAsGLSLConstant(float f)
+{
+	char floatAsStr[64];
+	size_t floatAsStrLen = fmt::format_to_n(floatAsStr, 64, "{:#}", f).size;
+	size_t floatAsStrLenOrg = floatAsStrLen;
+	if(floatAsStrLen > 0 && floatAsStr[floatAsStrLen-1] == '.')
+	{
+		floatAsStr[floatAsStrLen] = '0';
+		floatAsStrLen++;
+	}
+	cemu_assert(floatAsStrLen < 50); // constant suspiciously long?
+	floatAsStr[floatAsStrLen] = '\0';
+	cemu_assert_debug(floatAsStrLen >= 3); // shortest possible form is "0.0"
+	return floatAsStr;
+}
+
 // tracks PV/PS and register backups
 struct ALUClauseTemporariesState
 {
@@ -507,7 +523,7 @@ void _emitRegisterAccessCode(LatteDecompilerShaderContext* shaderContext, sint32
 	{
 		_emitTypeConversionPrefix(shaderContext, registerElementDataType, dataType);
 	}
-	if(shaderContext->typeTracker.useArrayGPRs )
+	if (shaderContext->typeTracker.useArrayGPRs)
 		src->add("R");
 	else
 		src->addFmt("R{}", gprIndex);
@@ -538,6 +554,26 @@ void _emitRegisterAccessCode(LatteDecompilerShaderContext* shaderContext, sint32
 	}
 	if (dataType >= 0)
 		_emitTypeConversionSuffix(shaderContext, registerElementDataType, dataType);
+}
+
+// optimized variant of _emitRegisterAccessCode for raw one channel reads
+void _emitRegisterChannelAccessCode(LatteDecompilerShaderContext* shaderContext, sint32 gprIndex, sint32 channel, sint32 dataType)
+{
+	cemu_assert_debug(gprIndex >= 0 && gprIndex <= 127);
+	cemu_assert_debug(channel >= 0 && channel < 4);
+	StringBuf* src = shaderContext->shaderSource;
+	sint32 registerElementDataType = shaderContext->typeTracker.defaultDataType;
+	_emitTypeConversionPrefix(shaderContext, registerElementDataType, dataType);
+	if (shaderContext->typeTracker.useArrayGPRs)
+		src->add("R");
+	else
+		src->addFmt("R{}", gprIndex);
+	_appendRegisterTypeSuffix(src, registerElementDataType);
+	if (shaderContext->typeTracker.useArrayGPRs)
+		src->addFmt("[{}]", gprIndex);
+	src->add(".");
+	src->add(_getElementStrByIndex(channel));
+	_emitTypeConversionSuffix(shaderContext, registerElementDataType, dataType);
 }
 
 void _emitALURegisterInputAccessCode(LatteDecompilerShaderContext* shaderContext, LatteDecompilerALUInstruction* aluInstruction, sint32 operandIndex)
@@ -906,15 +942,7 @@ void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, LatteDec
 			exponent -= 127;
 			if ((constVal & 0xFF) == 0 && exponent >= -10 && exponent <= 10)
 			{
-				char floatAsStr[32];
-				size_t floatAsStrLen = fmt::format_to_n(floatAsStr, 32, "{:#}", *(float*)&constVal).size;
-				if(floatAsStrLen > 0 && floatAsStr[floatAsStrLen-1] == '.')
-				{
-					floatAsStr[floatAsStrLen] = '0';
-					floatAsStrLen++;
-				}
-				cemu_assert_debug(floatAsStrLen >= 3); // shortest possible form is "0.0"
-				src->add(std::string_view(floatAsStr, floatAsStrLen));
+				src->add(_FormatFloatAsGLSLConstant(*(float*)&constVal));
 			}
 			else
 				src->addFmt("intBitsToFloat(0x{:08x})", constVal);
@@ -945,7 +973,7 @@ void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, LatteDec
 	}
 	else
 	{
-		cemuLog_log(LogType::Force, "Unsupported shader ALU operand sel 0x%x\n", aluInstruction->sourceOperand[operandIndex].sel);
+		cemuLog_log(LogType::Force, "Unsupported shader ALU operand sel {:#x}\n", aluInstruction->sourceOperand[operandIndex].sel);
 		debugBreakpoint();
 	}
 
@@ -2129,63 +2157,31 @@ void _emitALUClauseCode(LatteDecompilerShaderContext* shaderContext, LatteDecomp
 /*
  * Emits code to access one component (xyzw) of the texture coordinate input vector
  */
-void _emitTEXSampleCoordInputComponent(LatteDecompilerShaderContext* shaderContext, LatteDecompilerTEXInstruction* texInstruction, sint32 componentIndex, sint32 varType)
+void _emitTEXSampleCoordInputComponent(LatteDecompilerShaderContext* shaderContext, LatteDecompilerTEXInstruction* texInstruction, sint32 componentIndex, sint32 interpretSrcAsType)
 {
+	cemu_assert(componentIndex >= 0 && componentIndex < 4);
+	cemu_assert_debug(interpretSrcAsType == LATTE_DECOMPILER_DTYPE_SIGNED_INT || interpretSrcAsType == LATTE_DECOMPILER_DTYPE_FLOAT);
 	StringBuf* src = shaderContext->shaderSource;
-	if( componentIndex >= 4 )
+	sint32 elementSel = texInstruction->textureFetch.srcSel[componentIndex];
+	if (elementSel < 4)
 	{
-		debugBreakpoint();
+		_emitRegisterChannelAccessCode(shaderContext, texInstruction->srcGpr, elementSel, interpretSrcAsType);
 		return;
 	}
-	sint32 elementSel = texInstruction->textureFetch.srcSel[componentIndex];
 	const char* resultElemTable[4] = {"x","y","z","w"};
-	if( varType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
+	if(interpretSrcAsType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
 	{
-		if (elementSel < 4)
-		{
-			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-				src->addFmt("{}.{}", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[elementSel]);
-			else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-				src->addFmt("floatBitsToInt({}.{})", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[elementSel]);
-			else
-			{
-				cemu_assert_unimplemented();
-			}
-		}
-		else if( elementSel == 4 )
+		if( elementSel == 4 )
 			src->add("floatBitsToInt(0.0)");
 		else if( elementSel == 5 )
 			src->add("floatBitsToInt(1.0)");
-		else
-		{
-			cemu_assert_unimplemented();
-		}
 	}
-	else if( varType == LATTE_DECOMPILER_DTYPE_FLOAT )
+	else if(interpretSrcAsType == LATTE_DECOMPILER_DTYPE_FLOAT )
 	{
-		if (elementSel < 4)
-		{
-			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-				src->addFmt("intBitsToFloat({}.{})", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[elementSel]);
-			else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-				src->addFmt("{}.{}", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[elementSel]);
-			else
-			{
-				cemu_assert_unimplemented();
-			}
-		}
-		else if( elementSel == 4 )
-			src->addFmt("0.0");
+		if( elementSel == 4 )
+			src->add("0.0");
 		else if( elementSel == 5 )
-			src->addFmt("1.0");
-		else
-		{
-			cemu_assert_unimplemented();
-		}
-	}
-	else
-	{
-		cemu_assert_unimplemented();
+			src->add("1.0");
 	}
 }
 
@@ -2430,10 +2426,6 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		cemu_assert_unimplemented();
 		src->add("texture(");
 	}
-	if( texInstruction->textureFetch.srcSel[0] >= 4 )
-		cemu_assert_unimplemented();
-	if( texInstruction->textureFetch.srcSel[1] >= 4 )
-		cemu_assert_unimplemented();
 	src->addFmt("{}{}, ", _getTextureUnitVariablePrefixName(shaderContext->shader->shaderType), texInstruction->textureFetch.textureIndex);
 
 	// for textureGather() add shift (todo: depends on rounding mode set in sampler registers?)
@@ -2455,7 +2447,7 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		}
 	}
 
-
+	const sint32 texCoordDataType = (texOpcode == GPU7_TEX_INST_LD) ? LATTE_DECOMPILER_DTYPE_SIGNED_INT : LATTE_DECOMPILER_DTYPE_FLOAT;
 	if(useTexelCoordinates)
 	{
 		// handle integer coordinates for texelFetch
@@ -2463,9 +2455,9 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		{
 			src->add("ivec2(");
 			src->add("vec2(");
-			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, (texOpcode == GPU7_TEX_INST_LD) ? LATTE_DECOMPILER_DTYPE_SIGNED_INT : LATTE_DECOMPILER_DTYPE_FLOAT);
+			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, texCoordDataType);
 			src->addFmt(", ");
-			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, (texOpcode == GPU7_TEX_INST_LD) ? LATTE_DECOMPILER_DTYPE_SIGNED_INT : LATTE_DECOMPILER_DTYPE_FLOAT);
+			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, texCoordDataType);
 
 			src->addFmt(")*uf_tex{}Scale", texInstruction->textureFetch.textureIndex); // close vec2 and scale
 
@@ -2485,7 +2477,7 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		else
 			cemu_assert_debug(false);
 	}
-	else
+	else /* useTexelCoordinates == false */
 	{
 		// float coordinates
 		if ( (texOpcode == GPU7_TEX_INST_SAMPLE_C || texOpcode == GPU7_TEX_INST_SAMPLE_C_L || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ) )
@@ -2549,10 +2541,8 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		else if( texDim == Latte::E_DIM::DIM_CUBEMAP )
 		{
 			// 2 coords + faceId
-			if( texInstruction->textureFetch.srcSel[0] >= 4 || texInstruction->textureFetch.srcSel[1] >= 4 )
-			{
-				debugBreakpoint();
-			}
+			cemu_assert_debug(texInstruction->textureFetch.srcSel[0] < 4);
+			cemu_assert_debug(texInstruction->textureFetch.srcSel[1] < 4);
 			src->add("vec4(");
 			src->addFmt("redcCUBEReverse({},", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[0], texInstruction->textureFetch.srcSel[1], -1, -1, tempBuffer0));
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
@@ -2567,8 +2557,11 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		else
 		{
 			// 2 coords
-			src->add(_getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[0], texInstruction->textureFetch.srcSel[1], -1, -1, tempBuffer0));
-
+			src->add("vec2(");
+			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
+			src->add(",");
+			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
+			src->add(")");
 			// avoid truncate to effectively round downwards on texel edges
 			if (ActiveSettings::ForceSamplerRoundToPrecision())
 				src->addFmt("+ vec2(1.0)/vec2(textureSize({}{}, 0))/512.0", _getTextureUnitVariablePrefixName(shaderContext->shader->shaderType), texInstruction->textureFetch.textureIndex);
@@ -2576,9 +2569,11 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		// lod or lod bias parameter
 		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
 		{
-			if( texInstruction->textureFetch.srcSel[3] >= 4 )
-				debugBreakpoint();
-			src->addFmt(",{}", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[3], -1, -1, -1, tempBuffer0));
+			src->add(",");
+			if(texOpcode == GPU7_TEX_INST_SAMPLE_LB)
+				src->add(_FormatFloatAsGLSLConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
+			else
+				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
 		}
 		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
 		{
@@ -3667,7 +3662,8 @@ void LatteDecompiler_emitClauseCode(LatteDecompilerShaderContext* shaderContext,
 	{
 		src->addFmt("{} = {} == true && {} == true;" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1 - cfInstruction->popCount), _getActiveMaskVarName(shaderContext, cfInstruction->activeStackDepth - cfInstruction->popCount), _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth - cfInstruction->popCount));
 	}
-	else if( cfInstruction->type == GPU7_CF_INST_LOOP_START_DX10 )
+	else if( cfInstruction->type == GPU7_CF_INST_LOOP_START_DX10 ||
+			 cfInstruction->type == GPU7_CF_INST_LOOP_START_NO_AL)
 	{
 		// start of loop
 		// if pixel is disabled, then skip loop

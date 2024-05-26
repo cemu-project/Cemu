@@ -54,11 +54,11 @@ namespace NAPI
 		AES128_CBC_decrypt((uint8*)iconData, (uint8*)iconData, sizeof(IDBEIconDataV0), aesKey, iv);
 	}
 
-	std::vector<uint8> IDBE_RequestRawEncrypted(uint64 titleId)
+	std::vector<uint8> IDBE_RequestRawEncrypted(NetworkService networkService, uint64 titleId)
 	{
 		CurlRequestHelper req;
 		std::string requestUrl;
-		switch (ActiveSettings::GetNetworkService())
+		switch (networkService)
 		{
 		case NetworkService::Pretendo:
 			requestUrl = PretendoURLs::IDBEURL;
@@ -72,7 +72,7 @@ namespace NAPI
 			break;
 		}
 		requestUrl.append(fmt::format(fmt::runtime("/{0:02X}/{1:016X}.idbe"), (uint32)((titleId >> 8) & 0xFF), titleId));
-		req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
+		req.initate(networkService, requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::IDBE);
 
 		if (!req.submitRequest(false))
 		{
@@ -90,7 +90,7 @@ namespace NAPI
 		return receivedData;
 	}
 
-	std::optional<IDBEIconDataV0> IDBE_Request(uint64 titleId)
+	std::optional<IDBEIconDataV0> IDBE_Request(NetworkService networkService, uint64 titleId)
 	{
 		if (titleId == 0x000500301001500A ||
 			titleId == 0x000500301001510A ||
@@ -101,7 +101,7 @@ namespace NAPI
 			return std::nullopt;
 		}
 
-		std::vector<uint8> idbeData = IDBE_RequestRawEncrypted(titleId);
+		std::vector<uint8> idbeData = IDBE_RequestRawEncrypted(networkService, titleId);
 		if (idbeData.size() < 0x22)
 			return std::nullopt;
 		if (idbeData[0] != 0)

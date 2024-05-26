@@ -48,7 +48,7 @@ Before submitting a pull request, please read and follow our code style guidelin
 
 If coding isn't your thing, testing games and making detailed bug reports or updating the (usually outdated) compatibility wiki is also appreciated!
 
-Questions about Cemu's software architecture can also be answered on Discord (through the Matrix bridge).
+Questions about Cemu's software architecture can also be answered on Discord (or through the Matrix bridge).
 
 ## License
 Cemu is licensed under [Mozilla Public License 2.0](/LICENSE.txt). Exempt from this are all files in the dependencies directory for which the licenses of the original code apply as well as some individual files in the src folder, as specified in those file headers respectively.

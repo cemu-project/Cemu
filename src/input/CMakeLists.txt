@@ -70,18 +70,9 @@ if (ENABLE_WIIMOTE)
 			api/Wiimote/NativeWiimoteController.h
 			api/Wiimote/NativeWiimoteController.cpp
 			api/Wiimote/WiimoteDevice.h
-	)
-	if (ENABLE_HIDAPI)
-		target_sources(CemuInput PRIVATE
 			api/Wiimote/hidapi/HidapiWiimote.cpp
 			api/Wiimote/hidapi/HidapiWiimote.h
-		)
-	elseif (WIN32)
-		target_sources(CemuInput PRIVATE
-			api/Wiimote/windows/WinWiimoteDevice.cpp
-			api/Wiimote/windows/WinWiimoteDevice.h
-		)
-	endif()
+	)
 endif ()
 
 

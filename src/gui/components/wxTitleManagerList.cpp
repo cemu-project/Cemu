@@ -948,6 +948,8 @@ wxString wxTitleManagerList::GetTitleEntryText(const TitleEntry& entry, ItemColu
 			return _("NUS");
 		case wxTitleManagerList::EntryFormat::WUA:
 			return _("WUA");
+		case wxTitleManagerList::EntryFormat::WUHB:
+			return _("WUHB");
 		}
 		return "";
 	}
@@ -1021,6 +1023,9 @@ void wxTitleManagerList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt
 		break;
 	case TitleInfo::TitleDataFormat::WIIU_ARCHIVE:
 		entryFormat = EntryFormat::WUA;
+		break;
+	case TitleInfo::TitleDataFormat::WUHB:
+		entryFormat = EntryFormat::WUHB;
 		break;
 	case TitleInfo::TitleDataFormat::HOST_FS:
 	default:
@@ -1143,7 +1148,7 @@ bool wxTitleManagerList::SortFunc(int column, const Type_t& v1, const Type_t& v2
 	// check column: title id -> type -> path
 	if (column == ColumnTitleId)
 	{
-		// ensure strong ordering -> use type since only one entry should be now (should be changed if every save for every user is displayed spearately?)
+		// ensure strong ordering -> use type since only one entry should be now (should be changed if every save for every user is displayed separately?)
 		if (entry1.title_id == entry2.title_id)
 			return SortFunc(ColumnType, v1, v2);
 		
@@ -1159,7 +1164,7 @@ bool wxTitleManagerList::SortFunc(int column, const Type_t& v1, const Type_t& v2
 	}
 	else if (column == ColumnType)
 	{
-		if(std::underlying_type_t<EntryType>(entry1.type) == std::underlying_type_t<EntryType>(entry2.type))
+		if(entry1.type == entry2.type)
 			return SortFunc(-1, v1, v2);
 		
 		return std::underlying_type_t<EntryType>(entry1.type) < std::underlying_type_t<EntryType>(entry2.type);
@@ -1177,6 +1182,13 @@ bool wxTitleManagerList::SortFunc(int column, const Type_t& v1, const Type_t& v2
 			return SortFunc(ColumnTitleId, v1, v2);
 		
 		return std::underlying_type_t<EntryType>(entry1.region) < std::underlying_type_t<EntryType>(entry2.region);
+	}
+	else if (column == ColumnFormat)
+	{
+		if(entry1.format == entry2.format)
+			return SortFunc(ColumnType, v1, v2);
+
+		return std::underlying_type_t<EntryType>(entry1.format) < std::underlying_type_t<EntryType>(entry2.format);
 	}
 		
 	return false;

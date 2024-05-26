@@ -21,6 +21,7 @@ public:
 	~GraphicPacksWindow2();
 
 	static void RefreshGraphicPacks();
+	void UpdateTitleRunning(bool running);
 
 private:
 	std::string m_filter;

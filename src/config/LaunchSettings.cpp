@@ -69,11 +69,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		("account,a", po::value<std::string>(), "Persistent id of account")
 
 		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler")
-		("enable-gdbstub", po::value<bool>()->implicit_value(true), "Enable GDB stub to debug executables inside Cemu using an external debugger")
-
-		("act-url", po::value<std::string>(), "URL prefix for account server")
-		("ecs-url", po::value<std::string>(), "URL for ECS service");
-
+		("enable-gdbstub", po::value<bool>()->implicit_value(true), "Enable GDB stub to debug executables inside Cemu using an external debugger");
 
 	po::options_description hidden{ "Hidden options" };
 	hidden.add_options()
@@ -174,8 +170,6 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		
 		if (vm.count("nsight"))
 			s_nsight_mode = vm["nsight"].as<bool>();
-		if (vm.count("legacy"))
-			s_force_intel_legacy = vm["legacy"].as<bool>();
 
 		if(vm.count("force-interpreter"))
 			s_force_interpreter = vm["force-interpreter"].as<bool>();
@@ -191,16 +185,6 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			output_path = vm["path"].as<std::string>();
 		if (vm.count("output"))
 			log_path = vm["output"].as<std::wstring>();
-
-		// urls
-		if (vm.count("act-url"))
-		{
-			serviceURL_ACT = vm["act-url"].as<std::string>();
-			if (serviceURL_ACT.size() > 0 && serviceURL_ACT.back() == '/')
-				serviceURL_ACT.pop_back();
-		}
-		if (vm.count("ecs-url"))
-			serviceURL_ECS = vm["ecs-url"].as<std::string>();
 
 		if(!extract_path.empty())
 		{
@@ -281,25 +265,4 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 	}
 	
 	return true;
-}
-
-
-void LaunchSettings::ChangeNetworkServiceURL(int ID){
-	NetworkService Network = static_cast<NetworkService>(ID);
-	switch (Network)
-	{
-	case NetworkService::Pretendo:
-		serviceURL_ACT = PretendoURLs::ACTURL;
-	 	serviceURL_ECS = PretendoURLs::ECSURL;
-		break;
-	case NetworkService::Custom:
-		serviceURL_ACT = GetNetworkConfig().urls.ACT.GetValue();
-	 	serviceURL_ECS = GetNetworkConfig().urls.ECS.GetValue();
-		break;
-	case NetworkService::Nintendo:
-	default:
-		serviceURL_ACT = NintendoURLs::ACTURL;
-	 	serviceURL_ECS = NintendoURLs::ECSURL;
-		break;
-	}
 }

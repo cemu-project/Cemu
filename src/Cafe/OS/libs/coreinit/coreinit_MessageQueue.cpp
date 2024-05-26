@@ -3,6 +3,8 @@
 
 namespace coreinit
 {
+	void UpdateSystemMessageQueue();
+	void HandleReceivedSystemMessage(OSMessage* msg);
 
 	SysAllocator<OSMessageQueue> g_systemMessageQueue;
 	SysAllocator<OSMessage, 16> _systemMessageQueueArray;
@@ -27,6 +29,9 @@ namespace coreinit
 
 	bool OSReceiveMessage(OSMessageQueue* msgQueue, OSMessage* msg, uint32 flags)
 	{
+		bool isSystemMessageQueue = (msgQueue == g_systemMessageQueue);
+		if(isSystemMessageQueue)
+			UpdateSystemMessageQueue();
 		__OSLockScheduler(msgQueue);
 		while (msgQueue->usedCount == (uint32be)0)
 		{
@@ -50,6 +55,8 @@ namespace coreinit
 		if (!msgQueue->threadQueueSend.isEmpty())
 			msgQueue->threadQueueSend.wakeupSingleThreadWaitQueue(true);
 		__OSUnlockScheduler(msgQueue);
+		if(isSystemMessageQueue)
+			HandleReceivedSystemMessage(msg);
 		return true;
 	}
 

@@ -42,7 +42,7 @@ namespace nn
 
 		void asyncDownloadIconFile(uint64 titleId, nnIdbeEncryptedIcon_t* iconOut, OSThread_t* thread)
 		{
-			std::vector<uint8> idbeData = NAPI::IDBE_RequestRawEncrypted(titleId);
+			std::vector<uint8> idbeData = NAPI::IDBE_RequestRawEncrypted(ActiveSettings::GetNetworkService(), titleId);
 			if (idbeData.size() != sizeof(nnIdbeEncryptedIcon_t))
 			{
 				// icon does not exist or has the wrong size

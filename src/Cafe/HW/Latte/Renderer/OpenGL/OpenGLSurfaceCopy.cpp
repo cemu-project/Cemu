@@ -30,9 +30,8 @@ void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 	sint32 effectiveCopyWidth = width;
 	sint32 effectiveCopyHeight = height;
 	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
-	sint32 sourceEffectiveWidth;
-	sint32 sourceEffectiveHeight;
-	LatteTexture_getEffectiveSize(sourceTexture, &sourceEffectiveWidth, &sourceEffectiveHeight, nullptr, srcMip);
+	sint32 sourceEffectiveWidth, sourceEffectiveHeight;
+	sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 	// reset everything
 	renderstate_resetColorControl();
 	renderstate_resetDepthControl();
@@ -52,7 +51,7 @@ void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 	LatteTextureView* sourceView = sourceTexture->GetOrCreateView(srcMip, 1, srcSlice, 1);
 	LatteTextureView* destinationView = destinationTexture->GetOrCreateView(dstMip, 1, dstSlice, 1);
 
-	g_renderer->texture_bindAndActivate(sourceView, 0);
+	texture_bindAndActivate(sourceView, 0);
 	catchOpenGLError();
 	// setup texture attributes
 	_setDepthCompareMode((LatteTextureViewGL*)sourceView, 0);

@@ -166,9 +166,11 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
 			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
 			second_row->Add(m_auto_update, 0, botflag, 5);
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-			m_auto_update->Disable();
-#endif
+#if BOOST_OS_LINUX 
+			if (!std::getenv("APPIMAGE")) {
+				m_auto_update->Disable();
+			} 
+#endif	
 			second_row->AddSpacer(10);
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
 			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
@@ -681,16 +683,6 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		content->Add(m_delete_account, 0, wxEXPAND | wxALL | wxALIGN_RIGHT, 5);
 		m_delete_account->Bind(wxEVT_BUTTON, &GeneralSettings2::OnAccountDelete, this);
 
-		wxString choices[] = { _("Nintendo"), _("Pretendo"), _("Custom") };
-		m_active_service = new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 3, wxRA_SPECIFY_COLS);
-		if (!NetworkConfig::XMLExists())
-			m_active_service->Enable(2, false);
-
-
-		m_active_service->SetToolTip(_("Connect to which Network Service"));
-		m_active_service->Bind(wxEVT_RADIOBOX, &GeneralSettings2::OnAccountServiceChanged,this);
-		content->Add(m_active_service, 0, wxEXPAND | wxALL, 5);
-
 		box_sizer->Add(content, 1, wxEXPAND, 5);
 
 		online_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -700,17 +692,33 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 			m_active_account->Enable(false);
 			m_create_account->Enable(false);
 			m_delete_account->Enable(false);
+		}
+	}
+
+
+	{
+		wxString choices[] = { _("Offline"),  _("Nintendo"), _("Pretendo"), _("Custom") };
+		m_active_service = new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 4, wxRA_SPECIFY_COLS);
+		if (!NetworkConfig::XMLExists())
+			m_active_service->Enable(3, false);
+
+		m_active_service->SetItemToolTip(0, _("Online functionality disabled for this account"));
+		m_active_service->SetItemToolTip(1, _("Connect to the official Nintendo Network Service"));
+		m_active_service->SetItemToolTip(2, _("Connect to the Pretendo Network Service"));
+		m_active_service->SetItemToolTip(3, _("Connect to a custom Network Service (configured via network_services.xml)"));
+
+		m_active_service->Bind(wxEVT_RADIOBOX, &GeneralSettings2::OnAccountServiceChanged,this);
+		online_panel_sizer->Add(m_active_service, 0, wxEXPAND | wxALL, 5);
+
+		if (CafeSystem::IsTitleRunning())
+		{
 			m_active_service->Enable(false);
 		}
 	}
-	
+
 	{
-		auto* box = new wxStaticBox(online_panel, wxID_ANY, _("Online settings"));
+		auto* box = new wxStaticBox(online_panel, wxID_ANY, _("Online play requirements"));
 		auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
-		
-		m_online_enabled = new wxCheckBox(box, wxID_ANY, _("Enable online mode"));
-		m_online_enabled->Bind(wxEVT_CHECKBOX, &GeneralSettings2::OnOnlineEnable, this);
-		box_sizer->Add(m_online_enabled, 0, wxEXPAND | wxALL, 5);
 
 		auto* row = new wxFlexGridSizer(0, 2, 0, 0);
 		row->SetFlexibleDirection(wxBOTH);
@@ -762,7 +770,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		m_account_grid->Append(new wxStringProperty(_("Email"), kPropertyEmail));
 
 		wxPGChoices countries;
-		for (int i = 0; i < 195; ++i)
+		for (int i = 0; i < NCrypto::GetCountryCount(); ++i)
 		{
 			const auto country = NCrypto::GetCountryAsString(i);
 			if (country && (i == 0 || !boost::equals(country, "NN")))
@@ -867,6 +875,14 @@ GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 	HandleGraphicsApiSelection();
 	
 	DisableSettings(game_launched);
+}
+
+uint32 GeneralSettings2::GetSelectedAccountPersistentId()
+{
+	const auto active_account = m_active_account->GetSelection();
+	if (active_account == wxNOT_FOUND)
+		return GetConfig().account.m_persistent_id.GetInitValue();
+	return dynamic_cast<wxAccountData*>(m_active_account->GetClientObject(active_account))->GetAccount().GetPersistentId();
 }
 
 void GeneralSettings2::StoreConfig() 
@@ -1034,14 +1050,7 @@ void GeneralSettings2::StoreConfig()
 	config.notification.friends = m_friends_data->GetValue();
 
 	// account
-	const auto active_account = m_active_account->GetSelection();
-	if (active_account == wxNOT_FOUND)
-		config.account.m_persistent_id = config.account.m_persistent_id.GetInitValue();
-	else
-		config.account.m_persistent_id = dynamic_cast<wxAccountData*>(m_active_account->GetClientObject(active_account))->GetAccount().GetPersistentId();
-
-	config.account.online_enabled = m_online_enabled->GetValue();
-	config.account.active_service = m_active_service->GetSelection();
+	config.account.m_persistent_id = GetSelectedAccountPersistentId();
 
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
@@ -1367,14 +1376,13 @@ void GeneralSettings2::UpdateAccountInformation()
 {
 	m_account_grid->SetSplitterPosition(100);
 
-	m_online_status->SetLabel(_("At least one issue has been found"));
-	
 	const auto selection = m_active_account->GetSelection();
 	if(selection == wxNOT_FOUND)
 	{
 		m_validate_online->SetBitmap(wxBITMAP_PNG_FROM_DATA(PNG_ERROR).ConvertToImage().Scale(16, 16));
 		m_validate_online->SetWindowStyleFlag(m_validate_online->GetWindowStyleFlag() & ~wxBORDER_NONE);
 		ResetAccountInformation();
+		m_online_status->SetLabel(_("No account selected"));
 		return;
 	}
 
@@ -1400,11 +1408,26 @@ void GeneralSettings2::UpdateAccountInformation()
 		index = 0;
 	country_property->SetChoiceSelection(index);
 
-	const bool online_valid = account.IsValidOnlineAccount() && ActiveSettings::HasRequiredOnlineFiles();
-	if (online_valid)
+	const bool online_fully_valid = account.IsValidOnlineAccount() && ActiveSettings::HasRequiredOnlineFiles();
+	if (ActiveSettings::HasRequiredOnlineFiles())
 	{
-		
-		m_online_status->SetLabel(_("Your account is a valid online account"));
+		if(account.IsValidOnlineAccount())
+			m_online_status->SetLabel(_("Selected account is a valid online account"));
+		else
+			m_online_status->SetLabel(_("Selected account is not linked to a NNID or PNID"));
+	}
+	else
+	{
+		if(NCrypto::OTP_IsPresent() != NCrypto::SEEPROM_IsPresent())
+			m_online_status->SetLabel(_("OTP.bin or SEEPROM.bin is missing"));
+		else if(NCrypto::OTP_IsPresent() && NCrypto::SEEPROM_IsPresent())
+			m_online_status->SetLabel(_("OTP and SEEPROM present but no certificate files were found"));
+		else
+			m_online_status->SetLabel(_("Online play is not set up. Follow the guide below to get started"));
+	}
+
+	if(online_fully_valid)
+	{
 		m_validate_online->SetBitmap(wxBITMAP_PNG_FROM_DATA(PNG_CHECK_YES).ConvertToImage().Scale(16, 16));
 		m_validate_online->SetWindowStyleFlag(m_validate_online->GetWindowStyleFlag() | wxBORDER_NONE);
 	}
@@ -1413,7 +1436,28 @@ void GeneralSettings2::UpdateAccountInformation()
 		m_validate_online->SetBitmap(wxBITMAP_PNG_FROM_DATA(PNG_ERROR).ConvertToImage().Scale(16, 16));
 		m_validate_online->SetWindowStyleFlag(m_validate_online->GetWindowStyleFlag() & ~wxBORDER_NONE);
 	}
-	
+
+	// enable/disable network service field depending on online requirements
+	m_active_service->Enable(online_fully_valid && !CafeSystem::IsTitleRunning());
+	if(online_fully_valid)
+	{
+		NetworkService service = GetConfig().GetAccountNetworkService(account.GetPersistentId());
+		m_active_service->SetSelection(static_cast<int>(service));
+		// set the config option here for the selected service
+		// this will guarantee that it's actually written to settings.xml
+		// allowing us to eventually get rid of the legacy option in the (far) future
+		GetConfig().SetAccountSelectedService(account.GetPersistentId(), service);
+	}
+	else
+	{
+		m_active_service->SetSelection(0); // force offline
+	}
+	wxString tmp = _("Network service");
+	tmp.append(" (");
+	tmp.append(wxString::FromUTF8(boost::nowide::narrow(account.GetMiiName())));
+	tmp.append(")");
+	m_active_service->SetLabel(tmp);
+
 	// refresh pane size
 	m_account_grid->InvalidateBestSize();
 	//m_account_grid->GetParent()->FitInside();
@@ -1659,29 +1703,14 @@ void GeneralSettings2::ApplyConfig()
 			break;
 		}
 	}
-	
-	m_online_enabled->SetValue(config.account.online_enabled);
-	m_active_service->SetSelection(config.account.active_service);
+	m_active_service->SetSelection((int)config.GetAccountNetworkService(ActiveSettings::GetPersistentId()));
+
 	UpdateAccountInformation();
 
 	// debug
 	m_crash_dump->SetSelection((int)config.crash_dump.GetValue());
 	m_gdb_port->SetValue(config.gdb_port.GetValue());
 }
-
-void GeneralSettings2::OnOnlineEnable(wxCommandEvent& event)
-{
-	event.Skip();
-	if (!m_online_enabled->GetValue())
-		return;
-
-	// show warning if player enables online mode
-	const auto result = wxMessageBox(_("Please be aware that online mode lets you connect to OFFICIAL servers and therefore there is a risk of getting banned.\nOnly proceed if you are willing to risk losing online access with your Wii U and/or NNID."),
-		_("Warning"), wxYES_NO | wxCENTRE | wxICON_EXCLAMATION, this);
-	if (result == wxNO)
-		m_online_enabled->SetValue(false);
-}
-
 
 void GeneralSettings2::OnAudioAPISelected(wxCommandEvent& event)
 {
@@ -1948,8 +1977,9 @@ void GeneralSettings2::OnActiveAccountChanged(wxCommandEvent& event)
 
 void GeneralSettings2::OnAccountServiceChanged(wxCommandEvent& event)
 {
-	LaunchSettings::ChangeNetworkServiceURL(m_active_service->GetSelection());
-
+	auto& config = GetConfig();
+	uint32 peristentId = GetSelectedAccountPersistentId();
+	config.SetAccountSelectedService(peristentId, static_cast<NetworkService>(m_active_service->GetSelection()));
 	UpdateAccountInformation();
 }
 
@@ -2003,12 +2033,12 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 	err << _("The following error(s) have been found:") << '\n';
 	
 	if (validator.otp == OnlineValidator::FileState::Missing)
-		err << _("otp.bin missing in Cemu root directory") << '\n';
+		err << _("otp.bin missing in Cemu directory") << '\n';
 	else if(validator.otp == OnlineValidator::FileState::Corrupted)
 		err << _("otp.bin is invalid") << '\n';
 	
 	if (validator.seeprom == OnlineValidator::FileState::Missing)
-		err << _("seeprom.bin missing in Cemu root directory") << '\n';
+		err << _("seeprom.bin missing in Cemu directory") << '\n';
 	else if(validator.seeprom == OnlineValidator::FileState::Corrupted)
 		err << _("seeprom.bin is invalid") << '\n';
 
@@ -2043,9 +2073,10 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 
 wxString GeneralSettings2::GetOnlineAccountErrorMessage(OnlineAccountError error)
 {
-	switch (error) {
+	switch (error)
+	{
 		case OnlineAccountError::kNoAccountId:
-			return _("AccountId missing (The account is not connected to a NNID)");
+			return _("AccountId missing (The account is not connected to a NNID/PNID)");
 		case OnlineAccountError::kNoPasswordCached:
 			return _("IsPasswordCacheEnabled is set to false (The remember password option on your Wii U must be enabled for this account before dumping it)");
 		case OnlineAccountError::kPasswordCacheEmpty:

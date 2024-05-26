@@ -44,7 +44,7 @@ LatteTextureView* LatteHandleOSScreen_getOrCreateScreenTex(MPTR physAddress, uin
 	LatteTextureView* texView = LatteTextureViewLookupCache::lookup(physAddress, width, height, 1, pitch, 0, 1, 0, 1, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, Latte::E_DIM::DIM_2D);
 	if (texView)
 		return texView;
-	return LatteTexture_CreateTexture(0, Latte::E_DIM::DIM_2D, physAddress, 0, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, width, height, 1, pitch, 1, 0, Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED, false);
+	return LatteTexture_CreateTexture(Latte::E_DIM::DIM_2D, physAddress, 0, Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM, width, height, 1, pitch, 1, 0, Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED, false);
 }
 
 void LatteHandleOSScreen_prepareTextures()
@@ -71,8 +71,7 @@ bool LatteHandleOSScreen_TV()
 	const uint32 bufferIndexTV = (bufferDisplayTV);
 	const uint32 bufferIndexDRC = bufferDisplayDRC;
 
-	g_renderer->texture_bindAndActivate(osScreenTVTex[bufferIndexTV], 0);
-	LatteTexture_ReloadData(osScreenTVTex[bufferIndexTV]->baseTexture, 0);
+	LatteTexture_ReloadData(osScreenTVTex[bufferIndexTV]->baseTexture);
 
 	// TV screen
 	LatteRenderTarget_copyToBackbuffer(osScreenTVTex[bufferIndexTV]->baseTexture->baseView, false);
@@ -94,8 +93,7 @@ bool LatteHandleOSScreen_DRC()
 
 	const uint32 bufferIndexDRC = bufferDisplayDRC;
 
-	g_renderer->texture_bindAndActivate(osScreenDRCTex[bufferIndexDRC], 0);
-	LatteTexture_ReloadData(osScreenDRCTex[bufferIndexDRC]->baseTexture, 0);
+	LatteTexture_ReloadData(osScreenDRCTex[bufferIndexDRC]->baseTexture);
 
 	// GamePad screen
 	LatteRenderTarget_copyToBackbuffer(osScreenDRCTex[bufferIndexDRC]->baseTexture->baseView, true);
@@ -142,13 +140,7 @@ int Latte_ThreadEntry()
 	case GfxVendor::AMD: 
 		LatteGPUState.glVendor = GLVENDOR_AMD;
 		break;
-	case GfxVendor::IntelLegacy: 
-		LatteGPUState.glVendor = GLVENDOR_INTEL_LEGACY; 
-		break;
-	case GfxVendor::IntelNoLegacy: 
-		LatteGPUState.glVendor = GLVENDOR_INTEL_NOLEGACY; 
-		break;
-	case GfxVendor::Intel: 
+	case GfxVendor::Intel:
 		LatteGPUState.glVendor = GLVENDOR_INTEL; 
 		break;
 	case GfxVendor::Nvidia: 
@@ -183,6 +175,23 @@ int Latte_ThreadEntry()
 
 	// before doing anything with game specific shaders, we need to wait for graphic packs to finish loading
 	GraphicPack2::WaitUntilReady();
+	// if legacy packs are enabled we cannot use the colorbuffer resolution optimization
+	LatteGPUState.allowFramebufferSizeOptimization = true;
+	for(auto& pack : GraphicPack2::GetActiveGraphicPacks())
+	{
+		if(pack->AllowRendertargetSizeOptimization())
+			continue;
+		for(auto& rule : pack->GetTextureRules())
+		{
+			if(rule.filter_settings.width >= 0 || rule.filter_settings.height >= 0 || rule.filter_settings.depth >= 0 ||
+				rule.overwrite_settings.width >= 0 || rule.overwrite_settings.height >= 0 || rule.overwrite_settings.depth >= 0)
+			{
+				LatteGPUState.allowFramebufferSizeOptimization = false;
+				cemuLog_log(LogType::Force, "Graphic pack \"{}\" prevents rendertarget size optimization. This warning can be ignored and is intended for graphic pack developers", pack->GetName());
+				break;
+			}
+		}
+	}
 	// load disk shader cache
     LatteShaderCache_Load();
 	// init registers

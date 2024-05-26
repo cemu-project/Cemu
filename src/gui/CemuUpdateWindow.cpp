@@ -12,6 +12,11 @@
 #include <wx/msgdlg.h>
 #include <wx/stdpaths.h>
 
+#ifndef BOOST_OS_WINDOWS
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
+
 #include <curl/curl.h>
 #include <zip.h>
 #include <boost/tokenizer.hpp>
@@ -105,11 +110,11 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 	auto* curl = curl_easy_init();
 	urlStr.append(_curlUrlEscape(curl, BUILD_VERSION_STRING));
 #if BOOST_OS_LINUX
-	urlStr.append("&platform=linux");
+	urlStr.append("&platform=linux_appimage_x86");
 #elif BOOST_OS_WINDOWS
 	urlStr.append("&platform=windows");
 #elif BOOST_OS_MACOS
-	urlStr.append("&platform=macos_x86");
+	urlStr.append("&platform=macos_bundle_x86");
 #elif
 
 #error Name for current platform is missing
@@ -407,7 +412,13 @@ void CemuUpdateWindow::WorkerThread()
 				if (!exists(tmppath))
 					create_directory(tmppath);
 
+#if BOOST_OS_WINDOWS
 				const auto update_file = tmppath / L"update.zip";
+#elif BOOST_OS_LINUX
+				const auto update_file = tmppath / L"Cemu.AppImage";
+#elif BOOST_OS_MACOS
+				const auto update_file = tmppath / L"cemu.dmg";
+#endif	
 				if (DownloadCemuZip(url, update_file))
 				{
 					auto* event = new wxCommandEvent(wxEVT_RESULT);
@@ -427,6 +438,7 @@ void CemuUpdateWindow::WorkerThread()
 
 				// extract
 				std::string cemuFolderName;
+#if BOOST_OS_WINDOWS
 				if (!ExtractUpdate(update_file, tmppath, cemuFolderName))
 				{
 					cemuLog_log(LogType::Force, "Extracting Cemu zip failed");
@@ -437,7 +449,7 @@ void CemuUpdateWindow::WorkerThread()
 					cemuLog_log(LogType::Force, "Cemu folder not found in zip");
 					break;
 				}
-
+#endif
 				const auto expected_path = tmppath / cemuFolderName;
 				if (exists(expected_path))
 				{
@@ -472,6 +484,7 @@ void CemuUpdateWindow::WorkerThread()
 
 				// apply update
 				fs::path exePath = ActiveSettings::GetExecutablePath();
+#if BOOST_OS_WINDOWS
 				std::wstring target_directory = exePath.parent_path().generic_wstring();
 				if (target_directory[target_directory.size() - 1] == '/')
 					target_directory = target_directory.substr(0, target_directory.size() - 1); // remove trailing /
@@ -480,8 +493,19 @@ void CemuUpdateWindow::WorkerThread()
 				const auto exec = ActiveSettings::GetExecutablePath();
 				const auto target_exe = fs::path(exec).replace_extension("exe.backup");
 				fs::rename(exec, target_exe);
-				m_restartFile = exec;
-
+				m_restartFile = exec;				
+#elif BOOST_OS_LINUX
+				const char* appimage_path = std::getenv("APPIMAGE");
+				const auto target_exe = fs::path(appimage_path).replace_extension("AppImage.backup");
+				const char* filePath = update_file.c_str();
+				mode_t permissions = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+				fs::rename(appimage_path, target_exe);
+				m_restartFile = appimage_path;
+				chmod(filePath, permissions);
+				wxString wxAppPath = wxString::FromUTF8(appimage_path);
+				wxCopyFile (wxT("/tmp/cemu_update/Cemu.AppImage"), wxAppPath);
+#endif
+#if BOOST_OS_WINDOWS
 				const auto index = expected_path.wstring().size();
 				int counter = 0;
 				for (const auto& it : fs::recursive_directory_iterator(expected_path))
@@ -516,7 +540,7 @@ void CemuUpdateWindow::WorkerThread()
 						wxQueueEvent(this, event);
 					}
 				}
-
+#endif
 				auto* event = new wxCommandEvent(wxEVT_PROGRESS);
 				event->SetInt(m_gaugeMaxValue);
 				wxQueueEvent(this, event);
@@ -565,8 +589,24 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 
 		exit(0);
 	}
-#else
-	cemuLog_log(LogType::Force, "unimplemented - restart on update");
+#elif BOOST_OS_LINUX
+	if (m_restartRequired && !m_restartFile.empty() && fs::exists(m_restartFile))
+	{
+		const char* appimage_path = std::getenv("APPIMAGE");
+		execlp(appimage_path, appimage_path, (char *)NULL);
+
+		exit(0);
+	}
+#elif BOOST_OS_MACOS
+	if (m_restartRequired)
+	{
+	    const auto tmppath = fs::temp_directory_path() / L"cemu_update/Cemu.dmg";
+	    fs::path exePath = ActiveSettings::GetExecutablePath().parent_path();
+	    const auto apppath = exePath / L"update.sh";
+	    execlp("sh", "sh", apppath.c_str(), NULL);
+        
+        exit(0);
+	}	
 #endif
 }
 

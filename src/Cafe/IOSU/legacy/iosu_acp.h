@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Cafe/IOSU/iosu_types_common.h"
+#include "Cafe/OS/libs/nn_common.h" // for nnResult
+
 typedef struct
 {
 	/* +0x0000 */ uint64 title_id; // parsed via GetHex64
@@ -192,4 +195,24 @@ typedef struct
 namespace iosu
 {
 	void iosuAcp_init();
+
+	namespace acp
+	{
+		enum ACPDeviceType
+		{
+			UnknownType = 0,
+			InternalDeviceType = 1,
+			USBDeviceType = 3,
+		};
+
+		class IOSUModule* GetModule();
+
+		void CreateSaveMetaFiles(uint32 persistentId, uint64 titleId);
+		nnResult ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, ACPDeviceType deviceType);
+
+		nnResult ACPCreateSaveDir(uint32 persistentId, ACPDeviceType type);
+		sint32 ACPCreateSaveDirEx(uint8 accountSlot, uint64 titleId);
+		nnResult ACPGetOlvAccesskey(uint32be* accessKey);
+	}
+
 }

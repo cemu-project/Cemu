@@ -26,7 +26,7 @@
 
 #include "Cafe/HW/Latte/Core/LatteTiming.h" // vsync control
 
-#include <glslang/Include/Types.h>
+#include <glslang/Public/ShaderLang.h>
 
 #include <wx/msgdlg.h>
 
@@ -169,6 +169,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 				result.emplace_back(physDeviceProps.properties.deviceName, physDeviceIDProps.deviceUUID);
 			}
 		}
+		vkDestroySurfaceKHR(instance, surface, nullptr);
 	}
 	catch (...)
 	{
@@ -455,7 +456,7 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	// create logical device
-	m_indices = SwapchainInfoVk::FindQueueFamilies(surface, m_physicalDevice);
+	m_indices = FindQueueFamilies(surface, m_physicalDevice);
 	std::set<int> uniqueQueueFamilies = { m_indices.graphicsFamily, m_indices.presentFamily };
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = CreateQueueCreateInfos(uniqueQueueFamilies);
 	VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -542,7 +543,7 @@ VulkanRenderer::VulkanRenderer()
 		PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCallback{};
-		debugCallback.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+		debugCallback.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 		debugCallback.pNext = nullptr;
 		debugCallback.flags = 0;
 		debugCallback.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
@@ -563,7 +564,6 @@ VulkanRenderer::VulkanRenderer()
 
 	QueryMemoryInfo();
 	QueryAvailableFormats();
-	CreateBackbufferIndexBuffer();
 	CreateCommandPool();
 	CreateCommandBuffers();
 	CreateDescriptorPool();
@@ -610,19 +610,8 @@ VulkanRenderer::VulkanRenderer()
 	for (sint32 i = 0; i < OCCLUSION_QUERY_POOL_SIZE; i++)
 		m_occlusionQueries.list_availableQueryIndices.emplace_back(i);
 
-	// enable surface copies via buffer if we have plenty of memory available (otherwise use drawcalls)
-	size_t availableSurfaceCopyBufferMem = memoryManager->GetTotalMemoryForBufferType(VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	//m_featureControl.mode.useBufferSurfaceCopies = availableSurfaceCopyBufferMem >= 2000ull * 1024ull * 1024ull; // enable if at least 2000MB VRAM
-	m_featureControl.mode.useBufferSurfaceCopies = false;
-
-	if (m_featureControl.mode.useBufferSurfaceCopies)
-	{
-		//cemuLog_log(LogType::Force, "Enable surface copies via buffer");
-	}
-	else
-	{
-		//cemuLog_log(LogType::Force, "Disable surface copies via buffer (Requires 2GB. Has only {}MB available)", availableSurfaceCopyBufferMem / 1024ull / 1024ull);
-	}
+	// start compilation threads
+	RendererShaderVk::Init();
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -630,6 +619,8 @@ VulkanRenderer::~VulkanRenderer()
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	WaitCommandBufferFinished(GetCurrentCommandBufferId());
+	// make sure compilation threads have been shut down
+	RendererShaderVk::Shutdown();
 	// shut down pipeline save thread
 	m_destructionRequested = true;
 	m_pipeline_cache_semaphore.notify();
@@ -642,7 +633,6 @@ VulkanRenderer::~VulkanRenderer()
 	DeleteNullObjects();
 
 	// delete buffers
-	memoryManager->DeleteBuffer(m_indexBuffer, m_indexBufferMemory);
 	memoryManager->DeleteBuffer(m_uniformVarBuffer, m_uniformVarBufferMemory);
 	memoryManager->DeleteBuffer(m_textureReadbackBuffer, m_textureReadbackBufferMemory);
 	memoryManager->DeleteBuffer(m_xfbRingBuffer, m_xfbRingBufferMemory);
@@ -716,24 +706,19 @@ VulkanRenderer* VulkanRenderer::GetInstance()
 
 void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
 {
-	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
-
-	const auto surface = CreateFramebufferSurface(m_instance, windowHandleInfo);
 	if (mainWindow)
 	{
-		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_mainSwapchainInfo->m_desiredExtent = size;
-		m_mainSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
+		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(mainWindow, size);
+		m_mainSwapchainInfo->Create();
 
 		// aquire first command buffer
 		InitFirstCommandBuffer();
 	}
 	else
 	{
-		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(surface, mainWindow);
-		m_padSwapchainInfo->m_desiredExtent = size;
+		m_padSwapchainInfo = std::make_unique<SwapchainInfoVk>(mainWindow, size);
 		// todo: figure out a way to exclusively create swapchain on main LatteThread
-		m_padSwapchainInfo->Create(m_physicalDevice, m_logicalDevice);
+		m_padSwapchainInfo->Create();
 	}
 }
 
@@ -749,8 +734,8 @@ SwapchainInfoVk& VulkanRenderer::GetChainInfo(bool mainWindow) const
 
 void VulkanRenderer::StopUsingPadAndWait()
 {
-	m_destroyPadSwapchainNextAcquire = true;
-	m_padCloseReadySemaphore.wait();
+	m_destroyPadSwapchainNextAcquire.test_and_set();
+	m_destroyPadSwapchainNextAcquire.wait(true);
 }
 
 bool VulkanRenderer::IsPadWindowActive()
@@ -793,7 +778,7 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	//dumpImage->flagForCurrentCommandBuffer();
 
 	int width, height;
-	LatteTexture_getEffectiveSize(baseImageTex, &width, &height, nullptr, 0);
+	baseImageTex->GetEffectiveSize(width, height, 0);
 
 	VkImage image = nullptr;
 	VkDeviceMemory imageMemory = nullptr;;
@@ -1121,15 +1106,34 @@ RendererShader* VulkanRenderer::shader_create(RendererShader::ShaderType type, u
 	return new RendererShaderVk(type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
 }
 
-void VulkanRenderer::shader_bind(RendererShader* shader)
+VulkanRenderer::QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device)
 {
-	// does nothing on Vulkan
-	// remove from main render backend and internalize into GL backend
-}
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
-void VulkanRenderer::shader_unbind(RendererShader::ShaderType shaderType)
-{
-	// does nothing on Vulkan
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+	QueueFamilyIndices indices;
+	for (int i = 0; i < (int)queueFamilies.size(); ++i)
+	{
+		const auto& queueFamily = queueFamilies[i];
+		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			indices.graphicsFamily = i;
+
+		VkBool32 presentSupport = false;
+		const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+		if (result != VK_SUCCESS)
+			throw std::runtime_error(fmt::format("Error while attempting to check if a surface supports presentation: {}", result));
+
+		if (queueFamily.queueCount > 0 && presentSupport)
+			indices.presentFamily = i;
+
+		if (indices.IsComplete())
+			break;
+	}
+
+	return indices;
 }
 
 bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info)
@@ -1274,7 +1278,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 
 bool VulkanRenderer::IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device)
 {
-	if (!SwapchainInfoVk::FindQueueFamilies(surface, device).IsComplete())
+	if (!FindQueueFamilies(surface, device).IsComplete())
 		return false;
 
 	// check API version (using Vulkan 1.0 way of querying properties)
@@ -1448,8 +1452,7 @@ bool VulkanRenderer::IsSwapchainInfoValid(bool mainWindow) const
 
 void VulkanRenderer::CreateNullTexture(NullTexture& nullTex, VkImageType imageType)
 {
-	// these are used when the game requests NULL ptr textures or buffers
-	// texture
+	// these are used when the game requests NULL ptr textures
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	if (imageType == VK_IMAGE_TYPE_1D)
@@ -1604,12 +1607,12 @@ void VulkanRenderer::Shutdown()
 	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
-
 	if (m_imguiRenderPass != VK_NULL_HANDLE)
 	{
 		vkDestroyRenderPass(m_logicalDevice, m_imguiRenderPass, nullptr);
 		m_imguiRenderPass = VK_NULL_HANDLE;
 	}
+	RendererShaderVk::Shutdown();
 }
 
 void VulkanRenderer::UnrecoverableError(const char* errMsg) const
@@ -1858,49 +1861,6 @@ void VulkanRenderer::DrawEmptyFrame(bool mainWindow)
 	SwapBuffers(mainWindow, !mainWindow);
 }
 
-void VulkanRenderer::PreparePresentationFrame(bool mainWindow)
-{
-	AcquireNextSwapchainImage(mainWindow);
-}
-
-void VulkanRenderer::ProcessDestructionQueues(size_t commandBufferIndex)
-{
-	auto& current_descriptor_cache = m_destructionQueues.m_cmd_descriptor_set_objects[commandBufferIndex];
-	if (!current_descriptor_cache.empty())
-	{
-		assert_dbg();
-		//for (const auto& descriptor : current_descriptor_cache)
-		//{
-		//	vkFreeDescriptorSets(m_logicalDevice, m_descriptorPool, 1, &descriptor);
-		//	performanceMonitor.vk.numDescriptorSets.decrement();
-		//}
-
-		current_descriptor_cache.clear();
-	}
-
-	// destroy buffers
-	for (auto& itr : m_destructionQueues.m_buffers[commandBufferIndex])
-		vkDestroyBuffer(m_logicalDevice, itr, nullptr);
-	m_destructionQueues.m_buffers[commandBufferIndex].clear();
-
-	// destroy device memory objects
-	for (auto& itr : m_destructionQueues.m_memory[commandBufferIndex])
-		vkFreeMemory(m_logicalDevice, itr, nullptr);
-	m_destructionQueues.m_memory[commandBufferIndex].clear();
-
-	// destroy image views
-	for (auto& itr : m_destructionQueues.m_cmd_image_views[commandBufferIndex])
-		vkDestroyImageView(m_logicalDevice, itr, nullptr);
-	m_destructionQueues.m_cmd_image_views[commandBufferIndex].clear();
-
-	// destroy host textures
-	for (auto itr : m_destructionQueues.m_host_textures[commandBufferIndex])
-		delete itr;
-	m_destructionQueues.m_host_textures[commandBufferIndex].clear();
-
-	ProcessDestructionQueue2();
-}
-
 void VulkanRenderer::InitFirstCommandBuffer()
 {
 	cemu_assert_debug(m_state.currentCommandBuffer == nullptr);
@@ -1929,7 +1889,7 @@ void VulkanRenderer::ProcessFinishedCommandBuffers()
 		VkResult fenceStatus = vkGetFenceStatus(m_logicalDevice, m_cmd_buffer_fences[m_commandBufferSyncIndex]);
 		if (fenceStatus == VK_SUCCESS)
 		{
-			ProcessDestructionQueues(m_commandBufferSyncIndex);
+			ProcessDestructionQueue();
 			m_commandBufferSyncIndex = (m_commandBufferSyncIndex + 1) % m_commandBuffers.size();
 			memoryManager->cleanupBuffers(m_countCommandBufferFinished);
 			m_countCommandBufferFinished++;
@@ -2084,6 +2044,7 @@ void VulkanRenderer::WaitCommandBufferFinished(uint64 commandBufferId)
 
 void VulkanRenderer::PipelineCacheSaveThread(size_t cache_size)
 {
+	SetThreadName("vkDriverPlCache");
 	const auto dir = ActiveSettings::GetCachePath("shaderCache/driver/vk");
 	if (!fs::exists(dir))
 	{
@@ -2654,11 +2615,11 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if(!IsSwapchainInfoValid(mainWindow))
 		return false;
 
-	if(!mainWindow && m_destroyPadSwapchainNextAcquire)
+	if(!mainWindow && m_destroyPadSwapchainNextAcquire.test())
 	{
 		RecreateSwapchain(mainWindow, true);
-		m_destroyPadSwapchainNextAcquire = false;
-		m_padCloseReadySemaphore.notify();
+		m_destroyPadSwapchainNextAcquire.clear();
+		m_destroyPadSwapchainNextAcquire.notify_all();
 		return false;
 	}
 
@@ -2670,7 +2631,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
-	bool result = chainInfo.AcquireImage(UINT64_MAX);
+	bool result = chainInfo.AcquireImage();
 	if (!result)
 		return false;
 
@@ -2683,8 +2644,6 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	auto& chainInfo = GetChainInfo(mainWindow);
-	// make sure fence has no signal operation submitted
-	chainInfo.WaitAvailableFence();
 
 	Vector2i size;
 	if (mainWindow)
@@ -2702,7 +2661,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	chainInfo.m_desiredExtent = size;
 	if(!skipCreate)
 	{
-		chainInfo.Create(m_physicalDevice, m_logicalDevice);
+		chainInfo.Create();
 	}
 
 	if (mainWindow)
@@ -2774,7 +2733,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &chainInfo.swapchain;
+	presentInfo.pSwapchains = &chainInfo.m_swapchain;
 	presentInfo.pImageIndices = &chainInfo.swapchainImageIndex;
 	// wait on command buffer semaphore
 	presentInfo.waitSemaphoreCount = 1;
@@ -2885,6 +2844,35 @@ void VulkanRenderer::ClearColorImageRaw(VkImage image, uint32 sliceIndex, uint32
 
 void VulkanRenderer::ClearColorImage(LatteTextureVk* vkTexture, uint32 sliceIndex, uint32 mipIndex, const VkClearColorValue& color, VkImageLayout outputLayout)
 {
+	if(vkTexture->isDepth)
+	{
+		cemu_assert_suspicious();
+		return;
+	}
+	if (vkTexture->IsCompressedFormat())
+	{
+		// vkCmdClearColorImage cannot be called on compressed formats
+		// for now we ignore affected clears but still transition the image to the correct layout
+		auto imageObj = vkTexture->GetImageObj();
+		imageObj->flagForCurrentCommandBuffer();
+		VkImageSubresourceLayers subresourceRange{};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.mipLevel = mipIndex;
+		subresourceRange.baseArrayLayer = sliceIndex;
+		subresourceRange.layerCount = 1;
+		barrier_image<ANY_TRANSFER | IMAGE_READ, ANY_TRANSFER | IMAGE_READ | IMAGE_WRITE>(vkTexture, subresourceRange, outputLayout);
+		if(color.float32[0] == 0.0f && color.float32[1] == 0.0f && color.float32[2] == 0.0f && color.float32[3] == 0.0f)
+		{
+			static bool dbgMsgPrinted = false;
+			if(!dbgMsgPrinted)
+			{
+				cemuLog_logDebug(LogType::Force, "Unsupported compressed texture clear to zero");
+				dbgMsgPrinted = true;
+			}
+		}
+		return;
+	}
+
 	VkImageSubresourceRange subresourceRange;
 
 	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2899,18 +2887,6 @@ void VulkanRenderer::ClearColorImage(LatteTextureVk* vkTexture, uint32 sliceInde
 	VkImageLayout inputLayout = vkTexture->GetImageLayout(subresourceRange);
 	ClearColorImageRaw(imageObj->m_image, sliceIndex, mipIndex, color, inputLayout, outputLayout);
 	vkTexture->SetImageLayout(subresourceRange, outputLayout);
-}
-
-void VulkanRenderer::CreateBackbufferIndexBuffer()
-{
-	const VkDeviceSize bufferSize = sizeof(uint16) * 6;
-	memoryManager->CreateBuffer(bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, m_indexBuffer, m_indexBufferMemory);
-
-	uint16* data;
-	vkMapMemory(m_logicalDevice, m_indexBufferMemory, 0, bufferSize, 0, (void**)&data);
-	const uint16 tmp[] = { 0, 1, 2, 3, 4, 5 };
-	std::copy(std::begin(tmp), std::end(tmp), data);
-	vkUnmapMemory(m_logicalDevice, m_indexBufferMemory);
 }
 
 void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, bool padView, bool clearBackground)
@@ -2964,11 +2940,9 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	m_state.currentPipeline = pipeline;
 
-	vkCmdBindIndexBuffer(m_state.currentCommandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptSet, 0, nullptr);
 
-	vkCmdDrawIndexed(m_state.currentCommandBuffer, 6, 1, 0, 0, 0);
+	vkCmdDraw(m_state.currentCommandBuffer, 6, 1, 0, 0);
 
 	vkCmdEndRenderPass(m_state.currentCommandBuffer);
 
@@ -3111,48 +3085,7 @@ TextureDecoder* VulkanRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	return texFormatInfo.decoder;
 }
 
-void VulkanRenderer::texture_reserveTextureOnGPU(LatteTexture* hostTexture)
-{
-	LatteTextureVk* vkTexture = (LatteTextureVk*)hostTexture;
-	auto allocationInfo = memoryManager->imageMemoryAllocate(vkTexture->GetImageObj()->m_image);
-	vkTexture->setAllocation(allocationInfo);
-}
-
-void VulkanRenderer::texture_destroy(LatteTexture* hostTexture)
-{
-	LatteTextureVk* texVk = (LatteTextureVk*)hostTexture;
-	delete texVk;
-}
-
-void VulkanRenderer::destroyViewDepr(VkImageView imageView)
-{
-	cemu_assert_debug(false);
-
-	m_destructionQueues.m_cmd_image_views[m_commandBufferIndex].emplace_back(imageView);
-}
-
-void VulkanRenderer::destroyBuffer(VkBuffer buffer)
-{
-	m_destructionQueues.m_buffers[m_commandBufferIndex].emplace_back(buffer);
-}
-
-void VulkanRenderer::destroyDeviceMemory(VkDeviceMemory mem)
-{
-	m_destructionQueues.m_memory[m_commandBufferIndex].emplace_back(mem);
-}
-
-void VulkanRenderer::destroyPipelineInfo(PipelineInfo* pipelineInfo)
-{
-	cemu_assert_debug(false);
-}
-
-void VulkanRenderer::destroyShader(RendererShaderVk* shader)
-{
-	while (!shader->list_pipelineInfo.empty())
-		delete shader->list_pipelineInfo[0];
-}
-
-void VulkanRenderer::releaseDestructibleObject(VKRDestructibleObject* destructibleObject)
+void VulkanRenderer::ReleaseDestructibleObject(VKRDestructibleObject* destructibleObject)
 {
 	// destroy immediately if possible
 	if (destructibleObject->canDestroy())
@@ -3166,7 +3099,7 @@ void VulkanRenderer::releaseDestructibleObject(VKRDestructibleObject* destructib
 	m_spinlockDestructionQueue.unlock();
 }
 
-void VulkanRenderer::ProcessDestructionQueue2()
+void VulkanRenderer::ProcessDestructionQueue()
 {
 	m_spinlockDestructionQueue.lock();
 	for (auto it = m_destructionQueue.begin(); it != m_destructionQueue.end();)
@@ -3215,7 +3148,7 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 	performanceMonitor.vk.numDescriptorDynUniformBuffers.decrement(statsNumDynUniformBuffers);
 	performanceMonitor.vk.numDescriptorStorageBuffers.decrement(statsNumStorageBuffers);
 
-	VulkanRenderer::GetInstance()->releaseDestructibleObject(m_vkObjDescriptorSet);
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_vkObjDescriptorSet);
 	m_vkObjDescriptorSet = nullptr;
 }
 
@@ -3228,32 +3161,18 @@ void VulkanRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceI
 	else
 	{
 		cemu_assert_debug(vkTexture->dim != Latte::E_DIM::DIM_3D);
-		if (hostTexture->IsCompressedFormat())
-		{
-			auto imageObj = vkTexture->GetImageObj();
-			imageObj->flagForCurrentCommandBuffer();
-
-			cemuLog_logDebug(LogType::Force, "Compressed texture ({}/{} fmt {:04x}) unsupported clear", vkTexture->width, vkTexture->height, (uint32)vkTexture->format);
-
-			VkImageSubresourceLayers subresourceRange{};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			subresourceRange.mipLevel = mipIndex;
-			subresourceRange.baseArrayLayer = sliceIndex;
-			subresourceRange.layerCount = 1;
-			barrier_image<ANY_TRANSFER | IMAGE_READ, ANY_TRANSFER | IMAGE_READ | IMAGE_WRITE>(vkTexture, subresourceRange, VK_IMAGE_LAYOUT_GENERAL);
-		}
-		else
-		{
-			ClearColorImage(vkTexture, sliceIndex, mipIndex, { 0,0,0,0 }, VK_IMAGE_LAYOUT_GENERAL);
-		}
+		ClearColorImage(vkTexture, sliceIndex, mipIndex, { 0,0,0,0 }, VK_IMAGE_LAYOUT_GENERAL);
 	}
 }
 
 void VulkanRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
 {
 	auto vkTexture = (LatteTextureVk*)hostTexture;
-	cemu_assert_debug(vkTexture->dim != Latte::E_DIM::DIM_3D);
-	ClearColorImage(vkTexture, sliceIndex, mipIndex, { r,g,b,a }, VK_IMAGE_LAYOUT_GENERAL);
+	if(vkTexture->dim == Latte::E_DIM::DIM_3D)
+	{
+		cemu_assert_unimplemented();
+	}
+	ClearColorImage(vkTexture, sliceIndex, mipIndex, {r, g, b, a}, VK_IMAGE_LAYOUT_GENERAL);
 }
 
 void VulkanRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue)
@@ -3400,18 +3319,13 @@ void VulkanRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, 
 	barrier_image<ANY_TRANSFER, ANY_TRANSFER | IMAGE_READ | IMAGE_WRITE>(vkTexture, barrierSubresourceRange, VK_IMAGE_LAYOUT_GENERAL);
 }
 
-LatteTexture* VulkanRenderer::texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
+LatteTexture* VulkanRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
 	uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
-	return new LatteTextureVk(this, textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
+	return new LatteTextureVk(this, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
 }
 
-void VulkanRenderer::texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit)
-{
-	m_state.boundTexture[textureUnit] = static_cast<LatteTextureViewVk*>(textureView);
-}
-
-void VulkanRenderer::texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit)
+void VulkanRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit)
 {
 	m_state.boundTexture[textureUnit] = static_cast<LatteTextureViewVk*>(textureView);
 }

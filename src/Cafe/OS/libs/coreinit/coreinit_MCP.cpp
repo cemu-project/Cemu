@@ -415,6 +415,12 @@ namespace coreinit
 		return 0;
 	}
 
+	uint32 MCP_GetTitleId(uint32 mcpHandle, uint64be* outTitleId)
+	{
+		*outTitleId = CafeSystem::GetForegroundTitleId();
+		return 0;
+	}
+
 	void InitializeMCP()
 	{
 		osLib_addFunction("coreinit", "MCP_Open", coreinitExport_MCP_Open);
@@ -442,6 +448,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", MCP_RightCheckLaunchable, LogType::Placeholder);
 
 		cafeExportRegister("coreinit", MCP_GetEcoSettings, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", MCP_GetTitleId, LogType::Placeholder);
 	}
 
 }

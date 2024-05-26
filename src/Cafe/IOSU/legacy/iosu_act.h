@@ -49,10 +49,11 @@ namespace iosu
 		bool getMii(uint8 slot, FFLData_t* fflData);
 		bool getScreenname(uint8 slot, uint16 screenname[ACT_NICKNAME_LENGTH]);
 		bool getCountryIndex(uint8 slot, uint32* countryIndex);
+		bool GetPersistentId(uint8 slot, uint32* persistentId);
 
 		std::string getAccountId2(uint8 slot);
 
-		const uint8 ACT_SLOT_CURRENT = 0xFE;
+		static constexpr uint8 ACT_SLOT_CURRENT = 0xFE;
 
 		void Initialize();
 		void Stop();

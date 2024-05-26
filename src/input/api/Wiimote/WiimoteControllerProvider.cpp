@@ -2,11 +2,7 @@
 #include "input/api/Wiimote/NativeWiimoteController.h"
 #include "input/api/Wiimote/WiimoteMessages.h"
 
-#ifdef HAS_HIDAPI
 #include "input/api/Wiimote/hidapi/HidapiWiimote.h"
-#elif BOOST_OS_WINDOWS
-#include "input/api/Wiimote/windows/WinWiimoteDevice.h"
-#endif
 
 #include <numbers>
 #include <queue>
@@ -147,7 +143,7 @@ WiimoteControllerProvider::WiimoteState WiimoteControllerProvider::get_state(siz
 
 void WiimoteControllerProvider::reader_thread()
 {
-	SetThreadName("WiimoteControllerProvider::reader_thread");
+	SetThreadName("Wiimote-reader");
 	std::chrono::steady_clock::time_point lastCheck = {};
 	while (m_running.load(std::memory_order_relaxed))
 	{
@@ -770,14 +766,20 @@ void WiimoteControllerProvider::calculate_ir_position(WiimoteState& wiimote_stat
 		ir.middle = ir.position;
 		ir.distance = glm::length(ir.dots[indices.first].pos - ir.dots[indices.second].pos);
 		ir.indices = indices;
+		ir.m_positionVisibility = PositionVisibility::FULL;
 	}
 	else if (ir.dots[indices.first].visible)
 	{
 		ir.position = ir.middle + (ir.dots[indices.first].pos - ir.prev_dots[indices.first].pos);
+		ir.m_positionVisibility = PositionVisibility::PARTIAL;
 	}
 	else if (ir.dots[indices.second].visible)
 	{
 		ir.position = ir.middle + (ir.dots[indices.second].pos - ir.prev_dots[indices.second].pos);
+		ir.m_positionVisibility = PositionVisibility::PARTIAL;
+	}
+	else {
+		ir.m_positionVisibility = PositionVisibility::NONE;
 	}
 }
 
@@ -882,7 +884,7 @@ void WiimoteControllerProvider::set_motion_plus(size_t index, bool state)
 
 void WiimoteControllerProvider::writer_thread()
 {
-	SetThreadName("WiimoteControllerProvider::writer_thread");
+	SetThreadName("Wiimote-writer");
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		std::unique_lock writer_lock(m_writer_mutex);

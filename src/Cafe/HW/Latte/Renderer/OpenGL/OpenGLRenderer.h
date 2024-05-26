@@ -30,8 +30,6 @@ public:
 	void Flush(bool waitIdle = false) override;
 	void NotifyLatteCommandProcessorIdle() override;
 
-	void UpdateVSyncState();
-
 	void EnableDebugMode() override;
 	void SwapBuffers(bool swapTV = true, bool swapDRC = true) override;
 
@@ -66,26 +64,20 @@ public:
 	void renderstate_updateTextureSettingsGL(LatteDecompilerShader* shaderContext, LatteTextureView* _hostTextureView, uint32 hostTextureUnit, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N texUnitWord4, uint32 texUnitIndex, bool isDepthSampler);
 
 	// texture functions
-	void texture_destroy(LatteTexture* hostTexture) override;
-
 	void* texture_acquireTextureUploadBuffer(uint32 size) override;
 	void texture_releaseTextureUploadBuffer(uint8* mem) override;
 
 	TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) override;
 
-	void texture_reserveTextureOnGPU(LatteTexture* hostTexture) override;
 	void texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) override;
 	void texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize) override;
 	void texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a) override;
 	void texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue) override;
 
-	LatteTexture* texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
+	LatteTexture* texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
 
-	void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit) override;
-	void texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit) override;
-	void texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit) override;
-	void texture_rememberBoundTexture(uint32 textureUnit) override;
-	void texture_restoreBoundTexture(uint32 textureUnit) override;
+	void texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit) override;
+	void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit);
 	void texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth) override;
 
 	void texture_notifyDelete(LatteTextureView* textureView);
@@ -127,9 +119,8 @@ public:
 
 	// shader
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
-	void shader_bind(RendererShader* shader) override;
-	void shader_bind(GLuint program, GLbitfield shaderType);
-	void shader_unbind(RendererShader::ShaderType shaderType) override;
+	void shader_bind(RendererShader* shader);
+	void shader_unbind(RendererShader::ShaderType shaderType);
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;
@@ -165,7 +156,6 @@ private:
 	void texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
 	void texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
 
-	GLuint m_defaultFramebufferId;
 	GLuint m_pipeline = 0;
 
 	bool m_isPadViewContext{};
@@ -190,14 +180,7 @@ private:
 	bool m_isXfbActive = false;
 
 	sint32 activeTextureUnit = 0;
-	void* LatteBoundTextures[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLuint texUnitTexId[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLenum texUnitTexTarget[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-
-	void* LatteBoundTexturesBackup[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLuint texUnitTexIdBackup[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	GLenum texUnitTexTargetBackup[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
-	bool texUnitBackupSlotUsed[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
+	void* m_latteBoundTextures[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 3]{};
 
 	// attribute stream
 	GLuint glAttributeCacheAB{};
@@ -207,7 +190,7 @@ private:
 	GLuint glStreamoutCacheRingBuffer;
 
 	// cfbo
-	GLuint prevBoundFBO = -1;
+	GLuint prevBoundFBO = 0;
 	GLuint glId_fbo = 0;
 
 	// renderstate
@@ -216,8 +199,6 @@ private:
 	uint32 prevLogicOp = 0;
 	uint32 prevBlendColorConstant[4] = { 0 };
 	uint8 prevAlphaTestEnable = 0;
-	uint8 prevAlphaTestFunc = 0;
-	uint32 prevAlphaTestRefU32 = 0;	
 	bool prevDepthEnable = 0;
 	bool prevDepthWriteEnable = 0;
 	Latte::LATTE_DB_DEPTH_CONTROL::E_ZFUNC prevDepthFunc = (Latte::LATTE_DB_DEPTH_CONTROL::E_ZFUNC)-1;
@@ -263,9 +244,9 @@ private:
 	std::vector<class LatteQueryObjectGL*> list_queryCacheOcclusion; // cache for unused queries
 
 	// resource garbage collection	
-	struct bufferCacheReleaseQueueEntry_t
+	struct BufferCacheReleaseQueueEntry
 	{
-		bufferCacheReleaseQueueEntry_t(VirtualBufferHeap_t* heap, VirtualBufferHeapEntry_t* entry) : m_heap(heap), m_entry(entry) {};
+		BufferCacheReleaseQueueEntry(VirtualBufferHeap_t* heap, VirtualBufferHeapEntry_t* entry) : m_heap(heap), m_entry(entry) {};
 		
 		void free()
 		{
@@ -279,7 +260,7 @@ private:
 	struct
 	{
 		sint32 index;
-		std::vector<bufferCacheReleaseQueueEntry_t> bufferCacheEntries;
+		std::vector<BufferCacheReleaseQueueEntry> bufferCacheEntries;
 	}m_destructionQueues;
 
 };

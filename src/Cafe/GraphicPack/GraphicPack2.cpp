@@ -28,7 +28,7 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 		return;
 	std::vector<uint8> rulesData;
 	fs_rules->extract(rulesData);
-	IniParser iniParser(rulesData, rulesPath.string());
+	IniParser iniParser(rulesData, _pathToUtf8(rulesPath));
 
 	if (!iniParser.NextSection())
 	{
@@ -51,10 +51,9 @@ void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 			cemuLog_log(LogType::Force, "{}: Unable to parse version", _pathToUtf8(rulesPath));
 			return;
 		}
-
 		if (versionNum > GP_LEGACY_VERSION)
 		{
-			GraphicPack2::LoadGraphicPack(_pathToUtf8(rulesPath), iniParser);
+			GraphicPack2::LoadGraphicPack(rulesPath, iniParser);
 			return;
 		}
 	}
@@ -79,22 +78,22 @@ void GraphicPack2::LoadAll()
 	}
 }
 
-bool GraphicPack2::LoadGraphicPack(const std::string& filename, IniParser& rules)
+bool GraphicPack2::LoadGraphicPack(const fs::path& rulesPath, IniParser& rules)
 {
 	try
 	{
-		auto gp = std::make_shared<GraphicPack2>(filename, rules);
+		auto gp = std::make_shared<GraphicPack2>(rulesPath, rules);
 
 		// check if enabled and preset set
 		const auto& config_entries = g_config.data().graphic_pack_entries;
 
 		// legacy absolute path checking for not breaking compatibility
-		auto file = gp->GetFilename2();
+		auto file = gp->GetRulesPath();
 		auto it = config_entries.find(file.lexically_normal());
 		if (it == config_entries.cend())
 		{
 			// check for relative path
-			it = config_entries.find(MakeRelativePath(ActiveSettings::GetUserDataPath(), gp->GetFilename2()).lexically_normal());
+			it = config_entries.find(_utf8ToPath(gp->GetNormalizedPathString()));
 		}
 
 		if (it != config_entries.cend())
@@ -145,7 +144,7 @@ bool GraphicPack2::DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& gr
 	const auto it = std::find_if(s_active_graphic_packs.begin(), s_active_graphic_packs.end(), 
 		[graphic_pack](const GraphicPackPtr& gp)
 	{
-		return gp->GetFilename() == graphic_pack->GetFilename();
+		return gp->GetNormalizedPathString() == graphic_pack->GetNormalizedPathString();
 	}
 	);
 
@@ -173,12 +172,12 @@ void GraphicPack2::ActivateForCurrentTitle()
 		{
 			if (gp->GetPresets().empty())
 			{
-				cemuLog_log(LogType::Force, "Activate graphic pack: {}", gp->GetPath());
+				cemuLog_log(LogType::Force, "Activate graphic pack: {}", gp->GetVirtualPath());
 			}
 			else
 			{
 				std::string logLine;
-				logLine.assign(fmt::format("Activate graphic pack: {} [Presets: ", gp->GetPath()));
+				logLine.assign(fmt::format("Activate graphic pack: {} [Presets: ", gp->GetVirtualPath()));
 				bool isFirst = true;
 				for (auto& itr : gp->GetPresets())
 				{
@@ -249,8 +248,8 @@ std::unordered_map<std::string, GraphicPack2::PresetVar> GraphicPack2::ParsePres
 	return vars;
 }
 
-GraphicPack2::GraphicPack2(std::string filename, IniParser& rules)
-	: m_filename(std::move(filename))
+GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
+	: m_rulesPath(std::move(rulesPath))
 {
 	// we're already in [Definition]
 	auto option_version = rules.FindOption("version");
@@ -259,7 +258,7 @@ GraphicPack2::GraphicPack2(std::string filename, IniParser& rules)
 	m_version = StringHelpers::ToInt(*option_version, -1);
 	if (m_version < 0)
 	{
-		cemuLog_log(LogType::Force, "{}: Invalid version", m_filename);
+		cemuLog_log(LogType::Force, "{}: Invalid version", _pathToUtf8(m_rulesPath));
 		throw std::exception();
 	}
 
@@ -280,6 +279,10 @@ GraphicPack2::GraphicPack2(std::string filename, IniParser& rules)
 		m_default_enabled = boost::iequals(*option_defaultEnabled, "true") || boost::iequals(*option_defaultEnabled, "1");
 		m_enabled = m_default_enabled;
 	}
+
+	auto option_allowRendertargetSizeOptimization = rules.FindOption("colorbufferOptimizationAware");
+	if (option_allowRendertargetSizeOptimization)
+		m_allowRendertargetSizeOptimization = boost::iequals(*option_allowRendertargetSizeOptimization, "true") || boost::iequals(*option_allowRendertargetSizeOptimization, "1");
 
 	auto option_vendorFilter = rules.FindOption("vendorFilter");
 	if (option_vendorFilter)
@@ -305,7 +308,7 @@ GraphicPack2::GraphicPack2(std::string filename, IniParser& rules)
 		cemuLog_log(LogType::Force, "[Definition] section from '{}' graphic pack must contain option: path", gp_name_log.has_value() ? *gp_name_log : "Unknown");
 		throw std::exception();
 	}
-	m_path = *option_path;
+	m_virtualPath = *option_path;
 
 	auto option_gp_name = rules.FindOption("name");
 	if (option_gp_name)
@@ -508,6 +511,11 @@ bool GraphicPack2::Reload()
 	return Activate();
 }
 
+std::string GraphicPack2::GetNormalizedPathString() const
+{
+	return _pathToUtf8(MakeRelativePath(ActiveSettings::GetUserDataPath(), GetRulesPath()).lexically_normal());
+}
+
 bool GraphicPack2::ContainsTitleId(uint64_t title_id) const
 {
 	const auto it = std::find_if(m_title_ids.begin(), m_title_ids.end(), [title_id](uint64 id) { return id == title_id; });
@@ -650,7 +658,7 @@ bool GraphicPack2::SetActivePreset(std::string_view category, std::string_view n
 
 void GraphicPack2::LoadShaders()
 {
-	fs::path path(m_filename);
+	fs::path path = GetRulesPath();
 	for (auto& it : fs::directory_iterator(path.remove_filename()))
 	{
 		if (!is_regular_file(it))
@@ -676,7 +684,7 @@ void GraphicPack2::LoadShaders()
 			{
 				std::ifstream file(p);
 				if (!file.is_open())
-					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", p.filename().string()).c_str());
+					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", _pathToUtf8(p.filename())));
 
 				file.seekg(0, std::ios::end);
 				m_output_shader_source.reserve(file.tellg());
@@ -689,7 +697,7 @@ void GraphicPack2::LoadShaders()
 			{
 				std::ifstream file(p);
 				if (!file.is_open())
-					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", p.filename().string()).c_str());
+					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", _pathToUtf8(p.filename())));
 
 				file.seekg(0, std::ios::end);
 				m_upscaling_shader_source.reserve(file.tellg());
@@ -702,7 +710,7 @@ void GraphicPack2::LoadShaders()
 			{
 				std::ifstream file(p);
 				if (!file.is_open())
-					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", p.filename().string()).c_str());
+					throw std::runtime_error(fmt::format("can't open graphic pack file: {}", _pathToUtf8(p.filename())));
 
 				file.seekg(0, std::ios::end);
 				m_downscaling_shader_source.reserve(file.tellg());
@@ -805,7 +813,7 @@ void GraphicPack2::AddConstantsForCurrentPreset(ExpressionParser& ep)
 	}
 }
 
-void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, std::wstring& internalPath, bool isAOC)
+void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC)
 {
 	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
 	uint64 aocTitleId = (currentTitleId & 0xFFFFFFFFull) | 0x0005000c00000000ull;
@@ -833,7 +841,7 @@ void GraphicPack2::LoadReplacedFiles()
 		return;
 	m_patchedFilesLoaded = true;
 
-	fs::path gfxPackPath = _utf8ToPath(m_filename);
+	fs::path gfxPackPath = GetRulesPath();
 	gfxPackPath = gfxPackPath.remove_filename();
 
 	// /content/
@@ -843,10 +851,9 @@ void GraphicPack2::LoadReplacedFiles()
 	std::error_code ec;
 	if (fs::exists(contentPath, ec))
 	{
-		std::wstring internalPath(L"/vol/content/");
 		// setup redirections	
 		fscDeviceRedirect_map();
-		_iterateReplacedFiles(contentPath, internalPath, false);
+		_iterateReplacedFiles(contentPath, false);
 	}
 	// /aoc/
 	fs::path aocPath(gfxPackPath);
@@ -857,13 +864,9 @@ void GraphicPack2::LoadReplacedFiles()
 		uint64 aocTitleId = CafeSystem::GetForegroundTitleId();
 		aocTitleId = aocTitleId & 0xFFFFFFFFULL;
 		aocTitleId |= 0x0005000c00000000ULL;
-		wchar_t internalAocPath[128];
-		swprintf(internalAocPath, sizeof(internalAocPath)/sizeof(wchar_t), L"/aoc/%016llx/", aocTitleId);
-
-		std::wstring internalPath(internalAocPath);
 		// setup redirections	
 		fscDeviceRedirect_map();
-		_iterateReplacedFiles(aocPath, internalPath, true);
+		_iterateReplacedFiles(aocPath, true);
 	}
 }
 
@@ -879,21 +882,18 @@ bool GraphicPack2::Activate()
 	if (m_gfx_vendor.has_value())
 	{
 		auto vendor = g_renderer->GetVendor();
-		if (vendor == GfxVendor::IntelLegacy || vendor == GfxVendor::IntelNoLegacy)
-			vendor = GfxVendor::Intel;
-		
 		if (m_gfx_vendor.value() != vendor)
 			return false;
 	}
 
-	FileStream* fs_rules = FileStream::openFile2(_utf8ToPath(m_filename));
+	FileStream* fs_rules = FileStream::openFile2(m_rulesPath);
 	if (!fs_rules)
 		return false;
 	std::vector<uint8> rulesData;
 	fs_rules->extract(rulesData);
 	delete fs_rules;
 
-	IniParser rules({ (char*)rulesData.data(), rulesData.size()}, m_filename);
+	IniParser rules({ (char*)rulesData.data(), rulesData.size()}, GetNormalizedPathString());
 
 	// load rules
 	try
@@ -947,7 +947,7 @@ bool GraphicPack2::Activate()
 					else if (anisotropyValue == 16)
 						rule.overwrite_settings.anistropic_value = 4;
 					else
-						cemuLog_log(LogType::Force, "Invalid value {} for overwriteAnisotropy in graphic pack {}. Only the values 1, 2, 4, 8 or 16 are allowed.", anisotropyValue, m_filename);
+						cemuLog_log(LogType::Force, "Invalid value {} for overwriteAnisotropy in graphic pack {}. Only the values 1, 2, 4, 8 or 16 are allowed.", anisotropyValue, GetNormalizedPathString());
 				}
 				m_texture_rules.emplace_back(rule);
 			}
@@ -992,11 +992,11 @@ bool GraphicPack2::Activate()
 		if (LatteTiming_getCustomVsyncFrequency(globalCustomVsyncFreq))
 		{
 			if (customVsyncFreq != globalCustomVsyncFreq)
-				cemuLog_log(LogType::Force, "rules.txt error: Mismatching vsync frequency {} in graphic pack \'{}\'", customVsyncFreq, GetPath());
+				cemuLog_log(LogType::Force, "rules.txt error: Mismatching vsync frequency {} in graphic pack \'{}\'", customVsyncFreq, GetVirtualPath());
 		}
 		else
 		{
-			cemuLog_log(LogType::Force, "Set vsync frequency to {} (graphic pack {})", customVsyncFreq, GetPath());
+			cemuLog_log(LogType::Force, "Set vsync frequency to {} (graphic pack {})", customVsyncFreq, GetVirtualPath());
 			LatteTiming_setCustomVsyncFrequency(customVsyncFreq);
 		}
 	}

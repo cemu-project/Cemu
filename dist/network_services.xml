@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<content>
+    <networkname>CustomExample</networkname>
+    <disablesslverification>0</disablesslverification>
+    <urls>
+        <act>https://account.nintendo.net</act>
+        <ecs>https://ecs.wup.shop.nintendo.net/ecs/services/ECommerceSOAP</ecs>
+        <nus>https://nus.wup.shop.nintendo.net/nus/services/NetUpdateSOAP</nus>
+        <ias>https://ias.wup.shop.nintendo.net/ias/services/IdentityAuthenticationSOAP</ias>
+        <ccsu>https://ccs.wup.shop.nintendo.net/ccs/download</ccsu>
+        <ccs>http://ccs.cdn.wup.shop.nintendo.net/ccs/download</ccs>
+        <idbe>https://idbe-wup.cdn.nintendo.net/icondata</idbe>
+        <boss>https://npts.app.nintendo.net/p01/tasksheet</boss>
+        <tagaya>https://tagaya.wup.shop.nintendo.net/tagaya/versionlist</tagaya>
+        <olv>https://discovery.olv.nintendo.net/v1/endpoint</olv>
+    </urls>
+</content>

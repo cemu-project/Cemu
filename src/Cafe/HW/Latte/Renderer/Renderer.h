@@ -21,8 +21,6 @@ enum class GfxVendor
 	Generic,
 
 	AMD,
-	IntelLegacy,
-	IntelNoLegacy,
 	Intel,
 	Nvidia,
 	Apple,
@@ -97,26 +95,19 @@ public:
 	virtual void rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo) = 0;
 
 	// texture functions
-	virtual void texture_destroy(LatteTexture* hostTexture) = 0;
-
 	virtual void* texture_acquireTextureUploadBuffer(uint32 size) = 0;
 	virtual void texture_releaseTextureUploadBuffer(uint8* mem) = 0;
 
 	virtual TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) = 0;
 
-	virtual void texture_reserveTextureOnGPU(LatteTexture* hostTexture) = 0;
 	virtual void texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) = 0;
 	virtual void texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize) = 0;
 	virtual void texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a) = 0;
 	virtual void texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue) = 0;
 
-	virtual LatteTexture* texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) = 0;
+	virtual LatteTexture* texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) = 0;
 
-	virtual void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit) = 0;
-	virtual void texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit) = 0;
-	virtual void texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit) = 0;
-	virtual void texture_rememberBoundTexture(uint32 textureUnit) = 0;
-	virtual void texture_restoreBoundTexture(uint32 textureUnit) = 0;
+	virtual void texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit) = 0;
 	virtual void texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth) = 0;
 
 	virtual LatteTextureReadbackInfo* texture_createReadback(LatteTextureView* textureView) = 0;
@@ -135,8 +126,6 @@ public:
 
 	// shader
 	virtual RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool compileAsync, bool isGfxPackSource) = 0;
-	virtual void shader_bind(RendererShader* shader) = 0;
-	virtual void shader_unbind(RendererShader::ShaderType shaderType) = 0;
 
 	// streamout
 	virtual void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) = 0;

@@ -27,9 +27,6 @@ private:
 
 	wxWindow* initialize_page(size_t index);
 
-	// count active <vpad, wpad> controllers
-	std::pair<size_t, size_t> get_emulated_controller_types() const; 
-	
 	// currently selected controller from active tab
 	std::shared_ptr<ControllerBase> get_active_controller() const;
 

@@ -64,7 +64,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 		{
 			bool found = false;
 
-			if (boost::icontains(p->GetPath(), m_filter))
+			if (boost::icontains(p->GetVirtualPath(), m_filter))
 				found = true;
 			else
 			{
@@ -82,7 +82,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 				continue;
 		}
 
-		const auto& path = p->GetPath();
+		const auto& path = p->GetVirtualPath();
 		auto tokens = TokenizeView(path, '/');
 		auto node = root;
 		for(size_t i=0; i<tokens.size(); i++)
@@ -319,6 +319,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 
 	SetSizer(main_sizer);
 
+	UpdateTitleRunning(CafeSystem::IsTitleRunning());
 	FillGraphicPackList();
 }
 
@@ -329,7 +330,7 @@ void GraphicPacksWindow2::SaveStateToConfig()
 
 	for (const auto& gp : GraphicPack2::GetGraphicPacks())
 	{
-		auto filename = MakeRelativePath(ActiveSettings::GetUserDataPath(), _utf8ToPath(gp->GetFilename())).lexically_normal();
+		auto filename = _utf8ToPath(gp->GetNormalizedPathString());
 		if (gp->IsEnabled())
 		{
 			data.graphic_pack_entries.try_emplace(filename);
@@ -603,34 +604,29 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 	{
 		if (!CafeSystem::IsTitleRunning())
 		{
-			std::vector<GraphicPackPtr> old_packs = GraphicPack2::GetGraphicPacks();
+			// remember virtual paths of all the enabled packs
+			std::map<std::string, std::string> previouslyEnabledPacks;
+			for(auto& it : GraphicPack2::GetGraphicPacks())
+			{
+				if(it->IsEnabled())
+					previouslyEnabledPacks.emplace(it->GetNormalizedPathString(), it->GetVirtualPath());
+			}
+			// reload graphic packs
 			RefreshGraphicPacks();
 			FillGraphicPackList();
-
-			// check if enabled graphic packs are lost:
-			const auto& new_packs = GraphicPack2::GetGraphicPacks();
-			std::stringstream lost_packs;
-			for(const auto& p : old_packs)
+			// remove packs which are still present
+			for(auto& it : GraphicPack2::GetGraphicPacks())
+				previouslyEnabledPacks.erase(it->GetNormalizedPathString());
+			if(!previouslyEnabledPacks.empty())
 			{
-				if (!p->IsEnabled())
-					continue;
-
-				const auto it = std::find_if(new_packs.cbegin(), new_packs.cend(), [&p](const auto& gp)
-					{
-						return gp->GetFilename() == p->GetFilename();
-					});
-				
-				if(it == new_packs.cend())
+				std::string lost_packs;
+				for(auto& it : previouslyEnabledPacks)
 				{
-					lost_packs << p->GetPath() << "\n";
+					lost_packs.append(it.second);
+					lost_packs.push_back('\n');
 				}
-			}
-
-			const auto lost_packs_str = lost_packs.str();
-			if (!lost_packs_str.empty())
-			{
 				wxString message = _("This update removed or renamed the following graphic packs:");
-				message << "\n \n" << lost_packs_str << " \n" << _("You may need to set them up again.");
+				message << "\n \n" << wxString::FromUTF8(lost_packs) << " \n" << _("You may need to set them up again.");
 				wxMessageBox(message, _("Warning"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
 			}
 		}
@@ -679,6 +675,15 @@ void GraphicPacksWindow2::OnInstalledGamesChanged(wxCommandEvent& event)
 	m_filter_installed_games = m_installed_games_only->GetValue();
 	FillGraphicPackList();
 	event.Skip();
+}
+
+void GraphicPacksWindow2::UpdateTitleRunning(bool running)
+{
+	m_update_graphicPacks->Enable(!running);
+	if(running)
+		m_update_graphicPacks->SetToolTip(_("Graphic packs cannot be updated while a game is running."));
+	else
+		m_update_graphicPacks->SetToolTip(nullptr);
 }
 
 void GraphicPacksWindow2::ReloadPack(const GraphicPackPtr& graphic_pack) const

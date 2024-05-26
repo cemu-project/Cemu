@@ -11,6 +11,8 @@
 
 #include <boost/random/uniform_int.hpp>
 
+#include <zlib.h>
+
 
 #if BOOST_OS_WINDOWS
 #include <TlHelp32.h>
@@ -155,7 +157,9 @@ void SetThreadName(const char* name)
 #elif BOOST_OS_MACOS
 	pthread_setname_np(name);
 #else
-    pthread_setname_np(pthread_self(), name);
+	if(std::strlen(name) > 15)
+		cemuLog_log(LogType::Force, "Truncating thread name {} because it was longer than 15 characters", name);
+	pthread_setname_np(pthread_self(), std::string{name}.substr(0,15).c_str());
 #endif
 }
 
@@ -434,4 +438,43 @@ std::string GenerateRandomString(const size_t length, const std::string_view cha
 	);
 
 	return result;
+}
+
+std::optional<std::vector<uint8>> zlibDecompress(const std::vector<uint8>& compressed, size_t sizeHint)
+{
+	int err;
+	std::vector<uint8> decompressed;
+	size_t outWritten = 0;
+	size_t bytesPerIteration = sizeHint;
+	z_stream stream;
+	stream.zalloc = Z_NULL;
+	stream.zfree = Z_NULL;
+	stream.opaque = Z_NULL;
+	stream.avail_in = compressed.size();
+	stream.next_in = (Bytef*)compressed.data();
+	err = inflateInit2(&stream, 32); // 32 is a zlib magic value to enable header detection
+	if (err != Z_OK)
+		return {};
+
+	do
+	{
+		decompressed.resize(decompressed.size() + bytesPerIteration);
+		const auto availBefore = decompressed.size() - outWritten;
+		stream.avail_out = availBefore;
+		stream.next_out = decompressed.data() + outWritten;
+		err = inflate(&stream, Z_NO_FLUSH);
+		if (!(err == Z_OK || err == Z_STREAM_END))
+		{
+			inflateEnd(&stream);
+			return {};
+		}
+		outWritten += availBefore - stream.avail_out;
+		bytesPerIteration *= 2;
+	}
+	while (err != Z_STREAM_END);
+
+	inflateEnd(&stream);
+	decompressed.resize(stream.total_out);
+
+	return decompressed;
 }

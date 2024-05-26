@@ -11,7 +11,7 @@ LatteTextureViewGL::LatteTextureViewGL(LatteTextureGL* texture, Latte::E_DIM dim
 		firstSlice != 0 || firstMip != 0 || mipCount != texture->mipLevels || sliceCount != texture->depth ||	
 		forceCreateNewTexId)
 	{
-		LatteTextureGL::GenerateEmptyTextureFromGX2Dim(dim, glTexId, glTexTarget);
+		LatteTextureGL::GenerateEmptyTextureFromGX2Dim(dim, glTexId, glTexTarget, false);
 		this->glInternalFormat = 0;
 		InitAliasView();
 	}
@@ -55,12 +55,16 @@ LatteTextureViewGL::~LatteTextureViewGL()
 void LatteTextureViewGL::InitAliasView()
 {
 	const auto texture = (LatteTextureGL*)baseTexture;
-	// get internal format
-	if (baseTexture->isDepth)
+	// compute internal format
+	if(texture->overwriteInfo.hasFormatOverwrite)
+	{
+		cemu_assert_debug(format == texture->format);
+		glInternalFormat = texture->glInternalFormat; // for format overwrite no aliasing is allowed and thus we always inherit the internal format of the base texture
+	}
+	else if (baseTexture->isDepth)
 	{
 		// depth is handled differently
-		cemuLog_logDebug(LogType::Force, "Creating depth view");
-		cemu_assert(format == texture->format); // todo
+		cemu_assert(format == texture->format); // is depth alias with different format intended?
 		glInternalFormat = texture->glInternalFormat;
 	}
 	else
@@ -73,7 +77,7 @@ void LatteTextureViewGL::InitAliasView()
 	catchOpenGLError();
 	if (firstMip >= texture->maxPossibleMipLevels)
 	{
-		cemuLog_logDebug(LogType::Force, "_createNewView: Out of bounds mip level requested");
+		cemuLog_logDebug(LogType::Force, "InitAliasView(): Out of bounds mip level requested");
 		glTextureView(glTexId, glTexTarget, texture->glId_texture, glInternalFormat, texture->maxPossibleMipLevels - 1, numMip, firstSlice, this->numSlice);
 	}
 	else
