@@ -7,15 +7,12 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -41,6 +38,10 @@ public class GamesFragment extends Fragment {
             NativeLibrary.addGamePath(gamesPath);
         RecyclerView recyclerView = binding.gamesRecyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        binding.settingsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(requireActivity(), SettingsActivity.class);
+            startActivity(intent);
+        });
         View rootView = binding.getRoot();
         gameAdapter = new GameAdapter(titleId -> {
             Intent intent = new Intent(getContext(), EmulationActivity.class);
@@ -66,12 +67,10 @@ public class GamesFragment extends Fragment {
             binding.gamesSwipeRefresh.setRefreshing(false);
         });
         recyclerView.setAdapter(gameAdapter);
-        NativeLibrary.setGameTitleLoadedCallback((titleId, title) -> {
-            requireActivity().runOnUiThread(() -> {
-                gameAdapter.addGameInfo(titleId, title);
-                NativeLibrary.requestGameIcon(titleId);
-            });
-        });
+        NativeLibrary.setGameTitleLoadedCallback((titleId, title) -> requireActivity().runOnUiThread(() -> {
+            gameAdapter.addGameInfo(titleId, title);
+            NativeLibrary.requestGameIcon(titleId);
+        }));
         NativeLibrary.setGameIconLoadedCallback((titleId, colors, width, height) -> {
             Bitmap icon = Bitmap.createBitmap(colors, width, height, Bitmap.Config.ARGB_8888);
             requireActivity().runOnUiThread(() -> gameAdapter.setGameIcon(titleId, icon));
@@ -86,7 +85,6 @@ public class GamesFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                Log.i("TextChanged", charSequence.toString());
                 gameAdapter.getFilter().filter(charSequence.toString());
             }
 

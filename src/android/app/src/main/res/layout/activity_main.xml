@@ -14,15 +14,4 @@
         android:layout_height="match_parent"
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="@dimen/settings_fab_margin"
-        android:layout_marginBottom="16dp"
-        android:contentDescription="@string/settings"
-        app:srcCompat="@drawable/ic_settings" />
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
