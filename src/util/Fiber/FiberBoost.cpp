@@ -68,7 +68,9 @@ void Fiber::Switch(Fiber& targetFiber)
   FiberImpl* _targetFiber = static_cast<FiberImpl*>(targetFiber.m_implData);
   _targetFiber->previousFiber = _currentFiber;
   sCurrentFiber = &targetFiber;
+  std::atomic_thread_fence(std::memory_order_seq_cst);
   auto transfer = boost::context::detail::jump_fcontext(_targetFiber->context, _targetFiber);
+  std::atomic_thread_fence(std::memory_order_seq_cst);
   if (_currentFiber->previousFiber == nullptr)
   {
     return;
