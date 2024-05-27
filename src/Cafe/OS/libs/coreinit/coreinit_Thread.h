@@ -126,8 +126,8 @@ namespace coreinit
 
 		// counterparts for queueAndWait
 		void cancelWait(OSThread_t* thread);
-		void wakeupEntireWaitQueue(bool reschedule);
-		void wakeupSingleThreadWaitQueue(bool reschedule);
+		void wakeupEntireWaitQueue(bool reschedule, bool sharedPriorityAndAffinityWorkaround = false);
+		void wakeupSingleThreadWaitQueue(bool reschedule, bool sharedPriorityAndAffinityWorkaround = false);
 
 	private:
 		OSThread_t* takeFirstFromQueue(size_t linkOffset)
@@ -611,7 +611,7 @@ namespace coreinit
 
 	// internal
 	void __OSAddReadyThreadToRunQueue(OSThread_t* thread);
-	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread);
+	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread, bool sharedPriorityAndAffinityWorkaround);
 	void __OSQueueThreadDeallocation(OSThread_t* thread);
 
     bool __OSIsThreadActive(OSThread_t* thread);
