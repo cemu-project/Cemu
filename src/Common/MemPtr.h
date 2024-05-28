@@ -11,7 +11,7 @@ using PAddr = uint32; // physical address
 
 extern uint8* memory_base;
 extern uint8* PPCInterpreterGetStackPointer();
-extern uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);
+extern uint8* PPCInterpreter_PushAndReturnStackPointer(sint32 offset);
 extern void PPCInterpreterModifyStackPointer(sint32 offset);
 
 class MEMPTRBase {};

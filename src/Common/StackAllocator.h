@@ -10,14 +10,16 @@ public:
 
 	explicit StackAllocator(const uint32 items)
 	{
+		m_items = items;
 		m_modified_size = count * sizeof(T) * items + kStaticMemOffset * 2;
-
-		auto tmp = PPCInterpreterGetStackPointer();
-		m_ptr = (T*)(PPCInterpreterGetAndModifyStackPointer(m_modified_size) + kStaticMemOffset);
+		m_modified_size = (m_modified_size/8+7) * 8; // pad to 8 bytes
+		m_ptr = new(PPCInterpreter_PushAndReturnStackPointer(m_modified_size) + kStaticMemOffset) T[count * items]();
 	}
 
 	~StackAllocator()
 	{
+		for (size_t i = 0; i < count * m_items; ++i)
+			m_ptr[i].~T();
 		PPCInterpreterModifyStackPointer(-m_modified_size);
 	}
 
@@ -64,4 +66,5 @@ private:
 
 	T* m_ptr;
 	sint32 m_modified_size;
+	uint32 m_items;
 };

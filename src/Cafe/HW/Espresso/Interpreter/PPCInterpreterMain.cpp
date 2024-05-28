@@ -90,7 +90,7 @@ uint8* PPCInterpreterGetStackPointer()
 	return memory_getPointerFromVirtualOffset(PPCInterpreter_getCurrentInstance()->gpr[1]);
 }
 
-uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset)
+uint8* PPCInterpreter_PushAndReturnStackPointer(sint32 offset)
 {
 	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 	uint8* result = memory_getPointerFromVirtualOffset(hCPU->gpr[1] - offset);
