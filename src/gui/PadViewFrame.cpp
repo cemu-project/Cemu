@@ -72,7 +72,7 @@ void PadViewFrame::InitializeRenderCanvas()
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
 		sizer->Add(m_render_canvas, 1, wxEXPAND, 0, nullptr);
 	}
-	SetSizer(sizer);
+	SetSizerAndFit(sizer);
 	Layout();
 
 	m_render_canvas->Bind(wxEVT_KEY_UP, &PadViewFrame::OnKeyUp, this);
