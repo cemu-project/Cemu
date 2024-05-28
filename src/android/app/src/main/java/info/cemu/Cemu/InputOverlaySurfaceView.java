@@ -92,7 +92,7 @@ public class InputOverlaySurfaceView extends SurfaceView implements View.OnTouch
     private List<Input> inputs;
     private final InputOverlaySettingsProvider settingsProvider;
     private final Vibrator vibrator;
-    private final VibrationEffect buttonTouchVibrationEffect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK);
+    private final VibrationEffect buttonTouchVibrationEffect = VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK);
     private final boolean vibrateOnTouch;
 
     public InputOverlaySurfaceView(Context context, AttributeSet attrs) {
@@ -204,7 +204,7 @@ public class InputOverlaySurfaceView extends SurfaceView implements View.OnTouch
         if (nativeButtonId == -1) {
             return;
         }
-        if (vibrateOnTouch) {
+        if (vibrateOnTouch && state) {
             vibrator.vibrate(buttonTouchVibrationEffect);
         }
         NativeLibrary.onOverlayButton(controllerIndex, nativeButtonId, state);
