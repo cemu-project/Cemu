@@ -1608,21 +1608,3 @@ namespace coreinit
 
     }
 }
-
-void coreinit_suspendThread(OSThread_t* OSThreadBE, sint32 count)
-{
-	// for legacy source
-	OSThreadBE->suspendCounter += count;
-}
-
-void coreinit_resumeThread(OSThread_t* OSThreadBE, sint32 count)
-{
-	__OSLockScheduler();
-	coreinit::__OSResumeThreadInternal(OSThreadBE, count);
-	__OSUnlockScheduler();
-}
-
-OSThread_t* coreinitThread_getCurrentThreadDepr(PPCInterpreter_t* hCPU)
-{
-	return coreinit::__currentCoreThread[PPCInterpreter_getCoreIndex(hCPU)];
-}

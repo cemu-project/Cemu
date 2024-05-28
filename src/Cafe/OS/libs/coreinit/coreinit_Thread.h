@@ -621,11 +621,6 @@ namespace coreinit
 #pragma pack()
 
 // deprecated / clean up required
-void coreinit_suspendThread(OSThread_t* OSThreadBE, sint32 count = 1);
-void coreinit_resumeThread(OSThread_t* OSThreadBE, sint32 count = 1);
-
-OSThread_t* coreinitThread_getCurrentThreadDepr(PPCInterpreter_t* hCPU);
-
 extern MPTR activeThread[256];
 extern sint32 activeThreadCount;
 

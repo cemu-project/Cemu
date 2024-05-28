@@ -429,8 +429,7 @@ namespace nsyshid
 
 	// handler for synchronous HIDSetReport transfers
 	sint32 _hidSetReportSync(std::shared_ptr<Device> device, uint8* reportData, sint32 length,
-							 uint8* originalData,
-							 sint32 originalLength, OSThread_t* osThread)
+							 uint8* originalData, sint32 originalLength, coreinit::OSEvent* event)
 	{
 		_debugPrintHex("_hidSetReportSync Begin", reportData, length);
 		sint32 returnCode = 0;
@@ -440,7 +439,7 @@ namespace nsyshid
 		}
 		free(reportData);
 		cemuLog_logDebug(LogType::Force, "_hidSetReportSync end. returnCode: {}", returnCode);
-		coreinit_resumeThread(osThread, 1000);
+		coreinit::OSSignalEvent(event);
 		return returnCode;
 	}
 
@@ -484,11 +483,12 @@ namespace nsyshid
 		sint32 returnCode = 0;
 		if (callbackFuncMPTR == MPTR_NULL)
 		{
+			// synchronous
+			StackAllocator<coreinit::OSEvent> event;
+			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 			std::future<sint32> res = std::async(std::launch::async, &_hidSetReportSync, device, reportData,
-												 paddedLength + 1, data, dataLength,
-												 coreinitThread_getCurrentThreadDepr(hCPU));
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(hCPU), 1000);
-			PPCCore_switchToScheduler();
+												 paddedLength + 1, data, dataLength, &event);
+			coreinit::OSWaitEvent(&event);
 			returnCode = res.get();
 		}
 		else
@@ -557,10 +557,10 @@ namespace nsyshid
 	sint32 _hidReadSync(std::shared_ptr<Device> device,
 						uint8* data,
 						sint32 maxLength,
-						OSThread_t* osThread)
+						coreinit::OSEvent* event)
 	{
 		sint32 returnCode = _hidReadInternalSync(device, data, maxLength);
-		coreinit_resumeThread(osThread, 1000);
+		coreinit::OSSignalEvent(event);
 		return returnCode;
 	}
 
@@ -591,10 +591,10 @@ namespace nsyshid
 		else
 		{
 			// synchronous transfer
-			std::future<sint32> res = std::async(std::launch::async, &_hidReadSync, device, data, maxLength,
-												 coreinitThread_getCurrentThreadDepr(hCPU));
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(hCPU), 1000);
-			PPCCore_switchToScheduler();
+			StackAllocator<coreinit::OSEvent> event;
+			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+			std::future<sint32> res = std::async(std::launch::async, &_hidReadSync, device, data, maxLength, &event);
+			coreinit::OSWaitEvent(&event);
 			returnCode = res.get();
 		}
 
@@ -654,10 +654,10 @@ namespace nsyshid
 	sint32 _hidWriteSync(std::shared_ptr<Device> device,
 						 uint8* data,
 						 sint32 maxLength,
-						 OSThread_t* osThread)
+						 coreinit::OSEvent* event)
 	{
 		sint32 returnCode = _hidWriteInternalSync(device, data, maxLength);
-		coreinit_resumeThread(osThread, 1000);
+		coreinit::OSSignalEvent(event);
 		return returnCode;
 	}
 
@@ -688,10 +688,10 @@ namespace nsyshid
 		else
 		{
 			// synchronous transfer
-			std::future<sint32> res = std::async(std::launch::async, &_hidWriteSync, device, data, maxLength,
-												 coreinitThread_getCurrentThreadDepr(hCPU));
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(hCPU), 1000);
-			PPCCore_switchToScheduler();
+			StackAllocator<coreinit::OSEvent> event;
+			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+			std::future<sint32> res = std::async(std::launch::async, &_hidWriteSync, device, data, maxLength, &event);
+			coreinit::OSWaitEvent(&event);
 			returnCode = res.get();
 		}
 
