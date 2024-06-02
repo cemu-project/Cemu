@@ -426,7 +426,7 @@ namespace GX2
 		}
 		if((aluRegisterOffset+sizeInU32s) > 0x400)
 		{
-			cemuLog_logOnce(LogType::APIErrors, "GX2SetVertexUniformReg values are out of range (offset {} + size {} must be equal or smaller than 0x400)", aluRegisterOffset, sizeInU32s);
+			cemuLog_logOnce(LogType::APIErrors, "GX2SetVertexUniformReg values are out of range (offset {} + size {} must be equal or smaller than 1024)", aluRegisterOffset, sizeInU32s);
 		}
 		if( (sizeInU32s&3) != 0)
 		{

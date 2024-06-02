@@ -7,7 +7,7 @@ enum class LogType : sint32
 	// note: IDs must be in range 1-64
 	Force = 63, // always enabled
 	Placeholder = 62, // always disabled
-	APIErrors = Force, // alias for Force. Logs bad parameters or other API usage mistakes or unintended errors in OS libs
+	APIErrors = 61, // Logs bad parameters or other API usage mistakes or unintended errors in OS libs. Intended for homebrew developers
 
 	CoreinitFile = 0,
 	GX2 = 1,
