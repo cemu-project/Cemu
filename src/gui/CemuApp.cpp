@@ -266,10 +266,10 @@ std::vector<const wxLanguageInfo*> CemuApp::GetAvailableTranslationLanguages(wxT
 
 void CemuApp::CreateDefaultFiles(bool first_start)
 {
+	std::error_code ec;
 	fs::path mlc = ActiveSettings::GetMlcPath();
-
 	// check for mlc01 folder missing if custom path has been set
-	if (!fs::exists(mlc) && !first_start)
+	if (!fs::exists(mlc, ec) && !first_start)
 	{
 		const wxString message = formatWxString(_("Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?"),
 												_pathToUtf8(mlc));
