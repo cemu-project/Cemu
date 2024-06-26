@@ -379,8 +379,8 @@ namespace nsyshid
 	void export_HIDSetProtocol(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(hidHandle, 0);		  // r3
-		ppcDefineParamU32(ifIndex, 1);			  // r4
-		ppcDefineParamU32(protocol, 2);			  // r5
+		ppcDefineParamU8(ifIndex, 1);			  // r4
+		ppcDefineParamU8(protocol, 2);			  // r5
 		ppcDefineParamMPTR(callbackFuncMPTR, 3);  // r6
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetProtocol(...)");

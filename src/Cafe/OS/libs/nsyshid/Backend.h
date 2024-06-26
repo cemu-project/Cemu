@@ -135,7 +135,7 @@ namespace nsyshid
 								   uint8* output,
 								   uint32 outputMaxLength) = 0;
 
-		virtual bool SetProtocol(uint32 ifIndef, uint32 protocol) = 0;
+		virtual bool SetProtocol(uint8 ifIndex, uint8 protocol) = 0;
 
 		virtual bool SetReport(ReportMessage* message) = 0;
 	};

@@ -627,7 +627,7 @@ namespace nsyshid
 		return true;
 	}
 
-	bool SkylanderPortalDevice::SetProtocol(uint32 ifIndex, uint32 protocol)
+	bool SkylanderPortalDevice::SetProtocol(uint8 ifIndex, uint8 protocol)
 	{
 		return true;
 	}

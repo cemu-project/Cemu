@@ -30,7 +30,7 @@ namespace nsyshid
 						   uint8* output,
 						   uint32 outputMaxLength) override;
 
-		bool SetProtocol(uint32 ifIndex, uint32 protocol) override;
+		bool SetProtocol(uint8 ifIndex, uint8 protocol) override;
 
 		bool SetReport(ReportMessage* message) override;
 
