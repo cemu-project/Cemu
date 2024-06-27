@@ -30,6 +30,7 @@
 #include "Cafe/Filesystem/FST/FST.h"
 
 #include "gui/TitleManager.h"
+#include "gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.h"
 
 #include "Cafe/CafeSystem.h"
 
@@ -110,6 +111,7 @@ enum
 	MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER = 20600,
 	MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER,
 	MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER,
+	MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES,
 	// cpu
 	// cpu->timer speed
 	MAINFRAME_MENU_ID_TIMER_SPEED_1X = 20700,
@@ -188,6 +190,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, MainWindow::OnToolsInput)
+EVT_MENU(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, MainWindow::OnToolsInput)
 // cpu menu
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_8X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_4X, MainWindow::OnDebugSetting)
@@ -1515,6 +1518,29 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 				});
 			m_title_manager->Show();
 		}
+		break;
+	}
+	case MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES:
+	{
+		if (m_usb_devices)
+		{
+			m_usb_devices->Show(true);
+			m_usb_devices->Raise();
+			m_usb_devices->SetFocus();
+		}
+		else
+		{
+			m_usb_devices = new EmulatedUSBDeviceFrame(this);
+			m_usb_devices->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event)
+				{
+					if (event.CanVeto()) {
+						m_usb_devices->Show(false);
+						event.Veto();
+					}
+				});
+			m_usb_devices->Show(true);
+		}
+		break;
 	}
 	break;
 	}
@@ -2166,6 +2192,7 @@ void MainWindow::RecreateMenu()
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
+	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, _("&Emulated USB Devices"));
 
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 

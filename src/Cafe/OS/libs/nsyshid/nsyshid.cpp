@@ -256,6 +256,19 @@ namespace nsyshid
 						 device->m_productId);
 	}
 
+	bool FindDeviceById(uint16 vendorId, uint16 productId)
+	{
+		std::lock_guard<std::recursive_mutex> lock(hidMutex);
+		for (const auto& device : deviceList)
+		{
+			if (device->m_vendorId == vendorId && device->m_productId == productId)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void export_HIDAddClient(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
@@ -406,7 +419,8 @@ namespace nsyshid
 							sint32 originalLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
 	{
 		cemuLog_logDebug(LogType::Force, "_hidSetReportAsync begin");
-		if (device->SetReport(reportData, length, originalData, originalLength))
+		ReportMessage message(reportData, length, originalData, originalLength);
+		if (device->SetReport(&message))
 		{
 			DoHIDTransferCallback(callbackFuncMPTR,
 								  callbackParamMPTR,
@@ -433,7 +447,8 @@ namespace nsyshid
 	{
 		_debugPrintHex("_hidSetReportSync Begin", reportData, length);
 		sint32 returnCode = 0;
-		if (device->SetReport(reportData, length, originalData, originalLength))
+		ReportMessage message(reportData, length, originalData, originalLength);
+		if (device->SetReport(&message))
 		{
 			returnCode = originalLength;
 		}
@@ -511,17 +526,16 @@ namespace nsyshid
 			return -1;
 		}
 		memset(data, 0, maxLength);
-
-		sint32 bytesRead = 0;
-		Device::ReadResult readResult = device->Read(data, maxLength, bytesRead);
+		ReadMessage message(data, maxLength, 0);
+		Device::ReadResult readResult = device->Read(&message);
 		switch (readResult)
 		{
 		case Device::ReadResult::Success:
 		{
 			cemuLog_logDebug(LogType::Force, "nsyshid.hidReadInternalSync(): read {} of {} bytes",
-							 bytesRead,
+							 message.bytesRead,
 							 maxLength);
-			return bytesRead;
+			return message.bytesRead;
 		}
 		break;
 		case Device::ReadResult::Error:
@@ -609,15 +623,15 @@ namespace nsyshid
 			cemuLog_logDebug(LogType::Force, "nsyshid.hidWriteInternalSync(): cannot write to a non-opened device");
 			return -1;
 		}
-		sint32 bytesWritten = 0;
-		Device::WriteResult writeResult = device->Write(data, maxLength, bytesWritten);
+		WriteMessage message(data, maxLength, 0);
+		Device::WriteResult writeResult = device->Write(&message);
 		switch (writeResult)
 		{
 		case Device::WriteResult::Success:
 		{
-			cemuLog_logDebug(LogType::Force, "nsyshid.hidWriteInternalSync(): wrote {} of {} bytes", bytesWritten,
+			cemuLog_logDebug(LogType::Force, "nsyshid.hidWriteInternalSync(): wrote {} of {} bytes", message.bytesWritten,
 							 maxLength);
-			return bytesWritten;
+			return message.bytesWritten;
 		}
 		break;
 		case Device::WriteResult::Error:
@@ -756,6 +770,11 @@ namespace nsyshid
 			return *it;
 		}
 		return nullptr;
+	}
+
+	bool Backend::FindDeviceById(uint16 vendorId, uint16 productId)
+	{
+		return nsyshid::FindDeviceById(vendorId, productId);
 	}
 
 	bool Backend::IsDeviceWhitelisted(uint16 vendorId, uint16 productId)
