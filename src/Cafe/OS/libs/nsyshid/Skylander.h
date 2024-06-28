@@ -1,3 +1,5 @@
+#pragma once
+
 #include <mutex>
 
 #include "nsyshid.h"
@@ -36,7 +38,10 @@ namespace nsyshid
 		bool m_IsOpened;
 	};
 
-	extern const std::map<const std::pair<const uint16, const uint16>, const std::string> listSkylanders;
+	constexpr uint16 BLOCK_COUNT = 0x40;
+	constexpr uint16 BLOCK_SIZE = 0x10;
+	constexpr uint16 FIGURE_SIZE = BLOCK_COUNT * BLOCK_SIZE;
+	constexpr uint8 MAX_SKYLANDERS = 16;
 
 	class SkylanderUSB {
 	  public:
@@ -45,7 +50,7 @@ namespace nsyshid
 			std::unique_ptr<FileStream> skyFile;
 			uint8 status = 0;
 			std::queue<uint8> queuedStatus;
-			std::array<uint8, 0x40 * 0x10> data{};
+			std::array<uint8, BLOCK_COUNT * BLOCK_SIZE> data{};
 			uint32 lastId = 0;
 			void Save();
 
@@ -74,16 +79,19 @@ namespace nsyshid
 		std::array<uint8, 64> GetStatus();
 		void QueryBlock(uint8 skyNum, uint8 block, uint8* replyBuf);
 		void WriteBlock(uint8 skyNum, uint8 block, const uint8* toWriteBuf,
-						 uint8* replyBuf);
+						uint8* replyBuf);
 
 		uint8 LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file);
 		bool RemoveSkylander(uint8 skyNum);
+		bool CreateSkylander(fs::path pathName, uint16 skyId, uint16 skyVar);
 		uint16 SkylanderCRC16(uint16 initValue, const uint8* buffer, uint32 size);
+		static std::map<const std::pair<const uint16, const uint16>, const char*> GetListSkylanders();
+		std::string FindSkylander(uint16 skyId, uint16 skyVar);
 
 	  protected:
 		std::mutex m_skyMutex;
 		std::mutex m_queryMutex;
-		std::array<Skylander, 16> m_skylanders;
+		std::array<Skylander, MAX_SKYLANDERS> m_skylanders;
 
 	  private:
 		std::queue<std::array<uint8, 64>> m_queries;
@@ -92,7 +100,6 @@ namespace nsyshid
 		SkylanderLEDColor m_colorRight = {};
 		SkylanderLEDColor m_colorLeft = {};
 		SkylanderLEDColor m_colorTrap = {};
-
 	};
 	extern SkylanderUSB g_skyportal;
 } // namespace nsyshid

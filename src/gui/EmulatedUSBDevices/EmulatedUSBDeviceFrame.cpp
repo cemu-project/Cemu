@@ -1,7 +1,6 @@
 #include "gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.h"
 
 #include <algorithm>
-#include <random>
 
 #include "config/CemuConfig.h"
 #include "gui/helpers/wxHelpers.h"
@@ -9,7 +8,6 @@
 #include "util/helpers/helpers.h"
 
 #include "Cafe/OS/libs/nsyshid/nsyshid.h"
-#include "Cafe/OS/libs/nsyshid/Skylander.h"
 
 #include "Common/FileStream.h"
 
@@ -75,7 +73,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 	});
 	row->Add(m_emulatePortal, 1, wxEXPAND | wxALL, 2);
 	boxSizer->Add(row, 1, wxEXPAND | wxALL, 2);
-	for (int i = 0; i < 16; i++)
+	for (int i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
 	{
 		boxSizer->Add(AddSkylanderRow(i, box), 1, wxEXPAND | wxALL, 2);
 	}
@@ -153,7 +151,7 @@ void EmulatedUSBDeviceFrame::LoadSkylanderPath(uint8 slot, wxString path)
 	uint16 skyVar = uint16(fileData[0x1D]) << 8 | uint16(fileData[0x1C]);
 
 	uint8 portalSlot = nsyshid::g_skyportal.LoadSkylander(fileData.data(),
-															std::move(skyFile));
+														  std::move(skyFile));
 	m_skySlots[slot] = std::tuple(portalSlot, skyId, skyVar);
 	UpdateSkylanderEdits();
 }
@@ -189,11 +187,11 @@ CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 	auto* comboBox = new wxComboBox(this, wxID_ANY);
 	comboBox->Append("---Select---", reinterpret_cast<void*>(0xFFFFFFFF));
 	wxArrayString filterlist;
-	for (auto it = nsyshid::listSkylanders.begin(); it != nsyshid::listSkylanders.end(); it++)
+	for (const auto& it : nsyshid::g_skyportal.GetListSkylanders())
 	{
-		const uint32 variant = uint32(uint32(it->first.first) << 16) | uint32(it->first.second);
-		comboBox->Append(it->second, reinterpret_cast<void*>(variant));
-		filterlist.Add(it->second);
+		const uint32 variant = uint32(uint32(it.first.first) << 16) | uint32(it.first.second);
+		comboBox->Append(it.second, reinterpret_cast<void*>(variant));
+		filterlist.Add(it.second);
 	}
 	comboBox->SetSelection(0);
 	bool enabled = comboBox->AutoComplete(filterlist);
@@ -233,16 +231,7 @@ CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 		}
 		uint16 skyId = longSkyId & 0xFFFF;
 		uint16 skyVar = longSkyVar & 0xFFFF;
-		const auto foundSky = nsyshid::listSkylanders.find(std::make_pair(skyId, skyVar));
-		wxString predefName;
-		if (foundSky != nsyshid::listSkylanders.end())
-		{
-			predefName = foundSky->second + ".sky";
-		}
-		else
-		{
-			predefName = wxString::Format(_("Unknown(%i %i).sky"), skyId, skyVar);
-		}
+		wxString predefName = nsyshid::g_skyportal.FindSkylander(skyId, skyVar) + ".sky";
 		wxFileDialog
 			saveFileDialog(this, _("Create Skylander file"), "", predefName,
 						   "SKY files (*.sky)|*.sky", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
@@ -251,45 +240,14 @@ CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 			return;
 
 		m_filePath = saveFileDialog.GetPath();
-
-		wxFileOutputStream output_stream(saveFileDialog.GetPath());
-		if (!output_stream.IsOk())
+		
+		if(!nsyshid::g_skyportal.CreateSkylander(_utf8ToPath(m_filePath.utf8_string()), skyId, skyVar))
 		{
-			wxMessageDialog saveError(this, "Error Creating Skylander File");
+			wxMessageDialog errorMessage(this, "Failed to create file");
+			errorMessage.ShowModal();
+			this->EndModal(0);
 			return;
 		}
-
-		std::array<uint8, 0x40 * 0x10> data{};
-
-		uint32 first_block = 0x690F0F0F;
-		uint32 other_blocks = 0x69080F7F;
-		memcpy(&data[0x36], &first_block, sizeof(first_block));
-		for (size_t index = 1; index < 0x10; index++)
-		{
-			memcpy(&data[(index * 0x40) + 0x36], &other_blocks, sizeof(other_blocks));
-		}
-		std::random_device rd;
-		std::mt19937 mt(rd());
-		std::uniform_int_distribution<int> dist(0, 255);
-		data[0] = dist(mt);
-		data[1] = dist(mt);
-		data[2] = dist(mt);
-		data[3] = dist(mt);
-		data[4] = data[0] ^ data[1] ^ data[2] ^ data[3];
-		data[5] = 0x81;
-		data[6] = 0x01;
-		data[7] = 0x0F;
-
-		memcpy(&data[0x10], &skyId, sizeof(skyId));
-		memcpy(&data[0x1C], &skyVar, sizeof(skyVar));
-
-		uint16 crc = nsyshid::g_skyportal.SkylanderCRC16(0xFFFF, data.data(), 0x1E);
-
-		memcpy(&data[0x1E], &crc, sizeof(crc));
-
-		output_stream.SeekO(0);
-		output_stream.WriteAll(data.data(), data.size());
-		output_stream.Close();
 
 		this->EndModal(1);
 	});
@@ -328,21 +286,13 @@ wxString CreateSkylanderDialog::GetFilePath() const
 
 void EmulatedUSBDeviceFrame::UpdateSkylanderEdits()
 {
-	for (auto i = 0; i < 16; i++)
+	for (auto i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
 	{
 		std::string displayString;
 		if (auto sd = m_skySlots[i])
 		{
 			auto [portalSlot, skyId, skyVar] = sd.value();
-			auto foundSky = nsyshid::listSkylanders.find(std::make_pair(skyId, skyVar));
-			if (foundSky != nsyshid::listSkylanders.end())
-			{
-				displayString = foundSky->second;
-			}
-			else
-			{
-				displayString = fmt::format("Unknown (Id:{} Var:{})", skyId, skyVar);
-			}
+			displayString = nsyshid::g_skyportal.FindSkylander(skyId, skyVar);
 		}
 		else
 		{
