@@ -1,5 +1,7 @@
 #include "Skylander.h"
 
+#include <random>
+
 #include "nsyshid.h"
 #include "Backend.h"
 
@@ -9,8 +11,8 @@ namespace nsyshid
 {
 	SkylanderUSB g_skyportal;
 
-	const std::map<const std::pair<const uint16, const uint16>, const std::string>
-		listSkylanders = {
+	const std::map<const std::pair<const uint16, const uint16>, const char*>
+		s_listSkylanders = {
 			{{0, 0x0000}, "Whirlwind"},
 			{{0, 0x1801}, "Series 2 Whirlwind"},
 			{{0, 0x1C02}, "Polar Whirlwind"},
@@ -845,6 +847,49 @@ namespace nsyshid
 		return false;
 	}
 
+	bool SkylanderUSB::CreateSkylander(fs::path pathName, uint16 skyId, uint16 skyVar)
+	{
+		FileStream* skyFile(FileStream::createFile2(pathName));
+		if (!skyFile)
+		{
+			return false;
+		}
+
+		std::array<uint8, BLOCK_COUNT * BLOCK_SIZE> data{};
+
+		uint32 first_block = 0x690F0F0F;
+		uint32 other_blocks = 0x69080F7F;
+		memcpy(&data[0x36], &first_block, sizeof(first_block));
+		for (size_t index = 1; index < 0x10; index++)
+		{
+			memcpy(&data[(index * 0x40) + 0x36], &other_blocks, sizeof(other_blocks));
+		}
+		std::random_device rd;
+		std::mt19937 mt(rd());
+		std::uniform_int_distribution<int> dist(0, 255);
+		data[0] = dist(mt);
+		data[1] = dist(mt);
+		data[2] = dist(mt);
+		data[3] = dist(mt);
+		data[4] = data[0] ^ data[1] ^ data[2] ^ data[3];
+		data[5] = 0x81;
+		data[6] = 0x01;
+		data[7] = 0x0F;
+
+		memcpy(&data[0x10], &skyId, sizeof(skyId));
+		memcpy(&data[0x1C], &skyVar, sizeof(skyVar));
+
+		uint16 crc = nsyshid::g_skyportal.SkylanderCRC16(0xFFFF, data.data(), 0x1E);
+
+		memcpy(&data[0x1E], &crc, sizeof(crc));
+
+		skyFile->writeData(data.data(), data.size());
+
+		delete skyFile;
+
+		return true;
+	}
+
 	void SkylanderUSB::QueryBlock(uint8 skyNum, uint8 block, uint8* replyBuf)
 	{
 		std::lock_guard lock(m_skyMutex);
@@ -865,7 +910,7 @@ namespace nsyshid
 	}
 
 	void SkylanderUSB::WriteBlock(uint8 skyNum, uint8 block,
-								   const uint8* toWriteBuf, uint8* replyBuf)
+								  const uint8* toWriteBuf, uint8* replyBuf)
 	{
 		std::lock_guard lock(m_skyMutex);
 
@@ -919,14 +964,31 @@ namespace nsyshid
 				status |= s.status;
 			}
 			interruptResponse = {0x53, 0x00, 0x00, 0x00, 0x00, m_interruptCounter++,
-								  active, 0x00, 0x00, 0x00, 0x00, 0x00,
-								  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-								  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-								  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-								  0x00, 0x00};
+								 active, 0x00, 0x00, 0x00, 0x00, 0x00,
+								 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+								 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+								 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+								 0x00, 0x00};
 			memcpy(&interruptResponse[1], &status, sizeof(status));
 		}
 		return interruptResponse;
+	}
+
+	std::string SkylanderUSB::FindSkylander(uint16 skyId, uint16 skyVar)
+	{
+		for (const auto& it : GetListSkylanders())
+		{
+			if(it.first.first == skyId && it.first.second == skyVar)
+			{
+				return it.second;
+			}
+		}
+		return fmt::format("Unknown ({} {})", skyId, skyVar);
+	}
+
+	std::map<const std::pair<const uint16, const uint16>, const char*> SkylanderUSB::GetListSkylanders()
+	{
+		return s_listSkylanders;
 	}
 
 	void SkylanderUSB::Skylander::Save()
@@ -934,6 +996,7 @@ namespace nsyshid
 		if (!skyFile)
 			return;
 
+		skyFile->SetPosition(0);
 		skyFile->writeData(data.data(), data.size());
 	}
 } // namespace nsyshid

@@ -5,6 +5,8 @@
 #include <wx/dialog.h>
 #include <wx/frame.h>
 
+#include "Cafe/OS/libs/nsyshid/Skylander.h"
+
 class wxBoxSizer;
 class wxCheckBox;
 class wxFlexGridSizer;
@@ -21,8 +23,8 @@ class EmulatedUSBDeviceFrame : public wxFrame {
 
   private:
 	wxCheckBox* m_emulatePortal;
-	std::array<wxTextCtrl*, 16> m_skylanderSlots;
-	std::array<std::optional<std::tuple<uint8, uint16, uint16>>, 16> m_skySlots;
+	std::array<wxTextCtrl*, nsyshid::MAX_SKYLANDERS> m_skylanderSlots;
+	std::array<std::optional<std::tuple<uint8, uint16, uint16>>, nsyshid::MAX_SKYLANDERS> m_skySlots;
 
 	wxPanel* AddSkylanderPage(wxNotebook* notebook);
 	wxBoxSizer* AddSkylanderRow(uint8 row_number, wxStaticBox* box);
