@@ -204,7 +204,7 @@ jobs:
         name: cemu-bin-windows-x64
         path: ./bin/Cemu.exe
 
-  build-macos:
+  build-macos-intel:
     runs-on: macos-12
     steps:
     - name: "Checkout repo"
@@ -239,12 +239,7 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install llvm@15 ninja nasm molten-vk automake libtool
-
-    - name: "Setup cmake"
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.29.0'
+        brew install llvm@15 ninja nasm molten-vk automake libtool cmake
 
     - name: "Bootstrap vcpkg"
       run: |
@@ -298,3 +293,93 @@ jobs:
       with:
         name: cemu-bin-macos-x64
         path: ./bin/Cemu.dmg
+
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: "Fetch full history for vcpkg submodule"
+        run: |
+          cd dependencies/vcpkg
+          git fetch --unshallow
+
+      - name: Setup release mode parameters (for deploy)
+        if: ${{ inputs.deploymode == 'release' }}
+        run: |
+          echo "BUILD_MODE=release" >> $GITHUB_ENV
+          echo "BUILD_FLAGS=" >> $GITHUB_ENV
+          echo "Build mode is release"
+      - name: Setup debug mode parameters (for continous build)
+        if: ${{ inputs.deploymode != 'release' }}
+        run: |
+          echo "BUILD_MODE=debug" >> $GITHUB_ENV
+          echo "BUILD_FLAGS=" >> $GITHUB_ENV
+          echo "Build mode is debug"
+
+      - name: Setup version for experimental
+        if: ${{ inputs.experimentalversion != '' }}
+        run: |
+          echo "[INFO] Experimental version ${{ inputs.experimentalversion }}"
+          echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEXPERIMENTAL_VERSION=${{ inputs.experimentalversion }}" >> $GITHUB_ENV
+
+      - name: "Install system dependencies"
+        run: |
+          brew update
+          brew install llvm@15 ninja nasm molten-vk automake libtool cmake
+
+      - name: "Bootstrap vcpkg"
+        run: |
+          bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+
+      - name: 'Setup NuGet Credentials for vcpkg'
+        shell: 'bash'
+        run: |
+          mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+          sources add \
+          -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+          -storepasswordincleartext \
+          -name "GitHub" \
+          -username "${{ github.repository_owner }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+          mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+
+      - name: "cmake"
+        run: |
+          mkdir build
+          cd build
+          cmake .. ${{ env.BUILD_FLAGS }} \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} \
+          -DMACOS_BUNDLE=ON \
+          -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm@15/bin/clang \
+          -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@15/bin/clang++ \
+          -G Ninja
+
+      - name: "Build Cemu"
+        run: |
+          cmake --build build
+
+      - name: Prepare artifact
+        if: ${{ inputs.deploymode == 'release' }}
+        run: |
+          mkdir bin/Cemu_app
+          mv bin/Cemu_release.app bin/Cemu_app/Cemu.app
+          mv bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu_release bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
+          sed -i '' 's/Cemu_release/Cemu/g' bin/Cemu_app/Cemu.app/Contents/Info.plist
+          chmod a+x bin/Cemu_app/Cemu.app/Contents/MacOS/{Cemu,update.sh}
+          ln -s /Applications bin/Cemu_app/Applications
+          hdiutil create ./bin/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./bin/Cemu_app"
+          hdiutil convert ./bin/tmp.dmg -format UDZO -o bin/Cemu.dmg
+          rm bin/tmp.dmg
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.deploymode == 'release' }}
+        with:
+          name: cemu-bin-macos-arm64
+          path: ./bin/Cemu.dmg
