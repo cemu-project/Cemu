@@ -100,6 +100,12 @@ extern const WORD32 ih264_g_six_tap[3];/* coefficients for 6 tap filtering*/
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
 
+#ifdef __APPLE__
+#define av8(name) name __asm__(#name)
+#else
+#define av8(name) name
+#endif
+
 typedef void ih264_inter_pred_luma_ft(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
                                       WORD32 src_strd,
@@ -186,31 +192,31 @@ ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_qpel_a9q;
 ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_a9q;
 
 /* AV8 NEON Declarations */
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_copy_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_copy_av8);
 
-ih264_interleave_copy_ft ih264_interleave_copy_av8;
+ih264_interleave_copy_ft av8(ih264_interleave_copy_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_horz_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_vert_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_hpel_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_horz_hpel_vert_hpel_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_horz_qpel_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_qpel_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_vert_qpel_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_qpel_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_horz_qpel_vert_qpel_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_hpel_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_horz_qpel_vert_hpel_av8);
 
-ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_qpel_av8;
+ih264_inter_pred_luma_ft av8(ih264_inter_pred_luma_horz_hpel_vert_qpel_av8);
 
-ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_av8;
+ih264_inter_pred_chroma_ft av8(ih264_inter_pred_chroma_av8);
 
-ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_dx_zero_av8;
+ih264_inter_pred_chroma_ft av8(ih264_inter_pred_chroma_dx_zero_av8);
 
-ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_dy_zero_av8;
+ih264_inter_pred_chroma_ft av8(ih264_inter_pred_chroma_dy_zero_av8);
 
 
 /* SSSE3 Intrinsic Declarations */

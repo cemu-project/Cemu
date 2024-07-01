@@ -40,6 +40,11 @@
 /*****************************************************************************/
 /* Function Declarations                                                     */
 /*****************************************************************************/
+#ifdef __APPLE__
+#define av8(name) name __asm__(#name)
+#else
+#define av8(name) name
+#endif
 
 typedef void ih264_pad(UWORD8 *, WORD32, WORD32, WORD32);
 
@@ -59,11 +64,11 @@ ih264_pad ih264_pad_right_luma_a9q;
 ih264_pad ih264_pad_right_chroma_a9q;
 
 /* AV8 function declarations */
-ih264_pad ih264_pad_top_av8;
-ih264_pad ih264_pad_left_luma_av8;
-ih264_pad ih264_pad_left_chroma_av8;
-ih264_pad ih264_pad_right_luma_av8;
-ih264_pad ih264_pad_right_chroma_av8;
+ih264_pad av8(ih264_pad_top_av8);
+ih264_pad av8(ih264_pad_left_luma_av8);
+ih264_pad av8(ih264_pad_left_chroma_av8);
+ih264_pad av8(ih264_pad_right_luma_av8);
+ih264_pad av8(ih264_pad_right_chroma_av8);
 
 
 ih264_pad ih264_pad_left_luma_ssse3;

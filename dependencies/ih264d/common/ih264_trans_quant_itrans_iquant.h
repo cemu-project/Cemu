@@ -39,7 +39,11 @@
 /*****************************************************************************/
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
-
+#ifdef __APPLE__
+#define av8(name) name __asm__(#name)
+#else
+#define av8(name) name
+#endif
 
 typedef void ih264_resi_trans_dctrans_quant_ft(UWORD8*pu1_src,
                                        UWORD8 *pu1_pred,
@@ -199,18 +203,18 @@ ih264_hadamard_quant_ft ih264_hadamard_quant_4x4_a9;
 ih264_hadamard_quant_ft ih264_hadamard_quant_2x2_uv_a9;
 
 /*Av8 Declarations*/
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_4x4_av8;
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_chroma_4x4_av8;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_av8;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8_av8;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_dc_av8;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8_dc_av8;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4_av8;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4_dc_av8;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_4x4_av8;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_2x2_uv_av8;
-ih264_hadamard_quant_ft ih264_hadamard_quant_4x4_av8;
-ih264_hadamard_quant_ft ih264_hadamard_quant_2x2_uv_av8;
+ih264_resi_trans_quant_ft av8(ih264_resi_trans_quant_4x4_av8);
+ih264_resi_trans_quant_ft av8(ih264_resi_trans_quant_chroma_4x4_av8);
+ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_4x4_av8);
+ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_8x8_av8);
+ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_4x4_dc_av8);
+ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_8x8_dc_av8);
+ih264_iquant_itrans_recon_chroma_ft av8(ih264_iquant_itrans_recon_chroma_4x4_av8);
+ih264_iquant_itrans_recon_chroma_ft av8(ih264_iquant_itrans_recon_chroma_4x4_dc_av8);
+ih264_ihadamard_scaling_ft av8(ih264_ihadamard_scaling_4x4_av8);
+ih264_ihadamard_scaling_ft av8(ih264_ihadamard_scaling_2x2_uv_av8);
+ih264_hadamard_quant_ft av8(ih264_hadamard_quant_4x4_av8);
+ih264_hadamard_quant_ft av8(ih264_hadamard_quant_2x2_uv_av8);
 
 /*SSSE3 Declarations*/
 ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_ssse3;

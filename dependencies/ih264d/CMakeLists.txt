@@ -140,7 +140,7 @@ target_sources(ih264d PRIVATE
 "decoder/x86/ih264d_function_selector_sse42.c"
 "decoder/x86/ih264d_function_selector_ssse3.c"
 )
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
 enable_language( C CXX ASM )
 set(LIBAVCDEC_ARM_INCLUDES "common/armv8" "decoder/arm")
 include_directories("common/" "decoder/" ${LIBAVCDEC_ARM_INCLUDES})
