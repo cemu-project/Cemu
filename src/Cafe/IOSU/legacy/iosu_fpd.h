@@ -245,6 +245,7 @@ namespace iosu
 			CheckSettingStatusAsync = 0x7596,
 			GetFriendListEx = 0x75F9,
 			GetFriendRequestListEx = 0x76C1,
+			UpdateCommentAsync = 0x7726,
 			UpdatePreferenceAsync = 0x7727,
 			RemoveFriendAsync = 0x7789,
 			DeleteFriendFlagsAsync = 0x778A,
