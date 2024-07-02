@@ -400,7 +400,7 @@ namespace nsyshid::backend::windows
 		return false;
 	}
 
-	bool DeviceWindowsHID::SetProtocol(uint32 ifIndef, uint32 protocol)
+	bool DeviceWindowsHID::SetProtocol(uint8 ifIndex, uint8 protocol)
 	{
 		// ToDo: implement this
 		// pretend that everything is fine

@@ -44,6 +44,11 @@ namespace nsyshid::backend::libusb
 										bool& endpointOutFound, uint8& endpointOut, uint16& endpointOutMaxPacketSize);
 	};
 
+	template<typename T>
+	using UniquePtr = std::unique_ptr<T, void (*)(T*)>;
+
+	using ConfigDescriptor = UniquePtr<libusb_config_descriptor>;
+
 	class DeviceLibusb : public nsyshid::Device {
 	  public:
 		DeviceLibusb(libusb_context* ctx,
@@ -53,7 +58,8 @@ namespace nsyshid::backend::libusb
 					 uint8 interfaceSubClass,
 					 uint8 protocol,
 					 uint8 libusbBusNumber,
-					 uint8 libusbDeviceAddress);
+					 uint8 libusbDeviceAddress,
+					 std::vector<ConfigDescriptor> configs);
 
 		~DeviceLibusb() override;
 
@@ -73,7 +79,11 @@ namespace nsyshid::backend::libusb
 						   uint8* output,
 						   uint32 outputMaxLength) override;
 
-		bool SetProtocol(uint32 ifIndex, uint32 protocol) override;
+		bool SetProtocol(uint8 ifIndex, uint8 protocol) override;
+
+		int ClaimAllInterfaces(uint8 config_num);
+		int ReleaseAllInterfaces(uint8 config_num);
+		int ReleaseAllInterfacesForCurrentConfig();
 
 		bool SetReport(ReportMessage* message) override;
 
@@ -92,6 +102,7 @@ namespace nsyshid::backend::libusb
 		std::atomic<sint32> m_handleInUseCounter;
 		std::condition_variable m_handleInUseCounterDecremented;
 		libusb_device_handle* m_libusbHandle;
+		std::vector<ConfigDescriptor> m_config_descriptors;
 
 		class HandleLock {
 		  public:
