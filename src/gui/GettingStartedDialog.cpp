@@ -172,7 +172,7 @@ wxPanel* GettingStartedDialog::CreatePage2()
 		option_sizer->Add(m_page2.updateCheckbox, 0, wxALL, 5);
 #if BOOST_OS_LINUX 
 		if (!std::getenv("APPIMAGE")) {
-			m_update->Disable();
+			m_page2.updateCheckbox->Disable();
 		} 
 #endif
 		sizer->Add(option_sizer, 1, wxEXPAND, 5);
