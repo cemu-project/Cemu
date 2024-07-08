@@ -413,3 +413,107 @@ Java_info_cemu_Cemu_NativeLibrary_onOverlayAxis([[maybe_unused]] JNIEnv* env, [[
 {
 	s_emulationState.getEmulatedController(controllerIndex).setAxisValue(mappingId, value);
 }
+
+extern "C" JNIEXPORT jint JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getOverlayPosition([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return static_cast<jint>(g_config.data().overlay.position);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayPosition([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint position)
+{
+	g_config.data().overlay.position = static_cast<ScreenPosition>(position);
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isOverlayFPSEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().overlay.fps;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayFPSEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().overlay.fps = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isOverlayDrawCallsPerFrameEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().overlay.drawcalls;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayDrawCallsPerFrameEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().overlay.drawcalls = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isOverlayCPUUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().overlay.cpu_usage;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayCPUUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().overlay.cpu_usage = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isOverlayCPUPerCoreUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().overlay.cpu_per_core_usage;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayCPUPerCoreUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().overlay.cpu_per_core_usage = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isOverlayRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().overlay.ram_usage;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().overlay.ram_usage = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isOverlayVRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().overlay.vram_usage;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayVRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().overlay.vram_usage = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isOverlayDebugEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().overlay.debug;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setOverlayDebugEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().overlay.debug = enabled;
+	g_config.Save();
+}

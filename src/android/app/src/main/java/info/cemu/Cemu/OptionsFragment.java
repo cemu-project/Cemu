@@ -52,6 +52,7 @@ public class OptionsFragment extends Fragment {
         genericRecyclerViewAdapter.addRecyclerViewItem(new SimpleButtonRecyclerViewItem(getString(R.string.graphics_settings), () -> NavHostFragment.findNavController(OptionsFragment.this).navigate(R.id.action_optionsFragment_to_graphicSettingsFragment)));
         genericRecyclerViewAdapter.addRecyclerViewItem(new SimpleButtonRecyclerViewItem(getString(R.string.audio_settings), () -> NavHostFragment.findNavController(OptionsFragment.this).navigate(R.id.action_optionsFragment_to_audioSettingsFragment)));
         genericRecyclerViewAdapter.addRecyclerViewItem(new SimpleButtonRecyclerViewItem(getString(R.string.graphic_packs), () -> NavHostFragment.findNavController(OptionsFragment.this).navigate(R.id.action_optionsFragment_to_graphicPacksRootFragment)));
+        genericRecyclerViewAdapter.addRecyclerViewItem(new SimpleButtonRecyclerViewItem(getString(R.string.overlay), () -> NavHostFragment.findNavController(OptionsFragment.this).navigate(R.id.action_optionsFragment_to_overlaySettingsFragment)));
         binding.optionsRecyclerView.setAdapter(genericRecyclerViewAdapter);
 
         return binding.getRoot();

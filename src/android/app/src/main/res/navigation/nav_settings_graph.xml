@@ -55,6 +55,9 @@
         <action
             android:id="@+id/action_optionsFragment_to_graphicPacksRootFragment"
             app:destination="@id/graphicPacksRootFragment" />
+        <action
+            android:id="@+id/action_optionsFragment_to_overlaySettingsFragment"
+            app:destination="@id/overlaySettingsFragment" />
     </fragment>
     <fragment
         android:id="@+id/controllerInputsFragment"
@@ -69,6 +72,11 @@
         android:id="@+id/audioSettingsFragment"
         android:name="info.cemu.Cemu.AudioSettingsFragment"
         android:label="@string/audio_settings"
+        tools:layout="@layout/fragment_audio_settings" />
+    <fragment
+        android:id="@+id/overlaySettingsFragment"
+        android:name="info.cemu.Cemu.OverlaySettingsFragment"
+        android:label="@string/overlay_settings"
         tools:layout="@layout/fragment_audio_settings" />
     <fragment
         android:id="@+id/inputOverlaySettingsFragment"

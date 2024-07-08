@@ -130,4 +130,24 @@
     <string name="reset_overlay_button_desc">Reset the positions and sizes of the inputs</string>
     <string name="vibrate">Vibrate</string>
     <string name="enable_vibrate_on_touch">Enable vibrate on touch</string>
+    <string name="overlay_settings">Overlay settings</string>
+    <string name="overlay_position_disabled">Disabled</string>
+    <string name="overlay_position_top_left">Top left</string>
+    <string name="overlay_position_top_center">Top center</string>
+    <string name="overlay_position_top_right">Top right</string>
+    <string name="overlay_position_bottom_left">Bottom left</string>
+    <string name="overlay_position_bottom_center">Bottom center</string>
+    <string name="overlay_position_bottom_right">Bottom right</string>
+    <string name="overlay_position">Position</string>
+    <string name="overlay">Overlay</string>
+    <string name="fps_label">FPS</string>
+    <string name="fps_description">The number of frames per second. Average over last 5 seconds</string>
+    <string name="draw_calls_per_frame_label">Draw calls per frame</string>
+    <string name="draw_calls_per_frame_label_desription">The number of draw calls per frame. Average over last 5 seconds</string>
+    <string name="cpu_usage_label">CPU usage</string>
+    <string name="cpu_usage_description">CPU usage of Cemu in percent</string>
+    <string name="ram_usage_label">RAM usage</string>
+    <string name="ram_usage_description">Cemu RAM usage in MB</string>
+    <string name="vram_usage_label">VRAM usage</string>
+    <string name="vram_usage_description">The VRAM usage of Cemu in MB</string>
 </resources>

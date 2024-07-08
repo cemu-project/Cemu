@@ -95,7 +95,6 @@ public class DPadInput extends Input {
                 iconDpadRightPressed,
                 iconDpadRightNotPressed
         );
-        Log.i("INPUT", "Dpad reconfigure: " + rect);
     }
 
     public DPadInput(Resources resources, @DrawableRes int backgroundId, @DrawableRes int pressedButtonId, @DrawableRes int notPressedButtonId, ButtonStateChangeListener buttonStateChangeListener, InputOverlaySettingsProvider.InputOverlaySettings settings) {

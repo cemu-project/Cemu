@@ -29,8 +29,6 @@ public class NativeLibrary {
         boolean exists(String uri);
     }
 
-    public static native void setFileSystemCallbacks(FileSystemCallbacks fileSystemCallbacks);
-
     public static native void setDPI(float dpi);
 
     public static native void setSurface(Surface surface, boolean isMainCanvas);
@@ -383,4 +381,58 @@ public class NativeLibrary {
     public static native void onOverlayButton(int controllerIndex, int mappingId, boolean value);
 
     public static native void onOverlayAxis(int controllerIndex, int mappingId, float value);
+
+    static final int OVERLAY_SCREEN_POSITION_DISABLED = 0;
+    static final int OVERLAY_SCREEN_POSITION_TOP_LEFT = 1;
+    static final int OVERLAY_SCREEN_POSITION_TOP_CENTER = 2;
+    static final int OVERLAY_SCREEN_POSITION_TOP_RIGHT = 3;
+    static final int OVERLAY_SCREEN_POSITION_BOTTOM_LEFT = 4;
+    static final int OVERLAY_SCREEN_POSITION_BOTTOM_CENTER = 5;
+    static final int OVERLAY_SCREEN_POSITION_BOTTOM_RIGHT = 6;
+
+    public static int overlayScreenPositionToResourceNameId(int overlayScreenPosition) {
+        return switch (overlayScreenPosition) {
+            case OVERLAY_SCREEN_POSITION_DISABLED -> R.string.overlay_position_disabled;
+            case OVERLAY_SCREEN_POSITION_TOP_LEFT -> R.string.overlay_position_top_left;
+            case OVERLAY_SCREEN_POSITION_TOP_CENTER -> R.string.overlay_position_top_center;
+            case OVERLAY_SCREEN_POSITION_TOP_RIGHT -> R.string.overlay_position_top_right;
+            case OVERLAY_SCREEN_POSITION_BOTTOM_LEFT -> R.string.overlay_position_bottom_left;
+            case OVERLAY_SCREEN_POSITION_BOTTOM_CENTER -> R.string.overlay_position_bottom_center;
+            case OVERLAY_SCREEN_POSITION_BOTTOM_RIGHT -> R.string.overlay_position_bottom_right;
+            default ->
+                    throw new RuntimeException("Invalid overlay position: " + overlayScreenPosition);
+        };
+    }
+
+    public static native int getOverlayPosition();
+
+    public static native void setOverlayPosition(int position);
+
+    public static native boolean isOverlayFPSEnabled();
+
+    public static native void setOverlayFPSEnabled(boolean enabled);
+
+    public static native boolean isOverlayDrawCallsPerFrameEnabled();
+
+    public static native void setOverlayDrawCallsPerFrameEnabled(boolean enabled);
+
+    public static native boolean isOverlayCPUUsageEnabled();
+
+    public static native void setOverlayCPUUsageEnabled(boolean enabled);
+
+    public static native boolean isOverlayCPUPerCoreUsageEnabled();
+
+    public static native void setOverlayCPUPerCoreUsageEnabled(boolean enabled);
+
+    public static native boolean isOverlayRAMUsageEnabled();
+
+    public static native void setOverlayRAMUsageEnabled(boolean enabled);
+
+    public static native boolean isOverlayVRAMUsageEnabled();
+
+    public static native void setOverlayVRAMUsageEnabled(boolean enabled);
+
+    public static native boolean isOverlayDebugEnabled();
+
+    public static native void setOverlayDebugEnabled(boolean enabled);
 }
