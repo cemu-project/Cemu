@@ -2,9 +2,6 @@
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "Cafe/OS/libs/gx2/GX2_Surface.h"
 #include <bit>
-#if __ANDROID__
-#include <boost/core/bit.hpp>
-#endif
 /*
 	Info:
 
@@ -75,11 +72,7 @@ namespace LatteAddrLib
 
 	uint32 NextPow2(uint32 dim)
 	{
-#if __ANDROID__
-		return boost::core::bit_ceil(dim);
-#else
 		return std::bit_ceil<uint32>(dim);
-#endif
 	}
 
 	uint32 GetBitsPerPixel(E_HWSURFFMT format, uint32* pElemMode, uint32* pExpandX, uint32* pExpandY)

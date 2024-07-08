@@ -24,12 +24,8 @@ private:
 	}
 	static fs::path GetPath(const fs::path& path, std::string_view p) 
 	{
-#if __ANDROID__
-		return path / fs::path(p);
-#else
 		std::basic_string_view<char8_t> s((const char8_t*)p.data(), p.size());
 		return path / fs::path(s);
-#endif // __ANDROID__
 	}
 	static fs::path GetPath(const fs::path& path)
 	{
