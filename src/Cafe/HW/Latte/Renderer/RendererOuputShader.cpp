@@ -302,9 +302,6 @@ out gl_PerVertex
 { 
    vec4 gl_Position; 
 };)";
-#if __ANDROID__
-	vertex_source << "layout (push_constant) uniform PushConstants { mat2 preRotate; } pushConstants;\n";
-#endif // __ANDROID__
 	vertex_source << R"(void main(){
 	vec2 vPos;
 	vec2 vUV;
@@ -335,11 +332,7 @@ out gl_PerVertex
 		}
 
 	vertex_source << "passUV = vUV;\n";
-#if __ANDROID__
-	vertex_source << "gl_Position = vec4(pushConstants.preRotate * vPos, 0.0, 1.0);}";
-#else
 	vertex_source << "gl_Position = vec4(vPos, 0.0, 1.0);}";
-#endif // __ANDROID__
 	return vertex_source.str();
 }
 void RendererOutputShader::InitializeStatic()

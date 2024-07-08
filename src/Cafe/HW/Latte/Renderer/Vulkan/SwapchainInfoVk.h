@@ -76,9 +76,6 @@ struct SwapchainInfoVk
 	bool m_usesSRGB = false;
 	VSync m_vsyncState = VSync::Immediate;
 	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
-#if __ANDROID__
-	VkSurfaceTransformFlagBitsKHR m_preTransform{};
-#endif // __ANDROID__
 	VkPhysicalDevice m_physicalDevice{};
 	VkDevice m_logicalDevice{};
 	VkSurfaceKHR surface{};

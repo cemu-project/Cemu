@@ -54,12 +54,10 @@ class EmulationState {
 
 	void clearSurface(bool isMainCanvas)
 	{
-		VulkanRenderer::GetInstance()->ClearSurface(isMainCanvas);
 	}
 
 	void notifySurfaceChanged(bool isMainCanvas)
 	{
-		VulkanRenderer::GetInstance()->NotifySurfaceChanged(isMainCanvas);
 	}
 
 	void setSurface(JNIEnv* env, jobject surface, bool isMainCanvas)
