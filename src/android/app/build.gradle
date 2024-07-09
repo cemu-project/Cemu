@@ -1,6 +1,11 @@
 plugins {
     id 'com.android.application'
 }
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
 
 android {
     namespace 'info.cemu.Cemu'
@@ -18,12 +23,26 @@ android {
         }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-
+    var releaseStoreFile = keystoreProperties['storeFile'];
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            release {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyStorePassword']
+                storeFile file(releaseStoreFile)
+                storePassword keystoreProperties['keyStorePassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            if (releaseStoreFile != null) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
         }
         debug {
             applicationIdSuffix ".debug"
