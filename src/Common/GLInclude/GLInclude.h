@@ -40,6 +40,8 @@ typedef struct __GLXFBConfigRec *GLXFBConfig;
 #endif // __ANDROID__
 #endif // BOOST_OS_LINUX
 
+namespace CemuGL
+{
 #define GLFUNC(__type, __name)	extern __type __name;
 #define EGLFUNC(__type, __name) extern __type __name;
 #include "glFunctions.h"
@@ -217,6 +219,8 @@ static void glCompressedTextureSubImage3DWrapper(GLenum target, GLuint texture, 
 	glBindTexture(target, originalTexture);
 }
 
+}
+using namespace CemuGL;
 // this prevents Windows GL.h from being included:
 #define __gl_h_
 #define __GL_H__

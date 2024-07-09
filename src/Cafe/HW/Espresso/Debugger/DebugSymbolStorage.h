@@ -45,12 +45,17 @@ public:
 
 	static void ClearRange(MPTR address, uint32 length)
 	{
+		if (length == 0)
+			return;
 		s_lock.lock();
-		while (length > 0)
+		for (;;)
 		{
 			auto itr = s_typeStorage.find(address);
 			if (itr != s_typeStorage.end())
 				s_typeStorage.erase(itr);
+			
+			if (length <= 4)
+				break;
 			address += 4;
 			length -= 4;
 		}

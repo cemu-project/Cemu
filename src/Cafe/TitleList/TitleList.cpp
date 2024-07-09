@@ -269,6 +269,7 @@ void CafeTitleList::AddTitleFromPath(fs::path path)
 
 bool CafeTitleList::RefreshWorkerThread()
 {
+	SetThreadName("TitleListWorker");
 	while (sTLRefreshRequests.load())
 	{
 		sTLRefreshRequests.store(0);
@@ -352,7 +353,8 @@ bool _IsKnownFileNameOrExtension(const fs::path& path)
 		fileExtension == ".wud" ||
 		fileExtension == ".wux" ||
 		fileExtension == ".iso" ||
-		fileExtension == ".wua";
+		fileExtension == ".wua" ||
+		fileExtension == ".wuhb";
 	// note: To detect extracted titles with RPX we rely on the presence of the content,code,meta directory structure
 }
 

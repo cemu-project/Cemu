@@ -9,7 +9,7 @@ namespace coreinit
 	bool __OSResizeCopyData(sint32 length);
 
 	bool OSGetForegroundBucket(MEMPTR<void>* offset, uint32be* size);
-	bool OSGetForegroundBucketFreeArea(MPTR* offset, MPTR* size);
+	bool OSGetForegroundBucketFreeArea(MEMPTR<void>* offset, uint32be* size);
 
 	void InitForegroundBucket();
 

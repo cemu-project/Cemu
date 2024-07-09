@@ -39,7 +39,6 @@ ActiveSettings::LoadOnce(
 
 	g_config.SetFilename(GetConfigPath("settings.xml").generic_wstring());
 	g_config.Load();
-	LaunchSettings::ChangeNetworkServiceURL(GetConfig().account.active_service);
 	std::string additionalErrorInfo;
 	s_has_required_online_files = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo) == IOS_CRYPTO_ONLINE_REQ_OK;
 	return failed_write_access;
@@ -132,7 +131,12 @@ uint32 ActiveSettings::GetPersistentId()
 
 bool ActiveSettings::IsOnlineEnabled()
 {
-	return GetConfig().account.online_enabled && Account::GetAccount(GetPersistentId()).IsValidOnlineAccount() && HasRequiredOnlineFiles();
+	if(!Account::GetAccount(GetPersistentId()).IsValidOnlineAccount())
+		return false;
+	if(!HasRequiredOnlineFiles())
+		return false;
+	NetworkService networkService = static_cast<NetworkService>(GetConfig().GetAccountNetworkService(GetPersistentId()));
+	return networkService == NetworkService::Nintendo || networkService == NetworkService::Pretendo || networkService == NetworkService::Custom;
 }
 
 bool ActiveSettings::HasRequiredOnlineFiles()
@@ -140,8 +144,9 @@ bool ActiveSettings::HasRequiredOnlineFiles()
 	return s_has_required_online_files;
 }
 
-NetworkService ActiveSettings::GetNetworkService() {
-	return static_cast<NetworkService>(GetConfig().account.active_service.GetValue());
+NetworkService ActiveSettings::GetNetworkService()
+{
+	return GetConfig().GetAccountNetworkService(GetPersistentId());
 }
 
 bool ActiveSettings::DumpShadersEnabled()

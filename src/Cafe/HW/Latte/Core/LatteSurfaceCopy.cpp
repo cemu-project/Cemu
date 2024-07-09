@@ -37,7 +37,7 @@ void LatteSurfaceCopy_copySurfaceNew(MPTR srcPhysAddr, MPTR srcMipAddr, uint32 s
 	if (!destinationTexture)
 	{
 		LatteTexture* renderTargetConf = nullptr;
-		destinationView = LatteTexture_CreateMapping(dstPhysAddr, dstMipAddr, dstWidth, dstHeight, dstDepth, dstPitch, dstTilemode, dstSwizzle, dstLevel, 1, dstSlice, 1, dstSurfaceFormat, dstDim, Latte::E_DIM::DIM_2D, false);
+		destinationView = LatteTexture_CreateMapping(dstPhysAddr, dstMipAddr, dstWidth, dstHeight, dstDepth, dstPitch, dstTilemode, dstSwizzle, dstLevel, 1, dstSlice, 1, dstSurfaceFormat, dstDim, Latte::IsMSAA(dstDim) ? Latte::E_DIM::DIM_2D_MSAA : Latte::E_DIM::DIM_2D, false);
 		destinationTexture = destinationView->baseTexture;
 	}
 	// copy texture

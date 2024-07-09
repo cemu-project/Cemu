@@ -190,6 +190,7 @@ std::queue<PipelineCompiler*> g_compilePipelineRequests;
 
 void compilePipeline_thread(sint32 threadIndex)
 {
+	SetThreadName("compilePl");
 #ifdef _WIN32
 	// one thread runs at normal priority while the others run at lower priority
 	if(threadIndex != 0)
@@ -1284,9 +1285,9 @@ void VulkanRenderer::draw_beginSequence()
 
 	// update shader state
 	LatteSHRC_UpdateActiveShaders();
-	if (m_state.drawSequenceSkip)
+	if (LatteGPUState.activeShaderHasError)
 	{
-		debug_printf("Skipping drawcalls due to shader error\n");
+		cemuLog_logDebugOnce(LogType::Force, "Skipping drawcalls due to shader error");
 		m_state.drawSequenceSkip = true;
 		cemu_assert_debug(false);
 		return;

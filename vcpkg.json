@@ -1,7 +1,7 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "53bef8994c541b6561884a8395ea35715ece75db",
+  "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339",
   "dependencies": [
     "pugixml",
     "zlib",
@@ -64,8 +64,24 @@
       "features": [ "openssl" ]
     },
     {
+      "name": "dbus",
+      "default-features": false,
+      "platform": "linux"
+    },
+    {
+      "name": "tiff",
+      "default-features": false,
+      "features": ["jpeg", "zip"]
+    },
+    {
       "name": "libusb",
       "platform": "!android"
+    }
+  ],
+  "overrides": [
+    {
+      "name": "sdl2",
+      "version": "2.30.3"
     }
   ]
 }

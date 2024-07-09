@@ -280,6 +280,10 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 		m_enabled = m_default_enabled;
 	}
 
+	auto option_allowRendertargetSizeOptimization = rules.FindOption("colorbufferOptimizationAware");
+	if (option_allowRendertargetSizeOptimization)
+		m_allowRendertargetSizeOptimization = boost::iequals(*option_allowRendertargetSizeOptimization, "true") || boost::iequals(*option_allowRendertargetSizeOptimization, "1");
+
 	auto option_vendorFilter = rules.FindOption("vendorFilter");
 	if (option_vendorFilter)
 	{
@@ -878,9 +882,6 @@ bool GraphicPack2::Activate()
 	if (m_gfx_vendor.has_value())
 	{
 		auto vendor = g_renderer->GetVendor();
-		if (vendor == GfxVendor::IntelLegacy || vendor == GfxVendor::IntelNoLegacy)
-			vendor = GfxVendor::Intel;
-		
 		if (m_gfx_vendor.value() != vendor)
 			return false;
 	}

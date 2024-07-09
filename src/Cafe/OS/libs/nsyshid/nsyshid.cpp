@@ -256,6 +256,19 @@ namespace nsyshid
 						 device->m_productId);
 	}
 
+	bool FindDeviceById(uint16 vendorId, uint16 productId)
+	{
+		std::lock_guard<std::recursive_mutex> lock(hidMutex);
+		for (const auto& device : deviceList)
+		{
+			if (device->m_vendorId == vendorId && device->m_productId == productId)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void export_HIDAddClient(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamTypePtr(hidClient, HIDClient_t, 0);
@@ -332,7 +345,6 @@ namespace nsyshid
 		{
 			sprintf(debugOutput + i * 3, "%02x ", data[i]);
 		}
-		fmt::print("{} Data: {}\n", prefix, debugOutput);
 		cemuLog_logDebug(LogType::Force, "[{}] Data: {}", prefix, debugOutput);
 	}
 
@@ -367,8 +379,8 @@ namespace nsyshid
 	void export_HIDSetProtocol(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(hidHandle, 0);		  // r3
-		ppcDefineParamU32(ifIndex, 1);			  // r4
-		ppcDefineParamU32(protocol, 2);			  // r5
+		ppcDefineParamU8(ifIndex, 1);			  // r4
+		ppcDefineParamU8(protocol, 2);			  // r5
 		ppcDefineParamMPTR(callbackFuncMPTR, 3);  // r6
 		ppcDefineParamMPTR(callbackParamMPTR, 4); // r7
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDSetProtocol(...)");
@@ -407,7 +419,8 @@ namespace nsyshid
 							sint32 originalLength, MPTR callbackFuncMPTR, MPTR callbackParamMPTR)
 	{
 		cemuLog_logDebug(LogType::Force, "_hidSetReportAsync begin");
-		if (device->SetReport(reportData, length, originalData, originalLength))
+		ReportMessage message(reportData, length, originalData, originalLength);
+		if (device->SetReport(&message))
 		{
 			DoHIDTransferCallback(callbackFuncMPTR,
 								  callbackParamMPTR,
@@ -430,18 +443,18 @@ namespace nsyshid
 
 	// handler for synchronous HIDSetReport transfers
 	sint32 _hidSetReportSync(std::shared_ptr<Device> device, uint8* reportData, sint32 length,
-							 uint8* originalData,
-							 sint32 originalLength, OSThread_t* osThread)
+							 uint8* originalData, sint32 originalLength, coreinit::OSEvent* event)
 	{
 		_debugPrintHex("_hidSetReportSync Begin", reportData, length);
 		sint32 returnCode = 0;
-		if (device->SetReport(reportData, length, originalData, originalLength))
+		ReportMessage message(reportData, length, originalData, originalLength);
+		if (device->SetReport(&message))
 		{
 			returnCode = originalLength;
 		}
 		free(reportData);
 		cemuLog_logDebug(LogType::Force, "_hidSetReportSync end. returnCode: {}", returnCode);
-		coreinit_resumeThread(osThread, 1000);
+		coreinit::OSSignalEvent(event);
 		return returnCode;
 	}
 
@@ -485,11 +498,12 @@ namespace nsyshid
 		sint32 returnCode = 0;
 		if (callbackFuncMPTR == MPTR_NULL)
 		{
+			// synchronous
+			StackAllocator<coreinit::OSEvent> event;
+			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 			std::future<sint32> res = std::async(std::launch::async, &_hidSetReportSync, device, reportData,
-												 paddedLength + 1, data, dataLength,
-												 coreinitThread_getCurrentThreadDepr(hCPU));
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(hCPU), 1000);
-			PPCCore_switchToScheduler();
+												 paddedLength + 1, data, dataLength, &event);
+			coreinit::OSWaitEvent(&event);
 			returnCode = res.get();
 		}
 		else
@@ -512,17 +526,16 @@ namespace nsyshid
 			return -1;
 		}
 		memset(data, 0, maxLength);
-
-		sint32 bytesRead = 0;
-		Device::ReadResult readResult = device->Read(data, maxLength, bytesRead);
+		ReadMessage message(data, maxLength, 0);
+		Device::ReadResult readResult = device->Read(&message);
 		switch (readResult)
 		{
 		case Device::ReadResult::Success:
 		{
 			cemuLog_logDebug(LogType::Force, "nsyshid.hidReadInternalSync(): read {} of {} bytes",
-							 bytesRead,
+							 message.bytesRead,
 							 maxLength);
-			return bytesRead;
+			return message.bytesRead;
 		}
 		break;
 		case Device::ReadResult::Error:
@@ -558,10 +571,10 @@ namespace nsyshid
 	sint32 _hidReadSync(std::shared_ptr<Device> device,
 						uint8* data,
 						sint32 maxLength,
-						OSThread_t* osThread)
+						coreinit::OSEvent* event)
 	{
 		sint32 returnCode = _hidReadInternalSync(device, data, maxLength);
-		coreinit_resumeThread(osThread, 1000);
+		coreinit::OSSignalEvent(event);
 		return returnCode;
 	}
 
@@ -592,10 +605,10 @@ namespace nsyshid
 		else
 		{
 			// synchronous transfer
-			std::future<sint32> res = std::async(std::launch::async, &_hidReadSync, device, data, maxLength,
-												 coreinitThread_getCurrentThreadDepr(hCPU));
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(hCPU), 1000);
-			PPCCore_switchToScheduler();
+			StackAllocator<coreinit::OSEvent> event;
+			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+			std::future<sint32> res = std::async(std::launch::async, &_hidReadSync, device, data, maxLength, &event);
+			coreinit::OSWaitEvent(&event);
 			returnCode = res.get();
 		}
 
@@ -610,15 +623,15 @@ namespace nsyshid
 			cemuLog_logDebug(LogType::Force, "nsyshid.hidWriteInternalSync(): cannot write to a non-opened device");
 			return -1;
 		}
-		sint32 bytesWritten = 0;
-		Device::WriteResult writeResult = device->Write(data, maxLength, bytesWritten);
+		WriteMessage message(data, maxLength, 0);
+		Device::WriteResult writeResult = device->Write(&message);
 		switch (writeResult)
 		{
 		case Device::WriteResult::Success:
 		{
-			cemuLog_logDebug(LogType::Force, "nsyshid.hidWriteInternalSync(): wrote {} of {} bytes", bytesWritten,
+			cemuLog_logDebug(LogType::Force, "nsyshid.hidWriteInternalSync(): wrote {} of {} bytes", message.bytesWritten,
 							 maxLength);
-			return bytesWritten;
+			return message.bytesWritten;
 		}
 		break;
 		case Device::WriteResult::Error:
@@ -655,10 +668,10 @@ namespace nsyshid
 	sint32 _hidWriteSync(std::shared_ptr<Device> device,
 						 uint8* data,
 						 sint32 maxLength,
-						 OSThread_t* osThread)
+						 coreinit::OSEvent* event)
 	{
 		sint32 returnCode = _hidWriteInternalSync(device, data, maxLength);
-		coreinit_resumeThread(osThread, 1000);
+		coreinit::OSSignalEvent(event);
 		return returnCode;
 	}
 
@@ -689,10 +702,10 @@ namespace nsyshid
 		else
 		{
 			// synchronous transfer
-			std::future<sint32> res = std::async(std::launch::async, &_hidWriteSync, device, data, maxLength,
-												 coreinitThread_getCurrentThreadDepr(hCPU));
-			coreinit_suspendThread(coreinitThread_getCurrentThreadDepr(hCPU), 1000);
-			PPCCore_switchToScheduler();
+			StackAllocator<coreinit::OSEvent> event;
+			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+			std::future<sint32> res = std::async(std::launch::async, &_hidWriteSync, device, data, maxLength, &event);
+			coreinit::OSWaitEvent(&event);
 			returnCode = res.get();
 		}
 
@@ -757,6 +770,11 @@ namespace nsyshid
 			return *it;
 		}
 		return nullptr;
+	}
+
+	bool Backend::FindDeviceById(uint16 vendorId, uint16 productId)
+	{
+		return nsyshid::FindDeviceById(vendorId, productId);
 	}
 
 	bool Backend::IsDeviceWhitelisted(uint16 vendorId, uint16 productId)

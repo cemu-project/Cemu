@@ -24,15 +24,10 @@ public:
 
 	static bool GDBStubEnabled() { return s_enable_gdbstub; }
 	static bool NSightModeEnabled() { return s_nsight_mode; }
-	static bool ForceIntelLegacyEnabled() { return s_force_intel_legacy; }
 
 	static bool ForceInterpreter() { return s_force_interpreter; };
 
 	static std::optional<uint32> GetPersistentId() { return s_persistent_id; }
-
-	static std::string GetActURLPrefix() { return serviceURL_ACT; }
-	static std::string GetServiceURL_ecs() { return serviceURL_ECS; }
-	static void ChangeNetworkServiceURL(int ID);
 
 	static uint32 GetPPCRecLowerAddr() { return ppcRec_limitLowerAddr; };
 	static uint32 GetPPCRecUpperAddr() { return ppcRec_limitUpperAddr; };
@@ -47,17 +42,10 @@ private:
 	
 	inline static bool s_enable_gdbstub = false;
 	inline static bool s_nsight_mode = false;
-	inline static bool s_force_intel_legacy = false;
 
 	inline static bool s_force_interpreter = false;
 	
 	inline static std::optional<uint32> s_persistent_id{};
-
-	// service URLS
-	inline static std::string serviceURL_ACT;
-	inline static std::string serviceURL_ECS;
-	// todo - npts and other boss urls
-
 	// for recompiler debugging
 	inline static uint32 ppcRec_limitLowerAddr{};
 	inline static uint32 ppcRec_limitUpperAddr{};

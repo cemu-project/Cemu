@@ -21,8 +21,6 @@ enum class GfxVendor
 	Generic,
 
 	AMD,
-	IntelLegacy,
-	IntelNoLegacy,
 	Intel,
 	Nvidia,
 	Apple,
@@ -100,14 +98,11 @@ public:
 	virtual void rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo) = 0;
 
 	// texture functions
-	virtual void texture_destroy(LatteTexture* hostTexture) = 0;
-
 	virtual void* texture_acquireTextureUploadBuffer(uint32 size) = 0;
 	virtual void texture_releaseTextureUploadBuffer(uint8* mem) = 0;
 
 	virtual TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) = 0;
 
-	virtual void texture_reserveTextureOnGPU(LatteTexture* hostTexture) = 0;
 	virtual void texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) = 0;
 	virtual void texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize) = 0;
 	virtual void texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a) = 0;

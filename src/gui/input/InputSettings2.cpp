@@ -295,32 +295,6 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 	return page;
 }
 
-std::pair<size_t, size_t> InputSettings2::get_emulated_controller_types() const
-{
-	size_t vpad = 0, wpad = 0;
-	for(size_t i = 0; i < m_notebook->GetPageCount(); ++i)
-	{
-		auto* page = m_notebook->GetPage(i);
-		auto* page_data = (wxControllerPageData*)page->GetClientObject();
-		if (!page_data)
-			continue;
-		
-		if (!page_data->ref().m_controller) // = disabled
-			continue;
-
-		const auto api_type = page_data->ref().m_controller->type();
-		if (api_type) 
-			continue;
-
-		if (api_type == EmulatedController::VPAD)
-			++vpad;
-		else
-			++wpad;
-	}
-
-	return std::make_pair(vpad, wpad);
-}
-
 std::shared_ptr<ControllerBase> InputSettings2::get_active_controller() const
 {
 	auto& page_data = get_current_page_data();
@@ -771,14 +745,16 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	wxWindowUpdateLocker lock(emulated_controllers);
 
 	bool is_gamepad_selected = false;
+	bool is_wpad_selected = false;
 	const auto selected = emulated_controllers->GetSelection();
 	const auto selected_value = emulated_controllers->GetStringSelection();
 	if(selected != wxNOT_FOUND)
 	{
 		is_gamepad_selected = selected_value == to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD));
+		is_wpad_selected = !is_gamepad_selected && selected != 0;
 	}
 
-	const auto [vpad_count, wpad_count] = get_emulated_controller_types();
+	const auto [vpad_count, wpad_count] = InputManager::instance().get_controller_count();
 
 	emulated_controllers->Clear();
 	emulated_controllers->AppendString(_("Disabled"));
@@ -786,7 +762,7 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	if (vpad_count < InputManager::kMaxVPADControllers || is_gamepad_selected)
 		emulated_controllers->Append(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD)));
 
-	if (wpad_count < InputManager::kMaxWPADControllers || !is_gamepad_selected)
+	if (wpad_count < InputManager::kMaxWPADControllers || is_wpad_selected)
 	{
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Pro)));
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Classic)));

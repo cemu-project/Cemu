@@ -207,13 +207,13 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 		bool isDepthSampler = shaderContext->textureUsesDepthCompare[textureIndex];
 		// look for already existing texture
 		LatteTextureView* textureView;
-		if (isDepthSampler == false)
+		if (!isDepthSampler)
 			textureView = LatteTextureViewLookupCache::lookup(physAddr, width, height, depth, pitch, viewFirstMip, viewNumMips, viewFirstSlice, viewNumSlices, format, dim);
 		else
-			textureView = LatteTextureViewLookupCache::lookup(physAddr, width, height, depth, pitch, viewFirstMip, viewNumMips, viewFirstSlice, viewNumSlices, format, dim, true);
-		if (textureView == nullptr)
+			textureView = LatteTextureViewLookupCache::lookupWithColorOrDepthType(physAddr, width, height, depth, pitch, viewFirstMip, viewNumMips, viewFirstSlice, viewNumSlices, format, dim, true);
+		if (!textureView)
 		{
-			// create new mapping
+			// view not found, create a new mapping which will also create a new texture if necessary
 			textureView = LatteTexture_CreateMapping(physAddr, physMipAddr, width, height, depth, pitch, tileMode, swizzle, viewFirstMip, viewNumMips, viewFirstSlice, viewNumSlices, format, dim, dim, isDepthSampler);
 			if (textureView == nullptr)
 				continue;
@@ -229,21 +229,16 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 			// if this texture is bound multiple times then use alternative views
 			if (textureView->lastTextureBindIndex == LatteGPUState.textureBindCounter)
 			{
-				// Intel driver has issues with textures that have multiple views bound and used by a shader, causes a softlock in BotW
-				// therefore we disable this on Intel
-				if (LatteGPUState.glVendor != GLVENDOR_INTEL_NOLEGACY)
+				LatteTextureViewGL* textureViewGL = (LatteTextureViewGL*)textureView;
+				// get next unused alternative texture view
+				while (true)
 				{
-					LatteTextureViewGL* textureViewGL = (LatteTextureViewGL*)textureView;
-					// get next unused alternative texture view
-					while (true)
-					{
-						textureViewGL = textureViewGL->GetAlternativeView();
-						if (textureViewGL->lastTextureBindIndex != LatteGPUState.textureBindCounter)
-							break;
-					}
-					textureView = textureViewGL;
+					textureViewGL = textureViewGL->GetAlternativeView();
+					if (textureViewGL->lastTextureBindIndex != LatteGPUState.textureBindCounter)
+						break;
 				}
-			}
+				textureView = textureViewGL;
+		}
 			textureView->lastTextureBindIndex = LatteGPUState.textureBindCounter;
 			rendererGL->renderstate_updateTextureSettingsGL(shaderContext, textureView, textureIndex + glBackendBaseTexUnit, word4, textureIndex, isDepthSampler);
 		}
@@ -273,9 +268,7 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 		// check for changes
 		if (LatteTC_HasTextureChanged(textureView->baseTexture) || swizzleChanged)
 		{
-#ifdef CEMU_DEBUG_ASSERT
 			debug_printf("Reload texture 0x%08x res %dx%d memRange %08x-%08x SwizzleChange: %s\n", textureView->baseTexture->physAddress, textureView->baseTexture->width, textureView->baseTexture->height, textureView->baseTexture->texDataPtrLow, textureView->baseTexture->texDataPtrHigh, swizzleChanged ? "yes" : "no");
-#endif
 			// update swizzle / changed mip address
 			if (swizzleChanged)
 			{
@@ -336,44 +329,6 @@ void LatteTexture_updateTextures()
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
 	if (geometryShader)
 		LatteTexture_updateTexturesForStage(geometryShader, LATTE_CEMU_GS_TEX_UNIT_BASE, LatteGPUState.contextNew.SQ_TEX_START_GS);
-}
-
-// returns the width, height, depth of the texture
-void LatteTexture_getSize(LatteTexture* texture, sint32* width, sint32* height, sint32* depth, sint32 mipLevel)
-{
-	*width = texture->width;
-	*height = texture->height;
-	if (depth != NULL)
-		*depth = texture->depth;
-	// handle mip level
-	*width = std::max(1, *width >> mipLevel);
-	*height = std::max(1, *height >> mipLevel);
-	if(texture->Is3DTexture() && depth)
-		*depth = std::max(1, *depth >> mipLevel);
-}
-
-/*
- * Returns the internally used width/height/depth of the texture
- * Usually this is the width/height/depth specified by the game,
- * unless the texture resolution was redefined via graphic pack texture rules
- */
-void LatteTexture_getEffectiveSize(LatteTexture* texture, sint32* effectiveWidth, sint32* effectiveHeight, sint32* effectiveDepth, sint32 mipLevel)
-{
-	*effectiveWidth = texture->width;
-	*effectiveHeight = texture->height;
-	if( effectiveDepth != NULL )
-		*effectiveDepth = texture->depth;
-	if( texture->overwriteInfo.hasResolutionOverwrite )
-	{
-		*effectiveWidth = texture->overwriteInfo.width;
-		*effectiveHeight = texture->overwriteInfo.height;
-		if( effectiveDepth != NULL )
-			*effectiveDepth = texture->overwriteInfo.depth;
-	}
-	// handle mipLevel
-	// todo: Mip-mapped 3D textures decrease in depth also?
-	*effectiveWidth = std::max(1, *effectiveWidth >> mipLevel);
-	*effectiveHeight = std::max(1, *effectiveHeight >> mipLevel);
 }
 
 sint32 LatteTexture_getEffectiveWidth(LatteTexture* texture)

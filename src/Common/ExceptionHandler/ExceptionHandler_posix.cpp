@@ -161,6 +161,7 @@ void ExceptionHandler_Init()
 
 	action.sa_handler = handler_SIGINT;
 	sigaction(SIGINT, &action, nullptr);
+	sigaction(SIGTERM, &action, nullptr);
 
     action.sa_flags = SA_SIGINFO;
     action.sa_handler = nullptr;

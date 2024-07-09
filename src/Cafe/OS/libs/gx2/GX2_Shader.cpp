@@ -417,6 +417,37 @@ namespace GX2
 		}
 	}
 
+	void _GX2SubmitUniformReg(uint32 offsetRegBase, uint32 aluRegisterOffset, uint32be* dataWords, uint32 sizeInU32s)
+	{
+		if(aluRegisterOffset&0x8000)
+		{
+			cemuLog_logDebug(LogType::Force, "_GX2SubmitUniformReg(): Unhandled loop const special case or invalid offset");
+			return;
+		}
+		if((aluRegisterOffset+sizeInU32s) > 0x400)
+		{
+			cemuLog_logOnce(LogType::APIErrors, "GX2SetVertexUniformReg values are out of range (offset {} + size {} must be equal or smaller than 1024)", aluRegisterOffset, sizeInU32s);
+		}
+		if( (sizeInU32s&3) != 0)
+		{
+			cemuLog_logOnce(LogType::APIErrors, "GX2Set*UniformReg must be called with a size that is a multiple of 4 (size: {:})", sizeInU32s);
+			sizeInU32s &= ~3;
+		}
+		GX2ReserveCmdSpace(2 + sizeInU32s);
+		gx2WriteGather_submit(pm4HeaderType3(IT_SET_ALU_CONST, 1 + sizeInU32s), offsetRegBase + aluRegisterOffset);
+		gx2WriteGather_submitU32AsLEArray((uint32*)dataWords, sizeInU32s);
+	}
+
+	void GX2SetVertexUniformReg(uint32 offset, uint32 sizeInU32s, uint32be* values)
+	{
+		_GX2SubmitUniformReg(0x400, offset, values, sizeInU32s);
+	}
+
+	void GX2SetPixelUniformReg(uint32 offset, uint32 sizeInU32s, uint32be* values)
+	{
+		_GX2SubmitUniformReg(0, offset, values, sizeInU32s);
+	}
+
 	void GX2ShaderInit()
 	{
 		cafeExportRegister("gx2", GX2CalcFetchShaderSizeEx, LogType::GX2);
@@ -428,5 +459,8 @@ namespace GX2
 		cafeExportRegister("gx2", GX2GetPixelShaderStackEntries, LogType::GX2);
 		cafeExportRegister("gx2", GX2SetFetchShader, LogType::GX2);
 		cafeExportRegister("gx2", GX2SetVertexShader, LogType::GX2);
+
+		cafeExportRegister("gx2", GX2SetVertexUniformReg, LogType::GX2);
+		cafeExportRegister("gx2", GX2SetPixelUniformReg, LogType::GX2);
 	}
 }

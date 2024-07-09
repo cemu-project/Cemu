@@ -973,7 +973,7 @@ void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, LatteDec
 	}
 	else
 	{
-		cemuLog_log(LogType::Force, "Unsupported shader ALU operand sel 0x%x\n", aluInstruction->sourceOperand[operandIndex].sel);
+		cemuLog_log(LogType::Force, "Unsupported shader ALU operand sel {:#x}\n", aluInstruction->sourceOperand[operandIndex].sel);
 		debugBreakpoint();
 	}
 
@@ -3662,7 +3662,8 @@ void LatteDecompiler_emitClauseCode(LatteDecompilerShaderContext* shaderContext,
 	{
 		src->addFmt("{} = {} == true && {} == true;" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1 - cfInstruction->popCount), _getActiveMaskVarName(shaderContext, cfInstruction->activeStackDepth - cfInstruction->popCount), _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth - cfInstruction->popCount));
 	}
-	else if( cfInstruction->type == GPU7_CF_INST_LOOP_START_DX10 )
+	else if( cfInstruction->type == GPU7_CF_INST_LOOP_START_DX10 ||
+			 cfInstruction->type == GPU7_CF_INST_LOOP_START_NO_AL)
 	{
 		// start of loop
 		// if pixel is disabled, then skip loop

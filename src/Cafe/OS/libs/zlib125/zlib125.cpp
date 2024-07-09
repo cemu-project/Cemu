@@ -213,6 +213,32 @@ void zlib125Export_inflateReset2(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
+void zlib125Export_deflateInit_(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamStructPtr(zstream, z_stream_ppc2, 0);
+	ppcDefineParamS32(level, 1);
+	ppcDefineParamStr(version, 2);
+	ppcDefineParamS32(streamsize, 3);
+
+	z_stream hzs;
+	zlib125_setupHostZStream(zstream, &hzs, false);
+
+	// setup internal memory allocator if requested
+	if (zstream->zalloc == nullptr)
+		zstream->zalloc = PPCInterpreter_makeCallableExportDepr(zlib125_zcalloc);
+	if (zstream->zfree == nullptr)
+		zstream->zfree = PPCInterpreter_makeCallableExportDepr(zlib125_zcfree);
+
+	if (streamsize != sizeof(z_stream_ppc2))
+		assert_dbg();
+
+	sint32 r = deflateInit_(&hzs, level, version, sizeof(z_stream));
+
+	zlib125_setupUpdateZStream(&hzs, zstream);
+
+	osLib_returnFromFunction(hCPU, r);
+}
+
 void zlib125Export_deflateInit2_(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(zstream, z_stream_ppc2, 0);
@@ -345,6 +371,7 @@ namespace zlib
 		osLib_addFunction("zlib125", "inflateReset", zlib125Export_inflateReset);
 		osLib_addFunction("zlib125", "inflateReset2", zlib125Export_inflateReset2);
 
+		osLib_addFunction("zlib125", "deflateInit_", zlib125Export_deflateInit_);
 		osLib_addFunction("zlib125", "deflateInit2_", zlib125Export_deflateInit2_);
 		osLib_addFunction("zlib125", "deflateBound", zlib125Export_deflateBound);
 		osLib_addFunction("zlib125", "deflate", zlib125Export_deflate);

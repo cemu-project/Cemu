@@ -310,7 +310,7 @@ namespace coreinit
 			currentThread->mutexQueue.removeMutex(mutex);
 			mutex->owner = nullptr;
 			if (!mutex->threadQueue.isEmpty())
-				mutex->threadQueue.wakeupSingleThreadWaitQueue(true);
+				mutex->threadQueue.wakeupSingleThreadWaitQueue(true, true);
 		}
 		// currentThread->cancelState = currentThread->cancelState & ~0x10000;
 	}

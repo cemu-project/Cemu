@@ -55,19 +55,18 @@ namespace coreinit
 	{
 		// return full size of foreground bucket area
 		if (offset)
-			*offset = MEMPTR<void>{ (uint32)MEMORY_FGBUCKET_AREA_ADDR };
+			*offset = { (MPTR)MEMORY_FGBUCKET_AREA_ADDR };
 		if (size)
 			*size = MEMORY_FGBUCKET_AREA_SIZE;
 		// return true if in foreground
 		return true;
 	}
 
-	bool OSGetForegroundBucketFreeArea(MPTR* offset, MPTR* size)
+	bool OSGetForegroundBucketFreeArea(MEMPTR<void>* offset, uint32be* size)
 	{
 		uint8* freeAreaAddr = GetFGMemByArea(FG_BUCKET_AREA_FREE).GetPtr();
-
-		*offset = _swapEndianU32(memory_getVirtualOffsetFromPointer(freeAreaAddr));
-		*size = _swapEndianU32(FG_BUCKET_AREA_FREE_SIZE);
+		*offset = freeAreaAddr;
+		*size = FG_BUCKET_AREA_FREE_SIZE;
 		// return true if in foreground
 		return (fgAddr != nullptr);
 	}
@@ -79,15 +78,6 @@ namespace coreinit
 		ppcDefineParamMPTR(areaOutput, 0);
 		ppcDefineParamMPTR(areaSize, 1);
 		bool r = OSGetForegroundBucket((MEMPTR<void>*)memory_getPointerFromVirtualOffsetAllowNull(areaOutput), (uint32be*)memory_getPointerFromVirtualOffsetAllowNull(areaSize));
-		osLib_returnFromFunction(hCPU, r ? 1 : 0);
-	}
-
-	void coreinitExport_OSGetForegroundBucketFreeArea(PPCInterpreter_t* hCPU)
-	{
-		debug_printf("OSGetForegroundBucketFreeArea(0x%x,0x%x)\n", hCPU->gpr[3], hCPU->gpr[4]);
-		ppcDefineParamMPTR(areaOutput, 0);
-		ppcDefineParamMPTR(areaSize, 1);
-		bool r = OSGetForegroundBucketFreeArea((MPTR*)memory_getPointerFromVirtualOffsetAllowNull(areaOutput), (MPTR*)memory_getPointerFromVirtualOffsetAllowNull(areaSize));
 		osLib_returnFromFunction(hCPU, r ? 1 : 0);
 	}
 
@@ -194,7 +184,8 @@ namespace coreinit
 	void InitializeFG()
 	{
 		osLib_addFunction("coreinit", "OSGetForegroundBucket", coreinitExport_OSGetForegroundBucket);
-		osLib_addFunction("coreinit", "OSGetForegroundBucketFreeArea", coreinitExport_OSGetForegroundBucketFreeArea);
+		cafeExportRegister("coreinit", OSGetForegroundBucket, LogType::CoreinitMem);
+		cafeExportRegister("coreinit", OSGetForegroundBucketFreeArea, LogType::CoreinitMem);
 		osLib_addFunction("coreinit", "OSCopyFromClipboard", coreinitExport_OSCopyFromClipboard);
 	}
 }

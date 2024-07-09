@@ -300,7 +300,7 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	delete pipelineInfo;
 	delete lcr;
 	delete cachedPipeline;
-	VulkanRenderer::GetInstance()->releaseDestructibleObject(renderPass);
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(renderPass);
 	s_spinlockSharedInternal.unlock();
 }
 
@@ -408,6 +408,7 @@ bool VulkanPipelineStableCache::DeserializePipeline(MemStreamReader& memReader, 
 
 int VulkanPipelineStableCache::CompilerThread()
 {
+	SetThreadName("plCacheCompiler");
 	while (m_numCompilationThreads != 0)
 	{
 		std::vector<uint8> pipelineData = m_compilationQueue.pop();
@@ -421,6 +422,7 @@ int VulkanPipelineStableCache::CompilerThread()
 
 void VulkanPipelineStableCache::WorkerThread()
 {
+	SetThreadName("plCacheWriter");
 	while (true)
 	{
 		CachedPipeline* job;

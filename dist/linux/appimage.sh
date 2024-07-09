@@ -33,6 +33,7 @@ chmod +x AppDir/usr/bin/Cemu
 cp /usr/lib/x86_64-linux-gnu/{libsepol.so.1,libffi.so.7,libpcre.so.3,libGLU.so.1,libthai.so.0} AppDir/usr/lib
 
 export UPD_INFO="gh-releases-zsync|cemu-project|Cemu|ci|Cemu.AppImage.zsync"
+export NO_STRIP=1
 ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
   --appdir="${GITHUB_WORKSPACE}"/AppDir/ \
   -d "${GITHUB_WORKSPACE}"/AppDir/info.cemu.Cemu.desktop \

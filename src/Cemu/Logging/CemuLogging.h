@@ -7,7 +7,7 @@ enum class LogType : sint32
 	// note: IDs must be in range 1-64
 	Force = 63, // always enabled
 	Placeholder = 62, // always disabled
-	APIErrors = Force, // alias for Force. Logs bad parameters or other API errors in OS libs
+	APIErrors = 61, // Logs bad parameters or other API usage mistakes or unintended errors in OS libs. Intended for homebrew developers
 
 	CoreinitFile = 0,
 	GX2 = 1,
@@ -35,12 +35,19 @@ enum class LogType : sint32
 	NN_OLV = 23,
 	NN_NFP = 13,
 	NN_FP = 24,
+	NN_BOSS = 25,
+	NN_SL = 26,
 
 	TextureReadback = 29,
 
-	ProcUi = 40,
+	ProcUi = 39,
+	nlibcurl = 41,
+
+	PRUDP = 40,
 
 	Recompiler = 60,
+	NFC	= 41,
+	NTAG = 42,
 };
 
 template <>
@@ -100,6 +107,8 @@ bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 	return cemuLog_log(type, format_str, std::forward<TArgs>(args)...);
 }
 
+#define cemuLog_logOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_log(__VA_ARGS__); } }
+
 // same as cemuLog_log, but only outputs in debug mode
 template<typename TFmt, typename ... TArgs>
 bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
@@ -120,6 +129,8 @@ public:
 
 void cemuLog_registerLogCallbacks(LogCallbacks* logCallbacks);
 void cemuLog_unregisterLogCallbacks();
+
+#define cemuLog_logDebugOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_logDebug(__VA_ARGS__); } }
 
 // cafe lib calls
 bool cemuLog_advancedPPCLoggingEnabled();

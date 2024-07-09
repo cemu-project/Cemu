@@ -1,4 +1,5 @@
 #include "Common/unix/FileStream_unix.h"
+#include <cstdarg>
 
 fs::path findPathCI(const fs::path& path)
 {

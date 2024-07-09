@@ -1,10 +1,13 @@
 #include "Cafe/OS/common/OSCommon.h"
+#include "Cafe/OS/common/OSUtil.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "nlibcurl.h"
 
 #include "openssl/bn.h"
 #include "openssl/x509.h"
 #include "openssl/ssl.h"
+
+#define CURL_STRICTER
 
 #include "curl/curl.h"
 #include <unordered_map>
@@ -98,6 +101,17 @@ struct MEMPTRHash_t
 	}
 };
 
+struct WU_curl_slist
+{
+	MEMPTR<char> data;
+	MEMPTR<WU_curl_slist> next;
+};
+
+enum class WU_CURLcode
+{
+	placeholder = 0,
+};
+
 struct
 {
 	sint32 initialized;
@@ -110,8 +124,53 @@ struct
 	MEMPTR<curl_calloc_callback> calloc;
 } g_nlibcurl = {};
 
+using WU_CURL_off_t = uint64be;
 
-#pragma pack(1)
+enum class WU_HTTPREQ : uint32
+{
+	HTTPREQ_GET = 0x1,
+	HTTPREQ_POST = 0x2,
+	UKN_3 = 0x3,
+};
+
+struct WU_UserDefined
+{
+	// starting at 0xD8 (probably) in CURL_t
+	/* 0x0D8 / +0x00 */ uint32be ukn0D8;
+	/* 0x0DC / +0x04 */ uint32be ukn0DC;
+	/* 0x0E0 / +0x08 */ MEMPTR<WU_curl_slist> headers;
+	/* 0x0E4 / +0x0C */ uint32be ukn0E4;
+	/* 0x0E8 / +0x10 */ uint32be ukn0E8;
+	/* 0x0EC / +0x14 */ uint32be ukn0EC;
+	/* 0x0F0 / +0x18 */ uint32be ukn0F0[4];
+	/* 0x100 / +0x28 */ uint32be ukn100[4];
+	/* 0x110 / +0x38 */ uint32be ukn110[4]; // +0x40 -> WU_CURL_off_t postfieldsize ?
+	/* 0x120 / +0x48 */ uint32be ukn120[4];
+	/* 0x130 / +0x58 */ uint32be ukn130[4];
+	/* 0x140 / +0x68 */ uint32be ukn140[4];
+	/* 0x150 / +0x78 */ uint32be ukn150[4];
+	/* 0x160 / +0x88 */ uint32be ukn160[4];
+	/* 0x170 / +0x98 */ uint32be ukn170[4];
+	/* 0x180 / +0xA8 */ uint32be ukn180[4];
+	/* 0x190 / +0xB0 */ sint64be infilesize_190{0};
+	/* 0x198 / +0xB8 */ uint32be ukn198;
+	/* 0x19C / +0xBC */ uint32be ukn19C;
+	/* 0x1A0 / +0xC8 */ uint32be ukn1A0[4];
+	/* 0x1B0 / +0xD8 */ uint32be ukn1B0[4];
+	/* 0x1C0 / +0xE8 */ uint32be ukn1C0[4];
+	/* 0x1D0 / +0xF8 */ uint32be ukn1D0[4];
+	/* 0x1E0 / +0x108 */ uint32be ukn1E0;
+	/* 0x1E4 / +0x108 */ uint32be ukn1E4;
+	/* 0x1E8 / +0x108 */ uint32be ukn1E8;
+	/* 0x1EC / +0x108 */ betype<WU_HTTPREQ> httpreq_1EC;
+	/* 0x1F0 / +0x118 */ uint32be ukn1F0[4];
+
+	void SetToDefault()
+	{
+		memset(this, 0, sizeof(WU_UserDefined));
+		httpreq_1EC = WU_HTTPREQ::HTTPREQ_GET;
+	}
+};
 
 struct CURL_t
 {
@@ -137,6 +196,7 @@ struct CURL_t
 	OSThread_t* curlThread;
 	MEMPTR<char> info_redirectUrl; // stores CURLINFO_REDIRECT_URL ptr
 	MEMPTR<char> info_contentType; // stores CURLINFO_CONTENT_TYPE ptr
+	bool isDirty{true};
 
 	// debug
 	struct  
@@ -149,9 +209,43 @@ struct CURL_t
 		FileStream* file_responseRaw{};
 	}debug;
 
+	// fields below match the actual memory layout, above still needs refactoring
+	/* 0x78 */ uint32be ukn078;
+	/* 0x7C */ uint32be ukn07C;
+	/* 0x80 */ uint32be ukn080;
+	/* 0x84 */ uint32be ukn084;
+	/* 0x88 */ uint32be ukn088;
+	/* 0x8C */ uint32be ukn08C;
+	/* 0x90 */ uint32be ukn090[4];
+	/* 0xA0 */ uint32be ukn0A0[4];
+	/* 0xB0 */ uint32be ukn0B0[4];
+	/* 0xC0 */ uint32be ukn0C0[4];
+	/* 0xD0 */ uint32be ukn0D0;
+	/* 0xD4 */ uint32be ukn0D4;
+	/* 0xD8 */ WU_UserDefined set;
+	/* 0x200 */ uint32be ukn200[4];
+	/* 0x210 */ uint32be ukn210[4];
+	/* 0x220 */ uint32be ukn220[4];
+	/* 0x230 */ uint32be ukn230[4];
+	/* 0x240 */ uint32be ukn240[4];
+	/* 0x250 */ uint32be ukn250[4];
+	/* 0x260 */ uint32be ukn260[4];
+	/* 0x270 */ uint32be ukn270[4];
+	/* 0x280 */ uint8be ukn280;
+	/* 0x281 */ uint8be opt_no_body_281;
+	/* 0x282 */ uint8be ukn282;
+	/* 0x283 */ uint8be upload_283;
 };
 static_assert(sizeof(CURL_t) <= 0x8698);
+static_assert(offsetof(CURL_t, ukn078) == 0x78);
+static_assert(offsetof(CURL_t, set) == 0xD8);
+static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, headers) == 0xE0);
+static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, infilesize_190) == 0x190);
+static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, httpreq_1EC) == 0x1EC);
+static_assert(offsetof(CURL_t, opt_no_body_281) == 0x281);
 typedef MEMPTR<CURL_t> CURLPtr;
+
+#pragma pack(1) // may affect structs below, we can probably remove this but lets keep it for now as the code below is fragile
 
 typedef struct
 {
@@ -173,18 +267,12 @@ typedef MEMPTR<CURLSH_t> CURLSHPtr;
 typedef struct
 {
 	CURLM* curlm;
-	std::vector< MEMPTR<CURL> > curl;
+	std::vector<MEMPTR<CURL_t>> curl;
 }CURLM_t;
 static_assert(sizeof(CURLM_t) <= 0x80, "sizeof(CURLM_t)");
 typedef MEMPTR<CURLM_t> CURLMPtr;
 
-struct curl_slist_t
-{
-	MEMPTR<char> data;
-	MEMPTR<curl_slist_t> next;
-};
-
-static_assert(sizeof(curl_slist_t) <= 0x8, "sizeof(curl_slist_t)");
+static_assert(sizeof(WU_curl_slist) <= 0x8, "sizeof(curl_slist_t)");
 
 struct CURLMsg_t
 {
@@ -298,6 +386,94 @@ uint32 SendOrderToWorker(CURL_t* curl, QueueOrder order, uint32 arg1 = 0)
 	return result;
 }
 
+static int curl_closesocket(void *clientp, curl_socket_t item)
+{
+	nsysnet_notifyCloseSharedSocket((SOCKET)item);
+	closesocket(item);
+	return 0;
+}
+
+void _curl_set_default_parameters(CURL_t* curl)
+{
+	curl->set.SetToDefault();
+
+	// default parameters
+	curl_easy_setopt(curl->curl, CURLOPT_HEADERFUNCTION, header_callback);
+	curl_easy_setopt(curl->curl, CURLOPT_HEADERDATA, curl);
+
+	curl_easy_setopt(curl->curl, CURLOPT_CLOSESOCKETFUNCTION, curl_closesocket);
+	curl_easy_setopt(curl->curl, CURLOPT_CLOSESOCKETDATA, nullptr);
+}
+
+void _curl_sync_parameters(CURL_t* curl)
+{
+	// sync ppc curl to actual curl state
+	// not all parameters are covered yet, many are still set directly in easy_setopt
+	bool isPost = curl->set.httpreq_1EC == WU_HTTPREQ::HTTPREQ_POST;
+	// http request type
+	if(curl->set.httpreq_1EC == WU_HTTPREQ::HTTPREQ_GET)
+	{
+		::curl_easy_setopt(curl->curl, CURLOPT_HTTPGET, 1);
+		cemu_assert_debug(curl->opt_no_body_281 == 0);
+		cemu_assert_debug(curl->upload_283 == 0);
+	}
+	else if(curl->set.httpreq_1EC == WU_HTTPREQ::HTTPREQ_POST)
+	{
+		::curl_easy_setopt(curl->curl, CURLOPT_POST, 1);
+		cemu_assert_debug(curl->upload_283 == 0);
+		::curl_easy_setopt(curl->curl, CURLOPT_NOBODY, curl->opt_no_body_281 ? 1 : 0);
+	}
+	else
+	{
+		cemu_assert_unimplemented();
+	}
+
+	// CURLOPT_HTTPHEADER
+	std::optional<uint64> manualHeaderContentLength;
+	if (curl->set.headers)
+	{
+		struct curl_slist* list = nullptr;
+		WU_curl_slist* ppcList = curl->set.headers;
+		while(ppcList)
+		{
+			if(isPost)
+			{
+				// for recent libcurl manually adding Content-Length header is undefined behavior. Instead CURLOPT_INFILESIZE(_LARGE) should be set
+				// here we remove Content-Length and instead substitute it with CURLOPT_INFILESIZE (NEX DataStore in Super Mario Maker requires this)
+				if(strncmp(ppcList->data.GetPtr(), "Content-Length:", 15) == 0)
+				{
+					manualHeaderContentLength = std::stoull(ppcList->data.GetPtr() + 15);
+					ppcList = ppcList->next;
+					continue;
+				}
+			}
+
+			cemuLog_logDebug(LogType::Force, "curl_slist_append: {}", ppcList->data.GetPtr());
+			curlDebug_logEasySetOptStr(curl, "CURLOPT_HTTPHEADER", (const char*)ppcList->data.GetPtr());
+			list = ::curl_slist_append(list, ppcList->data.GetPtr());
+			ppcList = ppcList->next;
+		}
+		::curl_easy_setopt(curl->curl, CURLOPT_HTTPHEADER, list);
+		// todo - prevent leaking of list (maybe store in host curl object, similar to how our zlib implementation does stuff)
+	}
+	else
+		::curl_easy_setopt(curl->curl, CURLOPT_HTTPHEADER, nullptr);
+
+	// infile size (post data size)
+	if (curl->set.infilesize_190)
+	{
+		cemu_assert_debug(manualHeaderContentLength == 0); // should not have both?
+		::curl_easy_setopt(curl->curl, CURLOPT_INFILESIZE_LARGE, curl->set.infilesize_190);
+	}
+	else
+	{
+		if(isPost && manualHeaderContentLength > 0)
+			::curl_easy_setopt(curl->curl, CURLOPT_INFILESIZE_LARGE, manualHeaderContentLength);
+		else
+			::curl_easy_setopt(curl->curl, CURLOPT_INFILESIZE_LARGE, 0);
+	}
+}
+
 void export_malloc(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(size, 0);
@@ -339,7 +515,6 @@ void export_realloc(PPCInterpreter_t* hCPU)
 	coreinit::default_MEMFreeToDefaultHeap(mem.GetPtr());
 	osLib_returnFromFunction(hCPU, result.GetMPTR());
 }
-
 
 CURLcode curl_global_init(uint32 flags)
 {
@@ -435,6 +610,18 @@ void export_curl_multi_perform(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(runningHandles, uint32be, 1);
 
 	//cemuLog_logDebug(LogType::Force, "curl_multi_perform(0x{:08x}, 0x{:08x})", curlm.GetMPTR(), runningHandles.GetMPTR());
+
+	//curl_multi_get_handles(curlm->curlm);
+
+	for(auto _curl : curlm->curl)
+	{
+		CURL_t* curl = (CURL_t*)_curl.GetPtr();
+		if(curl->isDirty)
+		{
+			curl->isDirty = false;
+			_curl_sync_parameters(curl);
+		}
+	}
 
 	//g_callerQueue = curlm->callerQueue;
 	//g_threadQueue = curlm->threadQueue;
@@ -555,7 +742,7 @@ void export_curl_multi_info_read(PPCInterpreter_t* hCPU)
 		if (msg->easy_handle)
 		{
 			const auto it = find_if(curlm->curl.cbegin(), curlm->curl.cend(),
-				[msg](const MEMPTR<void>& curl)
+				[msg](const MEMPTR<CURL_t>& curl)
 			{
 				const MEMPTR<CURL_t> _curl{ curl };
 				return _curl->curl = msg->easy_handle;
@@ -661,63 +848,30 @@ void export_curl_share_cleanup(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
-int my_trace(CURL *handle, curl_infotype type, char *ptr, size_t size,
-	void *userp)
-{
-	FILE* f = (FILE*)userp;
-
-	//if (type == CURLINFO_TEXT)
-	{
-		char tmp[1024] = {};
-		sprintf(tmp, "0x%p: ", handle);
-		fwrite(tmp, 1, strlen(tmp), f);
-
-		memcpy(tmp, ptr, std::min(size, (size_t)990));
-		fwrite(tmp, 1, std::min(size + 1, (size_t)991), f);
-
-		fflush(f);
-		
-	}
-	return 0;
-}
-
-static int curl_closesocket(void *clientp, curl_socket_t item)
-{
-	nsysnet_notifyCloseSharedSocket((SOCKET)item);
-	closesocket(item);
-	return 0;
-}
-
-void export_curl_easy_init(PPCInterpreter_t* hCPU)
+CURL_t* curl_easy_init()
 {
 	if (g_nlibcurl.initialized == 0)
 	{
 		if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		{
-			osLib_returnFromFunction(hCPU, 0);
-			return;
+			return nullptr;
 		}
 	}
 
 	// Curl_open
-	CURLPtr result{ PPCCoreCallback(g_nlibcurl.calloc.GetMPTR(), (uint32)1, ppcsizeof<CURL_t>()) };
+	MEMPTR<CURL_t> result{ PPCCoreCallback(g_nlibcurl.calloc.GetMPTR(), (uint32)1, ppcsizeof<CURL_t>()) };
 	cemuLog_logDebug(LogType::Force, "curl_easy_init() -> 0x{:08x}", result.GetMPTR());
 	if (result)
 	{
 		memset(result.GetPtr(), 0, sizeof(CURL_t));
 		*result = {};
-		result->curl = curl_easy_init();
+		result->curl = ::curl_easy_init();
 		result->curlThread = coreinit::OSGetCurrentThread();
 
 		result->info_contentType = nullptr;
 		result->info_redirectUrl = nullptr;
 
-		// default parameters
-		curl_easy_setopt(result->curl, CURLOPT_HEADERFUNCTION, header_callback);
-		curl_easy_setopt(result->curl, CURLOPT_HEADERDATA, result.GetPtr());
-
-		curl_easy_setopt(result->curl, CURLOPT_CLOSESOCKETFUNCTION, curl_closesocket);
-		curl_easy_setopt(result->curl, CURLOPT_CLOSESOCKETDATA, nullptr);
+		_curl_set_default_parameters(result.GetPtr());
 
 		if (g_nlibcurl.proxyConfig)
 		{
@@ -725,7 +879,12 @@ void export_curl_easy_init(PPCInterpreter_t* hCPU)
 		}
 	}
 
-	osLib_returnFromFunction(hCPU, result.GetMPTR());
+	return result;
+}
+
+CURL_t* mw_curl_easy_init()
+{
+	return curl_easy_init();
 }
 
 void export_curl_easy_pause(PPCInterpreter_t* hCPU)
@@ -971,18 +1130,47 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 	ppcDefineParamU64(parameterU64, 2);
 
 	CURL* curlObj = curl->curl;
+	curl->isDirty = true;
 
 	CURLcode result = CURLE_OK;
 	switch (option)
 	{
-		case CURLOPT_NOSIGNAL:
+		case CURLOPT_POST:
+		{
+			if(parameter)
+			{
+				curl->set.httpreq_1EC = WU_HTTPREQ::HTTPREQ_POST;
+				curl->opt_no_body_281 = 0;
+			}
+			else
+				curl->set.httpreq_1EC = WU_HTTPREQ::HTTPREQ_GET;
+			break;
+		}
 		case CURLOPT_HTTPGET:
+		{
+			if (parameter)
+			{
+				curl->set.httpreq_1EC = WU_HTTPREQ::HTTPREQ_GET;
+				curl->opt_no_body_281 = 0;
+				curl->upload_283 = 0;
+			}
+			break;
+		}
+		case CURLOPT_INFILESIZE:
+		{
+			curl->set.infilesize_190 = (sint64)(sint32)(uint32)parameter.GetBEValue();
+			break;
+		}
+		case CURLOPT_INFILESIZE_LARGE:
+		{
+			curl->set.infilesize_190 = (sint64)(uint64)parameterU64;
+			break;
+		}
+		case CURLOPT_NOSIGNAL:
 		case CURLOPT_FOLLOWLOCATION:
 		case CURLOPT_BUFFERSIZE:
 		case CURLOPT_TIMEOUT:
 		case CURLOPT_CONNECTTIMEOUT_MS:
-		case CURLOPT_POST:
-		case CURLOPT_INFILESIZE:
 		case CURLOPT_NOPROGRESS:
 		case CURLOPT_LOW_SPEED_LIMIT:
 		case CURLOPT_LOW_SPEED_TIME:
@@ -1068,8 +1256,6 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 				curlSh->curl = curl;
 				shObj = curlSh->curlsh;
 			}
-				
-
 			result = ::curl_easy_setopt(curlObj, CURLOPT_SHARE, shObj);
 			break;
 		}
@@ -1101,17 +1287,8 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 		}
 		case CURLOPT_HTTPHEADER:
 		{
-			struct curl_slist* list = nullptr;
-			bool isFirst = true;
-			for (curl_slist_t* ppcList = (curl_slist_t*)parameter.GetPtr(); ppcList; ppcList = ppcList->next.GetPtr())
-			{
-				cemuLog_logDebug(LogType::Force, "curl_slist_append: {}", ppcList->data.GetPtr());
-				curlDebug_logEasySetOptStr(curl.GetPtr(), isFirst?"CURLOPT_HTTPHEADER" : "CURLOPT_HTTPHEADER(continue)", (const char*)ppcList->data.GetPtr());
-				list = ::curl_slist_append(list, ppcList->data.GetPtr());
-				isFirst = false;
-			}
-
-			result = ::curl_easy_setopt(curlObj, CURLOPT_HTTPHEADER, list);
+			curl->set.headers = (WU_curl_slist*)parameter.GetPtr();
+			result = CURLE_OK;
 			break;
 		}
 		case CURLOPT_SOCKOPTFUNCTION:
@@ -1163,15 +1340,18 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, result);
 }
 
-void export_curl_easy_perform(PPCInterpreter_t* hCPU)
+WU_CURLcode curl_easy_perform(CURL_t* curl)
 {
-	ppcDefineParamMEMPTR(curl, CURL_t, 0);
-	curlDebug_markActiveRequest(curl.GetPtr());
-	curlDebug_notifySubmitRequest(curl.GetPtr());
-	cemuLog_logDebug(LogType::Force, "curl_easy_perform(0x{:08x})", curl.GetMPTR());
-	const uint32 result = SendOrderToWorker(curl.GetPtr(), QueueOrder_Perform);
-	cemuLog_logDebug(LogType::Force, "curl_easy_perform(0x{:08x}) -> 0x{:x} DONE", curl.GetMPTR(), result);
-	osLib_returnFromFunction(hCPU, result);
+	curlDebug_markActiveRequest(curl);
+	curlDebug_notifySubmitRequest(curl);
+
+	if(curl->isDirty)
+	{
+		curl->isDirty = false;
+		_curl_sync_parameters(curl);
+	}
+	const uint32 result = SendOrderToWorker(curl, QueueOrder_Perform);
+	return static_cast<WU_CURLcode>(result);
 }
 
 void _updateGuestString(CURL_t* curl, MEMPTR<char>& ppcStr, char* hostStr)
@@ -1221,12 +1401,10 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 		}
 		case CURLINFO_CONTENT_TYPE:
 		{
-			//cemuLog_logDebug(LogType::Force, "CURLINFO_CONTENT_TYPE not supported");
-			//*(uint32*)parameter.GetPtr() = MPTR_NULL;
 			char* contentType = nullptr;
 			result = curl_easy_getinfo(curlObj, CURLINFO_REDIRECT_URL, &contentType);
 			_updateGuestString(curl.GetPtr(), curl->info_contentType, contentType);
-			*(uint32*)parameter.GetPtr() = curl->info_contentType.GetMPTRBE();
+			*(MEMPTR<char>*)parameter.GetPtr() = curl->info_contentType;
 			break;
 		}
 		case CURLINFO_REDIRECT_URL:
@@ -1234,7 +1412,7 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 			char* redirectUrl = nullptr;
 			result = curl_easy_getinfo(curlObj, CURLINFO_REDIRECT_URL, &redirectUrl);
 			_updateGuestString(curl.GetPtr(), curl->info_redirectUrl, redirectUrl);
-			*(uint32*)parameter.GetPtr() = curl->info_redirectUrl.GetMPTRBE();
+			*(MEMPTR<char>*)parameter.GetPtr() = curl->info_redirectUrl;
 			break;
 		}
 		default:
@@ -1244,14 +1422,6 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 
 	cemuLog_logDebug(LogType::Force, "curl_easy_getinfo(0x{:08x}, 0x{:x}, 0x{:08x}) -> 0x{:x}", curl.GetMPTR(), info, parameter.GetMPTR(), result);
 	osLib_returnFromFunction(hCPU, result);
-}
-
-
-
-void export_curl_global_init(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamU32(flags, 0);
-	osLib_returnFromFunction(hCPU, curl_global_init(flags));
 }
 
 void export_curl_easy_strerror(PPCInterpreter_t* hCPU)
@@ -1270,21 +1440,16 @@ void export_curl_easy_strerror(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, result.GetMPTR());
 }
 
-void export_curl_slist_append(PPCInterpreter_t* hCPU)
+WU_curl_slist* curl_slist_append(WU_curl_slist* list, const char* data)
 {
-	ppcDefineParamMEMPTR(list, curl_slist_t, 0);
-	ppcDefineParamMEMPTR(data, const char, 1);
-
-
-	MEMPTR<char> dupdata{ PPCCoreCallback(g_nlibcurl.strdup.GetMPTR(), data.GetMPTR()) };
+	MEMPTR<char> dupdata{ PPCCoreCallback(g_nlibcurl.strdup.GetMPTR(), data) };
 	if (!dupdata)
 	{
-		cemuLog_logDebug(LogType::Force, "curl_slist_append(0x{:08x}, 0x{:08x} [{}]) -> 0x00000000", list.GetMPTR(), data.GetMPTR(), data.GetPtr());
-		osLib_returnFromFunction(hCPU, 0);
-		return;
+		cemuLog_logDebug(LogType::Force, "curl_slist_append(): Failed to duplicate string");
+		return nullptr;
 	}
 
-	MEMPTR<curl_slist_t> result{ PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), ppcsizeof<curl_slist_t>()) };
+	MEMPTR<WU_curl_slist> result{ PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), ppcsizeof<WU_curl_slist>()) };
 	if (result)
 	{
 		result->data = dupdata;
@@ -1293,7 +1458,7 @@ void export_curl_slist_append(PPCInterpreter_t* hCPU)
 		// update last obj of list
 		if (list)
 		{
-			MEMPTR<curl_slist_t> tmp = list;
+			MEMPTR<WU_curl_slist> tmp = list;
 			while (tmp->next)
 			{
 				tmp = tmp->next;
@@ -1303,38 +1468,24 @@ void export_curl_slist_append(PPCInterpreter_t* hCPU)
 		}
 	}
 	else
+	{
+		cemuLog_logDebug(LogType::Force, "curl_slist_append(): Failed to allocate memory");
 		PPCCoreCallback(g_nlibcurl.free.GetMPTR(), dupdata.GetMPTR());
-
-	cemuLog_logDebug(LogType::Force, "curl_slist_append(0x{:08x}, 0x{:08x} [{}]) -> 0x{:08x}", list.GetMPTR(), data.GetMPTR(), data.GetPtr(), result.GetMPTR());
+	}
 	if(list)
-		osLib_returnFromFunction(hCPU, list.GetMPTR());
-	else
-		osLib_returnFromFunction(hCPU, result.GetMPTR());
+		return list;
+	return result;
 }
 	
-void export_curl_slist_free_all(PPCInterpreter_t* hCPU)
+void curl_slist_free_all(WU_curl_slist* list)
 {
-	ppcDefineParamMEMPTR(list, curl_slist_t, 0);
-
 	cemuLog_logDebug(LogType::Force, "export_curl_slist_free_all: TODO");
-
-	osLib_returnFromFunction(hCPU, 0);
 }
 
-void export_curl_global_init_mem(PPCInterpreter_t* hCPU)
+CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_callback, MEMPTR<curl_free_callback> free_callback, MEMPTR<curl_realloc_callback> realloc_callback, MEMPTR<curl_strdup_callback> strdup_callback, MEMPTR<curl_calloc_callback> calloc_callback)
 {
-	ppcDefineParamU32(flags, 0);
-	ppcDefineParamMEMPTR(m, curl_malloc_callback, 1);
-	ppcDefineParamMEMPTR(f, curl_free_callback, 2);
-	ppcDefineParamMEMPTR(r, curl_realloc_callback, 3);
-	ppcDefineParamMEMPTR(s, curl_strdup_callback, 4);
-	ppcDefineParamMEMPTR(c, curl_calloc_callback, 5);
-
-	if (!m || !f || !r || !s || !c)
-	{
-		osLib_returnFromFunction(hCPU, CURLE_FAILED_INIT);
-		return;
-	}
+	if(!malloc_callback || !free_callback || !realloc_callback || !strdup_callback || !calloc_callback)
+		return CURLE_FAILED_INIT;
 
 	CURLcode result = CURLE_OK;
 	if (g_nlibcurl.initialized == 0)
@@ -1342,31 +1493,30 @@ void export_curl_global_init_mem(PPCInterpreter_t* hCPU)
 		result = curl_global_init(flags);
 		if (result == CURLE_OK)
 		{
-			g_nlibcurl.malloc = m;
-			g_nlibcurl.free = f;
-			g_nlibcurl.realloc = r;
-			g_nlibcurl.strdup = s;
-			g_nlibcurl.calloc = c;
+			g_nlibcurl.malloc = malloc_callback;
+			g_nlibcurl.free = free_callback;
+			g_nlibcurl.realloc = realloc_callback;
+			g_nlibcurl.strdup = strdup_callback;
+			g_nlibcurl.calloc = calloc_callback;
 		}
 	}
-
-	cemuLog_logDebug(LogType::Force, "curl_global_init_mem(0x{:x}, 0x{:08x}, 0x{:08x}, 0x{:08x}, 0x{:08x}, 0x{:08x}) -> 0x{:08x}", flags, m.GetMPTR(), f.GetMPTR(), r.GetMPTR(), s.GetMPTR(), c.GetMPTR(), result);
-	osLib_returnFromFunction(hCPU, result);
+	return result;
 }
 
 void load()
 {
-	osLib_addFunction("nlibcurl", "curl_global_init_mem", export_curl_global_init_mem);
-	osLib_addFunction("nlibcurl", "curl_global_init", export_curl_global_init);
+	cafeExportRegister("nlibcurl", curl_global_init_mem, LogType::nlibcurl);
+	cafeExportRegister("nlibcurl", curl_global_init, LogType::nlibcurl);
 
-	osLib_addFunction("nlibcurl", "curl_slist_append", export_curl_slist_append);
-	osLib_addFunction("nlibcurl", "curl_slist_free_all", export_curl_slist_free_all);
+	cafeExportRegister("nlibcurl", curl_slist_append, LogType::nlibcurl);
+	cafeExportRegister("nlibcurl", curl_slist_free_all, LogType::nlibcurl);
 	osLib_addFunction("nlibcurl", "curl_easy_strerror", export_curl_easy_strerror);
 
 	osLib_addFunction("nlibcurl", "curl_share_init", export_curl_share_init);
 	osLib_addFunction("nlibcurl", "curl_share_setopt", export_curl_share_setopt);
 	osLib_addFunction("nlibcurl", "curl_share_cleanup", export_curl_share_cleanup);
 
+	cafeExportRegister("nlibcurl", mw_curl_easy_init, LogType::nlibcurl);
 	osLib_addFunction("nlibcurl", "curl_multi_init", export_curl_multi_init);
 	osLib_addFunction("nlibcurl", "curl_multi_add_handle", export_curl_multi_add_handle);
 	osLib_addFunction("nlibcurl", "curl_multi_perform", export_curl_multi_perform);
@@ -1377,12 +1527,14 @@ void load()
 	osLib_addFunction("nlibcurl", "curl_multi_cleanup", export_curl_multi_cleanup);
 	osLib_addFunction("nlibcurl", "curl_multi_timeout", export_curl_multi_timeout);
 
-	osLib_addFunction("nlibcurl", "curl_easy_init", export_curl_easy_init);
-	osLib_addFunction("nlibcurl", "mw_curl_easy_init", export_curl_easy_init);
+	cafeExportRegister("nlibcurl", curl_easy_init, LogType::nlibcurl);
 	osLib_addFunction("nlibcurl", "curl_easy_reset", export_curl_easy_reset);
 	osLib_addFunction("nlibcurl", "curl_easy_setopt", export_curl_easy_setopt);
 	osLib_addFunction("nlibcurl", "curl_easy_getinfo", export_curl_easy_getinfo);
-	osLib_addFunction("nlibcurl", "curl_easy_perform", export_curl_easy_perform);
+	cafeExportRegister("nlibcurl", curl_easy_perform, LogType::nlibcurl);
+
+
+
 	osLib_addFunction("nlibcurl", "curl_easy_cleanup", export_curl_easy_cleanup);
 	osLib_addFunction("nlibcurl", "curl_easy_pause", export_curl_easy_pause);
 }

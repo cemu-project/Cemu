@@ -319,6 +319,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 
 	SetSizer(main_sizer);
 
+	UpdateTitleRunning(CafeSystem::IsTitleRunning());
 	FillGraphicPackList();
 }
 
@@ -674,6 +675,15 @@ void GraphicPacksWindow2::OnInstalledGamesChanged(wxCommandEvent& event)
 	m_filter_installed_games = m_installed_games_only->GetValue();
 	FillGraphicPackList();
 	event.Skip();
+}
+
+void GraphicPacksWindow2::UpdateTitleRunning(bool running)
+{
+	m_update_graphicPacks->Enable(!running);
+	if(running)
+		m_update_graphicPacks->SetToolTip(_("Graphic packs cannot be updated while a game is running."));
+	else
+		m_update_graphicPacks->SetToolTip(nullptr);
 }
 
 void GraphicPacksWindow2::ReloadPack(const GraphicPackPtr& graphic_pack) const

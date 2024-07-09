@@ -141,6 +141,17 @@ static std::tuple<Args...> cafeExportBuildArgTuple(PPCInterpreter_t* hCPU, R(fn)
 }
 
 template<typename T>
+T cafeExportGetFormatParamWrapper(PPCInterpreter_t* hCPU, int& gprIndex, int& fprIndex)
+{
+	T v;
+	cafeExportParamWrapper::getParamWrapper(hCPU, gprIndex, fprIndex, v);
+	// if T is char* or const char*, return "null" instead of nullptr since newer fmtlib would throw otherwise
+	if constexpr (std::is_same_v<T, char*> || std::is_same_v<T, const char*>)
+		return v ? v : (T)"null";
+	return v;
+}
+
+template<typename T>
 using _CAFE_FORMAT_ARG = std::conditional_t<std::is_pointer_v<T>,
 	std::conditional_t<std::is_same_v<T, char*> || std::is_same_v<T, const char*>, T, MEMPTR<T>>, T>;
 
@@ -150,7 +161,7 @@ static auto cafeExportBuildFormatTuple(PPCInterpreter_t* hCPU, R(fn)(Args...))
 	int gprIndex = 0;
 	int fprIndex = 0;
 	return std::tuple<_CAFE_FORMAT_ARG<Args>...>{
-		cafeExportGetParamWrapper<_CAFE_FORMAT_ARG<Args>>(hCPU, gprIndex, fprIndex)...
+		cafeExportGetFormatParamWrapper<_CAFE_FORMAT_ARG<Args>>(hCPU, gprIndex, fprIndex)...
 	};
 }
 

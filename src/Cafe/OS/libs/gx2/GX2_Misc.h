@@ -19,5 +19,7 @@ namespace GX2
 	void GX2SetTVBuffer(void* imageBuffePtr, uint32 imageBufferSize, E_TVRES tvResolutionMode, uint32 surfaceFormat, E_TVBUFFERMODE bufferMode);
 	void GX2SetTVGamma(float gamma);
 
+	void GX2Invalidate(uint32 invalidationFlags, MPTR invalidationAddr, uint32 invalidationSize);
+
 	void GX2MiscInit();
 };

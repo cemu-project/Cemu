@@ -18,18 +18,24 @@
 #endif
 #include "wxHelper.h"
 
+#define PAD_MIN_WIDTH  320
+#define PAD_MIN_HEIGHT 180
+
 PadViewFrame::PadViewFrame(wxFrame* parent)
-	: wxFrame(nullptr, wxID_ANY, _("GamePad View"), wxDefaultPosition, wxSize(854, 480), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxCLOSE_BOX | wxWANTS_CHARS)
+	: wxFrame(nullptr, wxID_ANY, _("GamePad View"), wxDefaultPosition, wxDefaultSize, wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxCLOSE_BOX | wxWANTS_CHARS)
 {
 	auto& windowInfo = GuiSystem::getWindowInfo();
 	windowInfo.window_pad = get_window_handle_info_for_wxWindow(this);
 	SetIcon(wxICON(M_WND_ICON128));
 	wxWindow::EnableTouchEvents(wxTOUCH_PAN_GESTURES);
 
-	SetMinClientSize({ 320, 180 });
+	SetMinClientSize({ PAD_MIN_WIDTH, PAD_MIN_HEIGHT });
 
 	SetPosition({ windowInfo.restored_pad_x, windowInfo.restored_pad_y });
-	SetSize({ windowInfo.restored_pad_width, windowInfo.restored_pad_height });
+	if (windowInfo.restored_pad_width >= PAD_MIN_WIDTH && windowInfo.restored_pad_height >= PAD_MIN_HEIGHT)
+		SetClientSize({ windowInfo.restored_pad_width, windowInfo.restored_pad_height });
+	else
+		SetClientSize(wxSize(854, 480));
 
 	if (windowInfo.pad_maximized)
 		Maximize();

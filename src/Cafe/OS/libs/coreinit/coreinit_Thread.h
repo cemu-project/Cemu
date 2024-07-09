@@ -2,9 +2,6 @@
 #include "Cafe/HW/Espresso/Const.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Scheduler.h"
 
-#define OS_CONTEXT_MAGIC_0					'OSCo'
-#define OS_CONTEXT_MAGIC_1					'ntxt'
-
 struct OSThread_t;
 
 struct OSContextRegFPSCR_t
@@ -16,6 +13,9 @@ struct OSContextRegFPSCR_t
 
 struct OSContext_t
 {
+	static constexpr uint32 OS_CONTEXT_MAGIC_0 = 0x4f53436f; // "OSCo"
+	static constexpr uint32 OS_CONTEXT_MAGIC_1 = 0x6e747874; // "ntxt"
+
 	/* +0x000 */ betype<uint32> magic0;
 	/* +0x004 */ betype<uint32> magic1;
 	/* +0x008 */ uint32 gpr[32];
@@ -36,23 +36,28 @@ struct OSContext_t
 	/* +0x1BC */ uint32 gqr[8];			// GQR/UGQR
 	/* +0x1DC */ uint32be upir;			// set to current core index
 	/* +0x1E0 */ uint64be fp_ps1[32];
-	/* +0x2E0 */ uint64 uknTime2E0;
-	/* +0x2E8 */ uint64 uknTime2E8;
-	/* +0x2F0 */ uint64 uknTime2F0;
-	/* +0x2F8 */ uint64 uknTime2F8;
-	/* +0x300 */ uint32 error;         // returned by __gh_errno_ptr() (used by socketlasterr)
+	/* +0x2E0 */ uint64be coretime[3];
+	/* +0x2F8 */ uint64be starttime;
+	/* +0x300 */ uint32be ghs_errno;         // returned by __gh_errno_ptr() (used by socketlasterr)
 	/* +0x304 */ uint32be affinity;
-	/* +0x308 */ uint32 ukn0308;
-	/* +0x30C */ uint32 ukn030C;
-	/* +0x310 */ uint32 ukn0310;
-	/* +0x314 */ uint32 ukn0314;
-	/* +0x318 */ uint32 ukn0318;
-	/* +0x31C */ uint32 ukn031C;
+	/* +0x308 */ uint32be upmc1;
+	/* +0x30C */ uint32be upmc2;
+	/* +0x310 */ uint32be upmc3;
+	/* +0x314 */ uint32be upmc4;
+	/* +0x318 */ uint32be ummcr0;
+	/* +0x31C */ uint32be ummcr1;
 
 	bool checkMagic()
 	{
 		return magic0 == (uint32)OS_CONTEXT_MAGIC_0 && magic1 == (uint32)OS_CONTEXT_MAGIC_1;
 	}
+
+	void SetContextMagic()
+	{
+		magic0 = OS_CONTEXT_MAGIC_0;
+		magic1 = OS_CONTEXT_MAGIC_1;
+	}
+
 
 	bool hasCoreAffinitySet(uint32 coreIndex) const
 	{
@@ -121,8 +126,8 @@ namespace coreinit
 
 		// counterparts for queueAndWait
 		void cancelWait(OSThread_t* thread);
-		void wakeupEntireWaitQueue(bool reschedule);
-		void wakeupSingleThreadWaitQueue(bool reschedule);
+		void wakeupEntireWaitQueue(bool reschedule, bool sharedPriorityAndAffinityWorkaround = false);
+		void wakeupSingleThreadWaitQueue(bool reschedule, bool sharedPriorityAndAffinityWorkaround = false);
 
 	private:
 		OSThread_t* takeFirstFromQueue(size_t linkOffset)
@@ -361,6 +366,8 @@ namespace coreinit
 
 struct OSThread_t
 {
+	static constexpr uint32 MAGIC_THREAD = 0x74487244; // "tHrD"
+
 	enum class THREAD_TYPE : uint32
 	{
 		TYPE_DRIVER = 0,
@@ -383,7 +390,7 @@ struct OSThread_t
 		ATTR_AFFINITY_CORE1 = 0x2,
 		ATTR_AFFINITY_CORE2 = 0x4,
 		ATTR_DETACHED		= 0x8,
-		// more flags?
+		ATTR_UKN_010		= 0x10,
 	};
 
 	enum REQUEST_FLAG_BIT : uint32
@@ -404,23 +411,21 @@ struct OSThread_t
 		return 0;
 	}
 
-    void SetMagic()
+    void SetThreadMagic()
     {
-        context.magic0 = OS_CONTEXT_MAGIC_0;
-        context.magic1 = OS_CONTEXT_MAGIC_1;
-        magic = 'tHrD';
+        magic = MAGIC_THREAD;
     }
 
     bool IsValidMagic() const
     {
-        return magic == 'tHrD' && context.magic0 == OS_CONTEXT_MAGIC_0 && context.magic1 == OS_CONTEXT_MAGIC_1;
+        return magic == MAGIC_THREAD && context.magic0 == OSContext_t::OS_CONTEXT_MAGIC_0 && context.magic1 == OSContext_t::OS_CONTEXT_MAGIC_1;
     }
 
 	/* +0x000 */ OSContext_t						context;
-	/* +0x320 */ uint32be							magic;								// 'tHrD'
+	/* +0x320 */ uint32be							magic;								// "tHrD" (0x74487244)
 	/* +0x324 */ betype<THREAD_STATE>				state;
 	/* +0x325 */ uint8								attr;
-	/* +0x326 */ uint16be							id;									// Warriors Orochi 3 uses this to identify threads. Seems like this is always set to 0x8000 ?
+	/* +0x326 */ uint16be							id;									// Warriors Orochi 3 uses this to identify threads
 	/* +0x328 */ betype<sint32>						suspendCounter;
 	/* +0x32C */ sint32be							effectivePriority;					// effective priority (lower is higher)
 	/* +0x330 */ sint32be							basePriority;						// base priority (lower is higher)
@@ -440,21 +445,21 @@ struct OSThread_t
 
 	/* +0x38C */ coreinit::OSThreadLink				activeThreadChain;					// queue of active threads (g_activeThreadQueue)
 
-	/* +0x394 */ MPTR								stackBase;							// upper limit of stack
-	/* +0x398 */ MPTR								stackEnd;							// lower limit of stack
+	/* +0x394 */ MEMPTR<void>						stackBase;							// upper limit of stack
+	/* +0x398 */ MEMPTR<void>						stackEnd;							// lower limit of stack
 
-	/* +0x39C */ MPTR								entrypoint;
+	/* +0x39C */ MEMPTR<void>						entrypoint;
 	/* +0x3A0 */ crt_t								crt;
 
 	/* +0x578 */ sint32								alarmRelatedUkn;
 	/* +0x57C */ std::array<MEMPTR<void>, 16>		specificArray;
 	/* +0x5BC */ betype<THREAD_TYPE>				type;
-	/* +0x5C0 */ MEMPTR<char>						threadName;
-	/* +0x5C4 */ MPTR								waitAlarm;							// used only by OSWaitEventWithTimeout/OSSignalEvent ?
+	/* +0x5C0 */ MEMPTR<const char>					threadName;
+	/* +0x5C4 */ MEMPTR<void>						waitAlarm;							// used only by OSWaitEventWithTimeout/OSSignalEvent ?
 
 	/* +0x5C8 */ uint32								userStackPointer;
 
-	/* +0x5CC */ MEMPTR<void>						cleanupCallback2;
+	/* +0x5CC */ MEMPTR<void>						cleanupCallback;
 	/* +0x5D0 */ MEMPTR<void>						deallocatorFunc;
 
 	/* +0x5D4 */ uint32								stateFlags;						// 0x5D4 | various flags? Controls if canceling/suspension is allowed (at cancel points) or not? If 1 -> Cancel/Suspension not allowed, if 0 -> Cancel/Suspension allowed
@@ -480,19 +485,21 @@ struct OSThread_t
 
 	/* +0x660 */ uint32								ukn660;
 
+	// todo - some of the members towards the end of the struct were only added in later COS versions. Figure out the mapping between version and members
+
 	// TLS
 	/* +0x664 */ uint16								numAllocatedTLSBlocks;
 	/* +0x666 */ sint16								tlsStatus;
 	/* +0x668 */ MPTR								tlsBlocksMPTR;
-
+	
 	/* +0x66C */ MEMPTR<coreinit::OSFastMutex>		waitingForFastMutex;
 	/* +0x670 */ coreinit::OSFastMutexLink			contendedFastMutex;
 	/* +0x678 */ coreinit::OSFastMutexLink			ownedFastMutex;
+	/* +0x680 */ MEMPTR<void>						alignmentExceptionCallback[Espresso::CORE_COUNT];
 
-	/* +0x680 */ uint32								padding680[28 / 4];
+	/* +0x68C */ uint32								padding68C[20 / 4];
 };
-
-static_assert(sizeof(OSThread_t) == 0x6A0-4); // todo - determine correct size
+static_assert(sizeof(OSThread_t) == 0x6A0);
 
 namespace coreinit
 {
@@ -505,6 +512,7 @@ namespace coreinit
 	void* OSGetDefaultThreadStack(sint32 coreIndex, uint32& size);
 
 	bool OSCreateThreadType(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop2, sint32 stackSize, sint32 priority, uint32 attr, OSThread_t::THREAD_TYPE threadType);
+	bool __OSCreateThreadType(OSThread_t* thread, MPTR entryPoint, sint32 numParam, void* ptrParam, void* stackTop, sint32 stackSize, sint32 priority, uint32 attr, OSThread_t::THREAD_TYPE threadType);
 	void OSCreateThreadInternal(OSThread_t* thread, uint32 entryPoint, MPTR stackLowerBaseAddr, uint32 stackSize, uint8 affinityMask, OSThread_t::THREAD_TYPE threadType);
 	bool OSRunThread(OSThread_t* thread, MPTR funcAddress, sint32 numParam, void* ptrParam);
 	void OSExitThread(sint32 exitValue);
@@ -519,8 +527,8 @@ namespace coreinit
 	bool OSSetThreadPriority(OSThread_t* thread, sint32 newPriority);
 	uint32 OSGetThreadAffinity(OSThread_t* thread);
 
-	void OSSetThreadName(OSThread_t* thread, char* name);
-	char* OSGetThreadName(OSThread_t* thread);
+	void OSSetThreadName(OSThread_t* thread, const char* name);
+	const char* OSGetThreadName(OSThread_t* thread);
 
 	sint32 __OSResumeThreadInternal(OSThread_t* thread, sint32 resumeCount);
 	sint32 OSResumeThread(OSThread_t* thread);
@@ -530,6 +538,7 @@ namespace coreinit
 	void OSSuspendThread(OSThread_t* thread);
 	void OSSleepThread(OSThreadQueue* threadQueue);
 	void OSWakeupThread(OSThreadQueue* threadQueue);
+	bool OSJoinThread(OSThread_t* thread, uint32be* exitValue);
 
 	void OSTestThreadCancelInternal();
 
@@ -602,7 +611,7 @@ namespace coreinit
 
 	// internal
 	void __OSAddReadyThreadToRunQueue(OSThread_t* thread);
-	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread);
+	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread, bool sharedPriorityAndAffinityWorkaround);
 	void __OSQueueThreadDeallocation(OSThread_t* thread);
 
     bool __OSIsThreadActive(OSThread_t* thread);
@@ -612,11 +621,6 @@ namespace coreinit
 #pragma pack()
 
 // deprecated / clean up required
-void coreinit_suspendThread(OSThread_t* OSThreadBE, sint32 count = 1);
-void coreinit_resumeThread(OSThread_t* OSThreadBE, sint32 count = 1);
-
-OSThread_t* coreinitThread_getCurrentThreadDepr(PPCInterpreter_t* hCPU);
-
 extern MPTR activeThread[256];
 extern sint32 activeThreadCount;
 

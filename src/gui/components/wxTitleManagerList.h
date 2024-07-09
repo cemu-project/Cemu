@@ -44,6 +44,7 @@ public:
 		WUD,
 		NUS,
 		WUA,
+		WUHB,
 	};
 
 	// sort by column, if -1 will sort by last column or default (=titleid)

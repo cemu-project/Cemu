@@ -23,6 +23,55 @@ namespace nsyshid
 		/* +0x12 */ uint16be maxPacketSizeTX;
 	} HID_t;
 
+	struct TransferCommand
+	{
+		uint8* data;
+		sint32 length;
+
+		TransferCommand(uint8* data, sint32 length)
+			: data(data), length(length)
+		{
+		}
+		virtual ~TransferCommand() = default;
+	};
+
+	struct ReadMessage final : TransferCommand
+	{
+		sint32 bytesRead;
+
+		ReadMessage(uint8* data, sint32 length, sint32 bytesRead)
+			: bytesRead(bytesRead), TransferCommand(data, length)
+		{
+		}
+		using TransferCommand::TransferCommand;
+	};
+
+	struct WriteMessage final : TransferCommand
+	{
+		sint32 bytesWritten;
+
+		WriteMessage(uint8* data, sint32 length, sint32 bytesWritten)
+			: bytesWritten(bytesWritten), TransferCommand(data, length)
+		{
+		}
+		using TransferCommand::TransferCommand;
+	};
+
+	struct ReportMessage final : TransferCommand
+	{
+		uint8* reportData;
+		sint32 length;
+		uint8* originalData;
+		sint32 originalLength;
+
+		ReportMessage(uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength)
+			: reportData(reportData), length(length), originalData(originalData),
+			  originalLength(originalLength), TransferCommand(reportData, length)
+		{
+		}
+		using TransferCommand::TransferCommand;
+	};
+
 	static_assert(offsetof(HID_t, vendorId) == 0x8, "");
 	static_assert(offsetof(HID_t, productId) == 0xA, "");
 	static_assert(offsetof(HID_t, ifIndex) == 0xC, "");
@@ -69,7 +118,7 @@ namespace nsyshid
 			ErrorTimeout,
 		};
 
-		virtual ReadResult Read(uint8* data, sint32 length, sint32& bytesRead) = 0;
+		virtual ReadResult Read(ReadMessage* message) = 0;
 
 		enum class WriteResult
 		{
@@ -78,7 +127,7 @@ namespace nsyshid
 			ErrorTimeout,
 		};
 
-		virtual WriteResult Write(uint8* data, sint32 length, sint32& bytesWritten) = 0;
+		virtual WriteResult Write(WriteMessage* message) = 0;
 
 		virtual bool GetDescriptor(uint8 descType,
 								   uint8 descIndex,
@@ -86,9 +135,9 @@ namespace nsyshid
 								   uint8* output,
 								   uint32 outputMaxLength) = 0;
 
-		virtual bool SetProtocol(uint32 ifIndef, uint32 protocol) = 0;
+		virtual bool SetProtocol(uint8 ifIndex, uint8 protocol) = 0;
 
-		virtual bool SetReport(uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength) = 0;
+		virtual bool SetReport(ReportMessage* message) = 0;
 	};
 
 	class Backend {
@@ -120,6 +169,8 @@ namespace nsyshid
 		void DetachDevice(const std::shared_ptr<Device>& device);
 
 		std::shared_ptr<Device> FindDevice(std::function<bool(const std::shared_ptr<Device>&)> isWantedDevice);
+
+		bool FindDeviceById(uint16 vendorId, uint16 productId);
 
 		bool IsDeviceWhitelisted(uint16 vendorId, uint16 productId);
 

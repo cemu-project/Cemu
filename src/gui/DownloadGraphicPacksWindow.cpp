@@ -110,14 +110,6 @@ void deleteDownloadedGraphicPacks()
 
 void DownloadGraphicPacksWindow::UpdateThread()
 {
-	if (CafeSystem::IsTitleRunning())
-	{
-		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
-		// cancel update
-		m_threadState = ThreadFinished;
-		return;
-	}
-	
 	// get github url
 	std::string githubAPIUrl;
 	curlDownloadFileState_t tempDownloadState;
@@ -326,8 +318,6 @@ DownloadGraphicPacksWindow::DownloadGraphicPacksWindow(wxWindow* parent)
 
 
 	m_downloadState = std::make_unique<curlDownloadFileState_t>();
-
-	m_thread = std::thread(&DownloadGraphicPacksWindow::UpdateThread, this);
 }
 
 DownloadGraphicPacksWindow::~DownloadGraphicPacksWindow()
@@ -344,6 +334,12 @@ const std::string& DownloadGraphicPacksWindow::GetException() const
 
 int DownloadGraphicPacksWindow::ShowModal()
 {
+	if(CafeSystem::IsTitleRunning())
+	{
+		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
+		return wxID_CANCEL;
+	}
+	m_thread = std::thread(&DownloadGraphicPacksWindow::UpdateThread, this);
 	wxDialog::ShowModal();
 	return m_threadState == ThreadCanceled ? wxID_CANCEL : wxID_OK;
 }

@@ -128,10 +128,8 @@ class VulkanRenderer : public Renderer
 	friend class PipelineCompiler;
 
 	using VSync = SwapchainInfoVk::VSync;
-	using QueueFamilyIndices = SwapchainInfoVk::QueueFamilyIndices;
 
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
-	static const inline int INDEX_STREAM_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
 
 	static const inline int TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
 
@@ -235,9 +233,7 @@ public:
 	uint64 GenUniqueId(); // return unique id (uses incrementing counter)
 
 	void DrawEmptyFrame(bool mainWindow) override;
-	void PreparePresentationFrame(bool mainWindow);
 
-	void ProcessDestructionQueues(size_t commandBufferIndex);
 	void InitFirstCommandBuffer();
 	void ProcessFinishedCommandBuffers();
 	void WaitForNextFinishedCommandBuffer();
@@ -250,15 +246,9 @@ public:
 	bool HasCommandBufferFinished(uint64 commandBufferId) const;
 	void WaitCommandBufferFinished(uint64 commandBufferId);
 
-	// clean up (deprecated)
-	void destroyViewDepr(VkImageView imageView);
-	void destroyBuffer(VkBuffer buffer);
-	void destroyDeviceMemory(VkDeviceMemory mem);
-	void destroyPipelineInfo(PipelineInfo* pipelineInfo);
-	void destroyShader(RendererShaderVk* shader);
-	// clean up (new)
-	void releaseDestructibleObject(VKRDestructibleObject* destructibleObject);
-	void ProcessDestructionQueue2();
+	// resource destruction queue
+	void ReleaseDestructibleObject(VKRDestructibleObject* destructibleObject);
+	void ProcessDestructionQueue();
 
 	FSpinlock m_spinlockDestructionQueue;
 	std::vector<VKRDestructibleObject*> m_destructionQueue;
@@ -296,9 +286,6 @@ public:
 
 	TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) override;
 
-	void texture_reserveTextureOnGPU(LatteTexture* hostTexture) override;
-	void texture_destroy(LatteTexture* hostTexture) override;
-
 	void texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) override;
 	void texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a) override;
 	void texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue) override;
@@ -317,7 +304,6 @@ public:
 	void surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTexture);
 
 	private:
-	void surfaceCopy_viaBuffer(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcLevel, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstLevel, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
 	void surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcSlice, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
 
 	void surfaceCopy_cleanup();
@@ -333,10 +319,6 @@ private:
 	VKRObjectRenderPass* copySurface_createRenderpass(struct VkCopySurfaceState_t& state);
 
 	std::unordered_map<uint64, struct CopySurfacePipelineInfo*> m_copySurfacePipelineCache;
-
-	VkBuffer m_surfaceCopyBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_surfaceCopyBufferMemory = VK_NULL_HANDLE;
-	size_t m_surfaceCopyBufferSize{};
 
 public:
 	// renderer interface
@@ -435,13 +417,24 @@ private:
 	}m_state;
 
 	std::unique_ptr<SwapchainInfoVk> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
-	Semaphore m_padCloseReadySemaphore;
-	bool m_destroyPadSwapchainNextAcquire = false;
+	std::atomic_flag m_destroyPadSwapchainNextAcquire{};
 	bool IsSwapchainInfoValid(bool mainWindow) const;
 
 	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 
 	VkDescriptorPool m_descriptorPool;
+
+  public:
+	struct QueueFamilyIndices
+	{
+		int32_t graphicsFamily = -1;
+		int32_t presentFamily = -1;
+
+		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
+	};
+	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
+
+  private:
 
 	struct FeatureControl
 	{
@@ -476,7 +469,6 @@ private:
 
 		struct  
 		{
-			bool useBufferSurfaceCopies; // if GPU has enough VRAM to spare, allow to use a buffer to copy surfaces (instead of drawcalls)
 			bool useTFEmulationViaSSBO = true; // emulate transform feedback via shader writes to a storage buffer
 		}mode;
 
@@ -553,14 +545,10 @@ private:
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
 
 	// command buffer
-
 	VkCommandBuffer getCurrentCommandBuffer() const { return m_state.currentCommandBuffer; }
 
 	// uniform
 	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader);
-
-	// indices
-	void CreateBackbufferIndexBuffer();
 
 	// misc
 	void CreatePipelineCache();
@@ -585,9 +573,6 @@ private:
 	void occlusionQuery_notifyBeginCommandBuffer();
 
 private:
-	VkBuffer m_indexBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
-	
 	std::vector<const char*> m_layerNames;
 	VkInstance m_instance = VK_NULL_HANDLE;
 	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
@@ -652,15 +637,6 @@ private:
 
 	// command buffer, garbage collection, synchronization
 	static constexpr uint32 kCommandBufferPoolSize = 128;
-
-	struct
-	{
-		std::array<std::vector<VkDescriptorSet>, kCommandBufferPoolSize> m_cmd_descriptor_set_objects;
-		std::array<std::vector<VkImageView>, kCommandBufferPoolSize> m_cmd_image_views;
-		std::array<std::vector<LatteTextureVk*>, kCommandBufferPoolSize> m_host_textures;
-		std::array<std::vector<VkBuffer>, kCommandBufferPoolSize> m_buffers;
-		std::array<std::vector<VkDeviceMemory>, kCommandBufferPoolSize> m_memory;
-	}m_destructionQueues;
 
 	size_t m_commandBufferIndex = 0; // current buffer being filled
 	size_t m_commandBufferSyncIndex = 0; // latest buffer that finished execution (updated on submit)

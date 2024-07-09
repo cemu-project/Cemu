@@ -82,6 +82,8 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	game_list_style = gamelist.get("style", 0);
 	game_list_column_order = gamelist.get("order", "");
 
+	show_icon_column = parser.get("show_icon_column", true);
+
 	// return default width if value in config file out of range
 	auto loadColumnSize = [&gamelist] (const char *name, uint32 defaultWidth)
 	{
@@ -324,8 +326,22 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	// account
 	auto acc = parser.get("Account");
 	account.m_persistent_id = acc.get("PersistentId", account.m_persistent_id);
-	account.online_enabled = acc.get("OnlineEnabled", account.online_enabled);
-	account.active_service = acc.get("ActiveService",account.active_service);
+	// legacy online settings, we only parse these for upgrading purposes
+	account.legacy_online_enabled = acc.get("OnlineEnabled", account.legacy_online_enabled);
+	account.legacy_active_service = acc.get("ActiveService",account.legacy_active_service);
+	// per-account online setting
+	auto accService = parser.get("AccountService");
+	account.service_select.clear();
+	for (auto element = accService.get("SelectedService"); element.valid(); element = accService.get("SelectedService", element))
+	{
+		uint32 persistentId = element.get_attribute<uint32>("PersistentId", 0);
+		sint32 serviceIndex = element.get_attribute<sint32>("Service", 0);
+		NetworkService networkService = static_cast<NetworkService>(serviceIndex);
+		if (persistentId < Account::kMinPersistendId)
+			continue;
+		if(networkService == NetworkService::Offline || networkService == NetworkService::Nintendo || networkService == NetworkService::Pretendo || networkService == NetworkService::Custom)
+			account.service_select.emplace(persistentId, networkService);
+	}
 	// debug
 	auto debug = parser.get("Debug");
 #if BOOST_OS_WINDOWS
@@ -340,6 +356,10 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto dsuc = input.get("DSUC");
 	dsu_client.host = dsuc.get_attribute("host", dsu_client.host);
 	dsu_client.port = dsuc.get_attribute("port", dsu_client.port);
+
+	// emulatedusbdevices
+	auto usbdevices = parser.get("EmulatedUsbDevices");
+	emulated_usb_devices.emulate_skylander_portal = usbdevices.get("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal);
 }
 
 void CemuConfig::Save(XMLConfigParser& parser)
@@ -383,6 +403,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	psize.set<sint32>("x", pad_size.x);
 	psize.set<sint32>("y", pad_size.y);
 	config.set<bool>("pad_maximized", pad_maximized);
+	config.set<bool>("show_icon_column" , show_icon_column);
 
 	auto gamelist = config.set("GameList");
 	gamelist.set("style", game_list_style);
@@ -507,8 +528,17 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	// account
 	auto acc = config.set("Account");
 	acc.set("PersistentId", account.m_persistent_id.GetValue());
-	acc.set("OnlineEnabled", account.online_enabled.GetValue());
-	acc.set("ActiveService",account.active_service.GetValue());
+	// legacy online mode setting
+	acc.set("OnlineEnabled", account.legacy_online_enabled.GetValue());
+	acc.set("ActiveService",account.legacy_active_service.GetValue());
+	// per-account online setting
+	auto accService = config.set("AccountService");
+	for(auto& it : account.service_select)
+	{
+		auto entry = accService.set("SelectedService");
+		entry.set_attribute("PersistentId", it.first);
+		entry.set_attribute("Service", static_cast<sint32>(it.second));
+	}
 	// debug
 	auto debug = config.set("Debug");
 #if BOOST_OS_WINDOWS
@@ -523,6 +553,10 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto dsuc = input.set("DSUC");
 	dsuc.set_attribute("host", dsu_client.host);
 	dsuc.set_attribute("port", dsu_client.port);
+
+	// emulated usb devices
+	auto usbdevices = config.set("EmulatedUsbDevices");
+	usbdevices.set("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal.GetValue());
 }
 
 GameEntry* CemuConfig::GetGameEntryByTitleId(uint64 titleId)
@@ -603,4 +637,31 @@ void CemuConfig::AddRecentNfcFile(std::string_view file)
 	RemoveDuplicatesKeepOrder(recent_nfc_files);
 	while (recent_nfc_files.size() > kMaxRecentEntries)
 		recent_nfc_files.pop_back();
+}
+
+NetworkService CemuConfig::GetAccountNetworkService(uint32 persistentId)
+{
+	auto it = account.service_select.find(persistentId);
+	if (it != account.service_select.end())
+	{
+		NetworkService serviceIndex = it->second;
+		// make sure the returned service is valid
+		if (serviceIndex != NetworkService::Offline &&
+			serviceIndex != NetworkService::Nintendo &&
+			serviceIndex != NetworkService::Pretendo &&
+			serviceIndex != NetworkService::Custom)
+			return NetworkService::Offline;
+		if( static_cast<NetworkService>(serviceIndex) == NetworkService::Custom && !NetworkConfig::XMLExists() )
+			return NetworkService::Offline; // custom is selected but no custom config exists
+		return serviceIndex;
+	}
+	// if not found, return the legacy value
+	if(!account.legacy_online_enabled)
+		return NetworkService::Offline;
+	return static_cast<NetworkService>(account.legacy_active_service.GetValue() + 1); // +1 because "Offline" now takes index 0
+}
+
+void CemuConfig::SetAccountSelectedService(uint32 persistentId, NetworkService serviceIndex)
+{
+	account.service_select[persistentId] = serviceIndex;
 }

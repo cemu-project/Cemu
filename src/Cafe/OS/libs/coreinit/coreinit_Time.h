@@ -45,7 +45,8 @@ namespace coreinit
 	};
 
 	void OSTicksToCalendarTime(uint64 ticks, OSCalendarTime_t* calenderStruct);
-	
+	uint64 OSGetTime();
+
 	uint64 coreinit_getOSTime();
 	uint64 coreinit_getTimerTick();
 

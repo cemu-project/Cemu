@@ -1,6 +1,7 @@
 #pragma once
-#include <optional>
 #include "config/CemuConfig.h" // for ConsoleLanguage
+#include "config/NetworkSettings.h" // for NetworkService
+#include "config/ActiveSettings.h" // for GetNetworkService()
 
 enum class NAPI_RESULT
 {
@@ -16,8 +17,6 @@ namespace NAPI
 	// common auth info structure shared by ACT, ECS and IAS service
 	struct AuthInfo
 	{
-		// todo - constructor for account name + raw password
-
 		// nnid
 		std::string accountId;
 		std::array<uint8, 32> passwordHash;
@@ -41,9 +40,13 @@ namespace NAPI
 			std::string deviceToken;
 		}IASToken;
 
-		// ACT token (for account.nintendo.net requests)
+		// service selection, if not set fall back to global setting
+		std::optional<NetworkService> serviceOverwrite;
 
-
+		NetworkService GetService() const
+		{
+			return serviceOverwrite.value_or(ActiveSettings::GetNetworkService());
+		}
 	};
 
 	bool NAPI_MakeAuthInfoFromCurrentAccount(AuthInfo& authInfo); // helper function. Returns false if online credentials/dumped files are not available
@@ -232,9 +235,9 @@ namespace NAPI
 
 	NAPI_CCSGetTMD_Result CCS_GetTMD(AuthInfo& authInfo, uint64 titleId, uint16 titleVersion);
 	NAPI_CCSGetTMD_Result CCS_GetTMD(AuthInfo& authInfo, uint64 titleId);
-	NAPI_CCSGetETicket_Result CCS_GetCETK(AuthInfo& authInfo, uint64 titleId, uint16 titleVersion);
-	bool CCS_GetContentFile(uint64 titleId, uint32 contentId, bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData);
-	NAPI_CCSGetContentH3_Result CCS_GetContentH3File(uint64 titleId, uint32 contentId);
+	NAPI_CCSGetETicket_Result CCS_GetCETK(NetworkService service, uint64 titleId, uint16 titleVersion);
+	bool CCS_GetContentFile(NetworkService service, uint64 titleId, uint32 contentId, bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData);
+	NAPI_CCSGetContentH3_Result CCS_GetContentH3File(NetworkService service, uint64 titleId, uint32 contentId);
 
 	/* IDBE */
 
@@ -286,8 +289,8 @@ namespace NAPI
 
 	static_assert(sizeof(IDBEHeader) == 2+32);
 
-	std::optional<IDBEIconDataV0> IDBE_Request(uint64 titleId);
-	std::vector<uint8> IDBE_RequestRawEncrypted(uint64 titleId); // same as IDBE_Request but doesn't strip the header and decrypt the IDBE
+	std::optional<IDBEIconDataV0> IDBE_Request(NetworkService networkService, uint64 titleId);
+	std::vector<uint8> IDBE_RequestRawEncrypted(NetworkService networkService, uint64 titleId); // same as IDBE_Request but doesn't strip the header and decrypt the IDBE
 
 	/* Version list */
 

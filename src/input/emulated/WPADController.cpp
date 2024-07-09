@@ -1,3 +1,4 @@
+#include <api/Controller.h>
 #include "input/emulated/WPADController.h"
 
 #include "input/emulated/ClassicController.h"
@@ -308,10 +309,13 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 			status.mpls.dir.Z.z = attitude[8];
 		}
 	}
-
-	if (has_position())
+	auto visibility = GetPositionVisibility();
+	if (has_position() && visibility != PositionVisibility::NONE)
 	{
-		status.dpd_valid_fg = 1;
+		if (visibility == PositionVisibility::FULL)
+			status.dpd_valid_fg = 2;
+		else
+			status.dpd_valid_fg = -1;
 
 		const auto position = get_position();
 
@@ -324,6 +328,8 @@ void WPADController::KPADRead(KPADStatus_t& status, const BtnRepeat& repeat)
 		status.vec.y = delta.y;
 		status.speed = glm::length(delta);
 	}
+	else
+		status.dpd_valid_fg = 0;
 
 	switch (type())
 	{

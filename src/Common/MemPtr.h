@@ -11,7 +11,7 @@ using PAddr = uint32; // physical address
 
 extern uint8* memory_base;
 extern uint8* PPCInterpreterGetStackPointer();
-extern uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);
+extern uint8* PPCInterpreter_PushAndReturnStackPointer(sint32 offset);
 extern void PPCInterpreterModifyStackPointer(sint32 offset);
 
 class MEMPTRBase {};
@@ -136,15 +136,9 @@ public:
 	C* GetPtr() const { return (C*)(GetPtr()); }
 
 	constexpr uint32 GetMPTR() const { return m_value.value(); }
-	constexpr uint32 GetRawValue() const { return m_value.bevalue(); } // accesses value using host-endianness
-
 	constexpr const uint32be& GetBEValue() const { return m_value; }
 
 	constexpr bool IsNull() const { return m_value == 0; }
-
-	constexpr uint32 GetMPTRBE() const { return m_value.bevalue(); }
-
-	uint32be* GetBEPtr() { return &m_value; }
 
 private:
 	uint32be m_value;

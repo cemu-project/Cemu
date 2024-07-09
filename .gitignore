@@ -39,6 +39,8 @@ bin/sdcard/*
 bin/screenshots/*
 bin/dump/*
 bin/cafeLibs/*
+bin/portable/*
+bin/keys.txt
 
 !bin/shaderCache/info.txt
 bin/shaderCache/*

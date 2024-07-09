@@ -14,13 +14,12 @@ public:
 
 	~LatteTextureVk();
 
+	void AllocateOnHost() override;
+
 	VKRObjectTexture* GetImageObj() const { return vkObjTex; };
 	
 	VkFormat GetFormat() const { return vkObjTex->m_format; }
 	VkImageAspectFlags GetImageAspect() const { return vkObjTex->m_imageAspect; }
-
-	void setAllocation(struct VkImageMemAllocation* memAllocation);
-	struct VkImageMemAllocation* getAllocation() const;
 
 	VkImageLayout GetImageLayout(VkImageSubresource& subresource)
 	{

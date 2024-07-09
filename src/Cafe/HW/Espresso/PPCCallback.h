@@ -5,7 +5,27 @@ struct PPCCoreCallbackData_t
 {
 	sint32 gprCount = 0;
 	sint32 floatCount = 0;
+	sint32 stackCount = 0;
 };
+
+inline void _PPCCoreCallback_writeGPRArg(PPCCoreCallbackData_t& data, PPCInterpreter_t* hCPU, uint32 value)
+{
+	if (data.gprCount < 8)
+	{
+		hCPU->gpr[3 + data.gprCount] = value;
+		data.gprCount++;
+	}
+	else
+	{
+		uint32 stackOffset = 8 + data.stackCount * 4;
+
+		// PPCCore_executeCallbackInternal does -16*4 to save the current stack area
+		stackOffset -= 16 * 4;
+
+		memory_writeU32(hCPU->gpr[1] + stackOffset, value);
+		data.stackCount++;
+	}
+}
 
 // callback functions
 inline uint32 PPCCoreCallback(MPTR function, const PPCCoreCallbackData_t& data)
@@ -16,23 +36,21 @@ inline uint32 PPCCoreCallback(MPTR function, const PPCCoreCallbackData_t& data)
 template <typename T, typename... TArgs>
 uint32 PPCCoreCallback(MPTR function, PPCCoreCallbackData_t& data, T currentArg, TArgs... args)
 {
-	cemu_assert_debug(data.gprCount <= 8);
-	cemu_assert_debug(data.floatCount <= 8);
+	// TODO float arguments on stack
+	cemu_assert_debug(data.floatCount < 8);
+
 	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 	if constexpr (std::is_pointer_v<T>)
 	{
-		hCPU->gpr[3 + data.gprCount] = MEMPTR(currentArg).GetMPTR();
-		data.gprCount++;
+		_PPCCoreCallback_writeGPRArg(data, hCPU, MEMPTR(currentArg).GetMPTR());
 	}
 	else if constexpr (std::is_base_of_v<MEMPTRBase, std::remove_reference_t<T>>)
 	{
-		hCPU->gpr[3 + data.gprCount] = currentArg.GetMPTR();
-		data.gprCount++;
+		_PPCCoreCallback_writeGPRArg(data, hCPU, currentArg.GetMPTR());
 	}
 	else if constexpr (std::is_reference_v<T>)
 	{
-		hCPU->gpr[3 + data.gprCount] = MEMPTR(&currentArg).GetMPTR();
-		data.gprCount++;
+		_PPCCoreCallback_writeGPRArg(data, hCPU, MEMPTR(&currentArg).GetMPTR());
 	}
 	else if constexpr(std::is_enum_v<T>)
 	{
@@ -53,8 +71,7 @@ uint32 PPCCoreCallback(MPTR function, PPCCoreCallbackData_t& data, T currentArg,
 	}
 	else
 	{
-		hCPU->gpr[3 + data.gprCount] = (uint32)currentArg;
-		data.gprCount++;
+		_PPCCoreCallback_writeGPRArg(data, hCPU, (uint32)currentArg);
 	}
 	
 	return PPCCoreCallback(function, data, args...);

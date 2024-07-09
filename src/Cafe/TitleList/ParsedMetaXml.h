@@ -90,8 +90,11 @@ struct ParsedMetaXml
 			else if (boost::starts_with(name, "longname_"))
 			{
 				const sint32 index = GetLanguageIndex(name.substr(std::size("longname_") - 1));
-				if (index != -1)
-					parsedMetaXml->m_long_name[index] = child.text().as_string();
+				if (index != -1){
+					std::string longname = child.text().as_string();
+					std::replace_if(longname.begin(), longname.end(), [](char c) { return c == '\r' || c == '\n';}, ' ');
+					parsedMetaXml->m_long_name[index] = longname;
+				}
 			}
 			else if (boost::starts_with(name, L"shortname_"))
 			{

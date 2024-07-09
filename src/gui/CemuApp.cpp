@@ -56,33 +56,49 @@ bool CemuApp::OnInit()
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
-#ifdef PORTABLE
-#if MACOS_BUNDLE
-    exePath = exePath.parent_path().parent_path().parent_path();
+#if BOOST_OS_LINUX
+	// GetExecutablePath returns the AppImage's temporary mount location
+	wxString appImagePath;
+	if (wxGetEnv(("APPIMAGE"), &appImagePath))
+		exePath = wxHelper::MakeFSPath(appImagePath);
 #endif
-	user_data_path = config_path = cache_path = data_path = exePath.parent_path();
-#else
-	SetAppName("Cemu");
-	wxString appName=GetAppName();
-	#if BOOST_OS_LINUX
-	standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
-	auto getEnvDir = [&](const wxString& varName, const wxString& defaultValue)
+	// Try a portable path first, if it exists.
+	user_data_path = config_path = cache_path = data_path = exePath.parent_path() / "portable";
+#if BOOST_OS_MACOS
+	// If run from an app bundle, use its parent directory.
+	fs::path appPath = exePath.parent_path().parent_path().parent_path();
+	if (appPath.extension() == ".app")
+		user_data_path = config_path = cache_path = data_path = appPath.parent_path() / "portable";
+#endif
+
+	if (!fs::exists(user_data_path))
 	{
-		wxString dir;
-		if (!wxGetEnv(varName, &dir) || dir.empty())
-			return defaultValue;
-		return dir;
-	};
-	wxString homeDir=wxFileName::GetHomeDir();
-	user_data_path = (getEnvDir(wxS("XDG_DATA_HOME"), homeDir + wxS("/.local/share")) + "/" + appName).ToStdString();
-	config_path = (getEnvDir(wxS("XDG_CONFIG_HOME"), homeDir + wxS("/.config")) + "/" + appName).ToStdString();
-	#else
-	user_data_path = config_path = standardPaths.GetUserDataDir().ToStdString();
-	#endif
-	data_path = standardPaths.GetDataDir().ToStdString();
-	cache_path = standardPaths.GetUserDir(wxStandardPaths::Dir::Dir_Cache).ToStdString();
-	cache_path /= appName.ToStdString();
+#if BOOST_OS_WINDOWS
+		user_data_path = config_path = cache_path = data_path = exePath.parent_path();
+#else
+		SetAppName("Cemu");
+		wxString appName=GetAppName();
+#if BOOST_OS_LINUX
+		standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
+		auto getEnvDir = [&](const wxString& varName, const wxString& defaultValue)
+		{
+			wxString dir;
+			if (!wxGetEnv(varName, &dir) || dir.empty())
+				return defaultValue;
+			return dir;
+		};
+		wxString homeDir=wxFileName::GetHomeDir();
+		user_data_path = (getEnvDir(wxS("XDG_DATA_HOME"), homeDir + wxS("/.local/share")) + "/" + appName).ToStdString();
+		config_path = (getEnvDir(wxS("XDG_CONFIG_HOME"), homeDir + wxS("/.config")) + "/" + appName).ToStdString();
+#else
+		user_data_path = config_path = standardPaths.GetUserDataDir().ToStdString();
 #endif
+		data_path = standardPaths.GetDataDir().ToStdString();
+		cache_path = standardPaths.GetUserDir(wxStandardPaths::Dir::Dir_Cache).ToStdString();
+		cache_path /= appName.ToStdString();
+#endif
+	}
+
 	auto failed_write_access = ActiveSettings::LoadOnce(exePath, user_data_path, config_path, cache_path, data_path);
 	for (auto&& path : failed_write_access)
 		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), wxString::FromUTF8(_pathToUtf8(path))),
@@ -253,10 +269,10 @@ std::vector<const wxLanguageInfo*> CemuApp::GetAvailableTranslationLanguages(wxT
 
 void CemuApp::CreateDefaultFiles(bool first_start)
 {
+	std::error_code ec;
 	fs::path mlc = ActiveSettings::GetMlcPath();
-
 	// check for mlc01 folder missing if custom path has been set
-	if (!fs::exists(mlc) && !first_start)
+	if (!fs::exists(mlc, ec) && !first_start)
 	{
 		const wxString message = formatWxString(_("Your mlc01 folder seems to be missing.\n\nThis is where Cemu stores save files, game updates and other Wii U files.\n\nThe expected path is:\n{}\n\nDo you want to create the folder at the expected path?"),
 												_pathToUtf8(mlc));
@@ -319,7 +335,7 @@ void CemuApp::CreateDefaultFiles(bool first_start)
 		if (!fs::exists(countryFile))
 		{
 			std::ofstream file(countryFile);
-			for (sint32 i = 0; i < 201; i++)
+			for (sint32 i = 0; i < NCrypto::GetCountryCount(); i++)
 			{
 				const char* countryCode = NCrypto::GetCountryAsString(i);
 				if (boost::iequals(countryCode, "NN"))
@@ -439,7 +455,7 @@ void _wxLaunch()
 
 void gui_create()
 {
-	SetThreadName("MainThread");
+	SetThreadName("cemu");
 #if BOOST_OS_WINDOWS
 	// on Windows wxWidgets there is a bug where wxDirDialog->ShowModal will deadlock in Windows internals somehow
 	// moving the UI thread off the main thread fixes this
