@@ -12,13 +12,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import info.cemu.Cemu.databinding.FragmentOverlaySettingsBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
+
 
 public class OverlaySettingsFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        FragmentOverlaySettingsBinding binding = FragmentOverlaySettingsBinding.inflate(inflater, container, false);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
 
         GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
 
@@ -67,7 +68,7 @@ public class OverlaySettingsFragment extends Fragment {
                 NativeLibrary::setOverlayVRAMUsageEnabled);
         genericRecyclerViewAdapter.addRecyclerViewItem(vramUsageCheckbox);
 
-        binding.audioSettingsRecyclerView.setAdapter(genericRecyclerViewAdapter);
+        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
 
         return binding.getRoot();
     }

@@ -15,7 +15,7 @@ import androidx.fragment.app.Fragment;
 import java.util.HashMap;
 import java.util.Map;
 
-import info.cemu.Cemu.databinding.FragmentControllerInputsBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 
 public class ControllerInputsFragment extends Fragment {
     public static final String CONTROLLER_INDEX = "ControllerIndex";
@@ -94,8 +94,8 @@ public class ControllerInputsFragment extends Fragment {
 
         setControllerInputs(NativeLibrary.getControllerMappings(controllerIndex));
 
-        FragmentControllerInputsBinding binding = FragmentControllerInputsBinding.inflate(inflater, container, false);
-        binding.controllerInputsRecyclerView.setAdapter(genericRecyclerViewAdapter);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
+        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
 
         return binding.getRoot();
     }

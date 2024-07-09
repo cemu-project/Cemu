@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import info.cemu.Cemu.databinding.FragmentGraphicPacksRootBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -157,8 +157,8 @@ public class GraphicPacksRootFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        FragmentGraphicPacksRootBinding binding = FragmentGraphicPacksRootBinding.inflate(inflater, container, false);
-        binding.graphicPacksRootRecyclerView.setAdapter(this.genericRecyclerViewAdapter);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
+        binding.recyclerView.setAdapter(this.genericRecyclerViewAdapter);
         requireActivity().addMenuProvider(new MenuProvider() {
             @Override
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
@@ -181,13 +181,13 @@ public class GraphicPacksRootFragment extends Fragment {
                 searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                     @Override
                     public boolean onMenuItemActionExpand(@NonNull MenuItem item) {
-                        binding.graphicPacksRootRecyclerView.setAdapter(graphicPacksRecyclerViewAdapter);
+                        binding.recyclerView.setAdapter(graphicPacksRecyclerViewAdapter);
                         return true;
                     }
 
                     @Override
                     public boolean onMenuItemActionCollapse(@NonNull MenuItem item) {
-                        binding.graphicPacksRootRecyclerView.setAdapter(genericRecyclerViewAdapter);
+                        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
                         return true;
                     }
                 });

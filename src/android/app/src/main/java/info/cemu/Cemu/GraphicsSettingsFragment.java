@@ -11,13 +11,13 @@ import androidx.fragment.app.Fragment;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import info.cemu.Cemu.databinding.FragmentGraphicsSettingsBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 
 public class GraphicsSettingsFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        FragmentGraphicsSettingsBinding binding = FragmentGraphicsSettingsBinding.inflate(inflater, container, false);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
 
         GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
 
@@ -40,7 +40,7 @@ public class GraphicsSettingsFragment extends Fragment {
         CheckboxRecyclerViewItem accurateBarriersCheckbox = new CheckboxRecyclerViewItem(getString(R.string.accurate_barriers), getString(R.string.accurate_barriers_description), NativeLibrary.getAccurateBarriers(), NativeLibrary::setAccurateBarriers);
         genericRecyclerViewAdapter.addRecyclerViewItem(accurateBarriersCheckbox);
 
-        binding.graphicsSettingsRecyclerView.setAdapter(genericRecyclerViewAdapter);
+        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
         return binding.getRoot();
     }
 }

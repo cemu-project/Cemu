@@ -13,13 +13,10 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
-import info.cemu.Cemu.databinding.FragmentGraphicPacksBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 
 public class GraphicPacksFragment extends Fragment {
     private final GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
@@ -40,8 +37,8 @@ public class GraphicPacksFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        FragmentGraphicPacksBinding binding = FragmentGraphicPacksBinding.inflate(inflater, container, false);
-        binding.graphicPacksRecyclerView.setAdapter(genericRecyclerViewAdapter);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
+        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
 
         return binding.getRoot();
     }

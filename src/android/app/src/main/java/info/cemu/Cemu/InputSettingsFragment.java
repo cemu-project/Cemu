@@ -11,7 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import info.cemu.Cemu.databinding.FragmentInputSettingsBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 
 public class InputSettingsFragment extends Fragment {
 
@@ -19,7 +19,7 @@ public class InputSettingsFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-        FragmentInputSettingsBinding binding = FragmentInputSettingsBinding.inflate(inflater, container, false);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
         GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
         genericRecyclerViewAdapter.addRecyclerViewItem(new SimpleButtonRecyclerViewItem(getString(R.string.input_overlay_settings), () -> NavHostFragment.findNavController(InputSettingsFragment.this).navigate(R.id.action_inputSettingsFragment_to_inputOverlaySettingsFragment)));
 
@@ -37,7 +37,7 @@ public class InputSettingsFragment extends Fragment {
                     });
             genericRecyclerViewAdapter.addRecyclerViewItem(buttonRecyclerViewItem);
         }
-        binding.inputSettingsRecyclerView.setAdapter(genericRecyclerViewAdapter);
+        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
         return binding.getRoot();
     }
 }

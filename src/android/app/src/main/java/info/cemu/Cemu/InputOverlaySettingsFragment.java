@@ -15,7 +15,7 @@ import androidx.fragment.app.Fragment;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import info.cemu.Cemu.databinding.FragmentInputOverlaySettingsBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 
 
 public class InputOverlaySettingsFragment extends Fragment {
@@ -35,7 +35,7 @@ public class InputOverlaySettingsFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        var binding = FragmentInputOverlaySettingsBinding.inflate(inflater, container, false);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
         GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
 
         CheckboxRecyclerViewItem inputOverlayCheckbox = new CheckboxRecyclerViewItem(
@@ -94,7 +94,7 @@ public class InputOverlaySettingsFragment extends Fragment {
                 )
         );
 
-        binding.inputOverlaySettingsRecyclerView.setAdapter(genericRecyclerViewAdapter);
+        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
 
         return binding.getRoot();
     }

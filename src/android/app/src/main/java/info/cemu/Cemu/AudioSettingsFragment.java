@@ -12,13 +12,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import info.cemu.Cemu.databinding.FragmentAudioSettingsBinding;
+import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 
 public class AudioSettingsFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        FragmentAudioSettingsBinding binding = FragmentAudioSettingsBinding.inflate(inflater, container, false);
+        var binding = GenericRecyclerViewLayoutBinding.inflate(inflater, container, false);
 
         GenericRecyclerViewAdapter genericRecyclerViewAdapter = new GenericRecyclerViewAdapter();
 
@@ -72,7 +72,7 @@ public class AudioSettingsFragment extends Fragment {
                 value -> (int) value + "%");
         genericRecyclerViewAdapter.addRecyclerViewItem(padVolumeSlider);
 
-        binding.audioSettingsRecyclerView.setAdapter(genericRecyclerViewAdapter);
+        binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
 
         return binding.getRoot();
     }
