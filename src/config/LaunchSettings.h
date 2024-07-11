@@ -39,7 +39,6 @@ private:
 	
 	inline static bool s_enable_gdbstub = false;
 	inline static bool s_nsight_mode = false;
-
 	inline static bool s_force_interpreter = false;
 	
 	inline static std::optional<uint32> s_persistent_id{};

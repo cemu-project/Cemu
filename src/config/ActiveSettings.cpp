@@ -68,11 +68,17 @@ CPUMode ActiveSettings::GetCPUMode()
 
 	if (mode == CPUMode::Auto)
 	{
+#ifdef __aarch64__
+		mode = CPUMode::SinglecoreInterpreter;
+	}
+#else
+	{
 		if (GetPhysicalCoreCount() >= 4)
 			mode = CPUMode::MulticoreRecompiler;
 		else
 			mode = CPUMode::SinglecoreRecompiler;
 	}
+#endif
 	else if (mode == CPUMode::DualcoreRecompiler) // dualcore is disabled now
 		mode = CPUMode::MulticoreRecompiler;
 
