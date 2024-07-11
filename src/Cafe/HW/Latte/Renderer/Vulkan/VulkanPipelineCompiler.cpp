@@ -988,7 +988,8 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pColorBlendState = &colorBlending;
+	if (!_IsVkIntegerFormat(m_renderPassObj->GetColorFormat(0)))
+		pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.layout = m_pipeline_layout;
 	pipelineInfo.renderPass = m_renderPassObj->m_renderPass;
 	pipelineInfo.pDepthStencilState = &depthStencilState;
