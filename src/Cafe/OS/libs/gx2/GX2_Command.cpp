@@ -17,28 +17,28 @@ GX2WriteGatherPipeState gx2WriteGatherPipe = { 0 };
 void gx2WriteGather_submitU32AsBE(uint32 v)
 {
 	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
+	if (*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
 		return;
-	*(uint32*)(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) = _swapEndianU32(v);
-	(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) += 4;
+	*(uint32*)(gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]->load()) = _swapEndianU32(v);
+	*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] += 4;
 }
 
 void gx2WriteGather_submitU32AsLE(uint32 v)
 {
 	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
+	if (*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
 		return;
-	*(uint32*)(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) = v;
-	(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) += 4;
+	*(uint32*)(gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]->load()) = v;
+	*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] += 4;
 }
 
 void gx2WriteGather_submitU32AsLEArray(uint32* v, uint32 numValues)
 {
 	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
+	if (*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
 		return;
-	memcpy_dwords((*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]), v, numValues);
-	(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) += 4 * numValues;
+	memcpy_dwords(gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]->load(), v, numValues);
+	*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] += 4 * numValues;
 }
 
 namespace GX2
@@ -121,7 +121,7 @@ namespace GX2
 			if (sGX2MainCoreIndex == coreIndex)
 				gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] = &gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex];
 			else
-				gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] = NULL;
+				*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] = NULL;
 			// return size of (written) display list
 			return currentWriteSize;
 		}
@@ -217,7 +217,7 @@ namespace GX2
 		cemu_assert_debug(coreIndex == sGX2MainCoreIndex);
 		coreIndex = sGX2MainCoreIndex; // always submit to main queue which is owned by GX2 main core (TCLSubmitToRing does not need this workaround)
 
-		uint32be* cmdStream = (uint32be*)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex]);
+		uint32be* cmdStream = (uint32be*)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex].load());
 		cmdStream[0] = pm4HeaderType3(IT_INDIRECT_BUFFER_PRIV, 3);
 		cmdStream[1] = memory_virtualToPhysical(MEMPTR<void>(addr).GetMPTR());
 		cmdStream[2] = 0;
