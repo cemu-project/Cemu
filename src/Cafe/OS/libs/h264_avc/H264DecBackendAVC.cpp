@@ -54,8 +54,8 @@ namespace H264
 
 		~H264AVCDecoder()
 		{
-			m_decodeSem.increment();
 			m_threadShouldExit = true;
+			m_decodeSem.increment();
 			if (m_decoderThread.joinable())
 				m_decoderThread.join();
 		}
