@@ -185,7 +185,7 @@ namespace H264
 			else if (status != 0)
 			{
 				cemuLog_log(LogType::Force, "H264: Failed to decode frame (error 0x{:08x})", status);
-				//decodeResult.frameReady = false;
+				decodedSlice.result.hasFrame = false;
 				cemu_assert_unimplemented();
 				return;
 			}
