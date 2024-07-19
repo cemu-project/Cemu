@@ -721,20 +721,24 @@ namespace iosu
 
 			nnResult CallHandler_GetMyComment(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
 			{
-				static constexpr uint32 MY_COMMENT_LENGTH = 0x12; // are comments utf16? Buffer length is 0x24
 				if(numVecIn != 0 || numVecOut != 1)
 					return FPResult_InvalidIPCParam;
-				if(vecOut->size != MY_COMMENT_LENGTH*sizeof(uint16be))
+				static constexpr uint32 MY_COMMENT_LENGTH = 0x12;
+				std::basic_string<uint16be> myComment;
+				if(g_fpd.nexFriendSession)
 				{
-					cemuLog_log(LogType::Force, "GetMyComment: Unexpected output size");
-					return FPResult_InvalidIPCParam;
+					if(vecOut->size != MY_COMMENT_LENGTH * sizeof(uint16be))
+					{
+						cemuLog_log(LogType::Force, "GetMyComment: Unexpected output size");
+						return FPResult_InvalidIPCParam;
+					}
+					nexComment myNexComment;
+					g_fpd.nexFriendSession->getMyComment(myNexComment);
+					myComment = StringHelpers::FromUtf8(myNexComment.commentString);
 				}
-				nexComment myComment;
-				g_fpd.nexFriendSession->getMyComment(myComment);
-				auto comment_utf16 = StringHelpers::FromUtf8(myComment.commentString);
-				comment_utf16.insert(0, 1, '\0'); // avoid first character of comment from being cut off
-				memcpy(vecOut->basePhys.GetPtr(), comment_utf16.c_str(), MY_COMMENT_LENGTH * sizeof(uint16be));
-				return 0;
+				myComment.insert(0, 1, '\0'); // avoid first character of comment from being cut off
+				memcpy(vecOut->basePhys.GetPtr(), myComment.c_str(), MY_COMMENT_LENGTH * sizeof(uint16be));
+				return FPResult_Ok;
 			}
 
 			nnResult CallHandler_GetMyPreference(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
