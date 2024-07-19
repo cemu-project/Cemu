@@ -1,4 +1,4 @@
-.section .text
+.rodata
 .global g_fontawesome_data, g_fontawesome_size
 
 g_fontawesome_data:
