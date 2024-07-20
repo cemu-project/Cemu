@@ -75,36 +75,65 @@ fs::path GetAppDataRoamingPath()
 }
 #endif
 
-void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess)
+#if BOOST_OS_WINDOWS
+void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Windows
 {
+	std::error_code ec;
 	bool isPortable = false;
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
+	fs::path portablePath = exePath.parent_path() / "portable";
+	data_path = exePath.parent_path(); // the data path is always the same as the exe path
+	if (fs::exists(portablePath, ec))
+	{
+		isPortable = true;
+		user_data_path = config_path = cache_path = portablePath;
+	}
+	else
+	{
+		fs::path roamingPath = GetAppDataRoamingPath() / "Cemu";
+		user_data_path = config_path = cache_path = roamingPath;
+	}
+	// on Windows Cemu used to be portable by default prior to 2.0-89
+	// to remain backwards compatible with old installations we check for settings.xml in the Cemu directory
+	// if it exists, we use the exe path as the portable directory
+	if(!isPortable) // lower priority than portable directory
+	{
+		if (fs::exists(exePath.parent_path() / "settings.xml", ec))
+		{
+			isPortable = true;
+			user_data_path = config_path = cache_path = exePath.parent_path();
+		}
+	}
+	ActiveSettings::SetPaths(isPortable, exePath, user_data_path, config_path, cache_path, data_path, failedWriteAccess);
+}
+#endif
+
 #if BOOST_OS_LINUX
+void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
+{
+	std::error_code ec;
+	bool isPortable = false;
+	fs::path user_data_path, config_path, cache_path, data_path;
+	auto standardPaths = wxStandardPaths::Get();
+	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
+	fs::path portablePath = exePath.parent_path() / "portable";
 	// GetExecutablePath returns the AppImage's temporary mount location
 	wxString appImagePath;
 	if (wxGetEnv(("APPIMAGE"), &appImagePath))
 		exePath = wxHelper::MakeFSPath(appImagePath);
-#endif
-	// Try a portable path first, if it exists.
-	user_data_path = config_path = cache_path = data_path = exePath.parent_path() / "portable";
-#if BOOST_OS_MACOS
-	// If run from an app bundle, use its parent directory.
-	fs::path appPath = exePath.parent_path().parent_path().parent_path();
-	if (appPath.extension() == ".app")
-		user_data_path = config_path = cache_path = data_path = appPath.parent_path() / "portable";
-#endif
-
-	if (!fs::exists(user_data_path))
+	if (fs::exists(portablePath, ec))
 	{
-#if BOOST_OS_WINDOWS
-		fs::path roamingPath = GetAppDataRoamingPath() / "Cemu";
-		user_data_path = config_path = cache_path = data_path = roamingPath;
-#else
+		isPortable = true;
+		user_data_path = config_path = cache_path = portablePath;
+		// in portable mode assume the data directories (resources, gameProfiles/default/) are next to the executable
+		data_path = exePath.parent_path();
+	}
+	else
+	{
 		SetAppName("Cemu");
-		wxString appName=GetAppName();
-#if BOOST_OS_LINUX
+		wxString appName = GetAppName();
 		standardPaths.SetFileLayout(wxStandardPaths::FileLayout::FileLayout_XDG);
 		auto getEnvDir = [&](const wxString& varName, const wxString& defaultValue)
 		{
@@ -113,38 +142,55 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess)
 				return defaultValue;
 			return dir;
 		};
-		wxString homeDir=wxFileName::GetHomeDir();
+		wxString homeDir = wxFileName::GetHomeDir();
 		user_data_path = (getEnvDir(wxS("XDG_DATA_HOME"), homeDir + wxS("/.local/share")) + "/" + appName).ToStdString();
 		config_path = (getEnvDir(wxS("XDG_CONFIG_HOME"), homeDir + wxS("/.config")) + "/" + appName).ToStdString();
-#else
-		user_data_path = config_path = standardPaths.GetUserDataDir().ToStdString();
-#endif
 		data_path = standardPaths.GetDataDir().ToStdString();
 		cache_path = standardPaths.GetUserDir(wxStandardPaths::Dir::Dir_Cache).ToStdString();
 		cache_path /= appName.ToStdString();
+	}
+	ActiveSettings::SetPaths(isPortable, exePath, user_data_path, config_path, cache_path, data_path, failedWriteAccess);
+}
 #endif
+
+#if BOOST_OS_MACOS
+void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for MacOS
+{
+	std::error_code ec;
+	bool isPortable = false;
+	fs::path user_data_path, config_path, cache_path, data_path;
+	auto standardPaths = wxStandardPaths::Get();
+	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
+	fs::path portablePath = exePath.parent_path() / "portable";
+	// If run from an app bundle, use its parent directory
+	fs::path appPath = exePath.parent_path().parent_path().parent_path();
+	if (appPath.extension() == ".app")
+	{
+		isPortable = true;
+		portablePath = appPath.parent_path() / "portable";
+		user_data_path = config_path = cache_path = portablePath;
+		data_path = appPath.parent_path();
+		ActiveSettings::SetPaths(isPortable, exePath, user_data_path, config_path, cache_path, data_path, failedWriteAccess);
+		return;
+	}
+	if (fs::exists(portablePath, ec))
+	{
+		isPortable = true;
+		user_data_path = config_path = cache_path = portablePath;
+		data_path = exePath.parent_path();
 	}
 	else
 	{
-		isPortable = true;
+		SetAppName("Cemu");
+		wxString appName = GetAppName();
+		user_data_path = config_path = standardPaths.GetUserDataDir().ToStdString();
+		data_path = standardPaths.GetDataDir().ToStdString();
+		cache_path = standardPaths.GetUserDir(wxStandardPaths::Dir::Dir_Cache).ToStdString();
+		cache_path /= appName.ToStdString();
 	}
-
-#if BOOST_OS_WINDOWS
-	// on Windows Cemu used to be portable by default prior to 2.0-89
-	// to remain backwards compatible with old installations we check for settings.xml in the Cemu directory
-	// if it exists, we use the exe path as the portable directory
-	if(!isPortable)
-	{
-		std::error_code ec;
-		if (fs::exists(exePath.parent_path() / "settings.xml", ec))
-		{
-			user_data_path = config_path = cache_path = data_path = exePath.parent_path();
-			isPortable = true;
-		}
-	}
-#endif
 	ActiveSettings::SetPaths(isPortable, exePath, user_data_path, config_path, cache_path, data_path, failedWriteAccess);
 }
+#endif
 
 // create default MLC files or quit if it fails
 void CemuApp::InitializeNewMLCOrFail(fs::path mlc)
