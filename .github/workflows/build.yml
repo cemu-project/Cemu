@@ -329,7 +329,7 @@ jobs:
       - name: "Install system dependencies"
         run: |
           brew update
-          brew install llvm@15 ninja nasm molten-vk automake libtool cmake
+          brew install ninja nasm molten-vk automake libtool cmake
 
       - name: "Bootstrap vcpkg"
         run: |
@@ -356,8 +356,6 @@ jobs:
           cmake .. ${{ env.BUILD_FLAGS }} \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} \
           -DMACOS_BUNDLE=ON \
-          -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm@15/bin/clang \
-          -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@15/bin/clang++ \
           -G Ninja
 
       - name: "Build Cemu"
