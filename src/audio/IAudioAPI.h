@@ -55,11 +55,15 @@ public:
 	virtual bool FeedBlock(sint16* data) = 0;
 	virtual bool Play() = 0;
 	virtual bool Stop() = 0;
+	void SetAudioDelayOverride(uint32 delay);
+	uint32 GetAudioDelay() const;
 
 	static void PrintLogging();
 	static void InitializeStatic();
 	static bool IsAudioAPIAvailable(AudioAPI api);
-	
+
+	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(bool TV, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample);
+	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(bool TV, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
 	static std::unique_ptr<IAudioAPI> CreateDevice(AudioAPI api, const DeviceDescriptionPtr& device, sint32 samplerate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
 	static std::vector<DeviceDescriptionPtr> GetDevices(AudioAPI api);
 
@@ -75,9 +79,10 @@ protected:
 	bool m_playing = false;
 
 	static std::array<bool, AudioAPIEnd> s_availableApis;
-	static uint32 s_audioDelay;
+	uint32 m_audioDelayOverride = 0;
 
 private:
+	static uint32 s_audioDelay;
 	void InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_sample);
 	
 };
