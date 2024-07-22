@@ -161,18 +161,9 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for MacOS
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
-	fs::path portablePath = exePath.parent_path() / "portable";
-	// If run from an app bundle, use its parent directory
-	fs::path appPath = exePath.parent_path().parent_path().parent_path();
-	if (appPath.extension() == ".app")
-	{
-		isPortable = true;
-		portablePath = appPath.parent_path() / "portable";
-		user_data_path = config_path = cache_path = portablePath;
-		data_path = appPath.parent_path();
-		ActiveSettings::SetPaths(isPortable, exePath, user_data_path, config_path, cache_path, data_path, failedWriteAccess);
-		return;
-	}
+        // If run from an app bundle, use its parent directory
+        fs::path appPath = exePath.parent_path().parent_path().parent_path();
+        fs::path portablePath = appPath.extension() == ".app" ? appPath.parent_path() / "portable" : exePath.parent_path() / "portable";
 	if (fs::exists(portablePath, ec))
 	{
 		isPortable = true;
