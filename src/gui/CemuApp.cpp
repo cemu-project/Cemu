@@ -255,11 +255,11 @@ bool CemuApp::OnInit()
 	if(!isFirstStart)
 	{
 		g_config.Load();
-		LocalizeUI(static_cast<wxLanguage>(GetConfig().language.GetValue()));
+		LocalizeUI(static_cast<wxLanguage>(GetConfig().language == wxLANGUAGE_DEFAULT ? wxLocale::GetSystemLanguage() : GetConfig().language.GetValue()));
 	}
 	else
 	{
-		LocalizeUI(wxLANGUAGE_DEFAULT);
+		LocalizeUI(static_cast<wxLanguage>(wxLocale::GetSystemLanguage()));
 	}
 
 	for (auto&& path : failedWriteAccess)
