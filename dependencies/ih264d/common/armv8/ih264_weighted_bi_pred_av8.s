@@ -149,11 +149,11 @@ ih264_weighted_bi_pred_luma_av8:
     ldr       w11, [sp, #104]           //Load ht in w11
     ldr       w12, [sp, #112]           //Load wd in w12
 #else
-    ldr       w8, [sp, #80]            //Load wd in w12
-    ldr       w9, [sp, #84]            //Load ht in w11
+    ldr       w8, [sp, #80]             //Load wd in w8
+    ldr       w9, [sp, #84]             //Load ht in w9
     ldr       w10, [sp, #88]            //Load offst2 in w10
-    ldr       w11,  [sp, #92]            //Load offst1 in w9
-    ldr       w12,  [sp, #96]            //Load offst1 in w9
+    ldr       w11,  [sp, #92]           //Load offst1 in w11
+    ldr       w12,  [sp, #96]           //Load offst1 in w12
 #endif
     add       w6, w6, #1                //w6  = log_WD + 1
     neg       w10, w6                   //w10 = -(log_WD + 1)
@@ -439,11 +439,11 @@ ih264_weighted_bi_pred_chroma_av8:
     ldr       w11, [sp, #104]           //Load ht in w11
     ldr       w12, [sp, #112]           //Load wd in w12
 #else
-    ldr       w8, [sp, #80]            //Load wd in w12
-    ldr       w9, [sp, #84]            //Load ht in w11
+    ldr       w8, [sp, #80]             //Load wd in w8
+    ldr       w9, [sp, #84]             //Load ht in w9
     ldr       w10, [sp, #88]            //Load offst2 in w10
-    ldr       w11,  [sp, #92]            //Load offst1 in w9
-    ldr       w12,  [sp, #96]            //Load offst1 in w9
+    ldr       w11,  [sp, #92]           //Load offst1 in w11
+    ldr       w12,  [sp, #96]           //Load offst1 in w12
 #endif
     dup       v4.4s, w8                 //Q2 = (wt2_u, wt2_v) (32-bit)
     dup       v2.4s, w7                 //Q1 = (wt1_u, wt1_v) (32-bit)
