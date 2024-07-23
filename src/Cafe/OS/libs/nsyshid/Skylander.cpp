@@ -855,7 +855,7 @@ namespace nsyshid
 			return false;
 		}
 
-		std::array<uint8, BLOCK_COUNT * BLOCK_SIZE> data{};
+		std::array<uint8, SKY_FIGURE_SIZE> data{};
 
 		uint32 first_block = 0x690F0F0F;
 		uint32 other_blocks = 0x69080F7F;
