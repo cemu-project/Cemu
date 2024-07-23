@@ -235,6 +235,9 @@ void CemuApp::InitializeExistingMLCOrFail(fs::path mlc)
 
 bool CemuApp::OnInit()
 {
+#if __WXGTK__
+	GTKSuppressDiagnostics();
+#endif
 	std::set<fs::path> failedWriteAccess;
 	DeterminePaths(failedWriteAccess);
 	// make sure default cemu directories exist
