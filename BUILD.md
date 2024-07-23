@@ -16,7 +16,6 @@
          - [Compiling Errors](#compiling-errors)
          - [Building Errors](#building-errors)
 - [macOS](#macos)
-   - [On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used](#on-apple-silicon-macs-rosetta-2-and-the-x86_64-version-of-homebrew-must-be-used)
    - [Installing brew](#installing-brew)
    - [Installing Dependencies](#installing-dependencies)
    - [Build Cemu using CMake and Clang](#build-cemu-using-cmake-and-clang)
@@ -142,21 +141,15 @@ If you are getting a different error than any of the errors listed above, you ma
 ## macOS
 
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! LLVM 13 and
-below, built in LLVM, and Xcode LLVM don't support the C++20 feature set required. The OpenGL graphics
-API isn't support on macOS, Vulkan must be used. Additionally Vulkan must be used through the
-Molten-VK compatibility layer
+lower don't support the C++20 feature set required. Cemu doesn't support using OpenGL
+on macOS, Vulkan must be used via the Molten-Vk compatibility layer.
 
-### On Apple Silicon Macs, Rosetta 2 and the x86_64 version of Homebrew must be used
-
-You can skip this section if you have an Intel Mac. Every time you compile, you need to perform steps 2.
-
-1. `softwareupdate --install-rosetta` # Install Rosetta 2 if you don't have it. This only has to be done once
-2. `arch -x86_64 zsh` # run an x64 shell
+Note that if you are compiling on/for Intel, you must replace all references of `/opt/homebrew` to `/usr/local`.
 
 ### Installing brew
 
 1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-2. `eval "$(/usr/local/Homebrew/bin/brew shellenv)"` # set x86_64 brew env
+3. `eval "$(/opt/homebrew/bin/brew shellenv)"` # set brew env
 
 ### Installing Dependencies
 
@@ -165,12 +158,12 @@ You can skip this section if you have an Intel Mac. Every time you compile, you 
 ### Build Cemu using CMake and Clang
 1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
-3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++ -G Ninja`
+3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++ -G Ninja`
 4. `cmake --build build`
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
 #### Troubleshooting steps
-- If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja` to the command and running it again.
+- If step 3 gives you an error about not being able to find ninja, try appending `-DCMAKE_MAKE_PROGRAM=/opt/homebrew/bin/ninja` to the command and running it again.
 
 ## Updating Cemu and source code
 1. To update your Cemu local repository, use the command `git pull --recurse-submodules` (run this command on the Cemu root).
