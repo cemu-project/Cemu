@@ -122,7 +122,10 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 	// GetExecutablePath returns the AppImage's temporary mount location
 	wxString appImagePath;
 	if (wxGetEnv(("APPIMAGE"), &appImagePath))
+	{
 		exePath = wxHelper::MakeFSPath(appImagePath);
+		portablePath = exePath.parent_path() / "portable";
+	}
 	if (fs::exists(portablePath, ec))
 	{
 		isPortable = true;
