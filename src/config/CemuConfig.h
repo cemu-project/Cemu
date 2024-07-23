@@ -417,7 +417,7 @@ struct CemuConfig
 	ConfigValue<bool> save_screenshot{true};
 
 	ConfigValue<bool> did_show_vulkan_warning{false};
-	ConfigValue<bool> did_show_graphic_pack_download{false};
+	ConfigValue<bool> did_show_graphic_pack_download{false}; // no longer used but we keep the config value around in case people downgrade Cemu. Despite the name this was used for the Getting Started dialog
 	ConfigValue<bool> did_show_macos_disclaimer{false};
 
 	ConfigValue<bool> show_icon_column{ true };
@@ -519,6 +519,7 @@ struct CemuConfig
 	struct
 	{
 		ConfigValue<bool> emulate_skylander_portal{false};
+		ConfigValue<bool> emulate_infinity_base{true};
 	}emulated_usb_devices{};
 
 	private:
