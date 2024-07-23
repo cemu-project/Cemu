@@ -236,7 +236,7 @@ void CemuApp::InitializeExistingMLCOrFail(fs::path mlc)
 bool CemuApp::OnInit()
 {
 #if __WXGTK__
-	GTKSuppressDiagnostics();
+	GTKSuppressDiagnostics(G_LOG_LEVEL_MASK & ~G_LOG_FLAG_FATAL);
 #endif
 	std::set<fs::path> failedWriteAccess;
 	DeterminePaths(failedWriteAccess);
