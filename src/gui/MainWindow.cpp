@@ -149,8 +149,6 @@ enum
 	// help
 	MAINFRAME_MENU_ID_HELP_ABOUT = 21700,
 	MAINFRAME_MENU_ID_HELP_UPDATE,
-	MAINFRAME_MENU_ID_HELP_GETTING_STARTED,
-
 	// custom
 	MAINFRAME_ID_TIMER1 = 21800,
 };
@@ -225,7 +223,6 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugView
 // help menu
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_UPDATE, MainWindow::OnHelpUpdate)
-EVT_MENU(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, MainWindow::OnHelpGettingStarted)
 // misc
 EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_GAMELIST_REFRESH, MainWindow::OnRequestGameListRefresh)
 
@@ -417,25 +414,6 @@ wxString MainWindow::GetInitialWindowTitle()
 {
 	return BUILD_VERSION_WITH_NAME_STRING;
 }
-
-void MainWindow::ShowGettingStartedDialog()
-{
-	GettingStartedDialog dia(this);
-	dia.ShowModal();
-	if (dia.HasGamePathChanged() || dia.HasMLCChanged())
-		m_game_list->ReloadGameEntries();
-		
-	TogglePadView();
-	
-	auto& config = GetConfig();
-	m_padViewMenuItem->Check(config.pad_open.GetValue());
-	m_fullscreenMenuItem->Check(config.fullscreen.GetValue());
-}
-
-namespace coreinit
-{
-	void OSSchedulerEnd();
-};
 
 void MainWindow::OnClose(wxCloseEvent& event)
 {
@@ -2075,11 +2053,6 @@ void MainWindow::OnHelpUpdate(wxCommandEvent& event)
 	test.ShowModal();
 }
 
-void MainWindow::OnHelpGettingStarted(wxCommandEvent& event)
-{
-	ShowGettingStartedDialog();
-}
-
 void MainWindow::RecreateMenu()
 {
 	if (m_menuBar)
@@ -2303,8 +2276,7 @@ void MainWindow::RecreateMenu()
 	if (!std::getenv("APPIMAGE")) {
 		m_check_update_menu->Enable(false);
 	}
-#endif	
-	helpMenu->Append(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, _("&Getting started"));
+#endif
 	helpMenu->AppendSeparator();
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Cemu"));
 
