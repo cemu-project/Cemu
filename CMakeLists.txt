@@ -166,6 +166,11 @@ if (ENABLE_OPENGL)
 	find_package(OpenGL REQUIRED)
 endif()
 
+# TODO: handle this differently?
+if (ENABLE_METAL AND APPLE)
+    include_directories(${CMAKE_SOURCE_DIR}/dependencies/metal-cpp)
+endif()
+
 if (ENABLE_DISCORD_RPC)
 	add_compile_definitions(ENABLE_DISCORD_RPC)
 	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)

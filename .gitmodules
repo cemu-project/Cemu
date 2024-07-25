@@ -16,3 +16,6 @@
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "dependencies/metal-cpp"]
+	path = dependencies/metal-cpp
+	url = https://github.com/bkaradzic/metal-cpp.git

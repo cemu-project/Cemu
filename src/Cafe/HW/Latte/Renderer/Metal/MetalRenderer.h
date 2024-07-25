@@ -1,5 +1,9 @@
 #pragma once
 
+#include <Foundation/Foundation.hpp>
+#include <QuartzCore/QuartzCore.hpp>
+#include <Metal/Metal.hpp>
+
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 class MetalRenderer : public Renderer
@@ -15,6 +19,11 @@ public:
 	static MetalRenderer* GetInstance() {
 	    return static_cast<MetalRenderer*>(g_renderer.get());
 	}
+
+	// Helper functions
+	MTL::Device* GetDevice() const {
+        return m_device;
+    }
 
 	void InitializeLayer(const Vector2i& size, bool mainWindow);
 
@@ -44,6 +53,8 @@ public:
 	// imgui
 	bool ImguiBegin(bool mainWindow) override {
 	    cemuLog_logDebug(LogType::Force, "Imgui is not yet supported on Metal");
+
+		return false;
 	};
 
 	void ImguiEnd() override {
@@ -52,6 +63,8 @@ public:
 
 	ImTextureID GenerateTexture(const std::vector<uint8>& data, const Vector2i& size) override {
 	    cemuLog_logDebug(LogType::Force, "Imgui is not yet supported on Metal");
+
+	    return nullptr;
 	};
 
 	void DeleteTexture(ImTextureID id) override {
@@ -122,6 +135,8 @@ public:
 	// occlusion queries
 	LatteQueryObject* occlusionQuery_create() override {
 	    cemuLog_logDebug(LogType::Force, "Occlusion queries are not yet supported on Metal");
+
+		return nullptr;
 	}
 
 	void occlusionQuery_destroy(LatteQueryObject* queryObj) override {
@@ -137,6 +152,10 @@ public:
 	}
 
 
-protected:
-	//CA::MetalLayer* m_metalLayer;
+private:
+	CA::MetalLayer* m_metalLayer;
+
+	// Metal objects
+	MTL::Device* m_device;
+	MTL::CommandQueue* m_commandQueue;
 };

@@ -528,7 +528,16 @@ if(ENABLE_METAL)
     if(APPLE)
         target_sources(CemuCafe PRIVATE
             HW/Latte/Renderer/Metal/MetalRenderer.cpp
+            HW/Latte/Renderer/Metal/MetalRenderer.h
+            HW/Latte/Renderer/Metal/MetalCppImpl.cpp
+            HW/Latte/Renderer/Metal/LatteTextureMtl.cpp
+            HW/Latte/Renderer/Metal/LatteTextureMtl.h
         )
+
+        #target_link_libraries(CemuCafe PRIVATE
+        #    "-framework Metal"
+        #    "-framework QuartzCore"
+        #)
     else()
         message(FATAL_ERROR "Metal is only supported on macOS")
     endif()

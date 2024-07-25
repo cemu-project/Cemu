@@ -1,5 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 
+#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
+
 void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow) {
     /*
     const auto& windowInfo = gui_getWindowInfo().window_main;
@@ -21,7 +23,8 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow) {
 }
 
 void MetalRenderer::Initialize() {
-    cemuLog_logDebug(LogType::Force, "not implemented");
+    m_device = MTL::CreateSystemDefaultDevice();
+    m_commandQueue = m_device->newCommandQueue();
 }
 
 void MetalRenderer::Shutdown() {
@@ -30,10 +33,17 @@ void MetalRenderer::Shutdown() {
 
 bool MetalRenderer::IsPadWindowActive() {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return false;
 }
 
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    usageInMB = 1024;
+    totalInMB = 1024;
+
+    return false;
 }
 
 void MetalRenderer::ClearColorbuffer(bool padView) {
@@ -55,6 +65,8 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 }
 bool MetalRenderer::BeginFrame(bool mainWindow) {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return false;
 }
 
 void MetalRenderer::Flush(bool waitIdle) {
@@ -79,6 +91,8 @@ void MetalRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, si
 
 LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key) {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return nullptr;
 }
 
 void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* fbo) {
@@ -91,6 +105,8 @@ void MetalRenderer::rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo) {
 
 void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size) {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return nullptr;
 }
 
 void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem) {
@@ -99,6 +115,8 @@ void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem) {
 
 TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return nullptr;
 }
 
 void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) {
@@ -118,7 +136,7 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
 }
 
 LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) {
-    cemuLog_logDebug(LogType::Force, "not implemented");
+    return new LatteTextureMtl(this, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
 }
 
 void MetalRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit) {
@@ -131,6 +149,8 @@ void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, s
 
 LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView* textureView) {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return nullptr;
 }
 
 void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height) {
@@ -163,6 +183,8 @@ void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, 
 
 RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool compileAsync, bool isGfxPackSource) {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return nullptr;
 }
 
 void MetalRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) {
@@ -191,6 +213,8 @@ void MetalRenderer::draw_endSequence() {
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    return nullptr;
 }
 
 void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size) {

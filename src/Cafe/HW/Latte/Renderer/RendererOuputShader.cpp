@@ -83,7 +83,7 @@ void main(){
 const std::string RendererOutputShader::s_hermite_shader_source =
 R"(#version 420
 
-in vec4 gl_FragCoord;	
+in vec4 gl_FragCoord;
 in vec2 passUV;
 layout(binding=0) uniform sampler2D textureSrc;
 uniform vec2 textureSrcResolution;
@@ -100,7 +100,7 @@ vec3 CubicHermite (vec3 A, vec3 B, vec3 C, vec3 D, float t)
     vec3 b = A - (5.0*B)/2.0 + 2.0*C - D / 2.0;
     vec3 c = -A/2.0 + C/2.0;
    	vec3 d = B;
-    
+
     return a*t3 + b*t2 + c*t + d;
 }
 
@@ -108,36 +108,36 @@ vec3 CubicHermite (vec3 A, vec3 B, vec3 C, vec3 D, float t)
 vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
 {
 	vec2 pixel = uv*texelSize.zw + 0.5;
-	vec2 frac = fract(pixel);	
+	vec2 frac = fract(pixel);
     pixel = floor(pixel) / texelSize.zw - vec2(texelSize.xy/2.0);
-	
+
 	vec4 doubleSize = texelSize*texelSize;
 
 	vec3 C00 = texture(textureSrc, pixel + vec2(-texelSize.x ,-texelSize.y)).rgb;
     vec3 C10 = texture(textureSrc, pixel + vec2( 0.0        ,-texelSize.y)).rgb;
     vec3 C20 = texture(textureSrc, pixel + vec2( texelSize.x ,-texelSize.y)).rgb;
     vec3 C30 = texture(textureSrc, pixel + vec2( doubleSize.x,-texelSize.y)).rgb;
-    
+
     vec3 C01 = texture(textureSrc, pixel + vec2(-texelSize.x , 0.0)).rgb;
     vec3 C11 = texture(textureSrc, pixel + vec2( 0.0        , 0.0)).rgb;
     vec3 C21 = texture(textureSrc, pixel + vec2( texelSize.x , 0.0)).rgb;
-    vec3 C31 = texture(textureSrc, pixel + vec2( doubleSize.x, 0.0)).rgb;    
-    
+    vec3 C31 = texture(textureSrc, pixel + vec2( doubleSize.x, 0.0)).rgb;
+
     vec3 C02 = texture(textureSrc, pixel + vec2(-texelSize.x , texelSize.y)).rgb;
     vec3 C12 = texture(textureSrc, pixel + vec2( 0.0        , texelSize.y)).rgb;
     vec3 C22 = texture(textureSrc, pixel + vec2( texelSize.x , texelSize.y)).rgb;
-    vec3 C32 = texture(textureSrc, pixel + vec2( doubleSize.x, texelSize.y)).rgb;    
-    
+    vec3 C32 = texture(textureSrc, pixel + vec2( doubleSize.x, texelSize.y)).rgb;
+
     vec3 C03 = texture(textureSrc, pixel + vec2(-texelSize.x , doubleSize.y)).rgb;
     vec3 C13 = texture(textureSrc, pixel + vec2( 0.0        , doubleSize.y)).rgb;
     vec3 C23 = texture(textureSrc, pixel + vec2( texelSize.x , doubleSize.y)).rgb;
-    vec3 C33 = texture(textureSrc, pixel + vec2( doubleSize.x, doubleSize.y)).rgb;    
-    
+    vec3 C33 = texture(textureSrc, pixel + vec2( doubleSize.x, doubleSize.y)).rgb;
+
     vec3 CP0X = CubicHermite(C00, C10, C20, C30, frac.x);
     vec3 CP1X = CubicHermite(C01, C11, C21, C31, frac.x);
     vec3 CP2X = CubicHermite(C02, C12, C22, C32, frac.x);
     vec3 CP3X = CubicHermite(C03, C13, C23, C33, frac.x);
-    
+
     return CubicHermite(CP0X, CP1X, CP2X, CP3X, frac.y);
 }
 
@@ -190,7 +190,7 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 	float res[2];
 	// vertex shader
 	if (m_attributes[0].m_loc_texture_src_resolution != -1)
-	{ 
+	{
 		res[0] = (float)texture_view.baseTexture->width;
 		res[1] = (float)texture_view.baseTexture->height;
 		m_vertex_shader->SetUniform2fv(m_attributes[0].m_loc_texture_src_resolution, res, 1);
@@ -250,9 +250,9 @@ std::string RendererOutputShader::GetOpenGlVertexSource(bool render_upside_down)
 			R"(#version 400
 out vec2 passUV;
 
-out gl_PerVertex 
-{ 
-   vec4 gl_Position; 
+out gl_PerVertex
+{
+   vec4 gl_Position;
 };
 
 void main(){
@@ -286,7 +286,7 @@ void main(){
 
 		vertex_source <<
 			R"(	passUV = vUV;
-	gl_Position = vec4(vPos, 0.0, 1.0);	
+	gl_Position = vec4(vPos, 0.0, 1.0);
 }
 )";
 		return vertex_source.str();
@@ -300,9 +300,9 @@ std::string RendererOutputShader::GetVulkanVertexSource(bool render_upside_down)
 			R"(#version 450
 layout(location = 0) out vec2 passUV;
 
-out gl_PerVertex 
-{ 
-   vec4 gl_Position; 
+out gl_PerVertex
+{
+   vec4 gl_Position;
 };
 
 void main(){
@@ -336,7 +336,7 @@ void main(){
 
 		vertex_source <<
 			R"(	passUV = vUV;
-	gl_Position = vec4(vPos, 0.0, 1.0);	
+	gl_Position = vec4(vPos, 0.0, 1.0);
 }
 )";
 		return vertex_source.str();
@@ -359,7 +359,7 @@ void RendererOutputShader::InitializeStatic()
 		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
 		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);
 	}
-	else
+	else if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
 		vertex_source = GetVulkanVertexSource(false);
 		vertex_source_ud = GetVulkanVertexSource(true);
@@ -372,5 +372,7 @@ void RendererOutputShader::InitializeStatic()
 
 		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
 		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);*/
+	} else {
+	    cemuLog_logDebug(LogType::Force, "Output shader not implemented for Metal");
 	}
 }
