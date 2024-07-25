@@ -1,5 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
-//#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 
 LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
@@ -80,10 +80,7 @@ LatteTextureView* LatteTextureMtl::CreateView(Latte::E_DIM dim, Latte::E_GX2SURF
 	cemu_assert_debug((firstMip + mipCount) <= this->mipLevels);
 	cemu_assert_debug((firstSlice + sliceCount) <= this->depth);
 
-	//return new LatteTextureViewMtl(m_mtlr, this, dim, format, firstMip, mipCount, firstSlice, sliceCount);
-	cemuLog_logDebug(LogType::Force, "not implemented");
-
-	return nullptr;
+	return new LatteTextureViewMtl(m_mtlr, this, dim, format, firstMip, mipCount, firstSlice, sliceCount);
 }
 
 void LatteTextureMtl::AllocateOnHost()
