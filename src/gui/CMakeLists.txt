@@ -1,9 +1,11 @@
-add_library(CemuGui 
+add_library(CemuGui
   canvas/IRenderCanvas.h
   canvas/OpenGLCanvas.cpp
   canvas/OpenGLCanvas.h
   canvas/VulkanCanvas.cpp
   canvas/VulkanCanvas.h
+  canvas/MetalCanvas.cpp
+  canvas/MetalCanvas.h
   CemuApp.cpp
   CemuApp.h
   CemuUpdateWindow.cpp

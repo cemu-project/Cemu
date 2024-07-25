@@ -61,7 +61,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 			const sint32 m_cpu_modeNChoices = std::size(cpu_modes);
 			m_cpu_mode = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_cpu_modeNChoices, cpu_modes, 0);
 			m_cpu_mode->SetToolTip(_("Set the CPU emulation mode"));
-			first_row->Add(m_cpu_mode, 0, wxALL, 5);		
+			first_row->Add(m_cpu_mode, 0, wxALL, 5);
 
 			first_row->Add(new wxStaticText(box, wxID_ANY, _("Thread quantum")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
@@ -112,10 +112,14 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Graphics API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		wxString gapi_values[] = { "", "OpenGL", "Vulkan" };
+		wxString gapi_values[] = { "", "OpenGL", "Vulkan",
+#ifdef __APPLE__
+            "Metal"
+#endif
+		};
 		m_graphic_api = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(gapi_values), gapi_values);
 		first_row->Add(m_graphic_api, 0, wxALL, 5);
-		
+
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Shader multiplication accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		wxString mul_values[] = { _("false"), _("true")};
@@ -249,7 +253,7 @@ void GameProfileWindow::ApplyProfile()
 	// general
 	m_load_libs->SetValue(m_game_profile.m_loadSharedLibraries.value());
 	m_start_with_padview->SetValue(m_game_profile.m_startWithPadView);
-		
+
 	// cpu
 	// wxString cpu_modes[] = { _("Singlecore-Interpreter"), _("Singlecore-Recompiler"), _("Triplecore-Recompiler"), _("Auto (recommended)") };
 	switch(m_game_profile.m_cpuMode.value())
@@ -258,9 +262,9 @@ void GameProfileWindow::ApplyProfile()
 	case CPUMode::SinglecoreRecompiler: m_cpu_mode->SetSelection(1); break;
 	case CPUMode::DualcoreRecompiler: m_cpu_mode->SetSelection(2); break;
 	case CPUMode::MulticoreRecompiler: m_cpu_mode->SetSelection(2); break;
-	default: m_cpu_mode->SetSelection(3); 
+	default: m_cpu_mode->SetSelection(3);
 	}
-	
+
 	m_thread_quantum->SetStringSelection(fmt::format("{}", m_game_profile.m_threadQuantum));
 
 	// gpu
@@ -275,7 +279,7 @@ void GameProfileWindow::ApplyProfile()
 
 	// controller
 	auto profiles = InputManager::get_profiles();
-	
+
 	for (const auto& cb : m_controller_profile)
 	{
 		cb->Clear();
@@ -293,7 +297,7 @@ void GameProfileWindow::ApplyProfile()
 			const auto& v = m_game_profile.m_controllerProfile[i].value();
 			m_controller_profile[i]->SetStringSelection(wxString::FromUTF8(v));
 		}
-			
+
 		else
 			m_controller_profile[i]->SetSelection(wxNOT_FOUND);
 	}
@@ -317,7 +321,7 @@ void GameProfileWindow::SaveProfile()
 		m_game_profile.m_cpuMode = CPUMode::Auto;
 	}
 
-	
+
 	const wxString thread_quantum = m_thread_quantum->GetStringSelection();
 	if (!thread_quantum.empty())
 	{

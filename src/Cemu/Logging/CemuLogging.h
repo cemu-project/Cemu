@@ -20,6 +20,7 @@ enum class LogType : sint32
 	OpenGLLogging = 10, // OpenGL debug logging
 	TextureCache = 11, // texture cache warnings and info
 	VulkanValidation = 12, // Vulkan validation layer
+	MetalLogging = 13, // Metal debug logging
 	Patches = 14,
 	CoreinitMem = 8, // coreinit memory functions
 	CoreinitMP = 15,
@@ -52,7 +53,7 @@ enum class LogType : sint32
 template <>
 struct fmt::formatter<std::u8string_view> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(std::u8string_view v, FormatContext& ctx) 
+	auto format(std::u8string_view v, FormatContext& ctx)
 	{
 		string_view s((char*)v.data(), v.size());
 		return formatter<string_view>::format(s, ctx);
@@ -96,7 +97,7 @@ bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 	}
 	return true;
 }
- 
+
 template<typename T, typename ... TArgs>
 bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 {

@@ -7,6 +7,8 @@ add_library(imguiImpl
 	imgui_extension.h
 )
 
+# TODO: add Metal
+
 set_property(TARGET imguiImpl PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(imguiImpl PUBLIC "../")

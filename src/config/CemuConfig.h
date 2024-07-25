@@ -32,7 +32,7 @@ struct GameEntry
 	std::wstring save_folder;
 	std::wstring update_folder;
 	std::wstring dlc_folder;
-	
+
 	uint64 legacy_time_played = 0;
 	uint64 legacy_last_played = 0;
 
@@ -74,6 +74,7 @@ enum GraphicAPI
 {
 	kOpenGL = 0,
 	kVulkan,
+	kMetal,
 };
 
 enum AudioChannels
@@ -105,7 +106,7 @@ enum class ScreenPosition
 	kTopRight,
 	kBottomLeft,
 	kBottomCenter,
-	kBottomRight,	
+	kBottomRight,
 };
 
 enum class PrecompiledShaderOption
@@ -134,7 +135,7 @@ enum class CPUMode
 ENABLE_ENUM_ITERATORS(CPUMode, CPUMode::SinglecoreInterpreter, CPUMode::Auto);
 
 
-enum class CPUModeLegacy 
+enum class CPUModeLegacy
 {
 	SinglecoreInterpreter = 0,
 	SinglecoreRecompiler = 1,
@@ -270,7 +271,7 @@ struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
 		case CafeConsoleRegion::TWN: name = wxTRANSLATE("Taiwan"); break;
 		case CafeConsoleRegion::Auto: name = wxTRANSLATE("Auto"); break;
 		default: name = wxTRANSLATE("many"); break;
-		
+
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
@@ -312,7 +313,7 @@ struct fmt::formatter<CrashDump> : formatter<string_view> {
 		case CrashDump::Lite: name = "Lite"; break;
 		case CrashDump::Full: name = "Full"; break;
 		default: name = "unknown"; break;
-		
+
 		}
 		return formatter<string_view>::format(name, ctx);
 	}
@@ -363,7 +364,7 @@ struct CemuConfig
 	ConfigValue<bool> advanced_ppc_logging{ false };
 
 	ConfigValue<bool> permanent_storage{ true };
-	
+
 	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
 	ConfigValue<bool> use_discord_presence{ true };
 	ConfigValue<std::string> mlc_path{};
@@ -387,7 +388,7 @@ struct CemuConfig
 
 	// optimized access
 	std::set<uint64> game_cache_favorites; // per titleId
-	
+
 	struct _path_hash {
 		std::size_t operator()(const fs::path& path) const {
 			return fs::hash_value(path);
@@ -514,7 +515,7 @@ struct CemuConfig
 
 	NetworkService GetAccountNetworkService(uint32 persistentId);
 	void SetAccountSelectedService(uint32 persistentId, NetworkService serviceIndex);
-	
+
 	// emulated usb devices
 	struct
 	{
@@ -530,5 +531,3 @@ struct CemuConfig
 typedef XMLDataConfig<CemuConfig, &CemuConfig::Load, &CemuConfig::Save> XMLCemuConfig_t;
 extern XMLCemuConfig_t g_config;
 inline CemuConfig& GetConfig() { return g_config.data(); }
-
-

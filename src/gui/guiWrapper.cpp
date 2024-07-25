@@ -82,11 +82,14 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
 		case RendererAPI::OpenGL:
 			renderer =  "[OpenGL]";
 			break;
-		case RendererAPI::Vulkan: 
+		case RendererAPI::Vulkan:
 			renderer = "[Vulkan]";
 			break;
+		case RendererAPI::Metal:
+            renderer = "[Metal]";
+            break;
 		default: ;
-		}			
+		}
 	}
 
 	// get GPU vendor/mode
@@ -217,7 +220,7 @@ void gui_initHandleContextFromWxWidgetsWindow(WindowHandleInfo& handleInfoOut, c
 			cemuLog_log(LogType::Force, "Unable to get xlib display");
 		}
 	}
-	else 
+	else
 #ifdef HAS_WAYLAND
 	if(GDK_IS_WAYLAND_WINDOW(gdkWindow))
 	{

@@ -101,7 +101,7 @@ public:
 
 	Account& GetAccount() { return m_account; }
 	const Account& GetAccount() const { return m_account; }
-	
+
 private:
 	Account m_account;
 };
@@ -165,11 +165,11 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
 			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
 			second_row->Add(m_auto_update, 0, botflag, 5);
-#if BOOST_OS_LINUX 
+#if BOOST_OS_LINUX
 			if (!std::getenv("APPIMAGE")) {
 				m_auto_update->Disable();
-			} 
-#endif	
+			}
+#endif
 			second_row->AddSpacer(10);
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
 			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
@@ -276,12 +276,14 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		row->Add(new wxStaticText(box, wxID_ANY, _("Graphics API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		sint32 api_size = 1;
-		wxString choices[2] = { "OpenGL" };
+		wxString choices[3] = { "OpenGL" };
 		if (g_vulkan_available)
 		{
-			choices[1] = "Vulkan";
-			api_size = 2;
+			choices[api_size++] = "Vulkan";
 		}
+#ifdef __APPLE__
+        choices[api_size++] = "Metal";
+#endif
 
 		m_graphic_api = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, api_size, choices);
 		m_graphic_api->SetSelection(0);
@@ -728,7 +730,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		auto* row = new wxFlexGridSizer(0, 2, 0, 0);
 		row->SetFlexibleDirection(wxBOTH);
 		row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
-		
+
 		const wxImage tmp = wxBITMAP_PNG_FROM_DATA(PNG_ERROR).ConvertToImage();
 		m_validate_online = new wxBitmapButton(box, wxID_ANY, tmp.Scale(16, 16));
 		m_validate_online->Bind(wxEVT_BUTTON, &GeneralSettings2::OnShowOnlineValidator, this);
@@ -738,7 +740,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		row->Add(m_online_status, 1, wxALL | wxALIGN_CENTRE_VERTICAL, 5);
 
 		box_sizer->Add(row, 1, wxEXPAND, 5);
-		
+
 		auto* tutorial_link = new wxHyperlinkCtrl(box, wxID_ANY, _("Online play tutorial"), "https://cemu.info/online-guide");
 		box_sizer->Add(tutorial_link, 0, wxALL, 5);
 
@@ -856,14 +858,14 @@ GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 
 	notebook->AddPage(AddGeneralPage(notebook), _("General"));
 	notebook->AddPage(AddGraphicsPage(notebook), _("Graphics"));
-	notebook->AddPage(AddAudioPage(notebook), _("Audio"));	
+	notebook->AddPage(AddAudioPage(notebook), _("Audio"));
 	notebook->AddPage(AddOverlayPage(notebook), _("Overlay"));
 	notebook->AddPage(AddAccountPage(notebook), _("Account"));
 	notebook->AddPage(AddDebugPage(notebook), _("Debug"));
 
 	Bind(wxEVT_CLOSE_WINDOW, &GeneralSettings2::OnClose, this);
 
-	// 
+	//
 
 	sizer->Add(notebook, 1, wxEXPAND | wxALL, 5);
 
@@ -878,7 +880,7 @@ GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 
 	ApplyConfig();
 	HandleGraphicsApiSelection();
-	
+
 	DisableSettings(game_launched);
 }
 
@@ -890,7 +892,7 @@ uint32 GeneralSettings2::GetSelectedAccountPersistentId()
 	return dynamic_cast<wxAccountData*>(m_active_account->GetClientObject(active_account))->GetAccount().GetPersistentId();
 }
 
-void GeneralSettings2::StoreConfig() 
+void GeneralSettings2::StoreConfig()
 {
 	auto* app = (CemuApp*)wxTheApp;
 	auto& config = GetConfig();
@@ -908,7 +910,7 @@ void GeneralSettings2::StoreConfig()
 	{
 		ScreenSaver::SetInhibit(config.disable_screensaver);
 	}
-	
+
 	// -1 is default wx widget value -> set to dummy 0 so mainwindow and padwindow will update it
 	config.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
 	config.window_size = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
@@ -951,7 +953,7 @@ void GeneralSettings2::StoreConfig()
 	config.pad_channels = kStereo; // (AudioChannels)m_pad_channels->GetSelection();
 	//config.input_channels =  (AudioChannels)m_input_channels->GetSelection();
 	config.input_channels = kMono; // (AudioChannels)m_input_channels->GetSelection();
-	
+
 	config.tv_volume = m_tv_volume->GetValue();
 	config.pad_volume = m_pad_volume->GetValue();
 	config.input_volume = m_input_volume->GetValue();
@@ -997,16 +999,16 @@ void GeneralSettings2::StoreConfig()
 	}
 	else
 		config.graphic_device_uuid = {};
-	
+
 
 	config.vsync = m_vsync->GetSelection();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
 	config.async_compile = m_async_compile->IsChecked();
-	
+
 	config.upscale_filter = m_upscale_filter->GetSelection();
 	config.downscale_filter = m_downscale_filter->GetSelection();
 	config.fullscreen_scaling = m_fullscreen_scaling->GetSelection();
-	
+
 	config.overlay.position = (ScreenPosition)m_overlay_position->GetSelection(); wxASSERT((int)config.overlay.position <= (int)ScreenPosition::kBottomRight);
 	config.overlay.text_color = m_overlay_font_color->GetColour().GetRGBA();
 	config.overlay.text_scale = m_overlay_scale->GetSelection() * 25 + 50;
@@ -1064,7 +1066,7 @@ void GeneralSettings2::ValidateConfig()
 
 void GeneralSettings2::DisableSettings(bool game_launched)
 {
-	
+
 }
 
 void GeneralSettings2::OnAudioLatencyChanged(wxCommandEvent& event)
@@ -1075,7 +1077,7 @@ void GeneralSettings2::OnAudioLatencyChanged(wxCommandEvent& event)
 
 void GeneralSettings2::OnVolumeChanged(wxCommandEvent& event)
 {
-	
+
 	if(event.GetEventObject() == m_input_volume)
 	{
 		std::shared_lock lock(g_audioInputMutex);
@@ -1099,7 +1101,7 @@ void GeneralSettings2::OnVolumeChanged(wxCommandEvent& event)
 				g_tvAudio->SetVolume(event.GetInt());
 		}
 	}
-	
+
 
 	event.Skip();
 }
@@ -1112,7 +1114,7 @@ void GeneralSettings2::OnInputVolumeChanged(wxCommandEvent& event)
 		g_padAudio->SetInputVolume(event.GetInt());
 		g_padVolume = event.GetInt();
 	}
-		
+
 	event.Skip();
 }
 
@@ -1190,7 +1192,7 @@ void GeneralSettings2::UpdateAudioDeviceList()
 	// todo reset global instance of audio device
 }
 
-void GeneralSettings2::ResetAccountInformation() 
+void GeneralSettings2::ResetAccountInformation()
 {
 	m_account_grid->SetSplitterPosition(100);
 	m_active_account->SetSelection(0);
@@ -1218,7 +1220,7 @@ void GeneralSettings2::OnAccountCreate(wxCommandEvent& event)
 	Account account(dialog.GetPersistentId(), dialog.GetMiiName().ToStdWstring());
 	account.Save();
 	Account::RefreshAccounts();
-	
+
 	const int index = m_active_account->Append(account.ToString(), new wxAccountData(account));
 
 	// update ui
@@ -1227,7 +1229,7 @@ void GeneralSettings2::OnAccountCreate(wxCommandEvent& event)
 
 	m_create_account->Enable(m_active_account->GetCount() < 0xC);
 	m_delete_account->Enable(m_active_account->GetCount() > 1);
-	
+
 	// send main window event
 	wxASSERT(GetParent());
 	wxCommandEvent refresh_event(wxEVT_ACCOUNTLIST_REFRESH);
@@ -1257,7 +1259,7 @@ void GeneralSettings2::OnAccountDelete(wxCommandEvent& event)
 		return;
 
 	// todo: ask if saves should be deleted too?
-	
+
 	const fs::path path = account.GetFileName();
 	try
 	{
@@ -1275,7 +1277,7 @@ void GeneralSettings2::OnAccountDelete(wxCommandEvent& event)
 		SystemException sys(ex);
 		cemuLog_log(LogType::Force, sys.what());
 	}
-	
+
 }
 
 void GeneralSettings2::OnAccountSettingsChanged(wxPropertyGridEvent& event)
@@ -1330,7 +1332,7 @@ void GeneralSettings2::OnAccountSettingsChanged(wxPropertyGridEvent& event)
 	else if (property->GetName() == kPropertyEmail)
 	{
 		account.SetEmail(value.As<wxString>().ToStdString());
-		
+
 	}
 	else if (property->GetName() == kPropertyCountry)
 	{
@@ -1338,7 +1340,7 @@ void GeneralSettings2::OnAccountSettingsChanged(wxPropertyGridEvent& event)
 	}
 	else
 		cemu_assert_debug(false);
-	
+
 	account.Save();
 	Account::RefreshAccounts(); // refresh internal account list
 	UpdateAccountInformation(); // refresh on invalid values
@@ -1378,7 +1380,7 @@ void GeneralSettings2::UpdateAccountInformation()
 	gender_property->SetChoiceSelection(std::min(gender_property->GetChoices().GetCount() - 1, (uint32)account.GetGender()));
 
 	m_account_grid->GetProperty(kPropertyEmail)->SetValueFromString(std::string{ account.GetEmail() });
-	
+
 	auto* country_property = dynamic_cast<wxEnumProperty*>(m_account_grid->GetProperty(kPropertyCountry));
 	wxASSERT(country_property);
 	int index = (country_property)->GetIndexForValue(account.GetCountry());
@@ -1462,7 +1464,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 	int selection = m_vsync->GetSelection();
 	if(selection == wxNOT_FOUND)
 		selection = GetConfig().vsync;
-		
+
 	m_vsync->Clear();
 	if(m_graphic_api->GetSelection() == 0)
 	{
@@ -1494,7 +1496,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 #endif
 
 		m_vsync->Select(selection);
-		
+
 		m_graphic_device->Enable();
 		auto devices = VulkanRenderer::GetDevices();
 		m_graphic_device->Clear();
@@ -1618,7 +1620,7 @@ void GeneralSettings2::ApplyConfig()
 	m_pad_channels->SetSelection(0);
 	//m_input_channels->SetSelection(config.pad_channels);
 	m_input_channels->SetSelection(0);
-	
+
 	SendSliderEvent(m_tv_volume, config.tv_volume);
 
 	if (!config.tv_device.empty() && m_tv_device->HasClientObjectData())
@@ -1635,7 +1637,7 @@ void GeneralSettings2::ApplyConfig()
 	}
 	else
 		m_tv_device->SetSelection(0);
-	
+
 	SendSliderEvent(m_pad_volume, config.pad_volume);
 	if (!config.pad_device.empty() && m_pad_device->HasClientObjectData())
 	{
@@ -1768,7 +1770,7 @@ void GeneralSettings2::UpdateAudioDevice()
 			}
 		}
 	}
-	
+
 	// pad audio device
 	{
 		const auto selection = m_pad_device->GetSelection();
@@ -1884,14 +1886,14 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 	{
 		if (config.tv_channels == (AudioChannels)obj->GetSelection())
 			return;
-		
+
 		config.tv_channels = (AudioChannels)obj->GetSelection();
 	}
 	else if (obj == m_pad_channels)
 	{
 		if (config.pad_channels == (AudioChannels)obj->GetSelection())
 			return;
-		
+
 		config.pad_channels = (AudioChannels)obj->GetSelection();
 	}
 	else
@@ -2034,23 +2036,23 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 	const auto selection = m_active_account->GetSelection();
 	if (selection == wxNOT_FOUND)
 		return;
-	
+
 	const auto* obj = dynamic_cast<wxAccountData*>(m_active_account->GetClientObject(selection));
 	wxASSERT(obj);
 	const auto& account = obj->GetAccount();
-	
+
 	const auto validator = account.ValidateOnlineFiles();
 	if (validator) // everything valid? shouldn't happen
 		return;
-	
+
 	wxString err;
 	err << _("The following error(s) have been found:") << '\n';
-	
+
 	if (validator.otp == OnlineValidator::FileState::Missing)
 		err << _("otp.bin missing in Cemu directory") << '\n';
 	else if(validator.otp == OnlineValidator::FileState::Corrupted)
 		err << _("otp.bin is invalid") << '\n';
-	
+
 	if (validator.seeprom == OnlineValidator::FileState::Missing)
 		err << _("seeprom.bin missing in Cemu directory") << '\n';
 	else if(validator.seeprom == OnlineValidator::FileState::Corrupted)

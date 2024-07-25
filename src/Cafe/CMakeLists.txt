@@ -524,6 +524,16 @@ if(APPLE)
 	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
 endif()
 
+if(ENABLE_METAL)
+    if(APPLE)
+        target_sources(CemuCafe PRIVATE
+            HW/Latte/Renderer/Metal/MetalRenderer.cpp
+        )
+    else()
+        message(FATAL_ERROR "Metal is only supported on macOS")
+    endif()
+endif()
+
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(CemuCafe PUBLIC "../")
