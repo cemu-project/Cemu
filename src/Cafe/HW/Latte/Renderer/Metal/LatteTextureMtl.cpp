@@ -65,6 +65,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	}
 
 	m_texture = mtlRenderer->GetDevice()->newTexture(desc);
+
 	desc->release();
 }
 

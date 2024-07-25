@@ -521,7 +521,10 @@ add_library(CemuCafe
 )
 
 if(APPLE)
-	target_sources(CemuCafe PRIVATE "HW/Latte/Renderer/Vulkan/CocoaSurface.mm")
+	target_sources(CemuCafe PRIVATE
+	    HW/Latte/Renderer/Vulkan/CocoaSurface.mm
+	    HW/Latte/Renderer/MetalView.mm
+	)
 endif()
 
 if(ENABLE_METAL)
@@ -530,6 +533,8 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/MetalRenderer.cpp
             HW/Latte/Renderer/Metal/MetalRenderer.h
             HW/Latte/Renderer/Metal/MetalCppImpl.cpp
+            HW/Latte/Renderer/Metal/MetalLayer.mm
+            HW/Latte/Renderer/Metal/MetalLayer.h
             HW/Latte/Renderer/Metal/LatteTextureMtl.cpp
             HW/Latte/Renderer/Metal/LatteTextureMtl.h
             HW/Latte/Renderer/Metal/LatteTextureViewMtl.cpp

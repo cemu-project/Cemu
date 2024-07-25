@@ -9,7 +9,8 @@
 class MetalRenderer : public Renderer
 {
 public:
-	~MetalRenderer() = default;
+    MetalRenderer();
+	~MetalRenderer() override;
 
 	RendererAPI GetType() override
 	{
