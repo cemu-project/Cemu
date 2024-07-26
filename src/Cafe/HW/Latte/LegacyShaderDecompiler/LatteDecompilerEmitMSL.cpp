@@ -3878,9 +3878,19 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	LatteDecompiler::emitHeader(shaderContext);
 	// helper functions
 	LatteDecompiler_emitHelperFunctions(shaderContext, src);
+	switch (shader->shaderType)
+	{
+	case LatteConst::ShaderType::Vertex:
+	    src->add("VertexOut");
+		break;
+	case LatteConst::ShaderType::Pixel:
+	    src->add("FragmentOut");
+		break;
+	}
 	// start of main
-	src->add("void main()" _CRLF);
-	src->add("{" _CRLF);
+	src->add(" main0(");
+	LatteDecompiler::emitInputs(shaderContext);
+	src->add(") {" _CRLF);
 	// variable definition
 	if (shaderContext->typeTracker.useArrayGPRs == false)
 	{
@@ -3987,7 +3997,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			cemu_assert_debug((shaderContext->output->streamoutBufferStride[i]&3) == 0);
 
 			if (shader->shaderType == LatteConst::ShaderType::Vertex) // vertex shader
-				src->addFmt("int sbBase{} = uf_streamoutBufferBase{}/4 + (gl_VertexID + uf_verticesPerInstance * gl_InstanceID)*{};" _CRLF, i, i, shaderContext->output->streamoutBufferStride[i] / 4);
+				src->addFmt("int sbBase{} = uf_streamoutBufferBase{}/4 + (vid + uf_verticesPerInstance * iid)*{};" _CRLF, i, i, shaderContext->output->streamoutBufferStride[i] / 4);
 			else // geometry shader
 			{
 				uint32 gsOutPrimType = shaderContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE];
@@ -4007,9 +4017,9 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		if( (shaderContext->analyzer.gprUseMask[0/8]&(1<<(0%8))) != 0 )
 		{
 			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-				src->addFmt("{} = int4(gl_VertexID, 0, 0, gl_InstanceID);" _CRLF, _getRegisterVarName(shaderContext, 0));
+				src->addFmt("{} = int4(vid, 0, 0, iid);" _CRLF, _getRegisterVarName(shaderContext, 0));
 			else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-				src->addFmt("{} = as_type<int4>(float4(gl_VertexID, 0, 0, gl_InstanceID));" _CRLF, _getRegisterVarName(shaderContext, 0)); // TODO: is this correct?
+				src->addFmt("{} = as_type<int4>(float4(vid, 0, 0, iid));" _CRLF, _getRegisterVarName(shaderContext, 0)); // TODO: is this correct?
 			else
 				cemu_assert_unimplemented();
 		}

@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "HW/Latte/Core/LatteShader.h"
@@ -235,10 +236,9 @@ void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, 
     cemuLog_logDebug(LogType::Force, "not implemented");
 }
 
-RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool compileAsync, bool isGfxPackSource)
+RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
 {
-    cemuLog_logDebug(LogType::Force, "not implemented");
-
+    //return new RendererShaderMtl(this, type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
     return nullptr;
 }
 

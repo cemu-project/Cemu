@@ -12,8 +12,6 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "util/helpers/helpers.h"
-// TODO: remove this include
-#include "util/helpers/StringBuf.h"
 
 // parse instruction and if valid append it to instructionList
 bool LatteDecompiler_ParseCFInstruction(LatteDecompilerShaderContext* shaderContext, uint32 cfIndex, uint32 cfWord0, uint32 cfWord1, bool* endOfProgram, std::vector<LatteDecompilerCFInstruction>& instructionList)
@@ -1070,14 +1068,9 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 	if (shaderContext->shader->hasError == false)
 	{
 	    if (g_renderer->GetType() == RendererAPI::Metal)
-		{
 			LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
-			// HACK
-			std::cout << shaderContext->shaderSource->c_str() << std::endl;
-		} else
-		{
+		else
 		    LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
-		}
 	}
 	LatteDecompiler_cleanup(shaderContext);
 	// fast access
