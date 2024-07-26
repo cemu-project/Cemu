@@ -524,6 +524,7 @@ if(APPLE)
 	target_sources(CemuCafe PRIVATE
 	    HW/Latte/Renderer/Vulkan/CocoaSurface.mm
 	    HW/Latte/Renderer/MetalView.mm
+	    HW/Latte/Renderer/MetalView.h
 	)
 endif()
 
@@ -535,6 +536,8 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/MetalCppImpl.cpp
             HW/Latte/Renderer/Metal/MetalLayer.mm
             HW/Latte/Renderer/Metal/MetalLayer.h
+            HW/Latte/Renderer/Metal/LatteToMtl.cpp
+            HW/Latte/Renderer/Metal/LatteToMtl.h
             HW/Latte/Renderer/Metal/LatteTextureMtl.cpp
             HW/Latte/Renderer/Metal/LatteTextureMtl.h
             HW/Latte/Renderer/Metal/LatteTextureViewMtl.cpp

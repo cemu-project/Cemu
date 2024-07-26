@@ -1,12 +1,15 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
-	: LatteTexture(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth), m_mtlr(mtlRenderer)
+	: LatteTexture(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth), m_mtlr(mtlRenderer), m_format(format)
 {
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
+    desc->setStorageMode(MTL::StorageModeShared); // TODO: use private?
+
 	sint32 effectiveBaseWidth = width;
 	sint32 effectiveBaseHeight = height;
 	sint32 effectiveBaseDepth = depth;
@@ -31,17 +34,13 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 		desc->setArrayLength(effectiveBaseDepth);
 	}
 
-	// TODO: uncomment
-	//MetalRenderer::FormatInfoMTL texFormatInfo;
-	//mtlRenderer->GetTextureFormatInfoMTL(format, isDepth, dim, effectiveBaseWidth, effectiveBaseHeight, &texFormatInfo);
-	//cemu_assert_debug(hasStencil == ((texFormatInfo.vkImageAspect & VK_IMAGE_ASPECT_STENCIL_BIT) != 0));
-	//imageInfo.format = texFormatInfo.mtlPixelFormat;
-	desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+	auto formatInfo = GetMtlPixelFormatInfo(format);
+	desc->setPixelFormat(formatInfo.pixelFormat);
 
 	// TODO: is write needed?
 	MTL::TextureUsage usage = MTL::TextureUsageShaderRead | MTL::TextureUsageShaderWrite;
 	// TODO: add more conditions
-	if (Latte::IsCompressedFormat(format) == false)
+	if (!Latte::IsCompressedFormat(format))
 	{
 		usage |= MTL::TextureUsageRenderTarget;
 	}

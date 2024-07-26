@@ -3,6 +3,7 @@
 #include <Metal/Metal.hpp>
 
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
+#include "HW/Latte/ISA/LatteReg.h"
 #include "util/ChunkedHeap/ChunkedHeap.h"
 
 class LatteTextureMtl : public LatteTexture
@@ -15,6 +16,10 @@ public:
 	MTL::Texture* GetTexture() const {
 	    return m_texture;
 	}
+
+	Latte::E_GX2SURFFMT GetFormat() const {
+        return m_format;
+    }
 
 	void AllocateOnHost() override;
 
@@ -33,4 +38,6 @@ private:
 	class MetalRenderer* m_mtlr;
 
 	MTL::Texture* m_texture;
+
+	Latte::E_GX2SURFFMT m_format;
 };

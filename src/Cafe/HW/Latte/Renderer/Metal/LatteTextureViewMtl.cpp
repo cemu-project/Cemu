@@ -3,7 +3,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 
 LatteTextureViewMtl::LatteTextureViewMtl(MetalRenderer* mtlRenderer, LatteTextureMtl* texture, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
-	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format), m_mtlr(mtlRenderer)
+	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format), m_mtlr(mtlRenderer), m_format(format)
 {
     // TODO: don't hardcode the format
     MTL::PixelFormat pixelFormat = MTL::PixelFormatRGBA8Unorm;

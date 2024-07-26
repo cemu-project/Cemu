@@ -159,4 +159,6 @@ private:
 	// Metal objects
 	MTL::Device* m_device;
 	MTL::CommandQueue* m_commandQueue;
+
+	MTL::CommandBuffer* m_commandBuffer = nullptr;
 };

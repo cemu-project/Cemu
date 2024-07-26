@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "gui/guiWrapper.h"
 
@@ -69,11 +70,11 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
         return;
     }
 
-    MTL::CommandBuffer* commandBuffer = m_commandQueue->commandBuffer();
-    commandBuffer->presentDrawable(drawable);
-    commandBuffer->commit();
+    m_commandBuffer->presentDrawable(drawable);
+    m_commandBuffer->commit();
 
-    commandBuffer->release();
+    m_commandBuffer->release();
+    m_commandBuffer = nullptr;
 }
 
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
@@ -85,8 +86,9 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
 {
-    cemuLog_logDebug(LogType::Force, "not implemented");
+    m_commandBuffer = m_commandQueue->commandBuffer();
 
+    // TODO
     return false;
 }
 
@@ -158,7 +160,11 @@ void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIn
 
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
 {
-    cemuLog_logDebug(LogType::Force, "not implemented");
+    auto mtlTexture = (LatteTextureMtl*)hostTexture;
+
+    size_t bytesPerRow = GetMtlTextureBytesPerRow(mtlTexture->GetFormat(), width);
+    size_t bytesPerImage = GetMtlTextureBytesPerImage(mtlTexture->GetFormat(), height, bytesPerRow);
+    mtlTexture->GetTexture()->replaceRegion(MTL::Region(0, 0, width, height), mipIndex, sliceIndex, pixelData, bytesPerRow, bytesPerImage);
 }
 
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)

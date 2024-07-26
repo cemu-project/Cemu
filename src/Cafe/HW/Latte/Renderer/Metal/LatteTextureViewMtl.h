@@ -14,8 +14,14 @@ public:
 	    return m_texture;
 	}
 
+	Latte::E_GX2SURFFMT GetFormat() const {
+        return m_format;
+    }
+
 private:
 	class MetalRenderer* m_mtlr;
 
 	MTL::Texture* m_texture;
+
+	Latte::E_GX2SURFFMT m_format;
 };
