@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
+#include "HW/Latte/Core/LatteShader.h"
 #include "gui/guiWrapper.h"
 
 MetalRenderer::MetalRenderer()
@@ -259,6 +260,8 @@ void MetalRenderer::streamout_rendererFinishDrawcall()
 void MetalRenderer::draw_beginSequence()
 {
     cemuLog_logDebug(LogType::Force, "not implemented");
+
+    LatteSHRC_UpdateActiveShaders();
 }
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)

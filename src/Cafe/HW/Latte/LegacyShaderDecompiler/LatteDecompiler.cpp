@@ -12,6 +12,8 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "util/helpers/helpers.h"
+// TODO: remove this include
+#include "util/helpers/StringBuf.h"
 
 // parse instruction and if valid append it to instructionList
 bool LatteDecompiler_ParseCFInstruction(LatteDecompilerShaderContext* shaderContext, uint32 cfIndex, uint32 cfWord0, uint32 cfWord1, bool* endOfProgram, std::vector<LatteDecompilerCFInstruction>& instructionList)
@@ -323,8 +325,8 @@ bool LatteDecompiler_IsALUTransInstruction(bool isOP3, uint32 opcode)
 	}
 	else if( opcode == ALU_OP2_INST_MOV ||
 		opcode == ALU_OP2_INST_ADD ||
-		opcode == ALU_OP2_INST_NOP || 
-		opcode == ALU_OP2_INST_MUL || 
+		opcode == ALU_OP2_INST_NOP ||
+		opcode == ALU_OP2_INST_MUL ||
 		opcode == ALU_OP2_INST_DOT4 ||
 		opcode == ALU_OP2_INST_DOT4_IEEE ||
 		opcode == ALU_OP2_INST_MAX || // Not sure if MIN/MAX are non-transcendental?
@@ -927,7 +929,7 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 				texInstruction.memRead.format = dataFormat;
 				texInstruction.memRead.nfa = nfa;
 				texInstruction.memRead.isSigned = isSigned;
-	
+
 				cfInstruction->instructionsTEX.emplace_back(texInstruction);
 			}
 			else
@@ -1066,9 +1068,19 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 		LatteDecompiler_analyzeDataTypes(shaderContext);
 	// emit code
 	if (shaderContext->shader->hasError == false)
-		LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+	{
+	    if (g_renderer->GetType() == RendererAPI::Metal)
+		{
+			LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
+			// HACK
+			std::cout << shaderContext->shaderSource->c_str() << std::endl;
+		} else
+		{
+		    LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+		}
+	}
 	LatteDecompiler_cleanup(shaderContext);
-	// fast access 
+	// fast access
 	_LatteDecompiler_GenerateDataForFastAccess(shaderContext->shader);
 }
 

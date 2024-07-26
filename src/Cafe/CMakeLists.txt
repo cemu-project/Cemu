@@ -151,6 +151,9 @@ add_library(CemuCafe
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitGLSLAttrDecoder.cpp
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitGLSL.cpp
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitGLSLHeader.hpp
+  HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitMSLAttrDecoder.cpp
+  HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitMSL.cpp
+  HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitMSLHeader.hpp
   HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerInternal.h
