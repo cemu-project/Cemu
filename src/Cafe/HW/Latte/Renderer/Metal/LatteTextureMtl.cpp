@@ -85,5 +85,5 @@ LatteTextureView* LatteTextureMtl::CreateView(Latte::E_DIM dim, Latte::E_GX2SURF
 
 void LatteTextureMtl::AllocateOnHost()
 {
-	cemuLog_logDebug(LogType::Force, "not implemented");
+	cemuLog_log(LogType::MetalLogging, "not implemented");
 }

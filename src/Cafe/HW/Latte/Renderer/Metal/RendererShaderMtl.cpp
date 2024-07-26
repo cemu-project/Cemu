@@ -9,11 +9,12 @@ RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type
 	MTL::Library* library = mtlRenderer->GetDevice()->newLibrary(NS::String::string(mslCode.c_str(), NS::ASCIIStringEncoding), nullptr, &error);
 	if (error)
     {
-        cemuLog_log(LogType::MetalLogging, "Failed to create library (error: {}) -> source:\n{}", error->localizedDescription()->utf8String(), mslCode.c_str());
+        printf("Failed to create library (error: %s) -> source:\n%s", error->localizedDescription()->utf8String(), mslCode.c_str());
         error->release();
         return;
     }
     m_function = library->newFunction(NS::String::string("main0", NS::ASCIIStringEncoding));
+    library->release();
 }
 
 RendererShaderMtl::~RendererShaderMtl()

@@ -29,10 +29,21 @@ public:
 	    return m_function;
 	}
 
-	// TODO: implement these
-	sint32 GetUniformLocation(const char* name) override { return 0; }
-	void SetUniform2fv(sint32 location, void* data, sint32 count) override {}
-	void SetUniform4iv(sint32 location, void* data, sint32 count) override {}
+	sint32 GetUniformLocation(const char* name) override
+	{
+	    cemu_assert_suspicious();
+	    return 0;
+	}
+
+	void SetUniform2fv(sint32 location, void* data, sint32 count) override
+	{
+	    cemu_assert_suspicious();
+	}
+
+	void SetUniform4iv(sint32 location, void* data, sint32 count) override
+	{
+	    cemu_assert_suspicious();
+	}
 
 	// TODO: implement this
 	void PreponeCompilation(bool isRenderThread) override {}

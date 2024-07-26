@@ -9,7 +9,7 @@ namespace LatteDecompiler
 		LatteDecompilerShaderResourceMapping& resourceMapping = decompilerContext->output->resourceMappingGL;
 		auto& uniformOffsets = decompilerContext->output->uniformOffsetsVK;
 
-		src->add("struct DefualtUniforms {" _CRLF);
+		src->add("struct SupportBuffer {" _CRLF);
 
 		sint32 uniformCurrentOffset = 0;
 		auto shader = decompilerContext->shader;
@@ -19,11 +19,11 @@ namespace LatteDecompiler
 			// uniform registers or buffers are accessed statically with predictable offsets
 			// this allows us to remap the used entries into a more compact array
 			if (shaderType == LatteConst::ShaderType::Vertex)
-				src->addFmt("ivec4 uf_remappedVS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
+				src->addFmt("int4 remappedVS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
 			else if (shaderType == LatteConst::ShaderType::Pixel)
-				src->addFmt("ivec4 uf_remappedPS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
+				src->addFmt("int4 remappedPS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
 			else if (shaderType == LatteConst::ShaderType::Geometry)
-				src->addFmt("ivec4 uf_remappedGS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
+				src->addFmt("int4 remappedGS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
 			else
 				debugBreakpoint();
 			uniformOffsets.offset_remapped = uniformCurrentOffset;
@@ -34,11 +34,11 @@ namespace LatteDecompiler
 			uint32 cfileSize = decompilerContext->analyzer.uniformRegisterAccessTracker.DetermineSize(decompilerContext->shaderBaseHash, 256);
 			// full or partial uniform register file has to be present
 			if (shaderType == LatteConst::ShaderType::Vertex)
-				src->addFmt("ivec4 uf_uniformRegisterVS[{}];" _CRLF, cfileSize);
+				src->addFmt("int4 uniformRegisterVS[{}];" _CRLF, cfileSize);
 			else if (shaderType == LatteConst::ShaderType::Pixel)
-				src->addFmt("ivec4 uf_uniformRegisterPS[{}];" _CRLF, cfileSize);
+				src->addFmt("int4 uniformRegisterPS[{}];" _CRLF, cfileSize);
 			else if (shaderType == LatteConst::ShaderType::Geometry)
-				src->addFmt("ivec4 uf_uniformRegisterGS[{}];" _CRLF, cfileSize);
+				src->addFmt("int4 uniformRegisterGS[{}];" _CRLF, cfileSize);
 			uniformOffsets.offset_uniformRegister = uniformCurrentOffset;
 			uniformOffsets.count_uniformRegister = cfileSize;
 			uniformCurrentOffset += 16 * cfileSize;
@@ -53,7 +53,7 @@ namespace LatteDecompiler
 		{
 			// aka GX2 special state 0
 			uniformCurrentOffset = (uniformCurrentOffset + 7)&~7;
-			src->add("float2 uf_windowSpaceToClipSpaceTransform;" _CRLF);
+			src->add("float2 windowSpaceToClipSpaceTransform;" _CRLF);
 			uniformOffsets.offset_windowSpaceToClipSpaceTransform = uniformCurrentOffset;
 			uniformCurrentOffset += 8;
 		}
@@ -61,7 +61,7 @@ namespace LatteDecompiler
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel && alphaTestEnable)
 		{
 			uniformCurrentOffset = (uniformCurrentOffset + 3)&~3;
-			src->add("float uf_alphaTestRef;" _CRLF);
+			src->add("float alphaTestRef;" _CRLF);
 			uniformOffsets.offset_alphaTestRef = uniformCurrentOffset;
 			uniformCurrentOffset += 4;
 		}
@@ -71,16 +71,16 @@ namespace LatteDecompiler
 				decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
 			{
 				uniformCurrentOffset = (uniformCurrentOffset + 3)&~3;
-				src->add("float uf_pointSize;" _CRLF);
+				src->add("float pointSize;" _CRLF);
 				uniformOffsets.offset_pointSize = uniformCurrentOffset;
 				uniformCurrentOffset += 4;
 			}
 		}
-		// define uf_fragCoordScale which holds the xy scale for render target resolution vs effective resolution
+		// define fragCoordScale which holds the xy scale for render target resolution vs effective resolution
 		if (shader->shaderType == LatteConst::ShaderType::Pixel)
 		{
 			uniformCurrentOffset = (uniformCurrentOffset + 7)&~7;
-			src->add("vec2 uf_fragCoordScale;" _CRLF);
+			src->add("float2 fragCoordScale;" _CRLF);
 			uniformOffsets.offset_fragCoordScale = uniformCurrentOffset;
 			uniformCurrentOffset += 8;
 		}
@@ -90,30 +90,30 @@ namespace LatteDecompiler
 			if (decompilerContext->analyzer.texUnitUsesTexelCoordinates.test(t) == false)
 				continue;
 			uniformCurrentOffset = (uniformCurrentOffset + 7) & ~7;
-			src->addFmt("vec2 uf_tex{}Scale;" _CRLF, t);
+			src->addFmt("float2 tex{}Scale;" _CRLF, t);
 			uniformOffsets.offset_texScale[t] = uniformCurrentOffset;
 			uniformCurrentOffset += 8;
 		}
-		// define uf_verticesPerInstance + uf_streamoutBufferBaseX
+		// define verticesPerInstance + streamoutBufferBaseX
 		if (decompilerContext->analyzer.useSSBOForStreamout &&
 			(shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader == false) ||
 			(shader->shaderType == LatteConst::ShaderType::Geometry) )
 		{
-			src->add("int uf_verticesPerInstance;" _CRLF);
+			src->add("int verticesPerInstance;" _CRLF);
 			uniformOffsets.offset_verticesPerInstance = uniformCurrentOffset;
 			uniformCurrentOffset += 4;
 			for (uint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 			{
 				if (decompilerContext->output->streamoutBufferWriteMask[i])
 				{
-					src->addFmt("int uf_streamoutBufferBase{};" _CRLF, i);
+					src->addFmt("int streamoutBufferBase{};" _CRLF, i);
 					uniformOffsets.offset_streamoutBufferBase[i] = uniformCurrentOffset;
 					uniformCurrentOffset += 4;
 				}
 			}
 		}
 
-		src->add("}" _CRLF _CRLF);
+		src->add("};" _CRLF _CRLF);
 
 		uniformOffsets.offset_endOfBlock = uniformCurrentOffset;
 	}
@@ -173,7 +173,7 @@ namespace LatteDecompiler
 					cemu_assert_debug(decompilerContext->output->resourceMappingVK.attributeMapping[i] >= 0);
 					cemu_assert_debug(decompilerContext->output->resourceMappingGL.attributeMapping[i] == decompilerContext->output->resourceMappingVK.attributeMapping[i]);
 
-					src->addFmt("ATTR_LAYOUT({}, {}) in uvec4 attrDataSem{};" _CRLF, (sint32)decompilerContext->output->resourceMappingVK.setIndex, (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i], i);
+					src->addFmt("uint4 attrDataSem{} [[attribute({})]];" _CRLF, i, (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]);
 				}
 			}
 			src->add("};" _CRLF _CRLF);
@@ -367,7 +367,17 @@ namespace LatteDecompiler
             break;
 		}
 
-		src->add(" in [[stage_in]], DefaultVariables defaultVars [[buffer(29)]]");
+		src->add(" in [[stage_in]], constant SupportBuffer& supportBuffer [[buffer(29)]]");
+		switch (decompilerContext->shaderType)
+		{
+		case LatteConst::ShaderType::Vertex:
+            src->add(", uint vid [[vertex_id]]");
+            src->add(", uint iid [[instance_id]]");
+            break;
+        case LatteConst::ShaderType::Pixel:
+            src->add(", bool frontFacing [[front_facing]]");
+            break;
+		}
 		// uniform buffers
 		_emitUniformBufferDefinitions(decompilerContext);
 		// textures

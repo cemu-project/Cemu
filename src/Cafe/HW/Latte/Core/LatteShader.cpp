@@ -77,7 +77,7 @@ inline ska::flat_hash_map<uint64, LatteDecompilerShader*>& LatteSHRC_GetCacheByT
 	if (shaderType == LatteConst::ShaderType::Vertex)
 		return sVertexShaders;
 	else if (shaderType == LatteConst::ShaderType::Geometry)
-		return sGeometryShaders;	
+		return sGeometryShaders;
 	cemu_assert_debug(shaderType == LatteConst::ShaderType::Pixel);
 	return sPixelShaders;
 }
@@ -320,7 +320,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 	{
 		shaderType = RendererShader::ShaderType::kGeometry;
 		gpShaderType = GraphicPack2::GP_SHADER_TYPE::GEOMETRY;
-	}	
+	}
 	else if (shader->shaderType == LatteConst::ShaderType::Pixel)
 	{
 		shaderType = RendererShader::ShaderType::kFragment;
@@ -443,7 +443,7 @@ void LatteShader_DumpShader(uint64 baseHash, uint64 auxHash, LatteDecompilerShad
 {
 	if (!ActiveSettings::DumpShadersEnabled())
 		return;
-	
+
 	const char* suffix = "";
 	if (shader->shaderType == LatteConst::ShaderType::Vertex)
 		suffix = "vs";

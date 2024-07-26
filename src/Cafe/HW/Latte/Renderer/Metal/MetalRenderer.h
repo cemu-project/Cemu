@@ -39,7 +39,7 @@ public:
 	void SwapBuffers(bool swapTV, bool swapDRC) override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override {
-	    cemuLog_logDebug(LogType::Force, "Screenshots are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Screenshots are not yet supported on Metal");
 	}
 
 	void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
@@ -53,27 +53,27 @@ public:
 
 	// imgui
 	bool ImguiBegin(bool mainWindow) override {
-	    cemuLog_logDebug(LogType::Force, "Imgui is not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
 
 		return false;
 	};
 
 	void ImguiEnd() override {
-	    cemuLog_logDebug(LogType::Force, "Imgui is not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
 	};
 
 	ImTextureID GenerateTexture(const std::vector<uint8>& data, const Vector2i& size) override {
-	    cemuLog_logDebug(LogType::Force, "Imgui is not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
 
 	    return nullptr;
 	};
 
 	void DeleteTexture(ImTextureID id) override {
-	    cemuLog_logDebug(LogType::Force, "Imgui is not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
 	};
 
 	void DeleteFontTextures() override {
-	    cemuLog_logDebug(LogType::Force, "Imgui is not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
 	};
 
 	void AppendOverlayDebugInfo() override;
@@ -135,21 +135,21 @@ public:
 
 	// occlusion queries
 	LatteQueryObject* occlusionQuery_create() override {
-	    cemuLog_logDebug(LogType::Force, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
 
 		return nullptr;
 	}
 
 	void occlusionQuery_destroy(LatteQueryObject* queryObj) override {
-	    cemuLog_logDebug(LogType::Force, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
 	}
 
 	void occlusionQuery_flush() override {
-	    cemuLog_logDebug(LogType::Force, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
 	}
 
 	void occlusionQuery_updateState() override {
-	    cemuLog_logDebug(LogType::Force, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
 	}
 
 
