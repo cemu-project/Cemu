@@ -46,24 +46,24 @@ SymbolListCtrl::SymbolListCtrl(wxWindow* parent, const wxWindowID& id, const wxP
 void SymbolListCtrl::OnGameLoaded()
 {
 	m_data.clear();
-	long itemId = 0;
 	const auto symbol_map = rplSymbolStorage_lockSymbolMap();
 	for (auto const& [address, symbol_info] : symbol_map)
 	{
 		if (symbol_info == nullptr || symbol_info->symbolName == nullptr)
 			continue;
 
+		wxString libNameWX = wxString::FromAscii((const char*)symbol_info->libName);
+		wxString symbolNameWX = wxString::FromAscii((const char*)symbol_info->symbolName);
+		wxString searchNameWX = libNameWX + symbolNameWX;
+		searchNameWX.MakeLower();
+
 		auto new_entry = m_data.try_emplace(
 			symbol_info->address,
-			(char*)(symbol_info->symbolName),
-            (char*)(symbol_info->libName),
-            "",
+            symbolNameWX,
+			libNameWX,
+            searchNameWX,
 			false
 		);
-
-		new_entry.first->second.searchName += new_entry.first->second.name;
-		new_entry.first->second.searchName += new_entry.first->second.libName;
-		new_entry.first->second.searchName.MakeLower();
 
 		if (m_list_filter.IsEmpty())
 			new_entry.first->second.visible = true;
