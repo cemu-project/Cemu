@@ -2,9 +2,11 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -68,6 +70,12 @@ void MetalRenderer::DrawEmptyFrame(bool mainWindow)
 
 void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
+    if (m_renderCommandEncoder)
+    {
+        m_renderCommandEncoder->endEncoding();
+        m_renderCommandEncoder->release();
+        m_renderCommandEncoder = nullptr;
+    }
 
     CA::MetalDrawable* drawable = m_metalLayer->nextDrawable();
     if (drawable)
@@ -131,19 +139,18 @@ void MetalRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, si
 
 LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key)
 {
-    printf("MetalRenderer::rendertarget_createCachedFBO not implemented\n");
-
-    return nullptr;
+	return new CachedFBOMtl(key);
 }
 
-void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* fbo)
+void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* cfbo)
 {
-    printf("MetalRenderer::rendertarget_deleteCachedFBO not implemented\n");
+	if (cfbo == (LatteCachedFBO*)m_state.activeFBO)
+		m_state.activeFBO = nullptr;
 }
 
 void MetalRenderer::rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo)
 {
-    printf("MetalRenderer::rendertarget_bindFramebufferObject not implemented\n");
+	m_state.activeFBO = (CachedFBOMtl*)cfbo;
 }
 
 void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
@@ -292,7 +299,6 @@ void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIn
 
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
 {
-    std::cout << "TEXTURE LOAD SLICE" << std::endl;
     auto mtlTexture = (LatteTextureMtl*)hostTexture;
 
     size_t bytesPerRow = GetMtlTextureBytesPerRow(mtlTexture->GetFormat(), width);
@@ -389,14 +395,14 @@ void MetalRenderer::streamout_rendererFinishDrawcall()
 
 void MetalRenderer::draw_beginSequence()
 {
-    skipDraws = false;
+    m_state.skipDrawSequence = false;
 
     // update shader state
 	LatteSHRC_UpdateActiveShaders();
 	if (LatteGPUState.activeShaderHasError)
 	{
 		cemuLog_logDebugOnce(LogType::Force, "Skipping drawcalls due to shader error");
-		skipDraws = true;
+		m_state.skipDrawSequence = true;
 		cemu_assert_debug(false);
 		return;
 	}
@@ -409,14 +415,14 @@ void MetalRenderer::draw_beginSequence()
 		if (!LatteMRT::UpdateCurrentFBO())
 		{
 			debug_printf("Rendertarget invalid\n");
-			skipDraws = true;
+			m_state.skipDrawSequence = true;
 			return; // no render target
 		}
 
 		if (!hasValidFramebufferAttached)
 		{
 			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
-			skipDraws = true;
+			m_state.skipDrawSequence = true;
 			return; // no render target
 		}
 		LatteTexture_updateTextures();
@@ -441,12 +447,77 @@ void MetalRenderer::draw_beginSequence()
 		rasterizerEnable = true;
 
 	if (!rasterizerEnable == false)
-		skipDraws = true;
+		m_state.skipDrawSequence = true;
 }
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
-    printf("MetalRenderer::draw_execute not implemented\n");
+    std::cout << "DRAW" << std::endl;
+    // TODO: uncomment
+    //if (m_state.skipDrawSequence)
+	//{
+    //  printf("skipping draw\n");
+	//	return;
+	//}
+
+	// Render pass
+	LatteMRT::ApplyCurrentState();
+
+	if (!m_state.activeFBO)
+	{
+	    printf("no active FBO, skipping draw\n");
+	    return;
+	}
+
+	auto renderPassDescriptor = m_state.activeFBO->GetRenderPassDescriptor();
+	m_renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+
+	// Shaders
+	/*
+	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
+	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+
+	// Render pipeline state
+	MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+	renderPipelineDescriptor->setVertexFunction(static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction());
+	renderPipelineDescriptor->setFragmentFunction(static_cast<RendererShaderMtl*>(pixelShader->shader)->GetFunction());
+
+	NS::Error* error = nullptr;
+	MTL::RenderPipelineState* renderPipelineState = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
+	if (error)
+	{
+	    printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
+		return;
+	}
+
+	// TODO: bind resources
+
+	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
+	// TODO: uncomment
+	//auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
+
+	Renderer::INDEX_TYPE hostIndexType;
+	uint32 hostIndexCount;
+	uint32 indexMin = 0;
+	uint32 indexMax = 0;
+	uint32 indexBufferOffset = 0;
+	uint32 indexBufferIndex = 0;
+	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
+	*/
+
+	// Draw
+	// TODO: uncomment
+	/*
+	if (hostIndexType != INDEX_TYPE::NONE)
+	{
+	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
+		// TODO: get index buffer
+		m_renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, 0, instanceCount, baseVertex, baseInstance);
+	} else
+	{
+		m_renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
+	}
+	*/
 }
 
 void MetalRenderer::draw_endSequence()

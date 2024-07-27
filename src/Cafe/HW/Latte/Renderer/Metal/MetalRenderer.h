@@ -6,6 +6,17 @@
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
+#include "Metal/MTLRenderCommandEncoder.hpp"
+
+#define MAX_MTL_BUFFERS 31
+
+struct MetalState
+{
+    bool skipDrawSequence = false;
+    class CachedFBOMtl* activeFBO = nullptr;
+    //MTL::Buffer* vertexBuffers[MAX_MTL_BUFFERS] = {nullptr};
+    //MTL::Buffer* indexBuffer = nullptr;
+};
 
 class MetalRenderer : public Renderer
 {
@@ -163,10 +174,12 @@ private:
 	MTL::Device* m_device;
 	MTL::CommandQueue* m_commandQueue;
 
+	// Active objects
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
+	MTL::RenderCommandEncoder* m_renderCommandEncoder = nullptr;
 
 	// State
-	bool skipDraws = false;
+	MetalState m_state;
 
 	// Helpers
 	void ensureCommandBuffer()
