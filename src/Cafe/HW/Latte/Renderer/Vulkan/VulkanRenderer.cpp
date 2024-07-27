@@ -61,7 +61,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 	if (strstr(pCallbackData->pMessage, "consumes input location"))
 		return VK_FALSE; // false means we dont care
 	if (strstr(pCallbackData->pMessage, "blend"))
-		return VK_FALSE; // 
+		return VK_FALSE; //
 
 	// note: Check if previously used location in VK_EXT_debug_report callback is the same as messageIdNumber under the new extension
 	// validation errors which are difficult to fix

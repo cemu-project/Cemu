@@ -46,22 +46,29 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	}
 	desc->setUsage(usage);
 
-	if (dim == Latte::E_DIM::DIM_2D)
-		desc->setTextureType(MTL::TextureType2D);
-	else if (dim == Latte::E_DIM::DIM_1D)
-	    desc->setTextureType(MTL::TextureType1D);
-	else if (dim == Latte::E_DIM::DIM_3D)
-	    desc->setTextureType(MTL::TextureType3D);
-	else if (dim == Latte::E_DIM::DIM_2D_ARRAY)
+	switch (dim)
+    {
+    case Latte::E_DIM::DIM_1D:
+        desc->setTextureType(MTL::TextureType1D);
+        break;
+    case Latte::E_DIM::DIM_2D:
+    case Latte::E_DIM::DIM_2D_MSAA:
+        desc->setTextureType(MTL::TextureType2D);
+        break;
+    case Latte::E_DIM::DIM_2D_ARRAY:
         desc->setTextureType(MTL::TextureType2DArray);
-	else if (dim == Latte::E_DIM::DIM_CUBEMAP)
-	    desc->setTextureType(MTL::TextureTypeCube); // TODO: is this correct?
-	else if (dim == Latte::E_DIM::DIM_2D_MSAA)
-	    desc->setTextureType(MTL::TextureType2D);
-	else
-	{
-		cemu_assert_unimplemented();
-	}
+        break;
+    case Latte::E_DIM::DIM_3D:
+        desc->setTextureType(MTL::TextureType3D);
+        break;
+    case Latte::E_DIM::DIM_CUBEMAP:
+        desc->setTextureType(MTL::TextureTypeCube); // TODO: check this
+        break;
+    default:
+        cemu_assert_unimplemented();
+        desc->setTextureType(MTL::TextureType2D);
+        break;
+    }
 
 	m_texture = mtlRenderer->GetDevice()->newTexture(desc);
 

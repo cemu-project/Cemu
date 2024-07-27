@@ -161,4 +161,16 @@ private:
 	MTL::CommandQueue* m_commandQueue;
 
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
+
+	// State
+	bool skipDraws = false;
+
+	// Helpers
+	void ensureCommandBuffer()
+	{
+	    if (!m_commandBuffer)
+		{
+		    m_commandBuffer = m_commandQueue->commandBuffer();
+		}
+	}
 };

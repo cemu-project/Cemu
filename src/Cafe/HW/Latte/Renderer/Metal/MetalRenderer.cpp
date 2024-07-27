@@ -7,6 +7,8 @@
 #include "HW/Latte/Core/LatteShader.h"
 #include "gui/guiWrapper.h"
 
+extern bool hasValidFramebufferAttached;
+
 MetalRenderer::MetalRenderer()
 {
     m_device = MTL::CreateSystemDefaultDevice();
@@ -66,17 +68,27 @@ void MetalRenderer::DrawEmptyFrame(bool mainWindow)
 
 void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
+
     CA::MetalDrawable* drawable = m_metalLayer->nextDrawable();
-    if (!drawable)
+    if (drawable)
     {
-        return;
+        ensureCommandBuffer();
+        m_commandBuffer->presentDrawable(drawable);
+    } else
+    {
+        printf("skipped present!\n");
     }
 
-    m_commandBuffer->presentDrawable(drawable);
-    m_commandBuffer->commit();
+    if (m_commandBuffer)
+    {
+        m_commandBuffer->commit();
 
-    m_commandBuffer->release();
-    m_commandBuffer = nullptr;
+        m_commandBuffer->release();
+        m_commandBuffer = nullptr;
+
+        // Debug
+        m_commandQueue->insertDebugCaptureBoundary();
+    }
 }
 
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
@@ -88,8 +100,6 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
 {
-    m_commandBuffer = m_commandQueue->commandBuffer();
-
     // TODO
     return false;
 }
@@ -162,6 +172,7 @@ void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIn
 
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
 {
+    std::cout << "TEXTURE LOAD SLICE" << std::endl;
     auto mtlTexture = (LatteTextureMtl*)hostTexture;
 
     size_t bytesPerRow = GetMtlTextureBytesPerRow(mtlTexture->GetFormat(), width);
@@ -191,6 +202,7 @@ void MetalRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint3
 
 void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth)
 {
+    std::cout << "TEXTURE COPY IMAGE SUBDATA" << std::endl;
     cemuLog_log(LogType::MetalLogging, "not implemented");
 }
 
@@ -258,9 +270,59 @@ void MetalRenderer::streamout_rendererFinishDrawcall()
 
 void MetalRenderer::draw_beginSequence()
 {
-    cemuLog_log(LogType::MetalLogging, "not implemented");
+    skipDraws = false;
 
-    LatteSHRC_UpdateActiveShaders();
+    // update shader state
+	LatteSHRC_UpdateActiveShaders();
+	if (LatteGPUState.activeShaderHasError)
+	{
+		cemuLog_logDebugOnce(LogType::Force, "Skipping drawcalls due to shader error");
+		skipDraws = true;
+		cemu_assert_debug(false);
+		return;
+	}
+
+	// update render target and texture state
+	LatteGPUState.requiresTextureBarrier = false;
+	while (true)
+	{
+		LatteGPUState.repeatTextureInitialization = false;
+		if (!LatteMRT::UpdateCurrentFBO())
+		{
+			debug_printf("Rendertarget invalid\n");
+			skipDraws = true;
+			return; // no render target
+		}
+
+		if (!hasValidFramebufferAttached)
+		{
+			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
+			skipDraws = true;
+			return; // no render target
+		}
+		LatteTexture_updateTextures();
+		if (!LatteGPUState.repeatTextureInitialization)
+			break;
+	}
+
+	// apply render target
+	// HACK: not implemented yet
+	//LatteMRT::ApplyCurrentState();
+
+	// viewport and scissor box
+	LatteRenderTarget_updateViewport();
+	LatteRenderTarget_updateScissorBox();
+
+	// check for conditions which would turn the drawcalls into no-ops
+	bool rasterizerEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL() == false;
+
+	// GX2SetSpecialState(0, true) enables DX_RASTERIZATION_KILL, but still expects depth writes to happen? -> Research which stages are disabled by DX_RASTERIZATION_KILL exactly
+	// for now we use a workaround:
+	if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
+		rasterizerEnable = true;
+
+	if (!rasterizerEnable == false)
+		skipDraws = true;
 }
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
