@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".OptionsFragment">
+    tools:context=".settings.OptionsFragment">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/options_recycler_view"

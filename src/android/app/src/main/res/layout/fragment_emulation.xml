@@ -4,14 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".EmulationFragment">
+    tools:context=".emulation.EmulationFragment">
 
     <SurfaceView
         android:id="@+id/main_canvas"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <info.cemu.Cemu.InputOverlaySurfaceView
+    <info.cemu.Cemu.inputoverlay.InputOverlaySurfaceView
         android:id="@+id/input_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

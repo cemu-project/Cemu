@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
-    tools:context=".SettingsActivity">
+    tools:context=".settings.SettingsActivity">
 
 
     <com.google.android.material.appbar.AppBarLayout

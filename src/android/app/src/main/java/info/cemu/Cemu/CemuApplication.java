@@ -3,6 +3,9 @@ package info.cemu.Cemu;
 import android.app.Application;
 import android.util.DisplayMetrics;
 
+import info.cemu.Cemu.NativeLibrary;
+import info.cemu.Cemu.utils.FileUtil;
+
 public class CemuApplication extends Application {
     @Override
     public void onCreate() {

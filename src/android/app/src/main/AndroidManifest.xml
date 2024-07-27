@@ -19,20 +19,20 @@
         android:theme="@style/Theme.Cemu"
         tools:targetApi="31">
         <activity
-            android:name=".EmulationActivity"
+            android:name=".emulation.EmulationActivity"
             android:launchMode="singleTop"
             android:parentActivityName=".MainActivity"
             android:screenOrientation="userLandscape"
             tools:ignore="DiscouragedApi" />
         <activity
-            android:name=".InputOverlayConfigureActivity"
+            android:name=".inputoverlay.InputOverlayConfigureActivity"
             android:launchMode="singleTop"
-            android:parentActivityName=".SettingsActivity"
+            android:parentActivityName=".settings.SettingsActivity"
             android:screenOrientation="userLandscape"
             tools:ignore="DiscouragedApi" />
 
         <activity
-            android:name=".SettingsActivity"
+            android:name=".settings.SettingsActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity" />
         <activity

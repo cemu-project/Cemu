@@ -27,7 +27,7 @@ class AndroidFilesystemCallbacks : public FilesystemAndroid::FilesystemCallbacks
 	AndroidFilesystemCallbacks()
 	{
 		JNIUtils::ScopedJNIENV env;
-		m_fileUtilClass = JNIUtils::Scopedjclass("info/cemu/Cemu/FileUtil");
+		m_fileUtilClass = JNIUtils::Scopedjclass("info/cemu/Cemu/utils/FileUtil");
 		m_openContentUriMid = env->GetStaticMethodID(*m_fileUtilClass, "openContentUri", "(Ljava/lang/String;)I");
 		m_listFilesMid = env->GetStaticMethodID(*m_fileUtilClass, "listFiles", "(Ljava/lang/String;)[Ljava/lang/String;");
 		m_isDirectoryMid = env->GetStaticMethodID(*m_fileUtilClass, "isDirectory", "(Ljava/lang/String;)Z");

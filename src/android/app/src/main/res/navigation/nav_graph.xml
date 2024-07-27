@@ -6,6 +6,6 @@
     app:startDestination="@id/gamesFragment">
     <fragment
         android:id="@+id/gamesFragment"
-        android:name="info.cemu.Cemu.GamesFragment"
+        android:name="info.cemu.Cemu.gameview.GamesFragment"
         android:label="GamesFragment" />
 </navigation>

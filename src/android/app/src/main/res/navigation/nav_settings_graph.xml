@@ -6,9 +6,8 @@
     app:startDestination="@id/optionsFragment">
     <fragment
         android:id="@+id/inputSettingsFragment"
-        android:name="info.cemu.Cemu.InputSettingsFragment"
-        android:label="@string/input_settings"
-        tools:layout="@layout/fragment_input_settings">
+        android:name="info.cemu.Cemu.settings.input.InputSettingsFragment"
+        android:label="@string/input_settings">
         <action
             android:id="@+id/action_inputSettingsFragment_to_controllerInputsFragment"
             app:destination="@id/controllerInputsFragment" />
@@ -18,18 +17,16 @@
     </fragment>
     <fragment
         android:id="@+id/graphicPacksRootFragment"
-        android:name="info.cemu.Cemu.GraphicPacksRootFragment"
-        android:label="@string/graphic_packs"
-        tools:layout="@layout/fragment_graphic_packs_root">
+        android:name="info.cemu.Cemu.settings.graphicpacks.GraphicPacksFragment"
+        android:label="@string/graphic_packs">
         <action
             android:id="@+id/action_graphicPacksRootFragment_to_graphicPacksFragment"
             app:destination="@id/graphicPacksFragment" />
     </fragment>
     <fragment
         android:id="@+id/graphicPacksFragment"
-        android:name="info.cemu.Cemu.GraphicPacksFragment"
-        android:label="{title}"
-        tools:layout="@layout/fragment_graphic_packs">
+        android:name="info.cemu.Cemu.settings.graphicpacks.GraphicPacksFragment"
+        android:label="{title}">
         <action
             android:id="@+id/action_graphicPacksFragment_self"
             app:destination="@id/graphicPacksFragment" />
@@ -40,7 +37,7 @@
     </fragment>
     <fragment
         android:id="@+id/optionsFragment"
-        android:name="info.cemu.Cemu.OptionsFragment"
+        android:name="info.cemu.Cemu.settings.OptionsFragment"
         android:label="@string/options"
         tools:layout="@layout/fragment_options">
         <action
@@ -61,26 +58,21 @@
     </fragment>
     <fragment
         android:id="@+id/controllerInputsFragment"
-        android:name="info.cemu.Cemu.ControllerInputsFragment"
-        tools:layout="@layout/fragment_controller_inputs" />
+        android:name="info.cemu.Cemu.settings.input.ControllerInputsFragment" />
     <fragment
         android:id="@+id/graphicsSettingsFragment"
-        android:name="info.cemu.Cemu.GraphicsSettingsFragment"
-        android:label="@string/graphics_settings"
-        tools:layout="@layout/fragment_graphics_settings" />
+        android:name="info.cemu.Cemu.settings.graphics.GraphicsSettingsFragment"
+        android:label="@string/graphics_settings" />
     <fragment
         android:id="@+id/audioSettingsFragment"
-        android:name="info.cemu.Cemu.AudioSettingsFragment"
-        android:label="@string/audio_settings"
-        tools:layout="@layout/fragment_audio_settings" />
+        android:name="info.cemu.Cemu.settings.audio.AudioSettingsFragment"
+        android:label="@string/audio_settings" />
     <fragment
         android:id="@+id/overlaySettingsFragment"
-        android:name="info.cemu.Cemu.OverlaySettingsFragment"
-        android:label="@string/overlay_settings"
-        tools:layout="@layout/fragment_audio_settings" />
+        android:name="info.cemu.Cemu.settings.overlay.OverlaySettingsFragment"
+        android:label="@string/overlay_settings" />
     <fragment
         android:id="@+id/inputOverlaySettingsFragment"
-        android:name="info.cemu.Cemu.InputOverlaySettingsFragment"
-        android:label="@string/input_overlay_settings"
-        tools:layout="@layout/fragment_input_overlay_settings" />
+        android:name="info.cemu.Cemu.inputoverlay.InputOverlaySettingsFragment"
+        android:label="@string/input_overlay_settings" />
 </navigation>
