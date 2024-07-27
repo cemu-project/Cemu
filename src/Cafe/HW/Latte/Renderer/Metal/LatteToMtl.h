@@ -2,7 +2,7 @@
 
 #include <Metal/Metal.hpp>
 
-#include "HW/Latte/ISA/LatteReg.h"
+#include "Cafe/HW/Latte/ISA/LatteReg.h"
 
 struct Uvec2 {
     uint32 x;

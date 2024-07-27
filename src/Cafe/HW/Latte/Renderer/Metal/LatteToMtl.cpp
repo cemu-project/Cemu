@@ -2,6 +2,7 @@
 #include "Common/precompiled.h"
 #include "Metal/MTLPixelFormat.hpp"
 
+// TODO: separate color and depth formats
 std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, 2}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, 2}}, // TODO: correct?
@@ -82,7 +83,7 @@ const MtlPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format)
     MtlPixelFormatInfo formatInfo = MTL_FORMAT_TABLE[format];
     if (formatInfo.pixelFormat == MTL::PixelFormatInvalid)
     {
-        printf("invalid pixel format: %i\n", (int)format);
+        printf("invalid pixel format: %u\n", (uint32)format);
     }
 
     return formatInfo;

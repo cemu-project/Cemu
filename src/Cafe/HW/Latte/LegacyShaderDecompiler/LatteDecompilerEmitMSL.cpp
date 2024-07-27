@@ -2002,7 +2002,7 @@ static void _emitALUClauseCode(LatteDecompilerShaderContext* shaderContext, Latt
 			{
 				_emitInstructionOutputVariableName(shaderContext, &aluInstruction);
 				src->add(" = ");
-				src->add("as_type<int>(");
+				src->add("as_type<int>(as_type<float>(");
 				_emitInstructionOutputVariableName(shaderContext, &aluInstruction);
 				src->add(")");
 				if( aluInstruction.omod == 1 )

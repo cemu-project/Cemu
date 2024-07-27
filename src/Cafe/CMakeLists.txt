@@ -547,6 +547,7 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/LatteTextureViewMtl.h
             HW/Latte/Renderer/Metal/RendererShaderMtl.cpp
             HW/Latte/Renderer/Metal/RendererShaderMtl.h
+            HW/Latte/Renderer/Metal/MetalMemoryManager.h
         )
 
         #target_link_libraries(CemuCafe PRIVATE

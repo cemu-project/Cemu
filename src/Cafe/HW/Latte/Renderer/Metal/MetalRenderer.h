@@ -5,6 +5,7 @@
 #include <Metal/Metal.hpp>
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 
 class MetalRenderer : public Renderer
 {
@@ -155,6 +156,8 @@ public:
 
 private:
 	CA::MetalLayer* m_metalLayer;
+
+	MetalMemoryManager m_memoryManager;
 
 	// Metal objects
 	MTL::Device* m_device;
