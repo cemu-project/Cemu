@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLPixelFormat.hpp"
+#include "Metal/MTLVertexDescriptor.hpp"
 
 // TODO: separate color and depth formats
 std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_FORMAT_TABLE = {
@@ -105,4 +106,91 @@ size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, uint32 height, siz
     const auto& formatInfo = GetMtlPixelFormatInfo(format);
 
     return CeilDivide(height, formatInfo.blockTexelSize.y) * bytesPerRow;
+}
+
+MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode mode)
+{
+    switch (mode)
+    {
+        case LattePrimitiveMode::POINTS:
+            return MTL::PrimitiveTypePoint;
+        case LattePrimitiveMode::LINES:
+            return MTL::PrimitiveTypeLine;
+        case LattePrimitiveMode::TRIANGLES:
+            return MTL::PrimitiveTypeTriangle;
+        case LattePrimitiveMode::TRIANGLE_STRIP:
+            return MTL::PrimitiveTypeTriangleStrip;
+        default:
+            printf("unimplemented primitive type %u\n", (uint32)mode);
+            cemu_assert_debug(false);
+            return MTL::PrimitiveTypeTriangle;
+    }
+}
+
+MTL::VertexFormat GetMtlVertexFormat(uint8 format)
+{
+    switch (format)
+	{
+	case FMT_32_32_32_32_FLOAT:
+		return MTL::VertexFormatUInt4;
+	case FMT_32_32_32_FLOAT:
+		return MTL::VertexFormatUInt3;
+	case FMT_32_32_FLOAT:
+		return MTL::VertexFormatUInt2;
+	case FMT_32_FLOAT:
+		return MTL::VertexFormatUInt;
+	case FMT_8_8_8_8:
+		return MTL::VertexFormatUChar4;
+	case FMT_8_8_8:
+		return MTL::VertexFormatUChar3;
+	case FMT_8_8:
+		return MTL::VertexFormatUChar2;
+	case FMT_8:
+		return MTL::VertexFormatUChar;
+	case FMT_32_32_32_32:
+		return MTL::VertexFormatUInt4;
+	case FMT_32_32_32:
+		return MTL::VertexFormatUInt3;
+	case FMT_32_32:
+		return MTL::VertexFormatUInt2;
+	case FMT_32:
+		return MTL::VertexFormatUInt;
+	case FMT_16_16_16_16:
+		return MTL::VertexFormatUShort4; // verified to match OpenGL
+	case FMT_16_16_16:
+		return MTL::VertexFormatUShort3;
+	case FMT_16_16:
+		return MTL::VertexFormatUShort2;
+	case FMT_16:
+		return MTL::VertexFormatUShort;
+	case FMT_16_16_16_16_FLOAT:
+		return MTL::VertexFormatUShort4; // verified to match OpenGL
+	case FMT_16_16_16_FLOAT:
+		return MTL::VertexFormatUShort3;
+	case FMT_16_16_FLOAT:
+		return MTL::VertexFormatUShort2;
+	case FMT_16_FLOAT:
+		return MTL::VertexFormatUShort;
+	case FMT_2_10_10_10:
+		return MTL::VertexFormatUInt; // verified to match OpenGL
+	default:
+		printf("unsupported vertex format: %u\n", (uint32)format);
+		assert_dbg();
+		return MTL::VertexFormatInvalid;
+	}
+}
+
+MTL::IndexType GetMtlIndexType(Renderer::INDEX_TYPE indexType)
+{
+    switch (indexType)
+    {
+    case Renderer::INDEX_TYPE::U16:
+        return MTL::IndexTypeUInt16;
+    case Renderer::INDEX_TYPE::U32:
+        return MTL::IndexTypeUInt32;
+    default:
+        printf("unsupported index type: %u\n", (uint32)indexType);
+        assert_dbg();
+        return MTL::IndexTypeUInt32;
+    }
 }

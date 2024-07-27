@@ -5,8 +5,10 @@
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
-#include "HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/FetchShader.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
+#include "Metal/MTLVertexDescriptor.hpp"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -15,10 +17,14 @@ MetalRenderer::MetalRenderer()
 {
     m_device = MTL::CreateSystemDefaultDevice();
     m_commandQueue = m_device->newCommandQueue();
+
+    m_memoryManager = new MetalMemoryManager(this);
 }
 
 MetalRenderer::~MetalRenderer()
 {
+    delete m_memoryManager;
+
     m_commandQueue->release();
     m_device->release();
 }
@@ -155,7 +161,7 @@ void MetalRenderer::rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo)
 
 void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
 {
-    return m_memoryManager.GetTextureUploadBuffer(size);
+    return m_memoryManager->GetTextureUploadBuffer(size);
 }
 
 void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem)
@@ -431,8 +437,7 @@ void MetalRenderer::draw_beginSequence()
 	}
 
 	// apply render target
-	// HACK: not implemented yet
-	//LatteMRT::ApplyCurrentState();
+	LatteMRT::ApplyCurrentState();
 
 	// viewport and scissor box
 	LatteRenderTarget_updateViewport();
@@ -453,6 +458,8 @@ void MetalRenderer::draw_beginSequence()
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
     std::cout << "DRAW" << std::endl;
+
+    ensureCommandBuffer();
     // TODO: uncomment
     //if (m_state.skipDrawSequence)
 	//{
@@ -461,8 +468,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	//}
 
 	// Render pass
-	LatteMRT::ApplyCurrentState();
-
 	if (!m_state.activeFBO)
 	{
 	    printf("no active FBO, skipping draw\n");
@@ -470,17 +475,70 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 
 	auto renderPassDescriptor = m_state.activeFBO->GetRenderPassDescriptor();
-	m_renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+	beginRenderPassIfNeeded(renderPassDescriptor);
 
 	// Shaders
-	/*
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+
+	auto fetchShader = vertexShader->compatibleFetchShader;
+
+	// Vertex descriptor
+	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+	for (auto& bufferGroup : fetchShader->bufferGroups)
+	{
+		std::optional<LatteConst::VertexFetchType2> fetchType;
+
+		for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
+		{
+			auto& attr = bufferGroup.attrib[j];
+
+			uint32 semanticId = vertexShader->resourceMapping.attributeMapping[attr.semanticId];
+			if (semanticId == (uint32)-1)
+				continue; // attribute not used?
+
+			auto attribute = vertexDescriptor->attributes()->object(semanticId);
+			attribute->setOffset(attr.offset);
+			// Bind from the end to not conflict with uniform buffers
+			attribute->setBufferIndex(GET_MTL_VERTEX_BUFFER_INDEX(attr.attributeBufferIndex));
+			attribute->setFormat(GetMtlVertexFormat(attr.format));
+
+			if (fetchType.has_value())
+				cemu_assert_debug(fetchType == attr.fetchType);
+			else
+				fetchType = attr.fetchType;
+
+			if (attr.fetchType == LatteConst::INSTANCE_DATA)
+			{
+				cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
+			}
+		}
+
+		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
+		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+		// TODO: is LatteGPUState.contextNew correct?
+		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+		printf("buffer %u has stride %u bytes\n", bufferIndex, bufferStride);
+
+		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
+		layout->setStride(bufferStride);
+		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
+			layout->setStepFunction(MTL::VertexStepFunctionPerVertex);
+		else if (fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
+			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
+		else
+		{
+		    printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
+			cemu_assert(false);
+		}
+	}
 
 	// Render pipeline state
 	MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
 	renderPipelineDescriptor->setVertexFunction(static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction());
 	renderPipelineDescriptor->setFragmentFunction(static_cast<RendererShaderMtl*>(pixelShader->shader)->GetFunction());
+	// TODO: don't always set the vertex descriptor
+	renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
 
 	NS::Error* error = nullptr;
 	MTL::RenderPipelineState* renderPipelineState = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
@@ -489,12 +547,12 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
 		return;
 	}
+	m_renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// TODO: bind resources
 
 	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
-	// TODO: uncomment
-	//auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
+	auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
 
 	Renderer::INDEX_TYPE hostIndexType;
 	uint32 hostIndexCount;
@@ -503,21 +561,17 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	uint32 indexBufferOffset = 0;
 	uint32 indexBufferIndex = 0;
 	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
-	*/
 
 	// Draw
-	// TODO: uncomment
-	/*
 	if (hostIndexType != INDEX_TYPE::NONE)
 	{
 	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
-		// TODO: get index buffer
+		MTL::Buffer* indexBuffer = m_memoryManager->GetBuffer(indexBufferIndex);
 		m_renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, 0, instanceCount, baseVertex, baseInstance);
 	} else
 	{
 		m_renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
 	}
-	*/
 }
 
 void MetalRenderer::draw_endSequence()
@@ -527,9 +581,11 @@ void MetalRenderer::draw_endSequence()
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
 {
-    printf("MetalRenderer::indexData_reserveIndexMemory not implemented\n");
+    auto allocation = m_memoryManager->GetBufferAllocation(size);
+	offset = allocation.bufferOffset;
+	bufferIndex = allocation.bufferIndex;
 
-    return nullptr;
+	return allocation.data;
 }
 
 void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)

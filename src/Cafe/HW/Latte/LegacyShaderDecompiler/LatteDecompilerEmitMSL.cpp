@@ -3818,18 +3818,21 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	LatteDecompiler::emitHeader(shaderContext);
 	// helper functions
 	LatteDecompiler_emitHelperFunctions(shaderContext, src);
-	const char* outputTypeName;
+	const char* functionType = "";
+	const char* outputTypeName = "";
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
+	    functionType = "vertex";
 	    outputTypeName = "VertexOut";
 		break;
 	case LatteConst::ShaderType::Pixel:
+	    functionType = "fragment";
 	    outputTypeName = "FragmentOut";
 		break;
 	}
 	// start of main
-	src->addFmt("{} main0(", outputTypeName);
+	src->addFmt("{} {} main0(", functionType, outputTypeName);
 	LatteDecompiler::emitInputs(shaderContext);
 	src->add(") {" _CRLF);
 	src->addFmt("{} out;" _CRLF, outputTypeName);

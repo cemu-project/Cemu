@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cemu/Logging/CemuLogging.h"
+#include "Metal/MTLFunctionDescriptor.hpp"
 
 RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode)
 	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader)
@@ -9,11 +10,20 @@ RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type
 	MTL::Library* library = mtlRenderer->GetDevice()->newLibrary(NS::String::string(mslCode.c_str(), NS::ASCIIStringEncoding), nullptr, &error);
 	if (error)
     {
-        printf("Failed to create library (error: %s) -> source:\n%s", error->localizedDescription()->utf8String(), mslCode.c_str());
+        printf("Failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
         error->release();
         return;
     }
-    m_function = library->newFunction(NS::String::string("main0", NS::ASCIIStringEncoding));
+    MTL::FunctionDescriptor* desc = MTL::FunctionDescriptor::alloc()->init();
+    desc->setName(NS::String::string("main0", NS::ASCIIStringEncoding));
+    error = nullptr;
+    m_function = library->newFunction(desc, &error);
+    if (error)
+    {
+        printf("Failed to create function (error: %s)\n", error->localizedDescription()->utf8String());
+        error->release();
+        return;
+    }
     library->release();
 }
 

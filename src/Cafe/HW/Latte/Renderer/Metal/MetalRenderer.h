@@ -7,8 +7,10 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Metal/MTLRenderCommandEncoder.hpp"
+#include "Metal/MTLRenderPass.hpp"
 
 #define MAX_MTL_BUFFERS 31
+#define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 1)
 
 struct MetalState
 {
@@ -168,7 +170,7 @@ public:
 private:
 	CA::MetalLayer* m_metalLayer;
 
-	MetalMemoryManager m_memoryManager;
+	MetalMemoryManager* m_memoryManager;
 
 	// Metal objects
 	MTL::Device* m_device;
@@ -186,7 +188,18 @@ private:
 	{
 	    if (!m_commandBuffer)
 		{
+            // Debug
+            m_commandQueue->insertDebugCaptureBoundary();
+
 		    m_commandBuffer = m_commandQueue->commandBuffer();
 		}
 	}
+
+	void beginRenderPassIfNeeded(MTL::RenderPassDescriptor* renderPassDescriptor)
+    {
+        if (!m_renderCommandEncoder)
+        {
+            m_renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+        }
+    }
 };
