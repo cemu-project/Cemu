@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
+#include "Metal/MTLSampler.hpp"
 #include "Metal/MTLVertexDescriptor.hpp"
 #include "gui/guiWrapper.h"
 
@@ -20,6 +21,9 @@ MetalRenderer::MetalRenderer()
 {
     m_device = MTL::CreateSystemDefaultDevice();
     m_commandQueue = m_device->newCommandQueue();
+
+    MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
+    m_nearestSampler = m_device->newSamplerState(samplerDescriptor);
 
     m_memoryManager = new MetalMemoryManager(this);
 }
@@ -544,6 +548,21 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	renderPipelineDescriptor->setFragmentFunction(static_cast<RendererShaderMtl*>(pixelShader->shader)->GetFunction());
 	// TODO: don't always set the vertex descriptor
 	renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+	for (uint8 i = 0; i < 8; i++)
+	{
+	    const auto& colorBuffer = m_state.activeFBO->colorBuffer[i];
+		auto texture = static_cast<LatteTextureViewMtl*>(colorBuffer.texture);
+		if (!texture)
+		{
+		    continue;
+		}
+		renderPipelineDescriptor->colorAttachments()->object(i)->setPixelFormat(texture->GetTexture()->pixelFormat());
+	}
+	if (m_state.activeFBO->depthBuffer.texture)
+	{
+	    auto texture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->depthBuffer.texture);
+        renderPipelineDescriptor->setDepthAttachmentPixelFormat(texture->GetTexture()->pixelFormat());
+	}
 
 	NS::Error* error = nullptr;
 	MTL::RenderPipelineState* renderPipelineState = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
@@ -579,8 +598,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    if (vertexBufferRange.needsRebind)
         {
             m_renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
-            // TODO: uncomment
-            //vertexBufferRange.needRebind = false;
+            vertexBufferRange.needsRebind = false;
         }
 	}
 
@@ -640,15 +658,31 @@ void MetalRenderer::BindStageResources(LatteDecompilerShader* shader)
 		//auto imageViewObj = textureView->GetSamplerView(word4);
 		//info.imageView = imageViewObj->m_textureImageView;
 
+		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;
+
 		uint32 stageSamplerIndex = shader->textureUnitSamplerAssignment[relative_textureUnit];
 		// TODO: uncomment
-		MTL::SamplerState* sampler = nullptr;//basicSampler;
 		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
 		{
 			// TODO: bind the actual sampler
+			MTL::SamplerState* sampler = m_nearestSampler;
+			switch (shader->shaderType)
+			{
+			case LatteConst::ShaderType::Vertex:
+			{
+				m_renderCommandEncoder->setVertexSamplerState(sampler, binding);
+				break;
+			}
+			case LatteConst::ShaderType::Pixel:
+			{
+			    m_renderCommandEncoder->setFragmentSamplerState(sampler, binding);
+				break;
+			}
+			default:
+				UNREACHABLE;
+			}
 		}
 
-		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:

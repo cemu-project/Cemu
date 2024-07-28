@@ -8,7 +8,7 @@ void CachedFBOMtl::CreateRenderPass()
 
 	for (int i = 0; i < 8; ++i)
 	{
-		auto& buffer = colorBuffer[i];
+		const auto& buffer = colorBuffer[i];
 		auto textureView = (LatteTextureViewMtl*)buffer.texture;
 		if (!textureView)
 		{

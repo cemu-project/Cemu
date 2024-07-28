@@ -186,6 +186,9 @@ private:
 	MTL::Device* m_device;
 	MTL::CommandQueue* m_commandQueue;
 
+	// Basic
+	MTL::SamplerState* m_nearestSampler;
+
 	// Active objects
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
 	MTL::RenderCommandEncoder* m_renderCommandEncoder = nullptr;
