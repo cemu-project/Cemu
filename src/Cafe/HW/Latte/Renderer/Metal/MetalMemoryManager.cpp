@@ -24,3 +24,36 @@ MetalBufferAllocation MetalMemoryManager::GetBufferAllocation(size_t size)
 
     return allocation;
 }
+
+void MetalMemoryManager::InitBufferCache(size_t size)
+{
+    if (m_bufferCache)
+    {
+        printf("MetalMemoryManager::InitBufferCache: buffer cache already initialized\n");
+        return;
+    }
+
+    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModeShared);
+}
+
+void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, size_t size)
+{
+    if (!m_bufferCache)
+    {
+        printf("MetalMemoryManager::UploadToBufferCache: buffer cache not initialized\n");
+        return;
+    }
+
+    memcpy((uint8*)m_bufferCache->contents() + offset, data, size);
+}
+
+void MetalMemoryManager::CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size)
+{
+    if (!m_bufferCache)
+    {
+        printf("MetalMemoryManager::CopyBufferCache: buffer cache not initialized\n");
+        return;
+    }
+
+    memcpy((uint8*)m_bufferCache->contents() + dstOffset, (uint8*)m_bufferCache->contents() + srcOffset, size);
+}

@@ -10,14 +10,24 @@
 #include "Metal/MTLRenderPass.hpp"
 
 #define MAX_MTL_BUFFERS 31
-#define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 1)
+#define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 2)
+// TODO: don't harcdode the support buffer binding
+#define MTL_SUPPORT_BUFFER_BINDING 30
+
+#define MAX_MTL_TEXTURES 31
+
+struct MetalBufferRange
+{
+    bool needsRebind = false;
+    sint32 offset = -1;
+};
 
 struct MetalState
 {
     bool skipDrawSequence = false;
     class CachedFBOMtl* activeFBO = nullptr;
-    //MTL::Buffer* vertexBuffers[MAX_MTL_BUFFERS] = {nullptr};
-    //MTL::Buffer* indexBuffer = nullptr;
+    MetalBufferRange vertexBuffers[MAX_MTL_BUFFERS] = {{}};
+    class LatteTextureViewMtl* textures[MAX_MTL_TEXTURES] = {nullptr};
 };
 
 class MetalRenderer : public Renderer
@@ -202,4 +212,6 @@ private:
             m_renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
         }
     }
+
+    void BindStageResources(LatteDecompilerShader* shader);
 };

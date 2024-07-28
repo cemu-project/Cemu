@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
@@ -12,6 +13,8 @@
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
+
+float supportBufferData[512 * 4];
 
 MetalRenderer::MetalRenderer()
 {
@@ -329,7 +332,7 @@ LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR phys
 
 void MetalRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit)
 {
-    printf("MetalRenderer::texture_setLatteTexture not implemented\n");
+    m_state.textures[textureUnit] = static_cast<LatteTextureViewMtl*>(textureView);
 }
 
 void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth)
@@ -351,17 +354,17 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 
 void MetalRenderer::bufferCache_init(const sint32 bufferSize)
 {
-    printf("MetalRenderer::bufferCache_init not implemented\n");
+    m_memoryManager->InitBufferCache(bufferSize);
 }
 
 void MetalRenderer::bufferCache_upload(uint8* buffer, sint32 size, uint32 bufferOffset)
 {
-    printf("MetalRenderer::bufferCache_upload not implemented\n");
+    m_memoryManager->UploadToBufferCache(buffer, bufferOffset, size);
 }
 
 void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
-    printf("MetalRenderer::bufferCache_copy not implemented\n");
+    m_memoryManager->CopyBufferCache(srcOffset, dstOffset, size);
 }
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
@@ -371,7 +374,11 @@ void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
 {
-    printf("MetalRenderer::buffer_bindVertexBuffer not implemented\n");
+	if (m_state.vertexBuffers[bufferIndex].offset == offset)
+		return;
+	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
+	m_state.vertexBuffers[bufferIndex].needsRebind = true;
+	m_state.vertexBuffers[bufferIndex].offset = offset;
 }
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
@@ -457,8 +464,6 @@ void MetalRenderer::draw_beginSequence()
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
-    std::cout << "DRAW" << std::endl;
-
     ensureCommandBuffer();
     // TODO: uncomment
     //if (m_state.skipDrawSequence)
@@ -478,6 +483,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	beginRenderPassIfNeeded(renderPassDescriptor);
 
 	// Shaders
+	LatteSHRC_UpdateActiveShaders();
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 
@@ -518,7 +524,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		// TODO: is LatteGPUState.contextNew correct?
 		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-		printf("buffer %u has stride %u bytes\n", bufferIndex, bufferStride);
 
 		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
 		layout->setStride(bufferStride);
@@ -549,11 +554,13 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 	m_renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
-	// TODO: bind resources
-
+	// Primitive type
 	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
 	auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
 
+	// Resources
+
+	// Index buffer
 	Renderer::INDEX_TYPE hostIndexType;
 	uint32 hostIndexCount;
 	uint32 indexMin = 0;
@@ -561,6 +568,25 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	uint32 indexBufferOffset = 0;
 	uint32 indexBufferIndex = 0;
 	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
+
+	// synchronize vertex and uniform cache and update buffer bindings
+	LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
+
+	// Vertex buffers
+	for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
+	{
+	    auto& vertexBufferRange = m_state.vertexBuffers[i];
+	    if (vertexBufferRange.needsRebind)
+        {
+            m_renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
+            // TODO: uncomment
+            //vertexBufferRange.needRebind = false;
+        }
+	}
+
+	// Uniform buffers, textures and samplers
+	BindStageResources(vertexShader);
+	BindStageResources(pixelShader);
 
 	// Draw
 	if (hostIndexType != INDEX_TYPE::NONE)
@@ -591,4 +617,179 @@ void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, u
 void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
 {
     printf("MetalRenderer::indexData_uploadIndexMemory not implemented\n");
+}
+
+void MetalRenderer::BindStageResources(LatteDecompilerShader* shader)
+{
+    sint32 textureCount = shader->resourceMapping.getTextureCount();
+
+	for (int i = 0; i < textureCount; ++i)
+	{
+		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
+		auto hostTextureUnit = relative_textureUnit;
+		auto textureDim = shader->textureUnitDim[relative_textureUnit];
+		auto texUnitRegIndex = hostTextureUnit * 7;
+
+		auto textureView = m_state.textures[hostTextureUnit];
+
+		//LatteTexture* baseTexture = textureView->baseTexture;
+		// get texture register word 0
+		uint32 word4 = LatteGPUState.contextRegister[texUnitRegIndex + 4];
+
+		// TODO: wht
+		//auto imageViewObj = textureView->GetSamplerView(word4);
+		//info.imageView = imageViewObj->m_textureImageView;
+
+		uint32 stageSamplerIndex = shader->textureUnitSamplerAssignment[relative_textureUnit];
+		// TODO: uncomment
+		MTL::SamplerState* sampler = nullptr;//basicSampler;
+		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
+		{
+			// TODO: bind the actual sampler
+		}
+
+		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;
+		switch (shader->shaderType)
+		{
+		case LatteConst::ShaderType::Vertex:
+		{
+			m_renderCommandEncoder->setVertexTexture(textureView->GetTexture(), binding);
+			break;
+		}
+		case LatteConst::ShaderType::Pixel:
+		{
+		    m_renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), binding);
+			break;
+		}
+		default:
+			UNREACHABLE;
+		}
+	}
+
+	// Support buffer
+	auto GET_UNIFORM_DATA_PTR = [&](size_t index) { return supportBufferData + (index / 4); };
+
+	sint32 shaderAluConst;
+	sint32 shaderUniformRegisterOffset;
+
+	switch (shader->shaderType)
+	{
+	case LatteConst::ShaderType::Vertex:
+		shaderAluConst = 0x400;
+		shaderUniformRegisterOffset = mmSQ_VTX_UNIFORM_BLOCK_START;
+		break;
+	case LatteConst::ShaderType::Pixel:
+		shaderAluConst = 0;
+		shaderUniformRegisterOffset = mmSQ_PS_UNIFORM_BLOCK_START;
+		break;
+	case LatteConst::ShaderType::Geometry:
+		shaderAluConst = 0; // geometry shader has no ALU const
+		shaderUniformRegisterOffset = mmSQ_GS_UNIFORM_BLOCK_START;
+		break;
+	default:
+		UNREACHABLE;
+	}
+
+	//if (shader->resourceMapping.uniformVarsBufferBindingPoint >= 0)
+	//{
+		if (shader->uniform.list_ufTexRescale.empty() == false)
+		{
+			for (auto& entry : shader->uniform.list_ufTexRescale)
+			{
+				float* xyScale = LatteTexture_getEffectiveTextureScale(shader->shaderType, entry.texUnit);
+				memcpy(entry.currentValue, xyScale, sizeof(float) * 2);
+				memcpy(GET_UNIFORM_DATA_PTR(entry.uniformLocation), xyScale, sizeof(float) * 2);
+			}
+		}
+		if (shader->uniform.loc_alphaTestRef >= 0)
+		{
+			*GET_UNIFORM_DATA_PTR(shader->uniform.loc_alphaTestRef) = LatteGPUState.contextNew.SX_ALPHA_REF.get_ALPHA_TEST_REF();
+		}
+		if (shader->uniform.loc_pointSize >= 0)
+		{
+			const auto& pointSizeReg = LatteGPUState.contextNew.PA_SU_POINT_SIZE;
+			float pointWidth = (float)pointSizeReg.get_WIDTH() / 8.0f;
+			if (pointWidth == 0.0f)
+				pointWidth = 1.0f / 8.0f; // minimum size
+			*GET_UNIFORM_DATA_PTR(shader->uniform.loc_pointSize) = pointWidth;
+		}
+		if (shader->uniform.loc_remapped >= 0)
+		{
+			LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped));
+		}
+		if (shader->uniform.loc_uniformRegister >= 0)
+		{
+			uint32* uniformRegData = (uint32*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst);
+			memcpy(GET_UNIFORM_DATA_PTR(shader->uniform.loc_uniformRegister), uniformRegData, shader->uniform.count_uniformRegister * 16);
+		}
+		if (shader->uniform.loc_windowSpaceToClipSpaceTransform >= 0)
+		{
+			sint32 viewportWidth;
+			sint32 viewportHeight;
+			LatteRenderTarget_GetCurrentVirtualViewportSize(&viewportWidth, &viewportHeight); // always call after _updateViewport()
+			float* v = GET_UNIFORM_DATA_PTR(shader->uniform.loc_windowSpaceToClipSpaceTransform);
+			v[0] = 2.0f / (float)viewportWidth;
+			v[1] = 2.0f / (float)viewportHeight;
+		}
+		if (shader->uniform.loc_fragCoordScale >= 0)
+		{
+			LatteMRT::GetCurrentFragCoordScale(GET_UNIFORM_DATA_PTR(shader->uniform.loc_fragCoordScale));
+		}
+		// TODO: uncomment?
+		/*
+		if (shader->uniform.loc_verticesPerInstance >= 0)
+		{
+			*(int*)(supportBufferData + ((size_t)shader->uniform.loc_verticesPerInstance / 4)) = m_streamoutState.verticesPerInstance;
+			for (sint32 b = 0; b < LATTE_NUM_STREAMOUT_BUFFER; b++)
+			{
+				if (shader->uniform.loc_streamoutBufferBase[b] >= 0)
+				{
+					*(uint32*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_streamoutBufferBase[b]) = m_streamoutState.buffer[b].ringBufferOffset;
+				}
+			}
+		}
+		*/
+
+		switch (shader->shaderType)
+		{
+		case LatteConst::ShaderType::Vertex:
+		{
+			m_renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
+			break;
+		}
+		case LatteConst::ShaderType::Pixel:
+		{
+		    m_renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
+			break;
+		}
+		default:
+			UNREACHABLE;
+		}
+	//}
+
+	// Uniform buffers
+	for (sint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
+	{
+		if (shader->resourceMapping.uniformBuffersBindingPoint[i] >= 0)
+		{
+			uint32 binding = shader->resourceMapping.uniformBuffersBindingPoint[i];
+			// TODO: don't hardcode
+			size_t offset = 0;
+			switch (shader->shaderType)
+			{
+			case LatteConst::ShaderType::Vertex:
+			{
+				m_renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), offset, binding);
+				break;
+			}
+			case LatteConst::ShaderType::Pixel:
+			{
+			    m_renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
+				break;
+			}
+			default:
+				UNREACHABLE;
+			}
+		}
+	}
 }

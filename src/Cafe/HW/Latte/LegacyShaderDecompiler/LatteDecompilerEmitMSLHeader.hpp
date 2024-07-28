@@ -367,7 +367,7 @@ namespace LatteDecompiler
             break;
 		}
 
-		src->add(" in [[stage_in]], constant SupportBuffer& supportBuffer [[buffer(29)]]");
+		src->add(" in [[stage_in]], constant SupportBuffer& supportBuffer [[buffer(30)]]");
 		switch (decompilerContext->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
