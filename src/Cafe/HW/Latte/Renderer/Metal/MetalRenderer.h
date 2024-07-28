@@ -8,6 +8,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLRenderPass.hpp"
+#include "Metal/MTLRenderPipeline.hpp"
 
 #define MAX_MTL_BUFFERS 31
 #define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 2)
@@ -28,6 +29,8 @@ struct MetalState
     class CachedFBOMtl* activeFBO = nullptr;
     MetalBufferRange vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     class LatteTextureViewMtl* textures[MAX_MTL_TEXTURES] = {nullptr};
+    MTL::Texture* colorRenderTargets[8] = {nullptr};
+    MTL::Texture* depthRenderTarget = nullptr;
 };
 
 class MetalRenderer : public Renderer
@@ -186,18 +189,22 @@ private:
 	MTL::Device* m_device;
 	MTL::CommandQueue* m_commandQueue;
 
+	// Pipelines
+	MTL::RenderPipelineState* m_presentPipeline;
+
 	// Basic
 	MTL::SamplerState* m_nearestSampler;
 
 	// Active objects
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
 	MTL::RenderCommandEncoder* m_renderCommandEncoder = nullptr;
+	CA::MetalDrawable* m_drawable;
 
 	// State
 	MetalState m_state;
 
 	// Helpers
-	void ensureCommandBuffer()
+	void EnsureCommandBuffer()
 	{
 	    if (!m_commandBuffer)
 		{
@@ -208,11 +215,64 @@ private:
 		}
 	}
 
-	void beginRenderPassIfNeeded(MTL::RenderPassDescriptor* renderPassDescriptor)
+	void BeginRenderPassIfNeeded(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget)
     {
-        if (!m_renderCommandEncoder)
+        EnsureCommandBuffer();
+
+        // Check if we need to begin a new render pass
+        if (m_renderCommandEncoder)
         {
-            m_renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+            bool needsNewRenderPass = false;
+            for (uint8 i = 0; i < 8; i++)
+            {
+                if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
+                {
+                    needsNewRenderPass = true;
+                    break;
+                }
+            }
+
+            if (!needsNewRenderPass)
+            {
+                if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
+                {
+                    needsNewRenderPass = true;
+                }
+            }
+
+            if (!needsNewRenderPass)
+            {
+                return;
+            }
+
+            EndEncoding();
+        }
+
+        m_renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+    }
+
+    void EndEncoding()
+    {
+        if (m_renderCommandEncoder)
+        {
+            m_renderCommandEncoder->endEncoding();
+            m_renderCommandEncoder->release();
+            m_renderCommandEncoder = nullptr;
+        }
+    }
+
+    void CommitCommandBuffer()
+    {
+        EndEncoding();
+
+        if (m_commandBuffer)
+        {
+            m_commandBuffer->commit();
+            m_commandBuffer->release();
+            m_commandBuffer = nullptr;
+
+            // Debug
+            m_commandQueue->insertDebugCaptureBoundary();
         }
     }
 

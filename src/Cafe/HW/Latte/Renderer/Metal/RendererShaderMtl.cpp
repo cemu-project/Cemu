@@ -10,7 +10,7 @@ RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type
 	MTL::Library* library = mtlRenderer->GetDevice()->newLibrary(NS::String::string(mslCode.c_str(), NS::ASCIIStringEncoding), nullptr, &error);
 	if (error)
     {
-        printf("Failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
+        printf("failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
         error->release();
         return;
     }
@@ -20,7 +20,7 @@ RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type
     m_function = library->newFunction(desc, &error);
     if (error)
     {
-        printf("Failed to create function (error: %s)\n", error->localizedDescription()->utf8String());
+        printf("failed to create function (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
         return;
     }

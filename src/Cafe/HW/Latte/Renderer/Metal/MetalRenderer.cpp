@@ -6,11 +6,12 @@
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
+#include "Cafe/HW/Latte/Renderer/Metal/ShaderSourcePresent.h"
+
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
-#include "Metal/MTLSampler.hpp"
-#include "Metal/MTLVertexDescriptor.hpp"
+#include "Foundation/NSTypes.hpp"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -43,6 +44,35 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 
     m_metalLayer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle);
     m_metalLayer->setDevice(m_device);
+
+    // Present pipeline
+    NS::Error* error = nullptr;
+	MTL::Library* presentLibrary = m_device->newLibrary(NS::String::string(presentLibrarySource, NS::ASCIIStringEncoding), nullptr, &error);
+	if (error)
+    {
+        printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
+        error->release();
+        throw;
+        return;
+    }
+    MTL::Function* presentVertexFunction = presentLibrary->newFunction(NS::String::string("presentVertex", NS::ASCIIStringEncoding));
+    MTL::Function* presentFragmentFunction = presentLibrary->newFunction(NS::String::string("presentFragment", NS::ASCIIStringEncoding));
+    presentLibrary->release();
+
+    MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+    renderPipelineDescriptor->setVertexFunction(presentVertexFunction);
+    renderPipelineDescriptor->setFragmentFunction(presentFragmentFunction);
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_metalLayer->pixelFormat());
+    m_presentPipeline = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
+    presentVertexFunction->release();
+    presentFragmentFunction->release();
+    if (error)
+    {
+        printf("failed to create present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
+        error->release();
+        throw;
+        return;
+    }
 }
 
 void MetalRenderer::Initialize()
@@ -83,40 +113,48 @@ void MetalRenderer::DrawEmptyFrame(bool mainWindow)
 
 void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
-    if (m_renderCommandEncoder)
-    {
-        m_renderCommandEncoder->endEncoding();
-        m_renderCommandEncoder->release();
-        m_renderCommandEncoder = nullptr;
-    }
+    EndEncoding();
 
-    CA::MetalDrawable* drawable = m_metalLayer->nextDrawable();
-    if (drawable)
+    if (m_drawable)
     {
-        ensureCommandBuffer();
-        m_commandBuffer->presentDrawable(drawable);
+        EnsureCommandBuffer();
+        m_commandBuffer->presentDrawable(m_drawable);
     } else
     {
         printf("skipped present!\n");
     }
+    m_drawable = nullptr;
 
-    if (m_commandBuffer)
-    {
-        m_commandBuffer->commit();
-
-        m_commandBuffer->release();
-        m_commandBuffer = nullptr;
-
-        // Debug
-        m_commandQueue->insertDebugCaptureBoundary();
-    }
+    CommitCommandBuffer();
 }
 
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
 {
-	printf("MetalRenderer::DrawBackbufferQuad not implemented\n");
+    // Acquire drawable
+    m_drawable = m_metalLayer->nextDrawable();
+    if (!m_drawable)
+    {
+        return;
+    }
+
+    MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetTexture();
+
+    // Create render pass
+    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    renderPassDescriptor->colorAttachments()->object(0)->setTexture(m_drawable->texture());
+
+    MTL::Texture* colorRenderTargets[8] = {nullptr};
+    colorRenderTargets[0] = m_drawable->texture();
+    BeginRenderPassIfNeeded(renderPassDescriptor, colorRenderTargets, nullptr);
+
+    // Draw to Metal layer
+    m_renderCommandEncoder->setRenderPipelineState(m_presentPipeline);
+    m_renderCommandEncoder->setFragmentTexture(presentTexture, 0);
+    m_renderCommandEncoder->setFragmentSamplerState(m_nearestSampler, 0);
+
+    m_renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 }
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
@@ -178,7 +216,6 @@ void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem)
 
 TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height)
 {
-    printf("decoding format %u\n", (uint32)format);
     // TODO: move to LatteToMtl
     if (isDepth)
     {
@@ -468,7 +505,6 @@ void MetalRenderer::draw_beginSequence()
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
-    ensureCommandBuffer();
     // TODO: uncomment
     //if (m_state.skipDrawSequence)
 	//{
@@ -484,7 +520,22 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 
 	auto renderPassDescriptor = m_state.activeFBO->GetRenderPassDescriptor();
-	beginRenderPassIfNeeded(renderPassDescriptor);
+	MTL::Texture* colorRenderTargets[8] = {nullptr};
+	MTL::Texture* depthRenderTarget = nullptr;
+	for (uint32 i = 0; i < 8; i++)
+    {
+        auto colorTexture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->colorBuffer[i].texture);
+        if (colorTexture)
+        {
+            colorRenderTargets[i] = colorTexture->GetTexture();
+        }
+    }
+    auto depthTexture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->depthBuffer.texture);
+    if (depthTexture)
+    {
+        depthRenderTarget = depthTexture->GetTexture();
+    }
+	BeginRenderPassIfNeeded(renderPassDescriptor, colorRenderTargets, depthRenderTarget);
 
 	// Shaders
 	LatteSHRC_UpdateActiveShaders();
@@ -598,7 +649,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    if (vertexBufferRange.needsRebind)
         {
             m_renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
-            vertexBufferRange.needsRebind = false;
+            // TODO: uncomment
+            //vertexBufferRange.needsRebind = false;
         }
 	}
 
