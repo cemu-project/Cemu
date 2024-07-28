@@ -505,11 +505,10 @@ void PPCRecompiler_reserveLookupTableBlock(uint32 offset)
 		cemu_assert(false);
 		return;
 	}
-	jumpTableInitialized[offset / 4] = true;
 	for(uint32 i=0; i<PPC_REC_ALLOC_BLOCK_SIZE/4; i++)
 	{
 		ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[offset/4+i] = PPCRecompiler_leaveRecompilerCode_unvisited;
-		jumpTableInitialized[offset / 4 + 1] = true;
+		jumpTableInitialized[offset / 4 + i] = true;
 	}
 }
 
