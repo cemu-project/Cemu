@@ -50,7 +50,7 @@ namespace nsyshid
 			std::unique_ptr<FileStream> skyFile;
 			uint8 status = 0;
 			std::queue<uint8> queuedStatus;
-			std::array<uint8, SKY_BLOCK_SIZE> data{};
+			std::array<uint8, SKY_FIGURE_SIZE> data{};
 			uint32 lastId = 0;
 			void Save();
 
