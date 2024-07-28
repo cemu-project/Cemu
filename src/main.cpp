@@ -1,3 +1,4 @@
+#include "Cafe/HW/Espresso/Recompiler/RecompilerTests.h"
 #include "util/crypto/aes128.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
@@ -263,6 +264,7 @@ int main(int argc, char* argv[])
 
 int main(int argc, char *argv[])
 {
+	// runRecompilerTests();
 #if BOOST_OS_LINUX
     XInitThreads();
 #endif
