@@ -3,8 +3,7 @@
 #include "Metal/MTLPixelFormat.hpp"
 #include "Metal/MTLVertexDescriptor.hpp"
 
-// TODO: separate color and depth formats
-std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_FORMAT_TABLE = {
+std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, 2}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, 2}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM, {MTL::PixelFormatBGR5A1Unorm, 2}}, // TODO: correct?
@@ -60,11 +59,6 @@ std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT, {MTL::PixelFormatRGBA32Uint, 16}},
 	{Latte::E_GX2SURFFMT::R32_G32_B32_A32_SINT, {MTL::PixelFormatRGBA32Sint, 16}},
 	{Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT, {MTL::PixelFormatRGBA32Float, 16}},
-	{Latte::E_GX2SURFFMT::D24_S8_UNORM, {MTL::PixelFormatDepth24Unorm_Stencil8, 4}}, // TODO: not supported on Apple sillicon, maybe find something else
-	{Latte::E_GX2SURFFMT::D24_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, 4}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::D32_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, 5}},
-	{Latte::E_GX2SURFFMT::D16_UNORM, {MTL::PixelFormatDepth16Unorm, 2}},
-	{Latte::E_GX2SURFFMT::D32_FLOAT, {MTL::PixelFormatDepth32Float, 4}},
 	{Latte::E_GX2SURFFMT::BC1_UNORM, {MTL::PixelFormatBC1_RGBA, 8, {4, 4}}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::BC1_SRGB, {MTL::PixelFormatBC1_RGBA_sRGB, 8, {4, 4}}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::BC2_UNORM, {MTL::PixelFormatBC2_RGBA, 16, {4, 4}}}, // TODO: correct?
@@ -77,11 +71,29 @@ std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::BC5_SNORM, {MTL::PixelFormatBC5_RGSnorm, 16, {4, 4}}}, // TODO: correct?
 };
 
-const MtlPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format)
-{
-    cemu_assert_debug(static_cast<size_t>(format) < MTL_FORMAT_TABLE.size());
+std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
+	{Latte::E_GX2SURFFMT::D24_S8_UNORM, {MTL::PixelFormatDepth24Unorm_Stencil8, 4}}, // TODO: not supported on Apple sillicon, maybe find something else
+	{Latte::E_GX2SURFFMT::D24_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, 4}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::D32_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, 5}},
+	{Latte::E_GX2SURFFMT::D16_UNORM, {MTL::PixelFormatDepth16Unorm, 2}},
+	{Latte::E_GX2SURFFMT::D32_FLOAT, {MTL::PixelFormatDepth32Float, 4}},
+};
 
-    MtlPixelFormatInfo formatInfo = MTL_FORMAT_TABLE[format];
+const MtlPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth)
+{
+    MtlPixelFormatInfo formatInfo;
+    if (isDepth)
+        formatInfo = MTL_DEPTH_FORMAT_TABLE[format];
+    else
+        formatInfo = MTL_COLOR_FORMAT_TABLE[format];
+
+    // Depth24Unorm_Stencil8 is not supported on Apple sillicon
+    // TODO: query if format is available instead
+    if (formatInfo.pixelFormat == MTL::PixelFormatDepth24Unorm_Stencil8)
+    {
+        formatInfo.pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
+    }
+
     if (formatInfo.pixelFormat == MTL::PixelFormatInvalid)
     {
         printf("invalid pixel format: %u\n", (uint32)format);
@@ -94,16 +106,16 @@ inline uint32 CeilDivide(uint32 a, uint32 b) {
     return (a + b - 1) / b;
 }
 
-size_t GetMtlTextureBytesPerRow(Latte::E_GX2SURFFMT format, uint32 width)
+size_t GetMtlTextureBytesPerRow(Latte::E_GX2SURFFMT format, bool isDepth, uint32 width)
 {
-    const auto& formatInfo = GetMtlPixelFormatInfo(format);
+    const auto& formatInfo = GetMtlPixelFormatInfo(format, isDepth);
 
     return CeilDivide(width, formatInfo.blockTexelSize.x) * formatInfo.bytesPerBlock;
 }
 
-size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, uint32 height, size_t bytesPerRow)
+size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, bool isDepth, uint32 height, size_t bytesPerRow)
 {
-    const auto& formatInfo = GetMtlPixelFormatInfo(format);
+    const auto& formatInfo = GetMtlPixelFormatInfo(format, isDepth);
 
     return CeilDivide(height, formatInfo.blockTexelSize.y) * bytesPerRow;
 }

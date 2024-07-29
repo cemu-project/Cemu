@@ -6,6 +6,7 @@
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
+#include "Metal/MTLComputeCommandEncoder.hpp"
 #include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLRenderPass.hpp"
 #include "Metal/MTLRenderPipeline.hpp"
@@ -31,6 +32,14 @@ struct MetalState
     class LatteTextureViewMtl* textures[MAX_MTL_TEXTURES] = {nullptr};
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     MTL::Texture* depthRenderTarget = nullptr;
+};
+
+enum class MetalEncoderType
+{
+    None,
+    Render,
+    Compute,
+    Blit,
 };
 
 class MetalRenderer : public Renderer
@@ -197,7 +206,8 @@ private:
 
 	// Active objects
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
-	MTL::RenderCommandEncoder* m_renderCommandEncoder = nullptr;
+	MetalEncoderType m_encoderType = MetalEncoderType::None;
+	MTL::CommandEncoder* m_commandEncoder = nullptr;
 	CA::MetalDrawable* m_drawable;
 
 	// State
@@ -215,49 +225,101 @@ private:
 		}
 	}
 
-	void BeginRenderPassIfNeeded(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget)
+	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget)
     {
         EnsureCommandBuffer();
 
         // Check if we need to begin a new render pass
-        if (m_renderCommandEncoder)
+        if (m_commandEncoder)
         {
-            bool needsNewRenderPass = false;
-            for (uint8 i = 0; i < 8; i++)
+            if (m_encoderType == MetalEncoderType::Render)
             {
-                if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
+                bool needsNewRenderPass = false;
+                for (uint8 i = 0; i < 8; i++)
                 {
-                    needsNewRenderPass = true;
-                    break;
+                    if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
+                    {
+                        needsNewRenderPass = true;
+                        break;
+                    }
                 }
-            }
 
-            if (!needsNewRenderPass)
-            {
-                if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
+                if (!needsNewRenderPass)
                 {
-                    needsNewRenderPass = true;
+                    if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
+                    {
+                        needsNewRenderPass = true;
+                    }
                 }
-            }
 
-            if (!needsNewRenderPass)
-            {
-                return;
+                if (!needsNewRenderPass)
+                {
+                    return (MTL::RenderCommandEncoder*)m_commandEncoder;
+                }
             }
 
             EndEncoding();
         }
 
-        m_renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+        // Update state
+        for (uint8 i = 0; i < 8; i++)
+        {
+            m_state.colorRenderTargets[i] = colorRenderTargets[i];
+        }
+        m_state.depthRenderTarget = depthRenderTarget;
+
+        auto renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+        m_commandEncoder = renderCommandEncoder;
+        m_encoderType = MetalEncoderType::Render;
+
+        return renderCommandEncoder;
+    }
+
+    MTL::ComputeCommandEncoder* GetComputeCommandEncoder()
+    {
+        if (m_commandEncoder)
+        {
+            if (m_encoderType != MetalEncoderType::Compute)
+            {
+                return (MTL::ComputeCommandEncoder*)m_commandEncoder;
+            }
+
+            EndEncoding();
+        }
+
+        auto computeCommandEncoder = m_commandBuffer->computeCommandEncoder();
+        m_commandEncoder = computeCommandEncoder;
+        m_encoderType = MetalEncoderType::Compute;
+
+        return computeCommandEncoder;
+    }
+
+    MTL::BlitCommandEncoder* GetBlitCommandEncoder()
+    {
+        if (m_commandEncoder)
+        {
+            if (m_encoderType != MetalEncoderType::Blit)
+            {
+                return (MTL::BlitCommandEncoder*)m_commandEncoder;
+            }
+
+            EndEncoding();
+        }
+
+        auto blitCommandEncoder = m_commandBuffer->blitCommandEncoder();
+        m_commandEncoder = blitCommandEncoder;
+        m_encoderType = MetalEncoderType::Blit;
+
+        return blitCommandEncoder;
     }
 
     void EndEncoding()
     {
-        if (m_renderCommandEncoder)
+        if (m_commandEncoder)
         {
-            m_renderCommandEncoder->endEncoding();
-            m_renderCommandEncoder->release();
-            m_renderCommandEncoder = nullptr;
+            m_commandEncoder->endEncoding();
+            m_commandEncoder->release();
+            m_commandEncoder = nullptr;
         }
     }
 
@@ -276,5 +338,5 @@ private:
         }
     }
 
-    void BindStageResources(LatteDecompilerShader* shader);
+    void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
 };

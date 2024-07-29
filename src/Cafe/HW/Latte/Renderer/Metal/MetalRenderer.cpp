@@ -12,6 +12,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Foundation/NSTypes.hpp"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -147,14 +148,14 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = m_drawable->texture();
-    BeginRenderPassIfNeeded(renderPassDescriptor, colorRenderTargets, nullptr);
+    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr);
 
     // Draw to Metal layer
-    m_renderCommandEncoder->setRenderPipelineState(m_presentPipeline);
-    m_renderCommandEncoder->setFragmentTexture(presentTexture, 0);
-    m_renderCommandEncoder->setFragmentSamplerState(m_nearestSampler, 0);
+    renderCommandEncoder->setRenderPipelineState(m_presentPipeline);
+    renderCommandEncoder->setFragmentTexture(presentTexture, 0);
+    renderCommandEncoder->setFragmentSamplerState(m_nearestSampler, 0);
 
-    m_renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
+    renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 }
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
@@ -351,8 +352,8 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
 {
     auto mtlTexture = (LatteTextureMtl*)hostTexture;
 
-    size_t bytesPerRow = GetMtlTextureBytesPerRow(mtlTexture->GetFormat(), width);
-    size_t bytesPerImage = GetMtlTextureBytesPerImage(mtlTexture->GetFormat(), height, bytesPerRow);
+    size_t bytesPerRow = GetMtlTextureBytesPerRow(mtlTexture->GetFormat(), mtlTexture->IsDepth(), width);
+    size_t bytesPerImage = GetMtlTextureBytesPerImage(mtlTexture->GetFormat(), mtlTexture->IsDepth(), height, bytesPerRow);
     mtlTexture->GetTexture()->replaceRegion(MTL::Region(0, 0, width, height), mipIndex, sliceIndex, pixelData, bytesPerRow, bytesPerImage);
 }
 
@@ -535,7 +536,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     {
         depthRenderTarget = depthTexture->GetTexture();
     }
-	BeginRenderPassIfNeeded(renderPassDescriptor, colorRenderTargets, depthRenderTarget);
+	auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, depthRenderTarget);
 
 	// Shaders
 	LatteSHRC_UpdateActiveShaders();
@@ -622,7 +623,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
 		return;
 	}
-	m_renderCommandEncoder->setRenderPipelineState(renderPipelineState);
+	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Primitive type
 	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
@@ -648,25 +649,25 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    auto& vertexBufferRange = m_state.vertexBuffers[i];
 	    if (vertexBufferRange.needsRebind)
         {
-            m_renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
+            renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
             // TODO: uncomment
             //vertexBufferRange.needsRebind = false;
         }
 	}
 
 	// Uniform buffers, textures and samplers
-	BindStageResources(vertexShader);
-	BindStageResources(pixelShader);
+	BindStageResources(renderCommandEncoder, vertexShader);
+	BindStageResources(renderCommandEncoder, pixelShader);
 
 	// Draw
 	if (hostIndexType != INDEX_TYPE::NONE)
 	{
 	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
 		MTL::Buffer* indexBuffer = m_memoryManager->GetBuffer(indexBufferIndex);
-		m_renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, 0, instanceCount, baseVertex, baseInstance);
+		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, 0, instanceCount, baseVertex, baseInstance);
 	} else
 	{
-		m_renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
+		renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
 	}
 }
 
@@ -689,7 +690,7 @@ void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
     printf("MetalRenderer::indexData_uploadIndexMemory not implemented\n");
 }
 
-void MetalRenderer::BindStageResources(LatteDecompilerShader* shader)
+void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader)
 {
     sint32 textureCount = shader->resourceMapping.getTextureCount();
 
@@ -722,12 +723,12 @@ void MetalRenderer::BindStageResources(LatteDecompilerShader* shader)
 			{
 			case LatteConst::ShaderType::Vertex:
 			{
-				m_renderCommandEncoder->setVertexSamplerState(sampler, binding);
+				renderCommandEncoder->setVertexSamplerState(sampler, binding);
 				break;
 			}
 			case LatteConst::ShaderType::Pixel:
 			{
-			    m_renderCommandEncoder->setFragmentSamplerState(sampler, binding);
+			    renderCommandEncoder->setFragmentSamplerState(sampler, binding);
 				break;
 			}
 			default:
@@ -739,12 +740,12 @@ void MetalRenderer::BindStageResources(LatteDecompilerShader* shader)
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
-			m_renderCommandEncoder->setVertexTexture(textureView->GetTexture(), binding);
+			renderCommandEncoder->setVertexTexture(textureView->GetTexture(), binding);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    m_renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), binding);
+		    renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), binding);
 			break;
 		}
 		default:
@@ -840,12 +841,12 @@ void MetalRenderer::BindStageResources(LatteDecompilerShader* shader)
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
-			m_renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
+			renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    m_renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
+		    renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}
 		default:
@@ -865,12 +866,12 @@ void MetalRenderer::BindStageResources(LatteDecompilerShader* shader)
 			{
 			case LatteConst::ShaderType::Vertex:
 			{
-				m_renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), offset, binding);
+				renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), offset, binding);
 				break;
 			}
 			case LatteConst::ShaderType::Pixel:
 			{
-			    m_renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
+			    renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
 				break;
 			}
 			default:

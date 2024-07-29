@@ -52,7 +52,7 @@ LatteTextureViewMtl::LatteTextureViewMtl(MetalRenderer* mtlRenderer, LatteTextur
 
 	// TODO: swizzle
 
-	auto formatInfo = GetMtlPixelFormatInfo(format);
+	auto formatInfo = GetMtlPixelFormatInfo(format, texture->IsDepth());
 	m_texture = texture->GetTexture()->newTextureView(formatInfo.pixelFormat, textureType, NS::Range::Make(baseLevel, levelCount), NS::Range::Make(baseLayer, layerCount));
 }
 

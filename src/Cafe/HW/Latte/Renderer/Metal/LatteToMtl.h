@@ -18,11 +18,11 @@ struct MtlPixelFormatInfo {
     Uvec2 blockTexelSize = {1, 1};
 };
 
-const MtlPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format);
+const MtlPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth);
 
-size_t GetMtlTextureBytesPerRow(Latte::E_GX2SURFFMT format, uint32 width);
+size_t GetMtlTextureBytesPerRow(Latte::E_GX2SURFFMT format, bool isDepth, uint32 width);
 
-size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, uint32 height, size_t bytesPerRow);
+size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, bool isDepth, uint32 height, size_t bytesPerRow);
 
 MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode mode);
 

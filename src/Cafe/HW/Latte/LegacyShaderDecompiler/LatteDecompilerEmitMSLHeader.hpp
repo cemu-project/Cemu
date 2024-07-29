@@ -134,7 +134,7 @@ namespace LatteDecompiler
 
 				//shaderSrc->addFmt("UNIFORM_BUFFER_LAYOUT({}, {}, {}) ", (sint32)decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i], (sint32)decompilerContext->output->resourceMappingVK.setIndex, (sint32)decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i]);
 
-				shaderSrc->addFmt("struct UBuff{} {" _CRLF, i);
+				shaderSrc->addFmt("struct UBuff{} {{" _CRLF, i);
 				shaderSrc->addFmt("float4 d{}[{}];" _CRLF, i, decompilerContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(decompilerContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE));
 				shaderSrc->add("};" _CRLF _CRLF);
 			}
@@ -307,7 +307,7 @@ namespace LatteDecompiler
 				cemu_assert_debug(decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i] >= 0);
 				cemu_assert_debug(decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i] >= 0);
 
-				src->addFmt("constant UBuff{}& ubuff{} [[buffer({})]]" _CRLF, i, i, (sint32)decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i]);
+				src->addFmt(", constant UBuff{}& ubuff{} [[buffer({})]]", i, i, (sint32)decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i]);
 			}
 		}
 	}
