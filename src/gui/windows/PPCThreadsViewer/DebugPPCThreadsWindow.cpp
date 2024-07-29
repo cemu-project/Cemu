@@ -277,12 +277,10 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 	m_thread_list->SetScrollPos(0, scrollPos, true);
 }
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 void DebugPPCThreadsWindow::DumpStackTrace(OSThread_t* thread)
 {
 	cemuLog_log(LogType::Force, "Dumping stack trace for thread {0:08x} LR: {1:08x}", memory_getVirtualOffsetFromPointer(thread), _swapEndianU32(thread->context.lr));
-	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]));
+	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]), true);
 }
 
 void DebugPPCThreadsWindow::PresentProfileResults(OSThread_t* thread, const std::unordered_map<VAddr, uint32>& samples)

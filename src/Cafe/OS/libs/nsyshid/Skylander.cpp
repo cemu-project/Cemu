@@ -978,7 +978,7 @@ namespace nsyshid
 	{
 		for (const auto& it : GetListSkylanders())
 		{
-			if(it.first.first == skyId && it.first.second == skyVar)
+			if (it.first.first == skyId && it.first.second == skyVar)
 			{
 				return it.second;
 			}

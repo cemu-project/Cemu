@@ -377,7 +377,9 @@ add_library(CemuCafe
   OS/libs/gx2/GX2_Texture.h
   OS/libs/gx2/GX2_TilingAperture.cpp
   OS/libs/h264_avc/H264Dec.cpp
+  OS/libs/h264_avc/H264DecBackendAVC.cpp
   OS/libs/h264_avc/h264dec.h
+  OS/libs/h264_avc/H264DecInternal.h
   OS/libs/h264_avc/parser
   OS/libs/h264_avc/parser/H264Parser.cpp
   OS/libs/h264_avc/parser/H264Parser.h
