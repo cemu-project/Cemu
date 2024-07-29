@@ -551,6 +551,7 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/CachedFBOMtl.h
             HW/Latte/Renderer/Metal/MetalMemoryManager.cpp
             HW/Latte/Renderer/Metal/MetalMemoryManager.h
+            HW/Latte/Renderer/Metal/ShaderSourcePresent.h
         )
 
         #target_link_libraries(CemuCafe PRIVATE
