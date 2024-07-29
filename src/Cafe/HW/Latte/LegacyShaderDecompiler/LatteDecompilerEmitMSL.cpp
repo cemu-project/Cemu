@@ -1531,7 +1531,7 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 			debugBreakpoint();
 		_emitOperandInputCode(shaderContext, aluInstruction, 1, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
 		src->add(")");
-		src->add(") discard;");
+		src->add(") discard_fragment();");
 		src->add(_CRLF);
 	}
 	else if( aluInstruction->opcode == ALU_OP2_INST_KILLGT ||
@@ -1551,7 +1551,7 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 			debugBreakpoint();
 		_emitOperandInputCode(shaderContext, aluInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
 		src->add(")");
-		src->add(") discard;");
+		src->add(") discard_fragment();");
 		src->add(_CRLF);
 	}
 	else
@@ -3136,7 +3136,7 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 				if( pixelColorOutputIndex == 0 && alphaTestEnable && alphaTestFunc == Latte::E_COMPAREFUNC::NEVER )
 				{
 					// never pass alpha test
-					src->add("discard;" _CRLF);
+					src->add("discard_fragment();" _CRLF);
 				}
 				else if( pixelColorOutputIndex == 0 && alphaTestEnable && alphaTestFunc != Latte::E_COMPAREFUNC::ALWAYS)
 				{
@@ -3166,7 +3166,7 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 						break;
 					}
 					src->add(" supportBuffer.alphaTestRef");
-					src->add(") == false) discard;" _CRLF);
+					src->add(") == false) discard_fragment();" _CRLF);
 				}
 				// pixel color output
 				src->addFmt("out.passPixelColor{} = ", pixelColorOutputIndex);
@@ -4067,13 +4067,20 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	}
 	for(auto& cfInstruction : shaderContext->cfInstructions)
 		LatteDecompiler_emitClauseCodeMSL(shaderContext, &cfInstruction, false);
-	if( shader->shaderType == LatteConst::ShaderType::Geometry )
-		src->add("EndPrimitive();" _CRLF);
+	//if(shader->shaderType == LatteConst::ShaderType::Geometry)
+	//	src->add("EndPrimitive();" _CRLF);
 	// vertex shader should write renderstate point size at the end if required but not modified by shader
 	if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
 	{
 		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader == false)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
+	}
+	// HACK: this should be handled outside of the shader, because clipping currently wouldn't work
+	if (shader->shaderType == LatteConst::ShaderType::Vertex)
+	{
+	    // Convert depth from the range of [-1, 1] to [0, 1]
+		src->add("out.position /= out.position.w;" _CRLF);
+		src->add("out.position.z = out.position.z * 0.5 + 0.5;" _CRLF);
 	}
 	// return
 	src->add("return out;" _CRLF);

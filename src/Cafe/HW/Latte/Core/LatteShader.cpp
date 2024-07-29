@@ -615,7 +615,8 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	LatteDecompilerShader* shader = decompilerOutput.shader;
 	shader->baseHash = baseHash;
 	// copy resource mapping
-	if(g_renderer->GetType() == RendererAPI::Vulkan)
+	// HACK
+	if (g_renderer->GetType() != RendererAPI::OpenGL)
 		shader->resourceMapping = decompilerOutput.resourceMappingVK;
 	else
 		shader->resourceMapping = decompilerOutput.resourceMappingGL;
@@ -626,7 +627,8 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	shader->hasStreamoutBufferWrite = decompilerOutput.streamoutBufferWriteMask.any();
 	// copy uniform offsets
 	// for OpenGL these are retrieved in _prepareSeparableUniforms()
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
+	// HACK
+	if (g_renderer->GetType() != RendererAPI::OpenGL)
 	{
 		shader->uniform.loc_remapped = decompilerOutput.uniformOffsetsVK.offset_remapped;
 		shader->uniform.loc_uniformRegister = decompilerOutput.uniformOffsetsVK.offset_uniformRegister;
