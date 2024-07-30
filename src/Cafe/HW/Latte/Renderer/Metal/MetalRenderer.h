@@ -18,7 +18,7 @@
 
 #define MAX_MTL_TEXTURES 31
 
-struct MetalBufferRange
+struct MetalBoundBuffer
 {
     bool needsRebind = false;
     sint32 offset = -1;
@@ -28,7 +28,7 @@ struct MetalState
 {
     bool skipDrawSequence = false;
     class CachedFBOMtl* activeFBO = nullptr;
-    MetalBufferRange vertexBuffers[MAX_MTL_BUFFERS] = {{}};
+    MetalBoundBuffer vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     class LatteTextureViewMtl* textures[MAX_MTL_TEXTURES] = {nullptr};
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     MTL::Texture* depthRenderTarget = nullptr;
@@ -332,6 +332,9 @@ private:
             m_commandBuffer->commit();
             m_commandBuffer->release();
             m_commandBuffer = nullptr;
+
+            // Reset temporary buffers
+            m_memoryManager->ResetTemporaryBuffers();
 
             // Debug
             m_commandQueue->insertDebugCaptureBoundary();

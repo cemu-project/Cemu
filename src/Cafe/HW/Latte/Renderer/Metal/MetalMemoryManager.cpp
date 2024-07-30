@@ -1,4 +1,56 @@
+#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+
+const size_t BUFFER_ALLOCATION_SIZE = 8 * 1024 * 1024;
+
+MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size)
+{
+    // First, try to find a free range
+    for (uint32 i = 0; i < m_freeBufferRanges.size(); i++)
+    {
+        auto& range = m_freeBufferRanges[i];
+        if (range.size >= size)
+        {
+            MetalBufferAllocation allocation;
+            allocation.bufferIndex = range.bufferIndex;
+            allocation.bufferOffset = range.offset;
+            allocation.data = (uint8*)m_buffers[range.bufferIndex]->contents() + range.offset;
+
+            range.offset += size;
+            range.size -= size;
+
+            if (range.size == 0)
+            {
+                m_freeBufferRanges.erase(m_freeBufferRanges.begin() + i);
+            }
+
+            return allocation;
+        }
+    }
+
+    // If no free range was found, allocate a new buffer
+    MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(std::max(size, BUFFER_ALLOCATION_SIZE), MTL::ResourceStorageModeShared);
+
+    MetalBufferAllocation allocation;
+    allocation.bufferIndex = m_buffers.size();
+    allocation.bufferOffset = 0;
+    allocation.data = buffer->contents();
+
+    m_buffers.push_back(buffer);
+
+    // If the buffer is larger than the requested size, add the remaining space to the free buffer ranges
+    if (size < BUFFER_ALLOCATION_SIZE)
+    {
+        MetalBufferRange range;
+        range.bufferIndex = allocation.bufferIndex;
+        range.offset = size;
+        range.size = BUFFER_ALLOCATION_SIZE - size;
+
+        m_freeBufferRanges.push_back(range);
+    }
+
+    return allocation;
+}
 
 void* MetalMemoryManager::GetTextureUploadBuffer(size_t size)
 {
@@ -8,21 +60,6 @@ void* MetalMemoryManager::GetTextureUploadBuffer(size_t size)
     }
 
     return m_textureUploadBuffer.data();
-}
-
-// TODO: optimize this
-MetalBufferAllocation MetalMemoryManager::GetBufferAllocation(size_t size)
-{
-    MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModeShared);
-
-    MetalBufferAllocation allocation;
-    allocation.bufferIndex = m_buffers.size();
-    allocation.bufferOffset = 0;
-    allocation.data = buffer->contents();
-
-    m_buffers.push_back(buffer);
-
-    return allocation;
 }
 
 void MetalMemoryManager::InitBufferCache(size_t size)

@@ -1,5 +1,4 @@
-#include <cmath>
-const char* presentLibrarySource = \
+inline const char* presentLibrarySource = \
 "#include <metal_stdlib>\n" \
 "using namespace metal;\n" \
 "\n" \

@@ -456,7 +456,7 @@ void MetalRenderer::draw_beginSequence()
 	LatteSHRC_UpdateActiveShaders();
 	if (LatteGPUState.activeShaderHasError)
 	{
-		cemuLog_logDebugOnce(LogType::Force, "Skipping drawcalls due to shader error");
+		debug_printf("Skipping drawcalls due to shader error\n");
 		m_state.skipDrawSequence = true;
 		cemu_assert_debug(false);
 		return;
@@ -506,10 +506,8 @@ void MetalRenderer::draw_beginSequence()
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
-    // TODO: uncomment
     //if (m_state.skipDrawSequence)
 	//{
-    //  printf("skipping draw\n");
 	//	return;
 	//}
 
