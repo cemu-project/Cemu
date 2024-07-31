@@ -32,6 +32,8 @@ struct MetalState
     class LatteTextureViewMtl* textures[MAX_MTL_TEXTURES] = {nullptr};
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     MTL::Texture* depthRenderTarget = nullptr;
+    MTL::Viewport viewport = {0, 0, 0, 0, 0, 0};
+    MTL::ScissorRect scissor = {0, 0, 0, 0};
 };
 
 enum class MetalEncoderType
@@ -272,6 +274,9 @@ private:
         m_commandEncoder = renderCommandEncoder;
         m_encoderType = MetalEncoderType::Render;
 
+        // Rebind all the render state
+        RebindRenderState(renderCommandEncoder);
+
         return renderCommandEncoder;
     }
 
@@ -342,4 +347,6 @@ private:
     }
 
     void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
+
+    void RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder);
 };

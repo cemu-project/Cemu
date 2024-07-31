@@ -11,6 +11,7 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
+#include "Cemu/Logging/CemuDebugLogging.h"
 #include "Foundation/NSTypes.hpp"
 #include "Metal/MTLRenderCommandEncoder.hpp"
 #include "gui/guiWrapper.h"
@@ -171,7 +172,8 @@ void MetalRenderer::Flush(bool waitIdle)
 
 void MetalRenderer::NotifyLatteCommandProcessorIdle()
 {
-    printf("MetalRenderer::NotifyLatteCommandProcessorIdle not implemented\n");
+    // TODO: should we?
+    CommitCommandBuffer();
 }
 
 void MetalRenderer::AppendOverlayDebugInfo()
@@ -181,12 +183,20 @@ void MetalRenderer::AppendOverlayDebugInfo()
 
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
 {
-    printf("MetalRenderer::renderTarget_setViewport not implemented\n");
+    m_state.viewport = MTL::Viewport{x, y + height, width, -height, nearZ, farZ};
+    if (m_encoderType == MetalEncoderType::Render)
+    {
+        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setViewport(m_state.viewport);
+    }
 }
 
 void MetalRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, sint32 scissorWidth, sint32 scissorHeight)
 {
-    printf("MetalRenderer::renderTarget_setScissor not implemented\n");
+    m_state.scissor = MTL::ScissorRect{NS::UInteger(scissorX), NS::UInteger(scissorY), NS::UInteger(scissorWidth), NS::UInteger(scissorHeight)};
+    if (m_encoderType == MetalEncoderType::Render)
+    {
+        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setScissorRect(m_state.scissor);
+    }
 }
 
 LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key)
@@ -456,7 +466,7 @@ void MetalRenderer::draw_beginSequence()
 	LatteSHRC_UpdateActiveShaders();
 	if (LatteGPUState.activeShaderHasError)
 	{
-		debug_printf("Skipping drawcalls due to shader error\n");
+		printf("Skipping drawcalls due to shader error\n");
 		m_state.skipDrawSequence = true;
 		cemu_assert_debug(false);
 		return;
@@ -469,14 +479,14 @@ void MetalRenderer::draw_beginSequence()
 		LatteGPUState.repeatTextureInitialization = false;
 		if (!LatteMRT::UpdateCurrentFBO())
 		{
-			debug_printf("Rendertarget invalid\n");
+			printf("Rendertarget invalid\n");
 			m_state.skipDrawSequence = true;
 			return; // no render target
 		}
 
 		if (!hasValidFramebufferAttached)
 		{
-			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
+			printf("Drawcall with no color buffer or depth buffer attached\n");
 			m_state.skipDrawSequence = true;
 			return; // no render target
 		}
@@ -540,6 +550,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteSHRC_UpdateActiveShaders();
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+	if (!vertexShader)
+	{
+        printf("no vertex function, skipping draw\n");
+	    return;
+	}
 
 	auto fetchShader = vertexShader->compatibleFetchShader;
 
@@ -648,8 +663,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    if (vertexBufferRange.needsRebind)
         {
             renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
-            // TODO: uncomment
-            //vertexBufferRange.needsRebind = false;
+            vertexBufferRange.needsRebind = false;
         }
 	}
 
@@ -671,7 +685,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 void MetalRenderer::draw_endSequence()
 {
-    printf("MetalRenderer::draw_endSequence not implemented\n");
+    // TODO: do something?
 }
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
@@ -876,5 +890,58 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 				UNREACHABLE;
 			}
 		}
+	}
+}
+
+void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder)
+{
+    // Viewport
+    if (m_state.viewport.width != 0.0)
+    {
+        printf("setting previous viewport X: %f Y: %f width: %f height %f\n", m_state.viewport.originX, m_state.viewport.originY, m_state.viewport.width, m_state.viewport.height);
+        renderCommandEncoder->setViewport(m_state.viewport);
+    }
+    else
+    {
+        // Find the framebuffer dimensions
+        uint32 framebufferWidth = 0, framebufferHeight = 0;
+        if (m_state.activeFBO->hasDepthBuffer())
+        {
+            framebufferHeight = m_state.activeFBO->depthBuffer.texture->baseTexture->width;
+            framebufferHeight = m_state.activeFBO->depthBuffer.texture->baseTexture->height;
+        }
+        else
+        {
+            for (uint8 i = 0; i < 8; i++)
+            {
+                auto texture = m_state.activeFBO->colorBuffer[i].texture;
+                if (texture)
+                {
+                    framebufferWidth = texture->baseTexture->width;
+                    framebufferHeight = texture->baseTexture->height;
+                }
+            }
+        }
+
+        MTL::Viewport viewport{0, (double)framebufferHeight, (double)framebufferWidth, -(double)framebufferHeight, 0.0, 1.0};
+        printf("setting default viewport X: %f Y: %f width: %f height %f\n", viewport.originX, viewport.originY, viewport.width, viewport.height);
+        renderCommandEncoder->setViewport(viewport);
+    }
+
+    // Scissor
+    if (m_state.scissor.width != 0)
+    {
+        renderCommandEncoder->setScissorRect(m_state.scissor);
+    }
+
+    // Vertex buffers
+	for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
+	{
+	    auto& vertexBufferRange = m_state.vertexBuffers[i];
+	    if (vertexBufferRange.offset != -1)
+        {
+            renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
+            vertexBufferRange.needsRebind = false;
+        }
 	}
 }
