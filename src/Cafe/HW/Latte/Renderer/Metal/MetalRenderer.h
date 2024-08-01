@@ -18,10 +18,12 @@
 
 #define MAX_MTL_TEXTURES 31
 
+constexpr size_t INVALID_OFFSET = std::numeric_limits<size_t>::max();
+
 struct MetalBoundBuffer
 {
     bool needsRebind = false;
-    sint32 offset = -1;
+    size_t offset = INVALID_OFFSET;
 };
 
 struct MetalState
@@ -30,6 +32,7 @@ struct MetalState
     class CachedFBOMtl* activeFBO = nullptr;
     MetalBoundBuffer vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     class LatteTextureViewMtl* textures[MAX_MTL_TEXTURES] = {nullptr};
+    size_t uniformBufferOffsets[(uint32)LatteConst::ShaderType::TotalCount][MAX_MTL_BUFFERS];
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     MTL::Texture* depthRenderTarget = nullptr;
     MTL::Viewport viewport = {0, 0, 0, 0, 0, 0};
@@ -210,7 +213,7 @@ private:
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
-	CA::MetalDrawable* m_drawable;
+	CA::MetalDrawable* m_drawable = nullptr;
 
 	// State
 	MetalState m_state;
@@ -227,7 +230,7 @@ private:
 		}
 	}
 
-	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget)
+	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool rebindStateIfNewEncoder = true)
     {
         EnsureCommandBuffer();
 
@@ -274,8 +277,11 @@ private:
         m_commandEncoder = renderCommandEncoder;
         m_encoderType = MetalEncoderType::Render;
 
-        // Rebind all the render state
-        RebindRenderState(renderCommandEncoder);
+        if (rebindStateIfNewEncoder)
+        {
+            // Rebind all the render state
+            RebindRenderState(renderCommandEncoder);
+        }
 
         return renderCommandEncoder;
     }

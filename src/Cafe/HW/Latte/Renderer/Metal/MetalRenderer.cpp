@@ -29,6 +29,15 @@ MetalRenderer::MetalRenderer()
     m_nearestSampler = m_device->newSamplerState(samplerDescriptor);
 
     m_memoryManager = new MetalMemoryManager(this);
+
+    // Initialize state
+    for (uint32 i = 0; i < (uint32)LatteConst::ShaderType::TotalCount; i++)
+    {
+        for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
+        {
+            m_state.uniformBufferOffsets[i][j] = INVALID_OFFSET;
+        }
+    }
 }
 
 MetalRenderer::~MetalRenderer()
@@ -149,7 +158,8 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = m_drawable->texture();
-    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr);
+    // If there was already an encoder with these attachment, we should set the viewport and scissor to default, but that shouldn't happen
+    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, false);
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(m_presentPipeline);
@@ -435,7 +445,7 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
 {
-    printf("MetalRenderer::buffer_bindUniformBuffer not implemented\n");
+    m_state.uniformBufferOffsets[(uint32)shaderType][bufferIndex] = offset;
 }
 
 RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
@@ -872,22 +882,29 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		if (shader->resourceMapping.uniformBuffersBindingPoint[i] >= 0)
 		{
 			uint32 binding = shader->resourceMapping.uniformBuffersBindingPoint[i];
-			// TODO: don't hardcode
-			size_t offset = 0;
-			switch (shader->shaderType)
+			if (binding >= MAX_MTL_BUFFERS)
 			{
-			case LatteConst::ShaderType::Vertex:
-			{
-				renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), offset, binding);
-				break;
+			    printf("too big buffer index (%u), skipping binding\n", binding);
+				continue;
 			}
-			case LatteConst::ShaderType::Pixel:
+			size_t offset = m_state.uniformBufferOffsets[(uint32)shader->shaderType][binding];
+			if (offset != INVALID_OFFSET)
 			{
-			    renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
-				break;
-			}
-			default:
-				UNREACHABLE;
+    			switch (shader->shaderType)
+    			{
+    			case LatteConst::ShaderType::Vertex:
+    			{
+    				renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), offset, binding);
+    				break;
+    			}
+    			case LatteConst::ShaderType::Pixel:
+    			{
+    			    renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
+    				break;
+    			}
+    			default:
+    				UNREACHABLE;
+    			}
 			}
 		}
 	}
@@ -896,10 +913,10 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder)
 {
     // Viewport
-    if (m_state.viewport.width != 0.0)
-    {
-        printf("setting previous viewport X: %f Y: %f width: %f height %f\n", m_state.viewport.originX, m_state.viewport.originY, m_state.viewport.width, m_state.viewport.height);
-        renderCommandEncoder->setViewport(m_state.viewport);
+    //if (m_state.viewport.width != 0.0)
+    //{
+    renderCommandEncoder->setViewport(m_state.viewport);
+    /*
     }
     else
     {
@@ -919,26 +936,27 @@ void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEn
                 {
                     framebufferWidth = texture->baseTexture->width;
                     framebufferHeight = texture->baseTexture->height;
+                    break;
                 }
             }
         }
 
         MTL::Viewport viewport{0, (double)framebufferHeight, (double)framebufferWidth, -(double)framebufferHeight, 0.0, 1.0};
-        printf("setting default viewport X: %f Y: %f width: %f height %f\n", viewport.originX, viewport.originY, viewport.width, viewport.height);
         renderCommandEncoder->setViewport(viewport);
     }
+    */
 
     // Scissor
-    if (m_state.scissor.width != 0)
-    {
-        renderCommandEncoder->setScissorRect(m_state.scissor);
-    }
+    //if (m_state.scissor.width != 0)
+    //{
+    renderCommandEncoder->setScissorRect(m_state.scissor);
+    //}
 
     // Vertex buffers
 	for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
 	{
 	    auto& vertexBufferRange = m_state.vertexBuffers[i];
-	    if (vertexBufferRange.offset != -1)
+	    if (vertexBufferRange.offset != INVALID_OFFSET)
         {
             renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
             vertexBufferRange.needsRebind = false;

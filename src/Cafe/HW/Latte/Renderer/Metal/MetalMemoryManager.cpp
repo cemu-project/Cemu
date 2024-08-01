@@ -80,6 +80,11 @@ void MetalMemoryManager::InitBufferCache(size_t size)
 
 void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, size_t size)
 {
+    if ((offset + size) > m_bufferCache->length())
+    {
+        throw std::runtime_error(std::to_string(offset) + " + " + std::to_string(size) + " > " + std::to_string(m_bufferCache->length()));
+    }
+
     if (!m_bufferCache)
     {
         printf("MetalMemoryManager::UploadToBufferCache: buffer cache not initialized\n");
