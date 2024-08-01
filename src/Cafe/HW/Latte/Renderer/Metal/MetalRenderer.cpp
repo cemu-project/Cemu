@@ -560,7 +560,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteSHRC_UpdateActiveShaders();
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
-	if (!vertexShader)
+	if (!vertexShader || !static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction())
 	{
         printf("no vertex function, skipping draw\n");
 	    return;
@@ -631,7 +631,42 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 		{
 		    continue;
 		}
-		renderPipelineDescriptor->colorAttachments()->object(i)->setPixelFormat(texture->GetTexture()->pixelFormat());
+		auto colorAttachment = renderPipelineDescriptor->colorAttachments()->object(i);
+		colorAttachment->setPixelFormat(texture->GetTexture()->pixelFormat());
+
+		// Blending
+		const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = LatteGPUState.contextNew.CB_COLOR_CONTROL;
+		uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
+		uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
+
+		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
+		if (blendEnabled)
+		{
+    		colorAttachment->setBlendingEnabled(true);
+
+    		const auto& blendControlReg = LatteGPUState.contextNew.CB_BLENDN_CONTROL[i];
+
+    		auto rgbBlendOp = GetMtlBlendOp(blendControlReg.get_COLOR_COMB_FCN());
+    		auto srcRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_SRCBLEND());
+    		auto dstRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_DSTBLEND());
+
+    		colorAttachment->setWriteMask((renderTargetMask >> (i * 4)) & 0xF);
+    		colorAttachment->setRgbBlendOperation(rgbBlendOp);
+    		colorAttachment->setSourceRGBBlendFactor(srcRgbBlendFactor);
+    		colorAttachment->setDestinationRGBBlendFactor(dstRgbBlendFactor);
+    		if (blendControlReg.get_SEPARATE_ALPHA_BLEND())
+    		{
+    			colorAttachment->setAlphaBlendOperation(GetMtlBlendOp(blendControlReg.get_ALPHA_COMB_FCN()));
+      		    colorAttachment->setSourceAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_SRCBLEND()));
+      		    colorAttachment->setDestinationAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_DSTBLEND()));
+    		}
+    		else
+    		{
+        		colorAttachment->setAlphaBlendOperation(rgbBlendOp);
+        		colorAttachment->setSourceAlphaBlendFactor(srcRgbBlendFactor);
+        		colorAttachment->setDestinationAlphaBlendFactor(dstRgbBlendFactor);
+    		}
+		}
 	}
 	if (m_state.activeFBO->depthBuffer.texture)
 	{

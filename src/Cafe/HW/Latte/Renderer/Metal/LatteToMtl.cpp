@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLPixelFormat.hpp"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "Metal/MTLVertexDescriptor.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
@@ -134,7 +135,6 @@ MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode mode)
             return MTL::PrimitiveTypeTriangleStrip;
         default:
             printf("unimplemented primitive type %u\n", (uint32)mode);
-            cemu_assert_debug(false);
             return MTL::PrimitiveTypeTriangle;
     }
 }
@@ -201,8 +201,58 @@ MTL::IndexType GetMtlIndexType(Renderer::INDEX_TYPE indexType)
     case Renderer::INDEX_TYPE::U32:
         return MTL::IndexTypeUInt32;
     default:
-        printf("unsupported index type %u\n", (uint32)indexType);
-        assert_dbg();
+        cemu_assert_suspicious();
         return MTL::IndexTypeUInt32;
     }
+}
+
+MTL::BlendOperation GetMtlBlendOp(Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC combineFunc)
+{
+    switch (combineFunc)
+	{
+	case Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC::DST_PLUS_SRC:
+		return MTL::BlendOperationAdd;
+	case Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC::SRC_MINUS_DST:
+		return MTL::BlendOperationSubtract;
+	case Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC::MIN_DST_SRC:
+		return MTL::BlendOperationMin;
+	case Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC::MAX_DST_SRC:
+		return MTL::BlendOperationMax;
+	case Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC::DST_MINUS_SRC:
+		return MTL::BlendOperationReverseSubtract;
+	default:
+		cemu_assert_suspicious();
+		return MTL::BlendOperationAdd;
+	}
+}
+
+const MTL::BlendFactor MTL_BLEND_FACTORS[] =
+{
+    /* 0x00 */ MTL::BlendFactorZero,
+    /* 0x01 */ MTL::BlendFactorOne,
+    /* 0x02 */ MTL::BlendFactorSourceColor,
+    /* 0x03 */ MTL::BlendFactorOneMinusSourceColor,
+    /* 0x04 */ MTL::BlendFactorSourceAlpha,
+    /* 0x05 */ MTL::BlendFactorOneMinusSourceAlpha,
+    /* 0x06 */ MTL::BlendFactorDestinationAlpha,
+    /* 0x07 */ MTL::BlendFactorOneMinusDestinationAlpha,
+    /* 0x08 */ MTL::BlendFactorDestinationColor,
+    /* 0x09 */ MTL::BlendFactorOneMinusDestinationColor,
+    /* 0x0A */ MTL::BlendFactorSourceAlphaSaturated,
+    /* 0x0B */ MTL::BlendFactorZero, // TODO
+    /* 0x0C */ MTL::BlendFactorZero, // TODO
+    /* 0x0D */ MTL::BlendFactorBlendColor,
+    /* 0x0E */ MTL::BlendFactorOneMinusBlendColor,
+    /* 0x0F */ MTL::BlendFactorSource1Color,
+    /* 0x10 */ MTL::BlendFactorOneMinusSource1Color,
+    /* 0x11 */ MTL::BlendFactorSource1Alpha,
+    /* 0x12 */ MTL::BlendFactorOneMinusSource1Alpha,
+    /* 0x13 */ MTL::BlendFactorBlendAlpha,
+    /* 0x14 */ MTL::BlendFactorOneMinusBlendAlpha
+};
+
+MTL::BlendFactor GetMtlBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR factor)
+{
+	cemu_assert_debug((uint32)factor < std::size(MTL_BLEND_FACTORS));
+	return MTL_BLEND_FACTORS[(uint32)factor];
 }
