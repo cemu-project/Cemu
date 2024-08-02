@@ -61,7 +61,7 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 	MTL::Library* presentLibrary = m_device->newLibrary(NS::String::string(presentLibrarySource, NS::ASCIIStringEncoding), nullptr, &error);
 	if (error)
     {
-        printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
+        debug_printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
         throw;
         return;
@@ -79,7 +79,7 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
     presentFragmentFunction->release();
     if (error)
     {
-        printf("failed to create present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
+        debug_printf("failed to create present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
         throw;
         return;
@@ -92,19 +92,19 @@ void MetalRenderer::Initialize()
 
 void MetalRenderer::Shutdown()
 {
-    printf("MetalRenderer::Shutdown not implemented\n");
+    debug_printf("MetalRenderer::Shutdown not implemented\n");
 }
 
 bool MetalRenderer::IsPadWindowActive()
 {
-    printf("MetalRenderer::IsPadWindowActive not implemented\n");
+    debug_printf("MetalRenderer::IsPadWindowActive not implemented\n");
 
     return false;
 }
 
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 {
-    printf("MetalRenderer::GetVRAMInfo not implemented\n");
+    debug_printf("MetalRenderer::GetVRAMInfo not implemented\n");
 
     usageInMB = 1024;
     totalInMB = 1024;
@@ -114,12 +114,12 @@ bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 
 void MetalRenderer::ClearColorbuffer(bool padView)
 {
-    printf("MetalRenderer::ClearColorbuffer not implemented\n");
+    debug_printf("MetalRenderer::ClearColorbuffer not implemented\n");
 }
 
 void MetalRenderer::DrawEmptyFrame(bool mainWindow)
 {
-    printf("MetalRenderer::DrawEmptyFrame not implemented\n");
+    debug_printf("MetalRenderer::DrawEmptyFrame not implemented\n");
 }
 
 void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
@@ -132,7 +132,7 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
         m_commandBuffer->presentDrawable(m_drawable);
     } else
     {
-        printf("skipped present!\n");
+        debug_printf("skipped present!\n");
     }
     m_drawable = nullptr;
 
@@ -177,7 +177,7 @@ bool MetalRenderer::BeginFrame(bool mainWindow)
 
 void MetalRenderer::Flush(bool waitIdle)
 {
-    printf("MetalRenderer::Flush not implemented\n");
+    debug_printf("MetalRenderer::Flush not implemented\n");
 }
 
 void MetalRenderer::NotifyLatteCommandProcessorIdle()
@@ -188,7 +188,7 @@ void MetalRenderer::NotifyLatteCommandProcessorIdle()
 
 void MetalRenderer::AppendOverlayDebugInfo()
 {
-    printf("MetalRenderer::AppendOverlayDebugInfo not implemented\n");
+    debug_printf("MetalRenderer::AppendOverlayDebugInfo not implemented\n");
 }
 
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
@@ -232,7 +232,7 @@ void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
 
 void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem)
 {
-    printf("MetalRenderer::texture_releaseTextureUploadBuffer not implemented\n");
+    debug_printf("MetalRenderer::texture_releaseTextureUploadBuffer not implemented\n");
 }
 
 TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height)
@@ -253,7 +253,7 @@ TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT f
     	case Latte::E_GX2SURFFMT::D32_S8_FLOAT:
     		return TextureDecoder_D32_S8_UINT_X24::getInstance();
      	default:
-    		printf("invalid depth texture format %u\n", (uint32)format);
+    		debug_printf("invalid depth texture format %u\n", (uint32)format);
     		cemu_assert_debug(false);
     		return nullptr;
     	}
@@ -356,7 +356,7 @@ TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT f
     	case Latte::E_GX2SURFFMT::X24_G8_UINT:
     		return TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
     	default:
-    		printf("invalid color texture format %u\n", (uint32)format);
+    		debug_printf("invalid color texture format %u\n", (uint32)format);
     		cemu_assert_debug(false);
     		return nullptr;
     	}
@@ -365,7 +365,7 @@ TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT f
 
 void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex)
 {
-    printf("MetalRenderer::texture_clearSlice not implemented\n");
+    debug_printf("MetalRenderer::texture_clearSlice not implemented\n");
 }
 
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
@@ -379,12 +379,12 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
 
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
 {
-    printf("MetalRenderer::texture_clearColorSlice not implemented\n");
+    debug_printf("MetalRenderer::texture_clearColorSlice not implemented\n");
 }
 
 void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue)
 {
-    printf("MetalRenderer::texture_clearDepthSlice not implemented\n");
+    debug_printf("MetalRenderer::texture_clearDepthSlice not implemented\n");
 }
 
 LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
@@ -399,19 +399,19 @@ void MetalRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint3
 
 void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth)
 {
-    printf("MetalRenderer::texture_copyImageSubData not implemented\n");
+    debug_printf("MetalRenderer::texture_copyImageSubData not implemented\n");
 }
 
 LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView* textureView)
 {
-    printf("MetalRenderer::texture_createReadback not implemented\n");
+    debug_printf("MetalRenderer::texture_createReadback not implemented\n");
 
     return nullptr;
 }
 
 void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
 {
-    printf("MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion not implemented\n");
+    debug_printf("MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion not implemented\n");
 }
 
 void MetalRenderer::bufferCache_init(const sint32 bufferSize)
@@ -431,7 +431,7 @@ void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
-    printf("MetalRenderer::bufferCache_copyStreamoutToMainBuffer not implemented\n");
+    debug_printf("MetalRenderer::bufferCache_copyStreamoutToMainBuffer not implemented\n");
 }
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
@@ -455,17 +455,17 @@ RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, ui
 
 void MetalRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize)
 {
-    printf("MetalRenderer::streamout_setupXfbBuffer not implemented\n");
+    debug_printf("MetalRenderer::streamout_setupXfbBuffer not implemented\n");
 }
 
 void MetalRenderer::streamout_begin()
 {
-    printf("MetalRenderer::streamout_begin not implemented\n");
+    debug_printf("MetalRenderer::streamout_begin not implemented\n");
 }
 
 void MetalRenderer::streamout_rendererFinishDrawcall()
 {
-    printf("MetalRenderer::streamout_rendererFinishDrawcall not implemented\n");
+    debug_printf("MetalRenderer::streamout_rendererFinishDrawcall not implemented\n");
 }
 
 void MetalRenderer::draw_beginSequence()
@@ -476,7 +476,7 @@ void MetalRenderer::draw_beginSequence()
 	LatteSHRC_UpdateActiveShaders();
 	if (LatteGPUState.activeShaderHasError)
 	{
-		printf("Skipping drawcalls due to shader error\n");
+		debug_printf("Skipping drawcalls due to shader error\n");
 		m_state.skipDrawSequence = true;
 		cemu_assert_debug(false);
 		return;
@@ -489,14 +489,14 @@ void MetalRenderer::draw_beginSequence()
 		LatteGPUState.repeatTextureInitialization = false;
 		if (!LatteMRT::UpdateCurrentFBO())
 		{
-			printf("Rendertarget invalid\n");
+			debug_printf("Rendertarget invalid\n");
 			m_state.skipDrawSequence = true;
 			return; // no render target
 		}
 
 		if (!hasValidFramebufferAttached)
 		{
-			printf("Drawcall with no color buffer or depth buffer attached\n");
+			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
 			m_state.skipDrawSequence = true;
 			return; // no render target
 		}
@@ -534,7 +534,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Render pass
 	if (!m_state.activeFBO)
 	{
-	    printf("no active FBO, skipping draw\n");
+	    debug_printf("no active FBO, skipping draw\n");
 	    return;
 	}
 
@@ -562,7 +562,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	if (!vertexShader || !static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction())
 	{
-        printf("no vertex function, skipping draw\n");
+        debug_printf("no vertex function, skipping draw\n");
 	    return;
 	}
 
@@ -612,7 +612,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
 		else
 		{
-		    printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
+		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
 			cemu_assert(false);
 		}
 	}
@@ -678,7 +678,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	MTL::RenderPipelineState* renderPipelineState = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
 	if (error)
 	{
-	    printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
+	    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
 		return;
 	}
 	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
@@ -744,7 +744,7 @@ void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, u
 
 void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
 {
-    printf("MetalRenderer::indexData_uploadIndexMemory not implemented\n");
+    debug_printf("MetalRenderer::indexData_uploadIndexMemory not implemented\n");
 }
 
 void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader)
@@ -759,6 +759,11 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		auto texUnitRegIndex = hostTextureUnit * 7;
 
 		auto textureView = m_state.textures[hostTextureUnit];
+		if (!textureView)
+		{
+		    debug_printf("invalid bound texture view %u\n", hostTextureUnit);
+			continue;
+		}
 
 		//LatteTexture* baseTexture = textureView->baseTexture;
 		// get texture register word 0
@@ -768,10 +773,11 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		//auto imageViewObj = textureView->GetSamplerView(word4);
 		//info.imageView = imageViewObj->m_textureImageView;
 
-		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;
+		// HACK
+		uint32 textureBinding = (shader->resourceMapping.getTextureBaseBindingPoint() + i) % MAX_MTL_TEXTURES;
+		uint32 samplerBinding = textureBinding % MAX_MTL_SAMPLERS;
 
 		uint32 stageSamplerIndex = shader->textureUnitSamplerAssignment[relative_textureUnit];
-		// TODO: uncomment
 		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
 		{
 			// TODO: bind the actual sampler
@@ -780,12 +786,12 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 			{
 			case LatteConst::ShaderType::Vertex:
 			{
-				renderCommandEncoder->setVertexSamplerState(sampler, binding);
+				renderCommandEncoder->setVertexSamplerState(sampler, samplerBinding);
 				break;
 			}
 			case LatteConst::ShaderType::Pixel:
 			{
-			    renderCommandEncoder->setFragmentSamplerState(sampler, binding);
+			    renderCommandEncoder->setFragmentSamplerState(sampler, samplerBinding);
 				break;
 			}
 			default:
@@ -797,12 +803,12 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
-			renderCommandEncoder->setVertexTexture(textureView->GetTexture(), binding);
+			renderCommandEncoder->setVertexTexture(textureView->GetTexture(), textureBinding);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), binding);
+		    renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), textureBinding);
 			break;
 		}
 		default:
@@ -919,7 +925,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 			uint32 binding = shader->resourceMapping.uniformBuffersBindingPoint[i];
 			if (binding >= MAX_MTL_BUFFERS)
 			{
-			    printf("too big buffer index (%u), skipping binding\n", binding);
+			    debug_printf("too big buffer index (%u), skipping binding\n", binding);
 				continue;
 			}
 			size_t offset = m_state.uniformBufferOffsets[(uint32)shader->shaderType][binding];

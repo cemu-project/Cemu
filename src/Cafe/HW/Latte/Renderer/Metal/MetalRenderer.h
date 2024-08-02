@@ -17,6 +17,7 @@
 #define MTL_SUPPORT_BUFFER_BINDING 30
 
 #define MAX_MTL_TEXTURES 31
+#define MAX_MTL_SAMPLERS 16
 
 constexpr size_t INVALID_OFFSET = std::numeric_limits<size_t>::max();
 
@@ -31,7 +32,8 @@ struct MetalState
     bool skipDrawSequence = false;
     class CachedFBOMtl* activeFBO = nullptr;
     MetalBoundBuffer vertexBuffers[MAX_MTL_BUFFERS] = {{}};
-    class LatteTextureViewMtl* textures[MAX_MTL_TEXTURES] = {nullptr};
+    // TODO: find out what is the max number of bound textures on the Wii U
+    class LatteTextureViewMtl* textures[64] = {nullptr};
     size_t uniformBufferOffsets[(uint32)LatteConst::ShaderType::TotalCount][MAX_MTL_BUFFERS];
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     MTL::Texture* depthRenderTarget = nullptr;

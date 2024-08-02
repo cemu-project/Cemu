@@ -672,7 +672,7 @@ static void _emitUniformAccessCode(LatteDecompilerShaderContext* shaderContext, 
 			uniformBufferIndex = aluInstruction->cfInstruction->cBank1Index;
 		}
 		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, requiredType);
-		src->addFmt("ubuff{}[", uniformBufferIndex);
+		src->addFmt("ubuff{}.d[", uniformBufferIndex);
 		_emitUniformAccessIndexCode(shaderContext, aluInstruction, operandIndex);
 		src->addFmt("]");
 
@@ -2404,7 +2404,8 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			cemu_assert_debug(texInstruction->textureFetch.srcSel[1] < 4);
 			src->addFmt("redcCUBEReverse({},", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[0], texInstruction->textureFetch.srcSel[1], -1, -1, tempBuffer0));
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
-			src->addFmt(", cubeMapArrayIndex{})", texInstruction->textureFetch.textureIndex); // cubemap index
+			src->add(")");
+			src->addFmt(", cubeMapArrayIndex{}", texInstruction->textureFetch.textureIndex); // cubemap index
 		}
 		else if( texDim == Latte::E_DIM::DIM_1D )
 		{
@@ -2427,10 +2428,17 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
 		{
 			src->add(",");
-			if(texOpcode == GPU7_TEX_INST_SAMPLE_LB)
-				src->add(_FormatFloatAsConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
+			if (texOpcode == GPU7_TEX_INST_SAMPLE_LB)
+			{
+				src->addFmt("bias({})", _FormatFloatAsConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
+			}
 			else
+			{
+			    // TODO: is this correct
+				src->add("level(");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
+				src->add(")");
+			}
 		}
 		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
 		{
@@ -2876,7 +2884,7 @@ static void _emitTEXVFetchCode(LatteDecompilerShaderContext* shaderContext, Latt
 	else
 		src->add("(");
 
-	src->addFmt("ubuff{}[", texInstruction->textureFetch.textureIndex - 0x80);
+	src->addFmt("ubuff{}.d[", texInstruction->textureFetch.textureIndex - 0x80);
 
 	if( shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
 		src->addFmt("{}.{}", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]]);
@@ -3611,7 +3619,7 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 {
 	if( shaderContext->analyzer.hasRedcCUBE )
 	{
-		fCStr_shaderSource->add("void redcCUBE(float4 src0, float4 src1, out float3 stm, out int faceId)\r\n"
+		fCStr_shaderSource->add("void redcCUBE(float4 src0, float4 src1, thread float3& stm, thread int& faceId)\r\n"
 		"{\r\n"
 		"// stm -> x .. s, y .. t, z .. MajorAxis*2.0\r\n"
 
@@ -3719,6 +3727,12 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 	fCStr_shaderSource->add(""
 	"float roundEven(float x) {\r\n"
 		"return round(x / 2.0) * 2.0;\r\n"
+	"}\r\n");
+
+	// unpackHalf2x16
+	fCStr_shaderSource->add(""
+	"float2 unpackHalf2x16(float x) {\r\n"
+		"return float2(as_type<half>(ushort(as_type<uint>(x) & 0x00FF)), as_type<half>(ushort((as_type<uint>(x) & 0xFF00) >> 16)));\r\n"
 	"}\r\n");
 
 	// mul non-ieee way (0*NaN/INF => 0.0)

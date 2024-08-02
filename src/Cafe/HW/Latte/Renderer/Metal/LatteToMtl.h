@@ -6,7 +6,6 @@
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 //#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Metal/MTLRenderPipeline.hpp"
 
 struct Uvec2 {
     uint32 x;

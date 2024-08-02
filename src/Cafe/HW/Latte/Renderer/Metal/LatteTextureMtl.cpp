@@ -25,9 +25,39 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	desc->setHeight(effectiveBaseHeight);
 	desc->setMipmapLevelCount(mipLevels);
 
-	if (dim == Latte::E_DIM::DIM_3D)
+	MTL::TextureType textureType;
+	switch (dim)
+    {
+    case Latte::E_DIM::DIM_1D:
+        textureType = MTL::TextureType1D;
+        break;
+    case Latte::E_DIM::DIM_2D:
+    case Latte::E_DIM::DIM_2D_MSAA:
+        textureType = MTL::TextureType2D;
+        break;
+    case Latte::E_DIM::DIM_2D_ARRAY:
+        textureType = MTL::TextureType2DArray;
+        break;
+    case Latte::E_DIM::DIM_3D:
+        textureType = MTL::TextureType3D;
+        break;
+    case Latte::E_DIM::DIM_CUBEMAP:
+        textureType = MTL::TextureTypeCube; // TODO: check this
+        break;
+    default:
+        cemu_assert_unimplemented();
+        textureType = MTL::TextureType2D;
+        break;
+    }
+    desc->setTextureType(textureType);
+
+	if (textureType == MTL::TextureType3D)
 	{
 		desc->setDepth(effectiveBaseDepth);
+	}
+	else if (textureType == MTL::TextureTypeCube || textureType == MTL::TextureTypeCubeArray)
+	{
+		desc->setArrayLength(effectiveBaseDepth / 6);
 	}
 	else
 	{
@@ -45,30 +75,6 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 		usage |= MTL::TextureUsageRenderTarget;
 	}
 	desc->setUsage(usage);
-
-	switch (dim)
-    {
-    case Latte::E_DIM::DIM_1D:
-        desc->setTextureType(MTL::TextureType1D);
-        break;
-    case Latte::E_DIM::DIM_2D:
-    case Latte::E_DIM::DIM_2D_MSAA:
-        desc->setTextureType(MTL::TextureType2D);
-        break;
-    case Latte::E_DIM::DIM_2D_ARRAY:
-        desc->setTextureType(MTL::TextureType2DArray);
-        break;
-    case Latte::E_DIM::DIM_3D:
-        desc->setTextureType(MTL::TextureType3D);
-        break;
-    case Latte::E_DIM::DIM_CUBEMAP:
-        desc->setTextureType(MTL::TextureTypeCube); // TODO: check this
-        break;
-    default:
-        cemu_assert_unimplemented();
-        desc->setTextureType(MTL::TextureType2D);
-        break;
-    }
 
 	m_texture = mtlRenderer->GetDevice()->newTexture(desc);
 

@@ -1,8 +1,4 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
-#include "Common/precompiled.h"
-#include "Metal/MTLPixelFormat.hpp"
-#include "Metal/MTLRenderPipeline.hpp"
-#include "Metal/MTLVertexDescriptor.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, 2}}, // TODO: correct?
