@@ -232,36 +232,40 @@ private:
 		}
 	}
 
-	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool rebindStateIfNewEncoder = true)
+	// Some render passes clear the attachments, forceRecreate is supposed to be used in those cases
+	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate = false, bool rebindStateIfNewEncoder = true)
     {
         EnsureCommandBuffer();
 
         // Check if we need to begin a new render pass
         if (m_commandEncoder)
         {
-            if (m_encoderType == MetalEncoderType::Render)
+            if (!forceRecreate)
             {
-                bool needsNewRenderPass = false;
-                for (uint8 i = 0; i < 8; i++)
+                if (m_encoderType == MetalEncoderType::Render)
                 {
-                    if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
+                    bool needsNewRenderPass = false;
+                    for (uint8 i = 0; i < 8; i++)
                     {
-                        needsNewRenderPass = true;
-                        break;
+                        if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
+                        {
+                            needsNewRenderPass = true;
+                            break;
+                        }
                     }
-                }
 
-                if (!needsNewRenderPass)
-                {
-                    if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
+                    if (!needsNewRenderPass)
                     {
-                        needsNewRenderPass = true;
+                        if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
+                        {
+                            needsNewRenderPass = true;
+                        }
                     }
-                }
 
-                if (!needsNewRenderPass)
-                {
-                    return (MTL::RenderCommandEncoder*)m_commandEncoder;
+                    if (!needsNewRenderPass)
+                    {
+                        return (MTL::RenderCommandEncoder*)m_commandEncoder;
+                    }
                 }
             }
 

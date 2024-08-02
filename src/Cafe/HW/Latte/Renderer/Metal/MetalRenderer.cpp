@@ -161,7 +161,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = m_drawable->texture();
     // If there was already an encoder with these attachment, we should set the viewport and scissor to default, but that shouldn't happen
-    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, false);
+    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, false, false);
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(m_presentPipeline);
@@ -393,7 +393,7 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = mtlTexture;
-    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr);
+    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, true);
 }
 
 // TODO: use sliceIndex and mipIndex
@@ -420,7 +420,7 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
     }
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
-    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, mtlTexture);
+    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, mtlTexture, true);
 }
 
 LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
