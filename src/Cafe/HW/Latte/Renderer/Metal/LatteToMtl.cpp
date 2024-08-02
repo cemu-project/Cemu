@@ -1,4 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
+#include "Common/precompiled.h"
+#include "Metal/MTLDepthStencil.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, 2}}, // TODO: correct?
@@ -251,4 +253,22 @@ MTL::BlendFactor GetMtlBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR
 {
 	cemu_assert_debug((uint32)factor < std::size(MTL_BLEND_FACTORS));
 	return MTL_BLEND_FACTORS[(uint32)factor];
+}
+
+const MTL::CompareFunction MTL_COMPARE_FUNCTIONS[8] =
+{
+	MTL::CompareFunctionNever,
+	MTL::CompareFunctionLess,
+	MTL::CompareFunctionEqual,
+	MTL::CompareFunctionLessEqual,
+	MTL::CompareFunctionGreater,
+	MTL::CompareFunctionNotEqual,
+	MTL::CompareFunctionGreaterEqual,
+	MTL::CompareFunctionAlways
+};
+
+MTL::CompareFunction GetMtlCompareFunc(Latte::E_COMPAREFUNC func)
+{
+    cemu_assert_debug((uint32)func < std::size(MTL_COMPARE_FUNCTIONS));
+    return MTL_COMPARE_FUNCTIONS[(uint32)func];
 }

@@ -6,6 +6,7 @@
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 //#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Metal/MTLDepthStencil.hpp"
 
 struct Uvec2 {
     uint32 x;
@@ -33,3 +34,5 @@ MTL::IndexType GetMtlIndexType(Renderer::INDEX_TYPE indexType);
 MTL::BlendOperation GetMtlBlendOp(Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC combineFunc);
 
 MTL::BlendFactor GetMtlBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR factor);
+
+MTL::CompareFunction GetMtlCompareFunc(Latte::E_COMPAREFUNC func);
