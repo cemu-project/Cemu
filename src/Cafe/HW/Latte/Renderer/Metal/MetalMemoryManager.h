@@ -24,6 +24,7 @@ class MetalBufferAllocator
 {
 public:
     MetalBufferAllocator(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
+    ~MetalBufferAllocator();
 
     void ResetTemporaryBuffers()
     {
@@ -54,6 +55,7 @@ class MetalMemoryManager
 {
 public:
     MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer) {}
+    ~MetalMemoryManager();
 
     void ResetTemporaryBuffers()
     {

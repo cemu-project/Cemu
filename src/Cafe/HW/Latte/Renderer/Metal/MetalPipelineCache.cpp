@@ -135,9 +135,11 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	NS::Error* error = nullptr;
 	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, &error);
 	desc->release();
+	vertexDescriptor->release();
 	if (error)
 	{
 	    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
+		error->release();
 		return nullptr;
 	}
 

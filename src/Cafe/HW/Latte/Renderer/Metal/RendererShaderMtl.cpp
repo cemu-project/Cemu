@@ -14,17 +14,17 @@ RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type
         error->release();
         return;
     }
-    MTL::FunctionDescriptor* desc = MTL::FunctionDescriptor::alloc()->init();
-    desc->setName(NS::String::string("main0", NS::ASCIIStringEncoding));
-    error = nullptr;
-    m_function = library->newFunction(desc, &error);
+    //MTL::FunctionDescriptor* desc = MTL::FunctionDescriptor::alloc()->init();
+    //desc->setName(NS::String::string("main0", NS::ASCIIStringEncoding));
+    //error = nullptr;
+    m_function = library->newFunction(NS::String::string("main0", NS::ASCIIStringEncoding));
     library->release();
-    if (error)
-    {
-        printf("failed to create function (error: %s)\n", error->localizedDescription()->utf8String());
-        error->release();
-        return;
-    }
+    //if (error)
+    //{
+    //    printf("failed to create function (error: %s)\n", error->localizedDescription()->utf8String());
+    //    error->release();
+    //    return;
+    //}
 }
 
 RendererShaderMtl::~RendererShaderMtl()

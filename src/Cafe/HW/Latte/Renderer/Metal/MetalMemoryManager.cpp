@@ -3,6 +3,14 @@
 
 const size_t BUFFER_ALLOCATION_SIZE = 8 * 1024 * 1024;
 
+MetalBufferAllocator::~MetalBufferAllocator()
+{
+    for (auto buffer : m_buffers)
+    {
+        buffer->release();
+    }
+}
+
 MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, size_t alignment)
 {
     // Align the size
@@ -53,6 +61,14 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, siz
     }
 
     return allocation;
+}
+
+MetalMemoryManager::~MetalMemoryManager()
+{
+    if (m_bufferCache)
+    {
+        m_bufferCache->release();
+    }
 }
 
 void* MetalMemoryManager::GetTextureUploadBuffer(size_t size)

@@ -29,6 +29,7 @@ MetalRenderer::MetalRenderer()
 
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
     m_nearestSampler = m_device->newSamplerState(samplerDescriptor);
+    samplerDescriptor->release();
 
     m_memoryManager = new MetalMemoryManager(this);
     m_pipelineCache = new MetalPipelineCache(this);
@@ -49,6 +50,8 @@ MetalRenderer::~MetalRenderer()
     delete m_depthStencilCache;
     delete m_pipelineCache;
     delete m_memoryManager;
+
+    m_nearestSampler->release();
 
     m_commandQueue->release();
     m_device->release();
@@ -81,19 +84,20 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
     renderPipelineDescriptor->setFragmentFunction(presentFragmentFunction);
     renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_metalLayer->pixelFormat());
     m_presentPipeline = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
+    renderPipelineDescriptor->release();
     presentVertexFunction->release();
     presentFragmentFunction->release();
     if (error)
     {
         debug_printf("failed to create present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
-        throw;
         return;
     }
 }
 
 void MetalRenderer::Initialize()
 {
+    Renderer::Initialize();
 }
 
 void MetalRenderer::Shutdown()
@@ -177,6 +181,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     colorRenderTargets[0] = m_drawable->texture();
     // If there was already an encoder with these attachment, we should set the viewport and scissor to default, but that shouldn't happen
     auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, false, false);
+    renderPassDescriptor->release();
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(m_presentPipeline);
@@ -409,6 +414,7 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = mtlTexture;
     GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, true);
+    renderPassDescriptor->release();
 }
 
 // TODO: use sliceIndex and mipIndex
@@ -436,6 +442,7 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, mtlTexture, true);
+    renderPassDescriptor->release();
 }
 
 LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
