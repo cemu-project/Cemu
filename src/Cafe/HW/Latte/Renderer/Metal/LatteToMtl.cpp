@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLDepthStencil.hpp"
+#include "Metal/MTLSampler.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, 2}}, // TODO: correct?
@@ -271,4 +272,22 @@ MTL::CompareFunction GetMtlCompareFunc(Latte::E_COMPAREFUNC func)
 {
     cemu_assert_debug((uint32)func < std::size(MTL_COMPARE_FUNCTIONS));
     return MTL_COMPARE_FUNCTIONS[(uint32)func];
+}
+
+// TODO: clamp to border color? (should be fine though)
+const MTL::SamplerAddressMode MTL_SAMPLER_ADDRESS_MODES[] = {
+	MTL::SamplerAddressModeRepeat, // WRAP
+	MTL::SamplerAddressModeMirrorRepeat, // MIRROR
+	MTL::SamplerAddressModeClampToEdge, // CLAMP_LAST_TEXEL
+	MTL::SamplerAddressModeMirrorClampToEdge, // MIRROR_ONCE_LAST_TEXEL
+	MTL::SamplerAddressModeClampToEdge, // unsupported HALF_BORDER
+	MTL::SamplerAddressModeClampToBorderColor, // unsupported MIRROR_ONCE_HALF_BORDER
+	MTL::SamplerAddressModeClampToBorderColor, // CLAMP_BORDER
+	MTL::SamplerAddressModeClampToBorderColor // MIRROR_ONCE_BORDER
+};
+
+MTL::SamplerAddressMode GetMtlSamplerAddressMode(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_CLAMP clamp)
+{
+    cemu_assert_debug((uint32)clamp < std::size(MTL_SAMPLER_ADDRESS_MODES));
+    return MTL_SAMPLER_ADDRESS_MODES[(uint32)clamp];
 }
