@@ -216,6 +216,7 @@ private:
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 	CA::MetalDrawable* m_drawable = nullptr;
+	bool m_drawableAcquired = false;
 
 	// State
 	MetalState m_state;

@@ -137,6 +137,7 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
         debug_printf("skipped present!\n");
     }
     m_drawable = nullptr;
+    m_drawableAcquired = false;
 
     CommitCommandBuffer();
 }
@@ -145,6 +146,14 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
 {
+    if (m_drawableAcquired)
+    {
+        debug_printf("drawable already acquired this frame\n");
+        return;
+    }
+
+    m_drawableAcquired = true;
+
     // Acquire drawable
     m_drawable = m_metalLayer->nextDrawable();
     if (!m_drawable)
