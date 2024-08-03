@@ -4,6 +4,8 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/ShaderSourcePresent.h"
@@ -13,9 +15,11 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Foundation/NSTypes.hpp"
+#include "HW/Latte/Core/Latte.h"
 #include "Metal/MTLDepthStencil.hpp"
 #include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLRenderPass.hpp"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -31,6 +35,7 @@ MetalRenderer::MetalRenderer()
     m_nearestSampler = m_device->newSamplerState(samplerDescriptor);
 
     m_memoryManager = new MetalMemoryManager(this);
+    m_pipelineCache = new MetalPipelineCache(this);
 
     // Initialize state
     for (uint32 i = 0; i < (uint32)LatteConst::ShaderType::TotalCount; i++)
@@ -612,119 +617,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	auto fetchShader = vertexShader->compatibleFetchShader;
 
-	// Vertex descriptor
-	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
-	for (auto& bufferGroup : fetchShader->bufferGroups)
-	{
-		std::optional<LatteConst::VertexFetchType2> fetchType;
-
-		for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
-		{
-			auto& attr = bufferGroup.attrib[j];
-
-			uint32 semanticId = vertexShader->resourceMapping.attributeMapping[attr.semanticId];
-			if (semanticId == (uint32)-1)
-				continue; // attribute not used?
-
-			auto attribute = vertexDescriptor->attributes()->object(semanticId);
-			attribute->setOffset(attr.offset);
-			// Bind from the end to not conflict with uniform buffers
-			attribute->setBufferIndex(GET_MTL_VERTEX_BUFFER_INDEX(attr.attributeBufferIndex));
-			attribute->setFormat(GetMtlVertexFormat(attr.format));
-
-			if (fetchType.has_value())
-				cemu_assert_debug(fetchType == attr.fetchType);
-			else
-				fetchType = attr.fetchType;
-
-			if (attr.fetchType == LatteConst::INSTANCE_DATA)
-			{
-				cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
-			}
-		}
-
-		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
-		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-		// TODO: is LatteGPUState.contextNew correct?
-		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-
-		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
-		layout->setStride(bufferStride);
-		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
-			layout->setStepFunction(MTL::VertexStepFunctionPerVertex);
-		else if (fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
-			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
-		else
-		{
-		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
-			cemu_assert(false);
-		}
-	}
-
 	// Render pipeline state
-	MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-	renderPipelineDescriptor->setVertexFunction(static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction());
-	renderPipelineDescriptor->setFragmentFunction(static_cast<RendererShaderMtl*>(pixelShader->shader)->GetFunction());
-	// TODO: don't always set the vertex descriptor
-	renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
-	for (uint8 i = 0; i < 8; i++)
-	{
-	    const auto& colorBuffer = m_state.activeFBO->colorBuffer[i];
-		auto texture = static_cast<LatteTextureViewMtl*>(colorBuffer.texture);
-		if (!texture)
-		{
-		    continue;
-		}
-		auto colorAttachment = renderPipelineDescriptor->colorAttachments()->object(i);
-		colorAttachment->setPixelFormat(texture->GetTexture()->pixelFormat());
-
-		// Blending
-		const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = LatteGPUState.contextNew.CB_COLOR_CONTROL;
-		uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
-		uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
-
-		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
-		if (blendEnabled)
-		{
-    		colorAttachment->setBlendingEnabled(true);
-
-    		const auto& blendControlReg = LatteGPUState.contextNew.CB_BLENDN_CONTROL[i];
-
-    		auto rgbBlendOp = GetMtlBlendOp(blendControlReg.get_COLOR_COMB_FCN());
-    		auto srcRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_SRCBLEND());
-    		auto dstRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_DSTBLEND());
-
-    		colorAttachment->setWriteMask((renderTargetMask >> (i * 4)) & 0xF);
-    		colorAttachment->setRgbBlendOperation(rgbBlendOp);
-    		colorAttachment->setSourceRGBBlendFactor(srcRgbBlendFactor);
-    		colorAttachment->setDestinationRGBBlendFactor(dstRgbBlendFactor);
-    		if (blendControlReg.get_SEPARATE_ALPHA_BLEND())
-    		{
-    			colorAttachment->setAlphaBlendOperation(GetMtlBlendOp(blendControlReg.get_ALPHA_COMB_FCN()));
-      		    colorAttachment->setSourceAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_SRCBLEND()));
-      		    colorAttachment->setDestinationAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_DSTBLEND()));
-    		}
-    		else
-    		{
-        		colorAttachment->setAlphaBlendOperation(rgbBlendOp);
-        		colorAttachment->setSourceAlphaBlendFactor(srcRgbBlendFactor);
-        		colorAttachment->setDestinationAlphaBlendFactor(dstRgbBlendFactor);
-    		}
-		}
-	}
-	if (m_state.activeFBO->depthBuffer.texture)
-	{
-	    auto texture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->depthBuffer.texture);
-        renderPipelineDescriptor->setDepthAttachmentPixelFormat(texture->GetTexture()->pixelFormat());
-	}
-
-	NS::Error* error = nullptr;
-	MTL::RenderPipelineState* renderPipelineState = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
-	if (error)
-	{
-	    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
-		return;
-	}
+	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.activeFBO, LatteGPUState.contextNew);
 	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Depth stencil state
@@ -870,6 +764,143 @@ void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, u
 void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
 {
     debug_printf("MetalRenderer::indexData_uploadIndexMemory not implemented\n");
+}
+
+void MetalRenderer::EnsureCommandBuffer()
+{
+    if (!m_commandBuffer)
+	{
+        // Debug
+        m_commandQueue->insertDebugCaptureBoundary();
+
+	    m_commandBuffer = m_commandQueue->commandBuffer();
+	}
+}
+
+// Some render passes clear the attachments, forceRecreate is supposed to be used in those cases
+MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate, bool rebindStateIfNewEncoder)
+{
+    EnsureCommandBuffer();
+
+    // Check if we need to begin a new render pass
+    if (m_commandEncoder)
+    {
+        if (!forceRecreate)
+        {
+            if (m_encoderType == MetalEncoderType::Render)
+            {
+                bool needsNewRenderPass = false;
+                for (uint8 i = 0; i < 8; i++)
+                {
+                    if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
+                    {
+                        needsNewRenderPass = true;
+                        break;
+                    }
+                }
+
+                if (!needsNewRenderPass)
+                {
+                    if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
+                    {
+                        needsNewRenderPass = true;
+                    }
+                }
+
+                if (!needsNewRenderPass)
+                {
+                    return (MTL::RenderCommandEncoder*)m_commandEncoder;
+                }
+            }
+        }
+
+        EndEncoding();
+    }
+
+    // Update state
+    for (uint8 i = 0; i < 8; i++)
+    {
+        m_state.colorRenderTargets[i] = colorRenderTargets[i];
+    }
+    m_state.depthRenderTarget = depthRenderTarget;
+
+    auto renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+    m_commandEncoder = renderCommandEncoder;
+    m_encoderType = MetalEncoderType::Render;
+
+    if (rebindStateIfNewEncoder)
+    {
+        // Rebind all the render state
+        RebindRenderState(renderCommandEncoder);
+    }
+
+    return renderCommandEncoder;
+}
+
+MTL::ComputeCommandEncoder* MetalRenderer::GetComputeCommandEncoder()
+{
+    if (m_commandEncoder)
+    {
+        if (m_encoderType != MetalEncoderType::Compute)
+        {
+            return (MTL::ComputeCommandEncoder*)m_commandEncoder;
+        }
+
+        EndEncoding();
+    }
+
+    auto computeCommandEncoder = m_commandBuffer->computeCommandEncoder();
+    m_commandEncoder = computeCommandEncoder;
+    m_encoderType = MetalEncoderType::Compute;
+
+    return computeCommandEncoder;
+}
+
+MTL::BlitCommandEncoder* MetalRenderer::GetBlitCommandEncoder()
+{
+    if (m_commandEncoder)
+    {
+        if (m_encoderType != MetalEncoderType::Blit)
+        {
+            return (MTL::BlitCommandEncoder*)m_commandEncoder;
+        }
+
+        EndEncoding();
+    }
+
+    auto blitCommandEncoder = m_commandBuffer->blitCommandEncoder();
+    m_commandEncoder = blitCommandEncoder;
+    m_encoderType = MetalEncoderType::Blit;
+
+    return blitCommandEncoder;
+}
+
+void MetalRenderer::EndEncoding()
+{
+    if (m_commandEncoder)
+    {
+        m_commandEncoder->endEncoding();
+        m_commandEncoder->release();
+        m_commandEncoder = nullptr;
+    }
+}
+
+void MetalRenderer::CommitCommandBuffer()
+{
+    EndEncoding();
+
+    if (m_commandBuffer)
+    {
+        m_commandBuffer->commit();
+        m_commandBuffer->release();
+        m_commandBuffer = nullptr;
+
+        // Reset temporary buffers
+        m_memoryManager->ResetTemporaryBuffers();
+
+        // Debug
+        m_commandQueue->insertDebugCaptureBoundary();
+    }
 }
 
 void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader)

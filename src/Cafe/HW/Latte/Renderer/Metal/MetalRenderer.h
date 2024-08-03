@@ -5,11 +5,6 @@
 #include <Metal/Metal.hpp>
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
-#include "Metal/MTLComputeCommandEncoder.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-#include "Metal/MTLRenderPass.hpp"
-#include "Metal/MTLRenderPipeline.hpp"
 
 #define MAX_MTL_BUFFERS 31
 #define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 2)
@@ -199,7 +194,8 @@ public:
 private:
 	CA::MetalLayer* m_metalLayer;
 
-	MetalMemoryManager* m_memoryManager;
+	class MetalMemoryManager* m_memoryManager;
+	class MetalPipelineCache* m_pipelineCache;
 
 	// Metal objects
 	MTL::Device* m_device;
@@ -222,144 +218,13 @@ private:
 	MetalState m_state;
 
 	// Helpers
-	void EnsureCommandBuffer()
-	{
-	    if (!m_commandBuffer)
-		{
-            // Debug
-            m_commandQueue->insertDebugCaptureBoundary();
-
-		    m_commandBuffer = m_commandQueue->commandBuffer();
-		}
-	}
-
-	// Some render passes clear the attachments, forceRecreate is supposed to be used in those cases
-	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate = false, bool rebindStateIfNewEncoder = true)
-    {
-        EnsureCommandBuffer();
-
-        // Check if we need to begin a new render pass
-        if (m_commandEncoder)
-        {
-            if (!forceRecreate)
-            {
-                if (m_encoderType == MetalEncoderType::Render)
-                {
-                    bool needsNewRenderPass = false;
-                    for (uint8 i = 0; i < 8; i++)
-                    {
-                        if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
-                        {
-                            needsNewRenderPass = true;
-                            break;
-                        }
-                    }
-
-                    if (!needsNewRenderPass)
-                    {
-                        if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
-                        {
-                            needsNewRenderPass = true;
-                        }
-                    }
-
-                    if (!needsNewRenderPass)
-                    {
-                        return (MTL::RenderCommandEncoder*)m_commandEncoder;
-                    }
-                }
-            }
-
-            EndEncoding();
-        }
-
-        // Update state
-        for (uint8 i = 0; i < 8; i++)
-        {
-            m_state.colorRenderTargets[i] = colorRenderTargets[i];
-        }
-        m_state.depthRenderTarget = depthRenderTarget;
-
-        auto renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
-        m_commandEncoder = renderCommandEncoder;
-        m_encoderType = MetalEncoderType::Render;
-
-        if (rebindStateIfNewEncoder)
-        {
-            // Rebind all the render state
-            RebindRenderState(renderCommandEncoder);
-        }
-
-        return renderCommandEncoder;
-    }
-
-    MTL::ComputeCommandEncoder* GetComputeCommandEncoder()
-    {
-        if (m_commandEncoder)
-        {
-            if (m_encoderType != MetalEncoderType::Compute)
-            {
-                return (MTL::ComputeCommandEncoder*)m_commandEncoder;
-            }
-
-            EndEncoding();
-        }
-
-        auto computeCommandEncoder = m_commandBuffer->computeCommandEncoder();
-        m_commandEncoder = computeCommandEncoder;
-        m_encoderType = MetalEncoderType::Compute;
-
-        return computeCommandEncoder;
-    }
-
-    MTL::BlitCommandEncoder* GetBlitCommandEncoder()
-    {
-        if (m_commandEncoder)
-        {
-            if (m_encoderType != MetalEncoderType::Blit)
-            {
-                return (MTL::BlitCommandEncoder*)m_commandEncoder;
-            }
-
-            EndEncoding();
-        }
-
-        auto blitCommandEncoder = m_commandBuffer->blitCommandEncoder();
-        m_commandEncoder = blitCommandEncoder;
-        m_encoderType = MetalEncoderType::Blit;
-
-        return blitCommandEncoder;
-    }
-
-    void EndEncoding()
-    {
-        if (m_commandEncoder)
-        {
-            m_commandEncoder->endEncoding();
-            m_commandEncoder->release();
-            m_commandEncoder = nullptr;
-        }
-    }
-
-    void CommitCommandBuffer()
-    {
-        EndEncoding();
-
-        if (m_commandBuffer)
-        {
-            m_commandBuffer->commit();
-            m_commandBuffer->release();
-            m_commandBuffer = nullptr;
-
-            // Reset temporary buffers
-            m_memoryManager->ResetTemporaryBuffers();
-
-            // Debug
-            m_commandQueue->insertDebugCaptureBoundary();
-        }
-    }
+	void EnsureCommandBuffer();
+	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate = false, bool rebindStateIfNewEncoder = true);
+    MTL::ComputeCommandEncoder* GetComputeCommandEncoder();
+    MTL::BlitCommandEncoder* GetBlitCommandEncoder();
+    void EndEncoding();
+    void CommitCommandBuffer();
 
     void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
-
     void RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder);
 };
