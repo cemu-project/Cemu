@@ -13,6 +13,7 @@ inline const char* presentLibrarySource = \
 "   VertexOut out;\n" \
 "   out.position = float4(positions[vid], 0.0, 1.0);\n" \
 "   out.texCoord = positions[vid] * 0.5 + 0.5;\n" \
+"   out.texCoord.y = 1.0 - out.texCoord.y;\n" \
 "\n" \
 "   return out;\n" \
 "}\n" \

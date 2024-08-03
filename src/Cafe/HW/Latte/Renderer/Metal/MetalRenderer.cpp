@@ -146,19 +146,18 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
 {
-    if (m_drawableAcquired)
+    if (!m_drawableAcquired)
     {
         debug_printf("drawable already acquired this frame\n");
-        return;
-    }
 
-    m_drawableAcquired = true;
+        m_drawableAcquired = true;
 
-    // Acquire drawable
-    m_drawable = m_metalLayer->nextDrawable();
-    if (!m_drawable)
-    {
-        return;
+        // Acquire drawable
+        m_drawable = m_metalLayer->nextDrawable();
+        if (!m_drawable)
+        {
+            return;
+        }
     }
 
     MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetTexture();
@@ -204,7 +203,7 @@ void MetalRenderer::AppendOverlayDebugInfo()
 
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
 {
-    m_state.viewport = MTL::Viewport{x, y + height, width, -height, nearZ, farZ};
+    m_state.viewport = MTL::Viewport{x, y, width, height, nearZ, farZ};
     if (m_encoderType == MetalEncoderType::Render)
     {
         static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setViewport(m_state.viewport);
