@@ -41,7 +41,7 @@ public:
         return m_buffers[bufferIndex];
     }
 
-    MetalBufferAllocation GetBufferAllocation(size_t size);
+    MetalBufferAllocation GetBufferAllocation(size_t size, size_t alignment);
 
 private:
     class MetalRenderer* m_mtlr;
@@ -68,9 +68,9 @@ public:
         return m_bufferAllocator/*s[bufferAllocatorIndex]*/.GetBuffer(bufferIndex);
     }
 
-    MetalBufferAllocation GetBufferAllocation(size_t size)
+    MetalBufferAllocation GetBufferAllocation(size_t size, size_t alignment)
     {
-        auto allocation = m_bufferAllocator/*s[m_bufferAllocatorIndex]*/.GetBufferAllocation(size);
+        auto allocation = m_bufferAllocator/*s[m_bufferAllocatorIndex]*/.GetBufferAllocation(size, alignment);
         //allocation.bufferIndex |= (m_bufferAllocatorIndex << bufferAllocatorIndexShift);
 
         return allocation;

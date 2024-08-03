@@ -3,15 +3,16 @@
 
 const size_t BUFFER_ALLOCATION_SIZE = 8 * 1024 * 1024;
 
-// TODO: uncomment everything
-MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size)
+MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, size_t alignment)
 {
+    // Align the size
+    size = (size + alignment - 1) & ~(alignment - 1);
+
     // First, try to find a free range
-    /*
     for (uint32 i = 0; i < m_freeBufferRanges.size(); i++)
     {
         auto& range = m_freeBufferRanges[i];
-        if (range.size >= size)
+        if (size <= range.size)
         {
             MetalBufferAllocation allocation;
             allocation.bufferIndex = range.bufferIndex;
@@ -29,10 +30,9 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size)
             return allocation;
         }
     }
-    */
 
     // If no free range was found, allocate a new buffer
-    MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(/*std::max(*/size/*, BUFFER_ALLOCATION_SIZE)*/, MTL::ResourceStorageModeShared);
+    MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(std::max(size, BUFFER_ALLOCATION_SIZE), MTL::ResourceStorageModeShared);
 
     MetalBufferAllocation allocation;
     allocation.bufferIndex = m_buffers.size();
@@ -42,7 +42,6 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size)
     m_buffers.push_back(buffer);
 
     // If the buffer is larger than the requested size, add the remaining space to the free buffer ranges
-    /*
     if (size < BUFFER_ALLOCATION_SIZE)
     {
         MetalBufferRange range;
@@ -52,7 +51,6 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size)
 
         m_freeBufferRanges.push_back(range);
     }
-    */
 
     return allocation;
 }

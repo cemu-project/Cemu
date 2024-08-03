@@ -129,6 +129,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	{
 	    auto texture = static_cast<LatteTextureViewMtl*>(activeFBO->depthBuffer.texture);
         desc->setDepthAttachmentPixelFormat(texture->GetTexture()->pixelFormat());
+        // TODO: stencil pixel format
 	}
 
 	NS::Error* error = nullptr;

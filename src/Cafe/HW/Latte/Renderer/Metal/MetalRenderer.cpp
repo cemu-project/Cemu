@@ -16,6 +16,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "HW/Latte/Core/Latte.h"
 #include "gui/guiWrapper.h"
+#include <stdexcept>
 
 extern bool hasValidFramebufferAttached;
 
@@ -143,6 +144,9 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     m_drawableAcquired = false;
 
     CommitCommandBuffer();
+
+    // Reset temporary buffers
+    m_memoryManager->ResetTemporaryBuffers();
 }
 
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
@@ -661,7 +665,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	{
 	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
 		MTL::Buffer* indexBuffer = m_memoryManager->GetBuffer(indexBufferIndex);
-		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, 0, instanceCount, baseVertex, baseInstance);
+		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, indexBufferOffset, instanceCount, baseVertex, baseInstance);
 	} else
 	{
 		renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
@@ -675,7 +679,7 @@ void MetalRenderer::draw_endSequence()
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
 {
-    auto allocation = m_memoryManager->GetBufferAllocation(size);
+    auto allocation = m_memoryManager->GetBufferAllocation(size, 4);
 	offset = allocation.bufferOffset;
 	bufferIndex = allocation.bufferIndex;
 
@@ -684,7 +688,7 @@ void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, u
 
 void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
 {
-    debug_printf("MetalRenderer::indexData_uploadIndexMemory not implemented\n");
+    // Do nothing, since the buffer has shared storage mode
 }
 
 void MetalRenderer::EnsureCommandBuffer()
@@ -815,9 +819,6 @@ void MetalRenderer::CommitCommandBuffer()
         m_commandBuffer->commit();
         m_commandBuffer->release();
         m_commandBuffer = nullptr;
-
-        // Reset temporary buffers
-        m_memoryManager->ResetTemporaryBuffers();
 
         // Debug
         m_commandQueue->insertDebugCaptureBoundary();
