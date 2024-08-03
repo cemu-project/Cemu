@@ -75,11 +75,11 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	}
 
 	// Render pipeline state
-	MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-	renderPipelineDescriptor->setVertexFunction(static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction());
-	renderPipelineDescriptor->setFragmentFunction(static_cast<RendererShaderMtl*>(pixelShader->shader)->GetFunction());
+	MTL::RenderPipelineDescriptor* desc = MTL::RenderPipelineDescriptor::alloc()->init();
+	desc->setVertexFunction(static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction());
+	desc->setFragmentFunction(static_cast<RendererShaderMtl*>(pixelShader->shader)->GetFunction());
 	// TODO: don't always set the vertex descriptor
-	renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+	desc->setVertexDescriptor(vertexDescriptor);
 	for (uint8 i = 0; i < 8; i++)
 	{
 	    const auto& colorBuffer = activeFBO->colorBuffer[i];
@@ -88,7 +88,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		{
 		    continue;
 		}
-		auto colorAttachment = renderPipelineDescriptor->colorAttachments()->object(i);
+		auto colorAttachment = desc->colorAttachments()->object(i);
 		colorAttachment->setPixelFormat(texture->GetTexture()->pixelFormat());
 
 		// Blending
@@ -128,11 +128,12 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	if (activeFBO->depthBuffer.texture)
 	{
 	    auto texture = static_cast<LatteTextureViewMtl*>(activeFBO->depthBuffer.texture);
-        renderPipelineDescriptor->setDepthAttachmentPixelFormat(texture->GetTexture()->pixelFormat());
+        desc->setDepthAttachmentPixelFormat(texture->GetTexture()->pixelFormat());
 	}
 
 	NS::Error* error = nullptr;
-	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(renderPipelineDescriptor, &error);
+	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, &error);
+	desc->release();
 	if (error)
 	{
 	    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());

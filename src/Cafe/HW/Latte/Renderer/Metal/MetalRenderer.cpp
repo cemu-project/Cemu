@@ -5,21 +5,16 @@
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalDepthStencilCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/ShaderSourcePresent.h"
 
-#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
-#include "Foundation/NSTypes.hpp"
 #include "HW/Latte/Core/Latte.h"
-#include "Metal/MTLDepthStencil.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-#include "Metal/MTLRenderPass.hpp"
-#include "Metal/MTLRenderPipeline.hpp"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -36,6 +31,7 @@ MetalRenderer::MetalRenderer()
 
     m_memoryManager = new MetalMemoryManager(this);
     m_pipelineCache = new MetalPipelineCache(this);
+    m_depthStencilCache = new MetalDepthStencilCache(this);
 
     // Initialize state
     for (uint32 i = 0; i < (uint32)LatteConst::ShaderType::TotalCount; i++)
@@ -49,6 +45,8 @@ MetalRenderer::MetalRenderer()
 
 MetalRenderer::~MetalRenderer()
 {
+    delete m_depthStencilCache;
+    delete m_pipelineCache;
     delete m_memoryManager;
 
     m_commandQueue->release();
@@ -622,84 +620,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Depth stencil state
-	bool depthEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_ENABLE();
-	auto depthFunc = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_FUNC();
-	bool depthWriteEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_WRITE_ENABLE();
-
-	MTL::DepthStencilDescriptor* depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
-	depthStencilDescriptor->setDepthWriteEnabled(depthWriteEnable);
-
-	auto depthCompareFunc = GetMtlCompareFunc(depthFunc);
-	if (!depthEnable)
-	{
-	    depthCompareFunc = MTL::CompareFunctionAlways;
-    }
-	depthStencilDescriptor->setDepthCompareFunction(depthCompareFunc);
-
-	// TODO: stencil state
-	/*
-	// get stencil control parameters
-	bool stencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
-	bool backStencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
-	auto frontStencilFunc = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FUNC_F();
-	auto frontStencilZPass = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZPASS_F();
-	auto frontStencilZFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZFAIL_F();
-	auto frontStencilFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FAIL_F();
-	auto backStencilFunc = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FUNC_B();
-	auto backStencilZPass = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZPASS_B();
-	auto backStencilZFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZFAIL_B();
-	auto backStencilFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FAIL_B();
-	// get stencil control parameters
-	uint32 stencilCompareMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILMASK_F();
-	uint32 stencilWriteMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILWRITEMASK_F();
-	uint32 stencilRefFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILREF_F();
-	uint32 stencilCompareMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
-	uint32 stencilWriteMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
-	uint32 stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
-
-	static const VkStencilOp stencilOpTable[8] = {
-		VK_STENCIL_OP_KEEP,
-		VK_STENCIL_OP_ZERO,
-		VK_STENCIL_OP_REPLACE,
-		VK_STENCIL_OP_INCREMENT_AND_CLAMP,
-		VK_STENCIL_OP_DECREMENT_AND_CLAMP,
-		VK_STENCIL_OP_INVERT,
-		VK_STENCIL_OP_INCREMENT_AND_WRAP,
-		VK_STENCIL_OP_DECREMENT_AND_WRAP
-	};
-
-	depthStencilState.stencilTestEnable = stencilEnable ? VK_TRUE : VK_FALSE;
-
-	depthStencilState.front.reference = stencilRefFront;
-	depthStencilState.front.compareMask = stencilCompareMaskFront;
-	depthStencilState.front.writeMask = stencilWriteMaskBack;
-	depthStencilState.front.compareOp = vkDepthCompareTable[(size_t)frontStencilFunc];
-	depthStencilState.front.depthFailOp = stencilOpTable[(size_t)frontStencilZFail];
-	depthStencilState.front.failOp = stencilOpTable[(size_t)frontStencilFail];
-	depthStencilState.front.passOp = stencilOpTable[(size_t)frontStencilZPass];
-
-	if (backStencilEnable)
-	{
-		depthStencilState.back.reference = stencilRefBack;
-		depthStencilState.back.compareMask = stencilCompareMaskBack;
-		depthStencilState.back.writeMask = stencilWriteMaskBack;
-		depthStencilState.back.compareOp = vkDepthCompareTable[(size_t)backStencilFunc];
-		depthStencilState.back.depthFailOp = stencilOpTable[(size_t)backStencilZFail];
-		depthStencilState.back.failOp = stencilOpTable[(size_t)backStencilFail];
-		depthStencilState.back.passOp = stencilOpTable[(size_t)backStencilZPass];
-	}
-	else
-	{
-		depthStencilState.back.reference = stencilRefFront;
-		depthStencilState.back.compareMask = stencilCompareMaskFront;
-		depthStencilState.back.writeMask = stencilWriteMaskFront;
-		depthStencilState.back.compareOp = vkDepthCompareTable[(size_t)frontStencilFunc];
-		depthStencilState.back.depthFailOp = stencilOpTable[(size_t)frontStencilZFail];
-		depthStencilState.back.failOp = stencilOpTable[(size_t)frontStencilFail];
-		depthStencilState.back.passOp = stencilOpTable[(size_t)frontStencilZPass];
-	}
-	*/
-	MTL::DepthStencilState* depthStencilState = m_device->newDepthStencilState(depthStencilDescriptor);
+	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
 	renderCommandEncoder->setDepthStencilState(depthStencilState);
 
 	// Primitive type

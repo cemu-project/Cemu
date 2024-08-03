@@ -615,6 +615,7 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	LatteDecompilerShader* shader = decompilerOutput.shader;
 	shader->baseHash = baseHash;
 	// copy resource mapping
+	// HACK
 	if (g_renderer->GetType() != RendererAPI::OpenGL)
 		shader->resourceMapping = decompilerOutput.resourceMappingVK;
 	else

@@ -18,13 +18,13 @@ RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type
     desc->setName(NS::String::string("main0", NS::ASCIIStringEncoding));
     error = nullptr;
     m_function = library->newFunction(desc, &error);
+    library->release();
     if (error)
     {
         printf("failed to create function (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
         return;
     }
-    library->release();
 }
 
 RendererShaderMtl::~RendererShaderMtl()

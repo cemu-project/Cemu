@@ -196,6 +196,7 @@ private:
 
 	class MetalMemoryManager* m_memoryManager;
 	class MetalPipelineCache* m_pipelineCache;
+	class MetalDepthStencilCache* m_depthStencilCache;
 
 	// Metal objects
 	MTL::Device* m_device;

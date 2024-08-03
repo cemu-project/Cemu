@@ -2422,7 +2422,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			src->add(")");
 			// avoid truncate to effectively round downwards on texel edges
 			if (ActiveSettings::ForceSamplerRoundToPrecision())
-				src->addFmt("+ float2(1.0)/float2(textureSize(tex{}, 0))/512.0", texInstruction->textureFetch.textureIndex);
+				src->addFmt("+ float2(1.0)/float2(tex{}.get_width(), tex{}.get_height())/512.0", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
 		}
 		// lod or lod bias parameter
 		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
@@ -2599,17 +2599,17 @@ static void _emitTEXGetTextureResInfoCode(LatteDecompilerShaderContext* shaderCo
 	auto texDim = shaderContext->shader->textureUnitDim[texInstruction->textureFetch.textureIndex];
 
 	if (texDim == Latte::E_DIM::DIM_1D)
-		src->addFmt(" = int4(textureSize(tex{}, 0),1,1,1).", texInstruction->textureFetch.textureIndex);
+		src->addFmt(" = int4(tex{}.get_width(), 1, 1, 1).", texInstruction->textureFetch.textureIndex);
 	else if (texDim == Latte::E_DIM::DIM_1D_ARRAY)
-		src->addFmt(" = int4(textureSize(tex{}, 0),1,1).", texInstruction->textureFetch.textureIndex);
+		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_array_size(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
 	else if (texDim == Latte::E_DIM::DIM_2D || texDim == Latte::E_DIM::DIM_2D_MSAA)
-		src->addFmt(" = int4(textureSize(tex{}, 0),1,1).", texInstruction->textureFetch.textureIndex);
+		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
 	else if (texDim == Latte::E_DIM::DIM_2D_ARRAY)
-		src->addFmt(" = int4(textureSize(tex{}, 0),1).", texInstruction->textureFetch.textureIndex);
+		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), tex{}.get_array_size(), 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
 	else
 	{
 		cemu_assert_debug(false);
-		src->addFmt(" = int4(textureSize(tex{}, 0),1,1).", texInstruction->textureFetch.textureIndex);
+		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
 	}
 
 	for(sint32 f=0; f<4; f++)
