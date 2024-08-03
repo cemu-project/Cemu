@@ -102,7 +102,8 @@ void MetalRenderer::Initialize()
 
 void MetalRenderer::Shutdown()
 {
-    debug_printf("MetalRenderer::Shutdown not implemented\n");
+    Renderer::Shutdown();
+    CommitCommandBuffer();
 }
 
 bool MetalRenderer::IsPadWindowActive()
@@ -129,7 +130,9 @@ void MetalRenderer::ClearColorbuffer(bool padView)
 
 void MetalRenderer::DrawEmptyFrame(bool mainWindow)
 {
-    debug_printf("MetalRenderer::DrawEmptyFrame not implemented\n");
+    if (!BeginFrame(mainWindow))
+		return;
+	SwapBuffers(mainWindow, !mainWindow);
 }
 
 void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
@@ -145,7 +148,6 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
         debug_printf("skipped present!\n");
     }
     m_drawable = nullptr;
-    m_drawableAcquired = false;
 
     CommitCommandBuffer();
 
@@ -157,19 +159,8 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
 {
-    if (!m_drawableAcquired)
-    {
-        debug_printf("drawable already acquired this frame\n");
-
-        m_drawableAcquired = true;
-
-        // Acquire drawable
-        m_drawable = m_metalLayer->nextDrawable();
-        if (!m_drawable)
-        {
-            return;
-        }
-    }
+    if (!AcquireNextDrawable())
+        return;
 
     MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetTexture();
 
@@ -193,13 +184,17 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
 {
-    // TODO
-    return false;
+    return AcquireNextDrawable();
 }
 
 void MetalRenderer::Flush(bool waitIdle)
 {
-    debug_printf("MetalRenderer::Flush not implemented\n");
+    // TODO: should we?
+    CommitCommandBuffer();
+    if (waitIdle)
+    {
+        // TODO
+    }
 }
 
 void MetalRenderer::NotifyLatteCommandProcessorIdle()
@@ -830,6 +825,24 @@ void MetalRenderer::CommitCommandBuffer()
         // Debug
         m_commandQueue->insertDebugCaptureBoundary();
     }
+}
+
+bool MetalRenderer::AcquireNextDrawable()
+{
+    if (m_drawable)
+    {
+        // TODO: should this be true?
+        return true;
+    }
+
+    m_drawable = m_metalLayer->nextDrawable();
+    if (!m_drawable)
+    {
+        printf("failed to acquire next drawable\n");
+        return false;
+    }
+
+    return true;
 }
 
 void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader)

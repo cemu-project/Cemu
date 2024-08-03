@@ -213,7 +213,6 @@ private:
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 	CA::MetalDrawable* m_drawable = nullptr;
-	bool m_drawableAcquired = false;
 
 	// State
 	MetalState m_state;
@@ -225,6 +224,8 @@ private:
     MTL::BlitCommandEncoder* GetBlitCommandEncoder();
     void EndEncoding();
     void CommitCommandBuffer();
+
+    bool AcquireNextDrawable();
 
     void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
     void RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder);
