@@ -2439,6 +2439,11 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			// used by Color Splash and Resident Evil
 			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UINT; // todo - should we use ABGR format?
 			formatInfoOut->decoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
+		case Latte::E_GX2SURFFMT::R32_X8_FLOAT:
+			// seen in Disney Infinity 3.0
+			formatInfoOut->vkImageFormat = VK_FORMAT_R32_SFLOAT;
+			formatInfoOut->decoder = TextureDecoder_NullData64::getInstance();
+			break;
 		default:
 			cemuLog_log(LogType::Force, "Unsupported color texture format {:04x}", (uint32)format);
 			cemu_assert_debug(false);
