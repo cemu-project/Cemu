@@ -16,6 +16,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/ISA/LatteReg.h"
+#include "Metal/MTLTypes.hpp"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -249,140 +250,24 @@ void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
 
 void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem)
 {
-    debug_printf("MetalRenderer::texture_releaseTextureUploadBuffer not implemented\n");
+    // TODO: should the texture buffer get released?
 }
 
 TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height)
 {
-    // TODO: move to LatteToMtl
-    if (isDepth)
-    {
-    	switch (format)
-    	{
-    	case Latte::E_GX2SURFFMT::D24_S8_UNORM:
-    		return TextureDecoder_D24_S8::getInstance();
-    	case Latte::E_GX2SURFFMT::D24_S8_FLOAT:
-    		return TextureDecoder_NullData64::getInstance();
-    	case Latte::E_GX2SURFFMT::D32_FLOAT:
-    		return TextureDecoder_R32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::D16_UNORM:
-    		return TextureDecoder_R16_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::D32_S8_FLOAT:
-    		return TextureDecoder_D32_S8_UINT_X24::getInstance();
-     	default:
-    		debug_printf("invalid depth texture format %u\n", (uint32)format);
-    		cemu_assert_debug(false);
-    		return nullptr;
-    	}
-    } else
-    {
-        switch (format)
-        {
-    	case Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT:
-    		return TextureDecoder_R32_G32_B32_A32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT:
-    		return TextureDecoder_R32_G32_B32_A32_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT:
-    		return TextureDecoder_R16_G16_B16_A16_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT:
-    		return TextureDecoder_R16_G16_B16_A16_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM:
-    		return TextureDecoder_R16_G16_B16_A16::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_SNORM:
-    		return TextureDecoder_R16_G16_B16_A16::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_SNORM:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_UINT:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_SINT:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_G32_FLOAT:
-    		return TextureDecoder_R32_G32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_G32_UINT:
-    		return TextureDecoder_R32_G32_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_UNORM:
-    		return TextureDecoder_R16_G16::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_FLOAT:
-    		return TextureDecoder_R16_G16_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_UNORM:
-    		return TextureDecoder_R8_G8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_SNORM:
-    		return TextureDecoder_R8_G8::getInstance();
-    	case Latte::E_GX2SURFFMT::R4_G4_UNORM:
-    		return TextureDecoder_R4_G4::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_FLOAT:
-    		return TextureDecoder_R32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_UINT:
-    		return TextureDecoder_R32_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_FLOAT:
-    		return TextureDecoder_R16_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_UNORM:
-    		return TextureDecoder_R16_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_SNORM:
-    		return TextureDecoder_R16_SNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_UINT:
-    		return TextureDecoder_R16_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_UNORM:
-    		return TextureDecoder_R8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_SNORM:
-    		return TextureDecoder_R8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_UINT:
-    		return TextureDecoder_R8_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R5_G6_B5_UNORM:
-    		return TextureDecoder_R5_G6_B5_swappedRB::getInstance();
-    	case Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM:
-    		return TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
-    	case Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM:
-    		return TextureDecoder_A1_B5_G5_R5_UNORM_vulkan::getInstance();
-    	case Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT:
-    		return TextureDecoder_R11_G11_B10_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM:
-    		return TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM:
-    		return TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM:
-    		return TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
-    	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB:
-    		return TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::BC1_SRGB:
-    		return TextureDecoder_BC1::getInstance();
-    	case Latte::E_GX2SURFFMT::BC1_UNORM:
-    		return TextureDecoder_BC1::getInstance();
-    	case Latte::E_GX2SURFFMT::BC2_UNORM:
-    		return TextureDecoder_BC2::getInstance();
-    	case Latte::E_GX2SURFFMT::BC2_SRGB:
-    		return TextureDecoder_BC2::getInstance();
-    	case Latte::E_GX2SURFFMT::BC3_UNORM:
-    		return TextureDecoder_BC3::getInstance();
-    	case Latte::E_GX2SURFFMT::BC3_SRGB:
-    		return TextureDecoder_BC3::getInstance();
-    	case Latte::E_GX2SURFFMT::BC4_UNORM:
-    		return TextureDecoder_BC4::getInstance();
-    	case Latte::E_GX2SURFFMT::BC4_SNORM:
-    		return TextureDecoder_BC4::getInstance();
-    	case Latte::E_GX2SURFFMT::BC5_UNORM:
-    		return TextureDecoder_BC5::getInstance();
-    	case Latte::E_GX2SURFFMT::BC5_SNORM:
-    		return TextureDecoder_BC5::getInstance();
-    	case Latte::E_GX2SURFFMT::R24_X8_UNORM:
-    		return TextureDecoder_R24_X8::getInstance();
-    	case Latte::E_GX2SURFFMT::X24_G8_UINT:
-    		return TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
-    	default:
-    		debug_printf("invalid color texture format %u\n", (uint32)format);
-    		cemu_assert_debug(false);
-    		return nullptr;
-    	}
-    }
+    return GetMtlTextureDecoder(format, isDepth);
 }
 
 void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex)
 {
-    debug_printf("MetalRenderer::texture_clearSlice not implemented\n");
+    if (hostTexture->isDepth)
+    {
+        texture_clearDepthSlice(hostTexture, sliceIndex, mipIndex, true, hostTexture->hasStencil, 0.0f, 0);
+    }
+    else
+    {
+        texture_clearColorSlice(hostTexture, sliceIndex, mipIndex, 0.0f, 0.0f, 0.0f, 0.0f);
+    }
 }
 
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
@@ -394,7 +279,6 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     mtlTexture->GetTexture()->replaceRegion(MTL::Region(0, 0, width, height), mipIndex, sliceIndex, pixelData, bytesPerRow, bytesPerImage);
 }
 
-// TODO: use sliceIndex and mipIndex
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
 {
     auto mtlTexture = static_cast<LatteTextureMtl*>(hostTexture)->GetTexture();
@@ -405,6 +289,8 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
     colorAttachment->setClearColor(MTL::ClearColor(r, g, b, a));
     colorAttachment->setLoadAction(MTL::LoadActionClear);
     colorAttachment->setStoreAction(MTL::StoreActionStore);
+    colorAttachment->setSlice(sliceIndex);
+    colorAttachment->setLevel(mipIndex);
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = mtlTexture;
@@ -412,7 +298,6 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
     renderPassDescriptor->release();
 }
 
-// TODO: use sliceIndex and mipIndex
 void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue)
 {
     auto mtlTexture = static_cast<LatteTextureMtl*>(hostTexture)->GetTexture();
@@ -425,6 +310,8 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
         depthAttachment->setClearDepth(depthValue);
         depthAttachment->setLoadAction(MTL::LoadActionClear);
         depthAttachment->setStoreAction(MTL::StoreActionStore);
+        depthAttachment->setSlice(sliceIndex);
+        depthAttachment->setLevel(mipIndex);
     }
     if (clearStencil)
     {
@@ -433,6 +320,8 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
         stencilAttachment->setClearStencil(stencilValue);
         stencilAttachment->setLoadAction(MTL::LoadActionClear);
         stencilAttachment->setStoreAction(MTL::StoreActionStore);
+        stencilAttachment->setSlice(sliceIndex);
+        stencilAttachment->setLevel(mipIndex);
     }
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
@@ -450,9 +339,79 @@ void MetalRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint3
     m_state.textures[textureUnit] = static_cast<LatteTextureViewMtl*>(textureView);
 }
 
-void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth)
+void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth_)
 {
-    debug_printf("MetalRenderer::texture_copyImageSubData not implemented\n");
+    auto blitCommandEncoder = GetBlitCommandEncoder();
+
+    auto mtlSrc = static_cast<LatteTextureMtl*>(src)->GetTexture();
+    auto mtlDst = static_cast<LatteTextureMtl*>(dst)->GetTexture();
+
+    uint32 srcBaseLayer = 0;
+    uint32 dstBaseLayer = 0;
+    uint32 srcOffsetZ = 0;
+    uint32 dstOffsetZ = 0;
+    uint32 srcLayerCount = 1;
+    uint32 dstLayerCount = 1;
+    uint32 srcDepth = 1;
+    uint32 dstDepth = 1;
+
+	if (src->Is3DTexture())
+	{
+		srcOffsetZ = srcSlice;
+		srcDepth = srcDepth_;
+	}
+	else
+	{
+		srcBaseLayer = srcSlice;
+		srcLayerCount = srcDepth_;
+	}
+
+	if (dst->Is3DTexture())
+	{
+		dstOffsetZ = dstSlice;
+		dstDepth = srcDepth_;
+	}
+	else
+	{
+		dstBaseLayer = dstSlice;
+		dstLayerCount = srcDepth_;
+	}
+
+	// If copying whole textures, we can do a more efficient copy
+    if (effectiveSrcX == 0 && effectiveSrcY == 0 && effectiveDstX == 0 && effectiveDstY == 0 &&
+        effectiveCopyWidth == src->GetMipWidth(srcMip) && effectiveCopyHeight == src->GetMipHeight(srcMip) &&
+        effectiveCopyWidth == dst->GetMipWidth(dstMip) && effectiveCopyHeight == dst->GetMipHeight(dstMip) &&
+        srcLayerCount == dstLayerCount)
+    {
+        blitCommandEncoder->copyFromTexture(mtlSrc, srcSlice, srcMip, mtlDst, dstSlice, dstMip, srcLayerCount, 1);
+    }
+    else
+    {
+        if (srcLayerCount == dstLayerCount)
+        {
+            for (uint32 i = 0; i < srcLayerCount; i++)
+            {
+                blitCommandEncoder->copyFromTexture(mtlSrc, srcSlice + i, srcMip, MTL::Origin(effectiveSrcX, effectiveSrcY, srcOffsetZ), MTL::Size(effectiveCopyWidth, effectiveCopyHeight, 1), mtlDst, dstSlice + i, dstMip, MTL::Origin(effectiveDstX, effectiveDstY, dstOffsetZ));
+            }
+        }
+        else
+        {
+            for (uint32 i = 0; i < std::max(srcLayerCount, dstLayerCount); i++)
+            {
+                if (srcLayerCount == 1)
+                    srcOffsetZ++;
+                else
+                    srcSlice++;
+
+                if (dstLayerCount == 1)
+                    dstOffsetZ++;
+                else
+                    dstSlice++;
+
+                blitCommandEncoder->copyFromTexture(mtlSrc, srcSlice, srcMip, MTL::Origin(effectiveSrcX, effectiveSrcY, srcOffsetZ), MTL::Size(effectiveCopyWidth, effectiveCopyHeight, 1), mtlDst, dstSlice, dstMip, MTL::Origin(effectiveDstX, effectiveDstY, dstOffsetZ));
+            }
+        }
+    }
 }
 
 LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView* textureView)
@@ -768,7 +727,7 @@ MTL::ComputeCommandEncoder* MetalRenderer::GetComputeCommandEncoder()
 {
     if (m_commandEncoder)
     {
-        if (m_encoderType != MetalEncoderType::Compute)
+        if (m_encoderType == MetalEncoderType::Compute)
         {
             return (MTL::ComputeCommandEncoder*)m_commandEncoder;
         }
@@ -787,7 +746,7 @@ MTL::BlitCommandEncoder* MetalRenderer::GetBlitCommandEncoder()
 {
     if (m_commandEncoder)
     {
-        if (m_encoderType != MetalEncoderType::Blit)
+        if (m_encoderType == MetalEncoderType::Blit)
         {
             return (MTL::BlitCommandEncoder*)m_commandEncoder;
         }
