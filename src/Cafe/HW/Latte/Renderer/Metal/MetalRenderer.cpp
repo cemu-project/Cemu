@@ -126,7 +126,10 @@ bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 
 void MetalRenderer::ClearColorbuffer(bool padView)
 {
-    debug_printf("MetalRenderer::ClearColorbuffer not implemented\n");
+    if (!AcquireNextDrawable())
+        return;
+
+    ClearColorTextureInternal(m_drawable->texture(), 0, 0, 0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 void MetalRenderer::DrawEmptyFrame(bool mainWindow)
@@ -283,19 +286,7 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
 {
     auto mtlTexture = static_cast<LatteTextureMtl*>(hostTexture)->GetTexture();
 
-    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
-    auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
-    colorAttachment->setTexture(mtlTexture);
-    colorAttachment->setClearColor(MTL::ClearColor(r, g, b, a));
-    colorAttachment->setLoadAction(MTL::LoadActionClear);
-    colorAttachment->setStoreAction(MTL::StoreActionStore);
-    colorAttachment->setSlice(sliceIndex);
-    colorAttachment->setLevel(mipIndex);
-
-    MTL::Texture* colorRenderTargets[8] = {nullptr};
-    colorRenderTargets[0] = mtlTexture;
-    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, true);
-    renderPassDescriptor->release();
+    ClearColorTextureInternal(mtlTexture, sliceIndex, mipIndex, r, g, b, a);
 }
 
 void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue)
@@ -1161,4 +1152,21 @@ void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEn
             vertexBufferRange.needsRebind = false;
         }
 	}
+}
+
+void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
+{
+    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+    colorAttachment->setTexture(mtlTexture);
+    colorAttachment->setClearColor(MTL::ClearColor(r, g, b, a));
+    colorAttachment->setLoadAction(MTL::LoadActionClear);
+    colorAttachment->setStoreAction(MTL::StoreActionStore);
+    colorAttachment->setSlice(sliceIndex);
+    colorAttachment->setLevel(mipIndex);
+
+    MTL::Texture* colorRenderTargets[8] = {nullptr};
+    colorRenderTargets[0] = mtlTexture;
+    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, true);
+    renderPassDescriptor->release();
 }
