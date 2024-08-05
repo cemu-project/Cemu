@@ -107,9 +107,10 @@ void MetalRenderer::Shutdown()
     CommitCommandBuffer();
 }
 
+// TODO: what should this do?
 bool MetalRenderer::IsPadWindowActive()
 {
-    debug_printf("MetalRenderer::IsPadWindowActive not implemented\n");
+    //debug_printf("MetalRenderer::IsPadWindowActive not implemented\n");
 
     return false;
 }
@@ -805,6 +806,23 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		auto hostTextureUnit = relative_textureUnit;
 		auto textureDim = shader->textureUnitDim[relative_textureUnit];
 		auto texUnitRegIndex = hostTextureUnit * 7;
+		switch (shader->shaderType)
+		{
+		case LatteConst::ShaderType::Vertex:
+			hostTextureUnit += LATTE_CEMU_VS_TEX_UNIT_BASE;
+			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS;
+			break;
+		case LatteConst::ShaderType::Pixel:
+			hostTextureUnit += LATTE_CEMU_PS_TEX_UNIT_BASE;
+			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS;
+			break;
+		case LatteConst::ShaderType::Geometry:
+			hostTextureUnit += LATTE_CEMU_GS_TEX_UNIT_BASE;
+			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
+			break;
+		default:
+			UNREACHABLE;
+		}
 
 		auto textureView = m_state.textures[hostTextureUnit];
 		if (!textureView)
@@ -821,9 +839,15 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		//auto imageViewObj = textureView->GetSamplerView(word4);
 		//info.imageView = imageViewObj->m_textureImageView;
 
-		// HACK
-		uint32 textureBinding = (shader->resourceMapping.getTextureBaseBindingPoint() + i) % MAX_MTL_TEXTURES;
-		uint32 samplerBinding = textureBinding % MAX_MTL_SAMPLERS;
+		// TODO: uncomment
+		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;//shader->resourceMapping.textureUnitToBindingPoint[hostTextureUnit];
+		//uint32 textureBinding = binding % MAX_MTL_TEXTURES;
+		//uint32 samplerBinding = binding % MAX_MTL_SAMPLERS;
+		if (binding >= MAX_MTL_TEXTURES)
+		{
+		    debug_printf("invalid texture binding %u\n", binding);
+            continue;
+		}
 
 		uint32 stageSamplerIndex = shader->textureUnitSamplerAssignment[relative_textureUnit];
 		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
@@ -934,12 +958,12 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 			{
 			case LatteConst::ShaderType::Vertex:
 			{
-				renderCommandEncoder->setVertexSamplerState(sampler, samplerBinding);
+				renderCommandEncoder->setVertexSamplerState(sampler, binding);
 				break;
 			}
 			case LatteConst::ShaderType::Pixel:
 			{
-			    renderCommandEncoder->setFragmentSamplerState(sampler, samplerBinding);
+			    renderCommandEncoder->setFragmentSamplerState(sampler, binding);
 				break;
 			}
 			default:
@@ -952,12 +976,12 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
-			renderCommandEncoder->setVertexTexture(textureView->GetTexture(), textureBinding);
+			renderCommandEncoder->setVertexTexture(textureView->GetTexture(), binding);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), textureBinding);
+		    renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), binding);
 			break;
 		}
 		default:

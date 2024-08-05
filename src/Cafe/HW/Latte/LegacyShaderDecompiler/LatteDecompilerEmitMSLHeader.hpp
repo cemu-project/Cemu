@@ -6,7 +6,6 @@ namespace LatteDecompiler
 	{
 	    auto src = decompilerContext->shaderSource;
 
-		LatteDecompilerShaderResourceMapping& resourceMapping = decompilerContext->output->resourceMappingGL;
 		auto& uniformOffsets = decompilerContext->output->uniformOffsetsVK;
 
 		src->add("struct SupportBuffer {" _CRLF);
@@ -129,10 +128,7 @@ namespace LatteDecompiler
 				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 
-				cemu_assert_debug(decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i] >= 0);
 				cemu_assert_debug(decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i] >= 0);
-
-				//shaderSrc->addFmt("UNIFORM_BUFFER_LAYOUT({}, {}, {}) ", (sint32)decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i], (sint32)decompilerContext->output->resourceMappingVK.setIndex, (sint32)decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i]);
 
 				shaderSrc->addFmt("struct UBuff{} {{" _CRLF, i);
 				shaderSrc->addFmt("float4 d[{}];" _CRLF, decompilerContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(decompilerContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE));
@@ -169,9 +165,7 @@ namespace LatteDecompiler
 			{
 				if (decompilerContext->analyzer.inputAttributSemanticMask[i])
 				{
-					cemu_assert_debug(decompilerContext->output->resourceMappingGL.attributeMapping[i] >= 0);
 					cemu_assert_debug(decompilerContext->output->resourceMappingVK.attributeMapping[i] >= 0);
-					cemu_assert_debug(decompilerContext->output->resourceMappingGL.attributeMapping[i] == decompilerContext->output->resourceMappingVK.attributeMapping[i]);
 
 					src->addFmt("uint4 attrDataSem{} [[attribute({})]];" _CRLF, i, (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]);
 				}
@@ -304,10 +298,9 @@ namespace LatteDecompiler
 				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 
-				cemu_assert_debug(decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i] >= 0);
 				cemu_assert_debug(decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i] >= 0);
 
-				src->addFmt(", constant UBuff{}& ubuff{} [[buffer({})]]", i, i, (sint32)decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i]);
+				src->addFmt(", constant UBuff{}& ubuff{} [[buffer({})]]", i, i, (sint32)decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i]);
 			}
 		}
 	}
@@ -348,11 +341,11 @@ namespace LatteDecompiler
 				cemu_assert_unimplemented();
 			}
 
-			// HACK
-			uint32 textureBinding = shaderContext->output->resourceMappingGL.textureUnitToBindingPoint[i] % 31;
-			uint32 samplerBinding = textureBinding % 16;
-			src->addFmt(" tex{} [[texture({})]]", i, textureBinding);
-			src->addFmt(", sampler samplr{} [[sampler({})]]", i, samplerBinding);
+			uint32 binding = shaderContext->output->resourceMappingVK.textureUnitToBindingPoint[i];
+			//uint32 textureBinding = shaderContext->output->resourceMappingVK.textureUnitToBindingPoint[i] % 31;
+			//uint32 samplerBinding = textureBinding % 16;
+			src->addFmt(" tex{} [[texture({})]]", i, binding);
+			src->addFmt(", sampler samplr{} [[sampler({})]]", i, binding);
 		}
 	}
 

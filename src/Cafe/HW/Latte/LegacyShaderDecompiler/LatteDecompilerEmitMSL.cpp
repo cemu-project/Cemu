@@ -2193,7 +2193,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	src->add(".");
 	const char* resultElemTable[4] = {"x","y","z","w"};
 	sint32 numWrittenElements = 0;
-	for(sint32 f=0; f<4; f++)
+	for(sint32 f = 0; f < 4; f++)
 	{
 		if( texInstruction->dstSel[f] < 4 )
 		{
@@ -2493,17 +2493,20 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	// lod bias
 	if( texOpcode == GPU7_TEX_INST_SAMPLE_C || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
 	{
-		src->add(")");
+		src->add(").");
 
 		if (numWrittenElements > 1)
 		{
 			// result is copied into multiple channels
-			src->add(".");
 			for (sint32 f = 0; f < numWrittenElements; f++)
 			{
 				cemu_assert_debug(texInstruction->dstSel[f] == 0); // only x component is defined
 				src->add("x");
 			}
+		}
+		else
+		{
+		    src->add("x");
 		}
 	}
 	else
