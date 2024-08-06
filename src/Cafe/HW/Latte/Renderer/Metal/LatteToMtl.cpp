@@ -260,7 +260,8 @@ MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode mode)
         case LattePrimitiveMode::TRIANGLE_STRIP:
             return MTL::PrimitiveTypeTriangleStrip;
         default:
-            printf("unimplemented primitive type %u\n", (uint32)mode);
+            // TODO: uncomment
+            //printf("unimplemented primitive type %u\n", (uint32)mode);
             return MTL::PrimitiveTypeTriangle;
     }
 }

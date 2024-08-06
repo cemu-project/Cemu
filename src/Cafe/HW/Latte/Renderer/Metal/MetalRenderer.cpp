@@ -561,7 +561,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, depthRenderTarget);
 
 	// Shaders
-	LatteSHRC_UpdateActiveShaders();
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	if (!vertexShader || !static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction())
@@ -627,7 +626,16 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 void MetalRenderer::draw_endSequence()
 {
-    // TODO: do something?
+    LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+	// post-drawcall logic
+	if (pixelShader)
+		LatteRenderTarget_trackUpdates();
+	bool hasReadback = LatteTextureReadback_Update();
+	//m_recordedDrawcalls++;
+	//if (m_recordedDrawcalls >= m_submitThreshold || hasReadback)
+	//{
+	//	SubmitCommandBuffer();
+	//}
 }
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
@@ -1095,32 +1103,38 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 	{
 		if (shader->resourceMapping.uniformBuffersBindingPoint[i] >= 0)
 		{
-			uint32 binding = shader->resourceMapping.uniformBuffersBindingPoint[i];
-			if (binding >= MAX_MTL_BUFFERS)
-			{
-			    debug_printf("too big buffer index (%u), skipping binding\n", binding);
-				continue;
-			}
-			size_t offset = m_state.uniformBufferOffsets[(uint32)shader->shaderType][binding];
-			if (offset != INVALID_OFFSET)
-			{
-    			switch (shader->shaderType)
-    			{
-    			case LatteConst::ShaderType::Vertex:
-    			{
+    		uint32 binding = shader->resourceMapping.uniformBuffersBindingPoint[i];
+    		if (binding >= MAX_MTL_BUFFERS)
+    		{
+    		    debug_printf("too big buffer index (%u), skipping binding\n", binding);
+    			continue;
+    		}
+    		size_t offset = m_state.uniformBufferOffsets[(uint32)shader->shaderType][i];
+    		if (offset != INVALID_OFFSET)
+    		{
+     			switch (shader->shaderType)
+     			{
+     			case LatteConst::ShaderType::Vertex:
+     			{
     				renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), offset, binding);
     				break;
-    			}
-    			case LatteConst::ShaderType::Pixel:
-    			{
-    			    renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
+     			}
+     			case LatteConst::ShaderType::Pixel:
+     			{
+     			    renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
     				break;
-    			}
-    			default:
+     			}
+     			default:
     				UNREACHABLE;
-    			}
-			}
+     			}
+    		}
 		}
+	}
+
+	// Storage buffer
+	if (shader->resourceMapping.tfStorageBindingPoint >= 0)
+	{
+		debug_printf("storage buffer not implemented, index: %i\n", shader->resourceMapping.tfStorageBindingPoint);
 	}
 }
 
