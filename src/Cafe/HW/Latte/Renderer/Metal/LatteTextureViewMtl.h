@@ -8,7 +8,6 @@
 #define RGBA_SWIZZLE 0x06880000
 #define INVALID_SWIZZLE 0xFFFFFFFF
 
-// TODO: test the swizzle
 class LatteTextureViewMtl : public LatteTextureView
 {
 public:

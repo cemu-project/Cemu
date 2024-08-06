@@ -2334,7 +2334,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			// shadow sampler
 			if (texDim == Latte::E_DIM::DIM_2D_ARRAY)
 			{
-				// 3 coords + compare value (as float4)
+				// 3 coords + compare value
 				src->add("float3(");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 				src->add(", ");
@@ -2442,7 +2442,8 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		}
 		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
 		{
-			src->add(",0.0");
+		    // TODO: correct?
+			src->add(", level(0.0)");
 		}
 	}
 	// gradient parameters

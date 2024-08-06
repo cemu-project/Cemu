@@ -27,43 +27,42 @@ MTL::Texture* LatteTextureViewMtl::GetSwizzledView(uint32 gpuSamplerSwizzle)
     // Mask out
     gpuSamplerSwizzle &= 0x0FFF0000;
 
+    // RGBA swizzle == no swizzle
     if (gpuSamplerSwizzle == RGBA_SWIZZLE)
     {
         return m_baseTexture->GetTexture();
     }
-    else
+
+    // First, try to find a view in the cache
+
+    // Fast cache
+    sint32 freeIndex = -1;
+    for (sint32 i = 0; i < std::size(m_viewCache); i++)
     {
-        // First, try to find a view in the cache
-
-        // Fast cache
-        sint32 freeIndex = -1;
-        for (sint32 i = 0; i < std::size(m_viewCache); i++)
+        if (m_viewCache[i].key == gpuSamplerSwizzle)
         {
-            if (m_viewCache[i].key == gpuSamplerSwizzle)
-            {
-                return m_viewCache[i].texture;
-            }
-            else if (m_viewCache[i].key == INVALID_SWIZZLE && freeIndex == -1)
-            {
-                freeIndex = i;
-            }
+            return m_viewCache[i].texture;
         }
-
-        // Fallback cache
-        auto it = m_fallbackViewCache.find(gpuSamplerSwizzle);
-        if (it != m_fallbackViewCache.end())
+        else if (m_viewCache[i].key == INVALID_SWIZZLE && freeIndex == -1)
         {
-            return it->second;
+            freeIndex = i;
         }
-
-        MTL::Texture* texture = CreateSwizzledView(gpuSamplerSwizzle);
-        if (freeIndex != -1)
-            m_viewCache[freeIndex] = {gpuSamplerSwizzle, texture};
-        else
-            it->second = texture;
-
-        return texture;
     }
+
+    // Fallback cache
+    auto it = m_fallbackViewCache.find(gpuSamplerSwizzle);
+    if (it != m_fallbackViewCache.end())
+    {
+        return it->second;
+    }
+
+    MTL::Texture* texture = CreateSwizzledView(gpuSamplerSwizzle);
+    if (freeIndex != -1)
+        m_viewCache[freeIndex] = {gpuSamplerSwizzle, texture};
+    else
+        it->second = texture;
+
+    return texture;
 }
 
 MTL::Texture* LatteTextureViewMtl::CreateSwizzledView(uint32 gpuSamplerSwizzle)
@@ -117,10 +116,14 @@ MTL::Texture* LatteTextureViewMtl::CreateSwizzledView(uint32 gpuSamplerSwizzle)
         layerCount = this->numSlice;
     }
 
-    // TODO: swizzle
+    MTL::TextureSwizzleChannels swizzle;
+    swizzle.red = GetMtlTextureSwizzle(compSelR);
+    swizzle.green = GetMtlTextureSwizzle(compSelG);
+    swizzle.blue = GetMtlTextureSwizzle(compSelB);
+    swizzle.alpha = GetMtlTextureSwizzle(compSelA);
 
     auto formatInfo = GetMtlPixelFormatInfo(format, m_baseTexture->IsDepth());
-    MTL::Texture* texture = m_baseTexture->GetTexture()->newTextureView(formatInfo.pixelFormat, textureType, NS::Range::Make(baseLevel, levelCount), NS::Range::Make(baseLayer, layerCount));
+    MTL::Texture* texture = m_baseTexture->GetTexture()->newTextureView(formatInfo.pixelFormat, textureType, NS::Range::Make(baseLevel, levelCount), NS::Range::Make(baseLayer, layerCount), swizzle);
 
     return texture;
 }
