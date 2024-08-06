@@ -15,7 +15,7 @@ void CachedFBOMtl::CreateRenderPass()
 			continue;
 		}
 		auto colorAttachment = m_renderPassDescriptor->colorAttachments()->object(i);
-		colorAttachment->setTexture(textureView->GetTexture());
+		colorAttachment->setTexture(textureView->GetRGBAView());
 		colorAttachment->setLoadAction(MTL::LoadActionLoad);
 		colorAttachment->setStoreAction(MTL::StoreActionStore);
 	}
@@ -25,7 +25,7 @@ void CachedFBOMtl::CreateRenderPass()
 	{
 		auto textureView = static_cast<LatteTextureViewMtl*>(depthBuffer.texture);
 		auto depthAttachment = m_renderPassDescriptor->depthAttachment();
-		depthAttachment->setTexture(textureView->GetTexture());
+		depthAttachment->setTexture(textureView->GetRGBAView());
 		depthAttachment->setLoadAction(MTL::LoadActionLoad);
 		depthAttachment->setStoreAction(MTL::StoreActionStore);
 	}

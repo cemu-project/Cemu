@@ -419,3 +419,20 @@ MTL::SamplerAddressMode GetMtlSamplerAddressMode(Latte::LATTE_SQ_TEX_SAMPLER_WOR
     cemu_assert_debug((uint32)clamp < std::size(MTL_SAMPLER_ADDRESS_MODES));
     return MTL_SAMPLER_ADDRESS_MODES[(uint32)clamp];
 }
+
+const MTL::TextureSwizzle MTL_TEXTURE_SWIZZLES[] = {
+    MTL::TextureSwizzleRed,
+    MTL::TextureSwizzleGreen,
+    MTL::TextureSwizzleBlue,
+    MTL::TextureSwizzleAlpha,
+    MTL::TextureSwizzleZero,
+    MTL::TextureSwizzleOne,
+    MTL::TextureSwizzleZero,
+    MTL::TextureSwizzleZero
+};
+
+MTL::TextureSwizzle GetMtlTextureSwizzle(uint32 swizzle)
+{
+    cemu_assert_debug(swizzle < std::size(MTL_TEXTURE_SWIZZLES));
+    return MTL_TEXTURE_SWIZZLES[swizzle];
+}

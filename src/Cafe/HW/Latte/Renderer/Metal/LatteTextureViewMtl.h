@@ -1,27 +1,37 @@
 #pragma once
 
 #include <Metal/Metal.hpp>
+#include <unordered_map>
 
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 
+#define RGBA_SWIZZLE 0x06880000
+#define INVALID_SWIZZLE 0xFFFFFFFF
+
+// TODO: test the swizzle
 class LatteTextureViewMtl : public LatteTextureView
 {
 public:
 	LatteTextureViewMtl(class MetalRenderer* mtlRenderer, class LatteTextureMtl* texture, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount);
 	~LatteTextureViewMtl();
 
-	MTL::Texture* GetTexture() const {
-	    return m_texture;
-	}
+    MTL::Texture* GetSwizzledView(uint32 gpuSamplerSwizzle);
 
-	Latte::E_GX2SURFFMT GetFormat() const {
-        return m_format;
+    MTL::Texture* GetRGBAView()
+    {
+        return GetSwizzledView(RGBA_SWIZZLE);
     }
 
 private:
 	class MetalRenderer* m_mtlr;
 
-	MTL::Texture* m_texture;
+	class LatteTextureMtl* m_baseTexture;
 
-	Latte::E_GX2SURFFMT m_format;
+	struct {
+	    uint32 key;
+	    MTL::Texture* texture;
+	} m_viewCache[4] = {{INVALID_SWIZZLE, nullptr}};
+	std::unordered_map<uint32, MTL::Texture*> m_fallbackViewCache;
+
+    MTL::Texture* CreateSwizzledView(uint32 gpuSamplerSwizzle);
 };

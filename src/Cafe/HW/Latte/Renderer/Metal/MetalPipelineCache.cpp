@@ -88,7 +88,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		    continue;
 		}
 		auto colorAttachment = desc->colorAttachments()->object(i);
-		colorAttachment->setPixelFormat(texture->GetTexture()->pixelFormat());
+		colorAttachment->setPixelFormat(texture->GetRGBAView()->pixelFormat());
 
 		// Blending
 		const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = LatteGPUState.contextNew.CB_COLOR_CONTROL;
@@ -127,7 +127,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	if (activeFBO->depthBuffer.texture)
 	{
 	    auto texture = static_cast<LatteTextureViewMtl*>(activeFBO->depthBuffer.texture);
-        desc->setDepthAttachmentPixelFormat(texture->GetTexture()->pixelFormat());
+        desc->setDepthAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
         // TODO: stencil pixel format
 	}
 

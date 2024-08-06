@@ -167,7 +167,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     if (!AcquireNextDrawable())
         return;
 
-    MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetTexture();
+    MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetRGBAView();
 
     // Create render pass
     MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
@@ -550,13 +550,13 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         auto colorTexture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->colorBuffer[i].texture);
         if (colorTexture)
         {
-            colorRenderTargets[i] = colorTexture->GetTexture();
+            colorRenderTargets[i] = colorTexture->GetRGBAView();
         }
     }
     auto depthTexture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->depthBuffer.texture);
     if (depthTexture)
     {
-        depthRenderTarget = depthTexture->GetTexture();
+        depthRenderTarget = depthTexture->GetRGBAView();
     }
 	auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, depthRenderTarget);
 
@@ -919,9 +919,9 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
     		auto clampY = samplerWords->WORD0.get_CLAMP_Y();
     		auto clampZ = samplerWords->WORD0.get_CLAMP_Z();
 
-            samplerDescriptor->setRAddressMode(GetMtlSamplerAddressMode(clampX));
-            samplerDescriptor->setSAddressMode(GetMtlSamplerAddressMode(clampY));
-            samplerDescriptor->setTAddressMode(GetMtlSamplerAddressMode(clampZ));
+            samplerDescriptor->setSAddressMode(GetMtlSamplerAddressMode(clampX));
+            samplerDescriptor->setTAddressMode(GetMtlSamplerAddressMode(clampY));
+            samplerDescriptor->setRAddressMode(GetMtlSamplerAddressMode(clampZ));
 
     		auto maxAniso = samplerWords->WORD0.get_MAX_ANISO_RATIO();
 
@@ -980,16 +980,17 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 			sampler->release();
 		}
 
+		MTL::Texture* mtlTexture = textureView->GetSwizzledView(word4);
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
-			renderCommandEncoder->setVertexTexture(textureView->GetTexture(), binding);
+			renderCommandEncoder->setVertexTexture(mtlTexture, binding);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    renderCommandEncoder->setFragmentTexture(textureView->GetTexture(), binding);
+		    renderCommandEncoder->setFragmentTexture(mtlTexture, binding);
 			break;
 		}
 		default:
