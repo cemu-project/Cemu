@@ -60,6 +60,12 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
+		uint32 strideRemainder = bufferStride % 4;
+		if (strideRemainder != 0)
+		{
+		    debug_printf("vertex stride must be a multiple of 4, remainder: %u\n", strideRemainder);
+		}
+
 		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
 		layout->setStride(bufferStride);
 		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)

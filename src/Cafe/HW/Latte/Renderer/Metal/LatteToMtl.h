@@ -29,7 +29,7 @@ size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, bool isDepth, uint
 
 TextureDecoder* GetMtlTextureDecoder(Latte::E_GX2SURFFMT format, bool isDepth);
 
-MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode mode);
+MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode);
 
 MTL::VertexFormat GetMtlVertexFormat(uint8 format);
 

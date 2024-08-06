@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLDepthStencil.hpp"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLSampler.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MtlPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
@@ -247,22 +248,38 @@ TextureDecoder* GetMtlTextureDecoder(Latte::E_GX2SURFFMT format, bool isDepth)
     }
 }
 
-MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode mode)
+MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode)
 {
-    switch (mode)
+    switch (primitiveMode)
     {
-        case LattePrimitiveMode::POINTS:
-            return MTL::PrimitiveTypePoint;
-        case LattePrimitiveMode::LINES:
-            return MTL::PrimitiveTypeLine;
-        case LattePrimitiveMode::TRIANGLES:
-            return MTL::PrimitiveTypeTriangle;
-        case LattePrimitiveMode::TRIANGLE_STRIP:
-            return MTL::PrimitiveTypeTriangleStrip;
-        default:
-            // TODO: uncomment
-            //printf("unimplemented primitive type %u\n", (uint32)mode);
-            return MTL::PrimitiveTypeTriangle;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::POINTS:
+		return MTL::PrimitiveTypePoint;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINES:
+		return MTL::PrimitiveTypeLine;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_STRIP:
+		return MTL::PrimitiveTypeLineStrip;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_LOOP:
+		return MTL::PrimitiveTypeLineStrip; // line loops are emulated as line strips with an extra connecting strip at the end
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_STRIP_ADJACENT: // Tropical Freeze level 3-6
+	    debug_printf("Metal doesn't support line strip adjacent primitive, using line strip instead\n");
+		return MTL::PrimitiveTypeLineStrip;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLES:
+		return MTL::PrimitiveTypeTriangle;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLE_FAN:
+	    debug_printf("Metal doesn't support triangle fan primitive, using triangle strip instead\n");
+		return MTL::PrimitiveTypeTriangleStrip;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLE_STRIP:
+		return MTL::PrimitiveTypeTriangleStrip;
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::QUADS:
+		return MTL::PrimitiveTypeTriangle; // quads are emulated as 2 triangles
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::QUAD_STRIP:
+		return MTL::PrimitiveTypeTriangle; // quad strips are emulated as (count-2)/2 triangles
+	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS:
+		return MTL::PrimitiveTypeTriangle; // rects are emulated as 2 triangles
+	default:
+		cemuLog_logDebug(LogType::Force, "Metal-Unsupported: Render pipeline with primitive mode {} created", primitiveMode);
+		cemu_assert_debug(false);
+		return MTL::PrimitiveTypeTriangle;
     }
 }
 
