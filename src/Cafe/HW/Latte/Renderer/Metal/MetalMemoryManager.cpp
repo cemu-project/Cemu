@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Metal/MTLResource.hpp"
 
 const size_t BUFFER_ALLOCATION_SIZE = 8 * 1024 * 1024;
 
@@ -79,7 +80,7 @@ MetalVertexBufferCache::~MetalVertexBufferCache()
     }
 }
 
-MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride)
+MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride)
 {
     auto vertexBufferRange = m_bufferRanges[bufferIndex];
     auto& restrideInfo = vertexBufferRange->restrideInfo;
@@ -87,20 +88,27 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(uint32 
     if (stride % 4 == 0)
     {
         // No restride needed
-        return {nullptr, vertexBufferRange->offset};
+        return {bufferCache, vertexBufferRange->offset};
     }
 
     if (restrideInfo.memoryInvalidated || stride != restrideInfo.lastStride)
     {
-        // TODO: restride
-        throw std::runtime_error("restride needed");
+        // TODO: use compute/void vertex function instead
+        size_t newStride = align(stride, 4);
+        size_t newSize = vertexBufferRange->size / stride * newStride;
+        restrideInfo.buffer = m_mtlr->GetDevice()->newBuffer(newSize, MTL::StorageModeShared);
+
+        uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange->offset;
+        uint8* newPtr = (uint8*)restrideInfo.buffer->contents();
+
+        for (size_t elem = 0; elem < vertexBufferRange->size / stride; elem++)
+    	{
+    		memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
+    	}
 
         restrideInfo.memoryInvalidated = false;
-        restrideInfo.lastStride = stride;
+        restrideInfo.lastStride = newStride;
     }
-
-    // TODO: remove
-    throw std::runtime_error("restride unimplemented");
 
     return {restrideInfo.buffer, 0};
 }

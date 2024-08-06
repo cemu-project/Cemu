@@ -63,6 +63,13 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 		bufferStride = align(bufferStride, 4);
 
+		// HACK
+		if (bufferStride == 0)
+		{
+		    debug_printf("vertex buffer %u has a vertex stride of 0 bytes, using 4 bytes instead\n", bufferIndex);
+			bufferStride = 4;
+		}
+
 		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
 		layout->setStride(bufferStride);
 		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)

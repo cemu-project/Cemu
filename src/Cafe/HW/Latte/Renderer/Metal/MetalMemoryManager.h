@@ -97,7 +97,7 @@ public:
         range = nullptr;
     }
 
-    MetalRestridedBufferRange RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride);
+    MetalRestridedBufferRange RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride);
 
 private:
     class MetalRenderer* m_mtlr;
@@ -159,13 +159,7 @@ public:
 
     MetalRestridedBufferRange RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride)
     {
-        auto range = m_vertexBufferCache.RestrideBufferIfNeeded(bufferIndex, stride);
-        if (!range.buffer)
-        {
-            range.buffer = m_bufferCache;
-        }
-
-        return range;
+        return m_vertexBufferCache.RestrideBufferIfNeeded(m_bufferCache, bufferIndex, stride);
     }
 
 private:
