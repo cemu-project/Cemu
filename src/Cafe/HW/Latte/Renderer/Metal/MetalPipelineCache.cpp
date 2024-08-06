@@ -1,11 +1,13 @@
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "HW/Latte/Core/FetchShader.h"
-#include "HW/Latte/ISA/RegDefines.h"
 #include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
+
+#include "HW/Latte/Core/FetchShader.h"
+#include "HW/Latte/ISA/RegDefines.h"
 
 MetalPipelineCache::~MetalPipelineCache()
 {
@@ -59,12 +61,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-
-		uint32 strideRemainder = bufferStride % 4;
-		if (strideRemainder != 0)
-		{
-		    debug_printf("vertex stride must be a multiple of 4, remainder: %u\n", strideRemainder);
-		}
+		bufferStride = align(bufferStride, 4);
 
 		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
 		layout->setStride(bufferStride);

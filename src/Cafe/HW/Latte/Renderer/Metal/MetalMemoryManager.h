@@ -3,6 +3,7 @@
 #include <Metal/Metal.hpp>
 
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
+#include "Cafe/HW/Latte/Core/LatteConst.h"
 
 //const uint32 bufferAllocatorIndexShift = 24;
 
@@ -51,10 +52,65 @@ private:
     std::vector<MetalBufferRange> m_freeBufferRanges;
 };
 
+struct MetalRestridedBufferRange
+{
+    MTL::Buffer* buffer;
+    size_t offset;
+};
+
+// TODO: use one big buffer for all the restrided vertex buffers?
+struct MetalRestrideInfo
+{
+    bool memoryInvalidated = true;
+    size_t lastStride = 0;
+    MTL::Buffer* buffer = nullptr;
+};
+
+struct MetalVertexBufferRange
+{
+    size_t offset;
+    size_t size;
+    MetalRestrideInfo& restrideInfo;
+};
+
+class MetalVertexBufferCache
+{
+public:
+    friend class MetalMemoryManager;
+
+    MetalVertexBufferCache(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
+    ~MetalVertexBufferCache();
+
+    // Vertex buffer cache
+    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo& restrideInfo)
+    {
+        m_bufferRanges[bufferIndex] = new MetalVertexBufferRange{offset, size, restrideInfo};
+    }
+
+    void UntrackVertexBuffer(uint32 bufferIndex)
+    {
+        auto& range = m_bufferRanges[bufferIndex];
+        if (range->restrideInfo.buffer)
+        {
+            range->restrideInfo.buffer->release();
+        }
+        range = nullptr;
+    }
+
+    MetalRestridedBufferRange RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride);
+
+private:
+    class MetalRenderer* m_mtlr;
+
+    MetalVertexBufferRange* m_bufferRanges[LATTE_MAX_VERTEX_BUFFERS] = {nullptr};
+
+    void MemoryRangeChanged(size_t offset, size_t size);
+};
+
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer) {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer) {}
     ~MetalMemoryManager();
 
     void ResetTemporaryBuffers()
@@ -90,6 +146,28 @@ public:
     void UploadToBufferCache(const void* data, size_t offset, size_t size);
     void CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size);
 
+    // Vertex buffer cache
+    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo& restrideInfo)
+    {
+        m_vertexBufferCache.TrackVertexBuffer(bufferIndex, offset, size, restrideInfo);
+    }
+
+    void UntrackVertexBuffer(uint32 bufferIndex)
+    {
+        m_vertexBufferCache.UntrackVertexBuffer(bufferIndex);
+    }
+
+    MetalRestridedBufferRange RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride)
+    {
+        auto range = m_vertexBufferCache.RestrideBufferIfNeeded(bufferIndex, stride);
+        if (!range.buffer)
+        {
+            range.buffer = m_bufferCache;
+        }
+
+        return range;
+    }
+
 private:
     class MetalRenderer* m_mtlr;
 
@@ -97,6 +175,7 @@ private:
 
     MetalBufferAllocator m_bufferAllocator;//s[2];
     //uint8 m_bufferAllocatorIndex = 0;
+    MetalVertexBufferCache m_vertexBufferCache;
 
     MTL::Buffer* m_bufferCache = nullptr;
 };

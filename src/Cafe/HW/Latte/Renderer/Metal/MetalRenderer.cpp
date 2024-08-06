@@ -6,7 +6,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalDepthStencilCache.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/ShaderSourcePresent.h"
@@ -440,11 +439,22 @@ void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
 {
-	if (m_state.vertexBuffers[bufferIndex].offset == offset)
+    cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
+    auto& buffer = m_state.vertexBuffers[bufferIndex];
+	if (buffer.offset == offset && buffer.size == size)
 		return;
-	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
-	m_state.vertexBuffers[bufferIndex].needsRebind = true;
-	m_state.vertexBuffers[bufferIndex].offset = offset;
+
+	if (buffer.offset != INVALID_OFFSET)
+	{
+	    m_memoryManager->UntrackVertexBuffer(bufferIndex);
+	}
+
+	buffer.needsRebind = true;
+	buffer.offset = offset;
+	buffer.size = size;
+	buffer.restrideInfo = {};
+
+	m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, buffer.restrideInfo);
 }
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
@@ -598,15 +608,25 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
 
 	// Vertex buffers
-	for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
-	{
-	    auto& vertexBufferRange = m_state.vertexBuffers[i];
-	    if (vertexBufferRange.needsRebind)
+    for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
+    {
+        auto& vertexBufferRange = m_state.vertexBuffers[i];
+        if (vertexBufferRange.offset != INVALID_OFFSET)
         {
-            renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
-            vertexBufferRange.needsRebind = false;
+            // Restride
+            uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + i * 7;
+            uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+            auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride);
+
+            // Bind
+            if (vertexBufferRange.needsRebind)
+            {
+                renderCommandEncoder->setVertexBuffer(restridedBuffer.buffer, restridedBuffer.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
+                vertexBufferRange.needsRebind = false;
+            }
         }
-	}
+    }
 
 	// Uniform buffers, textures and samplers
 	BindStageResources(renderCommandEncoder, vertexShader);
@@ -1186,10 +1206,7 @@ void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEn
 	{
 	    auto& vertexBufferRange = m_state.vertexBuffers[i];
 	    if (vertexBufferRange.offset != INVALID_OFFSET)
-        {
-            renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), vertexBufferRange.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
-            vertexBufferRange.needsRebind = false;
-        }
+            vertexBufferRange.needsRebind = true;
 	}
 }
 

@@ -538,6 +538,7 @@ if(ENABLE_METAL)
         target_sources(CemuCafe PRIVATE
             HW/Latte/Renderer/Metal/MetalRenderer.cpp
             HW/Latte/Renderer/Metal/MetalRenderer.h
+            HW/Latte/Renderer/Metal/MetalCommon.h
             HW/Latte/Renderer/Metal/MetalCppImpl.cpp
             HW/Latte/Renderer/Metal/MetalLayer.mm
             HW/Latte/Renderer/Metal/MetalLayer.h

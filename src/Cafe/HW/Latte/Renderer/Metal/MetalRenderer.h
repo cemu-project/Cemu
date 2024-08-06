@@ -6,6 +6,8 @@
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
+#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
+
 #define MAX_MTL_BUFFERS 31
 #define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 2)
 // TODO: don't harcdode the support buffer binding
@@ -20,6 +22,9 @@ struct MetalBoundBuffer
 {
     bool needsRebind = false;
     size_t offset = INVALID_OFFSET;
+    size_t size = 0;
+    // Memory manager will write restride info to this variable
+    MetalRestrideInfo restrideInfo;
 };
 
 struct MetalState

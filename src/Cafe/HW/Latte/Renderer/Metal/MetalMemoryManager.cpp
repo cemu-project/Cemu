@@ -1,3 +1,4 @@
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 
@@ -14,7 +15,7 @@ MetalBufferAllocator::~MetalBufferAllocator()
 MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, size_t alignment)
 {
     // Align the size
-    size = (size + alignment - 1) & ~(alignment - 1);
+    size = align(size, alignment);
 
     // First, try to find a free range
     for (uint32 i = 0; i < m_freeBufferRanges.size(); i++)
@@ -63,6 +64,65 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, siz
     return allocation;
 }
 
+MetalVertexBufferCache::~MetalVertexBufferCache()
+{
+    for (uint32 i = 0; i < LATTE_MAX_VERTEX_BUFFERS; i++)
+    {
+        auto vertexBufferRange = m_bufferRanges[i];
+        if (vertexBufferRange)
+        {
+            if (vertexBufferRange->restrideInfo.buffer)
+            {
+                vertexBufferRange->restrideInfo.buffer->release();
+            }
+        }
+    }
+}
+
+MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride)
+{
+    auto vertexBufferRange = m_bufferRanges[bufferIndex];
+    auto& restrideInfo = vertexBufferRange->restrideInfo;
+
+    if (stride % 4 == 0)
+    {
+        // No restride needed
+        return {nullptr, vertexBufferRange->offset};
+    }
+
+    if (restrideInfo.memoryInvalidated || stride != restrideInfo.lastStride)
+    {
+        // TODO: restride
+        throw std::runtime_error("restride needed");
+
+        restrideInfo.memoryInvalidated = false;
+        restrideInfo.lastStride = stride;
+    }
+
+    // TODO: remove
+    throw std::runtime_error("restride unimplemented");
+
+    return {restrideInfo.buffer, 0};
+}
+
+void MetalVertexBufferCache::MemoryRangeChanged(size_t offset, size_t size)
+{
+    for (uint32 i = 0; i < LATTE_MAX_VERTEX_BUFFERS; i++)
+    {
+        auto vertexBufferRange = m_bufferRanges[i];
+        if (vertexBufferRange)
+        {
+            if ((offset < vertexBufferRange->offset && (offset + size) < (vertexBufferRange->offset + vertexBufferRange->size)) ||
+                (offset > vertexBufferRange->offset && (offset + size) > (vertexBufferRange->offset + vertexBufferRange->size)))
+            {
+                continue;
+            }
+
+            vertexBufferRange->restrideInfo.memoryInvalidated = true;
+        }
+    }
+}
+
 MetalMemoryManager::~MetalMemoryManager()
 {
     if (m_bufferCache)
@@ -85,7 +145,7 @@ void MetalMemoryManager::InitBufferCache(size_t size)
 {
     if (m_bufferCache)
     {
-        printf("MetalMemoryManager::InitBufferCache: buffer cache already initialized\n");
+        debug_printf("MetalMemoryManager::InitBufferCache: buffer cache already initialized\n");
         return;
     }
 
@@ -101,18 +161,21 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
     if (!m_bufferCache)
     {
-        printf("MetalMemoryManager::UploadToBufferCache: buffer cache not initialized\n");
+        debug_printf("MetalMemoryManager::UploadToBufferCache: buffer cache not initialized\n");
         return;
     }
 
     memcpy((uint8*)m_bufferCache->contents() + offset, data, size);
+
+    // Notify vertex buffer cache about the change
+    m_vertexBufferCache.MemoryRangeChanged(offset, size);
 }
 
 void MetalMemoryManager::CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size)
 {
     if (!m_bufferCache)
     {
-        printf("MetalMemoryManager::CopyBufferCache: buffer cache not initialized\n");
+        debug_printf("MetalMemoryManager::CopyBufferCache: buffer cache not initialized\n");
         return;
     }
 
