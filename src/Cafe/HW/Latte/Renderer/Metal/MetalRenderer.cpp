@@ -6,6 +6,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalDepthStencilCache.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/ShaderSourcePresent.h"
@@ -35,6 +36,9 @@ MetalRenderer::MetalRenderer()
     m_pipelineCache = new MetalPipelineCache(this);
     m_depthStencilCache = new MetalDepthStencilCache(this);
 
+    // Texture readback
+    m_readbackBuffer = m_device->newBuffer(TEXTURE_READBACK_SIZE, MTL::StorageModeShared);
+
     // Initialize state
     for (uint32 i = 0; i < (uint32)LatteConst::ShaderType::TotalCount; i++)
     {
@@ -52,6 +56,8 @@ MetalRenderer::~MetalRenderer()
     delete m_memoryManager;
 
     m_nearestSampler->release();
+
+    m_readbackBuffer->release();
 
     m_commandQueue->release();
     m_device->release();
@@ -407,9 +413,17 @@ void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, s
 
 LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView* textureView)
 {
-    debug_printf("MetalRenderer::texture_createReadback not implemented\n");
+    size_t uploadSize = static_cast<LatteTextureMtl*>(textureView->baseTexture)->GetTexture()->allocatedSize();
 
-    return nullptr;
+    if ((m_readbackBufferWriteOffset + uploadSize) > TEXTURE_READBACK_SIZE)
+	{
+		m_readbackBufferWriteOffset = 0;
+	}
+
+    auto* result = new LatteTextureReadbackInfoMtl(this, textureView, m_readbackBufferWriteOffset);
+    m_readbackBufferWriteOffset += uploadSize;
+
+	return result;
 }
 
 void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
@@ -800,6 +814,9 @@ void MetalRenderer::CommitCommandBuffer()
         m_commandBuffer->commit();
         m_commandBuffer->release();
         m_commandBuffer = nullptr;
+
+        // TODO: where should this be called?
+        LatteTextureReadback_UpdateFinishedTransfers(false);
 
         // Debug
         m_commandQueue->insertDebugCaptureBoundary();

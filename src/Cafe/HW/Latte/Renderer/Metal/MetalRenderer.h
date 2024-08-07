@@ -49,9 +49,36 @@ enum class MetalEncoderType
     Blit,
 };
 
+class LatteQueryObjectMtl : public LatteQueryObject
+{
+public:
+	LatteQueryObjectMtl(class MetalRenderer* mtlRenderer) : m_mtlr{mtlRenderer} {}
+
+	bool getResult(uint64& numSamplesPassed) override
+	{
+	    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::getResult: occlusion queries are not yet supported on Metal");
+        return false;
+	}
+
+	void begin() override
+	{
+	    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::begin: occlusion queries are not yet supported on Metal");
+	}
+
+	void end() override
+	{
+	    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::end: occlusion queries are not yet supported on Metal");
+	}
+
+private:
+	class MetalRenderer* m_mtlr;
+};
+
 class MetalRenderer : public Renderer
 {
 public:
+    static const inline int TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
+
     MetalRenderer();
 	~MetalRenderer() override;
 
@@ -178,23 +205,43 @@ public:
 
 	// occlusion queries
 	LatteQueryObject* occlusionQuery_create() override {
-	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_create: Occlusion queries are not yet supported on Metal");
 
-		return nullptr;
+		return new LatteQueryObjectMtl(this);
 	}
 
 	void occlusionQuery_destroy(LatteQueryObject* queryObj) override {
-	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_destroy: occlusion queries are not yet supported on Metal");
 	}
 
 	void occlusionQuery_flush() override {
-	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_flush: occlusion queries are not yet supported on Metal");
 	}
 
 	void occlusionQuery_updateState() override {
-	    cemuLog_log(LogType::MetalLogging, "Occlusion queries are not yet supported on Metal");
+	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_updateState: occlusion queries are not yet supported on Metal");
 	}
 
+	// Helpers
+	void EnsureCommandBuffer();
+	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate = false, bool rebindStateIfNewEncoder = true);
+    MTL::ComputeCommandEncoder* GetComputeCommandEncoder();
+    MTL::BlitCommandEncoder* GetBlitCommandEncoder();
+    void EndEncoding();
+    void CommitCommandBuffer();
+
+    bool AcquireNextDrawable();
+
+    void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
+    void RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder);
+
+    void ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a);
+
+    // Getters
+    MTL::Buffer* GetTextureReadbackBuffer()
+    {
+        return m_readbackBuffer;
+    }
 
 private:
 	CA::MetalLayer* m_metalLayer;
@@ -213,6 +260,10 @@ private:
 	// Basic
 	MTL::SamplerState* m_nearestSampler;
 
+	// Texture readback
+	MTL::Buffer* m_readbackBuffer;
+	uint32 m_readbackBufferWriteOffset = 0;
+
 	// Active objects
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
@@ -221,19 +272,4 @@ private:
 
 	// State
 	MetalState m_state;
-
-	// Helpers
-	void EnsureCommandBuffer();
-	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate = false, bool rebindStateIfNewEncoder = true);
-    MTL::ComputeCommandEncoder* GetComputeCommandEncoder();
-    MTL::BlitCommandEncoder* GetBlitCommandEncoder();
-    void EndEncoding();
-    void CommitCommandBuffer();
-
-    bool AcquireNextDrawable();
-
-    void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
-    void RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder);
-
-    void ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a);
 };
