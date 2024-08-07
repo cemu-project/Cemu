@@ -182,6 +182,8 @@ struct LatteDecompilerShader
 
 	// analyzer stage (pixel outputs)
 	uint32 pixelColorOutputMask{ 0 }; // from LSB to MSB, 1 bit per written output. 1 if written (indices of color attachments)
+	// analyzer stage (depth write)
+	bool depthWritten{ false };
 	// analyzer stage (geometry shader parameters/inputs)
 	uint32 ringParameterCount{ 0 };
 	uint32 ringParameterCountFromPrevStage{ 0 }; // used in geometry shader to hold VS ringParameterCount

@@ -2441,11 +2441,12 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 				src->add(")");
 			}
 		}
-		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
-		{
-		    // TODO: correct?
-			src->add(", level(0.0)");
-		}
+		// TODO: uncomment?
+		//else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
+		//{
+		//    // TODO: correct?
+		//	src->add(", level(0.0)");
+		//}
 	}
 	// gradient parameters
 	if (texOpcode == GPU7_TEX_INST_SAMPLE_G)
@@ -3215,7 +3216,7 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 				cemu_assert_unimplemented(); // ukn
 			}
 
-			src->add("out.depth = ");
+			src->add("out.passDepth = ");
 			_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
 			src->add(".x");
 			src->add(";" _CRLF);

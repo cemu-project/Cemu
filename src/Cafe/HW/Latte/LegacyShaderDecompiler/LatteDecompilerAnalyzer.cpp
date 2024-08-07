@@ -287,15 +287,15 @@ void LatteDecompiler_analyzeTEXClause(LatteDecompilerShaderContext* shaderContex
 	LatteDecompilerShader* shader = shaderContext->shader;
 	for(auto& texInstruction : cfInstruction->instructionsTEX)
 	{
-		if( texInstruction.opcode == GPU7_TEX_INST_SAMPLE || 
-			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_L || 
-			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_LB || 
-			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_LZ || 
-			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_C || 
+		if( texInstruction.opcode == GPU7_TEX_INST_SAMPLE ||
+			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_L ||
+			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_LB ||
+			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_LZ ||
+			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_C ||
 			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_C_L ||
 			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_C_LZ ||
-			texInstruction.opcode == GPU7_TEX_INST_FETCH4 || 
-			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_G || 
+			texInstruction.opcode == GPU7_TEX_INST_FETCH4 ||
+			texInstruction.opcode == GPU7_TEX_INST_SAMPLE_G ||
 			texInstruction.opcode == GPU7_TEX_INST_LD )
 		{
 			if (texInstruction.textureFetch.textureIndex < 0 || texInstruction.textureFetch.textureIndex >= LATTE_NUM_MAX_TEX_UNITS)
@@ -313,7 +313,7 @@ void LatteDecompiler_analyzeTEXClause(LatteDecompilerShaderContext* shaderContex
 			shader->textureUnitSamplerAssignment[texInstruction.textureFetch.textureIndex] = texInstruction.textureFetch.samplerIndex;
 			if( texInstruction.opcode == GPU7_TEX_INST_SAMPLE_C || texInstruction.opcode == GPU7_TEX_INST_SAMPLE_C_L || texInstruction.opcode == GPU7_TEX_INST_SAMPLE_C_LZ)
 				shader->textureUsesDepthCompare[texInstruction.textureFetch.textureIndex] = true;
-			
+
 			bool useTexelCoords = false;
 			if (texInstruction.opcode == GPU7_TEX_INST_SAMPLE && (texInstruction.textureFetch.unnormalized[0] && texInstruction.textureFetch.unnormalized[1] && texInstruction.textureFetch.unnormalized[2] && texInstruction.textureFetch.unnormalized[3]))
 				useTexelCoords = true;
@@ -393,7 +393,7 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 		}
 		else if( cfInstruction->exportType == 0 && cfInstruction->exportArrayBase == 61 )
 		{
-			// writes pixel depth
+			shader->depthWritten = true;
 		}
 		else
 			debugBreakpoint();
@@ -419,7 +419,7 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 void LatteDecompiler_analyzeSubroutine(LatteDecompilerShaderContext* shaderContext, uint32 cfAddr)
 {
 	// analyze CF and clauses up to RET statement
-	
+
 	// todo - find cfInstruction index from cfAddr
 	cemu_assert_debug(false);
 
@@ -505,9 +505,9 @@ namespace LatteDecompiler
 			decompilerContext->hasUniformVarBlock = true;
 		else if (decompilerContext->shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CFILE)
 			decompilerContext->hasUniformVarBlock = true;
-		
-		bool hasAnyViewportScaleDisabled = 
-			!decompilerContext->contextRegistersNew->PA_CL_VTE_CNTL.get_VPORT_X_SCALE_ENA() || 
+
+		bool hasAnyViewportScaleDisabled =
+			!decompilerContext->contextRegistersNew->PA_CL_VTE_CNTL.get_VPORT_X_SCALE_ENA() ||
 			!decompilerContext->contextRegistersNew->PA_CL_VTE_CNTL.get_VPORT_Y_SCALE_ENA() ||
 			!decompilerContext->contextRegistersNew->PA_CL_VTE_CNTL.get_VPORT_Z_SCALE_ENA();
 		// we currently only support all on/off. Individual component scaling is not supported
@@ -803,7 +803,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 
 	for(sint32 i=0; i<LATTE_NUM_MAX_TEX_UNITS; i++)
 	{
-		if (!shaderContext->output->textureUnitMask[i]) 
+		if (!shaderContext->output->textureUnitMask[i])
 		{
 			// texture unit not used
 			shader->textureUnitDim[i] = (Latte::E_DIM)0xFF;
