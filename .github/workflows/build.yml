@@ -239,7 +239,16 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install llvm@15 ninja nasm molten-vk automake libtool cmake
+        brew install llvm@15 ninja nasm automake libtool cmake python3 ninja
+
+    - name: "Build and install molten-vk"
+      run: |
+        git clone https://github.com/KhronosGroup/MoltenVK.git
+        cd MoltenVK
+        git checkout bf097edc74ec3b6dfafdcd5a38d3ce14b11952d6
+        ./fetchDependencies --macos
+        make macos
+        make install
 
     - name: "Bootstrap vcpkg"
       run: |
@@ -329,7 +338,16 @@ jobs:
       - name: "Install system dependencies"
         run: |
           brew update
-          brew install ninja nasm molten-vk automake libtool cmake
+          brew install ninja automake libtool cmake ninja python3
+
+      - name: "Build and install molten-vk"
+        run: |
+          git clone https://github.com/KhronosGroup/MoltenVK.git
+          cd MoltenVK
+          git checkout bf097edc74ec3b6dfafdcd5a38d3ce14b11952d6
+          ./fetchDependencies --macos
+          make macos
+          make install
 
       - name: "Bootstrap vcpkg"
         run: |
