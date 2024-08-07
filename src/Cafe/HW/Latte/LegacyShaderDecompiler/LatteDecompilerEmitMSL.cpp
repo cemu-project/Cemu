@@ -3215,7 +3215,7 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 				cemu_assert_unimplemented(); // ukn
 			}
 
-			src->add("gl_FragDepth = ");
+			src->add("out.depth = ");
 			_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
 			src->add(".x");
 			src->add(";" _CRLF);

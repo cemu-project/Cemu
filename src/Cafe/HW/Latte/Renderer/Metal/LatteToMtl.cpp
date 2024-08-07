@@ -452,3 +452,20 @@ MTL::TextureSwizzle GetMtlTextureSwizzle(uint32 swizzle)
     cemu_assert_debug(swizzle < std::size(MTL_TEXTURE_SWIZZLES));
     return MTL_TEXTURE_SWIZZLES[swizzle];
 }
+
+const MTL::StencilOperation MTL_STENCIL_OPERATIONS[8] = {
+	MTL::StencilOperationKeep,
+	MTL::StencilOperationZero,
+	MTL::StencilOperationReplace,
+	MTL::StencilOperationIncrementClamp,
+	MTL::StencilOperationDecrementClamp,
+	MTL::StencilOperationInvert,
+	MTL::StencilOperationIncrementWrap,
+	MTL::StencilOperationDecrementWrap
+};
+
+MTL::StencilOperation GetMtlStencilOp(Latte::LATTE_DB_DEPTH_CONTROL::E_STENCILACTION action)
+{
+    cemu_assert_debug((uint32)action < std::size(MTL_STENCIL_OPERATIONS));
+    return MTL_STENCIL_OPERATIONS[(uint32)action];
+}

@@ -28,6 +28,15 @@ void CachedFBOMtl::CreateRenderPass()
 		depthAttachment->setTexture(textureView->GetRGBAView());
 		depthAttachment->setLoadAction(MTL::LoadActionLoad);
 		depthAttachment->setStoreAction(MTL::StoreActionStore);
+
+		// setup stencil attachment
+		if (depthBuffer.hasStencil)
+		{
+		    auto stencilAttachment = m_renderPassDescriptor->stencilAttachment();
+            stencilAttachment->setTexture(textureView->GetRGBAView());
+            stencilAttachment->setLoadAction(MTL::LoadActionLoad);
+            stencilAttachment->setStoreAction(MTL::StoreActionStore);
+		}
 	}
 }
 

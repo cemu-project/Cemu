@@ -37,8 +37,6 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
     }
 	desc->setDepthCompareFunction(depthCompareFunc);
 
-	// TODO: stencil state
-	/*
 	// get stencil control parameters
 	bool stencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
 	bool backStencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
@@ -58,48 +56,47 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
 	uint32 stencilWriteMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
 	uint32 stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
 
-	static const VkStencilOp stencilOpTable[8] = {
-		VK_STENCIL_OP_KEEP,
-		VK_STENCIL_OP_ZERO,
-		VK_STENCIL_OP_REPLACE,
-		VK_STENCIL_OP_INCREMENT_AND_CLAMP,
-		VK_STENCIL_OP_DECREMENT_AND_CLAMP,
-		VK_STENCIL_OP_INVERT,
-		VK_STENCIL_OP_INCREMENT_AND_WRAP,
-		VK_STENCIL_OP_DECREMENT_AND_WRAP
-	};
-
-	depthStencilState.stencilTestEnable = stencilEnable ? VK_TRUE : VK_FALSE;
-
-	depthStencilState.front.reference = stencilRefFront;
-	depthStencilState.front.compareMask = stencilCompareMaskFront;
-	depthStencilState.front.writeMask = stencilWriteMaskBack;
-	depthStencilState.front.compareOp = vkDepthCompareTable[(size_t)frontStencilFunc];
-	depthStencilState.front.depthFailOp = stencilOpTable[(size_t)frontStencilZFail];
-	depthStencilState.front.failOp = stencilOpTable[(size_t)frontStencilFail];
-	depthStencilState.front.passOp = stencilOpTable[(size_t)frontStencilZPass];
-
-	if (backStencilEnable)
+	if (stencilEnable)
 	{
-		depthStencilState.back.reference = stencilRefBack;
-		depthStencilState.back.compareMask = stencilCompareMaskBack;
-		depthStencilState.back.writeMask = stencilWriteMaskBack;
-		depthStencilState.back.compareOp = vkDepthCompareTable[(size_t)backStencilFunc];
-		depthStencilState.back.depthFailOp = stencilOpTable[(size_t)backStencilZFail];
-		depthStencilState.back.failOp = stencilOpTable[(size_t)backStencilFail];
-		depthStencilState.back.passOp = stencilOpTable[(size_t)backStencilZPass];
+    	MTL::StencilDescriptor* frontStencil = MTL::StencilDescriptor::alloc()->init();
+    	// TODO: set reference
+    	//depthStencilState.front.reference = stencilRefFront;
+    	frontStencil->setReadMask(stencilCompareMaskFront);
+    	frontStencil->setWriteMask(stencilWriteMaskFront);
+    	frontStencil->setStencilCompareFunction(GetMtlCompareFunc(frontStencilFunc));
+    	frontStencil->setDepthFailureOperation(GetMtlStencilOp(frontStencilZFail));
+    	frontStencil->setStencilFailureOperation(GetMtlStencilOp(frontStencilFail));
+    	frontStencil->setDepthStencilPassOperation(GetMtlStencilOp(frontStencilZPass));
+    	desc->setFrontFaceStencil(frontStencil);
+
+    	MTL::StencilDescriptor* backStencil = MTL::StencilDescriptor::alloc()->init();
+    	if (backStencilEnable)
+    	{
+           	// TODO: set reference
+           	//depthStencilState.back.reference = stencilRefBack;
+           	backStencil->setReadMask(stencilCompareMaskBack);
+           	backStencil->setWriteMask(stencilWriteMaskBack);
+           	backStencil->setStencilCompareFunction(GetMtlCompareFunc(backStencilFunc));
+           	backStencil->setDepthFailureOperation(GetMtlStencilOp(backStencilZFail));
+           	backStencil->setStencilFailureOperation(GetMtlStencilOp(backStencilFail));
+           	backStencil->setDepthStencilPassOperation(GetMtlStencilOp(backStencilZPass));
+    	}
+    	else
+    	{
+    	    // TODO: set reference
+           	//depthStencilState.back.reference = stencilRefFront;
+           	backStencil->setReadMask(stencilCompareMaskFront);
+           	backStencil->setWriteMask(stencilWriteMaskFront);
+           	backStencil->setStencilCompareFunction(GetMtlCompareFunc(frontStencilFunc));
+           	backStencil->setDepthFailureOperation(GetMtlStencilOp(frontStencilZFail));
+           	backStencil->setStencilFailureOperation(GetMtlStencilOp(frontStencilFail));
+           	backStencil->setDepthStencilPassOperation(GetMtlStencilOp(frontStencilZPass));
+    	}
+    	desc->setBackFaceStencil(backStencil);
+
+        frontStencil->release();
+        backStencil->release();
 	}
-	else
-	{
-		depthStencilState.back.reference = stencilRefFront;
-		depthStencilState.back.compareMask = stencilCompareMaskFront;
-		depthStencilState.back.writeMask = stencilWriteMaskFront;
-		depthStencilState.back.compareOp = vkDepthCompareTable[(size_t)frontStencilFunc];
-		depthStencilState.back.depthFailOp = stencilOpTable[(size_t)frontStencilZFail];
-		depthStencilState.back.failOp = stencilOpTable[(size_t)frontStencilFail];
-		depthStencilState.back.passOp = stencilOpTable[(size_t)frontStencilZPass];
-	}
-	*/
 
 	depthStencilState = m_mtlr->GetDevice()->newDepthStencilState(desc);
 	desc->release();

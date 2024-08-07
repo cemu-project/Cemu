@@ -49,6 +49,7 @@ enum class MetalEncoderType
     Blit,
 };
 
+// HACK: Dummy occlusion query object for Metal
 class LatteQueryObjectMtl : public LatteQueryObject
 {
 public:

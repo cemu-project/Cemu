@@ -53,3 +53,5 @@ MTL::CompareFunction GetMtlCompareFunc(Latte::E_COMPAREFUNC func);
 MTL::SamplerAddressMode GetMtlSamplerAddressMode(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_CLAMP clamp);
 
 MTL::TextureSwizzle GetMtlTextureSwizzle(uint32 swizzle);
+
+MTL::StencilOperation GetMtlStencilOp(Latte::LATTE_DB_DEPTH_CONTROL::E_STENCILACTION action);
