@@ -91,7 +91,6 @@ void MMURange::mapMem()
 	if (MemMapper::AllocateMemory(memory_base + baseAddress, size, MemMapper::PAGE_PERMISSION::P_RW, true) == nullptr)
 	{
 		std::string errorMsg = fmt::format("Unable to allocate {} memory", name);
-		cemuLog_log(LogType::Force, "Unable to allocate {} memory; error {}", name, errno);
 		wxMessageBox(errorMsg.c_str(), "Error", wxOK | wxCENTRE | wxICON_ERROR);
 		#if BOOST_OS_WINDOWS
 		ExitProcess(-1);
@@ -123,12 +122,7 @@ MMURange mmuRange_SHARED_AREA			{ 0xF8000000, 0x02000000, MMU_MEM_AREA_ID::SHARE
 MMURange mmuRange_CORE0_LC				{ 0xFFC00000, 0x00005000, MMU_MEM_AREA_ID::CPU_LC0, "CORE0_LC" }; // locked L2 cache of core 0
 MMURange mmuRange_CORE1_LC				{ 0xFFC40000, 0x00005000, MMU_MEM_AREA_ID::CPU_LC1, "CORE1_LC" }; // locked L2 cache of core 1
 MMURange mmuRange_CORE2_LC				{ 0xFFC80000, 0x00005000, MMU_MEM_AREA_ID::CPU_LC2, "CORE2_LC" }; // locked L2 cache of core 2
-#if !defined(__arm64__) || !defined(__APPLE__)
 MMURange mmuRange_HIGHMEM				{ 0xFFFFF000, 0x00001000, MMU_MEM_AREA_ID::CPU_PER_CORE, "PER-CORE" }; // per-core memory? Used by coreinit and PPC kernel to store core context specific data (like current thread ptr). We dont use it but Project Zero has a bug where it writes a byte at 0xfffffffe thus this memory range needs to be writable
-#else
-// Apple Silicon uses a 16kb pagesize, it can't allocate higher than this
-MMURange mmuRange_HIGHMEM				{ 0xFFFFC000, 0x00004000, MMU_MEM_AREA_ID::CPU_PER_CORE, "PER-CORE" };
-#endif
 
 void memory_init()
 {
