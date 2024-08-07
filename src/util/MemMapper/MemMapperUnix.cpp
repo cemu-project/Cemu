@@ -42,6 +42,12 @@ namespace MemMapper
 
 	void* AllocateMemory(void* baseAddr, size_t size, PAGE_PERMISSION permissionFlags, bool fromReservation)
 	{
+		uint64 page_size = sysconf(_SC_PAGESIZE);
+		if ((uint64) baseAddr % page_size != 0)
+		{
+			baseAddr = (void*) ((uint64)baseAddr & ~(page_size - 1));
+		}
+
 		void* r;
 		if(fromReservation)
 		{
