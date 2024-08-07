@@ -15,14 +15,22 @@ struct Uvec2 {
     uint32 y;
 };
 
-struct MtlPixelFormatInfo {
+enum class MetalDataType
+{
+    NONE,
+    INT,
+    UINT,
+    FLOAT,
+};
+
+struct MetalPixelFormatInfo {
     MTL::PixelFormat pixelFormat;
-    bool blendable;
+    MetalDataType dataType;
     size_t bytesPerBlock;
     Uvec2 blockTexelSize = {1, 1};
 };
 
-const MtlPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth);
+const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth);
 
 size_t GetMtlTextureBytesPerRow(Latte::E_GX2SURFFMT format, bool isDepth, uint32 width);
 

@@ -16,7 +16,7 @@ MetalBufferAllocator::~MetalBufferAllocator()
 MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, size_t alignment)
 {
     // Align the size
-    size = align(size, alignment);
+    size = Align(size, alignment);
 
     // First, try to find a free range
     for (uint32 i = 0; i < m_freeBufferRanges.size(); i++)
@@ -94,7 +94,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
     if (restrideInfo.memoryInvalidated || stride != restrideInfo.lastStride)
     {
         // TODO: use compute/void vertex function instead
-        size_t newStride = align(stride, 4);
+        size_t newStride = Align(stride, 4);
         size_t newSize = vertexBufferRange->size / stride * newStride;
         restrideInfo.buffer = m_mtlr->GetDevice()->newBuffer(newSize, MTL::StorageModeShared);
 

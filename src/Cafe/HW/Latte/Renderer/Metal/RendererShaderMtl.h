@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/RendererShader.h"
+#include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "util/helpers/ConcurrentQueue.h"
 
@@ -23,6 +24,8 @@ public:
 
 	RendererShaderMtl(class MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode);
 	virtual ~RendererShaderMtl();
+
+	void CompileFragmentFunction(CachedFBOMtl* activeFBO);
 
 	MTL::Function* GetFunction() const
 	{
@@ -51,5 +54,11 @@ public:
 	bool WaitForCompiled() override { return true; }
 
 private:
+    class MetalRenderer* m_mtlr;
+
 	MTL::Function* m_function = nullptr;
+
+	std::string m_mslCode;
+
+	void Compile(const std::string& mslCode);
 };

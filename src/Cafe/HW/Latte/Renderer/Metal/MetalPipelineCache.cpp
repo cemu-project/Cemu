@@ -61,7 +61,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-		bufferStride = align(bufferStride, 4);
+		bufferStride = Align(bufferStride, 4);
 
 		// HACK
 		if (bufferStride == 0)
@@ -83,11 +83,15 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		}
 	}
 
+	auto mtlVertexShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
+	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
+	mtlPixelShader->CompileFragmentFunction(activeFBO);
+
 	// Render pipeline state
 	MTL::RenderPipelineDescriptor* desc = MTL::RenderPipelineDescriptor::alloc()->init();
-	desc->setVertexFunction(static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction());
-	desc->setFragmentFunction(static_cast<RendererShaderMtl*>(pixelShader->shader)->GetFunction());
-	// TODO: don't always set the vertex descriptor
+	desc->setVertexFunction(mtlVertexShader->GetFunction());
+	desc->setFragmentFunction(mtlPixelShader->GetFunction());
+	// TODO: don't always set the vertex descriptor?
 	desc->setVertexDescriptor(vertexDescriptor);
 	for (uint8 i = 0; i < 8; i++)
 	{
@@ -106,7 +110,8 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
 
 		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
-		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).blendable)
+		// Only float data type is blendable
+		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).dataType == MetalDataType::FLOAT)
 		{
     		colorAttachment->setBlendingEnabled(true);
 

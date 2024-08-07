@@ -10,6 +10,7 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/StringBuf.h"
 
@@ -2335,14 +2336,14 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			if (texDim == Latte::E_DIM::DIM_2D_ARRAY)
 			{
 				// 3 coords + compare value
-				src->add("float3(");
+				src->add("float2(");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 				src->add(", ");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
-				src->add(", ");
+				src->add("), ");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_FLOAT);
 
-				src->addFmt("), {}", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[3], -1, -1, -1, tempBuffer0));
+				src->addFmt(", {}", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[3], -1, -1, -1, tempBuffer0));
 			}
 			else if (texDim == Latte::E_DIM::DIM_CUBEMAP)
 			{
@@ -3181,9 +3182,11 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 					src->add(") == false) discard_fragment();" _CRLF);
 				}
 				// pixel color output
-				src->addFmt("out.passPixelColor{} = ", pixelColorOutputIndex);
+				src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(pixelColorOutputIndex));
+				src->addFmt("out.passPixelColor{} = as_type<{}>(", pixelColorOutputIndex, GetColorAttachmentTypeStr(pixelColorOutputIndex));
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
-				src->add(";" _CRLF);
+				src->add(");" _CRLF);
+				src->add("#endif" _CRLF);
 
 				if( cfInstruction->exportArrayBase+i >= 8 )
 					cemu_assert_unimplemented();

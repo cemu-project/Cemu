@@ -222,6 +222,8 @@ namespace LatteDecompiler
 	{
 		auto* src = shaderContext->shaderSource;
 
+		src->add("#define GET_FRAGCOORD() vec4(in.position.xy * supportBuffer.fragCoordScale.xy, in.position.z, 1.0 / in.position.w)" _CRLF);
+
 		src->add("struct FragmentIn {" _CRLF);
 
 		LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
@@ -263,7 +265,9 @@ namespace LatteDecompiler
             {
                	if ((decompilerContext->shader->pixelColorOutputMask & (1 << i)) != 0)
                	{
-              		src->addFmt("float4 passPixelColor{} [[color({})]];" _CRLF, i, i);
+                    src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(i));
+              		src->addFmt("{} passPixelColor{} [[color({})]];" _CRLF, GetColorAttachmentTypeStr(i), i, i);
+                    src->add("#endif" _CRLF);
                	}
             }
 
