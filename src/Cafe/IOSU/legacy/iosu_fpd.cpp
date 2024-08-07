@@ -736,7 +736,7 @@ namespace iosu
 					g_fpd.nexFriendSession->getMyComment(myNexComment);
 					myComment = StringHelpers::FromUtf8(myNexComment.commentString);
 				}
-				myComment.insert(0, 1, '\0'); // avoid first character of comment from being cut off
+				myComment.insert(0, 1, '\0');
 				memcpy(vecOut->basePhys.GetPtr(), myComment.c_str(), MY_COMMENT_LENGTH * sizeof(uint16be));
 				return FPResult_Ok;
 			}
