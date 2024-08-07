@@ -106,7 +106,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
 
 		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
-		if (blendEnabled)
+		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).blendable)
 		{
     		colorAttachment->setBlendingEnabled(true);
 

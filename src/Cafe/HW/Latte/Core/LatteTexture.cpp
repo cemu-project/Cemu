@@ -352,7 +352,6 @@ void LatteTexture_CopySlice(LatteTexture* srcTexture, sint32 srcSlice, sint32 sr
 	if (srcTexture->isDepth != dstTexture->isDepth)
 	{
 		g_renderer->surfaceCopy_copySurfaceWithFormatConversion(srcTexture, srcMip, srcSlice, dstTexture, dstMip, dstSlice, width, height);
-		throw std::runtime_error("1");
 		return;
 	}
 	// rescale copy size
@@ -385,7 +384,6 @@ void LatteTexture_CopySlice(LatteTexture* srcTexture, sint32 srcSlice, sint32 sr
 			cemuLog_log(LogType::Force, "Source:      {:08x} origResolution {:4}/{:4} effectiveResolution {:4}/{:4} fmt {:04x} mipIndex {} ratioW/H: {:.4}/{:.4}", srcTexture->physAddress, srcTexture->width, srcTexture->height, effectiveWidth_src, effectiveHeight_src, (uint32)srcTexture->format, srcMip, ratioWidth_src, ratioHeight_src);
 			cemuLog_log(LogType::Force, "Destination: {:08x} origResolution {:4}/{:4} effectiveResolution {:4}/{:4} fmt {:04x} mipIndex {} ratioW/H: {:.4}/{:.4}", dstTexture->physAddress, dstTexture->width, dstTexture->height, effectiveWidth_dst, effectiveHeight_dst, (uint32)dstTexture->format, dstMip, ratioWidth_dst, ratioHeight_dst);
 		}
-		throw std::runtime_error("2");
 		//cemuLog_logDebug(LogType::Force, "If these textures are not meant to share data you can ignore this");
 		return;
 	}

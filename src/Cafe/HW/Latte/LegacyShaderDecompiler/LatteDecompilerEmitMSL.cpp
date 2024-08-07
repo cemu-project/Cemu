@@ -2389,7 +2389,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		else if(texDim == Latte::E_DIM::DIM_3D)
 		{
 			// 3 coords
-			src->add("float2(");
+			src->add("float3(");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 			src->add(", ");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
@@ -2434,7 +2434,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			}
 			else
 			{
-			    // TODO: is this correct
+			    // TODO: is this correct?
 				src->add("level(");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
 				src->add(")");

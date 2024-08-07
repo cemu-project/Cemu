@@ -17,6 +17,7 @@ struct Uvec2 {
 
 struct MtlPixelFormatInfo {
     MTL::PixelFormat pixelFormat;
+    bool blendable;
     size_t bytesPerBlock;
     Uvec2 blockTexelSize = {1, 1};
 };
