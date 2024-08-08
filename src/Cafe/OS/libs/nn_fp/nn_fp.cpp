@@ -464,11 +464,27 @@ namespace nn
 			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
+		nnResult GetMyPlayingGame(iosu::fpd::GameKey* myPlayingGame)
+		{
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyPlayingGame);
+			ipcCtx->AddOutput(myPlayingGame, sizeof(iosu::fpd::GameKey));
+			return ipcCtx->Submit(std::move(ipcCtx));
+		}
+
 		nnResult GetMyPreference(iosu::fpd::FPDPreference* myPreference)
 		{
 			FP_API_BASE();
 			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyPreference);
 			ipcCtx->AddOutput(myPreference, sizeof(iosu::fpd::FPDPreference));
+			return ipcCtx->Submit(std::move(ipcCtx));
+		}
+
+		nnResult GetMyComment(uint16be* myComment)
+		{
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyComment);
+			ipcCtx->AddOutput(myComment, iosu::fpd::MY_COMMENT_LENGTH * sizeof(uint16be));
 			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
@@ -605,6 +621,20 @@ namespace nn
 			ipcCtx->AddOutput(&resultBuf, sizeof(uint32be));
 			ipcCtx->Submit(std::move(ipcCtx));
 			return resultBuf != 0 ? 1 : 0;
+		}
+
+		nnResult UpdateCommentAsync(uint16be* newComment, void* funcPtr, void* customParam)
+		{
+			FP_API_BASE();
+			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::UpdateCommentAsync);
+			uint32 commentLen = CafeStringHelpers::Length(newComment, iosu::fpd::MY_COMMENT_LENGTH-1);
+			if (commentLen >= iosu::fpd::MY_COMMENT_LENGTH-1)
+			{
+				cemuLog_log(LogType::Force, "UpdateCommentAsync: message too long");
+				return FPResult_InvalidIPCParam;
+			}
+			ipcCtx->AddInput(newComment, sizeof(uint16be) * commentLen + 2);    
+			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
 		nnResult UpdatePreferenceAsync(iosu::fpd::FPDPreference* newPreference, void* funcPtr, void* customParam)
@@ -763,7 +793,9 @@ namespace nn
 			cafeExportRegisterFunc(GetMyAccountId, "nn_fp", "GetMyAccountId__Q2_2nn2fpFPc", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyScreenName, "nn_fp", "GetMyScreenName__Q2_2nn2fpFPw", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyMii, "nn_fp", "GetMyMii__Q2_2nn2fpFP12FFLStoreData", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyPlayingGame, "nn_fp", "GetMyPlayingGame__Q2_2nn2fpFPQ3_2nn2fp7GameKey", LogType::NN_FP);
 			cafeExportRegisterFunc(GetMyPreference, "nn_fp", "GetMyPreference__Q2_2nn2fpFPQ3_2nn2fp10Preference", LogType::NN_FP);
+			cafeExportRegisterFunc(GetMyComment, "nn_fp", "GetMyComment__Q2_2nn2fpFPQ3_2nn2fp7Comment", LogType::NN_FP);
 
 			cafeExportRegisterFunc(GetFriendAccountId, "nn_fp", "GetFriendAccountId__Q2_2nn2fpFPA17_cPCUiUi", LogType::NN_FP);
 			cafeExportRegisterFunc(GetFriendScreenName, "nn_fp", "GetFriendScreenName__Q2_2nn2fpFPA11_wPCUiUibPUc", LogType::NN_FP);
@@ -774,6 +806,7 @@ namespace nn
 
 			cafeExportRegisterFunc(CheckSettingStatusAsync, "nn_fp", "CheckSettingStatusAsync__Q2_2nn2fpFPUcPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 			cafeExportRegisterFunc(IsPreferenceValid, "nn_fp", "IsPreferenceValid__Q2_2nn2fpFv", LogType::NN_FP);
+			cafeExportRegisterFunc(UpdateCommentAsync, "nn_fp", "UpdateCommentAsync__Q2_2nn2fpFPCwPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 			cafeExportRegisterFunc(UpdatePreferenceAsync, "nn_fp", "UpdatePreferenceAsync__Q2_2nn2fpFPCQ3_2nn2fp10PreferencePFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 			cafeExportRegisterFunc(GetRequestBlockSettingAsync, "nn_fp", "GetRequestBlockSettingAsync__Q2_2nn2fpFPUcPCUiUiPFQ2_2nn6ResultPv_vPv", LogType::NN_FP);
 
