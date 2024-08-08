@@ -348,6 +348,7 @@ jobs:
           ./fetchDependencies --macos
           make macos
           sudo make install
+          cp /usr/local/lib/libMoltenVK.dylib /opt/homebrew/lib
 
       - name: "Bootstrap vcpkg"
         run: |
