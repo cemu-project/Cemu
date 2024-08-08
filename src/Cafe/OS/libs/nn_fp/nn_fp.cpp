@@ -480,11 +480,11 @@ namespace nn
 			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
-		nnResult GetMyComment(iosu::fpd::FPDPreference* myPreference)
+		nnResult GetMyComment(uint16be* myComment)
 		{
 			FP_API_BASE();
 			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::GetMyComment);
-			ipcCtx->AddOutput(myPreference, sizeof(uint16be)*0x12);
+			ipcCtx->AddOutput(myComment, iosu::fpd::MY_COMMENT_LENGTH * sizeof(uint16be));
 			return ipcCtx->Submit(std::move(ipcCtx));
 		}
 
@@ -627,8 +627,8 @@ namespace nn
 		{
 			FP_API_BASE();
 			auto ipcCtx = std::make_unique<FPIpcContext>(iosu::fpd::FPD_REQUEST_ID::UpdateCommentAsync);
-			uint32 commentLen = CafeStringHelpers::Length(newComment, 17);
-			if (commentLen >= 17)
+			uint32 commentLen = CafeStringHelpers::Length(newComment, iosu::fpd::MY_COMMENT_LENGTH-1);
+			if (commentLen >= iosu::fpd::MY_COMMENT_LENGTH-1)
 			{
 				cemuLog_log(LogType::Force, "UpdateCommentAsync: message too long");
 				return FPResult_InvalidIPCParam;

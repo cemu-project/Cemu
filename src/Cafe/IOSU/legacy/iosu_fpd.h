@@ -212,6 +212,7 @@ namespace iosu
 		static const int RELATIONSHIP_FRIEND = 3;
 
 		static const int GAMEMODE_MAX_MESSAGE_LENGTH = 0x80; // limit includes null-terminator character, so only 0x7F actual characters can be used
+		static const int MY_COMMENT_LENGTH = 0x12;
 
 		enum class FPD_REQUEST_ID
 		{

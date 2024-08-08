@@ -723,7 +723,6 @@ namespace iosu
 			{
 				if(numVecIn != 0 || numVecOut != 1)
 					return FPResult_InvalidIPCParam;
-				static constexpr uint32 MY_COMMENT_LENGTH = 0x12;
 				std::basic_string<uint16be> myComment;
 				if(g_fpd.nexFriendSession)
 				{
