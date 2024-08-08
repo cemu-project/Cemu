@@ -43,7 +43,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 
 			auto attribute = vertexDescriptor->attributes()->object(semanticId);
 			attribute->setOffset(attr.offset);
-			// Bind from the end to not conflict with uniform buffers
 			attribute->setBufferIndex(GET_MTL_VERTEX_BUFFER_INDEX(attr.attributeBufferIndex));
 			attribute->setFormat(GetMtlVertexFormat(attr.format));
 

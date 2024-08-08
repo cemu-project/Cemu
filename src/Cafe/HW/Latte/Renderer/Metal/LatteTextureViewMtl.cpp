@@ -39,11 +39,12 @@ MTL::Texture* LatteTextureViewMtl::GetSwizzledView(uint32 gpuSamplerSwizzle)
     sint32 freeIndex = -1;
     for (sint32 i = 0; i < std::size(m_viewCache); i++)
     {
-        if (m_viewCache[i].key == gpuSamplerSwizzle)
+        const auto& entry = m_viewCache[i];
+        if (entry.key == gpuSamplerSwizzle)
         {
-            return m_viewCache[i].texture;
+            return entry.texture;
         }
-        else if (m_viewCache[i].key == INVALID_SWIZZLE && freeIndex == -1)
+        else if (entry.key == INVALID_SWIZZLE && freeIndex == -1)
         {
             freeIndex = i;
         }

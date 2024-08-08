@@ -30,12 +30,10 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
 	MTL::DepthStencilDescriptor* desc = MTL::DepthStencilDescriptor::alloc()->init();
 	desc->setDepthWriteEnabled(depthWriteEnable);
 
-	auto depthCompareFunc = GetMtlCompareFunc(depthFunc);
-	if (!depthEnable)
+	if (depthEnable)
 	{
-	    depthCompareFunc = MTL::CompareFunctionAlways;
+	    desc->setDepthCompareFunction(GetMtlCompareFunc(depthFunc));
     }
-	desc->setDepthCompareFunction(depthCompareFunc);
 
 	// Stencil state
 	bool stencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();

@@ -224,6 +224,7 @@ namespace LatteDecompiler
 		src->add("#define GET_FRAGCOORD() vec4(in.position.xy * supportBuffer.fragCoordScale.xy, in.position.z, 1.0 / in.position.w)" _CRLF);
 
 		src->add("struct FragmentIn {" _CRLF);
+		src->add("float4 position [[position]];" _CRLF);
 
 		LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
 		for (sint32 i = 0; i < psInputTable->count; i++)
@@ -271,7 +272,7 @@ namespace LatteDecompiler
             // generate depth output for pixel shader
             if (decompilerContext->shader->depthWritten)
             {
-                src->add("float passDepth [[depth]];" _CRLF);
+                src->add("float passDepth [[depth(any)]];" _CRLF);
             }
 
             src->add("};" _CRLF _CRLF);
@@ -323,26 +324,31 @@ namespace LatteDecompiler
 
 			src->add(", ");
 
+			if (shaderContext->shader->textureUsesDepthCompare[i])
+			    src->add("depth");
+			else
+                src->add("texture");
+
 			if (shaderContext->shader->textureIsIntegerFormat[i])
 			{
 				// integer samplers
 				if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_1D)
-					src->add("texture1d<uint>");
+					src->add("1d<uint>");
 				else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D || shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_MSAA)
-					src->add("texture2d<uint>");
+					src->add("2d<uint>");
 				else
 					cemu_assert_unimplemented();
 			}
 			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D || shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_MSAA)
-				src->add("texture2d<float>");
+				src->add("2d<float>");
 			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_1D)
-				src->add("texture1d<float>");
+				src->add("1d<float>");
 			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_ARRAY)
-				src->add("texture2d_array<float>");
+				src->add("2d_array<float>");
 			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_CUBEMAP)
-				src->add("texturecube_array<float>");
+				src->add("cube_array<float>");
 			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_3D)
-				src->add("texture3d<float>");
+				src->add("3d<float>");
 			else
 			{
 				cemu_assert_unimplemented();

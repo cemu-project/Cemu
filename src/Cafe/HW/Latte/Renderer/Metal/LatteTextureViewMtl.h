@@ -29,7 +29,7 @@ private:
 	struct {
 	    uint32 key;
 	    MTL::Texture* texture;
-	} m_viewCache[4] = {{INVALID_SWIZZLE, nullptr}};
+	} m_viewCache[4] = {{INVALID_SWIZZLE, nullptr}, {INVALID_SWIZZLE, nullptr}, {INVALID_SWIZZLE, nullptr}, {INVALID_SWIZZLE, nullptr}};
 	std::unordered_map<uint32, MTL::Texture*> m_fallbackViewCache;
 
     MTL::Texture* CreateSwizzledView(uint32 gpuSamplerSwizzle);

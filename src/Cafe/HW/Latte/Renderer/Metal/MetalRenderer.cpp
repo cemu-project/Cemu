@@ -19,6 +19,7 @@
 #include "Metal/MTLResource.hpp"
 #include "Metal/MTLTypes.hpp"
 #include "gui/guiWrapper.h"
+#include <stdexcept>
 
 extern bool hasValidFramebufferAttached;
 
@@ -596,8 +597,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         debug_printf("no vertex function, skipping draw\n");
 	    return;
 	}
-
-	auto fetchShader = vertexShader->compatibleFetchShader;
+	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Render pipeline state
 	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.activeFBO, LatteGPUState.contextNew);

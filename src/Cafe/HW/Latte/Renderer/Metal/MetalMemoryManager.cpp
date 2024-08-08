@@ -105,6 +105,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
     	{
     		memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
     	}
+        debug_printf("Restrided vertex buffer (old stride: %zu, new stride: %zu, old size: %zu, new size: %zu)\n", stride, newStride, vertexBufferRange->size, newSize);
 
         restrideInfo.memoryInvalidated = false;
         restrideInfo.lastStride = newStride;
