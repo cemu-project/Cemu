@@ -9,10 +9,12 @@
 [submodule "dependencies/vcpkg"]
 	path = dependencies/vcpkg
 	url = https://github.com/microsoft/vcpkg
-	shallow = true
+	shallow = false
 [submodule "dependencies/Vulkan-Headers"]
 	path = dependencies/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers
+	shallow = true
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui
+	shallow = true
