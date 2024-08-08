@@ -347,7 +347,8 @@ jobs:
           git checkout bf097edc74ec3b6dfafdcd5a38d3ce14b11952d6
           ./fetchDependencies --macos
           make macos
-          make install
+          sudo make install
+          cp /usr/local/lib/libMoltenVK.dylib /opt/homebrew/lib/
 
       - name: "Bootstrap vcpkg"
         run: |
