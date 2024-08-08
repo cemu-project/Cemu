@@ -73,11 +73,11 @@ public:
 		return true;
 	}
 
-	
+
 	template<typename T>
 	struct direct_hash
 	{
-		size_t operator()(const uint64& k) const noexcept 
+		size_t operator()(const uint64& k) const noexcept
 		{
 			return k;
 		}
@@ -277,7 +277,6 @@ public:
 	// texture functions
 	void* texture_acquireTextureUploadBuffer(uint32 size) override;
 	void texture_releaseTextureUploadBuffer(uint8* mem) override;
-	
 
 	TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) override;
 
@@ -370,7 +369,7 @@ private:
 		VkRect2D currentScissorRect{};
 
 		// vertex bindings
-		struct  
+		struct
 		{
 			uint32 offset;
 		}currentVertexBinding[LATTE_MAX_VERTEX_BUFFERS]{};
@@ -457,17 +456,17 @@ private:
 			bool shaderRoundingModeRTEFloat32{ false };
 		}shaderFloatControls; // from VK_KHR_shader_float_controls
 
-		struct  
+		struct
 		{
 			bool debug_utils = false; // VK_EXT_DEBUG_UTILS
 		}instanceExtensions;
 
-		struct  
+		struct
 		{
 			bool useTFEmulationViaSSBO = true; // emulate transform feedback via shader writes to a storage buffer
 		}mode;
 
-		struct  
+		struct
 		{
 			uint32 minUniformBufferOffsetAlignment = 256;
 			uint32 nonCoherentAtomSize = 256;
@@ -497,7 +496,7 @@ private:
 	void CreateCommandBuffers();
 
 	void swapchain_createDescriptorSetLayout();
-	
+
 	// shader
 
 	bool IsAsyncPipelineAllowed(uint32 numIndices);
@@ -511,6 +510,8 @@ private:
 	void DeleteTexture(ImTextureID id) override;
 	void DeleteFontTextures() override;
 	bool BeginFrame(bool mainWindow) override;
+
+	bool UseTFViaSSBO() const override { return m_featureControl.mode.useTFEmulationViaSSBO; }
 
 	// drawcall emulation
 	PipelineInfo* draw_createGraphicsPipeline(uint32 indexCount);
@@ -574,7 +575,7 @@ private:
 	VkDevice  m_logicalDevice = VK_NULL_HANDLE;
 	VkDebugUtilsMessengerEXT m_debugCallback = nullptr;
 	volatile bool m_destructionRequested = false;
-	
+
 	QueueFamilyIndices m_indices{};
 
 	Semaphore m_pipeline_cache_semaphore;
@@ -583,7 +584,7 @@ private:
 	VkPipelineCache m_pipeline_cache{ nullptr };
 	VkPipelineLayout m_pipelineLayout{nullptr};
 	VkCommandPool m_commandPool{ nullptr };
-	
+
 	// buffer to cache uniform vars
 	VkBuffer m_uniformVarBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_uniformVarBufferMemory = VK_NULL_HANDLE;
@@ -652,19 +653,19 @@ private:
 	bool m_submitOnIdle{}; // submit current buffer if Latte command processor goes into idle state (no more commands or waiting for externally signaled condition)
 
 	// tracking for dynamic offsets
-	struct  
+	struct
 	{
 		uint32 uniformVarBufferOffset[VulkanRendererConst::SHADER_STAGE_INDEX_COUNT];
-		struct  
+		struct
 		{
 			uint32 unformBufferOffset[LATTE_NUM_MAX_UNIFORM_BUFFERS];
 		}shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_COUNT];
 	}dynamicOffsetInfo{};
 
 	// streamout
-	struct  
+	struct
 	{
-		struct  
+		struct
 		{
 			bool enabled;
 			uint32 ringBufferOffset;
@@ -714,11 +715,11 @@ private:
 		accessFlags = 0;
 		if constexpr ((TSyncOp & BUFFER_SHADER_READ) != 0)
 		{
-			// in theory: VK_ACCESS_INDEX_READ_BIT should be set here too but indices are currently separated			
+			// in theory: VK_ACCESS_INDEX_READ_BIT should be set here too but indices are currently separated
 			stages |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			accessFlags |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 		}
-		
+
 		if constexpr ((TSyncOp & BUFFER_SHADER_WRITE) != 0)
 		{
 			stages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
@@ -921,7 +922,6 @@ private:
 
 public:
 	bool GetDisableMultithreadedCompilation() const { return m_featureControl.disableMultithreadedCompilation; }
-	bool UseTFViaSSBO() const { return m_featureControl.mode.useTFEmulationViaSSBO; }
 	bool HasSPRIVRoundingModeRTE32() const { return m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32; }
 	bool IsDebugUtilsEnabled() const { return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils; }
 
@@ -931,7 +931,7 @@ private:
 	void debug_genericBarrier();
 
 	// shaders
-	struct  
+	struct
 	{
 		RendererShaderVk* copySurface_vs{};
 		RendererShaderVk* copySurface_psDepth2Color{};

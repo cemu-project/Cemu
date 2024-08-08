@@ -94,9 +94,8 @@ namespace LatteDecompiler
 			uniformCurrentOffset += 8;
 		}
 		// define verticesPerInstance + streamoutBufferBaseX
-		if (decompilerContext->analyzer.useSSBOForStreamout &&
-			(shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader == false) ||
-			(shader->shaderType == LatteConst::ShaderType::Geometry) )
+		if ((shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader == false) ||
+			(shader->shaderType == LatteConst::ShaderType::Geometry))
 		{
 			src->add("int verticesPerInstance;" _CRLF);
 			uniformOffsets.offset_verticesPerInstance = uniformCurrentOffset;
@@ -251,8 +250,6 @@ namespace LatteDecompiler
 		{
 		    _emitAttributes(decompilerContext);
 			_emitVSOutputs(decompilerContext);
-
-			// TODO: transform feedback
 		}
 		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
 		{
@@ -379,6 +376,13 @@ namespace LatteDecompiler
 		case LatteConst::ShaderType::Vertex:
             src->add(", uint vid [[vertex_id]]");
             src->add(", uint iid [[instance_id]]");
+
+			// streamout buffer (transform feedback)
+			if (decompilerContext->analyzer.hasStreamoutEnable && decompilerContext->analyzer.hasStreamoutWrite)
+			{
+				src->addFmt(", device int* sb [[buffer({})]]" _CRLF, decompilerContext->output->resourceMappingVK.getTFStorageBufferBindingPoint());
+			}
+
             break;
         case LatteConst::ShaderType::Pixel:
             src->add(", bool frontFacing [[front_facing]]");

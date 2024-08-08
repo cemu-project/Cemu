@@ -147,6 +147,7 @@ public:
 	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
 	};
 
+	bool UseTFViaSSBO() const override { return true; }
 	void AppendOverlayDebugInfo() override;
 
 	// rendertarget
@@ -264,6 +265,9 @@ private:
 	// Texture readback
 	MTL::Buffer* m_readbackBuffer;
 	uint32 m_readbackBufferWriteOffset = 0;
+
+	// Transform feedback
+	MTL::Buffer* m_xfbRingBuffer;
 
 	// Active objects
 	MTL::CommandBuffer* m_commandBuffer = nullptr;

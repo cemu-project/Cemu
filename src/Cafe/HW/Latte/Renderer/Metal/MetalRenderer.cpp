@@ -16,6 +16,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/ISA/LatteReg.h"
+#include "Metal/MTLResource.hpp"
 #include "Metal/MTLTypes.hpp"
 #include "gui/guiWrapper.h"
 
@@ -38,6 +39,9 @@ MetalRenderer::MetalRenderer()
 
     // Texture readback
     m_readbackBuffer = m_device->newBuffer(TEXTURE_READBACK_SIZE, MTL::StorageModeShared);
+
+    // Transform feedback
+    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize(), MTL::StorageModeShared);
 
     // Initialize state
     for (uint32 i = 0; i < (uint32)LatteConst::ShaderType::TotalCount; i++)
@@ -1185,7 +1189,21 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 	// Storage buffer
 	if (shader->resourceMapping.tfStorageBindingPoint >= 0)
 	{
-		debug_printf("storage buffer not implemented, index: %i\n", shader->resourceMapping.tfStorageBindingPoint);
+	   switch (shader->shaderType)
+        {
+        case LatteConst::ShaderType::Vertex:
+        {
+     			renderCommandEncoder->setVertexBuffer(m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
+     			break;
+        }
+        case LatteConst::ShaderType::Pixel:
+        {
+            renderCommandEncoder->setFragmentBuffer(m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
+     			break;
+        }
+        default:
+     			UNREACHABLE;
+        }
 	}
 }
 

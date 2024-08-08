@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "HW/Latte/Renderer/Renderer.h"
 #include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
@@ -688,9 +689,9 @@ void LatteShader_GetDecompilerOptions(LatteDecompilerOptions& options, LatteCons
 {
 	options.usesGeometryShader = geometryShaderEnabled;
 	options.spirvInstrinsics.hasRoundingModeRTEFloat32 = false;
+	options.useTFViaSSBO = g_renderer->UseTFViaSSBO();
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
-		options.useTFViaSSBO = VulkanRenderer::GetInstance()->UseTFViaSSBO();
 		options.spirvInstrinsics.hasRoundingModeRTEFloat32 = VulkanRenderer::GetInstance()->HasSPRIVRoundingModeRTE32();
 	}
 	options.strictMul = g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False;

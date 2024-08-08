@@ -2752,9 +2752,9 @@ static void _emitTEXGetGradientsHV(LatteDecompilerShaderContext* shaderContext, 
 
 	const char* funcName;
 	if (texInstruction->opcode == GPU7_TEX_INST_GET_GRADIENTS_H)
-		funcName = "dFdx";
+		funcName = "dfdx";
 	else
-		funcName = "dFdy";
+		funcName = "dfdy";
 
 	src->add(" = ");
 
@@ -3273,15 +3273,8 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 				if ((cfInstruction->memWriteCompMask&(1 << i)) == 0)
 					continue;
 
-				if (shaderContext->options->useTFViaSSBO)
-				{
-					uint32 u32Offset = streamWrite->exportArrayBase + i;
-					src->addFmt("sb_buffer[sbBase{} + {}]", streamWrite->bufferIndex, u32Offset);
-				}
-				else
-				{
-					src->addFmt("sb{}[{}]", streamWrite->bufferIndex, streamWrite->exportArrayBase + i);
-				}
+				uint32 u32Offset = streamWrite->exportArrayBase + i;
+				src->addFmt("sb[sbBase{} + {}]", streamWrite->bufferIndex, u32Offset);
 
 				src->add(" = ");
 
@@ -3393,15 +3386,8 @@ static void _emitStreamWriteCode(LatteDecompilerShaderContext* shaderContext, La
 			if ((cfInstruction->memWriteCompMask&(1 << i)) == 0)
 				continue;
 
-			if (shaderContext->options->useTFViaSSBO)
-			{
-				uint32 u32Offset = cfInstruction->exportArrayBase + i;
-				src->addFmt("sb_buffer[sbBase{} + {}]", streamoutBufferIndex, u32Offset);
-			}
-			else
-			{
-				src->addFmt("sb{}[{}]", streamoutBufferIndex, cfInstruction->exportArrayBase + i);
-			}
+			uint32 u32Offset = cfInstruction->exportArrayBase + i;
+			src->addFmt("sb[sbBase{} + {}]", streamoutBufferIndex, u32Offset);
 
 			src->add(" = ");
 
@@ -3595,15 +3581,12 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 		// emit vertex
 		src->add("EmitVertex();" _CRLF);
 		// increment transform feedback pointer
-		if (shaderContext->analyzer.useSSBOForStreamout)
+		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 		{
-			for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
-			{
-				if (!shaderContext->output->streamoutBufferWriteMask[i])
-					continue;
-				cemu_assert_debug((shaderContext->output->streamoutBufferStride[i] & 3) == 0);
-				src->addFmt("sbBase{} += {};" _CRLF, i, shaderContext->output->streamoutBufferStride[i] / 4);
-			}
+			if (!shaderContext->output->streamoutBufferWriteMask[i])
+				continue;
+			cemu_assert_debug((shaderContext->output->streamoutBufferStride[i] & 3) == 0);
+			src->addFmt("sbBase{} += {};" _CRLF, i, shaderContext->output->streamoutBufferStride[i] / 4);
 		}
 
 		if( shaderContext->analyzer.modifiesPixelActiveState )
@@ -3970,7 +3953,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		src->addFmt("float cubeMapArrayIndex{} = 0.0;" _CRLF, i);
 	}
 	// init base offset for streamout buffer writes
-	if (shaderContext->analyzer.useSSBOForStreamout && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
+	if (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry)
 	{
 		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 		{
