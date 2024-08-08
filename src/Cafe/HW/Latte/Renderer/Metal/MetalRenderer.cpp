@@ -603,6 +603,19 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
 	renderCommandEncoder->setDepthStencilState(depthStencilState);
 
+	// Stencil reference
+	bool stencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
+	if (stencilEnable)
+	{
+	    bool backStencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
+		uint32 stencilRefFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILREF_F();
+    	uint32 stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
+	    if (backStencilEnable)
+			renderCommandEncoder->setStencilReferenceValues(stencilRefFront, stencilRefBack);
+		else
+		    renderCommandEncoder->setStencilReferenceValue(stencilRefFront);
+	}
+
 	// Primitive type
 	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
 	auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);

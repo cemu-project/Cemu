@@ -3112,7 +3112,7 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 			if (shaderContext->analyzer.outputPointSize)
 			{
 				cemu_assert_debug(shaderContext->analyzer.writesPointSize);
-				src->add("gl_PointSize = (");
+				src->add("out.pointSize = (");
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
 				src->add(").x");
 				src->add(";" _CRLF);
@@ -4113,12 +4113,12 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader == false)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
-	// HACK: this should be handled outside of the shader, because clipping currently wouldn't work
+	// HACK: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
 	if (shader->shaderType == LatteConst::ShaderType::Vertex)
 	{
-	    // Convert depth from the range of [-1, 1] to [0, 1]
-		src->add("out.position /= out.position.w;" _CRLF);
-		src->add("out.position.z = out.position.z * 0.5 + 0.5;" _CRLF);
+	    // TODO: check this
+	    // MoltenVK does this
+		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
 	}
 	// return
 	src->add("return out;" _CRLF);
