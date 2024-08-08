@@ -149,7 +149,7 @@ Note that if you are compiling on/for Intel, you must replace all references of 
 ### Installing brew
 
 1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-3. `eval "$(/opt/homebrew/bin/brew shellenv)"` # set brew env
+2. `eval "$(/opt/homebrew/bin/brew shellenv)"` # set brew env
 
 ### Installing Dependencies
 
