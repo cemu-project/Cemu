@@ -46,6 +46,12 @@
 #define FILT121(a,b,c) ((a + (b<<1) + c + 2)>>2)
 /*! Filter (1,1) i.e (a + b) / 2 */
 #define FILT11(a,b) ((a + b + 1)>>1)
+
+#ifdef __APPLE__
+#define av8(name) name __asm__(#name)
+#else
+#define av8(name) name
+#endif
 /*****************************************************************************/
 /*  Global Variables                                                        */
 /*****************************************************************************/
@@ -59,7 +65,6 @@ extern const WORD8  ih264_gai1_intrapred_luma_8x8_horz_u[];
 /*****************************************************************************/
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
-
 
 typedef void ih264_intra_pred_ref_filtering_ft(UWORD8 *pu1_left,
                                                UWORD8 *pu1_topleft,
@@ -270,62 +275,62 @@ ih264_intra_pred_chroma_ft ih264_intra_pred_chroma_8x8_mode_plane_ssse3;
 /* AV8 Definition */
 
 /* Luma 4x4 Intra pred filters */
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_vert_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_vert_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_horz_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_horz_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_dc_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_dc_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_diag_dl_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_diag_dl_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_diag_dr_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_diag_dr_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_vert_r_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_vert_r_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_horz_d_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_horz_d_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_vert_l_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_vert_l_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_4x4_mode_horz_u_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_4x4_mode_horz_u_av8);
 
 /* Luma 8x8 Intra pred filters */
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_vert_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_vert_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_horz_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_horz_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_dc_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_dc_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_diag_dl_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_diag_dl_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_diag_dr_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_diag_dr_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_vert_r_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_vert_r_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_horz_d_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_horz_d_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_vert_l_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_vert_l_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_8x8_mode_horz_u_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_8x8_mode_horz_u_av8);
 
 /* Luma 16x16 Intra pred filters */
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_16x16_mode_vert_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_16x16_mode_vert_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_16x16_mode_horz_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_16x16_mode_horz_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_16x16_mode_dc_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_16x16_mode_dc_av8);
 
-ih264_intra_pred_luma_ft  ih264_intra_pred_luma_16x16_mode_plane_av8;
+ih264_intra_pred_luma_ft  av8(ih264_intra_pred_luma_16x16_mode_plane_av8);
 
 /* Chroma 8x8 Intra pred filters */
 
-ih264_intra_pred_chroma_ft ih264_intra_pred_chroma_8x8_mode_dc_av8;
+ih264_intra_pred_chroma_ft av8(ih264_intra_pred_chroma_8x8_mode_dc_av8);
 
-ih264_intra_pred_chroma_ft ih264_intra_pred_chroma_8x8_mode_horz_av8;
+ih264_intra_pred_chroma_ft av8(ih264_intra_pred_chroma_8x8_mode_horz_av8);
 
-ih264_intra_pred_chroma_ft ih264_intra_pred_chroma_8x8_mode_vert_av8;
+ih264_intra_pred_chroma_ft av8(ih264_intra_pred_chroma_8x8_mode_vert_av8);
 
-ih264_intra_pred_chroma_ft ih264_intra_pred_chroma_8x8_mode_plane_av8;
+ih264_intra_pred_chroma_ft av8(ih264_intra_pred_chroma_8x8_mode_plane_av8);
 
 #endif /* IH264_INTRA_PRED_FILTERS_H_ */

@@ -988,7 +988,6 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.layout = m_pipeline_layout;
 	pipelineInfo.renderPass = m_renderPassObj->m_renderPass;
 	pipelineInfo.pDepthStencilState = &depthStencilState;
@@ -997,6 +996,17 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	pipelineInfo.flags = 0;
 	if (!forceCompile)
 		pipelineInfo.flags |= VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT_EXT;
+#ifdef __APPLE__
+	for (int i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; ++i)
+	{
+		if (_IsVkIntegerFormat(m_renderPassObj->GetColorFormat(i)))
+			break;
+		if (i == Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS - 1)
+			pipelineInfo.pColorBlendState = &colorBlending;
+	}
+#else
+	pipelineInfo.pColorBlendState = &colorBlending;
+#endif
 
 	VkPipelineCreationFeedbackCreateInfoEXT creationFeedbackInfo;
 	VkPipelineCreationFeedbackEXT creationFeedback;

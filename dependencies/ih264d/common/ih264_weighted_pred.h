@@ -68,6 +68,12 @@
 /*****************************************************************************/
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
+#ifdef __APPLE__
+#define av8(name) name __asm__(#name)
+#else
+#define av8(name) name
+#endif
+
 typedef void ih264_default_weighted_pred_ft(UWORD8 *puc_src1,
                                             UWORD8 *puc_src2,
                                             UWORD8 *puc_dst,
@@ -132,17 +138,17 @@ ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_chroma_a9q;
 
 /* AV8 NEON Declarations */
 
-ih264_default_weighted_pred_ft ih264_default_weighted_pred_luma_av8;
+ih264_default_weighted_pred_ft av8(ih264_default_weighted_pred_luma_av8);
 
-ih264_default_weighted_pred_ft ih264_default_weighted_pred_chroma_av8;
+ih264_default_weighted_pred_ft av8(ih264_default_weighted_pred_chroma_av8);
 
-ih264_weighted_pred_ft ih264_weighted_pred_luma_av8;
+ih264_weighted_pred_ft av8(ih264_weighted_pred_luma_av8);
 
-ih264_weighted_pred_ft ih264_weighted_pred_chroma_av8;
+ih264_weighted_pred_ft av8(ih264_weighted_pred_chroma_av8);
 
-ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_luma_av8;
+ih264_weighted_bi_pred_ft av8(ih264_weighted_bi_pred_luma_av8);
 
-ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_chroma_av8;
+ih264_weighted_bi_pred_ft av8(ih264_weighted_bi_pred_chroma_av8);
 
 
 /* SSE42 Intrinsic Declarations */
