@@ -16,6 +16,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/ISA/LatteReg.h"
+#include "Metal/MTLPixelFormat.hpp"
 #include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLResource.hpp"
 #include "Metal/MTLTypes.hpp"
@@ -76,6 +77,8 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 
     m_metalLayer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle);
     m_metalLayer->setDevice(m_device);
+    // TODO: shouldn't this be handled differently?
+    m_metalLayer->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
 
     // Present pipeline
     NS::Error* error = nullptr;
@@ -84,7 +87,6 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
     {
         debug_printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
-        throw;
         return;
     }
     MTL::Function* presentVertexFunction = presentLibrary->newFunction(NS::String::string("presentVertex", NS::ASCIIStringEncoding));
