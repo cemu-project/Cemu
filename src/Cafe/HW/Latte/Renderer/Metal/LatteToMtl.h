@@ -7,6 +7,7 @@
 //#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Metal/MTLDepthStencil.hpp"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "Metal/MTLSampler.hpp"
 #include "Metal/MTLTexture.hpp"
 
@@ -55,3 +56,5 @@ MTL::SamplerAddressMode GetMtlSamplerAddressMode(Latte::LATTE_SQ_TEX_SAMPLER_WOR
 MTL::TextureSwizzle GetMtlTextureSwizzle(uint32 swizzle);
 
 MTL::StencilOperation GetMtlStencilOp(Latte::LATTE_DB_DEPTH_CONTROL::E_STENCILACTION action);
+
+MTL::ColorWriteMask GetMtlColorWriteMask(uint8 mask);

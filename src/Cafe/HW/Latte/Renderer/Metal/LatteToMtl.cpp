@@ -2,6 +2,7 @@
 #include "Common/precompiled.h"
 #include "Metal/MTLDepthStencil.hpp"
 #include "Metal/MTLRenderCommandEncoder.hpp"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "Metal/MTLSampler.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
@@ -468,4 +469,15 @@ MTL::StencilOperation GetMtlStencilOp(Latte::LATTE_DB_DEPTH_CONTROL::E_STENCILAC
 {
     cemu_assert_debug((uint32)action < std::size(MTL_STENCIL_OPERATIONS));
     return MTL_STENCIL_OPERATIONS[(uint32)action];
+}
+
+MTL::ColorWriteMask GetMtlColorWriteMask(uint8 mask)
+{
+    MTL::ColorWriteMask mtlMask = MTL::ColorWriteMaskNone;
+    if (mask & 0x1) mtlMask |= MTL::ColorWriteMaskRed;
+    if (mask & 0x2) mtlMask |= MTL::ColorWriteMaskGreen;
+    if (mask & 0x4) mtlMask |= MTL::ColorWriteMaskBlue;
+    if (mask & 0x8) mtlMask |= MTL::ColorWriteMaskAlpha;
+
+    return mtlMask;
 }

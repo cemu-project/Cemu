@@ -79,7 +79,7 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
     m_metalLayer->setDevice(m_device);
     // TODO: don't always force sRGB
     // TODO: shouldn't this be handled differently?
-    m_metalLayer->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+    m_metalLayer->setPixelFormat(MTL::PixelFormatRGBA8Unorm/*_sRGB*/);
 
     // Present pipeline
     NS::Error* error = nullptr;

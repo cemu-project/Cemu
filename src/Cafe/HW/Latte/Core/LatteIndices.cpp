@@ -287,7 +287,7 @@ void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 coun
 template<typename T>
 void LatteIndices_unpackTriangleFanAndConvert(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
-    debug_printf("TRIANGLE FAN UNPACK\n");
+    debug_printf("TRIANGLE FAN UNPACK %u\n", rand());
 	const betype<T>* src = (betype<T>*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
 	// TODO: check this
@@ -295,7 +295,7 @@ void LatteIndices_unpackTriangleFanAndConvert(const void* indexDataInput, void* 
 	{
 	    uint32 i0;
 		if (i % 2 == 0)
-		i0 = i / 2;
+		    i0 = i / 2;
         else
             i0 = count - 1 - i / 2;
         T idx = src[i0];
@@ -308,7 +308,7 @@ void LatteIndices_unpackTriangleFanAndConvert(const void* indexDataInput, void* 
 template<typename T>
 void LatteIndices_generateAutoTriangleFanIndices(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
-    debug_printf("TRIANGLE FAN AUTO\n");
+    debug_printf("TRIANGLE FAN AUTO %u\n", rand());
 	const betype<T>* src = (betype<T>*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
 	for (sint32 i = 0; i < count; i++)

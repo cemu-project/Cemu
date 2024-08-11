@@ -3734,8 +3734,9 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 
 	// unpackHalf2x16
 	fCStr_shaderSource->add(""
-	"float2 unpackHalf2x16(float x) {\r\n"
-		"return float2(as_type<half>(ushort(as_type<uint>(x) & 0x00FF)), as_type<half>(ushort((as_type<uint>(x) & 0xFF00) >> 16)));\r\n"
+	"template<typename T>\r\n"
+	"float2 unpackHalf2x16(T x) {\r\n"
+		"return float2(as_type<half2>(x));\r\n"
 	"}\r\n");
 
 	// Bit cast

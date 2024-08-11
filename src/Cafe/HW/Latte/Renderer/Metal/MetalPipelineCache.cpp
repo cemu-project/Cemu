@@ -92,6 +92,11 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	desc->setFragmentFunction(mtlPixelShader->GetFunction());
 	// TODO: don't always set the vertex descriptor?
 	desc->setVertexDescriptor(vertexDescriptor);
+
+	// Color attachments
+	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = LatteGPUState.contextNew.CB_COLOR_CONTROL;
+	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
+	uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
 	for (uint8 i = 0; i < 8; i++)
 	{
 	    const auto& colorBuffer = activeFBO->colorBuffer[i];
@@ -102,12 +107,9 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		}
 		auto colorAttachment = desc->colorAttachments()->object(i);
 		colorAttachment->setPixelFormat(texture->GetRGBAView()->pixelFormat());
+		colorAttachment->setWriteMask(GetMtlColorWriteMask((renderTargetMask >> (i * 4)) & 0xF));
 
 		// Blending
-		const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = LatteGPUState.contextNew.CB_COLOR_CONTROL;
-		uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
-		uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
-
 		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
 		// Only float data type is blendable
 		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).dataType == MetalDataType::FLOAT)
@@ -120,7 +122,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
     		auto srcRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_SRCBLEND());
     		auto dstRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_DSTBLEND());
 
-    		colorAttachment->setWriteMask((renderTargetMask >> (i * 4)) & 0xF);
     		colorAttachment->setRgbBlendOperation(rgbBlendOp);
     		colorAttachment->setSourceRGBBlendFactor(srcRgbBlendFactor);
     		colorAttachment->setDestinationRGBBlendFactor(dstRgbBlendFactor);
@@ -138,6 +139,8 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
     		}
 		}
 	}
+
+	// Depth stencil attachment
 	if (activeFBO->depthBuffer.texture)
 	{
 	    auto texture = static_cast<LatteTextureViewMtl*>(activeFBO->depthBuffer.texture);
