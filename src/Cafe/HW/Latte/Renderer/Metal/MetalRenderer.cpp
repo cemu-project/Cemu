@@ -77,6 +77,7 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 
     m_metalLayer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle);
     m_metalLayer->setDevice(m_device);
+    // TODO: don't always force sRGB
     // TODO: shouldn't this be handled differently?
     m_metalLayer->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
 
@@ -476,7 +477,7 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 	buffer.size = size;
 	buffer.restrideInfo = {};
 
-	m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, buffer.restrideInfo);
+	m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, &buffer.restrideInfo);
 }
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)

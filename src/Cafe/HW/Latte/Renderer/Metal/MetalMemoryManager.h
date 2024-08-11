@@ -1,9 +1,8 @@
 #pragma once
 
-#include <Metal/Metal.hpp>
-
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 
 //const uint32 bufferAllocatorIndexShift = 24;
 
@@ -68,9 +67,9 @@ struct MetalRestrideInfo
 
 struct MetalVertexBufferRange
 {
-    size_t offset;
+    size_t offset = INVALID_OFFSET;
     size_t size;
-    MetalRestrideInfo& restrideInfo;
+    MetalRestrideInfo* restrideInfo;
 };
 
 class MetalVertexBufferCache
@@ -82,19 +81,19 @@ public:
     ~MetalVertexBufferCache();
 
     // Vertex buffer cache
-    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo& restrideInfo)
+    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo* restrideInfo)
     {
-        m_bufferRanges[bufferIndex] = new MetalVertexBufferRange{offset, size, restrideInfo};
+        m_bufferRanges[bufferIndex] = MetalVertexBufferRange{offset, size, restrideInfo};
     }
 
     void UntrackVertexBuffer(uint32 bufferIndex)
     {
         auto& range = m_bufferRanges[bufferIndex];
-        if (range->restrideInfo.buffer)
+        if (range.restrideInfo->buffer)
         {
-            range->restrideInfo.buffer->release();
+            range.restrideInfo->buffer->release();
         }
-        range = nullptr;
+        range.offset = INVALID_OFFSET;
     }
 
     MetalRestridedBufferRange RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride);
@@ -102,7 +101,7 @@ public:
 private:
     class MetalRenderer* m_mtlr;
 
-    MetalVertexBufferRange* m_bufferRanges[LATTE_MAX_VERTEX_BUFFERS] = {nullptr};
+    MetalVertexBufferRange m_bufferRanges[LATTE_MAX_VERTEX_BUFFERS] = {};
 
     void MemoryRangeChanged(size_t offset, size_t size);
 };
@@ -147,7 +146,7 @@ public:
     void CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size);
 
     // Vertex buffer cache
-    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo& restrideInfo)
+    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo* restrideInfo)
     {
         m_vertexBufferCache.TrackVertexBuffer(bufferIndex, offset, size, restrideInfo);
     }

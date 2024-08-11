@@ -70,11 +70,11 @@ MetalVertexBufferCache::~MetalVertexBufferCache()
     for (uint32 i = 0; i < LATTE_MAX_VERTEX_BUFFERS; i++)
     {
         auto vertexBufferRange = m_bufferRanges[i];
-        if (vertexBufferRange)
+        if (vertexBufferRange.offset != INVALID_OFFSET)
         {
-            if (vertexBufferRange->restrideInfo.buffer)
+            if (vertexBufferRange.restrideInfo->buffer)
             {
-                vertexBufferRange->restrideInfo.buffer->release();
+                vertexBufferRange.restrideInfo->buffer->release();
             }
         }
     }
@@ -83,29 +83,30 @@ MetalVertexBufferCache::~MetalVertexBufferCache()
 MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride)
 {
     auto vertexBufferRange = m_bufferRanges[bufferIndex];
-    auto& restrideInfo = vertexBufferRange->restrideInfo;
+    auto& restrideInfo = *vertexBufferRange.restrideInfo;
 
     if (stride % 4 == 0)
     {
         // No restride needed
-        return {bufferCache, vertexBufferRange->offset};
+        return {bufferCache, vertexBufferRange.offset};
     }
 
     if (restrideInfo.memoryInvalidated || stride != restrideInfo.lastStride)
     {
         // TODO: use compute/void vertex function instead
         size_t newStride = Align(stride, 4);
-        size_t newSize = vertexBufferRange->size / stride * newStride;
+        size_t newSize = vertexBufferRange.size / stride * newStride;
         restrideInfo.buffer = m_mtlr->GetDevice()->newBuffer(newSize, MTL::StorageModeShared);
 
-        uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange->offset;
+        uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
         uint8* newPtr = (uint8*)restrideInfo.buffer->contents();
 
-        for (size_t elem = 0; elem < vertexBufferRange->size / stride; elem++)
+        for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
     	{
     		memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
     	}
-        debug_printf("Restrided vertex buffer (old stride: %zu, new stride: %zu, old size: %zu, new size: %zu)\n", stride, newStride, vertexBufferRange->size, newSize);
+        // TODO: remove
+        debug_printf("Restrided vertex buffer (old stride: %zu, new stride: %zu, old size: %zu, new size: %zu)\n", stride, newStride, vertexBufferRange.size, newSize);
 
         restrideInfo.memoryInvalidated = false;
         restrideInfo.lastStride = newStride;
@@ -119,15 +120,15 @@ void MetalVertexBufferCache::MemoryRangeChanged(size_t offset, size_t size)
     for (uint32 i = 0; i < LATTE_MAX_VERTEX_BUFFERS; i++)
     {
         auto vertexBufferRange = m_bufferRanges[i];
-        if (vertexBufferRange)
+        if (vertexBufferRange.offset != INVALID_OFFSET)
         {
-            if ((offset < vertexBufferRange->offset && (offset + size) < (vertexBufferRange->offset + vertexBufferRange->size)) ||
-                (offset > vertexBufferRange->offset && (offset + size) > (vertexBufferRange->offset + vertexBufferRange->size)))
+            if ((offset < vertexBufferRange.offset && (offset + size) < (vertexBufferRange.offset + vertexBufferRange.size)) ||
+                (offset > vertexBufferRange.offset && (offset + size) > (vertexBufferRange.offset + vertexBufferRange.size)))
             {
                 continue;
             }
 
-            vertexBufferRange->restrideInfo.memoryInvalidated = true;
+            vertexBufferRange.restrideInfo->memoryInvalidated = true;
         }
     }
 }

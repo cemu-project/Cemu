@@ -16,8 +16,6 @@
 #define MAX_MTL_TEXTURES 31
 #define MAX_MTL_SAMPLERS 16
 
-constexpr size_t INVALID_OFFSET = std::numeric_limits<size_t>::max();
-
 struct MetalBoundBuffer
 {
     bool needsRebind = false;
