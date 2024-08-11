@@ -257,7 +257,12 @@ private:
 	MTL::CommandQueue* m_commandQueue;
 
 	// Pipelines
+	MTL::Library* m_utilityLibrary;
 	MTL::RenderPipelineState* m_presentPipeline;
+
+	// Hybrid pipelines
+	class MetalHybridComputePipeline* m_copyDepthToColorPipeline;
+	class MetalHybridComputePipeline* m_copyColorToDepthPipeline;
 
 	// Basic
 	MTL::SamplerState* m_nearestSampler;

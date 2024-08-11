@@ -7,13 +7,15 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalDepthStencilCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
-#include "Cafe/HW/Latte/Renderer/Metal/ShaderSourcePresent.h"
+#include "Cafe/HW/Latte/Renderer/Metal/UtilityShaderSource.h"
 
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
+#include "Foundation/NSError.hpp"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/ISA/LatteReg.h"
 #include "Metal/MTLPixelFormat.hpp"
@@ -54,10 +56,31 @@ MetalRenderer::MetalRenderer()
             m_state.uniformBufferOffsets[i][j] = INVALID_OFFSET;
         }
     }
+
+    // Utility shader source
+    NS::Error* error = nullptr;
+	m_utilityLibrary = m_device->newLibrary(NS::String::string(utilityShaderSource, NS::ASCIIStringEncoding), nullptr, &error);
+	if (error)
+    {
+        debug_printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
+        error->release();
+        return;
+    }
+
+    // Hybrid pipelines
+    m_copyDepthToColorPipeline = new MetalHybridComputePipeline(this, m_utilityLibrary, "vertexCopyDepthToColor", "kernelCopyDepthToColor");
+    m_copyColorToDepthPipeline = new MetalHybridComputePipeline(this, m_utilityLibrary, "vertexCopyColorToDepth", "kernelCopyColorToDepth");
 }
 
 MetalRenderer::~MetalRenderer()
 {
+    delete m_copyDepthToColorPipeline;
+    delete m_copyColorToDepthPipeline;
+
+    m_presentPipeline->release();
+
+    m_utilityLibrary->release();
+
     delete m_depthStencilCache;
     delete m_pipelineCache;
     delete m_memoryManager;
@@ -82,22 +105,15 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
     m_metalLayer->setPixelFormat(MTL::PixelFormatRGBA8Unorm/*_sRGB*/);
 
     // Present pipeline
-    NS::Error* error = nullptr;
-	MTL::Library* presentLibrary = m_device->newLibrary(NS::String::string(presentLibrarySource, NS::ASCIIStringEncoding), nullptr, &error);
-	if (error)
-    {
-        debug_printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
-        error->release();
-        return;
-    }
-    MTL::Function* presentVertexFunction = presentLibrary->newFunction(NS::String::string("presentVertex", NS::ASCIIStringEncoding));
-    MTL::Function* presentFragmentFunction = presentLibrary->newFunction(NS::String::string("presentFragment", NS::ASCIIStringEncoding));
-    presentLibrary->release();
+    MTL::Function* presentVertexFunction = m_utilityLibrary->newFunction(NS::String::string("vertexFullscreen", NS::ASCIIStringEncoding));
+    MTL::Function* presentFragmentFunction = m_utilityLibrary->newFunction(NS::String::string("fragmentPresent", NS::ASCIIStringEncoding));
 
     MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
     renderPipelineDescriptor->setVertexFunction(presentVertexFunction);
     renderPipelineDescriptor->setFragmentFunction(presentFragmentFunction);
     renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_metalLayer->pixelFormat());
+
+    NS::Error* error = nullptr;
     m_presentPipeline = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
     renderPipelineDescriptor->release();
     presentVertexFunction->release();
@@ -106,7 +122,6 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
     {
         debug_printf("failed to create present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
-        return;
     }
 }
 

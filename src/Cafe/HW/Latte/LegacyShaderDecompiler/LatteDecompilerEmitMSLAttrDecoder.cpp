@@ -256,7 +256,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 			// seen in Giana Sisters: Twisted Dreams
 			_readLittleEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
 			// TODO: uint4?
-			src->add("attrDecoder.xyzw = as_type<uint4>(float4(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)),unpackHalf2x16(attrDecoder.z|(attrDecoder.w<<16))));" _CRLF);
+			src->add("attrDecoder.xyzw = as_type<uint4>(float4(float2(as_type<half2>(attrDecoder.x|(attrDecoder.y<<16))),float2(as_type<half2>(attrDecoder.z|(attrDecoder.w<<16)))));" _CRLF);
 		}
 		else if (attrib->format == FMT_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
 		{
@@ -271,7 +271,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 		{
 			// seen in Giana Sisters: Twisted Dreams
 			_readLittleEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
-			src->add("attrDecoder.xy = as_type<uint2>(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)));" _CRLF);
+			src->add("attrDecoder.xy = as_type<uint2>(float2(as_type<half2>(attrDecoder.x|(attrDecoder.y<<16))));" _CRLF);
 			src->add("attrDecoder.zw = uint2(0);" _CRLF);
 		}
 		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
@@ -394,7 +394,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 		{
 			_readBigEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
 			// TODO: uint4?
-			src->add("attrDecoder.xyzw = as_type<uint4>(float4(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)),unpackHalf2x16(attrDecoder.z|(attrDecoder.w<<16))));" _CRLF);
+			src->add("attrDecoder.xyzw = as_type<uint4>(float4(float2(as_type<half2>(attrDecoder.x|(attrDecoder.y<<16))),float2(as_type<half2>(attrDecoder.z|(attrDecoder.w<<16)))));" _CRLF);
 		}
 		else if (attrib->format == FMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
 		{
@@ -446,7 +446,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 		else if( attrib->format == FMT_16_16_FLOAT && attrib->nfa == 2 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
-			src->add("attrDecoder.xy = as_type<uint2>(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)));" _CRLF);
+			src->add("attrDecoder.xy = as_type<uint2>(float2(as_type<half2>(attrDecoder.x|(attrDecoder.y<<16))));" _CRLF);
 			src->add("attrDecoder.zw = uint2(0);" _CRLF);
 		}
 		else if( attrib->format == FMT_16_16 && attrib->nfa == 0 && attrib->isSigned == 0 )

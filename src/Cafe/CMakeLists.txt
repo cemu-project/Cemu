@@ -560,7 +560,9 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/MetalPipelineCache.h
             HW/Latte/Renderer/Metal/MetalDepthStencilCache.cpp
             HW/Latte/Renderer/Metal/MetalDepthStencilCache.h
-            HW/Latte/Renderer/Metal/ShaderSourcePresent.h
+            HW/Latte/Renderer/Metal/MetalHybridComputePipeline.cpp
+            HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h
+            HW/Latte/Renderer/Metal/UtilityShaderSource.h
         )
 
         #target_link_libraries(CemuCafe PRIVATE

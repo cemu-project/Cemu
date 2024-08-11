@@ -3732,13 +3732,6 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 		"return round(x / 2.0) * 2.0;\r\n"
 	"}\r\n");
 
-	// unpackHalf2x16
-	fCStr_shaderSource->add(""
-	"template<typename T>\r\n"
-	"float2 unpackHalf2x16(T x) {\r\n"
-		"return float2(as_type<half2>(x));\r\n"
-	"}\r\n");
-
 	// Bit cast
 
 	// Scalar
