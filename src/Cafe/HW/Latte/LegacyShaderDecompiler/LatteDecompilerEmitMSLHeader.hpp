@@ -221,7 +221,7 @@ namespace LatteDecompiler
 	{
 		auto* src = shaderContext->shaderSource;
 
-		src->add("#define GET_FRAGCOORD() vec4(in.position.xy * supportBuffer.fragCoordScale.xy, in.position.z, 1.0 / in.position.w)" _CRLF);
+		src->add("#define GET_FRAGCOORD() float4(in.position.xy * supportBuffer.fragCoordScale.xy, in.position.z, 1.0 / in.position.w)" _CRLF);
 
 		src->add("struct FragmentIn {" _CRLF);
 		src->add("float4 position [[position]];" _CRLF);

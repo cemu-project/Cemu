@@ -31,6 +31,8 @@ struct MetalState
 {
     bool skipDrawSequence = false;
     class CachedFBOMtl* activeFBO = nullptr;
+    // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change'
+    class CachedFBOMtl* lastUsedFBO = nullptr;
     MetalBoundBuffer vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     // TODO: find out what is the max number of bound textures on the Wii U
     class LatteTextureViewMtl* textures[64] = {nullptr};
@@ -58,7 +60,7 @@ public:
 	bool getResult(uint64& numSamplesPassed) override
 	{
 	    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::getResult: occlusion queries are not yet supported on Metal");
-        return false;
+        return true;
 	}
 
 	void begin() override

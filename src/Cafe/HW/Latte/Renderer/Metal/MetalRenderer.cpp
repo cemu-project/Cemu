@@ -16,6 +16,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/ISA/LatteReg.h"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLResource.hpp"
 #include "Metal/MTLTypes.hpp"
 #include "gui/guiWrapper.h"
@@ -600,7 +601,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.activeFBO, LatteGPUState.contextNew);
+	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.lastUsedFBO, LatteGPUState.contextNew);
 	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Depth stencil state
@@ -620,9 +621,54 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 		    renderCommandEncoder->setStencilReferenceValue(stencilRefFront);
 	}
 
-	// Primitive type
-	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
-	auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
+    // Primitive type
+    const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
+    auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
+    bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
+
+	// Blend color
+	float* blendColorConstant = (float*)LatteGPUState.contextRegister + Latte::REGADDR::CB_BLEND_RED;
+	renderCommandEncoder->setBlendColor(blendColorConstant[0], blendColorConstant[1], blendColorConstant[2], blendColorConstant[3]);
+
+	// polygon control
+	const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
+	const auto frontFace = polygonControlReg.get_FRONT_FACE();
+	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
+	uint32 cullBack = polygonControlReg.get_CULL_BACK();
+	uint32 polyOffsetFrontEnable = polygonControlReg.get_OFFSET_FRONT_ENABLED();
+
+	// TODO
+	//cemu_assert_debug(LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() == LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE()); // near or far clipping can be disabled individually
+	//bool zClipEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE() == false;
+
+	if (polyOffsetFrontEnable)
+	{
+		// TODO: set depth bias
+	}
+
+	// todo - how does culling behave with rects?
+	// right now we just assume that their winding is always CW
+	if (isPrimitiveRect)
+	{
+		if (frontFace == Latte::LATTE_PA_SU_SC_MODE_CNTL::E_FRONTFACE::CW)
+			cullFront = cullBack;
+		else
+			cullBack = cullFront;
+	}
+
+	if (cullFront && cullBack)
+		return; // We can just skip the draw (TODO: can we?)
+	else if (cullFront)
+		renderCommandEncoder->setCullMode(MTL::CullModeFront);
+	else if (cullBack)
+		renderCommandEncoder->setCullMode(MTL::CullModeBack);
+	else
+		renderCommandEncoder->setCullMode(MTL::CullModeNone);
+
+	if (frontFace == Latte::LATTE_PA_SU_SC_MODE_CNTL::E_FRONTFACE::CCW)
+		renderCommandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+	else
+		renderCommandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
 
 	// Resources
 
@@ -708,7 +754,7 @@ void MetalRenderer::EnsureCommandBuffer()
     if (!m_commandBuffer)
 	{
         // Debug
-        m_commandQueue->insertDebugCaptureBoundary();
+        //m_commandQueue->insertDebugCaptureBoundary();
 
 	    m_commandBuffer = m_commandQueue->commandBuffer();
 	}
@@ -755,6 +801,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
     }
 
     // Update state
+    m_state.lastUsedFBO = m_state.activeFBO;
     for (uint8 i = 0; i < 8; i++)
     {
         m_state.colorRenderTargets[i] = colorRenderTargets[i];
@@ -836,7 +883,7 @@ void MetalRenderer::CommitCommandBuffer()
         LatteTextureReadback_UpdateFinishedTransfers(false);
 
         // Debug
-        m_commandQueue->insertDebugCaptureBoundary();
+        //m_commandQueue->insertDebugCaptureBoundary();
     }
 }
 
