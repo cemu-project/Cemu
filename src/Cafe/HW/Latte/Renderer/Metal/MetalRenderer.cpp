@@ -15,15 +15,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
-#include "Foundation/NSError.hpp"
-#include "HW/Latte/Core/Latte.h"
-#include "HW/Latte/ISA/LatteReg.h"
-#include "Metal/MTLPixelFormat.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-#include "Metal/MTLResource.hpp"
-#include "Metal/MTLTypes.hpp"
 #include "gui/guiWrapper.h"
-#include <stdexcept>
 
 extern bool hasValidFramebufferAttached;
 
@@ -452,7 +444,68 @@ LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView
 
 void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
 {
-    debug_printf("MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion not implemented\n");
+    EnsureCommandBuffer();
+
+    // scale copy size to effective size
+	sint32 effectiveCopyWidth = width;
+	sint32 effectiveCopyHeight = height;
+	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
+	sint32 sourceEffectiveWidth, sourceEffectiveHeight;
+	sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
+
+	sint32 texSrcMip = srcMip;
+	sint32 texSrcSlice = srcSlice;
+	sint32 texDstMip = dstMip;
+	sint32 texDstSlice = dstSlice;
+
+	LatteTextureMtl* srcTextureMtl = static_cast<LatteTextureMtl*>(sourceTexture);
+	LatteTextureMtl* dstTextureMtl = static_cast<LatteTextureMtl*>(destinationTexture);
+
+	// check if texture rescale ratios match
+	// todo - if not, we have to use drawcall based copying
+	if (!LatteTexture_doesEffectiveRescaleRatioMatch(srcTextureMtl, texSrcMip, dstTextureMtl, texDstMip))
+	{
+		cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceWithFormatConversion(): Mismatching dimensions");
+		return;
+	}
+
+	// check if bpp size matches
+	if (srcTextureMtl->GetBPP() != dstTextureMtl->GetBPP())
+	{
+		cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceWithFormatConversion(): Mismatching BPP");
+		return;
+	}
+
+	MetalHybridComputePipeline* copyPipeline;
+	if (srcTextureMtl->IsDepth())
+	    copyPipeline = m_copyDepthToColorPipeline;
+	else
+	    copyPipeline = m_copyColorToDepthPipeline;
+
+	MTL::Texture* textures[] = {srcTextureMtl->GetTexture(), dstTextureMtl->GetTexture()};
+
+	if (m_encoderType == MetalEncoderType::Render)
+	{
+	    auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
+
+		renderCommandEncoder->setRenderPipelineState(copyPipeline->GetRenderPipelineState());
+
+		renderCommandEncoder->setViewport(MTL::Viewport{0.0, 0.0, (double)effectiveCopyWidth, (double)effectiveCopyHeight, 0.0, 1.0});
+		renderCommandEncoder->setScissorRect(MTL::ScissorRect{0, 0, (uint32)effectiveCopyWidth, (uint32)effectiveCopyHeight});
+
+		renderCommandEncoder->setVertexTextures(textures, NS::Range(0, 2));
+		renderCommandEncoder->setVertexBytes(&effectiveCopyWidth, sizeof(uint32), 0);
+		// TODO: set slices and mips
+
+		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
+	}
+	else
+	{
+	    // TODO: do the copy in a compute shader
+		debug_printf("surfaceCopy_copySurfaceWithFormatConversion: no active render command encoder, skipping copy\n");
+	}
+
+	// TODO: restore state
 }
 
 void MetalRenderer::bufferCache_init(const sint32 bufferSize)
@@ -884,6 +937,7 @@ void MetalRenderer::EndEncoding()
         m_commandEncoder->endEncoding();
         m_commandEncoder->release();
         m_commandEncoder = nullptr;
+        m_encoderType = MetalEncoderType::None;
     }
 }
 
