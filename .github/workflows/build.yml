@@ -24,11 +24,6 @@ jobs:
         submodules: "recursive"
         fetch-depth: 0
 
-    - name: "Fetch full history for vcpkg submodule"
-      run: |
-        cd dependencies/vcpkg
-        git fetch --unshallow
-
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
@@ -133,11 +128,6 @@ jobs:
       with:
         submodules: "recursive"
 
-    - name: "Fetch full history for vcpkg submodule"
-      run: |
-        cd dependencies/vcpkg
-        git fetch --unshallow
-        
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
@@ -211,11 +201,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: "recursive"
-        
-    - name: "Fetch full history for vcpkg submodule"
-      run: |
-        cd dependencies/vcpkg
-        git fetch --unshallow
         
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}

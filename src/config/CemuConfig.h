@@ -442,7 +442,7 @@ struct CemuConfig
 	ConfigValue<int> vsync{ 0 }; // 0 = off, 1+ = on depending on render backend
 	ConfigValue<bool> gx2drawdone_sync {true};
 	ConfigValue<bool> render_upside_down{ false };
-	ConfigValue<bool> async_compile{ false };
+	ConfigValue<bool> async_compile{ true };
 
 	ConfigValue<bool> vk_accurate_barriers{ true };
 
