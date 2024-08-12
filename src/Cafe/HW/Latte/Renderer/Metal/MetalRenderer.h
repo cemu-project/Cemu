@@ -27,18 +27,24 @@ struct MetalBoundBuffer
 
 struct MetalState
 {
-    bool skipDrawSequence = false;
-    class CachedFBOMtl* activeFBO = nullptr;
+    bool m_usesSRGB = false;
+
+    bool m_skipDrawSequence = false;
+
+    class CachedFBOMtl* m_activeFBO = nullptr;
     // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change'
-    class CachedFBOMtl* lastUsedFBO = nullptr;
-    MetalBoundBuffer vertexBuffers[MAX_MTL_BUFFERS] = {{}};
+    class CachedFBOMtl* m_lastUsedFBO = nullptr;
+
+    MetalBoundBuffer m_vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     // TODO: find out what is the max number of bound textures on the Wii U
-    class LatteTextureViewMtl* textures[64] = {nullptr};
-    size_t uniformBufferOffsets[(uint32)LatteConst::ShaderType::TotalCount][MAX_MTL_BUFFERS];
-    MTL::Texture* colorRenderTargets[8] = {nullptr};
-    MTL::Texture* depthRenderTarget = nullptr;
-    MTL::Viewport viewport = {0, 0, 0, 0, 0, 0};
-    MTL::ScissorRect scissor = {0, 0, 0, 0};
+    class LatteTextureViewMtl* m_textures[64] = {nullptr};
+    size_t m_uniformBufferOffsets[(uint32)LatteConst::ShaderType::TotalCount][MAX_MTL_BUFFERS];
+
+    MTL::Texture* m_colorRenderTargets[8] = {nullptr};
+    MTL::Texture* m_depthRenderTarget = nullptr;
+
+    MTL::Viewport m_viewport = {0, 0, 0, 0, 0, 0};
+    MTL::ScissorRect m_scissor = {0, 0, 0, 0};
 };
 
 enum class MetalEncoderType
@@ -232,7 +238,7 @@ public:
     void EndEncoding();
     void CommitCommandBuffer();
 
-    bool AcquireNextDrawable();
+    bool AcquireNextDrawable(bool mainWindow);
 
     void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
     void RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder);
@@ -257,8 +263,8 @@ private:
 	MTL::CommandQueue* m_commandQueue;
 
 	// Pipelines
-	MTL::Library* m_utilityLibrary;
-	MTL::RenderPipelineState* m_presentPipeline;
+	MTL::RenderPipelineState* m_presentPipelineLinear;
+	MTL::RenderPipelineState* m_presentPipelineSRGB;
 
 	// Hybrid pipelines
 	class MetalHybridComputePipeline* m_copyTextureToTexturePipeline;

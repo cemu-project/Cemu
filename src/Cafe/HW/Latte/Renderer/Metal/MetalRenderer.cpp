@@ -15,6 +15,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
+#include "Metal/MTLPixelFormat.hpp"
 #include "gui/guiWrapper.h"
 
 extern bool hasValidFramebufferAttached;
@@ -45,13 +46,13 @@ MetalRenderer::MetalRenderer()
     {
         for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
         {
-            m_state.uniformBufferOffsets[i][j] = INVALID_OFFSET;
+            m_state.m_uniformBufferOffsets[i][j] = INVALID_OFFSET;
         }
     }
 
     // Utility shader source
     NS::Error* error = nullptr;
-	m_utilityLibrary = m_device->newLibrary(NS::String::string(utilityShaderSource, NS::ASCIIStringEncoding), nullptr, &error);
+	MTL::Library* utilityLibrary = m_device->newLibrary(NS::String::string(utilityShaderSource, NS::ASCIIStringEncoding), nullptr, &error);
 	if (error)
     {
         debug_printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
@@ -59,17 +60,46 @@ MetalRenderer::MetalRenderer()
         return;
     }
 
+    // Present pipeline
+    MTL::Function* presentVertexFunction = utilityLibrary->newFunction(NS::String::string("vertexFullscreen", NS::ASCIIStringEncoding));
+    MTL::Function* presentFragmentFunction = utilityLibrary->newFunction(NS::String::string("fragmentPresent", NS::ASCIIStringEncoding));
+
+    MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+    renderPipelineDescriptor->setVertexFunction(presentVertexFunction);
+    renderPipelineDescriptor->setFragmentFunction(presentFragmentFunction);
+    presentVertexFunction->release();
+    presentFragmentFunction->release();
+
+    error = nullptr;
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+    m_presentPipelineLinear = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
+    if (error)
+    {
+        debug_printf("failed to create linear present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
+        error->release();
+    }
+
+    error = nullptr;
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+    m_presentPipelineSRGB = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
+    renderPipelineDescriptor->release();
+    if (error)
+    {
+        debug_printf("failed to create sRGB present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
+        error->release();
+    }
+
     // Hybrid pipelines
-    m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, m_utilityLibrary, "vertexCopyTextureToTexture", "kernelCopyTextureToTexture");
+    m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture", "kernelCopyTextureToTexture");
+    utilityLibrary->release();
 }
 
 MetalRenderer::~MetalRenderer()
 {
     delete m_copyTextureToTexturePipeline;
 
-    m_presentPipeline->release();
-
-    m_utilityLibrary->release();
+    m_presentPipelineLinear->release();
+    m_presentPipelineSRGB->release();
 
     delete m_depthStencilCache;
     delete m_pipelineCache;
@@ -90,29 +120,6 @@ void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 
     m_metalLayer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle);
     m_metalLayer->setDevice(m_device);
-    // TODO: don't always force sRGB
-    // TODO: shouldn't this be handled differently?
-    m_metalLayer->setPixelFormat(MTL::PixelFormatRGBA8Unorm/*_sRGB*/);
-
-    // Present pipeline
-    MTL::Function* presentVertexFunction = m_utilityLibrary->newFunction(NS::String::string("vertexFullscreen", NS::ASCIIStringEncoding));
-    MTL::Function* presentFragmentFunction = m_utilityLibrary->newFunction(NS::String::string("fragmentPresent", NS::ASCIIStringEncoding));
-
-    MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-    renderPipelineDescriptor->setVertexFunction(presentVertexFunction);
-    renderPipelineDescriptor->setFragmentFunction(presentFragmentFunction);
-    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_metalLayer->pixelFormat());
-
-    NS::Error* error = nullptr;
-    m_presentPipeline = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
-    renderPipelineDescriptor->release();
-    presentVertexFunction->release();
-    presentFragmentFunction->release();
-    if (error)
-    {
-        debug_printf("failed to create present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
-        error->release();
-    }
 }
 
 void MetalRenderer::Initialize()
@@ -146,7 +153,7 @@ bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 
 void MetalRenderer::ClearColorbuffer(bool padView)
 {
-    if (!AcquireNextDrawable())
+    if (!AcquireNextDrawable(!padView))
         return;
 
     ClearColorTextureInternal(m_drawable->texture(), 0, 0, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -183,8 +190,11 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
 {
-    if (!AcquireNextDrawable())
+    if (!AcquireNextDrawable(!padView))
         return;
+
+	if (clearBackground)
+		ClearColorbuffer(padView);
 
     MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetRGBAView();
 
@@ -199,7 +209,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     renderPassDescriptor->release();
 
     // Draw to Metal layer
-    renderCommandEncoder->setRenderPipelineState(m_presentPipeline);
+    renderCommandEncoder->setRenderPipelineState(m_state.m_usesSRGB ? m_presentPipelineSRGB : m_presentPipelineLinear);
     renderCommandEncoder->setFragmentTexture(presentTexture, 0);
     renderCommandEncoder->setFragmentSamplerState(m_nearestSampler, 0);
 
@@ -208,7 +218,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
 {
-    return AcquireNextDrawable();
+    return AcquireNextDrawable(mainWindow);
 }
 
 void MetalRenderer::Flush(bool waitIdle)
@@ -234,19 +244,19 @@ void MetalRenderer::AppendOverlayDebugInfo()
 
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
 {
-    m_state.viewport = MTL::Viewport{x, y, width, height, nearZ, farZ};
+    m_state.m_viewport = MTL::Viewport{x, y, width, height, nearZ, farZ};
     if (m_encoderType == MetalEncoderType::Render)
     {
-        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setViewport(m_state.viewport);
+        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setViewport(m_state.m_viewport);
     }
 }
 
 void MetalRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, sint32 scissorWidth, sint32 scissorHeight)
 {
-    m_state.scissor = MTL::ScissorRect{NS::UInteger(scissorX), NS::UInteger(scissorY), NS::UInteger(scissorWidth), NS::UInteger(scissorHeight)};
+    m_state.m_scissor = MTL::ScissorRect{NS::UInteger(scissorX), NS::UInteger(scissorY), NS::UInteger(scissorWidth), NS::UInteger(scissorHeight)};
     if (m_encoderType == MetalEncoderType::Render)
     {
-        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setScissorRect(m_state.scissor);
+        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setScissorRect(m_state.m_scissor);
     }
 }
 
@@ -257,13 +267,13 @@ LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key)
 
 void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* cfbo)
 {
-	if (cfbo == (LatteCachedFBO*)m_state.activeFBO)
-		m_state.activeFBO = nullptr;
+	if (cfbo == (LatteCachedFBO*)m_state.m_activeFBO)
+	m_state.m_activeFBO = nullptr;
 }
 
 void MetalRenderer::rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo)
 {
-	m_state.activeFBO = (CachedFBOMtl*)cfbo;
+	m_state.m_activeFBO = (CachedFBOMtl*)cfbo;
 }
 
 void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
@@ -347,7 +357,7 @@ LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR phys
 
 void MetalRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit)
 {
-    m_state.textures[textureUnit] = static_cast<LatteTextureViewMtl*>(textureView);
+    m_state.m_textures[textureUnit] = static_cast<LatteTextureViewMtl*>(textureView);
 }
 
 void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth_)
@@ -531,7 +541,7 @@ void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
 {
     cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
-    auto& buffer = m_state.vertexBuffers[bufferIndex];
+    auto& buffer = m_state.m_vertexBuffers[bufferIndex];
 	if (buffer.offset == offset && buffer.size == size)
 		return;
 
@@ -550,7 +560,7 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
 {
-    m_state.uniformBufferOffsets[(uint32)shaderType][bufferIndex] = offset;
+    m_state.m_uniformBufferOffsets[(uint32)shaderType][bufferIndex] = offset;
 }
 
 RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
@@ -575,14 +585,14 @@ void MetalRenderer::streamout_rendererFinishDrawcall()
 
 void MetalRenderer::draw_beginSequence()
 {
-    m_state.skipDrawSequence = false;
+    m_state.m_skipDrawSequence = false;
 
     // update shader state
 	LatteSHRC_UpdateActiveShaders();
 	if (LatteGPUState.activeShaderHasError)
 	{
 		debug_printf("Skipping drawcalls due to shader error\n");
-		m_state.skipDrawSequence = true;
+		m_state.m_skipDrawSequence = true;
 		cemu_assert_debug(false);
 		return;
 	}
@@ -595,14 +605,14 @@ void MetalRenderer::draw_beginSequence()
 		if (!LatteMRT::UpdateCurrentFBO())
 		{
 			debug_printf("Rendertarget invalid\n");
-			m_state.skipDrawSequence = true;
+			m_state.m_skipDrawSequence = true;
 			return; // no render target
 		}
 
 		if (!hasValidFramebufferAttached)
 		{
 			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
-			m_state.skipDrawSequence = true;
+			m_state.m_skipDrawSequence = true;
 			return; // no render target
 		}
 		LatteTexture_updateTextures();
@@ -626,7 +636,7 @@ void MetalRenderer::draw_beginSequence()
 		rasterizerEnable = true;
 
 	if (!rasterizerEnable == false)
-		m_state.skipDrawSequence = true;
+		m_state.m_skipDrawSequence = true;
 }
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
@@ -637,24 +647,24 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	//}
 
 	// Render pass
-	if (!m_state.activeFBO)
+	if (!m_state.m_activeFBO)
 	{
 	    debug_printf("no active FBO, skipping draw\n");
 	    return;
 	}
 
-	auto renderPassDescriptor = m_state.activeFBO->GetRenderPassDescriptor();
+	auto renderPassDescriptor = m_state.m_activeFBO->GetRenderPassDescriptor();
 	MTL::Texture* colorRenderTargets[8] = {nullptr};
 	MTL::Texture* depthRenderTarget = nullptr;
 	for (uint32 i = 0; i < 8; i++)
     {
-        auto colorTexture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->colorBuffer[i].texture);
+        auto colorTexture = static_cast<LatteTextureViewMtl*>(m_state.m_activeFBO->colorBuffer[i].texture);
         if (colorTexture)
         {
             colorRenderTargets[i] = colorTexture->GetRGBAView();
         }
     }
-    auto depthTexture = static_cast<LatteTextureViewMtl*>(m_state.activeFBO->depthBuffer.texture);
+    auto depthTexture = static_cast<LatteTextureViewMtl*>(m_state.m_activeFBO->depthBuffer.texture);
     if (depthTexture)
     {
         depthRenderTarget = depthTexture->GetRGBAView();
@@ -672,7 +682,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.lastUsedFBO, LatteGPUState.contextNew);
+	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
 	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Depth stencil state
@@ -758,7 +768,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Vertex buffers
     for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
     {
-        auto& vertexBufferRange = m_state.vertexBuffers[i];
+        auto& vertexBufferRange = m_state.m_vertexBuffers[i];
         if (vertexBufferRange.offset != INVALID_OFFSET)
         {
             // Restride
@@ -846,7 +856,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
                 bool needsNewRenderPass = false;
                 for (uint8 i = 0; i < 8; i++)
                 {
-                    if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.colorRenderTargets[i]))
+                    if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.m_colorRenderTargets[i]))
                     {
                         needsNewRenderPass = true;
                         break;
@@ -855,7 +865,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
 
                 if (!needsNewRenderPass)
                 {
-                    if (depthRenderTarget && (depthRenderTarget != m_state.depthRenderTarget))
+                    if (depthRenderTarget && (depthRenderTarget != m_state.m_depthRenderTarget))
                     {
                         needsNewRenderPass = true;
                     }
@@ -872,12 +882,12 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
     }
 
     // Update state
-    m_state.lastUsedFBO = m_state.activeFBO;
+    m_state.m_lastUsedFBO = m_state.m_activeFBO;
     for (uint8 i = 0; i < 8; i++)
     {
-        m_state.colorRenderTargets[i] = colorRenderTargets[i];
+        m_state.m_colorRenderTargets[i] = colorRenderTargets[i];
     }
-    m_state.depthRenderTarget = depthRenderTarget;
+    m_state.m_depthRenderTarget = depthRenderTarget;
 
     auto renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
     m_commandEncoder = renderCommandEncoder;
@@ -959,8 +969,15 @@ void MetalRenderer::CommitCommandBuffer()
     }
 }
 
-bool MetalRenderer::AcquireNextDrawable()
+bool MetalRenderer::AcquireNextDrawable(bool mainWindow)
 {
+    const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
+    if (latteBufferUsesSRGB != m_state.m_usesSRGB)
+    {
+        m_metalLayer->setPixelFormat(latteBufferUsesSRGB ? MTL::PixelFormatRGBA8Unorm_sRGB : MTL::PixelFormatRGBA8Unorm);
+        m_state.m_usesSRGB = latteBufferUsesSRGB;
+    }
+
     if (m_drawable)
     {
         // TODO: should this be true?
@@ -1005,7 +1022,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 			UNREACHABLE;
 		}
 
-		auto textureView = m_state.textures[hostTextureUnit];
+		auto textureView = m_state.m_textures[hostTextureUnit];
 		if (!textureView)
 		{
 		    debug_printf("invalid bound texture view %u\n", hostTextureUnit);
@@ -1283,7 +1300,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
     		    debug_printf("too big buffer index (%u), skipping binding\n", binding);
     			continue;
     		}
-    		size_t offset = m_state.uniformBufferOffsets[(uint32)shader->shaderType][i];
+    		size_t offset = m_state.m_uniformBufferOffsets[(uint32)shader->shaderType][i];
     		if (offset != INVALID_OFFSET)
     		{
      			switch (shader->shaderType)
@@ -1329,49 +1346,15 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder)
 {
     // Viewport
-    //if (m_state.viewport.width != 0.0)
-    //{
-    renderCommandEncoder->setViewport(m_state.viewport);
-    /*
-    }
-    else
-    {
-        // Find the framebuffer dimensions
-        uint32 framebufferWidth = 0, framebufferHeight = 0;
-        if (m_state.activeFBO->hasDepthBuffer())
-        {
-            framebufferHeight = m_state.activeFBO->depthBuffer.texture->baseTexture->width;
-            framebufferHeight = m_state.activeFBO->depthBuffer.texture->baseTexture->height;
-        }
-        else
-        {
-            for (uint8 i = 0; i < 8; i++)
-            {
-                auto texture = m_state.activeFBO->colorBuffer[i].texture;
-                if (texture)
-                {
-                    framebufferWidth = texture->baseTexture->width;
-                    framebufferHeight = texture->baseTexture->height;
-                    break;
-                }
-            }
-        }
-
-        MTL::Viewport viewport{0, (double)framebufferHeight, (double)framebufferWidth, -(double)framebufferHeight, 0.0, 1.0};
-        renderCommandEncoder->setViewport(viewport);
-    }
-    */
+    renderCommandEncoder->setViewport(m_state.m_viewport);
 
     // Scissor
-    //if (m_state.scissor.width != 0)
-    //{
-    renderCommandEncoder->setScissorRect(m_state.scissor);
-    //}
+    renderCommandEncoder->setScissorRect(m_state.m_scissor);
 
     // Vertex buffers
 	for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
 	{
-	    auto& vertexBufferRange = m_state.vertexBuffers[i];
+	    auto& vertexBufferRange = m_state.m_vertexBuffers[i];
 	    if (vertexBufferRange.offset != INVALID_OFFSET)
             vertexBufferRange.needsRebind = true;
 	}
