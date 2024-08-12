@@ -60,14 +60,12 @@ MetalRenderer::MetalRenderer()
     }
 
     // Hybrid pipelines
-    m_copyDepthToColorPipeline = new MetalHybridComputePipeline(this, m_utilityLibrary, "vertexCopyDepthToColor", "kernelCopyDepthToColor");
-    m_copyColorToDepthPipeline = new MetalHybridComputePipeline(this, m_utilityLibrary, "vertexCopyColorToDepth", "kernelCopyColorToDepth");
+    m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, m_utilityLibrary, "vertexCopyTextureToTexture", "kernelCopyTextureToTexture");
 }
 
 MetalRenderer::~MetalRenderer()
 {
-    delete m_copyDepthToColorPipeline;
-    delete m_copyColorToDepthPipeline;
+    delete m_copyTextureToTexturePipeline;
 
     m_presentPipeline->release();
 
@@ -476,26 +474,28 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 		return;
 	}
 
-	MetalHybridComputePipeline* copyPipeline;
-	if (srcTextureMtl->IsDepth())
-	    copyPipeline = m_copyDepthToColorPipeline;
-	else
-	    copyPipeline = m_copyColorToDepthPipeline;
-
 	MTL::Texture* textures[] = {srcTextureMtl->GetTexture(), dstTextureMtl->GetTexture()};
+
+	struct CopyParams
+	{
+	    uint32 width;
+		uint32 srcMip;
+		uint32 srcSlice;
+		uint32 dstMip;
+		uint32 dstSlice;
+	} params{(uint32)effectiveCopyWidth, (uint32)texSrcMip, (uint32)texSrcSlice, (uint32)texDstMip, (uint32)texDstSlice};
 
 	if (m_encoderType == MetalEncoderType::Render)
 	{
 	    auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
 
-		renderCommandEncoder->setRenderPipelineState(copyPipeline->GetRenderPipelineState());
+		renderCommandEncoder->setRenderPipelineState(m_copyTextureToTexturePipeline->GetRenderPipelineState());
 
 		renderCommandEncoder->setViewport(MTL::Viewport{0.0, 0.0, (double)effectiveCopyWidth, (double)effectiveCopyHeight, 0.0, 1.0});
 		renderCommandEncoder->setScissorRect(MTL::ScissorRect{0, 0, (uint32)effectiveCopyWidth, (uint32)effectiveCopyHeight});
 
 		renderCommandEncoder->setVertexTextures(textures, NS::Range(0, 2));
-		renderCommandEncoder->setVertexBytes(&effectiveCopyWidth, sizeof(uint32), 0);
-		// TODO: set slices and mips
+		renderCommandEncoder->setVertexBytes(&params, sizeof(params), 0);
 
 		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 	}

@@ -96,6 +96,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         // TODO: use compute/void vertex function instead
         size_t newStride = Align(stride, 4);
         size_t newSize = vertexBufferRange.size / stride * newStride;
+        // TODO: use one big buffer for all restrided buffers
         restrideInfo.buffer = m_mtlr->GetDevice()->newBuffer(newSize, MTL::StorageModeShared);
 
         uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;

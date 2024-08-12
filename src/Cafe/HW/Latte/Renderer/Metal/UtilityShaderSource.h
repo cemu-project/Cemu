@@ -22,13 +22,16 @@ inline const char* utilityShaderSource = \
 "   return tex.sample(samplr, in.texCoord);\n" \
 "}\n" \
 "\n" \
-"vertex void vertexCopyDepthToColor(uint vid [[vertex_id]], depth2d<float, access::read> src [[texture(0)]], texture2d<float, access::write> dst [[texture(1)]], constant uint& copyWidth) {\n" \
-"   uint2 coord = uint2(vid % copyWidth, vid / copyWidth);\n" \
-"   return dst.write(float4(src.read(coord), 0.0, 0.0, 0.0), coord);\n" \
-"}\n" \
+"struct CopyParams {\n" \
+"   uint width;\n" \
+"   uint srcMip;\n" \
+"   uint srcSlice;\n" \
+"   uint dstMip;\n" \
+"   uint dstSlice;\n" \
+"};\n" \
 "\n" \
-"vertex void vertexCopyColorToDepth(uint vid [[vertex_id]], texture2d<float, access::read> src [[texture(0)]], texture2d<float, access::write> dst [[texture(1)]], constant uint& copyWidth) {\n" \
-"   uint2 coord = uint2(vid % copyWidth, vid / copyWidth);\n" \
-"   return dst.write(float4(src.read(coord).r), coord);\n" \
+"vertex void vertexCopyTextureToTexture(uint vid [[vertex_id]], texture2d_array<float, access::read> src [[texture(0)]], texture2d_array<float, access::write> dst [[texture(1)]], constant CopyParams& params) {\n" \
+"   uint2 coord = uint2(vid % params.width, vid / params.width);\n" \
+"   return dst.write(float4(src.read(coord, params.srcSlice, params.srcMip).r, 0.0, 0.0, 0.0), coord, params.dstSlice, params.dstMip);\n" \
 "}\n" \
 "\n";
