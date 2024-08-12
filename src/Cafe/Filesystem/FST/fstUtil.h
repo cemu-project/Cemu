@@ -3,6 +3,8 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include "../fsc.h"
+
 // path parser and utility class for Wii U paths
 // optimized to be allocation-free for common path lengths
 class FSCPath
@@ -119,9 +121,7 @@ public:
 template<typename F>
 class FSAFileTree
 {
-public:
-
-private:
+  private:
 
 	enum NODETYPE : uint8
 	{
@@ -133,6 +133,7 @@ private:
 	{
 		std::string name;
 		std::vector<node_t*> subnodes;
+		size_t fileSize;
 		F* custom;
 		NODETYPE type;
 	};
@@ -179,13 +180,54 @@ private:
 		return newNode;
 	}
 
+	class DirectoryIterator : public FSCVirtualFile
+	{
+	  public:
+		DirectoryIterator(node_t* node)
+			: m_node(node), m_subnodeIndex(0)
+		{
+		}
+
+		sint32 fscGetType() override
+		{
+			return FSC_TYPE_DIRECTORY;
+		}
+
+		bool fscDirNext(FSCDirEntry* dirEntry) override
+		{
+			if (m_subnodeIndex >= m_node->subnodes.size())
+				return false;
+
+			const node_t* subnode = m_node->subnodes[m_subnodeIndex];
+
+			strncpy(dirEntry->path, subnode->name.c_str(), sizeof(dirEntry->path) - 1);
+			dirEntry->path[sizeof(dirEntry->path) - 1] = '\0';
+			dirEntry->isDirectory = subnode->type == FSAFileTree::NODETYPE_DIRECTORY;
+			dirEntry->isFile = subnode->type == FSAFileTree::NODETYPE_FILE;
+			dirEntry->fileSize = subnode->type == FSAFileTree::NODETYPE_FILE ? subnode->fileSize : 0;
+
+			++m_subnodeIndex;
+			return true;
+		}
+
+		bool fscRewindDir() override
+		{
+			m_subnodeIndex = 0;
+			return true;
+		}
+
+	  private:
+		node_t* m_node;
+		size_t m_subnodeIndex;
+	};
+
 public:
 	FSAFileTree()
 	{
 		rootNode.type = NODETYPE_DIRECTORY;
 	}
 
-	bool addFile(std::string_view path, F* custom)
+	bool addFile(std::string_view path, size_t fileSize, F* custom)
 	{
 		FSCPath p(path);
 		if (p.GetNodeCount() == 0)
@@ -196,6 +238,7 @@ public:
 			return false; // node already exists
 		// add file node
 		node_t* fileNode = newNode(directoryNode, NODETYPE_FILE, p.GetNodeName(p.GetNodeCount() - 1));
+		fileNode->fileSize = fileSize;
 		fileNode->custom = custom;
 		return true;
 	}
@@ -211,6 +254,20 @@ public:
 		if (node->type != NODETYPE_FILE)
 			return false;
 		custom = node->custom;
+		return true;
+	}
+
+	bool getDirectory(std::string_view path, FSCVirtualFile*& dirIterator)
+	{
+		FSCPath p(path);
+		if (p.GetNodeCount() == 0)
+			return false;
+		node_t* node = getByNodePath(p, p.GetNodeCount(), false);
+		if (node == nullptr)
+			return false;
+		if (node->type != NODETYPE_DIRECTORY)
+			return false;
+		dirIterator = new DirectoryIterator(node);
 		return true;
 	}
 
