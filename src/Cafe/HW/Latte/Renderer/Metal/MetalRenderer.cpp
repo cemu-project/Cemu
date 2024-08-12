@@ -15,8 +15,11 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
+#include "Common/precompiled.h"
 #include "Metal/MTLPixelFormat.hpp"
 #include "gui/guiWrapper.h"
+
+#define COMMIT_TRESHOLD 256
 
 extern bool hasValidFramebufferAttached;
 
@@ -113,7 +116,7 @@ MetalRenderer::~MetalRenderer()
     m_device->release();
 }
 
-// TODO: don't ignore "mainWindow" argument
+// TODO: don't ignore "mainWindow" argument and respect size
 void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 {
     const auto& windowInfo = gui_getWindowInfo().window_main;
@@ -168,19 +171,23 @@ void MetalRenderer::DrawEmptyFrame(bool mainWindow)
 
 void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
-    EndEncoding();
 
     if (m_drawable)
     {
-        EnsureCommandBuffer();
-        m_commandBuffer->presentDrawable(m_drawable);
-    } else
+        auto commandBuffer = GetCommandBuffer();
+        commandBuffer->presentDrawable(m_drawable);
+    }
+    else
     {
         debug_printf("skipped present!\n");
     }
     m_drawable = nullptr;
 
+    // Release all the command buffers
     CommitCommandBuffer();
+    for (uint32 i = 0; i < m_commandBuffers.size(); i++)
+        m_commandBuffers[i].m_commandBuffer->release();
+    m_commandBuffers.clear();
 
     // Reset temporary buffers
     m_memoryManager->ResetTemporaryBuffers();
@@ -223,18 +230,20 @@ bool MetalRenderer::BeginFrame(bool mainWindow)
 
 void MetalRenderer::Flush(bool waitIdle)
 {
-    // TODO: should we?
-    CommitCommandBuffer();
+    // TODO: commit if commit on idle is requested
+    if (m_recordedDrawcalls > 0)
+        CommitCommandBuffer();
     if (waitIdle)
     {
-        // TODO
+        // TODO: shouldn't we wait for all command buffers?
+        WaitForCommandBufferCompletion(GetCurrentCommandBuffer());
     }
 }
 
 void MetalRenderer::NotifyLatteCommandProcessorIdle()
 {
-    // TODO: should we?
-    CommitCommandBuffer();
+    // TODO: commit if commit on idle is requested
+    //CommitCommandBuffer();
 }
 
 void MetalRenderer::AppendOverlayDebugInfo()
@@ -452,7 +461,7 @@ LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView
 
 void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
 {
-    EnsureCommandBuffer();
+    GetCommandBuffer();
 
     // scale copy size to effective size
 	sint32 effectiveCopyWidth = width;
@@ -809,11 +818,15 @@ void MetalRenderer::draw_endSequence()
 	if (pixelShader)
 		LatteRenderTarget_trackUpdates();
 	bool hasReadback = LatteTextureReadback_Update();
-	//m_recordedDrawcalls++;
-	//if (m_recordedDrawcalls >= m_submitThreshold || hasReadback)
-	//{
-	//	SubmitCommandBuffer();
-	//}
+	m_recordedDrawcalls++;
+	// The number of draw calls needs to twice as big, since we are interrupting the render pass
+	if (m_recordedDrawcalls >= COMMIT_TRESHOLD * 2 || hasReadback)
+	{
+		CommitCommandBuffer();
+
+        // TODO: where should this be called?
+        LatteTextureReadback_UpdateFinishedTransfers(false);
+	}
 }
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
@@ -830,22 +843,38 @@ void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
     // Do nothing, since the buffer has shared storage mode
 }
 
-void MetalRenderer::EnsureCommandBuffer()
+MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 {
-    if (!m_commandBuffer)
+    bool needsNewCommandBuffer = (m_commandBuffers.empty() || m_commandBuffers.back().m_commited);
+    if (needsNewCommandBuffer)
 	{
         // Debug
         //m_commandQueue->insertDebugCaptureBoundary();
 
-	    m_commandBuffer = m_commandQueue->commandBuffer();
+	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
+		m_commandBuffers.push_back({mtlCommandBuffer});
+
+		return mtlCommandBuffer;
 	}
+	else
+	{
+	    return m_commandBuffers.back().m_commandBuffer;
+	}
+}
+
+bool MetalRenderer::CommandBufferCompleted(MTL::CommandBuffer* commandBuffer)
+{
+    return commandBuffer->status() == MTL::CommandBufferStatusCompleted;
+}
+
+void MetalRenderer::WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer)
+{
+    commandBuffer->waitUntilCompleted();
 }
 
 // Some render passes clear the attachments, forceRecreate is supposed to be used in those cases
 MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate, bool rebindStateIfNewEncoder)
 {
-    EnsureCommandBuffer();
-
     // Check if we need to begin a new render pass
     if (m_commandEncoder)
     {
@@ -881,6 +910,8 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
         EndEncoding();
     }
 
+    auto commandBuffer = GetCommandBuffer();
+
     // Update state
     m_state.m_lastUsedFBO = m_state.m_activeFBO;
     for (uint8 i = 0; i < 8; i++)
@@ -889,7 +920,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
     }
     m_state.m_depthRenderTarget = depthRenderTarget;
 
-    auto renderCommandEncoder = m_commandBuffer->renderCommandEncoder(renderPassDescriptor);
+    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
     m_commandEncoder = renderCommandEncoder;
     m_encoderType = MetalEncoderType::Render;
 
@@ -914,7 +945,9 @@ MTL::ComputeCommandEncoder* MetalRenderer::GetComputeCommandEncoder()
         EndEncoding();
     }
 
-    auto computeCommandEncoder = m_commandBuffer->computeCommandEncoder();
+    auto commandBuffer = GetCommandBuffer();
+
+    auto computeCommandEncoder = commandBuffer->computeCommandEncoder();
     m_commandEncoder = computeCommandEncoder;
     m_encoderType = MetalEncoderType::Compute;
 
@@ -933,7 +966,9 @@ MTL::BlitCommandEncoder* MetalRenderer::GetBlitCommandEncoder()
         EndEncoding();
     }
 
-    auto blitCommandEncoder = m_commandBuffer->blitCommandEncoder();
+    auto commandBuffer = GetCommandBuffer();
+
+    auto blitCommandEncoder = commandBuffer->blitCommandEncoder();
     m_commandEncoder = blitCommandEncoder;
     m_encoderType = MetalEncoderType::Blit;
 
@@ -942,30 +977,35 @@ MTL::BlitCommandEncoder* MetalRenderer::GetBlitCommandEncoder()
 
 void MetalRenderer::EndEncoding()
 {
-    if (m_commandEncoder)
+    if (m_encoderType != MetalEncoderType::None)
     {
         m_commandEncoder->endEncoding();
         m_commandEncoder->release();
-        m_commandEncoder = nullptr;
         m_encoderType = MetalEncoderType::None;
+
+        // Commit the command buffer if enough draw calls have been recorded
+        if (m_recordedDrawcalls >= COMMIT_TRESHOLD)
+            CommitCommandBuffer();
     }
 }
 
 void MetalRenderer::CommitCommandBuffer()
 {
-    EndEncoding();
+    m_recordedDrawcalls = 0;
 
-    if (m_commandBuffer)
+    if (m_commandBuffers.size() != 0)
     {
-        m_commandBuffer->commit();
-        m_commandBuffer->release();
-        m_commandBuffer = nullptr;
+        EndEncoding();
 
-        // TODO: where should this be called?
-        LatteTextureReadback_UpdateFinishedTransfers(false);
+        auto& commandBuffer = m_commandBuffers.back();
+        if (!commandBuffer.m_commited)
+        {
+            commandBuffer.m_commandBuffer->commit();
+            commandBuffer.m_commited = true;
 
-        // Debug
-        //m_commandQueue->insertDebugCaptureBoundary();
+            // Debug
+            //m_commandQueue->insertDebugCaptureBoundary();
+        }
     }
 }
 

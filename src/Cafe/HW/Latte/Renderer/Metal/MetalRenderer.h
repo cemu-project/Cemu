@@ -7,6 +7,8 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
+#include "Common/precompiled.h"
+#include "Metal/MTLCommandBuffer.hpp"
 
 #define MAX_MTL_BUFFERS 31
 #define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 2)
@@ -45,6 +47,12 @@ struct MetalState
 
     MTL::Viewport m_viewport = {0, 0, 0, 0, 0, 0};
     MTL::ScissorRect m_scissor = {0, 0, 0, 0};
+};
+
+struct MetalCommandBuffer
+{
+    MTL::CommandBuffer* m_commandBuffer;
+    bool m_commited = false;
 };
 
 enum class MetalEncoderType
@@ -231,7 +239,16 @@ public:
 	}
 
 	// Helpers
-	void EnsureCommandBuffer();
+	MTL::CommandBuffer* GetCurrentCommandBuffer()
+    {
+        cemu_assert_debug(m_commandBuffers.size() != 0);
+
+        return m_commandBuffers[m_commandBuffers.size() - 1].m_commandBuffer;
+    }
+
+	MTL::CommandBuffer* GetCommandBuffer();
+	bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer);
+	void WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer);
 	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate = false, bool rebindStateIfNewEncoder = true);
     MTL::ComputeCommandEncoder* GetComputeCommandEncoder();
     MTL::BlitCommandEncoder* GetBlitCommandEncoder();
@@ -280,7 +297,8 @@ private:
 	MTL::Buffer* m_xfbRingBuffer;
 
 	// Active objects
-	MTL::CommandBuffer* m_commandBuffer = nullptr;
+	std::vector<MetalCommandBuffer> m_commandBuffers;
+    uint32 m_recordedDrawcalls = 0;
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 	CA::MetalDrawable* m_drawable = nullptr;

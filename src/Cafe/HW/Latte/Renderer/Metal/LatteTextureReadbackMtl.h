@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Core/LatteTextureReadbackInfo.h"
 
 class LatteTextureReadbackInfoMtl : public LatteTextureReadbackInfo
@@ -17,6 +18,8 @@ public:
 
 private:
 	class MetalRenderer* m_mtlr;
+
+	MTL::CommandBuffer* m_commandBuffer = nullptr;
 
 	uint32 m_bufferOffset = 0;
 };
