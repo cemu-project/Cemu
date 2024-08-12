@@ -42,7 +42,13 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
         textureType = MTL::TextureType3D;
         break;
     case Latte::E_DIM::DIM_CUBEMAP:
-        textureType = MTL::TextureTypeCube; // TODO: check this
+        if (effectiveBaseDepth % 6 != 0)
+            debug_printf("cubemaps must have an array length multiple of 6, length: %u\n", effectiveBaseDepth);
+
+        if (effectiveBaseDepth <= 6)
+            textureType = MTL::TextureTypeCube;
+        else
+            textureType = MTL::TextureTypeCubeArray;
         break;
     default:
         cemu_assert_unimplemented();
@@ -55,7 +61,11 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	{
 		desc->setDepth(effectiveBaseDepth);
 	}
-	else if (textureType == MTL::TextureTypeCube || textureType == MTL::TextureTypeCubeArray)
+	else if (textureType == MTL::TextureTypeCube)
+	{
+	    // Do notjing
+	}
+	else if (textureType == MTL::TextureTypeCubeArray)
 	{
 		desc->setArrayLength(effectiveBaseDepth / 6);
 	}
