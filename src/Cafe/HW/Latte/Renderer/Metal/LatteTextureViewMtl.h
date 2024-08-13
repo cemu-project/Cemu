@@ -26,6 +26,7 @@ private:
 
 	class LatteTextureMtl* m_baseTexture;
 
+	MTL::Texture* m_rgbaView;
 	struct {
 	    uint32 key;
 	    MTL::Texture* texture;

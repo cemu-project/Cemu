@@ -934,7 +934,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	{
 		sint32 scaling_filter = downscaling ? GetConfig().downscale_filter : GetConfig().upscale_filter;
 
-		if (g_renderer->GetType() == RendererAPI::Vulkan)
+		if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
 		{
 			// force linear or nearest neighbor filter
 			if(scaling_filter != kLinearFilter && scaling_filter != kNearestNeighborFilter)

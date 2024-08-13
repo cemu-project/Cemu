@@ -699,6 +699,7 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 			cemu_assert_debug(false);
 		outputCount = count + 1;
 	}
+	/*
 	else if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN && g_renderer->GetType() == RendererAPI::Metal)
 	{
         if (indexType == LatteIndexType::AUTO)
@@ -722,6 +723,7 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
     		cemu_assert_debug(false);
     	outputCount = count;
 	}
+	*/
 	else
 	{
 		if (indexType == LatteIndexType::U16_BE)

@@ -6,10 +6,12 @@
 LatteTextureViewMtl::LatteTextureViewMtl(MetalRenderer* mtlRenderer, LatteTextureMtl* texture, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
 	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format), m_mtlr(mtlRenderer), m_baseTexture(texture)
 {
+    m_rgbaView = CreateSwizzledView(RGBA_SWIZZLE);
 }
 
 LatteTextureViewMtl::~LatteTextureViewMtl()
 {
+    m_rgbaView->release();
 	for (sint32 i = 0; i < std::size(m_viewCache); i++)
     {
         if (m_viewCache[i].key != INVALID_SWIZZLE)
@@ -30,7 +32,7 @@ MTL::Texture* LatteTextureViewMtl::GetSwizzledView(uint32 gpuSamplerSwizzle)
     // RGBA swizzle == no swizzle
     if (gpuSamplerSwizzle == RGBA_SWIZZLE)
     {
-        return m_baseTexture->GetTexture();
+        return m_rgbaView;
     }
 
     // First, try to find a view in the cache

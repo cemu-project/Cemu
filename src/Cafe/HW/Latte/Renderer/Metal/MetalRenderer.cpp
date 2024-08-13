@@ -16,7 +16,6 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
-#include "Metal/MTLPixelFormat.hpp"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -32,6 +31,10 @@ MetalRenderer::MetalRenderer()
 
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
     m_nearestSampler = m_device->newSamplerState(samplerDescriptor);
+
+    samplerDescriptor->setMinFilter(MTL::SamplerMinMagFilterLinear);
+    samplerDescriptor->setMagFilter(MTL::SamplerMinMagFilterLinear);
+    m_linearSampler = m_device->newSamplerState(samplerDescriptor);
     samplerDescriptor->release();
 
     m_memoryManager = new MetalMemoryManager(this);
@@ -109,6 +112,7 @@ MetalRenderer::~MetalRenderer()
     delete m_memoryManager;
 
     m_nearestSampler->release();
+    m_linearSampler->release();
 
     m_readbackBuffer->release();
 
@@ -200,25 +204,26 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     if (!AcquireNextDrawable(!padView))
         return;
 
-	if (clearBackground)
-		ClearColorbuffer(padView);
-
     MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetRGBAView();
 
     // Create render pass
     MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
-    renderPassDescriptor->colorAttachments()->object(0)->setTexture(m_drawable->texture());
+    auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+    colorAttachment->setTexture(m_drawable->texture());
+    // TODO: shouldn't it be LoadActionLoad when not clearing?
+    colorAttachment->setLoadAction(clearBackground ? MTL::LoadActionClear : MTL::LoadActionDontCare);
+    colorAttachment->setStoreAction(MTL::StoreActionStore);
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = m_drawable->texture();
     // If there was already an encoder with these attachment, we should set the viewport and scissor to default, but that shouldn't happen
-    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, false, false);
+    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, clearBackground, false);
     renderPassDescriptor->release();
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(m_state.m_usesSRGB ? m_presentPipelineSRGB : m_presentPipelineLinear);
     renderCommandEncoder->setFragmentTexture(presentTexture, 0);
-    renderCommandEncoder->setFragmentSamplerState(m_nearestSampler, 0);
+    renderCommandEncoder->setFragmentSamplerState((useLinearTexFilter ? m_linearSampler : m_nearestSampler), 0);
 
     renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 }
@@ -314,11 +319,19 @@ void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIn
 
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
 {
-    auto mtlTexture = (LatteTextureMtl*)hostTexture;
+    auto textureMtl = (LatteTextureMtl*)hostTexture;
 
-    size_t bytesPerRow = GetMtlTextureBytesPerRow(mtlTexture->GetFormat(), mtlTexture->IsDepth(), width);
-    size_t bytesPerImage = GetMtlTextureBytesPerImage(mtlTexture->GetFormat(), mtlTexture->IsDepth(), height, bytesPerRow);
-    mtlTexture->GetTexture()->replaceRegion(MTL::Region(0, 0, width, height), mipIndex, sliceIndex, pixelData, bytesPerRow, bytesPerImage);
+    uint32 offsetZ = 0;
+    if (textureMtl->Is3DTexture())
+    {
+        offsetZ = sliceIndex;
+        sliceIndex = 0;
+    }
+
+    size_t bytesPerRow = GetMtlTextureBytesPerRow(textureMtl->GetFormat(), textureMtl->IsDepth(), width);
+    // No need to calculate bytesPerImage for 3D textures, since we always load just one slice
+    //size_t bytesPerImage = GetMtlTextureBytesPerImage(textureMtl->GetFormat(), textureMtl->IsDepth(), height, bytesPerRow);
+    textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);
 }
 
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
@@ -409,11 +422,12 @@ void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, s
 
 	// If copying whole textures, we can do a more efficient copy
     if (effectiveSrcX == 0 && effectiveSrcY == 0 && effectiveDstX == 0 && effectiveDstY == 0 &&
-        effectiveCopyWidth == src->GetMipWidth(srcMip) && effectiveCopyHeight == src->GetMipHeight(srcMip) &&
-        effectiveCopyWidth == dst->GetMipWidth(dstMip) && effectiveCopyHeight == dst->GetMipHeight(dstMip) &&
+        srcOffsetZ == 0 && dstOffsetZ == 0 &&
+        effectiveCopyWidth == src->GetMipWidth(srcMip) && effectiveCopyHeight == src->GetMipHeight(srcMip) && srcDepth == src->GetMipDepth(srcMip) &&
+        effectiveCopyWidth == dst->GetMipWidth(dstMip) && effectiveCopyHeight == dst->GetMipHeight(dstMip) && dstDepth == dst->GetMipDepth(dstMip) &&
         srcLayerCount == dstLayerCount)
     {
-        blitCommandEncoder->copyFromTexture(mtlSrc, srcSlice, srcMip, mtlDst, dstSlice, dstMip, srcLayerCount, 1);
+        blitCommandEncoder->copyFromTexture(mtlSrc, srcBaseLayer, srcMip, mtlDst, dstBaseLayer, dstMip, srcLayerCount, 1);
     }
     else
     {
@@ -421,7 +435,7 @@ void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, s
         {
             for (uint32 i = 0; i < srcLayerCount; i++)
             {
-                blitCommandEncoder->copyFromTexture(mtlSrc, srcSlice + i, srcMip, MTL::Origin(effectiveSrcX, effectiveSrcY, srcOffsetZ), MTL::Size(effectiveCopyWidth, effectiveCopyHeight, 1), mtlDst, dstSlice + i, dstMip, MTL::Origin(effectiveDstX, effectiveDstY, dstOffsetZ));
+                blitCommandEncoder->copyFromTexture(mtlSrc, srcBaseLayer + i, srcMip, MTL::Origin(effectiveSrcX, effectiveSrcY, srcOffsetZ), MTL::Size(effectiveCopyWidth, effectiveCopyHeight, srcDepth), mtlDst, dstBaseLayer + i, dstMip, MTL::Origin(effectiveDstX, effectiveDstY, dstOffsetZ));
             }
         }
         else
@@ -438,7 +452,7 @@ void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, s
                 else
                     dstSlice++;
 
-                blitCommandEncoder->copyFromTexture(mtlSrc, srcSlice, srcMip, MTL::Origin(effectiveSrcX, effectiveSrcY, srcOffsetZ), MTL::Size(effectiveCopyWidth, effectiveCopyHeight, 1), mtlDst, dstSlice, dstMip, MTL::Origin(effectiveDstX, effectiveDstY, dstOffsetZ));
+                blitCommandEncoder->copyFromTexture(mtlSrc, srcBaseLayer, srcMip, MTL::Origin(effectiveSrcX, effectiveSrcY, srcOffsetZ), MTL::Size(effectiveCopyWidth, effectiveCopyHeight, 1), mtlDst, dstBaseLayer, dstMip, MTL::Origin(effectiveDstX, effectiveDstY, dstOffsetZ));
             }
         }
     }

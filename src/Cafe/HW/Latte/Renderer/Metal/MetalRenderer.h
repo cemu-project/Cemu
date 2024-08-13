@@ -288,6 +288,7 @@ private:
 
 	// Basic
 	MTL::SamplerState* m_nearestSampler;
+	MTL::SamplerState* m_linearSampler;
 
 	// Texture readback
 	MTL::Buffer* m_readbackBuffer;
