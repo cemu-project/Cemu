@@ -27,6 +27,8 @@ uint64 HighResolutionTimer::m_freq = []() -> uint64 {
 	LARGE_INTEGER freq;
 	QueryPerformanceFrequency(&freq);
 	return (uint64)(freq.QuadPart);
+#elif BOOST_OS_MACOS
+	return 1000000000;
 #else
     timespec pc;
     clock_getres(CLOCK_MONOTONIC_RAW, &pc);
