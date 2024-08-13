@@ -2748,10 +2748,10 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
-	const bool enable_present_wait = m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued != 0;
+	const bool enablePresentWait = m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued != 0;
 
 	// if present_wait is available, use it to limit CPU run-ahead
-	if (enable_present_wait)
+	if (enablePresentWait)
 	{
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
 		presentId.swapchainCount = 1;
@@ -2768,7 +2768,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(enable_present_wait && result == VK_SUCCESS)
+	if(enablePresentWait && result == VK_SUCCESS)
 	{
 		chainInfo.m_numQueued++;
 		chainInfo.m_presentId++;
