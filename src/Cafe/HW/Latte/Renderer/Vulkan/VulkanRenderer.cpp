@@ -2212,6 +2212,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->decoder = TextureDecoder_R32_G32_B32_A32_UINT::getInstance();
 			break;
 		case Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT:
+		case Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT | Latte::E_GX2SURFFMT::FMT_BIT_SRGB: // Seen in Sonic Transformed level Starry Speedway. SRGB should just be ignored for native float formats?
 			formatInfoOut->vkImageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 			formatInfoOut->decoder = TextureDecoder_R16_G16_B16_A16_FLOAT::getInstance();
 			break;
