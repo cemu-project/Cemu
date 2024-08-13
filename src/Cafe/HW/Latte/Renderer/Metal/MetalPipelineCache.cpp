@@ -169,6 +169,16 @@ uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchSh
 {
     // Hash
     uint64 stateHash = 0;
+    for (int i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; ++i)
+	{
+		auto textureView = static_cast<LatteTextureViewMtl*>(activeFBO->colorBuffer[i].texture);
+		if (!textureView)
+		    continue;
+
+		stateHash += textureView->GetRGBAView()->pixelFormat() + i * 31;
+		stateHash = std::rotl<uint64>(stateHash, 7);
+	}
+
 	for (auto& group : fetchShader->bufferGroups)
 	{
 		uint32 bufferStride = group.getCurrentBufferStride(lcr.GetRawView());

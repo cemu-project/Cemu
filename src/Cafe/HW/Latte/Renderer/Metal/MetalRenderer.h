@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLCommandBuffer.hpp"
+#include "Metal/MTLRenderPass.hpp"
 
 #define MAX_MTL_BUFFERS 31
 #define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 2)
@@ -41,9 +42,6 @@ struct MetalState
     // TODO: find out what is the max number of bound textures on the Wii U
     class LatteTextureViewMtl* m_textures[64] = {nullptr};
     size_t m_uniformBufferOffsets[(uint32)LatteConst::ShaderType::TotalCount][MAX_MTL_BUFFERS];
-
-    MTL::Texture* m_colorRenderTargets[8] = {nullptr};
-    MTL::Texture* m_depthRenderTarget = nullptr;
 
     MTL::Viewport m_viewport = {0, 0, 0, 0, 0, 0};
     MTL::ScissorRect m_scissor = {0, 0, 0, 0};
@@ -249,7 +247,8 @@ public:
 	MTL::CommandBuffer* GetCommandBuffer();
 	bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer);
 	void WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer);
-	MTL::RenderCommandEncoder* GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate = false, bool rebindStateIfNewEncoder = true);
+	MTL::RenderCommandEncoder* GetTemporaryRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor);
+	MTL::RenderCommandEncoder* GetRenderCommandEncoder(bool forceRecreate = false, bool rebindStateIfNewEncoder = true);
     MTL::ComputeCommandEncoder* GetComputeCommandEncoder();
     MTL::BlitCommandEncoder* GetBlitCommandEncoder();
     void EndEncoding();

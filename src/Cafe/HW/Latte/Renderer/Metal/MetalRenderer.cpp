@@ -16,6 +16,7 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
+#include "Metal/MTLRenderPass.hpp"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -214,10 +215,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     colorAttachment->setLoadAction(clearBackground ? MTL::LoadActionClear : MTL::LoadActionDontCare);
     colorAttachment->setStoreAction(MTL::StoreActionStore);
 
-    MTL::Texture* colorRenderTargets[8] = {nullptr};
-    colorRenderTargets[0] = m_drawable->texture();
-    // If there was already an encoder with these attachment, we should set the viewport and scissor to default, but that shouldn't happen
-    auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, clearBackground, false);
+    auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
 
     // Draw to Metal layer
@@ -226,6 +224,8 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     renderCommandEncoder->setFragmentSamplerState((useLinearTexFilter ? m_linearSampler : m_nearestSampler), 0);
 
     renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
+
+    EndEncoding();
 }
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
@@ -367,9 +367,9 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
         stencilAttachment->setLevel(mipIndex);
     }
 
-    MTL::Texture* colorRenderTargets[8] = {nullptr};
-    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, mtlTexture, true);
+    GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
+    EndEncoding();
 }
 
 LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
@@ -676,23 +676,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    return;
 	}
 
-	auto renderPassDescriptor = m_state.m_activeFBO->GetRenderPassDescriptor();
-	MTL::Texture* colorRenderTargets[8] = {nullptr};
-	MTL::Texture* depthRenderTarget = nullptr;
-	for (uint32 i = 0; i < 8; i++)
-    {
-        auto colorTexture = static_cast<LatteTextureViewMtl*>(m_state.m_activeFBO->colorBuffer[i].texture);
-        if (colorTexture)
-        {
-            colorRenderTargets[i] = colorTexture->GetRGBAView();
-        }
-    }
-    auto depthTexture = static_cast<LatteTextureViewMtl*>(m_state.m_activeFBO->depthBuffer.texture);
-    if (depthTexture)
-    {
-        depthRenderTarget = depthTexture->GetRGBAView();
-    }
-	auto renderCommandEncoder = GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, depthRenderTarget);
+	auto renderCommandEncoder = GetRenderCommandEncoder();
 
 	// Shaders
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
@@ -705,7 +689,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
+	// TODO: use `m_lastUsedFBO` instead of `m_activeFBO`
+	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_activeFBO, LatteGPUState.contextNew);
 	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Depth stencil state
@@ -886,8 +871,21 @@ void MetalRenderer::WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBu
     commandBuffer->waitUntilCompleted();
 }
 
+MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor)
+{
+    EndEncoding();
+
+    auto commandBuffer = GetCommandBuffer();
+
+    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
+    m_commandEncoder = renderCommandEncoder;
+    m_encoderType = MetalEncoderType::Render;
+
+    return renderCommandEncoder;
+}
+
 // Some render passes clear the attachments, forceRecreate is supposed to be used in those cases
-MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor, MTL::Texture* colorRenderTargets[8], MTL::Texture* depthRenderTarget, bool forceRecreate, bool rebindStateIfNewEncoder)
+MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecreate, bool rebindStateIfNewEncoder)
 {
     // Check if we need to begin a new render pass
     if (m_commandEncoder)
@@ -896,19 +894,22 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
         {
             if (m_encoderType == MetalEncoderType::Render)
             {
-                bool needsNewRenderPass = false;
-                for (uint8 i = 0; i < 8; i++)
+                bool needsNewRenderPass = (m_state.m_lastUsedFBO == nullptr);
+                if (!needsNewRenderPass)
                 {
-                    if (colorRenderTargets[i] && (colorRenderTargets[i] != m_state.m_colorRenderTargets[i]))
+                    for (uint8 i = 0; i < 8; i++)
                     {
-                        needsNewRenderPass = true;
-                        break;
+                        if (m_state.m_activeFBO->colorBuffer[i].texture && m_state.m_activeFBO->colorBuffer[i].texture != m_state.m_lastUsedFBO->colorBuffer[i].texture)
+                        {
+                            needsNewRenderPass = true;
+                            break;
+                        }
                     }
                 }
 
                 if (!needsNewRenderPass)
                 {
-                    if (depthRenderTarget && (depthRenderTarget != m_state.m_depthRenderTarget))
+                    if (m_state.m_activeFBO->depthBuffer.texture && m_state.m_activeFBO->depthBuffer.texture != m_state.m_lastUsedFBO->depthBuffer.texture)
                     {
                         needsNewRenderPass = true;
                     }
@@ -928,13 +929,8 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(MTL::RenderPas
 
     // Update state
     m_state.m_lastUsedFBO = m_state.m_activeFBO;
-    for (uint8 i = 0; i < 8; i++)
-    {
-        m_state.m_colorRenderTargets[i] = colorRenderTargets[i];
-    }
-    m_state.m_depthRenderTarget = depthRenderTarget;
 
-    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
+    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO->GetRenderPassDescriptor());
     m_commandEncoder = renderCommandEncoder;
     m_encoderType = MetalEncoderType::Render;
 
@@ -991,10 +987,11 @@ MTL::BlitCommandEncoder* MetalRenderer::GetBlitCommandEncoder()
 
 void MetalRenderer::EndEncoding()
 {
-    if (m_encoderType != MetalEncoderType::None)
+    if (m_commandEncoder)
     {
         m_commandEncoder->endEncoding();
         m_commandEncoder->release();
+        m_commandEncoder = nullptr;
         m_encoderType = MetalEncoderType::None;
 
         // Commit the command buffer if enough draw calls have been recorded
@@ -1427,6 +1424,7 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
 
     MTL::Texture* colorRenderTargets[8] = {nullptr};
     colorRenderTargets[0] = mtlTexture;
-    GetRenderCommandEncoder(renderPassDescriptor, colorRenderTargets, nullptr, true);
+    GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
+    EndEncoding();
 }
