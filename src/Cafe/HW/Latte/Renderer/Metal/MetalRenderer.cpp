@@ -795,7 +795,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     }
 
 	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_activeFBO, LatteGPUState.contextNew);
+	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
 	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Uniform buffers, textures and samplers

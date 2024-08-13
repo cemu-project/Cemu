@@ -10,7 +10,12 @@ struct MetalBufferAllocation
 {
     void* data;
     uint32 bufferIndex;
-    size_t bufferOffset;
+    size_t bufferOffset = INVALID_OFFSET;
+
+    bool IsValid() const
+    {
+        return bufferOffset != INVALID_OFFSET;
+    }
 };
 
 struct MetalBufferRange
@@ -62,7 +67,7 @@ struct MetalRestrideInfo
 {
     bool memoryInvalidated = true;
     size_t lastStride = 0;
-    MTL::Buffer* buffer = nullptr;
+    MetalBufferAllocation allocation{};
 };
 
 struct MetalVertexBufferRange
@@ -77,7 +82,7 @@ class MetalVertexBufferCache
 public:
     friend class MetalMemoryManager;
 
-    MetalVertexBufferCache(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
+    MetalVertexBufferCache(class MetalRenderer* metalRenderer, MetalBufferAllocator* bufferAllocator) : m_mtlr{metalRenderer}, m_bufferAllocator{bufferAllocator} {}
     ~MetalVertexBufferCache();
 
     void SetRestrideBufferPipeline(class MetalHybridComputePipeline* restrideBufferPipeline)
@@ -93,10 +98,6 @@ public:
     void UntrackVertexBuffer(uint32 bufferIndex)
     {
         auto& range = m_bufferRanges[bufferIndex];
-        if (range.restrideInfo->buffer)
-        {
-            range.restrideInfo->buffer->release();
-        }
         range.offset = INVALID_OFFSET;
     }
 
@@ -104,6 +105,7 @@ public:
 
 private:
     class MetalRenderer* m_mtlr;
+    MetalBufferAllocator* m_bufferAllocator;
 
     class MetalHybridComputePipeline* m_restrideBufferPipeline = nullptr;
 
@@ -115,7 +117,7 @@ private:
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer) {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer, &m_bufferAllocator) {}
     ~MetalMemoryManager();
 
     // Pipelines

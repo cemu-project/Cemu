@@ -70,17 +70,6 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, siz
 
 MetalVertexBufferCache::~MetalVertexBufferCache()
 {
-    for (uint32 i = 0; i < LATTE_MAX_VERTEX_BUFFERS; i++)
-    {
-        auto vertexBufferRange = m_bufferRanges[i];
-        if (vertexBufferRange.offset != INVALID_OFFSET)
-        {
-            if (vertexBufferRange.restrideInfo->buffer)
-            {
-                vertexBufferRange.restrideInfo->buffer->release();
-            }
-        }
-    }
 }
 
 MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride)
@@ -94,17 +83,12 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         return {bufferCache, vertexBufferRange.offset};
     }
 
+    auto buffer = m_bufferAllocator->GetBuffer(restrideInfo.allocation.bufferIndex);
     if (restrideInfo.memoryInvalidated || stride != restrideInfo.lastStride)
     {
         size_t newStride = Align(stride, 4);
         size_t newSize = vertexBufferRange.size / stride * newStride;
-        if (!restrideInfo.buffer || newSize != restrideInfo.buffer->length())
-        {
-            if (restrideInfo.buffer)
-                restrideInfo.buffer->release();
-            // TODO: use one big buffer for all restrided buffers
-            restrideInfo.buffer = m_mtlr->GetDevice()->newBuffer(newSize, MTL::StorageModeShared);
-        }
+        restrideInfo.allocation = m_bufferAllocator->GetBufferAllocation(newSize, 4);
 
         //uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
         //uint8* newPtr = (uint8*)restrideInfo.buffer->contents();
@@ -120,8 +104,8 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_mtlr->GetCommandEncoder());
 
             renderCommandEncoder->setRenderPipelineState(m_restrideBufferPipeline->GetRenderPipelineState());
-            MTL::Buffer* buffers[] = {bufferCache, restrideInfo.buffer};
-            size_t offsets[] = {vertexBufferRange.offset, 0};
+            MTL::Buffer* buffers[] = {bufferCache, buffer};
+            size_t offsets[] = {vertexBufferRange.offset, restrideInfo.allocation.bufferOffset};
             renderCommandEncoder->setVertexBuffers(buffers, offsets, NS::Range(0, 2));
 
             struct
@@ -133,7 +117,8 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
 
             renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), vertexBufferRange.size / stride);
 
-            MTL::Resource* barrierBuffers[] = {restrideInfo.buffer};
+            // TODO: restride in one call?
+            MTL::Resource* barrierBuffers[] = {buffer};
             renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex);
         }
         else
@@ -146,7 +131,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         restrideInfo.lastStride = newStride;
     }
 
-    return {restrideInfo.buffer, 0};
+    return {buffer, restrideInfo.allocation.bufferOffset};
 }
 
 void MetalVertexBufferCache::MemoryRangeChanged(size_t offset, size_t size)
