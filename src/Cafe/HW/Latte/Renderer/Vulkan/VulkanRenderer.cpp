@@ -270,7 +270,7 @@ void VulkanRenderer::GetDeviceFeatures()
 
 	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &physicalDeviceFeatures2);
 
-	std::cout << "device support pid: " << pidf.presentId << " device support pwf: " << pwf.presentWait << std::endl;
+	cemuLog_log(LogType::Force, "Vulkan: present_wait extension: {}", (pwf.presentWait && pidf.presentId) ? "supported" : "unsupported");
 
 	/* Get Vulkan device properties and limits */
 	VkPhysicalDeviceFloatControlsPropertiesKHR pfcp{};
