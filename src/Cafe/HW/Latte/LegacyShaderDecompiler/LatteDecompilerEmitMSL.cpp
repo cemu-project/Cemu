@@ -2357,11 +2357,10 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 				{
 					debugBreakpoint();
 				}
-				src->add("float4(");
 				src->addFmt("redcCUBEReverse({},", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[0], texInstruction->textureFetch.srcSel[1], -1, -1, tempBuffer0));
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
 				src->addFmt(")");
-				src->addFmt(",cubeMapArrayIndex{})", texInstruction->textureFetch.textureIndex); // cubemap index
+				src->addFmt(", uint(cubeMapArrayIndex{})", texInstruction->textureFetch.textureIndex); // cubemap index
 			}
 			else if (texDim == Latte::E_DIM::DIM_1D)
 			{
@@ -2411,7 +2410,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			src->addFmt("redcCUBEReverse({},", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[0], texInstruction->textureFetch.srcSel[1], -1, -1, tempBuffer0));
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
 			src->add(")");
-			src->addFmt(", cubeMapArrayIndex{}", texInstruction->textureFetch.textureIndex); // cubemap index
+			src->addFmt(", uint(cubeMapArrayIndex{})", texInstruction->textureFetch.textureIndex); // cubemap index
 		}
 		else if( texDim == Latte::E_DIM::DIM_1D )
 		{

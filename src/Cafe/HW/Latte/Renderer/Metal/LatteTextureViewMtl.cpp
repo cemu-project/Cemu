@@ -91,7 +91,9 @@ MTL::Texture* LatteTextureViewMtl::CreateSwizzledView(uint32 gpuSamplerSwizzle)
         textureType = MTL::TextureType3D;
         break;
     case Latte::E_DIM::DIM_CUBEMAP:
-        textureType = MTL::TextureTypeCube; // TODO: check this
+        cemu_assert_debug(this->numSlice % 6 == 0 && "cubemaps must have an array length multiple of 6");
+
+        textureType = MTL::TextureTypeCubeArray;
         break;
     default:
         cemu_assert_unimplemented();

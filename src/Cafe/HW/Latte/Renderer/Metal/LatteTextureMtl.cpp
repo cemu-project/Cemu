@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
+#include "Common/precompiled.h"
 
 LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
@@ -42,13 +43,9 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
         textureType = MTL::TextureType3D;
         break;
     case Latte::E_DIM::DIM_CUBEMAP:
-        if (effectiveBaseDepth % 6 != 0)
-            debug_printf("cubemaps must have an array length multiple of 6, length: %u\n", effectiveBaseDepth);
+        cemu_assert_debug(effectiveBaseDepth % 6 == 0 && "cubemaps must have an array length multiple of 6");
 
-        if (effectiveBaseDepth <= 6)
-            textureType = MTL::TextureTypeCube;
-        else
-            textureType = MTL::TextureTypeCubeArray;
+        textureType = MTL::TextureTypeCubeArray;
         break;
     default:
         cemu_assert_unimplemented();
