@@ -1,7 +1,10 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Metal/MTLResource.hpp"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
+#include "Common/precompiled.h"
+#include "Foundation/NSRange.hpp"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 
 const size_t BUFFER_ALLOCATION_SIZE = 8 * 1024 * 1024;
 
@@ -93,21 +96,51 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
 
     if (restrideInfo.memoryInvalidated || stride != restrideInfo.lastStride)
     {
-        // TODO: use compute/void vertex function instead
         size_t newStride = Align(stride, 4);
         size_t newSize = vertexBufferRange.size / stride * newStride;
-        // TODO: use one big buffer for all restrided buffers
-        restrideInfo.buffer = m_mtlr->GetDevice()->newBuffer(newSize, MTL::StorageModeShared);
+        if (!restrideInfo.buffer || newSize != restrideInfo.buffer->length())
+        {
+            if (restrideInfo.buffer)
+                restrideInfo.buffer->release();
+            // TODO: use one big buffer for all restrided buffers
+            restrideInfo.buffer = m_mtlr->GetDevice()->newBuffer(newSize, MTL::StorageModeShared);
+        }
 
-        uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
-        uint8* newPtr = (uint8*)restrideInfo.buffer->contents();
+        //uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
+        //uint8* newPtr = (uint8*)restrideInfo.buffer->contents();
 
-        for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
-    	{
-    		memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
-    	}
-        // TODO: remove
-        debug_printf("Restrided vertex buffer (old stride: %zu, new stride: %zu, old size: %zu, new size: %zu)\n", stride, newStride, vertexBufferRange.size, newSize);
+        //for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
+    	//{
+    	//	memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
+    	//}
+        //debug_printf("Restrided vertex buffer (old stride: %zu, new stride: %zu, old size: %zu, new size: %zu)\n", stride, newStride, vertexBufferRange.size, newSize);
+
+        if (m_mtlr->GetEncoderType() == MetalEncoderType::Render)
+        {
+            auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_mtlr->GetCommandEncoder());
+
+            renderCommandEncoder->setRenderPipelineState(m_restrideBufferPipeline->GetRenderPipelineState());
+            MTL::Buffer* buffers[] = {bufferCache, restrideInfo.buffer};
+            size_t offsets[] = {vertexBufferRange.offset, 0};
+            renderCommandEncoder->setVertexBuffers(buffers, offsets, NS::Range(0, 2));
+
+            struct
+            {
+                uint32 oldStride;
+                uint32 newStride;
+            } strideData = {static_cast<uint32>(stride), static_cast<uint32>(newStride)};
+            renderCommandEncoder->setVertexBytes(&strideData, sizeof(strideData), 2);
+
+            renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), vertexBufferRange.size / stride);
+
+            MTL::Resource* barrierBuffers[] = {restrideInfo.buffer};
+            renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex);
+        }
+        else
+        {
+            debug_printf("vertex buffer restride needs an active render encoder\n");
+            cemu_assert_suspicious();
+        }
 
         restrideInfo.memoryInvalidated = false;
         restrideInfo.lastStride = newStride;

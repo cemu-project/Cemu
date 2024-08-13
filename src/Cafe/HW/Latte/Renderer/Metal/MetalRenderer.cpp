@@ -62,8 +62,9 @@ MetalRenderer::MetalRenderer()
 	MTL::Library* utilityLibrary = m_device->newLibrary(NS::String::string(utilityShaderSource, NS::ASCIIStringEncoding), nullptr, &error);
 	if (error)
     {
-        debug_printf("failed to create present library (error: %s)\n", error->localizedDescription()->utf8String());
+        debug_printf("failed to create utility library (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
+        throw;
         return;
     }
 
@@ -98,12 +99,16 @@ MetalRenderer::MetalRenderer()
 
     // Hybrid pipelines
     m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture", "kernelCopyTextureToTexture");
+    m_restrideBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexRestrideBuffer", "kernelRestrideBuffer");
     utilityLibrary->release();
+
+    m_memoryManager->SetRestrideBufferPipeline(m_restrideBufferPipeline);
 }
 
 MetalRenderer::~MetalRenderer()
 {
     delete m_copyTextureToTexturePipeline;
+    delete m_restrideBufferPipeline;
 
     m_presentPipelineLinear->release();
     m_presentPipelineSRGB->release();
@@ -688,11 +693,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
-	// Render pipeline state
-	// TODO: use `m_lastUsedFBO` instead of `m_activeFBO`
-	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_activeFBO, LatteGPUState.contextNew);
-	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
-
 	// Depth stencil state
 	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
 	renderCommandEncoder->setDepthStencilState(depthStencilState);
@@ -793,6 +793,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             }
         }
     }
+
+	// Render pipeline state
+	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_activeFBO, LatteGPUState.contextNew);
+	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
 
 	// Uniform buffers, textures and samplers
 	BindStageResources(renderCommandEncoder, vertexShader);
@@ -1308,7 +1312,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 			LatteMRT::GetCurrentFragCoordScale(GET_UNIFORM_DATA_PTR(shader->uniform.loc_fragCoordScale));
 		}
-		// TODO: uncomment?
+		// TODO: uncomment
 		/*
 		if (shader->uniform.loc_verticesPerInstance >= 0)
 		{

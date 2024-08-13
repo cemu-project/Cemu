@@ -80,7 +80,11 @@ public:
     MetalVertexBufferCache(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
     ~MetalVertexBufferCache();
 
-    // Vertex buffer cache
+    void SetRestrideBufferPipeline(class MetalHybridComputePipeline* restrideBufferPipeline)
+    {
+        m_restrideBufferPipeline = restrideBufferPipeline;
+    }
+
     void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo* restrideInfo)
     {
         m_bufferRanges[bufferIndex] = MetalVertexBufferRange{offset, size, restrideInfo};
@@ -101,6 +105,8 @@ public:
 private:
     class MetalRenderer* m_mtlr;
 
+    class MetalHybridComputePipeline* m_restrideBufferPipeline = nullptr;
+
     MetalVertexBufferRange m_bufferRanges[LATTE_MAX_VERTEX_BUFFERS] = {};
 
     void MemoryRangeChanged(size_t offset, size_t size);
@@ -111,6 +117,12 @@ class MetalMemoryManager
 public:
     MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer) {}
     ~MetalMemoryManager();
+
+    // Pipelines
+    void SetRestrideBufferPipeline(class MetalHybridComputePipeline* restrideBufferPipeline)
+    {
+        m_vertexBufferCache.SetRestrideBufferPipeline(restrideBufferPipeline);
+    }
 
     void ResetTemporaryBuffers()
     {

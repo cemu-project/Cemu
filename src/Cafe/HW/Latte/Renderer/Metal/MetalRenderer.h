@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLCommandBuffer.hpp"
+#include "Metal/MTLCommandEncoder.hpp"
 #include "Metal/MTLRenderPass.hpp"
 
 #define MAX_MTL_BUFFERS 31
@@ -244,6 +245,16 @@ public:
         return m_commandBuffers[m_commandBuffers.size() - 1].m_commandBuffer;
     }
 
+    MTL::CommandEncoder* GetCommandEncoder()
+    {
+        return m_commandEncoder;
+    }
+
+    MetalEncoderType GetEncoderType()
+    {
+        return m_encoderType;
+    }
+
 	MTL::CommandBuffer* GetCommandBuffer();
 	bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer);
 	void WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer);
@@ -284,6 +295,7 @@ private:
 
 	// Hybrid pipelines
 	class MetalHybridComputePipeline* m_copyTextureToTexturePipeline;
+	class MetalHybridComputePipeline* m_restrideBufferPipeline;
 
 	// Basic
 	MTL::SamplerState* m_nearestSampler;
