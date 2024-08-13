@@ -2748,16 +2748,11 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
-	// if present_wait is available, use it to limit CPU run-ahead
-	if (m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued != 0)
-	{
-		if (chainInfo.m_numQueued >= chainInfo.m_maxQueued)
-		{
-			uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_numQueued;
-			vkWaitForPresentKHR(m_logicalDevice, chainInfo.m_swapchain, waitFrameId, 40'000'000);
-			chainInfo.m_numQueued--;
-		}
+	const bool enable_present_wait = m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued != 0;
 
+	// if present_wait is available, use it to limit CPU run-ahead
+	if (enable_present_wait)
+	{
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
 		presentId.swapchainCount = 1;
 		presentId.pPresentIds = &chainInfo.m_presentId;
@@ -2773,10 +2768,16 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(result == VK_SUCCESS)
+	if(enable_present_wait && result == VK_SUCCESS)
 	{
 		chainInfo.m_numQueued++;
 		chainInfo.m_presentId++;
+		if (chainInfo.m_numQueued > chainInfo.m_maxQueued)
+		{
+			uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_numQueued;
+			vkWaitForPresentKHR(m_logicalDevice, chainInfo.m_swapchain, waitFrameId, 40'000'000);
+			chainInfo.m_numQueued--;
+		}
 	}
 
 
