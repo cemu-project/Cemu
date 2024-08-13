@@ -36,6 +36,7 @@ struct _LogContext
 const std::map<LogType, std::string> g_logging_window_mapping
 {
 	{LogType::UnsupportedAPI,     "Unsupported API calls"},
+	{LogType::APIErrors, 		  "Invalid API usage"},
 	{LogType::CoreinitLogging,    "Coreinit Logging"},
 	{LogType::CoreinitFile,       "Coreinit File-Access"},
 	{LogType::CoreinitThreadSync, "Coreinit Thread-Synchronization"},

@@ -1,6 +1,6 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Common/SysAllocator.h"
-#include "Cafe/OS/RPL/rpl.h"
+#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 
@@ -69,7 +69,7 @@ sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 	return score;
 }
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
+void DebugLogStackTrace(OSThread_t* thread, MPTR sp, bool printSymbols)
 {
 	// sp might not point to a valid stackframe
 	// scan stack and evaluate which sp is most likely the beginning of the stackframe
@@ -107,7 +107,15 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 
 		uint32 returnAddress = 0;
 		returnAddress = memory_readU32(nextStackPtr + 4);
-		cemuLog_log(LogType::Force, fmt::format("SP {0:08x} ReturnAddr {1:08x}", nextStackPtr, returnAddress));
+
+		RPLStoredSymbol* symbol = nullptr;
+		if(printSymbols)
+			symbol = rplSymbolStorage_getByClosestAddress(returnAddress);
+
+		if(symbol)
+			cemuLog_log(LogType::Force, fmt::format("SP {:08x} ReturnAddr {:08x}   ({}.{}+0x{:x})", nextStackPtr, returnAddress, (const char*)symbol->libName, (const char*)symbol->symbolName, returnAddress - symbol->address));
+		else
+			cemuLog_log(LogType::Force, fmt::format("SP {:08x} ReturnAddr {:08x}", nextStackPtr, returnAddress));
 
 		currentStackPtr = nextStackPtr;
 	}

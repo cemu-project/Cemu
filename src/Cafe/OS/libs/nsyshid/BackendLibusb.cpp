@@ -230,6 +230,17 @@ namespace nsyshid::backend::libusb
 		return nullptr;
 	}
 
+	std::pair<int, ConfigDescriptor> MakeConfigDescriptor(libusb_device* device, uint8 config_num)
+	{
+		libusb_config_descriptor* descriptor = nullptr;
+		const int ret = libusb_get_config_descriptor(device, config_num, &descriptor);
+		if (ret == LIBUSB_SUCCESS)
+			return {ret, ConfigDescriptor{descriptor, libusb_free_config_descriptor}};
+
+		return {ret, ConfigDescriptor{nullptr, [](auto) {
+									  }}};
+	}
+
 	std::shared_ptr<Device> BackendLibusb::CheckAndCreateDevice(libusb_device* dev)
 	{
 		struct libusb_device_descriptor desc;
@@ -240,6 +251,20 @@ namespace nsyshid::backend::libusb
 						"nsyshid::BackendLibusb::CheckAndCreateDevice(): failed to get device descriptor; return code: %i",
 						ret);
 			return nullptr;
+		}
+		std::vector<ConfigDescriptor> config_descriptors{};
+		for (uint8 i = 0; i < desc.bNumConfigurations; ++i)
+		{
+			auto [ret, config_descriptor] = MakeConfigDescriptor(dev, i);
+			if (ret != LIBUSB_SUCCESS || !config_descriptor)
+			{
+				cemuLog_log(LogType::Force, "Failed to make config descriptor {} for {:04x}:{:04x}: {}",
+							i, desc.idVendor, desc.idProduct, libusb_error_name(ret));
+			}
+			else
+			{
+				config_descriptors.emplace_back(std::move(config_descriptor));
+			}
 		}
 		if (desc.idVendor == 0x0e6f && desc.idProduct == 0x0241)
 		{
@@ -253,7 +278,8 @@ namespace nsyshid::backend::libusb
 													 2,
 													 0,
 													 libusb_get_bus_number(dev),
-													 libusb_get_device_address(dev));
+													 libusb_get_device_address(dev),
+													 std::move(config_descriptors));
 		// figure out device endpoints
 		if (!FindDefaultDeviceEndpoints(dev,
 										device->m_libusbHasEndpointIn,
@@ -335,7 +361,8 @@ namespace nsyshid::backend::libusb
 							   uint8 interfaceSubClass,
 							   uint8 protocol,
 							   uint8 libusbBusNumber,
-							   uint8 libusbDeviceAddress)
+							   uint8 libusbDeviceAddress,
+							   std::vector<ConfigDescriptor> configs)
 		: Device(vendorId,
 				 productId,
 				 interfaceIndex,
@@ -351,6 +378,7 @@ namespace nsyshid::backend::libusb
 		  m_libusbHasEndpointOut(false),
 		  m_libusbEndpointOut(0)
 	{
+		m_config_descriptors = std::move(configs);
 	}
 
 	DeviceLibusb::~DeviceLibusb()
@@ -418,20 +446,8 @@ namespace nsyshid::backend::libusb
 				}
 				this->m_handleInUseCounter = 0;
 			}
-			if (libusb_kernel_driver_active(this->m_libusbHandle, 0) == 1)
 			{
-				cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): kernel driver active");
-				if (libusb_detach_kernel_driver(this->m_libusbHandle, 0) == 0)
-				{
-					cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): kernel driver detached");
-				}
-				else
-				{
-					cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): failed to detach kernel driver");
-				}
-			}
-			{
-				int ret = libusb_claim_interface(this->m_libusbHandle, 0);
+				int ret = ClaimAllInterfaces(0);
 				if (ret != 0)
 				{
 					cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::open(): cannot claim interface");
@@ -471,7 +487,7 @@ namespace nsyshid::backend::libusb
 		return m_libusbHandle != nullptr && m_handleInUseCounter >= 0;
 	}
 
-	Device::ReadResult DeviceLibusb::Read(uint8* data, sint32 length, sint32& bytesRead)
+	Device::ReadResult DeviceLibusb::Read(ReadMessage* message)
 	{
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
@@ -488,8 +504,8 @@ namespace nsyshid::backend::libusb
 		{
 			ret = libusb_bulk_transfer(handleLock->GetHandle(),
 									   this->m_libusbEndpointIn,
-									   data,
-									   length,
+									   message->data,
+									   message->length,
 									   &actualLength,
 									   timeout);
 		}
@@ -500,8 +516,8 @@ namespace nsyshid::backend::libusb
 			// success
 			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::read(): read {} of {} bytes",
 							 actualLength,
-							 length);
-			bytesRead = actualLength;
+							 message->length);
+			message->bytesRead = actualLength;
 			return ReadResult::Success;
 		}
 		cemuLog_logDebug(LogType::Force,
@@ -510,7 +526,7 @@ namespace nsyshid::backend::libusb
 		return ReadResult::Error;
 	}
 
-	Device::WriteResult DeviceLibusb::Write(uint8* data, sint32 length, sint32& bytesWritten)
+	Device::WriteResult DeviceLibusb::Write(WriteMessage* message)
 	{
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
@@ -520,23 +536,23 @@ namespace nsyshid::backend::libusb
 			return WriteResult::Error;
 		}
 
-		bytesWritten = 0;
+		message->bytesWritten = 0;
 		int actualLength = 0;
 		int ret = libusb_bulk_transfer(handleLock->GetHandle(),
 									   this->m_libusbEndpointOut,
-									   data,
-									   length,
+									   message->data,
+									   message->length,
 									   &actualLength,
 									   0);
 
 		if (ret == 0)
 		{
 			// success
-			bytesWritten = actualLength;
+			message->bytesWritten = actualLength;
 			cemuLog_logDebug(LogType::Force,
 							 "nsyshid::DeviceLibusb::write(): wrote {} of {} bytes",
-							 bytesWritten,
-							 length);
+							 message->bytesWritten,
+							 message->length);
 			return WriteResult::Success;
 		}
 		cemuLog_logDebug(LogType::Force,
@@ -685,7 +701,65 @@ namespace nsyshid::backend::libusb
 		return false;
 	}
 
-	bool DeviceLibusb::SetProtocol(uint32 ifIndex, uint32 protocol)
+	template<typename Configs, typename Function>
+	static int DoForEachInterface(const Configs& configs, uint8 config_num, Function action)
+	{
+		int ret = LIBUSB_ERROR_NOT_FOUND;
+		if (configs.size() <= config_num || !configs[config_num])
+			return ret;
+		for (uint8 i = 0; i < configs[config_num]->bNumInterfaces; ++i)
+		{
+			ret = action(i);
+			if (ret < LIBUSB_SUCCESS)
+				break;
+		}
+		return ret;
+	}
+
+	int DeviceLibusb::ClaimAllInterfaces(uint8 config_num)
+	{
+		const int ret = DoForEachInterface(m_config_descriptors, config_num, [this](uint8 i) {
+			if (libusb_kernel_driver_active(this->m_libusbHandle, i))
+			{
+				const int ret2 = libusb_detach_kernel_driver(this->m_libusbHandle, i);
+				if (ret2 < LIBUSB_SUCCESS && ret2 != LIBUSB_ERROR_NOT_FOUND &&
+					ret2 != LIBUSB_ERROR_NOT_SUPPORTED)
+				{
+					cemuLog_log(LogType::Force, "Failed to detach kernel driver {}", libusb_error_name(ret2));
+					return ret2;
+				}
+			}
+			return libusb_claim_interface(this->m_libusbHandle, i);
+		});
+		if (ret < LIBUSB_SUCCESS)
+		{
+			cemuLog_log(LogType::Force, "Failed to release all interfaces for config {}", config_num);
+		}
+		return ret;
+	}
+
+	int DeviceLibusb::ReleaseAllInterfaces(uint8 config_num)
+	{
+		const int ret = DoForEachInterface(m_config_descriptors, config_num, [this](uint8 i) {
+			return libusb_release_interface(AquireHandleLock()->GetHandle(), i);
+		});
+		if (ret < LIBUSB_SUCCESS && ret != LIBUSB_ERROR_NO_DEVICE && ret != LIBUSB_ERROR_NOT_FOUND)
+		{
+			cemuLog_log(LogType::Force, "Failed to release all interfaces for config {}", config_num);
+		}
+		return ret;
+	}
+
+	int DeviceLibusb::ReleaseAllInterfacesForCurrentConfig()
+	{
+		int config_num;
+		const int get_config_ret = libusb_get_configuration(AquireHandleLock()->GetHandle(), &config_num);
+		if (get_config_ret < LIBUSB_SUCCESS)
+			return get_config_ret;
+		return ReleaseAllInterfaces(config_num);
+	}
+
+	bool DeviceLibusb::SetProtocol(uint8 ifIndex, uint8 protocol)
 	{
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
@@ -693,28 +767,21 @@ namespace nsyshid::backend::libusb
 			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): device is not opened");
 			return false;
 		}
+		if (m_interfaceIndex != ifIndex)
+			m_interfaceIndex = ifIndex;
 
-		// ToDo: implement this
-#if 0
-		// is this correct? Discarding "ifIndex" seems like a bad idea
-		int ret = libusb_set_configuration(handleLock->getHandle(), protocol);
-		if (ret == 0) {
-			cemuLog_logDebug(LogType::Force,
-							 "nsyshid::DeviceLibusb::setProtocol(): success");
+		ReleaseAllInterfacesForCurrentConfig();
+		int ret = libusb_set_configuration(AquireHandleLock()->GetHandle(), protocol);
+		if (ret == LIBUSB_SUCCESS)
+			ret = ClaimAllInterfaces(protocol);
+
+		if (ret == LIBUSB_SUCCESS)
 			return true;
-		}
-		cemuLog_logDebug(LogType::Force,
-						 "nsyshid::DeviceLibusb::setProtocol(): failed with error code: {}",
-						 ret);
-		return false;
-#endif
 
-		// pretend that everything is fine
-		return true;
+		return false;
 	}
 
-	bool DeviceLibusb::SetReport(uint8* reportData, sint32 length, uint8* originalData,
-								 sint32 originalLength)
+	bool DeviceLibusb::SetReport(ReportMessage* message)
 	{
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
@@ -723,20 +790,20 @@ namespace nsyshid::backend::libusb
 			return false;
 		}
 
-		// ToDo: implement this
-#if 0
-		// not sure if libusb_control_transfer() is the right candidate for this
-		int ret = libusb_control_transfer(handleLock->getHandle(),
-										  bmRequestType,
-										  bRequest,
-										  wValue,
-										  wIndex,
-										  reportData,
-										  length,
-										  timeout);
-#endif
+		int ret = libusb_control_transfer(handleLock->GetHandle(),
+										  LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE | LIBUSB_ENDPOINT_OUT,
+										  LIBUSB_REQUEST_SET_CONFIGURATION,
+										  512,
+										  0,
+										  message->originalData,
+										  message->originalLength,
+										  0);
 
-		// pretend that everything is fine
+		if (ret != message->originalLength)
+		{
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetReport(): Control Transfer Failed: {}", libusb_error_name(ret));
+			return false;
+		}
 		return true;
 	}
 

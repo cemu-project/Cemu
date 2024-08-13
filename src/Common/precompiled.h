@@ -552,6 +552,9 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 
+// PPC stack trace printer
+void DebugLogStackTrace(struct OSThread_t* thread, MPTR sp, bool printSymbols = false);
+
 // generic formatter for enums (to underlying)
 template <typename Enum>
 	requires std::is_enum_v<Enum>

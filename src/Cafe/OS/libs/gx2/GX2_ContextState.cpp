@@ -291,8 +291,7 @@ void gx2Export_GX2SetDefaultState(PPCInterpreter_t* hCPU)
 void _GX2ContextCreateRestoreStateDL(GX2ContextState_t* gx2ContextState)
 {
 	// begin display list
-	if (GX2::GX2WriteGather_isDisplayListActive())
-		assert_dbg();
+	cemu_assert_debug(!GX2::GX2GetDisplayListWriteStatus()); // must not already be writing to a display list
 	GX2::GX2BeginDisplayList((void*)gx2ContextState->loadDL_buffer, sizeof(gx2ContextState->loadDL_buffer));
 	_GX2Context_WriteCmdRestoreState(gx2ContextState, 0);
 	uint32 displayListSize = GX2::GX2EndDisplayList((void*)gx2ContextState->loadDL_buffer);

@@ -154,14 +154,6 @@ namespace GX2
 		return gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL;
 	}
 
-	bool GX2WriteGather_isDisplayListActive()
-	{
-		uint32 coreIndex = coreinit::OSGetCoreId();
-		if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
-			return true;
-		return false;
-	}
-
 	uint32 GX2WriteGather_getReadWriteDistance()
 	{
 		uint32 coreIndex = sGX2MainCoreIndex;

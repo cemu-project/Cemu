@@ -213,7 +213,7 @@ void PPCTimer_start();
 // core info and control
 extern uint32 ppcThreadQuantum;
 
-uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);
+uint8* PPCInterpreter_PushAndReturnStackPointer(sint32 offset);
 uint8* PPCInterpreterGetStackPointer();
 void PPCInterpreterModifyStackPointer(sint32 offset);
 

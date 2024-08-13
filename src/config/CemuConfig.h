@@ -417,7 +417,7 @@ struct CemuConfig
 	ConfigValue<bool> save_screenshot{true};
 
 	ConfigValue<bool> did_show_vulkan_warning{false};
-	ConfigValue<bool> did_show_graphic_pack_download{false};
+	ConfigValue<bool> did_show_graphic_pack_download{false}; // no longer used but we keep the config value around in case people downgrade Cemu. Despite the name this was used for the Getting Started dialog
 	ConfigValue<bool> did_show_macos_disclaimer{false};
 
 	ConfigValue<bool> show_icon_column{ true };
@@ -441,7 +441,7 @@ struct CemuConfig
 	ConfigValue<int> vsync{ 0 }; // 0 = off, 1+ = on depending on render backend
 	ConfigValue<bool> gx2drawdone_sync {true};
 	ConfigValue<bool> render_upside_down{ false };
-	ConfigValue<bool> async_compile{ false };
+	ConfigValue<bool> async_compile{ true };
 
 	ConfigValue<bool> vk_accurate_barriers{ true };
 
@@ -514,6 +514,13 @@ struct CemuConfig
 
 	NetworkService GetAccountNetworkService(uint32 persistentId);
 	void SetAccountSelectedService(uint32 persistentId, NetworkService serviceIndex);
+	
+	// emulated usb devices
+	struct
+	{
+		ConfigValue<bool> emulate_skylander_portal{false};
+		ConfigValue<bool> emulate_infinity_base{false};
+	}emulated_usb_devices{};
 
 	private:
 	GameEntry* GetGameEntryByTitleId(uint64 titleId);

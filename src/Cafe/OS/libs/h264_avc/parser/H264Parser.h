@@ -513,6 +513,8 @@ typedef struct
 void h264Parse(h264ParserState_t* h264ParserState, h264ParserOutput_t* output, uint8* data, uint32 length, bool parseSlices = true);
 sint32 h264GetUnitLength(h264ParserState_t* h264ParserState, uint8* data, uint32 length);
 
+bool h264Parser_ParseSPS(uint8* data, uint32 length, h264State_seq_parameter_set_t& sps);
+
 void h264Parser_getScalingMatrix4x4(h264State_seq_parameter_set_t* sps, h264State_pic_parameter_set_t* pps, nal_slice_header_t* sliceHeader, sint32 index, uint8* matrix4x4);
 void h264Parser_getScalingMatrix8x8(h264State_seq_parameter_set_t* sps, h264State_pic_parameter_set_t* pps, nal_slice_header_t* sliceHeader, sint32 index, uint8* matrix8x8);
 

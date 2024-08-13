@@ -15,6 +15,7 @@ BinPackArguments: true
 BinPackParameters: true
 BraceWrapping:
   AfterCaseLabel: true
+  AfterClass: true
   AfterControlStatement: Always
   AfterEnum: true
   AfterExternBlock: true

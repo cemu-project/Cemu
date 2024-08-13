@@ -30,6 +30,7 @@
 #include "Cafe/Filesystem/FST/FST.h"
 
 #include "gui/TitleManager.h"
+#include "gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.h"
 
 #include "Cafe/CafeSystem.h"
 
@@ -110,6 +111,7 @@ enum
 	MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER = 20600,
 	MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER,
 	MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER,
+	MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES,
 	// cpu
 	// cpu->timer speed
 	MAINFRAME_MENU_ID_TIMER_SPEED_1X = 20700,
@@ -147,8 +149,6 @@ enum
 	// help
 	MAINFRAME_MENU_ID_HELP_ABOUT = 21700,
 	MAINFRAME_MENU_ID_HELP_UPDATE,
-	MAINFRAME_MENU_ID_HELP_GETTING_STARTED,
-
 	// custom
 	MAINFRAME_ID_TIMER1 = 21800,
 };
@@ -188,6 +188,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, MainWindow::OnToolsInput)
+EVT_MENU(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, MainWindow::OnToolsInput)
 // cpu menu
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_8X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_4X, MainWindow::OnDebugSetting)
@@ -222,7 +223,6 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugView
 // help menu
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_UPDATE, MainWindow::OnHelpUpdate)
-EVT_MENU(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, MainWindow::OnHelpGettingStarted)
 // misc
 EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_GAMELIST_REFRESH, MainWindow::OnRequestGameListRefresh)
 
@@ -414,25 +414,6 @@ wxString MainWindow::GetInitialWindowTitle()
 {
 	return BUILD_VERSION_WITH_NAME_STRING;
 }
-
-void MainWindow::ShowGettingStartedDialog()
-{
-	GettingStartedDialog dia(this);
-	dia.ShowModal();
-	if (dia.HasGamePathChanged() || dia.HasMLCChanged())
-		m_game_list->ReloadGameEntries();
-		
-	TogglePadView();
-	
-	auto& config = GetConfig();
-	m_padViewMenuItem->Check(config.pad_open.GetValue());
-	m_fullscreenMenuItem->Check(config.fullscreen.GetValue());
-}
-
-namespace coreinit
-{
-	void OSSchedulerEnd();
-};
 
 void MainWindow::OnClose(wxCloseEvent& event)
 {
@@ -1515,6 +1496,29 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 				});
 			m_title_manager->Show();
 		}
+		break;
+	}
+	case MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES:
+	{
+		if (m_usb_devices)
+		{
+			m_usb_devices->Show(true);
+			m_usb_devices->Raise();
+			m_usb_devices->SetFocus();
+		}
+		else
+		{
+			m_usb_devices = new EmulatedUSBDeviceFrame(this);
+			m_usb_devices->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event)
+				{
+					if (event.CanVeto()) {
+						m_usb_devices->Show(false);
+						event.Veto();
+					}
+				});
+			m_usb_devices->Show(true);
+		}
+		break;
 	}
 	break;
 	}
@@ -2049,11 +2053,6 @@ void MainWindow::OnHelpUpdate(wxCommandEvent& event)
 	test.ShowModal();
 }
 
-void MainWindow::OnHelpGettingStarted(wxCommandEvent& event)
-{
-	ShowGettingStartedDialog();
-}
-
 void MainWindow::RecreateMenu()
 {
 	if (m_menuBar)
@@ -2166,6 +2165,7 @@ void MainWindow::RecreateMenu()
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
+	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, _("&Emulated USB Devices"));
 
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 
@@ -2191,27 +2191,35 @@ void MainWindow::RecreateMenu()
 	m_menuBar->Append(nfcMenu, _("&NFC"));
 	m_nfcMenuSeparator0 = nullptr;
 	// debug->logging submenu
-	wxMenu* debugLoggingMenu = new wxMenu;
+	wxMenu* debugLoggingMenu = new wxMenu();
 
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::UnsupportedAPI), _("&Unsupported API calls"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::UnsupportedAPI));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::APIErrors), _("&Invalid API usage"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::APIErrors));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitLogging), _("&Coreinit Logging (OSReport/OSConsole)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitLogging));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("&Coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("&Coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("&Coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("&Coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_FP), _("&NN FP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_FP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::PRUDP), _("&PRUDP (for NN FP)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::PRUDP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_BOSS), _("&NN BOSS"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_BOSS));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("&GX2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("&Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("&Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("&Socket API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Socket));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("&Save API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Save));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("&H264 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::H264));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NFC), _("&NFC API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NFC));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NTAG), _("&NTAG API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NTAG));
+	debugLoggingMenu->AppendSeparator();
+
+	wxMenu* logCosModulesMenu = new wxMenu();
+	logCosModulesMenu->AppendCheckItem(0, _("&Options below are for experts. Leave off if unsure"), wxEmptyString)->Enable(false);
+	logCosModulesMenu->AppendSeparator();
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("nn_save API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Save));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("nn_nfp API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_FP), _("nn_fp API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_FP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::PRUDP), _("nn_fp PRUDP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::PRUDP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_BOSS), _("nn_boss API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_BOSS));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NFC), _("nfc API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NFC));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NTAG), _("ntag API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NTAG));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("nsysnet API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Socket));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("h264 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::H264));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("gx2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
+
+	debugLoggingMenu->AppendSubMenu(logCosModulesMenu, _("&CafeOS modules logging"));
 	debugLoggingMenu->AppendSeparator();
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Patches), _("&Graphic pack patches"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Patches));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureCache), _("&Texture cache warnings"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureCache));
@@ -2268,8 +2276,7 @@ void MainWindow::RecreateMenu()
 	if (!std::getenv("APPIMAGE")) {
 		m_check_update_menu->Enable(false);
 	}
-#endif	
-	helpMenu->Append(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, _("&Getting started"));
+#endif
 	helpMenu->AppendSeparator();
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Cemu"));
 

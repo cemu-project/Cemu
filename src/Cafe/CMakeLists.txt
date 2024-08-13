@@ -374,7 +374,9 @@ add_library(CemuCafe
   OS/libs/gx2/GX2_Texture.h
   OS/libs/gx2/GX2_TilingAperture.cpp
   OS/libs/h264_avc/H264Dec.cpp
+  OS/libs/h264_avc/H264DecBackendAVC.cpp
   OS/libs/h264_avc/h264dec.h
+  OS/libs/h264_avc/H264DecInternal.h
   OS/libs/h264_avc/parser
   OS/libs/h264_avc/parser/H264Parser.cpp
   OS/libs/h264_avc/parser/H264Parser.h
@@ -457,10 +459,16 @@ add_library(CemuCafe
   OS/libs/nsyshid/AttachDefaultBackends.cpp
   OS/libs/nsyshid/Whitelist.cpp
   OS/libs/nsyshid/Whitelist.h
+  OS/libs/nsyshid/BackendEmulated.cpp
+  OS/libs/nsyshid/BackendEmulated.h
   OS/libs/nsyshid/BackendLibusb.cpp
   OS/libs/nsyshid/BackendLibusb.h
   OS/libs/nsyshid/BackendWindowsHID.cpp
   OS/libs/nsyshid/BackendWindowsHID.h
+  OS/libs/nsyshid/Infinity.cpp
+  OS/libs/nsyshid/Infinity.h
+  OS/libs/nsyshid/Skylander.cpp
+  OS/libs/nsyshid/Skylander.h
   OS/libs/nsyskbd/nsyskbd.cpp
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
