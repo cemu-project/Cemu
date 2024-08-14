@@ -752,6 +752,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
         renderCommandEncoder->setDepthBias(frontOffset, frontScale, offsetClamp);
 	}
+	else
+	{
+	    renderCommandEncoder->setDepthBias(0.0f, 0.0f, 0.0f);
+	}
 
 	// todo - how does culling behave with rects?
 	// right now we just assume that their winding is always CW
