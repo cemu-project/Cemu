@@ -57,9 +57,17 @@ MetalRenderer::MetalRenderer()
         }
     }
 
-    // Utility shader source
+    // Utility shader library
+
+    // Process the source first
+    std::string processedUtilityShaderSource = utilityShaderSource;
+    processedUtilityShaderSource.pop_back();
+    processedUtilityShaderSource.erase(processedUtilityShaderSource.begin());
+    processedUtilityShaderSource = "#include <metal_stdlib>\n" + processedUtilityShaderSource;
+
+    // Create the library
     NS::Error* error = nullptr;
-	MTL::Library* utilityLibrary = m_device->newLibrary(NS::String::string(utilityShaderSource, NS::ASCIIStringEncoding), nullptr, &error);
+	MTL::Library* utilityLibrary = m_device->newLibrary(NS::String::string(processedUtilityShaderSource.c_str(), NS::ASCIIStringEncoding), nullptr, &error);
 	if (error)
     {
         debug_printf("failed to create utility library (error: %s)\n", error->localizedDescription()->utf8String());
