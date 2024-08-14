@@ -2642,7 +2642,7 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 
 	if(UsePresentWait(chainInfo))
 	{
-		if(chainInfo.m_queueDepth >= chainInfo.m_maxQueued)
+		if(chainInfo.m_queueDepth + 1 >= chainInfo.m_maxQueued)
 		{
 			uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_queueDepth;
 			vkWaitForPresentKHR(m_logicalDevice, chainInfo.m_swapchain, waitFrameId, 40'000'000);
