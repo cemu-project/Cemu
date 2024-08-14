@@ -1231,8 +1231,7 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 		_emitInstructionOutputVariableName(shaderContext, aluInstruction);
 		src->add(" = ");
 		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, outputType);
-		src->add("roundEven");
-		src->add("(");
+		src->add("rint(");
 		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 		src->add(")");
 		_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, outputType);
@@ -3723,12 +3722,6 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 		"else if( v == 0xFFFFFFFF )\r\n"
 		"	return as_type<int>(0.0);\r\n"
 		"return as_type<int>(clamp(as_type<float>(v), 0.0, 1.0));\r\n"
-	"}\r\n");
-
-	// round even
-	fCStr_shaderSource->add(""
-	"float roundEven(float x) {\r\n"
-		"return round(x / 2.0) * 2.0;\r\n"
 	"}\r\n");
 
 	// Bit cast
