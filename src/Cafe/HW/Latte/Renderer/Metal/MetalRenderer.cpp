@@ -665,22 +665,21 @@ void MetalRenderer::draw_beginSequence()
 
 	if (!rasterizerEnable == false)
 		m_state.m_skipDrawSequence = true;
+
+	// TODO: is this even needed?
+	if (!m_state.m_activeFBO)
+	    m_state.m_skipDrawSequence = true;
 }
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
-    //if (m_state.skipDrawSequence)
+    // TODO: uncomment
+    //if (m_state.m_skipDrawSequence)
 	//{
 	//	return;
 	//}
 
 	// Render pass
-	if (!m_state.m_activeFBO)
-	{
-	    debug_printf("no active FBO, skipping draw\n");
-	    return;
-	}
-
 	auto renderCommandEncoder = GetRenderCommandEncoder();
 
 	// Shaders

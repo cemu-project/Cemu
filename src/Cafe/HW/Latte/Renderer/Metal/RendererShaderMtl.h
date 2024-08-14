@@ -58,7 +58,11 @@ private:
 
 	MTL::Function* m_function = nullptr;
 
+	std::vector<uint8> m_binary;
 	std::string m_mslCode;
 
 	void Compile(const std::string& mslCode);
+
+	bool LoadBinary();
+	void StoreBinary();
 };
