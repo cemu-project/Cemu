@@ -117,7 +117,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
 
             renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), vertexBufferRange.size / stride);
 
-            // TODO: restride in one call?
+            // TODO: do the barrier in one call?
             MTL::Resource* barrierBuffers[] = {buffer};
             renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex);
         }
