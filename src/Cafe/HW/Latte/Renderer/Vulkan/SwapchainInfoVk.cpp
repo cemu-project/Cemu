@@ -348,7 +348,7 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
-	m_maxQueued = 2;
+	m_maxQueued = 1;
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 

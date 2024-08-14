@@ -2640,16 +2640,6 @@ bool VulkanRenderer::AcquireNextSwapchainImage(bool mainWindow)
 	if (!UpdateSwapchainProperties(mainWindow))
 		return false;
 
-	if(UsePresentWait(chainInfo))
-	{
-		if(chainInfo.m_queueDepth + 1 >= chainInfo.m_maxQueued)
-		{
-			uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_queueDepth;
-			vkWaitForPresentKHR(m_logicalDevice, chainInfo.m_swapchain, waitFrameId, 40'000'000);
-			chainInfo.m_queueDepth--;
-		}
-	}
-
 	bool result = chainInfo.AcquireImage();
 	if (!result)
 		return false;
@@ -2685,11 +2675,6 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 
 	if (mainWindow)
 		ImguiInit();
-}
-
-bool VulkanRenderer::UsePresentWait(const SwapchainInfoVk& chain) const
-{
-	return m_featureControl.deviceExtensions.present_wait && chain.m_maxQueued > 0;
 }
 
 bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
@@ -2764,13 +2749,21 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
 	// if present_wait is available and enabled, add frame markers to present requests
-	if (UsePresentWait(chainInfo))
+	// and limit the number of queued present operations
+	if (m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued > 0)
 	{
 		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
 		presentId.swapchainCount = 1;
 		presentId.pPresentIds = &chainInfo.m_presentId;
 
 		presentInfo.pNext = &presentId;
+
+		if(chainInfo.m_queueDepth >= chainInfo.m_maxQueued)
+		{
+			uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_queueDepth;
+			vkWaitForPresentKHR(m_logicalDevice, chainInfo.m_swapchain, waitFrameId, 40'000'000);
+			chainInfo.m_queueDepth--;
+		}
 	}
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
@@ -2786,7 +2779,6 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		chainInfo.m_queueDepth++;
 		chainInfo.m_presentId++;
 	}
-
 
 	chainInfo.hasDefinedSwapchainImage = false;
 

@@ -69,8 +69,8 @@ struct SwapchainInfoVk
 	Vector2i m_desiredExtent{};
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint64 m_presentId = 1;
-	uint64 m_queueDepth = 0; // number of frames finished on the CPU, with submitted work and presentation requests
-	uint64 m_maxQueued = 0; // maximum number of frames that should be "in-flight" at a time
+	uint64 m_queueDepth = 0; // number of frames with pending presentation requests
+	uint64 m_maxQueued = 0; // the maximum number of frames with presentation requests.
 
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
