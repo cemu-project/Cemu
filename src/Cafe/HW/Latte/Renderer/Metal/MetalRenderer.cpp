@@ -676,6 +676,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     // TODO: uncomment
     //if (m_state.m_skipDrawSequence)
 	//{
+	//  LatteGPUState.drawCallCounter++;
 	//	return;
 	//}
 
@@ -811,6 +812,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	{
 		renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
 	}
+
+	LatteGPUState.drawCallCounter++;
 }
 
 void MetalRenderer::draw_endSequence()

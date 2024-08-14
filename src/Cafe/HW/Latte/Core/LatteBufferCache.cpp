@@ -290,8 +290,7 @@ public:
 	{
 		if (m_hasCacheAlloc)
 		{
-		    // HACK
-			//cemu_assert_debug(isInUse() == false);
+			cemu_assert_debug(isInUse() == false);
 			g_gpuBufferHeap->freeOffset(m_cacheOffset);
 			m_hasCacheAlloc = false;
 		}
