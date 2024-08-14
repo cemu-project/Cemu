@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Foundation/NSObject.hpp"
 #include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "HW/Latte/Renderer/Metal/RendererShaderMtl.h"
@@ -8,6 +9,29 @@
 
 #include "HW/Latte/Core/FetchShader.h"
 #include "HW/Latte/ISA/RegDefines.h"
+#include "config/ActiveSettings.h"
+
+#define INVALID_TITLE_ID 0xFFFFFFFFFFFFFFFF
+
+uint64 s_cacheTitleId = INVALID_TITLE_ID;
+
+extern std::atomic_int g_compiled_shaders_total;
+extern std::atomic_int g_compiled_shaders_async;
+
+void MetalPipelineCache::ShaderCacheLoading_begin(uint64 cacheTitleId)
+{
+    s_cacheTitleId = cacheTitleId;
+}
+
+void MetalPipelineCache::ShaderCacheLoading_end()
+{
+}
+
+void MetalPipelineCache::ShaderCacheLoading_Close()
+{
+    g_compiled_shaders_total = 0;
+    g_compiled_shaders_async = 0;
+}
 
 MetalPipelineCache::~MetalPipelineCache()
 {
@@ -16,6 +40,17 @@ MetalPipelineCache::~MetalPipelineCache()
         pair.second->release();
     }
     m_pipelineCache.clear();
+
+    NS::Error* error = nullptr;
+    m_binaryArchive->serializeToURL(m_binaryArchiveURL, &error);
+    if (error)
+    {
+        debug_printf("failed to serialize binary archive: %s\n", error->localizedDescription()->utf8String());
+        error->release();
+    }
+    m_binaryArchive->release();
+
+    m_binaryArchiveURL->release();
 }
 
 MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
@@ -151,16 +186,41 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
         }
 	}
 
-	NS::Error* error = nullptr;
-	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, &error);
-	desc->release();
-	vertexDescriptor->release();
+	LoadBinary(desc);
+
+    NS::Error* error = nullptr;
+	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionFailOnBinaryArchiveMiss, nullptr, &error);
+
+	//static uint32 oldPipelineCount = 0;
+	//static uint32 newPipelineCount = 0;
+
+	// Pipeline wasn't found in the binary archive, we need to compile it
 	if (error)
 	{
-	    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
-		error->release();
-		return nullptr;
+		desc->setBinaryArchives(nullptr);
+
+        error->release();
+        error = nullptr;
+	    pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, &error);
+		if (error)
+		{
+		    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
+			error->release();
+		}
+		else
+		{
+		    SaveBinary(desc);
+		}
+
+		//newPipelineCount++;
 	}
+	//else
+    //{
+    //    oldPipelineCount++;
+    //}
+    //debug_printf("%u pipelines were found in the binary archive, %u new were created\n", oldPipelineCount, newPipelineCount);
+	desc->release();
+	vertexDescriptor->release();
 
 	return pipeline;
 }
@@ -237,4 +297,61 @@ uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchSh
 	}
 
 	return stateHash;
+}
+
+void MetalPipelineCache::TryLoadBinaryArchive()
+{
+    if (m_binaryArchive || s_cacheTitleId == INVALID_TITLE_ID)
+        return;
+
+    const std::string cacheFilename = fmt::format("{:016x}_mtl_pipelines.bin", s_cacheTitleId);
+	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename);
+    m_binaryArchiveURL = NS::URL::fileURLWithPath(NS::String::string((const char*)cachePath.generic_u8string().c_str(), NS::ASCIIStringEncoding));
+
+    MTL::BinaryArchiveDescriptor* desc = MTL::BinaryArchiveDescriptor::alloc()->init();
+    desc->setUrl(m_binaryArchiveURL);
+
+    NS::Error* error = nullptr;
+    m_binaryArchive = m_mtlr->GetDevice()->newBinaryArchive(desc, &error);
+    if (error)
+    {
+        desc->setUrl(nullptr);
+
+        error->release();
+        error = nullptr;
+        m_binaryArchive = m_mtlr->GetDevice()->newBinaryArchive(desc, &error);
+        if (error)
+        {
+            debug_printf("failed to create binary archive: %s\n", error->localizedDescription()->utf8String());
+            error->release();
+        }
+    }
+    desc->release();
+}
+
+void MetalPipelineCache::LoadBinary(MTL::RenderPipelineDescriptor* desc)
+{
+    TryLoadBinaryArchive();
+
+    if (!m_binaryArchive)
+        return;
+
+    NS::Object* binArchives[] = {m_binaryArchive};
+    auto binaryArchives = NS::Array::alloc()->init(binArchives, 1);
+    desc->setBinaryArchives(binaryArchives);
+    binaryArchives->release();
+}
+
+void MetalPipelineCache::SaveBinary(MTL::RenderPipelineDescriptor* desc)
+{
+    if (!m_binaryArchive)
+        return;
+
+    NS::Error* error = nullptr;
+    m_binaryArchive->addRenderPipelineFunctions(desc, &error);
+    if (error)
+    {
+        debug_printf("error saving render pipeline functions: %s\n", error->localizedDescription()->utf8String());
+        error->release();
+    }
 }

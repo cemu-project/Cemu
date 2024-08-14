@@ -11,7 +11,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
-#include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h"
 
 #include <imgui.h>
@@ -163,7 +163,7 @@ void LatteShaderCache_finish()
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
 		RendererShaderGL::ShaderCacheLoading_end();
 	else if (g_renderer->GetType() == RendererAPI::Metal)
-		RendererShaderMtl::ShaderCacheLoading_end();
+		MetalPipelineCache::ShaderCacheLoading_end();
 }
 
 uint32 LatteShaderCache_getShaderCacheExtraVersion(uint64 titleId)
@@ -247,7 +247,7 @@ void LatteShaderCache_Load()
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
 		RendererShaderGL::ShaderCacheLoading_begin(cacheTitleId);
 	else if (g_renderer->GetType() == RendererAPI::Metal)
-		RendererShaderMtl::ShaderCacheLoading_begin(cacheTitleId);
+		MetalPipelineCache::ShaderCacheLoading_begin(cacheTitleId);
 	// get cache file name
 	const auto pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_shaders.bin", cacheTitleId);
 	const auto pathGenericPre1_25_0 = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}.bin", cacheTitleId); // before 1.25.0
@@ -780,7 +780,7 @@ void LatteShaderCache_Close()
     else if (g_renderer->GetType() == RendererAPI::OpenGL)
         RendererShaderGL::ShaderCacheLoading_Close();
     else if (g_renderer->GetType() == RendererAPI::Metal)
-        RendererShaderMtl::ShaderCacheLoading_Close();
+        MetalPipelineCache::ShaderCacheLoading_Close();
 
     // if Vulkan then also close pipeline cache
     if (g_renderer->GetType() == RendererAPI::Vulkan)

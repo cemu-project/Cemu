@@ -18,10 +18,6 @@ class RendererShaderMtl : public RendererShader
 	//};
 
 public:
-	static void ShaderCacheLoading_begin(uint64 cacheTitleId);
-    static void ShaderCacheLoading_end();
-    static void ShaderCacheLoading_Close();
-
 	RendererShaderMtl(class MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode);
 	virtual ~RendererShaderMtl();
 
@@ -62,7 +58,4 @@ private:
 	std::string m_mslCode;
 
 	void Compile(const std::string& mslCode);
-
-	bool LoadBinary();
-	void StoreBinary();
 };

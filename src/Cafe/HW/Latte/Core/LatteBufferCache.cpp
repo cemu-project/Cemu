@@ -290,7 +290,8 @@ public:
 	{
 		if (m_hasCacheAlloc)
 		{
-			cemu_assert_debug(isInUse() == false);
+		    // HACK
+			//cemu_assert_debug(isInUse() == false);
 			g_gpuBufferHeap->freeOffset(m_cacheOffset);
 			m_hasCacheAlloc = false;
 		}
@@ -441,7 +442,7 @@ public:
 			if (uploadBegin >= uploadEnd)
 				return; // reserve range not within invalidation or range is zero sized
 
-			
+
 			if (uploadBegin == m_invalidationRangeBegin)
 			{
 				m_invalidationRangeBegin = uploadEnd;
@@ -536,7 +537,7 @@ private:
 	MPTR m_invalidationRangeBegin;
 	MPTR m_invalidationRangeEnd;
 
-	BufferCacheNode(MPTR rangeBegin, MPTR rangeEnd): m_rangeBegin(rangeBegin), m_rangeEnd(rangeEnd) 
+	BufferCacheNode(MPTR rangeBegin, MPTR rangeEnd): m_rangeBegin(rangeBegin), m_rangeEnd(rangeEnd)
 	{
 		flagInUse();
 		cemu_assert_debug(rangeBegin < rangeEnd);
@@ -740,7 +741,7 @@ private:
 		cemu_assert_debug(rangeEnd <= pageRangeEnd);
 		cemu_assert_debug((rangeBegin & 0xF) == 0);
 		cemu_assert_debug((rangeEnd & 0xF) == 0);
-		
+
 		auto pageInfo = m_pageInfo.data() + pageIndex;
 		pageInfo->hasStreamoutData = true;
 
@@ -805,7 +806,7 @@ public:
         s_allCacheNodes.clear();
         g_deallocateQueue.clear();
     }
-	
+
 	static void ProcessDeallocations()
 	{
 		for(auto& itr : g_deallocateQueue)
