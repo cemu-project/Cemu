@@ -2781,7 +2781,7 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(result == VK_SUCCESS)
+	if(result >= 0)
 	{
 		chainInfo.m_queueDepth++;
 		chainInfo.m_presentId++;
