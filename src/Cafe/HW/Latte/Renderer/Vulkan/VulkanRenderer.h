@@ -552,6 +552,7 @@ private:
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
 	bool AcquireNextSwapchainImage(bool mainWindow);
 	void RecreateSwapchain(bool mainWindow, bool skipCreate = false);
+	bool UsePresentWait(const SwapchainInfoVk& chain) const;
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;

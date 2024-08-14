@@ -149,7 +149,7 @@ void SwapchainInfoVk::Create()
 	m_acquireIndex = 0;
 	hasDefinedSwapchainImage = false;
 
-	m_numQueued = 0;
+	m_queueDepth = 0;
 }
 
 void SwapchainInfoVk::Cleanup()
@@ -348,7 +348,7 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
-	m_maxQueued = 1;
+	m_maxQueued = 2;
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 

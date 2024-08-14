@@ -69,8 +69,8 @@ struct SwapchainInfoVk
 	Vector2i m_desiredExtent{};
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint64 m_presentId = 1;
-	uint64 m_numQueued = 0; //track consecutive present successes
-	uint64 m_maxQueued = 0; //track consecutive present successes
+	uint64 m_queueDepth = 0; //number of frames CPU is ahead of presentation
+	uint64 m_maxQueued = 0;
 
 
 	// swapchain image ringbuffer (indexed by swapchainImageIndex)
