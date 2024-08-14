@@ -92,19 +92,6 @@ public:
 	template <typename X>
 	explicit operator MEMPTR<X>() const { return MEMPTR<X>(this->m_value); }
 
-	//bool operator==(const MEMPTR<T>& v) const { return m_value == v.m_value; }
-	//bool operator==(const T* rhs) const { return (T*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value) == rhs; } -> ambigious (implicit cast to T* allows for T* == T*)
-	//bool operator==(std::nullptr_t rhs) const { return m_value == 0; }
-
-	//bool operator!=(const MEMPTR<T>& v) const { return !(*this == v); }
-	//bool operator!=(const void* rhs) const { return !(*this == rhs); }
-	//bool operator!=(int rhs) const { return !(*this == rhs); }
-
-	//bool operator==(const void* rhs) const { return (void*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value) == rhs; }
-
-	//explicit bool operator==(int rhs) const { return *this == (const void*)(size_t)rhs; }
-	
-
 	MEMPTR operator+(const MEMPTR& ptr) { return MEMPTR(this->GetMPTR() + ptr.GetMPTR()); }
 	MEMPTR operator-(const MEMPTR& ptr) { return MEMPTR(this->GetMPTR() - ptr.GetMPTR()); }
 
@@ -118,6 +105,12 @@ public:
 	{
 		// pointer arithmetic
 		return MEMPTR(this->GetMPTR() - v * 4);
+	}
+
+	MEMPTR& operator+=(sint32 v)
+	{
+		m_value += v * sizeof(T);
+		return *this;
 	}
 
 	template <class Q = T>

@@ -225,7 +225,7 @@ jobs:
       run: |
         brew update
         brew install llvm@15 ninja nasm automake libtool
-        brew install cmake python3 ninja
+        brew install cmake ninja
 
     - name: "Build and install molten-vk"
       run: |
