@@ -58,9 +58,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
     uint64 stateHash = CalculatePipelineHash(fetchShader, vertexShader, pixelShader, activeFBO, lcr);
     auto& pipeline = m_pipelineCache[stateHash];
     if (pipeline)
-    {
         return pipeline;
-    }
 
 	// Vertex descriptor
 	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();

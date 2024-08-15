@@ -7,8 +7,6 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
-#include "Metal/MTLDepthStencil.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
 
 struct MetalBoundBuffer
 {
@@ -55,6 +53,7 @@ struct MetalEncoderState
         class LatteTextureViewMtl* m_textureView = nullptr;
         uint32 m_word4 = INVALID_UINT32;
     } m_textures[METAL_SHADER_TYPE_TOTAL][MAX_MTL_TEXTURES];
+    MTL::SamplerState* m_samplers[METAL_SHADER_TYPE_TOTAL][MAX_MTL_SAMPLERS];
     size_t m_uniformBufferOffsets[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
 };
 
@@ -294,6 +293,8 @@ public:
         {
             for (uint32 j = 0; j < MAX_MTL_TEXTURES; j++)
                 m_state.m_encoderState.m_textures[i][j] = {nullptr};
+            for (uint32 j = 0; j < MAX_MTL_SAMPLERS; j++)
+                m_state.m_encoderState.m_samplers[i][j] = nullptr;
             for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
                 m_state.m_encoderState.m_uniformBufferOffsets[i][j] = INVALID_OFFSET;
         }
@@ -333,6 +334,7 @@ private:
 	class MetalMemoryManager* m_memoryManager;
 	class MetalPipelineCache* m_pipelineCache;
 	class MetalDepthStencilCache* m_depthStencilCache;
+	class MetalSamplerCache* m_samplerCache;
 
 	// Metal objects
 	MTL::Device* m_device;

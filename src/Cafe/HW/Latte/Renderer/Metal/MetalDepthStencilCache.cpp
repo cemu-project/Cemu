@@ -18,9 +18,7 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
     uint64 stateHash = CalculateDepthStencilHash(lcr);
     auto& depthStencilState = m_depthStencilCache[stateHash];
     if (depthStencilState)
-    {
         return depthStencilState;
-    }
 
 	// Depth stencil state
 	bool depthEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_ENABLE();
