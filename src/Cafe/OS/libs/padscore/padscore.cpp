@@ -494,7 +494,6 @@ void padscoreExport_KPADReadEx(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, samplesRead);
 }
 
-bool debugUseDRC1 = true;
 void padscoreExport_KPADRead(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU32(channel, 0);
