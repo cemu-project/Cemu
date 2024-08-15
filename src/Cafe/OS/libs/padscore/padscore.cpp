@@ -12,6 +12,7 @@
 enum class KPAD_ERROR : sint32
 {
 	NONE = 0,
+	NO_SAMPLE_DATA = -1,
 	NO_CONTROLLER = -2,
 	NOT_INITIALIZED = -5,
 };
@@ -106,6 +107,9 @@ void padscoreExport_WPADProbe(PPCInterpreter_t* hCPU)
 	}
 	else
 	{
+		if(type)
+			*type = 253;
+
 		osLib_returnFromFunction(hCPU, WPAD_ERR_NO_CONTROLLER);
 	}
 }
@@ -420,9 +424,12 @@ void padscoreExport_KPADSetConnectCallback(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, old_callback.GetMPTR());
 }
 
+uint64 g_kpadLastRead[InputManager::kMaxWPADControllers] = {0};
 bool g_kpadIsInited = true;
+
 sint32 _KPADRead(uint32 channel, KPADStatus_t* samplingBufs, uint32 length, betype<KPAD_ERROR>* errResult)
 {
+
 	if (channel >= InputManager::kMaxWPADControllers)
 	{
 		debugBreakpoint();
@@ -445,6 +452,19 @@ sint32 _KPADRead(uint32 channel, KPADStatus_t* samplingBufs, uint32 length, bety
 
 		return 0;
 	}
+
+	// On console new input samples are only received every few ms and calling KPADRead(Ex) clears the internal queue regardless of length value
+	// thus calling KPADRead(Ex) again too soon on the same channel will result in no data being returned
+	// Games that depend on this: Affordable Space Adventures
+	uint64 currentTime = coreinit::OSGetTime();
+	uint64 timeDif = currentTime - g_kpadLastRead[channel];
+	if(length == 0 || timeDif < coreinit::EspressoTime::ConvertNsToTimerTicks(1000000))
+	{
+		if (errResult)
+			*errResult = KPAD_ERROR::NO_SAMPLE_DATA;
+		return 0;
+	}
+	g_kpadLastRead[channel] = currentTime;
 
 	memset(samplingBufs, 0x00, sizeof(KPADStatus_t));
 	samplingBufs->wpadErr = WPAD_ERR_NONE;
