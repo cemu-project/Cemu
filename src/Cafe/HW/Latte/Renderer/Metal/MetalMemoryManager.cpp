@@ -106,14 +106,14 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             renderCommandEncoder->setRenderPipelineState(m_restrideBufferPipeline->GetRenderPipelineState());
             MTL::Buffer* buffers[] = {bufferCache, buffer};
             size_t offsets[] = {vertexBufferRange.offset, restrideInfo.allocation.bufferOffset};
-            renderCommandEncoder->setVertexBuffers(buffers, offsets, NS::Range(0, 2));
+            renderCommandEncoder->setVertexBuffers(buffers, offsets, NS::Range(GET_HELPER_BUFFER_BINDING(0), 2));
 
             struct
             {
                 uint32 oldStride;
                 uint32 newStride;
             } strideData = {static_cast<uint32>(stride), static_cast<uint32>(newStride)};
-            renderCommandEncoder->setVertexBytes(&strideData, sizeof(strideData), 2);
+            renderCommandEncoder->setVertexBytes(&strideData, sizeof(strideData), GET_HELPER_BUFFER_BINDING(2));
 
             renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), vertexBufferRange.size / stride);
 

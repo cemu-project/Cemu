@@ -7,18 +7,6 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
-#include "Common/precompiled.h"
-#include "Metal/MTLCommandBuffer.hpp"
-#include "Metal/MTLCommandEncoder.hpp"
-#include "Metal/MTLRenderPass.hpp"
-
-#define MAX_MTL_BUFFERS 31
-#define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 2)
-// TODO: don't harcdode the support buffer binding
-#define MTL_SUPPORT_BUFFER_BINDING 30
-
-#define MAX_MTL_TEXTURES 31
-#define MAX_MTL_SAMPLERS 16
 
 struct MetalBoundBuffer
 {
@@ -29,8 +17,40 @@ struct MetalBoundBuffer
     MetalRestrideInfo restrideInfo;
 };
 
+enum MetalShaderType
+{
+    METAL_SHADER_TYPE_VERTEX,
+    METAL_SHADER_TYPE_FRAGMENT,
+
+    METAL_SHADER_TYPE_TOTAL
+};
+
+inline MetalShaderType GetMtlShaderType(LatteConst::ShaderType shaderType)
+{
+    switch (shaderType)
+    {
+    case LatteConst::ShaderType::Vertex:
+        return METAL_SHADER_TYPE_VERTEX;
+    case LatteConst::ShaderType::Pixel:
+        return METAL_SHADER_TYPE_FRAGMENT;
+    default:
+        return METAL_SHADER_TYPE_TOTAL;
+    }
+}
+
+struct MetalEncoderState
+{
+    struct {
+        class LatteTextureViewMtl* m_textureView = nullptr;
+        uint32 m_word4 = INVALID_UINT32;
+    } m_textures[METAL_SHADER_TYPE_TOTAL][MAX_MTL_TEXTURES];
+    size_t m_uniformBufferOffsets[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
+};
+
 struct MetalState
 {
+    MetalEncoderState m_encoderState{};
+
     bool m_usesSRGB = false;
 
     bool m_skipDrawSequence = false;
@@ -42,7 +62,7 @@ struct MetalState
     MetalBoundBuffer m_vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     // TODO: find out what is the max number of bound textures on the Wii U
     class LatteTextureViewMtl* m_textures[64] = {nullptr};
-    size_t m_uniformBufferOffsets[(uint32)LatteConst::ShaderType::TotalCount][MAX_MTL_BUFFERS];
+    size_t m_uniformBufferOffsets[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
 
     MTL::Viewport m_viewport = {0, 0, 0, 0, 0, 0};
     MTL::ScissorRect m_scissor = {0, 0, 0, 0};
@@ -253,6 +273,19 @@ public:
     MetalEncoderType GetEncoderType()
     {
         return m_encoderType;
+    }
+
+    void ResetEncoderState()
+    {
+        m_state.m_encoderState = {};
+
+        for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
+        {
+            for (uint32 j = 0; j < MAX_MTL_TEXTURES; j++)
+                m_state.m_encoderState.m_textures[i][j] = {nullptr};
+            for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
+                m_state.m_encoderState.m_uniformBufferOffsets[i][j] = INVALID_OFFSET;
+        }
     }
 
 	MTL::CommandBuffer* GetCommandBuffer();
