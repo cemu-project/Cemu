@@ -10,6 +10,8 @@ curl -sSfL https://github.com"$(curl https://github.com/probonopd/go-appimage/re
 chmod a+x mkappimage.AppImage
 curl -sSfLO "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
 chmod a+x linuxdeploy-plugin-gtk.sh
+curl -sSfLO "https://github.com/darealshinji/linuxdeploy-plugin-checkrt/releases/download/continuous/linuxdeploy-plugin-checkrt.sh"
+chmod a+x linuxdeploy-plugin-checkrt.sh
 
 if [[ ! -e /usr/lib/x86_64-linux-gnu ]]; then
 	sed -i 's#lib\/x86_64-linux-gnu#lib64#g' linuxdeploy-plugin-gtk.sh
@@ -39,7 +41,8 @@ export NO_STRIP=1
   -d "${GITHUB_WORKSPACE}"/AppDir/info.cemu.Cemu.desktop \
   -i "${GITHUB_WORKSPACE}"/AppDir/info.cemu.Cemu.png \
   -e "${GITHUB_WORKSPACE}"/AppDir/usr/bin/Cemu \
-  --plugin gtk
+  --plugin gtk \
+  --plugin checkrt
 
 if ! GITVERSION="$(git rev-parse --short HEAD 2>/dev/null)"; then
 	GITVERSION=experimental
