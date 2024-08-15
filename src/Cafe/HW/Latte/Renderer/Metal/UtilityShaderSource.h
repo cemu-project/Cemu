@@ -20,7 +20,7 @@ vertex VertexOut vertexFullscreen(ushort vid [[vertex_id]]) {
    return out;
 }
 
-fragment float4 fragmentPresent(VertexOut in [[stage_in]], texture2d<float> tex [[texture(GET_TEXTURE_BINDING(0))]], sampler samplr [[sampler(GET_SAMPLER_BINDING(0))]]) {
+fragment float4 fragmentPresent(VertexOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler samplr [[sampler(0)]]) {
    return tex.sample(samplr, in.texCoord);
 }
 

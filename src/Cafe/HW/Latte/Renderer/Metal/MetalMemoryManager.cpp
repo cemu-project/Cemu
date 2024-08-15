@@ -104,9 +104,13 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_mtlr->GetCommandEncoder());
 
             renderCommandEncoder->setRenderPipelineState(m_restrideBufferPipeline->GetRenderPipelineState());
+            m_mtlr->GetEncoderState().m_renderPipelineState = m_restrideBufferPipeline->GetRenderPipelineState();
+
             MTL::Buffer* buffers[] = {bufferCache, buffer};
             size_t offsets[] = {vertexBufferRange.offset, restrideInfo.allocation.bufferOffset};
             renderCommandEncoder->setVertexBuffers(buffers, offsets, NS::Range(GET_HELPER_BUFFER_BINDING(0), 2));
+            m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(0)] = INVALID_OFFSET;
+            m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(1)] = INVALID_OFFSET;
 
             struct
             {
@@ -114,6 +118,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
                 uint32 newStride;
             } strideData = {static_cast<uint32>(stride), static_cast<uint32>(newStride)};
             renderCommandEncoder->setVertexBytes(&strideData, sizeof(strideData), GET_HELPER_BUFFER_BINDING(2));
+            m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(2)] = INVALID_OFFSET;
 
             renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), vertexBufferRange.size / stride);
 

@@ -17,6 +17,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLRenderPass.hpp"
 #include "gui/guiWrapper.h"
 
@@ -232,8 +233,8 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(m_state.m_usesSRGB ? m_presentPipelineSRGB : m_presentPipelineLinear);
-    renderCommandEncoder->setFragmentTexture(presentTexture, GET_HELPER_TEXTURE_BINDING(0));
-    renderCommandEncoder->setFragmentSamplerState((useLinearTexFilter ? m_linearSampler : m_nearestSampler), GET_HELPER_SAMPLER_BINDING(0));
+    renderCommandEncoder->setFragmentTexture(presentTexture, 0);
+    renderCommandEncoder->setFragmentSamplerState((useLinearTexFilter ? m_linearSampler : m_nearestSampler), 0);
 
     renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 
@@ -535,12 +536,13 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 	    auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
 
 		renderCommandEncoder->setRenderPipelineState(m_copyTextureToTexturePipeline->GetRenderPipelineState());
+		m_state.m_encoderState.m_renderPipelineState = m_copyTextureToTexturePipeline->GetRenderPipelineState();
 
-		renderCommandEncoder->setViewport(MTL::Viewport{0.0, 0.0, (double)effectiveCopyWidth, (double)effectiveCopyHeight, 0.0, 1.0});
-		renderCommandEncoder->setScissorRect(MTL::ScissorRect{0, 0, (uint32)effectiveCopyWidth, (uint32)effectiveCopyHeight});
-
-		renderCommandEncoder->setVertexTextures(textures, NS::Range(GET_HELPER_BUFFER_BINDING(0), 2));
+		renderCommandEncoder->setVertexTextures(textures, NS::Range(GET_HELPER_TEXTURE_BINDING(0), 2));
+		m_state.m_encoderState.m_textures[METAL_SHADER_TYPE_VERTEX][GET_HELPER_TEXTURE_BINDING(0)] = {(LatteTextureViewMtl*)textures[0]};
+		m_state.m_encoderState.m_textures[METAL_SHADER_TYPE_VERTEX][GET_HELPER_TEXTURE_BINDING(1)] = {(LatteTextureViewMtl*)textures[1]};
 		renderCommandEncoder->setVertexBytes(&params, sizeof(params), GET_HELPER_BUFFER_BINDING(0));
+		m_state.m_encoderState.m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(0)] = INVALID_OFFSET;
 
 		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 	}
@@ -687,6 +689,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	//	return;
 	//}
 
+	auto& encoderState = m_state.m_encoderState;
+
 	// Render pass
 	auto renderCommandEncoder = GetRenderCommandEncoder();
 
@@ -702,7 +706,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// Depth stencil state
 	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
-	renderCommandEncoder->setDepthStencilState(depthStencilState);
+	if (depthStencilState != encoderState.m_depthStencilState)
+	{
+	    renderCommandEncoder->setDepthStencilState(depthStencilState);
+		encoderState.m_depthStencilState = depthStencilState;
+	}
 
 	// Stencil reference
 	bool stencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
@@ -710,11 +718,19 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	{
 	    bool backStencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
 		uint32 stencilRefFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILREF_F();
-    	uint32 stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
-	    if (backStencilEnable)
-			renderCommandEncoder->setStencilReferenceValues(stencilRefFront, stencilRefBack);
-		else
-		    renderCommandEncoder->setStencilReferenceValue(stencilRefFront);
+    	uint32 stencilRefBack;
+        if (backStencilEnable)
+            stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
+        else
+            stencilRefBack = stencilRefFront;
+
+	    if (stencilRefFront != encoderState.m_stencilRefFront || stencilRefBack != encoderState.m_stencilRefBack)
+		{
+		    renderCommandEncoder->setStencilReferenceValues(stencilRefFront, stencilRefBack);
+
+			encoderState.m_stencilRefFront = stencilRefFront;
+			encoderState.m_stencilRefBack = stencilRefBack;
+		}
 	}
 
     // Primitive type
@@ -739,21 +755,35 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	if (polyOffsetFrontEnable)
 	{
-    	//uint32 frontScaleU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue();
-    	//uint32 frontOffsetU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.getRawValue();
-    	//uint32 offsetClampU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.getRawValue();
+    	uint32 frontScaleU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue();
+    	uint32 frontOffsetU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.getRawValue();
+    	uint32 offsetClampU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.getRawValue();
 
-    	float frontScale = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.get_SCALE();
-    	float frontOffset = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.get_OFFSET();
-    	float offsetClamp = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.get_CLAMP();
+        if (frontOffsetU32 != encoderState.m_depthBias || frontScaleU32 != encoderState.m_depthSlope || offsetClampU32 != encoderState.m_depthClamp)
+        {
+           	float frontScale = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.get_SCALE();
+           	float frontOffset = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_OFFSET.get_OFFSET();
+           	float offsetClamp = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_CLAMP.get_CLAMP();
 
-    	frontScale /= 16.0f;
+           	frontScale /= 16.0f;
 
-        renderCommandEncoder->setDepthBias(frontOffset, frontScale, offsetClamp);
+            renderCommandEncoder->setDepthBias(frontOffset, frontScale, offsetClamp);
+
+            encoderState.m_depthBias = frontOffsetU32;
+            encoderState.m_depthSlope = frontScaleU32;
+            encoderState.m_depthClamp = offsetClampU32;
+        }
 	}
 	else
 	{
-	    renderCommandEncoder->setDepthBias(0.0f, 0.0f, 0.0f);
+	    if (0 != encoderState.m_depthBias || 0 != encoderState.m_depthSlope || 0 != encoderState.m_depthClamp)
+		{
+	        renderCommandEncoder->setDepthBias(0.0f, 0.0f, 0.0f);
+
+			encoderState.m_depthBias = 0;
+			encoderState.m_depthSlope = 0;
+			encoderState.m_depthClamp = 0;
+		}
 	}
 
 	// todo - how does culling behave with rects?
@@ -766,19 +796,36 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 			cullBack = cullFront;
 	}
 
+	// Cull mode
 	if (cullFront && cullBack)
 		return; // We can just skip the draw (TODO: can we?)
-	else if (cullFront)
-		renderCommandEncoder->setCullMode(MTL::CullModeFront);
-	else if (cullBack)
-		renderCommandEncoder->setCullMode(MTL::CullModeBack);
-	else
-		renderCommandEncoder->setCullMode(MTL::CullModeNone);
 
+    MTL::CullMode cullMode;
+   	if (cullFront)
+  		cullMode = MTL::CullModeFront;
+   	else if (cullBack)
+  		cullMode = MTL::CullModeBack;
+   	else
+  		cullMode = MTL::CullModeNone;
+
+    if (cullMode != encoderState.m_cullMode)
+   	{
+   	    renderCommandEncoder->setCullMode(cullMode);
+  		encoderState.m_cullMode = cullMode;
+   	}
+
+	// Front face
+	MTL::Winding frontFaceWinding;
 	if (frontFace == Latte::LATTE_PA_SU_SC_MODE_CNTL::E_FRONTFACE::CCW)
-		renderCommandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+		frontFaceWinding = MTL::WindingCounterClockwise;
 	else
-		renderCommandEncoder->setFrontFacingWinding(MTL::WindingClockwise);
+		frontFaceWinding = MTL::WindingClockwise;
+
+    if (frontFaceWinding != encoderState.m_frontFaceWinding)
+   	{
+   	    renderCommandEncoder->setFrontFacingWinding(frontFaceWinding);
+  		encoderState.m_frontFaceWinding = frontFaceWinding;
+   	}
 
 	// Resources
 
@@ -817,7 +864,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// Render pipeline state
 	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
-	renderCommandEncoder->setRenderPipelineState(renderPipelineState);
+	if (renderPipelineState != encoderState.m_renderPipelineState)
+   	{
+        renderCommandEncoder->setRenderPipelineState(renderPipelineState);
+  		encoderState.m_renderPipelineState = renderPipelineState;
+   	}
 
 	// Uniform buffers, textures and samplers
 	BindStageResources(renderCommandEncoder, vertexShader);

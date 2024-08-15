@@ -7,6 +7,8 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
+#include "Metal/MTLDepthStencil.hpp"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 
 struct MetalBoundBuffer
 {
@@ -40,6 +42,15 @@ inline MetalShaderType GetMtlShaderType(LatteConst::ShaderType shaderType)
 
 struct MetalEncoderState
 {
+    MTL::RenderPipelineState* m_renderPipelineState = nullptr;
+    MTL::DepthStencilState* m_depthStencilState = nullptr;
+    MTL::CullMode m_cullMode = MTL::CullModeNone;
+    MTL::Winding m_frontFaceWinding = MTL::WindingClockwise;
+    uint32 m_stencilRefFront = 0;
+    uint32 m_stencilRefBack = 0;
+    uint32 m_depthBias = 0;
+   	uint32 m_depthSlope = 0;
+   	uint32 m_depthClamp = 0;
     struct {
         class LatteTextureViewMtl* m_textureView = nullptr;
         uint32 m_word4 = INVALID_UINT32;
@@ -286,6 +297,11 @@ public:
             for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
                 m_state.m_encoderState.m_uniformBufferOffsets[i][j] = INVALID_OFFSET;
         }
+    }
+
+    MetalEncoderState& GetEncoderState()
+    {
+        return m_state.m_encoderState;
     }
 
 	MTL::CommandBuffer* GetCommandBuffer();
