@@ -746,7 +746,8 @@ namespace padscore
 		// call sampling callback
 		for (auto i = 0; i < InputManager::kMaxWPADControllers; ++i)
 		{
-			if (g_padscore.controller_data[i].sampling_callback) {
+			if (g_padscore.controller_data[i].sampling_callback)
+			{
 				if (const auto controller = instance.get_wpad_controller(i))
 				{
 					cemuLog_log(LogType::InputAPI, "Calling WPADsamplingCallback({})", i);
@@ -761,7 +762,7 @@ namespace padscore
 	{
 		OSCreateAlarm(&g_padscore.alarm);
 		const uint64 start_tick = coreinit::coreinit_getOSTime();
-		const uint64 period_tick = coreinit::EspressoTime::GetTimerClock(); // once a second
+		const uint64 period_tick = coreinit::EspressoTime::GetTimerClock() / 200; // every 5ms
 		MPTR handler = PPCInterpreter_makeCallableExportDepr(TickFunction);
 		OSSetPeriodicAlarm(&g_padscore.alarm, start_tick, period_tick, handler);
 	}
