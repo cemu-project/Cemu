@@ -49,9 +49,15 @@ MetalRenderer::MetalRenderer()
 
     // Texture readback
     m_readbackBuffer = m_device->newBuffer(TEXTURE_READBACK_SIZE, MTL::StorageModeShared);
+#ifdef CEMU_DEBUG_ASSERT
+    m_readbackBuffer->setLabel(GetLabel("Texture readback buffer", m_readbackBuffer));
+#endif
 
     // Transform feedback
     m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize(), MTL::StorageModeShared);
+#ifdef CEMU_DEBUG_ASSERT
+    m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
+#endif
 
     // Initialize state
     for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
@@ -70,7 +76,7 @@ MetalRenderer::MetalRenderer()
 
     // Create the library
     NS::Error* error = nullptr;
-	MTL::Library* utilityLibrary = m_device->newLibrary(NS::String::string(processedUtilityShaderSource.c_str(), NS::ASCIIStringEncoding), nullptr, &error);
+	MTL::Library* utilityLibrary = m_device->newLibrary(ToNSString(processedUtilityShaderSource.c_str()), nullptr, &error);
 	if (error)
     {
         debug_printf("failed to create utility library (error: %s)\n", error->localizedDescription()->utf8String());
@@ -80,8 +86,8 @@ MetalRenderer::MetalRenderer()
     }
 
     // Present pipeline
-    MTL::Function* presentVertexFunction = utilityLibrary->newFunction(NS::String::string("vertexFullscreen", NS::ASCIIStringEncoding));
-    MTL::Function* presentFragmentFunction = utilityLibrary->newFunction(NS::String::string("fragmentPresent", NS::ASCIIStringEncoding));
+    MTL::Function* presentVertexFunction = utilityLibrary->newFunction(ToNSString("vertexFullscreen"));
+    MTL::Function* presentFragmentFunction = utilityLibrary->newFunction(ToNSString("fragmentPresent"));
 
     MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
     renderPipelineDescriptor->setVertexFunction(presentVertexFunction);
@@ -91,6 +97,9 @@ MetalRenderer::MetalRenderer()
 
     error = nullptr;
     renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+#ifdef CEMU_DEBUG_ASSERT
+    renderPipelineDescriptor->setLabel(GetLabel("Present pipeline linear", renderPipelineDescriptor));
+#endif
     m_presentPipelineLinear = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
     if (error)
     {
@@ -100,6 +109,9 @@ MetalRenderer::MetalRenderer()
 
     error = nullptr;
     renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+#ifdef CEMU_DEBUG_ASSERT
+    renderPipelineDescriptor->setLabel(GetLabel("Present pipeline sRGB", renderPipelineDescriptor));
+#endif
     m_presentPipelineSRGB = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
     renderPipelineDescriptor->release();
     if (error)
@@ -971,6 +983,9 @@ MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::
     auto commandBuffer = GetCommandBuffer();
 
     auto renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
+#ifdef CEMU_DEBUG_ASSERT
+    renderCommandEncoder->setLabel(GetLabel("Temporary render command encoder", renderCommandEncoder));
+#endif
     m_commandEncoder = renderCommandEncoder;
     m_encoderType = MetalEncoderType::Render;
 
@@ -1024,6 +1039,9 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
     m_state.m_lastUsedFBO = m_state.m_activeFBO;
 
     auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO->GetRenderPassDescriptor());
+#ifdef CEMU_DEBUG_ASSERT
+    renderCommandEncoder->setLabel(GetLabel("Render command encoder", renderCommandEncoder));
+#endif
     m_commandEncoder = renderCommandEncoder;
     m_encoderType = MetalEncoderType::Render;
 

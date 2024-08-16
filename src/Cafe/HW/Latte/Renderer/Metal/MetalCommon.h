@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Foundation/NSString.hpp"
 #include <Metal/Metal.hpp>
 
 #define MAX_MTL_BUFFERS 31
@@ -26,4 +27,21 @@ inline size_t Align(size_t size, size_t alignment)
 inline std::string GetColorAttachmentTypeStr(uint32 index)
 {
     return "COLOR_ATTACHMENT" + std::to_string(index) + "_TYPE";
+}
+
+// Cast from const char* to NS::String*
+inline NS::String* ToNSString(const char* str)
+{
+    return NS::String::string(str, NS::ASCIIStringEncoding);
+}
+
+// Cast from std::string to NS::String*
+inline NS::String* ToNSString(const std::string& str)
+{
+    return ToNSString(str.c_str());
+}
+
+inline NS::String* GetLabel(const std::string& label, const void* identifier)
+{
+    return ToNSString(label + " (" + std::to_string(reinterpret_cast<uintptr_t>(identifier)) + ")");
 }

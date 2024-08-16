@@ -3,7 +3,7 @@
 MetalHybridComputePipeline::MetalHybridComputePipeline(class MetalRenderer* mtlRenderer, MTL::Library* library, const char* vertexFunctionName, const char* kernelFunctionName)
 {
     // Render pipeline state
-    MTL::Function* vertexFunction = library->newFunction(NS::String::string(vertexFunctionName, NS::ASCIIStringEncoding));
+    MTL::Function* vertexFunction = library->newFunction(ToNSString(vertexFunctionName));
 
     MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
     renderPipelineDescriptor->setVertexFunction(vertexFunction);

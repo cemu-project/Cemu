@@ -78,13 +78,13 @@ void RendererShaderMtl::CompileFragmentFunction(CachedFBOMtl* activeFBO)
 void RendererShaderMtl::Compile(const std::string& mslCode)
 {
     NS::Error* error = nullptr;
-	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(NS::String::string(mslCode.c_str(), NS::ASCIIStringEncoding), nullptr, &error);
+	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(mslCode), nullptr, &error);
 	if (error)
     {
         printf("failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
         error->release();
         return;
     }
-    m_function = library->newFunction(NS::String::string("main0", NS::ASCIIStringEncoding));
+    m_function = library->newFunction(ToNSString("main0"));
     library->release();
 }

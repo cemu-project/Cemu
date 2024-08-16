@@ -187,6 +187,9 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	LoadBinary(desc);
 
     NS::Error* error = nullptr;
+#ifdef CEMU_DEBUG_ASSERT
+    desc->setLabel(GetLabel("Cached render pipeline state", desc));
+#endif
 	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionFailOnBinaryArchiveMiss, nullptr, &error);
 
 	//static uint32 oldPipelineCount = 0;
@@ -199,6 +202,9 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 
         error->release();
         error = nullptr;
+#ifdef CEMU_DEBUG_ASSERT
+        desc->setLabel(GetLabel("New render pipeline state", desc));
+#endif
 	    pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, &error);
 		if (error)
 		{
@@ -304,7 +310,7 @@ void MetalPipelineCache::TryLoadBinaryArchive()
 
     const std::string cacheFilename = fmt::format("{:016x}_mtl_pipelines.bin", s_cacheTitleId);
 	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename);
-    m_binaryArchiveURL = NS::URL::fileURLWithPath(NS::String::string((const char*)cachePath.generic_u8string().c_str(), NS::ASCIIStringEncoding));
+    m_binaryArchiveURL = NS::URL::fileURLWithPath(ToNSString((const char*)cachePath.generic_u8string().c_str()));
 
     MTL::BinaryArchiveDescriptor* desc = MTL::BinaryArchiveDescriptor::alloc()->init();
     desc->setUrl(m_binaryArchiveURL);

@@ -46,6 +46,9 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, siz
 
     // If no free range was found, allocate a new buffer
     MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(std::max(size, BUFFER_ALLOCATION_SIZE), MTL::ResourceStorageModeShared);
+#ifdef CEMU_DEBUG_ASSERT
+    buffer->setLabel(GetLabel("Buffer from buffer allocator", buffer));
+#endif
 
     MetalBufferAllocation allocation;
     allocation.bufferIndex = m_buffers.size();
@@ -184,19 +187,22 @@ void MetalMemoryManager::InitBufferCache(size_t size)
     }
 
     m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModeShared);
+#ifdef CEMU_DEBUG_ASSERT
+    m_bufferCache->setLabel(GetLabel("Buffer cache", m_bufferCache));
+#endif
 }
 
 void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, size_t size)
 {
-    if ((offset + size) > m_bufferCache->length())
-    {
-        throw std::runtime_error(std::to_string(offset) + " + " + std::to_string(size) + " > " + std::to_string(m_bufferCache->length()));
-    }
-
     if (!m_bufferCache)
     {
         debug_printf("MetalMemoryManager::UploadToBufferCache: buffer cache not initialized\n");
         return;
+    }
+
+    if ((offset + size) > m_bufferCache->length())
+    {
+        debug_printf("MetalMemoryManager::UploadToBufferCache: out of bounds access (offset: %zu, size: %zu, buffer size: %zu)\n", offset, size, m_bufferCache->length());
     }
 
     memcpy((uint8*)m_bufferCache->contents() + offset, data, size);
