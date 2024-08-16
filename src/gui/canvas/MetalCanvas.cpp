@@ -60,4 +60,7 @@ void MetalCanvas::OnResize(wxSizeEvent& event)
 
 	const wxRect refreshRect(size);
 	RefreshRect(refreshRect, false);
+
+	auto metal_renderer = MetalRenderer::GetInstance();
+	metal_renderer->InitializeLayer({size.x, size.y}, m_is_main_window);
 }

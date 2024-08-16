@@ -138,13 +138,20 @@ MetalRenderer::~MetalRenderer()
     m_device->release();
 }
 
-// TODO: don't ignore "mainWindow" argument and respect size
+// TODO: don't ignore "mainWindow" argument
 void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 {
     const auto& windowInfo = gui_getWindowInfo().window_main;
 
-    m_metalLayer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle);
+    m_metalLayer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle, m_layerScaleX, m_layerScaleY);
     m_metalLayer->setDevice(m_device);
+    m_metalLayer->setDrawableSize(CGSize{(float)size.x * m_layerScaleX, (float)size.y * m_layerScaleY});
+}
+
+// TODO: don't ignore "mainWindow" argument
+void MetalRenderer::ResizeLayer(const Vector2i& size, bool mainWindow)
+{
+    m_metalLayer->setDrawableSize(CGSize{(float)size.x * m_layerScaleX, (float)size.y * m_layerScaleY});
 }
 
 void MetalRenderer::Initialize()
@@ -215,6 +222,7 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     m_memoryManager->ResetTemporaryBuffers();
 }
 
+// TODO: use `shader` for drawing
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
@@ -239,6 +247,9 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     renderCommandEncoder->setRenderPipelineState(m_state.m_usesSRGB ? m_presentPipelineSRGB : m_presentPipelineLinear);
     renderCommandEncoder->setFragmentTexture(presentTexture, 0);
     renderCommandEncoder->setFragmentSamplerState((useLinearTexFilter ? m_linearSampler : m_nearestSampler), 0);
+
+    renderCommandEncoder->setViewport(MTL::Viewport{(double)imageX, (double)imageY, (double)imageWidth, (double)imageHeight, 0.0, 1.0});
+    renderCommandEncoder->setScissorRect(MTL::ScissorRect{(uint32)imageX, (uint32)imageY, (uint32)imageWidth, (uint32)imageHeight});
 
     renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 

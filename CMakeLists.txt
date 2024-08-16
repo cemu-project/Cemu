@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.21.1)
 
+# TODO: remove this
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
 set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
@@ -23,7 +26,7 @@ if (ENABLE_VCPKG)
 	OUTPUT_VARIABLE is_vcpkg_shallow
 	OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-	
+
 	if(is_vcpkg_shallow STREQUAL "true")
 		message(STATUS "vcpkg is shallow. Unshallowing it now...")
 		execute_process(

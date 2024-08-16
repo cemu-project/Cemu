@@ -1,3 +1,3 @@
 #pragma once
 
-void* CreateMetalLayer(void* handle);
+void* CreateMetalLayer(void* handle, float& scaleX, float& scaleY);

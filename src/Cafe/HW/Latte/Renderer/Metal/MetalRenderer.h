@@ -141,6 +141,7 @@ public:
     }
 
 	void InitializeLayer(const Vector2i& size, bool mainWindow);
+	void ResizeLayer(const Vector2i& size, bool mainWindow);
 
 	void Initialize() override;
 	void Shutdown() override;
@@ -330,6 +331,7 @@ public:
 
 private:
 	CA::MetalLayer* m_metalLayer;
+	float m_layerScaleX, m_layerScaleY;
 
 	class MetalMemoryManager* m_memoryManager;
 	class MetalPipelineCache* m_pipelineCache;
