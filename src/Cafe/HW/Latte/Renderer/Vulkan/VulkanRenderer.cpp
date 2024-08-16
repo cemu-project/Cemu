@@ -2732,13 +2732,16 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
-	WaitCommandBufferFinished(m_commandBufferIDOfPrevFrame);
-	m_commandBufferIDOfPrevFrame = GetCurrentCommandBufferId();
+	const size_t currentFrameCmdBufferID = GetCurrentCommandBufferId();
 
 	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
 	SubmitCommandBuffer(presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
+
+	// wait for the previous frame to finish rendering
+	WaitCommandBufferFinished(m_commandBufferIDOfPrevFrame);
+	m_commandBufferIDOfPrevFrame = currentFrameCmdBufferID;
 
 	VkPresentIdKHR presentId = {};
 
