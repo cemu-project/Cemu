@@ -33,7 +33,7 @@ void SwapchainInfoVk::Create()
 	m_actualExtent = ChooseSwapExtent(details.capabilities);
 
 	// use at least two swapchain images. fewer than that causes problems on some drivers
-	uint32_t image_count = std::max(2u, details.capabilities.minImageCount);
+	uint32_t image_count = std::max(m_vsyncState == VSync::MAILBOX ? 3u : 2u, details.capabilities.minImageCount);
 	if(details.capabilities.maxImageCount > 0)
 		image_count = std::min(image_count, details.capabilities.maxImageCount);
 	if(image_count < 2)
