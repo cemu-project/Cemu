@@ -17,10 +17,6 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
-#include "HW/Latte/Core/Latte.h"
-#include "HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-#include "Metal/MTLRenderPass.hpp"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -34,13 +30,37 @@ MetalRenderer::MetalRenderer()
     m_device = MTL::CreateSystemDefaultDevice();
     m_commandQueue = m_device->newCommandQueue();
 
+    // Resources
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
+#ifdef CEMU_DEBUG_ASSERT
+    samplerDescriptor->setLabel(GetLabel("Nearest sampler state", samplerDescriptor));
+#endif
     m_nearestSampler = m_device->newSamplerState(samplerDescriptor);
 
     samplerDescriptor->setMinFilter(MTL::SamplerMinMagFilterLinear);
     samplerDescriptor->setMagFilter(MTL::SamplerMinMagFilterLinear);
+#ifdef CEMU_DEBUG_ASSERT
+    samplerDescriptor->setLabel(GetLabel("Linear sampler state", samplerDescriptor));
+#endif
     m_linearSampler = m_device->newSamplerState(samplerDescriptor);
     samplerDescriptor->release();
+
+    // Null resources
+    MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    textureDescriptor->setTextureType(MTL::TextureType1D);
+    textureDescriptor->setWidth(4);
+    m_nullTexture1D = m_device->newTexture(textureDescriptor);
+#ifdef CEMU_DEBUG_ASSERT
+    m_nullTexture1D->setLabel(GetLabel("Null texture 1D", m_nullTexture1D));
+#endif
+
+    textureDescriptor->setTextureType(MTL::TextureType2D);
+    textureDescriptor->setHeight(4);
+    m_nullTexture2D = m_device->newTexture(textureDescriptor);
+#ifdef CEMU_DEBUG_ASSERT
+    m_nullTexture2D->setLabel(GetLabel("Null texture 2D", m_nullTexture2D));
+#endif
+    textureDescriptor->release();
 
     m_memoryManager = new MetalMemoryManager(this);
     m_pipelineCache = new MetalPipelineCache(this);
@@ -296,22 +316,15 @@ void MetalRenderer::AppendOverlayDebugInfo()
     debug_printf("MetalRenderer::AppendOverlayDebugInfo not implemented\n");
 }
 
+// TODO: halfZ
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
 {
     m_state.m_viewport = MTL::Viewport{x, y, width, height, nearZ, farZ};
-    if (m_encoderType == MetalEncoderType::Render)
-    {
-        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setViewport(m_state.m_viewport);
-    }
 }
 
 void MetalRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, sint32 scissorWidth, sint32 scissorHeight)
 {
-    m_state.m_scissor = MTL::ScissorRect{NS::UInteger(scissorX), NS::UInteger(scissorY), NS::UInteger(scissorWidth), NS::UInteger(scissorHeight)};
-    if (m_encoderType == MetalEncoderType::Render)
-    {
-        static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder)->setScissorRect(m_state.m_scissor);
-    }
+    m_state.m_scissor = MTL::ScissorRect{(uint32)scissorX, (uint32)scissorY, (uint32)scissorWidth, (uint32)scissorHeight};
 }
 
 LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key)
@@ -396,7 +409,7 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
         depthAttachment->setSlice(sliceIndex);
         depthAttachment->setLevel(mipIndex);
     }
-    if (clearStencil)
+    if (clearStencil && GetMtlPixelFormatInfo(hostTexture->format, true).hasStencil)
     {
         auto stencilAttachment = renderPassDescriptor->stencilAttachment();
         stencilAttachment->setTexture(mtlTexture);
@@ -854,6 +867,33 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
   		encoderState.m_frontFaceWinding = frontFaceWinding;
    	}
 
+    // Viewport
+    if (m_state.m_viewport.originX != encoderState.m_viewport.originX ||
+        m_state.m_viewport.originY != encoderState.m_viewport.originY ||
+        m_state.m_viewport.width != encoderState.m_viewport.width ||
+        m_state.m_viewport.height != encoderState.m_viewport.height ||
+        m_state.m_viewport.znear != encoderState.m_viewport.znear ||
+        m_state.m_viewport.zfar != encoderState.m_viewport.zfar)
+    {
+        renderCommandEncoder->setViewport(m_state.m_viewport);
+
+        encoderState.m_viewport = m_state.m_viewport;
+    }
+
+    // Scissor
+    if (m_state.m_scissor.x != encoderState.m_scissor.x ||
+        m_state.m_scissor.y != encoderState.m_scissor.y ||
+        m_state.m_scissor.width != encoderState.m_scissor.width ||
+        m_state.m_scissor.height != encoderState.m_scissor.height)
+    {
+        encoderState.m_scissor = m_state.m_scissor;
+
+        // TODO: clamp scissor to render target dimensions
+        //scissor.width = ;
+        //scissor.height = ;
+        renderCommandEncoder->setScissorRect(encoderState.m_scissor);
+    }
+
 	// Resources
 
 	// Index buffer
@@ -935,7 +975,7 @@ void MetalRenderer::draw_endSequence()
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
 {
-    auto allocation = m_memoryManager->GetBufferAllocation(size, 4);
+    auto allocation = m_memoryManager->GetBufferAllocation(size);
 	offset = allocation.bufferOffset;
 	bufferIndex = allocation.bufferIndex;
 
@@ -1017,7 +1057,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
 
                 if (!needsNewRenderPass)
                 {
-                    if (m_state.m_activeFBO->depthBuffer.texture && m_state.m_activeFBO->depthBuffer.texture != m_state.m_lastUsedFBO->depthBuffer.texture)
+                    if (m_state.m_activeFBO->depthBuffer.texture && (m_state.m_activeFBO->depthBuffer.texture != m_state.m_lastUsedFBO->depthBuffer.texture || ( m_state.m_activeFBO->depthBuffer.hasStencil && !m_state.m_lastUsedFBO->depthBuffer.hasStencil)))
                     {
                         needsNewRenderPass = true;
                     }
@@ -1155,7 +1195,7 @@ bool MetalRenderer::AcquireNextDrawable(bool mainWindow)
     m_drawable = m_metalLayer->nextDrawable();
     if (!m_drawable)
     {
-        printf("failed to acquire next drawable\n");
+        debug_printf("failed to acquire next drawable\n");
         return false;
     }
 
@@ -1191,13 +1231,6 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 			UNREACHABLE;
 		}
 
-		auto textureView = m_state.m_textures[hostTextureUnit];
-		if (!textureView)
-		{
-		    debug_printf("invalid bound texture view %u\n", hostTextureUnit);
-			continue;
-		}
-
 		// TODO: uncomment
 		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;//shader->resourceMapping.textureUnitToBindingPoint[hostTextureUnit];
 		if (binding >= MAX_MTL_TEXTURES)
@@ -1206,36 +1239,88 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
             continue;
 		}
 
+		auto textureView = m_state.m_textures[hostTextureUnit];
+		if (!textureView)
+		{
+		    // TODO: don't bind if already bound
+            if (textureDim == Latte::E_DIM::DIM_1D)
+           	{
+          		switch (shader->shaderType)
+               	{
+               	case LatteConst::ShaderType::Vertex:
+               	{
+              		renderCommandEncoder->setVertexTexture(m_nullTexture1D, binding);
+              		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+              		break;
+               	}
+               	case LatteConst::ShaderType::Pixel:
+               	{
+               	    renderCommandEncoder->setFragmentTexture(m_nullTexture1D, binding);
+                    renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+              		break;
+               	}
+               	default:
+              		UNREACHABLE;
+               	}
+           	}
+           	else
+           	{
+          		switch (shader->shaderType)
+               	{
+               	case LatteConst::ShaderType::Vertex:
+               	{
+              		renderCommandEncoder->setVertexTexture(m_nullTexture2D, binding);
+              		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+              		break;
+               	}
+               	case LatteConst::ShaderType::Pixel:
+               	{
+               	    renderCommandEncoder->setFragmentTexture(m_nullTexture2D, binding);
+                    renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+              		break;
+               	}
+               	default:
+              		UNREACHABLE;
+               	}
+           	}
+            continue;
+		}
+
 		LatteTexture* baseTexture = textureView->baseTexture;
 
 		uint32 stageSamplerIndex = shader->textureUnitSamplerAssignment[relative_textureUnit];
+		MTL::SamplerState* sampler;
 		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
 		{
     		uint32 samplerIndex = stageSamplerIndex + LatteDecompiler_getTextureSamplerBaseIndex(shader->shaderType);
-    		auto sampler = m_samplerCache->GetSamplerState(LatteGPUState.contextNew, samplerIndex);
-
-            auto& boundSampler = m_state.m_encoderState.m_samplers[mtlShaderType][binding];
-            if (sampler != boundSampler)
-            {
-                boundSampler = sampler;
-
-    			switch (shader->shaderType)
-    			{
-    			case LatteConst::ShaderType::Vertex:
-    			{
-    				renderCommandEncoder->setVertexSamplerState(sampler, binding);
-    				break;
-    			}
-    			case LatteConst::ShaderType::Pixel:
-    			{
-    			    renderCommandEncoder->setFragmentSamplerState(sampler, binding);
-    				break;
-    			}
-    			default:
-    				UNREACHABLE;
-    			}
-            }
+    		sampler = m_samplerCache->GetSamplerState(LatteGPUState.contextNew, samplerIndex);
 		}
+		else
+		{
+		    sampler = m_nearestSampler;
+		}
+
+        auto& boundSampler = m_state.m_encoderState.m_samplers[mtlShaderType][binding];
+        if (sampler != boundSampler)
+        {
+            boundSampler = sampler;
+
+ 			switch (shader->shaderType)
+ 			{
+ 			case LatteConst::ShaderType::Vertex:
+ 			{
+				renderCommandEncoder->setVertexSamplerState(sampler, binding);
+				break;
+ 			}
+ 			case LatteConst::ShaderType::Pixel:
+ 			{
+ 			    renderCommandEncoder->setFragmentSamplerState(sampler, binding);
+				break;
+ 			}
+ 			default:
+				UNREACHABLE;
+ 			}
+        }
 
 		// get texture register word 0
 		uint32 word4 = LatteGPUState.contextRegister[texUnitRegIndex + 4];
@@ -1347,16 +1432,22 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		}
 		*/
 
+		// TODO: uncomment
+		//auto supportBuffer = m_memoryManager->GetBufferAllocation(sizeof(supportBufferData));
+		//memcpy(supportBuffer.data, supportBufferData, sizeof(supportBufferData));
+
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
+			//renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBuffer(supportBuffer.bufferIndex), supportBuffer.bufferOffset, MTL_SUPPORT_BUFFER_BINDING);
 			renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
+		    //renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBuffer(supportBuffer.bufferIndex), supportBuffer.bufferOffset, MTL_SUPPORT_BUFFER_BINDING);
+			renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}
 		default:
@@ -1428,12 +1519,6 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 
 void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder)
 {
-    // Viewport
-    renderCommandEncoder->setViewport(m_state.m_viewport);
-
-    // Scissor
-    renderCommandEncoder->setScissorRect(m_state.m_scissor);
-
     // Vertex buffers
 	for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
 	{

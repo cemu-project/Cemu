@@ -29,6 +29,7 @@ struct MetalPixelFormatInfo {
     MetalDataType dataType;
     size_t bytesPerBlock;
     Uvec2 blockTexelSize = {1, 1};
+    bool hasStencil = false;
 };
 
 const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth);

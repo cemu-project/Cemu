@@ -7,6 +7,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 
 struct MetalBoundBuffer
 {
@@ -44,6 +45,8 @@ struct MetalEncoderState
     MTL::DepthStencilState* m_depthStencilState = nullptr;
     MTL::CullMode m_cullMode = MTL::CullModeNone;
     MTL::Winding m_frontFaceWinding = MTL::WindingClockwise;
+    MTL::Viewport m_viewport;
+    MTL::ScissorRect m_scissor;
     uint32 m_stencilRefFront = 0;
     uint32 m_stencilRefBack = 0;
     uint32 m_depthBias = 0;
@@ -74,8 +77,8 @@ struct MetalState
     class LatteTextureViewMtl* m_textures[64] = {nullptr};
     size_t m_uniformBufferOffsets[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
 
-    MTL::Viewport m_viewport = {0, 0, 0, 0, 0, 0};
-    MTL::ScissorRect m_scissor = {0, 0, 0, 0};
+    MTL::Viewport m_viewport;
+    MTL::ScissorRect m_scissor;
 };
 
 struct MetalCommandBuffer
@@ -290,6 +293,8 @@ public:
     {
         m_state.m_encoderState = {};
 
+        // TODO: set viewport and scissor to render target dimensions if render commands
+
         for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
         {
             for (uint32 j = 0; j < MAX_MTL_TEXTURES; j++)
@@ -350,9 +355,13 @@ private:
 	class MetalHybridComputePipeline* m_copyTextureToTexturePipeline;
 	class MetalHybridComputePipeline* m_restrideBufferPipeline;
 
-	// Basic
+	// Resources
 	MTL::SamplerState* m_nearestSampler;
 	MTL::SamplerState* m_linearSampler;
+
+	// Null resources
+	MTL::Texture* m_nullTexture1D;
+	MTL::Texture* m_nullTexture2D;
 
 	// Texture readback
 	MTL::Buffer* m_readbackBuffer;

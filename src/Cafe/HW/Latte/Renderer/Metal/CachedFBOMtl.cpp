@@ -1,5 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
+#include "HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Metal/MTLRenderPass.hpp"
 
 void CachedFBOMtl::CreateRenderPass()
@@ -30,7 +31,7 @@ void CachedFBOMtl::CreateRenderPass()
 		depthAttachment->setStoreAction(MTL::StoreActionStore);
 
 		// setup stencil attachment
-		if (depthBuffer.hasStencil)
+		if (depthBuffer.hasStencil && GetMtlPixelFormatInfo(depthBuffer.texture->format, true).hasStencil)
 		{
 		    auto stencilAttachment = m_renderPassDescriptor->stencilAttachment();
             stencilAttachment->setTexture(textureView->GetRGBAView());

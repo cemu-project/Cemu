@@ -47,10 +47,12 @@ public:
         return m_buffers[bufferIndex];
     }
 
-    MetalBufferAllocation GetBufferAllocation(size_t size, size_t alignment);
+    MetalBufferAllocation GetBufferAllocation(size_t size);
 
 private:
     class MetalRenderer* m_mtlr;
+
+    size_t m_allocationSize = 8 * 1024 * 1024;
 
     std::vector<MTL::Buffer*> m_buffers;
     std::vector<MetalBufferRange> m_freeBufferRanges;
@@ -139,9 +141,9 @@ public:
         return m_bufferAllocator/*s[bufferAllocatorIndex]*/.GetBuffer(bufferIndex);
     }
 
-    MetalBufferAllocation GetBufferAllocation(size_t size, size_t alignment)
+    MetalBufferAllocation GetBufferAllocation(size_t size)
     {
-        auto allocation = m_bufferAllocator/*s[m_bufferAllocatorIndex]*/.GetBufferAllocation(size, alignment);
+        auto allocation = m_bufferAllocator/*s[m_bufferAllocatorIndex]*/.GetBufferAllocation(size);
         //allocation.bufferIndex |= (m_bufferAllocatorIndex << bufferAllocatorIndexShift);
 
         return allocation;

@@ -243,6 +243,13 @@ uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchSh
 		stateHash = std::rotl<uint64>(stateHash, 7);
 	}
 
+	if (activeFBO->depthBuffer.texture)
+	{
+	    auto textureView = static_cast<LatteTextureViewMtl*>(activeFBO->depthBuffer.texture);
+		stateHash += textureView->GetRGBAView()->pixelFormat();
+		stateHash = std::rotl<uint64>(stateHash, 7);
+	}
+
 	for (auto& group : fetchShader->bufferGroups)
 	{
 		uint32 bufferStride = group.getCurrentBufferStride(lcr.GetRawView());

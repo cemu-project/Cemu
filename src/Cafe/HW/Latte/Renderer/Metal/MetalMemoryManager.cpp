@@ -3,10 +3,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
 #include "Common/precompiled.h"
-#include "Foundation/NSRange.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-
-const size_t BUFFER_ALLOCATION_SIZE = 8 * 1024 * 1024;
 
 MetalBufferAllocator::~MetalBufferAllocator()
 {
@@ -16,10 +12,10 @@ MetalBufferAllocator::~MetalBufferAllocator()
     }
 }
 
-MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, size_t alignment)
+MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size)
 {
     // Align the size
-    size = Align(size, alignment);
+    size = Align(size, 16);
 
     // First, try to find a free range
     for (uint32 i = 0; i < m_freeBufferRanges.size(); i++)
@@ -45,7 +41,8 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, siz
     }
 
     // If no free range was found, allocate a new buffer
-    MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(std::max(size, BUFFER_ALLOCATION_SIZE), MTL::ResourceStorageModeShared);
+    m_allocationSize = std::max(m_allocationSize, size);
+    MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, MTL::ResourceStorageModeShared);
 #ifdef CEMU_DEBUG_ASSERT
     buffer->setLabel(GetLabel("Buffer from buffer allocator", buffer));
 #endif
@@ -58,15 +55,19 @@ MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size, siz
     m_buffers.push_back(buffer);
 
     // If the buffer is larger than the requested size, add the remaining space to the free buffer ranges
-    if (size < BUFFER_ALLOCATION_SIZE)
+    if (size < m_allocationSize)
     {
         MetalBufferRange range;
         range.bufferIndex = allocation.bufferIndex;
         range.offset = size;
-        range.size = BUFFER_ALLOCATION_SIZE - size;
+        range.size = m_allocationSize - size;
 
         m_freeBufferRanges.push_back(range);
     }
+
+    // Increase the allocation size for the next buffer
+    if (m_allocationSize < 128 * 1024 * 1024)
+        m_allocationSize *= 2;
 
     return allocation;
 }
@@ -91,10 +92,11 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
     {
         size_t newStride = Align(stride, 4);
         size_t newSize = vertexBufferRange.size / stride * newStride;
-        restrideInfo.allocation = m_bufferAllocator->GetBufferAllocation(newSize, 4);
+        restrideInfo.allocation = m_bufferAllocator->GetBufferAllocation(newSize);
+        buffer = m_bufferAllocator->GetBuffer(restrideInfo.allocation.bufferIndex);
 
         //uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
-        //uint8* newPtr = (uint8*)restrideInfo.buffer->contents();
+        //uint8* newPtr = (uint8*)buffer->contents() + restrideInfo.allocation.bufferOffset;
 
         //for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
     	//{
@@ -123,9 +125,18 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             renderCommandEncoder->setVertexBytes(&strideData, sizeof(strideData), GET_HELPER_BUFFER_BINDING(2));
             m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(2)] = INVALID_OFFSET;
 
-            renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), vertexBufferRange.size / stride);
+            // TODO: remove
+            uint32 vertexCount = vertexBufferRange.size / stride;
+            if (vertexCount * strideData.oldStride > buffers[0]->length() - offsets[0]) {
+                throw std::runtime_error("Source buffer overflow (" + std::to_string(vertexCount) + " * " + std::to_string(strideData.oldStride) + " > " + std::to_string(buffers[0]->length()) + " - " + std::to_string(offsets[0]) + ")");
+            }
+            if (vertexCount * strideData.newStride > buffers[1]->length() - offsets[1]) {
+                throw std::runtime_error("Destination buffer overflow (" + std::to_string(vertexCount) + " * " + std::to_string(strideData.newStride) + " > " + std::to_string(buffers[1]->length()) + " - " + std::to_string(offsets[1]) + ")");
+            }
 
-            // TODO: do the barrier in one call?
+            renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangleStrip, NS::UInteger(0), vertexBufferRange.size / stride);
+
+            // TODO: do the barriers in one call?
             MTL::Resource* barrierBuffers[] = {buffer};
             renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex);
         }
