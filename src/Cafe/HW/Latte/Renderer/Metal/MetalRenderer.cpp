@@ -161,6 +161,9 @@ MetalRenderer::~MetalRenderer()
     delete m_samplerCache;
     delete m_memoryManager;
 
+    m_nullTexture1D->release();
+    m_nullTexture2D->release();
+
     m_nearestSampler->release();
     m_linearSampler->release();
 
@@ -743,13 +746,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Depth stencil state
-	auto depthStencilContext = LatteGPUState.contextNew;
+	// TODO: implement this somehow
+	//auto depthControl = LatteGPUState.contextNew.DB_DEPTH_CONTROL;
 
 	// Disable depth write when there is no depth attachment
-	if (!m_state.m_lastUsedFBO->depthBuffer.texture)
-	    depthStencilContext.DB_DEPTH_CONTROL.set_Z_WRITE_ENABLE(false);
+	//if (!m_state.m_lastUsedFBO->depthBuffer.texture)
+	//    depthControl.set_Z_WRITE_ENABLE(false);
 
-	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(depthStencilContext);
+	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
 	if (depthStencilState != encoderState.m_depthStencilState)
 	{
 	    renderCommandEncoder->setDepthStencilState(depthStencilState);
