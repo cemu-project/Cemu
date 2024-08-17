@@ -3284,6 +3284,8 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 					continue;
 
 				uint32 u32Offset = streamWrite->exportArrayBase + i;
+				// HACK: disable streamout temporarily, since it causes GPU hangs
+				continue;
 				src->addFmt("sb[sbBase{} + {}]", streamWrite->bufferIndex, u32Offset);
 
 				src->add(" = ");
@@ -3397,6 +3399,8 @@ static void _emitStreamWriteCode(LatteDecompilerShaderContext* shaderContext, La
 				continue;
 
 			uint32 u32Offset = cfInstruction->exportArrayBase + i;
+			// HACK: disable streamout temporarily, since it causes GPU hangs
+			continue;
 			src->addFmt("sb[sbBase{} + {}]", streamoutBufferIndex, u32Offset);
 
 			src->add(" = ");

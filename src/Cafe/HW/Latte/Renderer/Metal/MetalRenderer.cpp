@@ -591,8 +591,6 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 	    // TODO: do the copy in a compute shader
 		debug_printf("surfaceCopy_copySurfaceWithFormatConversion: no active render command encoder, skipping copy\n");
 	}
-
-	// TODO: restore state
 }
 
 void MetalRenderer::bufferCache_init(const sint32 bufferSize)
@@ -745,7 +743,13 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Depth stencil state
-	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
+	auto depthStencilContext = LatteGPUState.contextNew;
+
+	// Disable depth write when there is no depth attachment
+	if (!m_state.m_lastUsedFBO->depthBuffer.texture)
+	    depthStencilContext.DB_DEPTH_CONTROL.set_Z_WRITE_ENABLE(false);
+
+	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(depthStencilContext);
 	if (depthStencilState != encoderState.m_depthStencilState)
 	{
 	    renderCommandEncoder->setDepthStencilState(depthStencilState);
@@ -1284,6 +1288,49 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
                	}
            	}
             continue;
+		}
+
+		if (textureDim == Latte::E_DIM::DIM_1D && (textureView->dim != Latte::E_DIM::DIM_1D))
+		{
+		    switch (shader->shaderType)
+           	{
+           	case LatteConst::ShaderType::Vertex:
+           	{
+          		renderCommandEncoder->setVertexTexture(m_nullTexture1D, binding);
+          		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+          		break;
+           	}
+           	case LatteConst::ShaderType::Pixel:
+           	{
+           	    renderCommandEncoder->setFragmentTexture(m_nullTexture1D, binding);
+                renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+          		break;
+           	}
+           	default:
+          		UNREACHABLE;
+           	}
+			continue;
+		}
+		else if (textureDim == Latte::E_DIM::DIM_2D && (textureView->dim != Latte::E_DIM::DIM_2D && textureView->dim != Latte::E_DIM::DIM_2D_MSAA))
+		{
+		    switch (shader->shaderType)
+           	{
+           	case LatteConst::ShaderType::Vertex:
+           	{
+          		renderCommandEncoder->setVertexTexture(m_nullTexture2D, binding);
+          		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+          		break;
+           	}
+           	case LatteConst::ShaderType::Pixel:
+           	{
+           	    renderCommandEncoder->setFragmentTexture(m_nullTexture2D, binding);
+                renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
+          		break;
+           	}
+           	default:
+          		UNREACHABLE;
+           	}
+			continue;
 		}
 
 		LatteTexture* baseTexture = textureView->baseTexture;
