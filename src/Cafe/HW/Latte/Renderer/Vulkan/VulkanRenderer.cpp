@@ -2743,6 +2743,8 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	WaitCommandBufferFinished(m_commandBufferIDOfPrevFrame);
 	m_commandBufferIDOfPrevFrame = currentFrameCmdBufferID;
 
+	chainInfo.WaitAvailableFence();
+
 	VkPresentIdKHR presentId = {};
 
 	VkPresentInfoKHR presentInfo = {};
