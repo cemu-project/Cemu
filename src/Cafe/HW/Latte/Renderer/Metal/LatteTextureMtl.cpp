@@ -3,13 +3,14 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Common/precompiled.h"
+#include "Metal/MTLResource.hpp"
 
 LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
 	: LatteTexture(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth), m_mtlr(mtlRenderer), m_format(format), m_isDepth(isDepth)
 {
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
-    desc->setStorageMode(m_mtlr->GetOptimalStorageMode());
+    desc->setStorageMode(m_mtlr->HasUnifiedMemory() ? MTL::StorageModeShared : MTL::StorageModePrivate);
 
 	sint32 effectiveBaseWidth = width;
 	sint32 effectiveBaseHeight = height;

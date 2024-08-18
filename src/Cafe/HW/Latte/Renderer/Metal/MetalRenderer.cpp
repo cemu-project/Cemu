@@ -378,6 +378,7 @@ void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIn
     }
 }
 
+// TODO: do a GPU blit even on unified memory? That would mean we could use private storage mode for all textures
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
 {
     auto textureMtl = (LatteTextureMtl*)hostTexture;
@@ -390,9 +391,26 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     }
 
     size_t bytesPerRow = GetMtlTextureBytesPerRow(textureMtl->GetFormat(), textureMtl->IsDepth(), width);
-    // No need to calculate bytesPerImage for 3D textures, since we always load just one slice
+    // No need to set bytesPerImage for 3D textures, since we always load just one slice
     //size_t bytesPerImage = GetMtlTextureBytesPerImage(textureMtl->GetFormat(), textureMtl->IsDepth(), height, bytesPerRow);
-    textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);
+    if (HasUnifiedMemory())
+    {
+        textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);
+    }
+    else
+    {
+        auto blitCommandEncoder = GetBlitCommandEncoder();
+
+        // Allocate a temporary buffer
+        auto allocation = m_memoryManager->GetTemporaryBufferAllocator().GetBufferAllocation(compressedImageSize);
+        auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(allocation.bufferIndex);
+
+        // Copy the data to the temporary buffer
+        memcpy(allocation.data, pixelData, compressedImageSize);
+
+        // Copy the data from the temporary buffer to the texture
+        blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
+    }
 }
 
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
