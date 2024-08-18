@@ -554,6 +554,7 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/RendererShaderMtl.h
             HW/Latte/Renderer/Metal/CachedFBOMtl.cpp
             HW/Latte/Renderer/Metal/CachedFBOMtl.h
+            HW/Latte/Renderer/Metal/MetalBufferAllocator.h
             HW/Latte/Renderer/Metal/MetalMemoryManager.cpp
             HW/Latte/Renderer/Metal/MetalMemoryManager.h
             HW/Latte/Renderer/Metal/MetalPipelineCache.cpp

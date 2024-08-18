@@ -1492,8 +1492,9 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		*/
 
 		auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
-		auto supportBuffer = bufferAllocator.GetBufferAllocation(sizeof(supportBufferData));
-		memcpy(supportBuffer.data, supportBufferData, sizeof(supportBufferData));
+		size_t size = shader->uniform.uniformRangeSize;
+		auto supportBuffer = bufferAllocator.GetBufferAllocation(size);
+		memcpy(supportBuffer.data, supportBufferData, size);
 
 		switch (shader->shaderType)
 		{
