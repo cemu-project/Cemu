@@ -1,76 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
 #include "Common/precompiled.h"
-
-MetalBufferAllocator::~MetalBufferAllocator()
-{
-    for (auto buffer : m_buffers)
-    {
-        buffer->release();
-    }
-}
-
-MetalBufferAllocation MetalBufferAllocator::GetBufferAllocation(size_t size)
-{
-    // Align the size
-    size = Align(size, 16);
-
-    // First, try to find a free range
-    for (uint32 i = 0; i < m_freeBufferRanges.size(); i++)
-    {
-        auto& range = m_freeBufferRanges[i];
-        if (size <= range.size)
-        {
-            MetalBufferAllocation allocation;
-            allocation.bufferIndex = range.bufferIndex;
-            allocation.bufferOffset = range.offset;
-            allocation.data = (uint8*)m_buffers[range.bufferIndex]->contents() + range.offset;
-
-            range.offset += size;
-            range.size -= size;
-
-            if (range.size == 0)
-            {
-                m_freeBufferRanges.erase(m_freeBufferRanges.begin() + i);
-            }
-
-            return allocation;
-        }
-    }
-
-    // If no free range was found, allocate a new buffer
-    m_allocationSize = std::max(m_allocationSize, size);
-    MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, MTL::ResourceStorageModeShared);
-#ifdef CEMU_DEBUG_ASSERT
-    buffer->setLabel(GetLabel("Buffer from buffer allocator", buffer));
-#endif
-
-    MetalBufferAllocation allocation;
-    allocation.bufferIndex = m_buffers.size();
-    allocation.bufferOffset = 0;
-    allocation.data = buffer->contents();
-
-    m_buffers.push_back(buffer);
-
-    // If the buffer is larger than the requested size, add the remaining space to the free buffer ranges
-    if (size < m_allocationSize)
-    {
-        MetalBufferRange range;
-        range.bufferIndex = allocation.bufferIndex;
-        range.offset = size;
-        range.size = m_allocationSize - size;
-
-        m_freeBufferRanges.push_back(range);
-    }
-
-    // Increase the allocation size for the next buffer
-    if (m_allocationSize < 128 * 1024 * 1024)
-        m_allocationSize *= 2;
-
-    return allocation;
-}
 
 MetalVertexBufferCache::~MetalVertexBufferCache()
 {
@@ -87,13 +18,13 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         return {bufferCache, vertexBufferRange.offset};
     }
 
-    auto buffer = m_bufferAllocator->GetBuffer(restrideInfo.allocation.bufferIndex);
+    MTL::Buffer* buffer;
     if (restrideInfo.memoryInvalidated || stride != restrideInfo.lastStride)
     {
         size_t newStride = Align(stride, 4);
         size_t newSize = vertexBufferRange.size / stride * newStride;
-        restrideInfo.allocation = m_bufferAllocator->GetBufferAllocation(newSize);
-        buffer = m_bufferAllocator->GetBuffer(restrideInfo.allocation.bufferIndex);
+        restrideInfo.allocation = m_bufferAllocator.GetBufferAllocation(newSize);
+        buffer = m_bufferAllocator.GetBuffer(restrideInfo.allocation.bufferIndex);
 
         //uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
         //uint8* newPtr = (uint8*)buffer->contents() + restrideInfo.allocation.bufferOffset;
@@ -112,7 +43,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             m_mtlr->GetEncoderState().m_renderPipelineState = m_restrideBufferPipeline->GetRenderPipelineState();
 
             MTL::Buffer* buffers[] = {bufferCache, buffer};
-            size_t offsets[] = {vertexBufferRange.offset, restrideInfo.allocation.bufferOffset};
+            size_t offsets[] = {vertexBufferRange.offset, restrideInfo.allocation.offset};
             renderCommandEncoder->setVertexBuffers(buffers, offsets, NS::Range(GET_HELPER_BUFFER_BINDING(0), 2));
             m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(0)] = INVALID_OFFSET;
             m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(1)] = INVALID_OFFSET;
@@ -149,8 +80,12 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         restrideInfo.memoryInvalidated = false;
         restrideInfo.lastStride = newStride;
     }
+    else
+    {
+        buffer = m_bufferAllocator.GetBuffer(restrideInfo.allocation.bufferIndex);
+    }
 
-    return {buffer, restrideInfo.allocation.bufferOffset};
+    return {buffer, restrideInfo.allocation.offset};
 }
 
 void MetalVertexBufferCache::MemoryRangeChanged(size_t offset, size_t size)

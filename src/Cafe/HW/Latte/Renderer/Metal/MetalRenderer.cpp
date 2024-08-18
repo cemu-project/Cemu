@@ -1,5 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayer.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
@@ -253,8 +254,8 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
         m_commandBuffers[i].m_commandBuffer->release();
     m_commandBuffers.clear();
 
-    // Reset temporary buffers
-    m_memoryManager->ResetTemporaryBuffers();
+    // Release frame persistent buffers
+    m_memoryManager->GetFramePersistentBufferAllocator().ResetAllocations();
 }
 
 // TODO: use `shader` for drawing
@@ -953,7 +954,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	if (hostIndexType != INDEX_TYPE::NONE)
 	{
 	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
-		MTL::Buffer* indexBuffer = m_memoryManager->GetBuffer(indexBufferIndex);
+		MTL::Buffer* indexBuffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(indexBufferIndex);
 		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, indexBufferOffset, instanceCount, baseVertex, baseInstance);
 	} else
 	{
@@ -983,8 +984,8 @@ void MetalRenderer::draw_endSequence()
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
 {
-    auto allocation = m_memoryManager->GetBufferAllocation(size);
-	offset = allocation.bufferOffset;
+    auto allocation = m_memoryManager->GetTemporaryBufferAllocator().GetBufferAllocation(size);
+	offset = allocation.offset;
 	bufferIndex = allocation.bufferIndex;
 
 	return allocation.data;
@@ -1005,6 +1006,9 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 
 	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
 		m_commandBuffers.push_back({mtlCommandBuffer});
+
+		// Notify memory manager about the new command buffer
+        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);
 
 		return mtlCommandBuffer;
 	}
@@ -1176,6 +1180,10 @@ void MetalRenderer::CommitCommandBuffer()
         auto& commandBuffer = m_commandBuffers.back();
         if (!commandBuffer.m_commited)
         {
+            commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer* cmd) {
+                m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
+            });
+
             commandBuffer.m_commandBuffer->commit();
             commandBuffer.m_commited = true;
 
@@ -1483,22 +1491,22 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		}
 		*/
 
-		// TODO: uncomment
-		//auto supportBuffer = m_memoryManager->GetBufferAllocation(sizeof(supportBufferData));
-		//memcpy(supportBuffer.data, supportBufferData, sizeof(supportBufferData));
+		auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
+		auto supportBuffer = bufferAllocator.GetBufferAllocation(sizeof(supportBufferData));
+		memcpy(supportBuffer.data, supportBufferData, sizeof(supportBufferData));
 
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
-			//renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBuffer(supportBuffer.bufferIndex), supportBuffer.bufferOffset, MTL_SUPPORT_BUFFER_BINDING);
-			renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
+			renderCommandEncoder->setVertexBuffer(bufferAllocator.GetBuffer(supportBuffer.bufferIndex), supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
+			//renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    //renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBuffer(supportBuffer.bufferIndex), supportBuffer.bufferOffset, MTL_SUPPORT_BUFFER_BINDING);
-			renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
+		    renderCommandEncoder->setFragmentBuffer(bufferAllocator.GetBuffer(supportBuffer.bufferIndex), supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
+			//renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}
 		default:

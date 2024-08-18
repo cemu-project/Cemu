@@ -6,8 +6,27 @@
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
-#include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
-#include "Metal/MTLRenderCommandEncoder.hpp"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+
+struct MetalBufferAllocation
+{
+    void* data;
+    uint32 bufferIndex;
+    size_t offset = INVALID_OFFSET;
+    size_t size;
+
+    bool IsValid() const
+    {
+        return offset != INVALID_OFFSET;
+    }
+};
+
+struct MetalRestrideInfo
+{
+    bool memoryInvalidated = true;
+    size_t lastStride = 0;
+    MetalBufferAllocation allocation{};
+};
 
 struct MetalBoundBuffer
 {
