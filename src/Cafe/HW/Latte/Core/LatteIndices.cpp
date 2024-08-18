@@ -769,7 +769,7 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 		// recalculate index range but filter out primitive restart index
 		LatteIndices_alternativeCalculateIndexMinMax(indexData, indexType, count, indexMin, indexMax);
 	}
-	g_renderer->indexData_uploadIndexMemory(indexBufferOffset, indexOutputSize);
+	g_renderer->indexData_uploadIndexMemory(indexBufferIndex, indexBufferOffset, indexOutputSize);
 	// update cache
 	LatteIndexCache.lastPtr = indexData;
 	LatteIndexCache.lastCount = count;

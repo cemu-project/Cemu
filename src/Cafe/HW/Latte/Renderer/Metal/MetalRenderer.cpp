@@ -18,6 +18,7 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
+#include "Metal/MTLResource.hpp"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -30,6 +31,9 @@ MetalRenderer::MetalRenderer()
 {
     m_device = MTL::CreateSystemDefaultDevice();
     m_commandQueue = m_device->newCommandQueue();
+
+    // Feature support
+    m_hasUnifiedMemory = m_device->hasUnifiedMemory();
 
     // Resources
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
@@ -75,7 +79,7 @@ MetalRenderer::MetalRenderer()
 #endif
 
     // Transform feedback
-    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize(), MTL::StorageModeShared);
+    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize(), MTL::ResourceStorageModePrivate);
 #ifdef CEMU_DEBUG_ASSERT
     m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
 #endif
@@ -991,9 +995,11 @@ void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, u
 	return allocation.data;
 }
 
-void MetalRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
+void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size)
 {
-    // Do nothing, since the buffer has shared storage mode
+    auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(bufferIndex);
+    if (!HasUnifiedMemory())
+        buffer->didModifyRange(NS::Range(offset, size));
 }
 
 MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
@@ -1495,18 +1501,21 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		size_t size = shader->uniform.uniformRangeSize;
 		auto supportBuffer = bufferAllocator.GetBufferAllocation(size);
 		memcpy(supportBuffer.data, supportBufferData, size);
+		auto buffer = bufferAllocator.GetBuffer(supportBuffer.bufferIndex);
+		if (!HasUnifiedMemory())
+		    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
 
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
 		{
-			renderCommandEncoder->setVertexBuffer(bufferAllocator.GetBuffer(supportBuffer.bufferIndex), supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
+			renderCommandEncoder->setVertexBuffer(buffer, supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
 			//renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}
 		case LatteConst::ShaderType::Pixel:
 		{
-		    renderCommandEncoder->setFragmentBuffer(bufferAllocator.GetBuffer(supportBuffer.bufferIndex), supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
+		    renderCommandEncoder->setFragmentBuffer(buffer, supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
 			//renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
 			break;
 		}

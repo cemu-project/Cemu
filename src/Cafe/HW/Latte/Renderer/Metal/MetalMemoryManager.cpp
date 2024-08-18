@@ -132,7 +132,7 @@ void MetalMemoryManager::InitBufferCache(size_t size)
         return;
     }
 
-    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModeShared);
+    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, m_mtlr->GetOptimalResourceStorageMode());
 #ifdef CEMU_DEBUG_ASSERT
     m_bufferCache->setLabel(GetLabel("Buffer cache", m_bufferCache));
 #endif
@@ -152,6 +152,8 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
     }
 
     memcpy((uint8*)m_bufferCache->contents() + offset, data, size);
+    if (!m_mtlr->HasUnifiedMemory())
+        m_bufferCache->didModifyRange(NS::Range(offset, size));
 
     // Notify vertex buffer cache about the change
     m_vertexBufferCache.MemoryRangeChanged(offset, size);

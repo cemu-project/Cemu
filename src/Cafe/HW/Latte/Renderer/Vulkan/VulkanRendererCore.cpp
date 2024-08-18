@@ -60,7 +60,7 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 	uint64 stateHash;
 	stateHash = draw_calculateMinimalGraphicsPipelineHash(fetchShader, lcr);
 	stateHash = (stateHash >> 8) + (stateHash * 0x370531ull) % 0x7F980D3BF9B4639Dull;
-	
+
 	uint32* ctxRegister = lcr.GetRawView();
 
 	if (vertexShader)
@@ -103,7 +103,7 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 	}
 
 	stateHash += renderPassObj->m_hashForPipeline;
-	
+
 	uint32 depthControl = ctxRegister[Latte::REGADDR::DB_DEPTH_CONTROL];
 	bool stencilTestEnable = depthControl & 1;
 	if (stencilTestEnable)
@@ -111,7 +111,7 @@ uint64 VulkanRenderer::draw_calculateGraphicsPipelineHash(const LatteFetchShader
 		stateHash += ctxRegister[mmDB_STENCILREFMASK];
 		stateHash = std::rotl<uint64>(stateHash, 17);
 		if(depthControl & (1<<7)) // back stencil enable
-		{ 
+		{
 			stateHash += ctxRegister[mmDB_STENCILREFMASK_BF];
 			stateHash = std::rotl<uint64>(stateHash, 13);
 		}
@@ -302,7 +302,7 @@ PipelineInfo* VulkanRenderer::draw_createGraphicsPipeline(uint32 indexCount)
 	pipelineCompiler->TrackAsCached(vsBaseHash, pipelineHash);
 
 	// use heuristics based on parameter patterns to determine if the current drawcall is essential (non-skipable)
-	bool allowAsyncCompile = false; 
+	bool allowAsyncCompile = false;
 	if (GetConfig().async_compile)
 		allowAsyncCompile = IsAsyncPipelineAllowed(indexCount);
 
@@ -366,7 +366,7 @@ void* VulkanRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, 
 	return resv.memPtr;
 }
 
-void VulkanRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
+void VulkanRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size)
 {
 	// does nothing since the index buffer memory is coherent
 }
@@ -701,8 +701,8 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		LatteTexture* baseTexture = textureView->baseTexture;
 		// get texture register word 0
 		uint32 word4 = LatteGPUState.contextRegister[texUnitRegIndex + 4];
-		
-		auto imageViewObj = textureView->GetSamplerView(word4);		
+
+		auto imageViewObj = textureView->GetSamplerView(word4);
 		info.imageView = imageViewObj->m_textureImageView;
 		vkObjDS->addRef(imageViewObj);
 
@@ -772,7 +772,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 				VK_SAMPLER_ADDRESS_MODE_REPEAT, // WRAP
 				VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, // MIRROR
 				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, // CLAMP_LAST_TEXEL
-				VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE, // MIRROR_ONCE_LAST_TEXEL 
+				VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE, // MIRROR_ONCE_LAST_TEXEL
 				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, // unsupported HALF_BORDER
 				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, // unsupported MIRROR_ONCE_HALF_BORDER
 				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, // CLAMP_BORDER
@@ -900,7 +900,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		uniformVarsBufferInfo.buffer = m_uniformVarBuffer;
 		uniformVarsBufferInfo.offset = 0; // fixed offset is always zero since we only use dynamic offsets
 		uniformVarsBufferInfo.range = shader->uniform.uniformRangeSize;
-		
+
 		VkWriteDescriptorSet write_descriptor{};
 		write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write_descriptor.dstSet = result;
@@ -1211,7 +1211,7 @@ void VulkanRenderer::draw_setRenderPass()
 	draw_endRenderPass();
 	if (m_state.descriptorSetsChanged)
 		sync_inputTexturesChanged();
-	
+
 	// assume that FBO changed, update self-dependency state
 	m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 

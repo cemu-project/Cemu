@@ -141,7 +141,7 @@ public:
 
 	// index
 	virtual void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) = 0;
-	virtual void indexData_uploadIndexMemory(uint32 offset, uint32 size) = 0;
+	virtual void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) = 0;
 
 	// occlusion queries
 	virtual LatteQueryObject* occlusionQuery_create() = 0;

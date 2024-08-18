@@ -7,6 +7,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Metal/MTLResource.hpp"
 
 struct MetalBufferAllocation
 {
@@ -269,7 +270,7 @@ public:
 
 	// index
 	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
-	void indexData_uploadIndexMemory(uint32 offset, uint32 size) override;
+	void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) override;
 
 	// occlusion queries
 	LatteQueryObject* occlusionQuery_create() override {
@@ -348,7 +349,22 @@ public:
     void ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a);
 
     // Getters
-    MTL::Buffer* GetTextureReadbackBuffer()
+    bool HasUnifiedMemory() const
+    {
+        return m_hasUnifiedMemory;
+    }
+
+    MTL::StorageMode GetOptimalStorageMode() const
+    {
+        return (m_hasUnifiedMemory ? MTL::StorageModeShared : MTL::StorageModeManaged);
+    }
+
+    MTL::ResourceOptions GetOptimalResourceStorageMode() const
+    {
+        return (m_hasUnifiedMemory ? MTL::ResourceStorageModeShared : MTL::ResourceStorageModeManaged);
+    }
+
+    MTL::Buffer* GetTextureReadbackBuffer() const
     {
         return m_readbackBuffer;
     }
@@ -357,14 +373,18 @@ private:
 	CA::MetalLayer* m_metalLayer;
 	float m_layerScaleX, m_layerScaleY;
 
+	// Metal objects
+	MTL::Device* m_device;
+	MTL::CommandQueue* m_commandQueue;
+
+	// Feature support
+	bool m_hasUnifiedMemory;
+
+	// Managers and caches
 	class MetalMemoryManager* m_memoryManager;
 	class MetalPipelineCache* m_pipelineCache;
 	class MetalDepthStencilCache* m_depthStencilCache;
 	class MetalSamplerCache* m_samplerCache;
-
-	// Metal objects
-	MTL::Device* m_device;
-	MTL::CommandQueue* m_commandQueue;
 
 	// Pipelines
 	MTL::RenderPipelineState* m_presentPipelineLinear;

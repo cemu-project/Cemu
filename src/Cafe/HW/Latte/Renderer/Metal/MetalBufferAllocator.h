@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Metal/MTLResource.hpp"
 
 struct MetalBufferRange
 {
@@ -13,7 +14,7 @@ template<typename BufferT>
 class MetalBufferAllocator
 {
 public:
-    MetalBufferAllocator(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
+    MetalBufferAllocator(class MetalRenderer* metalRenderer, MTL::ResourceOptions storageMode) : m_mtlr{metalRenderer}, m_storageMode{storageMode} {}
 
     ~MetalBufferAllocator()
     {
@@ -68,7 +69,7 @@ public:
 
         // If no free range was found, allocate a new buffer
         m_allocationSize = std::max(m_allocationSize, size);
-        MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, MTL::ResourceStorageModeShared);
+        MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, m_storageMode);
     #ifdef CEMU_DEBUG_ASSERT
         buffer->setLabel(GetLabel("Buffer from buffer allocator", buffer));
     #endif
@@ -124,6 +125,7 @@ public:
 
 protected:
     class MetalRenderer* m_mtlr;
+    MTL::ResourceOptions m_storageMode;
 
     size_t m_allocationSize = 8 * 1024 * 1024;
 
@@ -147,7 +149,7 @@ struct MetalSyncedBuffer
 class MetalTemporaryBufferAllocator : public MetalBufferAllocator<MetalSyncedBuffer>
 {
 public:
-    MetalTemporaryBufferAllocator(class MetalRenderer* metalRenderer) : MetalBufferAllocator<MetalSyncedBuffer>(metalRenderer) {}
+    MetalTemporaryBufferAllocator(class MetalRenderer* metalRenderer) : MetalBufferAllocator<MetalSyncedBuffer>(metalRenderer, metalRenderer->GetOptimalResourceStorageMode()) {}
 
     void SetActiveCommandBuffer(MTL::CommandBuffer* commandBuffer)
     {

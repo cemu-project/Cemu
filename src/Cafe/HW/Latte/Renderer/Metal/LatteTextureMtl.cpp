@@ -9,7 +9,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	: LatteTexture(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth), m_mtlr(mtlRenderer), m_format(format), m_isDepth(isDepth)
 {
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
-    desc->setStorageMode(MTL::StorageModeShared); // TODO: use private?
+    desc->setStorageMode(m_mtlr->GetOptimalStorageMode());
 
 	sint32 effectiveBaseWidth = width;
 	sint32 effectiveBaseHeight = height;

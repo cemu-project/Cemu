@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalBufferAllocator.h"
+#include "Metal/MTLResource.hpp"
 
 struct MetalRestridedBufferRange
 {
@@ -57,7 +58,7 @@ private:
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer), m_framePersistentBufferAllocator(metalRenderer), m_tempBufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer, m_framePersistentBufferAllocator) {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalResourceStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModePrivate), m_tempBufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer, m_framePersistentBufferAllocator) {}
     ~MetalMemoryManager();
 
     // Pipelines
